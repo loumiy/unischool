@@ -21,11 +21,18 @@ export function startDevelopment(s: GameState, node: Buildable): void {
 }
 
 // When autoDevelop is on, greedily fills any open slots with available
-// Buildables, in list order, using the exact same rule a manual start uses.
+// Buildables, in list order, using the same rule a manual start uses — it's
+// a sandbox playtesting convenience for bypassing manual "develop" clicks,
+// nothing more, so each course still takes its full `duration` in weeks
+// (it goes through the normal tickTech countdown like any other start).
+// The one thing auto-develop adds on top of a manual click: it won't spend
+// money the university doesn't have, so it can't be used to grind cash
+// negative unattended.
 function autoFillSlots(s: GameState): void {
   if (!s.autoDevelop) return;
   for (const node of s.tech) {
     if (Object.keys(s.developing).length >= s.slots) break;
+    if (node.cost > 0 && s.finance.cash < node.cost) continue;
     if (canStartDevelopment(s, node)) startDevelopment(s, node);
   }
 }
