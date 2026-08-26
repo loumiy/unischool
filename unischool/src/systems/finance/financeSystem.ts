@@ -23,14 +23,18 @@ const CALENDAR_WEEKS_PER_YEAR = 52;
 // tracks only the school's physical size (capacity), never its standing.
 const UPKEEP_PER_SEAT_PER_WEEK = 5;
 
-// Tuition (player-set via SET_TUITION) is the base revenue lever, scaling
-// with enrollment. On top of it, a "reputation dividend" — donors,
-// grants, brand value — scales with prestige, independent of enrollment.
-// This is the simple stand-in for the future demand-curve model the
-// README describes (where prestige shifts the tuition/enrollment
-// frontier): it's isolated to this one line so that richer model can
-// replace it later without touching anything else in this file, or any
-// other system.
+// Tuition (player-set once a year via the summer admissions interrupt —
+// see admissionsSystem.ts) is the base revenue lever, scaling with
+// enrollment. financialAidRate (also set there) discounts the price each
+// enrolled student actually pays, so offering aid has a real, felt
+// revenue cost in exchange for the satisfaction/conversion effects it
+// buys in admissionsSystem.ts. On top of tuition, a "reputation
+// dividend" — donors, grants, brand value — scales with prestige,
+// independent of enrollment. This is the simple stand-in for the future
+// demand-curve model the README describes (where prestige shifts the
+// tuition/enrollment frontier): it's isolated to this one line so that
+// richer model can replace it later without touching anything else in
+// this file, or any other system.
 const REPUTATION_DIVIDEND_PER_POINT_PER_YEAR = 400;
 
 // Endowment: a slow, steady long-term reserve, independent of week-to-week
@@ -45,7 +49,8 @@ function weeklyOpEx(s: GameState): number {
 }
 
 function weeklyRevenue(s: GameState): number {
-  const tuitionRevenue = (s.students.enrolled * s.finance.tuitionPerStudent) / CALENDAR_WEEKS_PER_YEAR;
+  const netTuitionPerStudent = s.finance.tuitionPerStudent * (1 - s.admissions.financialAidRate);
+  const tuitionRevenue = (s.students.enrolled * netTuitionPerStudent) / CALENDAR_WEEKS_PER_YEAR;
   const prestigeRevenue = (s.self.reputation * REPUTATION_DIVIDEND_PER_POINT_PER_YEAR) / CALENDAR_WEEKS_PER_YEAR;
   // Set once at founding by school type (e.g. state appropriations for a
   // public school; 0 for private) — see SCHOOL_TYPE_PRESETS.

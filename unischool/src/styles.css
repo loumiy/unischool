@@ -100,8 +100,6 @@ button { cursor: pointer; font-family: inherit; }
 
 dl { display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; margin: 0; }
 dt { color: var(--ink-muted); } dd { margin: 0; text-align: right; font-family: var(--mono); }
-.tuition-ctrl { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; color: var(--ink-muted); }
-.tuition-ctrl button { width: 26px; height: 26px; background: #f5efdd; color: var(--ink); border: 1px solid var(--parchment-line); border-radius: 5px; }
 
 ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty li { display: flex; justify-content: space-between; align-items: center; gap: 8px;
@@ -123,11 +121,18 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 
 .modal-backdrop { position: fixed; inset: 0; background: rgba(10, 11, 14, 0.7);
   display: flex; align-items: center; justify-content: center; z-index: 100; }
-.modal { background: var(--navy); color: var(--ink-hi); border-radius: 10px; padding: 20px 24px; max-width: 420px;
+.modal { background: var(--navy); color: var(--ink-hi); border-radius: 10px; padding: 20px 24px; max-width: 440px; width: 100%;
   border: 1px solid var(--navy-line); }
 .modal h2 { margin: 0 0 10px; font-size: 16px; font-family: var(--serif); }
 .modal p { margin: 0 0 16px; color: #cbd0d8; font-size: 14px; }
 .modal button { background: #3b6ef0; color: white; border: none; border-radius: 6px; padding: 6px 16px; }
+
+.admissions-field { display: block; margin-bottom: 16px; }
+.admissions-field span { display: block; font-size: 13px; color: #cbd0d8; margin-bottom: 6px; }
+.admissions-field span strong { color: var(--ink-hi); font-family: var(--mono); }
+.admissions-field input[type="range"] { width: 100%; accent-color: var(--gold); }
+.admissions-number { width: 100%; padding: 6px 10px; border-radius: 5px; border: 1px solid var(--navy-line);
+  background: #1a2338; color: var(--ink-hi); font-family: var(--mono); font-size: 14px; }
 
 /* ---------- startup screen ---------- */
 .startup { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }

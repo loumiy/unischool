@@ -18,6 +18,10 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   tickRivals,
 ];
 
+function clamp01(v: number): number {
+  return Math.max(0, Math.min(1, v));
+}
+
 function advanceClock(s: GameState): void {
   s.clock.week += 1;
   if (s.clock.week > WEEKS_PER_YEAR) {
@@ -34,7 +38,10 @@ export function reducer(state: GameState, action: Action): GameState {
     case 'TICK': {
       if (!s.started || s.gameOver || s.pendingInterrupt) return state; // the clock halts while an interrupt is pending
       for (const system of SYSTEMS) system(s);
-      advanceClock(s);
+      // A system may have just enqueued an interrupt (e.g. the summer
+      // admissions decision) — hold the clock at this week rather than
+      // rolling into the next one until it's resolved.
+      if (!s.pendingInterrupt) advanceClock(s);
       if (s.log.length > 50) s.log.length = 50; // cap log growth
       return s;
     }
@@ -62,11 +69,6 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
-    case 'SET_TUITION': {
-      s.finance.tuitionPerStudent = Math.max(0, Math.min(action.amount, s.finance.tuitionCeiling));
-      return s;
-    }
-
     case 'BUY_SLOT': {
       if (s.slots < MAX_SLOTS && s.finance.cash >= SLOT_COST) {
         s.finance.cash -= SLOT_COST;
@@ -82,6 +84,26 @@ export function reducer(state: GameState, action: Action): GameState {
 
     case 'RESOLVE_INTERRUPT': {
       s.pendingInterrupt = null;
+      return s;
+    }
+
+    case 'RESOLVE_ADMISSIONS': {
+      // Tuition is set ONLY here, once a year — see README's "Admissions:
+      // an annual summer decision" and the removed live SET_TUITION control.
+      s.finance.tuitionPerStudent = Math.max(0, Math.min(action.tuition, s.finance.tuitionCeiling));
+      s.admissions = {
+        financialAidRate: clamp01(action.financialAidRate),
+        selectivity: clamp01(action.selectivity),
+        targetEnrollment: Math.max(0, action.targetEnrollment),
+      };
+      s.pendingInterrupt = null;
+      advanceClock(s); // resolving is what turns the calendar page into the new year
+      s.log.unshift({
+        year: s.clock.year,
+        week: s.clock.week,
+        message: `Admissions policy set: tuition $${s.finance.tuitionPerStudent.toLocaleString()}/yr, target enrollment ${s.admissions.targetEnrollment}.`,
+        kind: 'info',
+      });
       return s;
     }
 

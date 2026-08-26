@@ -79,6 +79,21 @@ export interface PendingInterrupt {
   payload?: unknown;
 }
 
+// The player's admissions policy, set once a year via the summer interrupt
+// (see README's "Admissions: an annual summer decision") and left to drive
+// the sim passively — satisfaction, applicant conversion, attrition — for
+// the rest of that year. Tuition itself lives on Finance (the single
+// source of truth for the actual price charged); this is the rest of the
+// policy bundle. Shaped so a future demand-curve model can consume it
+// without a state-shape change: financialAidRate + tuition together
+// describe the price the student actually faces, selectivity +
+// targetEnrollment describe the supply-side policy.
+export interface AdmissionsSettings {
+  financialAidRate: number; // 0..1, average tuition discount across admits
+  selectivity: number;      // 0..1; higher = more selective (smaller share of the applicant pool admitted per week)
+  targetEnrollment: number; // desired enrolled headcount to converge toward this year
+}
+
 export interface Rival {
   id: string;
   name: string;
@@ -100,6 +115,7 @@ export interface GameState {
   clock: GameClock;
   finance: Finance;
   students: StudentBody;
+  admissions: AdmissionsSettings;
   faculty: Faculty[];
   tech: Buildable[];
   slots: number;                     // parallel development slots

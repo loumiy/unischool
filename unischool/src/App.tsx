@@ -11,10 +11,10 @@ import './styles.css';
 
 const SPEED_LABELS: Record<Speed, string> = { paused: 'Paused', real: 'Play', fast: 'Fast (sandbox)' };
 
-// Placeholder modal content per interrupt `type`. Real interrupts (admissions,
-// the U.S. News report, the tutorial) each add a case here with their own
-// content; the 'debug-test' case is scaffolding — remove it once a real
-// interrupt exists (see DEBUG_TRIGGER_TEST_INTERRUPT in reducer.ts).
+// Placeholder modal content for interrupt types with no dedicated form (see
+// AdmissionsInterruptForm below for 'admissions'). The 'debug-test' case is
+// scaffolding — remove it once a real interrupt other than admissions
+// exists (the U.S. News report, the tutorial) and needs the same treatment.
 function interruptBody(interrupt: PendingInterrupt): { title: string; body: string } {
   switch (interrupt.type) {
     case 'debug-test':
@@ -25,6 +25,64 @@ function interruptBody(interrupt: PendingInterrupt): { title: string; body: stri
     default:
       return { title: interrupt.type, body: 'No content registered for this interrupt type.' };
   }
+}
+
+interface AdmissionsDraft {
+  tuition: number;
+  financialAidRate: number;
+  selectivity: number;
+  targetEnrollment: number;
+}
+
+// The once-a-year summer admissions decision (see README's "Admissions: an
+// annual summer decision"). Resolving it stores tuition/aid/selectivity/
+// target enrollment, which then drive the sim passively for the rest of
+// the year — see admissionsSystem.ts. This is the only place tuition is
+// ever set; there is no live, continuously adjustable tuition control.
+function AdmissionsInterruptForm({ payload, tuitionCeiling, onResolve }: {
+  payload: AdmissionsDraft;
+  tuitionCeiling: number;
+  onResolve: (settings: AdmissionsDraft) => void;
+}) {
+  const [tuition, setTuition] = useState(payload.tuition);
+  const [financialAidRate, setFinancialAidRate] = useState(payload.financialAidRate);
+  const [selectivity, setSelectivity] = useState(payload.selectivity);
+  const [targetEnrollment, setTargetEnrollment] = useState(payload.targetEnrollment);
+
+  return (
+    <>
+      <h2>Summer Admissions</h2>
+      <p>Set next year's policy. These choices drive enrollment, satisfaction, and revenue passively for the whole year.</p>
+
+      <label className="admissions-field">
+        <span>Tuition <strong>${tuition.toLocaleString()}/yr</strong> (cap ${tuitionCeiling.toLocaleString()})</span>
+        <input type="range" min={0} max={tuitionCeiling} step={500} value={tuition}
+          onChange={(e) => setTuition(Number(e.target.value))} />
+      </label>
+
+      <label className="admissions-field">
+        <span>Financial aid <strong>{Math.round(financialAidRate * 100)}%</strong> avg. discount</span>
+        <input type="range" min={0} max={1} step={0.01} value={financialAidRate}
+          onChange={(e) => setFinancialAidRate(Number(e.target.value))} />
+      </label>
+
+      <label className="admissions-field">
+        <span>Selectivity <strong>{Math.round(selectivity * 100)}%</strong></span>
+        <input type="range" min={0} max={0.95} step={0.01} value={selectivity}
+          onChange={(e) => setSelectivity(Number(e.target.value))} />
+      </label>
+
+      <label className="admissions-field">
+        <span>Target enrollment</span>
+        <input type="number" min={0} className="admissions-number" value={targetEnrollment}
+          onChange={(e) => setTargetEnrollment(Number(e.target.value))} />
+      </label>
+
+      <button onClick={() => onResolve({ tuition, financialAidRate, selectivity, targetEnrollment })}>
+        Confirm Policy
+      </button>
+    </>
+  );
 }
 
 function termName(week: number): string {
@@ -182,9 +240,19 @@ export default function App() {
       {s.pendingInterrupt && (
         <div className="modal-backdrop">
           <div className="modal">
-            <h2>{interruptBody(s.pendingInterrupt).title}</h2>
-            <p>{interruptBody(s.pendingInterrupt).body}</p>
-            <button onClick={() => act({ type: 'RESOLVE_INTERRUPT' })}>Resolve</button>
+            {s.pendingInterrupt.type === 'admissions' ? (
+              <AdmissionsInterruptForm
+                payload={s.pendingInterrupt.payload as AdmissionsDraft}
+                tuitionCeiling={s.finance.tuitionCeiling}
+                onResolve={(settings) => act({ type: 'RESOLVE_ADMISSIONS', ...settings })}
+              />
+            ) : (
+              <>
+                <h2>{interruptBody(s.pendingInterrupt).title}</h2>
+                <p>{interruptBody(s.pendingInterrupt).body}</p>
+                <button onClick={() => act({ type: 'RESOLVE_INTERRUPT' })}>Resolve</button>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -270,11 +338,7 @@ export default function App() {
               <dt>Weekly OpEx</dt><dd>${Math.round(s.finance.weeklyOpEx).toLocaleString()}</dd>
               <dt>Tuition</dt><dd>${s.finance.tuitionPerStudent.toLocaleString()}/yr</dd>
             </dl>
-            <div className="tuition-ctrl">
-              <button onClick={() => act({ type: 'SET_TUITION', amount: s.finance.tuitionPerStudent - 1000 })}>–</button>
-              <span>set tuition</span>
-              <button onClick={() => act({ type: 'SET_TUITION', amount: s.finance.tuitionPerStudent + 1000 })}>+</button>
-            </div>
+            <p className="empty-note">Tuition is set once a year, at the summer admissions decision.</p>
           </section>
 
           <section className="panel">
@@ -283,6 +347,9 @@ export default function App() {
               <dt>Enrolled</dt><dd>{s.students.enrolled} / {s.students.capacity}</dd>
               <dt>Satisfaction</dt><dd>{Math.round(s.students.satisfaction)}</dd>
               <dt>Applicant pool</dt><dd>{Math.round(s.students.applicantPool)}</dd>
+              <dt>Target enrollment</dt><dd>{s.admissions.targetEnrollment}</dd>
+              <dt>Selectivity</dt><dd>{Math.round(s.admissions.selectivity * 100)}%</dd>
+              <dt>Financial aid</dt><dd>{Math.round(s.admissions.financialAidRate * 100)}%</dd>
             </dl>
           </section>
 
