@@ -2,6 +2,7 @@ import type { GameState } from './types';
 import { WEEKS_PER_YEAR } from './types';
 import { initialTech } from '../data/techData';
 import { initialRivals } from '../data/rivalData';
+import { initialCandidates } from '../data/facultyData';
 
 // All the ways a player can change the world. The engine's reducer is the
 // only thing that interprets these. UI dispatches them; systems never do.
@@ -11,6 +12,8 @@ export type Action =
   | { type: 'HIRE_FACULTY'; facultyId: string }
   | { type: 'FIRE_FACULTY'; facultyId: string }
   | { type: 'SET_TUITION'; amount: number }
+  | { type: 'BUY_SLOT' }
+  | { type: 'TOGGLE_AUTO_DEVELOP' }
   | { type: 'RESOLVE_INTERRUPT' }                      // clears pendingInterrupt, lets the clock resume
   | { type: 'DEBUG_TRIGGER_TEST_INTERRUPT' }           // scaffolding: see reducer.ts, remove once a real interrupt exists
   | { type: 'RESET' };
@@ -45,6 +48,8 @@ export function createInitialState(): GameState {
     ],
     gameOver: false,
     pendingInterrupt: null,
+    autoDevelop: false,
+    candidates: initialCandidates(),
   };
 }
 

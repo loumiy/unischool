@@ -186,3 +186,28 @@ export function initialTech(): Buildable[] {
 
   return nodes;
 }
+
+// UI-only grouping metadata (school -> core/major -> course ids), for the
+// curriculum tile view. Deliberately not part of the Buildable model itself
+// — the engine never needs to know a course belongs to a school or major.
+export interface CurriculumGroup {
+  label: string;      // 'Core' or the major's name
+  courseIds: string[];
+}
+export interface CurriculumSchool {
+  name: string;
+  groups: CurriculumGroup[];
+}
+
+export function curriculumGroups(): CurriculumSchool[] {
+  return SCHOOLS.map((school) => {
+    const groups: CurriculumGroup[] = [];
+    if (school.core) {
+      groups.push({ label: 'Core', courseIds: school.core.map(([code]) => code.replace(/\s/g, '')) });
+    }
+    for (const major of school.majors) {
+      groups.push({ label: major.name, courseIds: NUMS.map((num) => nodeId(major.prefix, num)) });
+    }
+    return { name: school.name, groups };
+  });
+}

@@ -102,6 +102,8 @@ export interface GameState {
   log: LogEntry[];               // recent events, newest first
   gameOver: boolean;
   pendingInterrupt: PendingInterrupt | null; // set => clock halts until resolved
+  autoDevelop: boolean;          // when true, tickTech fills open development slots itself
+  candidates: Faculty[];         // hireable faculty pool, distinct from the hired roster
 }
 
 export interface LogEntry {

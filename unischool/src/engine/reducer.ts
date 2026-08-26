@@ -3,14 +3,16 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import type { Action } from '../state/actions';
 import { createInitialState } from '../state/actions';
 import { tickFinance } from '../systems/finance/financeSystem';
-import { tickTech } from '../systems/techtree/techSystem';
+import { tickTech, canStartDevelopment, startDevelopment, SLOT_COST, MAX_SLOTS } from '../systems/techtree/techSystem';
 import { tickAdmissions } from '../systems/admissions/admissionsSystem';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
+import { tickFaculty } from '../systems/faculty/facultySystem';
 
 // The systems run in a fixed order each week. Order matters: research and
 // finance resolve before admissions/rivals read the updated world.
 const SYSTEMS: Array<(s: GameState) => void> = [
   tickTech,
+  tickFaculty,
   tickFinance,
   tickAdmissions,
   tickRivals,
@@ -39,12 +41,15 @@ export function reducer(state: GameState, action: Action): GameState {
 
     case 'START_DEVELOPMENT': {
       const node = s.tech.find((t) => t.id === action.nodeId);
-      const slotsUsed = Object.keys(s.developing).length;
-      const facultyOk = !node?.requiresFaculty || s.faculty.some((f) => f.field === node.requiresFaculty);
-      if (node && node.status === 'available' && slotsUsed < s.slots && facultyOk) {
-        node.status = 'developing';
-        s.developing[node.id] = node.duration;
-        s.finance.cash -= node.cost; // cost is charged up front; see README's pacing model for the (separate) cash-gate task
+      if (node && canStartDevelopment(s, node)) startDevelopment(s, node);
+      return s;
+    }
+
+    case 'HIRE_FACULTY': {
+      const idx = s.candidates.findIndex((c) => c.id === action.facultyId);
+      if (idx !== -1) {
+        const [hired] = s.candidates.splice(idx, 1);
+        s.faculty.push(hired);
       }
       return s;
     }
@@ -56,6 +61,19 @@ export function reducer(state: GameState, action: Action): GameState {
 
     case 'SET_TUITION': {
       s.finance.tuitionPerStudent = Math.max(0, action.amount);
+      return s;
+    }
+
+    case 'BUY_SLOT': {
+      if (s.slots < MAX_SLOTS && s.finance.cash >= SLOT_COST) {
+        s.finance.cash -= SLOT_COST;
+        s.slots += 1;
+      }
+      return s;
+    }
+
+    case 'TOGGLE_AUTO_DEVELOP': {
+      s.autoDevelop = !s.autoDevelop;
       return s;
     }
 

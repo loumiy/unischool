@@ -1,5 +1,35 @@
 import type { GameState, Buildable, BuildableEffects } from '../../state/types';
 
+// Development slots are a purchasable relief valve, not the primary
+// pacing throttle (see README's "Pacing model"). Flat cost and a soft cap
+// for now — tune freely.
+export const SLOT_COST = 40_000;
+export const MAX_SLOTS = 8;
+
+// Shared by the reducer's START_DEVELOPMENT case and this system's
+// auto-develop fill, so "what it takes to start" has one definition.
+export function canStartDevelopment(s: GameState, node: Buildable): boolean {
+  const slotsUsed = Object.keys(s.developing).length;
+  const facultyOk = !node.requiresFaculty || s.faculty.some((f) => f.field === node.requiresFaculty);
+  return node.status === 'available' && slotsUsed < s.slots && facultyOk;
+}
+
+export function startDevelopment(s: GameState, node: Buildable): void {
+  node.status = 'developing';
+  s.developing[node.id] = node.duration;
+  s.finance.cash -= node.cost; // cost is charged up front; see README's pacing model for the (separate) cash-gate task
+}
+
+// When autoDevelop is on, greedily fills any open slots with available
+// Buildables, in list order, using the exact same rule a manual start uses.
+function autoFillSlots(s: GameState): void {
+  if (!s.autoDevelop) return;
+  for (const node of s.tech) {
+    if (Object.keys(s.developing).length >= s.slots) break;
+    if (canStartDevelopment(s, node)) startDevelopment(s, node);
+  }
+}
+
 function applyEffects(s: GameState, e?: Partial<BuildableEffects>): void {
   if (!e) return;
   if (e.capacityBonus) s.students.capacity += e.capacityBonus;
@@ -49,4 +79,5 @@ export function tickTech(s: GameState): void {
   }
 
   if (finished.length > 0) unlockAvailable(s);
+  autoFillSlots(s);
 }
