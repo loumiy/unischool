@@ -2,12 +2,14 @@ import type { GameState } from './types';
 import { WEEKS_PER_YEAR } from './types';
 import { initialTech } from '../data/techData';
 import { initialRivals } from '../data/rivalData';
+import { STARTING_SLOTS } from '../systems/techtree/techSystem';
 
 // All the ways a player can change the world. The engine's reducer is the
 // only thing that interprets these. UI dispatches them; systems never do.
 export type Action =
   | { type: 'TICK' }                                   // advance one week
   | { type: 'START_DEVELOPMENT'; nodeId: string }
+  | { type: 'BUY_SLOT' }
   | { type: 'HIRE_FACULTY'; facultyId: string }
   | { type: 'FIRE_FACULTY'; facultyId: string }
   | { type: 'SET_TUITION'; amount: number }
@@ -34,7 +36,7 @@ export function createInitialState(): GameState {
       { id: 'f3', name: 'Dr. Wei Zhang', field: 'CompSci', teaching: 60, research: 88, salary: 105_000, morale: 75 },
     ],
     tech: initialTech(),
-    slots: 2,
+    slots: STARTING_SLOTS,
     developing: {},
     rivals: initialRivals(),
     self: { name: 'Your University', reputation: 40 },

@@ -18,7 +18,10 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .stat { color: #9aa2ae; font-variant-numeric: tabular-nums; font-size: 13px; }
 .ranks li.me { color: #7dd3a0; font-weight: 600; }
 button { cursor: pointer; }
+button:disabled { opacity: 0.4; cursor: default; }
 .faculty button { background: #3a2226; color: #f0a0a8; border: 1px solid #5a3238; border-radius: 5px; padding: 2px 8px; font-size: 12px; }
+.slot-buy { margin-bottom: 10px; }
+.slot-buy button { background: #26344f; color: #9dc0ff; border: 1px solid #34507d; border-radius: 5px; padding: 4px 10px; font-size: 12px; }
 .school-toggle { display: flex; width: 100%; justify-content: space-between; align-items: center;
   background: none; border: none; border-bottom: 1px solid #262a32; color: #e6e8ec;
   font: inherit; font-weight: 600; padding: 8px 0; text-align: left; }

@@ -6,6 +6,22 @@ export function developmentWeeks(tier: number): number {
   return tier * WEEKS_PER_TIER;
 }
 
+// Slots the university starts with, before any are purchased. Shared with
+// createInitialState() so the cost curve below and the starting state agree
+// on where "zero purchases" is.
+export const STARTING_SLOTS = 2;
+
+// Cost to buy the next development slot, given how many the player already
+// has. This is the main lever for long-term growth, so it's the one curve
+// to tune: SLOT_BASE_COST is the first purchased slot's price, SLOT_COST_GROWTH
+// is how much pricier each additional slot gets.
+const SLOT_BASE_COST = 40_000;
+const SLOT_COST_GROWTH = 1.6;
+export function nextSlotCost(currentSlots: number): number {
+  const purchased = currentSlots - STARTING_SLOTS;
+  return Math.round(SLOT_BASE_COST * SLOT_COST_GROWTH ** purchased);
+}
+
 function applyEffects(s: GameState, e?: Partial<GameEffects>): void {
   if (!e) return;
   if (e.capacityBonus) s.students.capacity += e.capacityBonus;

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useGame, SPEEDS, type Speed } from './engine/useGame';
 import { rankedList } from './systems/rivals/rivalsSystem';
+import { nextSlotCost } from './systems/techtree/techSystem';
 import type { TechNode } from './state/types';
 import './styles.css';
 
@@ -95,7 +96,17 @@ export default function App() {
         </section>
 
         <section className="panel">
-          <h2>Research <span className="stat">{Object.keys(s.developing).length}/{s.slots} slots</span></h2>
+          <h2>
+            Research <span className="stat">{Object.keys(s.developing).length}/{s.slots} slots</span>
+          </h2>
+          <div className="slot-buy">
+            <button
+              disabled={s.finance.cash < nextSlotCost(s.slots)}
+              onClick={() => act({ type: 'BUY_SLOT' })}
+            >
+              buy slot — ${nextSlotCost(s.slots).toLocaleString()}
+            </button>
+          </div>
           <div className="schools">
             {schools.map(({ school, majors }) => {
               const courseCount = majors.reduce((n, m) => n + m.courses.length, 0);

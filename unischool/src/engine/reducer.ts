@@ -3,7 +3,7 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import type { Action } from '../state/actions';
 import { createInitialState } from '../state/actions';
 import { tickFinance } from '../systems/finance/financeSystem';
-import { tickTech, developmentWeeks } from '../systems/techtree/techSystem';
+import { tickTech, developmentWeeks, nextSlotCost } from '../systems/techtree/techSystem';
 import { tickAdmissions } from '../systems/admissions/admissionsSystem';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
 
@@ -43,6 +43,21 @@ export function reducer(state: GameState, action: Action): GameState {
       if (node && node.status === 'available' && slotsUsed < s.slots) {
         node.status = 'developing';
         s.developing[node.id] = developmentWeeks(node.tier);
+      }
+      return s;
+    }
+
+    case 'BUY_SLOT': {
+      const cost = nextSlotCost(s.slots);
+      if (s.finance.cash >= cost) {
+        s.finance.cash -= cost;
+        s.slots += 1;
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: `Bought a new development slot for $${cost.toLocaleString()}.`,
+          kind: 'good',
+        });
       }
       return s;
     }
