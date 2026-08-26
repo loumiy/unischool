@@ -74,7 +74,7 @@ export default function App() {
           </div>
           <div className="stat-block">
             <div className="stat-label">Operating Funds</div>
-            <div className="stat-value money">${Math.round(s.finance.cash).toLocaleString()}</div>
+            <div className={`stat-value ${s.finance.cash < 0 ? 'money-negative' : 'money'}`}>${Math.round(s.finance.cash).toLocaleString()}</div>
             <div className="stat-sub">{netWeekly >= 0 ? '+' : '-'}${Math.round(Math.abs(netWeekly)).toLocaleString()}/wk</div>
           </div>
           <div className="stat-block">
@@ -165,12 +165,16 @@ export default function App() {
           </div>
 
           <div className="available-head"><h3>Available to Develop ({availableCourses.length})</h3></div>
+          {s.finance.cash < 0 && (
+            <p className="stall-note">Cash is negative — new development is stalled until it recovers.</p>
+          )}
           <ul className="available-list">
             {availableCourses.map((t) => (
               <li key={t.id}>
                 <span>{t.name}</span>
                 <button
-                  disabled={slotsUsed >= s.slots}
+                  disabled={slotsUsed >= s.slots || s.finance.cash < 0}
+                  title={s.finance.cash < 0 ? 'Cash is negative — expansion is stalled until it recovers.' : undefined}
                   onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: t.id })}
                 >
                   develop →

@@ -8,16 +8,22 @@ export const MAX_SLOTS = 8;
 
 // Shared by the reducer's START_DEVELOPMENT case and this system's
 // auto-develop fill, so "what it takes to start" has one definition.
+// The cash>=0 check is the "stall, don't die" bottleneck from README's
+// pacing model: a shortfall blocks starting anything new — regardless of
+// that Buildable's own cost — rather than ending the run. It naturally
+// covers manual starts, auto-develop, and any future build-initiation
+// path that goes through this function.
 export function canStartDevelopment(s: GameState, node: Buildable): boolean {
   const slotsUsed = Object.keys(s.developing).length;
   const facultyOk = !node.requiresFaculty || s.faculty.some((f) => f.field === node.requiresFaculty);
-  return node.status === 'available' && slotsUsed < s.slots && facultyOk;
+  const notInTheRed = s.finance.cash >= 0;
+  return node.status === 'available' && slotsUsed < s.slots && facultyOk && notInTheRed;
 }
 
 export function startDevelopment(s: GameState, node: Buildable): void {
   node.status = 'developing';
   s.developing[node.id] = node.duration;
-  s.finance.cash -= node.cost; // cost is charged up front; see README's pacing model for the (separate) cash-gate task
+  s.finance.cash -= node.cost; // cost is charged up front; can dip cash below zero, which then stalls the *next* start
 }
 
 // When autoDevelop is on, greedily fills any open slots with available
@@ -25,9 +31,10 @@ export function startDevelopment(s: GameState, node: Buildable): void {
 // a sandbox playtesting convenience for bypassing manual "develop" clicks,
 // nothing more, so each course still takes its full `duration` in weeks
 // (it goes through the normal tickTech countdown like any other start).
-// The one thing auto-develop adds on top of a manual click: it won't spend
-// money the university doesn't have, so it can't be used to grind cash
-// negative unattended.
+// canStartDevelopment's cash>=0 check already stalls it while in the red;
+// on top of that, auto-develop won't pick a specific Buildable it can't
+// afford even while cash is still non-negative, so it can't be used to
+// unattendedly grind the balance down to the stall threshold.
 function autoFillSlots(s: GameState): void {
   if (!s.autoDevelop) return;
   for (const node of s.tech) {

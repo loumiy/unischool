@@ -31,6 +31,7 @@ button { cursor: pointer; font-family: inherit; }
 .stat-label { text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; color: var(--gold-dim); }
 .stat-value { font-family: var(--mono); font-size: 17px; font-weight: 700; color: var(--ink-hi); }
 .stat-value.money { color: #7dd3a0; }
+.stat-value.money-negative { color: #e58a8a; }
 .stat-value.gold { color: var(--gold); }
 .stat-sub { font-size: 11px; color: var(--ink-lo); font-family: var(--mono); }
 
@@ -92,6 +93,8 @@ button { cursor: pointer; font-family: inherit; }
   padding: 9px; border-radius: 5px; font-family: var(--serif); font-size: 13px; margin-bottom: 12px; }
 .buy-slot-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .empty-note { font-style: italic; color: var(--ink-muted); font-size: 13px; margin: 0; }
+.stall-note { background: #f4dede; color: #8a2f2f; border: 1px solid #d9a8a8; border-radius: 5px;
+  padding: 6px 10px; font-size: 12px; margin: 0 0 8px; }
 .developing-list { list-style: none; margin: 0; padding: 0; }
 .developing-list li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--parchment-line-lo); font-size: 13px; }
 
