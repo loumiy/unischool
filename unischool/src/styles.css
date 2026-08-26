@@ -51,7 +51,7 @@ button { cursor: pointer; font-family: inherit; }
 
 /* ---------- layout ---------- */
 .layout { display: grid; grid-template-columns: 2.1fr 1fr; gap: 16px; align-items: start; margin-bottom: 16px; }
-.layout-secondary { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.layout-secondary { display: grid; grid-template-columns: 1fr; gap: 16px; }
 .sidebar { display: flex; flex-direction: column; gap: 16px; }
 
 .panel { background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px;
@@ -108,8 +108,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty button { background: #f4dede; color: #8a2f2f; border: 1px solid #d9a8a8; border-radius: 5px; padding: 3px 10px; font-size: 11px; white-space: nowrap; }
 .faculty button.appoint { background: #dcefe0; color: var(--green); border: 1px solid #9fd3af; }
 
-.ranks li { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--parchment-line-lo); }
-.ranks li.me { color: var(--green); font-weight: 700; }
 .log { max-height: 190px; overflow-y: auto; font-size: 12px; }
 .log li { padding: 3px 0; border-bottom: 1px solid var(--parchment-line-lo); }
 .log .ts { color: var(--ink-muted); font-family: var(--mono); margin-right: 6px; }
@@ -126,6 +124,13 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .modal h2 { margin: 0 0 10px; font-size: 16px; font-family: var(--serif); }
 .modal p { margin: 0 0 16px; color: #cbd0d8; font-size: 14px; }
 .modal button { background: #3b6ef0; color: white; border: none; border-radius: 6px; padding: 6px 16px; }
+
+.report-standings { max-height: 320px; overflow-y: auto; margin: 0 0 16px; padding-right: 6px; }
+.report-standings li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--navy-line); font-size: 13px; }
+.report-standings li.me { color: #7dd3a0; font-weight: 700; }
+.report-standings::-webkit-scrollbar { width: 8px; }
+.report-standings::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: 4px; }
+.report-standings { scrollbar-width: thin; scrollbar-color: var(--navy-line) transparent; }
 
 .admissions-field { display: block; margin-bottom: 16px; }
 .admissions-field span { display: block; font-size: 13px; color: #cbd0d8; margin-bottom: 6px; }

@@ -21,6 +21,12 @@ export type Action =
   // year itself (see reducer.ts). Tuition is set ONLY here, once a year —
   // there is no other action that changes it.
   | { type: 'RESOLVE_ADMISSIONS'; tuition: number; financialAidRate: number; selectivity: number; targetEnrollment: number }
+  // Dismisses the "you've entered the rankings" reveal or an annual U.S.
+  // News report interrupt. Like RESOLVE_ADMISSIONS (and unlike the plain
+  // RESOLVE_INTERRUPT), this advances the clock — both fire as a trailing
+  // step after that week's systems already ran, so dismissing means
+  // moving on to the next week, not replaying this one.
+  | { type: 'RESOLVE_REPORT' }
   | { type: 'DEBUG_TRIGGER_TEST_INTERRUPT' }           // scaffolding: see reducer.ts, remove once a real interrupt exists
   | { type: 'RESET' };
 
@@ -45,6 +51,7 @@ export function createPreStartState(): GameState {
     autoDevelop: false,
     candidates: [],
     started: false,
+    hasEnteredRankings: false,
   };
 }
 
@@ -97,6 +104,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     autoDevelop: false,
     candidates: initialCandidates(),
     started: true,
+    hasEnteredRankings: false,
   };
 }
 
