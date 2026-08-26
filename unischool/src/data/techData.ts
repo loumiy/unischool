@@ -9,7 +9,7 @@ import type { TechNode, GameEffects } from '../state/types';
     - tier 2 (110/120/130/140): requires the major's tier-1 course
     - tier 3 (210/220/230/240): requires ALL FOUR of the major's tier-2 courses
 
-  Cost scales with tier, standing in for how much research effort a course takes.
+  Tier also drives development time (see developmentWeeks() in techSystem.ts).
   Effects are modest per-course; the milestone bonuses (major/school complete)
   live in the tech system later, not here.
 */
@@ -17,8 +17,7 @@ import type { TechNode, GameEffects } from '../state/types';
 const NUMS = [101, 110, 120, 130, 140, 210, 220, 230, 240];
 const TIERS = [1, 2, 2, 2, 2, 3, 3, 3, 3] as const;
 
-// Cost + reward per tier. Tune freely — this is where pacing gets balanced.
-const TIER_COST: Record<number, number> = { 1: 120, 2: 260, 3: 480 };
+// Reputation reward per tier. Tune freely — this is where pacing gets balanced.
 const TIER_REP: Record<number, number> = { 1: 2, 2: 3, 3: 5 };
 
 interface MajorSeed {
@@ -129,10 +128,9 @@ export function initialTech(): TechNode[] {
           id: code.replace(/\s/g, ''),
           name: `${code} · ${title}`,
           description: `${school.name} core requirement.`,
-          cost: TIER_COST[1],
+          tier: 1,
           prereqs: [],
           status: 'available',
-          progress: 0,
           unlocks: { reputationBonus: TIER_REP[1], capacityBonus: 20 },
         });
       }
@@ -160,11 +158,10 @@ export function initialTech(): TechNode[] {
           id,
           name: `${major.prefix} ${num} · ${title}`,
           description: `${major.name} (${school.name}), tier ${tier}.`,
-          cost: TIER_COST[tier],
+          tier,
           // tier-1 courses start available; deeper courses unlock via prereqs
           prereqs,
           status: tier === 1 ? 'available' : 'locked',
-          progress: 0,
           unlocks,
         });
       });

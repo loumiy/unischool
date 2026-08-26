@@ -66,16 +66,21 @@ export default function App() {
         </section>
 
         <section className="panel">
-          <h2>Research</h2>
+          <h2>Research <span className="stat">{Object.keys(s.developing).length}/{s.slots} slots</span></h2>
           <ul className="tech">
             {s.tech.map((t) => (
               <li key={t.id} className={t.status}>
                 <div className="tech-head">
                   <strong>{t.name}</strong>
                   {t.status === 'available' && (
-                    <button onClick={() => act({ type: 'START_RESEARCH', nodeId: t.id })}>research</button>
+                    <button
+                      disabled={Object.keys(s.developing).length >= s.slots}
+                      onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: t.id })}
+                    >
+                      develop
+                    </button>
                   )}
-                  {t.status === 'researching' && <span className="badge">{Math.round((t.progress / t.cost) * 100)}%</span>}
+                  {t.status === 'developing' && <span className="badge">{s.developing[t.id]}w left</span>}
                   {t.status === 'done' && <span className="badge done">done</span>}
                   {t.status === 'locked' && <span className="badge locked">locked</span>}
                 </div>
