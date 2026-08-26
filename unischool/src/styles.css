@@ -1,0 +1,36 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: #14161a; color: #e6e8ec; }
+.app { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 12px 16px; background: #1c1f26; border-radius: 10px; margin-bottom: 16px; }
+.clock { font-variant-numeric: tabular-nums; font-weight: 600; }
+.cash { font-variant-numeric: tabular-nums; color: #7dd3a0; font-weight: 600; }
+.speeds button { margin: 0 2px; padding: 4px 10px; background: #2a2e37; color: #cbd0d8;
+  border: 1px solid #363b45; border-radius: 6px; cursor: pointer; text-transform: capitalize; }
+.speeds button.active { background: #3b6ef0; color: white; border-color: #3b6ef0; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.panel { background: #1c1f26; border-radius: 10px; padding: 14px 16px; }
+.panel h2 { margin: 0 0 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; color: #9aa2ae; }
+dl { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin: 0; }
+dt { color: #9aa2ae; } dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+ul, ol { list-style: none; margin: 0; padding: 0; }
+.faculty li, .ranks li { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; gap: 8px; border-bottom: 1px solid #262a32; }
+.stat { color: #9aa2ae; font-variant-numeric: tabular-nums; font-size: 13px; }
+.ranks li.me { color: #7dd3a0; font-weight: 600; }
+button { cursor: pointer; }
+.faculty button { background: #3a2226; color: #f0a0a8; border: 1px solid #5a3238; border-radius: 5px; padding: 2px 8px; font-size: 12px; }
+.tech li { padding: 8px 0; border-bottom: 1px solid #262a32; }
+.tech li.locked { opacity: 0.5; }
+.tech-head { display: flex; align-items: center; gap: 8px; }
+.tech-head button { background: #26344f; color: #9dc0ff; border: 1px solid #34507d; border-radius: 5px; padding: 2px 10px; font-size: 12px; }
+.tech p { margin: 4px 0 0; font-size: 12px; color: #9aa2ae; }
+.badge { font-size: 11px; padding: 1px 7px; border-radius: 10px; background: #2a2e37; color: #cbd0d8; }
+.badge.done { background: #1e3a2a; color: #7dd3a0; } .badge.locked { background: #2a2e37; color: #6a7280; }
+.tuition-ctrl { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: #9aa2ae; }
+.tuition-ctrl button { width: 28px; height: 28px; background: #2a2e37; color: #e6e8ec; border: 1px solid #363b45; border-radius: 6px; }
+.log { max-height: 180px; overflow-y: auto; font-size: 13px; }
+.log li { padding: 3px 0; border-bottom: 1px solid #232730; }
+.log .ts { color: #6a7280; font-variant-numeric: tabular-nums; margin-right: 6px; }
+.log .good { color: #7dd3a0; } .log .bad { color: #f0a0a8; }
+.gameover { background: #3a2226; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }
+.gameover button { margin-left: 8px; background: #3b6ef0; color: white; border: none; border-radius: 6px; padding: 4px 12px; }
