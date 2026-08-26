@@ -107,6 +107,12 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
+    case 'RESOLVE_REPORT': {
+      s.pendingInterrupt = null;
+      advanceClock(s); // fires as a trailing step after that week's systems ran; dismissing moves on
+      return s;
+    }
+
     // Scaffolding: proves the interrupt pause/resume cycle works end to end.
     // Remove this case (and the action, and its debug button in App.tsx)
     // once a real interrupt — admissions, the report, the tutorial — exists.

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useGame, SPEEDS, SANDBOX_SPEEDS, type Speed } from './engine/useGame';
-import { rankedList } from './systems/rivals/rivalsSystem';
 import { curriculumGroups } from './data/techData';
 import { SLOT_COST, MAX_SLOTS } from './systems/techtree/techSystem';
 import { weeklyNet } from './systems/finance/financeSystem';
@@ -85,6 +84,41 @@ function AdmissionsInterruptForm({ payload, tuitionCeiling, onResolve }: {
   );
 }
 
+interface RankingsReportPayload {
+  rank: number;
+  standings: Array<{ name: string; reputation: number; isPlayer: boolean }>;
+}
+
+// Renders both rankings-related interrupts: the one-time "you've entered
+// the top 50" reveal and the recurring annual report (see README's
+// "Rankings: the U.S. News report"). Standing is otherwise never shown in
+// the dashboard — this modal is the only touchpoint, once a year at most.
+function RankingsReportView({ payload, isFirstReveal, onDismiss }: {
+  payload: RankingsReportPayload;
+  isFirstReveal: boolean;
+  onDismiss: () => void;
+}) {
+  return (
+    <>
+      <h2>{isFirstReveal ? "You've Entered the Rankings" : 'Annual U.S. News Report'}</h2>
+      <p>
+        {isFirstReveal
+          ? `Your university has cracked the top 50, landing at #${payload.rank}. The annual report will keep you posted from here on.`
+          : `This year's standings are in — you're ranked #${payload.rank}.`}
+      </p>
+      <ol className="report-standings">
+        {payload.standings.map((r, i) => (
+          <li key={r.name} className={r.isPlayer ? 'me' : ''}>
+            <span>{i + 1}. {r.name}</span>
+            <span className="stat">{Math.round(r.reputation)}</span>
+          </li>
+        ))}
+      </ol>
+      <button onClick={onDismiss}>Dismiss</button>
+    </>
+  );
+}
+
 function termName(week: number): string {
   return week <= WEEKS_PER_YEAR / 2 ? 'Fall Term' : 'Spring Term';
 }
@@ -157,8 +191,6 @@ export default function App() {
   if (!s.started) {
     return <StartupScreen onStart={(name, schoolType) => act({ type: 'START_GAME', name, schoolType })} />;
   }
-
-  const ranks = rankedList(s);
 
   const doneCourses = s.tech.filter((t) => t.status === 'done').length;
   const availableCourses = s.tech.filter((t) => t.status === 'available');
@@ -245,6 +277,12 @@ export default function App() {
                 payload={s.pendingInterrupt.payload as AdmissionsDraft}
                 tuitionCeiling={s.finance.tuitionCeiling}
                 onResolve={(settings) => act({ type: 'RESOLVE_ADMISSIONS', ...settings })}
+              />
+            ) : s.pendingInterrupt.type === 'rankings-entry' || s.pendingInterrupt.type === 'annual-report' ? (
+              <RankingsReportView
+                payload={s.pendingInterrupt.payload as RankingsReportPayload}
+                isFirstReveal={s.pendingInterrupt.type === 'rankings-entry'}
+                onDismiss={() => act({ type: 'RESOLVE_REPORT' })}
               />
             ) : (
               <>
@@ -381,19 +419,9 @@ export default function App() {
         </aside>
       </main>
 
+      {/* Standing among peers isn't shown constantly — the annual report
+          interrupt above is the only touchpoint (see README's "Rankings"). */}
       <main className="layout-secondary">
-        <section className="panel">
-          <h2>Rankings</h2>
-          <ol className="ranks">
-            {ranks.map((r, i) => (
-              <li key={r.name} className={r.isPlayer ? 'me' : ''}>
-                <span>{i + 1}. {r.name}</span>
-                <span className="stat">{Math.round(r.reputation)}</span>
-              </li>
-            ))}
-          </ol>
-        </section>
-
         <section className="panel">
           <h2>Log</h2>
           <ul className="log">
