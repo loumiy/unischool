@@ -3,18 +3,24 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import type { Action } from '../state/actions';
 import { createInitialState } from '../state/actions';
 import { tickFinance } from '../systems/finance/financeSystem';
-import { tickTech, developmentWeeks } from '../systems/techtree/techSystem';
+import { tickTech, canStartDevelopment, startDevelopment, SLOT_COST, MAX_SLOTS } from '../systems/techtree/techSystem';
 import { tickAdmissions } from '../systems/admissions/admissionsSystem';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
+import { tickFaculty } from '../systems/faculty/facultySystem';
 
 // The systems run in a fixed order each week. Order matters: research and
 // finance resolve before admissions/rivals read the updated world.
 const SYSTEMS: Array<(s: GameState) => void> = [
   tickTech,
+  tickFaculty,
   tickFinance,
   tickAdmissions,
   tickRivals,
 ];
+
+function clamp01(v: number): number {
+  return Math.max(0, Math.min(1, v));
+}
 
 function advanceClock(s: GameState): void {
   s.clock.week += 1;
@@ -30,19 +36,30 @@ export function reducer(state: GameState, action: Action): GameState {
 
   switch (action.type) {
     case 'TICK': {
-      if (s.gameOver) return state;
+      if (!s.started || s.gameOver || s.pendingInterrupt) return state; // the clock halts while an interrupt is pending
       for (const system of SYSTEMS) system(s);
-      advanceClock(s);
+      // A system may have just enqueued an interrupt (e.g. the summer
+      // admissions decision) — hold the clock at this week rather than
+      // rolling into the next one until it's resolved.
+      if (!s.pendingInterrupt) advanceClock(s);
       if (s.log.length > 50) s.log.length = 50; // cap log growth
       return s;
     }
 
+    case 'START_GAME':
+      return createInitialState(action.name, action.schoolType);
+
     case 'START_DEVELOPMENT': {
       const node = s.tech.find((t) => t.id === action.nodeId);
-      const slotsUsed = Object.keys(s.developing).length;
-      if (node && node.status === 'available' && slotsUsed < s.slots) {
-        node.status = 'developing';
-        s.developing[node.id] = developmentWeeks(node.tier);
+      if (node && canStartDevelopment(s, node)) startDevelopment(s, node);
+      return s;
+    }
+
+    case 'HIRE_FACULTY': {
+      const idx = s.candidates.findIndex((c) => c.id === action.facultyId);
+      if (idx !== -1) {
+        const [hired] = s.candidates.splice(idx, 1);
+        s.faculty.push(hired);
       }
       return s;
     }
@@ -52,13 +69,59 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
-    case 'SET_TUITION': {
-      s.finance.tuitionPerStudent = Math.max(0, action.amount);
+    case 'BUY_SLOT': {
+      if (s.slots < MAX_SLOTS && s.finance.cash >= SLOT_COST) {
+        s.finance.cash -= SLOT_COST;
+        s.slots += 1;
+      }
+      return s;
+    }
+
+    case 'TOGGLE_AUTO_DEVELOP': {
+      s.autoDevelop = !s.autoDevelop;
+      return s;
+    }
+
+    case 'RESOLVE_INTERRUPT': {
+      s.pendingInterrupt = null;
+      return s;
+    }
+
+    case 'RESOLVE_ADMISSIONS': {
+      // Tuition is set ONLY here, once a year — see README's "Admissions:
+      // an annual summer decision" and the removed live SET_TUITION control.
+      s.finance.tuitionPerStudent = Math.max(0, Math.min(action.tuition, s.finance.tuitionCeiling));
+      s.admissions = {
+        financialAidRate: clamp01(action.financialAidRate),
+        selectivity: clamp01(action.selectivity),
+        targetEnrollment: Math.max(0, action.targetEnrollment),
+      };
+      s.pendingInterrupt = null;
+      advanceClock(s); // resolving is what turns the calendar page into the new year
+      s.log.unshift({
+        year: s.clock.year,
+        week: s.clock.week,
+        message: `Admissions policy set: tuition $${s.finance.tuitionPerStudent.toLocaleString()}/yr, target enrollment ${s.admissions.targetEnrollment}.`,
+        kind: 'info',
+      });
+      return s;
+    }
+
+    // Scaffolding: proves the interrupt pause/resume cycle works end to end.
+    // Remove this case (and the action, and its debug button in App.tsx)
+    // once a real interrupt — admissions, the report, the tutorial — exists.
+    case 'DEBUG_TRIGGER_TEST_INTERRUPT': {
+      s.pendingInterrupt = {
+        type: 'debug-test',
+        payload: { message: 'This is a throwaway interrupt to prove the clock halts and resumes correctly.' },
+      };
       return s;
     }
 
     case 'RESET':
-      return createInitialState();
+      // Restart keeps the founded university's identity rather than
+      // bouncing back to the startup screen.
+      return createInitialState(state.self.name, state.self.schoolType);
 
     default:
       return state;

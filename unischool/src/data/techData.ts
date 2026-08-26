@@ -1,24 +1,36 @@
-import type { TechNode, GameEffects } from '../state/types';
+import type { Buildable, BuildableEffects } from '../state/types';
 
 /*
-  Your real curriculum, expressed as seed data and expanded into TechNode[].
-  36 majors across 7 schools (9 courses each) + a 6-course general-ed core = 330 nodes.
+  Your real curriculum, expressed as seed data and expanded into Buildable[]
+  of kind: 'course'. 36 majors across 7 schools (9 courses each) + a 6-course
+  general-ed core = 330 nodes.
 
   Prerequisite rule (a clean three-stage climb per major):
     - tier 1 (the 101 course): no prereqs — the entry point to a major
     - tier 2 (110/120/130/140): requires the major's tier-1 course
     - tier 3 (210/220/230/240): requires ALL FOUR of the major's tier-2 courses
 
-  Tier also drives development time (see developmentWeeks() in techSystem.ts).
-  Effects are modest per-course; the milestone bonuses (major/school complete)
-  live in the tech system later, not here.
+  "Tier" is a course-authoring concept only — it drives development time and
+  reputation reward here, at seed-generation time, and is not part of the
+  shared Buildable model (buildings/dorms/facilities don't have a tier).
+  The generated `duration` and `prereqs` are plain data the engine reads with
+  no knowledge of tier. Effects are modest per-course; the milestone bonuses
+  (major/school complete) live in the tech system later, not here.
 */
 
 const NUMS = [101, 110, 120, 130, 140, 210, 220, 230, 240];
 const TIERS = [1, 2, 2, 2, 2, 3, 3, 3, 3] as const;
 
+// Weeks needed to develop a course, scaled by tier.
+const WEEKS_PER_TIER = 3;
+
 // Reputation reward per tier. Tune freely — this is where pacing gets balanced.
 const TIER_REP: Record<number, number> = { 1: 2, 2: 3, 3: 5 };
+
+// Courses cost nothing to start today — money-as-a-throttle for development
+// is a separate, not-yet-built task (see README's "Pacing model"). Keeping
+// this at 0 wires up the generic cost machinery without changing balance.
+const COURSE_COST = 0;
 
 interface MajorSeed {
   prefix: string;   // course code prefix, e.g. "FINA"
@@ -116,9 +128,9 @@ function nodeId(prefix: string, num: number): string {
   return `${prefix}${num}`;
 }
 
-// Expand the seed data into the flat TechNode[] the engine consumes.
-export function initialTech(): TechNode[] {
-  const nodes: TechNode[] = [];
+// Expand the seed data into the flat Buildable[] (all kind: 'course') the engine consumes.
+export function initialTech(): Buildable[] {
+  const nodes: Buildable[] = [];
 
   for (const school of SCHOOLS) {
     // General-ed core: six tier-1 nodes, no prereqs, available immediately.
@@ -126,12 +138,14 @@ export function initialTech(): TechNode[] {
       for (const [code, title] of school.core) {
         nodes.push({
           id: code.replace(/\s/g, ''),
+          kind: 'course',
           name: `${code} · ${title}`,
           description: `${school.name} core requirement.`,
-          tier: 1,
+          cost: COURSE_COST,
+          duration: 1 * WEEKS_PER_TIER,
           prereqs: [],
           status: 'available',
-          unlocks: { reputationBonus: TIER_REP[1], capacityBonus: 20 },
+          effects: { reputationBonus: TIER_REP[1], capacityBonus: 20 },
         });
       }
     }
@@ -149,24 +163,51 @@ export function initialTech(): TechNode[] {
         if (tier === 2) prereqs = [t1Id];
         else if (tier === 3) prereqs = [...t2Ids];
 
-        const unlocks: Partial<GameEffects> = {
+        const effects: Partial<BuildableEffects> = {
           reputationBonus: TIER_REP[tier],
           capacityBonus: tier === 1 ? 20 : 10,
         };
 
         nodes.push({
           id,
+          kind: 'course',
           name: `${major.prefix} ${num} · ${title}`,
           description: `${major.name} (${school.name}), tier ${tier}.`,
-          tier,
+          cost: COURSE_COST,
+          duration: tier * WEEKS_PER_TIER,
           // tier-1 courses start available; deeper courses unlock via prereqs
           prereqs,
           status: tier === 1 ? 'available' : 'locked',
-          unlocks,
+          effects,
         });
       });
     }
   }
 
   return nodes;
+}
+
+// UI-only grouping metadata (school -> core/major -> course ids), for the
+// curriculum tile view. Deliberately not part of the Buildable model itself
+// — the engine never needs to know a course belongs to a school or major.
+export interface CurriculumGroup {
+  label: string;      // 'Core' or the major's name
+  courseIds: string[];
+}
+export interface CurriculumSchool {
+  name: string;
+  groups: CurriculumGroup[];
+}
+
+export function curriculumGroups(): CurriculumSchool[] {
+  return SCHOOLS.map((school) => {
+    const groups: CurriculumGroup[] = [];
+    if (school.core) {
+      groups.push({ label: 'Core', courseIds: school.core.map(([code]) => code.replace(/\s/g, '')) });
+    }
+    for (const major of school.majors) {
+      groups.push({ label: major.name, courseIds: NUMS.map((num) => nodeId(major.prefix, num)) });
+    }
+    return { name: school.name, groups };
+  });
 }
