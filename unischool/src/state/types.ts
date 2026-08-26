@@ -38,6 +38,8 @@ export interface TechNode {
   id: string;
   name: string;
   description: string;
+  school: string;         // groups courses in the UI
+  major: string;          // sub-groups courses within a school
   tier: number;           // higher tier = longer to develop
   prereqs: string[];     // ids that must be 'done'
   status: TechStatus;

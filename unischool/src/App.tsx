@@ -1,11 +1,40 @@
+import { useState } from 'react';
 import { useGame, SPEEDS, type Speed } from './engine/useGame';
 import { rankedList } from './systems/rivals/rivalsSystem';
+import type { TechNode } from './state/types';
 import './styles.css';
+
+// Groups the flat tech list into school -> major -> courses, preserving the
+// order courses were generated in (school, then major, then tier).
+function groupTech(tech: TechNode[]) {
+  const schools = new Map<string, Map<string, TechNode[]>>();
+  for (const node of tech) {
+    if (!schools.has(node.school)) schools.set(node.school, new Map());
+    const majors = schools.get(node.school)!;
+    if (!majors.has(node.major)) majors.set(node.major, []);
+    majors.get(node.major)!.push(node);
+  }
+  return Array.from(schools.entries()).map(([school, majors]) => ({
+    school,
+    majors: Array.from(majors.entries()).map(([major, courses]) => ({ major, courses })),
+  }));
+}
 
 export default function App() {
   const { state, act, speed, setSpeed } = useGame();
   const s = state;
   const ranks = rankedList(s);
+  const schools = groupTech(s.tech);
+  const [openSchools, setOpenSchools] = useState<Set<string>>(new Set());
+
+  function toggleSchool(school: string) {
+    setOpenSchools((prev) => {
+      const next = new Set(prev);
+      if (next.has(school)) next.delete(school);
+      else next.add(school);
+      return next;
+    });
+  }
 
   return (
     <div className="app">
@@ -67,27 +96,50 @@ export default function App() {
 
         <section className="panel">
           <h2>Research <span className="stat">{Object.keys(s.developing).length}/{s.slots} slots</span></h2>
-          <ul className="tech">
-            {s.tech.map((t) => (
-              <li key={t.id} className={t.status}>
-                <div className="tech-head">
-                  <strong>{t.name}</strong>
-                  {t.status === 'available' && (
-                    <button
-                      disabled={Object.keys(s.developing).length >= s.slots}
-                      onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: t.id })}
-                    >
-                      develop
-                    </button>
-                  )}
-                  {t.status === 'developing' && <span className="badge">{s.developing[t.id]}w left</span>}
-                  {t.status === 'done' && <span className="badge done">done</span>}
-                  {t.status === 'locked' && <span className="badge locked">locked</span>}
+          <div className="schools">
+            {schools.map(({ school, majors }) => {
+              const courseCount = majors.reduce((n, m) => n + m.courses.length, 0);
+              const doneCount = majors.reduce(
+                (n, m) => n + m.courses.filter((c) => c.status === 'done').length,
+                0,
+              );
+              const isOpen = openSchools.has(school);
+              return (
+                <div key={school} className="school">
+                  <button className="school-toggle" onClick={() => toggleSchool(school)}>
+                    <span>{isOpen ? '▾' : '▸'} {school}</span>
+                    <span className="stat">{doneCount}/{courseCount}</span>
+                  </button>
+                  {isOpen && majors.map(({ major, courses }) => (
+                    <div key={major} className="major-group">
+                      <h4>{major}</h4>
+                      <ul className="tech">
+                        {courses.map((t) => (
+                          <li key={t.id} className={t.status}>
+                            <div className="tech-head">
+                              <strong>{t.name}</strong>
+                              {t.status === 'available' && (
+                                <button
+                                  disabled={Object.keys(s.developing).length >= s.slots}
+                                  onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: t.id })}
+                                >
+                                  develop
+                                </button>
+                              )}
+                              {t.status === 'developing' && <span className="badge">{s.developing[t.id]}w left</span>}
+                              {t.status === 'done' && <span className="badge done">done</span>}
+                              {t.status === 'locked' && <span className="badge locked">locked</span>}
+                            </div>
+                            <p>{t.description}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
                 </div>
-                <p>{t.description}</p>
-              </li>
-            ))}
-          </ul>
+              );
+            })}
+          </div>
         </section>
 
         <section className="panel">

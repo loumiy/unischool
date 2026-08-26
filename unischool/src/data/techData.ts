@@ -20,6 +20,9 @@ const TIERS = [1, 2, 2, 2, 2, 3, 3, 3, 3] as const;
 // Reputation reward per tier. Tune freely — this is where pacing gets balanced.
 const TIER_REP: Record<number, number> = { 1: 2, 2: 3, 3: 5 };
 
+// Pseudo-major label for a school's general-ed core requirements.
+const CORE_MAJOR = 'Core';
+
 interface MajorSeed {
   prefix: string;   // course code prefix, e.g. "FINA"
   name: string;     // major name
@@ -128,6 +131,8 @@ export function initialTech(): TechNode[] {
           id: code.replace(/\s/g, ''),
           name: `${code} · ${title}`,
           description: `${school.name} core requirement.`,
+          school: school.name,
+          major: CORE_MAJOR,
           tier: 1,
           prereqs: [],
           status: 'available',
@@ -158,6 +163,8 @@ export function initialTech(): TechNode[] {
           id,
           name: `${major.prefix} ${num} · ${title}`,
           description: `${major.name} (${school.name}), tier ${tier}.`,
+          school: school.name,
+          major: major.name,
           tier,
           // tier-1 courses start available; deeper courses unlock via prereqs
           prereqs,
