@@ -62,6 +62,21 @@ export interface BuildableEffects {
   unlockIds: string[];  // force these Buildable ids to 'available', regardless of their own prereqs
 }
 
+// The generic pause-the-clock decision-event mechanism (see README's
+// "Interrupts: the decision-event system"). Any system enqueues one by
+// setting `pendingInterrupt` directly on state (the same way tickFinance
+// sets gameOver); while it is set, the game loop halts ticking. The `type`
+// tag identifies which interrupt this is — admissions, the U.S. News
+// report, the tutorial, etc. — and `payload` carries whatever data that
+// interrupt needs. The UI switches on `type` to render the right modal and
+// dispatches an action that clears `pendingInterrupt` to let the clock
+// resume. Nothing besides the mechanism itself lives here: no admissions,
+// report, or tutorial content.
+export interface PendingInterrupt {
+  type: string;
+  payload?: unknown;
+}
+
 export interface Rival {
   id: string;
   name: string;
@@ -86,6 +101,7 @@ export interface GameState {
   self: University;
   log: LogEntry[];               // recent events, newest first
   gameOver: boolean;
+  pendingInterrupt: PendingInterrupt | null; // set => clock halts until resolved
 }
 
 export interface LogEntry {

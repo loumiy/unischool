@@ -30,7 +30,7 @@ export function reducer(state: GameState, action: Action): GameState {
 
   switch (action.type) {
     case 'TICK': {
-      if (s.gameOver) return state;
+      if (s.gameOver || s.pendingInterrupt) return state; // the clock halts while an interrupt is pending
       for (const system of SYSTEMS) system(s);
       advanceClock(s);
       if (s.log.length > 50) s.log.length = 50; // cap log growth
@@ -56,6 +56,22 @@ export function reducer(state: GameState, action: Action): GameState {
 
     case 'SET_TUITION': {
       s.finance.tuitionPerStudent = Math.max(0, action.amount);
+      return s;
+    }
+
+    case 'RESOLVE_INTERRUPT': {
+      s.pendingInterrupt = null;
+      return s;
+    }
+
+    // Scaffolding: proves the interrupt pause/resume cycle works end to end.
+    // Remove this case (and the action, and its debug button in App.tsx)
+    // once a real interrupt — admissions, the report, the tutorial — exists.
+    case 'DEBUG_TRIGGER_TEST_INTERRUPT': {
+      s.pendingInterrupt = {
+        type: 'debug-test',
+        payload: { message: 'This is a throwaway interrupt to prove the clock halts and resumes correctly.' },
+      };
       return s;
     }
 

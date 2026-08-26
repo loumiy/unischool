@@ -11,6 +11,8 @@ export type Action =
   | { type: 'HIRE_FACULTY'; facultyId: string }
   | { type: 'FIRE_FACULTY'; facultyId: string }
   | { type: 'SET_TUITION'; amount: number }
+  | { type: 'RESOLVE_INTERRUPT' }                      // clears pendingInterrupt, lets the clock resume
+  | { type: 'DEBUG_TRIGGER_TEST_INTERRUPT' }           // scaffolding: see reducer.ts, remove once a real interrupt exists
   | { type: 'RESET' };
 
 export function createInitialState(): GameState {
@@ -42,6 +44,7 @@ export function createInitialState(): GameState {
       { year: 1, week: 1, message: 'The university opens its doors.', kind: 'info' },
     ],
     gameOver: false,
+    pendingInterrupt: null,
   };
 }
 

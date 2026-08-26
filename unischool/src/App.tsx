@@ -1,8 +1,25 @@
 import { useGame, SPEEDS, SANDBOX_SPEEDS, type Speed } from './engine/useGame';
 import { rankedList } from './systems/rivals/rivalsSystem';
+import type { PendingInterrupt } from './state/types';
 import './styles.css';
 
 const SPEED_LABELS: Record<Speed, string> = { paused: 'paused', real: 'play', fast: 'fast ⚡ (sandbox)' };
+
+// Placeholder modal content per interrupt `type`. Real interrupts (admissions,
+// the U.S. News report, the tutorial) each add a case here with their own
+// content; the 'debug-test' case is scaffolding — remove it once a real
+// interrupt exists (see DEBUG_TRIGGER_TEST_INTERRUPT in reducer.ts).
+function interruptBody(interrupt: PendingInterrupt): { title: string; body: string } {
+  switch (interrupt.type) {
+    case 'debug-test':
+      return {
+        title: 'Debug: test interrupt',
+        body: (interrupt.payload as { message?: string } | undefined)?.message ?? 'No payload.',
+      };
+    default:
+      return { title: interrupt.type, body: 'No content registered for this interrupt type.' };
+  }
+}
 
 export default function App() {
   const { state, act, speed, setSpeed } = useGame();
@@ -29,9 +46,23 @@ export default function App() {
           ))}
         </div>
         <div className="cash">${Math.round(s.finance.cash).toLocaleString()}</div>
+        {/* Scaffolding: proves the interrupt pause/resume cycle. Remove once a real interrupt exists. */}
+        <button className="debug-interrupt-btn" onClick={() => act({ type: 'DEBUG_TRIGGER_TEST_INTERRUPT' })}>
+          debug: trigger interrupt
+        </button>
       </header>
 
       {s.gameOver && <div className="gameover">Game Over — <button onClick={() => act({ type: 'RESET' })}>Restart</button></div>}
+
+      {s.pendingInterrupt && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <h2>{interruptBody(s.pendingInterrupt).title}</h2>
+            <p>{interruptBody(s.pendingInterrupt).body}</p>
+            <button onClick={() => act({ type: 'RESOLVE_INTERRUPT' })}>Resolve</button>
+          </div>
+        </div>
+      )}
 
       <main className="grid">
         <section className="panel">

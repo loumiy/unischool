@@ -16,12 +16,14 @@ export function useGame() {
   const stateRef = useRef(state);
   stateRef.current = state;
 
+  const interrupted = state.pendingInterrupt !== null;
+
   useEffect(() => {
     const ms = SPEEDS[speed];
-    if (ms === 0 || state.gameOver) return;
+    if (ms === 0 || state.gameOver || interrupted) return; // also halted while an interrupt is pending
     const id = setInterval(() => dispatch({ type: 'TICK' }), ms);
     return () => clearInterval(id);
-  }, [speed, state.gameOver]);
+  }, [speed, state.gameOver, interrupted]);
 
   const act = useCallback((a: Action) => dispatch(a), []);
 
