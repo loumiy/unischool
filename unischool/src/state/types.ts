@@ -32,16 +32,15 @@ export interface Faculty {
   morale: number;     // 0..100
 }
 
-export type TechStatus = 'locked' | 'available' | 'researching' | 'done';
+export type TechStatus = 'locked' | 'available' | 'developing' | 'done';
 
 export interface TechNode {
   id: string;
   name: string;
   description: string;
-  cost: number;          // research points required
+  tier: number;           // higher tier = longer to develop
   prereqs: string[];     // ids that must be 'done'
   status: TechStatus;
-  progress: number;      // 0..cost
   unlocks?: Partial<GameEffects>; // applied once, when completed
 }
 
@@ -71,9 +70,10 @@ export interface GameState {
   students: StudentBody;
   faculty: Faculty[];
   tech: TechNode[];
+  slots: number;                     // parallel development slots
+  developing: Record<string, number>; // course id -> weeks remaining
   rivals: Rival[];
   self: University;
-  activeResearch: string | null; // tech node id currently being researched
   log: LogEntry[];               // recent events, newest first
   gameOver: boolean;
 }

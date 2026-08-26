@@ -3,7 +3,7 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import type { Action } from '../state/actions';
 import { createInitialState } from '../state/actions';
 import { tickFinance } from '../systems/finance/financeSystem';
-import { tickTech } from '../systems/techtree/techSystem';
+import { tickTech, developmentWeeks } from '../systems/techtree/techSystem';
 import { tickAdmissions } from '../systems/admissions/admissionsSystem';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
 
@@ -37,16 +37,12 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
-    case 'START_RESEARCH': {
+    case 'START_DEVELOPMENT': {
       const node = s.tech.find((t) => t.id === action.nodeId);
-      if (node && node.status === 'available') {
-        // Cancel any in-progress node back to available.
-        if (s.activeResearch) {
-          const prev = s.tech.find((t) => t.id === s.activeResearch);
-          if (prev && prev.status === 'researching') prev.status = 'available';
-        }
-        node.status = 'researching';
-        s.activeResearch = node.id;
+      const slotsUsed = Object.keys(s.developing).length;
+      if (node && node.status === 'available' && slotsUsed < s.slots) {
+        node.status = 'developing';
+        s.developing[node.id] = developmentWeeks(node.tier);
       }
       return s;
     }

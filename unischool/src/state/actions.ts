@@ -7,7 +7,7 @@ import { initialRivals } from '../data/rivalData';
 // only thing that interprets these. UI dispatches them; systems never do.
 export type Action =
   | { type: 'TICK' }                                   // advance one week
-  | { type: 'START_RESEARCH'; nodeId: string }
+  | { type: 'START_DEVELOPMENT'; nodeId: string }
   | { type: 'HIRE_FACULTY'; facultyId: string }
   | { type: 'FIRE_FACULTY'; facultyId: string }
   | { type: 'SET_TUITION'; amount: number }
@@ -34,9 +34,10 @@ export function createInitialState(): GameState {
       { id: 'f3', name: 'Dr. Wei Zhang', field: 'CompSci', teaching: 60, research: 88, salary: 105_000, morale: 75 },
     ],
     tech: initialTech(),
+    slots: 2,
+    developing: {},
     rivals: initialRivals(),
     self: { name: 'Your University', reputation: 40 },
-    activeResearch: null,
     log: [
       { year: 1, week: 1, message: 'The university opens its doors.', kind: 'info' },
     ],
