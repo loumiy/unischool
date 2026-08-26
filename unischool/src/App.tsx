@@ -22,6 +22,13 @@ function groupTech(tech: TechNode[]) {
   }));
 }
 
+// Fraction of a course list that's done, as a whole-number percentage.
+function progressOf(courses: TechNode[]): { done: number; total: number; pct: number } {
+  const total = courses.length;
+  const done = courses.filter((t) => t.status === 'done').length;
+  return { done, total, pct: total > 0 ? Math.round((done / total) * 100) : 0 };
+}
+
 // --- SANDBOX-ONLY PLAYTESTING SCAFFOLDING ---
 // This whole-lifetime pace projection (and the header readout that renders
 // it) exists only to judge long-arc pacing quickly. Remove pacingReadout()
@@ -46,6 +53,8 @@ export default function App() {
   const s = state;
   const ranks = rankedList(s);
   const schools = groupTech(s.tech);
+  const overall = progressOf(s.tech);
+  const cooking = s.tech.filter((t) => t.status === 'developing');
   const pacing = pacingReadout(s); // SANDBOX-ONLY, see pacingReadout() above
   const [openSchools, setOpenSchools] = useState<Set<string>>(new Set());
 
@@ -73,12 +82,23 @@ export default function App() {
             </button>
           ))}
         </div>
-        <div className="cash">${Math.round(s.finance.cash).toLocaleString()}</div>
+        <div className="headline-stats">
+          <span className="cash">${Math.round(s.finance.cash).toLocaleString()}</span>
+          <span className="prestige">{Math.round(s.self.reputation)} prestige</span>
+        </div>
       </header>
+
+      <section className="growth">
+        <div className="growth-headline">
+          <span className="growth-count">{overall.done}</span>
+          <span className="growth-total">/ {overall.total} courses developed</span>
+          <span className="growth-pct">{overall.pct}%</span>
+        </div>
+        <div className="progress"><div className="progress-fill" style={{ width: `${overall.pct}%` }} /></div>
+      </section>
 
       {/* SANDBOX-ONLY: pacing readout, remove before release (see pacingReadout() above). */}
       <div className="pacing">
-        <span>{pacing.done}/{pacing.total} courses developed</span>
         <span>Year {s.clock.year}</span>
         <span>
           Projected finish: {pacing.projectedFinishYear ? `Year ${pacing.projectedFinishYear}` : '—'}
@@ -159,19 +179,33 @@ export default function App() {
               auto-develop: {s.autoDevelop ? 'on' : 'off'}
             </button>
           </div>
+          <div className="cooking">
+            {cooking.length === 0 ? (
+              <p className="cooking-empty">No courses in development.</p>
+            ) : (
+              <ul className="cooking-list">
+                {cooking.map((t) => (
+                  <li key={t.id}>
+                    <span>{t.name}</span>
+                    <span className="badge">{Math.ceil(s.developing[t.id])}w left</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           <div className="schools">
             {schools.map(({ school, majors }) => {
-              const courseCount = majors.reduce((n, m) => n + m.courses.length, 0);
-              const doneCount = majors.reduce(
-                (n, m) => n + m.courses.filter((c) => c.status === 'done').length,
-                0,
-              );
+              const allCourses = majors.flatMap((m) => m.courses);
+              const progress = progressOf(allCourses);
               const isOpen = openSchools.has(school);
               return (
                 <div key={school} className="school">
                   <button className="school-toggle" onClick={() => toggleSchool(school)}>
                     <span>{isOpen ? '▾' : '▸'} {school}</span>
-                    <span className="stat">{doneCount}/{courseCount}</span>
+                    <span className="school-progress">
+                      <span className="progress small"><span className="progress-fill" style={{ width: `${progress.pct}%` }} /></span>
+                      <span className="stat">{progress.done}/{progress.total}</span>
+                    </span>
                   </button>
                   {isOpen && majors.map(({ major, courses }) => (
                     <div key={major} className="major-group">
