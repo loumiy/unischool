@@ -6,8 +6,10 @@ body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background:
 .clock { font-variant-numeric: tabular-nums; font-weight: 600; }
 .cash { font-variant-numeric: tabular-nums; color: #7dd3a0; font-weight: 600; }
 .speeds button { margin: 0 2px; padding: 4px 10px; background: #2a2e37; color: #cbd0d8;
-  border: 1px solid #363b45; border-radius: 6px; cursor: pointer; text-transform: capitalize; }
+  border: 1px solid #363b45; border-radius: 6px; cursor: pointer; }
 .speeds button.active { background: #3b6ef0; color: white; border-color: #3b6ef0; }
+.speeds button.sandbox { border-style: dashed; border-color: #a67c1c; color: #e0b04a; }
+.speeds button.sandbox.active { background: #a67c1c; color: #14161a; border-color: #a67c1c; }
 .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
 .panel { background: #1c1f26; border-radius: 10px; padding: 14px 16px; }
 .panel h2 { margin: 0 0 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; color: #9aa2ae; }

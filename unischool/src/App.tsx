@@ -1,6 +1,8 @@
-import { useGame, SPEEDS, type Speed } from './engine/useGame';
+import { useGame, SPEEDS, SANDBOX_SPEEDS, type Speed } from './engine/useGame';
 import { rankedList } from './systems/rivals/rivalsSystem';
 import './styles.css';
+
+const SPEED_LABELS: Record<Speed, string> = { paused: 'paused', real: 'play', fast: 'fast ⚡ (sandbox)' };
 
 export default function App() {
   const { state, act, speed, setSpeed } = useGame();
@@ -15,10 +17,14 @@ export default function App() {
           {(Object.keys(SPEEDS) as Speed[]).map((sp) => (
             <button
               key={sp}
-              className={speed === sp ? 'active' : ''}
+              className={[
+                speed === sp ? 'active' : '',
+                SANDBOX_SPEEDS.includes(sp) ? 'sandbox' : '',
+              ].join(' ').trim()}
               onClick={() => setSpeed(sp)}
+              title={SANDBOX_SPEEDS.includes(sp) ? 'Playtesting only — not intended for normal play' : undefined}
             >
-              {sp}
+              {SPEED_LABELS[sp]}
             </button>
           ))}
         </div>
