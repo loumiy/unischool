@@ -1,13 +1,15 @@
-import type { GameState } from './types';
+import type { GameState, SchoolType } from './types';
 import { WEEKS_PER_YEAR } from './types';
 import { initialTech } from '../data/techData';
 import { initialRivals } from '../data/rivalData';
 import { initialCandidates } from '../data/facultyData';
+import { SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION } from '../data/schoolTypeData';
 
 // All the ways a player can change the world. The engine's reducer is the
 // only thing that interprets these. UI dispatches them; systems never do.
 export type Action =
   | { type: 'TICK' }                                   // advance one week
+  | { type: 'START_GAME'; name: string; schoolType: SchoolType } // leaves the startup screen, founds the university
   | { type: 'START_DEVELOPMENT'; nodeId: string }
   | { type: 'HIRE_FACULTY'; facultyId: string }
   | { type: 'FIRE_FACULTY'; facultyId: string }
@@ -18,20 +20,50 @@ export type Action =
   | { type: 'DEBUG_TRIGGER_TEST_INTERRUPT' }           // scaffolding: see reducer.ts, remove once a real interrupt exists
   | { type: 'RESET' };
 
-export function createInitialState(): GameState {
+// A minimal placeholder state for the pre-game startup screen only. None of
+// the expensive seed generation (curriculum, rivals, faculty, candidates)
+// runs until the player actually founds the university via START_GAME.
+export function createPreStartState(): GameState {
+  return {
+    clock: { year: 1, week: 1 },
+    finance: { cash: 0, endowment: 0, tuitionPerStudent: 0, tuitionCeiling: 0, baselineFundingPerWeek: 0, weeklyOpEx: 0 },
+    students: { enrolled: 0, capacity: 0, satisfaction: 0, applicantPool: 0 },
+    faculty: [],
+    tech: [],
+    slots: 0,
+    developing: {},
+    rivals: [],
+    self: { name: '', reputation: 0, schoolType: 'private' },
+    log: [],
+    gameOver: false,
+    pendingInterrupt: null,
+    autoDevelop: false,
+    candidates: [],
+    started: false,
+  };
+}
+
+// The real starting state, once the player has named the university and
+// picked private/public on the startup screen. Private/public sets
+// starting conditions purely through SCHOOL_TYPE_PRESETS — see
+// README's "Startup and school type".
+export function createInitialState(name: string, schoolType: SchoolType): GameState {
+  const preset = SCHOOL_TYPE_PRESETS[schoolType];
   return {
     clock: { year: 1, week: 1 },
     finance: {
-      cash: 500_000,
-      endowment: 1_000_000,
-      tuitionPerStudent: 8_000,
+      cash: preset.startingCash,
+      endowment: 1_000_000, // not varied by school type — not in README's explicit starting-condition list
+      tuitionPerStudent: Math.min(8_000, preset.tuitionCeiling),
+      tuitionCeiling: preset.tuitionCeiling,
+      baselineFundingPerWeek: preset.baselineFundingPerWeek,
       weeklyOpEx: 0,
     },
     students: {
       enrolled: 200,
       capacity: 400,
       satisfaction: 70,
-      applicantPool: 0,
+      applicantPool: preset.startingApplicantPool,
     },
     faculty: [
       { id: 'f1', name: 'Dr. Alma Reyes', field: 'Physics', teaching: 72, research: 65, salary: 90_000, morale: 80 },
@@ -42,7 +74,7 @@ export function createInitialState(): GameState {
     slots: 2,
     developing: {},
     rivals: initialRivals(),
-    self: { name: 'Your University', reputation: 40 },
+    self: { name, reputation: BASE_STARTING_REPUTATION + preset.prestigeBonus, schoolType },
     log: [
       { year: 1, week: 1, message: 'The university opens its doors.', kind: 'info' },
     ],
@@ -50,6 +82,7 @@ export function createInitialState(): GameState {
     pendingInterrupt: null,
     autoDevelop: false,
     candidates: initialCandidates(),
+    started: true,
   };
 }
 

@@ -10,6 +10,8 @@ export interface Finance {
   cash: number;          // liquid funds
   endowment: number;     // long-term reserve, grows/shrinks slowly
   tuitionPerStudent: number;
+  tuitionCeiling: number;        // hard cap on tuitionPerStudent, set by school type at founding
+  baselineFundingPerWeek: number; // steady non-tuition income (e.g. state appropriations), set by school type
   weeklyOpEx: number;    // salaries + upkeep, recomputed each tick
 }
 
@@ -84,9 +86,14 @@ export interface Rival {
   momentum: number;     // hidden trend, makes rivals dynamic over decades
 }
 
+// Private/public is the only starting fork (see README's "Startup and
+// school type") — everything else about the school emerges from play.
+export type SchoolType = 'private' | 'public';
+
 export interface University {
   name: string;
   reputation: number;   // player's own rank metric
+  schoolType: SchoolType;
 }
 
 export interface GameState {
@@ -104,6 +111,7 @@ export interface GameState {
   pendingInterrupt: PendingInterrupt | null; // set => clock halts until resolved
   autoDevelop: boolean;          // when true, tickTech fills open development slots itself
   candidates: Faculty[];         // hireable faculty pool, distinct from the hired roster
+  started: boolean;              // false only during the pre-game startup screen (name + school type)
 }
 
 export interface LogEntry {

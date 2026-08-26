@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { useGame, SPEEDS, SANDBOX_SPEEDS, type Speed } from './engine/useGame';
 import { rankedList } from './systems/rivals/rivalsSystem';
 import { curriculumGroups } from './data/techData';
 import { SLOT_COST, MAX_SLOTS } from './systems/techtree/techSystem';
-import type { GameState, PendingInterrupt, Buildable } from './state/types';
+import { weeklyNet } from './systems/finance/financeSystem';
+import { SCHOOL_TYPE_PRESETS } from './data/schoolTypeData';
+import type { GameState, PendingInterrupt, Buildable, SchoolType } from './state/types';
 import { WEEKS_PER_YEAR } from './state/types';
 import './styles.css';
 
@@ -44,9 +47,59 @@ function CourseTile({ label, courses }: { label: string; courses: Buildable[] })
   );
 }
 
+// Shown once, before play begins: name the university and pick private vs.
+// public. That single choice sets starting conditions via
+// SCHOOL_TYPE_PRESETS (see data/schoolTypeData.ts) — no other customization
+// here, per README ("archetypes emerge, they are not chosen").
+function StartupScreen({ onStart }: { onStart: (name: string, schoolType: SchoolType) => void }) {
+  const [name, setName] = useState('');
+  const [schoolType, setSchoolType] = useState<SchoolType>('private');
+
+  return (
+    <div className="startup">
+      <div className="startup-card">
+        <div className="eyebrow">Found a University</div>
+        <h1>Name your school</h1>
+        <input
+          className="startup-name"
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. Ashcombe University"
+          maxLength={60}
+        />
+        <div className="startup-types">
+          {(Object.keys(SCHOOL_TYPE_PRESETS) as SchoolType[]).map((type) => (
+            <button
+              key={type}
+              className={`startup-type-btn ${schoolType === type ? 'active' : ''}`}
+              onClick={() => setSchoolType(type)}
+            >
+              <strong>{SCHOOL_TYPE_PRESETS[type].label}</strong>
+              <span>{SCHOOL_TYPE_PRESETS[type].description}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          className="startup-begin-btn"
+          disabled={name.trim().length === 0}
+          onClick={() => onStart(name.trim(), schoolType)}
+        >
+          Open the Doors
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const { state, act, speed, setSpeed } = useGame();
   const s: GameState = state;
+
+  if (!s.started) {
+    return <StartupScreen onStart={(name, schoolType) => act({ type: 'START_GAME', name, schoolType })} />;
+  }
+
   const ranks = rankedList(s);
 
   const doneCourses = s.tech.filter((t) => t.status === 'done').length;
@@ -54,7 +107,7 @@ export default function App() {
   const developingCourses = s.tech.filter((t) => t.status === 'developing');
   const slotsUsed = Object.keys(s.developing).length;
 
-  const netWeekly = (s.students.enrolled * s.finance.tuitionPerStudent) / 52 - s.finance.weeklyOpEx;
+  const netWeekly = weeklyNet(s);
   const elapsedYears = s.clock.year - 1 + (s.clock.week - 1) / WEEKS_PER_YEAR;
   const pace = elapsedYears > 0 ? doneCourses / elapsedYears : 0;
   const catalogPct = Math.round((doneCourses / s.tech.length) * 100);

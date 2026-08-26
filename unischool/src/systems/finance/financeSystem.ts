@@ -38,18 +38,33 @@ const REPUTATION_DIVIDEND_PER_POINT_PER_YEAR = 400;
 // cash — see the "no hard insolvency" note in tickFinance below.
 const ENDOWMENT_ANNUAL_RETURN = 0.026; // ~2.6%/yr, applied as a weekly slice
 
+function weeklyOpEx(s: GameState): number {
+  const weeklySalaries = s.faculty.reduce((sum, f) => sum + f.salary, 0) / CALENDAR_WEEKS_PER_YEAR;
+  const upkeep = s.students.capacity * UPKEEP_PER_SEAT_PER_WEEK;
+  return weeklySalaries + upkeep;
+}
+
+function weeklyRevenue(s: GameState): number {
+  const tuitionRevenue = (s.students.enrolled * s.finance.tuitionPerStudent) / CALENDAR_WEEKS_PER_YEAR;
+  const prestigeRevenue = (s.self.reputation * REPUTATION_DIVIDEND_PER_POINT_PER_YEAR) / CALENDAR_WEEKS_PER_YEAR;
+  // Set once at founding by school type (e.g. state appropriations for a
+  // public school; 0 for private) — see SCHOOL_TYPE_PRESETS.
+  return tuitionRevenue + prestigeRevenue + s.finance.baselineFundingPerWeek;
+}
+
+// Net weekly cash flow at the current state, without mutating anything.
+// Exported so the UI can show an accurate "this week's trend" figure
+// without keeping a second copy of this formula that can drift out of
+// sync with tickFinance below.
+export function weeklyNet(s: GameState): number {
+  return weeklyRevenue(s) - weeklyOpEx(s);
+}
+
 // Recomputes operating costs and applies weekly cash flow.
 // Pure: takes state, mutates a draft. (We use structural cloning in the reducer.)
 export function tickFinance(s: GameState): void {
-  const weeklySalaries = s.faculty.reduce((sum, f) => sum + f.salary, 0) / CALENDAR_WEEKS_PER_YEAR;
-  const upkeep = s.students.capacity * UPKEEP_PER_SEAT_PER_WEEK;
-  s.finance.weeklyOpEx = weeklySalaries + upkeep;
-
-  const tuitionRevenue = (s.students.enrolled * s.finance.tuitionPerStudent) / CALENDAR_WEEKS_PER_YEAR;
-  const prestigeRevenue = (s.self.reputation * REPUTATION_DIVIDEND_PER_POINT_PER_YEAR) / CALENDAR_WEEKS_PER_YEAR;
-
-  const net = tuitionRevenue + prestigeRevenue - s.finance.weeklyOpEx;
-  s.finance.cash += net;
+  s.finance.weeklyOpEx = weeklyOpEx(s);
+  s.finance.cash += weeklyRevenue(s) - s.finance.weeklyOpEx;
 
   // Endowment drifts with a small return, independent of operations — a
   // slow reserve, not a death backstop. Cash is allowed to go negative:

@@ -32,12 +32,15 @@ export function reducer(state: GameState, action: Action): GameState {
 
   switch (action.type) {
     case 'TICK': {
-      if (s.gameOver || s.pendingInterrupt) return state; // the clock halts while an interrupt is pending
+      if (!s.started || s.gameOver || s.pendingInterrupt) return state; // the clock halts while an interrupt is pending
       for (const system of SYSTEMS) system(s);
       advanceClock(s);
       if (s.log.length > 50) s.log.length = 50; // cap log growth
       return s;
     }
+
+    case 'START_GAME':
+      return createInitialState(action.name, action.schoolType);
 
     case 'START_DEVELOPMENT': {
       const node = s.tech.find((t) => t.id === action.nodeId);
@@ -60,7 +63,7 @@ export function reducer(state: GameState, action: Action): GameState {
     }
 
     case 'SET_TUITION': {
-      s.finance.tuitionPerStudent = Math.max(0, action.amount);
+      s.finance.tuitionPerStudent = Math.max(0, Math.min(action.amount, s.finance.tuitionCeiling));
       return s;
     }
 
@@ -94,7 +97,9 @@ export function reducer(state: GameState, action: Action): GameState {
     }
 
     case 'RESET':
-      return createInitialState();
+      // Restart keeps the founded university's identity rather than
+      // bouncing back to the startup screen.
+      return createInitialState(state.self.name, state.self.schoolType);
 
     default:
       return state;

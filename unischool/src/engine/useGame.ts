@@ -1,6 +1,6 @@
 import { useReducer, useEffect, useRef, useState, useCallback } from 'react';
 import { reducer } from './reducer';
-import { createInitialState } from '../state/actions';
+import { createPreStartState } from '../state/actions';
 import type { Action } from '../state/actions';
 
 // Speed presets in milliseconds per week-tick. 0 = paused.
@@ -11,7 +11,7 @@ export type Speed = keyof typeof SPEEDS;
 export const SANDBOX_SPEEDS: readonly Speed[] = ['fast'];
 
 export function useGame() {
-  const [state, dispatch] = useReducer(reducer, undefined, createInitialState);
+  const [state, dispatch] = useReducer(reducer, undefined, createPreStartState);
   const [speed, setSpeed] = useState<Speed>('paused');
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -20,10 +20,10 @@ export function useGame() {
 
   useEffect(() => {
     const ms = SPEEDS[speed];
-    if (ms === 0 || state.gameOver || interrupted) return; // also halted while an interrupt is pending
+    if (ms === 0 || !state.started || state.gameOver || interrupted) return; // also halted while an interrupt is pending
     const id = setInterval(() => dispatch({ type: 'TICK' }), ms);
     return () => clearInterval(id);
-  }, [speed, state.gameOver, interrupted]);
+  }, [speed, state.started, state.gameOver, interrupted]);
 
   const act = useCallback((a: Action) => dispatch(a), []);
 
