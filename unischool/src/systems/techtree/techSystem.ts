@@ -1,17 +1,18 @@
-import type { GameState, GameEffects, TechNode } from '../../state/types';
+import type { GameState, Buildable, BuildableEffects } from '../../state/types';
 
-// Weeks needed to develop a course, scaled by tier.
-const WEEKS_PER_TIER = 3;
-export function developmentWeeks(tier: number): number {
-  return tier * WEEKS_PER_TIER;
-}
-
-function applyEffects(s: GameState, e?: Partial<GameEffects>): void {
+function applyEffects(s: GameState, e?: Partial<BuildableEffects>): void {
   if (!e) return;
   if (e.capacityBonus) s.students.capacity += e.capacityBonus;
   if (e.reputationBonus) s.self.reputation += e.reputationBonus;
   if (e.tuitionBonus) s.finance.tuitionPerStudent += e.tuitionBonus;
+  if (e.slotBonus) s.slots += e.slotBonus;
   // researchRateBonus is read live in weeklyResearchPoints extensions later.
+  if (e.unlockIds) {
+    for (const id of e.unlockIds) {
+      const target = s.tech.find((t) => t.id === id);
+      if (target && target.status === 'locked') target.status = 'available';
+    }
+  }
 }
 
 function unlockAvailable(s: GameState): void {
@@ -23,7 +24,7 @@ function unlockAvailable(s: GameState): void {
 }
 
 export function tickTech(s: GameState): void {
-  const finished: TechNode[] = [];
+  const finished: Buildable[] = [];
 
   for (const id of Object.keys(s.developing)) {
     const weeksLeft = s.developing[id] - 1;
@@ -38,11 +39,11 @@ export function tickTech(s: GameState): void {
 
   for (const node of finished) {
     node.status = 'done';
-    applyEffects(s, node.unlocks);
+    applyEffects(s, node.effects);
     s.log.unshift({
       year: s.clock.year,
       week: s.clock.week,
-      message: `Course developed: ${node.name}.`,
+      message: `Developed: ${node.name}.`,
       kind: 'good',
     });
   }

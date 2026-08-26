@@ -32,24 +32,34 @@ export interface Faculty {
   morale: number;     // 0..100
 }
 
-export type TechStatus = 'locked' | 'available' | 'developing' | 'done';
+export type BuildableStatus = 'locked' | 'available' | 'developing' | 'done';
 
-export interface TechNode {
+// courses, academic buildings, dorms, and campus-life facilities (and later
+// sports) are all the same kind of thing: a Buildable. They differ only in
+// their data, not their machinery — see README's "The central abstraction".
+export type BuildableKind = 'course' | 'building' | 'dorm' | 'facility';
+
+export interface Buildable {
   id: string;
+  kind: BuildableKind;
   name: string;
   description: string;
-  tier: number;           // higher tier = longer to develop
-  prereqs: string[];     // ids that must be 'done'
-  status: TechStatus;
-  unlocks?: Partial<GameEffects>; // applied once, when completed
+  cost: number;            // money spent up front, at the moment development starts
+  duration: number;        // weeks of development, occupying a development slot
+  prereqs: string[];       // other Buildable ids that must be 'done'; may cross kinds and majors
+  requiresFaculty?: string; // a Faculty `field` that must be present on the roster to start
+  status: BuildableStatus;
+  effects?: Partial<BuildableEffects>; // applied once, when completed
 }
 
-// Effects a tech node can grant when finished.
-export interface GameEffects {
+// Effects a Buildable can grant when finished.
+export interface BuildableEffects {
   capacityBonus: number;
   reputationBonus: number;
   tuitionBonus: number;
   researchRateBonus: number;
+  slotBonus: number;    // grants additional development slots
+  unlockIds: string[];  // force these Buildable ids to 'available', regardless of their own prereqs
 }
 
 export interface Rival {
@@ -69,7 +79,7 @@ export interface GameState {
   finance: Finance;
   students: StudentBody;
   faculty: Faculty[];
-  tech: TechNode[];
+  tech: Buildable[];
   slots: number;                     // parallel development slots
   developing: Record<string, number>; // course id -> weeks remaining
   rivals: Rival[];

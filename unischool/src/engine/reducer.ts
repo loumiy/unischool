@@ -3,7 +3,7 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import type { Action } from '../state/actions';
 import { createInitialState } from '../state/actions';
 import { tickFinance } from '../systems/finance/financeSystem';
-import { tickTech, developmentWeeks } from '../systems/techtree/techSystem';
+import { tickTech } from '../systems/techtree/techSystem';
 import { tickAdmissions } from '../systems/admissions/admissionsSystem';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
 
@@ -40,9 +40,11 @@ export function reducer(state: GameState, action: Action): GameState {
     case 'START_DEVELOPMENT': {
       const node = s.tech.find((t) => t.id === action.nodeId);
       const slotsUsed = Object.keys(s.developing).length;
-      if (node && node.status === 'available' && slotsUsed < s.slots) {
+      const facultyOk = !node?.requiresFaculty || s.faculty.some((f) => f.field === node.requiresFaculty);
+      if (node && node.status === 'available' && slotsUsed < s.slots && facultyOk) {
         node.status = 'developing';
-        s.developing[node.id] = developmentWeeks(node.tier);
+        s.developing[node.id] = node.duration;
+        s.finance.cash -= node.cost; // cost is charged up front; see README's pacing model for the (separate) cash-gate task
       }
       return s;
     }
