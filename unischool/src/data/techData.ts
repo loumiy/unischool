@@ -52,8 +52,12 @@ const COURSE_COST = 0;
 // academic building.
 const GENED_BUILDING_COST = 60_000;
 const GENED_BUILDING_WEEKS = 6;
-const GENED_BUILDING_CAPACITY_BONUS = 40;
-const GENED_BUILDING_REPUTATION_BONUS = 5;
+// General Studies Hall starts already built (see initialTech below), so
+// these never flow through the normal completion-effects path — they're
+// exported for createInitialState to fold directly into the founding
+// capacity/reputation baseline instead.
+export const GENED_BUILDING_CAPACITY_BONUS = 40;
+export const GENED_BUILDING_REPUTATION_BONUS = 5;
 
 const SCHOOL_BUILDING_COST = 180_000;
 const SCHOOL_BUILDING_WEEKS = 10;
@@ -291,7 +295,7 @@ const TIER3_TEMPLATES: Array<(title: string, major: string) => string> = [
 ];
 
 const BUILDING_DESCRIPTIONS: Record<string, string> = {
-  'BLDG-GENSTUDIES': 'A starter hall housing the general-education core — the first building any new university needs.',
+  'BLDG-GENSTUDIES': 'The starter hall housing the general-education core — standing since the university\'s founding.',
   'BLDG-BUSINESS': "The Business school's home: lecture halls, case-study rooms, and faculty offices for every business major.",
   'BLDG-ENGINEERING': 'Labs, workshops, and studios for the Engineering school’s six majors.',
   'BLDG-ARTSMEDIA': 'Studios, editing bays, and performance space for the Arts & Media school.',
@@ -378,6 +382,16 @@ export function initialTech(): Buildable[] {
     // Its own completion unlocks the school's tier-2 courses — authored as
     // a plain prereq on each of those courses above, resolved by the same
     // generic engine that resolves every other prereq.
+    //
+    // General Studies Hall is the one exception: per the README's milestone
+    // chain, a new university starts with "one academic building and the
+    // gen-ed courses available" — the building isn't an early reward, it's
+    // the founding condition the gen-ed courses are paired with. So it's
+    // seeded already 'done' rather than locked behind the gen-ed courses it
+    // sits alongside. A Buildable created 'done' never passes through
+    // tickTech's completion path, so its capacity/reputation contribution is
+    // folded into the starting baseline (Faculty/starting stats) instead of
+    // granted via effects here — effects is omitted to avoid double-counting.
     const isGenEd = school.core !== undefined;
     nodes.push({
       id: school.buildingId,
@@ -387,10 +401,10 @@ export function initialTech(): Buildable[] {
       cost: isGenEd ? GENED_BUILDING_COST : SCHOOL_BUILDING_COST,
       duration: isGenEd ? GENED_BUILDING_WEEKS : SCHOOL_BUILDING_WEEKS,
       prereqs: tier1IdsInSchool,
-      status: 'locked',
-      effects: {
-        capacityBonus: isGenEd ? GENED_BUILDING_CAPACITY_BONUS : SCHOOL_BUILDING_CAPACITY_BONUS,
-        reputationBonus: isGenEd ? GENED_BUILDING_REPUTATION_BONUS : SCHOOL_BUILDING_REPUTATION_BONUS,
+      status: isGenEd ? 'done' : 'locked',
+      effects: isGenEd ? undefined : {
+        capacityBonus: SCHOOL_BUILDING_CAPACITY_BONUS,
+        reputationBonus: SCHOOL_BUILDING_REPUTATION_BONUS,
       },
     });
   }
