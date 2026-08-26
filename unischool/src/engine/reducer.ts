@@ -6,10 +6,12 @@ import { tickFinance } from '../systems/finance/financeSystem';
 import { tickTech, developmentWeeks, nextSlotCost } from '../systems/techtree/techSystem';
 import { tickAdmissions } from '../systems/admissions/admissionsSystem';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
+import { tickFaculty } from '../systems/faculty/facultySystem';
 
 // The systems run in a fixed order each week. Order matters: research and
 // finance resolve before admissions/rivals read the updated world.
 const SYSTEMS: Array<(s: GameState) => void> = [
+  tickFaculty,
   tickTech,
   tickFinance,
   tickAdmissions,
@@ -56,6 +58,21 @@ export function reducer(state: GameState, action: Action): GameState {
           year: s.clock.year,
           week: s.clock.week,
           message: `Bought a new development slot for $${cost.toLocaleString()}.`,
+          kind: 'good',
+        });
+      }
+      return s;
+    }
+
+    case 'HIRE_FACULTY': {
+      const idx = s.facultyPool.findIndex((f) => f.id === action.facultyId);
+      if (idx !== -1 && s.finance.cash >= s.facultyPool[idx].salary) {
+        const [hired] = s.facultyPool.splice(idx, 1);
+        s.faculty.push(hired);
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: `Hired ${hired.name} (${hired.field}).`,
           kind: 'good',
         });
       }

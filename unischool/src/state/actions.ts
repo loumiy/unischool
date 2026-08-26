@@ -3,6 +3,7 @@ import { WEEKS_PER_YEAR } from './types';
 import { initialTech } from '../data/techData';
 import { initialRivals } from '../data/rivalData';
 import { STARTING_SLOTS } from '../systems/techtree/techSystem';
+import { generateFacultyPool } from '../systems/faculty/facultySystem';
 
 // All the ways a player can change the world. The engine's reducer is the
 // only thing that interprets these. UI dispatches them; systems never do.
@@ -35,6 +36,7 @@ export function createInitialState(): GameState {
       { id: 'f2', name: 'Dr. John Okafor', field: 'History', teaching: 80, research: 55, salary: 82_000, morale: 78 },
       { id: 'f3', name: 'Dr. Wei Zhang', field: 'CompSci', teaching: 60, research: 88, salary: 105_000, morale: 75 },
     ],
+    facultyPool: generateFacultyPool(),
     tech: initialTech(),
     slots: STARTING_SLOTS,
     developing: {},

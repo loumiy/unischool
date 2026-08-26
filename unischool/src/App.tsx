@@ -93,6 +93,21 @@ export default function App() {
               </li>
             ))}
           </ul>
+          <h3>Candidates</h3>
+          <ul className="candidates">
+            {s.facultyPool.map((f) => (
+              <li key={f.id}>
+                <span>{f.name} · {f.field}</span>
+                <span className="stat">T{f.teaching} R{f.research} · ${f.salary.toLocaleString()}/yr</span>
+                <button
+                  disabled={s.finance.cash < f.salary}
+                  onClick={() => act({ type: 'HIRE_FACULTY', facultyId: f.id })}
+                >
+                  hire
+                </button>
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section className="panel">
@@ -137,7 +152,7 @@ export default function App() {
                                   develop
                                 </button>
                               )}
-                              {t.status === 'developing' && <span className="badge">{s.developing[t.id]}w left</span>}
+                              {t.status === 'developing' && <span className="badge">{Math.ceil(s.developing[t.id])}w left</span>}
                               {t.status === 'done' && <span className="badge done">done</span>}
                               {t.status === 'locked' && <span className="badge locked">locked</span>}
                             </div>

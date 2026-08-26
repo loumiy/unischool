@@ -71,6 +71,7 @@ export interface GameState {
   finance: Finance;
   students: StudentBody;
   faculty: Faculty[];
+  facultyPool: Faculty[];            // candidates available to hire
   tech: TechNode[];
   slots: number;                     // parallel development slots
   developing: Record<string, number>; // course id -> weeks remaining

@@ -1,9 +1,22 @@
 import type { GameState, GameEffects, TechNode } from '../../state/types';
 
-// Weeks needed to develop a course, scaled by tier.
+// Weeks needed to develop a course, scaled by tier, at baseline speed (see
+// developmentSpeed() below — better faculty complete this faster).
 const WEEKS_PER_TIER = 3;
 export function developmentWeeks(tier: number): number {
   return tier * WEEKS_PER_TIER;
+}
+
+// How much development progress (in weeks-equivalent) happens per tick,
+// applied to every course currently in development. DEV_SPEED_BASE is the
+// floor with no faculty; DEV_SPEED_PER_RESEARCH_POINT is how much each point
+// of aggregate faculty research (weighted by morale) adds on top — this is
+// the lever that makes hiring better researchers pay off.
+const DEV_SPEED_BASE = 1;
+const DEV_SPEED_PER_RESEARCH_POINT = 0.01;
+export function developmentSpeed(s: GameState): number {
+  const researchScore = s.faculty.reduce((sum, f) => sum + f.research * (f.morale / 100), 0);
+  return DEV_SPEED_BASE + researchScore * DEV_SPEED_PER_RESEARCH_POINT;
 }
 
 // Slots the university starts with, before any are purchased. Shared with
@@ -27,7 +40,7 @@ function applyEffects(s: GameState, e?: Partial<GameEffects>): void {
   if (e.capacityBonus) s.students.capacity += e.capacityBonus;
   if (e.reputationBonus) s.self.reputation += e.reputationBonus;
   if (e.tuitionBonus) s.finance.tuitionPerStudent += e.tuitionBonus;
-  // researchRateBonus is read live in weeklyResearchPoints extensions later.
+  // researchRateBonus is unused for now — a natural future input to developmentSpeed().
 }
 
 function unlockAvailable(s: GameState): void {
@@ -102,9 +115,10 @@ function checkMilestones(s: GameState): void {
 
 export function tickTech(s: GameState): void {
   const finished: TechNode[] = [];
+  const speed = developmentSpeed(s);
 
   for (const id of Object.keys(s.developing)) {
-    const weeksLeft = s.developing[id] - 1;
+    const weeksLeft = s.developing[id] - speed;
     if (weeksLeft <= 0) {
       delete s.developing[id];
       const node = s.tech.find((t) => t.id === id);
