@@ -74,6 +74,7 @@ export interface GameState {
   tech: TechNode[];
   slots: number;                     // parallel development slots
   developing: Record<string, number>; // course id -> weeks remaining
+  milestones: Record<string, boolean>; // milestone key -> awarded, so each fires once
   rivals: Rival[];
   self: University;
   log: LogEntry[];               // recent events, newest first

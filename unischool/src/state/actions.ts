@@ -38,6 +38,7 @@ export function createInitialState(): GameState {
     tech: initialTech(),
     slots: STARTING_SLOTS,
     developing: {},
+    milestones: {},
     rivals: initialRivals(),
     self: { name: 'Your University', reputation: 40 },
     log: [
