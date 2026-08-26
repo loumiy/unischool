@@ -1,6 +1,6 @@
 import type { GameState, SchoolType } from './types';
 import { WEEKS_PER_YEAR } from './types';
-import { initialTech } from '../data/techData';
+import { initialTech, GENED_BUILDING_CAPACITY_BONUS, GENED_BUILDING_REPUTATION_BONUS } from '../data/techData';
 import { initialRivals } from '../data/rivalData';
 import { initialCandidates } from '../data/facultyData';
 import { SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION } from '../data/schoolTypeData';
@@ -52,6 +52,7 @@ export function createPreStartState(): GameState {
     candidates: [],
     started: false,
     hasEnteredRankings: false,
+    milestones: {},
   };
 }
 
@@ -73,7 +74,10 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     },
     students: {
       enrolled: 200,
-      capacity: 400,
+      // +GENED_BUILDING_CAPACITY_BONUS: General Studies Hall starts already
+      // built (see initialTech), so its capacity contribution is folded in
+      // here rather than granted via the normal completion-effects path.
+      capacity: 400 + GENED_BUILDING_CAPACITY_BONUS,
       satisfaction: 70,
       applicantPool: preset.startingApplicantPool,
     },
@@ -95,7 +99,8 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     slots: 2,
     developing: {},
     rivals: initialRivals(),
-    self: { name, reputation: BASE_STARTING_REPUTATION + preset.prestigeBonus, schoolType },
+    // +GENED_BUILDING_REPUTATION_BONUS: same fold-in as capacity above.
+    self: { name, reputation: BASE_STARTING_REPUTATION + preset.prestigeBonus + GENED_BUILDING_REPUTATION_BONUS, schoolType },
     log: [
       { year: 1, week: 1, message: 'The university opens its doors.', kind: 'info' },
     ],
@@ -105,6 +110,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     candidates: initialCandidates(),
     started: true,
     hasEnteredRankings: false,
+    milestones: {},
   };
 }
 

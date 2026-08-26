@@ -1,4 +1,23 @@
 import type { GameState, Buildable, BuildableEffects } from '../../state/types';
+import { milestoneSchools } from '../../data/techData';
+
+// ---------------------------------------------------------------------
+// The milestone chain (see README's "The milestone chain"). Unlocking
+// itself (tier-1 -> school building -> tier-2 -> tier-3) is pure authored
+// prereq data resolved generically by unlockAvailable() below — nothing
+// special needed for that. What's left for dedicated logic is the BONUS
+// side: "major complete" and "further" bonuses aren't a single course's
+// own completion effect, they're a reward for an aggregate condition
+// (every tier-2, or every tier-3, in a major being done), plus a
+// school-wide capstone bonus once every major in a school is fully done.
+// This is deliberately the one place technSystem.ts is course/curriculum-
+// aware rather than fully kind-agnostic — milestones are inherently a
+// school/major concept, which buildings/dorms/facilities don't have.
+// ---------------------------------------------------------------------
+const MAJOR_COMPLETE_REPUTATION_BONUS = 15; // all tier-2 courses in a major done
+const MAJOR_COMPLETE_APPLICANT_BONUS = 30;
+const MAJOR_MASTERED_REPUTATION_BONUS = 25; // all tier-3 courses in a major also done (the "further" bonus)
+const SCHOOL_COMPLETE_REPUTATION_BONUS = 80; // every major in the school fully done (tier-2 and tier-3)
 
 // Development slots are a purchasable relief valve, not the primary
 // pacing throttle (see README's "Pacing model"). Flat cost and a soft cap
@@ -50,6 +69,7 @@ function applyEffects(s: GameState, e?: Partial<BuildableEffects>): void {
   if (e.reputationBonus) s.self.reputation += e.reputationBonus;
   if (e.tuitionBonus) s.finance.tuitionPerStudent += e.tuitionBonus;
   if (e.slotBonus) s.slots += e.slotBonus;
+  if (e.applicantPoolBonus) s.students.applicantPool += e.applicantPoolBonus;
   // researchRateBonus is read live in weeklyResearchPoints extensions later.
   if (e.unlockIds) {
     for (const id of e.unlockIds) {
@@ -63,6 +83,61 @@ function unlockAvailable(s: GameState): void {
   for (const t of s.tech) {
     if (t.status === 'locked' && t.prereqs.every((p) => s.tech.find((x) => x.id === p)?.status === 'done')) {
       t.status = 'available';
+    }
+  }
+}
+
+function isDone(s: GameState, id: string): boolean {
+  return s.tech.find((t) => t.id === id)?.status === 'done';
+}
+
+// Awards a milestone bonus exactly once, guarded by s.milestones.
+function awardMilestone(s: GameState, key: string, reputationBonus: number, applicantBonus: number, message: string): void {
+  if (s.milestones[key]) return;
+  s.milestones[key] = true;
+  s.self.reputation += reputationBonus;
+  s.students.applicantPool += applicantBonus;
+  s.log.unshift({ year: s.clock.year, week: s.clock.week, message, kind: 'good' });
+}
+
+function checkMilestones(s: GameState): void {
+  for (const school of milestoneSchools()) {
+    let allMajorsFullyDone = school.majors.length > 0;
+
+    for (const major of school.majors) {
+      const tier2Done = major.tier2Ids.every((id) => isDone(s, id));
+      if (tier2Done) {
+        awardMilestone(
+          s,
+          `major-complete:${major.prefix}`,
+          MAJOR_COMPLETE_REPUTATION_BONUS,
+          MAJOR_COMPLETE_APPLICANT_BONUS,
+          `Major complete: ${major.name} (${school.schoolName}).`,
+        );
+      }
+
+      const tier3Done = major.tier3Ids.every((id) => isDone(s, id));
+      if (tier3Done) {
+        awardMilestone(
+          s,
+          `major-mastered:${major.prefix}`,
+          MAJOR_MASTERED_REPUTATION_BONUS,
+          0,
+          `${major.name} fully mastered — every course complete.`,
+        );
+      }
+
+      if (!(tier2Done && tier3Done)) allMajorsFullyDone = false;
+    }
+
+    if (allMajorsFullyDone) {
+      awardMilestone(
+        s,
+        `school-complete:${school.schoolName}`,
+        SCHOOL_COMPLETE_REPUTATION_BONUS,
+        0,
+        `${school.schoolName} is now a fully distinguished school.`,
+      );
     }
   }
 }
@@ -92,6 +167,9 @@ export function tickTech(s: GameState): void {
     });
   }
 
-  if (finished.length > 0) unlockAvailable(s);
+  if (finished.length > 0) {
+    unlockAvailable(s);
+    checkMilestones(s);
+  }
   autoFillSlots(s);
 }

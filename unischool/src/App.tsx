@@ -196,6 +196,7 @@ export default function App() {
   const availableCourses = s.tech.filter((t) => t.status === 'available');
   const developingCourses = s.tech.filter((t) => t.status === 'developing');
   const slotsUsed = Object.keys(s.developing).length;
+  const hasFaculty = (field: string) => s.faculty.some((f) => f.field === field);
 
   const netWeekly = weeklyNet(s);
   const elapsedYears = s.clock.year - 1 + (s.clock.week - 1) / WEEKS_PER_YEAR;
@@ -328,18 +329,35 @@ export default function App() {
             <p className="stall-note">Cash is negative — new development is stalled until it recovers.</p>
           )}
           <ul className="available-list">
-            {availableCourses.map((t) => (
-              <li key={t.id}>
-                <span>{t.name}</span>
-                <button
-                  disabled={slotsUsed >= s.slots || s.finance.cash < 0}
-                  title={s.finance.cash < 0 ? 'Cash is negative — expansion is stalled until it recovers.' : undefined}
-                  onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: t.id })}
-                >
-                  develop →
-                </button>
-              </li>
-            ))}
+            {availableCourses.map((t) => {
+              const missingFaculty = !!(t.requiresFaculty && !hasFaculty(t.requiresFaculty));
+              const disabledReason = s.finance.cash < 0
+                ? 'Cash is negative — expansion is stalled until it recovers.'
+                : missingFaculty
+                  ? `Requires a ${t.requiresFaculty} faculty member on the roster.`
+                  : undefined;
+              return (
+                <li key={t.id} className="available-item">
+                  <div className="available-item-main">
+                    <span>
+                      {t.kind === 'building' && <span className="kind-tag">Building</span>}
+                      {t.name}
+                    </span>
+                    {t.requiresFaculty && <span className="requires-faculty-tag">needs {t.requiresFaculty}</span>}
+                  </div>
+                  <div className="available-item-meta">
+                    <span className="stat">{t.cost > 0 ? `$${t.cost.toLocaleString()} · ` : ''}{t.duration}w</span>
+                    <button
+                      disabled={slotsUsed >= s.slots || s.finance.cash < 0 || missingFaculty}
+                      title={disabledReason}
+                      onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: t.id })}
+                    >
+                      develop →
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </section>
 
