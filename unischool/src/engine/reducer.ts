@@ -7,11 +7,14 @@ import { tickTech, developmentWeeks, nextSlotCost } from '../systems/techtree/te
 import { tickAdmissions } from '../systems/admissions/admissionsSystem';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
 import { tickFaculty } from '../systems/faculty/facultySystem';
+// SANDBOX-ONLY: remove this import and its SYSTEMS entry below before release.
+import { tickAutoDevelop } from '../systems/sandbox/sandboxSystem';
 
 // The systems run in a fixed order each week. Order matters: research and
 // finance resolve before admissions/rivals read the updated world.
 const SYSTEMS: Array<(s: GameState) => void> = [
   tickFaculty,
+  tickAutoDevelop, // SANDBOX-ONLY — see systems/sandbox/sandboxSystem.ts
   tickTech,
   tickFinance,
   tickAdmissions,
@@ -26,6 +29,14 @@ function advanceClock(s: GameState): void {
   }
 }
 
+// One week's worth of the game loop, extracted so MULTI_TICK (sandbox-only
+// fast-forward) can replay it several times without duplicating TICK's body.
+function runWeek(s: GameState): void {
+  for (const system of SYSTEMS) system(s);
+  advanceClock(s);
+  if (s.log.length > 50) s.log.length = 50; // cap log growth
+}
+
 export function reducer(state: GameState, action: Action): GameState {
   // Clone so systems can mutate freely without touching the previous state.
   const s: GameState = structuredClone(state);
@@ -33,9 +44,15 @@ export function reducer(state: GameState, action: Action): GameState {
   switch (action.type) {
     case 'TICK': {
       if (s.gameOver) return state;
-      for (const system of SYSTEMS) system(s);
-      advanceClock(s);
-      if (s.log.length > 50) s.log.length = 50; // cap log growth
+      runWeek(s);
+      return s;
+    }
+
+    // SANDBOX-ONLY: fast-forward. Remove this case (and the 'turbo' speed
+    // in engine/useGame.ts that dispatches it) before release.
+    case 'MULTI_TICK': {
+      if (s.gameOver) return state;
+      for (let i = 0; i < action.weeks && !s.gameOver; i++) runWeek(s);
       return s;
     }
 
@@ -81,6 +98,12 @@ export function reducer(state: GameState, action: Action): GameState {
 
     case 'FIRE_FACULTY': {
       s.faculty = s.faculty.filter((f) => f.id !== action.facultyId);
+      return s;
+    }
+
+    // SANDBOX-ONLY: remove this case before release — see sandboxSystem.ts.
+    case 'TOGGLE_AUTO_DEVELOP': {
+      s.autoDevelop = !s.autoDevelop;
       return s;
     }
 

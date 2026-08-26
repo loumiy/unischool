@@ -80,6 +80,11 @@ export interface GameState {
   self: University;
   log: LogEntry[];               // recent events, newest first
   gameOver: boolean;
+
+  // --- SANDBOX-ONLY PLAYTESTING SCAFFOLDING ---
+  // Remove this field (and the auto-develop system, TOGGLE_AUTO_DEVELOP
+  // action, and its UI toggle) before release.
+  autoDevelop: boolean;
 }
 
 export interface LogEntry {

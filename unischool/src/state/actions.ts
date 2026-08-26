@@ -14,7 +14,10 @@ export type Action =
   | { type: 'HIRE_FACULTY'; facultyId: string }
   | { type: 'FIRE_FACULTY'; facultyId: string }
   | { type: 'SET_TUITION'; amount: number }
-  | { type: 'RESET' };
+  | { type: 'RESET' }
+  // --- SANDBOX-ONLY PLAYTESTING SCAFFOLDING — remove both before release ---
+  | { type: 'MULTI_TICK'; weeks: number }              // fast-forward N weeks
+  | { type: 'TOGGLE_AUTO_DEVELOP' };
 
 export function createInitialState(): GameState {
   return {
@@ -47,6 +50,9 @@ export function createInitialState(): GameState {
       { year: 1, week: 1, message: 'The university opens its doors.', kind: 'info' },
     ],
     gameOver: false,
+
+    // SANDBOX-ONLY — see state/types.ts and systems/sandbox/sandboxSystem.ts
+    autoDevelop: false,
   };
 }
 

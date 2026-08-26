@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useGame, SPEEDS, type Speed } from './engine/useGame';
 import { rankedList } from './systems/rivals/rivalsSystem';
 import { nextSlotCost } from './systems/techtree/techSystem';
-import type { TechNode } from './state/types';
+import type { GameState, TechNode } from './state/types';
+import { WEEKS_PER_YEAR } from './state/types';
 import './styles.css';
 
 // Groups the flat tech list into school -> major -> courses, preserving the
@@ -21,11 +22,31 @@ function groupTech(tech: TechNode[]) {
   }));
 }
 
+// --- SANDBOX-ONLY PLAYTESTING SCAFFOLDING ---
+// This whole-lifetime pace projection (and the header readout that renders
+// it) exists only to judge long-arc pacing quickly. Remove pacingReadout()
+// and its call site in the header before release.
+function pacingReadout(s: GameState): { done: number; total: number; projectedFinishYear: number | null } {
+  const total = s.tech.length;
+  const done = s.tech.filter((t) => t.status === 'done').length;
+  const weeksElapsed = (s.clock.year - 1) * WEEKS_PER_YEAR + s.clock.week;
+  const pace = weeksElapsed > 0 ? done / weeksElapsed : 0; // courses per week, lifetime average
+  const remaining = total - done;
+
+  if (pace <= 0 || remaining <= 0) {
+    return { done, total, projectedFinishYear: remaining <= 0 ? s.clock.year : null };
+  }
+  const remainingWeeks = remaining / pace;
+  const projectedFinishYear = s.clock.year + Math.ceil(remainingWeeks / WEEKS_PER_YEAR);
+  return { done, total, projectedFinishYear };
+}
+
 export default function App() {
   const { state, act, speed, setSpeed } = useGame();
   const s = state;
   const ranks = rankedList(s);
   const schools = groupTech(s.tech);
+  const pacing = pacingReadout(s); // SANDBOX-ONLY, see pacingReadout() above
   const [openSchools, setOpenSchools] = useState<Set<string>>(new Set());
 
   function toggleSchool(school: string) {
@@ -54,6 +75,15 @@ export default function App() {
         </div>
         <div className="cash">${Math.round(s.finance.cash).toLocaleString()}</div>
       </header>
+
+      {/* SANDBOX-ONLY: pacing readout, remove before release (see pacingReadout() above). */}
+      <div className="pacing">
+        <span>{pacing.done}/{pacing.total} courses developed</span>
+        <span>Year {s.clock.year}</span>
+        <span>
+          Projected finish: {pacing.projectedFinishYear ? `Year ${pacing.projectedFinishYear}` : '—'}
+        </span>
+      </div>
 
       {s.gameOver && <div className="gameover">Game Over — <button onClick={() => act({ type: 'RESET' })}>Restart</button></div>}
 
@@ -120,6 +150,13 @@ export default function App() {
               onClick={() => act({ type: 'BUY_SLOT' })}
             >
               buy slot — ${nextSlotCost(s.slots).toLocaleString()}
+            </button>
+            {/* SANDBOX-ONLY: auto-develop toggle, remove before release (see sandboxSystem.ts). */}
+            <button
+              className={s.autoDevelop ? 'active' : ''}
+              onClick={() => act({ type: 'TOGGLE_AUTO_DEVELOP' })}
+            >
+              auto-develop: {s.autoDevelop ? 'on' : 'off'}
             </button>
           </div>
           <div className="schools">
