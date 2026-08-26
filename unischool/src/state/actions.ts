@@ -52,6 +52,7 @@ export function createPreStartState(): GameState {
     candidates: [],
     started: false,
     hasEnteredRankings: false,
+    milestones: {},
   };
 }
 
@@ -105,6 +106,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     candidates: initialCandidates(),
     started: true,
     hasEnteredRankings: false,
+    milestones: {},
   };
 }
 

@@ -61,6 +61,7 @@ export interface BuildableEffects {
   tuitionBonus: number;
   researchRateBonus: number;
   slotBonus: number;    // grants additional development slots
+  applicantPoolBonus: number; // one-time bump to the applicant pool (see README's milestone chain)
   unlockIds: string[];  // force these Buildable ids to 'available', regardless of their own prereqs
 }
 
@@ -129,6 +130,7 @@ export interface GameState {
   candidates: Faculty[];         // hireable faculty pool, distinct from the hired roster
   started: boolean;              // false only during the pre-game startup screen (name + school type)
   hasEnteredRankings: boolean;   // true once the one-time "you've entered the top 50" reveal has fired
+  milestones: Record<string, boolean>; // milestone key -> awarded, so each curriculum milestone bonus fires once
 }
 
 export interface LogEntry {

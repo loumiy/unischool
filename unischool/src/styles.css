@@ -82,11 +82,16 @@ button { cursor: pointer; font-family: inherit; }
 
 .available-head h3 { font-family: var(--serif); font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em;
   color: var(--gold-dim); margin: 0 0 6px; }
-.available-list { max-height: 190px; overflow-y: auto; border-top: 1px solid var(--parchment-line-lo); margin: 0; padding: 0; list-style: none; }
-.available-list li { display: flex; justify-content: space-between; align-items: center; gap: 8px;
-  padding: 6px 0; border-bottom: 1px solid var(--parchment-line-lo); font-size: 13px; }
+.available-list { max-height: 220px; overflow-y: auto; border-top: 1px solid var(--parchment-line-lo); margin: 0; padding: 0; list-style: none; }
+.available-item { padding: 6px 0; border-bottom: 1px solid var(--parchment-line-lo); font-size: 13px; }
+.available-item-main { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.available-item-meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 2px; }
+.available-item-meta .stat { font-size: 11px; }
 .available-list button { background: none; border: none; color: var(--gold-dim); font-family: var(--mono); font-size: 12px; }
 .available-list button:disabled { color: #c3b795; cursor: not-allowed; }
+.requires-faculty-tag { color: #a13a3a; font-size: 11px; font-style: italic; white-space: nowrap; }
+.kind-tag { display: inline-block; background: var(--gold-dim); color: #fff8e8; font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em; border-radius: 3px; padding: 1px 5px; margin-right: 6px; vertical-align: middle; }
 
 /* ---------- sidebar panels ---------- */
 .buy-slot-btn { width: 100%; background: #f5efdd; border: 1px solid var(--gold-dim); color: #5c4a1e;
