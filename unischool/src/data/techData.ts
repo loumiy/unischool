@@ -32,17 +32,20 @@ import type { Buildable, BuildableEffects } from '../state/types';
 const NUMS = [101, 110, 120, 130, 140, 210, 220, 230, 240];
 const TIERS = [1, 2, 2, 2, 2, 3, 3, 3, 3] as const;
 
-// Weeks needed to develop a course, scaled by tier.
-const WEEKS_PER_TIER = 3;
+// Weeks needed to develop a course, scaled by tier — deliberately
+// non-linear against a 52-week WEEKS_PER_YEAR (see state/types.ts) so a
+// tier-1 entry course is still a real multi-week undertaking while a
+// tier-3 capstone is a genuine multi-month commitment, not a blip.
+const TIER_DURATION_WEEKS: Record<number, number> = { 1: 4, 2: 12, 3: 24 };
 
 // Reputation reward per tier. Tune freely — this is where pacing gets balanced.
 const TIER_REP: Record<number, number> = { 1: 2, 2: 3, 3: 5 };
 
-// Courses cost nothing to start today — money-as-a-throttle for development
-// is tuned separately (see README's "Pacing model"). Keeping this at 0
-// preserves existing course-development balance; buildings below are the
-// first Buildables with a real cost.
-const COURSE_COST = 0;
+// Course development cost, scaled by tier so a tier-3 capstone is a
+// markedly bigger financial commitment than a tier-1 entry course — see
+// README's "Pacing model: money is the throttle". Buildings below are
+// bigger investments still.
+const TIER_COURSE_COST: Record<number, number> = { 1: 4_000, 2: 12_000, 3: 30_000 };
 
 // A school building is a real construction project: a meaningful cost and
 // a longer duration than any single course, reflecting "unlocks an entire
@@ -51,7 +54,7 @@ const COURSE_COST = 0;
 // "building" is smaller and cheaper — more of a starter hall than a full
 // academic building.
 const GENED_BUILDING_COST = 60_000;
-const GENED_BUILDING_WEEKS = 6;
+const GENED_BUILDING_WEEKS = 20;
 // General Studies Hall starts already built (see initialTech below), so
 // these never flow through the normal completion-effects path — they're
 // exported for createInitialState to fold directly into the founding
@@ -60,7 +63,7 @@ export const GENED_BUILDING_CAPACITY_BONUS = 40;
 export const GENED_BUILDING_REPUTATION_BONUS = 5;
 
 const SCHOOL_BUILDING_COST = 180_000;
-const SCHOOL_BUILDING_WEEKS = 10;
+const SCHOOL_BUILDING_WEEKS = 28;
 const SCHOOL_BUILDING_CAPACITY_BONUS = 90;
 const SCHOOL_BUILDING_REPUTATION_BONUS = 8;
 
@@ -326,8 +329,8 @@ export function initialTech(): Buildable[] {
           kind: 'course',
           name: `${code} · ${title}`,
           description: TIER1_DESCRIPTIONS[id] ?? `${school.name} core requirement.`,
-          cost: COURSE_COST,
-          duration: 1 * WEEKS_PER_TIER,
+          cost: TIER_COURSE_COST[1],
+          duration: TIER_DURATION_WEEKS[1],
           prereqs: [],
           status: 'available',
           effects: { reputationBonus: TIER_REP[1], capacityBonus: 20 },
@@ -366,8 +369,8 @@ export function initialTech(): Buildable[] {
           kind: 'course',
           name: `${major.prefix} ${num} · ${title}`,
           description,
-          cost: COURSE_COST,
-          duration: tier * WEEKS_PER_TIER,
+          cost: TIER_COURSE_COST[tier],
+          duration: TIER_DURATION_WEEKS[tier],
           // tier-1 courses start available; deeper courses unlock via prereqs
           prereqs,
           status: tier === 1 ? 'available' : 'locked',

@@ -140,4 +140,4 @@ export interface LogEntry {
   kind: 'info' | 'good' | 'bad';
 }
 
-export const WEEKS_PER_YEAR = 16; // your semester-length decision, one place to change it
+export const WEEKS_PER_YEAR = 52; // the one place the game's year length lives — every system (clock, annual interrupts, finance annualization) reads from this

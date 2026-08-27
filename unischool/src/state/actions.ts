@@ -4,6 +4,7 @@ import { initialTech, GENED_BUILDING_CAPACITY_BONUS, GENED_BUILDING_REPUTATION_B
 import { initialRivals } from '../data/rivalData';
 import { initialCandidates } from '../data/facultyData';
 import { SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION } from '../data/schoolTypeData';
+import { STARTING_SLOTS } from '../systems/techtree/techSystem';
 
 // All the ways a player can change the world. The engine's reducer is the
 // only thing that interprets these. UI dispatches them; systems never do.
@@ -96,7 +97,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       { id: 'f3', name: 'Dr. Wei Zhang', field: 'CompSci', teaching: 60, research: 88, salary: 105_000, morale: 75 },
     ],
     tech: initialTech(),
-    slots: 2,
+    slots: STARTING_SLOTS,
     developing: {},
     rivals: initialRivals(),
     // +GENED_BUILDING_REPUTATION_BONUS: same fold-in as capacity above.

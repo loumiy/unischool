@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useGame, SPEEDS, SANDBOX_SPEEDS, type Speed } from './engine/useGame';
 import { curriculumGroups } from './data/techData';
-import { SLOT_COST, MAX_SLOTS } from './systems/techtree/techSystem';
+import { nextSlotCost, MAX_SLOTS } from './systems/techtree/techSystem';
 import { weeklyNet } from './systems/finance/financeSystem';
 import { SCHOOL_TYPE_PRESETS } from './data/schoolTypeData';
 import type { GameState, PendingInterrupt, Buildable, SchoolType } from './state/types';
@@ -199,9 +199,8 @@ export default function App() {
   const hasFaculty = (field: string) => s.faculty.some((f) => f.field === field);
 
   const netWeekly = weeklyNet(s);
-  const elapsedYears = s.clock.year - 1 + (s.clock.week - 1) / WEEKS_PER_YEAR;
-  const pace = elapsedYears > 0 ? doneCourses / elapsedYears : 0;
   const catalogPct = Math.round((doneCourses / s.tech.length) * 100);
+  const slotCost = nextSlotCost(s.slots);
 
   return (
     <div className="app">
@@ -229,11 +228,6 @@ export default function App() {
             <div className="stat-label">Catalog</div>
             <div className="stat-value">{doneCourses} / {s.tech.length}</div>
             <div className="stat-sub">{catalogPct}% of the tree</div>
-          </div>
-          <div className="stat-block">
-            <div className="stat-label">Pace</div>
-            <div className="stat-value">{elapsedYears < 0.5 ? '0.0/yr' : `${pace.toFixed(1)}/yr`}</div>
-            <div className="stat-sub">{elapsedYears < 0.5 ? 'gathering data' : 'courses developed'}</div>
           </div>
         </div>
       </header>
@@ -366,11 +360,11 @@ export default function App() {
             <div className="panel-head"><h2>Development Slots</h2><span className="stat">{slotsUsed}/{s.slots}</span></div>
             <button
               className="buy-slot-btn"
-              disabled={s.slots >= MAX_SLOTS || s.finance.cash < SLOT_COST}
+              disabled={s.slots >= MAX_SLOTS || s.finance.cash < slotCost}
               title={s.slots >= MAX_SLOTS ? 'Maximum slots reached' : undefined}
               onClick={() => act({ type: 'BUY_SLOT' })}
             >
-              Commission a Slot — ${SLOT_COST.toLocaleString()}
+              Commission a Slot — ${slotCost.toLocaleString()}
             </button>
             {developingCourses.length === 0 ? (
               <p className="empty-note">No courses in development.</p>

@@ -20,10 +20,21 @@ const MAJOR_MASTERED_REPUTATION_BONUS = 25; // all tier-3 courses in a major als
 const SCHOOL_COMPLETE_REPUTATION_BONUS = 80; // every major in the school fully done (tier-2 and tier-3)
 
 // Development slots are a purchasable relief valve, not the primary
-// pacing throttle (see README's "Pacing model"). Flat cost and a soft cap
-// for now — tune freely.
-export const SLOT_COST = 40_000;
+// pacing throttle (see README's "Pacing model"). Each additional slot
+// costs more than the last — SLOT_BASE_COST for the first purchasable
+// slot beyond STARTING_SLOTS, compounding by SLOT_COST_GROWTH per slot
+// bought after that — so stacking up parallel development capacity is a
+// real, escalating investment rather than a one-time flat buy. Soft cap
+// at MAX_SLOTS for now — tune freely.
+export const STARTING_SLOTS = 2;
+export const SLOT_BASE_COST = 25_000;
+export const SLOT_COST_GROWTH = 1.5;
 export const MAX_SLOTS = 8;
+
+// Cost of buying the next slot given how many the school currently has.
+export function nextSlotCost(currentSlots: number): number {
+  return Math.round(SLOT_BASE_COST * SLOT_COST_GROWTH ** (currentSlots - STARTING_SLOTS));
+}
 
 // Shared by the reducer's START_DEVELOPMENT case and this system's
 // auto-develop fill, so "what it takes to start" has one definition.

@@ -1,4 +1,5 @@
 import type { GameState } from '../../state/types';
+import { WEEKS_PER_YEAR } from '../../state/types';
 
 // ---------------------------------------------------------------------
 // Pacing constants. This file is the game's primary throttle (see
@@ -9,14 +10,11 @@ import type { GameState } from '../../state/types';
 // a long playthrough instead of staying flat. Tune these by feel; every
 // rate lives here, named, so balancing never means hunting for magic
 // numbers.
+//
+// Salaries/revenue are annualized over WEEKS_PER_YEAR — the same clock
+// that drives the academic calendar and admissions — so there is exactly
+// one definition of "a year" anywhere in the game.
 // ---------------------------------------------------------------------
-
-// Calendar weeks used to annualize salaries and revenue (i.e. how many
-// ticks make "a year" for money purposes). Distinct from the in-game
-// academic WEEKS_PER_YEAR (16 — the school-year/admissions clock); this
-// is purely the financial annualization basis, unchanged from the
-// original model.
-const CALENDAR_WEEKS_PER_YEAR = 52;
 
 // Flat per-seat weekly upkeep. Deliberately simple and NOT prestige-linked:
 // costs are meant to scale more slowly than revenue, so operating cost
@@ -43,15 +41,15 @@ const REPUTATION_DIVIDEND_PER_POINT_PER_YEAR = 400;
 const ENDOWMENT_ANNUAL_RETURN = 0.026; // ~2.6%/yr, applied as a weekly slice
 
 function weeklyOpEx(s: GameState): number {
-  const weeklySalaries = s.faculty.reduce((sum, f) => sum + f.salary, 0) / CALENDAR_WEEKS_PER_YEAR;
+  const weeklySalaries = s.faculty.reduce((sum, f) => sum + f.salary, 0) / WEEKS_PER_YEAR;
   const upkeep = s.students.capacity * UPKEEP_PER_SEAT_PER_WEEK;
   return weeklySalaries + upkeep;
 }
 
 function weeklyRevenue(s: GameState): number {
   const netTuitionPerStudent = s.finance.tuitionPerStudent * (1 - s.admissions.financialAidRate);
-  const tuitionRevenue = (s.students.enrolled * netTuitionPerStudent) / CALENDAR_WEEKS_PER_YEAR;
-  const prestigeRevenue = (s.self.reputation * REPUTATION_DIVIDEND_PER_POINT_PER_YEAR) / CALENDAR_WEEKS_PER_YEAR;
+  const tuitionRevenue = (s.students.enrolled * netTuitionPerStudent) / WEEKS_PER_YEAR;
+  const prestigeRevenue = (s.self.reputation * REPUTATION_DIVIDEND_PER_POINT_PER_YEAR) / WEEKS_PER_YEAR;
   // Set once at founding by school type (e.g. state appropriations for a
   // public school; 0 for private) — see SCHOOL_TYPE_PRESETS.
   return tuitionRevenue + prestigeRevenue + s.finance.baselineFundingPerWeek;
@@ -76,5 +74,5 @@ export function tickFinance(s: GameState): void {
   // per README's pacing model, a shortfall stalls new development (see
   // canStartDevelopment in techSystem.ts) rather than ending the run, so
   // there is deliberately no auto-draw and no insolvency game-over here.
-  s.finance.endowment *= 1 + ENDOWMENT_ANNUAL_RETURN / CALENDAR_WEEKS_PER_YEAR;
+  s.finance.endowment *= 1 + ENDOWMENT_ANNUAL_RETURN / WEEKS_PER_YEAR;
 }
