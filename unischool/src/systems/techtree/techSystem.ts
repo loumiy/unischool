@@ -14,10 +14,10 @@ import { milestoneSchools } from '../../data/techData';
 // aware rather than fully kind-agnostic — milestones are inherently a
 // school/major concept, which buildings/dorms/facilities don't have.
 // ---------------------------------------------------------------------
-const MAJOR_COMPLETE_REPUTATION_BONUS = 15; // all tier-2 courses in a major done
+const MAJOR_COMPLETE_REPUTATION_BONUS = 0.55; // all tier-2 courses in a major done
 const MAJOR_COMPLETE_APPLICANT_BONUS = 30;
-const MAJOR_MASTERED_REPUTATION_BONUS = 25; // all tier-3 courses in a major also done (the "further" bonus)
-const SCHOOL_COMPLETE_REPUTATION_BONUS = 80; // every major in the school fully done (tier-2 and tier-3)
+const MAJOR_MASTERED_REPUTATION_BONUS = 2.2; // all tier-3 courses in a major also done (the "further" bonus)
+const SCHOOL_COMPLETE_REPUTATION_BONUS = 12; // every major in the school fully done (tier-2 and tier-3)
 
 // Development slots are a purchasable relief valve, not the primary
 // pacing throttle (see README's "Pacing model"). Each additional slot
