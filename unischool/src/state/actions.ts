@@ -17,11 +17,12 @@ export type Action =
   | { type: 'BUY_SLOT' }
   | { type: 'TOGGLE_AUTO_DEVELOP' }
   | { type: 'RESOLVE_INTERRUPT' }                      // clears pendingInterrupt, lets the clock resume
-  // Resolves the annual summer admissions interrupt: sets next year's
-  // policy and, unlike RESOLVE_INTERRUPT, advances the clock into that
-  // year itself (see reducer.ts). Tuition is set ONLY here, once a year —
-  // there is no other action that changes it.
-  | { type: 'RESOLVE_ADMISSIONS'; tuition: number; financialAidRate: number; selectivity: number; targetEnrollment: number }
+  // Resolves the annual summer admissions interrupt: sets next year's two
+  // policy levers (tuition, aid), runs the admissions funnel to commit the
+  // enrolled class, and — unlike RESOLVE_INTERRUPT — advances the clock into
+  // that year itself (see reducer.ts). Tuition is set ONLY here, once a
+  // year — there is no other action that changes it.
+  | { type: 'RESOLVE_ADMISSIONS'; tuition: number; financialAidRate: number }
   // Dismisses the "you've entered the rankings" reveal or an annual U.S.
   // News report interrupt. Like RESOLVE_ADMISSIONS (and unlike the plain
   // RESOLVE_INTERRUPT), this advances the clock — both fire as a trailing
@@ -39,7 +40,7 @@ export function createPreStartState(): GameState {
     clock: { year: 1, week: 1 },
     finance: { cash: 0, endowment: 0, tuitionPerStudent: 0, tuitionCeiling: 0, baselineFundingPerWeek: 0, weeklyOpEx: 0 },
     students: { enrolled: 0, capacity: 0, satisfaction: 0, applicantPool: 0 },
-    admissions: { financialAidRate: 0, selectivity: 0, targetEnrollment: 0 },
+    admissions: { financialAidRate: 0 },
     faculty: [],
     tech: [],
     slots: 0,
@@ -82,14 +83,13 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       satisfaction: 70,
       applicantPool: preset.startingApplicantPool,
     },
-    // Year 1 runs under these founding defaults — no school-type variation
-    // here, unlike tuitionCeiling/startingApplicantPool (see the PR notes
-    // on the first admissions cycle's timing). The first real admissions
-    // interrupt, at the end of year 1, sets year 2's policy.
+    // Year 1 runs under this founding default (no aid) with the starting
+    // enrolled/applicant figures below — no school-type variation here,
+    // unlike tuitionCeiling/startingApplicantPool. The first real admissions
+    // interrupt, at the end of year 1, runs the funnel and sets year 2's
+    // enrolled class from the player's tuition and aid choices.
     admissions: {
       financialAidRate: 0,
-      selectivity: 0.2,
-      targetEnrollment: 400,
     },
     faculty: [
       { id: 'f1', name: 'Dr. Alma Reyes', field: 'Physics', teaching: 72, research: 65, salary: 90_000, morale: 80 },

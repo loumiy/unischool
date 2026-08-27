@@ -3,6 +3,7 @@ import { useGame, SPEEDS, SANDBOX_SPEEDS, type Speed } from './engine/useGame';
 import { curriculumGroups } from './data/techData';
 import { nextSlotCost, MAX_SLOTS } from './systems/techtree/techSystem';
 import { weeklyNet } from './systems/finance/financeSystem';
+import { projectAdmissions } from './systems/admissions/admissionsSystem';
 import { SCHOOL_TYPE_PRESETS } from './data/schoolTypeData';
 import type { GameState, PendingInterrupt, Buildable, SchoolType } from './state/types';
 import { WEEKS_PER_YEAR } from './state/types';
@@ -29,29 +30,33 @@ function interruptBody(interrupt: PendingInterrupt): { title: string; body: stri
 interface AdmissionsDraft {
   tuition: number;
   financialAidRate: number;
-  selectivity: number;
-  targetEnrollment: number;
 }
 
 // The once-a-year summer admissions decision (see README's "Admissions: an
-// annual summer decision"). Resolving it stores tuition/aid/selectivity/
-// target enrollment, which then drive the sim passively for the rest of
-// the year — see admissionsSystem.ts. This is the only place tuition is
-// ever set; there is no live, continuously adjustable tuition control.
-function AdmissionsInterruptForm({ payload, tuitionCeiling, onResolve }: {
+// annual summer decision"). The player sets exactly two levers — tuition
+// and average financial aid — and the distribution funnel resolves the rest
+// (see admissionsSystem.ts). Selectivity and enrollment are NOT inputs:
+// they are emergent outcomes, previewed live below so the player can see the
+// consequences of the two settings before confirming. This is the only
+// place tuition is ever set; there is no live, adjustable tuition control.
+function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, onResolve }: {
   payload: AdmissionsDraft;
+  prestige: number;
+  capacity: number;
   tuitionCeiling: number;
   onResolve: (settings: AdmissionsDraft) => void;
 }) {
   const [tuition, setTuition] = useState(payload.tuition);
   const [financialAidRate, setFinancialAidRate] = useState(payload.financialAidRate);
-  const [selectivity, setSelectivity] = useState(payload.selectivity);
-  const [targetEnrollment, setTargetEnrollment] = useState(payload.targetEnrollment);
+
+  // Live preview of the emergent outcomes, computed with the very function
+  // the reducer commits with — so the numbers shown are the numbers applied.
+  const outcome = projectAdmissions(prestige, tuition, financialAidRate, capacity);
 
   return (
     <>
       <h2>Summer Admissions</h2>
-      <p>Set next year's policy. These choices drive enrollment, satisfaction, and revenue passively for the whole year.</p>
+      <p>Set next year's tuition and financial aid. Selectivity and enrollment follow from your applicant pool — see the projected outcomes below before you confirm.</p>
 
       <label className="admissions-field">
         <span>Tuition <strong>${tuition.toLocaleString()}/yr</strong> (cap ${tuitionCeiling.toLocaleString()})</span>
@@ -65,19 +70,15 @@ function AdmissionsInterruptForm({ payload, tuitionCeiling, onResolve }: {
           onChange={(e) => setFinancialAidRate(Number(e.target.value))} />
       </label>
 
-      <label className="admissions-field">
-        <span>Selectivity <strong>{Math.round(selectivity * 100)}%</strong></span>
-        <input type="range" min={0} max={0.95} step={0.01} value={selectivity}
-          onChange={(e) => setSelectivity(Number(e.target.value))} />
-      </label>
+      <dl className="admissions-outcomes">
+        <div><dt>Applicant pool</dt><dd>{outcome.applicants.toLocaleString()}</dd></div>
+        <div><dt>Admit rate <span className="outcome-note">(selectivity)</span></dt><dd>{Math.round(outcome.admitRate * 100)}%</dd></div>
+        <div><dt>Yield</dt><dd>{Math.round(outcome.yieldRate * 100)}%</dd></div>
+        <div><dt>Enrolled class</dt><dd>{outcome.enrolled.toLocaleString()} / {capacity.toLocaleString()}</dd></div>
+        <div><dt>Net tuition / student</dt><dd>${outcome.netTuitionPerStudent.toLocaleString()}/yr</dd></div>
+      </dl>
 
-      <label className="admissions-field">
-        <span>Target enrollment</span>
-        <input type="number" min={0} className="admissions-number" value={targetEnrollment}
-          onChange={(e) => setTargetEnrollment(Number(e.target.value))} />
-      </label>
-
-      <button onClick={() => onResolve({ tuition, financialAidRate, selectivity, targetEnrollment })}>
+      <button onClick={() => onResolve({ tuition, financialAidRate })}>
         Confirm Policy
       </button>
     </>
@@ -270,6 +271,8 @@ export default function App() {
             {s.pendingInterrupt.type === 'admissions' ? (
               <AdmissionsInterruptForm
                 payload={s.pendingInterrupt.payload as AdmissionsDraft}
+                prestige={s.self.reputation}
+                capacity={s.students.capacity}
                 tuitionCeiling={s.finance.tuitionCeiling}
                 onResolve={(settings) => act({ type: 'RESOLVE_ADMISSIONS', ...settings })}
               />
@@ -397,8 +400,6 @@ export default function App() {
               <dt>Enrolled</dt><dd>{s.students.enrolled} / {s.students.capacity}</dd>
               <dt>Satisfaction</dt><dd>{Math.round(s.students.satisfaction)}</dd>
               <dt>Applicant pool</dt><dd>{Math.round(s.students.applicantPool)}</dd>
-              <dt>Target enrollment</dt><dd>{s.admissions.targetEnrollment}</dd>
-              <dt>Selectivity</dt><dd>{Math.round(s.admissions.selectivity * 100)}%</dd>
               <dt>Financial aid</dt><dd>{Math.round(s.admissions.financialAidRate * 100)}%</dd>
             </dl>
           </section>
