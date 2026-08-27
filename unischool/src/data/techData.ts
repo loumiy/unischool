@@ -38,8 +38,12 @@ const TIERS = [1, 2, 2, 2, 2, 3, 3, 3, 3] as const;
 // tier-3 capstone is a genuine multi-month commitment, not a blip.
 const TIER_DURATION_WEEKS: Record<number, number> = { 1: 4, 2: 12, 3: 24 };
 
-// Reputation reward per tier. Tune freely — this is where pacing gets balanced.
-const TIER_REP: Record<number, number> = { 1: 2, 2: 3, 3: 5 };
+// Reputation reward per tier. Deliberately small — a single course, even a
+// tier-3 capstone, should barely move the needle on its own; the milestone
+// chain in techSystem.ts (major complete/mastered, school complete) is
+// where meaningful prestige comes from. See that file's comment for the
+// full rationale.
+const TIER_REP: Record<number, number> = { 1: 0.025, 2: 0.04, 3: 0.065 };
 
 // Course development cost, scaled by tier so a tier-3 capstone is a
 // markedly bigger financial commitment than a tier-1 entry course — see
@@ -60,12 +64,12 @@ const GENED_BUILDING_WEEKS = 20;
 // exported for createInitialState to fold directly into the founding
 // capacity/reputation baseline instead.
 export const GENED_BUILDING_CAPACITY_BONUS = 40;
-export const GENED_BUILDING_REPUTATION_BONUS = 5;
+export const GENED_BUILDING_REPUTATION_BONUS = 1.5;
 
 const SCHOOL_BUILDING_COST = 180_000;
 const SCHOOL_BUILDING_WEEKS = 28;
 const SCHOOL_BUILDING_CAPACITY_BONUS = 90;
-const SCHOOL_BUILDING_REPUTATION_BONUS = 8;
+const SCHOOL_BUILDING_REPUTATION_BONUS = 1.5;
 
 interface MajorSeed {
   prefix: string;   // course code prefix, e.g. "FINA"
