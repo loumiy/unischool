@@ -20,7 +20,7 @@ export interface StudentBody {
   enrolled: number;
   capacity: number;      // driven by unlocked buildings/tech
   satisfaction: number;  // 0..100, affects retention & reputation
-  applicantPool: number; // this cycle's applicants
+  applicantPool: number; // most recent admissions cycle's total applicants (set by the annual funnel)
 }
 
 // Faculty ARE individuals with attributes.
@@ -81,18 +81,15 @@ export interface PendingInterrupt {
 }
 
 // The player's admissions policy, set once a year via the summer interrupt
-// (see README's "Admissions: an annual summer decision") and left to drive
-// the sim passively — satisfaction, applicant conversion, attrition — for
-// the rest of that year. Tuition itself lives on Finance (the single
-// source of truth for the actual price charged); this is the rest of the
-// policy bundle. Shaped so a future demand-curve model can consume it
-// without a state-shape change: financialAidRate + tuition together
-// describe the price the student actually faces, selectivity +
-// targetEnrollment describe the supply-side policy.
+// (see README's "Admissions: an annual summer decision"). In the funnel
+// model there are exactly two player inputs: tuition and average aid.
+// Tuition itself lives on Finance (the single source of truth for the
+// actual price charged); the only policy that lives here is the aid rate.
+// Selectivity and enrollment are NOT inputs — they are emergent outcomes of
+// the funnel (see admissionsSystem.ts). financialAidRate + tuition together
+// describe the price the student actually faces.
 export interface AdmissionsSettings {
   financialAidRate: number; // 0..1, average tuition discount across admits
-  selectivity: number;      // 0..1; higher = more selective (smaller share of the applicant pool admitted per week)
-  targetEnrollment: number; // desired enrolled headcount to converge toward this year
 }
 
 export interface Rival {

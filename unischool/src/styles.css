@@ -141,8 +141,13 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .admissions-field span { display: block; font-size: 13px; color: #cbd0d8; margin-bottom: 6px; }
 .admissions-field span strong { color: var(--ink-hi); font-family: var(--mono); }
 .admissions-field input[type="range"] { width: 100%; accent-color: var(--gold); }
-.admissions-number { width: 100%; padding: 6px 10px; border-radius: 5px; border: 1px solid var(--navy-line);
-  background: #1a2338; color: var(--ink-hi); font-family: var(--mono); font-size: 14px; }
+/* Emergent funnel outcomes previewed live in the admissions interrupt. */
+.admissions-outcomes { display: grid; gap: 2px; margin: 4px 0 18px; padding: 12px 14px;
+  background: #1a2338; border: 1px solid var(--navy-line); border-radius: 6px; }
+.admissions-outcomes > div { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 0; }
+.admissions-outcomes dt { font-size: 13px; color: #cbd0d8; margin: 0; }
+.admissions-outcomes dt .outcome-note { color: var(--gold-dim); font-size: 11px; }
+.admissions-outcomes dd { margin: 0; color: var(--ink-hi); font-family: var(--mono); font-size: 14px; }
 
 /* ---------- startup screen ---------- */
 .startup { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }

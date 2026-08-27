@@ -25,8 +25,8 @@ const UPKEEP_PER_SEAT_PER_WEEK = 5;
 // see admissionsSystem.ts) is the base revenue lever, scaling with
 // enrollment. financialAidRate (also set there) discounts the price each
 // enrolled student actually pays, so offering aid has a real, felt
-// revenue cost in exchange for the satisfaction/conversion effects it
-// buys in admissionsSystem.ts. On top of tuition, a "reputation
+// revenue cost in exchange for the higher yield (and so larger enrolled
+// class) it buys in the admissions funnel. On top of tuition, a "reputation
 // dividend" — donors, grants, brand value — scales with prestige,
 // independent of enrollment. This is the simple stand-in for the future
 // demand-curve model the README describes (where prestige shifts the

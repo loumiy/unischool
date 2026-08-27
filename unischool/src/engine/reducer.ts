@@ -4,7 +4,7 @@ import type { Action } from '../state/actions';
 import { createInitialState } from '../state/actions';
 import { tickFinance } from '../systems/finance/financeSystem';
 import { tickTech, canStartDevelopment, startDevelopment, nextSlotCost, MAX_SLOTS } from '../systems/techtree/techSystem';
-import { tickAdmissions } from '../systems/admissions/admissionsSystem';
+import { tickAdmissions, projectAdmissions } from '../systems/admissions/admissionsSystem';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
 import { tickFaculty } from '../systems/faculty/facultySystem';
 
@@ -92,17 +92,27 @@ export function reducer(state: GameState, action: Action): GameState {
       // Tuition is set ONLY here, once a year — see README's "Admissions:
       // an annual summer decision" and the removed live SET_TUITION control.
       s.finance.tuitionPerStudent = Math.max(0, Math.min(action.tuition, s.finance.tuitionCeiling));
-      s.admissions = {
-        financialAidRate: clamp01(action.financialAidRate),
-        selectivity: clamp01(action.selectivity),
-        targetEnrollment: Math.max(0, action.targetEnrollment),
-      };
+      s.admissions = { financialAidRate: clamp01(action.financialAidRate) };
+
+      // Run the distribution funnel with the committed policy: this sets the
+      // year's enrolled class and applicant pool. The same pure function the
+      // UI used to preview these outcomes (see admissionsSystem.ts) is what
+      // commits them, so what the player saw is exactly what they get.
+      const outcome = projectAdmissions(
+        s.self.reputation,
+        s.finance.tuitionPerStudent,
+        s.admissions.financialAidRate,
+        s.students.capacity,
+      );
+      s.students.enrolled = outcome.enrolled;
+      s.students.applicantPool = outcome.applicants;
+
       s.pendingInterrupt = null;
       advanceClock(s); // resolving is what turns the calendar page into the new year
       s.log.unshift({
         year: s.clock.year,
         week: s.clock.week,
-        message: `Admissions policy set: tuition $${s.finance.tuitionPerStudent.toLocaleString()}/yr, target enrollment ${s.admissions.targetEnrollment}.`,
+        message: `Admissions: tuition $${s.finance.tuitionPerStudent.toLocaleString()}/yr, ${Math.round(s.admissions.financialAidRate * 100)}% aid — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admit rate, ${outcome.enrolled} enrolled.`,
         kind: 'info',
       });
       return s;
