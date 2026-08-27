@@ -28,7 +28,7 @@ export const SCHOOL_TYPE_PRESETS: Record<SchoolType, SchoolTypePreset> = {
   private: {
     label: 'Private',
     description: 'No state funding and a smaller applicant pool, but tuition is uncapped and you start with more prestige.',
-    startingCash: 500_000,
+    startingCash: 60_000,
     prestigeBonus: 10,
     startingApplicantPool: 150,
     tuitionCeiling: 60_000,
@@ -37,7 +37,7 @@ export const SCHOOL_TYPE_PRESETS: Record<SchoolType, SchoolTypePreset> = {
   public: {
     label: 'Public',
     description: 'A steady state appropriation and a much larger applicant pool, but tuition is capped and prestige starts lower.',
-    startingCash: 350_000,
+    startingCash: 40_000,
     prestigeBonus: -5,
     startingApplicantPool: 400,
     tuitionCeiling: 20_000,
