@@ -25,14 +25,22 @@ export interface StudentBody {
   incomingQuality: number; // most recent admissions cycle's average quality score (0..100) of the enrolled class — prestige's other admissions-derived input
 }
 
-// Faculty ARE individuals with attributes.
+// Faculty ARE individuals with attributes. teaching/research/salary are
+// CURRENT values, derived each tick from tenureWeeks and the two potential
+// ceilings below — see facultyData.ts's growth-curve formulas and
+// facultySystem.ts's weekly tick that applies them. A hire is an
+// appreciating asset: retained faculty grow stronger (and pricier) toward
+// their potential over years of tenure, then plateau.
 export interface Faculty {
   id: string;
   name: string;
   field: string;
-  teaching: number;   // 0..100
-  research: number;   // 0..100
-  salary: number;
+  teaching: number;   // 0..100, current — grows toward teachingPotential with tenure
+  research: number;   // 0..100, current — grows toward researchPotential with tenure
+  teachingPotential: number; // 0..100, ceiling teaching grows toward; rolled once, fixed for this hire's life
+  researchPotential: number; // 0..100, ceiling research grows toward; rolled once, fixed for this hire's life
+  tenureWeeks: number; // weeks since hire; 0 for an unhired candidate, increments weekly once on the roster
+  salary: number;      // current annual salary — recomputed from current stats + a separate seniority premium curve
   morale: number;     // 0..100
 }
 

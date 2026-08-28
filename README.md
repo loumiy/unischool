@@ -226,10 +226,24 @@ schemes, more customization.)
 Faculty are **named individuals** with attributes (teaching, research, salary,
 morale); students are **aggregate cohorts**, not individuals. Faculty are needed
 to unlock course development via `requiresFaculty`, so a **real hiring pool** is
-required — hiring is a genuine subsystem, not a stub. (Note: `HIRE_FACULTY` is
-currently a declared action with no reducer case; it must be wired up.) Whether
-faculty age, retire, or get poached over decades is an open design question — do
-not silently assume "permanent once hired"; flag it if a task forces the choice.
+required — hiring is a genuine subsystem, not a stub (`HIRE_FACULTY`/
+`FIRE_FACULTY` are wired up in the reducer; see `facultySystem.ts`).
+
+**Faculty are ageless: no aging, no retirement, no rival poaching.** This is a
+deliberate, settled choice, not a placeholder — a hire stays on the roster
+until the player dismisses them. What retention buys instead is growth: a
+faculty member's teaching/research stats start below a rolled ceiling
+("potential") and rise toward it over years of tenure, then plateau; salary
+rises with them, on its own slower-to-plateau curve, so a long-retained star
+costs substantially more than the day they were hired (see `facultyData.ts`'s
+`grownStat`/`facultySalary`). This makes faculty a genuine **prestige
+investment** — aggregate roster quality is one of the four inputs to the
+prestige target (see `prestigeSystem.ts`) — with a real "great cheap early
+hire, kept and matured" payoff. The scarcity that keeps a player from staffing
+every school at top quality is money and hiring-pool availability, not
+attrition: salaries compound as a roster matures, and the candidate pool
+refills slowly, so specialization is a choice forced by what you can afford
+and who's available, not by losing people you already have.
 
 ## Save / load
 

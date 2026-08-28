@@ -2,7 +2,7 @@ import type { GameState, SchoolType } from './types';
 import { WEEKS_PER_YEAR } from './types';
 import { initialTech, GENED_BUILDING_CAPACITY_BONUS, GENED_BUILDING_REPUTATION_BONUS } from '../data/techData';
 import { initialRivals } from '../data/rivalData';
-import { initialCandidates } from '../data/facultyData';
+import { initialCandidates, facultySalary } from '../data/facultyData';
 import { SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION } from '../data/schoolTypeData';
 import { STARTING_SLOTS } from '../systems/techtree/techSystem';
 
@@ -95,10 +95,15 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     admissions: {
       financialAidRate: 0,
     },
+    // Founding faculty are already-established hires, not brand-new
+    // candidates — a small headroom to their potential (rather than
+    // generateCandidate's usual ~45% gap) reflects that; tenureWeeks starts
+    // at 0 regardless, so they still grow (and get pricier) from here. See
+    // facultyData.ts's grownStat/facultySalary for the shared growth curve.
     faculty: [
-      { id: 'f1', name: 'Dr. Alma Reyes', field: 'Physics', teaching: 72, research: 65, salary: 90_000, morale: 80 },
-      { id: 'f2', name: 'Dr. John Okafor', field: 'History', teaching: 80, research: 55, salary: 82_000, morale: 78 },
-      { id: 'f3', name: 'Dr. Wei Zhang', field: 'CompSci', teaching: 60, research: 88, salary: 105_000, morale: 75 },
+      { id: 'f1', name: 'Dr. Alma Reyes', field: 'Physics', teaching: 72, research: 65, teachingPotential: 82, researchPotential: 78, tenureWeeks: 0, salary: facultySalary(72, 65, 0), morale: 80 },
+      { id: 'f2', name: 'Dr. John Okafor', field: 'History', teaching: 80, research: 55, teachingPotential: 88, researchPotential: 68, tenureWeeks: 0, salary: facultySalary(80, 55, 0), morale: 78 },
+      { id: 'f3', name: 'Dr. Wei Zhang', field: 'CompSci', teaching: 60, research: 88, teachingPotential: 75, researchPotential: 95, tenureWeeks: 0, salary: facultySalary(60, 88, 0), morale: 75 },
     ],
     tech: initialTech(),
     slots: STARTING_SLOTS,
