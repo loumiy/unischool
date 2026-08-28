@@ -18,7 +18,7 @@ import { milestoneSchools } from '../../data/techData';
 // moment growth stalls, and it does not snap to a new high the moment a
 // milestone completes.
 //
-// The three inputs, each normalized to 0..1 before weighting:
+// The four inputs, each normalized to 0..1 before weighting:
 //   - curriculum breadth: a STOCK — how many majors/schools stand fully
 //     finished right now (see milestoneSchools() below), not how many
 //     courses were added this year.
@@ -27,20 +27,21 @@ import { milestoneSchools } from '../../data/techData';
 //     rate) means a higher score.
 //   - incoming student quality: the average quality of the class that
 //     actually enrolled in that same cycle.
+//   - faculty quality: the roster's average current teaching+research (see
+//     facultyData.ts — faculty are an appreciating asset: retained hires
+//     grow toward a rolled ceiling over years of tenure, then plateau, and
+//     cost more as they do). A durable stock of the same shape as
+//     curriculum breadth — it reflects who's on the roster right now, not
+//     who was hired this week.
 //
-// Faculty quality is a planned fourth input (a natural extension once
-// faculty have a durable "quality" stock of their own) — facultyQualityScore
-// below is the seam: it already participates in the weighted sum, just at
-// zero weight, so wiring it up later is a one-constant change.
-//
-// Each of the three (soon four) scores is independently clamped to 0..1
-// before it is weighted, so each contributes at most its own weight to the
-// target. That is what stops the prestige/selectivity/quality loop from
-// spiraling: a tiny, scarcity-obsessed school can ride selectivity and
-// quality to their individual ceilings, but climbing past that combined
-// ceiling requires the curriculum-breadth term too, which only rises with
-// genuine, sustained buildout — see the PR notes for the fast-forward
-// trajectory this was tuned against.
+// Each of the four scores is independently clamped to 0..1 before it is
+// weighted, so each contributes at most its own weight to the target. That
+// is what stops the prestige/selectivity/quality loop from spiraling: a
+// tiny, scarcity-obsessed school can ride selectivity and quality to their
+// individual ceilings, but climbing past that combined ceiling requires
+// the curriculum-breadth and faculty-quality terms too, both of which only
+// rise with genuine, sustained investment — see the PR notes for the
+// fast-forward trajectories this was tuned against.
 // ---------------------------------------------------------------------
 
 // Prestige target, before any of the weighted inputs, for a school with
@@ -57,17 +58,17 @@ const PRESTIGE_DRIFT_RATE = 0.12;
 
 // Weight applied to each 0..1 input score. Their sum plus PRESTIGE_BASELINE
 // would exceed PRESTIGE_MAX if every input maxed out at once (it's clamped
-// there below) — in practice curriculum breadth dominates: see the PR
-// notes' fast-forward run, where a fully-built curriculum alone carries
-// prestige to #1 even with unremarkable selectivity, and pairing it with a
-// deliberately scarce/low-tuition posture pushes it higher still.
-const CURRICULUM_BREADTH_WEIGHT = 90; // majors/schools completed — the stock only sustained buildout grows
+// there below); in practice curriculum breadth still dominates by design,
+// with selectivity, student quality, and faculty quality as comparable
+// secondary drivers. Rebalanced (down from the prior three-input version's
+// 90/45/35) to make room for faculty quality without pushing a strong,
+// straightforward sustained-buildout run (curriculum + a mature
+// departmental roster, but no special selectivity management) right up
+// against PRESTIGE_MAX — see the PR notes' fast-forward runs.
+const CURRICULUM_BREADTH_WEIGHT = 75; // majors/schools completed — the stock only sustained buildout grows
 const SELECTIVITY_WEIGHT = 45;        // emergent admit-rate-derived score — grows with scarce capacity or pricing power
-const STUDENT_QUALITY_WEIGHT = 35;    // emergent avg incoming quality — grows with a low-tuition, high-yield posture
-// Seam for the next task: faculty quality will become a real stock (e.g.
-// average roster teaching+research) with its own nonzero weight. Kept at 0
-// so it has no effect yet, but the target formula already sums it in.
-const FACULTY_QUALITY_WEIGHT = 0;
+const STUDENT_QUALITY_WEIGHT = 30;    // emergent avg incoming quality — grows with a low-tuition, high-yield posture
+const FACULTY_QUALITY_WEIGHT = 30;    // avg roster teaching+research — grows by hiring well and, more importantly, retaining hires long enough to mature
 
 // Same band as rivalsSystem.ts's RIVAL_REPUTATION_MIN/MAX, so the player's
 // prestige and rivals' reputation stay on one comparable scale.
@@ -128,11 +129,14 @@ function studentQualityScore(s: GameState): number {
   return clamp01(s.students.incomingQuality / 100);
 }
 
-// Seam for the next task: currently unused (FACULTY_QUALITY_WEIGHT is 0),
-// but already shaped like the other scores (0..1) so wiring it in is just
-// giving it a real weight above.
-function facultyQualityScore(_s: GameState): number {
-  return 0;
+// Faculty quality: the roster's average current teaching+research (each
+// 0..100), normalized to 0..1. Reads current (already-grown) stats only —
+// a brand-new hire barely moves this, a long-retained one moves it a lot,
+// which is what makes retention (not just hiring) the actual lever.
+function facultyQualityScore(s: GameState): number {
+  if (s.faculty.length === 0) return 0;
+  const avgStat = s.faculty.reduce((sum, f) => sum + f.teaching + f.research, 0) / (s.faculty.length * 2);
+  return clamp01(avgStat / 100);
 }
 
 export function computePrestigeTarget(s: GameState): number {

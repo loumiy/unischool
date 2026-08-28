@@ -110,6 +110,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty li { display: flex; justify-content: space-between; align-items: center; gap: 8px;
   padding: 6px 0; border-bottom: 1px solid var(--parchment-line-lo); font-size: 13px; }
 .faculty.candidates li { align-items: flex-start; }
+.faculty .outcome-note { color: var(--gold-dim); font-size: 11px; }
 .faculty button { background: #f4dede; color: #8a2f2f; border: 1px solid #d9a8a8; border-radius: 5px; padding: 3px 10px; font-size: 11px; white-space: nowrap; }
 .faculty button.appoint { background: #dcefe0; color: var(--green); border: 1px solid #9fd3af; }
 
