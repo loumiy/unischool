@@ -39,7 +39,7 @@ export function createPreStartState(): GameState {
   return {
     clock: { year: 1, week: 1 },
     finance: { cash: 0, endowment: 0, tuitionPerStudent: 0, tuitionCeiling: 0, baselineFundingPerWeek: 0, weeklyOpEx: 0 },
-    students: { enrolled: 0, capacity: 0, satisfaction: 0, applicantPool: 0 },
+    students: { enrolled: 0, capacity: 0, satisfaction: 0, applicantPool: 0, admitRate: 0, incomingQuality: 0 },
     admissions: { financialAidRate: 0 },
     faculty: [],
     tech: [],
@@ -82,6 +82,10 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       capacity: 400 + GENED_BUILDING_CAPACITY_BONUS,
       satisfaction: 70,
       applicantPool: preset.startingApplicantPool,
+      // Neutral placeholders until the first summer admissions cycle
+      // resolves and sets these for real — see RESOLVE_ADMISSIONS.
+      admitRate: 0.5,
+      incomingQuality: 50,
     },
     // Year 1 runs under this founding default (no aid) with the starting
     // enrolled/applicant figures below — no school-type variation here,

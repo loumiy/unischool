@@ -23,10 +23,13 @@ import type { Buildable, BuildableEffects } from '../state/types';
   building out cross-major prereqs for all 330 courses).
 
   "Tier" itself is a course-authoring concept only — it drives development
-  time and reputation reward here, at seed-generation time, and is not part
-  of the shared Buildable model (buildings don't have a tier). The
-  generated `duration` and `prereqs` are plain data the engine reads with
-  no knowledge of tier.
+  time and course cost here, at seed-generation time, and is not part of
+  the shared Buildable model (buildings don't have a tier). The generated
+  `duration` and `prereqs` are plain data the engine reads with no
+  knowledge of tier. Individual courses no longer grant reputation on
+  their own completion — see prestigeSystem.ts: prestige is a stock driven
+  by curriculum breadth (majors/schools completed, a stock the milestone
+  chain below still tracks), not by course-development flow.
 */
 
 const NUMS = [101, 110, 120, 130, 140, 210, 220, 230, 240];
@@ -37,13 +40,6 @@ const TIERS = [1, 2, 2, 2, 2, 3, 3, 3, 3] as const;
 // tier-1 entry course is still a real multi-week undertaking while a
 // tier-3 capstone is a genuine multi-month commitment, not a blip.
 const TIER_DURATION_WEEKS: Record<number, number> = { 1: 4, 2: 12, 3: 24 };
-
-// Reputation reward per tier. Deliberately small — a single course, even a
-// tier-3 capstone, should barely move the needle on its own; the milestone
-// chain in techSystem.ts (major complete/mastered, school complete) is
-// where meaningful prestige comes from. See that file's comment for the
-// full rationale.
-const TIER_REP: Record<number, number> = { 1: 0.025, 2: 0.04, 3: 0.065 };
 
 // Course development cost, scaled by tier so a tier-3 capstone is a
 // markedly bigger financial commitment than a tier-1 entry course — see
@@ -69,7 +65,6 @@ export const GENED_BUILDING_REPUTATION_BONUS = 1.5;
 const SCHOOL_BUILDING_COST = 180_000;
 const SCHOOL_BUILDING_WEEKS = 28;
 const SCHOOL_BUILDING_CAPACITY_BONUS = 90;
-const SCHOOL_BUILDING_REPUTATION_BONUS = 1.5;
 
 interface MajorSeed {
   prefix: string;   // course code prefix, e.g. "FINA"
@@ -337,7 +332,7 @@ export function initialTech(): Buildable[] {
           duration: TIER_DURATION_WEEKS[1],
           prereqs: [],
           status: 'available',
-          effects: { reputationBonus: TIER_REP[1], capacityBonus: 20 },
+          effects: { capacityBonus: 20 },
         });
       }
     }
@@ -358,7 +353,6 @@ export function initialTech(): Buildable[] {
         prereqs = [...prereqs, ...(CROSS_MAJOR_BRIDGES[id] ?? [])];
 
         const effects: Partial<BuildableEffects> = {
-          reputationBonus: TIER_REP[tier],
           capacityBonus: tier === 1 ? 20 : 10,
         };
 
@@ -411,7 +405,6 @@ export function initialTech(): Buildable[] {
       status: isGenEd ? 'done' : 'locked',
       effects: isGenEd ? undefined : {
         capacityBonus: SCHOOL_BUILDING_CAPACITY_BONUS,
-        reputationBonus: SCHOOL_BUILDING_REPUTATION_BONUS,
       },
     });
   }

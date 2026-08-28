@@ -59,6 +59,12 @@ const PRESTIGE_YIELD_STRENGTH = 0.25;        // yield added per unit of (prestig
 // yield penalty, the low band none.
 const YIELD_QUALITY_PENALTY = { top: 0.22, mid: 0.10, low: 0.0 };
 
+// A 0..100 quality score per band, used only to summarize the enrolled
+// class's average incoming quality for prestige (see prestigeSystem.ts) —
+// the funnel itself never needed a scalar score before, only band
+// fractions and per-band yield.
+const QUALITY_BAND_SCORE = { top: 90, mid: 55, low: 20 };
+
 type QualityBand = 'top' | 'mid' | 'low';
 
 // The emergent outcome of the funnel for a given policy. Everything here is
@@ -69,6 +75,7 @@ export interface AdmissionsProjection {
   admitRate: number;           // admits / applicants — the emergent selectivity (lower = more selective)
   yieldRate: number;           // enrolled / admits — the emergent yield
   enrolled: number;            // enrolled class = yield x admits, capped by capacity
+  avgIncomingQuality: number;  // 0..100 weighted-average quality of the enrolled class — an input to prestige
   netTuitionPerStudent: number; // tuition x (1 - aid): what actually flows into finance
 }
 
@@ -132,11 +139,21 @@ export function projectAdmissions(
   const admits = admitsByBand.top + admitsByBand.mid + admitsByBand.low;
 
   // Yield each admitted band separately — quality changes price sensitivity.
-  const enrolledRaw =
-    admitsByBand.top * bandYield(prestige, aid, 'top') +
-    admitsByBand.mid * bandYield(prestige, aid, 'mid') +
-    admitsByBand.low * bandYield(prestige, aid, 'low');
+  const enrolledByBand: Record<QualityBand, number> = {
+    top: admitsByBand.top * bandYield(prestige, aid, 'top'),
+    mid: admitsByBand.mid * bandYield(prestige, aid, 'mid'),
+    low: admitsByBand.low * bandYield(prestige, aid, 'low'),
+  };
+  const enrolledRaw = enrolledByBand.top + enrolledByBand.mid + enrolledByBand.low;
   const enrolled = Math.min(Math.max(capacity, 0), Math.round(enrolledRaw));
+
+  // Average incoming quality is a weighted mean over the (pre-rounding)
+  // enrolled mix, not the admit mix — it describes who actually shows up.
+  const avgIncomingQuality = enrolledRaw > 0
+    ? (enrolledByBand.top * QUALITY_BAND_SCORE.top +
+       enrolledByBand.mid * QUALITY_BAND_SCORE.mid +
+       enrolledByBand.low * QUALITY_BAND_SCORE.low) / enrolledRaw
+    : 0;
 
   return {
     applicants: Math.round(applicants),
@@ -144,6 +161,7 @@ export function projectAdmissions(
     admitRate: applicants > 0 ? admits / applicants : 0,
     yieldRate: admits > 0 ? enrolled / admits : 0,
     enrolled,
+    avgIncomingQuality,
     netTuitionPerStudent: Math.round(tuition * (1 - clamp(aid, 0, 1))),
   };
 }

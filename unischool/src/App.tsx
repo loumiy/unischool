@@ -75,6 +75,7 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
         <div><dt>Admit rate <span className="outcome-note">(selectivity)</span></dt><dd>{Math.round(outcome.admitRate * 100)}%</dd></div>
         <div><dt>Yield</dt><dd>{Math.round(outcome.yieldRate * 100)}%</dd></div>
         <div><dt>Enrolled class</dt><dd>{outcome.enrolled.toLocaleString()} / {capacity.toLocaleString()}</dd></div>
+        <div><dt>Incoming quality <span className="outcome-note">(feeds prestige)</span></dt><dd>{Math.round(outcome.avgIncomingQuality)} / 100</dd></div>
         <div><dt>Net tuition / student</dt><dd>${outcome.netTuitionPerStudent.toLocaleString()}/yr</dd></div>
       </dl>
 

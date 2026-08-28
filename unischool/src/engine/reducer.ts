@@ -7,6 +7,7 @@ import { tickTech, canStartDevelopment, startDevelopment, nextSlotCost, MAX_SLOT
 import { tickAdmissions, projectAdmissions } from '../systems/admissions/admissionsSystem';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
 import { tickFaculty } from '../systems/faculty/facultySystem';
+import { tickPrestigeAnnual } from '../systems/prestige/prestigeSystem';
 
 // The systems run in a fixed order each week. Order matters: research and
 // finance resolve before admissions/rivals read the updated world.
@@ -106,6 +107,14 @@ export function reducer(state: GameState, action: Action): GameState {
       );
       s.students.enrolled = outcome.enrolled;
       s.students.applicantPool = outcome.applicants;
+      s.students.admitRate = outcome.admitRate;
+      s.students.incomingQuality = outcome.avgIncomingQuality;
+
+      // Prestige is a slow-moving stock (see prestigeSystem.ts): this is
+      // the one annual boundary where it drifts toward a target computed
+      // from curriculum breadth, the selectivity/quality just resolved
+      // above, and (later) faculty quality.
+      tickPrestigeAnnual(s);
 
       s.pendingInterrupt = null;
       advanceClock(s); // resolving is what turns the calendar page into the new year
