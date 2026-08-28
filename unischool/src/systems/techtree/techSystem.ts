@@ -3,9 +3,9 @@ import { milestoneSchools } from '../../data/techData';
 
 // ---------------------------------------------------------------------
 // The milestone chain (see README's "The milestone chain"). Unlocking
-// itself (tier-1 -> school building -> tier-2 -> tier-3) is pure authored
-// prereq data resolved generically by unlockAvailable() below — nothing
-// special needed for that. What's left for dedicated logic is the BONUS
+// itself (gen-ed -> tier-1 -> school building -> tier-2 -> tier-3) is pure
+// authored prereq data resolved generically by unlockAvailable() below —
+// nothing special needed for that. What's left for dedicated logic is the BONUS
 // side: "major complete" and "further" bonuses aren't a single course's
 // own completion effect, they're a reward for an aggregate condition
 // (every tier-2, or every tier-3, in a major being done), plus a

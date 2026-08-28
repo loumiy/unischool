@@ -6,9 +6,13 @@ import type { Buildable, BuildableEffects } from '../state/types';
   330 course Buildables, plus one 'building' Buildable per school (7) that
   gates each school's tier-2 courses — see README's "The milestone chain".
 
-  Prerequisite rule (a clean three-stage climb per major), now AUTHORED as
-  plain ids rather than derived purely from tier:
-    - tier 1 (the 101 course): no prereqs — the entry point to a major
+  Prerequisite rule (a clean four-stage climb per major, gen-ed included),
+  now AUTHORED as plain ids rather than derived purely from tier:
+    - the gen-ed core (six GE courses): no prereqs — the true root of the
+      whole tree, available from day one
+    - tier 1 (the 101 course): requires the entire gen-ed core — every
+      major's entry course waits on the same shared foundation, not just
+      its own school
     - tier 2 (110/120/130/140): requires the major's tier-1 course AND that
       school's building (a genuine cross-kind prereq — see the milestone
       chain: "completing all tier-1 in a school unlocks building that
@@ -173,6 +177,12 @@ const SCHOOLS: SchoolSeed[] = [
     ],
   },
 ];
+
+// The gen-ed core is the true foundation of the curriculum: every major's
+// tier-1 entry course requires the whole 6-course core, not just its own
+// school's building. Derived from SCHOOLS rather than re-listed so it can
+// never drift from the General Studies core defined above.
+const GENED_CORE_IDS: string[] = SCHOOLS.find((school) => school.core)!.core!.map(([code]) => code.replace(/\s/g, ''));
 
 // ---------------------------------------------------------------------
 // Curated content — deliberately small and hand-picked rather than a
@@ -348,7 +358,8 @@ export function initialTech(): Buildable[] {
         const id = nodeId(major.prefix, num);
 
         let prereqs: string[] = [];
-        if (tier === 2) prereqs = [t1Id, school.buildingId];
+        if (tier === 1) prereqs = [...GENED_CORE_IDS];
+        else if (tier === 2) prereqs = [t1Id, school.buildingId];
         else if (tier === 3) prereqs = [...t2Ids];
         prereqs = [...prereqs, ...(CROSS_MAJOR_BRIDGES[id] ?? [])];
 
@@ -369,9 +380,11 @@ export function initialTech(): Buildable[] {
           description,
           cost: TIER_COURSE_COST[tier],
           duration: TIER_DURATION_WEEKS[tier],
-          // tier-1 courses start available; deeper courses unlock via prereqs
+          // Every major course starts locked now — even tier-1 has a real
+          // prereq (the gen-ed core) — and unlocks via the generic prereq
+          // resolver as those prereqs complete.
           prereqs,
-          status: tier === 1 ? 'available' : 'locked',
+          status: 'locked',
           requiresFaculty: REQUIRES_FACULTY[id],
           effects,
         });

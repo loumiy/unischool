@@ -7,10 +7,14 @@ import { canStartDevelopment } from '../systems/techtree/techSystem';
 // Progressive discovery: the curriculum is not laid out whole. What's
 // visible is derived purely from existing unlock/milestone state — no new
 // gating, just a different read of it:
-//   - A major's tier-1 sits in the ungrouped POOL until its school is
-//     built (all that school's tier-1s done); a school with no majors
-//     (General Studies) has nothing further to reveal, so its gen-ed core
-//     stays in the pool for good.
+//   - The gen-ed core is the only thing revealed at the very start — it's
+//     the true root of the tree now (see techData.ts: every major's
+//     tier-1 requires the whole core, not just its own school). It stays
+//     in the pool for good; General Studies has no majors, so it has
+//     nothing further of its own to reveal.
+//   - Once the gen-ed core is complete, every major's tier-1 joins the
+//     ungrouped POOL. A major's tier-1 then sits there until its school
+//     is built (all that school's tier-1s done).
 //   - Once a school is built, its courses leave the pool and form a
 //     labeled section: completed tier-1s + newly-visible tier-2s, shared
 //     across majors that haven't completed their tier-2 quartet yet.
@@ -31,7 +35,16 @@ interface DiscoverySection {
   subgroups: Array<{ key: string; label: string; courseIds: string[] }>;
 }
 
-function buildSections(s: GameState): DiscoverySection[] {
+// The gen-ed core (General Studies' coreIds — no other school has any) is
+// the shared prereq gating every major's tier-1 (see techData.ts). Whether
+// it's complete decides both what joins the pool and what the pool caption
+// below says, so it's computed once and threaded through.
+function isGenEdComplete(s: GameState): boolean {
+  const coreIds = discoverySchools().flatMap((school) => school.coreIds);
+  return coreIds.length > 0 && coreIds.every((id) => s.tech.find((t) => t.id === id)?.status === 'done');
+}
+
+function buildSections(s: GameState, genEdComplete: boolean): DiscoverySection[] {
   const findStatus = (id: string) => s.tech.find((t) => t.id === id)?.status;
   const poolIds: string[] = [];
   const sections: DiscoverySection[] = [];
@@ -40,6 +53,7 @@ function buildSections(s: GameState): DiscoverySection[] {
     poolIds.push(...school.coreIds); // gen-ed core (General Studies only) — never leaves the pool
 
     if (school.majors.length === 0) continue; // nothing further to discover (General Studies has no majors)
+    if (!genEdComplete) continue; // every major's tier-1 waits on the shared gen-ed core
 
     const schoolBuilt = findStatus(school.buildingId) === 'done';
     if (!schoolBuilt) {
@@ -151,7 +165,8 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
   const slotsUsed = Object.keys(s.developing).length;
 
   const lookup = new Map(s.tech.map((t) => [t.id, t]));
-  const sections = buildSections(s);
+  const genEdComplete = isGenEdComplete(s);
+  const sections = buildSections(s, genEdComplete);
   const [pool, ...schoolSections] = sections;
 
   return (
@@ -168,7 +183,9 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
         <div className="curriculum-scroll">
           <div className="discovery-pool">
             <p className="discovery-pool-caption">
-              Open to all incoming students — not yet organized by school. Complete a school's entry courses to raise its building.
+              {genEdComplete
+                ? "Open to all incoming students — not yet organized by school. Complete a school's entry courses to raise its building."
+                : 'The general-education core — every major waits on it. Complete it to unlock every major\'s entry course.'}
             </p>
             <CellGrid s={s} act={act} ids={pool.courseIds} lookup={lookup} />
           </div>

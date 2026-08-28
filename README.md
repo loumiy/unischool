@@ -99,14 +99,17 @@ same interaction. Keep the shared screen dumb.
 The 330-course curriculum is not a flat list; buildings give it a progression
 spine. The intended climb:
 
-1. Start with **one academic building** and the **gen-ed (tier-0/entry)** courses
-   available.
-2. Completing **all tier-1 courses in a school** unlocks the ability to **build
+1. Start with **one academic building** and the **gen-ed core** available — nothing
+   else. Every major's tier-1 entry course requires the *entire* gen-ed core, not
+   just its own school, so the core is the one true root every climb shares.
+2. Completing the gen-ed core unlocks **every major's tier-1 course**, across every
+   school, all at once.
+3. Completing **all tier-1 courses in a school** unlocks the ability to **build
    that school** (a `building` Buildable).
-3. Completing that **school building** unlocks the school's **tier-2** courses.
-4. Completing **all tier-2 courses in a major** unlocks that **major** — granting
+4. Completing that **school building** unlocks the school's **tier-2** courses.
+5. Completing **all tier-2 courses in a major** unlocks that **major** — granting
    an applicant-pool bonus and unlocking the major's **tier-3** courses.
-5. Completing the **tier-3** courses fully **masters** that major.
+6. Completing the **tier-3** courses fully **masters** that major.
 
 Milestone bonuses (school-complete, major-complete, major-mastered) are dedicated
 milestone logic in `techSystem.ts` — they are a first-class part of the model,
