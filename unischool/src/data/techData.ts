@@ -412,39 +412,11 @@ export function initialTech(): Buildable[] {
   return nodes;
 }
 
-// UI-only grouping metadata (school -> core/major -> course ids), for the
-// curriculum tile view. Deliberately not part of the Buildable model itself
-// — the engine never needs to know a course belongs to a school or major.
-// Building ids are intentionally excluded — the tile view shows courses only.
-export interface CurriculumGroup {
-  label: string;      // 'Core' or the major's name
-  courseIds: string[];
-}
-export interface CurriculumSchool {
-  name: string;
-  groups: CurriculumGroup[];
-}
-
-export function curriculumGroups(): CurriculumSchool[] {
-  return SCHOOLS.map((school) => {
-    const groups: CurriculumGroup[] = [];
-    if (school.core) {
-      groups.push({ label: 'Core', courseIds: school.core.map(([code]) => code.replace(/\s/g, '')) });
-    }
-    for (const major of school.majors) {
-      groups.push({ label: major.name, courseIds: NUMS.map((num) => nodeId(major.prefix, num)) });
-    }
-    return { name: school.name, groups };
-  });
-}
-
 // Milestone-checking metadata (school -> building id -> each major's tier-2
-// and tier-3 ids), consumed by techSystem.ts's checkMilestones(). Kept
-// separate from curriculumGroups() because milestone-checking needs the
-// tier-2/tier-3 split that the UI grouping doesn't care about. Like
-// curriculumGroups(), this is deliberately NOT part of the Buildable model
-// — the engine reads it for the one course-domain feature (the milestone
-// chain) that genuinely needs to know school/major structure.
+// and tier-3 ids), consumed by techSystem.ts's checkMilestones(). Deliberately
+// NOT part of the Buildable model itself — the engine reads it for the one
+// course-domain feature (the milestone chain) that genuinely needs to know
+// school/major structure.
 export interface MilestoneMajor {
   name: string;
   prefix: string;
@@ -464,6 +436,43 @@ export function milestoneSchools(): MilestoneSchool[] {
     majors: school.majors.map((major) => ({
       name: major.name,
       prefix: major.prefix,
+      tier2Ids: [1, 2, 3, 4].map((i) => nodeId(major.prefix, NUMS[i])),
+      tier3Ids: [5, 6, 7, 8].map((i) => nodeId(major.prefix, NUMS[i])),
+    })),
+  }));
+}
+
+// Progressive-discovery metadata for the Curriculum tab's course-cell view
+// (see CurriculumTab.tsx). A second independent UI-only view alongside
+// milestoneSchools() above — same reasoning: the engine never needs this
+// shape, only the tab that derives what's revealed from existing
+// unlock/milestone state (school building done, major-complete) does.
+// tier1Id is included (milestoneSchools() only has tier2/tier3)
+// because the discovery view needs a major's full climb, not just the
+// milestone-relevant tiers.
+export interface DiscoveryMajor {
+  name: string;
+  prefix: string;
+  tier1Id: string;
+  tier2Ids: string[]; // exactly 4
+  tier3Ids: string[]; // exactly 4
+}
+export interface DiscoverySchool {
+  name: string;
+  buildingId: string;
+  coreIds: string[]; // gen-ed core course ids; non-empty only for General Studies
+  majors: DiscoveryMajor[];
+}
+
+export function discoverySchools(): DiscoverySchool[] {
+  return SCHOOLS.map((school) => ({
+    name: school.name,
+    buildingId: school.buildingId,
+    coreIds: school.core ? school.core.map(([code]) => code.replace(/\s/g, '')) : [],
+    majors: school.majors.map((major) => ({
+      name: major.name,
+      prefix: major.prefix,
+      tier1Id: nodeId(major.prefix, NUMS[0]),
       tier2Ids: [1, 2, 3, 4].map((i) => nodeId(major.prefix, NUMS[i])),
       tier3Ids: [5, 6, 7, 8].map((i) => nodeId(major.prefix, NUMS[i])),
     })),

@@ -69,25 +69,66 @@ button { cursor: pointer; font-family: inherit; }
 .panel-head h2 { margin: 0; }
 .panel .stat { font-family: var(--mono); color: var(--ink-muted); font-size: 12px; }
 
-/* ---------- curriculum ---------- */
-.curriculum-scroll { max-height: 440px; overflow-y: auto; padding-right: 6px; margin-bottom: 14px; }
-.school-group { margin-bottom: 16px; }
-.school-head { display: flex; justify-content: space-between; align-items: baseline;
-  border-bottom: 1px solid var(--parchment-line-lo); padding-bottom: 4px; margin-bottom: 10px; }
-.school-head h3 { font-family: var(--serif); font-size: 15px; margin: 0; color: var(--ink); }
-.tile-row { display: flex; flex-wrap: wrap; gap: 16px; }
-.course-tile { width: 76px; text-align: center; }
-.course-tile-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; justify-content: center;
-  width: fit-content; margin: 0 auto 5px; }
-.course-sq { width: 12px; height: 12px; border: 1px dashed #b8a878; box-sizing: border-box; }
-.course-sq.locked { border-style: dashed; opacity: 0.45; }
-.course-sq.available { border-style: solid; border-color: var(--ink-muted); }
-.course-sq.developing { border-style: solid; background: #3b6ef0; border-color: #3b6ef0; }
-.course-sq.done { border-style: solid; background: var(--gold); border-color: var(--gold); }
-.course-tile-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--ink-muted); line-height: 1.25; }
+/* ---------- curriculum: progressive discovery ---------- */
+/* No inner scroll box here (unlike the other panel lists) — the page
+   scrolls naturally instead, so hover tooltips on cells are never clipped. */
+.curriculum-scroll { padding-right: 6px; }
 
-.available-head h3 { font-family: var(--serif); font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--gold-dim); margin: 0 0 6px; }
+.discovery-pool-caption { font-size: 12px; font-style: italic; color: var(--ink-muted); margin: 0 0 10px; }
+.discovery-pool { margin-bottom: 22px; }
+
+.discovery-section { margin-bottom: 22px; animation: discovery-reveal 0.6s ease both; }
+.discovery-section-head { border-bottom: 1px solid var(--parchment-line-lo); padding-bottom: 4px; margin-bottom: 10px; }
+.discovery-section-head h3 { font-family: var(--serif); font-size: 15px; margin: 0; color: var(--ink); }
+
+.discovery-subgroup { margin: 14px 0 0 6px; padding-left: 12px; border-left: 2px solid var(--parchment-line);
+  animation: discovery-reveal 0.6s ease both; }
+.discovery-subgroup h4 { font-family: var(--serif); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
+  margin: 0 0 8px; color: var(--gold-dim); }
+
+@keyframes discovery-reveal {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Each cell is a button (course number only) wrapped with a hover tooltip. */
+.cell-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.course-cell-wrap { position: relative; }
+.course-cell { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 12px; font-weight: 700; border-radius: 4px; padding: 0;
+  border: 1px dashed #b8a878; color: var(--ink-muted); background: transparent; box-sizing: border-box; }
+.course-cell.locked { opacity: 0.5; cursor: default; }
+.course-cell.blocked { border-style: solid; border-color: #b8a878; color: #a89968; opacity: 0.65; cursor: not-allowed; }
+.course-cell.available { border-style: solid; border-color: var(--gold-dim); color: var(--ink); background: #f5efdd; cursor: pointer; }
+.course-cell.available:hover { border-color: var(--gold); background: #efe1b8; }
+.course-cell.developing { border-style: solid; border-color: var(--gold); color: #4a3c14; cursor: default;
+  animation: cell-pulse 1.7s ease-in-out infinite; }
+.course-cell.done { border-style: solid; border-color: var(--gold); background: var(--gold); color: #3a2f0e; cursor: default; }
+
+@keyframes cell-pulse {
+  0%, 100% { background: #f5efdd; }
+  50% { background: var(--gold); }
+}
+
+/* Hover/focus tooltip — plain CSS show/hide, no JS state. */
+.course-tooltip { position: absolute; z-index: 20; top: 46px; left: 0; width: 220px;
+  background: var(--navy); color: var(--ink-hi); border: 1px solid var(--navy-line); border-radius: 6px;
+  padding: 10px 12px; font-size: 12px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  visibility: hidden; opacity: 0; transition: opacity 0.12s ease; pointer-events: none; }
+.course-cell-wrap:hover .course-tooltip, .course-cell-wrap:focus-within .course-tooltip { visibility: visible; opacity: 1; }
+.course-tooltip-name { font-family: var(--serif); font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.course-tooltip-desc { margin: 0 0 8px; color: #cbd0d8; line-height: 1.4; }
+.course-tooltip-prereqs { margin: 0 0 6px; padding: 0; list-style: none; }
+.course-tooltip-prereqs li { font-family: var(--mono); font-size: 11px; padding: 1px 0; }
+.course-tooltip-prereqs li.met { color: #7dd3a0; }
+.course-tooltip-prereqs li.unmet { color: #e58a8a; }
+.course-tooltip-faculty { font-family: var(--mono); font-size: 11px; font-style: italic; padding: 3px 0;
+  border-top: 1px dashed var(--navy-line); margin-top: 4px; }
+.course-tooltip-faculty.met { color: #7dd3a0; }
+.course-tooltip-faculty.unmet { color: #e0b04a; }
+.course-tooltip-meta { font-family: var(--mono); font-size: 11px; color: var(--ink-lo); margin-top: 6px; }
+.course-tooltip-reason { margin: 6px 0 0; color: #e58a8a; font-size: 11px; font-style: italic; }
+
 .available-list { max-height: 220px; overflow-y: auto; border-top: 1px solid var(--parchment-line-lo); margin: 0; padding: 0; list-style: none; }
 .available-item { padding: 6px 0; border-bottom: 1px solid var(--parchment-line-lo); font-size: 13px; }
 .available-item-main { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
@@ -176,7 +217,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .startup-begin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* thin scrollbars inside parchment panels */
-.curriculum-scroll::-webkit-scrollbar, .available-list::-webkit-scrollbar, .log::-webkit-scrollbar { width: 8px; }
-.curriculum-scroll::-webkit-scrollbar-thumb, .available-list::-webkit-scrollbar-thumb, .log::-webkit-scrollbar-thumb {
+.available-list::-webkit-scrollbar, .log::-webkit-scrollbar { width: 8px; }
+.available-list::-webkit-scrollbar-thumb, .log::-webkit-scrollbar-thumb {
   background: var(--parchment-line); border-radius: 4px; }
-.curriculum-scroll, .available-list, .log { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
+.available-list, .log { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
