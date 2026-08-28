@@ -49,10 +49,16 @@ button { cursor: pointer; font-family: inherit; }
 .debug-interrupt-btn { background: #3a2f1c; color: #e0b04a; border: 1px dashed #a67c1c; border-radius: 4px;
   padding: 5px 10px; font-size: 11px; }
 
-/* ---------- layout ---------- */
-.layout { display: grid; grid-template-columns: 2.1fr 1fr; gap: 16px; align-items: start; margin-bottom: 16px; }
-.layout-secondary { display: grid; grid-template-columns: 1fr; gap: 16px; }
-.sidebar { display: flex; flex-direction: column; gap: 16px; }
+/* ---------- tab navigation ---------- */
+.tabnav { display: flex; gap: 4px; border-bottom: 1px solid var(--navy-line); margin-bottom: 16px; }
+.tabnav button { background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--ink-lo);
+  font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em; font-size: 13px;
+  padding: 10px 16px 8px; }
+.tabnav button:hover { color: var(--ink-hi); }
+.tabnav button.active { color: var(--gold); border-bottom-color: var(--gold); font-weight: 700; }
+
+/* ---------- tab content ---------- */
+.tab-content { display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px; }
 
 .panel { background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px;
   padding: 16px 18px; color: var(--ink); }

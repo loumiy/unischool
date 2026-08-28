@@ -29,7 +29,13 @@ Open the printed localhost URL. Start the clock to begin.
 - `src/engine/` — the reducer (game loop) and the React store hook
 - `src/systems/` — one folder per system; each exports a pure `tick(state)` function
 - `src/data/` — seed content (the curriculum, buildings, rival universities)
-- `src/App.tsx` — the dashboard: reads state, dispatches actions
+- `src/components/` — chrome shared across every tab: the persistent header/
+  status bar, the interrupt modal, the tab nav, the startup screen
+- `src/tabs/` — one component per dashboard tab (Campus, Faculty,
+  Curriculum, Treasury, Admissions, Athletics); each reads the slice of
+  `GameState` it needs and dispatches actions, same as `App.tsx` used to
+- `src/App.tsx` — the dashboard shell: owns the game loop hook and which
+  tab is active, renders the persistent chrome plus the active tab
 
 ## Architecture — follow these rules strictly
 
