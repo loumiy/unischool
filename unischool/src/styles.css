@@ -77,19 +77,13 @@ button { cursor: pointer; font-family: inherit; }
 .discovery-pool-caption { font-size: 12px; font-style: italic; color: var(--ink-muted); margin: 0 0 10px; }
 .discovery-pool { margin-bottom: 22px; }
 
-.discovery-section { margin-bottom: 22px; animation: discovery-reveal 0.6s ease both; }
+.discovery-section { margin-bottom: 22px; }
 .discovery-section-head { border-bottom: 1px solid var(--parchment-line-lo); padding-bottom: 4px; margin-bottom: 10px; }
 .discovery-section-head h3 { font-family: var(--serif); font-size: 15px; margin: 0; color: var(--ink); }
 
-.discovery-subgroup { margin: 14px 0 0 6px; padding-left: 12px; border-left: 2px solid var(--parchment-line);
-  animation: discovery-reveal 0.6s ease both; }
+.discovery-subgroup { margin: 14px 0 0 6px; padding-left: 12px; border-left: 2px solid var(--parchment-line); }
 .discovery-subgroup h4 { font-family: var(--serif); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
   margin: 0 0 8px; color: var(--gold-dim); }
-
-@keyframes discovery-reveal {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 
 /* Each cell is a button (course code, e.g. "FINA 101") wrapped with a hover tooltip. */
 .cell-grid { display: flex; flex-wrap: wrap; gap: 6px; }
