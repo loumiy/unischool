@@ -21,6 +21,8 @@ export interface StudentBody {
   capacity: number;      // driven by unlocked buildings/tech
   satisfaction: number;  // 0..100, affects retention & reputation
   applicantPool: number; // most recent admissions cycle's total applicants (set by the annual funnel)
+  admitRate: number;     // most recent admissions cycle's admit rate — the emergent selectivity signal prestige reacts to (see prestigeSystem.ts)
+  incomingQuality: number; // most recent admissions cycle's average quality score (0..100) of the enrolled class — prestige's other admissions-derived input
 }
 
 // Faculty ARE individuals with attributes.
@@ -54,10 +56,11 @@ export interface Buildable {
   effects?: Partial<BuildableEffects>; // applied once, when completed
 }
 
-// Effects a Buildable can grant when finished.
+// Effects a Buildable can grant when finished. Deliberately no reputation
+// bonus here — prestige is a slow-moving stock computed and drifted toward
+// separately (see prestigeSystem.ts), never a sum of completion bonuses.
 export interface BuildableEffects {
   capacityBonus: number;
-  reputationBonus: number;
   tuitionBonus: number;
   researchRateBonus: number;
   slotBonus: number;    // grants additional development slots

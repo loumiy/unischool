@@ -67,9 +67,13 @@ Every Buildable has:
   roster before development can start (e.g. Microeconomics needs an Economics
   faculty member). This gates *starting*, not completion.
 - a **`status`** — `locked` → `available` → `developing` → `done`.
-- **`effects`** — applied once, on completion. Effects can grant reputation,
-  capacity, tuition headroom, satisfaction, **development slots**, and — crucially
-  — can **unlock other Buildables** (this is how the milestone chain works).
+- **`effects`** — applied once, on completion. Effects can grant capacity,
+  tuition headroom, satisfaction, **development slots**, applicant-pool
+  bumps, and — crucially — can **unlock other Buildables** (this is how the
+  milestone chain works). Effects do **not** grant reputation directly —
+  prestige is a slow-moving stock computed and drifted toward separately
+  (see "Prestige: a slow-moving stock" below), not a sum of completion
+  bonuses.
 
 This means one develop/build flow, one slot system, one prereq resolver, one
 completion-effects applier, serve all content types. **Do not build parallel
@@ -95,13 +99,41 @@ spine. The intended climb:
    that school** (a `building` Buildable).
 3. Completing that **school building** unlocks the school's **tier-2** courses.
 4. Completing **all tier-2 courses in a major** unlocks that **major** — granting
-   an applicant/prestige bonus and unlocking the major's **tier-3** courses.
-5. Completing the **tier-3** courses grants a further prestige bonus.
+   an applicant-pool bonus and unlocking the major's **tier-3** courses.
+5. Completing the **tier-3** courses fully **masters** that major.
 
-Milestone bonuses (school-complete, major-complete) are Buildable effects and/or
-dedicated milestone logic — they are a first-class part of the model, not an
-afterthought. Note this makes buildings prerequisites for courses, which is
-exactly why prereqs must cross kinds.
+Milestone bonuses (school-complete, major-complete, major-mastered) are dedicated
+milestone logic in `techSystem.ts` — they are a first-class part of the model,
+not an afterthought. Note this makes buildings prerequisites for courses, which
+is exactly why prereqs must cross kinds. These milestones no longer grant
+reputation directly; instead they are the durable "curriculum breadth" stock
+that feeds the prestige target (see below) — finishing a major or a school
+raises the ceiling prestige can drift toward, rather than instantly bumping it.
+
+## Prestige: a slow-moving stock
+
+`self.reputation` ("prestige") is a **stock**, not a flow: it is never
+incremented directly by completing a course, a building, or a milestone. Once a
+year, at the summer admissions boundary, prestige drifts a small fraction of the
+way toward a target computed from durable inputs — see
+`src/systems/prestige/prestigeSystem.ts`:
+
+- **curriculum breadth** — majors/schools completed *right now* (a stock read
+  off the milestone booleans above), not courses added this year.
+- **selectivity** — the emergent admit rate from the most recently resolved
+  admissions cycle; more selective scores higher.
+- **incoming student quality** — the average quality of the class that actually
+  enrolled that cycle.
+- **faculty quality** — a planned fourth input; the formula already sums it in
+  at zero weight as a seam for a future task.
+
+Each input is clamped to its own 0..1 share of the target before being
+weighted, which is what keeps the prestige/selectivity/quality feedback loop
+from spiraling: selectivity and quality alone can only push prestige to a
+fixed ceiling (reachable by staying small and cutting tuition), and climbing
+past that ceiling toward the very top of the rankings requires the curriculum-
+breadth term too — i.e. sustained, decades-long buildout, not an early
+course-development sprint.
 
 ## Pacing model: money is the throttle
 

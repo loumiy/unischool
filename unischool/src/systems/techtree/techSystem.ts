@@ -14,10 +14,13 @@ import { milestoneSchools } from '../../data/techData';
 // aware rather than fully kind-agnostic — milestones are inherently a
 // school/major concept, which buildings/dorms/facilities don't have.
 // ---------------------------------------------------------------------
-const MAJOR_COMPLETE_REPUTATION_BONUS = 0.55; // all tier-2 courses in a major done
+// Milestones no longer grant reputation directly — completing a major or a
+// school raises curriculumBreadthScore() in prestigeSystem.ts instead,
+// which lifts the prestige *target* that reputation slowly drifts toward.
+// A one-time applicant bump for "major complete" remains a flow effect on
+// the applicant pool, which is not the stock-vs-flow concern this rework
+// addresses.
 const MAJOR_COMPLETE_APPLICANT_BONUS = 30;
-const MAJOR_MASTERED_REPUTATION_BONUS = 2.2; // all tier-3 courses in a major also done (the "further" bonus)
-const SCHOOL_COMPLETE_REPUTATION_BONUS = 12; // every major in the school fully done (tier-2 and tier-3)
 
 // Development slots are a purchasable relief valve, not the primary
 // pacing throttle (see README's "Pacing model"). Each additional slot
@@ -77,7 +80,6 @@ function autoFillSlots(s: GameState): void {
 function applyEffects(s: GameState, e?: Partial<BuildableEffects>): void {
   if (!e) return;
   if (e.capacityBonus) s.students.capacity += e.capacityBonus;
-  if (e.reputationBonus) s.self.reputation += e.reputationBonus;
   if (e.tuitionBonus) s.finance.tuitionPerStudent += e.tuitionBonus;
   if (e.slotBonus) s.slots += e.slotBonus;
   if (e.applicantPoolBonus) s.students.applicantPool += e.applicantPoolBonus;
@@ -102,11 +104,13 @@ function isDone(s: GameState, id: string): boolean {
   return s.tech.find((t) => t.id === id)?.status === 'done';
 }
 
-// Awards a milestone bonus exactly once, guarded by s.milestones.
-function awardMilestone(s: GameState, key: string, reputationBonus: number, applicantBonus: number, message: string): void {
+// Awards a milestone bonus exactly once, guarded by s.milestones. Setting
+// s.milestones[key] is itself the durable "curriculum breadth" signal
+// prestigeSystem.ts's curriculumBreadthScore() reads — no reputation is
+// granted here directly (see that file for why).
+function awardMilestone(s: GameState, key: string, applicantBonus: number, message: string): void {
   if (s.milestones[key]) return;
   s.milestones[key] = true;
-  s.self.reputation += reputationBonus;
   s.students.applicantPool += applicantBonus;
   s.log.unshift({ year: s.clock.year, week: s.clock.week, message, kind: 'good' });
 }
@@ -121,7 +125,6 @@ function checkMilestones(s: GameState): void {
         awardMilestone(
           s,
           `major-complete:${major.prefix}`,
-          MAJOR_COMPLETE_REPUTATION_BONUS,
           MAJOR_COMPLETE_APPLICANT_BONUS,
           `Major complete: ${major.name} (${school.schoolName}).`,
         );
@@ -132,7 +135,6 @@ function checkMilestones(s: GameState): void {
         awardMilestone(
           s,
           `major-mastered:${major.prefix}`,
-          MAJOR_MASTERED_REPUTATION_BONUS,
           0,
           `${major.name} fully mastered — every course complete.`,
         );
@@ -145,7 +147,6 @@ function checkMilestones(s: GameState): void {
       awardMilestone(
         s,
         `school-complete:${school.schoolName}`,
-        SCHOOL_COMPLETE_REPUTATION_BONUS,
         0,
         `${school.schoolName} is now a fully distinguished school.`,
       );

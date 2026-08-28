@@ -29,10 +29,11 @@ const TOP_50_CUTOFF = 50;
 const REPORT_WEEK = Math.floor(WEEKS_PER_YEAR / 2);
 
 export function tickRivals(s: GameState): void {
-  // Player's own reputation responds to satisfaction & faculty research.
-  const facultyStrength = s.faculty.reduce((sum, f) => sum + f.research + f.teaching, 0) / 40;
-  const repTarget = 30 + s.students.satisfaction * 0.3 + facultyStrength;
-  s.self.reputation += (repTarget - s.self.reputation) * 0.02;
+  // The player's own reputation (prestige) no longer moves here — it is a
+  // slow-moving stock driven by curriculum breadth, selectivity, and
+  // incoming student quality, drifted toward once a year at the admissions
+  // boundary. See prestigeSystem.ts's tickPrestigeAnnual, called from
+  // reducer.ts's RESOLVE_ADMISSIONS.
 
   if (s.clock.week === WEEKS_PER_YEAR) {
     for (const r of s.rivals) {
