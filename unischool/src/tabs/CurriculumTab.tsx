@@ -76,15 +76,15 @@ function cellState(s: GameState, t: Buildable): CellState {
   return canStartDevelopment(s, t) ? 'available' : 'blocked';
 }
 
-// One course cell: shows just its course number (per the design brief),
-// fills brass when done, pulses while developing, and is directly
-// clickable to start development when eligible — the scroll-through list
-// this replaces is gone. A hover tooltip carries everything else: full
-// name, description, prereqs (met/unmet), the faculty gate (kept visually
-// distinct from prereqs), cost, and duration.
+// One course cell: shows its course code (e.g. "FINA 101"), fills brass
+// when done, pulses while developing, and is directly clickable to start
+// development when eligible — the scroll-through list this replaces is
+// gone. A hover tooltip carries everything else: full name, description,
+// prereqs (met/unmet), the faculty gate (kept visually distinct from
+// prereqs), cost, and duration.
 function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => void; t: Buildable; lookup: Map<string, Buildable> }) {
   const state = cellState(s, t);
-  const num = t.id.match(/\d{3}$/)?.[0] ?? t.id;
+  const code = t.name.split(' · ')[0];
   const missingFaculty = !!(t.requiresFaculty && !s.faculty.some((f) => f.field === t.requiresFaculty));
 
   const blockedReason = state === 'blocked'
@@ -103,7 +103,7 @@ function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => v
         disabled={state !== 'available'}
         onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: t.id })}
       >
-        {num}
+        {code}
       </button>
       <div className="course-tooltip" role="tooltip">
         <div className="course-tooltip-name">{t.name}</div>
