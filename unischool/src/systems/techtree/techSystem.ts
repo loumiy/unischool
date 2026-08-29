@@ -88,18 +88,23 @@ export function startDevelopment(s: GameState, node: Buildable): void {
 }
 
 // When autoDevelop is on, greedily fills any open slots with available
-// Buildables, in list order, using the same rule a manual start uses — it's
-// a sandbox playtesting convenience for bypassing manual "develop" clicks,
-// nothing more, so each course still takes its full `duration` in weeks
-// (it goes through the normal tickTech countdown like any other start).
-// canStartDevelopment's cash>=0 check already stalls it while in the red;
-// on top of that, auto-develop won't pick a specific Buildable it can't
-// afford even while cash is still non-negative, so it can't be used to
-// unattendedly grind the balance down to the stall threshold.
+// COURSES ONLY, in list order, using the same rule a manual start uses —
+// it's a sandbox playtesting convenience for bypassing manual "develop"
+// clicks through the curriculum, nothing more, so each course still takes
+// its full `duration` in weeks (it goes through the normal tickTech
+// countdown like any other start). It deliberately does NOT touch
+// buildings, dorms, or facilities — those are real capital decisions
+// (capacity, satisfaction, prestige tradeoffs) the player should always
+// make deliberately, never something a playtesting toggle churns through
+// unattended. canStartDevelopment's cash>=0 check already stalls it while
+// in the red; on top of that, auto-develop won't pick a specific course it
+// can't afford even while cash is still non-negative, so it can't be used
+// to unattendedly grind the balance down to the stall threshold.
 function autoFillSlots(s: GameState): void {
   if (!s.autoDevelop) return;
   for (const node of s.tech) {
     if (Object.keys(s.developing).length >= s.slots) break;
+    if (node.kind !== 'course') continue;
     if (node.cost > 0 && s.finance.cash < node.cost) continue;
     if (canStartDevelopment(s, node)) startDevelopment(s, node);
   }

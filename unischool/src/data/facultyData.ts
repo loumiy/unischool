@@ -66,7 +66,7 @@ const SAME_ORIGIN_NAME_WEIGHT = 0.85;
 // should essentially never exhaust; the loop is just a safety net.
 const MAX_NAME_ROLL_ATTEMPTS = 30;
 
-const FIELDS = ['Physics', 'History', 'CompSci', 'Economics', 'Biology', 'Mathematics', 'Sociology', 'Chemistry', 'Psychology', 'English'];
+export const FACULTY_FIELDS = ['Physics', 'History', 'CompSci', 'Economics', 'Biology', 'Mathematics', 'Sociology', 'Chemistry', 'Psychology', 'English'];
 
 function pick<T>(pool: T[]): T {
   return pool[Math.floor(Math.random() * pool.length)];
@@ -187,10 +187,34 @@ export function facultyQualityTier(f: Faculty): FacultyQualityTier {
   return 'Adjunct';
 }
 
-// One randomly-rolled hireable candidate, fresh (tenureWeeks 0). Pass the
-// full+last names already in play (roster + candidate pool) so the new
-// name can't collide with one of them.
-export function generateCandidate(existingNames: Iterable<string> = []): Faculty {
+// ---------------------------------------------------------------------
+// Hiring is a job-posting model, not a passive draw-and-discard pool: the
+// player posts an opening for a SPECIFIC field (POST_JOB in actions.ts),
+// pays a fee up front, and waits out a countdown (facultySystem.ts ticks
+// s.openPostings the same way tickTech ticks s.developing) before exactly
+// one candidate in that field arrives in s.candidates, ready to hire. This
+// replaces the old hire-then-fire reroll hack (dismiss an unwanted
+// candidate to force a fresh random draw) with a deliberate, cost-and-time
+// -bearing decision — you can't get a candidate in a field you haven't
+// posted for, and re-posting the same field again costs another fee and
+// another wait.
+// ---------------------------------------------------------------------
+export const JOB_POSTING_COST = 8_000;
+const JOB_POSTING_MIN_WEEKS = 4;
+const JOB_POSTING_MAX_WEEKS = 10;
+
+// Rolled once, when a posting opens — a real hiring timeline is never
+// perfectly predictable, but the countdown itself (like a course's
+// duration) ticks down deterministically once rolled, so the player always
+// knows exactly how long is left.
+export function rollPostingWeeks(): number {
+  return JOB_POSTING_MIN_WEEKS + Math.floor(Math.random() * (JOB_POSTING_MAX_WEEKS - JOB_POSTING_MIN_WEEKS + 1));
+}
+
+// One freshly-rolled hireable candidate IN THE GIVEN FIELD, fresh
+// (tenureWeeks 0). Pass the full+last names already in play (roster +
+// candidate pool) so the new name can't collide with one of them.
+export function generateCandidate(field: string, existingNames: Iterable<string> = []): Faculty {
   const used = new Set(existingNames);
   const teachingPotential = FACULTY_POTENTIAL_MIN + Math.round(Math.random() * FACULTY_POTENTIAL_RANGE);
   const researchPotential = FACULTY_POTENTIAL_MIN + Math.round(Math.random() * FACULTY_POTENTIAL_RANGE);
@@ -199,7 +223,7 @@ export function generateCandidate(existingNames: Iterable<string> = []): Faculty
   return {
     id: crypto.randomUUID(),
     name: rollFullName(used),
-    field: pick(FIELDS),
+    field,
     teaching,
     research,
     teachingPotential,
@@ -211,8 +235,12 @@ export function generateCandidate(existingNames: Iterable<string> = []): Faculty
   };
 }
 
+// Founding faculty candidates: word-of-mouth hires already in the pipeline
+// before the player has posted a single opening, in whatever fields happen
+// to turn up — the one place a candidate's field is still randomly rolled
+// rather than chosen by the player via POST_JOB.
 export function initialCandidates(): Faculty[] {
-  const first = generateCandidate();
-  const second = generateCandidate([first.name]);
+  const first = generateCandidate(pick(FACULTY_FIELDS));
+  const second = generateCandidate(pick(FACULTY_FIELDS), [first.name]);
   return [first, second];
 }

@@ -76,8 +76,9 @@ export default function StatusHeader({ s, speed, setSpeed, act }: {
           <button
             className={`auto-develop-toggle ${s.autoDevelop ? 'on' : ''}`}
             onClick={() => act({ type: 'TOGGLE_AUTO_DEVELOP' })}
+            title="Playtesting only: auto-starts available courses as slots free up. Never touches buildings, dorms, or facilities — those stay a deliberate, manual decision."
           >
-            auto-develop: {s.autoDevelop ? 'on' : 'off'}
+            auto-develop courses: {s.autoDevelop ? 'on' : 'off'}
           </button>
           {/* Scaffolding: proves the interrupt pause/resume cycle. Remove once a real interrupt exists. */}
           <button className="debug-interrupt-btn" onClick={() => act({ type: 'DEBUG_TRIGGER_TEST_INTERRUPT' })}>

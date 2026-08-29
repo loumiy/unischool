@@ -2,12 +2,16 @@ import { Fragment } from 'react';
 import type { Action } from '../state/actions';
 import type { GameState } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
-import { facultyQualityTier } from '../data/facultyData';
+import { facultyQualityTier, FACULTY_FIELDS, JOB_POSTING_COST } from '../data/facultyData';
 import { usedFacultySlots, totalFacultySlots } from '../systems/techtree/techSystem';
 
-// Faculty roster and the hireable candidate pool. Hiring/dismissal is the
-// only place faculty are managed; growth (teaching/research rising toward
-// each hire's rolled potential, salary rising with it, course slots
+// Faculty roster, open job postings, and the pool of candidates postings
+// have produced. Hiring is a job-posting model, not a passive draw-and-
+// discard pool (see facultyData.ts's header comment): a candidate in a
+// given field only ever shows up in Candidates below because the player
+// posted (and paid for) an opening in that field and waited out the
+// countdown — there is no free reroll. Growth (teaching/research rising
+// toward each hire's rolled potential, salary rising with it, course slots
 // growing on tenure milestones) happens passively on the weekly tick — see
 // facultySystem.ts. Quality tier is a display-only bucketing of the same
 // teaching/research stats already shown, so "hire more" (headcount, which
@@ -35,6 +39,39 @@ export default function FacultyTab({ s, act }: { s: GameState; act: (a: Action) 
             </li>
           ))}
           {s.faculty.length === 0 && <li className="empty-note">No faculty on the roster.</li>}
+        </ul>
+      </section>
+
+      <section className="panel">
+        <div className="panel-head"><h2>Job Postings</h2><span className="stat">${JOB_POSTING_COST.toLocaleString()} each</span></div>
+        <p className="empty-note">
+          Post an opening in a field to recruit for it — a candidate arrives after a few weeks. At most one open posting
+          per field at a time; re-post once it resolves for another candidate.
+        </p>
+        <ul className="available-list">
+          {FACULTY_FIELDS.map((field) => {
+            const weeksLeft = s.openPostings[field];
+            return (
+              <li key={field} className="available-item">
+                <div className="available-item-main">
+                  <span>{field}</span>
+                </div>
+                <div className="available-item-meta">
+                  {weeksLeft !== undefined ? (
+                    <span className="badge">{weeksLeft}w left</span>
+                  ) : (
+                    <button
+                      disabled={s.finance.cash < JOB_POSTING_COST}
+                      title={s.finance.cash < JOB_POSTING_COST ? 'Not enough cash to post this opening.' : undefined}
+                      onClick={() => act({ type: 'POST_JOB', field })}
+                    >
+                      post opening →
+                    </button>
+                  )}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </section>
 
@@ -67,7 +104,7 @@ export default function FacultyTab({ s, act }: { s: GameState; act: (a: Action) 
               <button className="appoint" onClick={() => act({ type: 'HIRE_FACULTY', facultyId: c.id })}>Appoint</button>
             </li>
           ))}
-          {s.candidates.length === 0 && <li className="empty-note">No candidates right now.</li>}
+          {s.candidates.length === 0 && <li className="empty-note">No candidates right now — post an opening above.</li>}
         </ul>
       </section>
     </div>

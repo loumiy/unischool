@@ -16,6 +16,13 @@ export type Action =
   | { type: 'START_DEVELOPMENT'; nodeId: string }
   | { type: 'HIRE_FACULTY'; facultyId: string }
   | { type: 'FIRE_FACULTY'; facultyId: string }
+  // Opens a job posting for `field` (see facultyData.ts's JOB_POSTING_COST/
+  // rollPostingWeeks and facultySystem.ts's tickOpenPostings): charges the
+  // fee immediately and starts a countdown; when it resolves, exactly one
+  // candidate in that field is added to s.candidates. Rejected by the
+  // reducer if a posting for that field is already open, or the school
+  // can't afford it.
+  | { type: 'POST_JOB'; field: string }
   | { type: 'BUY_SLOT' }
   | { type: 'TOGGLE_AUTO_DEVELOP' }
   | { type: 'RESOLVE_INTERRUPT' }                      // clears pendingInterrupt, lets the clock resume
@@ -58,6 +65,7 @@ export function createPreStartState(): GameState {
     pendingInterrupt: null,
     autoDevelop: false,
     candidates: [],
+    openPostings: {},
     started: false,
     hasEnteredRankings: false,
     milestones: {},
@@ -131,6 +139,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     pendingInterrupt: null,
     autoDevelop: false,
     candidates: initialCandidates(),
+    openPostings: {},
     started: true,
     hasEnteredRankings: false,
     milestones: {},

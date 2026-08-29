@@ -184,8 +184,9 @@ export interface GameState {
   log: LogEntry[];               // recent events, newest first
   gameOver: boolean;
   pendingInterrupt: PendingInterrupt | null; // set => clock halts until resolved
-  autoDevelop: boolean;          // when true, tickTech fills open development slots itself
-  candidates: Faculty[];         // hireable faculty pool, distinct from the hired roster
+  autoDevelop: boolean;          // when true, tickTech auto-starts available COURSES only, as development slots free up — buildings/dorms/facilities are never auto-started (see techSystem.ts's autoFillSlots)
+  candidates: Faculty[];         // hireable, already-arrived faculty — populated ONLY when an open posting's countdown resolves (see facultySystem.ts), never by passive random replenishment
+  openPostings: Record<string, number>; // Faculty `field` -> weeks remaining until POST_JOB's candidate arrives; mirrors `developing`'s id -> weeks-remaining shape. At most one open posting per field at a time.
   started: boolean;              // false only during the pre-game startup screen (name + school type)
   hasEnteredRankings: boolean;   // true once the one-time "you've entered the top 50" reveal has fired
   milestones: Record<string, boolean>; // milestone key -> awarded, so each curriculum milestone bonus fires once
