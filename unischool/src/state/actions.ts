@@ -1,6 +1,7 @@
 import type { GameState, SchoolType } from './types';
 import { WEEKS_PER_YEAR } from './types';
-import { initialTech, GENED_BUILDING_CAPACITY_BONUS, GENED_BUILDING_REPUTATION_BONUS } from '../data/techData';
+import { initialTech, GENED_BUILDING_REPUTATION_BONUS } from '../data/techData';
+import { initialDorms, STARTING_DORM_CAPACITY } from '../data/campusData';
 import { initialRivals } from '../data/rivalData';
 import { initialCandidates, facultySalary } from '../data/facultyData';
 import { SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION } from '../data/schoolTypeData';
@@ -76,10 +77,10 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     },
     students: {
       enrolled: 200,
-      // +GENED_BUILDING_CAPACITY_BONUS: General Studies Hall starts already
-      // built (see initialTech), so its capacity contribution is folded in
-      // here rather than granted via the normal completion-effects path.
-      capacity: 400 + GENED_BUILDING_CAPACITY_BONUS,
+      // Capacity comes entirely from dorms now (see campusData.ts). The
+      // starting dorm is seeded 'done' rather than granted via the normal
+      // completion-effects path, so its capacity is folded in here.
+      capacity: STARTING_DORM_CAPACITY,
       satisfaction: 70,
       applicantPool: preset.startingApplicantPool,
       // Neutral placeholders until the first summer admissions cycle
@@ -105,7 +106,9 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       { id: 'f2', name: 'Dr. John Okafor', field: 'History', teaching: 80, research: 55, teachingPotential: 88, researchPotential: 68, tenureWeeks: 0, salary: facultySalary(80, 55, 0), morale: 78 },
       { id: 'f3', name: 'Dr. Wei Zhang', field: 'CompSci', teaching: 60, research: 88, teachingPotential: 75, researchPotential: 95, tenureWeeks: 0, salary: facultySalary(60, 88, 0), morale: 75 },
     ],
-    tech: initialTech(),
+    // The single central Buildable list (see README's "central abstraction")
+    // — courses, academic buildings, AND dorms all live here together.
+    tech: [...initialTech(), ...initialDorms()],
     slots: STARTING_SLOTS,
     developing: {},
     rivals: initialRivals(),

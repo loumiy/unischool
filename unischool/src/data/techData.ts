@@ -1,4 +1,4 @@
-import type { Buildable, BuildableEffects } from '../state/types';
+import type { Buildable } from '../state/types';
 
 /*
   Your real curriculum, expressed as seed data and expanded into Buildable[].
@@ -60,15 +60,15 @@ const TIER_COURSE_COST: Record<number, number> = { 1: 4_000, 2: 12_000, 3: 30_00
 const GENED_BUILDING_COST = 60_000;
 const GENED_BUILDING_WEEKS = 20;
 // General Studies Hall starts already built (see initialTech below), so
-// these never flow through the normal completion-effects path — they're
+// this never flows through the normal completion-effects path — it's
 // exported for createInitialState to fold directly into the founding
-// capacity/reputation baseline instead.
-export const GENED_BUILDING_CAPACITY_BONUS = 40;
+// reputation baseline instead. Academic buildings no longer grant capacity
+// — capacity is tied exclusively to dormitories now (see campusData.ts);
+// building out the curriculum unlocks courses/majors, not beds.
 export const GENED_BUILDING_REPUTATION_BONUS = 1.5;
 
 const SCHOOL_BUILDING_COST = 180_000;
 const SCHOOL_BUILDING_WEEKS = 28;
-const SCHOOL_BUILDING_CAPACITY_BONUS = 90;
 
 interface MajorSeed {
   prefix: string;   // course code prefix, e.g. "FINA"
@@ -342,7 +342,6 @@ export function initialTech(): Buildable[] {
           duration: TIER_DURATION_WEEKS[1],
           prereqs: [],
           status: 'available',
-          effects: { capacityBonus: 20 },
         });
       }
     }
@@ -363,10 +362,6 @@ export function initialTech(): Buildable[] {
         else if (tier === 3) prereqs = [...t2Ids];
         prereqs = [...prereqs, ...(CROSS_MAJOR_BRIDGES[id] ?? [])];
 
-        const effects: Partial<BuildableEffects> = {
-          capacityBonus: tier === 1 ? 20 : 10,
-        };
-
         const description = tier === 1
           ? (TIER1_DESCRIPTIONS[id] ?? `${major.name} (${school.name}) entry course: ${title}.`)
           : tier === 2
@@ -386,7 +381,6 @@ export function initialTech(): Buildable[] {
           prereqs,
           status: 'locked',
           requiresFaculty: REQUIRES_FACULTY[id],
-          effects,
         });
       });
     }
@@ -403,9 +397,11 @@ export function initialTech(): Buildable[] {
     // the founding condition the gen-ed courses are paired with. So it's
     // seeded already 'done' rather than locked behind the gen-ed courses it
     // sits alongside. A Buildable created 'done' never passes through
-    // tickTech's completion path, so its capacity/reputation contribution is
-    // folded into the starting baseline (Faculty/starting stats) instead of
+    // tickTech's completion path, so its reputation contribution is folded
+    // into the starting baseline (Faculty/starting stats) instead of
     // granted via effects here — effects is omitted to avoid double-counting.
+    // Academic buildings carry no capacity effect at all now — see the
+    // capacity comment above GENED_BUILDING_REPUTATION_BONUS.
     const isGenEd = school.core !== undefined;
     nodes.push({
       id: school.buildingId,
@@ -416,9 +412,6 @@ export function initialTech(): Buildable[] {
       duration: isGenEd ? GENED_BUILDING_WEEKS : SCHOOL_BUILDING_WEEKS,
       prereqs: tier1IdsInSchool,
       status: isGenEd ? 'done' : 'locked',
-      effects: isGenEd ? undefined : {
-        capacityBonus: SCHOOL_BUILDING_CAPACITY_BONUS,
-      },
     });
   }
 

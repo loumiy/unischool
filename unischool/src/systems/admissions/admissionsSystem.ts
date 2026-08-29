@@ -31,15 +31,40 @@ import { WEEKS_PER_YEAR } from '../../state/types';
 // reducer calls it on resolve to commit the enrolled class for the year.
 // ---------------------------------------------------------------------
 
-// Reference points the curves are centered on: at PRESTIGE_REFERENCE and
-// zero tuition the volume/quality curves sit at their baseline.
+// Reference points the quality/yield curves below are centered on: at
+// PRESTIGE_REFERENCE and zero tuition they sit at their baseline. (Applicant
+// *volume* no longer uses either reference — see APPLICANT_VOLUME_MIDPOINT
+// and APPLICANT_VOLUME_TUITION_REFERENCE below, tuned independently.)
 const PRESTIGE_REFERENCE = 50;      // "average" prestige
-const TUITION_REFERENCE = 20_000;   // price scale the sensitivity curves use
+const TUITION_REFERENCE = 20_000;   // price scale the quality-mix shift uses
 
-// --- Applicant volume: total applicants = base x prestige x tuition ---
-const APPLICANTS_AT_REFERENCE = 1_200;      // total applicants at reference prestige, zero tuition
-const PRESTIGE_TO_APPLICANTS_EXPONENT = 1.3; // applicants scale ~ (prestige/ref)^exponent
-const PRICE_SENSITIVITY = 1.1;               // applicants ~ exp(-sensitivity x tuition/ref); higher tuition => fewer applicants
+// --- Applicant volume: a logistic (S-curve) in prestige, then discounted by
+// price. A real applicant pool isn't an unbounded power of prestige — it
+// rises fast through the middle of the prestige range and tapers off
+// approaching a ceiling near the very top, the way a handful of schools
+// nationally pull in six-figure applicant counts while most schools don't.
+// Capacity plays NO role here — applicant volume and capacity (dorms; see
+// campusData.ts) are deliberately independent levers, so a small, elite,
+// dorm-constrained school and a huge, low-selectivity one can both draw a
+// big pool; what differs is how much of it they can admit, which is exactly
+// where selectivity should come from.
+//
+// Tuned (see the PR notes for the worked examples) against four rough real-
+// world benchmarks — a highly selective private near max prestige at sticker
+// tuition should land close to a ~4% admit rate against a several-thousand-
+// seat capacity; a mid-prestige private near 50% tuition discount-adjusted
+// price should land close to 50%; a mid-high prestige, high-tuition school
+// should land in the high-single-digits. A low/mid-prestige school with a
+// huge dorm chain and low tuition will NOT reproduce a big, high-acceptance
+// applicant pool from prestige/price alone — that also draws heavily on
+// athletics and campus life, which aren't modeled yet (see README's
+// roadmap), so admit rate saturates near 100% there instead. That's an
+// accepted, deliberate gap, not a bug.
+const APPLICANT_VOLUME_CEILING = 260_000;   // asymptotic max pool size, approached only near max prestige
+const APPLICANT_VOLUME_MIDPOINT = 108;      // prestige at which the pool sits at half the ceiling
+const APPLICANT_VOLUME_STEEPNESS = 0.083;   // curve steepness around the midpoint
+const APPLICANT_VOLUME_TUITION_REFERENCE = 30_000; // price scale the volume discount uses
+const PRICE_SENSITIVITY = 0.18;             // applicants ~ exp(-sensitivity x tuition/ref); higher tuition => fewer applicants
 
 // --- Quality distribution: fractions of the pool in each band ---
 // Base mix at reference conditions; must sum to 1. Prestige shifts mass up
@@ -83,11 +108,13 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
-// Total applicant count as a function of prestige and tuition.
+// Total applicant count as a function of prestige and tuition. See the
+// constants above for the shape and the numbers this is tuned against.
 function applicantVolume(prestige: number, tuition: number): number {
-  const prestigeFactor = Math.pow(Math.max(prestige, 1) / PRESTIGE_REFERENCE, PRESTIGE_TO_APPLICANTS_EXPONENT);
-  const tuitionFactor = Math.exp(-PRICE_SENSITIVITY * Math.max(tuition, 0) / TUITION_REFERENCE);
-  return APPLICANTS_AT_REFERENCE * prestigeFactor * tuitionFactor;
+  const prestigePool = APPLICANT_VOLUME_CEILING /
+    (1 + Math.exp(-APPLICANT_VOLUME_STEEPNESS * (prestige - APPLICANT_VOLUME_MIDPOINT)));
+  const tuitionFactor = Math.exp(-PRICE_SENSITIVITY * Math.max(tuition, 0) / APPLICANT_VOLUME_TUITION_REFERENCE);
+  return prestigePool * tuitionFactor;
 }
 
 // The quality mix (top/mid/low fractions, summing to 1) for the pool.
