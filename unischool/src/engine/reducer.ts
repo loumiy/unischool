@@ -8,13 +8,17 @@ import { tickAdmissions, projectAdmissions } from '../systems/admissions/admissi
 import { tickRivals } from '../systems/rivals/rivalsSystem';
 import { tickFaculty } from '../systems/faculty/facultySystem';
 import { tickPrestigeAnnual } from '../systems/prestige/prestigeSystem';
+import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 
 // The systems run in a fixed order each week. Order matters: research and
-// finance resolve before admissions/rivals read the updated world.
+// finance resolve before admissions/rivals read the updated world;
+// satisfaction resolves before admissions so this week's attrition reads
+// this week's freshly recomputed satisfaction, not last week's.
 const SYSTEMS: Array<(s: GameState) => void> = [
   tickTech,
   tickFaculty,
   tickFinance,
+  tickSatisfaction,
   tickAdmissions,
   tickRivals,
 ];

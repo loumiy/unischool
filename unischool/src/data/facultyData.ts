@@ -144,6 +144,49 @@ export function facultySalary(teaching: number, research: number, tenureWeeks: n
   return Math.round(skillBase * (1 + SALARY_TENURE_PREMIUM_MAX * tenurePremium));
 }
 
+// ---------------------------------------------------------------------
+// Course slots: how many `requiresFaculty`-gated courses in `field` this
+// hire can keep staffed at once (see techSystem.ts's canStartDevelopment/
+// usedFacultySlots/totalFacultySlots). Rolled once at hire, like teaching/
+// research potential — but unlike those, slots have no per-hire ceiling to
+// roll toward; every retained hire grows at the same flat rate, a further
+// reason (on top of growing stats and rising salary) to retain rather than
+// churn faculty. facultySystem.ts's growFaculty mutates courseSlots
+// directly on tenure milestones rather than recomputing it from a stored
+// base each week, since there's no ceiling variance to reconstruct.
+// ---------------------------------------------------------------------
+const FACULTY_BASE_SLOTS_MIN = 2;
+const FACULTY_BASE_SLOTS_RANGE = 2; // rolls 2..4 course slots at hire
+export const SLOT_GROWTH_INTERVAL_WEEKS = 104; // +1 slot every 2 years of tenure retained
+export const MAX_FACULTY_SLOTS = 6;
+
+function rollBaseCourseSlots(): number {
+  return FACULTY_BASE_SLOTS_MIN + Math.floor(Math.random() * (FACULTY_BASE_SLOTS_RANGE + 1));
+}
+
+// A display-only bucketing of a hire's current (teaching+research)/2 into a
+// familiar academic-rank ladder — so "hire more" (headcount, gating course
+// slots) and "hire better" (this tier, which the continuous teaching/
+// research stats already drive) read as visibly separate levers rather
+// than the same number twice. Not a new independent stat: it's derived
+// from the same current stats that already feed prestige's faculty-quality
+// input (see prestigeSystem.ts) and the roster's average field strength.
+export type FacultyQualityTier = 'Adjunct' | 'Assistant' | 'Associate' | 'Full' | 'Distinguished';
+const QUALITY_TIER_THRESHOLDS: Array<[number, FacultyQualityTier]> = [
+  [85, 'Distinguished'],
+  [70, 'Full'],
+  [55, 'Associate'],
+  [35, 'Assistant'],
+  [0, 'Adjunct'],
+];
+export function facultyQualityTier(f: Faculty): FacultyQualityTier {
+  const avg = (f.teaching + f.research) / 2;
+  for (const [min, tier] of QUALITY_TIER_THRESHOLDS) {
+    if (avg >= min) return tier;
+  }
+  return 'Adjunct';
+}
+
 // One randomly-rolled hireable candidate, fresh (tenureWeeks 0). Pass the
 // full+last names already in play (roster + candidate pool) so the new
 // name can't collide with one of them.
@@ -164,6 +207,7 @@ export function generateCandidate(existingNames: Iterable<string> = []): Faculty
     tenureWeeks: 0,
     salary: facultySalary(teaching, research, 0),
     morale: 70 + Math.round(Math.random() * 20),
+    courseSlots: rollBaseCourseSlots(),
   };
 }
 

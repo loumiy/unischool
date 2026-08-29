@@ -18,7 +18,7 @@ import { milestoneSchools } from '../../data/techData';
 // moment growth stalls, and it does not snap to a new high the moment a
 // milestone completes.
 //
-// The four inputs, each normalized to 0..1 before weighting:
+// The inputs, each normalized to 0..1 before weighting:
 //   - curriculum breadth: a STOCK — how many majors/schools stand fully
 //     finished right now (see milestoneSchools() below), not how many
 //     courses were added this year.
@@ -69,6 +69,7 @@ const CURRICULUM_BREADTH_WEIGHT = 75; // majors/schools completed — the stock 
 const SELECTIVITY_WEIGHT = 45;        // emergent admit-rate-derived score — grows with scarce capacity or pricing power
 const STUDENT_QUALITY_WEIGHT = 30;    // emergent avg incoming quality — grows with a low-tuition, high-yield posture
 const FACULTY_QUALITY_WEIGHT = 30;    // avg roster teaching+research — grows by hiring well and, more importantly, retaining hires long enough to mature
+const CAMPUS_LIFE_WEIGHT = 15;        // rec center / athletics complex — a small, capped draw on its own (see campusLifeScore below)
 
 // Same band as rivalsSystem.ts's RIVAL_REPUTATION_MIN/MAX, so the player's
 // prestige and rivals' reputation stay on one comparable scale.
@@ -139,13 +140,49 @@ function facultyQualityScore(s: GameState): number {
   return clamp01(avgStat / 100);
 }
 
+// Library adequacy: how well the library's total servesPopulation (its
+// tier-1 seats, plus the research-library tier-2 upgrade if built — see
+// facilitiesData.ts) covers the campus at its current capacity. Mirrors
+// satisfactionSystem.ts's own academic-attribute target ratio (kept equal
+// deliberately, tuned independently rather than cross-imported — systems
+// only read/write shared state, they don't call into each other) but is
+// used here as a MULTIPLIER on the curriculum-breadth term rather than as
+// an additive score: "under-capacity caps academic prestige growth" means
+// a brilliant, fully-built curriculum at a school with no library can't
+// fully cash in that prestige, not that a bad library actively costs
+// prestige on its own. A floor keeps a brand-new school (no library built
+// yet — it hasn't had time) from having curriculum breadth zeroed outright.
+const LIBRARY_TARGET_RATIO = 0.15;
+const LIBRARY_ADEQUACY_FLOOR = 0.4;
+function libraryAdequacyScore(s: GameState): number {
+  if (s.students.capacity <= 0) return 1;
+  const servesPopulation = s.tech
+    .filter((t) => t.status === 'done' && t.facilityType === 'library')
+    .reduce((sum, t) => sum + (t.effects?.servesPopulation ?? 0), 0);
+  const ratio = clamp01(servesPopulation / (s.students.capacity * LIBRARY_TARGET_RATIO));
+  return clamp(ratio, LIBRARY_ADEQUACY_FLOOR, 1);
+}
+
+// Campus life: the rec center / athletics complex's "small prestige
+// contribution" — the sum of prestigeContribution across every done
+// facility that carries one (today, only the rec center's two tiers; see
+// facilitiesData.ts), clamped like every other input so it can only ever
+// contribute up to its own weight.
+function campusLifeScore(s: GameState): number {
+  const total = s.tech
+    .filter((t) => t.status === 'done')
+    .reduce((sum, t) => sum + (t.effects?.prestigeContribution ?? 0), 0);
+  return clamp01(total);
+}
+
 export function computePrestigeTarget(s: GameState): number {
   const target =
     PRESTIGE_BASELINE +
-    CURRICULUM_BREADTH_WEIGHT * curriculumBreadthScore(s) +
+    CURRICULUM_BREADTH_WEIGHT * curriculumBreadthScore(s) * libraryAdequacyScore(s) +
     SELECTIVITY_WEIGHT * selectivityScore(s) +
     STUDENT_QUALITY_WEIGHT * studentQualityScore(s) +
-    FACULTY_QUALITY_WEIGHT * facultyQualityScore(s);
+    FACULTY_QUALITY_WEIGHT * facultyQualityScore(s) +
+    CAMPUS_LIFE_WEIGHT * campusLifeScore(s);
   return clamp(target, PRESTIGE_MIN, PRESTIGE_MAX);
 }
 

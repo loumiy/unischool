@@ -233,6 +233,25 @@ const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
   AERO130: ['CHEM110'],  // Spacecraft Propulsion needs chemical thermodynamics
 };
 
+// Labs/specialized academic buildings: a curated set of lab-heavy majors
+// (hard sciences and clinical health majors) get a dedicated Lab Buildable
+// that gates ALL FOUR of that major's tier-3 (capstone) courses — an extra
+// prereq on top of the normal tier-2 quartet, same curated-bridge mechanism
+// as CROSS_MAJOR_BRIDGES above rather than a systematic rule touching every
+// course. Each lab is buildable once its major's tier-1 course is done (so
+// well before tier-3 is reachable), carries no satisfaction effect of its
+// own — its whole job is course-gating — and a flat recurring upkeep for
+// specialized equipment (see facilitiesData.ts's servedUpkeep for the
+// population-scaled version; labs are a flat cost instead, since one lab
+// serves a major's cohort, not the whole campus).
+const LAB_GATED_MAJOR_PREFIXES = ['CHEM', 'BIOL', 'MECH', 'ELEC', 'CIVE', 'AERO', 'NURS', 'DENT', 'PMED'];
+const LAB_COST = 100_000;
+const LAB_WEEKS = 16;
+const LAB_UPKEEP_PER_WEEK = 350; // ~$18k/yr — in line with facilitiesData.ts's other single-instance facilities, not disproportionate to the $100k build cost
+function labId(prefix: string): string {
+  return `LAB-${prefix}`;
+}
+
 // ---------------------------------------------------------------------
 // Descriptions. Every tier-1/core course (the 42 entry points players see
 // first) gets a hand-written one-liner. Tier-2/tier-3 descriptions are
@@ -350,6 +369,22 @@ export function initialTech(): Buildable[] {
       const t1Id = nodeId(major.prefix, NUMS[0]);
       tier1IdsInSchool.push(t1Id);
       const t2Ids = [1, 2, 3, 4].map((i) => nodeId(major.prefix, NUMS[i]));
+      const needsLab = LAB_GATED_MAJOR_PREFIXES.includes(major.prefix);
+
+      if (needsLab) {
+        nodes.push({
+          id: labId(major.prefix),
+          kind: 'facility',
+          facilityType: 'lab',
+          name: `${major.name} Labs`,
+          description: `Specialized lab space gating ${major.name}'s capstone (tier-3) coursework.`,
+          cost: LAB_COST,
+          duration: LAB_WEEKS,
+          prereqs: [t1Id], // buildable as soon as the major's entry course is done — well before tier-3 is reachable
+          status: 'locked',
+          effects: { upkeepPerWeek: LAB_UPKEEP_PER_WEEK },
+        });
+      }
 
       major.courses.forEach((title, i) => {
         const num = NUMS[i];
@@ -359,7 +394,7 @@ export function initialTech(): Buildable[] {
         let prereqs: string[] = [];
         if (tier === 1) prereqs = [...GENED_CORE_IDS];
         else if (tier === 2) prereqs = [t1Id, school.buildingId];
-        else if (tier === 3) prereqs = [...t2Ids];
+        else if (tier === 3) prereqs = [...t2Ids, ...(needsLab ? [labId(major.prefix)] : [])];
         prereqs = [...prereqs, ...(CROSS_MAJOR_BRIDGES[id] ?? [])];
 
         const description = tier === 1

@@ -197,26 +197,32 @@ export function projectAdmissions(
 // funnel sets the enrolled class, and a steady trickle of unhappy students
 // erodes it across the year (satisfaction also drives reputation over in
 // rivalsSystem.ts, so keeping it here gives dissatisfaction real teeth).
+// Satisfaction itself is no longer computed here — see satisfactionSystem.ts,
+// which runs earlier in reducer.ts's SYSTEMS order and writes
+// s.students.satisfaction/satisfactionBreakdown before this tick reads them.
 const ATTRITION_BASE_RATE = 0.01;
 
-// Financial aid makes the school more affordable and so a little more
-// appealing, nudging the weekly satisfaction target up. (Its real revenue
-// cost is applied in financeSystem.ts; its effect on who enrolls is the
-// yield term in the funnel above.)
-const AID_SATISFACTION_BONUS = 20; // added to the satisfaction target at financialAidRate == 1
+// Student center's passive retention effect: the sum of churnReductionBonus
+// across every done studentCenter-type facility, capped so it can never
+// zero out attrition outright. Recomputed here from shared state (s.tech)
+// rather than imported from satisfactionSystem.ts — systems only read/write
+// shared state, they don't call into each other (see README's architecture
+// rules), so this small scan is duplicated rather than cross-imported.
+const MAX_CHURN_REDUCTION = 0.6;
+function churnReductionMultiplier(s: GameState): number {
+  const totalReduction = s.tech
+    .filter((t) => t.facilityType === 'studentCenter' && t.status === 'done')
+    .reduce((sum, t) => sum + (t.effects?.churnReductionBonus ?? 0), 0);
+  return 1 - Math.min(totalReduction, MAX_CHURN_REDUCTION);
+}
 
 export function tickAdmissions(s: GameState): void {
-  const { financialAidRate } = s.admissions;
-
-  // Weekly: satisfaction drifts toward a target set by crowding, reputation, and affordability.
-  const crowding = s.students.enrolled / Math.max(s.students.capacity, 1);
-  const target = 50 + s.self.reputation * 0.4 - crowding * 30 + financialAidRate * AID_SATISFACTION_BONUS;
-  s.students.satisfaction += (target - s.students.satisfaction) * 0.05;
-  s.students.satisfaction = clamp(s.students.satisfaction, 0, 100);
-
-  // Weekly attrition trickle: dissatisfied students leave gradually. Intake
-  // itself is not weekly — it is resolved once a year by the funnel.
-  const attrition = Math.round(s.students.enrolled * (1 - s.students.satisfaction / 100) * ATTRITION_BASE_RATE);
+  // Weekly attrition trickle: dissatisfied students leave gradually, eased
+  // by the student center's passive retention effect. Intake itself is not
+  // weekly — it is resolved once a year by the funnel below.
+  const attrition = Math.round(
+    s.students.enrolled * (1 - s.students.satisfaction / 100) * ATTRITION_BASE_RATE * churnReductionMultiplier(s),
+  );
   if (attrition > 0) {
     s.students.enrolled = Math.max(0, s.students.enrolled - attrition);
     s.log.unshift({

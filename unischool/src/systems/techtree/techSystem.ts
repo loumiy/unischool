@@ -39,6 +39,34 @@ export function nextSlotCost(currentSlots: number): number {
   return Math.round(SLOT_BASE_COST * SLOT_COST_GROWTH ** (currentSlots - STARTING_SLOTS));
 }
 
+// Counts how many course Buildables currently occupy a faculty course-slot
+// in `field` — every course whose requiresFaculty matches that has started
+// developing or finished. A course never "retires" once offered (there's no
+// course-removal in this model), so it keeps occupying its slot forever —
+// which is exactly what makes offering more courses in a subject a real,
+// ongoing faculty-capacity cost rather than a one-time hiring gate. Only
+// the curated set of courses with a requiresFaculty field are slot-gated at
+// all (see techData.ts's REQUIRES_FACULTY) — most of the curriculum has no
+// requiresFaculty and so never touches this.
+export function usedFacultySlots(s: GameState, field: string): number {
+  return s.tech.filter((t) => t.requiresFaculty === field && (t.status === 'developing' || t.status === 'done')).length;
+}
+
+// Total course-slot capacity the roster offers in `field` — the sum of
+// courseSlots across every hired faculty member with that field (see
+// facultyData.ts's grownSlots: an individual's slot count grows slowly with
+// tenure, on top of the base rolled at hire).
+export function totalFacultySlots(s: GameState, field: string): number {
+  return s.faculty.filter((f) => f.field === field).reduce((sum, f) => sum + f.courseSlots, 0);
+}
+
+// UI-facing helper (CurriculumTab.tsx, CampusTab.tsx) so "is there a free
+// slot" is computed the one same way everywhere canStartDevelopment itself
+// checks it, rather than each screen re-deriving its own boolean.
+export function hasFreeFacultySlot(s: GameState, field: string): boolean {
+  return totalFacultySlots(s, field) > usedFacultySlots(s, field);
+}
+
 // Shared by the reducer's START_DEVELOPMENT case and this system's
 // auto-develop fill, so "what it takes to start" has one definition.
 // The cash>=0 check is the "stall, don't die" bottleneck from README's
@@ -48,7 +76,7 @@ export function nextSlotCost(currentSlots: number): number {
 // path that goes through this function.
 export function canStartDevelopment(s: GameState, node: Buildable): boolean {
   const slotsUsed = Object.keys(s.developing).length;
-  const facultyOk = !node.requiresFaculty || s.faculty.some((f) => f.field === node.requiresFaculty);
+  const facultyOk = !node.requiresFaculty || hasFreeFacultySlot(s, node.requiresFaculty);
   const notInTheRed = s.finance.cash >= 0;
   return node.status === 'available' && slotsUsed < s.slots && facultyOk && notInTheRed;
 }
@@ -77,6 +105,14 @@ function autoFillSlots(s: GameState): void {
   }
 }
 
+// Applies only the "apply-once, at completion" effect fields (see the split
+// documented on BuildableEffects in state/types.ts). servesPopulation,
+// satisfactionAttribute, flatSatisfactionBonus, churnReductionBonus,
+// prestigeContribution, and upkeepPerWeek are deliberately NOT handled
+// here — they're read live, every tick, straight off `s.tech`'s 'done'
+// entries by satisfactionSystem.ts / prestigeSystem.ts / financeSystem.ts,
+// so a facility's contribution never needs "applying" and can't drift out
+// of sync with which facilities are actually still built.
 function applyEffects(s: GameState, e?: Partial<BuildableEffects>): void {
   if (!e) return;
   if (e.capacityBonus) s.students.capacity += e.capacityBonus;
@@ -92,9 +128,29 @@ function applyEffects(s: GameState, e?: Partial<BuildableEffects>): void {
   }
 }
 
+// Beyond prereqs, some Buildables also gate on the school's current state
+// rather than another Buildable's status — a population size (the health
+// center: only large campuses need one) or a prestige level (a research
+// library / athletics complex tier). Both are ADDITIONAL to prereqs, never
+// a replacement, and — unlike prereqs — can change in either direction
+// (capacity only grows, but prestige can drift down), so this is checked
+// fresh every tick rather than only right after something finishes. Once
+// something clears the gate and goes 'available' it stays available even
+// if prestige later dips back below the threshold — same as everything
+// else here, nothing ever re-locks.
+function meetsUnlockGates(s: GameState, t: Buildable): boolean {
+  if (t.minCapacityToUnlock !== undefined && s.students.capacity < t.minCapacityToUnlock) return false;
+  if (t.minPrestigeToUnlock !== undefined && s.self.reputation < t.minPrestigeToUnlock) return false;
+  return true;
+}
+
 function unlockAvailable(s: GameState): void {
   for (const t of s.tech) {
-    if (t.status === 'locked' && t.prereqs.every((p) => s.tech.find((x) => x.id === p)?.status === 'done')) {
+    if (
+      t.status === 'locked' &&
+      t.prereqs.every((p) => s.tech.find((x) => x.id === p)?.status === 'done') &&
+      meetsUnlockGates(s, t)
+    ) {
       t.status = 'available';
     }
   }
@@ -179,8 +235,12 @@ export function tickTech(s: GameState): void {
     });
   }
 
+  // Re-checked every tick, not just after a finish: a locked Buildable's
+  // prereqs only ever change when something finishes, but its dynamic gates
+  // (population, prestige — see meetsUnlockGates) can cross their threshold
+  // on any week even with nothing currently developing.
+  unlockAvailable(s);
   if (finished.length > 0) {
-    unlockAvailable(s);
     checkMilestones(s);
   }
   autoFillSlots(s);
