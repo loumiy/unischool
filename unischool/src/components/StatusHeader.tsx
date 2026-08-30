@@ -11,6 +11,14 @@ function termName(week: number): string {
   return week <= WEEKS_PER_YEAR / 2 ? 'Fall Term' : 'Spring Term';
 }
 
+// Playtesting controls (fast/sandbox speed, auto-develop, the debug
+// interrupt trigger) are only useful during development, not normal play —
+// they stay reachable by naming the university "test" rather than being
+// removed outright, so they're still there for anyone iterating on the game.
+function isTestUniversity(name: string): boolean {
+  return name.trim().toLowerCase() === 'test';
+}
+
 // The persistent header/status bar: the handful of state values that stay
 // meaningful no matter which tab is open (clock, cash, prestige, current
 // rank) plus the speed/auto-develop controls, all visible across every tab
@@ -25,6 +33,10 @@ export default function StatusHeader({ s, speed, setSpeed, act }: {
 }) {
   const netWeekly = weeklyNet(s);
   const rank = s.hasEnteredRankings ? playerRank(s) : null;
+  const showPlaytestControls = isTestUniversity(s.self.name);
+  const visibleSpeeds = (Object.keys(SPEEDS) as Speed[]).filter(
+    (sp) => showPlaytestControls || !SANDBOX_SPEEDS.includes(sp),
+  );
 
   return (
     <>
@@ -58,7 +70,7 @@ export default function StatusHeader({ s, speed, setSpeed, act }: {
 
       <div className="controlbar">
         <div className="speeds">
-          {(Object.keys(SPEEDS) as Speed[]).map((sp) => (
+          {visibleSpeeds.map((sp) => (
             <button
               key={sp}
               className={[
@@ -72,19 +84,21 @@ export default function StatusHeader({ s, speed, setSpeed, act }: {
             </button>
           ))}
         </div>
-        <div className="controlbar-right">
-          <button
-            className={`auto-develop-toggle ${s.autoDevelop ? 'on' : ''}`}
-            onClick={() => act({ type: 'TOGGLE_AUTO_DEVELOP' })}
-            title="Playtesting only: auto-starts available courses as slots free up. Never touches buildings, dorms, or facilities — those stay a deliberate, manual decision."
-          >
-            auto-develop courses: {s.autoDevelop ? 'on' : 'off'}
-          </button>
-          {/* Scaffolding: proves the interrupt pause/resume cycle. Remove once a real interrupt exists. */}
-          <button className="debug-interrupt-btn" onClick={() => act({ type: 'DEBUG_TRIGGER_TEST_INTERRUPT' })}>
-            debug: trigger interrupt
-          </button>
-        </div>
+        {showPlaytestControls && (
+          <div className="controlbar-right">
+            <button
+              className={`auto-develop-toggle ${s.autoDevelop ? 'on' : ''}`}
+              onClick={() => act({ type: 'TOGGLE_AUTO_DEVELOP' })}
+              title="Playtesting only: auto-starts available courses as slots free up. Never touches buildings, dorms, or facilities — those stay a deliberate, manual decision."
+            >
+              auto-develop courses: {s.autoDevelop ? 'on' : 'off'}
+            </button>
+            {/* Scaffolding: proves the interrupt pause/resume cycle. Remove once a real interrupt exists. */}
+            <button className="debug-interrupt-btn" onClick={() => act({ type: 'DEBUG_TRIGGER_TEST_INTERRUPT' })}>
+              debug: trigger interrupt
+            </button>
+          </div>
+        )}
       </div>
     </>
   );

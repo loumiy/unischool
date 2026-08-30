@@ -119,9 +119,24 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // at 0 regardless, so they still grow (and get pricier) from here. See
     // facultyData.ts's grownStat/facultySalary for the shared growth curve.
     faculty: [
-      { id: 'f1', name: 'Dr. Alma Reyes', field: 'Physics', teaching: 72, research: 65, teachingPotential: 82, researchPotential: 78, tenureWeeks: 0, salary: facultySalary(72, 65, 0), morale: 80, courseSlots: 3 },
-      { id: 'f2', name: 'Dr. John Okafor', field: 'History', teaching: 80, research: 55, teachingPotential: 88, researchPotential: 68, tenureWeeks: 0, salary: facultySalary(80, 55, 0), morale: 78, courseSlots: 3 },
-      { id: 'f3', name: 'Dr. Wei Zhang', field: 'CompSci', teaching: 60, research: 88, teachingPotential: 75, researchPotential: 95, tenureWeeks: 0, salary: facultySalary(60, 88, 0), morale: 75, courseSlots: 3 },
+      {
+        id: 'f1', name: 'Dr. Alma Reyes', field: 'Physics', teaching: 72, research: 65, teachingPotential: 82, researchPotential: 78,
+        tenureWeeks: 0, salary: facultySalary(72, 65, 0), morale: 80, courseSlots: 3,
+        nationality: 'United States', flag: '🇺🇸',
+        bio: 'Earned a doctorate in Physics at Ravensmoor Institute; research centers on astrophysical modeling.',
+      },
+      {
+        id: 'f2', name: 'Dr. John Okafor', field: 'History', teaching: 80, research: 55, teachingPotential: 88, researchPotential: 68,
+        tenureWeeks: 0, salary: facultySalary(80, 55, 0), morale: 78, courseSlots: 3,
+        nationality: 'Nigeria', flag: '🇳🇬',
+        bio: 'Earned a doctorate in History at the University of Calderwood; research centers on maritime trade networks.',
+      },
+      {
+        id: 'f3', name: 'Dr. Wei Zhang', field: 'CompSci', teaching: 60, research: 88, teachingPotential: 75, researchPotential: 95,
+        tenureWeeks: 0, salary: facultySalary(60, 88, 0), morale: 75, courseSlots: 3,
+        nationality: 'China', flag: '🇨🇳',
+        bio: 'Earned a doctorate in Computer Science at Kestrel Bay Institute of Technology; research centers on distributed systems.',
+      },
     ],
     // The single central Buildable list (see README's "central abstraction")
     // — courses, academic buildings, dorms, AND campus-life facilities all

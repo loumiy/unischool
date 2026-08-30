@@ -30,7 +30,7 @@ const MAJOR_COMPLETE_APPLICANT_BONUS = 30;
 // real, escalating investment rather than a one-time flat buy. Soft cap
 // at MAX_SLOTS for now — tune freely.
 export const STARTING_SLOTS = 2;
-export const SLOT_BASE_COST = 25_000;
+export const SLOT_BASE_COST = 70_000;
 export const SLOT_COST_GROWTH = 1.5;
 export const MAX_SLOTS = 8;
 

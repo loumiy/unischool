@@ -72,17 +72,112 @@ function pick<T>(pool: T[]): T {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-function rollFullName(existingNames: Set<string>): string {
+interface RolledName {
+  name: string;
+  origin: string; // the first-name pool's origin — what nationality is tied to (see rollNationality)
+}
+
+function rollFullName(existingNames: Set<string>): RolledName {
   for (let attempt = 0; attempt < MAX_NAME_ROLL_ATTEMPTS; attempt++) {
     const firstPool = pick(NAME_POOLS);
     const lastPool = Math.random() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pick(NAME_POOLS);
     const full = `Dr. ${pick(firstPool.first)} ${pick(lastPool.last)}`;
-    if (!existingNames.has(full)) return full;
+    if (!existingNames.has(full)) return { name: full, origin: firstPool.origin };
   }
   // Effectively unreachable given the pool size above; accept a repeat
   // rather than looping forever if it somehow happens.
   const firstPool = pick(NAME_POOLS);
-  return `Dr. ${pick(firstPool.first)} ${pick(firstPool.last)}`;
+  return { name: `Dr. ${pick(firstPool.first)} ${pick(firstPool.last)}`, origin: firstPool.origin };
+}
+
+// ---------------------------------------------------------------------
+// Nationality: shown as an expanded country name plus a flag emoji next to
+// each faculty member's name (see FacultyTab.tsx). Deliberately
+// disproportionately American — most of any real American university's
+// faculty, whatever their heritage, hold US citizenship — with the
+// remainder tied to the SAME origin pool the name itself was drawn from
+// (rollFullName's `origin` above), never rolled independently of the name.
+// ---------------------------------------------------------------------
+const AMERICAN_NATIONALITY_CHANCE = 0.72;
+const AMERICAN_NATIONALITY = { nationality: 'United States', flag: '🇺🇸' };
+
+const ORIGIN_NATIONALITIES: Record<string, Array<{ nationality: string; flag: string }>> = {
+  'East Asian': [
+    { nationality: 'China', flag: '🇨🇳' },
+    { nationality: 'South Korea', flag: '🇰🇷' },
+    { nationality: 'Japan', flag: '🇯🇵' },
+  ],
+  'South Asian': [
+    { nationality: 'India', flag: '🇮🇳' },
+    { nationality: 'Bangladesh', flag: '🇧🇩' },
+  ],
+  'Anglo/Western European': [
+    { nationality: 'United Kingdom', flag: '🇬🇧' },
+    { nationality: 'Ireland', flag: '🇮🇪' },
+    { nationality: 'Germany', flag: '🇩🇪' },
+    { nationality: 'Canada', flag: '🇨🇦' },
+  ],
+  'Hispanic/Latin American': [
+    { nationality: 'Mexico', flag: '🇲🇽' },
+    { nationality: 'Spain', flag: '🇪🇸' },
+    { nationality: 'Colombia', flag: '🇨🇴' },
+    { nationality: 'Argentina', flag: '🇦🇷' },
+  ],
+  'Arabic/Middle Eastern': [
+    { nationality: 'Egypt', flag: '🇪🇬' },
+    { nationality: 'Lebanon', flag: '🇱🇧' },
+    { nationality: 'Jordan', flag: '🇯🇴' },
+  ],
+  'Slavic/Eastern European': [
+    { nationality: 'Poland', flag: '🇵🇱' },
+    { nationality: 'Russia', flag: '🇷🇺' },
+    { nationality: 'Serbia', flag: '🇷🇸' },
+    { nationality: 'Czechia', flag: '🇨🇿' },
+  ],
+  'West/East African': [
+    { nationality: 'Nigeria', flag: '🇳🇬' },
+    { nationality: 'Ghana', flag: '🇬🇭' },
+    { nationality: 'Kenya', flag: '🇰🇪' },
+    { nationality: 'Senegal', flag: '🇸🇳' },
+  ],
+};
+
+function rollNationality(origin: string): { nationality: string; flag: string } {
+  if (Math.random() < AMERICAN_NATIONALITY_CHANCE) return AMERICAN_NATIONALITY;
+  return pick(ORIGIN_NATIONALITIES[origin] ?? [AMERICAN_NATIONALITY]);
+}
+
+// ---------------------------------------------------------------------
+// Biography: a one-line flavor sentence shown only when a roster row is
+// expanded (see FacultyTab.tsx) — not a mechanic, just depth. Composed from
+// a small set of fictional-sounding institutions and per-field research
+// interests rather than 300+ hand-written bios; deliberately avoids
+// gendered pronouns since nothing here rolls a gender.
+// ---------------------------------------------------------------------
+const BIO_INSTITUTIONS = [
+  'Ashcombe University', 'Kestrel Bay Institute of Technology', 'University of Calderwood',
+  'Marchmont University', 'Ravensmoor Institute', 'Ironwood University', 'Sable Ridge College',
+  'Amberfield University', 'a small liberal-arts college', 'a large state university',
+];
+
+const FIELD_RESEARCH_INTERESTS: Record<string, string[]> = {
+  Physics: ['condensed matter theory', 'particle detector design', 'astrophysical modeling'],
+  History: ['20th-century political movements', 'maritime trade networks', 'oral history methods'],
+  CompSci: ['distributed systems', 'programming language design', 'human-computer interaction'],
+  Economics: ['labor markets', 'behavioral economics', 'monetary policy'],
+  Biology: ['cell signaling pathways', 'conservation ecology', 'evolutionary genetics'],
+  Mathematics: ['combinatorics', 'applied topology', 'numerical analysis'],
+  Sociology: ['urban inequality', 'social network analysis', 'the sociology of work'],
+  Chemistry: ['catalysis', 'polymer synthesis', 'environmental chemistry'],
+  Psychology: ['cognitive development', 'clinical resilience', 'decision-making under uncertainty'],
+  English: ['postcolonial literature', 'rhetoric and composition', 'digital humanities'],
+};
+
+function rollBio(field: string): string {
+  const institution = pick(BIO_INSTITUTIONS);
+  const interests = FIELD_RESEARCH_INTERESTS[field] ?? ['the field'];
+  const interest = pick(interests);
+  return `Earned a doctorate in ${field} at ${institution}; research centers on ${interest}.`;
 }
 
 // ---------------------------------------------------------------------
@@ -199,7 +294,7 @@ export function facultyQualityTier(f: Faculty): FacultyQualityTier {
 // posted for, and re-posting the same field again costs another fee and
 // another wait.
 // ---------------------------------------------------------------------
-export const JOB_POSTING_COST = 8_000;
+export const JOB_POSTING_COST = 20_000;
 const JOB_POSTING_MIN_WEEKS = 4;
 const JOB_POSTING_MAX_WEEKS = 10;
 
@@ -220,9 +315,11 @@ export function generateCandidate(field: string, existingNames: Iterable<string>
   const researchPotential = FACULTY_POTENTIAL_MIN + Math.round(Math.random() * FACULTY_POTENTIAL_RANGE);
   const teaching = grownStat(teachingPotential, 0);
   const research = grownStat(researchPotential, 0);
+  const { name, origin } = rollFullName(used);
+  const { nationality, flag } = rollNationality(origin);
   return {
     id: crypto.randomUUID(),
-    name: rollFullName(used),
+    name,
     field,
     teaching,
     research,
@@ -232,6 +329,9 @@ export function generateCandidate(field: string, existingNames: Iterable<string>
     salary: facultySalary(teaching, research, 0),
     morale: 70 + Math.round(Math.random() * 20),
     courseSlots: rollBaseCourseSlots(),
+    nationality,
+    flag,
+    bio: rollBio(field),
   };
 }
 

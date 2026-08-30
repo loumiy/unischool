@@ -14,6 +14,30 @@ import { WEEKS_PER_YEAR } from '../../state/types';
 // Salaries/revenue are annualized over WEEKS_PER_YEAR — the same clock
 // that drives the academic calendar and admissions — so there is exactly
 // one definition of "a year" anywhere in the game.
+//
+// --- Rough income sketch, by prestige/stage (what buildable costs elsewhere
+// are checked against, not a promise of an exact simulation) ---
+//   EARLY  (founding, prestige ~45-55, ~350 beds, ~200-350 enrolled):
+//     weekly net roughly $15k-$30k -> a school-scale purchase (a school
+//     building, a dorm) should cost several MONTHS of that surplus, not a
+//     few weeks, or it never feels like a real commitment.
+//   MID    (prestige ~80-100, several dorms built, ~2,000-3,500 beds):
+//     weekly net roughly $150k-$400k, driven mostly by enrollment (tuition
+//     scales with capacity) with a still-small reputation dividend. Late
+//     items in a facility/dorm chain should cost a comparable multi-month
+//     share of THIS income, which is why their cost grows faster than their
+//     capacity down the chain (see e.g. campusData.ts's DORM_COST_GROWTH >
+//     DORM_CAPACITY_GROWTH) — a marginal bed gets steadily pricier relative
+//     to the income it helps generate, the same way a real late-stage
+//     capital project does.
+//   LATE   (prestige near PRESTIGE_MAX, a large built-out campus,
+//     ~8,000-15,000 beds): weekly net can run into the low millions —
+//     tuition x enrollment dominates completely at this scale; the
+//     reputation dividend stays a minor top-up throughout. The most
+//     expensive single buildables (a tier-2 athletics complex, a late dorm)
+//     should still read as a multi-month commitment at this income, which
+//     is why the top of each cost chain is priced in the low-to-mid
+//     hundreds of thousands to low millions, not left at early-game prices.
 // ---------------------------------------------------------------------
 
 // Flat per-seat weekly upkeep. Deliberately simple and NOT prestige-linked:
