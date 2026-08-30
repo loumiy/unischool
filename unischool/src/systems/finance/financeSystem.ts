@@ -40,10 +40,25 @@ const REPUTATION_DIVIDEND_PER_POINT_PER_YEAR = 400;
 // cash — see the "no hard insolvency" note in tickFinance below.
 const ENDOWMENT_ANNUAL_RETURN = 0.026; // ~2.6%/yr, applied as a weekly slice
 
+// Every built facility (library, dining hall, student center, ...) carries
+// its own recurring upkeepPerWeek, scaled off its tier/servesPopulation at
+// data-authoring time (see facilitiesData.ts's servedUpkeep and techData.ts's
+// LAB_UPKEEP_PER_WEEK) — summed live off every 'done' Buildable that
+// carries one, same live-read contract as satisfactionSystem.ts/
+// prestigeSystem.ts's own effect reads (see BuildableEffects in
+// state/types.ts). Dorm-seat upkeep is charged separately, per capacity
+// rather than per Buildable, since a bed's cost doesn't depend on which
+// dorm it's in — see UPKEEP_PER_SEAT_PER_WEEK below.
+function facilityUpkeep(s: GameState): number {
+  return s.tech
+    .filter((t) => t.status === 'done')
+    .reduce((sum, t) => sum + (t.effects?.upkeepPerWeek ?? 0), 0);
+}
+
 function weeklyOpEx(s: GameState): number {
   const weeklySalaries = s.faculty.reduce((sum, f) => sum + f.salary, 0) / WEEKS_PER_YEAR;
-  const upkeep = s.students.capacity * UPKEEP_PER_SEAT_PER_WEEK;
-  return weeklySalaries + upkeep;
+  const seatUpkeep = s.students.capacity * UPKEEP_PER_SEAT_PER_WEEK;
+  return weeklySalaries + seatUpkeep + facilityUpkeep(s);
 }
 
 function weeklyRevenue(s: GameState): number {

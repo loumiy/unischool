@@ -14,14 +14,22 @@ import { WEEKS_PER_YEAR } from '../../state/types';
 //   1. Applicant pool = f(prestige, tuition). Higher prestige draws more
 //      applicants and shifts the distribution toward higher quality;
 //      higher tuition shrinks the pool and fattens the low-quality tail.
-//   2. Admissions skims from the top of the quality distribution down to
-//      available capacity. The player sets no selectivity and no target
-//      enrollment — selectivity is emergent, reported as the admit rate
-//      (admitted / applicants).
+//   2. Admissions skims from the top of the quality distribution, admitting
+//      enough of each band — most selective first — that EXPECTED
+//      enrollment (admits x that band's yield) fills capacity, not raw
+//      admit headcount. A real admissions office over-admits to compensate
+//      for anticipated no-shows; skimming to capacity on headcount alone
+//      would systematically under-fill the class whenever yield runs well
+//      under 100%. The player sets no selectivity and no target enrollment
+//      — selectivity is emergent, reported as the admit rate (admitted /
+//      applicants), and it rises (less selective) exactly when yield is
+//      weak, same as it would for a real school leaning on a big applicant
+//      pool it can't actually convert.
 //   3. Aid drives yield: not every admit enrolls. Yield rises with aid
 //      (diminishing returns) and with prestige, and falls for higher-
 //      quality admits (who are more price-sensitive and cost more aid to
-//      win). Enrolled class = yield x admits, capped by capacity.
+//      win). Enrolled class = yield x admits — capped by capacity only as
+//      a rounding safety net, since admits are already sized to target it.
 //   4. Net tuition per enrolled student = tuition x (1 - aid); that is
 //      what flows into finance (see financeSystem.ts).
 //
@@ -31,15 +39,40 @@ import { WEEKS_PER_YEAR } from '../../state/types';
 // reducer calls it on resolve to commit the enrolled class for the year.
 // ---------------------------------------------------------------------
 
-// Reference points the curves are centered on: at PRESTIGE_REFERENCE and
-// zero tuition the volume/quality curves sit at their baseline.
+// Reference points the quality/yield curves below are centered on: at
+// PRESTIGE_REFERENCE and zero tuition they sit at their baseline. (Applicant
+// *volume* no longer uses either reference — see APPLICANT_VOLUME_MIDPOINT
+// and APPLICANT_VOLUME_TUITION_REFERENCE below, tuned independently.)
 const PRESTIGE_REFERENCE = 50;      // "average" prestige
-const TUITION_REFERENCE = 20_000;   // price scale the sensitivity curves use
+const TUITION_REFERENCE = 20_000;   // price scale the quality-mix shift uses
 
-// --- Applicant volume: total applicants = base x prestige x tuition ---
-const APPLICANTS_AT_REFERENCE = 1_200;      // total applicants at reference prestige, zero tuition
-const PRESTIGE_TO_APPLICANTS_EXPONENT = 1.3; // applicants scale ~ (prestige/ref)^exponent
-const PRICE_SENSITIVITY = 1.1;               // applicants ~ exp(-sensitivity x tuition/ref); higher tuition => fewer applicants
+// --- Applicant volume: a logistic (S-curve) in prestige, then discounted by
+// price. A real applicant pool isn't an unbounded power of prestige — it
+// rises fast through the middle of the prestige range and tapers off
+// approaching a ceiling near the very top, the way a handful of schools
+// nationally pull in six-figure applicant counts while most schools don't.
+// Capacity plays NO role here — applicant volume and capacity (dorms; see
+// campusData.ts) are deliberately independent levers, so a small, elite,
+// dorm-constrained school and a huge, low-selectivity one can both draw a
+// big pool; what differs is how much of it they can admit, which is exactly
+// where selectivity should come from.
+//
+// Tuned (see the PR notes for the worked examples) against four rough real-
+// world benchmarks — a highly selective private near max prestige at sticker
+// tuition should land close to a ~4% admit rate against a several-thousand-
+// seat capacity; a mid-prestige private near 50% tuition discount-adjusted
+// price should land close to 50%; a mid-high prestige, high-tuition school
+// should land in the high-single-digits. A low/mid-prestige school with a
+// huge dorm chain and low tuition will NOT reproduce a big, high-acceptance
+// applicant pool from prestige/price alone — that also draws heavily on
+// athletics and campus life, which aren't modeled yet (see README's
+// roadmap), so admit rate saturates near 100% there instead. That's an
+// accepted, deliberate gap, not a bug.
+const APPLICANT_VOLUME_CEILING = 260_000;   // asymptotic max pool size, approached only near max prestige
+const APPLICANT_VOLUME_MIDPOINT = 108;      // prestige at which the pool sits at half the ceiling
+const APPLICANT_VOLUME_STEEPNESS = 0.083;   // curve steepness around the midpoint
+const APPLICANT_VOLUME_TUITION_REFERENCE = 30_000; // price scale the volume discount uses
+const PRICE_SENSITIVITY = 0.18;             // applicants ~ exp(-sensitivity x tuition/ref); higher tuition => fewer applicants
 
 // --- Quality distribution: fractions of the pool in each band ---
 // Base mix at reference conditions; must sum to 1. Prestige shifts mass up
@@ -83,11 +116,13 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
-// Total applicant count as a function of prestige and tuition.
+// Total applicant count as a function of prestige and tuition. See the
+// constants above for the shape and the numbers this is tuned against.
 function applicantVolume(prestige: number, tuition: number): number {
-  const prestigeFactor = Math.pow(Math.max(prestige, 1) / PRESTIGE_REFERENCE, PRESTIGE_TO_APPLICANTS_EXPONENT);
-  const tuitionFactor = Math.exp(-PRICE_SENSITIVITY * Math.max(tuition, 0) / TUITION_REFERENCE);
-  return APPLICANTS_AT_REFERENCE * prestigeFactor * tuitionFactor;
+  const prestigePool = APPLICANT_VOLUME_CEILING /
+    (1 + Math.exp(-APPLICANT_VOLUME_STEEPNESS * (prestige - APPLICANT_VOLUME_MIDPOINT)));
+  const tuitionFactor = Math.exp(-PRICE_SENSITIVITY * Math.max(tuition, 0) / APPLICANT_VOLUME_TUITION_REFERENCE);
+  return prestigePool * tuitionFactor;
 }
 
 // The quality mix (top/mid/low fractions, summing to 1) for the pool.
@@ -127,22 +162,45 @@ export function projectAdmissions(
     low: applicants * mix.low,
   };
 
-  // Skim from the top of the distribution down until capacity is filled.
-  let remaining = Math.max(capacity, 0);
+  // Yield each band up front — quality changes price sensitivity, and the
+  // admit-sizing pass below needs each band's yield to know how many
+  // admits it takes to fill a given amount of capacity.
   const bands: QualityBand[] = ['top', 'mid', 'low'];
+  const yieldByBand: Record<QualityBand, number> = {
+    top: bandYield(prestige, aid, 'top'),
+    mid: bandYield(prestige, aid, 'mid'),
+    low: bandYield(prestige, aid, 'low'),
+  };
+
+  // Skim from the top of the distribution, admitting enough of each band
+  // that its EXPECTED enrollment (admits x yield) fills the capacity that's
+  // still remaining after the bands above it — not enough that its raw
+  // admit headcount does. This is what makes selectivity react correctly
+  // to yield: a school whose admits mostly don't show up ends up admitting
+  // (and reporting) a much higher admit rate than one with the same
+  // capacity and applicant pool but strong yield, exactly as a real
+  // admissions office over-admits to compensate for anticipated no-shows.
+  let remainingCapacity = Math.max(capacity, 0);
   const admitsByBand: Record<QualityBand, number> = { top: 0, mid: 0, low: 0 };
   for (const band of bands) {
-    const take = Math.min(remaining, pool[band]);
+    if (remainingCapacity <= 0) break;
+    const bandYieldRate = yieldByBand[band];
+    // A band yielding literally nobody can never help fill the class —
+    // admitting more of it would only inflate the admit count for zero
+    // enrollment benefit, so skip it rather than admitting its whole pool
+    // for nothing.
+    if (bandYieldRate <= 0) continue;
+    const neededAdmits = remainingCapacity / bandYieldRate;
+    const take = Math.min(pool[band], neededAdmits);
     admitsByBand[band] = take;
-    remaining -= take;
+    remainingCapacity -= take * bandYieldRate;
   }
   const admits = admitsByBand.top + admitsByBand.mid + admitsByBand.low;
 
-  // Yield each admitted band separately — quality changes price sensitivity.
   const enrolledByBand: Record<QualityBand, number> = {
-    top: admitsByBand.top * bandYield(prestige, aid, 'top'),
-    mid: admitsByBand.mid * bandYield(prestige, aid, 'mid'),
-    low: admitsByBand.low * bandYield(prestige, aid, 'low'),
+    top: admitsByBand.top * yieldByBand.top,
+    mid: admitsByBand.mid * yieldByBand.mid,
+    low: admitsByBand.low * yieldByBand.low,
   };
   const enrolledRaw = enrolledByBand.top + enrolledByBand.mid + enrolledByBand.low;
   const enrolled = Math.min(Math.max(capacity, 0), Math.round(enrolledRaw));
@@ -170,26 +228,32 @@ export function projectAdmissions(
 // funnel sets the enrolled class, and a steady trickle of unhappy students
 // erodes it across the year (satisfaction also drives reputation over in
 // rivalsSystem.ts, so keeping it here gives dissatisfaction real teeth).
+// Satisfaction itself is no longer computed here — see satisfactionSystem.ts,
+// which runs earlier in reducer.ts's SYSTEMS order and writes
+// s.students.satisfaction/satisfactionBreakdown before this tick reads them.
 const ATTRITION_BASE_RATE = 0.01;
 
-// Financial aid makes the school more affordable and so a little more
-// appealing, nudging the weekly satisfaction target up. (Its real revenue
-// cost is applied in financeSystem.ts; its effect on who enrolls is the
-// yield term in the funnel above.)
-const AID_SATISFACTION_BONUS = 20; // added to the satisfaction target at financialAidRate == 1
+// Student center's passive retention effect: the sum of churnReductionBonus
+// across every done studentCenter-type facility, capped so it can never
+// zero out attrition outright. Recomputed here from shared state (s.tech)
+// rather than imported from satisfactionSystem.ts — systems only read/write
+// shared state, they don't call into each other (see README's architecture
+// rules), so this small scan is duplicated rather than cross-imported.
+const MAX_CHURN_REDUCTION = 0.6;
+function churnReductionMultiplier(s: GameState): number {
+  const totalReduction = s.tech
+    .filter((t) => t.facilityType === 'studentCenter' && t.status === 'done')
+    .reduce((sum, t) => sum + (t.effects?.churnReductionBonus ?? 0), 0);
+  return 1 - Math.min(totalReduction, MAX_CHURN_REDUCTION);
+}
 
 export function tickAdmissions(s: GameState): void {
-  const { financialAidRate } = s.admissions;
-
-  // Weekly: satisfaction drifts toward a target set by crowding, reputation, and affordability.
-  const crowding = s.students.enrolled / Math.max(s.students.capacity, 1);
-  const target = 50 + s.self.reputation * 0.4 - crowding * 30 + financialAidRate * AID_SATISFACTION_BONUS;
-  s.students.satisfaction += (target - s.students.satisfaction) * 0.05;
-  s.students.satisfaction = clamp(s.students.satisfaction, 0, 100);
-
-  // Weekly attrition trickle: dissatisfied students leave gradually. Intake
-  // itself is not weekly — it is resolved once a year by the funnel.
-  const attrition = Math.round(s.students.enrolled * (1 - s.students.satisfaction / 100) * ATTRITION_BASE_RATE);
+  // Weekly attrition trickle: dissatisfied students leave gradually, eased
+  // by the student center's passive retention effect. Intake itself is not
+  // weekly — it is resolved once a year by the funnel below.
+  const attrition = Math.round(
+    s.students.enrolled * (1 - s.students.satisfaction / 100) * ATTRITION_BASE_RATE * churnReductionMultiplier(s),
+  );
   if (attrition > 0) {
     s.students.enrolled = Math.max(0, s.students.enrolled - attrition);
     s.log.unshift({

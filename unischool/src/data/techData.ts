@@ -1,4 +1,4 @@
-import type { Buildable, BuildableEffects } from '../state/types';
+import type { Buildable } from '../state/types';
 
 /*
   Your real curriculum, expressed as seed data and expanded into Buildable[].
@@ -60,15 +60,15 @@ const TIER_COURSE_COST: Record<number, number> = { 1: 4_000, 2: 12_000, 3: 30_00
 const GENED_BUILDING_COST = 60_000;
 const GENED_BUILDING_WEEKS = 20;
 // General Studies Hall starts already built (see initialTech below), so
-// these never flow through the normal completion-effects path — they're
+// this never flows through the normal completion-effects path — it's
 // exported for createInitialState to fold directly into the founding
-// capacity/reputation baseline instead.
-export const GENED_BUILDING_CAPACITY_BONUS = 40;
+// reputation baseline instead. Academic buildings no longer grant capacity
+// — capacity is tied exclusively to dormitories now (see campusData.ts);
+// building out the curriculum unlocks courses/majors, not beds.
 export const GENED_BUILDING_REPUTATION_BONUS = 1.5;
 
 const SCHOOL_BUILDING_COST = 180_000;
 const SCHOOL_BUILDING_WEEKS = 28;
-const SCHOOL_BUILDING_CAPACITY_BONUS = 90;
 
 interface MajorSeed {
   prefix: string;   // course code prefix, e.g. "FINA"
@@ -233,6 +233,25 @@ const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
   AERO130: ['CHEM110'],  // Spacecraft Propulsion needs chemical thermodynamics
 };
 
+// Labs/specialized academic buildings: a curated set of lab-heavy majors
+// (hard sciences and clinical health majors) get a dedicated Lab Buildable
+// that gates ALL FOUR of that major's tier-3 (capstone) courses — an extra
+// prereq on top of the normal tier-2 quartet, same curated-bridge mechanism
+// as CROSS_MAJOR_BRIDGES above rather than a systematic rule touching every
+// course. Each lab is buildable once its major's tier-1 course is done (so
+// well before tier-3 is reachable), carries no satisfaction effect of its
+// own — its whole job is course-gating — and a flat recurring upkeep for
+// specialized equipment (see facilitiesData.ts's servedUpkeep for the
+// population-scaled version; labs are a flat cost instead, since one lab
+// serves a major's cohort, not the whole campus).
+const LAB_GATED_MAJOR_PREFIXES = ['CHEM', 'BIOL', 'MECH', 'ELEC', 'CIVE', 'AERO', 'NURS', 'DENT', 'PMED'];
+const LAB_COST = 100_000;
+const LAB_WEEKS = 16;
+const LAB_UPKEEP_PER_WEEK = 350; // ~$18k/yr — in line with facilitiesData.ts's other single-instance facilities, not disproportionate to the $100k build cost
+function labId(prefix: string): string {
+  return `LAB-${prefix}`;
+}
+
 // ---------------------------------------------------------------------
 // Descriptions. Every tier-1/core course (the 42 entry points players see
 // first) gets a hand-written one-liner. Tier-2/tier-3 descriptions are
@@ -342,7 +361,6 @@ export function initialTech(): Buildable[] {
           duration: TIER_DURATION_WEEKS[1],
           prereqs: [],
           status: 'available',
-          effects: { capacityBonus: 20 },
         });
       }
     }
@@ -351,6 +369,22 @@ export function initialTech(): Buildable[] {
       const t1Id = nodeId(major.prefix, NUMS[0]);
       tier1IdsInSchool.push(t1Id);
       const t2Ids = [1, 2, 3, 4].map((i) => nodeId(major.prefix, NUMS[i]));
+      const needsLab = LAB_GATED_MAJOR_PREFIXES.includes(major.prefix);
+
+      if (needsLab) {
+        nodes.push({
+          id: labId(major.prefix),
+          kind: 'facility',
+          facilityType: 'lab',
+          name: `${major.name} Labs`,
+          description: `Specialized lab space gating ${major.name}'s capstone (tier-3) coursework.`,
+          cost: LAB_COST,
+          duration: LAB_WEEKS,
+          prereqs: [t1Id], // buildable as soon as the major's entry course is done — well before tier-3 is reachable
+          status: 'locked',
+          effects: { upkeepPerWeek: LAB_UPKEEP_PER_WEEK },
+        });
+      }
 
       major.courses.forEach((title, i) => {
         const num = NUMS[i];
@@ -360,12 +394,8 @@ export function initialTech(): Buildable[] {
         let prereqs: string[] = [];
         if (tier === 1) prereqs = [...GENED_CORE_IDS];
         else if (tier === 2) prereqs = [t1Id, school.buildingId];
-        else if (tier === 3) prereqs = [...t2Ids];
+        else if (tier === 3) prereqs = [...t2Ids, ...(needsLab ? [labId(major.prefix)] : [])];
         prereqs = [...prereqs, ...(CROSS_MAJOR_BRIDGES[id] ?? [])];
-
-        const effects: Partial<BuildableEffects> = {
-          capacityBonus: tier === 1 ? 20 : 10,
-        };
 
         const description = tier === 1
           ? (TIER1_DESCRIPTIONS[id] ?? `${major.name} (${school.name}) entry course: ${title}.`)
@@ -386,7 +416,6 @@ export function initialTech(): Buildable[] {
           prereqs,
           status: 'locked',
           requiresFaculty: REQUIRES_FACULTY[id],
-          effects,
         });
       });
     }
@@ -403,9 +432,11 @@ export function initialTech(): Buildable[] {
     // the founding condition the gen-ed courses are paired with. So it's
     // seeded already 'done' rather than locked behind the gen-ed courses it
     // sits alongside. A Buildable created 'done' never passes through
-    // tickTech's completion path, so its capacity/reputation contribution is
-    // folded into the starting baseline (Faculty/starting stats) instead of
+    // tickTech's completion path, so its reputation contribution is folded
+    // into the starting baseline (Faculty/starting stats) instead of
     // granted via effects here — effects is omitted to avoid double-counting.
+    // Academic buildings carry no capacity effect at all now — see the
+    // capacity comment above GENED_BUILDING_REPUTATION_BONUS.
     const isGenEd = school.core !== undefined;
     nodes.push({
       id: school.buildingId,
@@ -416,9 +447,6 @@ export function initialTech(): Buildable[] {
       duration: isGenEd ? GENED_BUILDING_WEEKS : SCHOOL_BUILDING_WEEKS,
       prereqs: tier1IdsInSchool,
       status: isGenEd ? 'done' : 'locked',
-      effects: isGenEd ? undefined : {
-        capacityBonus: SCHOOL_BUILDING_CAPACITY_BONUS,
-      },
     });
   }
 

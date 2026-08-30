@@ -7,14 +7,19 @@ import { tickTech, canStartDevelopment, startDevelopment, nextSlotCost, MAX_SLOT
 import { tickAdmissions, projectAdmissions } from '../systems/admissions/admissionsSystem';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
 import { tickFaculty } from '../systems/faculty/facultySystem';
+import { JOB_POSTING_COST, rollPostingWeeks } from '../data/facultyData';
 import { tickPrestigeAnnual } from '../systems/prestige/prestigeSystem';
+import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 
 // The systems run in a fixed order each week. Order matters: research and
-// finance resolve before admissions/rivals read the updated world.
+// finance resolve before admissions/rivals read the updated world;
+// satisfaction resolves before admissions so this week's attrition reads
+// this week's freshly recomputed satisfaction, not last week's.
 const SYSTEMS: Array<(s: GameState) => void> = [
   tickTech,
   tickFaculty,
   tickFinance,
+  tickSatisfaction,
   tickAdmissions,
   tickRivals,
 ];
@@ -67,6 +72,22 @@ export function reducer(state: GameState, action: Action): GameState {
 
     case 'FIRE_FACULTY': {
       s.faculty = s.faculty.filter((f) => f.id !== action.facultyId);
+      return s;
+    }
+
+    case 'POST_JOB': {
+      const alreadyOpen = action.field in s.openPostings;
+      const canAfford = s.finance.cash >= JOB_POSTING_COST;
+      if (!alreadyOpen && canAfford) {
+        s.finance.cash -= JOB_POSTING_COST;
+        s.openPostings[action.field] = rollPostingWeeks();
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: `Posted an opening for ${action.field} faculty.`,
+          kind: 'info',
+        });
+      }
       return s;
     }
 
