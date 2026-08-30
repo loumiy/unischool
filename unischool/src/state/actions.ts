@@ -118,24 +118,43 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // generateCandidate's usual ~45% gap) reflects that; tenureWeeks starts
     // at 0 regardless, so they still grow (and get pricier) from here. See
     // facultyData.ts's grownStat/facultySalary for the shared growth curve.
+    //
+    // courseSlots are sized to exactly cover the six gen-ed core courses'
+    // requiresFaculty fields (techData.ts's GENED_FIELDS: English x2 —
+    // GE110 + GE160 — Mathematics, Philosophy, Physics, History x1 each) —
+    // no more, no less. Every other course sits behind the gen-ed core as a
+    // prereq, so the player always has time to post a job for any other
+    // field before it's actually needed.
     faculty: [
       {
         id: 'f1', name: 'Dr. Alma Reyes', field: 'Physics', teaching: 72, research: 65, teachingPotential: 82, researchPotential: 78,
-        tenureWeeks: 0, salary: facultySalary(72, 65, 0), morale: 80, courseSlots: 3,
+        tenureWeeks: 0, salary: facultySalary(72, 65, 0), morale: 80, courseSlots: 1,
         nationality: 'United States', flag: '🇺🇸',
         bio: 'Earned a doctorate in Physics at Ravensmoor Institute; research centers on astrophysical modeling.',
       },
       {
         id: 'f2', name: 'Dr. John Okafor', field: 'History', teaching: 80, research: 55, teachingPotential: 88, researchPotential: 68,
-        tenureWeeks: 0, salary: facultySalary(80, 55, 0), morale: 78, courseSlots: 3,
+        tenureWeeks: 0, salary: facultySalary(80, 55, 0), morale: 78, courseSlots: 1,
         nationality: 'Nigeria', flag: '🇳🇬',
         bio: 'Earned a doctorate in History at the University of Calderwood; research centers on maritime trade networks.',
       },
       {
-        id: 'f3', name: 'Dr. Wei Zhang', field: 'CompSci', teaching: 60, research: 88, teachingPotential: 75, researchPotential: 95,
-        tenureWeeks: 0, salary: facultySalary(60, 88, 0), morale: 75, courseSlots: 3,
-        nationality: 'China', flag: '🇨🇳',
-        bio: 'Earned a doctorate in Computer Science at Kestrel Bay Institute of Technology; research centers on distributed systems.',
+        id: 'f3', name: 'Dr. Grace Bennett', field: 'English', teaching: 78, research: 60, teachingPotential: 85, researchPotential: 72,
+        tenureWeeks: 0, salary: facultySalary(78, 60, 0), morale: 76, courseSlots: 2,
+        nationality: 'United Kingdom', flag: '🇬🇧',
+        bio: 'Earned a doctorate in English at Marchmont University; research centers on rhetoric and composition.',
+      },
+      {
+        id: 'f4', name: 'Dr. Priya Iyer', field: 'Mathematics', teaching: 70, research: 68, teachingPotential: 80, researchPotential: 79,
+        tenureWeeks: 0, salary: facultySalary(70, 68, 0), morale: 77, courseSlots: 1,
+        nationality: 'India', flag: '🇮🇳',
+        bio: 'Earned a doctorate in Mathematics at Ironwood University; research centers on numerical analysis.',
+      },
+      {
+        id: 'f5', name: 'Dr. Elena Novak', field: 'Philosophy', teaching: 75, research: 62, teachingPotential: 83, researchPotential: 71,
+        tenureWeeks: 0, salary: facultySalary(75, 62, 0), morale: 79, courseSlots: 1,
+        nationality: 'Poland', flag: '🇵🇱',
+        bio: 'Earned a doctorate in Philosophy at Amberfield University; research centers on ethics and moral philosophy.',
       },
     ],
     // The single central Buildable list (see README's "central abstraction")
