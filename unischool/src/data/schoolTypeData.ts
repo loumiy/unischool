@@ -24,11 +24,17 @@ export interface SchoolTypePreset {
   baselineFundingPerWeek: number; // steady non-tuition income (e.g. state appropriations); 0 if none
 }
 
+// Starting cash is sized to comfortably cover a school's first few real
+// decisions (a couple of tier-1 courses, an early facility) without
+// stalling in week one, while the buildable costs below (techData.ts,
+// campusData.ts, facilitiesData.ts) are priced against MID/LATE-game
+// income, not this starting cushion — see financeSystem.ts's "Pacing
+// model" comment for the income sketch that scaling is checked against.
 export const SCHOOL_TYPE_PRESETS: Record<SchoolType, SchoolTypePreset> = {
   private: {
     label: 'Private',
     description: 'No state funding and a smaller applicant pool, but tuition is uncapped and you start with more prestige.',
-    startingCash: 60_000,
+    startingCash: 220_000,
     prestigeBonus: 10,
     startingApplicantPool: 150,
     tuitionCeiling: 60_000,
@@ -37,7 +43,7 @@ export const SCHOOL_TYPE_PRESETS: Record<SchoolType, SchoolTypePreset> = {
   public: {
     label: 'Public',
     description: 'A steady state appropriation and a much larger applicant pool, but tuition is capped and prestige starts lower.',
-    startingCash: 40_000,
+    startingCash: 180_000,
     prestigeBonus: -5,
     startingApplicantPool: 400,
     tuitionCeiling: 20_000,

@@ -49,7 +49,7 @@ const TIER_DURATION_WEEKS: Record<number, number> = { 1: 4, 2: 12, 3: 24 };
 // markedly bigger financial commitment than a tier-1 entry course — see
 // README's "Pacing model: money is the throttle". Buildings below are
 // bigger investments still.
-const TIER_COURSE_COST: Record<number, number> = { 1: 4_000, 2: 12_000, 3: 30_000 };
+const TIER_COURSE_COST: Record<number, number> = { 1: 10_000, 2: 30_000, 3: 75_000 };
 
 // A school building is a real construction project: a meaningful cost and
 // a longer duration than any single course, reflecting "unlocks an entire
@@ -57,7 +57,7 @@ const TIER_COURSE_COST: Record<number, number> = { 1: 4_000, 2: 12_000, 3: 30_00
 // course. General Studies has no majors (just the gen-ed core), so its
 // "building" is smaller and cheaper — more of a starter hall than a full
 // academic building.
-const GENED_BUILDING_COST = 60_000;
+const GENED_BUILDING_COST = 150_000;
 const GENED_BUILDING_WEEKS = 20;
 // General Studies Hall starts already built (see initialTech below), so
 // this never flows through the normal completion-effects path — it's
@@ -67,7 +67,7 @@ const GENED_BUILDING_WEEKS = 20;
 // building out the curriculum unlocks courses/majors, not beds.
 export const GENED_BUILDING_REPUTATION_BONUS = 1.5;
 
-const SCHOOL_BUILDING_COST = 180_000;
+const SCHOOL_BUILDING_COST = 450_000;
 const SCHOOL_BUILDING_WEEKS = 28;
 
 interface MajorSeed {
@@ -245,9 +245,9 @@ const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
 // population-scaled version; labs are a flat cost instead, since one lab
 // serves a major's cohort, not the whole campus).
 const LAB_GATED_MAJOR_PREFIXES = ['CHEM', 'BIOL', 'MECH', 'ELEC', 'CIVE', 'AERO', 'NURS', 'DENT', 'PMED'];
-const LAB_COST = 100_000;
+const LAB_COST = 260_000;
 const LAB_WEEKS = 16;
-const LAB_UPKEEP_PER_WEEK = 350; // ~$18k/yr — in line with facilitiesData.ts's other single-instance facilities, not disproportionate to the $100k build cost
+const LAB_UPKEEP_PER_WEEK = 350; // ~$18k/yr — in line with facilitiesData.ts's other single-instance facilities, not disproportionate to the $260k build cost
 function labId(prefix: string): string {
   return `LAB-${prefix}`;
 }

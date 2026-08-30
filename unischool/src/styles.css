@@ -64,10 +64,27 @@ button { cursor: pointer; font-family: inherit; }
   padding: 16px 18px; color: var(--ink); }
 .panel h2 { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em; font-size: 13px;
   color: var(--gold-dim); margin: 0 0 10px; }
-.panel-head { display: flex; justify-content: space-between; align-items: baseline;
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
   border-bottom: 1px solid var(--parchment-line); padding-bottom: 8px; margin-bottom: 12px; }
 .panel-head h2 { margin: 0; }
+.panel-head-title { display: inline-flex; align-items: baseline; gap: 6px; }
+.panel-head-title h2 { margin: 0; }
 .panel .stat { font-family: var(--mono); color: var(--ink-muted); font-size: 12px; }
+
+/* ---------- help hint ---------- */
+.help-hint { position: relative; display: inline-block; }
+.help-hint-btn { width: 16px; height: 16px; border-radius: 50%; padding: 0; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid var(--gold-dim); color: var(--gold-dim); font-size: 10px; font-weight: 700; }
+.help-hint-btn:hover { background: var(--gold-dim); color: #fff8e8; }
+.help-hint-text { position: absolute; z-index: 15; top: 22px; left: 0; width: 240px;
+  background: var(--navy); color: #cbd0d8; border: 1px solid var(--navy-line); border-radius: 6px;
+  padding: 8px 10px; font-size: 12px; font-style: italic; line-height: 1.4; margin: 0;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
+.help-hint-text.align-end { left: auto; right: 0; }
+
+.badge { display: inline-block; background: var(--navy); color: var(--ink-hi); font-family: var(--mono);
+  font-size: 10px; border-radius: 3px; padding: 1px 6px; margin-left: 6px; vertical-align: middle; }
 
 /* ---------- curriculum: progressive discovery ---------- */
 /* No inner scroll box here (unlike the other panel lists) — the page
@@ -135,6 +152,17 @@ button { cursor: pointer; font-family: inherit; }
 .kind-tag { display: inline-block; background: var(--gold-dim); color: #fff8e8; font-size: 9px; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.04em; border-radius: 3px; padding: 1px 5px; margin-right: 6px; vertical-align: middle; }
 
+/* ---------- campus: unified building groups ---------- */
+.building-groups { display: flex; flex-direction: column; gap: 18px; }
+.building-group-head { display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 4px; }
+.building-group-head h3 { font-family: var(--serif); font-size: 14px; margin: 0; color: var(--ink); }
+.building-list { max-height: none; }
+.building-item.done { background: #f5efdd; }
+.building-item.done .available-item-main span:first-child { color: #6b5a24; }
+.building-item.developing { background: #faf3d9; border-left: 3px solid var(--gold); padding-left: 8px; }
+.building-item.available { border-left: 3px solid var(--gold-dim); padding-left: 8px; }
+
 /* ---------- sidebar panels ---------- */
 .buy-slot-btn { width: 100%; background: #f5efdd; border: 1px solid var(--gold-dim); color: #5c4a1e;
   padding: 9px; border-radius: 5px; font-family: var(--serif); font-size: 13px; margin-bottom: 12px; }
@@ -154,12 +182,33 @@ dt { color: var(--ink-muted); } dd { margin: 0; text-align: right; font-family: 
 .satisfaction-breakdown dt { padding-left: 10px; }
 
 ul, ol { list-style: none; margin: 0; padding: 0; }
-.faculty li { display: flex; justify-content: space-between; align-items: center; gap: 8px;
-  padding: 6px 0; border-bottom: 1px solid var(--parchment-line-lo); font-size: 13px; }
-.faculty.candidates li { align-items: flex-start; }
-.faculty .outcome-note { color: var(--gold-dim); font-size: 11px; }
-.faculty button { background: #f4dede; color: #8a2f2f; border: 1px solid #d9a8a8; border-radius: 5px; padding: 3px 10px; font-size: 11px; white-space: nowrap; }
-.faculty button.appoint { background: #dcefe0; color: var(--green); border: 1px solid #9fd3af; }
+.outcome-note { color: var(--gold-dim); font-size: 11px; }
+
+/* ---------- faculty: collapsed-by-default expandable rows ---------- */
+.faculty-list { max-height: 320px; overflow-y: auto; margin: 0; padding: 0; }
+.faculty-row { border-bottom: 1px solid var(--parchment-line-lo); padding: 6px 0; }
+.faculty-row-summary { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.faculty-expand-btn { background: none; border: none; color: var(--gold-dim); font-size: 11px; padding: 0 2px; width: 16px; }
+.faculty-flag { font-size: 15px; line-height: 1; }
+.faculty-name { font-weight: 600; }
+.faculty-row-spacer { flex: 1; }
+.faculty-row-summary button { background: #f4dede; color: #8a2f2f; border: 1px solid #d9a8a8; border-radius: 5px;
+  padding: 3px 10px; font-size: 11px; white-space: nowrap; }
+.faculty-row-summary button.appoint { background: #dcefe0; color: var(--green); border: 1px solid #9fd3af; }
+.faculty-row-detail { margin: 8px 0 2px 24px; padding: 8px 10px; background: #f5efdd;
+  border: 1px solid var(--parchment-line-lo); border-radius: 6px; font-size: 12px; }
+.faculty-bio { margin: 0 0 8px; font-style: italic; color: var(--ink-muted); }
+.faculty-courses { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--parchment-line-lo); }
+.faculty-courses-list { margin: 4px 0 0; padding: 0; list-style: none; }
+.faculty-courses-list li { font-family: var(--mono); font-size: 11px; padding: 1px 0; }
+
+/* ---------- faculty: recruitment control ---------- */
+.posting-control { display: flex; gap: 8px; align-items: center; }
+.posting-control select { flex: 1; padding: 7px 8px; border-radius: 5px; border: 1px solid var(--parchment-line);
+  background: #f8f3e6; color: var(--ink); font-family: inherit; font-size: 13px; }
+.posting-control button { background: #f5efdd; border: 1px solid var(--gold-dim); color: #5c4a1e;
+  border-radius: 5px; padding: 7px 12px; font-size: 12px; white-space: nowrap; }
+.posting-control button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .log { max-height: 190px; overflow-y: auto; font-size: 12px; }
 .log li { padding: 3px 0; border-bottom: 1px solid var(--parchment-line-lo); }

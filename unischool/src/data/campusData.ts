@@ -34,8 +34,8 @@ export const STARTING_DORM_CAPACITY = 350; // folded directly into students.capa
 const ADDITIONAL_DORM_COUNT = 14;    // how many more dorms can be queued up after the starter
 const DORM_BASE_CAPACITY = 350;      // Dorm II's capacity bonus
 const DORM_CAPACITY_GROWTH = 1.18;   // each dorm after houses ~18% more than the last
-const DORM_BASE_COST = 70_000;       // Dorm II's cost
-const DORM_COST_GROWTH = 1.28;       // costs outgrow capacity — the late-game cost-per-bed climbs
+const DORM_BASE_COST = 200_000;      // Dorm II's cost
+const DORM_COST_GROWTH = 1.30;       // costs outgrow capacity — the late-game cost-per-bed climbs
 const DORM_BASE_WEEKS = 14;          // Dorm II's build time
 const DORM_WEEKS_GROWTH = 1.05;      // build time grows slowly — money, not time, is the late-game bottleneck
 

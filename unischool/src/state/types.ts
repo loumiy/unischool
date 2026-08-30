@@ -57,6 +57,15 @@ export interface Faculty {
   salary: number;      // current annual salary — recomputed from current stats + a separate seniority premium curve
   morale: number;     // 0..100
   courseSlots: number; // how many courses in `field` this hire can keep staffed at once — rolled at hire, grows slowly with tenure (see facultyData.ts's grownSlots). A course whose requiresFaculty is `field` occupies one slot in that field for as long as it stays 'developing' or 'done' (see techSystem.ts's canStartDevelopment) — offering more courses in a subject means hiring more (or more tenured) faculty in it.
+  // Flavor/biographical fields — rolled once at generation, never mutated.
+  // Nationality is disproportionately American regardless of name origin
+  // (reflecting how diverse American faculty rosters actually are), with the
+  // remainder tied to the same cultural pool the name itself was drawn from
+  // (see facultyData.ts's NAME_POOLS/rollNationality) — never assigned
+  // independently of the name.
+  nationality: string; // e.g. "United States", "China" — full country name, shown expanded in the UI
+  flag: string;        // the nationality's flag emoji, shown next to the name at a glance
+  bio: string;         // one-line biographical flavor text, shown only when the roster row is expanded
 }
 
 export type BuildableStatus = 'locked' | 'available' | 'developing' | 'done';

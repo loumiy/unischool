@@ -1,9 +1,10 @@
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 import type { Action } from '../state/actions';
-import type { GameState } from '../state/types';
+import type { Buildable, Faculty, GameState } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { facultyQualityTier, FACULTY_FIELDS, JOB_POSTING_COST } from '../data/facultyData';
 import { usedFacultySlots, totalFacultySlots } from '../systems/techtree/techSystem';
+import HelpHint from '../components/HelpHint';
 
 // Faculty roster, open job postings, and the pool of candidates postings
 // have produced. Hiring is a job-posting model, not a passive draw-and-
@@ -13,75 +14,143 @@ import { usedFacultySlots, totalFacultySlots } from '../systems/techtree/techSys
 // countdown — there is no free reroll. Growth (teaching/research rising
 // toward each hire's rolled potential, salary rising with it, course slots
 // growing on tenure milestones) happens passively on the weekly tick — see
-// facultySystem.ts. Quality tier is a display-only bucketing of the same
-// teaching/research stats already shown, so "hire more" (headcount, which
-// gates course slots below) and "hire better" (this tier) read as visibly
-// separate decisions rather than the same number twice.
+// facultySystem.ts.
+//
+// Each roster/candidate row shows only a name, field, nationality flag, and
+// quality tier by default — everything else (bio, full stats, and what
+// they're actually teaching) is one click away behind an expand toggle, so
+// the tab reads as a roster, not a spreadsheet.
+
+// Course-to-teacher assignment is a display-only projection: the engine
+// only tracks course-slot CAPACITY per field (courseSlots), never which
+// specific hire teaches which specific course. Deterministically round-
+// robins a field's currently-offered (developing/done) requiresFaculty-gated
+// courses across that field's faculty, sorted by id, so "what are they
+// teaching" reads as a stable, real-looking answer rather than nothing —
+// without inventing new persisted state for it.
+function coursesTaughtBy(s: GameState, f: Faculty): Buildable[] {
+  const fieldFaculty = s.faculty.filter((x) => x.field === f.field).sort((a, b) => a.id.localeCompare(b.id));
+  const idx = fieldFaculty.findIndex((x) => x.id === f.id);
+  if (idx === -1 || fieldFaculty.length === 0) return [];
+  const fieldCourses = s.tech
+    .filter((t) => t.requiresFaculty === f.field && (t.status === 'developing' || t.status === 'done'))
+    .sort((a, b) => a.id.localeCompare(b.id));
+  return fieldCourses.filter((_, i) => i % fieldFaculty.length === idx);
+}
+
+function FacultyRow({ s, act, f, isCandidate }: { s: GameState; act: (a: Action) => void; f: Faculty; isCandidate: boolean }) {
+  const [open, setOpen] = useState(false);
+  const taught = isCandidate ? [] : coursesTaughtBy(s, f);
+
+  return (
+    <li className="faculty-row">
+      <div className="faculty-row-summary">
+        <button
+          type="button"
+          className="faculty-expand-btn"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-label={open ? 'Show less' : 'Show more'}
+        >
+          {open ? '▾' : '▸'}
+        </button>
+        <span className="faculty-flag" title={f.nationality}>{f.flag}</span>
+        <span className="faculty-name">{f.name}</span>
+        <span className="stat">{f.field}</span>
+        <span className="kind-tag">{facultyQualityTier(f)}</span>
+        <span className="faculty-row-spacer" />
+        {isCandidate ? (
+          <button className="appoint" onClick={() => act({ type: 'HIRE_FACULTY', facultyId: f.id })}>Appoint</button>
+        ) : (
+          <button onClick={() => act({ type: 'FIRE_FACULTY', facultyId: f.id })}>Dismiss</button>
+        )}
+      </div>
+      {open && (
+        <div className="faculty-row-detail">
+          <p className="faculty-bio">{f.bio}</p>
+          <dl>
+            <dt>Nationality</dt><dd>{f.flag} {f.nationality}</dd>
+            <dt>Teaching</dt><dd>{f.teaching} <span className="outcome-note">(→ {f.teachingPotential})</span></dd>
+            <dt>Research</dt><dd>{f.research} <span className="outcome-note">(→ {f.researchPotential})</span></dd>
+            <dt>Salary</dt><dd>${f.salary.toLocaleString()}/yr</dd>
+            {!isCandidate && <><dt>Tenure</dt><dd>{Math.floor(f.tenureWeeks / WEEKS_PER_YEAR)}y</dd></>}
+            <dt>Course slots</dt><dd>{f.courseSlots}</dd>
+          </dl>
+          {!isCandidate && (
+            <div className="faculty-courses">
+              <span className="stat">Courses taught</span>
+              {taught.length > 0 ? (
+                <ul className="faculty-courses-list">
+                  {taught.map((t) => <li key={t.id}>{t.name}{t.status === 'developing' ? ' — in development' : ''}</li>)}
+                </ul>
+              ) : (
+                <p className="empty-note">No {f.field} courses currently offered.</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
+
 export default function FacultyTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
+  const [postingField, setPostingField] = useState<string>(FACULTY_FIELDS[0]);
+
   // Every field a requiresFaculty-gated course actually needs, so the slots
   // summary only shows fields that matter for starting new development —
   // not the full candidate-generation pool in facultyData.ts.
   const gatedFields = [...new Set(s.tech.filter((t) => t.requiresFaculty).map((t) => t.requiresFaculty!))].sort();
 
+  const postingAlreadyOpen = postingField in s.openPostings;
+
   return (
     <div className="tab-content">
       <section className="panel">
         <h2>Faculty</h2>
-        <ul className="faculty">
-          {s.faculty.map((f) => (
-            <li key={f.id}>
-              <span>{f.name} · {f.field} <span className="kind-tag">{facultyQualityTier(f)}</span><br />
-                <span className="stat">
-                  T{f.teaching} R{f.research} <span className="outcome-note">(→ T{f.teachingPotential} R{f.researchPotential})</span> · ${f.salary.toLocaleString()}/yr · {Math.floor(f.tenureWeeks / WEEKS_PER_YEAR)}y tenure · {f.courseSlots} course slots
-                </span>
-              </span>
-              <button onClick={() => act({ type: 'FIRE_FACULTY', facultyId: f.id })}>Dismiss</button>
-            </li>
-          ))}
+        <ul className="faculty-list">
+          {s.faculty.map((f) => <FacultyRow key={f.id} s={s} act={act} f={f} isCandidate={false} />)}
           {s.faculty.length === 0 && <li className="empty-note">No faculty on the roster.</li>}
         </ul>
       </section>
 
       <section className="panel">
-        <div className="panel-head"><h2>Job Postings</h2><span className="stat">${JOB_POSTING_COST.toLocaleString()} each</span></div>
-        <p className="empty-note">
-          Post an opening in a field to recruit for it — a candidate arrives after a few weeks. At most one open posting
-          per field at a time; re-post once it resolves for another candidate.
-        </p>
-        <ul className="available-list">
-          {FACULTY_FIELDS.map((field) => {
-            const weeksLeft = s.openPostings[field];
-            return (
-              <li key={field} className="available-item">
-                <div className="available-item-main">
-                  <span>{field}</span>
-                </div>
-                <div className="available-item-meta">
-                  {weeksLeft !== undefined ? (
-                    <span className="badge">{weeksLeft}w left</span>
-                  ) : (
-                    <button
-                      disabled={s.finance.cash < JOB_POSTING_COST}
-                      title={s.finance.cash < JOB_POSTING_COST ? 'Not enough cash to post this opening.' : undefined}
-                      onClick={() => act({ type: 'POST_JOB', field })}
-                    >
-                      post opening →
-                    </button>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="panel-head">
+          <span className="panel-head-title">
+            <h2>Recruit Faculty</h2>
+            <HelpHint text={`Post an opening in a field to recruit for it — a candidate arrives after a few weeks. At most one open posting per field at a time; re-post once it resolves for another candidate.`} />
+          </span>
+        </div>
+        <div className="posting-control">
+          <select value={postingField} onChange={(e) => setPostingField(e.target.value)}>
+            {FACULTY_FIELDS.map((field) => (
+              <option key={field} value={field}>
+                {field}{field in s.openPostings ? ` — posted, ${s.openPostings[field]}w left` : ''}
+              </option>
+            ))}
+          </select>
+          <button
+            disabled={s.finance.cash < JOB_POSTING_COST || postingAlreadyOpen}
+            title={postingAlreadyOpen
+              ? 'A posting for this field is already open.'
+              : s.finance.cash < JOB_POSTING_COST
+                ? 'Not enough cash to post this opening.'
+                : undefined}
+            onClick={() => act({ type: 'POST_JOB', field: postingField })}
+          >
+            Post Opening — ${JOB_POSTING_COST.toLocaleString()}
+          </button>
+        </div>
       </section>
 
       {gatedFields.length > 0 && (
         <section className="panel">
-          <div className="panel-head"><h2>Course Slots by Field</h2></div>
-          <p className="empty-note">
-            A field-gated course occupies one slot in its field for as long as it's under development or done — hire more
-            (or more tenured) faculty in a field to unlock offering more courses in it.
-          </p>
+          <div className="panel-head">
+            <span className="panel-head-title">
+              <h2>Course Slots by Field</h2>
+              <HelpHint text="A field-gated course occupies one slot in its field for as long as it's under development or done — hire more (or more tenured) faculty in a field to unlock offering more courses in it." />
+            </span>
+          </div>
           <dl>
             {gatedFields.map((field) => (
               <Fragment key={field}>
@@ -95,15 +164,8 @@ export default function FacultyTab({ s, act }: { s: GameState; act: (a: Action) 
 
       <section className="panel">
         <h2>Candidates</h2>
-        <ul className="faculty candidates">
-          {s.candidates.map((c) => (
-            <li key={c.id}>
-              <span>{c.name} · {c.field} <span className="kind-tag">{facultyQualityTier(c)}</span><br />
-                <span className="stat">T{c.teaching} R{c.research} <span className="outcome-note">(→ T{c.teachingPotential} R{c.researchPotential})</span> · ${c.salary.toLocaleString()}/yr · {c.courseSlots} course slots</span>
-              </span>
-              <button className="appoint" onClick={() => act({ type: 'HIRE_FACULTY', facultyId: c.id })}>Appoint</button>
-            </li>
-          ))}
+        <ul className="faculty-list">
+          {s.candidates.map((c) => <FacultyRow key={c.id} s={s} act={act} f={c} isCandidate={true} />)}
           {s.candidates.length === 0 && <li className="empty-note">No candidates right now — post an opening above.</li>}
         </ul>
       </section>

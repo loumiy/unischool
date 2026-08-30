@@ -2,6 +2,7 @@ import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
 import { discoverySchools } from '../data/techData';
 import { canStartDevelopment } from '../systems/techtree/techSystem';
+import HelpHint from '../components/HelpHint';
 
 // ---------------------------------------------------------------------
 // Progressive discovery: the curriculum is not laid out whole. What's
@@ -175,6 +176,12 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
         <div className="panel-head">
           <h2>The Curriculum</h2>
           <span className="stat">{doneCourses}/{courses.length} done · {catalogPct}% · {slotsUsed}/{s.slots} slots used</span>
+          <HelpHint
+            align="end"
+            text={genEdComplete
+              ? "Open to all incoming students — not yet organized by school. Complete a school's entry courses to raise its building."
+              : 'The general-education core — every major waits on it. Complete it to unlock every major\'s entry course.'}
+          />
         </div>
         {s.finance.cash < 0 && (
           <p className="stall-note">Cash is negative — new development is stalled until it recovers.</p>
@@ -182,11 +189,6 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
 
         <div className="curriculum-scroll">
           <div className="discovery-pool">
-            <p className="discovery-pool-caption">
-              {genEdComplete
-                ? "Open to all incoming students — not yet organized by school. Complete a school's entry courses to raise its building."
-                : 'The general-education core — every major waits on it. Complete it to unlock every major\'s entry course.'}
-            </p>
             <CellGrid s={s} act={act} ids={pool.courseIds} lookup={lookup} />
           </div>
 
