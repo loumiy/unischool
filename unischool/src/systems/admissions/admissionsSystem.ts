@@ -14,14 +14,22 @@ import { WEEKS_PER_YEAR } from '../../state/types';
 //   1. Applicant pool = f(prestige, tuition). Higher prestige draws more
 //      applicants and shifts the distribution toward higher quality;
 //      higher tuition shrinks the pool and fattens the low-quality tail.
-//   2. Admissions skims from the top of the quality distribution down to
-//      available capacity. The player sets no selectivity and no target
-//      enrollment — selectivity is emergent, reported as the admit rate
-//      (admitted / applicants).
+//   2. Admissions skims from the top of the quality distribution, admitting
+//      enough of each band — most selective first — that EXPECTED
+//      enrollment (admits x that band's yield) fills capacity, not raw
+//      admit headcount. A real admissions office over-admits to compensate
+//      for anticipated no-shows; skimming to capacity on headcount alone
+//      would systematically under-fill the class whenever yield runs well
+//      under 100%. The player sets no selectivity and no target enrollment
+//      — selectivity is emergent, reported as the admit rate (admitted /
+//      applicants), and it rises (less selective) exactly when yield is
+//      weak, same as it would for a real school leaning on a big applicant
+//      pool it can't actually convert.
 //   3. Aid drives yield: not every admit enrolls. Yield rises with aid
 //      (diminishing returns) and with prestige, and falls for higher-
 //      quality admits (who are more price-sensitive and cost more aid to
-//      win). Enrolled class = yield x admits, capped by capacity.
+//      win). Enrolled class = yield x admits — capped by capacity only as
+//      a rounding safety net, since admits are already sized to target it.
 //   4. Net tuition per enrolled student = tuition x (1 - aid); that is
 //      what flows into finance (see financeSystem.ts).
 //
@@ -154,22 +162,45 @@ export function projectAdmissions(
     low: applicants * mix.low,
   };
 
-  // Skim from the top of the distribution down until capacity is filled.
-  let remaining = Math.max(capacity, 0);
+  // Yield each band up front — quality changes price sensitivity, and the
+  // admit-sizing pass below needs each band's yield to know how many
+  // admits it takes to fill a given amount of capacity.
   const bands: QualityBand[] = ['top', 'mid', 'low'];
+  const yieldByBand: Record<QualityBand, number> = {
+    top: bandYield(prestige, aid, 'top'),
+    mid: bandYield(prestige, aid, 'mid'),
+    low: bandYield(prestige, aid, 'low'),
+  };
+
+  // Skim from the top of the distribution, admitting enough of each band
+  // that its EXPECTED enrollment (admits x yield) fills the capacity that's
+  // still remaining after the bands above it — not enough that its raw
+  // admit headcount does. This is what makes selectivity react correctly
+  // to yield: a school whose admits mostly don't show up ends up admitting
+  // (and reporting) a much higher admit rate than one with the same
+  // capacity and applicant pool but strong yield, exactly as a real
+  // admissions office over-admits to compensate for anticipated no-shows.
+  let remainingCapacity = Math.max(capacity, 0);
   const admitsByBand: Record<QualityBand, number> = { top: 0, mid: 0, low: 0 };
   for (const band of bands) {
-    const take = Math.min(remaining, pool[band]);
+    if (remainingCapacity <= 0) break;
+    const bandYieldRate = yieldByBand[band];
+    // A band yielding literally nobody can never help fill the class —
+    // admitting more of it would only inflate the admit count for zero
+    // enrollment benefit, so skip it rather than admitting its whole pool
+    // for nothing.
+    if (bandYieldRate <= 0) continue;
+    const neededAdmits = remainingCapacity / bandYieldRate;
+    const take = Math.min(pool[band], neededAdmits);
     admitsByBand[band] = take;
-    remaining -= take;
+    remainingCapacity -= take * bandYieldRate;
   }
   const admits = admitsByBand.top + admitsByBand.mid + admitsByBand.low;
 
-  // Yield each admitted band separately — quality changes price sensitivity.
   const enrolledByBand: Record<QualityBand, number> = {
-    top: admitsByBand.top * bandYield(prestige, aid, 'top'),
-    mid: admitsByBand.mid * bandYield(prestige, aid, 'mid'),
-    low: admitsByBand.low * bandYield(prestige, aid, 'low'),
+    top: admitsByBand.top * yieldByBand.top,
+    mid: admitsByBand.mid * yieldByBand.mid,
+    low: admitsByBand.low * yieldByBand.low,
   };
   const enrolledRaw = enrolledByBand.top + enrolledByBand.mid + enrolledByBand.low;
   const enrolled = Math.min(Math.max(capacity, 0), Math.round(enrolledRaw));
