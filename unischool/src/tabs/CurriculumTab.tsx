@@ -107,7 +107,7 @@ function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => v
       ? 'Cash is negative — development is stalled until it recovers.'
       : missingFaculty
         ? `No free ${t.requiresFaculty} faculty slots — hire more or more senior ${t.requiresFaculty} faculty on the Campus tab.`
-        : 'All development slots are busy — commission more on the Campus tab.'
+        : undefined
     : undefined;
 
   return (
@@ -163,7 +163,6 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
   const courses = s.tech.filter((t) => t.kind === 'course');
   const doneCourses = courses.filter((t) => t.status === 'done').length;
   const catalogPct = Math.round((doneCourses / courses.length) * 100);
-  const slotsUsed = Object.keys(s.developing).length;
 
   const lookup = new Map(s.tech.map((t) => [t.id, t]));
   const genEdComplete = isGenEdComplete(s);
@@ -175,7 +174,7 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
       <section className="panel curriculum-panel">
         <div className="panel-head">
           <h2>The Curriculum</h2>
-          <span className="stat">{doneCourses}/{courses.length} done · {catalogPct}% · {slotsUsed}/{s.slots} slots used</span>
+          <span className="stat">{doneCourses}/{courses.length} done · {catalogPct}%</span>
           <HelpHint
             align="end"
             text={genEdComplete

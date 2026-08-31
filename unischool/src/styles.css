@@ -259,9 +259,6 @@ button { cursor: pointer; font-family: inherit; }
 .tab-overlay-body { scrollbar-width: thin; scrollbar-color: var(--navy-line) transparent; }
 
 /* ---------- sidebar panels ---------- */
-.buy-slot-btn { width: 100%; background: #f5efdd; border: 1px solid var(--gold-dim); color: #5c4a1e;
-  padding: 9px; border-radius: 5px; font-family: var(--serif); font-size: 13px; margin-bottom: 12px; }
-.buy-slot-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .empty-note { font-style: italic; color: var(--ink-muted); font-size: 13px; margin: 0; }
 .stall-note { background: #f4dede; color: #8a2f2f; border: 1px solid #d9a8a8; border-radius: 5px;
   padding: 6px 10px; font-size: 12px; margin: 0 0 8px; }

@@ -1,6 +1,6 @@
 import type { Action } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
-import { nextSlotCost, MAX_SLOTS, hasFreeFacultySlot } from '../systems/techtree/techSystem';
+import { hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import { STARTING_DORM_CAPACITY } from '../data/campusData';
 import HelpHint from './HelpHint';
 
@@ -74,7 +74,6 @@ function builtDetail(t: Buildable): string | undefined {
 }
 
 function BuildableRow({ s, act, t }: { s: GameState; act: (a: Action) => void; t: Buildable }) {
-  const slotsUsed = Object.keys(s.developing).length;
   const missingFaculty = !!(t.requiresFaculty && !hasFreeFacultySlot(s, t.requiresFaculty));
 
   if (t.status === 'done') {
@@ -118,7 +117,7 @@ function BuildableRow({ s, act, t }: { s: GameState; act: (a: Action) => void; t
       <div className="available-item-meta">
         <span className="stat">{t.cost > 0 ? `$${t.cost.toLocaleString()} · ` : ''}{t.duration}w</span>
         <button
-          disabled={slotsUsed >= s.slots || s.finance.cash < 0 || missingFaculty}
+          disabled={s.finance.cash < 0 || missingFaculty}
           title={disabledReason}
           onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: t.id })}
         >
@@ -130,8 +129,6 @@ function BuildableRow({ s, act, t }: { s: GameState; act: (a: Action) => void; t
 }
 
 export default function BuildPanel({ s, act }: { s: GameState; act: (a: Action) => void }) {
-  const slotsUsed = Object.keys(s.developing).length;
-  const slotCost = nextSlotCost(s.slots);
   const groups = buildGroups(s);
 
   return (
@@ -142,7 +139,6 @@ export default function BuildPanel({ s, act }: { s: GameState; act: (a: Action) 
             <h2>Build</h2>
             <HelpHint text="Every building the university can have, grouped by type: what's built, what's under construction, and what's next available. A facility serves a fixed share of students against total planned capacity, not today's enrollment — building more housing raises the bar for the rest of campus life too. Anything not yet unlockable is left off the list rather than teased. Finished buildings can then be sited on the map." />
           </span>
-          <span className="stat">{slotsUsed}/{s.slots} slots</span>
         </div>
 
         <div className="side-panel-stats">
@@ -167,18 +163,6 @@ export default function BuildPanel({ s, act }: { s: GameState; act: (a: Action) 
             </div>
           ))}
         </div>
-      </section>
-
-      <section className="panel side-panel-section">
-        <div className="panel-head"><h2>Development Slots</h2><span className="stat">{slotsUsed}/{s.slots}</span></div>
-        <button
-          className="buy-slot-btn"
-          disabled={s.slots >= MAX_SLOTS || s.finance.cash < slotCost}
-          title={s.slots >= MAX_SLOTS ? 'Maximum slots reached' : undefined}
-          onClick={() => act({ type: 'BUY_SLOT' })}
-        >
-          Commission a Slot — ${slotCost.toLocaleString()}
-        </button>
       </section>
     </aside>
   );

@@ -89,7 +89,7 @@ export default function StatusHeader({ s, speed, setSpeed, act }: {
             <button
               className={`auto-develop-toggle ${s.autoDevelop ? 'on' : ''}`}
               onClick={() => act({ type: 'TOGGLE_AUTO_DEVELOP' })}
-              title="Playtesting only: auto-starts available courses as slots free up. Never touches buildings, dorms, or facilities — those stay a deliberate, manual decision."
+              title="Playtesting only: auto-starts every available course the school can afford. Never touches buildings, dorms, or facilities — those stay a deliberate, manual decision."
             >
               auto-develop courses: {s.autoDevelop ? 'on' : 'off'}
             </button>

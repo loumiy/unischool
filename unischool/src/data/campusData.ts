@@ -20,10 +20,9 @@ import type { Buildable } from '../state/types';
 // there's always exactly one next dorm to build, with a visible cost and
 // payoff, never a grid of independent choices.
 //
-// Both capacity and cost grow geometrically down the chain — the same
-// escalating-investment shape as techtree/techSystem.ts's nextSlotCost —
-// with cost growing a little faster than capacity, so later dorms cost
-// more per bed than earlier ones. That makes a fully built-out housing
+// Both capacity and cost grow geometrically down the chain — an
+// escalating-investment shape, with cost growing a little faster than
+// capacity, so later dorms cost more per bed than earlier ones. That makes a fully built-out housing
 // chain a genuine decades-long capital investment (see README's "Pacing
 // model: money is the throttle"), not a handful of cheap early clicks.
 // ---------------------------------------------------------------------

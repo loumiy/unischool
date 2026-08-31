@@ -77,7 +77,7 @@ Every Buildable has:
 
 - a **`kind`** — `course`, `building`, `dorm`, `facility` (and later `sports`).
 - a **`cost`** — money spent up front, at the moment development starts.
-- a **`duration`** — weeks of development, occupying a development slot.
+- a **`duration`** — weeks of development.
 - **`prereqs`** — other Buildable ids that must be `done` first. Prereqs may
   **cross majors and cross kinds**: a course can require a building; a course can
   require a course from another school; a facility can require a dorm. Prereqs
@@ -87,26 +87,25 @@ Every Buildable has:
   faculty member). This gates *starting*, not completion.
 - a **`status`** — `locked` → `available` → `developing` → `done`.
 - **`effects`** — applied once, on completion. Effects can grant capacity,
-  tuition headroom, satisfaction, **development slots**, applicant-pool
-  bumps, and — crucially — can **unlock other Buildables** (this is how the
-  milestone chain works). Effects do **not** grant reputation directly —
-  prestige is a slow-moving stock computed and drifted toward separately
-  (see "Prestige: a slow-moving stock" below), not a sum of completion
-  bonuses.
+  tuition headroom, satisfaction, applicant-pool bumps, and — crucially — can
+  **unlock other Buildables** (this is how the milestone chain works). Effects
+  do **not** grant reputation directly — prestige is a slow-moving stock
+  computed and drifted toward separately (see "Prestige: a slow-moving stock"
+  below), not a sum of completion bonuses.
 
-This means one develop/build flow, one slot system, one prereq resolver, one
-completion-effects applier, serve all content types. **Do not build parallel
-subsystems for buildings, dorms, or sports.** Add content and, where a genuinely
-new rule is needed, extend the shared Buildable model — never fork it.
+This means one develop/build flow, one prereq resolver, one completion-effects
+applier, serve all content types. **Do not build parallel subsystems for
+buildings, dorms, or sports.** Add content and, where a genuinely new rule is
+needed, extend the shared Buildable model — never fork it.
 
 ### Courses and buildings share one flow
 
 Every Buildable goes through the same develop/build affordance — cost, duration,
-prereqs, one slot system — regardless of `kind`. Where that affordance is
-*drawn* is a presentation split and nothing more: placeable kinds
-(`building`/`dorm`/`facility`, and later `sports`) live in the build rail beside
-the map, because the map is where they end up; `course` Buildables live in the
-Curriculum overlay. Both render the same shared machinery, and neither screen
+prereqs — regardless of `kind`. Where that affordance is *drawn* is a
+presentation split and nothing more: placeable kinds (`building`/`dorm`/
+`facility`, and later `sports`) live in the build rail beside the map, because
+the map is where they end up; `course` Buildables live in the Curriculum
+overlay. Both render the same shared machinery, and neither screen
 may grow rules of its own.
 
 Placeable kinds gain exactly one extra step beyond that shared flow — placement
@@ -179,10 +178,15 @@ Consequences that the code must honor:
   (you cannot start new development while in the red), not end the run. "Stall,
   don't die" is the bottleneck expressed mechanically, and it fits the
   no-win-condition sandbox.
-- **Development slots are a secondary, purchasable relief, not the primary
-  throttle.** Slots can be expanded, but they are one money sink among many. The
-  binding constraint is cash flow, not slot count. (This is a deliberate revision
-  of the earlier "development capacity is the scarce resource" framing.)
+- **Money is the *only* throttle on starting development.** There is no
+  development-slot mechanic: any number of Buildables can be developing at
+  once, and the single gate on starting one more is that cash is not negative
+  (plus the faculty course-slot gate on the curated `requiresFaculty` courses,
+  which is a per-field capacity rule, not a pacing throttle). Cost is charged
+  up front, so buying eagerly is what pushes you into the red and stalls the
+  *next* start. (This supersedes the earlier "development capacity is the
+  scarce resource" framing and the purchasable-slots revision of it: both are
+  gone.)
 - **The trickle must scale with the school.** Revenue grows with enrollment and
   prestige (both of which the player grows through play) while costs scale more
   slowly, so the gap between income and ambition narrows over the arc. The
@@ -307,7 +311,8 @@ any refactor.
 - Speed simplification: one real-game speed plus one sandbox-only fast speed.
 - Startup screen: name + private/public starting conditions.
 - Money-as-bottleneck finance: remove hard game-over, stall-in-the-red, scaling
-  trickle, slots as one sink among many.
+  trickle. Costs/revenue/starting cash still need a rebalancing pass now that
+  the slot throttle is gone and money paces alone.
 - Annual summer admissions interrupt (tuition/aid/selectivity/enrollment).
 - Dense rivals (~55) + the U.S. News report as a mid-game reveal.
 - The academic-buildings / milestone-chain / curriculum-depth cluster: school &
