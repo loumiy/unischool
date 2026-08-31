@@ -1,7 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Graduation cap">
-  <!-- UniSchool's favicon: a graduation cap in the app's navy/gold palette
-       (see styles.css's --navy / --gold / --ink-hi). Replaces the leftover
-       social-icon sprite that used to sit in this directory. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Graduation cap">
+  <title>UniSchool</title>
+  <!-- A graduation cap in the app's navy/gold/parchment palette (the same
+       colours styles.css defines as custom properties at :root). NOTE: this
+       is XML, so no double hyphen may appear inside a comment - naming those
+       CSS custom properties here verbatim would make the file unparseable
+       and silently kill the favicon. -->
   <rect width="64" height="64" rx="12" fill="#10182a"/>
   <!-- mortarboard -->
   <path d="M32 16 8 26l24 10 24-10-24-10z" fill="#c9a227"/>
