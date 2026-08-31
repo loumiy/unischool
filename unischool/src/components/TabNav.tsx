@@ -12,6 +12,15 @@ const TABS: Array<{ id: TabId; label: string }> = [
   { id: 'athletics', label: 'Athletics' },
 ];
 
+// Tabs whose system doesn't exist yet: still in TabId and still routed in
+// App.tsx (and TAB_LABELS below still names them), just not offered as a
+// nav button — a permanent "Coming Soon" tab is noise. Drop the id from
+// here to light the tab up once its system lands. See README's roadmap:
+// athletics rides on Buildables + hiring + rivals all being mature.
+const HIDDEN_TABS: readonly TabId[] = ['athletics'];
+
+const VISIBLE_TABS = TABS.filter((t) => !HIDDEN_TABS.includes(t.id));
+
 export const TAB_LABELS: Record<TabId, string> = Object.fromEntries(
   TABS.map((t) => [t.id, t.label]),
 ) as Record<TabId, string>;
@@ -21,7 +30,7 @@ export const TAB_LABELS: Record<TabId, string> = Object.fromEntries(
 export default function TabNav({ active, onChange }: { active: TabId | null; onChange: (tab: TabId | null) => void }) {
   return (
     <nav className="tabnav">
-      {TABS.map((t) => (
+      {VISIBLE_TABS.map((t) => (
         <button
           key={t.id}
           className={active === t.id ? 'active' : ''}
