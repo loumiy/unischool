@@ -15,15 +15,21 @@
   --green: #1f6b3a;
   --serif: Georgia, 'Times New Roman', serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --side-panel-width: 360px; /* the build rail beside the map */
 }
 
+/* The shell fills the viewport rather than scrolling as a document: the map
+   must always be on screen (see App.tsx), so the regions around it scroll
+   internally instead of pushing it off the page. */
+html, body, #root { height: 100%; }
 body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: var(--navy); color: var(--ink-hi); }
-.app { max-width: 1280px; margin: 0 auto; padding: 20px 24px 32px; }
+.app { max-width: 1720px; height: 100%; margin: 0 auto; padding: 14px 20px 16px;
+  display: flex; flex-direction: column; overflow: hidden; }
 button { cursor: pointer; font-family: inherit; }
 
 /* ---------- masthead ---------- */
 .masthead { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;
-  padding-bottom: 14px; border-bottom: 2px solid var(--gold); margin-bottom: 14px; }
+  padding-bottom: 12px; border-bottom: 2px solid var(--gold); margin-bottom: 10px; }
 .eyebrow { text-transform: uppercase; letter-spacing: 0.16em; font-size: 11px; color: var(--gold); }
 .masthead-id h1 { font-family: var(--serif); font-size: 28px; margin: 4px 0 0; color: var(--ink-hi); }
 .masthead-stats { display: flex; gap: 26px; flex-wrap: wrap; }
@@ -36,7 +42,7 @@ button { cursor: pointer; font-family: inherit; }
 .stat-sub { font-size: 11px; color: var(--ink-lo); font-family: var(--mono); }
 
 /* ---------- control bar ---------- */
-.controlbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+.controlbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
 .speeds button { margin: 0 2px; padding: 5px 14px; background: transparent; color: #c7cee0;
   border: 1px solid var(--navy-line); border-radius: 4px; font-size: 12px; letter-spacing: 0.02em; }
 .speeds button.active { background: var(--gold); color: #1a2035; border-color: var(--gold); font-weight: 700; }
@@ -50,7 +56,7 @@ button { cursor: pointer; font-family: inherit; }
   padding: 5px 10px; font-size: 11px; }
 
 /* ---------- tab navigation ---------- */
-.tabnav { display: flex; gap: 4px; border-bottom: 1px solid var(--navy-line); margin-bottom: 16px; }
+.tabnav { display: flex; gap: 4px; border-bottom: 1px solid var(--navy-line); margin-bottom: 12px; flex: none; }
 .tabnav button { background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--ink-lo);
   font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em; font-size: 13px;
   padding: 10px 16px 8px; }
@@ -58,7 +64,9 @@ button { cursor: pointer; font-family: inherit; }
 .tabnav button.active { color: var(--gold); border-bottom-color: var(--gold); font-weight: 700; }
 
 /* ---------- tab content ---------- */
-.tab-content { display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px; }
+/* Rendered inside a tab overlay now (see TabOverlay.tsx), not as the page
+   body — the overlay owns the scrolling, so no bottom margin here. */
+.tab-content { display: flex; flex-direction: column; gap: 16px; }
 
 .panel { background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px;
   padding: 16px 18px; color: var(--ink); }
@@ -70,6 +78,24 @@ button { cursor: pointer; font-family: inherit; }
 .panel-head-title { display: inline-flex; align-items: baseline; gap: 6px; }
 .panel-head-title h2 { margin: 0; }
 .panel .stat { font-family: var(--mono); color: var(--ink-muted); font-size: 12px; }
+
+/* ---------- game surface: map centre, build rail, log ---------- */
+/* The map is the base layer and holds the middle of the screen; the build
+   panel is a fixed-width rail beside it; overlays (see below) stack on top
+   of both. `position: relative` is what an overlay's `inset: 0` covers. */
+.game-surface { position: relative; flex: 1; min-height: 0; display: flex; gap: 14px; align-items: stretch; }
+.map-column { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.side-panel { width: var(--side-panel-width); flex: none; display: flex; flex-direction: column; gap: 12px;
+  overflow-y: auto; padding-right: 4px; }
+.side-panel-section { flex: none; }
+.side-panel-stats { display: flex; gap: 14px; margin-bottom: 8px; }
+.side-panel::-webkit-scrollbar { width: 8px; }
+.side-panel::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: 4px; }
+.side-panel { scrollbar-width: thin; scrollbar-color: var(--navy-line) transparent; }
+
+/* The log ticker docked under the map — a strip, not a panel to scroll through. */
+.log-strip { flex: none; padding: 8px 14px; }
+.log-strip .log { max-height: 92px; }
 
 /* ---------- help hint ---------- */
 .help-hint { position: relative; display: inline-block; }
@@ -162,6 +188,75 @@ button { cursor: pointer; font-family: inherit; }
 .building-item.done .available-item-main span:first-child { color: #6b5a24; }
 .building-item.developing { background: #faf3d9; border-left: 3px solid var(--gold); padding-left: 8px; }
 .building-item.available { border-left: 3px solid var(--gold-dim); padding-left: 8px; }
+
+/* ---------- campus map: the central surface ---------- */
+/* Geometry (tile size, gaps, label wrapping) lives in CampusMap.tsx as named
+   constants — SVG user units, not CSS. Only the brass/ink/parchment palette
+   and the layout box are here. The map is its own frame rather than a
+   `.panel` because it fills its column instead of being a stacked card. */
+.campus-map { flex: 1; min-height: 0; display: flex; flex-direction: column;
+  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px;
+  padding: 12px 14px 10px; color: var(--ink); }
+.campus-map-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  border-bottom: 1px solid var(--parchment-line); padding-bottom: 8px; margin-bottom: 10px; }
+.campus-map-head h2 { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em;
+  font-size: 13px; color: var(--gold-dim); margin: 0; }
+.campus-map-head .stat { font-family: var(--mono); color: var(--ink-muted); font-size: 12px; }
+/* The grid scales to whatever space the column leaves it; the SVG viewBox
+   keeps the tiles square (xMidYMid meet) rather than stretching them. */
+.campus-map-canvas { flex: 1; min-height: 0; display: flex; }
+.campus-map-svg { display: block; width: 100%; height: 100%;
+  background: #f8f3e6; border: 1px solid var(--parchment-line); border-radius: 6px; }
+
+/* Siting tray, docked along the bottom edge of the map. */
+.campus-map-tray { display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--parchment-line-lo); }
+.campus-map-tray-label { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em;
+  font-size: 11px; color: var(--gold-dim); }
+.campus-map-tray-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.campus-tray-btn { background: #f5efdd; border: 1px solid var(--parchment-line); color: var(--ink);
+  border-radius: 4px; padding: 4px 10px; font-size: 12px; font-family: inherit; }
+.campus-tray-btn:hover { border-color: var(--gold-dim); background: #efe1b8; }
+.campus-tray-btn.selected { background: var(--gold); border-color: var(--gold); color: #3a2f0e; font-weight: 700; }
+/* Kind reads off a left rule, the same way building rows are marked in the build panel. */
+.campus-tray-btn.kind-building { border-left: 3px solid var(--gold-dim); }
+.campus-tray-btn.kind-dorm { border-left: 3px solid var(--green); }
+.campus-tray-btn.kind-facility { border-left: 3px solid var(--navy-line); }
+.campus-map-hint { font-size: 12px; font-style: italic; color: var(--ink-muted); margin: 0; }
+
+.campus-tile.empty rect { fill: #f1ead6; stroke: var(--parchment-line-lo); stroke-width: 1; }
+.campus-tile.targetable rect { fill: #f5efdd; stroke: var(--gold-dim); stroke-dasharray: 3 3; cursor: pointer; }
+.campus-tile.targetable:hover rect { fill: #efe1b8; stroke: var(--gold); stroke-dasharray: none; }
+.campus-tile.occupied rect { stroke-width: 1; }
+.campus-tile.occupied.kind-building rect { fill: var(--gold); stroke: var(--gold-dim); }
+.campus-tile.occupied.kind-dorm rect { fill: #cfe0cf; stroke: #9fd3af; }
+.campus-tile.occupied.kind-facility rect { fill: #dccfa6; stroke: var(--parchment-line); }
+.campus-tile text { font-family: var(--serif); font-size: 8px; fill: var(--ink); pointer-events: none;
+  user-select: none; }
+.campus-tile.occupied.kind-building text { fill: #3a2f0e; font-weight: 700; }
+
+/* ---------- tab overlays: every other view, on top of the map ---------- */
+/* Dismissible views (see TabOverlay.tsx), NOT the interrupt modal — that
+   one halts the clock, must be resolved, and sits at a higher z-index. */
+.tab-overlay-backdrop { position: absolute; inset: 0; z-index: 60; display: flex;
+  align-items: flex-start; justify-content: center; padding: 12px 16px 20px;
+  background: rgba(10, 11, 14, 0.55); }
+.tab-overlay { width: 100%; max-width: 1180px; max-height: 100%; display: flex; flex-direction: column;
+  background: var(--navy); border: 1px solid var(--gold-dim); border-radius: 10px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45); }
+.tab-overlay-head { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 11px 18px; border-bottom: 2px solid var(--gold); flex: none; }
+.tab-overlay-head h2 { margin: 0; font-family: var(--serif); text-transform: uppercase;
+  letter-spacing: 0.1em; font-size: 14px; color: var(--gold); }
+.tab-overlay-close { background: transparent; border: 1px solid var(--navy-line); color: #c7cee0;
+  border-radius: 5px; padding: 4px 12px; font-size: 11px; font-family: var(--mono); }
+.tab-overlay-close:hover { border-color: var(--gold); color: var(--gold); }
+/* Generous bottom padding: the curriculum's hover tooltips hang below their
+   cell, and this is a scroll container, so they'd otherwise clip at the end. */
+.tab-overlay-body { overflow-y: auto; padding: 14px 18px 40px; }
+.tab-overlay-body::-webkit-scrollbar { width: 8px; }
+.tab-overlay-body::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: 4px; }
+.tab-overlay-body { scrollbar-width: thin; scrollbar-color: var(--navy-line) transparent; }
 
 /* ---------- sidebar panels ---------- */
 .buy-slot-btn { width: 100%; background: #f5efdd; border: 1px solid var(--gold-dim); color: #5c4a1e;
@@ -270,3 +365,20 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .available-list::-webkit-scrollbar-thumb, .log::-webkit-scrollbar-thumb {
   background: var(--parchment-line); border-radius: 4px; }
 .available-list, .log { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
+
+/* ---------- narrow screens: fall back to a scrolling document ---------- */
+/* The viewport-filling shell needs real width for a map plus a side rail.
+   Below that, stack the rail under the map and let the page scroll again
+   rather than squeezing both into a phone-width column. */
+@media (max-width: 1000px) {
+  html, body, #root { height: auto; }
+  .app { height: auto; overflow: visible; }
+  .game-surface { flex-direction: column; }
+  .map-column { min-height: 0; }
+  .campus-map { min-height: 460px; }
+  .side-panel { width: auto; overflow: visible; padding-right: 0; }
+  /* Anchored to the viewport instead of the surface, so an overlay opened
+     while scrolled down still lands on screen. */
+  .tab-overlay-backdrop { position: fixed; align-items: center; padding: 12px; }
+  .tab-overlay { max-height: 88vh; }
+}

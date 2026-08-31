@@ -135,6 +135,43 @@ export interface BuildableEffects {
   upkeepPerWeek: number; // recurring operating cost, summed into weeklyOpEx alongside salaries/dorm-seat upkeep (see financeSystem.ts)
 }
 
+// ---------------------------------------------------------------------
+// The campus map (see README's "Courses and buildings share one screen":
+// the map is its own layer reading the same state, with building/dorm/
+// facility Buildables gaining placement). Placement is a
+// PURELY VISUAL layer for now: where a finished building physically sits
+// on campus. It grants nothing and gates nothing — a building's effects
+// are applied when it finishes, never when (or whether) it is placed.
+//
+// Deliberately NOT a field on Buildable: keeping coordinates in a separate
+// `placements` record on GameState leaves the single Buildable model
+// unforked, so `course` Buildables — which are never placeable — carry no
+// vestigial map fields (see README's "The central abstraction").
+// ---------------------------------------------------------------------
+
+// The campus is a small fixed grid of tiles. Kept deliberately small to
+// start: it should feel like siting a handful of landmark buildings, not
+// filling a spreadsheet. Grow these two numbers to grow the campus.
+export const CAMPUS_GRID_WIDTH = 8;  // tiles across (columns)
+export const CAMPUS_GRID_HEIGHT = 6; // tiles down (rows)
+
+// Which Buildable kinds can be sited on the map at all. `course` is
+// absent on purpose and must stay absent — a course is not a place.
+export const PLACEABLE_KINDS: readonly BuildableKind[] = ['building', 'dorm', 'facility'];
+
+// One tile on the campus grid. row is 0..CAMPUS_GRID_HEIGHT-1, col is
+// 0..CAMPUS_GRID_WIDTH-1.
+export interface TileCoord {
+  row: number;
+  col: number;
+}
+
+// Placed Buildable id -> the tile it occupies. Absent id = not placed yet.
+// Plain JSON (no Map/Set, no object references into `tech`) so it stays
+// serializable and light for the coming save/load work — the same shape
+// rationale as `developing` and `openPostings`.
+export type Placements = Record<string, TileCoord>;
+
 // The generic pause-the-clock decision-event mechanism (see README's
 // "Interrupts: the decision-event system"). Any system enqueues one by
 // setting `pendingInterrupt` directly on state (the same way tickFinance
@@ -188,6 +225,7 @@ export interface GameState {
   tech: Buildable[];
   slots: number;                     // parallel development slots
   developing: Record<string, number>; // course id -> weeks remaining
+  placements: Placements;            // Buildable id -> the campus tile it sits on; visual only (see the campus map block above)
   rivals: Rival[];
   self: University;
   log: LogEntry[];               // recent events, newest first

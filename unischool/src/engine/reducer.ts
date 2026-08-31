@@ -10,6 +10,7 @@ import { tickFaculty } from '../systems/faculty/facultySystem';
 import { JOB_POSTING_COST, rollPostingWeeks, FACULTY_FIELDS } from '../data/facultyData';
 import { tickPrestigeAnnual } from '../systems/prestige/prestigeSystem';
 import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
+import { canPlace } from '../state/campusMap';
 
 // The systems run in a fixed order each week. Order matters: research and
 // finance resolve before admissions/rivals read the updated world;
@@ -106,6 +107,18 @@ export function reducer(state: GameState, action: Action): GameState {
           message: `Posted openings for ${openable.length} field${openable.length === 1 ? '' : 's'}: ${openable.join(', ')}.`,
           kind: 'info',
         });
+      }
+      return s;
+    }
+
+    case 'PLACE_BUILDABLE': {
+      // Purely a map-layer action: it writes a coordinate and nothing else.
+      // No effects are applied or re-applied here — a building's effects
+      // landed when it finished developing, whether or not it is ever
+      // placed (see state/campusMap.ts).
+      const node = s.tech.find((t) => t.id === action.buildableId);
+      if (node && canPlace(s, node, action.row, action.col)) {
+        s.placements[node.id] = { row: action.row, col: action.col };
       }
       return s;
     }
