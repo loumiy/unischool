@@ -92,19 +92,18 @@ export function reducer(state: GameState, action: Action): GameState {
     }
 
     case 'POST_ALL_JOBS': {
-      const posted: string[] = [];
-      for (const field of FACULTY_FIELDS) {
-        if (field in s.openPostings) continue;
-        if (s.finance.cash < JOB_POSTING_COST) break; // stop once cash can't cover the next one — rest are left for later
-        s.finance.cash -= JOB_POSTING_COST;
-        s.openPostings[field] = rollPostingWeeks();
-        posted.push(field);
-      }
-      if (posted.length > 0) {
+      // All-or-nothing: either every field without an open posting gets one,
+      // for the full lump sum up front, or (cash short of the whole total)
+      // nothing happens at all — no partially-filled batch.
+      const openable = FACULTY_FIELDS.filter((field) => !(field in s.openPostings));
+      const totalCost = openable.length * JOB_POSTING_COST;
+      if (openable.length > 0 && s.finance.cash >= totalCost) {
+        s.finance.cash -= totalCost;
+        for (const field of openable) s.openPostings[field] = rollPostingWeeks();
         s.log.unshift({
           year: s.clock.year,
           week: s.clock.week,
-          message: `Posted openings for ${posted.length} field${posted.length === 1 ? '' : 's'}: ${posted.join(', ')}.`,
+          message: `Posted openings for ${openable.length} field${openable.length === 1 ? '' : 's'}: ${openable.join(', ')}.`,
           kind: 'info',
         });
       }
