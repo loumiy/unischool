@@ -103,6 +103,9 @@ export default function FacultyTab({ s, act }: { s: GameState; act: (a: Action) 
   const gatedFields = [...new Set(s.tech.filter((t) => t.requiresFaculty).map((t) => t.requiresFaculty!))].sort();
 
   const postingAlreadyOpen = postingField in s.openPostings;
+  const openableFields = FACULTY_FIELDS.filter((field) => !(field in s.openPostings));
+  const recruitAllCost = openableFields.length * JOB_POSTING_COST;
+  const canAffordRecruitAll = s.finance.cash >= recruitAllCost;
 
   return (
     <div className="tab-content">
@@ -118,7 +121,7 @@ export default function FacultyTab({ s, act }: { s: GameState; act: (a: Action) 
         <div className="panel-head">
           <span className="panel-head-title">
             <h2>Recruit Faculty</h2>
-            <HelpHint text={`Post an opening in a field to recruit for it — a candidate arrives after a few weeks. At most one open posting per field at a time; re-post once it resolves for another candidate.`} />
+            <HelpHint text={`Post an opening in a field to recruit for it — a candidate arrives after a few weeks. At most one open posting per field at a time; re-post once it resolves for another candidate. "Recruit All" posts one in every field that doesn't already have an open posting, at the same $${JOB_POSTING_COST.toLocaleString()}/field rate — all at once, for the full lump sum, or not at all if you can't afford the whole batch.`} />
           </span>
         </div>
         <div className="posting-control">
@@ -139,6 +142,17 @@ export default function FacultyTab({ s, act }: { s: GameState; act: (a: Action) 
             onClick={() => act({ type: 'POST_JOB', field: postingField })}
           >
             Post Opening — ${JOB_POSTING_COST.toLocaleString()}
+          </button>
+          <button
+            disabled={openableFields.length === 0 || !canAffordRecruitAll}
+            title={openableFields.length === 0
+              ? 'Every field already has an open posting.'
+              : !canAffordRecruitAll
+                ? `Not enough cash — posting all ${openableFields.length} remaining fields costs $${recruitAllCost.toLocaleString()}.`
+                : `Posts an opening for all ${openableFields.length} remaining fields at once.`}
+            onClick={() => act({ type: 'POST_ALL_JOBS' })}
+          >
+            Recruit All — ${recruitAllCost.toLocaleString()}
           </button>
         </div>
       </section>

@@ -1,7 +1,7 @@
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
 import { discoverySchools } from '../data/techData';
-import { canStartDevelopment } from '../systems/techtree/techSystem';
+import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import HelpHint from '../components/HelpHint';
 
 // ---------------------------------------------------------------------
@@ -100,13 +100,13 @@ function cellState(s: GameState, t: Buildable): CellState {
 function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => void; t: Buildable; lookup: Map<string, Buildable> }) {
   const state = cellState(s, t);
   const code = t.name.split(' · ')[0];
-  const missingFaculty = !!(t.requiresFaculty && !s.faculty.some((f) => f.field === t.requiresFaculty));
+  const missingFaculty = !!(t.requiresFaculty && !hasFreeFacultySlot(s, t.requiresFaculty));
 
   const blockedReason = state === 'blocked'
     ? s.finance.cash < 0
       ? 'Cash is negative — development is stalled until it recovers.'
       : missingFaculty
-        ? `Requires a ${t.requiresFaculty} faculty member on the roster.`
+        ? `No free ${t.requiresFaculty} faculty slots — hire more or more senior ${t.requiresFaculty} faculty on the Campus tab.`
         : 'All development slots are busy — commission more on the Campus tab.'
     : undefined;
 

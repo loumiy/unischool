@@ -66,7 +66,7 @@ const SAME_ORIGIN_NAME_WEIGHT = 0.85;
 // should essentially never exhaust; the loop is just a safety net.
 const MAX_NAME_ROLL_ATTEMPTS = 30;
 
-export const FACULTY_FIELDS = ['Physics', 'History', 'CompSci', 'Economics', 'Biology', 'Mathematics', 'Sociology', 'Chemistry', 'Psychology', 'English'];
+export const FACULTY_FIELDS = ['Physics', 'History', 'CompSci', 'Economics', 'Biology', 'Mathematics', 'Sociology', 'Chemistry', 'Psychology', 'English', 'Business', 'Arts', 'Philosophy'];
 
 function pick<T>(pool: T[]): T {
   return pool[Math.floor(Math.random() * pool.length)];
@@ -171,6 +171,9 @@ const FIELD_RESEARCH_INTERESTS: Record<string, string[]> = {
   Chemistry: ['catalysis', 'polymer synthesis', 'environmental chemistry'],
   Psychology: ['cognitive development', 'clinical resilience', 'decision-making under uncertainty'],
   English: ['postcolonial literature', 'rhetoric and composition', 'digital humanities'],
+  Business: ['corporate strategy', 'entrepreneurial finance', 'organizational behavior'],
+  Arts: ['visual culture', 'performance studies', 'creative practice'],
+  Philosophy: ['ethics and moral philosophy', 'philosophy of mind', 'political philosophy'],
 };
 
 function rollBio(field: string): string {
