@@ -112,7 +112,7 @@ function autoFillSlots(s: GameState): void {
 
 // Applies only the "apply-once, at completion" effect fields (see the split
 // documented on BuildableEffects in state/types.ts). servesPopulation,
-// satisfactionAttribute, flatSatisfactionBonus, churnReductionBonus,
+// satisfactionAttribute, flatSatisfactionBonus,
 // prestigeContribution, and upkeepPerWeek are deliberately NOT handled
 // here — they're read live, every tick, straight off `s.tech`'s 'done'
 // entries by satisfactionSystem.ts / prestigeSystem.ts / financeSystem.ts,

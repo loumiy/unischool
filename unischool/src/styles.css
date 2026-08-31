@@ -268,13 +268,20 @@ button { cursor: pointer; font-family: inherit; }
 .developing-list { list-style: none; margin: 0; padding: 0; }
 .developing-list li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--parchment-line-lo); font-size: 13px; }
 
-dl { display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; margin: 0; }
-dt { color: var(--ink-muted); } dd { margin: 0; text-align: right; font-family: var(--mono); }
+/* Scoped to .panel deliberately: this two-column grid assumes bare
+   <dt>/<dd> children. .admissions-outcomes (in the interrupt modal) wraps
+   each pair in a <div>, so as a global rule this laid those wrappers out
+   two-per-row and collided labels with values. Every other <dl> in the app
+   (Treasury, Admissions, Faculty course slots, faculty row details) lives
+   inside a .panel section, so they all still get this layout. */
+.panel dl { display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; margin: 0; }
+.panel dt { color: var(--ink-muted); } .panel dd { margin: 0; text-align: right; font-family: var(--mono); }
 
 .satisfaction-toggle { background: none; border: none; color: var(--gold-dim); font-family: var(--mono);
   font-size: 11px; cursor: pointer; padding: 0; }
 .satisfaction-breakdown { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--parchment-line-lo); font-size: 12px; }
 .satisfaction-breakdown dt { padding-left: 10px; }
+.demand-note { margin-top: 10px; }
 
 ul, ol { list-style: none; margin: 0; padding: 0; }
 .outcome-note { color: var(--gold-dim); font-size: 11px; }
@@ -284,7 +291,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-row { border-bottom: 1px solid var(--parchment-line-lo); padding: 6px 0; }
 .faculty-row-summary { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .faculty-expand-btn { background: none; border: none; color: var(--gold-dim); font-size: 11px; padding: 0 2px; width: 16px; }
-.faculty-flag { font-size: 15px; line-height: 1; }
 .faculty-name { font-weight: 600; }
 .faculty-row-spacer { flex: 1; }
 .faculty-row-summary button { background: #f4dede; color: #8a2f2f; border: 1px solid #d9a8a8; border-radius: 5px;
@@ -312,7 +318,10 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 
 /* ---------- overlays ---------- */
 .gameover { background: #3a2226; color: #f2ede0; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }
-.gameover button { margin-left: 8px; background: #3b6ef0; color: white; border: none; border-radius: 6px; padding: 4px 12px; }
+/* Gold-on-navy, matching .startup-begin-btn — the previous #3b6ef0 was
+   stock link-blue and clashed with the navy/gold/parchment palette. */
+.gameover button { margin-left: 8px; background: var(--gold); color: #1a2035; border: none; border-radius: 6px;
+  padding: 4px 12px; font-family: var(--serif); font-weight: 700; }
 
 .modal-backdrop { position: fixed; inset: 0; background: rgba(10, 11, 14, 0.7);
   display: flex; align-items: center; justify-content: center; z-index: 100; }
@@ -320,7 +329,10 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   border: 1px solid var(--navy-line); }
 .modal h2 { margin: 0 0 10px; font-size: 16px; font-family: var(--serif); }
 .modal p { margin: 0 0 16px; color: #cbd0d8; font-size: 14px; }
-.modal button { background: #3b6ef0; color: white; border: none; border-radius: 6px; padding: 6px 16px; }
+/* Same gold-on-navy treatment as .startup-begin-btn / .gameover button. */
+.modal button { background: var(--gold); color: #1a2035; border: none; border-radius: 6px;
+  padding: 6px 16px; font-family: var(--serif); font-size: 14px; font-weight: 700; }
+.modal button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .report-standings { max-height: 320px; overflow-y: auto; margin: 0 0 16px; padding-right: 6px; }
 .report-standings li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--navy-line); font-size: 13px; }

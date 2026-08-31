@@ -91,8 +91,10 @@ function rollFullName(existingNames: Set<string>): RolledName {
 }
 
 // ---------------------------------------------------------------------
-// Nationality: shown as an expanded country name plus a flag emoji next to
-// each faculty member's name (see FacultyTab.tsx). Deliberately
+// Nationality: shown as an expanded country name in each faculty member's
+// expanded detail (see FacultyTab.tsx). The paired `flag` emoji is kept as
+// authored data but is no longer rendered anywhere — the glyphs failed to
+// display in some browsers, so the inline flag was dropped. Deliberately
 // disproportionately American — most of any real American university's
 // faculty, whatever their heritage, hold US citizenship — with the
 // remainder tied to the SAME origin pool the name itself was drawn from

@@ -168,12 +168,10 @@ const STUDENT_CENTER_TIER1_ID = 'SCTR-T1';
 const STUDENT_CENTER_TIER1_SERVES = 1_000;
 const STUDENT_CENTER_TIER1_COST = 110_000;
 const STUDENT_CENTER_TIER1_WEEKS = 10;
-const STUDENT_CENTER_TIER1_CHURN_REDUCTION = 0.15;
 const STUDENT_CENTER_TIER2_ID = 'SCTR-T2';
 const STUDENT_CENTER_TIER2_SERVES = 3_000;
 const STUDENT_CENTER_TIER2_COST = 320_000;
 const STUDENT_CENTER_TIER2_WEEKS = 20;
-const STUDENT_CENTER_TIER2_CHURN_REDUCTION = 0.20;
 
 // --- Recreation/athletics center: single building, two tiers, social + prestige ---
 const REC_CENTER_TIER1_ID = 'REC-T1';
@@ -297,7 +295,7 @@ export function initialFacilities(): Buildable[] {
       facilityType: 'studentCenter',
       tier: 1,
       name: 'Student Center',
-      description: `Social space for ${STUDENT_CENTER_TIER1_SERVES.toLocaleString()} students; also eases attrition campus-wide.`,
+      description: `Social space for ${STUDENT_CENTER_TIER1_SERVES.toLocaleString()} students — happier students mean a bigger applicant pool next cycle.`,
       cost: STUDENT_CENTER_TIER1_COST,
       duration: STUDENT_CENTER_TIER1_WEEKS,
       prereqs: [],
@@ -305,7 +303,6 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: STUDENT_CENTER_TIER1_SERVES,
         satisfactionAttribute: 'social',
-        churnReductionBonus: STUDENT_CENTER_TIER1_CHURN_REDUCTION,
         upkeepPerWeek: servedUpkeep('studentCenter', STUDENT_CENTER_TIER1_SERVES),
       },
     },
@@ -315,7 +312,7 @@ export function initialFacilities(): Buildable[] {
       facilityType: 'studentCenter',
       tier: 2,
       name: 'Student Union Expansion',
-      description: `Adds ${STUDENT_CENTER_TIER2_SERVES.toLocaleString()} more social capacity and further reduces attrition.`,
+      description: `Adds ${STUDENT_CENTER_TIER2_SERVES.toLocaleString()} more social capacity.`,
       cost: STUDENT_CENTER_TIER2_COST,
       duration: STUDENT_CENTER_TIER2_WEEKS,
       prereqs: [STUDENT_CENTER_TIER1_ID],
@@ -323,7 +320,6 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: STUDENT_CENTER_TIER2_SERVES,
         satisfactionAttribute: 'social',
-        churnReductionBonus: STUDENT_CENTER_TIER2_CHURN_REDUCTION,
         upkeepPerWeek: servedUpkeep('studentCenter', STUDENT_CENTER_TIER2_SERVES),
       },
     },

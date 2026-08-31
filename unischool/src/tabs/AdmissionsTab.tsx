@@ -18,6 +18,9 @@ const ATTRIBUTE_LABELS: Record<string, string> = {
 // five named attributes (see satisfactionSystem.ts) — the toggle below
 // expands it into that breakdown so the player can see exactly what's
 // dragging the number down and which building (Campus tab) fixes it.
+// Satisfaction's consequence is word of mouth: it scales next summer's
+// applicant pool (see admissionsSystem.ts's WORD_OF_MOUTH_STRENGTH), so
+// the note below says so rather than leaving it a bare number.
 export default function AdmissionsTab({ s }: { s: GameState }) {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const breakdown = s.students.satisfactionBreakdown;
@@ -50,6 +53,7 @@ export default function AdmissionsTab({ s }: { s: GameState }) {
             ))}
           </dl>
         )}
+        <p className="empty-note demand-note">Word of mouth: student satisfaction scales next summer's applicant pool.</p>
       </section>
     </div>
   );

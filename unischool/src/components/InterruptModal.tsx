@@ -27,15 +27,17 @@ interface AdmissionsDraft {
 // The once-a-year summer admissions decision (see README's "Admissions: an
 // annual summer decision"). The player sets exactly two levers — tuition
 // and average financial aid — and the distribution funnel resolves the rest
-// (see admissionsSystem.ts). Selectivity and enrollment are NOT inputs:
+// (see admissionsSystem.ts), with current student satisfaction feeding the
+// applicant pool as word of mouth. Selectivity and enrollment are NOT inputs:
 // they are emergent outcomes, previewed live below so the player can see the
 // consequences of the two settings before confirming. This is the only
 // place tuition is ever set; there is no live, adjustable tuition control.
-function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, onResolve }: {
+function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, satisfaction, onResolve }: {
   payload: AdmissionsDraft;
   prestige: number;
   capacity: number;
   tuitionCeiling: number;
+  satisfaction: number;
   onResolve: (settings: AdmissionsDraft) => void;
 }) {
   const [tuition, setTuition] = useState(payload.tuition);
@@ -43,7 +45,7 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
 
   // Live preview of the emergent outcomes, computed with the very function
   // the reducer commits with — so the numbers shown are the numbers applied.
-  const outcome = projectAdmissions(prestige, tuition, financialAidRate, capacity);
+  const outcome = projectAdmissions(prestige, tuition, financialAidRate, capacity, satisfaction);
 
   return (
     <>
@@ -64,6 +66,7 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
 
       <dl className="admissions-outcomes">
         <div><dt>Applicant pool</dt><dd>{outcome.applicants.toLocaleString()}</dd></div>
+        <div><dt>Word of mouth <span className="outcome-note">(satisfaction {Math.round(satisfaction)})</span></dt><dd>{outcome.wordOfMouthMultiplier >= 1 ? '+' : ''}{Math.round((outcome.wordOfMouthMultiplier - 1) * 100)}% applicants</dd></div>
         <div><dt>Admit rate <span className="outcome-note">(selectivity)</span></dt><dd>{Math.round(outcome.admitRate * 100)}%</dd></div>
         <div><dt>Yield</dt><dd>{Math.round(outcome.yieldRate * 100)}%</dd></div>
         <div><dt>Enrolled class</dt><dd>{outcome.enrolled.toLocaleString()} / {capacity.toLocaleString()}</dd></div>
@@ -128,6 +131,7 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
             prestige={s.self.reputation}
             capacity={s.students.capacity}
             tuitionCeiling={s.finance.tuitionCeiling}
+            satisfaction={s.students.satisfaction}
             onResolve={(settings) => act({ type: 'RESOLVE_ADMISSIONS', ...settings })}
           />
         ) : s.pendingInterrupt.type === 'rankings-entry' || s.pendingInterrupt.type === 'annual-report' ? (

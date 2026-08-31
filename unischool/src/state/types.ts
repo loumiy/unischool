@@ -64,7 +64,7 @@ export interface Faculty {
   // (see facultyData.ts's NAME_POOLS/rollNationality) — never assigned
   // independently of the name.
   nationality: string; // e.g. "United States", "China" — full country name, shown expanded in the UI
-  flag: string;        // the nationality's flag emoji, shown next to the name at a glance
+  flag: string;        // the nationality's flag emoji — authored data, currently unrendered (the glyphs failed to display in some browsers; see FacultyTab.tsx)
   bio: string;         // one-line biographical flavor text, shown only when the roster row is expanded
 }
 
@@ -114,8 +114,8 @@ export interface Buildable {
 // (techSystem.ts's applyEffects mutates state directly). The second block is
 // never mutated into state — it's read LIVE, every tick, off every currently
 // 'done' Buildable by the system that cares (satisfactionSystem.ts sums
-// servesPopulation/satisfactionAttribute/flatSatisfactionBonus/
-// churnReductionBonus; prestigeSystem.ts sums prestigeContribution;
+// servesPopulation/satisfactionAttribute/flatSatisfactionBonus;
+// prestigeSystem.ts sums prestigeContribution;
 // financeSystem.ts sums upkeepPerWeek) — so a facility's contribution stays
 // current even though nothing "happens" on the weeks after it finishes.
 export interface BuildableEffects {
@@ -130,7 +130,6 @@ export interface BuildableEffects {
   servesPopulation: number;    // how many students' worth of this need one instance covers, compared against s.students.capacity (needs scale with planned campus size, not today's enrollment)
   satisfactionAttribute: keyof SatisfactionAttributes; // which breakdown attribute servesPopulation/flatSatisfactionBonus feeds
   flatSatisfactionBonus: number; // added directly to the attribute score, NOT ratio/population-scaled (the quad: cheap, and its contribution doesn't shrink as the campus grows)
-  churnReductionBonus: number; // multiplicatively shrinks weekly attrition (see admissionsSystem.ts) — the student center's passive retention effect
   prestigeContribution: number; // 0..1 share fed into prestige's campus-life input (see prestigeSystem.ts) — the rec center's "small prestige contribution"
   upkeepPerWeek: number; // recurring operating cost, summed into weeklyOpEx alongside salaries/dorm-seat upkeep (see financeSystem.ts)
 }

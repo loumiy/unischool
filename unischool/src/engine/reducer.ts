@@ -14,8 +14,9 @@ import { canPlace } from '../state/campusMap';
 
 // The systems run in a fixed order each week. Order matters: research and
 // finance resolve before admissions/rivals read the updated world;
-// satisfaction resolves before admissions so this week's attrition reads
-// this week's freshly recomputed satisfaction, not last week's.
+// satisfaction resolves before admissions so the summer funnel's
+// word-of-mouth term reads this week's freshly recomputed satisfaction,
+// not last week's.
 const SYSTEMS: Array<(s: GameState) => void> = [
   tickTech,
   tickFaculty,
@@ -157,6 +158,9 @@ export function reducer(state: GameState, action: Action): GameState {
         s.finance.tuitionPerStudent,
         s.admissions.financialAidRate,
         s.students.capacity,
+        // Word of mouth: this year's student satisfaction scales next
+        // year's applicant pool (see admissionsSystem.ts).
+        s.students.satisfaction,
       );
       s.students.enrolled = outcome.enrolled;
       s.students.applicantPool = outcome.applicants;
