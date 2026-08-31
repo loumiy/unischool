@@ -319,7 +319,10 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 
 /* ---------- overlays ---------- */
 .gameover { background: #3a2226; color: #f2ede0; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }
-.gameover button { margin-left: 8px; background: #3b6ef0; color: white; border: none; border-radius: 6px; padding: 4px 12px; }
+/* Gold-on-navy, matching .startup-begin-btn — the previous #3b6ef0 was
+   stock link-blue and clashed with the navy/gold/parchment palette. */
+.gameover button { margin-left: 8px; background: var(--gold); color: #1a2035; border: none; border-radius: 6px;
+  padding: 4px 12px; font-family: var(--serif); font-weight: 700; }
 
 .modal-backdrop { position: fixed; inset: 0; background: rgba(10, 11, 14, 0.7);
   display: flex; align-items: center; justify-content: center; z-index: 100; }
@@ -327,7 +330,10 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   border: 1px solid var(--navy-line); }
 .modal h2 { margin: 0 0 10px; font-size: 16px; font-family: var(--serif); }
 .modal p { margin: 0 0 16px; color: #cbd0d8; font-size: 14px; }
-.modal button { background: #3b6ef0; color: white; border: none; border-radius: 6px; padding: 6px 16px; }
+/* Same gold-on-navy treatment as .startup-begin-btn / .gameover button. */
+.modal button { background: var(--gold); color: #1a2035; border: none; border-radius: 6px;
+  padding: 6px 16px; font-family: var(--serif); font-size: 14px; font-weight: 700; }
+.modal button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .report-standings { max-height: 320px; overflow-y: auto; margin: 0 0 16px; padding-right: 6px; }
 .report-standings li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--navy-line); font-size: 13px; }
