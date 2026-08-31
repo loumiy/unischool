@@ -5,12 +5,15 @@ import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import { awaitingPlacement, occupantAt } from '../state/campusMap';
 import HelpHint from './HelpHint';
 
-// The campus map: a placement + rendering layer over the SAME Buildables
-// the Campus tab lists (see README's "Later: the campus map, as its own
-// system reading the same state"). It reads `s.placements` + `s.tech` and
+// The campus map: the game's base layer, always on screen under everything
+// else (see App.tsx), and a placement + rendering layer over the SAME
+// Buildables the build panel lists. It reads `s.placements` + `s.tech` and
 // dispatches PLACE_BUILDABLE; it computes nothing, owns no game state, and
 // changes no outcome. Siting a building is optional and grants nothing —
 // its effects landed the week it finished.
+//
+// Being the central surface is a LAYOUT fact, not a mechanical one: nothing
+// here gained authority over the sim by moving to the middle of the screen.
 //
 // Plain SVG on purpose: tiles are <rect>s, placed buildings are a <rect>
 // plus a wrapped <text> label. No canvas, no game library, no new deps.
@@ -114,8 +117,8 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
   const cols = Array.from({ length: CAMPUS_GRID_WIDTH }, (_, col) => col);
 
   return (
-    <section className="panel">
-      <div className="panel-head">
+    <section className="campus-map">
+      <div className="campus-map-head">
         <span className="panel-head-title">
           <h2>Campus Map</h2>
           <HelpHint text="Where finished buildings physically sit. Siting is optional and cosmetic for now — a building's effects apply the week it finishes, placed or not. Pick a building from the tray, then click an empty tile. Courses are never sited: a course is not a place." />
@@ -123,11 +126,37 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
         <span className="stat">{placedCount}/{totalTiles} tiles sited</span>
       </div>
 
+      <div className="campus-map-canvas">
+        <svg
+          className={`campus-map-svg ${selected ? 'placing' : ''}`}
+          viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+          width="100%"
+          height="100%"
+          role="group"
+          aria-label="Campus map"
+        >
+          {rows.map((row) => cols.map((col) => {
+            const occupantId = occupantAt(s.placements, row, col);
+            return (
+              <Tile
+                key={`${row}-${col}`}
+                row={row}
+                col={col}
+                occupant={occupantId ? s.tech.find((t) => t.id === occupantId) : undefined}
+                selecting={selected !== null}
+                onClick={() => place(row, col)}
+              />
+            );
+          }))}
+        </svg>
+      </div>
+
+      {/* The siting tray is docked to the map, not to the build panel: the
+          panel is where a building is commissioned, this is where a finished
+          one is put down. */}
       <div className="campus-map-tray">
         <span className="campus-map-tray-label">Awaiting siting</span>
-        {tray.length === 0 ? (
-          <span className="empty-note">Nothing to site — every finished building is on the map.</span>
-        ) : (
+        {tray.length > 0 && (
           <ul className="campus-map-tray-list">
             {tray.map((t) => (
               <li key={t.id}>
@@ -143,37 +172,14 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
             ))}
           </ul>
         )}
+        <span className="campus-map-hint">
+          {selected
+            ? `Click an empty tile to site ${selected.name}.`
+            : tray.length > 0
+              ? 'Select a building, then click an empty tile.'
+              : 'Nothing to site — finish a building, dorm, or facility and it appears here.'}
+        </span>
       </div>
-
-      <p className="campus-map-hint">
-        {selected
-          ? `Click an empty tile to site ${selected.name}.`
-          : tray.length > 0
-            ? 'Select a building above, then click an empty tile.'
-            : 'Finish a building, dorm, or facility to site it here.'}
-      </p>
-
-      <svg
-        className={`campus-map-svg ${selected ? 'placing' : ''}`}
-        viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
-        width="100%"
-        role="group"
-        aria-label="Campus map"
-      >
-        {rows.map((row) => cols.map((col) => {
-          const occupantId = occupantAt(s.placements, row, col);
-          return (
-            <Tile
-              key={`${row}-${col}`}
-              row={row}
-              col={col}
-              occupant={occupantId ? s.tech.find((t) => t.id === occupantId) : undefined}
-              selecting={selected !== null}
-              onClick={() => place(row, col)}
-            />
-          );
-        }))}
-      </svg>
     </section>
   );
 }

@@ -4,8 +4,11 @@ import type { GameState } from './state/types';
 import StartupScreen from './components/StartupScreen';
 import StatusHeader from './components/StatusHeader';
 import InterruptModal from './components/InterruptModal';
-import TabNav, { type TabId } from './components/TabNav';
-import CampusTab from './tabs/CampusTab';
+import TabNav, { TAB_LABELS, type TabId } from './components/TabNav';
+import CampusMap from './components/CampusMap';
+import BuildPanel from './components/BuildPanel';
+import LogStrip from './components/LogStrip';
+import TabOverlay from './components/TabOverlay';
 import FacultyTab from './tabs/FacultyTab';
 import CurriculumTab from './tabs/CurriculumTab';
 import TreasuryTab from './tabs/TreasuryTab';
@@ -13,13 +16,22 @@ import AdmissionsTab from './tabs/AdmissionsTab';
 import AthleticsTab from './tabs/AthleticsTab';
 import './styles.css';
 
-// The dashboard shell: the persistent header/status bar and interrupt
-// modal render above every tab (see StatusHeader.tsx/InterruptModal.tsx);
-// each tab's own content is a self-contained component under src/tabs/.
+// The dashboard shell, built around the campus map as the central
+// interface: the map holds the middle of the screen at all times, the
+// build panel sits in the side rail beside it, and the log runs underneath.
+// Every OTHER view (Faculty, Curriculum, Treasury, Admissions, Athletics)
+// pops up as a dismissible overlay ON TOP of the map rather than replacing
+// it — so the map is the one screen the player always comes back to, and
+// no view is ever more than one Escape away from it.
+//
+// The tab components themselves are untouched by this: they still read
+// their slice of GameState and dispatch actions exactly as before, and know
+// nothing about being rendered in an overlay.
 export default function App() {
   const { state, act, speed, setSpeed } = useGame();
   const s: GameState = state;
-  const [tab, setTab] = useState<TabId>('campus');
+  // null = looking at the map itself, with nothing open over it.
+  const [overlay, setOverlay] = useState<TabId | null>(null);
 
   if (!s.started) {
     return <StartupScreen onStart={(name, schoolType) => act({ type: 'START_GAME', name, schoolType })} />;
@@ -33,14 +45,26 @@ export default function App() {
 
       <InterruptModal s={s} act={act} />
 
-      <TabNav active={tab} onChange={setTab} />
+      <TabNav active={overlay} onChange={setOverlay} />
 
-      {tab === 'campus' && <CampusTab s={s} act={act} />}
-      {tab === 'faculty' && <FacultyTab s={s} act={act} />}
-      {tab === 'curriculum' && <CurriculumTab s={s} act={act} />}
-      {tab === 'treasury' && <TreasuryTab s={s} />}
-      {tab === 'admissions' && <AdmissionsTab s={s} />}
-      {tab === 'athletics' && <AthleticsTab />}
+      <main className="game-surface">
+        <div className="map-column">
+          <CampusMap s={s} act={act} />
+          <LogStrip s={s} />
+        </div>
+
+        <BuildPanel s={s} act={act} />
+
+        {overlay && (
+          <TabOverlay title={TAB_LABELS[overlay]} onClose={() => setOverlay(null)}>
+            {overlay === 'faculty' && <FacultyTab s={s} act={act} />}
+            {overlay === 'curriculum' && <CurriculumTab s={s} act={act} />}
+            {overlay === 'treasury' && <TreasuryTab s={s} />}
+            {overlay === 'admissions' && <AdmissionsTab s={s} />}
+            {overlay === 'athletics' && <AthleticsTab />}
+          </TabOverlay>
+        )}
+      </main>
     </div>
   );
 }

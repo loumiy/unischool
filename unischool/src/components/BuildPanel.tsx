@@ -2,19 +2,24 @@ import type { Action } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { nextSlotCost, MAX_SLOTS, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import { STARTING_DORM_CAPACITY } from '../data/campusData';
-import HelpHint from '../components/HelpHint';
-import CampusMap from '../components/CampusMap';
+import HelpHint from './HelpHint';
 
-// Campus: every physical building the university can have — housing, campus-
-// life facilities, academic buildings, and labs — shown as ONE list of
-// type groups (Housing, Library, Dining, ...) rather than the four separate
-// panels this used to be split across. Each group lists every Buildable of
-// that type that isn't 'locked': built ones (done), the one currently under
-// construction (developing), and the one next available to build — styled
-// differently so built/developing/available read apart at a glance. A
-// locked Buildable (its prereqs or a population/prestige gate unmet) is
-// hidden entirely rather than teased with an unlock note — nothing to
-// decide about it yet, so it doesn't belong in this list.
+// The build panel: every physical building the university can have —
+// housing, campus-life facilities, academic buildings, and labs — as ONE
+// list of type groups (Housing, Library, Dining, ...). It sits in the side
+// rail beside the campus map (see App.tsx), which is where what gets built
+// here ends up: this panel is "what to build", the map is "where it goes".
+//
+// Each group lists every Buildable of that type that isn't 'locked': built
+// ones (done), the one currently under construction (developing), and the
+// one next available to build — styled differently so built/developing/
+// available read apart at a glance. A locked Buildable (its prereqs or a
+// population/prestige gate unmet) is hidden entirely rather than teased
+// with an unlock note — nothing to decide about it yet, so it doesn't
+// belong in this list.
+//
+// Courses are deliberately absent: they are not places, so they live in the
+// Curriculum view rather than beside the map.
 
 const FACILITY_LABELS: Record<FacilityType, string> = {
   library: 'Library',
@@ -124,24 +129,31 @@ function BuildableRow({ s, act, t }: { s: GameState; act: (a: Action) => void; t
   );
 }
 
-export default function CampusTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
+export default function BuildPanel({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const slotsUsed = Object.keys(s.developing).length;
   const slotCost = nextSlotCost(s.slots);
   const groups = buildGroups(s);
 
   return (
-    <div className="tab-content">
-      <section className="panel">
+    <aside className="side-panel">
+      <section className="panel side-panel-section">
         <div className="panel-head">
           <span className="panel-head-title">
-            <h2>Campus</h2>
-            <HelpHint text="Every building the university can have, grouped by type: what's built, what's under construction, and what's next available. A facility serves a fixed share of students against total planned capacity, not today's enrollment — building more housing raises the bar for the rest of campus life too. Anything not yet unlockable is left off the list rather than teased." />
+            <h2>Build</h2>
+            <HelpHint text="Every building the university can have, grouped by type: what's built, what's under construction, and what's next available. A facility serves a fixed share of students against total planned capacity, not today's enrollment — building more housing raises the bar for the rest of campus life too. Anything not yet unlockable is left off the list rather than teased. Finished buildings can then be sited on the map." />
           </span>
-          <span className="stat">{s.students.enrolled.toLocaleString()}/{s.students.capacity.toLocaleString()} beds · satisfaction {Math.round(s.students.satisfaction)}</span>
+          <span className="stat">{slotsUsed}/{s.slots} slots</span>
         </div>
+
+        <div className="side-panel-stats">
+          <span className="stat">{s.students.enrolled.toLocaleString()}/{s.students.capacity.toLocaleString()} beds</span>
+          <span className="stat">satisfaction {Math.round(s.students.satisfaction)}</span>
+        </div>
+
         {s.finance.cash < 0 && (
           <p className="stall-note">Cash is negative — new development is stalled until it recovers.</p>
         )}
+
         <div className="building-groups">
           {groups.map((group) => (
             <div className="building-group" key={group.key}>
@@ -157,9 +169,7 @@ export default function CampusTab({ s, act }: { s: GameState; act: (a: Action) =
         </div>
       </section>
 
-      <CampusMap s={s} act={act} />
-
-      <section className="panel">
+      <section className="panel side-panel-section">
         <div className="panel-head"><h2>Development Slots</h2><span className="stat">{slotsUsed}/{s.slots}</span></div>
         <button
           className="buy-slot-btn"
@@ -170,17 +180,6 @@ export default function CampusTab({ s, act }: { s: GameState; act: (a: Action) =
           Commission a Slot — ${slotCost.toLocaleString()}
         </button>
       </section>
-
-      <section className="panel">
-        <h2>Log</h2>
-        <ul className="log">
-          {s.log.map((e, i) => (
-            <li key={i} className={e.kind}>
-              <span className="ts">Y{e.year}W{e.week}</span> {e.message}
-            </li>
-          ))}
-        </ul>
-      </section>
-    </div>
+    </aside>
   );
 }
