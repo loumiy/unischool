@@ -11,9 +11,13 @@ import { WEEKS_PER_YEAR } from '../../state/types';
 // The player sets exactly two things: tuition and an average financial-aid
 // percentage. Everything else is emergent:
 //
-//   1. Applicant pool = f(prestige, tuition). Higher prestige draws more
-//      applicants and shifts the distribution toward higher quality;
-//      higher tuition shrinks the pool and fattens the low-quality tail.
+//   1. Applicant pool = f(prestige, tuition, satisfaction). Higher prestige
+//      draws more applicants and shifts the distribution toward higher
+//      quality; higher tuition shrinks the pool and fattens the low-quality
+//      tail; and current student satisfaction scales the whole pool up or
+//      down as word of mouth (see WORD_OF_MOUTH_STRENGTH below) — that is
+//      satisfaction's one mechanical consequence, applied here once a year
+//      rather than as a weekly drip.
 //   2. Admissions skims from the top of the quality distribution, admitting
 //      enough of each band — most selective first — that EXPECTED
 //      enrollment (admits x that band's yield) fills capacity, not raw
@@ -74,6 +78,26 @@ const APPLICANT_VOLUME_STEEPNESS = 0.083;   // curve steepness around the midpoi
 const APPLICANT_VOLUME_TUITION_REFERENCE = 30_000; // price scale the volume discount uses
 const PRICE_SENSITIVITY = 0.18;             // applicants ~ exp(-sensitivity x tuition/ref); higher tuition => fewer applicants
 
+// --- Word of mouth: current student satisfaction scales the applicant pool.
+// This is satisfaction's ONE mechanical consequence (the weekly attrition
+// trickle it used to drive is gone): a miserable student body talks the
+// school down and next cycle's pool shrinks; a happy one talks it up and
+// the pool grows. It is applied once a year, inside the funnel, so the
+// effect is felt at the summer decision alongside prestige and price
+// rather than as an invisible weekly drip.
+//
+// WORD_OF_MOUTH_NEUTRAL is the satisfaction score that neither helps nor
+// hurts — it matches the founding satisfaction in state/actions.ts, so a
+// school that holds steady at its starting mood sees no word-of-mouth
+// effect at all. Deviation from it is normalized against the room
+// available on that side (0..NEUTRAL below, NEUTRAL..100 above), so
+// WORD_OF_MOUTH_STRENGTH reads directly as the maximum fractional swing:
+// at satisfaction 100 the pool is (1 + STRENGTH)x, at satisfaction 0 it is
+// (1 - STRENGTH)x. This single constant is the tuning knob for how much
+// student happiness matters to demand.
+const WORD_OF_MOUTH_NEUTRAL = 70;    // satisfaction score with no effect on demand — matches the founding value
+const WORD_OF_MOUTH_STRENGTH = 0.35; // max fractional change to the pool: +35% at satisfaction 100, -35% at 0
+
 // --- Quality distribution: fractions of the pool in each band ---
 // Base mix at reference conditions; must sum to 1. Prestige shifts mass up
 // into the top band; tuition shifts mass down into the low tail.
@@ -103,7 +127,8 @@ type QualityBand = 'top' | 'mid' | 'low';
 // The emergent outcome of the funnel for a given policy. Everything here is
 // a displayed consequence of the two inputs (tuition, aid), not an input.
 export interface AdmissionsProjection {
-  applicants: number;          // total applicant pool
+  applicants: number;          // total applicant pool, after word of mouth
+  wordOfMouthMultiplier: number; // satisfaction's multiplier on the pool (1.0 = neutral) — see WORD_OF_MOUTH_STRENGTH
   admits: number;              // admitted, after skimming to capacity
   admitRate: number;           // admits / applicants — the emergent selectivity (lower = more selective)
   yieldRate: number;           // enrolled / admits — the emergent yield
@@ -123,6 +148,18 @@ function applicantVolume(prestige: number, tuition: number): number {
     (1 + Math.exp(-APPLICANT_VOLUME_STEEPNESS * (prestige - APPLICANT_VOLUME_MIDPOINT)));
   const tuitionFactor = Math.exp(-PRICE_SENSITIVITY * Math.max(tuition, 0) / APPLICANT_VOLUME_TUITION_REFERENCE);
   return prestigePool * tuitionFactor;
+}
+
+// Word-of-mouth multiplier on the applicant pool, from current student
+// satisfaction. 1.0 at WORD_OF_MOUTH_NEUTRAL, rising to 1 +
+// WORD_OF_MOUTH_STRENGTH at satisfaction 100 and falling to 1 -
+// WORD_OF_MOUTH_STRENGTH at satisfaction 0.
+function wordOfMouthFactor(satisfaction: number): number {
+  const s = clamp(satisfaction, 0, 100);
+  const deviation = s >= WORD_OF_MOUTH_NEUTRAL
+    ? (s - WORD_OF_MOUTH_NEUTRAL) / (100 - WORD_OF_MOUTH_NEUTRAL)
+    : (s - WORD_OF_MOUTH_NEUTRAL) / WORD_OF_MOUTH_NEUTRAL;
+  return 1 + WORD_OF_MOUTH_STRENGTH * deviation;
 }
 
 // The quality mix (top/mid/low fractions, summing to 1) for the pool.
@@ -145,16 +182,19 @@ function bandYield(prestige: number, aid: number, band: QualityBand): number {
   return clamp(YIELD_BASE + aidTerm + prestigeTerm - YIELD_QUALITY_PENALTY[band], 0, 1);
 }
 
-// Pure funnel resolution. Given the school's prestige and capacity plus the
-// player's two levers (tuition, aid), returns the full set of emergent
-// outcomes. No individual applicants are modeled — only band aggregates.
+// Pure funnel resolution. Given the school's prestige, capacity, and current
+// student satisfaction plus the player's two levers (tuition, aid), returns
+// the full set of emergent outcomes. No individual applicants are modeled —
+// only band aggregates.
 export function projectAdmissions(
   prestige: number,
   tuition: number,
   aid: number,
   capacity: number,
+  satisfaction: number,
 ): AdmissionsProjection {
-  const applicants = applicantVolume(prestige, tuition);
+  const wordOfMouth = wordOfMouthFactor(satisfaction);
+  const applicants = applicantVolume(prestige, tuition) * wordOfMouth;
   const mix = qualityMix(prestige, tuition);
   const pool: Record<QualityBand, number> = {
     top: applicants * mix.top,
@@ -215,6 +255,7 @@ export function projectAdmissions(
 
   return {
     applicants: Math.round(applicants),
+    wordOfMouthMultiplier: wordOfMouth,
     admits: Math.round(admits),
     admitRate: applicants > 0 ? admits / applicants : 0,
     yieldRate: admits > 0 ? enrolled / admits : 0,
@@ -224,46 +265,12 @@ export function projectAdmissions(
   };
 }
 
-// Baseline weekly attrition rate, scaled by dissatisfaction: the summer
-// funnel sets the enrolled class, and a steady trickle of unhappy students
-// erodes it across the year (satisfaction also drives reputation over in
-// rivalsSystem.ts, so keeping it here gives dissatisfaction real teeth).
-// Satisfaction itself is no longer computed here — see satisfactionSystem.ts,
-// which runs earlier in reducer.ts's SYSTEMS order and writes
-// s.students.satisfaction/satisfactionBreakdown before this tick reads them.
-const ATTRITION_BASE_RATE = 0.01;
-
-// Student center's passive retention effect: the sum of churnReductionBonus
-// across every done studentCenter-type facility, capped so it can never
-// zero out attrition outright. Recomputed here from shared state (s.tech)
-// rather than imported from satisfactionSystem.ts — systems only read/write
-// shared state, they don't call into each other (see README's architecture
-// rules), so this small scan is duplicated rather than cross-imported.
-const MAX_CHURN_REDUCTION = 0.6;
-function churnReductionMultiplier(s: GameState): number {
-  const totalReduction = s.tech
-    .filter((t) => t.facilityType === 'studentCenter' && t.status === 'done')
-    .reduce((sum, t) => sum + (t.effects?.churnReductionBonus ?? 0), 0);
-  return 1 - Math.min(totalReduction, MAX_CHURN_REDUCTION);
-}
-
+// Enrollment is set once a year by the funnel above and then holds for the
+// year: there is no weekly attrition trickle any more, and this tick writes
+// nothing and logs nothing on an ordinary week. Dissatisfaction's teeth are
+// in demand instead — see wordOfMouthFactor above, applied at the next
+// cycle's RESOLVE_ADMISSIONS.
 export function tickAdmissions(s: GameState): void {
-  // Weekly attrition trickle: dissatisfied students leave gradually, eased
-  // by the student center's passive retention effect. Intake itself is not
-  // weekly — it is resolved once a year by the funnel below.
-  const attrition = Math.round(
-    s.students.enrolled * (1 - s.students.satisfaction / 100) * ATTRITION_BASE_RATE * churnReductionMultiplier(s),
-  );
-  if (attrition > 0) {
-    s.students.enrolled = Math.max(0, s.students.enrolled - attrition);
-    s.log.unshift({
-      year: s.clock.year,
-      week: s.clock.week,
-      message: `Attrition: -${attrition} left. Enrolled: ${s.students.enrolled}.`,
-      kind: 'info',
-    });
-  }
-
   // Summer: pause for the once-a-year admissions decision (see README's
   // "Admissions: an annual summer decision"). The reducer's TICK case sees
   // pendingInterrupt getting set here and holds the clock at this week;

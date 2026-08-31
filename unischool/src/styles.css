@@ -275,6 +275,7 @@ dt { color: var(--ink-muted); } dd { margin: 0; text-align: right; font-family: 
   font-size: 11px; cursor: pointer; padding: 0; }
 .satisfaction-breakdown { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--parchment-line-lo); font-size: 12px; }
 .satisfaction-breakdown dt { padding-left: 10px; }
+.demand-note { margin-top: 10px; }
 
 ul, ol { list-style: none; margin: 0; padding: 0; }
 .outcome-note { color: var(--gold-dim); font-size: 11px; }

@@ -77,12 +77,11 @@ const REPUTATION_PRIDE_MAX_BONUS = 15;  // added to `social` at max prestige (PR
 const REPUTATION_PRIDE_PRESTIGE_MAX = 150;
 const AID_AFFORDABILITY_MAX_BONUS = 20; // added to `basicNeeds` at 100% average aid
 
-// Student center's passive retention effect (churnReductionBonus) is read
-// directly by admissionsSystem.ts's weekly attrition calc instead of here —
-// systems only read/write shared state, they don't call into each other
-// (see README's architecture rules), so that small scan lives there, next
-// to the only place it's used, rather than being cross-imported from this
-// file.
+// Satisfaction has exactly one mechanical consequence: it scales the next
+// annual admissions cycle's applicant pool as word of mouth (see
+// admissionsSystem.ts's WORD_OF_MOUTH_STRENGTH). It no longer drives a
+// weekly attrition trickle, so nothing here writes to enrollment — this
+// module only computes the number and the breakdown behind it.
 
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
