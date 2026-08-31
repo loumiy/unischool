@@ -23,6 +23,11 @@ export type Action =
   // reducer if a posting for that field is already open, or the school
   // can't afford it.
   | { type: 'POST_JOB'; field: string }
+  // Posts an opening in every field that doesn't already have one open,
+  // for as long as cash holds out — same $JOB_POSTING_COST-per-field rate
+  // and one-open-posting-per-field rule as POST_JOB, just fired for every
+  // field in one action instead of one at a time.
+  | { type: 'POST_ALL_JOBS' }
   | { type: 'BUY_SLOT' }
   | { type: 'TOGGLE_AUTO_DEVELOP' }
   | { type: 'RESOLVE_INTERRUPT' }                      // clears pendingInterrupt, lets the clock resume

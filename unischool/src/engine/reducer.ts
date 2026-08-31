@@ -7,7 +7,7 @@ import { tickTech, canStartDevelopment, startDevelopment, nextSlotCost, MAX_SLOT
 import { tickAdmissions, projectAdmissions } from '../systems/admissions/admissionsSystem';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
 import { tickFaculty } from '../systems/faculty/facultySystem';
-import { JOB_POSTING_COST, rollPostingWeeks } from '../data/facultyData';
+import { JOB_POSTING_COST, rollPostingWeeks, FACULTY_FIELDS } from '../data/facultyData';
 import { tickPrestigeAnnual } from '../systems/prestige/prestigeSystem';
 import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 
@@ -85,6 +85,26 @@ export function reducer(state: GameState, action: Action): GameState {
           year: s.clock.year,
           week: s.clock.week,
           message: `Posted an opening for ${action.field} faculty.`,
+          kind: 'info',
+        });
+      }
+      return s;
+    }
+
+    case 'POST_ALL_JOBS': {
+      const posted: string[] = [];
+      for (const field of FACULTY_FIELDS) {
+        if (field in s.openPostings) continue;
+        if (s.finance.cash < JOB_POSTING_COST) break; // stop once cash can't cover the next one — rest are left for later
+        s.finance.cash -= JOB_POSTING_COST;
+        s.openPostings[field] = rollPostingWeeks();
+        posted.push(field);
+      }
+      if (posted.length > 0) {
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: `Posted openings for ${posted.length} field${posted.length === 1 ? '' : 's'}: ${posted.join(', ')}.`,
           kind: 'info',
         });
       }
