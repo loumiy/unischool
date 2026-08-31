@@ -3,6 +3,7 @@ import type { Buildable, FacilityType, GameState } from '../state/types';
 import { nextSlotCost, MAX_SLOTS, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import { STARTING_DORM_CAPACITY } from '../data/campusData';
 import HelpHint from '../components/HelpHint';
+import CampusMap from '../components/CampusMap';
 
 // Campus: every physical building the university can have — housing, campus-
 // life facilities, academic buildings, and labs — shown as ONE list of
@@ -155,6 +156,8 @@ export default function CampusTab({ s, act }: { s: GameState; act: (a: Action) =
           ))}
         </div>
       </section>
+
+      <CampusMap s={s} act={act} />
 
       <section className="panel">
         <div className="panel-head"><h2>Development Slots</h2><span className="stat">{slotsUsed}/{s.slots}</span></div>

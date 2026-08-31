@@ -28,6 +28,13 @@ export type Action =
   // and one-open-posting-per-field rule as POST_JOB, just fired for every
   // field in one action instead of one at a time.
   | { type: 'POST_ALL_JOBS' }
+  // Sites a finished building/dorm/facility on a campus-map tile (see
+  // state/campusMap.ts for the placement rules). Visual only: it
+  // grants nothing, and a building's effects never depend on it. Rejected
+  // by the reducer if the Buildable isn't finished, isn't a placeable kind
+  // (a `course` never is), is already placed, or the target tile is out of
+  // bounds or occupied.
+  | { type: 'PLACE_BUILDABLE'; buildableId: string; row: number; col: number }
   | { type: 'BUY_SLOT' }
   | { type: 'TOGGLE_AUTO_DEVELOP' }
   | { type: 'RESOLVE_INTERRUPT' }                      // clears pendingInterrupt, lets the clock resume
@@ -63,6 +70,7 @@ export function createPreStartState(): GameState {
     tech: [],
     slots: 0,
     developing: {},
+    placements: {},
     rivals: [],
     self: { name: '', reputation: 0, schoolType: 'private' },
     log: [],
@@ -168,6 +176,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     tech: [...initialTech(), ...initialDorms(), ...initialFacilities()],
     slots: STARTING_SLOTS,
     developing: {},
+    placements: {},
     rivals: initialRivals(),
     // +GENED_BUILDING_REPUTATION_BONUS: same fold-in as capacity above.
     self: { name, reputation: BASE_STARTING_REPUTATION + preset.prestigeBonus + GENED_BUILDING_REPUTATION_BONUS, schoolType },

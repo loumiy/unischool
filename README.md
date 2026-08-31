@@ -8,11 +8,15 @@ Tycoon or Cities: Skylines applied to building a university. There is no win
 condition; it's an indefinite sandbox that naturally tapers once the curriculum
 is fully built out and the rankings are topped.
 
-This is a **systems-first build with no campus map and no art**, on purpose. The
-map is a deliberately deferred later layer — do not add one. Everything is kept
-as clean data and logic that a map could later read from without rework. In
-particular, **buildings are modeled as data now and placed on a map later**; the
-mapless build shows courses and buildings together in one list.
+This is a **systems-first build with no art**, on purpose. Everything is kept as
+clean data and logic that presentation layers read from without rework. In
+particular, **buildings are modeled as data first and placed on a map second**:
+the Buildables list is still the primary screen, and the campus map (see
+`src/components/CampusMap.tsx`) is a thin layer over it — `building`/`dorm`/
+`facility` Buildables can be sited on a tile grid once they finish, purely as
+rendering. Placement grants nothing, gates nothing, and no system reads it;
+adjacency effects and any economic/prestige feedback from the map are still
+deliberately deferred.
 
 ## Run it
 
@@ -29,8 +33,9 @@ Open the printed localhost URL. Start the clock to begin.
 - `src/engine/` — the reducer (game loop) and the React store hook
 - `src/systems/` — one folder per system; each exports a pure `tick(state)` function
 - `src/data/` — seed content (the curriculum, buildings, rival universities)
-- `src/components/` — chrome shared across every tab: the persistent header/
-  status bar, the interrupt modal, the tab nav, the startup screen
+- `src/components/` — pieces a tab composes rather than owns: the persistent
+  header/status bar, the interrupt modal, the tab nav, the startup screen, and
+  the campus map panel the Campus tab renders
 - `src/tabs/` — one component per dashboard tab (Campus, Faculty,
   Curriculum, Treasury, Admissions, Athletics); each reads the slice of
   `GameState` it needs and dispatches actions, same as `App.tsx` used to
@@ -88,11 +93,12 @@ new rule is needed, extend the shared Buildable model — never fork it.
 
 ### Courses and buildings share one screen
 
-In the mapless build there is a single Buildables list, grouped or filtered by
-`kind`, with one uniform develop/build affordance showing cost, duration, and
-prereqs. When the map arrives, `building`/`dorm`/`facility`/`sports` Buildables
-gain a placement step; `course` Buildables never do. Until then they are the
-same interaction. Keep the shared screen dumb.
+There is a single Buildables list, grouped or filtered by `kind`, with one uniform develop/build affordance showing cost, duration, and
+prereqs. `building`/`dorm`/`facility` (and later `sports`) Buildables gain one
+extra step beyond that shared flow — placement on the campus map, once done;
+`course` Buildables never do. Placement lives in a separate `placements` record
+on `GameState` (id -> `{ row, col }`), never as a field on `Buildable`, so the
+single Buildable model stays unforked. Keep the shared screen dumb.
 
 ## The milestone chain (how the curriculum gets its shape)
 
@@ -306,7 +312,9 @@ any refactor.
 - Campus life depth and richer decision-interrupt events for week-to-week texture.
 - Faculty lifecycle (aging, retirement, poaching) if desired.
 - A richer demand-curve finance model with prestige/scale archetypes.
-- The campus map, as its own system reading the same state, with Buildables
-  gaining placement.
+- Campus map depth: adjacency weighting between neighboring buildings, and any
+  economic/prestige feedback from the layout. The map itself (a fixed tile grid,
+  placement of finished `building`/`dorm`/`facility` Buildables, SVG rendering)
+  now exists as a visual-only layer; nothing mechanical reads it yet.
 
-UniSchool — systems-first, no map, no art (yet)
+UniSchool — systems-first, no art (yet)
