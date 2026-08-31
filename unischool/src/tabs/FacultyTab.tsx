@@ -16,10 +16,12 @@ import HelpHint from '../components/HelpHint';
 // growing on tenure milestones) happens passively on the weekly tick — see
 // facultySystem.ts.
 //
-// Each roster/candidate row shows only a name, field, nationality flag, and
-// quality tier by default — everything else (bio, full stats, and what
+// Each roster/candidate row shows only a name, field, and quality tier by
+// default — everything else (bio, full stats including nationality, and what
 // they're actually teaching) is one click away behind an expand toggle, so
-// the tab reads as a roster, not a spreadsheet.
+// the tab reads as a roster, not a spreadsheet. The row carries no flag
+// glyph: the emoji flags failed to render in some browsers, so nationality
+// lives in the expanded detail as plain text only.
 
 // Course-to-teacher assignment is a display-only projection: the engine
 // only tracks course-slot CAPACITY per field (courseSlots), never which
@@ -54,7 +56,6 @@ function FacultyRow({ s, act, f, isCandidate }: { s: GameState; act: (a: Action)
         >
           {open ? '▾' : '▸'}
         </button>
-        <span className="faculty-flag" title={f.nationality}>{f.flag}</span>
         <span className="faculty-name">{f.name}</span>
         <span className="stat">{f.field}</span>
         <span className="kind-tag">{facultyQualityTier(f)}</span>
@@ -69,7 +70,7 @@ function FacultyRow({ s, act, f, isCandidate }: { s: GameState; act: (a: Action)
         <div className="faculty-row-detail">
           <p className="faculty-bio">{f.bio}</p>
           <dl>
-            <dt>Nationality</dt><dd>{f.flag} {f.nationality}</dd>
+            <dt>Nationality</dt><dd>{f.nationality}</dd>
             <dt>Teaching</dt><dd>{f.teaching} <span className="outcome-note">(→ {f.teachingPotential})</span></dd>
             <dt>Research</dt><dd>{f.research} <span className="outcome-note">(→ {f.researchPotential})</span></dd>
             <dt>Salary</dt><dd>${f.salary.toLocaleString()}/yr</dd>

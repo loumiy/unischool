@@ -64,7 +64,7 @@ export interface Faculty {
   // (see facultyData.ts's NAME_POOLS/rollNationality) — never assigned
   // independently of the name.
   nationality: string; // e.g. "United States", "China" — full country name, shown expanded in the UI
-  flag: string;        // the nationality's flag emoji, shown next to the name at a glance
+  flag: string;        // the nationality's flag emoji — authored data, currently unrendered (the glyphs failed to display in some browsers; see FacultyTab.tsx)
   bio: string;         // one-line biographical flavor text, shown only when the roster row is expanded
 }
 

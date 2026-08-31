@@ -291,7 +291,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-row { border-bottom: 1px solid var(--parchment-line-lo); padding: 6px 0; }
 .faculty-row-summary { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .faculty-expand-btn { background: none; border: none; color: var(--gold-dim); font-size: 11px; padding: 0 2px; width: 16px; }
-.faculty-flag { font-size: 15px; line-height: 1; }
 .faculty-name { font-weight: 600; }
 .faculty-row-spacer { flex: 1; }
 .faculty-row-summary button { background: #f4dede; color: #8a2f2f; border: 1px solid #d9a8a8; border-radius: 5px;
