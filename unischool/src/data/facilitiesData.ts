@@ -31,13 +31,24 @@ import type { Buildable, SatisfactionAttributes } from '../state/types';
 // cost the most per seat served; parking the least.
 // ---------------------------------------------------------------------
 
+// ---------------------------------------------------------------------
+// FACILITY TUNING. Facilities are the relief valve of the growth loop and
+// they are deliberately priced as a COST THAT ARRIVES FIRST: a dorm
+// dilutes every ratio attribute the week it finishes, so the dining hall
+// and parking deck that fix it have to be bought (and their upkeep
+// carried) before the enrollment that dilutes them has paid for anything.
+// Build costs are sized against the dorm chain — roughly a third to a
+// half of the dorm whose capacity forced them — and per-served upkeep is
+// sized so a fully served campus spends a real, visible slice of tuition
+// on keeping the lights on.
+// ---------------------------------------------------------------------
 const UPKEEP_PER_SERVED_PER_WEEK: Record<string, number> = {
-  diningHall: 1.2,
-  parking: 0.15,
-  library: 0.4,
-  studentCenter: 0.5,
-  recCenter: 0.6,
-  healthCenter: 0.8,
+  diningHall: 2.2,
+  parking: 0.4,
+  library: 0.9,
+  studentCenter: 1.0,
+  recCenter: 1.1,
+  healthCenter: 1.6,
 };
 
 function servedUpkeep(facilityType: keyof typeof UPKEEP_PER_SERVED_PER_WEEK, servesPopulation: number): number {
@@ -54,7 +65,7 @@ const DINING_STARTING_SERVES = 300;
 const DINING_ADDITIONAL_COUNT = 12;
 const DINING_BASE_SERVES = 280;
 const DINING_SERVES_GROWTH = 1.16;
-const DINING_BASE_COST = 140_000;
+const DINING_BASE_COST = 420_000;
 const DINING_COST_GROWTH = 1.26;
 const DINING_BASE_WEEKS = 10;
 const DINING_WEEKS_GROWTH = 1.05;
@@ -70,7 +81,7 @@ const PARKING_STARTING_SERVES = 300;
 const PARKING_ADDITIONAL_COUNT = 12;
 const PARKING_BASE_SERVES = 320;
 const PARKING_SERVES_GROWTH = 1.15;
-const PARKING_BASE_COST = 85_000;
+const PARKING_BASE_COST = 230_000;
 const PARKING_COST_GROWTH = 1.24;
 const PARKING_BASE_WEEKS = 8;
 const PARKING_WEEKS_GROWTH = 1.04;
@@ -155,33 +166,33 @@ function repeatableChain(opts: {
 // under-seated caps how far curriculum breadth alone can push prestige.
 const LIBRARY_TIER1_ID = 'LIB-T1';
 const LIBRARY_TIER1_SERVES = 1_200;
-const LIBRARY_TIER1_COST = 120_000;
+const LIBRARY_TIER1_COST = 360_000;
 const LIBRARY_TIER1_WEEKS = 12;
 const LIBRARY_TIER2_ID = 'LIB-T2';
 const LIBRARY_TIER2_SERVES = 3_500;
-const LIBRARY_TIER2_COST = 400_000;
+const LIBRARY_TIER2_COST = 1_400_000;
 const LIBRARY_TIER2_WEEKS = 24;
 export const LIBRARY_TIER2_PRESTIGE_GATE = 70;
 
 // --- Student center: single building, two tiers, social + passive retention ---
 const STUDENT_CENTER_TIER1_ID = 'SCTR-T1';
 const STUDENT_CENTER_TIER1_SERVES = 1_000;
-const STUDENT_CENTER_TIER1_COST = 110_000;
+const STUDENT_CENTER_TIER1_COST = 330_000;
 const STUDENT_CENTER_TIER1_WEEKS = 10;
 const STUDENT_CENTER_TIER2_ID = 'SCTR-T2';
 const STUDENT_CENTER_TIER2_SERVES = 3_000;
-const STUDENT_CENTER_TIER2_COST = 320_000;
+const STUDENT_CENTER_TIER2_COST = 1_150_000;
 const STUDENT_CENTER_TIER2_WEEKS = 20;
 
 // --- Recreation/athletics center: single building, two tiers, social + prestige ---
 const REC_CENTER_TIER1_ID = 'REC-T1';
 const REC_CENTER_TIER1_SERVES = 1_200;
-const REC_CENTER_TIER1_COST = 150_000;
+const REC_CENTER_TIER1_COST = 450_000;
 const REC_CENTER_TIER1_WEEKS = 12;
 const REC_CENTER_TIER1_PRESTIGE = 0.05;
 const REC_CENTER_TIER2_ID = 'REC-T2';
 const REC_CENTER_TIER2_SERVES = 3_500;
-const REC_CENTER_TIER2_COST = 550_000;
+const REC_CENTER_TIER2_COST = 1_900_000;
 const REC_CENTER_TIER2_WEEKS = 28;
 const REC_CENTER_TIER2_PRESTIGE = 0.10;
 export const REC_CENTER_TIER2_PRESTIGE_GATE = 55;
@@ -195,12 +206,12 @@ export const REC_CENTER_TIER2_PRESTIGE_GATE = 55;
 export const HEALTH_CENTER_TIER1_CAPACITY_GATE = 1_500;
 const HEALTH_CENTER_TIER1_ID = 'HLTH-T1';
 const HEALTH_CENTER_TIER1_SERVES = 2_000;
-const HEALTH_CENTER_TIER1_COST = 190_000;
+const HEALTH_CENTER_TIER1_COST = 560_000;
 const HEALTH_CENTER_TIER1_WEEKS = 14;
 export const HEALTH_CENTER_TIER2_CAPACITY_GATE = 6_000;
 const HEALTH_CENTER_TIER2_ID = 'HLTH-T2';
 const HEALTH_CENTER_TIER2_SERVES = 6_000;
-const HEALTH_CENTER_TIER2_COST = 600_000;
+const HEALTH_CENTER_TIER2_COST = 2_100_000;
 const HEALTH_CENTER_TIER2_WEEKS = 26;
 
 // --- Green space/quad: single, cheap, FLAT (non-population-scaling) bonus ---
@@ -209,14 +220,14 @@ const HEALTH_CENTER_TIER2_WEEKS = 26;
 // 40,000, which is exactly why it's cheap and worth building early.
 const QUAD_TIER1_ID = 'QUAD-T1';
 const QUAD_TIER1_FLAT_BONUS = 8;
-const QUAD_TIER1_COST = 20_000;
+const QUAD_TIER1_COST = 60_000;
 const QUAD_TIER1_WEEKS = 4;
-const QUAD_TIER1_UPKEEP = 150;
+const QUAD_TIER1_UPKEEP = 400;
 const QUAD_TIER2_ID = 'QUAD-T2';
 const QUAD_TIER2_FLAT_BONUS = 12;
-const QUAD_TIER2_COST = 60_000;
+const QUAD_TIER2_COST = 190_000;
 const QUAD_TIER2_WEEKS = 8;
-const QUAD_TIER2_UPKEEP = 400;
+const QUAD_TIER2_UPKEEP = 1_000;
 
 export function initialFacilities(): Buildable[] {
   return [

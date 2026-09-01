@@ -30,11 +30,25 @@ import type { Buildable } from '../state/types';
 const STARTING_DORM_ID = 'DORM-01';
 export const STARTING_DORM_CAPACITY = 350; // folded directly into students.capacity by createInitialState
 
+// ---------------------------------------------------------------------
+// DORM CHAIN TUNING. Housing is the growth loop's most expensive turn and
+// its longest lag: the cost is charged the week construction starts, the
+// beds start costing seat upkeep the week it finishes (see
+// financeSystem.ts), every satisfaction ratio dilutes against the new
+// capacity IMMEDIATELY (see satisfactionSystem.ts) — and the students who
+// pay for any of it only arrive at the NEXT summer's admissions funnel,
+// and only if prestige and satisfaction have earned them.
+//
+// So the base cost is deliberately sized at several months of a young
+// school's entire net income, and cost outgrows capacity down the chain,
+// so the marginal bed keeps getting more expensive relative to the
+// tuition it earns — the late-game equivalent of a real capital project.
+// ---------------------------------------------------------------------
 const ADDITIONAL_DORM_COUNT = 14;    // how many more dorms can be queued up after the starter
 const DORM_BASE_CAPACITY = 350;      // Dorm II's capacity bonus
 const DORM_CAPACITY_GROWTH = 1.18;   // each dorm after houses ~18% more than the last
-const DORM_BASE_COST = 200_000;      // Dorm II's cost
-const DORM_COST_GROWTH = 1.30;       // costs outgrow capacity — the late-game cost-per-bed climbs
+const DORM_BASE_COST = 2_800_000;  // Dorm II's cost — ~$8k a bed, so a dorm pays itself back over a year or more of the tuition margin it unlocks, not in a couple of months
+const DORM_COST_GROWTH = 1.37;       // costs outgrow capacity — the late-game cost-per-bed climbs
 const DORM_BASE_WEEKS = 14;          // Dorm II's build time
 const DORM_WEEKS_GROWTH = 1.05;      // build time grows slowly — money, not time, is the late-game bottleneck
 

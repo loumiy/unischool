@@ -102,9 +102,13 @@ function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => v
   const code = t.name.split(' · ')[0];
   const missingFaculty = !!(t.requiresFaculty && !hasFreeFacultySlot(s, t.requiresFaculty));
 
+  // Same order the build rail uses: price first, then the faculty gate.
+  // `state` is derived from canStartDevelopment (see cellState above), so
+  // the reason always explains the actual refusal.
+  const shortfall = t.cost - s.finance.cash;
   const blockedReason = state === 'blocked'
-    ? s.finance.cash < 0
-      ? 'Cash is negative — development is stalled until it recovers.'
+    ? shortfall > 0
+      ? `Not enough cash — $${Math.ceil(shortfall).toLocaleString()} short of the $${t.cost.toLocaleString()} it costs.`
       : missingFaculty
         ? `No free ${t.requiresFaculty} faculty slots — hire more or more senior ${t.requiresFaculty} faculty on the Campus tab.`
         : undefined
@@ -183,7 +187,7 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
           />
         </div>
         {s.finance.cash < 0 && (
-          <p className="stall-note">Cash is negative — new development is stalled until it recovers.</p>
+          <p className="stall-note">Cash is negative — the school is running an operating deficit, so nothing can be started until the balance recovers.</p>
         )}
 
         <div className="curriculum-scroll">

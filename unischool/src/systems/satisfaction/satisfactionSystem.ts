@@ -82,6 +82,22 @@ const AID_AFFORDABILITY_MAX_BONUS = 20; // added to `basicNeeds` at 100% average
 // admissionsSystem.ts's WORD_OF_MOUTH_STRENGTH). It no longer drives a
 // weekly attrition trickle, so nothing here writes to enrollment — this
 // module only computes the number and the breakdown behind it.
+//
+// That one consequence is now load-bearing for the growth loop, and it is
+// why the ratio attributes above are scored against CAPACITY rather than
+// enrollment. Finishing a dorm dilutes every ratio the same week the beds
+// appear, months before the students who fill them are even admitted; the
+// dip in satisfaction shrinks the pool at the next summer funnel, which
+// shrinks the class that was supposed to pay for the dorm. Growth
+// therefore has to be paid for TWICE and in advance — once in the dorm's
+// own cost and upkeep, once in the dining hall/parking/health capacity
+// that keeps the dilution from throttling demand. That is the whole
+// point: capacity is not free enrollment.
+//
+// ATTRIBUTE_SCORE_FLOOR is what keeps that from becoming a death spiral:
+// no attribute reaches zero, so satisfaction bottoms out well above it,
+// word of mouth bottoms out at ~0.63x rather than at nothing, and a
+// single cheap facility is always enough to start climbing back.
 
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));

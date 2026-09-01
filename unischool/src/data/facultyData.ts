@@ -221,9 +221,16 @@ export function grownStat(potential: number, tenureWeeks: number): number {
   return Math.round(start + (potential - start) * grownFraction);
 }
 
-const SALARY_BASE = 60_000;
-const SALARY_PER_SKILL_POINT = 400;      // same rate as the original flat formula, now applied to *current* (grown) stats
-const SALARY_TENURE_PREMIUM_MAX = 0.8;   // seniority premium on top of the skill-linked base, at full maturity: up to +80%
+// --- Salary curve. Payroll is the largest single line on a young
+// school's expense sheet and the one that compounds without anybody
+// clicking anything: a hire made in year 3 to unlock a tier-1 course
+// costs half again as much by the time that major is finished. That is
+// deliberate — faculty are the growth loop's most front-loaded cost, paid
+// years before the curriculum they unlock earns any prestige. See
+// financeSystem.ts's cost-driver block.
+const SALARY_BASE = 45_000;
+const SALARY_PER_SKILL_POINT = 320;      // applied to *current* (grown) stats, so a maturing hire gets more expensive on both curves at once
+const SALARY_TENURE_PREMIUM_MAX = 0.5;   // seniority premium on top of the skill-linked base, at full maturity: up to +50%
 const SALARY_GROWTH_PLATEAU_YEARS = 10;  // salary keeps climbing after skill plateaus — raises continue for seniority alone
 const SALARY_GROWTH_PLATEAU_FRACTION = 0.95;
 const SALARY_GROWTH_RATE_PER_WEEK =
@@ -255,10 +262,21 @@ export function facultySalary(teaching: number, research: number, tenureWeeks: n
 // directly on tenure milestones rather than recomputing it from a stored
 // base each week, since there's no ceiling variance to reconstruct.
 // ---------------------------------------------------------------------
-const FACULTY_BASE_SLOTS_MIN = 2;
-const FACULTY_BASE_SLOTS_RANGE = 2; // rolls 2..4 course slots at hire
+// How many courses one hire can carry. Raised as part of the growth-loop
+// tuning pass: at 2-4 slots, opening a school's tier-1 courses meant
+// hiring roughly one professor per course, and a 350-student founding
+// school ended up carrying a 23-person payroll — around half its entire
+// tuition income — which left no surplus at all to grow the campus with
+// and turned the tier-1 loop into a permanent plateau instead of a pinch.
+// At 4-6 slots the same build-out needs a third of the hires, so payroll
+// is a heavy but survivable early cost and the school can still save
+// toward its first dorm. The pressure comes back on its own terms: slots
+// are occupied FOREVER (see techSystem.ts's usedFacultySlots), so a
+// 330-course catalogue still ends up needing a roster in the dozens.
+const FACULTY_BASE_SLOTS_MIN = 4;
+const FACULTY_BASE_SLOTS_RANGE = 2; // rolls 4..6 course slots at hire
 export const SLOT_GROWTH_INTERVAL_WEEKS = 104; // +1 slot every 2 years of tenure retained
-export const MAX_FACULTY_SLOTS = 6;
+export const MAX_FACULTY_SLOTS = 10;
 
 function rollBaseCourseSlots(): number {
   return FACULTY_BASE_SLOTS_MIN + Math.floor(Math.random() * (FACULTY_BASE_SLOTS_RANGE + 1));
@@ -299,7 +317,7 @@ export function facultyQualityTier(f: Faculty): FacultyQualityTier {
 // posted for, and re-posting the same field again costs another fee and
 // another wait.
 // ---------------------------------------------------------------------
-export const JOB_POSTING_COST = 20_000;
+export const JOB_POSTING_COST = 45_000;
 const JOB_POSTING_MIN_WEEKS = 4;
 const JOB_POSTING_MAX_WEEKS = 10;
 

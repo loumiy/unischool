@@ -64,7 +64,7 @@ export default function App() {
           <TabOverlay title={TAB_LABELS[overlay]} onClose={() => setOverlay(null)}>
             {overlay === 'faculty' && <FacultyTab s={s} act={act} />}
             {overlay === 'curriculum' && <CurriculumTab s={s} act={act} />}
-            {overlay === 'treasury' && <TreasuryTab s={s} />}
+            {overlay === 'treasury' && <TreasuryTab s={s} act={act} />}
             {overlay === 'admissions' && <AdmissionsTab s={s} />}
             {overlay === 'history' && <HistoryTab s={s} />}
             {overlay === 'athletics' && <AthleticsTab />}
