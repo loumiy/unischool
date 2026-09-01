@@ -49,6 +49,14 @@ export type Action =
   // moving on to the next week, not replaying this one.
   | { type: 'RESOLVE_REPORT' }
   | { type: 'DEBUG_TRIGGER_TEST_INTERRUPT' }           // scaffolding: see reducer.ts, remove once a real interrupt exists
+  // Writes the run to localStorage on demand (see state/persistence.ts).
+  // The autosave already fires once a year at the admissions boundary; this
+  // is the player's way to not lose the weeks since. It changes no game
+  // state beyond the log line confirming it.
+  | { type: 'SAVE_GAME' }
+  // Abandons the current run: erases the save and returns to the startup
+  // screen so a new university can be founded. The UI confirms before
+  // dispatching this — it is not undoable.
   | { type: 'RESET' };
 
 // A minimal placeholder state for the pre-game startup screen only. None of

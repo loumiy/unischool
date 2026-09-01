@@ -42,7 +42,11 @@ export default function App() {
     <div className="app">
       <StatusHeader s={s} speed={speed} setSpeed={setSpeed} act={act} />
 
-      {s.gameOver && <div className="gameover">Game Over — <button onClick={() => act({ type: 'RESET' })}>Restart</button></div>}
+      {/* Dead banner in practice: nothing sets gameOver any more (see
+          README's "no hard insolvency game-over" — a shortfall stalls
+          expansion instead). RESET now erases the save and returns to the
+          startup screen, so the label follows it. */}
+      {s.gameOver && <div className="gameover">Game Over — <button onClick={() => act({ type: 'RESET' })}>New Game</button></div>}
 
       <InterruptModal s={s} act={act} />
 
