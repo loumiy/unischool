@@ -8,11 +8,13 @@ export interface GameClock {
 
 export interface Finance {
   cash: number;          // liquid funds
-  endowment: number;     // long-term reserve, grows/shrinks slowly
+  endowment: number;     // long-term reserve; earns a return and pays a fixed share of itself into income every year (see financeSystem.ts)
+  endowmentCampaigns: number; // how many endowment campaigns have been run — each one costs more than the last (see financeSystem.ts's endowmentCampaign)
   tuitionPerStudent: number;
   tuitionCeiling: number;        // hard cap on tuitionPerStudent, set by school type at founding
-  baselineFundingPerWeek: number; // steady non-tuition income (e.g. state appropriations), set by school type
-  weeklyOpEx: number;    // salaries + upkeep, recomputed each tick
+  baselineFundingPerWeek: number; // FLAT non-tuition income (a public school's institutional appropriation), set by school type
+  appropriationPerStudentPerYear: number; // per-enrolled-student non-tuition income, set by school type; 0 for private. Kept as a number on state rather than a schoolType branch in financeSystem.ts, so no system ever has to know which fork the player picked.
+  weeklyOpEx: number;    // salaries + upkeep + instruction, recomputed each tick
 }
 
 // The named needs satisfaction is broken into (see satisfactionSystem.ts).

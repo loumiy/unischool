@@ -41,7 +41,11 @@ const SAVE_KEY = 'unischool.save';
 //
 // Additive OPTIONAL fields don't need a bump — they read as absent, which
 // is what they'd be in a new game too.
-export const SAVE_VERSION = 1;
+// v2: the growth-loop tuning pass added two required Finance fields
+// (appropriationPerStudentPerYear, endowmentCampaigns) and rebalanced
+// every cost/revenue constant, so a v1 save would both crash on the
+// missing fields and describe a school built under a different economy.
+export const SAVE_VERSION = 2;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch

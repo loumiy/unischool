@@ -57,7 +57,22 @@ const TIER_DURATION_WEEKS: Record<number, number> = { 1: 4, 2: 12, 3: 24 };
 // markedly bigger financial commitment than a tier-1 entry course — see
 // README's "Pacing model: money is the throttle". Buildings below are
 // bigger investments still.
-const TIER_COURSE_COST: Record<number, number> = { 1: 10_000, 2: 30_000, 3: 75_000 };
+const TIER_COURSE_COST: Record<number, number> = { 1: 45_000, 2: 110_000, 3: 240_000 };
+
+// What a finished course costs to RUN, every week, forever — the recurring
+// half of a curriculum decision and one of the growth loop's main teeth
+// (see financeSystem.ts's cost-driver block). A course is not a one-time
+// purchase: developing it commits the school to staffing and running it,
+// and a tier-3 capstone with a handful of students in it costs several
+// times what a gen-ed lecture does.
+//
+// This is what makes opening a tier RAISE weeklyOpEx immediately, while
+// the prestige that tier eventually earns only drifts in over years — the
+// cost-leads-revenue lag, expressed as authored data rather than as a
+// special case in any system. financeSystem.ts sums it live off every
+// 'done' Buildable's effects.upkeepPerWeek, exactly as it does for
+// campus-life facilities.
+const COURSE_UPKEEP_PER_WEEK: Record<number, number> = { 1: 130, 2: 380, 3: 800 };
 
 // A school building is a real construction project: a meaningful cost and
 // a longer duration than any single course, reflecting "unlocks an entire
@@ -65,8 +80,16 @@ const TIER_COURSE_COST: Record<number, number> = { 1: 10_000, 2: 30_000, 3: 75_0
 // course. General Studies has no majors (just the gen-ed core), so its
 // "building" is smaller and cheaper — more of a starter hall than a full
 // academic building.
-const GENED_BUILDING_COST = 150_000;
+const GENED_BUILDING_COST = 400_000;
 const GENED_BUILDING_WEEKS = 20;
+// Academic buildings carry a real recurring cost too — a school building
+// is the single biggest running bill in the curriculum half of the
+// budget, and (unlike a course) it arrives all at once. General Studies
+// Hall's is charged from week one: it is seeded 'done' at founding, and
+// upkeepPerWeek is live-read rather than applied once, so it is part of
+// the founding operating picture with no double-counting.
+const GENED_BUILDING_UPKEEP_PER_WEEK = 900;
+const SCHOOL_BUILDING_UPKEEP_PER_WEEK = 3_000;
 // General Studies Hall starts already built (see initialTech below), so
 // this never flows through the normal completion-effects path — it's
 // exported for createInitialState to fold directly into the founding
@@ -75,7 +98,7 @@ const GENED_BUILDING_WEEKS = 20;
 // building out the curriculum unlocks courses/majors, not beds.
 export const GENED_BUILDING_REPUTATION_BONUS = 1.5;
 
-const SCHOOL_BUILDING_COST = 450_000;
+const SCHOOL_BUILDING_COST = 1_400_000;
 const SCHOOL_BUILDING_WEEKS = 28;
 
 interface MajorSeed {
@@ -247,9 +270,9 @@ const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
 // population-scaled version; labs are a flat cost instead, since one lab
 // serves a major's cohort, not the whole campus).
 const LAB_GATED_MAJOR_PREFIXES = ['CHEM', 'BIOL', 'MECH', 'ELEC', 'CIVE', 'AERO', 'NURS', 'DENT', 'PMED'];
-const LAB_COST = 260_000;
+const LAB_COST = 700_000;
 const LAB_WEEKS = 16;
-const LAB_UPKEEP_PER_WEEK = 350; // ~$18k/yr — in line with facilitiesData.ts's other single-instance facilities, not disproportionate to the $260k build cost
+const LAB_UPKEEP_PER_WEEK = 1_400; // ~$73k/yr — specialized equipment is expensive to keep running, and a lab serves one major's cohort rather than the whole campus
 function labId(prefix: string): string {
   return `LAB-${prefix}`;
 }
@@ -364,6 +387,7 @@ export function initialTech(): Buildable[] {
           prereqs: [],
           status: 'available',
           requiresFaculty: GENED_FIELDS[id],
+          effects: { upkeepPerWeek: COURSE_UPKEEP_PER_WEEK[1] },
         });
       }
     }
@@ -383,7 +407,14 @@ export function initialTech(): Buildable[] {
           description: `Specialized lab space gating ${major.name}'s capstone (tier-3) coursework.`,
           cost: LAB_COST,
           duration: LAB_WEEKS,
-          prereqs: [t1Id], // buildable as soon as the major's entry course is done — well before tier-3 is reachable
+          // Buildable once the major's entry course AND its school building
+          // are done — a thematic prereq (a teaching lab belongs to a
+          // school), not a new gate: the school building is already on the
+          // path to tier-2, and tier-3 is what the lab actually gates, so
+          // this only stops a lab from being an expensive, useless purchase
+          // a decade before anything needs it — which is exactly the trap
+          // an early-game player with cash burning a hole falls into.
+          prereqs: [t1Id, school.buildingId],
           status: 'locked',
           effects: { upkeepPerWeek: LAB_UPKEEP_PER_WEEK },
         });
@@ -419,6 +450,7 @@ export function initialTech(): Buildable[] {
           prereqs,
           status: 'locked',
           requiresFaculty: major.field,
+          effects: { upkeepPerWeek: COURSE_UPKEEP_PER_WEEK[tier] },
         });
       });
     }
@@ -437,7 +469,11 @@ export function initialTech(): Buildable[] {
     // sits alongside. A Buildable created 'done' never passes through
     // tickTech's completion path, so its reputation contribution is folded
     // into the starting baseline (Faculty/starting stats) instead of
-    // granted via effects here — effects is omitted to avoid double-counting.
+    // granted via effects here — no APPLY-ONCE effect may be authored on it
+    // or it would be double-counted. Its upkeepPerWeek is safe (and
+    // required) because upkeep is LIVE-READ every tick off whatever is
+    // 'done', never applied — the same contract the starting dining hall
+    // follows in facilitiesData.ts.
     // Academic buildings carry no capacity effect at all now — see the
     // capacity comment above GENED_BUILDING_REPUTATION_BONUS.
     const isGenEd = school.core !== undefined;
@@ -450,6 +486,9 @@ export function initialTech(): Buildable[] {
       duration: isGenEd ? GENED_BUILDING_WEEKS : SCHOOL_BUILDING_WEEKS,
       prereqs: tier1IdsInSchool,
       status: isGenEd ? 'done' : 'locked',
+      effects: {
+        upkeepPerWeek: isGenEd ? GENED_BUILDING_UPKEEP_PER_WEEK : SCHOOL_BUILDING_UPKEEP_PER_WEEK,
+      },
     });
   }
 

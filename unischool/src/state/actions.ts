@@ -5,7 +5,9 @@ import { initialDorms, STARTING_DORM_CAPACITY } from '../data/campusData';
 import { initialFacilities } from '../data/facilitiesData';
 import { initialRivals } from '../data/rivalData';
 import { initialCandidates, facultySalary } from '../data/facultyData';
-import { SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION } from '../data/schoolTypeData';
+import {
+  SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION, STARTING_ENDOWMENT, STARTING_TUITION,
+} from '../data/schoolTypeData';
 
 // All the ways a player can change the world. The engine's reducer is the
 // only thing that interprets these. UI dispatches them; systems never do.
@@ -34,6 +36,13 @@ export type Action =
   // (a `course` never is), is already placed, or the target tile is out of
   // bounds or occupied.
   | { type: 'PLACE_BUILDABLE'; buildableId: string; row: number; col: number }
+  // Runs an endowment campaign (see financeSystem.ts's endowmentCampaign):
+  // converts a large lump of cash into endowment at a prestige-scaled
+  // donor match. Repeatable forever, each one costing more than the last —
+  // the late-game money sink, once the dorm/facility chains and the
+  // curriculum have run out of things to buy. Rejected by the reducer if
+  // prestige is below the campaign gate or the cash isn't there.
+  | { type: 'LAUNCH_ENDOWMENT_CAMPAIGN' }
   | { type: 'TOGGLE_AUTO_DEVELOP' }
   | { type: 'RESOLVE_INTERRUPT' }                      // clears pendingInterrupt, lets the clock resume
   // Resolves the annual summer admissions interrupt: sets next year's two
@@ -65,7 +74,10 @@ export type Action =
 export function createPreStartState(): GameState {
   return {
     clock: { year: 1, week: 1 },
-    finance: { cash: 0, endowment: 0, tuitionPerStudent: 0, tuitionCeiling: 0, baselineFundingPerWeek: 0, weeklyOpEx: 0 },
+    finance: {
+      cash: 0, endowment: 0, endowmentCampaigns: 0, tuitionPerStudent: 0, tuitionCeiling: 0,
+      baselineFundingPerWeek: 0, appropriationPerStudentPerYear: 0, weeklyOpEx: 0,
+    },
     students: {
       enrolled: 0, capacity: 0, satisfaction: 0,
       satisfactionBreakdown: { academic: 0, social: 0, basicNeeds: 0, health: 0, infrastructure: 0 },
@@ -101,10 +113,12 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     clock: { year: 1, week: 1 },
     finance: {
       cash: preset.startingCash,
-      endowment: 1_000_000, // not varied by school type — not in README's explicit starting-condition list
-      tuitionPerStudent: Math.min(8_000, preset.tuitionCeiling),
+      endowment: STARTING_ENDOWMENT,
+      endowmentCampaigns: 0,
+      tuitionPerStudent: Math.min(STARTING_TUITION, preset.tuitionCeiling),
       tuitionCeiling: preset.tuitionCeiling,
       baselineFundingPerWeek: preset.baselineFundingPerWeek,
+      appropriationPerStudentPerYear: preset.appropriationPerStudentPerYear,
       weeklyOpEx: 0,
     },
     students: {

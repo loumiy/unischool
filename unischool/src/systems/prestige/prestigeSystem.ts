@@ -34,7 +34,11 @@ import { milestoneSchools } from '../../data/techData';
 //     curriculum breadth — it reflects who's on the roster right now, not
 //     who was hired this week.
 //
-// Each of the four scores is independently clamped to 0..1 before it is
+//   - campus life, and financial resources per student (endowment against
+//     capacity) — two smaller, capped inputs; the second is what the
+//     late-game endowment campaigns buy (see financeSystem.ts).
+//
+// EVERY score is independently clamped to 0..1 before it is
 // weighted, so each contributes at most its own weight to the target. That
 // is what stops the prestige/selectivity/quality loop from spiraling: a
 // tiny, scarcity-obsessed school can ride selectivity and quality to their
@@ -66,10 +70,11 @@ const PRESTIGE_DRIFT_RATE = 0.12;
 // departmental roster, but no special selectivity management) right up
 // against PRESTIGE_MAX — see the PR notes' fast-forward runs.
 const CURRICULUM_BREADTH_WEIGHT = 75; // majors/schools completed — the stock only sustained buildout grows
-const SELECTIVITY_WEIGHT = 45;        // emergent admit-rate-derived score — grows with scarce capacity or pricing power
-const STUDENT_QUALITY_WEIGHT = 30;    // emergent avg incoming quality — grows with a low-tuition, high-yield posture
-const FACULTY_QUALITY_WEIGHT = 30;    // avg roster teaching+research — grows by hiring well and, more importantly, retaining hires long enough to mature
-const CAMPUS_LIFE_WEIGHT = 15;        // rec center / athletics complex — a small, capped draw on its own (see campusLifeScore below)
+const SELECTIVITY_WEIGHT = 30;        // emergent admit-rate-derived score — grows with scarce capacity or pricing power
+const STUDENT_QUALITY_WEIGHT = 22;    // emergent avg incoming quality — grows with a low-tuition, high-yield posture
+const FACULTY_QUALITY_WEIGHT = 25;    // avg roster teaching+research — grows by hiring well and, more importantly, retaining hires long enough to mature
+const CAMPUS_LIFE_WEIGHT = 12;        // rec center / athletics complex — a small, capped draw on its own (see campusLifeScore below)
+const ENDOWMENT_WEIGHT = 16;          // financial resources per student — what the late-game endowment campaigns buy (see endowmentScore below)
 
 // Same band as rivalsSystem.ts's RIVAL_REPUTATION_MIN/MAX, so the player's
 // prestige and rivals' reputation stay on one comparable scale.
@@ -115,6 +120,31 @@ export function curriculumBreadthScore(s: GameState): number {
     MAJOR_MASTERED_SHARE * (majorsMastered / totalMajors) +
     SCHOOL_COMPLETE_SHARE * (schoolsComplete / schoolsWithMajors),
   );
+}
+
+// Admissions scale: how much CREDIT the two admissions-derived inputs
+// below (selectivity and incoming quality) are allowed to earn, as a
+// multiplier — the same shape as libraryAdequacyScore further down, and
+// for the same reason.
+//
+// Without it, the two cheapest inputs in the formula are free for a
+// school that never grows: turning away applicants and enrolling only
+// top-band students is trivially easy at 350 beds, and it used to be
+// enough on its own to drift a do-nothing school into the top of the
+// rankings (see the PR's "idle" fast-forward — it reached prestige ~127
+// having built nothing at all, which makes the entire growth loop
+// optional). Being selective with a class of 200 is a boutique, not a
+// national university; national standing has to be earned at scale.
+//
+// The floor keeps a small school from scoring zero on either input — a
+// selective small college is genuinely well regarded, just not top-ten —
+// so this throttles the shortcut without ever creating a downward
+// spiral: it is a multiplier on an upside, never a penalty, and it can
+// only rise as enrollment grows.
+const ADMISSIONS_SCALE_FOR_FULL_CREDIT = 6_000; // enrolled students at which selectivity/quality count in full
+const ADMISSIONS_SCALE_FLOOR = 0.35;
+function admissionsScaleScore(s: GameState): number {
+  return clamp(s.students.enrolled / ADMISSIONS_SCALE_FOR_FULL_CREDIT, ADMISSIONS_SCALE_FLOOR, 1);
 }
 
 // Selectivity: the most recently resolved admissions cycle's admit rate,
@@ -175,14 +205,34 @@ function campusLifeScore(s: GameState): number {
   return clamp01(total);
 }
 
+// Financial resources per student: endowment measured against the size of
+// the campus it has to support, which is how real rankings read a school's
+// wealth — a small school with a large endowment is resource-rich; the
+// same endowment spread over 20,000 beds is not. This is what the
+// late-game endowment campaigns (see financeSystem.ts's endowmentCampaign)
+// actually buy: the surplus a mature school can no longer spend on dorms
+// or curriculum converts into standing instead, slowly and expensively.
+//
+// Clamped to 0..1 exactly like every other input, so it can contribute at
+// most its own weight — money can buy a real but bounded amount of
+// prestige, and never a shortcut past the curriculum-breadth term. Read
+// against CAPACITY, not enrolled, so it can't be gamed by under-filling
+// the class for a year.
+const ENDOWMENT_PER_SEAT_FOR_FULL_SCORE = 400_000;
+function endowmentScore(s: GameState): number {
+  if (s.students.capacity <= 0) return 0;
+  return clamp01(s.finance.endowment / (s.students.capacity * ENDOWMENT_PER_SEAT_FOR_FULL_SCORE));
+}
+
 export function computePrestigeTarget(s: GameState): number {
   const target =
     PRESTIGE_BASELINE +
     CURRICULUM_BREADTH_WEIGHT * curriculumBreadthScore(s) * libraryAdequacyScore(s) +
-    SELECTIVITY_WEIGHT * selectivityScore(s) +
-    STUDENT_QUALITY_WEIGHT * studentQualityScore(s) +
+    SELECTIVITY_WEIGHT * selectivityScore(s) * admissionsScaleScore(s) +
+    STUDENT_QUALITY_WEIGHT * studentQualityScore(s) * admissionsScaleScore(s) +
     FACULTY_QUALITY_WEIGHT * facultyQualityScore(s) +
-    CAMPUS_LIFE_WEIGHT * campusLifeScore(s);
+    CAMPUS_LIFE_WEIGHT * campusLifeScore(s) +
+    ENDOWMENT_WEIGHT * endowmentScore(s);
   return clamp(target, PRESTIGE_MIN, PRESTIGE_MAX);
 }
 

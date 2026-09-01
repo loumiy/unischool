@@ -153,50 +153,110 @@ way toward a target computed from durable inputs — see
   admissions cycle; more selective scores higher.
 - **incoming student quality** — the average quality of the class that actually
   enrolled that cycle.
-- **faculty quality** — a planned fourth input; the formula already sums it in
-  at zero weight as a seam for a future task.
+- **faculty quality** — the roster's average current teaching/research, which
+  rises with retention.
+- **campus life** and **financial resources per student** (endowment measured
+  against capacity) — two smaller inputs; the second is what the late-game
+  endowment campaigns buy.
 
 Each input is clamped to its own 0..1 share of the target before being
-weighted, which is what keeps the prestige/selectivity/quality feedback loop
-from spiraling: selectivity and quality alone can only push prestige to a
+weighted, and the two admissions-derived inputs (selectivity, incoming quality)
+are additionally scaled by how big the enrolled class is — being selective with
+a class of 200 is a boutique, not a national university, and without that a
+school that built nothing at all could drift into the top of the rankings. This
+is what keeps the prestige/selectivity/quality feedback loop from spiraling: selectivity and quality alone can only push prestige to a
 fixed ceiling (reachable by staying small and cutting tuition), and climbing
 past that ceiling toward the very top of the rankings requires the curriculum-
 breadth term too — i.e. sustained, decades-long buildout, not an early
 course-development sprint.
 
-## Pacing model: money is the throttle
+## Pacing model: money is the throttle, and the growth loop is what makes it bite
 
 **Money is the primary pacing resource, and it is a bottleneck, not a threat.**
-The intended feel: cash trickles in at a rate that forces the player to *wait*
-to afford what they want next — you should generally be a few development cycles
-away from your next purchase — but the player is not meant to be pushed into the
-negatives or to lose by going broke.
+It is also the *only* throttle: there is no development-slot mechanic, and none
+is coming back. Any number of Buildables can be developing at once, and the
+single gate on starting one more is that cash is not negative (plus the faculty
+course-slot gate on the curated `requiresFaculty` courses, which is a per-field
+capacity rule, not a pacing throttle). Cost is charged up front, so buying
+eagerly is what pushes you into the red and stalls the *next* start. (This
+supersedes both the earlier "development capacity is the scarce resource"
+framing and the purchasable-slots revision of it: both are gone.)
+
+Money can only pace the game if the school's own growth keeps spending it. That
+is what the **growth loop** is for, and it is the shape everything in
+`financeSystem.ts`, `admissionsSystem.ts` and `campusData.ts` is tuned to:
+
+1. **Curriculum** — finishing majors and schools raises the prestige target
+   (`curriculumBreadthScore`).
+2. **Prestige** — reputation drifts toward that target once a year, and prestige
+   is what lets the school *charge more* (`priceTolerance`) and *draw more*
+   applicants at all.
+3. **Demand** — the applicant pool is prestige x price x word of mouth
+   (satisfaction). Enrollment is earned, never automatic.
+4. **Revenue** — enrolled students x net tuition, the dominant income line.
+5. **Strain** — more students and more beds mean more instruction cost, more
+   upkeep, and diluted satisfaction (every ratio attribute is scored against
+   planned capacity), which forces dorms and facilities, which cost money, which
+   sends you back to 1.
+
+**Cost leads; revenue follows.** That lag is the whole game, and it is
+structural rather than a special case: every cost is charged the moment a
+commitment is made (a dorm's price up front, its seat upkeep from the week it
+opens, a hire's salary from the week they arrive, a course's running cost from
+the week it finishes, and a bigger catalogue raises instruction cost across the
+*whole* student body), while every payoff waits for the annual summer
+admissions boundary, and the prestige payoff waits for a 12%-a-year drift on top
+of that. Adding capacity and students is supposed to hurt before the tuition
+heals it.
+
+The loop turns roughly once per course tier, escalating each time:
+
+- **Gen-ed / intro** — the tutorial-by-design ramp. Starting cash covers it
+  comfortably; money barely registers. Strain is ~zero on purpose.
+- **Tier 1** — the first real pinch: a full department roster and 36 entry
+  courses roughly triple weekly opex while enrollment cannot move until the
+  next summer. The founding cushion visibly drains.
+- **Tier 2** — enrollment growth forces dorms and the dining/parking/health
+  capacity that keeps satisfaction from throttling demand; their cost lands
+  ahead of the class that justifies them.
+- **Tier 3** — the largest, slowest turns: big buildings, mature faculty at peak
+  salary, the widest cost-before-revenue gaps — easing only as prestige- and
+  enrollment-driven revenue finally scales.
 
 Consequences that the code must honor:
 
 - **No hard insolvency game-over.** A cash shortfall should *stall expansion*
   (you cannot start new development while in the red), not end the run. "Stall,
   don't die" is the bottleneck expressed mechanically, and it fits the
-  no-win-condition sandbox.
-- **Money is the *only* throttle on starting development.** There is no
-  development-slot mechanic: any number of Buildables can be developing at
-  once, and the single gate on starting one more is that cash is not negative
-  (plus the faculty course-slot gate on the curated `requiresFaculty` courses,
-  which is a per-field capacity rule, not a pacing throttle). Cost is charged
-  up front, so buying eagerly is what pushes you into the red and stalls the
-  *next* start. (This supersedes the earlier "development capacity is the
-  scarce resource" framing and the purchasable-slots revision of it: both are
-  gone.)
+  no-win-condition sandbox. Every downward path has a floor, deliberately:
+  empty beds are charged at a reduced mothball rate, an extra student is always
+  worth more than they cost, satisfaction (and so word of mouth) is floored,
+  curriculum breadth is a stock that never decreases, and the tuition/aid
+  decision and firing faculty are zero-cost recovery levers.
 - **The trickle must scale with the school.** Revenue grows with enrollment and
-  prestige (both of which the player grows through play) while costs scale more
-  slowly, so the gap between income and ambition narrows over the arc. The
-  bottleneck is an early-and-mid-game feeling that should *ease* as the school
-  matures — the late-game pleasure is finally affording the big things freely.
-  Do **not** tune the trickle as a flat constant, which would make hour 20 feel
-  identical to hour 2 and flatten the long arc.
+  prestige (both of which the player grows through play), and the bottleneck is
+  an early-and-mid-game feeling that should *ease* as the school matures — the
+  late-game pleasure is finally affording the big things freely. Do **not** tune
+  the trickle as a flat constant, which would make hour 20 feel identical to
+  hour 2 and flatten the long arc.
+- **Late game still needs a sink.** The dorm and facility chains run out and the
+  curriculum finishes, so a mature school's surplus needs somewhere to go or
+  cash stops mattering exactly when the player finally has a lot of it. That is
+  what endowment campaigns are (see `financeSystem.ts`): a repeatable,
+  ever-more-expensive conversion of cash into endowment, which pays out into
+  income and feeds a capped prestige input.
+- **Reveals, not new scarcities.** Where growth opens new options, gate them on
+  thresholds the loop already produces (enrollment reached, prestige level,
+  majors completed) the way Cities: Skylines gates on population milestones. A
+  blanket "finish N courses before you may build" gate is exactly the
+  sequencing-jail that removing development slots was meant to end.
 - Keep finances structured so a richer **demand-curve** model (where prestige
   shifts the frontier between tuition and enrollment volume) can replace the
   simple version later without touching the rest of the system.
+
+Balance claims about any of this are checked with `npm run sim` — a headless
+fast-forward through the real reducer under several scripted strategies (see
+`sim/balanceSim.ts`), which prints cash/enrolled/prestige/opex by year.
 
 ## Interrupts: the decision-event system
 
@@ -331,8 +391,9 @@ any refactor.
 - Speed simplification: one real-game speed plus one sandbox-only fast speed.
 - Startup screen: name + private/public starting conditions.
 - Money-as-bottleneck finance: remove hard game-over, stall-in-the-red, scaling
-  trickle. Costs/revenue/starting cash still need a rebalancing pass now that
-  the slot throttle is gone and money paces alone.
+  trickle. The rebalancing pass that money-paces-alone needed is done — costs
+  now lead revenue at every turn of the growth loop (see "Pacing model"), with
+  the constants grouped for hand-tuning and `npm run sim` to check the shape.
 - Annual summer admissions interrupt (tuition/aid/selectivity/enrollment).
 - Dense rivals (~55) + the U.S. News report as a mid-game reveal.
 - The academic-buildings / milestone-chain / curriculum-depth cluster: school &

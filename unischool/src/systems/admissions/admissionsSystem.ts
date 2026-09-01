@@ -43,10 +43,20 @@ import { WEEKS_PER_YEAR } from '../../state/types';
 // reducer calls it on resolve to commit the enrolled class for the year.
 // ---------------------------------------------------------------------
 
+// =====================================================================
+// DEMAND TUNING. Everything the growth loop's revenue side depends on
+// lives in this block. The shape being tuned for: enrollment is EARNED,
+// never automatic. A school only grows its class by growing the three
+// things that grow the pool — prestige (curriculum breadth, over years),
+// student satisfaction (facilities, immediately) and price competitiveness
+// (the annual decision) — so beds built ahead of demand sit empty and
+// cost money, which is exactly the lag the pacing model is built on.
+// =====================================================================
+
 // Reference points the quality/yield curves below are centered on: at
 // PRESTIGE_REFERENCE and zero tuition they sit at their baseline. (Applicant
 // *volume* no longer uses either reference — see APPLICANT_VOLUME_MIDPOINT
-// and APPLICANT_VOLUME_TUITION_REFERENCE below, tuned independently.)
+// and the price-tolerance block below, tuned independently.)
 const PRESTIGE_REFERENCE = 50;      // "average" prestige
 const TUITION_REFERENCE = 20_000;   // price scale the quality-mix shift uses
 
@@ -56,27 +66,38 @@ const TUITION_REFERENCE = 20_000;   // price scale the quality-mix shift uses
 // approaching a ceiling near the very top, the way a handful of schools
 // nationally pull in six-figure applicant counts while most schools don't.
 // Capacity plays NO role here — applicant volume and capacity (dorms; see
-// campusData.ts) are deliberately independent levers, so a small, elite,
-// dorm-constrained school and a huge, low-selectivity one can both draw a
-// big pool; what differs is how much of it they can admit, which is exactly
-// where selectivity should come from.
+// campusData.ts) are deliberately independent levers, which is what makes
+// an over-built campus a real, felt mistake: the beds exist, the upkeep is
+// charged, and nobody is in them until prestige catches up.
 //
-// Tuned (see the PR notes for the worked examples) against four rough real-
-// world benchmarks — a highly selective private near max prestige at sticker
-// tuition should land close to a ~4% admit rate against a several-thousand-
-// seat capacity; a mid-prestige private near 50% tuition discount-adjusted
-// price should land close to 50%; a mid-high prestige, high-tuition school
-// should land in the high-single-digits. A low/mid-prestige school with a
-// huge dorm chain and low tuition will NOT reproduce a big, high-acceptance
-// applicant pool from prestige/price alone — that also draws heavily on
-// athletics and campus life, which aren't modeled yet (see README's
-// roadmap), so admit rate saturates near 100% there instead. That's an
-// accepted, deliberate gap, not a bug.
+// The curve is deliberately steep through the low-middle of the prestige
+// range: a founding school (prestige ~50) draws a couple of thousand
+// applicants, and the same school twenty prestige points later draws
+// several times that. That multiplier IS the growth loop's payoff — the
+// reason building out a major eventually pays for the dorm it forced.
 const APPLICANT_VOLUME_CEILING = 260_000;   // asymptotic max pool size, approached only near max prestige
-const APPLICANT_VOLUME_MIDPOINT = 108;      // prestige at which the pool sits at half the ceiling
-const APPLICANT_VOLUME_STEEPNESS = 0.083;   // curve steepness around the midpoint
-const APPLICANT_VOLUME_TUITION_REFERENCE = 30_000; // price scale the volume discount uses
-const PRICE_SENSITIVITY = 0.18;             // applicants ~ exp(-sensitivity x tuition/ref); higher tuition => fewer applicants
+const APPLICANT_VOLUME_MIDPOINT = 103;      // prestige at which the pool sits at half the ceiling
+const APPLICANT_VOLUME_STEEPNESS = 0.069;   // curve steepness around the midpoint
+
+// --- Price tolerance: what the school can charge before demand falls away,
+// and the single most important connection in this file. It is NOT a fixed
+// price scale: it RISES WITH PRESTIGE. A school nobody has heard of cannot
+// charge elite tuition and fill a class — it prices itself out of its own
+// applicant pool — while a school at the top of the rankings can charge
+// several times as much and still be over-subscribed.
+//
+// That is what makes the loop pay: curriculum breadth -> prestige ->
+// pricing power -> revenue. It is also what stops the year-1 "just set
+// tuition to the ceiling" move from trivializing the early game, which is
+// what a fixed price scale allowed: with PRICE_SENSITIVITY at 1.0 the
+// revenue-maximizing NET price is exactly the tolerance below, so a
+// founding school's best price is around $15k and a top-50 school's is
+// three times that. Price is compared NET of financial aid (tuition x
+// (1 - aid)) — aid is a discount on the sticker, so it widens the pool as
+// well as lifting yield.
+const PRICE_TOLERANCE_BASE = 5_500;             // what a school with no reputation at all can charge
+const PRICE_TOLERANCE_PER_PRESTIGE_POINT = 240; // added per point of prestige
+const PRICE_SENSITIVITY = 1.0;                  // applicants ~ exp(-sensitivity x netPrice/tolerance)
 
 // --- Word of mouth: current student satisfaction scales the applicant pool.
 // This is satisfaction's ONE mechanical consequence (the weekly attrition
@@ -95,8 +116,16 @@ const PRICE_SENSITIVITY = 0.18;             // applicants ~ exp(-sensitivity x t
 // at satisfaction 100 the pool is (1 + STRENGTH)x, at satisfaction 0 it is
 // (1 - STRENGTH)x. This single constant is the tuning knob for how much
 // student happiness matters to demand.
+//
+// Raised as part of the growth-loop pass so that the satisfaction dilution
+// a new dorm causes (every ratio attribute in satisfactionSystem.ts is
+// scored against CAPACITY) actually throttles the next cycle's pool —
+// growing beds without growing dining/parking/health now costs demand,
+// not just a number on a panel. It CANNOT spiral: satisfaction is floored
+// by ATTRIBUTE_SCORE_FLOOR, so the multiplier bottoms out around 0.63x
+// rather than at zero, and building one cheap facility moves it back.
 const WORD_OF_MOUTH_NEUTRAL = 70;    // satisfaction score with no effect on demand — matches the founding value
-const WORD_OF_MOUTH_STRENGTH = 0.35; // max fractional change to the pool: +35% at satisfaction 100, -35% at 0
+const WORD_OF_MOUTH_STRENGTH = 0.45; // max fractional change to the pool: +45% at satisfaction 100, -45% at 0
 
 // --- Quality distribution: fractions of the pool in each band ---
 // Base mix at reference conditions; must sum to 1. Prestige shifts mass up
@@ -141,13 +170,23 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
-// Total applicant count as a function of prestige and tuition. See the
-// constants above for the shape and the numbers this is tuned against.
-function applicantVolume(prestige: number, tuition: number): number {
+// What this school can charge before demand starts falling away — the
+// prestige-scaled price scale the volume discount is measured against.
+// Exported so the admissions modal can show the player the number their
+// tuition decision is actually being judged against, rather than leaving
+// the most important curve in the game invisible.
+export function priceTolerance(prestige: number): number {
+  return PRICE_TOLERANCE_BASE + PRICE_TOLERANCE_PER_PRESTIGE_POINT * Math.max(prestige, 0);
+}
+
+// Total applicant count as a function of prestige and NET price (tuition
+// after aid). See the constants above for the shape and the numbers this
+// is tuned against.
+function applicantVolume(prestige: number, netPrice: number): number {
   const prestigePool = APPLICANT_VOLUME_CEILING /
     (1 + Math.exp(-APPLICANT_VOLUME_STEEPNESS * (prestige - APPLICANT_VOLUME_MIDPOINT)));
-  const tuitionFactor = Math.exp(-PRICE_SENSITIVITY * Math.max(tuition, 0) / APPLICANT_VOLUME_TUITION_REFERENCE);
-  return prestigePool * tuitionFactor;
+  const priceFactor = Math.exp(-PRICE_SENSITIVITY * Math.max(netPrice, 0) / priceTolerance(prestige));
+  return prestigePool * priceFactor;
 }
 
 // Word-of-mouth multiplier on the applicant pool, from current student
@@ -194,7 +233,8 @@ export function projectAdmissions(
   satisfaction: number,
 ): AdmissionsProjection {
   const wordOfMouth = wordOfMouthFactor(satisfaction);
-  const applicants = applicantVolume(prestige, tuition) * wordOfMouth;
+  const netPrice = Math.max(tuition, 0) * (1 - clamp(aid, 0, 1));
+  const applicants = applicantVolume(prestige, netPrice) * wordOfMouth;
   const mix = qualityMix(prestige, tuition);
   const pool: Record<QualityBand, number> = {
     top: applicants * mix.top,

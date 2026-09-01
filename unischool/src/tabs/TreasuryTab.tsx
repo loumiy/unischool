@@ -1,6 +1,7 @@
 import type { GameState } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
-import { financeBreakdown } from '../systems/finance/financeSystem';
+import type { Action } from '../state/actions';
+import { financeBreakdown, instructionCostPerStudent, endowmentCampaign } from '../systems/finance/financeSystem';
 import HelpHint from '../components/HelpHint';
 
 // ---------------------------------------------------------------------
@@ -40,9 +41,11 @@ function StatementLine({ label, note, amount }: { label: string; note: string; a
   );
 }
 
-export default function TreasuryTab({ s }: { s: GameState }) {
+export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const flow = financeBreakdown(s);
   const annualNet = flow.net * WEEKS_PER_YEAR;
+  const coursesDone = s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
+  const campaign = endowmentCampaign(s);
 
   return (
     <div className="tab-content">
@@ -66,8 +69,13 @@ export default function TreasuryTab({ s }: { s: GameState }) {
               amount={flow.prestigeRevenue}
             />
             <StatementLine
+              label="Endowment payout"
+              note={`the endowment's annual spend rate on ${money(s.finance.endowment)}`}
+              amount={flow.endowmentPayout}
+            />
+            <StatementLine
               label="Baseline funding"
-              note={s.self.schoolType === 'public' ? 'state appropriations, fixed at founding' : 'none — private schools receive no appropriation'}
+              note={s.self.schoolType === 'public' ? 'state appropriations: a flat grant plus a per-student allocation' : 'none — private schools receive no appropriation'}
               amount={flow.baselineFunding}
             />
             <div className="statement-total">
@@ -85,11 +93,21 @@ export default function TreasuryTab({ s }: { s: GameState }) {
             />
             <StatementLine
               label="Seat upkeep"
-              note={`${s.students.capacity.toLocaleString()} beds — charged on capacity, not on who's in them`}
+              note={`${s.students.capacity.toLocaleString()} beds — an empty one still costs, at half rate`}
               amount={flow.seatUpkeep}
             />
             <StatementLine
-              label="Facility upkeep"
+              label="Instruction"
+              note={`${s.students.enrolled.toLocaleString()} enrolled × ${money(instructionCostPerStudent(s))}/wk — rises with every course you offer (${coursesDone})`}
+              amount={flow.instructionCost}
+            />
+            <StatementLine
+              label="Academic upkeep"
+              note={`running ${coursesDone} courses and the school buildings they sit in`}
+              amount={flow.academicUpkeep}
+            />
+            <StatementLine
+              label="Campus upkeep"
               note="libraries, dining, rec, parking and labs, each carrying its own running cost"
               amount={flow.facilityUpkeep}
             />
@@ -110,10 +128,39 @@ export default function TreasuryTab({ s }: { s: GameState }) {
       </section>
 
       <section className="panel">
+        <div className="panel-head">
+          <h2>Endowment Campaign</h2>
+          <HelpHint align="end" text="A campaign converts cash into endowment at a donor match that scales with prestige. The endowment pays a fixed share of itself into income every year, and its size per student feeds prestige — so once the dorm chain and the curriculum are built out, this is what money is still for. Each campaign costs more than the last, and donors give a little less each time." />
+        </div>
+        {!campaign.available ? (
+          <p className="empty-note">
+            No donor underwrites a campaign for a school nobody has heard of yet. Build prestige first — {Math.round(s.self.reputation)} today.
+          </p>
+        ) : (
+          <>
+            <dl>
+              <dt>Campaign</dt><dd>#{campaign.number}</dd>
+              <dt>Cash committed</dt><dd>{money(campaign.cost)}</dd>
+              <dt>Donor match</dt><dd>+{Math.round(campaign.match * 100)}%</dd>
+              <dt>Raised into the endowment</dt><dd>{money(campaign.endowmentGain)}</dd>
+              <dt>Adds to income</dt><dd>{money(campaign.annualPayout)}/yr, permanently</dd>
+            </dl>
+            <button
+              disabled={!campaign.affordable}
+              onClick={() => act({ type: 'LAUNCH_ENDOWMENT_CAMPAIGN' })}
+            >
+              {campaign.affordable ? `Launch campaign #${campaign.number}` : `Needs ${money(campaign.cost)} in cash`}
+            </button>
+          </>
+        )}
+      </section>
+
+      <section className="panel">
         <h2>Balance & Policy</h2>
         <dl>
           <dt>Cash</dt><dd>{money(s.finance.cash)}</dd>
           <dt>Endowment</dt><dd>{money(s.finance.endowment)}</dd>
+          <dt>Campaigns run</dt><dd>{s.finance.endowmentCampaigns}</dd>
           <dt>Tuition</dt><dd>${s.finance.tuitionPerStudent.toLocaleString()}/yr</dd>
           <dt>Tuition ceiling</dt><dd>${s.finance.tuitionCeiling.toLocaleString()}/yr</dd>
           <dt>Financial aid</dt><dd>{Math.round(s.admissions.financialAidRate * 100)}%</dd>

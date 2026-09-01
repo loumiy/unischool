@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Action } from '../state/actions';
 import type { GameState, PendingInterrupt } from '../state/types';
-import { projectAdmissions } from '../systems/admissions/admissionsSystem';
+import { projectAdmissions, priceTolerance } from '../systems/admissions/admissionsSystem';
 import type { ReportPayload } from '../systems/rivals/rivalsSystem';
 
 // Placeholder modal content for interrupt types with no dedicated form (see
@@ -47,6 +47,12 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
   // Live preview of the emergent outcomes, computed with the very function
   // the reducer commits with — so the numbers shown are the numbers applied.
   const outcome = projectAdmissions(prestige, tuition, financialAidRate, capacity, satisfaction);
+  // What this school's prestige lets it charge before demand starts
+  // falling away (see admissionsSystem.ts's price tolerance). Shown
+  // because it is the single most consequential curve behind this
+  // decision: without it, a player pricing above their standing just
+  // watches the applicant pool shrink with no idea why.
+  const tolerance = Math.round(priceTolerance(prestige));
 
   return (
     <>
@@ -73,6 +79,10 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
         <div><dt>Enrolled class</dt><dd>{outcome.enrolled.toLocaleString()} / {capacity.toLocaleString()}</dd></div>
         <div><dt>Incoming quality <span className="outcome-note">(feeds prestige)</span></dt><dd>{Math.round(outcome.avgIncomingQuality)} / 100</dd></div>
         <div><dt>Net tuition / student</dt><dd>${outcome.netTuitionPerStudent.toLocaleString()}/yr</dd></div>
+        <div>
+          <dt>What your prestige supports <span className="outcome-note">(net price before demand falls away)</span></dt>
+          <dd>${tolerance.toLocaleString()}/yr</dd>
+        </div>
       </dl>
 
       <button onClick={() => onResolve({ tuition, financialAidRate })}>

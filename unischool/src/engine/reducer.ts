@@ -2,7 +2,7 @@ import type { GameState, LogEntry } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import type { Action } from '../state/actions';
 import { createInitialState, createPreStartState } from '../state/actions';
-import { tickFinance } from '../systems/finance/financeSystem';
+import { tickFinance, endowmentCampaign } from '../systems/finance/financeSystem';
 import { tickTech, canStartDevelopment, startDevelopment } from '../systems/techtree/techSystem';
 import { tickAdmissions, projectAdmissions } from '../systems/admissions/admissionsSystem';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
@@ -156,6 +156,28 @@ export function reducer(state: GameState, action: Action): GameState {
       const node = s.tech.find((t) => t.id === action.buildableId);
       if (node && canPlace(s, node, action.row, action.col)) {
         s.placements[node.id] = { row: action.row, col: action.col };
+      }
+      return s;
+    }
+
+    case 'LAUNCH_ENDOWMENT_CAMPAIGN': {
+      // The late-game money sink (see financeSystem.ts's endowmentCampaign
+      // for the cost/match curve). Charged in full, up front, exactly like
+      // starting a Buildable — but unlike a Buildable it is repeatable
+      // forever, so it is the one purchase a fully built-out school still
+      // has left. The same pure function the Treasury previews it with is
+      // what commits it, so the player gets the numbers they were shown.
+      const campaign = endowmentCampaign(s);
+      if (campaign.available && campaign.affordable) {
+        s.finance.cash -= campaign.cost;
+        s.finance.endowment += campaign.endowmentGain;
+        s.finance.endowmentCampaigns += 1;
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: `Endowment campaign #${campaign.number} closed: $${campaign.cost.toLocaleString()} committed, $${campaign.endowmentGain.toLocaleString()} raised at a ${Math.round(campaign.match * 100)}% donor match.`,
+          kind: 'good',
+        });
       }
       return s;
     }
