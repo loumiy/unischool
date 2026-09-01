@@ -6,7 +6,6 @@ import { initialFacilities } from '../data/facilitiesData';
 import { initialRivals } from '../data/rivalData';
 import { initialCandidates, facultySalary } from '../data/facultyData';
 import { SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION } from '../data/schoolTypeData';
-import { STARTING_SLOTS } from '../systems/techtree/techSystem';
 
 // All the ways a player can change the world. The engine's reducer is the
 // only thing that interprets these. UI dispatches them; systems never do.
@@ -35,7 +34,6 @@ export type Action =
   // (a `course` never is), is already placed, or the target tile is out of
   // bounds or occupied.
   | { type: 'PLACE_BUILDABLE'; buildableId: string; row: number; col: number }
-  | { type: 'BUY_SLOT' }
   | { type: 'TOGGLE_AUTO_DEVELOP' }
   | { type: 'RESOLVE_INTERRUPT' }                      // clears pendingInterrupt, lets the clock resume
   // Resolves the annual summer admissions interrupt: sets next year's two
@@ -68,7 +66,6 @@ export function createPreStartState(): GameState {
     admissions: { financialAidRate: 0 },
     faculty: [],
     tech: [],
-    slots: 0,
     developing: {},
     placements: {},
     rivals: [],
@@ -174,7 +171,6 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // — courses, academic buildings, dorms, AND campus-life facilities all
     // live here together.
     tech: [...initialTech(), ...initialDorms(), ...initialFacilities()],
-    slots: STARTING_SLOTS,
     developing: {},
     placements: {},
     rivals: initialRivals(),

@@ -22,23 +22,6 @@ import { milestoneSchools } from '../../data/techData';
 // addresses.
 const MAJOR_COMPLETE_APPLICANT_BONUS = 30;
 
-// Development slots are a purchasable relief valve, not the primary
-// pacing throttle (see README's "Pacing model"). Each additional slot
-// costs more than the last — SLOT_BASE_COST for the first purchasable
-// slot beyond STARTING_SLOTS, compounding by SLOT_COST_GROWTH per slot
-// bought after that — so stacking up parallel development capacity is a
-// real, escalating investment rather than a one-time flat buy. Soft cap
-// at MAX_SLOTS for now — tune freely.
-export const STARTING_SLOTS = 2;
-export const SLOT_BASE_COST = 70_000;
-export const SLOT_COST_GROWTH = 1.5;
-export const MAX_SLOTS = 8;
-
-// Cost of buying the next slot given how many the school currently has.
-export function nextSlotCost(currentSlots: number): number {
-  return Math.round(SLOT_BASE_COST * SLOT_COST_GROWTH ** (currentSlots - STARTING_SLOTS));
-}
-
 // Counts how many course Buildables currently occupy a faculty course-slot
 // in `field` — every course whose requiresFaculty matches that has started
 // developing or finished. A course never "retires" once offered (there's no
@@ -69,16 +52,19 @@ export function hasFreeFacultySlot(s: GameState, field: string): boolean {
 
 // Shared by the reducer's START_DEVELOPMENT case and this system's
 // auto-develop fill, so "what it takes to start" has one definition.
-// The cash>=0 check is the "stall, don't die" bottleneck from README's
-// pacing model: a shortfall blocks starting anything new — regardless of
+// There is deliberately NO cap on how many Buildables can develop at once:
+// money is the sole pacing resource (see README's "Pacing model"), so the
+// cash>=0 check is the only throttle here. It is the "stall, don't die"
+// bottleneck: a shortfall blocks starting anything new — regardless of
 // that Buildable's own cost — rather than ending the run. It naturally
 // covers manual starts, auto-develop, and any future build-initiation
-// path that goes through this function.
+// path that goes through this function. The faculty course-slot gate is a
+// separate, per-field capacity rule on the curated requiresFaculty
+// courses, not a throttle on development volume.
 export function canStartDevelopment(s: GameState, node: Buildable): boolean {
-  const slotsUsed = Object.keys(s.developing).length;
   const facultyOk = !node.requiresFaculty || hasFreeFacultySlot(s, node.requiresFaculty);
   const notInTheRed = s.finance.cash >= 0;
-  return node.status === 'available' && slotsUsed < s.slots && facultyOk && notInTheRed;
+  return node.status === 'available' && facultyOk && notInTheRed;
 }
 
 export function startDevelopment(s: GameState, node: Buildable): void {
@@ -87,23 +73,24 @@ export function startDevelopment(s: GameState, node: Buildable): void {
   s.finance.cash -= node.cost; // cost is charged up front; can dip cash below zero, which then stalls the *next* start
 }
 
-// When autoDevelop is on, greedily fills any open slots with available
-// COURSES ONLY, in list order, using the same rule a manual start uses —
-// it's a sandbox playtesting convenience for bypassing manual "develop"
-// clicks through the curriculum, nothing more, so each course still takes
-// its full `duration` in weeks (it goes through the normal tickTech
-// countdown like any other start). It deliberately does NOT touch
-// buildings, dorms, or facilities — those are real capital decisions
-// (capacity, satisfaction, prestige tradeoffs) the player should always
-// make deliberately, never something a playtesting toggle churns through
-// unattended. canStartDevelopment's cash>=0 check already stalls it while
-// in the red; on top of that, auto-develop won't pick a specific course it
-// can't afford even while cash is still non-negative, so it can't be used
-// to unattendedly grind the balance down to the stall threshold.
-function autoFillSlots(s: GameState): void {
+// When autoDevelop is on, greedily starts every available COURSE it can
+// afford, in list order, using the same rule a manual start uses — with no
+// slot cap, that is now simply "every course that passes
+// canStartDevelopment", not "up to a slot count". It's a sandbox
+// playtesting convenience for bypassing manual "develop" clicks through
+// the curriculum, nothing more, so each course still takes its full
+// `duration` in weeks (it goes through the normal tickTech countdown like
+// any other start). It deliberately does NOT touch buildings, dorms, or
+// facilities — those are real capital decisions (capacity, satisfaction,
+// prestige tradeoffs) the player should always make deliberately, never
+// something a playtesting toggle churns through unattended.
+// canStartDevelopment's cash>=0 check already stalls it while in the red;
+// on top of that, auto-develop won't pick a specific course it can't
+// afford even while cash is still non-negative, so it can't be used to
+// unattendedly grind the balance down to the stall threshold.
+function autoDevelopCourses(s: GameState): void {
   if (!s.autoDevelop) return;
   for (const node of s.tech) {
-    if (Object.keys(s.developing).length >= s.slots) break;
     if (node.kind !== 'course') continue;
     if (node.cost > 0 && s.finance.cash < node.cost) continue;
     if (canStartDevelopment(s, node)) startDevelopment(s, node);
@@ -122,7 +109,6 @@ function applyEffects(s: GameState, e?: Partial<BuildableEffects>): void {
   if (!e) return;
   if (e.capacityBonus) s.students.capacity += e.capacityBonus;
   if (e.tuitionBonus) s.finance.tuitionPerStudent += e.tuitionBonus;
-  if (e.slotBonus) s.slots += e.slotBonus;
   if (e.applicantPoolBonus) s.students.applicantPool += e.applicantPoolBonus;
   // researchRateBonus is read live in weeklyResearchPoints extensions later.
   if (e.unlockIds) {
@@ -248,5 +234,5 @@ export function tickTech(s: GameState): void {
   if (finished.length > 0) {
     checkMilestones(s);
   }
-  autoFillSlots(s);
+  autoDevelopCourses(s);
 }

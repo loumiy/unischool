@@ -3,7 +3,7 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import type { Action } from '../state/actions';
 import { createInitialState } from '../state/actions';
 import { tickFinance } from '../systems/finance/financeSystem';
-import { tickTech, canStartDevelopment, startDevelopment, nextSlotCost, MAX_SLOTS } from '../systems/techtree/techSystem';
+import { tickTech, canStartDevelopment, startDevelopment } from '../systems/techtree/techSystem';
 import { tickAdmissions, projectAdmissions } from '../systems/admissions/admissionsSystem';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
 import { tickFaculty } from '../systems/faculty/facultySystem';
@@ -120,15 +120,6 @@ export function reducer(state: GameState, action: Action): GameState {
       const node = s.tech.find((t) => t.id === action.buildableId);
       if (node && canPlace(s, node, action.row, action.col)) {
         s.placements[node.id] = { row: action.row, col: action.col };
-      }
-      return s;
-    }
-
-    case 'BUY_SLOT': {
-      const cost = nextSlotCost(s.slots);
-      if (s.slots < MAX_SLOTS && s.finance.cash >= cost) {
-        s.finance.cash -= cost;
-        s.slots += 1;
       }
       return s;
     }

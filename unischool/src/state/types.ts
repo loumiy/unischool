@@ -93,7 +93,7 @@ export interface Buildable {
   name: string;
   description: string;
   cost: number;            // money spent up front, at the moment development starts
-  duration: number;        // weeks of development, occupying a development slot
+  duration: number;        // weeks of development
   prereqs: string[];       // other Buildable ids that must be 'done'; may cross kinds and majors
   requiresFaculty?: string; // a Faculty `field` that must have a free course slot (see canStartDevelopment) to start
   // Dynamic availability gates, re-checked every tick (unlike prereqs, which
@@ -122,7 +122,6 @@ export interface BuildableEffects {
   capacityBonus: number;
   tuitionBonus: number;
   researchRateBonus: number;
-  slotBonus: number;    // grants additional development slots
   applicantPoolBonus: number; // one-time bump to the applicant pool (see README's milestone chain)
   unlockIds: string[];  // force these Buildable ids to 'available', regardless of their own prereqs
 
@@ -222,7 +221,6 @@ export interface GameState {
   admissions: AdmissionsSettings;
   faculty: Faculty[];
   tech: Buildable[];
-  slots: number;                     // parallel development slots
   developing: Record<string, number>; // course id -> weeks remaining
   placements: Placements;            // Buildable id -> the campus tile it sits on; visual only (see the campus map block above)
   rivals: Rival[];
@@ -230,7 +228,7 @@ export interface GameState {
   log: LogEntry[];               // recent events, newest first
   gameOver: boolean;
   pendingInterrupt: PendingInterrupt | null; // set => clock halts until resolved
-  autoDevelop: boolean;          // when true, tickTech auto-starts available COURSES only, as development slots free up — buildings/dorms/facilities are never auto-started (see techSystem.ts's autoFillSlots)
+  autoDevelop: boolean;          // when true, tickTech auto-starts every available COURSE the school can afford — buildings/dorms/facilities are never auto-started (see techSystem.ts's autoDevelopCourses)
   candidates: Faculty[];         // hireable, already-arrived faculty — populated ONLY when an open posting's countdown resolves (see facultySystem.ts), never by passive random replenishment
   openPostings: Record<string, number>; // Faculty `field` -> weeks remaining until POST_JOB's candidate arrives; mirrors `developing`'s id -> weeks-remaining shape. At most one open posting per field at a time.
   started: boolean;              // false only during the pre-game startup screen (name + school type)
