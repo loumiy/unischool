@@ -13,15 +13,16 @@ import FacultyTab from './tabs/FacultyTab';
 import CurriculumTab from './tabs/CurriculumTab';
 import TreasuryTab from './tabs/TreasuryTab';
 import AdmissionsTab from './tabs/AdmissionsTab';
+import HistoryTab from './tabs/HistoryTab';
 import AthleticsTab from './tabs/AthleticsTab';
 import './styles.css';
 
 // The dashboard shell, built around the campus map as the central
 // interface: the map holds the middle of the screen at all times, the
 // build panel sits in the side rail beside it, and the log runs underneath.
-// Every OTHER view (Faculty, Curriculum, Treasury, Admissions, Athletics)
-// pops up as a dismissible overlay ON TOP of the map rather than replacing
-// it — so the map is the one screen the player always comes back to, and
+// Every OTHER view (Faculty, Curriculum, Treasury, Admissions, History,
+// Athletics) pops up as a dismissible overlay ON TOP of the map rather than
+// replacing it — so the map is the one screen the player always comes back to, and
 // no view is ever more than one Escape away from it.
 //
 // The tab components themselves are untouched by this: they still read
@@ -61,6 +62,7 @@ export default function App() {
             {overlay === 'curriculum' && <CurriculumTab s={s} act={act} />}
             {overlay === 'treasury' && <TreasuryTab s={s} />}
             {overlay === 'admissions' && <AdmissionsTab s={s} />}
+            {overlay === 'history' && <HistoryTab s={s} />}
             {overlay === 'athletics' && <AthleticsTab />}
           </TabOverlay>
         )}

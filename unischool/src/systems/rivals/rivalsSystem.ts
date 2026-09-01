@@ -28,6 +28,16 @@ const RIVAL_REPUTATION_MAX = 150;
 const TOP_50_CUTOFF = 50;
 const REPORT_WEEK = Math.floor(WEEKS_PER_YEAR / 2);
 
+// --- the report's year-over-year movement section ---
+// A rival has to move MORE than this many places to be worth naming: one
+// or two places of shuffling is the field breathing, not news.
+const RIVAL_MOVE_THRESHOLD = 2;
+// Caps on how much of that movement the modal lists, so a chaotic year
+// reads as a report rather than a wall of names. Both lists are sorted
+// biggest-move-first, so what's cut is always the least interesting.
+const MAX_MOVERS_SHOWN = 6;
+const MAX_PASSED_SHOWN = 5;
+
 export function tickRivals(s: GameState): void {
   // The player's own reputation (prestige) no longer moves here — it is a
   // slow-moving stock driven by curriculum breadth, selectivity, and
@@ -51,15 +61,18 @@ export function tickRivals(s: GameState): void {
       const rank = playerRank(s);
       if (rank <= TOP_50_CUTOFF) {
         s.hasEnteredRankings = true;
+        // The one-time reveal carries no movement section: the player had
+        // no standing to move from, and buildReportPayload's year-over-year
+        // comparison would be meaningless on the week they first appear.
         s.pendingInterrupt = {
           type: 'rankings-entry',
-          payload: { rank, standings: rankedList(s).slice(0, TOP_50_CUTOFF) },
+          payload: { rank, previousRank: null, movers: [], passed: [], passedBy: [], standings: rankedList(s).slice(0, TOP_50_CUTOFF) },
         };
       }
     } else if (s.clock.week === REPORT_WEEK) {
       s.pendingInterrupt = {
         type: 'annual-report',
-        payload: { rank: playerRank(s), standings: rankedList(s).slice(0, TOP_50_CUTOFF) },
+        payload: buildReportPayload(s),
       };
     }
   }
@@ -81,4 +94,133 @@ export function rankedList(s: GameState) {
 // The player's 1-indexed position in the full ranked list.
 export function playerRank(s: GameState): number {
   return rankedList(s).findIndex((r) => r.isPlayer) + 1;
+}
+
+// ---------------------------------------------------------------------
+// The annual report's year-over-year movement (see README's "Rankings").
+// The standings alone are a list of names; what a player actually feels is
+// motion — that they climbed three places, that a rival is surging, that
+// they finally passed a school that had been ahead of them for a decade.
+// All of it is derived from data that already exists: the history record's
+// prior-year rank/prestige (see state/history.ts) and the rivals' own
+// momentum field.
+//
+// ESTIMATE, and deliberately so: nothing stores last year's rival
+// reputations, so "where each rival stood a year ago" is reconstructed by
+// stepping their current reputation back by one momentum step. Momentum is
+// the persistent trend, but tickRivals also applies an independent random
+// shock each year (ANNUAL_SHOCK_RANGE) that is not recoverable, so a
+// reported place move can be off by a place or two for rivals sitting in a
+// tightly packed part of the table. The player's OWN movement is exact —
+// it compares two recorded ranks — and so are the passed/passed-by lists'
+// current side; only the rivals' prior side is inferred.
+// ---------------------------------------------------------------------
+
+// A ranked entry keyed by identity rather than name, so two schools that
+// happen to share a name (the player is free to name theirs anything)
+// never collapse into one row when the two years are compared.
+interface RankedEntry {
+  key: string;
+  name: string;
+  reputation: number;
+  isPlayer: boolean;
+}
+
+function sortedByReputation(entries: RankedEntry[]): RankedEntry[] {
+  return [...entries].sort((a, b) => b.reputation - a.reputation);
+}
+
+function currentEntries(s: GameState): RankedEntry[] {
+  return sortedByReputation([
+    { key: 'self', name: s.self.name, reputation: s.self.reputation, isPlayer: true },
+    ...s.rivals.map((r) => ({ key: r.id, name: r.name, reputation: r.reputation, isPlayer: false })),
+  ]);
+}
+
+// Last year's table, reconstructed: the player's prestige comes from the
+// history row recorded a year ago; each rival's is stepped back by one
+// momentum step (see the estimate note above).
+function previousEntries(s: GameState, previousPrestige: number): RankedEntry[] {
+  return sortedByReputation([
+    { key: 'self', name: s.self.name, reputation: previousPrestige, isPlayer: true },
+    ...s.rivals.map((r) => ({ key: r.id, name: r.name, reputation: r.reputation - r.momentum, isPlayer: false })),
+  ]);
+}
+
+function placesByKey(entries: RankedEntry[]): Map<string, number> {
+  return new Map(entries.map((e, i) => [e.key, i + 1]));
+}
+
+// One rival's year-over-year move. `delta` is positive for a climb (a
+// smaller rank number), matching how the modal renders it.
+export interface RankMove {
+  name: string;
+  from: number;
+  to: number;
+  delta: number;
+}
+
+export interface ReportPayload {
+  rank: number;
+  previousRank: number | null; // null when there is no prior year to compare against
+  movers: RankMove[];
+  passed: string[];            // schools that were ahead a year ago and are behind now
+  passedBy: string[];          // schools that were behind a year ago and are ahead now
+  standings: Array<{ name: string; reputation: number; isPlayer: boolean }>;
+}
+
+export function buildReportPayload(s: GameState): ReportPayload {
+  const standings = rankedList(s).slice(0, TOP_50_CUTOFF);
+  const rank = playerRank(s);
+
+  // The history row from a year ago. The most recent row (at -1) is the
+  // standing the school ENTERED this year with — and since rivals only move
+  // at week WEEKS_PER_YEAR and prestige only drifts at the admissions
+  // boundary, nothing has changed between then and REPORT_WEEK, so it is
+  // simply today's standing. The row before it (at -2) is therefore what
+  // "a year ago" means for this report.
+  const priorYear = s.history.length >= 2 ? s.history[s.history.length - 2] : null;
+  if (!priorYear) {
+    return { rank, previousRank: null, movers: [], passed: [], passedBy: [], standings };
+  }
+
+  const current = currentEntries(s);
+  const previous = previousEntries(s, priorYear.prestige);
+  const nowPlace = placesByKey(current);
+  const thenPlace = placesByKey(previous);
+
+  const movers: RankMove[] = [];
+  const passed: string[] = [];
+  const passedBy: string[] = [];
+
+  const selfNow = nowPlace.get('self') ?? rank;
+  const selfThen = thenPlace.get('self') ?? rank;
+
+  for (const rival of s.rivals) {
+    const to = nowPlace.get(rival.id);
+    const from = thenPlace.get(rival.id);
+    if (to === undefined || from === undefined) continue;
+
+    const delta = from - to; // positive = climbed
+    if (Math.abs(delta) > RIVAL_MOVE_THRESHOLD) {
+      movers.push({ name: rival.name, from, to, delta });
+    }
+
+    // Crossings are read off the two orderings rather than off the rank
+    // deltas, so "you passed them" stays true whether it was your climb,
+    // their slide, or both.
+    if (from < selfThen && to > selfNow) passed.push(rival.name);
+    if (from > selfThen && to < selfNow) passedBy.push(rival.name);
+  }
+
+  movers.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+
+  return {
+    rank,
+    previousRank: priorYear.rank,
+    movers: movers.slice(0, MAX_MOVERS_SHOWN),
+    passed: passed.slice(0, MAX_PASSED_SHOWN),
+    passedBy: passedBy.slice(0, MAX_PASSED_SHOWN),
+    standings,
+  };
 }

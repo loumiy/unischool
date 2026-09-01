@@ -79,19 +79,53 @@ function facilityUpkeep(s: GameState): number {
     .reduce((sum, t) => sum + (t.effects?.upkeepPerWeek ?? 0), 0);
 }
 
-function weeklyOpEx(s: GameState): number {
-  const weeklySalaries = s.faculty.reduce((sum, f) => sum + f.salary, 0) / WEEKS_PER_YEAR;
-  const seatUpkeep = s.students.capacity * UPKEEP_PER_SEAT_PER_WEEK;
-  return weeklySalaries + seatUpkeep + facilityUpkeep(s);
+// Every line of the weekly cash flow, broken out. All figures are PER WEEK,
+// the unit the sim actually runs on — annualizing is the reader's job (x
+// WEEKS_PER_YEAR), never done here, so there is one set of numbers rather
+// than two that can disagree.
+export interface FinanceBreakdown {
+  // income
+  tuitionRevenue: number;      // enrolled x tuition, net of financial aid
+  prestigeRevenue: number;     // the reputation dividend: donors/grants/brand, independent of enrollment
+  baselineFunding: number;     // school-type baseline (state appropriations for a public school; 0 for private)
+  totalIncome: number;
+  // expenses
+  weeklySalaries: number;      // the faculty payroll, annualized salaries sliced into weeks
+  seatUpkeep: number;          // capacity x UPKEEP_PER_SEAT_PER_WEEK — the physical plant, sized by beds not bodies
+  facilityUpkeep: number;      // the sum of every done Buildable's own upkeepPerWeek
+  totalExpenses: number;
+  net: number;                 // totalIncome - totalExpenses
 }
 
-function weeklyRevenue(s: GameState): number {
+// The single computation of the weekly cash flow. tickFinance applies it,
+// weeklyNet reads its bottom line, and the Treasury renders it line by
+// line as an income statement — so what the player is shown is exactly
+// what is charged, with no second copy of any formula to drift out of
+// sync. Pure: reads state, writes nothing.
+export function financeBreakdown(s: GameState): FinanceBreakdown {
   const netTuitionPerStudent = s.finance.tuitionPerStudent * (1 - s.admissions.financialAidRate);
   const tuitionRevenue = (s.students.enrolled * netTuitionPerStudent) / WEEKS_PER_YEAR;
   const prestigeRevenue = (s.self.reputation * REPUTATION_DIVIDEND_PER_POINT_PER_YEAR) / WEEKS_PER_YEAR;
-  // Set once at founding by school type (e.g. state appropriations for a
-  // public school; 0 for private) — see SCHOOL_TYPE_PRESETS.
-  return tuitionRevenue + prestigeRevenue + s.finance.baselineFundingPerWeek;
+  const baselineFunding = s.finance.baselineFundingPerWeek;
+
+  const weeklySalaries = s.faculty.reduce((sum, f) => sum + f.salary, 0) / WEEKS_PER_YEAR;
+  const seatUpkeep = s.students.capacity * UPKEEP_PER_SEAT_PER_WEEK;
+  const upkeep = facilityUpkeep(s);
+
+  const totalIncome = tuitionRevenue + prestigeRevenue + baselineFunding;
+  const totalExpenses = weeklySalaries + seatUpkeep + upkeep;
+
+  return {
+    tuitionRevenue,
+    prestigeRevenue,
+    baselineFunding,
+    totalIncome,
+    weeklySalaries,
+    seatUpkeep,
+    facilityUpkeep: upkeep,
+    totalExpenses,
+    net: totalIncome - totalExpenses,
+  };
 }
 
 // Net weekly cash flow at the current state, without mutating anything.
@@ -99,14 +133,15 @@ function weeklyRevenue(s: GameState): number {
 // without keeping a second copy of this formula that can drift out of
 // sync with tickFinance below.
 export function weeklyNet(s: GameState): number {
-  return weeklyRevenue(s) - weeklyOpEx(s);
+  return financeBreakdown(s).net;
 }
 
 // Recomputes operating costs and applies weekly cash flow.
 // Pure: takes state, mutates a draft. (We use structural cloning in the reducer.)
 export function tickFinance(s: GameState): void {
-  s.finance.weeklyOpEx = weeklyOpEx(s);
-  s.finance.cash += weeklyRevenue(s) - s.finance.weeklyOpEx;
+  const flow = financeBreakdown(s);
+  s.finance.weeklyOpEx = flow.totalExpenses;
+  s.finance.cash += flow.net;
 
   // Endowment drifts with a small return, independent of operations — a
   // slow reserve, not a death backstop. Cash is allowed to go negative:

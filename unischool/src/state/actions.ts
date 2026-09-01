@@ -70,6 +70,7 @@ export function createPreStartState(): GameState {
     placements: {},
     rivals: [],
     self: { name: '', reputation: 0, schoolType: 'private' },
+    history: [],
     log: [],
     gameOver: false,
     pendingInterrupt: null,
@@ -176,6 +177,11 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     rivals: initialRivals(),
     // +GENED_BUILDING_REPUTATION_BONUS: same fold-in as capacity above.
     self: { name, reputation: BASE_STARTING_REPUTATION + preset.prestigeBonus + GENED_BUILDING_REPUTATION_BONUS, schoolType },
+    // Empty at founding: the first row lands at the end of year 1, when the
+    // summer admissions interrupt resolves (see reducer.ts's
+    // RESOLVE_ADMISSIONS), so every view reading it must handle a school
+    // with no history yet.
+    history: [],
     log: [
       { year: 1, week: 1, message: 'The university opens its doors.', kind: 'info' },
     ],
