@@ -187,6 +187,32 @@ export interface PendingInterrupt {
   payload?: unknown;
 }
 
+// Cadence bookkeeping for the two interrupt kinds that are neither annual
+// nor player-triggered: the milestone celebration (a stop-the-clock moment
+// for a genuinely special accomplishment) and the authored decision events
+// that give the quiet weeks between milestones their texture. See
+// data/eventData.ts for the content and tuning constants, and
+// systems/events/eventSystem.ts for the one tick function that fires both.
+//
+// Plain JSON — numbers, a string array and a string -> number record — the
+// same shape rationale as `developing`, `openPostings` and `placements`.
+export interface EventState {
+  // Milestone keys (the same keys techSystem.ts writes into s.milestones)
+  // that have been awarded but not yet celebrated. A QUEUE rather than a
+  // fire-it-immediately call, because the week a milestone lands may
+  // already belong to the summer admissions decision or the U.S. News
+  // report, and only one interrupt can be pending at a time. Draining the
+  // queue on a later quiet week means a celebration is delayed, never
+  // lost, and neither annual interrupt has to be special-cased anywhere.
+  pendingMilestones: string[];
+  lastMilestoneWeek: number;   // absolute week the last celebration fired; 0 = never
+  lastDecisionWeek: number;    // absolute week the last authored decision event fired; 0 = never
+  // Decision event id -> how many times it has fired and the absolute
+  // week it last did. Both are needed: the count enforces a per-event
+  // fire cap, the week enforces the per-event repeat cooldown.
+  decisionHistory: Record<string, { fires: number; lastWeek: number }>;
+}
+
 // The player's admissions policy, set once a year via the summer interrupt
 // (see README's "Admissions: an annual summer decision"). In the funnel
 // model there are exactly two player inputs: tuition and average aid.
@@ -254,6 +280,7 @@ export interface GameState {
   log: LogEntry[];               // recent events, newest first
   gameOver: boolean;
   pendingInterrupt: PendingInterrupt | null; // set => clock halts until resolved
+  events: EventState;            // cadence bookkeeping for milestone celebrations and authored decision events (see EventState above)
   autoDevelop: boolean;          // when true, tickTech auto-starts every available COURSE the school can afford — buildings/dorms/facilities are never auto-started (see techSystem.ts's autoDevelopCourses)
   candidates: Faculty[];         // hireable, already-arrived faculty — populated ONLY when an open posting's countdown resolves (see facultySystem.ts), never by passive random replenishment
   openPostings: Record<string, number>; // Faculty `field` -> weeks remaining until POST_JOB's candidate arrives; mirrors `developing`'s id -> weeks-remaining shape. At most one open posting per field at a time.

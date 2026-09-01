@@ -236,6 +236,22 @@ export function computePrestigeTarget(s: GameState): number {
   return clamp(target, PRESTIGE_MIN, PRESTIGE_MAX);
 }
 
+// What the prestige target WOULD be if the given milestones had never
+// been awarded. Used by the milestone celebration modal (see
+// InterruptModal.tsx) to say what an accomplishment was actually worth:
+// "the target moved from X to Y because of this". Pure — it builds a
+// throwaway shallow copy with those milestone keys removed and runs the
+// same computePrestigeTarget above, so there is no second copy of the
+// formula to drift, and nothing about the real state is touched. Safe
+// because computePrestigeTarget only ever READS; the copy shares every
+// other slice by reference.
+export function prestigeTargetWithout(s: GameState, milestoneKeys: readonly string[]): number {
+  if (milestoneKeys.length === 0) return computePrestigeTarget(s);
+  const milestones = { ...s.milestones };
+  for (const key of milestoneKeys) delete milestones[key];
+  return computePrestigeTarget({ ...s, milestones });
+}
+
 // Called once a year, from RESOLVE_ADMISSIONS — the one natural annual
 // boundary — right after that cycle's admitRate/incomingQuality are set.
 // Drifts prestige a small fraction of the way toward its target; never

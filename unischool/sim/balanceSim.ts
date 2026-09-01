@@ -27,6 +27,8 @@ import type { GameState, Buildable, SchoolType } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet } from '../src/systems/finance/financeSystem';
 import { canStartDevelopment, hasFreeFacultySlot } from '../src/systems/techtree/techSystem';
 import { JOB_POSTING_COST } from '../src/data/facultyData';
+import { findDecisionEvent } from '../src/data/eventData';
+import type { DecisionEventContext } from '../src/data/eventData';
 
 // ---------------------------------------------------------------------
 // Deterministic environment. The game rolls dice (faculty potentials,
@@ -282,7 +284,33 @@ function snapshot(s: GameState, weeksInTheRed: number, minCash: number): Row {
   };
 }
 
-function play(strategy: Strategy, years: number): Row[] {
+// What the authored decision events (see src/data/eventData.ts) did over a
+// run. Reported under the table so a balance pass can see at a glance
+// whether the events are a rounding error against the growth loop or a
+// second economy — they are meant to be the former.
+interface EventTally {
+  milestones: number;   // stop-the-clock celebrations shown
+  decisions: number;    // authored decision events resolved
+  cash: number;         // net cash effect of every choice the scripted player took
+}
+
+// The scripted player's event policy: take the FIRST affordable choice —
+// which in every entry in the table is the "deal with it properly, and
+// pay" option — and fall back to a free one when the money isn't there.
+// That is the most expensive reasonable policy, so the tally below is an
+// upper bound on what events cost a run.
+function chooseEventOption(s: GameState): { eventId: string; choiceId: string; ctx: DecisionEventContext } | null {
+  const payload = s.pendingInterrupt?.payload as { eventId: string; ctx: DecisionEventContext } | undefined;
+  if (!payload) return null;
+  const event = findDecisionEvent(payload.eventId);
+  if (!event) return null;
+  const affordable = event.choices.find((c) => c.cost(s, payload.ctx) <= s.finance.cash);
+  const choice = affordable ?? event.choices.find((c) => c.cost(s, payload.ctx) <= 0);
+  if (!choice) return null;
+  return { eventId: event.id, choiceId: choice.id, ctx: payload.ctx };
+}
+
+function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTally } {
   let s = createPreStartState();
   s = reducer(s, { type: 'START_GAME', name: 'Test University', schoolType: strategy.schoolType });
   const dispatch = (a: Action) => { s = reducer(s, a); };
@@ -290,11 +318,26 @@ function play(strategy: Strategy, years: number): Row[] {
   let weeksInTheRed = 0;
   let minCash = s.finance.cash;
 
+  const tally: EventTally = { milestones: 0, decisions: 0, cash: 0 };
+
   while (s.clock.year <= years) {
     if (s.pendingInterrupt) {
       if (s.pendingInterrupt.type === 'admissions') {
         dispatch({ type: 'RESOLVE_ADMISSIONS', tuition: strategy.tuition(s), financialAidRate: strategy.aid(s) });
         rows.push(snapshot(s, weeksInTheRed, minCash));
+      } else if (s.pendingInterrupt.type === 'milestone') {
+        tally.milestones += 1;
+        dispatch({ type: 'RESOLVE_MILESTONE' });
+      } else if (s.pendingInterrupt.type === 'decision-event') {
+        const taken = chooseEventOption(s);
+        const before = s.finance.cash;
+        if (taken) {
+          tally.decisions += 1;
+          dispatch({ type: 'RESOLVE_DECISION_EVENT', ...taken });
+        } else {
+          dispatch({ type: 'RESOLVE_DECISION_EVENT', eventId: '', choiceId: '', ctx: {} });
+        }
+        tally.cash += s.finance.cash - before;
       } else {
         dispatch({ type: 'RESOLVE_REPORT' });
       }
@@ -305,7 +348,7 @@ function play(strategy: Strategy, years: number): Row[] {
     if (s.finance.cash < 0) weeksInTheRed += 1;
     minCash = Math.min(minCash, s.finance.cash);
   }
-  return rows;
+  return { rows, tally };
 }
 
 function fmt(n: number): string {
@@ -317,7 +360,8 @@ function fmt(n: number): string {
   return `${sign}${abs.toFixed(0)}`;
 }
 
-function report(strategy: Strategy, rows: Row[], every: number): void {
+function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally }, every: number): void {
+  const { rows, tally } = run;
   console.log(`\n=== ${strategy.name} (${strategy.schoolType}) ===`);
   console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | crs | maj | fac |  tuition | aid |  applic | admit% |  endow');
   const last = rows[rows.length - 1];
@@ -331,6 +375,7 @@ function report(strategy: Strategy, rows: Row[], every: number): void {
     );
   }
   console.log(`   weeks in the red: ${last.weeksInTheRed} of ${rows.length * 52}, min cash: ${fmt(last.minCash)}`);
+  console.log(`   milestone celebrations: ${tally.milestones}, decision events: ${tally.decisions}, net event cash: ${fmt(tally.cash)}`);
 }
 
 // ---------------------------------------------------------------------

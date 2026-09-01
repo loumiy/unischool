@@ -440,6 +440,33 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .report-standings::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: 4px; }
 .report-standings { scrollbar-width: thin; scrollbar-color: var(--navy-line) transparent; }
 
+/* Milestone celebrations (see InterruptModal.tsx). Deliberately the same
+   dark-navy modal as every other interrupt, with a single gold accent —
+   a stop-the-clock moment for a finished major should feel like the
+   report does, not like a different game. */
+.milestone-entry { margin: 0 0 12px; }
+.milestone-entry h3 { font-family: var(--serif); font-size: 13px; margin: 0 0 4px; color: var(--ink-hi); }
+.milestone-detail { font-size: 13px; margin: 0 0 8px !important; }
+.milestone-unlocks-head { font-family: var(--serif); font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--gold); margin: 0 0 6px; }
+.milestone-unlocks { list-style: none; margin: 0 0 4px; padding: 0; }
+.milestone-unlocks li { font-size: 13px; padding: 3px 0; border-bottom: 1px solid var(--navy-line); color: #cbd0d8; }
+.milestone-gain { color: #7dd3a0; }
+
+/* Authored decision events (see data/eventData.ts). Each choice is a
+   full-width button carrying its own consequence text, so the tradeoff is
+   readable without hovering anything; an unaffordable one is shown
+   disabled rather than hidden. */
+.event-choices { display: grid; gap: 8px; }
+.event-choice { display: block; width: 100%; text-align: left; background: #1a2338 !important;
+  color: var(--ink-hi) !important; border: 1px solid var(--navy-line) !important; border-radius: 6px;
+  padding: 10px 12px !important; font-weight: 400 !important; }
+.event-choice:not(:disabled):hover { border-color: var(--gold) !important; }
+.event-choice-label { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  font-family: var(--serif); font-weight: 700; font-size: 14px; }
+.event-choice-cost { font-family: var(--mono); font-size: 12px; color: var(--gold); white-space: nowrap; }
+.event-choice-detail { display: block; margin-top: 5px; font-size: 12px; line-height: 1.45; color: #cbd0d8; }
+
 .admissions-field { display: block; margin-bottom: 16px; }
 .admissions-field span { display: block; font-size: 13px; color: #cbd0d8; margin-bottom: 6px; }
 .admissions-field span strong { color: var(--ink-hi); font-family: var(--mono); }
