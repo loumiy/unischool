@@ -60,6 +60,19 @@ button { cursor: pointer; font-family: inherit; }
 .auto-develop-toggle.on { border-color: var(--gold); border-style: solid; color: var(--gold); }
 .debug-interrupt-btn { background: #3a2f1c; color: #e0b04a; border: 1px dashed #a67c1c; border-radius: 4px;
   padding: 5px 10px; font-size: 11px; }
+/* Save / New Game (see StatusHeader.tsx's SaveControls). Sized and spoken
+   in the same quiet register as the speed buttons beside them — these are
+   chrome, not a call to action. `armed` is the second half of New Game's
+   inline confirm: the same button, now unmistakably destructive. */
+.save-btn { background: transparent; border: 1px solid var(--navy-line); color: #c7cee0;
+  border-radius: 4px; padding: 5px 14px; font-size: 12px; letter-spacing: 0.02em; }
+.save-btn:hover { border-color: var(--gold); color: var(--gold); }
+.newgame-btn { background: transparent; border: 1px solid var(--navy-line); color: var(--ink-lo);
+  border-radius: 4px; padding: 5px 12px; font-size: 12px; letter-spacing: 0.02em; }
+.newgame-btn:hover { color: var(--ink-hi); }
+.newgame-btn.armed { border-color: #b0524f; color: #e58a8a; }
+.newgame-btn.armed:hover { background: #b0524f; color: var(--ink-hi); }
+.newgame-confirm-label { font-size: 11px; color: #e58a8a; letter-spacing: 0.02em; }
 
 /* ---------- tab navigation ---------- */
 .tabnav { display: flex; gap: 4px; border-bottom: 1px solid var(--navy-line); margin-bottom: 12px; flex: none; }

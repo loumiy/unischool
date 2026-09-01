@@ -282,11 +282,31 @@ and who's available, not by losing people you already have.
 ## Save / load
 
 The game is measured in hours; the annual report and annual admissions make a
-full run long. **Persistence is therefore a near-term priority, not "eventually."**
-State must stay serializable and reasonably light as it grows (curriculum +
-buildings + dozens of rivals + history). Building save/load early keeps that
-honest. Currently state lives only in a `useReducer` hook and a refresh returns
-you to the start.
+full run long, so **a refresh must not destroy a run**. The whole `GameState`
+is JSON-serialized into a single versioned `localStorage` key (see
+`src/state/persistence.ts`). It is written at the **annual admissions
+boundary** — the one point where a meaningful chunk of progress has just been
+committed — when a university is founded, and whenever the player hits
+**Save**. On mount, `useGame.ts` resumes a valid save instead of showing the
+startup screen; a save that is missing, unreadable, corrupt, or written under a
+different `SAVE_VERSION` falls back to a new game rather than crashing. **New
+Game** erases the save and returns to the startup screen.
+
+This stays a ten-line module only because **`GameState` is plain data** — no
+functions, no `Date`s, no `Map`/`Set`, no references between slices — so every
+field survives a JSON round trip untouched and there is no per-field serializer
+to keep in sync. Keep it that way; anything added to the state that isn't
+JSON-round-trippable breaks save/load silently. State must also stay
+reasonably light as it grows: a fresh run is ~121 KiB, and the per-year
+`YearSnapshot` and the capped log are what keep a decades-long run in the low
+hundreds of KiB.
+
+`SAVE_VERSION` is the escape hatch for the shape changing. Bump it whenever a
+field is added-as-required, renamed, retyped, or given a new meaning — an old
+save is then discarded rather than half-loaded. Additive *optional* fields
+don't need a bump. There is deliberately no migration path yet; when one is
+wanted, it belongs in `persistence.ts`'s load path, keyed on the version it is
+migrating from.
 
 ## Working style for coding agents
 

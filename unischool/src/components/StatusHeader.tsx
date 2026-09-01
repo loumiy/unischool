@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Action } from '../state/actions';
 import type { GameState } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
@@ -26,6 +27,58 @@ function termName(week: number): string {
 // removed outright, so they're still there for anyone iterating on the game.
 function isTestUniversity(name: string): boolean {
   return name.trim().toLowerCase() === 'test';
+}
+
+// The save affordances, sitting in the persistent control bar next to the
+// speed buttons — the run-level controls belong together, and unlike the
+// playtesting buttons beside them these are for every player.
+//
+// The autosave already fires once a year at the summer admissions boundary
+// (see reducer.ts), so "Save" is not the only thing standing between the
+// player and a lost run; it is how they shorten the gap since last summer
+// before closing the tab. Its confirmation is the log line the action
+// writes, in the ticker under the map.
+//
+// "New Game" erases the save, so it asks first — inline, as a second click
+// on the same button, rather than a browser confirm() dialog that would
+// look nothing like the rest of the chrome. The armed state times out on
+// nothing and clears on Cancel; the only way through is a deliberate
+// second click.
+function SaveControls({ act }: { act: (a: Action) => void }) {
+  const [confirmingNewGame, setConfirmingNewGame] = useState(false);
+
+  if (confirmingNewGame) {
+    return (
+      <>
+        <span className="newgame-confirm-label">Erase this run and start over?</span>
+        <button className="newgame-btn armed" onClick={() => act({ type: 'RESET' })}>
+          Erase & start over
+        </button>
+        <button className="newgame-btn" onClick={() => setConfirmingNewGame(false)}>
+          Cancel
+        </button>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <button
+        className="save-btn"
+        onClick={() => act({ type: 'SAVE_GAME' })}
+        title="Write the run to this browser now. The game also saves itself every summer, at admissions."
+      >
+        Save
+      </button>
+      <button
+        className="newgame-btn"
+        onClick={() => setConfirmingNewGame(true)}
+        title="Erase the saved run and found a new university."
+      >
+        New Game
+      </button>
+    </>
+  );
 }
 
 // The persistent header/status bar: the handful of state values that stay
@@ -121,21 +174,24 @@ export default function StatusHeader({ s, speed, setSpeed, act }: {
             </button>
           ))}
         </div>
-        {showPlaytestControls && (
-          <div className="controlbar-right">
-            <button
-              className={`auto-develop-toggle ${s.autoDevelop ? 'on' : ''}`}
-              onClick={() => act({ type: 'TOGGLE_AUTO_DEVELOP' })}
-              title="Playtesting only: auto-starts every available course the school can afford. Never touches buildings, dorms, or facilities — those stay a deliberate, manual decision."
-            >
-              auto-develop courses: {s.autoDevelop ? 'on' : 'off'}
-            </button>
-            {/* Scaffolding: proves the interrupt pause/resume cycle. Remove once a real interrupt exists. */}
-            <button className="debug-interrupt-btn" onClick={() => act({ type: 'DEBUG_TRIGGER_TEST_INTERRUPT' })}>
-              debug: trigger interrupt
-            </button>
-          </div>
-        )}
+        <div className="controlbar-right">
+          {showPlaytestControls && (
+            <>
+              <button
+                className={`auto-develop-toggle ${s.autoDevelop ? 'on' : ''}`}
+                onClick={() => act({ type: 'TOGGLE_AUTO_DEVELOP' })}
+                title="Playtesting only: auto-starts every available course the school can afford. Never touches buildings, dorms, or facilities — those stay a deliberate, manual decision."
+              >
+                auto-develop courses: {s.autoDevelop ? 'on' : 'off'}
+              </button>
+              {/* Scaffolding: proves the interrupt pause/resume cycle. Remove once a real interrupt exists. */}
+              <button className="debug-interrupt-btn" onClick={() => act({ type: 'DEBUG_TRIGGER_TEST_INTERRUPT' })}>
+                debug: trigger interrupt
+              </button>
+            </>
+          )}
+          <SaveControls act={act} />
+        </div>
       </div>
     </>
   );

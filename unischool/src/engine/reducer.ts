@@ -1,7 +1,7 @@
-import type { GameState } from '../state/types';
+import type { GameState, LogEntry } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import type { Action } from '../state/actions';
-import { createInitialState } from '../state/actions';
+import { createInitialState, createPreStartState } from '../state/actions';
 import { tickFinance } from '../systems/finance/financeSystem';
 import { tickTech, canStartDevelopment, startDevelopment } from '../systems/techtree/techSystem';
 import { tickAdmissions, projectAdmissions } from '../systems/admissions/admissionsSystem';
@@ -12,6 +12,7 @@ import { tickPrestigeAnnual } from '../systems/prestige/prestigeSystem';
 import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { canPlace } from '../state/campusMap';
 import { captureYearSnapshot } from '../state/history';
+import { saveGame, clearSave } from '../state/persistence';
 
 // The systems run in a fixed order each week. Order matters: research and
 // finance resolve before admissions/rivals read the updated world;
@@ -38,6 +39,26 @@ function clamp01(v: number): number {
   return Math.max(0, Math.min(1, v));
 }
 
+// ---------------------------------------------------------------------
+// saveGame (see state/persistence.ts) is the ONE thing in this reducer
+// that reaches outside itself. It doesn't change the reducer's purity with
+// respect to the GAME state — it reads the assembled `s`, writes it to
+// localStorage, and touches nothing — but it is a side effect, so it is
+// worth being explicit about where it is allowed and why.
+//
+// Two actions call it: RESOLVE_ADMISSIONS (the annual autosave) and
+// SAVE_GAME (the manual one). Doing it here rather than in an effect in
+// useGame.ts means the save is taken at the exact instant the boundary
+// resolves, from the exact state being committed, instead of being
+// reconstructed a render later from a change the hook has to infer.
+//
+// Both are safe under React's StrictMode double-invocation because both
+// are DETERMINISTIC: the two invocations build an identical `s`, so the
+// second write is a byte-for-byte repeat of the first. An action that
+// saves AND rolls dice would not be — which is exactly why START_GAME's
+// save lives in useGame.ts instead (see there, and its case below).
+// ---------------------------------------------------------------------
+
 function advanceClock(s: GameState): void {
   s.clock.week += 1;
   if (s.clock.week > WEEKS_PER_YEAR) {
@@ -63,6 +84,13 @@ export function reducer(state: GameState, action: Action): GameState {
     }
 
     case 'START_GAME':
+      // Deliberately does NOT save here, even though founding is exactly
+      // when a save should first exist: createInitialState rolls dice
+      // (rivals, the candidate pool, faculty potentials), so under
+      // StrictMode's double-invocation the two runs build different
+      // universities and a write from inside the reducer could persist the
+      // one React discards. The founding save is taken in useGame.ts
+      // instead, from the state actually committed — see the note above.
       return createInitialState(action.name, action.schoolType);
 
     case 'START_DEVELOPMENT': {
@@ -187,6 +215,26 @@ export function reducer(state: GameState, action: Action): GameState {
         message: `Admissions: tuition $${s.finance.tuitionPerStudent.toLocaleString()}/yr, ${Math.round(s.admissions.financialAidRate * 100)}% aid — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admit rate, ${outcome.enrolled} enrolled.`,
         kind: 'info',
       });
+
+      // The autosave (see state/persistence.ts). This annual boundary is
+      // the one moment in the game where a natural, meaningful chunk of
+      // progress has just been committed, so it is the natural checkpoint:
+      // a refresh costs at most the weeks since last summer, and the
+      // player can shorten that themselves with SAVE_GAME.
+      //
+      // Written LAST, once `s` is fully assembled, so the saved run is
+      // exactly the state React is about to commit. Silent on success —
+      // an annual "autosaved" line would be noise next to the admissions
+      // summary above — but a FAILED write is worth interrupting for,
+      // because the player would otherwise believe their run is safe.
+      if (!saveGame(s)) {
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: 'Autosave failed — this browser is refusing to store the run. Progress will be lost on refresh.',
+          kind: 'bad',
+        });
+      }
       return s;
     }
 
@@ -207,10 +255,38 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
+    case 'SAVE_GAME': {
+      // The manual save. Logs either way: the confirmation is the whole
+      // point of an explicit save affordance, and a silent failure would
+      // be worse than no button at all.
+      //
+      // The log line is written BEFORE the save, so the persisted run
+      // contains the record of its own save rather than a state one line
+      // behind the one on screen. If the write is refused the line is
+      // rewritten as the failure notice — nothing was persisted, so there
+      // is nothing left on disk to contradict.
+      const entry: LogEntry = {
+        year: s.clock.year,
+        week: s.clock.week,
+        message: 'Game saved.',
+        kind: 'good',
+      };
+      s.log.unshift(entry);
+      if (!saveGame(s)) {
+        entry.message = 'Save failed — this browser is refusing to store the run.';
+        entry.kind = 'bad';
+      }
+      return s;
+    }
+
     case 'RESET':
-      // Restart keeps the founded university's identity rather than
-      // bouncing back to the startup screen.
-      return createInitialState(state.self.name, state.self.schoolType);
+      // Abandoning the run: the save has to go with it, or the next
+      // refresh would resurrect the university the player just discarded.
+      // Returns to the startup screen rather than re-founding the same
+      // school, so "New Game" means what it says (name and private/public
+      // are both back on the table).
+      clearSave();
+      return createPreStartState();
 
     default:
       return state;
