@@ -309,10 +309,12 @@ export function tickFinance(s: GameState): void {
   s.finance.cash += flow.net;
 
   // The endowment compounds at its return rate net of the payout that was
-  // just collected as income above. Cash is allowed to go negative: per
-  // README's pacing model, a shortfall stalls new development (see
-  // canStartDevelopment in techSystem.ts) rather than ending the run, so
-  // there is deliberately no auto-draw and no insolvency game-over here.
+  // just collected as income above. Cash is allowed to go negative HERE —
+  // an operating deficit is the only thing that can do it, since a
+  // purchase is refused outright when the money isn't there (see
+  // canStartDevelopment in techSystem.ts). Per README's pacing model that
+  // shortfall stalls new development rather than ending the run, so there
+  // is deliberately no auto-draw and no insolvency game-over.
   s.finance.endowment *= 1 + (ENDOWMENT_ANNUAL_RETURN - ENDOWMENT_PAYOUT_RATE) / WEEKS_PER_YEAR;
 }
 

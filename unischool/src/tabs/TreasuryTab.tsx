@@ -123,7 +123,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
           <span className="statement-line-amount">{money(flow.net)}</span>
         </div>
         <p className="empty-note">
-          {money(annualNet)} a year at this rate. Money is the only throttle on starting development, and a Buildable's cost is charged up front — so committing eagerly is what pushes cash negative and stalls the next start, rather than ending the run.
+          {money(annualNet)} a year at this rate. Money is the only throttle on starting development: a Buildable's cost is charged in full, up front, and you cannot start what you cannot pay for — so the wait for the next purchase is the pacing. Only an operating deficit can push cash negative, and that stalls expansion rather than ending the run.
         </p>
       </section>
 

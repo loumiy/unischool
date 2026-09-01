@@ -175,11 +175,12 @@ course-development sprint.
 **Money is the primary pacing resource, and it is a bottleneck, not a threat.**
 It is also the *only* throttle: there is no development-slot mechanic, and none
 is coming back. Any number of Buildables can be developing at once, and the
-single gate on starting one more is that cash is not negative (plus the faculty
-course-slot gate on the curated `requiresFaculty` courses, which is a per-field
-capacity rule, not a pacing throttle). Cost is charged up front, so buying
-eagerly is what pushes you into the red and stalls the *next* start. (This
-supersedes both the earlier "development capacity is the scarce resource"
+single gate on starting one more is that **the school can actually pay for it** —
+cost is charged in full, up front, and a purchase it can't cover is simply not
+offered (plus the faculty course-slot gate on the curated `requiresFaculty`
+courses, which is a per-field capacity rule, not a pacing throttle). The pacing
+is the *wait* to afford the next thing, never a debt you have to dig out of.
+(This supersedes both the earlier "development capacity is the scarce resource"
 framing and the purchasable-slots revision of it: both are gone.)
 
 Money can only pace the game if the school's own growth keeps spending it. That
@@ -225,10 +226,13 @@ The loop turns roughly once per course tier, escalating each time:
 
 Consequences that the code must honor:
 
-- **No hard insolvency game-over.** A cash shortfall should *stall expansion*
-  (you cannot start new development while in the red), not end the run. "Stall,
-  don't die" is the bottleneck expressed mechanically, and it fits the
-  no-win-condition sandbox. Every downward path has a floor, deliberately:
+- **No hard insolvency game-over.** A cash shortfall should *stall expansion*,
+  not end the run. "Stall, don't die" is the bottleneck expressed mechanically,
+  and it fits the no-win-condition sandbox. Note the two distinct forms this
+  takes: an unaffordable Buildable is refused at the moment of the decision, so
+  the player cannot buy their way into debt at all; and if the *operating*
+  budget runs a deficit, cash can still drift below zero, at which point nothing
+  with a cost is startable until it recovers. Every downward path has a floor, deliberately:
   empty beds are charged at a reduced mothball rate, an extra student is always
   worth more than they cost, satisfaction (and so word of mouth) is floored,
   curriculum breadth is a stock that never decreases, and the tuition/aid

@@ -1,6 +1,6 @@
 import type { Action } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
-import { hasFreeFacultySlot } from '../systems/techtree/techSystem';
+import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import { STARTING_DORM_CAPACITY } from '../data/campusData';
 import HelpHint from './HelpHint';
 
@@ -102,9 +102,13 @@ function BuildableRow({ s, act, t }: { s: GameState; act: (a: Action) => void; t
     );
   }
 
-  // available
-  const disabledReason = s.finance.cash < 0
-    ? 'Cash is negative — expansion is stalled until it recovers.'
+  // available. The enabled/disabled state is canStartDevelopment itself —
+  // the same function the reducer gates the action with — so a button is
+  // never offered for something the engine would refuse, and never
+  // withheld for something it would allow.
+  const shortfall = t.cost - s.finance.cash;
+  const disabledReason = shortfall > 0
+    ? `Not enough cash — $${Math.ceil(shortfall).toLocaleString()} short of the $${t.cost.toLocaleString()} it costs.`
     : missingFaculty
       ? `No free ${t.requiresFaculty} faculty slots — hire more or more senior ${t.requiresFaculty} faculty.`
       : undefined;
@@ -117,7 +121,7 @@ function BuildableRow({ s, act, t }: { s: GameState; act: (a: Action) => void; t
       <div className="available-item-meta">
         <span className="stat">{t.cost > 0 ? `$${t.cost.toLocaleString()} · ` : ''}{t.duration}w</span>
         <button
-          disabled={s.finance.cash < 0 || missingFaculty}
+          disabled={!canStartDevelopment(s, t)}
           title={disabledReason}
           onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: t.id })}
         >
@@ -147,7 +151,7 @@ export default function BuildPanel({ s, act }: { s: GameState; act: (a: Action) 
         </div>
 
         {s.finance.cash < 0 && (
-          <p className="stall-note">Cash is negative — new development is stalled until it recovers.</p>
+          <p className="stall-note">Cash is negative — the school is running an operating deficit, so nothing can be started until the balance recovers.</p>
         )}
 
         <div className="building-groups">

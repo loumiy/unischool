@@ -53,24 +53,42 @@ export function hasFreeFacultySlot(s: GameState, field: string): boolean {
 // Shared by the reducer's START_DEVELOPMENT case and this system's
 // auto-develop fill, so "what it takes to start" has one definition.
 // There is deliberately NO cap on how many Buildables can develop at once:
-// money is the sole pacing resource (see README's "Pacing model"), so the
-// cash>=0 check is the only throttle here. It is the "stall, don't die"
-// bottleneck: a shortfall blocks starting anything new — regardless of
-// that Buildable's own cost — rather than ending the run. It naturally
-// covers manual starts, auto-develop, and any future build-initiation
+// money is the sole pacing resource (see README's "Pacing model"), so cash
+// is the only throttle here. The rule is simply that you cannot commit to
+// what you cannot pay for — the cost is charged in full, up front, so the
+// school must actually have it.
+//
+// This used to be a cash>=0 check instead, which let a player buy anything
+// at all while solvent and land in the red, where EVERY start was then
+// blocked regardless of price. That punished a single over-reach by
+// locking the whole build menu — including things the school could plainly
+// afford — and made the throttle read as a penalty rather than a budget.
+// Now an unaffordable item is simply not startable, and nothing else is
+// affected: expansion still stalls when money runs out ("stall, don't
+// die"), it just stalls item by item, at the moment of the decision.
+//
+// Debt is still possible — the weekly operating deficit can carry cash
+// below zero (see financeSystem.ts) — and while it is negative nothing
+// with a cost can be started, because no cost is ever <= a negative
+// balance. That is the same bottleneck as before, arrived at honestly.
+//
+// This covers manual starts, auto-develop, and any future build-initiation
 // path that goes through this function. The faculty course-slot gate is a
 // separate, per-field capacity rule on the curated requiresFaculty
 // courses, not a throttle on development volume.
 export function canStartDevelopment(s: GameState, node: Buildable): boolean {
   const facultyOk = !node.requiresFaculty || hasFreeFacultySlot(s, node.requiresFaculty);
-  const notInTheRed = s.finance.cash >= 0;
-  return node.status === 'available' && facultyOk && notInTheRed;
+  const canAfford = s.finance.cash >= node.cost;
+  return node.status === 'available' && facultyOk && canAfford;
 }
 
 export function startDevelopment(s: GameState, node: Buildable): void {
   node.status = 'developing';
   s.developing[node.id] = node.duration;
-  s.finance.cash -= node.cost; // cost is charged up front; can dip cash below zero, which then stalls the *next* start
+  // Charged in full, up front. Never takes cash below zero: only
+  // canStartDevelopment admits a start, and it requires the cash to be
+  // there first.
+  s.finance.cash -= node.cost;
 }
 
 // When autoDevelop is on, greedily starts every available COURSE it can
@@ -84,15 +102,13 @@ export function startDevelopment(s: GameState, node: Buildable): void {
 // facilities — those are real capital decisions (capacity, satisfaction,
 // prestige tradeoffs) the player should always make deliberately, never
 // something a playtesting toggle churns through unattended.
-// canStartDevelopment's cash>=0 check already stalls it while in the red;
-// on top of that, auto-develop won't pick a specific course it can't
-// afford even while cash is still non-negative, so it can't be used to
-// unattendedly grind the balance down to the stall threshold.
+// canStartDevelopment's affordability check is the whole guard: auto-
+// develop can only ever start a course the school can pay for right now,
+// so it can't be used to unattendedly grind the balance into the red.
 function autoDevelopCourses(s: GameState): void {
   if (!s.autoDevelop) return;
   for (const node of s.tech) {
     if (node.kind !== 'course') continue;
-    if (node.cost > 0 && s.finance.cash < node.cost) continue;
     if (canStartDevelopment(s, node)) startDevelopment(s, node);
   }
 }
