@@ -11,6 +11,7 @@ import { JOB_POSTING_COST, rollPostingWeeks, FACULTY_FIELDS } from '../data/facu
 import { tickPrestigeAnnual } from '../systems/prestige/prestigeSystem';
 import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { canPlace } from '../state/campusMap';
+import { captureYearSnapshot } from '../state/history';
 
 // The systems run in a fixed order each week. Order matters: research and
 // finance resolve before admissions/rivals read the updated world;
@@ -25,6 +26,13 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   tickAdmissions,
   tickRivals,
 ];
+
+// How many log entries are kept. Weekly attrition spam is gone, so what
+// remains is milestones, completions, admissions cycles and postings — a
+// deep enough cap that a completed major or a finished school building is
+// still readable in the ticker weeks later instead of being pushed out by
+// the next few routine lines.
+const LOG_CAP = 200;
 
 function clamp01(v: number): number {
   return Math.max(0, Math.min(1, v));
@@ -50,7 +58,7 @@ export function reducer(state: GameState, action: Action): GameState {
       // admissions decision) — hold the clock at this week rather than
       // rolling into the next one until it's resolved.
       if (!s.pendingInterrupt) advanceClock(s);
-      if (s.log.length > 50) s.log.length = 50; // cap log growth
+      if (s.log.length > LOG_CAP) s.log.length = LOG_CAP; // cap log growth
       return s;
     }
 
@@ -163,6 +171,13 @@ export function reducer(state: GameState, action: Action): GameState {
       // from curriculum breadth, the selectivity/quality just resolved
       // above, and (later) faculty quality.
       tickPrestigeAnnual(s);
+
+      // The one annual boundary in the game, so the one place the history
+      // record grows (see state/history.ts). Appended AFTER the funnel and
+      // the prestige drift above, so the row is the state the school
+      // actually carries into the next year, and BEFORE advanceClock, so
+      // it is filed under the year that just closed.
+      s.history.push(captureYearSnapshot(s));
 
       s.pendingInterrupt = null;
       advanceClock(s); // resolving is what turns the calendar page into the new year

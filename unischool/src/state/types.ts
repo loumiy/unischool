@@ -214,6 +214,29 @@ export interface University {
   schoolType: SchoolType;
 }
 
+// One year's worth of the school's headline numbers, appended once a year
+// at the admissions boundary (see reducer.ts's RESOLVE_ADMISSIONS — the
+// game's only annual boundary). This is the game's time series: the long
+// arc the README is about is otherwise invisible, because every stat on
+// screen is a "right now" reading with no memory.
+//
+// Deliberately NUMBERS ONLY — no functions, no Dates, no references into
+// `tech`/`rivals` — so the whole history survives a JSON round trip
+// untouched when save/load lands, and so its size stays predictable: one
+// small flat record per in-game year (a 50-year run is 50 of these).
+// Anything derivable from these fields (catalogue percentage, year-over-
+// year deltas) is derived at read time by the views, never stored here.
+export interface YearSnapshot {
+  year: number;           // the year that just CLOSED; the snapshot is the state the school carries into year + 1
+  prestige: number;       // self.reputation after that year's drift
+  rank: number;           // 1-indexed national rank at that moment, recorded whether or not the player has unlocked the rankings reveal yet
+  enrolled: number;       // the class the admissions funnel just committed
+  cash: number;
+  coursesDone: number;    // 'done' course Buildables — the catalogue's progress
+  majorsComplete: number; // major-complete milestones awarded so far
+  satisfaction: number;   // 0..100
+}
+
 export interface GameState {
   clock: GameClock;
   finance: Finance;
@@ -225,6 +248,7 @@ export interface GameState {
   placements: Placements;            // Buildable id -> the campus tile it sits on; visual only (see the campus map block above)
   rivals: Rival[];
   self: University;
+  history: YearSnapshot[];       // one entry per completed in-game year, oldest first — the game's only time series (see YearSnapshot above)
   log: LogEntry[];               // recent events, newest first
   gameOver: boolean;
   pendingInterrupt: PendingInterrupt | null; // set => clock halts until resolved

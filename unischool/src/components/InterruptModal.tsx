@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Action } from '../state/actions';
 import type { GameState, PendingInterrupt } from '../state/types';
 import { projectAdmissions } from '../systems/admissions/admissionsSystem';
+import type { ReportPayload } from '../systems/rivals/rivalsSystem';
 
 // Placeholder modal content for interrupt types with no dedicated form (see
 // AdmissionsInterruptForm below for 'admissions'). The 'debug-test' case is
@@ -81,30 +82,91 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
   );
 }
 
-interface RankingsReportPayload {
-  rank: number;
-  standings: Array<{ name: string; reputation: number; isPlayer: boolean }>;
+
+// A single place-movement badge: a climb, a slide, or a year holding
+// still. Rank numbers run the wrong way round (smaller is better), so
+// `delta` is pre-normalized by the report builder to "places gained".
+function RankMovement({ delta }: { delta: number }) {
+  if (delta === 0) return <span className="rank-move flat">— held</span>;
+  return (
+    <span className={`rank-move ${delta > 0 ? 'up' : 'down'}`}>
+      {delta > 0 ? '▲' : '▼'}{Math.abs(delta)}
+    </span>
+  );
 }
 
 // Renders both rankings-related interrupts: the one-time "you've entered
 // the top 50" reveal and the recurring annual report (see README's
 // "Rankings: the U.S. News report"). Standing is otherwise never shown
 // outside the persistent header's rank stat and this modal.
+//
+// The standings list alone is a table of names; what makes a ranking
+// FELT is motion — where you moved, who you passed, who is surging up
+// behind you. All of that is computed by buildReportPayload (see
+// rivalsSystem.ts) from data the game already had: the rivals' momentum
+// and the history record's prior-year rank. This view just renders it,
+// and renders the movement section only when there is a prior year to
+// compare against (never on the first reveal, and never in the first two
+// years of a run).
 function RankingsReportView({ payload, isFirstReveal, onDismiss }: {
-  payload: RankingsReportPayload;
+  payload: ReportPayload;
   isFirstReveal: boolean;
   onDismiss: () => void;
 }) {
+  const { rank, previousRank, movers, passed, passedBy, standings } = payload;
+  const delta = previousRank === null ? null : previousRank - rank;
+
   return (
     <>
       <h2>{isFirstReveal ? "You've Entered the Rankings" : 'Annual U.S. News Report'}</h2>
       <p>
         {isFirstReveal
-          ? `Your university has cracked the top 50, landing at #${payload.rank}. The annual report will keep you posted from here on.`
-          : `This year's standings are in — you're ranked #${payload.rank}.`}
+          ? `Your university has cracked the top 50, landing at #${rank}. The annual report will keep you posted from here on.`
+          : `This year's standings are in — you're ranked #${rank}.`}
       </p>
+
+      {delta !== null && (
+        <p className="report-headline">
+          <RankMovement delta={delta} />
+          <span className="report-headline-detail">
+            {delta === 0
+              ? `steady at #${rank} for a second year`
+              : `#${previousRank} → #${rank} year over year`}
+          </span>
+        </p>
+      )}
+
+      {passed.length > 0 && (
+        <p className="report-crossing passed">
+          Passed: {passed.join(', ')}.
+        </p>
+      )}
+      {passedBy.length > 0 && (
+        <p className="report-crossing passed-by">
+          Overtaken by: {passedBy.join(', ')}.
+        </p>
+      )}
+
+      {movers.length > 0 && (
+        <div className="report-movers">
+          <h3>Big movers</h3>
+          <ul>
+            {movers.map((m) => (
+              <li key={m.name}>
+                <span>{m.name}</span>
+                <span className="report-mover-move">
+                  <RankMovement delta={m.delta} />
+                  <span className="report-mover-places">#{m.from} → #{m.to}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <h3 className="report-standings-head">Top {standings.length}</h3>
       <ol className="report-standings">
-        {payload.standings.map((r, i) => (
+        {standings.map((r, i) => (
           <li key={r.name} className={r.isPlayer ? 'me' : ''}>
             <span>{i + 1}. {r.name}</span>
             <span className="stat">{Math.round(r.reputation)}</span>
@@ -136,7 +198,7 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
           />
         ) : s.pendingInterrupt.type === 'rankings-entry' || s.pendingInterrupt.type === 'annual-report' ? (
           <RankingsReportView
-            payload={s.pendingInterrupt.payload as RankingsReportPayload}
+            payload={s.pendingInterrupt.payload as ReportPayload}
             isFirstReveal={s.pendingInterrupt.type === 'rankings-entry'}
             onDismiss={() => act({ type: 'RESOLVE_REPORT' })}
           />

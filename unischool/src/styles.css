@@ -40,6 +40,12 @@ button { cursor: pointer; font-family: inherit; }
 .stat-value.money-negative { color: #e58a8a; }
 .stat-value.gold { color: var(--gold); }
 .stat-sub { font-size: 11px; color: var(--ink-lo); font-family: var(--mono); }
+/* Trend line under a header stat (see Sparkline.tsx). Right-aligned with
+   the stat block it belongs to; unfilled, one hairline, no axes — it is a
+   shape cue, not a chart to read values off. */
+.sparkline { display: block; margin: 3px 0 0 auto; overflow: visible; }
+.sparkline polyline { fill: none; stroke: var(--gold-dim); stroke-width: 1.25;
+  stroke-linejoin: round; stroke-linecap: round; }
 
 /* ---------- control bar ---------- */
 .controlbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
@@ -313,6 +319,62 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .log .ts { color: var(--ink-muted); font-family: var(--mono); margin-right: 6px; }
 .log .good { color: var(--green); } .log .bad { color: #a13a3a; }
 
+/* ---------- institutional history: the long arc ---------- */
+/* Plain SVG polylines (see HistoryTab.tsx) — no charting library. Chart
+   geometry lives in that file as named constants; only presentation here. */
+.history-summary { font-size: 13px; color: var(--ink-muted); margin: 0 0 14px; line-height: 1.5; }
+.history-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px 22px; }
+.history-chart { margin: 0; }
+.history-chart figcaption { display: flex; justify-content: space-between; align-items: baseline;
+  gap: 8px; margin-bottom: 6px; }
+.history-chart-label { font-family: var(--serif); font-size: 13px; color: var(--ink); font-weight: 700; }
+.history-chart-latest { font-family: var(--mono); font-size: 13px; color: var(--gold-dim); }
+.history-chart-svg { display: block; width: 100%; height: auto; background: #f5efdd;
+  border: 1px solid var(--parchment-line-lo); border-radius: 5px; }
+.history-chart-rule { stroke: var(--parchment-line); stroke-width: 1; }
+.history-chart-rule.faint { stroke: var(--parchment-line-lo); stroke-dasharray: 3 4; }
+.history-chart-line { fill: none; stroke: var(--gold-dim); stroke-width: 1.6;
+  stroke-linejoin: round; stroke-linecap: round; }
+.history-chart-axis { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px;
+  font-family: var(--mono); font-size: 11px; color: var(--ink-lo); }
+.history-chart-range { color: var(--ink-muted); }
+.history-chart-note { margin: 6px 0 0; font-size: 11px; font-style: italic;
+  color: var(--ink-muted); line-height: 1.45; }
+
+.history-table-scroll { overflow-y: auto; }
+.history-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.history-table th { position: sticky; top: 0; background: var(--parchment); text-align: right;
+  font-family: var(--serif); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--ink-muted); font-weight: 400; padding: 4px 6px;
+  border-bottom: 1px solid var(--parchment-line); }
+.history-table td { text-align: right; padding: 3px 6px; font-family: var(--mono);
+  border-bottom: 1px solid var(--parchment-line-lo); }
+.history-table th:first-child, .history-table td:first-child { text-align: left; }
+.history-table-scroll::-webkit-scrollbar { width: 8px; }
+.history-table-scroll::-webkit-scrollbar-thumb { background: var(--parchment-line); border-radius: 4px; }
+.history-table-scroll { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
+
+/* ---------- treasury: the weekly income statement ---------- */
+/* Two columns, income against expenses, with the net underneath — the
+   figures come straight from financeSystem.ts's financeBreakdown. */
+.income-statement { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px 28px; }
+.statement-col h3 { font-family: var(--serif); font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ink-muted); margin: 0 0 6px;
+  border-bottom: 1px solid var(--parchment-line); padding-bottom: 4px; }
+.statement-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  padding: 5px 0; border-bottom: 1px solid var(--parchment-line-lo); }
+.statement-line-label { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.statement-line-note { font-size: 11px; font-style: italic; color: var(--ink-muted); line-height: 1.35; }
+.statement-line-amount { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+.statement-total { display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  padding: 6px 0 0; font-size: 13px; font-weight: 700; color: var(--ink); }
+.statement-net { display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  margin-top: 14px; padding: 9px 12px; border-radius: 6px; background: #f5efdd;
+  border: 1px solid var(--gold-dim); font-family: var(--serif); font-size: 15px;
+  font-weight: 700; color: #5c4a1e; }
+.statement-net.negative { background: #f4dede; border-color: #d9a8a8; color: #8a2f2f; }
+.statement-net .statement-line-amount { font-size: 15px; }
+
 /* ---------- overlays ---------- */
 .gameover { background: #3a2226; color: #f2ede0; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }
 /* Gold-on-navy, matching .startup-begin-btn — the previous #3b6ef0 was
@@ -323,13 +385,40 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .modal-backdrop { position: fixed; inset: 0; background: rgba(10, 11, 14, 0.7);
   display: flex; align-items: center; justify-content: center; z-index: 100; }
 .modal { background: var(--navy); color: var(--ink-hi); border-radius: 10px; padding: 20px 24px; max-width: 440px; width: 100%;
-  border: 1px solid var(--navy-line); }
+  border: 1px solid var(--navy-line); max-height: 90vh; overflow-y: auto; }
+/* An interrupt halts the clock until it is resolved, so its resolve button
+   must always be reachable: the modal scrolls internally rather than
+   growing past the viewport on a short screen (the annual report is the
+   tall one — movement, movers, and fifty standings). */
+.modal::-webkit-scrollbar { width: 8px; }
+.modal::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: 4px; }
+.modal { scrollbar-width: thin; scrollbar-color: var(--navy-line) transparent; }
 .modal h2 { margin: 0 0 10px; font-size: 16px; font-family: var(--serif); }
 .modal p { margin: 0 0 16px; color: #cbd0d8; font-size: 14px; }
 /* Same gold-on-navy treatment as .startup-begin-btn / .gameover button. */
 .modal button { background: var(--gold); color: #1a2035; border: none; border-radius: 6px;
   padding: 6px 16px; font-family: var(--serif); font-size: 14px; font-weight: 700; }
 .modal button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Year-over-year movement in the annual report (see InterruptModal.tsx). */
+.report-headline { display: flex; align-items: baseline; gap: 10px; margin: 0 0 14px !important;
+  padding: 9px 12px; background: #1a2338; border: 1px solid var(--navy-line); border-radius: 6px; }
+.report-headline-detail { font-family: var(--mono); font-size: 13px; color: #cbd0d8; }
+.rank-move { font-family: var(--mono); font-size: 15px; font-weight: 700; }
+.rank-move.up { color: #7dd3a0; }
+.rank-move.down { color: #e58a8a; }
+.rank-move.flat { color: var(--ink-lo); font-size: 13px; }
+.report-crossing { font-size: 13px; margin: 0 0 8px !important; line-height: 1.45; }
+.report-crossing.passed { color: #7dd3a0; }
+.report-crossing.passed-by { color: #e58a8a; }
+.report-movers { margin: 14px 0; }
+.report-movers h3, .report-standings-head { font-family: var(--serif); font-size: 12px;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--gold); margin: 0 0 6px; }
+.report-movers ul { list-style: none; margin: 0; padding: 0; }
+.report-movers li { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  padding: 3px 0; font-size: 13px; border-bottom: 1px solid var(--navy-line); }
+.report-mover-move { display: inline-flex; align-items: baseline; gap: 8px; white-space: nowrap; }
+.report-mover-places { font-family: var(--mono); font-size: 11px; color: var(--ink-lo); }
 
 .report-standings { max-height: 320px; overflow-y: auto; margin: 0 0 16px; padding-right: 6px; }
 .report-standings li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--navy-line); font-size: 13px; }
