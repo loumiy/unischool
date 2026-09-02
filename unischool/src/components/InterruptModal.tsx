@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import type { Action } from '../state/actions';
 import type { GameState, PendingInterrupt, PrizeAward } from '../state/types';
-import { institutionName } from '../state/types';
+import { institutionName, WEEKS_PER_YEAR } from '../state/types';
 import { ACCLAIM_RESEARCH_BONUS } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
 import { projectAdmissions, priceTolerance } from '../systems/admissions/admissionsSystem';
 import { computePrestigeTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
 import { findDecisionEvent } from '../data/eventData';
+import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
+import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import type { DecisionEventContext, MilestonePayload } from '../data/eventData';
 import type { OrgPetition } from '../state/types';
 import type { ReportPayload } from '../systems/rivals/rivalsSystem';
@@ -398,6 +400,100 @@ function PrizeCelebrationView({ s, awards, onDismiss }: {
 }
 
 // ---------------------------------------------------------------------
+// A STUDENT DEMAND (see systems/demands/demandSystem.ts). The one
+// stop-the-clock moment student life gets on its own — raised only when
+// satisfaction has sat below DEMAND_SATISFACTION_THRESHOLD, so a
+// well-run school never sees it at all.
+//
+// It asks for nothing and offers nothing to choose: the only answer is to
+// BUILD the thing before the deadline, and the demand system detects that
+// off the campus itself. So this is an acknowledgement, dismissable in one
+// click, exactly as the fairness rule requires — what it must do in that
+// one click is be honest about the stakes.
+//
+// And those stakes are READ, not written. The satisfaction figures are the
+// nudges the system would actually apply; the applicant figures come from
+// running the shipped admissions funnel (projectAdmissions — the same pure
+// function the summer modal previews with) at today's policy against each
+// of them, so "failing this costs you N applicants" is word of mouth
+// measured, not a threat someone typed. Note what that honesty buys at the
+// bottom end: at a school already floored on satisfaction the two numbers
+// are close together, which is the satisfaction floor
+// (ATTRIBUTE_SCORE_FLOOR) visible in the modal — failing a demand you
+// cannot afford to meet is survivable, and the modal says so in figures.
+// ---------------------------------------------------------------------
+function DemandView({ s, onDismiss }: { s: GameState; onDismiss: () => void }) {
+  const demand = s.events.activeDemand;
+  // A save written mid-modal against content that has since changed, or an
+  // interrupt left behind by an edit: clear it rather than wedging the clock.
+  if (!demand) {
+    return (
+      <>
+        <h2>The moment has passed</h2>
+        <p>There is no outstanding demand. Nothing has changed.</p>
+        <button onClick={onDismiss}>Continue</button>
+      </>
+    );
+  }
+
+  const copy = demandCopy(demand);
+  const progress = demandProgress(s, demand);
+  const stakes = demandStakes(s);
+  const node = s.tech.find((t) => t.id === demand.askId);
+  const cost = node ? money(node.cost) : null;
+
+  return (
+    <>
+      <h2>{copy.headline}</h2>
+      <p>{copy.grievance(demand.askName)}</p>
+
+      <dl className="admissions-outcomes">
+        <div>
+          <dt>The ask</dt>
+          <dd>{copy.ask(demand.askName)}</dd>
+        </div>
+        <div>
+          <dt>The deadline</dt>
+          <dd>{DEMAND_DEADLINE_WEEKS} weeks &mdash; by year {Math.floor((demand.deadlineWeek - 1) / WEEKS_PER_YEAR) + 1}</dd>
+        </div>
+        <div>
+          <dt>Where you stand <span className="outcome-note">({copy.unit})</span></dt>
+          <dd>{Math.round(progress.current).toLocaleString()} / {Math.round(progress.target).toLocaleString()}</dd>
+        </div>
+        {cost && (
+          <div>
+            <dt>What it costs to build <span className="outcome-note">(nothing is charged now)</span></dt>
+            <dd>{cost}</dd>
+          </div>
+        )}
+        <div>
+          <dt>If it is met <span className="outcome-note">(satisfaction, then applicants)</span></dt>
+          <dd className="milestone-gain">
+            {stakes.satisfactionIfMet.toFixed(1)} &middot; {stakes.applicantsIfMet.toLocaleString()}
+          </dd>
+        </div>
+        <div>
+          <dt>If the deadline passes <span className="outcome-note">(word of mouth, at next summer&rsquo;s funnel)</span></dt>
+          <dd>{stakes.satisfactionIfFailed.toFixed(1)} &middot; {stakes.applicantsIfFailed.toLocaleString()}</dd>
+        </div>
+        <div>
+          <dt>As things stand today</dt>
+          <dd>{stakes.satisfactionNow.toFixed(1)} &middot; {stakes.applicantsNow.toLocaleString()}</dd>
+        </div>
+      </dl>
+
+      <p className="digest-note">
+        There is nothing to answer here and nothing to pay: the demand is met by building what
+        it asks for, and missing the deadline costs the school goodwill and next year&rsquo;s
+        applicants &mdash; nothing more. It stays visible in the Student Life tab until it resolves.
+      </p>
+
+      <button onClick={onDismiss}>Understood</button>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------
 // The College -> University charter: a one-time question, asked the first
 // quiet week after any laboratory finishes (see
 // systems/events/eventSystem.ts). Cosmetic in full — what changes is the
@@ -543,6 +639,8 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
             awards={(interrupt.payload as { awards: PrizeAward[] }).awards}
             onDismiss={() => act({ type: 'RESOLVE_PRIZE' })}
           />
+        ) : interrupt.type === 'demand' ? (
+          <DemandView s={s} onDismiss={() => act({ type: 'RESOLVE_DEMAND' })} />
         ) : interrupt.type === 'charter' ? (
           <CharterOfferView s={s} onResolve={(accept) => act({ type: 'RESOLVE_CHARTER', accept })} />
         ) : decision ? (

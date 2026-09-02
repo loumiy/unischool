@@ -692,6 +692,18 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .org-list::-webkit-scrollbar-thumb { background: var(--parchment-line); border-radius: 4px; }
 .org-list { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
 
+/* ---------- the outstanding student demand, on the Student Life tab ----
+   Its own small block rather than another row of the panel's <dl>: that
+   grid's value column is auto-sized, which would squeeze the progress
+   bar's flexible track down to a sliver. Everything else about the demand
+   (the ask, the deadline, the stakes) is a plain <dt>/<dd> pair like any
+   other panel reading. */
+.demand-grievance { margin: 0 0 10px; }
+.demand-progress { display: flex; align-items: center; margin: 0 0 12px; }
+.demand-deadline { font-family: var(--mono); font-size: 11px; color: var(--ink-muted); white-space: nowrap; }
+.demand-deadline.urgent { color: #8a2f2f; }
+.demand-footnote { margin-top: 10px; }
+
 /* ---------- startup screen ---------- */
 .startup { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
 .startup-card { background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 10px;

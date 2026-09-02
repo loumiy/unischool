@@ -237,15 +237,59 @@ export interface PendingInterrupt {
   payload?: unknown;
 }
 
-// Cadence bookkeeping for the two interrupt kinds that are neither annual
-// nor player-triggered: the milestone celebration (a stop-the-clock moment
-// for a genuinely special accomplishment) and the authored decision events
-// that give the quiet weeks between milestones their texture. See
-// data/eventData.ts for the content and tuning constants, and
-// systems/events/eventSystem.ts for the one tick function that fires both.
+// ---------------------------------------------------------------------
+// A STUDENT DEMAND (see README's "Student demands: the inverse of clubs",
+// and systems/demands/demandSystem.ts). When satisfaction sits below
+// DEMAND_SATISFACTION_THRESHOLD the student body asks the institution for
+// one concrete, buildable thing, on a deadline. Exactly one may be open at
+// a time.
 //
-// Plain JSON — numbers, a string array and a string -> number record — the
-// same shape rationale as `developing` and `placements`.
+// The record carries the TARGET CONDITION and the clock, and nothing else:
+// the ask's prompt, headline and grievance text are looked up from
+// data/demandData.ts by `metric`/`attribute` when the modal or the tab
+// renders, the same way a queued milestone's headline is derived at
+// celebration time rather than captured when it was awarded.
+//
+// The target is a number the game ALREADY tracks, never a parallel
+// capacity model: `served` compares satisfactionSystem.ts's own
+// servedPopulationFor(attribute) — the sum of servesPopulation across the
+// 'done' facilities feeding one satisfaction attribute — against a total,
+// and `capacity` compares s.students.capacity against one. So a demand is
+// met by BUILDING the thing, detected off the same state the satisfaction
+// score is computed from, with no acknowledge button anywhere.
+//
+// Plain JSON (strings, numbers, a nullable string), like every other slice.
+export interface StudentDemand {
+  id: string;
+  // Which existing reading the target is measured against.
+  metric: 'served' | 'capacity';
+  // The satisfaction attribute whose served population is being demanded;
+  // null for metric 'capacity' (a demand for more housing), which is
+  // measured against s.students.capacity instead.
+  attribute: keyof SatisfactionAttributes | null;
+  // The Buildable that inspired the ask — "another parking lot" is
+  // whatever the parking chain's next rung actually is. Captured by name
+  // as well as id (like PrizeAward's facultyName) so the modal still says
+  // something true if content is edited between raising and resolving.
+  askId: string;
+  askName: string;
+  target: number;       // the demand is MET the moment the measured reading reaches this
+  raisedWeek: number;   // absolute week the demand was announced; 0 while it is still queued
+  deadlineWeek: number; // absolute week it expires unmet; 0 while it is still queued
+}
+
+// Cadence bookkeeping for the interrupt kinds that are neither annual nor
+// player-triggered: the milestone celebration (a stop-the-clock moment for
+// a genuinely special accomplishment), the authored decision events that
+// give the quiet weeks between milestones their texture, and the student
+// demands that low satisfaction raises. See data/eventData.ts and
+// data/demandData.ts for the content and tuning constants, and
+// systems/events/eventSystem.ts and systems/demands/demandSystem.ts for
+// the tick functions that fire them.
+//
+// Plain JSON — numbers, a string array, a string -> number record and two
+// nullable flat records — the same shape rationale as `developing` and
+// `placements`.
 export interface EventState {
   // Milestone keys (the same keys techSystem.ts writes into s.milestones)
   // that have been awarded but not yet celebrated. A QUEUE rather than a
@@ -261,6 +305,24 @@ export interface EventState {
   // week it last did. Both are needed: the count enforces a per-event
   // fire cap, the week enforces the per-event repeat cooldown.
   decisionHistory: Record<string, { fires: number; lastWeek: number }>;
+  // The demand the student body has rolled but not yet been able to
+  // announce, because the week it landed on already belonged to another
+  // interrupt or the shared cadence floor had not cleared. A QUEUE of one,
+  // for exactly the reason pendingMilestones is a queue: a demand that
+  // would fire during a busy week WAITS rather than being dropped. Its
+  // raisedWeek/deadlineWeek are stamped when it is announced, not when it
+  // is rolled, so waiting never eats into the deadline the player gets.
+  pendingDemand: StudentDemand | null;
+  // The demand currently outstanding, with its target and expiry. At most
+  // one, ever: demands are pressure, not a to-do list. Cleared the week
+  // its target is met (a satisfaction reward) or its deadline passes
+  // unmet (a satisfaction penalty).
+  activeDemand: StudentDemand | null;
+  // Absolute week the last demand RESOLVED — met, failed, or overtaken by
+  // the shortfall being fixed before it could even be announced; 0 =
+  // never. The cooldown half of the cadence, and the reason a failed
+  // demand cannot be followed straight away by a second unmeetable one.
+  lastDemandWeek: number;
 }
 
 // The player's admissions policy, set once a year via the summer interrupt

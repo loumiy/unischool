@@ -6,6 +6,9 @@ import {
   orgMembership, studentOrgUpkeep,
 } from '../data/studentLifeData';
 import { studentLifeSatisfaction } from '../systems/satisfaction/satisfactionSystem';
+import { DEMAND_SATISFACTION_THRESHOLD, DEMAND_URGENT_WEEKS, demandCopy } from '../data/demandData';
+import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
+import { ProgressBar } from '../components/Progress';
 
 // ---------------------------------------------------------------------
 // The home for the student-life layer: the clubs the campus has grown, the
@@ -86,6 +89,89 @@ function StudentLifeEffect({ s }: { s: GameState }) {
   );
 }
 
+
+// ---------------------------------------------------------------------
+// THE OUTSTANDING DEMAND (see systems/demands/demandSystem.ts). The
+// counterweight to everything else on this screen: clubs are what a happy
+// student body gives the institution, a demand is what an unhappy one asks
+// of it. It lives here rather than in a stream of its own so that a player
+// who dismissed the raising modal can still see what is outstanding, what
+// it will take, and how long they have.
+//
+// The stakes are read from the model exactly as the club panel above reads
+// its contribution: the satisfaction figures are the nudges the demand
+// system would apply, and the applicant figures come from running the
+// shipped admissions funnel at today's policy against each of them (see
+// demandStakes). Nothing here is authored except the grievance itself.
+//
+// Progress is the same reading the resolution runs on — servedPopulation
+// for the attribute, or capacity for a housing demand — so the bar cannot
+// disagree with whether the demand is actually met.
+// ---------------------------------------------------------------------
+function StudentDemandPanel({ s }: { s: GameState }) {
+  const demand = s.events.activeDemand;
+
+  if (!demand) {
+    return (
+      <section className="panel">
+        <h2>Student Demands</h2>
+        <p className="empty-note">
+          No outstanding demands. Students ask the institution for something only when
+          satisfaction falls below {DEMAND_SATISFACTION_THRESHOLD}.
+        </p>
+      </section>
+    );
+  }
+
+  const copy = demandCopy(demand);
+  const progress = demandProgress(s, demand);
+  const stakes = demandStakes(s);
+  const node = s.tech.find((t) => t.id === demand.askId);
+
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <h2>Student Demands</h2>
+        <span className={`demand-deadline${progress.weeksLeft <= DEMAND_URGENT_WEEKS ? ' urgent' : ''}`}>
+          {progress.weeksLeft} week{progress.weeksLeft === 1 ? '' : 's'} left
+        </span>
+      </div>
+      <p className="empty-note demand-grievance">{copy.grievance(demand.askName)}</p>
+      <div className="demand-progress">
+        <ProgressBar
+          fraction={progress.fraction}
+          label={`${Math.round(progress.current).toLocaleString()} / ${Math.round(progress.target).toLocaleString()}`}
+          title={`${Math.round(progress.current).toLocaleString()} of ${Math.round(progress.target).toLocaleString()} ${copy.unit}`}
+        />
+      </div>
+      <dl>
+        <dt>
+          The ask
+          <HelpHint text="Progress above is read off the same campus state the demand resolves against — what this need serves today, against the total the demand asks for. Finish the building and the demand clears itself; there is nothing to confirm." />
+        </dt>
+        <dd>{copy.ask(demand.askName)}{node ? ` (${node.status})` : ''}</dd>
+        <dt>Deadline</dt>
+        <dd>year {Math.floor((demand.deadlineWeek - 1) / WEEKS_PER_YEAR) + 1}, week {((demand.deadlineWeek - 1) % WEEKS_PER_YEAR) + 1}</dd>
+        <dt>If it is met</dt>
+        <dd>
+          satisfaction {stakes.satisfactionNow.toFixed(1)} → {stakes.satisfactionIfMet.toFixed(1)} ·
+          {' '}{stakes.applicantsIfMet.toLocaleString()} applicants
+        </dd>
+        <dt>If the deadline passes</dt>
+        <dd>
+          satisfaction {stakes.satisfactionNow.toFixed(1)} → {stakes.satisfactionIfFailed.toFixed(1)} ·
+          {' '}{stakes.applicantsIfFailed.toLocaleString()} applicants
+        </dd>
+      </dl>
+      <p className="empty-note demand-footnote">
+        Missing the deadline costs goodwill and the applicants word of mouth brings — the figures
+        above, at next summer&rsquo;s funnel. Nothing else: satisfaction is floored, so an unaffordable
+        demand left unmet stalls the school rather than sinking it.
+      </p>
+    </section>
+  );
+}
+
 export default function StudentLifeTab({ s }: { s: GameState }) {
   const clubs: StudentClub[] = s.orgs.clubs;
   const chapters: GreekChapter[] = s.orgs.chapters;
@@ -98,6 +184,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
   if (!anyOrgs && pending.length === 0) {
     return (
       <div className="tab-content">
+        <StudentDemandPanel s={s} />
         <section className="panel">
           <h2>Student Organisations</h2>
           <p className="empty-note">
@@ -112,6 +199,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
 
   return (
     <div className="tab-content">
+      <StudentDemandPanel s={s} />
       <StudentLifeEffect s={s} />
 
       {pending.length > 0 && (

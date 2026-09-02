@@ -76,6 +76,15 @@ export type Action =
   // all landed the week the prize was won. Advances the clock, for the
   // same reason RESOLVE_MILESTONE does.
   | { type: 'RESOLVE_PRIZE' }
+  // Acknowledges a student demand at the moment it is raised (see
+  // systems/demands/demandSystem.ts). Grants nothing and costs nothing —
+  // the demand is already open on s.events.activeDemand with its target
+  // and deadline, and the ONLY way to answer it is to build the thing it
+  // asks for before the deadline passes, which the demand system detects
+  // off the campus itself. There is deliberately no "accept"/"refuse"
+  // fork and no second action: a demand is do-it-or-don't over time, not a
+  // menu. Advances the clock, for the same reason RESOLVE_MILESTONE does.
+  | { type: 'RESOLVE_DEMAND' }
   // Answers the one-time College -> University charter offer, made the
   // first quiet week after any lab finishes (see
   // systems/events/eventSystem.ts). `accept` swaps the fixed half of the
@@ -127,7 +136,12 @@ export function createPreStartState(): GameState {
     log: [],
     gameOver: false,
     pendingInterrupt: null,
-    events: { pendingMilestones: [], lastMilestoneWeek: 0, lastDecisionWeek: 0, decisionHistory: {} },
+    events: {
+      pendingMilestones: [], lastMilestoneWeek: 0, lastDecisionWeek: 0, decisionHistory: {},
+      // No demand raised and none outstanding; week 0 reads as "never" for
+      // the cooldown too (see data/demandData.ts's DEMAND_COOLDOWN_WEEKS).
+      pendingDemand: null, activeDemand: null, lastDemandWeek: 0,
+    },
     orgs: {
       clubs: [], chapters: [], pendingPetitions: [],
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
@@ -265,7 +279,12 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     pendingInterrupt: null,
     // Nothing celebrated and nothing fired yet; week 0 reads as "never"
     // (the clock's first real week is 1 — see eventData.ts's absoluteWeek).
-    events: { pendingMilestones: [], lastMilestoneWeek: 0, lastDecisionWeek: 0, decisionHistory: {} },
+    events: {
+      pendingMilestones: [], lastMilestoneWeek: 0, lastDecisionWeek: 0, decisionHistory: {},
+      // No demand raised and none outstanding; week 0 reads as "never" for
+      // the cooldown too (see data/demandData.ts's DEMAND_COOLDOWN_WEEKS).
+      pendingDemand: null, activeDemand: null, lastDemandWeek: 0,
+    },
     // No student organisations at founding, and none can form until the
     // campus has a student center to form them in (see
     // data/studentLifeData.ts). Greek life is gated a second time, on the
