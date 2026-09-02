@@ -44,7 +44,6 @@ export type Action =
   // curriculum have run out of things to buy. Rejected by the reducer if
   // prestige is below the campaign gate or the cash isn't there.
   | { type: 'LAUNCH_ENDOWMENT_CAMPAIGN' }
-  | { type: 'TOGGLE_AUTO_DEVELOP' }
   | { type: 'RESOLVE_INTERRUPT' }                      // clears pendingInterrupt, lets the clock resume
   // Resolves the annual summer admissions interrupt: sets next year's two
   // policy levers (tuition, aid), runs the admissions funnel to commit the
@@ -110,7 +109,6 @@ export function createPreStartState(): GameState {
     gameOver: false,
     pendingInterrupt: null,
     events: { pendingMilestones: [], lastMilestoneWeek: 0, lastDecisionWeek: 0, decisionHistory: {} },
-    autoDevelop: false,
     candidates: [],
     openPostings: {},
     started: false,
@@ -228,7 +226,6 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // Nothing celebrated and nothing fired yet; week 0 reads as "never"
     // (the clock's first real week is 1 — see eventData.ts's absoluteWeek).
     events: { pendingMilestones: [], lastMilestoneWeek: 0, lastDecisionWeek: 0, decisionHistory: {} },
-    autoDevelop: false,
     candidates: initialCandidates(),
     openPostings: {},
     started: true,

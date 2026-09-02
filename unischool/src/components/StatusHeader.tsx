@@ -21,10 +21,10 @@ function termName(week: number): string {
   return week <= WEEKS_PER_YEAR / 2 ? 'Fall Term' : 'Spring Term';
 }
 
-// Playtesting controls (fast/sandbox speed, auto-develop, the debug
-// interrupt trigger) are only useful during development, not normal play —
-// they stay reachable by naming the university "test" rather than being
-// removed outright, so they're still there for anyone iterating on the game.
+// Playtesting controls (the sandbox speed, the debug interrupt trigger) are
+// only useful during development, not normal play — they stay reachable by
+// naming the university "test" rather than being removed outright, so
+// they're still there for anyone iterating on the game.
 function isTestUniversity(name: string): boolean {
   return name.trim().toLowerCase() === 'test';
 }
@@ -83,8 +83,8 @@ function SaveControls({ act }: { act: (a: Action) => void }) {
 
 // The persistent header/status bar: the handful of state values that stay
 // meaningful no matter which tab is open (clock, cash, prestige, current
-// rank, enrollment, satisfaction) plus the speed/auto-develop controls, all
-// visible across every tab rather than scoped to one. Standing among peers
+// rank, enrollment, satisfaction) plus the speed controls, all visible
+// across every tab rather than scoped to one. Standing among peers
 // is otherwise a mid-game reveal (see README's "Rankings") — the rank stat
 // stays a dash until s.hasEnteredRankings fires, so this header doesn't
 // spoil that.
@@ -176,19 +176,10 @@ export default function StatusHeader({ s, speed, setSpeed, act }: {
         </div>
         <div className="controlbar-right">
           {showPlaytestControls && (
-            <>
-              <button
-                className={`auto-develop-toggle ${s.autoDevelop ? 'on' : ''}`}
-                onClick={() => act({ type: 'TOGGLE_AUTO_DEVELOP' })}
-                title="Playtesting only: auto-starts every available course the school can afford. Never touches buildings, dorms, or facilities — those stay a deliberate, manual decision."
-              >
-                auto-develop courses: {s.autoDevelop ? 'on' : 'off'}
-              </button>
-              {/* Scaffolding: proves the interrupt pause/resume cycle. Remove once a real interrupt exists. */}
-              <button className="debug-interrupt-btn" onClick={() => act({ type: 'DEBUG_TRIGGER_TEST_INTERRUPT' })}>
-                debug: trigger interrupt
-              </button>
-            </>
+            /* Scaffolding: proves the interrupt pause/resume cycle. Remove once a real interrupt exists. */
+            <button className="debug-interrupt-btn" onClick={() => act({ type: 'DEBUG_TRIGGER_TEST_INTERRUPT' })}>
+              debug: trigger interrupt
+            </button>
           )}
           <SaveControls act={act} />
         </div>

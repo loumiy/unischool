@@ -319,7 +319,6 @@ export interface GameState {
   gameOver: boolean;
   pendingInterrupt: PendingInterrupt | null; // set => clock halts until resolved
   events: EventState;            // cadence bookkeeping for milestone celebrations and authored decision events (see EventState above)
-  autoDevelop: boolean;          // when true, tickTech auto-starts every available COURSE the school can afford — buildings/dorms/facilities are never auto-started (see techSystem.ts's autoDevelopCourses)
   candidates: Faculty[];         // hireable, already-arrived faculty — populated ONLY when an open posting's countdown resolves (see facultySystem.ts), never by passive random replenishment
   openPostings: Record<string, number>; // Faculty `field` -> weeks remaining until POST_JOB's candidate arrives; mirrors `developing`'s id -> weeks-remaining shape. At most one open posting per field at a time.
   started: boolean;              // false only during the pre-game startup screen (name + school type)
