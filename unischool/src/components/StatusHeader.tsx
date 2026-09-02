@@ -7,7 +7,7 @@ import { playerRank } from '../systems/rivals/rivalsSystem';
 import { SPEEDS, SANDBOX_SPEEDS, type Speed } from '../engine/useGame';
 import Sparkline from './Sparkline';
 
-const SPEED_LABELS: Record<Speed, string> = { paused: 'Paused', real: 'Play', fast: 'Fast (sandbox)' };
+const SPEED_LABELS: Record<Speed, string> = { paused: 'Paused', real: 'Play', double: 'Play 2×', fast: 'Fast (sandbox)' };
 
 // Below this, satisfaction is reported in the same alarmed red the header
 // already uses for negative cash. It is a DISPLAY threshold only — nothing
