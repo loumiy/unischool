@@ -50,7 +50,13 @@ export type Action =
   // enrolled class, and — unlike RESOLVE_INTERRUPT — advances the clock into
   // that year itself (see reducer.ts). Tuition is set ONLY here, once a
   // year — there is no other action that changes it.
-  | { type: 'RESOLVE_ADMISSIONS'; tuition: number; financialAidRate: number }
+  // `approvedPetitionIds` is the student-life digest folded into this same
+  // interrupt (see data/studentLifeData.ts and the reducer): the ids of the
+  // club/chapter petitions raised since last summer that the player is
+  // recognising. Every pending petition NOT listed is declined, and the
+  // queue drains either way — so the digest can never accumulate across
+  // years, and clubs never need a stop-the-clock modal of their own.
+  | { type: 'RESOLVE_ADMISSIONS'; tuition: number; financialAidRate: number; approvedPetitionIds: string[] }
   // Dismisses the "you've entered the rankings" reveal or an annual U.S.
   // News report interrupt. Like RESOLVE_ADMISSIONS (and unlike the plain
   // RESOLVE_INTERRUPT), this advances the clock — both fire as a trailing
@@ -122,6 +128,10 @@ export function createPreStartState(): GameState {
     gameOver: false,
     pendingInterrupt: null,
     events: { pendingMilestones: [], lastMilestoneWeek: 0, lastDecisionWeek: 0, decisionHistory: {} },
+    orgs: {
+      clubs: [], chapters: [], pendingPetitions: [],
+      hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
+    },
     research: {
       points: 0, lifetimePoints: 0, grants: 0, grantIncome: 0,
       breakthroughs: 0, prizes: 0, lastOutputWeek: 0, pendingPrizes: [],
@@ -256,6 +266,17 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // Nothing celebrated and nothing fired yet; week 0 reads as "never"
     // (the clock's first real week is 1 — see eventData.ts's absoluteWeek).
     events: { pendingMilestones: [], lastMilestoneWeek: 0, lastDecisionWeek: 0, decisionHistory: {} },
+    // No student organisations at founding, and none can form until the
+    // campus has a student center to form them in (see
+    // data/studentLifeData.ts). Greek life is gated a second time, on the
+    // player explicitly chartering a Hellenic Council — so a run that
+    // declines it, or never gets asked, carries these two lists at zero
+    // and one empty flag forever, which is exactly what a school without
+    // Greek life should look like in state.
+    orgs: {
+      clubs: [], chapters: [], pendingPetitions: [],
+      hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
+    },
     // No labs at founding, so nothing produces research and no output can
     // fire — the whole slice sits at zero until the first lab finishes
     // (see systems/research/researchSystem.ts).

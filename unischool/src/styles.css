@@ -655,6 +655,43 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .admissions-outcomes dt .outcome-note { color: var(--gold-dim); font-size: 11px; }
 .admissions-outcomes dd { margin: 0; color: var(--ink-hi); font-family: var(--mono); font-size: 14px; }
 
+/* ---------- the student-life digest, inside the admissions interrupt ----
+   Clubs and new Greek chapters never get a modal of their own (see
+   data/studentLifeData.ts): a whole year's petitions are answered as a
+   section of the summer admissions decision. Styled to sit inside the same
+   dark-navy modal as everything else, and read as a checklist rather than
+   as another form. */
+.digest { margin: 4px 0 18px; padding: 12px 14px; background: #1a2338;
+  border: 1px solid var(--navy-line); border-radius: 6px; }
+.digest-head { font-family: var(--serif); font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--gold); margin: 0 0 6px; }
+.digest-note { font-size: 12px; line-height: 1.45; color: #cbd0d8; margin: 0 0 10px !important; }
+.digest-row { display: flex; align-items: baseline; gap: 8px; padding: 5px 0;
+  border-top: 1px solid var(--navy-line); font-size: 13px; cursor: pointer; }
+.digest-row input { accent-color: var(--gold); }
+.digest-row.declined { opacity: 0.5; }
+.digest-row-name { flex: 1; min-width: 0; color: var(--ink-hi); }
+.digest-row-kind { margin-left: 8px; font-family: var(--mono); font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--gold-dim); }
+.digest-row-cost { font-family: var(--mono); font-size: 11px; color: var(--ink-lo); white-space: nowrap; }
+
+/* ---------- Student Life tab ----------
+   One row per organisation: name, what it is, and the three facts worth
+   having (founding year, current membership, weekly cost). Membership is
+   a current number and nothing else — no trend, no sparkline (see
+   StudentLifeTab.tsx). */
+.panel-count { font-family: var(--mono); font-size: 11px; color: var(--ink-muted); white-space: nowrap; }
+.org-list { max-height: 320px; overflow-y: auto; margin: 0; padding: 0; }
+.org-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  padding: 5px 0; border-bottom: 1px solid var(--parchment-line-lo); font-size: 13px; }
+.org-name { font-weight: 600; min-width: 0; }
+.org-tag { margin-left: 8px; font-family: var(--mono); font-size: 10px; font-weight: 400;
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
+.org-meta { font-family: var(--mono); font-size: 11px; color: var(--ink-muted); white-space: nowrap; }
+.org-list::-webkit-scrollbar { width: 8px; }
+.org-list::-webkit-scrollbar-thumb { background: var(--parchment-line); border-radius: 4px; }
+.org-list { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
+
 /* ---------- startup screen ---------- */
 .startup { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
 .startup-card { background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 10px;

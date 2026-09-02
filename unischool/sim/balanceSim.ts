@@ -28,6 +28,7 @@ import { financeBreakdown, endowmentCampaign, weeklyNet } from '../src/systems/f
 import { canStartDevelopment, hasFreeFacultySlot } from '../src/systems/techtree/techSystem';
 import { findDecisionEvent } from '../src/data/eventData';
 import { weeklyResearchPoints } from '../src/data/researchData';
+import { studentLifeSatisfaction } from '../src/systems/satisfaction/satisfactionSystem';
 import type { DecisionEventContext } from '../src/data/eventData';
 
 // ---------------------------------------------------------------------
@@ -268,6 +269,10 @@ interface Row {
   opex: number; net: number; satisfaction: number; courses: number; majors: number;
   faculty: number; tuition: number; aid: number; applicants: number; admitRate: number;
   endowment: number; weeksInTheRed: number; minCash: number;
+  // Student life as the year closed: how many organisations are live, what
+  // they cost a week, and what they are actually adding to the
+  // satisfaction TARGET (read off the model, never a parallel tally).
+  clubs: number; chapters: number; orgUpkeep: number; orgSatisfaction: number;
   // Research, as the year closed: what it is producing a week, and the two
   // durable counts its outputs have accumulated. `grantIncome` is the
   // cumulative cash side — the figure that says whether grants are
@@ -299,6 +304,10 @@ function snapshot(s: GameState, weeksInTheRed: number, minCash: number): Row {
     researchRate: weeklyResearchPoints(s),
     breakthroughs: s.research.breakthroughs,
     grantIncome: s.research.grantIncome,
+    clubs: s.orgs.clubs.length,
+    chapters: s.orgs.chapters.length,
+    orgUpkeep: flow.studentLifeUpkeep,
+    orgSatisfaction: studentLifeSatisfaction(s).totalTargetContribution,
   };
 }
 
@@ -310,6 +319,16 @@ interface EventTally {
   milestones: number;   // stop-the-clock celebrations shown
   decisions: number;    // authored decision events resolved
   cash: number;         // net cash effect of every choice the scripted player took
+  // Student life (see src/data/studentLifeData.ts). Reported for the same
+  // reason as the two above: so a balance pass can see whether recognising
+  // student organisations is a texture line or a second economy. Note the
+  // asymmetry — NONE of these stop the clock. Clubs and new chapters are
+  // answered in a digest folded into the summer admissions interrupt the
+  // run already pays for, and the Greek decisions that DO stop the clock
+  // are entries in the shared decision-event table, so they are already
+  // counted in `decisions` rather than added on top of it.
+  petitionsApproved: number;
+  greekEventsSeen: number; // of `decisions`, how many were Greek-life ones
   // Research (see src/systems/research/researchSystem.ts). Reported
   // alongside the events for the same reason: so a balance pass can see at
   // a glance whether research is a quiet second income line or a second
@@ -322,6 +341,12 @@ interface EventTally {
 // pay" option — and fall back to a free one when the money isn't there.
 // That is the most expensive reasonable policy, so the tally below is an
 // upper bound on what events cost a run.
+// The Greek-life entries of the shared decision-event table (see
+// src/data/eventData.ts). Named here only so the report can say how much of
+// the run's FIXED event budget student life took — they do not get a budget
+// of their own, which is the whole point of authoring them into that table.
+const GREEK_EVENT_IDS = ['hellenic-council', 'greek-scandal', 'greek-housing'];
+
 function chooseEventOption(s: GameState): { eventId: string; choiceId: string; ctx: DecisionEventContext } | null {
   const payload = s.pendingInterrupt?.payload as { eventId: string; ctx: DecisionEventContext } | undefined;
   if (!payload) return null;
@@ -341,12 +366,29 @@ function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTal
   let weeksInTheRed = 0;
   let minCash = s.finance.cash;
 
-  const tally: EventTally = { milestones: 0, decisions: 0, cash: 0, prizes: 0 };
+  const tally: EventTally = {
+    milestones: 0, decisions: 0, cash: 0, prizes: 0,
+    petitionsApproved: 0, greekEventsSeen: 0,
+  };
 
   while (s.clock.year <= years) {
     if (s.pendingInterrupt) {
       if (s.pendingInterrupt.type === 'admissions') {
-        dispatch({ type: 'RESOLVE_ADMISSIONS', tuition: strategy.tuition(s), financialAidRate: strategy.aid(s) });
+        // The student-life digest rides on this interrupt (see the
+        // reducer's RESOLVE_ADMISSIONS). The scripted player recognises
+        // EVERY petition, which is the most expensive answer available —
+        // it is the only one that takes on recurring cost — so the opex
+        // and satisfaction figures these runs print are the upper bound on
+        // what student life does to a trajectory, exactly as the event
+        // policy below is an upper bound on what events cost.
+        const approvedPetitionIds = s.orgs.pendingPetitions.map((p) => p.id);
+        tally.petitionsApproved += approvedPetitionIds.length;
+        dispatch({
+          type: 'RESOLVE_ADMISSIONS',
+          tuition: strategy.tuition(s),
+          financialAidRate: strategy.aid(s),
+          approvedPetitionIds,
+        });
         rows.push(snapshot(s, weeksInTheRed, minCash));
       } else if (s.pendingInterrupt.type === 'milestone') {
         tally.milestones += 1;
@@ -364,6 +406,7 @@ function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTal
         const before = s.finance.cash;
         if (taken) {
           tally.decisions += 1;
+          if (GREEK_EVENT_IDS.includes(taken.eventId)) tally.greekEventsSeen += 1;
           dispatch({ type: 'RESOLVE_DECISION_EVENT', ...taken });
         } else {
           dispatch({ type: 'RESOLVE_DECISION_EVENT', eventId: '', choiceId: '', ctx: {} });
@@ -394,7 +437,7 @@ function fmt(n: number): string {
 function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally }, every: number): void {
   const { rows, tally } = run;
   console.log(`\n=== ${strategy.name} (${strategy.schoolType}) ===`);
-  console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | crs | maj | fac |  tuition | aid |  applic | admit% |  endow | rsch/wk | brk');
+  console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | crs | maj | fac |  tuition | aid |  applic | admit% |  endow | rsch/wk | brk | orgs');
   const last = rows[rows.length - 1];
   for (const r of rows) {
     if (r.year > 6 && r.year % every !== 0 && r !== last) continue;
@@ -403,7 +446,11 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally }, eve
       `${r.prestige.toFixed(1).padStart(5)} | ${fmt(r.opex).padStart(7)} | ${fmt(r.net).padStart(6)} | ${r.satisfaction.toFixed(0).padStart(4)} | ` +
       `${String(r.courses).padStart(3)} | ${String(r.majors).padStart(3)} | ${String(r.faculty).padStart(3)} | ${fmt(r.tuition).padStart(8)} | ` +
       `${(r.aid * 100).toFixed(0).padStart(3)} | ${fmt(r.applicants).padStart(7)} | ${(r.admitRate * 100).toFixed(0).padStart(6)} | ${fmt(r.endowment).padStart(6)} | ` +
-      `${r.researchRate.toFixed(1).padStart(7)} | ${String(r.breakthroughs).padStart(3)}`,
+      `${r.researchRate.toFixed(1).padStart(7)} | ${String(r.breakthroughs).padStart(3)} | ` +
+      // clubs/chapters live at the close of that year — the column that
+      // says WHEN student life actually starts for a given strategy, which
+      // is the whole question the opex share below can't answer.
+      `${String(r.clubs).padStart(2)}/${String(r.chapters).padEnd(2)}`,
     );
   }
   console.log(`   weeks in the red: ${last.weeksInTheRed} of ${rows.length * 52}, min cash: ${fmt(last.minCash)}`);
@@ -417,6 +464,16 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally }, eve
   console.log(
     `   research: ${last.researchRate.toFixed(1)} pts/wk at close, ${last.breakthroughs} breakthroughs, ` +
     `${tally.prizes} prizes, ${fmt(last.grantIncome)} in grants (${grantShare.toFixed(1)}% of lifetime opex)`,
+  );
+  // Student life is judged against opex the same way grants are judged
+  // against it: the bare weekly figure means nothing, the share of the
+  // school's spending is the answer to whether it moved the throttle.
+  const orgShare = last.opex > 0 ? (last.orgUpkeep / last.opex) * 100 : 0;
+  console.log(
+    `   student life: ${last.clubs} clubs, ${last.chapters} chapters at close ` +
+    `(${tally.petitionsApproved} recognised over the run), ${fmt(last.orgUpkeep)}/wk upkeep ` +
+    `(${orgShare.toFixed(2)}% of opex), +${last.orgSatisfaction.toFixed(2)} on the satisfaction target; ` +
+    `${tally.greekEventsSeen} of ${tally.decisions} decision events were Greek-life ones`,
   );
 }
 

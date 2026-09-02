@@ -8,6 +8,7 @@ import { projectAdmissions, priceTolerance } from '../systems/admissions/admissi
 import { computePrestigeTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
 import { findDecisionEvent } from '../data/eventData';
 import type { DecisionEventContext, MilestonePayload } from '../data/eventData';
+import type { OrgPetition } from '../state/types';
 import type { ReportPayload } from '../systems/rivals/rivalsSystem';
 
 // Placeholder modal content for interrupt types with no dedicated form (see
@@ -31,6 +32,63 @@ interface AdmissionsDraft {
   financialAidRate: number;
 }
 
+function money(v: number): string {
+  return `$${Math.round(v).toLocaleString()}`;
+}
+
+// ---------------------------------------------------------------------
+// THE STUDENT-LIFE DIGEST (see data/studentLifeData.ts). Clubs and new
+// Greek chapters form quietly during the year and queue as petitions;
+// this is where a whole year's worth is answered, as a SECTION of the
+// summer admissions interrupt rather than a modal of its own. That is the
+// point of the shape: student life is the lightest beat in the game and
+// must not stop the clock, and the summer decision is a stop the player is
+// already making.
+//
+// Every petition defaults to approved — recognising a society is the
+// ordinary answer, and a player who confirms without reading has done the
+// harmless thing rather than taken a satisfaction hit they never chose.
+// Anything unticked is declined when the interrupt resolves; the queue
+// drains either way, so the digest can never grow across years.
+// ---------------------------------------------------------------------
+function StudentLifeDigest({ petitions, approved, onToggle }: {
+  petitions: OrgPetition[];
+  approved: Set<string>;
+  onToggle: (id: string) => void;
+}) {
+  if (petitions.length === 0) return null;
+  const clubs = petitions.filter((p) => p.kind === 'club').length;
+
+  return (
+    <div className="digest">
+      <h3 className="digest-head">
+        {petitions.length === 1
+          ? 'One new student organisation this year'
+          : `${petitions.length} new student organisations this year`}
+      </h3>
+      <p className="digest-note">
+        {clubs === petitions.length
+          ? 'Recognise a society and it costs a little every week and adds a little to student satisfaction, for as long as it exists. Decline and the students notice.'
+          : 'Chapters carry more of both than clubs do — more cost, and considerably more student life.'}
+      </p>
+      {petitions.map((p) => (
+        <label key={p.id} className={`digest-row ${approved.has(p.id) ? 'approved' : 'declined'}`}>
+          <input type="checkbox" checked={approved.has(p.id)} onChange={() => onToggle(p.id)} />
+          <span className="digest-row-name">
+            {p.name}
+            <span className="digest-row-kind">
+              {p.kind === 'club' ? 'club' : p.greekKind}
+            </span>
+          </span>
+          <span className="digest-row-cost">
+            {p.foundingMembers} founding members · {money(p.upkeepPerWeek)}/wk
+          </span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
 // The once-a-year summer admissions decision (see README's "Admissions: an
 // annual summer decision"). The player sets exactly two levers — tuition
 // and average financial aid — and the distribution funnel resolves the rest
@@ -39,16 +97,19 @@ interface AdmissionsDraft {
 // they are emergent outcomes, previewed live below so the player can see the
 // consequences of the two settings before confirming. This is the only
 // place tuition is ever set; there is no live, adjustable tuition control.
-function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, satisfaction, onResolve }: {
+function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, satisfaction, petitions, onResolve }: {
   payload: AdmissionsDraft;
   prestige: number;
   capacity: number;
   tuitionCeiling: number;
   satisfaction: number;
-  onResolve: (settings: AdmissionsDraft) => void;
+  petitions: OrgPetition[];
+  onResolve: (settings: AdmissionsDraft & { approvedPetitionIds: string[] }) => void;
 }) {
   const [tuition, setTuition] = useState(payload.tuition);
   const [financialAidRate, setFinancialAidRate] = useState(payload.financialAidRate);
+  // Approved by default — see the note on StudentLifeDigest above.
+  const [approved, setApproved] = useState<Set<string>>(() => new Set(petitions.map((p) => p.id)));
 
   // Live preview of the emergent outcomes, computed with the very function
   // the reducer commits with — so the numbers shown are the numbers applied.
@@ -91,7 +152,17 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
         </div>
       </dl>
 
-      <button onClick={() => onResolve({ tuition, financialAidRate })}>
+      <StudentLifeDigest
+        petitions={petitions}
+        approved={approved}
+        onToggle={(id) => setApproved((prev) => {
+          const next = new Set(prev);
+          if (next.has(id)) next.delete(id); else next.add(id);
+          return next;
+        })}
+      />
+
+      <button onClick={() => onResolve({ tuition, financialAidRate, approvedPetitionIds: [...approved] })}>
         Confirm Policy
       </button>
     </>
@@ -457,6 +528,7 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
             capacity={s.students.capacity}
             tuitionCeiling={s.finance.tuitionCeiling}
             satisfaction={s.students.satisfaction}
+            petitions={s.orgs.pendingPetitions}
             onResolve={(settings) => act({ type: 'RESOLVE_ADMISSIONS', ...settings })}
           />
         ) : interrupt.type === 'milestone' ? (

@@ -1,0 +1,373 @@
+import type { GameState, GreekChapter, OrgPetition, StudentClub, StudentOrgBase } from '../state/types';
+import { weeksOfOpEx } from './moneyScale';
+
+// ---------------------------------------------------------------------
+// STUDENT ORGANISATIONS, AS DATA (see README's "Student life: clubs and
+// Greek letters"). Two layers, gated on campus the player has already
+// built, and the second gated on a decision the player has already made:
+//
+//   1. CLUBS. Once a student center stands, students occasionally form
+//      one. Deliberately the LIGHT beat: a club never stops the clock. A
+//      formation raises a PETITION (a log line) and the player answers it
+//      at the summer admissions boundary, in the digest that interrupt
+//      already carries — approve some, decline the rest, one click.
+//   2. GREEK CHAPTERS. Only after the player has explicitly approved a
+//      Hellenic Council (an authored decision event, asked once, declinable
+//      for the whole run — see eventData.ts). New chapters then form on the
+//      same petition/digest path as clubs; what makes them consequential is
+//      what happens to them AFTERWARDS, which is also authored as decision
+//      events: a scandal (disband, permanently, or pay for a PR campaign)
+//      and a one-time housing petition per chapter.
+//
+// WHAT AN ORGANISATION DOES, MECHANICALLY. Exactly two things, both read
+// LIVE off s.orgs every week rather than applied once and remembered:
+//
+//   - It costs money. financeSystem.ts sums upkeepPerWeek across the live
+//     lists as one more expense line, so disbanding a chapter removes its
+//     cost the same week.
+//   - It lifts the SOCIAL satisfaction attribute, flat per organisation
+//     (the same shape the quad's flatSatisfactionBonus has — it does not
+//     dilute as the campus grows). satisfactionSystem.ts adds it into the
+//     satisfaction TARGET, which the stock then drifts toward, so a
+//     disbanded chapter's loss is the removal of an ongoing source rather
+//     than a one-week dent.
+//
+// Both key off "an organisation exists", FLAT PER ORG — never off member
+// count. Membership below is display-and-flavour only and nothing reads
+// it; coupling it to money or satisfaction is a deliberate later decision
+// with its own playtest, not something to slip in here.
+//
+// Prestige is untouched, for the same reason the decision-event table
+// leaves it alone: s.self.reputation is a slow-moving stock that drifts
+// toward a computed target once a year (see prestigeSystem.ts), and
+// student life is not one of that target's inputs.
+// ---------------------------------------------------------------------
+
+// =====================================================================
+// TUNING — CADENCE. The shared "weekly chance, floored by a cooldown"
+// machinery the decision events and research outputs already use. These
+// rolls raise petitions; they never raise an interrupt, so nothing here
+// competes with s.pendingInterrupt.
+// =====================================================================
+
+// Nothing forms before there is somewhere for it to meet.
+export const CLUB_FORMATION_WEEKLY_CHANCE = 0.05;
+export const CHAPTER_FORMATION_WEEKLY_CHANCE = 0.02;
+// One shared floor between ANY two formations, of either kind, so a lucky
+// month cannot hand the player a digest of nine petitions.
+export const ORG_FORMATION_COOLDOWN_WEEKS = 6;
+// And a hard ceiling on one summer's digest, for the same reason: the
+// digest is a section of the admissions modal, not a screen of its own.
+export const MAX_PETITIONS_PER_DIGEST = 4;
+
+// How many organisations a campus of a given size can sustain. This is the
+// "reveal on thresholds the loop already produces" rule (see README's
+// pacing model) rather than a second scarcity: a bigger school simply has
+// more student life in it, and a 350-bed college supports one club, not
+// twenty. Read against CAPACITY, like every other campus-life ratio.
+export const STUDENTS_PER_CLUB = 220;
+export const STUDENTS_PER_CHAPTER = 900;
+// Absolute caps on top, so a 40-year run ends with a list a player can
+// still read rather than a hundred rows.
+export const MAX_ACTIVE_CLUBS = 24;
+export const MAX_ACTIVE_CHAPTERS = 10;
+
+// =====================================================================
+// TUNING — MONEY. Sized in weeks of operating cost (see moneyScale.ts) so
+// the figures mean the same thing at every stage of a run, and FIXED IN
+// DOLLARS at the moment the player approves the organisation.
+//
+// Fixed rather than re-derived weekly for a concrete reason: deriving a
+// line of opex from opex is circular, and a lagged read of last week's
+// figure would compound quietly (more clubs -> higher opex -> pricier
+// clubs). The consequence is deliberate and worth naming — a club founded
+// in year 8 keeps a year-8-sized budget, so it fades to noise against a
+// mature school's spending, while a club founded in year 30 costs what a
+// club at a big university costs. Clubs are meant to be low-stakes; that
+// is the shape of it.
+// =====================================================================
+export const CLUB_UPKEEP_WEEKS_OF_OPEX = 0.0015;    // ~0.15% of one week's opex, every week (~$68/wk at founding scale)
+export const CHAPTER_UPKEEP_WEEKS_OF_OPEX = 0.0060; // a chapter is a house, a staff liaison and an events budget: 4x a club
+
+// =====================================================================
+// TUNING — SATISFACTION. A flat contribution to the `social` attribute per
+// live organisation, capped in aggregate so student life can never carry
+// the attribute on its own — the student center, rec center and quad are
+// still what a school builds for social capacity, and clubs are what grows
+// inside them.
+// =====================================================================
+export const CLUB_SOCIAL_BONUS = 0.6;          // points added to `social` per approved club
+export const CHAPTER_SOCIAL_BONUS = 2.5;       // significantly heavier per chapter — a chapter IS a social institution
+export const CHAPTER_HOUSED_SOCIAL_BONUS = 1.5; // added on top once a chapter has its own house
+// The ceiling on the sum of all of the above. Sized so a full club scene
+// AND a full row of housed chapters still bumps against it (they total
+// ~40 uncapped), but nothing short of that does — and so that student life
+// at its absolute maximum is worth 30 x the 20% social weight = 6 points of
+// headline satisfaction. Real, and nowhere near enough to substitute for
+// building the social facilities the attribute is mostly scored on.
+export const STUDENT_LIFE_SOCIAL_BONUS_CAP = 30;
+
+// The transient stock nudges the digest applies at the moment of the
+// decision, on top of the durable target contribution above. Same
+// construction as the decision-event table's dents: satisfaction drifts
+// back toward its facilities-derived target at SATISFACTION_DRIFT_RATE a
+// week, so the teeth are timing near the summer funnel, not permanence.
+// Declining is the one that has to be felt, because approving already has
+// a durable source attached and declining has nothing.
+export const CLUB_APPROVAL_SATISFACTION_NUDGE = 1;
+export const CLUB_DECLINE_SATISFACTION_HIT = 1.5;
+export const CHAPTER_APPROVAL_SATISFACTION_NUDGE = 2;
+export const CHAPTER_DECLINE_SATISFACTION_HIT = 3;
+
+// =====================================================================
+// TUNING — MEMBERSHIP. Display and flavour only: nothing in the game reads
+// a member count. It exists so the Student Life tab reads like a campus
+// rather than a ledger — an old club is visibly bigger than a young one at
+// the same enrollment, which a flat "3% of the student body" model could
+// never show.
+//
+// DERIVED, never stored: membership is a pure function of the three
+// founding facts on the record plus today's enrollment (see orgMembership
+// below), so it can never drift out of step with the school and costs
+// nothing per week to keep current. No history and no trend line — a
+// current number is enough (the top-bar sparklines were removed for
+// exactly this reason).
+// =====================================================================
+export const CLUB_FOUNDING_MEMBERS = 14;      // the size a new club starts at, before the per-org roll below
+export const CHAPTER_FOUNDING_MEMBERS = 32;   // a chapter pledges a bigger founding class than a club draws
+export const ORG_FOUNDING_MEMBERS_VARIATION = 0.4; // +/- share rolled once per organisation, so no two are identical
+export const ORG_MEMBERSHIP_GROWTH_PER_YEAR = 0.045; // an established organisation keeps growing on its own
+// How hard membership tracks total enrollment. 1 would make every club a
+// fixed share of the student body (and erase the point of the model); 0
+// would leave a club at a 20x bigger school exactly as big as the day it
+// opened. Half-power is "loosely": a school that quadruples doubles its
+// clubs' rolls.
+export const ORG_ENROLLMENT_TRACKING = 0.5;
+
+// The line the Student Life tab shows where Greek chapters would be, at a
+// school that has not been asked about a council yet. Kept here rather than
+// in the component so the tab never has to restate a rule the data owns —
+// the threshold itself is the decision event's (see eventData.ts's
+// HELLENIC_COUNCIL_MIN_CLUBS), and this is deliberately vague about it for
+// the same reason no other event advertises its trigger.
+export const HELLENIC_COUNCIL_HINT =
+  'No Greek life on this campus. Once there is a real club scene, students may petition to charter a Hellenic Council — approving one is a deliberate choice, and a school can decline Greek life entirely.';
+
+// =====================================================================
+// NAMES. Authored pools, drawn without repeating what the campus already
+// has — a run sees a few dozen clubs across forty years, so the list is
+// long enough that a school never founds the same society twice.
+// =====================================================================
+const CLUB_NAMES: readonly string[] = [
+  'Chess Club', 'Debate Union', 'Astronomy Society', 'Outdoors Club', 'Film Society',
+  'Robotics Club', 'Model United Nations', 'Jazz Ensemble', 'Chamber Orchestra', 'A Cappella Society',
+  'Student Newspaper', 'Radio Station', 'Literary Review', 'Photography Club', 'Ceramics Guild',
+  'Improv Troupe', 'Drama Society', 'Dance Collective', 'Ballroom Society', 'Marching Band',
+  'Hiking Club', 'Climbing Club', 'Cycling Club', 'Rowing Club', 'Ultimate Frisbee Club',
+  'Fencing Club', 'Table Tennis Club', 'Quiz Bowl Team', 'Mathematics Circle', 'Physics Society',
+  'Chemistry Society', 'Biology Society', 'Geology Club', 'Ornithology Society', 'Beekeeping Club',
+  'Gardening Collective', 'Environmental Coalition', 'Sustainability Council', 'Cycling Advocacy Group', 'Food Justice Network',
+  'Volunteer Corps', 'Tutoring Collective', 'Mentorship Network', 'Interfaith Council', 'Philosophy Circle',
+  'Classics Society', 'History Society', 'Archaeology Club', 'Linguistics Circle', 'Translation Workshop',
+  'French Club', 'Spanish Club', 'German Club', 'Japanese Culture Club', 'Korean Culture Club',
+  'Chinese Culture Club', 'South Asian Students Association', 'African Students Association', 'Latin American Students Association', 'Caribbean Students Association',
+  'International Students Union', 'First-Generation Students Network', 'Veterans Association', 'Disability Advocacy Group', 'Pride Alliance',
+  'Women in Engineering', 'Women in Science', 'Pre-Law Society', 'Pre-Medical Society', 'Entrepreneurship Club',
+  'Investment Club', 'Consulting Group', 'Accounting Society', 'Marketing Association', 'Data Science Club',
+  'Cybersecurity Club', 'Game Development Club', 'Board Games Society', 'Anime Society', 'Comics Collective',
+  'Knitting Circle', 'Baking Club', 'Coffee Society', 'Tea Appreciation Society', 'Cooking Collective',
+];
+
+// Chapter names are drawn as three-letter combinations rather than
+// authored one by one: the pool is effectively unlimited, which matters
+// because a chapter list should never run out of names the way a club list
+// eventually would.
+const GREEK_LETTERS: readonly string[] = [
+  'Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta', 'Iota', 'Kappa',
+  'Lambda', 'Mu', 'Nu', 'Xi', 'Omicron', 'Pi', 'Rho', 'Sigma', 'Tau', 'Upsilon',
+  'Phi', 'Chi', 'Psi', 'Omega',
+];
+
+function pick<T>(items: readonly T[]): T {
+  return items[Math.floor(Math.random() * items.length)];
+}
+
+// =====================================================================
+// GATES AND CAPACITY
+// =====================================================================
+
+// The campus gate on the whole feature: clubs form once a student center
+// stands. Read off the facilityType rather than a specific Buildable id so
+// either tier satisfies it and a later retune of the facility chain can't
+// silently close the gate.
+export function hasStudentCenter(s: GameState): boolean {
+  return s.tech.some((t) => t.status === 'done' && t.facilityType === 'studentCenter');
+}
+
+export function clubCapacity(s: GameState): number {
+  return Math.min(MAX_ACTIVE_CLUBS, Math.floor(s.students.capacity / STUDENTS_PER_CLUB));
+}
+
+export function chapterCapacity(s: GameState): number {
+  return Math.min(MAX_ACTIVE_CHAPTERS, Math.floor(s.students.capacity / STUDENTS_PER_CHAPTER));
+}
+
+// Petitions count against the cap too — otherwise a campus at its limit
+// would keep raising petitions the player can never usefully approve.
+function pendingOf(s: GameState, kind: OrgPetition['kind']): number {
+  return s.orgs.pendingPetitions.filter((p) => p.kind === kind).length;
+}
+
+export function canFormClub(s: GameState): boolean {
+  if (!hasStudentCenter(s)) return false;
+  if (s.orgs.pendingPetitions.length >= MAX_PETITIONS_PER_DIGEST) return false;
+  return s.orgs.clubs.length + pendingOf(s, 'club') < clubCapacity(s);
+}
+
+export function canFormChapter(s: GameState): boolean {
+  // The Greek gate, checked here as well as in every eligible() over in
+  // eventData.ts: no chapter can form before the player approved a council.
+  if (!s.orgs.hellenicCouncilApproved) return false;
+  if (s.orgs.pendingPetitions.length >= MAX_PETITIONS_PER_DIGEST) return false;
+  return s.orgs.chapters.length + pendingOf(s, 'chapter') < chapterCapacity(s);
+}
+
+// =====================================================================
+// PETITIONS — what a formation rolls about itself
+// =====================================================================
+
+function rollFoundingMembers(base: number): number {
+  const spread = 1 - ORG_FOUNDING_MEMBERS_VARIATION + Math.random() * (2 * ORG_FOUNDING_MEMBERS_VARIATION);
+  return Math.max(1, Math.round(base * spread));
+}
+
+function takenNames(s: GameState): Set<string> {
+  return new Set([
+    ...s.orgs.clubs.map((c) => c.name),
+    ...s.orgs.chapters.map((c) => c.name),
+    ...s.orgs.pendingPetitions.map((p) => p.name),
+  ]);
+}
+
+function nextClubName(s: GameState): string | null {
+  const taken = takenNames(s);
+  const free = CLUB_NAMES.filter((n) => !taken.has(n));
+  return free.length === 0 ? null : pick(free);
+}
+
+// Three letters, never repeating a name the campus already carries. The
+// combination space is 24^3, so the retry loop below effectively always
+// succeeds on its first pass; the bound is there so it can never spin.
+const CHAPTER_NAME_ATTEMPTS = 24;
+function nextChapterName(s: GameState): string | null {
+  const taken = takenNames(s);
+  for (let i = 0; i < CHAPTER_NAME_ATTEMPTS; i += 1) {
+    const name = `${pick(GREEK_LETTERS)} ${pick(GREEK_LETTERS)} ${pick(GREEK_LETTERS)}`;
+    if (!taken.has(name)) return name;
+  }
+  return null;
+}
+
+export function rollClubPetition(s: GameState): OrgPetition | null {
+  const name = nextClubName(s);
+  if (name === null) return null;
+  return {
+    id: crypto.randomUUID(),
+    kind: 'club',
+    name,
+    foundedYear: s.clock.year,
+    foundingMembers: rollFoundingMembers(CLUB_FOUNDING_MEMBERS),
+    foundingEnrolled: Math.max(1, s.students.enrolled),
+    upkeepPerWeek: weeksOfOpEx(s, CLUB_UPKEEP_WEEKS_OF_OPEX),
+  };
+}
+
+export function rollChapterPetition(s: GameState): OrgPetition | null {
+  const name = nextChapterName(s);
+  if (name === null) return null;
+  return {
+    id: crypto.randomUUID(),
+    kind: 'chapter',
+    name,
+    greekKind: Math.random() < 0.5 ? 'fraternity' : 'sorority',
+    foundedYear: s.clock.year,
+    foundingMembers: rollFoundingMembers(CHAPTER_FOUNDING_MEMBERS),
+    foundingEnrolled: Math.max(1, s.students.enrolled),
+    upkeepPerWeek: weeksOfOpEx(s, CHAPTER_UPKEEP_WEEKS_OF_OPEX),
+  };
+}
+
+// Turns an approved petition into a live organisation, pushed onto the
+// slice the two consuming systems read. Everything mechanical about the
+// organisation was already rolled when the petition was raised, so
+// approving is a move rather than a second roll — the figure shown in the
+// digest is the figure charged, the same contract the decision-event table
+// follows.
+export function activatePetition(s: GameState, petition: OrgPetition): void {
+  const base: StudentOrgBase = {
+    id: petition.id,
+    name: petition.name,
+    foundedYear: petition.foundedYear,
+    foundingMembers: petition.foundingMembers,
+    foundingEnrolled: petition.foundingEnrolled,
+    upkeepPerWeek: petition.upkeepPerWeek,
+  };
+  if (petition.kind === 'club') {
+    const club: StudentClub = base;
+    s.orgs.clubs.push(club);
+  } else {
+    const chapter: GreekChapter = {
+      ...base,
+      kind: petition.greekKind ?? 'fraternity',
+      housed: false,
+      housingAsked: false,
+    };
+    s.orgs.chapters.push(chapter);
+  }
+}
+
+// =====================================================================
+// DERIVED READINGS
+// =====================================================================
+
+// Current membership. Pure, derived, and the only place the model lives:
+// the founding roll, its own compounding growth, and a damped response to
+// how much the school itself has grown since. Capped at the enrolled class,
+// because a society cannot have more members than the campus has students.
+export function orgMembership(org: StudentOrgBase, s: GameState): number {
+  const ageYears = Math.max(0, s.clock.year - org.foundedYear);
+  const grown = org.foundingMembers * (1 + ORG_MEMBERSHIP_GROWTH_PER_YEAR) ** ageYears;
+  const enrolled = Math.max(0, s.students.enrolled);
+  const scale = (Math.max(enrolled, 1) / Math.max(org.foundingEnrolled, 1)) ** ORG_ENROLLMENT_TRACKING;
+  return Math.max(1, Math.min(enrolled, Math.round(grown * scale)));
+}
+
+// The weekly operating cost of every live organisation. financeSystem.ts
+// sums this as one more expense line — live off the slice, so disbanding a
+// chapter removes its cost the same week and nothing static is baked
+// anywhere.
+export function studentOrgUpkeep(s: GameState): number {
+  const clubs = s.orgs.clubs.reduce((sum, c) => sum + c.upkeepPerWeek, 0);
+  const chapters = s.orgs.chapters.reduce((sum, c) => sum + c.upkeepPerWeek, 0);
+  return clubs + chapters;
+}
+
+// The flat contribution live clubs make to the `social` satisfaction
+// attribute, and the same for chapters. Split so the Student Life tab can
+// report each source separately without a second copy of either formula.
+export function clubSocialBonus(s: GameState): number {
+  return s.orgs.clubs.length * CLUB_SOCIAL_BONUS;
+}
+
+export function greekSocialBonus(s: GameState): number {
+  return s.orgs.chapters.reduce(
+    (sum, c) => sum + CHAPTER_SOCIAL_BONUS + (c.housed ? CHAPTER_HOUSED_SOCIAL_BONUS : 0),
+    0,
+  );
+}
+
+// What satisfactionSystem.ts actually adds to the attribute: the two
+// sources above, capped in aggregate.
+export function studentLifeSocialBonus(s: GameState): number {
+  return Math.min(clubSocialBonus(s) + greekSocialBonus(s), STUDENT_LIFE_SOCIAL_BONUS_CAP);
+}

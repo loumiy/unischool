@@ -3,7 +3,7 @@ import type { GameState } from '../state/types';
 
 const ATTRIBUTE_LABELS: Record<string, string> = {
   academic: 'Academic (library)',
-  social: 'Social (student center, rec, quad)',
+  social: 'Social (student center, rec, quad, student orgs)',
   basicNeeds: 'Basic needs (dining)',
   health: 'Health (counseling center)',
   infrastructure: 'Infrastructure (parking)',

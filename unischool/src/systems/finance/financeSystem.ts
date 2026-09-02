@@ -1,5 +1,6 @@
 import type { GameState } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
+import { studentOrgUpkeep } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
 // This file is the game's primary throttle (see README's "Pacing model:
@@ -108,6 +109,14 @@ const INSTRUCTION_PER_STUDENT_PER_COURSE_OFFERED = 1.00;
 // effects.upkeepPerWeek (courses and academic buildings in techData.ts,
 // campus-life facilities in facilitiesData.ts). Both follow the live-read
 // contract documented on BuildableEffects in state/types.ts.
+//
+// Student organisations are the third such line and follow the same
+// contract without being Buildables at all: every club and Greek chapter
+// on s.orgs carries its own upkeepPerWeek, sized in weeks of opex when the
+// player approved it, and studentOrgUpkeep sums whatever is live THIS
+// WEEK (see data/studentLifeData.ts). That is what makes disbanding a
+// chapter genuinely remove its cost rather than leaving a baked total
+// behind — there is no total anywhere to leave behind.
 
 // =====================================================================
 // GROUP 2 — REVENUE (all of it lagging, by construction)
@@ -225,6 +234,7 @@ export interface FinanceBreakdown {
   instructionCost: number;     // enrolled x (base + per-course-offered) — teaching the catalogue you have built
   academicUpkeep: number;      // running the courses, academic buildings and labs that are done
   facilityUpkeep: number;      // running the dorms and campus-life facilities that are done
+  studentLifeUpkeep: number;   // running the clubs and Greek chapters the player has recognised (see data/studentLifeData.ts)
   totalExpenses: number;
   net: number;                 // totalIncome - totalExpenses
 }
@@ -273,9 +283,11 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   const instructionCost = s.students.enrolled * instructionCostPerStudent(s);
   const academicUpkeep = upkeepFor(s, true);
   const facilityUpkeep = upkeepFor(s, false);
+  const studentLifeUpkeep = studentOrgUpkeep(s);
 
   const totalIncome = tuitionRevenue + prestigeRevenue + endowmentPayout + baselineFunding;
-  const totalExpenses = weeklySalaries + seatUpkeep + instructionCost + academicUpkeep + facilityUpkeep;
+  const totalExpenses = weeklySalaries + seatUpkeep + instructionCost + academicUpkeep +
+    facilityUpkeep + studentLifeUpkeep;
 
   return {
     tuitionRevenue,
@@ -288,6 +300,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
     instructionCost,
     academicUpkeep,
     facilityUpkeep,
+    studentLifeUpkeep,
     totalExpenses,
     net: totalIncome - totalExpenses,
   };
