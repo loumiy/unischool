@@ -1,4 +1,5 @@
 import type { GameState, SchoolType } from './types';
+import type { DecisionEventContext } from '../data/eventData';
 import { WEEKS_PER_YEAR } from './types';
 import { initialTech, GENED_BUILDING_REPUTATION_BONUS } from '../data/techData';
 import { initialDorms, STARTING_DORM_CAPACITY } from '../data/campusData';
@@ -57,6 +58,20 @@ export type Action =
   // step after that week's systems already ran, so dismissing means
   // moving on to the next week, not replaying this one.
   | { type: 'RESOLVE_REPORT' }
+  // Dismisses a milestone celebration — the stop-the-clock moment for a
+  // completed/mastered major or a finished school (see data/eventData.ts's
+  // MILESTONE_INTERRUPT_KINDS). Grants nothing: the milestone's real
+  // effects landed when techSystem awarded it. Advances the clock, for the
+  // same reason RESOLVE_REPORT does.
+  | { type: 'RESOLVE_MILESTONE' }
+  // Commits one choice from an authored decision event (see
+  // data/eventData.ts's DECISION_EVENTS). `ctx` is the context the event
+  // rolled for itself when it fired, carried back verbatim from the
+  // interrupt payload so the reducer charges exactly the figure the modal
+  // displayed. Rejected (with the interrupt still cleared) if the school
+  // cannot afford the chosen option — every event always offers at least
+  // one that costs nothing. Advances the clock, like RESOLVE_REPORT.
+  | { type: 'RESOLVE_DECISION_EVENT'; eventId: string; choiceId: string; ctx: DecisionEventContext }
   | { type: 'DEBUG_TRIGGER_TEST_INTERRUPT' }           // scaffolding: see reducer.ts, remove once a real interrupt exists
   // Writes the run to localStorage on demand (see state/persistence.ts).
   // The autosave already fires once a year at the admissions boundary; this
@@ -94,6 +109,7 @@ export function createPreStartState(): GameState {
     log: [],
     gameOver: false,
     pendingInterrupt: null,
+    events: { pendingMilestones: [], lastMilestoneWeek: 0, lastDecisionWeek: 0, decisionHistory: {} },
     autoDevelop: false,
     candidates: [],
     openPostings: {},
@@ -209,6 +225,9 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     ],
     gameOver: false,
     pendingInterrupt: null,
+    // Nothing celebrated and nothing fired yet; week 0 reads as "never"
+    // (the clock's first real week is 1 — see eventData.ts's absoluteWeek).
+    events: { pendingMilestones: [], lastMilestoneWeek: 0, lastDecisionWeek: 0, decisionHistory: {} },
     autoDevelop: false,
     candidates: initialCandidates(),
     openPostings: {},

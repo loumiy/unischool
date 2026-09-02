@@ -37,7 +37,8 @@ Open the printed localhost URL. Start the clock to begin.
 - `src/state/` — the shared `GameState` type, initial state, and action definitions
 - `src/engine/` — the reducer (game loop) and the React store hook
 - `src/systems/` — one folder per system; each exports a pure `tick(state)` function
-- `src/data/` — seed content (the curriculum, buildings, rival universities)
+- `src/data/` — seed content (the curriculum, buildings, rival universities, and
+  the authored decision-event table)
 - `src/components/` — the always-on-screen base layer plus shared chrome: the
   campus map (`CampusMap.tsx`), the build rail beside it (`BuildPanel.tsx`),
   the log ticker under it (`LogStrip.tsx`), the frame every other view pops up
@@ -277,8 +278,27 @@ Everything that needs to stop time rides on this one mechanism:
 - **The U.S. News report** — the "you've entered the rankings" alert and the
   annual standings update.
 - **The tutorial** — a scripted sequence of interrupts (see below).
-- **Later:** decision-interrupt events (donor offers, faculty scandals,
-  facilities failures) that give the quiet weeks between milestones their texture.
+- **Milestone celebrations** — a stop-the-clock moment for the handful of
+  genuinely special accomplishments (a major completed, a major mastered, a
+  school finished), showing what was unlocked and what it did to the prestige
+  target. Deliberately *not* fired by routine course completions: which
+  milestone kinds qualify, and how close together two celebrations may land,
+  are named constants in `src/data/eventData.ts`, so the frequency is a
+  one-line dial. Milestones are queued (`s.events.pendingMilestones`) rather
+  than fired on the spot, so a milestone landing on the admissions or report
+  week is delayed to the next quiet week instead of being dropped, and a burst
+  of simultaneous completions folds into a single modal.
+- **Decision-interrupt events** — the donor offers, faculty departures and
+  facility failures that give the quiet weeks between milestones their texture.
+  Authored as data (`src/data/eventData.ts`: trigger conditions, prompts,
+  choices, effects) and fired by one ordinary tick function
+  (`src/systems/events/eventSystem.ts`) on a weighted random draw across
+  whatever the current game state makes eligible. Their effects route through
+  hooks that already exist — cash and endowment, the satisfaction stock, the
+  faculty roster and hiring pool — and never write prestige directly, because
+  prestige is a stock (see above). Every event is guaranteed to offer at least
+  one zero-cost choice, so no event can strand a school that has no money.
+- **Later:** the tutorial sequence.
 
 Build this once, generically. Do not bolt the report, admissions, or tutorial on
 as one-off pauses.
@@ -415,7 +435,9 @@ any refactor.
   trainers as faculty-like individuals, facilities as Buildables, a second
   ranking axis. Deferred deliberately; it rides on Buildables + hiring + rivals
   all being mature.
-- Campus life depth and richer decision-interrupt events for week-to-week texture.
+- Campus life depth, and more authored decision events on top of the ten that
+  now exist (see "Interrupts" above) — including events that reach systems the
+  first pass deliberately left alone.
 - Faculty lifecycle (aging, retirement, poaching) if desired.
 - A richer demand-curve finance model with prestige/scale archetypes.
 - Campus map depth: adjacency weighting between neighboring buildings, and any

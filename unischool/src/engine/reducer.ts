@@ -10,6 +10,8 @@ import { tickFaculty } from '../systems/faculty/facultySystem';
 import { JOB_POSTING_COST, rollPostingWeeks, FACULTY_FIELDS } from '../data/facultyData';
 import { tickPrestigeAnnual } from '../systems/prestige/prestigeSystem';
 import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
+import { tickEvents } from '../systems/events/eventSystem';
+import { findDecisionEvent } from '../data/eventData';
 import { canPlace } from '../state/campusMap';
 import { captureYearSnapshot } from '../state/history';
 import { saveGame, clearSave } from '../state/persistence';
@@ -26,6 +28,12 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   tickSatisfaction,
   tickAdmissions,
   tickRivals,
+  // Last, deliberately: the summer admissions decision and the U.S. News
+  // report own their weeks, and only one interrupt can be pending at a
+  // time. Running the texture system afterwards means it sees their claim
+  // and stands down instead of competing for the week — see
+  // systems/events/eventSystem.ts.
+  tickEvents,
 ];
 
 // How many log entries are kept. Weekly attrition spam is gone, so what
@@ -257,6 +265,48 @@ export function reducer(state: GameState, action: Action): GameState {
           kind: 'bad',
         });
       }
+      return s;
+    }
+
+    // Dismisses a milestone celebration (see systems/events/eventSystem.ts).
+    // Nothing to apply — the milestone's real effects landed in techSystem
+    // the week it was awarded; this interrupt exists to make the moment
+    // land, not to grant anything. Advances the clock for the same reason
+    // RESOLVE_REPORT does: it fires as a trailing step after that week's
+    // systems already ran.
+    case 'RESOLVE_MILESTONE': {
+      s.pendingInterrupt = null;
+      advanceClock(s);
+      return s;
+    }
+
+    // Commits one choice from an authored decision event (see
+    // data/eventData.ts). The definition is looked up from the data table
+    // by id and the choice's own pure cost/apply pair does the work, so
+    // the numbers the modal showed are exactly the numbers charged — the
+    // same contract RESOLVE_ADMISSIONS and the endowment campaign follow.
+    //
+    // The cash cost is charged HERE rather than inside apply(), so every
+    // event in the table is charged the same way and no authored effect
+    // can quietly take the school below zero: an unaffordable choice is
+    // refused outright, exactly as an unaffordable Buildable is (see
+    // techSystem.ts's canStartDevelopment). Every event is guaranteed to
+    // offer at least one zero-cost choice, so a refusal is never a dead
+    // end. Either way the interrupt clears and the clock resumes: an
+    // event can never wedge the game.
+    case 'RESOLVE_DECISION_EVENT': {
+      const event = findDecisionEvent(action.eventId);
+      const choice = event?.choices.find((c) => c.id === action.choiceId);
+      if (choice) {
+        const ctx = action.ctx;
+        const cost = choice.cost(s, ctx);
+        if (cost <= s.finance.cash) {
+          s.finance.cash -= cost;
+          s.log.unshift(choice.apply(s, ctx));
+        }
+      }
+      s.pendingInterrupt = null;
+      advanceClock(s);
       return s;
     }
 

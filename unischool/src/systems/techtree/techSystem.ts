@@ -1,5 +1,6 @@
 import type { GameState, Buildable, BuildableEffects } from '../../state/types';
 import { milestoneSchools } from '../../data/techData';
+import { isCelebratedMilestone } from '../../data/eventData';
 
 // ---------------------------------------------------------------------
 // The milestone chain (see README's "The milestone chain"). Unlocking
@@ -176,6 +177,15 @@ function awardMilestone(s: GameState, key: string, applicantBonus: number, messa
   s.milestones[key] = true;
   s.students.applicantPool += applicantBonus;
   s.log.unshift({ year: s.clock.year, week: s.clock.week, message, kind: 'good' });
+  // The handful of milestones special enough to stop the clock get queued
+  // for a celebration (see data/eventData.ts's MILESTONE_INTERRUPT_KINDS
+  // for which, and systems/events/eventSystem.ts for when it fires). This
+  // system does NOT raise the interrupt itself: the week a milestone lands
+  // may already belong to the admissions or U.S. News interrupt, and
+  // queueing is what makes a celebration delayable rather than droppable.
+  // Everything else about a milestone — the applicant bump above, the
+  // durable curriculum-breadth signal prestige reads — is unchanged.
+  if (isCelebratedMilestone(key)) s.events.pendingMilestones.push(key);
 }
 
 function checkMilestones(s: GameState): void {

@@ -45,7 +45,11 @@ const SAVE_KEY = 'unischool.save';
 // (appropriationPerStudentPerYear, endowmentCampaigns) and rebalanced
 // every cost/revenue constant, so a v1 save would both crash on the
 // missing fields and describe a school built under a different economy.
-export const SAVE_VERSION = 2;
+// v3: the week-to-week texture pass added a required `events` slice to
+// GameState (the milestone-celebration queue and the decision-event
+// cadence bookkeeping — see types.ts's EventState). A v2 save has no such
+// field, and every read of it in eventSystem.ts assumes it is there.
+export const SAVE_VERSION = 3;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
