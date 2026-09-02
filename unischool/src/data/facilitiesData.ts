@@ -69,10 +69,14 @@ const DINING_BASE_COST = 420_000;
 const DINING_COST_GROWTH = 1.26;
 const DINING_BASE_WEEKS = 10;
 const DINING_WEEKS_GROWTH = 1.05;
+// One name per instance in the chain: the starting hall plus every one of
+// DINING_ADDITIONAL_COUNT, so no built hall ever falls back to a generated
+// stand-in (the build panel lists these by name once the group collapses).
 const DINING_NAMES = [
   'The Original Dining Hall', 'Eastgate Dining Hall', 'Commons Cafeteria', 'Harborview Dining Hall',
   'Union Square Eatery', 'Northside Dining Hall', 'The Refectory', 'Gateway Food Hall',
   'Southpoint Dining Hall', 'Millrace Cafeteria', 'The Grand Table', 'Terrace Dining Hall',
+  'Founders Commons',
 ];
 
 // --- Parking/infrastructure: repeatable chain, boring need, scales with population ---
@@ -85,10 +89,11 @@ const PARKING_BASE_COST = 230_000;
 const PARKING_COST_GROWTH = 1.24;
 const PARKING_BASE_WEEKS = 8;
 const PARKING_WEEKS_GROWTH = 1.04;
+// Same one-name-per-instance rule as DINING_NAMES above.
 const PARKING_NAMES = [
   'Lot A', 'Lot B', 'Lot C', 'Lot D', 'Lot E', 'Lot F',
   'North Parking Deck', 'South Parking Deck', 'East Parking Structure', 'West Parking Structure',
-  'Transit Center Deck', 'Overflow Parking Annex',
+  'Transit Center Deck', 'Overflow Parking Annex', 'Stadium Lot',
 ];
 
 function repeatableChain(opts: {
@@ -105,6 +110,7 @@ function repeatableChain(opts: {
   baseWeeks: number;
   weeksGrowth: number;
   names: string[];
+  fallbackName: string; // only used if additionalCount is raised past `names` — a plain numbered name, never a copy of the starting instance's
 }): Buildable[] {
   const nodes: Buildable[] = [
     {
@@ -142,7 +148,7 @@ function repeatableChain(opts: {
       id,
       kind: 'facility',
       facilityType: opts.facilityType,
-      name: opts.names[i - 1] ?? `${opts.startingName} ${i + 1}`,
+      name: opts.names[i - 1] ?? `${opts.fallbackName} ${i + 1}`,
       description: `Serves ${servesPopulation.toLocaleString()} more students.`,
       cost,
       duration,
@@ -245,6 +251,7 @@ export function initialFacilities(): Buildable[] {
       baseWeeks: DINING_BASE_WEEKS,
       weeksGrowth: DINING_WEEKS_GROWTH,
       names: DINING_NAMES.slice(1),
+      fallbackName: 'Dining Hall',
     }),
     ...repeatableChain({
       facilityType: 'parking',
@@ -260,6 +267,7 @@ export function initialFacilities(): Buildable[] {
       baseWeeks: PARKING_BASE_WEEKS,
       weeksGrowth: PARKING_WEEKS_GROWTH,
       names: PARKING_NAMES.slice(1),
+      fallbackName: 'Parking Lot',
     }),
 
     // Library
