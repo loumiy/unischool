@@ -45,12 +45,6 @@ button { cursor: pointer; font-family: inherit; }
 .stat-value.money-negative { color: #e58a8a; }
 .stat-value.gold { color: var(--gold); }
 .stat-sub { font-size: 11px; color: var(--ink-lo); font-family: var(--mono); }
-/* Trend line under a header stat (see Sparkline.tsx). Right-aligned with
-   the stat block it belongs to; unfilled, one hairline, no axes — it is a
-   shape cue, not a chart to read values off. */
-.sparkline { display: block; margin: 3px 0 0 auto; overflow: visible; }
-.sparkline polyline { fill: none; stroke: var(--gold-dim); stroke-width: 1.25;
-  stroke-linejoin: round; stroke-linecap: round; }
 
 /* ---------- control bar ---------- */
 .controlbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }

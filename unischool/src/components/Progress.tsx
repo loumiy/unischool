@@ -7,7 +7,7 @@
 // Presentation only. Nothing here reads or writes GameState: every caller
 // computes its own fraction from state it already has, so there is no new
 // derived field and nothing for a system to keep in sync. Plain SVG for
-// the ring, no charting dependency — the same rule Sparkline.tsx follows.
+// the ring, no charting dependency — the same rule Sparkline.ts follows.
 // ---------------------------------------------------------------------
 
 // Ring geometry. The stroke is a fixed weight rather than a share of the
@@ -22,7 +22,7 @@ function clamp01(n: number): number {
 
 // A horizontal fill bar. `label` is an optional compact endcap (e.g. the
 // weeks still to run) — the bar carries the shape, the label the exact
-// figure, the way a header stat sits above its sparkline.
+// figure.
 export function ProgressBar({ fraction, label, title }: { fraction: number; label?: string; title: string }) {
   const pct = Math.round(clamp01(fraction) * 100);
   return (
