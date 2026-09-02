@@ -12,7 +12,7 @@ import { tickPrestigeAnnual } from '../systems/prestige/prestigeSystem';
 import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { tickEvents } from '../systems/events/eventSystem';
 import { findDecisionEvent } from '../data/eventData';
-import { canPlace } from '../state/campusMap';
+import { canPlace, placementFor } from '../state/campusMap';
 import { captureYearSnapshot } from '../state/history';
 import { saveGame, clearSave } from '../state/persistence';
 
@@ -161,9 +161,12 @@ export function reducer(state: GameState, action: Action): GameState {
       // No effects are applied or re-applied here — a building's effects
       // landed when it finished developing, whether or not it is ever
       // placed (see state/campusMap.ts).
+      // The footprint comes from the Buildable's kind, not from the
+      // action: the player picks an anchor tile, the rules decide how much
+      // ground it covers (see campusMap.ts's footprintOf).
       const node = s.tech.find((t) => t.id === action.buildableId);
       if (node && canPlace(s, node, action.row, action.col)) {
-        s.placements[node.id] = { row: action.row, col: action.col };
+        s.placements[node.id] = placementFor(node, action.row, action.col);
       }
       return s;
     }
