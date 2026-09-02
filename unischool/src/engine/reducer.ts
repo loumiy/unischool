@@ -7,7 +7,6 @@ import { tickTech, canStartDevelopment, startDevelopment } from '../systems/tech
 import { tickAdmissions, projectAdmissions } from '../systems/admissions/admissionsSystem';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
 import { tickFaculty } from '../systems/faculty/facultySystem';
-import { JOB_POSTING_COST, rollPostingWeeks, FACULTY_FIELDS } from '../data/facultyData';
 import { tickPrestigeAnnual } from '../systems/prestige/prestigeSystem';
 import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { tickEvents } from '../systems/events/eventSystem';
@@ -111,6 +110,11 @@ export function reducer(state: GameState, action: Action): GameState {
       const idx = s.candidates.findIndex((c) => c.id === action.facultyId);
       if (idx !== -1) {
         const [hired] = s.candidates.splice(idx, 1);
+        // weeksListed is the pool's clock, tenureWeeks is the roster's:
+        // clearing it here is what moves them from one to the other, so a
+        // hire never carries a stale listing age (and can never be aged
+        // out of a job they already hold).
+        hired.weeksListed = 0;
         s.faculty.push(hired);
       }
       return s;
@@ -118,41 +122,6 @@ export function reducer(state: GameState, action: Action): GameState {
 
     case 'FIRE_FACULTY': {
       s.faculty = s.faculty.filter((f) => f.id !== action.facultyId);
-      return s;
-    }
-
-    case 'POST_JOB': {
-      const alreadyOpen = action.field in s.openPostings;
-      const canAfford = s.finance.cash >= JOB_POSTING_COST;
-      if (!alreadyOpen && canAfford) {
-        s.finance.cash -= JOB_POSTING_COST;
-        s.openPostings[action.field] = rollPostingWeeks();
-        s.log.unshift({
-          year: s.clock.year,
-          week: s.clock.week,
-          message: `Posted an opening for ${action.field} faculty.`,
-          kind: 'info',
-        });
-      }
-      return s;
-    }
-
-    case 'POST_ALL_JOBS': {
-      // All-or-nothing: either every field without an open posting gets one,
-      // for the full lump sum up front, or (cash short of the whole total)
-      // nothing happens at all — no partially-filled batch.
-      const openable = FACULTY_FIELDS.filter((field) => !(field in s.openPostings));
-      const totalCost = openable.length * JOB_POSTING_COST;
-      if (openable.length > 0 && s.finance.cash >= totalCost) {
-        s.finance.cash -= totalCost;
-        for (const field of openable) s.openPostings[field] = rollPostingWeeks();
-        s.log.unshift({
-          year: s.clock.year,
-          week: s.clock.week,
-          message: `Posted openings for ${openable.length} field${openable.length === 1 ? '' : 's'}: ${openable.join(', ')}.`,
-          kind: 'info',
-        });
-      }
       return s;
     }
 

@@ -28,11 +28,22 @@ import type { Buildable } from '../state/types';
   requiresFaculty, unlike the prereq bridges, IS systematic: every major
   seed carries one `field` (a Faculty.field from facultyData.ts's
   FACULTY_FIELDS), and every course in that major — all nine tiers —
-  requires it, via GENED_FIELDS for the six gen-ed core courses. A major's
-  field is the closest existing FACULTY_FIELDS entry to its actual
-  discipline; several adjacent majors deliberately share one field (e.g.
-  all of Business's majors bar Economics share 'Business') to keep the
-  faculty-recruitment dropdown short rather than one field per major.
+  requires it, via GENED_FIELDS for the six gen-ed core courses.
+
+  A major's field is the DEPARTMENT that would actually staff it, and the
+  36 majors are spread across the 26 fields so that recruiting demand is
+  spread too: one to three majors per field, i.e. 9-20 courses behind every
+  field, versus the old 13 broad fields' 9-to-54 spread (54 courses behind
+  'Business', 45 each behind 'CompSci'/'Arts'/'Biology', 9 behind
+  'Economics'). Where two majors do share a field they share it because a
+  real department covers both — Finance + Accounting, Media Studies + Film,
+  Graphic Design + Studio Art, Cybersecurity + Information Systems, Nursing
+  + Dentistry, Public Health + Nutrition, Computer Science + Software
+  Engineering, Chemical Engineering + Pre-Med, Supply Chain + Industrial
+  Engineering — and several of those pairs deliberately CROSS schools, so
+  one hire can serve two schools' curricula. Aerospace sits under Physics
+  for the same reason it is the most physics-dense engineering major, and
+  because the gen-ed science course needs Physics to stay live demand.
 
   "Tier" itself is a course-authoring concept only — it drives development
   time and course cost here, at seed-generation time, and is not part of
@@ -135,12 +146,12 @@ const SCHOOLS: SchoolSeed[] = [
     buildingId: 'BLDG-BUSINESS',
     buildingName: 'Business Hall',
     majors: [
-      { prefix: 'FINA', name: 'Finance', field: 'Business', courses: ['Principles of Finance', 'Corporate Finance', 'Investment Analysis', 'Financial Modeling', 'International Finance', 'Real Estate Finance', 'Fintech & Blockchain', 'Risk Management', 'Behavioral Finance'] },
-      { prefix: 'ACCT', name: 'Accounting', field: 'Business', courses: ['Introduction to Accounting', 'Financial Accounting', 'Managerial Accounting', 'Tax Fundamentals', 'Auditing Principles', 'Forensic Accounting', 'Governmental & Non-Profit Accounting', 'Advanced Cost Accounting', 'Accounting Information Systems'] },
-      { prefix: 'MRKT', name: 'Marketing', field: 'Business', courses: ['Fundamentals of Marketing', 'Consumer Behavior', 'Market Research', 'Digital Marketing Strategy', 'Brand Management', 'Sports Marketing', 'Advertising & Promotion', 'Sales Management', 'Global Marketing'] },
+      { prefix: 'FINA', name: 'Finance', field: 'Accounting & Finance', courses: ['Principles of Finance', 'Corporate Finance', 'Investment Analysis', 'Financial Modeling', 'International Finance', 'Real Estate Finance', 'Fintech & Blockchain', 'Risk Management', 'Behavioral Finance'] },
+      { prefix: 'ACCT', name: 'Accounting', field: 'Accounting & Finance', courses: ['Introduction to Accounting', 'Financial Accounting', 'Managerial Accounting', 'Tax Fundamentals', 'Auditing Principles', 'Forensic Accounting', 'Governmental & Non-Profit Accounting', 'Advanced Cost Accounting', 'Accounting Information Systems'] },
+      { prefix: 'MRKT', name: 'Marketing', field: 'Marketing', courses: ['Fundamentals of Marketing', 'Consumer Behavior', 'Market Research', 'Digital Marketing Strategy', 'Brand Management', 'Sports Marketing', 'Advertising & Promotion', 'Sales Management', 'Global Marketing'] },
       { prefix: 'ECON', name: 'Economics', field: 'Economics', courses: ['Microeconomics', 'Macroeconomics', 'Econometrics', 'Advanced Microeconomics', 'Economic History', 'Behavioral Economics', 'Public Finance', 'Game Theory', 'Environmental Economics'] },
-      { prefix: 'MGMT', name: 'Management', field: 'Business', courses: ['Organizational Leadership', 'Human Resources Management', 'Operations Management', 'Business Ethics', 'Strategic Management', 'Project Management', 'Entrepreneurship', 'Conflict Resolution', 'Negotiations'] },
-      { prefix: 'SPCO', name: 'Supply Chain & Operations', field: 'Business', courses: ['Introduction to Supply Chain', 'Logistics & Distribution', 'Procurement & Sourcing', 'Quality Management', 'Demand Planning', 'Global Supply Chains', 'Inventory Control Systems', 'Data Analytics for Operations', 'Transportation Management'] },
+      { prefix: 'MGMT', name: 'Management', field: 'Management', courses: ['Organizational Leadership', 'Human Resources Management', 'Operations Management', 'Business Ethics', 'Strategic Management', 'Project Management', 'Entrepreneurship', 'Conflict Resolution', 'Negotiations'] },
+      { prefix: 'SPCO', name: 'Supply Chain & Operations', field: 'Operations Research', courses: ['Introduction to Supply Chain', 'Logistics & Distribution', 'Procurement & Sourcing', 'Quality Management', 'Demand Planning', 'Global Supply Chains', 'Inventory Control Systems', 'Data Analytics for Operations', 'Transportation Management'] },
     ],
   },
   {
@@ -148,11 +159,11 @@ const SCHOOLS: SchoolSeed[] = [
     buildingId: 'BLDG-ENGINEERING',
     buildingName: 'Engineering Hall',
     majors: [
-      { prefix: 'MECH', name: 'Mechanical Engineering', field: 'Physics', courses: ['Introduction to Mechanical Design', 'Statics & Dynamics', 'Thermodynamics', 'Fluid Mechanics', 'Materials Science', 'Robotics', 'HVAC Systems', 'Internal Combustion Engines', 'Finite Element Analysis'] },
-      { prefix: 'ELEC', name: 'Electrical Engineering', field: 'Physics', courses: ['Circuits', 'Digital Logic Design', 'Signals & Systems', 'Electromagnetics', 'Microelectronics', 'Power Systems Analysis', 'Wireless Communications', 'Control Systems', 'VLSI Design'] },
+      { prefix: 'MECH', name: 'Mechanical Engineering', field: 'Mechanical Engineering', courses: ['Introduction to Mechanical Design', 'Statics & Dynamics', 'Thermodynamics', 'Fluid Mechanics', 'Materials Science', 'Robotics', 'HVAC Systems', 'Internal Combustion Engines', 'Finite Element Analysis'] },
+      { prefix: 'ELEC', name: 'Electrical Engineering', field: 'Electrical Engineering', courses: ['Circuits', 'Digital Logic Design', 'Signals & Systems', 'Electromagnetics', 'Microelectronics', 'Power Systems Analysis', 'Wireless Communications', 'Control Systems', 'VLSI Design'] },
       { prefix: 'CHEM', name: 'Chemical Engineering', field: 'Chemistry', courses: ['Chemistry I', 'Chemical Thermodynamics', 'Fluid Transport', 'Chemistry II', 'Chemical Reaction Engineering', 'Process Safety', 'Biochemical Engineering', 'Polymer Science', 'Sustainable Energy Technology'] },
-      { prefix: 'CIVE', name: 'Civil Engineering', field: 'Physics', courses: ['Physics I', 'Structural Analysis', 'Soil Mechanics', 'Physics II', 'Transportation Engineering', 'Bridge Design', 'Environmental Impact Assessment', 'Construction Management', 'Urban Planning'] },
-      { prefix: 'INDE', name: 'Industrial Engineering', field: 'Business', courses: ['Systems', 'Production Planning', 'Ergonomics & Safety', 'Quality Control', 'Facilities Design', 'Simulation Modeling', 'Supply Chain Analytics', 'Lean Manufacturing', 'Reliability Engineering'] },
+      { prefix: 'CIVE', name: 'Civil Engineering', field: 'Civil Engineering', courses: ['Physics I', 'Structural Analysis', 'Soil Mechanics', 'Physics II', 'Transportation Engineering', 'Bridge Design', 'Environmental Impact Assessment', 'Construction Management', 'Urban Planning'] },
+      { prefix: 'INDE', name: 'Industrial Engineering', field: 'Operations Research', courses: ['Systems', 'Production Planning', 'Ergonomics & Safety', 'Quality Control', 'Facilities Design', 'Simulation Modeling', 'Supply Chain Analytics', 'Lean Manufacturing', 'Reliability Engineering'] },
       { prefix: 'AERO', name: 'Aerospace Engineering', field: 'Physics', courses: ['Introduction to Flight Dynamics', 'Aerodynamics', 'Aircraft Performance', 'Spacecraft Propulsion', 'Aerospace Structures', 'Astrodynamics', 'Rocketry', 'Helicopter Dynamics', 'Unmanned Aerial Systems'] },
     ],
   },
@@ -161,12 +172,12 @@ const SCHOOLS: SchoolSeed[] = [
     buildingId: 'BLDG-ARTSMEDIA',
     buildingName: 'Arts & Media Center',
     majors: [
-      { prefix: 'MDIA', name: 'Media Studies', field: 'Arts', courses: ['Mass Communication', 'Media Theory', 'Global Media Systems', 'Digital Culture', 'Media Ethics', 'Film Industry', 'Social Media Analytics', 'Photojournalism', 'Public Relations'] },
-      { prefix: 'GRDS', name: 'Graphic Design', field: 'Arts', courses: ['Visual Communication', 'Typography', 'Digital Imaging', 'Layout Design', 'Branding & Identity', 'Web Design', 'Motion Graphics', 'Illustration', 'Publication Design'] },
+      { prefix: 'MDIA', name: 'Media Studies', field: 'Communication', courses: ['Mass Communication', 'Media Theory', 'Global Media Systems', 'Digital Culture', 'Media Ethics', 'Film Industry', 'Social Media Analytics', 'Photojournalism', 'Public Relations'] },
+      { prefix: 'GRDS', name: 'Graphic Design', field: 'Art & Design', courses: ['Visual Communication', 'Typography', 'Digital Imaging', 'Layout Design', 'Branding & Identity', 'Web Design', 'Motion Graphics', 'Illustration', 'Publication Design'] },
       { prefix: 'CRWR', name: 'Creative Writing', field: 'English', courses: ['Introduction to Creative Writing', 'Fiction Workshop', 'Poetry Workshop', 'Nonfiction Workshop', 'Literary Editing', 'Screenwriting', 'Playwriting', 'Writing for Young Adults', 'Creative Writing Seminar'] },
-      { prefix: 'MUSC', name: 'Music', field: 'Arts', courses: ['Music Theory I', 'Music Theory II', 'Music History Survey', 'Composition I', 'Applied Instrument/Voice', 'Jazz Improvisation', 'World Music', 'Music Technology', 'Composition II'] },
-      { prefix: 'FILM', name: 'Film', field: 'Arts', courses: ['Introduction to Film Analysis', 'Cinematography', 'Screenwriting Workshop', 'Film Production', 'Directing Fundamentals', 'Documentary Filmmaking', 'History of World Cinema', 'Sound Design', 'Post-Production'] },
-      { prefix: 'SART', name: 'Studio Art', field: 'Arts', courses: ['Fundamentals of 2D Design', 'Drawing', 'Painting', 'Sculpture', 'Art History Survey', 'Printmaking', 'Ceramics', 'Photography', 'Digital Art'] },
+      { prefix: 'MUSC', name: 'Music', field: 'Music', courses: ['Music Theory I', 'Music Theory II', 'Music History Survey', 'Composition I', 'Applied Instrument/Voice', 'Jazz Improvisation', 'World Music', 'Music Technology', 'Composition II'] },
+      { prefix: 'FILM', name: 'Film', field: 'Communication', courses: ['Introduction to Film Analysis', 'Cinematography', 'Screenwriting Workshop', 'Film Production', 'Directing Fundamentals', 'Documentary Filmmaking', 'History of World Cinema', 'Sound Design', 'Post-Production'] },
+      { prefix: 'SART', name: 'Studio Art', field: 'Art & Design', courses: ['Fundamentals of 2D Design', 'Drawing', 'Painting', 'Sculpture', 'Art History Survey', 'Printmaking', 'Ceramics', 'Photography', 'Digital Art'] },
     ],
   },
   {
@@ -177,7 +188,7 @@ const SCHOOLS: SchoolSeed[] = [
       { prefix: 'ENGL', name: 'English', field: 'English', courses: ['Introduction to Literary Studies', 'British Literature Survey', 'American Literature Survey', 'Critical Theory', 'Advanced Composition', 'Shakespeare', 'Restoration & 18th Century Literature', 'Postcolonial Literature', 'Technical Writing'] },
       { prefix: 'PSYC', name: 'Psychology', field: 'Psychology', courses: ['General Psychology', 'Developmental Psychology', 'Cognitive Psychology', 'Abnormal Psychology', 'Research Methods in Psychology', 'Social Psychology', 'Biopsychology', 'Organizational Psychology', 'Health Psychology'] },
       { prefix: 'SOCY', name: 'Sociology', field: 'Sociology', courses: ['Introduction to Sociology', 'Social Stratification', 'Sociological Theory', 'Race & Ethnicity', 'Qualitative Research Methods', 'Criminology', 'Sociology of the Family', 'Urban Sociology', 'Sex & Gender'] },
-      { prefix: 'POLS', name: 'Political Science', field: 'Sociology', courses: ['Civics', 'Comparative Politics', 'International Relations', 'American Government', 'Public Policy Analysis', 'Constitutional Law', 'Political Campaigns', 'Theories of Justice', 'Security Studies'] },
+      { prefix: 'POLS', name: 'Political Science', field: 'Political Science', courses: ['Civics', 'Comparative Politics', 'International Relations', 'American Government', 'Public Policy Analysis', 'Constitutional Law', 'Political Campaigns', 'Theories of Justice', 'Security Studies'] },
       { prefix: 'HIST', name: 'History', field: 'History', courses: ['World History', 'Research & Historiography', 'US History', 'European History', 'Ancient Civilizations', 'World War I & II', 'Archaeology', 'Anthropology', 'History of Science & Technology'] },
       { prefix: 'PHIL', name: 'Philosophy', field: 'Philosophy', courses: ['Introduction to Logic & Reasoning', 'Ethics II', 'Metaphysics', 'Epistemology', 'Ancient Greek Philosophy', 'Existentialism', 'Philosophy of Mind', 'Aesthetics', 'Symbolic Logic'] },
     ],
@@ -188,11 +199,11 @@ const SCHOOLS: SchoolSeed[] = [
     buildingName: 'Health Sciences Building',
     majors: [
       { prefix: 'BIOL', name: 'Biology', field: 'Biology', courses: ['Biology I', 'Cell Biology', 'Genetics', 'Ecology', 'Evolution', 'Microbiology', 'Marine Biology', 'Plant Physiology', 'Immunology'] },
-      { prefix: 'PHLT', name: 'Public Health', field: 'Biology', courses: ['Introduction to Public Health', 'Epidemiology', 'Biostatistics', 'Health Policy & Management', 'Environmental Health', 'Global Health', 'Health Promotion', 'Community Health Assessment', 'Maternal & Child Health'] },
-      { prefix: 'NURS', name: 'Nursing', field: 'Biology', courses: ['Introduction to Professional Nursing', 'Anatomy & Physiology', 'Pharmacology', 'Health Assessment', 'Clinical Practicum I', 'Critical Care Nursing', 'Pediatric Nursing', 'Gerontology', 'Clinical Practicum II'] },
-      { prefix: 'NUTR', name: 'Nutrition', field: 'Biology', courses: ['Fundamentals of Nutrition', 'Macronutrients & Metabolism', 'Lifecycle Nutrition', 'Applied Dietetics', 'Food Science', 'Sports Nutrition', 'Public Health Nutrition', 'Advanced Medical Nutrition Therapy', 'Culinary Nutrition'] },
+      { prefix: 'PHLT', name: 'Public Health', field: 'Public Health', courses: ['Introduction to Public Health', 'Epidemiology', 'Biostatistics', 'Health Policy & Management', 'Environmental Health', 'Global Health', 'Health Promotion', 'Community Health Assessment', 'Maternal & Child Health'] },
+      { prefix: 'NURS', name: 'Nursing', field: 'Clinical Health', courses: ['Introduction to Professional Nursing', 'Anatomy & Physiology', 'Pharmacology', 'Health Assessment', 'Clinical Practicum I', 'Critical Care Nursing', 'Pediatric Nursing', 'Gerontology', 'Clinical Practicum II'] },
+      { prefix: 'NUTR', name: 'Nutrition', field: 'Public Health', courses: ['Fundamentals of Nutrition', 'Macronutrients & Metabolism', 'Lifecycle Nutrition', 'Applied Dietetics', 'Food Science', 'Sports Nutrition', 'Public Health Nutrition', 'Advanced Medical Nutrition Therapy', 'Culinary Nutrition'] },
       { prefix: 'PMED', name: 'Pre-Med', field: 'Chemistry', courses: ['Foundations of Medical Professions', 'Organic Chemistry', 'Biochemistry', 'Advanced Human Anatomy', 'Advanced Physiology', 'Medical Ethics', 'Healthcare Communications', 'Pathophysiology', 'Clinical Observation'] },
-      { prefix: 'DENT', name: 'Dentistry', field: 'Biology', courses: ['Introduction to Oral Health', 'Oral Anatomy', 'Dental Materials Science', 'Preventative Dentistry', 'Clinical Dental Practicum I', 'Head & Neck Anatomy', 'Dental Radiography', 'Periodontology', 'Clinical Dental Practicum II'] },
+      { prefix: 'DENT', name: 'Dentistry', field: 'Clinical Health', courses: ['Introduction to Oral Health', 'Oral Anatomy', 'Dental Materials Science', 'Preventative Dentistry', 'Clinical Dental Practicum I', 'Head & Neck Anatomy', 'Dental Radiography', 'Periodontology', 'Clinical Dental Practicum II'] },
     ],
   },
   {
@@ -200,12 +211,12 @@ const SCHOOLS: SchoolSeed[] = [
     buildingId: 'BLDG-COMPSCI',
     buildingName: 'Computer Science Building',
     majors: [
-      { prefix: 'COMP', name: 'Computer Science', field: 'CompSci', courses: ['Introduction to Programming', 'Data Structures', 'Algorithms', 'Operating Systems', 'Computer Architecture', 'Compiler Design', 'Game Development', 'Parallel Computing', 'Web Development'] },
+      { prefix: 'COMP', name: 'Computer Science', field: 'Computer Science', courses: ['Introduction to Programming', 'Data Structures', 'Algorithms', 'Operating Systems', 'Computer Architecture', 'Compiler Design', 'Game Development', 'Parallel Computing', 'Web Development'] },
       { prefix: 'DATA', name: 'Data Science', field: 'Mathematics', courses: ['Fundamentals of Data Science', 'Statistical Modeling', 'Machine Learning', 'Data Visualization', 'Data Mining', 'Big Data Systems', 'Time Series Analysis', 'Natural Language Processing', 'Bayesian Statistics'] },
-      { prefix: 'CYBR', name: 'Cybersecurity', field: 'CompSci', courses: ['Introduction to Cybersecurity', 'Network Security', 'Cryptography', 'Ethical Hacking', 'Security Operations', 'Cloud Security', 'Digital Forensics', 'Risk Management', 'Software Security Testing'] },
-      { prefix: 'SOFT', name: 'Software Engineering', field: 'CompSci', courses: ['Introduction to Software Development', 'Software Requirements', 'Software Testing & QA', 'Database Systems', 'Object-Oriented Design', 'Agile Methodologies', 'Mobile Application Development', 'UI/UX', 'DevOps'] },
-      { prefix: 'ARTF', name: 'Artificial Intelligence', field: 'CompSci', courses: ['Introduction to Artificial Intelligence', 'AI Programming', 'Knowledge Representation', 'Neural Networks', 'Advanced Machine Learning', 'Deep Learning', 'Robotics & Perception', 'Computer Vision', 'AI Ethics & Society'] },
-      { prefix: 'INFO', name: 'Information Systems', field: 'CompSci', courses: ['Introduction to Information Systems', 'Systems Analysis & Design', 'Database Management', 'Enterprise Resource Planning', 'IT Infrastructure', 'Business Process Modeling', 'E-commerce Strategy', 'Information Security Management', 'Data Warehousing'] },
+      { prefix: 'CYBR', name: 'Cybersecurity', field: 'Information Systems', courses: ['Introduction to Cybersecurity', 'Network Security', 'Cryptography', 'Ethical Hacking', 'Security Operations', 'Cloud Security', 'Digital Forensics', 'Risk Management', 'Software Security Testing'] },
+      { prefix: 'SOFT', name: 'Software Engineering', field: 'Computer Science', courses: ['Introduction to Software Development', 'Software Requirements', 'Software Testing & QA', 'Database Systems', 'Object-Oriented Design', 'Agile Methodologies', 'Mobile Application Development', 'UI/UX', 'DevOps'] },
+      { prefix: 'ARTF', name: 'Artificial Intelligence', field: 'Artificial Intelligence', courses: ['Introduction to Artificial Intelligence', 'AI Programming', 'Knowledge Representation', 'Neural Networks', 'Advanced Machine Learning', 'Deep Learning', 'Robotics & Perception', 'Computer Vision', 'AI Ethics & Society'] },
+      { prefix: 'INFO', name: 'Information Systems', field: 'Information Systems', courses: ['Introduction to Information Systems', 'Systems Analysis & Design', 'Database Management', 'Enterprise Resource Planning', 'IT Infrastructure', 'Business Process Modeling', 'E-commerce Strategy', 'Information Security Management', 'Data Warehousing'] },
     ],
   },
 ];
@@ -220,6 +231,14 @@ const GENED_CORE_IDS: string[] = SCHOOLS.find((school) => school.core)!.core!.ma
 // major's own `field` above, just per-course instead of per-major since the
 // core isn't a single discipline. Every field used here already appears in
 // facultyData.ts's FACULTY_FIELDS.
+//
+// These six are load-bearing beyond the courses themselves: the founding
+// roster in actions.ts is sized to cover exactly these fields and nothing
+// else (English x2, Mathematics, Philosophy, Physics, History), so changing
+// one here means changing a founding hire there. All six survived the
+// department re-specialisation unchanged for precisely that reason — the
+// gen-ed core is the one place the taxonomy is pinned to the founding
+// payroll.
 const GENED_FIELDS: Record<string, string> = {
   GE110: 'English',      // College Writing
   GE120: 'Mathematics',  // Calculus

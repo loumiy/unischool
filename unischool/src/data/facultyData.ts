@@ -1,5 +1,6 @@
 import type { Faculty } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
+import { initialTech } from './techData';
 
 // ---------------------------------------------------------------------
 // Name generation. Each pool is tagged with a shared cultural origin so
@@ -66,7 +67,62 @@ const SAME_ORIGIN_NAME_WEIGHT = 0.85;
 // should essentially never exhaust; the loop is just a safety net.
 const MAX_NAME_ROLL_ATTEMPTS = 30;
 
-export const FACULTY_FIELDS = ['Physics', 'History', 'CompSci', 'Economics', 'Biology', 'Mathematics', 'Sociology', 'Chemistry', 'Psychology', 'English', 'Business', 'Arts', 'Philosophy'];
+// ---------------------------------------------------------------------
+// Faculty fields = the university's DEPARTMENTS. This is the taxonomy the
+// whole recruiting side hangs off: a hire belongs to exactly one field, a
+// job posting is opened for exactly one field, and a course's
+// requiresFaculty names exactly one field (techData.ts gives every major
+// one `field`, shared by all nine of its courses, plus GENED_FIELDS for
+// the six gen-ed courses).
+//
+// The set below is deliberately shaped like a real course catalog's
+// department list rather than like a list of broad subject areas, and it
+// is chosen so demand lands EVENLY across it: with 36 majors, one field
+// per major would be a 36-entry dropdown, and the old 13 broad fields put
+// 54 courses behind 'Business' and 45 each behind 'CompSci'/'Arts'/
+// 'Biology' while 'Economics' and 'Psychology' had 9 apiece. 26 fields at
+// one-to-three majors each keeps every field between 9 and 20 courses —
+// no field is dead, none dominates, and each is still a department a real
+// university would actually have (several are real combined-department
+// names: Accounting & Finance, Operations Research, Art & Design).
+//
+// Ordered by division, the way a catalog lists departments, because this
+// array IS the recruiting dropdown's order (see FacultyTab.tsx).
+//
+// Adding/renaming an entry here is a save-compatibility event: a saved
+// faculty member stores their field as a plain string, so a field that
+// stops existing strands that hire. See LEGACY_FIELD_RENAMES below and
+// persistence.ts's v4 -> v5 migration.
+// ---------------------------------------------------------------------
+export const FACULTY_FIELDS = [
+  // Humanities & arts
+  'English', 'History', 'Philosophy', 'Communication', 'Art & Design', 'Music',
+  // Social sciences
+  'Economics', 'Political Science', 'Psychology', 'Sociology',
+  // Natural sciences & mathematics
+  'Mathematics', 'Physics', 'Chemistry', 'Biology',
+  // Health
+  'Public Health', 'Clinical Health',
+  // Computing
+  'Computer Science', 'Artificial Intelligence', 'Information Systems',
+  // Engineering
+  'Mechanical Engineering', 'Electrical Engineering', 'Civil Engineering', 'Operations Research',
+  // Business
+  'Accounting & Finance', 'Marketing', 'Management',
+];
+
+// Old field names -> the field that inherits them, for saves written
+// before the taxonomy was re-specialised (see persistence.ts's v4 -> v5
+// migration). Only the three fields that stopped existing need an entry;
+// the other ten old names are still live fields and carry forward as-is.
+// A merged-away field maps to the closest surviving department, so a
+// player never loses a hire they paid for — 'Business' split four ways, so
+// its faculty land in 'Management', the most general of the four.
+export const LEGACY_FIELD_RENAMES: Record<string, string> = {
+  CompSci: 'Computer Science',
+  Business: 'Management',
+  Arts: 'Art & Design',
+};
 
 function pick<T>(pool: T[]): T {
   return pool[Math.floor(Math.random() * pool.length)];
@@ -163,19 +219,32 @@ const BIO_INSTITUTIONS = [
 ];
 
 const FIELD_RESEARCH_INTERESTS: Record<string, string[]> = {
-  Physics: ['condensed matter theory', 'particle detector design', 'astrophysical modeling'],
-  History: ['20th-century political movements', 'maritime trade networks', 'oral history methods'],
-  CompSci: ['distributed systems', 'programming language design', 'human-computer interaction'],
-  Economics: ['labor markets', 'behavioral economics', 'monetary policy'],
-  Biology: ['cell signaling pathways', 'conservation ecology', 'evolutionary genetics'],
-  Mathematics: ['combinatorics', 'applied topology', 'numerical analysis'],
-  Sociology: ['urban inequality', 'social network analysis', 'the sociology of work'],
-  Chemistry: ['catalysis', 'polymer synthesis', 'environmental chemistry'],
-  Psychology: ['cognitive development', 'clinical resilience', 'decision-making under uncertainty'],
   English: ['postcolonial literature', 'rhetoric and composition', 'digital humanities'],
-  Business: ['corporate strategy', 'entrepreneurial finance', 'organizational behavior'],
-  Arts: ['visual culture', 'performance studies', 'creative practice'],
+  History: ['20th-century political movements', 'maritime trade networks', 'oral history methods'],
   Philosophy: ['ethics and moral philosophy', 'philosophy of mind', 'political philosophy'],
+  Communication: ['media effects research', 'documentary practice', 'political communication'],
+  'Art & Design': ['visual culture', 'typographic history', 'studio practice'],
+  Music: ['music cognition', 'ethnomusicology', 'composition for ensembles'],
+  Economics: ['labor markets', 'behavioral economics', 'monetary policy'],
+  'Political Science': ['comparative democratization', 'constitutional law', 'international security'],
+  Psychology: ['cognitive development', 'clinical resilience', 'decision-making under uncertainty'],
+  Sociology: ['urban inequality', 'social network analysis', 'the sociology of work'],
+  Mathematics: ['combinatorics', 'applied topology', 'statistical learning theory'],
+  Physics: ['condensed matter theory', 'orbital mechanics', 'astrophysical modeling'],
+  Chemistry: ['catalysis', 'polymer synthesis', 'medicinal chemistry'],
+  Biology: ['cell signaling pathways', 'conservation ecology', 'evolutionary genetics'],
+  'Public Health': ['infectious disease epidemiology', 'nutrition policy', 'health disparities'],
+  'Clinical Health': ['patient safety outcomes', 'geriatric care models', 'oral disease prevention'],
+  'Computer Science': ['distributed systems', 'programming language design', 'human-computer interaction'],
+  'Artificial Intelligence': ['deep learning architectures', 'computer vision', 'the ethics of automated decisions'],
+  'Information Systems': ['applied cryptography', 'enterprise data governance', 'security operations'],
+  'Mechanical Engineering': ['thermofluid systems', 'materials fatigue', 'robotic actuation'],
+  'Electrical Engineering': ['power electronics', 'wireless signal processing', 'integrated circuit design'],
+  'Civil Engineering': ['structural resilience', 'geotechnical modeling', 'transportation networks'],
+  'Operations Research': ['stochastic optimization', 'supply chain modeling', 'queueing theory'],
+  'Accounting & Finance': ['asset pricing', 'audit quality', 'corporate disclosure'],
+  Marketing: ['consumer choice', 'brand equity', 'digital attribution'],
+  Management: ['corporate strategy', 'entrepreneurship', 'organizational behavior'],
 };
 
 function rollBio(field: string): string {
@@ -306,32 +375,128 @@ export function facultyQualityTier(f: Faculty): FacultyQualityTier {
 }
 
 // ---------------------------------------------------------------------
-// Hiring is a job-posting model, not a passive draw-and-discard pool: the
-// player posts an opening for a SPECIFIC field (POST_JOB in actions.ts),
-// pays a fee up front, and waits out a countdown (facultySystem.ts ticks
-// s.openPostings the same way tickTech ticks s.developing) before exactly
-// one candidate in that field arrives in s.candidates, ready to hire. This
-// replaces the old hire-then-fire reroll hack (dismiss an unwanted
-// candidate to force a fresh random draw) with a deliberate, cost-and-time
-// -bearing decision — you can't get a candidate in a field you haven't
-// posted for, and re-posting the same field again costs another fee and
-// another wait.
+// HIRING: a standing, churning candidate market.
+//
+// There are no job postings and no waiting. `s.candidates` is a long,
+// always-refreshing list of people currently on the academic job market;
+// the player appoints straight off it, immediately (HIRE_FACULTY in the
+// reducer), and facultySystem.ts's tickCandidatePool keeps it turning
+// over: every week the listings age, the ones that have been up too long
+// withdraw, and new ones arrive to bring the pool back to target.
+//
+// The point of the churn is to keep the SCARCITY interesting and drop the
+// boring part. Under the old post-and-wait model every hire cost a fee and
+// 4-10 idle weeks, which with 26 specialised fields (see FACULTY_FIELDS
+// above) meant 26 separate post-and-wait errands. Now a common field is
+// almost always sitting there to be pulled, and what is genuinely scarce
+// is the thin-market specialist: they show up intermittently, so filling
+// that niche means either waiting for one or developing a different
+// major's courses first. Availability is the constraint; the money
+// constraint is payroll, which is unchanged.
 // ---------------------------------------------------------------------
-export const JOB_POSTING_COST = 45_000;
-const JOB_POSTING_MIN_WEEKS = 4;
-const JOB_POSTING_MAX_WEEKS = 10;
 
-// Rolled once, when a posting opens — a real hiring timeline is never
-// perfectly predictable, but the countdown itself (like a course's
-// duration) ticks down deterministically once rolled, so the player always
-// knows exactly how long is left.
-export function rollPostingWeeks(): number {
-  return JOB_POSTING_MIN_WEEKS + Math.floor(Math.random() * (JOB_POSTING_MAX_WEEKS - JOB_POSTING_MIN_WEEKS + 1));
+// --- Churn tuning. These five knobs ARE the recruiting feel; expect to
+// hand-tune them after playtest, and read them together:
+//
+//   pool size  ~= CANDIDATE_POOL_TARGET (the top-up loop below holds it there)
+//   turnover   ~= CANDIDATE_POOL_TARGET / CANDIDATE_LISTING_WEEKS per week
+//   a field's share of the pool = its listing weight / the total (below)
+//
+// At the values below that is a 30-name pool turning over ~2.5 names a
+// week, so a listing the player passes on is gone within three months and
+// the list never looks the same twice.
+//
+// Coverage, which is the number that actually matters: with a 30-name pool
+// the expected number of any one field on the list is 30 x its weight
+// share, and the chance it is represented at all is ~1 - e^-that. The
+// weights below put the biggest fields around 6-7% (≈2 listed, present
+// ~85-88% of weeks — pull one whenever you want one), the mid fields
+// around 3-4% (present ~60-70%), and the thin markets at 1-2% (present
+// ~28-48%, arriving roughly every 18-36 weeks — the specialist you wait
+// for). Shortening CANDIDATE_POOL_TARGET tightens every one of those at
+// once, which is the fastest single dial if recruiting feels too easy.
+export const CANDIDATE_POOL_TARGET = 30;   // how many listings the market holds
+export const CANDIDATE_LISTING_WEEKS = 12; // weeks an unhired listing stays up before it withdraws
+const CANDIDATE_ARRIVALS_PER_WEEK_MAX = 4; // ceiling on new listings per week, so a hiring spree refills over a few weeks rather than instantly
+
+// How thin the academic market is in a field, as a multiplier on that
+// field's curriculum demand (below). 1.0 = an ordinary market; below 1 =
+// more courses want this field than there are people to teach them, which
+// is what makes a niche genuinely niche rather than just small. Every
+// field not listed here is 1.0.
+//
+// This is the second half of the weighting on purpose. Demand alone can't
+// produce the common/rare split the churn is for: after the field
+// re-specialisation every field carries between 9 and 20 courses, a
+// spread of barely 2x, so weighting by course count alone would make all
+// 26 fields equally intermittent. Real hiring markets are not flat — an
+// English department picks from hundreds of applicants while nursing and
+// accounting departments run chronically unfilled lines — and that is the
+// axis that makes a dentistry hire feel like a find.
+const DEFAULT_MARKET_SUPPLY = 1;
+const FIELD_MARKET_SUPPLY: Record<string, number> = {
+  'Clinical Health': 0.35,          // nursing and dental faculty are the thinnest academic market there is: clinical practice pays more than teaching it
+  'Artificial Intelligence': 0.35,  // industry outbids universities for everyone qualified
+  'Accounting & Finance': 0.5,      // the perennial accounting-PhD shortage — the doctorate is long and the profession pays
+  'Mechanical Engineering': 0.7,
+  'Electrical Engineering': 0.7,
+  'Civil Engineering': 0.7,
+  'Operations Research': 0.7,       // small doctoral pipelines, and industry analytics competes for it
+  Economics: 0.85,
+  'Public Health': 0.9,
+  'Information Systems': 0.9,
+};
+
+// A field's listing weight = how many courses in the whole curriculum need
+// it x how available its market is. The demand half is READ OFF the
+// curriculum rather than restated here, so it can never drift from
+// techData.ts: retiring a major or moving it to another field re-weights
+// the hiring pool automatically.
+//
+// Memoized because rolling a field happens several times a week and the
+// curriculum is a fixed seed — this is a derived constant, not state, and
+// nothing mutates it after the first roll.
+let listingWeights: Array<{ field: string; weight: number }> | null = null;
+let listingWeightTotal = 0;
+
+function candidateListingWeights(): Array<{ field: string; weight: number }> {
+  if (!listingWeights) {
+    const courseCounts = new Map<string, number>();
+    for (const node of initialTech()) {
+      if (!node.requiresFaculty) continue;
+      courseCounts.set(node.requiresFaculty, (courseCounts.get(node.requiresFaculty) ?? 0) + 1);
+    }
+    listingWeights = FACULTY_FIELDS
+      .map((field) => ({
+        field,
+        weight: (courseCounts.get(field) ?? 0) * (FIELD_MARKET_SUPPLY[field] ?? DEFAULT_MARKET_SUPPLY),
+      }))
+      // A field no course asks for has nothing to hire it FOR, so it is
+      // never listed. Can't happen with the current curriculum (every
+      // field carries at least nine courses) — this is the guard that
+      // keeps that true if one is ever added ahead of its courses.
+      .filter((entry) => entry.weight > 0);
+    listingWeightTotal = listingWeights.reduce((sum, entry) => sum + entry.weight, 0);
+  }
+  return listingWeights;
+}
+
+// The field a new listing turns up in: a weighted draw, so the pool's mix
+// roughly tracks what the curriculum actually needs, thinned by how hard
+// each field is to hire into.
+export function rollCandidateField(): string {
+  const weights = candidateListingWeights();
+  let roll = Math.random() * listingWeightTotal;
+  for (const entry of weights) {
+    roll -= entry.weight;
+    if (roll <= 0) return entry.field;
+  }
+  return weights[weights.length - 1].field;
 }
 
 // One freshly-rolled hireable candidate IN THE GIVEN FIELD, fresh
-// (tenureWeeks 0). Pass the full+last names already in play (roster +
-// candidate pool) so the new name can't collide with one of them.
+// (tenureWeeks 0, weeksListed 0). Pass the full+last names already in play
+// (roster + candidate pool) so the new name can't collide with one of them.
 export function generateCandidate(field: string, existingNames: Iterable<string> = []): Faculty {
   const used = new Set(existingNames);
   const teachingPotential = FACULTY_POTENTIAL_MIN + Math.round(Math.random() * FACULTY_POTENTIAL_RANGE);
@@ -349,6 +514,7 @@ export function generateCandidate(field: string, existingNames: Iterable<string>
     teachingPotential,
     researchPotential,
     tenureWeeks: 0,
+    weeksListed: 0,
     salary: facultySalary(teaching, research, 0),
     morale: 70 + Math.round(Math.random() * 20),
     courseSlots: rollBaseCourseSlots(),
@@ -358,12 +524,31 @@ export function generateCandidate(field: string, existingNames: Iterable<string>
   };
 }
 
-// Founding faculty candidates: word-of-mouth hires already in the pipeline
-// before the player has posted a single opening, in whatever fields happen
-// to turn up — the one place a candidate's field is still randomly rolled
-// rather than chosen by the player via POST_JOB.
-export function initialCandidates(): Faculty[] {
-  const first = generateCandidate(pick(FACULTY_FIELDS));
-  const second = generateCandidate(pick(FACULTY_FIELDS), [first.name]);
-  return [first, second];
+// The market as it stands the week the university is founded: a full pool,
+// not an empty one filling up. Recruiting is meant to be immediate from
+// the first week, and a founder looking at two names would read the
+// mechanic backwards.
+//
+// weeksListed is STAGGERED across the listing window rather than starting
+// everyone at 0, which matters more than it looks: a pool seeded flat
+// would age out as one synchronized cohort every CANDIDATE_LISTING_WEEKS
+// and the list would empty and refill in waves instead of churning.
+export function initialCandidatePool(): Faculty[] {
+  const pool: Faculty[] = [];
+  const names: string[] = [];
+  for (let i = 0; i < CANDIDATE_POOL_TARGET; i += 1) {
+    const candidate = generateCandidate(rollCandidateField(), names);
+    candidate.weeksListed = Math.floor(Math.random() * CANDIDATE_LISTING_WEEKS);
+    pool.push(candidate);
+    names.push(candidate.name);
+  }
+  return pool;
+}
+
+// How many new listings to add THIS week: enough to close the gap back to
+// target, capped so a big hiring week refills over a few weeks instead of
+// snapping back the same tick. Lives here with the constants it reads
+// rather than in the system, so all the churn tuning is in one file.
+export function candidateArrivalsThisWeek(poolSize: number): number {
+  return Math.max(0, Math.min(CANDIDATE_POOL_TARGET - poolSize, CANDIDATE_ARRIVALS_PER_WEEK_MAX));
 }
