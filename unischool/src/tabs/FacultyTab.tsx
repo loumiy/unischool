@@ -3,6 +3,10 @@ import type { Action } from '../state/actions';
 import type { Buildable, Faculty, GameState } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { facultyQualityTier, CANDIDATE_LISTING_WEEKS } from '../data/facultyData';
+import {
+  facultyResearchOutput, labEquippedFields, researchRateMultiplier, weeklyResearchPoints,
+} from '../data/researchData';
+import { researchSchools } from '../data/techData';
 import { usedFacultySlots, totalFacultySlots } from '../systems/techtree/techSystem';
 import HelpHint from '../components/HelpHint';
 
@@ -57,6 +61,7 @@ function FacultyRow(
   const [open, setOpen] = useState(false);
   const taught = isCandidate ? [] : coursesTaughtBy(s, f);
   const weeksLeft = Math.max(0, CANDIDATE_LISTING_WEEKS - f.weeksListed);
+  const researches = !isCandidate && labEquippedFields(s).has(f.field);
 
   return (
     <li className="faculty-row">
@@ -71,6 +76,13 @@ function FacultyRow(
           {open ? '▾' : '▸'}
         </button>
         <span className="faculty-name">{f.name}</span>
+        {/* The prize badge. Permanent, and the only mark on a roster row
+            that isn't derived from stats — see types.ts's Faculty.acclaim. */}
+        {f.acclaim > 0 && (
+          <span className="faculty-acclaim" title={`${f.acclaim} research ${f.acclaim === 1 ? 'prize' : 'prizes'}`}>
+            {'★'.repeat(f.acclaim)}
+          </span>
+        )}
         {!isCandidate && <span className="stat">{f.field}</span>}
         <span className="kind-tag">{facultyQualityTier(f)}</span>
         <span className="faculty-row-spacer" />
@@ -104,6 +116,21 @@ function FacultyRow(
             <dt>Salary</dt><dd>${f.salary.toLocaleString()}/yr</dd>
             {!isCandidate && <><dt>Tenure</dt><dd>{Math.floor(f.tenureWeeks / WEEKS_PER_YEAR)}y</dd></>}
             <dt>Course slots</dt><dd>{f.courseSlots}</dd>
+            {f.acclaim > 0 && <><dt>Prizes won</dt><dd>{f.acclaim}</dd></>}
+            {/* Research output, shown for roster members only: a candidate
+                produces nothing until they are appointed, and how much
+                they'd produce depends on whether the school they'd join
+                has a lab at all. */}
+            {!isCandidate && (
+              <>
+                <dt>Research output</dt>
+                <dd>
+                  {researches
+                    ? `${facultyResearchOutput(f).toFixed(2)} pts/wk`
+                    : `none — no lab in ${f.field}'s school`}
+                </dd>
+              </>
+            )}
           </dl>
           {!isCandidate && (
             <div className="faculty-courses">
@@ -120,6 +147,85 @@ function FacultyRow(
         </div>
       )}
     </li>
+  );
+}
+
+// ---------------------------------------------------------------------
+// The research panel. Research is meant to be mostly silent (see README's
+// "Research"): grants and breakthroughs land as log lines and nothing
+// else, so this is where a player who wants to understand WHY comes to
+// look. It reads the same pure functions the tick applies, so the rate
+// shown is exactly the rate that accumulates.
+//
+// It lives on the Faculty tab rather than in a tab of its own because
+// research is a property of the roster: who is producing it, and which
+// schools have a lab for them to produce it in, are both faculty
+// questions. A dedicated tab would be a fifth screen for one stock and
+// three counters.
+//
+// Deliberately shows the LAB GATE first, including the schools that are
+// producing nothing. That gate is the whole rule, and a player wondering
+// why their thirty professors generate no research needs to be told
+// which building answers it, not left to infer it.
+// ---------------------------------------------------------------------
+function ResearchPanel({ s }: { s: GameState }) {
+  const equipped = labEquippedFields(s);
+  const schools = researchSchools().filter((school) => school.labIds.length > 0);
+  const producing = s.faculty.filter((f) => equipped.has(f.field));
+  const rate = weeklyResearchPoints(s);
+  const multiplier = researchRateMultiplier(s);
+
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <span className="panel-head-title">
+          <h2>Research</h2>
+          <HelpHint text="Faculty in a school that has finished a laboratory produce research points every week, weighted by how strong and how senior they are. Points accumulate, and every so often they convert into a grant (cash), a breakthrough (which feeds the prestige target), or — rarely — a prize for the researcher behind it. No lab, no research: a school with no laboratory contributes nothing however it is staffed." />
+        </span>
+        <span className="stat">{rate.toFixed(1)} pts/wk</span>
+      </div>
+
+      {equipped.size === 0 ? (
+        <p className="empty-note">
+          No laboratories finished, so the university does no research yet. A lab needs its
+          school's building and that major's entry course first; the schools that can build one
+          are {schools.map((school) => school.schoolName).join(', ')}.
+        </p>
+      ) : (
+        <dl>
+          <dt>Research points banked</dt>
+          <dd>{Math.round(s.research.points).toLocaleString()}</dd>
+          <dt>Produced all-time</dt>
+          <dd>{Math.round(s.research.lifetimePoints).toLocaleString()}</dd>
+          <dt>Researching faculty</dt>
+          <dd>{producing.length} of {s.faculty.length} on the roster</dd>
+          <dt>Facilities multiplier</dt>
+          <dd>×{multiplier.toFixed(2)} <span className="outcome-note">(labs and the research library)</span></dd>
+          <dt>Grants received</dt>
+          <dd>{s.research.grants} — ${Math.round(s.research.grantIncome).toLocaleString()} in total</dd>
+          <dt>Breakthroughs published</dt>
+          <dd>{s.research.breakthroughs} <span className="outcome-note">(feeds the prestige target)</span></dd>
+          <dt>Prizes awarded</dt>
+          <dd>{s.research.prizes}</dd>
+        </dl>
+      )}
+
+      <div className="research-schools">
+        {schools.map((school) => {
+          const built = school.labIds.filter(
+            (id) => s.tech.find((t) => t.id === id)?.status === 'done',
+          ).length;
+          return (
+            <div key={school.schoolName} className="research-school">
+              <span>{school.schoolName}</span>
+              <span className={built > 0 ? 'stat' : 'empty-note'}>
+                {built > 0 ? `${built} of ${school.labIds.length} labs` : 'no lab — no research'}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -217,6 +323,8 @@ export default function FacultyTab({ s, act }: { s: GameState; act: (a: Action) 
           </ul>
         </section>
       </div>
+
+      <ResearchPanel s={s} />
 
       {gatedFields.length > 0 && (
         <section className="panel">

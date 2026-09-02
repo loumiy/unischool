@@ -304,6 +304,14 @@ const SALARY_GROWTH_PLATEAU_YEARS = 10;  // salary keeps climbing after skill pl
 const SALARY_GROWTH_PLATEAU_FRACTION = 0.95;
 const SALARY_GROWTH_RATE_PER_WEEK =
   1 - (1 - SALARY_GROWTH_PLATEAU_FRACTION) ** (1 / (SALARY_GROWTH_PLATEAU_YEARS * WEEKS_PER_YEAR));
+// What one research prize (see researchData.ts) permanently adds to its
+// winner's salary, on top of both curves above. A laureate becomes the
+// most expensive person on the payroll the week they win and stays that
+// way — the cost side of an award whose other effects are all upside.
+// It lives HERE, with the rest of the salary curve, rather than with the
+// research tuning, so there is exactly one file to read to understand
+// what a hire costs.
+export const ACCLAIM_SALARY_PREMIUM = 0.35;
 
 // Current annual salary for a faculty member with the given current stats
 // and tenure. The skill-linked base tracks current teaching/research (so
@@ -314,10 +322,20 @@ const SALARY_GROWTH_RATE_PER_WEEK =
 // design, and the money-side half of the scarcity that forces a player to
 // choose where to concentrate excellence rather than staffing every
 // school at the top of the market.
-export function facultySalary(teaching: number, research: number, tenureWeeks: number): number {
+//
+// `acclaim` — research prizes won (see types.ts's Faculty and
+// researchData.ts) — adds a further flat premium per prize. It is a
+// PARAMETER rather than something a prize writes into the stored salary
+// precisely because this function is re-run on every hire every week: a
+// figure written once would be overwritten the following tick, so the
+// award has to be an input to the curve instead. Defaults to 0, which is
+// what a candidate on the market and a newly generated hire both have.
+export function facultySalary(teaching: number, research: number, tenureWeeks: number, acclaim = 0): number {
   const skillBase = SALARY_BASE + (teaching + research) * SALARY_PER_SKILL_POINT;
   const tenurePremium = 1 - (1 - SALARY_GROWTH_RATE_PER_WEEK) ** tenureWeeks;
-  return Math.round(skillBase * (1 + SALARY_TENURE_PREMIUM_MAX * tenurePremium));
+  return Math.round(
+    skillBase * (1 + SALARY_TENURE_PREMIUM_MAX * tenurePremium) * (1 + ACCLAIM_SALARY_PREMIUM * acclaim),
+  );
 }
 
 // ---------------------------------------------------------------------
@@ -518,6 +536,9 @@ export function generateCandidate(field: string, existingNames: Iterable<string>
     salary: facultySalary(teaching, research, 0),
     morale: 70 + Math.round(Math.random() * 20),
     courseSlots: rollBaseCourseSlots(),
+    // Nobody arrives decorated: a prize is won on this university's
+    // payroll, in this university's labs, or not at all.
+    acclaim: 0,
     nationality,
     flag,
     bio: rollBio(field),

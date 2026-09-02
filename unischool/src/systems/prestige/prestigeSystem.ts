@@ -34,6 +34,13 @@ import { milestoneSchools } from '../../data/techData';
 //     curriculum breadth — it reflects who's on the roster right now, not
 //     who was hired this week.
 //
+//   - research standing: the breakthroughs and prizes the school's labs
+//     have produced (see systems/research/researchSystem.ts). A monotone
+//     COUNT, of exactly the same shape as curriculum breadth, and the
+//     ONLY route research has into prestige — no research output ever
+//     writes s.self.reputation. See researchScore below for why it is
+//     deliberately a small weight.
+//
 //   - campus life, and financial resources per student (endowment against
 //     capacity) — two smaller, capped inputs; the second is what the
 //     late-game endowment campaigns buy (see financeSystem.ts).
@@ -73,6 +80,7 @@ const CURRICULUM_BREADTH_WEIGHT = 75; // majors/schools completed — the stock 
 const SELECTIVITY_WEIGHT = 30;        // emergent admit-rate-derived score — grows with scarce capacity or pricing power
 const STUDENT_QUALITY_WEIGHT = 22;    // emergent avg incoming quality — grows with a low-tuition, high-yield posture
 const FACULTY_QUALITY_WEIGHT = 25;    // avg roster teaching+research — grows by hiring well and, more importantly, retaining hires long enough to mature
+const RESEARCH_WEIGHT = 14;           // breakthroughs and prizes out of the labs (see researchScore below)
 const CAMPUS_LIFE_WEIGHT = 12;        // rec center / athletics complex — a small, capped draw on its own (see campusLifeScore below)
 const ENDOWMENT_WEIGHT = 16;          // financial resources per student — what the late-game endowment campaigns buy (see endowmentScore below)
 
@@ -205,6 +213,39 @@ function campusLifeScore(s: GameState): number {
   return clamp01(total);
 }
 
+// Research standing: what the school's labs have actually produced, as a
+// count of published breakthroughs plus the far heavier prizes (see
+// systems/research/researchSystem.ts). This is the ONLY path research has
+// into prestige, and it is a capped INPUT for exactly the reason the
+// endowment is: an event or an output that nudged s.self.reputation
+// directly would be the completion-bonus flow this whole module exists to
+// forbid, and would let a burst of luck do what only sustained investment
+// is supposed to.
+//
+// Weighted small on purpose, and clamped like every other input, so it
+// can contribute at most RESEARCH_WEIGHT to a target whose largest term
+// is curriculum breadth at 75. That is the answer to the obvious failure
+// mode: a school that builds two labs, staffs them beautifully and
+// develops nothing else can ride research to at most +14 on its target —
+// real, visible, and nowhere near enough to outrun the breadth-driven
+// ceiling that decades of buildout are what actually buy. Research
+// SUPPLEMENTS a research university's standing; it never substitutes for
+// being a university.
+//
+// Read as a monotone lifetime count rather than as a rate, so it behaves
+// like curriculum breadth: standing earned by past work does not evaporate
+// during a quiet decade, and a school that dismantles its labs keeps the
+// reputation it already built (while stopping the accumulation of more).
+const BREAKTHROUGH_PRESTIGE_CREDIT = 1;
+const PRIZE_PRESTIGE_CREDIT = 3;      // a prize is worth three breakthroughs to the school's standing, on top of what its winner's own output gains
+const RESEARCH_CREDITS_FOR_FULL_SCORE = 20;
+function researchScore(s: GameState): number {
+  const credits =
+    BREAKTHROUGH_PRESTIGE_CREDIT * s.research.breakthroughs +
+    PRIZE_PRESTIGE_CREDIT * s.research.prizes;
+  return clamp01(credits / RESEARCH_CREDITS_FOR_FULL_SCORE);
+}
+
 // Financial resources per student: endowment measured against the size of
 // the campus it has to support, which is how real rankings read a school's
 // wealth — a small school with a large endowment is resource-rich; the
@@ -231,6 +272,7 @@ export function computePrestigeTarget(s: GameState): number {
     SELECTIVITY_WEIGHT * selectivityScore(s) * admissionsScaleScore(s) +
     STUDENT_QUALITY_WEIGHT * studentQualityScore(s) * admissionsScaleScore(s) +
     FACULTY_QUALITY_WEIGHT * facultyQualityScore(s) +
+    RESEARCH_WEIGHT * researchScore(s) +
     CAMPUS_LIFE_WEIGHT * campusLifeScore(s) +
     ENDOWMENT_WEIGHT * endowmentScore(s);
   return clamp(target, PRESTIGE_MIN, PRESTIGE_MAX);

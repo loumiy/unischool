@@ -27,6 +27,7 @@ import type { GameState, Buildable, SchoolType } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet } from '../src/systems/finance/financeSystem';
 import { canStartDevelopment, hasFreeFacultySlot } from '../src/systems/techtree/techSystem';
 import { findDecisionEvent } from '../src/data/eventData';
+import { weeklyResearchPoints } from '../src/data/researchData';
 import type { DecisionEventContext } from '../src/data/eventData';
 
 // ---------------------------------------------------------------------
@@ -267,6 +268,11 @@ interface Row {
   opex: number; net: number; satisfaction: number; courses: number; majors: number;
   faculty: number; tuition: number; aid: number; applicants: number; admitRate: number;
   endowment: number; weeksInTheRed: number; minCash: number;
+  // Research, as the year closed: what it is producing a week, and the two
+  // durable counts its outputs have accumulated. `grantIncome` is the
+  // cumulative cash side — the figure that says whether grants are
+  // trivialising the cash throttle.
+  researchRate: number; breakthroughs: number; grantIncome: number;
 }
 
 function snapshot(s: GameState, weeksInTheRed: number, minCash: number): Row {
@@ -290,6 +296,9 @@ function snapshot(s: GameState, weeksInTheRed: number, minCash: number): Row {
     endowment: s.finance.endowment,
     weeksInTheRed,
     minCash,
+    researchRate: weeklyResearchPoints(s),
+    breakthroughs: s.research.breakthroughs,
+    grantIncome: s.research.grantIncome,
   };
 }
 
@@ -301,6 +310,11 @@ interface EventTally {
   milestones: number;   // stop-the-clock celebrations shown
   decisions: number;    // authored decision events resolved
   cash: number;         // net cash effect of every choice the scripted player took
+  // Research (see src/systems/research/researchSystem.ts). Reported
+  // alongside the events for the same reason: so a balance pass can see at
+  // a glance whether research is a quiet second income line or a second
+  // economy. Prizes are the only one of the three that stops the clock.
+  prizes: number;
 }
 
 // The scripted player's event policy: take the FIRST affordable choice —
@@ -327,7 +341,7 @@ function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTal
   let weeksInTheRed = 0;
   let minCash = s.finance.cash;
 
-  const tally: EventTally = { milestones: 0, decisions: 0, cash: 0 };
+  const tally: EventTally = { milestones: 0, decisions: 0, cash: 0, prizes: 0 };
 
   while (s.clock.year <= years) {
     if (s.pendingInterrupt) {
@@ -337,6 +351,14 @@ function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTal
       } else if (s.pendingInterrupt.type === 'milestone') {
         tally.milestones += 1;
         dispatch({ type: 'RESOLVE_MILESTONE' });
+      } else if (s.pendingInterrupt.type === 'research-prize') {
+        tally.prizes += 1;
+        dispatch({ type: 'RESOLVE_PRIZE' });
+      } else if (s.pendingInterrupt.type === 'charter') {
+        // The scripted player always takes the charter. It costs nothing
+        // and changes nothing mechanical (it renames the school), so
+        // there is no trajectory to compare the other answer against.
+        dispatch({ type: 'RESOLVE_CHARTER', accept: true });
       } else if (s.pendingInterrupt.type === 'decision-event') {
         const taken = chooseEventOption(s);
         const before = s.finance.cash;
@@ -372,7 +394,7 @@ function fmt(n: number): string {
 function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally }, every: number): void {
   const { rows, tally } = run;
   console.log(`\n=== ${strategy.name} (${strategy.schoolType}) ===`);
-  console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | crs | maj | fac |  tuition | aid |  applic | admit% |  endow');
+  console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | crs | maj | fac |  tuition | aid |  applic | admit% |  endow | rsch/wk | brk');
   const last = rows[rows.length - 1];
   for (const r of rows) {
     if (r.year > 6 && r.year % every !== 0 && r !== last) continue;
@@ -380,11 +402,22 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally }, eve
       `${String(r.year).padStart(2)} | ${fmt(r.cash).padStart(8)} | ${fmt(r.enrolled).padStart(5)}/${fmt(r.capacity).padEnd(5)} | ` +
       `${r.prestige.toFixed(1).padStart(5)} | ${fmt(r.opex).padStart(7)} | ${fmt(r.net).padStart(6)} | ${r.satisfaction.toFixed(0).padStart(4)} | ` +
       `${String(r.courses).padStart(3)} | ${String(r.majors).padStart(3)} | ${String(r.faculty).padStart(3)} | ${fmt(r.tuition).padStart(8)} | ` +
-      `${(r.aid * 100).toFixed(0).padStart(3)} | ${fmt(r.applicants).padStart(7)} | ${(r.admitRate * 100).toFixed(0).padStart(6)} | ${fmt(r.endowment).padStart(6)}`,
+      `${(r.aid * 100).toFixed(0).padStart(3)} | ${fmt(r.applicants).padStart(7)} | ${(r.admitRate * 100).toFixed(0).padStart(6)} | ${fmt(r.endowment).padStart(6)} | ` +
+      `${r.researchRate.toFixed(1).padStart(7)} | ${String(r.breakthroughs).padStart(3)}`,
     );
   }
   console.log(`   weeks in the red: ${last.weeksInTheRed} of ${rows.length * 52}, min cash: ${fmt(last.minCash)}`);
   console.log(`   milestone celebrations: ${tally.milestones}, decision events: ${tally.decisions}, net event cash: ${fmt(tally.cash)}`);
+  // Grant income is compared against the run's total operating cost rather
+  // than reported bare: "$40M of grants" means nothing on its own, "1.4% of
+  // what the school spent" is the answer to whether grants trivialise the
+  // cash throttle.
+  const lifetimeOpEx = rows.reduce((sum, r) => sum + r.opex * 52, 0);
+  const grantShare = lifetimeOpEx > 0 ? (last.grantIncome / lifetimeOpEx) * 100 : 0;
+  console.log(
+    `   research: ${last.researchRate.toFixed(1)} pts/wk at close, ${last.breakthroughs} breakthroughs, ` +
+    `${tally.prizes} prizes, ${fmt(last.grantIncome)} in grants (${grantShare.toFixed(1)}% of lifetime opex)`,
+  );
 }
 
 // ---------------------------------------------------------------------

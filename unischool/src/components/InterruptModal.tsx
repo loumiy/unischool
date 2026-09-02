@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import type { Action } from '../state/actions';
-import type { GameState, PendingInterrupt } from '../state/types';
+import type { GameState, PendingInterrupt, PrizeAward } from '../state/types';
+import { institutionName } from '../state/types';
+import { ACCLAIM_RESEARCH_BONUS } from '../data/researchData';
+import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
 import { projectAdmissions, priceTolerance } from '../systems/admissions/admissionsSystem';
 import { computePrestigeTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
 import { findDecisionEvent } from '../data/eventData';
@@ -262,6 +265,110 @@ function MilestoneCelebrationView({ s, payload, onDismiss }: {
 }
 
 // ---------------------------------------------------------------------
+// The research prize: the ONLY research output that stops the clock (see
+// README's "Research" — grants and breakthroughs resolve silently into
+// finance and the prestige target, with nothing but a log line). It is
+// here because it is genuinely momentous and genuinely rare: a prize is
+// the most expensive of the three outputs and the least likely of them
+// even once affordable, so a long run sees a handful at most.
+//
+// It grants nothing and asks nothing. Everything it reports already
+// happened the week the prize was won: the winner's permanent acclaim,
+// and with it the higher salary and higher research output that acclaim
+// buys, plus the school's share of the capped research prestige input.
+// This is the same contract the milestone celebration follows.
+//
+// The winner's details come from the PAYLOAD rather than from the roster,
+// so the modal still says something true if they were dismissed in the
+// weeks between the award and the quiet week it finally fired on.
+// ---------------------------------------------------------------------
+function PrizeCelebrationView({ s, awards, onDismiss }: {
+  s: GameState;
+  awards: PrizeAward[];
+  onDismiss: () => void;
+}) {
+  const single = awards.length === 1 ? awards[0] : null;
+
+  return (
+    <>
+      <h2>{single ? `${single.facultyName} wins ${single.prizeName}` : `${awards.length} prizes awarded`}</h2>
+      <p>
+        {single
+          ? `The award recognises work done in this university's laboratories. ${single.facultyName} joins the very short list of ${single.field} researchers to have received it, and ${institutionName(s.self)} is named alongside them everywhere the citation is printed.`
+          : 'The university’s laboratories have been recognised more than once this season.'}
+      </p>
+
+      {!single && (
+        <ul className="milestone-unlocks">
+          {awards.map((a) => (
+            <li key={a.facultyId + a.prizeName}>{a.facultyName} ({a.field}) — {a.prizeName}</li>
+          ))}
+        </ul>
+      )}
+
+      <dl className="admissions-outcomes">
+        <div>
+          <dt>Research output <span className="outcome-note">(permanent, per prize)</span></dt>
+          <dd>+{Math.round(ACCLAIM_RESEARCH_BONUS * 100)}%</dd>
+        </div>
+        <div>
+          <dt>Salary <span className="outcome-note">(permanent, per prize)</span></dt>
+          <dd>+{Math.round(ACCLAIM_SALARY_PREMIUM * 100)}%</dd>
+        </div>
+        <div>
+          <dt>Prizes to date <span className="outcome-note">(feeds the prestige target)</span></dt>
+          <dd>{s.research.prizes}</dd>
+        </div>
+      </dl>
+
+      <button onClick={onDismiss}>Continue</button>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------
+// The College -> University charter: a one-time question, asked the first
+// quiet week after any laboratory finishes (see
+// systems/events/eventSystem.ts). Cosmetic in full — what changes is the
+// fixed half of the school's name and nothing else. It is asked rather
+// than applied because a school that wants to stay a college is a real
+// thing a player might want, and because the moment is worth marking.
+// Either answer closes the question for good.
+// ---------------------------------------------------------------------
+function CharterOfferView({ s, onResolve }: { s: GameState; onResolve: (accept: boolean) => void }) {
+  return (
+    <>
+      <h2>A university charter</h2>
+      <p>
+        With laboratory research now under way on campus, the trustees have petitioned for a
+        university charter. Granting it changes what the school is called and nothing else —
+        no cost, no obligation, and no effect on anything you have built.
+      </p>
+      <div className="event-choices">
+        <button className="event-choice" onClick={() => onResolve(true)}>
+          <span className="event-choice-label">
+            Accept the charter
+            <span className="event-choice-cost">no cost</span>
+          </span>
+          <span className="event-choice-detail">
+            {s.self.name} College becomes {s.self.name} University.
+          </span>
+        </button>
+        <button className="event-choice" onClick={() => onResolve(false)}>
+          <span className="event-choice-label">
+            Remain a college
+            <span className="event-choice-cost">no cost</span>
+          </span>
+          <span className="event-choice-detail">
+            The school keeps the name {s.self.name} College. You will not be asked again.
+          </span>
+        </button>
+      </div>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------
 // An authored decision event (see data/eventData.ts). The modal renders
 // the definition looked up by id from the data table, and the reducer
 // applies the choice by looking up the same definition the same way — so
@@ -358,6 +465,14 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
             payload={interrupt.payload as MilestonePayload}
             onDismiss={() => act({ type: 'RESOLVE_MILESTONE' })}
           />
+        ) : interrupt.type === 'research-prize' ? (
+          <PrizeCelebrationView
+            s={s}
+            awards={(interrupt.payload as { awards: PrizeAward[] }).awards}
+            onDismiss={() => act({ type: 'RESOLVE_PRIZE' })}
+          />
+        ) : interrupt.type === 'charter' ? (
+          <CharterOfferView s={s} onResolve={(accept) => act({ type: 'RESOLVE_CHARTER', accept })} />
         ) : decision ? (
           <DecisionEventView
             s={s}

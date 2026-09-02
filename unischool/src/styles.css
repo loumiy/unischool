@@ -454,6 +454,9 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-row-summary { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .faculty-expand-btn { background: none; border: none; color: var(--gold-dim); font-size: 11px; padding: 0 2px; width: 16px; }
 .faculty-name { font-weight: 600; }
+/* The research-prize badge: permanent, and the only mark on a roster row
+   that isn't derived from stats (see types.ts's Faculty.acclaim). */
+.faculty-acclaim { color: var(--gold); font-size: 12px; letter-spacing: 1px; }
 .faculty-row-spacer { flex: 1; }
 .faculty-row-summary button { background: #f4dede; color: #8a2f2f; border: 1px solid #d9a8a8; border-radius: 5px;
   padding: 3px 10px; font-size: 11px; white-space: nowrap; }
@@ -464,6 +467,15 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-courses { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--parchment-line-lo); }
 .faculty-courses-list { margin: 4px 0 0; padding: 0; list-style: none; }
 .faculty-courses-list li { font-family: var(--mono); font-size: 11px; padding: 1px 0; }
+
+/* ---------- research: the lab gate, school by school ----------
+   Research is mostly silent, so this small table is where the rule
+   ("no lab, no research") is actually visible. Schools with no lab are
+   listed too, deliberately — see FacultyTab's ResearchPanel. */
+.research-schools { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--parchment-line-lo);
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2px 16px; }
+.research-school { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 12px; }
+.research-school .empty-note { font-size: 11px; }
 
 /* ---------- faculty: roster and market, side by side ----------
    Two equal columns rather than stacked panels: the candidate market
@@ -649,8 +661,16 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   padding: 32px 36px; max-width: 480px; width: 100%; color: var(--ink); }
 .startup-card .eyebrow { color: var(--gold-dim); }
 .startup-card h1 { font-family: var(--serif); font-size: 24px; margin: 6px 0 20px; }
-.startup-name { width: 100%; font-size: 16px; padding: 10px 12px; border-radius: 6px;
-  border: 1px solid var(--parchment-line); background: #f8f3e6; color: var(--ink); margin-bottom: 20px; font-family: var(--serif); }
+/* The name field and the fixed institutional half beside it. The suffix
+   is shown, not typed: it is the thing the university charter later
+   offers to change (see StartupScreen.tsx). */
+.startup-name-row { display: flex; align-items: stretch; gap: 8px; }
+.startup-name { flex: 1; min-width: 0; font-size: 16px; padding: 10px 12px; border-radius: 6px;
+  border: 1px solid var(--parchment-line); background: #f8f3e6; color: var(--ink); font-family: var(--serif); }
+.startup-name-suffix { display: flex; align-items: center; padding: 0 14px; border-radius: 6px;
+  border: 1px dashed var(--parchment-line); background: #f2ead8; color: var(--ink-muted);
+  font-family: var(--serif); font-size: 16px; white-space: nowrap; }
+.startup-name-note { margin: 8px 0 20px; font-size: 12px; color: var(--ink-muted); line-height: 1.4; }
 .startup-types { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
 .startup-type-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left;
   background: #f8f3e6; border: 1px solid var(--parchment-line); border-radius: 8px; padding: 12px 14px; }

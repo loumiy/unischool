@@ -10,6 +10,12 @@ import {
   SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION, STARTING_ENDOWMENT, STARTING_TUITION,
 } from '../data/schoolTypeData';
 
+// The institutional half of every new school's name (see types.ts's
+// University). Fixed at founding — the startup screen only lets the
+// player write the half in front of it — and swapped for "University"
+// exactly once, if the player accepts the charter the first lab offers.
+export const STARTING_INSTITUTION_SUFFIX = 'College';
+
 // All the ways a player can change the world. The engine's reducer is the
 // only thing that interprets these. UI dispatches them; systems never do.
 export type Action =
@@ -57,6 +63,19 @@ export type Action =
   // effects landed when techSystem awarded it. Advances the clock, for the
   // same reason RESOLVE_REPORT does.
   | { type: 'RESOLVE_MILESTONE' }
+  // Dismisses a research prize celebration — the one research output that
+  // stops the clock (see systems/research/researchSystem.ts; grants and
+  // breakthroughs never do). Grants nothing: the winner's acclaim, their
+  // raised salary and research output, and the school's prestige credit
+  // all landed the week the prize was won. Advances the clock, for the
+  // same reason RESOLVE_MILESTONE does.
+  | { type: 'RESOLVE_PRIZE' }
+  // Answers the one-time College -> University charter offer, made the
+  // first quiet week after any lab finishes (see
+  // systems/events/eventSystem.ts). `accept` swaps the fixed half of the
+  // institution's name; either answer marks the offer made, so it is
+  // asked exactly once per run. Cosmetic — no system reads the name.
+  | { type: 'RESOLVE_CHARTER'; accept: boolean }
   // Commits one choice from an authored decision event (see
   // data/eventData.ts's DECISION_EVENTS). `ctx` is the context the event
   // rolled for itself when it fired, carried back verbatim from the
@@ -97,12 +116,16 @@ export function createPreStartState(): GameState {
     developing: {},
     placements: {},
     rivals: [],
-    self: { name: '', reputation: 0, schoolType: 'private' },
+    self: { name: '', suffix: '', universityCharterOffered: false, reputation: 0, schoolType: 'private' },
     history: [],
     log: [],
     gameOver: false,
     pendingInterrupt: null,
     events: { pendingMilestones: [], lastMilestoneWeek: 0, lastDecisionWeek: 0, decisionHistory: {} },
+    research: {
+      points: 0, lifetimePoints: 0, grants: 0, grantIncome: 0,
+      breakthroughs: 0, prizes: 0, lastOutputWeek: 0, pendingPrizes: [],
+    },
     candidates: [],
     started: false,
     hasEnteredRankings: false,
@@ -159,6 +182,10 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // at 0 regardless, so they still grow (and get pricier) from here. See
     // facultyData.ts's grownStat/facultySalary for the shared growth curve.
     //
+    // acclaim is 0 for all five and stays there until one of them wins a
+    // research prize — which none of them can until the school has built
+    // a lab, decades away (see systems/research/researchSystem.ts).
+    //
     // courseSlots are sized to exactly cover the six gen-ed core courses'
     // requiresFaculty fields (techData.ts's GENED_FIELDS: English x2 —
     // GE110 + GE160 — Mathematics, Philosophy, Physics, History x1 each) —
@@ -168,31 +195,31 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     faculty: [
       {
         id: 'f1', name: 'Dr. Alma Reyes', field: 'Physics', teaching: 72, research: 65, teachingPotential: 82, researchPotential: 78,
-        tenureWeeks: 0, weeksListed: 0, salary: facultySalary(72, 65, 0), morale: 80, courseSlots: 1,
+        tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: facultySalary(72, 65, 0), morale: 80, courseSlots: 1,
         nationality: 'United States', flag: '🇺🇸',
         bio: 'Earned a doctorate in Physics at Ravensmoor Institute; research centers on astrophysical modeling.',
       },
       {
         id: 'f2', name: 'Dr. John Okafor', field: 'History', teaching: 80, research: 55, teachingPotential: 88, researchPotential: 68,
-        tenureWeeks: 0, weeksListed: 0, salary: facultySalary(80, 55, 0), morale: 78, courseSlots: 1,
+        tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: facultySalary(80, 55, 0), morale: 78, courseSlots: 1,
         nationality: 'Nigeria', flag: '🇳🇬',
         bio: 'Earned a doctorate in History at the University of Calderwood; research centers on maritime trade networks.',
       },
       {
         id: 'f3', name: 'Dr. Grace Bennett', field: 'English', teaching: 78, research: 60, teachingPotential: 85, researchPotential: 72,
-        tenureWeeks: 0, weeksListed: 0, salary: facultySalary(78, 60, 0), morale: 76, courseSlots: 2,
+        tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: facultySalary(78, 60, 0), morale: 76, courseSlots: 2,
         nationality: 'United Kingdom', flag: '🇬🇧',
         bio: 'Earned a doctorate in English at Marchmont University; research centers on rhetoric and composition.',
       },
       {
         id: 'f4', name: 'Dr. Priya Iyer', field: 'Mathematics', teaching: 70, research: 68, teachingPotential: 80, researchPotential: 79,
-        tenureWeeks: 0, weeksListed: 0, salary: facultySalary(70, 68, 0), morale: 77, courseSlots: 1,
+        tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: facultySalary(70, 68, 0), morale: 77, courseSlots: 1,
         nationality: 'India', flag: '🇮🇳',
         bio: 'Earned a doctorate in Mathematics at Ironwood University; research centers on numerical analysis.',
       },
       {
         id: 'f5', name: 'Dr. Elena Novak', field: 'Philosophy', teaching: 75, research: 62, teachingPotential: 83, researchPotential: 71,
-        tenureWeeks: 0, weeksListed: 0, salary: facultySalary(75, 62, 0), morale: 79, courseSlots: 1,
+        tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: facultySalary(75, 62, 0), morale: 79, courseSlots: 1,
         nationality: 'Poland', flag: '🇵🇱',
         bio: 'Earned a doctorate in Philosophy at Amberfield University; research centers on ethics and moral philosophy.',
       },
@@ -205,7 +232,17 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     placements: {},
     rivals: initialRivals(),
     // +GENED_BUILDING_REPUTATION_BONUS: same fold-in as capacity above.
-    self: { name, reputation: BASE_STARTING_REPUTATION + preset.prestigeBonus + GENED_BUILDING_REPUTATION_BONUS, schoolType },
+    // `name` is the player's half only ("Blackmoor"); the institutional
+    // half starts as College for every school and is only ever changed by
+    // the one-time charter offer the first lab unlocks (see
+    // systems/events/eventSystem.ts).
+    self: {
+      name,
+      suffix: STARTING_INSTITUTION_SUFFIX,
+      universityCharterOffered: false,
+      reputation: BASE_STARTING_REPUTATION + preset.prestigeBonus + GENED_BUILDING_REPUTATION_BONUS,
+      schoolType,
+    },
     // Empty at founding: the first row lands at the end of year 1, when the
     // summer admissions interrupt resolves (see reducer.ts's
     // RESOLVE_ADMISSIONS), so every view reading it must handle a school
@@ -219,6 +256,13 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // Nothing celebrated and nothing fired yet; week 0 reads as "never"
     // (the clock's first real week is 1 — see eventData.ts's absoluteWeek).
     events: { pendingMilestones: [], lastMilestoneWeek: 0, lastDecisionWeek: 0, decisionHistory: {} },
+    // No labs at founding, so nothing produces research and no output can
+    // fire — the whole slice sits at zero until the first lab finishes
+    // (see systems/research/researchSystem.ts).
+    research: {
+      points: 0, lifetimePoints: 0, grants: 0, grantIncome: 0,
+      breakthroughs: 0, prizes: 0, lastOutputWeek: 0, pendingPrizes: [],
+    },
     candidates: initialCandidatePool(),
     started: true,
     hasEnteredRankings: false,

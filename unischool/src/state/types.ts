@@ -60,6 +60,17 @@ export interface Faculty {
   salary: number;      // current annual salary — recomputed from current stats + a separate seniority premium curve
   morale: number;     // 0..100
   courseSlots: number; // how many courses in `field` this hire can keep staffed at once — rolled at hire, grows slowly with tenure (see facultyData.ts's grownSlots). A course whose requiresFaculty is `field` occupies one slot in that field for as long as it stays 'developing' or 'done' (see techSystem.ts's canStartDevelopment) — offering more courses in a subject means hiring more (or more tenured) faculty in it.
+  // How many research prizes this person has been awarded (see
+  // systems/research/researchSystem.ts). Its own field rather than a bump
+  // to teaching/research, because teaching, research AND salary are all
+  // RECOMPUTED from potential + tenureWeeks on every single tick — a
+  // permanent post-prize bump written into any of those three would be
+  // erased the following week. Both the salary curve
+  // (facultyData.ts's facultySalary) and the research-output formula
+  // (researchData.ts's facultyResearchOutput) read this directly, so the
+  // premium survives every recomputation. 0 for everyone who has never
+  // won one, which is almost everyone.
+  acclaim: number;
   // Flavor/biographical fields — rolled once at generation, never mutated.
   // Nationality is disproportionately American regardless of name origin
   // (reflecting how diverse American faculty rosters actually are), with the
@@ -124,11 +135,11 @@ export interface Buildable {
 export interface BuildableEffects {
   capacityBonus: number;
   tuitionBonus: number;
-  researchRateBonus: number;
   applicantPoolBonus: number; // one-time bump to the applicant pool (see README's milestone chain)
   unlockIds: string[];  // force these Buildable ids to 'available', regardless of their own prereqs
 
   // --- live-read, every tick, never mutated into state (see above) ---
+  researchRateBonus: number; // added into a campus-wide multiplier on weekly research output (see systems/research/researchSystem.ts). Live-read, like upkeep: a lab that exists is research infrastructure every week it stands, not a one-off bump the week it opened. It MULTIPLIES output, it does not create it — a school with no lab of its own produces nothing however much equipment sits elsewhere on campus (see researchData.ts's lab gate)
   servesPopulation: number;    // how many students' worth of this need one instance covers, compared against s.students.capacity (needs scale with planned campus size, not today's enrollment)
   satisfactionAttribute: keyof SatisfactionAttributes; // which breakdown attribute servesPopulation/flatSatisfactionBonus feeds
   flatSatisfactionBonus: number; // added directly to the attribute score, NOT ratio/population-scaled (the quad: cheap, and its contribution doesn't shrink as the campus grows)
@@ -271,14 +282,68 @@ export interface Rival {
   momentum: number;     // hidden trend, makes rivals dynamic over decades
 }
 
+// ---------------------------------------------------------------------
+// RESEARCH (see README's "Research: the quiet second output"). A stock of
+// research points produced weekly by faculty, which occasionally converts
+// into one of three outputs. Deliberately AGGREGATE — one number for the
+// whole institution — rather than a per-school ledger: the "only a school
+// with a lab produces research" rule is a property of the PRODUCTION
+// function (researchData.ts's weeklyResearchPoints walks the roster
+// school by school and skips every school with no finished lab), not of
+// where the total is stored, so a per-school record would be extra state
+// that no rule actually needs. Everything here is a plain number, a plain
+// string or an array of flat records — the same JSON-round-trippable
+// shape rationale as `events` and `placements`.
+// ---------------------------------------------------------------------
+
+// One awarded research prize, queued for its celebration. The faculty
+// member's details are CAPTURED here rather than looked up when the modal
+// renders, so the celebration still says something true if the winner has
+// been dismissed in the weeks between the award and the quiet week it
+// finally fires on.
+export interface PrizeAward {
+  facultyId: string;
+  facultyName: string;
+  field: string;
+  prizeName: string;
+}
+
+export interface ResearchState {
+  points: number;          // the unspent stock. Grows weekly with lab-equipped faculty output; an output SPENDS its cost out of it (see researchData.ts's RESEARCH_OUTPUTS), which is what makes the rarer outputs need years of accumulation rather than luck
+  lifetimePoints: number;  // every point ever produced, never spent down — display only, so the Faculty tab can show the long arc rather than a stock that sawtooths
+  grants: number;          // research grants awarded so far
+  grantIncome: number;     // total cash those grants brought in — displayed in the Treasury, since a grant lands as a one-off rather than as a line of the weekly statement
+  breakthroughs: number;   // published breakthroughs. A monotone STOCK, and the whole of research's reach into prestige: prestigeSystem.ts's researchScore reads this (never s.self.reputation directly — see that file)
+  prizes: number;          // prizes awarded; counts for a heavier share of the same capped prestige input
+  lastOutputWeek: number;  // absolute week the last research output landed; 0 = never. The cooldown half of the cadence, exactly like events.lastDecisionWeek
+  pendingPrizes: PrizeAward[]; // awarded but not yet celebrated — a QUEUE for the same reason events.pendingMilestones is one: the week a prize lands may already belong to admissions or the U.S. News report, and only one interrupt can be pending at a time
+}
+
 // Private/public is the only starting fork (see README's "Startup and
 // school type") — everything else about the school emerges from play.
 export type SchoolType = 'private' | 'public';
 
 export interface University {
+  // The institution's name in two halves. The player writes only the
+  // first at founding ("Blackmoor"); the second is fixed institutional
+  // form, and starts as "College" for every school. Completing the first
+  // lab offers a one-time promotion to "University" (see the 'charter'
+  // interrupt in systems/events/eventSystem.ts) — the whole of that
+  // feature is this string plus the flag below. Kept as two fields rather
+  // than one formatted string so nothing ever has to parse a name to
+  // decide what may be renamed.
   name: string;
+  suffix: string;       // "College", then "University" if the charter is taken. May be empty on a run resumed from a save written before the split (see persistence.ts's v6 -> v7)
+  universityCharterOffered: boolean; // the one-time offer has been made — set whether it was accepted or declined, so it never comes back around
   reputation: number;   // player's own rank metric
   schoolType: SchoolType;
+}
+
+// The institution's full display name. The one place the two halves are
+// joined, so a school resumed from a pre-split save (empty suffix) reads
+// exactly as it always did rather than picking up a stray space.
+export function institutionName(u: University): string {
+  return u.suffix ? `${u.name} ${u.suffix}` : u.name;
 }
 
 // One year's worth of the school's headline numbers, appended once a year
@@ -320,6 +385,7 @@ export interface GameState {
   gameOver: boolean;
   pendingInterrupt: PendingInterrupt | null; // set => clock halts until resolved
   events: EventState;            // cadence bookkeeping for milestone celebrations and authored decision events (see EventState above)
+  research: ResearchState;       // the research stock, what it has produced, and the prize queue (see ResearchState above)
   candidates: Faculty[];         // the standing academic job market: a long, always-churning list of people available to appoint right now. facultySystem.ts's tickCandidatePool ages every listing, withdraws the ones that have been up too long, and tops the pool back up to CANDIDATE_POOL_TARGET each week — there is no posting, no fee, and no wait (see facultyData.ts's churn block)
   started: boolean;              // false only during the pre-game startup screen (name + school type)
   hasEnteredRankings: boolean;   // true once the one-time "you've entered the top 50" reveal has fired

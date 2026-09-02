@@ -292,6 +292,16 @@ const LAB_GATED_MAJOR_PREFIXES = ['CHEM', 'BIOL', 'MECH', 'ELEC', 'CIVE', 'AERO'
 const LAB_COST = 700_000;
 const LAB_WEEKS = 16;
 const LAB_UPKEEP_PER_WEEK = 1_400; // ~$73k/yr — specialized equipment is expensive to keep running, and a lab serves one major's cohort rather than the whole campus
+// A lab is now the gate on RESEARCH as well as on tier-3 coursework (see
+// README's "Research"): a school with no finished lab produces no research
+// at all, and the first lab anywhere on campus is also what offers the
+// College -> University charter. On top of that gate, each lab adds this
+// much to the campus-wide multiplier on weekly research output — read live
+// off effects.researchRateBonus, the same contract upkeep follows, so the
+// contribution tracks what is actually standing rather than what was once
+// completed. Small per lab on purpose: the gate is the decision, the
+// multiplier is the reward for building several.
+const LAB_RESEARCH_RATE_BONUS = 0.12;
 function labId(prefix: string): string {
   return `LAB-${prefix}`;
 }
@@ -435,7 +445,10 @@ export function initialTech(): Buildable[] {
           // an early-game player with cash burning a hole falls into.
           prereqs: [t1Id, school.buildingId],
           status: 'locked',
-          effects: { upkeepPerWeek: LAB_UPKEEP_PER_WEEK },
+          effects: {
+            upkeepPerWeek: LAB_UPKEEP_PER_WEEK,
+            researchRateBonus: LAB_RESEARCH_RATE_BONUS,
+          },
         });
       }
 
@@ -542,6 +555,56 @@ export function milestoneSchools(): MilestoneSchool[] {
       tier3Ids: [5, 6, 7, 8].map((i) => nodeId(major.prefix, NUMS[i])),
     })),
   }));
+}
+
+// Research metadata (school -> its lab Buildables -> the faculty fields
+// that teach in it), consumed by researchData.ts's weeklyResearchPoints.
+// A third independent read of the same seed data, for the same reason
+// milestoneSchools() is: the engine has no notion of "school", so the one
+// feature that needs it derives it here rather than growing a field on
+// Buildable.
+//
+// WHY FIELDS AND NOT COURSES. Research is produced by PEOPLE, and a
+// faculty member's only structural tie to a school is the field they were
+// hired into — so "who researches at a school with a lab" is answered by
+// walking each school's majors back to the field that staffs them. A
+// field that staffs majors in two schools (Chemistry teaches Chemical
+// Engineering AND Pre-Med; Operations Research teaches Supply Chain AND
+// Industrial Engineering) therefore appears under both, and a hire in it
+// researches as soon as EITHER of those schools has a lab. That is the
+// intended reading of "faculty in a college that has a lab": the person
+// has a lab to work in.
+//
+// `labIds` is empty for the four schools with no lab-gated majors
+// (Business, Arts & Media, Social Sciences & Humanities, Computer
+// Science) and for General Studies. Those schools produce no research
+// however they are staffed — see the note in README's "Research" on the
+// tension that creates.
+export interface ResearchSchool {
+  schoolName: string;
+  labIds: string[];  // lab Buildable ids belonging to this school's majors; empty means this school can never produce research
+  fields: string[];  // every Faculty field that teaches in this school (deduplicated)
+}
+
+export function researchSchools(): ResearchSchool[] {
+  return SCHOOLS.map((school) => {
+    const fields = new Set<string>(school.majors.map((major) => major.field));
+    // General Studies is staffed per-COURSE rather than per-major (see
+    // GENED_FIELDS), so its fields come from the core it actually offers.
+    if (school.core) {
+      for (const [code] of school.core) {
+        const field = GENED_FIELDS[code.replace(/\s/g, '')];
+        if (field) fields.add(field);
+      }
+    }
+    return {
+      schoolName: school.name,
+      labIds: school.majors
+        .filter((major) => LAB_GATED_MAJOR_PREFIXES.includes(major.prefix))
+        .map((major) => labId(major.prefix)),
+      fields: [...fields].sort(),
+    };
+  });
 }
 
 // Progressive-discovery metadata for the Curriculum tab's course-cell view

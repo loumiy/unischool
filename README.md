@@ -161,6 +161,9 @@ way toward a target computed from durable inputs — see
   enrolled that cycle.
 - **faculty quality** — the roster's average current teaching/research, which
   rises with retention.
+- **research standing** — the breakthroughs and prizes the school's labs have
+  produced (see "Research" below). A monotone count of the same shape as
+  curriculum breadth, weighted small and clamped like every other input.
 - **campus life** and **financial resources per student** (endowment measured
   against capacity) — two smaller inputs; the second is what the late-game
   endowment campaigns buy.
@@ -303,6 +306,11 @@ Everything that needs to stop time rides on this one mechanism:
   faculty roster and hiring pool — and never write prestige directly, because
   prestige is a stock (see above). Every event is guaranteed to offer at least
   one zero-cost choice, so no event can strand a school that has no money.
+- **A research prize** — the one research output momentous enough to stop the
+  clock (see "Research" below). Grants and breakthroughs never do.
+- **The university charter** — a single question, asked once, the first quiet
+  week after any lab finishes: keep the "College" the school opened as, or
+  become a "University". Cosmetic in full.
 - **Later:** the tutorial sequence.
 
 Build this once, generically. Do not bolt the report, admissions, or tutorial on
@@ -333,8 +341,10 @@ is the touchpoint.
 
 ## Startup and school type
 
-A **startup screen** lets the player **name the university** before play. The MVP
-also asks one structural question: **private vs. public**. That single choice
+A **startup screen** lets the player **name the school** before play — the
+player's half of the name only; every school opens as a *College* (see "College,
+and University" above). The MVP also asks one structural question: **private vs.
+public**. That single choice
 sets starting conditions — starting cash, prestige bonuses, applicant-pool size,
 tuition ceiling, any baseline funding — expressed purely as tunable constants.
 
@@ -395,6 +405,76 @@ puts someone on the list only every few months, so specialization is a choice
 forced by what you can afford and who happens to be available that week, not
 by losing people you already have.
 
+## Research: the quiet second output
+
+Research is **mostly-silent flavour, not a second decision stream**. The
+mid-game stays a build-and-price game; research runs underneath it, resolving
+into systems that already exist.
+
+**Only a school with a finished lab does research at all.** Labs
+(`facilityType: 'lab'`, authored in `techData.ts` for nine lab-heavy majors)
+already require their school's building and their major's entry course, so the
+full chain is school building -> lab -> research. Faculty are tied to a school
+through the field they were hired into, so a hire researches once *any* school
+their field teaches in has a lab — and a school with no lab contributes exactly
+zero however many professors it employs. That invariant is the feature; keep it
+true through any refactor.
+
+**Research points are one aggregate stock** (`s.research.points`), not a
+per-school ledger. The "only a school with a lab produces" rule lives in the
+production function (`researchData.ts`'s `weeklyResearchPoints` walks the roster
+school by school and skips every school with no finished lab), not in where the
+total is kept, so a per-school record would be state no rule actually needs.
+Weekly output is weighted by **quality and seniority** — the research stat, a
+tenure premium on its own slower curve, and any prizes won — and multiplied
+campus-wide by `effects.researchRateBonus`, live-read off every finished
+Buildable that carries one (each lab, plus the research library). That effect
+field is the hook: it multiplies output, it never creates it.
+
+Every so often — a weekly chance that **rises with the banked stock**, floored by
+a cooldown, the same two-dial cadence machinery the decision events use — the
+stock converts into one of three outputs, **spending** its cost:
+
+- **Grants** -> cash. Silent: a log line, straight into the operating account.
+  Sized in **weeks of opex**, like the decision-event table, so the figure scales
+  across a run spanning four orders of magnitude of budget.
+- **Breakthroughs** -> prestige, and **only through a capped input**. A
+  breakthrough increments a count that `prestigeSystem.ts`'s `researchScore`
+  reads as one clamped 0..1 input among seven. It never writes
+  `s.self.reputation` — that would be exactly the completion-bonus flow the
+  prestige model exists to forbid (the decision-events pass refused events any
+  prestige access for the same reason). Weighted small on purpose: a lab-heavy,
+  curriculum-thin school can move its prestige target by at most the research
+  weight, nowhere near enough to outrun the breadth term.
+- **A prize** -> the momentous case, and the only one that stops the clock. A
+  named faculty member gains a permanent honor, a permanent boost to their own
+  research output and to the school's prestige input, and a permanently higher
+  salary. Rare twice over: the most expensive output *and* the least likely of
+  the three even once affordable.
+
+The prize needs the one new `Faculty` field, **`acclaim`**. Teaching, research
+and salary are all recomputed from potential + tenure on *every* tick, so a
+permanent post-prize bump cannot hang on any of them — it would be erased the
+following week. Both the salary curve and the research-output formula read
+`acclaim` as an input instead.
+
+**A known tension:** only Engineering and Health Science have lab-gated majors,
+so those are the only two schools that can ever produce research. A run
+concentrated in Business, Arts & Media, Social Sciences or Computer Science
+generates none at all, forever. Widening that is a one-line data change
+(`techData.ts`'s `LAB_GATED_MAJOR_PREFIXES`), deliberately not taken here.
+
+## College, and University
+
+A school opens as **"<Name> College"**. The player writes only the first half at
+founding; the word after it is fixed institutional form. When the **first lab**
+finishes, a one-time interrupt offers to promote it to **"<Name> University"** —
+the same lab gate research hangs off, read through the same helper so the two
+can never drift apart. It is a naming change and nothing else: a `suffix` string
+plus a flag recording that the question has been asked, joined for display by
+`institutionName()`. No system reads the name, and either answer closes the
+question for good.
+
 ## Save / load
 
 The game is measured in hours; the annual report and annual admissions make a
@@ -433,7 +513,11 @@ at the re-specialised faculty-field taxonomy, which renamed and split the
 departments a run is staffed against without changing the run itself; v5 -> v6
 dropped the job-posting state and gave every hire the candidate market's
 `weeksListed` clock, changing how faculty are acquired but not the roster,
-the economy or the curriculum);
+the economy or the curriculum; v6 -> v7 added the `research` slice, gave
+every hire the `acclaim` count the salary curve now multiplies by, and split
+the institution's name into the player's half plus a fixed suffix — none of
+which changes the school a resumed run describes, so it carries forward and
+simply starts producing research the moment it has a lab);
 discard when it doesn't (v1 and v2 predate an economy rebalance, so those runs
 would be describing a different game).
 
@@ -487,6 +571,8 @@ any refactor.
   trainers as faculty-like individuals, facilities as Buildables, a second
   ranking axis. Deferred deliberately; it rides on Buildables + hiring + rivals
   all being mature.
+- Research depth: labs for the schools that have none, so a non-STEM run has a
+  research path at all (see "Research"'s known tension).
 - Campus life depth, and more authored decision events on top of the ten that
   now exist (see "Interrupts" above) — including events that reach systems the
   first pass deliberately left alone.
