@@ -3,6 +3,7 @@ import type { Buildable, GameState } from '../state/types';
 import { discoverySchools } from '../data/techData';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import HelpHint from '../components/HelpHint';
+import { ProgressRing } from '../components/Progress';
 
 // ---------------------------------------------------------------------
 // Progressive discovery: the curriculum is not laid out whole. What's
@@ -29,11 +30,21 @@ import HelpHint from '../components/HelpHint';
 // a cross-major prereq bridge still unmet), never "not yet discovered".
 // ---------------------------------------------------------------------
 
+// Ring sizes: the catalogue's own completion is the panel's headline
+// figure, a school section's is a marginal note next to its title.
+const CATALOG_RING_SIZE = 46;
+const SECTION_RING_SIZE = 26;
+
 interface DiscoverySection {
   key: string;
   label: string | null; // null = the top-level ungrouped pool
   courseIds: string[];
   subgroups: Array<{ key: string; label: string; courseIds: string[] }>;
+  // Every course id this school will ever own (all tiers of all its
+  // majors), whether revealed yet or not — the denominator of the
+  // section head's completion ring. Empty for the pool, which has no
+  // head and must not advertise a total (see the pool's comment below).
+  schoolCourseIds: string[];
 }
 
 // The gen-ed core (General Studies' coreIds — no other school has any) is
@@ -47,18 +58,19 @@ function isGenEdComplete(s: GameState): boolean {
 
 function buildSections(s: GameState, genEdComplete: boolean): DiscoverySection[] {
   const findStatus = (id: string) => s.tech.find((t) => t.id === id)?.status;
-  const poolIds: string[] = [];
+  const coreIds: string[] = [];
+  const looseTier1Ids: string[] = [];
   const sections: DiscoverySection[] = [];
 
   for (const school of discoverySchools()) {
-    poolIds.push(...school.coreIds); // gen-ed core (General Studies only) — never leaves the pool
+    coreIds.push(...school.coreIds); // gen-ed core (General Studies only) — never leaves the pool
 
     if (school.majors.length === 0) continue; // nothing further to discover (General Studies has no majors)
     if (!genEdComplete) continue; // every major's tier-1 waits on the shared gen-ed core
 
     const schoolBuilt = findStatus(school.buildingId) === 'done';
     if (!schoolBuilt) {
-      for (const major of school.majors) poolIds.push(major.tier1Id);
+      for (const major of school.majors) looseTier1Ids.push(major.tier1Id);
       continue;
     }
 
@@ -76,10 +88,25 @@ function buildSections(s: GameState, genEdComplete: boolean): DiscoverySection[]
         sharedIds.push(major.tier1Id, ...major.tier2Ids);
       }
     }
-    sections.push({ key: school.buildingId, label: school.name, courseIds: sharedIds, subgroups });
+    sections.push({
+      key: school.buildingId,
+      label: school.name,
+      courseIds: sharedIds,
+      subgroups,
+      schoolCourseIds: school.majors.flatMap((m) => [m.tier1Id, ...m.tier2Ids, ...m.tier3Ids]),
+    });
   }
 
-  return [{ key: 'pool', label: null, courseIds: poolIds, subgroups: [] }, ...sections];
+  // The pool is deliberately ordered core-first, then the loose tier-1s
+  // SORTED BY COURSE CODE rather than left in seed order. Seed order walks
+  // school by school, which quietly clustered each school's six entry
+  // courses into adjacent cells — a structural hint the progressive-
+  // discovery design does not intend to give away this early. Sorting by
+  // the code the player can already read on the face of the cell scatters
+  // those neighbours and adds nothing that wasn't already on screen.
+  const poolIds = [...coreIds, ...looseTier1Ids.sort((a, b) => a.localeCompare(b))];
+
+  return [{ key: 'pool', label: null, courseIds: poolIds, subgroups: [], schoolCourseIds: [] }, ...sections];
 }
 
 type CellState = 'locked' | 'blocked' | 'available' | 'developing' | 'done';
@@ -93,24 +120,46 @@ function cellState(s: GameState, t: Buildable): CellState {
 
 // One course cell: shows its course code (e.g. "FINA 101"), fills brass
 // when done, pulses while developing, and is directly clickable to start
-// development when eligible — the scroll-through list this replaces is
-// gone. A hover tooltip carries everything else: full name, description,
-// prereqs (met/unmet), the faculty gate (kept visually distinct from
-// prereqs), cost, and duration.
+// development when eligible. The code is split into department and number
+// so a wall of forty-odd codes reads as a column of departments with a
+// number attached, rather than eight undifferentiated characters.
+//
+// Two things are drawn ON the cell rather than left to hover: the fill
+// bar tracking how far a developing course has run, and a dot marking a
+// course whose faculty field currently has no free slot (see the legend
+// under the panel head). Everything else stays in the tooltip: full name,
+// description, prereqs (met/unmet), the faculty gate, cost, and duration.
+//
+// The dot is a neutral marker, NOT the field's initial: which field a
+// course needs is already in its tooltip, but same-field cells lighting up
+// together with a letter on them would draw the eye to clusters that
+// correlate with school membership the pool is not meant to reveal yet.
 function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => void; t: Buildable; lookup: Map<string, Buildable> }) {
   const state = cellState(s, t);
   const code = t.name.split(' · ')[0];
+  const spaceAt = code.lastIndexOf(' ');
+  const dept = spaceAt === -1 ? code : code.slice(0, spaceAt);
+  const num = spaceAt === -1 ? '' : code.slice(spaceAt + 1);
   const missingFaculty = !!(t.requiresFaculty && !hasFreeFacultySlot(s, t.requiresFaculty));
+  // The gate is only news while the course is still ahead of the player:
+  // a developing or finished course already holds its slot.
+  const showGateDot = missingFaculty && state !== 'developing' && state !== 'done';
+
+  const weeksLeft = s.developing[t.id] ?? 0;
+  const elapsed = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
 
   // Same order the build rail uses: price first, then the faculty gate.
   // `state` is derived from canStartDevelopment (see cellState above), so
-  // the reason always explains the actual refusal.
+  // the reason always explains the actual refusal. Kept to a fragment:
+  // the cost is on the meta line right above it and the faculty line
+  // above that already names the field, so the reason only has to say
+  // which of the two is in the way, and by how much.
   const shortfall = t.cost - s.finance.cash;
   const blockedReason = state === 'blocked'
     ? shortfall > 0
-      ? `Not enough cash — $${Math.ceil(shortfall).toLocaleString()} short of the $${t.cost.toLocaleString()} it costs.`
+      ? `$${Math.ceil(shortfall).toLocaleString()} short.`
       : missingFaculty
-        ? `No free ${t.requiresFaculty} faculty slots — hire more or more senior ${t.requiresFaculty} faculty on the Campus tab.`
+        ? `No free ${t.requiresFaculty} slot.`
         : undefined
     : undefined;
 
@@ -122,7 +171,16 @@ function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => v
         disabled={state !== 'available'}
         onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: t.id })}
       >
-        {code}
+        <span className="cell-code">
+          <span className="cell-code-dept">{dept}</span>
+          {num && <span className="cell-code-num">{num}</span>}
+        </span>
+        {showGateDot && <span className="cell-gate-dot" aria-hidden="true" />}
+        {state === 'developing' && (
+          <span className="cell-progress" aria-hidden="true">
+            <span className="cell-progress-fill" style={{ width: `${Math.round(elapsed * 100)}%` }} />
+          </span>
+        )}
       </button>
       <div className="course-tooltip" role="tooltip">
         <div className="course-tooltip-name">{t.name}</div>
@@ -145,7 +203,10 @@ function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => v
             {missingFaculty ? '✗' : '✓'} Faculty: {t.requiresFaculty}
           </div>
         )}
-        <div className="course-tooltip-meta">${t.cost.toLocaleString()} · {t.duration}w</div>
+        <div className="course-tooltip-meta">
+          ${t.cost.toLocaleString()} · {t.duration}w
+          {state === 'developing' && ` · ${weeksLeft}w left`}
+        </div>
         {blockedReason && <p className="course-tooltip-reason">{blockedReason}</p>}
       </div>
     </div>
@@ -163,10 +224,34 @@ function CellGrid({ s, act, ids, lookup }: { s: GameState; act: (a: Action) => v
   );
 }
 
+// The one-line key under the panel head. It explains the four cell states
+// and the faculty-gate dot in the same breath, so the two things the
+// player would otherwise have to hover for — what a shade means, and why a
+// cell won't start — are both answered on sight.
+function CellLegend() {
+  return (
+    <p className="cell-legend">
+      <span className="cell-legend-item"><span className="cell-legend-swatch done" />done</span>
+      <span className="cell-legend-item"><span className="cell-legend-swatch developing" />developing</span>
+      <span className="cell-legend-item"><span className="cell-legend-swatch available" />ready to start</span>
+      <span className="cell-legend-item"><span className="cell-legend-swatch blocked" />blocked</span>
+      <span className="cell-legend-item"><span className="cell-legend-dot" />no free faculty slot in its field — hire to start it</span>
+    </p>
+  );
+}
+
+// Completion of an arbitrary set of course ids. Used for the catalogue as
+// a whole and for one school's own curriculum.
+function completion(s: GameState, ids: string[]): { done: number; total: number; fraction: number } {
+  const done = ids.filter((id) => s.tech.find((t) => t.id === id)?.status === 'done').length;
+  return { done, total: ids.length, fraction: ids.length > 0 ? done / ids.length : 0 };
+}
+
 export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const courses = s.tech.filter((t) => t.kind === 'course');
   const doneCourses = courses.filter((t) => t.status === 'done').length;
-  const catalogPct = Math.round((doneCourses / courses.length) * 100);
+  const catalogFraction = courses.length > 0 ? doneCourses / courses.length : 0;
+  const catalogPct = Math.round(catalogFraction * 100);
 
   const lookup = new Map(s.tech.map((t) => [t.id, t]));
   const genEdComplete = isGenEdComplete(s);
@@ -178,35 +263,62 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
       <section className="panel curriculum-panel">
         <div className="panel-head">
           <h2>The Curriculum</h2>
-          <span className="stat">{doneCourses}/{courses.length} done · {catalogPct}%</span>
-          <HelpHint
-            align="end"
-            text={genEdComplete
-              ? "Open to all incoming students — not yet organized by school. Complete a school's entry courses to raise its building."
-              : 'The general-education core — every major waits on it. Complete it to unlock every major\'s entry course.'}
-          />
+          <span className="panel-head-figure">
+            <span className="progress-figure">
+              <ProgressRing
+                fraction={catalogFraction}
+                size={CATALOG_RING_SIZE}
+                center={`${catalogPct}%`}
+                title={`${doneCourses} of ${courses.length} courses developed`}
+              />
+              <span className="stat">{doneCourses} / {courses.length}<br />developed</span>
+            </span>
+            <HelpHint
+              align="end"
+              text={genEdComplete
+                ? "Open to all incoming students — not yet organized by school. Complete a school's entry courses to raise its building."
+                : 'The general-education core — every major waits on it. Complete it to unlock every major\'s entry course.'}
+            />
+          </span>
         </div>
+        <CellLegend />
         {s.finance.cash < 0 && (
           <p className="stall-note">Cash is negative — the school is running an operating deficit, so nothing can be started until the balance recovers.</p>
         )}
 
         <div className="curriculum-scroll">
+          {/* The pool carries no completion indicator of its own on
+              purpose: a "x / 42" here would count the majors that exist
+              before the player has met any of them. */}
           <div className="discovery-pool">
             <CellGrid s={s} act={act} ids={pool.courseIds} lookup={lookup} />
           </div>
 
-          {schoolSections.map((section) => (
-            <div key={section.key} className="discovery-section">
-              <div className="discovery-section-head"><h3>School of {section.label}</h3></div>
-              {section.courseIds.length > 0 && <CellGrid s={s} act={act} ids={section.courseIds} lookup={lookup} />}
-              {section.subgroups.map((sub) => (
-                <div key={sub.key} className="discovery-subgroup">
-                  <h4>{sub.label}</h4>
-                  <CellGrid s={s} act={act} ids={sub.courseIds} lookup={lookup} />
+          {schoolSections.map((section) => {
+            const school = completion(s, section.schoolCourseIds);
+            return (
+              <div key={section.key} className="discovery-section">
+                <div className="discovery-section-head">
+                  <h3>School of {section.label}</h3>
+                  <span className="progress-figure">
+                    <ProgressRing
+                      fraction={school.fraction}
+                      size={SECTION_RING_SIZE}
+                      title={`${school.done} of ${school.total} ${section.label} courses developed`}
+                    />
+                    <span className="stat">{school.done} / {school.total}</span>
+                  </span>
                 </div>
-              ))}
-            </div>
-          ))}
+                {section.courseIds.length > 0 && <CellGrid s={s} act={act} ids={section.courseIds} lookup={lookup} />}
+                {section.subgroups.map((sub) => (
+                  <div key={sub.key} className="discovery-subgroup">
+                    <h4>{sub.label}</h4>
+                    <CellGrid s={s} act={act} ids={sub.courseIds} lookup={lookup} />
+                  </div>
+                ))}
+              </div>
+            );
+          })}
         </div>
       </section>
     </div>

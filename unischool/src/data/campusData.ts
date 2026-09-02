@@ -52,6 +52,10 @@ const DORM_COST_GROWTH = 1.37;       // costs outgrow capacity — the late-game
 const DORM_BASE_WEEKS = 14;          // Dorm II's build time
 const DORM_WEEKS_GROWTH = 1.05;      // build time grows slowly — money, not time, is the late-game bottleneck
 
+// One name per hall in the chain — the starter plus every one of
+// ADDITIONAL_DORM_COUNT — so no built dorm ever falls back to the
+// generated `Dorm N` below (the build panel lists these by name once the
+// Housing group collapses its built rows).
 const DORM_NAMES = [
   'Founders Hall', 'Lakeside Hall', 'Riverside Commons', 'Hillcrest Hall',
   'Meridian Tower', 'Cascade Hall', 'Summit Commons', 'Vanguard Hall',
