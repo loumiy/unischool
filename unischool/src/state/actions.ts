@@ -5,7 +5,7 @@ import { initialTech, GENED_BUILDING_REPUTATION_BONUS } from '../data/techData';
 import { initialDorms, STARTING_DORM_CAPACITY } from '../data/campusData';
 import { initialFacilities } from '../data/facilitiesData';
 import { initialRivals } from '../data/rivalData';
-import { initialCandidates, facultySalary } from '../data/facultyData';
+import { initialCandidatePool, facultySalary } from '../data/facultyData';
 import {
   SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION, STARTING_ENDOWMENT, STARTING_TUITION,
 } from '../data/schoolTypeData';
@@ -16,20 +16,14 @@ export type Action =
   | { type: 'TICK' }                                   // advance one week
   | { type: 'START_GAME'; name: string; schoolType: SchoolType } // leaves the startup screen, founds the university
   | { type: 'START_DEVELOPMENT'; nodeId: string }
+  // Appoints someone straight off the standing candidate list (see
+  // facultyData.ts's churn block): they move from s.candidates to
+  // s.faculty this instant, with no fee and no waiting period. The only
+  // thing that can stop a hire is nobody in that field being on the
+  // market this week — availability IS the recruiting constraint now, and
+  // the money constraint is the salary they start drawing immediately.
   | { type: 'HIRE_FACULTY'; facultyId: string }
   | { type: 'FIRE_FACULTY'; facultyId: string }
-  // Opens a job posting for `field` (see facultyData.ts's JOB_POSTING_COST/
-  // rollPostingWeeks and facultySystem.ts's tickOpenPostings): charges the
-  // fee immediately and starts a countdown; when it resolves, exactly one
-  // candidate in that field is added to s.candidates. Rejected by the
-  // reducer if a posting for that field is already open, or the school
-  // can't afford it.
-  | { type: 'POST_JOB'; field: string }
-  // Posts an opening in every field that doesn't already have one open,
-  // for as long as cash holds out — same $JOB_POSTING_COST-per-field rate
-  // and one-open-posting-per-field rule as POST_JOB, just fired for every
-  // field in one action instead of one at a time.
-  | { type: 'POST_ALL_JOBS' }
   // Sites a finished building/dorm/facility on a campus-map tile (see
   // state/campusMap.ts for the placement rules). Visual only: it
   // grants nothing, and a building's effects never depend on it. Rejected
@@ -110,7 +104,6 @@ export function createPreStartState(): GameState {
     pendingInterrupt: null,
     events: { pendingMilestones: [], lastMilestoneWeek: 0, lastDecisionWeek: 0, decisionHistory: {} },
     candidates: [],
-    openPostings: {},
     started: false,
     hasEnteredRankings: false,
     milestones: {},
@@ -175,31 +168,31 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     faculty: [
       {
         id: 'f1', name: 'Dr. Alma Reyes', field: 'Physics', teaching: 72, research: 65, teachingPotential: 82, researchPotential: 78,
-        tenureWeeks: 0, salary: facultySalary(72, 65, 0), morale: 80, courseSlots: 1,
+        tenureWeeks: 0, weeksListed: 0, salary: facultySalary(72, 65, 0), morale: 80, courseSlots: 1,
         nationality: 'United States', flag: '🇺🇸',
         bio: 'Earned a doctorate in Physics at Ravensmoor Institute; research centers on astrophysical modeling.',
       },
       {
         id: 'f2', name: 'Dr. John Okafor', field: 'History', teaching: 80, research: 55, teachingPotential: 88, researchPotential: 68,
-        tenureWeeks: 0, salary: facultySalary(80, 55, 0), morale: 78, courseSlots: 1,
+        tenureWeeks: 0, weeksListed: 0, salary: facultySalary(80, 55, 0), morale: 78, courseSlots: 1,
         nationality: 'Nigeria', flag: '🇳🇬',
         bio: 'Earned a doctorate in History at the University of Calderwood; research centers on maritime trade networks.',
       },
       {
         id: 'f3', name: 'Dr. Grace Bennett', field: 'English', teaching: 78, research: 60, teachingPotential: 85, researchPotential: 72,
-        tenureWeeks: 0, salary: facultySalary(78, 60, 0), morale: 76, courseSlots: 2,
+        tenureWeeks: 0, weeksListed: 0, salary: facultySalary(78, 60, 0), morale: 76, courseSlots: 2,
         nationality: 'United Kingdom', flag: '🇬🇧',
         bio: 'Earned a doctorate in English at Marchmont University; research centers on rhetoric and composition.',
       },
       {
         id: 'f4', name: 'Dr. Priya Iyer', field: 'Mathematics', teaching: 70, research: 68, teachingPotential: 80, researchPotential: 79,
-        tenureWeeks: 0, salary: facultySalary(70, 68, 0), morale: 77, courseSlots: 1,
+        tenureWeeks: 0, weeksListed: 0, salary: facultySalary(70, 68, 0), morale: 77, courseSlots: 1,
         nationality: 'India', flag: '🇮🇳',
         bio: 'Earned a doctorate in Mathematics at Ironwood University; research centers on numerical analysis.',
       },
       {
         id: 'f5', name: 'Dr. Elena Novak', field: 'Philosophy', teaching: 75, research: 62, teachingPotential: 83, researchPotential: 71,
-        tenureWeeks: 0, salary: facultySalary(75, 62, 0), morale: 79, courseSlots: 1,
+        tenureWeeks: 0, weeksListed: 0, salary: facultySalary(75, 62, 0), morale: 79, courseSlots: 1,
         nationality: 'Poland', flag: '🇵🇱',
         bio: 'Earned a doctorate in Philosophy at Amberfield University; research centers on ethics and moral philosophy.',
       },
@@ -226,8 +219,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // Nothing celebrated and nothing fired yet; week 0 reads as "never"
     // (the clock's first real week is 1 — see eventData.ts's absoluteWeek).
     events: { pendingMilestones: [], lastMilestoneWeek: 0, lastDecisionWeek: 0, decisionHistory: {} },
-    candidates: initialCandidates(),
-    openPostings: {},
+    candidates: initialCandidatePool(),
     started: true,
     hasEnteredRankings: false,
     milestones: {},

@@ -1,7 +1,7 @@
 import type { GameState, Placement } from './types';
 import { footprintFits, footprintIsClear, isPlaceableKind } from './campusMap';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from './types';
-import { LEGACY_FIELD_RENAMES } from '../data/facultyData';
+import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES } from '../data/facultyData';
 import { initialTech } from '../data/techData';
 
 // ---------------------------------------------------------------------
@@ -12,7 +12,7 @@ import { initialTech } from '../data/techData';
 //
 // That is only viable because GameState is already plain data — no
 // functions, no Dates, no Maps/Sets, no object references between slices
-// (see the shape notes on `placements`, `developing`, `openPostings` and
+// (see the shape notes on `placements`, `developing`, `candidates` and
 // `YearSnapshot` in types.ts). Every field survives a JSON round trip
 // untouched, so there is no per-field serializer to write and none to keep
 // in sync as the state grows. Keep it that way: anything added to
@@ -22,8 +22,11 @@ import { initialTech } from '../data/techData';
 // the shared state, called from the engine, in the same spirit as
 // campusMap.ts and history.ts.
 //
-// Size: a newly founded university serializes to ~121 KiB (397 Buildables
-// with descriptions, 55 rivals, the founding roster). A decades-long run
+// Size: a newly founded university serializes to ~145 KiB (397 Buildables
+// with descriptions, 55 rivals, the founding roster, and the 30-listing
+// candidate market — ~24 KiB of names and bios that is REPLACED rather
+// than accumulated, since the pool is held at CANDIDATE_POOL_TARGET
+// forever). A decades-long run
 // adds only bounded amounts on top — one small YearSnapshot per year, a
 // log capped at LOG_CAP entries, a roster in the dozens — so a mature save
 // stays in the low hundreds of KiB, comfortably inside the ~5 MB
@@ -68,7 +71,15 @@ const SAVE_KEY = 'unischool.save';
 // faculty in fields nothing can be hired into and courses gated on fields
 // no longer supplied. Recoverable rather than discardable: it is the same
 // school with its departments renamed, so it is migrated, not dropped.
-export const SAVE_VERSION = 5;
+// v6: recruiting stopped being a post-and-wait errand and became a
+// standing, churning candidate market. `openPostings` is gone from
+// GameState entirely, and every Faculty gained a required `weeksListed`
+// (the pool's clock, mirroring tenureWeeks) that a v5 save has on nobody —
+// an un-migrated v5 run would increment `undefined` on every listing and
+// age out the whole pool on the first tick. Recoverable, and for the same
+// reason as v5: the economy, the curriculum and the roster are untouched,
+// only the way faculty are ACQUIRED changed, so a run carries forward.
+export const SAVE_VERSION = 6;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -115,8 +126,24 @@ export function clearSave(): void {
 //
 // Keyed on the version being migrated FROM, per the README's note on where
 // a migration path belongs.
+//
+// A migration runs on a state in the OLD shape, which by definition is not
+// the current GameState — fields it still has may since have been removed.
+// LegacyGameState below is how those are addressed without weakening the
+// live type: it is GameState plus the removed fields, marked optional, so
+// each step can read and clear what its own version actually had. Anything
+// added here should be deleted again by the migration that removes it, so
+// the list stays a record of what has been dropped rather than growing
+// forever.
 // ---------------------------------------------------------------------
-const MIGRATIONS: Record<number, (state: GameState) => void> = {
+interface LegacyGameState extends GameState {
+  // Removed in v6, when job postings gave way to the standing candidate
+  // market: Faculty `field` -> weeks remaining until that posting's
+  // candidate arrived.
+  openPostings?: Record<string, number>;
+}
+
+const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   // v3 -> v4: placements gained a footprint. A placement written before
   // footprints existed covered exactly one tile, which is precisely a 1x1,
   // so this is a pure fill-in — no layout moves and nothing is dropped.
@@ -175,13 +202,42 @@ const MIGRATIONS: Record<number, (state: GameState) => void> = {
 
     // At most one posting per field, so two old fields collapsing into one
     // new department keeps the posting that resolves soonest rather than
-    // silently dropping one of the two the player paid for.
+    // silently dropping one of the two the player paid for. (v6 drops
+    // postings entirely a step later; this still runs because each
+    // migration's job is to produce a valid save at ITS OWN next version,
+    // not to guess what a later one will throw away.)
     const postings: Record<string, number> = {};
     for (const [field, weeksLeft] of Object.entries(state.openPostings ?? {})) {
       const next = liveField(field);
       postings[next] = next in postings ? Math.min(postings[next], weeksLeft) : weeksLeft;
     }
     state.openPostings = postings;
+  },
+
+  // v5 -> v6: job postings out, standing candidate market in.
+  //
+  // An in-flight posting cannot be carried forward — there is nothing left
+  // to carry it into — so `openPostings` is simply dropped, and with it any
+  // fee already paid on a posting that had not resolved. That is a real (if
+  // small) loss to a resuming player, and it is the right trade: what they
+  // get back is a pool that already has ~30 people standing in it, which is
+  // strictly more hiring power than the one candidate the posting owed them.
+  // No refund is issued, deliberately — refunding into a model that has no
+  // posting fee at all would be inventing a payment the new game can't
+  // explain.
+  //
+  // Listings are staggered across the window rather than all starting at 0
+  // for the same reason initialCandidatePool staggers them: a pool that
+  // aged in lockstep would empty and refill in waves instead of churning.
+  // Anyone already on the ROSTER gets 0 — they are not listed at all — and
+  // the pool tops itself back up to target on the first tick after load.
+  5: (state) => {
+    delete state.openPostings;
+    for (const f of state.faculty) f.weeksListed = 0;
+    for (const c of state.candidates ?? []) {
+      c.weeksListed = Math.floor(Math.random() * CANDIDATE_LISTING_WEEKS);
+    }
+    if (!Array.isArray(state.candidates)) state.candidates = [];
   },
 };
 

@@ -275,9 +275,11 @@ function doneDiningHalls(s: GameState) {
 // A faculty member may only be put at risk by an event when their field
 // has depth behind them. This is the whole reason no departure or
 // dismissal can strand the curriculum: losing the only Economics hire
-// would leave every Economics course unstartable until a posting cleared,
-// so events never offer that. Losing one of two is a real cost — a course
-// slot and a mature stat line — that the player can absorb or buy off.
+// would leave every Economics course unstartable until the job market
+// happened to offer another one — which, in a thin-market field, can be
+// months (see facultyData.ts's churn block) — so events never offer that.
+// Losing one of two is a real cost — a course slot and a mature stat
+// line — that the player can absorb or buy off.
 const EVENT_MIN_FIELD_DEPTH = 2;
 
 function facultyAtRisk(s: GameState): Faculty[] {
@@ -467,13 +469,18 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         id: 'fund',
         label: 'Fund the chair',
         describe: (_s, ctx) =>
-          `${money(ctx.amount ?? 0)} up front. A strong ${ctx.subjectField} candidate joins the hiring pool immediately — no posting fee, no wait — and still has to be hired and paid like anyone else.`,
+          `${money(ctx.amount ?? 0)} up front. A ${ctx.subjectField} candidate better than the job market normally turns up joins the pool immediately, and still has to be appointed and paid like anyone else.`,
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
           const field = ctx.subjectField ?? pick(FACULTY_FIELDS);
           const existing = [...s.faculty, ...s.candidates].map((f) => f.name);
-          // Best of N rolls: the point of paying for a visiting chair is
-          // that it is reliably better than a posting, not merely faster.
+          // Best of N rolls: what the player is buying is QUALITY, not
+          // access. Against the old post-and-wait model this event also
+          // saved a fee and a countdown; against a standing candidate
+          // market that half is worthless — anyone can appoint off the
+          // list any week — so the best-of-N roll is now the entire
+          // proposition, and the one thing the market itself never
+          // offers on demand.
           let best = generateCandidate(field, existing);
           for (let i = 1; i < VISITING_SCHOLAR_CANDIDATE_ROLLS; i += 1) {
             const next = generateCandidate(field, [...existing, best.name]);

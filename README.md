@@ -352,6 +352,32 @@ to unlock course development via `requiresFaculty`, so a **real hiring pool** is
 required — hiring is a genuine subsystem, not a stub (`HIRE_FACULTY`/
 `FIRE_FACULTY` are wired up in the reducer; see `facultySystem.ts`).
 
+**Recruiting is a standing, churning market, not a post-and-wait errand.**
+`s.candidates` holds a long list of people currently available; the player
+appoints straight off it, immediately, with no posting to open, no fee and no
+countdown. What turns over is the list itself: every week
+`facultySystem.ts`'s `tickCandidatePool` ages every listing, withdraws the ones
+that have been up longer than `CANDIDATE_LISTING_WEEKS`, and adds new ones to
+bring the pool back toward `CANDIDATE_POOL_TARGET`. A new listing's field is a
+weighted draw — how many courses in the whole curriculum need that field
+(read off `techData.ts`, so it can never drift from it), times an authored
+per-field *market supply* multiplier for how thin that discipline's academic
+job market is. All of it lives in one labelled tuning block in
+`facultyData.ts`.
+
+That weighting is the point, and both halves are load-bearing. Demand alone
+cannot produce a common/rare split — after the field re-specialisation every
+field carries between 9 and 20 courses, so weighting by course count alone
+would make all 26 equally intermittent. The supply multiplier is what makes a
+Computer Science hire something you pull whenever you want one (~86% of weeks
+someone is listed) while a Clinical Health or Artificial Intelligence
+specialist turns up every few months (~51% and ~29%) and is worth taking the
+moment they do. **Specialisation is meant to create interesting scarcity while
+churn removes boring scarcity** — if the pool ever covers every field at once
+the specialisation stops mattering, and if it is too short or too slow
+recruiting is just tedium again. Those are the two failure modes the constants
+are tuned between.
+
 **Faculty are ageless: no aging, no retirement, no rival poaching.** This is a
 deliberate, settled choice, not a placeholder — a hire stays on the roster
 until the player dismisses them. What retention buys instead is growth: a
@@ -364,9 +390,10 @@ investment** — aggregate roster quality is one of the four inputs to the
 prestige target (see `prestigeSystem.ts`) — with a real "great cheap early
 hire, kept and matured" payoff. The scarcity that keeps a player from staffing
 every school at top quality is money and hiring-pool availability, not
-attrition: salaries compound as a roster matures, and the candidate pool
-refills slowly, so specialization is a choice forced by what you can afford
-and who's available, not by losing people you already have.
+attrition: salaries compound as a roster matures, and a thin-market field
+puts someone on the list only every few months, so specialization is a choice
+forced by what you can afford and who happens to be available that week, not
+by losing people you already have.
 
 ## Save / load
 
@@ -386,7 +413,8 @@ functions, no `Date`s, no `Map`/`Set`, no references between slices — so every
 field survives a JSON round trip untouched and there is no per-field serializer
 to keep in sync. Keep it that way; anything added to the state that isn't
 JSON-round-trippable breaks save/load silently. State must also stay
-reasonably light as it grows: a fresh run is ~121 KiB, and the per-year
+reasonably light as it grows: a fresh run is ~145 KiB (the standing
+candidate market is ~24 KiB of that — 30 listings with bios), and the per-year
 `YearSnapshot` and the capped log are what keep a decades-long run in the low
 hundreds of KiB.
 
@@ -402,7 +430,10 @@ when the old data still describes the same game (v3 -> v4 filled in the campus
 map's new placement footprints, which were all 1x1 before footprints existed;
 v4 -> v5 re-pointed every course's `requiresFaculty` and every hire's `field`
 at the re-specialised faculty-field taxonomy, which renamed and split the
-departments a run is staffed against without changing the run itself);
+departments a run is staffed against without changing the run itself; v5 -> v6
+dropped the job-posting state and gave every hire the candidate market's
+`weeksListed` clock, changing how faculty are acquired but not the roster,
+the economy or the curriculum);
 discard when it doesn't (v1 and v2 predate an economy rebalance, so those runs
 would be describing a different game).
 

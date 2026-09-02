@@ -26,7 +26,6 @@ import { createPreStartState } from '../src/state/actions';
 import type { GameState, Buildable, SchoolType } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet } from '../src/systems/finance/financeSystem';
 import { canStartDevelopment, hasFreeFacultySlot } from '../src/systems/techtree/techSystem';
-import { JOB_POSTING_COST } from '../src/data/facultyData';
 import { findDecisionEvent } from '../src/data/eventData';
 import type { DecisionEventContext } from '../src/data/eventData';
 
@@ -135,32 +134,42 @@ function decide(
 ): void {
   cutPayrollIfStalled(get, weeksInTheRed, dispatch);
 
-  // Faculty: hire for any field with an available course and no free slot,
-  // and post openings for the fields that are blocking development.
-  for (const candidate of get().candidates.map((c) => c.id)) {
+  // Faculty: appoint straight off the standing candidate market when a
+  // field is blocking a course this strategy could actually start today.
+  // There is nothing to post for and nothing to wait on any more — the
+  // scripted player just takes whoever the churn happens to be offering
+  // in a field that is holding them up, which is exactly the decision the
+  // real player makes.
+  //
+  // The "could actually start today" half is new, and it is the harness
+  // catching up with the model rather than a policy change. Under
+  // post-and-wait, a fee plus a 4-10 week countdown per field meant a
+  // strategy hired at most a trickle however loose its rule was, so
+  // hiring for a course it had no cash to develop barely showed up.
+  // Against a standing market that same loose rule fires every single
+  // week, and a strategy that keeps its cash near its buffer ends up
+  // carrying professors for courses it will not start for years — an
+  // economy no player would run, which would make these runs measure the
+  // harness rather than the game. Requiring the blocked course to be
+  // AFFORDABLE is the smallest gate that puts hiring back in step with
+  // developing.
+  //
+  // Deliberately not tightened past that. Gating on savingForDorm as well
+  // (the curriculum block's other condition) reads as the same idea and
+  // is not: dorm-saving is a state a growing school sits in for years at
+  // a stretch, so it starves hiring outright — tried, and the balanced
+  // builder ends a 40-year run with an empty roster, no curriculum and
+  // 563 weeks in the red.
+  if (strategy.buildsCourses) for (const candidate of get().candidates.map((c) => c.id)) {
     const s = get();
     const c = s.candidates.find((x) => x.id === candidate);
     if (!c) continue;
     const needed = s.tech.some(
-      (t) => t.requiresFaculty === c.field && t.status === 'available' && !hasFreeFacultySlot(s, c.field),
+      (t) => t.requiresFaculty === c.field && t.status === 'available' &&
+        !hasFreeFacultySlot(s, c.field) && affordable(s, t.cost, strategy),
     );
     if (needed && s.finance.cash > strategy.buffer(s) && hasHeadroom(s, strategy)) {
       dispatch({ type: 'HIRE_FACULTY', facultyId: c.id });
-    }
-  }
-  if (strategy.buildsCourses && weeklyNet(get()) > 0) {
-    const blocked = new Set(
-      get().tech
-        .filter((t) => t.status === 'available' && t.requiresFaculty && !hasFreeFacultySlot(get(), t.requiresFaculty))
-        .map((t) => t.requiresFaculty as string),
-    );
-    for (const field of blocked) {
-      const s = get();
-      if (field in s.openPostings) continue;
-      if (s.candidates.some((c) => c.field === field)) continue;
-      if (hasHeadroom(s, strategy) && affordable(s, JOB_POSTING_COST, strategy)) {
-        dispatch({ type: 'POST_JOB', field });
-      }
     }
   }
 

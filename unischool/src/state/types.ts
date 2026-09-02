@@ -56,6 +56,7 @@ export interface Faculty {
   teachingPotential: number; // 0..100, ceiling teaching grows toward; rolled once, fixed for this hire's life
   researchPotential: number; // 0..100, ceiling research grows toward; rolled once, fixed for this hire's life
   tenureWeeks: number; // weeks since hire; 0 for an unhired candidate, increments weekly once on the roster
+  weeksListed: number; // the mirror image of tenureWeeks: weeks this person has been sitting in the hiring market, 0 once appointed. Only the candidate pool reads it — facultySystem.ts's tickCandidatePool withdraws a listing at CANDIDATE_LISTING_WEEKS — exactly as only the roster reads tenureWeeks.
   salary: number;      // current annual salary — recomputed from current stats + a separate seniority premium curve
   morale: number;     // 0..100
   courseSlots: number; // how many courses in `field` this hire can keep staffed at once — rolled at hire, grows slowly with tenure (see facultyData.ts's grownSlots). A course whose requiresFaculty is `field` occupies one slot in that field for as long as it stays 'developing' or 'done' (see techSystem.ts's canStartDevelopment) — offering more courses in a subject means hiring more (or more tenured) faculty in it.
@@ -207,7 +208,7 @@ export interface Placement extends TileCoord, Footprint {}
 // Placed Buildable id -> the tiles it occupies. Absent id = not placed yet.
 // Plain JSON (no Map/Set, no object references into `tech`) so it stays
 // serializable and light for save/load — the same shape rationale as
-// `developing` and `openPostings`.
+// `developing` and `events`.
 export type Placements = Record<string, Placement>;
 
 // The generic pause-the-clock decision-event mechanism (see README's
@@ -233,7 +234,7 @@ export interface PendingInterrupt {
 // systems/events/eventSystem.ts for the one tick function that fires both.
 //
 // Plain JSON — numbers, a string array and a string -> number record — the
-// same shape rationale as `developing`, `openPostings` and `placements`.
+// same shape rationale as `developing` and `placements`.
 export interface EventState {
   // Milestone keys (the same keys techSystem.ts writes into s.milestones)
   // that have been awarded but not yet celebrated. A QUEUE rather than a
@@ -319,8 +320,7 @@ export interface GameState {
   gameOver: boolean;
   pendingInterrupt: PendingInterrupt | null; // set => clock halts until resolved
   events: EventState;            // cadence bookkeeping for milestone celebrations and authored decision events (see EventState above)
-  candidates: Faculty[];         // hireable, already-arrived faculty — populated ONLY when an open posting's countdown resolves (see facultySystem.ts), never by passive random replenishment
-  openPostings: Record<string, number>; // Faculty `field` -> weeks remaining until POST_JOB's candidate arrives; mirrors `developing`'s id -> weeks-remaining shape. At most one open posting per field at a time.
+  candidates: Faculty[];         // the standing academic job market: a long, always-churning list of people available to appoint right now. facultySystem.ts's tickCandidatePool ages every listing, withdraws the ones that have been up too long, and tops the pool back up to CANDIDATE_POOL_TARGET each week — there is no posting, no fee, and no wait (see facultyData.ts's churn block)
   started: boolean;              // false only during the pre-game startup screen (name + school type)
   hasEnteredRankings: boolean;   // true once the one-time "you've entered the top 50" reveal has fired
   milestones: Record<string, boolean>; // milestone key -> awarded, so each curriculum milestone bonus fires once
