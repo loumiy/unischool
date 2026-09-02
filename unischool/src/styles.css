@@ -334,18 +334,72 @@ button { cursor: pointer; font-family: inherit; }
 .campus-tray-btn.kind-building { border-left: 3px solid var(--gold-dim); }
 .campus-tray-btn.kind-dorm { border-left: 3px solid var(--green); }
 .campus-tray-btn.kind-facility { border-left: 3px solid var(--navy-line); }
+.campus-tray-btn[draggable='true'] { cursor: grab; }
+.campus-tray-btn:active { cursor: grabbing; }
+/* Footprint, so the size a building will take is known before it is dropped. */
+.campus-tray-size { margin-left: 6px; font-family: var(--mono); font-size: 10px; color: var(--ink-muted); }
+.campus-tray-btn.selected .campus-tray-size { color: #5d4b12; }
 .campus-map-hint { font-size: 12px; font-style: italic; color: var(--ink-muted); margin: 0; }
 
-.campus-tile.empty rect { fill: #f1ead6; stroke: var(--parchment-line-lo); stroke-width: 1; }
-.campus-tile.targetable rect { fill: #f5efdd; stroke: var(--gold-dim); stroke-dasharray: 3 3; cursor: pointer; }
-.campus-tile.targetable:hover rect { fill: #efe1b8; stroke: var(--gold); stroke-dasharray: none; }
-.campus-tile.occupied rect { stroke-width: 1; }
-.campus-tile.occupied.kind-building rect { fill: var(--gold); stroke: var(--gold-dim); }
-.campus-tile.occupied.kind-dorm rect { fill: #cfe0cf; stroke: #9fd3af; }
-.campus-tile.occupied.kind-facility rect { fill: #dccfa6; stroke: var(--parchment-line); }
-.campus-tile text { font-family: var(--serif); font-size: 8px; fill: var(--ink); pointer-events: none;
+/* The grid ground. A covered cell is drawn over by its building, so it only
+   needs to not show through the gutters. */
+.campus-tile { fill: #f1ead6; stroke: var(--parchment-line-lo); stroke-width: 1; }
+.campus-tile.covered { fill: #ece4cf; stroke: none; }
+/* Placement mode. Deliberately quiet: with 336 tiles on screen, outlining
+   every free one shouts. The available ground just warms slightly, and the
+   footprint ghost below is what actually points at where the building goes. */
+.campus-tile.targetable { fill: #f6f0de; stroke: var(--parchment-line); cursor: pointer; }
+
+/* The footprint ghost: where the picked-up building would land, and whether
+   it fits. Multi-tile buildings make this necessary — the tile you click is
+   the top-left corner, not the whole building. */
+.campus-preview { pointer-events: none; fill: none; stroke-width: 1.5; }
+.campus-preview.ok { stroke: var(--gold); fill: rgba(201, 162, 39, 0.18); }
+.campus-preview.blocked { stroke: #b4544a; fill: rgba(180, 84, 74, 0.14); stroke-dasharray: 3 2; }
+
+/* ---------- placed buildings ---------- */
+/* One rect per building, spanning its whole footprint (geometry is in
+   CampusMap.tsx). COLOUR IS ALL HERE. Each kind is a family and `tint-N`
+   is a shade within it, so a built-out campus reads as varied brick,
+   parchment and greenery rather than three flat blocks — while staying
+   inside the brass/ink/parchment language the rest of the UI speaks.
+   Which N a Buildable gets is decided in CampusMap.tsx: by facility type
+   for facilities (all parking lots match), by a hash of the id for halls
+   and dorms (neighbours differ). */
+.campus-building rect { stroke-width: 1; }
+.campus-building text { font-family: var(--serif); fill: var(--ink); pointer-events: none;
   user-select: none; }
-.campus-tile.occupied.kind-building text { fill: #3a2f0e; font-weight: 700; }
+
+/* Academic halls: the campus's brass landmarks, the darkest and most
+   saturated things on the map. */
+.campus-building.kind-building rect { fill: var(--gold); stroke: var(--gold-dim); }
+.campus-building.kind-building.tint-0 rect { fill: #c9a227; stroke: #8a6d14; }
+.campus-building.kind-building.tint-1 rect { fill: #bb9433; stroke: #7d6316; }
+.campus-building.kind-building.tint-2 rect { fill: #d0ae44; stroke: #96751a; }
+.campus-building.kind-building.tint-3 rect { fill: #b8862b; stroke: #7a5a12; }
+.campus-building.kind-building text { fill: #3a2f0e; font-weight: 700; }
+
+/* Dorms: the green family, kept muted so the halls stay dominant. */
+.campus-building.kind-dorm rect { fill: #cfe0cf; stroke: #9fd3af; }
+.campus-building.kind-dorm.tint-0 rect { fill: #cfe0cf; stroke: #9cc4a6; }
+.campus-building.kind-dorm.tint-1 rect { fill: #c2d8c1; stroke: #92bb9c; }
+.campus-building.kind-dorm.tint-2 rect { fill: #d8e6d3; stroke: #a8cdaf; }
+.campus-building.kind-dorm.tint-3 rect { fill: #c8ddd0; stroke: #96c0a4; }
+.campus-building.kind-dorm text { fill: #24402c; }
+
+/* Facilities: one parchment/stone shade per facility type, in the order
+   CampusMap.tsx's FACILITY_TINT_ORDER lists them — library, student
+   center, dining hall, rec center, health center, parking, quad, lab. */
+.campus-building.kind-facility rect { fill: #dccfa6; stroke: var(--parchment-line); }
+.campus-building.kind-facility.tint-0 rect { fill: #d9cba3; stroke: #b9a874; } /* library */
+.campus-building.kind-facility.tint-1 rect { fill: #e0cdb4; stroke: #c0a889; } /* student center */
+.campus-building.kind-facility.tint-2 rect { fill: #e6d3ae; stroke: #c4ad7c; } /* dining hall */
+.campus-building.kind-facility.tint-3 rect { fill: #d3cdb2; stroke: #aca684; } /* rec center */
+.campus-building.kind-facility.tint-4 rect { fill: #e3d6c6; stroke: #bdae99; } /* health center */
+.campus-building.kind-facility.tint-5 rect { fill: #cfc9bb; stroke: #a9a292; } /* parking */
+.campus-building.kind-facility.tint-6 rect { fill: #cfdcc4; stroke: #a5b895; } /* quad */
+.campus-building.kind-facility.tint-7 rect { fill: #cdd0c0; stroke: #a2a68f; } /* lab */
+.campus-building.kind-facility text { fill: #3d3524; }
 
 /* ---------- tab overlays: every other view, on top of the map ---------- */
 /* Dismissible views (see TabOverlay.tsx), NOT the interrupt modal — that

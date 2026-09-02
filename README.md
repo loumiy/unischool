@@ -111,9 +111,14 @@ may grow rules of its own.
 
 Placeable kinds gain exactly one extra step beyond that shared flow — placement
 on the campus map, once done; `course` Buildables never do. Placement lives in a
-separate `placements` record on `GameState` (id -> `{ row, col }`), never as a
-field on `Buildable`, so the single Buildable model stays unforked. Keep both
-screens dumb.
+separate `placements` record on `GameState` (id -> `{ row, col, w, h }`: the
+top-left tile plus the footprint covered from it), never as a field on
+`Buildable`, so the single Buildable model stays unforked. **How big a footprint
+a Buildable gets is a placement rule, not data on the Buildable** — a school
+hall covers 2x2 tiles, a dorm 2x1, a lab 1x1 — and it lives in
+`campusMap.ts`'s `footprintOf`, keyed on the `kind`/`facilityType` the Buildable
+already carries. Size is purely geometric: a bigger building grants nothing and
+costs nothing extra. Keep both screens dumb.
 
 ## The milestone chain (how the curriculum gets its shape)
 
@@ -386,11 +391,23 @@ reasonably light as it grows: a fresh run is ~121 KiB, and the per-year
 hundreds of KiB.
 
 `SAVE_VERSION` is the escape hatch for the shape changing. Bump it whenever a
-field is added-as-required, renamed, retyped, or given a new meaning — an old
-save is then discarded rather than half-loaded. Additive *optional* fields
-don't need a bump. There is deliberately no migration path yet; when one is
-wanted, it belongs in `persistence.ts`'s load path, keyed on the version it is
-migrating from.
+field is added-as-required, renamed, retyped, or given a new meaning. Additive
+*optional* fields don't need a bump.
+
+An older save is then either **migrated** forward or **discarded**, never
+half-loaded. Migrations live in `persistence.ts`'s `MIGRATIONS` table, keyed on
+the version they migrate *from*, and the load path walks them one version at a
+time; a version with no entry is discarded and the player starts fresh. Migrate
+when the old data still describes the same game (v3 -> v4 filled in the campus
+map's new placement footprints, which were all 1x1 before footprints existed);
+discard when it doesn't (v1 and v2 predate an economy rebalance, so those runs
+would be describing a different game).
+
+Loading also runs **placement hygiene** on the campus map every time: orphaned
+ids, placements whose footprint no longer fits the grid, and overlapping
+placements are clamped back inside or dropped. That is safe precisely because
+placement is visual-only — a dropped placement just returns its building to the
+siting tray.
 
 ## Working style for coding agents
 
@@ -442,7 +459,11 @@ any refactor.
 - A richer demand-curve finance model with prestige/scale archetypes.
 - Campus map depth: adjacency weighting between neighboring buildings, and any
   economic/prestige feedback from the layout. The map itself (a fixed tile grid,
-  placement of finished `building`/`dorm`/`facility` Buildables, SVG rendering)
-  now exists as a visual-only layer; nothing mechanical reads it yet.
+  placement of finished `building`/`dorm`/`facility` Buildables at their own
+  footprint sizes, SVG rendering) now exists as a visual-only layer; nothing
+  mechanical reads it yet.
+- An isometric rebuild of the map. Deliberately a separate, later arc: the map
+  is still plain flat SVG, and the refinement passes on it (finer grid, mixed
+  footprints, per-kind colour) are not steps toward isometric.
 
 UniSchool — systems-first, no art (yet)

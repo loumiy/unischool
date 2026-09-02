@@ -149,11 +149,25 @@ export interface BuildableEffects {
 // vestigial map fields (see README's "The central abstraction").
 // ---------------------------------------------------------------------
 
-// The campus is a small fixed grid of tiles. Kept deliberately small to
-// start: it should feel like siting a handful of landmark buildings, not
-// filling a spreadsheet. Grow these two numbers to grow the campus.
-export const CAMPUS_GRID_WIDTH = 8;  // tiles across (columns)
-export const CAMPUS_GRID_HEIGHT = 6; // tiles down (rows)
+// The campus is a fixed grid of tiles. It started deliberately small (8x6)
+// while the map was one panel among many; now that the map IS the central
+// interface it holds far more screen than 48 large tiles need, so the grid
+// is wide and fine-grained instead: a campus of many small plots rather
+// than a handful of oversized ones. Grow these two numbers to grow the
+// campus.
+//
+// Sized against what can actually be built: the full catalogue is 67
+// placeable Buildables (7 school buildings, 15 dorms, 45 facilities) whose
+// footprints (see campusMap.ts's footprintOf) total 128 tiles, so a fully
+// built-out campus covers a bit under 40% of the grid — open ground
+// between buildings, room to arrange, and headroom for the content still
+// on the roadmap (sports facilities), without the map reading as empty.
+//
+// The proportions are chosen for the space the map column actually gets
+// (a wide, short box beside the build rail), so the grid fills its canvas
+// instead of letterboxing into the middle of it.
+export const CAMPUS_GRID_WIDTH = 28;  // tiles across (columns)
+export const CAMPUS_GRID_HEIGHT = 12; // tiles down (rows)
 
 // Which Buildable kinds can be sited on the map at all. `course` is
 // absent on purpose and must stay absent — a course is not a place.
@@ -166,11 +180,35 @@ export interface TileCoord {
   col: number;
 }
 
-// Placed Buildable id -> the tile it occupies. Absent id = not placed yet.
+// How many tiles a Buildable covers, in grid units. Buildings are not all
+// the same size on a real campus — a school hall is not a parking lot —
+// so a placement occupies a rectangle rather than a single tile. Which
+// rectangle a given Buildable gets is a placement RULE, not a field on
+// Buildable: it lives in campusMap.ts's footprintOf, keyed on kind (and
+// facilityType), so the single Buildable model stays unforked.
+export interface Footprint {
+  w: number; // tiles across (columns), >= 1
+  h: number; // tiles down (rows), >= 1
+}
+
+// Where one placed Buildable sits: its top-left ANCHOR tile plus the
+// footprint it covers from there. It occupies rows row..row+h-1 and
+// columns col..col+w-1, and every one of those tiles must be in bounds and
+// otherwise empty (see campusMap.ts's canPlace).
+//
+// The footprint is STORED rather than re-derived from the Buildable on
+// every read, so a save's layout can never silently reshape (and start
+// overlapping) if the footprint table is retuned later. That is also what
+// the SAVE_VERSION 3 -> 4 migration writes: a placement saved before
+// footprints existed covered exactly one tile, so it loads as 1x1 (see
+// persistence.ts).
+export interface Placement extends TileCoord, Footprint {}
+
+// Placed Buildable id -> the tiles it occupies. Absent id = not placed yet.
 // Plain JSON (no Map/Set, no object references into `tech`) so it stays
-// serializable and light for the coming save/load work — the same shape
-// rationale as `developing` and `openPostings`.
-export type Placements = Record<string, TileCoord>;
+// serializable and light for save/load — the same shape rationale as
+// `developing` and `openPostings`.
+export type Placements = Record<string, Placement>;
 
 // The generic pause-the-clock decision-event mechanism (see README's
 // "Interrupts: the decision-event system"). Any system enqueues one by
@@ -273,7 +311,7 @@ export interface GameState {
   faculty: Faculty[];
   tech: Buildable[];
   developing: Record<string, number>; // course id -> weeks remaining
-  placements: Placements;            // Buildable id -> the campus tile it sits on; visual only (see the campus map block above)
+  placements: Placements;            // Buildable id -> the campus tiles it covers; visual only (see the campus map block above)
   rivals: Rival[];
   self: University;
   history: YearSnapshot[];       // one entry per completed in-game year, oldest first — the game's only time series (see YearSnapshot above)
