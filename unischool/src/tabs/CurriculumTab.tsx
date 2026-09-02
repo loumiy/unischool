@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
 import { discoverySchools } from '../data/techData';
@@ -118,6 +119,49 @@ function cellState(s: GameState, t: Buildable): CellState {
   return canStartDevelopment(s, t) ? 'available' : 'blocked';
 }
 
+// ---------------------------------------------------------------------
+// Tooltip placement. The tooltip hangs below its cell, which clips as soon
+// as the cell nears the bottom of the overlay's scroll box
+// (.tab-overlay-body) — and flipping it above the cell isn't enough on its
+// own, because early on that box is only a couple of hundred pixels tall
+// and neither side of the cell has room inside it.
+//
+// So the tooltip escapes the box: it is positioned FIXED, in viewport
+// coordinates, measured at the moment it is shown. It prefers to sit below
+// its cell, flips above when the window has no room there, and is clamped
+// into the viewport as a last resort, so it is always fully readable. Its
+// content is untouched by any of this.
+// ---------------------------------------------------------------------
+
+// The gap between the cell and its tooltip, both directions. Mirrors the
+// fallback offset in styles.css's .course-tooltip.
+const TOOLTIP_GAP = 4;
+
+// How close to the window edge the tooltip may sit once clamped.
+const TOOLTIP_VIEWPORT_MARGIN = 8;
+
+interface TooltipPos { top: number; left: number }
+
+// Where to put a tooltip of this size for a cell at this rect, in viewport
+// coordinates. Below by default; above when below would run off the bottom
+// and above actually fits; clamped into the window if neither does (a
+// window shorter than the tooltip itself), because a tooltip overlapping
+// its own cell still reads, and one running off the screen doesn't.
+function tooltipPosition(cell: DOMRect, width: number, height: number): TooltipPos {
+  const below = cell.bottom + TOOLTIP_GAP;
+  const above = cell.top - TOOLTIP_GAP - height;
+  const maxTop = window.innerHeight - height - TOOLTIP_VIEWPORT_MARGIN;
+
+  let top = below;
+  if (below > maxTop && above >= TOOLTIP_VIEWPORT_MARGIN) top = above;
+  top = Math.max(TOOLTIP_VIEWPORT_MARGIN, Math.min(top, maxTop));
+
+  const maxLeft = window.innerWidth - width - TOOLTIP_VIEWPORT_MARGIN;
+  const left = Math.max(TOOLTIP_VIEWPORT_MARGIN, Math.min(cell.left, maxLeft));
+
+  return { top, left };
+}
+
 // One course cell: shows its course code (e.g. "FINA 101"), fills brass
 // when done, pulses while developing, and is directly clickable to start
 // development when eligible. The code is split into department and number
@@ -135,6 +179,35 @@ function cellState(s: GameState, t: Buildable): CellState {
 // together with a letter on them would draw the eye to clusters that
 // correlate with school membership the pool is not meant to reveal yet.
 function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => void; t: Buildable; lookup: Map<string, Buildable> }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<TooltipPos | null>(null);
+
+  // Measured at the moment the tooltip is about to be shown, so it uses
+  // where the cell actually is right now. The tooltip is only
+  // visibility:hidden until then, never display:none, so it already has
+  // its real laid-out size to measure.
+  const placeTooltip = useCallback(() => {
+    const wrap = wrapRef.current;
+    const tip = tooltipRef.current;
+    if (!wrap || !tip) return;
+    setPos(tooltipPosition(wrap.getBoundingClientRect(), tip.offsetWidth, tip.offsetHeight));
+  }, []);
+
+  // A fixed tooltip doesn't travel with its cell, so while one is up the
+  // cell re-measures on any scroll (capture: the overlay body scrolls, not
+  // the window) or resize. Only the one open tooltip listens — every other
+  // cell has pos === null and registers nothing.
+  useEffect(() => {
+    if (!pos) return;
+    window.addEventListener('scroll', placeTooltip, true);
+    window.addEventListener('resize', placeTooltip);
+    return () => {
+      window.removeEventListener('scroll', placeTooltip, true);
+      window.removeEventListener('resize', placeTooltip);
+    };
+  }, [pos, placeTooltip]);
+
   const state = cellState(s, t);
   const code = t.name.split(' · ')[0];
   const spaceAt = code.lastIndexOf(' ');
@@ -164,7 +237,14 @@ function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => v
     : undefined;
 
   return (
-    <div className="course-cell-wrap">
+    <div
+      className="course-cell-wrap"
+      ref={wrapRef}
+      onPointerEnter={placeTooltip}
+      onPointerLeave={() => setPos(null)}
+      onFocus={placeTooltip}
+      onBlur={() => setPos(null)}
+    >
       <button
         type="button"
         className={`course-cell ${state}`}
@@ -182,7 +262,12 @@ function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => v
           </span>
         )}
       </button>
-      <div className="course-tooltip" role="tooltip">
+      <div
+        className="course-tooltip"
+        role="tooltip"
+        ref={tooltipRef}
+        style={pos ? { position: 'fixed', top: pos.top, left: pos.left } : undefined}
+      >
         <div className="course-tooltip-name">{t.name}</div>
         <p className="course-tooltip-desc">{t.description}</p>
         {t.prereqs.length > 0 && (
