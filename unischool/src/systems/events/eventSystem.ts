@@ -6,6 +6,7 @@ import {
   MILESTONE_INTERRUPT_MIN_WEEKS_BETWEEN,
   absoluteWeek, describeMilestone, hasFreeChoice,
 } from '../../data/eventData';
+import { labEquippedFields } from '../../data/researchData';
 
 // ---------------------------------------------------------------------
 // The week-to-week texture system. One ordinary pure tick function, last
@@ -25,6 +26,21 @@ import {
 // anywhere. Nothing is lost by standing down: milestones wait in
 // s.events.pendingMilestones for the next quiet week, and a decision
 // event that didn't fire this week is simply one that didn't happen.
+//
+// WHAT ELSE RIDES HERE. Two more things use this same stand-down-and-
+// drain slot rather than raising interrupts of their own:
+//
+//   - The RESEARCH PRIZE celebration. researchSystem.ts applies the award
+//     the week it is won and pushes it onto s.research.pendingPrizes; this
+//     drains it on the next quiet week, exactly as it drains milestones.
+//     It is the ONLY research output that stops the clock — grants and
+//     breakthroughs resolve silently into finance and the prestige target
+//     (see README's "Research").
+//   - The COLLEGE -> UNIVERSITY charter offer, fired once, the first
+//     quiet week after any lab finishes. It needs no queue at all: "a
+//     finished lab exists" is a durable condition (nothing ever un-
+//     finishes), so a busy week simply means the offer waits, and the
+//     one-shot guard is the flag the answer sets.
 //
 // WHY A QUEUE FOR MILESTONES. techSystem.ts awards milestones the week
 // the last course finishes, which may well be the week the admissions
@@ -61,6 +77,46 @@ function fireMilestoneCelebration(s: GameState): boolean {
 
   const payload: MilestonePayload = { keys: entries.map((e) => e.key), entries };
   s.pendingInterrupt = { type: 'milestone', payload };
+  return true;
+}
+
+// The research prize celebration (see systems/research/researchSystem.ts).
+// Same contract as the milestone celebration above: the award already
+// landed — the badge, the permanent research and salary premium, the
+// prestige credit — and this is the report on it, so a delayed modal
+// never delays an effect. Drains the WHOLE queue into one interrupt for
+// the same reason milestones do, though two prizes inside one quiet
+// stretch is not something a real run is likely to see.
+//
+// No frequency floor of its own: prizes are already rare twice over (see
+// researchData.ts's RESEARCH_OUTPUTS — the most expensive output and the
+// least likely of the three), and adding a second spacing rule on top
+// would only be able to delay the one modal research is allowed.
+function firePrizeCelebration(s: GameState): boolean {
+  if (s.research.pendingPrizes.length === 0) return false;
+
+  const awards = s.research.pendingPrizes;
+  s.research.pendingPrizes = [];
+  s.pendingInterrupt = { type: 'research-prize', payload: { awards } };
+  return true;
+}
+
+// The one-time College -> University charter offer, gated on the same lab
+// that gates research (see README's "College and University"). Cosmetic:
+// what the player is choosing is which word follows their school's name,
+// and the flag is set either way so the question is asked exactly once.
+//
+// Deliberately not an authored decision event: it has no cost, no roll and
+// no repeat, and putting it in that table would mean giving it a weight
+// and a cooldown it can never use.
+function fireCharterOffer(s: GameState): boolean {
+  if (s.self.universityCharterOffered) return false;
+  // The same lab gate research itself runs on, read through the same
+  // helper — so "the charter arrives with the first lab" can never drift
+  // from "research starts with the first lab".
+  if (labEquippedFields(s).size === 0) return false;
+
+  s.pendingInterrupt = { type: 'charter' };
   return true;
 }
 
@@ -135,10 +191,14 @@ export function tickEvents(s: GameState): void {
   // Another system already claimed this week — stand down entirely.
   if (s.pendingInterrupt) return;
 
-  // Celebrations take priority over authored events: a queued milestone is
-  // something the player earned, an event is something that merely
-  // happened.
+  // Celebrations take priority over authored events: a queued milestone or
+  // a research prize is something the player earned, an event is something
+  // that merely happened. The charter offer sits between them — it is a
+  // question rather than a celebration, but it is a one-shot tied to a
+  // moment, so it should not wait behind a random draw.
   if (fireMilestoneCelebration(s)) return;
+  if (fireCharterOffer(s)) return;
+  if (firePrizeCelebration(s)) return;
 
   rollDecisionEvent(s);
 }

@@ -161,6 +161,13 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
           <dt>Cash</dt><dd>{money(s.finance.cash)}</dd>
           <dt>Endowment</dt><dd>{money(s.finance.endowment)}</dd>
           <dt>Campaigns run</dt><dd>{s.finance.endowmentCampaigns}</dd>
+          {/* Research grants are one-off arrivals, not a line of the weekly
+              statement above — so they are reported here as a running
+              total instead of being folded into an average that would
+              misrepresent both the weeks a grant lands and the weeks it
+              doesn't. See systems/research/researchSystem.ts. */}
+          <dt>Research grants</dt>
+          <dd>{money(s.research.grantIncome)} across {s.research.grants}</dd>
           <dt>Tuition</dt><dd>${s.finance.tuitionPerStudent.toLocaleString()}/yr</dd>
           <dt>Tuition ceiling</dt><dd>${s.finance.tuitionCeiling.toLocaleString()}/yr</dd>
           <dt>Financial aid</dt><dd>{Math.round(s.admissions.financialAidRate * 100)}%</dd>

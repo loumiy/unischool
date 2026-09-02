@@ -179,6 +179,14 @@ const LIBRARY_TIER2_SERVES = 3_500;
 const LIBRARY_TIER2_COST = 1_400_000;
 const LIBRARY_TIER2_WEEKS = 24;
 export const LIBRARY_TIER2_PRESTIGE_GATE = 70;
+// The research library is the one campus-life facility that touches
+// research: a real research collection makes every lab-equipped
+// department more productive. Read live off effects.researchRateBonus,
+// exactly as the labs' own bonuses are (see techData.ts's
+// LAB_RESEARCH_RATE_BONUS). It MULTIPLIES output and never creates it —
+// a campus with a research library and no lab still researches nothing,
+// because the gate is labs.
+const LIBRARY_TIER2_RESEARCH_RATE_BONUS = 0.15;
 
 // --- Student center: single building, two tiers, social + passive retention ---
 const STUDENT_CENTER_TIER1_ID = 'SCTR-T1';
@@ -294,7 +302,7 @@ export function initialFacilities(): Buildable[] {
       facilityType: 'library',
       tier: 2,
       name: 'Research Library',
-      description: `Adds ${LIBRARY_TIER2_SERVES.toLocaleString()} more seats and a real research collection. Unlocks at prestige ${LIBRARY_TIER2_PRESTIGE_GATE}+.`,
+      description: `Adds ${LIBRARY_TIER2_SERVES.toLocaleString()} more seats and a real research collection, lifting research output across every lab-equipped department. Unlocks at prestige ${LIBRARY_TIER2_PRESTIGE_GATE}+.`,
       cost: LIBRARY_TIER2_COST,
       duration: LIBRARY_TIER2_WEEKS,
       prereqs: [LIBRARY_TIER1_ID],
@@ -304,6 +312,7 @@ export function initialFacilities(): Buildable[] {
         servesPopulation: LIBRARY_TIER2_SERVES,
         satisfactionAttribute: 'academic',
         upkeepPerWeek: servedUpkeep('library', LIBRARY_TIER2_SERVES),
+        researchRateBonus: LIBRARY_TIER2_RESEARCH_RATE_BONUS,
       },
     },
 

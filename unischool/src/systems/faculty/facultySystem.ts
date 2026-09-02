@@ -15,7 +15,11 @@ function growFaculty(f: Faculty): void {
   f.tenureWeeks += 1;
   f.teaching = grownStat(f.teachingPotential, f.tenureWeeks);
   f.research = grownStat(f.researchPotential, f.tenureWeeks);
-  f.salary = facultySalary(f.teaching, f.research, f.tenureWeeks);
+  // acclaim is passed, not stored into the figure: a research prize's
+  // permanent raise has to be an INPUT to this recomputation, since the
+  // line below overwrites whatever salary was there last week (see
+  // researchData.ts's note on why the award lives on its own field).
+  f.salary = facultySalary(f.teaching, f.research, f.tenureWeeks, f.acclaim);
   // Course slots grow in flat +1 steps on tenure milestones rather than a
   // smooth curve (there's no per-hire ceiling to approach, unlike teaching/
   // research) — a further, concrete reason to retain a hire long-term on

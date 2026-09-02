@@ -1,5 +1,5 @@
 import type { GameState } from '../../state/types';
-import { WEEKS_PER_YEAR } from '../../state/types';
+import { WEEKS_PER_YEAR, institutionName } from '../../state/types';
 
 // ---------------------------------------------------------------------
 // Rivals evolve so the ranking stays a live target across decades (see
@@ -85,7 +85,7 @@ function clamp(v: number, lo: number, hi: number): number {
 // Convenience: full ranked list including the player.
 export function rankedList(s: GameState) {
   const all = [
-    { name: s.self.name, reputation: s.self.reputation, isPlayer: true },
+    { name: institutionName(s.self), reputation: s.self.reputation, isPlayer: true },
     ...s.rivals.map((r) => ({ name: r.name, reputation: r.reputation, isPlayer: false })),
   ];
   return all.sort((a, b) => b.reputation - a.reputation);
@@ -132,7 +132,7 @@ function sortedByReputation(entries: RankedEntry[]): RankedEntry[] {
 
 function currentEntries(s: GameState): RankedEntry[] {
   return sortedByReputation([
-    { key: 'self', name: s.self.name, reputation: s.self.reputation, isPlayer: true },
+    { key: 'self', name: institutionName(s.self), reputation: s.self.reputation, isPlayer: true },
     ...s.rivals.map((r) => ({ key: r.id, name: r.name, reputation: r.reputation, isPlayer: false })),
   ]);
 }
@@ -142,7 +142,7 @@ function currentEntries(s: GameState): RankedEntry[] {
 // momentum step (see the estimate note above).
 function previousEntries(s: GameState, previousPrestige: number): RankedEntry[] {
   return sortedByReputation([
-    { key: 'self', name: s.self.name, reputation: previousPrestige, isPlayer: true },
+    { key: 'self', name: institutionName(s.self), reputation: previousPrestige, isPlayer: true },
     ...s.rivals.map((r) => ({ key: r.id, name: r.name, reputation: r.reputation - r.momentum, isPlayer: false })),
   ]);
 }

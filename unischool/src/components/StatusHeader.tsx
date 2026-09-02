@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Action } from '../state/actions';
 import type { GameState } from '../state/types';
-import { WEEKS_PER_YEAR } from '../state/types';
+import { WEEKS_PER_YEAR, institutionName } from '../state/types';
 import { weeklyNet } from '../systems/finance/financeSystem';
 import { playerRank } from '../systems/rivals/rivalsSystem';
 import { SPEEDS, SANDBOX_SPEEDS, type Speed } from '../engine/useGame';
@@ -23,7 +23,9 @@ function termName(week: number): string {
 // Playtesting controls (the sandbox speed, the debug interrupt trigger) are
 // only useful during development, not normal play — they stay reachable by
 // naming the university "test" rather than being removed outright, so
-// they're still there for anyone iterating on the game.
+// they're still there for anyone iterating on the game. Checked against
+// the player-written half of the name only (see types.ts's University), so
+// it keeps working whether the school is Test College or Test University.
 function isTestUniversity(name: string): boolean {
   return name.trim().toLowerCase() === 'test';
 }
@@ -119,7 +121,7 @@ export default function StatusHeader({ s, speed, setSpeed, act }: {
       <header className="masthead">
         <div className="masthead-id">
           <div className="eyebrow">Office of the President</div>
-          <h1>{s.self.name}</h1>
+          <h1>{institutionName(s.self)}</h1>
         </div>
         <div className="masthead-stats">
           <div className="stat-block">

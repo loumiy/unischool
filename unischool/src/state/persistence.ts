@@ -79,7 +79,19 @@ const SAVE_KEY = 'unischool.save';
 // age out the whole pool on the first tick. Recoverable, and for the same
 // reason as v5: the economy, the curriculum and the roster are untouched,
 // only the way faculty are ACQUIRED changed, so a run carries forward.
-export const SAVE_VERSION = 6;
+// v7: research landed. Three shape changes at once, all required rather
+// than optional: GameState gained a `research` slice (the point stock,
+// what it has produced, and the prize queue — see types.ts's
+// ResearchState); every Faculty gained an `acclaim` count that the salary
+// and research-output formulas read on every tick, so a v6 hire would
+// otherwise multiply by `undefined` and turn the whole payroll into NaN;
+// and University.name was split into a player-written name plus a fixed
+// institutional suffix, with a flag recording whether the College ->
+// University charter has been offered. Recoverable, and for the same
+// reason as v5 and v6: the economy, the curriculum and the roster are
+// untouched — a resumed run simply starts producing research the moment
+// it has a lab, exactly as a new one does.
+export const SAVE_VERSION = 7;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -142,6 +154,11 @@ interface LegacyGameState extends GameState {
   // candidate arrived.
   openPostings?: Record<string, number>;
 }
+
+// The two institutional suffixes a saved name may already end in. A v6
+// name was one free-form string the player typed, so this is the only
+// evidence available about which half is which.
+const KNOWN_SUFFIXES = ['College', 'University'];
 
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   // v3 -> v4: placements gained a footprint. A placement written before
@@ -238,6 +255,51 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
       c.weeksListed = Math.floor(Math.random() * CANDIDATE_LISTING_WEEKS);
     }
     if (!Array.isArray(state.candidates)) state.candidates = [];
+  },
+
+  // v6 -> v7: research, faculty acclaim, and the split institution name.
+  //
+  // The research slice starts EMPTY rather than being back-filled from
+  // the resumed school's labs and roster. A synthetic starting stock
+  // would be inventing history — the run genuinely did not do that
+  // research — and the cost of not doing it is only that a resumed
+  // mature school waits one output cadence for its first grant, while
+  // producing points from its first tick like any other lab-equipped
+  // school. Nothing is lost and nothing is fabricated.
+  //
+  // Acclaim is 0 on everyone for the same reason: no prize was ever
+  // awarded in a v6 run, because prizes did not exist. It is the one
+  // field here that MUST be written rather than left absent — the salary
+  // curve multiplies by it every tick.
+  //
+  // The name is split on the evidence the save actually carries. A name
+  // ending in " College" or " University" is split there, which is the
+  // overwhelmingly common case (the old startup screen's own placeholder
+  // was "e.g. Ashcombe University"), and a school still calling itself a
+  // College keeps the charter offer ahead of it. Anything else is kept
+  // WHOLE, with an empty suffix — institutionName renders that exactly as
+  // the school always looked — and the charter is marked already offered,
+  // because appending a word to a name whose shape we can't read would
+  // rename the player's school out from under them.
+  6: (state) => {
+    state.research = {
+      points: 0, lifetimePoints: 0, grants: 0, grantIncome: 0,
+      breakthroughs: 0, prizes: 0, lastOutputWeek: 0, pendingPrizes: [],
+    };
+    for (const f of state.faculty) f.acclaim = 0;
+    for (const c of state.candidates ?? []) c.acclaim = 0;
+
+    const full = (state.self.name ?? '').trim();
+    const matched = KNOWN_SUFFIXES.find((suffix) => full.endsWith(` ${suffix}`));
+    if (matched) {
+      state.self.name = full.slice(0, full.length - matched.length - 1);
+      state.self.suffix = matched;
+      state.self.universityCharterOffered = matched === 'University';
+    } else {
+      state.self.name = full;
+      state.self.suffix = '';
+      state.self.universityCharterOffered = true;
+    }
   },
 };
 

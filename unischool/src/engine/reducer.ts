@@ -7,6 +7,7 @@ import { tickTech, canStartDevelopment, startDevelopment } from '../systems/tech
 import { tickAdmissions, projectAdmissions } from '../systems/admissions/admissionsSystem';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
 import { tickFaculty } from '../systems/faculty/facultySystem';
+import { tickResearch } from '../systems/research/researchSystem';
 import { tickPrestigeAnnual } from '../systems/prestige/prestigeSystem';
 import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { tickEvents } from '../systems/events/eventSystem';
@@ -23,6 +24,11 @@ import { saveGame, clearSave } from '../state/persistence';
 const SYSTEMS: Array<(s: GameState) => void> = [
   tickTech,
   tickFaculty,
+  // After tickFaculty, before tickFinance: research output is weighted by
+  // this week's freshly grown stats and tenure, and a grant that lands
+  // this week should be in the balance the same week's cash flow settles
+  // against.
+  tickResearch,
   tickFinance,
   tickSatisfaction,
   tickAdmissions,
@@ -232,6 +238,46 @@ export function reducer(state: GameState, action: Action): GameState {
           kind: 'bad',
         });
       }
+      return s;
+    }
+
+    // Dismisses a research prize celebration (see
+    // systems/research/researchSystem.ts). Grants nothing, for the same
+    // reason RESOLVE_MILESTONE does: the award — the winner's permanent
+    // acclaim, and with it their higher salary and research output, plus
+    // the school's prestige credit — landed the week the prize was won.
+    // Advances the clock, like every other trailing interrupt.
+    case 'RESOLVE_PRIZE': {
+      s.pendingInterrupt = null;
+      advanceClock(s);
+      return s;
+    }
+
+    // Answers the one-time College -> University charter offer (see
+    // systems/events/eventSystem.ts). Purely cosmetic: it swaps the fixed
+    // half of the institution's name, and nothing in the game reads that
+    // string except the views that display it. The flag is set either way,
+    // so declining is final and the question never returns.
+    case 'RESOLVE_CHARTER': {
+      s.self.universityCharterOffered = true;
+      if (action.accept) {
+        s.self.suffix = 'University';
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: `${s.self.name} College is now ${s.self.name} University.`,
+          kind: 'good',
+        });
+      } else {
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: `The trustees have declined the charter; the school remains ${s.self.name} College.`,
+          kind: 'info',
+        });
+      }
+      s.pendingInterrupt = null;
+      advanceClock(s);
       return s;
     }
 

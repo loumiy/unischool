@@ -96,9 +96,11 @@ export function startDevelopment(s: GameState, node: Buildable): void {
 // Applies only the "apply-once, at completion" effect fields (see the split
 // documented on BuildableEffects in state/types.ts). servesPopulation,
 // satisfactionAttribute, flatSatisfactionBonus,
-// prestigeContribution, and upkeepPerWeek are deliberately NOT handled
+// prestigeContribution, researchRateBonus and upkeepPerWeek are
+// deliberately NOT handled
 // here — they're read live, every tick, straight off `s.tech`'s 'done'
-// entries by satisfactionSystem.ts / prestigeSystem.ts / financeSystem.ts,
+// entries by satisfactionSystem.ts / prestigeSystem.ts / financeSystem.ts /
+// researchSystem.ts,
 // so a facility's contribution never needs "applying" and can't drift out
 // of sync with which facilities are actually still built.
 function applyEffects(s: GameState, e?: Partial<BuildableEffects>): void {
@@ -106,7 +108,6 @@ function applyEffects(s: GameState, e?: Partial<BuildableEffects>): void {
   if (e.capacityBonus) s.students.capacity += e.capacityBonus;
   if (e.tuitionBonus) s.finance.tuitionPerStudent += e.tuitionBonus;
   if (e.applicantPoolBonus) s.students.applicantPool += e.applicantPoolBonus;
-  // researchRateBonus is read live in weeklyResearchPoints extensions later.
   if (e.unlockIds) {
     for (const id of e.unlockIds) {
       const target = s.tech.find((t) => t.id === id);
