@@ -91,7 +91,20 @@ const SAVE_KEY = 'unischool.save';
 // reason as v5 and v6: the economy, the curriculum and the roster are
 // untouched — a resumed run simply starts producing research the moment
 // it has a lab, exactly as a new one does.
-export const SAVE_VERSION = 7;
+// v8: student organisations landed. GameState gained a required `orgs`
+// slice (the live club and Greek-chapter lists, the petitions waiting on
+// the next summer digest, and the two Hellenic Council flags — see
+// types.ts's StudentOrgState), and RESOLVE_ADMISSIONS gained the digest
+// answer it drains. Every read of `orgs` — financeSystem's upkeep line,
+// satisfactionSystem's social contribution, studentLifeSystem's formation
+// roll, and three eligible() conditions in the decision-event table —
+// assumes the slice is there, so a v7 save without it would crash on the
+// first tick. Recoverable, and for the same reason as v5, v6 and v7: the
+// economy, the curriculum and the roster are untouched. A resumed run
+// carries forward with no clubs and no council, which is precisely what a
+// school that never triggered them would have anyway, and starts forming
+// clubs the moment it has a student center — exactly as a new one does.
+export const SAVE_VERSION = 8;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -300,6 +313,28 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
       state.self.suffix = '';
       state.self.universityCharterOffered = true;
     }
+  },
+
+  // v7 -> v8: the student-organisation slice.
+  //
+  // A pure fill-in with an EMPTY slice, and deliberately not a
+  // reconstruction. There is no evidence in a v7 save about what student
+  // life the school had, because it had none — clubs did not exist — so
+  // seeding a resumed school with a few plausible clubs would be inventing
+  // history the run never played, the same objection that kept v6 -> v7
+  // from back-filling a research stock.
+  //
+  // The council is un-offered rather than declined: a resumed school with
+  // a student center and enough clubs will be asked about Greek life in
+  // due course, like any other. The cost of starting empty is only that a
+  // mature resumed campus spends a few years growing a club scene it
+  // "should" already have had, which is indistinguishable from a school
+  // that simply never organised one.
+  7: (state) => {
+    state.orgs = {
+      clubs: [], chapters: [], pendingPetitions: [],
+      hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
+    };
   },
 };
 

@@ -18,8 +18,8 @@ map are still deliberately deferred.
 
 The **campus map is the central interface** (see `src/App.tsx`): it holds the
 middle of the screen at all times, the build rail sits beside it, and every
-other view — Faculty, Curriculum, Treasury, Admissions, Athletics — opens as a
-dismissible overlay on top of it. That is a **layout fact, not a mechanical
+other view — Faculty, Curriculum, Treasury, Admissions, Student Life,
+Athletics — opens as a dismissible overlay on top of it. That is a **layout fact, not a mechanical
 one**: no system reads the map, and nothing gained authority over the sim by
 moving to the middle of the screen.
 
@@ -45,8 +45,9 @@ Open the printed localhost URL. Start the clock to begin.
   in (`TabOverlay.tsx`), and the persistent header/status bar, interrupt modal,
   tab nav, and startup screen
 - `src/tabs/` — one component per overlay view (Faculty, Curriculum, Treasury,
-  Admissions, Athletics); each reads the slice of `GameState` it needs and
-  dispatches actions, and knows nothing about being rendered in an overlay
+  Admissions, Student Life, History, Athletics); each reads the slice of
+  `GameState` it needs and dispatches actions, and knows nothing about being
+  rendered in an overlay
 - `src/App.tsx` — the shell: owns the game loop hook and which view (if any) is
   open over the map, renders the persistent chrome, the map + build rail + log,
   and the active overlay
@@ -308,6 +309,13 @@ Everything that needs to stop time rides on this one mechanism:
   one zero-cost choice, so no event can strand a school that has no money.
 - **A research prize** — the one research output momentous enough to stop the
   clock (see "Research" below). Grants and breakthroughs never do.
+- **Greek-life decisions** — the Hellenic Council opt-in, chapter scandals
+  and chapter-housing petitions (see "Student life" below). These are
+  entries in the decision-event table above rather than a stream of their
+  own, so they change the MIX of what stops the clock, never how often it
+  stops. Clubs and new chapters never stop it at all: they queue as
+  petitions and are answered in a digest folded into the summer admissions
+  interrupt.
 - **The university charter** — a single question, asked once, the first quiet
   week after any lab finishes: keep the "College" the school opened as, or
   become a "University". Cosmetic in full.
@@ -464,6 +472,107 @@ concentrated in Business, Arts & Media, Social Sciences or Computer Science
 generates none at all, forever. Widening that is a one-line data change
 (`techData.ts`'s `LAB_GATED_MAJOR_PREFIXES`), deliberately not taken here.
 
+## Student life: clubs and Greek letters
+
+The layer that grows *inside* the campus rather than on it, and the second
+thing after research to be gated on buildings the player already put up.
+Two layers, the second gated by the first, both riding machinery that
+already exists — there is no third interrupt stream and no parallel
+subsystem.
+
+**Clubs.** Once a **student center** stands (any tier — read off
+`facilityType`, so a retune of the facility chain can't silently close the
+gate), students occasionally organise one. This is deliberately the
+*lightest* beat in the game and **never stops the clock**: a formation
+raises a **petition** — a record on `s.orgs.pendingPetitions` and a log
+line — and a whole year's petitions are answered together in a **digest
+folded into the summer admissions interrupt**, which is a stop the player
+was already making. Approve and the club adds a small, permanent
+contribution to the satisfaction target and a recurring line on the weekly
+statement; decline and the students notice, transiently. Which shape this
+took was a real choice: an in-log accept/dismiss control would have made
+`LogStrip` interactive for the first time, while the digest reuses a modal
+that fires anyway, so student life adds **zero** stop-the-clock moments a
+year.
+
+**Greek life** is an extension of clubs behind a **one-time, declinable
+opt-in**, so it can never appear unbidden. Once the club scene is real
+enough, students petition to charter a **Hellenic Council**; a school may
+refuse, permanently, and the question never returns. With a council,
+chapters form on the same petition/digest path as clubs — same light
+treatment, heavier numbers on both sides. What makes chapters
+*consequential* is what happens to them afterwards, and all of it is
+**authored into the existing decision-event table** (`eventData.ts`) rather
+than given a stream of its own:
+
+- **A scandal.** Fund a public-relations campaign (a cash cost; the chapter
+  survives) or pull the charter (free, and permanent — the satisfaction it
+  contributed and the cost it carried both go). The zero-cost path is
+  disbanding, so the no-soft-lock invariant holds unchanged.
+- **A housing petition.** One chapter at a time asks for a dedicated house,
+  and **each chapter asks at most once** — both answers set `housingAsked`,
+  so the supply of asks is bounded by the number of chapters that exist and
+  it can never become a modal spiral.
+
+Because those three live in the shared table, they **redistribute the
+existing event budget rather than adding to it**: the weekly chance and
+cooldown that govern how often the clock stops are untouched, and their
+`weight` values are the dial for how much of that fixed budget Greek life
+takes.
+
+**What an organisation does, mechanically**, is exactly two things, both
+read **live** off `s.orgs` every week rather than applied once:
+
+- it carries an `upkeepPerWeek` that `financeSystem.ts` sums as one more
+  expense line, so disbanding a chapter removes its cost the same week —
+  there is no total stored anywhere to leave behind;
+- it adds a **flat** contribution to the `social` satisfaction attribute
+  (the same non-population-scaling shape the quad's bonus has), capped in
+  aggregate so student life can never carry the attribute on its own.
+
+Both key off *"an organisation exists"*, flat per org — **never off member
+count**. Membership is display-and-flavour only: it is *derived* from three
+founding facts on the record (founding size, founding enrollment, founding
+year) plus today's enrollment, so an older club reads as larger than a young
+one at the same headcount, and nothing in the game reads it. Coupling it to
+money or satisfaction would be a deliberate later decision with its own
+playtest, not something to slip in silently. There is no trend line and no
+sparkline — a current number is enough.
+
+Organisation costs are sized in **weeks of operating cost** (the same unit
+the decision-event table uses, shared via `moneyScale.ts`) and fixed in
+dollars the moment the player approves the organisation. Fixed rather than
+re-derived weekly because deriving a line of opex *from* opex is circular;
+the consequence — an old club keeps an old club's budget and fades to noise
+against a mature school's spending — is deliberate, and is part of what
+makes clubs low-stakes.
+
+**Prestige is untouched.** Student life moves satisfaction and cash and
+nothing else, the same discipline the decision events hold: `self.reputation`
+is a stock that drifts toward a computed target once a year, and student
+life is not one of that target's inputs.
+
+**Satisfaction effects are transient by construction**, exactly like the
+decision events': the stock drifts back toward its facilities-derived target
+at `SATISFACTION_DRIFT_RATE` a week, floored by `ATTRIBUTE_SCORE_FLOOR`. The
+teeth are timing near the summer funnel, not permanence. What *is* durable is
+the ongoing source: a disbanded chapter's real cost is that its contribution
+to the target stops, not the one-week dent.
+
+**The Student Life tab** is the home for all of it — active clubs and Greek
+chapters with founding year and current membership, the petitions waiting on
+the next digest, and an empty state that reads sensibly through the founding
+years before any student center exists. It also has to make the satisfaction
+effect **legible**, which is what stops the system feeling arbitrary, and it
+does so by *reading the model rather than inventing a display number*:
+`satisfactionSystem.ts`'s `studentLifeSatisfaction` runs the very computation
+the weekly tick runs against throwaway copies of the state with one source
+removed, and reports the difference — the same way the milestone modal reads
+`prestigeTargetWithout`. That honesty is the point: when the `social`
+attribute is already clamped at its ceiling from facilities alone, the panel
+reports that the clubs are adding *nothing*, because nothing is what the
+model is applying.
+
 ## College, and University
 
 A school opens as **"<Name> College"**. The player writes only the first half at
@@ -517,7 +626,12 @@ the economy or the curriculum; v6 -> v7 added the `research` slice, gave
 every hire the `acclaim` count the salary curve now multiplies by, and split
 the institution's name into the player's half plus a fixed suffix — none of
 which changes the school a resumed run describes, so it carries forward and
-simply starts producing research the moment it has a lab);
+simply starts producing research the moment it has a lab; v7 -> v8 added the
+`orgs` slice — the clubs and Greek chapters the campus has grown, the
+petitions waiting on the next summer digest, and the Hellenic Council flags
+— empty, and deliberately not reconstructed: a v7 run genuinely had no
+student life, so a resumed school starts forming clubs the moment it has a
+student center, exactly as a new one does);
 discard when it doesn't (v1 and v2 predate an economy rebalance, so those runs
 would be describing a different game).
 
@@ -573,9 +687,9 @@ any refactor.
   all being mature.
 - Research depth: labs for the schools that have none, so a non-STEM run has a
   research path at all (see "Research"'s known tension).
-- Campus life depth, and more authored decision events on top of the ten that
-  now exist (see "Interrupts" above) — including events that reach systems the
-  first pass deliberately left alone.
+- Campus life depth, and more authored decision events on top of the thirteen
+  that now exist (see "Interrupts" above) — including events that reach
+  systems the first pass deliberately left alone.
 - Faculty lifecycle (aging, retirement, poaching) if desired.
 - A richer demand-curve finance model with prestige/scale archetypes.
 - Campus map depth: adjacency weighting between neighboring buildings, and any

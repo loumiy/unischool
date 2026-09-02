@@ -24,7 +24,7 @@ export interface Finance {
 // and which building fixes it.
 export interface SatisfactionAttributes {
   academic: number;       // library seats-to-capacity ratio
-  social: number;         // student center + rec center (ratio) + quad (flat)
+  social: number;         // student center + rec center (ratio) + quad (flat) + live student organisations (flat, see data/studentLifeData.ts)
   basicNeeds: number;     // dining hall seats-to-capacity ratio — the sharpest penalty curve of the five
   health: number;         // health/counseling center — dormant (scores full) below the population threshold it unlocks at
   infrastructure: number; // parking/infrastructure ratio
@@ -319,6 +319,95 @@ export interface ResearchState {
   pendingPrizes: PrizeAward[]; // awarded but not yet celebrated — a QUEUE for the same reason events.pendingMilestones is one: the week a prize lands may already belong to admissions or the U.S. News report, and only one interrupt can be pending at a time
 }
 
+// ---------------------------------------------------------------------
+// STUDENT ORGANISATIONS (see README's "Student life: clubs and Greek
+// letters"). Two layers, the second gated by the first: clubs, which form
+// once the campus has a student center, and — only if the player has
+// explicitly approved a Hellenic Council — Greek chapters on top of them.
+//
+// Everything here is plain JSON (numbers, strings, booleans, arrays of flat
+// records) for the same reason `events`, `placements` and `research` are:
+// the whole GameState is JSON-round-tripped into one localStorage key, so
+// no Map, no Set and no reference into `tech` may appear (see
+// state/persistence.ts).
+//
+// The two live lists ARE the source of truth for both mechanical effects an
+// organisation has: financeSystem.ts sums `upkeepPerWeek` across them every
+// week, and satisfactionSystem.ts sums their social contribution into the
+// satisfaction TARGET every week. Neither is ever mutated into a total
+// stored elsewhere, which is what makes disbanding a chapter actually
+// remove its cost and its contribution rather than leaving a baked-in
+// number behind.
+// ---------------------------------------------------------------------
+
+// What every student organisation carries, whatever kind it is. Membership
+// is NOT stored: it is derived from these three fields plus current
+// enrollment (see data/studentLifeData.ts's orgMembership), so it can never
+// drift from the school it belongs to and costs nothing per week to keep
+// current.
+export interface StudentOrgBase {
+  id: string;
+  name: string;
+  foundedYear: number;
+  // The two founding facts membership is derived FROM: how many students
+  // signed up on day one, and how big the school was that day. A club
+  // founded at 400 students that still has 40 members reads as a much
+  // bigger deal than the same 40 at 18,000 — which is exactly the per-org
+  // variation the display is for.
+  foundingMembers: number;
+  foundingEnrolled: number;
+  // Weekly running cost, in DOLLARS, fixed at the moment the player
+  // approved this organisation and sized then as a share of a week of
+  // operating cost (see studentLifeData.ts's ORG_UPKEEP_WEEKS_OF_OPEX).
+  // Fixed rather than re-derived every week because deriving a line of
+  // opex FROM opex is circular; what it costs the school to keep this
+  // club running does not need to grow with the school's budget forever.
+  upkeepPerWeek: number;
+}
+
+export interface StudentClub extends StudentOrgBase {}
+
+// A Greek-letter chapter. Everything a chapter needs beyond a club is
+// about the two things that can happen to it later: a scandal has to be
+// able to name and disband exactly one chapter, and the housing petition
+// has to be able to ask each chapter at most once.
+export interface GreekChapter extends StudentOrgBase {
+  kind: 'fraternity' | 'sorority';
+  housed: boolean;       // a dedicated chapter house has been built for them
+  housingAsked: boolean; // they have already petitioned for one — never ask again, whatever the answer was
+}
+
+// One organisation that has formed and is waiting on the player's answer at
+// the next summer admissions boundary (see README: clubs and new chapters
+// are a batched DIGEST folded into an interrupt that already exists, never
+// a modal of their own). Carries everything needed to turn it into a live
+// organisation on approval, so approving is a move rather than a re-roll.
+export interface OrgPetition {
+  id: string;
+  kind: 'club' | 'chapter';
+  name: string;
+  greekKind?: 'fraternity' | 'sorority'; // set only for kind 'chapter'
+  foundedYear: number;
+  foundingMembers: number;
+  foundingEnrolled: number;
+  upkeepPerWeek: number; // sized in weeks of opex the week the petition was raised
+}
+
+export interface StudentOrgState {
+  clubs: StudentClub[];
+  chapters: GreekChapter[];
+  // Petitions raised since the last summer boundary, drained wholesale
+  // there: approved ones become organisations, the rest are declined.
+  pendingPetitions: OrgPetition[];
+  // The Greek gate, and the whole reason no Greek content can appear
+  // unbidden. Every Greek-related eligible() reads `approved`; `offered`
+  // records that the one-time question has been ASKED, so declining it
+  // closes Greek life for the rest of the run.
+  hellenicCouncilApproved: boolean;
+  hellenicCouncilOffered: boolean;
+  lastFormationWeek: number; // absolute week a club or chapter last formed; 0 = never
+}
+
 // Private/public is the only starting fork (see README's "Startup and
 // school type") — everything else about the school emerges from play.
 export type SchoolType = 'private' | 'public';
@@ -385,6 +474,7 @@ export interface GameState {
   gameOver: boolean;
   pendingInterrupt: PendingInterrupt | null; // set => clock halts until resolved
   events: EventState;            // cadence bookkeeping for milestone celebrations and authored decision events (see EventState above)
+  orgs: StudentOrgState;         // the student organisations the campus has grown: clubs, Greek chapters, and the petitions waiting on the next summer digest (see StudentOrgState above)
   research: ResearchState;       // the research stock, what it has produced, and the prize queue (see ResearchState above)
   candidates: Faculty[];         // the standing academic job market: a long, always-churning list of people available to appoint right now. facultySystem.ts's tickCandidatePool ages every listing, withdraws the ones that have been up too long, and tops the pool back up to CANDIDATE_POOL_TARGET each week — there is no posting, no fee, and no wait (see facultyData.ts's churn block)
   started: boolean;              // false only during the pre-game startup screen (name + school type)

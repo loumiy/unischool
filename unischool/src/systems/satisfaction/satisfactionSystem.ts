@@ -1,5 +1,6 @@
 import type { GameState, SatisfactionAttributes } from '../../state/types';
 import { HEALTH_CENTER_TIER1_CAPACITY_GATE } from '../../data/facilitiesData';
+import { clubSocialBonus, greekSocialBonus, studentLifeSocialBonus } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
 // Satisfaction stays ONE displayed number (s.students.satisfaction), but
@@ -130,7 +131,19 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
 
   const socialRatio = ratioScore(servedPopulationFor(s, 'social'), capacity, TARGET_RATIO.social, 1);
   const pride = clamp(s.self.reputation / REPUTATION_PRIDE_PRESTIGE_MAX, 0, 1) * REPUTATION_PRIDE_MAX_BONUS;
-  const social = clamp(socialRatio + flatBonusFor(s, 'social') + pride, ATTRIBUTE_SCORE_FLOOR, 100);
+  // Student organisations (see data/studentLifeData.ts) are the third
+  // contributor to `social`, alongside the ratio-scored facilities and the
+  // prestige-pride nudge. FLAT, like the quad's bonus and for the same
+  // reason: a chess club is worth the same at 400 students as at 40,000,
+  // so its contribution does not dilute as the campus grows. Read LIVE off
+  // s.orgs every week, never applied once, so disbanding a chapter removes
+  // its contribution the same week — see the live-read contract on
+  // BuildableEffects in state/types.ts, which this deliberately mirrors.
+  const social = clamp(
+    socialRatio + flatBonusFor(s, 'social') + pride + studentLifeSocialBonus(s),
+    ATTRIBUTE_SCORE_FLOOR,
+    100,
+  );
 
   const basicNeedsRatio = ratioScore(servedPopulationFor(s, 'basicNeeds'), capacity, TARGET_RATIO.basicNeeds, BASIC_NEEDS_PENALTY_CURVATURE);
   const affordability = clamp(s.admissions.financialAidRate, 0, 1) * AID_AFFORDABILITY_MAX_BONUS;
@@ -157,6 +170,80 @@ function weightedSum(breakdown: SatisfactionAttributes): number {
     breakdown.health * ATTRIBUTE_WEIGHTS.health +
     breakdown.infrastructure * ATTRIBUTE_WEIGHTS.infrastructure
   ) / 100;
+}
+
+// The satisfaction TARGET: the weighted sum of this week's attribute
+// scores, and the number the headline stock drifts toward. Exported so a
+// view can read the real target rather than reconstructing it — the same
+// reason computePrestigeTarget is exported.
+export function satisfactionTarget(s: GameState): number {
+  return weightedSum(computeSatisfactionBreakdown(s));
+}
+
+// ---------------------------------------------------------------------
+// WHAT STUDENT LIFE IS ACTUALLY WORTH, read off the model rather than
+// authored. Satisfaction is a stock drifting toward a facilities-derived
+// target; clubs and Greek chapters nudge that TARGET, so there is no such
+// thing as a standing "+N satisfaction" from them and printing one would
+// be a parallel number that drifts from what the system applies.
+//
+// So this does what prestigeTargetWithout does for the milestone modal: it
+// runs the very computation tickSatisfaction runs, against throwaway
+// shallow copies of the state with one source of student life removed, and
+// reports the difference. Pure — computeSatisfactionBreakdown only ever
+// READS, and each copy shares every other slice by reference.
+//
+// Reading it this way rather than summing the bonus constants is what makes
+// it honest at the edges: `social` is clamped to 100 and weighted at 20% of
+// the headline number, so a campus whose social score is already maxed
+// genuinely gains nothing more from its next club — and this says so,
+// where an aggregate of the constants would claim a contribution that is
+// not being applied.
+// ---------------------------------------------------------------------
+export interface StudentLifeSatisfaction {
+  clubCount: number;
+  chapterCount: number;
+  // The raw flat contributions each source offers the `social` attribute,
+  // before the aggregate cap and before `social` itself is clamped.
+  clubSocialBonus: number;
+  greekSocialBonus: number;
+  // What each source is actually worth on the HEADLINE satisfaction
+  // target, in points, after every clamp the model applies.
+  clubTargetContribution: number;
+  greekTargetContribution: number;
+  totalTargetContribution: number;
+  target: number;              // the satisfaction target as it stands
+  targetWithoutStudentLife: number; // and what it would be with no clubs and no chapters
+}
+
+function withoutOrgs(s: GameState, clubs: boolean, chapters: boolean): GameState {
+  return {
+    ...s,
+    orgs: {
+      ...s.orgs,
+      clubs: clubs ? [] : s.orgs.clubs,
+      chapters: chapters ? [] : s.orgs.chapters,
+    },
+  };
+}
+
+export function studentLifeSatisfaction(s: GameState): StudentLifeSatisfaction {
+  const target = satisfactionTarget(s);
+  const withoutClubs = satisfactionTarget(withoutOrgs(s, true, false));
+  const withoutGreek = satisfactionTarget(withoutOrgs(s, false, true));
+  const withoutBoth = satisfactionTarget(withoutOrgs(s, true, true));
+
+  return {
+    clubCount: s.orgs.clubs.length,
+    chapterCount: s.orgs.chapters.length,
+    clubSocialBonus: clubSocialBonus(s),
+    greekSocialBonus: greekSocialBonus(s),
+    clubTargetContribution: target - withoutClubs,
+    greekTargetContribution: target - withoutGreek,
+    totalTargetContribution: target - withoutBoth,
+    target,
+    targetWithoutStudentLife: withoutBoth,
+  };
 }
 
 export function tickSatisfaction(s: GameState): void {

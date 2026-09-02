@@ -11,7 +11,12 @@ import { tickResearch } from '../systems/research/researchSystem';
 import { tickPrestigeAnnual } from '../systems/prestige/prestigeSystem';
 import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { tickEvents } from '../systems/events/eventSystem';
+import { tickStudentLife } from '../systems/studentlife/studentLifeSystem';
 import { findDecisionEvent } from '../data/eventData';
+import {
+  CHAPTER_APPROVAL_SATISFACTION_NUDGE, CHAPTER_DECLINE_SATISFACTION_HIT,
+  CLUB_APPROVAL_SATISFACTION_NUDGE, CLUB_DECLINE_SATISFACTION_HIT, activatePetition,
+} from '../data/studentLifeData';
 import { canPlace, placementFor } from '../state/campusMap';
 import { captureYearSnapshot } from '../state/history';
 import { saveGame, clearSave } from '../state/persistence';
@@ -30,6 +35,13 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   // against.
   tickResearch,
   tickFinance,
+  // After tickFinance, before tickSatisfaction: a student organisation
+  // petition is sized in weeks of THIS week's operating cost, and an
+  // organisation the player recognised belongs in this week's satisfaction
+  // target rather than a week behind it. Raises no interrupt of its own —
+  // clubs and chapters are answered in a batch at the summer boundary (see
+  // systems/studentlife/studentLifeSystem.ts).
+  tickStudentLife,
   tickSatisfaction,
   tickAdmissions,
   tickRivals,
@@ -71,6 +83,63 @@ function clamp01(v: number): number {
 // saves AND rolls dice would not be — which is exactly why START_GAME's
 // save lives in useGame.ts instead (see there, and its case below).
 // ---------------------------------------------------------------------
+
+// ---------------------------------------------------------------------
+// The student-life digest (see README's "Student life", and
+// data/studentLifeData.ts). Clubs and Greek chapters form quietly during
+// the year and queue as petitions; this is where the whole year's worth is
+// answered, folded into the summer admissions interrupt rather than given
+// a modal of its own. So the light beat costs the run ZERO extra
+// stop-the-clock moments.
+//
+// The queue is drained WHOLESALE: anything the player did not tick is
+// declined here and now. That is what keeps the digest a digest — it can
+// never accumulate across years into a screen of decisions — and it is why
+// declining has a consequence at all, since a petition that simply expired
+// would be a decision nobody made.
+//
+// Approving is a MOVE, not a re-roll: everything mechanical about the
+// organisation (its name, founding size, weekly cost) was rolled when the
+// petition was raised, so the figures shown in the digest are the figures
+// applied — the same contract the decision-event table follows.
+//
+// The satisfaction changes here are transient nudges to the STOCK, on top
+// of the durable contribution a live organisation makes to the satisfaction
+// TARGET every week (see satisfactionSystem.ts). The durable half is the
+// real reward for approving; this half is what makes the moment land, and
+// what gives declining teeth it would otherwise have none of.
+function resolveStudentLifeDigest(s: GameState, approvedIds: string[]): void {
+  const petitions = s.orgs.pendingPetitions;
+  if (petitions.length === 0) return;
+  s.orgs.pendingPetitions = [];
+
+  const approved = new Set(approvedIds);
+  let nudge = 0;
+  let recognised = 0;
+  let declined = 0;
+  for (const petition of petitions) {
+    if (approved.has(petition.id)) {
+      activatePetition(s, petition);
+      recognised += 1;
+      nudge += petition.kind === 'club'
+        ? CLUB_APPROVAL_SATISFACTION_NUDGE
+        : CHAPTER_APPROVAL_SATISFACTION_NUDGE;
+    } else {
+      declined += 1;
+      nudge -= petition.kind === 'club'
+        ? CLUB_DECLINE_SATISFACTION_HIT
+        : CHAPTER_DECLINE_SATISFACTION_HIT;
+    }
+  }
+  s.students.satisfaction = Math.max(0, Math.min(100, s.students.satisfaction + nudge));
+
+  s.log.unshift({
+    year: s.clock.year,
+    week: s.clock.week,
+    message: `Student life: ${recognised} organisation${recognised === 1 ? '' : 's'} recognised, ${declined} declined.`,
+    kind: declined > recognised ? 'bad' : 'good',
+  });
+}
 
 function advanceClock(s: GameState): void {
   s.clock.week += 1;
@@ -178,6 +247,8 @@ export function reducer(state: GameState, action: Action): GameState {
       // an annual summer decision" and the removed live SET_TUITION control.
       s.finance.tuitionPerStudent = Math.max(0, Math.min(action.tuition, s.finance.tuitionCeiling));
       s.admissions = { financialAidRate: clamp01(action.financialAidRate) };
+
+      resolveStudentLifeDigest(s, action.approvedPetitionIds);
 
       // Run the distribution funnel with the committed policy: this sets the
       // year's enrolled class and applicant pool. The same pure function the

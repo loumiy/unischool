@@ -1,6 +1,10 @@
-import type { Faculty, GameState, LogEntry } from '../state/types';
+import type { Faculty, GameState, GreekChapter, LogEntry } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { FACULTY_FIELDS, generateCandidate } from './facultyData';
+import { money, rollAmount, weeksOfOpEx } from './moneyScale';
+import {
+  CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
+} from './studentLifeData';
 import { milestoneSchools } from './techData';
 
 // ---------------------------------------------------------------------
@@ -69,10 +73,6 @@ function pick<T>(items: readonly T[]): T {
 
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
-}
-
-function money(n: number): string {
-  return `$${Math.round(n).toLocaleString()}`;
 }
 
 // =====================================================================
@@ -196,20 +196,14 @@ export const DECISION_EVENT_REPEAT_COOLDOWN_WEEKS = 156; // the same event may n
 // orders of magnitude of budget (see financeSystem.ts's stage table: ~$45k
 // a week at founding, ~$7.5M a week late). A repair worth "1.5 weeks of
 // opex" is a real but survivable bill at every stage; a flat $200k would
-// be a crisis in year 3 and a rounding error in year 40.
-const MIN_OPEX_SCALE = 45_000; // floor, so the very first eligible year still produces sane figures
-
-function weeksOfOpEx(s: GameState, weeks: number): number {
-  return Math.round(Math.max(s.finance.weeklyOpEx, MIN_OPEX_SCALE) * weeks);
-}
-
+// be a crisis in year 3 and a rounding error in year 40. The conversion
+// itself lives in moneyScale.ts, because the student-organisation layer
+// sizes itself the same way and neither file may import the other.
+//
 // A rolled figure is fixed at FIRE time and carried in the interrupt
 // payload (see DecisionEventContext.amount), never re-rolled at resolve
 // time — the number in the modal is the number that is applied, the same
 // contract the admissions preview and the endowment campaign follow.
-function rollAmount(s: GameState, minWeeks: number, maxWeeks: number): number {
-  return weeksOfOpEx(s, minWeeks + Math.random() * (maxWeeks - minWeeks));
-}
 
 // Whatever the event rolled about itself when it fired. Plain JSON: it
 // rides in s.pendingInterrupt.payload and therefore through save/load.
@@ -292,6 +286,18 @@ function removeFaculty(s: GameState, id: string | undefined): void {
   s.faculty = s.faculty.filter((f) => f.id !== id);
 }
 
+function findChapter(s: GameState, id: string | undefined): GreekChapter | undefined {
+  return s.orgs.chapters.find((c) => c.id === id);
+}
+
+// Chapters that have never been asked about housing. A chapter is asked at
+// most once, whatever the answer was, so the school is never nagged about
+// the same house twice and the petition can never become a modal spiral —
+// the supply of asks is bounded by the number of chapters that exist.
+function chaptersAwaitingHousing(s: GameState): GreekChapter[] {
+  return s.orgs.chapters.filter((c) => !c.housed && !c.housingAsked);
+}
+
 // --- per-event tuning ------------------------------------------------
 const ESTATE_GIFT_MIN_WEEKS = 2;          // gift size, in weeks of opex
 const ESTATE_GIFT_MAX_WEEKS = 5;
@@ -332,8 +338,35 @@ const SCANDAL_DEFENCE_COST_WEEKS = 1.5;
 const SCANDAL_DEFENCE_SATISFACTION_HIT = 3; // students protest the school standing behind them
 const SCANDAL_DISMISSAL_SATISFACTION_GAIN = 2;
 
+// --- student organisations (see data/studentLifeData.ts) ---------------
+//
+// WHY THE GREEK BEATS ARE IN THIS TABLE AT ALL. Clubs and new chapters are
+// the light half of student life and never stop the clock — they raise a
+// petition and are answered in a batch at the summer admissions boundary
+// (see systems/studentlife/studentLifeSystem.ts). What is left is the
+// consequential half — the one-time question of whether the school has
+// Greek life at all, a chapter in disgrace, and a chapter asking for a
+// house — and every one of those is a prompt with choices and a cash cost,
+// which is exactly what this table is. Authoring them here rather than
+// giving student life a second interrupt stream means they SHARE the
+// existing event budget (DECISION_EVENT_WEEKLY_CHANCE and its cooldown)
+// rather than adding to it: the number of stop-the-clock modals a year does
+// not move, only the mix of what they are about. The weights below are
+// therefore the dial for how much of that fixed budget Greek life takes.
+//
+// THE GREEK GATE. Every Greek entry's eligible() reads
+// s.orgs.hellenicCouncilApproved, so no scandal and no housing petition can
+// fire at a school that never approved a council — and the council question
+// itself is maxFires: 1, so declining closes Greek life for the whole run.
+const HELLENIC_COUNCIL_MIN_CLUBS = 5;      // students only organise a council once there is a club scene to federate
+const GREEK_SCANDAL_PR_COST_WEEKS = 1.8;
+const GREEK_SCANDAL_PR_SATISFACTION_HIT = 3; // standing behind the chapter costs goodwill, as standing behind a professor does
+const GREEK_HOUSE_BUILD_COST_WEEKS = 3.5;   // a chapter house is a real building, priced against the facility chain
+const GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX = 0.004; // and it roughly doubles that chapter's weekly line, forever
+const GREEK_HOUSE_REFUSAL_SATISFACTION_HIT = 2;
+
 // =====================================================================
-// THE TABLE. Ten authored events. Trigger conditions are deliberately
+// THE TABLE. Thirteen authored events. Trigger conditions are deliberately
 // state-driven rather than calendar-driven: a donor shows up once the
 // school is worth donating to, a heating plant fails once there is a
 // campus big enough to have one. That is the same "reveal on thresholds
@@ -712,6 +745,171 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           removeFaculty(s, ctx.subjectId);
           s.students.satisfaction = clamp(s.students.satisfaction + SCANDAL_DISMISSAL_SATISFACTION_GAIN, 0, 100);
           return entry(s, `${ctx.subjectName} has been dismissed.`, 'bad');
+        },
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------------
+  // GREEK LIFE. Three entries, all gated on student organisations the
+  // player already has (see data/studentLifeData.ts). The first is the
+  // opt-in; the other two can only ever fire once it has been taken.
+  // ---------------------------------------------------------------------
+
+  {
+    id: 'hellenic-council',
+    title: 'A petition for a Hellenic Council',
+    // Weighted heavily and capped at one firing: it is a one-shot question
+    // that a run should actually get ASKED rather than one that might
+    // never come up, and once answered it can never return.
+    weight: 16,
+    maxFires: 1,
+    eligible: (s) => !s.orgs.hellenicCouncilOffered && s.orgs.clubs.length >= HELLENIC_COUNCIL_MIN_CLUBS,
+    prompt: (s) =>
+      `The ${s.orgs.clubs.length} recognised student societies have sent a joint delegation: they want the school to charter a Hellenic Council and permit Greek-letter organisations on campus. Fraternities and sororities would bring a great deal of student life with them, and a great deal of everything that comes with student life.`,
+    choices: [
+      {
+        id: 'charter',
+        label: 'Charter the council',
+        describe: () =>
+          `Chapters begin forming from here on, each petitioning for recognition at summer admissions like any other society. A chapter is worth ${CHAPTER_SOCIAL_BONUS} points of social satisfaction against a club's fraction of that, carries a real recurring cost, and will eventually bring you its own problems.`,
+        cost: () => 0,
+        apply: (s) => {
+          s.orgs.hellenicCouncilApproved = true;
+          s.orgs.hellenicCouncilOffered = true;
+          return entry(s, 'A Hellenic Council has been chartered; Greek-letter organisations may now form on campus.', 'good');
+        },
+      },
+      {
+        id: 'decline',
+        label: 'Decline — no Greek life here',
+        describe: () =>
+          'Nothing changes, permanently. No fraternity or sorority will ever form at this school, and you will not be asked again. Clubs are unaffected.',
+        cost: () => 0,
+        apply: (s) => {
+          s.orgs.hellenicCouncilOffered = true;
+          return entry(s, 'The trustees have declined to charter a Hellenic Council. This school will not have Greek life.', 'info');
+        },
+      },
+    ],
+  },
+
+  {
+    id: 'greek-scandal',
+    title: 'A chapter in disgrace',
+    // The dial the cadence note in the PR summary refers to: raising this
+    // takes a bigger share of the fixed decision-event budget for
+    // scandals, lowering it makes them rarer against everything else.
+    weight: 7,
+    eligible: (s) => s.orgs.hellenicCouncilApproved && s.orgs.chapters.length > 0,
+    rollContext: (s) => {
+      const chapters = s.orgs.chapters;
+      if (chapters.length === 0) return null;
+      const target = pick(chapters);
+      return {
+        subjectId: target.id,
+        subjectName: target.name,
+        amount: weeksOfOpEx(s, GREEK_SCANDAL_PR_COST_WEEKS),
+      };
+    },
+    prompt: (s, ctx) => {
+      const chapter = findChapter(s, ctx.subjectId);
+      const size = chapter ? orgMembership(chapter, s) : 0;
+      return `${ctx.subjectName} — ${size} members, chartered in ${chapter?.foundedYear ?? '?'} — is on the front page, and not for its philanthropy. Counsel and a communications firm will see the chapter through for ${money(ctx.amount ?? 0)}. The alternative is to pull its charter.`;
+    },
+    choices: [
+      {
+        id: 'pr',
+        label: 'Fund a public-relations campaign',
+        describe: (_s, ctx) =>
+          `${money(ctx.amount ?? 0)} up front. ${ctx.subjectName} keeps its charter and everything it contributes; satisfaction takes a ${GREEK_SCANDAL_PR_SATISFACTION_HIT}-point dent that heals over the following weeks.`,
+        cost: (_s, ctx) => ctx.amount ?? 0,
+        apply: (s, ctx) => {
+          dentSatisfaction(s, GREEK_SCANDAL_PR_SATISFACTION_HIT);
+          return entry(s, `The university has stood behind ${ctx.subjectName}; the campus is divided.`, 'info');
+        },
+      },
+      {
+        // The zero-cost path, which is what satisfies the no-soft-lock
+        // invariant for this event — and it is also the DURABLE one. What
+        // disbanding costs is not a dent that heals: it is the permanent
+        // removal of an ongoing contribution to the satisfaction target
+        // and of the chapter's line on the weekly statement.
+        id: 'disband',
+        label: 'Pull the charter',
+        describe: (s, ctx) => {
+          const chapter = findChapter(s, ctx.subjectId);
+          const bonus = chapter
+            ? CHAPTER_SOCIAL_BONUS + (chapter.housed ? CHAPTER_HOUSED_SOCIAL_BONUS : 0)
+            : CHAPTER_SOCIAL_BONUS;
+          return `No cash spent. ${ctx.subjectName} is dissolved permanently: ${bonus.toFixed(1)} points of social satisfaction and ${money(chapter?.upkeepPerWeek ?? 0)} a week of cost go with it. It cannot be re-chartered.`;
+        },
+        cost: () => 0,
+        apply: (s, ctx) => {
+          s.orgs.chapters = s.orgs.chapters.filter((c) => c.id !== ctx.subjectId);
+          return entry(s, `${ctx.subjectName} has been dissolved and its charter withdrawn.`, 'bad');
+        },
+      },
+    ],
+  },
+
+  {
+    id: 'greek-housing',
+    title: 'A chapter asks for a house',
+    weight: 6,
+    eligible: (s) => s.orgs.hellenicCouncilApproved && chaptersAwaitingHousing(s).length > 0,
+    // ONE GROUP AT A TIME, and each chapter at most once: the draw picks a
+    // single chapter that has never been asked, and BOTH answers set
+    // housingAsked, so a chapter whose house was refused does not come
+    // back around and a chapter whose house was built has nothing left to
+    // ask for.
+    rollContext: (s) => {
+      const waiting = chaptersAwaitingHousing(s);
+      if (waiting.length === 0) return null;
+      const target = pick(waiting);
+      return {
+        subjectId: target.id,
+        subjectName: target.name,
+        amount: weeksOfOpEx(s, GREEK_HOUSE_BUILD_COST_WEEKS),
+      };
+    },
+    prompt: (s, ctx) => {
+      const chapter = findChapter(s, ctx.subjectId);
+      const size = chapter ? orgMembership(chapter, s) : 0;
+      return `${ctx.subjectName} has outgrown its meeting room: ${size} members, and an alumni committee with drawings for a dedicated chapter house on the edge of campus. The school's share of the build is ${money(ctx.amount ?? 0)}.`;
+    },
+    choices: [
+      {
+        id: 'build',
+        label: 'Build the chapter house',
+        describe: (s, ctx) =>
+          `${money(ctx.amount ?? 0)} up front and ${money(weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX))} a week to run it, forever. ${ctx.subjectName} contributes a further ${CHAPTER_HOUSED_SOCIAL_BONUS} points of social satisfaction from the week it opens.`,
+        cost: (_s, ctx) => ctx.amount ?? 0,
+        apply: (s, ctx) => {
+          const chapter = findChapter(s, ctx.subjectId);
+          if (chapter) {
+            chapter.housed = true;
+            chapter.housingAsked = true;
+            // Folded into the chapter's own line rather than kept
+            // separately, so disbanding the chapter takes the house's
+            // running cost with it — there is exactly one place a Greek
+            // organisation's cost lives.
+            chapter.upkeepPerWeek += weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX);
+          }
+          return entry(s, `A chapter house has been built for ${ctx.subjectName}.`, 'good');
+        },
+      },
+      {
+        id: 'refuse',
+        label: 'They can keep meeting where they are',
+        describe: (_s, ctx) =>
+          `No cash spent, and a ${GREEK_HOUSE_REFUSAL_SATISFACTION_HIT}-point satisfaction dent that heals over the following weeks. ${ctx.subjectName} keeps its charter and everything it already contributes, and will not ask again.`,
+        cost: () => 0,
+        apply: (s, ctx) => {
+          const chapter = findChapter(s, ctx.subjectId);
+          if (chapter) chapter.housingAsked = true;
+          dentSatisfaction(s, GREEK_HOUSE_REFUSAL_SATISFACTION_HIT);
+          return entry(s, `${ctx.subjectName}'s request for a chapter house was refused.`, 'bad');
         },
       },
     ],
