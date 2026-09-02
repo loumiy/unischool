@@ -399,7 +399,10 @@ half-loaded. Migrations live in `persistence.ts`'s `MIGRATIONS` table, keyed on
 the version they migrate *from*, and the load path walks them one version at a
 time; a version with no entry is discarded and the player starts fresh. Migrate
 when the old data still describes the same game (v3 -> v4 filled in the campus
-map's new placement footprints, which were all 1x1 before footprints existed);
+map's new placement footprints, which were all 1x1 before footprints existed;
+v4 -> v5 re-pointed every course's `requiresFaculty` and every hire's `field`
+at the re-specialised faculty-field taxonomy, which renamed and split the
+departments a run is staffed against without changing the run itself);
 discard when it doesn't (v1 and v2 predate an economy rebalance, so those runs
 would be describing a different game).
 

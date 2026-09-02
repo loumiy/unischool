@@ -1,6 +1,8 @@
 import type { GameState, Placement } from './types';
 import { footprintFits, footprintIsClear, isPlaceableKind } from './campusMap';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from './types';
+import { LEGACY_FIELD_RENAMES } from '../data/facultyData';
+import { initialTech } from '../data/techData';
 
 // ---------------------------------------------------------------------
 // Save / load (see README's "Save / load"). A run is measured in hours, so
@@ -57,7 +59,16 @@ const SAVE_KEY = 'unischool.save';
 // is genuinely recoverable, so it is the first version with a MIGRATION
 // rather than a discard: every v3 placement covered exactly one tile, so
 // it loads as 1x1 and the player keeps their run and their layout.
-export const SAVE_VERSION = 4;
+// v5: the faculty-field taxonomy was re-specialised from 13 broad subject
+// areas to 26 departments (facultyData.ts's FACULTY_FIELDS), and every
+// major was reassigned to one of them. Three old field STRINGS stopped
+// existing ('CompSci', 'Business', 'Arts'), and most courses now name a
+// different field in requiresFaculty than the save recorded — both are
+// stored verbatim in a v4 save, so an un-migrated v4 run would hold
+// faculty in fields nothing can be hired into and courses gated on fields
+// no longer supplied. Recoverable rather than discardable: it is the same
+// school with its departments renamed, so it is migrated, not dropped.
+export const SAVE_VERSION = 5;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -115,6 +126,62 @@ const MIGRATIONS: Record<number, (state: GameState) => void> = {
       if (typeof legacy.w !== 'number') legacy.w = 1;
       if (typeof legacy.h !== 'number') legacy.h = 1;
     }
+  },
+
+  // v4 -> v5: the faculty-field taxonomy became 26 departments and every
+  // major was reassigned to one. Nothing about the run's SHAPE changed —
+  // only which field string a course asks for and a hire supplies — so the
+  // whole migration is a re-pointing of those strings at the new taxonomy.
+  //
+  // Courses are re-read from the seed by id rather than mapped old-field ->
+  // new-field, because the mapping isn't one-to-one: 'Business' split four
+  // ways by major, so only the seed knows that FINA belongs to Accounting &
+  // Finance and SPCO to Operations Research. Progress is untouched — status,
+  // prereqs, cost and every other authored field on the saved node stay as
+  // the player left them; a saved course that no longer exists in the seed
+  // simply loses its gate rather than keeping a dead one.
+  //
+  // Faculty (and unhired candidates, and open postings, which are KEYED by
+  // field) are remapped by name through LEGACY_FIELD_RENAMES: ten of the
+  // thirteen old fields are still live departments and pass through
+  // untouched, and the three that were merged away follow their hires to
+  // the nearest surviving one, so no hire the player paid for is lost.
+  //
+  // What this deliberately does NOT do is rebalance the resumed roster: a
+  // save whose six 'Business' professors all land in Management will find
+  // its Finance and Marketing courses over-subscribed (their slots are
+  // occupied by already-developing/done courses, per techSystem.ts's
+  // usedFacultySlots) until the player posts openings in those departments.
+  // That blocks STARTING new development in those fields only — no course
+  // in flight is cancelled, nothing is refunded, and posting for the new
+  // departments clears it — which is the same stall a player who under-hires
+  // in a field already experiences, not a broken save.
+  4: (state) => {
+    const seededFields = new Map(
+      initialTech()
+        .filter((node) => node.requiresFaculty)
+        .map((node) => [node.id, node.requiresFaculty as string]),
+    );
+    for (const node of state.tech) {
+      if (!node.requiresFaculty) continue;
+      const reassigned = seededFields.get(node.id);
+      if (reassigned) node.requiresFaculty = reassigned;
+      else delete node.requiresFaculty;
+    }
+
+    const liveField = (field: string): string => LEGACY_FIELD_RENAMES[field] ?? field;
+    for (const f of state.faculty) f.field = liveField(f.field);
+    for (const c of state.candidates ?? []) c.field = liveField(c.field);
+
+    // At most one posting per field, so two old fields collapsing into one
+    // new department keeps the posting that resolves soonest rather than
+    // silently dropping one of the two the player paid for.
+    const postings: Record<string, number> = {};
+    for (const [field, weeksLeft] of Object.entries(state.openPostings ?? {})) {
+      const next = liveField(field);
+      postings[next] = next in postings ? Math.min(postings[next], weeksLeft) : weeksLeft;
+    }
+    state.openPostings = postings;
   },
 };
 

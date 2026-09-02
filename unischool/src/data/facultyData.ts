@@ -66,7 +66,62 @@ const SAME_ORIGIN_NAME_WEIGHT = 0.85;
 // should essentially never exhaust; the loop is just a safety net.
 const MAX_NAME_ROLL_ATTEMPTS = 30;
 
-export const FACULTY_FIELDS = ['Physics', 'History', 'CompSci', 'Economics', 'Biology', 'Mathematics', 'Sociology', 'Chemistry', 'Psychology', 'English', 'Business', 'Arts', 'Philosophy'];
+// ---------------------------------------------------------------------
+// Faculty fields = the university's DEPARTMENTS. This is the taxonomy the
+// whole recruiting side hangs off: a hire belongs to exactly one field, a
+// job posting is opened for exactly one field, and a course's
+// requiresFaculty names exactly one field (techData.ts gives every major
+// one `field`, shared by all nine of its courses, plus GENED_FIELDS for
+// the six gen-ed courses).
+//
+// The set below is deliberately shaped like a real course catalog's
+// department list rather than like a list of broad subject areas, and it
+// is chosen so demand lands EVENLY across it: with 36 majors, one field
+// per major would be a 36-entry dropdown, and the old 13 broad fields put
+// 54 courses behind 'Business' and 45 each behind 'CompSci'/'Arts'/
+// 'Biology' while 'Economics' and 'Psychology' had 9 apiece. 26 fields at
+// one-to-three majors each keeps every field between 9 and 20 courses —
+// no field is dead, none dominates, and each is still a department a real
+// university would actually have (several are real combined-department
+// names: Accounting & Finance, Operations Research, Art & Design).
+//
+// Ordered by division, the way a catalog lists departments, because this
+// array IS the recruiting dropdown's order (see FacultyTab.tsx).
+//
+// Adding/renaming an entry here is a save-compatibility event: a saved
+// faculty member stores their field as a plain string, so a field that
+// stops existing strands that hire. See LEGACY_FIELD_RENAMES below and
+// persistence.ts's v4 -> v5 migration.
+// ---------------------------------------------------------------------
+export const FACULTY_FIELDS = [
+  // Humanities & arts
+  'English', 'History', 'Philosophy', 'Communication', 'Art & Design', 'Music',
+  // Social sciences
+  'Economics', 'Political Science', 'Psychology', 'Sociology',
+  // Natural sciences & mathematics
+  'Mathematics', 'Physics', 'Chemistry', 'Biology',
+  // Health
+  'Public Health', 'Clinical Health',
+  // Computing
+  'Computer Science', 'Artificial Intelligence', 'Information Systems',
+  // Engineering
+  'Mechanical Engineering', 'Electrical Engineering', 'Civil Engineering', 'Operations Research',
+  // Business
+  'Accounting & Finance', 'Marketing', 'Management',
+];
+
+// Old field names -> the field that inherits them, for saves written
+// before the taxonomy was re-specialised (see persistence.ts's v4 -> v5
+// migration). Only the three fields that stopped existing need an entry;
+// the other ten old names are still live fields and carry forward as-is.
+// A merged-away field maps to the closest surviving department, so a
+// player never loses a hire they paid for — 'Business' split four ways, so
+// its faculty land in 'Management', the most general of the four.
+export const LEGACY_FIELD_RENAMES: Record<string, string> = {
+  CompSci: 'Computer Science',
+  Business: 'Management',
+  Arts: 'Art & Design',
+};
 
 function pick<T>(pool: T[]): T {
   return pool[Math.floor(Math.random() * pool.length)];
@@ -163,19 +218,32 @@ const BIO_INSTITUTIONS = [
 ];
 
 const FIELD_RESEARCH_INTERESTS: Record<string, string[]> = {
-  Physics: ['condensed matter theory', 'particle detector design', 'astrophysical modeling'],
-  History: ['20th-century political movements', 'maritime trade networks', 'oral history methods'],
-  CompSci: ['distributed systems', 'programming language design', 'human-computer interaction'],
-  Economics: ['labor markets', 'behavioral economics', 'monetary policy'],
-  Biology: ['cell signaling pathways', 'conservation ecology', 'evolutionary genetics'],
-  Mathematics: ['combinatorics', 'applied topology', 'numerical analysis'],
-  Sociology: ['urban inequality', 'social network analysis', 'the sociology of work'],
-  Chemistry: ['catalysis', 'polymer synthesis', 'environmental chemistry'],
-  Psychology: ['cognitive development', 'clinical resilience', 'decision-making under uncertainty'],
   English: ['postcolonial literature', 'rhetoric and composition', 'digital humanities'],
-  Business: ['corporate strategy', 'entrepreneurial finance', 'organizational behavior'],
-  Arts: ['visual culture', 'performance studies', 'creative practice'],
+  History: ['20th-century political movements', 'maritime trade networks', 'oral history methods'],
   Philosophy: ['ethics and moral philosophy', 'philosophy of mind', 'political philosophy'],
+  Communication: ['media effects research', 'documentary practice', 'political communication'],
+  'Art & Design': ['visual culture', 'typographic history', 'studio practice'],
+  Music: ['music cognition', 'ethnomusicology', 'composition for ensembles'],
+  Economics: ['labor markets', 'behavioral economics', 'monetary policy'],
+  'Political Science': ['comparative democratization', 'constitutional law', 'international security'],
+  Psychology: ['cognitive development', 'clinical resilience', 'decision-making under uncertainty'],
+  Sociology: ['urban inequality', 'social network analysis', 'the sociology of work'],
+  Mathematics: ['combinatorics', 'applied topology', 'statistical learning theory'],
+  Physics: ['condensed matter theory', 'orbital mechanics', 'astrophysical modeling'],
+  Chemistry: ['catalysis', 'polymer synthesis', 'medicinal chemistry'],
+  Biology: ['cell signaling pathways', 'conservation ecology', 'evolutionary genetics'],
+  'Public Health': ['infectious disease epidemiology', 'nutrition policy', 'health disparities'],
+  'Clinical Health': ['patient safety outcomes', 'geriatric care models', 'oral disease prevention'],
+  'Computer Science': ['distributed systems', 'programming language design', 'human-computer interaction'],
+  'Artificial Intelligence': ['deep learning architectures', 'computer vision', 'the ethics of automated decisions'],
+  'Information Systems': ['applied cryptography', 'enterprise data governance', 'security operations'],
+  'Mechanical Engineering': ['thermofluid systems', 'materials fatigue', 'robotic actuation'],
+  'Electrical Engineering': ['power electronics', 'wireless signal processing', 'integrated circuit design'],
+  'Civil Engineering': ['structural resilience', 'geotechnical modeling', 'transportation networks'],
+  'Operations Research': ['stochastic optimization', 'supply chain modeling', 'queueing theory'],
+  'Accounting & Finance': ['asset pricing', 'audit quality', 'corporate disclosure'],
+  Marketing: ['consumer choice', 'brand equity', 'digital attribution'],
+  Management: ['corporate strategy', 'entrepreneurship', 'organizational behavior'],
 };
 
 function rollBio(field: string): string {
