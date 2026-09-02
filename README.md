@@ -429,7 +429,8 @@ any refactor.
 
 **Near-term:**
 
-- Speed simplification: one real-game speed plus one sandbox-only fast speed.
+- Speed simplification: real-game speed and a 2x of it (the same week-tick,
+  twice as often — no second timing path), plus one sandbox-only fast speed.
 - Startup screen: name + private/public starting conditions.
 - Money-as-bottleneck finance: remove hard game-over, stall-in-the-red, scaling
   trickle. The rebalancing pass that money-paces-alone needed is done — costs

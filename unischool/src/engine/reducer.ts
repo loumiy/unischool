@@ -193,11 +193,6 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
-    case 'TOGGLE_AUTO_DEVELOP': {
-      s.autoDevelop = !s.autoDevelop;
-      return s;
-    }
-
     case 'RESOLVE_INTERRUPT': {
       s.pendingInterrupt = null;
       return s;

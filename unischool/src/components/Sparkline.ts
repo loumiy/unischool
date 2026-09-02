@@ -1,18 +1,16 @@
 // ---------------------------------------------------------------------
-// Plain-SVG line geometry, shared by the header's sparklines and the
-// Institutional History view's charts (see HistoryTab.tsx). No charting
-// library and no new dependency: a polyline over a normalized series is
-// the whole of it, and both readers want the same handful of lines rather
-// than two subtly different copies.
+// Plain-SVG line geometry for the Institutional History view's charts (see
+// HistoryTab.tsx). No charting library and no new dependency: a polyline
+// over a normalized series is the whole of it.
+//
+// This was shared with a pair of header sparklines until those were
+// removed from the top bar — the trend belongs on the History view, which
+// draws it at a size worth reading. What's left is the geometry itself,
+// which is a chart's business either way.
 //
 // Every series the game plots is a YearSnapshot field (see
 // state/types.ts) — one point per in-game year, oldest first.
 // ---------------------------------------------------------------------
-
-// Header sparkline geometry. Deliberately tiny: it's a shape cue next to a
-// stat, not a chart to read values off.
-export const SPARKLINE_WIDTH = 76;
-export const SPARKLINE_HEIGHT = 18;
 
 // A line needs two points to have a direction; one year of history draws
 // nothing rather than a misleading flat line.
@@ -46,26 +44,4 @@ export function linePoints(values: number[], width: number, height: number, padY
 // full float precision into the DOM.
 function round(n: number): number {
   return Math.round(n * 100) / 100;
-}
-
-// A bare trend line, sized to sit under a header stat. It carries no axes,
-// no labels and no numbers on purpose — the exact figure is the stat right
-// above it; this only answers "which way, and how steadily".
-export default function Sparkline({ values, title }: { values: number[]; title: string }) {
-  const points = linePoints(values, SPARKLINE_WIDTH, SPARKLINE_HEIGHT);
-  if (!points) return null;
-
-  return (
-    <svg
-      className="sparkline"
-      viewBox={`0 0 ${SPARKLINE_WIDTH} ${SPARKLINE_HEIGHT}`}
-      width={SPARKLINE_WIDTH}
-      height={SPARKLINE_HEIGHT}
-      role="img"
-      aria-label={title}
-    >
-      <title>{title}</title>
-      <polyline points={points} />
-    </svg>
-  );
 }

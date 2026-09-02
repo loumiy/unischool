@@ -45,12 +45,6 @@ button { cursor: pointer; font-family: inherit; }
 .stat-value.money-negative { color: #e58a8a; }
 .stat-value.gold { color: var(--gold); }
 .stat-sub { font-size: 11px; color: var(--ink-lo); font-family: var(--mono); }
-/* Trend line under a header stat (see Sparkline.tsx). Right-aligned with
-   the stat block it belongs to; unfilled, one hairline, no axes — it is a
-   shape cue, not a chart to read values off. */
-.sparkline { display: block; margin: 3px 0 0 auto; overflow: visible; }
-.sparkline polyline { fill: none; stroke: var(--gold-dim); stroke-width: 1.25;
-  stroke-linejoin: round; stroke-linecap: round; }
 
 /* ---------- control bar ---------- */
 .controlbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
@@ -60,9 +54,6 @@ button { cursor: pointer; font-family: inherit; }
 .speeds button.sandbox { border-style: dashed; border-color: #a67c1c; color: #e0b04a; }
 .speeds button.sandbox.active { background: #a67c1c; color: #14161a; border-color: #a67c1c; }
 .controlbar-right { display: flex; gap: 8px; align-items: center; }
-.auto-develop-toggle { background: transparent; border: 1px dashed var(--navy-line); color: var(--ink-lo);
-  border-radius: 4px; padding: 5px 12px; font-size: 11px; letter-spacing: 0.02em; }
-.auto-develop-toggle.on { border-color: var(--gold); border-style: solid; color: var(--gold); }
 .debug-interrupt-btn { background: #3a2f1c; color: #e0b04a; border: 1px dashed #a67c1c; border-radius: 4px;
   padding: 5px 10px; font-size: 11px; }
 /* Save / New Game (see StatusHeader.tsx's SaveControls). Sized and spoken
@@ -163,8 +154,9 @@ button { cursor: pointer; font-family: inherit; }
 .progress-figure .stat { line-height: 1.25; }
 
 /* ---------- curriculum: progressive discovery ---------- */
-/* No inner scroll box here (unlike the other panel lists) — the page
-   scrolls naturally instead, so hover tooltips on cells are never clipped. */
+/* No inner scroll box here (unlike the other panel lists) — the overlay
+   body scrolls instead, so a cell's tooltip only ever has one edge to
+   worry about, and it flips above the cell when it gets near it. */
 .curriculum-scroll { padding-right: 6px; }
 
 .discovery-pool-caption { font-size: 12px; font-style: italic; color: var(--ink-muted); margin: 0 0 10px; }
@@ -242,8 +234,13 @@ button { cursor: pointer; font-family: inherit; }
 .cell-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(109, 86, 16, 0.18); }
 .cell-progress-fill { display: block; height: 100%; background: var(--brass-deep); transition: width 0.25s ease; }
 
-/* Hover/focus tooltip — plain CSS show/hide, no JS state. */
-.course-tooltip { position: absolute; z-index: 20; top: 38px; left: 0; width: 220px;
+/* Hover/focus tooltip — plain CSS show/hide, no JS state for that. What IS
+   scripted is the position: CurriculumTab.tsx's placeTooltip switches it to
+   fixed viewport coordinates on hover/focus, so it escapes the overlay's
+   scroll box instead of being clipped near the bottom of it. The rule below
+   is the un-scripted fallback (and what the tooltip is measured at): hung
+   under the cell, with the 4px gap TOOLTIP_GAP mirrors. */
+.course-tooltip { position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; width: 220px;
   background: var(--navy); color: var(--ink-hi); border: 1px solid var(--navy-line); border-radius: 6px;
   padding: 10px 12px; font-size: 12px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
   visibility: hidden; opacity: 0; transition: opacity 0.12s ease; pointer-events: none; }
@@ -417,8 +414,10 @@ button { cursor: pointer; font-family: inherit; }
 .tab-overlay-close { background: transparent; border: 1px solid var(--navy-line); color: #c7cee0;
   border-radius: 5px; padding: 4px 12px; font-size: 11px; font-family: var(--mono); }
 .tab-overlay-close:hover { border-color: var(--gold); color: var(--gold); }
-/* Generous bottom padding: the curriculum's hover tooltips hang below their
-   cell, and this is a scroll container, so they'd otherwise clip at the end. */
+/* Generous bottom padding so the last row of any panel doesn't end flush
+   against the scroll box. The curriculum's tooltips no longer depend on it:
+   they flip above their cell when there isn't room below (see
+   CurriculumTab.tsx). */
 .tab-overlay-body { overflow-y: auto; padding: 14px 18px 40px; }
 .tab-overlay-body::-webkit-scrollbar { width: 8px; }
 .tab-overlay-body::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: 4px; }

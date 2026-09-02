@@ -6,14 +6,21 @@ import type { Action } from '../state/actions';
 import { loadGame, saveGame } from '../state/persistence';
 
 // Speed presets in milliseconds per week-tick. 0 = paused.
-// `real` is the intended play speed: slow enough that a 50-year
+// `real` is the baseline play speed: slow enough that a 50-year
 // playthrough (2,600 weeks) takes several hours of active, unpaused play
 // (~3.6h at 5000ms/week) rather than under an hour — a development choice
-// should feel like a real commitment, not a blip you tick past. `fast` is a
-// sandbox-only speed for playtesting, not meant for normal play (and is
-// hidden from the controls entirely outside a university named "test" —
-// see StatusHeader.tsx).
-export const SPEEDS = { paused: 0, real: 5000, fast: 150 } as const;
+// should feel like a real commitment, not a blip you tick past. `double`
+// is that same clock at 2x: a real gameplay speed for the long stretches
+// between decisions (a 50-year run in ~1.8h), offered to every player
+// alongside `real` rather than hidden. `fast` is a sandbox-only speed for
+// playtesting, not meant for normal play (and is hidden from the controls
+// entirely outside a university named "test" — see StatusHeader.tsx).
+//
+// Speed is purely how often the week-tick fires: nothing downstream reads
+// it, and the reducer advances exactly one week per TICK at every setting,
+// so a faster speed runs the identical sim, just sooner. That is what
+// keeps 2x a presentation choice rather than a second timing path.
+export const SPEEDS = { paused: 0, real: 5000, double: 2500, fast: 150 } as const;
 export type Speed = keyof typeof SPEEDS;
 export const SANDBOX_SPEEDS: readonly Speed[] = ['fast'];
 
