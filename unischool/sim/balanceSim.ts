@@ -29,6 +29,8 @@ import { canStartDevelopment, hasFreeFacultySlot } from '../src/systems/techtree
 import { findDecisionEvent } from '../src/data/eventData';
 import { weeklyResearchPoints } from '../src/data/researchData';
 import { studentLifeSatisfaction } from '../src/systems/satisfaction/satisfactionSystem';
+import { demandProgress } from '../src/systems/demands/demandSystem';
+import { demandSubject } from '../src/data/demandData';
 import type { DecisionEventContext } from '../src/data/eventData';
 
 // ---------------------------------------------------------------------
@@ -334,6 +336,17 @@ interface EventTally {
   // a glance whether research is a quiet second income line or a second
   // economy. Prizes are the only one of the three that stops the clock.
   prizes: number;
+  // Student demands (see src/systems/demands/demandSystem.ts). The
+  // question these answer is the one the feature's whole cadence argument
+  // rests on: a well-run school should almost never be asked for anything,
+  // and a school pinned at the satisfaction floor should be asked
+  // repeatedly and STILL only stall. `demandsRaised` also feeds the
+  // combined modal count below — demands share the decision events'
+  // cooldown, so they redistribute that budget rather than adding to it.
+  demandsRaised: number;
+  demandsMet: number;
+  demandsFailed: number;
+  demandSubjects: Record<string, number>; // which shortfall each demand was about
 }
 
 // The scripted player's event policy: take the FIRST affordable choice —
@@ -369,6 +382,7 @@ function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTal
   const tally: EventTally = {
     milestones: 0, decisions: 0, cash: 0, prizes: 0,
     petitionsApproved: 0, greekEventsSeen: 0,
+    demandsRaised: 0, demandsMet: 0, demandsFailed: 0, demandSubjects: {},
   };
 
   while (s.clock.year <= years) {
@@ -396,6 +410,23 @@ function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTal
       } else if (s.pendingInterrupt.type === 'research-prize') {
         tally.prizes += 1;
         dispatch({ type: 'RESOLVE_PRIZE' });
+      } else if (s.pendingInterrupt.type === 'demand') {
+        // A student demand (see src/systems/demands/demandSystem.ts). The
+        // scripted player acknowledges it and does nothing else — there is
+        // nothing else to do: a demand is answered by BUILDING the thing
+        // before the deadline, which every strategy's ordinary
+        // facility/dorm rules either will or won't do on their own. That
+        // is exactly the property worth measuring: the strategies that
+        // build campus life meet their demands, and the ones that don't
+        // (the overbuilder, which builds beds and nothing else) fail them
+        // and must still stall rather than die.
+        const demand = s.events.activeDemand;
+        tally.demandsRaised += 1;
+        if (demand) {
+          const subject = demandSubject(demand);
+          tally.demandSubjects[subject] = (tally.demandSubjects[subject] ?? 0) + 1;
+        }
+        dispatch({ type: 'RESOLVE_DEMAND' });
       } else if (s.pendingInterrupt.type === 'charter') {
         // The scripted player always takes the charter. It costs nothing
         // and changes nothing mechanical (it renames the school), so
@@ -418,7 +449,17 @@ function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTal
       continue;
     }
     decide(() => s, strategy, weeksInTheRed, dispatch);
+    // A demand resolves inside a TICK, silently and with no interrupt (see
+    // demandSystem.ts) — meeting one is finishing a building, not clicking
+    // anything — so which way it went is read from the transition rather
+    // than from a modal. Safe against the post-tick state because neither
+    // reading a demand's target is measured against can fall.
+    const demandBefore = s.events.activeDemand;
     dispatch({ type: 'TICK' });
+    if (demandBefore && !s.events.activeDemand) {
+      if (demandProgress(s, demandBefore).met) tally.demandsMet += 1;
+      else tally.demandsFailed += 1;
+    }
     if (s.finance.cash < 0) weeksInTheRed += 1;
     minCash = Math.min(minCash, s.finance.cash);
   }
@@ -455,6 +496,26 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally }, eve
   }
   console.log(`   weeks in the red: ${last.weeksInTheRed} of ${rows.length * 52}, min cash: ${fmt(last.minCash)}`);
   console.log(`   milestone celebrations: ${tally.milestones}, decision events: ${tally.decisions}, net event cash: ${fmt(tally.cash)}`);
+  // The cadence question, answered directly: how often is the clock
+  // stopped by something that is NOT one of the two fixed annual
+  // interrupts (summer admissions, the U.S. News report). Demands are in
+  // this total rather than beside it because they spend the same cooldown
+  // the decision events do — the point of the line is that adding them
+  // moves it very little.
+  const years = rows.length;
+  const texture = tally.milestones + tally.decisions + tally.prizes + tally.demandsRaised;
+  const subjects = Object.entries(tally.demandSubjects)
+    .sort((a, b) => b[1] - a[1])
+    .map(([subject, n]) => `${subject} x${n}`)
+    .join(', ');
+  console.log(
+    `   student demands: ${tally.demandsRaised} raised (${tally.demandsMet} met, ${tally.demandsFailed} failed)` +
+    `${subjects ? ` — ${subjects}` : ''}`,
+  );
+  console.log(
+    `   texture modals (milestones + events + prizes + demands): ${texture} over ${years} years ` +
+    `= ${(texture / Math.max(years, 1)).toFixed(2)}/yr, on top of the ${years} annual admissions decisions`,
+  );
   // Grant income is compared against the run's total operating cost rather
   // than reported bare: "$40M of grants" means nothing on its own, "1.4% of
   // what the school spent" is the answer to whether grants trivialise the

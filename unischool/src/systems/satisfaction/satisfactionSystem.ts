@@ -106,7 +106,13 @@ function clamp(v: number, lo: number, hi: number): number {
 
 // Total servesPopulation across every 'done' facility feeding a given
 // attribute (excludes flat contributors — see flatBonusFor below).
-function servedPopulationFor(s: GameState, attribute: keyof SatisfactionAttributes): number {
+//
+// Exported because the student-demand system (see
+// systems/demands/demandSystem.ts) measures a demand's target against this
+// exact reading rather than keeping a capacity model of its own: "another
+// parking lot" is met when the infrastructure attribute's served population
+// reaches the demanded total, which is the same number scored below.
+export function servedPopulationFor(s: GameState, attribute: keyof SatisfactionAttributes): number {
   return s.tech
     .filter((t) => t.status === 'done' && t.effects?.satisfactionAttribute === attribute)
     .reduce((sum, t) => sum + (t.effects?.servesPopulation ?? 0), 0);
@@ -116,6 +122,22 @@ function flatBonusFor(s: GameState, attribute: keyof SatisfactionAttributes): nu
   return s.tech
     .filter((t) => t.status === 'done' && t.effects?.satisfactionAttribute === attribute)
     .reduce((sum, t) => sum + (t.effects?.flatSatisfactionBonus ?? 0), 0);
+}
+
+// How much of a ratio-based attribute's need the campus currently covers,
+// 0..1 — precisely the `ratio` ratioScore below scores, lifted out so it can
+// be read without a second copy of the formula. 1.0 means "fully adequate
+// for the campus as planned"; anything under it is a real shortfall in the
+// same units the score is computed in.
+//
+// Exported for the student-demand system, which derives what students ask
+// for from the WORST-covered attribute (see demandSystem.ts's
+// rollShortfallDemand) — so a demand can never be about a need the
+// satisfaction model does not itself think is short.
+export function attributeCoverage(s: GameState, attribute: keyof SatisfactionAttributes): number {
+  const capacity = s.students.capacity;
+  if (capacity <= 0) return 1;
+  return clamp(servedPopulationFor(s, attribute) / (capacity * TARGET_RATIO[attribute]), 0, 1);
 }
 
 function ratioScore(servesPopulation: number, capacity: number, targetRatio: number, curvature: number): number {

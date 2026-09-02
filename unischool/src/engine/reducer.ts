@@ -12,6 +12,7 @@ import { tickPrestigeAnnual } from '../systems/prestige/prestigeSystem';
 import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { tickEvents } from '../systems/events/eventSystem';
 import { tickStudentLife } from '../systems/studentlife/studentLifeSystem';
+import { tickDemands } from '../systems/demands/demandSystem';
 import { findDecisionEvent } from '../data/eventData';
 import {
   CHAPTER_APPROVAL_SATISFACTION_NUDGE, CHAPTER_DECLINE_SATISFACTION_HIT,
@@ -51,6 +52,17 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   // and stands down instead of competing for the week — see
   // systems/events/eventSystem.ts.
   tickEvents,
+  // After tickEvents, and last of all: the student-demand system (see
+  // systems/demands/demandSystem.ts). It stands down for EVERY other
+  // claimant on the week — the two annual interrupts, a milestone, the
+  // charter, a prize, and now an authored decision event too — because a
+  // demand it cannot announce this week waits in s.events.pendingDemand
+  // for the next quiet one, exactly as a milestone waits in
+  // pendingMilestones. Its resolution half (target met, or deadline
+  // passed) runs every week regardless of what claimed the week: the
+  // player finishing the demanded building is the answer, and it should
+  // not have to wait for a quiet slot.
+  tickDemands,
 ];
 
 // How many log entries are kept. Weekly attrition spam is gone, so what
@@ -309,6 +321,21 @@ export function reducer(state: GameState, action: Action): GameState {
           kind: 'bad',
         });
       }
+      return s;
+    }
+
+    // Acknowledges a student demand the moment it is raised (see
+    // systems/demands/demandSystem.ts). Grants nothing and costs nothing:
+    // the demand is already open on s.events.activeDemand, with its target
+    // and its deadline, and the only way to answer it is to BUILD the
+    // thing before the deadline passes — which the demand system detects
+    // off the campus itself, with no second action to dispatch. This is
+    // the dismissable acknowledgement the zero-cost/fairness rule asks
+    // for, and nothing more. Advances the clock, like every other trailing
+    // interrupt.
+    case 'RESOLVE_DEMAND': {
+      s.pendingInterrupt = null;
+      advanceClock(s);
       return s;
     }
 

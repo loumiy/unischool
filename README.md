@@ -316,6 +316,12 @@ Everything that needs to stop time rides on this one mechanism:
   stops. Clubs and new chapters never stop it at all: they queue as
   petitions and are answered in a digest folded into the summer admissions
   interrupt.
+- **A student demand** — the one stop-the-clock beat student life gets of its
+  own (see "Student demands" below), and only at a school whose satisfaction
+  has fallen below the trigger threshold, so a well-run run never sees one. It
+  queues like a milestone rather than firing on the spot, and it shares the
+  decision events' cooldown, so it redistributes the existing texture budget
+  instead of adding a stream on top of it.
 - **The university charter** — a single question, asked once, the first quiet
   week after any lab finishes: keep the "College" the school opened as, or
   become a "University". Cosmetic in full.
@@ -573,6 +579,69 @@ attribute is already clamped at its ceiling from facilities alone, the panel
 reports that the clubs are adding *nothing*, because nothing is what the
 model is applying.
 
+
+## Student demands: the inverse of clubs
+
+Clubs are what a happy student body gives the institution. A **demand** is what
+an unhappy one asks of it, on a clock. One system
+(`systems/demands/demandSystem.ts`), one content/tuning file
+(`data/demandData.ts`), and no new economy: demands move satisfaction and,
+through it, admissions — **prestige is untouched**, exactly as it is for
+student life and the decision events.
+
+- **Trigger.** Satisfaction below `DEMAND_SATISFACTION_THRESHOLD` and the
+  student body organises. Above it nothing is ever demanded, which is why a
+  well-run school sees this feature only as an empty line in the Student Life
+  tab.
+- **The ask is derived, not drawn.** The system scores every candidate
+  shortfall against `satisfactionSystem.ts`'s **own** coverage reading
+  (`attributeCoverage`, the exact 0..1 ratio the attribute is scored on) and
+  asks for the **worst** one, resolved to the actual next rung of that actual
+  chain — so "another parking lot" is a named parking Buildable the school
+  could start today, and it is asked for because parking is genuinely what
+  this campus is most short of. A completely full campus can instead be asked
+  for **beds**, measured against `students.capacity`. There is no parallel
+  capacity model anywhere in this: both readings are ones the game already
+  keeps.
+- **Deadline, and the queue.** Raising a demand sets a target and an expiry on
+  `s.events.activeDemand`. A demand that would fire during a busy week WAITS
+  in `s.events.pendingDemand` — the same queue pattern `pendingMilestones`
+  uses, and for the same reason — and its deadline clock is stamped when it is
+  **announced**, not when it is rolled, so waiting never eats the player's time.
+- **Resolution is something the player does, not clicks.** Met is detected off
+  existing state — the served population for that attribute, or capacity —
+  reaching the target, i.e. off a Buildable finishing. There is no acknowledge
+  button on the resolution side at all; the only button in the feature is the
+  dismissable acknowledgement on the modal that raises it.
+- **Failing needs no new machinery.** The satisfaction penalty feeds word of
+  mouth, which costs applicants at the next summer funnel
+  (`admissionsSystem.ts`'s `WORD_OF_MOUTH_STRENGTH`). That is the whole
+  consequence, and it is why a demand for something the school cannot yet
+  afford is survivable rather than a trap: `ATTRIBUTE_SCORE_FLOOR` still
+  floors satisfaction, so ignoring every demand a run ever raises **stalls**
+  the school exactly as the economy already promises, and never sinks it.
+- **No spiral, and no to-do list.** At most one demand is open at a time, and
+  `DEMAND_COOLDOWN_WEEKS` runs after **any** resolution — met, failed, or
+  overtaken by the player fixing the shortfall before anyone got round to
+  asking. A failed demand therefore cannot be followed by an immediate second
+  unmeetable one.
+
+**Cadence.** Announcing a demand reads *and writes*
+`s.events.lastDecisionWeek`, the global floor the authored decision events run
+on, so a demand and an event can never land in consecutive weeks and the
+number of stop-the-clock moments a year does not rise by the number of demands
+— the mix changes, the budget does not. That is the same discipline the
+Greek-life entries in `eventData.ts` follow.
+
+**The Student Life tab** carries the outstanding demand: the ask, the deadline,
+weeks remaining, and a progress bar driven by the very reading the resolution
+runs on, so the bar cannot disagree with whether the demand is met. Its stakes
+are **read from the model** the way the club panel's contribution is: the
+satisfaction figures are the nudges the system would apply, and the applicant
+figures come from running the shipped admissions funnel (`projectAdmissions`)
+at today's policy against each of them. When nothing is outstanding the section
+says so in one quiet line.
+
 ## College, and University
 
 A school opens as **"<Name> College"**. The player writes only the first half at
@@ -631,7 +700,12 @@ simply starts producing research the moment it has a lab; v7 -> v8 added the
 petitions waiting on the next summer digest, and the Hellenic Council flags
 — empty, and deliberately not reconstructed: a v7 run genuinely had no
 student life, so a resumed school starts forming clubs the moment it has a
-student center, exactly as a new one does);
+student center, exactly as a new one does; v8 -> v9 added the student-demand
+slice of `events` — the demand queued for the next quiet week, the demand
+currently outstanding with its target and expiry, and the week the last one
+resolved — filled in empty with the cooldown clear, so an old save resumes
+with no demand outstanding and its students free to ask for something the
+moment they are unhappy enough);
 discard when it doesn't (v1 and v2 predate an economy rebalance, so those runs
 would be describing a different game).
 

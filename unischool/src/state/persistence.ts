@@ -104,7 +104,21 @@ const SAVE_KEY = 'unischool.save';
 // carries forward with no clubs and no council, which is precisely what a
 // school that never triggered them would have anyway, and starts forming
 // clubs the moment it has a student center — exactly as a new one does.
-export const SAVE_VERSION = 8;
+// v9: student demands landed. EventState gained three required fields —
+// the demand queued for the next quiet week, the demand currently
+// outstanding with its target and expiry, and the absolute week the last
+// one resolved (see types.ts's StudentDemand and EventState). A v8 save
+// carries none of them, so an un-migrated v8 run would hold `undefined`
+// everywhere the type promises `null` or a number: the reads in
+// systems/demands/demandSystem.ts happen to survive that today, which is
+// exactly the kind of accident a version bump exists to stop depending on
+// — every read site would have to stay undefined-tolerant forever, and the
+// first one that isn't would fail on old saves only. Filled in rather than
+// discarded, for the same reason as v5 through v8: the economy, the
+// curriculum and the roster are untouched, and a resumed school simply
+// starts being asked for things the moment its students are unhappy
+// enough, exactly as a new one does.
+export const SAVE_VERSION = 9;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -335,6 +349,21 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
       clubs: [], chapters: [], pendingPetitions: [],
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
     };
+  },
+
+  // v8 -> v9: the student-demand slice of EventState.
+  //
+  // A pure fill-in, and the only sensible one: a v8 run genuinely had no
+  // demands, so it resumes with none outstanding and none queued. The
+  // cooldown is cleared (0 = never), which means a resumed school that is
+  // ALREADY below the satisfaction threshold can be asked for something
+  // straight away rather than serving a cooldown for a demand it never
+  // received — the school's students have every right to be unhappy about
+  // a campus that was neglected before the save was written.
+  8: (state) => {
+    state.events.pendingDemand = null;
+    state.events.activeDemand = null;
+    state.events.lastDemandWeek = 0;
   },
 };
 
