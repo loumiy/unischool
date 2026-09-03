@@ -270,6 +270,10 @@ button { cursor: pointer; font-family: inherit; }
   border-top: 1px dashed var(--navy-line); margin-top: 4px; }
 .course-tooltip-faculty.met { color: #7dd3a0; }
 .course-tooltip-faculty.unmet { color: #e0b04a; }
+/* Who teaches a DONE course — a display-only projection (see
+   facultyAssignment.ts), shown only once the course actually has an
+   assigned instructor to name. */
+.course-tooltip-instructor { font-family: var(--mono); font-size: 11px; font-style: italic; color: var(--ink-lo); padding: 3px 0 0; }
 .course-tooltip-meta { font-family: var(--mono); font-size: 11px; color: var(--ink-lo); margin-top: 6px; }
 .course-tooltip-reason { margin: 6px 0 0; color: #e58a8a; font-size: 11px; font-style: italic; }
 
