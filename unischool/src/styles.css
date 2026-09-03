@@ -725,23 +725,28 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   padding: 32px 36px; max-width: 480px; width: 100%; color: var(--ink); }
 .startup-card .eyebrow { color: var(--gold-dim); }
 .startup-card h1 { font-family: var(--serif); font-size: 24px; margin: 6px 0 20px; }
-/* The name field and the fixed institutional half beside it. The suffix
-   is shown, not typed: it is the thing the university charter later
-   offers to change (see StartupScreen.tsx). It sits inside the SAME
-   bordered frame as the input, as a static addon rather than a second
-   box — serif/16px for the part the player writes, small-caps mono for
-   the part the charter fixes, so the two halves read as different kinds
-   of text on sight, not just different colors. */
-.startup-name-row { display: flex; align-items: stretch; border-radius: 6px;
-  border: 1px solid var(--parchment-line); background: #f8f3e6; overflow: hidden; }
-.startup-name-row:focus-within { border-color: var(--gold-dim); }
-.startup-name { flex: 1; min-width: 0; font-size: 16px; padding: 10px 12px; border: none;
-  background: transparent; color: var(--ink); font-family: var(--serif); }
-.startup-name:focus { outline: none; }
-.startup-name-suffix { display: flex; align-items: center; padding: 0 14px; white-space: nowrap;
-  border-left: 1px dashed var(--parchment-line); background: #ece0bd; color: var(--ink-muted);
-  font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; }
-.startup-name-note { margin: 8px 0 20px; font-size: 12px; color: var(--ink-muted); line-height: 1.4; }
+/* The name field: just what the player types. The fixed institutional
+   half is no longer shown here at all — it's carved into the facade
+   below instead (see .startup-facade), so the input can be an ordinary
+   text box with nothing appended to explain. */
+.startup-name { width: 100%; font-size: 16px; padding: 10px 12px; border-radius: 6px;
+  border: 1px solid var(--parchment-line); background: #f8f3e6; color: var(--ink); font-family: var(--serif); }
+.startup-name:focus { outline: none; border-color: var(--gold-dim); }
+
+/* The facade (see StartupScreen.tsx's SchoolFacade): a flat classical
+   building front in the same stone/gold register as the rest of the
+   parchment UI, carrying the live "<Name> College" banner across its
+   entablature. Purely decorative SVG shapes, styled here rather than
+   inline so the whole thing reads as one coherent illustration. */
+.startup-facade { margin: 14px 0 20px; }
+.startup-facade-svg { display: block; width: 100%; height: auto; }
+.facade-pediment { fill: #e3d3a4; stroke: var(--gold-dim); stroke-width: 1.5; stroke-linejoin: round; }
+.facade-cornice, .facade-base-ledge { fill: var(--gold-dim); }
+.facade-frieze { fill: #ddc98f; stroke: var(--parchment-line); stroke-width: 1; }
+.facade-banner-text { fill: var(--ink); font-family: var(--serif); font-weight: 700; letter-spacing: 0.05em; }
+.facade-capital-abacus, .facade-capital-echinus, .facade-shaft { fill: #efe3bf; stroke: var(--parchment-line); stroke-width: 0.75; }
+.facade-flute { stroke: var(--parchment-line); stroke-width: 1; }
+
 .startup-types { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
 .startup-type-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left;
   background: #f8f3e6; border: 1px solid var(--parchment-line); border-radius: 8px; padding: 12px 14px; }
