@@ -210,90 +210,94 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
   if (!anyOrgs && pending.length === 0) {
     return (
       <div className="tab-content">
-        <StudentDemandPanel s={s} />
-        <section className="panel">
-          <h2>Student Organisations</h2>
-          <p className="empty-note">
-            {hasStudentCenter(s)
-              ? 'No student organisations yet — students will start forming clubs of their own before long.'
-              : 'No student organisations yet — build a student center to let students start forming clubs.'}
-          </p>
-        </section>
+        <div className="student-life-columns">
+          <StudentDemandPanel s={s} />
+          <section className="panel">
+            <h2>Student Organisations</h2>
+            <p className="empty-note">
+              {hasStudentCenter(s)
+                ? 'No student organisations yet — students will start forming clubs of their own before long.'
+                : 'No student organisations yet — build a student center to let students start forming clubs.'}
+            </p>
+          </section>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="tab-content">
-      <StudentDemandPanel s={s} />
-      <StudentLifeEffect s={s} />
+      <div className="student-life-columns">
+        <StudentDemandPanel s={s} />
+        <StudentLifeEffect s={s} />
 
-      {pending.length > 0 && (
+        {pending.length > 0 && (
+          <section className="panel panel-span-2">
+            <h2>Awaiting Recognition</h2>
+            <p className="empty-note">
+              Answered together at the summer admissions decision — nothing here interrupts play.
+            </p>
+            <ul className="org-list">
+              {pending.map((p) => (
+                <li key={p.id} className="org-row">
+                  <span className="org-name">
+                    {p.name}
+                    <span className="org-tag">{p.kind === 'club' ? 'club' : p.greekKind}</span>
+                  </span>
+                  <span className="org-meta">
+                    {p.foundingMembers} founding members · {money(p.upkeepPerWeek)}/wk if recognised
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         <section className="panel">
-          <h2>Awaiting Recognition</h2>
-          <p className="empty-note">
-            Answered together at the summer admissions decision — nothing here interrupts play.
-          </p>
-          <ul className="org-list">
-            {pending.map((p) => (
-              <li key={p.id} className="org-row">
-                <span className="org-name">
-                  {p.name}
-                  <span className="org-tag">{p.kind === 'club' ? 'club' : p.greekKind}</span>
-                </span>
-                <span className="org-meta">
-                  {p.foundingMembers} founding members · {money(p.upkeepPerWeek)}/wk if recognised
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <section className="panel">
-        <div className="panel-head">
-          <h2>Clubs</h2>
-          <span className="panel-count">{clubs.length} / {clubCapacity(s)}</span>
-        </div>
-        {clubs.length === 0 ? (
-          <p className="empty-note">No recognised clubs.</p>
-        ) : (
-          <ul className="org-list">
-            {clubs.map((c) => <OrgRow key={c.id} org={c} s={s} />)}
-          </ul>
-        )}
-      </section>
-
-      <section className="panel">
-        <div className="panel-head">
-          <h2>Greek Chapters</h2>
-          {s.orgs.hellenicCouncilApproved && (
-            <span className="panel-count">{chapters.length} / {chapterCapacity(s)}</span>
+          <div className="panel-head">
+            <h2>Clubs</h2>
+            <span className="panel-count">{clubs.length} / {clubCapacity(s)}</span>
+          </div>
+          {clubs.length === 0 ? (
+            <p className="empty-note">No recognised clubs.</p>
+          ) : (
+            <ul className="org-list">
+              {clubs.map((c) => <OrgRow key={c.id} org={c} s={s} />)}
+            </ul>
           )}
-        </div>
-        {!s.orgs.hellenicCouncilApproved ? (
-          <p className="empty-note">
-            {s.orgs.hellenicCouncilOffered
-              ? 'This school has no Greek life. The Hellenic Council was declined, and the question does not come back.'
-              : HELLENIC_COUNCIL_HINT}
-          </p>
-        ) : chapters.length === 0 ? (
-          <p className="empty-note">
-            The Hellenic Council is chartered; no chapter currently holds one.
-          </p>
-        ) : (
-          <ul className="org-list">
-            {chapters.map((c) => (
-              <OrgRow
-                key={c.id}
-                org={c}
-                s={s}
-                tag={c.housed ? `${c.kind} · housed` : c.kind}
-              />
-            ))}
-          </ul>
-        )}
-      </section>
+        </section>
+
+        <section className="panel">
+          <div className="panel-head">
+            <h2>Greek Chapters</h2>
+            {s.orgs.hellenicCouncilApproved && (
+              <span className="panel-count">{chapters.length} / {chapterCapacity(s)}</span>
+            )}
+          </div>
+          {!s.orgs.hellenicCouncilApproved ? (
+            <p className="empty-note">
+              {s.orgs.hellenicCouncilOffered
+                ? 'This school has no Greek life. The Hellenic Council was declined, and the question does not come back.'
+                : HELLENIC_COUNCIL_HINT}
+            </p>
+          ) : chapters.length === 0 ? (
+            <p className="empty-note">
+              The Hellenic Council is chartered; no chapter currently holds one.
+            </p>
+          ) : (
+            <ul className="org-list">
+              {chapters.map((c) => (
+                <OrgRow
+                  key={c.id}
+                  org={c}
+                  s={s}
+                  tag={c.housed ? `${c.kind} · housed` : c.kind}
+                />
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
