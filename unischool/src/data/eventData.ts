@@ -327,6 +327,23 @@ function chaptersAwaitingHousing(s: GameState): GreekChapter[] {
   return s.orgs.chapters.filter((c) => !c.housed && !c.housingAsked);
 }
 
+// The chapter house's own Buildable id, deterministic from the chapter it
+// belongs to — one house per chapter, and the pairing survives save/load
+// without a separate lookup table (see 'greek-housing' below).
+function chapterHouseId(chapterId: string): string {
+  return `chapter-house:${chapterId}`;
+}
+
+// Chapters are dissolvable (see 'greek-scandal's "disband" choice) whether
+// or not they are housed, so a housed chapter's house must be torn down
+// with it — otherwise a disbanded chapter would leave an ownerless building
+// sitting in the siting tray, or on the map, forever.
+function removeChapterHouse(s: GameState, chapterId: string): void {
+  const id = chapterHouseId(chapterId);
+  s.tech = s.tech.filter((t) => t.id !== id);
+  delete s.placements[id];
+}
+
 // --- per-event tuning ------------------------------------------------
 const ESTATE_GIFT_MIN_WEEKS = 2;          // gift size, in weeks of opex
 const ESTATE_GIFT_MAX_WEEKS = 5;
@@ -899,6 +916,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         cost: () => 0,
         apply: (s, ctx) => {
           s.orgs.chapters = s.orgs.chapters.filter((c) => c.id !== ctx.subjectId);
+          if (ctx.subjectId) removeChapterHouse(s, ctx.subjectId);
           return entry(s, `${ctx.subjectName} has been dissolved and its charter withdrawn.`, 'bad');
         },
       },
@@ -935,7 +953,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         id: 'build',
         label: 'Build the chapter house',
         describe: (s, ctx) =>
-          `${money(ctx.amount ?? 0)} up front and ${money(weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX))} a week to run it, forever. ${ctx.subjectName} contributes a further ${CHAPTER_HOUSED_SOCIAL_BONUS} points of social satisfaction from the week it opens.`,
+          `${money(ctx.amount ?? 0)} up front and ${money(weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX))} a week to run it, forever. ${ctx.subjectName} contributes a further ${CHAPTER_HOUSED_SOCIAL_BONUS} points of social satisfaction from the week it opens, and the house itself joins the siting tray to place on campus.`,
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
           const chapter = findChapter(s, ctx.subjectId);
@@ -947,8 +965,27 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
             // running cost with it — there is exactly one place a Greek
             // organisation's cost lives.
             chapter.upkeepPerWeek += weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX);
+            // A real, sitable campus asset, through the same placement path
+            // every other building uses (see state/campusMap.ts and
+            // README's "The central abstraction") — pushed in already
+            // 'done' since the money and the running cost above are what
+            // pay for it, not a develop/finish cycle of its own. It carries
+            // no `effects`: the satisfaction bonus and upkeep it represents
+            // are already live-read off `chapter.housed`/`upkeepPerWeek`
+            // above, and giving the Buildable its own effects would double
+            // them. Its only job is to exist so it can be sited.
+            s.tech.push({
+              id: chapterHouseId(chapter.id),
+              kind: 'facility',
+              name: `${chapter.name} House`,
+              description: `The dedicated chapter house built for ${chapter.name}.`,
+              cost: ctx.amount ?? 0,
+              duration: 0,
+              prereqs: [],
+              status: 'done',
+            });
           }
-          return entry(s, `A chapter house has been built for ${ctx.subjectName}.`, 'good');
+          return entry(s, `A chapter house has been built for ${ctx.subjectName} — ready to site on the campus map.`, 'good');
         },
       },
       {
