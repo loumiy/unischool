@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from 'react';
 import type { Action } from '../state/actions';
-import type { Buildable, Faculty, GameState } from '../state/types';
+import type { Faculty, GameState } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { facultyQualityTier, CANDIDATE_LISTING_WEEKS } from '../data/facultyData';
 import {
@@ -8,6 +8,7 @@ import {
 } from '../data/researchData';
 import { researchSchools } from '../data/techData';
 import { usedFacultySlots, totalFacultySlots } from '../systems/techtree/techSystem';
+import { coursesTaughtBy } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
 
 // The two halves of the faculty picture, side by side: who you have, and
@@ -36,23 +37,6 @@ import HelpHint from '../components/HelpHint';
 // scanning job this panel exists for. The row carries no flag glyph: the
 // emoji flags failed to render in some browsers, so nationality lives in
 // the expanded detail as plain text only.
-
-// Course-to-teacher assignment is a display-only projection: the engine
-// only tracks course-slot CAPACITY per field (courseSlots), never which
-// specific hire teaches which specific course. Deterministically round-
-// robins a field's currently-offered (developing/done) requiresFaculty-gated
-// courses across that field's faculty, sorted by id, so "what are they
-// teaching" reads as a stable, real-looking answer rather than nothing —
-// without inventing new persisted state for it.
-function coursesTaughtBy(s: GameState, f: Faculty): Buildable[] {
-  const fieldFaculty = s.faculty.filter((x) => x.field === f.field).sort((a, b) => a.id.localeCompare(b.id));
-  const idx = fieldFaculty.findIndex((x) => x.id === f.id);
-  if (idx === -1 || fieldFaculty.length === 0) return [];
-  const fieldCourses = s.tech
-    .filter((t) => t.requiresFaculty === f.field && (t.status === 'developing' || t.status === 'done'))
-    .sort((a, b) => a.id.localeCompare(b.id));
-  return fieldCourses.filter((_, i) => i % fieldFaculty.length === idx);
-}
 
 function FacultyRow(
   { s, act, f, isCandidate, needed = false }:

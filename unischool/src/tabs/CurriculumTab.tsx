@@ -3,6 +3,7 @@ import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
 import { discoverySchools, graduateGateMet, graduatePrograms, professionalSchools } from '../data/techData';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
+import { instructorOf } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
 import { ProgressRing } from '../components/Progress';
 
@@ -326,6 +327,11 @@ function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => v
   const dept = spaceAt === -1 ? code : code.slice(0, spaceAt);
   const num = spaceAt === -1 ? '' : code.slice(spaceAt + 1);
   const missingFaculty = !!(t.requiresFaculty && !hasFreeFacultySlot(s, t.requiresFaculty));
+  // Only a DONE course has an instructor to name — an available or
+  // developing course hasn't been assigned a slot in the round-robin's
+  // eyes yet (see facultyAssignment.ts), so implying a teacher for it
+  // would be a claim the projection can't back up.
+  const instructor = t.status === 'done' ? instructorOf(s, t) : undefined;
   // The gate is only news while the course is still ahead of the player:
   // a developing or finished course already holds its slot.
   const showGateDot = missingFaculty && state !== 'developing' && state !== 'done';
@@ -400,6 +406,7 @@ function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => v
             {missingFaculty ? '✗' : '✓'} Faculty: {t.requiresFaculty}
           </div>
         )}
+        {instructor && <div className="course-tooltip-instructor">Taught by: {instructor.name}</div>}
         <div className="course-tooltip-meta">
           ${t.cost.toLocaleString()} · {t.duration}w
           {state === 'developing' && ` · ${weeksLeft}w left`}

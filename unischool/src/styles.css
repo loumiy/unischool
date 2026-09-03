@@ -270,6 +270,10 @@ button { cursor: pointer; font-family: inherit; }
   border-top: 1px dashed var(--navy-line); margin-top: 4px; }
 .course-tooltip-faculty.met { color: #7dd3a0; }
 .course-tooltip-faculty.unmet { color: #e0b04a; }
+/* Who teaches a DONE course — a display-only projection (see
+   facultyAssignment.ts), shown only once the course actually has an
+   assigned instructor to name. */
+.course-tooltip-instructor { font-family: var(--mono); font-size: 11px; font-style: italic; color: var(--ink-lo); padding: 3px 0 0; }
 .course-tooltip-meta { font-family: var(--mono); font-size: 11px; color: var(--ink-lo); margin-top: 6px; }
 .course-tooltip-reason { margin: 6px 0 0; color: #e58a8a; font-size: 11px; font-style: italic; }
 
@@ -372,23 +376,21 @@ button { cursor: pointer; font-family: inherit; }
 /* ---------- placed buildings ---------- */
 /* One rect per building, spanning its whole footprint (geometry is in
    CampusMap.tsx). COLOUR IS ALL HERE. Each kind is a family and `tint-N`
-   is a shade within it, so a built-out campus reads as varied brick,
-   parchment and greenery rather than three flat blocks — while staying
+   is a shade within it for dorm/facility, so a built-out campus reads as
+   varied greenery and parchment rather than flat blocks — while staying
    inside the brass/ink/parchment language the rest of the UI speaks.
    Which N a Buildable gets is decided in CampusMap.tsx: by facility type
-   for facilities (all parking lots match), by a hash of the id for halls
-   and dorms (neighbours differ). */
+   for facilities (all parking lots match), by a hash of the id for dorms
+   (neighbours differ). Building carries no tint class at all — see below. */
 .campus-building rect { stroke-width: 1; }
 .campus-building text { font-family: var(--serif); fill: var(--ink); pointer-events: none;
   user-select: none; }
 
-/* Academic halls: the campus's brass landmarks, the darkest and most
-   saturated things on the map. */
+/* Academic halls: the campus's brass landmarks. They're all the same
+   building family and should read as ONE colour, not id-hashed shades of
+   one — so, unlike dorm/facility, this is the only rule for kind-building;
+   CampusMap.tsx never adds a tint-N class to it. */
 .campus-building.kind-building rect { fill: var(--gold); stroke: var(--gold-dim); }
-.campus-building.kind-building.tint-0 rect { fill: #c9a227; stroke: #8a6d14; }
-.campus-building.kind-building.tint-1 rect { fill: #bb9433; stroke: #7d6316; }
-.campus-building.kind-building.tint-2 rect { fill: #d0ae44; stroke: #96751a; }
-.campus-building.kind-building.tint-3 rect { fill: #b8862b; stroke: #7a5a12; }
 .campus-building.kind-building text { fill: #3a2f0e; font-weight: 700; }
 
 /* Dorms: the green family, kept muted so the halls stay dominant. */
