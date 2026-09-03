@@ -22,9 +22,10 @@ export function isPlaceableKind(t: Buildable): boolean {
 // varies by what the thing IS.
 //
 // This is a placement RULE keyed on the Buildable's existing data (kind,
-// and for facilities facilityType), NOT a new field on Buildable: the
-// single Buildable model stays unforked, and `course` Buildables — which
-// are never placeable — carry no vestigial map data (see README's "The
+// for facilities facilityType, and — dining halls only, see below —
+// effects.servesPopulation), NOT a new field on Buildable: the single
+// Buildable model stays unforked, and `course` Buildables — which are
+// never placeable — carry no vestigial map data (see README's "The
 // central abstraction").
 //
 // Footprints are pure geometry: a bigger building grants nothing extra and
@@ -44,8 +45,9 @@ const SCHOOL_BUILDING_FOOTPRINT: Footprint = { w: 2, h: 2 };
 const DORM_FOOTPRINT: Footprint = { w: 2, h: 1 };
 
 // Per facility type; anything absent falls back to SINGLE_TILE, which is
-// the right default for the small utilitarian ones (labs, health centers,
-// dining halls).
+// the right default for the small utilitarian ones (labs, health centers).
+// diningHall is deliberately absent here — its footprint isn't fixed by
+// type, it's read off size (see DINING_MAJOR_FOOTPRINT below).
 const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
   quad: { w: 2, h: 2 },          // open ground, and the only "building" that is really a space
   library: { w: 2, h: 1 },
@@ -54,9 +56,24 @@ const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
   parking: { w: 2, h: 1 },       // lots sprawl sideways
 };
 
+// Dining halls are the one facility type sized by how many students they
+// serve rather than by type alone (see facilitiesData.ts's dining chain):
+// a compact campus restaurant stays SINGLE_TILE, but once a hall serves
+// enough people to be a real "major dining hall" it earns the same 2x1
+// footprint a dorm gets. Reads effects.servesPopulation — already on the
+// Buildable for satisfactionSystem.ts's sake — rather than adding a field
+// of its own.
+const DINING_MAJOR_FOOTPRINT: Footprint = { w: 2, h: 1 };
+const DINING_MAJOR_FOOTPRINT_SERVES_THRESHOLD = 1_000;
+
 export function footprintOf(t: Buildable): Footprint {
   if (t.kind === 'building') return SCHOOL_BUILDING_FOOTPRINT;
   if (t.kind === 'dorm') return DORM_FOOTPRINT;
+  if (t.kind === 'facility' && t.facilityType === 'diningHall') {
+    return (t.effects?.servesPopulation ?? 0) >= DINING_MAJOR_FOOTPRINT_SERVES_THRESHOLD
+      ? DINING_MAJOR_FOOTPRINT
+      : SINGLE_TILE;
+  }
   if (t.kind === 'facility' && t.facilityType) {
     return FACILITY_FOOTPRINTS[t.facilityType] ?? SINGLE_TILE;
   }

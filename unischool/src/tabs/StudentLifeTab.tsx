@@ -1,3 +1,4 @@
+import { Fragment, useState } from 'react';
 import type { GameState, GreekChapter, StudentClub, StudentOrgBase } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import HelpHint from '../components/HelpHint';
@@ -9,6 +10,14 @@ import { studentLifeSatisfaction } from '../systems/satisfaction/satisfactionSys
 import { DEMAND_SATISFACTION_THRESHOLD, DEMAND_URGENT_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import { ProgressBar } from '../components/Progress';
+
+const ATTRIBUTE_LABELS: Record<string, string> = {
+  academic: 'Academic (library)',
+  social: 'Social (student center, rec, quad, student orgs)',
+  basicNeeds: 'Basic needs (dining)',
+  health: 'Health (counseling center)',
+  infrastructure: 'Infrastructure (parking)',
+};
 
 // ---------------------------------------------------------------------
 // The home for the student-life layer: the clubs the campus has grown, the
@@ -56,6 +65,8 @@ function OrgRow({ org, s, tag }: { org: StudentOrgBase; s: GameState; tag?: stri
 function StudentLifeEffect({ s }: { s: GameState }) {
   const effect = studentLifeSatisfaction(s);
   const upkeep = studentOrgUpkeep(s);
+  const [showBreakdown, setShowBreakdown] = useState(false);
+  const breakdown = s.students.satisfactionBreakdown;
 
   return (
     <section className="panel">
@@ -73,11 +84,26 @@ function StudentLifeEffect({ s }: { s: GameState }) {
         <dd>{effect.greekTargetContribution > 0 ? '+' : ''}{effect.greekTargetContribution.toFixed(2)}</dd>
         <dt>Satisfaction target</dt>
         <dd>{effect.targetWithoutStudentLife.toFixed(1)} → {effect.target.toFixed(1)}</dd>
-        <dt>Satisfaction today</dt>
+        <dt>
+          Satisfaction today{' '}
+          <button className="satisfaction-toggle" onClick={() => setShowBreakdown((v) => !v)}>
+            {showBreakdown ? 'hide breakdown ▲' : 'breakdown ▼'}
+          </button>
+        </dt>
         <dd>{s.students.satisfaction.toFixed(1)}</dd>
         <dt>Weekly cost</dt>
         <dd>{money(upkeep)} ({money(upkeep * WEEKS_PER_YEAR)}/yr)</dd>
       </dl>
+      {showBreakdown && (
+        <dl className="satisfaction-breakdown">
+          {(Object.keys(breakdown) as Array<keyof typeof breakdown>).map((key) => (
+            <Fragment key={key}>
+              <dt>{ATTRIBUTE_LABELS[key]}</dt>
+              <dd>{Math.round(breakdown[key])}</dd>
+            </Fragment>
+          ))}
+        </dl>
+      )}
       {effect.totalTargetContribution <= 0.01 && (effect.clubCount > 0 || effect.chapterCount > 0) && (
         <p className="empty-note">
           Social satisfaction is already at its ceiling from the campus itself, so these organisations

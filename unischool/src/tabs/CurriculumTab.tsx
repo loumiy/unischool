@@ -60,6 +60,11 @@ interface DiscoverySubgroup {
 interface DiscoverySection {
   key: string;
   label: string | null; // null = the top-level ungrouped pool
+  // The section head's full title. "School of {label}" for every school
+  // that hasn't sold its naming rights; the donor's full display text
+  // verbatim once it has (see buildSections below and eventData.ts's
+  // 'naming-rights' event). '' for the pool, which has no head.
+  heading: string;
   courseIds: string[];
   subgroups: DiscoverySubgroup[];
   // Every course id this school will ever own (all tiers of all its
@@ -94,7 +99,7 @@ function revealedGraduatePrograms(s: GameState): Set<string> {
 }
 
 function buildSections(s: GameState, genEdComplete: boolean, revealedGrad: Set<string>): DiscoverySection[] {
-  const findStatus = (id: string) => s.tech.find((t) => t.id === id)?.status;
+  const findBuilding = (id: string) => s.tech.find((t) => t.id === id);
   const coreIds: string[] = [];
   const looseTier1Ids: string[] = [];
   const sections: DiscoverySection[] = [];
@@ -105,7 +110,8 @@ function buildSections(s: GameState, genEdComplete: boolean, revealedGrad: Set<s
     if (school.majors.length === 0) continue; // nothing further to discover (General Studies has no majors)
     if (!genEdComplete) continue; // every major's tier-1 waits on the shared gen-ed core
 
-    const schoolBuilt = findStatus(school.buildingId) === 'done';
+    const building = findBuilding(school.buildingId);
+    const schoolBuilt = building?.status === 'done';
     if (!schoolBuilt) {
       for (const major of school.majors) looseTier1Ids.push(major.tier1Id);
       continue;
@@ -139,9 +145,17 @@ function buildSections(s: GameState, genEdComplete: boolean, revealedGrad: Set<s
       });
     }
 
+    // A donor's `name` overwrite is only ever applied alongside
+    // `donorSurname` (see eventData.ts's 'naming-rights' event), so its
+    // presence is what distinguishes "the seeded building name changed" from
+    // "the school was renamed" — read it straight through rather than
+    // re-wrapping it as "School of X".
+    const heading = building?.donorSurname ? building.name : `School of ${school.name}`;
+
     sections.push({
       key: school.buildingId,
       label: school.name,
+      heading,
       courseIds: sharedIds,
       subgroups,
       // A school's completion ring counts its graduate programs only once
@@ -162,7 +176,7 @@ function buildSections(s: GameState, genEdComplete: boolean, revealedGrad: Set<s
   // those neighbours and adds nothing that wasn't already on screen.
   const poolIds = [...coreIds, ...looseTier1Ids.sort((a, b) => a.localeCompare(b))];
 
-  return [{ key: 'pool', label: null, courseIds: poolIds, subgroups: [], schoolCourseIds: [] }, ...sections];
+  return [{ key: 'pool', label: null, heading: '', courseIds: poolIds, subgroups: [], schoolCourseIds: [] }, ...sections];
 }
 
 type CellState = 'locked' | 'blocked' | 'available' | 'developing' | 'done';
@@ -447,7 +461,7 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
             return (
               <div key={section.key} className="discovery-section">
                 <div className="discovery-section-head">
-                  <h3>School of {section.label}</h3>
+                  <h3>{section.heading}</h3>
                   <span className="progress-figure">
                     <ProgressRing
                       fraction={school.fraction}
