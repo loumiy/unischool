@@ -727,13 +727,20 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .startup-card h1 { font-family: var(--serif); font-size: 24px; margin: 6px 0 20px; }
 /* The name field and the fixed institutional half beside it. The suffix
    is shown, not typed: it is the thing the university charter later
-   offers to change (see StartupScreen.tsx). */
-.startup-name-row { display: flex; align-items: stretch; gap: 8px; }
-.startup-name { flex: 1; min-width: 0; font-size: 16px; padding: 10px 12px; border-radius: 6px;
-  border: 1px solid var(--parchment-line); background: #f8f3e6; color: var(--ink); font-family: var(--serif); }
-.startup-name-suffix { display: flex; align-items: center; padding: 0 14px; border-radius: 6px;
-  border: 1px dashed var(--parchment-line); background: #f2ead8; color: var(--ink-muted);
-  font-family: var(--serif); font-size: 16px; white-space: nowrap; }
+   offers to change (see StartupScreen.tsx). It sits inside the SAME
+   bordered frame as the input, as a static addon rather than a second
+   box — serif/16px for the part the player writes, small-caps mono for
+   the part the charter fixes, so the two halves read as different kinds
+   of text on sight, not just different colors. */
+.startup-name-row { display: flex; align-items: stretch; border-radius: 6px;
+  border: 1px solid var(--parchment-line); background: #f8f3e6; overflow: hidden; }
+.startup-name-row:focus-within { border-color: var(--gold-dim); }
+.startup-name { flex: 1; min-width: 0; font-size: 16px; padding: 10px 12px; border: none;
+  background: transparent; color: var(--ink); font-family: var(--serif); }
+.startup-name:focus { outline: none; }
+.startup-name-suffix { display: flex; align-items: center; padding: 0 14px; white-space: nowrap;
+  border-left: 1px dashed var(--parchment-line); background: #ece0bd; color: var(--ink-muted);
+  font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; }
 .startup-name-note { margin: 8px 0 20px; font-size: 12px; color: var(--ink-muted); line-height: 1.4; }
 .startup-types { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
 .startup-type-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left;
