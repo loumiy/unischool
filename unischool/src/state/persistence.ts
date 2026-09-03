@@ -164,7 +164,47 @@ const SAVE_KEY = 'unischool.save';
 // a year toward its target — so this reads as a ceiling that moved up
 // rather than standing that was taken away, and founding the programs is
 // what closes the gap.
-export const SAVE_VERSION = 11;
+// v12: the professional-school restructure. Medicine and Law each gained
+// their own campus building (BLDG-MED, BLDG-LAW — a 'building'-kind
+// Buildable exactly like an undergraduate school's) and their course
+// counts grew (Medicine 6 -> 12, Law 5 -> 8); the MBA and the three PhD
+// doctorates are untouched. Like v10 -> v11 this is a CONTENT addition, not
+// a reorg — nothing an earlier save already holds moved, was renamed, or
+// had its prereqs re-pointed — so it is the same ID-SPLICE migration:
+// every seed node the save doesn't already have (the two buildings, plus
+// the six new Medicine courses and three new Law courses) is appended at
+// its seeded 'locked' status, and the eleven Medicine/Law courses a
+// mature v11 save already holds are left completely untouched — same id,
+// same prereqs, same status, whatever it was.
+//
+// THE ONE REAL EDGE CASE, flagged rather than smoothed over: a save that
+// had already FOUNDED Medicine or Law under the old buildingless rule (its
+// first course, and therefore the whole climb behind it, already 'done')
+// keeps every one of those courses done — nothing is un-finished, no
+// milestone is revoked. But BLDG-MED/BLDG-LAW arrive 'locked' regardless,
+// and the academic gate that makes a professional-school building
+// buildable is a read of milestones the save already earned — so on a
+// save like that the building flips 'locked' -> 'available' on the very
+// first tick after load (see techSystem.ts's unlockAvailable, re-checked
+// every tick). The honest consequence: a player who had already staffed
+// and founded a medical or law school is handed a brand-new, real
+// construction bill for a hall their school apparently never had. That is
+// new content applying retroactively, not a bug, and it is accepted as
+// the cost of the feature rather than special-cased away — but it is
+// exactly the kind of thing a migration should say out loud, so it's
+// called out here and in the PR rather than left for a player to discover.
+//
+// A gentler-sounding but NOT special-cased variant of the same thing: a
+// save whose gate was already met but that had not yet started its entry
+// course (still sitting 'available' under the old rule) keeps that old
+// prereqs/status exactly as spliced-nothing migrations always have — its
+// entry course stays directly buildable without the building, because this
+// migration re-points nothing that already exists, the same restraint
+// v10 -> v11 exercised. That course quietly regains the building
+// requirement's spirit only if the player hasn't already started it by the
+// time they notice; there's no attempt here to retrofit the building into
+// an in-flight course's prereqs.
+export const SAVE_VERSION = 12;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -553,6 +593,33 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   // yet. There is no status to re-derive for anything else, because
   // nothing else changed.
   10: (state) => {
+    const have = new Set(state.tech.map((node) => node.id));
+    for (const node of initialTech()) {
+      if (!have.has(node.id)) state.tech.push({ ...node });
+    }
+  },
+
+  // v11 -> v12: the professional-school restructure (see SAVE_VERSION
+  // above). The exact same id-splice shape as v10 -> v11: every seed node
+  // the save doesn't already have — BLDG-MED, BLDG-LAW, and the nine new
+  // Medicine/Law courses (Medicine's six new 5xx courses, Law's three) —
+  // is appended at its seeded 'locked' status, and every node the save
+  // already holds (the eleven pre-existing Medicine/Law courses, whatever
+  // their status) is left completely untouched: same id, same prereqs,
+  // same status. Nothing is re-pointed, for the same reason v10 -> v11
+  // didn't re-point either — see that migration's comment.
+  //
+  // The two buildings' academic gate is a read of milestones the save may
+  // already have earned, so a save that met Medicine's or Law's gate
+  // before this landed sees its new building flip 'locked' -> 'available'
+  // on the very first tick after load (techSystem.ts's unlockAvailable
+  // re-checks dynamic gates every tick, not just on load) — including a
+  // save that had already FOUNDED the program under the old buildingless
+  // rule, whose courses all stay 'done' untouched while the brand-new
+  // building sits there waiting to be built. See the longer note above
+  // SAVE_VERSION for why that's an accepted, honestly-flagged consequence
+  // rather than a bug.
+  11: (state) => {
     const have = new Set(state.tech.map((node) => node.id));
     for (const node of initialTech()) {
       if (!have.has(node.id)) state.tech.push({ ...node });

@@ -234,7 +234,7 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
   const cols = Array.from({ length: CAMPUS_GRID_WIDTH }, (_, col) => col);
 
   // Placements resolved against `tech` once per render, rather than per
-  // tile: 67 placeables against 336 cells is not worth re-scanning.
+  // tile: 69 placeables against 336 cells is not worth re-scanning.
   const placed = Object.entries(s.placements)
     .map(([id, p]) => ({ p, t: s.tech.find((x) => x.id === id) }))
     .filter((entry): entry is { p: Placement; t: Buildable } => entry.t !== undefined);

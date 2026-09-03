@@ -287,8 +287,24 @@ function doneBuildings(s: GameState) {
 // only ever renamed once (see the 'naming-rights' event's apply()), so the
 // donor pool this event draws from excludes any building already carrying
 // a `donorSurname`.
+//
+// Also excludes the two professional-school buildings (BLDG-MED, BLDG-LAW
+// — see techData.ts's GraduateProgramSeed.buildingId), which is a
+// deliberate scope decision rather than an oversight: rollContext below
+// looks up the building's school through discoverySchools(), which only
+// ever covers the seven undergraduate schools, so an un-excluded
+// professional building would occasionally get drawn as the target and
+// then fail that lookup, silently wasting the week's roll instead of
+// firing an event. A "Johnson School of Law" naming-rights offer is a
+// thematically obvious follow-up, but wiring it in for real needs more
+// than a filter change here — discoverySchools()-shaped lookup for a
+// professional school, and a heading path in CurriculumTab.tsx's
+// buildSections that reads a professional section's donorSurname the way
+// an undergraduate one already does — so it's flagged as follow-up scope
+// rather than attempted alongside the buildings themselves.
 function unnamedSchoolBuildings(s: GameState) {
-  return doneBuildings(s).filter((b) => !b.donorSurname);
+  const eligibleIds = new Set(discoverySchools().map((school) => school.buildingId));
+  return doneBuildings(s).filter((b) => !b.donorSurname && eligibleIds.has(b.id));
 }
 
 function doneDiningHalls(s: GameState) {
