@@ -80,8 +80,12 @@ const TIER_DURATION_WEEKS: Record<number, number> = { 1: 4, 2: 12, 3: 24 };
 // Course development cost, scaled by tier so a tier-3 capstone is a
 // markedly bigger financial commitment than a tier-1 entry course — see
 // README's "Pacing model: money is the throttle". Buildings below are
-// bigger investments still.
-const TIER_COURSE_COST: Record<number, number> = { 1: 45_000, 2: 110_000, 3: 240_000 };
+// bigger investments still. Tier 1 (which the gen-ed core shares) is
+// priced a bit above its old rate so the tier-1 build-out is still a real
+// squeeze on opex now that founding tuition starts higher — the pinch
+// moves from a week-1 cash scare to the T1 build-out visibly tightening
+// the surplus, rather than disappearing.
+const TIER_COURSE_COST: Record<number, number> = { 1: 55_000, 2: 110_000, 3: 240_000 };
 
 // What a finished course costs to RUN, every week, forever — the recurring
 // half of a curriculum decision and one of the growth loop's main teeth

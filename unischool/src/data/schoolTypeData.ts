@@ -41,11 +41,18 @@ export interface SchoolTypePreset {
 // ---------------------------------------------------------------------
 
 // Both types start at the same tuition and endowment; the fork is in the
-// four numbers below them. Tuition is low on purpose: it is the player's
-// first real lever at the year-1 summer decision, and raising it is meant
-// to feel like a decision (it shrinks the applicant pool — see
-// admissionsSystem.ts's PRICE_SENSITIVITY), not a free win.
-export const STARTING_TUITION = 9_000;
+// four numbers below them. Tuition still has real room to move at the
+// year-1 summer decision (raising it is meant to feel like a decision —
+// it shrinks the applicant pool, see admissionsSystem.ts's
+// PRICE_SENSITIVITY — not a free win), but it no longer starts so low
+// that a normal founding opening reads as a false-alarm cash scare that
+// only the summer decision can fix: comfortably under both school types'
+// tuitionCeiling and under the founding revenue-maximizing net price
+// (~$15k, per admissionsSystem.ts's price-tolerance model), so the pinch
+// comes from the tier-1 build-out dragging opex up (see techData.ts's
+// TIER_COURSE_COST and financeSystem.ts's cost drivers), not from an
+// artificially low starting price.
+export const STARTING_TUITION = 13_000;
 export const STARTING_ENDOWMENT = 3_000_000; // pays out ~$120k/yr from day one (see financeSystem.ts's ENDOWMENT_PAYOUT_RATE)
 
 export const SCHOOL_TYPE_PRESETS: Record<SchoolType, SchoolTypePreset> = {
