@@ -1,4 +1,4 @@
-import type { GameState, Placement } from './types';
+import type { Buildable, GameState, Placement } from './types';
 import { footprintFits, footprintIsClear, isPlaceableKind } from './campusMap';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from './types';
 import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES } from '../data/facultyData';
@@ -22,7 +22,7 @@ import { initialTech } from '../data/techData';
 // the shared state, called from the engine, in the same spirit as
 // campusMap.ts and history.ts.
 //
-// Size: a newly founded university serializes to ~145 KiB (397 Buildables
+// Size: a newly founded university serializes to ~165 KiB (453 Buildables
 // with descriptions, 55 rivals, the founding roster, and the 30-listing
 // candidate market — ~24 KiB of names and bios that is REPLACED rather
 // than accumulated, since the pool is held at CANDIDATE_POOL_TARGET
@@ -118,7 +118,27 @@ const SAVE_KEY = 'unischool.save';
 // curriculum and the roster are untouched, and a resumed school simply
 // starts being asked for things the moment its students are unhappy
 // enough, exactly as a new one does.
-export const SAVE_VERSION = 9;
+// v10: the School of Science reorg. This is the first migration since
+// v4 -> v5 where the CURRICULUM ITSELF changed shape rather than the state
+// around it, and it is a bigger change than that one was: a seventh
+// degree-granting school exists, six majors sit in a different school than
+// they did (Biology and Psychology moved into Science; Mathematics,
+// Chemistry, Physics and Environmental Science are new there), two majors
+// were RETIRED outright (Pre-Med and Dentistry, which were professional
+// tracks rather than undergraduate majors), four were added to backfill the
+// schools those left thin (Anthropology, Pharmacy, Kinesiology,
+// Neuroscience), and the lab set moved with them. Every course's prereq
+// list therefore has to be re-pointed at the new structure, exactly as v4
+// -> v5 re-pointed requiresFaculty — and for the same reason, by reading
+// the SEED BY ID rather than by mapping old shape to new, because the
+// mapping is not one-to-one.
+//
+// Recoverable, and generously so: the ids did not change for anything that
+// survived, so a decades-in save keeps every finished course, every
+// milestone (`major-complete:BIOL` is the same key whichever school Biology
+// sits in), its roster, its money and its prestige stock. See the migration
+// itself for what happens to a retired major.
+export const SAVE_VERSION = 10;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -364,6 +384,126 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     state.events.pendingDemand = null;
     state.events.activeDemand = null;
     state.events.lastDemandWeek = 0;
+  },
+
+  // v9 -> v10: the School of Science reorg (see SAVE_VERSION above).
+  //
+  // THE SHAPE OF THE PROBLEM. Unlike every migration since v5 this is not a
+  // fill-in: the seed the saved `tech` array was generated from no longer
+  // exists. Three kinds of node need three different answers.
+  //
+  //   SURVIVING nodes (everything except Pre-Med and Dentistry) are
+  //   re-pointed against the current seed BY ID, keeping only `status`.
+  //   This is the v4 -> v5 trick, widened from requiresFaculty to the whole
+  //   authored node, and it is what makes the reorg free: BIOL110's prereqs
+  //   now name BLDG-SCIENCE instead of BLDG-HEALTHSCI, LAB-BIOL now hangs
+  //   off the Science Center, NUTR130 still requires BIOL101 (which is now
+  //   a cross-school prereq), and every new bridge and retitled course
+  //   arrives — all without the save having to know any of it. Keeping
+  //   `status` and nothing else is the point: progress is the player's,
+  //   structure is the seed's.
+  //
+  //   NEW nodes (Science's six majors, the four backfill majors, the
+  //   Science Center, the Chemistry/Physics/Neuroscience labs) are appended
+  //   from the seed at their seeded status. They are locked; the resolver
+  //   opens them on the first tick like anything else.
+  //
+  //   RETIRED nodes (Pre-Med, Dentistry, and their two labs) are DROPPED,
+  //   and this is the one place a resuming player loses something. The
+  //   alternative — mapping a completed Pre-Med onto, say, Pharmacy — was
+  //   rejected: it would mark a major complete whose nine courses the player
+  //   has never developed and which are all still locked, so the Curriculum
+  //   tab would show a finished major full of unbuilt courses and the
+  //   milestone would be a lie. A clean retirement is honest instead. What a
+  //   player who had finished Dentistry actually sees: Health Science now
+  //   lists Pharmacy, Kinesiology and Neuroscience where Pre-Med and
+  //   Dentistry were, all at tier 1; the two majors and their coursework are
+  //   gone from the catalogue along with their weekly running cost (~$12.5k
+  //   a week if both were fully built, labs included, which is a small
+  //   ongoing REFUND against the sunk development spend, for which there is
+  //   none); and their two milestones stop counting toward curriculum
+  //   breadth. Prestige does not lurch: it is a stock that drifts 12% a year
+  //   toward its target (see prestigeSystem.ts), so a slightly lower target
+  //   is a slow settle, not a reset. Their Clinical Health and Chemistry
+  //   professors are untouched — those departments now staff Pharmacy and
+  //   the Chemistry major.
+  //
+  // STATUS IS RECOMPUTED for locked/available nodes, because 'available'
+  // means "prereqs are done" and the prereqs just changed underneath the
+  // save. A BIOL110 that was available under the Health Sciences Building
+  // is locked again until the Science Center stands, and unlockAvailable()
+  // re-opens it the moment it does. 'developing' and 'done' are never
+  // touched — no course in flight is cancelled and nothing finished is
+  // un-finished.
+  9: (state) => {
+    const seed = initialTech();
+    const seedById = new Map(seed.map((node) => [node.id, node]));
+
+    // Every id the reorg retires. Listed explicitly rather than derived by
+    // pattern: `state.tech` also holds dorms and campus-life facilities from
+    // the other two seeds, and "an id the curriculum seed no longer has" is
+    // true of every one of those too.
+    const retired = new Set<string>([
+      ...[101, 110, 120, 130, 140, 210, 220, 230, 240].flatMap((n) => [`PMED${n}`, `DENT${n}`]),
+      'LAB-PMED', 'LAB-DENT',
+    ]);
+
+    const migrated: Buildable[] = [];
+    const carried = new Set<string>();
+    for (const node of state.tech) {
+      if (retired.has(node.id)) continue;
+      const fresh = seedById.get(node.id);
+      if (fresh) {
+        migrated.push({ ...fresh, status: node.status });
+        carried.add(node.id);
+      } else {
+        // A dorm or a campus-life facility: not this seed's business.
+        migrated.push(node);
+      }
+    }
+    for (const node of seed) {
+      if (!carried.has(node.id)) migrated.push({ ...node });
+    }
+    state.tech = migrated;
+
+    // Re-derive 'available' from the NEW prereqs. Read-only against 'done',
+    // which nothing in this pass changes, so one pass is enough.
+    const done = new Set(state.tech.filter((node) => node.status === 'done').map((node) => node.id));
+    for (const node of state.tech) {
+      if (node.status !== 'locked' && node.status !== 'available') continue;
+      node.status = node.prereqs.every((id) => done.has(id)) ? 'available' : 'locked';
+    }
+
+    // A retired course that was mid-development stops developing. Its cost
+    // was charged up front and is sunk, the same as any other spend on
+    // something the school no longer has.
+    for (const id of Object.keys(state.developing)) {
+      if (retired.has(id)) delete state.developing[id];
+    }
+
+    // The retired majors' milestones. curriculumBreadthScore() walks
+    // milestoneSchools() and would never read these again, so this is
+    // hygiene rather than a fix — but a stale `major-complete:DENT` sitting
+    // in the save forever is exactly the kind of thing the next migration
+    // trips over.
+    for (const prefix of ['PMED', 'DENT']) {
+      delete state.milestones[`major-complete:${prefix}`];
+      delete state.milestones[`major-mastered:${prefix}`];
+    }
+    // school-complete:* is deliberately LEFT ALONE. A school whose majors
+    // changed keeps the milestone it earned — Health Science was genuinely
+    // finished under the curriculum the player played, and taking that back
+    // years later would cut the prestige target for work they actually did.
+    // Nothing re-locks it either: checkMilestones only ever sets.
+
+    // Faculty and candidates: no field was retired by this reorg (two were
+    // ADDED — see facultyData.ts's note on LEGACY_FIELD_RENAMES), so this
+    // is a no-op on any save that has already been through v4 -> v5. It runs
+    // anyway because a v3 save reaching v10 has, and a defensive pass costs
+    // one map lookup per person.
+    const liveField = (field: string): string => LEGACY_FIELD_RENAMES[field] ?? field;
+    for (const f of state.faculty) f.field = liveField(f.field);
+    for (const c of state.candidates ?? []) c.field = liveField(c.field);
   },
 };
 

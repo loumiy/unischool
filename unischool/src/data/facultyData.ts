@@ -77,14 +77,24 @@ const MAX_NAME_ROLL_ATTEMPTS = 30;
 //
 // The set below is deliberately shaped like a real course catalog's
 // department list rather than like a list of broad subject areas, and it
-// is chosen so demand lands EVENLY across it: with 36 majors, one field
-// per major would be a 36-entry dropdown, and the old 13 broad fields put
+// is chosen so demand lands EVENLY across it: with 42 majors, one field
+// per major would be a 42-entry dropdown, and the old 13 broad fields put
 // 54 courses behind 'Business' and 45 each behind 'CompSci'/'Arts'/
-// 'Biology' while 'Economics' and 'Psychology' had 9 apiece. 26 fields at
+// 'Biology' while 'Economics' and 'Psychology' had 9 apiece. 28 fields at
 // one-to-three majors each keeps every field between 9 and 20 courses —
 // no field is dead, none dominates, and each is still a department a real
 // university would actually have (several are real combined-department
 // names: Accounting & Finance, Operations Research, Art & Design).
+//
+// The School of Science added exactly TWO of those 28 (Neuroscience and
+// Kinesiology) and removed none. Its other four majors reuse departments
+// that already existed and were already teaching in other schools —
+// Mathematics, Physics, Chemistry, Biology and Psychology — which is what
+// keeps the reorg from being a taxonomy rewrite: the fields did not move,
+// the majors did. The two Health Science majors that DO need somewhere new
+// to sit are the two whose real-world departments the 26-field set simply
+// lacked; Pharmacy, by contrast, fits Clinical Health exactly, and taking
+// it there is what re-partners Nursing after Dentistry's retirement.
 //
 // Ordered by division, the way a catalog lists departments, because this
 // array IS the recruiting dropdown's order (see FacultyTab.tsx).
@@ -102,7 +112,7 @@ export const FACULTY_FIELDS = [
   // Natural sciences & mathematics
   'Mathematics', 'Physics', 'Chemistry', 'Biology',
   // Health
-  'Public Health', 'Clinical Health',
+  'Public Health', 'Clinical Health', 'Neuroscience', 'Kinesiology',
   // Computing
   'Computer Science', 'Artificial Intelligence', 'Information Systems',
   // Engineering
@@ -113,11 +123,25 @@ export const FACULTY_FIELDS = [
 
 // Old field names -> the field that inherits them, for saves written
 // before the taxonomy was re-specialised (see persistence.ts's v4 -> v5
-// migration). Only the three fields that stopped existing need an entry;
+// migration, and v9 -> v10, which runs every saved hire back through this
+// table too). Only the three fields that stopped existing need an entry;
 // the other ten old names are still live fields and carry forward as-is.
 // A merged-away field maps to the closest surviving department, so a
 // player never loses a hire they paid for — 'Business' split four ways, so
 // its faculty land in 'Management', the most general of the four.
+//
+// The School of Science reorg added NO entry here, and that is a finding
+// rather than an oversight: it added two departments and retired none. The
+// two majors it removed, Pre-Med and Dentistry, never had fields of their
+// own — Pre-Med was staffed by Chemistry (which now staffs the Chemistry
+// major) and Dentistry by Clinical Health (which now staffs Pharmacy) —
+// so every one of the 26 old field strings is still a live department and
+// every saved hire lands on a field that still teaches at least nine
+// courses. A Dentistry professor is not lost; they are a Clinical Health
+// professor whose department now runs the pharmacy sequence. What DOES
+// need the rename table is any save older than v5, which is why v9 -> v10
+// runs it defensively rather than trusting that a v9 save already went
+// through v4 -> v5.
 export const LEGACY_FIELD_RENAMES: Record<string, string> = {
   CompSci: 'Computer Science',
   Business: 'Management',
@@ -234,7 +258,9 @@ const FIELD_RESEARCH_INTERESTS: Record<string, string[]> = {
   Chemistry: ['catalysis', 'polymer synthesis', 'medicinal chemistry'],
   Biology: ['cell signaling pathways', 'conservation ecology', 'evolutionary genetics'],
   'Public Health': ['infectious disease epidemiology', 'nutrition policy', 'health disparities'],
-  'Clinical Health': ['patient safety outcomes', 'geriatric care models', 'oral disease prevention'],
+  'Clinical Health': ['patient safety outcomes', 'geriatric care models', 'pharmacotherapy and adherence'],
+  Neuroscience: ['synaptic plasticity', 'neural circuits of decision-making', 'neurodegenerative disease models'],
+  Kinesiology: ['exercise metabolism', 'gait and movement biomechanics', 'rehabilitation science'],
   'Computer Science': ['distributed systems', 'programming language design', 'human-computer interaction'],
   'Artificial Intelligence': ['deep learning architectures', 'computer vision', 'the ethics of automated decisions'],
   'Information Systems': ['applied cryptography', 'enterprise data governance', 'security operations'],
@@ -404,7 +430,7 @@ export function facultyQualityTier(f: Faculty): FacultyQualityTier {
 //
 // The point of the churn is to keep the SCARCITY interesting and drop the
 // boring part. Under the old post-and-wait model every hire cost a fee and
-// 4-10 idle weeks, which with 26 specialised fields (see FACULTY_FIELDS
+// 4-10 idle weeks, which with 28 specialised fields (see FACULTY_FIELDS
 // above) meant 26 separate post-and-wait errands. Now a common field is
 // almost always sitting there to be pulled, and what is genuinely scarce
 // is the thin-market specialist: they show up intermittently, so filling
@@ -447,14 +473,20 @@ const CANDIDATE_ARRIVALS_PER_WEEK_MAX = 4; // ceiling on new listings per week, 
 // produce the common/rare split the churn is for: after the field
 // re-specialisation every field carries between 9 and 20 courses, a
 // spread of barely 2x, so weighting by course count alone would make all
-// 26 fields equally intermittent. Real hiring markets are not flat — an
+// 28 fields equally intermittent. Real hiring markets are not flat — an
 // English department picks from hundreds of applicants while nursing and
-// accounting departments run chronically unfilled lines — and that is the
-// axis that makes a dentistry hire feel like a find.
+// pharmacy departments run chronically unfilled lines — and that is the
+// axis that makes a clinical hire feel like a find.
+//
+// A field added to FACULTY_FIELDS gets an entry here even when the answer
+// is "ordinary". An explicit 1.0 is an authored decision that this market
+// is unremarkable; a field left OUT of the table is one nobody has thought
+// about yet, and the two should not look the same in the source.
 const DEFAULT_MARKET_SUPPLY = 1;
 const FIELD_MARKET_SUPPLY: Record<string, number> = {
-  'Clinical Health': 0.35,          // nursing and dental faculty are the thinnest academic market there is: clinical practice pays more than teaching it
+  'Clinical Health': 0.35,          // nursing and pharmacy faculty are the thinnest academic market there is: clinical practice pays far more than teaching it
   'Artificial Intelligence': 0.35,  // industry outbids universities for everyone qualified
+  Neuroscience: 0.4,                // the doctorates exist, but medical centers and biotech take almost all of them before a teaching department gets a look
   'Accounting & Finance': 0.5,      // the perennial accounting-PhD shortage — the doctorate is long and the profession pays
   'Mechanical Engineering': 0.7,
   'Electrical Engineering': 0.7,
@@ -463,6 +495,7 @@ const FIELD_MARKET_SUPPLY: Record<string, number> = {
   Economics: 0.85,
   'Public Health': 0.9,
   'Information Systems': 0.9,
+  Kinesiology: 1,                   // deliberately ordinary: exercise-science doctorates are plentiful relative to the number of lines, so this is the easy end of the Health Science roster and the counterweight to Clinical Health's 0.35
 };
 
 // A field's listing weight = how many courses in the whole curriculum need
