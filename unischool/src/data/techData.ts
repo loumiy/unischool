@@ -1,4 +1,4 @@
-import type { Buildable } from '../state/types';
+import type { Buildable, GameState } from '../state/types';
 
 /*
   Your real curriculum, expressed as seed data and expanded into Buildable[].
@@ -393,6 +393,252 @@ function labId(prefix: string): string {
 }
 
 // ---------------------------------------------------------------------
+// GRADUATE PROGRAMS (see README's "Graduate programs"). More curriculum,
+// and deliberately nothing else: a graduate program is a small cluster of
+// high-tier `course` Buildables gated on an undergraduate parent, feeding
+// the same prestige stock through the same capped inputs, pulling the same
+// faculty through the existing `field` demand, and sized in the same
+// weeks-of-opex language as everything else the player buys.
+//
+// TWO BOUNDARIES THAT HOLD ABSOLUTELY, and are the reason this is the
+// low-risk "one loop" version of the feature:
+//
+//   1. NO SECOND POPULATION. There is no graduate-student count, no
+//      separate housing/dining/satisfaction ratio, and no parallel
+//      admissions funnel. Graduate courses are curriculum breadth like
+//      every other course, and the students in them are the same
+//      s.students the summer funnel already commits.
+//   2. NO BESPOKE PER-SCHOOL SYSTEM. Medicine, law and the MBA are
+//      MECHANICALLY IDENTICAL. Everything that distinguishes them is
+//      authored in the table below — the gate, the prestige weight, the
+//      cost/upkeep rung, which faculty fields each course demands, and the
+//      names. If differentiating two of them ever seems to need a
+//      distinct population or a rule of its own, that is the signal to
+//      stop and re-open the design, not to add one.
+//
+// ONE PREDICATE, TWO READINGS (graduateGateMet below). Both readings are
+// taken off the seed helpers that already exist, so there is no second
+// source of truth for what a school is:
+//   - a PROFESSIONAL school (med, law, MBA) gates on its parent
+//     undergraduate school(s) being complete or near-complete, read off
+//     milestoneSchools() and the same `major-complete:` milestones
+//     prestige's curriculum breadth reads;
+//   - a RESEARCH DOCTORATE gates on a finished lab in its parent school,
+//     read off researchSchools() — the same lab gate research itself and
+//     the university charter hang off.
+// Medicine's gate is the CONJUNCTION of two of those readings (Science AND
+// Health Science), which is two existing readings and-ed together, not a
+// new kind of gate.
+// ---------------------------------------------------------------------
+
+// The most expensive rung in the game, and its own constants rather than
+// an extension of TIER_COURSE_COST — a graduate course sits a tier above
+// tier-3 in every dimension. These are aimed squarely at the late-game
+// gap the endowment campaign alone was covering: a mature school whose
+// dorm and facility chains are exhausted and whose catalogue is finished
+// has, for the first time, an academic thing left to buy.
+//
+// Two rungs, because cost is one of the authored axes professional
+// schools are differentiated on: a medical or law school is a heavier
+// institutional commitment than a doctoral program bolted onto a
+// department that already has the labs and the faculty.
+const PROFESSIONAL_COURSE_COST = 6_000_000;
+const PROFESSIONAL_COURSE_WEEKS = 40;
+const PROFESSIONAL_COURSE_UPKEEP_PER_WEEK = 12_000;
+const DOCTORAL_COURSE_COST = 4_000_000;
+const DOCTORAL_COURSE_WEEKS = 32;
+const DOCTORAL_COURSE_UPKEEP_PER_WEEK = 7_000;
+
+export type GraduateProgramType = 'professional' | 'doctoral';
+
+interface GraduateCourseSeed {
+  num: number;    // course number within the program (5xx professional, 7xx doctoral)
+  title: string;
+  field: string;  // the Faculty field this ONE course requires — authored per course, like the gen-ed core's GENED_FIELDS rather than per-major, which is what lets medicine lean on the health AND science departments at once
+}
+
+export interface GraduateProgramSeed {
+  id: string;              // also the course-code prefix and the `grad-program-complete:` milestone subject
+  name: string;
+  degree: string;          // the credential, for display only
+  type: GraduateProgramType;
+  // The school section this program is DISPLAYED under (see
+  // discoverySchools) — its academic home. Always one of gateSchools.
+  homeSchool: string;
+  // The school(s) whose state the gate reads. One entry for every program
+  // but medicine, which reads two.
+  gateSchools: string[];
+  // Relative weight inside prestige's graduate-breadth term (see
+  // prestigeSystem.ts's GRADUATE_PROGRAM_SHARE). This is the ONLY way a
+  // professional school is allowed to move standing more than its raw
+  // course count would: a share of an already-capped input, never a bonus
+  // and never a weight of its own. A top law school outranking its five
+  // courses is authored HERE, where the cap still holds it.
+  prestigeWeight: number;
+  blurb: string;           // one line, used to build every course description
+  courses: GraduateCourseSeed[];
+}
+
+// Six programs, 28 courses. Deliberately small sets — a program is "a
+// handful of high-tier courses that complete into a milestone", not a
+// second nine-course major.
+const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
+  {
+    // The two-school gate, and the reason the gate predicate takes a LIST
+    // of schools rather than one: medicine draws on the basic sciences and
+    // the applied health majors both, so it extends from the School of
+    // Science AND Health Science. Its home — the section it is displayed
+    // in, and the school whose fields staff most of it — is Health
+    // Science.
+    id: 'MED', name: 'School of Medicine', degree: 'MD', type: 'professional',
+    homeSchool: 'Health Science', gateSchools: ['Science', 'Health Science'],
+    prestigeWeight: 2.0,
+    blurb: 'the medical school',
+    courses: [
+      { num: 501, title: 'Foundations of Human Medicine', field: 'Clinical Health' },
+      { num: 510, title: 'Gross Anatomy & Histology', field: 'Biology' },
+      { num: 520, title: 'Pathophysiology & Pharmacotherapy', field: 'Clinical Health' },
+      { num: 530, title: 'Clinical Neurology', field: 'Neuroscience' },
+      { num: 540, title: 'Evidence-Based Practice & Population Medicine', field: 'Public Health' },
+      { num: 550, title: 'Clerkship & Residency Preparation', field: 'Clinical Health' },
+    ],
+  },
+  {
+    id: 'LAWS', name: 'School of Law', degree: 'JD', type: 'professional',
+    homeSchool: 'Social Sciences & Humanities', gateSchools: ['Social Sciences & Humanities'],
+    prestigeWeight: 1.6,
+    blurb: 'the law school',
+    courses: [
+      { num: 501, title: 'Foundations of American Law', field: 'Law' },
+      { num: 510, title: 'Contracts & Torts', field: 'Law' },
+      { num: 520, title: 'Civil Procedure & Evidence', field: 'Law' },
+      { num: 530, title: 'Constitutional Law Seminar', field: 'Law' },
+      { num: 540, title: 'Legal Clinic & Advocacy', field: 'Law' },
+    ],
+  },
+  {
+    id: 'MBAX', name: 'Graduate School of Business', degree: 'MBA', type: 'professional',
+    homeSchool: 'Business', gateSchools: ['Business'],
+    prestigeWeight: 1.4,
+    blurb: 'the MBA program',
+    courses: [
+      { num: 501, title: 'Managerial Foundations', field: 'Management' },
+      { num: 510, title: 'Corporate Finance & Valuation', field: 'Accounting & Finance' },
+      { num: 520, title: 'Marketing Strategy', field: 'Marketing' },
+      { num: 530, title: 'Operations & Business Analytics', field: 'Operations Research' },
+      { num: 540, title: 'Capstone Consulting Practicum', field: 'Management' },
+    ],
+  },
+  {
+    id: 'PHDE', name: 'Doctoral Program in Engineering', degree: 'PhD', type: 'doctoral',
+    homeSchool: 'Engineering', gateSchools: ['Engineering'],
+    prestigeWeight: 1.0,
+    blurb: 'the engineering doctorate',
+    courses: [
+      { num: 701, title: 'Doctoral Research Methods in Engineering', field: 'Mechanical Engineering' },
+      { num: 710, title: 'Advanced Continuum & Structural Theory', field: 'Civil Engineering' },
+      { num: 720, title: 'Doctoral Seminar in Applied Electromagnetics', field: 'Electrical Engineering' },
+      { num: 730, title: 'Dissertation Research in Engineering', field: 'Operations Research' },
+    ],
+  },
+  {
+    id: 'PHDS', name: 'Doctoral Program in the Natural Sciences', degree: 'PhD', type: 'doctoral',
+    homeSchool: 'Science', gateSchools: ['Science'],
+    prestigeWeight: 1.0,
+    blurb: 'the natural-sciences doctorate',
+    courses: [
+      { num: 701, title: 'Doctoral Research Methods in the Sciences', field: 'Mathematics' },
+      { num: 710, title: 'Advanced Quantum & Statistical Theory', field: 'Physics' },
+      { num: 720, title: 'Advanced Synthesis & Structure Determination', field: 'Chemistry' },
+      { num: 730, title: 'Dissertation Research in the Natural Sciences', field: 'Biology' },
+    ],
+  },
+  {
+    id: 'PHDH', name: 'Doctoral Program in Health Science', degree: 'PhD', type: 'doctoral',
+    homeSchool: 'Health Science', gateSchools: ['Health Science'],
+    prestigeWeight: 1.0,
+    blurb: 'the health-science doctorate',
+    courses: [
+      { num: 701, title: 'Doctoral Research Methods in Health Science', field: 'Public Health' },
+      { num: 710, title: 'Systems & Cognitive Neuroscience Seminar', field: 'Neuroscience' },
+      { num: 720, title: 'Translational Clinical Research', field: 'Clinical Health' },
+      { num: 730, title: 'Dissertation Research in Health Science', field: 'Kinesiology' },
+    ],
+  },
+];
+
+// How much of a parent school has to stand before a professional school
+// may be founded — "complete or NEAR-complete", as one dial. At 0.75 that
+// is five of a six-major school's majors carrying `major-complete:`, i.e.
+// their tier-2 quartets finished. Deliberately not `school-complete:`
+// (which additionally requires every major MASTERED): that milestone lands
+// so late in a run that the professional schools would arrive with nothing
+// left to spend the rest of the game on.
+export const PROFESSIONAL_GATE_MAJOR_SHARE = 0.75;
+
+export function graduatePrograms(): GraduateProgramSeed[] {
+  return GRADUATE_PROGRAMS;
+}
+
+export function graduateProgram(id: string): GraduateProgramSeed | undefined {
+  return GRADUATE_PROGRAMS.find((program) => program.id === id);
+}
+
+export function graduateCourseIds(program: GraduateProgramSeed): string[] {
+  return program.courses.map((course) => `${program.id}${course.num}`);
+}
+
+// How many of a school's majors must be complete for a professional
+// school to be founded there. Exported so the UI can say "4 of 5" rather
+// than re-deriving the rounding rule.
+export function professionalGateThreshold(majorCount: number): number {
+  return Math.ceil(majorCount * PROFESSIONAL_GATE_MAJOR_SHARE);
+}
+
+// THE ONE PREDICATE. Both branches are readings of seed helpers that
+// already exist — milestoneSchools() for what the curriculum has finished,
+// researchSchools() for which labs stand — so graduate gating can never
+// drift from the school structure the rest of the game reads. A two-school
+// gate is the conjunction of two such readings, nothing more.
+export function graduateGateMet(s: GameState, programId: string): boolean {
+  const program = graduateProgram(programId);
+  if (!program) return false;
+
+  if (program.type === 'professional') {
+    const schools = milestoneSchools();
+    return program.gateSchools.every((name) => {
+      const school = schools.find((x) => x.schoolName === name);
+      if (!school || school.majors.length === 0) return false;
+      const complete = school.majors.filter((major) => s.milestones[`major-complete:${major.prefix}`]).length;
+      return complete >= professionalGateThreshold(school.majors.length);
+    });
+  }
+
+  const schools = researchSchools();
+  return program.gateSchools.every((name) => {
+    const school = schools.find((x) => x.schoolName === name);
+    return !!school && school.labIds.some((id) => s.tech.find((t) => t.id === id)?.status === 'done');
+  });
+}
+
+// The gate in words, for the course description and the Curriculum tab's
+// section head. Derived from the same seed the predicate reads, so the
+// sentence and the rule cannot disagree.
+export function graduateGateDescription(program: GraduateProgramSeed): string {
+  if (program.type === 'professional') {
+    const schools = milestoneSchools();
+    const parts = program.gateSchools.map((name) => {
+      const school = schools.find((x) => x.schoolName === name);
+      const needed = school ? professionalGateThreshold(school.majors.length) : 0;
+      const total = school ? school.majors.length : 0;
+      return `${needed} of ${total} ${name} majors complete`;
+    });
+    return parts.join(' and ');
+  }
+  return `a finished lab in ${program.gateSchools.join(' and ')}`;
+}
+
+// ---------------------------------------------------------------------
 // Descriptions. Every tier-1/core course (the 48 entry points players see
 // first) gets a hand-written one-liner. Tier-2/tier-3 descriptions are
 // generated from the course's own title through a small set of rotating,
@@ -618,6 +864,49 @@ export function initialTech(): Buildable[] {
     });
   }
 
+  // Graduate programs, appended after the undergraduate catalogue (see the
+  // GRADUATE PROGRAMS block above). Every one of these is a plain `course`
+  // Buildable — same kind, same develop/build flow, same faculty
+  // course-slot gate, same live-read upkeep — carrying `graduateProgram`
+  // so techSystem.ts knows which parent-school gate it waits on and the
+  // Curriculum tab knows where to draw it.
+  //
+  // Inside a program the climb is ordinary authored prereqs: the entry
+  // course has none at all (its only gate is the program's), the middle
+  // courses require the entry course, and the final course requires every
+  // course before it — a capstone in the same sense a tier-3 course is.
+  for (const program of GRADUATE_PROGRAMS) {
+    const professional = program.type === 'professional';
+    const ids = graduateCourseIds(program);
+    const entryId = ids[0];
+
+    program.courses.forEach((course, i) => {
+      const id = ids[i];
+      const last = i === program.courses.length - 1;
+      const prereqs = i === 0 ? [] : last ? ids.slice(0, i) : [entryId];
+
+      nodes.push({
+        id,
+        kind: 'course',
+        graduateProgram: program.id,
+        name: `${program.id} ${course.num} · ${course.title}`,
+        description: i === 0
+          ? `Founds ${program.blurb} (${program.degree}). Opens once ${graduateGateDescription(program)}.`
+          : `${program.degree} coursework in ${course.title}, taught inside ${program.name}.`,
+        cost: professional ? PROFESSIONAL_COURSE_COST : DOCTORAL_COURSE_COST,
+        duration: professional ? PROFESSIONAL_COURSE_WEEKS : DOCTORAL_COURSE_WEEKS,
+        prereqs,
+        status: 'locked',
+        requiresFaculty: course.field,
+        effects: {
+          upkeepPerWeek: professional
+            ? PROFESSIONAL_COURSE_UPKEEP_PER_WEEK
+            : DOCTORAL_COURSE_UPKEEP_PER_WEEK,
+        },
+      });
+    });
+  }
+
   return nodes;
 }
 
@@ -700,6 +989,18 @@ export function researchSchools(): ResearchSchool[] {
         if (field) fields.add(field);
       }
     }
+    // Graduate programs teach in their home school too, and are staffed
+    // per-course like the gen-ed core. Folded in here rather than left out
+    // so "every field that teaches in this school" stays literally true as
+    // the catalogue grows. It changes nothing today — every graduate field
+    // except Law already teaches undergraduate courses in its program's
+    // home school, and Law's home (Social Sciences & Humanities) bears no
+    // lab — but a law professor at a school that later gets one should not
+    // be invisible to research because nobody remembered to add them.
+    for (const program of GRADUATE_PROGRAMS) {
+      if (program.homeSchool !== school.name) continue;
+      for (const course of program.courses) fields.add(course.field);
+    }
     return {
       schoolName: school.name,
       labIds: school.majors
@@ -725,11 +1026,26 @@ export interface DiscoveryMajor {
   tier2Ids: string[]; // exactly 4
   tier3Ids: string[]; // exactly 4
 }
+// A graduate program as the Curriculum tab needs it: which section it
+// belongs in, what to call it, what its gate reads, and its course ids.
+// Same reasoning as DiscoveryMajor — the engine never needs this shape,
+// only the tab that reveals a program when its gate opens does.
+export interface DiscoveryGraduateProgram {
+  id: string;
+  name: string;
+  degree: string;
+  type: GraduateProgramType;
+  gate: string;       // the gate in words (see graduateGateDescription)
+  courseIds: string[];
+}
 export interface DiscoverySchool {
   name: string;
   buildingId: string;
   coreIds: string[]; // gen-ed core course ids; non-empty only for General Studies
   majors: DiscoveryMajor[];
+  // The graduate programs whose HOME school this is. Empty for most
+  // schools; Health Science has two (medicine and the health doctorate).
+  graduate: DiscoveryGraduateProgram[];
 }
 
 export function discoverySchools(): DiscoverySchool[] {
@@ -744,5 +1060,15 @@ export function discoverySchools(): DiscoverySchool[] {
       tier2Ids: [1, 2, 3, 4].map((i) => nodeId(major.prefix, NUMS[i])),
       tier3Ids: [5, 6, 7, 8].map((i) => nodeId(major.prefix, NUMS[i])),
     })),
+    graduate: GRADUATE_PROGRAMS
+      .filter((program) => program.homeSchool === school.name)
+      .map((program) => ({
+        id: program.id,
+        name: program.name,
+        degree: program.degree,
+        type: program.type,
+        gate: graduateGateDescription(program),
+        courseIds: graduateCourseIds(program),
+      })),
   }));
 }

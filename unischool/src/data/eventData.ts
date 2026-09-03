@@ -5,7 +5,7 @@ import { money, rollAmount, weeksOfOpEx } from './moneyScale';
 import {
   CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
 } from './studentLifeData';
-import { milestoneSchools } from './techData';
+import { graduateProgram, milestoneSchools } from './techData';
 
 // ---------------------------------------------------------------------
 // WEEK-TO-WEEK TEXTURE, AS AUTHORED DATA.
@@ -90,6 +90,12 @@ export const MILESTONE_INTERRUPT_KINDS: readonly string[] = [
   'major-complete',
   'major-mastered',
   'school-complete',
+  // Founding a graduate program (see README's "Graduate programs"). It
+  // qualifies on the same test the other three do — an aggregate
+  // accomplishment, never a single course — and there are only six of them
+  // in a whole run, all of them late, so this adds a handful of
+  // celebrations to the very end of the arc rather than to its middle.
+  'grad-program-complete',
 ];
 
 // The floor on how close together two celebrations may land. Milestones
@@ -133,6 +139,19 @@ function nameOf(s: GameState, id: string): string {
 export function describeMilestone(s: GameState, key: string): MilestoneEntry | null {
   const kind = milestoneKind(key);
   const subject = key.slice(key.indexOf(':') + 1); // the major prefix, or the school name
+
+  if (kind === 'grad-program-complete') {
+    const program = graduateProgram(subject);
+    if (!program) return null;
+    return {
+      key,
+      headline: `${program.name} is founded`,
+      detail: program.type === 'professional'
+        ? `Every course in the ${program.degree} program is finished. A professional school counts toward curriculum breadth — the largest input to the prestige target — and is weighted there above its course count, though still inside that input's cap.`
+        : `Every course in the ${program.degree} program is finished. A research doctorate counts toward curriculum breadth AND toward the school's research standing, both as capped inputs to the prestige target.`,
+      unlocks: [],
+    };
+  }
 
   if (kind === 'school-complete') {
     return {

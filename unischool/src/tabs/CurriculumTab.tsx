@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
-import { discoverySchools } from '../data/techData';
+import { discoverySchools, graduateGateMet } from '../data/techData';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import HelpHint from '../components/HelpHint';
 import { ProgressRing } from '../components/Progress';
@@ -25,6 +25,15 @@ import { ProgressRing } from '../components/Progress';
 //     `major-complete:<prefix>` milestone), that major splits into its
 //     own labeled sub-group within the section, and its tier-3s appear
 //     there — the same event, per the task.
+//   - Once a GRADUATE PROGRAM's parent-school gate opens (see
+//     techData.ts's graduateGateMet — five of six majors complete for a
+//     professional school, a finished lab for a doctorate), the program
+//     appears as one more labeled sub-group inside its home school's
+//     section, marked as the higher tier it is and captioned with the gate
+//     it just cleared. Reveal, not scarcity: before that there is no
+//     greyed-out medical school sitting on the screen from year one, in
+//     the same way there is no wall of tier-3 courses before a major
+//     completes.
 // A course, once revealed, is never hidden again — only its cell state
 // (locked/available/developing/done) changes as the underlying Buildable
 // status does. "Locked" here means revealed-but-blocked (a faculty gate or
@@ -36,11 +45,23 @@ import { ProgressRing } from '../components/Progress';
 const CATALOG_RING_SIZE = 46;
 const SECTION_RING_SIZE = 26;
 
+// A sub-group inside a school section: a completed major (its own tier-3
+// catalogue now visible) or a revealed graduate program. `graduate` is set
+// only for the latter, and carries the two things a graduate group has to
+// say that a major does not — which credential it awards, and which gate
+// it cleared to appear at all.
+interface DiscoverySubgroup {
+  key: string;
+  label: string;
+  courseIds: string[];
+  graduate?: { degree: string; gate: string };
+}
+
 interface DiscoverySection {
   key: string;
   label: string | null; // null = the top-level ungrouped pool
   courseIds: string[];
-  subgroups: Array<{ key: string; label: string; courseIds: string[] }>;
+  subgroups: DiscoverySubgroup[];
   // Every course id this school will ever own (all tiers of all its
   // majors), whether revealed yet or not — the denominator of the
   // section head's completion ring. Empty for the pool, which has no
@@ -57,7 +78,22 @@ function isGenEdComplete(s: GameState): boolean {
   return coreIds.length > 0 && coreIds.every((id) => s.tech.find((t) => t.id === id)?.status === 'done');
 }
 
-function buildSections(s: GameState, genEdComplete: boolean): DiscoverySection[] {
+// Which graduate programs are currently revealed — the one reading the
+// whole graduate half of this view runs on, taken off the same predicate
+// techSystem.ts unlocks the courses with (see techData.ts's
+// graduateGateMet), so the tab can never show a program the engine has not
+// opened, or hide one it has.
+function revealedGraduatePrograms(s: GameState): Set<string> {
+  const revealed = new Set<string>();
+  for (const school of discoverySchools()) {
+    for (const program of school.graduate) {
+      if (graduateGateMet(s, program.id)) revealed.add(program.id);
+    }
+  }
+  return revealed;
+}
+
+function buildSections(s: GameState, genEdComplete: boolean, revealedGrad: Set<string>): DiscoverySection[] {
   const findStatus = (id: string) => s.tech.find((t) => t.id === id)?.status;
   const coreIds: string[] = [];
   const looseTier1Ids: string[] = [];
@@ -76,7 +112,7 @@ function buildSections(s: GameState, genEdComplete: boolean): DiscoverySection[]
     }
 
     const sharedIds: string[] = [];
-    const subgroups: DiscoverySection['subgroups'] = [];
+    const subgroups: DiscoverySubgroup[] = [];
     for (const major of school.majors) {
       const majorComplete = !!s.milestones[`major-complete:${major.prefix}`];
       if (majorComplete) {
@@ -89,12 +125,31 @@ function buildSections(s: GameState, genEdComplete: boolean): DiscoverySection[]
         sharedIds.push(major.tier1Id, ...major.tier2Ids);
       }
     }
+    // Graduate programs come last inside the section, after every major,
+    // because that is where they sit in the climb.
+    const gradIds: string[] = [];
+    for (const program of school.graduate) {
+      if (!revealedGrad.has(program.id)) continue;
+      gradIds.push(...program.courseIds);
+      subgroups.push({
+        key: program.id,
+        label: program.name,
+        courseIds: program.courseIds,
+        graduate: { degree: program.degree, gate: program.gate },
+      });
+    }
+
     sections.push({
       key: school.buildingId,
       label: school.name,
       courseIds: sharedIds,
       subgroups,
-      schoolCourseIds: school.majors.flatMap((m) => [m.tier1Id, ...m.tier2Ids, ...m.tier3Ids]),
+      // A school's completion ring counts its graduate programs only once
+      // they are revealed. Counting them earlier would put a medical
+      // school in the denominator of a Health Science ring years before
+      // the player has any way of knowing one exists — the same leak the
+      // pool's missing "x / 42" avoids.
+      schoolCourseIds: [...school.majors.flatMap((m) => [m.tier1Id, ...m.tier2Ids, ...m.tier3Ids]), ...gradIds],
     });
   }
 
@@ -247,7 +302,7 @@ function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => v
     >
       <button
         type="button"
-        className={`course-cell ${state}`}
+        className={`course-cell ${state}${t.graduateProgram ? ' graduate' : ''}`}
         disabled={state !== 'available'}
         onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: t.id })}
       >
@@ -333,14 +388,22 @@ function completion(s: GameState, ids: string[]): { done: number; total: number;
 }
 
 export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
-  const courses = s.tech.filter((t) => t.kind === 'course');
+  const revealedGrad = revealedGraduatePrograms(s);
+  // The headline ring counts the undergraduate catalogue plus whatever
+  // graduate work has been revealed — never the whole seed. A "0 / 412"
+  // in year one would announce that twenty-eight courses exist somewhere
+  // the player has no way to see, which is precisely what progressive
+  // discovery is for.
+  const courses = s.tech.filter(
+    (t) => t.kind === 'course' && (!t.graduateProgram || revealedGrad.has(t.graduateProgram)),
+  );
   const doneCourses = courses.filter((t) => t.status === 'done').length;
   const catalogFraction = courses.length > 0 ? doneCourses / courses.length : 0;
   const catalogPct = Math.round(catalogFraction * 100);
 
   const lookup = new Map(s.tech.map((t) => [t.id, t]));
   const genEdComplete = isGenEdComplete(s);
-  const sections = buildSections(s, genEdComplete);
+  const sections = buildSections(s, genEdComplete, revealedGrad);
   const [pool, ...schoolSections] = sections;
 
   return (
@@ -396,8 +459,14 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
                 </div>
                 {section.courseIds.length > 0 && <CellGrid s={s} act={act} ids={section.courseIds} lookup={lookup} />}
                 {section.subgroups.map((sub) => (
-                  <div key={sub.key} className="discovery-subgroup">
-                    <h4>{sub.label}</h4>
+                  <div key={sub.key} className={`discovery-subgroup${sub.graduate ? ' graduate' : ''}`}>
+                    <h4>
+                      {sub.label}
+                      {sub.graduate && <span className="subgroup-degree">{sub.graduate.degree}</span>}
+                    </h4>
+                    {sub.graduate && (
+                      <p className="subgroup-note">Graduate · opened by {sub.graduate.gate}</p>
+                    )}
                     <CellGrid s={s} act={act} ids={sub.courseIds} lookup={lookup} />
                   </div>
                 ))}

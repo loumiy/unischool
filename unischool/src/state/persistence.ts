@@ -22,7 +22,7 @@ import { initialTech } from '../data/techData';
 // the shared state, called from the engine, in the same spirit as
 // campusMap.ts and history.ts.
 //
-// Size: a newly founded university serializes to ~165 KiB (453 Buildables
+// Size: a newly founded university serializes to ~175 KiB (481 Buildables
 // with descriptions, 55 rivals, the founding roster, and the 30-listing
 // candidate market — ~24 KiB of names and bios that is REPLACED rather
 // than accumulated, since the pool is held at CANDIDATE_POOL_TARGET
@@ -138,7 +138,33 @@ const SAVE_KEY = 'unischool.save';
 // milestone (`major-complete:BIOL` is the same key whichever school Biology
 // sits in), its roster, its money and its prestige stock. See the migration
 // itself for what happens to a retired major.
-export const SAVE_VERSION = 10;
+// v11: graduate programs landed. This is a CONTENT addition rather than a
+// reorg — nothing existing moved, was renamed or was retired — so it is
+// the simplest kind of curriculum migration there is: the twenty-eight new
+// graduate course Buildables are SPLICED IN BY ID off the seed, exactly
+// the way v9 -> v10 spliced in the School of Science's new nodes, and
+// every node a v10 save already holds is left completely untouched.
+//
+// It needs a version bump anyway, and for the reason the README gives: an
+// un-migrated v10 save would hold a `tech` array with no MED/LAWS/MBAX/
+// PHD* entries at all, so the six programs would simply never exist in
+// that run — no gate would ever open them, because there would be nothing
+// to open. That is a silently half-loaded game, which is exactly what the
+// version field is for.
+//
+// Two things a resuming player should know, and neither is a loss of
+// progress. First, an old run resumes with the programs LOCKED and
+// invisible, and they reveal the moment their parent-school gate reads
+// true — which for a decades-in save may be the very first tick, since the
+// gate is a reading of milestones it already earned. Second, the prestige
+// TARGET moves: graduate work is now the last 0.15 of curriculum breadth
+// (see prestigeSystem.ts), so a school that had finished the whole
+// undergraduate catalogue scores 0.85 on that input until it founds some
+// programs. Prestige itself does not lurch — it is a stock that drifts 12%
+// a year toward its target — so this reads as a ceiling that moved up
+// rather than standing that was taken away, and founding the programs is
+// what closes the gap.
+export const SAVE_VERSION = 11;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -504,6 +530,33 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     const liveField = (field: string): string => LEGACY_FIELD_RENAMES[field] ?? field;
     for (const f of state.faculty) f.field = liveField(f.field);
     for (const c of state.candidates ?? []) c.field = liveField(c.field);
+  },
+
+  // v10 -> v11: graduate programs (see SAVE_VERSION above). An ID SPLICE,
+  // and only that: every seed node the save does not already have is
+  // appended at its seeded status, and every node it does have is left
+  // exactly as it is.
+  //
+  // Deliberately NOT the wider "re-point every surviving node against the
+  // seed" pass v9 -> v10 ran. That pass existed because the reorg changed
+  // the prereqs, schools and labs of nodes the save already held; this
+  // change touches none of them, so re-pointing would be rewriting
+  // hundreds of nodes to the values they already carry — a lot of
+  // opportunity for a typo in the seed to silently reach into old runs, for
+  // no benefit. Splice what is new, touch nothing else.
+  //
+  // The new nodes arrive 'locked', which is right: a graduate course waits
+  // on its program's parent-school gate (techSystem.ts's meetsUnlockGates
+  // -> graduateGateMet), and the resolver runs that check on the first
+  // tick after the load, so a save that has ALREADY earned the gate opens
+  // its programs immediately and one that has not simply doesn't see them
+  // yet. There is no status to re-derive for anything else, because
+  // nothing else changed.
+  10: (state) => {
+    const have = new Set(state.tech.map((node) => node.id));
+    for (const node of initialTech()) {
+      if (!have.has(node.id)) state.tech.push({ ...node });
+    }
   },
 };
 

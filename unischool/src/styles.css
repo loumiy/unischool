@@ -177,6 +177,21 @@ button { cursor: pointer; font-family: inherit; }
 .discovery-subgroup h4 { font-family: var(--serif); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
   margin: 0 0 8px; color: var(--gold-dim); }
 
+/* A graduate program inside its parent school's section: the same
+   sub-group shape a completed major gets, marked as the higher tier it is
+   with a heavier rule, the credential beside the name, and one line saying
+   which gate opened it. Minimum to make graduate work legible — the
+   circle-network view of the curriculum is a separate, later arc. */
+.discovery-subgroup.graduate { border-left-color: var(--gold); border-left-width: 3px; }
+.discovery-subgroup.graduate h4 { color: var(--ink); display: flex; align-items: baseline; gap: 8px; }
+.subgroup-degree { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em;
+  padding: 1px 5px; border-radius: 3px; background: var(--brass-deep); color: #f7ecc6; }
+.subgroup-note { margin: -4px 0 8px; font-size: 10px; color: var(--ink-muted); }
+/* Graduate cells read a shade heavier than the tier-3 cells beside them
+   in every state, without a fifth state of their own: the state classes
+   above still do all the work, this only thickens the frame. */
+.course-cell.graduate { border-width: 2px; }
+
 /* One line under the panel head standing in for four hovers: what each
    shade means, and what the gate dot is. */
 .cell-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;

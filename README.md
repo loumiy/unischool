@@ -123,7 +123,7 @@ costs nothing extra. Keep both screens dumb.
 
 ## The milestone chain (how the curriculum gets its shape)
 
-The 384-course curriculum is not a flat list; buildings give it a progression
+The 412-course curriculum is not a flat list; buildings give it a progression
 spine. The intended climb:
 
 1. Start with **one academic building** and the **gen-ed core** available — nothing
@@ -137,8 +137,12 @@ spine. The intended climb:
 5. Completing **all tier-2 courses in a major** unlocks that **major** — granting
    an applicant-pool bonus and unlocking the major's **tier-3** courses.
 6. Completing the **tier-3** courses fully **masters** that major.
+7. Once most of a school's majors are complete — or, for a doctorate, once the
+   school has a lab — a **graduate program** opens on top of it, and completing
+   one founds it (see "Graduate programs" below).
 
-Milestone bonuses (school-complete, major-complete, major-mastered) are dedicated
+Milestone bonuses (school-complete, major-complete, major-mastered,
+grad-program-complete) are dedicated
 milestone logic in `techSystem.ts` — they are a first-class part of the model,
 not an afterthought. Note this makes buildings prerequisites for courses, which
 is exactly why prereqs must cross kinds. These milestones no longer grant
@@ -155,7 +159,11 @@ way toward a target computed from durable inputs — see
 `src/systems/prestige/prestigeSystem.ts`:
 
 - **curriculum breadth** — majors/schools completed *right now* (a stock read
-  off the milestone booleans above), not courses added this year.
+  off the milestone booleans above) plus the **graduate programs** founded on
+  top of them, not courses added this year. The four shares inside this one
+  input sum to 1, so finishing everything scores exactly 1 and graduate work
+  raises no ceiling — it occupies the last 0.15 of the one that already
+  existed (see "Graduate programs").
 - **selectivity** — the emergent admit rate from the most recently resolved
   admissions cycle; more selective scores higher.
 - **incoming student quality** — the average quality of the class that actually
@@ -418,6 +426,126 @@ attrition: salaries compound as a roster matures, and a thin-market field
 puts someone on the list only every few months, so specialization is a choice
 forced by what you can afford and who happens to be available that week, not
 by losing people you already have.
+
+## Graduate programs
+
+The layer that grows on top of a finished undergraduate school, and the
+deliberately **low-risk "one loop" version** of it. A graduate program is **more
+curriculum**: a small cluster of higher-tier `course` Buildables gated on an
+undergraduate parent, feeding the same prestige stock, pulling the same faculty
+through the existing `field` demand, and sized in the same weeks-of-opex
+language as everything else. There is **no second admissions funnel and no
+second student population**.
+
+Two boundaries hold absolutely, and are the reason the feature is this shape:
+
+1. **No second population.** No graduate-student count, no separate
+   housing/dining/satisfaction ratio, no parallel funnel. The students in a
+   graduate course are the same `s.students` the summer funnel already commits,
+   and graduate courses are curriculum breadth like every other course. If
+   differentiating medicine from law ever seems to need a distinct population,
+   that is the signal to stop and re-open the design rather than build one.
+2. **No bespoke per-school system.** Medicine, law and the MBA are
+   **mechanically identical**. Everything that distinguishes them is authored
+   data in `techData.ts`'s `GRADUATE_PROGRAMS`: the gate, the prestige-input
+   weight, the cost/upkeep rung, which faculty field each course demands, and
+   the names.
+
+**The graduate "course" is a plain `course` Buildable.** It adds no
+`BuildableKind`, no tier-above-tier-3, and no `graduate` flag — only one
+optional field, `graduateProgram`, naming which program a course belongs to.
+That was the shape that touched least: as a `course` it is academic upkeep, it
+counts toward the instruction cost of the catalogue, it occupies a faculty
+course-slot, and it is unplaceable, all without a single `kind === 'course'`
+read in the codebase having to learn about it. A new kind would have meant
+editing every one of those just to put graduate courses back where they already
+were.
+
+**Six programs, twenty-eight courses**, each a handful rather than a second
+nine-course major:
+
+| Program | Degree | Home school | Gate |
+| --- | --- | --- | --- |
+| School of Medicine | MD | Health Science | **Science AND Health Science** near-complete |
+| School of Law | JD | Social Sciences & Humanities | Social Sciences & Humanities near-complete |
+| Graduate School of Business | MBA | Business | Business near-complete |
+| Doctoral Program in Engineering | PhD | Engineering | a finished lab in Engineering |
+| Doctoral Program in the Natural Sciences | PhD | Science | a finished lab in Science |
+| Doctoral Program in Health Science | PhD | Health Science | a finished lab in Health Science |
+
+**One predicate, two readings** (`techData.ts`'s `graduateGateMet`), both taken
+off the seed helpers that already exist, so graduate gating can never drift from
+the school structure the rest of the game reads:
+
+- a **professional school** gates on `milestoneSchools()` — enough of its parent
+  school's majors carrying the same `major-complete:` milestone prestige's
+  curriculum breadth reads. "Enough" is one dial,
+  `PROFESSIONAL_GATE_MAJOR_SHARE`, at 0.75: five of a six-major school. It is
+  deliberately *not* `school-complete:` (which additionally wants every major
+  **mastered**), which lands so late that the professional schools would arrive
+  with nothing left to spend the rest of the run on.
+- a **research doctorate** gates on `researchSchools()` — a finished lab in its
+  parent school, the same gate research itself and the university charter hang
+  off. Three schools bear labs after the Science reorg, which is exactly why
+  there are three doctorates.
+- **medicine's gate is two of those readings and-ed together** — the School of
+  Science *and* Health Science, because medicine draws on the basic sciences and
+  the applied health majors both. A two-school gate is a conjunction, not a new
+  kind of gate.
+
+**Reveal, not scarcity.** A program is invisible until its gate opens, the way
+tier-3 courses are invisible until their major completes. There is no wall of
+greyed-out professional schools from year one, and the Curriculum tab's headline
+completion ring counts revealed graduate work only, so a `0 / 412` never
+announces courses the player has no way to see.
+
+**Prestige: capped inputs only, and no new weight.** Founding a program never
+writes `s.self.reputation` and carries no completion bonus. Graduate breadth is
+the **fourth share inside the existing curriculum-breadth input** — 0.34 major
+complete / 0.26 mastered / 0.25 school complete / **0.15 graduate**, still
+summing to 1 — so the ceiling did not move: finishing everything scores exactly
+1 and no more. Inside that share, programs are weighted against each other by an
+authored `prestigeWeight` (medicine 2.0, law 1.6, the MBA 1.4, each doctorate
+1.0) and normalized by the total. **That is how a top law school is allowed to
+move standing more than its five courses suggest** — a share of an
+already-capped input, never a weight of its own — which is the same discipline
+the research cap follows. A research doctorate additionally credits the
+**research** input (two credits each, into the same clamped 0..1 the
+breakthroughs feed), because a PhD program genuinely *is* research standing;
+professional schools get nothing there.
+
+The deliberate consequence: a fully built **undergraduate** catalogue now scores
+0.85 on curriculum breadth rather than 1.0. Finishing the catalogue is no longer
+the top of the curriculum curve — it is the point at which the graduate curve
+opens.
+
+**Cost is the most expensive rung in the game**, with its own constants rather
+than an extension of the tier table, and aimed squarely at the late-game "nothing
+to buy when cash-rich" gap: a professional course is $6M / 40 weeks / $12k a week
+forever, a doctoral course $4M / 32 weeks / $7k. Two rungs because cost is one of
+the authored axes professional schools are differentiated on. All six programs
+are about **$144M of capital and $276k a week of upkeep** — real, and about 3% of
+a mature school's opex, but see the balance notes: the endowment campaign remains
+the *unbounded* sink and graduate programs are a finite one.
+
+**Faculty come from the existing `field` demand**, authored **per course** the way
+the gen-ed core is rather than per program, which is what lets medicine lean on
+Clinical Health, Biology, Neuroscience and Public Health at once and the MBA on
+all four business departments. One new field was needed and only one: **`Law`**.
+Every other graduate course is taught by a department that already exists, but
+hanging the law school off Political Science would have meant a hire made to
+teach Comparative Politics could staff Constitutional Law, and the law school
+would have cost no new recruiting at all. Law is also the only field whose demand
+is entirely graduate, so it carries the taxonomy's only above-1 market-supply
+multiplier — an oversupplied market with nowhere to teach until a school founds
+one.
+
+**The Curriculum UI** fits programs into the view that already exists: a revealed
+program is one more labeled sub-group inside its parent school's section, marked
+as the higher tier it is, with its credential beside the name and one line naming
+the gate it cleared. That is the minimum to make graduate work legible. The
+circle-network overhaul of the curriculum view is a separate, later arc and was
+not attempted here.
 
 ## Research: the quiet second output
 
@@ -730,7 +858,20 @@ Pre-Med and Dentistry, are dropped outright rather than mapped onto a
 replacement: marking a major complete whose nine courses the player has never
 developed would be a milestone that lies, so a clean retirement is the honest
 answer and the small prestige-target dip settles over a couple of years of
-drift);
+drift); v10 -> v11 added the GRADUATE PROGRAMS — six clusters of
+higher-tier course Buildables (see "Graduate programs" above), spliced in
+BY ID off the seed, which is the simplest curriculum migration there is
+because nothing existing moved, was renamed or was retired: every node a
+v10 save already holds is left completely untouched, and the
+twenty-eight new ones arrive locked, revealing the moment their
+parent-school gate reads true — which for a decades-in save may be the
+very first tick, since the gate is a reading of milestones it already
+earned. What does move is the prestige TARGET: graduate work is now the
+last 0.15 of curriculum breadth, so a school that had finished the whole
+undergraduate catalogue scores 0.85 on that input until it founds some
+programs. Prestige itself does not lurch — it is a stock drifting 12% a
+year — so that reads as a ceiling that moved up rather than standing
+taken away);
 discard when it doesn't (v1 and v2 predate an economy rebalance, so those runs
 would be describing a different game).
 
@@ -786,7 +927,9 @@ any refactor.
   all being mature.
 - Research depth: labs for the four schools that still have none, so a
   fully non-STEM run has a research path of its own rather than reaching it
-  through a shared department (see "Research").
+  through a shared department (see "Research"). This would also give those
+  schools a research doctorate, which they cannot have today for exactly the
+  same reason (see "Graduate programs").
 - Campus life depth, and more authored decision events on top of the thirteen
   that now exist (see "Interrupts" above) — including events that reach
   systems the first pass deliberately left alone.
@@ -797,6 +940,9 @@ any refactor.
   placement of finished `building`/`dorm`/`facility` Buildables at their own
   footprint sizes, SVG rendering) now exists as a visual-only layer; nothing
   mechanical reads it yet.
+- A circle-network view of the curriculum, replacing the current cell grid.
+  Deliberately deferred: the graduate-programs pass fitted itself into the
+  existing view rather than starting that overhaul (see "Graduate programs").
 - An isometric rebuild of the map. Deliberately a separate, later arc: the map
   is still plain flat SVG, and the refinement passes on it (finer grid, mixed
   footprints, per-kind colour) are not steps toward isometric.
