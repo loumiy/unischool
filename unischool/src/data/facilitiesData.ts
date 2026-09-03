@@ -58,24 +58,38 @@ function servedUpkeep(facilityType: keyof typeof UPKEEP_PER_SERVED_PER_WEEK, ser
 // --- Dining hall: repeatable chain, basic need, scales hard with capacity ---
 // Deliberately the steepest under-capacity penalty of the five attributes
 // (see satisfactionSystem.ts's BASIC_NEEDS_PENALTY_CURVATURE) — going
-// hungry reads as an acute problem, not a gentle drift, so this chain is
-// tuned to need topping up almost as often as dorms.
+// hungry reads as an acute problem, not a gentle drift.
+//
+// Sized at roughly one dining hall per 3-4 dorms rather than one per dorm:
+// the OLD chain (13 instances averaging ~690 served each) could never
+// actually cover a maxed-out dorm chain even fully built (its ceiling was
+// ~8,900 served against dorms' ~21,300 capacity ceiling) — every dining
+// hall was cheap and small, but there were too few of them to ever exist
+// to close that gap. This chain is short (5 instances) and each one
+// dramatically bigger, so five real decisions comfortably cover the whole
+// dorm chain (~21,700 served against ~21,300 capacity) instead of thirteen
+// small ones that ran out partway through it.
+//
+// Size is what the campus map draws, too (see campusMap.ts's footprintOf):
+// a hall at or above DINING_MAJOR_FOOTPRINT_SERVES_THRESHOLD is a real "major
+// dining hall" and gets a 2x1 footprint; a smaller one reads as a compact
+// campus restaurant and stays 1x1. Only the founding hall is small enough
+// to be a restaurant here — everything the school adds afterward is sized
+// to matter.
 const DINING_STARTING_ID = 'DINING-01';
-const DINING_STARTING_SERVES = 300;
-const DINING_ADDITIONAL_COUNT = 12;
-const DINING_BASE_SERVES = 280;
-const DINING_SERVES_GROWTH = 1.16;
-const DINING_BASE_COST = 420_000;
-const DINING_COST_GROWTH = 1.26;
-const DINING_BASE_WEEKS = 10;
-const DINING_WEEKS_GROWTH = 1.05;
+const DINING_STARTING_SERVES = 350; // matches STARTING_DORM_CAPACITY: the campus opens adequately fed, not just adequately housed
+const DINING_ADDITIONAL_COUNT = 4;
+const DINING_BASE_SERVES = 1_600;
+const DINING_SERVES_GROWTH = 1.9;
+const DINING_BASE_COST = 2_400_000; // ~$1,500/seat at the base, the same rough rate the old chain built at
+const DINING_COST_GROWTH = 2.0; // outpaces servesGrowth on purpose — cost-per-seat still climbs at the high end, same shape as the dorm chain's own cost-outgrows-capacity curve
+const DINING_BASE_WEEKS = 14;
+const DINING_WEEKS_GROWTH = 1.12;
 // One name per instance in the chain: the starting hall plus every one of
 // DINING_ADDITIONAL_COUNT, so no built hall ever falls back to a generated
 // stand-in (the build panel lists these by name once the group collapses).
 const DINING_NAMES = [
-  'The Original Dining Hall', 'Eastgate Dining Hall', 'Commons Cafeteria', 'Harborview Dining Hall',
-  'Union Square Eatery', 'Northside Dining Hall', 'The Refectory', 'Gateway Food Hall',
-  'Southpoint Dining Hall', 'Millrace Cafeteria', 'The Grand Table', 'Terrace Dining Hall',
+  'The Original Dining Hall', 'Union Square Eatery', 'Commons Cafeteria', 'The Grand Table',
   'Founders Commons',
 ];
 
