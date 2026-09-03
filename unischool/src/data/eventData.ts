@@ -1,11 +1,11 @@
 import type { Faculty, GameState, GreekChapter, LogEntry } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
-import { FACULTY_FIELDS, generateCandidate } from './facultyData';
+import { FACULTY_FIELDS, generateCandidate, rollSurname } from './facultyData';
 import { money, rollAmount, weeksOfOpEx } from './moneyScale';
 import {
   CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
 } from './studentLifeData';
-import { graduateProgram, milestoneSchools } from './techData';
+import { discoverySchools, graduateProgram, milestoneSchools } from './techData';
 
 // ---------------------------------------------------------------------
 // WEEK-TO-WEEK TEXTURE, AS AUTHORED DATA.
@@ -231,6 +231,8 @@ export interface DecisionEventContext {
   subjectName?: string;  // that subject's display name, resolved when the event fired
   subjectField?: string; // a Faculty field, for events that are about a discipline rather than a person
   amount?: number;       // a rolled sum of money, fixed at fire time
+  donorName?: string;    // a rolled person surname, for events framed as a named gift (see 'naming-rights')
+  newName?: string;      // the new display name a choice would apply, fixed at fire time (see 'naming-rights')
 }
 
 export interface DecisionChoice {
@@ -279,6 +281,14 @@ function dentSatisfaction(s: GameState, points: number): void {
 
 function doneBuildings(s: GameState) {
   return s.tech.filter((t) => t.kind === 'building' && t.status === 'done');
+}
+
+// School buildings whose naming rights haven't been sold yet — a school is
+// only ever renamed once (see the 'naming-rights' event's apply()), so the
+// donor pool this event draws from excludes any building already carrying
+// a `donorSurname`.
+function unnamedSchoolBuildings(s: GameState) {
+  return doneBuildings(s).filter((b) => !b.donorSurname);
 }
 
 function doneDiningHalls(s: GameState) {
@@ -431,38 +441,61 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     id: 'naming-rights',
     title: 'A naming-rights offer',
     weight: 8,
-    eligible: (s) => s.self.reputation >= NAMING_RIGHTS_PRESTIGE_GATE && doneBuildings(s).length > 0,
+    eligible: (s) => s.self.reputation >= NAMING_RIGHTS_PRESTIGE_GATE && unnamedSchoolBuildings(s).length > 0,
+    // Rolls the donor's surname and the resulting name TOGETHER, at fire
+    // time, like the amount below — the modal shows exactly the name that
+    // apply() will set, never a re-roll (see the comment at the top of
+    // this file on why cost/effects are fixed at roll time).
     rollContext: (s) => {
-      const buildings = doneBuildings(s);
+      const buildings = unnamedSchoolBuildings(s);
       if (buildings.length === 0) return null;
       const target = pick(buildings);
+      const school = discoverySchools().find((sc) => sc.buildingId === target.id);
+      if (!school) return null;
+      const donor = rollSurname();
       return {
         subjectId: target.id,
-        subjectName: target.name,
+        subjectName: school.name, // the school's own name, e.g. "Science" — not its building's name
+        donorName: donor,
+        newName: `${donor} School of ${school.name}`,
         amount: rollAmount(s, NAMING_RIGHTS_MIN_WEEKS, NAMING_RIGHTS_MAX_WEEKS),
       };
     },
     prompt: (_s, ctx) =>
-      `A regional holding company will pay ${money(ctx.amount ?? 0)} to put its name on ${ctx.subjectName}. The cheque clears immediately. The student paper has already written the editorial.`,
+      `An alumnus, ${ctx.donorName}, offers ${money(ctx.amount ?? 0)} to put the family name on the School of ${ctx.subjectName} — permanently. It would become the ${ctx.newName}. The cheque clears immediately. The student paper has already written the editorial.`,
     choices: [
       {
         id: 'sign',
-        label: 'Sign the agreement',
+        label: 'Accept the gift',
         describe: (_s, ctx) =>
-          `${money(ctx.amount ?? 0)} in cash now, and a ${NAMING_RIGHTS_SATISFACTION_HIT}-point dent in student satisfaction that heals over the following weeks.`,
+          `${money(ctx.amount ?? 0)} in cash now, the school permanently renamed to the ${ctx.newName}, and a ${NAMING_RIGHTS_SATISFACTION_HIT}-point dent in student satisfaction that heals over the following weeks.`,
         cost: () => 0,
         apply: (s, ctx) => {
           s.finance.cash += ctx.amount ?? 0;
           dentSatisfaction(s, NAMING_RIGHTS_SATISFACTION_HIT);
-          return entry(s, `Naming rights sold on ${ctx.subjectName}: ${money(ctx.amount ?? 0)} banked, students unimpressed.`, 'info');
+          // The rename IS the building's own `name` field — already a
+          // stored, mutable, per-save property (see types.ts's Buildable)
+          // — so every existing reader of it (the campus map label, its
+          // tooltip, the build tray) picks the new name up with no changes
+          // of its own. `donorSurname` is the one addition: it marks the
+          // name as donor text rather than the seeded catalogue name, which
+          // is what tells the Curriculum tab's section heading (see
+          // CurriculumTab.tsx's buildSections) to show it verbatim instead
+          // of re-wrapping it as "School of X".
+          const building = s.tech.find((t) => t.id === ctx.subjectId);
+          if (building && ctx.newName && ctx.donorName) {
+            building.name = ctx.newName;
+            building.donorSurname = ctx.donorName;
+          }
+          return entry(s, `Naming rights sold: the School of ${ctx.subjectName} is now the ${ctx.newName}. ${money(ctx.amount ?? 0)} banked, students unimpressed.`, 'info');
         },
       },
       {
         id: 'decline',
         label: 'Turn it down',
-        describe: () => 'Nothing changes. The building keeps its name.',
+        describe: () => 'Nothing changes. The school keeps its name.',
         cost: () => 0,
-        apply: (s, ctx) => entry(s, `Naming-rights offer on ${ctx.subjectName} declined.`, 'info'),
+        apply: (s, ctx) => entry(s, `Naming-rights offer on the School of ${ctx.subjectName} declined.`, 'info'),
       },
     ],
   },

@@ -166,6 +166,14 @@ function pick<T>(pool: T[]): T {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+// A bare surname drawn from the same pools faculty and candidates are
+// named from — for decision events that need a plausible donor/alumni
+// name without generating a full person (see eventData.ts's
+// 'naming-rights' event).
+export function rollSurname(): string {
+  return pick(pick(NAME_POOLS).last);
+}
+
 interface RolledName {
   name: string;
   origin: string; // the first-name pool's origin — what nationality is tied to (see rollNationality)

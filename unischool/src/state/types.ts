@@ -139,6 +139,14 @@ export interface Buildable {
   // milestones and lab status rather than of any one Buildable's id)
   status: BuildableStatus;
   effects?: Partial<BuildableEffects>; // read by the systems below; see each field's own comment for exactly when
+  // Set only once this school's naming rights are sold (see eventData.ts's
+  // 'naming-rights' decision event) — the donor's surname, applied to a
+  // school building alongside overwriting `name` with the full donor
+  // display text (e.g. "Johnson School of Science"). Its presence, not its
+  // value, is what the Curriculum tab reads to know `name` is donor text
+  // rather than the seeded catalogue name (see CurriculumTab.tsx's
+  // buildSections). An additive optional field — no save migration needed.
+  donorSurname?: string;
 }
 
 // Effects a Buildable can grant when finished. Deliberately no reputation
