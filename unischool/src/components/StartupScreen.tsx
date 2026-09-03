@@ -19,10 +19,11 @@ import type { SchoolType } from '../state/types';
 // permanent without a caption saying so, and a facade with no "University"
 // anywhere on it makes the absence of that option legible the same way.
 //
-// The field is PREFILLED rather than left empty with a placeholder: a
-// founder who wants to get straight into the game gets a real school with
-// a real name, and everyone else types over it.
-const DEFAULT_NAME = 'Blackmoor';
+// The field starts EMPTY with a placeholder rather than prefilled: the
+// facade already has a graceful empty-state ("COLLEGE" alone, see
+// SchoolFacade below), so leaving the input blank no longer means an
+// unfinished-looking screen, and an empty field reads unambiguously as
+// "type here" the moment the building beside it is doing the explaining.
 
 // ---------------------------------------------------------------------
 // THE FACADE. A flat, iconographic classical building front — pediment,
@@ -37,11 +38,15 @@ const FACADE_COLUMN_COUNT = 5;
 const FACADE_VIEW_WIDTH = 440;
 const FACADE_VIEW_HEIGHT = 190;
 const FACADE_BAND_LEFT = 18;
-const FACADE_BAND_WIDTH = 404; // shared span for the cornice/frieze/base ledges
+const FACADE_BAND_WIDTH = 404; // shared span for the cornice/frieze/architrave
 // The engraved text's available width before it must compress rather than
 // overflow the frieze — see bannerFontSize/needsCompression below. Kept a
 // little narrower than FACADE_BAND_WIDTH for a visible margin on each side.
 const FACADE_TEXT_WIDTH = 360;
+// Columns sit closer together than the frieze's own span — real porticoes
+// read as a tight colonnade, not columns spread out to the building's full
+// width — anchored on the same center (220) as the pediment's apex.
+const FACADE_COLUMN_SPAN = 260;
 
 // Stepped rather than continuously computed: a handful of readable sizes,
 // chosen so a short name (the common case) gets a genuinely large,
@@ -68,10 +73,9 @@ function SchoolFacade({ name }: { name: string }) {
   const fontSize = bannerFontSize(bannerText.length);
   const compress = bannerText.length * fontSize * AVG_GLYPH_WIDTH_EM > FACADE_TEXT_WIDTH;
 
-  const columnSpan = FACADE_VIEW_WIDTH - 80;
   const columnXs = Array.from(
     { length: FACADE_COLUMN_COUNT },
-    (_, i) => 40 + (i * columnSpan) / (FACADE_COLUMN_COUNT - 1),
+    (_, i) => (FACADE_VIEW_WIDTH - FACADE_COLUMN_SPAN) / 2 + (i * FACADE_COLUMN_SPAN) / (FACADE_COLUMN_COUNT - 1),
   );
 
   return (
@@ -81,13 +85,26 @@ function SchoolFacade({ name }: { name: string }) {
       role="img"
       aria-label={`${bannerText}, over a row of columns`}
     >
-      <polygon className="facade-pediment" points="24,64 220,8 416,64" />
-      <rect className="facade-cornice" x={FACADE_BAND_LEFT} y="60" width={FACADE_BAND_WIDTH} height="7" rx="1" />
-      <rect className="facade-frieze" x={FACADE_BAND_LEFT} y="67" width={FACADE_BAND_WIDTH} height="46" rx="1" />
+      {/* Roof: the outer raking cornice, plus a second, inset line tracing
+          the same slope just inside it — the thin "double line" a real
+          pediment's moulding reads as from a distance. */}
+      <polygon className="facade-stone" points="24,64 220,10 416,64" />
+      <polyline className="facade-line" points="37,58 220,24 403,58" />
+
+      {/* Entablature, stacked the way a real one is: a cornice ledge under
+          the roof, the frieze the name is cut into, and a three-line
+          architrave beneath it — same stone throughout, differentiated by
+          the same kind of thin line as the roof's, not by a change of
+          color. */}
+      <rect className="facade-stone" x={FACADE_BAND_LEFT} y="61" width={FACADE_BAND_WIDTH} height="8" />
+      <line className="facade-line" x1={FACADE_BAND_LEFT + 4} y1="64" x2={FACADE_BAND_LEFT + FACADE_BAND_WIDTH - 4} y2="64" />
+      <line className="facade-line" x1={FACADE_BAND_LEFT + 4} y1="67" x2={FACADE_BAND_LEFT + FACADE_BAND_WIDTH - 4} y2="67" />
+
+      <rect className="facade-stone" x={FACADE_BAND_LEFT} y="69" width={FACADE_BAND_WIDTH} height="32" />
       <text
         className="facade-banner-text"
         x={FACADE_VIEW_WIDTH / 2}
-        y={67 + 46 / 2 + 1}
+        y={69 + 32 / 2 + 1}
         fontSize={fontSize}
         textLength={compress ? FACADE_TEXT_WIDTH : undefined}
         lengthAdjust={compress ? 'spacingAndGlyphs' : undefined}
@@ -96,21 +113,29 @@ function SchoolFacade({ name }: { name: string }) {
       >
         {bannerText}
       </text>
-      <rect className="facade-base-ledge" x={FACADE_BAND_LEFT} y="113" width={FACADE_BAND_WIDTH} height="6" />
+
+      <rect className="facade-stone" x={FACADE_BAND_LEFT} y="101" width={FACADE_BAND_WIDTH} height="16" />
+      <line className="facade-line" x1={FACADE_BAND_LEFT + 4} y1="106" x2={FACADE_BAND_LEFT + FACADE_BAND_WIDTH - 4} y2="106" />
+      <line className="facade-line" x1={FACADE_BAND_LEFT + 4} y1="112" x2={FACADE_BAND_LEFT + FACADE_BAND_WIDTH - 4} y2="112" />
+
+      {/* Columns, cropped at the bottom of the frame — the shafts keep
+          going, the picture just doesn't. Each gets an abacus, an echinus
+          and several close-set flutes, all the same stone as the roof and
+          entablature above. */}
       {columnXs.map((cx, i) => (
         <g key={i}>
-          <rect className="facade-capital-abacus" x={cx - 17} y="119" width="34" height="7" />
+          <rect className="facade-stone" x={cx - 16} y="120" width="32" height="6" />
           <polygon
-            className="facade-capital-echinus"
-            points={`${cx - 17},126 ${cx + 17},126 ${cx + 11},136 ${cx - 11},136`}
+            className="facade-stone"
+            points={`${cx - 16},126 ${cx + 16},126 ${cx + 10},134 ${cx - 10},134`}
           />
-          <rect className="facade-shaft" x={cx - 11} y="136" width="22" height={FACADE_VIEW_HEIGHT - 136} />
-          {[-5, 0, 5].map((dx) => (
+          <rect className="facade-stone" x={cx - 10} y="134" width="20" height={FACADE_VIEW_HEIGHT - 134} />
+          {[-6, -3, 0, 3, 6].map((dx) => (
             <line
               key={dx}
-              className="facade-flute"
+              className="facade-line"
               x1={cx + dx}
-              y1="136"
+              y1="134"
               x2={cx + dx}
               y2={FACADE_VIEW_HEIGHT}
             />
@@ -122,7 +147,7 @@ function SchoolFacade({ name }: { name: string }) {
 }
 
 export default function StartupScreen({ onStart }: { onStart: (name: string, schoolType: SchoolType) => void }) {
-  const [name, setName] = useState(DEFAULT_NAME);
+  const [name, setName] = useState('');
   const [schoolType, setSchoolType] = useState<SchoolType>('private');
 
   return (
@@ -135,7 +160,7 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, sch
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Ashcombe"
+          placeholder="e.g. Blackmoor"
           maxLength={60}
         />
         <div className="startup-facade">

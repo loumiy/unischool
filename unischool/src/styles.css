@@ -740,12 +740,14 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    inline so the whole thing reads as one coherent illustration. */
 .startup-facade { margin: 14px 0 20px; }
 .startup-facade-svg { display: block; width: 100%; height: auto; }
-.facade-pediment { fill: #e3d3a4; stroke: var(--gold-dim); stroke-width: 1.5; stroke-linejoin: round; }
-.facade-cornice, .facade-base-ledge { fill: var(--gold-dim); }
-.facade-frieze { fill: #ddc98f; stroke: var(--parchment-line); stroke-width: 1; }
+/* One stone color for every solid shape — roof, entablature, capitals and
+   shafts alike — so the building reads as a single carved structure lit
+   from one side, not a stack of differently-tinted parts. All the depth
+   comes from .facade-line's thin strokes (mouldings, flutes, the roof's
+   inset trim), the same way the reference photo's shading does it. */
+.facade-stone { fill: #e3d3a3; stroke: var(--gold-dim); stroke-width: 1; stroke-linejoin: round; }
+.facade-line { fill: none; stroke: var(--gold-dim); stroke-width: 0.6; opacity: 0.55; }
 .facade-banner-text { fill: var(--ink); font-family: var(--serif); font-weight: 700; letter-spacing: 0.05em; }
-.facade-capital-abacus, .facade-capital-echinus, .facade-shaft { fill: #efe3bf; stroke: var(--parchment-line); stroke-width: 0.75; }
-.facade-flute { stroke: var(--parchment-line); stroke-width: 1; }
 
 .startup-types { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
 .startup-type-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left;
