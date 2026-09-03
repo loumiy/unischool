@@ -1,5 +1,5 @@
 import type { GameState } from '../../state/types';
-import { milestoneSchools } from '../../data/techData';
+import { graduatePrograms, milestoneSchools } from '../../data/techData';
 
 // ---------------------------------------------------------------------
 // Prestige (s.self.reputation) is a slow-moving STOCK, not a flow. It used
@@ -20,8 +20,9 @@ import { milestoneSchools } from '../../data/techData';
 //
 // The inputs, each normalized to 0..1 before weighting:
 //   - curriculum breadth: a STOCK — how many majors/schools stand fully
-//     finished right now (see milestoneSchools() below), not how many
-//     courses were added this year.
+//     finished right now (see milestoneSchools() below), plus the graduate
+//     programs founded on top of them; never how many courses were added
+//     this year.
 //   - selectivity: the emergent admit rate from the most recently resolved
 //     admissions cycle (admissionsSystem.ts) — more selective (lower admit
 //     rate) means a higher score.
@@ -100,11 +101,51 @@ function clamp(v: number, lo: number, hi: number): number {
 // Curriculum breadth: a STOCK read straight off the durable milestone
 // booleans techSystem.ts already tracks (major-complete, major-mastered,
 // school-complete) — never off anything added or completed this tick.
-// Weighted so a fully mastered curriculum (every major complete AND
-// mastered, every school complete) scores exactly 1.
-const MAJOR_COMPLETE_SHARE = 0.4;
-const MAJOR_MASTERED_SHARE = 0.3;
-const SCHOOL_COMPLETE_SHARE = 0.3;
+// Weighted so a fully finished curriculum (every major complete AND
+// mastered, every school complete, every graduate program founded) scores
+// exactly 1.
+//
+// GRADUATE PROGRAMS ARE THE FOURTH SHARE, and they are inside this term
+// rather than beside it on purpose (see README's "Graduate programs"). A
+// graduate program is more curriculum, so it feeds the input curriculum
+// already feeds; giving it a weight of its own would have raised the
+// prestige ceiling by exactly the amount the whole capped-input model
+// exists to prevent, and a grad-heavy school could then outrun the
+// breadth ceiling that decades of undergraduate buildout are what
+// actually buy. The four shares still sum to 1, so a school that finishes
+// everything — every major complete AND mastered, every school finished,
+// every graduate program founded — scores exactly 1 and no more.
+//
+// The consequence is deliberate and worth stating plainly: a fully built
+// UNDERGRADUATE catalogue now scores 0.85 rather than 1.0, because the
+// last 0.15 is graduate work it has not done. Finishing the catalogue is
+// no longer the top of the curriculum curve; it is the point at which the
+// graduate curve opens.
+//
+// WITHIN the graduate share, programs are weighted against each other by
+// authored `prestigeWeight` (see techData.ts) and normalized by the total,
+// which is how a professional school is allowed to move standing more than
+// its five or six courses would suggest — the medical school is worth
+// twice a doctoral program — while the share as a whole stays capped. That
+// is the same discipline the research cap follows.
+const MAJOR_COMPLETE_SHARE = 0.34;
+const MAJOR_MASTERED_SHARE = 0.26;
+const SCHOOL_COMPLETE_SHARE = 0.25;
+const GRADUATE_PROGRAM_SHARE = 0.15;
+
+// The graduate half of curriculum breadth: completed programs' authored
+// weights over every program's weight. A monotone stock read off the
+// `grad-program-complete:` milestones techSystem.ts awards, exactly like
+// the three undergraduate readings above.
+function graduateBreadthFraction(s: GameState): number {
+  const programs = graduatePrograms();
+  const total = programs.reduce((sum, program) => sum + program.prestigeWeight, 0);
+  if (total <= 0) return 0;
+  const earned = programs
+    .filter((program) => s.milestones[`grad-program-complete:${program.id}`])
+    .reduce((sum, program) => sum + program.prestigeWeight, 0);
+  return earned / total;
+}
 
 export function curriculumBreadthScore(s: GameState): number {
   const schools = milestoneSchools();
@@ -126,7 +167,8 @@ export function curriculumBreadthScore(s: GameState): number {
   return clamp01(
     MAJOR_COMPLETE_SHARE * (majorsComplete / totalMajors) +
     MAJOR_MASTERED_SHARE * (majorsMastered / totalMajors) +
-    SCHOOL_COMPLETE_SHARE * (schoolsComplete / schoolsWithMajors),
+    SCHOOL_COMPLETE_SHARE * (schoolsComplete / schoolsWithMajors) +
+    GRADUATE_PROGRAM_SHARE * graduateBreadthFraction(s),
   );
 }
 
@@ -236,13 +278,29 @@ function campusLifeScore(s: GameState): number {
 // like curriculum breadth: standing earned by past work does not evaporate
 // during a quiet decade, and a school that dismantles its labs keeps the
 // reputation it already built (while stopping the accumulation of more).
+//
+// A RESEARCH DOCTORATE ALSO COUNTS HERE, and only a doctorate does. This
+// is the one place a graduate program reaches an input other than
+// curriculum breadth, and it is honest rather than generous: a PhD program
+// IS research standing in a way a professional school is not, so the three
+// doctorates each carry a couple of credits into the same already-capped
+// 0..1 the breakthroughs do. All three founded is 6 of 20 credits — worth
+// about +4 on a target whose largest term is 75 — and the clamp above them
+// is unchanged, so this cannot become a second route to prestige any more
+// than breakthroughs can. Professional schools get nothing here: a medical
+// school with no lab publishes nothing.
 const BREAKTHROUGH_PRESTIGE_CREDIT = 1;
 const PRIZE_PRESTIGE_CREDIT = 3;      // a prize is worth three breakthroughs to the school's standing, on top of what its winner's own output gains
+const DOCTORATE_PRESTIGE_CREDIT = 2;  // a founded research doctorate, worth two breakthroughs
 const RESEARCH_CREDITS_FOR_FULL_SCORE = 20;
 function researchScore(s: GameState): number {
+  const doctorates = graduatePrograms().filter(
+    (program) => program.type === 'doctoral' && s.milestones[`grad-program-complete:${program.id}`],
+  ).length;
   const credits =
     BREAKTHROUGH_PRESTIGE_CREDIT * s.research.breakthroughs +
-    PRIZE_PRESTIGE_CREDIT * s.research.prizes;
+    PRIZE_PRESTIGE_CREDIT * s.research.prizes +
+    DOCTORATE_PRESTIGE_CREDIT * doctorates;
   return clamp01(credits / RESEARCH_CREDITS_FOR_FULL_SCORE);
 }
 

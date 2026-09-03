@@ -41,7 +41,16 @@ import type { DecisionEventContext } from '../src/data/eventData';
 // anywhere in the game code. (crypto.randomUUID is left alone — Node has
 // it, and faculty ids never affect a trajectory.)
 // ---------------------------------------------------------------------
-const INITIAL_SEED = 12345;
+// One fixed seed by default, so `npm run sim` is the same run every time
+// and a trajectory can be diffed against the last one. SIM_SEED overrides
+// it, which is what makes a balance claim checkable rather than anecdotal:
+// any content change that alters how many times Math.random is called —
+// adding a faculty field, adding courses, anything that shifts the
+// candidate-market draw — moves the whole stream, so a single seed cannot
+// tell "this rebalanced the game" from "this reshuffled the dice". Run a
+// few seeds before believing either.
+//   SIM_SEED=7 npm run sim -- 60 5
+const INITIAL_SEED = Number(process.env.SIM_SEED ?? 12345);
 let seed = INITIAL_SEED;
 Math.random = () => {
   seed = (seed * 1664525 + 1013904223) % 4294967296;
@@ -84,6 +93,10 @@ interface Strategy {
 // The course's tier, recovered from its id (101 / 1x0 / 2x0) purely so the
 // harness can develop cheap things first. The engine has no notion of
 // tier (see techData.ts) — this is a harness-local reading of the data.
+// Graduate courses (5xx / 7xx) fall into the same bucket as tier-3 and are
+// then ordered behind them by cost, which is the right reading with no
+// special case: they are the most expensive thing on the board, so a
+// cheapest-first player reaches them last.
 function tierOf(t: Buildable): number {
   const m = /(\d{3})$/.exec(t.id);
   if (!m) return 0;
@@ -280,6 +293,14 @@ interface Row {
   // cumulative cash side — the figure that says whether grants are
   // trivialising the cash throttle.
   researchRate: number; breakthroughs: number; grantIncome: number;
+  // Graduate programs, as the year closed (see README's "Graduate
+  // programs"). These are the numbers the feature's whole balance claim
+  // rests on: WHEN a strategy reaches them, whether it can afford them
+  // without going into the red, and what they cost to run once founded.
+  // The harness needs no new decision rule to buy them — a graduate course
+  // is a `course` Buildable, so the curriculum block below already picks
+  // them up, sorted last because their ids end in 5xx/7xx.
+  gradCourses: number; gradPrograms: number; gradUpkeep: number;
 }
 
 function snapshot(s: GameState, weeksInTheRed: number, minCash: number): Row {
@@ -306,6 +327,11 @@ function snapshot(s: GameState, weeksInTheRed: number, minCash: number): Row {
     researchRate: weeklyResearchPoints(s),
     breakthroughs: s.research.breakthroughs,
     grantIncome: s.research.grantIncome,
+    gradCourses: s.tech.filter((t) => t.graduateProgram !== undefined && t.status === 'done').length,
+    gradPrograms: Object.keys(s.milestones).filter((k) => k.startsWith('grad-program-complete:')).length,
+    gradUpkeep: s.tech
+      .filter((t) => t.graduateProgram !== undefined && t.status === 'done')
+      .reduce((sum, t) => sum + (t.effects?.upkeepPerWeek ?? 0), 0),
     clubs: s.orgs.clubs.length,
     chapters: s.orgs.chapters.length,
     orgUpkeep: flow.studentLifeUpkeep,
@@ -478,7 +504,7 @@ function fmt(n: number): string {
 function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally }, every: number): void {
   const { rows, tally } = run;
   console.log(`\n=== ${strategy.name} (${strategy.schoolType}) ===`);
-  console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | crs | maj | fac |  tuition | aid |  applic | admit% |  endow | rsch/wk | brk | orgs');
+  console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | crs | maj | fac |  tuition | aid |  applic | admit% |  endow | rsch/wk | brk | orgs | grad');
   const last = rows[rows.length - 1];
   for (const r of rows) {
     if (r.year > 6 && r.year % every !== 0 && r !== last) continue;
@@ -491,7 +517,11 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally }, eve
       // clubs/chapters live at the close of that year — the column that
       // says WHEN student life actually starts for a given strategy, which
       // is the whole question the opex share below can't answer.
-      `${String(r.clubs).padStart(2)}/${String(r.chapters).padEnd(2)}`,
+      `${String(r.clubs).padStart(2)}/${String(r.chapters).padEnd(2)} | ` +
+      // graduate courses developed / programs founded, at the close of
+      // that year — the column that answers "when does a strategy reach
+      // the graduate tier, and does it finish anything".
+      `${String(r.gradCourses).padStart(2)}/${r.gradPrograms}`,
     );
   }
   console.log(`   weeks in the red: ${last.weeksInTheRed} of ${rows.length * 52}, min cash: ${fmt(last.minCash)}`);
@@ -525,6 +555,20 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally }, eve
   console.log(
     `   research: ${last.researchRate.toFixed(1)} pts/wk at close, ${last.breakthroughs} breakthroughs, ` +
     `${tally.prizes} prizes, ${fmt(last.grantIncome)} in grants (${grantShare.toFixed(1)}% of lifetime opex)`,
+  );
+  // Graduate programs, judged the same way grants and student life are:
+  // the bare figure means nothing, WHEN it arrives and what share of the
+  // school's spending it takes is the answer to whether it is a late-game
+  // sink or a mid-game tax. `firstGrad` is the year the first graduate
+  // COURSE was finished, which is the moment the tier actually starts
+  // costing money.
+  const firstGrad = rows.find((r) => r.gradCourses > 0);
+  const firstProgram = rows.find((r) => r.gradPrograms > 0);
+  const gradShare = last.opex > 0 ? (last.gradUpkeep / last.opex) * 100 : 0;
+  console.log(
+    `   graduate: ${last.gradCourses} courses, ${last.gradPrograms} programs founded at close; ` +
+    `first course yr ${firstGrad ? firstGrad.year : '-'}, first program yr ${firstProgram ? firstProgram.year : '-'}; ` +
+    `${fmt(last.gradUpkeep)}/wk upkeep (${gradShare.toFixed(2)}% of opex)`,
   );
   // Student life is judged against opex the same way grants are judged
   // against it: the bare weekly figure means nothing, the share of the

@@ -119,6 +119,20 @@ export const FACULTY_FIELDS = [
   'Mechanical Engineering', 'Electrical Engineering', 'Civil Engineering', 'Operations Research',
   // Business
   'Accounting & Finance', 'Marketing', 'Management',
+  // Law. The one field the graduate-program pass added, and it was a
+  // finding rather than a convenience: every other graduate course in the
+  // catalogue is taught by a department that already exists (medicine by
+  // Clinical Health, Biology, Neuroscience and Public Health; the MBA by
+  // the four business departments; each doctorate by its own school's), so
+  // Law is the only discipline the 28-field taxonomy genuinely did not
+  // cover. The alternative was to hang the law school off Political
+  // Science, which is wrong in the way that matters here: a hire made to
+  // teach Comparative Politics would then have been able to staff
+  // Constitutional Law, and the law school would have cost no new
+  // recruiting at all. It is also the only field whose demand is entirely
+  // graduate — five courses, all of them in the law school — which is
+  // exactly why it needs its own market-supply entry below.
+  'Law',
 ];
 
 // Old field names -> the field that inherits them, for saves written
@@ -496,6 +510,23 @@ const FIELD_MARKET_SUPPLY: Record<string, number> = {
   'Public Health': 0.9,
   'Information Systems': 0.9,
   Kinesiology: 1,                   // deliberately ordinary: exercise-science doctorates are plentiful relative to the number of lines, so this is the easy end of the Health Science roster and the counterweight to Clinical Health's 0.35
+  // Law is the one field with a plentiful market and almost no demand: the
+  // JD supply is enormous, but only five courses in the whole catalogue
+  // ask for it and all five are in the law school. Demand x supply alone
+  // would leave it the rarest listing on the board, which is the wrong
+  // reading — a legal academic is EASY to find and simply has nowhere to
+  // teach until the school gets far enough to found a law school. Above 1
+  // on purpose, and the only entry that is; read it as "this market is
+  // oversupplied", which is the honest description of legal academia.
+  //
+  // 1.5 rather than something larger is the whole tuning question here.
+  // The pool is a fixed thirty listings, so a field's share is taken FROM
+  // the others: at 3.0 Law was 4.1% of every pool — more than half the
+  // departments — for the four decades before a law school is reachable,
+  // which is thirty listings the player cannot use. At 1.5 it sits around
+  // 2%, present roughly half of weeks, which is a hire you can get inside
+  // a month or two when you finally want two of them.
+  Law: 1.5,
 };
 
 // A field's listing weight = how many courses in the whole curriculum need

@@ -1,5 +1,5 @@
 import type { GameState, Buildable, BuildableEffects } from '../../state/types';
-import { milestoneSchools } from '../../data/techData';
+import { graduateCourseIds, graduateGateMet, graduatePrograms, milestoneSchools } from '../../data/techData';
 import { isCelebratedMilestone } from '../../data/eventData';
 
 // ---------------------------------------------------------------------
@@ -22,6 +22,13 @@ import { isCelebratedMilestone } from '../../data/eventData';
 // the applicant pool, which is not the stock-vs-flow concern this rework
 // addresses.
 const MAJOR_COMPLETE_APPLICANT_BONUS = 30;
+// The same one-time applicant bump a completed major gets, and nothing
+// else. Larger than a major's because a professional school is a
+// genuinely new draw on the pool, but still a FLOW effect on applicants
+// (which the summer funnel overwrites wholesale each year anyway), never
+// a nudge to prestige — that stays a stock, and a graduate program's real
+// payoff is the capped breadth input it lifts (see prestigeSystem.ts).
+const GRAD_PROGRAM_COMPLETE_APPLICANT_BONUS = 60;
 
 // Counts how many course Buildables currently occupy a faculty course-slot
 // in `field` — every course whose requiresFaculty matches that has started
@@ -126,9 +133,21 @@ function applyEffects(s: GameState, e?: Partial<BuildableEffects>): void {
 // something clears the gate and goes 'available' it stays available even
 // if prestige later dips back below the threshold — same as everything
 // else here, nothing ever re-locks.
+//
+// A graduate course is the third such gate, and the reason it belongs
+// here rather than in a pass of its own: "five of Health Science's six
+// majors are complete" and "the Engineering school has a finished lab"
+// are exactly the shape the two gates above already are — a reading of
+// the school's current state that no single Buildable id can express.
+// Routing it through meetsUnlockGates means the generic resolver still
+// does all the opening, and a graduate program REVEALS the same way a
+// tier-3 course does: hidden while locked, available the tick its gate
+// and its own prereqs are both satisfied. graduateGateMet is the single
+// predicate (see techData.ts) — this only asks it.
 function meetsUnlockGates(s: GameState, t: Buildable): boolean {
   if (t.minCapacityToUnlock !== undefined && s.students.capacity < t.minCapacityToUnlock) return false;
   if (t.minPrestigeToUnlock !== undefined && s.self.reputation < t.minPrestigeToUnlock) return false;
+  if (t.graduateProgram !== undefined && !graduateGateMet(s, t.graduateProgram)) return false;
   return true;
 }
 
@@ -204,6 +223,23 @@ function checkMilestones(s: GameState): void {
         `${school.schoolName} is now a fully distinguished school.`,
       );
     }
+  }
+
+  // Graduate programs complete the same way a major does: an aggregate
+  // condition (every course in the program finished) rather than any one
+  // course's own effect. The milestone key is the whole payoff — it is
+  // what prestigeSystem.ts's graduate-breadth term (and, for a doctorate,
+  // its research term) reads, and what the celebration modal prices with
+  // prestigeTargetWithout. There is no completion bonus of any kind here,
+  // for exactly the reason there is none on a major.
+  for (const program of graduatePrograms()) {
+    if (!graduateCourseIds(program).every((id) => isDone(s, id))) continue;
+    awardMilestone(
+      s,
+      `grad-program-complete:${program.id}`,
+      GRAD_PROGRAM_COMPLETE_APPLICANT_BONUS,
+      `${program.name} is now founded — the first ${program.degree} class can be admitted.`,
+    );
   }
 }
 

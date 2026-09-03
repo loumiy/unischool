@@ -87,6 +87,16 @@ export type BuildableStatus = 'locked' | 'available' | 'developing' | 'done';
 // courses, academic buildings, dorms, and campus-life facilities (and later
 // sports) are all the same kind of thing: a Buildable. They differ only in
 // their data, not their machinery — see README's "The central abstraction".
+//
+// GRADUATE COURSES DELIBERATELY ADD NO KIND. A graduate program is more
+// curriculum (see README's "Graduate programs"): its courses are `course`
+// Buildables like every other, so they are academic upkeep, they count
+// toward the instruction cost of the catalogue, they occupy faculty
+// course-slots, and they are unplaceable — all for free, because nothing
+// had to learn about them. What distinguishes them is one optional field,
+// `graduateProgram` below. A new kind (or a tier-above-tier-3 value) would
+// have meant editing every `kind === 'course'` read in the codebase just to
+// put them back where they already were.
 export type BuildableKind = 'course' | 'building' | 'dorm' | 'facility';
 
 // The specific campus-life need a `facility`-kind Buildable serves — see
@@ -110,12 +120,23 @@ export interface Buildable {
   duration: number;        // weeks of development
   prereqs: string[];       // other Buildable ids that must be 'done'; may cross kinds and majors
   requiresFaculty?: string; // a Faculty `field` that must have a free course slot (see canStartDevelopment) to start
+  // The graduate program this course belongs to (a GRADUATE_PROGRAMS id in
+  // techData.ts), set on every course in that program and on nothing else.
+  // It is BOTH the "this is a graduate course" marker the Curriculum tab
+  // styles and groups on, and the key techSystem.ts's meetsUnlockGates
+  // resolves the program's parent-school gate through — one field rather
+  // than a flag plus a gate id, since a graduate course is never in two
+  // programs and never ungated.
+  graduateProgram?: string;
   // Dynamic availability gates, re-checked every tick (unlike prereqs, which
   // only re-resolve when something finishes) because the population/prestige
   // they read can also fall back below the threshold — see techSystem.ts's
   // unlockAvailable. Both are ADDITIONAL to prereqs, not a replacement.
   minCapacityToUnlock?: number; // e.g. the health center: large campuses only, see campusData/facilitiesData
   minPrestigeToUnlock?: number; // e.g. a research library / athletics complex tier
+  // (the third such gate is `graduateProgram` above — a graduate course
+  // waits on its program's parent-school gate, which is a reading of
+  // milestones and lab status rather than of any one Buildable's id)
   status: BuildableStatus;
   effects?: Partial<BuildableEffects>; // read by the systems below; see each field's own comment for exactly when
 }
