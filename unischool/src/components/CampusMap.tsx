@@ -69,18 +69,21 @@ function spanSize(tiles: number): number {
 // N is chosen by what the thing IS, not at random:
 //   - facility -> its facilityType's index, so all parking lots match each
 //     other and none of them match the library. This is the meaningful axis.
-//   - building/dorm -> a hash of the id, so the seven school halls and the
-//     fifteen dorms differ from their neighbours while staying in one
-//     family. Stable across sessions because ids are.
+//   - dorm -> a hash of the id, so the fifteen dorms differ from their
+//     neighbours while staying in one family. Stable across sessions
+//     because ids are.
+//   - building has no tint class at all: the academic halls are the
+//     campus's landmarks and read as ONE family, not id-hashed shades of
+//     one — see `.campus-building.kind-building rect` in styles.css.
 // Every tint is a shade inside the same brass/ink/parchment language; the
 // classes are per-kind in CSS, so `tint-0` means a different (but related)
-// colour for a hall than for a dorm.
+// colour for a dorm than for a facility.
 // ---------------------------------------------------------------------
 const FACILITY_TINT_ORDER = [
   'library', 'studentCenter', 'diningHall', 'recCenter',
   'healthCenter', 'parking', 'quad', 'lab',
 ] as const;
-const HASHED_TINT_COUNT = 4; // shades available to buildings and dorms
+const HASHED_TINT_COUNT = 4; // shades available to dorms
 
 function hashTint(id: string): number {
   let h = 0;
@@ -88,12 +91,21 @@ function hashTint(id: string): number {
   return h % HASHED_TINT_COUNT;
 }
 
+// Building has no tint class of its own (see comment above), so this is
+// only ever called for facility/dorm kinds.
 function tintIndex(t: Buildable): number {
   if (t.kind === 'facility' && t.facilityType) {
     const i = FACILITY_TINT_ORDER.indexOf(t.facilityType);
     return i >= 0 ? i : 0;
   }
   return hashTint(t.id);
+}
+
+// The class list for a placed/tray Buildable: `kind-<kind>` always, plus a
+// `tint-N` shade for dorm/facility. Building gets no tint class — it's a
+// single fixed landmark colour in CSS, not a variety axis.
+function kindClasses(t: Buildable): string {
+  return t.kind === 'building' ? `kind-${t.kind}` : `kind-${t.kind} tint-${tintIndex(t)}`;
 }
 
 // Greedy word wrap into at most `maxLines` lines of `maxChars`, so a name
@@ -183,7 +195,7 @@ function PlacedBuilding({ t, p }: { t: Buildable; p: Placement }) {
   const firstLineY = y + height / 2 - ((lines.length - 1) * LABEL_LINE_HEIGHT) / 2;
 
   return (
-    <g className={`campus-building kind-${t.kind} tint-${tintIndex(t)}`} aria-label={t.name}>
+    <g className={`campus-building ${kindClasses(t)}`} aria-label={t.name}>
       <rect x={x} y={y} width={width} height={height} rx={TILE_CORNER} />
       {lines.map((line, i) => (
         <text
@@ -310,7 +322,7 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
                 <li key={t.id}>
                   <button
                     type="button"
-                    className={`campus-tray-btn kind-${t.kind} tint-${tintIndex(t)} ${t.id === selectedId ? 'selected' : ''}`}
+                    className={`campus-tray-btn ${kindClasses(t)} ${t.id === selectedId ? 'selected' : ''}`}
                     aria-pressed={t.id === selectedId}
                     // Dragging is layered ON TOP of the click flow rather
                     // than replacing it. The drag carries the id (which is
