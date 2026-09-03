@@ -8,10 +8,15 @@ import { initialTech } from './techData';
 // NAME_WEIGHT below) — mismatched pairs (e.g. a first name from one pool
 // with a last name from an unrelated one) still happen, deliberately, just
 // as the minority case rather than the systematic result of two uniform,
-// unrelated picks. Seven pools x seven names each gives ~2,400 first+last
-// combinations before that weighting even applies — comfortably larger
-// than the handful of faculty any single playthrough ever rolls, so
-// rollFullName's dedupe below essentially never has to fall back.
+// unrelated picks. Seven pools x fourteen names each gives ~9,600
+// first+last combinations before that weighting even applies —
+// comfortably larger than the handful of faculty any single playthrough
+// ever rolls, so rollFullName's dedupe below essentially never has to
+// fall back. This same pool is also where donor/alumni surnames come from
+// (see eventData.ts's rollSurname()), so it needs to stay generic enough
+// for a name to plausibly belong to a professor OR a decades-graduated
+// alumnus — nothing here ties a name to an age, a rank, or a gender (see
+// the biography note below on why no gender is ever rolled).
 // ---------------------------------------------------------------------
 interface NamePool {
   origin: string;
@@ -22,38 +27,38 @@ interface NamePool {
 const NAME_POOLS: NamePool[] = [
   {
     origin: 'East Asian',
-    first: ['Wei', 'Mei', 'Jun', 'Hana', 'Yuki', 'Minjun', 'Xin'],
-    last: ['Zhang', 'Kim', 'Tanaka', 'Chen', 'Park', 'Nakamura', 'Liu'],
+    first: ['Wei', 'Mei', 'Jun', 'Hana', 'Yuki', 'Minjun', 'Xin', 'Li', 'Feng', 'Sooah', 'Haruto', 'Aiko', 'Seojin', 'Ren'],
+    last: ['Zhang', 'Kim', 'Tanaka', 'Chen', 'Park', 'Nakamura', 'Liu', 'Wang', 'Lee', 'Sato', 'Watanabe', 'Choi', 'Huang', 'Kobayashi'],
   },
   {
     origin: 'South Asian',
-    first: ['Priya', 'Arjun', 'Ananya', 'Rohan', 'Divya', 'Vikram', 'Meera'],
-    last: ['Patel', 'Sharma', 'Gupta', 'Nair', 'Rao', 'Iyer', 'Chowdhury'],
+    first: ['Priya', 'Arjun', 'Ananya', 'Rohan', 'Divya', 'Vikram', 'Meera', 'Anika', 'Karan', 'Ishaan', 'Farhan', 'Nadia', 'Aarav', 'Riya'],
+    last: ['Patel', 'Sharma', 'Gupta', 'Nair', 'Rao', 'Iyer', 'Chowdhury', 'Singh', 'Reddy', 'Bose', 'Ahmed', 'Khan', 'Menon', 'Desai'],
   },
   {
     origin: 'Anglo/Western European',
-    first: ['John', 'Emily', 'Daniel', 'William', 'Grace', 'Thomas', 'Alice'],
-    last: ['Reid', 'Byrne', 'Coleman', 'Whitfield', 'Bennett', 'Hayes', 'Sinclair'],
+    first: ['John', 'Emily', 'Daniel', 'William', 'Grace', 'Thomas', 'Alice', 'James', 'Charlotte', 'Henry', 'Olivia', 'Connor', 'Sarah', 'Michael'],
+    last: ['Reid', 'Byrne', 'Coleman', 'Whitfield', 'Bennett', 'Hayes', 'Sinclair', 'Murphy', 'Fitzgerald', 'Walsh', 'Schmidt', 'Fraser', 'Douglas', 'Kennedy'],
   },
   {
     origin: 'Hispanic/Latin American',
-    first: ['Sofia', 'Mateo', 'Camila', 'Diego', 'Valentina', 'Javier', 'Lucia'],
-    last: ['Costa', 'Moreno', 'Reyes', 'Herrera', 'Silva', 'Torres', 'Vega'],
+    first: ['Sofia', 'Mateo', 'Camila', 'Diego', 'Valentina', 'Javier', 'Lucia', 'Isabella', 'Santiago', 'Gabriela', 'Alejandro', 'Renata', 'Emilio', 'Paula'],
+    last: ['Costa', 'Moreno', 'Reyes', 'Herrera', 'Silva', 'Torres', 'Vega', 'Garcia', 'Rodriguez', 'Fernandez', 'Castillo', 'Ortiz', 'Aguilar', 'Navarro'],
   },
   {
     origin: 'Arabic/Middle Eastern',
-    first: ['Omar', 'Fatima', 'Layla', 'Hassan', 'Amir', 'Yasmin', 'Karim'],
-    last: ['Nasser', 'Farouk', 'Haddad', 'Khalil', 'Aziz', 'Saleh', 'Mansour'],
+    first: ['Omar', 'Fatima', 'Layla', 'Hassan', 'Amir', 'Yasmin', 'Karim', 'Sara', 'Tarek', 'Nour', 'Rami', 'Dina', 'Youssef', 'Rana'],
+    last: ['Nasser', 'Farouk', 'Haddad', 'Khalil', 'Aziz', 'Saleh', 'Mansour', 'Rahman', 'Zaidan', 'Qureshi', 'Sabbagh', 'Fawzy', 'Hakim', 'Barakat'],
   },
   {
     origin: 'Slavic/Eastern European',
-    first: ['Elena', 'Ivan', 'Katarina', 'Dmitri', 'Nadia', 'Viktor', 'Anya'],
-    last: ['Novak', 'Petrov', 'Kowalski', 'Horvat', 'Ivanov', 'Dvorak', 'Sokolov'],
+    first: ['Elena', 'Ivan', 'Katarina', 'Dmitri', 'Nadia', 'Viktor', 'Anya', 'Milan', 'Zofia', 'Pavel', 'Irina', 'Tomas', 'Olga', 'Stefan'],
+    last: ['Novak', 'Petrov', 'Kowalski', 'Horvat', 'Ivanov', 'Dvorak', 'Sokolov', 'Marek', 'Zielinski', 'Vasiliev', 'Jovanovic', 'Nowak', 'Kucera', 'Baran'],
   },
   {
     origin: 'West/East African',
-    first: ['Kwame', 'Amara', 'Chidi', 'Adaeze', 'Kofi', 'Zainab', 'Femi'],
-    last: ['Okafor', 'Mensah', 'Adeyemi', 'Nwosu', 'Diallo', 'Osei', 'Mwangi'],
+    first: ['Kwame', 'Amara', 'Chidi', 'Adaeze', 'Kofi', 'Zainab', 'Femi', 'Ngozi', 'Tunde', 'Abena', 'Kwesi', 'Fatou', 'Ifeoma', 'Emeka'],
+    last: ['Okafor', 'Mensah', 'Adeyemi', 'Nwosu', 'Diallo', 'Osei', 'Mwangi', 'Balogun', 'Owusu', 'Kamau', 'Sow', 'Achebe', 'Boateng', 'Njoroge'],
   },
 ];
 
