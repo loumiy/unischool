@@ -34,7 +34,7 @@ import type { SchoolType } from '../state/types';
 // rather than an image so the banner text can be the player's own name,
 // live, in the game's own serif rather than a raster asset.
 // ---------------------------------------------------------------------
-const FACADE_COLUMN_COUNT = 5;
+const FACADE_COLUMN_COUNT = 7;
 const FACADE_VIEW_WIDTH = 440;
 const FACADE_VIEW_HEIGHT = 190;
 const FACADE_BAND_LEFT = 18;
@@ -46,7 +46,7 @@ const FACADE_TEXT_WIDTH = 360;
 // Columns sit closer together than the frieze's own span — real porticoes
 // read as a tight colonnade, not columns spread out to the building's full
 // width — anchored on the same center (220) as the pediment's apex.
-const FACADE_COLUMN_SPAN = 260;
+const FACADE_COLUMN_SPAN = 320;
 
 // Stepped rather than continuously computed: a handful of readable sizes,
 // chosen so a short name (the common case) gets a genuinely large,
