@@ -747,7 +747,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    inset trim), the same way the reference photo's shading does it. */
 .facade-stone { fill: #e3d3a3; stroke: var(--gold-dim); stroke-width: 1; stroke-linejoin: round; }
 .facade-line { fill: none; stroke: var(--gold-dim); stroke-width: 0.6; opacity: 0.55; }
-.facade-banner-text { fill: var(--ink); font-family: var(--serif); font-weight: 700; letter-spacing: 0.05em; }
+.facade-banner-text { fill: #6b4423; font-family: var(--serif); font-weight: 700; letter-spacing: 0.05em; }
 
 .startup-types { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
 .startup-type-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left;
