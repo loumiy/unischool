@@ -696,7 +696,17 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    One row per organisation: name, what it is, and the three facts worth
    having (founding year, current membership, weekly cost). Membership is
    a current number and nothing else — no trend, no sparkline (see
-   StudentLifeTab.tsx). */
+   StudentLifeTab.tsx).
+
+   Panels lay out two-up rather than stacked full-width, same reasoning as
+   .faculty-columns: a single-column stack of short panels means a lot of
+   scrolling past wide empty gutters either side of a narrow dl/list. The
+   grid is left to auto-flow its panels two per row (Demand + Effect, then
+   Clubs + Chapters); Awaiting Recognition spans both columns when present,
+   since it is occasional and reads better as one wide strip than paired
+   arbitrarily with whichever panel precedes it. */
+.student-life-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.student-life-columns .panel-span-2 { grid-column: 1 / -1; }
 .panel-count { font-family: var(--mono); font-size: 11px; color: var(--ink-muted); white-space: nowrap; }
 .org-list { max-height: 320px; overflow-y: auto; margin: 0; padding: 0; }
 .org-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
@@ -788,4 +798,5 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
      them here, market first: it is the panel with a deadline on it. */
   .faculty-columns { grid-template-columns: 1fr; }
   .faculty-columns .faculty-list { max-height: 340px; }
+  .student-life-columns { grid-template-columns: 1fr; }
 }
