@@ -123,7 +123,7 @@ costs nothing extra. Keep both screens dumb.
 
 ## The milestone chain (how the curriculum gets its shape)
 
-The 412-course curriculum is not a flat list; buildings give it a progression
+The 421-course curriculum is not a flat list; buildings give it a progression
 spine. The intended climb:
 
 1. Start with **one academic building** and the **gen-ed core** available — nothing
@@ -461,17 +461,18 @@ read in the codebase having to learn about it. A new kind would have meant
 editing every one of those just to put graduate courses back where they already
 were.
 
-**Six programs, twenty-eight courses**, each a handful rather than a second
-nine-course major:
+**Six programs, thirty-seven courses**, each a handful rather than a second
+nine-course major (Medicine and Law are the two exceptions — see "Two of six
+get their own building" below):
 
-| Program | Degree | Home school | Gate |
-| --- | --- | --- | --- |
-| School of Medicine | MD | Health Science | **Science AND Health Science** near-complete |
-| School of Law | JD | Social Sciences & Humanities | Social Sciences & Humanities near-complete |
-| Graduate School of Business | MBA | Business | Business near-complete |
-| Doctoral Program in Engineering | PhD | Engineering | a finished lab in Engineering |
-| Doctoral Program in the Natural Sciences | PhD | Science | a finished lab in Science |
-| Doctoral Program in Health Science | PhD | Health Science | a finished lab in Health Science |
+| Program | Degree | Home school | Gate | Own building? |
+| --- | --- | --- | --- | --- |
+| School of Medicine | MD | Health Science | **Science AND Health Science** near-complete | **Yes — BLDG-MED** |
+| School of Law | JD | Social Sciences & Humanities | Social Sciences & Humanities near-complete | **Yes — BLDG-LAW** |
+| Graduate School of Business | MBA | Business | Business near-complete | No |
+| Doctoral Program in Engineering | PhD | Engineering | a finished lab in Engineering | No |
+| Doctoral Program in the Natural Sciences | PhD | Science | a finished lab in Science | No |
+| Doctoral Program in Health Science | PhD | Health Science | a finished lab in Health Science | No |
 
 **One predicate, two readings** (`techData.ts`'s `graduateGateMet`), both taken
 off the seed helpers that already exist, so graduate gating can never drift from
@@ -496,7 +497,7 @@ the school structure the rest of the game reads:
 **Reveal, not scarcity.** A program is invisible until its gate opens, the way
 tier-3 courses are invisible until their major completes. There is no wall of
 greyed-out professional schools from year one, and the Curriculum tab's headline
-completion ring counts revealed graduate work only, so a `0 / 412` never
+completion ring counts revealed graduate work only, so a `0 / 421` never
 announces courses the player has no way to see.
 
 **Prestige: capped inputs only, and no new weight.** Founding a program never
@@ -523,10 +524,11 @@ opens.
 than an extension of the tier table, and aimed squarely at the late-game "nothing
 to buy when cash-rich" gap: a professional course is $6M / 40 weeks / $12k a week
 forever, a doctoral course $4M / 32 weeks / $7k. Two rungs because cost is one of
-the authored axes professional schools are differentiated on. All six programs
-are about **$144M of capital and $276k a week of upkeep** — real, and about 3% of
-a mature school's opex, but see the balance notes: the endowment campaign remains
-the *unbounded* sink and graduate programs are a finite one.
+the authored axes professional schools are differentiated on. All six programs,
+plus the two professional-school buildings below, are about **$203M of capital
+and $394k a week of upkeep** — real, and about 4% of a mature school's opex, but
+see the balance notes: the endowment campaign remains the *unbounded* sink and
+graduate programs are a finite one.
 
 **Faculty come from the existing `field` demand**, authored **per course** the way
 the gen-ed core is rather than per program, which is what lets medicine lean on
@@ -540,12 +542,64 @@ is entirely graduate, so it carries the taxonomy's only above-1 market-supply
 multiplier — an oversupplied market with nowhere to teach until a school founds
 one.
 
-**The Curriculum UI** fits programs into the view that already exists: a revealed
-program is one more labeled sub-group inside its parent school's section, marked
-as the higher tier it is, with its credential beside the name and one line naming
-the gate it cleared. That is the minimum to make graduate work legible. The
-circle-network overhaul of the curriculum view is a separate, later arc and was
-not attempted here.
+**The Curriculum UI** fits most programs into the view that already exists: a
+revealed program is one more labeled sub-group inside its parent school's
+section, marked as the higher tier it is, with its credential beside the name
+and one line naming the gate it cleared. That's still exactly how the MBA and
+all three PhD doctorates work — they build on the same subject matter as their
+parent school and correctly live there. Medicine and Law are the two
+exceptions (see below). The circle-network overhaul of the curriculum view is
+a separate, later arc and was not attempted here.
+
+**Two of six get their own building.** Medicine and Law are the only
+programs that award an external professional degree rather than extending
+their parent school's own subject matter, and each stands as its OWN
+top-level Curriculum section — own heading, own completion ring, its own
+`BLDG-MED`/`BLDG-LAW` building as the section key — never a sub-group inside
+Health Science or Social Sciences & Humanities. The MBA and the three PhD
+doctorates are unchanged.
+
+The gate chain reuses every existing mechanism, adding none:
+
+1. The building is a plain `building`-kind Buildable, seeded 'locked', shaped
+   exactly like an undergraduate school building — except its prereqs are
+   empty and its availability instead carries the SAME `graduateProgram`
+   field a graduate course does. `meetsUnlockGates` (techSystem.ts) already
+   routes that field through `graduateGateMet`, so the building reveals the
+   moment the program's ordinary academic gate reads true — no second gate.
+2. The program's first course adds the building as an extra prereq — a
+   cross-kind course-requires-building prereq, exactly like an undergraduate
+   tier-2 course requiring its school building.
+3. So the full chain is: academic gate met -> building revealed -> building
+   BUILT -> first course available -> the rest of the program follows its
+   ordinary internal prereqs, unchanged.
+
+The Curriculum tab reveals each section on the same boolean an undergraduate
+school section reveals on — `building.status === 'done'` — not merely on the
+academic gate, so there is no greyed-out School of Medicine sitting on screen
+years before the building exists (reveal, not scarcity, same as everywhere
+else in this feature).
+
+Two judgment calls from this pass, flagged rather than resolved quietly:
+
+- **Naming rights** (the naming-rights decision event, see "Interrupts")
+  deliberately does NOT offer BLDG-MED/BLDG-LAW — a "Johnson School of Law"
+  is thematically obvious, but the event's donor pool is looked up through
+  `discoverySchools()`, which only ever covers the seven undergraduate
+  schools; wiring a professional building in for real needs a school-shaped
+  lookup for it too, plus a heading path in the Curriculum tab that reads a
+  professional section's `donorSurname`. Flagged as follow-up scope rather
+  than attempted alongside the buildings themselves.
+- **A save that had already founded Medicine or Law** under the old
+  buildingless rule keeps every one of those courses done — nothing is
+  un-finished, no milestone is revoked — but the new building still arrives
+  locked and, since the academic gate it waits on is a read of milestones
+  that save already earned, flips to buildable on the very first tick after
+  load. The honest read: a school that had already staffed and founded a
+  professional school is handed a brand-new, real construction bill for a
+  hall it apparently never had. That is new content applying retroactively,
+  accepted as the cost of the feature rather than smoothed over — see
+  persistence.ts's v11 -> v12 migration comment.
 
 ## Research: the quiet second output
 
@@ -871,7 +925,19 @@ last 0.15 of curriculum breadth, so a school that had finished the whole
 undergraduate catalogue scores 0.85 on that input until it founds some
 programs. Prestige itself does not lurch — it is a stock drifting 12% a
 year — so that reads as a ceiling that moved up rather than standing
-taken away);
+taken away); v11 -> v12 added the two PROFESSIONAL-SCHOOL BUILDINGS
+(BLDG-MED, BLDG-LAW) and expanded Medicine (6 -> 12) and Law (5 -> 8) —
+see "Two of six get their own building" above. The same id-splice shape
+as v10 -> v11: every seed node the save doesn't already have (the two
+buildings, plus nine new courses) is appended locked, and every node it
+already holds — including the eleven pre-existing Medicine/Law courses,
+whatever their status — is left completely untouched, nothing re-pointed.
+The one real edge case: a save that had already FOUNDED Medicine or Law
+keeps every one of those courses done, but its new building still arrives
+locked and, since the gate it waits on is a milestone reading that save
+already satisfies, flips buildable on the very first tick — a real,
+honestly-flagged construction bill for a hall the school apparently never
+had, not a bug;
 discard when it doesn't (v1 and v2 predate an economy rebalance, so those runs
 would be describing a different game).
 

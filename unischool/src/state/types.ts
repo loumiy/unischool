@@ -197,12 +197,14 @@ export interface BuildableEffects {
 // than a handful of oversized ones. Grow these two numbers to grow the
 // campus.
 //
-// Sized against what can actually be built: the full catalogue is 67
-// placeable Buildables (7 school buildings, 15 dorms, 45 facilities) whose
-// footprints (see campusMap.ts's footprintOf) total 128 tiles, so a fully
-// built-out campus covers a bit under 40% of the grid — open ground
-// between buildings, room to arrange, and headroom for the content still
-// on the roadmap (sports facilities), without the map reading as empty.
+// Sized against what can actually be built: the full catalogue is 69
+// placeable Buildables (9 school buildings — the seven undergraduate halls
+// plus BLDG-MED/BLDG-LAW, see techData.ts's GraduateProgramSeed.buildingId
+// — 15 dorms, 45 facilities) whose footprints (see campusMap.ts's
+// footprintOf) total 136 tiles, so a fully built-out campus covers just
+// over 40% of the grid — open ground between buildings, room to arrange,
+// and headroom for the content still on the roadmap (sports facilities),
+// without the map reading as empty.
 //
 // The proportions are chosen for the space the map column actually gets
 // (a wide, short box beside the build rail), so the grid fills its canvas

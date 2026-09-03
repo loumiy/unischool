@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
-import { discoverySchools, graduateGateMet } from '../data/techData';
+import { discoverySchools, graduateGateMet, graduatePrograms, professionalSchools } from '../data/techData';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import HelpHint from '../components/HelpHint';
 import { ProgressRing } from '../components/Progress';
@@ -27,13 +27,21 @@ import { ProgressRing } from '../components/Progress';
 //     there — the same event, per the task.
 //   - Once a GRADUATE PROGRAM's parent-school gate opens (see
 //     techData.ts's graduateGateMet — five of six majors complete for a
-//     professional school, a finished lab for a doctorate), the program
-//     appears as one more labeled sub-group inside its home school's
-//     section, marked as the higher tier it is and captioned with the gate
-//     it just cleared. Reveal, not scarcity: before that there is no
-//     greyed-out medical school sitting on the screen from year one, in
-//     the same way there is no wall of tier-3 courses before a major
-//     completes.
+//     professional school, a finished lab for a doctorate), the MBA and
+//     each PhD doctorate appear as one more labeled sub-group inside their
+//     home school's section, marked as the higher tier they are and
+//     captioned with the gate they just cleared — unchanged from before.
+//   - Medicine and Law are different: they award an external professional
+//     degree rather than building on their parent school's own subject
+//     matter, so each stands as its OWN top-level section (own heading, own
+//     completion ring, own building), structurally parallel to an
+//     undergraduate school rather than a sub-group inside one. Their
+//     section reveals once their OWN building is done — the same boolean
+//     an undergraduate school section reveals on — not merely once the
+//     academic gate that makes the building buildable is met. Reveal, not
+//     scarcity: before the building is done there is no Med/Law section on
+//     screen at all, in the same way there is no wall of tier-3 courses
+//     before a major completes.
 // A course, once revealed, is never hidden again — only its cell state
 // (locked/available/developing/done) changes as the underlying Buildable
 // status does. "Locked" here means revealed-but-blocked (a faculty gate or
@@ -84,15 +92,25 @@ function isGenEdComplete(s: GameState): boolean {
 }
 
 // Which graduate programs are currently revealed — the one reading the
-// whole graduate half of this view runs on, taken off the same predicate
-// techSystem.ts unlocks the courses with (see techData.ts's
-// graduateGateMet), so the tab can never show a program the engine has not
-// opened, or hide one it has.
+// whole graduate half of this view runs on. Two readings, matching how
+// each program is gated in the engine (see techSystem.ts's
+// meetsUnlockGates):
+//   - a program with no building of its own (the MBA, each PhD doctorate)
+//     reveals the moment techData.ts's graduateGateMet is true — the same
+//     predicate that unlocks its courses, so the tab can never show one the
+//     engine has not opened, or hide one it has.
+//   - a program WITH a building (Medicine, Law) reveals only once that
+//     building is 'done' — graduateGateMet being true only makes the
+//     building itself buildable (see meetsUnlockGates), the same
+//     distinction an undergraduate school section already draws between
+//     "tier-1s done" and "school built".
 function revealedGraduatePrograms(s: GameState): Set<string> {
   const revealed = new Set<string>();
-  for (const school of discoverySchools()) {
-    for (const program of school.graduate) {
-      if (graduateGateMet(s, program.id)) revealed.add(program.id);
+  for (const program of graduatePrograms()) {
+    if (program.buildingId) {
+      if (s.tech.find((t) => t.id === program.buildingId)?.status === 'done') revealed.add(program.id);
+    } else if (graduateGateMet(s, program.id)) {
+      revealed.add(program.id);
     }
   }
   return revealed;
@@ -175,6 +193,31 @@ function buildSections(s: GameState, genEdComplete: boolean, revealedGrad: Set<s
   // the code the player can already read on the face of the cell scatters
   // those neighbours and adds nothing that wasn't already on screen.
   const poolIds = [...coreIds, ...looseTier1Ids.sort((a, b) => a.localeCompare(b))];
+
+  // Medicine and Law, each its own top-level section — structurally
+  // parallel to an undergraduate school section above (own heading, own
+  // ring, its own building as the section key), never a sub-group of
+  // Health Science or Social Sciences & Humanities. Appended last, after
+  // every undergraduate school, the same place graduate sub-groups sit
+  // inside a school section. Gated on revealedGrad, which for these two
+  // (see revealedGraduatePrograms above) means their OWN building is
+  // 'done' — not merely that the academic gate making it buildable is
+  // met, so there is no section on screen at all until the building
+  // stands. No naming-rights read here: unlike an undergraduate school
+  // building, BLDG-MED/BLDG-LAW are deliberately excluded from the
+  // naming-rights event's donor pool (see eventData.ts), so `heading` is
+  // always the seeded program name.
+  for (const program of professionalSchools()) {
+    if (!revealedGrad.has(program.id)) continue;
+    sections.push({
+      key: program.buildingId,
+      label: program.name,
+      heading: program.name,
+      courseIds: program.courseIds,
+      subgroups: [],
+      schoolCourseIds: program.courseIds,
+    });
+  }
 
   return [{ key: 'pool', label: null, heading: '', courseIds: poolIds, subgroups: [], schoolCourseIds: [] }, ...sections];
 }
@@ -404,8 +447,8 @@ function completion(s: GameState, ids: string[]): { done: number; total: number;
 export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const revealedGrad = revealedGraduatePrograms(s);
   // The headline ring counts the undergraduate catalogue plus whatever
-  // graduate work has been revealed — never the whole seed. A "0 / 412"
-  // in year one would announce that twenty-eight courses exist somewhere
+  // graduate work has been revealed — never the whole seed. A "0 / 421"
+  // in year one would announce that thirty-seven courses exist somewhere
   // the player has no way to see, which is precisely what progressive
   // discovery is for.
   const courses = s.tech.filter(
