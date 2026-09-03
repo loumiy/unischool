@@ -2,9 +2,11 @@ import type { Buildable } from '../state/types';
 
 /*
   Your real curriculum, expressed as seed data and expanded into Buildable[].
-  36 majors across 7 schools (9 courses each) + a 6-course general-ed core =
-  330 course Buildables, plus one 'building' Buildable per school (7) that
+  42 majors across 7 schools (9 courses each) + a 6-course general-ed core =
+  384 course Buildables, plus one 'building' Buildable per school (7) that
   gates each school's tier-2 courses — see README's "The milestone chain".
+  (Eight SchoolSeeds in all: the seven degree-granting schools plus General
+  Studies, which has the gen-ed core and no majors.)
 
   Prerequisite rule (a clean four-stage climb per major, gen-ed included),
   now AUTHORED as plain ids rather than derived purely from tier:
@@ -20,10 +22,10 @@ import type { Buildable } from '../state/types';
     - tier 3 (210/220/230/240): requires ALL FOUR of the major's tier-2
       courses
 
-  On top of that backbone, a curated dozen cross-major/cross-school prereq
+  On top of that backbone, a curated set of cross-major/cross-school prereq
   bridges (CROSS_MAJOR_BRIDGES below) are patched in — deliberately NOT a
   systematic web (see the PR notes on why a curated set was chosen over
-  building out cross-major prereqs for all 330 courses).
+  building out cross-major prereqs for all 384 courses).
 
   requiresFaculty, unlike the prereq bridges, IS systematic: every major
   seed carries one `field` (a Faculty.field from facultyData.ts's
@@ -31,19 +33,30 @@ import type { Buildable } from '../state/types';
   requires it, via GENED_FIELDS for the six gen-ed core courses.
 
   A major's field is the DEPARTMENT that would actually staff it, and the
-  36 majors are spread across the 26 fields so that recruiting demand is
+  42 majors are spread across the 28 fields so that recruiting demand is
   spread too: one to three majors per field, i.e. 9-20 courses behind every
   field, versus the old 13 broad fields' 9-to-54 spread (54 courses behind
   'Business', 45 each behind 'CompSci'/'Arts'/'Biology', 9 behind
   'Economics'). Where two majors do share a field they share it because a
   real department covers both — Finance + Accounting, Media Studies + Film,
   Graphic Design + Studio Art, Cybersecurity + Information Systems, Nursing
-  + Dentistry, Public Health + Nutrition, Computer Science + Software
-  Engineering, Chemical Engineering + Pre-Med, Supply Chain + Industrial
-  Engineering — and several of those pairs deliberately CROSS schools, so
-  one hire can serve two schools' curricula. Aerospace sits under Physics
-  for the same reason it is the most physics-dense engineering major, and
-  because the gen-ed science course needs Physics to stay live demand.
+  + Pharmacy, Public Health + Nutrition, Computer Science + Software
+  Engineering, Chemical Engineering + Chemistry, Biology + Environmental
+  Science, Sociology + Anthropology, Data Science + Mathematics, Aerospace
+  Engineering + Physics, Supply Chain + Industrial Engineering — and
+  several of those pairs deliberately CROSS schools, so one hire can serve
+  two schools' curricula.
+
+  The School of Science is where most of that cross-school sharing now
+  lands, and that is the point of it: Mathematics staffs Science AND
+  Computer Science's Data Science, Physics staffs Science AND Engineering's
+  Aerospace AND the gen-ed science course, Chemistry staffs Science AND
+  Engineering's Chemical Engineering, and Biology staffs Science while
+  bridging into Health Science's Nutrition and Kinesiology by prereq. The
+  two pairings that the Science reorg broke — Chemical Engineering +
+  Pre-Med and Nursing + Dentistry — are re-made as Chemical Engineering +
+  Chemistry and Nursing + Pharmacy, so neither field is left with half a
+  department.
 
   "Tier" itself is a course-authoring concept only — it drives development
   time and course cost here, at seed-generation time, and is not part of
@@ -186,24 +199,54 @@ const SCHOOLS: SchoolSeed[] = [
     buildingName: 'Social Sciences & Humanities Hall',
     majors: [
       { prefix: 'ENGL', name: 'English', field: 'English', courses: ['Introduction to Literary Studies', 'British Literature Survey', 'American Literature Survey', 'Critical Theory', 'Advanced Composition', 'Shakespeare', 'Restoration & 18th Century Literature', 'Postcolonial Literature', 'Technical Writing'] },
-      { prefix: 'PSYC', name: 'Psychology', field: 'Psychology', courses: ['General Psychology', 'Developmental Psychology', 'Cognitive Psychology', 'Abnormal Psychology', 'Research Methods in Psychology', 'Social Psychology', 'Biopsychology', 'Organizational Psychology', 'Health Psychology'] },
       { prefix: 'SOCY', name: 'Sociology', field: 'Sociology', courses: ['Introduction to Sociology', 'Social Stratification', 'Sociological Theory', 'Race & Ethnicity', 'Qualitative Research Methods', 'Criminology', 'Sociology of the Family', 'Urban Sociology', 'Sex & Gender'] },
+      { prefix: 'ANTH', name: 'Anthropology', field: 'Sociology', courses: ['Introduction to Anthropology', 'Cultural Anthropology', 'Biological Anthropology', 'Archaeological Methods', 'Linguistic Anthropology', 'Ethnographic Field Methods', 'Medical Anthropology', 'Anthropology of Religion', 'Museum & Heritage Studies'] },
       { prefix: 'POLS', name: 'Political Science', field: 'Political Science', courses: ['Civics', 'Comparative Politics', 'International Relations', 'American Government', 'Public Policy Analysis', 'Constitutional Law', 'Political Campaigns', 'Theories of Justice', 'Security Studies'] },
-      { prefix: 'HIST', name: 'History', field: 'History', courses: ['World History', 'Research & Historiography', 'US History', 'European History', 'Ancient Civilizations', 'World War I & II', 'Archaeology', 'Anthropology', 'History of Science & Technology'] },
+      { prefix: 'HIST', name: 'History', field: 'History', courses: ['World History', 'Research & Historiography', 'US History', 'European History', 'Ancient Civilizations', 'World War I & II', 'Historical Archaeology', 'Historical Anthropology', 'History of Science & Technology'] },
       { prefix: 'PHIL', name: 'Philosophy', field: 'Philosophy', courses: ['Introduction to Logic & Reasoning', 'Ethics II', 'Metaphysics', 'Epistemology', 'Ancient Greek Philosophy', 'Existentialism', 'Philosophy of Mind', 'Aesthetics', 'Symbolic Logic'] },
     ],
   },
   {
+    // The School of Science. The natural sciences and Psychology used to be
+    // scattered — Biology and a chemistry-shaped Pre-Med under Health
+    // Science, Physics live only as Aerospace Engineering's field and the
+    // gen-ed science course, Mathematics only as Data Science's field,
+    // Psychology under Social Sciences — so there was no science school at
+    // all, which is also why only two schools could ever hold a lab (see
+    // LAB_GATED_MAJOR_PREFIXES and README's "Research"). Biology and
+    // Psychology MOVE here keeping their course ids, so a save that already
+    // finished either keeps it finished.
+    name: 'Science',
+    buildingId: 'BLDG-SCIENCE',
+    buildingName: 'Science Center',
+    majors: [
+      { prefix: 'MATH', name: 'Mathematics', field: 'Mathematics', courses: ['Calculus II', 'Linear Algebra', 'Probability & Statistics', 'Discrete Mathematics', 'Differential Equations', 'Real Analysis', 'Abstract Algebra', 'Topology', 'Numerical Methods'] },
+      { prefix: 'BIOL', name: 'Biology', field: 'Biology', courses: ['Biology I', 'Cell Biology', 'Genetics', 'Ecology', 'Evolution', 'Microbiology', 'Marine Biology', 'Plant Physiology', 'Immunology'] },
+      { prefix: 'CHMY', name: 'Chemistry', field: 'Chemistry', courses: ['General Chemistry', 'Inorganic Chemistry', 'Organic Chemistry', 'Analytical Chemistry', 'Physical Chemistry', 'Biochemistry', 'Spectroscopy & Structure Determination', 'Medicinal Chemistry', 'Computational Chemistry'] },
+      { prefix: 'PHYS', name: 'Physics', field: 'Physics', courses: ['Classical Mechanics', 'Electricity & Magnetism', 'Waves & Optics', 'Modern Physics', 'Thermal & Statistical Physics', 'Quantum Mechanics', 'Solid State Physics', 'Astrophysics & Cosmology', 'Particle Physics'] },
+      { prefix: 'ENVS', name: 'Environmental Science', field: 'Biology', courses: ['Introduction to Environmental Science', 'Earth Systems & Climate', 'Ecosystem Ecology', 'Environmental Chemistry', 'Geographic Information Systems', 'Conservation Biology', 'Hydrology & Water Resources', 'Atmospheric Science', 'Environmental Policy & Restoration'] },
+      { prefix: 'PSYC', name: 'Psychology', field: 'Psychology', courses: ['General Psychology', 'Developmental Psychology', 'Cognitive Psychology', 'Abnormal Psychology', 'Research Methods in Psychology', 'Social Psychology', 'Biopsychology', 'Organizational Psychology', 'Health Psychology'] },
+    ],
+  },
+  {
+    // Health Science, re-cut. Pre-Med and Dentistry are gone: both were
+    // professional-school TRACKS rather than undergraduate majors, and
+    // neither had a field of its own (Pre-Med borrowed Chemistry, Dentistry
+    // borrowed Nursing's Clinical Health). Biology went to Science. What
+    // replaces all three is a clinical/applied-health set that sits
+    // coherently alongside Nursing, Public Health and Nutrition — and,
+    // deliberately, gives the school back a research identity it would
+    // otherwise have lost with Biology (see LAB_GATED_MAJOR_PREFIXES).
     name: 'Health Science',
     buildingId: 'BLDG-HEALTHSCI',
     buildingName: 'Health Sciences Building',
     majors: [
-      { prefix: 'BIOL', name: 'Biology', field: 'Biology', courses: ['Biology I', 'Cell Biology', 'Genetics', 'Ecology', 'Evolution', 'Microbiology', 'Marine Biology', 'Plant Physiology', 'Immunology'] },
       { prefix: 'PHLT', name: 'Public Health', field: 'Public Health', courses: ['Introduction to Public Health', 'Epidemiology', 'Biostatistics', 'Health Policy & Management', 'Environmental Health', 'Global Health', 'Health Promotion', 'Community Health Assessment', 'Maternal & Child Health'] },
       { prefix: 'NURS', name: 'Nursing', field: 'Clinical Health', courses: ['Introduction to Professional Nursing', 'Anatomy & Physiology', 'Pharmacology', 'Health Assessment', 'Clinical Practicum I', 'Critical Care Nursing', 'Pediatric Nursing', 'Gerontology', 'Clinical Practicum II'] },
       { prefix: 'NUTR', name: 'Nutrition', field: 'Public Health', courses: ['Fundamentals of Nutrition', 'Macronutrients & Metabolism', 'Lifecycle Nutrition', 'Applied Dietetics', 'Food Science', 'Sports Nutrition', 'Public Health Nutrition', 'Advanced Medical Nutrition Therapy', 'Culinary Nutrition'] },
-      { prefix: 'PMED', name: 'Pre-Med', field: 'Chemistry', courses: ['Foundations of Medical Professions', 'Organic Chemistry', 'Biochemistry', 'Advanced Human Anatomy', 'Advanced Physiology', 'Medical Ethics', 'Healthcare Communications', 'Pathophysiology', 'Clinical Observation'] },
-      { prefix: 'DENT', name: 'Dentistry', field: 'Clinical Health', courses: ['Introduction to Oral Health', 'Oral Anatomy', 'Dental Materials Science', 'Preventative Dentistry', 'Clinical Dental Practicum I', 'Head & Neck Anatomy', 'Dental Radiography', 'Periodontology', 'Clinical Dental Practicum II'] },
+      { prefix: 'PHRM', name: 'Pharmacy', field: 'Clinical Health', courses: ['Introduction to Pharmaceutical Sciences', 'Human Physiology for Pharmacy', 'Pharmaceutical Chemistry', 'Pharmacology I', 'Pharmaceutics & Drug Delivery', 'Pharmacology II', 'Pharmacotherapeutics', 'Clinical Pharmacy Practicum', 'Pharmacoepidemiology & Drug Safety'] },
+      { prefix: 'KINE', name: 'Kinesiology', field: 'Kinesiology', courses: ['Foundations of Kinesiology', 'Functional Anatomy', 'Exercise Physiology', 'Biomechanics', 'Motor Learning & Control', 'Strength & Conditioning', 'Athletic Injury & Rehabilitation', 'Exercise Testing & Prescription', 'Adapted Physical Activity'] },
+      { prefix: 'NEUR', name: 'Neuroscience', field: 'Neuroscience', courses: ['Foundations of Neuroscience', 'Neuroanatomy', 'Cellular & Molecular Neuroscience', 'Cognitive Neuroscience', 'Neurophysiology', 'Neuropharmacology', 'Developmental Neurobiology', 'Computational Neuroscience', 'Clinical Neuroscience & Disorders'] },
     ],
   },
   {
@@ -239,6 +282,15 @@ const GENED_CORE_IDS: string[] = SCHOOLS.find((school) => school.core)!.core!.ma
 // department re-specialisation unchanged for precisely that reason — the
 // gen-ed core is the one place the taxonomy is pinned to the founding
 // payroll.
+//
+// The School of Science did not disturb that either, and it was checked
+// rather than assumed. Mathematics and Physics MOVED in the sense that they
+// are now majors in Science, but neither is a new FIELD: GE120 asked for
+// 'Mathematics' (which already staffed Data Science) and GE140 asked for
+// 'Physics' (which already staffed Aerospace Engineering) before the reorg
+// and still do after it. A school does not own a field — a field staffs
+// whichever majors name it — so the five founding hires still cover all six
+// gen-ed courses and founding payroll is unchanged.
 const GENED_FIELDS: Record<string, string> = {
   GE110: 'English',      // College Writing
   GE120: 'Mathematics',  // Calculus
@@ -252,7 +304,7 @@ const GENED_FIELDS: Record<string, string> = {
 // Curated content — deliberately small and hand-picked rather than a
 // systematic web/rule. See the PR notes for why: a rule like "every
 // course also requires one course from an adjacent major" would touch
-// all 330 nodes and turn the curriculum into a much harder puzzle than
+// all 384 nodes and turn the curriculum into a much harder puzzle than
 // README's climb describes; a dozen hand-placed bridges add texture
 // without changing the core one-major-at-a-time pacing.
 // ---------------------------------------------------------------------
@@ -262,12 +314,23 @@ const GENED_FIELDS: Record<string, string> = {
 // tier-1 + school building, or its own tier-2 quartet). All are plausible
 // real-world prerequisites, deliberately spanning different schools where
 // it makes sense (e.g. Philosophy -> AI Ethics).
+//
+// The Science reorg re-pointed one bridge and added eight. Every bridge
+// that crossed into Pre-Med or Dentistry had to go somewhere, and every
+// bridge out of a MOVED major (Biology, Psychology) still resolves — those
+// majors kept their course ids, they only changed school, which turns
+// NUTR130 -> BIOL101 from a within-school prereq into a cross-school one
+// without touching a single id.
 const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
   DATA120: ['COMP101'],  // Machine Learning needs programming fundamentals
+  DATA240: ['MATH120'],  // Bayesian Statistics needs probability & statistics
   ARTF130: ['DATA120'],  // Neural Networks builds on Machine Learning
   CYBR130: ['COMP110'],  // Ethical Hacking needs real programming chops
-  PMED120: ['CHEM101'],  // Biochemistry needs general chemistry
+  PHRM120: ['CHMY101'],  // Pharmaceutical Chemistry needs general chemistry (inherits the retired PMED120 -> CHEM101 bridge, re-pointed at the real Chemistry major)
   NUTR130: ['BIOL101'],  // Applied Dietetics needs biology fundamentals
+  KINE120: ['BIOL101'],  // Exercise Physiology needs biology fundamentals
+  NEUR110: ['BIOL101'],  // Neuroanatomy needs biology fundamentals
+  NEUR130: ['PSYC101'],  // Cognitive Neuroscience needs general psychology — the Science/Health bridge, in prereq form
   MRKT130: ['INFO101'],  // Digital Marketing Strategy needs basic IT literacy
   FINA140: ['ECON110'],  // International Finance needs macroeconomics
   SPCO130: ['INDE120'],  // Quality Management draws on industrial safety/ergonomics
@@ -275,6 +338,11 @@ const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
   ARTF240: ['PHIL110'],  // AI Ethics & Society draws on philosophical ethics
   GRDS130: ['MDIA101'],  // Layout Design draws on mass-communication fundamentals
   AERO130: ['CHEM110'],  // Spacecraft Propulsion needs chemical thermodynamics
+  ELEC130: ['PHYS110'],  // Electromagnetics needs undergraduate electricity & magnetism
+  CHEM230: ['CHMY120'],  // Biochemical Engineering needs organic chemistry
+  ECON240: ['ENVS101'],  // Environmental Economics needs the environmental science it prices
+  PSYC220: ['BIOL101'],  // Biopsychology needs biology fundamentals
+  ANTH110: ['SOCY101'],  // Cultural Anthropology and Sociology share a department and a starting point
 };
 
 // Labs/specialized academic buildings: a curated set of lab-heavy majors
@@ -288,7 +356,25 @@ const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
 // specialized equipment (see facilitiesData.ts's servedUpkeep for the
 // population-scaled version; labs are a flat cost instead, since one lab
 // serves a major's cohort, not the whole campus).
-const LAB_GATED_MAJOR_PREFIXES = ['CHEM', 'BIOL', 'MECH', 'ELEC', 'CIVE', 'AERO', 'NURS', 'DENT', 'PMED'];
+//
+// This list is also, in effect, WHICH SCHOOLS CAN DO RESEARCH: a lab is the
+// research gate (see below and README's "Research"), and a school with no
+// lab-gated major can never build one. It used to name majors in exactly
+// two schools — Engineering and Health Science — which is why a run
+// concentrated anywhere else produced no research, ever. The School of
+// Science is the fix: Chemistry, Biology and Physics are lab sciences and
+// carry labs here, so Science becomes the third research-bearing school
+// and, through field-sharing, a Mathematics, Physics, Chemistry, Biology or
+// Psychology hire now has somewhere to work. Biology's lab travels WITH the
+// major — labIds are derived per-major inside each school below, so
+// LAB-BIOL simply re-points from the Health Sciences Building to the
+// Science Center — and Neuroscience carries a new lab that keeps Health
+// Science a research school after Biology, Pre-Med and Dentistry leave it.
+// Mathematics, Environmental Science and Psychology deliberately get no
+// lab: a maths department is not a bench science, and holding the line at
+// the genuinely lab-based majors keeps a lab a decision rather than a
+// formality.
+const LAB_GATED_MAJOR_PREFIXES = ['CHEM', 'CHMY', 'BIOL', 'PHYS', 'MECH', 'ELEC', 'CIVE', 'AERO', 'NURS', 'NEUR'];
 const LAB_COST = 700_000;
 const LAB_WEEKS = 16;
 const LAB_UPKEEP_PER_WEEK = 1_400; // ~$73k/yr — specialized equipment is expensive to keep running, and a lab serves one major's cohort rather than the whole campus
@@ -307,7 +393,7 @@ function labId(prefix: string): string {
 }
 
 // ---------------------------------------------------------------------
-// Descriptions. Every tier-1/core course (the 42 entry points players see
+// Descriptions. Every tier-1/core course (the 48 entry points players see
 // first) gets a hand-written one-liner. Tier-2/tier-3 descriptions are
 // generated from the course's own title through a small set of rotating,
 // tier-appropriate phrasings — real catalog-style text naming the actual
@@ -344,18 +430,25 @@ const TIER1_DESCRIPTIONS: Record<string, string> = {
   SART101: 'Introduces line, shape, and composition through studio exercises in two-dimensional art.',
 
   ENGL101: 'Introduces close reading and literary analysis across poetry, fiction, and drama.',
-  PSYC101: 'Surveys the major subfields of psychology, from cognition to clinical practice.',
   SOCY101: 'Examines how social structures, institutions, and group behavior shape everyday life.',
+  ANTH101: 'Introduces the four fields of anthropology and what each asks about being human.',
   POLS101: 'Covers the structures and processes of government and the rights and duties of citizenship.',
   HIST101: 'Surveys major civilizations and turning points from antiquity to the modern era.',
   PHIL101: 'Builds skills in argument analysis, deduction, and identifying logical fallacies.',
 
+  MATH101: 'Extends single-variable calculus into sequences, series, and techniques of integration.',
   BIOL101: 'Covers cell structure, genetics, and the fundamentals of living systems.',
+  CHMY101: 'Builds stoichiometry, periodicity, and reaction theory from first principles.',
+  PHYS101: 'Derives motion, force, energy, and momentum from Newton\'s laws, with lab work throughout.',
+  ENVS101: 'Surveys how physical, chemical, and biological systems interact across a changing planet.',
+  PSYC101: 'Surveys the major subfields of psychology, from cognition to clinical practice.',
+
   PHLT101: 'Surveys how populations, policy, and environment shape community health outcomes.',
   NURS101: 'Introduces the nursing profession, scope of practice, and foundations of patient care.',
   NUTR101: 'Covers macronutrients, micronutrients, and how diet supports human health.',
-  PMED101: 'Surveys medical career paths and the academic path toward them.',
-  DENT101: 'Introduces oral anatomy and the fundamentals of dental care.',
+  PHRM101: 'Introduces drug discovery, formulation, and the pharmacist\'s role in patient care.',
+  KINE101: 'Surveys human movement — anatomy, physiology, and mechanics — as one connected system.',
+  NEUR101: 'Introduces the nervous system from single neurons up to behavior and cognition.',
 
   COMP101: 'Teaches programming fundamentals — variables, control flow, and functions — through hands-on projects.',
   DATA101: 'Introduces data collection, cleaning, and exploratory analysis techniques.',
@@ -385,6 +478,7 @@ const BUILDING_DESCRIPTIONS: Record<string, string> = {
   'BLDG-ENGINEERING': 'Labs, workshops, and studios for the Engineering school’s six majors.',
   'BLDG-ARTSMEDIA': 'Studios, editing bays, and performance space for the Arts & Media school.',
   'BLDG-SOCSCI': 'Seminar rooms and research space for the Social Sciences & Humanities school.',
+  'BLDG-SCIENCE': 'Lecture theatres, teaching benches, and prep rooms for the Science school’s six majors.',
   'BLDG-HEALTHSCI': 'Clinical labs and classrooms for the Health Science school’s six majors.',
   'BLDG-COMPSCI': 'Labs and classrooms for the Computer Science school’s six majors.',
 };
@@ -394,7 +488,7 @@ function nodeId(prefix: string, num: number): string {
 }
 
 // Expand the seed data into the flat Buildable[] the engine consumes:
-// 330 course Buildables plus one school-building Buildable per school.
+// 384 course Buildables plus one school-building Buildable per school.
 export function initialTech(): Buildable[] {
   const nodes: Buildable[] = [];
 
@@ -569,17 +663,26 @@ export function milestoneSchools(): MilestoneSchool[] {
 // hired into — so "who researches at a school with a lab" is answered by
 // walking each school's majors back to the field that staffs them. A
 // field that staffs majors in two schools (Chemistry teaches Chemical
-// Engineering AND Pre-Med; Operations Research teaches Supply Chain AND
-// Industrial Engineering) therefore appears under both, and a hire in it
-// researches as soon as EITHER of those schools has a lab. That is the
-// intended reading of "faculty in a college that has a lab": the person
-// has a lab to work in.
+// Engineering AND Science's Chemistry; Physics teaches Aerospace AND
+// Science's Physics; Mathematics teaches Data Science AND Science's
+// Mathematics; Operations Research teaches Supply Chain AND Industrial
+// Engineering) therefore appears under both, and a hire in it researches as
+// soon as EITHER of those schools has a lab. That is the intended reading
+// of "faculty in a college that has a lab": the person has a lab to work
+// in.
+//
+// The School of Science widens this considerably. Three schools now bear
+// labs (Engineering, Health Science, Science) rather than two, and because
+// Science's fields are the ones that turn up everywhere else in the
+// catalogue, a Mathematics hire made for Data Science and a Physics hire
+// made for Aerospace both start researching the moment the Science Center
+// has a lab. Psychology, which could previously never research at all,
+// moved into Science with its major.
 //
 // `labIds` is empty for the four schools with no lab-gated majors
 // (Business, Arts & Media, Social Sciences & Humanities, Computer
-// Science) and for General Studies. Those schools produce no research
-// however they are staffed — see the note in README's "Research" on the
-// tension that creates.
+// Science) and for General Studies. Those schools still produce no research
+// however they are staffed — see the note in README's "Research".
 export interface ResearchSchool {
   schoolName: string;
   labIds: string[];  // lab Buildable ids belonging to this school's majors; empty means this school can never produce research

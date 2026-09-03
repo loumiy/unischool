@@ -123,7 +123,7 @@ costs nothing extra. Keep both screens dumb.
 
 ## The milestone chain (how the curriculum gets its shape)
 
-The 330-course curriculum is not a flat list; buildings give it a progression
+The 384-course curriculum is not a flat list; buildings give it a progression
 spine. The intended climb:
 
 1. Start with **one academic building** and the **gen-ed core** available — nothing
@@ -224,7 +224,7 @@ The loop turns roughly once per course tier, escalating each time:
 
 - **Gen-ed / intro** — the tutorial-by-design ramp. Starting cash covers it
   comfortably; money barely registers. Strain is ~zero on purpose.
-- **Tier 1** — the first real pinch: a full department roster and 36 entry
+- **Tier 1** — the first real pinch: a full department roster and 42 entry
   courses roughly triple weekly opex while enrollment cannot move until the
   next summer. The founding cushion visibly drains.
 - **Tier 2** — enrollment growth forces dorms and the dining/parking/health
@@ -392,11 +392,11 @@ job market is. All of it lives in one labelled tuning block in
 That weighting is the point, and both halves are load-bearing. Demand alone
 cannot produce a common/rare split — after the field re-specialisation every
 field carries between 9 and 20 courses, so weighting by course count alone
-would make all 26 equally intermittent. The supply multiplier is what makes a
-Computer Science hire something you pull whenever you want one (~86% of weeks
-someone is listed) while a Clinical Health or Artificial Intelligence
-specialist turns up every few months (~51% and ~29%) and is worth taking the
-moment they do. **Specialisation is meant to create interesting scarcity while
+would make all 28 equally intermittent. The supply multiplier is what makes an
+English or Computer Science hire something you pull whenever you want one
+(~80-83% of weeks someone is listed) while a Clinical Health, Neuroscience or
+Artificial Intelligence specialist turns up every few months (~43%, ~28% and
+~25%) and is worth taking the moment they do. **Specialisation is meant to create interesting scarcity while
 churn removes boring scarcity** — if the pool ever covers every field at once
 the specialisation stops mattering, and if it is too short or too slow
 recruiting is just tedium again. Those are the two failure modes the constants
@@ -426,7 +426,7 @@ mid-game stays a build-and-price game; research runs underneath it, resolving
 into systems that already exist.
 
 **Only a school with a finished lab does research at all.** Labs
-(`facilityType: 'lab'`, authored in `techData.ts` for nine lab-heavy majors)
+(`facilityType: 'lab'`, authored in `techData.ts` for ten lab-heavy majors)
 already require their school's building and their major's entry course, so the
 full chain is school building -> lab -> research. Faculty are tied to a school
 through the field they were hired into, so a hire researches once *any* school
@@ -472,11 +472,26 @@ permanent post-prize bump cannot hang on any of them — it would be erased the
 following week. Both the salary curve and the research-output formula read
 `acclaim` as an input instead.
 
-**A known tension:** only Engineering and Health Science have lab-gated majors,
-so those are the only two schools that can ever produce research. A run
-concentrated in Business, Arts & Media, Social Sciences or Computer Science
-generates none at all, forever. Widening that is a one-line data change
-(`techData.ts`'s `LAB_GATED_MAJOR_PREFIXES`), deliberately not taken here.
+**How wide research reaches**, and what still doesn't. Three schools bear labs
+— Engineering, Health Science, and the School of Science — and Science is the
+one that widened it, because its majors are the lab sciences (Chemistry,
+Biology, Physics) and its FIELDS are the ones that turn up everywhere else in
+the catalogue. Since a hire researches once *any* school their field teaches in
+has a lab, the Science Center puts a Mathematics hire made for Data Science, a
+Physics hire made for Aerospace Engineering, and a Psychology hire (which could
+previously never research at all, Psychology having sat in Social Sciences) all
+into production at once. Neuroscience carries Health Science's second lab,
+which is what keeps that school a research school after Biology moved to
+Science and Pre-Med and Dentistry were retired.
+
+**The tension that remains** is narrower but real: Business, Arts & Media,
+Social Sciences & Humanities and Computer Science still have no lab-gated
+major, so a run concentrated in any of them produces nothing directly — though
+Computer Science now reaches research sideways, through the Mathematics
+department it shares with Science. Widening it further is still the same
+one-line data change (`techData.ts`'s `LAB_GATED_MAJOR_PREFIXES`); what a
+humanities or business "lab" should even be is a content question, not a
+mechanical one, and is deliberately left open.
 
 ## Student life: clubs and Greek letters
 
@@ -671,7 +686,7 @@ functions, no `Date`s, no `Map`/`Set`, no references between slices — so every
 field survives a JSON round trip untouched and there is no per-field serializer
 to keep in sync. Keep it that way; anything added to the state that isn't
 JSON-round-trippable breaks save/load silently. State must also stay
-reasonably light as it grows: a fresh run is ~145 KiB (the standing
+reasonably light as it grows: a fresh run is ~165 KiB (the standing
 candidate market is ~24 KiB of that — 30 listings with bios), and the per-year
 `YearSnapshot` and the capped log are what keep a decades-long run in the low
 hundreds of KiB.
@@ -705,7 +720,17 @@ slice of `events` — the demand queued for the next quiet week, the demand
 currently outstanding with its target and expiry, and the week the last one
 resolved — filled in empty with the cooldown clear, so an old save resumes
 with no demand outstanding and its students free to ask for something the
-moment they are unhappy enough);
+moment they are unhappy enough; v9 -> v10 reorganised the CURRICULUM itself —
+a School of Science, six majors sitting in a different school than they did,
+two retired, four added, and the labs moved with them — so every saved course
+is re-pointed at the new structure by id off the seed, keeping only its
+`status`, which is what lets a decades-in save keep every finished course and
+every milestone through a reorg that is not one-to-one. The two retired majors,
+Pre-Med and Dentistry, are dropped outright rather than mapped onto a
+replacement: marking a major complete whose nine courses the player has never
+developed would be a milestone that lies, so a clean retirement is the honest
+answer and the small prestige-target dip settles over a couple of years of
+drift);
 discard when it doesn't (v1 and v2 predate an economy rebalance, so those runs
 would be describing a different game).
 
@@ -759,8 +784,9 @@ any refactor.
   trainers as faculty-like individuals, facilities as Buildables, a second
   ranking axis. Deferred deliberately; it rides on Buildables + hiring + rivals
   all being mature.
-- Research depth: labs for the schools that have none, so a non-STEM run has a
-  research path at all (see "Research"'s known tension).
+- Research depth: labs for the four schools that still have none, so a
+  fully non-STEM run has a research path of its own rather than reaching it
+  through a shared department (see "Research").
 - Campus life depth, and more authored decision events on top of the thirteen
   that now exist (see "Interrupts" above) — including events that reach
   systems the first pass deliberately left alone.
