@@ -27,7 +27,7 @@ import type { Buildable } from '../state/types';
 // model: money is the throttle"), not a handful of cheap early clicks.
 // ---------------------------------------------------------------------
 
-const STARTING_DORM_ID = 'DORM-01';
+export const STARTING_DORM_ID = 'DORM-01';
 export const STARTING_DORM_CAPACITY = 350; // folded directly into students.capacity by createInitialState
 
 // ---------------------------------------------------------------------

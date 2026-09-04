@@ -59,14 +59,14 @@ const SECTION_RING_SIZE = 26;
 // only for the latter, and carries the two things a graduate group has to
 // say that a major does not — which credential it awards, and which gate
 // it cleared to appear at all.
-interface DiscoverySubgroup {
+export interface DiscoverySubgroup {
   key: string;
   label: string;
   courseIds: string[];
   graduate?: { degree: string; gate: string };
 }
 
-interface DiscoverySection {
+export interface DiscoverySection {
   key: string;
   label: string | null; // null = the top-level ungrouped pool
   // The section head's full title. "School of {label}" for every school
@@ -221,6 +221,22 @@ function buildSections(s: GameState, genEdComplete: boolean, revealedGrad: Set<s
   }
 
   return [{ key: 'pool', label: null, heading: '', courseIds: poolIds, subgroups: [], schoolCourseIds: [] }, ...sections];
+}
+
+// The same section list buildSections computes for this tab's own render,
+// exposed for anything else that needs a school/professional-school's
+// completion without re-deriving genEdComplete/revealedGrad itself — the
+// campus map's building info popover, in particular (see CampusMap.tsx).
+// Each section's `key` is the Buildable id of the building it belongs to
+// (a school's buildingId, or MED/LAW's), so a caller with only a placed
+// building's id can find its section with a plain lookup. General Studies
+// has no section of its own (see buildSections above — it has no majors),
+// so a caller needing its completion falls back to discoverySchools()'s
+// own coreIds directly.
+export function discoverySections(s: GameState): DiscoverySection[] {
+  const genEdComplete = isGenEdComplete(s);
+  const revealedGrad = revealedGraduatePrograms(s);
+  return buildSections(s, genEdComplete, revealedGrad);
 }
 
 type CellState = 'locked' | 'blocked' | 'available' | 'developing' | 'done';
@@ -445,8 +461,11 @@ function CellLegend() {
 }
 
 // Completion of an arbitrary set of course ids. Used for the catalogue as
-// a whole and for one school's own curriculum.
-function completion(s: GameState, ids: string[]): { done: number; total: number; fraction: number } {
+// a whole and for one school's own curriculum. Exported so anything else
+// showing a school's completion (the campus map's building info popover)
+// computes it the exact same way this tab's own rings do, rather than
+// re-deriving the done/total logic a second time.
+export function completion(s: GameState, ids: string[]): { done: number; total: number; fraction: number } {
   const done = ids.filter((id) => s.tech.find((t) => t.id === id)?.status === 'done').length;
   return { done, total: ids.length, fraction: ids.length > 0 ? done / ids.length : 0 };
 }

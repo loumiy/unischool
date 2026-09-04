@@ -425,6 +425,27 @@ button { cursor: pointer; font-family: inherit; }
    corner without either having to know the other's height (see
    CampusMap.tsx) — each child keeps its own parchment card look, only the
    fixed positioning moved up to here. */
+/* The clicked-building info panel: a fixed card in the map's otherwise-
+   empty top-left corner (see the comment on BuildingInfoPanel's usage in
+   CampusMap.tsx for why it's a fixed corner rather than a popover anchored
+   to the building itself). Same parchment-card language as the tray and
+   side controls, sized to sit comfortably above the tray without reaching
+   the zoom pill on the opposite corner at any but the narrowest widths. */
+.building-info-panel { position: fixed; z-index: 10; top: calc(var(--topbar-height) + 16px); left: 16px;
+  width: 260px; max-height: calc(100vh - var(--topbar-height) - var(--tray-height) - 64px); overflow-y: auto;
+  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px;
+  padding: 10px 14px 12px; }
+.building-info-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  border-bottom: 1px solid var(--parchment-line); padding-bottom: 8px; margin-bottom: 8px; }
+.building-info-head h3 { font-family: var(--serif); font-size: 14px; margin: 0; color: var(--ink); }
+.building-info-close { background: transparent; border: 1px solid var(--parchment-line); color: var(--ink-muted);
+  border-radius: 4px; width: 22px; height: 22px; line-height: 1; padding: 0; font-size: 12px; flex: none; }
+.building-info-close:hover { border-color: var(--gold-dim); color: var(--ink); }
+.building-info-line { margin: 0 0 6px; font-size: 12px; line-height: 1.4; color: var(--ink); }
+.building-info-majors { margin: 0 0 8px; padding-left: 18px; font-size: 12px; line-height: 1.5; color: var(--ink); }
+.building-info-completion { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; }
+.building-info-completion .stat { font-size: 11px; }
+
 .campus-map-side-controls { position: fixed; z-index: 10; top: calc(var(--topbar-height) + 16px);
   right: calc(var(--side-panel-width) + 16px); display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
 .campus-map-zoom-controls { display: flex; flex-direction: column; gap: 4px;
@@ -538,6 +559,13 @@ button { cursor: pointer; font-family: inherit; }
 .campus-building rect { stroke-width: 1; }
 .campus-building text { font-family: var(--serif); fill: var(--ink); pointer-events: none;
   user-select: none; }
+/* Every placed building is a click target for its (read-only) info panel —
+   see CampusMap.tsx's inspectBuilding — except while placement/path-draw
+   mode has the map's clicks; this is just the affordance, that gating is
+   all in the handler. `.inspected` marks whichever one currently has its
+   panel open. */
+.campus-building { cursor: pointer; }
+.campus-building.inspected rect { stroke-width: 2.5; stroke: var(--gold); }
 
 /* Academic halls: the campus's brass landmarks. They're all the same
    building family and should read as ONE colour, not id-hashed shades of
