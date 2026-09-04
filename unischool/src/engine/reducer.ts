@@ -427,14 +427,19 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
-    // Scaffolding: proves the interrupt pause/resume cycle works end to end.
-    // Remove this case (and the action, and its debug button in App.tsx)
-    // once a real interrupt — admissions, the report, the tutorial — exists.
-    case 'DEBUG_TRIGGER_TEST_INTERRUPT': {
-      s.pendingInterrupt = {
-        type: 'debug-test',
-        payload: { message: 'This is a throwaway interrupt to prove the clock halts and resumes correctly.' },
-      };
+    // A direct playtest grant (see StatusHeader.tsx's "+$1B" button) —
+    // deliberately not an event or interrupt, since it isn't something the
+    // simulation ever produces on its own. Logged like every other cash
+    // movement so it's visible (and auditable) in the ticker rather than a
+    // silent jump in the header figure.
+    case 'GRANT_FUNDS': {
+      s.finance.cash += action.amount;
+      s.log.unshift({
+        year: s.clock.year,
+        week: s.clock.week,
+        message: `Playtest grant: $${action.amount.toLocaleString()} added to operating funds.`,
+        kind: 'good',
+      });
       return s;
     }
 

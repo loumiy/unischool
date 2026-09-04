@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { GameState, PendingInterrupt, PrizeAward } from '../state/types';
 import { institutionName, WEEKS_PER_YEAR } from '../state/types';
@@ -13,20 +13,14 @@ import type { DecisionEventContext, MilestonePayload } from '../data/eventData';
 import type { OrgPetition } from '../state/types';
 import type { ReportPayload } from '../systems/rivals/rivalsSystem';
 
-// Placeholder modal content for interrupt types with no dedicated form (see
-// AdmissionsInterruptForm below for 'admissions'). The 'debug-test' case is
-// scaffolding — remove it once a real interrupt other than admissions
-// exists (the U.S. News report, the tutorial) and needs the same treatment.
+// Placeholder modal content for an interrupt type with no dedicated view
+// (see AdmissionsInterruptForm below for 'admissions', and every other
+// named branch in the component below it). Only reachable if a system ever
+// sets pendingInterrupt to a type nothing here recognises — content drift
+// between an authored table and this switch, never a path the game takes
+// on its own.
 function interruptBody(interrupt: PendingInterrupt): { title: string; body: string } {
-  switch (interrupt.type) {
-    case 'debug-test':
-      return {
-        title: 'Debug: test interrupt',
-        body: (interrupt.payload as { message?: string } | undefined)?.message ?? 'No payload.',
-      };
-    default:
-      return { title: interrupt.type, body: 'No content registered for this interrupt type.' };
-  }
+  return { title: interrupt.type, body: 'No content registered for this interrupt type.' };
 }
 
 interface AdmissionsDraft {
@@ -606,13 +600,66 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
 // top of every tab. Nothing to render when no interrupt is pending.
 export default function InterruptModal({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const interrupt = s.pendingInterrupt;
-  if (!interrupt) return null;
 
   // The two payloads that carry structured content are read once here,
   // narrowed by the type tag, so the branches below stay free of casts.
-  const decision = interrupt.type === 'decision-event'
+  const decision = interrupt?.type === 'decision-event'
     ? interrupt.payload as { eventId: string; ctx: DecisionEventContext }
     : null;
+
+  // Enter resolves whichever modal is open, but ONLY for the interrupt
+  // types explicitly wired below — the report and an authored decision
+  // event (Enter here means CONTINUE: resolve with no choice picked, the
+  // same escape hatch the dismiss button below uses for a content-table
+  // miss, never one specific paid choice, so there is never an
+  // affordability check to get wrong). Every other type is a deliberate
+  // no-op, not a fallthrough to the generic RESOLVE_INTERRUPT: milestone,
+  // research-prize, demand and charter all fire mid-TICK (see reducer.ts's
+  // SYSTEMS) and their own resolve actions advance the clock as part of
+  // clearing them, which generic RESOLVE_INTERRUPT does not — dispatching
+  // it for one of those would clear the interrupt without moving the
+  // week forward, and the NEXT tick would then re-run that same week's
+  // systems a second time before finally advancing. Extending Enter to
+  // any of them later means wiring its own dedicated action, never this
+  // generic one. The admissions form is left out for a different reason:
+  // its tuition/aid values live in AdmissionsInterruptForm's own local
+  // state, not reachable from here without lifting that state up just for
+  // a hotkey, so it stays click-to-confirm (see the PR notes for more).
+  //
+  // Guarded against a focused button/input so a Tab-focused decision-event
+  // choice (or, if a future interrupt ever grows a text field) keeps
+  // handling its own Enter natively instead of racing this handler.
+  //
+  // The listener is re-registered whenever `interrupt`/`decision` change
+  // identity (every interrupt is a fresh object off structuredClone — see
+  // reducer.ts), so the closure below always reads the CURRENT interrupt,
+  // never a stale one from a previous render.
+  useEffect(() => {
+    if (!interrupt) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== 'Enter') return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === 'BUTTON' || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      switch (interrupt!.type) {
+        case 'rankings-entry':
+        case 'annual-report':
+          act({ type: 'RESOLVE_REPORT' });
+          break;
+        case 'decision-event':
+          if (decision) {
+            act({ type: 'RESOLVE_DECISION_EVENT', eventId: decision.eventId, choiceId: '', ctx: decision.ctx });
+          }
+          break;
+        // admissions, milestone, research-prize, demand, charter, and
+        // anything unrecognised: no-op — see the comment above.
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [interrupt, decision, act]);
+
+  if (!interrupt) return null;
 
   return (
     <div className="modal-backdrop">
