@@ -1,5 +1,7 @@
-import type { Buildable, GameState, Placement } from './types';
-import { footprintFits, footprintIsClear, isPlaceableKind } from './campusMap';
+import type { Buildable, GameState, Pathways, Placement } from './types';
+import {
+  edgeKey, footprintFits, footprintIsClear, isEdgeInBounds, isPlaceableKind, parseEdgeKey,
+} from './campusMap';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from './types';
 import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES } from '../data/facultyData';
 import { initialTech } from '../data/techData';
@@ -244,7 +246,27 @@ const SAVE_KEY = 'unischool.save';
 // one outstanding demand happened to be this one, and queueDemand will
 // raise a real shortfall, if the campus has one, on its own ordinary
 // timeline.
-export const SAVE_VERSION = 13;
+// v14: two map-cosmetic placement capabilities landed together — rotating a
+// building before siting it, and drawing/erasing decorative tile-edge
+// pathways — so the save shape is versioned ONCE for both rather than
+// twice in a row.
+//
+// ROTATION needs NO data migration at all. Orientation was deliberately
+// never given its own field (see campusMap.ts's orientedFootprint) — a
+// rotated building is stored as whatever {row,col,w,h} it actually occupies
+// once set down, which is exactly the shape Placement already had since v4.
+// Every placement a v13 save holds is already valid under v14 as-is: it
+// simply reads as "never rotated", which is the truth, since rotation
+// didn't exist yet when it was placed.
+//
+// PATHWAYS is the one real shape change: GameState gains a required
+// `pathways` slice (types.ts's Pathways) that CampusMap.tsx now reads and
+// writes unconditionally. A v13 save has no such key, so this is a pure
+// fill-in — an empty pathway set, exactly the layout a v13 campus actually
+// had, since edge-drawing didn't exist for it to have used. No existing
+// content moves, is renamed, or is retired; nothing else reads this slice,
+// so nothing else needed a migration.
+export const SAVE_VERSION = 14;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -703,6 +725,20 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     if (asksForParking(state.events.pendingDemand)) state.events.pendingDemand = null;
     if (asksForParking(state.events.activeDemand)) state.events.activeDemand = null;
   },
+
+  // v13 -> v14: rotation + tile-edge pathways (see SAVE_VERSION above).
+  //
+  // Rotation writes nothing here — see the long note above SAVE_VERSION —
+  // every placement a v13 save has is already a valid, unrotated v14
+  // placement as-is.
+  //
+  // Pathways is a pure fill-in with an EMPTY set, and deliberately not a
+  // reconstruction: a v13 campus genuinely had no drawn paths, because
+  // edge-drawing did not exist, the same reasoning v7 -> v8 used for the
+  // empty student-org slice and v8 -> v9 for no outstanding demands.
+  13: (state) => {
+    state.pathways = {};
+  },
 };
 
 // Placement hygiene, run on EVERY load (migrated or not). The map is a
@@ -751,6 +787,38 @@ function sanitizePlacements(state: GameState): void {
     clean[id] = { row, col, ...fp };
   }
   state.placements = clean;
+}
+
+// Pathway hygiene, run on EVERY load (migrated or not), mirroring
+// sanitizePlacements above for exactly the same reason: pathways are a
+// visual layer no system reads, so a bad entry can't corrupt the sim, but
+// it could still render a stray path off the edge of the grid — and unlike
+// placements, an edge key is a free-form string nothing has type-checked
+// since it left localStorage. Two things get dropped:
+//   - unparseable keys: not the `orientation:row:col` shape this version
+//     ever wrote (see campusMap.ts's parseEdgeKey).
+//   - out of bounds: an edge that doesn't exist on the CURRENT grid. Unlike
+//     a placement's anchor there is nothing sensible to nudge an edge back
+//     to — it's a line, not a rectangle with room to slide — so an
+//     out-of-bounds edge is simply dropped rather than clamped. The grid
+//     has only ever grown, so this is dormant today; it exists for the day
+//     CAMPUS_GRID_WIDTH/HEIGHT shrink, the same forward-looking reason
+//     sanitizePlacements already clamps rather than assumes.
+// A dropped edge costs the player nothing mechanically — it was decoration
+// referencing ground that no longer exists.
+function sanitizePathways(state: GameState): void {
+  if (typeof state.pathways !== 'object' || state.pathways === null) {
+    state.pathways = {};
+    return;
+  }
+  const clean: Pathways = {};
+  for (const [key, value] of Object.entries(state.pathways)) {
+    if (value !== true) continue;
+    const edge = parseEdgeKey(key);
+    if (!edge || !isEdgeInBounds(edge)) continue;
+    clean[edgeKey(edge)] = true;
+  }
+  state.pathways = clean;
 }
 
 // A shallow structural check, not a full validation of GameState. The point
@@ -816,5 +884,6 @@ export function loadGame(): GameState | null {
   }
 
   sanitizePlacements(state);
+  sanitizePathways(state);
   return state;
 }

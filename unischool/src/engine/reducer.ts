@@ -18,7 +18,9 @@ import {
   CHAPTER_APPROVAL_SATISFACTION_NUDGE, CHAPTER_DECLINE_SATISFACTION_HIT,
   CLUB_APPROVAL_SATISFACTION_NUDGE, CLUB_DECLINE_SATISFACTION_HIT, activatePetition,
 } from '../data/studentLifeData';
-import { canPlace, placementFor } from '../state/campusMap';
+import {
+  canPlace, edgeKey, isEdgeInBounds, orientedFootprint, placementFor,
+} from '../state/campusMap';
 import { captureYearSnapshot } from '../state/history';
 import { saveGame, clearSave } from '../state/persistence';
 
@@ -213,17 +215,32 @@ export function reducer(state: GameState, action: Action): GameState {
     }
 
     case 'PLACE_BUILDABLE': {
-      // Purely a map-layer action: it writes a coordinate and nothing else.
-      // No effects are applied or re-applied here — a building's effects
-      // landed when it finished developing, whether or not it is ever
-      // placed (see state/campusMap.ts).
-      // The footprint comes from the Buildable's kind, not from the
-      // action: the player picks an anchor tile, the rules decide how much
-      // ground it covers (see campusMap.ts's footprintOf).
+      // Purely a map-layer action: it writes a coordinate (and, now, an
+      // orientation) and nothing else. No effects are applied or re-applied
+      // here — a building's effects landed when it finished developing,
+      // whether or not it is ever placed (see state/campusMap.ts).
+      // The BASE footprint comes from the Buildable's kind, not from the
+      // action (see campusMap.ts's footprintOf); `action.rotated` says
+      // whether the player turned that footprint 90 degrees before setting
+      // it down. What's stored is the already-oriented footprint — there is
+      // no separate orientation field (see types.ts's Placement).
       const node = s.tech.find((t) => t.id === action.buildableId);
-      if (node && canPlace(s, node, action.row, action.col)) {
-        s.placements[node.id] = placementFor(node, action.row, action.col);
+      if (node) {
+        const fp = orientedFootprint(node, action.rotated);
+        if (canPlace(s, node, action.row, action.col, fp)) {
+          s.placements[node.id] = placementFor(action.row, action.col, fp);
+        }
       }
+      return s;
+    }
+
+    case 'ADD_PATH_EDGE': {
+      if (isEdgeInBounds(action.edge)) s.pathways[edgeKey(action.edge)] = true;
+      return s;
+    }
+
+    case 'REMOVE_PATH_EDGE': {
+      delete s.pathways[edgeKey(action.edge)];
       return s;
     }
 

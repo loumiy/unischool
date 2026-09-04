@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Action } from '../state/actions';
-import type { Buildable, GameState, Placement } from '../state/types';
+import type { Buildable, GameState, PathEdge, Placement } from '../state/types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import {
-  awaitingPlacement, canPlace, footprintIsClear, footprintOf, placementTiles, tilesCovered,
+  awaitingPlacement, canPlace, canRotate, edgeKey, footprintIsClear, footprintOf,
+  orientedFootprint, parseEdgeKey, placementTiles, tilesCovered,
 } from '../state/campusMap';
 import HelpHint from './HelpHint';
 import { useCssHeightVar } from './useCssHeightVar';
@@ -85,6 +86,20 @@ function tileY(row: number): number {
 // them, so a 2-wide building reads as one solid block rather than two.
 function spanSize(tiles: number): number {
   return tiles * TILE_SIZE + (tiles - 1) * TILE_GAP;
+}
+
+// The SVG segment one PathEdge occupies. A 'h' edge is the line from corner
+// (row, col) to (row, col+1) — the top of tile (row, col) — and a 'v' edge
+// is (row, col) to (row+1, col) — its left. tileX/tileY already give the
+// corner coordinates for any row/col in range (including the grid's own
+// bottom/right boundary, since a footprint's own bottom-right corner uses
+// exactly the same call), so this needs no case beyond orientation.
+function edgeLine(e: PathEdge): { x1: number; y1: number; x2: number; y2: number } {
+  const x = tileX(e.col);
+  const y = tileY(e.row);
+  return e.orientation === 'h'
+    ? { x1: x, y1: y, x2: x + TILE_SIZE, y2: y }
+    : { x1: x, y1: y, x2: x, y2: y + TILE_SIZE };
 }
 
 // ---------------------------------------------------------------------
@@ -242,6 +257,17 @@ function PlacedBuilding({ t, p }: { t: Buildable; p: Placement }) {
 
 export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Whether the currently-selected building has been turned 90 degrees
+  // before siting (see campusMap.ts's orientedFootprint). Transient UI
+  // state, not persisted itself — what's persisted is the resulting
+  // {row,col,w,h} once actually placed (see types.ts's Placement).
+  const [rotated, setRotated] = useState(false);
+  // The active path-drawing tool, or null when the map is in its ordinary
+  // placement mode. Mutually exclusive with `selectedId`: picking up a
+  // building for siting and drawing/erasing a path are two different jobs
+  // for the same click on the same grid, so exactly one is ever live (see
+  // selectBuilding/setPathTool below, which each clear the other).
+  const [pathTool, setPathToolState] = useState<'draw' | 'erase' | null>(null);
   // The tile the pointer (or an in-flight drag) is over, so the footprint
   // about to land can be previewed. Multi-tile buildings need this: where a
   // 2x2 hall goes is no longer obvious from the tile you clicked.
@@ -253,6 +279,26 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
   // scrollable ceiling.
   const trayRef = useRef<HTMLDivElement>(null);
   useCssHeightVar(trayRef, '--tray-height');
+
+  // The one place selection changes: always resets rotation (a fresh pickup
+  // starts unrotated) and always drops out of path-drawing mode, so a
+  // building picked up for siting and an active draw/erase tool can never
+  // both be live — see the pathTool state comment above.
+  function selectBuilding(id: string | null) {
+    setSelectedId(id);
+    setRotated(false);
+    setPathToolState(null);
+  }
+
+  // Symmetric with selectBuilding: engaging a path tool always drops
+  // whatever building was picked up. Clicking the same tool again toggles
+  // it back off, so "Draw" and "Erase" behave as two independent toggles
+  // rather than a three-state radio the player has to reason about.
+  function setPathTool(mode: 'draw' | 'erase') {
+    setPathToolState((cur) => (cur === mode ? null : mode));
+    setSelectedId(null);
+    setRotated(false);
+  }
 
   // --- pan & zoom (see the MIN_ZOOM/MAX_ZOOM block above for why this is
   // ref-driven rather than React state) ---
@@ -269,6 +315,13 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
   // the very next place() call, or by the next mousedown if that click
   // never happens (a pan that ends over a covered/non-targetable tile).
   const justPannedRef = useRef(false);
+  // Which path tool a click-drag across edges is currently painting with,
+  // so dragging across several edges in one gesture draws/erases all of
+  // them rather than just the one the mouse went down on (mirrors dragRef's
+  // own "held across a gesture" shape, one level down). Set on an edge's
+  // own mousedown, read on every edge mouseenter while still set, cleared
+  // on the same global mouseup dragRef already listens for.
+  const pathDragRef = useRef<'draw' | 'erase' | null>(null);
 
   function applyView(next: { x: number; y: number; zoom: number }) {
     const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next.zoom));
@@ -325,6 +378,9 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
         justPannedRef.current = true;
         svgRef.current?.classList.remove('panning');
       }
+      // Ends a path click-drag exactly like a pan drag: wherever the mouse
+      // comes up, painting stops.
+      pathDragRef.current = null;
     }
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
@@ -333,6 +389,7 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
       window.removeEventListener('mouseup', onUp);
     };
   }, []);
+
 
   function onMapMouseDown(e: React.MouseEvent<SVGSVGElement>) {
     if (e.button !== 0) return;
@@ -386,15 +443,47 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
   const coveredTiles = tilesCovered(s.placements);
   const totalTiles = CAMPUS_GRID_WIDTH * CAMPUS_GRID_HEIGHT;
 
+  // The footprint actually being sited right now, base or rotated. The one
+  // place that reads `rotated` against a real Buildable — everything below
+  // (preview, canPlace, the action) goes through this rather than
+  // re-deriving it, so there is exactly one rule for "what shape is this".
+  const selectedFootprint = selected ? orientedFootprint(selected, rotated) : null;
+
+  // The 'R' hotkey rotates the currently-picked-up building; the on-screen
+  // rotate control (near the footprint ghost, below) does the same thing.
+  // Re-subscribed whenever the selection changes rather than closing over a
+  // ref, since it only needs `selected`'s current footprint to decide
+  // whether rotating is even meaningful (see canRotate) — a plain effect
+  // dependency is simpler than threading that through a ref for a listener
+  // that is this cheap to rebind. Doesn't conflict with StatusHeader's
+  // 1/2/3 speed hotkeys, TabOverlay's Escape, or InterruptModal's Enter —
+  // none of those bind 'r'.
+  useEffect(() => {
+    if (!selected || !canRotate(footprintOf(selected))) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key.toLowerCase() !== 'r') return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      setRotated((r) => !r);
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [selected]);
+
   // The one placement path, whether the building was clicked into place or
   // dropped there. canPlace is re-checked in the reducer too — this copy is
   // so an illegal drop leaves the selection alone instead of quietly
-  // clearing it.
+  // clearing it. Always sites at the CURRENT rotation, whatever building id
+  // is being placed — only one building is ever picked up at a time, and
+  // selectBuilding resets `rotated` the moment the selection changes, so a
+  // stale rotation from a previously-selected building can never leak in.
   const placeById = (id: string, row: number, col: number) => {
     const t = tray.find((x) => x.id === id);
-    if (!t || !canPlace(s, t, row, col)) return;
-    act({ type: 'PLACE_BUILDABLE', buildableId: id, row, col });
-    setSelectedId(null);
+    if (!t) return;
+    const fp = orientedFootprint(t, rotated);
+    if (!canPlace(s, t, row, col, fp)) return;
+    act({ type: 'PLACE_BUILDABLE', buildableId: id, row, col, rotated });
+    selectBuilding(null);
     setHover(null);
   };
   // Gated on justPannedRef so the click that follows a drag-to-pan (the
@@ -411,6 +500,29 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
   const rows = Array.from({ length: CAMPUS_GRID_HEIGHT }, (_, row) => row);
   const cols = Array.from({ length: CAMPUS_GRID_WIDTH }, (_, col) => col);
 
+  // Every edge the grid has, at either orientation — the path tool's hit
+  // targets (rendered only while a tool is active, see below). Computed
+  // once: the grid's own size never changes at runtime, so there is nothing
+  // for a dependency array to react to.
+  const allEdges = useMemo(() => {
+    const edges: PathEdge[] = [];
+    for (let row = 0; row <= CAMPUS_GRID_HEIGHT; row++) {
+      for (let col = 0; col < CAMPUS_GRID_WIDTH; col++) edges.push({ orientation: 'h', row, col });
+    }
+    for (let row = 0; row < CAMPUS_GRID_HEIGHT; row++) {
+      for (let col = 0; col <= CAMPUS_GRID_WIDTH; col++) edges.push({ orientation: 'v', row, col });
+    }
+    return edges;
+  }, []);
+
+  // One end of a path click-drag: acts on the edge immediately (so a plain
+  // click without any movement still draws/erases one segment) and arms
+  // pathDragRef so every edge the pointer subsequently enters, while the
+  // button stays down, gets the same treatment.
+  const paintEdge = (edge: PathEdge, tool: 'draw' | 'erase') => {
+    act(tool === 'draw' ? { type: 'ADD_PATH_EDGE', edge } : { type: 'REMOVE_PATH_EDGE', edge });
+  };
+
   // Placements resolved against `tech` once per render, rather than per
   // tile: 69 placeables against 336 cells is not worth re-scanning.
   const placed = Object.entries(s.placements)
@@ -421,9 +533,11 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
     for (const tile of placementTiles(p)) covered.add(`${tile.row},${tile.col}`);
   }
 
-  // The footprint ghost under the cursor, and whether it would actually fit.
-  const preview = selected && hover
-    ? { ...hover, ...footprintOf(selected), ok: footprintIsClear(s.placements, hover.row, hover.col, footprintOf(selected)) }
+  // The footprint ghost under the cursor, and whether it would actually fit
+  // — at the CURRENT rotation, so a rotated shape that no longer clears the
+  // grid or an occupied tile is refused exactly like an unrotated overflow.
+  const preview = selected && hover && selectedFootprint
+    ? { ...hover, ...selectedFootprint, ok: footprintIsClear(s.placements, hover.row, hover.col, selectedFootprint) }
     : null;
 
   return (
@@ -431,7 +545,7 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
       <div className="campus-map-canvas">
         <svg
           ref={svgRef}
-          className={`campus-map-svg ${selected ? 'placing' : ''}`}
+          className={`campus-map-svg ${selected ? 'placing' : ''} ${pathTool ? `path-${pathTool}` : ''}`}
           // No viewBox: 1 SVG user unit is then exactly 1 CSS px, so the
           // pan/zoom transform on the <g> below (in the same units) needs
           // no extra conversion, and the map's true pixel size (TILE_SIZE
@@ -446,7 +560,12 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
           onWheel={onWheel}
         >
           <g ref={worldRef}>
-            {/* Ground first, buildings over it, the drop ghost on top. */}
+            {/* Ground, then drawn pathways (so a building placed over an
+                edge draws on top of the path, never the other way around),
+                then buildings, then path hit-targets (path mode only — see
+                the disambiguation note on pathTool above, which is what
+                keeps these from ever being live at the same time as
+                placement's own tile clicks), then the drop/rotate ghost. */}
             {rows.map((row) => cols.map((col) => (
               <GroundTile
                 key={`${row}-${col}`}
@@ -463,29 +582,100 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
               />
             )))}
 
+            {Object.keys(s.pathways).map((key) => {
+              const edge = parseEdgeKey(key);
+              if (!edge) return null;
+              const { x1, y1, x2, y2 } = edgeLine(edge);
+              return <line key={key} className="campus-path-edge" x1={x1} y1={y1} x2={x2} y2={y2} />;
+            })}
+
             {placed.map(({ t, p }) => <PlacedBuilding key={t.id} t={t} p={p} />)}
 
+            {pathTool && allEdges.map((edge) => {
+              const { x1, y1, x2, y2 } = edgeLine(edge);
+              return (
+                <line
+                  key={edgeKey(edge)}
+                  className={`campus-path-hit ${pathTool}`}
+                  x1={x1} y1={y1} x2={x2} y2={y2}
+                  // Stopped here so pressing down on an edge never also
+                  // arms the map's own pan-drag tracking (onMapMouseDown,
+                  // above) — the two gestures would otherwise start on the
+                  // exact same mousedown.
+                  onMouseDown={(e) => { e.stopPropagation(); pathDragRef.current = pathTool; paintEdge(edge, pathTool); }}
+                  onMouseEnter={() => { if (pathDragRef.current) paintEdge(edge, pathDragRef.current); }}
+                />
+              );
+            })}
+
             {preview && (
-              <rect
-                className={`campus-preview ${preview.ok ? 'ok' : 'blocked'}`}
-                x={tileX(preview.col)}
-                y={tileY(preview.row)}
-                width={spanSize(preview.w)}
-                height={spanSize(preview.h)}
-                rx={BUILDING_CORNER}
-              />
+              <>
+                <rect
+                  className={`campus-preview ${preview.ok ? 'ok' : 'blocked'}`}
+                  x={tileX(preview.col)}
+                  y={tileY(preview.row)}
+                  width={spanSize(preview.w)}
+                  height={spanSize(preview.h)}
+                  rx={BUILDING_CORNER}
+                />
+                {/* The rotate control: a small dial at the ghost's corner,
+                    only offered when rotating would actually change
+                    anything (see canRotate — a square footprint rotated is
+                    the same footprint). It sits inside the same panned/
+                    zoomed <g> as the ghost it belongs to, so it tracks the
+                    ghost under pan/zoom for free rather than needing its
+                    own screen-space positioning logic. */}
+                {selected && canRotate(footprintOf(selected)) && (
+                  <g
+                    className="campus-rotate-btn"
+                    transform={`translate(${tileX(preview.col) + spanSize(preview.w) - 14}, ${tileY(preview.row) - 14})`}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={() => setRotated((r) => !r)}
+                    role="button"
+                    aria-label="Rotate building 90 degrees"
+                  >
+                    <circle r={13} />
+                    <text textAnchor="middle" dominantBaseline="central">⟳</text>
+                    <title>Rotate (R)</title>
+                  </g>
+                )}
+              </>
             )}
           </g>
         </svg>
 
-        {/* Zoom is reachable without a wheel/trackpad — a hard requirement
-            on a map that no longer fits the screen at native size, not
-            just a convenience. Floats over the map's own corner, clear of
-            the tray/log strip/build rail (see styles.css). */}
-        <div className="campus-map-zoom-controls">
-          <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
-          <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>
-          <button type="button" onClick={recenter} aria-label="Recenter the map" title="Recenter the map">⟲</button>
+        {/* Zoom and path-tool controls float over the map's own corner,
+            clear of the tray/log strip/build rail (see styles.css) — zoom
+            is reachable without a wheel/trackpad (a hard requirement on a
+            map that no longer fits the screen at native size), and the
+            path tools live right beside it since drawing shares the same
+            canvas as placement. */}
+        <div className="campus-map-side-controls">
+          <div className="campus-map-zoom-controls">
+            <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
+            <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>
+            <button type="button" onClick={recenter} aria-label="Recenter the map" title="Recenter the map">⟲</button>
+          </div>
+          <div className="campus-map-path-controls">
+            <button
+              type="button"
+              className={pathTool === 'draw' ? 'active' : ''}
+              aria-pressed={pathTool === 'draw'}
+              onClick={() => setPathTool('draw')}
+              title="Draw a pathway along tile edges"
+            >
+              🛤️ Draw path
+            </button>
+            <button
+              type="button"
+              className={pathTool === 'erase' ? 'active' : ''}
+              aria-pressed={pathTool === 'erase'}
+              onClick={() => setPathTool('erase')}
+              title="Erase a drawn pathway"
+            >
+              🧹 Erase path
+            </button>
+          </div>
         </div>
       </div>
 
@@ -500,7 +690,7 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
         <div className="campus-map-tray-head">
           <span className="panel-head-title">
             <h2>Campus Map</h2>
-            <HelpHint text="Where finished buildings physically sit. Siting is optional and cosmetic for now — a building's effects apply the week it finishes, placed or not, and a bigger footprint grants nothing extra. Pick a building from the tray and click an empty tile, or drag it straight onto the map. Buildings vary in size: a school hall covers four tiles, a lab one. Courses are never sited: a course is not a place." />
+            <HelpHint text="Where finished buildings physically sit. Siting is optional and cosmetic for now — a building's effects apply the week it finishes, placed or not, and a bigger footprint grants nothing extra. Pick a building from the tray and click an empty tile, or drag it straight onto the map — press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees first. Buildings vary in size: a school hall covers four tiles, a lab one. Courses are never sited: a course is not a place. The Draw path / Erase path buttons let you sketch walkways along the gridlines between tiles — free, purely decorative, and unrelated to placement." />
           </span>
           <span className="stat">{coveredTiles}/{totalTiles} tiles built on</span>
         </div>
@@ -509,7 +699,11 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
           {tray.length > 0 && (
             <ul className="campus-map-tray-list">
               {tray.map((t) => {
-                const fp = footprintOf(t);
+                // The selected item's badge reflects its current rotation
+                // (so the tray confirms what the ghost is already
+                // showing); everything else shows its base footprint,
+                // since nothing else has an orientation to show yet.
+                const fp = t.id === selectedId && selectedFootprint ? selectedFootprint : footprintOf(t);
                 return (
                   <li key={t.id}>
                     <button
@@ -524,11 +718,11 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
                       // selected — exactly as if it had been clicked.
                       draggable
                       onDragStart={(e) => {
-                        setSelectedId(t.id);
+                        selectBuilding(t.id);
                         e.dataTransfer.setData('text/plain', t.id);
                         e.dataTransfer.effectAllowed = 'move';
                       }}
-                      onClick={() => setSelectedId(t.id === selectedId ? null : t.id)}
+                      onClick={() => selectBuilding(t.id === selectedId ? null : t.id)}
                     >
                       {t.name}
                       <span className="campus-tray-size">{fp.w}×{fp.h}</span>
@@ -540,11 +734,16 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
           )}
         </div>
         <span className="campus-map-hint">
-          {selected
-            ? `Click or drop on ${footprintOf(selected).w}×${footprintOf(selected).h} of empty tiles to site ${selected.name}.`
-            : tray.length > 0
-              ? 'Select a building and click an empty tile, or drag it onto the map.'
-              : 'Nothing to site — finish a building, dorm, or facility and it appears here.'}
+          {pathTool
+            ? pathTool === 'draw'
+              ? 'Click or drag along tile edges to draw a pathway. Purely decorative — it grants nothing.'
+              : 'Click or drag along drawn edges to erase that pathway.'
+            : selected && selectedFootprint
+              ? `Click or drop on ${selectedFootprint.w}×${selectedFootprint.h} of empty tiles to site ${selected.name}.`
+                + (canRotate(footprintOf(selected)) ? ' Press R (or the ⟳ on the ghost) to rotate.' : '')
+              : tray.length > 0
+                ? 'Select a building and click an empty tile, or drag it onto the map.'
+                : 'Nothing to site — finish a building, dorm, or facility and it appears here.'}
         </span>
       </div>
     </section>
