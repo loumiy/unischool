@@ -152,7 +152,7 @@ function FacultyRow(
 // why their thirty professors generate no research needs to be told
 // which building answers it, not left to infer it.
 // ---------------------------------------------------------------------
-function ResearchPanel({ s }: { s: GameState }) {
+function ResearchPanel({ s, full }: { s: GameState; full: boolean }) {
   const equipped = labEquippedFields(s);
   const schools = researchSchools().filter((school) => school.labIds.length > 0);
   const producing = s.faculty.filter((f) => equipped.has(f.field));
@@ -160,7 +160,7 @@ function ResearchPanel({ s }: { s: GameState }) {
   const multiplier = researchRateMultiplier(s);
 
   return (
-    <section className="panel">
+    <section className={full ? 'panel panel-span-2' : 'panel'}>
       <div className="panel-head">
         <span className="panel-head-title">
           <h2>Research</h2>
@@ -306,28 +306,37 @@ export default function FacultyTab({ s, act }: { s: GameState; act: (a: Action) 
             )}
           </ul>
         </section>
+        {/* Research and Course Slots pair up the same way Roster/Market do
+            above — auto-flowing into this grid's second row. Course Slots
+            only exists once a school has a gated field (a founding school
+            has none), and a lone half-width Research panel next to an
+            empty gutter would read as a layout bug, so Research spans the
+            full row instead whenever there's no partner. Research's own
+            empty state (no labs finished) doesn't get the same treatment
+            when a partner IS present — the empty-note text still reads
+            fine at half width, and pairing stays predictable rather than
+            reshuffling on Research's content alone. */}
+        <ResearchPanel s={s} full={gatedFields.length === 0} />
+
+        {gatedFields.length > 0 && (
+          <section className="panel">
+            <div className="panel-head">
+              <span className="panel-head-title">
+                <h2>Course Slots by Field</h2>
+                <HelpHint text="A field-gated course occupies one slot in its field for as long as it's under development or done — hire more (or more tenured) faculty in a field to unlock offering more courses in it." />
+              </span>
+            </div>
+            <dl>
+              {gatedFields.map((field) => (
+                <Fragment key={field}>
+                  <dt>{field}</dt>
+                  <dd>{usedFacultySlots(s, field)} / {totalFacultySlots(s, field)} slots used</dd>
+                </Fragment>
+              ))}
+            </dl>
+          </section>
+        )}
       </div>
-
-      <ResearchPanel s={s} />
-
-      {gatedFields.length > 0 && (
-        <section className="panel">
-          <div className="panel-head">
-            <span className="panel-head-title">
-              <h2>Course Slots by Field</h2>
-              <HelpHint text="A field-gated course occupies one slot in its field for as long as it's under development or done — hire more (or more tenured) faculty in a field to unlock offering more courses in it." />
-            </span>
-          </div>
-          <dl>
-            {gatedFields.map((field) => (
-              <Fragment key={field}>
-                <dt>{field}</dt>
-                <dd>{usedFacultySlots(s, field)} / {totalFacultySlots(s, field)} slots used</dd>
-              </Fragment>
-            ))}
-          </dl>
-        </section>
-      )}
     </div>
   );
 }

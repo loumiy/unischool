@@ -689,14 +689,24 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .research-school { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 12px; }
 .research-school .empty-note { font-size: 11px; }
 
-/* ---------- faculty: roster and market, side by side ----------
-   Two equal columns rather than stacked panels: the candidate market
-   churns weekly and is what the player comes here to scan, so a roster
-   that has grown to fifty names must never push it below the fold. Falls
-   back to one column on narrow surfaces (see the media query at the end
-   of this file). */
-.faculty-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
-.faculty-columns .faculty-list { max-height: 440px; }
+/* ---------- faculty: roster/market and research/slots, paired ----------
+   Two equal columns, auto-flowing two panels per row: Roster + Market
+   first (the candidate market churns weekly and is what the player comes
+   here to scan, so a roster that has grown to fifty names must never push
+   it below the fold), then Research + Course Slots below. Falls back to
+   one column on narrow surfaces (see the media query at the end of this
+   file).
+
+   align-items is left at its grid default (stretch, not start) so Roster
+   and Market always render the same height, even though only Market
+   carries a field-filter bar above its list — .panel below is a flex
+   column so the shorter panel's list (flex: 1) grows to fill the leftover
+   height instead of leaving it a mismatched short card. Course Slots only
+   renders once a school has gated courses; when it's absent, Research
+   spans the row instead of leaving an empty gutter (see FacultyTab.tsx). */
+.faculty-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.faculty-columns .panel { display: flex; flex-direction: column; }
+.faculty-columns .faculty-list { max-height: 440px; flex: 1; min-height: 0; }
 
 /* The market's field filter — the other half of making a 30-name list
    scannable, alongside sorting short-handed fields to the top. */
@@ -901,7 +911,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    since it is occasional and reads better as one wide strip than paired
    arbitrarily with whichever panel precedes it. */
 .student-life-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
-.student-life-columns .panel-span-2 { grid-column: 1 / -1; }
+.student-life-columns .panel-span-2, .faculty-columns .panel-span-2 { grid-column: 1 / -1; }
 .panel-count { font-family: var(--mono); font-size: 11px; color: var(--ink-muted); white-space: nowrap; }
 .org-list { max-height: 320px; overflow-y: auto; margin: 0; padding: 0; }
 .org-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
