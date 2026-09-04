@@ -786,6 +786,14 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .statement-net.negative { background: #f4dede; border-color: #d9a8a8; color: #8a2f2f; }
 .statement-net .statement-line-amount { font-size: 15px; }
 
+/* Endowment Campaign and Balance & Policy paired half-width below the
+   full-width income statement — same two-column idiom as .faculty-columns
+   and .student-life-columns. align-items: start (the StudentLifeTab
+   precedent) rather than stretch: Endowment Campaign's early-game empty
+   note is much shorter than Balance & Policy's full dl, and stretching it
+   to match would leave an oddly tall, mostly-empty panel. */
+.treasury-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+
 /* ---------- overlays ---------- */
 .gameover { background: #3a2226; color: #f2ede0; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }
 /* Gold-on-navy, matching .startup-begin-btn — the previous #3b6ef0 was
@@ -1017,4 +1025,5 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   .faculty-columns { grid-template-columns: 1fr; }
   .faculty-columns .faculty-list { max-height: 340px; }
   .student-life-columns { grid-template-columns: 1fr; }
+  .treasury-columns { grid-template-columns: 1fr; }
 }
