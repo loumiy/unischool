@@ -26,12 +26,14 @@ import { createPreStartState } from '../src/state/actions';
 import type { GameState, Buildable, SchoolType } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet } from '../src/systems/finance/financeSystem';
 import { canStartDevelopment, hasFreeFacultySlot } from '../src/systems/techtree/techSystem';
-import { findDecisionEvent } from '../src/data/eventData';
+import { findDecisionEvent, HELLENIC_COUNCIL_MIN_CLUBS } from '../src/data/eventData';
 import { weeklyResearchPoints } from '../src/data/researchData';
 import { studentLifeSatisfaction } from '../src/systems/satisfaction/satisfactionSystem';
 import { demandProgress } from '../src/systems/demands/demandSystem';
 import { demandSubject } from '../src/data/demandData';
 import type { DecisionEventContext } from '../src/data/eventData';
+import { discoverySchools } from '../src/data/techData';
+import { hasStudentCenter } from '../src/data/studentLifeData';
 
 // ---------------------------------------------------------------------
 // Deterministic environment. The game rolls dice (faculty potentials,
@@ -373,6 +375,17 @@ interface EventTally {
   demandsMet: number;
   demandsFailed: number;
   demandSubjects: Record<string, number>; // which shortfall each demand was about
+  // The three student-life/event cadences this tuning pass targets (see
+  // eventData.ts / studentLifeData.ts). Reported separately from the
+  // generic decision-event tally because "how many decision events fired"
+  // says nothing about whether they were the RIGHT ones.
+  schoolsNamed: number;             // naming-rights fired with the 'sign' choice
+  chaptersFormed: number;           // chapter petitions approved over the run
+  chaptersAskedForHousing: number;  // greek-housing fired (built or refused) — bounded by chaptersFormed
+  hellenicCouncilYear: number | null;      // year the council question fired, or null if it never did
+  hellenicCouncilEligibleYear: number | null; // year the club-count gate first cleared
+  studentCenterYear: number | null;        // year a student center first stood
+  eventFireCounts: Record<string, number>; // every decision-event id, by how many times it fired
 }
 
 // The scripted player's event policy: take the FIRST affordable choice —
@@ -409,9 +422,16 @@ function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTal
     milestones: 0, decisions: 0, cash: 0, prizes: 0,
     petitionsApproved: 0, greekEventsSeen: 0,
     demandsRaised: 0, demandsMet: 0, demandsFailed: 0, demandSubjects: {},
+    schoolsNamed: 0, chaptersFormed: 0, chaptersAskedForHousing: 0,
+    hellenicCouncilYear: null, hellenicCouncilEligibleYear: null, studentCenterYear: null,
+    eventFireCounts: {},
   };
 
   while (s.clock.year <= years) {
+    if (tally.studentCenterYear === null && hasStudentCenter(s)) tally.studentCenterYear = s.clock.year;
+    if (tally.hellenicCouncilEligibleYear === null && s.orgs.clubs.length >= HELLENIC_COUNCIL_MIN_CLUBS) {
+      tally.hellenicCouncilEligibleYear = s.clock.year;
+    }
     if (s.pendingInterrupt) {
       if (s.pendingInterrupt.type === 'admissions') {
         // The student-life digest rides on this interrupt (see the
@@ -423,6 +443,7 @@ function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTal
         // policy below is an upper bound on what events cost.
         const approvedPetitionIds = s.orgs.pendingPetitions.map((p) => p.id);
         tally.petitionsApproved += approvedPetitionIds.length;
+        tally.chaptersFormed += s.orgs.pendingPetitions.filter((p) => p.kind === 'chapter').length;
         dispatch({
           type: 'RESOLVE_ADMISSIONS',
           tuition: strategy.tuition(s),
@@ -464,6 +485,12 @@ function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTal
         if (taken) {
           tally.decisions += 1;
           if (GREEK_EVENT_IDS.includes(taken.eventId)) tally.greekEventsSeen += 1;
+          tally.eventFireCounts[taken.eventId] = (tally.eventFireCounts[taken.eventId] ?? 0) + 1;
+          if (taken.eventId === 'naming-rights' && taken.choiceId === 'sign') tally.schoolsNamed += 1;
+          if (taken.eventId === 'greek-housing') tally.chaptersAskedForHousing += 1;
+          if (taken.eventId === 'hellenic-council' && tally.hellenicCouncilYear === null) {
+            tally.hellenicCouncilYear = s.clock.year;
+          }
           dispatch({ type: 'RESOLVE_DECISION_EVENT', ...taken });
         } else {
           dispatch({ type: 'RESOLVE_DECISION_EVENT', eventId: '', choiceId: '', ctx: {} });
@@ -580,6 +607,29 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally }, eve
     `(${orgShare.toFixed(2)}% of opex), +${last.orgSatisfaction.toFixed(2)} on the satisfaction target; ` +
     `${tally.greekEventsSeen} of ${tally.decisions} decision events were Greek-life ones`,
   );
+  // The three tuned cadences (see eventData.ts / studentLifeData.ts), each
+  // measured against what the concern was actually about — not "did the
+  // event fire" but "did it reach the outcome a long run should show".
+  const totalSchools = discoverySchools().length;
+  const housingFraction = tally.chaptersFormed > 0
+    ? (tally.chaptersAskedForHousing / tally.chaptersFormed) * 100 : 0;
+  const councilLine = tally.hellenicCouncilYear === null
+    ? 'never fired'
+    : `year ${tally.hellenicCouncilYear}` +
+      (tally.hellenicCouncilEligibleYear !== null
+        ? ` (${tally.hellenicCouncilYear - tally.hellenicCouncilEligibleYear} yr after ${HELLENIC_COUNCIL_MIN_CLUBS}-club eligibility in yr ${tally.hellenicCouncilEligibleYear}` +
+          (tally.studentCenterYear !== null ? `, ${tally.hellenicCouncilYear - tally.studentCenterYear} yr after the student center in yr ${tally.studentCenterYear})` : ')')
+        : '');
+  console.log(
+    `   cadence tuning: naming rights ${tally.schoolsNamed}/${totalSchools} schools named; ` +
+    `greek housing ${tally.chaptersAskedForHousing}/${tally.chaptersFormed} chapters asked (${housingFraction.toFixed(0)}%); ` +
+    `hellenic council ${councilLine}`,
+  );
+  const eventBreakdown = Object.entries(tally.eventFireCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([id, n]) => `${id} x${n}`)
+    .join(', ');
+  console.log(`   event mix: ${eventBreakdown}`);
 }
 
 // ---------------------------------------------------------------------
