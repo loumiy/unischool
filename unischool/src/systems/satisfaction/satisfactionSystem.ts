@@ -29,24 +29,23 @@ import { clubSocialBonus, greekSocialBonus, studentLifeSocialBonus } from '../..
 const SATISFACTION_DRIFT_RATE = 0.05; // fraction of the gap to target closed per week — matches the pre-refactor rate
 
 // Attribute weights, summing to 100 so the weighted sum lands on the same
-// 0..100 scale as each attribute. Basic needs is heaviest — going hungry
-// should move the headline number the most.
+// 0..100 scale as each attribute. Basic needs stays heaviest — going
+// hungry should move the headline number the most.
 //
-// Parking/infrastructure was removed as a satisfaction attribute (the
-// facility behind it is gone — see facilitiesData.ts) and its 15 points
-// were redistributed proportionally across the surviving four, rounded to
-// the nearest whole number: exactly proportional would be academic 23.5,
-// social 23.5, basicNeeds 35.3, health 17.6, which rounds to 24/24/35/18
-// (101) — one point over budget — so the rounding gap is taken back out of
-// basicNeeds, the attribute a single point least visibly changes. This is
-// a NEUTRAL placeholder only, deliberately not a re-tune: the next PR picks
-// these weights on purpose, this one only keeps the model summing to 100
-// with one fewer need to weigh.
+// This is the re-tune the parking-removal PR deliberately deferred (see its
+// note, kept above in git history): social is moved up from a share equal
+// to academic's to the clear second-heaviest attribute, so a social
+// shortfall now moves the headline number more than an academic or health
+// one does. Health gives up the difference — it is dormant below
+// HEALTH_CENTER_TIER1_CAPACITY_GATE and, even scoring, is the attribute a
+// player interacts with least (two tiers, one gate, no orgs/prestige
+// nudges), so it can afford to matter least. Academic gives up a little
+// too. Still sums to 100.
 const ATTRIBUTE_WEIGHTS: SatisfactionAttributes = {
-  academic: 24,
-  social: 24,
+  academic: 23,
+  social: 28,
   basicNeeds: 34,
-  health: 18,
+  health: 15,
 };
 
 // No ratio-based attribute ever bottoms out at a literal 0 — "stall, don't
@@ -56,26 +55,49 @@ const ATTRIBUTE_SCORE_FLOOR = 12;
 // How much servesPopulation is "needed" per unit of capacity for a ratio-
 // based attribute to read as fully adequate (ratio 1.0 => score 100).
 // Basic needs is a repeatable chain (dining; see facilitiesData.ts) so it's
-// held to a strict near-1:1 ratio. Academic, social, and health are
+// held to a strict near-1:1 ratio. Academic and health are
 // single-buildings-with-tiers with a hard capacity ceiling on how much
 // they can ever serve, so their target ratio is tuned low enough that a
 // fully built-out chain comfortably covers even a large, dorm-heavy
 // campus — see the PR notes for the worked numbers. This is a deliberate
 // consequence, not an oversight: an enormous, low-selectivity campus will
-// still feel the strain on academic/social/health harder than a small
-// elite one can, the same way it does in the real world.
+// still feel the strain on academic/health harder than a small elite one
+// can, the same way it does in the real world.
+//
+// Social is the deliberate exception, and the point of this pass. A maxed
+// student center + rec center (1,000 + 3,000 + 1,200 + 3,500 = 8,700
+// served — see facilitiesData.ts) covered any campus this game's dorm
+// chain can reach at the OLD ratio (0.20 => adequate up to 43,500
+// capacity) with room to spare, which is exactly why a school that got
+// ahead on social once could coast on it forever. At 0.34, that same full
+// build is only adequate up to ~25,600 capacity — comfortably covers a
+// modest-to-large campus, but a school that keeps growing past that (the
+// balance sim's growth strategies reach 13k-18k capacity by year 40 and are
+// still climbing — see sim/balanceSim.ts) keeps diluting its social ratio
+// even with both buildings fully tiered well before it gets there, because
+// SOCIAL_PENALTY_CURVATURE below bites before the ratio hits 1.0. It has to
+// lean on the quad and student life to close the rest of the way, which is
+// the intended path back to a high score, not a bug to fix by raising the
+// ratio further.
 const TARGET_RATIO: SatisfactionAttributes = {
   academic: 0.15,
-  social: 0.20,
+  social: 0.34,
   basicNeeds: 1.0,
   health: 1.0,
 };
 
-// Basic needs alone gets a STEEPER-than-linear under-capacity penalty
-// (ratio^curvature, curvature > 1) — neglecting dining should read as an
-// acute problem, not a gentle drift, per the design ask. Every other
-// ratio-based attribute is linear (curvature 1).
+// Basic needs gets the STEEPEST under-capacity penalty (ratio^curvature,
+// curvature > 1) — going hungry should read as an acute problem, not a
+// gentle drift, per the design ask, and it stays the sharpest single
+// attribute in the model.
+//
+// Social gets a curvature of its own now, > 1 but well short of basic
+// needs': neglecting student life should read as an acute problem too
+// (per this pass's design ask), just not the MOST acute one — a bored
+// student and a hungry one are not the same emergency. Academic and
+// health stay linear (curvature 1).
 const BASIC_NEEDS_PENALTY_CURVATURE = 2.2;
+const SOCIAL_PENALTY_CURVATURE = 1.4;
 
 // Reputation and financial aid used to nudge the old single satisfaction
 // formula directly; they still do, just folded into the two attributes
@@ -160,7 +182,7 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
 
   const academic = ratioScore(servedPopulationFor(s, 'academic'), capacity, TARGET_RATIO.academic, 1);
 
-  const socialRatio = ratioScore(servedPopulationFor(s, 'social'), capacity, TARGET_RATIO.social, 1);
+  const socialRatio = ratioScore(servedPopulationFor(s, 'social'), capacity, TARGET_RATIO.social, SOCIAL_PENALTY_CURVATURE);
   const pride = clamp(s.self.reputation / REPUTATION_PRIDE_PRESTIGE_MAX, 0, 1) * REPUTATION_PRIDE_MAX_BONUS;
   // Student organisations (see data/studentLifeData.ts) are the third
   // contributor to `social`, alongside the ratio-scored facilities and the
