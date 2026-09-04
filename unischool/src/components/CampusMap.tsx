@@ -38,9 +38,14 @@ import { useCssHeightVar } from './useCssHeightVar';
 // readable — a 1x1 tile gets a terse two-or-three-line name, a 2x2 hall
 // gets room for its full one.
 const TILE_SIZE = 64;      // edge length of one square tile
-const TILE_GAP = 4;        // gutter between tiles
-const MAP_PADDING = 16;    // breathing room around the whole grid
-const TILE_CORNER = 6;     // tile corner radius
+// No gutter: the ground is one continuous lawn, not a field of separate
+// paving stones — see GROUND_CORNER below and .campus-tile's thin, low-
+// contrast grid line in styles.css, which is what marks the grid now that
+// a gap and a rounded corner per tile no longer do.
+const TILE_GAP = 0;
+const MAP_PADDING = 16;      // breathing room around the whole grid
+const GROUND_CORNER = 0;     // ground tiles are square — a seam in a lawn, not a tile's own edge
+const BUILDING_CORNER = 8;   // placed buildings (and the footprint ghost) keep a soft corner: they're objects ON the ground, not the ground itself
 
 // Label metrics. LABEL_CHAR_WIDTH is an approximation of the serif's
 // average advance at LABEL_FONT_SIZE — it only has to be close, because
@@ -183,7 +188,7 @@ function GroundTile({ row, col, empty, targetable, onEnter, onClick, onDrop }: {
       y={tileY(row)}
       width={TILE_SIZE}
       height={TILE_SIZE}
-      rx={TILE_CORNER}
+      rx={GROUND_CORNER}
       onMouseEnter={live ? onEnter : undefined}
       onClick={live ? onClick : undefined}
       // Drag-and-drop is the same placement reached a second way, and it
@@ -218,7 +223,7 @@ function PlacedBuilding({ t, p }: { t: Buildable; p: Placement }) {
 
   return (
     <g className={`campus-building ${kindClasses(t)}`} aria-label={t.name}>
-      <rect x={x} y={y} width={width} height={height} rx={TILE_CORNER} />
+      <rect x={x} y={y} width={width} height={height} rx={BUILDING_CORNER} />
       {lines.map((line, i) => (
         <text
           key={i}
@@ -271,16 +276,29 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
     worldRef.current?.setAttribute('transform', `translate(${next.x} ${next.y}) scale(${zoom})`);
   }
 
-  // Center the grid in whatever space the canvas has on first paint — the
-  // map is usually bigger than that space (see TILE_SIZE above), so this is
-  // a starting vantage point, not a "fit everything" view. Resizing the
-  // window afterward deliberately leaves the player's own pan/zoom alone,
-  // same as any map app.
+  // The starting/recentered view: centered, but at a zoom guaranteed to
+  // run the grid off EVERY edge of the canvas, not just whichever edges
+  // happen to overflow at zoom 1 on a given screen. MAP_HEIGHT alone often
+  // clears a short/wide canvas already, but a tall, narrow one could
+  // otherwise show the whole grid with grass to spare above and below —
+  // the opposite of "you're standing in a place bigger than the screen".
+  // MIN_COVERAGE is how much taller than the canvas the grid must render:
+  // at exactly 1 it would just barely touch both edges with nothing to
+  // spare, so this is what actually guarantees the overflow rather than
+  // merely inviting it.
+  function defaultView(rect: { width: number; height: number }) {
+    const MIN_COVERAGE = 1.15;
+    const zoom = Math.max(1, (rect.height * MIN_COVERAGE) / MAP_HEIGHT);
+    return { x: (rect.width - MAP_WIDTH * zoom) / 2, y: (rect.height - MAP_HEIGHT * zoom) / 2, zoom };
+  }
+
+  // Center the grid in whatever space the canvas has on first paint.
+  // Resizing the window afterward deliberately leaves the player's own
+  // pan/zoom alone, same as any map app.
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
-    const rect = svg.getBoundingClientRect();
-    applyView({ x: (rect.width - MAP_WIDTH) / 2, y: (rect.height - MAP_HEIGHT) / 2, zoom: 1 });
+    applyView(defaultView(svg.getBoundingClientRect()));
     // Runs once, at mount, deliberately — see the comment above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -358,8 +376,7 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
   function recenter() {
     const svg = svgRef.current;
     if (!svg) return;
-    const rect = svg.getBoundingClientRect();
-    applyView({ x: (rect.width - MAP_WIDTH) / 2, y: (rect.height - MAP_HEIGHT) / 2, zoom: 1 });
+    applyView(defaultView(svg.getBoundingClientRect()));
   }
 
   const tray = awaitingPlacement(s);
@@ -455,7 +472,7 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
                 y={tileY(preview.row)}
                 width={spanSize(preview.w)}
                 height={spanSize(preview.h)}
-                rx={TILE_CORNER}
+                rx={BUILDING_CORNER}
               />
             )}
           </g>

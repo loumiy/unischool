@@ -18,6 +18,15 @@
   --ink: #2b2417;
   --ink-muted: #8a7c55;
   --green: #1f6b3a;
+  /* The campus grounds (see .campus-tile below): one continuous lawn, not
+     a field of separate paving stones, so the palette here is deliberately
+     narrow — a base, a slightly deeper shade for the surrounding field and
+     covered ground, and a warmed highlight for "you can build here". The
+     grid itself is a hairline, not a border — see --grass-line. */
+  --grass: #7d9c60;
+  --grass-deep: #6d8c52;
+  --grass-line: rgba(42, 56, 28, 0.16);
+  --grass-highlight: #a3c17d;
   --serif: Georgia, 'Times New Roman', serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --side-panel-width: 360px; /* the build rail floating over the map's right edge */
@@ -390,7 +399,7 @@ button { cursor: pointer; font-family: inherit; }
    CampusMap.tsx, unchanged) does the rest — it fits itself to whatever box
    it's given, same as before this layout moved it out of a bordered
    column, so every tile stays reachable at any viewport size. */
-.campus-map { position: fixed; inset: 0; z-index: 0; background: #f8f3e6; color: var(--ink); }
+.campus-map { position: fixed; inset: 0; z-index: 0; background: var(--grass-deep); color: var(--ink); }
 /* The bottom inset is the TALLER of the log strip and the tray (they sit
    side by side, not stacked, at most viewport widths — see .log-strip and
    .campus-map-tray below), each measured live rather than assumed at its
@@ -404,7 +413,7 @@ button { cursor: pointer; font-family: inherit; }
    through React state, for the same reason the transform itself is:
    it changes on every mousemove of a drag. touch-action: none stops the
    browser's own touch-scroll/pinch from fighting the map's own pan/zoom. */
-.campus-map-svg { display: block; width: 100%; height: 100%; background: #f8f3e6;
+.campus-map-svg { display: block; width: 100%; height: 100%; background: var(--grass-deep);
   cursor: grab; touch-action: none; }
 .campus-map-svg.panning { cursor: grabbing; }
 
@@ -459,14 +468,20 @@ button { cursor: pointer; font-family: inherit; }
 .campus-tray-btn.selected .campus-tray-size { color: #5d4b12; }
 .campus-map-hint { font-size: 12px; font-style: italic; color: var(--ink-muted); margin: 0; }
 
-/* The grid ground. A covered cell is drawn over by its building, so it only
-   needs to not show through the gutters. */
-.campus-tile { fill: #f1ead6; stroke: var(--parchment-line-lo); stroke-width: 1; }
-.campus-tile.covered { fill: #ece4cf; stroke: none; }
-/* Placement mode. Deliberately quiet: with 336 tiles on screen, outlining
-   every free one shouts. The available ground just warms slightly, and the
-   footprint ghost below is what actually points at where the building goes. */
-.campus-tile.targetable { fill: #f6f0de; stroke: var(--parchment-line); cursor: pointer; }
+/* The grounds: one flat lawn, not individual tiles sitting apart from each
+   other — tiles are edge to edge (see TILE_GAP in CampusMap.tsx) and
+   square (GROUND_CORNER), so the only thing marking the grid at all is
+   this hairline stroke, low-contrast against the fill on purpose. A
+   covered cell is drawn over by its building and never actually seen, so
+   its own colour only has to not show through at the seams. */
+.campus-tile { fill: var(--grass); stroke: var(--grass-line); stroke-width: 1; }
+.campus-tile.covered { fill: var(--grass-deep); stroke: none; }
+/* Placement mode. Deliberately quiet: with hundreds of tiles on screen,
+   outlining every free one shouts. The available ground just lightens, and
+   the footprint ghost below is what actually points at where the building
+   goes — its stroke stays gold-tinted (unlike the tile fill) so the
+   "clickable" cue reads as the same brass accent the rest of the UI uses. */
+.campus-tile.targetable { fill: var(--grass-highlight); stroke: rgba(201, 162, 39, 0.4); cursor: pointer; }
 
 /* The footprint ghost: where the picked-up building would land, and whether
    it fits. Multi-tile buildings make this necessary — the tile you click is
