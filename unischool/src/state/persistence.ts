@@ -321,7 +321,45 @@ const SAVE_KEY = 'unischool.save';
 //     produces the exact same 'locked' status for the exact same reason —
 //     the one thing this migration note asks to be confirmed, and is: a
 //     fresh game and a migrated game agree on every venue's initial status.
-export const SAVE_VERSION = 16;
+// v17: the campus-map footprint rescale — an academic hall grew from 2x2 to
+// 9x9, everything else in campusMap.ts's footprint tables scaled with it
+// (a dorm 2x1 -> 9x3, a lab (fallback) 1x1 -> 3x3, and so on down the whole
+// table — see the PR notes for the full before/after and the coverage
+// math), and CAMPUS_GRID_WIDTH/HEIGHT grew from 28x12 to 126x54 (the same
+// 4.5x-per-side scale, so the grid and its landmark building move together)
+// to keep a fully built-out campus reading as roughly a third of the grid
+// rather than swamping it.
+//
+// PLACEMENTS: every {row, col, w, h} a v16 save holds describes a rectangle
+// sized for the OLD table — a hall anchored at its old 2x2, not the new
+// 9x9. Rescaling those numbers in place (multiplying w/h by ~4.5 and
+// re-solving for a layout that no longer overlaps) was considered and
+// rejected: placement is purely visual and cosmetic (see types.ts's
+// Placement block), so there is no reading of "what the player meant" to
+// preserve — a rescaled-in-place layout would still need every placement
+// re-checked against every other for new overlaps, on a grid whose own
+// dimensions also just changed, which is a full re-solve dressed up as a
+// migration. The chosen answer is the plain one: DROP every placement
+// (`placements` -> `{}`), and every finished building simply returns to the
+// awaiting-siting tray at its new footprint, exactly as sanitizePlacements
+// already does one-by-one for a placement that no longer fits. Nothing
+// mechanical is lost — a building's effects apply on completion, not on
+// placement — the only cost is a resuming player re-sites a campus they'd
+// already arranged, which is the honest trade for a scale change this size.
+//
+// PATHWAYS are NOT touched. A drawn pathway is a set of edges on the tile-
+// corner grid (types.ts's PathEdge), and the grid only ever GREW on both
+// axes (28x12 -> 126x54) — every edge a v16 save holds is still a valid
+// in-bounds edge on the v17 grid (isEdgeInBounds's bounds check is
+// satisfied a fortiori by a larger grid), so sanitizePathways (run on every
+// load regardless) is already the complete migration for this slice; no
+// entry here needs to touch `pathways`. A resumed campus keeps its old
+// paths exactly where they were drawn, now near the corner of a much bigger
+// lawn — cosmetically orphaned from the (now-cleared) buildings they used
+// to run between, but that was already true of any path drawn next to a
+// building the player demolished, and is no more special-cased here than
+// that was.
+export const SAVE_VERSION = 17;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -836,6 +874,16 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     for (const node of initialFacilities()) {
       if (!have.has(node.id)) state.tech.push({ ...node });
     }
+  },
+
+  // v16 -> v17: the campus-map footprint rescale (see SAVE_VERSION above).
+  // Every placement is dropped rather than rescaled in place — the reasoning
+  // is the long note above SAVE_VERSION, not repeated here. Pathways are
+  // deliberately left untouched for the same reason: the grid only grew, so
+  // sanitizePathways (run unconditionally on every load) is already the
+  // whole of that migration.
+  16: (state) => {
+    state.placements = {};
   },
 };
 

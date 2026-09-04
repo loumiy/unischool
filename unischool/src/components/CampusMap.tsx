@@ -35,10 +35,10 @@ import { useCssHeightVar } from './useCssHeightVar';
 
 // --- layout (SVG user units; 1 unit = 1 CSS px at zoom 1 — see the pan/
 // zoom transform below) ---
-// Tiles are deliberately small now that the grid is 28x12 rather than 8x6:
+// Tiles are deliberately small now that the grid is 126x54 rather than 8x6:
 // a plot, not a placard. The label sizing below is what makes that
-// readable — a 1x1 tile gets a terse two-or-three-line name, a 2x2 hall
-// gets room for its full one.
+// readable — a small facility gets a terse two-or-three-line name, a 9x9
+// hall gets room for its full one.
 const TILE_SIZE = 64;      // edge length of one square tile
 // No gutter: the ground is one continuous lawn, not a field of separate
 // paving stones — see GROUND_CORNER below and .campus-tile's thin, low-
@@ -71,10 +71,11 @@ const LABEL_MIN_CHARS = 4;      // narrower than this at every font size down to
 
 // --- pan & zoom ---
 // Deliberately kept OUT of React state (see the view*Ref below): the whole
-// grid can be 300+ <rect>s, and re-rendering all of them on every pixel of
-// mouse movement while dragging would be the difference between a smooth
-// drag and a janky one. The `<g ref={worldRef}>` below never carries a
-// `transform` prop in its JSX — React never touches that attribute, so
+// grid can be several thousand <rect>s, and re-rendering all of them on
+// every pixel of mouse movement while dragging would be the difference
+// between a smooth drag and a janky one. The `<g ref={worldRef}>` below
+// never carries a `transform` prop in its JSX — React never touches that
+// attribute, so
 // setting it imperatively here is invisible to (and never fought by) the
 // normal render cycle, exactly like an uncontrolled input.
 const MIN_ZOOM = 0.35;
@@ -626,7 +627,7 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
   };
 
   // Placements resolved against `tech` once per render, rather than per
-  // tile: 69 placeables against 336 cells is not worth re-scanning.
+  // tile: 60 placeables against 6,804 cells is not worth re-scanning.
   const placed = Object.entries(s.placements)
     .map(([id, p]) => ({ p, t: s.tech.find((x) => x.id === id) }))
     .filter((entry): entry is { p: Placement; t: Buildable } => entry.t !== undefined);

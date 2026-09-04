@@ -126,7 +126,7 @@ separate `placements` record on `GameState` (id -> `{ row, col, w, h }`: the
 top-left tile plus the footprint covered from it), never as a field on
 `Buildable`, so the single Buildable model stays unforked. **How big a footprint
 a Buildable gets is a placement rule, not data on the Buildable** — a school
-hall covers 2x2 tiles, a dorm 2x1, a lab 1x1 — and it lives in
+hall covers 9x9 tiles, a dorm 9x3, a lab 3x3 — and it lives in
 `campusMap.ts`'s `footprintOf`, keyed on the `kind`/`facilityType` the Buildable
 already carries. Size is purely geometric: a bigger building grants nothing and
 costs nothing extra. Keep both screens dumb.

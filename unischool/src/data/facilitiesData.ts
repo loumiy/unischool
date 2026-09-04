@@ -1,4 +1,4 @@
-import type { Buildable, SatisfactionAttributes } from '../state/types';
+import type { Buildable, FacilityType, SatisfactionAttributes } from '../state/types';
 
 // ---------------------------------------------------------------------
 // Campus-life facilities: the six non-housing, non-lab needs a campus has
@@ -84,10 +84,10 @@ function servedUpkeep(facilityType: keyof typeof UPKEEP_PER_SERVED_PER_WEEK, ser
 //
 // Size is what the campus map draws, too (see campusMap.ts's footprintOf):
 // a hall at or above DINING_MAJOR_FOOTPRINT_SERVES_THRESHOLD is a real "major
-// dining hall" and gets a 2x1 footprint; a smaller one reads as a compact
-// campus restaurant and stays 1x1. Only the founding hall is small enough
-// to be a restaurant here — everything the school adds afterward is sized
-// to matter.
+// dining hall" and gets a footprint on the order of a student center; a
+// smaller one reads as a compact campus restaurant and stays small. Only
+// the founding hall is small enough to be a restaurant here — everything
+// the school adds afterward is sized to matter.
 const DINING_STARTING_ID = 'DINING-01';
 const DINING_STARTING_SERVES = 350; // matches STARTING_DORM_CAPACITY: the campus opens adequately fed, not just adequately housed
 const DINING_ADDITIONAL_COUNT = 4;
@@ -319,6 +319,41 @@ const FOOTBALL_STADIUM_ID = 'ATH-STADIUM';
 const FOOTBALL_STADIUM_SERVES = 2_500;
 const FOOTBALL_STADIUM_COST = 6_500_000;
 const FOOTBALL_STADIUM_WEEKS = 40;
+
+// ---------------------------------------------------------------------
+// CATEGORIES. A grouping layer ABOVE FacilityType, for UI organisation only
+// (the build rail's sectioning today — see BuildPanel.tsx's TYPE_MATCHERS —
+// and whatever later reads it, e.g. a future build-panel/toolbar redesign).
+// Nothing in the engine branches on this: it exists purely so "which
+// facilities are athletics and which are recreation" is authored ONCE, here,
+// rather than re-derived (or, worse, drifted) at every place that needs to
+// group them.
+//
+// The line is exactly the design fork documented above GYM_ID: ATHLETICS is
+// the five varsity COMPETITION venues — the ones data/studentLifeData.ts's
+// SPORTS maps a team's `venueCategory` to, real facilities gated behind a
+// team actually going varsity. RECREATION is the open-use amenities no team
+// is ever tied to. A rec facility never becomes "athletics" just because a
+// club happens to practice on it informally, and a varsity venue never
+// becomes "recreation" just because it also has open hours — see the
+// GYM_ID comment for why that coupling was rejected outright. Every other
+// FacilityType (library, dorm-adjacent facilities, etc.) is absent here on
+// purpose: it already has its own natural grouping and doesn't need a
+// second one.
+export type FacilityCategory = 'athletics' | 'recreation';
+
+export const FACILITY_CATEGORY_OF: Partial<Record<FacilityType, FacilityCategory>> = {
+  gym: 'recreation',
+  tennisCourts: 'recreation',
+  pool: 'recreation',
+  performingArtsCenter: 'recreation',
+  artGallery: 'recreation',
+  athleticsField: 'athletics',
+  athleticsArena: 'athletics',
+  athleticsDiamond: 'athletics',
+  athleticsNatatorium: 'athletics',
+  footballStadium: 'athletics',
+};
 
 // --- Health/counseling center: single building, two tiers, gated by population ---
 // "Unlocks at a population threshold" per the design ask: below

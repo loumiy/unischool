@@ -213,26 +213,31 @@ export interface BuildableEffects {
 // ---------------------------------------------------------------------
 
 // The campus is a fixed grid of tiles. It started deliberately small (8x6)
-// while the map was one panel among many; now that the map IS the central
-// interface it holds far more screen than 48 large tiles need, so the grid
-// is wide and fine-grained instead: a campus of many small plots rather
-// than a handful of oversized ones. Grow these two numbers to grow the
-// campus.
+// while the map was one panel among many, then grew to 28x12 once the map
+// became the central interface; it was resized again, at the SAME 7:3
+// aspect ratio, for the footprint rescale that put an academic hall at 9x9
+// (see campusMap.ts's footprintOf and the PR notes) — a hall's own footprint
+// grew by the same 4.5x per side that the grid did (2x2 -> 9x9, 28x12 ->
+// 126x54), so the campus reads at a consistently bigger scale throughout
+// rather than the grid and its landmark building drifting apart. Grow these
+// two numbers to grow the campus.
 //
-// Sized against what can actually be built: the full catalogue is 50
+// Sized against what can actually be built: the full catalogue is 60
 // placeable Buildables (10 school buildings — the eight undergraduate
 // halls plus BLDG-MED/BLDG-LAW, see techData.ts's
-// GraduateProgramSeed.buildingId — 15 dorms, 25 facilities) whose
-// footprints (see campusMap.ts's footprintOf) total 111 tiles, so a fully
-// built-out campus covers just under a third of the grid — open ground
-// between buildings, room to arrange, and headroom for the content still
-// on the roadmap (sports facilities), without the map reading as empty.
+// GraduateProgramSeed.buildingId — 15 dorms, 35 facilities: 5 dining, 2
+// each of library/studentCenter/recCenter/healthCenter/quad, 10 labs, and
+// 11 one-off campus-life/athletics facilities) whose footprints (see
+// campusMap.ts's footprintOf) total 2,179 tiles, so a fully built-out
+// campus covers about 32% (2,179 / 6,804) of the grid — open ground between
+// buildings, room to arrange, and headroom for future content, without the
+// map reading as empty.
 //
 // The proportions are chosen for the space the map column actually gets
 // (a wide, short box beside the build rail), so the grid fills its canvas
 // instead of letterboxing into the middle of it.
-export const CAMPUS_GRID_WIDTH = 28;  // tiles across (columns)
-export const CAMPUS_GRID_HEIGHT = 12; // tiles down (rows)
+export const CAMPUS_GRID_WIDTH = 126;  // tiles across (columns)
+export const CAMPUS_GRID_HEIGHT = 54;  // tiles down (rows)
 
 // Which Buildable kinds can be sited on the map at all. `course` is
 // absent on purpose and must stay absent — a course is not a place.
