@@ -17,7 +17,7 @@ import { ProgressBar } from './Progress';
 // hidden entirely rather than teased with an unlock note — nothing to
 // decide about it yet, so it doesn't belong in this list.
 //
-// REPEATABLE types (housing, dining, parking — the sequential chains in
+// REPEATABLE types (housing, dining — the sequential chains in
 // campusData.ts/facilitiesData.ts) would otherwise grow an ever-longer
 // list of finished halls with nothing to decide about, crowding out the
 // one row that is actually a choice. So their finished instances COLLAPSE
@@ -40,7 +40,6 @@ const FACILITY_LABELS: Record<FacilityType, string> = {
   diningHall: 'Dining',
   recCenter: 'Recreation',
   healthCenter: 'Health & Counseling',
-  parking: 'Parking',
   quad: 'Quad',
   lab: 'Labs',
 };
@@ -57,7 +56,7 @@ interface TypeGroup {
   items: Buildable[];
 }
 
-// One row per type. dorm/dining/parking are repeatable sequential chains
+// One row per type. dorm/dining are repeatable sequential chains
 // (see campusData.ts/facilitiesData.ts) — several finish over a run, so
 // their built rows collapse. library/studentCenter/recCenter/healthCenter/
 // quad are single buildings with tier upgrades: at most two rows ever, each
@@ -71,7 +70,6 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; ma
   { key: 'diningHall', label: FACILITY_LABELS.diningHall, repeatable: true, match: (t) => t.facilityType === 'diningHall' },
   { key: 'recCenter', label: FACILITY_LABELS.recCenter, repeatable: false, match: (t) => t.facilityType === 'recCenter' },
   { key: 'healthCenter', label: FACILITY_LABELS.healthCenter, repeatable: false, match: (t) => t.facilityType === 'healthCenter' },
-  { key: 'parking', label: FACILITY_LABELS.parking, repeatable: true, match: (t) => t.facilityType === 'parking' },
   { key: 'quad', label: FACILITY_LABELS.quad, repeatable: false, match: (t) => t.facilityType === 'quad' },
   { key: 'lab', label: FACILITY_LABELS.lab, repeatable: false, match: (t) => t.facilityType === 'lab' },
   { key: 'academicBuilding', label: 'Academic Buildings', repeatable: false, match: (t) => t.kind === 'building' },
@@ -266,7 +264,7 @@ export default function BuildPanel({ s, act }: { s: GameState; act: (a: Action) 
         <div className="panel-head">
           <span className="panel-head-title">
             <h2>Build</h2>
-            <HelpHint text="Every building the university can have, grouped by type: what's built, what's under construction, and what's next available. Repeatable types (housing, dining, parking) collapse what's already finished into one line — open it for the individual halls. A facility serves a fixed share of students against total planned capacity, not today's enrollment, so building more housing raises the bar for the rest of campus life too. Anything not yet unlockable is left off the list rather than teased. Finished buildings can then be sited on the map." />
+            <HelpHint text="Every building the university can have, grouped by type: what's built, what's under construction, and what's next available. Repeatable types (housing, dining) collapse what's already finished into one line — open it for the individual halls. A facility serves a fixed share of students against total planned capacity, not today's enrollment, so building more housing raises the bar for the rest of campus life too. Anything not yet unlockable is left off the list rather than teased. Finished buildings can then be sited on the map." />
           </span>
         </div>
 

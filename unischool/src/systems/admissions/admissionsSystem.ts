@@ -120,8 +120,8 @@ const PRICE_SENSITIVITY = 1.0;                  // applicants ~ exp(-sensitivity
 // Raised as part of the growth-loop pass so that the satisfaction dilution
 // a new dorm causes (every ratio attribute in satisfactionSystem.ts is
 // scored against CAPACITY) actually throttles the next cycle's pool —
-// growing beds without growing dining/parking/health now costs demand,
-// not just a number on a panel. It CANNOT spiral: satisfaction is floored
+// growing beds without growing dining/health now costs demand, not just a
+// number on a panel. It CANNOT spiral: satisfaction is floored
 // by ATTRIBUTE_SCORE_FLOOR, so the multiplier bottoms out around 0.63x
 // rather than at zero, and building one cheap facility moves it back.
 const WORD_OF_MOUTH_NEUTRAL = 70;    // satisfaction score with no effect on demand — matches the founding value

@@ -65,7 +65,7 @@ import { projectAdmissions } from '../admissions/admissionsSystem';
 // satisfactionSystem.ts), so when two needs are equally uncovered, going
 // hungry is the one students organise about.
 const RATIO_ATTRIBUTES: readonly (keyof SatisfactionAttributes)[] = [
-  'basicNeeds', 'infrastructure', 'academic', 'social', 'health',
+  'basicNeeds', 'academic', 'social', 'health',
 ];
 
 function clamp(v: number, lo: number, hi: number): number {
@@ -237,7 +237,7 @@ function housingCandidate(s: GameState): Candidate | null {
 // The whole content decision, and the reason a demand reads as a real
 // grievance: score every candidate shortfall against the model's own
 // coverage reading and ask for the WORST one. No weighted draw, no random
-// pick — if the students are demanding parking it is because parking is
+// pick — if the students are demanding dining it is because dining is
 // the thing this campus is most short of.
 export function rollShortfallDemand(s: GameState): StudentDemand | null {
   const candidates: Candidate[] = [];

@@ -204,7 +204,47 @@ const SAVE_KEY = 'unischool.save';
 // requirement's spirit only if the player hasn't already started it by the
 // time they notice; there's no attempt here to retrofit the building into
 // an in-flight course's prereqs.
-export const SAVE_VERSION = 12;
+// v13: parking removed. Parking wasn't fun, it was tedious, and it made the
+// campus uglier — pretending nobody drives at this school. Removing it
+// meant removing the `infrastructure` satisfaction attribute it alone fed,
+// which drops the satisfaction model from five named attributes to four
+// (see types.ts's SatisfactionAttributes and satisfactionSystem.ts's
+// ATTRIBUTE_WEIGHTS). Unlike every migration since v9 this REMOVES content
+// rather than adding it, so it is the mirror image of v9 -> v10's id-splice:
+// every parking Buildable (PARKING-01 through PARKING-13, whatever their
+// status) is dropped from `tech` outright, not re-pointed — there was
+// nothing else in the curriculum or facility graph that ever named a
+// parking id as a prereq, so nothing else needs touching.
+//
+// A parking lot mid-development loses its sunk cost, exactly as a retired
+// Pre-Med/Dentistry course did in v9 -> v10 — the alternative, refunding a
+// cost the new game has no concept of, would be inventing a payment.
+// PLACEMENTS ARE NOT TOUCHED HERE DIRECTLY: a placed parking lot's
+// Buildable id no longer exists in `tech` once this migration has run, and
+// `sanitizePlacements` (below, run on every load after every migration)
+// already drops any placement whose id isn't a placeable 'done' Buildable
+// any more — the same hygiene v9 -> v10 relied on rather than duplicating.
+// Return-to-tray would be pointless anyway: there is nothing left to place.
+//
+// The `infrastructure` key is deleted from the saved satisfactionBreakdown,
+// since tickSatisfaction now only ever writes the four keys the current
+// model produces and a stale fifth key would sit there forever unread.
+//
+// THE ONE REAL EDGE CASE, flagged rather than smoothed over, same spirit as
+// v11 -> v12's above: a save with a demand — queued or already active —
+// asking for "somewhere to park" carries `attribute: 'infrastructure'`,
+// which data/demandData.ts's DEMAND_COPY table no longer has an entry for.
+// Left alone, the very first render that tries to describe that demand
+// would crash. It is dropped here instead, exactly as a demand that gets
+// fixed before it can be announced already is (see demandSystem.ts's
+// closeDemand): the shortfall it was about is gone along with the only
+// facility that could ever have fixed it, so there is nothing left to ask
+// for. The demand cooldown is deliberately left untouched rather than
+// reset — the player is not owed an immediate re-roll just because their
+// one outstanding demand happened to be this one, and queueDemand will
+// raise a real shortfall, if the campus has one, on its own ordinary
+// timeline.
+export const SAVE_VERSION = 13;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -624,6 +664,44 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     for (const node of initialTech()) {
       if (!have.has(node.id)) state.tech.push({ ...node });
     }
+  },
+
+  // v12 -> v13: parking removed (see SAVE_VERSION above). The mirror image
+  // of v9 -> v10's id-splice: every parking Buildable is DROPPED from
+  // `tech` rather than appended, since nothing else in the curriculum or
+  // facility graph ever named a parking id as a prereq. A lot mid-
+  // development loses its sunk cost, exactly as a retired Pre-Med/Dentistry
+  // course did in v9 -> v10.
+  //
+  // Placements are deliberately NOT touched here: a placed parking lot's
+  // id no longer exists in `tech` once this runs, and `sanitizePlacements`
+  // (below, run on every load after every migration) already drops any
+  // placement whose id isn't a placeable 'done' Buildable any more — the
+  // same hygiene v9 -> v10 relied on for its own retired ids rather than
+  // duplicating.
+  12: (state) => {
+    const isParking = (id: string): boolean => id.startsWith('PARKING-');
+    state.tech = state.tech.filter((node) => !isParking(node.id));
+    for (const id of Object.keys(state.developing)) {
+      if (isParking(id)) delete state.developing[id];
+    }
+
+    // A stale fifth key nothing recomputes any more — tickSatisfaction
+    // only ever writes the four keys the current model produces.
+    delete (state.students.satisfactionBreakdown as unknown as Record<string, number>).infrastructure;
+
+    // THE ONE REAL EDGE CASE (see the longer note above SAVE_VERSION): a
+    // queued or active demand asking for "somewhere to park" carries an
+    // attribute data/demandData.ts's DEMAND_COPY no longer has an entry
+    // for, which would crash the first render that tries to describe it.
+    // Dropped here exactly as a demand that gets fixed before it can be
+    // announced already is (see demandSystem.ts's closeDemand) — the
+    // shortfall it was about is gone along with the only facility that
+    // could ever have fixed it.
+    const asksForParking = (demand: { attribute: string | null } | null): boolean =>
+      demand?.attribute === 'infrastructure';
+    if (asksForParking(state.events.pendingDemand)) state.events.pendingDemand = null;
+    if (asksForParking(state.events.activeDemand)) state.events.activeDemand = null;
   },
 };
 

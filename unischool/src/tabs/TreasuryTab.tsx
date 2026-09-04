@@ -108,7 +108,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
             />
             <StatementLine
               label="Campus upkeep"
-              note="libraries, dining, rec, parking and labs, each carrying its own running cost"
+              note="libraries, dining, rec and labs, each carrying its own running cost"
               amount={flow.facilityUpkeep}
             />
             <div className="statement-total">

@@ -53,7 +53,6 @@ const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
   library: { w: 2, h: 1 },
   studentCenter: { w: 2, h: 1 },
   recCenter: { w: 2, h: 1 },
-  parking: { w: 2, h: 1 },       // lots sprawl sideways
 };
 
 // Dining halls are the one facility type sized by how many students they

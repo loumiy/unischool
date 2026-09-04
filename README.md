@@ -235,7 +235,7 @@ The loop turns roughly once per course tier, escalating each time:
 - **Tier 1** — the first real pinch: a full department roster and 42 entry
   courses roughly triple weekly opex while enrollment cannot move until the
   next summer. The founding cushion visibly drains.
-- **Tier 2** — enrollment growth forces dorms and the dining/parking/health
+- **Tier 2** — enrollment growth forces dorms and the dining/health
   capacity that keeps satisfaction from throttling demand; their cost lands
   ahead of the class that justifies them.
 - **Tier 3** — the largest, slowest turns: big buildings, mature faculty at peak
@@ -794,9 +794,9 @@ student life and the decision events.
   shortfall against `satisfactionSystem.ts`'s **own** coverage reading
   (`attributeCoverage`, the exact 0..1 ratio the attribute is scored on) and
   asks for the **worst** one, resolved to the actual next rung of that actual
-  chain — so "another parking lot" is a named parking Buildable the school
-  could start today, and it is asked for because parking is genuinely what
-  this campus is most short of. A completely full campus can instead be asked
+  chain — so "somewhere to eat" is a named dining Buildable the school could
+  start today, and it is asked for because dining is genuinely what this
+  campus is most short of. A completely full campus can instead be asked
   for **beds**, measured against `students.capacity`. There is no parallel
   capacity model anywhere in this: both readings are ones the game already
   keeps.

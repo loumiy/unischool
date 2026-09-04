@@ -9,8 +9,8 @@ import type { SatisfactionAttributes, StudentDemand } from '../state/types';
 // tick function that reads them (systems/demands/demandSystem.ts) contains
 // only cadence and target logic.
 //
-// WHAT A DEMAND IS. One concrete, buildable ask — "another parking lot",
-// "somewhere to eat" — DERIVED from an actual shortfall rather than picked
+// WHAT A DEMAND IS. One concrete, buildable ask — "somewhere to eat",
+// "somewhere to study" — DERIVED from an actual shortfall rather than picked
 // at random, with a target condition and a deadline. Meeting it is
 // something the player DOES (they build the thing and the target reading
 // crosses its threshold), never something they click past: there is no
@@ -137,13 +137,6 @@ export const DEMAND_COPY: Record<DemandSubject, DemandCopy> = {
       `The queue at the dining halls runs out of the door and round the building, and a petition with most of the student body's names on it has been handed to your office. They want ${ask} open, and they want a date.`,
     ask: (ask) => `Open ${ask}`,
     unit: 'students served by dining',
-  },
-  infrastructure: {
-    headline: 'Students demand somewhere to park',
-    grievance: (ask) =>
-      `Students are circling the lots for an hour and parking on the verges, and the campus paper has run the photographs three weeks running. The demand is specific: build ${ask}.`,
-    ask: (ask) => `Build ${ask}`,
-    unit: 'students served by parking',
   },
   academic: {
     headline: 'Students demand somewhere to study',
