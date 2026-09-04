@@ -7,6 +7,7 @@ import {
   orientedFootprint, parseEdgeKey, placementTiles, tilesCovered,
 } from '../state/campusMap';
 import HelpHint from './HelpHint';
+import BuildingInfoPanel from './BuildingInfoPanel';
 import { useCssHeightVar } from './useCssHeightVar';
 
 // The campus map: the game's base layer, always on screen under everything
@@ -205,7 +206,11 @@ function GroundTile({ row, col, empty, targetable, onEnter, onClick, onDrop }: {
       height={TILE_SIZE}
       rx={GROUND_CORNER}
       onMouseEnter={live ? onEnter : undefined}
-      onClick={live ? onClick : undefined}
+      // Live for placement, or not: an empty tile still needs a click
+      // handler while nothing is being placed, purely so clicking open
+      // ground can close an open building-info panel (see onGroundClick in
+      // CampusMap below, which is what actually decides what a click does).
+      onClick={empty ? onClick : undefined}
       // Drag-and-drop is the same placement reached a second way, and it
       // ends in the same place() the click does — one placement path, not
       // two. It hangs off `empty` rather than `live` and carries the
@@ -226,8 +231,12 @@ function GroundTile({ row, col, empty, targetable, onEnter, onClick, onDrop }: {
 }
 
 // A placed Buildable: one rect spanning its whole footprint, with its label
-// centred in it.
-function PlacedBuilding({ t, p }: { t: Buildable; p: Placement }) {
+// centred in it. `onInspect` is always wired (never conditionally omitted)
+// — CampusMap's inspectBuilding decides whether a click actually opens the
+// info panel (it no-ops while a building is picked up for siting or a path
+// tool is active; see the disambiguation note there), so this component
+// itself carries no mode awareness. `inspected` only drives the highlight.
+function PlacedBuilding({ t, p, onInspect, inspected }: { t: Buildable; p: Placement; onInspect: () => void; inspected: boolean }) {
   const x = tileX(p.col);
   const y = tileY(p.row);
   const width = spanSize(p.w);
@@ -237,7 +246,12 @@ function PlacedBuilding({ t, p }: { t: Buildable; p: Placement }) {
   const firstLineY = y + height / 2 - ((lines.length - 1) * LABEL_LINE_HEIGHT) / 2;
 
   return (
-    <g className={`campus-building ${kindClasses(t)}`} aria-label={t.name}>
+    <g
+      className={`campus-building ${kindClasses(t)} ${inspected ? 'inspected' : ''}`}
+      aria-label={t.name}
+      role="button"
+      onClick={onInspect}
+    >
       <rect x={x} y={y} width={width} height={height} rx={BUILDING_CORNER} />
       {lines.map((line, i) => (
         <text
@@ -268,6 +282,15 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
   // for the same click on the same grid, so exactly one is ever live (see
   // selectBuilding/setPathTool below, which each clear the other).
   const [pathTool, setPathToolState] = useState<'draw' | 'erase' | null>(null);
+  // The id of the placed building currently showing its read-only info
+  // panel, or null when none is open. Local, transient UI state — same
+  // reasoning as `selectedId`/`rotated` above: nothing about which building
+  // is being LOOKED AT belongs in GameState (see BuildingInfoPanel.tsx).
+  // Mutually exclusive with `selectedId`/`pathTool`, same as those two are
+  // with each other: selectBuilding/setPathTool below both clear it, and
+  // inspectBuilding refuses to open it while either is active (see the
+  // disambiguation note there).
+  const [inspectedId, setInspectedId] = useState<string | null>(null);
   // The tile the pointer (or an in-flight drag) is over, so the footprint
   // about to land can be previewed. Multi-tile buildings need this: where a
   // 2x2 hall goes is no longer obvious from the tile you clicked.
@@ -288,6 +311,7 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
     setSelectedId(id);
     setRotated(false);
     setPathToolState(null);
+    setInspectedId(null);
   }
 
   // Symmetric with selectBuilding: engaging a path tool always drops
@@ -298,6 +322,7 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
     setPathToolState((cur) => (cur === mode ? null : mode));
     setSelectedId(null);
     setRotated(false);
+    setInspectedId(null);
   }
 
   // --- pan & zoom (see the MIN_ZOOM/MAX_ZOOM block above for why this is
@@ -486,15 +511,42 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
     selectBuilding(null);
     setHover(null);
   };
-  // Gated on justPannedRef so the click that follows a drag-to-pan (the
-  // browser fires one on mouseup regardless of how far the pointer moved,
-  // as long as it comes up over the same element it went down on) doesn't
-  // also site a building — a pan is a pan, never a placement. An ordinary
-  // click never sets that flag (see onMapMouseDown/onUp above), so this is
-  // a no-op the rest of the time.
-  const place = (row: number, col: number) => {
-    if (justPannedRef.current) { justPannedRef.current = false; return; }
-    if (selected) placeById(selected.id, row, col);
+  // True (and clears the flag) exactly when the click this fires from is
+  // the tail end of a drag-to-pan rather than a real click — the browser
+  // fires a click on mouseup regardless of how far the pointer moved, as
+  // long as it comes up over the same element it went down on. Shared by
+  // every click handler below a pan can land on (placing, inspecting,
+  // closing the inspector on empty ground): a pan is a pan, never any of
+  // those. An ordinary click never sets the flag (see onMapMouseDown/onUp
+  // above), so this is a no-op the rest of the time.
+  const consumePanClick = () => {
+    if (justPannedRef.current) { justPannedRef.current = false; return true; }
+    return false;
+  };
+  // Empty ground: places the picked-up building if one is selected, same
+  // as before; otherwise its only job is closing an open info panel, since
+  // there's nothing else an empty-tile click could mean while nothing is
+  // being sited (see selectBuilding/setPathTool above for why inspectedId
+  // is already null whenever selected/pathTool is set, and inspectBuilding
+  // below for the matching building-click half of this).
+  const onGroundClick = (row: number, col: number) => {
+    if (consumePanClick()) return;
+    if (selected) { placeById(selected.id, row, col); return; }
+    if (inspectedId) setInspectedId(null);
+  };
+  // A placed building: opens its info panel, or closes it if it's the one
+  // already open — but only when the map is in its ordinary "just looking"
+  // mode. While a building is picked up for siting (`selected`) or a path
+  // tool is drawing/erasing (`pathTool`), the SAME click on a building is
+  // that mode's own business (occupied tiles are never legal placement
+  // targets, and path edges have their own separate hit targets — see
+  // allEdges below — so this simply declines to do anything rather than
+  // fighting either), which is the whole of the info-vs-placement
+  // disambiguation this PR adds: one flag check, not a new mode of its own.
+  const inspectBuilding = (id: string) => {
+    if (consumePanClick()) return;
+    if (selected || pathTool) return;
+    setInspectedId((cur) => (cur === id ? null : id));
   };
 
   const rows = Array.from({ length: CAMPUS_GRID_HEIGHT }, (_, row) => row);
@@ -532,6 +584,12 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
   for (const { p } of placed) {
     for (const tile of placementTiles(p)) covered.add(`${tile.row},${tile.col}`);
   }
+
+  // The inspected building, if any, re-resolved against `placed` on every
+  // render rather than trusted from state — same reasoning as `selected`
+  // above: a placement can vanish (see eventData.ts's demolition event),
+  // so a stale id must not go on pointing at a building no longer there.
+  const inspected = placed.find(({ t }) => t.id === inspectedId) ?? null;
 
   // The footprint ghost under the cursor, and whether it would actually fit
   // — at the CURRENT rotation, so a rotated shape that no longer clears the
@@ -577,7 +635,7 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
                 // let the footprint ghost jitter across all of them while
                 // the player is just moving the world around.
                 onEnter={() => { if (!dragRef.current?.moved) setHover({ row, col }); }}
-                onClick={() => place(row, col)}
+                onClick={() => onGroundClick(row, col)}
                 onDrop={(id) => placeById(id, row, col)}
               />
             )))}
@@ -589,7 +647,9 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
               return <line key={key} className="campus-path-edge" x1={x1} y1={y1} x2={x2} y2={y2} />;
             })}
 
-            {placed.map(({ t, p }) => <PlacedBuilding key={t.id} t={t} p={p} />)}
+            {placed.map(({ t, p }) => (
+              <PlacedBuilding key={t.id} t={t} p={p} onInspect={() => inspectBuilding(t.id)} inspected={t.id === inspectedId} />
+            ))}
 
             {pathTool && allEdges.map((edge) => {
               const { x1, y1, x2, y2 } = edgeLine(edge);
@@ -643,6 +703,19 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
             )}
           </g>
         </svg>
+
+        {/* The inspected building's read-only info panel. A FIXED corner
+            card, not a popover anchored to the building's own screen
+            position: the building's on-screen coordinates move continuously
+            under pan/zoom, which is applied imperatively straight to the
+            SVG transform (see applyView/viewRef above) specifically to
+            avoid a React re-render on every pixel of a drag — tracking the
+            popover to the building would mean re-rendering it on every one
+            of those same pixels, undoing that. The map's top-left corner is
+            otherwise empty (zoom/path controls sit top-right, the tray and
+            log strip sit along the bottom, the build rail owns the right
+            edge), so it's a natural home for a card that doesn't move. */}
+        {inspected && <BuildingInfoPanel t={inspected.t} s={s} onClose={() => setInspectedId(null)} />}
 
         {/* Zoom and path-tool controls float over the map's own corner,
             clear of the tray/log strip/build rail (see styles.css) — zoom
