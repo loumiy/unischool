@@ -4,10 +4,9 @@ import type { GameState } from './state/types';
 import StartupScreen from './components/StartupScreen';
 import StatusHeader from './components/StatusHeader';
 import InterruptModal from './components/InterruptModal';
-import TabNav, { TAB_LABELS, type TabId } from './components/TabNav';
+import { TAB_LABELS, type TabId } from './components/TabNav';
 import CampusMap from './components/CampusMap';
-import BuildPanel from './components/BuildPanel';
-import LogStrip from './components/LogStrip';
+import Toolbar from './components/Toolbar';
 import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
 import FacultyTab from './tabs/FacultyTab';
@@ -22,11 +21,11 @@ import './styles.css';
 // The dashboard shell, built around the campus map as a full-viewport
 // BACKGROUND: the map fills the whole screen behind everything, always
 // present and never gated behind a tab, and every piece of chrome —
-// status header, build rail, log ticker, and every tab's panel — floats
-// ON TOP of it rather than sharing a bordered column with it. With no tab
-// open the player is simply looking at the world, control bar over it; the
-// map is the one screen the player always comes back to, and no view is
-// ever more than one Escape away from it.
+// status header, bottom toolbar, and every tab's panel — floats ON TOP of
+// it rather than sharing a bordered column with it. With no tab open the
+// player is simply looking at the world, control bar over it; the map is
+// the one screen the player always comes back to, and no view is ever more
+// than one Escape away from it.
 //
 // CampusMap itself renders as a plain sibling BEFORE `.app` (see below,
 // and styles.css) so the chrome layer's own box never sits between the
@@ -38,32 +37,56 @@ import './styles.css';
 // their slice of GameState and dispatch actions exactly as before, and know
 // nothing about being rendered in an overlay.
 //
-// The topbar and the log strip both have real, non-constant heights — the
-// masthead's stat row wraps at moderate widths and wraps further as the
-// viewport narrows (see styles.css's media queries) — so a fixed CSS inset
-// would either waste map area on a wide screen or, worse, leave a strip of
-// tiles physically under an opaque panel — on screen but never clickable —
-// on a narrower one. `useCssHeightVar` keeps `--topbar-height` and
-// `--log-strip-height` synced to their real rendered heights; the map's own
-// bottom hint strip does the same for `--tray-height` in CampusMap.tsx.
-// Together those three are what .campus-map-canvas (see styles.css) insets its
-// interactive area by, so every tile stays reachable at any viewport size.
+// C2 unifies what used to be three separate floating pieces — the tab nav,
+// the build rail, and the log ticker — into one bottom Toolbar (see
+// Toolbar.tsx), and reclaims the side rail's column entirely: the map now
+// only insets away from the topbar (top) and the toolbar (bottom), never a
+// right-hand rail. The topbar and the toolbar both have real, non-constant
+// heights — the masthead's stat row wraps at moderate widths, and the
+// toolbar's own log ticker can wrap too (see styles.css's media queries) —
+// so a fixed CSS inset would either waste map area on a wide screen or,
+// worse, leave a strip of tiles physically under an opaque panel — on
+// screen but never clickable — on a narrower one. `useCssHeightVar` keeps
+// `--topbar-height` and `--toolbar-height` synced to their real rendered
+// heights; the map's own bottom hint strip does the same for `--tray-height`
+// in CampusMap.tsx. Together those are what .campus-map-canvas (see
+// styles.css) insets its interactive area by, so every tile stays reachable
+// at any viewport size.
 export default function App() {
   const { state, act, speed, setSpeed } = useGame();
   const s: GameState = state;
   // null = looking at the map itself, with nothing open over it.
   const [overlay, setOverlay] = useState<TabId | null>(null);
   // Which placeable Buildable (building/dorm/facility) is currently picked
-  // up for siting, if any — the ONE piece of CampusMap's transient UI state
-  // that has to live here rather than inside CampusMap itself. Placement is
-  // now how a placeable Buildable starts (see PLACE_BUILDABLE), and
-  // BuildPanel's "site →" row is where that pickup can be armed from, so
-  // this is the nearest shared ancestor of the two components that need it.
-  const [placingId, setPlacingId] = useState<string | null>(null);
+  // up for siting, if any, and which path-drawing tool (if any) is active —
+  // the two pieces of CampusMap's transient UI state that have to live here
+  // rather than inside CampusMap itself, since C2's build popup (Toolbar.tsx
+  // -> BuildPopup.tsx) can now arm either one too, not just the map itself.
+  // Placement is how a placeable Buildable starts (see PLACE_BUILDABLE), and
+  // BuildPopup's "site →" row is where that pickup can be armed from; the
+  // draw/erase path buttons living in that same popup are the other half.
+  // This is the nearest shared ancestor of every component that needs
+  // either one.
+  const [placingId, setPlacingIdState] = useState<string | null>(null);
+  const [pathTool, setPathToolState] = useState<'draw' | 'erase' | null>(null);
   const topbarRef = useRef<HTMLDivElement>(null);
-  const logStripRef = useRef<HTMLDivElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
   useCssHeightVar(topbarRef, '--topbar-height');
-  useCssHeightVar(logStripRef, '--log-strip-height');
+  useCssHeightVar(toolbarRef, '--toolbar-height');
+
+  // Picking up a building for siting and drawing/erasing a path are two
+  // different jobs for the same click on the same grid, so exactly one is
+  // ever live — see CampusMap.tsx's own (pre-C2) version of this rule.
+  // Arming a placement always drops whatever path tool was active, and
+  // engaging a path tool always drops whatever was picked up for siting.
+  function setPlacingId(id: string | null) {
+    setPlacingIdState(id);
+    if (id !== null) setPathToolState(null);
+  }
+  function setPathTool(mode: 'draw' | 'erase') {
+    setPathToolState((cur) => (cur === mode ? null : mode));
+    setPlacingIdState(null);
+  }
 
   if (!s.started) {
     return <StartupScreen onStart={(name, schoolType) => act({ type: 'START_GAME', name, schoolType })} />;
@@ -71,7 +94,7 @@ export default function App() {
 
   return (
     <>
-      <CampusMap s={s} act={act} selectedId={placingId} onSelect={setPlacingId} />
+      <CampusMap s={s} act={act} selectedId={placingId} onSelect={setPlacingId} pathTool={pathTool} />
 
       <div className="app">
         <div className="topbar" ref={topbarRef}>
@@ -82,12 +105,18 @@ export default function App() {
               expansion instead). RESET now erases the save and returns to the
               startup screen, so the label follows it. */}
           {s.gameOver && <div className="gameover">Game Over — <button onClick={() => act({ type: 'RESET' })}>New Game</button></div>}
-
-          <TabNav active={overlay} onChange={setOverlay} />
         </div>
 
-        <BuildPanel s={s} placingId={placingId} onArmPlacement={setPlacingId} />
-        <LogStrip ref={logStripRef} s={s} />
+        <Toolbar
+          ref={toolbarRef}
+          s={s}
+          active={overlay}
+          onChangeTab={setOverlay}
+          placingId={placingId}
+          onArmPlacement={setPlacingId}
+          pathTool={pathTool}
+          onSetPathTool={setPathTool}
+        />
 
         {overlay && (
           <TabOverlay title={TAB_LABELS[overlay]} onClose={() => setOverlay(null)}>

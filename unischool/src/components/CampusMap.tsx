@@ -13,7 +13,7 @@ import { useCssHeightVar } from './useCssHeightVar';
 
 // The campus map: the game's base layer, always on screen under everything
 // else (see App.tsx), and a placement + rendering layer over the SAME
-// Buildables the build panel lists. It reads `s.placements` + `s.tech` and
+// Buildables the build popup lists. It reads `s.placements` + `s.tech` and
 // dispatches PLACE_BUILDABLE; it computes nothing, owns no game state, and
 // changes no outcome beyond what PLACE_BUILDABLE itself already does (the
 // same cost/gate/countdown a course's START_DEVELOPMENT uses — see
@@ -22,13 +22,14 @@ import { useCssHeightVar } from './useCssHeightVar';
 // a building that covers four tiles costs and grants exactly what its data
 // says, worth no more or less for the ground it stands on.
 //
-// `selectedId`/`onSelect` — which Buildable is currently picked up for
-// siting, if any — are LIFTED to App.tsx rather than owned here, because
-// the Build panel is now the other place that can arm one (see
-// BuildPanel.tsx's "site →" row): App.tsx is the nearest shared ancestor.
-// Every other transient UI concern below (rotation, the path tool, the
-// inspected building, hover) stays local — nothing else here needs to be
-// reachable from outside this component.
+// `selectedId`/`onSelect` and `pathTool` — which Buildable is currently
+// picked up for siting, and which path-drawing tool (if any) is active —
+// are LIFTED to App.tsx rather than owned here, because the build popup
+// (BuildPopup.tsx, toggled from the bottom toolbar) is the other place that
+// can arm either one: App.tsx is the nearest shared ancestor. Every other
+// transient UI concern below (rotation, the inspected building, hover)
+// stays local — nothing else here needs to be reachable from outside this
+// component.
 //
 // Being the central surface is a LAYOUT fact, not a mechanical one: nothing
 // here gained authority over the sim by moving to the middle of the screen.
@@ -333,7 +334,7 @@ function GroundTile({ row, col, empty, targetable, onEnter, onClick, onDrop }: {
 // s.developing by the caller — see the `placed.map` below) — the under-
 // construction visual cue the PR is about: a distinct `.under-construction`
 // class (styles.css) and a progress bar along the footprint's own bottom
-// edge, the same "how far along" reading BuildPanel's ProgressBar gives a
+// edge, the same "how far along" reading BuildPopup's ProgressBar gives a
 // developing row there, just drawn in SVG for the map's own footprint
 // instead of a fixed-width bar. A 'done' Buildable renders exactly as it
 // always did.
@@ -392,27 +393,28 @@ function PlacedBuilding({
 }
 
 export default function CampusMap({
-  s, act, selectedId, onSelect,
+  s, act, selectedId, onSelect, pathTool,
 }: {
   s: GameState;
   act: (a: Action) => void;
   // Which Buildable is currently picked up for siting, if any — lifted to
-  // App.tsx (see the module comment above) so BuildPanel.tsx's "site →" row
+  // App.tsx (see the module comment above) so BuildPopup.tsx's "site →" row
   // can arm the same selection this component reads and clears.
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  // The active path-drawing tool, or null when the map is in its ordinary
+  // placement mode. Lifted to App.tsx too (C2) — the draw/erase buttons
+  // that drive it now live in the build popup (BuildPopup.tsx), not on the
+  // map itself, so this component only ever READS it here; App.tsx is what
+  // enforces "picking up a building and drawing/erasing a path are two
+  // different jobs for the same click, so exactly one is ever live".
+  pathTool: 'draw' | 'erase' | null;
 }) {
   // Whether the currently-selected building has been turned 90 degrees
   // before siting (see campusMap.ts's orientedFootprint). Transient UI
   // state, not persisted itself — what's persisted is the resulting
   // {row,col,w,h} once actually placed (see types.ts's Placement).
   const [rotated, setRotated] = useState(false);
-  // The active path-drawing tool, or null when the map is in its ordinary
-  // placement mode. Mutually exclusive with `selectedId`: picking up a
-  // building for siting and drawing/erasing a path are two different jobs
-  // for the same click on the same grid, so exactly one is ever live (see
-  // selectBuilding/setPathTool below, which each clear the other).
-  const [pathTool, setPathToolState] = useState<'draw' | 'erase' | null>(null);
   // The id of the placed building currently showing its read-only info
   // panel, or null when none is open. Local, transient UI state — same
   // reasoning as `selectedId`/`rotated` above: nothing about which building
@@ -427,7 +429,7 @@ export default function CampusMap({
   // 2x2 hall goes is no longer obvious from the tile you clicked.
   const [hover, setHover] = useState<{ row: number; col: number } | null>(null);
 
-  // `selectedId` can now change from OUTSIDE this component (BuildPanel.tsx
+  // `selectedId` can now change from OUTSIDE this component (BuildPopup.tsx
   // arming a new pickup), not just through selectBuilding below — so
   // rotation is reset here, keyed on the prop itself, rather than only at
   // selectBuilding's own call sites. A fresh pickup always starts
@@ -435,32 +437,28 @@ export default function CampusMap({
   useEffect(() => {
     setRotated(false);
   }, [selectedId]);
+  // `pathTool` is now a prop (App.tsx owns it — see this component's own
+  // module comment): entering or leaving path-drawing mode always closes
+  // whatever building-info panel was open, the same "switching modes clears
+  // the inspector" rule selectBuilding enforces below for the placement
+  // side of this.
+  useEffect(() => {
+    setInspectedId(null);
+  }, [pathTool]);
   // This strip's own rendered height feeds --tray-height (see
-  // styles.css's .campus-map-canvas and App.tsx's matching
-  // --log-strip-height): a single line most of the time, so the map keeps
-  // that space rather than a fixed reservation for a card that no longer
-  // holds a list.
+  // styles.css's .campus-map-canvas), sized to sit just above the bottom
+  // toolbar (App.tsx/Toolbar.tsx) rather than reserving a card's worth of
+  // height for a list it no longer holds.
   const trayRef = useRef<HTMLDivElement>(null);
   useCssHeightVar(trayRef, '--tray-height');
 
   // The one place selection changes: always resets rotation (a fresh pickup
-  // starts unrotated) and always drops out of path-drawing mode, so a
-  // building picked up for siting and an active draw/erase tool can never
-  // both be live — see the pathTool state comment above.
+  // starts unrotated) and closes the info panel, so a building picked up
+  // for siting and an open inspector can never both be live. Dropping out
+  // of path-drawing mode is now App.tsx's job (see setPlacingId there),
+  // since pathTool is no longer local state here.
   function selectBuilding(id: string | null) {
     onSelect(id);
-    setRotated(false);
-    setPathToolState(null);
-    setInspectedId(null);
-  }
-
-  // Symmetric with selectBuilding: engaging a path tool always drops
-  // whatever building was picked up. Clicking the same tool again toggles
-  // it back off, so "Draw" and "Erase" behave as two independent toggles
-  // rather than a three-state radio the player has to reason about.
-  function setPathTool(mode: 'draw' | 'erase') {
-    setPathToolState((cur) => (cur === mode ? null : mode));
-    onSelect(null);
     setRotated(false);
     setInspectedId(null);
   }
@@ -596,7 +594,7 @@ export default function CampusMap({
   }
 
   // Every placeable Buildable that has cleared its gate and hasn't been
-  // sited yet — exactly what BuildPanel.tsx renders a "site →" row for.
+  // sited yet — exactly what BuildPopup.tsx renders a "site →" row for.
   // Picking one up here is the SAME selection that row arms (see the
   // module comment above): this is where a picked-up id resolves to a
   // real Buildable to read its footprint/gate off.
@@ -861,59 +859,41 @@ export default function CampusMap({
             avoid a React re-render on every pixel of a drag — tracking the
             popover to the building would mean re-rendering it on every one
             of those same pixels, undoing that. The map's top-left corner is
-            otherwise empty (zoom/path controls sit top-right, the tray and
-            log strip sit along the bottom, the build rail owns the right
-            edge), so it's a natural home for a card that doesn't move. */}
+            otherwise empty (zoom sits top-right, the tray sits along the
+            bottom, and C2 folded the build rail and the draw/erase path
+            controls into the bottom toolbar/build popup — see Toolbar.tsx),
+            so it's a natural home for a card that doesn't move. */}
         {inspected && <BuildingInfoPanel t={inspected.t} s={s} onClose={() => setInspectedId(null)} />}
 
-        {/* Zoom and path-tool controls float over the map's own corner,
-            clear of the tray/log strip/build rail (see styles.css) — zoom
-            is reachable without a wheel/trackpad (a hard requirement on a
-            map that no longer fits the screen at native size), and the
-            path tools live right beside it since drawing shares the same
-            canvas as placement. */}
-        <div className="campus-map-side-controls">
-          <div className="campus-map-zoom-controls">
-            <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
-            <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>
-          </div>
-          <div className="campus-map-path-controls">
-            <button
-              type="button"
-              className={pathTool === 'draw' ? 'active' : ''}
-              aria-pressed={pathTool === 'draw'}
-              onClick={() => setPathTool('draw')}
-              title="Draw a pathway along tile edges"
-            >
-              🛤️ Draw path
-            </button>
-            <button
-              type="button"
-              className={pathTool === 'erase' ? 'active' : ''}
-              aria-pressed={pathTool === 'erase'}
-              onClick={() => setPathTool('erase')}
-              title="Erase a drawn pathway"
-            >
-              🧹 Erase path
-            </button>
-          </div>
+        {/* Zoom floats over the map's own top-right corner — reachable
+            without a wheel/trackpad (a hard requirement on a map that no
+            longer fits the screen at native size). It stays here rather
+            than moving into the bottom toolbar (C2) because it's a
+            viewport control, not a campus-editing tool like draw/erase
+            path (which DID move — see BuildPopup.tsx's CampusToolsSection):
+            zoom belongs anchored to the thing it controls, not bundled with
+            the build menu. */}
+        <div className="campus-map-zoom-controls">
+          <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
+          <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>
         </div>
       </div>
 
-      {/* A slim, single-line strip docked along the bottom edge: a title,
-          a help hint, and a live one-line hint for whatever mode the map
-          is currently in. What USED to live here — the "awaiting siting"
-          tray of finished-but-unplaced buildings, and later a tiles-built
-          counter — is gone: picking something up for siting happens from
-          BuildPanel.tsx's "site →" row (placement starts a build, so the
-          affordance belongs where every other build decision is made),
-          and the counter told the player nothing they act on. What's left
-          is orientation only, kept to one row so it no longer reads as a
-          card competing with the log strip for the bottom of the screen. */}
+      {/* A slim, single-line strip docked along the bottom edge, just above
+          the toolbar: a title, a help hint, and a live one-line hint for
+          whatever mode the map is currently in. What USED to live here —
+          the "awaiting siting" tray of finished-but-unplaced buildings, and
+          later a tiles-built counter — is gone: picking something up for
+          siting happens from BuildPopup.tsx's "site →" row (placement
+          starts a build, so the affordance belongs where every other build
+          decision is made), and the counter told the player nothing they
+          act on. What's left is orientation only, kept to one row so it no
+          longer reads as a card competing with the toolbar for the bottom
+          of the screen. */}
       <div className="campus-map-tray" ref={trayRef}>
         <span className="panel-head-title">
           <h2>Campus Map</h2>
-          <HelpHint text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build panel — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. The Draw path / Erase path buttons let you sketch walkways along the gridlines between tiles — free, purely decorative, and unrelated to building." />
+          <HelpHint text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. The Draw path / Erase path buttons (also in the build popup) let you sketch walkways along the gridlines between tiles — free, purely decorative, and unrelated to building." />
         </span>
         <span className="campus-map-hint">
           {pathTool
@@ -923,7 +903,7 @@ export default function CampusMap({
             : selected && selectedFootprint
               ? `Click or drop on ${selectedFootprint.w}×${selectedFootprint.h} of empty tiles to start building ${selected.name} there.`
                 + (canRotate(footprintOf(selected)) ? ' Press R (or the ⟳ on the ghost) to rotate.' : '')
-              : 'Pick something to build from the Build panel, then click (or drag) an empty tile here to start it.'}
+              : 'Pick something to build from the Build popup, then click (or drag) an empty tile here to start it.'}
         </span>
       </div>
     </section>
