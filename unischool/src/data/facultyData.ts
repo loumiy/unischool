@@ -8,8 +8,14 @@ import { initialTech } from './techData';
 // NAME_WEIGHT below) — mismatched pairs (e.g. a first name from one pool
 // with a last name from an unrelated one) still happen, deliberately, just
 // as the minority case rather than the systematic result of two uniform,
-// unrelated picks. Seven pools x fourteen names each gives ~9,600
-// first+last combinations before that weighting even applies —
+// unrelated picks. WHICH pool supplies the first name is itself weighted,
+// not uniform (see pickPool()/ANGLO_POOL_WEIGHT below), so this reads as a
+// typical American university's faculty roster rather than as one-in-seven
+// name origins. Seven pools x fourteen names each gives ~9,600 first+last
+// combinations across all origins before either weighting applies; even
+// restricted to the dominant Anglo/Western European pool alone (the worst
+// case for collisions, since it's drawn ~50% of the time and then paired
+// same-origin 85% of the time) that's still 14x14 = 196 combinations —
 // comfortably larger than the handful of faculty any single playthrough
 // ever rolls, so rollFullName's dedupe below essentially never has to
 // fall back. This same pool is also where donor/alumni surnames come from
@@ -22,43 +28,63 @@ interface NamePool {
   origin: string;
   first: string[];
   last: string[];
+  weight: number;
 }
+
+// Relative weight for pool SELECTION (see pickPool() below) — not pool
+// size; every pool still has 14 first/14 last names regardless of weight.
+// Anglo/Western European carries ANGLO_POOL_WEIGHT against the other six
+// origins' shared OTHER_POOL_WEIGHT, which (with equal weight per non-Anglo
+// pool) works out to a 6-in-12 = 50% share for Anglo/Western European and a
+// 1-in-12 = ~8.3% share for each of the other six — a majority-to-large-
+// plurality English/American name pool, matched to a real American
+// university's demographics, while every other origin still surfaces
+// regularly rather than as a rare/token draw.
+const ANGLO_POOL_WEIGHT = 6;
+const OTHER_POOL_WEIGHT = 1;
 
 const NAME_POOLS: NamePool[] = [
   {
     origin: 'East Asian',
     first: ['Wei', 'Mei', 'Jun', 'Hana', 'Yuki', 'Minjun', 'Xin', 'Li', 'Feng', 'Sooah', 'Haruto', 'Aiko', 'Seojin', 'Ren'],
     last: ['Zhang', 'Kim', 'Tanaka', 'Chen', 'Park', 'Nakamura', 'Liu', 'Wang', 'Lee', 'Sato', 'Watanabe', 'Choi', 'Huang', 'Kobayashi'],
+    weight: OTHER_POOL_WEIGHT,
   },
   {
     origin: 'South Asian',
     first: ['Priya', 'Arjun', 'Ananya', 'Rohan', 'Divya', 'Vikram', 'Meera', 'Anika', 'Karan', 'Ishaan', 'Farhan', 'Nadia', 'Aarav', 'Riya'],
     last: ['Patel', 'Sharma', 'Gupta', 'Nair', 'Rao', 'Iyer', 'Chowdhury', 'Singh', 'Reddy', 'Bose', 'Ahmed', 'Khan', 'Menon', 'Desai'],
+    weight: OTHER_POOL_WEIGHT,
   },
   {
     origin: 'Anglo/Western European',
     first: ['John', 'Emily', 'Daniel', 'William', 'Grace', 'Thomas', 'Alice', 'James', 'Charlotte', 'Henry', 'Olivia', 'Connor', 'Sarah', 'Michael'],
     last: ['Reid', 'Byrne', 'Coleman', 'Whitfield', 'Bennett', 'Hayes', 'Sinclair', 'Murphy', 'Fitzgerald', 'Walsh', 'Schmidt', 'Fraser', 'Douglas', 'Kennedy'],
+    weight: ANGLO_POOL_WEIGHT,
   },
   {
     origin: 'Hispanic/Latin American',
     first: ['Sofia', 'Mateo', 'Camila', 'Diego', 'Valentina', 'Javier', 'Lucia', 'Isabella', 'Santiago', 'Gabriela', 'Alejandro', 'Renata', 'Emilio', 'Paula'],
     last: ['Costa', 'Moreno', 'Reyes', 'Herrera', 'Silva', 'Torres', 'Vega', 'Garcia', 'Rodriguez', 'Fernandez', 'Castillo', 'Ortiz', 'Aguilar', 'Navarro'],
+    weight: OTHER_POOL_WEIGHT,
   },
   {
     origin: 'Arabic/Middle Eastern',
     first: ['Omar', 'Fatima', 'Layla', 'Hassan', 'Amir', 'Yasmin', 'Karim', 'Sara', 'Tarek', 'Nour', 'Rami', 'Dina', 'Youssef', 'Rana'],
     last: ['Nasser', 'Farouk', 'Haddad', 'Khalil', 'Aziz', 'Saleh', 'Mansour', 'Rahman', 'Zaidan', 'Qureshi', 'Sabbagh', 'Fawzy', 'Hakim', 'Barakat'],
+    weight: OTHER_POOL_WEIGHT,
   },
   {
     origin: 'Slavic/Eastern European',
     first: ['Elena', 'Ivan', 'Katarina', 'Dmitri', 'Nadia', 'Viktor', 'Anya', 'Milan', 'Zofia', 'Pavel', 'Irina', 'Tomas', 'Olga', 'Stefan'],
     last: ['Novak', 'Petrov', 'Kowalski', 'Horvat', 'Ivanov', 'Dvorak', 'Sokolov', 'Marek', 'Zielinski', 'Vasiliev', 'Jovanovic', 'Nowak', 'Kucera', 'Baran'],
+    weight: OTHER_POOL_WEIGHT,
   },
   {
     origin: 'West/East African',
     first: ['Kwame', 'Amara', 'Chidi', 'Adaeze', 'Kofi', 'Zainab', 'Femi', 'Ngozi', 'Tunde', 'Abena', 'Kwesi', 'Fatou', 'Ifeoma', 'Emeka'],
     last: ['Okafor', 'Mensah', 'Adeyemi', 'Nwosu', 'Diallo', 'Osei', 'Mwangi', 'Balogun', 'Owusu', 'Kamau', 'Sow', 'Achebe', 'Boateng', 'Njoroge'],
+    weight: OTHER_POOL_WEIGHT,
   },
 ];
 
@@ -171,12 +197,29 @@ function pick<T>(pool: T[]): T {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+const TOTAL_POOL_WEIGHT = NAME_POOLS.reduce((sum, pool) => sum + pool.weight, 0);
+
+// Weighted draw over NAME_POOLS by `weight` (see ANGLO_POOL_WEIGHT/
+// OTHER_POOL_WEIGHT above). Unlike pick(), which is a uniform draw over
+// whatever array it's given, this is the one place a NAME POOL itself gets
+// picked — every rollSurname/rollCoachName/rollFullName call site below
+// routes through here rather than calling pick(NAME_POOLS) directly, so the
+// origin weighting applies everywhere a name is rolled.
+function pickPool(): NamePool {
+  let roll = Math.random() * TOTAL_POOL_WEIGHT;
+  for (const pool of NAME_POOLS) {
+    roll -= pool.weight;
+    if (roll < 0) return pool;
+  }
+  return NAME_POOLS[NAME_POOLS.length - 1];
+}
+
 // A bare surname drawn from the same pools faculty and candidates are
 // named from — for decision events that need a plausible donor/alumni
 // name without generating a full person (see eventData.ts's
 // 'naming-rights' event).
 export function rollSurname(): string {
-  return pick(pick(NAME_POOLS).last);
+  return pick(pickPool().last);
 }
 
 // A full "First Last" name, no "Dr." prefix and no dedupe/nationality/bio —
@@ -189,8 +232,8 @@ export function rollSurname(): string {
 // name-pool collision risk that justifies rollFullName's dedupe loop for
 // faculty/candidates never meaningfully arises here.
 export function rollCoachName(): string {
-  const firstPool = pick(NAME_POOLS);
-  const lastPool = Math.random() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pick(NAME_POOLS);
+  const firstPool = pickPool();
+  const lastPool = Math.random() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pickPool();
   return `${pick(firstPool.first)} ${pick(lastPool.last)}`;
 }
 
@@ -201,14 +244,14 @@ interface RolledName {
 
 function rollFullName(existingNames: Set<string>): RolledName {
   for (let attempt = 0; attempt < MAX_NAME_ROLL_ATTEMPTS; attempt++) {
-    const firstPool = pick(NAME_POOLS);
-    const lastPool = Math.random() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pick(NAME_POOLS);
+    const firstPool = pickPool();
+    const lastPool = Math.random() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pickPool();
     const full = `Dr. ${pick(firstPool.first)} ${pick(lastPool.last)}`;
     if (!existingNames.has(full)) return { name: full, origin: firstPool.origin };
   }
   // Effectively unreachable given the pool size above; accept a repeat
   // rather than looping forever if it somehow happens.
-  const firstPool = pick(NAME_POOLS);
+  const firstPool = pickPool();
   return { name: `Dr. ${pick(firstPool.first)} ${pick(firstPool.last)}`, origin: firstPool.origin };
 }
 
