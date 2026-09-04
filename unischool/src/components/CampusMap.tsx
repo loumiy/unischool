@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState, Placement } from '../state/types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
@@ -6,6 +6,7 @@ import {
   awaitingPlacement, canPlace, footprintIsClear, footprintOf, placementTiles, tilesCovered,
 } from '../state/campusMap';
 import HelpHint from './HelpHint';
+import { useCssHeightVar } from './useCssHeightVar';
 
 // The campus map: the game's base layer, always on screen under everything
 // else (see App.tsx), and a placement + rendering layer over the SAME
@@ -219,6 +220,13 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
   // about to land can be previewed. Multi-tile buildings need this: where a
   // 2x2 hall goes is no longer obvious from the tile you clicked.
   const [hover, setHover] = useState<{ row: number; col: number } | null>(null);
+  // The tray's own rendered height feeds --tray-height (see styles.css's
+  // .campus-map-canvas and App.tsx's matching --log-strip-height): most of
+  // the time the "awaiting siting" list is short, so the map should get
+  // that space back rather than always reserving room for a tray at its
+  // scrollable ceiling.
+  const trayRef = useRef<HTMLDivElement>(null);
+  useCssHeightVar(trayRef, '--tray-height');
 
   const tray = awaitingPlacement(s);
   // A tray entry can vanish between renders (placed, or a fresh game), so
@@ -262,14 +270,6 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
 
   return (
     <section className="campus-map">
-      <div className="campus-map-head">
-        <span className="panel-head-title">
-          <h2>Campus Map</h2>
-          <HelpHint text="Where finished buildings physically sit. Siting is optional and cosmetic for now — a building's effects apply the week it finishes, placed or not, and a bigger footprint grants nothing extra. Pick a building from the tray and click an empty tile, or drag it straight onto the map. Buildings vary in size: a school hall covers four tiles, a lab one. Courses are never sited: a course is not a place." />
-        </span>
-        <span className="stat">{coveredTiles}/{totalTiles} tiles built on</span>
-      </div>
-
       <div className="campus-map-canvas">
         <svg
           className={`campus-map-svg ${selected ? 'placing' : ''}`}
@@ -309,43 +309,56 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
         </svg>
       </div>
 
-      {/* The siting tray is docked to the map, not to the build panel: the
-          panel is where a building is commissioned, this is where a finished
-          one is put down. */}
-      <div className="campus-map-tray">
-        <span className="campus-map-tray-label">Awaiting siting</span>
-        {tray.length > 0 && (
-          <ul className="campus-map-tray-list">
-            {tray.map((t) => {
-              const fp = footprintOf(t);
-              return (
-                <li key={t.id}>
-                  <button
-                    type="button"
-                    className={`campus-tray-btn ${kindClasses(t)} ${t.id === selectedId ? 'selected' : ''}`}
-                    aria-pressed={t.id === selectedId}
-                    // Dragging is layered ON TOP of the click flow rather
-                    // than replacing it. The drag carries the id (which is
-                    // what the drop acts on) and ALSO selects the building,
-                    // so the same footprint ghost that guides a click guides
-                    // a drag, and an abandoned drag leaves the building
-                    // selected — exactly as if it had been clicked.
-                    draggable
-                    onDragStart={(e) => {
-                      setSelectedId(t.id);
-                      e.dataTransfer.setData('text/plain', t.id);
-                      e.dataTransfer.effectAllowed = 'move';
-                    }}
-                    onClick={() => setSelectedId(t.id === selectedId ? null : t.id)}
-                  >
-                    {t.name}
-                    <span className="campus-tray-size">{fp.w}×{fp.h}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+      {/* The siting tray floats over the map, docked along its bottom edge
+          rather than the build panel: the panel is where a building is
+          commissioned, this is where a finished one is put down. It also
+          carries the map's own head (title, help, tiles-built count) —
+          folded in here rather than a separate bar, since the map itself is
+          now the full-viewport background and has no bordered card of its
+          own left to hang a head on. */}
+      <div className="campus-map-tray" ref={trayRef}>
+        <div className="campus-map-tray-head">
+          <span className="panel-head-title">
+            <h2>Campus Map</h2>
+            <HelpHint text="Where finished buildings physically sit. Siting is optional and cosmetic for now — a building's effects apply the week it finishes, placed or not, and a bigger footprint grants nothing extra. Pick a building from the tray and click an empty tile, or drag it straight onto the map. Buildings vary in size: a school hall covers four tiles, a lab one. Courses are never sited: a course is not a place." />
+          </span>
+          <span className="stat">{coveredTiles}/{totalTiles} tiles built on</span>
+        </div>
+        <div className="campus-map-tray-row">
+          <span className="campus-map-tray-label">Awaiting siting</span>
+          {tray.length > 0 && (
+            <ul className="campus-map-tray-list">
+              {tray.map((t) => {
+                const fp = footprintOf(t);
+                return (
+                  <li key={t.id}>
+                    <button
+                      type="button"
+                      className={`campus-tray-btn ${kindClasses(t)} ${t.id === selectedId ? 'selected' : ''}`}
+                      aria-pressed={t.id === selectedId}
+                      // Dragging is layered ON TOP of the click flow rather
+                      // than replacing it. The drag carries the id (which is
+                      // what the drop acts on) and ALSO selects the building,
+                      // so the same footprint ghost that guides a click guides
+                      // a drag, and an abandoned drag leaves the building
+                      // selected — exactly as if it had been clicked.
+                      draggable
+                      onDragStart={(e) => {
+                        setSelectedId(t.id);
+                        e.dataTransfer.setData('text/plain', t.id);
+                        e.dataTransfer.effectAllowed = 'move';
+                      }}
+                      onClick={() => setSelectedId(t.id === selectedId ? null : t.id)}
+                    >
+                      {t.name}
+                      <span className="campus-tray-size">{fp.w}×{fp.h}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
         <span className="campus-map-hint">
           {selected
             ? `Click or drop on ${footprintOf(selected).w}×${footprintOf(selected).h} of empty tiles to site ${selected.name}.`

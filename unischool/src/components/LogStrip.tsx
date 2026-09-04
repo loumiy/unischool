@@ -1,11 +1,14 @@
+import { forwardRef } from 'react';
 import type { GameState } from '../state/types';
 
-// The event log, docked under the map as a full-width ticker. It used to be
-// the last panel of the Campus tab; in the map-centric shell it belongs to
-// the base layer, visible no matter which view is open over the map.
-export default function LogStrip({ s }: { s: GameState }) {
+// The event log, docked over the map's bottom-left corner as a floating
+// ticker (see App.tsx). Forwards its ref so App.tsx can measure its real
+// height with useCssHeightVar — the map's interactive area insets away
+// from it, so a tile is never left both on screen and unreachable under an
+// opaque panel.
+const LogStrip = forwardRef<HTMLElement, { s: GameState }>(({ s }, ref) => {
   return (
-    <section className="panel log-strip">
+    <section ref={ref} className="panel log-strip">
       <ul className="log">
         {s.log.map((e, i) => (
           <li key={i} className={e.kind}>
@@ -15,4 +18,6 @@ export default function LogStrip({ s }: { s: GameState }) {
       </ul>
     </section>
   );
-}
+});
+
+export default LogStrip;
