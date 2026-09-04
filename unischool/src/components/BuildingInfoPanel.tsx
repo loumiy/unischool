@@ -181,12 +181,24 @@ export default function BuildingInfoPanel({ t, s, onClose }: { t: Buildable; s: 
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [onClose]);
 
+  // A developing placeable's effects are authored data on `t.effects`
+  // already (what it WILL grant once it finishes — see techSystem.ts's
+  // applyEffects), not yet anything the school actually has — the kind-
+  // specific info below reads the same fields either way, so this banner is
+  // what keeps a still-under-construction building from reading as already
+  // standing.
+  const weeksLeft = s.developing[t.id];
   return (
     <div className="building-info-panel" role="dialog" aria-label={`${t.name} info`}>
       <div className="building-info-head">
         <h3>{t.name}</h3>
         <button type="button" className="building-info-close" onClick={onClose} aria-label="Close">✕</button>
       </div>
+      {t.status === 'developing' && weeksLeft !== undefined && (
+        <p className="building-info-line building-info-construction">
+          Under construction — {weeksLeft} of {t.duration} week{t.duration === 1 ? '' : 's'} left.
+        </p>
+      )}
       {t.kind === 'dorm' && (
         <p className="building-info-line">
           {(() => {

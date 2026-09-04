@@ -53,6 +53,13 @@ export default function App() {
   const s: GameState = state;
   // null = looking at the map itself, with nothing open over it.
   const [overlay, setOverlay] = useState<TabId | null>(null);
+  // Which placeable Buildable (building/dorm/facility) is currently picked
+  // up for siting, if any — the ONE piece of CampusMap's transient UI state
+  // that has to live here rather than inside CampusMap itself. Placement is
+  // now how a placeable Buildable starts (see PLACE_BUILDABLE), and
+  // BuildPanel's "site →" row is where that pickup can be armed from, so
+  // this is the nearest shared ancestor of the two components that need it.
+  const [placingId, setPlacingId] = useState<string | null>(null);
   const topbarRef = useRef<HTMLDivElement>(null);
   const logStripRef = useRef<HTMLDivElement>(null);
   useCssHeightVar(topbarRef, '--topbar-height');
@@ -64,7 +71,7 @@ export default function App() {
 
   return (
     <>
-      <CampusMap s={s} act={act} />
+      <CampusMap s={s} act={act} selectedId={placingId} onSelect={setPlacingId} />
 
       <div className="app">
         <div className="topbar" ref={topbarRef}>
@@ -79,7 +86,7 @@ export default function App() {
           <TabNav active={overlay} onChange={setOverlay} />
         </div>
 
-        <BuildPanel s={s} act={act} />
+        <BuildPanel s={s} placingId={placingId} onArmPlacement={setPlacingId} />
         <LogStrip ref={logStripRef} s={s} />
 
         {overlay && (

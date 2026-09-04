@@ -3,9 +3,10 @@ import type { Action } from '../state/actions';
 import type { Buildable, GameState, PathEdge, Placement } from '../state/types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import {
-  awaitingPlacement, canPlace, canRotate, edgeKey, footprintIsClear, footprintOf,
+  canPlace, canRotate, edgeKey, footprintIsClear, footprintOf, isPlaceableKind,
   orientedFootprint, parseEdgeKey, placementTiles, tilesCovered,
 } from '../state/campusMap';
+import { canStartDevelopment } from '../systems/techtree/techSystem';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
 import { useCssHeightVar } from './useCssHeightVar';
@@ -14,9 +15,20 @@ import { useCssHeightVar } from './useCssHeightVar';
 // else (see App.tsx), and a placement + rendering layer over the SAME
 // Buildables the build panel lists. It reads `s.placements` + `s.tech` and
 // dispatches PLACE_BUILDABLE; it computes nothing, owns no game state, and
-// changes no outcome. Siting a building is optional and grants nothing —
-// its effects landed the week it finished, and a building that covers four
-// tiles is worth exactly as much as one that covers one.
+// changes no outcome beyond what PLACE_BUILDABLE itself already does (the
+// same cost/gate/countdown a course's START_DEVELOPMENT uses — see
+// techSystem.ts's canStartDevelopment). Siting IS how a placeable Buildable
+// starts now: there is no cosmetic-after-the-fact placement step left, and
+// a building that covers four tiles costs and grants exactly what its data
+// says, worth no more or less for the ground it stands on.
+//
+// `selectedId`/`onSelect` — which Buildable is currently picked up for
+// siting, if any — are LIFTED to App.tsx rather than owned here, because
+// the Build panel is now the other place that can arm one (see
+// BuildPanel.tsx's "site →" row): App.tsx is the nearest shared ancestor.
+// Every other transient UI concern below (rotation, the path tool, the
+// inspected building, hover) stays local — nothing else here needs to be
+// reachable from outside this component.
 //
 // Being the central surface is a LAYOUT fact, not a mechanical one: nothing
 // here gained authority over the sim by moving to the middle of the screen.
@@ -68,6 +80,15 @@ const LABEL_LINE_HEIGHT_RATIO = 17 / 15; // line pitch as a fraction of font siz
 const LABEL_INSET = 6;          // padding between the label block and the footprint's edge
 const LABEL_MAX_LINES = 3;      // a readability ceiling on lines, independent of how much vertical room the footprint has
 const LABEL_MIN_CHARS = 4;      // narrower than this at every font size down to the floor, and the label is dropped rather than shredded
+
+// The under-construction progress bar drawn along the bottom of a
+// developing placement's own footprint (see PlacedBuilding below) — the
+// map's visual cue that this is a building site, not a finished building,
+// without needing to hover for the tooltip. Sized off TILE_SIZE the same
+// spirit LABEL_* is: proportions that hold whether the footprint is a 3x3
+// lab or a 12x9 stadium.
+const PROGRESS_BAR_HEIGHT = 5;
+const PROGRESS_BAR_INSET = LABEL_INSET;
 
 // --- pan & zoom ---
 // Deliberately kept OUT of React state (see the view*Ref below): the whole
@@ -287,7 +308,20 @@ function GroundTile({ row, col, empty, targetable, onEnter, onClick, onDrop }: {
 // info panel (it no-ops while a building is picked up for siting or a path
 // tool is active; see the disambiguation note there), so this component
 // itself carries no mode awareness. `inspected` only drives the highlight.
-function PlacedBuilding({ t, p, onInspect, inspected }: { t: Buildable; p: Placement; onInspect: () => void; inspected: boolean }) {
+//
+// `weeksLeft` is set exactly when `t.status === 'developing'` (read off
+// s.developing by the caller — see the `placed.map` below) — the under-
+// construction visual cue the PR is about: a distinct `.under-construction`
+// class (styles.css) and a progress bar along the footprint's own bottom
+// edge, the same "how far along" reading BuildPanel's ProgressBar gives a
+// developing row there, just drawn in SVG for the map's own footprint
+// instead of a fixed-width bar. A 'done' Buildable renders exactly as it
+// always did.
+function PlacedBuilding({
+  t, p, onInspect, inspected, weeksLeft,
+}: {
+  t: Buildable; p: Placement; onInspect: () => void; inspected: boolean; weeksLeft?: number;
+}) {
   const x = tileX(p.col);
   const y = tileY(p.row);
   const width = spanSize(p.w);
@@ -296,9 +330,14 @@ function PlacedBuilding({ t, p, onInspect, inspected }: { t: Buildable; p: Place
   // Centre the wrapped block vertically inside the footprint.
   const firstLineY = y + height / 2 - ((lines.length - 1) * lineHeight) / 2;
 
+  const developing = t.status === 'developing' && weeksLeft !== undefined;
+  const elapsedFraction = developing && t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
+  const barWidth = width - PROGRESS_BAR_INSET * 2;
+  const barY = y + height - PROGRESS_BAR_INSET - PROGRESS_BAR_HEIGHT;
+
   return (
     <g
-      className={`campus-building ${kindClasses(t)} ${inspected ? 'inspected' : ''}`}
+      className={`campus-building ${kindClasses(t)} ${inspected ? 'inspected' : ''} ${developing ? 'under-construction' : ''}`}
       aria-label={t.name}
       role="button"
       onClick={onInspect}
@@ -315,13 +354,28 @@ function PlacedBuilding({ t, p, onInspect, inspected }: { t: Buildable; p: Place
           {line}
         </text>
       ))}
-      <title>{`${t.name} · ${p.w}×${p.h}`}</title>
+      {developing && (
+        <>
+          <rect className="campus-building-progress-track" x={x + PROGRESS_BAR_INSET} y={barY} width={barWidth} height={PROGRESS_BAR_HEIGHT} rx={PROGRESS_BAR_HEIGHT / 2} />
+          <rect className="campus-building-progress-fill" x={x + PROGRESS_BAR_INSET} y={barY} width={Math.max(0, barWidth * elapsedFraction)} height={PROGRESS_BAR_HEIGHT} rx={PROGRESS_BAR_HEIGHT / 2} />
+        </>
+      )}
+      <title>{developing ? `${t.name} · under construction · ${weeksLeft}w left` : `${t.name} · ${p.w}×${p.h}`}</title>
     </g>
   );
 }
 
-export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) => void }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+export default function CampusMap({
+  s, act, selectedId, onSelect,
+}: {
+  s: GameState;
+  act: (a: Action) => void;
+  // Which Buildable is currently picked up for siting, if any — lifted to
+  // App.tsx (see the module comment above) so BuildPanel.tsx's "site →" row
+  // can arm the same selection this component reads and clears.
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+}) {
   // Whether the currently-selected building has been turned 90 degrees
   // before siting (see campusMap.ts's orientedFootprint). Transient UI
   // state, not persisted itself — what's persisted is the resulting
@@ -346,11 +400,19 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
   // about to land can be previewed. Multi-tile buildings need this: where a
   // 2x2 hall goes is no longer obvious from the tile you clicked.
   const [hover, setHover] = useState<{ row: number; col: number } | null>(null);
-  // The tray's own rendered height feeds --tray-height (see styles.css's
-  // .campus-map-canvas and App.tsx's matching --log-strip-height): most of
-  // the time the "awaiting siting" list is short, so the map should get
-  // that space back rather than always reserving room for a tray at its
-  // scrollable ceiling.
+
+  // `selectedId` can now change from OUTSIDE this component (BuildPanel.tsx
+  // arming a new pickup), not just through selectBuilding below — so
+  // rotation is reset here, keyed on the prop itself, rather than only at
+  // selectBuilding's own call sites. A fresh pickup always starts
+  // unrotated, wherever it was armed from.
+  useEffect(() => {
+    setRotated(false);
+  }, [selectedId]);
+  // This head card's own rendered height feeds --tray-height (see
+  // styles.css's .campus-map-canvas and App.tsx's matching
+  // --log-strip-height): it's short most of the time, so the map should get
+  // that space back rather than always reserving room at its ceiling.
   const trayRef = useRef<HTMLDivElement>(null);
   useCssHeightVar(trayRef, '--tray-height');
 
@@ -359,7 +421,7 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
   // building picked up for siting and an active draw/erase tool can never
   // both be live — see the pathTool state comment above.
   function selectBuilding(id: string | null) {
-    setSelectedId(id);
+    onSelect(id);
     setRotated(false);
     setPathToolState(null);
     setInspectedId(null);
@@ -371,7 +433,7 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
   // rather than a three-state radio the player has to reason about.
   function setPathTool(mode: 'draw' | 'erase') {
     setPathToolState((cur) => (cur === mode ? null : mode));
-    setSelectedId(null);
+    onSelect(null);
     setRotated(false);
     setInspectedId(null);
   }
@@ -512,10 +574,15 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
     applyView(defaultView(svg.getBoundingClientRect()));
   }
 
-  const tray = awaitingPlacement(s);
-  // A tray entry can vanish between renders (placed, or a fresh game), so
-  // never trust the stored id without re-checking it against the tray.
-  const selected = tray.find((t) => t.id === selectedId) ?? null;
+  // Every placeable Buildable that has cleared its gate and hasn't been
+  // sited yet — exactly what BuildPanel.tsx renders a "site →" row for.
+  // Picking one up here is the SAME selection that row arms (see the
+  // module comment above): this is where a picked-up id resolves to a
+  // real Buildable to read its footprint/gate off.
+  const pickable = s.tech.filter((t) => isPlaceableKind(t) && t.status === 'available' && !(t.id in s.placements));
+  // A pickable entry can vanish between renders (its gate closed, or a
+  // fresh game), so never trust the stored id without re-checking it.
+  const selected = pickable.find((t) => t.id === selectedId) ?? null;
   const coveredTiles = tilesCovered(s.placements);
   const totalTiles = CAMPUS_GRID_WIDTH * CAMPUS_GRID_HEIGHT;
 
@@ -554,10 +621,15 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
   // selectBuilding resets `rotated` the moment the selection changes, so a
   // stale rotation from a previously-selected building can never leak in.
   const placeById = (id: string, row: number, col: number) => {
-    const t = tray.find((x) => x.id === id);
+    const t = pickable.find((x) => x.id === id);
     if (!t) return;
     const fp = orientedFootprint(t, rotated);
-    if (!canPlace(s, t, row, col, fp)) return;
+    // Geometry (canPlace) AND the same afford/faculty/status gate a
+    // course's START_DEVELOPMENT uses (canStartDevelopment) — the reducer
+    // re-checks both too (see reducer.ts's PLACE_BUILDABLE case), so this
+    // copy exists only so an illegal click/drop leaves the selection alone
+    // instead of quietly clearing it.
+    if (!canPlace(s, t, row, col, fp) || !canStartDevelopment(s, t)) return;
     act({ type: 'PLACE_BUILDABLE', buildableId: id, row, col, rotated });
     selectBuilding(null);
     setHover(null);
@@ -644,9 +716,16 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
 
   // The footprint ghost under the cursor, and whether it would actually fit
   // — at the CURRENT rotation, so a rotated shape that no longer clears the
-  // grid or an occupied tile is refused exactly like an unrotated overflow.
+  // grid or an occupied tile is refused exactly like an unrotated overflow —
+  // AND whether the school can actually afford to start it right now
+  // (canStartDevelopment): a ghost that reads "blocked" here is a ghost a
+  // click on would genuinely do nothing, matching placeById's own gate.
   const preview = selected && hover && selectedFootprint
-    ? { ...hover, ...selectedFootprint, ok: footprintIsClear(s.placements, hover.row, hover.col, selectedFootprint) }
+    ? {
+        ...hover,
+        ...selectedFootprint,
+        ok: footprintIsClear(s.placements, hover.row, hover.col, selectedFootprint) && canStartDevelopment(s, selected),
+      }
     : null;
 
   return (
@@ -699,7 +778,7 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
             })}
 
             {placed.map(({ t, p }) => (
-              <PlacedBuilding key={t.id} t={t} p={p} onInspect={() => inspectBuilding(t.id)} inspected={t.id === inspectedId} />
+              <PlacedBuilding key={t.id} t={t} p={p} onInspect={() => inspectBuilding(t.id)} inspected={t.id === inspectedId} weeksLeft={s.developing[t.id]} />
             ))}
 
             {pathTool && allEdges.map((edge) => {
@@ -803,59 +882,22 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
         </div>
       </div>
 
-      {/* The siting tray floats over the map, docked along its bottom edge
-          rather than the build panel: the panel is where a building is
-          commissioned, this is where a finished one is put down. It also
-          carries the map's own head (title, help, tiles-built count) —
-          folded in here rather than a separate bar, since the map itself is
-          now the full-viewport background and has no bordered card of its
-          own left to hang a head on. */}
+      {/* The map's own head card, docked along the bottom edge (title,
+          help, tiles-built count, and a live hint for whatever mode the
+          map is currently in). What USED to also live here — the
+          "awaiting siting" tray of finished-but-unplaced buildings — is
+          gone: picking something up for siting now happens from
+          BuildPanel.tsx's "site →" row (placement starts a build, so the
+          affordance belongs where every other build decision is made),
+          and this card just orients the player once they're already
+          holding something. */}
       <div className="campus-map-tray" ref={trayRef}>
         <div className="campus-map-tray-head">
           <span className="panel-head-title">
             <h2>Campus Map</h2>
-            <HelpHint text="Where finished buildings physically sit. Siting is optional and cosmetic for now — a building's effects apply the week it finishes, placed or not, and a bigger footprint grants nothing extra. Pick a building from the tray and click an empty tile, or drag it straight onto the map — press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees first. Buildings vary in size: a school hall covers four tiles, a lab one. Courses are never sited: a course is not a place. The Draw path / Erase path buttons let you sketch walkways along the gridlines between tiles — free, purely decorative, and unrelated to placement." />
+            <HelpHint text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build panel — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. The Draw path / Erase path buttons let you sketch walkways along the gridlines between tiles — free, purely decorative, and unrelated to building." />
           </span>
           <span className="stat">{coveredTiles}/{totalTiles} tiles built on</span>
-        </div>
-        <div className="campus-map-tray-row">
-          <span className="campus-map-tray-label">Awaiting siting</span>
-          {tray.length > 0 && (
-            <ul className="campus-map-tray-list">
-              {tray.map((t) => {
-                // The selected item's badge reflects its current rotation
-                // (so the tray confirms what the ghost is already
-                // showing); everything else shows its base footprint,
-                // since nothing else has an orientation to show yet.
-                const fp = t.id === selectedId && selectedFootprint ? selectedFootprint : footprintOf(t);
-                return (
-                  <li key={t.id}>
-                    <button
-                      type="button"
-                      className={`campus-tray-btn ${kindClasses(t)} ${t.id === selectedId ? 'selected' : ''}`}
-                      aria-pressed={t.id === selectedId}
-                      // Dragging is layered ON TOP of the click flow rather
-                      // than replacing it. The drag carries the id (which is
-                      // what the drop acts on) and ALSO selects the building,
-                      // so the same footprint ghost that guides a click guides
-                      // a drag, and an abandoned drag leaves the building
-                      // selected — exactly as if it had been clicked.
-                      draggable
-                      onDragStart={(e) => {
-                        selectBuilding(t.id);
-                        e.dataTransfer.setData('text/plain', t.id);
-                        e.dataTransfer.effectAllowed = 'move';
-                      }}
-                      onClick={() => selectBuilding(t.id === selectedId ? null : t.id)}
-                    >
-                      {t.name}
-                      <span className="campus-tray-size">{fp.w}×{fp.h}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
         </div>
         <span className="campus-map-hint">
           {pathTool
@@ -863,11 +905,9 @@ export default function CampusMap({ s, act }: { s: GameState; act: (a: Action) =
               ? 'Click or drag along tile edges to draw a pathway. Purely decorative — it grants nothing.'
               : 'Click or drag along drawn edges to erase that pathway.'
             : selected && selectedFootprint
-              ? `Click or drop on ${selectedFootprint.w}×${selectedFootprint.h} of empty tiles to site ${selected.name}.`
+              ? `Click or drop on ${selectedFootprint.w}×${selectedFootprint.h} of empty tiles to start building ${selected.name} there.`
                 + (canRotate(footprintOf(selected)) ? ' Press R (or the ⟳ on the ghost) to rotate.' : '')
-              : tray.length > 0
-                ? 'Select a building and click an empty tile, or drag it onto the map.'
-                : 'Nothing to site — finish a building, dorm, or facility and it appears here.'}
+              : 'Pick something to build from the Build panel, then click (or drag) an empty tile here to start it.'}
         </span>
       </div>
     </section>

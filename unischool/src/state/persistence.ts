@@ -1,6 +1,7 @@
 import type { Buildable, FacilityType, GameState, Pathways, Placement, StudentClub } from './types';
 import {
-  edgeKey, footprintFits, footprintIsClear, isEdgeInBounds, isPlaceableKind, parseEdgeKey,
+  edgeKey, firstFreeSpot, footprintFits, footprintIsClear, footprintOf, isEdgeInBounds, isPlaceableKind,
+  parseEdgeKey, placementFor,
 } from './campusMap';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from './types';
 import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES } from '../data/facultyData';
@@ -359,7 +360,72 @@ const SAVE_KEY = 'unischool.save';
 // to run between, but that was already true of any path drawn next to a
 // building the player demolished, and is no more special-cased here than
 // that was.
-export const SAVE_VERSION = 17;
+// v18: developing and placing a placeable Buildable (building/dorm/
+// facility — types.ts's PLACEABLE_KINDS) collapsed from two steps into one.
+// Under v17 a build was started (cost charged, status 'developing') with NO
+// location, and only once it finished did the separate, purely cosmetic
+// PLACE_BUILDABLE action let the player site it — the "awaiting siting"
+// tray was the queue of finished-but-unplaced Buildables waiting on that
+// second step. Under v18, PLACE_BUILDABLE IS how a placeable Buildable
+// starts: it charges the cost, starts the countdown, and writes the
+// location into s.placements all at once, so a developing placeable is
+// renderable at its footprint and its tiles are reserved from week one
+// (see the long comment above campusMap.ts's canPlace/firstFreeSpot). No
+// GameState FIELD changed shape — `developing`, `placements` and every
+// Buildable status are exactly what they always were — so there is nothing
+// for LegacyGameState below to carry forward; what changed is a RELATIONSHIP
+// between two fields that already existed, which is what makes this
+// migration a pure RECONCILE rather than a fill-in or a splice.
+//
+// A v17 save can be in three shapes, and each needs its own answer:
+//
+//   DONE AND ALREADY PLACED needs nothing: a v17 placement already means
+//   exactly what a v18 one does, whatever status the Buildable is at.
+//
+//   DONE BUT UNPLACED is the old "awaiting siting" tray — plus, for any
+//   save founded before this version, the three Buildables that always
+//   started this way (the founding dorm, dining hall and General Studies
+//   Hall; see actions.ts's createInitialState, which now places them
+//   itself for a fresh game) — plus a chapter house built before this
+//   version, back when 'greek-housing' pushed it into the tray instead of
+//   placing it itself (see eventData.ts). The tray UI is gone, so there is
+//   no longer any way to place these by hand: AUTO-PLACED instead, at
+//   whatever spot campusMap.ts's firstFreeSpot (a plain top-left scan)
+//   finds first. The full catalogue covers under a third of the grid (see
+//   types.ts's CAMPUS_GRID_WIDTH/HEIGHT comment), so in practice this
+//   always finds room. The pathological case where it can't is left
+//   unplaced rather than crashing or blocking the migration — the
+//   Buildable stays 'done' with every effect it already granted, simply
+//   invisible on the map, which sanitizePlacements (below, widened this
+//   version to accept a 'developing' entry too — see its own comment)
+//   already tolerates for other reasons.
+//
+//   DEVELOPING WITH NO LOCATION is the gnarly case flagged in the PR: a
+//   build already in flight under the old two-step flow, from before a
+//   location was ever asked for. The new shape's invariant — a developing
+//   placeable is ALWAYS renderable at a footprint, and that footprint is
+//   reserved — cannot be retrofitted onto "developing, nowhere in
+//   particular", so this can't simply carry forward as-is. The SAME
+//   firstFreeSpot scan the tray case uses is tried first: if room is
+//   found, the location is written in and `developing[id]` (the
+//   countdown) is left completely untouched — the build simply continues
+//   from wherever it already was, now visible under construction with
+//   whatever weeks it has left. Only if NO room can be found (the same
+//   pathological case as above, and no more likely here — this is a
+//   subset of Buildables that were already fewer than the full catalogue,
+//   since the rest hadn't started yet) is the development CANCELLED:
+//   status reverts to 'available' and the entry is dropped from
+//   `developing`, WITH NO REFUND of the cost already charged. This mirrors
+//   the sunk-cost precedent v9 -> v10 (a retired major mid-development) and
+//   v12 -> v13 (parking) already set for dropped in-flight development:
+//   refunding into a model that has no concept of undoing the charge would
+//   be inventing a payment, and the alternative — leaving it "developing"
+//   with nowhere to render or reserve tiles for — would violate the one
+//   invariant this whole migration exists to establish. In practice this
+//   branch is not expected to ever fire against the real catalogue; it
+//   exists so a save that somehow hits it degrades honestly instead of
+//   carrying a Buildable the new engine cannot represent.
+export const SAVE_VERSION = 18;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -885,6 +951,45 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   16: (state) => {
     state.placements = {};
   },
+
+  // v17 -> v18: the build-and-place collapse (see the long note above
+  // SAVE_VERSION for the full reasoning). Two passes over the same growing
+  // `state.placements`, so a spot firstFreeSpot hands to one Buildable is
+  // already occupied by the time the next one asks.
+  17: (state) => {
+    const placeIfPossible = (node: Buildable): boolean => {
+      const fp = footprintOf(node);
+      const spot = firstFreeSpot(state.placements, fp);
+      if (!spot) return false;
+      state.placements[node.id] = placementFor(spot.row, spot.col, fp);
+      return true;
+    };
+
+    // DONE BUT UNPLACED: the old tray. Auto-placed; left unplaced (but
+    // still 'done', with every effect it already granted) in the
+    // pathological case where no room is found.
+    for (const node of state.tech) {
+      if (isPlaceableKind(node) && node.status === 'done' && !(node.id in state.placements)) {
+        placeIfPossible(node);
+      }
+    }
+
+    // DEVELOPING WITH NO LOCATION: a build already in flight, from before a
+    // location was ever asked for. Auto-placed with its countdown
+    // untouched when room is found; cancelled with no refund when it
+    // isn't — see the long note above SAVE_VERSION for why cancelling
+    // (rather than leaving it "developing" nowhere) is the honest choice
+    // here.
+    for (const id of Object.keys(state.developing)) {
+      const node = state.tech.find((t) => t.id === id);
+      if (!node || !isPlaceableKind(node) || node.status !== 'developing') continue;
+      if (node.id in state.placements) continue; // already placed above/somehow — nothing to do
+      if (!placeIfPossible(node)) {
+        delete state.developing[id];
+        node.status = 'available';
+      }
+    }
+  },
 };
 
 // Placement hygiene, run on EVERY load (migrated or not). The map is a
@@ -894,8 +999,14 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
 // read site having to be defensive.
 //
 // Three things get dropped, in this order:
-//   - orphans: an id that isn't a placeable, finished Buildable any more
-//     (content was renamed or removed between builds).
+//   - orphans: an id that isn't a placeable Buildable any more, or one that
+//     hasn't (or no longer) started construction — 'locked' or 'available'
+//     (content was renamed or removed between builds, or a v17 -> v18
+//     migration cancelled an unplaceable in-flight build and reverted it to
+//     'available' — see that migration). 'done' AND 'developing' are both
+//     valid since v18: a placement now means "under construction or
+//     finished here", not just "finished here" (see the long comment above
+//     campusMap.ts's canPlace).
 //   - out of bounds: a footprint that doesn't fit the CURRENT grid. The
 //     anchor is nudged back inside where the footprint still fits at all —
 //     the grid only ever grew so far, but shrinking it must not strand a
@@ -904,8 +1015,13 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
 //     the v3 migration (1x1 placements were already non-overlapping), but
 //     it is the invariant footprints introduce, so it is checked rather
 //     than assumed.
-// A dropped placement costs the player nothing mechanically: the Buildable
-// simply returns to the siting tray to be put down again.
+// A dropped placement costs the player nothing mechanically: a 'done'
+// Buildable already has every effect it granted; a 'developing' one keeps
+// counting down in s.developing regardless (tickTech doesn't read
+// s.placements at all) — it just won't render anywhere until the player
+// notices it's missing, which today's tooling has no way to happen against
+// the real catalogue (see firstFreeSpot's comment on why this is dormant
+// in practice).
 function sanitizePlacements(state: GameState): void {
   if (typeof state.placements !== 'object' || state.placements === null) {
     state.placements = {};
@@ -918,7 +1034,7 @@ function sanitizePlacements(state: GameState): void {
     if (!Number.isInteger(p.w) || !Number.isInteger(p.h) || p.w < 1 || p.h < 1) continue;
 
     const node = state.tech.find((t) => t.id === id);
-    if (!node || !isPlaceableKind(node) || node.status !== 'done') continue;
+    if (!node || !isPlaceableKind(node) || (node.status !== 'done' && node.status !== 'developing')) continue;
 
     // Clamp the anchor back inside the grid before giving up on it.
     const fp = { w: p.w, h: p.h };

@@ -19,7 +19,7 @@ import {
   CLUB_APPROVAL_SATISFACTION_NUDGE, CLUB_DECLINE_SATISFACTION_HIT, activatePetition,
 } from '../data/studentLifeData';
 import {
-  canPlace, edgeKey, isEdgeInBounds, orientedFootprint, placementFor,
+  canPlace, edgeKey, isEdgeInBounds, isPlaceableKind, orientedFootprint, placementFor,
 } from '../state/campusMap';
 import { captureYearSnapshot } from '../state/history';
 import { saveGame, clearSave } from '../state/persistence';
@@ -190,8 +190,19 @@ export function reducer(state: GameState, action: Action): GameState {
       return createInitialState(action.name, action.schoolType);
 
     case 'START_DEVELOPMENT': {
+      // Courses only now. A placeable Buildable (building/dorm/facility)
+      // starts through PLACE_BUILDABLE instead, which combines this same
+      // gate with siting a location in one step (see that case below, and
+      // state/campusMap.ts's canPlace) — placement is how a placeable
+      // Buildable starts, not a cosmetic step after it finishes. The
+      // isPlaceableKind guard is defensive: no UI path dispatches
+      // START_DEVELOPMENT for a placeable Buildable any more, but refusing
+      // it here rather than trusting the caller keeps this the one place a
+      // placeable Buildable can be started structurally, not just by
+      // convention — exactly as canStartDevelopment stays the one gate,
+      // reused rather than forked, for both actions.
       const node = s.tech.find((t) => t.id === action.nodeId);
-      if (node && canStartDevelopment(s, node)) startDevelopment(s, node);
+      if (node && !isPlaceableKind(node) && canStartDevelopment(s, node)) startDevelopment(s, node);
       return s;
     }
 
@@ -215,10 +226,22 @@ export function reducer(state: GameState, action: Action): GameState {
     }
 
     case 'PLACE_BUILDABLE': {
-      // Purely a map-layer action: it writes a coordinate (and, now, an
-      // orientation) and nothing else. No effects are applied or re-applied
-      // here — a building's effects landed when it finished developing,
-      // whether or not it is ever placed (see state/campusMap.ts).
+      // The unified build-and-site action for placeable kinds (building/
+      // dorm/facility — see types.ts's PLACEABLE_KINDS). A course never
+      // dispatches this — it isn't a place, and it starts through
+      // START_DEVELOPMENT instead, unchanged.
+      //
+      // The gate is exactly canStartDevelopment's — the same affordability/
+      // faculty/status check a course's START_DEVELOPMENT uses, reused
+      // rather than forked — combined with campusMap.ts's canPlace, which
+      // adds "not already sited, and its footprint lands on clear tiles".
+      // Passing both charges the cost, starts the countdown
+      // (startDevelopment — identical to a course's: same duration, same
+      // tickTech decrement, same finish -> 'done' + applied effects), and
+      // writes the chosen location into s.placements in the SAME
+      // transaction, so a developing placeable is never without a location
+      // and its tiles are reserved from week one.
+      //
       // The BASE footprint comes from the Buildable's kind, not from the
       // action (see campusMap.ts's footprintOf); `action.rotated` says
       // whether the player turned that footprint 90 degrees before setting
@@ -227,8 +250,9 @@ export function reducer(state: GameState, action: Action): GameState {
       const node = s.tech.find((t) => t.id === action.buildableId);
       if (node) {
         const fp = orientedFootprint(node, action.rotated);
-        if (canPlace(s, node, action.row, action.col, fp)) {
+        if (canPlace(s, node, action.row, action.col, fp) && canStartDevelopment(s, node)) {
           s.placements[node.id] = placementFor(action.row, action.col, fp);
+          startDevelopment(s, node);
         }
       }
       return s;

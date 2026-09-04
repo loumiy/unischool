@@ -1,4 +1,4 @@
-import type { AthleticsInvestmentTier, GameState, PathEdge, SchoolType } from './types';
+import type { Buildable, AthleticsInvestmentTier, GameState, PathEdge, SchoolType } from './types';
 import { DEFAULT_ATHLETICS_INVESTMENT } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
 import { WEEKS_PER_YEAR } from './types';
@@ -7,9 +7,35 @@ import { initialDorms, STARTING_DORM_CAPACITY } from '../data/campusData';
 import { initialFacilities } from '../data/facilitiesData';
 import { initialRivals } from '../data/rivalData';
 import { initialCandidatePool, facultySalary } from '../data/facultyData';
+import { firstFreeSpot, footprintOf, isPlaceableKind, placementFor } from './campusMap';
 import {
   SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION, STARTING_ENDOWMENT, STARTING_TUITION,
 } from '../data/schoolTypeData';
+
+// Three Buildables start already 'done' at founding — the starting dorm,
+// the founding dining hall, and General Studies Hall (see campusData.ts,
+// facilitiesData.ts and techData.ts respectively) — because the school
+// opens its doors with housing, food and a gen-ed core already standing,
+// not because a player built them. Under the old two-step flow that just
+// meant they opened life in the "awaiting siting" tray; now that placement
+// IS how a placeable Buildable starts, a school can't plausibly be
+// founded with three buildings that exist but stand nowhere. So every
+// placeable Buildable this seed hands back already 'done' is sited here,
+// at whatever spot firstFreeSpot's plain top-left scan finds first — there
+// is no player choice to preserve at the moment a save is created, so
+// there is nothing to ask about. See campusMap.ts's firstFreeSpot for why
+// this is expected to always find room, and persistence.ts's v17 -> v18
+// migration for the same treatment of an EXISTING save's unplaced 'done'
+// Buildables (which, before this function existed, is exactly what these
+// three always were).
+function placeFoundingBuildables(placements: GameState['placements'], tech: Buildable[]): void {
+  for (const node of tech) {
+    if (!isPlaceableKind(node) || node.status !== 'done') continue;
+    const fp = footprintOf(node);
+    const spot = firstFreeSpot(placements, fp);
+    if (spot) placements[node.id] = placementFor(spot.row, spot.col, fp);
+  }
+}
 
 // The institutional half of every new school's name (see types.ts's
 // University). Fixed at founding — the startup screen only lets the
@@ -22,6 +48,13 @@ export const STARTING_INSTITUTION_SUFFIX = 'College';
 export type Action =
   | { type: 'TICK' }                                   // advance one week
   | { type: 'START_GAME'; name: string; schoolType: SchoolType } // leaves the startup screen, founds the university
+  // Courses only (see the reducer's guard). Charges the cost up front, sets
+  // status 'developing', and starts the countdown in s.developing — see
+  // techSystem.ts's canStartDevelopment/startDevelopment, the single gate
+  // and the single mutation both this and PLACE_BUILDABLE below share. A
+  // placeable Buildable (building/dorm/facility) never starts this way —
+  // it starts through PLACE_BUILDABLE instead, which combines the same
+  // gate with siting a location in one step.
   | { type: 'START_DEVELOPMENT'; nodeId: string }
   // Appoints someone straight off the standing candidate list (see
   // facultyData.ts's churn block): they move from s.candidates to
@@ -31,15 +64,27 @@ export type Action =
   // the money constraint is the salary they start drawing immediately.
   | { type: 'HIRE_FACULTY'; facultyId: string }
   | { type: 'FIRE_FACULTY'; facultyId: string }
-  // Sites a finished building/dorm/facility on a campus-map tile (see
-  // state/campusMap.ts for the placement rules). Visual only: it
-  // grants nothing, and a building's effects never depend on it. Rejected
-  // by the reducer if the Buildable isn't finished, isn't a placeable kind
-  // (a `course` never is), is already placed, or the target tile is out of
-  // bounds or occupied. `rotated` is whether the player turned it 90
-  // degrees before setting it down (see campusMap.ts's orientedFootprint) —
-  // the reducer tests and stores the ROTATED footprint, so a rotation that
-  // no longer fits is refused exactly like an unrotated overflow.
+  // The unified build-and-site action for a placeable Buildable (building/
+  // dorm/facility — a `course` never dispatches this). Placement IS how a
+  // placeable Buildable starts: this charges the cost, starts the
+  // countdown (exactly as START_DEVELOPMENT does for a course — same gate,
+  // same s.developing mutation), and writes the location into s.placements
+  // in the same step, so a developing placeable is renderable at its
+  // footprint and its tiles are reserved from week one (see
+  // state/campusMap.ts for the placement rules). Rejected by the reducer
+  // if the Buildable can't be started (canStartDevelopment: wrong status,
+  // unaffordable, no free faculty slot), isn't a placeable kind, is already
+  // sited, or the target tile is out of bounds or occupied — by anything
+  // already 'done' OR anything still under construction, since an
+  // in-progress placement reserves its tiles exactly like a finished one.
+  // `rotated` is whether the player turned it 90 degrees before setting it
+  // down (see campusMap.ts's orientedFootprint) — the reducer tests and
+  // stores the ROTATED footprint, so a rotation that no longer fits is
+  // refused exactly like an unrotated overflow.
+  //
+  // A building's EFFECTS still apply once, only when it finishes (see
+  // techSystem.ts's tickTech/applyEffects) — placement changes when/how/
+  // where a build is initiated, never what it grants or when it grants it.
   | { type: 'PLACE_BUILDABLE'; buildableId: string; row: number; col: number; rotated: boolean }
   // Draws/erases one tile-edge pathway segment (see state/campusMap.ts's
   // PathEdge/edgeKey and types.ts's Pathways). Purely decorative — free,
@@ -187,7 +232,7 @@ export function createPreStartState(): GameState {
 // README's "Startup and school type".
 export function createInitialState(name: string, schoolType: SchoolType): GameState {
   const preset = SCHOOL_TYPE_PRESETS[schoolType];
-  return {
+  const state: GameState = {
     clock: { year: 1, week: 1 },
     finance: {
       cash: preset.startingCash,
@@ -339,6 +384,8 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     hasEnteredRankings: false,
     milestones: {},
   };
+  placeFoundingBuildables(state.placements, state.tech);
+  return state;
 }
 
 export { WEEKS_PER_YEAR };

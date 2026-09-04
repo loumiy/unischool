@@ -26,6 +26,7 @@ import { createPreStartState } from '../src/state/actions';
 import type { GameState, Buildable, SchoolType } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet } from '../src/systems/finance/financeSystem';
 import { canStartDevelopment, hasFreeFacultySlot } from '../src/systems/techtree/techSystem';
+import { firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { findDecisionEvent, HELLENIC_COUNCIL_MIN_CLUBS } from '../src/data/eventData';
 import { weeklyResearchPoints } from '../src/data/researchData';
 import { studentLifeSatisfaction } from '../src/systems/satisfaction/satisfactionSystem';
@@ -137,6 +138,28 @@ function cutPayrollIfStalled(get: () => GameState, weeksInTheRed: number, dispat
   dispatch({ type: 'FIRE_FACULTY', facultyId: priciest.id });
 }
 
+// Placeable kinds (dorm/building/facility, including labs) now start
+// through PLACE_BUILDABLE instead of START_DEVELOPMENT: it combines the
+// same canStartDevelopment gate with siting a location in one step (see
+// reducer.ts). The harness has no player to click a tile, so it picks the
+// same location a fresh game or a migrated save would when nobody chose one
+// (campusMap.ts's firstFreeSpot — a plain top-left scan), with no rotation.
+// The full catalogue covers well under a third of the grid (see
+// types.ts's CAMPUS_GRID_WIDTH/HEIGHT comment), so this is expected to
+// always find room; if it somehow doesn't, the dispatch is simply skipped —
+// exactly as an unaffordable or ungated start already is at every call
+// site below, so a dry run of room never changes the shape of a decision,
+// only whether it goes through this week.
+function dispatchPlaceable(get: () => GameState, dispatch: (a: Action) => void, nodeId: string): void {
+  const s = get();
+  const node = s.tech.find((t) => t.id === nodeId);
+  if (!node) return;
+  const fp = footprintOf(node);
+  const spot = firstFreeSpot(s.placements, fp);
+  if (!spot) return;
+  dispatch({ type: 'PLACE_BUILDABLE', buildableId: nodeId, row: spot.row, col: spot.col, rotated: false });
+}
+
 // One week of player decisions, dispatched through exactly the actions the
 // UI dispatches.
 //
@@ -203,7 +226,7 @@ function decide(
     const full = s.students.capacity > 0 &&
       s.students.enrolled / s.students.capacity >= strategy.dormFillThreshold;
     if (next && full && canCommitCapital(s, strategy) && affordable(s, next.cost, strategy)) {
-      dispatch({ type: 'START_DEVELOPMENT', nodeId: next.id });
+      dispatchPlaceable(get, dispatch, next.id);
     }
   }
 
@@ -237,14 +260,14 @@ function decide(
       const s = get();
       const b = s.tech.find((t) => t.id === id);
       if (b && b.status === 'available' && canCommitCapital(s, strategy) && affordable(s, b.cost, strategy)) {
-        dispatch({ type: 'START_DEVELOPMENT', nodeId: id });
+        dispatchPlaceable(get, dispatch, id);
       }
     }
     for (const id of get().tech.filter((t) => t.facilityType === 'lab' && t.status === 'available').map((t) => t.id)) {
       const s = get();
       const l = s.tech.find((t) => t.id === id);
       if (l && l.status === 'available' && canCommitCapital(s, strategy) && affordable(s, l.cost, strategy)) {
-        dispatch({ type: 'START_DEVELOPMENT', nodeId: id });
+        dispatchPlaceable(get, dispatch, id);
       }
     }
   }
@@ -261,7 +284,7 @@ function decide(
       if (!f || f.status !== 'available' || !attr) continue;
       if (s.students.satisfactionBreakdown[attr] >= strategy.facilityThreshold) continue;
       if (canCommitCapital(s, strategy) && affordable(s, f.cost, strategy)) {
-        dispatch({ type: 'START_DEVELOPMENT', nodeId: id });
+        dispatchPlaceable(get, dispatch, id);
       }
     }
   }
