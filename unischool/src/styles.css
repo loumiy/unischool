@@ -31,13 +31,6 @@
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --side-panel-width: 360px; /* the build rail floating over the map's right edge */
   --log-strip-width: 380px;  /* the log ticker floating over the map's bottom-left */
-  /* A generous ceiling for the siting tray's OWN height (see
-     .campus-map-tray) — big enough that a long "awaiting siting" list
-     scrolls inside the tray rather than growing past it. Deliberately NOT
-     what .campus-map-canvas insets its bottom edge by: most runs never
-     have more than a couple of buildings queued, and reserving this much
-     map space unconditionally would waste most of it most of the time. */
-  --tray-ceiling: 42vh;
   /* --topbar-height, --log-strip-height and --tray-height are each kept in
      sync with their element's REAL rendered height (App.tsx's
      useCssHeightVar, and CampusMap.tsx's own use of it for the tray) —
@@ -47,9 +40,9 @@
      effects have measured anything. .campus-map-canvas insets by all
      three, so a tile is never left on screen but unreachable under one of
      them. */
-  --topbar-height: 173px;
-  --log-strip-height: 150px;
-  --tray-height: 150px;
+  --topbar-height: 141px;
+  --log-strip-height: 110px;
+  --tray-height: 44px;
 }
 
 /* The shell fills the viewport rather than scrolling as a document: the map
@@ -85,11 +78,11 @@ button { cursor: pointer; font-family: inherit; }
    viewport, the way the reference lays its top chrome across the world
    rather than as an inset card. */
 .topbar { grid-area: top; background: var(--navy); border-bottom: 1px solid var(--navy-line);
-  padding: 14px 20px 0; }
+  padding: 10px 20px 0; }
 
 /* ---------- masthead ---------- */
 .masthead { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;
-  padding-bottom: 12px; border-bottom: 2px solid var(--gold); margin-bottom: 10px; }
+  padding-bottom: 8px; border-bottom: 2px solid var(--gold); margin-bottom: 6px; }
 .eyebrow { text-transform: uppercase; letter-spacing: 0.16em; font-size: 11px; color: var(--gold); }
 .masthead-id h1 { font-family: var(--serif); font-size: 28px; margin: 4px 0 0; color: var(--ink-hi); }
 .masthead-stats { display: flex; gap: 26px; flex-wrap: wrap; }
@@ -102,7 +95,7 @@ button { cursor: pointer; font-family: inherit; }
 .stat-sub { font-size: 11px; color: var(--ink-lo); font-family: var(--mono); }
 
 /* ---------- control bar ---------- */
-.controlbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.controlbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 6px; }
 .speeds button { margin: 0 2px; padding: 5px 14px; background: transparent; color: #c7cee0;
   border: 1px solid var(--navy-line); border-radius: 4px; font-size: 12px; letter-spacing: 0.02em; }
 .speeds button.active { background: var(--gold); color: #1a2035; border-color: var(--gold); font-weight: 700; }
@@ -129,10 +122,10 @@ button { cursor: pointer; font-family: inherit; }
 .newgame-confirm-label { font-size: 11px; color: #e58a8a; letter-spacing: 0.02em; }
 
 /* ---------- tab navigation ---------- */
-.tabnav { display: flex; gap: 4px; border-bottom: 1px solid var(--navy-line); margin-bottom: 12px; flex: none; }
+.tabnav { display: flex; gap: 4px; border-bottom: 1px solid var(--navy-line); margin-bottom: 0; flex: none; }
 .tabnav button { background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--ink-lo);
   font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em; font-size: 13px;
-  padding: 10px 16px 8px; }
+  padding: 8px 16px 6px; }
 .tabnav button:hover { color: var(--ink-hi); }
 .tabnav button.active { color: var(--gold); border-bottom-color: var(--gold); font-weight: 700; }
 
@@ -172,11 +165,15 @@ button { cursor: pointer; font-family: inherit; }
 .side-panel-section { scrollbar-width: thin; scrollbar-color: var(--navy-line) transparent; }
 
 /* The log ticker: its own floating card over the map's bottom-left corner,
-   the width of `--log-strip-width` so the siting tray (see .campus-map-tray
-   below) knows exactly where it can start. */
+   the width of `--log-strip-width` so the tray (see .campus-map-tray below)
+   knows exactly where it can start. Kept as a plain, slimmer card for now —
+   a smaller footprint than before, but still the same shape as every other
+   floating panel — rather than a collapsible widget: C2 folds this into the
+   bottom toolbar outright, so a toggle/expand affordance built here would
+   just be thrown away, not carried forward. */
 .log-strip { position: fixed; z-index: 10; left: 16px; bottom: 16px; width: var(--log-strip-width);
-  padding: 8px 14px; }
-.log-strip .log { max-height: 92px; }
+  padding: 6px 12px; }
+.log-strip .log { max-height: 64px; }
 
 /* ---------- help hint ---------- */
 .help-hint { position: relative; display: inline-block; }
@@ -436,10 +433,13 @@ button { cursor: pointer; font-family: inherit; }
   cursor: grab; touch-action: none; }
 .campus-map-svg.panning { cursor: grabbing; }
 
-/* Zoom in/out/recenter — reachable without a wheel or trackpad, since the
-   map (see TILE_SIZE in CampusMap.tsx) usually doesn't fit the screen at
-   its native size. A small vertical pill in the canvas's own top-right
-   corner, clear of the topbar above and the build rail beside it. */
+/* Zoom in/out — reachable without a wheel or trackpad, since the map (see
+   TILE_SIZE in CampusMap.tsx) usually doesn't fit the screen at its native
+   size. A small vertical pill in the canvas's own top-right corner, clear
+   of the topbar above and the build rail beside it. (A third "recenter"
+   button used to live here too; dropped as chrome that didn't earn its
+   place — panning back to the default view by hand is one drag away, and
+   the button was never more than that.) */
 /* Wraps the zoom pill and the path-tool pill so they stack in one fixed
    corner without either having to know the other's height (see
    CampusMap.tsx) — each child keeps its own parchment card look, only the
@@ -486,32 +486,29 @@ button { cursor: pointer; font-family: inherit; }
 .campus-map-path-controls button.active { background: var(--gold); border-color: var(--gold); color: #3a2f0e; font-weight: 700; }
 .campus-map-svg.path-draw, .campus-map-svg.path-erase { cursor: crosshair; }
 
-/* The map's head card: floats over the map's bottom edge, between the log
-   strip (see .log-strip above) and the build rail — `position: fixed` puts
-   it in its own stacking context, same as every other floating card, so it
-   isn't subject to `.app`'s pointer-events: none (it lives inside
-   .campus-map, outside `.app` entirely, and needs no such rule — nothing in
-   the campus map's own box is transparent chrome the way `.app`'s empty
-   grid cell is). Title, help, tiles-built count and a live hint — see
-   CampusMap.tsx — now that the map has no bordered card of its own to hang
-   a head bar on. What USED to also live here, the "awaiting siting" list of
-   finished-but-unplaced buildings, is gone: picking something up for siting
-   happens from the Build panel now (see BuildPanel.tsx's "site →" row), so
-   this card is just orientation, not an affordance of its own — hence it's
-   shorter than it used to be, but keeps the same fixed card treatment.
-   Solid parchment background, same as every other floating panel, so its
-   text stays legible over the map behind it. */
+/* A slim strip along the map's bottom edge, between the log strip (see
+   .log-strip above) and the build rail — `position: fixed` puts it in its
+   own stacking context, same as every other floating card, so it isn't
+   subject to `.app`'s pointer-events: none (it lives inside .campus-map,
+   outside `.app` entirely, and needs no such rule — nothing in the campus
+   map's own box is transparent chrome the way `.app`'s empty grid cell is).
+   Title, help, and a live one-line hint — see CampusMap.tsx. What USED to
+   also live here — the "awaiting siting" list of finished-but-unplaced
+   buildings (picking something up for siting happens from BuildPanel.tsx's
+   "site →" row now), and later a tiles-built counter — is gone, so this is
+   one row, not a multi-row card: orientation only, sized to its own single
+   line rather than reserving a card's worth of height along the bottom of
+   the map. Solid parchment background, same as every other floating panel,
+   so its text stays legible over the map behind it. */
 .campus-map-tray { position: fixed; z-index: 10; left: calc(var(--log-strip-width) + 32px);
-  right: calc(var(--side-panel-width) + 32px); bottom: 16px; max-height: var(--tray-ceiling);
-  display: flex; flex-direction: column; gap: 8px; overflow-y: auto;
+  right: calc(var(--side-panel-width) + 32px); bottom: 16px;
+  display: flex; align-items: baseline; gap: 14px;
   background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px;
-  padding: 10px 14px 12px; }
-.campus-map-tray-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
-  border-bottom: 1px solid var(--parchment-line); padding-bottom: 8px; }
-.campus-map-tray-head h2 { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em;
-  font-size: 13px; color: var(--gold-dim); margin: 0; }
-.campus-map-tray-head .stat { font-family: var(--mono); color: var(--ink-muted); font-size: 12px; }
-.campus-map-hint { font-size: 12px; font-style: italic; color: var(--ink-muted); margin: 0; }
+  padding: 8px 14px; }
+.campus-map-tray .panel-head-title { flex: none; }
+.campus-map-tray h2 { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em;
+  font-size: 13px; color: var(--gold-dim); margin: 0; white-space: nowrap; }
+.campus-map-hint { flex: 1; min-width: 0; font-size: 12px; font-style: italic; color: var(--ink-muted); margin: 0; }
 
 /* The grounds: one flat lawn, not individual tiles sitting apart from each
    other — tiles are edge to edge (see TILE_GAP in CampusMap.tsx) and
@@ -1023,19 +1020,29 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   :root { --side-panel-width: 300px; --log-strip-width: 260px; }
 }
 
-@media (max-width: 760px) {
-  /* The log ticker and the siting tray can no longer sit side by side at
-     this width — stack the tray above the ticker instead, both full width
-     up to the build rail, rather than shrinking either past readability.
-     .campus-map-canvas's own bottom inset (see above) assumes they sit
-     SIDE BY SIDE — only the taller of the two matters there — so it's
-     overridden here to the SUM of both real heights plus their stacking
-     gap, or the interactive map would still think it only has to clear
-     one of them. */
-  :root { --log-strip-width: 220px; --tray-ceiling: 200px; }
+/* Below this, the gap left between the log ticker and the build rail for
+   the map's hint strip (see .campus-map-tray) gets too narrow for its
+   title + one-line hint to sit side by side — stack the strip above the
+   ticker instead, both full width up to the build rail, rather than
+   shrinking either past readability. .campus-map-canvas's own bottom inset
+   (see above) assumes they sit SIDE BY SIDE — only the taller of the two
+   matters there — so it's overridden here to the SUM of both real heights
+   plus their stacking gap, or the interactive map would still think it
+   only has to clear one of them. The strip itself may still wrap to more
+   than one line at the narrower end of this range, so its real measured
+   height — not the single-line assumption above — is what actually keeps
+   every tile reachable. This threshold is wider than the 760px one below
+   on purpose: it only has to relieve the squeeze on these two floating
+   cards, well before the narrower breakpoint's own content reflow (tab
+   overlay, faculty columns, etc.) needs to kick in. */
+@media (max-width: 1000px) {
+  :root { --log-strip-width: 220px; }
   .campus-map-canvas { bottom: calc(var(--log-strip-height) + var(--tray-height) + 32px); }
   .log-strip { right: calc(var(--side-panel-width) + 32px); width: auto; max-height: 150px; }
-  .campus-map-tray { left: 16px; bottom: calc(16px + var(--log-strip-height) + 10px); }
+  .campus-map-tray { left: 16px; bottom: calc(16px + var(--log-strip-height) + 10px); flex-wrap: wrap; }
+}
+
+@media (max-width: 760px) {
   .tab-overlay-backdrop { align-items: center; padding: 12px; }
   .tab-overlay { max-height: 88vh; }
   /* Half-width roster/market columns need real width to stay readable —

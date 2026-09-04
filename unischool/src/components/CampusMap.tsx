@@ -4,7 +4,7 @@ import type { Buildable, GameState, PathEdge, Placement } from '../state/types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import {
   canPlace, canRotate, edgeKey, footprintIsClear, footprintOf, isPlaceableKind,
-  orientedFootprint, parseEdgeKey, placementTiles, tilesCovered,
+  orientedFootprint, parseEdgeKey, placementTiles,
 } from '../state/campusMap';
 import { canStartDevelopment } from '../systems/techtree/techSystem';
 import HelpHint from './HelpHint';
@@ -435,10 +435,11 @@ export default function CampusMap({
   useEffect(() => {
     setRotated(false);
   }, [selectedId]);
-  // This head card's own rendered height feeds --tray-height (see
+  // This strip's own rendered height feeds --tray-height (see
   // styles.css's .campus-map-canvas and App.tsx's matching
-  // --log-strip-height): it's short most of the time, so the map should get
-  // that space back rather than always reserving room at its ceiling.
+  // --log-strip-height): a single line most of the time, so the map keeps
+  // that space rather than a fixed reservation for a card that no longer
+  // holds a list.
   const trayRef = useRef<HTMLDivElement>(null);
   useCssHeightVar(trayRef, '--tray-height');
 
@@ -594,12 +595,6 @@ export default function CampusMap({
     applyView({ x: cx - worldX * nextZoom, y: cy - worldY * nextZoom, zoom: nextZoom });
   }
 
-  function recenter() {
-    const svg = svgRef.current;
-    if (!svg) return;
-    applyView(defaultView(svg.getBoundingClientRect()));
-  }
-
   // Every placeable Buildable that has cleared its gate and hasn't been
   // sited yet — exactly what BuildPanel.tsx renders a "site →" row for.
   // Picking one up here is the SAME selection that row arms (see the
@@ -609,8 +604,6 @@ export default function CampusMap({
   // A pickable entry can vanish between renders (its gate closed, or a
   // fresh game), so never trust the stored id without re-checking it.
   const selected = pickable.find((t) => t.id === selectedId) ?? null;
-  const coveredTiles = tilesCovered(s.placements);
-  const totalTiles = CAMPUS_GRID_WIDTH * CAMPUS_GRID_HEIGHT;
 
   // The footprint actually being sited right now, base or rotated. The one
   // place that reads `rotated` against a real Buildable — everything below
@@ -883,7 +876,6 @@ export default function CampusMap({
           <div className="campus-map-zoom-controls">
             <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
             <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>
-            <button type="button" onClick={recenter} aria-label="Recenter the map" title="Recenter the map">⟲</button>
           </div>
           <div className="campus-map-path-controls">
             <button
@@ -908,23 +900,21 @@ export default function CampusMap({
         </div>
       </div>
 
-      {/* The map's own head card, docked along the bottom edge (title,
-          help, tiles-built count, and a live hint for whatever mode the
-          map is currently in). What USED to also live here — the
-          "awaiting siting" tray of finished-but-unplaced buildings — is
-          gone: picking something up for siting now happens from
+      {/* A slim, single-line strip docked along the bottom edge: a title,
+          a help hint, and a live one-line hint for whatever mode the map
+          is currently in. What USED to live here — the "awaiting siting"
+          tray of finished-but-unplaced buildings, and later a tiles-built
+          counter — is gone: picking something up for siting happens from
           BuildPanel.tsx's "site →" row (placement starts a build, so the
           affordance belongs where every other build decision is made),
-          and this card just orients the player once they're already
-          holding something. */}
+          and the counter told the player nothing they act on. What's left
+          is orientation only, kept to one row so it no longer reads as a
+          card competing with the log strip for the bottom of the screen. */}
       <div className="campus-map-tray" ref={trayRef}>
-        <div className="campus-map-tray-head">
-          <span className="panel-head-title">
-            <h2>Campus Map</h2>
-            <HelpHint text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build panel — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. The Draw path / Erase path buttons let you sketch walkways along the gridlines between tiles — free, purely decorative, and unrelated to building." />
-          </span>
-          <span className="stat">{coveredTiles}/{totalTiles} tiles built on</span>
-        </div>
+        <span className="panel-head-title">
+          <h2>Campus Map</h2>
+          <HelpHint text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build panel — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. The Draw path / Erase path buttons let you sketch walkways along the gridlines between tiles — free, purely decorative, and unrelated to building." />
+        </span>
         <span className="campus-map-hint">
           {pathTool
             ? pathTool === 'draw'

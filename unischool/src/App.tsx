@@ -44,9 +44,9 @@ import './styles.css';
 // would either waste map area on a wide screen or, worse, leave a strip of
 // tiles physically under an opaque panel — on screen but never clickable —
 // on a narrower one. `useCssHeightVar` keeps `--topbar-height` and
-// `--log-strip-height` synced to their real rendered heights; the siting
-// tray does the same for `--tray-height` in CampusMap.tsx. Together those
-// three are what .campus-map-canvas (see styles.css) insets its
+// `--log-strip-height` synced to their real rendered heights; the map's own
+// bottom hint strip does the same for `--tray-height` in CampusMap.tsx.
+// Together those three are what .campus-map-canvas (see styles.css) insets its
 // interactive area by, so every tile stays reachable at any viewport size.
 export default function App() {
   const { state, act, speed, setSpeed } = useGame();
