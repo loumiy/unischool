@@ -127,52 +127,54 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
         </p>
       </section>
 
-      <section className="panel">
-        <div className="panel-head">
-          <h2>Endowment Campaign</h2>
-          <HelpHint align="end" text="A campaign converts cash into endowment at a donor match that scales with prestige. The endowment pays a fixed share of itself into income every year, and its size per student feeds prestige — so once the dorm chain and the curriculum are built out, this is what money is still for. Each campaign costs more than the last, and donors give a little less each time." />
-        </div>
-        {!campaign.available ? (
-          <p className="empty-note">
-            No donor underwrites a campaign for a school nobody has heard of yet. Build prestige first — {Math.round(s.self.reputation)} today.
-          </p>
-        ) : (
-          <>
-            <dl>
-              <dt>Campaign</dt><dd>#{campaign.number}</dd>
-              <dt>Cash committed</dt><dd>{money(campaign.cost)}</dd>
-              <dt>Donor match</dt><dd>+{Math.round(campaign.match * 100)}%</dd>
-              <dt>Raised into the endowment</dt><dd>{money(campaign.endowmentGain)}</dd>
-              <dt>Adds to income</dt><dd>{money(campaign.annualPayout)}/yr, permanently</dd>
-            </dl>
-            <button
-              disabled={!campaign.affordable}
-              onClick={() => act({ type: 'LAUNCH_ENDOWMENT_CAMPAIGN' })}
-            >
-              {campaign.affordable ? `Launch campaign #${campaign.number}` : `Needs ${money(campaign.cost)} in cash`}
-            </button>
-          </>
-        )}
-      </section>
+      <div className="treasury-columns">
+        <section className="panel">
+          <div className="panel-head">
+            <h2>Endowment Campaign</h2>
+            <HelpHint align="end" text="A campaign converts cash into endowment at a donor match that scales with prestige. The endowment pays a fixed share of itself into income every year, and its size per student feeds prestige — so once the dorm chain and the curriculum are built out, this is what money is still for. Each campaign costs more than the last, and donors give a little less each time." />
+          </div>
+          {!campaign.available ? (
+            <p className="empty-note">
+              No donor underwrites a campaign for a school nobody has heard of yet. Build prestige first — {Math.round(s.self.reputation)} today.
+            </p>
+          ) : (
+            <>
+              <dl>
+                <dt>Campaign</dt><dd>#{campaign.number}</dd>
+                <dt>Cash committed</dt><dd>{money(campaign.cost)}</dd>
+                <dt>Donor match</dt><dd>+{Math.round(campaign.match * 100)}%</dd>
+                <dt>Raised into the endowment</dt><dd>{money(campaign.endowmentGain)}</dd>
+                <dt>Adds to income</dt><dd>{money(campaign.annualPayout)}/yr, permanently</dd>
+              </dl>
+              <button
+                disabled={!campaign.affordable}
+                onClick={() => act({ type: 'LAUNCH_ENDOWMENT_CAMPAIGN' })}
+              >
+                {campaign.affordable ? `Launch campaign #${campaign.number}` : `Needs ${money(campaign.cost)} in cash`}
+              </button>
+            </>
+          )}
+        </section>
 
-      <section className="panel">
-        <h2>Balance & Policy</h2>
-        <dl>
-          <dt>Cash</dt><dd>{money(s.finance.cash)}</dd>
-          <dt>Endowment</dt><dd>{money(s.finance.endowment)}</dd>
-          <dt>Campaigns run</dt><dd>{s.finance.endowmentCampaigns}</dd>
-          {/* Research grants are one-off arrivals, not a line of the weekly
-              statement above — so they are reported here as a running
-              total instead of being folded into an average that would
-              misrepresent both the weeks a grant lands and the weeks it
-              doesn't. See systems/research/researchSystem.ts. */}
-          <dt>Research grants</dt>
-          <dd>{money(s.research.grantIncome)} across {s.research.grants}</dd>
-          <dt>Tuition</dt><dd>${s.finance.tuitionPerStudent.toLocaleString()}/yr</dd>
-          <dt>Tuition ceiling</dt><dd>${s.finance.tuitionCeiling.toLocaleString()}/yr</dd>
-          <dt>Financial aid</dt><dd>{Math.round(s.admissions.financialAidRate * 100)}%</dd>
-        </dl>
-      </section>
+        <section className="panel">
+          <h2>Balance & Policy</h2>
+          <dl>
+            <dt>Cash</dt><dd>{money(s.finance.cash)}</dd>
+            <dt>Endowment</dt><dd>{money(s.finance.endowment)}</dd>
+            <dt>Campaigns run</dt><dd>{s.finance.endowmentCampaigns}</dd>
+            {/* Research grants are one-off arrivals, not a line of the weekly
+                statement above — so they are reported here as a running
+                total instead of being folded into an average that would
+                misrepresent both the weeks a grant lands and the weeks it
+                doesn't. See systems/research/researchSystem.ts. */}
+            <dt>Research grants</dt>
+            <dd>{money(s.research.grantIncome)} across {s.research.grants}</dd>
+            <dt>Tuition</dt><dd>${s.finance.tuitionPerStudent.toLocaleString()}/yr</dd>
+            <dt>Tuition ceiling</dt><dd>${s.finance.tuitionCeiling.toLocaleString()}/yr</dd>
+            <dt>Financial aid</dt><dd>{Math.round(s.admissions.financialAidRate * 100)}%</dd>
+          </dl>
+        </section>
+      </div>
     </div>
   );
 }
