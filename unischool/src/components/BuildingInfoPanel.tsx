@@ -39,6 +39,11 @@ const FACILITY_CAPACITY_LABEL: Partial<Record<FacilityType, string>> = {
   studentCenter: 'social capacity',
   recCenter: 'recreation capacity',
   healthCenter: 'care capacity',
+  gym: 'fitness capacity',
+  tennisCourts: 'court capacity',
+  pool: 'pool capacity',
+  performingArtsCenter: 'venue capacity',
+  artGallery: 'gallery capacity',
 };
 
 function FacilityInfo({ t }: { t: Buildable }) {

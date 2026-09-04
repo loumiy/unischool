@@ -125,6 +125,9 @@ function edgeLine(e: PathEdge): { x1: number; y1: number; x2: number; y2: number
 const FACILITY_TINT_ORDER = [
   'library', 'studentCenter', 'diningHall', 'recCenter',
   'healthCenter', 'quad', 'lab',
+  // Appended, not interleaved: existing tint indices must never move (an
+  // old save's placed buildings would otherwise silently repaint).
+  'gym', 'tennisCourts', 'pool', 'performingArtsCenter', 'artGallery',
 ] as const;
 const HASHED_TINT_COUNT = 4; // shades available to dorms
 

@@ -5,6 +5,7 @@ import {
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from './types';
 import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES } from '../data/facultyData';
 import { initialTech } from '../data/techData';
+import { initialFacilities } from '../data/facilitiesData';
 
 // ---------------------------------------------------------------------
 // Save / load (see README's "Save / load"). A run is measured in hours, so
@@ -266,7 +267,38 @@ const SAVE_KEY = 'unischool.save';
 // had, since edge-drawing didn't exist for it to have used. No existing
 // content moves, is renamed, or is retired; nothing else reads this slice,
 // so nothing else needed a migration.
-export const SAVE_VERSION = 14;
+// v15: five new campus-life facilities (facilitiesData.ts's gym, tennis
+// courts, pool, performing arts center, art gallery) — more `social`
+// satisfaction capacity, plus the performing arts center's gate on the Arts
+// & Media school's three majors' tier-3 capstone courses (techData.ts's
+// ARTS_GATED_MAJOR_PREFIXES). This is a CONTENT ADDITION with no reorg
+// behind it — nothing existing moved, was renamed, or was retired — so it
+// is the same ID-SPLICE shape v10 -> v11 and v11 -> v12 used, just sourced
+// from initialFacilities() instead of initialTech() (nothing before this
+// ever needed to splice a facilitiesData.ts id into an existing save,
+// because every prior facility landed before SAVE_VERSION existed at all —
+// see facilitiesData.ts's own history).
+//
+// It needs the bump for the same reason those two did: an un-migrated v14
+// save would hold a `tech` array with none of the five new ids, so they
+// would simply never exist for that run — nothing to build, forever. That
+// is a silently half-loaded game.
+//
+// The performing arts center's course-prereq change is DELIBERATELY NOT
+// migrated onto existing courses. A v14 save's GRDS210/MUSC210/SART210-240
+// nodes keep whatever prereqs/status they already have (no facility
+// requirement) — exactly the restraint v11 -> v12's comment spells out for
+// its own building requirement: this migration re-points nothing that
+// already exists, splices only what's missing. A save that already
+// finished those capstones keeps them finished, un-un-locked. A save
+// still climbing toward one only ever sees the OLD (school-building-only)
+// gate, because that is the prereqs array it already has on disk; the new
+// gate only applies to a fresh game, whose initialTech() bakes it in from
+// the start. The one save-visible consequence: an old and a new game reach
+// arts capstones under slightly different rules, which is the accepted,
+// honestly-flagged cost of this shape of migration, same as v11 -> v12's
+// buildingless-founding edge case.
+export const SAVE_VERSION = 15;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -738,6 +770,20 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   // empty student-org slice and v8 -> v9 for no outstanding demands.
   13: (state) => {
     state.pathways = {};
+  },
+
+  // v14 -> v15: five new campus-life facilities (see SAVE_VERSION above).
+  // The exact same id-splice shape as v10 -> v11 / v11 -> v12, just sourced
+  // from initialFacilities() instead of initialTech() — every seed facility
+  // the save doesn't already have is appended at its seeded 'available'
+  // status, and every node the save already holds is left completely
+  // untouched. No course prereqs are re-pointed here — see the long note
+  // above SAVE_VERSION for why that's deliberate.
+  14: (state) => {
+    const have = new Set(state.tech.map((node) => node.id));
+    for (const node of initialFacilities()) {
+      if (!have.has(node.id)) state.tech.push({ ...node });
+    }
   },
 };
 

@@ -47,6 +47,11 @@ const UPKEEP_PER_SERVED_PER_WEEK: Record<string, number> = {
   studentCenter: 1.0,
   recCenter: 1.1,
   healthCenter: 1.6,
+  gym: 1.0,               // fitness staff and equipment upkeep, in line with the student center
+  tennisCourts: 0.5,      // outdoor courts, minimal staffing
+  pool: 1.5,              // lifeguards plus chemical/mechanical upkeep — pricier per head than a gym
+  performingArtsCenter: 1.0, // venue/production staff, a campus-wide draw like the student center
+  artGallery: 0.7,        // curatorial and security staff, lighter than a working venue
 };
 
 function servedUpkeep(facilityType: keyof typeof UPKEEP_PER_SERVED_PER_WEEK, servesPopulation: number): number {
@@ -205,6 +210,53 @@ const REC_CENTER_TIER2_COST = 1_900_000;
 const REC_CENTER_TIER2_WEEKS = 28;
 const REC_CENTER_TIER2_PRESTIGE = 0.10;
 export const REC_CENTER_TIER2_PRESTIGE_GATE = 55;
+
+// --- Recreational facilities: gym, tennis courts, pool ---
+// Deliberately ONE-OFF (no `tier` field, no tier-2 upgrade) rather than the
+// library/studentCenter/recCenter shape: each is a single, smaller amenity
+// alongside the rec center rather than a second thing to grow in place — the
+// rec center already IS the tiered "recreation" building. These exist to
+// give `social` more levers now that TARGET_RATIO.social is 0.34 (see
+// satisfactionSystem.ts's note on the harshening pass): more capacity to
+// hold the ratio as a campus keeps growing past what the rec center +
+// student center alone can cover, not a replacement for either.
+//
+// NOTE for the athletics PR still on the roadmap: a pool here may well be
+// superseded by (or need to coexist with) a future natatorium, and a gym
+// overlaps conceptually with a future varsity weight room / training
+// facility. Left as a flag, not resolved here — this PR does not touch
+// athletics.
+const GYM_ID = 'GYM';
+const GYM_SERVES = 1_000;
+const GYM_COST = 350_000;
+const GYM_WEEKS = 12;
+const TENNIS_COURTS_ID = 'TENNIS-COURTS';
+const TENNIS_COURTS_SERVES = 400;
+const TENNIS_COURTS_COST = 140_000;
+const TENNIS_COURTS_WEEKS = 6;
+const POOL_ID = 'POOL';
+const POOL_SERVES = 700;
+const POOL_COST = 320_000;
+const POOL_WEEKS = 10;
+
+// --- Arts facilities: performing arts center (landmark), art gallery ---
+// Also one-off, same reasoning as the recreational trio above. Both feed
+// `social` like any other campus-life facility, and the performing arts
+// center ALSO gates the Arts & Media school's three majors' tier-3
+// (capstone) courses — see techData.ts's ARTS_GATED_MAJOR_PREFIXES, wired
+// the exact same way a science major's Lab Buildable gates its own
+// capstone quartet. Only the performing arts center carries that gate: one
+// coupling is enough to give the arts curriculum a building of its own
+// without splitting a two-major gate across two half-relevant facilities.
+// Exported because techData.ts's course-prereq wiring needs the id.
+export const PERFORMING_ARTS_CENTER_ID = 'ARTS-PAC';
+const PERFORMING_ARTS_CENTER_SERVES = 1_500;
+const PERFORMING_ARTS_CENTER_COST = 1_100_000;
+const PERFORMING_ARTS_CENTER_WEEKS = 20;
+const ART_GALLERY_ID = 'ART-GALLERY';
+const ART_GALLERY_SERVES = 500;
+const ART_GALLERY_COST = 220_000;
+const ART_GALLERY_WEEKS = 8;
 
 // --- Health/counseling center: single building, two tiers, gated by population ---
 // "Unlocks at a population threshold" per the design ask: below
@@ -367,6 +419,90 @@ export function initialFacilities(): Buildable[] {
         satisfactionAttribute: 'social',
         prestigeContribution: REC_CENTER_TIER2_PRESTIGE,
         upkeepPerWeek: servedUpkeep('recCenter', REC_CENTER_TIER2_SERVES),
+      },
+    },
+
+    // Recreational facilities: gym, tennis courts, pool — one-off, social
+    {
+      id: GYM_ID,
+      kind: 'facility',
+      facilityType: 'gym',
+      name: 'Gym & Fitness Center',
+      description: `Weight room and cardio floor for ${GYM_SERVES.toLocaleString()} students.`,
+      cost: GYM_COST,
+      duration: GYM_WEEKS,
+      prereqs: [],
+      status: 'available',
+      effects: {
+        servesPopulation: GYM_SERVES,
+        satisfactionAttribute: 'social',
+        upkeepPerWeek: servedUpkeep('gym', GYM_SERVES),
+      },
+    },
+    {
+      id: TENNIS_COURTS_ID,
+      kind: 'facility',
+      facilityType: 'tennisCourts',
+      name: 'Tennis Courts',
+      description: `A handful of courts open to ${TENNIS_COURTS_SERVES.toLocaleString()} students — cheap, and a quick early win for campus life.`,
+      cost: TENNIS_COURTS_COST,
+      duration: TENNIS_COURTS_WEEKS,
+      prereqs: [],
+      status: 'available',
+      effects: {
+        servesPopulation: TENNIS_COURTS_SERVES,
+        satisfactionAttribute: 'social',
+        upkeepPerWeek: servedUpkeep('tennisCourts', TENNIS_COURTS_SERVES),
+      },
+    },
+    {
+      id: POOL_ID,
+      kind: 'facility',
+      facilityType: 'pool',
+      name: 'Swimming Pool',
+      description: `An indoor pool for ${POOL_SERVES.toLocaleString()} students.`,
+      cost: POOL_COST,
+      duration: POOL_WEEKS,
+      prereqs: [],
+      status: 'available',
+      effects: {
+        servesPopulation: POOL_SERVES,
+        satisfactionAttribute: 'social',
+        upkeepPerWeek: servedUpkeep('pool', POOL_SERVES),
+      },
+    },
+
+    // Arts facilities: performing arts center (landmark) and gallery
+    {
+      id: PERFORMING_ARTS_CENTER_ID,
+      kind: 'facility',
+      facilityType: 'performingArtsCenter',
+      name: 'Performing Arts Center',
+      description: `A campus landmark: a concert hall and theater seating ${PERFORMING_ARTS_CENTER_SERVES.toLocaleString()} students, and the venue the Arts & Media school's capstone courses perform and exhibit in.`,
+      cost: PERFORMING_ARTS_CENTER_COST,
+      duration: PERFORMING_ARTS_CENTER_WEEKS,
+      prereqs: [],
+      status: 'available',
+      effects: {
+        servesPopulation: PERFORMING_ARTS_CENTER_SERVES,
+        satisfactionAttribute: 'social',
+        upkeepPerWeek: servedUpkeep('performingArtsCenter', PERFORMING_ARTS_CENTER_SERVES),
+      },
+    },
+    {
+      id: ART_GALLERY_ID,
+      kind: 'facility',
+      facilityType: 'artGallery',
+      name: 'Art Gallery',
+      description: `A rotating-exhibit gallery for ${ART_GALLERY_SERVES.toLocaleString()} students.`,
+      cost: ART_GALLERY_COST,
+      duration: ART_GALLERY_WEEKS,
+      prereqs: [],
+      status: 'available',
+      effects: {
+        servesPopulation: ART_GALLERY_SERVES,
+        satisfactionAttribute: 'social',
+        upkeepPerWeek: servedUpkeep('artGallery', ART_GALLERY_SERVES),
       },
     },
 
