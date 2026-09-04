@@ -1,4 +1,6 @@
-import type { Buildable, FacilityType, Footprint, GameState, Placement, Placements, TileCoord } from './types';
+import type {
+  Buildable, EdgeOrientation, FacilityType, Footprint, GameState, PathEdge, Placement, Placements, TileCoord,
+} from './types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, PLACEABLE_KINDS } from './types';
 
 // Pure helpers for the campus map's placement rules, shared by the
@@ -80,6 +82,35 @@ export function footprintOf(t: Buildable): Footprint {
 }
 
 // ---------------------------------------------------------------------
+// ROTATION. A building picked up for siting can be turned 90 degrees before
+// it's set down (see CampusMap.tsx's 'R' hotkey / rotate control). There is
+// no separate "orientation" field anywhere: rotating just swaps which of a
+// Buildable's own footprintOf() dimensions is w and which is h, and THAT
+// swapped {row,col,w,h} is what PLACE_BUILDABLE writes into `placements` —
+// the same field that already exists and is already saved. One source of
+// truth, and the reason the v13 -> v14 migration needs no placement-shape
+// change at all (see persistence.ts).
+// ---------------------------------------------------------------------
+
+// A square footprint reads identically rotated or not — offering a rotate
+// control for one would be a control that visibly does nothing.
+export function canRotate(fp: Footprint): boolean {
+  return fp.w !== fp.h;
+}
+
+export function rotateFootprint(fp: Footprint): Footprint {
+  return { w: fp.h, h: fp.w };
+}
+
+// The footprint actually being sited right now: a Buildable's base
+// footprint, swapped if the player has rotated it. Square footprints never
+// change regardless of `rotated` (see canRotate above).
+export function orientedFootprint(t: Buildable, rotated: boolean): Footprint {
+  const fp = footprintOf(t);
+  return rotated && canRotate(fp) ? rotateFootprint(fp) : fp;
+}
+
+// ---------------------------------------------------------------------
 // Bounds and occupancy
 // ---------------------------------------------------------------------
 
@@ -145,15 +176,21 @@ export function footprintIsClear(placements: Placements, row: number, col: numbe
 
 // The one definition of a legal placement: a finished, placeable, not-yet-
 // placed Buildable whose WHOLE footprint lands on empty, in-bounds tiles.
-export function canPlace(s: GameState, t: Buildable, row: number, col: number): boolean {
+// `fp` is the footprint actually being sited — orientedFootprint(t, rotated)
+// for a rotatable siting flow, or plain footprintOf(t) for anything that
+// doesn't care about rotation — rather than always re-deriving the
+// unrotated one, so a rotated footprint that no longer fits is refused
+// exactly as an unrotated overflow already is.
+export function canPlace(s: GameState, t: Buildable, row: number, col: number, fp: Footprint): boolean {
   return isAwaitingPlacement(s, t)
-    && footprintIsClear(s.placements, row, col, footprintOf(t));
+    && footprintIsClear(s.placements, row, col, fp);
 }
 
 // The placement PLACE_BUILDABLE writes: the anchor the player picked plus
-// the footprint that Buildable gets, frozen in at the moment of placement.
-export function placementFor(t: Buildable, row: number, col: number): Placement {
-  return { row, col, ...footprintOf(t) };
+// the footprint (already oriented — see orientedFootprint) it gets, frozen
+// in at the moment of placement.
+export function placementFor(row: number, col: number, fp: Footprint): Placement {
+  return { row, col, ...fp };
 }
 
 // How many tiles are currently built on — the map header's "sited" readout.
@@ -162,4 +199,49 @@ export function tilesCovered(placements: Placements): number {
   let total = 0;
   for (const p of Object.values(placements)) total += p.w * p.h;
   return total;
+}
+
+// ---------------------------------------------------------------------
+// PATHWAYS. See types.ts's Pathways/PathEdge for the edge-identification
+// scheme (a 'h'/'v' edge on the grid of tile CORNERS, not on either tile it
+// borders). Everything below is pure geometry, shared by the reducer's
+// ADD_PATH_EDGE/REMOVE_PATH_EDGE cases, the save loader's edge hygiene, and
+// the map UI — same one-definition rationale as footprintOf and friends.
+// ---------------------------------------------------------------------
+
+// The one string form an edge is ever stored or looked up by — a Pathways
+// key. Also what makes drawing the same edge twice idempotent: two calls
+// with the same edge produce the same key, so writing it a second time
+// overwrites rather than duplicates.
+export function edgeKey(e: PathEdge): string {
+  return `${e.orientation}:${e.row}:${e.col}`;
+}
+
+// The inverse of edgeKey, for reading a saved Pathways record back into
+// edges (rendering, migration hygiene). Returns null for a key that isn't
+// shaped like one this version ever wrote — a defensive read, not a parser
+// for a format with variants.
+export function parseEdgeKey(key: string): PathEdge | null {
+  const parts = key.split(':');
+  if (parts.length !== 3) return null;
+  const [orientation, rowStr, colStr] = parts;
+  if (orientation !== 'h' && orientation !== 'v') return null;
+  const row = Number(rowStr);
+  const col = Number(colStr);
+  if (!Number.isInteger(row) || !Number.isInteger(col)) return null;
+  return { orientation: orientation as EdgeOrientation, row, col };
+}
+
+// Is this edge one that actually exists on the CURRENT grid? A 'h' edge's
+// row runs 0..HEIGHT inclusive (it's a line on the corner grid, one more
+// than the tile grid has rows) and col runs 0..WIDTH-1; a 'v' edge is the
+// mirror image. Grid dimensions only ever grow today, but this is what
+// sanitizePathways (persistence.ts) leans on if that ever changes, the same
+// way sanitizePlacements already leans on footprintFits.
+export function isEdgeInBounds(e: PathEdge): boolean {
+  if (!Number.isInteger(e.row) || !Number.isInteger(e.col)) return false;
+  if (e.orientation === 'h') {
+    return e.row >= 0 && e.row <= CAMPUS_GRID_HEIGHT && e.col >= 0 && e.col < CAMPUS_GRID_WIDTH;
+  }
+  return e.row >= 0 && e.row < CAMPUS_GRID_HEIGHT && e.col >= 0 && e.col <= CAMPUS_GRID_WIDTH;
 }

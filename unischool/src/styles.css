@@ -421,13 +421,30 @@ button { cursor: pointer; font-family: inherit; }
    map (see TILE_SIZE in CampusMap.tsx) usually doesn't fit the screen at
    its native size. A small vertical pill in the canvas's own top-right
    corner, clear of the topbar above and the build rail beside it. */
-.campus-map-zoom-controls { position: fixed; z-index: 10; top: calc(var(--topbar-height) + 16px);
-  right: calc(var(--side-panel-width) + 16px); display: flex; flex-direction: column; gap: 4px;
+/* Wraps the zoom pill and the path-tool pill so they stack in one fixed
+   corner without either having to know the other's height (see
+   CampusMap.tsx) — each child keeps its own parchment card look, only the
+   fixed positioning moved up to here. */
+.campus-map-side-controls { position: fixed; z-index: 10; top: calc(var(--topbar-height) + 16px);
+  right: calc(var(--side-panel-width) + 16px); display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
+.campus-map-zoom-controls { display: flex; flex-direction: column; gap: 4px;
   background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px; padding: 4px; }
 .campus-map-zoom-controls button { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
   background: #f5efdd; border: 1px solid var(--parchment-line); border-radius: 5px; color: var(--ink);
   font-size: 15px; line-height: 1; padding: 0; }
 .campus-map-zoom-controls button:hover { border-color: var(--gold-dim); background: #efe1b8; }
+
+/* Path drawing/erasing: two independent toggles beside the zoom pill (see
+   CampusMap.tsx's pathTool — mutually exclusive with each other and with
+   picking up a building for placement, never with the zoom/pan controls). */
+.campus-map-path-controls { display: flex; flex-direction: column; gap: 4px;
+  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px; padding: 4px; }
+.campus-map-path-controls button { display: flex; align-items: center; gap: 5px; white-space: nowrap;
+  background: #f5efdd; border: 1px solid var(--parchment-line); border-radius: 5px; color: var(--ink);
+  font-size: 12px; font-family: inherit; padding: 6px 8px; }
+.campus-map-path-controls button:hover { border-color: var(--gold-dim); background: #efe1b8; }
+.campus-map-path-controls button.active { background: var(--gold); border-color: var(--gold); color: #3a2f0e; font-weight: 700; }
+.campus-map-svg.path-draw, .campus-map-svg.path-erase { cursor: crosshair; }
 
 /* Siting tray: floats over the map's bottom edge, between the log strip
    (see .log-strip above) and the build rail — `position: fixed` puts it in
@@ -489,6 +506,25 @@ button { cursor: pointer; font-family: inherit; }
 .campus-preview { pointer-events: none; fill: none; stroke-width: 1.5; }
 .campus-preview.ok { stroke: var(--gold); fill: rgba(201, 162, 39, 0.18); }
 .campus-preview.blocked { stroke: #b4544a; fill: rgba(180, 84, 74, 0.14); stroke-dasharray: 3 2; }
+
+/* The rotate dial pinned to the ghost's corner (see CampusMap.tsx) — only
+   ever rendered for a non-square footprint, since a square one reads
+   identically rotated or not. */
+.campus-rotate-btn { cursor: pointer; }
+.campus-rotate-btn circle { fill: var(--parchment); stroke: var(--gold-dim); stroke-width: 1.5; }
+.campus-rotate-btn:hover circle { fill: #efe1b8; }
+.campus-rotate-btn text { font-size: 13px; fill: var(--ink); pointer-events: none; }
+
+/* Drawn pathways: a worn-stone stroke along the gridline it occupies,
+   beneath buildings (see the render order in CampusMap.tsx) so a building
+   later placed over a path is drawn on top of it, not the other way round. */
+.campus-path-edge { stroke: #cbbd8e; stroke-width: 5; stroke-linecap: round; pointer-events: none; }
+/* The draw/erase hit targets: invisible until hovered, generously wide
+   (well past the visible stroke) so clicking near a gridline is enough —
+   see CampusMap.tsx's allEdges. Only rendered while a path tool is active. */
+.campus-path-hit { stroke: transparent; stroke-width: 14px; cursor: crosshair; }
+.campus-path-hit.draw:hover { stroke: rgba(201, 162, 39, 0.35); }
+.campus-path-hit.erase:hover { stroke: rgba(180, 84, 74, 0.35); }
 
 /* ---------- placed buildings ---------- */
 /* One rect per building, spanning its whole footprint (geometry is in

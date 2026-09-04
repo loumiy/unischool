@@ -1,4 +1,4 @@
-import type { GameState, SchoolType } from './types';
+import type { GameState, PathEdge, SchoolType } from './types';
 import type { DecisionEventContext } from '../data/eventData';
 import { WEEKS_PER_YEAR } from './types';
 import { initialTech, GENED_BUILDING_REPUTATION_BONUS } from '../data/techData';
@@ -35,8 +35,19 @@ export type Action =
   // grants nothing, and a building's effects never depend on it. Rejected
   // by the reducer if the Buildable isn't finished, isn't a placeable kind
   // (a `course` never is), is already placed, or the target tile is out of
-  // bounds or occupied.
-  | { type: 'PLACE_BUILDABLE'; buildableId: string; row: number; col: number }
+  // bounds or occupied. `rotated` is whether the player turned it 90
+  // degrees before setting it down (see campusMap.ts's orientedFootprint) —
+  // the reducer tests and stores the ROTATED footprint, so a rotation that
+  // no longer fits is refused exactly like an unrotated overflow.
+  | { type: 'PLACE_BUILDABLE'; buildableId: string; row: number; col: number; rotated: boolean }
+  // Draws/erases one tile-edge pathway segment (see state/campusMap.ts's
+  // PathEdge/edgeKey and types.ts's Pathways). Purely decorative — free,
+  // reversible, grants nothing, read by no system — so unlike
+  // PLACE_BUILDABLE there is no legality to fail beyond the edge existing
+  // on the current grid, which the reducer checks the same defensive way
+  // sanitizePathways does on load.
+  | { type: 'ADD_PATH_EDGE'; edge: PathEdge }
+  | { type: 'REMOVE_PATH_EDGE'; edge: PathEdge }
   // Runs an endowment campaign (see financeSystem.ts's endowmentCampaign):
   // converts a large lump of cash into endowment at a prestige-scaled
   // donor match. Repeatable forever, each one costing more than the last —
@@ -134,6 +145,7 @@ export function createPreStartState(): GameState {
     tech: [],
     developing: {},
     placements: {},
+    pathways: {},
     rivals: [],
     self: { name: '', suffix: '', universityCharterOffered: false, reputation: 0, schoolType: 'private' },
     history: [],
@@ -263,6 +275,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     tech: [...initialTech(), ...initialDorms(), ...initialFacilities()],
     developing: {},
     placements: {},
+    pathways: {},
     rivals: initialRivals(),
     // +GENED_BUILDING_REPUTATION_BONUS: same fold-in as capacity above.
     // `name` is the player's half only ("Blackmoor"); the institutional
