@@ -99,7 +99,11 @@ export type Action =
   // cannot afford the chosen option — every event always offers at least
   // one that costs nothing. Advances the clock, like RESOLVE_REPORT.
   | { type: 'RESOLVE_DECISION_EVENT'; eventId: string; choiceId: string; ctx: DecisionEventContext }
-  | { type: 'DEBUG_TRIGGER_TEST_INTERRUPT' }           // scaffolding: see reducer.ts, remove once a real interrupt exists
+  // Grants operating funds directly, with no event or interrupt behind it
+  // (see StatusHeader.tsx's "+$1B" button). Playtest-only: gated behind
+  // naming the university "test", the same as the sandbox Fast speed and
+  // the removed debug-interrupt trigger — never reachable in normal play.
+  | { type: 'GRANT_FUNDS'; amount: number }
   // Writes the run to localStorage on demand (see state/persistence.ts).
   // The autosave already fires once a year at the admissions boundary; this
   // is the player's way to not lose the weeks since. It changes no game

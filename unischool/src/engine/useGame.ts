@@ -54,6 +54,20 @@ export function useGame() {
     return () => clearInterval(id);
   }, [speed, state.started, state.gameOver, interrupted]);
 
+  // The clock already halts the instant an interrupt is pending (above),
+  // but that only stops ticking — it leaves `fast` as the SELECTED speed,
+  // so dismissing the modal would resume play at sandbox fast-forward
+  // right as whatever demanded attention just got resolved. This drops the
+  // selection itself back to `real` the moment an interrupt fires while
+  // fast is selected, so play resumes at normal speed after dismissal
+  // unless the player deliberately picks fast again. Reads `speed` from
+  // this render's closure rather than a ref: the effect body is rebuilt
+  // every render, so it always sees the speed current as of the render
+  // where `interrupted` flipped, with no risk of acting on a stale value.
+  useEffect(() => {
+    if (interrupted && speed === 'fast') setSpeed('real');
+  }, [interrupted]);
+
   // The founding save. The autosave proper lives in the reducer, at the
   // annual admissions boundary — but that is a whole in-game year away from
   // a brand-new university, and a player who refreshes in week 30 of year 1

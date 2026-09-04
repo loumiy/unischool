@@ -1,10 +1,37 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { GameState } from '../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../state/types';
 import { weeklyNet } from '../systems/finance/financeSystem';
 import { playerRank } from '../systems/rivals/rivalsSystem';
 import { SPEEDS, SANDBOX_SPEEDS, type Speed } from '../engine/useGame';
+
+// The playtest grant (see the "+$1B" button below): a round, memorable
+// figure — not tuned to any particular shortfall — since its only job is
+// to remove money as a constraint while iterating, not to model a real
+// cash event.
+const PLAYTEST_GRANT_AMOUNT = 1_000_000_000;
+
+// Keys 1/2/3 set the speed directly to real/double/fast, without having to
+// click the control-bar buttons — real and double are ordinary gameplay
+// speeds so both hotkeys are live for every player, but '3' only does
+// anything for a test university, matching the Fast button's own gating
+// just below. Ignored while focus sits in a text control (the startup
+// screen's school-name field, a future text input) so typing "3" into a
+// name doesn't yank the clock into fast-forward.
+function useSpeedHotkeys(setSpeed: (speed: Speed) => void, sandboxAllowed: boolean) {
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === '1') setSpeed('real');
+      else if (e.key === '2') setSpeed('double');
+      else if (e.key === '3' && sandboxAllowed) setSpeed('fast');
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [setSpeed, sandboxAllowed]);
+}
 
 const SPEED_LABELS: Record<Speed, string> = { paused: 'Paused', real: 'Play', double: 'Play 2×', fast: 'Fast (sandbox)' };
 
@@ -20,10 +47,10 @@ function termName(week: number): string {
   return week <= WEEKS_PER_YEAR / 2 ? 'Fall Term' : 'Spring Term';
 }
 
-// Playtesting controls (the sandbox speed, the debug interrupt trigger) are
-// only useful during development, not normal play — they stay reachable by
-// naming the university "test" rather than being removed outright, so
-// they're still there for anyone iterating on the game. Checked against
+// Playtesting controls (the sandbox speed, the +$1B grant, the fast-speed
+// hotkey below) are only useful during development, not normal play — they
+// stay reachable by naming the university "test" rather than being removed
+// outright, so they're still there for anyone iterating on the game. Checked against
 // the player-written half of the name only (see types.ts's University), so
 // it keeps working whether the school is Test College or Test University.
 function isTestUniversity(name: string): boolean {
@@ -116,6 +143,8 @@ export default function StatusHeader({ s, speed, setSpeed, act }: {
     (sp) => showPlaytestControls || !SANDBOX_SPEEDS.includes(sp),
   );
 
+  useSpeedHotkeys(setSpeed, showPlaytestControls);
+
   return (
     <>
       <header className="masthead">
@@ -174,9 +203,12 @@ export default function StatusHeader({ s, speed, setSpeed, act }: {
         </div>
         <div className="controlbar-right">
           {showPlaytestControls && (
-            /* Scaffolding: proves the interrupt pause/resume cycle. Remove once a real interrupt exists. */
-            <button className="debug-interrupt-btn" onClick={() => act({ type: 'DEBUG_TRIGGER_TEST_INTERRUPT' })}>
-              debug: trigger interrupt
+            <button
+              className="grant-funds-btn"
+              onClick={() => act({ type: 'GRANT_FUNDS', amount: PLAYTEST_GRANT_AMOUNT })}
+              title="Playtest only — grants $1,000,000,000 to operating funds directly, no event behind it."
+            >
+              +$1B
             </button>
           )}
           <SaveControls act={act} />
