@@ -9,6 +9,20 @@ import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, PLACEABLE_KINDS } from './types'
 // techSystem.ts's canStartDevelopment is shared by the reducer and the
 // Campus tab).
 //
+// PLACE_BUILDABLE is now the combined build-and-site action for placeable
+// kinds (building/dorm/facility — see types.ts's PLACEABLE_KINDS): siting a
+// location is no longer something that happens to an already-finished
+// Buildable, it's how one starts. A placeable Buildable therefore gets its
+// s.placements entry the SAME week it starts developing, not the week it
+// finishes — that entry is the single source of truth for "where is this",
+// exactly as s.developing stays the single source of truth for "how long
+// left", for a placeable and a course alike (a course never has a
+// placements entry, at any status, because it was never placeable). This is
+// what makes an in-progress placeable renderable at its footprint and its
+// tiles reserved from week one: footprintIsClear below reads every entry in
+// s.placements regardless of the Buildable's status, so it already treats a
+// developing placement as occupied, with no special case needed.
+//
 // Nothing here mutates state and nothing here ticks — placement is a
 // player action interpreted by the reducer, not a system.
 
@@ -183,17 +197,6 @@ export function occupantAt(placements: Placements, row: number, col: number): st
   return undefined;
 }
 
-// A finished, placeable Buildable that hasn't been sited yet. Placement is
-// optional and non-blocking: a building's effects already landed when it
-// finished, so leaving this list full costs the player nothing mechanically.
-export function isAwaitingPlacement(s: GameState, t: Buildable): boolean {
-  return t.status === 'done' && isPlaceableKind(t) && !(t.id in s.placements);
-}
-
-export function awaitingPlacement(s: GameState): Buildable[] {
-  return s.tech.filter((t) => isAwaitingPlacement(s, t));
-}
-
 // Would this footprint, anchored here, sit entirely on empty in-bounds
 // tiles? Split out from canPlace so the map can preview a hovered/dragged
 // footprint without re-deriving the rule.
@@ -205,16 +208,50 @@ export function footprintIsClear(placements: Placements, row: number, col: numbe
   return true;
 }
 
-// The one definition of a legal placement: a finished, placeable, not-yet-
-// placed Buildable whose WHOLE footprint lands on empty, in-bounds tiles.
+// The one definition of a legal placement TARGET: a placeable Buildable
+// that hasn't started construction yet (status 'available') and isn't
+// already sited, whose WHOLE footprint lands on empty, in-bounds tiles.
 // `fp` is the footprint actually being sited — orientedFootprint(t, rotated)
 // for a rotatable siting flow, or plain footprintOf(t) for anything that
 // doesn't care about rotation — rather than always re-deriving the
 // unrotated one, so a rotated footprint that no longer fits is refused
 // exactly as an unrotated overflow already is.
+//
+// Deliberately geometry + status only — it says nothing about whether the
+// school can actually AFFORD to start this Buildable (see
+// techSystem.ts's canStartDevelopment, the one gate for that, which every
+// call site here combines this with before actually committing a build —
+// see the reducer's PLACE_BUILDABLE case). That split is the same one
+// START_DEVELOPMENT and the old cosmetic-only PLACE_BUILDABLE always had
+// between them; collapsing the two actions into one for placeable kinds
+// didn't collapse the two CONCERNS, it just moved where they're combined.
 export function canPlace(s: GameState, t: Buildable, row: number, col: number, fp: Footprint): boolean {
-  return isAwaitingPlacement(s, t)
+  return isPlaceableKind(t)
+    && t.status === 'available'
+    && !(t.id in s.placements)
     && footprintIsClear(s.placements, row, col, fp);
+}
+
+// A deterministic "first empty spot" scan: top-left to bottom-right, the
+// first anchor whose footprint lands entirely on clear tiles. This is NOT
+// part of the ordinary player-facing placement flow — an ordinary
+// PLACE_BUILDABLE always names the row/col the player chose. It exists for
+// the handful of places a Buildable needs a location nobody was ever asked
+// to pick: the founding Buildables that start already 'done' (see
+// actions.ts's createInitialState), a save migrated from the old two-step
+// shape (see persistence.ts's v17 -> v18), and an authored event that
+// manufactures a finished Buildable on the spot (eventData.ts's chapter
+// house). The full catalogue covers under a third of the grid (see
+// types.ts's CAMPUS_GRID_WIDTH/HEIGHT comment), so in every case this is
+// actually used for today, room is always found; callers still handle a
+// null result rather than assuming it.
+export function firstFreeSpot(placements: Placements, fp: Footprint): TileCoord | null {
+  for (let row = 0; row + fp.h <= CAMPUS_GRID_HEIGHT; row++) {
+    for (let col = 0; col + fp.w <= CAMPUS_GRID_WIDTH; col++) {
+      if (footprintIsClear(placements, row, col, fp)) return { row, col };
+    }
+  }
+  return null;
 }
 
 // The placement PLACE_BUILDABLE writes: the anchor the player picked plus

@@ -1,7 +1,8 @@
-import type { Faculty, GameState, GreekChapter, LogEntry } from '../state/types';
+import type { Buildable, Faculty, GameState, GreekChapter, LogEntry } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { FACULTY_FIELDS, generateCandidate, rollCoachName, rollSurname } from './facultyData';
 import { money, rollAmount, weeksOfOpEx } from './moneyScale';
+import { firstFreeSpot, footprintOf, placementFor } from '../state/campusMap';
 import {
   CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
   promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, venueForCategory,
@@ -439,14 +440,15 @@ const GREEK_HOUSE_REFUSAL_SATISFACTION_HIT = 2;
 
 // --- varsity athletics (see data/studentLifeData.ts) -------------------
 //
-// UNLIKE the Greek house grant above, going varsity does NOT push an
-// already-'done' Buildable straight into the siting tray: the required
+// UNLIKE the Greek house grant above, going varsity does NOT manufacture an
+// already-'done' Buildable and place it for the player: the required
 // venue is only REVEALED here (see techSystem.ts's meetsUnlockGates, which
 // flips it 'locked' -> 'available' the moment promoteToVarsityTeam below
-// pushes a team referencing its category) and still has to be developed
-// through the ordinary build-rail cost/duration cycle, like a gym or a
-// pool. That is a deliberate fork from the chapter-house pattern this event
-// is otherwise modeled on, flagged rather than resolved silently: a
+// pushes a team referencing its category) and still has to be built —
+// player-placed — through the ordinary build-rail PLACE_BUILDABLE cycle,
+// like a gym or a pool. That is a deliberate fork from the chapter-house
+// pattern this event is otherwise modeled on, flagged rather than resolved
+// silently: a
 // football stadium (or any shared venue) reads as a genuine construction
 // project the player commits capacity to, not a line item this event's own
 // cost quietly pre-pays. VARSITY_ESTABLISH_COST below therefore prices the
@@ -1018,7 +1020,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         id: 'build',
         label: 'Build the chapter house',
         describe: (s, ctx) =>
-          `${money(ctx.amount ?? 0)} up front and ${money(weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX))} a week to run it, forever. ${ctx.subjectName} contributes a further ${CHAPTER_HOUSED_SOCIAL_BONUS} points of social satisfaction from the week it opens, and the house itself joins the siting tray to place on campus.`,
+          `${money(ctx.amount ?? 0)} up front and ${money(weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX))} a week to run it, forever. ${ctx.subjectName} contributes a further ${CHAPTER_HOUSED_SOCIAL_BONUS} points of social satisfaction from the week it opens, and the house itself takes its place on campus immediately.`,
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
           const chapter = findChapter(s, ctx.subjectId);
@@ -1039,7 +1041,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
             // are already live-read off `chapter.housed`/`upkeepPerWeek`
             // above, and giving the Buildable its own effects would double
             // them. Its only job is to exist so it can be sited.
-            s.tech.push({
+            const house: Buildable = {
               id: chapterHouseId(chapter.id),
               kind: 'facility',
               name: `${chapter.name} House`,
@@ -1048,9 +1050,26 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
               duration: 0,
               prereqs: [],
               status: 'done',
-            });
+            };
+            s.tech.push(house);
+            // Sited immediately, at whatever spot a plain top-left scan
+            // finds first — the same firstFreeSpot every other Buildable
+            // that starts 'done' without ever asking the player where it
+            // goes uses (see actions.ts's createInitialState and
+            // persistence.ts's v17 -> v18 migration). There is no siting
+            // tray to defer this into any more: placement is how a
+            // placeable Buildable comes to exist on the map, and this one
+            // is manufactured whole rather than built through the ordinary
+            // PLACE_BUILDABLE cycle, so it has to place itself. The
+            // pathological case where no room is found is left unplaced —
+            // it stays a real, 'done' chapter house with its bonus and
+            // upkeep already live, simply invisible on the map — rather
+            // than blocking the event or crashing.
+            const fp = footprintOf(house);
+            const spot = firstFreeSpot(s.placements, fp);
+            if (spot) s.placements[house.id] = placementFor(spot.row, spot.col, fp);
           }
-          return entry(s, `A chapter house has been built for ${ctx.subjectName} — ready to site on the campus map.`, 'good');
+          return entry(s, `A chapter house has been built for ${ctx.subjectName}.`, 'good');
         },
       },
       {

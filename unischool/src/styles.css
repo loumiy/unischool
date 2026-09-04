@@ -369,6 +369,16 @@ button { cursor: pointer; font-family: inherit; }
 .building-item.done .build-name { color: #6b5a24; }
 .building-item.developing { background: #faf3d9; border-left: 3px solid var(--gold); padding-left: 8px; }
 .building-item.available { border-left: 3px solid var(--gold-dim); padding-left: 8px; }
+/* Armed for siting (see BuildPanel.tsx's "site →" row / CampusMap.tsx's
+   `selected`): the same gold treatment a developing row already gets,
+   since picking this up is the first half of the same commitment. */
+.building-item.available.placing { background: #faf3d9; border-left-color: var(--gold); }
+
+/* The construction banner at the top of a developing Buildable's info
+   panel (see BuildingInfoPanel.tsx) — same gold accent as everywhere else
+   "still under way" is marked, so it reads as one language across the map,
+   the build panel, and this popover. */
+.building-info-construction { color: #7a5c12; font-weight: 600; }
 
 /* Build rows borrow the faculty roster's summary shape (see
    .faculty-row-summary): name, quiet stat, chip, then the action pushed
@@ -476,16 +486,21 @@ button { cursor: pointer; font-family: inherit; }
 .campus-map-path-controls button.active { background: var(--gold); border-color: var(--gold); color: #3a2f0e; font-weight: 700; }
 .campus-map-svg.path-draw, .campus-map-svg.path-erase { cursor: crosshair; }
 
-/* Siting tray: floats over the map's bottom edge, between the log strip
-   (see .log-strip above) and the build rail — `position: fixed` puts it in
-   its own stacking context, same as every other floating card, so it isn't
-   subject to `.app`'s pointer-events: none (it lives inside .campus-map,
-   outside `.app` entirely, and needs no such rule — nothing in the campus
-   map's own box is transparent chrome the way `.app`'s empty grid cell is).
-   It also carries the map's head (title, help, tiles-built count) — see
+/* The map's head card: floats over the map's bottom edge, between the log
+   strip (see .log-strip above) and the build rail — `position: fixed` puts
+   it in its own stacking context, same as every other floating card, so it
+   isn't subject to `.app`'s pointer-events: none (it lives inside
+   .campus-map, outside `.app` entirely, and needs no such rule — nothing in
+   the campus map's own box is transparent chrome the way `.app`'s empty
+   grid cell is). Title, help, tiles-built count and a live hint — see
    CampusMap.tsx — now that the map has no bordered card of its own to hang
-   a head bar on. Solid parchment background, same as every other floating
-   panel, so its text stays legible over the map behind it. */
+   a head bar on. What USED to also live here, the "awaiting siting" list of
+   finished-but-unplaced buildings, is gone: picking something up for siting
+   happens from the Build panel now (see BuildPanel.tsx's "site →" row), so
+   this card is just orientation, not an affordance of its own — hence it's
+   shorter than it used to be, but keeps the same fixed card treatment.
+   Solid parchment background, same as every other floating panel, so its
+   text stays legible over the map behind it. */
 .campus-map-tray { position: fixed; z-index: 10; left: calc(var(--log-strip-width) + 32px);
   right: calc(var(--side-panel-width) + 32px); bottom: 16px; max-height: var(--tray-ceiling);
   display: flex; flex-direction: column; gap: 8px; overflow-y: auto;
@@ -496,23 +511,6 @@ button { cursor: pointer; font-family: inherit; }
 .campus-map-tray-head h2 { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em;
   font-size: 13px; color: var(--gold-dim); margin: 0; }
 .campus-map-tray-head .stat { font-family: var(--mono); color: var(--ink-muted); font-size: 12px; }
-.campus-map-tray-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.campus-map-tray-label { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em;
-  font-size: 11px; color: var(--gold-dim); }
-.campus-map-tray-list { display: flex; flex-wrap: wrap; gap: 6px; }
-.campus-tray-btn { background: #f5efdd; border: 1px solid var(--parchment-line); color: var(--ink);
-  border-radius: 4px; padding: 4px 10px; font-size: 12px; font-family: inherit; }
-.campus-tray-btn:hover { border-color: var(--gold-dim); background: #efe1b8; }
-.campus-tray-btn.selected { background: var(--gold); border-color: var(--gold); color: #3a2f0e; font-weight: 700; }
-/* Kind reads off a left rule, the same way building rows are marked in the build panel. */
-.campus-tray-btn.kind-building { border-left: 3px solid var(--gold-dim); }
-.campus-tray-btn.kind-dorm { border-left: 3px solid var(--green); }
-.campus-tray-btn.kind-facility { border-left: 3px solid var(--navy-line); }
-.campus-tray-btn[draggable='true'] { cursor: grab; }
-.campus-tray-btn:active { cursor: grabbing; }
-/* Footprint, so the size a building will take is known before it is dropped. */
-.campus-tray-size { margin-left: 6px; font-family: var(--mono); font-size: 10px; color: var(--ink-muted); }
-.campus-tray-btn.selected .campus-tray-size { color: #5d4b12; }
 .campus-map-hint { font-size: 12px; font-style: italic; color: var(--ink-muted); margin: 0; }
 
 /* The grounds: one flat lawn, not individual tiles sitting apart from each
@@ -613,6 +611,21 @@ button { cursor: pointer; font-family: inherit; }
 .campus-building.kind-facility.tint-15 rect { fill: #a9c7cf; stroke: #7ea3ac; } /* natatorium — distinct blue from the rec pool's tint-9 */
 .campus-building.kind-facility.tint-16 rect { fill: #d4a94f; stroke: #a67f2e; } /* football stadium — the pinnacle, boldest of the facility tints */
 .campus-building.kind-facility text { fill: #3d3524; }
+
+/* Under construction: a developing placement is sited exactly like a
+   finished one, but must never be mistaken for one — this is the whole
+   visual point of collapsing build+place into one step (see
+   CampusMap.tsx's PlacedBuilding). A dashed, lighter-stroke outline plus a
+   diagonal-hatch overlay reads as "site, not building" at a glance without
+   needing a whole second colour language on top of the kind tints above;
+   the progress bar along the bottom edge (see the two rects below) is what
+   actually says how far along it is. */
+.campus-building.under-construction rect:first-of-type {
+  stroke-dasharray: 5 3; stroke-width: 2; fill-opacity: 0.55;
+}
+.campus-building.under-construction text { opacity: 0.75; }
+.campus-building-progress-track { fill: rgba(58, 47, 14, 0.25); }
+.campus-building-progress-fill { fill: var(--gold); }
 
 /* ---------- tab overlays: every other view, on top of the map ---------- */
 /* Dismissible views (see TabOverlay.tsx), NOT the interrupt modal — that

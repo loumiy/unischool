@@ -112,24 +112,39 @@ it.
 
 ### Courses and buildings share one flow
 
-Every Buildable goes through the same develop/build affordance — cost, duration,
-prereqs — regardless of `kind`. Where that affordance is *drawn* is a
-presentation split and nothing more: placeable kinds (`building`/`dorm`/
-`facility` — athletics venues included) live in the build rail beside the map,
-because the map is where they end up; `course` Buildables live in the
-Curriculum overlay. Both render the same shared machinery, and neither screen
-may grow rules of its own.
+Every Buildable goes through the same develop/build gate — cost, duration,
+prereqs, `canStartDevelopment` — regardless of `kind`. Where that affordance is
+*drawn*, and exactly how it's initiated, differs by whether the Buildable is
+placeable:
 
-Placeable kinds gain exactly one extra step beyond that shared flow — placement
-on the campus map, once done; `course` Buildables never do. Placement lives in a
-separate `placements` record on `GameState` (id -> `{ row, col, w, h }`: the
-top-left tile plus the footprint covered from it), never as a field on
-`Buildable`, so the single Buildable model stays unforked. **How big a footprint
-a Buildable gets is a placement rule, not data on the Buildable** — a school
-hall covers 9x9 tiles, a dorm 9x3, a lab 3x3 — and it lives in
-`campusMap.ts`'s `footprintOf`, keyed on the `kind`/`facilityType` the Buildable
-already carries. Size is purely geometric: a bigger building grants nothing and
-costs nothing extra. Keep both screens dumb.
+- `course` Buildables live in the Curriculum overlay and start through the
+  `START_DEVELOPMENT` action: pick one, pay the cost, watch the countdown. No
+  location, ever — a course is not a place.
+- Placeable kinds (`building`/`dorm`/`facility` — athletics venues included)
+  live in the build rail beside the map, because the map is where they stand.
+  **Placement IS how a placeable Buildable starts**, through the
+  `PLACE_BUILDABLE` action: pick one from the build rail, then click (or drag)
+  an empty footprint on the map — that single action passes the same
+  `canStartDevelopment` gate a course uses, charges the cost, starts the
+  countdown, AND writes the chosen location into `placements`, all at once.
+  There is no second, later placement step, and no "awaiting siting" tray of
+  finished-but-unplaced buildings: a placeable Buildable is never `developing`
+  without also being in `placements`, so it renders under construction right
+  where it was put down, and its tiles are reserved from week one — nothing
+  else can be sited on top of it until it finishes.
+
+Placement lives in a separate `placements` record on `GameState` (id ->
+`{ row, col, w, h }`: the top-left tile plus the footprint covered from it),
+never as a field on `Buildable`, so the single Buildable model stays unforked
+and `course` Buildables — which are never placeable, at any status — never
+carry a `placements` entry. **How big a footprint a Buildable gets is a
+placement rule, not data on the Buildable** — a school hall covers 9x9 tiles, a
+dorm 9x3, a lab 3x3 — and it lives in `campusMap.ts`'s `footprintOf`, keyed on
+the `kind`/`facilityType` the Buildable already carries. Size is purely
+geometric: a bigger building grants nothing and costs nothing extra — and
+placement itself still grants nothing beyond what `START_DEVELOPMENT` always
+granted a course: a placed-but-`developing` building contributes nothing until
+it's `done`, exactly like an undeveloped course. Keep both screens dumb.
 
 ## The milestone chain (how the curriculum gets its shape)
 
@@ -1002,10 +1017,13 @@ discard when it doesn't (v1 and v2 predate an economy rebalance, so those runs
 would be describing a different game).
 
 Loading also runs **placement hygiene** on the campus map every time: orphaned
-ids, placements whose footprint no longer fits the grid, and overlapping
-placements are clamped back inside or dropped. That is safe precisely because
-placement is visual-only — a dropped placement just returns its building to the
-siting tray.
+ids (or ones that aren't currently `done`/`developing` — see "Courses and
+buildings share one flow" above), placements whose footprint no longer fits the
+grid, and overlapping placements are clamped back inside or dropped. That is
+safe precisely because placement is visual-only — a dropped `done` placement
+just stops rendering, keeping every effect it already granted; a dropped
+`developing` one keeps counting down in `developing` regardless (`tickTech`
+never reads `placements`), it just won't render anywhere until it finishes.
 
 ## Working style for coding agents
 

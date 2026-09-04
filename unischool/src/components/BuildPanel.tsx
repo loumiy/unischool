@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import type { Action } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import { STARTING_DORM_CAPACITY } from '../data/campusData';
@@ -185,7 +184,19 @@ function rowMarker(t: Buildable, group: TypeGroup, index: number): string | unde
   return undefined;
 }
 
-function BuildableRow({ s, act, t, marker }: { s: GameState; act: (a: Action) => void; t: Buildable; marker?: string }) {
+function BuildableRow({
+  s, t, marker, placingId, onArmPlacement,
+}: {
+  s: GameState; t: Buildable; marker?: string;
+  // Which Buildable is currently picked up for siting on the map, and how
+  // to change it — lifted to App.tsx (see CampusMap.tsx's module comment)
+  // since the map is what actually commits a placement once one of these
+  // rows arms it. `act` is no longer threaded down here: every row in this
+  // panel is a placeable kind (see the module comment above — courses live
+  // in the Curriculum view instead), and arming/disarming a pickup is pure
+  // local UI state, not a dispatch.
+  placingId: string | null; onArmPlacement: (id: string | null) => void;
+}) {
   const missingFaculty = !!(t.requiresFaculty && !hasFreeFacultySlot(s, t.requiresFaculty));
 
   if (t.status === 'done') {
@@ -224,27 +235,42 @@ function BuildableRow({ s, act, t, marker }: { s: GameState; act: (a: Action) =>
   }
 
   // available. The enabled/disabled state is canStartDevelopment itself —
-  // the same function the reducer gates the action with — so a button is
-  // never offered for something the engine would refuse, and never
-  // withheld for something it would allow.
+  // the same function the reducer gates PLACE_BUILDABLE with — so a button
+  // is never offered for something the engine would refuse, and never
+  // withheld for something it would allow. Clicking it doesn't start
+  // anything by itself any more: every row here is a placeable kind (see
+  // the module comment above), and placement IS how a placeable Buildable
+  // starts — so this only ARMS the pickup (or cancels it, clicked again),
+  // and the actual PLACE_BUILDABLE dispatch happens on the map once a tile
+  // is chosen (see CampusMap.tsx's placeById). Dragging the button straight
+  // onto the map does the same arm-then-drop in one gesture, mirroring the
+  // old siting tray's own drag affordance.
   const shortfall = t.cost - s.finance.cash;
   const disabledReason = shortfall > 0
     ? `$${Math.ceil(shortfall).toLocaleString()} short.`
     : missingFaculty
       ? `No free ${t.requiresFaculty} slot.`
       : undefined;
+  const startable = canStartDevelopment(s, t);
+  const armed = placingId === t.id;
   return (
-    <li className="available-item building-item available">
+    <li className={`available-item building-item available ${armed ? 'placing' : ''}`}>
       <div className="build-row">
         <span className="build-name">{t.name}</span>
         {marker && <span className="kind-tag">{marker}</span>}
         <span className="build-row-spacer" />
         <button
-          disabled={!canStartDevelopment(s, t)}
-          title={disabledReason}
-          onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: t.id })}
+          disabled={!startable}
+          title={armed ? 'Click an empty tile on the map to build here, or click this again to cancel.' : disabledReason}
+          draggable={startable}
+          onDragStart={(e) => {
+            onArmPlacement(t.id);
+            e.dataTransfer.setData('text/plain', t.id);
+            e.dataTransfer.effectAllowed = 'move';
+          }}
+          onClick={() => onArmPlacement(armed ? null : t.id)}
         >
-          develop →
+          {armed ? 'placing…' : 'site →'}
         </button>
       </div>
       <div className="available-item-meta">
@@ -295,7 +321,11 @@ function BuiltGroupRow({ group, built }: { group: TypeGroup; built: Buildable[] 
   );
 }
 
-function BuildGroup({ s, act, group }: { s: GameState; act: (a: Action) => void; group: TypeGroup }) {
+function BuildGroup({
+  s, group, placingId, onArmPlacement,
+}: {
+  s: GameState; group: TypeGroup; placingId: string | null; onArmPlacement: (id: string | null) => void;
+}) {
   // Chain position is read off the group's own order (the chains are
   // strictly sequential, so the visible items are always a prefix of the
   // chain) before the built/unbuilt split, so a row's #N never shifts as
@@ -314,25 +344,48 @@ function BuildGroup({ s, act, group }: { s: GameState; act: (a: Action) => void;
       <ul className="available-list building-list">
         {collapseBuilt
           ? <BuiltGroupRow group={group} built={built.map(({ t }) => t)} />
-          : built.map(({ t, marker }) => <BuildableRow key={t.id} s={s} act={act} t={t} marker={marker} />)}
-        {rest.map(({ t, marker }) => <BuildableRow key={t.id} s={s} act={act} t={t} marker={marker} />)}
+          : built.map(({ t, marker }) => (
+            <BuildableRow key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} />
+          ))}
+        {rest.map(({ t, marker }) => (
+          <BuildableRow key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} />
+        ))}
       </ul>
     </div>
   );
 }
 
-function CategorySection({ category, groups, s, act }: { category: FacilityCategory; groups: TypeGroup[]; s: GameState; act: (a: Action) => void }) {
+function CategorySection({
+  category, groups, s, placingId, onArmPlacement,
+}: {
+  category: FacilityCategory; groups: TypeGroup[]; s: GameState;
+  placingId: string | null; onArmPlacement: (id: string | null) => void;
+}) {
   return (
     <section className="building-category">
       <h3 className="building-category-head">{CATEGORY_LABELS[category]}</h3>
       <div className="building-groups">
-        {groups.map((group) => <BuildGroup key={group.key} s={s} act={act} group={group} />)}
+        {groups.map((group) => (
+          <BuildGroup key={group.key} s={s} group={group} placingId={placingId} onArmPlacement={onArmPlacement} />
+        ))}
       </div>
     </section>
   );
 }
 
-export default function BuildPanel({ s, act }: { s: GameState; act: (a: Action) => void }) {
+export default function BuildPanel({
+  s, placingId, onArmPlacement,
+}: {
+  s: GameState;
+  // Which placeable Buildable is currently picked up for siting on the
+  // map, and how to change it — lifted to App.tsx (see CampusMap.tsx's
+  // module comment). `act` is no longer threaded through this panel at
+  // all: every row here starts through PLACE_BUILDABLE now, dispatched
+  // once a tile is chosen on the map (see CampusMap.tsx's placeById), not
+  // from a click inside this panel.
+  placingId: string | null;
+  onArmPlacement: (id: string | null) => void;
+}) {
   const groups = buildGroups(s);
   const blocks = blocksFor(groups);
 
@@ -342,7 +395,7 @@ export default function BuildPanel({ s, act }: { s: GameState; act: (a: Action) 
         <div className="panel-head">
           <span className="panel-head-title">
             <h2>Build</h2>
-            <HelpHint text="Every building the university can have, grouped by type: what's built, what's under construction, and what's next available. Repeatable types (housing, dining) collapse what's already finished into one line — open it for the individual halls. A facility serves a fixed share of students against total planned capacity, not today's enrollment, so building more housing raises the bar for the rest of campus life too. Anything not yet unlockable is left off the list rather than teased. Finished buildings can then be sited on the map." />
+            <HelpHint text="Every building the university can have, grouped by type: what's built, what's under construction, and what's next available. Repeatable types (housing, dining) collapse what's already finished into one line — open it for the individual halls. A facility serves a fixed share of students against total planned capacity, not today's enrollment, so building more housing raises the bar for the rest of campus life too. Anything not yet unlockable is left off the list rather than teased. 'Site →' picks a building up — click (or drag it onto) an empty tile on the map to start building it there; that's the moment the cost is charged and the countdown begins." />
           </span>
         </div>
 
@@ -357,8 +410,19 @@ export default function BuildPanel({ s, act }: { s: GameState; act: (a: Action) 
 
         <div className="building-groups">
           {blocks.map((block, i) => block.category
-            ? <CategorySection key={`${block.category}-${i}`} category={block.category} groups={block.groups} s={s} act={act} />
-            : block.groups.map((group) => <BuildGroup key={group.key} s={s} act={act} group={group} />))}
+            ? (
+              <CategorySection
+                key={`${block.category}-${i}`}
+                category={block.category}
+                groups={block.groups}
+                s={s}
+                placingId={placingId}
+                onArmPlacement={onArmPlacement}
+              />
+            )
+            : block.groups.map((group) => (
+              <BuildGroup key={group.key} s={s} group={group} placingId={placingId} onArmPlacement={onArmPlacement} />
+            )))}
         </div>
       </section>
     </aside>
