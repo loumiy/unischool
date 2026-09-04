@@ -61,6 +61,22 @@ const MAP_PADDING = 16;      // breathing room around the whole grid
 const GROUND_CORNER = 0;     // ground tiles are square — a seam in a lawn, not a tile's own edge
 const BUILDING_CORNER = 8;   // placed buildings (and the footprint ghost) keep a soft corner: they're objects ON the ground, not the ground itself
 
+// Placed buildings draw slightly INSET within the tiles their footprint
+// covers — a pure RENDER offset, not a footprint change: occupancy,
+// canPlace, bounds and the stored Placement (campusMap.ts) still all work
+// in whole tiles, a 9x9 hall still occupies 81 of them. Two buildings on
+// adjacent footprints share a tile boundary with nothing between them (see
+// TILE_GAP above), so without this their drawn edges would touch exactly
+// like their footprints do; insetting each one by BUILDING_INSET opens a
+// (2 * BUILDING_INSET)-wide gutter centred on that shared boundary. That
+// gutter has to clear the drawn path's own stroke width (5px — see
+// .campus-path-edge in styles.css) with room either side of it, so a path
+// edge along the boundary reads as running THROUGH the gutter rather than
+// getting swallowed under a shared wall. Kept a few px, not a fraction of
+// TILE_SIZE: at the smallest footprint (3x3 tiles, e.g. a lab) it's still
+// a thin seam, not a visible bite out of the building.
+const BUILDING_INSET = 4;
+
 // Label metrics: shrink-to-fit sizing (see labelFor below). SVG <text> has
 // no CSS text-overflow, so "does the full name fit" has to be computed
 // rather than measured live in the DOM — LABEL_CHAR_WIDTH_RATIO and
@@ -233,11 +249,15 @@ function wrapLabelFull(name: string, maxChars: number): string[] {
 // trade-off (see the PR notes for which names hit this on today's smallest
 // footprints).
 //
-// Pure function of (name, w, h) only — never reads the live DOM — so the
-// same building always sizes the same way, render after render.
-function labelFor(name: string, w: number, h: number): { lines: string[]; fontSize: number; lineHeight: number } {
-  const innerWidth = spanSize(w) - LABEL_INSET * 2;
-  const innerHeight = spanSize(h) - LABEL_INSET;
+// Pure function of (name, boxWidth, boxHeight) only — never reads the live
+// DOM — so the same building always sizes the same way, render after
+// render. boxWidth/boxHeight are the drawn rect's own pixel dimensions
+// (already net of BUILDING_INSET — see the caller), not tile counts: the
+// label has to fit the INSET rect it's centred in, not the full footprint
+// span behind it.
+function labelFor(name: string, boxWidth: number, boxHeight: number): { lines: string[]; fontSize: number; lineHeight: number } {
+  const innerWidth = boxWidth - LABEL_INSET * 2;
+  const innerHeight = boxHeight - LABEL_INSET;
   let attempt = { lines: [] as string[], fontSize: LABEL_MIN_FONT_SIZE, lineHeight: LABEL_MIN_FONT_SIZE * LABEL_LINE_HEIGHT_RATIO };
   for (let fontSize = LABEL_MAX_FONT_SIZE; fontSize >= LABEL_MIN_FONT_SIZE; fontSize -= LABEL_FONT_STEP) {
     const lineHeight = fontSize * LABEL_LINE_HEIGHT_RATIO;
@@ -322,12 +342,18 @@ function PlacedBuilding({
 }: {
   t: Buildable; p: Placement; onInspect: () => void; inspected: boolean; weeksLeft?: number;
 }) {
-  const x = tileX(p.col);
-  const y = tileY(p.row);
-  const width = spanSize(p.w);
-  const height = spanSize(p.h);
-  const { lines, fontSize, lineHeight } = labelFor(t.name, p.w, p.h);
-  // Centre the wrapped block vertically inside the footprint.
+  // The footprint's own span, in whole tiles — unchanged by the inset
+  // below (it still exactly matches placementTiles/canPlace's occupancy).
+  // x/y/width/height are what actually gets DRAWN: the footprint inset by
+  // BUILDING_INSET on every side, so this building's own edges never touch
+  // a neighbour's even when their footprints are tile-adjacent (see
+  // BUILDING_INSET above).
+  const x = tileX(p.col) + BUILDING_INSET;
+  const y = tileY(p.row) + BUILDING_INSET;
+  const width = spanSize(p.w) - BUILDING_INSET * 2;
+  const height = spanSize(p.h) - BUILDING_INSET * 2;
+  const { lines, fontSize, lineHeight } = labelFor(t.name, width, height);
+  // Centre the wrapped block vertically inside the drawn (inset) rect.
   const firstLineY = y + height / 2 - ((lines.length - 1) * lineHeight) / 2;
 
   const developing = t.status === 'developing' && weeksLeft !== undefined;
