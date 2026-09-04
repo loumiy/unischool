@@ -651,10 +651,7 @@ button { cursor: pointer; font-family: inherit; }
 .panel dl { display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; margin: 0; }
 .panel dt { color: var(--ink-muted); } .panel dd { margin: 0; text-align: right; font-family: var(--mono); }
 
-.satisfaction-toggle { background: none; border: none; color: var(--gold-dim); font-family: var(--mono);
-  font-size: 11px; cursor: pointer; padding: 0; }
-.satisfaction-breakdown { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--parchment-line-lo); font-size: 12px; }
-.satisfaction-breakdown dt { padding-left: 10px; }
+.satisfaction-breakdown { font-size: 12px; }
 .demand-note { margin-top: 10px; }
 
 ul, ol { list-style: none; margin: 0; padding: 0; }

@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment } from 'react';
 import type { GameState, GreekChapter, StudentClub, StudentOrgBase } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import type { Action } from '../state/actions';
@@ -13,7 +13,7 @@ import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import { ProgressBar } from '../components/Progress';
 
 const ATTRIBUTE_LABELS: Record<string, string> = {
-  academic: 'Academic (library)',
+  academic: 'Academic (library, faculty quality)',
   social: 'Social (student center, rec, quad, clubs, Greek life, athletics)',
   basicNeeds: 'Basic needs (dining)',
   health: 'Health (counseling center)',
@@ -65,8 +65,6 @@ function OrgRow({ org, s, tag }: { org: StudentOrgBase; s: GameState; tag?: stri
 function StudentLifeEffect({ s }: { s: GameState }) {
   const effect = studentLifeSatisfaction(s);
   const upkeep = studentOrgUpkeep(s);
-  const [showBreakdown, setShowBreakdown] = useState(false);
-  const breakdown = s.students.satisfactionBreakdown;
 
   return (
     <section className="panel">
@@ -86,26 +84,11 @@ function StudentLifeEffect({ s }: { s: GameState }) {
         <dd>{effect.athleticsTargetContribution > 0 ? '+' : ''}{effect.athleticsTargetContribution.toFixed(2)}</dd>
         <dt>Satisfaction target</dt>
         <dd>{effect.targetWithoutStudentLife.toFixed(1)} → {effect.target.toFixed(1)}</dd>
-        <dt>
-          Satisfaction today{' '}
-          <button className="satisfaction-toggle" onClick={() => setShowBreakdown((v) => !v)}>
-            {showBreakdown ? 'hide breakdown ▲' : 'breakdown ▼'}
-          </button>
-        </dt>
+        <dt>Satisfaction today</dt>
         <dd>{s.students.satisfaction.toFixed(1)}</dd>
         <dt>Weekly cost</dt>
         <dd>{money(upkeep)} ({money(upkeep * WEEKS_PER_YEAR)}/yr)</dd>
       </dl>
-      {showBreakdown && (
-        <dl className="satisfaction-breakdown">
-          {(Object.keys(breakdown) as Array<keyof typeof breakdown>).map((key) => (
-            <Fragment key={key}>
-              <dt>{ATTRIBUTE_LABELS[key]}</dt>
-              <dd>{Math.round(breakdown[key])}</dd>
-            </Fragment>
-          ))}
-        </dl>
-      )}
       {effect.totalTargetContribution <= 0.01 && (effect.clubCount > 0 || effect.chapterCount > 0 || effect.teamCount > 0) && (
         <p className="empty-note">
           Social satisfaction is already at its ceiling from the campus itself, so these organisations
@@ -113,6 +96,36 @@ function StudentLifeEffect({ s }: { s: GameState }) {
           grows past what its social facilities cover.
         </p>
       )}
+    </section>
+  );
+}
+
+// The per-attribute reading behind the headline number and the target above:
+// s.students.satisfactionBreakdown is NOT smoothed (see satisfactionSystem.ts),
+// so a facility that finished this week shows up here immediately even while
+// "Satisfaction today" is still drifting toward its new target. Its own panel
+// rather than a toggle inside the club-effect panel above: it answers a
+// different question ("what's dragging the number down right now") from that
+// panel's ("what are clubs/chapters/athletics adding to the target").
+function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
+  const breakdown = s.students.satisfactionBreakdown;
+
+  return (
+    <section className="panel panel-span-2">
+      <div className="panel-head">
+        <h2>Satisfaction Breakdown</h2>
+        <HelpHint
+          text="The four attributes the satisfaction target is a weighted sum of, read live off the campus as it stands right now — not smoothed, so a building finished this week already shows here even while the headline number above is still drifting toward its new target."
+        />
+      </div>
+      <dl className="satisfaction-breakdown">
+        {(Object.keys(breakdown) as Array<keyof typeof breakdown>).map((key) => (
+          <Fragment key={key}>
+            <dt>{ATTRIBUTE_LABELS[key]}</dt>
+            <dd>{Math.round(breakdown[key])}</dd>
+          </Fragment>
+        ))}
+      </dl>
     </section>
   );
 }
@@ -304,6 +317,7 @@ export default function StudentLifeTab({ s, act }: { s: GameState; act: (a: Acti
       <div className="student-life-columns">
         <StudentDemandPanel s={s} />
         <StudentLifeEffect s={s} />
+        <SatisfactionBreakdownPanel s={s} />
 
         {pending.length > 0 && (
           <section className="panel panel-span-2">
