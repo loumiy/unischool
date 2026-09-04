@@ -420,7 +420,16 @@ const SCANDAL_DISMISSAL_SATISFACTION_GAIN = 2;
 // s.orgs.hellenicCouncilApproved, so no scandal and no housing petition can
 // fire at a school that never approved a council — and the council question
 // itself is maxFires: 1, so declining closes Greek life for the whole run.
-const HELLENIC_COUNCIL_MIN_CLUBS = 5;      // students only organise a council once there is a club scene to federate
+// Lowered from 5: the council should arrive within 3-5 years of the
+// student center that seeds the club scene, and a 60-year playtest at 5
+// clubs saw eligibility itself not clear until year 7-10 — before the
+// weight below even gets a chance to draw. 2 clubs is still a real
+// delegation (the flavour text's "joint delegation"), just one a
+// fast-building school reaches a couple of years after its student center
+// rather than most of a decade later, which is what leaves the weight
+// below room to land the question inside the 3-5 year window instead of
+// racing it from further back.
+export const HELLENIC_COUNCIL_MIN_CLUBS = 2;
 const GREEK_SCANDAL_PR_COST_WEEKS = 1.8;
 const GREEK_SCANDAL_PR_SATISFACTION_HIT = 3; // standing behind the chapter costs goodwill, as standing behind a professor does
 const GREEK_HOUSE_BUILD_COST_WEEKS = 3.5;   // a chapter house is a real building, priced against the facility chain
@@ -473,7 +482,14 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'naming-rights',
     title: 'A naming-rights offer',
-    weight: 8,
+    // Raised from 8: a 60-year playtest saw only 4-5 of the ~8 undergraduate
+    // schools ever get named, even though the prestige gate below clears in
+    // year 1 for most strategies — the bottleneck was purely this weight
+    // losing the draw to the rest of the table, not the gate. At this
+    // weight most runs sell naming rights on every unnamed school well
+    // before year 60; eligible() below still empties the donor pool once
+    // they're all named, so the extra weight is never wasted, only retired.
+    weight: 18,
     eligible: (s) => s.self.reputation >= NAMING_RIGHTS_PRESTIGE_GATE && unnamedSchoolBuildings(s).length > 0,
     // Rolls the donor's surname and the resulting name TOGETHER, at fire
     // time, like the amount below — the modal shows exactly the name that
@@ -846,8 +862,14 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     title: 'A petition for a Hellenic Council',
     // Weighted heavily and capped at one firing: it is a one-shot question
     // that a run should actually get ASKED rather than one that might
-    // never come up, and once answered it can never return.
-    weight: 16,
+    // never come up, and once answered it can never return. Raised from 16
+    // to 45 because "heavily" wasn't heavy enough in practice — a 60-year
+    // playtest at weight 16 still lost the draw to the rest of the table
+    // for several years after eligibility, landing around year 13. At 45 it
+    // dominates the pool it competes in (nothing else is eligible before
+    // Greek life is chartered — see the eligible() gate below), so once the
+    // club-count gate clears it wins within a year or two on most runs.
+    weight: 45,
     maxFires: 1,
     eligible: (s) => !s.orgs.hellenicCouncilOffered && s.orgs.clubs.length >= HELLENIC_COUNCIL_MIN_CLUBS,
     prompt: (s) =>
@@ -942,7 +964,14 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'greek-housing',
     title: 'A chapter asks for a house',
-    weight: 6,
+    // Raised from 6: each chapter only ever asks once (see the housingAsked
+    // guard below), so the supply is already bounded by chapter count — a
+    // 60-year playtest still only saw 3 of 10 chapters get around to
+    // petitioning before the run ended, because the event kept losing the
+    // draw to the rest of the table. This is the dial that share of the
+    // fixed event budget takes; the at-most-once-per-chapter guard is
+    // unchanged.
+    weight: 14,
     eligible: (s) => s.orgs.hellenicCouncilApproved && chaptersAwaitingHousing(s).length > 0,
     // ONE GROUP AT A TIME, and each chapter at most once: the draw picks a
     // single chapter that has never been asked, and BOTH answers set
