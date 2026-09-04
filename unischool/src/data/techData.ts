@@ -1,4 +1,5 @@
 import type { Buildable, GameState } from '../state/types';
+import { PERFORMING_ARTS_CENTER_ID } from './facilitiesData';
 
 /*
   Your real curriculum, expressed as seed data and expanded into Buildable[].
@@ -405,6 +406,22 @@ const LAB_RESEARCH_RATE_BONUS = 0.12;
 function labId(prefix: string): string {
   return `LAB-${prefix}`;
 }
+
+// Arts & Media's three majors (Graphic Design, Music, Studio Art — see
+// SCHOOLS below) get the same curated cross-kind "facility gates capstone
+// coursework" treatment LAB_GATED_MAJOR_PREFIXES gives the lab sciences,
+// pointed at ONE shared facility instead of a lab per major: the Performing
+// Arts Center (facilitiesData.ts) is where all three majors' capstones
+// actually perform/exhibit, and there's no equipment-specialization
+// difference between them at the capstone level the way there is between,
+// say, Chemistry and Biology. This is the "lightest real coupling" chosen
+// over a bespoke prestige/satisfaction input: it reuses a mechanism the
+// curriculum tree already has (see the tier === 3 branch below), rather
+// than inventing a new one, and it reads exactly like a lab requirement in
+// the tooltip/build panel. The Art Gallery is NOT part of this gate — one
+// coupling is enough, and splitting it across two facilities (which major
+// needs which building?) would add bookkeeping without adding a decision.
+const ARTS_GATED_MAJOR_PREFIXES = ['GRDS', 'MUSC', 'SART'];
 
 // ---------------------------------------------------------------------
 // GRADUATE PROGRAMS (see README's "Graduate programs"). More curriculum,
@@ -877,7 +894,13 @@ export function initialTech(): Buildable[] {
         let prereqs: string[] = [];
         if (tier === 1) prereqs = [...GENED_CORE_IDS];
         else if (tier === 2) prereqs = [t1Id, school.buildingId];
-        else if (tier === 3) prereqs = [...t2Ids, ...(needsLab ? [labId(major.prefix)] : [])];
+        else if (tier === 3) {
+          prereqs = [
+            ...t2Ids,
+            ...(needsLab ? [labId(major.prefix)] : []),
+            ...(ARTS_GATED_MAJOR_PREFIXES.includes(major.prefix) ? [PERFORMING_ARTS_CENTER_ID] : []),
+          ];
+        }
         prereqs = [...prereqs, ...(CROSS_MAJOR_BRIDGES[id] ?? [])];
 
         const description = tier === 1

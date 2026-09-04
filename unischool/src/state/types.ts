@@ -106,7 +106,11 @@ export type BuildableKind = 'course' | 'building' | 'dorm' | 'facility';
 // the Campus tab's grouping/display do.
 export type FacilityType =
   | 'library' | 'studentCenter' | 'diningHall' | 'recCenter'
-  | 'healthCenter' | 'quad' | 'lab';
+  | 'healthCenter' | 'quad' | 'lab'
+  // Recreational and arts facilities (see facilitiesData.ts): more social-
+  // satisfaction capacity, one-off (no tier upgrades) rather than the
+  // single-instance-with-upgrades shape library/studentCenter/recCenter use.
+  | 'gym' | 'tennisCourts' | 'pool' | 'performingArtsCenter' | 'artGallery';
 
 export interface Buildable {
   id: string;

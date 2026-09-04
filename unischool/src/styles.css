@@ -593,6 +593,11 @@ button { cursor: pointer; font-family: inherit; }
 .campus-building.kind-facility.tint-4 rect { fill: #e3d6c6; stroke: #bdae99; } /* health center */
 .campus-building.kind-facility.tint-5 rect { fill: #cfdcc4; stroke: #a5b895; } /* quad */
 .campus-building.kind-facility.tint-6 rect { fill: #cdd0c0; stroke: #a2a68f; } /* lab */
+.campus-building.kind-facility.tint-7 rect { fill: #d6c9a0; stroke: #b39f70; } /* gym */
+.campus-building.kind-facility.tint-8 rect { fill: #d1d9b8; stroke: #a7b488; } /* tennis courts */
+.campus-building.kind-facility.tint-9 rect { fill: #b9cdd4; stroke: #88a7b0; } /* pool */
+.campus-building.kind-facility.tint-10 rect { fill: #d8c2c9; stroke: #b2909b; } /* performing arts center */
+.campus-building.kind-facility.tint-11 rect { fill: #cbc0d3; stroke: #a294ac; } /* art gallery */
 .campus-building.kind-facility text { fill: #3d3524; }
 
 /* ---------- tab overlays: every other view, on top of the map ---------- */

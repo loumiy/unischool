@@ -42,6 +42,11 @@ const FACILITY_LABELS: Record<FacilityType, string> = {
   healthCenter: 'Health & Counseling',
   quad: 'Quad',
   lab: 'Labs',
+  gym: 'Gym',
+  tennisCourts: 'Tennis Courts',
+  pool: 'Pool',
+  performingArtsCenter: 'Performing Arts Center',
+  artGallery: 'Art Gallery',
 };
 
 // How many finished instances a repeatable group must have before its
@@ -60,9 +65,12 @@ interface TypeGroup {
 // (see campusData.ts/facilitiesData.ts) — several finish over a run, so
 // their built rows collapse. library/studentCenter/recCenter/healthCenter/
 // quad are single buildings with tier upgrades: at most two rows ever, each
-// a genuinely different building. lab and academic building are independent
-// multi-instance types (one per lab-gated major / one per school) — several
-// can be visible at once, but each is its own decision, so they stay listed.
+// a genuinely different building. gym/tennisCourts/pool/performingArtsCenter/
+// artGallery are also single-instance, but one-off (no tier field, no
+// upgrade) — exactly one row each, forever. lab and academic building are
+// independent multi-instance types (one per lab-gated major / one per
+// school) — several can be visible at once, but each is its own decision,
+// so they stay listed.
 const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; match: (t: Buildable) => boolean }> = [
   { key: 'dorm', label: 'Housing', repeatable: true, match: (t) => t.kind === 'dorm' },
   { key: 'library', label: FACILITY_LABELS.library, repeatable: false, match: (t) => t.facilityType === 'library' },
@@ -72,6 +80,11 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; ma
   { key: 'healthCenter', label: FACILITY_LABELS.healthCenter, repeatable: false, match: (t) => t.facilityType === 'healthCenter' },
   { key: 'quad', label: FACILITY_LABELS.quad, repeatable: false, match: (t) => t.facilityType === 'quad' },
   { key: 'lab', label: FACILITY_LABELS.lab, repeatable: false, match: (t) => t.facilityType === 'lab' },
+  { key: 'gym', label: FACILITY_LABELS.gym, repeatable: false, match: (t) => t.facilityType === 'gym' },
+  { key: 'tennisCourts', label: FACILITY_LABELS.tennisCourts, repeatable: false, match: (t) => t.facilityType === 'tennisCourts' },
+  { key: 'pool', label: FACILITY_LABELS.pool, repeatable: false, match: (t) => t.facilityType === 'pool' },
+  { key: 'performingArtsCenter', label: FACILITY_LABELS.performingArtsCenter, repeatable: false, match: (t) => t.facilityType === 'performingArtsCenter' },
+  { key: 'artGallery', label: FACILITY_LABELS.artGallery, repeatable: false, match: (t) => t.facilityType === 'artGallery' },
   { key: 'academicBuilding', label: 'Academic Buildings', repeatable: false, match: (t) => t.kind === 'building' },
 ];
 

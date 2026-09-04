@@ -55,6 +55,14 @@ const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
   library: { w: 2, h: 1 },
   studentCenter: { w: 2, h: 1 },
   recCenter: { w: 2, h: 1 },
+  gym: { w: 2, h: 1 },
+  pool: { w: 2, h: 1 },          // a real pool needs the same footprint as a gym, not a utility-sized box
+  // performingArtsCenter is the landmark of this batch: a concert hall and
+  // theater reads as a real building, same footprint as a school hall/quad.
+  performingArtsCenter: { w: 2, h: 2 },
+  // tennisCourts and artGallery are absent on purpose — small facilities
+  // (a handful of courts, one gallery room) fall back to SINGLE_TILE, the
+  // same default labs/health centers already use.
 };
 
 // Dining halls are the one facility type sized by how many students they
