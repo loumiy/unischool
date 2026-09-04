@@ -39,50 +39,63 @@ export function isPlaceableKind(t: Buildable): boolean {
 // an overlap.
 // ---------------------------------------------------------------------
 
-const SINGLE_TILE: Footprint = { w: 1, h: 1 };
+// Defensive fallback only. Every FacilityType below (diningHall included,
+// via its own branch in footprintOf) has a real named entry, so this is
+// never actually read against today's catalogue — it exists so a future
+// facilityType added without a table entry renders as a small building
+// rather than a 1x1 speck beside a 9x9 hall. Sized like the smallest real
+// facility (a lab).
+const DEFAULT_FACILITY_FOOTPRINT: Footprint = { w: 3, h: 3 };
 
-// Academic halls are the campus landmarks — the biggest thing on the map.
-const SCHOOL_BUILDING_FOOTPRINT: Footprint = { w: 2, h: 2 };
-// A dorm is a long block: wide, one deep.
-const DORM_FOOTPRINT: Footprint = { w: 2, h: 1 };
+// Academic halls are the campus landmarks — the biggest thing on the map,
+// and the anchor every other footprint below is sized relative to (see the
+// PR notes for the full table and the coverage math against
+// CAMPUS_GRID_WIDTH/HEIGHT in types.ts).
+const SCHOOL_BUILDING_FOOTPRINT: Footprint = { w: 9, h: 9 };
+// A dorm is a long block: as wide as a hall, much shallower.
+const DORM_FOOTPRINT: Footprint = { w: 9, h: 3 };
 
-// Per facility type; anything absent falls back to SINGLE_TILE, which is
-// the right default for the small utilitarian ones (labs, health centers).
+// Per facility type; anything absent falls back to DEFAULT_FACILITY_FOOTPRINT
+// (see above — in practice never, every type has an entry).
 // diningHall is deliberately absent here — its footprint isn't fixed by
 // type, it's read off size (see DINING_MAJOR_FOOTPRINT below).
 const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
-  quad: { w: 2, h: 2 },          // open ground, and the only "building" that is really a space
-  library: { w: 2, h: 1 },
-  studentCenter: { w: 2, h: 1 },
-  recCenter: { w: 2, h: 1 },
-  gym: { w: 2, h: 1 },
-  pool: { w: 2, h: 1 },          // a real pool needs the same footprint as a gym, not a utility-sized box
+  quad: { w: 7, h: 7 },          // open ground, second only to a hall among the squares
+  library: { w: 7, h: 5 },       // broad reading rooms and stacks, not a tall narrow tower
+  studentCenter: { w: 6, h: 5 },
+  recCenter: { w: 6, h: 5 },
+  healthCenter: { w: 5, h: 4 },
+  lab: { w: 3, h: 3 },           // small and utilitarian — one per lab-gated major
+  gym: { w: 5, h: 4 },
+  tennisCourts: { w: 6, h: 3 },  // courts read long and narrow, not square
+  pool: { w: 6, h: 4 },          // a real pool needs a footprint like a gym's, not a utility-sized box
   // performingArtsCenter is the landmark of this batch: a concert hall and
-  // theater reads as a real building, same footprint as a school hall/quad.
-  performingArtsCenter: { w: 2, h: 2 },
-  // tennisCourts and artGallery are absent on purpose — small facilities
-  // (a handful of courts, one gallery room) fall back to SINGLE_TILE, the
-  // same default labs/health centers already use.
+  // theater reads as a real building — grand, just a notch under a hall.
+  performingArtsCenter: { w: 8, h: 7 },
+  artGallery: { w: 4, h: 3 },    // small, but no longer a bare utility box
 
   // Varsity athletics venues (facilitiesData.ts): real competition venues,
-  // sized accordingly. The football stadium is deliberately the largest
-  // footprint of any Buildable in the game — the pinnacle venue should read
-  // as one on the map, not just in its cost.
-  athleticsField: { w: 2, h: 2 },
-  athleticsArena: { w: 2, h: 2 },
-  athleticsDiamond: { w: 2, h: 1 },
-  athleticsNatatorium: { w: 2, h: 1 },
-  footballStadium: { w: 3, h: 2 },
+  // sized accordingly. athleticsField is deliberately RECTANGULAR — a
+  // soccer pitch, not a square lot — clearly wider than deep (5:3). The
+  // football stadium is deliberately the largest footprint of any Buildable
+  // in the game, bigger even than a 9x9 academic hall — the pinnacle venue
+  // should read as one on the map, not just in its cost.
+  athleticsField: { w: 10, h: 6 },
+  athleticsArena: { w: 8, h: 6 },
+  athleticsDiamond: { w: 7, h: 7 },
+  athleticsNatatorium: { w: 6, h: 5 },
+  footballStadium: { w: 12, h: 9 },
 };
 
 // Dining halls are the one facility type sized by how many students they
 // serve rather than by type alone (see facilitiesData.ts's dining chain):
-// a compact campus restaurant stays SINGLE_TILE, but once a hall serves
-// enough people to be a real "major dining hall" it earns the same 2x1
-// footprint a dorm gets. Reads effects.servesPopulation — already on the
-// Buildable for satisfactionSystem.ts's sake — rather than adding a field
-// of its own.
-const DINING_MAJOR_FOOTPRINT: Footprint = { w: 2, h: 1 };
+// a compact campus restaurant stays DINING_MINOR_FOOTPRINT, but once a hall
+// serves enough people to be a real "major dining hall" it earns a footprint
+// on the order of a student center. Reads effects.servesPopulation —
+// already on the Buildable for satisfactionSystem.ts's sake — rather than
+// adding a field of its own.
+const DINING_MAJOR_FOOTPRINT: Footprint = { w: 7, h: 4 };
+const DINING_MINOR_FOOTPRINT: Footprint = { w: 3, h: 3 }; // the founding hall / a compact campus restaurant
 const DINING_MAJOR_FOOTPRINT_SERVES_THRESHOLD = 1_000;
 
 export function footprintOf(t: Buildable): Footprint {
@@ -91,12 +104,12 @@ export function footprintOf(t: Buildable): Footprint {
   if (t.kind === 'facility' && t.facilityType === 'diningHall') {
     return (t.effects?.servesPopulation ?? 0) >= DINING_MAJOR_FOOTPRINT_SERVES_THRESHOLD
       ? DINING_MAJOR_FOOTPRINT
-      : SINGLE_TILE;
+      : DINING_MINOR_FOOTPRINT;
   }
   if (t.kind === 'facility' && t.facilityType) {
-    return FACILITY_FOOTPRINTS[t.facilityType] ?? SINGLE_TILE;
+    return FACILITY_FOOTPRINTS[t.facilityType] ?? DEFAULT_FACILITY_FOOTPRINT;
   }
-  return SINGLE_TILE;
+  return DEFAULT_FACILITY_FOOTPRINT;
 }
 
 // ---------------------------------------------------------------------

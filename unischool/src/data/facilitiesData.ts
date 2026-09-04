@@ -84,10 +84,10 @@ function servedUpkeep(facilityType: keyof typeof UPKEEP_PER_SERVED_PER_WEEK, ser
 //
 // Size is what the campus map draws, too (see campusMap.ts's footprintOf):
 // a hall at or above DINING_MAJOR_FOOTPRINT_SERVES_THRESHOLD is a real "major
-// dining hall" and gets a 2x1 footprint; a smaller one reads as a compact
-// campus restaurant and stays 1x1. Only the founding hall is small enough
-// to be a restaurant here — everything the school adds afterward is sized
-// to matter.
+// dining hall" and gets a footprint on the order of a student center; a
+// smaller one reads as a compact campus restaurant and stays small. Only
+// the founding hall is small enough to be a restaurant here — everything
+// the school adds afterward is sized to matter.
 const DINING_STARTING_ID = 'DINING-01';
 const DINING_STARTING_SERVES = 350; // matches STARTING_DORM_CAPACITY: the campus opens adequately fed, not just adequately housed
 const DINING_ADDITIONAL_COUNT = 4;
