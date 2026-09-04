@@ -118,6 +118,14 @@ const PROGRESS_BAR_INSET = LABEL_INSET;
 // normal render cycle, exactly like an uncontrolled input.
 const MIN_ZOOM = 0.35;
 const MAX_ZOOM = 2.5;
+// The zoom the map first loads at (see defaultView below) — noticeably
+// further out than native size (zoom 1, one TILE_SIZE px per tile) so a
+// campus that's been built out for a while reads as a campus, not a close-
+// up of whatever corner happened to center. Nowhere near MIN_ZOOM's own
+// "whole 126x54 grid" extreme (this map is bigger than any built-out game
+// ever gets), just a wider starting view than the placement-precision zoom
+// a player zooms into by hand when siting something.
+const DEFAULT_ZOOM = 0.5;
 const ZOOM_SPEED = 0.0016;       // wheel deltaY -> zoom factor
 const PAN_CLICK_THRESHOLD = 4;   // px of movement before a mousedown counts as a drag, not a click
 
@@ -492,19 +500,18 @@ export default function CampusMap({
     worldRef.current?.setAttribute('transform', `translate(${next.x} ${next.y}) scale(${zoom})`);
   }
 
-  // The starting/recentered view: centered, but at a zoom guaranteed to
-  // run the grid off EVERY edge of the canvas, not just whichever edges
-  // happen to overflow at zoom 1 on a given screen. MAP_HEIGHT alone often
-  // clears a short/wide canvas already, but a tall, narrow one could
-  // otherwise show the whole grid with grass to spare above and below —
-  // the opposite of "you're standing in a place bigger than the screen".
-  // MIN_COVERAGE is how much taller than the canvas the grid must render:
-  // at exactly 1 it would just barely touch both edges with nothing to
-  // spare, so this is what actually guarantees the overflow rather than
-  // merely inviting it.
+  // The starting/recentered view: centered on DEFAULT_ZOOM, but never so far
+  // out that the grid stops running off EVERY edge of the canvas — MIN_COVERAGE
+  // is how much taller than the canvas the grid must render at minimum (at
+  // exactly 1 it would just barely touch both edges with nothing to spare).
+  // On ordinary screens DEFAULT_ZOOM alone already clears this easily (the
+  // grid is enormous relative to any canvas), so this only ever bites on an
+  // unusually tall, narrow canvas that could otherwise show the whole grid
+  // with grass to spare above and below — the opposite of "you're standing
+  // in a place bigger than the screen".
   function defaultView(rect: { width: number; height: number }) {
     const MIN_COVERAGE = 1.15;
-    const zoom = Math.max(1, (rect.height * MIN_COVERAGE) / MAP_HEIGHT);
+    const zoom = Math.max(DEFAULT_ZOOM, (rect.height * MIN_COVERAGE) / MAP_HEIGHT);
     return { x: (rect.width - MAP_WIDTH * zoom) / 2, y: (rect.height - MAP_HEIGHT * zoom) / 2, zoom };
   }
 
