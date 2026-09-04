@@ -3,6 +3,7 @@ import type { Action } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import { STARTING_DORM_CAPACITY } from '../data/campusData';
+import { FACILITY_CATEGORY_OF, type FacilityCategory } from '../data/facilitiesData';
 import HelpHint from './HelpHint';
 import { ProgressBar } from './Progress';
 
@@ -63,6 +64,12 @@ interface TypeGroup {
   key: string;
   label: string;
   repeatable: boolean;
+  // Set only for the facility types FACILITY_CATEGORY_OF (facilitiesData.ts)
+  // names — the single source for "which types are athletics vs recreation"
+  // — so this is a lookup, never a second authoring of that line. Absent
+  // for every other group (housing, library, labs, academic buildings, ...),
+  // which render as they always have: flat, no enclosing section.
+  category?: FacilityCategory;
   items: Buildable[];
 }
 
@@ -108,10 +115,42 @@ function buildGroups(s: GameState): TypeGroup[] {
       key,
       label,
       repeatable,
+      // Most TYPE_MATCHERS keys ARE the FacilityType they match (gym,
+      // athleticsField, ...) — the lookup below is a no-op for the ones
+      // that aren't (dorm, academicBuilding, lab, ...), which simply have
+      // no entry in FACILITY_CATEGORY_OF and so no category.
+      category: FACILITY_CATEGORY_OF[key as FacilityType],
       items: s.tech.filter((t) => match(t) && t.status !== 'locked'),
     }))
     .filter((g) => g.items.length > 0);
 }
+
+// A run of consecutive groups sharing the same category renders inside one
+// enclosing section (see CategorySection below); everything else renders
+// exactly as before, one group at a time. TYPE_MATCHERS already lists the
+// recreation and athletics rows contiguously, so in practice each category
+// collapses to a single run — but this only ever MERGES adjacent same-
+// category groups, so a future reordering degrades to more (smaller)
+// sections rather than breaking.
+interface RenderBlock {
+  category?: FacilityCategory;
+  groups: TypeGroup[];
+}
+
+function blocksFor(groups: TypeGroup[]): RenderBlock[] {
+  const blocks: RenderBlock[] = [];
+  for (const g of groups) {
+    const last = blocks[blocks.length - 1];
+    if (g.category && last?.category === g.category) last.groups.push(g);
+    else blocks.push({ category: g.category, groups: [g] });
+  }
+  return blocks;
+}
+
+const CATEGORY_LABELS: Record<FacilityCategory, string> = {
+  athletics: 'Athletics',
+  recreation: 'Recreation',
+};
 
 // How many beds/seats one finished instance is worth — the number that
 // makes a built row worth keeping on screen at all.
@@ -282,8 +321,20 @@ function BuildGroup({ s, act, group }: { s: GameState; act: (a: Action) => void;
   );
 }
 
+function CategorySection({ category, groups, s, act }: { category: FacilityCategory; groups: TypeGroup[]; s: GameState; act: (a: Action) => void }) {
+  return (
+    <section className="building-category">
+      <h3 className="building-category-head">{CATEGORY_LABELS[category]}</h3>
+      <div className="building-groups">
+        {groups.map((group) => <BuildGroup key={group.key} s={s} act={act} group={group} />)}
+      </div>
+    </section>
+  );
+}
+
 export default function BuildPanel({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const groups = buildGroups(s);
+  const blocks = blocksFor(groups);
 
   return (
     <aside className="side-panel">
@@ -305,7 +356,9 @@ export default function BuildPanel({ s, act }: { s: GameState; act: (a: Action) 
         )}
 
         <div className="building-groups">
-          {groups.map((group) => <BuildGroup key={group.key} s={s} act={act} group={group} />)}
+          {blocks.map((block, i) => block.category
+            ? <CategorySection key={`${block.category}-${i}`} category={block.category} groups={block.groups} s={s} act={act} />
+            : block.groups.map((group) => <BuildGroup key={group.key} s={s} act={act} group={group} />))}
         </div>
       </section>
     </aside>

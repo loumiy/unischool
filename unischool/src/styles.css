@@ -356,6 +356,15 @@ button { cursor: pointer; font-family: inherit; }
   margin-bottom: 4px; }
 .building-group-head h3 { font-family: var(--serif); font-size: 14px; margin: 0; color: var(--ink); }
 .building-list { max-height: none; }
+
+/* A category section (Athletics, Recreation — see BuildPanel.tsx's
+   FACILITY_CATEGORY_OF-derived blocksFor) wraps a contiguous run of
+   building-groups in its own labeled section, set off from the flat groups
+   around it by a rule and a quieter, all-caps heading than a group's own
+   h3, so a scanning eye reads it as one level up. */
+.building-category { border-top: 1px dashed var(--parchment-line-lo); padding-top: 14px; }
+.building-category-head { font-family: var(--mono); font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-lo); margin: 0 0 10px; }
 .building-item.done { background: #f5efdd; }
 .building-item.done .build-name { color: #6b5a24; }
 .building-item.developing { background: #faf3d9; border-left: 3px solid var(--gold); padding-left: 8px; }
