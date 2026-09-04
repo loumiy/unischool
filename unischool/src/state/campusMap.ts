@@ -261,14 +261,6 @@ export function placementFor(row: number, col: number, fp: Footprint): Placement
   return { row, col, ...fp };
 }
 
-// How many tiles are currently built on — the map header's "sited" readout.
-// Tiles, not placements, now that one building can cover several.
-export function tilesCovered(placements: Placements): number {
-  let total = 0;
-  for (const p of Object.values(placements)) total += p.w * p.h;
-  return total;
-}
-
 // ---------------------------------------------------------------------
 // PATHWAYS. See types.ts's Pathways/PathEdge for the edge-identification
 // scheme (a 'h'/'v' edge on the grid of tile CORNERS, not on either tile it
