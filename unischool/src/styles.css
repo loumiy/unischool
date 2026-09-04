@@ -18,19 +18,74 @@
   --ink: #2b2417;
   --ink-muted: #8a7c55;
   --green: #1f6b3a;
+  /* The campus grounds (see .campus-tile below): one continuous lawn, not
+     a field of separate paving stones, so the palette here is deliberately
+     narrow — a base, a slightly deeper shade for the surrounding field and
+     covered ground, and a warmed highlight for "you can build here". The
+     grid itself is a hairline, not a border — see --grass-line. */
+  --grass: #7d9c60;
+  --grass-deep: #6d8c52;
+  --grass-line: rgba(42, 56, 28, 0.16);
+  --grass-highlight: #a3c17d;
   --serif: Georgia, 'Times New Roman', serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --side-panel-width: 360px; /* the build rail beside the map */
+  --side-panel-width: 360px; /* the build rail floating over the map's right edge */
+  --log-strip-width: 380px;  /* the log ticker floating over the map's bottom-left */
+  /* A generous ceiling for the siting tray's OWN height (see
+     .campus-map-tray) — big enough that a long "awaiting siting" list
+     scrolls inside the tray rather than growing past it. Deliberately NOT
+     what .campus-map-canvas insets its bottom edge by: most runs never
+     have more than a couple of buildings queued, and reserving this much
+     map space unconditionally would waste most of it most of the time. */
+  --tray-ceiling: 42vh;
+  /* --topbar-height, --log-strip-height and --tray-height are each kept in
+     sync with their element's REAL rendered height (App.tsx's
+     useCssHeightVar, and CampusMap.tsx's own use of it for the tray) —
+     none of the three is a constant: the topbar wraps at narrower widths,
+     and the log strip / tray both size to their own content. These
+     defaults are only what's used for the very first paint, before those
+     effects have measured anything. .campus-map-canvas insets by all
+     three, so a tile is never left on screen but unreachable under one of
+     them. */
+  --topbar-height: 173px;
+  --log-strip-height: 150px;
+  --tray-height: 150px;
 }
 
 /* The shell fills the viewport rather than scrolling as a document: the map
-   must always be on screen (see App.tsx), so the regions around it scroll
-   internally instead of pushing it off the page. */
+   is a fixed full-viewport background (see App.tsx, .campus-map below) and
+   every other piece of chrome floats over it, so nothing here pushes the
+   map off the page. */
 html, body, #root { height: 100%; }
 body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: var(--navy); color: var(--ink-hi); }
-.app { max-width: 1720px; height: 100%; margin: 0 auto; padding: 14px 20px 16px;
-  display: flex; flex-direction: column; overflow: hidden; }
 button { cursor: pointer; font-family: inherit; }
+
+/* ---------- the chrome layer ----------
+   `.app` sits above the map (see .campus-map's z-index below) as a
+   full-viewport CSS grid: a full-width top strip, and a right-hand column
+   for the build rail running the rest of the height. It carries NO
+   background of its own — `pointer-events: none` on the grid itself, with
+   `auto` restored on each direct child, means the empty grid cell (map
+   showing through, unobstructed) never intercepts a click meant for the
+   map beneath it; only the actual floating cards (and the tab/interrupt
+   overlays) are clickable. Every direct child needs that same auto rule,
+   including ones like .log-strip and the interrupt modal that aren't grid
+   participants themselves (position: fixed removes them from grid flow,
+   but they're still direct children for the selector below). */
+.app { position: fixed; inset: 0; z-index: 10;
+  display: grid; grid-template-columns: 1fr var(--side-panel-width); grid-template-rows: auto 1fr;
+  grid-template-areas: "top top" ". side";
+  column-gap: 16px;
+  pointer-events: none; }
+.app > * { pointer-events: auto; }
+
+/* ---------- top strip: masthead + control bar + tab nav, one solid band ----------
+   Flush to the top and both side edges (its own padding stands in for
+   `.app`'s, which carries none) — a status ribbon the width of the
+   viewport, the way the reference lays its top chrome across the world
+   rather than as an inset card. */
+.topbar { grid-area: top; background: var(--navy); border-bottom: 1px solid var(--navy-line);
+  padding: 14px 20px 0; }
 
 /* ---------- masthead ---------- */
 .masthead { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;
@@ -100,22 +155,27 @@ button { cursor: pointer; font-family: inherit; }
 .panel-head-figure { display: inline-flex; align-items: center; gap: 10px; }
 .panel .stat { font-family: var(--mono); color: var(--ink-muted); font-size: 12px; }
 
-/* ---------- game surface: map centre, build rail, log ---------- */
-/* The map is the base layer and holds the middle of the screen; the build
-   panel is a fixed-width rail beside it; overlays (see below) stack on top
-   of both. `position: relative` is what an overlay's `inset: 0` covers. */
-.game-surface { position: relative; flex: 1; min-height: 0; display: flex; gap: 14px; align-items: stretch; }
-.map-column { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
-.side-panel { width: var(--side-panel-width); flex: none; display: flex; flex-direction: column; gap: 12px;
-  overflow-y: auto; padding-right: 4px; }
-.side-panel-section { flex: none; }
+/* ---------- the build rail: floats over the map's right edge ----------
+   Grid item "side" (see `.app` above) — its column is fixed-width and its
+   row runs from under the topbar to the bottom of the viewport, so the
+   panel card itself stretches to fill that height (`.side-panel-section`
+   is `flex: 1`) rather than leaving a gap under a short list. A short list
+   just reads as extra parchment below the last row — still one visible
+   card, never a dead click zone, since `.panel` already paints an opaque
+   background across the whole box. */
+.side-panel { grid-area: side; display: flex; flex-direction: column; gap: 12px; min-height: 0;
+  margin: 16px 16px 16px 0; }
+.side-panel-section { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
 .side-panel-stats { display: flex; gap: 14px; margin-bottom: 8px; }
-.side-panel::-webkit-scrollbar { width: 8px; }
-.side-panel::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: 4px; }
-.side-panel { scrollbar-width: thin; scrollbar-color: var(--navy-line) transparent; }
+.side-panel-section::-webkit-scrollbar { width: 8px; }
+.side-panel-section::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: 4px; }
+.side-panel-section { scrollbar-width: thin; scrollbar-color: var(--navy-line) transparent; }
 
-/* The log ticker docked under the map — a strip, not a panel to scroll through. */
-.log-strip { flex: none; padding: 8px 14px; }
+/* The log ticker: its own floating card over the map's bottom-left corner,
+   the width of `--log-strip-width` so the siting tray (see .campus-map-tray
+   below) knows exactly where it can start. */
+.log-strip { position: fixed; z-index: 10; left: 16px; bottom: 16px; width: var(--log-strip-width);
+  padding: 8px 14px; }
 .log-strip .log { max-height: 92px; }
 
 /* ---------- help hint ---------- */
@@ -320,28 +380,76 @@ button { cursor: pointer; font-family: inherit; }
 .built-instance-name { color: #6b5a24; }
 .built-instance-list .stat { font-size: 11px; }
 
-/* ---------- campus map: the central surface ---------- */
-/* Geometry (tile size, gaps, label wrapping) lives in CampusMap.tsx as named
+/* ---------- campus map: the full-viewport background ----------
+   Geometry (tile size, gaps, label wrapping) lives in CampusMap.tsx as named
    constants — SVG user units, not CSS. Only the brass/ink/parchment palette
-   and the layout box are here. The map is its own frame rather than a
-   `.panel` because it fills its column instead of being a stacked card. */
-.campus-map { flex: 1; min-height: 0; display: flex; flex-direction: column;
-  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px;
-  padding: 12px 14px 10px; color: var(--ink); }
-.campus-map-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
-  border-bottom: 1px solid var(--parchment-line); padding-bottom: 8px; margin-bottom: 10px; }
-.campus-map-head h2 { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em;
-  font-size: 13px; color: var(--gold-dim); margin: 0; }
-.campus-map-head .stat { font-family: var(--mono); color: var(--ink-muted); font-size: 12px; }
-/* The grid scales to whatever space the column leaves it; the SVG viewBox
-   keeps the tiles square (xMidYMid meet) rather than stretching them. */
-.campus-map-canvas { flex: 1; min-height: 0; display: flex; }
-.campus-map-svg { display: block; width: 100%; height: 100%;
-  background: #f8f3e6; border: 1px solid var(--parchment-line); border-radius: 6px; }
+   and the layout box are here.
+   The map is a fixed, full-viewport layer BEHIND everything (z-index: 0 —
+   see .app's z-index: 10 above and .tab-overlay-backdrop / .modal-backdrop
+   further down): it is App.tsx's first rendered element, a plain sibling
+   of `.app` rather than a child of it, so the chrome grid's own box is
+   never between the map and the cursor. `.campus-map` itself still bleeds
+   to every edge (a seamless ground colour with no seam where chrome sits),
+   but `.campus-map-canvas` — the actual SVG, everything clickable — insets
+   away from the topbar, the build rail, and the bottom dock (tray + log
+   strip). That inset is deliberate, not cosmetic: those three are always on
+   screen and fully opaque, so a tile rendered behind one of them would be
+   on screen but permanently unreachable. Insetting the interactive area
+   means the SVG's own viewBox-driven scaling (tileX/tileY in
+   CampusMap.tsx, unchanged) does the rest — it fits itself to whatever box
+   it's given, same as before this layout moved it out of a bordered
+   column, so every tile stays reachable at any viewport size. */
+.campus-map { position: fixed; inset: 0; z-index: 0; background: var(--grass-deep); color: var(--ink); }
+/* The bottom inset is the TALLER of the log strip and the tray (they sit
+   side by side, not stacked, at most viewport widths — see .log-strip and
+   .campus-map-tray below), each measured live rather than assumed at its
+   ceiling: most of the time both are short, and the map should get that
+   space back rather than always reserving room for a tray full of
+   buildings awaiting siting. */
+.campus-map-canvas { position: fixed; top: var(--topbar-height); right: var(--side-panel-width);
+  bottom: calc(max(var(--log-strip-height), var(--tray-height)) + 32px); left: 0; }
+/* `grab`/`grabbing` say the map is draggable before a player ever tries —
+   `.panning` is toggled imperatively (see CampusMap.tsx's onMove), not
+   through React state, for the same reason the transform itself is:
+   it changes on every mousemove of a drag. touch-action: none stops the
+   browser's own touch-scroll/pinch from fighting the map's own pan/zoom. */
+.campus-map-svg { display: block; width: 100%; height: 100%; background: var(--grass-deep);
+  cursor: grab; touch-action: none; }
+.campus-map-svg.panning { cursor: grabbing; }
 
-/* Siting tray, docked along the bottom edge of the map. */
-.campus-map-tray { display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
-  margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--parchment-line-lo); }
+/* Zoom in/out/recenter — reachable without a wheel or trackpad, since the
+   map (see TILE_SIZE in CampusMap.tsx) usually doesn't fit the screen at
+   its native size. A small vertical pill in the canvas's own top-right
+   corner, clear of the topbar above and the build rail beside it. */
+.campus-map-zoom-controls { position: fixed; z-index: 10; top: calc(var(--topbar-height) + 16px);
+  right: calc(var(--side-panel-width) + 16px); display: flex; flex-direction: column; gap: 4px;
+  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px; padding: 4px; }
+.campus-map-zoom-controls button { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+  background: #f5efdd; border: 1px solid var(--parchment-line); border-radius: 5px; color: var(--ink);
+  font-size: 15px; line-height: 1; padding: 0; }
+.campus-map-zoom-controls button:hover { border-color: var(--gold-dim); background: #efe1b8; }
+
+/* Siting tray: floats over the map's bottom edge, between the log strip
+   (see .log-strip above) and the build rail — `position: fixed` puts it in
+   its own stacking context, same as every other floating card, so it isn't
+   subject to `.app`'s pointer-events: none (it lives inside .campus-map,
+   outside `.app` entirely, and needs no such rule — nothing in the campus
+   map's own box is transparent chrome the way `.app`'s empty grid cell is).
+   It also carries the map's head (title, help, tiles-built count) — see
+   CampusMap.tsx — now that the map has no bordered card of its own to hang
+   a head bar on. Solid parchment background, same as every other floating
+   panel, so its text stays legible over the map behind it. */
+.campus-map-tray { position: fixed; z-index: 10; left: calc(var(--log-strip-width) + 32px);
+  right: calc(var(--side-panel-width) + 32px); bottom: 16px; max-height: var(--tray-ceiling);
+  display: flex; flex-direction: column; gap: 8px; overflow-y: auto;
+  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px;
+  padding: 10px 14px 12px; }
+.campus-map-tray-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  border-bottom: 1px solid var(--parchment-line); padding-bottom: 8px; }
+.campus-map-tray-head h2 { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em;
+  font-size: 13px; color: var(--gold-dim); margin: 0; }
+.campus-map-tray-head .stat { font-family: var(--mono); color: var(--ink-muted); font-size: 12px; }
+.campus-map-tray-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .campus-map-tray-label { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em;
   font-size: 11px; color: var(--gold-dim); }
 .campus-map-tray-list { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -360,14 +468,20 @@ button { cursor: pointer; font-family: inherit; }
 .campus-tray-btn.selected .campus-tray-size { color: #5d4b12; }
 .campus-map-hint { font-size: 12px; font-style: italic; color: var(--ink-muted); margin: 0; }
 
-/* The grid ground. A covered cell is drawn over by its building, so it only
-   needs to not show through the gutters. */
-.campus-tile { fill: #f1ead6; stroke: var(--parchment-line-lo); stroke-width: 1; }
-.campus-tile.covered { fill: #ece4cf; stroke: none; }
-/* Placement mode. Deliberately quiet: with 336 tiles on screen, outlining
-   every free one shouts. The available ground just warms slightly, and the
-   footprint ghost below is what actually points at where the building goes. */
-.campus-tile.targetable { fill: #f6f0de; stroke: var(--parchment-line); cursor: pointer; }
+/* The grounds: one flat lawn, not individual tiles sitting apart from each
+   other — tiles are edge to edge (see TILE_GAP in CampusMap.tsx) and
+   square (GROUND_CORNER), so the only thing marking the grid at all is
+   this hairline stroke, low-contrast against the fill on purpose. A
+   covered cell is drawn over by its building and never actually seen, so
+   its own colour only has to not show through at the seams. */
+.campus-tile { fill: var(--grass); stroke: var(--grass-line); stroke-width: 1; }
+.campus-tile.covered { fill: var(--grass-deep); stroke: none; }
+/* Placement mode. Deliberately quiet: with hundreds of tiles on screen,
+   outlining every free one shouts. The available ground just lightens, and
+   the footprint ghost below is what actually points at where the building
+   goes — its stroke stays gold-tinted (unlike the tile fill) so the
+   "clickable" cue reads as the same brass accent the rest of the UI uses. */
+.campus-tile.targetable { fill: var(--grass-highlight); stroke: rgba(201, 162, 39, 0.4); cursor: pointer; }
 
 /* The footprint ghost: where the picked-up building would land, and whether
    it fits. Multi-tile buildings make this necessary — the tile you click is
@@ -419,8 +533,13 @@ button { cursor: pointer; font-family: inherit; }
 
 /* ---------- tab overlays: every other view, on top of the map ---------- */
 /* Dismissible views (see TabOverlay.tsx), NOT the interrupt modal — that
-   one halts the clock, must be resolved, and sits at a higher z-index. */
-.tab-overlay-backdrop { position: absolute; inset: 0; z-index: 60; display: flex;
+   one halts the clock, must be resolved, and sits at a higher z-index.
+   `position: fixed` (not `absolute`) so it covers the whole viewport —
+   there's no longer a `.game-surface` ancestor to size an `inset: 0`
+   against, now that the map is a full-viewport background rather than a
+   column inside one. The dimmed backdrop also does double duty as the
+   "push the map back" scrim while a tab is open. */
+.tab-overlay-backdrop { position: fixed; inset: 0; z-index: 60; display: flex;
   align-items: flex-start; justify-content: center; padding: 12px 16px 20px;
   background: rgba(10, 11, 14, 0.55); }
 .tab-overlay { width: 100%; max-width: 1180px; max-height: 100%; display: flex; flex-direction: column;
@@ -780,20 +899,33 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   background: var(--parchment-line); border-radius: 4px; }
 .available-list, .log { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
 
-/* ---------- narrow screens: fall back to a scrolling document ---------- */
-/* The viewport-filling shell needs real width for a map plus a side rail.
-   Below that, stack the rail under the map and let the page scroll again
-   rather than squeezing both into a phone-width column. */
-@media (max-width: 1000px) {
-  html, body, #root { height: auto; }
-  .app { height: auto; overflow: visible; }
-  .game-surface { flex-direction: column; }
-  .map-column { min-height: 0; }
-  .campus-map { min-height: 460px; }
-  .side-panel { width: auto; overflow: visible; padding-right: 0; }
-  /* Anchored to the viewport instead of the surface, so an overlay opened
-     while scrolled down still lands on screen. */
-  .tab-overlay-backdrop { position: fixed; align-items: center; padding: 12px; }
+/* ---------- narrower viewports: same fixed full-viewport model, tighter ----
+   The map stays the background at every width — there's no scrolling-
+   document fallback any more (see .app / .campus-map above): a floating
+   HUD over a persistent world is the point of this layout, not something
+   that only holds above 1000px. Below these widths the build rail and log
+   ticker just narrow and the bottom docks stack instead of sitting side by
+   side, so nothing overlaps or runs off screen. Genuinely phone-narrow
+   widths are a lighter touch here — the campus grid wants real width to
+   read, and playing it that small is out of scope for this pass. */
+@media (max-width: 1100px) {
+  :root { --side-panel-width: 300px; --log-strip-width: 260px; }
+}
+
+@media (max-width: 760px) {
+  /* The log ticker and the siting tray can no longer sit side by side at
+     this width — stack the tray above the ticker instead, both full width
+     up to the build rail, rather than shrinking either past readability.
+     .campus-map-canvas's own bottom inset (see above) assumes they sit
+     SIDE BY SIDE — only the taller of the two matters there — so it's
+     overridden here to the SUM of both real heights plus their stacking
+     gap, or the interactive map would still think it only has to clear
+     one of them. */
+  :root { --log-strip-width: 220px; --tray-ceiling: 200px; }
+  .campus-map-canvas { bottom: calc(var(--log-strip-height) + var(--tray-height) + 32px); }
+  .log-strip { right: calc(var(--side-panel-width) + 32px); width: auto; max-height: 150px; }
+  .campus-map-tray { left: 16px; bottom: calc(16px + var(--log-strip-height) + 10px); }
+  .tab-overlay-backdrop { align-items: center; padding: 12px; }
   .tab-overlay { max-height: 88vh; }
   /* Half-width roster/market columns need real width to stay readable —
      a candidate's field, stats, price and deadline share one line. Stack
