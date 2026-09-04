@@ -598,6 +598,11 @@ button { cursor: pointer; font-family: inherit; }
 .campus-building.kind-facility.tint-9 rect { fill: #b9cdd4; stroke: #88a7b0; } /* pool */
 .campus-building.kind-facility.tint-10 rect { fill: #d8c2c9; stroke: #b2909b; } /* performing arts center */
 .campus-building.kind-facility.tint-11 rect { fill: #cbc0d3; stroke: #a294ac; } /* art gallery */
+.campus-building.kind-facility.tint-12 rect { fill: #c9d9a8; stroke: #a3bd7c; } /* athletics field */
+.campus-building.kind-facility.tint-13 rect { fill: #cdbfa0; stroke: #a89469; } /* arena */
+.campus-building.kind-facility.tint-14 rect { fill: #d7c49a; stroke: #b39c68; } /* baseball/softball diamond */
+.campus-building.kind-facility.tint-15 rect { fill: #a9c7cf; stroke: #7ea3ac; } /* natatorium — distinct blue from the rec pool's tint-9 */
+.campus-building.kind-facility.tint-16 rect { fill: #d4a94f; stroke: #a67f2e; } /* football stadium — the pinnacle, boldest of the facility tints */
 .campus-building.kind-facility text { fill: #3d3524; }
 
 /* ---------- tab overlays: every other view, on top of the map ---------- */

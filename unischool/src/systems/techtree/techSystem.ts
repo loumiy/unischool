@@ -148,6 +148,13 @@ function meetsUnlockGates(s: GameState, t: Buildable): boolean {
   if (t.minCapacityToUnlock !== undefined && s.students.capacity < t.minCapacityToUnlock) return false;
   if (t.minPrestigeToUnlock !== undefined && s.self.reputation < t.minPrestigeToUnlock) return false;
   if (t.graduateProgram !== undefined && !graduateGateMet(s, t.graduateProgram)) return false;
+  // The fourth gate: a varsity athletics venue (facilitiesData.ts) stays
+  // hidden until a team needing its facilityType category has been granted
+  // (see data/eventData.ts's 'varsity-petition'). No separate "revealed"
+  // flag anywhere in state — a team's existence on s.orgs.teams IS the
+  // reveal signal, the same way graduateGateMet reads milestones rather
+  // than a bespoke flag of its own.
+  if (t.athleticsVenueReveal && !s.orgs.teams.some((team) => team.venueCategory === t.facilityType)) return false;
   return true;
 }
 

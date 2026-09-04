@@ -1,4 +1,5 @@
-import type { GameState, PathEdge, SchoolType } from './types';
+import type { AthleticsInvestmentTier, GameState, PathEdge, SchoolType } from './types';
+import { DEFAULT_ATHLETICS_INVESTMENT } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
 import { WEEKS_PER_YEAR } from './types';
 import { initialTech, GENED_BUILDING_REPUTATION_BONUS } from '../data/techData';
@@ -110,6 +111,12 @@ export type Action =
   // cannot afford the chosen option — every event always offers at least
   // one that costs nothing. Advances the clock, like RESOLVE_REPORT.
   | { type: 'RESOLVE_DECISION_EVENT'; eventId: string; choiceId: string; ctx: DecisionEventContext }
+  // Sets the one athletics-wide funding lever (see data/studentLifeData.ts's
+  // ATHLETICS_INVESTMENT_TIERS). Free and reversible at any time — unlike
+  // tuition/aid this is not an annual policy decision, it's a standing dial
+  // the player can adjust as often as they like, so there is nothing to
+  // refuse and no cost charged here.
+  | { type: 'SET_ATHLETICS_INVESTMENT'; tier: AthleticsInvestmentTier }
   // Grants operating funds directly, with no event or interrupt behind it
   // (see StatusHeader.tsx's "+$1B" button). Playtest-only: gated behind
   // naming the university "test", the same as the sandbox Fast speed and
@@ -159,8 +166,9 @@ export function createPreStartState(): GameState {
       pendingDemand: null, activeDemand: null, lastDemandWeek: 0,
     },
     orgs: {
-      clubs: [], chapters: [], pendingPetitions: [],
+      clubs: [], chapters: [], teams: [], pendingPetitions: [],
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
+      athleticsInvestment: DEFAULT_ATHLETICS_INVESTMENT,
     },
     research: {
       points: 0, lifetimePoints: 0, grants: 0, grantIncome: 0,
@@ -315,8 +323,9 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // and one empty flag forever, which is exactly what a school without
     // Greek life should look like in state.
     orgs: {
-      clubs: [], chapters: [], pendingPetitions: [],
+      clubs: [], chapters: [], teams: [], pendingPetitions: [],
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
+      athleticsInvestment: DEFAULT_ATHLETICS_INVESTMENT,
     },
     // No labs at founding, so nothing produces research and no output can
     // fire — the whole slice sits at zero until the first lab finishes

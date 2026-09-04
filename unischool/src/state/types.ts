@@ -110,7 +110,17 @@ export type FacilityType =
   // Recreational and arts facilities (see facilitiesData.ts): more social-
   // satisfaction capacity, one-off (no tier upgrades) rather than the
   // single-instance-with-upgrades shape library/studentCenter/recCenter use.
-  | 'gym' | 'tennisCourts' | 'pool' | 'performingArtsCenter' | 'artGallery';
+  | 'gym' | 'tennisCourts' | 'pool' | 'performingArtsCenter' | 'artGallery'
+  // Varsity athletics venues (facilitiesData.ts): shared COMPETITION
+  // facilities for the teams in data/studentLifeData.ts's SPORTS, one per
+  // venue category. Deliberately DISTINCT from the rec-facility trio above —
+  // a natatorium is not the rec Swimming Pool, a stadium is not a rec field
+  // — because "shared" here means shared AMONG VARSITY TEAMS in one sport
+  // category, not shared with recreational use (see the PR notes' flagged
+  // design fork). Hidden from the build rail until a team that needs the
+  // category is granted varsity status (see Buildable.athleticsVenueReveal
+  // and techSystem.ts's meetsUnlockGates).
+  | 'athleticsField' | 'athleticsArena' | 'athleticsDiamond' | 'athleticsNatatorium' | 'footballStadium';
 
 export interface Buildable {
   id: string;
@@ -140,6 +150,15 @@ export interface Buildable {
   // (the third such gate is `graduateProgram` above — a graduate course
   // waits on its program's parent-school gate, which is a reading of
   // milestones and lab status rather than of any one Buildable's id)
+  // The fourth such gate, set only on the five athletics venues
+  // (facilitiesData.ts): stays 'locked', its own (empty) prereqs
+  // notwithstanding, until a varsity team needing this Buildable's
+  // facilityType category has been granted (see techSystem.ts's
+  // meetsUnlockGates, which reads s.orgs.teams directly rather than a
+  // separate "revealed" flag — a team's existence IS the reveal signal).
+  // The Medicine/Law reveal-on-gate pattern, with team formation as the
+  // gate instead of a milestone count.
+  athleticsVenueReveal?: true;
   status: BuildableStatus;
   effects?: Partial<BuildableEffects>; // read by the systems below; see each field's own comment for exactly when
   // Set only once this school's naming rights are sold (see eventData.ts's
@@ -496,7 +515,19 @@ export interface StudentOrgBase {
   upkeepPerWeek: number;
 }
 
-export interface StudentClub extends StudentOrgBase {}
+export interface StudentClub extends StudentOrgBase {
+  // Set once at formation (see data/studentLifeData.ts's SPORT_CLUB_SHARE
+  // roll) and never changed afterward: a SPORTS id if this club plays a
+  // sport, or null for an ordinary interest club. The discriminator a
+  // varsity petition's eligibility reads — item 1's "subset of club
+  // formations are sport clubs".
+  sport: string | null;
+  // Has this club already petitioned to go varsity, whatever the answer
+  // was? Mirrors GreekChapter.housingAsked below: never ask twice. Always
+  // false for a non-sport club, since only a sport club is ever offered the
+  // question (see data/eventData.ts's 'varsity-petition').
+  varsityAsked: boolean;
+}
 
 // A Greek-letter chapter. Everything a chapter needs beyond a club is
 // about the two things that can happen to it later: a scandal has to be
@@ -506,6 +537,32 @@ export interface GreekChapter extends StudentOrgBase {
   kind: 'fraternity' | 'sorority';
   housed: boolean;       // a dedicated chapter house has been built for them
   housingAsked: boolean; // they have already petitioned for one — never ask again, whatever the answer was
+}
+
+// A sport club that petitioned and was granted varsity status (see
+// data/eventData.ts's 'varsity-petition' and data/studentLifeData.ts). Lives
+// alongside clubs/chapters in s.orgs.teams, reusing the same flat-per-org
+// capped social contribution and weeks-of-opex upkeep contract every other
+// organisation here does — the whole "shallow v1" premise of this feature is
+// that a varsity team is mechanically close to a Greek chapter that needs a
+// venue, not a parallel sport simulation. Promoted straight FROM a
+// StudentClub (same id — see studentLifeData.ts's promoteToVarsityTeam), so
+// the club stops drawing its old club-level contribution the same week.
+export interface VarsityTeam extends StudentOrgBase {
+  sport: string;               // a SPORTS id (see data/studentLifeData.ts)
+  // The venue facilityType this sport needs, CAPTURED at grant time rather
+  // than re-derived from `sport` on every read — so a later retune of the
+  // sport -> venue-category mapping can never strand an existing team's
+  // reference to the venue it was actually promised.
+  venueCategory: FacilityType;
+  coachName: string;      // auto-generated from the faculty name pool the week the team goes varsity — not recruited (see facultyData.ts's rollCoachName; the standing candidate market is a deferred deepening)
+  coachBaseSalary: number; // fixed in dollars at the moment the coach was hired, weeks-of-opex sized like a club's own upkeepPerWeek — an appreciating premium on top is computed live (see studentLifeData.ts's coachSalary), in the faculty tenure spirit
+  // Whether the team can actually compete yet. Goes straight to 'active' if
+  // a compatible venue was already 'done' when the petition was granted
+  // (the "second team in a category" case); otherwise it sits here until
+  // the shared venue Buildable it is waiting on finishes (see
+  // systems/studentlife/studentLifeSystem.ts's tick).
+  status: 'awaitingVenue' | 'active';
 }
 
 // One organisation that has formed and is waiting on the player's answer at
@@ -518,15 +575,28 @@ export interface OrgPetition {
   kind: 'club' | 'chapter';
   name: string;
   greekKind?: 'fraternity' | 'sorority'; // set only for kind 'chapter'
+  // Set only for kind 'club': a SPORTS id if the formation roll drew a sport
+  // club, null otherwise (see data/studentLifeData.ts's SPORT_CLUB_SHARE).
+  // Carried through to the live StudentClub on approval, unchanged — the
+  // discriminator is rolled once, at formation, like everything else here.
+  sport?: string | null;
   foundedYear: number;
   foundingMembers: number;
   foundingEnrolled: number;
   upkeepPerWeek: number; // sized in weeks of opex the week the petition was raised
 }
 
+// The one athletics-wide funding dial (see data/studentLifeData.ts's
+// ATHLETICS_INVESTMENT_TIERS). Scales every active varsity team's social
+// contribution AND the whole program's upkeep together — deliberately not a
+// per-team budget, so v1 athletics stays one lever the player turns for the
+// whole department, not a line item per sport.
+export type AthleticsInvestmentTier = 'low' | 'medium' | 'high';
+
 export interface StudentOrgState {
   clubs: StudentClub[];
   chapters: GreekChapter[];
+  teams: VarsityTeam[];
   // Petitions raised since the last summer boundary, drained wholesale
   // there: approved ones become organisations, the rest are declined.
   pendingPetitions: OrgPetition[];
@@ -537,6 +607,7 @@ export interface StudentOrgState {
   hellenicCouncilApproved: boolean;
   hellenicCouncilOffered: boolean;
   lastFormationWeek: number; // absolute week a club or chapter last formed; 0 = never
+  athleticsInvestment: AthleticsInvestmentTier;
 }
 
 // Private/public is the only starting fork (see README's "Startup and

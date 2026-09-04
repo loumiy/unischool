@@ -179,6 +179,21 @@ export function rollSurname(): string {
   return pick(pick(NAME_POOLS).last);
 }
 
+// A full "First Last" name, no "Dr." prefix and no dedupe/nationality/bio —
+// for a varsity coach (see eventData.ts's 'varsity-petition' and
+// data/studentLifeData.ts's VarsityTeam). Coaches are deliberately the
+// LIGHT faculty-model this feature asks for: auto-generated the week a team
+// goes varsity, not drawn from or checked against the standing candidate
+// market — that full recruiting loop is a deferred deepening, not v1-shallow
+// scope. A run mints at most nine of these (one per SPORTS entry), so the
+// name-pool collision risk that justifies rollFullName's dedupe loop for
+// faculty/candidates never meaningfully arises here.
+export function rollCoachName(): string {
+  const firstPool = pick(NAME_POOLS);
+  const lastPool = Math.random() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pick(NAME_POOLS);
+  return `${pick(firstPool.first)} ${pick(lastPool.last)}`;
+}
+
 interface RolledName {
   name: string;
   origin: string; // the first-name pool's origin — what nationality is tied to (see rollNationality)

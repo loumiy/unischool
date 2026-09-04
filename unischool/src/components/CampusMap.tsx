@@ -128,6 +128,13 @@ const FACILITY_TINT_ORDER = [
   // Appended, not interleaved: existing tint indices must never move (an
   // old save's placed buildings would otherwise silently repaint).
   'gym', 'tennisCourts', 'pool', 'performingArtsCenter', 'artGallery',
+  // Varsity athletics venues, same append-only discipline. footballStadium
+  // gets the boldest of the five in styles.css — the pinnacle venue reads
+  // as a landmark in colour, not just in footprint, while staying an
+  // ordinary tinted facility rather than borrowing kind-building's fixed
+  // gold (see the single-Buildable-model note on why it isn't `building`
+  // kind at all).
+  'athleticsField', 'athleticsArena', 'athleticsDiamond', 'athleticsNatatorium', 'footballStadium',
 ] as const;
 const HASHED_TINT_COUNT = 4; // shades available to dorms
 

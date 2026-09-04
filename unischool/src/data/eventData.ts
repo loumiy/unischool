@@ -1,9 +1,10 @@
 import type { Faculty, GameState, GreekChapter, LogEntry } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
-import { FACULTY_FIELDS, generateCandidate, rollSurname } from './facultyData';
+import { FACULTY_FIELDS, generateCandidate, rollCoachName, rollSurname } from './facultyData';
 import { money, rollAmount, weeksOfOpEx } from './moneyScale';
 import {
   CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
+  promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, venueForCategory,
 } from './studentLifeData';
 import { discoverySchools, graduateProgram, milestoneSchools } from './techData';
 
@@ -435,6 +436,25 @@ const GREEK_SCANDAL_PR_SATISFACTION_HIT = 3; // standing behind the chapter cost
 const GREEK_HOUSE_BUILD_COST_WEEKS = 3.5;   // a chapter house is a real building, priced against the facility chain
 const GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX = 0.004; // and it roughly doubles that chapter's weekly line, forever
 const GREEK_HOUSE_REFUSAL_SATISFACTION_HIT = 2;
+
+// --- varsity athletics (see data/studentLifeData.ts) -------------------
+//
+// UNLIKE the Greek house grant above, going varsity does NOT push an
+// already-'done' Buildable straight into the siting tray: the required
+// venue is only REVEALED here (see techSystem.ts's meetsUnlockGates, which
+// flips it 'locked' -> 'available' the moment promoteToVarsityTeam below
+// pushes a team referencing its category) and still has to be developed
+// through the ordinary build-rail cost/duration cycle, like a gym or a
+// pool. That is a deliberate fork from the chapter-house pattern this event
+// is otherwise modeled on, flagged rather than resolved silently: a
+// football stadium (or any shared venue) reads as a genuine construction
+// project the player commits capacity to, not a line item this event's own
+// cost quietly pre-pays. VARSITY_ESTABLISH_COST below therefore prices the
+// PROGRAM (a coach, uniforms, a conference's dues) — never the building.
+const VARSITY_ESTABLISH_COST_WEEKS = 2.5;
+const VARSITY_COACH_BASE_SALARY_WEEKS_OF_OPEX = 0.0018; // fixed at hire; appreciates live with tenure (see studentLifeData.ts's coachSalary)
+const VARSITY_TEAM_UPKEEP_WEEKS_OF_OPEX = 0.003;        // the program's own running cost, on top of the coach — travel, equipment, officiating
+const VARSITY_DECLINE_SATISFACTION_HIT = 2;             // same weight as a chapter's housing refusal — the club stays exactly as it was, just told no
 
 // =====================================================================
 // THE TABLE. Thirteen authored events. Trigger conditions are deliberately
@@ -1044,6 +1064,93 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           if (chapter) chapter.housingAsked = true;
           dentSatisfaction(s, GREEK_HOUSE_REFUSAL_SATISFACTION_HIT);
           return entry(s, `${ctx.subjectName}'s request for a chapter house was refused.`, 'bad');
+        },
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------------
+  // VARSITY ATHLETICS. A sport club's ONE petition to go varsity — modeled
+  // on 'greek-housing' immediately above (an authored event, gated on a
+  // per-organisation "already asked" guard, drawing one waiting candidate
+  // at a time), with the one deliberate fork noted on the constants above.
+  // Shares this same fixed decision-event budget rather than adding to it,
+  // per item 1's "no new formation stream" — the weight below is the dial
+  // for how much of that budget varsity petitions take.
+  // ---------------------------------------------------------------------
+  {
+    id: 'varsity-petition',
+    title: 'A petition to go varsity',
+    weight: 10,
+    eligible: (s) => sportClubsAwaitingVarsity(s).length > 0,
+    rollContext: (s) => {
+      const waiting = sportClubsAwaitingVarsity(s);
+      if (waiting.length === 0) return null;
+      const club = pick(waiting);
+      return {
+        subjectId: club.id,
+        subjectName: club.name,
+        subjectField: club.sport ?? undefined, // reused as a plain string slot for the SPORTS id — see studentLifeData.ts
+        amount: weeksOfOpEx(s, VARSITY_ESTABLISH_COST_WEEKS),
+      };
+    },
+    prompt: (s, ctx) => {
+      const sport = sportById(ctx.subjectField);
+      const venue = sport ? venueForCategory(s, sport.venueCategory) : undefined;
+      const venueLine = venue?.status === 'done'
+        ? `${venue.name} already stands and could host them immediately.`
+        : `The school has no venue for ${sport?.teamName ?? 'this sport'} yet — going varsity means building ${venue ? venue.name : 'one'} before the team can actually compete.`;
+      return `${ctx.subjectName} has outgrown intramural play and wants varsity status: real recruiting, a paid coach, and a conference schedule. ${venueLine} Establishing the program costs ${money(ctx.amount ?? 0)}.`;
+    },
+    choices: [
+      {
+        id: 'establish',
+        label: 'Go varsity',
+        describe: (s, ctx) => {
+          const sport = sportById(ctx.subjectField);
+          const venue = sport ? venueForCategory(s, sport.venueCategory) : undefined;
+          const ready = venue?.status === 'done';
+          return `${money(ctx.amount ?? 0)} up front for a coach and a program budget. ` + (
+            ready
+              ? `${venue!.name} is already standing, so the team is varsity-active immediately.`
+              : `${venue ? venue.name : 'A shared venue'} is revealed for construction on the build rail — the team is varsity-active once it is built, and shared with any other team in the same category.`
+          );
+        },
+        cost: (_s, ctx) => ctx.amount ?? 0,
+        apply: (s, ctx) => {
+          const club = s.orgs.clubs.find((c) => c.id === ctx.subjectId);
+          const sport = sportById(ctx.subjectField);
+          if (!club || !sport) return entry(s, 'The petition could not be resolved.', 'info');
+          const venue = venueForCategory(s, sport.venueCategory);
+          const status = venue?.status === 'done' ? 'active' : 'awaitingVenue';
+          const coachName = rollCoachName();
+          const team = promoteToVarsityTeam(s, club, {
+            sport: sport.id,
+            venueCategory: sport.venueCategory,
+            coachName,
+            coachBaseSalary: weeksOfOpEx(s, VARSITY_COACH_BASE_SALARY_WEEKS_OF_OPEX),
+            upkeepPerWeek: weeksOfOpEx(s, VARSITY_TEAM_UPKEEP_WEEKS_OF_OPEX),
+            status,
+          });
+          return entry(
+            s,
+            status === 'active'
+              ? `${team.name} is now a varsity program, coached by ${coachName}.`
+              : `${team.name} is now a varsity program, coached by ${coachName} — awaiting its venue before it can compete.`,
+            'good',
+          );
+        },
+      },
+      {
+        id: 'decline',
+        label: 'Stay a club',
+        describe: () => `No cash spent. ${VARSITY_DECLINE_SATISFACTION_HIT}-point satisfaction dent that heals over the following weeks. The club keeps everything it already contributes and will not ask again.`,
+        cost: () => 0,
+        apply: (s, ctx) => {
+          const club = s.orgs.clubs.find((c) => c.id === ctx.subjectId);
+          if (club) club.varsityAsked = true;
+          dentSatisfaction(s, VARSITY_DECLINE_SATISFACTION_HIT);
+          return entry(s, `${ctx.subjectName}'s petition to go varsity was declined.`, 'bad');
         },
       },
     ],

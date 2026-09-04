@@ -2,7 +2,7 @@ import type { GameState, OrgPetition } from '../../state/types';
 import { absoluteWeek } from '../../data/eventData';
 import {
   CHAPTER_FORMATION_WEEKLY_CHANCE, CLUB_FORMATION_WEEKLY_CHANCE, ORG_FORMATION_COOLDOWN_WEEKS,
-  canFormChapter, canFormClub, rollChapterPetition, rollClubPetition,
+  canFormChapter, canFormClub, rollChapterPetition, rollClubPetition, venueForCategory,
 } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
@@ -23,7 +23,14 @@ import {
 // They are authored entries in the shared decision-event table
 // (data/eventData.ts), fired by eventSystem.ts on the cadence that table
 // already runs on, so they redistribute the existing event budget rather
-// than adding a second stream of interrupts on top of it.
+// than adding a second stream of interrupts on top of it. The varsity
+// athletics petition (item 2 of that same feature) rides the same table for
+// the same reason — see 'varsity-petition' there.
+//
+// What IS here, alongside the formation roll: tickVarsityVenues below,
+// which resolves a durable condition (a shared venue finishing construction)
+// rather than rolling anything — the same shape demandSystem.ts's
+// resolution half uses for a met demand.
 //
 // CADENCE. The same two-dial machinery the decision events and research
 // outputs use: a weekly probability, floored by a cooldown. The cooldown
@@ -51,7 +58,31 @@ function raise(s: GameState, petition: OrgPetition): void {
   });
 }
 
+// A varsity team stuck 'awaitingVenue' checks, every week, whether the
+// shared venue Buildable it is waiting on has finished — tickTech (earlier
+// in the reducer's SYSTEMS order, see engine/reducer.ts) is what actually
+// flips it to 'done', so by the time this runs the check is never a week
+// stale. No cooldown and no petition of its own: this is a durable
+// condition resolving, exactly like a student demand's target being met,
+// not a new formation.
+function tickVarsityVenues(s: GameState): void {
+  for (const team of s.orgs.teams) {
+    if (team.status !== 'awaitingVenue') continue;
+    const venue = venueForCategory(s, team.venueCategory);
+    if (venue?.status !== 'done') continue;
+    team.status = 'active';
+    s.log.unshift({
+      year: s.clock.year,
+      week: s.clock.week,
+      message: `${venue.name} is complete — ${team.name} is now varsity-active.`,
+      kind: 'good',
+    });
+  }
+}
+
 export function tickStudentLife(s: GameState): void {
+  tickVarsityVenues(s);
+
   const week = absoluteWeek(s);
   if (s.orgs.lastFormationWeek > 0 && week - s.orgs.lastFormationWeek < ORG_FORMATION_COOLDOWN_WEEKS) return;
 

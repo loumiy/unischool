@@ -266,6 +266,16 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
+    // The one athletics-wide funding lever (see data/studentLifeData.ts's
+    // ATHLETICS_INVESTMENT_TIERS). No cost, no gate, no log line — this is
+    // a standing dial, not a decision, and reads live everywhere it matters
+    // (financeSystem's studentLifeUpkeep line, satisfactionSystem's social
+    // attribute) the very next tick.
+    case 'SET_ATHLETICS_INVESTMENT': {
+      s.orgs.athleticsInvestment = action.tier;
+      return s;
+    }
+
     case 'RESOLVE_INTERRUPT': {
       s.pendingInterrupt = null;
       return s;

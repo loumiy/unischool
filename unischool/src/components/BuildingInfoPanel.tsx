@@ -46,8 +46,42 @@ const FACILITY_CAPACITY_LABEL: Partial<Record<FacilityType, string>> = {
   artGallery: 'gallery capacity',
 };
 
-function FacilityInfo({ t }: { t: Buildable }) {
+// The five varsity athletics venues (facilitiesData.ts) — a shared
+// competition facility whose info panel should say which team(s) actually
+// play there, not just a capacity figure like an ordinary facility (see
+// AthleticsVenueInfo below).
+const ATHLETICS_VENUE_TYPES: readonly FacilityType[] = [
+  'athleticsField', 'athleticsArena', 'athleticsDiamond', 'athleticsNatatorium', 'footballStadium',
+];
+
+function AthleticsVenueInfo({ t, s }: { t: Buildable; s: GameState }) {
+  const teams = s.orgs.teams.filter((team) => team.venueCategory === t.facilityType);
+  return (
+    <>
+      <p className="building-info-line">
+        {t.effects?.servesPopulation !== undefined
+          ? `${t.effects.servesPopulation.toLocaleString()} social capacity — a shared competition venue, not a rec facility.`
+          : t.description}
+      </p>
+      {teams.length === 0 ? (
+        <p className="building-info-line">No varsity team calls this home yet.</p>
+      ) : (
+        <ul className="building-info-majors">
+          {teams.map((team) => (
+            <li key={team.id}>
+              {team.name} — coach {team.coachName}
+              {team.status === 'awaitingVenue' ? ' (awaiting this venue)' : ''}
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+}
+
+function FacilityInfo({ t, s }: { t: Buildable; s: GameState }) {
   const ft = t.facilityType;
+  if (ft && ATHLETICS_VENUE_TYPES.includes(ft)) return <AthleticsVenueInfo t={t} s={s} />;
   const label = ft ? FACILITY_CAPACITY_LABEL[ft] : undefined;
   if (label && t.effects?.servesPopulation !== undefined) {
     return <p className="building-info-line">Serves {t.effects.servesPopulation.toLocaleString()} {label}</p>;
@@ -161,7 +195,7 @@ export default function BuildingInfoPanel({ t, s, onClose }: { t: Buildable; s: 
           })()}
         </p>
       )}
-      {t.kind === 'facility' && <FacilityInfo t={t} />}
+      {t.kind === 'facility' && <FacilityInfo t={t} s={s} />}
       {t.kind === 'building' && <BuildingHallInfo t={t} s={s} />}
     </div>
   );
