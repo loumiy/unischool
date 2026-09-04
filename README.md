@@ -16,6 +16,13 @@ finish, purely as rendering. Placement grants nothing, gates nothing, and no
 system reads it; adjacency effects and any economic/prestige feedback from the
 map are still deliberately deferred.
 
+Varsity athletics venues (the multi-sport field, arena, diamond, natatorium,
+and football stadium) are ordinary `facility` Buildables too, reveal-gated the
+same way a graduate program is (see "Student life: clubs, Greek letters, and
+varsity athletics" below) — there is no separate sports subsystem and no
+`sports` Buildable kind, despite what an earlier draft of this README's
+roadmap sketched.
+
 The **campus map is the central interface** (see `src/App.tsx`): it holds the
 middle of the screen at all times, the build rail sits beside it, and every
 other view — Faculty, Curriculum, Treasury, Admissions, Student Life,
@@ -70,14 +77,16 @@ Open the printed localhost URL. Start the clock to begin.
 ## The central abstraction: Buildables
 
 The single most important structural idea in this codebase is that **courses,
-academic buildings, dormitories, campus-life facilities, and (later) sports
-facilities are all the same kind of thing** — a *Buildable*. A Buildable is
+academic buildings, dormitories, campus-life facilities, and varsity athletics
+venues are all the same kind of thing** — a *Buildable*. A Buildable is
 anything the player commits development capacity to over time. They differ only
 in their data, not their machinery.
 
 Every Buildable has:
 
-- a **`kind`** — `course`, `building`, `dorm`, `facility` (and later `sports`).
+- a **`kind`** — `course`, `building`, `dorm`, `facility`. Athletics venues are
+  `facility`-kind, reveal-gated, like everything else in that list — there is
+  no separate `sports` kind.
 - a **`cost`** — money spent up front, at the moment development starts.
 - a **`duration`** — weeks of development.
 - **`prereqs`** — other Buildable ids that must be `done` first. Prereqs may
@@ -97,17 +106,18 @@ Every Buildable has:
 
 This means one develop/build flow, one prereq resolver, one completion-effects
 applier, serve all content types. **Do not build parallel subsystems for
-buildings, dorms, or sports.** Add content and, where a genuinely new rule is
-needed, extend the shared Buildable model — never fork it.
+buildings, dorms, or campus-life/athletics facilities.** Add content and, where
+a genuinely new rule is needed, extend the shared Buildable model — never fork
+it.
 
 ### Courses and buildings share one flow
 
 Every Buildable goes through the same develop/build affordance — cost, duration,
 prereqs — regardless of `kind`. Where that affordance is *drawn* is a
 presentation split and nothing more: placeable kinds (`building`/`dorm`/
-`facility`, and later `sports`) live in the build rail beside the map, because
-the map is where they end up; `course` Buildables live in the Curriculum
-overlay. Both render the same shared machinery, and neither screen
+`facility` — athletics venues included) live in the build rail beside the map,
+because the map is where they end up; `course` Buildables live in the
+Curriculum overlay. Both render the same shared machinery, and neither screen
 may grow rules of its own.
 
 Placeable kinds gain exactly one extra step beyond that shared flow — placement
@@ -675,7 +685,7 @@ one-line data change (`techData.ts`'s `LAB_GATED_MAJOR_PREFIXES`); what a
 humanities or business "lab" should even be is a content question, not a
 mechanical one, and is deliberately left open.
 
-## Student life: clubs and Greek letters
+## Student life: clubs, Greek letters, and varsity athletics
 
 The layer that grows *inside* the campus rather than on it, and the second
 thing after research to be gated on buildings the player already put up.
@@ -762,8 +772,58 @@ teeth are timing near the summer funnel, not permanence. What *is* durable is
 the ongoing source: a disbanded chapter's real cost is that its contribution
 to the target stops, not the one-week dent.
 
-**The Student Life tab** is the home for all of it — active clubs and Greek
-chapters with founding year and current membership, the petitions waiting on
+**Varsity athletics** is a third layer, and deliberately a *shallow v1* that
+**grows out of clubs** rather than adding a parallel sport simulation: a
+varsity team is mechanically close to a Greek chapter that needs a venue.
+There is **no match simulation, no schedules or standings, and no ranking
+axis** — all explicitly deferred.
+
+A named share of new club formations (`SPORT_CLUB_SHARE`) roll as a **sport
+club** instead of an ordinary one — the same weekly club roll, no second
+formation stream — drawn from a fixed `SPORTS` list (`data/studentLifeData.ts`)
+that also maps each sport to the **venue category** it needs (field sports
+share a multi-sport field; basketball/volleyball share an arena; baseball and
+softball share a diamond; swimming needs a natatorium; football is alone,
+gated behind its own petition, and gets the pinnacle **football stadium** —
+the most expensive Buildable and largest map footprint in the game). A sport
+club may petition, **once**, to go varsity — an authored decision event
+(`eventData.ts`'s `varsity-petition`) modeled directly on the chapter housing
+petition and riding the same shared decision-event budget, not a new stream.
+Granting it costs a weeks-of-opex program fee, auto-generates a coach from the
+faculty name pool (not recruited through the standing candidate market — a
+deferred deepening), and **reveals** the required venue Buildable if it isn't
+already `'done'` — hidden-until-demanded, the same gate a graduate program
+uses (`Buildable.athleticsVenueReveal`, checked in `meetsUnlockGates`; a
+team's own existence on `s.orgs.teams` *is* the reveal signal, no separate
+flag). Unlike the chapter-house grant, the venue is **not** pushed straight to
+`'done'` — it goes through the ordinary build-rail cost/duration cycle like
+any other facility, and the team sits `'awaitingVenue'` until it finishes. The
+**second** team in a category finds the venue already revealed (or built) and
+pays only the varsity fee, never a second building — the mechanism that keeps
+this an athletic department rather than one building per team.
+
+Venues are **ordinary, reveal-gated `facility` Buildables**, and deliberately
+**distinct** from the rec-facility trio (gym/tennis/pool): a natatorium is not
+the rec Swimming Pool, a stadium is not a rec field. "Shared" means shared
+*among varsity teams* in one category, not shared with recreational use — a
+named design fork; see `facilitiesData.ts`'s note above `GYM_ID` for the
+rejected alternative and why. A live team's own upkeep (a fixed program fee
+plus the coach's tenure-appreciating salary, in the faculty spirit) and its
+flat, capped contribution to the `social` satisfaction attribute both run
+through **one investment lever** (`ATHLETICS_INVESTMENT_TIERS`) — low/medium/
+high, scaling the whole department together rather than budgeting per team,
+and the hook a future ranking axis would read (not built here). Athletics
+reaches satisfaction only through this same capped social contribution, same
+as clubs and Greek life — **never prestige directly**; if athletics should
+eventually touch prestige, that is a separate prestige-model decision, flagged
+rather than wired. Disbanding a team is not built in this pass either; when it
+is, what happens to a now-teamless venue is a call worth making explicitly
+rather than silently.
+
+**The Student Life tab** is the home for all of it — active clubs (sport
+clubs tagged with their sport) and Greek chapters with founding year and
+current membership, a **Varsity Athletics** panel listing active and
+awaiting-venue teams plus the investment lever, the petitions waiting on
 the next digest, and an empty state that reads sensibly through the founding
 years before any student center exists. It also has to make the satisfaction
 effect **legible**, which is what stops the system feeling arbitrary, and it
@@ -987,10 +1047,14 @@ any refactor.
 
 - Tutorial: a scripted interrupt sequence walking the Year-0 opening (develop
   gen-ed, hire faculty) and handing off to Summer Year 1.
-- **Sports** as a layer on rivals: teams on a parallel develop track, coaches/
-  trainers as faculty-like individuals, facilities as Buildables, a second
-  ranking axis. Deferred deliberately; it rides on Buildables + hiring + rivals
-  all being mature.
+- **Varsity athletics v1 shipped** as a growth out of clubs, not the parallel
+  develop-track sketch this line used to describe — see "Student life: clubs,
+  Greek letters, and varsity athletics" above. Deliberately still deferred out
+  of that pass: match simulation, schedules and standings, a second ranking
+  axis athletics could feed, recruiting coaches through the standing candidate
+  market instead of auto-generating them, any prestige coupling, and a
+  considered answer for what happens to a shared venue once its last team
+  disbands.
 - Research depth: labs for the four schools that still have none, so a
   fully non-STEM run has a research path of its own rather than reaching it
   through a shared department (see "Research"). This would also give those

@@ -1,4 +1,7 @@
-import type { GameState, GreekChapter, OrgPetition, StudentClub, StudentOrgBase } from '../state/types';
+import type {
+  AthleticsInvestmentTier, Buildable, FacilityType, GameState, GreekChapter, OrgPetition,
+  StudentClub, StudentOrgBase, VarsityTeam,
+} from '../state/types';
 import { weeksOfOpEx } from './moneyScale';
 
 // ---------------------------------------------------------------------
@@ -18,6 +21,19 @@ import { weeksOfOpEx } from './moneyScale';
 //      what happens to them AFTERWARDS, which is also authored as decision
 //      events: a scandal (disband, permanently, or pay for a PR campaign)
 //      and a one-time housing petition per chapter.
+//   3. VARSITY ATHLETICS — a shallow v1 that GROWS OUT OF clubs rather than
+//      adding a parallel sport simulation (no match sim, no schedules or
+//      standings, no ranking axis — all explicitly deferred). A named share
+//      of new club formations roll as SPORT clubs instead of ordinary
+//      ones (see SPORT_CLUB_SHARE/SPORTS below); a sport club may petition,
+//      once, to go varsity (an authored decision event — see eventData.ts's
+//      'varsity-petition', modeled on the chapter housing petition). Going
+//      varsity costs money, reveals (and, if needed, waits on) a shared
+//      competition venue for the sport's category, and promotes the club to
+//      a VarsityTeam record living alongside clubs/chapters in s.orgs.teams
+//      — the same flat-per-org capped social contribution and weeks-of-opex
+//      upkeep contract, plus a light auto-generated coach. See "VARSITY
+//      ATHLETICS" further down this file for the tuning.
 //
 // WHAT AN ORGANISATION DOES, MECHANICALLY. Exactly two things, both read
 // LIVE off s.orgs every week rather than applied once and remembered:
@@ -105,6 +121,15 @@ export const CHAPTER_HOUSED_SOCIAL_BONUS = 1.5; // added on top once a chapter h
 // at its absolute maximum is worth 30 x the 20% social weight = 6 points of
 // headline satisfaction. Real, and nowhere near enough to substitute for
 // building the social facilities the attribute is mostly scored on.
+//
+// A full varsity athletics department (all nine SPORTS teams active, high
+// investment) adds a further ~29.7 uncapped — so a school running clubs,
+// Greek life AND athletics at once now clears this ceiling comfortably. The
+// cap is left UNCHANGED rather than raised to "make room" for athletics:
+// the point of a shared aggregate cap is exactly that a school cannot stack
+// every student-life lever to keep climbing past it, and athletics is
+// meant to compete with clubs/Greek life for headroom under it, not add a
+// fourth independent one.
 export const STUDENT_LIFE_SOCIAL_BONUS_CAP = 30;
 
 // The transient stock nudges the digest applies at the moment of the
@@ -193,6 +218,141 @@ function pick<T>(items: readonly T[]): T {
 }
 
 // =====================================================================
+// VARSITY ATHLETICS — see the top-of-file note. Everything here is the
+// shared model; the petition itself (cost, prompt, choices) is authored as
+// a decision event in eventData.ts, the same split CLUB_UPKEEP_WEEKS_OF_OPEX
+// (here) vs. GREEK_HOUSE_BUILD_COST_WEEKS (there) already follows.
+// =====================================================================
+
+// Share of new CLUB formations that roll as a sport club instead of an
+// ordinary one — NOT a second formation stream (see studentLifeSystem.ts's
+// tickStudentLife, which is unchanged): the same weekly club roll just
+// sometimes draws from SPORTS below instead of CLUB_NAMES. Kept well under
+// half so a run's club scene still reads as chess/debate/a cappella with
+// sport clubs mixed in, not the other way around — see the PR notes for
+// whether this crowds out non-sport clubs in practice.
+export const SPORT_CLUB_SHARE = 0.3;
+
+// The sport -> required-venue-category mapping (item 3's "shared across
+// sports"). `clubName` is what the club-formation roll and the Clubs list
+// show before varsity; `teamName` is the shorter form the varsity panel and
+// tags use afterward. `venueCategory` is a FacilityType (facilitiesData.ts)
+// — the SECOND sport to reach varsity in the same category finds its venue
+// already revealed (or built), and pays only the varsity cost, never a
+// second building. Football is deliberately alone in its category: the
+// football stadium is the pinnacle venue, gated behind football's own
+// petition and nothing else.
+export interface SportDefinition {
+  id: string;
+  clubName: string;
+  teamName: string;
+  venueCategory: FacilityType;
+}
+
+export const SPORTS: readonly SportDefinition[] = [
+  { id: 'soccer', clubName: 'Soccer Club', teamName: 'Soccer', venueCategory: 'athleticsField' },
+  { id: 'lacrosse', clubName: 'Lacrosse Club', teamName: 'Lacrosse', venueCategory: 'athleticsField' },
+  { id: 'fieldHockey', clubName: 'Field Hockey Club', teamName: 'Field Hockey', venueCategory: 'athleticsField' },
+  { id: 'basketball', clubName: 'Basketball Club', teamName: 'Basketball', venueCategory: 'athleticsArena' },
+  { id: 'volleyball', clubName: 'Volleyball Club', teamName: 'Volleyball', venueCategory: 'athleticsArena' },
+  { id: 'baseball', clubName: 'Baseball Club', teamName: 'Baseball', venueCategory: 'athleticsDiamond' },
+  { id: 'softball', clubName: 'Softball Club', teamName: 'Softball', venueCategory: 'athleticsDiamond' },
+  { id: 'swimming', clubName: 'Swim & Dive Club', teamName: 'Swim & Dive', venueCategory: 'athleticsNatatorium' },
+  { id: 'football', clubName: 'Football Club', teamName: 'Football', venueCategory: 'footballStadium' },
+];
+
+export function sportById(id: string | null | undefined): SportDefinition | undefined {
+  return SPORTS.find((sp) => sp.id === id);
+}
+
+// The venue Buildable serving a category — always exactly one, whatever its
+// status (facilitiesData.ts seeds all five 'locked' from the start; see
+// Buildable.athleticsVenueReveal). Undefined is defensive only; it can't
+// happen against the real seed data, the same "unreachable for real seed
+// data" caveat BuildingInfoPanel.tsx's BuildingHallInfo already carries.
+export function venueForCategory(s: GameState, category: FacilityType): Buildable | undefined {
+  return s.tech.find((t) => t.kind === 'facility' && t.facilityType === category);
+}
+
+// The one athletics-wide funding lever (item 4). NOT per-team: the social
+// multiplier scales every active team's flat contribution together, and the
+// upkeep multiplier scales the whole program's running cost (coaches
+// included) together, so the player turns one dial for the department
+// rather than budgeting sport by sport. Also the hook a future ranking axis
+// would read (see the PR notes' flag) — this PR does not build one.
+export const ATHLETICS_INVESTMENT_ORDER: readonly AthleticsInvestmentTier[] = ['low', 'medium', 'high'];
+export const DEFAULT_ATHLETICS_INVESTMENT: AthleticsInvestmentTier = 'medium';
+export const ATHLETICS_INVESTMENT_TIERS: Record<AthleticsInvestmentTier, { socialMultiplier: number; upkeepMultiplier: number }> = {
+  low: { socialMultiplier: 0.6, upkeepMultiplier: 0.75 },
+  medium: { socialMultiplier: 1.0, upkeepMultiplier: 1.0 },
+  high: { socialMultiplier: 1.5, upkeepMultiplier: 1.4 },
+};
+
+// The flat per-team social contribution, same shape as CLUB/CHAPTER_SOCIAL_
+// BONUS above — an 'awaitingVenue' team contributes nothing yet (there is no
+// program to be proud of until it can actually compete), which is also why
+// this cannot be gamed by petitioning and stalling on the venue. Sized
+// between a club's and a chapter's: a varsity team is a bigger deal than a
+// chess club but a campus can have at most nine of them (one per SPORTS
+// entry), against up to ten housed chapters, so per-team it can afford to
+// sit close to a chapter's own weight.
+export const TEAM_SOCIAL_BONUS = 2.2;
+
+// The coach's salary curve (item 5's "appreciating cost... in the faculty
+// spirit"), deliberately simpler than facultyData.ts's exponential-approach
+// curve: a coach's BASE salary is fixed at hire (weeks-of-opex sized, like a
+// club's own upkeepPerWeek — see eventData.ts's VARSITY_COACH_BASE_SALARY_
+// WEEKS_OF_OPEX), and a linear-to-plateau premium on top of that fixed base
+// grows with tenure, live-read every week rather than mutated into state —
+// the same live-read contract every other org cost in this file follows.
+export const COACH_TENURE_PREMIUM_MAX = 0.6;   // up to +60% over the base, at full tenure
+export const COACH_TENURE_PLATEAU_YEARS = 8;   // linear ramp to the plateau — no compounding, no death-spiral risk from a long-retained coach
+
+export function coachSalary(team: VarsityTeam, s: GameState): number {
+  const tenureYears = Math.max(0, s.clock.year - team.foundedYear);
+  const premiumFraction = Math.min(1, tenureYears / COACH_TENURE_PLATEAU_YEARS);
+  return team.coachBaseSalary * (1 + COACH_TENURE_PREMIUM_MAX * premiumFraction);
+}
+
+// A sport club eligible to be OFFERED the varsity petition: it plays a
+// sport, and it has never been asked before (whatever the answer was).
+export function sportClubsAwaitingVarsity(s: GameState): StudentClub[] {
+  return s.orgs.clubs.filter((c) => c.sport !== null && !c.varsityAsked);
+}
+
+// Turns an approved club into a live VarsityTeam (item 2's "promotes the
+// club to a varsity team record"). Keeps the SAME id as the club it came
+// from — a straight promotion, not a new entity — and removes the club from
+// s.orgs.clubs in the same move, which is what stops it drawing its old
+// club-level social contribution twice (clubSocialBonus below only ever
+// counts what is still in s.orgs.clubs).
+export function promoteToVarsityTeam(s: GameState, club: StudentClub, opts: {
+  sport: string;
+  venueCategory: FacilityType;
+  coachName: string;
+  coachBaseSalary: number;
+  upkeepPerWeek: number;
+  status: VarsityTeam['status'];
+}): VarsityTeam {
+  s.orgs.clubs = s.orgs.clubs.filter((c) => c.id !== club.id);
+  const team: VarsityTeam = {
+    id: club.id,
+    name: club.name,
+    foundedYear: club.foundedYear,
+    foundingMembers: club.foundingMembers,
+    foundingEnrolled: club.foundingEnrolled,
+    upkeepPerWeek: opts.upkeepPerWeek,
+    sport: opts.sport,
+    venueCategory: opts.venueCategory,
+    coachName: opts.coachName,
+    coachBaseSalary: opts.coachBaseSalary,
+    status: opts.status,
+  };
+  s.orgs.teams.push(team);
+  return team;
+}
+
+// =====================================================================
 // GATES AND CAPACITY
 // =====================================================================
 
@@ -255,6 +415,16 @@ function nextClubName(s: GameState): string | null {
   return free.length === 0 ? null : pick(free);
 }
 
+// A sport not already fielded as a club and not already varsity — so the
+// roll can never hand out a second "Soccer Club" while the first is still a
+// club, or after it has already been promoted to a team (see SPORTS above).
+function rollSportClub(s: GameState): SportDefinition | null {
+  const taken = takenNames(s);
+  const varsitySports = new Set(s.orgs.teams.map((t) => t.sport));
+  const free = SPORTS.filter((sp) => !taken.has(sp.clubName) && !varsitySports.has(sp.id));
+  return free.length === 0 ? null : pick(free);
+}
+
 // Three letters, never repeating a name the campus already carries. The
 // combination space is 24^3, so the retry loop below effectively always
 // succeeds on its first pass; the bound is there so it can never spin.
@@ -269,12 +439,19 @@ function nextChapterName(s: GameState): string | null {
 }
 
 export function rollClubPetition(s: GameState): OrgPetition | null {
-  const name = nextClubName(s);
+  // A named share of formations draw a sport instead of an ordinary club
+  // name (see SPORT_CLUB_SHARE) — one shared roll, not a second stream. If
+  // the sport draw comes up empty (every sport already fielded or already
+  // varsity), this falls straight back to an ordinary club rather than
+  // wasting the week's formation.
+  const sportDef = Math.random() < SPORT_CLUB_SHARE ? rollSportClub(s) : null;
+  const name = sportDef?.clubName ?? nextClubName(s);
   if (name === null) return null;
   return {
     id: crypto.randomUUID(),
     kind: 'club',
     name,
+    sport: sportDef?.id ?? null,
     foundedYear: s.clock.year,
     foundingMembers: rollFoundingMembers(CLUB_FOUNDING_MEMBERS),
     foundingEnrolled: Math.max(1, s.students.enrolled),
@@ -313,7 +490,7 @@ export function activatePetition(s: GameState, petition: OrgPetition): void {
     upkeepPerWeek: petition.upkeepPerWeek,
   };
   if (petition.kind === 'club') {
-    const club: StudentClub = base;
+    const club: StudentClub = { ...base, sport: petition.sport ?? null, varsityAsked: false };
     s.orgs.clubs.push(club);
   } else {
     const chapter: GreekChapter = {
@@ -349,7 +526,31 @@ export function orgMembership(org: StudentOrgBase, s: GameState): number {
 export function studentOrgUpkeep(s: GameState): number {
   const clubs = s.orgs.clubs.reduce((sum, c) => sum + c.upkeepPerWeek, 0);
   const chapters = s.orgs.chapters.reduce((sum, c) => sum + c.upkeepPerWeek, 0);
-  return clubs + chapters;
+  return clubs + chapters + varsityTeamUpkeep(s);
+}
+
+// Every varsity team's running cost: its own program upkeep (fixed at
+// grant, like a club's) plus its coach's live, tenure-appreciating salary —
+// both scaled by the ONE investment-lever multiplier (item 4), and both
+// charged from the week the team goes varsity regardless of whether it is
+// still 'awaitingVenue' (a coach is on payroll and a program is running
+// long before the shared venue itself is finished). Live-read every week,
+// like the rest of this file, so disbanding a team removes its cost the
+// same week — see the PR notes on what disbanding is chosen to do to its
+// venue.
+export function varsityTeamUpkeep(s: GameState): number {
+  const tier = ATHLETICS_INVESTMENT_TIERS[s.orgs.athleticsInvestment];
+  return s.orgs.teams.reduce((sum, t) => sum + (t.upkeepPerWeek + coachSalary(t, s)) * tier.upkeepMultiplier, 0);
+}
+
+// The flat contribution live ACTIVE varsity teams make to the `social`
+// satisfaction attribute, scaled by the investment lever's social
+// multiplier — the athletics half of studentLifeSocialBonus below. An
+// 'awaitingVenue' team contributes nothing (see TEAM_SOCIAL_BONUS).
+export function athleticsSocialBonus(s: GameState): number {
+  const tier = ATHLETICS_INVESTMENT_TIERS[s.orgs.athleticsInvestment];
+  const activeTeams = s.orgs.teams.filter((t) => t.status === 'active').length;
+  return activeTeams * TEAM_SOCIAL_BONUS * tier.socialMultiplier;
 }
 
 // The flat contribution live clubs make to the `social` satisfaction
@@ -366,8 +567,14 @@ export function greekSocialBonus(s: GameState): number {
   );
 }
 
-// What satisfactionSystem.ts actually adds to the attribute: the two
-// sources above, capped in aggregate.
+// What satisfactionSystem.ts actually adds to the attribute: the three
+// sources above (clubs, Greek chapters, varsity athletics), capped in
+// aggregate — athletics reaches satisfaction only through this same capped
+// social contribution, never prestige directly (see the PR notes' flag on
+// where athletics wants prestige and can't have it yet).
 export function studentLifeSocialBonus(s: GameState): number {
-  return Math.min(clubSocialBonus(s) + greekSocialBonus(s), STUDENT_LIFE_SOCIAL_BONUS_CAP);
+  return Math.min(
+    clubSocialBonus(s) + greekSocialBonus(s) + athleticsSocialBonus(s),
+    STUDENT_LIFE_SOCIAL_BONUS_CAP,
+  );
 }

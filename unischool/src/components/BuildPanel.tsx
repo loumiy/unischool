@@ -47,6 +47,11 @@ const FACILITY_LABELS: Record<FacilityType, string> = {
   pool: 'Pool',
   performingArtsCenter: 'Performing Arts Center',
   artGallery: 'Art Gallery',
+  athleticsField: 'Multi-Sport Field',
+  athleticsArena: 'Arena',
+  athleticsDiamond: 'Diamond',
+  athleticsNatatorium: 'Natatorium',
+  footballStadium: 'Football Stadium',
 };
 
 // How many finished instances a repeatable group must have before its
@@ -85,6 +90,15 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; ma
   { key: 'pool', label: FACILITY_LABELS.pool, repeatable: false, match: (t) => t.facilityType === 'pool' },
   { key: 'performingArtsCenter', label: FACILITY_LABELS.performingArtsCenter, repeatable: false, match: (t) => t.facilityType === 'performingArtsCenter' },
   { key: 'artGallery', label: FACILITY_LABELS.artGallery, repeatable: false, match: (t) => t.facilityType === 'artGallery' },
+  // Varsity athletics venues: locked (and so invisible, per the rule above)
+  // until a team needing the category is granted — see
+  // facilitiesData.ts's athleticsVenueReveal and eventData.ts's
+  // 'varsity-petition'. One-off, same shape as the recreational trio above.
+  { key: 'athleticsField', label: FACILITY_LABELS.athleticsField, repeatable: false, match: (t) => t.facilityType === 'athleticsField' },
+  { key: 'athleticsArena', label: FACILITY_LABELS.athleticsArena, repeatable: false, match: (t) => t.facilityType === 'athleticsArena' },
+  { key: 'athleticsDiamond', label: FACILITY_LABELS.athleticsDiamond, repeatable: false, match: (t) => t.facilityType === 'athleticsDiamond' },
+  { key: 'athleticsNatatorium', label: FACILITY_LABELS.athleticsNatatorium, repeatable: false, match: (t) => t.facilityType === 'athleticsNatatorium' },
+  { key: 'footballStadium', label: FACILITY_LABELS.footballStadium, repeatable: false, match: (t) => t.facilityType === 'footballStadium' },
   { key: 'academicBuilding', label: 'Academic Buildings', repeatable: false, match: (t) => t.kind === 'building' },
 ];
 

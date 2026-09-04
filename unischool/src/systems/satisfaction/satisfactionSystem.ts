@@ -1,6 +1,8 @@
 import type { GameState, SatisfactionAttributes } from '../../state/types';
 import { HEALTH_CENTER_TIER1_CAPACITY_GATE } from '../../data/facilitiesData';
-import { clubSocialBonus, greekSocialBonus, studentLifeSocialBonus } from '../../data/studentLifeData';
+import {
+  athleticsSocialBonus, clubSocialBonus, greekSocialBonus, studentLifeSocialBonus,
+} from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
 // Satisfaction stays ONE displayed number (s.students.satisfaction), but
@@ -253,46 +255,54 @@ export function satisfactionTarget(s: GameState): number {
 export interface StudentLifeSatisfaction {
   clubCount: number;
   chapterCount: number;
+  teamCount: number; // active varsity teams only — an awaitingVenue team contributes nothing yet (see athleticsSocialBonus)
   // The raw flat contributions each source offers the `social` attribute,
   // before the aggregate cap and before `social` itself is clamped.
   clubSocialBonus: number;
   greekSocialBonus: number;
+  athleticsSocialBonus: number;
   // What each source is actually worth on the HEADLINE satisfaction
   // target, in points, after every clamp the model applies.
   clubTargetContribution: number;
   greekTargetContribution: number;
+  athleticsTargetContribution: number;
   totalTargetContribution: number;
   target: number;              // the satisfaction target as it stands
-  targetWithoutStudentLife: number; // and what it would be with no clubs and no chapters
+  targetWithoutStudentLife: number; // and what it would be with no clubs, no chapters and no athletics
 }
 
-function withoutOrgs(s: GameState, clubs: boolean, chapters: boolean): GameState {
+function withoutOrgs(s: GameState, clubs: boolean, chapters: boolean, teams: boolean): GameState {
   return {
     ...s,
     orgs: {
       ...s.orgs,
       clubs: clubs ? [] : s.orgs.clubs,
       chapters: chapters ? [] : s.orgs.chapters,
+      teams: teams ? [] : s.orgs.teams,
     },
   };
 }
 
 export function studentLifeSatisfaction(s: GameState): StudentLifeSatisfaction {
   const target = satisfactionTarget(s);
-  const withoutClubs = satisfactionTarget(withoutOrgs(s, true, false));
-  const withoutGreek = satisfactionTarget(withoutOrgs(s, false, true));
-  const withoutBoth = satisfactionTarget(withoutOrgs(s, true, true));
+  const withoutClubs = satisfactionTarget(withoutOrgs(s, true, false, false));
+  const withoutGreek = satisfactionTarget(withoutOrgs(s, false, true, false));
+  const withoutAthletics = satisfactionTarget(withoutOrgs(s, false, false, true));
+  const withoutAll = satisfactionTarget(withoutOrgs(s, true, true, true));
 
   return {
     clubCount: s.orgs.clubs.length,
     chapterCount: s.orgs.chapters.length,
+    teamCount: s.orgs.teams.filter((t) => t.status === 'active').length,
     clubSocialBonus: clubSocialBonus(s),
     greekSocialBonus: greekSocialBonus(s),
+    athleticsSocialBonus: athleticsSocialBonus(s),
     clubTargetContribution: target - withoutClubs,
     greekTargetContribution: target - withoutGreek,
-    totalTargetContribution: target - withoutBoth,
+    athleticsTargetContribution: target - withoutAthletics,
+    totalTargetContribution: target - withoutAll,
     target,
-    targetWithoutStudentLife: withoutBoth,
+    targetWithoutStudentLife: withoutAll,
   };
 }
 

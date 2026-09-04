@@ -52,6 +52,15 @@ const UPKEEP_PER_SERVED_PER_WEEK: Record<string, number> = {
   pool: 1.5,              // lifeguards plus chemical/mechanical upkeep — pricier per head than a gym
   performingArtsCenter: 1.0, // venue/production staff, a campus-wide draw like the student center
   artGallery: 0.7,        // curatorial and security staff, lighter than a working venue
+  // Varsity athletics venues (see the block below): grounds crew and
+  // officiating overhead, distinct from — and pricier per head than — the
+  // recreational trio above, since these host real competition rather than
+  // open-use fitness.
+  athleticsField: 0.9,
+  athleticsArena: 1.4,
+  athleticsDiamond: 1.0,
+  athleticsNatatorium: 1.8, // a competition pool: timing equipment and certified officials, pricier than the rec Swimming Pool above
+  footballStadium: 1.2,
 };
 
 function servedUpkeep(facilityType: keyof typeof UPKEEP_PER_SERVED_PER_WEEK, servesPopulation: number): number {
@@ -221,11 +230,23 @@ export const REC_CENTER_TIER2_PRESTIGE_GATE = 55;
 // hold the ratio as a campus keeps growing past what the rec center +
 // student center alone can cover, not a replacement for either.
 //
-// NOTE for the athletics PR still on the roadmap: a pool here may well be
-// superseded by (or need to coexist with) a future natatorium, and a gym
-// overlaps conceptually with a future varsity weight room / training
-// facility. Left as a flag, not resolved here — this PR does not touch
-// athletics.
+// RESOLVED (the athletics PR this flag was left for): the rec pool stays,
+// unchanged, alongside a separate NATATORIUM below, and the same split
+// applies to every other rec/competition pair. DESIGN FORK, made explicit
+// rather than resolved silently: "shared" in the varsity-athletics feature
+// means shared AMONG VARSITY TEAMS in one sport's category, not shared with
+// open-use recreation — a swim team does not compete in the rec center's
+// lap pool any more than the football team would play its games on the
+// intramural field. The alternative (letting an existing rec facility
+// double as a team's competition venue once a sport goes varsity) was
+// considered and rejected: it would make a rec facility's later social-
+// satisfaction contribution silently do double duty as an athletics gate,
+// coupling two systems that are otherwise cleanly separate, and it would
+// mean two very differently-scoped things (an open gym anyone can walk
+// into; a conference-regulation venue with real capacity) sharing one
+// Buildable id. Keeping them distinct costs exactly what this file already
+// costs for gym/pool/tennis vs. the rec center: another one-off facility
+// row, not a new subsystem.
 const GYM_ID = 'GYM';
 const GYM_SERVES = 1_000;
 const GYM_COST = 350_000;
@@ -257,6 +278,47 @@ const ART_GALLERY_ID = 'ART-GALLERY';
 const ART_GALLERY_SERVES = 500;
 const ART_GALLERY_COST = 220_000;
 const ART_GALLERY_WEEKS = 8;
+
+// --- Varsity athletics venues: shared competition facilities, HIDDEN until demanded ---
+// See data/studentLifeData.ts's SPORTS for the sport -> category mapping and
+// eventData.ts's 'varsity-petition' for what reveals one. Every entry below
+// is seeded 'locked' with `athleticsVenueReveal: true` and EMPTY prereqs —
+// unlike every other facility in this file, prereqs alone would let
+// unlockAvailable() open it on the very first tick, so the reveal gate is
+// what actually keeps it hidden (see techSystem.ts's meetsUnlockGates,
+// following the Medicine/Law reveal-on-gate pattern). One-off, no tier
+// upgrades, same shape as the recreational trio above — but a fully
+// separate FacilityType per venue (see the design-fork note above GYM_ID),
+// so none of them are "the gym, but varsity".
+const ATHLETICS_FIELD_ID = 'ATH-FIELD';
+const ATHLETICS_FIELD_SERVES = 700;
+const ATHLETICS_FIELD_COST = 650_000;
+const ATHLETICS_FIELD_WEEKS = 16;
+
+const ATHLETICS_ARENA_ID = 'ATH-ARENA';
+const ATHLETICS_ARENA_SERVES = 1_400;
+const ATHLETICS_ARENA_COST = 1_800_000;
+const ATHLETICS_ARENA_WEEKS = 24;
+
+const ATHLETICS_DIAMOND_ID = 'ATH-DIAMOND';
+const ATHLETICS_DIAMOND_SERVES = 500;
+const ATHLETICS_DIAMOND_COST = 480_000;
+const ATHLETICS_DIAMOND_WEEKS = 12;
+
+const ATHLETICS_NATATORIUM_ID = 'ATH-NATATORIUM';
+const ATHLETICS_NATATORIUM_SERVES = 550;
+const ATHLETICS_NATATORIUM_COST = 950_000;
+const ATHLETICS_NATATORIUM_WEEKS = 18;
+
+// The pinnacle venue: the most expensive facility in the game (well past
+// the athletics complex tier and the dorm chain's own early rungs), the
+// largest footprint on the map (see campusMap.ts's footprintOf), and gated
+// behind football's own petition and nothing else — no other sport can
+// reveal or share it.
+const FOOTBALL_STADIUM_ID = 'ATH-STADIUM';
+const FOOTBALL_STADIUM_SERVES = 2_500;
+const FOOTBALL_STADIUM_COST = 6_500_000;
+const FOOTBALL_STADIUM_WEEKS = 40;
 
 // --- Health/counseling center: single building, two tiers, gated by population ---
 // "Unlocks at a population threshold" per the design ask: below
@@ -503,6 +565,94 @@ export function initialFacilities(): Buildable[] {
         servesPopulation: ART_GALLERY_SERVES,
         satisfactionAttribute: 'social',
         upkeepPerWeek: servedUpkeep('artGallery', ART_GALLERY_SERVES),
+      },
+    },
+
+    // Varsity athletics venues — locked from the start, revealed only once
+    // a team needing the category is granted (see the block above).
+    {
+      id: ATHLETICS_FIELD_ID,
+      kind: 'facility',
+      facilityType: 'athleticsField',
+      name: 'Multi-Sport Field',
+      description: `A competition-grade outdoor field for ${ATHLETICS_FIELD_SERVES.toLocaleString()} students' worth of social capacity, shared by every varsity team that plays on grass.`,
+      cost: ATHLETICS_FIELD_COST,
+      duration: ATHLETICS_FIELD_WEEKS,
+      prereqs: [],
+      athleticsVenueReveal: true,
+      status: 'locked',
+      effects: {
+        servesPopulation: ATHLETICS_FIELD_SERVES,
+        satisfactionAttribute: 'social',
+        upkeepPerWeek: servedUpkeep('athleticsField', ATHLETICS_FIELD_SERVES),
+      },
+    },
+    {
+      id: ATHLETICS_ARENA_ID,
+      kind: 'facility',
+      facilityType: 'athleticsArena',
+      name: 'Arena',
+      description: `An indoor competition arena for ${ATHLETICS_ARENA_SERVES.toLocaleString()} students' worth of social capacity, shared by basketball and volleyball.`,
+      cost: ATHLETICS_ARENA_COST,
+      duration: ATHLETICS_ARENA_WEEKS,
+      prereqs: [],
+      athleticsVenueReveal: true,
+      status: 'locked',
+      effects: {
+        servesPopulation: ATHLETICS_ARENA_SERVES,
+        satisfactionAttribute: 'social',
+        upkeepPerWeek: servedUpkeep('athleticsArena', ATHLETICS_ARENA_SERVES),
+      },
+    },
+    {
+      id: ATHLETICS_DIAMOND_ID,
+      kind: 'facility',
+      facilityType: 'athleticsDiamond',
+      name: 'Baseball & Softball Diamond',
+      description: `A regulation diamond for ${ATHLETICS_DIAMOND_SERVES.toLocaleString()} students' worth of social capacity, shared by baseball and softball.`,
+      cost: ATHLETICS_DIAMOND_COST,
+      duration: ATHLETICS_DIAMOND_WEEKS,
+      prereqs: [],
+      athleticsVenueReveal: true,
+      status: 'locked',
+      effects: {
+        servesPopulation: ATHLETICS_DIAMOND_SERVES,
+        satisfactionAttribute: 'social',
+        upkeepPerWeek: servedUpkeep('athleticsDiamond', ATHLETICS_DIAMOND_SERVES),
+      },
+    },
+    {
+      id: ATHLETICS_NATATORIUM_ID,
+      kind: 'facility',
+      facilityType: 'athleticsNatatorium',
+      name: 'Natatorium',
+      description: `A competition pool for ${ATHLETICS_NATATORIUM_SERVES.toLocaleString()} students' worth of social capacity — distinct from the rec Swimming Pool, and where the swim & dive team actually competes.`,
+      cost: ATHLETICS_NATATORIUM_COST,
+      duration: ATHLETICS_NATATORIUM_WEEKS,
+      prereqs: [],
+      athleticsVenueReveal: true,
+      status: 'locked',
+      effects: {
+        servesPopulation: ATHLETICS_NATATORIUM_SERVES,
+        satisfactionAttribute: 'social',
+        upkeepPerWeek: servedUpkeep('athleticsNatatorium', ATHLETICS_NATATORIUM_SERVES),
+      },
+    },
+    {
+      id: FOOTBALL_STADIUM_ID,
+      kind: 'facility',
+      facilityType: 'footballStadium',
+      name: 'Football Stadium',
+      description: `The pinnacle varsity venue: a full football stadium seating for ${FOOTBALL_STADIUM_SERVES.toLocaleString()} students' worth of social capacity, and the largest building on campus. Revealed only once the football program itself goes varsity.`,
+      cost: FOOTBALL_STADIUM_COST,
+      duration: FOOTBALL_STADIUM_WEEKS,
+      prereqs: [],
+      athleticsVenueReveal: true,
+      status: 'locked',
+      effects: {
+        servesPopulation: FOOTBALL_STADIUM_SERVES,
+        satisfactionAttribute: 'social',
+        upkeepPerWeek: servedUpkeep('footballStadium', FOOTBALL_STADIUM_SERVES),
       },
     },
 

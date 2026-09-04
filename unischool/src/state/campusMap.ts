@@ -63,6 +63,16 @@ const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
   // tennisCourts and artGallery are absent on purpose — small facilities
   // (a handful of courts, one gallery room) fall back to SINGLE_TILE, the
   // same default labs/health centers already use.
+
+  // Varsity athletics venues (facilitiesData.ts): real competition venues,
+  // sized accordingly. The football stadium is deliberately the largest
+  // footprint of any Buildable in the game — the pinnacle venue should read
+  // as one on the map, not just in its cost.
+  athleticsField: { w: 2, h: 2 },
+  athleticsArena: { w: 2, h: 2 },
+  athleticsDiamond: { w: 2, h: 1 },
+  athleticsNatatorium: { w: 2, h: 1 },
+  footballStadium: { w: 3, h: 2 },
 };
 
 // Dining halls are the one facility type sized by how many students they

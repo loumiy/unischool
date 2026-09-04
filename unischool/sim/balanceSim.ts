@@ -33,7 +33,7 @@ import { demandProgress } from '../src/systems/demands/demandSystem';
 import { demandSubject } from '../src/data/demandData';
 import type { DecisionEventContext } from '../src/data/eventData';
 import { discoverySchools } from '../src/data/techData';
-import { hasStudentCenter } from '../src/data/studentLifeData';
+import { hasStudentCenter, varsityTeamUpkeep } from '../src/data/studentLifeData';
 
 // ---------------------------------------------------------------------
 // Deterministic environment. The game rolls dice (faculty potentials,
@@ -297,6 +297,12 @@ interface Row {
   // they cost a week, and what they are actually adding to the
   // satisfaction TARGET (read off the model, never a parallel tally).
   clubs: number; chapters: number; orgUpkeep: number; orgSatisfaction: number;
+  // Varsity athletics (see src/data/studentLifeData.ts), as the year closed.
+  // `sportClubs` is clubs still waiting to petition (or never asked);
+  // `athleticsUpkeep` is teams-only (coaches + program fees), split out from
+  // `orgUpkeep` above so a balance pass can see athletics' own share rather
+  // than reading it blended into clubs/chapters.
+  sportClubs: number; varsityActive: number; varsityAwaiting: number; athleticsUpkeep: number;
   // Research, as the year closed: what it is producing a week, and the two
   // durable counts its outputs have accumulated. `grantIncome` is the
   // cumulative cash side — the figure that says whether grants are
@@ -346,6 +352,10 @@ function snapshot(s: GameState, weeksInTheRed: number, minCash: number): Row {
     chapters: s.orgs.chapters.length,
     orgUpkeep: flow.studentLifeUpkeep,
     orgSatisfaction: studentLifeSatisfaction(s).totalTargetContribution,
+    sportClubs: s.orgs.clubs.filter((c) => c.sport !== null).length,
+    varsityActive: s.orgs.teams.filter((t) => t.status === 'active').length,
+    varsityAwaiting: s.orgs.teams.filter((t) => t.status === 'awaitingVenue').length,
+    athleticsUpkeep: varsityTeamUpkeep(s),
   };
 }
 
@@ -394,6 +404,12 @@ interface EventTally {
   hellenicCouncilEligibleYear: number | null; // year the club-count gate first cleared
   studentCenterYear: number | null;        // year a student center first stood
   eventFireCounts: Record<string, number>; // every decision-event id, by how many times it fired
+  // Varsity athletics (see src/data/eventData.ts's 'varsity-petition' and
+  // src/data/studentLifeData.ts). `varsityPetitions` is of `decisions`, how
+  // many were this event — the same "share of the fixed budget" reading
+  // `greekEventsSeen` gives Greek life.
+  varsityPetitions: number;
+  varsityGranted: number;
 }
 
 // The scripted player's event policy: take the FIRST affordable choice —
@@ -418,7 +434,13 @@ function chooseEventOption(s: GameState): { eventId: string; choiceId: string; c
   return { eventId: event.id, choiceId: choice.id, ctx: payload.ctx };
 }
 
-function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTally } {
+// The five athletics venue ids (facilitiesData.ts), named here rather than
+// imported — the same self-contained-defensive-check spirit persistence.ts's
+// own VENUE_CATEGORIES list follows — purely so play() can report which ones
+// a run actually finished building.
+const VENUE_IDS = ['ATH-FIELD', 'ATH-ARENA', 'ATH-DIAMOND', 'ATH-NATATORIUM', 'ATH-STADIUM'];
+
+function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTally; venuesBuilt: string[] } {
   let s = createPreStartState();
   s = reducer(s, { type: 'START_GAME', name: 'Test University', schoolType: strategy.schoolType });
   const dispatch = (a: Action) => { s = reducer(s, a); };
@@ -432,7 +454,7 @@ function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTal
     demandsRaised: 0, demandsMet: 0, demandsFailed: 0, demandSubjects: {},
     schoolsNamed: 0, chaptersFormed: 0, chaptersAskedForHousing: 0,
     hellenicCouncilYear: null, hellenicCouncilEligibleYear: null, studentCenterYear: null,
-    eventFireCounts: {},
+    eventFireCounts: {}, varsityPetitions: 0, varsityGranted: 0,
   };
 
   while (s.clock.year <= years) {
@@ -496,6 +518,10 @@ function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTal
           tally.eventFireCounts[taken.eventId] = (tally.eventFireCounts[taken.eventId] ?? 0) + 1;
           if (taken.eventId === 'naming-rights' && taken.choiceId === 'sign') tally.schoolsNamed += 1;
           if (taken.eventId === 'greek-housing') tally.chaptersAskedForHousing += 1;
+          if (taken.eventId === 'varsity-petition') {
+            tally.varsityPetitions += 1;
+            if (taken.choiceId === 'establish') tally.varsityGranted += 1;
+          }
           if (taken.eventId === 'hellenic-council' && tally.hellenicCouncilYear === null) {
             tally.hellenicCouncilYear = s.clock.year;
           }
@@ -524,7 +550,8 @@ function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTal
     if (s.finance.cash < 0) weeksInTheRed += 1;
     minCash = Math.min(minCash, s.finance.cash);
   }
-  return { rows, tally };
+  const venuesBuilt = VENUE_IDS.filter((id) => s.tech.find((t) => t.id === id)?.status === 'done');
+  return { rows, tally, venuesBuilt };
 }
 
 function fmt(n: number): string {
@@ -536,7 +563,7 @@ function fmt(n: number): string {
   return `${sign}${abs.toFixed(0)}`;
 }
 
-function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally }, every: number): void {
+function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venuesBuilt: string[] }, every: number): void {
   const { rows, tally } = run;
   console.log(`\n=== ${strategy.name} (${strategy.schoolType}) ===`);
   console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | soc | crs | maj | fac |  tuition | aid |  applic | admit% |  endow | rsch/wk | brk | orgs | grad');
@@ -615,6 +642,18 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally }, eve
     `(${tally.petitionsApproved} recognised over the run), ${fmt(last.orgUpkeep)}/wk upkeep ` +
     `(${orgShare.toFixed(2)}% of opex), +${last.orgSatisfaction.toFixed(2)} on the satisfaction target; ` +
     `${tally.greekEventsSeen} of ${tally.decisions} decision events were Greek-life ones`,
+  );
+  // Varsity athletics (see src/data/studentLifeData.ts). Judged the same way
+  // student life and grants are: bare figures mean nothing, share of opex
+  // and share of the fixed decision-event budget are the answers to whether
+  // this crowds out anything else.
+  const athleticsShare = last.opex > 0 ? (last.athleticsUpkeep / last.opex) * 100 : 0;
+  console.log(
+    `   varsity athletics: ${last.sportClubs} sport clubs, ${last.varsityActive} active teams, ` +
+    `${last.varsityAwaiting} awaiting venue at close; ${tally.varsityGranted}/${tally.varsityPetitions} petitions granted; ` +
+    `${fmt(last.athleticsUpkeep)}/wk upkeep (${athleticsShare.toFixed(2)}% of opex); ` +
+    `${tally.varsityPetitions} of ${tally.decisions} decision events were varsity petitions; ` +
+    `venues built: ${run.venuesBuilt.length > 0 ? run.venuesBuilt.join(', ') : 'none'}`,
   );
   // The three tuned cadences (see eventData.ts / studentLifeData.ts), each
   // measured against what the concern was actually about — not "did the

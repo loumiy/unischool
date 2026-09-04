@@ -1,10 +1,11 @@
 import { Fragment, useState } from 'react';
 import type { GameState, GreekChapter, StudentClub, StudentOrgBase } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
+import type { Action } from '../state/actions';
 import HelpHint from '../components/HelpHint';
 import {
-  HELLENIC_COUNCIL_HINT, clubCapacity, chapterCapacity, hasStudentCenter,
-  orgMembership, studentOrgUpkeep,
+  ATHLETICS_INVESTMENT_ORDER, HELLENIC_COUNCIL_HINT, clubCapacity, chapterCapacity, coachSalary,
+  hasStudentCenter, orgMembership, sportById, studentOrgUpkeep, venueForCategory,
 } from '../data/studentLifeData';
 import { studentLifeSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { DEMAND_SATISFACTION_THRESHOLD, DEMAND_URGENT_WEEKS, demandCopy } from '../data/demandData';
@@ -13,7 +14,7 @@ import { ProgressBar } from '../components/Progress';
 
 const ATTRIBUTE_LABELS: Record<string, string> = {
   academic: 'Academic (library)',
-  social: 'Social (student center, rec, quad, student orgs)',
+  social: 'Social (student center, rec, quad, clubs, Greek life, athletics)',
   basicNeeds: 'Basic needs (dining)',
   health: 'Health (counseling center)',
 };
@@ -81,6 +82,8 @@ function StudentLifeEffect({ s }: { s: GameState }) {
         <dd>{effect.clubTargetContribution > 0 ? '+' : ''}{effect.clubTargetContribution.toFixed(2)}</dd>
         <dt>Greek chapters ({effect.chapterCount})</dt>
         <dd>{effect.greekTargetContribution > 0 ? '+' : ''}{effect.greekTargetContribution.toFixed(2)}</dd>
+        <dt>Varsity athletics ({effect.teamCount})</dt>
+        <dd>{effect.athleticsTargetContribution > 0 ? '+' : ''}{effect.athleticsTargetContribution.toFixed(2)}</dd>
         <dt>Satisfaction target</dt>
         <dd>{effect.targetWithoutStudentLife.toFixed(1)} → {effect.target.toFixed(1)}</dd>
         <dt>
@@ -103,7 +106,7 @@ function StudentLifeEffect({ s }: { s: GameState }) {
           ))}
         </dl>
       )}
-      {effect.totalTargetContribution <= 0.01 && (effect.clubCount > 0 || effect.chapterCount > 0) && (
+      {effect.totalTargetContribution <= 0.01 && (effect.clubCount > 0 || effect.chapterCount > 0 || effect.teamCount > 0) && (
         <p className="empty-note">
           Social satisfaction is already at its ceiling from the campus itself, so these organisations
           are adding nothing to the target right now — they will start to again the moment the campus
@@ -197,11 +200,83 @@ function StudentDemandPanel({ s }: { s: GameState }) {
   );
 }
 
-export default function StudentLifeTab({ s }: { s: GameState }) {
+// ---------------------------------------------------------------------
+// VARSITY ATHLETICS. Sport clubs read like clubs (see the sport tag on the
+// Clubs panel below); this panel is the other half — active teams, teams
+// still awaiting their shared venue, and the one investment lever (item 4).
+// No "petition" affordance here: like the chapter housing petition, going
+// varsity is only ever offered through the decision-event interrupt (see
+// eventData.ts's 'varsity-petition'), never dispatched directly from this
+// tab.
+// ---------------------------------------------------------------------
+function AthleticsPanel({ s, act }: { s: GameState; act: (a: Action) => void }) {
+  const teams = s.orgs.teams;
+  const active = teams.filter((t) => t.status === 'active');
+  const awaiting = teams.filter((t) => t.status === 'awaitingVenue');
+
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <h2>Varsity Athletics</h2>
+        <HelpHint
+          text="A sport club (see Clubs) can petition, once, to go varsity: a paid coach, a program budget, and a shared competition venue for its sport's category. The second team in a category finds the venue already revealed or built and pays only the varsity cost. The investment lever below is the one knob for the whole department — it scales every active team's contribution to social satisfaction, and the whole program's upkeep, together; it is not a per-team budget."
+        />
+      </div>
+      <div className="athletics-investment">
+        <span className="stat">Investment: {s.orgs.athleticsInvestment}</span>
+        <div className="athletics-investment-tiers">
+          {ATHLETICS_INVESTMENT_ORDER.map((tier) => (
+            <button
+              key={tier}
+              type="button"
+              className={tier === s.orgs.athleticsInvestment ? 'active' : ''}
+              aria-pressed={tier === s.orgs.athleticsInvestment}
+              onClick={() => act({ type: 'SET_ATHLETICS_INVESTMENT', tier })}
+            >
+              {tier}
+            </button>
+          ))}
+        </div>
+      </div>
+      {teams.length === 0 ? (
+        <p className="empty-note">No sport club has gone varsity yet.</p>
+      ) : (
+        <ul className="org-list">
+          {active.map((team) => (
+            <li key={team.id} className="org-row">
+              <span className="org-name">
+                {team.name}
+                <span className="org-tag">varsity</span>
+              </span>
+              <span className="org-meta">
+                coach {team.coachName} · {venueForCategory(s, team.venueCategory)?.name ?? 'venue'} ·{' '}
+                {money(team.upkeepPerWeek + coachSalary(team, s))}/wk
+              </span>
+            </li>
+          ))}
+          {awaiting.map((team) => (
+            <li key={team.id} className="org-row">
+              <span className="org-name">
+                {team.name}
+                <span className="org-tag">awaiting venue</span>
+              </span>
+              <span className="org-meta">
+                coach {team.coachName} · waiting on {venueForCategory(s, team.venueCategory)?.name ?? 'venue'} ·{' '}
+                {money(team.upkeepPerWeek + coachSalary(team, s))}/wk
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+export default function StudentLifeTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const clubs: StudentClub[] = s.orgs.clubs;
   const chapters: GreekChapter[] = s.orgs.chapters;
   const pending = s.orgs.pendingPetitions;
-  const anyOrgs = clubs.length > 0 || chapters.length > 0;
+  const anyOrgs = clubs.length > 0 || chapters.length > 0 || s.orgs.teams.length > 0;
 
   // The empty state has to read sensibly for the ten to fifteen founding
   // years before a student center exists — which is most of the early game,
@@ -261,10 +336,14 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
             <p className="empty-note">No recognised clubs.</p>
           ) : (
             <ul className="org-list">
-              {clubs.map((c) => <OrgRow key={c.id} org={c} s={s} />)}
+              {clubs.map((c) => (
+                <OrgRow key={c.id} org={c} s={s} tag={c.sport ? sportById(c.sport)?.teamName : undefined} />
+              ))}
             </ul>
           )}
         </section>
+
+        <AthleticsPanel s={s} act={act} />
 
         <section className="panel">
           <div className="panel-head">

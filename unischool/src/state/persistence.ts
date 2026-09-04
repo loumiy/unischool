@@ -1,4 +1,4 @@
-import type { Buildable, GameState, Pathways, Placement } from './types';
+import type { Buildable, FacilityType, GameState, Pathways, Placement, StudentClub } from './types';
 import {
   edgeKey, footprintFits, footprintIsClear, isEdgeInBounds, isPlaceableKind, parseEdgeKey,
 } from './campusMap';
@@ -298,7 +298,30 @@ const SAVE_KEY = 'unischool.save';
 // arts capstones under slightly different rules, which is the accepted,
 // honestly-flagged cost of this shape of migration, same as v11 -> v12's
 // buildingless-founding edge case.
-export const SAVE_VERSION = 15;
+// v16: varsity athletics landed — a shallow v1 grown out of clubs (see
+// data/studentLifeData.ts and data/eventData.ts's 'varsity-petition').
+// Three shape changes, all fill-ins:
+//
+//   - StudentOrgState gains a required `teams` array (empty — a v15 school
+//     genuinely had no varsity teams, since sport clubs didn't exist to
+//     petition with) and a required `athleticsInvestment` tier, defaulted
+//     to 'medium' — the same "pure fill-in with no reconstruction" shape
+//     v7 -> v8 used for the whole orgs slice.
+//   - Every existing StudentClub gains `sport: null` and `varsityAsked:
+//     false` — a v15 club was never rolled against SPORT_CLUB_SHARE, so it
+//     genuinely isn't a sport club and has never been asked to go varsity.
+//   - The five athletics venue Buildables (facilitiesData.ts's
+//     ATH-FIELD/ATH-ARENA/ATH-DIAMOND/ATH-NATATORIUM/ATH-STADIUM) are
+//     ID-SPLICED in from initialFacilities(), the same shape v14 -> v15
+//     used for the rec/arts facilities — EXCEPT, unlike that migration,
+//     spliced in at their SEEDED 'locked' status rather than 'available':
+//     these are reveal-gated (see Buildable.athleticsVenueReveal), and a
+//     migrated save's `teams` array is freshly empty, so no gate can
+//     possibly read true yet. A fresh game's initialFacilities() call
+//     produces the exact same 'locked' status for the exact same reason —
+//     the one thing this migration note asks to be confirmed, and is: a
+//     fresh game and a migrated game agree on every venue's initial status.
+export const SAVE_VERSION = 16;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -526,8 +549,14 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   // that simply never organised one.
   7: (state) => {
     state.orgs = {
-      clubs: [], chapters: [], pendingPetitions: [],
+      clubs: [], chapters: [], teams: [], pendingPetitions: [],
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
+      // Filled in here (rather than left for the v15 -> v16 migration to
+      // backfill) because this step reconstructs the WHOLE slice from
+      // nothing — a v7 save has no orgs at all — so there is nothing later
+      // for v15 -> v16 to find missing; it simply runs as a no-op on a save
+      // that came through here first.
+      athleticsInvestment: 'medium',
     };
   },
 
@@ -785,6 +814,29 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
       if (!have.has(node.id)) state.tech.push({ ...node });
     }
   },
+
+  // v15 -> v16: varsity athletics (see SAVE_VERSION above). Fill in the two
+  // new StudentOrgState fields, backfill the two new StudentClub fields on
+  // every existing club, and id-splice the five venue Buildables in at
+  // their seeded (locked) status — the same splice v14 -> v15 used, just
+  // without that migration's "arrives 'available'" twist, because these are
+  // reveal-gated and nothing in a migrated save can have earned the gate.
+  15: (state) => {
+    if (!Array.isArray(state.orgs.teams)) state.orgs.teams = [];
+    if (typeof state.orgs.athleticsInvestment !== 'string') {
+      state.orgs.athleticsInvestment = 'medium';
+    }
+    for (const club of state.orgs.clubs) {
+      const legacy = club as Partial<StudentClub>;
+      if (legacy.sport === undefined) legacy.sport = null;
+      if (typeof legacy.varsityAsked !== 'boolean') legacy.varsityAsked = false;
+    }
+
+    const have = new Set(state.tech.map((node) => node.id));
+    for (const node of initialFacilities()) {
+      if (!have.has(node.id)) state.tech.push({ ...node });
+    }
+  },
 };
 
 // Placement hygiene, run on EVERY load (migrated or not). The map is a
@@ -867,6 +919,43 @@ function sanitizePathways(state: GameState): void {
   state.pathways = clean;
 }
 
+// The five venue categories a team can legitimately reference — the same
+// list facilitiesData.ts seeds, kept here rather than imported from it so
+// this stays a defensive, self-contained check the way sanitizePlacements'
+// own checks are (it doesn't import techData.ts either).
+const VENUE_CATEGORIES: readonly FacilityType[] = [
+  'athleticsField', 'athleticsArena', 'athleticsDiamond', 'athleticsNatatorium', 'footballStadium',
+];
+
+// Team hygiene, run on EVERY load (migrated or not), mirroring
+// sanitizePlacements/sanitizePathways above for the same reason: a team is
+// a visual/derived reading away from being load-bearing (its upkeep and
+// social contribution are live-read every week — see
+// data/studentLifeData.ts), so a bad entry here would silently misprice the
+// weekly statement rather than crash outright, which is worse. Two things
+// get fixed, in this order:
+//   - a team whose venueCategory names something that isn't one of the five
+//     known venues (content was renamed or removed between builds — can't
+//     happen against the current seed, but neither could a stale placement
+//     before content ever moved) is DROPPED entirely, same as an orphaned
+//     placement.
+//   - a team marked 'active' whose venue Buildable isn't actually 'done'
+//     (a hand-edited or corrupted save) is RESET to 'awaitingVenue' rather
+//     than dropped — the team itself, its coach and its upkeep are all
+//     still real, only the venue claim was wrong.
+function sanitizeTeams(state: GameState): void {
+  if (!Array.isArray(state.orgs?.teams)) {
+    if (state.orgs) state.orgs.teams = [];
+    return;
+  }
+  state.orgs.teams = state.orgs.teams.filter((team) => VENUE_CATEGORIES.includes(team.venueCategory));
+  for (const team of state.orgs.teams) {
+    if (team.status !== 'active') continue;
+    const venue = state.tech.find((t) => t.kind === 'facility' && t.facilityType === team.venueCategory);
+    if (venue?.status !== 'done') team.status = 'awaitingVenue';
+  }
+}
+
 // A shallow structural check, not a full validation of GameState. The point
 // is to reject the things that actually happen — a truncated write, a key
 // collision, a payload from an older shape that shares the version number
@@ -931,5 +1020,6 @@ export function loadGame(): GameState | null {
 
   sanitizePlacements(state);
   sanitizePathways(state);
+  sanitizeTeams(state);
   return state;
 }
