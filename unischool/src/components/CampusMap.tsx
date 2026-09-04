@@ -49,15 +49,25 @@ const MAP_PADDING = 16;      // breathing room around the whole grid
 const GROUND_CORNER = 0;     // ground tiles are square — a seam in a lawn, not a tile's own edge
 const BUILDING_CORNER = 8;   // placed buildings (and the footprint ghost) keep a soft corner: they're objects ON the ground, not the ground itself
 
-// Label metrics. LABEL_CHAR_WIDTH is an approximation of the serif's
-// average advance at LABEL_FONT_SIZE — it only has to be close, because
-// it is used to pick a wrap width, not to position anything.
-const LABEL_FONT_SIZE = 15;
-const LABEL_LINE_HEIGHT = 17;   // vertical step between wrapped label lines
-const LABEL_CHAR_WIDTH = 8;
+// Label metrics: shrink-to-fit sizing (see labelFor below). SVG <text> has
+// no CSS text-overflow, so "does the full name fit" has to be computed
+// rather than measured live in the DOM — LABEL_CHAR_WIDTH_RATIO and
+// LABEL_LINE_HEIGHT_RATIO approximate an average glyph's advance and a
+// line's pitch as a fraction of font size (close enough to pick a size,
+// not to typeset). They're kept as font-size-relative RATIOS, not fixed
+// pixel deltas, and LABEL_MIN_FONT_SIZE/LABEL_MAX_FONT_SIZE are absolute
+// floors/ceilings independent of TILE_SIZE — so none of this needs to
+// change when SCHOOL_BUILDING_FOOTPRINT grows from 2x2 to 9x9: a bigger
+// footprint just gives the search more room to reach the ceiling, it never
+// needs a different formula or a redrawn floor.
+const LABEL_MAX_FONT_SIZE = 15;          // the largest a label ever renders, footprint permitting
+const LABEL_MIN_FONT_SIZE = 9;           // the floor: never shrink past this, even if the wrap still overflows — the full name always renders, just cramped
+const LABEL_FONT_STEP = 1;               // granularity of the shrink-to-fit search between the two sizes above
+const LABEL_CHAR_WIDTH_RATIO = 8 / 15;   // avg glyph advance as a fraction of font size
+const LABEL_LINE_HEIGHT_RATIO = 17 / 15; // line pitch as a fraction of font size
 const LABEL_INSET = 6;          // padding between the label block and the footprint's edge
-const LABEL_MAX_LINES = 3;      // lines beyond this are dropped (last one gets an ellipsis)
-const LABEL_MIN_CHARS = 4;      // narrower than this and the label is dropped rather than shredded
+const LABEL_MAX_LINES = 3;      // a readability ceiling on lines, independent of how much vertical room the footprint has
+const LABEL_MIN_CHARS = 4;      // narrower than this at every font size down to the floor, and the label is dropped rather than shredded
 
 // --- pan & zoom ---
 // Deliberately kept OUT of React state (see the view*Ref below): the whole
@@ -161,38 +171,68 @@ function kindClasses(t: Buildable): string {
   return t.kind === 'building' ? `kind-${t.kind}` : `kind-${t.kind} tint-${tintIndex(t)}`;
 }
 
-// Greedy word wrap into at most `maxLines` lines of `maxChars`, so a name
-// like "School of Engineering" reads on the building itself rather than
-// only in the hover title. Returns [] when there isn't room for a usable
-// line — small plots fall back to the hover title and the tray.
-function wrapLabel(name: string, maxChars: number, maxLines: number): string[] {
-  if (maxChars < LABEL_MIN_CHARS || maxLines < 1) return [];
+// Greedy word wrap into lines of at most `maxChars` — no dropping, no
+// truncation. A single word longer than maxChars still gets its own line
+// rather than being cut short: shrink-to-fit (see labelFor below) is what
+// keeps that rare in practice, by trying smaller font sizes — and so
+// larger maxChars — before ever falling back to the floor. This function's
+// job is just "never lose a word", which is what makes ellipsis
+// unnecessary; "always fit the box" is labelFor's job, not this one's.
+function wrapLabelFull(name: string, maxChars: number): string[] {
   const lines: string[] = [];
   let line = '';
   for (const word of name.split(' ')) {
     const candidate = line ? `${line} ${word}` : word;
-    if (candidate.length <= maxChars) {
+    if (!line || candidate.length <= maxChars) {
       line = candidate;
     } else {
-      if (line) lines.push(line);
-      line = word.length > maxChars ? `${word.slice(0, maxChars - 1)}…` : word;
+      lines.push(line);
+      line = word;
     }
   }
   if (line) lines.push(line);
-  if (lines.length > maxLines) {
-    lines.length = maxLines;
-    lines[maxLines - 1] = `${lines[maxLines - 1].slice(0, maxChars - 1)}…`;
-  }
   return lines;
 }
 
-// How much text a footprint can hold, derived from its own pixel size — so
-// a 2x2 hall gets a real label and a 1x1 lab gets a terse one, from one
-// rule rather than a per-size special case.
-function labelFor(name: string, w: number, h: number): string[] {
-  const maxChars = Math.floor((spanSize(w) - LABEL_INSET * 2) / LABEL_CHAR_WIDTH);
-  const maxLines = Math.min(LABEL_MAX_LINES, Math.floor((spanSize(h) - LABEL_INSET) / LABEL_LINE_HEIGHT));
-  return wrapLabel(name, maxChars, maxLines);
+// Shrink-to-fit: search font sizes from LABEL_MAX_FONT_SIZE down to
+// LABEL_MIN_FONT_SIZE (step LABEL_FONT_STEP) and use the first — i.e.
+// largest — one whose full wrapped name fits the footprint's inner box,
+// both in line width (LABEL_CHAR_WIDTH_RATIO * fontSize per character) and
+// in line count (LABEL_LINE_HEIGHT_RATIO * fontSize per line, capped at
+// LABEL_MAX_LINES so a huge future footprint still reads as a label, not a
+// wall of small text). This is what keeps "a 2x2 hall gets more lines /
+// larger text than a 1x1 lab" as the starting point: a bigger footprint's
+// larger innerWidth/innerHeight let the search land on a bigger font
+// before it ever needs to shrink.
+//
+// If nothing in the range fits, LABEL_MIN_FONT_SIZE is used anyway and the
+// wrap is allowed to overflow the footprint vertically — the full name is
+// non-negotiable (no ellipsis), a cramped fit at the floor is the accepted
+// trade-off (see the PR notes for which names hit this on today's smallest
+// footprints).
+//
+// Pure function of (name, w, h) only — never reads the live DOM — so the
+// same building always sizes the same way, render after render.
+function labelFor(name: string, w: number, h: number): { lines: string[]; fontSize: number; lineHeight: number } {
+  const innerWidth = spanSize(w) - LABEL_INSET * 2;
+  const innerHeight = spanSize(h) - LABEL_INSET;
+  let attempt = { lines: [] as string[], fontSize: LABEL_MIN_FONT_SIZE, lineHeight: LABEL_MIN_FONT_SIZE * LABEL_LINE_HEIGHT_RATIO };
+  for (let fontSize = LABEL_MAX_FONT_SIZE; fontSize >= LABEL_MIN_FONT_SIZE; fontSize -= LABEL_FONT_STEP) {
+    const lineHeight = fontSize * LABEL_LINE_HEIGHT_RATIO;
+    const maxChars = Math.floor(innerWidth / (fontSize * LABEL_CHAR_WIDTH_RATIO));
+    const maxLines = Math.min(LABEL_MAX_LINES, Math.floor(innerHeight / lineHeight));
+    if (maxChars < LABEL_MIN_CHARS || maxLines < 1) {
+      attempt = { lines: [], fontSize, lineHeight };
+      continue;
+    }
+    const lines = wrapLabelFull(name, maxChars);
+    attempt = { lines, fontSize, lineHeight };
+    if (lines.length <= maxLines) return attempt;
+  }
+  // Nothing fit down to the floor — `attempt` is the LABEL_MIN_FONT_SIZE
+  // pass: the full name, possibly taller than the footprint (see comment
+  // above), or [] if even the floor can't hold LABEL_MIN_CHARS.
+  return attempt;
 }
 
 // One cell of the grid ground. Empty cells are the placement targets;
@@ -251,9 +291,9 @@ function PlacedBuilding({ t, p, onInspect, inspected }: { t: Buildable; p: Place
   const y = tileY(p.row);
   const width = spanSize(p.w);
   const height = spanSize(p.h);
-  const lines = labelFor(t.name, p.w, p.h);
+  const { lines, fontSize, lineHeight } = labelFor(t.name, p.w, p.h);
   // Centre the wrapped block vertically inside the footprint.
-  const firstLineY = y + height / 2 - ((lines.length - 1) * LABEL_LINE_HEIGHT) / 2;
+  const firstLineY = y + height / 2 - ((lines.length - 1) * lineHeight) / 2;
 
   return (
     <g
@@ -267,9 +307,9 @@ function PlacedBuilding({ t, p, onInspect, inspected }: { t: Buildable; p: Place
         <text
           key={i}
           x={x + width / 2}
-          y={firstLineY + i * LABEL_LINE_HEIGHT}
+          y={firstLineY + i * lineHeight}
           textAnchor="middle"
-          fontSize={LABEL_FONT_SIZE}
+          fontSize={fontSize}
         >
           {line}
         </text>
