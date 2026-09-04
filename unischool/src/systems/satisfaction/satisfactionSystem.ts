@@ -9,8 +9,8 @@ import {
 // it is now the weighted sum of four named attributes computed here, each
 // written to by a specific cluster of campus facilities/needs — never by
 // an ad hoc catch-all formula. s.students.satisfactionBreakdown carries
-// this week's raw per-attribute scores for the expandable UI (see
-// AdmissionsTab.tsx) to show exactly what's dragging the number down.
+// this week's raw per-attribute scores for its own panel (see
+// StudentLifeTab.tsx) to show exactly what's dragging the number down.
 //
 // Every ratio-based attribute compares total servesPopulation (summed
 // live off 'done' facilities — see BuildableEffects's live-read contract
@@ -111,6 +111,16 @@ const REPUTATION_PRIDE_MAX_BONUS = 15;  // added to `social` at max prestige (PR
 const REPUTATION_PRIDE_PRESTIGE_MAX = 150;
 const AID_AFFORDABILITY_MAX_BONUS = 20; // added to `basicNeeds` at 100% average aid
 
+// Faculty quality: a well-staffed, strongly-retained roster should read as
+// more academically satisfying than a thinly or weakly staffed one, on top
+// of (not instead of) whatever the library already provides — a great
+// library with no faculty, or a great faculty with no library, should each
+// land only partially satisfied. ADDITIVE and capped, the same pattern as
+// REPUTATION_PRIDE_MAX_BONUS/AID_AFFORDABILITY_MAX_BONUS above, so a
+// library already scoring 100 cannot be pushed past it and a bare roster
+// cannot pull academic down below what the library alone earned.
+const FACULTY_QUALITY_MAX_BONUS = 15; // added to `academic` at a fully-matured, top-tier average roster
+
 // Satisfaction has exactly one mechanical consequence: it scales the next
 // annual admissions cycle's applicant pool as word of mouth (see
 // admissionsSystem.ts's WORD_OF_MOUTH_STRENGTH). It no longer drives a
@@ -179,10 +189,31 @@ function ratioScore(servesPopulation: number, capacity: number, targetRatio: num
   return clamp(100 * ratio ** curvature, ATTRIBUTE_SCORE_FLOOR, 100);
 }
 
+// The roster's average current teaching+research (each 0..100), normalized
+// to 0..1 — mirrors prestigeSystem.ts's own facultyQualityScore exactly
+// (current, already-grown stats only, so a retained hire matters more than
+// a fresh one), kept as an independent local reading rather than an import
+// since systems only ever read/write shared state, never call into each
+// other. An empty roster reads as 0, its floor, rather than dividing by
+// zero.
+function facultyQualityScore(s: GameState): number {
+  if (s.faculty.length === 0) return 0;
+  const avgStat = s.faculty.reduce((sum, f) => sum + f.teaching + f.research, 0) / (s.faculty.length * 2);
+  return clamp(avgStat / 100, 0, 1);
+}
+
 export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttributes {
   const capacity = s.students.capacity;
 
-  const academic = ratioScore(servedPopulationFor(s, 'academic'), capacity, TARGET_RATIO.academic, 1);
+  // Library adequacy and faculty quality are two independent inputs to how
+  // academically satisfying the school reads, combined additively so
+  // either can carry the attribute partway on its own (see
+  // FACULTY_QUALITY_MAX_BONUS above) — then clamped to the same
+  // [ATTRIBUTE_SCORE_FLOOR, 100] band every other attribute uses, so a
+  // library already at its ceiling gains nothing further from faculty.
+  const academicLibraryRatio = ratioScore(servedPopulationFor(s, 'academic'), capacity, TARGET_RATIO.academic, 1);
+  const academicFacultyBonus = facultyQualityScore(s) * FACULTY_QUALITY_MAX_BONUS;
+  const academic = clamp(academicLibraryRatio + academicFacultyBonus, ATTRIBUTE_SCORE_FLOOR, 100);
 
   const socialRatio = ratioScore(servedPopulationFor(s, 'social'), capacity, TARGET_RATIO.social, SOCIAL_PENALTY_CURVATURE);
   const pride = clamp(s.self.reputation / REPUTATION_PRIDE_PRESTIGE_MAX, 0, 1) * REPUTATION_PRIDE_MAX_BONUS;

@@ -13,7 +13,7 @@ import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import { ProgressBar } from '../components/Progress';
 
 const ATTRIBUTE_LABELS: Record<string, string> = {
-  academic: 'Academic (library)',
+  academic: 'Academic (library, faculty quality)',
   social: 'Social (student center, rec, quad, clubs, Greek life, athletics)',
   basicNeeds: 'Basic needs (dining)',
   health: 'Health (counseling center)',

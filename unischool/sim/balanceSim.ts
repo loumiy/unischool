@@ -286,13 +286,17 @@ interface Row {
   opex: number; net: number; satisfaction: number; courses: number; majors: number;
   faculty: number; tuition: number; aid: number; applicants: number; admitRate: number;
   endowment: number; weeksInTheRed: number; minCash: number;
-  // The `social` attribute alone, as the year closed (see
+  // The `social` and `academic` attributes alone, as the year closed (see
   // satisfactionSystem.ts's computeSatisfactionBreakdown) — the headline
   // `satisfaction` above is a weighted blend of four attributes, which
   // hides whether a facility pass aimed at ONE of them (see
   // TARGET_RATIO.social's harshening pass, and the recreational/arts
-  // facilities that followed it) actually moved that attribute.
+  // facilities that followed it) actually moved that attribute. `academic`
+  // is tracked for the same reason since faculty quality started feeding it
+  // alongside the library ratio — this is the column that shows whether a
+  // well-staffed roster measurably lifts it without a free ride to 100.
   social: number;
+  academic: number;
   // Student life as the year closed: how many organisations are live, what
   // they cost a week, and what they are actually adding to the
   // satisfaction TARGET (read off the model, never a parallel tally).
@@ -340,6 +344,7 @@ function snapshot(s: GameState, weeksInTheRed: number, minCash: number): Row {
     weeksInTheRed,
     minCash,
     social: s.students.satisfactionBreakdown.social,
+    academic: s.students.satisfactionBreakdown.academic,
     researchRate: weeklyResearchPoints(s),
     breakthroughs: s.research.breakthroughs,
     grantIncome: s.research.grantIncome,
@@ -566,14 +571,14 @@ function fmt(n: number): string {
 function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venuesBuilt: string[] }, every: number): void {
   const { rows, tally } = run;
   console.log(`\n=== ${strategy.name} (${strategy.schoolType}) ===`);
-  console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | soc | crs | maj | fac |  tuition | aid |  applic | admit% |  endow | rsch/wk | brk | orgs | grad');
+  console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | soc | aca | crs | maj | fac |  tuition | aid |  applic | admit% |  endow | rsch/wk | brk | orgs | grad');
   const last = rows[rows.length - 1];
   for (const r of rows) {
     if (r.year > 6 && r.year % every !== 0 && r !== last) continue;
     console.log(
       `${String(r.year).padStart(2)} | ${fmt(r.cash).padStart(8)} | ${fmt(r.enrolled).padStart(5)}/${fmt(r.capacity).padEnd(5)} | ` +
       `${r.prestige.toFixed(1).padStart(5)} | ${fmt(r.opex).padStart(7)} | ${fmt(r.net).padStart(6)} | ${r.satisfaction.toFixed(0).padStart(4)} | ` +
-      `${r.social.toFixed(0).padStart(3)} | ` +
+      `${r.social.toFixed(0).padStart(3)} | ${r.academic.toFixed(0).padStart(3)} | ` +
       `${String(r.courses).padStart(3)} | ${String(r.majors).padStart(3)} | ${String(r.faculty).padStart(3)} | ${fmt(r.tuition).padStart(8)} | ` +
       `${(r.aid * 100).toFixed(0).padStart(3)} | ${fmt(r.applicants).padStart(7)} | ${(r.admitRate * 100).toFixed(0).padStart(6)} | ${fmt(r.endowment).padStart(6)} | ` +
       `${r.researchRate.toFixed(1).padStart(7)} | ${String(r.breakthroughs).padStart(3)} | ` +
