@@ -4,7 +4,7 @@ import { clubSocialBonus, greekSocialBonus, studentLifeSocialBonus } from '../..
 
 // ---------------------------------------------------------------------
 // Satisfaction stays ONE displayed number (s.students.satisfaction), but
-// it is now the weighted sum of five named attributes computed here, each
+// it is now the weighted sum of four named attributes computed here, each
 // written to by a specific cluster of campus facilities/needs — never by
 // an ad hoc catch-all formula. s.students.satisfactionBreakdown carries
 // this week's raw per-attribute scores for the expandable UI (see
@@ -31,12 +31,22 @@ const SATISFACTION_DRIFT_RATE = 0.05; // fraction of the gap to target closed pe
 // Attribute weights, summing to 100 so the weighted sum lands on the same
 // 0..100 scale as each attribute. Basic needs is heaviest — going hungry
 // should move the headline number the most.
+//
+// Parking/infrastructure was removed as a satisfaction attribute (the
+// facility behind it is gone — see facilitiesData.ts) and its 15 points
+// were redistributed proportionally across the surviving four, rounded to
+// the nearest whole number: exactly proportional would be academic 23.5,
+// social 23.5, basicNeeds 35.3, health 17.6, which rounds to 24/24/35/18
+// (101) — one point over budget — so the rounding gap is taken back out of
+// basicNeeds, the attribute a single point least visibly changes. This is
+// a NEUTRAL placeholder only, deliberately not a re-tune: the next PR picks
+// these weights on purpose, this one only keeps the model summing to 100
+// with one fewer need to weigh.
 const ATTRIBUTE_WEIGHTS: SatisfactionAttributes = {
-  academic: 20,
-  social: 20,
-  basicNeeds: 30,
-  health: 15,
-  infrastructure: 15,
+  academic: 24,
+  social: 24,
+  basicNeeds: 34,
+  health: 18,
 };
 
 // No ratio-based attribute ever bottoms out at a literal 0 — "stall, don't
@@ -45,21 +55,20 @@ const ATTRIBUTE_SCORE_FLOOR = 12;
 
 // How much servesPopulation is "needed" per unit of capacity for a ratio-
 // based attribute to read as fully adequate (ratio 1.0 => score 100).
-// Basic needs and infrastructure are repeatable chains (dining, parking; see
-// facilitiesData.ts) so they're held to a strict near-1:1 ratio. Academic,
-// social, and health are single-buildings-with-tiers with a hard capacity
-// ceiling on how much they can ever serve, so their target ratio is tuned
-// low enough that a fully built-out chain comfortably covers even a large,
-// dorm-heavy campus — see the PR notes for the worked numbers. This is a
-// deliberate consequence, not an oversight: an enormous, low-selectivity
-// campus will still feel the strain on academic/social/health harder than
-// a small elite one can, the same way it does in the real world.
+// Basic needs is a repeatable chain (dining; see facilitiesData.ts) so it's
+// held to a strict near-1:1 ratio. Academic, social, and health are
+// single-buildings-with-tiers with a hard capacity ceiling on how much
+// they can ever serve, so their target ratio is tuned low enough that a
+// fully built-out chain comfortably covers even a large, dorm-heavy
+// campus — see the PR notes for the worked numbers. This is a deliberate
+// consequence, not an oversight: an enormous, low-selectivity campus will
+// still feel the strain on academic/social/health harder than a small
+// elite one can, the same way it does in the real world.
 const TARGET_RATIO: SatisfactionAttributes = {
   academic: 0.15,
   social: 0.20,
   basicNeeds: 1.0,
   health: 1.0,
-  infrastructure: 1.0,
 };
 
 // Basic needs alone gets a STEEPER-than-linear under-capacity penalty
@@ -91,9 +100,9 @@ const AID_AFFORDABILITY_MAX_BONUS = 20; // added to `basicNeeds` at 100% average
 // dip in satisfaction shrinks the pool at the next summer funnel, which
 // shrinks the class that was supposed to pay for the dorm. Growth
 // therefore has to be paid for TWICE and in advance — once in the dorm's
-// own cost and upkeep, once in the dining hall/parking/health capacity
-// that keeps the dilution from throttling demand. That is the whole
-// point: capacity is not free enrollment.
+// own cost and upkeep, once in the dining hall/health capacity that keeps
+// the dilution from throttling demand. That is the whole point: capacity
+// is not free enrollment.
 //
 // ATTRIBUTE_SCORE_FLOOR is what keeps that from becoming a death spiral:
 // no attribute reaches zero, so satisfaction bottoms out well above it,
@@ -109,9 +118,9 @@ function clamp(v: number, lo: number, hi: number): number {
 //
 // Exported because the student-demand system (see
 // systems/demands/demandSystem.ts) measures a demand's target against this
-// exact reading rather than keeping a capacity model of its own: "another
-// parking lot" is met when the infrastructure attribute's served population
-// reaches the demanded total, which is the same number scored below.
+// exact reading rather than keeping a capacity model of its own: "somewhere
+// to eat" is met when the basicNeeds attribute's served population reaches
+// the demanded total, which is the same number scored below.
 export function servedPopulationFor(s: GameState, attribute: keyof SatisfactionAttributes): number {
   return s.tech
     .filter((t) => t.status === 'done' && t.effects?.satisfactionAttribute === attribute)
@@ -179,9 +188,7 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
     ? 100
     : ratioScore(servedPopulationFor(s, 'health'), capacity, TARGET_RATIO.health, 1);
 
-  const infrastructure = ratioScore(servedPopulationFor(s, 'infrastructure'), capacity, TARGET_RATIO.infrastructure, 1);
-
-  return { academic, social, basicNeeds, health, infrastructure };
+  return { academic, social, basicNeeds, health };
 }
 
 function weightedSum(breakdown: SatisfactionAttributes): number {
@@ -189,8 +196,7 @@ function weightedSum(breakdown: SatisfactionAttributes): number {
     breakdown.academic * ATTRIBUTE_WEIGHTS.academic +
     breakdown.social * ATTRIBUTE_WEIGHTS.social +
     breakdown.basicNeeds * ATTRIBUTE_WEIGHTS.basicNeeds +
-    breakdown.health * ATTRIBUTE_WEIGHTS.health +
-    breakdown.infrastructure * ATTRIBUTE_WEIGHTS.infrastructure
+    breakdown.health * ATTRIBUTE_WEIGHTS.health
   ) / 100;
 }
 

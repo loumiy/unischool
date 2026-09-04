@@ -16,7 +16,6 @@ const ATTRIBUTE_LABELS: Record<string, string> = {
   social: 'Social (student center, rec, quad, student orgs)',
   basicNeeds: 'Basic needs (dining)',
   health: 'Health (counseling center)',
-  infrastructure: 'Infrastructure (parking)',
 };
 
 // ---------------------------------------------------------------------

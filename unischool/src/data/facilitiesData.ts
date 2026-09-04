@@ -1,7 +1,7 @@
 import type { Buildable, SatisfactionAttributes } from '../state/types';
 
 // ---------------------------------------------------------------------
-// Campus-life facilities: the seven non-housing, non-lab needs a campus has
+// Campus-life facilities: the six non-housing, non-lab needs a campus has
 // (see README's "central abstraction" — these are all just `facility`-kind
 // Buildables, same develop/build machinery as everything else; do not fork
 // a subsystem). Each instance "serves" a fixed number of students against
@@ -15,10 +15,10 @@ import type { Buildable, SatisfactionAttributes } from '../state/types';
 //
 // Two shapes, per the design pass on this feature:
 //
-//   - Repeatable chains (dining hall, parking): like campusData.ts's dorm
-//     chain — a starting instance seeded 'done', then a strictly sequential
-//     queue of more instances. Real campuses have several dining halls and
-//     parking structures, so "build another" is the natural action.
+//   - Repeatable chains (dining hall): like campusData.ts's dorm chain — a
+//     starting instance seeded 'done', then a strictly sequential queue of
+//     more instances. Real campuses have several dining halls, so "build
+//     another" is the natural action.
 //   - Single buildings with tier upgrades (library, student center, rec
 //     center, health center, quad): a campus typically has ONE of these,
 //     upgraded in place. Tier 2 is a genuinely bigger facility (more seats,
@@ -28,23 +28,21 @@ import type { Buildable, SatisfactionAttributes } from '../state/types';
 // how many students it serves (or a flat rate for the two that don't scale
 // with population) at a per-type rate reflecting how labor/equipment-heavy
 // that need is — dining (food service staff) and health (clinical staff)
-// cost the most per seat served; parking the least.
+// cost the most per seat served.
 // ---------------------------------------------------------------------
 
 // ---------------------------------------------------------------------
 // FACILITY TUNING. Facilities are the relief valve of the growth loop and
 // they are deliberately priced as a COST THAT ARRIVES FIRST: a dorm
 // dilutes every ratio attribute the week it finishes, so the dining hall
-// and parking deck that fix it have to be bought (and their upkeep
-// carried) before the enrollment that dilutes them has paid for anything.
-// Build costs are sized against the dorm chain — roughly a third to a
-// half of the dorm whose capacity forced them — and per-served upkeep is
-// sized so a fully served campus spends a real, visible slice of tuition
-// on keeping the lights on.
+// that fixes it has to be bought (and its upkeep carried) before the
+// enrollment that dilutes it has paid for anything. Build costs are sized
+// against the dorm chain — roughly a third to a half of the dorm whose
+// capacity forced them — and per-served upkeep is sized so a fully served
+// campus spends a real, visible slice of tuition on keeping the lights on.
 // ---------------------------------------------------------------------
 const UPKEEP_PER_SERVED_PER_WEEK: Record<string, number> = {
   diningHall: 2.2,
-  parking: 0.4,
   library: 0.9,
   studentCenter: 1.0,
   recCenter: 1.1,
@@ -56,7 +54,7 @@ function servedUpkeep(facilityType: keyof typeof UPKEEP_PER_SERVED_PER_WEEK, ser
 }
 
 // --- Dining hall: repeatable chain, basic need, scales hard with capacity ---
-// Deliberately the steepest under-capacity penalty of the five attributes
+// Deliberately the steepest under-capacity penalty of the four attributes
 // (see satisfactionSystem.ts's BASIC_NEEDS_PENALTY_CURVATURE) — going
 // hungry reads as an acute problem, not a gentle drift.
 //
@@ -93,25 +91,8 @@ const DINING_NAMES = [
   'Founders Commons',
 ];
 
-// --- Parking/infrastructure: repeatable chain, boring need, scales with population ---
-const PARKING_STARTING_ID = 'PARKING-01';
-const PARKING_STARTING_SERVES = 300;
-const PARKING_ADDITIONAL_COUNT = 12;
-const PARKING_BASE_SERVES = 320;
-const PARKING_SERVES_GROWTH = 1.15;
-const PARKING_BASE_COST = 230_000;
-const PARKING_COST_GROWTH = 1.24;
-const PARKING_BASE_WEEKS = 8;
-const PARKING_WEEKS_GROWTH = 1.04;
-// Same one-name-per-instance rule as DINING_NAMES above.
-const PARKING_NAMES = [
-  'Lot A', 'Lot B', 'Lot C', 'Lot D', 'Lot E', 'Lot F',
-  'North Parking Deck', 'South Parking Deck', 'East Parking Structure', 'West Parking Structure',
-  'Transit Center Deck', 'Overflow Parking Annex', 'Stadium Lot',
-];
-
 function repeatableChain(opts: {
-  facilityType: 'diningHall' | 'parking';
+  facilityType: 'diningHall';
   startingId: string;
   startingName: string;
   startingServes: number;
@@ -274,22 +255,6 @@ export function initialFacilities(): Buildable[] {
       weeksGrowth: DINING_WEEKS_GROWTH,
       names: DINING_NAMES.slice(1),
       fallbackName: 'Dining Hall',
-    }),
-    ...repeatableChain({
-      facilityType: 'parking',
-      startingId: PARKING_STARTING_ID,
-      startingName: PARKING_NAMES[0]!,
-      startingServes: PARKING_STARTING_SERVES,
-      satisfactionAttribute: 'infrastructure',
-      additionalCount: PARKING_ADDITIONAL_COUNT,
-      baseServes: PARKING_BASE_SERVES,
-      servesGrowth: PARKING_SERVES_GROWTH,
-      baseCost: PARKING_BASE_COST,
-      costGrowth: PARKING_COST_GROWTH,
-      baseWeeks: PARKING_BASE_WEEKS,
-      weeksGrowth: PARKING_WEEKS_GROWTH,
-      names: PARKING_NAMES.slice(1),
-      fallbackName: 'Parking Lot',
     }),
 
     // Library

@@ -25,9 +25,8 @@ export interface Finance {
 export interface SatisfactionAttributes {
   academic: number;       // library seats-to-capacity ratio
   social: number;         // student center + rec center (ratio) + quad (flat) + live student organisations (flat, see data/studentLifeData.ts)
-  basicNeeds: number;     // dining hall seats-to-capacity ratio — the sharpest penalty curve of the five
+  basicNeeds: number;     // dining hall seats-to-capacity ratio — the sharpest penalty curve of the four
   health: number;         // health/counseling center — dormant (scores full) below the population threshold it unlocks at
-  infrastructure: number; // parking/infrastructure ratio
 }
 
 // Students are modeled as aggregate cohorts, not individuals.
@@ -107,13 +106,13 @@ export type BuildableKind = 'course' | 'building' | 'dorm' | 'facility';
 // the Campus tab's grouping/display do.
 export type FacilityType =
   | 'library' | 'studentCenter' | 'diningHall' | 'recCenter'
-  | 'healthCenter' | 'parking' | 'quad' | 'lab';
+  | 'healthCenter' | 'quad' | 'lab';
 
 export interface Buildable {
   id: string;
   kind: BuildableKind;
   facilityType?: FacilityType; // set only for kind 'facility'
-  tier?: number;            // 1, 2, 3... for a single-instance-with-upgrades facility (library, student center, rec center, health center, quad); undefined for repeatable-chain kinds (course, dorm, dining hall, parking) where each id is its own rung
+  tier?: number;            // 1, 2, 3... for a single-instance-with-upgrades facility (library, student center, rec center, health center, quad); undefined for repeatable-chain kinds (course, dorm, dining hall) where each id is its own rung
   name: string;
   description: string;
   cost: number;            // money spent up front, at the moment development starts
@@ -197,14 +196,14 @@ export interface BuildableEffects {
 // than a handful of oversized ones. Grow these two numbers to grow the
 // campus.
 //
-// Sized against what can actually be built: the full catalogue is 69
-// placeable Buildables (9 school buildings — the seven undergraduate halls
-// plus BLDG-MED/BLDG-LAW, see techData.ts's GraduateProgramSeed.buildingId
-// — 15 dorms, 45 facilities) whose footprints (see campusMap.ts's
-// footprintOf) total 136 tiles, so a fully built-out campus covers just
-// over 40% of the grid — open ground between buildings, room to arrange,
-// and headroom for the content still on the roadmap (sports facilities),
-// without the map reading as empty.
+// Sized against what can actually be built: the full catalogue is 50
+// placeable Buildables (10 school buildings — the eight undergraduate
+// halls plus BLDG-MED/BLDG-LAW, see techData.ts's
+// GraduateProgramSeed.buildingId — 15 dorms, 25 facilities) whose
+// footprints (see campusMap.ts's footprintOf) total 111 tiles, so a fully
+// built-out campus covers just under a third of the grid — open ground
+// between buildings, room to arrange, and headroom for the content still
+// on the roadmap (sports facilities), without the map reading as empty.
 //
 // The proportions are chosen for the space the map column actually gets
 // (a wide, short box beside the build rail), so the grid fills its canvas
@@ -224,8 +223,8 @@ export interface TileCoord {
 }
 
 // How many tiles a Buildable covers, in grid units. Buildings are not all
-// the same size on a real campus — a school hall is not a parking lot —
-// so a placement occupies a rectangle rather than a single tile. Which
+// the same size on a real campus — a school hall is not a dorm — so a
+// placement occupies a rectangle rather than a single tile. Which
 // rectangle a given Buildable gets is a placement RULE, not a field on
 // Buildable: it lives in campusMap.ts's footprintOf, keyed on kind (and
 // facilityType), so the single Buildable model stays unforked.
@@ -298,10 +297,10 @@ export interface StudentDemand {
   // null for metric 'capacity' (a demand for more housing), which is
   // measured against s.students.capacity instead.
   attribute: keyof SatisfactionAttributes | null;
-  // The Buildable that inspired the ask — "another parking lot" is
-  // whatever the parking chain's next rung actually is. Captured by name
-  // as well as id (like PrizeAward's facultyName) so the modal still says
-  // something true if content is edited between raising and resolving.
+  // The Buildable that inspired the ask — "somewhere to eat" is whatever
+  // the dining chain's next rung actually is. Captured by name as well as
+  // id (like PrizeAward's facultyName) so the modal still says something
+  // true if content is edited between raising and resolving.
   askId: string;
   askName: string;
   target: number;       // the demand is MET the moment the measured reading reaches this

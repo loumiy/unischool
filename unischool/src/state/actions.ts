@@ -126,7 +126,7 @@ export function createPreStartState(): GameState {
     },
     students: {
       enrolled: 0, capacity: 0, satisfaction: 0,
-      satisfactionBreakdown: { academic: 0, social: 0, basicNeeds: 0, health: 0, infrastructure: 0 },
+      satisfactionBreakdown: { academic: 0, social: 0, basicNeeds: 0, health: 0 },
       applicantPool: 0, admitRate: 0, incomingQuality: 0,
     },
     admissions: { financialAidRate: 0 },
@@ -189,7 +189,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       // Overwritten on the very first TICK by satisfactionSystem.ts's real
       // computation — this starting value just matches the legacy flat 70
       // so the pre-tick UI doesn't show a startling all-zero breakdown.
-      satisfactionBreakdown: { academic: 70, social: 70, basicNeeds: 70, health: 70, infrastructure: 70 },
+      satisfactionBreakdown: { academic: 70, social: 70, basicNeeds: 70, health: 70 },
       applicantPool: preset.startingApplicantPool,
       // Neutral placeholders until the first summer admissions cycle
       // resolves and sets these for real — see RESOLVE_ADMISSIONS.

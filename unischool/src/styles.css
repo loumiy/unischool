@@ -383,7 +383,7 @@ button { cursor: pointer; font-family: inherit; }
    varied greenery and parchment rather than flat blocks — while staying
    inside the brass/ink/parchment language the rest of the UI speaks.
    Which N a Buildable gets is decided in CampusMap.tsx: by facility type
-   for facilities (all parking lots match), by a hash of the id for dorms
+   for facilities (all dining halls match), by a hash of the id for dorms
    (neighbours differ). Building carries no tint class at all — see below. */
 .campus-building rect { stroke-width: 1; }
 .campus-building text { font-family: var(--serif); fill: var(--ink); pointer-events: none;
@@ -406,16 +406,15 @@ button { cursor: pointer; font-family: inherit; }
 
 /* Facilities: one parchment/stone shade per facility type, in the order
    CampusMap.tsx's FACILITY_TINT_ORDER lists them — library, student
-   center, dining hall, rec center, health center, parking, quad, lab. */
+   center, dining hall, rec center, health center, quad, lab. */
 .campus-building.kind-facility rect { fill: #dccfa6; stroke: var(--parchment-line); }
 .campus-building.kind-facility.tint-0 rect { fill: #d9cba3; stroke: #b9a874; } /* library */
 .campus-building.kind-facility.tint-1 rect { fill: #e0cdb4; stroke: #c0a889; } /* student center */
 .campus-building.kind-facility.tint-2 rect { fill: #e6d3ae; stroke: #c4ad7c; } /* dining hall */
 .campus-building.kind-facility.tint-3 rect { fill: #d3cdb2; stroke: #aca684; } /* rec center */
 .campus-building.kind-facility.tint-4 rect { fill: #e3d6c6; stroke: #bdae99; } /* health center */
-.campus-building.kind-facility.tint-5 rect { fill: #cfc9bb; stroke: #a9a292; } /* parking */
-.campus-building.kind-facility.tint-6 rect { fill: #cfdcc4; stroke: #a5b895; } /* quad */
-.campus-building.kind-facility.tint-7 rect { fill: #cdd0c0; stroke: #a2a68f; } /* lab */
+.campus-building.kind-facility.tint-5 rect { fill: #cfdcc4; stroke: #a5b895; } /* quad */
+.campus-building.kind-facility.tint-6 rect { fill: #cdd0c0; stroke: #a2a68f; } /* lab */
 .campus-building.kind-facility text { fill: #3d3524; }
 
 /* ---------- tab overlays: every other view, on top of the map ---------- */

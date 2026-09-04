@@ -67,7 +67,7 @@ function spanSize(tiles: number): number {
 // geometry only, per the panel's own convention).
 //
 // N is chosen by what the thing IS, not at random:
-//   - facility -> its facilityType's index, so all parking lots match each
+//   - facility -> its facilityType's index, so all dining halls match each
 //     other and none of them match the library. This is the meaningful axis.
 //   - dorm -> a hash of the id, so the fifteen dorms differ from their
 //     neighbours while staying in one family. Stable across sessions
@@ -81,7 +81,7 @@ function spanSize(tiles: number): number {
 // ---------------------------------------------------------------------
 const FACILITY_TINT_ORDER = [
   'library', 'studentCenter', 'diningHall', 'recCenter',
-  'healthCenter', 'parking', 'quad', 'lab',
+  'healthCenter', 'quad', 'lab',
 ] as const;
 const HASHED_TINT_COUNT = 4; // shades available to dorms
 
