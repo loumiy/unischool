@@ -3,8 +3,8 @@ import type { Action } from '../state/actions';
 import type { Buildable, GameState, PathEdge, Placement } from '../state/types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import {
-  canPlace, canRotate, edgeKey, footprintIsClear, footprintOf, isPlaceableKind,
-  orientedFootprint, parseEdgeKey, placementTiles,
+  canPlace, canRotate, canSiteRetroactively, edgeKey, footprintIsClear, footprintOf,
+  isPlaceableKind, orientedFootprint, parseEdgeKey, placementTiles,
 } from '../state/campusMap';
 import { canStartDevelopment } from '../systems/techtree/techSystem';
 import HelpHint from './HelpHint';
@@ -604,8 +604,11 @@ export default function CampusMap({
   // sited yet — exactly what BuildPopup.tsx renders a "site →" row for.
   // Picking one up here is the SAME selection that row arms (see the
   // module comment above): this is where a picked-up id resolves to a
-  // real Buildable to read its footprint/gate off.
-  const pickable = s.tech.filter((t) => isPlaceableKind(t) && t.status === 'available' && !(t.id in s.placements));
+  // real Buildable to read its footprint/gate off. Includes 'done' items
+  // still awaiting a spot (see campusMap.ts's needsSiting) alongside the
+  // ordinary 'available' ones — canPlace admits both, and placeById below
+  // branches the actual gate/cost on which one this is.
+  const pickable = s.tech.filter((t) => isPlaceableKind(t) && !(t.id in s.placements) && (t.status === 'available' || t.status === 'done'));
   // A pickable entry can vanish between renders (its gate closed, or a
   // fresh game), so never trust the stored id without re-checking it.
   const selected = pickable.find((t) => t.id === selectedId) ?? null;
@@ -615,6 +618,13 @@ export default function CampusMap({
   // (preview, canPlace, the action) goes through this rather than
   // re-deriving it, so there is exactly one rule for "what shape is this".
   const selectedFootprint = selected ? orientedFootprint(selected, rotated) : null;
+
+  // Rotation only means anything for a building actually being CONSTRUCTED
+  // here — a 'done' item awaiting siting (needsSiting) always sites at its
+  // base footprint (see reducer.ts's PLACE_BUILDABLE case, which ignores
+  // action.rotated for those), so neither the hotkey nor the on-screen
+  // control below offers it for one.
+  const canRotateSelected = !!selected && selected.status !== 'done' && canRotate(footprintOf(selected));
 
   // The 'R' hotkey rotates the currently-picked-up building; the on-screen
   // rotate control (near the footprint ghost, below) does the same thing.
@@ -626,7 +636,7 @@ export default function CampusMap({
   // 1/2/3 speed hotkeys, TabOverlay's Escape, or InterruptModal's Enter —
   // none of those bind 'r'.
   useEffect(() => {
-    if (!selected || !canRotate(footprintOf(selected))) return;
+    if (!canRotateSelected) return;
     function onKeyDown(e: KeyboardEvent) {
       if (e.key.toLowerCase() !== 'r') return;
       const tag = (e.target as HTMLElement | null)?.tagName;
@@ -635,7 +645,7 @@ export default function CampusMap({
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selected]);
+  }, [canRotateSelected]);
 
   // The one placement path, whether the building was clicked into place or
   // dropped there. canPlace is re-checked in the reducer too — this copy is
@@ -644,16 +654,18 @@ export default function CampusMap({
   // is being placed — only one building is ever picked up at a time, and
   // selectBuilding resets `rotated` the moment the selection changes, so a
   // stale rotation from a previously-selected building can never leak in.
+  //
+  // A 'done' pickup (needsSiting) is a retroactive siting, not a fresh
+  // build: no rotation, and the gate is canSiteRetroactively (the flat
+  // RETROACTIVE_SITING_COST) rather than canStartDevelopment — mirrors the
+  // reducer's own branch on node.status exactly, for the same "don't clear
+  // the selection on an illegal attempt" reason noted above.
   const placeById = (id: string, row: number, col: number) => {
     const t = pickable.find((x) => x.id === id);
     if (!t) return;
-    const fp = orientedFootprint(t, rotated);
-    // Geometry (canPlace) AND the same afford/faculty/status gate a
-    // course's START_DEVELOPMENT uses (canStartDevelopment) — the reducer
-    // re-checks both too (see reducer.ts's PLACE_BUILDABLE case), so this
-    // copy exists only so an illegal click/drop leaves the selection alone
-    // instead of quietly clearing it.
-    if (!canPlace(s, t, row, col, fp) || !canStartDevelopment(s, t)) return;
+    const fp = t.status === 'done' ? footprintOf(t) : orientedFootprint(t, rotated);
+    if (!canPlace(s, t, row, col, fp)) return;
+    if (t.status === 'done' ? !canSiteRetroactively(s, t) : !canStartDevelopment(s, t)) return;
     act({ type: 'PLACE_BUILDABLE', buildableId: id, row, col, rotated });
     selectBuilding(null);
     setHover(null);
@@ -741,14 +753,16 @@ export default function CampusMap({
   // The footprint ghost under the cursor, and whether it would actually fit
   // — at the CURRENT rotation, so a rotated shape that no longer clears the
   // grid or an occupied tile is refused exactly like an unrotated overflow —
-  // AND whether the school can actually afford to start it right now
-  // (canStartDevelopment): a ghost that reads "blocked" here is a ghost a
-  // click on would genuinely do nothing, matching placeById's own gate.
+  // AND whether the school can actually afford it right now: canStartDevelopment
+  // for an ordinary build, or canSiteRetroactively for a 'done' item awaiting
+  // siting (see placeById's own matching branch). A ghost that reads
+  // "blocked" here is a ghost a click on would genuinely do nothing.
   const preview = selected && hover && selectedFootprint
     ? {
         ...hover,
         ...selectedFootprint,
-        ok: footprintIsClear(s.placements, hover.row, hover.col, selectedFootprint) && canStartDevelopment(s, selected),
+        ok: footprintIsClear(s.placements, hover.row, hover.col, selectedFootprint)
+          && (selected.status === 'done' ? canSiteRetroactively(s, selected) : canStartDevelopment(s, selected)),
       }
     : null;
 
@@ -835,11 +849,13 @@ export default function CampusMap({
                 {/* The rotate control: a small dial at the ghost's corner,
                     only offered when rotating would actually change
                     anything (see canRotate — a square footprint rotated is
-                    the same footprint). It sits inside the same panned/
+                    the same footprint) AND the pickup isn't a 'done' item
+                    awaiting siting, which always sites unrotated (see
+                    canRotateSelected above). It sits inside the same panned/
                     zoomed <g> as the ghost it belongs to, so it tracks the
                     ghost under pan/zoom for free rather than needing its
                     own screen-space positioning logic. */}
-                {selected && canRotate(footprintOf(selected)) && (
+                {canRotateSelected && (
                   <g
                     className="campus-rotate-btn"
                     transform={`translate(${tileX(preview.col) + spanSize(preview.w) - 14}, ${tileY(preview.row) - 14})`}
@@ -908,8 +924,8 @@ export default function CampusMap({
               ? 'Click or drag along tile edges to draw a pathway. Purely decorative — it grants nothing.'
               : 'Click or drag along drawn edges to erase that pathway.'
             : selected && selectedFootprint
-              ? `Click or drop on ${selectedFootprint.w}×${selectedFootprint.h} of empty tiles to start building ${selected.name} there.`
-                + (canRotate(footprintOf(selected)) ? ' Press R (or the ⟳ on the ghost) to rotate.' : '')
+              ? `Click or drop on ${selectedFootprint.w}×${selectedFootprint.h} of empty tiles to ${selected.status === 'done' ? 'site' : 'start building'} ${selected.name} there.`
+                + (canRotateSelected ? ' Press R (or the ⟳ on the ghost) to rotate.' : '')
               : 'Pick something to build from the Build popup, then click (or drag) an empty tile here to start it.'}
         </span>
       </div>

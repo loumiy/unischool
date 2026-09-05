@@ -19,7 +19,8 @@ import {
   CLUB_APPROVAL_SATISFACTION_NUDGE, CLUB_DECLINE_SATISFACTION_HIT, activatePetition,
 } from '../data/studentLifeData';
 import {
-  canPlace, edgeKey, isEdgeInBounds, isPlaceableKind, orientedFootprint, placementFor,
+  canPlace, canSiteRetroactively, edgeKey, footprintOf, isEdgeInBounds, isPlaceableKind,
+  orientedFootprint, placementFor, RETROACTIVE_SITING_COST,
 } from '../state/campusMap';
 import { captureYearSnapshot } from '../state/history';
 import { saveGame, clearSave } from '../state/persistence';
@@ -231,16 +232,26 @@ export function reducer(state: GameState, action: Action): GameState {
       // dispatches this — it isn't a place, and it starts through
       // START_DEVELOPMENT instead, unchanged.
       //
-      // The gate is exactly canStartDevelopment's — the same affordability/
-      // faculty/status check a course's START_DEVELOPMENT uses, reused
-      // rather than forked — combined with campusMap.ts's canPlace, which
-      // adds "not already sited, and its footprint lands on clear tiles".
-      // Passing both charges the cost, starts the countdown
-      // (startDevelopment — identical to a course's: same duration, same
-      // tickTech decrement, same finish -> 'done' + applied effects), and
-      // writes the chosen location into s.placements in the SAME
-      // transaction, so a developing placeable is never without a location
-      // and its tiles are reserved from week one.
+      // Two shapes, branching on the node's CURRENT status (canPlace admits
+      // both — see its own comment):
+      //   - 'available': the ordinary path. The gate is exactly
+      //     canStartDevelopment's — the same affordability/faculty/status
+      //     check a course's START_DEVELOPMENT uses, reused rather than
+      //     forked — combined with campusMap.ts's canPlace, which adds "not
+      //     already sited, and its footprint lands on clear tiles". Passing
+      //     both charges the cost, starts the countdown (startDevelopment —
+      //     identical to a course's: same duration, same tickTech
+      //     decrement, same finish -> 'done' + applied effects), and writes
+      //     the chosen location into s.placements in the SAME transaction,
+      //     so a developing placeable is never without a location and its
+      //     tiles are reserved from week one.
+      //   - 'done': a founding Buildable (or an event-granted one — see
+      //     needsSiting's own comment) that never got a home. There is no
+      //     development to start — its effects already applied — so this
+      //     only charges the flat RETROACTIVE_SITING_COST and records where
+      //     it stands; canSiteRetroactively is the whole gate, no
+      //     canStartDevelopment involved (that function requires status
+      //     'available' and would always refuse a 'done' node).
       //
       // The BASE footprint comes from the Buildable's kind, not from the
       // action (see campusMap.ts's footprintOf); `action.rotated` says
@@ -249,10 +260,20 @@ export function reducer(state: GameState, action: Action): GameState {
       // no separate orientation field (see types.ts's Placement).
       const node = s.tech.find((t) => t.id === action.buildableId);
       if (node) {
-        const fp = orientedFootprint(node, action.rotated);
-        if (canPlace(s, node, action.row, action.col, fp) && canStartDevelopment(s, node)) {
-          s.placements[node.id] = placementFor(action.row, action.col, fp);
-          startDevelopment(s, node);
+        // A 'done' node is never rotated — nothing offers that control for
+        // a retroactive siting (see CampusMap.tsx), so its base footprint
+        // is exactly what canPlace/placementFor need.
+        const fp = node.status === 'done' ? footprintOf(node) : orientedFootprint(node, action.rotated);
+        if (canPlace(s, node, action.row, action.col, fp)) {
+          if (node.status === 'done') {
+            if (canSiteRetroactively(s, node)) {
+              s.placements[node.id] = placementFor(action.row, action.col, fp);
+              s.finance.cash -= RETROACTIVE_SITING_COST;
+            }
+          } else if (canStartDevelopment(s, node)) {
+            s.placements[node.id] = placementFor(action.row, action.col, fp);
+            startDevelopment(s, node);
+          }
         }
       }
       return s;
