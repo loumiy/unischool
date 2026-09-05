@@ -21,27 +21,15 @@ const TABS: Array<{ id: TabId; label: string }> = [
 // athletics rides on Buildables + hiring + rivals all being mature.
 const HIDDEN_TABS: readonly TabId[] = ['athletics'];
 
-const VISIBLE_TABS = TABS.filter((t) => !HIDDEN_TABS.includes(t.id));
+// The toolbar's icon row (see Toolbar.tsx) reads this order directly —
+// this module is now pure tab metadata (ids, labels, which are offered)
+// rather than a rendering component: the toolbar's icon buttons are what
+// actually render a clickable tab nav, one unified band instead of a
+// separate text-label strip in the topbar. TAB_LABELS survives as the
+// aria-label/title source for those icon buttons, so a screen reader (or a
+// hover tooltip) still gets the same words a text button used to show.
+export const TAB_ORDER: readonly TabId[] = TABS.filter((t) => !HIDDEN_TABS.includes(t.id)).map((t) => t.id);
 
 export const TAB_LABELS: Record<TabId, string> = Object.fromEntries(
   TABS.map((t) => [t.id, t.label]),
 ) as Record<TabId, string>;
-
-// Clicking the open view's own button closes it, so the same button both
-// opens and dismisses — one control, no separate "back to map" affordance.
-export default function TabNav({ active, onChange }: { active: TabId | null; onChange: (tab: TabId | null) => void }) {
-  return (
-    <nav className="tabnav">
-      {VISIBLE_TABS.map((t) => (
-        <button
-          key={t.id}
-          className={active === t.id ? 'active' : ''}
-          aria-expanded={active === t.id}
-          onClick={() => onChange(active === t.id ? null : t.id)}
-        >
-          {t.label}
-        </button>
-      ))}
-    </nav>
-  );
-}

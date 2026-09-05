@@ -5,12 +5,19 @@ import { STARTING_DORM_CAPACITY } from '../data/campusData';
 import { FACILITY_CATEGORY_OF, type FacilityCategory } from '../data/facilitiesData';
 import HelpHint from './HelpHint';
 import { ProgressBar } from './Progress';
+import ToolbarPopup from './ToolbarPopup';
+import { DrawPathIcon, EraseIcon } from './icons';
 
-// The build panel: every physical building the university can have —
+// The build popup: every physical building the university can have —
 // housing, campus-life facilities, academic buildings, and labs — as ONE
-// list of type groups (Housing, Library, Dining, ...). It sits in the side
-// rail beside the campus map (see App.tsx), which is where what gets built
-// here ends up: this panel is "what to build", the map is "where it goes".
+// list of type groups (Housing, Library, Dining, ...). It used to sit in a
+// permanent side rail beside the campus map; C2 folds that rail into a
+// compact popup toggled by the toolbar's build icon instead (see
+// Toolbar.tsx), deliberately sized so the map stays visible around it — see
+// ToolbarPopup's own module comment for why it carries no backdrop. This is
+// still "what to build" to the map's "where it goes": every row here arms a
+// pickup that the map resolves into an actual PLACE_BUILDABLE once a tile
+// is clicked, same as before this moved into a popup.
 //
 // Each group lists the Buildables of that type that aren't 'locked'. A
 // locked Buildable (its prereqs or a population/prestige gate unmet) is
@@ -373,58 +380,98 @@ function CategorySection({
   );
 }
 
-export default function BuildPanel({
-  s, placingId, onArmPlacement,
+// Draw path / erase path: campus-editing tools in the same family as
+// placing a building (see CampusMap.tsx's pathTool), so C2 moves them in
+// here from the map's own corner controls rather than leaving them as a
+// separate floating pill. `pathTool` is lifted all the way to App.tsx now
+// (it used to be local state inside CampusMap) since this popup and the map
+// both need to read/drive it — see App.tsx's module comment.
+function CampusToolsSection({ pathTool, onSetPathTool }: {
+  pathTool: 'draw' | 'erase' | null;
+  onSetPathTool: (mode: 'draw' | 'erase') => void;
+}) {
+  return (
+    <section className="building-category">
+      <h3 className="building-category-head">Campus Tools</h3>
+      <div className="campus-map-path-controls">
+        <button
+          type="button"
+          className={pathTool === 'draw' ? 'active' : ''}
+          aria-pressed={pathTool === 'draw'}
+          onClick={() => onSetPathTool('draw')}
+          title="Draw a pathway along tile edges"
+        >
+          <DrawPathIcon /> Draw path
+        </button>
+        <button
+          type="button"
+          className={pathTool === 'erase' ? 'active' : ''}
+          aria-pressed={pathTool === 'erase'}
+          onClick={() => onSetPathTool('erase')}
+          title="Erase a drawn pathway"
+        >
+          <EraseIcon /> Erase path
+        </button>
+      </div>
+    </section>
+  );
+}
+
+export default function BuildPopup({
+  s, placingId, onArmPlacement, pathTool, onSetPathTool, onClose,
 }: {
   s: GameState;
   // Which placeable Buildable is currently picked up for siting on the
   // map, and how to change it — lifted to App.tsx (see CampusMap.tsx's
-  // module comment). `act` is no longer threaded through this panel at
+  // module comment). `act` is no longer threaded through this popup at
   // all: every row here starts through PLACE_BUILDABLE now, dispatched
   // once a tile is chosen on the map (see CampusMap.tsx's placeById), not
-  // from a click inside this panel.
+  // from a click inside this popup. The popup deliberately stays open
+  // across that click (see ToolbarPopup's module comment) — placing is a
+  // map click, not a popup action, so there's nothing here that needs to
+  // close it.
   placingId: string | null;
   onArmPlacement: (id: string | null) => void;
+  pathTool: 'draw' | 'erase' | null;
+  onSetPathTool: (mode: 'draw' | 'erase') => void;
+  onClose: () => void;
 }) {
   const groups = buildGroups(s);
   const blocks = blocksFor(groups);
 
   return (
-    <aside className="side-panel">
-      <section className="panel side-panel-section">
-        <div className="panel-head">
-          <span className="panel-head-title">
-            <h2>Build</h2>
-            <HelpHint text="Every building the university can have, grouped by type: what's built, what's under construction, and what's next available. Repeatable types (housing, dining) collapse what's already finished into one line — open it for the individual halls. A facility serves a fixed share of students against total planned capacity, not today's enrollment, so building more housing raises the bar for the rest of campus life too. Anything not yet unlockable is left off the list rather than teased. 'Site →' picks a building up — click (or drag it onto) an empty tile on the map to start building it there; that's the moment the cost is charged and the countdown begins." />
-          </span>
-        </div>
+    <ToolbarPopup
+      title="Build"
+      onClose={onClose}
+      className="build-popup"
+      headExtra={<HelpHint text="Every building the university can have, grouped by type: what's built, what's under construction, and what's next available. Repeatable types (housing, dining) collapse what's already finished into one line — open it for the individual halls. A facility serves a fixed share of students against total planned capacity, not today's enrollment, so building more housing raises the bar for the rest of campus life too. Anything not yet unlockable is left off the list rather than teased. 'Site →' picks a building up — click (or drag it onto) an empty tile on the map to start building it there; that's the moment the cost is charged and the countdown begins. The map stays visible and clickable behind this popup, so you can see where a building will land before you commit it." />}
+    >
+      <div className="build-popup-stats">
+        <span className="stat">{s.students.enrolled.toLocaleString()}/{s.students.capacity.toLocaleString()} beds</span>
+        <span className="stat">satisfaction {Math.round(s.students.satisfaction)}</span>
+      </div>
 
-        <div className="side-panel-stats">
-          <span className="stat">{s.students.enrolled.toLocaleString()}/{s.students.capacity.toLocaleString()} beds</span>
-          <span className="stat">satisfaction {Math.round(s.students.satisfaction)}</span>
-        </div>
+      {s.finance.cash < 0 && (
+        <p className="stall-note">Cash is negative — the school is running an operating deficit, so nothing can be started until the balance recovers.</p>
+      )}
 
-        {s.finance.cash < 0 && (
-          <p className="stall-note">Cash is negative — the school is running an operating deficit, so nothing can be started until the balance recovers.</p>
-        )}
-
-        <div className="building-groups">
-          {blocks.map((block, i) => block.category
-            ? (
-              <CategorySection
-                key={`${block.category}-${i}`}
-                category={block.category}
-                groups={block.groups}
-                s={s}
-                placingId={placingId}
-                onArmPlacement={onArmPlacement}
-              />
-            )
-            : block.groups.map((group) => (
-              <BuildGroup key={group.key} s={s} group={group} placingId={placingId} onArmPlacement={onArmPlacement} />
-            )))}
-        </div>
-      </section>
-    </aside>
+      <div className="building-groups">
+        <CampusToolsSection pathTool={pathTool} onSetPathTool={onSetPathTool} />
+        {blocks.map((block, i) => block.category
+          ? (
+            <CategorySection
+              key={`${block.category}-${i}`}
+              category={block.category}
+              groups={block.groups}
+              s={s}
+              placingId={placingId}
+              onArmPlacement={onArmPlacement}
+            />
+          )
+          : block.groups.map((group) => (
+            <BuildGroup key={group.key} s={s} group={group} placingId={placingId} onArmPlacement={onArmPlacement} />
+          )))}
+      </div>
+    </ToolbarPopup>
   );
 }

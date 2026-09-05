@@ -322,10 +322,10 @@ const FOOTBALL_STADIUM_WEEKS = 40;
 
 // ---------------------------------------------------------------------
 // CATEGORIES. A grouping layer ABOVE FacilityType, for UI organisation only
-// (the build rail's sectioning today — see BuildPanel.tsx's TYPE_MATCHERS —
-// and whatever later reads it, e.g. a future build-panel/toolbar redesign).
-// Nothing in the engine branches on this: it exists purely so "which
-// facilities are athletics and which are recreation" is authored ONCE, here,
+// (the build popup's sectioning today — see BuildPopup.tsx's TYPE_MATCHERS —
+// and whatever later reads it). Nothing in the engine branches on this: it
+// exists purely so "which facilities are athletics and which are
+// recreation" is authored ONCE, here,
 // rather than re-derived (or, worse, drifted) at every place that needs to
 // group them.
 //
