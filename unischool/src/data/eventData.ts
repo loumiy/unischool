@@ -19,8 +19,8 @@ import { discoverySchools, graduateProgram, milestoneSchools } from './techData'
 // exactly the way admissions and the U.S. News report already do.
 //
 //  1. MILESTONE CELEBRATIONS — a stop-the-clock moment for the handful of
-//     genuinely special accomplishments (a major finished, a major
-//     mastered, a school fully distinguished). Routine course completions
+//     genuinely special accomplishments (a program established, a program
+//     distinguished, a school fully distinguished). Routine course completions
 //     never qualify: which milestone kinds stop the clock is one named
 //     constant (MILESTONE_INTERRUPT_KINDS) and how close together two
 //     celebrations may land is another (MILESTONE_INTERRUPT_MIN_WEEKS
@@ -86,12 +86,12 @@ function clamp(v: number, lo: number, hi: number): number {
 // an aggregate accomplishment — a whole major, or a whole school — never
 // a single course finishing, which is what keeps this from becoming the
 // pop-up-every-few-weeks failure mode. Dial it down by removing entries
-// (leaving only 'school-complete' fires roughly seven times in a full
+// (leaving only 'school-distinguished' fires roughly seven times in a full
 // 330-course run); dial it up by adding kinds as they are invented.
 export const MILESTONE_INTERRUPT_KINDS: readonly string[] = [
-  'major-complete',
-  'major-mastered',
-  'school-complete',
+  'program-established',
+  'program-distinguished',
+  'school-distinguished',
   // Founding a graduate program (see README's "Graduate programs"). It
   // qualifies on the same test the other three do — an aggregate
   // accomplishment, never a single course — and there are only six of them
@@ -155,11 +155,11 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
     };
   }
 
-  if (kind === 'school-complete') {
+  if (kind === 'school-distinguished') {
     return {
       key,
       headline: `${subject} is fully distinguished`,
-      detail: 'Every major in the school is complete and mastered. A finished school is the heaviest single contribution curriculum breadth can make to the prestige target.',
+      detail: 'Every program in the school is distinguished. A distinguished school is the heaviest single contribution curriculum breadth can make to the prestige target.',
       unlocks: [],
     };
   }
@@ -167,19 +167,19 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
   for (const school of milestoneSchools()) {
     for (const major of school.majors) {
       if (major.prefix !== subject) continue;
-      if (kind === 'major-complete') {
+      if (kind === 'program-established') {
         return {
           key,
-          headline: `${major.name} is now a complete major`,
-          detail: `Every tier-2 course in ${major.name} (${school.schoolName}) is finished. The major counts toward curriculum breadth from now on — the largest input to the prestige target — and its tier-3 catalogue is open.`,
+          headline: `${major.name} is now an established program`,
+          detail: `Every tier-2 course in ${major.name} (${school.schoolName}) is finished. The program counts toward curriculum breadth from now on — the largest input to the prestige target — and its tier-3 catalogue is open.`,
           unlocks: major.tier3Ids.map((id) => nameOf(s, id)),
         };
       }
-      if (kind === 'major-mastered') {
+      if (kind === 'program-distinguished') {
         return {
           key,
-          headline: `${major.name} fully mastered`,
-          detail: `All nine courses in ${major.name} (${school.schoolName}) are done. Mastery is a further, separate share of curriculum breadth on top of completing the major.`,
+          headline: `${major.name} is now a distinguished program`,
+          detail: `All nine courses in ${major.name} (${school.schoolName}) are done. Distinguishing a program is a further, separate share of curriculum breadth on top of establishing it.`,
           unlocks: [],
         };
       }

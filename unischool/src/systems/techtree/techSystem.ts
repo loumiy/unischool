@@ -7,23 +7,24 @@ import { isCelebratedMilestone } from '../../data/eventData';
 // itself (gen-ed -> tier-1 -> school building -> tier-2 -> tier-3) is pure
 // authored prereq data resolved generically by unlockAvailable() below —
 // nothing special needed for that. What's left for dedicated logic is the BONUS
-// side: "major complete" and "further" bonuses aren't a single course's
+// side: "program established" and "further" bonuses aren't a single course's
 // own completion effect, they're a reward for an aggregate condition
 // (every tier-2, or every tier-3, in a major being done), plus a
-// school-wide capstone bonus once every major in a school is fully done.
+// school-wide capstone bonus once every program in a school is distinguished.
 // This is deliberately the one place technSystem.ts is course/curriculum-
 // aware rather than fully kind-agnostic — milestones are inherently a
 // school/major concept, which buildings/dorms/facilities don't have.
 // ---------------------------------------------------------------------
-// Milestones no longer grant reputation directly — completing a major or a
-// school raises curriculumBreadthScore() in prestigeSystem.ts instead,
-// which lifts the prestige *target* that reputation slowly drifts toward.
-// A one-time applicant bump for "major complete" remains a flow effect on
-// the applicant pool, which is not the stock-vs-flow concern this rework
+// Milestones no longer grant reputation directly — establishing or
+// distinguishing a program, or distinguishing a school, raises
+// curriculumBreadthScore() in prestigeSystem.ts instead, which lifts the
+// prestige *target* that reputation slowly drifts toward. A one-time
+// applicant bump for "program established" remains a flow effect on the
+// applicant pool, which is not the stock-vs-flow concern this rework
 // addresses.
-const MAJOR_COMPLETE_APPLICANT_BONUS = 30;
-// The same one-time applicant bump a completed major gets, and nothing
-// else. Larger than a major's because a professional school is a
+const PROGRAM_ESTABLISHED_APPLICANT_BONUS = 30;
+// The same one-time applicant bump an established program gets, and nothing
+// else. Larger than a program's because a professional school is a
 // genuinely new draw on the pool, but still a FLOW effect on applicants
 // (which the summer funnel overwrites wholesale each year anyway), never
 // a nudge to prestige — that stays a stock, and a graduate program's real
@@ -196,16 +197,16 @@ function awardMilestone(s: GameState, key: string, applicantBonus: number, messa
 
 function checkMilestones(s: GameState): void {
   for (const school of milestoneSchools()) {
-    let allMajorsFullyDone = school.majors.length > 0;
+    let allProgramsDistinguished = school.majors.length > 0;
 
     for (const major of school.majors) {
       const tier2Done = major.tier2Ids.every((id) => isDone(s, id));
       if (tier2Done) {
         awardMilestone(
           s,
-          `major-complete:${major.prefix}`,
-          MAJOR_COMPLETE_APPLICANT_BONUS,
-          `Major complete: ${major.name} (${school.schoolName}).`,
+          `program-established:${major.prefix}`,
+          PROGRAM_ESTABLISHED_APPLICANT_BONUS,
+          `Program established: ${major.name} (${school.schoolName}).`,
         );
       }
 
@@ -213,19 +214,19 @@ function checkMilestones(s: GameState): void {
       if (tier3Done) {
         awardMilestone(
           s,
-          `major-mastered:${major.prefix}`,
+          `program-distinguished:${major.prefix}`,
           0,
-          `${major.name} fully mastered — every course complete.`,
+          `${major.name} is now a distinguished program — every course complete.`,
         );
       }
 
-      if (!(tier2Done && tier3Done)) allMajorsFullyDone = false;
+      if (!(tier2Done && tier3Done)) allProgramsDistinguished = false;
     }
 
-    if (allMajorsFullyDone) {
+    if (allProgramsDistinguished) {
       awardMilestone(
         s,
-        `school-complete:${school.schoolName}`,
+        `school-distinguished:${school.schoolName}`,
         0,
         `${school.schoolName} is now a fully distinguished school.`,
       );

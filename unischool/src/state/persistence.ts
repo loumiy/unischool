@@ -425,7 +425,15 @@ const SAVE_KEY = 'unischool.save';
 //   branch is not expected to ever fire against the real catalogue; it
 //   exists so a save that somehow hits it degrades honestly instead of
 //   carrying a Buildable the new engine cannot represent.
-export const SAVE_VERSION = 18;
+//
+// v18 -> v19: curriculum terminology (see the alignment roadmap's PR C). The
+// milestone keys and the one history-snapshot field are renamed to the
+// program-centric vocabulary — major-complete: -> program-established:,
+// major-mastered: -> program-distinguished:, school-complete: ->
+// school-distinguished:, majorsComplete -> programsEstablished — with NO
+// change to meaning, so breadth and prestige are untouched. grad-program-
+// complete: is deliberately left as-is. See MIGRATIONS[18].
+export const SAVE_VERSION = 19;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -987,6 +995,43 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
       if (!placeIfPossible(node)) {
         delete state.developing[id];
         node.status = 'available';
+      }
+    }
+  },
+
+  // v18 -> v19: curriculum terminology (see README's milestone chain and the
+  // alignment roadmap's PR C). A straight rename of the milestone keys and
+  // the one history-snapshot field to the program-centric vocabulary, with NO
+  // change to meaning — every established/distinguished program and
+  // distinguished school a save earned is preserved under its new key, so
+  // curriculumBreadthScore() reads exactly the same breadth after the rename
+  // and prestige does not move. `grad-program-complete:` is deliberately left
+  // alone: it was never part of the "major completion/mastery" vocabulary
+  // this pass corrects. Runs after the older curriculum migrations (e.g.
+  // v9 -> v10's PMED/DENT cleanup), which operate on the old key names as
+  // they existed at their own version, so those literals must NOT be changed.
+  18: (state) => {
+    const milestones = state.milestones ?? {};
+    const renames: Array<[string, string]> = [
+      ['major-complete:', 'program-established:'],
+      ['major-mastered:', 'program-distinguished:'],
+      ['school-complete:', 'school-distinguished:'],
+    ];
+    for (const key of Object.keys(milestones)) {
+      for (const [oldPrefix, newPrefix] of renames) {
+        if (key.startsWith(oldPrefix)) {
+          milestones[newPrefix + key.slice(oldPrefix.length)] = milestones[key];
+          delete milestones[key];
+          break;
+        }
+      }
+    }
+    // The renamed history-snapshot field: majorsComplete -> programsEstablished.
+    for (const row of state.history ?? []) {
+      const legacy = row as unknown as Record<string, number>;
+      if (legacy.majorsComplete !== undefined && legacy.programsEstablished === undefined) {
+        legacy.programsEstablished = legacy.majorsComplete;
+        delete legacy.majorsComplete;
       }
     }
   },

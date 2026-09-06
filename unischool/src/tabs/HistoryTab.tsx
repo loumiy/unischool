@@ -82,7 +82,7 @@ function HistoryTable({ rows, showRank }: { rows: YearSnapshot[]; showRank: bool
         <thead>
           <tr>
             <th>Year</th><th>Prestige</th><th>Rank</th><th>Enrolled</th>
-            <th>Cash</th><th>Courses</th><th>Majors</th><th>Satisf.</th>
+            <th>Cash</th><th>Courses</th><th>Programs</th><th>Satisf.</th>
           </tr>
         </thead>
         <tbody>
@@ -99,7 +99,7 @@ function HistoryTable({ rows, showRank }: { rows: YearSnapshot[]; showRank: bool
               <td>{h.enrolled.toLocaleString()}</td>
               <td>{formatMoney(h.cash)}</td>
               <td>{h.coursesDone}</td>
-              <td>{h.majorsComplete}</td>
+              <td>{h.programsEstablished}</td>
               <td>{Math.round(h.satisfaction)}</td>
             </tr>
           ))}
@@ -176,7 +176,7 @@ export default function HistoryTab({ s }: { s: GameState }) {
             years={years}
             values={history.map((h) => h.coursesDone)}
             format={(v) => `${Math.round(v)} / ${totalCourses}`}
-            note={`${latest.majorsComplete} major${latest.majorsComplete === 1 ? '' : 's'} complete. Breadth is what lifts the prestige ceiling — the decades-long half of the climb.`}
+            note={`${latest.programsEstablished} program${latest.programsEstablished === 1 ? '' : 's'} established. Breadth is what lifts the prestige ceiling — the decades-long half of the climb.`}
           />
         </div>
       </section>

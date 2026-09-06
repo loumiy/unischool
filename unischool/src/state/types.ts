@@ -661,7 +661,7 @@ export interface YearSnapshot {
   enrolled: number;       // the class the admissions funnel just committed
   cash: number;
   coursesDone: number;    // 'done' course Buildables — the catalogue's progress
-  majorsComplete: number; // major-complete milestones awarded so far
+  programsEstablished: number; // program-established milestones awarded so far
   satisfaction: number;   // 0..100
 }
 

@@ -357,7 +357,7 @@ function snapshot(s: GameState, weeksInTheRed: number, minCash: number): Row {
     net: flow.net,
     satisfaction: s.students.satisfaction,
     courses: s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length,
-    majors: Object.keys(s.milestones).filter((k) => k.startsWith('major-complete:')).length,
+    majors: Object.keys(s.milestones).filter((k) => k.startsWith('program-established:')).length,
     faculty: s.faculty.length,
     tuition: s.finance.tuitionPerStudent,
     aid: s.admissions.financialAidRate,
