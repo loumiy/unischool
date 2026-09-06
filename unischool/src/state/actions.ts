@@ -202,7 +202,6 @@ export function createPreStartState(): GameState {
     self: { name: '', suffix: '', universityCharterOffered: false, reputation: 0, schoolType: 'private' },
     history: [],
     log: [],
-    gameOver: false,
     pendingInterrupt: null,
     events: {
       pendingMilestones: [], lastMilestoneWeek: 0, lastDecisionWeek: 0, decisionHistory: {},
@@ -350,7 +349,6 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     log: [
       { year: 1, week: 1, message: 'The university opens its doors.', kind: 'info' },
     ],
-    gameOver: false,
     pendingInterrupt: null,
     // Nothing celebrated and nothing fired yet; week 0 reads as "never"
     // (the clock's first real week is 1 — see eventData.ts's absoluteWeek).

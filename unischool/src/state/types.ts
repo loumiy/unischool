@@ -317,8 +317,8 @@ export type Pathways = Record<string, true>;
 
 // The generic pause-the-clock decision-event mechanism (see README's
 // "Interrupts: the decision-event system"). Any system enqueues one by
-// setting `pendingInterrupt` directly on state (the same way tickFinance
-// sets gameOver); while it is set, the game loop halts ticking. The `type`
+// setting `pendingInterrupt` directly on state; while it is set, the game
+// loop halts ticking. The `type`
 // tag identifies which interrupt this is — admissions, the U.S. News
 // report, the tutorial, etc. — and `payload` carries whatever data that
 // interrupt needs. The UI switches on `type` to render the right modal and
@@ -679,7 +679,6 @@ export interface GameState {
   self: University;
   history: YearSnapshot[];       // one entry per completed in-game year, oldest first — the game's only time series (see YearSnapshot above)
   log: LogEntry[];               // recent events, newest first
-  gameOver: boolean;
   pendingInterrupt: PendingInterrupt | null; // set => clock halts until resolved
   events: EventState;            // cadence bookkeeping for milestone celebrations and authored decision events (see EventState above)
   orgs: StudentOrgState;         // the student organisations the campus has grown: clubs, Greek chapters, and the petitions waiting on the next summer digest (see StudentOrgState above)

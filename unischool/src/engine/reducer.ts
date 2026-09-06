@@ -170,7 +170,7 @@ export function reducer(state: GameState, action: Action): GameState {
 
   switch (action.type) {
     case 'TICK': {
-      if (!s.started || s.gameOver || s.pendingInterrupt) return state; // the clock halts while an interrupt is pending
+      if (!s.started || s.pendingInterrupt) return state; // the clock halts while an interrupt is pending
       for (const system of SYSTEMS) system(s);
       // A system may have just enqueued an interrupt (e.g. the summer
       // admissions decision) — hold the clock at this week rather than
