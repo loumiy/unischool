@@ -121,9 +121,9 @@ placeable:
   `START_DEVELOPMENT` action: pick one, pay the cost, watch the countdown. No
   location, ever — a course is not a place.
 - Placeable kinds (`building`/`dorm`/`facility` — athletics venues included)
-  live in the build rail beside the map, because the map is where they stand.
+  live in the build menu beside the map, because the map is where they stand.
   **Placement IS how a placeable Buildable starts**, through the
-  `PLACE_BUILDABLE` action: pick one from the build rail, then click (or drag)
+  `PLACE_BUILDABLE` action: pick one from the build menu, then click (or drag)
   an empty footprint on the map — that single action passes the same
   `canStartDevelopment` gate a course uses, charges the cost, starts the
   countdown, AND writes the chosen location into `placements`, all at once.
@@ -132,6 +132,18 @@ placeable:
   without also being in `placements`, so it renders under construction right
   where it was put down, and its tiles are reserved from week one — nothing
   else can be sited on top of it until it finishes.
+
+  One narrow exception: a Buildable that starts already `'done'` at founding
+  (the starting dorm, the founding dining hall, General Studies Hall — see
+  `actions.ts`'s `placeFoundingBuildables`) is auto-sited the moment a new
+  game is created, via a plain top-left `firstFreeSpot` scan — there is no
+  player choice to preserve at that instant, so there's nothing to ask about.
+  If that scan ever finds no room (or an old save predates it), the
+  Buildable stays `'done'` with no location. Since nothing else in the build
+  menu can ever revive a `'done'`-but-unplaced row, `campusMap.ts`'s
+  `needsSiting`/`canSiteRetroactively` offer exactly that one as a "site →"
+  row for a small flat `RETROACTIVE_SITING_COST` instead of the Buildable's
+  own (already-paid) cost — a location to mark, not a build to start.
 
 Placement lives in a separate `placements` record on `GameState` (id ->
 `{ row, col, w, h }`: the top-left tile plus the footprint covered from it),

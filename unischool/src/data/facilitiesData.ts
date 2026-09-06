@@ -207,28 +207,37 @@ const STUDENT_CENTER_TIER2_SERVES = 3_000;
 const STUDENT_CENTER_TIER2_COST = 1_150_000;
 const STUDENT_CENTER_TIER2_WEEKS = 20;
 
-// --- Recreation/athletics center: single building, two tiers, social + prestige ---
-const REC_CENTER_TIER1_ID = 'REC-T1';
-const REC_CENTER_TIER1_SERVES = 1_200;
-const REC_CENTER_TIER1_COST = 450_000;
-const REC_CENTER_TIER1_WEEKS = 12;
-const REC_CENTER_TIER1_PRESTIGE = 0.05;
-const REC_CENTER_TIER2_ID = 'REC-T2';
-const REC_CENTER_TIER2_SERVES = 3_500;
-const REC_CENTER_TIER2_COST = 1_900_000;
-const REC_CENTER_TIER2_WEEKS = 28;
-const REC_CENTER_TIER2_PRESTIGE = 0.10;
-export const REC_CENTER_TIER2_PRESTIGE_GATE = 55;
-
-// --- Recreational facilities: gym, tennis courts, pool ---
-// Deliberately ONE-OFF (no `tier` field, no tier-2 upgrade) rather than the
-// library/studentCenter/recCenter shape: each is a single, smaller amenity
-// alongside the rec center rather than a second thing to grow in place — the
-// rec center already IS the tiered "recreation" building. These exist to
-// give `social` more levers now that TARGET_RATIO.social is 0.34 (see
+// --- The recreation/fitness chain: Recreation Center -> Gym -> Pool -> ---
+// --- Tennis Courts -> Athletics Complex, strictly sequential ---
+// Five distinctly-named, one-off facilities (not N copies of one repeatable
+// thing, the way a dorm chain is) chained together the same way the dorm
+// and dining chains are: one buildable at a time, in a fixed order, so
+// "grow campus recreation" reads as a queue with one visible next step
+// rather than five independent choices sitting open at once. Recreation
+// Center is the founding rung — buildable from day one, exactly like the
+// starting dorm/dining hall's first "additional" link — and everything
+// after it unlocks only once the rung before it is done. BuildPopup.tsx's
+// TYPE_MATCHERS folds all five into one 'recCenter'-keyed group (repeatable:
+// true) so they collapse the same way Housing/Dining do, rather than each
+// getting its own single-row group heading.
+//
+// The order itself (Recreation Center, then Gym, Pool, Tennis Courts, then
+// the Athletics Complex capstone) is judgment, not a formula: cost doesn't
+// climb monotonically down the chain (tennis is the cheapest of the middle
+// three, yet sits third) because these were authored as independent one-off
+// amenities before this pass, and re-costing them to fit a growth curve
+// would be a balance change nobody asked for — only WHEN each becomes
+// buildable changed here, not what it costs or grants. The Athletics
+// Complex keeps its own prestige gate (REC_CENTER_TIER2_PRESTIGE_GATE) on
+// top of the chain position — both are ADDITIONAL conditions, same as any
+// other Buildable's minPrestigeToUnlock (see techSystem.ts's
+// meetsUnlockGates), so it needs the whole chain built AND enough prestige,
+// whichever clears second.
+//
+// These give `social` more levers now that TARGET_RATIO.social is 0.34 (see
 // satisfactionSystem.ts's note on the harshening pass): more capacity to
-// hold the ratio as a campus keeps growing past what the rec center +
-// student center alone can cover, not a replacement for either.
+// hold the ratio as a campus keeps growing, not a replacement for the
+// student center.
 //
 // RESOLVED (the athletics PR this flag was left for): the rec pool stays,
 // unchanged, alongside a separate NATATORIUM below, and the same split
@@ -247,28 +256,59 @@ export const REC_CENTER_TIER2_PRESTIGE_GATE = 55;
 // Buildable id. Keeping them distinct costs exactly what this file already
 // costs for gym/pool/tennis vs. the rec center: another one-off facility
 // row, not a new subsystem.
+const REC_CENTER_TIER1_ID = 'REC-T1';
+const REC_CENTER_TIER1_SERVES = 1_200;
+const REC_CENTER_TIER1_COST = 450_000;
+const REC_CENTER_TIER1_WEEKS = 12;
+const REC_CENTER_TIER1_PRESTIGE = 0.05;
 const GYM_ID = 'GYM';
 const GYM_SERVES = 1_000;
 const GYM_COST = 350_000;
 const GYM_WEEKS = 12;
-const TENNIS_COURTS_ID = 'TENNIS-COURTS';
-const TENNIS_COURTS_SERVES = 400;
-const TENNIS_COURTS_COST = 140_000;
-const TENNIS_COURTS_WEEKS = 6;
 const POOL_ID = 'POOL';
 const POOL_SERVES = 700;
 const POOL_COST = 320_000;
 const POOL_WEEKS = 10;
+const TENNIS_COURTS_ID = 'TENNIS-COURTS';
+const TENNIS_COURTS_SERVES = 400;
+const TENNIS_COURTS_COST = 140_000;
+const TENNIS_COURTS_WEEKS = 6;
+const REC_CENTER_TIER2_ID = 'REC-T2';
+const REC_CENTER_TIER2_SERVES = 3_500;
+const REC_CENTER_TIER2_COST = 1_900_000;
+const REC_CENTER_TIER2_WEEKS = 28;
+const REC_CENTER_TIER2_PRESTIGE = 0.10;
+export const REC_CENTER_TIER2_PRESTIGE_GATE = 55;
+
+// The Arts & Media school's academic building (techData.ts's SCHOOLS entry)
+// — referenced by its raw id rather than an import, since techData.ts
+// already imports PERFORMING_ARTS_CENTER_ID FROM this file and importing
+// back would make the two data modules circular. Kept as one named constant
+// rather than repeating the literal, since both arts facilities below gate
+// on it.
+const ARTS_MEDIA_BUILDING_ID = 'BLDG-ARTSMEDIA';
 
 // --- Arts facilities: performing arts center (landmark), art gallery ---
-// Also one-off, same reasoning as the recreational trio above. Both feed
-// `social` like any other campus-life facility, and the performing arts
-// center ALSO gates the Arts & Media school's three majors' tier-3
-// (capstone) courses — see techData.ts's ARTS_GATED_MAJOR_PREFIXES, wired
-// the exact same way a science major's Lab Buildable gates its own
-// capstone quartet. Only the performing arts center carries that gate: one
-// coupling is enough to give the arts curriculum a building of its own
-// without splitting a two-major gate across two half-relevant facilities.
+// One-off, same shape as the recreation/fitness chain's individual rungs
+// (no tier field, no upgrade). Both feed `social` like any other campus-
+// life facility, and the performing arts center ALSO gates the Arts & Media
+// school's three majors' tier-3 (capstone) courses — see techData.ts's
+// ARTS_GATED_MAJOR_PREFIXES, wired the exact same way a science major's Lab
+// Buildable gates its own capstone quartet. Only the performing arts center
+// carries that gate: one coupling is enough to give the arts curriculum a
+// building of its own without splitting a two-major gate across two half-
+// relevant facilities.
+//
+// Both are HIDDEN at founding and gate on ARTS_MEDIA_BUILDING_ID rather than
+// starting with empty prereqs like every other one-off facility here — "a
+// certain amount of arts major completion", per the design ask, without
+// introducing a new gate mechanism: the school building's own prereqs are
+// already every arts major's tier-1 course, so requiring it done means the
+// player has meaningfully invested in the arts curriculum first. This can
+// NEVER be circular with the performing arts center's OWN capstone gate
+// above: that gate sits on tier-3 courses, two tiers past the tier-2 work
+// the school building's completion already implies, so the building always
+// clears well before anything that needs the venue it unlocks.
 // Exported because techData.ts's course-prereq wiring needs the id.
 export const PERFORMING_ARTS_CENTER_ID = 'ARTS-PAC';
 const PERFORMING_ARTS_CENTER_SERVES = 1_500;
@@ -329,20 +369,22 @@ const FOOTBALL_STADIUM_WEEKS = 40;
 // rather than re-derived (or, worse, drifted) at every place that needs to
 // group them.
 //
-// The line is exactly the design fork documented above GYM_ID: ATHLETICS is
-// the five varsity COMPETITION venues — the ones data/studentLifeData.ts's
-// SPORTS maps a team's `venueCategory` to, real facilities gated behind a
-// team actually going varsity. RECREATION is the open-use amenities no team
-// is ever tied to. A rec facility never becomes "athletics" just because a
-// club happens to practice on it informally, and a varsity venue never
-// becomes "recreation" just because it also has open hours — see the
-// GYM_ID comment for why that coupling was rejected outright. Every other
-// FacilityType (library, dorm-adjacent facilities, etc.) is absent here on
-// purpose: it already has its own natural grouping and doesn't need a
-// second one.
+// The line is exactly the design fork documented above REC_CENTER_TIER1_ID:
+// ATHLETICS is the five varsity COMPETITION venues — the ones
+// data/studentLifeData.ts's SPORTS maps a team's `venueCategory` to, real
+// facilities gated behind a team actually going varsity. RECREATION is the
+// open-use amenities no team is ever tied to (the fitness chain and the two
+// arts facilities alike). A rec facility never becomes "athletics" just
+// because a club happens to practice on it informally, and a varsity venue
+// never becomes "recreation" just because it also has open hours — see the
+// note above REC_CENTER_TIER1_ID for why that coupling was rejected
+// outright. Every other FacilityType (library, dorm-adjacent facilities,
+// etc.) is absent here on purpose: it already has its own natural grouping
+// and doesn't need a second one.
 export type FacilityCategory = 'athletics' | 'recreation';
 
 export const FACILITY_CATEGORY_OF: Partial<Record<FacilityType, FacilityCategory>> = {
+  recCenter: 'recreation',
   gym: 'recreation',
   tennisCourts: 'recreation',
   pool: 'recreation',
@@ -480,12 +522,17 @@ export function initialFacilities(): Buildable[] {
       },
     },
 
-    // Recreation / athletics center
+    // The recreation/fitness chain — see the long note above
+    // REC_CENTER_TIER1_ID for the sequencing and why it's authored this way.
+    // No `tier` field on any of the five: unlike library/studentCenter (a
+    // single building upgraded in place), this is five DIFFERENT named
+    // facilities at fixed chain positions, the same shape as a dorm or
+    // dining hall's own numbered rungs — BuildPopup.tsx's rowMarker gives
+    // each a plain #N chip off that position instead.
     {
       id: REC_CENTER_TIER1_ID,
       kind: 'facility',
       facilityType: 'recCenter',
-      tier: 1,
       name: 'Recreation Center',
       description: `Fitness and intramural space for ${REC_CENTER_TIER1_SERVES.toLocaleString()} students; a small draw on its own.`,
       cost: REC_CENTER_TIER1_COST,
@@ -500,27 +547,6 @@ export function initialFacilities(): Buildable[] {
       },
     },
     {
-      id: REC_CENTER_TIER2_ID,
-      kind: 'facility',
-      facilityType: 'recCenter',
-      tier: 2,
-      name: 'Athletics Complex',
-      description: `A varsity-grade complex: ${REC_CENTER_TIER2_SERVES.toLocaleString()} more capacity and a bigger prestige draw. Unlocks at prestige ${REC_CENTER_TIER2_PRESTIGE_GATE}+.`,
-      cost: REC_CENTER_TIER2_COST,
-      duration: REC_CENTER_TIER2_WEEKS,
-      prereqs: [REC_CENTER_TIER1_ID],
-      minPrestigeToUnlock: REC_CENTER_TIER2_PRESTIGE_GATE,
-      status: 'locked',
-      effects: {
-        servesPopulation: REC_CENTER_TIER2_SERVES,
-        satisfactionAttribute: 'social',
-        prestigeContribution: REC_CENTER_TIER2_PRESTIGE,
-        upkeepPerWeek: servedUpkeep('recCenter', REC_CENTER_TIER2_SERVES),
-      },
-    },
-
-    // Recreational facilities: gym, tennis courts, pool — one-off, social
-    {
       id: GYM_ID,
       kind: 'facility',
       facilityType: 'gym',
@@ -528,28 +554,12 @@ export function initialFacilities(): Buildable[] {
       description: `Weight room and cardio floor for ${GYM_SERVES.toLocaleString()} students.`,
       cost: GYM_COST,
       duration: GYM_WEEKS,
-      prereqs: [],
-      status: 'available',
+      prereqs: [REC_CENTER_TIER1_ID],
+      status: 'locked',
       effects: {
         servesPopulation: GYM_SERVES,
         satisfactionAttribute: 'social',
         upkeepPerWeek: servedUpkeep('gym', GYM_SERVES),
-      },
-    },
-    {
-      id: TENNIS_COURTS_ID,
-      kind: 'facility',
-      facilityType: 'tennisCourts',
-      name: 'Tennis Courts',
-      description: `A handful of courts open to ${TENNIS_COURTS_SERVES.toLocaleString()} students — cheap, and a quick early win for campus life.`,
-      cost: TENNIS_COURTS_COST,
-      duration: TENNIS_COURTS_WEEKS,
-      prereqs: [],
-      status: 'available',
-      effects: {
-        servesPopulation: TENNIS_COURTS_SERVES,
-        satisfactionAttribute: 'social',
-        upkeepPerWeek: servedUpkeep('tennisCourts', TENNIS_COURTS_SERVES),
       },
     },
     {
@@ -560,16 +570,54 @@ export function initialFacilities(): Buildable[] {
       description: `An indoor pool for ${POOL_SERVES.toLocaleString()} students.`,
       cost: POOL_COST,
       duration: POOL_WEEKS,
-      prereqs: [],
-      status: 'available',
+      prereqs: [GYM_ID],
+      status: 'locked',
       effects: {
         servesPopulation: POOL_SERVES,
         satisfactionAttribute: 'social',
         upkeepPerWeek: servedUpkeep('pool', POOL_SERVES),
       },
     },
+    {
+      id: TENNIS_COURTS_ID,
+      kind: 'facility',
+      facilityType: 'tennisCourts',
+      name: 'Tennis Courts',
+      description: `A handful of courts open to ${TENNIS_COURTS_SERVES.toLocaleString()} students — cheap, and a quick win for campus life.`,
+      cost: TENNIS_COURTS_COST,
+      duration: TENNIS_COURTS_WEEKS,
+      prereqs: [POOL_ID],
+      status: 'locked',
+      effects: {
+        servesPopulation: TENNIS_COURTS_SERVES,
+        satisfactionAttribute: 'social',
+        upkeepPerWeek: servedUpkeep('tennisCourts', TENNIS_COURTS_SERVES),
+      },
+    },
+    {
+      id: REC_CENTER_TIER2_ID,
+      kind: 'facility',
+      facilityType: 'recCenter',
+      name: 'Athletics Complex',
+      description: `The chain's capstone: a varsity-grade complex adding ${REC_CENTER_TIER2_SERVES.toLocaleString()} more capacity and a bigger prestige draw. Unlocks at prestige ${REC_CENTER_TIER2_PRESTIGE_GATE}+.`,
+      cost: REC_CENTER_TIER2_COST,
+      duration: REC_CENTER_TIER2_WEEKS,
+      prereqs: [TENNIS_COURTS_ID],
+      minPrestigeToUnlock: REC_CENTER_TIER2_PRESTIGE_GATE,
+      status: 'locked',
+      effects: {
+        servesPopulation: REC_CENTER_TIER2_SERVES,
+        satisfactionAttribute: 'social',
+        prestigeContribution: REC_CENTER_TIER2_PRESTIGE,
+        upkeepPerWeek: servedUpkeep('recCenter', REC_CENTER_TIER2_SERVES),
+      },
+    },
 
-    // Arts facilities: performing arts center (landmark) and gallery
+    // Arts facilities: performing arts center (landmark) and gallery — both
+    // hidden until ARTS_MEDIA_BUILDING_ID is done (see the long note above
+    // PERFORMING_ARTS_CENTER_ID). Independent of each other once that clears
+    // — nothing orders the gallery against the performing arts center, only
+    // both against the arts curriculum.
     {
       id: PERFORMING_ARTS_CENTER_ID,
       kind: 'facility',
@@ -578,8 +626,8 @@ export function initialFacilities(): Buildable[] {
       description: `A campus landmark: a concert hall and theater seating ${PERFORMING_ARTS_CENTER_SERVES.toLocaleString()} students, and the venue the Arts & Media school's capstone courses perform and exhibit in.`,
       cost: PERFORMING_ARTS_CENTER_COST,
       duration: PERFORMING_ARTS_CENTER_WEEKS,
-      prereqs: [],
-      status: 'available',
+      prereqs: [ARTS_MEDIA_BUILDING_ID],
+      status: 'locked',
       effects: {
         servesPopulation: PERFORMING_ARTS_CENTER_SERVES,
         satisfactionAttribute: 'social',
@@ -594,8 +642,8 @@ export function initialFacilities(): Buildable[] {
       description: `A rotating-exhibit gallery for ${ART_GALLERY_SERVES.toLocaleString()} students.`,
       cost: ART_GALLERY_COST,
       duration: ART_GALLERY_WEEKS,
-      prereqs: [],
-      status: 'available',
+      prereqs: [ARTS_MEDIA_BUILDING_ID],
+      status: 'locked',
       effects: {
         servesPopulation: ART_GALLERY_SERVES,
         satisfactionAttribute: 'social',

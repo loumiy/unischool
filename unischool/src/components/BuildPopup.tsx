@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
+import { canSiteRetroactively, RETROACTIVE_SITING_COST } from '../state/campusMap';
 import { STARTING_DORM_CAPACITY } from '../data/campusData';
 import { FACILITY_CATEGORY_OF, type FacilityCategory } from '../data/facilitiesData';
 import HelpHint from './HelpHint';
@@ -81,26 +82,39 @@ interface TypeGroup {
 
 // One row per type. dorm/dining are repeatable sequential chains
 // (see campusData.ts/facilitiesData.ts) — several finish over a run, so
-// their built rows collapse. library/studentCenter/recCenter/healthCenter/
-// quad are single buildings with tier upgrades: at most two rows ever, each
-// a genuinely different building. gym/tennisCourts/pool/performingArtsCenter/
-// artGallery are also single-instance, but one-off (no tier field, no
-// upgrade) — exactly one row each, forever. lab and academic building are
-// independent multi-instance types (one per lab-gated major / one per
-// school) — several can be visible at once, but each is its own decision,
-// so they stay listed.
+// their built rows collapse. library/studentCenter/healthCenter/quad are
+// single buildings with tier upgrades: at most two rows ever, each a
+// genuinely different building. performingArtsCenter/artGallery are also
+// single-instance, but one-off (no tier field, no upgrade) — exactly one
+// row each, forever, hidden until the Arts & Media school clears their
+// shared gate (see facilitiesData.ts's ARTS_MEDIA_BUILDING_ID). recCenter
+// now covers a FIFTH shape: a repeatable, strictly sequential chain like
+// housing/dining, but of distinctly-named one-off facilities (Recreation
+// Center, Gym & Fitness Center, Swimming Pool, Tennis Courts, Athletics
+// Complex) rather than N copies of one generic thing — see
+// facilitiesData.ts's own note above REC_CENTER_TIER1_ID for why this reads
+// better as one collapsible group than five separate single-row ones. lab
+// and academic building are independent multi-instance types (one per lab-
+// gated major / one per school) — several can be visible at once, but each
+// is its own decision, so they stay listed.
 const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; match: (t: Buildable) => boolean }> = [
   { key: 'dorm', label: 'Housing', repeatable: true, match: (t) => t.kind === 'dorm' },
   { key: 'library', label: FACILITY_LABELS.library, repeatable: false, match: (t) => t.facilityType === 'library' },
   { key: 'studentCenter', label: FACILITY_LABELS.studentCenter, repeatable: false, match: (t) => t.facilityType === 'studentCenter' },
   { key: 'diningHall', label: FACILITY_LABELS.diningHall, repeatable: true, match: (t) => t.facilityType === 'diningHall' },
-  { key: 'recCenter', label: FACILITY_LABELS.recCenter, repeatable: false, match: (t) => t.facilityType === 'recCenter' },
   { key: 'healthCenter', label: FACILITY_LABELS.healthCenter, repeatable: false, match: (t) => t.facilityType === 'healthCenter' },
   { key: 'quad', label: FACILITY_LABELS.quad, repeatable: false, match: (t) => t.facilityType === 'quad' },
   { key: 'lab', label: FACILITY_LABELS.lab, repeatable: false, match: (t) => t.facilityType === 'lab' },
-  { key: 'gym', label: FACILITY_LABELS.gym, repeatable: false, match: (t) => t.facilityType === 'gym' },
-  { key: 'tennisCourts', label: FACILITY_LABELS.tennisCourts, repeatable: false, match: (t) => t.facilityType === 'tennisCourts' },
-  { key: 'pool', label: FACILITY_LABELS.pool, repeatable: false, match: (t) => t.facilityType === 'pool' },
+  // The recreation/fitness chain — see the module note above. Positioned
+  // right before performingArtsCenter/artGallery so all three share one
+  // contiguous run in TYPE_MATCHERS, which is what makes blocksFor wrap
+  // them in a single "Recreation" CategorySection (see FACILITY_CATEGORY_OF).
+  {
+    key: 'recCenter',
+    label: 'Fitness',
+    repeatable: true,
+    match: (t) => t.facilityType === 'recCenter' || t.facilityType === 'gym' || t.facilityType === 'tennisCourts' || t.facilityType === 'pool',
+  },
   { key: 'performingArtsCenter', label: FACILITY_LABELS.performingArtsCenter, repeatable: false, match: (t) => t.facilityType === 'performingArtsCenter' },
   { key: 'artGallery', label: FACILITY_LABELS.artGallery, repeatable: false, match: (t) => t.facilityType === 'artGallery' },
   // Varsity athletics venues: locked (and so invisible, per the rule above)
@@ -208,6 +222,45 @@ function BuildableRow({
 
   if (t.status === 'done') {
     const detail = builtDetail(t);
+
+    // A founding Buildable (or an event-granted one) that's already 'done'
+    // but never got a location — see campusMap.ts's needsSiting. Same row
+    // shape as an ordinary 'available' pickup below, just gated on the flat
+    // RETROACTIVE_SITING_COST/canSiteRetroactively instead of the
+    // Buildable's own cost/canStartDevelopment, since there's no
+    // construction left to start, only a spot to mark.
+    if (!(t.id in s.placements)) {
+      const armed = placingId === t.id;
+      const sitable = canSiteRetroactively(s, t);
+      const shortfall = RETROACTIVE_SITING_COST - s.finance.cash;
+      return (
+        <li className={`available-item building-item available ${armed ? 'placing' : ''}`}>
+          <div className="build-row">
+            <span className="build-name">{t.name}</span>
+            {detail && <span className="stat">{detail}</span>}
+            {marker && <span className="kind-tag">{marker}</span>}
+            <span className="build-row-spacer" />
+            <button
+              disabled={!sitable}
+              title={armed ? 'Click an empty tile on the map to site here, or click this again to cancel.' : (shortfall > 0 ? `$${Math.ceil(shortfall).toLocaleString()} short.` : undefined)}
+              draggable={sitable}
+              onDragStart={(e) => {
+                onArmPlacement(t.id);
+                e.dataTransfer.setData('text/plain', t.id);
+                e.dataTransfer.effectAllowed = 'move';
+              }}
+              onClick={() => onArmPlacement(armed ? null : t.id)}
+            >
+              {armed ? 'placing…' : 'site →'}
+            </button>
+          </div>
+          <div className="available-item-meta">
+            <span className="stat">${RETROACTIVE_SITING_COST.toLocaleString()} · already built, awaiting a spot on campus</span>
+          </div>
+        </li>
+      );
+    }
+
     return (
       <li className="available-item building-item done">
         <div className="build-row">
@@ -338,7 +391,14 @@ function BuildGroup({
   // chain) before the built/unbuilt split, so a row's #N never shifts as
   // the group collapses.
   const numbered = group.items.map((t, index) => ({ t, marker: rowMarker(t, group, index) }));
-  const built = numbered.filter(({ t }) => t.status === 'done');
+  const done = numbered.filter(({ t }) => t.status === 'done');
+  // A 'done' item with nowhere on the map yet (see campusMap.ts's
+  // needsSiting) is split OUT of `built` and never collapses, however many
+  // genuinely-built instances this group already has — it's the one row
+  // that still has something to decide (site it), and COLLAPSE_BUILT_FROM
+  // is about tidying up decided rows, not hiding an undecided one.
+  const awaitingSiting = done.filter(({ t }) => !(t.id in s.placements));
+  const built = done.filter(({ t }) => t.id in s.placements);
   const rest = numbered.filter(({ t }) => t.status !== 'done');
   const collapseBuilt = group.repeatable && built.length >= COLLAPSE_BUILT_FROM;
 
@@ -349,6 +409,9 @@ function BuildGroup({
         <span className="stat">{built.length} built</span>
       </div>
       <ul className="available-list building-list">
+        {awaitingSiting.map(({ t, marker }) => (
+          <BuildableRow key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} />
+        ))}
         {collapseBuilt
           ? <BuiltGroupRow group={group} built={built.map(({ t }) => t)} />
           : built.map(({ t, marker }) => (
@@ -444,7 +507,7 @@ export default function BuildPopup({
       title="Build"
       onClose={onClose}
       className="build-popup"
-      headExtra={<HelpHint text="Every building the university can have, grouped by type: what's built, what's under construction, and what's next available. Repeatable types (housing, dining) collapse what's already finished into one line — open it for the individual halls. A facility serves a fixed share of students against total planned capacity, not today's enrollment, so building more housing raises the bar for the rest of campus life too. Anything not yet unlockable is left off the list rather than teased. 'Site →' picks a building up — click (or drag it onto) an empty tile on the map to start building it there; that's the moment the cost is charged and the countdown begins. The map stays visible and clickable behind this popup, so you can see where a building will land before you commit it." />}
+      headExtra={<HelpHint text="Every building the university can have, grouped by type: what's built, what's under construction, and what's next available. Repeatable types (housing, dining, fitness) collapse what's already finished into one line — open it for the individual halls. A facility serves a fixed share of students against total planned capacity, not today's enrollment, so building more housing raises the bar for the rest of campus life too. Anything not yet unlockable is left off the list rather than teased. 'Site →' picks a building up — click (or drag it onto) an empty tile on the map to start building it there; that's the moment the cost is charged and the countdown begins. A row priced at a flat, small fee instead of a real construction cost is already-built and just needs a spot marked on the map — the university's founding buildings, mainly. The map stays visible and clickable behind this popup, so you can see where a building will land before you commit it." />}
     >
       <div className="build-popup-stats">
         <span className="stat">{s.students.enrolled.toLocaleString()}/{s.students.capacity.toLocaleString()} beds</span>

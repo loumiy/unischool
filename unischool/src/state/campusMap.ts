@@ -209,27 +209,55 @@ export function footprintIsClear(placements: Placements, row: number, col: numbe
 }
 
 // The one definition of a legal placement TARGET: a placeable Buildable
-// that hasn't started construction yet (status 'available') and isn't
-// already sited, whose WHOLE footprint lands on empty, in-bounds tiles.
-// `fp` is the footprint actually being sited — orientedFootprint(t, rotated)
-// for a rotatable siting flow, or plain footprintOf(t) for anything that
-// doesn't care about rotation — rather than always re-deriving the
-// unrotated one, so a rotated footprint that no longer fits is refused
-// exactly as an unrotated overflow already is.
+// that hasn't started construction yet (status 'available') — OR one that's
+// already 'done' but never got a location (see needsSiting below) — and
+// isn't already sited, whose WHOLE footprint lands on empty, in-bounds
+// tiles. `fp` is the footprint actually being sited —
+// orientedFootprint(t, rotated) for a rotatable siting flow, or plain
+// footprintOf(t) for anything that doesn't care about rotation — rather
+// than always re-deriving the unrotated one, so a rotated footprint that no
+// longer fits is refused exactly as an unrotated overflow already is.
 //
 // Deliberately geometry + status only — it says nothing about whether the
 // school can actually AFFORD to start this Buildable (see
 // techSystem.ts's canStartDevelopment, the one gate for that, which every
 // call site here combines this with before actually committing a build —
-// see the reducer's PLACE_BUILDABLE case). That split is the same one
-// START_DEVELOPMENT and the old cosmetic-only PLACE_BUILDABLE always had
-// between them; collapsing the two actions into one for placeable kinds
-// didn't collapse the two CONCERNS, it just moved where they're combined.
+// see the reducer's PLACE_BUILDABLE case), nor about the flat retroactive
+// fee a 'done' item's siting is gated on instead (canSiteRetroactively,
+// below). That split is the same one START_DEVELOPMENT and the old
+// cosmetic-only PLACE_BUILDABLE always had between them; collapsing the two
+// actions into one for placeable kinds didn't collapse the two CONCERNS, it
+// just moved where they're combined.
 export function canPlace(s: GameState, t: Buildable, row: number, col: number, fp: Footprint): boolean {
   return isPlaceableKind(t)
-    && t.status === 'available'
+    && (t.status === 'available' || t.status === 'done')
     && !(t.id in s.placements)
     && footprintIsClear(s.placements, row, col, fp);
+}
+
+// A placeable Buildable that's already 'done' — its effects already applied
+// at founding (the starting dorm, the founding dining hall, General Studies
+// Hall — see actions.ts's placeFoundingBuildables) or granted on the spot by
+// an authored event (eventData.ts's chapter house) — but has no home on the
+// map: firstFreeSpot found no room for it (the documented pathological
+// case), or an old save predates the logic that places these automatically.
+// Distinct from an ordinary 'available' row: there's no construction left to
+// start, only a location to mark, so the build menu offers it for the flat
+// RETROACTIVE_SITING_COST below instead of its own (much larger) founding
+// cost, which was already paid — or folded into the starting baseline —
+// once.
+export function needsSiting(s: GameState, t: Buildable): boolean {
+  return isPlaceableKind(t) && t.status === 'done' && !(t.id in s.placements);
+}
+
+// A nominal fee, not a construction cost — see needsSiting above. Kept
+// small and flat (unlike every other Buildable's authored cost) since the
+// building itself isn't being bought here, only sited; still nonzero so
+// siting reads as a real decision rather than a freebie.
+export const RETROACTIVE_SITING_COST = 2_000;
+
+export function canSiteRetroactively(s: GameState, t: Buildable): boolean {
+  return needsSiting(s, t) && s.finance.cash >= RETROACTIVE_SITING_COST;
 }
 
 // A deterministic "first empty spot" scan: top-left to bottom-right, the
