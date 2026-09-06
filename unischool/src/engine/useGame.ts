@@ -49,10 +49,10 @@ export function useGame() {
 
   useEffect(() => {
     const ms = SPEEDS[speed];
-    if (ms === 0 || !state.started || state.gameOver || interrupted) return; // also halted while an interrupt is pending
+    if (ms === 0 || !state.started || interrupted) return; // also halted while an interrupt is pending
     const id = setInterval(() => dispatch({ type: 'TICK' }), ms);
     return () => clearInterval(id);
-  }, [speed, state.started, state.gameOver, interrupted]);
+  }, [speed, state.started, interrupted]);
 
   // The clock already halts the instant an interrupt is pending (above),
   // but that only stops ticking — it leaves `fast` as the SELECTED speed,
