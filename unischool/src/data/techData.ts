@@ -452,7 +452,7 @@ const ARTS_GATED_MAJOR_PREFIXES = ['GRDS', 'MUSC', 'SART'];
 // source of truth for what a school is:
 //   - a PROFESSIONAL school (med, law, MBA) gates on its parent
 //     undergraduate school(s) being complete or near-complete, read off
-//     milestoneSchools() and the same `major-complete:` milestones
+//     milestoneSchools() and the same `program-established:` milestones
 //     prestige's curriculum breadth reads;
 //   - a RESEARCH DOCTORATE gates on a finished lab in its parent school,
 //     read off researchSchools() — the same lab gate research itself and
@@ -514,6 +514,14 @@ export interface GraduateProgramSeed {
   // The school(s) whose state the gate reads. One entry for every program
   // but medicine, which reads two.
   gateSchools: string[];
+  // How many of EACH gate school's majors must be ESTABLISHED (all tier-2
+  // done) before this professional school may be founded. Authored per
+  // program and applied to every one of its gateSchools, so the threshold is
+  // an explicit number rather than a ratio the implementation rounds — and it
+  // may differ program to program. Set only for professional programs;
+  // doctorates gate on a finished lab (see graduateGateMet), not on a major
+  // count, so they leave it unset.
+  gateMajorsRequired?: number;
   // Relative weight inside prestige's graduate-breadth term (see
   // prestigeSystem.ts's GRADUATE_PROGRAM_SHARE). This is the ONLY way a
   // professional school is allowed to move standing more than its raw
@@ -562,6 +570,7 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
     id: 'MED', name: 'School of Medicine', degree: 'MD', type: 'professional',
     homeSchool: 'Health Science', gateSchools: ['Science', 'Health Science'],
     prestigeWeight: 2.0,
+    gateMajorsRequired: 5,
     blurb: 'the medical school',
     buildingId: 'BLDG-MED',
     courses: [
@@ -583,6 +592,7 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
     id: 'LAWS', name: 'School of Law', degree: 'JD', type: 'professional',
     homeSchool: 'Social Sciences & Humanities', gateSchools: ['Social Sciences & Humanities'],
     prestigeWeight: 1.6,
+    gateMajorsRequired: 5,
     blurb: 'the law school',
     buildingId: 'BLDG-LAW',
     courses: [
@@ -600,6 +610,7 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
     id: 'MBAX', name: 'Graduate School of Business', degree: 'MBA', type: 'professional',
     homeSchool: 'Business', gateSchools: ['Business'],
     prestigeWeight: 1.4,
+    gateMajorsRequired: 5,
     blurb: 'the MBA program',
     courses: [
       { num: 501, title: 'Managerial Foundations', field: 'Management' },
@@ -647,14 +658,14 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   },
 ];
 
-// How much of a parent school has to stand before a professional school
-// may be founded — "complete or NEAR-complete", as one dial. At 0.75 that
-// is five of a six-major school's majors carrying `major-complete:`, i.e.
-// their tier-2 quartets finished. Deliberately not `school-complete:`
-// (which additionally requires every major MASTERED): that milestone lands
-// so late in a run that the professional schools would arrive with nothing
-// left to spend the rest of the game on.
-export const PROFESSIONAL_GATE_MAJOR_SHARE = 0.75;
+// How much of a parent school has to stand before a professional school may
+// be founded — "established or NEAR-established". This is an explicit
+// authored count per program (GraduateProgramSeed.gateMajorsRequired), not a
+// ratio the implementation rounds: today every professional school requires
+// 5 of its gate school's 6 majors established (all tier-2 done). Deliberately
+// not "school distinguished" (which additionally requires every program
+// distinguished): that milestone lands so late in a run that the professional
+// schools would arrive with nothing left to spend the rest of the game on.
 
 export function graduatePrograms(): GraduateProgramSeed[] {
   return GRADUATE_PROGRAMS;
@@ -668,11 +679,11 @@ export function graduateCourseIds(program: GraduateProgramSeed): string[] {
   return program.courses.map((course) => `${program.id}${course.num}`);
 }
 
-// How many of a school's majors must be complete for a professional
-// school to be founded there. Exported so the UI can say "4 of 5" rather
-// than re-deriving the rounding rule.
-export function professionalGateThreshold(majorCount: number): number {
-  return Math.ceil(majorCount * PROFESSIONAL_GATE_MAJOR_SHARE);
+// How many of each gate school's majors must be established for a
+// professional school to be founded there — the explicit authored number,
+// not a rounded ratio. Exported so the UI can say "5 of 6".
+export function professionalGateThreshold(program: GraduateProgramSeed): number {
+  return program.gateMajorsRequired ?? 0;
 }
 
 // THE ONE PREDICATE. Both branches are readings of seed helpers that
@@ -689,8 +700,8 @@ export function graduateGateMet(s: GameState, programId: string): boolean {
     return program.gateSchools.every((name) => {
       const school = schools.find((x) => x.schoolName === name);
       if (!school || school.majors.length === 0) return false;
-      const complete = school.majors.filter((major) => s.milestones[`major-complete:${major.prefix}`]).length;
-      return complete >= professionalGateThreshold(school.majors.length);
+      const established = school.majors.filter((major) => s.milestones[`program-established:${major.prefix}`]).length;
+      return established >= professionalGateThreshold(program);
     });
   }
 
@@ -709,9 +720,9 @@ export function graduateGateDescription(program: GraduateProgramSeed): string {
     const schools = milestoneSchools();
     const parts = program.gateSchools.map((name) => {
       const school = schools.find((x) => x.schoolName === name);
-      const needed = school ? professionalGateThreshold(school.majors.length) : 0;
+      const needed = professionalGateThreshold(program);
       const total = school ? school.majors.length : 0;
-      return `${needed} of ${total} ${name} majors complete`;
+      return `${needed} of ${total} ${name} programs established`;
     });
     return parts.join(' and ');
   }
@@ -1150,7 +1161,7 @@ export function researchSchools(): ResearchSchool[] {
 // (see CurriculumTab.tsx). A second independent UI-only view alongside
 // milestoneSchools() above — same reasoning: the engine never needs this
 // shape, only the tab that derives what's revealed from existing
-// unlock/milestone state (school building done, major-complete) does.
+// unlock/milestone state (school building done, program-established) does.
 // tier1Id is included (milestoneSchools() only has tier2/tier3)
 // because the discovery view needs a major's full climb, not just the
 // milestone-relevant tiers.

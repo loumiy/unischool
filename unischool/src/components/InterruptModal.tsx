@@ -265,8 +265,8 @@ function RankingsReportView({ payload, isFirstReveal, onDismiss }: {
 // ---------------------------------------------------------------------
 // The milestone celebration: the stop-the-clock moment for the handful of
 // accomplishments worth stopping the clock for (see data/eventData.ts's
-// MILESTONE_INTERRUPT_KINDS — a completed major, a mastered major, a
-// finished school; never a routine course completion). It grants nothing
+// MILESTONE_INTERRUPT_KINDS — an established program, a distinguished
+// program, a distinguished school; never a routine course completion). It grants nothing
 // and asks nothing: everything it reports already happened. What it adds
 // is the one thing the log ticker cannot — the size of what just changed,
 // in the currency the whole long arc is denominated in.

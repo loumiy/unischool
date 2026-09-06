@@ -24,12 +24,12 @@ function coursesDone(s: GameState): number {
 }
 
 // Milestone keys are namespaced by kind (see techSystem.ts's
-// awardMilestone); counting the `major-complete:` prefix gives the number
-// of majors whose tier-2 quartet is finished.
-const MAJOR_COMPLETE_PREFIX = 'major-complete:';
+// awardMilestone); counting the `program-established:` prefix gives the
+// number of programs whose tier-2 quartet is finished.
+const PROGRAM_ESTABLISHED_PREFIX = 'program-established:';
 
-function majorsComplete(s: GameState): number {
-  return Object.keys(s.milestones).filter((k) => k.startsWith(MAJOR_COMPLETE_PREFIX)).length;
+function programsEstablished(s: GameState): number {
+  return Object.keys(s.milestones).filter((k) => k.startsWith(PROGRAM_ESTABLISHED_PREFIX)).length;
 }
 
 // Snapshots the school's headline numbers for the year that is closing.
@@ -47,7 +47,7 @@ export function captureYearSnapshot(s: GameState): YearSnapshot {
     enrolled: s.students.enrolled,
     cash: s.finance.cash,
     coursesDone: coursesDone(s),
-    majorsComplete: majorsComplete(s),
+    programsEstablished: programsEstablished(s),
     satisfaction: s.students.satisfaction,
   };
 }

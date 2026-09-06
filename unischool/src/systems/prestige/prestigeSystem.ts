@@ -99,11 +99,11 @@ function clamp(v: number, lo: number, hi: number): number {
 }
 
 // Curriculum breadth: a STOCK read straight off the durable milestone
-// booleans techSystem.ts already tracks (major-complete, major-mastered,
-// school-complete) — never off anything added or completed this tick.
-// Weighted so a fully finished curriculum (every major complete AND
-// mastered, every school complete, every graduate program founded) scores
-// exactly 1.
+// booleans techSystem.ts already tracks (program-established,
+// program-distinguished, school-distinguished) — never off anything added
+// or completed this tick. Weighted so a fully finished curriculum (every
+// program established AND distinguished, every school distinguished, every
+// graduate program founded) scores exactly 1.
 //
 // GRADUATE PROGRAMS ARE THE FOURTH SHARE, and they are inside this term
 // rather than beside it on purpose (see README's "Graduate programs"). A
@@ -113,8 +113,8 @@ function clamp(v: number, lo: number, hi: number): number {
 // exists to prevent, and a grad-heavy school could then outrun the
 // breadth ceiling that decades of undergraduate buildout are what
 // actually buy. The four shares still sum to 1, so a school that finishes
-// everything — every major complete AND mastered, every school finished,
-// every graduate program founded — scores exactly 1 and no more.
+// everything — every program established AND distinguished, every school
+// distinguished, every graduate program founded — scores exactly 1 and no more.
 //
 // The consequence is deliberate and worth stating plainly: a fully built
 // UNDERGRADUATE catalogue now scores 0.85 rather than 1.0, because the
@@ -128,9 +128,9 @@ function clamp(v: number, lo: number, hi: number): number {
 // its five or six courses would suggest — the medical school is worth
 // twice a doctoral program — while the share as a whole stays capped. That
 // is the same discipline the research cap follows.
-const MAJOR_COMPLETE_SHARE = 0.34;
-const MAJOR_MASTERED_SHARE = 0.26;
-const SCHOOL_COMPLETE_SHARE = 0.25;
+const PROGRAM_ESTABLISHED_SHARE = 0.34;
+const PROGRAM_DISTINGUISHED_SHARE = 0.26;
+const SCHOOL_DISTINGUISHED_SHARE = 0.25;
 const GRADUATE_PROGRAM_SHARE = 0.15;
 
 // The graduate half of curriculum breadth: completed programs' authored
@@ -153,21 +153,21 @@ export function curriculumBreadthScore(s: GameState): number {
   const schoolsWithMajors = schools.filter((school) => school.majors.length > 0).length;
   if (totalMajors === 0 || schoolsWithMajors === 0) return 0;
 
-  let majorsComplete = 0;
-  let majorsMastered = 0;
-  let schoolsComplete = 0;
+  let programsEstablished = 0;
+  let programsDistinguished = 0;
+  let schoolsDistinguished = 0;
   for (const school of schools) {
     for (const major of school.majors) {
-      if (s.milestones[`major-complete:${major.prefix}`]) majorsComplete += 1;
-      if (s.milestones[`major-mastered:${major.prefix}`]) majorsMastered += 1;
+      if (s.milestones[`program-established:${major.prefix}`]) programsEstablished += 1;
+      if (s.milestones[`program-distinguished:${major.prefix}`]) programsDistinguished += 1;
     }
-    if (school.majors.length > 0 && s.milestones[`school-complete:${school.schoolName}`]) schoolsComplete += 1;
+    if (school.majors.length > 0 && s.milestones[`school-distinguished:${school.schoolName}`]) schoolsDistinguished += 1;
   }
 
   return clamp01(
-    MAJOR_COMPLETE_SHARE * (majorsComplete / totalMajors) +
-    MAJOR_MASTERED_SHARE * (majorsMastered / totalMajors) +
-    SCHOOL_COMPLETE_SHARE * (schoolsComplete / schoolsWithMajors) +
+    PROGRAM_ESTABLISHED_SHARE * (programsEstablished / totalMajors) +
+    PROGRAM_DISTINGUISHED_SHARE * (programsDistinguished / totalMajors) +
+    SCHOOL_DISTINGUISHED_SHARE * (schoolsDistinguished / schoolsWithMajors) +
     GRADUATE_PROGRAM_SHARE * graduateBreadthFraction(s),
   );
 }

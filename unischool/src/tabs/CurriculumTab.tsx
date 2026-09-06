@@ -23,7 +23,7 @@ import { ProgressRing } from '../components/Progress';
 //     labeled section: completed tier-1s + newly-visible tier-2s, shared
 //     across majors that haven't completed their tier-2 quartet yet.
 //   - Once a major's tier-2 quartet is complete (the existing
-//     `major-complete:<prefix>` milestone), that major splits into its
+//     `program-established:<prefix>` milestone), that major splits into its
 //     own labeled sub-group within the section, and its tier-3s appear
 //     there — the same event, per the task.
 //   - Once a GRADUATE PROGRAM's parent-school gate opens (see
@@ -139,8 +139,8 @@ function buildSections(s: GameState, genEdComplete: boolean, revealedGrad: Set<s
     const sharedIds: string[] = [];
     const subgroups: DiscoverySubgroup[] = [];
     for (const major of school.majors) {
-      const majorComplete = !!s.milestones[`major-complete:${major.prefix}`];
-      if (majorComplete) {
+      const programEstablished = !!s.milestones[`program-established:${major.prefix}`];
+      if (programEstablished) {
         subgroups.push({
           key: major.prefix,
           label: major.name,

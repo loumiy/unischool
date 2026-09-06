@@ -121,8 +121,8 @@ export type Action =
   // moving on to the next week, not replaying this one.
   | { type: 'RESOLVE_REPORT' }
   // Dismisses a milestone celebration — the stop-the-clock moment for a
-  // completed/mastered major or a finished school (see data/eventData.ts's
-  // MILESTONE_INTERRUPT_KINDS). Grants nothing: the milestone's real
+  // established/distinguished program or a distinguished school (see
+  // data/eventData.ts's MILESTONE_INTERRUPT_KINDS). Grants nothing: the milestone's real
   // effects landed when techSystem awarded it. Advances the clock, for the
   // same reason RESOLVE_REPORT does.
   | { type: 'RESOLVE_MILESTONE' }
