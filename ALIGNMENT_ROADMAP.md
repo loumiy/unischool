@@ -68,6 +68,13 @@ cohorts).
 These block specific PRs; resolve them first (they are cheap to answer, expensive to guess).
 
 1. **Prestige cadence — annual vs weekly. (Blocks A wording, E behavior.)**
+   **RESOLVED → weekly (option b).** Prestige moves to a **weekly** drift toward
+   the computed target, keeping the target-and-slow-drift model and the sticky,
+   non-snappy feel (no per-completion bonus) — it may change gently week to week
+   rather than sitting static all year. PR A documents this as canon; PR E moves
+   the drift to a weekly `tickPrestige` system and retunes `PRESTIGE_DRIFT_RATE`
+   (re-run `npm run sim`). Original options kept below for context.
+
    The brief says "prestige should update on the intended weekly cadence."
    The code drifts prestige once a year inside `RESOLVE_ADMISSIONS`
    (`tickPrestigeAnnual`), and the README documents annual drift as deliberate
@@ -84,6 +91,13 @@ These block specific PRs; resolve them first (they are cheap to answer, expensiv
      by the brief author, not inferred.**
 
 2. **Curriculum terminology — how far to rename now. (Blocks C.)**
+   **RESOLVED → confirmed vocabulary:** *establish* a program (all T2),
+   *distinguish* a program (all T3), *distinguished school* (all programs
+   distinguished); "scholarships" over "financial aid". Tier labels stay
+   T1/T2/T3 (Unlocked/Established/Distinguished relabel deferred). PR A adopts
+   this in the README prose; PR C renames the code symbols + milestone keys with
+   a save migration.
+
    The brief wants program-centric language ("a university develops/establishes/
    distinguishes an academic program") and explicitly says the T1/T2/T3 →
    Unlocked/Established/Distinguished relabel must **not** happen until

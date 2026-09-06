@@ -171,29 +171,52 @@ spine. The intended climb:
 3. Completing **all tier-1 courses in a school** unlocks the ability to **build
    that school** (a `building` Buildable).
 4. Completing that **school building** unlocks the school's **tier-2** courses.
-5. Completing **all tier-2 courses in a major** unlocks that **major** — granting
-   an applicant-pool bonus and unlocking the major's **tier-3** courses.
-6. Completing the **tier-3** courses fully **masters** that major.
-7. Once most of a school's majors are complete — or, for a doctorate, once the
+5. Completing **all tier-2 courses in a major** **establishes that program** —
+   granting an applicant-pool bonus and unlocking the major's **tier-3** courses.
+6. Completing the **tier-3** courses **distinguishes that program**.
+7. Once a school's programs are distinguished — or, for a doctorate, once the
    school has a lab — a **graduate program** opens on top of it, and completing
-   one founds it (see "Graduate programs" below).
+   one founds it (see "Graduate programs" below). Every school is intended to
+   have a meaningful payoff for progressing through tier 3; some school-specific
+   T4+ payoffs are still being designed and are deliberately left unspecified
+   here rather than invented (see "Graduate programs").
 
-Milestone bonuses (school-complete, major-complete, major-mastered,
-grad-program-complete) are dedicated
-milestone logic in `techSystem.ts` — they are a first-class part of the model,
-not an afterthought. Note this makes buildings prerequisites for courses, which
-is exactly why prereqs must cross kinds. These milestones no longer grant
-reputation directly; instead they are the durable "curriculum breadth" stock
-that feeds the prestige target (see below) — finishing a major or a school
-raises the ceiling prestige can drift toward, rather than instantly bumping it.
+**A note on terminology.** The game models an *institution*, so the language is
+institutional: a university **establishes** and then **distinguishes** an
+academic **program** — it does not "complete" or "master" a major. Students are
+the ones who complete degrees; the player builds the programs they graduate from.
+The confirmed vocabulary is **establish** (all tier-2 done), **distinguish** (all
+tier-3 done), and a **distinguished school** (every program distinguished). The
+tier labels themselves stay **T1 / T2 / T3** for now; the possible relabel to
+Unlocked / Established / Distinguished is deferred until the full progression
+rules are specified. The code still carries the older milestone keys
+(`major-complete:`, `major-mastered:`, `school-complete:`) and constant names;
+those are renamed to match this vocabulary, with a save migration, in the
+terminology pass (see the alignment roadmap's PR C).
+
+Milestone bonuses (program-established, program-distinguished, distinguished-
+school, program-founded — keyed `major-complete:` / `major-mastered:` /
+`school-complete:` / `grad-program-complete:` in code until the terminology
+pass) are dedicated milestone logic in `techSystem.ts` — they are a first-class
+part of the model, not an afterthought. Note this makes buildings prerequisites
+for courses, which is exactly why prereqs must cross kinds. These milestones no
+longer grant reputation directly; instead they are the durable "curriculum
+breadth" stock that feeds the prestige target (see below) — establishing or
+distinguishing a program, or distinguishing a whole school, raises the ceiling
+prestige can drift toward, rather than instantly bumping it.
 
 ## Prestige: a slow-moving stock
 
 `self.reputation` ("prestige") is a **stock**, not a flow: it is never
-incremented directly by completing a course, a building, or a milestone. Once a
-year, at the summer admissions boundary, prestige drifts a small fraction of the
-way toward a target computed from durable inputs — see
-`src/systems/prestige/prestigeSystem.ts`:
+incremented directly by completing a course, a building, or a milestone — there
+is no snappy "finish a course, get a prestige bump." Instead, **once a week**,
+prestige drifts a small fraction of the way toward a target computed from durable
+inputs — see `src/systems/prestige/prestigeSystem.ts`. It never jumps to the
+target: a long-established school's prestige is sticky and does not evaporate the
+moment growth stalls, but it can move gently week to week rather than sitting
+frozen all year between summers. (The weekly cadence and its retuned drift rate
+are applied in the lifecycle pass — PR E of the alignment roadmap; the drift
+previously ran once a year at the summer admissions boundary.) The inputs:
 
 - **curriculum breadth** — majors/schools completed *right now* (a stock read
   off the milestone booleans above) plus the **graduate programs** founded on
@@ -225,6 +248,21 @@ past that ceiling toward the very top of the rankings requires the curriculum-
 breadth term too — i.e. sustained, decades-long buildout, not an early
 course-development sprint.
 
+**Direct-mutation audit.** `self.reputation` is written in exactly three places,
+and all three are intentional. (1) **Founding** sets the opening value
+(`BASE_STARTING_REPUTATION + preset.prestigeBonus + GENED_BUILDING_REPUTATION_BONUS`
+in `actions.ts`) — a one-time initialization, not a gameplay bump. (2) The
+**drift** in `prestigeSystem.ts` moves reputation toward the computed target on
+its regular cadence. (3) **Rivals** write their *own* `reputation`
+(`rivalsSystem.ts`), never the player's. Nothing else touches it: research,
+student life, decision events, satisfaction and rankings all read prestige and
+never write it. In particular, **being ranked does not raise prestige** —
+rankings are a measurement *of* prestige (see "Rankings"), a strictly one-way
+read. Any future change must preserve this: prestige is composed from inputs, it
+is not a running tally of bonuses. (The long-term direction is to decompose
+prestige into several underlying components; that is future work, and must keep
+the composed-stock discipline.)
+
 ## Pacing model: money is the throttle, and the growth loop is what makes it bite
 
 **Money is the primary pacing resource, and it is a bottleneck, not a threat.**
@@ -236,7 +274,12 @@ offered (plus the faculty course-slot gate on the curated `requiresFaculty`
 courses, which is a per-field capacity rule, not a pacing throttle). The pacing
 is the *wait* to afford the next thing, never a debt you have to dig out of.
 (This supersedes both the earlier "development capacity is the scarce resource"
-framing and the purchasable-slots revision of it: both are gone.)
+framing and the purchasable-slots revision of it: both are gone. So too are the
+obsolete **Pace** mechanic and the old **siting queue** — the two-step
+"develop → await siting → place" flow is replaced by the single develop-and-place
+action; see "Courses and buildings share one flow." The only remnant of siting is
+`RETROACTIVE_SITING_COST`, a small recovery fee for the rare `'done'`-but-unplaced
+Buildable, which is a recovery path, not the old queue.)
 
 Money can only pace the game if the school's own growth keeps spending it. That
 is what the **growth loop** is for, and it is the shape everything in
@@ -244,7 +287,7 @@ is what the **growth loop** is for, and it is the shape everything in
 
 1. **Curriculum** — finishing majors and schools raises the prestige target
    (`curriculumBreadthScore`).
-2. **Prestige** — reputation drifts toward that target once a year, and prestige
+2. **Prestige** — reputation drifts toward that target week by week, and prestige
    is what lets the school *charge more* (`priceTolerance`) and *draw more*
    applicants at all.
 3. **Demand** — the applicant pool is prestige x price x word of mouth
@@ -261,7 +304,7 @@ commitment is made (a dorm's price up front, its seat upkeep from the week it
 opens, a hire's salary from the week they arrive, a course's running cost from
 the week it finishes, and a bigger catalogue raises instruction cost across the
 *whole* student body), while every payoff waits for the annual summer
-admissions boundary, and the prestige payoff waits for a 12%-a-year drift on top
+admissions boundary, and the prestige payoff waits for a slow weekly drift on top
 of that. Adding capacity and students is supposed to hurt before the tuition
 heals it.
 
@@ -283,14 +326,22 @@ Consequences that the code must honor:
 
 - **No hard insolvency game-over.** A cash shortfall should *stall expansion*,
   not end the run. "Stall, don't die" is the bottleneck expressed mechanically,
-  and it fits the no-win-condition sandbox. Note the two distinct forms this
-  takes: an unaffordable Buildable is refused at the moment of the decision, so
+  and it fits the no-win-condition sandbox. There is no bankruptcy state and no
+  `gameOver` flag: the run continues indefinitely even when cash is deep in the
+  red and the player is effectively unable to act — an accepted state for now.
+  (The vestigial `gameOver` scaffolding is dead — nothing sets it — and is
+  removed in the alignment roadmap's PR B.) The intended *eventual* response to
+  sustained distress is natural cost-cutting/contraction — faculty departures,
+  disbanded clubs, unstaffed courses going on hold — which lets the institution
+  **contract rather than die**; that system is deliberately not built yet and is
+  not part of the current cleanup. Note the two distinct forms the stall takes
+  today: an unaffordable Buildable is refused at the moment of the decision, so
   the player cannot buy their way into debt at all; and if the *operating*
   budget runs a deficit, cash can still drift below zero, at which point nothing
   with a cost is startable until it recovers. Every downward path has a floor, deliberately:
   empty beds are charged at a reduced mothball rate, an extra student is always
   worth more than they cost, satisfaction (and so word of mouth) is floored,
-  curriculum breadth is a stock that never decreases, and the tuition/aid
+  curriculum breadth is a stock that never decreases, and the tuition/scholarship
   decision and firing faculty are zero-cost recovery levers.
 - **The trickle must scale with the school.** Revenue grows with enrollment and
   prestige (both of which the player grows through play), and the bottleneck is
@@ -333,9 +384,9 @@ Everything that needs to stop time rides on this one mechanism:
   annual standings update.
 - **The tutorial** — a scripted sequence of interrupts (see below).
 - **Milestone celebrations** — a stop-the-clock moment for the handful of
-  genuinely special accomplishments (a major completed, a major mastered, a
-  school finished), showing what was unlocked and what it did to the prestige
-  target. Deliberately *not* fired by routine course completions: which
+  genuinely special accomplishments (a program established, a program
+  distinguished, a school distinguished), showing what was unlocked and what it
+  did to the prestige target. Deliberately *not* fired by routine course completions: which
   milestone kinds qualify, and how close together two celebrations may land,
   are named constants in `src/data/eventData.ts`, so the frequency is a
   one-line dial. Milestones are queued (`s.events.pendingMilestones`) rather
@@ -378,17 +429,70 @@ as one-off pauses.
 ## Admissions: an annual summer decision
 
 Admissions is **a once-a-year task, in the summer**, delivered as an interrupt.
-When it fires, the clock stops and the player sets the coming year's **tuition,
-financial aid, selectivity, and target enrollment**; those settings then drive
-the sim passively for the rest of the year. **Tuition is set once a year here —
-there is no live, continuously adjustable tuition control.** Shape the aid /
-selectivity / tuition inputs with the future demand-curve model in mind.
+When it fires, the clock stops and the player sets exactly **two** levers for the
+coming year: the **sticker tuition** and the **scholarship rate** (the average
+tuition discount across admits — "scholarships" is the preferred term; the code
+still calls this field `financialAidRate` until the terminology pass). **Tuition
+is set once a year here — there is no live, continuously adjustable tuition
+control.**
+
+Everything else is **emergent, not an input** — the player sets no selectivity
+target and no target enrollment. Admissions is a distribution funnel resolved by
+`admissionsSystem.ts`, modeled as aggregate applicant *statistics*, never
+individual applicants:
+
+- **Applications** are driven by **sticker tuition**, **current prestige**, and
+  the **average student satisfaction over the preceding year** (word of mouth).
+  Higher prestige and a lower net price grow the pool; a happy student body grows
+  it further. (Today word of mouth reads *current* satisfaction; the shift to a
+  trailing-year average lands with the cohort model — see the roadmap's PR D.)
+- **Selectivity** (the admit rate) is an emergent *output*, reported back to the
+  player — never a dial they set.
+- **Scholarships drive yield** — how many admitted students actually enroll —
+  with diminishing returns, on top of prestige.
+
+Students **attend for four years**, so each summer admits a **new freshman
+cohort** while the existing cohorts advance a year and the seniors graduate (see
+"Students: four aggregate cohorts" below). Shape the tuition / scholarship inputs
+with the future demand-curve model in mind.
+
+## Students: four aggregate cohorts
+
+The player manages an **institution**, not individual students. The student body
+is modeled as **four aggregate cohorts** — **freshmen, sophomores, juniors,
+seniors** — each a plain count, never a list of simulated people. **Do not
+introduce individual-student simulation.**
+
+- Students attend for **four years**. Each summer, at the admissions boundary
+  (`RESOLVE_ADMISSIONS`), cohorts **advance**: seniors graduate and leave, each
+  younger cohort moves up a year, and the admissions funnel commits a **new
+  freshman cohort**. Total enrolled = the sum of the four cohorts.
+- **Satisfaction** represents both current student happiness *and* an input to
+  future attractiveness: the causal chain is **current student experience →
+  satisfaction → next year's applications**. Satisfaction stays an aggregate
+  institutional reading, not a per-student one.
+- Capacity, tuition, instruction cost and appropriations all scale with the
+  **total body** across the four cohorts.
+
+**Status:** the current code still represents the whole body as a single
+`students.enrolled` scalar — one annual admission class standing in for the
+entire student population, which is the conceptual bug this section specifies the
+fix for. The four-cohort model is implemented in the roadmap's **PR D** (with the
+save migration that splits an existing `enrolled` into cohorts). The open
+modeling questions PR D must settle — inter-year attrition (assume full
+progression for v1?), what `capacity` caps, and the founding-year cohort
+distribution — are recorded in the roadmap, not decided here.
 
 ## Rankings: the U.S. News report
 
 Rivals are populated densely enough that a **top 50** is meaningful (~55 schools,
 not 5). Rival prestige **fluctuates dynamically** year to year rather than
-sitting static while the player grows. The report is a **mid-game reveal**:
+sitting static while the player grows. **Rankings are a measurement *of*
+prestige, not a driver of it:** entering or climbing the rankings never itself
+raises the player's prestige (see the prestige direct-mutation audit), and rivals
+stay deliberately lightweight — a dynamic scoreboard whose relative standings
+shift, not a strategic AI that reacts to the player. The report is a **mid-game
+reveal**:
 
 - The player starts **unaware** of the report.
 - Reaching enough prestige to crack the **top 50** (which should take some time)
@@ -415,11 +519,19 @@ schemes, more customization.)
 
 ## Faculty
 
-Faculty are **named individuals** with attributes (teaching, research, salary,
-morale); students are **aggregate cohorts**, not individuals. Faculty are needed
-to unlock course development via `requiresFaculty`, so a **real hiring pool** is
-required — hiring is a genuine subsystem, not a stub (`HIRE_FACULTY`/
-`FIRE_FACULTY` are wired up in the reducer; see `facultySystem.ts`).
+Faculty are **named individuals** with **lightweight** attributes (teaching,
+research, salary) — enough to make a hire a real, appreciating asset, but
+deliberately *not* a detailed life/personality simulation. Students, by contrast,
+are **aggregate cohorts**, not individuals (see "Students: four aggregate
+cohorts"). Faculty are needed to unlock course development via `requiresFaculty`,
+so a **real hiring pool** is required — hiring is a genuine subsystem, not a stub
+(`HIRE_FACULTY`/`FIRE_FACULTY` are wired up in the reducer; see
+`facultySystem.ts`).
+
+(The `Faculty.morale` field exists but is currently written and never read — dead
+state. Whether to wire it up or drop it is settled in the faculty-semantics pass,
+the roadmap's PR G; it is intentionally omitted from the attribute list above
+until then.)
 
 **Recruiting is a standing, churning market, not a post-and-wait errand.**
 `s.candidates` holds a long list of people currently available; the player
@@ -447,15 +559,21 @@ the specialisation stops mattering, and if it is too short or too slow
 recruiting is just tedium again. Those are the two failure modes the constants
 are tuned between.
 
-**Faculty are ageless: no aging, no retirement, no rival poaching.** This is a
-deliberate, settled choice, not a placeholder — a hire stays on the roster
-until the player dismisses them. What retention buys instead is growth: a
+**In the current build, faculty are ageless: no aging, no retirement, and no
+rival poaching** — a hire stays on the roster until the player dismisses them.
+This is the *current* state, **not** a permanent design commitment: **occasional
+rival poaching, and spending money to retain a poached hire, are an intended
+future direction**, along with the chain a departure would set off — a department
+left understaffed, its courses going **on hold** until a replacement is hired.
+That system is deliberately **not** built in this cleanup (do not add it here);
+this note only corrects the earlier "settled, never" framing so the spec and the
+roadmap agree. What retention buys **today** is growth: a
 faculty member's teaching/research stats start below a rolled ceiling
 ("potential") and rise toward it over years of tenure, then plateau; salary
 rises with them, on its own slower-to-plateau curve, so a long-retained star
 costs substantially more than the day they were hired (see `facultyData.ts`'s
 `grownStat`/`facultySalary`). This makes faculty a genuine **prestige
-investment** — aggregate roster quality is one of the four inputs to the
+investment** — aggregate roster quality is one of the inputs to the
 prestige target (see `prestigeSystem.ts`) — with a real "great cheap early
 hire, kept and matured" payoff. The scarcity that keeps a player from staffing
 every school at top quality is money and hiring-pool availability, not
@@ -516,12 +634,14 @@ off the seed helpers that already exist, so graduate gating can never drift from
 the school structure the rest of the game reads:
 
 - a **professional school** gates on `milestoneSchools()` — enough of its parent
-  school's majors carrying the same `major-complete:` milestone prestige's
-  curriculum breadth reads. "Enough" is one dial,
-  `PROFESSIONAL_GATE_MAJOR_SHARE`, at 0.75: five of a six-major school. It is
-  deliberately *not* `school-complete:` (which additionally wants every major
-  **mastered**), which lands so late that the professional schools would arrive
-  with nothing left to spend the rest of the run on.
+  school's programs **established** (the milestone prestige's curriculum breadth
+  reads). **The threshold is defined explicitly, per program, and may differ by
+  school** — it is authored data, not inferred by the implementation. It is
+  deliberately *not* "every program distinguished," which lands so late that the
+  professional schools would arrive with nothing left to spend the rest of the
+  run on. (Today the code derives the count from one shared dial,
+  `PROFESSIONAL_GATE_MAJOR_SHARE` at 0.75 — five of a six-program school; the move
+  to authored per-program thresholds is the roadmap's PR C.)
 - a **research doctorate** gates on `researchSchools()` — a finished lab in its
   parent school, the same gate research itself and the university charter hang
   off. Three schools bear labs after the Science reorg, which is exactly why
@@ -539,10 +659,10 @@ announces courses the player has no way to see.
 
 **Prestige: capped inputs only, and no new weight.** Founding a program never
 writes `s.self.reputation` and carries no completion bonus. Graduate breadth is
-the **fourth share inside the existing curriculum-breadth input** — 0.34 major
-complete / 0.26 mastered / 0.25 school complete / **0.15 graduate**, still
-summing to 1 — so the ceiling did not move: finishing everything scores exactly
-1 and no more. Inside that share, programs are weighted against each other by an
+the **fourth share inside the existing curriculum-breadth input** — 0.34 program
+established / 0.26 program distinguished / 0.25 school distinguished / **0.15
+graduate**, still summing to 1 — so the ceiling did not move: finishing everything
+scores exactly 1 and no more. Inside that share, programs are weighted against each other by an
 authored `prestigeWeight` (medicine 2.0, law 1.6, the MBA 1.4, each doctorate
 1.0) and normalized by the total. **That is how a top law school is allowed to
 move standing more than its five courses suggest** — a share of an
@@ -551,6 +671,20 @@ the research cap follows. A research doctorate additionally credits the
 **research** input (two credits each, into the same clamped 0..1 the
 breakthroughs feed), because a PhD program genuinely *is* research standing;
 professional schools get nothing there.
+
+**Future directions (undecided — do not invent).** Beyond the shipped
+medicine / law / MBA trio, several school-specific advanced payoffs are named in
+the design as *possible* directions but are **not yet specified**, and must not
+be implemented speculatively: an MBA-style intro → middle-courses-in-any-order →
+capstone structure; Masters → PhD sequencing for science and health sciences; a
+Medical School drawing on Science + Health Sciences; a Law School from Social
+Sciences & Humanities with a middle-course structure; Arts payoffs (a Performing
+Arts Center, an Art Gallery) with student-satisfaction effects; and an advanced
+joint Engineering + Computer Science institution (possibly robotics/research-
+oriented). Every school should ultimately have a meaningful tier-3 payoff, but
+where the rules are undecided the spec leaves them open on purpose. Graduate-
+program thresholds, by contrast, are meant to be **explicitly defined** rather
+than inferred (see the professional-school gate above).
 
 The deliberate consequence: a fully built **undergraduate** catalogue now scores
 0.85 on curriculum breadth rather than 1.0. Finishing the catalogue is no longer
@@ -789,7 +923,7 @@ makes clubs low-stakes.
 
 **Prestige is untouched.** Student life moves satisfaction and cash and
 nothing else, the same discipline the decision events hold: `self.reputation`
-is a stock that drifts toward a computed target once a year, and student
+is a stock that drifts toward a computed target once a week, and student
 life is not one of that target's inputs.
 
 **Satisfaction effects are transient by construction**, exactly like the
@@ -1010,9 +1144,9 @@ very first tick, since the gate is a reading of milestones it already
 earned. What does move is the prestige TARGET: graduate work is now the
 last 0.15 of curriculum breadth, so a school that had finished the whole
 undergraduate catalogue scores 0.85 on that input until it founds some
-programs. Prestige itself does not lurch — it is a stock drifting 12% a
-year — so that reads as a ceiling that moved up rather than standing
-taken away); v11 -> v12 added the two PROFESSIONAL-SCHOOL BUILDINGS
+programs. Prestige itself does not lurch — it is a stock drifting
+slowly, week by week — so that reads as a ceiling that moved up rather than
+standing taken away); v11 -> v12 added the two PROFESSIONAL-SCHOOL BUILDINGS
 (BLDG-MED, BLDG-LAW) and expanded Medicine (6 -> 12) and Law (5 -> 8) —
 see "Two of six get their own building" above. The same id-splice shape
 as v10 -> v11: every seed node the save doesn't already have (the two
@@ -1064,7 +1198,8 @@ any refactor.
   trickle. The rebalancing pass that money-paces-alone needed is done — costs
   now lead revenue at every turn of the growth loop (see "Pacing model"), with
   the constants grouped for hand-tuning and `npm run sim` to check the shape.
-- Annual summer admissions interrupt (tuition/aid/selectivity/enrollment).
+- Annual summer admissions interrupt: the player sets tuition + scholarships;
+  selectivity and enrollment are emergent funnel outputs, not inputs.
 - Dense rivals (~55) + the U.S. News report as a mid-game reveal.
 - The academic-buildings / milestone-chain / curriculum-depth cluster: school &
   major buildings, milestone bonuses, course descriptions, cross-kind and
@@ -1093,7 +1228,10 @@ any refactor.
 - Campus life depth, and more authored decision events on top of the thirteen
   that now exist (see "Interrupts" above) — including events that reach
   systems the first pass deliberately left alone.
-- Faculty lifecycle (aging, retirement, poaching) if desired.
+- Faculty lifecycle: **rival poaching and paid retention** (a poached hire the
+  player can spend to keep), plus the downstream chain a departure sets off —
+  department understaffed → its courses go on hold → hire a replacement. An
+  intended future direction (see "Faculty"); aging/retirement remain optional.
 - A richer demand-curve finance model with prestige/scale archetypes.
 - Campus map depth: adjacency weighting between neighboring buildings, and any
   economic/prestige feedback from the layout. The map itself (a fixed tile grid,
