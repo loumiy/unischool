@@ -1,0 +1,163 @@
+// ---------------------------------------------------------------------
+// Save-migration test harness (see README's "Save / load" and the alignment
+// roadmap). The whole point of the migration chain is that a run started
+// under an old build survives forward untouched in meaning, so the thing
+// worth testing is exactly that: seed a payload at an OLD SAVE_VERSION in the
+// old shape, run the REAL loadGame path (parse -> looksLikeGameState ->
+// MIGRATIONS -> sanitizers), and assert the result is the current shape with
+// its meaning intact.
+//
+// Like sim/balanceSim.ts, this is NOT part of the game: nothing imports it,
+// it ships nothing into the bundle. It runs the actual persistence module
+// against an in-memory localStorage so the code under test is the code that
+// ships, not a reimplementation.
+//
+//   npm test
+// ---------------------------------------------------------------------
+
+import { createInitialState } from '../src/state/actions';
+import { loadGame, saveGame, clearSave, SAVE_KEY, SAVE_VERSION } from '../src/state/persistence';
+
+// In-memory localStorage so the persistence module works under Node. Assigned
+// before any loadGame/saveGame call (module imports run first, but nothing in
+// persistence touches localStorage at import time).
+const store = new Map<string, string>();
+(globalThis as unknown as { localStorage: unknown }).localStorage = {
+  getItem: (k: string) => (store.has(k) ? store.get(k)! : null),
+  setItem: (k: string, v: string) => { store.set(k, String(v)); },
+  removeItem: (k: string) => { store.delete(k); },
+  clear: () => { store.clear(); },
+};
+
+let checks = 0;
+let failures = 0;
+function assert(cond: boolean, msg: string): void {
+  checks += 1;
+  if (!cond) {
+    failures += 1;
+    console.error(`  ✗ ${msg}`);
+  }
+}
+
+// A GameState with arbitrary extra/removed keys — how an OLD-shape save looks
+// before migration. Used only to build fixtures; the real code never sees this
+// type.
+type Loose = Record<string, unknown>;
+
+function writeSave(version: number, state: unknown): void {
+  store.set(SAVE_KEY, JSON.stringify({ version, savedAt: Date.now(), state }));
+}
+
+// Build a v18-shaped save by taking a real current-shape state (so every
+// slice a sanitizer touches is valid) and DOWNGRADING the few fields the
+// v18->v21 migrations touch back to their old shape.
+function makeV18Save(): void {
+  const base = createInitialState('Migrator', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+
+  // Old milestone keys (pre-PR-C curriculum terminology).
+  state.milestones = {
+    'major-complete:BIOL': true,
+    'major-mastered:BIOL': true,
+    'school-complete:Science': true,
+    'grad-program-complete:MBAX': true,
+  };
+  // Old student body: a single enrolled scalar, no cohorts, no satisfaction
+  // accumulator (pre-PR-D).
+  state.students = {
+    enrolled: 800,
+    capacity: 1000,
+    satisfaction: 66,
+    satisfactionBreakdown: (base.students as unknown as Loose).satisfactionBreakdown,
+    applicantPool: 1000,
+    admitRate: 0.5,
+    incomingQuality: 55,
+  };
+  // Old admissions policy field name (pre-scholarships rename).
+  state.admissions = { financialAidRate: 0.3 };
+  // Old history row field name.
+  state.history = [
+    { year: 1, prestige: 40, rank: 5, enrolled: 800, cash: 1000, coursesDone: 3, majorsComplete: 2, satisfaction: 66 },
+  ];
+
+  writeSave(18, state);
+}
+
+// ---- Test: a v18 save migrates forward with meaning intact ----
+function testForwardMigration(): void {
+  makeV18Save();
+  const loaded = loadGame();
+  assert(loaded !== null, 'v18 save loads (does not fall back to null)');
+  if (!loaded) return;
+
+  const m = loaded.milestones;
+  assert(m['program-established:BIOL'] === true, 'major-complete: -> program-established:');
+  assert(m['major-complete:BIOL'] === undefined, 'old major-complete: key removed');
+  assert(m['program-distinguished:BIOL'] === true, 'major-mastered: -> program-distinguished:');
+  assert(m['major-mastered:BIOL'] === undefined, 'old major-mastered: key removed');
+  assert(m['school-distinguished:Science'] === true, 'school-complete: -> school-distinguished:');
+  assert(m['school-complete:Science'] === undefined, 'old school-complete: key removed');
+  assert(m['grad-program-complete:MBAX'] === true, 'grad-program-complete: kept as-is');
+
+  const students = loaded.students;
+  const total = students.cohorts.freshman + students.cohorts.sophomore + students.cohorts.junior + students.cohorts.senior;
+  assert(total === 800, `enrolled 800 -> four cohorts summing to 800 (got ${total})`);
+  assert((students as unknown as Loose).enrolled === undefined, 'old students.enrolled scalar removed');
+  assert(students.satisfactionYearWeeks === 0, 'satisfaction accumulator seeded (weeks 0)');
+  assert(students.satisfactionYearSum === 0, 'satisfaction accumulator seeded (sum 0)');
+  assert(students.priorYearAvgSatisfaction === 66, 'priorYearAvgSatisfaction seeded from current satisfaction');
+
+  const admissions = loaded.admissions as unknown as Loose;
+  assert(admissions.scholarshipRate === 0.3, 'financialAidRate 0.3 -> scholarshipRate 0.3');
+  assert(admissions.financialAidRate === undefined, 'old financialAidRate field removed');
+
+  const row = loaded.history[0] as unknown as Loose;
+  assert(row.programsEstablished === 2, 'history majorsComplete 2 -> programsEstablished 2');
+  assert(row.majorsComplete === undefined, 'old history majorsComplete field removed');
+}
+
+// ---- Test: a current-version save round-trips unchanged ----
+function testRoundTrip(): void {
+  clearSave();
+  const cur = createInitialState('RoundTrip', 'public');
+  assert(saveGame(cur), 'saveGame reports success');
+  const loaded = loadGame();
+  assert(loaded !== null, 'current-version save loads');
+  if (!loaded) return;
+  assert(loaded.self.name === 'RoundTrip', 'name survives round trip');
+  assert(loaded.self.schoolType === 'public', 'school type survives round trip');
+  assert(loaded.students.cohorts.freshman === 200, 'founding freshman cohort survives round trip');
+  assert(loaded.admissions.scholarshipRate === cur.admissions.scholarshipRate, 'scholarshipRate survives round trip');
+}
+
+// ---- Test: unmigratable / malformed saves fall back to null, never throw ----
+function testRejects(): void {
+  // A version with no migration path (v1) cannot be carried forward.
+  writeSave(1, { started: true });
+  assert(loadGame() === null, 'un-migratable version -> null');
+
+  // Not a GameState at all.
+  writeSave(SAVE_VERSION, { started: true });
+  assert(loadGame() === null, 'payload that is not a GameState -> null');
+
+  // Not even JSON.
+  store.set(SAVE_KEY, 'not json at all');
+  assert(loadGame() === null, 'unparseable save -> null');
+
+  // Nothing stored.
+  clearSave();
+  assert(loadGame() === null, 'absent save -> null');
+}
+
+console.log(`save-migration tests (SAVE_VERSION ${SAVE_VERSION})`);
+testForwardMigration();
+testRoundTrip();
+testRejects();
+
+if (failures === 0) {
+  console.log(`  ✓ all ${checks} checks passed`);
+  process.exit(0);
+} else {
+  console.error(`\n${failures} of ${checks} checks FAILED`);
+  process.exit(1);
+}

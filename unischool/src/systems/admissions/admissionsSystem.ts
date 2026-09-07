@@ -33,7 +33,7 @@ export function freshmanCapacity(s: GameState): number {
 // applicant count plus a coarse quality distribution (top / mid / low
 // bands) — never as individual applicants.
 //
-// The player sets exactly two things: tuition and an average financial-aid
+// The player sets exactly two things: tuition and an average scholarship
 // percentage. Everything else is emergent:
 //
 //   1. Applicant pool = f(prestige, tuition, satisfaction). Higher prestige
@@ -54,12 +54,12 @@ export function freshmanCapacity(s: GameState): number {
 //      applicants), and it rises (less selective) exactly when yield is
 //      weak, same as it would for a real school leaning on a big applicant
 //      pool it can't actually convert.
-//   3. Aid drives yield: not every admit enrolls. Yield rises with aid
+//   3. Scholarships drive yield: not every admit enrolls. Yield rises with scholarships
 //      (diminishing returns) and with prestige, and falls for higher-
-//      quality admits (who are more price-sensitive and cost more aid to
+//      quality admits (who are more price-sensitive and cost more scholarships to
 //      win). Enrolled class = yield x admits — capped by capacity only as
 //      a rounding safety net, since admits are already sized to target it.
-//   4. Net tuition per enrolled student = tuition x (1 - aid); that is
+//   4. Net tuition per enrolled student = tuition x (1 - scholarships); that is
 //      what flows into finance (see financeSystem.ts).
 //
 // Every curve parameter is a named constant here so balancing never means
@@ -117,8 +117,8 @@ const APPLICANT_VOLUME_STEEPNESS = 0.069;   // curve steepness around the midpoi
 // what a fixed price scale allowed: with PRICE_SENSITIVITY at 1.0 the
 // revenue-maximizing NET price is exactly the tolerance below, so a
 // founding school's best price is around $15k and a top-50 school's is
-// three times that. Price is compared NET of financial aid (tuition x
-// (1 - aid)) — aid is a discount on the sticker, so it widens the pool as
+// three times that. Price is compared NET of scholarships (tuition x
+// (1 - scholarships)) — scholarships is a discount on the sticker, so it widens the pool as
 // well as lifting yield.
 const PRICE_TOLERANCE_BASE = 5_500;             // what a school with no reputation at all can charge
 const PRICE_TOLERANCE_PER_PRESTIGE_POINT = 240; // added per point of prestige
@@ -161,12 +161,12 @@ const PRESTIGE_QUALITY_SHIFT = 0.35;         // mass moved top<-low per unit of 
 const TUITION_QUALITY_SHIFT = 0.25;          // mass moved top->low per unit of tuition/ref
 
 // --- Yield: fraction of admits in a band who actually enroll ---
-const YIELD_BASE = 0.30;                     // floor yield before aid/prestige/quality adjustments
-const AID_YIELD_STRENGTH = 0.45;             // most yield aid can add, approached with diminishing returns
-const AID_YIELD_DECAY = 3.0;                 // curvature of the diminishing-returns aid response: 1 - exp(-decay x aid)
+const YIELD_BASE = 0.30;                     // floor yield before scholarships/prestige/quality adjustments
+const SCHOLARSHIP_YIELD_STRENGTH = 0.45;             // most yield scholarships can add, approached with diminishing returns
+const SCHOLARSHIP_YIELD_DECAY = 3.0;                 // curvature of the diminishing-returns scholarships response: 1 - exp(-decay x scholarships)
 const PRESTIGE_YIELD_STRENGTH = 0.25;        // yield added per unit of (prestige-ref)/ref, for free
 // Higher-quality admits are more price-sensitive, so they yield lower at a
-// given aid level (and cost more aid to win): the top band pays the biggest
+// given scholarships level (and cost more scholarships to win): the top band pays the biggest
 // yield penalty, the low band none.
 const YIELD_QUALITY_PENALTY = { top: 0.22, mid: 0.10, low: 0.0 };
 
@@ -179,7 +179,7 @@ const QUALITY_BAND_SCORE = { top: 90, mid: 55, low: 20 };
 type QualityBand = 'top' | 'mid' | 'low';
 
 // The emergent outcome of the funnel for a given policy. Everything here is
-// a displayed consequence of the two inputs (tuition, aid), not an input.
+// a displayed consequence of the two inputs (tuition, scholarships), not an input.
 export interface AdmissionsProjection {
   applicants: number;          // total applicant pool, after word of mouth
   wordOfMouthMultiplier: number; // satisfaction's multiplier on the pool (1.0 = neutral) — see WORD_OF_MOUTH_STRENGTH
@@ -188,7 +188,7 @@ export interface AdmissionsProjection {
   yieldRate: number;           // enrolled / admits — the emergent yield
   enrolled: number;            // enrolled class = yield x admits, capped by capacity
   avgIncomingQuality: number;  // 0..100 weighted-average quality of the enrolled class — an input to prestige
-  netTuitionPerStudent: number; // tuition x (1 - aid): what actually flows into finance
+  netTuitionPerStudent: number; // tuition x (1 - scholarships): what actually flows into finance
 }
 
 function clamp(v: number, lo: number, hi: number): number {
@@ -205,7 +205,7 @@ export function priceTolerance(prestige: number): number {
 }
 
 // Total applicant count as a function of prestige and NET price (tuition
-// after aid). See the constants above for the shape and the numbers this
+// after scholarships). See the constants above for the shape and the numbers this
 // is tuned against.
 function applicantVolume(prestige: number, netPrice: number): number {
   const prestigePool = APPLICANT_VOLUME_CEILING /
@@ -238,30 +238,30 @@ function qualityMix(prestige: number, tuition: number): Record<QualityBand, numb
   return { top: top / sum, mid: mid / sum, low: low / sum };
 }
 
-// Yield for one quality band: aid (diminishing returns) and prestige lift
+// Yield for one quality band: scholarships (diminishing returns) and prestige lift
 // it, higher band quality drags it down.
-function bandYield(prestige: number, aid: number, band: QualityBand): number {
-  const aidTerm = AID_YIELD_STRENGTH * (1 - Math.exp(-AID_YIELD_DECAY * clamp(aid, 0, 1)));
+function bandYield(prestige: number, scholarshipRate: number, band: QualityBand): number {
+  const scholarshipTerm = SCHOLARSHIP_YIELD_STRENGTH * (1 - Math.exp(-SCHOLARSHIP_YIELD_DECAY * clamp(scholarshipRate, 0, 1)));
   const prestigeTerm = PRESTIGE_YIELD_STRENGTH * (prestige - PRESTIGE_REFERENCE) / PRESTIGE_REFERENCE;
-  return clamp(YIELD_BASE + aidTerm + prestigeTerm - YIELD_QUALITY_PENALTY[band], 0, 1);
+  return clamp(YIELD_BASE + scholarshipTerm + prestigeTerm - YIELD_QUALITY_PENALTY[band], 0, 1);
 }
 
 // Pure funnel resolution. Given the school's prestige, the OPEN SEATS the
 // entering class may fill (total capacity minus the returning cohorts — see
 // freshmanCapacity below), and the trailing-year student satisfaction that
-// drives word of mouth, plus the player's two levers (tuition, aid), returns
+// drives word of mouth, plus the player's two levers (tuition, scholarships), returns
 // the full set of emergent outcomes. `enrolled` here is the incoming FRESHMAN
 // class, not the whole body. No individual applicants are modeled — only band
 // aggregates.
 export function projectAdmissions(
   prestige: number,
   tuition: number,
-  aid: number,
+  scholarshipRate: number,
   openCapacity: number,
   satisfaction: number,
 ): AdmissionsProjection {
   const wordOfMouth = wordOfMouthFactor(satisfaction);
-  const netPrice = Math.max(tuition, 0) * (1 - clamp(aid, 0, 1));
+  const netPrice = Math.max(tuition, 0) * (1 - clamp(scholarshipRate, 0, 1));
   const applicants = applicantVolume(prestige, netPrice) * wordOfMouth;
   const mix = qualityMix(prestige, tuition);
   const pool: Record<QualityBand, number> = {
@@ -275,9 +275,9 @@ export function projectAdmissions(
   // admits it takes to fill a given amount of capacity.
   const bands: QualityBand[] = ['top', 'mid', 'low'];
   const yieldByBand: Record<QualityBand, number> = {
-    top: bandYield(prestige, aid, 'top'),
-    mid: bandYield(prestige, aid, 'mid'),
-    low: bandYield(prestige, aid, 'low'),
+    top: bandYield(prestige, scholarshipRate, 'top'),
+    mid: bandYield(prestige, scholarshipRate, 'mid'),
+    low: bandYield(prestige, scholarshipRate, 'low'),
   };
 
   // Skim from the top of the distribution, admitting enough of each band
@@ -329,7 +329,7 @@ export function projectAdmissions(
     yieldRate: admits > 0 ? enrolled / admits : 0,
     enrolled,
     avgIncomingQuality,
-    netTuitionPerStudent: Math.round(tuition * (1 - clamp(aid, 0, 1))),
+    netTuitionPerStudent: Math.round(tuition * (1 - clamp(scholarshipRate, 0, 1))),
   };
 }
 
@@ -350,7 +350,7 @@ export function tickAdmissions(s: GameState): void {
       type: 'admissions',
       payload: {
         tuition: s.finance.tuitionPerStudent,
-        financialAidRate: s.admissions.financialAidRate,
+        scholarshipRate: s.admissions.scholarshipRate,
       },
     };
   }

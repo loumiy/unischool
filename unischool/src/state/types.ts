@@ -444,14 +444,14 @@ export interface EventState {
 
 // The player's admissions policy, set once a year via the summer interrupt
 // (see README's "Admissions: an annual summer decision"). In the funnel
-// model there are exactly two player inputs: tuition and average aid.
+// model there are exactly two player inputs: tuition and average scholarships.
 // Tuition itself lives on Finance (the single source of truth for the
-// actual price charged); the only policy that lives here is the aid rate.
+// actual price charged); the only policy that lives here is the scholarships rate.
 // Selectivity and enrollment are NOT inputs — they are emergent outcomes of
-// the funnel (see admissionsSystem.ts). financialAidRate + tuition together
+// the funnel (see admissionsSystem.ts). scholarshipRate + tuition together
 // describe the price the student actually faces.
 export interface AdmissionsSettings {
-  financialAidRate: number; // 0..1, average tuition discount across admits
+  scholarshipRate: number; // 0..1, average tuition discount across admits
 }
 
 export interface Rival {

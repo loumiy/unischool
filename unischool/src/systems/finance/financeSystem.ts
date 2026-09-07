@@ -123,7 +123,7 @@ const INSTRUCTION_PER_STUDENT_PER_COURSE_OFFERED = 1.00;
 // =====================================================================
 
 // Tuition (player-set once a year via the summer admissions interrupt)
-// times the class the funnel committed, net of financial aid, is the main
+// times the class the funnel committed, net of scholarships, is the main
 // line and the slowest to react: a decision made this week shows up in
 // revenue after the NEXT summer's funnel resolves.
 //
@@ -223,7 +223,7 @@ export function endowmentCampaign(s: GameState): EndowmentCampaign {
 // rather than two that can disagree.
 export interface FinanceBreakdown {
   // income
-  tuitionRevenue: number;      // enrolled x tuition, net of financial aid
+  tuitionRevenue: number;      // enrolled x tuition, net of scholarships
   prestigeRevenue: number;     // the reputation dividend: donors/grants/brand, independent of enrollment
   endowmentPayout: number;     // the endowment's annual spend rate, sliced into weeks
   baselineFunding: number;     // school-type baseline: a flat appropriation plus a per-student one (0 for private)
@@ -266,7 +266,7 @@ export function instructionCostPerStudent(s: GameState): number {
 // sync. Pure: reads state, writes nothing.
 export function financeBreakdown(s: GameState): FinanceBreakdown {
   const enrolled = totalEnrolled(s.students);
-  const netTuitionPerStudent = s.finance.tuitionPerStudent * (1 - s.admissions.financialAidRate);
+  const netTuitionPerStudent = s.finance.tuitionPerStudent * (1 - s.admissions.scholarshipRate);
   const tuitionRevenue = (enrolled * netTuitionPerStudent) / WEEKS_PER_YEAR;
   const prestigeRevenue = (s.self.reputation * REPUTATION_DIVIDEND_PER_POINT_PER_YEAR) / WEEKS_PER_YEAR;
   const endowmentPayout = (s.finance.endowment * ENDOWMENT_PAYOUT_RATE) / WEEKS_PER_YEAR;
@@ -352,7 +352,7 @@ export function tickFinance(s: GameState): void {
 //     never un-finish, so a school's floor prestige never falls back to a
 //     founding school's.
 //  4. Two zero-cost recovery levers are always available: the annual
-//     tuition/aid decision (a lower net price widens the pool
+//     tuition/scholarships decision (a lower net price widens the pool
 //     immediately — see admissionsSystem.ts's price tolerance) and firing
 //     faculty, which is the largest single line on the expense side.
 //  5. The endowment pays out every week regardless of the operating

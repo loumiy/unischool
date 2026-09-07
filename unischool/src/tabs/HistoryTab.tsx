@@ -155,14 +155,14 @@ export default function HistoryTab({ s }: { s: GameState }) {
             years={years}
             values={history.map((h) => h.prestige)}
             format={(v) => `${Math.round(v)}`}
-            note="A slow-moving stock: it drifts once a year toward a target set by curriculum breadth, selectivity and student quality."
+            note="A slow-moving stock: it drifts a little each week toward a target set by curriculum breadth, selectivity, student quality, faculty and research."
           />
           <HistoryChart
             label="Enrollment"
             years={years}
             values={history.map((h) => h.enrolled)}
             format={(v) => Math.round(v).toLocaleString()}
-            note="The class each summer's funnel committed — capped by beds, fed by prestige, aid and word of mouth."
+            note="The class each summer's funnel committed — capped by beds, fed by prestige, scholarships and word of mouth."
           />
           <HistoryChart
             label="Operating funds"

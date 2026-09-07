@@ -103,7 +103,7 @@ export type Action =
   | { type: 'LAUNCH_ENDOWMENT_CAMPAIGN' }
   | { type: 'RESOLVE_INTERRUPT' }                      // clears pendingInterrupt, lets the clock resume
   // Resolves the annual summer admissions interrupt: sets next year's two
-  // policy levers (tuition, aid), runs the admissions funnel to commit the
+  // policy levers (tuition, scholarships), runs the admissions funnel to commit the
   // enrolled class, and — unlike RESOLVE_INTERRUPT — advances the clock into
   // that year itself (see reducer.ts). Tuition is set ONLY here, once a
   // year — there is no other action that changes it.
@@ -113,7 +113,7 @@ export type Action =
   // recognising. Every pending petition NOT listed is declined, and the
   // queue drains either way — so the digest can never accumulate across
   // years, and clubs never need a stop-the-clock modal of their own.
-  | { type: 'RESOLVE_ADMISSIONS'; tuition: number; financialAidRate: number; approvedPetitionIds: string[] }
+  | { type: 'RESOLVE_ADMISSIONS'; tuition: number; scholarshipRate: number; approvedPetitionIds: string[] }
   // Dismisses the "you've entered the rankings" reveal or an annual U.S.
   // News report interrupt. Like RESOLVE_ADMISSIONS (and unlike the plain
   // RESOLVE_INTERRUPT), this advances the clock — both fire as a trailing
@@ -158,7 +158,7 @@ export type Action =
   | { type: 'RESOLVE_DECISION_EVENT'; eventId: string; choiceId: string; ctx: DecisionEventContext }
   // Sets the one athletics-wide funding lever (see data/studentLifeData.ts's
   // ATHLETICS_INVESTMENT_TIERS). Free and reversible at any time — unlike
-  // tuition/aid this is not an annual policy decision, it's a standing dial
+  // tuition/scholarships this is not an annual policy decision, it's a standing dial
   // the player can adjust as often as they like, so there is nothing to
   // refuse and no cost charged here.
   | { type: 'SET_ATHLETICS_INVESTMENT'; tier: AthleticsInvestmentTier }
@@ -194,7 +194,7 @@ export function createPreStartState(): GameState {
       satisfactionYearSum: 0, satisfactionYearWeeks: 0, priorYearAvgSatisfaction: 0,
       applicantPool: 0, admitRate: 0, incomingQuality: 0,
     },
-    admissions: { financialAidRate: 0 },
+    admissions: { scholarshipRate: 0 },
     faculty: [],
     tech: [],
     developing: {},
@@ -269,13 +269,13 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       admitRate: 0.5,
       incomingQuality: 50,
     },
-    // Year 1 runs under this founding default (no aid) with the starting
+    // Year 1 runs under this founding default (no scholarships) with the starting
     // enrolled/applicant figures below — no school-type variation here,
     // unlike tuitionCeiling/startingApplicantPool. The first real admissions
     // interrupt, at the end of year 1, runs the funnel and sets year 2's
-    // enrolled class from the player's tuition and aid choices.
+    // enrolled class from the player's tuition and scholarships choices.
     admissions: {
-      financialAidRate: 0,
+      scholarshipRate: 0,
     },
     // Founding faculty are already-established hires, not brand-new
     // candidates — a small headroom to their potential (rather than

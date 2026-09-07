@@ -341,7 +341,7 @@ export function reducer(state: GameState, action: Action): GameState {
       // Tuition is set ONLY here, once a year — see README's "Admissions:
       // an annual summer decision" and the removed live SET_TUITION control.
       s.finance.tuitionPerStudent = Math.max(0, Math.min(action.tuition, s.finance.tuitionCeiling));
-      s.admissions = { financialAidRate: clamp01(action.financialAidRate) };
+      s.admissions = { scholarshipRate: clamp01(action.scholarshipRate) };
 
       resolveStudentLifeDigest(s, action.approvedPetitionIds);
 
@@ -376,7 +376,7 @@ export function reducer(state: GameState, action: Action): GameState {
       const outcome = projectAdmissions(
         s.self.reputation,
         s.finance.tuitionPerStudent,
-        s.admissions.financialAidRate,
+        s.admissions.scholarshipRate,
         openSeats,
         priorYearAvgSatisfaction,
       );
@@ -401,7 +401,7 @@ export function reducer(state: GameState, action: Action): GameState {
       s.log.unshift({
         year: s.clock.year,
         week: s.clock.week,
-        message: `Admissions: tuition $${s.finance.tuitionPerStudent.toLocaleString()}/yr, ${Math.round(s.admissions.financialAidRate * 100)}% aid — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admit rate, ${outcome.enrolled} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
+        message: `Admissions: tuition $${s.finance.tuitionPerStudent.toLocaleString()}/yr, ${Math.round(s.admissions.scholarshipRate * 100)}% scholarships — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admit rate, ${outcome.enrolled} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
         kind: 'info',
       });
 

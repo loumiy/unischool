@@ -41,7 +41,10 @@ import { initialFacilities } from '../data/facilitiesData';
 
 // The single key every save lives under. One key, not one per slot: there
 // is exactly one run at a time, and a save overwrites the previous one.
-const SAVE_KEY = 'unischool.save';
+// Exported so the save-migration test harness (see test/save-migrations.test.ts)
+// can seed an old-version payload under the exact key loadGame reads, exercising
+// the real load+migrate path rather than a copy of it.
+export const SAVE_KEY = 'unischool.save';
 
 // Bump this whenever GameState's SHAPE changes in a way an older save
 // can't satisfy — a new required field, a renamed/retyped field, a changed
@@ -442,7 +445,11 @@ const SAVE_KEY = 'unischool.save';
 // accumulator is seeded empty with priorYearAvgSatisfaction set to the
 // current satisfaction, so the next funnel behaves as before until a real
 // year accumulates. See MIGRATIONS[19].
-export const SAVE_VERSION = 20;
+//
+// v20 -> v21: scholarships terminology. AdmissionsSettings.financialAidRate is
+// renamed to scholarshipRate — a straight field rename, meaning unchanged. See
+// MIGRATIONS[20].
+export const SAVE_VERSION = 21;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1076,6 +1083,21 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     students.satisfactionYearSum ??= 0;
     students.satisfactionYearWeeks ??= 0;
     students.priorYearAvgSatisfaction ??= students.satisfaction ?? 70;
+  },
+
+  // v20 -> v21: scholarships terminology (see README's "Admissions"). A
+  // straight rename of AdmissionsSettings.financialAidRate to scholarshipRate
+  // with no change in meaning — it is the same 0..1 average tuition discount —
+  // so a resumed run keeps its exact admissions policy.
+  20: (state) => {
+    const admissions = state.admissions as unknown as {
+      financialAidRate?: number;
+      scholarshipRate?: number;
+    };
+    if (admissions.scholarshipRate === undefined) {
+      admissions.scholarshipRate = admissions.financialAidRate ?? 0;
+    }
+    delete admissions.financialAidRate;
   },
 };
 
