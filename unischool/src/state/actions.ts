@@ -9,6 +9,7 @@ import { initialRivals } from '../data/rivalData';
 import { initialCandidatePool, facultySalary } from '../data/facultyData';
 import {
   SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION, STARTING_ENDOWMENT, STARTING_TUITION,
+  FOUNDING_COHORTS,
 } from '../data/schoolTypeData';
 
 // A founded university now opens with an EMPTY campus: nothing is seeded
@@ -233,10 +234,15 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       weeklyOpEx: 0,
     },
     students: {
-      // Founding ramp: a brand-new college opens with a freshman class only;
-      // the body fills out to four cohorts over its first four years as
-      // classes advance (see README's "Students: four aggregate cohorts").
-      cohorts: { freshman: 200, sophomore: 0, junior: 0, senior: 0 },
+      // Founding mix: a brand-new college opens with ALL FOUR class years
+      // present as a gentle declining ramp (more underclassmen than
+      // upperclassmen), not a freshman class only — so there is a graduating
+      // class and a full cohort cross-section from year one. The four still
+      // sum to the same founding total (200), so year-1 revenue is unchanged;
+      // only the distribution differs. The ramp shape is tunable — see
+      // FOUNDING_COHORTS in schoolTypeData.ts, and the cohort-smoothing note
+      // in ALIGNMENT_ROADMAP.md for the transition-to-steady-cycles model.
+      cohorts: { ...FOUNDING_COHORTS },
       // Capacity comes entirely from dorms (see campusData.ts), and the
       // campus opens with none built — so a founding school starts with ZERO
       // beds and grows capacity only as it builds housing. The founding class

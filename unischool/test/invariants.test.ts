@@ -165,7 +165,17 @@ function relPath(f: string): string {
   for (const v of Object.values(s.students.cohorts)) {
     assert(typeof v === 'number', 'every cohort is a plain count, not a list of individuals');
   }
-  assert(totalEnrolled(s.students) === s.students.cohorts.freshman, 'founding total equals the founding freshman class');
+  // A founded college opens with all four class years present as a gentle
+  // declining ramp (freshman >= sophomore >= junior >= senior, all > 0), and
+  // the derived total is exactly their sum (nothing stores a separate total
+  // that could drift). See actions.ts's createInitialState / FOUNDING_COHORTS.
+  const fc = s.students.cohorts;
+  assert(fc.freshman > 0 && fc.sophomore > 0 && fc.junior > 0 && fc.senior > 0,
+    'founding body has all four cohorts populated, not freshmen only');
+  assert(fc.freshman >= fc.sophomore && fc.sophomore >= fc.junior && fc.junior >= fc.senior,
+    'founding cohorts form a declining ramp (more underclassmen than upperclassmen)');
+  assert(totalEnrolled(s.students) === fc.freshman + fc.sophomore + fc.junior + fc.senior,
+    'founding total equals the sum of the four cohorts');
 }
 
 // =====================================================================

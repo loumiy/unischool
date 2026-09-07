@@ -55,6 +55,37 @@ export interface SchoolTypePreset {
 export const STARTING_TUITION = 13_000;
 export const STARTING_ENDOWMENT = 3_000_000; // pays out ~$120k/yr from day one (see financeSystem.ts's ENDOWMENT_PAYOUT_RATE)
 
+// --- Founding cohort mix (see actions.ts's createInitialState) ---------
+// A young college opens with ALL FOUR class years present, not freshmen
+// only: a gentle DECLINING RAMP — more underclassmen than upperclassmen —
+// which reads as a school still growing into itself, puts a graduating
+// class on the books from year one, and seeds the cohort cross-section
+// closer to a running institution's than the old all-freshman lump did.
+//
+// The four counts sum to FOUNDING_BODY, so founding total enrollment (and
+// therefore year-1 tuition revenue) is unchanged from the old 200-freshman
+// seed — only the DISTRIBUTION across class years changes.
+//
+// The ramp's steepness is the fine-tuning knob. It is expressed as a
+// per-year intake growth STEP: the school is modeled as having grown its
+// entering class by FOUNDING_INTAKE_STEP students a year over its first
+// four years, so senior = base, junior = base + step, and so on, with the
+// base solved to hit FOUNDING_BODY. step = 0 gives a perfectly balanced
+// body (50/50/50/50) — the smoothest possible first admissions cycles;
+// a larger step gives a more visibly brand-new school at the cost of a
+// lumpier ramp. See the cohort-smoothing note in ALIGNMENT_ROADMAP.md for
+// why the mix alone cannot fully de-lump the cycle (the advance is a
+// zero-damping shift register) and what the fuller fix would require.
+export const FOUNDING_BODY = 200;         // total founding enrollment across the four cohorts
+const FOUNDING_INTAKE_STEP = 10;          // modeled per-year growth in the entering class over the school's first four years
+const FOUNDING_BASE = (FOUNDING_BODY - 6 * FOUNDING_INTAKE_STEP) / 4; // senior cohort; solved so the four sum to FOUNDING_BODY
+export const FOUNDING_COHORTS = {
+  freshman: FOUNDING_BASE + 3 * FOUNDING_INTAKE_STEP,
+  sophomore: FOUNDING_BASE + 2 * FOUNDING_INTAKE_STEP,
+  junior: FOUNDING_BASE + FOUNDING_INTAKE_STEP,
+  senior: FOUNDING_BASE,
+} as const; // { freshman: 65, sophomore: 55, junior: 45, senior: 35 } at step 10
+
 export const SCHOOL_TYPE_PRESETS: Record<SchoolType, SchoolTypePreset> = {
   private: {
     label: 'Private',

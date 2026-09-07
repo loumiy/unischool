@@ -769,3 +769,87 @@ cleanup, and not started):
   multi-component model the brief gestures at as a long-term direction).
 - Any mechanical use of campus-map spatial relationships (placement stays
   cosmetic, by design, with the architecture left open for this).
+
+---
+
+## Follow-up note (post-merge): founding cohort mix + admissions-cycle smoothing
+
+*Added after the A–H cleanup. Records the founding-mix change and the model
+behind it — referenced from `README.md`'s "Students" section, from
+`schoolTypeData.ts`'s `FOUNDING_COHORTS`, and from `actions.ts`.*
+
+### What shipped
+
+The founding student body no longer opens as a **freshman class only**
+(`{ 200, 0, 0, 0 }`). It now opens with **all four class years present** as a
+gentle declining ramp, `FOUNDING_COHORTS = { freshman: 65, sophomore: 55,
+junior: 45, senior: 35 }` — the same founding total of **200**, only
+redistributed. Effects: a graduating class exists from year one, the cohort
+cross-section a new player sees is that of a running institution, and year-1
+tuition revenue is unchanged (total body is identical).
+
+The mix is parameterized by a single knob, `FOUNDING_INTAKE_STEP` (the modeled
+per-year growth of the entering class over the school's first four years):
+`step = 0` → perfectly balanced `50/50/50/50`; larger step → a steeper,
+more-visibly-new ramp. Default `step = 10`.
+
+### Why the mix alone cannot make the cycle "natural" — the shift-register model
+
+The cohort advance in `RESOLVE_ADMISSIONS` is a **zero-damping shift register**:
+each summer seniors leave, every younger cohort shifts up one slot, and the
+freshman intake is exactly `capacity − (sophomore + junior + senior)`. There is
+no attrition and no mixing between cohorts, so **any deviation from a flat,
+balanced body persists forever** — it does not decay, it re-circulates on a
+four-year period.
+
+The dominant source of lumpiness is therefore **not** the opening mix but the
+**gap between the founding body (200) and the capacity the player later
+builds** (the founding hall alone is 350 beds, and the chain grows from there).
+That gap is filled by *one* oversized freshman class, which then re-graduates as
+a wave every four years. Simulated intake, capacity jumping to 800 in year 1
+and held (intake per year, steady state in **bold**):
+
+| founding body            | intake sequence (years 1–8)              |
+|--------------------------|------------------------------------------|
+| all-freshman `200/0/0/0` | 600, 0, 0, 200, **600, 0, 0, 200**       |
+| declining `80/60/40/20`  | 620, 40, 60, 80, **620, 40, 60, 80**     |
+| balanced `50/50/50/50`   | 650, 50, 50, 50, **650, 50, 50, 50**     |
+
+Note the balanced start still spikes: the 600-bed gap between the 200 body and
+the 800 capacity is the wave, regardless of how the 200 is split. The mix
+changes the *early* cross-section (and is worth doing for that), but the
+asymptotic wave is a capacity-gap phenomenon.
+
+### Proposal: how to fine-tune toward a natural yearly cycle
+
+The steady state is simple: with capacity `C` held constant and the four
+cohorts each at `C/4`, intake and graduation are both `C/4` every year, flat
+forever. Three levers move the game toward that, in increasing order of scope:
+
+1. **Flatten the mix (shipped, tunable).** Lower `FOUNDING_INTAKE_STEP` toward
+   0. This is cosmetic for the asymptotic wave but does make the opening years
+   read more like a steady institution. Cheap, no spec change.
+
+2. **Couple the founding body to the founding capacity (recommended next
+   step).** The wave is proportional to `builtCapacity − foundingBody`. If a
+   founded school opened with its first hall already standing (capacity 350)
+   and a **balanced** body sized to it (~`87/88` per cohort), intake would sit
+   near `C/4 ≈ 88` from year one with no gap to re-circulate. This is the only
+   change that actually removes the first wave — but it is a **spec change**:
+   it contradicts README's "campus opens empty; the player builds Founders Hall
+   in year one," and it raises founding revenue (bigger body). It also softens
+   the "over-built beds are a felt mistake" pacing, so it needs an explicit
+   design call, not a silent tune. Left for the maintainer to decide.
+
+3. **Damp the shift register (largest scope).** Give the advance somewhere for a
+   lump to go: e.g. cap each summer's intake at a smoothed fraction of the open
+   gap (fill new capacity over a few years instead of in one class), or add a
+   small satisfaction-driven attrition term (README already flags retention as a
+   deliberately-deferred hook). Either turns the permanent four-year wave into a
+   decaying transient. This is a mechanics change to the funnel, not a tuning
+   pass.
+
+Recommendation: keep the shipped mix (1) as the immediate improvement; treat
+(2) as the real fix and put it to a design decision (founding capacity vs. the
+empty-campus pacing intent); hold (3) as the general-purpose smoother if waves
+remain objectionable after (2).

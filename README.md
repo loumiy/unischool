@@ -491,10 +491,18 @@ The settled v1 rules:
   to fill whatever seats the three returning cohorts leave open
   (`freshmanCapacity()`), so over-built beds still sit empty and cost money —
   the pacing the finance model depends on.
-- **Founding ramp.** A new college opens with a **freshman class only** (200);
-  the body fills out to four cohorts over its first four years as classes
-  advance. Early-year revenue is correspondingly lower — the honest cost of a
-  brand-new institution.
+- **Founding mix.** A new college opens with **all four class years present**,
+  as a gentle **declining ramp** — more underclassmen than upperclassmen
+  (`FOUNDING_COHORTS`, `65 / 55 / 45 / 35`, summing to the same founding total
+  of 200). This reads as a young school still growing into itself, puts a
+  graduating class on the books from year one, and seeds the cohort
+  cross-section closer to a running institution's than an all-freshman lump
+  did. The ramp's steepness is a tuning knob (flatter → smoother first
+  admissions cycles, steeper → a more visibly brand-new school). Note the mix
+  alone does **not** fully de-lump the early cycles — the cohort advance is a
+  zero-damping shift register, so any gap between the founding body and the
+  capacity the player later builds re-graduates as a four-year wave; see the
+  cohort-smoothing note in `ALIGNMENT_ROADMAP.md`.
 
 Implemented in the four-cohort model (`students.cohorts`), with a save
 migration that splits an existing `students.enrolled` scalar evenly across the
