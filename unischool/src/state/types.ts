@@ -304,34 +304,18 @@ export interface Placement extends TileCoord, Footprint {}
 export type Placements = Record<string, Placement>;
 
 // ---------------------------------------------------------------------
-// PATHWAYS: purely decorative walkways drawn along tile EDGES, not tiles
-// themselves (see CampusMap.tsx). A path must be able to run in the gutter
-// between two adjacent buildings, so it can never be "a tile" — it has to
-// be thinner than one. Free to draw, free to delete, read by no system:
-// exactly as cosmetic as the map itself, one layer further in.
+// PATHWAYS: purely decorative walkway TILES (see CampusMap.tsx) — a drawn
+// path fills a whole grid square, the same unit a building's footprint is
+// measured in, rather than tracing a line along the boundary between two
+// tiles. Free to draw, free to delete, read by no system: exactly as
+// cosmetic as the map itself, one layer further in.
 //
-// An edge is identified by the grid LINE it lies on, not by either tile it
-// borders — that's what makes "the edge between two occupied tiles" and "the
-// edge around the grid's own boundary" the same kind of thing instead of a
-// special case. Picture the (CAMPUS_GRID_HEIGHT+1) x (CAMPUS_GRID_WIDTH+1)
-// grid of tile CORNERS: a 'h' edge runs along one row of that corner grid,
-// from corner (row, col) to (row, col+1) — the top of tile (row, col), or
-// equivalently the bottom of tile (row-1, col) — so row ranges 0..HEIGHT
-// inclusive and col ranges 0..WIDTH-1. A 'v' edge runs from corner (row,
-// col) to (row+1, col) — the left of tile (row, col) / the right of tile
-// (row, col-1) — so row ranges 0..HEIGHT-1 and col ranges 0..WIDTH
-// inclusive. Every edge — interior or on the grid's own boundary — has
-// exactly one such (orientation, row, col), which is what makes the Set
-// below dedupe for free: drawing the same edge twice writes the same key.
-export type EdgeOrientation = 'h' | 'v';
-
-export interface PathEdge {
-  orientation: EdgeOrientation;
-  row: number;
-  col: number;
-}
-
-// Drawn edges, keyed by campusMap.ts's edgeKey(). A plain string -> true
+// A path tile is identified by its own {row, col} — the same TileCoord
+// every other grid-square concept (a footprint's tiles, a placement's
+// anchor) already uses — so "this tile has a path on it" needs no scheme
+// of its own beyond the ordinary tile grid.
+//
+// Drawn tiles, keyed by campusMap.ts's pathTileKey(). A plain string -> true
 // record rather than a Set: GameState is JSON round-tripped whole (see
 // persistence.ts), so no Map/Set may appear anywhere in it, the same
 // constraint `placements` and `developing` are already under. Presence is
@@ -705,7 +689,7 @@ export interface GameState {
   tech: Buildable[];
   developing: Record<string, number>; // course id -> weeks remaining
   placements: Placements;            // Buildable id -> the campus tiles it covers; visual only (see the campus map block above)
-  pathways: Pathways;                 // drawn tile-edge walkways; visual only, read by no system (see the Pathways block above)
+  pathways: Pathways;                 // drawn walkway tiles; visual only, read by no system (see the Pathways block above)
   rivals: Rival[];
   self: University;
   history: YearSnapshot[];       // one entry per completed in-game year, oldest first — the game's only time series (see YearSnapshot above)

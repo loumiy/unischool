@@ -1,7 +1,7 @@
 import type { Buildable, FacilityType, GameState, Pathways, Placement, StudentClub } from './types';
 import {
-  edgeKey, firstFreeSpot, footprintFits, footprintIsClear, footprintOf, isEdgeInBounds, isPlaceableKind,
-  parseEdgeKey, placementFor,
+  firstFreeSpot, footprintFits, footprintIsClear, footprintOf, isInBounds, isPlaceableKind,
+  parsePathTileKey, pathTileKey, placementFor,
 } from './campusMap';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from './types';
 import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES } from '../data/facultyData';
@@ -494,7 +494,21 @@ export const SAVE_KEY = 'unischool.save';
 // next opened. Every candidate currently on the market is marked seen
 // outright (not just the "needed" ones), since the whole point is that a
 // resumed roster is not news.
-export const SAVE_VERSION = 23;
+//
+// v23 -> v24: pathways switched from edges to tiles (see CampusMap.tsx and
+// types.ts's Pathways block). A drawn path used to be a line along the
+// boundary between two tiles (an `orientation:row:col` key on the grid of
+// tile CORNERS); it is now a whole tile (a `row,col` key on the ordinary
+// tile grid), matching how it's rendered — filling a square, not straddling
+// one. The two key shapes don't correspond 1:1 (an edge touches two tiles,
+// neither more "the" tile than the other), so there is no reading of "what
+// the player meant" to carry forward — the same reasoning v16 -> v17 used
+// to drop `placements` outright for the footprint rescale, rather than
+// re-solve a layout under a scheme that no longer applies. `pathways` is
+// simply reset to `{}`: purely decorative, read by no system, so a
+// resuming player loses some drawn walkways and nothing else. See
+// MIGRATIONS[23].
+export const SAVE_VERSION = 24;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1201,6 +1215,19 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     for (const c of state.candidates ?? []) candidateIds[c.id] = true;
     state.seen = { courseIds, buildableIds, candidateIds };
   },
+
+  // v23 -> v24: pathways switched from edges to tiles (see SAVE_VERSION
+  // above). The old edge-keyed set has no 1:1 reading under the new
+  // tile-keyed scheme, so this simply drops it — a pure reset, the same
+  // "nothing sensible to carry forward" call v13 -> v14 made when pathways
+  // didn't exist yet at all, and v16 -> v17 made for `placements` under the
+  // footprint rescale. sanitizePathways (run unconditionally on every load)
+  // would reject every old edge key anyway, since none of them parse as a
+  // `row,col` tile key — this just makes that outcome explicit rather than
+  // relying on the defensive read to arrive at the same empty set.
+  23: (state) => {
+    state.pathways = {};
+  },
 };
 
 // Placement hygiene, run on EVERY load (migrated or not). The map is a
@@ -1266,18 +1293,18 @@ function sanitizePlacements(state: GameState): void {
 // sanitizePlacements above for exactly the same reason: pathways are a
 // visual layer no system reads, so a bad entry can't corrupt the sim, but
 // it could still render a stray path off the edge of the grid — and unlike
-// placements, an edge key is a free-form string nothing has type-checked
+// placements, a tile key is a free-form string nothing has type-checked
 // since it left localStorage. Two things get dropped:
-//   - unparseable keys: not the `orientation:row:col` shape this version
-//     ever wrote (see campusMap.ts's parseEdgeKey).
-//   - out of bounds: an edge that doesn't exist on the CURRENT grid. Unlike
-//     a placement's anchor there is nothing sensible to nudge an edge back
-//     to — it's a line, not a rectangle with room to slide — so an
-//     out-of-bounds edge is simply dropped rather than clamped. The grid
-//     has only ever grown, so this is dormant today; it exists for the day
-//     CAMPUS_GRID_WIDTH/HEIGHT shrink, the same forward-looking reason
-//     sanitizePlacements already clamps rather than assumes.
-// A dropped edge costs the player nothing mechanically — it was decoration
+//   - unparseable keys: not the `row,col` shape this version ever wrote
+//     (see campusMap.ts's parsePathTileKey).
+//   - out of bounds: a tile that doesn't exist on the CURRENT grid. Unlike
+//     a placement's anchor there is nothing sensible to nudge a path tile
+//     back to — it's a single square with no footprint to slide within —
+//     so an out-of-bounds tile is simply dropped rather than clamped. The
+//     grid has only ever grown, so this is dormant today; it exists for
+//     the day CAMPUS_GRID_WIDTH/HEIGHT shrink, the same forward-looking
+//     reason sanitizePlacements already clamps rather than assumes.
+// A dropped tile costs the player nothing mechanically — it was decoration
 // referencing ground that no longer exists.
 function sanitizePathways(state: GameState): void {
   if (typeof state.pathways !== 'object' || state.pathways === null) {
@@ -1287,9 +1314,9 @@ function sanitizePathways(state: GameState): void {
   const clean: Pathways = {};
   for (const [key, value] of Object.entries(state.pathways)) {
     if (value !== true) continue;
-    const edge = parseEdgeKey(key);
-    if (!edge || !isEdgeInBounds(edge)) continue;
-    clean[edgeKey(edge)] = true;
+    const tile = parsePathTileKey(key);
+    if (!tile || !isInBounds(tile.row, tile.col)) continue;
+    clean[pathTileKey(tile)] = true;
   }
   state.pathways = clean;
 }

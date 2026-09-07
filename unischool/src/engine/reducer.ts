@@ -19,8 +19,8 @@ import {
   CLUB_APPROVAL_SATISFACTION_NUDGE, CLUB_DECLINE_SATISFACTION_HIT, activatePetition,
 } from '../data/studentLifeData';
 import {
-  canPlace, canSiteRetroactively, edgeKey, footprintOf, isEdgeInBounds, isPlaceableKind,
-  orientedFootprint, placementFor, RETROACTIVE_SITING_COST,
+  canPlace, canSiteRetroactively, footprintOf, isInBounds, isPlaceableKind,
+  orientedFootprint, pathTileKey, placementFor, RETROACTIVE_SITING_COST,
 } from '../state/campusMap';
 import { captureYearSnapshot } from '../state/history';
 import { saveGame, clearSave } from '../state/persistence';
@@ -303,13 +303,13 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
-    case 'ADD_PATH_EDGE': {
-      if (isEdgeInBounds(action.edge)) s.pathways[edgeKey(action.edge)] = true;
+    case 'ADD_PATH_TILE': {
+      if (isInBounds(action.tile.row, action.tile.col)) s.pathways[pathTileKey(action.tile)] = true;
       return s;
     }
 
-    case 'REMOVE_PATH_EDGE': {
-      delete s.pathways[edgeKey(action.edge)];
+    case 'REMOVE_PATH_TILE': {
+      delete s.pathways[pathTileKey(action.tile)];
       return s;
     }
 

@@ -495,11 +495,11 @@ function CampusToolsTiles({ pathTool, onSetPathTool }: {
         className={`build-tile tool ${pathTool === 'draw' ? 'placing' : ''}`}
         aria-pressed={pathTool === 'draw'}
         onClick={() => onSetPathTool('draw')}
-        title="Draw a pathway along tile edges"
+        title="Draw a pathway by filling in tiles"
       >
         <span className="build-tile-icon"><DrawPathIcon /></span>
         <span className="build-tile-name">Draw path</span>
-        <span className="build-tile-foot">along tile edges</span>
+        <span className="build-tile-foot">fills in tiles</span>
       </button>
       <button
         type="button"
