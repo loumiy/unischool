@@ -10,14 +10,17 @@ import { graduatePrograms, milestoneSchools } from '../../data/techData';
 // and sag once the curriculum was done, since it tracked *build activity*
 // rather than the school's actual standing.
 //
-// Instead, once a year (see reducer.ts's RESOLVE_ADMISSIONS, the one
-// natural annual boundary) this module computes a prestige TARGET from
-// durable, slow-changing inputs — things that describe what the school
-// *is*, not what it did this week — and reputation drifts toward that
-// target by a small fraction of the gap. It never jumps to it. A
-// long-established school's prestige is sticky: it does not evaporate the
-// moment growth stalls, and it does not snap to a new high the moment a
-// milestone completes.
+// Instead, EVERY WEEK (see tickPrestige below, registered in reducer.ts's
+// SYSTEMS array) this module computes a prestige TARGET from durable,
+// slow-changing inputs — things that describe what the school *is*, not what
+// it did this week — and reputation drifts toward that target by a small
+// fraction of the gap. It never jumps to it, and the weekly fraction is tiny
+// (see PRESTIGE_DRIFT_RATE): a long-established school's prestige is sticky —
+// it does not evaporate the moment growth stalls, does not snap to a new high
+// the moment a milestone completes, and moves only gently from one week to
+// the next. Weekly rather than annual so standing responds smoothly to
+// mid-year changes — a lab finishing, a star hire maturing, a breakthrough
+// published — rather than sitting frozen between summers.
 //
 // The inputs, each normalized to 0..1 before weighting:
 //   - curriculum breadth: a STOCK — how many majors/schools stand fully
@@ -64,10 +67,12 @@ import { graduatePrograms, milestoneSchools } from '../../data/techData';
 const PRESTIGE_BASELINE = 32;
 
 // How much of the gap between current prestige and its target closes each
-// YEAR (not week) — see tickPrestigeAnnual. Small on purpose: prestige is
-// sticky, so a single blockbuster year barely moves it, and a long-idle
-// school keeps most of what it already had.
-const PRESTIGE_DRIFT_RATE = 0.12;
+// WEEK — see tickPrestige. Deliberately tiny: prestige is sticky, so a single
+// good week barely moves it and a long-idle school keeps most of what it
+// already had. Sized to preserve the old ~12%-per-year stickiness now that
+// the drift runs weekly: 1 - (1 - 0.12)^(1/52) ≈ 0.00246, so 52 weekly closes
+// still total ~12% of the gap over a year.
+const PRESTIGE_DRIFT_RATE = 0.0025;
 
 // Weight applied to each 0..1 input score. Their sum plus PRESTIGE_BASELINE
 // would exceed PRESTIGE_MAX if every input maxed out at once (it's clamped
@@ -353,15 +358,16 @@ export function prestigeTargetWithout(s: GameState, milestoneKeys: readonly stri
   return computePrestigeTarget({ ...s, milestones });
 }
 
-// Called once a year, from RESOLVE_ADMISSIONS — the one natural annual
-// boundary — right after that cycle's admitRate/incomingQuality are set.
-// Drifts prestige a small fraction of the way toward its target; never
-// jumps. There is no other, artificial downward pull: if the target sits
-// below current prestige (say, selectivity slipped), prestige drifts down
-// to match reality, but standing still with a stable target holds prestige
-// steady — rivals climbing past a stagnating player is what actually costs
-// rank (see rivalsSystem.ts).
-export function tickPrestigeAnnual(s: GameState): void {
+// Called every week from the SYSTEMS array (see reducer.ts). Drifts prestige
+// a small fraction of the way toward its target; never jumps. There is no
+// other, artificial downward pull: if the target sits below current prestige
+// (say, selectivity slipped at the last cycle), prestige drifts down to match
+// reality, but standing still with a stable target holds prestige steady —
+// rivals climbing past a stagnating player is what actually costs rank (see
+// rivalsSystem.ts). The two admissions-derived inputs (selectivity, incoming
+// quality) only change once a year at RESOLVE_ADMISSIONS; every other input
+// can change any week, which is the whole reason this runs weekly.
+export function tickPrestige(s: GameState): void {
   const target = computePrestigeTarget(s);
   s.self.reputation += (target - s.self.reputation) * PRESTIGE_DRIFT_RATE;
   s.self.reputation = clamp(s.self.reputation, PRESTIGE_MIN, PRESTIGE_MAX);

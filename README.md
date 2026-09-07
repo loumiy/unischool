@@ -214,9 +214,11 @@ prestige drifts a small fraction of the way toward a target computed from durabl
 inputs — see `src/systems/prestige/prestigeSystem.ts`. It never jumps to the
 target: a long-established school's prestige is sticky and does not evaporate the
 moment growth stalls, but it can move gently week to week rather than sitting
-frozen all year between summers. (The weekly cadence and its retuned drift rate
-are applied in the lifecycle pass — PR E of the alignment roadmap; the drift
-previously ran once a year at the summer admissions boundary.) The inputs:
+frozen all year between summers. The drift runs **weekly**, in the `SYSTEMS`
+array (`prestigeSystem.ts`'s `tickPrestige`), at a rate sized to preserve the
+old ~12%-per-year stickiness; the two admissions-derived inputs below change
+only at the summer boundary, while every other input can move any week. The
+inputs:
 
 - **curriculum breadth** — majors/schools completed *right now* (a stock read
   off the milestone booleans above) plus the **graduate programs** founded on

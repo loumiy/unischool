@@ -40,10 +40,10 @@ const MAX_PASSED_SHOWN = 5;
 
 export function tickRivals(s: GameState): void {
   // The player's own reputation (prestige) no longer moves here — it is a
-  // slow-moving stock driven by curriculum breadth, selectivity, and
-  // incoming student quality, drifted toward once a year at the admissions
-  // boundary. See prestigeSystem.ts's tickPrestigeAnnual, called from
-  // reducer.ts's RESOLVE_ADMISSIONS.
+  // slow-moving stock driven by curriculum breadth, selectivity, incoming
+  // student quality, faculty and research, drifted toward its target a little
+  // every week. See prestigeSystem.ts's tickPrestige, registered in
+  // reducer.ts's SYSTEMS array.
 
   if (s.clock.week === WEEKS_PER_YEAR) {
     for (const r of s.rivals) {
