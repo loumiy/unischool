@@ -30,7 +30,7 @@ export default function AthleticsTab({ s, act }: { s: GameState; act: (a: Action
         <div className="panel-head">
           <h2>Varsity Athletics</h2>
           <HelpHint
-            text="A sport club (see Student Life) can petition, once, to go varsity: a paid coach, a program budget, and a shared competition venue for its sport's category. The second team in a category finds the venue already revealed or built and pays only the varsity cost. The investment lever below is the one knob for the whole department — it scales every active team's contribution to social satisfaction, and the whole program's upkeep, together; it is not a per-team budget."
+            text="A sport club (see Student Life) can petition, once, to go varsity: a paid coach, a program budget, and a shared competition venue for its sport's category. A two-gender sport's men's and women's clubs are independent programs that each petition on their own — going varsity in one never opens or closes the other. Either way, the second team in a category (any gender) finds the venue already revealed or built and pays only the varsity cost. The investment lever below is the one knob for the whole department — it scales every active team's contribution to social satisfaction, and the whole program's upkeep, together; it is not a per-team budget."
           />
         </div>
         <div className="athletics-investment">

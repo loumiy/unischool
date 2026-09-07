@@ -123,9 +123,11 @@ export const CHAPTER_HOUSED_SOCIAL_BONUS = 1.5; // added on top once a chapter h
 // headline satisfaction. Real, and nowhere near enough to substitute for
 // building the social facilities the attribute is mostly scored on.
 //
-// A full varsity athletics department (all nine SPORTS teams active, high
-// investment) adds a further ~29.7 uncapped — so a school running clubs,
-// Greek life AND athletics at once now clears this ceiling comfortably. The
+// A full varsity athletics department (all fourteen SPORTS teams active —
+// up from nine before gendering split five sports into independent men's/
+// women's lineages — high investment) adds a further ~46.2 uncapped — so a
+// school running clubs, Greek life AND athletics at once now clears this
+// ceiling comfortably. The
 // cap is left UNCHANGED rather than raised to "make room" for athletics:
 // the point of a shared aggregate cap is exactly that a school cannot stack
 // every student-life lever to keep climbing past it, and athletics is
@@ -234,33 +236,120 @@ function pick<T>(items: readonly T[]): T {
 // whether this crowds out non-sport clubs in practice.
 export const SPORT_CLUB_SHARE = 0.3;
 
+// GENDER. A sport is now one of three profiles — this table IS the named
+// classification the PR notes ask for, not a scatter of `sport === 'x'`
+// checks: every read that cares (the formation roll, the varsity petition,
+// migration) goes through SPORTS below, which is GENERATED from this table,
+// never authored twice.
+//
+//   MEN-ONLY: Football, Baseball — no women's varsity lineage in this model.
+//   WOMEN-ONLY: Field Hockey, Softball — the mirror image; note Softball is
+//     its own sport here, not "women's Baseball" (that's how it works in the
+//     real NCAA too — different rules, different ball, different season).
+//   TWO-GENDER: everything else (Soccer, Lacrosse, Basketball, Volleyball,
+//     Swim & Dive) — a men's AND a women's lineage, each with its own club,
+//     its own varsity petition, and its own team, sharing only the venue
+//     category.
+//
+// A one-gender sport's id is the bare sport key ('football') — there is
+// only ever one lineage, so there is nothing to disambiguate. A two-gender
+// sport's id gets a suffix per lineage ('soccer-m' / 'soccer-w'), which is
+// what makes a men's and a women's club/team of the same sport two
+// independent records rather than one shared one: see the STATE SHAPE note
+// below.
+export type SportGender = 'men' | 'women';
+
+interface SportProfile {
+  key: string;                 // base id; the WHOLE id for a one-gender sport
+  label: string;                // bare sport name, e.g. 'Soccer', 'Swim & Dive'
+  venueCategory: FacilityType;  // shared across every gender of this sport
+  genders: readonly SportGender[]; // which lineages this sport fields
+}
+
+const GENDER_LABEL: Record<SportGender, string> = { men: "Men's", women: "Women's" };
+
+const SPORT_PROFILES: readonly SportProfile[] = [
+  { key: 'soccer', label: 'Soccer', venueCategory: 'athleticsField', genders: ['men', 'women'] },
+  { key: 'lacrosse', label: 'Lacrosse', venueCategory: 'athleticsField', genders: ['men', 'women'] },
+  { key: 'fieldHockey', label: 'Field Hockey', venueCategory: 'athleticsField', genders: ['women'] },
+  { key: 'basketball', label: 'Basketball', venueCategory: 'athleticsArena', genders: ['men', 'women'] },
+  { key: 'volleyball', label: 'Volleyball', venueCategory: 'athleticsArena', genders: ['men', 'women'] },
+  { key: 'baseball', label: 'Baseball', venueCategory: 'athleticsDiamond', genders: ['men'] },
+  { key: 'softball', label: 'Softball', venueCategory: 'athleticsDiamond', genders: ['women'] },
+  { key: 'swimming', label: 'Swim & Dive', venueCategory: 'athleticsNatatorium', genders: ['men', 'women'] },
+  { key: 'football', label: 'Football', venueCategory: 'footballStadium', genders: ['men'] },
+];
+
+function sportId(profile: SportProfile, gender: SportGender): string {
+  return profile.genders.length > 1 ? `${profile.key}-${gender === 'men' ? 'm' : 'w'}` : profile.key;
+}
+
+// NAMING (the item's explicit rule, applied uniformly): a two-gender sport
+// reads "Men's Lacrosse Club" -> "Men's Lacrosse Team", independently for
+// "Women's Lacrosse"; a one-gender sport carries no gender prefix at all —
+// "Football Club" -> "Football Team". This also changes the varsity name
+// itself: `teamName` used to be the bare sport ("Football"); it is now the
+// full "... Team" string a promoted team is actually named (see
+// promoteToVarsityTeam below, which names a team from THIS field rather
+// than inheriting the club's own name) — so the displayed varsity name
+// gains "Team" across the board, gendered sport and bare sport alike.
+function sportDisplayName(profile: SportProfile, gender: SportGender): string {
+  return profile.genders.length > 1 ? `${GENDER_LABEL[gender]} ${profile.label}` : profile.label;
+}
+
 // The sport -> required-venue-category mapping (item 3's "shared across
 // sports"). `clubName` is what the club-formation roll and the Clubs list
-// show before varsity; `teamName` is the shorter form the varsity panel and
-// tags use afterward. `venueCategory` is a FacilityType (facilitiesData.ts)
-// — the SECOND sport to reach varsity in the same category finds its venue
-// already revealed (or built), and pays only the varsity cost, never a
-// second building. Football is deliberately alone in its category: the
-// football stadium is the pinnacle venue, gated behind football's own
-// petition and nothing else.
+// show before varsity; `teamName` is the full display name a promoted team
+// is actually given (see promoteToVarsityTeam). `venueCategory` is a
+// FacilityType (facilitiesData.ts) — the SECOND lineage to reach varsity in
+// the same category, of EITHER gender, finds its venue already revealed (or
+// built) and pays only the varsity cost, never a second building: a men's
+// and a women's soccer team share one field, exactly as two different
+// sports in the same category always have. Football is deliberately alone
+// in its category: the football stadium is the pinnacle venue, gated
+// behind football's own petition and nothing else.
 export interface SportDefinition {
   id: string;
+  gender: SportGender;
   clubName: string;
   teamName: string;
   venueCategory: FacilityType;
 }
 
-export const SPORTS: readonly SportDefinition[] = [
-  { id: 'soccer', clubName: 'Soccer Club', teamName: 'Soccer', venueCategory: 'athleticsField' },
-  { id: 'lacrosse', clubName: 'Lacrosse Club', teamName: 'Lacrosse', venueCategory: 'athleticsField' },
-  { id: 'fieldHockey', clubName: 'Field Hockey Club', teamName: 'Field Hockey', venueCategory: 'athleticsField' },
-  { id: 'basketball', clubName: 'Basketball Club', teamName: 'Basketball', venueCategory: 'athleticsArena' },
-  { id: 'volleyball', clubName: 'Volleyball Club', teamName: 'Volleyball', venueCategory: 'athleticsArena' },
-  { id: 'baseball', clubName: 'Baseball Club', teamName: 'Baseball', venueCategory: 'athleticsDiamond' },
-  { id: 'softball', clubName: 'Softball Club', teamName: 'Softball', venueCategory: 'athleticsDiamond' },
-  { id: 'swimming', clubName: 'Swim & Dive Club', teamName: 'Swim & Dive', venueCategory: 'athleticsNatatorium' },
-  { id: 'football', clubName: 'Football Club', teamName: 'Football', venueCategory: 'footballStadium' },
-];
+// GENERATED from SPORT_PROFILES, one entry per (sport, fielded gender) —
+// 4 one-gender sports + 5 two-gender sports x 2 lineages = 14 entries,
+// up from the pre-gendering 9. See the STATE SHAPE note above
+// promoteToVarsityTeam: a gendered SPORTS id, not a `gender` field on
+// StudentClub/VarsityTeam, is what keeps a men's and a women's program of
+// the same sport two independent records.
+export const SPORTS: readonly SportDefinition[] = SPORT_PROFILES.flatMap((profile) =>
+  profile.genders.map((gender) => {
+    const name = sportDisplayName(profile, gender);
+    return {
+      id: sportId(profile, gender),
+      gender,
+      clubName: `${name} Club`,
+      teamName: `${name} Team`,
+      venueCategory: profile.venueCategory,
+    };
+  }),
+);
+
+// Every pre-gendering (bare) SPORTS id that MOVED when its sport split into
+// two lineages, mapped to the id an existing club/team on it migrates to.
+// Derived from SPORT_PROFILES rather than authored a second time, so it can
+// never drift from SPORTS itself. A one-gender sport's id didn't move (it
+// was already a single lineage), so it has no entry here — see
+// persistence.ts's v24 -> v25 migration, the only reader.
+//
+// The default gender an existing program migrates to is MEN'S: see that
+// migration's own comment for why (the honest reading of an existing
+// "Soccer" program is that it was implicitly one squad, and this preserves
+// it rather than inventing a second one) and for the visible rename this
+// causes.
+export const LEGACY_TWO_GENDER_SPORT_MIGRATION: Readonly<Record<string, string>> = Object.fromEntries(
+  SPORT_PROFILES.filter((p) => p.genders.length > 1).map((p) => [p.key, sportId(p, 'men')]),
+);
 
 export function sportById(id: string | null | undefined): SportDefinition | undefined {
   return SPORTS.find((sp) => sp.id === id);
@@ -294,9 +383,10 @@ export const ATHLETICS_INVESTMENT_TIERS: Record<AthleticsInvestmentTier, { socia
 // program to be proud of until it can actually compete), which is also why
 // this cannot be gamed by petitioning and stalling on the venue. Sized
 // between a club's and a chapter's: a varsity team is a bigger deal than a
-// chess club but a campus can have at most nine of them (one per SPORTS
-// entry), against up to ten housed chapters, so per-team it can afford to
-// sit close to a chapter's own weight.
+// chess club but a campus can have at most fourteen of them (one per SPORTS
+// entry — up from nine before gendering split five sports into independent
+// men's/women's lineages), against up to ten housed chapters, so per-team
+// it can afford to sit close to a chapter's own weight.
 export const TEAM_SOCIAL_BONUS = 2.2;
 
 // The coach's salary curve (item 5's "appreciating cost... in the faculty
@@ -327,8 +417,29 @@ export function sportClubsAwaitingVarsity(s: GameState): StudentClub[] {
 // s.orgs.clubs in the same move, which is what stops it drawing its old
 // club-level social contribution twice (clubSocialBonus below only ever
 // counts what is still in s.orgs.clubs).
+//
+// STATE SHAPE. A two-gender sport's men's and women's programs are two
+// entirely separate StudentClub/VarsityTeam RECORDS, distinguished by a
+// gendered SPORTS id (club.sport / team.sport — 'soccer-m' vs 'soccer-w'),
+// not by a `gender` field alongside a shared bare sport id. That is what
+// makes this promotion (and every other read in this file) completely
+// untouched by gendering: `opts.sport` was always "the SPORTS id this
+// petition is for," and it still is — it just now happens to resolve to a
+// gendered entry. A women's soccer club forming after the men's team is
+// already varsity looks, to every function here, exactly like any other
+// not-yet-fielded sport: rollSportClub (below) only ever excludes an id
+// once THAT id is varsity, and 'soccer-w' isn't 'soccer-m'.
+//
+// `opts.name` is the team's own display name (see SPORTS' `teamName`) —
+// deliberately NOT `club.name` any more. Before gendering the two happened
+// to read the same ("Soccer Club" stayed "Soccer Club" once promoted);
+// now that team names gain "Team" and a men's/women's prefix uniformly
+// (see the naming note above SPORTS), a promotion is the one moment a
+// program's display name actually changes, same as a club's name never
+// changing while it stays a club.
 export function promoteToVarsityTeam(s: GameState, club: StudentClub, opts: {
   sport: string;
+  name: string;
   venueCategory: FacilityType;
   coachName: string;
   coachBaseSalary: number;
@@ -338,7 +449,7 @@ export function promoteToVarsityTeam(s: GameState, club: StudentClub, opts: {
   s.orgs.clubs = s.orgs.clubs.filter((c) => c.id !== club.id);
   const team: VarsityTeam = {
     id: club.id,
-    name: club.name,
+    name: opts.name,
     foundedYear: club.foundedYear,
     foundingMembers: club.foundingMembers,
     foundingEnrolled: club.foundingEnrolled,

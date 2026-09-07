@@ -4,7 +4,7 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import {
   HELLENIC_COUNCIL_HINT, clubCapacity, chapterCapacity,
-  hasStudentCenter, orgMembership, sportById, studentOrgUpkeep,
+  hasStudentCenter, orgMembership, studentOrgUpkeep,
 } from '../data/studentLifeData';
 import { studentLifeSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { DEMAND_SATISFACTION_THRESHOLD, DEMAND_URGENT_WEEKS, demandCopy } from '../data/demandData';
@@ -281,7 +281,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
           ) : (
             <ul className="org-list">
               {clubs.map((c) => (
-                <OrgRow key={c.id} org={c} s={s} tag={c.sport ? sportById(c.sport)?.teamName : undefined} />
+                <OrgRow key={c.id} org={c} s={s} tag={c.sport ? 'sport' : undefined} />
               ))}
             </ul>
           )}

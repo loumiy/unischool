@@ -228,7 +228,9 @@ export function rollSurname(): string {
 // LIGHT faculty-model this feature asks for: auto-generated the week a team
 // goes varsity, not drawn from or checked against the standing candidate
 // market — that full recruiting loop is a deferred deepening, not v1-shallow
-// scope. A run mints at most nine of these (one per SPORTS entry), so the
+// scope. A run mints at most fourteen of these (one per SPORTS entry, up
+// from nine before gendering split five sports into independent men's/
+// women's lineages), so the
 // name-pool collision risk that justifies rollFullName's dedupe loop for
 // faculty/candidates never meaningfully arises here.
 export function rollCoachName(): string {
