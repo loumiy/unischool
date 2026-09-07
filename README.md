@@ -713,10 +713,11 @@ the design as *possible* directions but are **not yet specified**, and must not
 be implemented speculatively: an MBA-style intro → middle-courses-in-any-order →
 capstone structure; Masters → PhD sequencing for science and health sciences; a
 Medical School drawing on Science + Health Sciences; a Law School from Social
-Sciences & Humanities with a middle-course structure; Arts payoffs (a Performing
-Arts Center, an Art Gallery) with student-satisfaction effects; and an advanced
-joint Engineering + Computer Science institution (possibly robotics/research-
-oriented). Every school should ultimately have a meaningful tier-3 payoff, but
+Sciences & Humanities with a middle-course structure; and an advanced joint
+Engineering + Computer Science institution (possibly robotics/research-
+oriented). (Arts & Media's own payoff — a Performing Arts Center and an Art
+Gallery — is shipped; see "Arts payoffs" below.) Every school should
+ultimately have a meaningful tier-3 payoff, but
 where the rules are undecided the spec leaves them open on purpose. Graduate-
 program thresholds, by contrast, are meant to be **explicitly defined** rather
 than inferred (see the professional-school gate above).
@@ -880,6 +881,41 @@ department it shares with Science. Widening it further is still the same
 one-line data change (`techData.ts`'s `LAB_GATED_MAJOR_PREFIXES`); what a
 humanities or business "lab" should even be is a content question, not a
 mechanical one, and is deliberately left open.
+
+## Arts payoffs: two facilities, two majors
+
+Arts & Media's version of "every school gets a meaningful tier-3 payoff" —
+the same curated cross-kind gate `LAB_GATED_MAJOR_PREFIXES` gives the lab
+sciences (a Buildable gates a major's capstone coursework), but with each of
+two majors pointed at its **own** facility instead of a lab per major:
+
+- **Performing Arts Center** (`facilitiesData.ts`'s `PERFORMING_ARTS_CENTER_ID`)
+  unlocks once **Music's** full tier-2 quartet (`MUSC110`–`MUSC140`) is done,
+  then gates Music's own tier-3 capstone courses — the concert hall and
+  theater is where those capstones perform.
+- **Art Gallery** (`ART_GALLERY_ID`) unlocks once **Studio Art's** tier-2
+  quartet (`SART110`–`SART140`) is done, then gates Studio Art's tier-3
+  capstones the same way — the rotating-exhibit gallery is where those
+  capstones exhibit.
+
+Each facility's unlock and its own gate sit two tiers apart (tier-2 to
+unlock, tier-3 gated), so this can never be circular: building the facility
+can never require the facility. The two are otherwise independent of each
+other — nothing orders the gallery against the performing arts center, only
+each against its own major's coursework.
+
+**Graphic Design, the school's third major, sits outside both gates.** A
+two-building, two-major split already covers the school's performing
+(Music) and exhibited (Studio Art) halves; there's no third facility for a
+third major to specialize into, so Graphic Design's capstones take the
+plain tier-2 prereq every non-gated major's capstones get.
+
+**Both facilities also feed student satisfaction** like any other
+campus-life facility — `satisfactionAttribute: 'social'` plus a
+`servesPopulation` (1,500 for the Performing Arts Center, 500 for the Art
+Gallery), read by the same `social` ratio every rec center, gym, and
+student-center tile feeds. There is no separate arts-specific satisfaction
+input; it is the existing mechanism, not a new one.
 
 ## Student life: clubs, Greek letters, and varsity athletics
 

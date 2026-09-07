@@ -116,6 +116,73 @@ function testForwardMigration(): void {
   assert(row.majorsComplete === undefined, 'old history majorsComplete field removed');
 }
 
+// Build a v21-shaped save: a real current-shape state with the Arts &
+// Media facilities/capstones manually downgraded to the OLD v21 shape (both
+// facilities gated on BLDG-ARTSMEDIA, the Performing Arts Center alone
+// gating all three majors' tier-3 capstones) — exactly the shape
+// MIGRATIONS[21] (v21 -> v22) exists to re-point. See the long comment
+// above SAVE_VERSION and above MIGRATIONS[21] in persistence.ts.
+function makeV21ArtsSave(): void {
+  const base = createInitialState('ArtsMigrator', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+  const tech = state.tech as Array<Loose>;
+  const node = (id: string): Loose => tech.find((n) => n.id === id) as Loose;
+  const t2Ids = (prefix: string) => [110, 120, 130, 140].map((n) => `${prefix}${n}`);
+
+  node('ARTS-PAC').prereqs = ['BLDG-ARTSMEDIA'];
+  node('ARTS-PAC').status = 'locked';
+  node('ART-GALLERY').prereqs = ['BLDG-ARTSMEDIA'];
+  node('ART-GALLERY').status = 'done';
+
+  // Graphic Design's and Studio Art's tier-2 quartets are done; Music's are
+  // not — chosen so the migration's status recompute has something to prove
+  // in both directions.
+  for (const id of [...t2Ids('GRDS'), ...t2Ids('SART')]) node(id).status = 'done';
+
+  for (const prefix of ['GRDS', 'MUSC', 'SART']) {
+    for (const num of [210, 220, 230, 240]) {
+      const n = node(`${prefix}${num}`);
+      n.prereqs = [...t2Ids(prefix), 'ARTS-PAC'];
+      n.status = 'locked';
+    }
+  }
+
+  writeSave(21, state);
+}
+
+// ---- Test: v21's shared Arts & Media gate re-splits into per-major gates ----
+function testArtsCapstoneRepoint(): void {
+  makeV21ArtsSave();
+  const loaded = loadGame();
+  assert(loaded !== null, 'v21 Arts save loads (does not fall back to null)');
+  if (!loaded) return;
+
+  const node = (id: string) => loaded.tech.find((n) => n.id === id)!;
+  const asStrings = (arr: string[]) => [...arr].sort().join(',');
+
+  const pac = node('ARTS-PAC');
+  assert(asStrings(pac.prereqs) === 'MUSC110,MUSC120,MUSC130,MUSC140', 'PAC re-pointed to Music\'s tier-2 quartet');
+  assert(pac.status === 'locked', 'PAC stays locked: Music tier-2 is not done');
+
+  const gallery = node('ART-GALLERY');
+  assert(asStrings(gallery.prereqs) === 'SART110,SART120,SART130,SART140', 'Gallery re-pointed to Studio Art\'s tier-2 quartet');
+  assert(gallery.status === 'done', 'a Gallery already done stays done (never touched, whatever gate produced it)');
+
+  const grds210 = node('GRDS210');
+  assert(!grds210.prereqs.includes('ARTS-PAC'), 'Graphic Design capstone drops the Performing Arts Center prereq');
+  assert(!grds210.prereqs.includes('ART-GALLERY'), 'Graphic Design capstone gains no Gallery prereq either');
+  assert(grds210.status === 'available', 'Graphic Design capstone opens once its tier-2 quartet alone is done');
+
+  const musc210 = node('MUSC210');
+  assert(musc210.prereqs.includes('ARTS-PAC'), 'Music capstone keeps the Performing Arts Center prereq');
+  assert(musc210.status === 'locked', 'Music capstone stays locked: Music tier-2 is not done');
+
+  const sart210 = node('SART210');
+  assert(sart210.prereqs.includes('ART-GALLERY'), 'Studio Art capstone gains the Art Gallery prereq');
+  assert(!sart210.prereqs.includes('ARTS-PAC'), 'Studio Art capstone drops the Performing Arts Center prereq');
+  assert(sart210.status === 'available', 'Studio Art capstone opens: its tier-2 quartet and the Gallery are both done');
+}
+
 // ---- Test: a current-version save round-trips unchanged ----
 function testRoundTrip(): void {
   clearSave();
@@ -154,6 +221,7 @@ function testRejects(): void {
 
 console.log(`save-migration tests (SAVE_VERSION ${SAVE_VERSION})`);
 testForwardMigration();
+testArtsCapstoneRepoint();
 testRoundTrip();
 testRejects();
 

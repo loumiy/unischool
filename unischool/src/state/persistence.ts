@@ -273,9 +273,10 @@ export const SAVE_KEY = 'unischool.save';
 // so nothing else needed a migration.
 // v15: five new campus-life facilities (facilitiesData.ts's gym, tennis
 // courts, pool, performing arts center, art gallery) — more `social`
-// satisfaction capacity, plus the performing arts center's gate on the Arts
-// & Media school's three majors' tier-3 capstone courses (techData.ts's
-// ARTS_GATED_MAJOR_PREFIXES). This is a CONTENT ADDITION with no reorg
+// satisfaction capacity, plus the performing arts center's and art
+// gallery's gates on the Arts & Media school's Music and Studio Art majors'
+// tier-3 capstone courses respectively (techData.ts's ARTS_CAPSTONE_GATE).
+// This is a CONTENT ADDITION with no reorg
 // behind it — nothing existing moved, was renamed, or was retired — so it
 // is the same ID-SPLICE shape v10 -> v11 and v11 -> v12 used, just sourced
 // from initialFacilities() instead of initialTech() (nothing before this
@@ -449,7 +450,20 @@ export const SAVE_KEY = 'unischool.save';
 // v20 -> v21: scholarships terminology. AdmissionsSettings.financialAidRate is
 // renamed to scholarshipRate — a straight field rename, meaning unchanged. See
 // MIGRATIONS[20].
-export const SAVE_VERSION = 21;
+//
+// v21 -> v22: the Arts & Media capstone gate re-split (see README's "Arts
+// payoffs" and techData.ts's ARTS_CAPSTONE_GATE). The Performing Arts Center
+// and Art Gallery used to share one gate (both hidden until BLDG-ARTSMEDIA
+// stood) with the Performing Arts Center alone gating all three majors'
+// (Graphic Design, Music, Studio Art) tier-3 capstones. Now each facility
+// unlocks on its OWN major's tier-2 quartet and gates that SAME major's
+// tier-3 capstones only — Music <-> Performing Arts Center, Studio Art <->
+// Art Gallery — and Graphic Design drops the coupling entirely, its
+// capstones reverting to the plain tier-2 prereq every non-gated major's
+// capstones already use. A content-only re-point, the same shape as v9's
+// School of Science reorg, scoped down to only the ids this actually
+// touches. See MIGRATIONS[21].
+export const SAVE_VERSION = 22;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1098,6 +1112,43 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
       admissions.scholarshipRate = admissions.financialAidRate ?? 0;
     }
     delete admissions.financialAidRate;
+  },
+
+  // v21 -> v22: the Arts & Media capstone gate re-split (see SAVE_VERSION
+  // above). SURVIVING-node re-point, the v9 -> v10 trick, scoped to only the
+  // ids the reorg actually touches: the two facilities and the three
+  // majors' four tier-3 course ids each. Every other node — both facilities'
+  // unrelated fields, both majors' tier-1/tier-2 courses, and anything not
+  // in this list — is left completely untouched.
+  //
+  // STATUS IS RECOMPUTED for locked/available nodes among the re-pointed ids
+  // only, because 'available' means "prereqs are done" and those prereqs
+  // just changed underneath the save — same discipline as v9. 'developing'
+  // and 'done' are never touched: a Performing Arts Center, Art Gallery, or
+  // capstone course already built or in flight keeps standing/developing
+  // exactly as the player left it, whatever gate produced that state.
+  21: (state) => {
+    const REPOINTED = new Set([
+      'ARTS-PAC', 'ART-GALLERY',
+      'GRDS210', 'GRDS220', 'GRDS230', 'GRDS240',
+      'MUSC210', 'MUSC220', 'MUSC230', 'MUSC240',
+      'SART210', 'SART220', 'SART230', 'SART240',
+    ]);
+    const seedById = new Map(
+      [...initialFacilities(), ...initialTech()].map((node) => [node.id, node]),
+    );
+    state.tech = state.tech.map((node) => {
+      if (!REPOINTED.has(node.id)) return node;
+      const fresh = seedById.get(node.id);
+      return fresh ? { ...fresh, status: node.status } : node;
+    });
+
+    const done = new Set(state.tech.filter((node) => node.status === 'done').map((node) => node.id));
+    for (const node of state.tech) {
+      if (!REPOINTED.has(node.id)) continue;
+      if (node.status !== 'locked' && node.status !== 'available') continue;
+      node.status = node.prereqs.every((id) => done.has(id)) ? 'available' : 'locked';
+    }
   },
 };
 

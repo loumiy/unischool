@@ -291,41 +291,42 @@ const REC_CENTER_TIER2_WEEKS = 28;
 const REC_CENTER_TIER2_PRESTIGE = 0.10;
 export const REC_CENTER_TIER2_PRESTIGE_GATE = 55;
 
-// The Arts & Media school's academic building (techData.ts's SCHOOLS entry)
-// — referenced by its raw id rather than an import, since techData.ts
-// already imports PERFORMING_ARTS_CENTER_ID FROM this file and importing
-// back would make the two data modules circular. Kept as one named constant
-// rather than repeating the literal, since both arts facilities below gate
-// on it.
-const ARTS_MEDIA_BUILDING_ID = 'BLDG-ARTSMEDIA';
+// Each arts facility's own major's tier-2 course ids (techData.ts builds
+// these as nodeId(prefix, num) off NUMS/TIERS; listed here as the literal
+// ids they resolve to) — referenced raw rather than imported, since
+// techData.ts already imports PERFORMING_ARTS_CENTER_ID and ART_GALLERY_ID
+// FROM this file and importing back would make the two data modules
+// circular. Music for the Performing Arts Center (the school's performing
+// half — concert hall and theater), Studio Art for the Art Gallery (the
+// exhibited-visual-work half).
+const MUSIC_TIER2_IDS = ['MUSC110', 'MUSC120', 'MUSC130', 'MUSC140'];
+const STUDIO_ART_TIER2_IDS = ['SART110', 'SART120', 'SART130', 'SART140'];
 
 // --- Arts facilities: performing arts center (landmark), art gallery ---
 // One-off, same shape as the recreation/fitness chain's individual rungs
 // (no tier field, no upgrade). Both feed `social` like any other campus-
-// life facility, and the performing arts center ALSO gates the Arts & Media
-// school's three majors' tier-3 (capstone) courses — see techData.ts's
-// ARTS_GATED_MAJOR_PREFIXES, wired the exact same way a science major's Lab
-// Buildable gates its own capstone quartet. Only the performing arts center
-// carries that gate: one coupling is enough to give the arts curriculum a
-// building of its own without splitting a two-major gate across two half-
-// relevant facilities.
+// life facility, and each ALSO gates its own major's tier-3 (capstone)
+// courses — see techData.ts's ARTS_CAPSTONE_GATE, wired the exact same way
+// a science major's Lab Buildable gates its own capstone quartet. Graphic
+// Design, the school's third major, sits outside both gates: a two-
+// building, two-major split already covers the school's performing and
+// exhibited halves, and there's no third facility for a third major to
+// specialize into, so its tier-3 courses take the plain t2Ids prereq every
+// non-gated major gets.
 //
-// Both are HIDDEN at founding and gate on ARTS_MEDIA_BUILDING_ID rather than
-// starting with empty prereqs like every other one-off facility here — "a
-// certain amount of arts major completion", per the design ask, without
-// introducing a new gate mechanism: the school building's own prereqs are
-// already every arts major's tier-1 course, so requiring it done means the
-// player has meaningfully invested in the arts curriculum first. This can
-// NEVER be circular with the performing arts center's OWN capstone gate
-// above: that gate sits on tier-3 courses, two tiers past the tier-2 work
-// the school building's completion already implies, so the building always
-// clears well before anything that needs the venue it unlocks.
-// Exported because techData.ts's course-prereq wiring needs the id.
+// Both are HIDDEN at founding and gate on their OWN major's tier-2 quartet
+// rather than starting with empty prereqs like every other one-off
+// facility here — "a certain amount of arts major completion", per the
+// design ask. This can NEVER be circular with each facility's OWN capstone
+// gate above: the unlock gate sits on tier-2 courses, one tier before the
+// tier-3 courses the facility itself gates, so the facility always clears
+// before anything that needs it.
+// Exported because techData.ts's course-prereq wiring needs the ids.
 export const PERFORMING_ARTS_CENTER_ID = 'ARTS-PAC';
 const PERFORMING_ARTS_CENTER_SERVES = 1_500;
 const PERFORMING_ARTS_CENTER_COST = 1_100_000;
 const PERFORMING_ARTS_CENTER_WEEKS = 20;
-const ART_GALLERY_ID = 'ART-GALLERY';
+export const ART_GALLERY_ID = 'ART-GALLERY';
 const ART_GALLERY_SERVES = 500;
 const ART_GALLERY_COST = 220_000;
 const ART_GALLERY_WEEKS = 8;
@@ -626,20 +627,20 @@ export function initialFacilities(): Buildable[] {
       },
     },
 
-    // Arts facilities: performing arts center (landmark) and gallery — both
-    // hidden until ARTS_MEDIA_BUILDING_ID is done (see the long note above
-    // PERFORMING_ARTS_CENTER_ID). Independent of each other once that clears
-    // — nothing orders the gallery against the performing arts center, only
-    // both against the arts curriculum.
+    // Arts facilities: performing arts center (landmark) and gallery — each
+    // hidden until its own major's tier-2 quartet is done (see the long note
+    // above PERFORMING_ARTS_CENTER_ID). Independent of each other — nothing
+    // orders the gallery against the performing arts center, only each
+    // against its own major's coursework.
     {
       id: PERFORMING_ARTS_CENTER_ID,
       kind: 'facility',
       facilityType: 'performingArtsCenter',
       name: 'Performing Arts Center',
-      description: `A campus landmark: a concert hall and theater seating ${PERFORMING_ARTS_CENTER_SERVES.toLocaleString()} students, and the venue the Arts & Media school's capstone courses perform and exhibit in.`,
+      description: `A campus landmark: a concert hall and theater seating ${PERFORMING_ARTS_CENTER_SERVES.toLocaleString()} students, and the venue Music's capstone courses perform in.`,
       cost: PERFORMING_ARTS_CENTER_COST,
       duration: PERFORMING_ARTS_CENTER_WEEKS,
-      prereqs: [ARTS_MEDIA_BUILDING_ID],
+      prereqs: [...MUSIC_TIER2_IDS],
       status: 'locked',
       effects: {
         servesPopulation: PERFORMING_ARTS_CENTER_SERVES,
@@ -652,10 +653,10 @@ export function initialFacilities(): Buildable[] {
       kind: 'facility',
       facilityType: 'artGallery',
       name: 'Art Gallery',
-      description: `A rotating-exhibit gallery for ${ART_GALLERY_SERVES.toLocaleString()} students.`,
+      description: `A rotating-exhibit gallery for ${ART_GALLERY_SERVES.toLocaleString()} students, and the venue Studio Art's capstone courses exhibit in.`,
       cost: ART_GALLERY_COST,
       duration: ART_GALLERY_WEEKS,
-      prereqs: [ARTS_MEDIA_BUILDING_ID],
+      prereqs: [...STUDIO_ART_TIER2_IDS],
       status: 'locked',
       effects: {
         servesPopulation: ART_GALLERY_SERVES,
