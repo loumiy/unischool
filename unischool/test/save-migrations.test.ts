@@ -183,6 +183,71 @@ function testArtsCapstoneRepoint(): void {
   assert(sart210.status === 'available', 'Studio Art capstone opens: its tier-2 quartet and the Gallery are both done');
 }
 
+// Build a v22-shaped save (a real current-shape state with `seen` stripped
+// back off, exactly as a save written before the alert-badge feature would
+// look) with a mix of locked/available/done tech and a nonempty candidate
+// pool, so MIGRATIONS[22]'s seeding has something real to prove.
+function makeV22Save(): void {
+  const base = createInitialState('Seeder', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+  delete state.seen;
+  writeSave(22, state);
+}
+
+// ---- Test: a v22 save seeds `seen` from its own current visibility ----
+function testSeenSeeded(): void {
+  makeV22Save();
+  const loaded = loadGame();
+  assert(loaded !== null, 'v22 save loads (does not fall back to null)');
+  if (!loaded) return;
+
+  assert(typeof loaded.seen === 'object' && loaded.seen !== null, 'seen slice is filled in');
+
+  const lockedCourse = loaded.tech.find((t) => t.kind === 'course' && t.status === 'locked');
+  assert(!!lockedCourse, 'fixture has at least one locked course to check against');
+  if (lockedCourse) {
+    assert(loaded.seen.courseIds[lockedCourse.id] === undefined, 'a still-locked course is not marked seen');
+  }
+
+  const visibleCourse = loaded.tech.find((t) => t.kind === 'course' && t.status !== 'locked');
+  assert(!!visibleCourse, 'fixture has at least one visible (non-locked) course to check against');
+  if (visibleCourse) {
+    assert(loaded.seen.courseIds[visibleCourse.id] === true, 'an already-visible course is marked seen');
+  }
+
+  assert(loaded.candidates.length > 0, 'fixture has a nonempty candidate pool to check against');
+  for (const c of loaded.candidates) {
+    assert(loaded.seen.candidateIds[c.id] === true, `existing candidate ${c.id} is marked seen`);
+  }
+}
+
+// ---- Test: a freshly-founded school starts with no alert badges ----
+// createInitialState (state/actions.ts) pre-seeds `seen` from the school's
+// own founding content — the gen-ed core courses and the founding
+// buildables (starting dorm, dining hall, General Studies Hall, the seeded-
+// 'available' facility chains) are unlocked from turn one, so they must
+// never read as "new" the instant the player opens Curriculum or Build.
+// candidateIds is the one deliberate exception: no candidate is ever
+// "needed" at founding (every founding hire has a spare course slot beyond
+// their own gen-ed course), so there is nothing to pre-seed there.
+function testFoundingSeenExcludesStartingContent(): void {
+  const fresh = createInitialState('Fresh Start', 'private');
+
+  const visibleCourses = fresh.tech.filter((t) => t.kind === 'course' && t.status !== 'locked');
+  assert(visibleCourses.length > 0, 'a founding school has at least one visible course (the gen-ed core)');
+  for (const t of visibleCourses) {
+    assert(fresh.seen.courseIds[t.id] === true, `founding course ${t.id} is pre-seeded seen (no badge on day one)`);
+  }
+
+  const visibleBuildables = fresh.tech.filter((t) => t.kind !== 'course' && t.status !== 'locked');
+  assert(visibleBuildables.length > 0, 'a founding school has at least one visible buildable');
+  for (const t of visibleBuildables) {
+    if (t.kind === 'dorm' || t.kind === 'building' || t.kind === 'facility') {
+      assert(fresh.seen.buildableIds[t.id] === true, `founding buildable ${t.id} is pre-seeded seen (no badge on day one)`);
+    }
+  }
+}
+
 // ---- Test: a current-version save round-trips unchanged ----
 function testRoundTrip(): void {
   clearSave();
@@ -222,6 +287,8 @@ function testRejects(): void {
 console.log(`save-migration tests (SAVE_VERSION ${SAVE_VERSION})`);
 testForwardMigration();
 testArtsCapstoneRepoint();
+testSeenSeeded();
+testFoundingSeenExcludesStartingContent();
 testRoundTrip();
 testRejects();
 

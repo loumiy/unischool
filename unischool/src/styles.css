@@ -155,7 +155,7 @@ button { cursor: pointer; font-family: inherit; }
    until hovered or active, gold on active exactly like the old text tabs'
    underline used to be, just as a filled chip instead since there's no
    text baseline left to underline. */
-.toolbar-icon-btn { flex: none; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
+.toolbar-icon-btn { position: relative; flex: none; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
   background: transparent; border: 1px solid transparent; border-radius: 8px; color: var(--ink-lo); }
 .toolbar-icon-btn svg { width: 20px; height: 20px; display: block; }
 .toolbar-icon-btn:hover { color: var(--ink-hi); border-color: var(--navy-line); }
@@ -167,6 +167,19 @@ button { cursor: pointer; font-family: inherit; }
    it earns a little more visual weight than a bare icon. */
 .toolbar-build-btn { flex: none; width: auto; gap: 7px; padding: 0 14px; border-color: var(--gold-dim); }
 .toolbar-build-label { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.06em; font-size: 12px; }
+
+/* The "new content" alert badge (see types.ts's SeenState): a small red
+   circle with a white "!", pinned to the top-right corner of whatever it's
+   attached to — a toolbar tab icon, the build button, or a build-popup
+   category tab (see Toolbar.tsx and BuildPopup.tsx). Every host it can sit
+   on is already (or is made) position: relative, so this needs nothing
+   from its caller beyond being rendered as a child. Sized to read clearly
+   at the toolbar's compact icon scale without swamping the glyph beneath
+   it. */
+.alert-badge { position: absolute; top: -3px; right: -3px; width: 15px; height: 15px; border-radius: 50%;
+  background: #c23b3b; color: #fff; border: 1.5px solid var(--parchment);
+  font-family: var(--serif); font-size: 10px; font-weight: 800; line-height: 1;
+  display: flex; align-items: center; justify-content: center; pointer-events: none; }
 
 /* ---------- tab content ---------- */
 /* Rendered inside a tab overlay now (see TabOverlay.tsx), not as the page
@@ -419,7 +432,7 @@ button { cursor: pointer; font-family: inherit; }
    overflowing. */
 .build-mode-tabs { display: flex; flex-wrap: wrap; gap: 6px;
   border-bottom: 1px solid var(--parchment-line); padding-bottom: 10px; }
-.build-cat-tab { display: inline-flex; align-items: center; gap: 6px;
+.build-cat-tab { position: relative; display: inline-flex; align-items: center; gap: 6px;
   background: #f5efdd; border: 1px solid var(--parchment-line); border-radius: 7px;
   padding: 6px 11px; color: var(--ink-muted); font-family: var(--serif); font-size: 12px; }
 .build-cat-tab svg { width: 18px; height: 18px; display: block; }

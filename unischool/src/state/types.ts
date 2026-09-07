@@ -718,6 +718,46 @@ export interface GameState {
   started: boolean;              // false only during the pre-game startup screen (name + school type)
   hasEnteredRankings: boolean;   // true once the one-time "you've entered the top 50" reveal has fired
   milestones: Record<string, boolean>; // milestone key -> awarded, so each curriculum milestone bonus fires once
+  seen: SeenState;               // what the player has already been shown, for the curriculum/build/faculty alert badges (see SeenState above)
+}
+
+// ---------------------------------------------------------------------
+// ALERT BADGES: a small red "new content" marker on a toolbar icon (and,
+// for the build menu, on the specific category tab holding the new item),
+// cleared the moment the player actually looks at the thing it's pointing
+// at. Three independent slices, one per menu that can raise one:
+//   - courseIds: every course id the Curriculum tab has ever rendered on
+//     screen for this player (see tabs/CurriculumTab.tsx's
+//     visibleCourseIds) — a course counts as "seen" the instant it's
+//     revealed while the tab is open, whatever its own status is, since
+//     revealing it (not finishing it) is the moment there was something
+//     new to notice.
+//   - buildableIds: every placeable Buildable id (building/dorm/facility)
+//     the build popup has rendered as a tile while its OWN category tab
+//     was the active one (see components/BuildPopup.tsx) — so a building
+//     that appears in a tab the player hasn't switched to yet stays
+//     unseen, and the build button's badge stays lit, even while the
+//     popup itself is open on a different tab.
+//   - candidateIds: every candidate id the Faculty tab has rendered while
+//     that candidate counted as "needed" (their field is short a slot —
+//     see systems/techtree/techSystem.ts's neededFacultyFields) — a
+//     candidate who was never short-listed is never marked seen, so if
+//     their field later goes short while they're still on the market they
+//     still raise a fresh alert.
+//
+// Each is a plain id -> true record, the same shape rationale as
+// `pathways` and `milestones`: no Map/Set, no reference into `tech`, so it
+// survives a JSON round trip untouched. Ids only ever get ADDED here (by
+// the MARK_SEEN action — see actions.ts) except for candidateIds, which
+// the weekly tick prunes down to whoever is still actually listed (see
+// reducer.ts's TICK case) — the candidate market churns constantly, so
+// without pruning this would grow without bound over a long run, unlike
+// the other two, which are bounded by the size of the (fixed) course/
+// building catalogue.
+export interface SeenState {
+  courseIds: Record<string, true>;
+  buildableIds: Record<string, true>;
+  candidateIds: Record<string, true>;
 }
 
 export interface LogEntry {

@@ -188,6 +188,19 @@ export function reducer(state: GameState, action: Action): GameState {
       // rolling into the next one until it's resolved.
       if (!s.pendingInterrupt) advanceClock(s);
       if (s.log.length > LOG_CAP) s.log.length = LOG_CAP; // cap log growth
+      // The candidate market churns every week (see facultySystem.ts's
+      // tickCandidatePool) — listings withdraw and new ones arrive
+      // constantly — so s.seen.candidateIds is pruned down to whoever is
+      // still actually listed on every tick, the same way weeksListed
+      // itself only ever means something for a current listing. Without
+      // this, a decades-long run would accumulate one entry per candidate
+      // who ever passed through the pool, unlike courseIds/buildableIds,
+      // which are bounded by the fixed catalogue size (see types.ts's
+      // SeenState).
+      const listedIds = new Set(s.candidates.map((c) => c.id));
+      for (const id of Object.keys(s.seen.candidateIds)) {
+        if (!listedIds.has(id)) delete s.seen.candidateIds[id];
+      }
       return s;
     }
 
@@ -329,6 +342,20 @@ export function reducer(state: GameState, action: Action): GameState {
     // attribute) the very next tick.
     case 'SET_ATHLETICS_INVESTMENT': {
       s.orgs.athleticsInvestment = action.tier;
+      return s;
+    }
+
+    // A view reporting that the player has now seen these ids (see
+    // types.ts's SeenState and the alert-badge module comment there).
+    // Purely additive — nothing here ever un-sees an id — so this can
+    // never resurrect a badge, only retire one.
+    case 'MARK_SEEN': {
+      const bucket = action.kind === 'course'
+        ? s.seen.courseIds
+        : action.kind === 'buildable'
+          ? s.seen.buildableIds
+          : s.seen.candidateIds;
+      for (const id of action.ids) bucket[id] = true;
       return s;
     }
 

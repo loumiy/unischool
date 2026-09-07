@@ -463,7 +463,38 @@ export const SAVE_KEY = 'unischool.save';
 // capstones already use. A content-only re-point, the same shape as v9's
 // School of Science reorg, scoped down to only the ids this actually
 // touches. See MIGRATIONS[21].
-export const SAVE_VERSION = 22;
+//
+// v22 -> v23: the curriculum/build/faculty alert badges (see types.ts's
+// SeenState). GameState gains a required `seen` slice — three id -> true
+// records tracking which courses, buildable tiles and "needed" candidates
+// the player has already been shown — that Toolbar.tsx and BuildPopup.tsx
+// now read unconditionally to decide whether to light a badge.
+//
+// A pure fill-in, but NOT an empty one: unlike v7 -> v8's empty orgs slice
+// or v13 -> v14's empty pathways, seeding this one empty would tell a
+// mature, decades-in save that every course it has ever revealed, every
+// building it has ever been able to place, and everyone currently on its
+// candidate roster is BRAND NEW — an alert badge on every menu the moment
+// the save loads, for content the player has looked at a thousand times.
+// So instead every id that would currently count as "visible" is marked
+// seen up front, and only a genuinely new reveal after this migration runs
+// raises a badge.
+//
+// "Visible" is approximated here as status !== 'locked' for courses and
+// placeable Buildables (building/dorm/facility), rather than by re-running
+// the Curriculum tab's full discoverySections algorithm (see
+// tabs/CurriculumTab.tsx's visibleCourseIds) — persistence.ts is a pure
+// state-layer module with no UI-component imports, and that stays true
+// here rather than reaching into a .tsx view for one migration. The two
+// definitions agree almost everywhere; the one gap is a course REVEALED
+// alongside a just-finished school building but still 'locked' pending its
+// own tier-1 prereq (a tier-2 sharing a brand-new section with a tier-1
+// that isn't done yet) — that one course is left unseen and can raise a
+// one-time, harmless badge that clears the instant the Curriculum tab is
+// next opened. Every candidate currently on the market is marked seen
+// outright (not just the "needed" ones), since the whole point is that a
+// resumed roster is not news.
+export const SAVE_VERSION = 23;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1150,6 +1181,26 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
       node.status = node.prereqs.every((id) => done.has(id)) ? 'available' : 'locked';
     }
   },
+
+  // v22 -> v23: the alert-badge `seen` slice (see SAVE_VERSION above). Seeds
+  // all three records so a resumed save starts caught up on everything it
+  // already had, rather than lighting up every badge at once. See
+  // SAVE_VERSION's own comment for why "visible" is approximated as
+  // status !== 'locked' here instead of the Curriculum tab's fuller
+  // discoverySections reveal logic, and why every current candidate (not
+  // just the "needed" ones) is marked seen.
+  22: (state) => {
+    const courseIds: Record<string, true> = {};
+    const buildableIds: Record<string, true> = {};
+    for (const node of state.tech) {
+      if (node.status === 'locked') continue;
+      if (node.kind === 'course') courseIds[node.id] = true;
+      else if (isPlaceableKind(node)) buildableIds[node.id] = true;
+    }
+    const candidateIds: Record<string, true> = {};
+    for (const c of state.candidates ?? []) candidateIds[c.id] = true;
+    state.seen = { courseIds, buildableIds, candidateIds };
+  },
 };
 
 // Placement hygiene, run on EVERY load (migrated or not). The map is a
@@ -1280,6 +1331,25 @@ function sanitizeTeams(state: GameState): void {
   }
 }
 
+// Seen-slice hygiene, run on EVERY load (migrated or not), mirroring
+// sanitizeTeams above: `seen` is display-only (no system reads it — see
+// types.ts's SeenState), so a bad entry here can't corrupt the sim, but a
+// missing or malformed bucket would crash the first MARK_SEEN dispatch or
+// the first badge check that indexes into it. Each of the three buckets is
+// reset to empty if it isn't a plain object; a badge briefly re-lighting
+// for content the player already saw is a harmless, self-correcting cost,
+// the same trade sanitizePlacements/sanitizePathways/sanitizeTeams already
+// accept for their own corrupt-entry cases.
+function sanitizeSeen(state: GameState): void {
+  const isRecord = (v: unknown): v is Record<string, true> => typeof v === 'object' && v !== null;
+  const seen = (typeof state.seen === 'object' && state.seen !== null) ? state.seen : ({} as Partial<GameState['seen']>);
+  state.seen = {
+    courseIds: isRecord(seen.courseIds) ? seen.courseIds : {},
+    buildableIds: isRecord(seen.buildableIds) ? seen.buildableIds : {},
+    candidateIds: isRecord(seen.candidateIds) ? seen.candidateIds : {},
+  };
+}
+
 // A shallow structural check, not a full validation of GameState. The point
 // is to reject the things that actually happen — a truncated write, a key
 // collision, a payload from an older shape that shares the version number
@@ -1345,5 +1415,6 @@ export function loadGame(): GameState | null {
   sanitizePlacements(state);
   sanitizePathways(state);
   sanitizeTeams(state);
+  sanitizeSeen(state);
   return state;
 }

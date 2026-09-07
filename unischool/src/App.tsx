@@ -104,6 +104,7 @@ export default function App() {
         <Toolbar
           ref={toolbarRef}
           s={s}
+          act={act}
           active={overlay}
           onChangeTab={setOverlay}
           placingId={placingId}
