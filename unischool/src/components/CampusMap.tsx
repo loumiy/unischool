@@ -69,13 +69,14 @@ const BUILDING_CORNER = 8;   // placed buildings (and the footprint ghost) keep 
 // adjacent footprints share a tile boundary with nothing between them (see
 // TILE_GAP above), so without this their drawn edges would touch exactly
 // like their footprints do; insetting each one by BUILDING_INSET opens a
-// (2 * BUILDING_INSET)-wide gutter centred on that shared boundary. That
-// gutter has to clear the drawn path's own stroke width (5px — see
-// .campus-path-edge in styles.css) with room either side of it, so a path
-// edge along the boundary reads as running THROUGH the gutter rather than
-// getting swallowed under a shared wall. Kept a few px, not a fraction of
-// TILE_SIZE: at the smallest footprint (3x3 tiles, e.g. a lab) it's still
-// a thin seam, not a visible bite out of the building.
+// (2 * BUILDING_INSET)-wide gutter centred on that shared boundary, so two
+// adjacent buildings always read as two objects with a seam between them
+// rather than one fused block. Kept a few px, not a fraction of TILE_SIZE:
+// at the smallest footprint (3x3 tiles, e.g. a lab) it's still a thin seam,
+// not a visible bite out of the building. A path drawn along that boundary
+// (a full TILE_SIZE wide — see .campus-path-edge/edgeLine) is drawn UNDER
+// buildings regardless (see the render order below), so it simply
+// disappears under whichever building sits on the shared tile, gutter or not.
 const BUILDING_INSET = 4;
 
 // Label metrics: shrink-to-fit sizing (see labelFor below). SVG <text> has
@@ -815,7 +816,11 @@ export default function CampusMap({
               const edge = parseEdgeKey(key);
               if (!edge) return null;
               const { x1, y1, x2, y2 } = edgeLine(edge);
-              return <line key={key} className="campus-path-edge" x1={x1} y1={y1} x2={x2} y2={y2} />;
+              // strokeWidth = TILE_SIZE with the default (butt) linecap turns
+              // this line into exactly a TILE_SIZE x TILE_SIZE square, centred
+              // on the gridline it occupies — a path segment reads as one
+              // paving tile, not a thin line traced along an edge.
+              return <line key={key} className="campus-path-edge" x1={x1} y1={y1} x2={x2} y2={y2} strokeWidth={TILE_SIZE} />;
             })}
 
             {placed.map(({ t, p }) => (
