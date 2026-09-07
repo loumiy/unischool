@@ -780,20 +780,35 @@ behind it — referenced from `README.md`'s "Students" section, from
 
 ### What shipped
 
-The founding student body no longer opens as a **freshman class only**
-(`{ 200, 0, 0, 0 }`). It now opens with **all four class years present** as a
-gentle declining ramp, `FOUNDING_COHORTS = { freshman: 65, sophomore: 55,
-junior: 45, senior: 35 }` — the same founding total of **200**, only
-redistributed. Effects: a graduating class exists from year one, the cohort
-cross-section a new player sees is that of a running institution, and year-1
-tuition revenue is unchanged (total body is identical).
+Shipped in two passes. The first pass changed the founding body from a
+**freshman class only** (`{ 200, 0, 0, 0 }`) to all four class years present.
+The second pass (levers 2 + 3 below) is what actually de-lumps the cycle, and
+supersedes the interim declining-ramp mix:
 
-The mix is parameterized by a single knob, `FOUNDING_INTAKE_STEP` (the modeled
-per-year growth of the entering class over the school's first four years):
-`step = 0` → perfectly balanced `50/50/50/50`; larger step → a steeper,
-more-visibly-new ramp. Default `step = 10`.
+- **Lever 2 — balanced body, fully housed.** The founding dorm is now
+  **pre-built (`'done'`) and pre-placed** at the centre of the map, and the
+  founding body is **balanced and sized to its beds**:
+  `FOUNDING_COHORTS = { 88, 88, 87, 87 }`, summing to `STARTING_DORM_CAPACITY`
+  (350). The school opens **fully housed at its steady state**, so there is no
+  body/capacity gap and no cohort imbalance for the shift register to turn into
+  a wave — intake and graduation both sit at ≈ capacity / 4 from year one.
+  `FOUNDING_BODY` tracks `STARTING_DORM_CAPACITY`, so the two can never drift.
+- **Lever 3 — intake damper.** `freshmanCapacity` now caps the entering class
+  at one steady-state slot, `ceil(capacity / 4 × INTAKE_SURGE_MULTIPLIER)`,
+  with the multiplier defaulting to **1.0**. This damps the *growth* case: a
+  newly built dorm fills over the ~4 years its beds take to reach all four
+  class years instead of in one oversized class. The cap is applied in the one
+  shared function the UI preview and the reducer both call, never bites in a
+  steady year, and only lowers the seat ceiling the funnel fills toward (weak
+  demand still binds first). Verified end-to-end: a 350→700 jump fills
+  `438 → 525 → 612 → 700` and then holds flat at 175/yr, with no wave.
 
-### Why the mix alone cannot make the cycle "natural" — the shift-register model
+This is a deliberate, now-sanctioned reversal of part of the "campus opens
+empty" refactor for the **dorm specifically** (the dining hall and General
+Studies Hall still open `'available'`), and it does raise founding revenue
+(the body is 350, not 200). Both were accepted as the cost of a natural cycle.
+
+### Why the founding mix alone could not make the cycle "natural" — the shift-register model
 
 The cohort advance in `RESOLVE_ADMISSIONS` is a **zero-damping shift register**:
 each summer seniors leave, every younger cohort shifts up one slot, and the
@@ -820,36 +835,30 @@ the 800 capacity is the wave, regardless of how the 200 is split. The mix
 changes the *early* cross-section (and is worth doing for that), but the
 asymptotic wave is a capacity-gap phenomenon.
 
-### Proposal: how to fine-tune toward a natural yearly cycle
+### The fine-tuning knobs
 
 The steady state is simple: with capacity `C` held constant and the four
 cohorts each at `C/4`, intake and graduation are both `C/4` every year, flat
-forever. Three levers move the game toward that, in increasing order of scope:
+forever. Lever 2 opens the school there; lever 3 keeps it there through growth.
+The two knobs a maintainer would reach for:
 
-1. **Flatten the mix (shipped, tunable).** Lower `FOUNDING_INTAKE_STEP` toward
-   0. This is cosmetic for the asymptotic wave but does make the opening years
-   read more like a steady institution. Cheap, no spec change.
+- **`INTAKE_SURGE_MULTIPLIER`** (`admissionsSystem.ts`, default `1.0`). The
+  ceiling on the entering class, as a multiple of capacity / 4. `1.0` is the
+  *fully-smooth* value: no single class can exceed a quarter of capacity, so
+  nothing re-graduates as a wave. Raising it lets a new dorm fill faster (fewer
+  years to full) but re-introduces a proportional residual ripple — any class
+  allowed above capacity / 4 becomes a smaller wave four years later. Values
+  above ~1.0 were checked in simulation (e.g. `1.5` fills a 350→700 jump by
+  year 4 but leaves a 263-student wave); `1.0` is the honest de-lumped default.
+- **`FOUNDING_BODY` / `FOUNDING_COHORTS`** (`schoolTypeData.ts`). The body is
+  pinned to `STARTING_DORM_CAPACITY` and balanced; the remainder from dividing
+  by four tilts one student toward the freshmen. To open a school deliberately
+  *below* full occupancy (more empty founding beds, lower opening revenue),
+  lower `FOUNDING_BODY` off `STARTING_DORM_CAPACITY` — but note that any
+  body/capacity gap re-opens exactly the wave lever 2 closes, now damped by
+  lever 3 rather than absent.
 
-2. **Couple the founding body to the founding capacity (recommended next
-   step).** The wave is proportional to `builtCapacity − foundingBody`. If a
-   founded school opened with its first hall already standing (capacity 350)
-   and a **balanced** body sized to it (~`87/88` per cohort), intake would sit
-   near `C/4 ≈ 88` from year one with no gap to re-circulate. This is the only
-   change that actually removes the first wave — but it is a **spec change**:
-   it contradicts README's "campus opens empty; the player builds Founders Hall
-   in year one," and it raises founding revenue (bigger body). It also softens
-   the "over-built beds are a felt mistake" pacing, so it needs an explicit
-   design call, not a silent tune. Left for the maintainer to decide.
-
-3. **Damp the shift register (largest scope).** Give the advance somewhere for a
-   lump to go: e.g. cap each summer's intake at a smoothed fraction of the open
-   gap (fill new capacity over a few years instead of in one class), or add a
-   small satisfaction-driven attrition term (README already flags retention as a
-   deliberately-deferred hook). Either turns the permanent four-year wave into a
-   decaying transient. This is a mechanics change to the funnel, not a tuning
-   pass.
-
-Recommendation: keep the shipped mix (1) as the immediate improvement; treat
-(2) as the real fix and put it to a design decision (founding capacity vs. the
-empty-campus pacing intent); hold (3) as the general-purpose smoother if waves
-remain objectionable after (2).
+Not taken: a satisfaction-driven **attrition** term (retention as a
+consequence of unhappiness). README still flags it as a deliberately-deferred
+hook; it would be an alternative damper to lever 3, turning the wave into a
+decaying transient rather than capping it, and remains open as future work.

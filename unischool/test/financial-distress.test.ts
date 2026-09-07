@@ -81,12 +81,16 @@ function emptyCohorts(s: GameState): void {
 
 // An unaffordable placeable Buildable is refused: not sited, not charged.
 {
-  const s0 = fresh();
+  // Tick once so the next dorm unlocks: the founding hall is pre-built ('done')
+  // at founding now, so the first buildable dorm is Dorm II, which unlocks the
+  // tick its prereq (that hall) is seen 'done' — i.e. immediately.
+  const s0 = reducer(fresh(), { type: 'TICK' });
   s0.finance.cash = 50;
   const dorm = s0.tech.find((t) => t.kind === 'dorm' && t.status === 'available' && t.cost > 50);
   assert(dorm !== undefined, 'fixture: an available dorm costs more than 50');
   if (dorm) {
-    // A clear corner of the grid (founding auto-siting fills the top-left).
+    // A clear, in-bounds spot, well clear of the centred founding dorm — so
+    // the only reason placement is refused is that it is unaffordable.
     const s1 = reducer(s0, { type: 'PLACE_BUILDABLE', buildableId: dorm.id, row: 45, col: 60, rotated: false });
     assert(!(dorm.id in s1.placements), 'unaffordable placeable is not sited');
     assert(s1.finance.cash === 50, 'unaffordable placeable does not charge');

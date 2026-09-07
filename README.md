@@ -491,18 +491,25 @@ The settled v1 rules:
   to fill whatever seats the three returning cohorts leave open
   (`freshmanCapacity()`), so over-built beds still sit empty and cost money —
   the pacing the finance model depends on.
-- **Founding mix.** A new college opens with **all four class years present**,
-  as a gentle **declining ramp** — more underclassmen than upperclassmen
-  (`FOUNDING_COHORTS`, `65 / 55 / 45 / 35`, summing to the same founding total
-  of 200). This reads as a young school still growing into itself, puts a
-  graduating class on the books from year one, and seeds the cohort
-  cross-section closer to a running institution's than an all-freshman lump
-  did. The ramp's steepness is a tuning knob (flatter → smoother first
-  admissions cycles, steeper → a more visibly brand-new school). Note the mix
-  alone does **not** fully de-lump the early cycles — the cohort advance is a
-  zero-damping shift register, so any gap between the founding body and the
-  capacity the player later builds re-graduates as a four-year wave; see the
-  cohort-smoothing note in `ALIGNMENT_ROADMAP.md`.
+- **Founding mix.** A new college opens with **all four class years present**
+  and **balanced** — each cohort ≈ capacity / 4 (`FOUNDING_COHORTS`,
+  `88 / 88 / 87 / 87` at the founding hall's 350 beds). The founding dorm is
+  **pre-built and pre-placed** (centred on the map), so the body opens **fully
+  housed**, at the steady-state cohort structure the campus would otherwise
+  take years of lumpy cycles to reach. This puts a graduating class on the
+  books from year one and makes intake and graduation both sit near
+  capacity / 4 from the first summer. Because the cohort advance is a
+  **zero-damping shift register**, opening balanced-and-fully-housed is what
+  removes the founding wave — any gap between the body and its capacity, or
+  any cohort imbalance, would otherwise re-graduate every four years forever.
+- **Intake smoothing.** Growth beyond the founding hall is damped so a newly
+  built dorm doesn't refill in one oversized class (which would itself become a
+  wave): the entering class is capped at one steady-state slot — capacity / 4,
+  scaled by `INTAKE_SURGE_MULTIPLIER` (1.0, the fully-smooth value). A new dorm
+  therefore fills smoothly over the ~4 years its beds take to propagate into
+  all four class years. The cap never bites in a steady year and never forces
+  enrollment above demand — it only lowers the seat ceiling the funnel fills
+  toward. See `ALIGNMENT_ROADMAP.md`'s cohort-smoothing note for the model.
 
 Implemented in the four-cohort model (`students.cohorts`), with a save
 migration that splits an existing `students.enrolled` scalar evenly across the

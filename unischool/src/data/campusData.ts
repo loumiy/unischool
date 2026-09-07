@@ -31,11 +31,12 @@ import type { Buildable } from '../state/types';
 
 export const STARTING_DORM_ID = 'DORM-01';
 export const STARTING_DORM_CAPACITY = 350; // the founding hall's bed count, granted via its capacityBonus effect when built
-// The founding hall is a deliberately CHEAP, quick starter — a fraction of the
-// escalating chain's per-bed cost below — so a brand-new school can afford to
-// house its founding class in year one without the build swallowing its whole
-// opening budget. See actions.ts: the campus opens empty, so this is the first
-// thing the player builds.
+// The founding hall opens already built and paid for (status 'done' below), so
+// these cost/time figures are never actually charged at founding — they exist
+// only so the hall is a well-formed Buildable like every other dorm (and would
+// apply if a save ever reset it to 'available'). Kept a CHEAP, quick starter, a
+// fraction of the escalating chain's per-bed cost below, so it reads as the
+// modest founding hall it is rather than one of the major later capital builds.
 const STARTING_DORM_COST = 350_000;
 const STARTING_DORM_WEEKS = 12;
 
@@ -82,10 +83,17 @@ export function initialDorms(): Buildable[] {
       cost: STARTING_DORM_COST,
       duration: STARTING_DORM_WEEKS,
       prereqs: [],
-      // Available (not 'done') from day one: the campus opens empty, so this
-      // is the first thing the player builds. Its beds are granted through
-      // effects.capacityBonus on completion, exactly like every dorm after it.
-      status: 'available',
+      // Pre-built ('done') and pre-placed at founding (see actions.ts's
+      // createInitialState): the founding class needs beds to live in from
+      // day one so the four starting cohorts open fully housed, with no gap
+      // between the body and its capacity for the shift register to turn into
+      // a wave (ALIGNMENT_ROADMAP.md's lever 2). Its STARTING_DORM_CAPACITY
+      // beds are folded into the founding capacity directly there (the normal
+      // completion path that grants capacityBonus never runs for a building
+      // that starts already 'done'); every dorm AFTER it still grants its
+      // beds the usual way, on completion. Dorm II unlocks the normal way, the
+      // first tick — its prereq (this hall) is already 'done'.
+      status: 'done',
       effects: { capacityBonus: STARTING_DORM_CAPACITY },
     },
   ];

@@ -235,12 +235,13 @@ export function canPlace(s: GameState, t: Buildable, row: number, col: number, f
     && footprintIsClear(s.placements, row, col, fp);
 }
 
-// A placeable Buildable that's already 'done' — its effects already applied
-// at founding (the starting dorm, the founding dining hall, General Studies
-// Hall — see actions.ts's placeFoundingBuildables) or granted on the spot by
-// an authored event (eventData.ts's chapter house) — but has no home on the
-// map: firstFreeSpot found no room for it (the documented pathological
-// case), or an old save predates the logic that places these automatically.
+// A placeable Buildable that's already 'done' but has no home on the map.
+// The founding dorm opens 'done' AND pre-placed (see actions.ts's
+// createInitialState), so it is not one of these; this covers a 'done' row
+// that has no placement — one granted on the spot by an authored event
+// (eventData.ts's chapter house) when firstFreeSpot found no room for it (the
+// documented pathological case), or an old save that predates the logic that
+// places these automatically.
 // Distinct from an ordinary 'available' row: there's no construction left to
 // start, only a location to mark, so the build menu offers it for the flat
 // RETROACTIVE_SITING_COST below instead of its own (much larger) founding

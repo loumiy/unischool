@@ -4,7 +4,7 @@ import type { Action } from '../state/actions';
 import { createInitialState, createPreStartState } from '../state/actions';
 import { tickFinance, endowmentCampaign } from '../systems/finance/financeSystem';
 import { tickTech, canStartDevelopment, startDevelopment } from '../systems/techtree/techSystem';
-import { tickAdmissions, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
+import { tickAdmissions, projectAdmissions, trailingYearSatisfaction, freshmanCapacity } from '../systems/admissions/admissionsSystem';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
 import { tickFaculty } from '../systems/faculty/facultySystem';
 import { tickResearch } from '../systems/research/researchSystem';
@@ -355,6 +355,16 @@ export function reducer(state: GameState, action: Action): GameState {
       s.students.satisfactionYearSum = 0;
       s.students.satisfactionYearWeeks = 0;
 
+      // The seats the incoming freshman class may fill, read (and smoothed by
+      // the intake damper) BEFORE the advance — freshmanCapacity is capacity
+      // minus the three cohorts that stay enrolled, which pre-advance are
+      // freshman/sophomore/junior and post-advance are sophomore/junior/
+      // senior: the same three, so the number is identical either side of the
+      // shift. Reading it up front lets the reducer share the exact function
+      // the UI previews with (see admissionsSystem.ts's freshmanCapacity), so
+      // what the player saw is exactly what they get.
+      const openSeats = freshmanCapacity(s);
+
       // Advance the cohorts a year: seniors graduate and leave, everyone
       // else moves up. Full progression, no attrition, in this model.
       const cohorts = s.students.cohorts;
@@ -365,14 +375,7 @@ export function reducer(state: GameState, action: Action): GameState {
       cohorts.freshman = 0;
 
       // Run the distribution funnel with the committed policy: it sizes the
-      // incoming FRESHMAN class to fill whatever seats the returning cohorts
-      // leave open. The same pure function the UI previews with (see
-      // admissionsSystem.ts's projectAdmissions/freshmanCapacity) is what
-      // commits it, so what the player saw is exactly what they get.
-      const openSeats = Math.max(
-        0,
-        s.students.capacity - (cohorts.sophomore + cohorts.junior + cohorts.senior),
-      );
+      // incoming FRESHMAN class to fill the open seats computed above.
       const outcome = projectAdmissions(
         s.self.reputation,
         s.finance.tuitionPerStudent,
