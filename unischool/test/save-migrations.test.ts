@@ -221,6 +221,33 @@ function testSeenSeeded(): void {
   }
 }
 
+// ---- Test: a freshly-founded school starts with no alert badges ----
+// createInitialState (state/actions.ts) pre-seeds `seen` from the school's
+// own founding content — the gen-ed core courses and the founding
+// buildables (starting dorm, dining hall, General Studies Hall, the seeded-
+// 'available' facility chains) are unlocked from turn one, so they must
+// never read as "new" the instant the player opens Curriculum or Build.
+// candidateIds is the one deliberate exception: no candidate is ever
+// "needed" at founding (every founding hire has a spare course slot beyond
+// their own gen-ed course), so there is nothing to pre-seed there.
+function testFoundingSeenExcludesStartingContent(): void {
+  const fresh = createInitialState('Fresh Start', 'private');
+
+  const visibleCourses = fresh.tech.filter((t) => t.kind === 'course' && t.status !== 'locked');
+  assert(visibleCourses.length > 0, 'a founding school has at least one visible course (the gen-ed core)');
+  for (const t of visibleCourses) {
+    assert(fresh.seen.courseIds[t.id] === true, `founding course ${t.id} is pre-seeded seen (no badge on day one)`);
+  }
+
+  const visibleBuildables = fresh.tech.filter((t) => t.kind !== 'course' && t.status !== 'locked');
+  assert(visibleBuildables.length > 0, 'a founding school has at least one visible buildable');
+  for (const t of visibleBuildables) {
+    if (t.kind === 'dorm' || t.kind === 'building' || t.kind === 'facility') {
+      assert(fresh.seen.buildableIds[t.id] === true, `founding buildable ${t.id} is pre-seeded seen (no badge on day one)`);
+    }
+  }
+}
+
 // ---- Test: a current-version save round-trips unchanged ----
 function testRoundTrip(): void {
   clearSave();
@@ -261,6 +288,7 @@ console.log(`save-migration tests (SAVE_VERSION ${SAVE_VERSION})`);
 testForwardMigration();
 testArtsCapstoneRepoint();
 testSeenSeeded();
+testFoundingSeenExcludesStartingContent();
 testRoundTrip();
 testRejects();
 

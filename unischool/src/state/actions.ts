@@ -2,7 +2,7 @@ import type { AthleticsInvestmentTier, GameState, PathEdge, SchoolType } from '.
 import { DEFAULT_ATHLETICS_INVESTMENT } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
 import { WEEKS_PER_YEAR, CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT } from './types';
-import { footprintOf, placementFor } from './campusMap';
+import { footprintOf, isPlaceableKind, placementFor } from './campusMap';
 import { initialTech, GENED_BUILDING_REPUTATION_BONUS } from '../data/techData';
 import { initialDorms, STARTING_DORM_ID, STARTING_DORM_CAPACITY } from '../data/campusData';
 import { initialFacilities } from '../data/facilitiesData';
@@ -240,6 +240,24 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
   // The central Buildable list, built up front so the founding dorm can be
   // pulled out of it to pre-place (it opens 'done' — see campusData.ts).
   const tech = [...initialTech(), ...initialDorms(), ...initialFacilities()];
+
+  // The alert-badge exception for what a school starts with (see types.ts's
+  // SeenState). The gen-ed core courses and the founding buildables (the
+  // starting dorm, dining hall, General Studies Hall, and the rest of the
+  // seeded-'available' facility chains) are unlocked from the moment the
+  // university opens — the player was never shown a moment when they
+  // WEREN'T there to be revealed, so they are not "new" and must not carry
+  // a badge on day one. Seeded here the same way MIGRATIONS[22] in
+  // persistence.ts seeds a resumed save's `seen` from its OWN current
+  // visibility, for the same reason: an empty `seen` would tell the
+  // brand-new player that every one of these is news.
+  const foundingCourseIds: Record<string, true> = {};
+  const foundingBuildableIds: Record<string, true> = {};
+  for (const node of tech) {
+    if (node.status === 'locked') continue;
+    if (node.kind === 'course') foundingCourseIds[node.id] = true;
+    else if (isPlaceableKind(node)) foundingBuildableIds[node.id] = true;
+  }
   // Centre the founding dorm's footprint on the grid: the founding landmark
   // sits in the middle of the map, not a corner (see the placements entry
   // below). Math.floor keeps the anchor on a whole tile; the footprint is odd
@@ -427,12 +445,15 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     started: true,
     hasEnteredRankings: false,
     milestones: {},
-    // Nothing has been shown to the player yet, so a founding school's
-    // very first revealed courses, buildable tiles and candidates all
-    // carry their alert badge until actually viewed (see types.ts's
-    // SeenState) — exactly like every other "nothing has happened yet"
-    // slice above.
-    seen: { courseIds: {}, buildableIds: {}, candidateIds: {} },
+    // Every course and buildable the school starts with unlocked is
+    // pre-marked seen (see foundingCourseIds/foundingBuildableIds above) —
+    // the gen-ed core and the founding buildables were never "revealed" to
+    // this player, they were just always there, so no badge. candidateIds
+    // starts genuinely empty: unlike courses/buildables, no candidate is
+    // ever "needed" at founding (every founding hire has a free slot to
+    // spare beyond their own gen-ed course — see the roster above), so
+    // there is nothing here to except.
+    seen: { courseIds: foundingCourseIds, buildableIds: foundingBuildableIds, candidateIds: {} },
   };
   return state;
 }
