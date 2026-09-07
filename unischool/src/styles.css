@@ -624,19 +624,20 @@ button.build-tile { font-family: inherit; }
 .campus-rotate-btn:hover circle { fill: #efe1b8; }
 .campus-rotate-btn text { font-size: 13px; fill: var(--ink); pointer-events: none; }
 
-/* Drawn pathways: a worn-stone stroke the width of a full tile, centred on
-   the gridline it occupies, beneath buildings (see the render order in
-   CampusMap.tsx) so a building later placed over a path is drawn on top of
-   it, not the other way round. Width itself is geometry (TILE_SIZE), so it's
-   set inline in CampusMap.tsx per this file's own colour-only convention —
-   only the colour and cap style live here. */
-.campus-path-edge { stroke: #cbbd8e; stroke-linecap: butt; pointer-events: none; }
-/* The draw/erase hit targets: invisible until hovered, generously wide
-   (well past the visible stroke) so clicking near a gridline is enough —
-   see CampusMap.tsx's allEdges. Only rendered while a path tool is active. */
-.campus-path-hit { stroke: transparent; stroke-width: 14px; cursor: crosshair; }
-.campus-path-hit.draw:hover { stroke: rgba(201, 162, 39, 0.35); }
-.campus-path-hit.erase:hover { stroke: rgba(180, 84, 74, 0.35); }
+/* Drawn pathways: a worn-stone paving tile, one full grid square, beneath
+   buildings (see the render order in CampusMap.tsx) so a building later
+   placed over a path tile is drawn on top of it, not the other way round.
+   Size/position are geometry (TILE_SIZE, tileX/tileY), set inline in
+   CampusMap.tsx per this file's own colour-only convention — only the
+   colour lives here. */
+.campus-path-tile { fill: #cbbd8e; pointer-events: none; }
+/* The draw/erase hit targets: one invisible rect per grid tile, filling it
+   completely, so clicking or dragging anywhere on a tile hits it — see
+   CampusMap.tsx's pathTool-gated tile layer. Only rendered while a path
+   tool is active. */
+.campus-path-hit { fill: transparent; cursor: crosshair; }
+.campus-path-hit.draw:hover { fill: rgba(201, 162, 39, 0.35); }
+.campus-path-hit.erase:hover { fill: rgba(180, 84, 74, 0.35); }
 
 /* ---------- placed buildings ---------- */
 /* One rect per building, spanning its whole footprint (geometry is in

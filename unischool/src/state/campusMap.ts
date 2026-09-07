@@ -1,5 +1,5 @@
 import type {
-  Buildable, EdgeOrientation, FacilityType, Footprint, GameState, PathEdge, Placement, Placements, TileCoord,
+  Buildable, FacilityType, Footprint, GameState, Placement, Placements, TileCoord,
 } from './types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, PLACEABLE_KINDS } from './types';
 
@@ -291,46 +291,34 @@ export function placementFor(row: number, col: number, fp: Footprint): Placement
 }
 
 // ---------------------------------------------------------------------
-// PATHWAYS. See types.ts's Pathways/PathEdge for the edge-identification
-// scheme (a 'h'/'v' edge on the grid of tile CORNERS, not on either tile it
-// borders). Everything below is pure geometry, shared by the reducer's
-// ADD_PATH_EDGE/REMOVE_PATH_EDGE cases, the save loader's edge hygiene, and
-// the map UI — same one-definition rationale as footprintOf and friends.
+// PATHWAYS. See types.ts's Pathways block for the tile-identification
+// scheme (a drawn path fills a whole tile, the same TileCoord unit
+// everything else on the grid uses). Everything below is pure geometry,
+// shared by the reducer's ADD_PATH_TILE/REMOVE_PATH_TILE cases, the save
+// loader's tile hygiene, and the map UI — same one-definition rationale as
+// footprintOf and friends. Bounds-checking a path tile is just isInBounds
+// (above) — there is no separate edge-shaped bounds rule to keep in step
+// with it any more.
 // ---------------------------------------------------------------------
 
-// The one string form an edge is ever stored or looked up by — a Pathways
-// key. Also what makes drawing the same edge twice idempotent: two calls
-// with the same edge produce the same key, so writing it a second time
-// overwrites rather than duplicates.
-export function edgeKey(e: PathEdge): string {
-  return `${e.orientation}:${e.row}:${e.col}`;
+// The one string form a path tile is ever stored or looked up by — a
+// Pathways key. Also what makes drawing the same tile twice idempotent: two
+// calls with the same tile produce the same key, so writing it a second
+// time overwrites rather than duplicates.
+export function pathTileKey(t: TileCoord): string {
+  return `${t.row},${t.col}`;
 }
 
-// The inverse of edgeKey, for reading a saved Pathways record back into
-// edges (rendering, migration hygiene). Returns null for a key that isn't
+// The inverse of pathTileKey, for reading a saved Pathways record back into
+// tiles (rendering, migration hygiene). Returns null for a key that isn't
 // shaped like one this version ever wrote — a defensive read, not a parser
 // for a format with variants.
-export function parseEdgeKey(key: string): PathEdge | null {
-  const parts = key.split(':');
-  if (parts.length !== 3) return null;
-  const [orientation, rowStr, colStr] = parts;
-  if (orientation !== 'h' && orientation !== 'v') return null;
+export function parsePathTileKey(key: string): TileCoord | null {
+  const parts = key.split(',');
+  if (parts.length !== 2) return null;
+  const [rowStr, colStr] = parts;
   const row = Number(rowStr);
   const col = Number(colStr);
   if (!Number.isInteger(row) || !Number.isInteger(col)) return null;
-  return { orientation: orientation as EdgeOrientation, row, col };
-}
-
-// Is this edge one that actually exists on the CURRENT grid? A 'h' edge's
-// row runs 0..HEIGHT inclusive (it's a line on the corner grid, one more
-// than the tile grid has rows) and col runs 0..WIDTH-1; a 'v' edge is the
-// mirror image. Grid dimensions only ever grow today, but this is what
-// sanitizePathways (persistence.ts) leans on if that ever changes, the same
-// way sanitizePlacements already leans on footprintFits.
-export function isEdgeInBounds(e: PathEdge): boolean {
-  if (!Number.isInteger(e.row) || !Number.isInteger(e.col)) return false;
-  if (e.orientation === 'h') {
-    return e.row >= 0 && e.row <= CAMPUS_GRID_HEIGHT && e.col >= 0 && e.col < CAMPUS_GRID_WIDTH;
-  }
-  return e.row >= 0 && e.row < CAMPUS_GRID_HEIGHT && e.col >= 0 && e.col <= CAMPUS_GRID_WIDTH;
+  return { row, col };
 }

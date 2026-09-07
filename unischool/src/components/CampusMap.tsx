@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Action } from '../state/actions';
-import type { Buildable, GameState, PathEdge, Placement } from '../state/types';
+import type { Buildable, GameState, Placement, TileCoord } from '../state/types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import {
-  canPlace, canRotate, canSiteRetroactively, edgeKey, footprintIsClear, footprintOf,
-  isPlaceableKind, orientedFootprint, parseEdgeKey, placementTiles,
+  canPlace, canRotate, canSiteRetroactively, footprintIsClear, footprintOf,
+  isPlaceableKind, orientedFootprint, parsePathTileKey, placementTiles,
 } from '../state/campusMap';
 import { canStartDevelopment } from '../systems/techtree/techSystem';
 import HelpHint from './HelpHint';
@@ -73,10 +73,10 @@ const BUILDING_CORNER = 8;   // placed buildings (and the footprint ghost) keep 
 // adjacent buildings always read as two objects with a seam between them
 // rather than one fused block. Kept a few px, not a fraction of TILE_SIZE:
 // at the smallest footprint (3x3 tiles, e.g. a lab) it's still a thin seam,
-// not a visible bite out of the building. A path drawn along that boundary
-// (a full TILE_SIZE wide — see .campus-path-edge/edgeLine) is drawn UNDER
-// buildings regardless (see the render order below), so it simply
-// disappears under whichever building sits on the shared tile, gutter or not.
+// not a visible bite out of the building. A path tile (see the Pathways
+// render block below) is drawn UNDER buildings regardless of this inset
+// (see the render order below), so one drawn on a tile a building later
+// covers simply disappears under it.
 const BUILDING_INSET = 4;
 
 // Label metrics: shrink-to-fit sizing (see labelFor below). SVG <text> has
@@ -148,20 +148,6 @@ function tileY(row: number): number {
 // them, so a 2-wide building reads as one solid block rather than two.
 function spanSize(tiles: number): number {
   return tiles * TILE_SIZE + (tiles - 1) * TILE_GAP;
-}
-
-// The SVG segment one PathEdge occupies. A 'h' edge is the line from corner
-// (row, col) to (row, col+1) — the top of tile (row, col) — and a 'v' edge
-// is (row, col) to (row+1, col) — its left. tileX/tileY already give the
-// corner coordinates for any row/col in range (including the grid's own
-// bottom/right boundary, since a footprint's own bottom-right corner uses
-// exactly the same call), so this needs no case beyond orientation.
-function edgeLine(e: PathEdge): { x1: number; y1: number; x2: number; y2: number } {
-  const x = tileX(e.col);
-  const y = tileY(e.row);
-  return e.orientation === 'h'
-    ? { x1: x, y1: y, x2: x + TILE_SIZE, y2: y }
-    : { x1: x, y1: y, x2: x, y2: y + TILE_SIZE };
 }
 
 // ---------------------------------------------------------------------
@@ -496,12 +482,12 @@ export default function CampusMap({
   // the very next place() call, or by the next mousedown if that click
   // never happens (a pan that ends over a covered/non-targetable tile).
   const justPannedRef = useRef(false);
-  // Which path tool a click-drag across edges is currently painting with,
-  // so dragging across several edges in one gesture draws/erases all of
+  // Which path tool a click-drag across tiles is currently painting with,
+  // so dragging across several tiles in one gesture draws/erases all of
   // them rather than just the one the mouse went down on (mirrors dragRef's
-  // own "held across a gesture" shape, one level down). Set on an edge's
-  // own mousedown, read on every edge mouseenter while still set, cleared
-  // on the same global mouseup dragRef already listens for.
+  // own "held across a gesture" shape, one level down). Set on a tile's own
+  // mousedown, read on every tile's mouseenter while still set, cleared on
+  // the same global mouseup dragRef already listens for.
   const pathDragRef = useRef<'draw' | 'erase' | null>(null);
 
   function applyView(next: { x: number; y: number; zoom: number }) {
@@ -719,10 +705,11 @@ export default function CampusMap({
   // mode. While a building is picked up for siting (`selected`) or a path
   // tool is drawing/erasing (`pathTool`), the SAME click on a building is
   // that mode's own business (occupied tiles are never legal placement
-  // targets, and path edges have their own separate hit targets — see
-  // allEdges below — so this simply declines to do anything rather than
-  // fighting either), which is the whole of the info-vs-placement
-  // disambiguation this PR adds: one flag check, not a new mode of its own.
+  // targets, and path tiles have their own separate hit targets — see the
+  // pathTool-gated tile layer below — so this simply declines to do
+  // anything rather than fighting either), which is the whole of the
+  // info-vs-placement disambiguation this PR adds: one flag check, not a
+  // new mode of its own.
   const inspectBuilding = (id: string) => {
     if (consumePanClick()) return;
     if (selected || pathTool) return;
@@ -732,27 +719,12 @@ export default function CampusMap({
   const rows = Array.from({ length: CAMPUS_GRID_HEIGHT }, (_, row) => row);
   const cols = Array.from({ length: CAMPUS_GRID_WIDTH }, (_, col) => col);
 
-  // Every edge the grid has, at either orientation — the path tool's hit
-  // targets (rendered only while a tool is active, see below). Computed
-  // once: the grid's own size never changes at runtime, so there is nothing
-  // for a dependency array to react to.
-  const allEdges = useMemo(() => {
-    const edges: PathEdge[] = [];
-    for (let row = 0; row <= CAMPUS_GRID_HEIGHT; row++) {
-      for (let col = 0; col < CAMPUS_GRID_WIDTH; col++) edges.push({ orientation: 'h', row, col });
-    }
-    for (let row = 0; row < CAMPUS_GRID_HEIGHT; row++) {
-      for (let col = 0; col <= CAMPUS_GRID_WIDTH; col++) edges.push({ orientation: 'v', row, col });
-    }
-    return edges;
-  }, []);
-
-  // One end of a path click-drag: acts on the edge immediately (so a plain
-  // click without any movement still draws/erases one segment) and arms
-  // pathDragRef so every edge the pointer subsequently enters, while the
+  // One end of a path click-drag: acts on the tile immediately (so a plain
+  // click without any movement still draws/erases one square) and arms
+  // pathDragRef so every tile the pointer subsequently enters, while the
   // button stays down, gets the same treatment.
-  const paintEdge = (edge: PathEdge, tool: 'draw' | 'erase') => {
-    act(tool === 'draw' ? { type: 'ADD_PATH_EDGE', edge } : { type: 'REMOVE_PATH_EDGE', edge });
+  const paintTile = (tile: TileCoord, tool: 'draw' | 'erase') => {
+    act(tool === 'draw' ? { type: 'ADD_PATH_TILE', tile } : { type: 'REMOVE_PATH_TILE', tile });
   };
 
   // Placements resolved against `tech` once per render, rather than per
@@ -808,8 +780,8 @@ export default function CampusMap({
           onWheel={onWheel}
         >
           <g ref={worldRef}>
-            {/* Ground, then drawn pathways (so a building placed over an
-                edge draws on top of the path, never the other way around),
+            {/* Ground, then drawn pathways (so a building placed over a
+                path tile draws on top of it, never the other way around),
                 then buildings, then path hit-targets (path mode only — see
                 the disambiguation note on pathTool above, which is what
                 keeps these from ever being live at the same time as
@@ -831,36 +803,43 @@ export default function CampusMap({
             )))}
 
             {Object.keys(s.pathways).map((key) => {
-              const edge = parseEdgeKey(key);
-              if (!edge) return null;
-              const { x1, y1, x2, y2 } = edgeLine(edge);
-              // strokeWidth = TILE_SIZE with the default (butt) linecap turns
-              // this line into exactly a TILE_SIZE x TILE_SIZE square, centred
-              // on the gridline it occupies — a path segment reads as one
-              // paving tile, not a thin line traced along an edge.
-              return <line key={key} className="campus-path-edge" x1={x1} y1={y1} x2={x2} y2={y2} strokeWidth={TILE_SIZE} />;
+              const tile = parsePathTileKey(key);
+              if (!tile) return null;
+              // A drawn path tile fills the whole grid square it's on —
+              // literally a TILE_SIZE x TILE_SIZE paving stone, not a line
+              // straddling the boundary between two tiles.
+              return (
+                <rect
+                  key={key}
+                  className="campus-path-tile"
+                  x={tileX(tile.col)}
+                  y={tileY(tile.row)}
+                  width={TILE_SIZE}
+                  height={TILE_SIZE}
+                />
+              );
             })}
 
             {placed.map(({ t, p }) => (
               <PlacedBuilding key={t.id} t={t} p={p} onInspect={() => inspectBuilding(t.id)} inspected={t.id === inspectedId} weeksLeft={s.developing[t.id]} />
             ))}
 
-            {pathTool && allEdges.map((edge) => {
-              const { x1, y1, x2, y2 } = edgeLine(edge);
-              return (
-                <line
-                  key={edgeKey(edge)}
-                  className={`campus-path-hit ${pathTool}`}
-                  x1={x1} y1={y1} x2={x2} y2={y2}
-                  // Stopped here so pressing down on an edge never also
-                  // arms the map's own pan-drag tracking (onMapMouseDown,
-                  // above) — the two gestures would otherwise start on the
-                  // exact same mousedown.
-                  onMouseDown={(e) => { e.stopPropagation(); pathDragRef.current = pathTool; paintEdge(edge, pathTool); }}
-                  onMouseEnter={() => { if (pathDragRef.current) paintEdge(edge, pathDragRef.current); }}
-                />
-              );
-            })}
+            {pathTool && rows.map((row) => cols.map((col) => (
+              <rect
+                key={`path-hit-${row}-${col}`}
+                className={`campus-path-hit ${pathTool}`}
+                x={tileX(col)}
+                y={tileY(row)}
+                width={TILE_SIZE}
+                height={TILE_SIZE}
+                // Stopped here so pressing down on a tile never also arms
+                // the map's own pan-drag tracking (onMapMouseDown, above) —
+                // the two gestures would otherwise start on the exact same
+                // mousedown.
+                onMouseDown={(e) => { e.stopPropagation(); pathDragRef.current = pathTool; paintTile({ row, col }, pathTool); }}
+                onMouseEnter={() => { if (pathDragRef.current) paintTile({ row, col }, pathDragRef.current); }}
+              />
+            )))}
 
             {preview && (
               <>
@@ -942,13 +921,13 @@ export default function CampusMap({
       <div className="campus-map-tray" ref={trayRef}>
         <span className="panel-head-title">
           <h2>Campus Map</h2>
-          <HelpHint text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. The Draw path / Erase path buttons (also in the build popup) let you sketch walkways along the gridlines between tiles — free, purely decorative, and unrelated to building." />
+          <HelpHint text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. The Draw path / Erase path buttons (also in the build popup) let you fill in tiles as walkways — free, purely decorative, and unrelated to building." />
         </span>
         <span className="campus-map-hint">
           {pathTool
             ? pathTool === 'draw'
-              ? 'Click or drag along tile edges to draw a pathway. Purely decorative — it grants nothing.'
-              : 'Click or drag along drawn edges to erase that pathway.'
+              ? 'Click or drag across tiles to draw a pathway. Purely decorative — it grants nothing.'
+              : 'Click or drag across drawn tiles to erase that pathway.'
             : selected && selectedFootprint
               ? `Click or drop on ${selectedFootprint.w}×${selectedFootprint.h} of empty tiles to ${selected.status === 'done' ? 'site' : 'start building'} ${selected.name} there.`
                 + (canRotateSelected ? ' Press R (or the ⟳ on the ghost) to rotate.' : '')

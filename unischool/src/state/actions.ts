@@ -1,4 +1,4 @@
-import type { AthleticsInvestmentTier, GameState, PathEdge, SchoolType } from './types';
+import type { AthleticsInvestmentTier, GameState, SchoolType, TileCoord } from './types';
 import { DEFAULT_ATHLETICS_INVESTMENT } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
 import { WEEKS_PER_YEAR, CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT } from './types';
@@ -79,14 +79,14 @@ export type Action =
   // techSystem.ts's tickTech/applyEffects) — placement changes when/how/
   // where a build is initiated, never what it grants or when it grants it.
   | { type: 'PLACE_BUILDABLE'; buildableId: string; row: number; col: number; rotated: boolean }
-  // Draws/erases one tile-edge pathway segment (see state/campusMap.ts's
-  // PathEdge/edgeKey and types.ts's Pathways). Purely decorative — free,
-  // reversible, grants nothing, read by no system — so unlike
-  // PLACE_BUILDABLE there is no legality to fail beyond the edge existing
-  // on the current grid, which the reducer checks the same defensive way
-  // sanitizePathways does on load.
-  | { type: 'ADD_PATH_EDGE'; edge: PathEdge }
-  | { type: 'REMOVE_PATH_EDGE'; edge: PathEdge }
+  // Draws/erases one pathway tile (see state/campusMap.ts's pathTileKey and
+  // types.ts's Pathways). Purely decorative — free, reversible, grants
+  // nothing, read by no system — so unlike PLACE_BUILDABLE there is no
+  // legality to fail beyond the tile existing on the current grid, which
+  // the reducer checks the same defensive way sanitizePathways does on
+  // load.
+  | { type: 'ADD_PATH_TILE'; tile: TileCoord }
+  | { type: 'REMOVE_PATH_TILE'; tile: TileCoord }
   // Runs an endowment campaign (see financeSystem.ts's endowmentCampaign):
   // converts a large lump of cash into endowment at a prestige-scaled
   // donor match. Repeatable forever, each one costing more than the last —
