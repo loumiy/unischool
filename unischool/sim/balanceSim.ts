@@ -224,9 +224,16 @@ function decide(
   if (strategy.buildsDorms) {
     const s = get();
     const next = s.tech.find((t) => t.kind === 'dorm' && t.status === 'available');
+    // The founding campus now opens with NO beds (see state/actions.ts), so
+    // "the campus is full" can't be the only trigger — with capacity 0 the
+    // fill ratio is undefined and no dorm would ever be the answer. A school
+    // that has students and nowhere to house them plainly builds the founding
+    // hall, so treat zero beds as its own reason to build the next (first)
+    // dorm, on top of the ordinary full-campus trigger.
+    const needsFoundingBeds = s.students.capacity === 0 && totalEnrolled(s.students) > 0;
     const full = s.students.capacity > 0 &&
       totalEnrolled(s.students) / s.students.capacity >= strategy.dormFillThreshold;
-    if (next && full && canCommitCapital(s, strategy) && affordable(s, next.cost, strategy)) {
+    if (next && (needsFoundingBeds || full) && canCommitCapital(s, strategy) && affordable(s, next.cost, strategy)) {
       dispatchPlaceable(get, dispatch, next.id);
     }
   }
@@ -239,10 +246,15 @@ function decide(
   // play too, just not the one these runs are meant to measure.
   const beforeCurriculum = get();
   const nextDorm = beforeCurriculum.tech.find((t) => t.kind === 'dorm' && t.status === 'available');
-  const savingForDorm = strategy.buildsDorms && nextDorm !== undefined &&
-    beforeCurriculum.students.capacity > 0 &&
-    totalEnrolled(beforeCurriculum.students) / beforeCurriculum.students.capacity >= strategy.dormFillThreshold &&
-    !affordable(beforeCurriculum, nextDorm.cost, strategy);
+  const wantsDorm = nextDorm !== undefined && (
+    // No beds yet but students to house — the founding hall (see the dorm
+    // block above), or a full campus past the fill threshold.
+    (beforeCurriculum.students.capacity === 0 && totalEnrolled(beforeCurriculum.students) > 0) ||
+    (beforeCurriculum.students.capacity > 0 &&
+      totalEnrolled(beforeCurriculum.students) / beforeCurriculum.students.capacity >= strategy.dormFillThreshold)
+  );
+  const savingForDorm = strategy.buildsDorms && wantsDorm &&
+    !affordable(beforeCurriculum, nextDorm!.cost, strategy);
 
   // Curriculum: cheapest tier first, plus the buildings/labs that gate it.
   if (strategy.buildsCourses && !savingForDorm) {

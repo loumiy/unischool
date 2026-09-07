@@ -3,7 +3,6 @@ import type { Buildable, FacilityType, GameState } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import { canSiteRetroactively, RETROACTIVE_SITING_COST } from '../state/campusMap';
-import { STARTING_DORM_CAPACITY } from '../data/campusData';
 import { FACILITY_CATEGORY_OF, type FacilityCategory } from '../data/facilitiesData';
 import HelpHint from './HelpHint';
 import { ProgressBar } from './Progress';
@@ -246,7 +245,7 @@ function iconForBuildable(t: Buildable): () => React.JSX.Element {
 // makes a built tile worth keeping on screen at all.
 function builtDetail(t: Buildable): string | undefined {
   if (t.facilityType === 'lab') return 'gates capstone coursework';
-  if (t.kind === 'dorm') return `${(t.effects?.capacityBonus ?? STARTING_DORM_CAPACITY).toLocaleString()} beds`;
+  if (t.kind === 'dorm') return `${(t.effects?.capacityBonus ?? 0).toLocaleString()} beds`;
   const flat = t.effects?.flatSatisfactionBonus;
   if (flat) return `+${flat} flat`;
   const serves = t.effects?.servesPopulation;
@@ -258,7 +257,7 @@ function builtDetail(t: Buildable): string | undefined {
 // so collapsing costs the player no information about what they have.
 function builtGroupDetail(kind: string, built: Buildable[]): string | undefined {
   if (kind === 'dorm') {
-    const beds = built.reduce((sum, t) => sum + (t.effects?.capacityBonus ?? STARTING_DORM_CAPACITY), 0);
+    const beds = built.reduce((sum, t) => sum + (t.effects?.capacityBonus ?? 0), 0);
     return `${beds.toLocaleString()} beds`;
   }
   const serves = built.reduce((sum, t) => sum + (t.effects?.servesPopulation ?? 0), 0);

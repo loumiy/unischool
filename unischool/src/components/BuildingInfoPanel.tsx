@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { discoverySchools, professionalSchools } from '../data/techData';
 import { completion, discoverySections } from '../tabs/CurriculumTab';
-import { STARTING_DORM_CAPACITY, STARTING_DORM_ID } from '../data/campusData';
 import { ProgressRing } from './Progress';
 
 // A read-only popover for a PLACED building — what clicking it (outside
@@ -15,14 +14,11 @@ import { ProgressRing } from './Progress';
 
 const INFO_RING_SIZE = 30;
 
-// A dorm's capacity is its capacityBonus effect, EXCEPT the founding dorm
-// (STARTING_DORM_ID), whose capacity was folded into the game's starting
-// baseline rather than granted through effects (see campusData.ts) — so it
-// carries none. STARTING_DORM_CAPACITY is the one other place that number
-// lives.
+// A dorm's capacity is simply its capacityBonus effect — including the
+// founding dorm, which now carries its beds through the same effect every
+// other dorm does (see campusData.ts; the campus opens with no housing built).
 function dormCapacity(t: Buildable): number | null {
-  if (t.effects?.capacityBonus !== undefined) return t.effects.capacityBonus;
-  return t.id === STARTING_DORM_ID ? STARTING_DORM_CAPACITY : null;
+  return t.effects?.capacityBonus ?? null;
 }
 
 // What a facility's servesPopulation effect actually COUNTS, per

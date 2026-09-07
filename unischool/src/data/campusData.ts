@@ -10,15 +10,17 @@ import type { Buildable } from '../state/types';
 // development (see techData.ts), it only grows when a dorm finishes
 // construction here.
 //
-// The university starts with one dorm already built (STARTING_DORM below,
-// seeded 'done' the same way General Studies Hall is in techData.ts's
-// initialTech — its capacity is folded straight into the founding baseline
-// via STARTING_DORM_CAPACITY rather than granted through effects, to avoid
-// double-counting). Every dorm after that unlocks strictly in order — Dorm
-// II requires Dorm I, Dorm III requires Dorm II, and so on — so "build more
-// dorms over time to grow capacity" is a straight queue in the Campus tab:
-// there's always exactly one next dorm to build, with a visible cost and
-// payoff, never a grid of independent choices.
+// The university starts with NO housing built: the founding hall (STARTING_DORM
+// below) is seeded 'available', not 'done', so the player builds and sites it
+// like any other dorm — a founding campus is built from scratch, not handed
+// over pre-placed (see actions.ts's createInitialState, which no longer folds
+// any capacity into the starting baseline). Its beds are granted the normal
+// way, through effects.capacityBonus on completion, so nothing is
+// double-counted. Every dorm after it unlocks strictly in order — Dorm II
+// requires Dorm I, Dorm III requires Dorm II, and so on — so "build more dorms
+// over time to grow capacity" is a straight queue in the Campus tab: there's
+// always exactly one next dorm to build, with a visible cost and payoff, never
+// a grid of independent choices.
 //
 // Both capacity and cost grow geometrically down the chain — an
 // escalating-investment shape, with cost growing a little faster than
@@ -28,7 +30,14 @@ import type { Buildable } from '../state/types';
 // ---------------------------------------------------------------------
 
 export const STARTING_DORM_ID = 'DORM-01';
-export const STARTING_DORM_CAPACITY = 350; // folded directly into students.capacity by createInitialState
+export const STARTING_DORM_CAPACITY = 350; // the founding hall's bed count, granted via its capacityBonus effect when built
+// The founding hall is a deliberately CHEAP, quick starter — a fraction of the
+// escalating chain's per-bed cost below — so a brand-new school can afford to
+// house its founding class in year one without the build swallowing its whole
+// opening budget. See actions.ts: the campus opens empty, so this is the first
+// thing the player builds.
+const STARTING_DORM_COST = 350_000;
+const STARTING_DORM_WEEKS = 12;
 
 // ---------------------------------------------------------------------
 // DORM CHAIN TUNING. Housing is the growth loop's most expensive turn and
@@ -69,14 +78,15 @@ export function initialDorms(): Buildable[] {
       id: STARTING_DORM_ID,
       kind: 'dorm',
       name: DORM_NAMES[0],
-      description: 'The original student housing hall, standing since the university’s founding.',
-      cost: 0,
-      duration: 0,
+      description: 'The university’s first student housing hall — build it to house the founding class.',
+      cost: STARTING_DORM_COST,
+      duration: STARTING_DORM_WEEKS,
       prereqs: [],
-      status: 'done',
-      // No effects: capacity is folded into the starting baseline (see
-      // STARTING_DORM_CAPACITY above) rather than granted here, matching
-      // techData.ts's General Studies Hall pattern.
+      // Available (not 'done') from day one: the campus opens empty, so this
+      // is the first thing the player builds. Its beds are granted through
+      // effects.capacityBonus on completion, exactly like every dorm after it.
+      status: 'available',
+      effects: { capacityBonus: STARTING_DORM_CAPACITY },
     },
   ];
 
@@ -96,11 +106,11 @@ export function initialDorms(): Buildable[] {
       // Strictly sequential: only ever one dorm buildable at a time, so it
       // reads as a queue rather than a menu (see the file header above).
       prereqs: [previousId],
-      // The first additional dorm is buildable from day one, since its lone
-      // prereq (the starting dorm) is seeded 'done' rather than completed
-      // through the normal tick pipeline that would otherwise unlock it —
-      // same reasoning as techData.ts's gen-ed core courses.
-      status: i === 1 ? 'available' : 'locked',
+      // Every additional dorm starts locked and unlocks the normal way, the
+      // tick its prereq (the dorm before it) finishes — including the very
+      // first one, now that the founding hall is itself built rather than
+      // seeded 'done' (see STARTING_DORM_ID above).
+      status: 'locked',
       effects: { capacityBonus: capacity },
     });
     previousId = id;

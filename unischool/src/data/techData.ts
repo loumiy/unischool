@@ -129,12 +129,16 @@ const GENED_BUILDING_WEEKS = 20;
 // the founding operating picture with no double-counting.
 const GENED_BUILDING_UPKEEP_PER_WEEK = 900;
 const SCHOOL_BUILDING_UPKEEP_PER_WEEK = 3_000;
-// General Studies Hall starts already built (see initialTech below), so
-// this never flows through the normal completion-effects path — it's
-// exported for createInitialState to fold directly into the founding
-// reputation baseline instead. Academic buildings no longer grant capacity
-// — capacity is tied exclusively to dormitories now (see campusData.ts);
-// building out the curriculum unlocks courses/majors, not beds.
+// A small gen-ed reputation baseline the founding institution opens with —
+// folded into the starting reputation by createInitialState rather than
+// granted as a Buildable effect. There is no apply-once reputation effect in
+// the model (see techSystem.ts's applyEffects), and reputation is a stock
+// that drifts toward a target anyway, so this is the institution's founding
+// academic standing, not a bonus tied to whether General Studies Hall has
+// been built yet — the hall's own payoff is unlocking the tier-2 curriculum.
+// Academic buildings never grant capacity — capacity is tied exclusively to
+// dormitories now (see campusData.ts); building out the curriculum unlocks
+// courses/majors, not beds.
 export const GENED_BUILDING_REPUTATION_BONUS = 1.5;
 
 const SCHOOL_BUILDING_COST = 1_400_000;
@@ -947,15 +951,19 @@ export function initialTech(): Buildable[] {
     // General Studies Hall is the one exception: per the README's milestone
     // chain, a new university starts with "one academic building and the
     // gen-ed courses available" — the building isn't an early reward, it's
-    // the founding condition the gen-ed courses are paired with. So it's
-    // seeded already 'done' rather than locked behind the gen-ed courses it
-    // sits alongside. A Buildable created 'done' never passes through
-    // tickTech's completion path, so its reputation contribution is folded
-    // into the starting baseline (Faculty/starting stats) instead of
-    // granted via effects here — no APPLY-ONCE effect may be authored on it
-    // or it would be double-counted. Its upkeepPerWeek is safe (and
-    // required) because upkeep is LIVE-READ every tick off whatever is
-    // 'done', never applied — the same contract the starting dining hall
+    // the founding condition the gen-ed courses are paired with. So rather
+    // than being locked behind the gen-ed courses it sits alongside, it's
+    // seeded 'available' from day one: the player builds and sites it like
+    // any other academic building (the campus opens empty — see
+    // actions.ts's createInitialState — so the founding buildings are built
+    // from scratch, not handed over pre-placed). It carries no APPLY-ONCE
+    // reputation effect: a gen-ed reputation baseline is folded into the
+    // founding institution's standing instead (see
+    // GENED_BUILDING_REPUTATION_BONUS and actions.ts), the same way every
+    // other academic building grants prestige through curriculum breadth
+    // rather than a direct bonus of its own. Its upkeepPerWeek is LIVE-READ
+    // every tick off whatever is 'done', so it only starts costing once the
+    // hall is actually built — the same contract the founding dining hall
     // follows in facilitiesData.ts.
     // Academic buildings carry no capacity effect at all now — see the
     // capacity comment above GENED_BUILDING_REPUTATION_BONUS.
@@ -968,7 +976,7 @@ export function initialTech(): Buildable[] {
       cost: isGenEd ? GENED_BUILDING_COST : SCHOOL_BUILDING_COST,
       duration: isGenEd ? GENED_BUILDING_WEEKS : SCHOOL_BUILDING_WEEKS,
       prereqs: tier1IdsInSchool,
-      status: isGenEd ? 'done' : 'locked',
+      status: isGenEd ? 'available' : 'locked',
       effects: {
         upkeepPerWeek: isGenEd ? GENED_BUILDING_UPKEEP_PER_WEEK : SCHOOL_BUILDING_UPKEEP_PER_WEEK,
       },

@@ -89,7 +89,13 @@ function servedUpkeep(facilityType: keyof typeof UPKEEP_PER_SERVED_PER_WEEK, ser
 // the founding hall is small enough to be a restaurant here — everything
 // the school adds afterward is sized to matter.
 const DINING_STARTING_ID = 'DINING-01';
-const DINING_STARTING_SERVES = 350; // matches STARTING_DORM_CAPACITY: the campus opens adequately fed, not just adequately housed
+const DINING_STARTING_SERVES = 350; // matches STARTING_DORM_CAPACITY: one founding hall feeds exactly the founding hall's beds
+// A cheap, quick starter — like the founding dorm (campusData.ts), sized so a
+// new school can feed its founding class alongside housing it without the two
+// builds swallowing the whole opening budget. Cheaper per seat than the
+// escalating chain below.
+const DINING_STARTING_COST = 250_000;
+const DINING_STARTING_WEEKS = 12;
 const DINING_ADDITIONAL_COUNT = 4;
 const DINING_BASE_SERVES = 1_600;
 const DINING_SERVES_GROWTH = 1.9;
@@ -110,6 +116,8 @@ function repeatableChain(opts: {
   startingId: string;
   startingName: string;
   startingServes: number;
+  startingCost: number;
+  startingWeeks: number;
   satisfactionAttribute: keyof SatisfactionAttributes;
   additionalCount: number;
   baseServes: number;
@@ -127,18 +135,18 @@ function repeatableChain(opts: {
       kind: 'facility',
       facilityType: opts.facilityType,
       name: opts.startingName,
-      description: `Serves ${opts.startingServes.toLocaleString()} students. Standing since the university's founding.`,
-      cost: 0,
-      duration: 0,
+      description: `The university's first dining hall — build it to feed the founding class. Serves ${opts.startingServes.toLocaleString()} students.`,
+      cost: opts.startingCost,
+      duration: opts.startingWeeks,
       prereqs: [],
-      status: 'done',
-      // UNLIKE the starting dorm's capacityBonus (an apply-ONCE effect that
-      // would double-count if granted here on top of the folded-in starting
-      // baseline — see campusData.ts), servesPopulation/upkeepPerWeek are
-      // LIVE-READ every tick straight off whatever's currently 'done' (see
-      // BuildableEffects in state/types.ts) — so this starting instance
-      // MUST carry them, or satisfactionSystem/financeSystem would silently
-      // undercount it forever.
+      // Available (not 'done') from day one: the campus opens empty, so the
+      // player builds the founding dining hall like any other facility (see
+      // campusData.ts's founding dorm for the same treatment). Its
+      // servesPopulation/upkeepPerWeek are LIVE-READ every tick straight off
+      // whatever's currently 'done' (see BuildableEffects in state/types.ts),
+      // so they only count once this is actually built — no fold-in, nothing
+      // to double-count.
+      status: 'available',
       effects: {
         servesPopulation: opts.startingServes,
         satisfactionAttribute: opts.satisfactionAttribute,
@@ -162,7 +170,10 @@ function repeatableChain(opts: {
       cost,
       duration,
       prereqs: [previousId], // strictly sequential, same reasoning as the dorm chain
-      status: i === 1 ? 'available' : 'locked',
+      // All locked; each unlocks the tick its prereq finishes — including the
+      // first, now that the founding hall is itself built rather than seeded
+      // 'done' (see the starting instance above).
+      status: 'locked',
       effects: {
         servesPopulation,
         satisfactionAttribute: opts.satisfactionAttribute,
@@ -436,6 +447,8 @@ export function initialFacilities(): Buildable[] {
       startingId: DINING_STARTING_ID,
       startingName: DINING_NAMES[0]!,
       startingServes: DINING_STARTING_SERVES,
+      startingCost: DINING_STARTING_COST,
+      startingWeeks: DINING_STARTING_WEEKS,
       satisfactionAttribute: 'basicNeeds',
       additionalCount: DINING_ADDITIONAL_COUNT,
       baseServes: DINING_BASE_SERVES,
