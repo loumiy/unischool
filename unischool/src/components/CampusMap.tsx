@@ -405,7 +405,7 @@ function PlacedBuilding({
 }
 
 export default function CampusMap({
-  s, act, selectedId, onSelect, pathTool,
+  s, act, selectedId, onSelect, pathTool, onSetPathTool,
 }: {
   s: GameState;
   act: (a: Action) => void;
@@ -421,6 +421,12 @@ export default function CampusMap({
   // enforces "picking up a building and drawing/erasing a path are two
   // different jobs for the same click, so exactly one is ever live".
   pathTool: 'draw' | 'erase' | null;
+  // The same toggle the build popup's tool tiles drive (App.tsx's
+  // setPathTool: calling it again with the CURRENTLY active mode turns it
+  // off). Right-clicking the map while a path tool is active reuses that
+  // exact toggle (see onMapContextMenu below) rather than inventing a
+  // separate cancel path.
+  onSetPathTool: (mode: 'draw' | 'erase') => void;
 }) {
   // Whether the currently-selected building has been turned 90 degrees
   // before siting (see campusMap.ts's orientedFootprint). Transient UI
@@ -569,6 +575,17 @@ export default function CampusMap({
     if (e.button !== 0) return;
     justPannedRef.current = false;
     dragRef.current = { startX: e.clientX, startY: e.clientY, startView: { x: viewRef.current.x, y: viewRef.current.y }, moved: false };
+  }
+
+  // Right-click backs out of an active path tool — the map's own equivalent
+  // of the build popup's "click the same tool tile again" toggle. Only ever
+  // preventDefault (suppressing the browser's own context menu) while there
+  // is actually a tool to cancel; an ordinary right-click elsewhere on the
+  // map is left alone.
+  function onMapContextMenu(e: React.MouseEvent<SVGSVGElement>) {
+    if (!pathTool) return;
+    e.preventDefault();
+    onSetPathTool(pathTool);
   }
 
   // Zoom toward the cursor, not the map's centre — the standard "point
@@ -787,6 +804,7 @@ export default function CampusMap({
           aria-label="Campus map"
           onMouseLeave={() => setHover(null)}
           onMouseDown={onMapMouseDown}
+          onContextMenu={onMapContextMenu}
           onWheel={onWheel}
         >
           <g ref={worldRef}>

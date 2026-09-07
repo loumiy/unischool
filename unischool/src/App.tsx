@@ -94,7 +94,7 @@ export default function App() {
 
   return (
     <>
-      <CampusMap s={s} act={act} selectedId={placingId} onSelect={setPlacingId} pathTool={pathTool} />
+      <CampusMap s={s} act={act} selectedId={placingId} onSelect={setPlacingId} pathTool={pathTool} onSetPathTool={setPathTool} />
 
       <div className="app">
         <div className="topbar" ref={topbarRef}>
