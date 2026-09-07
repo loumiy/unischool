@@ -91,8 +91,10 @@ interface TypeGroup {
 // single buildings with tier upgrades: at most two tiles ever, each a
 // genuinely different building. performingArtsCenter/artGallery are also
 // single-instance, but one-off (no tier field, no upgrade) — exactly one
-// tile each, forever, hidden until the Arts & Media school clears their
-// shared gate (see facilitiesData.ts's ARTS_MEDIA_BUILDING_ID). recCenter
+// tile each, forever, each hidden until its own major clears its tier-2
+// coursework (Music for the Performing Arts Center, Studio Art for the Art
+// Gallery — see facilitiesData.ts's MUSIC_TIER2_IDS/STUDIO_ART_TIER2_IDS).
+// recCenter
 // now covers a FIFTH shape: a repeatable, strictly sequential chain like
 // housing/dining, but of distinctly-named one-off facilities (Recreation
 // Center, Gym & Fitness Center, Swimming Pool, Tennis Courts, Athletics

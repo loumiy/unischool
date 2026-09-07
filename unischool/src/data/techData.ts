@@ -1,5 +1,5 @@
 import type { Buildable, GameState } from '../state/types';
-import { PERFORMING_ARTS_CENTER_ID } from './facilitiesData';
+import { PERFORMING_ARTS_CENTER_ID, ART_GALLERY_ID } from './facilitiesData';
 
 /*
   Your real curriculum, expressed as seed data and expanded into Buildable[].
@@ -411,21 +411,28 @@ function labId(prefix: string): string {
   return `LAB-${prefix}`;
 }
 
-// Arts & Media's three majors (Graphic Design, Music, Studio Art — see
-// SCHOOLS below) get the same curated cross-kind "facility gates capstone
+// Two of Arts & Media's three majors (Music, Studio Art — see SCHOOLS
+// below) get the same curated cross-kind "facility gates capstone
 // coursework" treatment LAB_GATED_MAJOR_PREFIXES gives the lab sciences,
-// pointed at ONE shared facility instead of a lab per major: the Performing
-// Arts Center (facilitiesData.ts) is where all three majors' capstones
-// actually perform/exhibit, and there's no equipment-specialization
-// difference between them at the capstone level the way there is between,
-// say, Chemistry and Biology. This is the "lightest real coupling" chosen
-// over a bespoke prestige/satisfaction input: it reuses a mechanism the
-// curriculum tree already has (see the tier === 3 branch below), rather
-// than inventing a new one, and it reads exactly like a lab requirement in
-// the tooltip/build panel. The Art Gallery is NOT part of this gate — one
-// coupling is enough, and splitting it across two facilities (which major
-// needs which building?) would add bookkeeping without adding a decision.
-const ARTS_GATED_MAJOR_PREFIXES = ['GRDS', 'MUSC', 'SART'];
+// each pointed at its OWN facility instead of one shared building: Music's
+// capstones perform in the Performing Arts Center, Studio Art's exhibit in
+// the Art Gallery (both facilitiesData.ts). This is the "lightest real
+// coupling" chosen over a bespoke prestige/satisfaction input: it reuses a
+// mechanism the curriculum tree already has (see the tier === 3 branch
+// below), rather than inventing a new one, and it reads exactly like a lab
+// requirement in the tooltip/build panel. Graphic Design, the school's
+// third major, is NOT part of either gate — the two-building, two-major
+// split already covers the school's performing and exhibited halves, and
+// there's no third facility for it to specialize into, so it takes the
+// plain t2Ids prereq every non-gated major gets. Each facility's OWN
+// unlock, in turn, gates on its major's tier-2 quartet rather than the
+// school building (see the long comment above PERFORMING_ARTS_CENTER_ID in
+// facilitiesData.ts) — one tier before the tier-3 courses it gates here, so
+// this can never be circular.
+const ARTS_CAPSTONE_GATE: Partial<Record<string, string>> = {
+  MUSC: PERFORMING_ARTS_CENTER_ID,
+  SART: ART_GALLERY_ID,
+};
 
 // ---------------------------------------------------------------------
 // GRADUATE PROGRAMS (see README's "Graduate programs"). More curriculum,
@@ -910,10 +917,11 @@ export function initialTech(): Buildable[] {
         if (tier === 1) prereqs = [...GENED_CORE_IDS];
         else if (tier === 2) prereqs = [t1Id, school.buildingId];
         else if (tier === 3) {
+          const artsGate = ARTS_CAPSTONE_GATE[major.prefix];
           prereqs = [
             ...t2Ids,
             ...(needsLab ? [labId(major.prefix)] : []),
-            ...(ARTS_GATED_MAJOR_PREFIXES.includes(major.prefix) ? [PERFORMING_ARTS_CENTER_ID] : []),
+            ...(artsGate ? [artsGate] : []),
           ];
         }
         prereqs = [...prereqs, ...(CROSS_MAJOR_BRIDGES[id] ?? [])];
