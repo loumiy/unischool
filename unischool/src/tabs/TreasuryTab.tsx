@@ -1,5 +1,5 @@
 import type { GameState } from '../state/types';
-import { WEEKS_PER_YEAR } from '../state/types';
+import { WEEKS_PER_YEAR, totalEnrolled } from '../state/types';
 import type { Action } from '../state/actions';
 import { financeBreakdown, instructionCostPerStudent, endowmentCampaign } from '../systems/finance/financeSystem';
 import HelpHint from '../components/HelpHint';
@@ -60,7 +60,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
             <h3>Income</h3>
             <StatementLine
               label="Net tuition"
-              note={`${s.students.enrolled.toLocaleString()} enrolled × $${s.finance.tuitionPerStudent.toLocaleString()}/yr less ${Math.round(s.admissions.financialAidRate * 100)}% aid`}
+              note={`${totalEnrolled(s.students).toLocaleString()} enrolled × $${s.finance.tuitionPerStudent.toLocaleString()}/yr less ${Math.round(s.admissions.financialAidRate * 100)}% aid`}
               amount={flow.tuitionRevenue}
             />
             <StatementLine
@@ -98,7 +98,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
             />
             <StatementLine
               label="Instruction"
-              note={`${s.students.enrolled.toLocaleString()} enrolled × ${money(instructionCostPerStudent(s))}/wk — rises with every course you offer (${coursesDone})`}
+              note={`${totalEnrolled(s.students).toLocaleString()} enrolled × ${money(instructionCostPerStudent(s))}/wk — rises with every course you offer (${coursesDone})`}
               amount={flow.instructionCost}
             />
             <StatementLine

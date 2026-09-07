@@ -2,6 +2,7 @@ import type {
   AthleticsInvestmentTier, Buildable, FacilityType, GameState, GreekChapter, OrgPetition,
   StudentClub, StudentOrgBase, VarsityTeam,
 } from '../state/types';
+import { totalEnrolled } from '../state/types';
 import { weeksOfOpEx } from './moneyScale';
 
 // ---------------------------------------------------------------------
@@ -454,7 +455,7 @@ export function rollClubPetition(s: GameState): OrgPetition | null {
     sport: sportDef?.id ?? null,
     foundedYear: s.clock.year,
     foundingMembers: rollFoundingMembers(CLUB_FOUNDING_MEMBERS),
-    foundingEnrolled: Math.max(1, s.students.enrolled),
+    foundingEnrolled: Math.max(1, totalEnrolled(s.students)),
     upkeepPerWeek: weeksOfOpEx(s, CLUB_UPKEEP_WEEKS_OF_OPEX),
   };
 }
@@ -469,7 +470,7 @@ export function rollChapterPetition(s: GameState): OrgPetition | null {
     greekKind: Math.random() < 0.5 ? 'fraternity' : 'sorority',
     foundedYear: s.clock.year,
     foundingMembers: rollFoundingMembers(CHAPTER_FOUNDING_MEMBERS),
-    foundingEnrolled: Math.max(1, s.students.enrolled),
+    foundingEnrolled: Math.max(1, totalEnrolled(s.students)),
     upkeepPerWeek: weeksOfOpEx(s, CHAPTER_UPKEEP_WEEKS_OF_OPEX),
   };
 }
@@ -514,7 +515,7 @@ export function activatePetition(s: GameState, petition: OrgPetition): void {
 export function orgMembership(org: StudentOrgBase, s: GameState): number {
   const ageYears = Math.max(0, s.clock.year - org.foundedYear);
   const grown = org.foundingMembers * (1 + ORG_MEMBERSHIP_GROWTH_PER_YEAR) ** ageYears;
-  const enrolled = Math.max(0, s.students.enrolled);
+  const enrolled = Math.max(0, totalEnrolled(s.students));
   const scale = (Math.max(enrolled, 1) / Math.max(org.foundingEnrolled, 1)) ** ORG_ENROLLMENT_TRACKING;
   return Math.max(1, Math.min(enrolled, Math.round(grown * scale)));
 }

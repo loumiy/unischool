@@ -1,4 +1,5 @@
 import type { GameState } from '../../state/types';
+import { totalEnrolled } from '../../state/types';
 import { graduatePrograms, milestoneSchools } from '../../data/techData';
 
 // ---------------------------------------------------------------------
@@ -194,7 +195,7 @@ export function curriculumBreadthScore(s: GameState): number {
 const ADMISSIONS_SCALE_FOR_FULL_CREDIT = 6_000; // enrolled students at which selectivity/quality count in full
 const ADMISSIONS_SCALE_FLOOR = 0.35;
 function admissionsScaleScore(s: GameState): number {
-  return clamp(s.students.enrolled / ADMISSIONS_SCALE_FOR_FULL_CREDIT, ADMISSIONS_SCALE_FLOOR, 1);
+  return clamp(totalEnrolled(s.students) / ADMISSIONS_SCALE_FOR_FULL_CREDIT, ADMISSIONS_SCALE_FLOOR, 1);
 }
 
 // Selectivity: the most recently resolved admissions cycle's admit rate,

@@ -4,7 +4,7 @@ import type { Action } from '../state/actions';
 import { createInitialState, createPreStartState } from '../state/actions';
 import { tickFinance, endowmentCampaign } from '../systems/finance/financeSystem';
 import { tickTech, canStartDevelopment, startDevelopment } from '../systems/techtree/techSystem';
-import { tickAdmissions, projectAdmissions } from '../systems/admissions/admissionsSystem';
+import { tickAdmissions, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
 import { tickFaculty } from '../systems/faculty/facultySystem';
 import { tickResearch } from '../systems/research/researchSystem';
@@ -334,20 +334,42 @@ export function reducer(state: GameState, action: Action): GameState {
 
       resolveStudentLifeDigest(s, action.approvedPetitionIds);
 
-      // Run the distribution funnel with the committed policy: this sets the
-      // year's enrolled class and applicant pool. The same pure function the
-      // UI used to preview these outcomes (see admissionsSystem.ts) is what
-      // commits them, so what the player saw is exactly what they get.
+      // Word of mouth: the trailing-year AVERAGE satisfaction (accumulated
+      // weekly since last summer) scales next year's applicant pool — the
+      // design's "current experience -> satisfaction -> next year's
+      // applications". Read it, record it as this year's figure, then reset
+      // the accumulator for the year now beginning.
+      const priorYearAvgSatisfaction = trailingYearSatisfaction(s);
+      s.students.priorYearAvgSatisfaction = priorYearAvgSatisfaction;
+      s.students.satisfactionYearSum = 0;
+      s.students.satisfactionYearWeeks = 0;
+
+      // Advance the cohorts a year: seniors graduate and leave, everyone
+      // else moves up. Full progression, no attrition, in this model.
+      const cohorts = s.students.cohorts;
+      const graduating = cohorts.senior;
+      cohorts.senior = cohorts.junior;
+      cohorts.junior = cohorts.sophomore;
+      cohorts.sophomore = cohorts.freshman;
+      cohorts.freshman = 0;
+
+      // Run the distribution funnel with the committed policy: it sizes the
+      // incoming FRESHMAN class to fill whatever seats the returning cohorts
+      // leave open. The same pure function the UI previews with (see
+      // admissionsSystem.ts's projectAdmissions/freshmanCapacity) is what
+      // commits it, so what the player saw is exactly what they get.
+      const openSeats = Math.max(
+        0,
+        s.students.capacity - (cohorts.sophomore + cohorts.junior + cohorts.senior),
+      );
       const outcome = projectAdmissions(
         s.self.reputation,
         s.finance.tuitionPerStudent,
         s.admissions.financialAidRate,
-        s.students.capacity,
-        // Word of mouth: this year's student satisfaction scales next
-        // year's applicant pool (see admissionsSystem.ts).
-        s.students.satisfaction,
+        openSeats,
+        priorYearAvgSatisfaction,
       );
-      s.students.enrolled = outcome.enrolled;
+      cohorts.freshman = outcome.enrolled;
       s.students.applicantPool = outcome.applicants;
       s.students.admitRate = outcome.admitRate;
       s.students.incomingQuality = outcome.avgIncomingQuality;
@@ -370,7 +392,7 @@ export function reducer(state: GameState, action: Action): GameState {
       s.log.unshift({
         year: s.clock.year,
         week: s.clock.week,
-        message: `Admissions: tuition $${s.finance.tuitionPerStudent.toLocaleString()}/yr, ${Math.round(s.admissions.financialAidRate * 100)}% aid — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admit rate, ${outcome.enrolled} enrolled.`,
+        message: `Admissions: tuition $${s.finance.tuitionPerStudent.toLocaleString()}/yr, ${Math.round(s.admissions.financialAidRate * 100)}% aid — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admit rate, ${outcome.enrolled} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
         kind: 'info',
       });
 

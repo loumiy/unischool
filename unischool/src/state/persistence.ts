@@ -433,7 +433,16 @@ const SAVE_KEY = 'unischool.save';
 // school-distinguished:, majorsComplete -> programsEstablished — with NO
 // change to meaning, so breadth and prestige are untouched. grad-program-
 // complete: is deliberately left as-is. See MIGRATIONS[18].
-export const SAVE_VERSION = 19;
+//
+// v19 -> v20: the four-cohort student model (see README's "Students: four
+// aggregate cohorts" and the alignment roadmap's PR D). A v19 save carries a
+// single students.enrolled number for the whole body; a mid-flight run has
+// all four class years, so it is split evenly across freshman/sophomore/
+// junior/senior (remainder to freshman). The trailing-year satisfaction
+// accumulator is seeded empty with priorYearAvgSatisfaction set to the
+// current satisfaction, so the next funnel behaves as before until a real
+// year accumulates. See MIGRATIONS[19].
+export const SAVE_VERSION = 20;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1034,6 +1043,39 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
         delete legacy.majorsComplete;
       }
     }
+  },
+
+  // v19 -> v20: the four-cohort student model (see the note above SAVE_VERSION
+  // and README's "Students: four aggregate cohorts"). Converts the single
+  // students.enrolled scalar into four class-year cohorts and seeds the
+  // trailing-year satisfaction accumulator. A mid-flight run genuinely has all
+  // four years, so the body is split evenly (any remainder to freshman); this
+  // is a display/accounting reshape, not a change to how many students the
+  // school has, so tuition/instruction/prestige read the same total the tick
+  // after load.
+  19: (state) => {
+    const students = state.students as unknown as {
+      enrolled?: number;
+      cohorts?: { freshman: number; sophomore: number; junior: number; senior: number };
+      satisfaction?: number;
+      satisfactionYearSum?: number;
+      satisfactionYearWeeks?: number;
+      priorYearAvgSatisfaction?: number;
+    };
+    if (!students.cohorts) {
+      const total = Math.max(0, Math.round(students.enrolled ?? 0));
+      const per = Math.floor(total / 4);
+      students.cohorts = {
+        freshman: per + (total - per * 4),
+        sophomore: per,
+        junior: per,
+        senior: per,
+      };
+    }
+    delete students.enrolled;
+    students.satisfactionYearSum ??= 0;
+    students.satisfactionYearWeeks ??= 0;
+    students.priorYearAvgSatisfaction ??= students.satisfaction ?? 70;
   },
 };
 

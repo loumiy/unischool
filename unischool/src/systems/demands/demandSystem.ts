@@ -1,4 +1,5 @@
 import type { Buildable, GameState, SatisfactionAttributes, StudentDemand } from '../../state/types';
+import { totalEnrolled } from '../../state/types';
 import { absoluteWeek, DECISION_EVENT_COOLDOWN_WEEKS } from '../../data/eventData';
 import {
   DEMAND_COOLDOWN_WEEKS, DEMAND_DEADLINE_WEEKS, DEMAND_FAILED_SATISFACTION_PENALTY,
@@ -210,7 +211,7 @@ function candidateFor(s: GameState, attribute: keyof SatisfactionAttributes): Ca
 function housingCandidate(s: GameState): Candidate | null {
   const capacity = s.students.capacity;
   if (capacity <= 0) return null;
-  const fill = s.students.enrolled / capacity;
+  const fill = totalEnrolled(s.students) / capacity;
   if (fill < HOUSING_DEMAND_FILL_GATE) return null; // there are beds spare; the grievance would not be true
 
   const dorm = nextDorm(s);

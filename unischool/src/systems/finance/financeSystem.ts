@@ -1,5 +1,5 @@
 import type { GameState } from '../../state/types';
-import { WEEKS_PER_YEAR } from '../../state/types';
+import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
 import { studentOrgUpkeep } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
@@ -265,8 +265,9 @@ export function instructionCostPerStudent(s: GameState): number {
 // what is charged, with no second copy of any formula to drift out of
 // sync. Pure: reads state, writes nothing.
 export function financeBreakdown(s: GameState): FinanceBreakdown {
+  const enrolled = totalEnrolled(s.students);
   const netTuitionPerStudent = s.finance.tuitionPerStudent * (1 - s.admissions.financialAidRate);
-  const tuitionRevenue = (s.students.enrolled * netTuitionPerStudent) / WEEKS_PER_YEAR;
+  const tuitionRevenue = (enrolled * netTuitionPerStudent) / WEEKS_PER_YEAR;
   const prestigeRevenue = (s.self.reputation * REPUTATION_DIVIDEND_PER_POINT_PER_YEAR) / WEEKS_PER_YEAR;
   const endowmentPayout = (s.finance.endowment * ENDOWMENT_PAYOUT_RATE) / WEEKS_PER_YEAR;
   // A public school's appropriation has two halves (see schoolTypeData.ts):
@@ -274,13 +275,13 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   // with the school. Both are 0 for a private school, so nothing here
   // branches on school type — it only reads the numbers founding set.
   const baselineFunding = s.finance.baselineFundingPerWeek +
-    (s.students.enrolled * s.finance.appropriationPerStudentPerYear) / WEEKS_PER_YEAR;
+    (enrolled * s.finance.appropriationPerStudentPerYear) / WEEKS_PER_YEAR;
 
   const weeklySalaries = s.faculty.reduce((sum, f) => sum + f.salary, 0) / WEEKS_PER_YEAR;
-  const filledSeats = Math.min(s.students.enrolled, s.students.capacity);
+  const filledSeats = Math.min(enrolled, s.students.capacity);
   const emptySeats = Math.max(s.students.capacity - filledSeats, 0);
   const seatUpkeep = (filledSeats + emptySeats * UPKEEP_EMPTY_SEAT_MULTIPLIER) * UPKEEP_PER_SEAT_PER_WEEK;
-  const instructionCost = s.students.enrolled * instructionCostPerStudent(s);
+  const instructionCost = enrolled * instructionCostPerStudent(s);
   const academicUpkeep = upkeepFor(s, true);
   const facilityUpkeep = upkeepFor(s, false);
   const studentLifeUpkeep = studentOrgUpkeep(s);

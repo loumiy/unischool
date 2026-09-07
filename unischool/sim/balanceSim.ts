@@ -24,6 +24,7 @@ import { reducer } from '../src/engine/reducer';
 import type { Action } from '../src/state/actions';
 import { createPreStartState } from '../src/state/actions';
 import type { GameState, Buildable, SchoolType } from '../src/state/types';
+import { totalEnrolled } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet } from '../src/systems/finance/financeSystem';
 import { canStartDevelopment, hasFreeFacultySlot } from '../src/systems/techtree/techSystem';
 import { firstFreeSpot, footprintOf } from '../src/state/campusMap';
@@ -224,7 +225,7 @@ function decide(
     const s = get();
     const next = s.tech.find((t) => t.kind === 'dorm' && t.status === 'available');
     const full = s.students.capacity > 0 &&
-      s.students.enrolled / s.students.capacity >= strategy.dormFillThreshold;
+      totalEnrolled(s.students) / s.students.capacity >= strategy.dormFillThreshold;
     if (next && full && canCommitCapital(s, strategy) && affordable(s, next.cost, strategy)) {
       dispatchPlaceable(get, dispatch, next.id);
     }
@@ -240,7 +241,7 @@ function decide(
   const nextDorm = beforeCurriculum.tech.find((t) => t.kind === 'dorm' && t.status === 'available');
   const savingForDorm = strategy.buildsDorms && nextDorm !== undefined &&
     beforeCurriculum.students.capacity > 0 &&
-    beforeCurriculum.students.enrolled / beforeCurriculum.students.capacity >= strategy.dormFillThreshold &&
+    totalEnrolled(beforeCurriculum.students) / beforeCurriculum.students.capacity >= strategy.dormFillThreshold &&
     !affordable(beforeCurriculum, nextDorm.cost, strategy);
 
   // Curriculum: cheapest tier first, plus the buildings/labs that gate it.
@@ -350,7 +351,7 @@ function snapshot(s: GameState, weeksInTheRed: number, minCash: number): Row {
   return {
     year: s.clock.year - 1,
     cash: s.finance.cash,
-    enrolled: s.students.enrolled,
+    enrolled: totalEnrolled(s.students),
     capacity: s.students.capacity,
     prestige: s.self.reputation,
     opex: flow.totalExpenses,

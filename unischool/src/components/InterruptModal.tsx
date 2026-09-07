@@ -4,7 +4,7 @@ import type { GameState, PendingInterrupt, PrizeAward } from '../state/types';
 import { institutionName, WEEKS_PER_YEAR } from '../state/types';
 import { ACCLAIM_RESEARCH_BONUS } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
-import { projectAdmissions, priceTolerance } from '../systems/admissions/admissionsSystem';
+import { projectAdmissions, priceTolerance, freshmanCapacity, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
 import { computePrestigeTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
 import { findDecisionEvent } from '../data/eventData';
 import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
@@ -136,10 +136,10 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
 
       <dl className="admissions-outcomes">
         <div><dt>Applicant pool</dt><dd>{outcome.applicants.toLocaleString()}</dd></div>
-        <div><dt>Word of mouth <span className="outcome-note">(satisfaction {Math.round(satisfaction)})</span></dt><dd>{outcome.wordOfMouthMultiplier >= 1 ? '+' : ''}{Math.round((outcome.wordOfMouthMultiplier - 1) * 100)}% applicants</dd></div>
+        <div><dt>Word of mouth <span className="outcome-note">(avg satisfaction last year {Math.round(satisfaction)})</span></dt><dd>{outcome.wordOfMouthMultiplier >= 1 ? '+' : ''}{Math.round((outcome.wordOfMouthMultiplier - 1) * 100)}% applicants</dd></div>
         <div><dt>Admit rate <span className="outcome-note">(selectivity)</span></dt><dd>{Math.round(outcome.admitRate * 100)}%</dd></div>
         <div><dt>Yield</dt><dd>{Math.round(outcome.yieldRate * 100)}%</dd></div>
-        <div><dt>Enrolled class</dt><dd>{outcome.enrolled.toLocaleString()} / {capacity.toLocaleString()}</dd></div>
+        <div><dt>Freshman class <span className="outcome-note">(open seats)</span></dt><dd>{outcome.enrolled.toLocaleString()} / {capacity.toLocaleString()}</dd></div>
         <div><dt>Incoming quality <span className="outcome-note">(feeds prestige)</span></dt><dd>{Math.round(outcome.avgIncomingQuality)} / 100</dd></div>
         <div><dt>Net tuition / student</dt><dd>${outcome.netTuitionPerStudent.toLocaleString()}/yr</dd></div>
         <div>
@@ -668,9 +668,9 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
           <AdmissionsInterruptForm
             payload={interrupt.payload as AdmissionsDraft}
             prestige={s.self.reputation}
-            capacity={s.students.capacity}
+            capacity={freshmanCapacity(s)}
             tuitionCeiling={s.finance.tuitionCeiling}
-            satisfaction={s.students.satisfaction}
+            satisfaction={trailingYearSatisfaction(s)}
             petitions={s.orgs.pendingPetitions}
             onResolve={(settings) => act({ type: 'RESOLVE_ADMISSIONS', ...settings })}
           />

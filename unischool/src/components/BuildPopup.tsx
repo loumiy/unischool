@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Buildable, FacilityType, GameState } from '../state/types';
+import { totalEnrolled } from '../state/types';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import { canSiteRetroactively, RETROACTIVE_SITING_COST } from '../state/campusMap';
 import { STARTING_DORM_CAPACITY } from '../data/campusData';
@@ -510,7 +511,7 @@ export default function BuildPopup({
       headExtra={<HelpHint text="Every building the university can have, grouped by type: what's built, what's under construction, and what's next available. Repeatable types (housing, dining, fitness) collapse what's already finished into one line — open it for the individual halls. A facility serves a fixed share of students against total planned capacity, not today's enrollment, so building more housing raises the bar for the rest of campus life too. Anything not yet unlockable is left off the list rather than teased. 'Site →' picks a building up — click (or drag it onto) an empty tile on the map to start building it there; that's the moment the cost is charged and the countdown begins. A row priced at a flat, small fee instead of a real construction cost is already-built and just needs a spot marked on the map — the university's founding buildings, mainly. The map stays visible and clickable behind this popup, so you can see where a building will land before you commit it." />}
     >
       <div className="build-popup-stats">
-        <span className="stat">{s.students.enrolled.toLocaleString()}/{s.students.capacity.toLocaleString()} beds</span>
+        <span className="stat">{totalEnrolled(s.students).toLocaleString()}/{s.students.capacity.toLocaleString()} beds</span>
         <span className="stat">satisfaction {Math.round(s.students.satisfaction)}</span>
       </div>
 

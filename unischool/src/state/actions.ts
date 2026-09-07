@@ -188,8 +188,10 @@ export function createPreStartState(): GameState {
       baselineFundingPerWeek: 0, appropriationPerStudentPerYear: 0, weeklyOpEx: 0,
     },
     students: {
-      enrolled: 0, capacity: 0, satisfaction: 0,
+      cohorts: { freshman: 0, sophomore: 0, junior: 0, senior: 0 },
+      capacity: 0, satisfaction: 0,
       satisfactionBreakdown: { academic: 0, social: 0, basicNeeds: 0, health: 0 },
+      satisfactionYearSum: 0, satisfactionYearWeeks: 0, priorYearAvgSatisfaction: 0,
       applicantPool: 0, admitRate: 0, incomingQuality: 0,
     },
     admissions: { financialAidRate: 0 },
@@ -244,7 +246,10 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       weeklyOpEx: 0,
     },
     students: {
-      enrolled: 200,
+      // Founding ramp: a brand-new college opens with a freshman class only;
+      // the body fills out to four cohorts over its first four years as
+      // classes advance (see README's "Students: four aggregate cohorts").
+      cohorts: { freshman: 200, sophomore: 0, junior: 0, senior: 0 },
       // Capacity comes entirely from dorms now (see campusData.ts). The
       // starting dorm is seeded 'done' rather than granted via the normal
       // completion-effects path, so its capacity is folded in here.
@@ -254,6 +259,10 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       // computation — this starting value just matches the legacy flat 70
       // so the pre-tick UI doesn't show a startling all-zero breakdown.
       satisfactionBreakdown: { academic: 70, social: 70, basicNeeds: 70, health: 70 },
+      // Word of mouth seeds neutral: 70 matches WORD_OF_MOUTH_NEUTRAL (see
+      // admissionsSystem.ts), so year 1's funnel gets no word-of-mouth swing
+      // until a real year of satisfaction has accumulated.
+      satisfactionYearSum: 0, satisfactionYearWeeks: 0, priorYearAvgSatisfaction: 70,
       applicantPool: preset.startingApplicantPool,
       // Neutral placeholders until the first summer admissions cycle
       // resolves and sets these for real — see RESOLVE_ADMISSIONS.

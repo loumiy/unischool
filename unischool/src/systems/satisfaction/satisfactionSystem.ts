@@ -344,4 +344,11 @@ export function tickSatisfaction(s: GameState): void {
   const target = weightedSum(breakdown);
   s.students.satisfaction += (target - s.students.satisfaction) * SATISFACTION_DRIFT_RATE;
   s.students.satisfaction = clamp(s.students.satisfaction, 0, 100);
+
+  // Accumulate this week's satisfaction toward the trailing-year average
+  // next summer's admissions funnel reads as word of mouth (see
+  // admissionsSystem.ts's trailingYearSatisfaction; the reducer averages and
+  // resets this at RESOLVE_ADMISSIONS).
+  s.students.satisfactionYearSum += s.students.satisfaction;
+  s.students.satisfactionYearWeeks += 1;
 }
