@@ -8,7 +8,7 @@ import { tickAdmissions, projectAdmissions, trailingYearSatisfaction } from '../
 import { tickRivals } from '../systems/rivals/rivalsSystem';
 import { tickFaculty } from '../systems/faculty/facultySystem';
 import { tickResearch } from '../systems/research/researchSystem';
-import { tickPrestigeAnnual } from '../systems/prestige/prestigeSystem';
+import { tickPrestige } from '../systems/prestige/prestigeSystem';
 import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { tickEvents } from '../systems/events/eventSystem';
 import { tickStudentLife } from '../systems/studentlife/studentLifeSystem';
@@ -38,6 +38,17 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   // this week should be in the balance the same week's cash flow settles
   // against.
   tickResearch,
+  // After tickResearch, before tickFinance: prestige drifts weekly toward its
+  // computed target (see prestigeSystem.ts's tickPrestige — moved off the old
+  // annual boundary so standing responds smoothly to mid-year curriculum,
+  // faculty and research changes rather than sitting frozen between summers).
+  // Placed before tickFinance so this week's reputation feeds the prestige
+  // dividend, and after tickTech/tickFaculty/tickResearch so a milestone,
+  // matured hire or breakthrough from this week is already in the target it
+  // drifts toward. The two admissions-derived inputs (selectivity, incoming
+  // quality) only change at the summer boundary; every other input can move
+  // any week.
+  tickPrestige,
   tickFinance,
   // After tickFinance, before tickSatisfaction: a student organisation
   // petition is sized in weeks of THIS week's operating cost, and an
@@ -374,17 +385,15 @@ export function reducer(state: GameState, action: Action): GameState {
       s.students.admitRate = outcome.admitRate;
       s.students.incomingQuality = outcome.avgIncomingQuality;
 
-      // Prestige is a slow-moving stock (see prestigeSystem.ts): this is
-      // the one annual boundary where it drifts toward a target computed
-      // from curriculum breadth, the selectivity/quality just resolved
-      // above, and (later) faculty quality.
-      tickPrestigeAnnual(s);
-
       // The one annual boundary in the game, so the one place the history
-      // record grows (see state/history.ts). Appended AFTER the funnel and
-      // the prestige drift above, so the row is the state the school
-      // actually carries into the next year, and BEFORE advanceClock, so
-      // it is filed under the year that just closed.
+      // record grows (see state/history.ts). Appended AFTER the funnel above,
+      // so the row is the class the school actually carries into the next
+      // year, and BEFORE advanceClock, so it is filed under the year that just
+      // closed. Prestige is NOT drifted here any more — it drifts weekly in
+      // the SYSTEMS array (see prestigeSystem.ts's tickPrestige), so this
+      // captures reputation as of the last weekly tick; the cycle's
+      // freshly-resolved selectivity and quality feed prestige over the
+      // following weeks rather than in a jump here.
       s.history.push(captureYearSnapshot(s));
 
       s.pendingInterrupt = null;
