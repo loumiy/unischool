@@ -1,6 +1,31 @@
 import type { GameState } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
 
+// The trailing-year satisfaction that drives word of mouth: the average of
+// every weekly satisfaction reading accumulated since last summer (see
+// satisfactionSystem.ts's tickSatisfaction, which does the accumulating, and
+// reducer.ts's RESOLVE_ADMISSIONS, which reads this then resets the
+// accumulator). Falls back to the current headline satisfaction before any
+// week has accumulated, so a founding year and a freshly loaded save both
+// read a sensible value rather than 0/0.
+export function trailingYearSatisfaction(s: GameState): number {
+  return s.students.satisfactionYearWeeks > 0
+    ? s.students.satisfactionYearSum / s.students.satisfactionYearWeeks
+    : s.students.satisfaction;
+}
+
+// How many seats the incoming freshman class may fill: total capacity minus
+// the cohorts that will still be enrolled after this summer's advance
+// (today's freshman/sophomore/junior become next year's sophomore/junior/
+// senior). Floored at 0 — if returning cohorts already fill the campus, no
+// freshmen are admitted this cycle. Used identically by the reducer that
+// commits admissions and the modal/tab that preview it, so the number shown
+// is the number filled.
+export function freshmanCapacity(s: GameState): number {
+  const c = s.students.cohorts;
+  return Math.max(0, s.students.capacity - (c.freshman + c.sophomore + c.junior));
+}
+
 // ---------------------------------------------------------------------
 // Admissions is a distribution-based funnel, resolved once a year in the
 // summer interrupt (see README's "Admissions: an annual summer decision").
@@ -221,15 +246,18 @@ function bandYield(prestige: number, aid: number, band: QualityBand): number {
   return clamp(YIELD_BASE + aidTerm + prestigeTerm - YIELD_QUALITY_PENALTY[band], 0, 1);
 }
 
-// Pure funnel resolution. Given the school's prestige, capacity, and current
-// student satisfaction plus the player's two levers (tuition, aid), returns
-// the full set of emergent outcomes. No individual applicants are modeled —
-// only band aggregates.
+// Pure funnel resolution. Given the school's prestige, the OPEN SEATS the
+// entering class may fill (total capacity minus the returning cohorts — see
+// freshmanCapacity below), and the trailing-year student satisfaction that
+// drives word of mouth, plus the player's two levers (tuition, aid), returns
+// the full set of emergent outcomes. `enrolled` here is the incoming FRESHMAN
+// class, not the whole body. No individual applicants are modeled — only band
+// aggregates.
 export function projectAdmissions(
   prestige: number,
   tuition: number,
   aid: number,
-  capacity: number,
+  openCapacity: number,
   satisfaction: number,
 ): AdmissionsProjection {
   const wordOfMouth = wordOfMouthFactor(satisfaction);
@@ -260,7 +288,7 @@ export function projectAdmissions(
   // (and reporting) a much higher admit rate than one with the same
   // capacity and applicant pool but strong yield, exactly as a real
   // admissions office over-admits to compensate for anticipated no-shows.
-  let remainingCapacity = Math.max(capacity, 0);
+  let remainingCapacity = Math.max(openCapacity, 0);
   const admitsByBand: Record<QualityBand, number> = { top: 0, mid: 0, low: 0 };
   for (const band of bands) {
     if (remainingCapacity <= 0) break;
@@ -283,7 +311,7 @@ export function projectAdmissions(
     low: admitsByBand.low * yieldByBand.low,
   };
   const enrolledRaw = enrolledByBand.top + enrolledByBand.mid + enrolledByBand.low;
-  const enrolled = Math.min(Math.max(capacity, 0), Math.round(enrolledRaw));
+  const enrolled = Math.min(Math.max(openCapacity, 0), Math.round(enrolledRaw));
 
   // Average incoming quality is a weighted mean over the (pre-rounding)
   // enrolled mix, not the admit mix — it describes who actually shows up.

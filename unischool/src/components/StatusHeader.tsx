@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { GameState } from '../state/types';
-import { WEEKS_PER_YEAR, institutionName } from '../state/types';
+import { WEEKS_PER_YEAR, institutionName, totalEnrolled } from '../state/types';
 import { weeklyNet } from '../systems/finance/financeSystem';
 import { playerRank } from '../systems/rivals/rivalsSystem';
 import { SPEEDS, SANDBOX_SPEEDS, type Speed } from '../engine/useGame';
@@ -174,7 +174,7 @@ export default function StatusHeader({ s, speed, setSpeed, act }: {
           </div>
           <div className="stat-block">
             <div className="stat-label">Enrolled</div>
-            <div className="stat-value">{s.students.enrolled.toLocaleString()}</div>
+            <div className="stat-value">{totalEnrolled(s.students).toLocaleString()}</div>
             <div className="stat-sub">of {s.students.capacity.toLocaleString()} beds</div>
           </div>
           <div className="stat-block">

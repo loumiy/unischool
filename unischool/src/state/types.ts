@@ -29,15 +29,39 @@ export interface SatisfactionAttributes {
   health: number;         // health/counseling center — dormant (scores full) below the population threshold it unlocks at
 }
 
-// Students are modeled as aggregate cohorts, not individuals.
+// The student body is FOUR aggregate cohorts — never individuals (see
+// README's "Students: four aggregate cohorts"). Students attend four years:
+// each summer (reducer.ts's RESOLVE_ADMISSIONS) seniors graduate and leave,
+// every younger cohort advances a year, and the admissions funnel commits a
+// new freshman cohort. This is NOT individual-student simulation — each
+// cohort is a plain head count.
+export interface CohortCounts {
+  freshman: number;
+  sophomore: number;
+  junior: number;
+  senior: number;
+}
+
 export interface StudentBody {
-  enrolled: number;
-  capacity: number;      // driven by unlocked buildings/tech
-  satisfaction: number;  // 0..100, affects retention & reputation — the weighted sum of satisfactionBreakdown, drifted toward smoothly (see satisfactionSystem.ts)
+  // The four class-year cohorts. Total enrolled is their sum — read it via
+  // totalEnrolled() rather than storing a separate total that could drift.
+  cohorts: CohortCounts;
+  capacity: number;      // total-body bed capacity, driven by unlocked buildings/tech
+  satisfaction: number;  // 0..100 — the weighted sum of satisfactionBreakdown, drifted toward smoothly (see satisfactionSystem.ts)
   satisfactionBreakdown: SatisfactionAttributes; // this week's per-attribute scores that satisfaction's target is computed from — the expandable UI reads this directly
-  applicantPool: number; // most recent admissions cycle's total applicants (set by the annual funnel)
-  admitRate: number;     // most recent admissions cycle's admit rate — the emergent selectivity signal prestige reacts to (see prestigeSystem.ts)
-  incomingQuality: number; // most recent admissions cycle's average quality score (0..100) of the enrolled class — prestige's other admissions-derived input
+  // Trailing-year satisfaction: summed every week and counted (see
+  // satisfactionSystem.ts's tickSatisfaction), then averaged and reset at the
+  // summer boundary. The average is what next year's applicant funnel reads
+  // as word of mouth (see admissionsSystem.ts) — the design's "current
+  // experience -> satisfaction -> next year's applications". Kept as
+  // sum+count rather than a running mean so the average is exact and cheaply
+  // resettable.
+  satisfactionYearSum: number;
+  satisfactionYearWeeks: number;
+  priorYearAvgSatisfaction: number; // last completed year's average — the value the funnel actually uses
+  applicantPool: number; // most recent cycle's total applicants (set by the annual funnel)
+  admitRate: number;     // most recent cycle's admit rate — the emergent selectivity signal prestige reacts to (see prestigeSystem.ts)
+  incomingQuality: number; // most recent cycle's average quality score (0..100) of the entering freshman class — prestige's other admissions-derived input
 }
 
 // Faculty ARE individuals with attributes. teaching/research/salary are
@@ -640,6 +664,14 @@ export interface University {
 // exactly as it always did rather than picking up a stray space.
 export function institutionName(u: University): string {
   return u.suffix ? `${u.name} ${u.suffix}` : u.name;
+}
+
+// Total enrolled across the four cohorts — the whole student body. Derived,
+// never stored, so it can never drift from the cohorts it sums. Every
+// per-student reading (tuition, instruction cost, appropriations, scale)
+// goes through this.
+export function totalEnrolled(s: StudentBody): number {
+  return s.cohorts.freshman + s.cohorts.sophomore + s.cohorts.junior + s.cohorts.senior;
 }
 
 // One year's worth of the school's headline numbers, appended once a year

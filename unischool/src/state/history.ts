@@ -1,4 +1,5 @@
 import type { GameState, YearSnapshot } from './types';
+import { totalEnrolled } from './types';
 import { playerRank } from '../systems/rivals/rivalsSystem';
 
 // ---------------------------------------------------------------------
@@ -44,7 +45,7 @@ export function captureYearSnapshot(s: GameState): YearSnapshot {
     // record keeps — the annual report needs a prior rank to compare
     // against from the first year it fires.
     rank: playerRank(s),
-    enrolled: s.students.enrolled,
+    enrolled: totalEnrolled(s.students),
     cash: s.finance.cash,
     coursesDone: coursesDone(s),
     programsEstablished: programsEstablished(s),

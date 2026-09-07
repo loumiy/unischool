@@ -444,8 +444,10 @@ individual applicants:
 - **Applications** are driven by **sticker tuition**, **current prestige**, and
   the **average student satisfaction over the preceding year** (word of mouth).
   Higher prestige and a lower net price grow the pool; a happy student body grows
-  it further. (Today word of mouth reads *current* satisfaction; the shift to a
-  trailing-year average lands with the cohort model — see the roadmap's PR D.)
+  it further. Word of mouth reads the **average satisfaction over the preceding
+  year** — accumulated weekly and averaged at the summer boundary
+  (`admissionsSystem.ts`'s `trailingYearSatisfaction`), not the current week's
+  reading.
 - **Selectivity** (the admit rate) is an emergent *output*, reported back to the
   player — never a dial they set.
 - **Scholarships drive yield** — how many admitted students actually enroll —
@@ -472,16 +474,26 @@ introduce individual-student simulation.**
   satisfaction → next year's applications**. Satisfaction stays an aggregate
   institutional reading, not a per-student one.
 - Capacity, tuition, instruction cost and appropriations all scale with the
-  **total body** across the four cohorts.
+  **total body** across the four cohorts (`totalEnrolled()` in `types.ts` is the
+  one place the sum lives; nothing stores a separate total that could drift).
 
-**Status:** the current code still represents the whole body as a single
-`students.enrolled` scalar — one annual admission class standing in for the
-entire student population, which is the conceptual bug this section specifies the
-fix for. The four-cohort model is implemented in the roadmap's **PR D** (with the
-save migration that splits an existing `enrolled` into cohorts). The open
-modeling questions PR D must settle — inter-year attrition (assume full
-progression for v1?), what `capacity` caps, and the founding-year cohort
-distribution — are recorded in the roadmap, not decided here.
+The settled v1 rules:
+
+- **Full progression, no attrition.** Every student who enrolls advances each
+  year and graduates after four; there is no inter-year dropout. (Retention as a
+  satisfaction consequence is a plausible future hook, deliberately not built.)
+- **Capacity caps the total body.** The funnel sizes the incoming freshman class
+  to fill whatever seats the three returning cohorts leave open
+  (`freshmanCapacity()`), so over-built beds still sit empty and cost money —
+  the pacing the finance model depends on.
+- **Founding ramp.** A new college opens with a **freshman class only** (200);
+  the body fills out to four cohorts over its first four years as classes
+  advance. Early-year revenue is correspondingly lower — the honest cost of a
+  brand-new institution.
+
+Implemented in the four-cohort model (`students.cohorts`), with a save
+migration that splits an existing `students.enrolled` scalar evenly across the
+four cohorts.
 
 ## Rankings: the U.S. News report
 
