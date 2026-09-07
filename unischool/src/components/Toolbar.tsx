@@ -79,6 +79,17 @@ const Toolbar = forwardRef<HTMLDivElement, {
 }>(({ s, act, active, onChangeTab, placingId, onArmPlacement, pathTool, onSetPathTool }, ref) => {
   const [buildOpen, setBuildOpen] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
+  // Shared by both ways the build popup can close (the toolbar's own Build
+  // button toggling off, and the popup's own ✕/Escape — see BuildPopup's
+  // onClose below): either one drops whatever path tool was still armed,
+  // the same "turn it off" toggle a second click on its own tile does
+  // (setPathTool(mode) with mode already active clears it — see App.tsx). A
+  // path tool is the build popup's own control, so it shouldn't outlive the
+  // popup that armed it.
+  function closeBuild() {
+    setBuildOpen(false);
+    if (pathTool) onSetPathTool(pathTool);
+  }
   // Log entries are newest-first (see reducer.ts's s.log.unshift), so the
   // ticker's "latest line" is simply the first one.
   const latest = s.log[0];
@@ -135,7 +146,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
         aria-expanded={buildOpen}
         aria-label={buildOpen ? 'Close build menu' : 'Open build menu'}
         title="Build"
-        onClick={() => setBuildOpen((v) => !v)}
+        onClick={() => (buildOpen ? closeBuild() : setBuildOpen(true))}
       >
         <BuildIcon />
         <span className="toolbar-build-label">Build</span>
@@ -162,7 +173,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
           onArmPlacement={onArmPlacement}
           pathTool={pathTool}
           onSetPathTool={onSetPathTool}
-          onClose={() => setBuildOpen(false)}
+          onClose={closeBuild}
         />
       )}
     </div>
