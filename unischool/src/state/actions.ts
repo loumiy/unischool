@@ -1,41 +1,28 @@
-import type { Buildable, AthleticsInvestmentTier, GameState, PathEdge, SchoolType } from './types';
+import type { AthleticsInvestmentTier, GameState, PathEdge, SchoolType } from './types';
 import { DEFAULT_ATHLETICS_INVESTMENT } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
 import { WEEKS_PER_YEAR } from './types';
 import { initialTech, GENED_BUILDING_REPUTATION_BONUS } from '../data/techData';
-import { initialDorms, STARTING_DORM_CAPACITY } from '../data/campusData';
+import { initialDorms } from '../data/campusData';
 import { initialFacilities } from '../data/facilitiesData';
 import { initialRivals } from '../data/rivalData';
 import { initialCandidatePool, facultySalary } from '../data/facultyData';
-import { firstFreeSpot, footprintOf, isPlaceableKind, placementFor } from './campusMap';
 import {
   SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION, STARTING_ENDOWMENT, STARTING_TUITION,
 } from '../data/schoolTypeData';
 
-// Three Buildables start already 'done' at founding — the starting dorm,
-// the founding dining hall, and General Studies Hall (see campusData.ts,
-// facilitiesData.ts and techData.ts respectively) — because the school
-// opens its doors with housing, food and a gen-ed core already standing,
-// not because a player built them. Under the old two-step flow that just
-// meant they opened life in the "awaiting siting" tray; now that placement
-// IS how a placeable Buildable starts, a school can't plausibly be
-// founded with three buildings that exist but stand nowhere. So every
-// placeable Buildable this seed hands back already 'done' is sited here,
-// at whatever spot firstFreeSpot's plain top-left scan finds first — there
-// is no player choice to preserve at the moment a save is created, so
-// there is nothing to ask about. See campusMap.ts's firstFreeSpot for why
-// this is expected to always find room, and persistence.ts's v17 -> v18
-// migration for the same treatment of an EXISTING save's unplaced 'done'
-// Buildables (which, before this function existed, is exactly what these
-// three always were).
-function placeFoundingBuildables(placements: GameState['placements'], tech: Buildable[]): void {
-  for (const node of tech) {
-    if (!isPlaceableKind(node) || node.status !== 'done') continue;
-    const fp = footprintOf(node);
-    const spot = firstFreeSpot(placements, fp);
-    if (spot) placements[node.id] = placementFor(spot.row, spot.col, fp);
-  }
-}
+// A founded university now opens with an EMPTY campus: nothing is seeded
+// 'done' and nothing is pre-placed. The three founding buildings that used to
+// start already standing — the founding dorm, the founding dining hall, and
+// General Studies Hall (see campusData.ts, facilitiesData.ts and techData.ts
+// respectively) — are all seeded 'available' instead, so the player builds and
+// sites each one like any other Buildable, from scratch. Housing capacity and
+// dining service are therefore 0 at founding and only appear as those
+// buildings finish (through the same completion path every later building uses),
+// so nothing is folded into the starting baseline any more and nothing can be
+// double-counted. (persistence.ts's v17 -> v18 migration still sites an
+// EXISTING older save's unplaced 'done' buildings — those saves genuinely did
+// start with these three built, and this change does not rewrite them.)
 
 // The institutional half of every new school's name (see types.ts's
 // University). Fixed at founding — the startup screen only lets the
@@ -250,10 +237,14 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       // the body fills out to four cohorts over its first four years as
       // classes advance (see README's "Students: four aggregate cohorts").
       cohorts: { freshman: 200, sophomore: 0, junior: 0, senior: 0 },
-      // Capacity comes entirely from dorms now (see campusData.ts). The
-      // starting dorm is seeded 'done' rather than granted via the normal
-      // completion-effects path, so its capacity is folded in here.
-      capacity: STARTING_DORM_CAPACITY,
+      // Capacity comes entirely from dorms (see campusData.ts), and the
+      // campus opens with none built — so a founding school starts with ZERO
+      // beds and grows capacity only as it builds housing. The founding class
+      // below is seeded regardless (a school opens its doors with students);
+      // building the founding dorm in year one is what lets the first
+      // admissions funnel admit a year-two class (see admissionsSystem.ts's
+      // freshmanCapacity — with no beds, no new class can be taken).
+      capacity: 0,
       satisfaction: 70,
       // Overwritten on the very first TICK by satisfactionSystem.ts's real
       // computation — this starting value just matches the legacy flat 70
@@ -338,10 +329,13 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     placements: {},
     pathways: {},
     rivals: initialRivals(),
-    // +GENED_BUILDING_REPUTATION_BONUS: same fold-in as capacity above.
-    // `name` is the player's half only ("Blackmoor"); the institutional
-    // half starts as College for every school and is only ever changed by
-    // the one-time charter offer the first lab unlocks (see
+    // +GENED_BUILDING_REPUTATION_BONUS: a small gen-ed academic-standing
+    // baseline the founding institution opens with (see techData.ts — it is
+    // NOT tied to whether General Studies Hall has been built yet; reputation
+    // is a stock that drifts toward a target, and there is no apply-once
+    // reputation effect). `name` is the player's half only ("Blackmoor"); the
+    // institutional half starts as College for every school and is only ever
+    // changed by the one-time charter offer the first lab unlocks (see
     // systems/events/eventSystem.ts).
     self: {
       name,
@@ -391,7 +385,6 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     hasEnteredRankings: false,
     milestones: {},
   };
-  placeFoundingBuildables(state.placements, state.tech);
   return state;
 }
 

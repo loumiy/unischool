@@ -213,12 +213,13 @@ button { cursor: pointer; font-family: inherit; }
 .toolbar-popup-body::-webkit-scrollbar-thumb { background: var(--parchment-line); border-radius: 4px; }
 .toolbar-popup-body { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
 
-/* Build popup: wide enough for the category groups to breathe, but capped
-   well short of the viewport height so most of the map stays visible above
-   and beside it — see the module comment above. Anchored under the
-   toolbar's own build button (right end of the band — see Toolbar.tsx). */
-.build-popup { right: 16px; width: min(640px, calc(100vw - 32px)); max-height: 52vh; }
-.build-popup-stats { display: flex; gap: 14px; margin-bottom: 8px; }
+/* Build popup: a wide horizontal band spanning the map's width, capped well
+   short of the viewport height so most of the map stays visible above it —
+   see the module comment above and BuildPopup.tsx. It reads as a city-
+   builder's build bar (category "menu icons" across the top, buildings as a
+   horizontal strip of tiles below) rather than a narrow vertical list, so it
+   stretches edge to edge instead of anchoring to the build button's corner. */
+.build-popup { left: 16px; right: 16px; max-height: 340px; }
 
 /* Log popup: the fuller feed one click from the ticker, anchored under the
    toolbar's log button (left end of the band). Smaller than the build
@@ -392,39 +393,8 @@ button { cursor: pointer; font-family: inherit; }
 .course-tooltip-meta { font-family: var(--mono); font-size: 11px; color: var(--ink-lo); margin-top: 6px; }
 .course-tooltip-reason { margin: 6px 0 0; color: #e58a8a; font-size: 11px; font-style: italic; }
 
-.available-list { max-height: 220px; overflow-y: auto; border-top: 1px solid var(--parchment-line-lo); margin: 0; padding: 0; list-style: none; }
-.available-item { padding: 6px 0; border-bottom: 1px solid var(--parchment-line-lo); font-size: 13px; }
-.available-item-meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 3px; }
-.available-item-meta .stat { font-size: 11px; }
-.available-list button { background: none; border: none; color: var(--gold-dim); font-family: var(--mono); font-size: 12px; }
-.available-list button:disabled { color: #c3b795; cursor: not-allowed; }
-.requires-faculty-tag { color: #a13a3a; font-size: 11px; font-style: italic; white-space: nowrap; }
 .kind-tag { display: inline-block; background: var(--gold-dim); color: #fff8e8; font-size: 9px; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.04em; border-radius: 3px; padding: 1px 5px; margin-right: 6px; vertical-align: middle; }
-
-/* ---------- campus: unified building groups ---------- */
-.building-groups { display: flex; flex-direction: column; gap: 18px; }
-.building-group-head { display: flex; justify-content: space-between; align-items: baseline;
-  margin-bottom: 4px; }
-.building-group-head h3 { font-family: var(--serif); font-size: 14px; margin: 0; color: var(--ink); }
-.building-list { max-height: none; }
-
-/* A category section (Athletics, Recreation — see BuildPopup.tsx's
-   FACILITY_CATEGORY_OF-derived blocksFor) wraps a contiguous run of
-   building-groups in its own labeled section, set off from the flat groups
-   around it by a rule and a quieter, all-caps heading than a group's own
-   h3, so a scanning eye reads it as one level up. */
-.building-category { border-top: 1px dashed var(--parchment-line-lo); padding-top: 14px; }
-.building-category-head { font-family: var(--mono); font-size: 11px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-lo); margin: 0 0 10px; }
-.building-item.done { background: #f5efdd; }
-.building-item.done .build-name { color: #6b5a24; }
-.building-item.developing { background: #faf3d9; border-left: 3px solid var(--gold); padding-left: 8px; }
-.building-item.available { border-left: 3px solid var(--gold-dim); padding-left: 8px; }
-/* Armed for siting (see BuildPopup.tsx's "site →" row / CampusMap.tsx's
-   `selected`): the same gold treatment a developing row already gets,
-   since picking this up is the first half of the same commitment. */
-.building-item.available.placing { background: #faf3d9; border-left-color: var(--gold); }
 
 /* The construction banner at the top of a developing Buildable's info
    panel (see BuildingInfoPanel.tsx) — same gold accent as everywhere else
@@ -432,24 +402,77 @@ button { cursor: pointer; font-family: inherit; }
    the build popup, and this popover. */
 .building-info-construction { color: #7a5c12; font-weight: 600; }
 
-/* Build rows borrow the faculty roster's summary shape (see
-   .faculty-row-summary): name, quiet stat, chip, then the action pushed
-   to the far edge by a spacer. Same rhythm, so a building and a hire read
-   as the same class of thing. */
-.build-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-.build-name { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.build-row-spacer { flex: 1; }
-.build-row .kind-tag { margin-right: 0; white-space: nowrap; }
-.build-row .stat { font-size: 11px; white-space: nowrap; }
+/* ---------- build mode: a city-builder's horizontal build bar ----------
+   The build popup's body (see BuildPopup.tsx): a stack of a thin stats line,
+   a row of category "menu icon" tabs, and — for the picked category — a
+   horizontal strip of building TILES. The whole point is seeing the things
+   you can put on campus side by side, so the tray scrolls sideways rather
+   than the categories stacking into one tall list. */
+.build-mode { display: flex; flex-direction: column; gap: 10px; }
+.build-mode-topline { display: flex; gap: 16px; }
+.build-mode-topline .stat { font-family: var(--mono); font-size: 12px; color: var(--ink-muted); }
 
-/* A repeatable chain's finished instances, one click behind their count. */
-.built-group .build-name { color: var(--ink-muted); font-weight: 600; }
-.built-instance-list { list-style: none; margin: 6px 0 2px 24px; padding: 0; }
-.built-instance-list li { display: flex; align-items: center; gap: 8px; padding: 3px 0;
-  border-bottom: 1px dashed var(--parchment-line-lo); font-size: 12px; }
-.built-instance-list li:last-child { border-bottom: none; }
-.built-instance-name { color: #6b5a24; }
-.built-instance-list .stat { font-size: 11px; }
+/* Category tabs: the "menu icons". Each carries its glyph and label, quiet
+   until hovered, and gold-filled when it's the open category — exactly the
+   register the bottom toolbar's own icon tabs use, so the two bands of
+   chrome speak the same language. Wraps at narrow widths rather than
+   overflowing. */
+.build-mode-tabs { display: flex; flex-wrap: wrap; gap: 6px;
+  border-bottom: 1px solid var(--parchment-line); padding-bottom: 10px; }
+.build-cat-tab { display: inline-flex; align-items: center; gap: 6px;
+  background: #f5efdd; border: 1px solid var(--parchment-line); border-radius: 7px;
+  padding: 6px 11px; color: var(--ink-muted); font-family: var(--serif); font-size: 12px; }
+.build-cat-tab svg { width: 18px; height: 18px; display: block; }
+.build-cat-label { text-transform: uppercase; letter-spacing: 0.05em; }
+.build-cat-tab:hover { border-color: var(--gold-dim); color: var(--ink); }
+.build-cat-tab.active { background: var(--gold); border-color: var(--gold); color: #3a2f0e; font-weight: 700; }
+
+/* The tile strip. Scrolls horizontally — the tiles keep their size and the
+   overflow runs sideways, the way a build bar's palette does, rather than
+   wrapping into a grid that grows the band taller. */
+.build-mode-tray { overflow-x: auto; overflow-y: hidden; padding-bottom: 4px; }
+.build-mode-tray::-webkit-scrollbar { height: 8px; }
+.build-mode-tray::-webkit-scrollbar-thumb { background: var(--parchment-line); border-radius: 4px; }
+.build-mode-tray { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
+.build-tile-row { display: flex; flex-wrap: nowrap; gap: 10px; align-items: stretch; min-height: 116px; }
+
+/* One building, as a fixed-width card. Icon up top, name, a quiet figure
+   footer pinned to the bottom so every tile's foot lines up. A plain div
+   for settled 'done, placed' buildings; a button for anything still
+   actionable (arm a pickup). */
+.build-tile { position: relative; flex: 0 0 132px; width: 132px; display: flex; flex-direction: column;
+  align-items: center; text-align: center; gap: 5px; background: #f5efdd;
+  border: 1px solid var(--parchment-line); border-radius: 9px; padding: 12px 9px 10px; color: var(--ink); }
+button.build-tile { font-family: inherit; }
+.build-tile-icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  color: var(--gold-dim); }
+.build-tile-icon svg { width: 32px; height: 32px; display: block; }
+.build-tile-name { font-weight: 600; font-size: 12.5px; line-height: 1.2; }
+.build-tile-sub { font-size: 10.5px; color: var(--ink-muted); line-height: 1.2; }
+.build-tile-foot { margin-top: auto; font-family: var(--mono); font-size: 10.5px; color: var(--ink-muted);
+  padding-top: 4px; }
+.build-tile-note { font-size: 10px; color: #a13a3a; font-style: italic; line-height: 1.15; }
+.build-tile-progress { width: 100%; margin-top: auto; padding-top: 6px; }
+.build-tile .kind-tag { position: absolute; top: 6px; right: 6px; margin: 0; }
+
+/* States, in the same palette the old rows used: gold-dim border + gold icon
+   for something you can start, a warm fill + solid gold for the one that's
+   armed for siting or under construction, a dimmed brass for what's done. */
+.build-tile.available { border-color: var(--gold-dim); }
+.build-tile.available .build-tile-icon { color: var(--gold-dim); }
+.build-tile.available:hover:not(:disabled) { background: #efe1b8; border-color: var(--gold); }
+.build-tile.available:disabled { color: var(--ink-muted); cursor: not-allowed; opacity: 0.7; }
+.build-tile.available:disabled .build-tile-icon { color: #c3b795; }
+.build-tile.placing { background: #faf3d9; border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+.build-tile.placing .build-tile-icon { color: var(--brass-deep); }
+.build-tile.developing { background: #faf3d9; border-color: var(--gold); }
+.build-tile.developing .build-tile-icon { color: var(--brass-deep); }
+.build-tile.done { background: #f0e8d1; color: #6b5a24; }
+.build-tile.done .build-tile-icon { color: #a3894a; }
+.build-tile.done .build-tile-name { color: #6b5a24; }
+/* The collapsed "Built ×N" summary is a real button (it expands its
+   instances), so it earns a hover unlike the settled done tiles. */
+.build-tile.built-summary:hover { border-color: var(--gold-dim); }
 
 /* ---------- campus map: the full-viewport background ----------
    Geometry (tile size, gaps, label wrapping) lives in CampusMap.tsx as named
@@ -532,18 +555,6 @@ button { cursor: pointer; font-family: inherit; }
   background: #f5efdd; border: 1px solid var(--parchment-line); border-radius: 5px; color: var(--ink);
   font-size: 15px; line-height: 1; padding: 0; }
 .campus-map-zoom-controls button:hover { border-color: var(--gold-dim); background: #efe1b8; }
-
-/* Draw/erase path buttons, now rendered inside the build popup
-   (BuildPopup.tsx's CampusToolsSection) rather than floating on the map —
-   same button look the map's own corner controls used, just laid out
-   horizontally to fit the popup's row instead of stacked in a corner pill. */
-.campus-map-path-controls { display: flex; gap: 8px; }
-.campus-map-path-controls button { display: flex; align-items: center; gap: 6px; white-space: nowrap;
-  background: #f5efdd; border: 1px solid var(--parchment-line); border-radius: 5px; color: var(--ink);
-  font-size: 12px; font-family: inherit; padding: 6px 10px; }
-.campus-map-path-controls button svg { width: 15px; height: 15px; }
-.campus-map-path-controls button:hover { border-color: var(--gold-dim); background: #efe1b8; }
-.campus-map-path-controls button.active { background: var(--gold); border-color: var(--gold); color: #3a2f0e; font-weight: 700; }
 
 /* A slim strip along the map's bottom edge, directly above the toolbar
    (see .toolbar) — `position: fixed` puts it in its own stacking context,

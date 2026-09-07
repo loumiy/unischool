@@ -119,3 +119,111 @@ export function EraseIcon() {
     </svg>
   );
 }
+
+// ---------- build-mode category / facility glyphs ----------
+// Same 24x24, stroke=currentColor convention as the toolbar icons above.
+// One per build-popup category (see BuildPopup.tsx's SECTION_ICON) so the
+// horizontal build menu reads as a row of distinct "menu icons" — a type
+// is recognisable by its glyph before its label, the way the reference's
+// build bar tabs its categories by picture.
+
+export function HousingIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M4 11 12 4l8 7" />
+      <path d="M6 10v9h12v-9" />
+      <rect x="10.5" y="13.5" width="3" height="5.5" />
+    </svg>
+  );
+}
+
+export function DiningIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M4 12a8 8 0 0 0 16 0Z" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <path d="M9 4c0 1.6-1 1.6-1 3.2" />
+      <path d="M13 4c0 1.6-1 1.6-1 3.2" />
+    </svg>
+  );
+}
+
+export function LibraryIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M12 6c-2-1.3-4.5-1.5-7-1v12c2.5-.5 5-.3 7 1 2-1.3 4.5-1.5 7-1V5c-2.5-.5-5-.3-7 1Z" />
+      <line x1="12" y1="6" x2="12" y2="19" />
+    </svg>
+  );
+}
+
+export function LabIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M9 3h6" />
+      <path d="M10 3v6l-4.6 7.4A2 2 0 0 0 7.1 20h9.8a2 2 0 0 0 1.7-3.6L14 9V3" />
+      <line x1="7.5" y1="14" x2="16.5" y2="14" />
+    </svg>
+  );
+}
+
+export function HealthIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <rect x="4" y="4" width="16" height="16" rx="3" />
+      <line x1="12" y1="8" x2="12" y2="16" />
+      <line x1="8" y1="12" x2="16" y2="12" />
+    </svg>
+  );
+}
+
+export function QuadIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <circle cx="12" cy="9" r="6" />
+      <line x1="12" y1="15" x2="12" y2="21" />
+    </svg>
+  );
+}
+
+export function FitnessIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <rect x="3" y="8" width="3" height="8" rx="1" />
+      <rect x="18" y="8" width="3" height="8" rx="1" />
+    </svg>
+  );
+}
+
+export function ArtsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M12 3a9 8 0 1 0 0 16c1 0 1.5-.7 1.5-1.5S13 16.3 13 15.6c0-.8.6-1.3 1.4-1.3H16a4 4 0 0 0 4-4C20 6 16.4 3 12 3Z" />
+      <circle cx="8" cy="9" r="1" stroke="none" fill="currentColor" />
+      <circle cx="12" cy="7" r="1" stroke="none" fill="currentColor" />
+      <circle cx="16" cy="9" r="1" stroke="none" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function AcademicIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M3 9 12 4l9 5" />
+      <line x1="5" y1="9.5" x2="5" y2="18" />
+      <line x1="9" y1="9.5" x2="9" y2="18" />
+      <line x1="15" y1="9.5" x2="15" y2="18" />
+      <line x1="19" y1="9.5" x2="19" y2="18" />
+      <line x1="3" y1="20" x2="21" y2="20" />
+    </svg>
+  );
+}
+
+export function ToolsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.3 2.3-2-2 2.3-2.3Z" />
+    </svg>
+  );
+}

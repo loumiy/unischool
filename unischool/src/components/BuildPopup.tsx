@@ -3,42 +3,46 @@ import type { Buildable, FacilityType, GameState } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import { canSiteRetroactively, RETROACTIVE_SITING_COST } from '../state/campusMap';
-import { STARTING_DORM_CAPACITY } from '../data/campusData';
 import { FACILITY_CATEGORY_OF, type FacilityCategory } from '../data/facilitiesData';
 import HelpHint from './HelpHint';
 import { ProgressBar } from './Progress';
 import ToolbarPopup from './ToolbarPopup';
-import { DrawPathIcon, EraseIcon } from './icons';
+import {
+  DrawPathIcon, EraseIcon, BuildIcon, HousingIcon, DiningIcon, LibraryIcon,
+  LabIcon, HealthIcon, QuadIcon, FitnessIcon, ArtsIcon, AcademicIcon,
+  AthleticsIcon, StudentLifeIcon, ToolsIcon,
+} from './icons';
 
-// The build popup: every physical building the university can have —
-// housing, campus-life facilities, academic buildings, and labs — as ONE
-// list of type groups (Housing, Library, Dining, ...). It used to sit in a
-// permanent side rail beside the campus map; C2 folds that rail into a
-// compact popup toggled by the toolbar's build icon instead (see
-// Toolbar.tsx), deliberately sized so the map stays visible around it — see
-// ToolbarPopup's own module comment for why it carries no backdrop. This is
-// still "what to build" to the map's "where it goes": every row here arms a
-// pickup that the map resolves into an actual PLACE_BUILDABLE once a tile
-// is clicked, same as before this moved into a popup.
+// The build menu: every physical building the university can have —
+// housing, campus-life facilities, academic buildings, and labs. It used to
+// sit in a permanent side rail (C2 folded that into a compact popup), and it
+// used to read as one long VERTICAL list of text rows. This lays it out the
+// way a city-builder's build bar does instead: a horizontal row of category
+// "menu icons" across the top, and the buildings of the picked category as a
+// horizontal strip of icon TILES below — so the different things you can put
+// on campus are seen side by side, at a glance, rather than scrolled past
+// one line at a time. The popup deliberately stays a wide band that leaves
+// the map visible above it (see ToolbarPopup's module comment for why it
+// carries no backdrop): choosing a building while still seeing where it will
+// go is the whole point of the one-step placement flow.
 //
-// Each group lists the Buildables of that type that aren't 'locked'. A
-// locked Buildable (its prereqs or a population/prestige gate unmet) is
-// hidden entirely rather than teased with an unlock note — nothing to
-// decide about it yet, so it doesn't belong in this list.
+// This is still "what to build" to the map's "where it goes": every tile
+// here arms a pickup that the map resolves into an actual PLACE_BUILDABLE
+// once a tile on the map is clicked (see CampusMap.tsx's placeById), exactly
+// as the old text rows did — the presentation changed, not the flow.
 //
-// REPEATABLE types (housing, dining — the sequential chains in
-// campusData.ts/facilitiesData.ts) would otherwise grow an ever-longer
-// list of finished halls with nothing to decide about, crowding out the
-// one row that is actually a choice. So their finished instances COLLAPSE
-// into a single entry — a count, the total they contribute, and their
-// names one click away — leaving the developing/available rung on its own.
-// Types where each instance is a distinct decision (labs, academic
-// buildings) and single buildings with tier upgrades stay listed one per
-// row: there, each row is a different thing to weigh, not a repeat.
+// Each category lists the Buildables of its type(s) that aren't 'locked'. A
+// locked Buildable (its prereqs or a population/prestige gate unmet) is left
+// off entirely rather than teased — nothing to decide about it yet.
 //
-// Rows borrow the faculty roster's shape (see FacultyTab.tsx): name,
-// then a quiet stat, then a chip, then the action — so a building reads
-// like a member of the institution rather than a bullet point.
+// REPEATABLE types (housing, dining, fitness — the sequential chains in
+// campusData.ts/facilitiesData.ts) would otherwise grow an ever-longer strip
+// of finished halls with nothing to decide about. So their finished
+// instances COLLAPSE into a single "Built ×N" tile — a count, the total they
+// contribute, and their names one click away — leaving the developing/
+// available rung on its own. Types where each instance is a distinct
+// decision (labs, academic buildings) and single buildings with tier
+// upgrades stay listed one tile per instance.
 //
 // Courses are deliberately absent: they are not places, so they live in the
 // Curriculum view rather than beside the map.
@@ -64,7 +68,7 @@ const FACILITY_LABELS: Record<FacilityType, string> = {
 };
 
 // How many finished instances a repeatable group must have before its
-// built rows collapse into one. Below this there is nothing to tidy: a
+// built tiles collapse into one. Below this there is nothing to tidy: a
 // single finished hall reads better as itself than as "1 built".
 const COLLAPSE_BUILT_FROM = 2;
 
@@ -76,28 +80,27 @@ interface TypeGroup {
   // names — the single source for "which types are athletics vs recreation"
   // — so this is a lookup, never a second authoring of that line. Absent
   // for every other group (housing, library, labs, academic buildings, ...),
-  // which render as they always have: flat, no enclosing section.
+  // which render as their own standalone category tab.
   category?: FacilityCategory;
   items: Buildable[];
 }
 
-// One row per type. dorm/dining are repeatable sequential chains
+// One group per type. dorm/dining are repeatable sequential chains
 // (see campusData.ts/facilitiesData.ts) — several finish over a run, so
-// their built rows collapse. library/studentCenter/healthCenter/quad are
-// single buildings with tier upgrades: at most two rows ever, each a
+// their built tiles collapse. library/studentCenter/healthCenter/quad are
+// single buildings with tier upgrades: at most two tiles ever, each a
 // genuinely different building. performingArtsCenter/artGallery are also
 // single-instance, but one-off (no tier field, no upgrade) — exactly one
-// row each, forever, hidden until the Arts & Media school clears their
+// tile each, forever, hidden until the Arts & Media school clears their
 // shared gate (see facilitiesData.ts's ARTS_MEDIA_BUILDING_ID). recCenter
 // now covers a FIFTH shape: a repeatable, strictly sequential chain like
 // housing/dining, but of distinctly-named one-off facilities (Recreation
 // Center, Gym & Fitness Center, Swimming Pool, Tennis Courts, Athletics
 // Complex) rather than N copies of one generic thing — see
-// facilitiesData.ts's own note above REC_CENTER_TIER1_ID for why this reads
-// better as one collapsible group than five separate single-row ones. lab
-// and academic building are independent multi-instance types (one per lab-
-// gated major / one per school) — several can be visible at once, but each
-// is its own decision, so they stay listed.
+// facilitiesData.ts's own note above REC_CENTER_TIER1_ID. lab and academic
+// building are independent multi-instance types (one per lab-gated major /
+// one per school) — several can be visible at once, but each is its own
+// decision, so they stay listed.
 const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; match: (t: Buildable) => boolean }> = [
   { key: 'dorm', label: 'Housing', repeatable: true, match: (t) => t.kind === 'dorm' },
   { key: 'library', label: FACILITY_LABELS.library, repeatable: false, match: (t) => t.facilityType === 'library' },
@@ -109,7 +112,7 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; ma
   // The recreation/fitness chain — see the module note above. Positioned
   // right before performingArtsCenter/artGallery so all three share one
   // contiguous run in TYPE_MATCHERS, which is what makes blocksFor wrap
-  // them in a single "Recreation" CategorySection (see FACILITY_CATEGORY_OF).
+  // them in a single "Recreation" category (see FACILITY_CATEGORY_OF).
   {
     key: 'recCenter',
     label: 'Fitness',
@@ -146,13 +149,10 @@ function buildGroups(s: GameState): TypeGroup[] {
     .filter((g) => g.items.length > 0);
 }
 
-// A run of consecutive groups sharing the same category renders inside one
-// enclosing section (see CategorySection below); everything else renders
-// exactly as before, one group at a time. TYPE_MATCHERS already lists the
-// recreation and athletics rows contiguously, so in practice each category
-// collapses to a single run — but this only ever MERGES adjacent same-
-// category groups, so a future reordering degrades to more (smaller)
-// sections rather than breaking.
+// A run of consecutive groups sharing the same category becomes one category
+// tab (Athletics, Recreation); everything else becomes its own tab. This
+// only ever MERGES adjacent same-category groups, so a future reordering
+// degrades to more (smaller) tabs rather than breaking.
 interface RenderBlock {
   category?: FacilityCategory;
   groups: TypeGroup[];
@@ -173,11 +173,79 @@ const CATEGORY_LABELS: Record<FacilityCategory, string> = {
   recreation: 'Recreation',
 };
 
+// The build menu's category tabs (see BuildSection below): the campus-editing
+// tools first (a fixed tab, always present), then one tab per RenderBlock —
+// a category (Athletics/Recreation) or a standalone type. `id` is the block's
+// category name or its single group's key, which is also the key SECTION_ICON
+// and the initial-tab logic look up.
+type BuildSection =
+  | { id: string; label: string; kind: 'tools' }
+  | { id: string; label: string; kind: 'build'; groups: TypeGroup[] };
+
+const TOOLS_SECTION_ID = 'campus-tools';
+
+function buildSections(s: GameState): BuildSection[] {
+  const blocks = blocksFor(buildGroups(s));
+  const built: BuildSection[] = blocks.map((b) => b.category
+    ? { id: b.category, label: CATEGORY_LABELS[b.category], kind: 'build', groups: b.groups }
+    // A non-category block is always exactly one group (blocksFor only
+    // merges same-category runs), so its lone group names the tab.
+    : { id: b.groups[0].key, label: b.groups[0].label, kind: 'build', groups: b.groups });
+  return [{ id: TOOLS_SECTION_ID, label: 'Campus Tools', kind: 'tools' }, ...built];
+}
+
+// One "menu icon" per category tab, keyed by the section id (a category name
+// or a group key). Falls back to the generic build glyph for anything without
+// a dedicated icon, so a new type never renders iconless.
+const SECTION_ICON: Record<string, () => React.JSX.Element> = {
+  [TOOLS_SECTION_ID]: ToolsIcon,
+  dorm: HousingIcon,
+  library: LibraryIcon,
+  studentCenter: StudentLifeIcon,
+  diningHall: DiningIcon,
+  healthCenter: HealthIcon,
+  quad: QuadIcon,
+  lab: LabIcon,
+  performingArtsCenter: ArtsIcon,
+  artGallery: ArtsIcon,
+  academicBuilding: AcademicIcon,
+  athletics: AthleticsIcon,
+  recreation: FitnessIcon,
+};
+
+// The glyph shown on an individual building tile, by the Buildable's own
+// kind/facilityType. Distinct from SECTION_ICON so a category holding several
+// venue types (Athletics) still gives each its recognisable picture.
+function iconForBuildable(t: Buildable): () => React.JSX.Element {
+  if (t.kind === 'dorm') return HousingIcon;
+  if (t.kind === 'building') return AcademicIcon;
+  switch (t.facilityType) {
+    case 'library': return LibraryIcon;
+    case 'studentCenter': return StudentLifeIcon;
+    case 'diningHall': return DiningIcon;
+    case 'healthCenter': return HealthIcon;
+    case 'quad': return QuadIcon;
+    case 'lab': return LabIcon;
+    case 'recCenter':
+    case 'gym':
+    case 'tennisCourts':
+    case 'pool': return FitnessIcon;
+    case 'performingArtsCenter':
+    case 'artGallery': return ArtsIcon;
+    case 'athleticsField':
+    case 'athleticsArena':
+    case 'athleticsDiamond':
+    case 'athleticsNatatorium':
+    case 'footballStadium': return AthleticsIcon;
+    default: return BuildIcon;
+  }
+}
+
 // How many beds/seats one finished instance is worth — the number that
-// makes a built row worth keeping on screen at all.
+// makes a built tile worth keeping on screen at all.
 function builtDetail(t: Buildable): string | undefined {
   if (t.facilityType === 'lab') return 'gates capstone coursework';
-  if (t.kind === 'dorm') return `${(t.effects?.capacityBonus ?? STARTING_DORM_CAPACITY).toLocaleString()} beds`;
+  if (t.kind === 'dorm') return `${(t.effects?.capacityBonus ?? 0).toLocaleString()} beds`;
   const flat = t.effects?.flatSatisfactionBonus;
   if (flat) return `+${flat} flat`;
   const serves = t.effects?.servesPopulation;
@@ -189,88 +257,83 @@ function builtDetail(t: Buildable): string | undefined {
 // so collapsing costs the player no information about what they have.
 function builtGroupDetail(kind: string, built: Buildable[]): string | undefined {
   if (kind === 'dorm') {
-    const beds = built.reduce((sum, t) => sum + (t.effects?.capacityBonus ?? STARTING_DORM_CAPACITY), 0);
+    const beds = built.reduce((sum, t) => sum + (t.effects?.capacityBonus ?? 0), 0);
     return `${beds.toLocaleString()} beds`;
   }
   const serves = built.reduce((sum, t) => sum + (t.effects?.servesPopulation ?? 0), 0);
   return serves > 0 ? `serves ${serves.toLocaleString()}` : undefined;
 }
 
-// The chip at the end of a row's name: a tier for the upgradeable
-// single buildings, an instance number for a repeatable chain (its
-// position in that chain), nothing for the one-of-a-kind rows whose name
-// already says which it is.
+// The chip in a tile's corner: a tier for the upgradeable single buildings,
+// an instance number for a repeatable chain (its position in that chain),
+// nothing for the one-of-a-kind types whose name already says which it is.
 function rowMarker(t: Buildable, group: TypeGroup, index: number): string | undefined {
   if (t.tier !== undefined) return `Tier ${t.tier}`;
   if (group.repeatable) return `#${index + 1}`;
   return undefined;
 }
 
-function BuildableRow({
+// One building, as a tile. Four shapes, one for each status the Buildable can
+// be in — an interactive button for anything the player can still act on
+// (arm a pickup), a plain div for the settled 'done, placed' case. The
+// arm/site flow is unchanged from the old text rows: click (or drag onto the
+// map) arms a pickup, and PLACE_BUILDABLE fires on the map once a tile is
+// chosen (see CampusMap.tsx's placeById). `act` is deliberately not threaded
+// here — every tile is a placeable kind, and arming is pure local UI state.
+function BuildTile({
   s, t, marker, placingId, onArmPlacement,
 }: {
   s: GameState; t: Buildable; marker?: string;
-  // Which Buildable is currently picked up for siting on the map, and how
-  // to change it — lifted to App.tsx (see CampusMap.tsx's module comment)
-  // since the map is what actually commits a placement once one of these
-  // rows arms it. `act` is no longer threaded down here: every row in this
-  // panel is a placeable kind (see the module comment above — courses live
-  // in the Curriculum view instead), and arming/disarming a pickup is pure
-  // local UI state, not a dispatch.
   placingId: string | null; onArmPlacement: (id: string | null) => void;
 }) {
+  const Icon = iconForBuildable(t);
   const missingFaculty = !!(t.requiresFaculty && !hasFreeFacultySlot(s, t.requiresFaculty));
 
+  // done + already placed on the map: nothing left to decide, so a plain
+  // (non-interactive) tile that just records what stands there.
+  if (t.status === 'done' && t.id in s.placements) {
+    const detail = builtDetail(t);
+    return (
+      <div className="build-tile done" title={detail ? `${t.name} · ${detail}` : t.name}>
+        {marker && <span className="kind-tag">{marker}</span>}
+        <span className="build-tile-icon"><Icon /></span>
+        <span className="build-tile-name">{t.name}</span>
+        <span className="build-tile-foot">✓ built{detail ? ` · ${detail}` : ''}</span>
+      </div>
+    );
+  }
+
+  // done but never sited (a founding / event-granted Buildable — see
+  // campusMap.ts's needsSiting). Gated on the flat RETROACTIVE_SITING_COST
+  // rather than the Buildable's own cost, since there's no construction left
+  // to start, only a spot to mark.
   if (t.status === 'done') {
     const detail = builtDetail(t);
-
-    // A founding Buildable (or an event-granted one) that's already 'done'
-    // but never got a location — see campusMap.ts's needsSiting. Same row
-    // shape as an ordinary 'available' pickup below, just gated on the flat
-    // RETROACTIVE_SITING_COST/canSiteRetroactively instead of the
-    // Buildable's own cost/canStartDevelopment, since there's no
-    // construction left to start, only a spot to mark.
-    if (!(t.id in s.placements)) {
-      const armed = placingId === t.id;
-      const sitable = canSiteRetroactively(s, t);
-      const shortfall = RETROACTIVE_SITING_COST - s.finance.cash;
-      return (
-        <li className={`available-item building-item available ${armed ? 'placing' : ''}`}>
-          <div className="build-row">
-            <span className="build-name">{t.name}</span>
-            {detail && <span className="stat">{detail}</span>}
-            {marker && <span className="kind-tag">{marker}</span>}
-            <span className="build-row-spacer" />
-            <button
-              disabled={!sitable}
-              title={armed ? 'Click an empty tile on the map to site here, or click this again to cancel.' : (shortfall > 0 ? `$${Math.ceil(shortfall).toLocaleString()} short.` : undefined)}
-              draggable={sitable}
-              onDragStart={(e) => {
-                onArmPlacement(t.id);
-                e.dataTransfer.setData('text/plain', t.id);
-                e.dataTransfer.effectAllowed = 'move';
-              }}
-              onClick={() => onArmPlacement(armed ? null : t.id)}
-            >
-              {armed ? 'placing…' : 'site →'}
-            </button>
-          </div>
-          <div className="available-item-meta">
-            <span className="stat">${RETROACTIVE_SITING_COST.toLocaleString()} · already built, awaiting a spot on campus</span>
-          </div>
-        </li>
-      );
-    }
-
+    const armed = placingId === t.id;
+    const sitable = canSiteRetroactively(s, t);
+    const shortfall = RETROACTIVE_SITING_COST - s.finance.cash;
     return (
-      <li className="available-item building-item done">
-        <div className="build-row">
-          <span className="build-name">{t.name}</span>
-          {detail && <span className="stat">{detail}</span>}
-          {marker && <span className="kind-tag">{marker}</span>}
-          <span className="build-row-spacer" />
-        </div>
-      </li>
+      <button
+        type="button"
+        className={`build-tile available ${armed ? 'placing' : ''}`}
+        disabled={!sitable}
+        title={armed
+          ? 'Click an empty tile on the map to site here, or click this again to cancel.'
+          : (shortfall > 0 ? `$${Math.ceil(shortfall).toLocaleString()} short.` : `Already built — $${RETROACTIVE_SITING_COST.toLocaleString()} to mark a spot on campus`)}
+        draggable={sitable}
+        onDragStart={(e) => {
+          onArmPlacement(t.id);
+          e.dataTransfer.setData('text/plain', t.id);
+          e.dataTransfer.effectAllowed = 'move';
+        }}
+        onClick={() => onArmPlacement(armed ? null : t.id)}
+      >
+        {marker && <span className="kind-tag">{marker}</span>}
+        <span className="build-tile-icon"><Icon /></span>
+        <span className="build-tile-name">{t.name}</span>
+        {detail && <span className="build-tile-sub">{detail}</span>}
+        <span className="build-tile-foot">{armed ? 'placing…' : `site · $${RETROACTIVE_SITING_COST.toLocaleString()}`}</span>
+      </button>
     );
   }
 
@@ -278,34 +341,28 @@ function BuildableRow({
     const weeksLeft = s.developing[t.id] ?? 0;
     const elapsed = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
     return (
-      <li className="available-item building-item developing">
-        <div className="build-row">
-          <span className="build-name">{t.name}</span>
-          {marker && <span className="kind-tag">{marker}</span>}
-          <span className="build-row-spacer" />
-        </div>
-        <div className="available-item-meta">
+      <div className="build-tile developing" title={`${t.name} · ${t.duration - weeksLeft} of ${t.duration} weeks built`}>
+        {marker && <span className="kind-tag">{marker}</span>}
+        <span className="build-tile-icon"><Icon /></span>
+        <span className="build-tile-name">{t.name}</span>
+        <span className="build-tile-progress">
           <ProgressBar
             fraction={elapsed}
             label={`${weeksLeft}w`}
             title={`${t.duration - weeksLeft} of ${t.duration} weeks built`}
           />
-        </div>
-      </li>
+        </span>
+      </div>
     );
   }
 
-  // available. The enabled/disabled state is canStartDevelopment itself —
-  // the same function the reducer gates PLACE_BUILDABLE with — so a button
-  // is never offered for something the engine would refuse, and never
-  // withheld for something it would allow. Clicking it doesn't start
-  // anything by itself any more: every row here is a placeable kind (see
-  // the module comment above), and placement IS how a placeable Buildable
-  // starts — so this only ARMS the pickup (or cancels it, clicked again),
-  // and the actual PLACE_BUILDABLE dispatch happens on the map once a tile
-  // is chosen (see CampusMap.tsx's placeById). Dragging the button straight
-  // onto the map does the same arm-then-drop in one gesture, mirroring the
-  // old siting tray's own drag affordance.
+  // available. The enabled/disabled state is canStartDevelopment itself — the
+  // same function the reducer gates PLACE_BUILDABLE with — so a tile is never
+  // offered for something the engine would refuse, and never withheld for
+  // something it would allow. Clicking only ARMS the pickup (or cancels it);
+  // the actual PLACE_BUILDABLE dispatch happens on the map once a tile is
+  // chosen. Dragging the tile straight onto the map does the same arm-then-
+  // drop in one gesture.
   const shortfall = t.cost - s.finance.cash;
   const disabledReason = shortfall > 0
     ? `$${Math.ceil(shortfall).toLocaleString()} short.`
@@ -315,169 +372,135 @@ function BuildableRow({
   const startable = canStartDevelopment(s, t);
   const armed = placingId === t.id;
   return (
-    <li className={`available-item building-item available ${armed ? 'placing' : ''}`}>
-      <div className="build-row">
-        <span className="build-name">{t.name}</span>
-        {marker && <span className="kind-tag">{marker}</span>}
-        <span className="build-row-spacer" />
-        <button
-          disabled={!startable}
-          title={armed ? 'Click an empty tile on the map to build here, or click this again to cancel.' : disabledReason}
-          draggable={startable}
-          onDragStart={(e) => {
-            onArmPlacement(t.id);
-            e.dataTransfer.setData('text/plain', t.id);
-            e.dataTransfer.effectAllowed = 'move';
-          }}
-          onClick={() => onArmPlacement(armed ? null : t.id)}
-        >
-          {armed ? 'placing…' : 'site →'}
-        </button>
-      </div>
-      <div className="available-item-meta">
-        <span className="stat">{t.cost > 0 ? `$${t.cost.toLocaleString()} · ` : ''}{t.duration}w</span>
-        {t.requiresFaculty && <span className="requires-faculty-tag">needs {t.requiresFaculty}</span>}
-      </div>
-    </li>
+    <button
+      type="button"
+      className={`build-tile available ${armed ? 'placing' : ''}`}
+      disabled={!startable}
+      title={armed ? 'Click an empty tile on the map to build here, or click this again to cancel.' : disabledReason}
+      draggable={startable}
+      onDragStart={(e) => {
+        onArmPlacement(t.id);
+        e.dataTransfer.setData('text/plain', t.id);
+        e.dataTransfer.effectAllowed = 'move';
+      }}
+      onClick={() => onArmPlacement(armed ? null : t.id)}
+    >
+      {marker && <span className="kind-tag">{marker}</span>}
+      <span className="build-tile-icon"><Icon /></span>
+      <span className="build-tile-name">{t.name}</span>
+      <span className="build-tile-foot">
+        {armed
+          ? 'placing…'
+          : <>{t.cost > 0 ? `$${t.cost.toLocaleString()} · ` : ''}{t.duration}w</>}
+      </span>
+      {t.requiresFaculty && <span className="build-tile-note">needs {t.requiresFaculty}</span>}
+    </button>
   );
 }
 
 // The collapsed stand-in for a repeatable group's finished instances: one
-// row carrying the count and the total they add, expanding to the list of
-// names. Deliberately shaped like a faculty row, expand caret and all.
-function BuiltGroupRow({ group, built }: { group: TypeGroup; built: Buildable[] }) {
-  const [open, setOpen] = useState(false);
+// tile carrying the count and the total they add, clicking to expand the
+// individual built tiles inline beside it (open state lives in the parent).
+function BuiltSummaryTile({ group, built, open, onToggle }: {
+  group: TypeGroup; built: Buildable[]; open: boolean; onToggle: () => void;
+}) {
   const detail = builtGroupDetail(group.key, built);
-
+  const Icon = iconForBuildable(built[0]);
   return (
-    <li className="available-item building-item done built-group">
-      <div className="build-row">
-        <button
-          type="button"
-          className="faculty-expand-btn"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          aria-label={open ? `Hide the ${group.label.toLowerCase()} already built` : `List the ${group.label.toLowerCase()} already built`}
-        >
-          {open ? '▾' : '▸'}
-        </button>
-        <span className="build-name">Built</span>
-        {detail && <span className="stat">{detail}</span>}
-        <span className="kind-tag">×{built.length}</span>
-        <span className="build-row-spacer" />
-      </div>
-      {open && (
-        <ul className="built-instance-list">
-          {built.map((t, i) => (
-            <li key={t.id}>
-              <span className="built-instance-name">{t.name}</span>
-              <span className="kind-tag">#{i + 1}</span>
-              <span className="build-row-spacer" />
-              {builtDetail(t) && <span className="stat">{builtDetail(t)}</span>}
-            </li>
-          ))}
-        </ul>
-      )}
-    </li>
+    <button
+      type="button"
+      className="build-tile done built-summary"
+      onClick={onToggle}
+      aria-expanded={open}
+      aria-label={open ? `Hide the ${group.label.toLowerCase()} already built` : `List the ${group.label.toLowerCase()} already built`}
+      title={detail ? `${built.length} built · ${detail}` : `${built.length} built`}
+    >
+      <span className="kind-tag">×{built.length}</span>
+      <span className="build-tile-icon"><Icon /></span>
+      <span className="build-tile-name">Built</span>
+      {detail && <span className="build-tile-sub">{detail}</span>}
+      <span className="build-tile-foot">{open ? 'hide ▾' : 'show ▸'}</span>
+    </button>
   );
 }
 
-function BuildGroup({
-  s, group, placingId, onArmPlacement,
-}: {
+// One group's worth of tiles, flowed into the section's horizontal strip.
+// Same built/awaiting/rest split the old vertical list used — a 'done' item
+// with nowhere on the map yet is kept OUT of the collapse (it's the one that
+// still has something to decide), the rest of a repeatable group's finished
+// instances collapse behind BuiltSummaryTile once there are COLLAPSE_BUILT_FROM
+// of them.
+function BuildGroupTiles({ s, group, placingId, onArmPlacement }: {
   s: GameState; group: TypeGroup; placingId: string | null; onArmPlacement: (id: string | null) => void;
 }) {
-  // Chain position is read off the group's own order (the chains are
-  // strictly sequential, so the visible items are always a prefix of the
-  // chain) before the built/unbuilt split, so a row's #N never shifts as
-  // the group collapses.
+  const [open, setOpen] = useState(false);
+  // Chain position is read off the group's own order (chains are strictly
+  // sequential, so the visible items are always a prefix of the chain) before
+  // the built/unbuilt split, so a tile's #N never shifts as the group collapses.
   const numbered = group.items.map((t, index) => ({ t, marker: rowMarker(t, group, index) }));
   const done = numbered.filter(({ t }) => t.status === 'done');
-  // A 'done' item with nowhere on the map yet (see campusMap.ts's
-  // needsSiting) is split OUT of `built` and never collapses, however many
-  // genuinely-built instances this group already has — it's the one row
-  // that still has something to decide (site it), and COLLAPSE_BUILT_FROM
-  // is about tidying up decided rows, not hiding an undecided one.
   const awaitingSiting = done.filter(({ t }) => !(t.id in s.placements));
   const built = done.filter(({ t }) => t.id in s.placements);
   const rest = numbered.filter(({ t }) => t.status !== 'done');
   const collapseBuilt = group.repeatable && built.length >= COLLAPSE_BUILT_FROM;
 
   return (
-    <div className="building-group">
-      <div className="building-group-head">
-        <h3>{group.label}</h3>
-        <span className="stat">{built.length} built</span>
-      </div>
-      <ul className="available-list building-list">
-        {awaitingSiting.map(({ t, marker }) => (
-          <BuildableRow key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} />
+    <>
+      {awaitingSiting.map(({ t, marker }) => (
+        <BuildTile key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} />
+      ))}
+      {collapseBuilt
+        ? (
+          <>
+            <BuiltSummaryTile group={group} built={built.map(({ t }) => t)} open={open} onToggle={() => setOpen((v) => !v)} />
+            {open && built.map(({ t, marker }) => (
+              <BuildTile key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} />
+            ))}
+          </>
+        )
+        : built.map(({ t, marker }) => (
+          <BuildTile key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} />
         ))}
-        {collapseBuilt
-          ? <BuiltGroupRow group={group} built={built.map(({ t }) => t)} />
-          : built.map(({ t, marker }) => (
-            <BuildableRow key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} />
-          ))}
-        {rest.map(({ t, marker }) => (
-          <BuildableRow key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} />
-        ))}
-      </ul>
-    </div>
+      {rest.map(({ t, marker }) => (
+        <BuildTile key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} />
+      ))}
+    </>
   );
 }
 
-function CategorySection({
-  category, groups, s, placingId, onArmPlacement,
-}: {
-  category: FacilityCategory; groups: TypeGroup[]; s: GameState;
-  placingId: string | null; onArmPlacement: (id: string | null) => void;
-}) {
-  return (
-    <section className="building-category">
-      <h3 className="building-category-head">{CATEGORY_LABELS[category]}</h3>
-      <div className="building-groups">
-        {groups.map((group) => (
-          <BuildGroup key={group.key} s={s} group={group} placingId={placingId} onArmPlacement={onArmPlacement} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-// Draw path / erase path: campus-editing tools in the same family as
-// placing a building (see CampusMap.tsx's pathTool), so C2 moves them in
-// here from the map's own corner controls rather than leaving them as a
-// separate floating pill. `pathTool` is lifted all the way to App.tsx now
-// (it used to be local state inside CampusMap) since this popup and the map
-// both need to read/drive it — see App.tsx's module comment.
-function CampusToolsSection({ pathTool, onSetPathTool }: {
+// Draw path / erase path: campus-editing tools in the same family as placing
+// a building, so they get their own category tab, laid out as tiles like
+// everything else. `pathTool` is lifted to App.tsx (this popup and the map
+// both read/drive it — see App.tsx's module comment).
+function CampusToolsTiles({ pathTool, onSetPathTool }: {
   pathTool: 'draw' | 'erase' | null;
   onSetPathTool: (mode: 'draw' | 'erase') => void;
 }) {
   return (
-    <section className="building-category">
-      <h3 className="building-category-head">Campus Tools</h3>
-      <div className="campus-map-path-controls">
-        <button
-          type="button"
-          className={pathTool === 'draw' ? 'active' : ''}
-          aria-pressed={pathTool === 'draw'}
-          onClick={() => onSetPathTool('draw')}
-          title="Draw a pathway along tile edges"
-        >
-          <DrawPathIcon /> Draw path
-        </button>
-        <button
-          type="button"
-          className={pathTool === 'erase' ? 'active' : ''}
-          aria-pressed={pathTool === 'erase'}
-          onClick={() => onSetPathTool('erase')}
-          title="Erase a drawn pathway"
-        >
-          <EraseIcon /> Erase path
-        </button>
-      </div>
-    </section>
+    <div className="build-tile-row">
+      <button
+        type="button"
+        className={`build-tile tool ${pathTool === 'draw' ? 'placing' : ''}`}
+        aria-pressed={pathTool === 'draw'}
+        onClick={() => onSetPathTool('draw')}
+        title="Draw a pathway along tile edges"
+      >
+        <span className="build-tile-icon"><DrawPathIcon /></span>
+        <span className="build-tile-name">Draw path</span>
+        <span className="build-tile-foot">along tile edges</span>
+      </button>
+      <button
+        type="button"
+        className={`build-tile tool ${pathTool === 'erase' ? 'placing' : ''}`}
+        aria-pressed={pathTool === 'erase'}
+        onClick={() => onSetPathTool('erase')}
+        title="Erase a drawn pathway"
+      >
+        <span className="build-tile-icon"><EraseIcon /></span>
+        <span className="build-tile-name">Erase path</span>
+        <span className="build-tile-foot">remove a path</span>
+      </button>
+    </div>
   );
 }
 
@@ -485,56 +508,77 @@ export default function BuildPopup({
   s, placingId, onArmPlacement, pathTool, onSetPathTool, onClose,
 }: {
   s: GameState;
-  // Which placeable Buildable is currently picked up for siting on the
-  // map, and how to change it — lifted to App.tsx (see CampusMap.tsx's
-  // module comment). `act` is no longer threaded through this popup at
-  // all: every row here starts through PLACE_BUILDABLE now, dispatched
-  // once a tile is chosen on the map (see CampusMap.tsx's placeById), not
-  // from a click inside this popup. The popup deliberately stays open
-  // across that click (see ToolbarPopup's module comment) — placing is a
-  // map click, not a popup action, so there's nothing here that needs to
-  // close it.
+  // Which placeable Buildable is currently picked up for siting on the map,
+  // and how to change it — lifted to App.tsx (see CampusMap.tsx's module
+  // comment). Every tile here starts through PLACE_BUILDABLE, dispatched once
+  // a tile is chosen on the map (see CampusMap.tsx's placeById), not from a
+  // click inside this popup — so the popup stays open across that click.
   placingId: string | null;
   onArmPlacement: (id: string | null) => void;
   pathTool: 'draw' | 'erase' | null;
   onSetPathTool: (mode: 'draw' | 'erase') => void;
   onClose: () => void;
 }) {
-  const groups = buildGroups(s);
-  const blocks = blocksFor(groups);
+  const sections = buildSections(s);
+  // Default to the first real building category (not the tools tab) so opening
+  // Build lands on something to place. Sections are recomputed every render,
+  // so the active id is resolved against the current list below — if the tab
+  // it named has vanished (its last item built out), we fall back to the
+  // first tab rather than showing an empty strip.
+  const [activeId, setActiveId] = useState<string>(() => {
+    const firstBuild = buildSections(s).find((sec) => sec.kind === 'build');
+    return firstBuild?.id ?? TOOLS_SECTION_ID;
+  });
+  const active = sections.find((sec) => sec.id === activeId) ?? sections[0];
 
   return (
     <ToolbarPopup
       title="Build"
       onClose={onClose}
       className="build-popup"
-      headExtra={<HelpHint text="Every building the university can have, grouped by type: what's built, what's under construction, and what's next available. Repeatable types (housing, dining, fitness) collapse what's already finished into one line — open it for the individual halls. A facility serves a fixed share of students against total planned capacity, not today's enrollment, so building more housing raises the bar for the rest of campus life too. Anything not yet unlockable is left off the list rather than teased. 'Site →' picks a building up — click (or drag it onto) an empty tile on the map to start building it there; that's the moment the cost is charged and the countdown begins. A row priced at a flat, small fee instead of a real construction cost is already-built and just needs a spot marked on the map — the university's founding buildings, mainly. The map stays visible and clickable behind this popup, so you can see where a building will land before you commit it." />}
+      headExtra={<HelpHint text="Every building the university can have, grouped into categories along the top — pick a category to see its buildings as a row of tiles. Each tile shows what's built, what's under construction, and what's next available. Repeatable types (housing, dining, fitness) collapse what's already finished into one 'Built ×N' tile — click it for the individual halls. A facility serves a fixed share of students against total planned capacity, not today's enrollment, so building more housing raises the bar for the rest of campus life too. Anything not yet unlockable is left off rather than teased. Click a tile (or drag it onto the map) to pick a building up, then click an empty tile on the map to build it there; that's the moment the cost is charged and the countdown begins. A tile priced at a flat, small fee instead of a real construction cost is already-built and just needs a spot marked on the map — the university's founding buildings, mainly. The map stays visible behind this bar, so you can see where a building will land before you commit it." />}
     >
-      <div className="build-popup-stats">
-        <span className="stat">{totalEnrolled(s.students).toLocaleString()}/{s.students.capacity.toLocaleString()} beds</span>
-        <span className="stat">satisfaction {Math.round(s.students.satisfaction)}</span>
-      </div>
+      <div className="build-mode">
+        <div className="build-mode-topline">
+          <span className="stat">{totalEnrolled(s.students).toLocaleString()}/{s.students.capacity.toLocaleString()} beds</span>
+          <span className="stat">satisfaction {Math.round(s.students.satisfaction)}</span>
+        </div>
 
-      {s.finance.cash < 0 && (
-        <p className="stall-note">Cash is negative — the school is running an operating deficit, so nothing can be started until the balance recovers.</p>
-      )}
+        {s.finance.cash < 0 && (
+          <p className="stall-note">Cash is negative — the school is running an operating deficit, so nothing can be started until the balance recovers.</p>
+        )}
 
-      <div className="building-groups">
-        <CampusToolsSection pathTool={pathTool} onSetPathTool={onSetPathTool} />
-        {blocks.map((block, i) => block.category
-          ? (
-            <CategorySection
-              key={`${block.category}-${i}`}
-              category={block.category}
-              groups={block.groups}
-              s={s}
-              placingId={placingId}
-              onArmPlacement={onArmPlacement}
-            />
-          )
-          : block.groups.map((group) => (
-            <BuildGroup key={group.key} s={s} group={group} placingId={placingId} onArmPlacement={onArmPlacement} />
-          )))}
+        <nav className="build-mode-tabs" aria-label="Build categories">
+          {sections.map((sec) => {
+            const Icon = SECTION_ICON[sec.id] ?? BuildIcon;
+            const isActive = sec.id === active.id;
+            return (
+              <button
+                key={sec.id}
+                type="button"
+                className={`build-cat-tab ${isActive ? 'active' : ''}`}
+                aria-pressed={isActive}
+                title={sec.label}
+                onClick={() => setActiveId(sec.id)}
+              >
+                <Icon />
+                <span className="build-cat-label">{sec.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="build-mode-tray">
+          {active.kind === 'tools'
+            ? <CampusToolsTiles pathTool={pathTool} onSetPathTool={onSetPathTool} />
+            : (
+              <div className="build-tile-row">
+                {active.groups.map((group) => (
+                  <BuildGroupTiles key={group.key} s={s} group={group} placingId={placingId} onArmPlacement={onArmPlacement} />
+                ))}
+              </div>
+            )}
+        </div>
       </div>
     </ToolbarPopup>
   );
