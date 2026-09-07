@@ -545,10 +545,13 @@ so a **real hiring pool** is required — hiring is a genuine subsystem, not a s
 (`HIRE_FACULTY`/`FIRE_FACULTY` are wired up in the reducer; see
 `facultySystem.ts`).
 
-(The `Faculty.morale` field exists but is currently written and never read — dead
-state. Whether to wire it up or drop it is settled in the faculty-semantics pass,
-the roadmap's PR G; it is intentionally omitted from the attribute list above
-until then.)
+(A `Faculty.morale` field once existed but was written and never read — dead
+state — so it was removed in the faculty-semantics pass. A resumed save that
+still carries it is harmless: no code reads it. If the future faculty-lifecycle
+system needs morale, it returns as an additive field then. The lightweight
+attributes above, plus `acclaim` for a won research prize, are the whole of a
+faculty member's model; there is no life/personality simulation. This is
+conformance-tested in `test/faculty.test.ts`.)
 
 **Recruiting is a standing, churning market, not a post-and-wait errand.**
 `s.candidates` holds a long list of people currently available; the player

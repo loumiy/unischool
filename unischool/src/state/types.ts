@@ -81,7 +81,6 @@ export interface Faculty {
   tenureWeeks: number; // weeks since hire; 0 for an unhired candidate, increments weekly once on the roster
   weeksListed: number; // the mirror image of tenureWeeks: weeks this person has been sitting in the hiring market, 0 once appointed. Only the candidate pool reads it — facultySystem.ts's tickCandidatePool withdraws a listing at CANDIDATE_LISTING_WEEKS — exactly as only the roster reads tenureWeeks.
   salary: number;      // current annual salary — recomputed from current stats + a separate seniority premium curve
-  morale: number;     // 0..100
   courseSlots: number; // how many courses in `field` this hire can keep staffed at once — rolled at hire, grows slowly with tenure (see facultyData.ts's grownSlots). A course whose requiresFaculty is `field` occupies one slot in that field for as long as it stays 'developing' or 'done' (see techSystem.ts's canStartDevelopment) — offering more courses in a subject means hiring more (or more tenured) faculty in it.
   // How many research prizes this person has been awarded (see
   // systems/research/researchSystem.ts). Its own field rather than a bump
