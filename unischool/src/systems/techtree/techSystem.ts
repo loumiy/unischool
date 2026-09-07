@@ -59,6 +59,21 @@ export function hasFreeFacultySlot(s: GameState, field: string): boolean {
   return totalFacultySlots(s, field) > usedFacultySlots(s, field);
 }
 
+// Every field the school is actually short on right now: a course sits
+// 'available' needing it and there's no free slot to start it. The single
+// definition of "needed", shared by the Faculty tab (which flags these
+// candidates and sorts them to the top) and the faculty alert badge (which
+// fires the moment a needed candidate the player hasn't seen enters the
+// pool — see types.ts's SeenState).
+export function neededFacultyFields(s: GameState): Set<string> {
+  return new Set(
+    s.tech
+      .filter((t) => t.status === 'available' && t.requiresFaculty)
+      .map((t) => t.requiresFaculty!)
+      .filter((field) => usedFacultySlots(s, field) >= totalFacultySlots(s, field)),
+  );
+}
+
 // The single definition of "what it takes to start" a Buildable, shared by
 // the reducer's START_DEVELOPMENT case and every UI screen that has to
 // decide whether to offer the affordance.

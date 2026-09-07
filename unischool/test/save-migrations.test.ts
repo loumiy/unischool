@@ -183,6 +183,44 @@ function testArtsCapstoneRepoint(): void {
   assert(sart210.status === 'available', 'Studio Art capstone opens: its tier-2 quartet and the Gallery are both done');
 }
 
+// Build a v22-shaped save (a real current-shape state with `seen` stripped
+// back off, exactly as a save written before the alert-badge feature would
+// look) with a mix of locked/available/done tech and a nonempty candidate
+// pool, so MIGRATIONS[22]'s seeding has something real to prove.
+function makeV22Save(): void {
+  const base = createInitialState('Seeder', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+  delete state.seen;
+  writeSave(22, state);
+}
+
+// ---- Test: a v22 save seeds `seen` from its own current visibility ----
+function testSeenSeeded(): void {
+  makeV22Save();
+  const loaded = loadGame();
+  assert(loaded !== null, 'v22 save loads (does not fall back to null)');
+  if (!loaded) return;
+
+  assert(typeof loaded.seen === 'object' && loaded.seen !== null, 'seen slice is filled in');
+
+  const lockedCourse = loaded.tech.find((t) => t.kind === 'course' && t.status === 'locked');
+  assert(!!lockedCourse, 'fixture has at least one locked course to check against');
+  if (lockedCourse) {
+    assert(loaded.seen.courseIds[lockedCourse.id] === undefined, 'a still-locked course is not marked seen');
+  }
+
+  const visibleCourse = loaded.tech.find((t) => t.kind === 'course' && t.status !== 'locked');
+  assert(!!visibleCourse, 'fixture has at least one visible (non-locked) course to check against');
+  if (visibleCourse) {
+    assert(loaded.seen.courseIds[visibleCourse.id] === true, 'an already-visible course is marked seen');
+  }
+
+  assert(loaded.candidates.length > 0, 'fixture has a nonempty candidate pool to check against');
+  for (const c of loaded.candidates) {
+    assert(loaded.seen.candidateIds[c.id] === true, `existing candidate ${c.id} is marked seen`);
+  }
+}
+
 // ---- Test: a current-version save round-trips unchanged ----
 function testRoundTrip(): void {
   clearSave();
@@ -222,6 +260,7 @@ function testRejects(): void {
 console.log(`save-migration tests (SAVE_VERSION ${SAVE_VERSION})`);
 testForwardMigration();
 testArtsCapstoneRepoint();
+testSeenSeeded();
 testRoundTrip();
 testRejects();
 

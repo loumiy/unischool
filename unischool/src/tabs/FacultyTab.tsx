@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Faculty, GameState } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
@@ -7,7 +7,7 @@ import {
   facultyResearchOutput, labEquippedFields, researchRateMultiplier, weeklyResearchPoints,
 } from '../data/researchData';
 import { researchSchools } from '../data/techData';
-import { usedFacultySlots, totalFacultySlots } from '../systems/techtree/techSystem';
+import { usedFacultySlots, totalFacultySlots, neededFacultyFields } from '../systems/techtree/techSystem';
 import { coursesTaughtBy } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
 
@@ -229,15 +229,25 @@ export default function FacultyTab({ s, act }: { s: GameState; act: (a: Action) 
   // sitting available and there's no free slot to start it. This is what
   // turns a thirty-name list into a shortlist — the fields flagged here are
   // the ones worth appointing into today.
-  const shortFields = useMemo(
-    () => new Set(
-      s.tech
-        .filter((t) => t.status === 'available' && t.requiresFaculty)
-        .map((t) => t.requiresFaculty!)
-        .filter((field) => usedFacultySlots(s, field) >= totalFacultySlots(s, field)),
-    ),
-    [s],
-  );
+  const shortFields = useMemo(() => neededFacultyFields(s), [s]);
+
+  // The faculty alert badge (see types.ts's SeenState): every candidate
+  // currently flagged "needed" that this view hasn't reported seeing yet.
+  // Marked the moment this tab is open (and again whenever a fresh one
+  // shows up while it stays open — the dependency is the exact id set, not
+  // just its length, so a swap of one needed candidate for another still
+  // re-fires), which is what makes the badge go dark on open and never come
+  // back for a candidate already shown. A candidate never flagged "needed"
+  // is deliberately never marked seen here — if their field goes short
+  // later while they're still listed, that's a fresh thing worth a badge.
+  const unseenNeededIds = s.candidates
+    .filter((c) => shortFields.has(c.field) && !s.seen.candidateIds[c.id])
+    .map((c) => c.id);
+  const unseenNeededKey = unseenNeededIds.join('|');
+  useEffect(() => {
+    if (unseenNeededIds.length > 0) act({ type: 'MARK_SEEN', kind: 'candidate', ids: unseenNeededIds });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unseenNeededKey]);
 
   // Grouped by field, then best first within a field, so scanning for a
   // specialist means finding one block rather than sweeping thirty rows.

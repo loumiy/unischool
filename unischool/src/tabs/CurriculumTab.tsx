@@ -239,6 +239,24 @@ export function discoverySections(s: GameState): DiscoverySection[] {
   return buildSections(s, genEdComplete, revealedGrad);
 }
 
+// Every course id currently rendered somewhere on this tab — the pool, every
+// school section, and every subgroup inside one — regardless of that
+// course's own status. This is the curriculum alert badge's definition of
+// "visible" (see types.ts's SeenState): a course counts as new the instant
+// it's REVEALED, whether it arrives already 'available' (a freshly-unlocked
+// tier-1, once gen-ed clears) or still 'locked' pending its own prereqs (a
+// tier-2 sharing a brand-new school section with a tier-1 that isn't done
+// yet) — both are a cell appearing on screen where there was none before,
+// which is the moment there's something new to notice.
+export function visibleCourseIds(s: GameState): string[] {
+  const ids: string[] = [];
+  for (const section of discoverySections(s)) {
+    ids.push(...section.courseIds);
+    for (const sub of section.subgroups) ids.push(...sub.courseIds);
+  }
+  return ids;
+}
+
 type CellState = 'locked' | 'blocked' | 'available' | 'developing' | 'done';
 
 function cellState(s: GameState, t: Buildable): CellState {
@@ -488,6 +506,21 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
   const genEdComplete = isGenEdComplete(s);
   const sections = buildSections(s, genEdComplete, revealedGrad);
   const [pool, ...schoolSections] = sections;
+
+  // The curriculum alert badge (see types.ts's SeenState): every currently
+  // visible course id this tab hasn't reported seeing yet. Marked the
+  // moment the tab is open, and again whenever a fresh reveal (a school
+  // built, gen-ed cleared) adds to the visible set while it stays open —
+  // the dependency is the exact unseen id set, so this fires again on any
+  // change to it, not just a change in count. That's what makes "already
+  // had curriculum open when new courses unlocked" show no badge: the
+  // toolbar and this tab agree the instant this runs.
+  const unseenIds = visibleCourseIds(s).filter((id) => !s.seen.courseIds[id]);
+  const unseenKey = unseenIds.join('|');
+  useEffect(() => {
+    if (unseenIds.length > 0) act({ type: 'MARK_SEEN', kind: 'course', ids: unseenIds });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unseenKey]);
 
   return (
     <div className="tab-content">

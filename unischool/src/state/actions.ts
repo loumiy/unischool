@@ -155,6 +155,15 @@ export type Action =
   // the player can adjust as often as they like, so there is nothing to
   // refuse and no cost charged here.
   | { type: 'SET_ATHLETICS_INVESTMENT'; tier: AthleticsInvestmentTier }
+  // Records that the player has now seen these ids in the relevant view —
+  // the Curriculum tab (kind 'course'), the build popup's active category
+  // tab (kind 'buildable'), or the Faculty tab's candidate pool (kind
+  // 'candidate') — so the alert badge on that menu (and, for a buildable,
+  // on that specific tab) stops lighting up for them (see types.ts's
+  // SeenState). Dispatched by each of those three views' own effect,
+  // never by anything else: seeing is something only the view a badge
+  // points at can report.
+  | { type: 'MARK_SEEN'; kind: 'course' | 'buildable' | 'candidate'; ids: string[] }
   // Grants operating funds directly, with no event or interrupt behind it
   // (see StatusHeader.tsx's "+$1B" button). Playtest-only: gated behind
   // naming the university "test", the same as the sandbox Fast speed and
@@ -217,6 +226,7 @@ export function createPreStartState(): GameState {
     started: false,
     hasEnteredRankings: false,
     milestones: {},
+    seen: { courseIds: {}, buildableIds: {}, candidateIds: {} },
   };
 }
 
@@ -417,6 +427,12 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     started: true,
     hasEnteredRankings: false,
     milestones: {},
+    // Nothing has been shown to the player yet, so a founding school's
+    // very first revealed courses, buildable tiles and candidates all
+    // carry their alert badge until actually viewed (see types.ts's
+    // SeenState) — exactly like every other "nothing has happened yet"
+    // slice above.
+    seen: { courseIds: {}, buildableIds: {}, candidateIds: {} },
   };
   return state;
 }

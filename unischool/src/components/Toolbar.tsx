@@ -1,13 +1,30 @@
 import { forwardRef, useState } from 'react';
+import type { Action } from '../state/actions';
 import type { GameState } from '../state/types';
 import { TAB_LABELS, TAB_ORDER, type TabId } from './TabNav';
-import BuildPopup from './BuildPopup';
+import BuildPopup, { visibleBuildableIds } from './BuildPopup';
 import LogFeed from './LogStrip';
 import ToolbarPopup from './ToolbarPopup';
+import { visibleCourseIds } from '../tabs/CurriculumTab';
+import { neededFacultyFields } from '../systems/techtree/techSystem';
 import {
   FacultyIcon, CurriculumIcon, TreasuryIcon, AdmissionsIcon,
   StudentLifeIcon, HistoryIcon, AthleticsIcon, BuildIcon, LogIcon,
 } from './icons';
+
+// Which tab icons can carry the small red alert badge, and how each decides
+// it has something unseen (see types.ts's SeenState). Curriculum and Faculty
+// are the only two TAB_ORDER entries with a badge of their own — every other
+// tab (Treasury, Admissions, Student Life, History, Athletics) has no
+// "new content you haven't looked at yet" concept, so it's simply absent
+// from this table rather than wired to an always-false check.
+const TAB_ALERT: Partial<Record<TabId, (s: GameState) => boolean>> = {
+  curriculum: (s) => visibleCourseIds(s).some((id) => !s.seen.courseIds[id]),
+  faculty: (s) => {
+    const needed = neededFacultyFields(s);
+    return s.candidates.some((c) => needed.has(c.field) && !s.seen.candidateIds[c.id]);
+  },
+};
 
 // C2: the one cohesive bottom band. Tabs, the build menu, and the log used
 // to be three separate floating pieces of chrome (TabNav in the topbar,
@@ -43,6 +60,11 @@ const TAB_ICONS: Record<TabId, () => React.JSX.Element> = {
 
 const Toolbar = forwardRef<HTMLDivElement, {
   s: GameState;
+  // Only threaded through to the build popup, which reports seen buildable
+  // ids through it (see types.ts's SeenState) — nothing else in this band
+  // dispatches; the Curriculum/Faculty tabs report their own seen ids
+  // straight from App.tsx's overlay, not through here.
+  act: (a: Action) => void;
   active: TabId | null;
   onChangeTab: (tab: TabId | null) => void;
   // Which placeable Buildable is currently picked up for siting, and the
@@ -54,7 +76,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
   onArmPlacement: (id: string | null) => void;
   pathTool: 'draw' | 'erase' | null;
   onSetPathTool: (mode: 'draw' | 'erase') => void;
-}>(({ s, active, onChangeTab, placingId, onArmPlacement, pathTool, onSetPathTool }, ref) => {
+}>(({ s, act, active, onChangeTab, placingId, onArmPlacement, pathTool, onSetPathTool }, ref) => {
   const [buildOpen, setBuildOpen] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
   // Log entries are newest-first (see reducer.ts's s.log.unshift), so the
@@ -83,6 +105,13 @@ const Toolbar = forwardRef<HTMLDivElement, {
         {TAB_ORDER.map((id) => {
           const Icon = TAB_ICONS[id];
           const isActive = active === id;
+          // Suppressed while this tab is the active one — see the module
+          // comment above: the tab's own effect marks its visible ids seen
+          // essentially instantly, but checking isActive here too means the
+          // badge can never even flash on for the one render before that
+          // effect commits, which is what makes "already had it open when
+          // new content unlocked" show no badge at all.
+          const hasAlert = !isActive && (TAB_ALERT[id]?.(s) ?? false);
           return (
             <button
               key={id}
@@ -94,6 +123,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
               onClick={() => onChangeTab(isActive ? null : id)}
             >
               <Icon />
+              {hasAlert && <span className="alert-badge" aria-hidden="true">!</span>}
             </button>
           );
         })}
@@ -109,6 +139,13 @@ const Toolbar = forwardRef<HTMLDivElement, {
       >
         <BuildIcon />
         <span className="toolbar-build-label">Build</span>
+        {/* Stays lit for as long as ANY category tab holds an unseen tile,
+            whether or not the popup is open — opening the popup at its
+            default tab is not the same as switching to the tab the new
+            building is actually in (see BuildPopup.tsx's own per-tab dot). */}
+        {visibleBuildableIds(s).some((id) => !s.seen.buildableIds[id]) && (
+          <span className="alert-badge" aria-hidden="true">!</span>
+        )}
       </button>
 
       {logOpen && (
@@ -120,6 +157,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
       {buildOpen && (
         <BuildPopup
           s={s}
+          act={act}
           placingId={placingId}
           onArmPlacement={onArmPlacement}
           pathTool={pathTool}

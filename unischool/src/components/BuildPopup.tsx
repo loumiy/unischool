@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { Action } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
@@ -134,6 +135,15 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; ma
   { key: 'footballStadium', label: FACILITY_LABELS.footballStadium, repeatable: false, match: (t) => t.facilityType === 'footballStadium' },
   { key: 'academicBuilding', label: 'Academic Buildings', repeatable: false, match: (t) => t.kind === 'building' },
 ];
+
+// Every placeable Buildable id currently rendered as a tile in the build
+// popup, across every category — the build-menu alert badge's definition of
+// "visible" (see types.ts's SeenState). Deliberately re-derived from
+// buildGroups rather than kept in step with it by hand: a tile is visible
+// here exactly when buildGroups would render it, so the two can never drift.
+export function visibleBuildableIds(s: GameState): string[] {
+  return buildGroups(s).flatMap((g) => g.items.map((t) => t.id));
+}
 
 function buildGroups(s: GameState): TypeGroup[] {
   return TYPE_MATCHERS
@@ -507,9 +517,14 @@ function CampusToolsTiles({ pathTool, onSetPathTool }: {
 }
 
 export default function BuildPopup({
-  s, placingId, onArmPlacement, pathTool, onSetPathTool, onClose,
+  s, act, placingId, onArmPlacement, pathTool, onSetPathTool, onClose,
 }: {
   s: GameState;
+  // Only used to report which buildable ids the player has now seen (see
+  // types.ts's SeenState) — nothing else in this popup dispatches through
+  // here; PLACE_BUILDABLE is still the map's own job (see CampusMap.tsx's
+  // placeById).
+  act: (a: Action) => void;
   // Which placeable Buildable is currently picked up for siting on the map,
   // and how to change it — lifted to App.tsx (see CampusMap.tsx's module
   // comment). Every tile here starts through PLACE_BUILDABLE, dispatched once
@@ -533,6 +548,22 @@ export default function BuildPopup({
   });
   const active = sections.find((sec) => sec.id === activeId) ?? sections[0];
 
+  // The build alert badge's other half (see types.ts's SeenState and
+  // visibleBuildableIds above): every unseen tile in the ACTIVE tab only —
+  // switching tabs is what "seeing" a category means here, so a fresh
+  // building in a tab the player hasn't switched to stays unseen (and the
+  // build button's badge stays lit) even while this popup is open on
+  // another tab. Re-fires on any change to the exact unseen set, the same
+  // pattern the Curriculum/Faculty tabs use.
+  const activeUnseenIds = active.kind === 'build'
+    ? active.groups.flatMap((g) => g.items.filter((t) => !s.seen.buildableIds[t.id]).map((t) => t.id))
+    : [];
+  const activeUnseenKey = activeUnseenIds.join('|');
+  useEffect(() => {
+    if (activeUnseenIds.length > 0) act({ type: 'MARK_SEEN', kind: 'buildable', ids: activeUnseenIds });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeUnseenKey]);
+
   return (
     <ToolbarPopup
       title="Build"
@@ -554,6 +585,14 @@ export default function BuildPopup({
           {sections.map((sec) => {
             const Icon = SECTION_ICON[sec.id] ?? BuildIcon;
             const isActive = sec.id === active.id;
+            // A category carries the alert dot when it holds a buildable
+            // tile this player hasn't switched to this tab to see yet (see
+            // activeUnseenIds above) — computed independently per tab, not
+            // just read off activeUnseenIds, since every OTHER tab's unseen
+            // items still need their own dot while one tab is active.
+            const hasUnseen = sec.kind === 'build' && sec.groups.some(
+              (g) => g.items.some((t) => !s.seen.buildableIds[t.id]),
+            );
             return (
               <button
                 key={sec.id}
@@ -565,6 +604,7 @@ export default function BuildPopup({
               >
                 <Icon />
                 <span className="build-cat-label">{sec.label}</span>
+                {hasUnseen && <span className="alert-badge" aria-hidden="true">!</span>}
               </button>
             );
           })}
