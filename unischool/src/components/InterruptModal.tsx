@@ -25,7 +25,7 @@ function interruptBody(interrupt: PendingInterrupt): { title: string; body: stri
 
 interface AdmissionsDraft {
   tuition: number;
-  financialAidRate: number;
+  scholarshipRate: number;
 }
 
 function money(v: number): string {
@@ -87,7 +87,7 @@ function StudentLifeDigest({ petitions, approved, onToggle }: {
 
 // The once-a-year summer admissions decision (see README's "Admissions: an
 // annual summer decision"). The player sets exactly two levers — tuition
-// and average financial aid — and the distribution funnel resolves the rest
+// and average scholarships — and the distribution funnel resolves the rest
 // (see admissionsSystem.ts), with current student satisfaction feeding the
 // applicant pool as word of mouth. Selectivity and enrollment are NOT inputs:
 // they are emergent outcomes, previewed live below so the player can see the
@@ -103,13 +103,13 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
   onResolve: (settings: AdmissionsDraft & { approvedPetitionIds: string[] }) => void;
 }) {
   const [tuition, setTuition] = useState(payload.tuition);
-  const [financialAidRate, setFinancialAidRate] = useState(payload.financialAidRate);
+  const [scholarshipRate, setScholarshipRate] = useState(payload.scholarshipRate);
   // Approved by default — see the note on StudentLifeDigest above.
   const [approved, setApproved] = useState<Set<string>>(() => new Set(petitions.map((p) => p.id)));
 
   // Live preview of the emergent outcomes, computed with the very function
   // the reducer commits with — so the numbers shown are the numbers applied.
-  const outcome = projectAdmissions(prestige, tuition, financialAidRate, capacity, satisfaction);
+  const outcome = projectAdmissions(prestige, tuition, scholarshipRate, capacity, satisfaction);
   // What this school's prestige lets it charge before demand starts
   // falling away (see admissionsSystem.ts's price tolerance). Shown
   // because it is the single most consequential curve behind this
@@ -120,7 +120,7 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
   return (
     <>
       <h2>Summer Admissions</h2>
-      <p>Set next year's tuition and financial aid. Selectivity and enrollment follow from your applicant pool — see the projected outcomes below before you confirm.</p>
+      <p>Set next year's tuition and scholarships. Selectivity and enrollment follow from your applicant pool — see the projected outcomes below before you confirm.</p>
 
       <label className="admissions-field">
         <span>Tuition <strong>${tuition.toLocaleString()}/yr</strong> (cap ${tuitionCeiling.toLocaleString()})</span>
@@ -129,9 +129,9 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
       </label>
 
       <label className="admissions-field">
-        <span>Financial aid <strong>{Math.round(financialAidRate * 100)}%</strong> avg. discount</span>
-        <input type="range" min={0} max={1} step={0.01} value={financialAidRate}
-          onChange={(e) => setFinancialAidRate(Number(e.target.value))} />
+        <span>Scholarships <strong>{Math.round(scholarshipRate * 100)}%</strong> avg. discount</span>
+        <input type="range" min={0} max={1} step={0.01} value={scholarshipRate}
+          onChange={(e) => setScholarshipRate(Number(e.target.value))} />
       </label>
 
       <dl className="admissions-outcomes">
@@ -158,7 +158,7 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
         })}
       />
 
-      <button onClick={() => onResolve({ tuition, financialAidRate, approvedPetitionIds: [...approved] })}>
+      <button onClick={() => onResolve({ tuition, scholarshipRate, approvedPetitionIds: [...approved] })}>
         Confirm Policy
       </button>
     </>
@@ -622,7 +622,7 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
   // systems a second time before finally advancing. Extending Enter to
   // any of them later means wiring its own dedicated action, never this
   // generic one. The admissions form is left out for a different reason:
-  // its tuition/aid values live in AdmissionsInterruptForm's own local
+  // its tuition/scholarships values live in AdmissionsInterruptForm's own local
   // state, not reachable from here without lifting that state up just for
   // a hotkey, so it stays click-to-confirm (see the PR notes for more).
   //

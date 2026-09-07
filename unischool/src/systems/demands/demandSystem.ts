@@ -131,7 +131,7 @@ export function demandStakes(s: GameState): DemandStakes {
   const applicantsAt = (satisfaction: number): number => projectAdmissions(
     s.self.reputation,
     s.finance.tuitionPerStudent,
-    s.admissions.financialAidRate,
+    s.admissions.scholarshipRate,
     s.students.capacity,
     satisfaction,
   ).applicants;

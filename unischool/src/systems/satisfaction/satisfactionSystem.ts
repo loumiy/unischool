@@ -22,7 +22,7 @@ import {
 // The headline number still drifts smoothly toward its target at the same
 // weekly rate the old single-formula version used — only the TARGET is now
 // a real weighted sum of attributes instead of an inline crowding/
-// reputation/aid formula. The breakdown itself is NOT smoothed — it always
+// reputation/scholarships formula. The breakdown itself is NOT smoothed — it always
 // reflects what's true about the campus right now, so a newly finished
 // building is visible in the breakdown immediately even while the headline
 // number is still catching up to it.
@@ -101,22 +101,22 @@ const TARGET_RATIO: SatisfactionAttributes = {
 const BASIC_NEEDS_PENALTY_CURVATURE = 2.2;
 const SOCIAL_PENALTY_CURVATURE = 1.4;
 
-// Reputation and financial aid used to nudge the old single satisfaction
+// Reputation and scholarships used to nudge the old single satisfaction
 // formula directly; they still do, just folded into the two attributes
-// they thematically belong to instead of a bespoke crowding/reputation/aid
-// blend: prestige as campus pride (social), aid as affordability (basic
+// they thematically belong to instead of a bespoke crowding/reputation/scholarships
+// blend: prestige as campus pride (social), scholarships as affordability (basic
 // needs). Both are small, capped nudges on top of the ratio-based score,
 // not attributes in their own right.
 const REPUTATION_PRIDE_MAX_BONUS = 15;  // added to `social` at max prestige (PRESTIGE_MAX, see prestigeSystem.ts)
 const REPUTATION_PRIDE_PRESTIGE_MAX = 150;
-const AID_AFFORDABILITY_MAX_BONUS = 20; // added to `basicNeeds` at 100% average aid
+const SCHOLARSHIP_AFFORDABILITY_MAX_BONUS = 20; // added to `basicNeeds` at 100% average scholarships
 
 // Faculty quality: a well-staffed, strongly-retained roster should read as
 // more academically satisfying than a thinly or weakly staffed one, on top
 // of (not instead of) whatever the library already provides — a great
 // library with no faculty, or a great faculty with no library, should each
 // land only partially satisfied. ADDITIVE and capped, the same pattern as
-// REPUTATION_PRIDE_MAX_BONUS/AID_AFFORDABILITY_MAX_BONUS above, so a
+// REPUTATION_PRIDE_MAX_BONUS/SCHOLARSHIP_AFFORDABILITY_MAX_BONUS above, so a
 // library already scoring 100 cannot be pushed past it and a bare roster
 // cannot pull academic down below what the library alone earned.
 const FACULTY_QUALITY_MAX_BONUS = 15; // added to `academic` at a fully-matured, top-tier average roster
@@ -232,7 +232,7 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
   );
 
   const basicNeedsRatio = ratioScore(servedPopulationFor(s, 'basicNeeds'), capacity, TARGET_RATIO.basicNeeds, BASIC_NEEDS_PENALTY_CURVATURE);
-  const affordability = clamp(s.admissions.financialAidRate, 0, 1) * AID_AFFORDABILITY_MAX_BONUS;
+  const affordability = clamp(s.admissions.scholarshipRate, 0, 1) * SCHOLARSHIP_AFFORDABILITY_MAX_BONUS;
   const basicNeeds = clamp(basicNeedsRatio + affordability, ATTRIBUTE_SCORE_FLOOR, 100);
 
   // Health is DORMANT — scores full — below the population threshold the

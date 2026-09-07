@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "sim": "rolldown sim/balanceSim.ts -o node_modules/.tmp/balanceSim.mjs -f esm -p node && node node_modules/.tmp/balanceSim.mjs"
+    "sim": "rolldown sim/balanceSim.ts -o node_modules/.tmp/balanceSim.mjs -f esm -p node && node node_modules/.tmp/balanceSim.mjs",
+    "test": "rolldown test/save-migrations.test.ts -o node_modules/.tmp/save-migrations.test.mjs -f esm -p node && node node_modules/.tmp/save-migrations.test.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",

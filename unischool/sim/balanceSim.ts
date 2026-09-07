@@ -69,7 +69,7 @@ const fakeStorage = new Map<string, string>();
 
 // ---------------------------------------------------------------------
 // A strategy is a scripted player: a policy for the two annual levers
-// (tuition, aid) plus rules for what it commits cash to during the year.
+// (tuition, scholarships) plus rules for what it commits cash to during the year.
 // These are deliberately crude — they are not meant to play well, they
 // are meant to be REPRODUCIBLE and to span the space of things a real
 // player does (build breadth first, build enrollment first, overreach,
@@ -79,7 +79,7 @@ interface Strategy {
   name: string;
   schoolType: SchoolType;
   tuition(s: GameState): number;
-  aid(s: GameState): number;
+  scholarships(s: GameState): number;
   buffer(s: GameState): number;   // cash held back before any discretionary start
   // The flow gate: a player who watches the Treasury does not take on a
   // new recurring commitment while this week's net is thin. Expressed as a
@@ -308,7 +308,7 @@ function decide(
 interface Row {
   year: number; cash: number; enrolled: number; capacity: number; prestige: number;
   opex: number; net: number; satisfaction: number; courses: number; majors: number;
-  faculty: number; tuition: number; aid: number; applicants: number; admitRate: number;
+  faculty: number; tuition: number; scholarships: number; applicants: number; admitRate: number;
   endowment: number; weeksInTheRed: number; minCash: number;
   // The `social` and `academic` attributes alone, as the year closed (see
   // satisfactionSystem.ts's computeSatisfactionBreakdown) — the headline
@@ -361,7 +361,7 @@ function snapshot(s: GameState, weeksInTheRed: number, minCash: number): Row {
     majors: Object.keys(s.milestones).filter((k) => k.startsWith('program-established:')).length,
     faculty: s.faculty.length,
     tuition: s.finance.tuitionPerStudent,
-    aid: s.admissions.financialAidRate,
+    scholarships: s.admissions.scholarshipRate,
     applicants: s.students.applicantPool,
     admitRate: s.students.admitRate,
     endowment: s.finance.endowment,
@@ -506,7 +506,7 @@ function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTal
         dispatch({
           type: 'RESOLVE_ADMISSIONS',
           tuition: strategy.tuition(s),
-          financialAidRate: strategy.aid(s),
+          scholarshipRate: strategy.scholarships(s),
           approvedPetitionIds,
         });
         rows.push(snapshot(s, weeksInTheRed, minCash));
@@ -595,7 +595,7 @@ function fmt(n: number): string {
 function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venuesBuilt: string[] }, every: number): void {
   const { rows, tally } = run;
   console.log(`\n=== ${strategy.name} (${strategy.schoolType}) ===`);
-  console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | soc | aca | crs | maj | fac |  tuition | aid |  applic | admit% |  endow | rsch/wk | brk | orgs | grad');
+  console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | soc | aca | crs | maj | fac |  tuition | sch |  applic | admit% |  endow | rsch/wk | brk | orgs | grad');
   const last = rows[rows.length - 1];
   for (const r of rows) {
     if (r.year > 6 && r.year % every !== 0 && r !== last) continue;
@@ -604,7 +604,7 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
       `${r.prestige.toFixed(1).padStart(5)} | ${fmt(r.opex).padStart(7)} | ${fmt(r.net).padStart(6)} | ${r.satisfaction.toFixed(0).padStart(4)} | ` +
       `${r.social.toFixed(0).padStart(3)} | ${r.academic.toFixed(0).padStart(3)} | ` +
       `${String(r.courses).padStart(3)} | ${String(r.majors).padStart(3)} | ${String(r.faculty).padStart(3)} | ${fmt(r.tuition).padStart(8)} | ` +
-      `${(r.aid * 100).toFixed(0).padStart(3)} | ${fmt(r.applicants).padStart(7)} | ${(r.admitRate * 100).toFixed(0).padStart(6)} | ${fmt(r.endowment).padStart(6)} | ` +
+      `${(r.scholarships * 100).toFixed(0).padStart(3)} | ${fmt(r.applicants).padStart(7)} | ${(r.admitRate * 100).toFixed(0).padStart(6)} | ${fmt(r.endowment).padStart(6)} | ` +
       `${r.researchRate.toFixed(1).padStart(7)} | ${String(r.breakthroughs).padStart(3)} | ` +
       // clubs/chapters live at the close of that year — the column that
       // says WHEN student life actually starts for a given strategy, which
@@ -723,7 +723,7 @@ const STRATEGIES: Strategy[] = [
     // The intended line of play: grow one thing at a time, never take on a
     // commitment the current cash flow can't carry.
     name: 'Balanced builder', schoolType: 'private',
-    tuition: rampTuition(300), aid: () => 0.25,
+    tuition: rampTuition(300), scholarships: () => 0.25,
     buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
     netMargin: 0.12,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
@@ -733,7 +733,7 @@ const STRATEGIES: Strategy[] = [
     // Deliberate overreach: buys everything the moment cash allows,
     // ignoring the flow. Should stall hard, then claw back out — never die.
     name: 'Curriculum rush (overreach)', schoolType: 'private',
-    tuition: rampTuition(300), aid: () => 0.2,
+    tuition: rampTuition(300), scholarships: () => 0.2,
     buffer: () => 20_000,
     netMargin: 0,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
@@ -743,7 +743,7 @@ const STRATEGIES: Strategy[] = [
     // The volume archetype: cheap, heavily discounted, beds first. Tests
     // that a big low-selectivity school is a viable, different shape.
     name: 'Discount volume (beds first)', schoolType: 'private',
-    tuition: rampTuition(150), aid: () => 0.5,
+    tuition: rampTuition(150), scholarships: () => 0.5,
     buffer: (s) => Math.max(200_000, s.finance.weeklyOpEx * 8),
     netMargin: 0.08,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
@@ -751,7 +751,7 @@ const STRATEGIES: Strategy[] = [
   },
   {
     name: 'Public flagship', schoolType: 'public',
-    tuition: rampTuition(300), aid: () => 0.2,
+    tuition: rampTuition(300), scholarships: () => 0.2,
     buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
     netMargin: 0.12,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
@@ -763,7 +763,7 @@ const STRATEGIES: Strategy[] = [
     // to punish, made at once. It must go deep into the red and CLIMB BACK
     // OUT — that is the whole content of "stall, don't die".
     name: 'Overbuilder (beds ahead of demand)', schoolType: 'private',
-    tuition: (s) => Math.min(s.finance.tuitionCeiling, 45_000), aid: () => 0.1,
+    tuition: (s) => Math.min(s.finance.tuitionCeiling, 45_000), scholarships: () => 0.1,
     buffer: () => 0,
     netMargin: -1,
     buildsCourses: true, buildsDorms: true, buildsFacilities: false,
@@ -773,7 +773,7 @@ const STRATEGIES: Strategy[] = [
     // The control: builds nothing, ever. Prestige and cash here are the
     // floor the whole loop has to beat, or growth is optional.
     name: 'Idle (builds nothing)', schoolType: 'private',
-    tuition: () => 12_000, aid: () => 0.2,
+    tuition: () => 12_000, scholarships: () => 0.2,
     buffer: () => Number.MAX_SAFE_INTEGER,
     netMargin: Number.MAX_SAFE_INTEGER,
     buildsCourses: false, buildsDorms: false, buildsFacilities: false,

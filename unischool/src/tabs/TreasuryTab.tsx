@@ -60,7 +60,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
             <h3>Income</h3>
             <StatementLine
               label="Net tuition"
-              note={`${totalEnrolled(s.students).toLocaleString()} enrolled × $${s.finance.tuitionPerStudent.toLocaleString()}/yr less ${Math.round(s.admissions.financialAidRate * 100)}% aid`}
+              note={`${totalEnrolled(s.students).toLocaleString()} enrolled × $${s.finance.tuitionPerStudent.toLocaleString()}/yr less ${Math.round(s.admissions.scholarshipRate * 100)}% scholarships`}
               amount={flow.tuitionRevenue}
             />
             <StatementLine
@@ -171,7 +171,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
             <dd>{money(s.research.grantIncome)} across {s.research.grants}</dd>
             <dt>Tuition</dt><dd>${s.finance.tuitionPerStudent.toLocaleString()}/yr</dd>
             <dt>Tuition ceiling</dt><dd>${s.finance.tuitionCeiling.toLocaleString()}/yr</dd>
-            <dt>Financial aid</dt><dd>{Math.round(s.admissions.financialAidRate * 100)}%</dd>
+            <dt>Scholarships</dt><dd>{Math.round(s.admissions.scholarshipRate * 100)}%</dd>
           </dl>
         </section>
       </div>

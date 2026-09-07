@@ -432,11 +432,10 @@ as one-off pauses.
 
 Admissions is **a once-a-year task, in the summer**, delivered as an interrupt.
 When it fires, the clock stops and the player sets exactly **two** levers for the
-coming year: the **sticker tuition** and the **scholarship rate** (the average
-tuition discount across admits — "scholarships" is the preferred term; the code
-still calls this field `financialAidRate` until the terminology pass). **Tuition
-is set once a year here — there is no live, continuously adjustable tuition
-control.**
+coming year: the **sticker tuition** and the **scholarship rate**
+(`admissions.scholarshipRate`, the average tuition discount across admits).
+**Tuition is set once a year here — there is no live, continuously adjustable
+tuition control.**
 
 Everything else is **emergent, not an input** — the player sets no selectivity
 target and no target enrollment. Admissions is a distribution funnel resolved by
@@ -1190,7 +1189,9 @@ never reads `placements`), it just won't render anywhere until it finishes.
 Keep changes focused on the task described. If you spot a tension or a decision
 the task doesn't specify, **flag it in the PR summary rather than silently
 choosing** — surfacing tradeoffs is more useful than smoothing them over. After
-making changes, run `npm run build` and confirm it compiles before opening a PR.
+making changes, run `npm run build` (compiles), `npm run lint`, and `npm test`
+(the save-migration harness, `test/save-migrations.test.ts`) before opening a
+PR; a change that alters save shape or migrations should extend that harness.
 Preserve the pure-tick-function architecture and the single-Buildable model in
 any refactor.
 
