@@ -89,8 +89,8 @@ const BUILDING_INSET = 4;
 // change when SCHOOL_BUILDING_FOOTPRINT grows from 2x2 to 9x9: a bigger
 // footprint just gives the search more room to reach the ceiling, it never
 // needs a different formula or a redrawn floor.
-const LABEL_MAX_FONT_SIZE = 15;          // the largest a label ever renders, footprint permitting
-const LABEL_MIN_FONT_SIZE = 9;           // the floor: never shrink past this, even if the wrap still overflows — the full name always renders, just cramped
+const LABEL_MAX_FONT_SIZE = 18;          // the largest a label ever renders, footprint permitting
+const LABEL_MIN_FONT_SIZE = 11;          // the floor: never shrink past this, even if the wrap still overflows — the full name always renders, just cramped
 const LABEL_FONT_STEP = 1;               // granularity of the shrink-to-fit search between the two sizes above
 const LABEL_CHAR_WIDTH_RATIO = 8 / 15;   // avg glyph advance as a fraction of font size
 const LABEL_LINE_HEIGHT_RATIO = 17 / 15; // line pitch as a fraction of font size
@@ -116,7 +116,10 @@ const PROGRESS_BAR_INSET = LABEL_INSET;
 // attribute, so
 // setting it imperatively here is invisible to (and never fought by) the
 // normal render cycle, exactly like an uncontrolled input.
-const MIN_ZOOM = 0.35;
+// MIN_ZOOM is deliberately low: a fully built-out campus spreads across a lot
+// of the 126x54 grid, and a player wants to be able to pull back far enough to
+// take the whole thing in at once, not just a cluster of it.
+const MIN_ZOOM = 0.22;
 const MAX_ZOOM = 2.5;
 // The zoom the map first loads at (see defaultView below) — noticeably
 // further out than native size (zoom 1, one TILE_SIZE px per tile) so a
@@ -125,7 +128,7 @@ const MAX_ZOOM = 2.5;
 // "whole 126x54 grid" extreme (this map is bigger than any built-out game
 // ever gets), just a wider starting view than the placement-precision zoom
 // a player zooms into by hand when siting something.
-const DEFAULT_ZOOM = 0.5;
+const DEFAULT_ZOOM = 0.4;
 const ZOOM_SPEED = 0.0016;       // wheel deltaY -> zoom factor
 const PAN_CLICK_THRESHOLD = 4;   // px of movement before a mousedown counts as a drag, not a click
 

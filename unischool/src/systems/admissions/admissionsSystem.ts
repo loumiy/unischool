@@ -14,16 +14,41 @@ export function trailingYearSatisfaction(s: GameState): number {
     : s.students.satisfaction;
 }
 
+// --- Intake smoothing: the shift-register damper (lever 3) ---------------
+// The cohort advance in RESOLVE_ADMISSIONS is a zero-damping shift register:
+// seniors leave, every younger cohort moves up, and the entering class fills
+// whatever seats the returning three leave open. With nothing damping it, a
+// one-time jump in capacity (a freshly built dorm) is filled by a single
+// oversized freshman class that then re-graduates as a wave every four
+// years, forever — the "lumpy admissions cycles" that the founding-mix
+// change alone could not fix (see ALIGNMENT_ROADMAP.md's cohort-smoothing
+// note). The damper caps the entering class at one steady-state slot —
+// capacity / 4, the size every cohort settles at when the campus is full —
+// scaled by INTAKE_SURGE_MULTIPLIER.
+//
+// At 1.0 no single class can ever exceed a quarter of capacity, so a newly
+// built dorm fills smoothly over the four years its beds take to propagate
+// into all four class years, with NO residual wave. (Any class allowed above
+// capacity/4 itself re-graduates as a smaller wave four years on, so values
+// > 1 trade smoothness for a faster fill; 1.0 is the fully-smooth choice.)
+// The cap never bites in a steady year — open seats there already equal
+// capacity/4 — and never forces enrollment above demand: it only lowers the
+// seat ceiling the funnel fills toward (see projectAdmissions), so weak
+// demand still binds first.
+const INTAKE_SURGE_MULTIPLIER = 1.0;
+
 // How many seats the incoming freshman class may fill: total capacity minus
 // the cohorts that will still be enrolled after this summer's advance
 // (today's freshman/sophomore/junior become next year's sophomore/junior/
-// senior). Floored at 0 — if returning cohorts already fill the campus, no
-// freshmen are admitted this cycle. Used identically by the reducer that
-// commits admissions and the modal/tab that preview it, so the number shown
-// is the number filled.
+// senior), then smoothed by the intake damper above. Floored at 0 — if
+// returning cohorts already fill the campus, no freshmen are admitted this
+// cycle. Used identically by the reducer that commits admissions and the
+// modal/tab that preview it, so the number shown is the number filled.
 export function freshmanCapacity(s: GameState): number {
   const c = s.students.cohorts;
-  return Math.max(0, s.students.capacity - (c.freshman + c.sophomore + c.junior));
+  const openSeats = Math.max(0, s.students.capacity - (c.freshman + c.sophomore + c.junior));
+  const surgeCeiling = Math.ceil((s.students.capacity / 4) * INTAKE_SURGE_MULTIPLIER);
+  return Math.min(openSeats, surgeCeiling);
 }
 
 // ---------------------------------------------------------------------

@@ -769,3 +769,96 @@ cleanup, and not started):
   multi-component model the brief gestures at as a long-term direction).
 - Any mechanical use of campus-map spatial relationships (placement stays
   cosmetic, by design, with the architecture left open for this).
+
+---
+
+## Follow-up note (post-merge): founding cohort mix + admissions-cycle smoothing
+
+*Added after the A–H cleanup. Records the founding-mix change and the model
+behind it — referenced from `README.md`'s "Students" section, from
+`schoolTypeData.ts`'s `FOUNDING_COHORTS`, and from `actions.ts`.*
+
+### What shipped
+
+Shipped in two passes. The first pass changed the founding body from a
+**freshman class only** (`{ 200, 0, 0, 0 }`) to all four class years present.
+The second pass (levers 2 + 3 below) is what actually de-lumps the cycle, and
+supersedes the interim declining-ramp mix:
+
+- **Lever 2 — balanced body, fully housed.** The founding dorm is now
+  **pre-built (`'done'`) and pre-placed** at the centre of the map, and the
+  founding body is **balanced and sized to its beds**:
+  `FOUNDING_COHORTS = { 88, 88, 87, 87 }`, summing to `STARTING_DORM_CAPACITY`
+  (350). The school opens **fully housed at its steady state**, so there is no
+  body/capacity gap and no cohort imbalance for the shift register to turn into
+  a wave — intake and graduation both sit at ≈ capacity / 4 from year one.
+  `FOUNDING_BODY` tracks `STARTING_DORM_CAPACITY`, so the two can never drift.
+- **Lever 3 — intake damper.** `freshmanCapacity` now caps the entering class
+  at one steady-state slot, `ceil(capacity / 4 × INTAKE_SURGE_MULTIPLIER)`,
+  with the multiplier defaulting to **1.0**. This damps the *growth* case: a
+  newly built dorm fills over the ~4 years its beds take to reach all four
+  class years instead of in one oversized class. The cap is applied in the one
+  shared function the UI preview and the reducer both call, never bites in a
+  steady year, and only lowers the seat ceiling the funnel fills toward (weak
+  demand still binds first). Verified end-to-end: a 350→700 jump fills
+  `438 → 525 → 612 → 700` and then holds flat at 175/yr, with no wave.
+
+This is a deliberate, now-sanctioned reversal of part of the "campus opens
+empty" refactor for the **dorm specifically** (the dining hall and General
+Studies Hall still open `'available'`), and it does raise founding revenue
+(the body is 350, not 200). Both were accepted as the cost of a natural cycle.
+
+### Why the founding mix alone could not make the cycle "natural" — the shift-register model
+
+The cohort advance in `RESOLVE_ADMISSIONS` is a **zero-damping shift register**:
+each summer seniors leave, every younger cohort shifts up one slot, and the
+freshman intake is exactly `capacity − (sophomore + junior + senior)`. There is
+no attrition and no mixing between cohorts, so **any deviation from a flat,
+balanced body persists forever** — it does not decay, it re-circulates on a
+four-year period.
+
+The dominant source of lumpiness is therefore **not** the opening mix but the
+**gap between the founding body (200) and the capacity the player later
+builds** (the founding hall alone is 350 beds, and the chain grows from there).
+That gap is filled by *one* oversized freshman class, which then re-graduates as
+a wave every four years. Simulated intake, capacity jumping to 800 in year 1
+and held (intake per year, steady state in **bold**):
+
+| founding body            | intake sequence (years 1–8)              |
+|--------------------------|------------------------------------------|
+| all-freshman `200/0/0/0` | 600, 0, 0, 200, **600, 0, 0, 200**       |
+| declining `80/60/40/20`  | 620, 40, 60, 80, **620, 40, 60, 80**     |
+| balanced `50/50/50/50`   | 650, 50, 50, 50, **650, 50, 50, 50**     |
+
+Note the balanced start still spikes: the 600-bed gap between the 200 body and
+the 800 capacity is the wave, regardless of how the 200 is split. The mix
+changes the *early* cross-section (and is worth doing for that), but the
+asymptotic wave is a capacity-gap phenomenon.
+
+### The fine-tuning knobs
+
+The steady state is simple: with capacity `C` held constant and the four
+cohorts each at `C/4`, intake and graduation are both `C/4` every year, flat
+forever. Lever 2 opens the school there; lever 3 keeps it there through growth.
+The two knobs a maintainer would reach for:
+
+- **`INTAKE_SURGE_MULTIPLIER`** (`admissionsSystem.ts`, default `1.0`). The
+  ceiling on the entering class, as a multiple of capacity / 4. `1.0` is the
+  *fully-smooth* value: no single class can exceed a quarter of capacity, so
+  nothing re-graduates as a wave. Raising it lets a new dorm fill faster (fewer
+  years to full) but re-introduces a proportional residual ripple — any class
+  allowed above capacity / 4 becomes a smaller wave four years later. Values
+  above ~1.0 were checked in simulation (e.g. `1.5` fills a 350→700 jump by
+  year 4 but leaves a 263-student wave); `1.0` is the honest de-lumped default.
+- **`FOUNDING_BODY` / `FOUNDING_COHORTS`** (`schoolTypeData.ts`). The body is
+  pinned to `STARTING_DORM_CAPACITY` and balanced; the remainder from dividing
+  by four tilts one student toward the freshmen. To open a school deliberately
+  *below* full occupancy (more empty founding beds, lower opening revenue),
+  lower `FOUNDING_BODY` off `STARTING_DORM_CAPACITY` — but note that any
+  body/capacity gap re-opens exactly the wave lever 2 closes, now damped by
+  lever 3 rather than absent.
+
+Not taken: a satisfaction-driven **attrition** term (retention as a
+consequence of unhappiness). README still flags it as a deliberately-deferred
+hook; it would be an alternative damper to lever 3, turning the wave into a
+decaying transient rather than capping it, and remains open as future work.

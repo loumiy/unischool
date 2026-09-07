@@ -126,7 +126,10 @@ function testRoundTrip(): void {
   if (!loaded) return;
   assert(loaded.self.name === 'RoundTrip', 'name survives round trip');
   assert(loaded.self.schoolType === 'public', 'school type survives round trip');
-  assert(loaded.students.cohorts.freshman === 200, 'founding freshman cohort survives round trip');
+  assert(
+    JSON.stringify(loaded.students.cohorts) === JSON.stringify(cur.students.cohorts),
+    'founding cohort mix survives round trip',
+  );
   assert(loaded.admissions.scholarshipRate === cur.admissions.scholarshipRate, 'scholarshipRate survives round trip');
 }
 

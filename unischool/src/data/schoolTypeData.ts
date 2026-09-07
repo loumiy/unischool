@@ -1,4 +1,5 @@
 import type { SchoolType } from '../state/types';
+import { STARTING_DORM_CAPACITY } from './campusData';
 
 // ---------------------------------------------------------------------
 // Private vs. public is the game's one starting fork (see README's
@@ -54,6 +55,36 @@ export interface SchoolTypePreset {
 // artificially low starting price.
 export const STARTING_TUITION = 13_000;
 export const STARTING_ENDOWMENT = 3_000_000; // pays out ~$120k/yr from day one (see financeSystem.ts's ENDOWMENT_PAYOUT_RATE)
+
+// --- Founding cohort mix (see actions.ts's createInitialState) ---------
+// A founded college opens with ALL FOUR class years present and BALANCED —
+// roughly equal freshman / sophomore / junior / senior counts — rather than
+// a freshman-only lump. The body is sized to exactly the founding hall's
+// bed count (STARTING_DORM_CAPACITY), which is pre-built and pre-placed at
+// founding, so the school opens FULLY HOUSED with no gap between its body
+// and its capacity (ALIGNMENT_ROADMAP.md's lever 2).
+//
+// Why balanced-and-sized-to-capacity: the cohort advance is a zero-damping
+// shift register, so ANY imbalance or body/capacity gap at founding
+// re-circulates as a four-year wave that never decays. Opening at the
+// steady state the campus would otherwise take years to reach — each cohort
+// ≈ capacity / 4 — means intake and graduation both sit near capacity / 4
+// from year one, and the first admissions cycles are steady rather than
+// lumpy. (Growth beyond the founding hall is then smoothed by the intake
+// damper — see admissionsSystem.ts's INTAKE_SURGE_MULTIPLIER, lever 3.)
+//
+// FOUNDING_BODY tracks STARTING_DORM_CAPACITY so the two never drift; the
+// remainder from dividing by four is loaded onto the younger cohorts, so
+// the "ramp" is at most a one-student tilt toward the freshmen.
+export const FOUNDING_BODY = STARTING_DORM_CAPACITY; // fully housed at open — matches the founding hall's beds
+const FOUNDING_PER_COHORT = Math.floor(FOUNDING_BODY / 4);
+const FOUNDING_REMAINDER = FOUNDING_BODY - FOUNDING_PER_COHORT * 4; // 0..3, spread over the younger cohorts
+export const FOUNDING_COHORTS = {
+  freshman: FOUNDING_PER_COHORT + (FOUNDING_REMAINDER > 0 ? 1 : 0),
+  sophomore: FOUNDING_PER_COHORT + (FOUNDING_REMAINDER > 1 ? 1 : 0),
+  junior: FOUNDING_PER_COHORT + (FOUNDING_REMAINDER > 2 ? 1 : 0),
+  senior: FOUNDING_PER_COHORT,
+} as const; // { freshman: 88, sophomore: 88, junior: 87, senior: 87 } at capacity 350
 
 export const SCHOOL_TYPE_PRESETS: Record<SchoolType, SchoolTypePreset> = {
   private: {

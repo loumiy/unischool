@@ -15,8 +15,9 @@ import { ProgressRing } from './Progress';
 const INFO_RING_SIZE = 30;
 
 // A dorm's capacity is simply its capacityBonus effect — including the
-// founding dorm, which now carries its beds through the same effect every
-// other dorm does (see campusData.ts; the campus opens with no housing built).
+// founding dorm, which carries its beds through the same effect every other
+// dorm does (see campusData.ts; the founding hall opens pre-built, and its
+// beds are folded into the founding capacity — see actions.ts).
 function dormCapacity(t: Buildable): number | null {
   return t.effects?.capacityBonus ?? null;
 }
