@@ -4,6 +4,12 @@
 to sequence the work that makes the existing game faithfully execute the
 intended design and makes `README.md` an accurate specification of that design.*
 
+**Status: complete.** All eight PRs (A–H) below have been implemented and
+merged. This document is kept as the historical record of the audit and the
+sequencing rationale — see the closing summary after PR H for what shipped,
+what was found to already conform, and what remains a deliberately deferred
+future direction.
+
 Scope note: this roadmap **cleans up and canonicalizes**. It does **not**
 propose new gameplay beyond the future directions the design brief explicitly
 names, and it does not touch the actively-developed athletics build except where
@@ -638,6 +644,44 @@ fast-forward run) and any test scaffold the project adopts.
 `npm run sim` gate documenting that the aligned game still produces the intended
 pacing shape.
 
+**Delivered.** `test/invariants.test.ts` (41 checks, `npm run test:invariants`,
+folded into `npm test`) encodes every item on the checklist above:
+- No-game-over (structural absence of the field), the four-cohort shape
+  (structural), no development-slot cap (three simultaneous course starts, all
+  `developing`), placement-is-cosmetic (source-scan: no file under `systems/`
+  reads `.placements`/`.pathways`), prestige-is-a-stock (source-scan: `self.
+  reputation` is written only in `actions.ts`/`prestigeSystem.ts`/
+  `rivalsSystem.ts`, and `prestigeSystem.ts` never reads `playerRank`),
+  prestige-cadence (source-scan: `tickPrestige` is registered as a bare
+  `SYSTEMS`-array entry and never called directly elsewhere, plus a behavioral
+  check that one `TICK` moves reputation by less than 1 point), the full
+  gen-ed → T1 → school-building → T2 → T3 gate chain driven end-to-end through
+  the real reducer on the Business school/Finance major (including its
+  authored cross-major bridge onto `ECON110`, confirming prereqs may cross
+  majors exactly as documented), research-needs-a-lab (`weeklyResearchPoints`
+  is zero at founding, however large the roster), petitions-drain-wholesale
+  (a seeded pending petition is gone from the queue and never became a club
+  after a `RESOLVE_ADMISSIONS` that didn't approve it), and a legacy-
+  terminology sweep (source-scan for `major-complete:`/`major-mastered:`/
+  `school-complete:`/`financialAidRate`/`gameOver` anywhere outside the one
+  migration file permitted to read old names).
+- Curriculum-breadth dominance (`admissionsScaleScore`'s enrollment throttle)
+  was verified by re-reading `prestigeSystem.ts` rather than re-encoded as a
+  fast-forward assertion — PR A's audit already covers it and the constant
+  hasn't moved since; adding a second copy of that check risked drifting from
+  `sim/balanceSim.ts`'s own fast-forward numbers rather than reinforcing them.
+- No dead code surfaced beyond what B/G already removed; no residual README
+  drift was found beyond what A/C/D/E/F/G already corrected — this PR's
+  changes are additive (new tests + package.json wiring) with zero `src/`
+  game-code edits.
+- `npm run build` and `npm run lint` pass; `npm run sim` still shows "stall,
+  don't die" holding (no strategy's cash spirals to permanent failure; the
+  clock never halts outside a pending interrupt) — the exact red-week counts
+  shift slightly from PR G's `morale`-removal `Math.random()` call dropping
+  out of the stream (expected: `sim/balanceSim.ts`'s own header note says any
+  change to how many times `Math.random` is called moves the whole stream),
+  not from anything this PR touched.
+
 ---
 
 ## Appendix — file-level cleanup index (quick reference)
@@ -673,3 +717,55 @@ Concrete touch-points found during the audit, grouped by concern:
 - **Recovery-path (not legacy queue) — preserve + document:**
   `campusMap.ts` (`needsSiting`, `canSiteRetroactively`,
   `RETROACTIVE_SITING_COST`, `firstFreeSpot`). (PR A doc note)
+
+---
+
+## Closing summary (post-implementation)
+
+All eight PRs merged, in sequence, each reviewed and merged individually:
+
+| PR | What shipped | Merged |
+|---|---|---|
+| A | README canonicalized as the design spec; two cross-cutting decisions resolved (weekly prestige cadence; program-centric vocabulary) | ✅ |
+| B | Dead `gameOver` hard-failure scaffolding removed | ✅ |
+| C | Curriculum terminology renamed to program-centric vocabulary (establish/distinguish); graduate-program gates made explicit authored thresholds; save migration v18→v19 | ✅ |
+| D | Aggregate four-year student cohort model (freshman/sophomore/junior/senior) replacing the single `enrolled` scalar; founding ramp; trailing-year-average satisfaction feeding word of mouth; save migration v19→v20 | ✅ |
+| E | Prestige drift moved from an annual boundary to a weekly cadence, rate retuned to preserve the original ~12%/year stickiness; system-order audit documented in place | ✅ |
+| — | (slotted in alongside E/F) Scholarships terminology rename (`financialAidRate` → `scholarshipRate`); save-migration test harness (`test/save-migrations.test.ts`, 27 checks) | ✅ |
+| F | Financial-distress audit: confirmed every priced action is guarded, only the operating deficit can carry cash negative, the run never halts; `test/financial-distress.test.ts` (20 checks) | ✅ |
+| G | Faculty-semantics audit: confirmed named-individuals/lightweight-attributes model; removed the dead `morale` field; `test/faculty.test.ts` (16 checks) | ✅ |
+| H | Closing invariant sweep: `test/invariants.test.ts` (41 checks) encoding every core design principle as a regression guard | ✅ |
+
+**Net result:** `npm test` now runs four suites — migrations, financial
+distress, faculty semantics, and the closing invariant sweep — **104 checks
+total**, all driving the real reducer (not a reimplementation), plus targeted
+source-scans for the identifiers and patterns the design forbids. `npm run
+build`, `npm run lint`, and `npm run sim` all stay green throughout, and the
+sim's pacing shape (cost-leads-revenue, stall-don't-die, curriculum-breadth-
+dominated prestige) is unchanged in kind — only the specific numbers, drifting
+between runs by the ordinary Math.random-stream sensitivity `sim/balanceSim.ts`
+itself documents.
+
+**What did NOT change, by design:** the actively-developed athletics build was
+untouched; no new gameplay was proposed or built beyond the future directions
+the design brief explicitly named (faculty poaching/retention, school-specific
+T4+ payoffs, contraction mechanics, spatial map mechanics) — those remain
+documented in the README as intended-but-unbuilt, exactly as the brief asked.
+
+**What remains open, deliberately, as future work** (not part of this
+cleanup, and not started):
+- Faculty poaching + paid retention, and the departure → understaffed →
+  course-on-hold → rehire chain (README's "Faculty").
+- School-specific T4+ progression for schools beyond Medicine/Law/MBA
+  (Masters→PhD sequencing, Arts payoffs, an Engineering+CS joint institution) —
+  the brief marks these explicitly undecided.
+- Financial-distress contraction (faculty departures, disbanded clubs,
+  unstaffed courses going on hold) as the eventual response to sustained
+  negative cash — currently the accepted state is simply "indefinitely
+  negative, effectively unable to act."
+- Prestige decomposed into several underlying components (currently one
+  computed stock with multiple weighted inputs, which already satisfies the
+  "not a sum of completion bonuses" requirement, but is not yet the richer
+  multi-component model the brief gestures at as a long-term direction).
+- Any mechanical use of campus-map spatial relationships (placement stays
+  cosmetic, by design, with the architecture left open for this).
