@@ -344,7 +344,11 @@ Consequences that the code must honor:
   empty beds are charged at a reduced mothball rate, an extra student is always
   worth more than they cost, satisfaction (and so word of mouth) is floored,
   curriculum breadth is a stock that never decreases, and the tuition/scholarship
-  decision and firing faculty are zero-cost recovery levers.
+  decision and firing faculty are zero-cost recovery levers. These invariants
+  are guarded by `test/financial-distress.test.ts` (run with `npm test`): every
+  priced action (course, placement, endowment campaign, decision-event choice,
+  retroactive siting) is refused unless the cash is there, so only the operating
+  deficit can carry cash below zero — and when it does, the clock keeps ticking.
 - **The trickle must scale with the school.** Revenue grows with enrollment and
   prestige (both of which the player grows through play), and the bottleneck is
   an early-and-mid-game feeling that should *ease* as the school matures — the
