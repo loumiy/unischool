@@ -669,7 +669,6 @@ export function generateCandidate(field: string, existingNames: Iterable<string>
     tenureWeeks: 0,
     weeksListed: 0,
     salary: facultySalary(teaching, research, 0),
-    morale: 70 + Math.round(Math.random() * 20),
     courseSlots: rollBaseCourseSlots(),
     // Nobody arrives decorated: a prize is won on this university's
     // payroll, in this university's labs, or not at all.
