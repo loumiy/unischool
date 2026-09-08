@@ -123,6 +123,7 @@ function testFormationNeverCrossesGender(): void {
 // ---- Two independent lineages: coexist, graduate independently, share a venue ----
 function testIndependentLineages(): void {
   const s = fresh();
+  s.clock.year = 6; // clears VARSITY_PETITION_MIN_TENURE_YEARS for a club founded in year 1 (makeSportClub's default)
   const menClub = makeSportClub('club-soccer-m', 'soccer-m');
   s.orgs.clubs.push(menClub);
 

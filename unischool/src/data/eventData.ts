@@ -458,6 +458,16 @@ const VARSITY_COACH_BASE_SALARY_WEEKS_OF_OPEX = 0.0018; // fixed at hire; apprec
 const VARSITY_TEAM_UPKEEP_WEEKS_OF_OPEX = 0.003;        // the program's own running cost, on top of the coach — travel, equipment, officiating
 const VARSITY_DECLINE_SATISFACTION_HIT = 2;             // same weight as a chapter's housing refusal — the club stays exactly as it was, just told no
 
+// The week a club's five-year mark (studentLifeData.ts's VARSITY_PETITION_
+// MIN_TENURE_YEARS) actually turns into an interrupt — see eventSystem.ts's
+// fireVarsityPetition. Deliberately NOT WEEKS_PER_YEAR (summer admissions,
+// the moment a club is typically founded, so "5 years later" would
+// otherwise land on the same summer week every time) and NOT REPORT_WEEK's
+// WEEKS_PER_YEAR/2 (the U.S. News report) — three-quarters through the
+// year sits an even 13 weeks from each, so a varsity ask reads as its own
+// moment rather than another summer or midyear thing.
+export const VARSITY_PETITION_WEEK = Math.floor((WEEKS_PER_YEAR * 3) / 4);
+
 // =====================================================================
 // THE TABLE. Thirteen authored events. Trigger conditions are deliberately
 // state-driven rather than calendar-driven: a donor shows up once the
@@ -1093,15 +1103,23 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   // on 'greek-housing' immediately above (an authored event, gated on a
   // per-organisation "already asked" guard, drawing one waiting candidate
   // at a time), with the one deliberate fork noted on the constants above.
-  // Shares this same fixed decision-event budget rather than adding to it,
-  // per item 1's "no new formation stream" — the weight below is the dial
-  // for how much of that budget varsity petitions take.
+  //
+  // TRIGGER: DETERMINISTIC, NOT THE SHARED LOTTERY. Unlike every other
+  // entry in this table, this one is never drawn by rollDecisionEvent's
+  // weighted random pick — `eligible` below always reads false there, and
+  // `weight` is unused. A club's petition instead fires on a fixed
+  // schedule (five years after founding — see studentLifeData.ts's
+  // VARSITY_PETITION_MIN_TENURE_YEARS — from VARSITY_PETITION_WEEK
+  // onward) via eventSystem.ts's fireVarsityPetition, which calls this
+  // entry's own rollContext/choices/apply directly. Still the SAME
+  // 'decision-event' interrupt shape, so nothing downstream (the modal,
+  // the reducer, save/load) needs to know the trigger differs.
   // ---------------------------------------------------------------------
   {
     id: 'varsity-petition',
     title: 'A petition to go varsity',
-    weight: 10,
-    eligible: (s) => sportClubsAwaitingVarsity(s).length > 0,
+    weight: 0, // never drawn by the weighted lottery — see the trigger note above
+    eligible: () => false, // fired directly by eventSystem.ts's fireVarsityPetition instead
     rollContext: (s) => {
       const waiting = sportClubsAwaitingVarsity(s);
       if (waiting.length === 0) return null;

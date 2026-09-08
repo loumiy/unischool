@@ -1027,11 +1027,17 @@ two entirely separate club/team records (a gendered id, not a `gender` field
 alongside a shared one), so they form, petition and graduate on their own
 timelines, sharing only the venue category — the second lineage into a
 category, of either gender, finds the venue already revealed or built and
-pays only the varsity fee. A sport club may petition, **once**, to go varsity
-— an authored decision event
-(`eventData.ts`'s `varsity-petition`) modeled directly on the chapter housing
-petition and riding the same shared decision-event budget, not a new stream.
-Granting it costs a weeks-of-opex program fee, auto-generates a coach from the
+pays only the varsity fee. A sport club may petition, **once**, to go varsity,
+**five years after it was founded** (`VARSITY_PETITION_MIN_TENURE_YEARS`,
+`studentLifeData.ts`) — an authored decision event (`eventData.ts`'s
+`varsity-petition`) modeled directly on the chapter housing petition for its
+prompt/choices, but fired on its **own deterministic schedule**
+(`eventSystem.ts`'s `fireVarsityPetition`) rather than drawn from the shared
+decision-event lottery, so the pipeline is a guarantee rather than a roll of
+the dice. It surfaces on the first quiet week at or after
+`VARSITY_PETITION_WEEK` — three-quarters through the year, evenly spaced from
+both summer admissions and the U.S. News report — so it never reads as just
+another summer or midyear beat. Granting it costs a weeks-of-opex program fee, auto-generates a coach from the
 faculty name pool (not recruited through the standing candidate market — a
 deferred deepening), and **reveals** the required venue Buildable if it isn't
 already `'done'` — hidden-until-demanded, the same gate a graduate program

@@ -446,9 +446,11 @@ interface EventTally {
   studentCenterYear: number | null;        // year a student center first stood
   eventFireCounts: Record<string, number>; // every decision-event id, by how many times it fired
   // Varsity athletics (see src/data/eventData.ts's 'varsity-petition' and
-  // src/data/studentLifeData.ts). `varsityPetitions` is of `decisions`, how
-  // many were this event — the same "share of the fixed budget" reading
-  // `greekEventsSeen` gives Greek life.
+  // src/data/studentLifeData.ts). Unlike Greek life's events, this one no
+  // longer shares the fixed decision-event budget — it fires on its own
+  // deterministic five-year-tenure schedule — so `varsityPetitions` counts
+  // how many of `decisions` were this event without implying it competed
+  // for a slot the way `greekEventsSeen` does.
   varsityPetitions: number;
   varsityGranted: number;
 }
@@ -686,8 +688,11 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
   );
   // Varsity athletics (see src/data/studentLifeData.ts). Judged the same way
   // student life and grants are: bare figures mean nothing, share of opex
-  // and share of the fixed decision-event budget are the answers to whether
-  // this crowds out anything else.
+  // is the answer to whether this crowds out anything else. The petition
+  // itself no longer draws on the fixed decision-event budget (it fires on
+  // its own deterministic five-year-tenure schedule), so its share of
+  // `decisions` below is a read on how much of the MODAL traffic it is,
+  // not on how much of a scarce random slot it took.
   const athleticsShare = last.opex > 0 ? (last.athleticsUpkeep / last.opex) * 100 : 0;
   console.log(
     `   varsity athletics: ${last.sportClubs} sport clubs, ${last.varsityActive} active teams, ` +
