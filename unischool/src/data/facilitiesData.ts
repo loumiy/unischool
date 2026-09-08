@@ -81,12 +81,14 @@ function servedUpkeep(facilityType: keyof typeof UPKEEP_PER_SERVED_PER_WEEK, ser
 // Sized at roughly one dining hall per 3-4 dorms rather than one per dorm:
 // the OLD chain (13 instances averaging ~690 served each) could never
 // actually cover a maxed-out dorm chain even fully built (its ceiling was
-// ~8,900 served against dorms' ~21,300 capacity ceiling) — every dining
-// hall was cheap and small, but there were too few of them to ever exist
-// to close that gap. This chain is short (5 instances) and each one
-// dramatically bigger, so five real decisions comfortably cover the whole
-// dorm chain (~21,700 served against ~21,300 capacity) instead of thirteen
-// small ones that ran out partway through it.
+// ~8,900 served) — every dining hall was cheap and small, but there were
+// too few of them to ever exist to close that gap. This chain is short (5
+// instances) and each one dramatically bigger, so five real decisions serve
+// ~21,700 — a scale sized against the dorm chain as it stood at the time
+// (see campusData.ts's own tuning comment for its current, larger total;
+// dining scores against ENROLLED, not bed capacity, so it doesn't need to
+// track the dorm chain exactly) instead of thirteen small ones that ran out
+// partway through it.
 //
 // Size is what the campus map draws, too (see campusMap.ts's footprintOf):
 // a hall at or above DINING_MAJOR_FOOTPRINT_SERVES_THRESHOLD is a real "major

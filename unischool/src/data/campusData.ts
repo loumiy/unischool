@@ -55,13 +55,25 @@ const STARTING_DORM_WEEKS = 12;
 // so the marginal bed keeps getting more expensive relative to the
 // tuition it earns — the late-game equivalent of a real capital project.
 // ---------------------------------------------------------------------
-const ADDITIONAL_DORM_COUNT = 14;    // how many more dorms can be queued up after the starter
+const ADDITIONAL_DORM_COUNT = 17;    // how many more dorms can be queued up after the starter
 const DORM_BASE_CAPACITY = 350;      // Dorm II's capacity bonus
 const DORM_CAPACITY_GROWTH = 1.18;   // each dorm after houses ~18% more than the last
 const DORM_BASE_COST = 2_800_000;  // Dorm II's cost — ~$8k a bed, so a dorm pays itself back over a year or more of the tuition margin it unlocks, not in a couple of months
 const DORM_COST_GROWTH = 1.37;       // costs outgrow capacity — the late-game cost-per-bed climbs
 const DORM_BASE_WEEKS = 14;          // Dorm II's build time
 const DORM_WEEKS_GROWTH = 1.05;      // build time grows slowly — money, not time, is the late-game bottleneck
+// The growth rates above are untouched from the original, shorter chain —
+// changing them instead of just extending the queue would have re-priced
+// every early and mid-game dorm along with the late ones, regressing
+// strategies already balanced against the old curve. Three more dorms at
+// the SAME geometric rate is enough: a full build-out now reaches ~30,800
+// beds (vs. ~18,100 with fourteen), comfortably ahead of Housing's own
+// target (TARGET_RATIO.housing in satisfactionSystem.ts asks for only 35%
+// of ENROLLED students to have a bed), so a large, ~60k-enrolled campus
+// matching the biggest real US universities can still reach full housing
+// satisfaction, with room to spare for outlier runs that grow past that —
+// and the queue now outlasts a heavily-invested 40-year playthrough
+// instead of running dry by the campus's third decade.
 
 // One name per hall in the chain — the starter plus every one of
 // ADDITIONAL_DORM_COUNT — so no built dorm ever falls back to the
@@ -71,7 +83,8 @@ const DORM_NAMES = [
   'University Hall', 'Lakeside Hall', 'Riverside Commons', 'Hillcrest Hall',
   'Meridian Tower', 'Cascade Hall', 'Summit Commons', 'Vanguard Hall',
   'Beacon Tower', 'Overlook Commons', 'Sterling Hall', 'Horizon Tower',
-  'Ridgeline Commons', 'Pinnacle Hall', 'Zenith Tower',
+  'Ridgeline Commons', 'Pinnacle Hall', 'Zenith Tower', 'Crestline Hall',
+  'Founders Landing Commons', 'Aurora Tower',
 ];
 
 export function initialDorms(): Buildable[] {
