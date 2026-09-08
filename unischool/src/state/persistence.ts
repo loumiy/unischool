@@ -575,7 +575,16 @@ export const SAVE_KEY = 'unischool.save';
 // a resuming save's existing capacity (whatever dorms it had already built)
 // carries over unchanged and is simply read differently by the systems that
 // use it now. See MIGRATIONS[25].
-export const SAVE_VERSION = 26;
+//
+// v26 -> v27: procedural faculty headshots (see FacultyPortrait.tsx). Faculty
+// gains `gender`, rolled once at generation and never mutated — a save from
+// before this version has faculty/candidates with no such field, so each one
+// gets a fresh, independent coin flip on load. There is no "correct" value to
+// recover (the field never existed to roll in the first place), and nothing
+// mechanical reads it — only the portrait's hairstyle/garment pool does — so
+// an arbitrary backfill is exactly as sound as the original roll would have
+// been. See MIGRATIONS[26].
+export const SAVE_VERSION = 27;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1344,6 +1353,17 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   // may already carry it.
   25: (state) => {
     (state.students.satisfactionBreakdown as unknown as Record<string, number>).housing ??= 0;
+  },
+
+  // v26 -> v27: see the SAVE_VERSION header comment above. Every faculty
+  // member and candidate on a pre-v27 save is missing `gender` outright, so
+  // this backfills a fresh, independent roll for each rather than a fixed
+  // default — the same coin flip generateCandidate itself uses, just applied
+  // after the fact instead of at creation.
+  26: (state) => {
+    for (const f of [...state.faculty, ...state.candidates]) {
+      (f as unknown as Record<string, string>).gender ??= Math.random() < 0.5 ? 'male' : 'female';
+    }
   },
 };
 

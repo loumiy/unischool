@@ -114,6 +114,13 @@ export interface Faculty {
   nationality: string; // e.g. "United States", "China" — full country name, shown expanded in the UI
   flag: string;        // the nationality's flag emoji — authored data, currently unrendered (the glyphs failed to display in some browsers; see FacultyTab.tsx)
   bio: string;         // one-line biographical flavor text, shown only when the roster row is expanded
+  // Rolled independently of name (see facultyData.ts's rollFullName — the
+  // name pools are deliberately gender-neutral, so this is never derived
+  // from one) at a flat 50/50, and never mutated after. Its only consumer
+  // today is FacultyPortrait.tsx, which picks a hairstyle/garment pool from
+  // it — see that file for why a real stored field beats deriving a look
+  // purely from `id`.
+  gender: 'male' | 'female';
 }
 
 export type BuildableStatus = 'locked' | 'available' | 'developing' | 'done';

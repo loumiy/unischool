@@ -316,6 +316,13 @@ function rollNationality(origin: string): { nationality: string; flag: string } 
   return pick(ORIGIN_NATIONALITIES[origin] ?? [AMERICAN_NATIONALITY]);
 }
 
+// A flat coin flip, deliberately independent of the name pool above — the
+// names themselves are gender-neutral by design (see rollFullName), so this
+// is a fresh roll rather than a lookup keyed off one.
+function rollGender(): 'male' | 'female' {
+  return Math.random() < 0.5 ? 'male' : 'female';
+}
+
 // ---------------------------------------------------------------------
 // Biography: a one-line flavor sentence shown only when a roster row is
 // expanded (see FacultyTab.tsx) — not a mechanic, just depth. Composed from
@@ -678,6 +685,7 @@ export function generateCandidate(field: string, existingNames: Iterable<string>
     nationality,
     flag,
     bio: rollBio(field),
+    gender: rollGender(),
   };
 }
 
