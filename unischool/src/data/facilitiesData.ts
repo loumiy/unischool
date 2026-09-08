@@ -1,6 +1,5 @@
 import type { Buildable, FacilityType, SatisfactionAttributes } from '../state/types';
 import { FOUNDING_BODY } from './schoolTypeData';
-import { LAW_SCHOOL_BUILDING_ID } from './techData';
 
 // ---------------------------------------------------------------------
 // Campus-life facilities: the six non-housing, non-lab needs a campus has
@@ -194,10 +193,14 @@ function repeatableChain(opts: {
   return nodes;
 }
 
-// --- Library: single building, three tiers, academic ---
+// --- Library: single building, academic ---
 // Tier 2 (the research library) is a real prestige gate, not just a bigger
 // tier 1 — see prestigeSystem.ts's library-adequacy cap for why staying
-// under-seated caps how far curriculum breadth alone can push prestige.
+// under-seated caps how far curriculum breadth alone can push prestige. It
+// is deliberately narrow rather than a general-capacity fix: a research
+// collection reads as adjacent to the labs it multiplies output for (see
+// LIBRARY_TIER2_RESEARCH_RATE_BONUS below), not as "the library gets
+// bigger" — that's what the floors after it are for.
 const LIBRARY_TIER1_ID = 'LIB-T1';
 const LIBRARY_TIER1_SERVES = 1_200;
 const LIBRARY_TIER1_COST = 360_000;
@@ -216,31 +219,68 @@ export const LIBRARY_TIER2_PRESTIGE_GATE = 70;
 // because the gate is labs.
 const LIBRARY_TIER2_RESEARCH_RATE_BONUS = 0.15;
 
-// Tier 3 — the Law Library — gates on the School of Law's own building
-// (techData.ts's LAW_SCHOOL_BUILDING_ID) rather than another prestige
-// threshold: a landmark law library is something a campus earns by
-// founding a law school, not by hitting a number. It's a cross-kind
-// prereq exactly like a graduate program's entry course requiring its own
-// school building, just read the other way around.
-//
-// It's also the belated fix for a gap tier 1+2 always had: their combined
-// 4,700 served (against satisfactionSystem.ts's TARGET_RATIO.academic and
-// prestigeSystem.ts's own LIBRARY_TARGET_RATIO, both 0.15) is only ever
-// fully adequate up to ~31,000 enrolled — comfortably past for most of a
-// game, but well under the 40k-56k the balance sim's strongest strategies
-// reach by year 40 (see campusData.ts's own dorm-chain tuning comment for
-// the matching fix on the housing side). Sized to close that gap with room
-// to spare: 6,500 more served brings the maxed-out chain's full-adequacy
-// point to nearly 75,000 enrolled.
-const LIBRARY_TIER3_ID = 'LIB-T3';
-const LIBRARY_TIER3_SERVES = 6_500;
-const LIBRARY_TIER3_COST = 4_500_000;
-const LIBRARY_TIER3_WEEKS = 32;
-// A smaller top-up than tier 2's jump on purpose — this is a capstone, not
-// a second research library. Still additive with tier 2's bonus (see
-// researchData.ts's researchRateMultiplier): a school with both is rarer
-// and later than one with just the research library, and should feel it.
-const LIBRARY_TIER3_RESEARCH_RATE_BONUS = 0.08;
+// Added floors — the fix for the real gap tier 1+2 always had: a hall built
+// to serve a 350-student founding class and a once-only research wing
+// don't add up to anything close to what a 50,000-student campus needs, and
+// a THIRD specialized branch library (a law library, a science library...)
+// would only repeat the same mistake at a narrower scope — a specialized
+// collection is exactly that, specialized, never the answer to "the
+// general collection ran out of room." What actually needs to grow with
+// enrollment is the one, same building's own general capacity, so this
+// keeps building it taller instead: a repeatable chain of additional
+// floors on the SAME library (prereqs run off LIB-T2, same facilityType,
+// same footprint — footprintOf() never varies by tier, per campusMap.ts),
+// each just more stacks and seats, no research bonus of its own. Combined
+// with tier 1+2's 4,700 served (against satisfactionSystem.ts's
+// TARGET_RATIO.academic and prestigeSystem.ts's own LIBRARY_TARGET_RATIO,
+// both 0.15), a fully floored-out library serves 12,325 — fully adequate up
+// to ~82,000 enrolled, comfortably past the 40k-56k the balance sim's
+// strongest strategies reach by year 40 (see campusData.ts's own dorm-chain
+// tuning comment for the matching fix on the housing side). No visual
+// change on the campus map until the game has real 3D buildings — a floor
+// added to an existing footprint has nothing to draw yet.
+const LIBRARY_FLOOR_COUNT = 3;
+const LIBRARY_FLOOR_BASE_SERVES = 2_000;
+const LIBRARY_FLOOR_SERVES_GROWTH = 1.25;
+const LIBRARY_FLOOR_BASE_COST = 2_200_000;
+const LIBRARY_FLOOR_COST_GROWTH = 1.35;
+const LIBRARY_FLOOR_BASE_WEEKS = 26;
+const LIBRARY_FLOOR_WEEKS_GROWTH = 1.08;
+// Ordinal-numbered rather than named like the dorm chain's halls — these
+// are floors on one building, not new landmarks, so a plain "Third Floor"
+// reads truer than inventing a name for each one.
+const LIBRARY_FLOOR_ORDINALS = ['Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh', 'Eighth'];
+
+function libraryFloors(): Buildable[] {
+  const nodes: Buildable[] = [];
+  let previousId = LIBRARY_TIER2_ID;
+  for (let i = 0; i < LIBRARY_FLOOR_COUNT; i++) {
+    const ordinal = LIBRARY_FLOOR_ORDINALS[i] ?? `${i + 3}th`;
+    const id = `LIB-FLR${i + 3}`;
+    const servesPopulation = Math.round(LIBRARY_FLOOR_BASE_SERVES * LIBRARY_FLOOR_SERVES_GROWTH ** i);
+    const cost = Math.round(LIBRARY_FLOOR_BASE_COST * LIBRARY_FLOOR_COST_GROWTH ** i);
+    const duration = Math.round(LIBRARY_FLOOR_BASE_WEEKS * LIBRARY_FLOOR_WEEKS_GROWTH ** i);
+    nodes.push({
+      id,
+      kind: 'facility',
+      facilityType: 'library',
+      tier: i + 3,
+      name: `${ordinal} Floor`,
+      description: `Adds a ${ordinal.toLowerCase()} floor of stacks and study seats — ${servesPopulation.toLocaleString()} more seats for a growing student body.`,
+      cost,
+      duration,
+      prereqs: [previousId], // strictly sequential, same reasoning as the dorm chain
+      status: 'locked',
+      effects: {
+        servesPopulation,
+        satisfactionAttribute: 'academic',
+        upkeepPerWeek: servedUpkeep('library', servesPopulation),
+      },
+    });
+    previousId = id;
+  }
+  return nodes;
+}
 
 // --- Student center: single building, two tiers, social + passive retention ---
 const STUDENT_CENTER_TIER1_ID = 'SCTR-T1';
@@ -534,24 +574,7 @@ export function initialFacilities(): Buildable[] {
         researchRateBonus: LIBRARY_TIER2_RESEARCH_RATE_BONUS,
       },
     },
-    {
-      id: LIBRARY_TIER3_ID,
-      kind: 'facility',
-      facilityType: 'library',
-      tier: 3,
-      name: 'Law Library',
-      description: `A landmark law library raised alongside the School of Law, its stacks and reading rooms open to the whole campus — adds ${LIBRARY_TIER3_SERVES.toLocaleString()} more seats and a further boost to research output. Unlocks once the School of Law is built.`,
-      cost: LIBRARY_TIER3_COST,
-      duration: LIBRARY_TIER3_WEEKS,
-      prereqs: [LIBRARY_TIER2_ID, LAW_SCHOOL_BUILDING_ID],
-      status: 'locked',
-      effects: {
-        servesPopulation: LIBRARY_TIER3_SERVES,
-        satisfactionAttribute: 'academic',
-        upkeepPerWeek: servedUpkeep('library', LIBRARY_TIER3_SERVES),
-        researchRateBonus: LIBRARY_TIER3_RESEARCH_RATE_BONUS,
-      },
-    },
+    ...libraryFloors(),
 
     // Student center
     {

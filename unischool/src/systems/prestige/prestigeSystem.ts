@@ -222,8 +222,8 @@ function facultyQualityScore(s: GameState): number {
 }
 
 // Library adequacy: how well the library's total servesPopulation (its
-// tier-1 seats, plus the research-library tier-2 and Law Library tier-3
-// upgrades if built — see facilitiesData.ts) covers the ENROLLED student
+// tier-1 seats, the research-library tier-2 upgrade, and any added floors
+// beyond it, if built — see facilitiesData.ts) covers the ENROLLED student
 // body. Mirrors
 // satisfactionSystem.ts's own academic-attribute target ratio (kept equal
 // deliberately, tuned independently rather than cross-imported — systems
