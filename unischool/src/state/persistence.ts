@@ -4,7 +4,7 @@ import {
   parsePathTileKey, pathTileKey, placementFor,
 } from './campusMap';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from './types';
-import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES } from '../data/facultyData';
+import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES, ORIGIN_NATIONALITIES } from '../data/facultyData';
 import { initialTech } from '../data/techData';
 import { initialFacilities } from '../data/facilitiesData';
 import { LEGACY_TWO_GENDER_SPORT_MIGRATION, SPORTS } from '../data/studentLifeData';
@@ -577,13 +577,17 @@ export const SAVE_KEY = 'unischool.save';
 // use it now. See MIGRATIONS[25].
 //
 // v26 -> v27: procedural faculty headshots (see FacultyPortrait.tsx). Faculty
-// gains `gender`, rolled once at generation and never mutated — a save from
-// before this version has faculty/candidates with no such field, so each one
-// gets a fresh, independent coin flip on load. There is no "correct" value to
-// recover (the field never existed to roll in the first place), and nothing
-// mechanical reads it — only the portrait's hairstyle/garment pool does — so
-// an arbitrary backfill is exactly as sound as the original roll would have
-// been. See MIGRATIONS[26].
+// gains `gender` (also now what picks which of a name pool's firstMale/
+// firstFemale lists a first name is drawn from — see facultyData.ts's
+// NAME_POOLS) and `heritage` (the name's cultural origin pool, which the
+// portrait reads to bias skin tone — distinct from `nationality`, which is
+// disproportionately American regardless of it). A save from before this
+// version has faculty/candidates with neither field: `gender` gets a fresh
+// coin flip, and `heritage` gets a real reverse lookup off the saved
+// `nationality` where one exists, falling back to a random origin only for
+// the common American-nationality case that carries no such signal. Nothing
+// mechanical reads either field — only the portrait does — so an imperfect
+// backfill costs nothing beyond what it would have anyway. See MIGRATIONS[26].
 export const SAVE_VERSION = 27;
 
 // What actually goes in localStorage: the state plus enough metadata to
@@ -1356,13 +1360,25 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   },
 
   // v26 -> v27: see the SAVE_VERSION header comment above. Every faculty
-  // member and candidate on a pre-v27 save is missing `gender` outright, so
-  // this backfills a fresh, independent roll for each rather than a fixed
-  // default — the same coin flip generateCandidate itself uses, just applied
-  // after the fact instead of at creation.
+  // member and candidate on a pre-v27 save is missing `gender` AND
+  // `heritage` outright. `gender` gets a fresh, independent roll — the same
+  // coin flip generateCandidate itself uses, just applied after the fact
+  // instead of at creation; there is no signal in an old save to do better.
+  // `heritage` gets a real reverse lookup where one exists: a saved
+  // `nationality` of "Nigeria" can only have come from the West/East
+  // African pool (see ORIGIN_NATIONALITIES), so that's an actual recovery,
+  // not a guess — only the ~72% of faculty whose nationality is the generic
+  // American default fall back to a uniform random origin, same as gender.
   26: (state) => {
+    const originByNationality = new Map<string, string>();
+    for (const [origin, countries] of Object.entries(ORIGIN_NATIONALITIES)) {
+      for (const country of countries) originByNationality.set(country.nationality, origin);
+    }
+    const origins = Object.keys(ORIGIN_NATIONALITIES);
     for (const f of [...state.faculty, ...state.candidates]) {
-      (f as unknown as Record<string, string>).gender ??= Math.random() < 0.5 ? 'male' : 'female';
+      const legacy = f as unknown as Record<string, string>;
+      legacy.gender ??= Math.random() < 0.5 ? 'male' : 'female';
+      legacy.heritage ??= originByNationality.get(f.nationality) ?? origins[Math.floor(Math.random() * origins.length)];
     }
   },
 };

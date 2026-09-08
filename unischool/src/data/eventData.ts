@@ -1166,7 +1166,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           if (!club || !sport) return entry(s, 'The petition could not be resolved.', 'info');
           const venue = venueForCategory(s, sport.venueCategory);
           const status = venue?.status === 'done' ? 'active' : 'awaitingVenue';
-          const coachName = rollCoachName();
+          const coachName = rollCoachName(sport.gender === 'women' ? 'female' : 'male');
           const team = promoteToVarsityTeam(s, club, {
             sport: sport.id,
             name: sport.teamName,

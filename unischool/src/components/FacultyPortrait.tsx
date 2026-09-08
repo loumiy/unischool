@@ -12,17 +12,20 @@ import { facultyQualityTier } from '../data/facultyData';
 // a dorm's color from its id: a professor must render identically every
 // time — on every re-render, on every tab switch, after a reload — without
 // storing a single extra byte of "what they look like" in the save. A small
-// hash of (salt + id) buckets each independent trait (skin tone, hairstyle,
-// hair color, glasses, background tint) on its own, so they vary
-// independently instead of all four moving together off one number.
+// hash of (salt + id) buckets each independent trait (hairstyle WITHIN a
+// pool, hair color, skin tone WITHIN a heritage's weighting, glasses,
+// background tint) on its own, so they vary independently instead of all
+// of them moving together off one number.
 //
-// Hairstyle and garment ARE keyed off a real stored field (Faculty.gender —
-// see types.ts) rather than another hashed bucket: unlike "what color is
-// this person's hair", "does this person read as presenting masculine or
-// feminine" isn't something a portrait should invent on its own separately
-// from the person it's drawing — either it uses the one field the game
-// already rolled for exactly this purpose, or it has no business varying
-// the silhouette by anything gendered at all.
+// Hairstyle/garment and skin tone each start from a real stored field
+// rather than a flat hash, though: hairstyle/garment pick which pool to
+// hash within based on Faculty.gender, and skin tone weights ITS pool by
+// Faculty.heritage (see HERITAGE_SKIN_TONES below) — unlike "what color is
+// this person's hair", presentation and apparent ethnicity aren't things a
+// portrait should invent independently of the person it's drawing. Either
+// it uses the fields the game already rolled for exactly this purpose, or
+// a name and a face that disagreed on either would read as a bug, not
+// variety.
 
 function hash(s: string): number {
   let h = 0;
@@ -40,6 +43,34 @@ function bucket(id: string, salt: string, count: number): number {
 }
 
 const SKIN_TONES = ['#f2c9a0', '#e0a878', '#c68642', '#8d5524', '#5c3a21'];
+
+// Biases skin tone toward what a person's rolled heritage (NAME_POOLS'
+// origin — see types.ts's Faculty.heritage) would plausibly produce,
+// instead of a flat draw across all five tones for everyone. Each list is
+// a WEIGHTED spread over SKIN_TONES indices, not a single fixed tone —
+// repeats bias the odds without making a whole heritage into one
+// interchangeable skin color, since real diversity within any one
+// heritage is exactly the thing a rigid 1-to-1 mapping would erase.
+// Deliberately keyed off `heritage`, never `nationality`: nationality is
+// disproportionately American regardless of heritage (see
+// AMERICAN_NATIONALITY_CHANCE in facultyData.ts), and most real Americans
+// span every one of these tones — tying skin tone to a passport instead of
+// a name's cultural origin would be the actually illogical version of
+// this.
+const HERITAGE_SKIN_TONES: Record<string, number[]> = {
+  'East Asian': [0, 0, 1, 1, 2],
+  'South Asian': [1, 2, 2, 3, 3],
+  'Anglo/Western European': [0, 0, 0, 1, 1],
+  'Hispanic/Latin American': [0, 1, 1, 2, 2, 3],
+  'Arabic/Middle Eastern': [0, 1, 1, 2, 2],
+  'Slavic/Eastern European': [0, 0, 0, 1, 1],
+  'West/East African': [2, 3, 3, 4, 4],
+};
+
+function skinTone(f: Faculty): string {
+  const weights = HERITAGE_SKIN_TONES[f.heritage] ?? SKIN_TONES.map((_, i) => i);
+  return SKIN_TONES[weights[bucket(f.id, 'skin', weights.length)]];
+}
 
 // Black / dark brown / light brown-blonde / gray-white. Gray is not just
 // another equally-likely bucket — see grayChance below — so it is singled
@@ -95,20 +126,36 @@ const MALE_HAIR: HairStyle[] = [
   { front: 'M7.6 7.7a4.8 4.8 0 0 1 8.9-1.1c.5.9.7 1.9.5 2.9-1.3-1.4-2.9-1.6-3.9-1.4-.7.1-1.3.5-1.7 1-.5-.6-1.2-1-2-1.1-.9-.1-1.7.1-2.4.6.1-.3.3-.6.6-.9Z' },
 ];
 
+// The two side strands long hair (straight or curly) hangs behind the
+// head/shoulders — built as two explicitly mirrored quadratic curves
+// (each side's x coordinates are the other's 24-minus, checked by hand)
+// rather than one hand-plotted closed path, after an earlier version of
+// this shape drifted asymmetric (a real, visible bug caught in review: one
+// side read fine, the other read like a rendering error).
+const LONG_HAIR_STRANDS = 'M6.8 7.8 Q5.6 13 6.8 19 L8.6 19 Q7.6 13 8.4 7.8 Z M17.2 7.8 Q18.4 13 17.2 19 L15.4 19 Q16.4 13 15.6 7.8 Z';
+
 const FEMALE_HAIR: HairStyle[] = [
-  // Long straight: framed behind the head down past the shoulders.
+  // Long straight: the shared side-strand shape behind a plain fringe.
   {
-    back: 'M6.6 9a5.4 5.4 0 0 1 10.8 0c0 3.4-.5 7-1.4 9.6h-1.4c.5-2.6.8-5.6.6-7.8-1.2 1-2.8 1.4-4.4 1.4s-3.2-.4-4.4-1.4c-.2 2.2.1 5.2.6 7.8H6.2c-.9-2.6-1.4-6.2 0-9.6Z',
+    back: LONG_HAIR_STRANDS,
     front: 'M7.2 8.6a4.8 4.8 0 0 1 9.6 0c0 .4-.1.8-.1 1.1-1.5-1.5-3.4-1.7-4.7-1.7s-3.2.2-4.7 1.7c0-.3-.1-.7-.1-1.1Z',
   },
   // Bun/tied-back: cap on top, small bun at the back-top.
   { front: 'M7.2 8.6a4.8 4.8 0 0 1 9.6 0c0 .5-.1.9-.2 1.3-1.5-1.7-3.4-1.9-4.6-1.9s-3.1.2-4.6 1.9c-.1-.4-.2-.8-.2-1.3ZM14.6 4.6a1.6 1.6 0 1 1 2 1.5 3 3 0 0 0-2-1.5Z' },
-  // Bob: fuller cap that comes down to jaw level on both sides.
-  { front: 'M6.9 12.4c-.3-1.3-.4-2.6-.1-3.8a5.2 5.2 0 0 1 10.4 0c.3 1.2.2 2.5-.1 3.8-.3-1-.9-1.7-1.4-2.1-1.3-1-2.8-1.2-3.7-1.2s-2.4.2-3.7 1.2c-.5.4-1.1 1.1-1.4 2.1Z' },
-  // Curly/coiled long: a wide bumpy silhouette behind the head.
+  // Bob: the same proven fringe cap as long-straight/curly, plus two small
+  // mirrored side panels reaching jaw level. A from-scratch single-path
+  // attempt at this shape put its face-opening curve on the wrong side of
+  // the panel (bulging IN over the face instead of away from it), which
+  // swallowed almost the whole face behind solid hair — composing known-
+  // good pieces avoids re-deriving that geometry by hand a third time.
+  { front: 'M7.2 8.6a4.8 4.8 0 0 1 9.6 0c0 .4-.1.8-.1 1.1-1.5-1.5-3.4-1.7-4.7-1.7s-3.2.2-4.7 1.7c0-.3-.1-.7-.1-1.1Z M7.3 8.4Q6.3 11 7.6 13.3L9.2 13.3Q8.2 11 8.7 8.4Z M16.7 8.4Q17.7 11 16.4 13.3L14.8 13.3Q15.8 11 15.3 8.4Z' },
+  // Curly/coiled long: the male curly style's already-symmetric bumpy cap,
+  // reused verbatim, plus the same mirrored side strands long straight
+  // uses — the earlier from-scratch version's own bumps drooped into two
+  // heavy, uneven blobs that read as earmuffs rather than curls.
   {
-    back: 'M6.2 10.6a1.7 1.7 0 1 1 2.6-2 1.7 1.7 0 1 1 2.9-1.3 1.7 1.7 0 1 1 3-.1 1.7 1.7 0 1 1 3 1.2 1.7 1.7 0 1 1 2.7 1.9c.4 2.6.1 5.7-.6 8.3h-1.4c.6-2.6.9-5.5.5-7.7-1.3 1-2.9 1.4-4.5 1.4s-3.3-.4-4.6-1.4c-.4 2.2-.1 5.1.5 7.7H8c-.7-2.6-1-5.7-.6-8.3-.4-.4-.8-.8-1.2-1.3Z',
-    front: '',
+    back: LONG_HAIR_STRANDS,
+    front: 'M7.3 8.7a1.5 1.5 0 1 1 2.4-1.6 1.5 1.5 0 1 1 2.6-1 1.5 1.5 0 1 1 2.6.9 1.5 1.5 0 1 1 2.4 1.6c.1.4.1.9 0 1.3-1.5-1.6-3.4-1.8-4.6-1.8s-3 .2-4.6 1.8c-.1-.4-.1-.9.2-1.2Z',
   },
   // Pixie: a small, soft cap — shorter coverage than the bob, similar
   // silhouette weight to the male short crop but rounder at the temples.
@@ -130,7 +177,7 @@ function darken(hex: string, amount: number): string {
 }
 
 export default function FacultyPortrait({ f, size = 24 }: { f: Faculty; size?: number }) {
-  const skin = SKIN_TONES[bucket(f.id, 'skin', SKIN_TONES.length)];
+  const skin = skinTone(f);
   const hair = hairColor(f);
   const bg = BACKGROUND_TINTS[bucket(f.id, 'bg', BACKGROUND_TINTS.length)];
   const wearsGlasses = bucket(f.id, 'glasses', 3) === 0; // ~1 in 3
@@ -157,21 +204,25 @@ export default function FacultyPortrait({ f, size = 24 }: { f: Faculty; size?: n
             clip path above so the garment reads as extending past the
             photo's edge — the same effect a real headshot crop has. */}
         <path d="M0 24 L0 18.5 Q12 12.5 24 18.5 L24 24 Z" fill={garment} />
+        {/* Neck — drawn BEFORE the collar below, so the collar sits on top
+            of it (a real collar wraps around/over the neck, not the other
+            way around). */}
+        <rect x="10.3" y="13" width="3.4" height="4" fill={skin} />
         {/* Collar: two triangular flaps at the neckline, a shade darker than
             the garment, each with real width at the shoulder line so they
-            read as a fold rather than converging into one thin arrow. A
+            read as a fold rather than converging into one thin arrow, and
+            each reaching inward PAST the neck's own edges (10.3/13.7) so it
+            visibly overlaps the neck rather than just meeting it. A
             collared shirt's flaps come to points; a blouse's neckline is a
             single soft scoop instead. */}
         {f.gender === 'male'
           ? (
             <path
-              d="M9.3 15.6 L12 18.3 L11.2 15.3 Z M14.7 15.6 L12 18.3 L12.8 15.3 Z"
+              d="M8.8 15.6 L12 18.6 L11 15.3 Z M15.2 15.6 L12 18.6 L13 15.3 Z"
               fill={collarShade}
             />
           )
-          : <path d="M9.4 16 Q12 18.1 14.6 16 L14.6 17.2 Q12 19.1 9.4 17.2 Z" fill={collarShade} />}
-        {/* Neck */}
-        <rect x="10.3" y="13" width="3.4" height="4" fill={skin} />
+          : <path d="M8.9 15.8 Q12 18.6 15.1 15.8 L15.1 17.6 Q12 20.1 8.9 17.6 Z" fill={collarShade} />}
         {/* Head */}
         <circle cx="12" cy="9.5" r="4.6" fill={skin} />
         <path d={style.front} fill={hair} />
