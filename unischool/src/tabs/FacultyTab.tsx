@@ -10,6 +10,7 @@ import { researchSchools } from '../data/techData';
 import { usedFacultySlots, totalFacultySlots, neededFacultyFields } from '../systems/techtree/techSystem';
 import { coursesTaughtBy } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
+import FacultyPortrait from '../components/FacultyPortrait';
 
 // The two halves of the faculty picture, side by side: who you have, and
 // who is on the market. They are half-width panels rather than stacked
@@ -59,6 +60,7 @@ function FacultyRow(
         >
           {open ? '▾' : '▸'}
         </button>
+        <FacultyPortrait f={f} size={22} />
         <span className="faculty-name">{f.name}</span>
         {/* The prize badge. Permanent, and the only mark on a roster row
             that isn't derived from stats — see types.ts's Faculty.acclaim. */}
@@ -92,7 +94,10 @@ function FacultyRow(
       )}
       {open && (
         <div className="faculty-row-detail">
-          <p className="faculty-bio">{f.bio}</p>
+          <div className="faculty-detail-head">
+            <FacultyPortrait f={f} size={48} />
+            <p className="faculty-bio">{f.bio}</p>
+          </div>
           <dl>
             <dt>Nationality</dt><dd>{f.nationality}</dd>
             <dt>Teaching</dt><dd>{f.teaching} <span className="outcome-note">(→ {f.teachingPotential})</span></dd>

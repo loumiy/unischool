@@ -114,6 +114,20 @@ export interface Faculty {
   nationality: string; // e.g. "United States", "China" — full country name, shown expanded in the UI
   flag: string;        // the nationality's flag emoji — authored data, currently unrendered (the glyphs failed to display in some browsers; see FacultyTab.tsx)
   bio: string;         // one-line biographical flavor text, shown only when the roster row is expanded
+  // Rolled BEFORE the name (see facultyData.ts's generateCandidate) and used
+  // to pick which of a NAME_POOL's firstMale/firstFemale lists the first
+  // name itself is drawn from — a flat 50/50, and never mutated after. Its
+  // other consumer is FacultyPortrait.tsx, which picks a hairstyle/garment
+  // pool from it — either way, a name and a portrait that disagreed on this
+  // would read as a bug, not variety, so the two are never rolled apart.
+  gender: 'male' | 'female';
+  // The rolled name's cultural origin pool (e.g. "East Asian", "West/East
+  // African" — see facultyData.ts's NAME_POOLS) — distinct from
+  // `nationality`, which is disproportionately American regardless of this.
+  // FacultyPortrait.tsx reads it to bias skin tone the same logical way a
+  // name's heritage would in reality, without pretending nationality (a
+  // passport, not an ethnicity) is the right signal for that.
+  heritage: string;
 }
 
 export type BuildableStatus = 'locked' | 'available' | 'developing' | 'done';

@@ -11,24 +11,32 @@ import { initialTech } from './techData';
 // unrelated picks. WHICH pool supplies the first name is itself weighted,
 // not uniform (see pickPool()/ANGLO_POOL_WEIGHT below), so this reads as a
 // typical American university's faculty roster rather than as one-in-seven
-// name origins. Seven pools x fourteen names each gives ~9,600 first+last
-// combinations across all origins before either weighting applies; even
-// restricted to the dominant Anglo/Western European pool alone (the worst
-// case for collisions, since it's drawn ~50% of the time and then paired
-// same-origin 85% of the time) that's still 14x14 = 196 combinations —
-// comfortably larger than the handful of faculty any single playthrough
-// ever rolls, so rollFullName's dedupe below essentially never has to
-// fall back. This same pool is also where donor/alumni surnames come from
-// (see eventData.ts's rollSurname()), so it needs to stay generic enough
-// for a name to plausibly belong to a professor OR a decades-graduated
-// alumnus — nothing here ties a name to an age, a rank, or a gender (see
-// the biography note below on why no gender is ever rolled).
+// name origins. Seven pools x fourteen first names (seven per gender) x
+// fourteen last names each gives ~4,800 first+last combinations across all
+// origins before either weighting applies; even restricted to the dominant
+// Anglo/Western European pool alone (the worst case for collisions, since
+// it's drawn ~50% of the time and then paired same-origin 85% of the time)
+// that's still 7x14 = 98 combinations for a given gender — comfortably
+// larger than the handful of faculty any single playthrough ever rolls, so
+// rollFullName's dedupe below essentially never has to fall back. This same
+// pool is also where donor/alumni surnames come from (see eventData.ts's
+// rollSurname()), so `last` needs to stay generic enough for a name to
+// plausibly belong to a professor OR a decades-graduated alumnus — but
+// `firstMale`/`firstFemale` are read against Faculty.gender (see below and
+// types.ts), so a first name IS tied to a gender, deliberately: gender
+// drives FacultyPortrait.tsx's hairstyle/garment, and a portrait presenting
+// differently from the name beside it would read as a bug, not variety.
 // ---------------------------------------------------------------------
 interface NamePool {
   origin: string;
-  first: string[];
+  firstMale: string[];
+  firstFemale: string[];
   last: string[];
   weight: number;
+}
+
+function firstNamesFor(pool: NamePool, gender: 'male' | 'female'): string[] {
+  return gender === 'male' ? pool.firstMale : pool.firstFemale;
 }
 
 // Relative weight for pool SELECTION (see pickPool() below) — not pool
@@ -46,43 +54,50 @@ const OTHER_POOL_WEIGHT = 1;
 const NAME_POOLS: NamePool[] = [
   {
     origin: 'East Asian',
-    first: ['Wei', 'Mei', 'Jun', 'Hana', 'Yuki', 'Minjun', 'Xin', 'Li', 'Feng', 'Sooah', 'Haruto', 'Aiko', 'Seojin', 'Ren'],
+    firstMale: ['Wei', 'Jun', 'Minjun', 'Feng', 'Haruto', 'Seojin', 'Ren'],
+    firstFemale: ['Mei', 'Hana', 'Yuki', 'Xin', 'Li', 'Sooah', 'Aiko'],
     last: ['Zhang', 'Kim', 'Tanaka', 'Chen', 'Park', 'Nakamura', 'Liu', 'Wang', 'Lee', 'Sato', 'Watanabe', 'Choi', 'Huang', 'Kobayashi'],
     weight: OTHER_POOL_WEIGHT,
   },
   {
     origin: 'South Asian',
-    first: ['Priya', 'Arjun', 'Ananya', 'Rohan', 'Divya', 'Vikram', 'Meera', 'Anika', 'Karan', 'Ishaan', 'Farhan', 'Nadia', 'Aarav', 'Riya'],
+    firstMale: ['Arjun', 'Rohan', 'Vikram', 'Karan', 'Ishaan', 'Farhan', 'Aarav'],
+    firstFemale: ['Priya', 'Ananya', 'Divya', 'Meera', 'Anika', 'Nadia', 'Riya'],
     last: ['Patel', 'Sharma', 'Gupta', 'Nair', 'Rao', 'Iyer', 'Chowdhury', 'Singh', 'Reddy', 'Bose', 'Ahmed', 'Khan', 'Menon', 'Desai'],
     weight: OTHER_POOL_WEIGHT,
   },
   {
     origin: 'Anglo/Western European',
-    first: ['John', 'Emily', 'Daniel', 'William', 'Grace', 'Thomas', 'Alice', 'James', 'Charlotte', 'Henry', 'Olivia', 'Connor', 'Sarah', 'Michael'],
+    firstMale: ['John', 'Daniel', 'William', 'Thomas', 'James', 'Henry', 'Michael'],
+    firstFemale: ['Emily', 'Grace', 'Alice', 'Charlotte', 'Olivia', 'Sarah', 'Emma'],
     last: ['Reid', 'Byrne', 'Coleman', 'Whitfield', 'Bennett', 'Hayes', 'Sinclair', 'Murphy', 'Fitzgerald', 'Walsh', 'Schmidt', 'Fraser', 'Douglas', 'Kennedy'],
     weight: ANGLO_POOL_WEIGHT,
   },
   {
     origin: 'Hispanic/Latin American',
-    first: ['Sofia', 'Mateo', 'Camila', 'Diego', 'Valentina', 'Javier', 'Lucia', 'Isabella', 'Santiago', 'Gabriela', 'Alejandro', 'Renata', 'Emilio', 'Paula'],
+    firstMale: ['Mateo', 'Diego', 'Javier', 'Santiago', 'Alejandro', 'Emilio', 'Rafael'],
+    firstFemale: ['Sofia', 'Camila', 'Valentina', 'Lucia', 'Isabella', 'Gabriela', 'Paula'],
     last: ['Costa', 'Moreno', 'Reyes', 'Herrera', 'Silva', 'Torres', 'Vega', 'Garcia', 'Rodriguez', 'Fernandez', 'Castillo', 'Ortiz', 'Aguilar', 'Navarro'],
     weight: OTHER_POOL_WEIGHT,
   },
   {
     origin: 'Arabic/Middle Eastern',
-    first: ['Omar', 'Fatima', 'Layla', 'Hassan', 'Amir', 'Yasmin', 'Karim', 'Sara', 'Tarek', 'Nour', 'Rami', 'Dina', 'Youssef', 'Rana'],
+    firstMale: ['Omar', 'Hassan', 'Amir', 'Karim', 'Tarek', 'Rami', 'Youssef'],
+    firstFemale: ['Fatima', 'Layla', 'Yasmin', 'Sara', 'Nour', 'Dina', 'Rana'],
     last: ['Nasser', 'Farouk', 'Haddad', 'Khalil', 'Aziz', 'Saleh', 'Mansour', 'Rahman', 'Zaidan', 'Qureshi', 'Sabbagh', 'Fawzy', 'Hakim', 'Barakat'],
     weight: OTHER_POOL_WEIGHT,
   },
   {
     origin: 'Slavic/Eastern European',
-    first: ['Elena', 'Ivan', 'Katarina', 'Dmitri', 'Nadia', 'Viktor', 'Anya', 'Milan', 'Zofia', 'Pavel', 'Irina', 'Tomas', 'Olga', 'Stefan'],
+    firstMale: ['Ivan', 'Dmitri', 'Viktor', 'Milan', 'Pavel', 'Tomas', 'Stefan'],
+    firstFemale: ['Elena', 'Katarina', 'Nadia', 'Anya', 'Zofia', 'Irina', 'Olga'],
     last: ['Novak', 'Petrov', 'Kowalski', 'Horvat', 'Ivanov', 'Dvorak', 'Sokolov', 'Marek', 'Zielinski', 'Vasiliev', 'Jovanovic', 'Nowak', 'Kucera', 'Baran'],
     weight: OTHER_POOL_WEIGHT,
   },
   {
     origin: 'West/East African',
-    first: ['Kwame', 'Amara', 'Chidi', 'Adaeze', 'Kofi', 'Zainab', 'Femi', 'Ngozi', 'Tunde', 'Abena', 'Kwesi', 'Fatou', 'Ifeoma', 'Emeka'],
+    firstMale: ['Kwame', 'Chidi', 'Kofi', 'Femi', 'Tunde', 'Kwesi', 'Emeka'],
+    firstFemale: ['Amara', 'Adaeze', 'Zainab', 'Ngozi', 'Abena', 'Fatou', 'Ifeoma'],
     last: ['Okafor', 'Mensah', 'Adeyemi', 'Nwosu', 'Diallo', 'Osei', 'Mwangi', 'Balogun', 'Owusu', 'Kamau', 'Sow', 'Achebe', 'Boateng', 'Njoroge'],
     weight: OTHER_POOL_WEIGHT,
   },
@@ -217,7 +232,8 @@ function pickPool(): NamePool {
 // A bare surname drawn from the same pools faculty and candidates are
 // named from — for decision events that need a plausible donor/alumni
 // name without generating a full person (see eventData.ts's
-// 'naming-rights' event).
+// 'naming-rights' event). Surnames aren't gendered, so this needs no
+// gender input the way firstNamesFor's callers do.
 export function rollSurname(): string {
   return pick(pickPool().last);
 }
@@ -232,29 +248,36 @@ export function rollSurname(): string {
 // from nine before gendering split five sports into independent men's/
 // women's lineages), so the
 // name-pool collision risk that justifies rollFullName's dedupe loop for
-// faculty/candidates never meaningfully arises here.
-export function rollCoachName(): string {
+// faculty/candidates never meaningfully arises here. Takes the TEAM's own
+// gender (its sport is already men's or women's — see
+// studentLifeData.ts's SportGender) rather than rolling one fresh: a men's
+// team's coach reads oddly with a name from the women's pool and vice versa.
+export function rollCoachName(gender: 'male' | 'female'): string {
   const firstPool = pickPool();
   const lastPool = Math.random() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pickPool();
-  return `${pick(firstPool.first)} ${pick(lastPool.last)}`;
+  return `${pick(firstNamesFor(firstPool, gender))} ${pick(lastPool.last)}`;
 }
 
 interface RolledName {
   name: string;
-  origin: string; // the first-name pool's origin — what nationality is tied to (see rollNationality)
+  origin: string; // the first-name pool's origin — what nationality AND skin tone are tied to (see rollNationality/FacultyPortrait.tsx)
 }
 
-function rollFullName(existingNames: Set<string>): RolledName {
+// `gender` is rolled by the caller (generateCandidate) BEFORE this runs,
+// not here — the first name has to be drawn from the matching
+// firstMale/firstFemale list, so gender is an input to naming, not an
+// independent roll of its own.
+function rollFullName(existingNames: Set<string>, gender: 'male' | 'female'): RolledName {
   for (let attempt = 0; attempt < MAX_NAME_ROLL_ATTEMPTS; attempt++) {
     const firstPool = pickPool();
     const lastPool = Math.random() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pickPool();
-    const full = `Dr. ${pick(firstPool.first)} ${pick(lastPool.last)}`;
+    const full = `Dr. ${pick(firstNamesFor(firstPool, gender))} ${pick(lastPool.last)}`;
     if (!existingNames.has(full)) return { name: full, origin: firstPool.origin };
   }
   // Effectively unreachable given the pool size above; accept a repeat
   // rather than looping forever if it somehow happens.
   const firstPool = pickPool();
-  return { name: `Dr. ${pick(firstPool.first)} ${pick(firstPool.last)}`, origin: firstPool.origin };
+  return { name: `Dr. ${pick(firstNamesFor(firstPool, gender))} ${pick(firstPool.last)}`, origin: firstPool.origin };
 }
 
 // ---------------------------------------------------------------------
@@ -270,7 +293,14 @@ function rollFullName(existingNames: Set<string>): RolledName {
 const AMERICAN_NATIONALITY_CHANCE = 0.72;
 const AMERICAN_NATIONALITY = { nationality: 'United States', flag: '🇺🇸' };
 
-const ORIGIN_NATIONALITIES: Record<string, Array<{ nationality: string; flag: string }>> = {
+// Exported so persistence.ts's v26 -> v27 migration can reverse-map an
+// existing faculty member's stored `nationality` back to a plausible
+// `heritage` where the mapping is unambiguous (a saved "Nigeria" can only
+// have come from the West/East African pool) — better than a blind random
+// guess for the ~28% of faculty whose nationality isn't the generic
+// American default (see AMERICAN_NATIONALITY_CHANCE), which carries no such
+// signal.
+export const ORIGIN_NATIONALITIES: Record<string, Array<{ nationality: string; flag: string }>> = {
   'East Asian': [
     { nationality: 'China', flag: '🇨🇳' },
     { nationality: 'South Korea', flag: '🇰🇷' },
@@ -314,6 +344,13 @@ const ORIGIN_NATIONALITIES: Record<string, Array<{ nationality: string; flag: st
 function rollNationality(origin: string): { nationality: string; flag: string } {
   if (Math.random() < AMERICAN_NATIONALITY_CHANCE) return AMERICAN_NATIONALITY;
   return pick(ORIGIN_NATIONALITIES[origin] ?? [AMERICAN_NATIONALITY]);
+}
+
+// A flat coin flip, deliberately independent of the name pool above — the
+// names themselves are gender-neutral by design (see rollFullName), so this
+// is a fresh roll rather than a lookup keyed off one.
+function rollGender(): 'male' | 'female' {
+  return Math.random() < 0.5 ? 'male' : 'female';
 }
 
 // ---------------------------------------------------------------------
@@ -658,7 +695,8 @@ export function generateCandidate(field: string, existingNames: Iterable<string>
   const researchPotential = FACULTY_POTENTIAL_MIN + Math.round(Math.random() * FACULTY_POTENTIAL_RANGE);
   const teaching = grownStat(teachingPotential, 0);
   const research = grownStat(researchPotential, 0);
-  const { name, origin } = rollFullName(used);
+  const gender = rollGender();
+  const { name, origin } = rollFullName(used, gender);
   const { nationality, flag } = rollNationality(origin);
   return {
     id: crypto.randomUUID(),
@@ -677,6 +715,8 @@ export function generateCandidate(field: string, existingNames: Iterable<string>
     acclaim: 0,
     nationality,
     flag,
+    heritage: origin,
+    gender,
     bio: rollBio(field),
   };
 }
