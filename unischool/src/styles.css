@@ -157,6 +157,9 @@ button { cursor: pointer; font-family: inherit; }
 .toolbar-school { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
 .toolbar-school-name { font-family: var(--serif); font-size: 17px; color: var(--ink-hi); white-space: nowrap; }
 .toolbar-clock { font-family: var(--mono); font-size: 11px; color: var(--ink-lo); white-space: nowrap; }
+.day-ticker { display: flex; gap: 3px; margin-top: 3px; }
+.day-ticker-cell { width: 7px; height: 7px; border-radius: 2px; background: var(--navy-line); }
+.day-ticker-cell.lit { background: var(--gold); }
 
 .toolbar-speed { flex: none; display: flex; align-items: center; gap: 6px; }
 

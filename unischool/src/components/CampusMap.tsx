@@ -47,7 +47,7 @@ import BuildingInfoPanel from './BuildingInfoPanel';
 
 // --- layout (SVG user units; 1 unit = 1 CSS px at zoom 1 — see the pan/
 // zoom transform below) ---
-// Tiles are deliberately small now that the grid is 126x54 rather than 8x6:
+// Tiles are deliberately small now that the grid is 126x126 rather than 8x6:
 // a plot, not a placard. The label sizing below is what makes that
 // readable — a small facility gets a terse two-or-three-line name, a 9x9
 // hall gets room for its full one.
@@ -89,8 +89,8 @@ const BUILDING_INSET = 4;
 // change when SCHOOL_BUILDING_FOOTPRINT grows from 2x2 to 9x9: a bigger
 // footprint just gives the search more room to reach the ceiling, it never
 // needs a different formula or a redrawn floor.
-const LABEL_MAX_FONT_SIZE = 18;          // the largest a label ever renders, footprint permitting
-const LABEL_MIN_FONT_SIZE = 11;          // the floor: never shrink past this, even if the wrap still overflows — the full name always renders, just cramped
+const LABEL_MAX_FONT_SIZE = 22;          // the largest a label ever renders, footprint permitting
+const LABEL_MIN_FONT_SIZE = 14;          // the floor: never shrink past this, even if the wrap still overflows — the full name always renders, just cramped
 const LABEL_FONT_STEP = 1;               // granularity of the shrink-to-fit search between the two sizes above
 const LABEL_CHAR_WIDTH_RATIO = 8 / 15;   // avg glyph advance as a fraction of font size
 const LABEL_LINE_HEIGHT_RATIO = 17 / 15; // line pitch as a fraction of font size
@@ -117,7 +117,7 @@ const PROGRESS_BAR_INSET = LABEL_INSET;
 // setting it imperatively here is invisible to (and never fought by) the
 // normal render cycle, exactly like an uncontrolled input.
 // MIN_ZOOM is deliberately low: a fully built-out campus spreads across a lot
-// of the 126x54 grid, and a player wants to be able to pull back far enough to
+// of the 126x126 grid, and a player wants to be able to pull back far enough to
 // take the whole thing in at once, not just a cluster of it.
 const MIN_ZOOM = 0.22;
 const MAX_ZOOM = 2.5;
@@ -125,7 +125,7 @@ const MAX_ZOOM = 2.5;
 // further out than native size (zoom 1, one TILE_SIZE px per tile) so a
 // campus that's been built out for a while reads as a campus, not a close-
 // up of whatever corner happened to center. Nowhere near MIN_ZOOM's own
-// "whole 126x54 grid" extreme (this map is bigger than any built-out game
+// "whole 126x126 grid" extreme (this map is bigger than any built-out game
 // ever gets), just a wider starting view than the placement-precision zoom
 // a player zooms into by hand when siting something.
 const DEFAULT_ZOOM = 0.4;
@@ -720,7 +720,7 @@ export default function CampusMap({
   };
 
   // Placements resolved against `tech` once per render, rather than per
-  // tile: 60 placeables against 6,804 cells is not worth re-scanning.
+  // tile: 60 placeables against 15,876 cells is not worth re-scanning.
   const placed = Object.entries(s.placements)
     .map(([id, p]) => ({ p, t: s.tech.find((x) => x.id === id) }))
     .filter((entry): entry is { p: Placement; t: Buildable } => entry.t !== undefined);

@@ -281,9 +281,17 @@ export interface BuildableEffects {
 // aspect ratio, for the footprint rescale that put an academic hall at 9x9
 // (see campusMap.ts's footprintOf and the PR notes) — a hall's own footprint
 // grew by the same 4.5x per side that the grid did (2x2 -> 9x9, 28x12 ->
-// 126x54), so the campus reads at a consistently bigger scale throughout
-// rather than the grid and its landmark building drifting apart. Grow these
-// two numbers to grow the campus.
+// 126x54). It was squared off after that, height alone growing 126x54 ->
+// 126x126: the map is now a fixed full-viewport background panned/zoomed
+// like any map app (see CampusMap.tsx's .campus-map, position: fixed;
+// inset: 0), not a box squeezed beside other panels, so there is no more
+// wide-short screen shape to match — a square grid reads as neutral in
+// every window shape, and CampusMap.tsx's defaultView()/MAP_WIDTH/
+// MAP_HEIGHT and actions.ts's createInitialState Founders Hall centering
+// are both already pure functions of these two constants, so nothing else
+// needed to change for the map, the founding placement, and the starting
+// camera to all recentre themselves. Grow these two numbers together to
+// grow the campus and keep it square.
 //
 // Sized against what can actually be built: the full catalogue is 60
 // placeable Buildables (10 school buildings — the eight undergraduate
@@ -291,16 +299,11 @@ export interface BuildableEffects {
 // GraduateProgramSeed.buildingId — 15 dorms, 35 facilities: 5 dining, 2
 // each of library/studentCenter/recCenter/healthCenter/quad, 10 labs, and
 // 11 one-off campus-life/athletics facilities) whose footprints (see
-// campusMap.ts's footprintOf) total 2,179 tiles, so a fully built-out
-// campus covers about 32% (2,179 / 6,804) of the grid — open ground between
-// buildings, room to arrange, and headroom for future content, without the
-// map reading as empty.
-//
-// The proportions are chosen for the space the map column actually gets
-// (a wide, short box beside the build rail), so the grid fills its canvas
-// instead of letterboxing into the middle of it.
+// campusMap.ts's footprintOf) total 2,179 tiles — under 14% of the now-
+// square 15,876-tile grid (2,179 / 15,876), open ground and headroom for
+// future content without the map reading as empty.
 export const CAMPUS_GRID_WIDTH = 126;  // tiles across (columns)
-export const CAMPUS_GRID_HEIGHT = 54;  // tiles down (rows)
+export const CAMPUS_GRID_HEIGHT = 126; // tiles down (rows) — kept equal to CAMPUS_GRID_WIDTH so the map stays square
 
 // Which Buildable kinds can be sited on the map at all. `course` is
 // absent on purpose and must stay absent — a course is not a place.
