@@ -1027,9 +1027,12 @@ two entirely separate club/team records (a gendered id, not a `gender` field
 alongside a shared one), so they form, petition and graduate on their own
 timelines, sharing only the venue category — the second lineage into a
 category, of either gender, finds the venue already revealed or built and
-pays only the varsity fee. A sport club may petition, **once**, to go varsity,
-**five years after it was founded** (`VARSITY_PETITION_MIN_TENURE_YEARS`,
-`studentLifeData.ts`) — an authored decision event (`eventData.ts`'s
+pays only the varsity fee. A sport club may petition to go varsity **five
+years after it was founded** (`VARSITY_PETITION_MIN_TENURE_YEARS`,
+`studentLifeData.ts`); a decline is not permanent — the same tenure gate
+re-opens the ask **five years after the decline** rather than closing the
+door forever (`StudentClub.varsityLastAskedYear`, re-checked by
+`sportClubsAwaitingVarsity`) — an authored decision event (`eventData.ts`'s
 `varsity-petition`) modeled directly on the chapter housing petition for its
 prompt/choices, but fired on its **own deterministic schedule**
 (`eventSystem.ts`'s `fireVarsityPetition`) rather than drawn from the shared
@@ -1043,9 +1046,10 @@ deferred deepening), and **reveals** the required venue Buildable if it isn't
 already `'done'` — hidden-until-demanded, the same gate a graduate program
 uses (`Buildable.athleticsVenueReveal`, checked in `meetsUnlockGates`; a
 team's own existence on `s.orgs.teams` *is* the reveal signal, no separate
-flag). Unlike the chapter-house grant, the venue is **not** pushed straight to
-`'done'` — it goes through the ordinary build-rail cost/duration cycle like
-any other facility, and the team sits `'awaitingVenue'` until it finishes. The
+flag). Like the chapter-house grant, the venue is **not** pushed straight to
+`'done'` and auto-placed — it goes through the ordinary build-rail cost/
+duration cycle like any other facility, and the team sits `'awaitingVenue'`
+until it finishes. The
 **second** team in a category finds the venue already revealed (or built) and
 pays only the varsity fee, never a second building — the mechanism that keeps
 this an athletic department rather than one building per team.

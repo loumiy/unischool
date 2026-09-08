@@ -212,6 +212,20 @@ export interface Buildable {
   // The Medicine/Law reveal-on-gate pattern, with team formation as the
   // gate instead of a milestone count.
   athleticsVenueReveal?: true;
+  // Set only on a Greek chapter's own house (see eventData.ts's
+  // 'greek-housing'), one per chapter, id'd deterministically off the
+  // chapter's own id rather than drawn from any static seed catalogue —
+  // unlike every other flag/gate on this interface, which describes a
+  // FIXED Buildable from campusData.ts/facilitiesData.ts, a chapter house
+  // is manufactured at runtime the moment its petition is approved. It
+  // carries no `effects`: the satisfaction bonus and housing capacity it
+  // represents are applied directly to the chapter/s.students.capacity at
+  // that same moment, live-read off GreekChapter.housed ever after, not
+  // off this Buildable finishing. This flag's only jobs are cosmetic —
+  // BuildPopup.tsx groups it under Housing (alongside, but never
+  // interleaved with, the sequential dorm chain) and gives its tile a beds
+  // figure despite the missing `effects`.
+  chapterHouse?: true;
   status: BuildableStatus;
   effects?: Partial<BuildableEffects>; // read by the systems below; see each field's own comment for exactly when
   // Set only once this school's naming rights are sold (see eventData.ts's
