@@ -27,11 +27,9 @@ import { graduatePrograms, milestoneSchools } from '../../data/techData';
 //     finished right now (see milestoneSchools() below), plus the graduate
 //     programs founded on top of them; never how many courses were added
 //     this year.
-//   - selectivity: the emergent admit rate from the most recently resolved
-//     admissions cycle (admissionsSystem.ts) — more selective (lower admit
-//     rate) means a higher score.
 //   - incoming student quality: the average quality of the class that
-//     actually enrolled in that same cycle.
+//     actually enrolled in the most recently resolved admissions cycle
+//     (admissionsSystem.ts).
 //   - faculty quality: the roster's average current teaching+research (see
 //     facultyData.ts — faculty are an appreciating asset: retained hires
 //     grow toward a rolled ceiling over years of tenure, then plateau, and
@@ -47,23 +45,28 @@ import { graduatePrograms, milestoneSchools } from '../../data/techData';
 //     deliberately a small weight.
 //
 //   - campus life, and financial resources per student (endowment against
-//     capacity) — two smaller, capped inputs; the second is what the
-//     late-game endowment campaigns buy (see financeSystem.ts).
+//     enrolled body size) — two smaller, capped inputs; the second is what
+//     the late-game endowment campaigns buy (see financeSystem.ts).
+//
+// Selectivity (admit rate) is deliberately NOT an input here, even though
+// admissionsSystem.ts computes and displays one: it is now purely a
+// function of prestige itself (see that file's admitRate curve), so
+// feeding it back in would be close to circular — a derived reading of
+// prestige contributing to prestige, lagged only by the weekly drift.
 //
 // EVERY score is independently clamped to 0..1 before it is
 // weighted, so each contributes at most its own weight to the target. That
-// is what stops the prestige/selectivity/quality loop from spiraling: a
-// tiny, scarcity-obsessed school can ride selectivity and quality to their
-// individual ceilings, but climbing past that combined ceiling requires
-// the curriculum-breadth and faculty-quality terms too, both of which only
-// rise with genuine, sustained investment — see the PR notes for the
-// fast-forward trajectories this was tuned against.
+// is what stops the prestige/quality loop from spiraling: a small school
+// can ride student quality to its own ceiling, but climbing past that
+// requires the curriculum-breadth and faculty-quality terms too, both of
+// which only rise with genuine, sustained investment — see the PR notes
+// for the fast-forward trajectories this was tuned against.
 // ---------------------------------------------------------------------
 
 // Prestige target, before any of the weighted inputs, for a school with
-// zero curriculum breadth, average selectivity, and average incoming
-// quality. Deliberately below the field's median so a fresh school is
-// unremarkable, not average, until it earns its way up.
+// zero curriculum breadth and average incoming quality. Deliberately below
+// the field's median so a fresh school is unremarkable, not average, until
+// it earns its way up.
 const PRESTIGE_BASELINE = 32;
 
 // How much of the gap between current prestige and its target closes each
@@ -76,17 +79,16 @@ const PRESTIGE_DRIFT_RATE = 0.0025;
 
 // Weight applied to each 0..1 input score. Their sum plus PRESTIGE_BASELINE
 // would exceed PRESTIGE_MAX if every input maxed out at once (it's clamped
-// there below); in practice curriculum breadth still dominates by design,
-// with selectivity, student quality, and faculty quality as comparable
-// secondary drivers. Rebalanced (down from the prior three-input version's
-// 90/45/35) to make room for faculty quality without pushing a strong,
-// straightforward sustained-buildout run (curriculum + a mature
-// departmental roster, but no special selectivity management) right up
-// against PRESTIGE_MAX — see the PR notes' fast-forward runs.
-const CURRICULUM_BREADTH_WEIGHT = 75; // majors/schools completed — the stock only sustained buildout grows
-const SELECTIVITY_WEIGHT = 30;        // emergent admit-rate-derived score — grows with scarce capacity or pricing power
+// there below); in practice curriculum breadth dominates by design, with
+// student quality and faculty quality as secondary drivers. SELECTIVITY_
+// WEIGHT (30, in the prior four-input version) is retired rather than kept
+// or redistributed as its own line — its role folds into wider headroom for
+// the two inputs that were already this model's main drivers, curriculum
+// breadth and faculty quality (see the module note above on why selectivity
+// itself is gone).
+const CURRICULUM_BREADTH_WEIGHT = 90; // majors/schools completed — the stock only sustained buildout grows
 const STUDENT_QUALITY_WEIGHT = 22;    // emergent avg incoming quality — grows with a low-tuition, high-yield posture
-const FACULTY_QUALITY_WEIGHT = 25;    // avg roster teaching+research — grows by hiring well and, more importantly, retaining hires long enough to mature
+const FACULTY_QUALITY_WEIGHT = 40;    // avg roster teaching+research — grows by hiring well and, more importantly, retaining hires long enough to mature
 const RESEARCH_WEIGHT = 14;           // breakthroughs and prizes out of the labs (see researchScore below)
 const CAMPUS_LIFE_WEIGHT = 12;        // rec center / athletics complex — a small, capped draw on its own (see campusLifeScore below)
 const ENDOWMENT_WEIGHT = 16;          // financial resources per student — what the late-game endowment campaigns buy (see endowmentScore below)
@@ -178,35 +180,28 @@ export function curriculumBreadthScore(s: GameState): number {
   );
 }
 
-// Admissions scale: how much CREDIT the two admissions-derived inputs
-// below (selectivity and incoming quality) are allowed to earn, as a
-// multiplier — the same shape as libraryAdequacyScore further down, and
-// for the same reason.
+// Admissions scale: how much CREDIT student quality below is allowed to
+// earn, as a multiplier — the same shape as libraryAdequacyScore further
+// down, and for the same reason.
 //
-// Without it, the two cheapest inputs in the formula are free for a
-// school that never grows: turning away applicants and enrolling only
-// top-band students is trivially easy at 350 beds, and it used to be
-// enough on its own to drift a do-nothing school into the top of the
-// rankings (see the PR's "idle" fast-forward — it reached prestige ~127
-// having built nothing at all, which makes the entire growth loop
-// optional). Being selective with a class of 200 is a boutique, not a
-// national university; national standing has to be earned at scale.
+// Without it, the cheapest input in the formula is free for a school that
+// never grows: enrolling only top-band students is trivially easy at a
+// tiny founding class, and it used to be enough (together with the now-
+// retired selectivity input) to drift a do-nothing school into the top of
+// the rankings on its own (see the PR's "idle" fast-forward — it reached
+// prestige ~127 having built nothing at all, which makes the entire growth
+// loop optional). A handful of star students is a boutique, not a national
+// university; national standing has to be earned at scale.
 //
-// The floor keeps a small school from scoring zero on either input — a
-// selective small college is genuinely well regarded, just not top-ten —
-// so this throttles the shortcut without ever creating a downward
-// spiral: it is a multiplier on an upside, never a penalty, and it can
-// only rise as enrollment grows.
-const ADMISSIONS_SCALE_FOR_FULL_CREDIT = 6_000; // enrolled students at which selectivity/quality count in full
+// The floor keeps a small school from scoring zero on the input — a
+// small college with excellent incoming students is genuinely well
+// regarded, just not top-ten — so this throttles the shortcut without ever
+// creating a downward spiral: it is a multiplier on an upside, never a
+// penalty, and it can only rise as enrollment grows.
+const ADMISSIONS_SCALE_FOR_FULL_CREDIT = 6_000; // enrolled students at which incoming quality counts in full
 const ADMISSIONS_SCALE_FLOOR = 0.35;
 function admissionsScaleScore(s: GameState): number {
   return clamp(totalEnrolled(s.students) / ADMISSIONS_SCALE_FOR_FULL_CREDIT, ADMISSIONS_SCALE_FLOOR, 1);
-}
-
-// Selectivity: the most recently resolved admissions cycle's admit rate,
-// inverted — a lower admit rate (harder to get in) scores higher.
-function selectivityScore(s: GameState): number {
-  return clamp01(1 - s.students.admitRate);
 }
 
 // Incoming student quality: the most recently resolved cycle's average
@@ -228,24 +223,26 @@ function facultyQualityScore(s: GameState): number {
 
 // Library adequacy: how well the library's total servesPopulation (its
 // tier-1 seats, plus the research-library tier-2 upgrade if built — see
-// facilitiesData.ts) covers the campus at its current capacity. Mirrors
+// facilitiesData.ts) covers the ENROLLED student body. Mirrors
 // satisfactionSystem.ts's own academic-attribute target ratio (kept equal
 // deliberately, tuned independently rather than cross-imported — systems
 // only read/write shared state, they don't call into each other) but is
 // used here as a MULTIPLIER on the curriculum-breadth term rather than as
-// an additive score: "under-capacity caps academic prestige growth" means
-// a brilliant, fully-built curriculum at a school with no library can't
-// fully cash in that prestige, not that a bad library actively costs
-// prestige on its own. A floor keeps a brand-new school (no library built
-// yet — it hasn't had time) from having curriculum breadth zeroed outright.
+// an additive score: "an under-served student body caps academic prestige
+// growth" means a brilliant, fully-built curriculum at a school with no
+// library can't fully cash in that prestige, not that a bad library
+// actively costs prestige on its own. A floor keeps a brand-new school (no
+// library built yet — it hasn't had time) from having curriculum breadth
+// zeroed outright.
 const LIBRARY_TARGET_RATIO = 0.15;
 const LIBRARY_ADEQUACY_FLOOR = 0.4;
 function libraryAdequacyScore(s: GameState): number {
-  if (s.students.capacity <= 0) return 1;
+  const enrolled = totalEnrolled(s.students);
+  if (enrolled <= 0) return 1;
   const servesPopulation = s.tech
     .filter((t) => t.status === 'done' && t.facilityType === 'library')
     .reduce((sum, t) => sum + (t.effects?.servesPopulation ?? 0), 0);
-  const ratio = clamp01(servesPopulation / (s.students.capacity * LIBRARY_TARGET_RATIO));
+  const ratio = clamp01(servesPopulation / (enrolled * LIBRARY_TARGET_RATIO));
   return clamp(ratio, LIBRARY_ADEQUACY_FLOOR, 1);
 }
 
@@ -311,9 +308,9 @@ function researchScore(s: GameState): number {
 }
 
 // Financial resources per student: endowment measured against the size of
-// the campus it has to support, which is how real rankings read a school's
-// wealth — a small school with a large endowment is resource-rich; the
-// same endowment spread over 20,000 beds is not. This is what the
+// the student body it has to support, which is how real rankings read a
+// school's wealth — a small school with a large endowment is resource-rich;
+// the same endowment spread over 20,000 students is not. This is what the
 // late-game endowment campaigns (see financeSystem.ts's endowmentCampaign)
 // actually buy: the surplus a mature school can no longer spend on dorms
 // or curriculum converts into standing instead, slowly and expensively.
@@ -321,19 +318,23 @@ function researchScore(s: GameState): number {
 // Clamped to 0..1 exactly like every other input, so it can contribute at
 // most its own weight — money can buy a real but bounded amount of
 // prestige, and never a shortcut past the curriculum-breadth term. Read
-// against CAPACITY, not enrolled, so it can't be gamed by under-filling
-// the class for a year.
+// against ENROLLED, not bed capacity — capacity is a much smaller number
+// than the student body for a commuter-heavy school now, and reading
+// against it would inflate this score for exactly the schools it's least
+// meant to reward. Enrollment can't be gamed downward for a free score
+// either: a smaller class also shrinks tuition revenue, the endowment's own
+// main feeder.
 const ENDOWMENT_PER_SEAT_FOR_FULL_SCORE = 400_000;
 function endowmentScore(s: GameState): number {
-  if (s.students.capacity <= 0) return 0;
-  return clamp01(s.finance.endowment / (s.students.capacity * ENDOWMENT_PER_SEAT_FOR_FULL_SCORE));
+  const enrolled = totalEnrolled(s.students);
+  if (enrolled <= 0) return 0;
+  return clamp01(s.finance.endowment / (enrolled * ENDOWMENT_PER_SEAT_FOR_FULL_SCORE));
 }
 
 export function computePrestigeTarget(s: GameState): number {
   const target =
     PRESTIGE_BASELINE +
     CURRICULUM_BREADTH_WEIGHT * curriculumBreadthScore(s) * libraryAdequacyScore(s) +
-    SELECTIVITY_WEIGHT * selectivityScore(s) * admissionsScaleScore(s) +
     STUDENT_QUALITY_WEIGHT * studentQualityScore(s) * admissionsScaleScore(s) +
     FACULTY_QUALITY_WEIGHT * facultyQualityScore(s) +
     RESEARCH_WEIGHT * researchScore(s) +
@@ -361,12 +362,12 @@ export function prestigeTargetWithout(s: GameState, milestoneKeys: readonly stri
 // Called every week from the SYSTEMS array (see reducer.ts). Drifts prestige
 // a small fraction of the way toward its target; never jumps. There is no
 // other, artificial downward pull: if the target sits below current prestige
-// (say, selectivity slipped at the last cycle), prestige drifts down to match
-// reality, but standing still with a stable target holds prestige steady —
-// rivals climbing past a stagnating player is what actually costs rank (see
-// rivalsSystem.ts). The two admissions-derived inputs (selectivity, incoming
-// quality) only change once a year at RESOLVE_ADMISSIONS; every other input
-// can change any week, which is the whole reason this runs weekly.
+// (say, incoming quality slipped at the last cycle), prestige drifts down to
+// match reality, but standing still with a stable target holds prestige
+// steady — rivals climbing past a stagnating player is what actually costs
+// rank (see rivalsSystem.ts). Incoming quality only changes once a year at
+// RESOLVE_ADMISSIONS; every other input can change any week, which is the
+// whole reason this runs weekly.
 export function tickPrestige(s: GameState): void {
   const target = computePrestigeTarget(s);
   s.self.reputation += (target - s.self.reputation) * PRESTIGE_DRIFT_RATE;

@@ -3,8 +3,8 @@ import { DEFAULT_ATHLETICS_INVESTMENT } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
 import { WEEKS_PER_YEAR, CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT } from './types';
 import { footprintOf, isPlaceableKind, placementFor } from './campusMap';
-import { initialTech, GENED_BUILDING_REPUTATION_BONUS } from '../data/techData';
-import { initialDorms, STARTING_DORM_ID, STARTING_DORM_CAPACITY } from '../data/campusData';
+import { initialTech, GENED_BUILDING_REPUTATION_BONUS, GENED_BUILDING_ID } from '../data/techData';
+import { initialDorms } from '../data/campusData';
 import { initialFacilities } from '../data/facilitiesData';
 import { initialRivals } from '../data/rivalData';
 import { initialCandidatePool, facultySalary } from '../data/facultyData';
@@ -14,21 +14,15 @@ import {
 } from '../data/schoolTypeData';
 
 // A founded university opens with a near-empty campus, with ONE exception:
-// the founding dorm. The founding dining hall and General Studies Hall (see
-// facilitiesData.ts and techData.ts) are still seeded 'available', so the
-// player builds and sites each from scratch and dining service is 0 at
-// founding. The founding dorm (campusData.ts's STARTING_DORM) is instead
-// pre-built ('done') and pre-placed at the centre of the map, so the four
-// founding cohorts open FULLY HOUSED — its beds must exist from day one for
-// the starting body to have somewhere to live and for the school to open at
-// its steady-state cohort structure rather than growing into a wave (see
-// ALIGNMENT_ROADMAP.md's lever 2, and FOUNDING_COHORTS in schoolTypeData.ts).
-// Because that hall starts 'done', the normal completion path that grants
-// capacityBonus never runs for it, so its STARTING_DORM_CAPACITY beds are
-// folded into the founding `capacity` directly below; every dorm after it
-// grants its beds the usual way, on completion. (persistence.ts's v17 -> v18
-// migration still sites an EXISTING older save's unplaced 'done' buildings,
-// and this change does not rewrite those saves.)
+// Founders Hall (techData.ts's General Studies building), pre-built ('done')
+// and pre-placed at the centre of the map — the university's literal
+// founding hall. Every other founding buildable (the starting dorm, dining
+// hall, and the rest of the seeded-'available' facility chains) is seeded
+// 'available', so the player builds and sites each from scratch; the
+// founding student body is entirely commuters, with no dorm at all (see
+// campusData.ts and admissionsSystem.ts — enrollment is never capacity-
+// gated). `capacity` accordingly starts at 0 below: there is no bed count to
+// fold in the way a pre-built dorm used to require.
 
 // The institutional half of every new school's name (see types.ts's
 // University). Fixed at founding — the startup screen only lets the
@@ -192,7 +186,7 @@ export function createPreStartState(): GameState {
     students: {
       cohorts: { freshman: 0, sophomore: 0, junior: 0, senior: 0 },
       capacity: 0, satisfaction: 0,
-      satisfactionBreakdown: { academic: 0, social: 0, basicNeeds: 0, health: 0 },
+      satisfactionBreakdown: { academic: 0, social: 0, basicNeeds: 0, health: 0, housing: 0 },
       satisfactionYearSum: 0, satisfactionYearWeeks: 0, priorYearAvgSatisfaction: 0,
       applicantPool: 0, admitRate: 0, incomingQuality: 0,
     },
@@ -237,13 +231,13 @@ export function createPreStartState(): GameState {
 export function createInitialState(name: string, schoolType: SchoolType): GameState {
   const preset = SCHOOL_TYPE_PRESETS[schoolType];
 
-  // The central Buildable list, built up front so the founding dorm can be
-  // pulled out of it to pre-place (it opens 'done' — see campusData.ts).
+  // The central Buildable list, built up front so Founders Hall can be
+  // pulled out of it to pre-place (it opens 'done' — see techData.ts).
   const tech = [...initialTech(), ...initialDorms(), ...initialFacilities()];
 
   // The alert-badge exception for what a school starts with (see types.ts's
-  // SeenState). The gen-ed core courses and the founding buildables (the
-  // starting dorm, dining hall, General Studies Hall, and the rest of the
+  // SeenState). The gen-ed core courses and the founding buildables (Founders
+  // Hall, the starting dorm, dining hall, and the rest of the
   // seeded-'available' facility chains) are unlocked from the moment the
   // university opens — the player was never shown a moment when they
   // WEREN'T there to be revealed, so they are not "new" and must not carry
@@ -258,17 +252,17 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     if (node.kind === 'course') foundingCourseIds[node.id] = true;
     else if (isPlaceableKind(node)) foundingBuildableIds[node.id] = true;
   }
-  // Centre the founding dorm's footprint on the grid: the founding landmark
+  // Centre Founders Hall's footprint on the grid: the founding landmark
   // sits in the middle of the map, not a corner (see the placements entry
   // below). Math.floor keeps the anchor on a whole tile; the footprint is odd
   // vs. even against the grid dimensions, so this lands as close to dead
   // centre as the tile grid allows.
-  const foundingDorm = tech.find((t) => t.id === STARTING_DORM_ID)!;
-  const foundingDormFootprint = footprintOf(foundingDorm);
-  const foundingDormPlacement = placementFor(
-    Math.floor((CAMPUS_GRID_HEIGHT - foundingDormFootprint.h) / 2),
-    Math.floor((CAMPUS_GRID_WIDTH - foundingDormFootprint.w) / 2),
-    foundingDormFootprint,
+  const foundersHall = tech.find((t) => t.id === GENED_BUILDING_ID)!;
+  const foundersHallFootprint = footprintOf(foundersHall);
+  const foundersHallPlacement = placementFor(
+    Math.floor((CAMPUS_GRID_HEIGHT - foundersHallFootprint.h) / 2),
+    Math.floor((CAMPUS_GRID_WIDTH - foundersHallFootprint.w) / 2),
+    foundersHallFootprint,
   );
 
   const state: GameState = {
@@ -285,26 +279,24 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     },
     students: {
       // Founding mix: a college opens with ALL FOUR class years present and
-      // BALANCED (≈ capacity / 4 each), not a freshman class only — so there
-      // is a graduating class from year one and, crucially, the body opens at
-      // the steady-state structure the campus would otherwise take years of
-      // lumpy cycles to reach. The counts sum to STARTING_DORM_CAPACITY, so
-      // the founding body exactly fills the pre-built founding hall. See
-      // FOUNDING_COHORTS in schoolTypeData.ts and ALIGNMENT_ROADMAP.md's
-      // lever 2 for why balanced-and-fully-housed is what de-lumps the cycle.
+      // BALANCED (≈ FOUNDING_BODY / 4 each), not a freshman class only — so
+      // there is a graduating class from year one and the body opens at the
+      // steady-state structure the campus would otherwise take years of
+      // lumpy cycles to reach. See FOUNDING_COHORTS in schoolTypeData.ts.
       cohorts: { ...FOUNDING_COHORTS },
-      // The founding hall's beds, folded in directly: it is pre-built ('done')
-      // and pre-placed (see the header comment above and the placements entry
-      // below), and a building that starts 'done' never runs the completion
-      // path that would otherwise grant its capacityBonus — so its capacity is
-      // counted here instead. Every dorm built after it grows capacity the
-      // usual way, on completion (see campusData.ts).
-      capacity: STARTING_DORM_CAPACITY,
+      // No housing at founding: the whole body is commuters, and dorm beds
+      // are built up from zero like every other facility (see
+      // campusData.ts). Enrollment is never capacity-gated (see
+      // admissionsSystem.ts), so this has no bearing on how big the school
+      // can grow — only on the Housing satisfaction attribute and the
+      // physical-plant seat upkeep (see satisfactionSystem.ts/
+      // financeSystem.ts) until the player builds some.
+      capacity: 0,
       satisfaction: 70,
       // Overwritten on the very first TICK by satisfactionSystem.ts's real
       // computation — this starting value just matches the legacy flat 70
       // so the pre-tick UI doesn't show a startling all-zero breakdown.
-      satisfactionBreakdown: { academic: 70, social: 70, basicNeeds: 70, health: 70 },
+      satisfactionBreakdown: { academic: 70, social: 70, basicNeeds: 70, health: 70, housing: 70 },
       // Word of mouth seeds neutral: 70 matches WORD_OF_MOUTH_NEUTRAL (see
       // admissionsSystem.ts), so year 1's funnel gets no word-of-mouth swing
       // until a real year of satisfaction has accumulated.
@@ -381,20 +373,21 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // live here together.
     tech,
     developing: {},
-    // Only the founding dorm is pre-placed: it opens 'done' (campusData.ts),
-    // so it needs a spot on the map from day one. It is centred on the grid
-    // (foundingDormPlacement above) — the founding landmark the rest of the
+    // Only Founders Hall is pre-placed: it opens 'done' (techData.ts), so
+    // it needs a spot on the map from day one. It is centred on the grid
+    // (foundersHallPlacement above) — the founding landmark the rest of the
     // campus grows out around — rather than tucked in a corner like the
-    // player's later top-left auto-sited builds. Everything else is placed by
-    // the player as it is built.
-    placements: { [STARTING_DORM_ID]: foundingDormPlacement },
+    // player's later top-left auto-sited builds. Everything else, dorms
+    // included, is placed by the player as it is built.
+    placements: { [GENED_BUILDING_ID]: foundersHallPlacement },
     pathways: {},
     rivals: initialRivals(),
     // +GENED_BUILDING_REPUTATION_BONUS: a small gen-ed academic-standing
     // baseline the founding institution opens with (see techData.ts — it is
-    // NOT tied to whether General Studies Hall has been built yet; reputation
-    // is a stock that drifts toward a target, and there is no apply-once
-    // reputation effect). `name` is the player's half only ("Blackmoor"); the
+    // NOT tied to whether Founders Hall has been built yet, since it always
+    // has been by founding; reputation is a stock that drifts toward a
+    // target, and there is no apply-once reputation effect). `name` is the
+    // player's half only ("Blackmoor"); the
     // institutional half starts as College for every school and is only ever
     // changed by the one-time charter offer the first lab unlocks (see
     // systems/events/eventSystem.ts).

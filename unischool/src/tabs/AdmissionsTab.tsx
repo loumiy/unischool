@@ -18,7 +18,7 @@ export default function AdmissionsTab({ s }: { s: GameState }) {
       <section className="panel">
         <h2>Enrollment</h2>
         <dl>
-          <dt>Enrolled</dt><dd>{totalEnrolled(s.students).toLocaleString()} / {s.students.capacity.toLocaleString()}</dd>
+          <dt>Enrolled</dt><dd>{totalEnrolled(s.students).toLocaleString()}</dd>
           <dt>Cohorts</dt><dd>{s.students.cohorts.freshman.toLocaleString()} Fr · {s.students.cohorts.sophomore.toLocaleString()} So · {s.students.cohorts.junior.toLocaleString()} Jr · {s.students.cohorts.senior.toLocaleString()} Sr</dd>
           <dt>Satisfaction</dt><dd>{Math.round(s.students.satisfaction)}</dd>
           <dt>Applicant pool</dt><dd>{Math.round(s.students.applicantPool)}</dd>

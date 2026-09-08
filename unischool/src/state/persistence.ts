@@ -562,7 +562,20 @@ export const SAVE_KEY = 'unischool.save';
 // carrying a two-gender sport id is migrated the same way, so a petition
 // already in the player's queue reads with its new name/id by the time it
 // is shown. See MIGRATIONS[24].
-export const SAVE_VERSION = 25;
+//
+// v25 -> v26: commuters (see the long note near admissionsSystem.ts and
+// satisfactionSystem.ts). SatisfactionAttributes gains a fifth attribute,
+// `housing`, so s.students.satisfactionBreakdown needs a value backfilled —
+// 0 rather than a guess, since MIGRATIONS[25] can't know what a resuming
+// save's dorm/enrollment mix would have scored and the very next tick
+// overwrites it with satisfactionSystem.ts's real computation anyway (the
+// same reasoning createPreStartState's own placeholder breakdown uses).
+// Nothing else changed shape: `s.students.capacity` is still a plain
+// number, just no longer an admissions ceiling from this version forward —
+// a resuming save's existing capacity (whatever dorms it had already built)
+// carries over unchanged and is simply read differently by the systems that
+// use it now. See MIGRATIONS[25].
+export const SAVE_VERSION = 26;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1322,6 +1335,15 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
       petition.sport = def.id;
       petition.name = def.clubName;
     }
+  },
+
+  // v25 -> v26: commuters (see the long note above SAVE_VERSION). A pure
+  // fill-in for the new `housing` attribute — defensive against `??=`
+  // rather than a plain assignment, since a fixture built from a CURRENT
+  // createInitialState (as several of this file's own test doubles are)
+  // may already carry it.
+  25: (state) => {
+    (state.students.satisfactionBreakdown as unknown as Record<string, number>).housing ??= 0;
   },
 };
 

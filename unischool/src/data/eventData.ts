@@ -4,7 +4,7 @@ import { FACULTY_FIELDS, generateCandidate, rollCoachName, rollSurname } from '.
 import { money, rollAmount, weeksOfOpEx } from './moneyScale';
 import { firstFreeSpot, footprintOf, placementFor } from '../state/campusMap';
 import {
-  CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
+  CHAPTER_HOUSE_CAPACITY_BONUS, CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
   promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, venueForCategory,
 } from './studentLifeData';
 import { discoverySchools, graduateProgram, milestoneSchools } from './techData';
@@ -1030,7 +1030,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         id: 'build',
         label: 'Build the chapter house',
         describe: (s, ctx) =>
-          `${money(ctx.amount ?? 0)} up front and ${money(weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX))} a week to run it, forever. ${ctx.subjectName} contributes a further ${CHAPTER_HOUSED_SOCIAL_BONUS} points of social satisfaction from the week it opens, and the house itself takes its place on campus immediately.`,
+          `${money(ctx.amount ?? 0)} up front and ${money(weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX))} a week to run it, forever. ${ctx.subjectName} contributes a further ${CHAPTER_HOUSED_SOCIAL_BONUS} points of social satisfaction from the week it opens, adds ${CHAPTER_HOUSE_CAPACITY_BONUS} beds of campus housing, and the house itself takes its place on campus immediately.`,
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
           const chapter = findChapter(s, ctx.subjectId);
@@ -1042,6 +1042,12 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
             // running cost with it — there is exactly one place a Greek
             // organisation's cost lives.
             chapter.upkeepPerWeek += weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX);
+            // Real student housing, the same as a dorm's capacityBonus
+            // effect would grant on completion (see
+            // studentLifeData.ts's CHAPTER_HOUSE_CAPACITY_BONUS) — applied
+            // directly here since a chapter house isn't a Buildable with
+            // effects of its own.
+            s.students.capacity += CHAPTER_HOUSE_CAPACITY_BONUS;
             // A real, sitable campus asset, through the same placement path
             // every other building uses (see state/campusMap.ts and
             // README's "The central abstraction") — pushed in already

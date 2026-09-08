@@ -1,4 +1,5 @@
 import type { GameState, Buildable, BuildableEffects } from '../../state/types';
+import { totalEnrolled } from '../../state/types';
 import { graduateCourseIds, graduateGateMet, graduatePrograms, milestoneSchools } from '../../data/techData';
 import { isCelebratedMilestone } from '../../data/eventData';
 
@@ -141,14 +142,16 @@ function applyEffects(s: GameState, e?: Partial<BuildableEffects>): void {
 
 // Beyond prereqs, some Buildables also gate on the school's current state
 // rather than another Buildable's status — a population size (the health
-// center: only large campuses need one) or a prestige level (a research
+// center: only large campuses need one; read against total ENROLLED
+// students, not bed capacity, despite the field's name — see
+// minCapacityToUnlock in state/types.ts) or a prestige level (a research
 // library / athletics complex tier). Both are ADDITIONAL to prereqs, never
 // a replacement, and — unlike prereqs — can change in either direction
-// (capacity only grows, but prestige can drift down), so this is checked
-// fresh every tick rather than only right after something finishes. Once
-// something clears the gate and goes 'available' it stays available even
-// if prestige later dips back below the threshold — same as everything
-// else here, nothing ever re-locks.
+// (enrollment can shrink year to year same as prestige can drift down), so
+// this is checked fresh every tick rather than only right after something
+// finishes. Once something clears the gate and goes 'available' it stays
+// available even if enrollment or prestige later dips back below the
+// threshold — same as everything else here, nothing ever re-locks.
 //
 // A graduate course is the third such gate, and the reason it belongs
 // here rather than in a pass of its own: "five of Health Science's six
@@ -161,7 +164,7 @@ function applyEffects(s: GameState, e?: Partial<BuildableEffects>): void {
 // and its own prereqs are both satisfied. graduateGateMet is the single
 // predicate (see techData.ts) — this only asks it.
 function meetsUnlockGates(s: GameState, t: Buildable): boolean {
-  if (t.minCapacityToUnlock !== undefined && s.students.capacity < t.minCapacityToUnlock) return false;
+  if (t.minCapacityToUnlock !== undefined && totalEnrolled(s.students) < t.minCapacityToUnlock) return false;
   if (t.minPrestigeToUnlock !== undefined && s.self.reputation < t.minPrestigeToUnlock) return false;
   if (t.graduateProgram !== undefined && !graduateGateMet(s, t.graduateProgram)) return false;
   // The fourth gate: a varsity athletics venue (facilitiesData.ts) stays

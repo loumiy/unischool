@@ -10,17 +10,20 @@ import type { Buildable } from '../state/types';
 // development (see techData.ts), it only grows when a dorm finishes
 // construction here.
 //
-// The university starts with NO housing built: the founding hall (STARTING_DORM
-// below) is seeded 'available', not 'done', so the player builds and sites it
-// like any other dorm — a founding campus is built from scratch, not handed
-// over pre-placed (see actions.ts's createInitialState, which no longer folds
-// any capacity into the starting baseline). Its beds are granted the normal
-// way, through effects.capacityBonus on completion, so nothing is
-// double-counted. Every dorm after it unlocks strictly in order — Dorm II
-// requires Dorm I, Dorm III requires Dorm II, and so on — so "build more dorms
-// over time to grow capacity" is a straight queue in the Campus tab: there's
-// always exactly one next dorm to build, with a visible cost and payoff, never
-// a grid of independent choices.
+// The university starts with NO housing built: the founding hall
+// (STARTING_DORM_ID below) is seeded 'available', not 'done', so the player
+// builds and sites it like any other dorm — a founding campus opens fully
+// commuter, and its students are just as enrolled without a bed (see
+// admissionsSystem.ts: enrollment is never capacity-gated) as with one. Its
+// beds are granted the normal way, through effects.capacityBonus on
+// completion, so nothing is double-counted. The founding ACADEMIC hall
+// (techData.ts's General Studies building, "Founders Hall") is what opens
+// pre-built instead — see actions.ts's createInitialState. Every dorm after
+// the starter unlocks strictly in order — Dorm II requires Dorm I, Dorm III
+// requires Dorm II, and so on — so "build more dorms over time to grow
+// capacity" is a straight queue in the Campus tab: there's always exactly
+// one next dorm to build, with a visible cost and payoff, never a grid of
+// independent choices.
 //
 // Both capacity and cost grow geometrically down the chain — an
 // escalating-investment shape, with cost growing a little faster than
@@ -31,12 +34,10 @@ import type { Buildable } from '../state/types';
 
 export const STARTING_DORM_ID = 'DORM-01';
 export const STARTING_DORM_CAPACITY = 350; // the founding hall's bed count, granted via its capacityBonus effect when built
-// The founding hall opens already built and paid for (status 'done' below), so
-// these cost/time figures are never actually charged at founding — they exist
-// only so the hall is a well-formed Buildable like every other dorm (and would
-// apply if a save ever reset it to 'available'). Kept a CHEAP, quick starter, a
-// fraction of the escalating chain's per-bed cost below, so it reads as the
-// modest founding hall it is rather than one of the major later capital builds.
+// Kept a CHEAP, quick starter, a fraction of the escalating chain's per-bed
+// cost below, so it reads as the modest first hall it is rather than one of
+// the major later capital builds — a school's first dorm is a real, felt
+// decision (its own cost and 12-week build), not a founding freebie.
 const STARTING_DORM_COST = 350_000;
 const STARTING_DORM_WEEKS = 12;
 
@@ -67,7 +68,7 @@ const DORM_WEEKS_GROWTH = 1.05;      // build time grows slowly — money, not t
 // generated `Dorm N` below (the build panel lists these by name once the
 // Housing group collapses its built rows).
 const DORM_NAMES = [
-  'Founders Hall', 'Lakeside Hall', 'Riverside Commons', 'Hillcrest Hall',
+  'University Hall', 'Lakeside Hall', 'Riverside Commons', 'Hillcrest Hall',
   'Meridian Tower', 'Cascade Hall', 'Summit Commons', 'Vanguard Hall',
   'Beacon Tower', 'Overlook Commons', 'Sterling Hall', 'Horizon Tower',
   'Ridgeline Commons', 'Pinnacle Hall', 'Zenith Tower',
@@ -79,21 +80,16 @@ export function initialDorms(): Buildable[] {
       id: STARTING_DORM_ID,
       kind: 'dorm',
       name: DORM_NAMES[0],
-      description: 'The university’s first student housing hall — build it to house the founding class.',
+      description: 'The university’s first student housing hall — build it to give students somewhere to live on campus.',
       cost: STARTING_DORM_COST,
       duration: STARTING_DORM_WEEKS,
       prereqs: [],
-      // Pre-built ('done') and pre-placed at founding (see actions.ts's
-      // createInitialState): the founding class needs beds to live in from
-      // day one so the four starting cohorts open fully housed, with no gap
-      // between the body and its capacity for the shift register to turn into
-      // a wave (ALIGNMENT_ROADMAP.md's lever 2). Its STARTING_DORM_CAPACITY
-      // beds are folded into the founding capacity directly there (the normal
-      // completion path that grants capacityBonus never runs for a building
-      // that starts already 'done'); every dorm AFTER it still grants its
-      // beds the usual way, on completion. Dorm II unlocks the normal way, the
-      // first tick — its prereq (this hall) is already 'done'.
-      status: 'done',
+      // Available from day one, like the founding dining hall — the campus
+      // opens with no housing built at all (see the module comment above),
+      // so this is the player's first real housing decision rather than a
+      // founding freebie. Every dorm after it grants its beds the usual way
+      // too, on completion.
+      status: 'available',
       effects: { capacityBonus: STARTING_DORM_CAPACITY },
     },
   ];
@@ -115,9 +111,7 @@ export function initialDorms(): Buildable[] {
       // reads as a queue rather than a menu (see the file header above).
       prereqs: [previousId],
       // Every additional dorm starts locked and unlocks the normal way, the
-      // tick its prereq (the dorm before it) finishes — including the very
-      // first one, now that the founding hall is itself built rather than
-      // seeded 'done' (see STARTING_DORM_ID above).
+      // tick its prereq (the dorm before it) finishes.
       status: 'locked',
       effects: { capacityBonus: capacity },
     });

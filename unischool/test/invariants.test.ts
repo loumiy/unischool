@@ -166,10 +166,9 @@ function relPath(f: string): string {
     assert(typeof v === 'number', 'every cohort is a plain count, not a list of individuals');
   }
   // A founded college opens with all four class years present and BALANCED
-  // (each cohort within one student of the others), sized so the body exactly
-  // fills the pre-built founding hall — the steady state that de-lumps the
-  // early admissions cycles. See actions.ts's createInitialState /
-  // FOUNDING_COHORTS and ALIGNMENT_ROADMAP.md's lever 2.
+  // (each cohort within one student of the others), sized to FOUNDING_BODY —
+  // the steady state that de-lumps the early admissions cycles. See
+  // actions.ts's createInitialState / FOUNDING_COHORTS in schoolTypeData.ts.
   const fc = s.students.cohorts;
   assert(fc.freshman > 0 && fc.sophomore > 0 && fc.junior > 0 && fc.senior > 0,
     'founding body has all four cohorts populated, not freshmen only');
@@ -178,8 +177,11 @@ function relPath(f: string): string {
     'founding cohorts are balanced (within one student of each other)');
   assert(totalEnrolled(s.students) === fc.freshman + fc.sophomore + fc.junior + fc.senior,
     'founding total equals the sum of the four cohorts');
-  assert(totalEnrolled(s.students) === s.students.capacity,
-    'founding body is fully housed — total enrollment equals founding capacity');
+  // The founding body is entirely commuters — no dorm at founding (see
+  // campusData.ts) — and enrollment is never capacity-gated (see
+  // admissionsSystem.ts), so there is no dorm bed to speak of yet.
+  assert(s.students.capacity === 0,
+    'founding capacity is zero — the whole founding body is commuters');
 }
 
 // =====================================================================
