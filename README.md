@@ -1004,11 +1004,14 @@ teeth are timing near the summer funnel, not permanence. What *is* durable is
 the ongoing source: a disbanded chapter's real cost is that its contribution
 to the target stops, not the one-week dent.
 
-**Varsity athletics** is a third layer, and deliberately a *shallow v1* that
-**grows out of clubs** rather than adding a parallel sport simulation: a
-varsity team is mechanically close to a Greek chapter that needs a venue.
-There is **no match simulation, no schedules or standings, and no ranking
-axis** — all explicitly deferred.
+**Varsity athletics** is a third layer that **grows out of clubs** rather
+than adding a parallel sport simulation: a varsity team is mechanically
+close to a Greek chapter that needs a venue. Athletics V2 (below) added a
+real coaching-staff hiring pool, team quality, and standings against
+rivals' own athletic strength — but there is still **no match simulation
+and no schedules**: standings are read off one comparable strength number
+per school, the same shape `self.reputation` vs. `Rival.reputation`
+already uses for the academic ranking, not a simulated season.
 
 A named share of new club formations (`SPORT_CLUB_SHARE`) roll as a **sport
 club** instead of an ordinary one — the same weekly club roll, no second
@@ -1040,10 +1043,11 @@ decision-event lottery, so the pipeline is a guarantee rather than a roll of
 the dice. It surfaces on the first quiet week at or after
 `VARSITY_PETITION_WEEK` — three-quarters through the year, evenly spaced from
 both summer admissions and the U.S. News report — so it never reads as just
-another summer or midyear beat. Granting it costs a weeks-of-opex program fee, auto-generates a coach from the
-faculty name pool (not recruited through the standing candidate market — a
-deferred deepening), and **reveals** the required venue Buildable if it isn't
-already `'done'` — hidden-until-demanded, the same gate a graduate program
+another summer or midyear beat. Granting it costs a weeks-of-opex program
+fee — the coaching staff is no longer part of that cost, or auto-generated:
+the team arrives with all three staff roles vacant (see below) — and
+**reveals** the required venue Buildable if it isn't already `'done'` —
+hidden-until-demanded, the same gate a graduate program
 uses (`Buildable.athleticsVenueReveal`, checked in `meetsUnlockGates`; a
 team's own existence on `s.orgs.teams` *is* the reveal signal, no separate
 flag). Like the chapter-house grant, the venue is **not** pushed straight to
@@ -1059,26 +1063,75 @@ Venues are **ordinary, reveal-gated `facility` Buildables**, and deliberately
 the rec Swimming Pool, a stadium is not a rec field. "Shared" means shared
 *among varsity teams* in one category, not shared with recreational use — a
 named design fork; see `facilitiesData.ts`'s note above `GYM_ID` for the
-rejected alternative and why. A live team's own upkeep (a fixed program fee
-plus the coach's tenure-appreciating salary, in the faculty spirit) and its
-flat, capped contribution to the `social` satisfaction attribute both run
-through **one investment lever** (`ATHLETICS_INVESTMENT_TIERS`) — low/medium/
-high, scaling the whole department together rather than budgeting per team,
-and the hook a future ranking axis would read (not built here). Athletics
-reaches satisfaction only through this same capped social contribution, same
-as clubs and Greek life — **never prestige directly**; if athletics should
-eventually touch prestige, that is a separate prestige-model decision, flagged
-rather than wired. Disbanding a team is not built in this pass either; when it
-is, what happens to a now-teamless venue is a call worth making explicitly
-rather than silently.
+rejected alternative and why.
+
+**Coaching staff (Athletics V2)** is a standing hiring pool
+(`s.orgs.coachCandidates`) that deliberately **mirrors Faculty's own
+market** (`facultyData.ts`'s `generateCandidate`/`grownStat`/
+`facultySalary`/`candidateArrivalsThisWeek`) rather than inventing a
+second hiring mechanism — `studentLifeData.ts`'s
+`generateCoachCandidate`/`grownCoachQuality`/`coachSalaryFor`/
+`coachCandidateArrivalsThisWeek`, ticked weekly by
+`systems/athletics/athleticsSystem.ts`, the exact same "age every listing,
+drop anyone past the window, top back up toward target" shape
+`facultySystem.ts`'s `tickCandidatePool` uses. A candidate's `field` is
+either a `SPORTS` id (a head/assistant coach candidate, hireable only into
+that exact sport's team) or `TRAINER_FIELD` ('strength-conditioning', hireable
+as any team's trainer regardless of sport) — and candidates skew
+**disproportionately to the gender of the sport they'd coach**
+(`COACH_GENDER_MATCH_CHANCE`), a trainer's listing staying an even coin
+flip since strength & conditioning carries no sport gender to skew toward.
+**Every team needs three separately hired roles** — head coach, assistant
+coach, trainer (`VarsityTeam.headCoach`/`assistantCoach`/`trainer`,
+`types.ts`) — each grown week over week once hired
+(`athleticsSystem.ts`'s `growCoach`: quality climbs toward a rolled
+ceiling, salary rises with it plus a tenure premium, the same shape
+`growFaculty` uses) but NOT while still listed, exactly like Faculty. A
+vacant role is not a hard block — the team still competes — just a real,
+felt gap: `teamQuality` (`studentLifeData.ts`) scores an empty slot at a
+fixed low floor rather than zero.
+
+A live team's own upkeep (a fixed program fee plus its three coaches'
+live, tenure-appreciating salaries) and its flat, capped contribution to
+the `social` satisfaction attribute both run through **one recruiting &
+scholarship budget lever** (`ATHLETICS_BUDGET_TIERS`, replacing the old
+"investment" tier of the same shape) — low/medium/high, scaling the whole
+department's upkeep and social contribution together rather than
+budgeting per team, and now ALSO adding a flat quality bonus
+(`qualityBonus`) on top of whatever the coaching staff itself is worth —
+the "recruiting" a shallow model with no individual athlete roster can
+actually represent. Athletics reaches satisfaction only through this same
+capped social contribution, same as clubs and Greek life — **never
+prestige directly**; if athletics should eventually touch prestige, that
+is a separate prestige-model decision, flagged rather than wired.
+Disbanding a team is not built in this pass either; when it is, what
+happens to a now-teamless venue is a call worth making explicitly rather
+than silently.
+
+**Standings** are a second, independent ranking axis
+(`rivalsSystem.ts`'s `athleticRank`/`athleticRankedList`, read against
+`Rival.athleticStrength` — `rivalData.ts`'s `athleticStrengthFor`, a
+deterministic function of a rival's own id and current `reputation`, wide
+enough (0.6x-1.4x) that a rival can be an athletic power without being an
+academic one and vice versa) — the exact same shape `playerRank`/
+`rankedList` already use for the U.S. News report, just sorted on
+`athleticProgramStrength` (`studentLifeData.ts`: active teams' own
+`teamQuality`, averaged and scaled up with how many are fielded — a
+department with five solid teams outranks one with a single elite team)
+instead of `reputation`. No annual report, movers list, or reveal
+interrupt of its own — just a live rank readout on the Athletics tab, a
+narrower slice of the U.S. News machinery's own depth, not a parallel copy
+of it.
 
 **The Student Life tab** is the home for clubs (a sport club stays here,
 tagged, until it graduates — only VARSITY status moves out) and Greek
 chapters with founding year and current membership, the petitions waiting on
 the next digest, and an empty state that reads sensibly through the founding
 years before any student center exists. **Athletics has its own tab**: once a
-sport club goes varsity it moves there — active and awaiting-venue teams plus
-the one investment lever — a plain relocation out of Student Life once
+sport club goes varsity it moves there — active and awaiting-venue teams,
+each with its own hire/release controls for its three staff roles, plus the
+one budget lever and the standings readout — a plain relocation out of
+Student Life once
 athletics grew gendered lineages of its own, not a change to how any of it
 works. Student Life still has to make the satisfaction
 effect **legible**, which is what stops the system feeling arbitrary, and it
@@ -1308,14 +1361,18 @@ any refactor.
 
 - Tutorial: a scripted interrupt sequence walking the Year-0 opening (develop
   gen-ed, hire faculty) and handing off to Summer Year 1.
-- **Varsity athletics v1 shipped** as a growth out of clubs, not the parallel
-  develop-track sketch this line used to describe — see "Student life: clubs,
-  Greek letters, and varsity athletics" above. Deliberately still deferred out
-  of that pass: match simulation, schedules and standings, a second ranking
-  axis athletics could feed, recruiting coaches through the standing candidate
-  market instead of auto-generating them, any prestige coupling, and a
-  considered answer for what happens to a shared venue once its last team
-  disbands.
+- **Varsity athletics v1, then Athletics V2, both shipped** as a growth out
+  of clubs, not the parallel develop-track sketch this line used to
+  describe — see "Student life: clubs, Greek letters, and varsity
+  athletics" above. V2 added the standing coaching-staff hiring pool
+  (recruiting through a real candidate market, mirroring Faculty's own,
+  rather than auto-generating a coach), the three-role team roster, the
+  recruiting & scholarship budget lever, team quality, and a second,
+  independent standings axis against rivals' athletic strength. Still
+  deferred: match simulation and schedules (standings stay a single
+  comparable strength number per school, not a simulated season), any
+  prestige coupling, and a considered answer for what happens to a shared
+  venue once its last team disbands.
 - Research depth: labs for the four schools that still have none, so a
   fully non-STEM run has a research path of its own rather than reaching it
   through a shared department (see "Research"). This would also give those

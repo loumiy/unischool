@@ -505,6 +505,14 @@ export interface Rival {
   name: string;
   reputation: number;   // the metric the ranking sorts on
   momentum: number;     // hidden trend, makes rivals dynamic over decades
+  // A second, independent ranking axis for Athletics V2's standings (see
+  // data/rivalData.ts's athleticStrengthFor and rivalsSystem.ts's
+  // athleticRank) — deliberately NOT derived from `reputation` at read
+  // time, so a rival can be an athletic power without being an academic
+  // one and vice versa, the same real-world decoupling `reputation` alone
+  // could never express. Static for now (no annual drift of its own, unlike
+  // reputation/momentum) — a deferred deepening, not an oversight.
+  athleticStrength: number;
 }
 
 // ---------------------------------------------------------------------
@@ -621,15 +629,40 @@ export interface GreekChapter extends StudentOrgBase {
   housingAsked: boolean; // they have already petitioned for one — never ask again, whatever the answer was
 }
 
+// A hired member of the athletics staff — a head coach, an assistant coach,
+// or a trainer (see VarsityTeam below and data/studentLifeData.ts's coach
+// hiring pool). Mirrors Faculty's own hiring-pool shape (a rolled ceiling
+// grown toward over tenure, a salary recomputed live from current quality —
+// see facultyData.ts's grownStat/facultySalary) deliberately: Athletics V2's
+// whole ask was a SEPARATE pool that follows the same mechanism, not a new
+// one. Simpler than Faculty by one axis — one `quality` stat, not a
+// teaching/research split — since a coach is evaluated on one thing, not
+// two.
+export interface Coach {
+  id: string;
+  name: string;
+  gender: 'male' | 'female';
+  // A head/assistant coach candidate's field is the SPORTS id (see
+  // data/studentLifeData.ts) they coach — 'soccer-m', 'lacrosse-w', etc. — so
+  // only a candidate for THIS team's own sport is hireable into either of
+  // those two roles. A trainer's field is always TRAINER_FIELD
+  // ('strength-conditioning'): strength & conditioning is a discipline, not
+  // a sport, so one trainer pool serves every team regardless of sport.
+  field: string;
+  quality: number;          // current, 0..100 — grown toward qualityPotential over tenureWeeks, like Faculty.teaching/research
+  qualityPotential: number; // ceiling, rolled once at generation
+  tenureWeeks: number;      // weeks assigned to a team's roster; 0 for a candidate still on the market
+  weeksListed: number;      // weeks on the market; stops mattering once hired, exactly like Faculty.weeksListed
+  salary: number;           // current annual salary, recomputed live from quality + tenureWeeks (see coachSalaryFor)
+}
+
 // A sport club that petitioned and was granted varsity status (see
 // data/eventData.ts's 'varsity-petition' and data/studentLifeData.ts). Lives
 // alongside clubs/chapters in s.orgs.teams, reusing the same flat-per-org
 // capped social contribution and weeks-of-opex upkeep contract every other
-// organisation here does — the whole "shallow v1" premise of this feature is
-// that a varsity team is mechanically close to a Greek chapter that needs a
-// venue, not a parallel sport simulation. Promoted straight FROM a
-// StudentClub (same id — see studentLifeData.ts's promoteToVarsityTeam), so
-// the club stops drawing its old club-level contribution the same week.
+// organisation here does. Promoted straight FROM a StudentClub (same id —
+// see studentLifeData.ts's promoteToVarsityTeam), so the club stops drawing
+// its old club-level contribution the same week.
 export interface VarsityTeam extends StudentOrgBase {
   sport: string;               // a SPORTS id (see data/studentLifeData.ts)
   // The venue facilityType this sport needs, CAPTURED at grant time rather
@@ -637,8 +670,16 @@ export interface VarsityTeam extends StudentOrgBase {
   // sport -> venue-category mapping can never strand an existing team's
   // reference to the venue it was actually promised.
   venueCategory: FacilityType;
-  coachName: string;      // auto-generated from the faculty name pool the week the team goes varsity — not recruited (see facultyData.ts's rollCoachName; the standing candidate market is a deferred deepening)
-  coachBaseSalary: number; // fixed in dollars at the moment the coach was hired, weeks-of-opex sized like a club's own upkeepPerWeek — an appreciating premium on top is computed live (see studentLifeData.ts's coachSalary), in the faculty tenure spirit
+  // The three roles Athletics V2 asks every team to staff (see Coach
+  // above). All three start vacant (null) the week a team goes varsity —
+  // hired from s.orgs.coachCandidates through the Athletics tab, same as a
+  // faculty hire, rather than auto-generated the way a v1 team's single
+  // coachName used to be. A vacant role is a real, felt gap: teamQuality
+  // (studentLifeData.ts) scores it at the same floor an empty course slot
+  // would.
+  headCoach: Coach | null;
+  assistantCoach: Coach | null;
+  trainer: Coach | null;
   // Whether the team can actually compete yet. Goes straight to 'active' if
   // a compatible venue was already 'done' when the petition was granted
   // (the "second team in a category" case); otherwise it sits here until
@@ -668,17 +709,25 @@ export interface OrgPetition {
   upkeepPerWeek: number; // sized in weeks of opex the week the petition was raised
 }
 
-// The one athletics-wide funding dial (see data/studentLifeData.ts's
-// ATHLETICS_INVESTMENT_TIERS). Scales every active varsity team's social
-// contribution AND the whole program's upkeep together — deliberately not a
-// per-team budget, so v1 athletics stays one lever the player turns for the
-// whole department, not a line item per sport.
-export type AthleticsInvestmentTier = 'low' | 'medium' | 'high';
+// The one athletics-wide recruiting & scholarship budget dial (see
+// data/studentLifeData.ts's ATHLETICS_BUDGET_TIERS). Scales every active
+// varsity team's social contribution AND the whole program's upkeep
+// together, same as the investment tier it replaces — deliberately not a
+// per-team budget, so athletics stays one lever the player turns for the
+// whole department, not a line item per sport — and now ALSO feeds
+// teamQuality (studentLifeData.ts): a bigger budget means better recruiting,
+// not just a bigger program.
+export type AthleticsBudgetTier = 'low' | 'medium' | 'high';
 
 export interface StudentOrgState {
   clubs: StudentClub[];
   chapters: GreekChapter[];
   teams: VarsityTeam[];
+  // The standing coach/trainer hiring pool (see Coach above and
+  // data/studentLifeData.ts's tickCoachCandidatePool) — mirrors s.candidates
+  // (Faculty's own market), just scoped to athletics and kept separate per
+  // the design ask for its own pool.
+  coachCandidates: Coach[];
   // Petitions raised since the last summer boundary, drained wholesale
   // there: approved ones become organisations, the rest are declined.
   pendingPetitions: OrgPetition[];
@@ -689,7 +738,7 @@ export interface StudentOrgState {
   hellenicCouncilApproved: boolean;
   hellenicCouncilOffered: boolean;
   lastFormationWeek: number; // absolute week a club or chapter last formed; 0 = never
-  athleticsInvestment: AthleticsInvestmentTier;
+  athleticsBudget: AthleticsBudgetTier;
 }
 
 // Private/public is the only starting fork (see README's "Startup and

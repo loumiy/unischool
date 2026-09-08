@@ -12,12 +12,13 @@ import { tickPrestige } from '../systems/prestige/prestigeSystem';
 import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { tickEvents } from '../systems/events/eventSystem';
 import { tickStudentLife } from '../systems/studentlife/studentLifeSystem';
+import { tickAthletics } from '../systems/athletics/athleticsSystem';
 import { tickDemands } from '../systems/demands/demandSystem';
 import { findDecisionEvent } from '../data/eventData';
 import { LIBRARY_TIER1_ID, nextLibraryFloor, servedUpkeep } from '../data/facilitiesData';
 import {
   CHAPTER_APPROVAL_SATISFACTION_NUDGE, CHAPTER_DECLINE_SATISFACTION_HIT,
-  CLUB_APPROVAL_SATISFACTION_NUDGE, CLUB_DECLINE_SATISFACTION_HIT, activatePetition,
+  CLUB_APPROVAL_SATISFACTION_NUDGE, CLUB_DECLINE_SATISFACTION_HIT, activatePetition, TRAINER_FIELD,
 } from '../data/studentLifeData';
 import {
   canPlace, canSiteRetroactively, footprintOf, isInBounds, isPlaceableKind,
@@ -50,6 +51,12 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   // quality) only change at the summer boundary; every other input can move
   // any week.
   tickPrestige,
+  // After tickPrestige, before tickFinance: a coach's grown quality/salary
+  // (see systems/athletics/athleticsSystem.ts) should be in the SAME
+  // week's varsityTeamUpkeep read, not a week stale — the same "feeds this
+  // week's finance" reasoning tickResearch/tickPrestige's own placement
+  // uses.
+  tickAthletics,
   tickFinance,
   // After tickFinance, before tickSatisfaction: a student organisation
   // petition is sized in weeks of THIS week's operating cost, and an
@@ -336,13 +343,44 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
-    // The one athletics-wide funding lever (see data/studentLifeData.ts's
-    // ATHLETICS_INVESTMENT_TIERS). No cost, no gate, no log line — this is
-    // a standing dial, not a decision, and reads live everywhere it matters
-    // (financeSystem's studentLifeUpkeep line, satisfactionSystem's social
-    // attribute) the very next tick.
-    case 'SET_ATHLETICS_INVESTMENT': {
-      s.orgs.athleticsInvestment = action.tier;
+    // The one athletics-wide recruiting & scholarship budget lever (see
+    // data/studentLifeData.ts's ATHLETICS_BUDGET_TIERS). No cost, no gate,
+    // no log line — this is a standing dial, not a decision, and reads live
+    // everywhere it matters (financeSystem's studentLifeUpkeep line,
+    // satisfactionSystem's social attribute, teamQuality) the very next
+    // tick.
+    case 'SET_ATHLETICS_BUDGET': {
+      s.orgs.athleticsBudget = action.tier;
+      return s;
+    }
+
+    // Hires a listed coach candidate into one of a team's three staff
+    // roles. Every gate is checked here, not trusted from the UI, the same
+    // discipline HIRE_FACULTY's own simplicity relies on the candidate
+    // pool's shape to uphold — but a coach hire has real ways to be invalid
+    // (wrong field for the role, an already-filled slot) that a plain
+    // splice can't rule out by construction, so they're checked explicitly.
+    case 'HIRE_COACH': {
+      const idx = s.orgs.coachCandidates.findIndex((c) => c.id === action.candidateId);
+      const team = s.orgs.teams.find((t) => t.id === action.teamId);
+      if (idx === -1 || !team) return s;
+      const candidate = s.orgs.coachCandidates[idx];
+      const neededField = action.role === 'trainer' ? TRAINER_FIELD : team.sport;
+      if (candidate.field !== neededField) return s;
+      const slot = action.role === 'head' ? 'headCoach' : action.role === 'assistant' ? 'assistantCoach' : 'trainer';
+      if (team[slot] !== null) return s; // fire the incumbent first — see FIRE_COACH
+      s.orgs.coachCandidates.splice(idx, 1);
+      candidate.tenureWeeks = 0;
+      candidate.weeksListed = 0;
+      team[slot] = candidate;
+      return s;
+    }
+
+    case 'FIRE_COACH': {
+      const team = s.orgs.teams.find((t) => t.id === action.teamId);
+      if (!team) return s;
+      const slot = action.role === 'head' ? 'headCoach' : action.role === 'assistant' ? 'assistantCoach' : 'trainer';
+      team[slot] = null;
       return s;
     }
 

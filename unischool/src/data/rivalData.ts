@@ -14,7 +14,35 @@ import type { Rival } from '../state/types';
 // real early-game growth, not a first-week fluke — see rivalsSystem.ts
 // and the PR notes for the exact resulting threshold.
 // ---------------------------------------------------------------------
+
+// Athletics V2's own ranking axis (see types.ts's Rival.athleticStrength and
+// rivalsSystem.ts's athleticRank). DERIVED rather than hand-authored per
+// school below — 55 more hand-picked numbers would be pure busywork with no
+// signal a formula can't already give — but not a straight copy of
+// reputation either: a deterministic hash of the school's own id seeds a
+// wide (0.6x-1.4x) multiplier on reputation, so athletic strength loosely
+// tracks academic standing (a bigger, better-resourced school fields a
+// bigger program, on average) while staying genuinely independent per
+// school — a reputable college can be an athletic minnow and a mid-table
+// university can be a real power, same as real conferences. Deterministic
+// off the id (not Math.random()) so it's stable across a run rather than
+// reshuffling on every reload.
+function hashUnit(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 1_000_003;
+  return h / 1_000_003; // 0..1
+}
+
+export function athleticStrengthFor(reputation: number, id: string): number {
+  const multiplier = 0.6 + hashUnit(id) * 0.8; // 0.6..1.4
+  return Math.max(10, Math.min(100, Math.round(reputation * multiplier)));
+}
+
 export function initialRivals(): Rival[] {
+  return baseRivals().map((r) => ({ ...r, athleticStrength: athleticStrengthFor(r.reputation, r.id) }));
+}
+
+function baseRivals(): Array<Omit<Rival, 'athleticStrength'>> {
   return [
     // --- original five ---
     { id: 'r1', name: 'Ashcombe University', reputation: 92, momentum: 0.2 },

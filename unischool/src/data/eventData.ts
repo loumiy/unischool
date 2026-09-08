@@ -1,6 +1,6 @@
 import type { Buildable, Faculty, GameState, GreekChapter, LogEntry } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
-import { FACULTY_FIELDS, generateCandidate, rollCoachName, rollSurname } from './facultyData';
+import { FACULTY_FIELDS, generateCandidate, rollSurname } from './facultyData';
 import { money, rollAmount, weeksOfOpEx } from './moneyScale';
 import {
   CHAPTER_HOUSE_CAPACITY_BONUS, CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
@@ -449,10 +449,14 @@ const GREEK_HOUSE_REFUSAL_SATISFACTION_HIT = 2;
 // genuine construction project the player commits capacity to, not a line
 // item this event's own cost quietly pre-pays. VARSITY_ESTABLISH_COST
 // below therefore prices the PROGRAM (a coach, uniforms, a conference's
-// dues) — never the building.
+// dues) — never the building. The coaching staff itself is no longer
+// costed here at all: a head coach, assistant coach, and trainer are hired
+// separately from the Athletics tab's own candidate pool, each drawing
+// their own salary the same way a faculty hire does (see
+// studentLifeData.ts's coachSalaryFor) — VARSITY_ESTABLISH_COST_WEEKS below
+// prices only the program's launch (uniforms, a conference's dues).
 const VARSITY_ESTABLISH_COST_WEEKS = 2.5;
-const VARSITY_COACH_BASE_SALARY_WEEKS_OF_OPEX = 0.0018; // fixed at hire; appreciates live with tenure (see studentLifeData.ts's coachSalary)
-const VARSITY_TEAM_UPKEEP_WEEKS_OF_OPEX = 0.003;        // the program's own running cost, on top of the coach — travel, equipment, officiating
+const VARSITY_TEAM_UPKEEP_WEEKS_OF_OPEX = 0.003;        // the program's own running cost, on top of its coaching staff — travel, equipment, officiating
 const VARSITY_DECLINE_SATISFACTION_HIT = 2;             // same weight as a chapter's housing refusal — the club stays exactly as it was, just told no
 
 // The week a club's five-year mark (studentLifeData.ts's VARSITY_PETITION_
@@ -1142,7 +1146,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           const sport = sportById(ctx.subjectField);
           const venue = sport ? venueForCategory(s, sport.venueCategory) : undefined;
           const ready = venue?.status === 'done';
-          return `${money(ctx.amount ?? 0)} up front for a coach and a program budget. ` + (
+          return `${money(ctx.amount ?? 0)} up front for a program budget — the coaching staff is hired separately, from the Athletics tab's own candidate pool. ` + (
             ready
               ? `${venue!.name} is already standing, so the team is varsity-active immediately.`
               : `${venue ? venue.name : 'A shared venue'} is revealed for construction on the build rail — the team is varsity-active once it is built, and shared with any other team in the same category.`
@@ -1155,21 +1159,18 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           if (!club || !sport) return entry(s, 'The petition could not be resolved.', 'info');
           const venue = venueForCategory(s, sport.venueCategory);
           const status = venue?.status === 'done' ? 'active' : 'awaitingVenue';
-          const coachName = rollCoachName(sport.gender === 'women' ? 'female' : 'male');
           const team = promoteToVarsityTeam(s, club, {
             sport: sport.id,
             name: sport.teamName,
             venueCategory: sport.venueCategory,
-            coachName,
-            coachBaseSalary: weeksOfOpEx(s, VARSITY_COACH_BASE_SALARY_WEEKS_OF_OPEX),
             upkeepPerWeek: weeksOfOpEx(s, VARSITY_TEAM_UPKEEP_WEEKS_OF_OPEX),
             status,
           });
           return entry(
             s,
             status === 'active'
-              ? `${team.name} is now a varsity program, coached by ${coachName}.`
-              : `${team.name} is now a varsity program, coached by ${coachName} — awaiting its venue before it can compete.`,
+              ? `${team.name} is now a varsity program — head coach, assistant coach, and trainer all still to be hired from the Athletics tab.`
+              : `${team.name} is now a varsity program, awaiting its venue before it can compete — head coach, assistant coach, and trainer all still to be hired from the Athletics tab.`,
             'good',
           );
         },

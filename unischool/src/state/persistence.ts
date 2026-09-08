@@ -1,13 +1,16 @@
-import type { Buildable, FacilityType, GameState, Pathways, Placement, StudentClub } from './types';
+import type { Buildable, Coach, FacilityType, GameState, Pathways, Placement, StudentClub } from './types';
 import {
   firstFreeSpot, footprintFits, footprintIsClear, footprintOf, isInBounds, isPlaceableKind,
   parsePathTileKey, pathTileKey, placementFor,
 } from './campusMap';
-import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from './types';
+import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR } from './types';
 import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES, ORIGIN_NATIONALITIES } from '../data/facultyData';
 import { initialTech } from '../data/techData';
 import { initialFacilities } from '../data/facilitiesData';
-import { LEGACY_TWO_GENDER_SPORT_MIGRATION, SPORTS } from '../data/studentLifeData';
+import {
+  coachSalaryFor, initialCoachCandidatePool, LEGACY_TWO_GENDER_SPORT_MIGRATION, SPORTS,
+} from '../data/studentLifeData';
+import { athleticStrengthFor } from '../data/rivalData';
 
 // ---------------------------------------------------------------------
 // Save / load (see README's "Save / load"). A run is measured in hours, so
@@ -602,7 +605,38 @@ export const SAVE_KEY = 'unischool.save';
 // freshly declined: the honest "we don't know when" answer, and it means
 // the club is never instantly re-offered the moment an old save loads,
 // only after its own five-year cooldown from here. See MIGRATIONS[27].
-export const SAVE_VERSION = 28;
+//
+// v28 -> v29: Athletics V2 (see README's "Student life" and
+// data/studentLifeData.ts's coaching-staff block). Four shape changes:
+//
+//   - VarsityTeam.coachName/coachBaseSalary (a single auto-generated name
+//     and a weeks-of-opex-scaled dollar figure) are replaced by
+//     headCoach/assistantCoach/trainer: Coach | null, three separately
+//     hireable roles. A pre-v29 team's old coachName/coachBaseSalary become
+//     its new headCoach — a REAL recovery of the name (nothing about it
+//     needed to change), not a fresh roll — with a rolled quality (there is
+//     no quality figure to recover; the old model never had one) and a
+//     tenureWeeks estimate from the team's own foundedYear, so a
+//     long-retained migrated coach doesn't read as a brand-new hire. The
+//     assistant coach and trainer roles arrive vacant: a pre-v29 team never
+//     had them, so there is nothing to recover, only real vacancies for the
+//     player to fill from here.
+//   - StudentOrgState gains a required `coachCandidates` pool — seeded with
+//     a full, real market (initialCoachCandidatePool(), the same
+//     "starts full, not empty" reasoning facultyData.ts's own pool uses),
+//     not an empty array a migrated save would otherwise wait ~6 weeks of
+//     organic churn to fill.
+//   - StudentOrgState.athleticsInvestment is renamed to athleticsBudget —
+//     same tier value, same meaning, carried forward unchanged; the rename
+//     is cosmetic (see types.ts's AthleticsBudgetTier).
+//   - Rival gains a required `athleticStrength` — derived the exact same
+//     way a fresh game's initialRivals() derives it (rivalData.ts's
+//     athleticStrengthFor, a deterministic function of the rival's own id
+//     and CURRENT reputation), so a migrated save's standings read exactly
+//     like a fresh game's would at the same reputation, not a special case.
+//
+// See MIGRATIONS[28].
+export const SAVE_VERSION = 29;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -830,14 +864,21 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   // that simply never organised one.
   7: (state) => {
     state.orgs = {
-      clubs: [], chapters: [], teams: [], pendingPetitions: [],
+      clubs: [], chapters: [], teams: [],
+      // A v7 save has no coaching-staff market either — the same "genuinely
+      // had none" reasoning as the rest of this fill-in. MIGRATIONS[28]
+      // (v28 -> v29) is what actually seeds a real pool for every save
+      // reaching Athletics V2, regardless of which historical path it took
+      // to get here — this empty array is never the final word.
+      coachCandidates: [],
+      pendingPetitions: [],
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
       // Filled in here (rather than left for the v15 -> v16 migration to
       // backfill) because this step reconstructs the WHOLE slice from
       // nothing — a v7 save has no orgs at all — so there is nothing later
       // for v15 -> v16 to find missing; it simply runs as a no-op on a save
       // that came through here first.
-      athleticsInvestment: 'medium',
+      athleticsBudget: 'medium',
     };
   },
 
@@ -1104,8 +1145,12 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   // reveal-gated and nothing in a migrated save can have earned the gate.
   15: (state) => {
     if (!Array.isArray(state.orgs.teams)) state.orgs.teams = [];
-    if (typeof state.orgs.athleticsInvestment !== 'string') {
-      state.orgs.athleticsInvestment = 'medium';
+    // Backfilled straight to the CURRENT (v29+) field name — MIGRATIONS[28]
+    // only RENAMES an `athleticsInvestment` it finds, so a pre-v16 save
+    // (which never had either field) needs the real final name here.
+    const legacyOrgs = state.orgs as typeof state.orgs & { athleticsInvestment?: string };
+    if (typeof legacyOrgs.athleticsBudget !== 'string' && typeof legacyOrgs.athleticsInvestment !== 'string') {
+      state.orgs.athleticsBudget = 'medium';
     }
     for (const club of state.orgs.clubs) {
       const legacy = club as Partial<StudentClub> & { varsityAsked?: boolean };
@@ -1413,6 +1458,71 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
       const legacy = club as unknown as { varsityAsked?: boolean; varsityLastAskedYear?: number | null };
       legacy.varsityLastAskedYear = legacy.varsityAsked ? state.clock.year : null;
       delete legacy.varsityAsked;
+    }
+  },
+
+  // v28 -> v29: Athletics V2. See the SAVE_VERSION header comment above for
+  // the full shape change; this just applies it.
+  28: (state) => {
+    // Rename athleticsInvestment -> athleticsBudget (same value, same
+    // meaning). Only present on a save that never passed through
+    // MIGRATIONS[7]'s full orgs reconstruction, which already writes the
+    // new name directly.
+    const legacyOrgs = state.orgs as unknown as { athleticsInvestment?: string };
+    if (typeof legacyOrgs.athleticsInvestment === 'string' && typeof state.orgs.athleticsBudget !== 'string') {
+      state.orgs.athleticsBudget = legacyOrgs.athleticsInvestment as GameState['orgs']['athleticsBudget'];
+    }
+    delete legacyOrgs.athleticsInvestment;
+    if (typeof state.orgs.athleticsBudget !== 'string') state.orgs.athleticsBudget = 'medium';
+
+    // Real, full coaching-staff market — see the header comment's "starts
+    // full, not empty" reasoning.
+    if (!Array.isArray(state.orgs.coachCandidates)) {
+      state.orgs.coachCandidates = initialCoachCandidatePool();
+    }
+
+    // Every pre-v29 team's coachName/coachBaseSalary become its headCoach —
+    // the name is a real recovery, quality is a fresh roll (there was never
+    // a quality figure to recover), and tenureWeeks is estimated from the
+    // team's own foundedYear so a long-retained coach doesn't read as a
+    // brand-new hire the week this migration runs.
+    for (const team of state.orgs.teams) {
+      const legacy = team as unknown as {
+        coachName?: string; coachBaseSalary?: number;
+        headCoach?: Coach | null; assistantCoach?: Coach | null; trainer?: Coach | null;
+      };
+      if (legacy.headCoach === undefined) {
+        if (typeof legacy.coachName === 'string') {
+          const tenureWeeks = Math.max(0, Math.round((state.clock.year - team.foundedYear) * WEEKS_PER_YEAR));
+          const quality = 40 + Math.round(Math.random() * 35); // 40..75 — no prior signal, the same "fresh roll" honesty MIGRATIONS[26] uses for gender
+          legacy.headCoach = {
+            id: crypto.randomUUID(),
+            name: legacy.coachName,
+            gender: Math.random() < 0.5 ? 'male' : 'female', // no signal to recover — a pre-v29 coach was never gendered
+            field: team.sport,
+            quality,
+            qualityPotential: Math.min(100, quality + 15),
+            tenureWeeks,
+            weeksListed: 0,
+            salary: coachSalaryFor(quality, tenureWeeks),
+          };
+        } else {
+          legacy.headCoach = null;
+        }
+      }
+      if (legacy.assistantCoach === undefined) legacy.assistantCoach = null;
+      if (legacy.trainer === undefined) legacy.trainer = null;
+      delete legacy.coachName;
+      delete legacy.coachBaseSalary;
+    }
+
+    // Every rival gains athleticStrength, derived the same way a fresh
+    // game's initialRivals() would at this rival's current reputation.
+    for (const r of state.rivals) {
+      const legacy = r as unknown as { athleticStrength?: number };
+      if (typeof legacy.athleticStrength !== 'number') {
+        legacy.athleticStrength = athleticStrengthFor(r.reputation, r.id);
+      }
     }
   },
 };

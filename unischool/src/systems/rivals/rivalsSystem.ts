@@ -1,5 +1,6 @@
 import type { GameState } from '../../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../../state/types';
+import { athleticProgramStrength } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
 // Rivals evolve so the ranking stays a live target across decades (see
@@ -94,6 +95,25 @@ export function rankedList(s: GameState) {
 // The player's 1-indexed position in the full ranked list.
 export function playerRank(s: GameState): number {
   return rankedList(s).findIndex((r) => r.isPlayer) + 1;
+}
+
+// Athletics V2's own ranking axis (item 4's "scores & standings, requires
+// giving rival schools athletic strength values") — the exact same shape as
+// playerRank/rankedList above, just sorted on athleticStrength/
+// athleticProgramStrength instead of reputation. A second, INDEPENDENT
+// leaderboard: a school can be an academic power and an athletic minnow, or
+// the reverse, same as real conferences (see rivalData.ts's
+// athleticStrengthFor for why the two axes are deliberately decoupled).
+export function athleticRankedList(s: GameState) {
+  const all = [
+    { name: institutionName(s.self), strength: athleticProgramStrength(s), isPlayer: true },
+    ...s.rivals.map((r) => ({ name: r.name, strength: r.athleticStrength, isPlayer: false })),
+  ];
+  return all.sort((a, b) => b.strength - a.strength);
+}
+
+export function athleticRank(s: GameState): number {
+  return athleticRankedList(s).findIndex((r) => r.isPlayer) + 1;
 }
 
 // ---------------------------------------------------------------------

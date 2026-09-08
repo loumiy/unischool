@@ -1,9 +1,10 @@
 import type {
-  AthleticsInvestmentTier, Buildable, FacilityType, GameState, GreekChapter, OrgPetition,
+  AthleticsBudgetTier, Buildable, Coach, FacilityType, GameState, GreekChapter, OrgPetition,
   StudentClub, StudentOrgBase, VarsityTeam,
 } from '../state/types';
-import { totalEnrolled } from '../state/types';
+import { totalEnrolled, WEEKS_PER_YEAR } from '../state/types';
 import { weeksOfOpEx } from './moneyScale';
+import { rollCoachName } from './facultyData';
 
 // ---------------------------------------------------------------------
 // STUDENT ORGANISATIONS, AS DATA (see README's "Student life: clubs and
@@ -373,18 +374,22 @@ export function venueForCategory(s: GameState, category: FacilityType): Buildabl
   return s.tech.find((t) => t.kind === 'facility' && t.facilityType === category);
 }
 
-// The one athletics-wide funding lever (item 4). NOT per-team: the social
-// multiplier scales every active team's flat contribution together, and the
-// upkeep multiplier scales the whole program's running cost (coaches
-// included) together, so the player turns one dial for the department
-// rather than budgeting sport by sport. Also the hook a future ranking axis
-// would read (see the PR notes' flag) — this PR does not build one.
-export const ATHLETICS_INVESTMENT_ORDER: readonly AthleticsInvestmentTier[] = ['low', 'medium', 'high'];
-export const DEFAULT_ATHLETICS_INVESTMENT: AthleticsInvestmentTier = 'medium';
-export const ATHLETICS_INVESTMENT_TIERS: Record<AthleticsInvestmentTier, { socialMultiplier: number; upkeepMultiplier: number }> = {
-  low: { socialMultiplier: 0.6, upkeepMultiplier: 0.75 },
-  medium: { socialMultiplier: 1.0, upkeepMultiplier: 1.0 },
-  high: { socialMultiplier: 1.5, upkeepMultiplier: 1.4 },
+// The one athletics-wide recruiting & scholarship budget dial (item 4,
+// Athletics V2's replacement for the old flat "investment" tier). NOT
+// per-team: the social multiplier scales every active team's flat
+// contribution together, and the upkeep multiplier scales the whole
+// program's running cost (coaching staff included) together, so the player
+// turns one dial for the department rather than budgeting sport by sport.
+// `qualityBonus` is the new half (see teamQuality below): a bigger budget
+// buys better recruits on top of whatever the coaching staff itself is
+// worth, the "recruiting" a shallow model without an athlete roster of its
+// own can actually represent.
+export const ATHLETICS_BUDGET_ORDER: readonly AthleticsBudgetTier[] = ['low', 'medium', 'high'];
+export const DEFAULT_ATHLETICS_BUDGET: AthleticsBudgetTier = 'medium';
+export const ATHLETICS_BUDGET_TIERS: Record<AthleticsBudgetTier, { socialMultiplier: number; upkeepMultiplier: number; qualityBonus: number }> = {
+  low: { socialMultiplier: 0.6, upkeepMultiplier: 0.75, qualityBonus: 0 },
+  medium: { socialMultiplier: 1.0, upkeepMultiplier: 1.0, qualityBonus: 8 },
+  high: { socialMultiplier: 1.5, upkeepMultiplier: 1.4, qualityBonus: 18 },
 };
 
 // The flat per-team social contribution, same shape as CLUB/CHAPTER_SOCIAL_
@@ -398,20 +403,182 @@ export const ATHLETICS_INVESTMENT_TIERS: Record<AthleticsInvestmentTier, { socia
 // it can afford to sit close to a chapter's own weight.
 export const TEAM_SOCIAL_BONUS = 2.2;
 
-// The coach's salary curve (item 5's "appreciating cost... in the faculty
-// spirit"), deliberately simpler than facultyData.ts's exponential-approach
-// curve: a coach's BASE salary is fixed at hire (weeks-of-opex sized, like a
-// club's own upkeepPerWeek — see eventData.ts's VARSITY_COACH_BASE_SALARY_
-// WEEKS_OF_OPEX), and a linear-to-plateau premium on top of that fixed base
-// grows with tenure, live-read every week rather than mutated into state —
-// the same live-read contract every other org cost in this file follows.
-export const COACH_TENURE_PREMIUM_MAX = 0.6;   // up to +60% over the base, at full tenure
-export const COACH_TENURE_PLATEAU_YEARS = 8;   // linear ramp to the plateau — no compounding, no death-spiral risk from a long-retained coach
+// =====================================================================
+// COACHING STAFF (Athletics V2): a standing hiring pool mirroring
+// facultyData.ts's own market — generateCandidate/grownStat/facultySalary/
+// rollCandidateField/candidateArrivalsThisWeek — the SAME mechanism, kept
+// deliberately separate (its own pool, its own field vocabulary) rather
+// than folded into s.candidates, per the design ask. One `quality` stat
+// instead of Faculty's teaching/research split: a coach is evaluated on one
+// thing, not two.
+// =====================================================================
 
-export function coachSalary(team: VarsityTeam, s: GameState): number {
-  const tenureYears = Math.max(0, s.clock.year - team.foundedYear);
-  const premiumFraction = Math.min(1, tenureYears / COACH_TENURE_PLATEAU_YEARS);
-  return team.coachBaseSalary * (1 + COACH_TENURE_PREMIUM_MAX * premiumFraction);
+export const TRAINER_FIELD = 'strength-conditioning';
+
+// Coach candidate fields: one per SPORTS entry (a head/assistant coach
+// candidate) plus TRAINER_FIELD (a strength & conditioning candidate,
+// hireable as any team's trainer regardless of sport). Computed once and
+// memoized like facultyData.ts's own candidateListingWeights — SPORTS is a
+// fixed seed, not state.
+let coachFields: readonly string[] | null = null;
+function allCoachFields(): readonly string[] {
+  if (!coachFields) coachFields = [...SPORTS.map((sp) => sp.id), TRAINER_FIELD];
+  return coachFields;
+}
+
+// A new listing's field: uniform across every sport plus TRAINER_FIELD —
+// unlike facultyData.ts's demand-weighted rollCandidateField, athletics has
+// no curriculum-sized signal for "how many courses need this field" to
+// weight against, so every field is an equally likely listing. A simpler
+// market than faculty's, matching the shallower depth this whole feature
+// asks for.
+export function rollCoachField(): string {
+  const fields = allCoachFields();
+  return fields[Math.floor(Math.random() * fields.length)];
+}
+
+// Coaches skew disproportionately to the gender of the sport they coach
+// (item 1's explicit ask) — COACH_GENDER_MATCH_CHANCE of a men's-sport
+// listing rolls male, and the mirror for women's; a strength &
+// conditioning trainer's field carries no sport gender to skew toward, so
+// it stays a flat coin flip.
+const COACH_GENDER_MATCH_CHANCE = 0.82;
+
+function rollCoachGender(field: string): 'male' | 'female' {
+  const sportGender = sportById(field)?.gender;
+  if (!sportGender) return Math.random() < 0.5 ? 'male' : 'female'; // TRAINER_FIELD
+  const matchGender = sportGender === 'men' ? 'male' : 'female';
+  const otherGender = matchGender === 'male' ? 'female' : 'male';
+  return Math.random() < COACH_GENDER_MATCH_CHANCE ? matchGender : otherGender;
+}
+
+// Quality/salary curves — deliberately simpler than facultyData.ts's
+// exponential-approach growth (this feature's whole premise is a lighter
+// model than faculty), but the SAME shape: starts at a fraction of a rolled
+// ceiling and closes the gap linearly over a plateau window, rather than
+// jumping straight to the ceiling at hire.
+const COACH_POTENTIAL_MIN = 45;
+const COACH_POTENTIAL_RANGE = 45; // rolls 45..90 — a fresh candidate is never a lock for the very top of the market
+const COACH_STARTING_POTENTIAL_FRACTION = 0.55;
+const COACH_GROWTH_PLATEAU_YEARS = 6;
+
+export function grownCoachQuality(potential: number, tenureWeeks: number): number {
+  const start = potential * COACH_STARTING_POTENTIAL_FRACTION;
+  const tenureYears = tenureWeeks / WEEKS_PER_YEAR;
+  const grownFraction = Math.min(1, tenureYears / COACH_GROWTH_PLATEAU_YEARS);
+  return Math.round(start + (potential - start) * grownFraction);
+}
+
+// A flat-dollar curve, mirroring facultyData.ts's facultySalary shape
+// exactly (skill-linked base, tenure premium on top) rather than this
+// file's own weeksOfOpEx-scaled org-upkeep convention — a coach is a
+// PERSON on a salary, like a faculty hire, not an organisation's running
+// cost line. Simpler than facultySalary by one axis (one `quality` stat,
+// not teaching+research), same as the rest of this coaching-staff model.
+const COACH_SALARY_BASE = 35_000;
+const COACH_SALARY_PER_QUALITY_POINT = 900; // applied to CURRENT (grown) quality
+const COACH_SALARY_TENURE_PREMIUM_MAX = 0.5; // up to +50% over the base, at full tenure
+
+export function coachSalaryFor(quality: number, tenureWeeks: number): number {
+  const skillBase = COACH_SALARY_BASE + quality * COACH_SALARY_PER_QUALITY_POINT;
+  const tenureYears = tenureWeeks / WEEKS_PER_YEAR;
+  const tenurePremium = Math.min(1, tenureYears / COACH_GROWTH_PLATEAU_YEARS);
+  return Math.round(skillBase * (1 + COACH_SALARY_TENURE_PREMIUM_MAX * tenurePremium));
+}
+
+// One freshly-rolled hireable coach candidate, fresh (tenureWeeks 0,
+// weeksListed 0) — the coaching-staff mirror of facultyData.ts's own
+// generateCandidate.
+export function generateCoachCandidate(field: string): Coach {
+  const qualityPotential = COACH_POTENTIAL_MIN + Math.round(Math.random() * COACH_POTENTIAL_RANGE);
+  const quality = grownCoachQuality(qualityPotential, 0);
+  const gender = rollCoachGender(field);
+  return {
+    id: crypto.randomUUID(),
+    name: rollCoachName(gender),
+    gender,
+    field,
+    quality,
+    qualityPotential,
+    tenureWeeks: 0,
+    weeksListed: 0,
+    salary: coachSalaryFor(quality, 0),
+  };
+}
+
+// Coach candidates arrive already staggered across the listing window, the
+// exact same reasoning facultyData.ts's initialCandidatePool uses — a pool
+// seeded flat would empty and refill in synchronized waves instead of
+// churning smoothly.
+export const COACH_CANDIDATE_POOL_TARGET = 18;
+export const COACH_CANDIDATE_LISTING_WEEKS = 12;
+const COACH_CANDIDATE_ARRIVALS_PER_WEEK_MAX = 3;
+
+export function initialCoachCandidatePool(): Coach[] {
+  const pool: Coach[] = [];
+  for (let i = 0; i < COACH_CANDIDATE_POOL_TARGET; i += 1) {
+    const candidate = generateCoachCandidate(rollCoachField());
+    candidate.weeksListed = Math.floor(Math.random() * COACH_CANDIDATE_LISTING_WEEKS);
+    pool.push(candidate);
+  }
+  return pool;
+}
+
+export function coachCandidateArrivalsThisWeek(poolSize: number): number {
+  return Math.max(0, Math.min(COACH_CANDIDATE_POOL_TARGET - poolSize, COACH_CANDIDATE_ARRIVALS_PER_WEEK_MAX));
+}
+
+// Every hired coach across every team, in one flat list — what
+// systems/athletics/athleticsSystem.ts grows week over week, and what
+// financeSystem.ts's varsityTeamUpkeep (below) sums salary from.
+export function assignedCoaches(s: GameState): Coach[] {
+  const staff: Coach[] = [];
+  for (const t of s.orgs.teams) {
+    if (t.headCoach) staff.push(t.headCoach);
+    if (t.assistantCoach) staff.push(t.assistantCoach);
+    if (t.trainer) staff.push(t.trainer);
+  }
+  return staff;
+}
+
+// A team's quality (item 4's "team quality value (based on above)"): the
+// coaching staff's own weighted average — head coach counted heaviest,
+// matching real programs' own hierarchy — plus the budget tier's recruiting
+// bonus on top. A vacant role scores at COACH_VACANCY_QUALITY rather than 0:
+// an unstaffed slot is a real, felt gap, not an instant-fail state, the
+// same floor-not-crater philosophy satisfactionSystem.ts's ATTRIBUTE_SCORE_
+// FLOOR already uses.
+const COACH_VACANCY_QUALITY = 15;
+const HEAD_COACH_WEIGHT = 0.5;
+const ASSISTANT_COACH_WEIGHT = 0.25;
+const TRAINER_WEIGHT = 0.25;
+
+export function teamQuality(team: VarsityTeam, s: GameState): number {
+  const weighted =
+    (team.headCoach?.quality ?? COACH_VACANCY_QUALITY) * HEAD_COACH_WEIGHT
+    + (team.assistantCoach?.quality ?? COACH_VACANCY_QUALITY) * ASSISTANT_COACH_WEIGHT
+    + (team.trainer?.quality ?? COACH_VACANCY_QUALITY) * TRAINER_WEIGHT;
+  const budgetBonus = ATHLETICS_BUDGET_TIERS[s.orgs.athleticsBudget].qualityBonus;
+  return Math.max(0, Math.min(100, Math.round(weighted + budgetBonus)));
+}
+
+// The whole athletic department's standing (item 4's "scores & standings"),
+// read against rivals' own athleticStrength (rivalData.ts/rivalsSystem.ts's
+// athleticRank) the same way self.reputation is read against theirs. An
+// 'awaitingVenue' team doesn't count — it can't compete yet, same as it
+// contributes nothing to athleticsSocialBonus. A department with more
+// active teams reads as a bigger deal than one carrying a single strong
+// team (the same "breadth matters" shape curriculum breadth's own score
+// uses), capped so fielding a handful of teams doesn't need all fourteen
+// SPORTS entries to be taken seriously.
+const ATHLETIC_BREADTH_FOR_FULL_CREDIT = 6;
+
+export function athleticProgramStrength(s: GameState): number {
+  const active = s.orgs.teams.filter((t) => t.status === 'active');
+  if (active.length === 0) return 0;
+  const avgQuality = active.reduce((sum, t) => sum + teamQuality(t, s), 0) / active.length;
+  const breadth = Math.min(1, active.length / ATHLETIC_BREADTH_FOR_FULL_CREDIT);
+  return Math.round(avgQuality * (0.7 + 0.3 * breadth));
 }
 
 // The pipeline's whole cadence, per item's explicit ask: a sport club
@@ -462,8 +629,6 @@ export function promoteToVarsityTeam(s: GameState, club: StudentClub, opts: {
   sport: string;
   name: string;
   venueCategory: FacilityType;
-  coachName: string;
-  coachBaseSalary: number;
   upkeepPerWeek: number;
   status: VarsityTeam['status'];
 }): VarsityTeam {
@@ -477,8 +642,12 @@ export function promoteToVarsityTeam(s: GameState, club: StudentClub, opts: {
     upkeepPerWeek: opts.upkeepPerWeek,
     sport: opts.sport,
     venueCategory: opts.venueCategory,
-    coachName: opts.coachName,
-    coachBaseSalary: opts.coachBaseSalary,
+    // All three staff roles start vacant — hired from s.orgs.coachCandidates
+    // through the Athletics tab (see types.ts's VarsityTeam), not
+    // auto-generated the way a v1 team's coachName used to be.
+    headCoach: null,
+    assistantCoach: null,
+    trainer: null,
     status: opts.status,
   };
   s.orgs.teams.push(team);
@@ -663,25 +832,29 @@ export function studentOrgUpkeep(s: GameState): number {
 }
 
 // Every varsity team's running cost: its own program upkeep (fixed at
-// grant, like a club's) plus its coach's live, tenure-appreciating salary —
-// both scaled by the ONE investment-lever multiplier (item 4), and both
-// charged from the week the team goes varsity regardless of whether it is
-// still 'awaitingVenue' (a coach is on payroll and a program is running
-// long before the shared venue itself is finished). Live-read every week,
-// like the rest of this file, so disbanding a team removes its cost the
-// same week — see the PR notes on what disbanding is chosen to do to its
-// venue.
+// grant, like a club's) plus its coaching staff's live, tenure-appreciating
+// salaries (annual figures, converted to a weekly line the same way
+// financeSystem.ts converts every other salary) — both scaled by the ONE
+// budget-lever multiplier (item 4), and both charged from the week the team
+// goes varsity regardless of whether it is still 'awaitingVenue' (staff are
+// on payroll and a program is running long before the shared venue itself
+// is finished). Live-read every week, like the rest of this file, so
+// disbanding a team removes its cost the same week — see the PR notes on
+// what disbanding is chosen to do to its venue.
 export function varsityTeamUpkeep(s: GameState): number {
-  const tier = ATHLETICS_INVESTMENT_TIERS[s.orgs.athleticsInvestment];
-  return s.orgs.teams.reduce((sum, t) => sum + (t.upkeepPerWeek + coachSalary(t, s)) * tier.upkeepMultiplier, 0);
+  const tier = ATHLETICS_BUDGET_TIERS[s.orgs.athleticsBudget];
+  return s.orgs.teams.reduce((sum, t) => {
+    const staffAnnualSalary = (t.headCoach?.salary ?? 0) + (t.assistantCoach?.salary ?? 0) + (t.trainer?.salary ?? 0);
+    return sum + (t.upkeepPerWeek + staffAnnualSalary / WEEKS_PER_YEAR) * tier.upkeepMultiplier;
+  }, 0);
 }
 
 // The flat contribution live ACTIVE varsity teams make to the `social`
-// satisfaction attribute, scaled by the investment lever's social
-// multiplier — the athletics half of studentLifeSocialBonus below. An
-// 'awaitingVenue' team contributes nothing (see TEAM_SOCIAL_BONUS).
+// satisfaction attribute, scaled by the budget lever's social multiplier —
+// the athletics half of studentLifeSocialBonus below. An 'awaitingVenue'
+// team contributes nothing (see TEAM_SOCIAL_BONUS).
 export function athleticsSocialBonus(s: GameState): number {
-  const tier = ATHLETICS_INVESTMENT_TIERS[s.orgs.athleticsInvestment];
+  const tier = ATHLETICS_BUDGET_TIERS[s.orgs.athleticsBudget];
   const activeTeams = s.orgs.teams.filter((t) => t.status === 'active').length;
   return activeTeams * TEAM_SOCIAL_BONUS * tier.socialMultiplier;
 }
