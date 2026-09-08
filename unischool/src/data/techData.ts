@@ -571,6 +571,13 @@ export interface GraduateProgramSeed {
   buildingId?: string;
 }
 
+// Exported so facilitiesData.ts's Law Library tier (the library chain's
+// third tier) can gate on this building being done, the same cross-kind
+// prereq a graduate program's entry course takes on its own school building
+// — see facilitiesData.ts's LIBRARY_TIER3_ID for why the library chain, not
+// this file, is where that Buildable lives.
+export const LAW_SCHOOL_BUILDING_ID = 'BLDG-LAW';
+
 // Six programs, 37 courses (up from 28: Medicine 6 -> 12, Law 5 -> 8, both
 // now founding a top-level school rather than a sub-group — see
 // `buildingId` above). Deliberately small sets per program — each is
@@ -611,7 +618,7 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
     prestigeWeight: 1.6,
     gateMajorsRequired: 5,
     blurb: 'the law school',
-    buildingId: 'BLDG-LAW',
+    buildingId: LAW_SCHOOL_BUILDING_ID,
     courses: [
       { num: 501, title: 'Foundations of American Law', field: 'Law' },
       { num: 510, title: 'Contracts & Torts', field: 'Law' },
@@ -848,7 +855,11 @@ const PROFESSIONAL_BUILDING_NAMES: Record<string, string> = {
 };
 const PROFESSIONAL_BUILDING_DESCRIPTIONS: Record<string, string> = {
   MED: 'Teaching clinics, anatomy labs, and lecture halls for the School of Medicine.',
-  LAWS: 'Moot courtrooms, a law library, and seminar rooms for the School of Law.',
+  // No longer mentions a law library of its own — once this building is
+  // done, the campus can build one as the library chain's third tier (see
+  // facilitiesData.ts's LIBRARY_TIER3_ID), a real, separate landmark rather
+  // than a line of flavor text.
+  LAWS: 'Moot courtrooms and seminar rooms for the School of Law.',
 };
 
 function nodeId(prefix: string, num: number): string {

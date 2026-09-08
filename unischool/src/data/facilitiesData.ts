@@ -1,5 +1,6 @@
 import type { Buildable, FacilityType, SatisfactionAttributes } from '../state/types';
 import { FOUNDING_BODY } from './schoolTypeData';
+import { LAW_SCHOOL_BUILDING_ID } from './techData';
 
 // ---------------------------------------------------------------------
 // Campus-life facilities: the six non-housing, non-lab needs a campus has
@@ -193,7 +194,7 @@ function repeatableChain(opts: {
   return nodes;
 }
 
-// --- Library: single building, two tiers, academic ---
+// --- Library: single building, three tiers, academic ---
 // Tier 2 (the research library) is a real prestige gate, not just a bigger
 // tier 1 — see prestigeSystem.ts's library-adequacy cap for why staying
 // under-seated caps how far curriculum breadth alone can push prestige.
@@ -214,6 +215,32 @@ export const LIBRARY_TIER2_PRESTIGE_GATE = 70;
 // a campus with a research library and no lab still researches nothing,
 // because the gate is labs.
 const LIBRARY_TIER2_RESEARCH_RATE_BONUS = 0.15;
+
+// Tier 3 — the Law Library — gates on the School of Law's own building
+// (techData.ts's LAW_SCHOOL_BUILDING_ID) rather than another prestige
+// threshold: a landmark law library is something a campus earns by
+// founding a law school, not by hitting a number. It's a cross-kind
+// prereq exactly like a graduate program's entry course requiring its own
+// school building, just read the other way around.
+//
+// It's also the belated fix for a gap tier 1+2 always had: their combined
+// 4,700 served (against satisfactionSystem.ts's TARGET_RATIO.academic and
+// prestigeSystem.ts's own LIBRARY_TARGET_RATIO, both 0.15) is only ever
+// fully adequate up to ~31,000 enrolled — comfortably past for most of a
+// game, but well under the 40k-56k the balance sim's strongest strategies
+// reach by year 40 (see campusData.ts's own dorm-chain tuning comment for
+// the matching fix on the housing side). Sized to close that gap with room
+// to spare: 6,500 more served brings the maxed-out chain's full-adequacy
+// point to nearly 75,000 enrolled.
+const LIBRARY_TIER3_ID = 'LIB-T3';
+const LIBRARY_TIER3_SERVES = 6_500;
+const LIBRARY_TIER3_COST = 4_500_000;
+const LIBRARY_TIER3_WEEKS = 32;
+// A smaller top-up than tier 2's jump on purpose — this is a capstone, not
+// a second research library. Still additive with tier 2's bonus (see
+// researchData.ts's researchRateMultiplier): a school with both is rarer
+// and later than one with just the research library, and should feel it.
+const LIBRARY_TIER3_RESEARCH_RATE_BONUS = 0.08;
 
 // --- Student center: single building, two tiers, social + passive retention ---
 const STUDENT_CENTER_TIER1_ID = 'SCTR-T1';
@@ -505,6 +532,24 @@ export function initialFacilities(): Buildable[] {
         satisfactionAttribute: 'academic',
         upkeepPerWeek: servedUpkeep('library', LIBRARY_TIER2_SERVES),
         researchRateBonus: LIBRARY_TIER2_RESEARCH_RATE_BONUS,
+      },
+    },
+    {
+      id: LIBRARY_TIER3_ID,
+      kind: 'facility',
+      facilityType: 'library',
+      tier: 3,
+      name: 'Law Library',
+      description: `A landmark law library raised alongside the School of Law, its stacks and reading rooms open to the whole campus — adds ${LIBRARY_TIER3_SERVES.toLocaleString()} more seats and a further boost to research output. Unlocks once the School of Law is built.`,
+      cost: LIBRARY_TIER3_COST,
+      duration: LIBRARY_TIER3_WEEKS,
+      prereqs: [LIBRARY_TIER2_ID, LAW_SCHOOL_BUILDING_ID],
+      status: 'locked',
+      effects: {
+        servesPopulation: LIBRARY_TIER3_SERVES,
+        satisfactionAttribute: 'academic',
+        upkeepPerWeek: servedUpkeep('library', LIBRARY_TIER3_SERVES),
+        researchRateBonus: LIBRARY_TIER3_RESEARCH_RATE_BONUS,
       },
     },
 
