@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import type { Action } from '../state/actions';
 import type { GameState } from '../state/types';
 import { WEEKS_PER_YEAR, institutionName, totalEnrolled } from '../state/types';
@@ -35,9 +35,9 @@ function useSpeedHotkeys(setSpeed: (speed: Speed) => void, sandboxAllowed: boole
 
 const SPEED_LABELS: Record<Speed, string> = { paused: 'Paused', real: 'Play', double: 'Play 2×', fast: 'Fast (sandbox)' };
 
-// Below this, satisfaction is reported in the same alarmed red the header
-// already uses for negative cash. It is a DISPLAY threshold only — nothing
-// mechanical happens here; satisfaction's real consequence is the
+// Below this, satisfaction is reported in the same alarmed red the funds
+// figure already uses for negative cash. It is a DISPLAY threshold only —
+// nothing mechanical happens here; satisfaction's real consequence is the
 // continuous word-of-mouth curve in admissionsSystem.ts, which has no
 // cliff. This just puts a number the player was previously never shown in
 // front of them before the applicant pool starts shrinking.
@@ -57,87 +57,71 @@ function isTestUniversity(name: string): boolean {
   return name.trim().toLowerCase() === 'test';
 }
 
-// The save affordances, sitting in the persistent control bar next to the
-// speed buttons — the run-level controls belong together, and unlike the
-// playtesting buttons beside them these are for every player.
-//
-// The autosave already fires once a year at the summer admissions boundary
-// (see reducer.ts), so "Save" is not the only thing standing between the
-// player and a lost run; it is how they shorten the gap since last summer
-// before closing the tab. Its confirmation is the log line the action
-// writes, in the ticker under the map.
-//
-// "New Game" erases the save, so it asks first — inline, as a second click
-// on the same button, rather than a browser confirm() dialog that would
-// look nothing like the rest of the chrome. The armed state times out on
-// nothing and clears on Cancel; the only way through is a deliberate
-// second click.
-function SaveControls({ act }: { act: (a: Action) => void }) {
-  const [confirmingNewGame, setConfirmingNewGame] = useState(false);
+// ---------------------------------------------------------------------
+// C3 folded the old topbar (a masthead with the school's title and its
+// headline stats, plus a control bar with speed/save/new-game) into the
+// bottom Toolbar band instead — there is no more standalone status header
+// component, just these two pieces Toolbar.tsx composes into its left and
+// right zones. Save/New Game moved further still, into MainMenu.tsx's own
+// top-right overlay, since they're run-level actions rather than anything
+// that needs to sit beside the clock.
+// ---------------------------------------------------------------------
 
-  if (confirmingNewGame) {
-    return (
-      <>
-        <span className="newgame-confirm-label">Erase this run and start over?</span>
-        <button className="newgame-btn armed" onClick={() => act({ type: 'RESET' })}>
-          Erase & start over
-        </button>
-        <button className="newgame-btn" onClick={() => setConfirmingNewGame(false)}>
-          Cancel
-        </button>
-      </>
-    );
-  }
+// The bottom-left cluster: operating funds (now also the button that opens
+// Treasury — there is no separate Treasury icon in the middle row any
+// more) plus the handful of headline stats that used to sit in the old
+// masthead. Rank/enrolled/prestige/satisfaction show their bare figure only
+// now — no "of 350 beds" / "of 100" suffix — since each is read against
+// context available on its own tab (Admissions, Student Life) rather than
+// reconstructed here.
+export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
+  s: GameState; onOpenTreasury: () => void; treasuryOpen: boolean;
+}) {
+  const netWeekly = weeklyNet(s);
+  const rank = s.hasEnteredRankings ? playerRank(s) : null;
 
   return (
     <>
       <button
-        className="save-btn"
-        onClick={() => act({ type: 'SAVE_GAME' })}
-        title="Write the run to this browser now. The game also saves itself every summer, at admissions."
+        type="button"
+        className={`toolbar-funds-btn ${treasuryOpen ? 'active' : ''}`}
+        aria-expanded={treasuryOpen}
+        aria-label="Open Treasury"
+        title="Operating funds — opens Treasury"
+        onClick={onOpenTreasury}
       >
-        Save
+        <span className={`stat-value ${s.finance.cash < 0 ? 'money-negative' : 'money'}`}>${Math.round(s.finance.cash).toLocaleString()}</span>
+        <span className="toolbar-funds-net">{netWeekly >= 0 ? '+' : '-'}${Math.round(Math.abs(netWeekly)).toLocaleString()}/wk</span>
       </button>
-      <button
-        className="newgame-btn"
-        onClick={() => setConfirmingNewGame(true)}
-        title="Erase the saved run and found a new university."
-      >
-        New Game
-      </button>
+      <div className="toolbar-stats">
+        <div className="toolbar-stat">
+          <span className="stat-label">Rank</span>
+          <span className="stat-value">{rank ? `#${rank}` : '—'}</span>
+        </div>
+        <div className="toolbar-stat">
+          <span className="stat-label">Enrolled</span>
+          <span className="stat-value">{totalEnrolled(s.students).toLocaleString()}</span>
+        </div>
+        <div className="toolbar-stat">
+          <span className="stat-label">Prestige</span>
+          <span className="stat-value gold">{Math.round(s.self.reputation)}</span>
+        </div>
+        <div className="toolbar-stat">
+          <span className="stat-label">Satisfaction</span>
+          <span className={`stat-value ${s.students.satisfaction < SATISFACTION_WARN ? 'money-negative' : ''}`}>{Math.round(s.students.satisfaction)}</span>
+        </div>
+      </div>
     </>
   );
 }
 
-// The persistent header/status bar: the handful of state values that stay
-// meaningful no matter which tab is open (clock, cash, prestige, current
-// rank, enrollment, satisfaction) plus the speed controls, all visible
-// across every tab rather than scoped to one. Standing among peers
-// is otherwise a mid-game reveal (see README's "Rankings") — the rank stat
-// stays a dash until s.hasEnteredRankings fires, so this header doesn't
-// spoil that.
-//
-// Enrollment and satisfaction earn their place by that same rule: enrolled
-// students drive tuition revenue and are the scale the whole institution is
-// measured in, and satisfaction is the input to next summer's applicant
-// pool (see admissionsSystem.ts's word of mouth). Satisfaction in
-// particular used to be visible only inside the Admissions tab, so a
-// player could watch it bleed away for years without ever opening the one
-// screen that showed it.
-//
-// What the header does NOT carry is the long arc: the trend lines that
-// used to sit under prestige and enrollment cost vertical space at the top
-// of every screen to say something the Institutional History view (see
-// tabs/HistoryTab.tsx) already says properly, with axes and figures. The
-// header is the "right now" reading; the decades live one tab away.
-export default function StatusHeader({ s, speed, setSpeed, act }: {
-  s: GameState;
-  speed: Speed;
-  setSpeed: (speed: Speed) => void;
-  act: (a: Action) => void;
+// The bottom-right cluster: speed/playtest controls, then the school's own
+// identity and clock — prominent per the design ask, in place of the old
+// masthead's h1 and "Office of the President" eyebrow (dropped; it named a
+// role, not the school).
+export function SchoolAndClock({ s, speed, setSpeed, act }: {
+  s: GameState; speed: Speed; setSpeed: (speed: Speed) => void; act: (a: Action) => void;
 }) {
-  const netWeekly = weeklyNet(s);
-  const rank = s.hasEnteredRankings ? playerRank(s) : null;
   const showPlaytestControls = isTestUniversity(s.self.name);
   const visibleSpeeds = (Object.keys(SPEEDS) as Speed[]).filter(
     (sp) => showPlaytestControls || !SANDBOX_SPEEDS.includes(sp),
@@ -147,45 +131,16 @@ export default function StatusHeader({ s, speed, setSpeed, act }: {
 
   return (
     <>
-      <header className="masthead">
-        <div className="masthead-id">
-          <div className="eyebrow">Office of the President</div>
-          <h1>{institutionName(s.self)}</h1>
-        </div>
-        <div className="masthead-stats">
-          <div className="stat-block">
-            <div className="stat-label">Academic Year</div>
-            <div className="stat-value">Year {s.clock.year}</div>
-            <div className="stat-sub">{termName(s.clock.week)} · Week {s.clock.week}</div>
-          </div>
-          <div className="stat-block">
-            <div className="stat-label">Operating Funds</div>
-            <div className={`stat-value ${s.finance.cash < 0 ? 'money-negative' : 'money'}`}>${Math.round(s.finance.cash).toLocaleString()}</div>
-            <div className="stat-sub">{netWeekly >= 0 ? '+' : '-'}${Math.round(Math.abs(netWeekly)).toLocaleString()}/wk</div>
-          </div>
-          <div className="stat-block">
-            <div className="stat-label">Prestige</div>
-            <div className="stat-value gold">{Math.round(s.self.reputation)}</div>
-          </div>
-          <div className="stat-block">
-            <div className="stat-label">National Rank</div>
-            <div className="stat-value">{rank ? `#${rank}` : '—'}</div>
-            <div className="stat-sub">{rank ? `of ${s.rivals.length + 1}` : 'Unranked'}</div>
-          </div>
-          <div className="stat-block">
-            <div className="stat-label">Enrolled</div>
-            <div className="stat-value">{totalEnrolled(s.students).toLocaleString()}</div>
-            <div className="stat-sub">of {s.students.capacity.toLocaleString()} beds</div>
-          </div>
-          <div className="stat-block">
-            <div className="stat-label">Satisfaction</div>
-            <div className={`stat-value ${s.students.satisfaction < SATISFACTION_WARN ? 'money-negative' : ''}`}>{Math.round(s.students.satisfaction)}</div>
-            <div className="stat-sub">of 100</div>
-          </div>
-        </div>
-      </header>
-
-      <div className="controlbar">
+      <div className="toolbar-speed">
+        {showPlaytestControls && (
+          <button
+            className="grant-funds-btn"
+            onClick={() => act({ type: 'GRANT_FUNDS', amount: PLAYTEST_GRANT_AMOUNT })}
+            title="Playtest only — grants $1,000,000,000 to operating funds directly, no event behind it."
+          >
+            +$1B
+          </button>
+        )}
         <div className="speeds">
           {visibleSpeeds.map((sp) => (
             <button
@@ -201,18 +156,10 @@ export default function StatusHeader({ s, speed, setSpeed, act }: {
             </button>
           ))}
         </div>
-        <div className="controlbar-right">
-          {showPlaytestControls && (
-            <button
-              className="grant-funds-btn"
-              onClick={() => act({ type: 'GRANT_FUNDS', amount: PLAYTEST_GRANT_AMOUNT })}
-              title="Playtest only — grants $1,000,000,000 to operating funds directly, no event behind it."
-            >
-              +$1B
-            </button>
-          )}
-          <SaveControls act={act} />
-        </div>
+      </div>
+      <div className="toolbar-school">
+        <span className="toolbar-school-name">{institutionName(s.self)}</span>
+        <span className="toolbar-clock">Year {s.clock.year} · {termName(s.clock.week)} · Week {s.clock.week}</span>
       </div>
     </>
   );

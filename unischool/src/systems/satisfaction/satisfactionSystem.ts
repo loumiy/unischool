@@ -246,6 +246,66 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
   return { academic, social, basicNeeds, health };
 }
 
+// ---------------------------------------------------------------------
+// PER-ATTRIBUTE DETAIL, for the Student Life tab's expandable breakdown
+// (see StudentLifeTab.tsx). Same "read the real computation, don't re-
+// author it" rule as studentLifeSatisfaction below: every figure here is
+// pulled from the same servedPopulationFor/flatBonusFor/computed-bonus
+// terms computeSatisfactionBreakdown itself sums, so the expanded view can
+// never disagree with the rounded headline number sitting above it.
+// ---------------------------------------------------------------------
+export interface AttributeContributor {
+  label: string;
+  value: number; // a building's servesPopulation, or a named bonus in points
+}
+
+export interface AttributeDetail {
+  contributors: AttributeContributor[]; // 'done' buildings serving this attribute, largest first
+  totalServed: number;
+  neededForFullScore: number;           // capacity x TARGET_RATIO[attribute] — the "fully covered" reference point
+  bonuses: AttributeContributor[];      // named point bonuses beyond served population (faculty quality, prestige pride, ...)
+  score: number;                        // the same 0..100 this.week reads computeSatisfactionBreakdown() for
+  dormant: boolean;                     // health only, below its population gate — see computeSatisfactionBreakdown above
+}
+
+export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttributes): AttributeDetail {
+  const capacity = s.students.capacity;
+  const dormant = attribute === 'health' && capacity < HEALTH_CENTER_TIER1_CAPACITY_GATE;
+
+  const contributors = s.tech
+    .filter((t) => t.status === 'done' && t.effects?.satisfactionAttribute === attribute && (t.effects?.servesPopulation ?? 0) > 0)
+    .map((t) => ({ label: t.name, value: t.effects!.servesPopulation! }))
+    .sort((a, b) => b.value - a.value);
+  const totalServed = contributors.reduce((sum, c) => sum + c.value, 0);
+
+  const bonuses: AttributeContributor[] = [];
+  const flat = flatBonusFor(s, attribute);
+  if (flat > 0) bonuses.push({ label: 'Quad & other flat contributors', value: flat });
+  if (attribute === 'academic') {
+    const facultyBonus = facultyQualityScore(s) * FACULTY_QUALITY_MAX_BONUS;
+    if (facultyBonus > 0) bonuses.push({ label: 'Faculty quality', value: facultyBonus });
+  }
+  if (attribute === 'social') {
+    const pride = clamp(s.self.reputation / REPUTATION_PRIDE_PRESTIGE_MAX, 0, 1) * REPUTATION_PRIDE_MAX_BONUS;
+    if (pride > 0) bonuses.push({ label: 'Campus pride (prestige)', value: pride });
+    const orgs = studentLifeSocialBonus(s);
+    if (orgs > 0) bonuses.push({ label: 'Clubs, Greek life & athletics', value: orgs });
+  }
+  if (attribute === 'basicNeeds') {
+    const affordability = clamp(s.admissions.scholarshipRate, 0, 1) * SCHOLARSHIP_AFFORDABILITY_MAX_BONUS;
+    if (affordability > 0) bonuses.push({ label: 'Scholarship affordability', value: affordability });
+  }
+
+  return {
+    contributors,
+    totalServed,
+    neededForFullScore: Math.round(capacity * TARGET_RATIO[attribute]),
+    bonuses,
+    score: computeSatisfactionBreakdown(s)[attribute],
+    dormant,
+  };
+}
+
 function weightedSum(breakdown: SatisfactionAttributes): number {
   return (
     breakdown.academic * ATTRIBUTE_WEIGHTS.academic +

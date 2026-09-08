@@ -19,19 +19,23 @@ const STROKE = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeL
 export function FacultyIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <path d="M12 4 3 8.5 12 13l9-4.5L12 4Z" />
-      <path d="M7 10.5V15c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4.5" />
-      <path d="M21 8.5V14" />
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M2.5 19.5c0-3.6 2.9-6.2 6.5-6.2s6.5 2.6 6.5 6.2" />
+      <path d="M15 8.2a2.7 2.7 0 1 1 0 5.4" />
+      <path d="M17.2 13.8c2.1.6 3.6 2.6 3.8 5.7" />
     </svg>
   );
 }
 
+// The grad cap FacultyIcon used to wear (mortarboard + tassel) — reassigned
+// here per the icon pass: curriculum is the degree itself, faculty are the
+// people (see FacultyIcon above).
 export function CurriculumIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <rect x="3" y="5" width="8" height="14" rx="1" />
-      <rect x="13" y="5" width="8" height="14" rx="1" />
-      <line x1="12" y1="5" x2="12" y2="19" />
+      <path d="M12 4 3 8.5 12 13l9-4.5L12 4Z" />
+      <path d="M7 10.5V15c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4.5" />
+      <path d="M21 8.5V14" />
     </svg>
   );
 }
@@ -55,10 +59,13 @@ export function AdmissionsIcon() {
   );
 }
 
+// A symmetric heart (mirrored exactly around x=12, unlike the old
+// hand-tuned one, which drifted lopsided at this glyph's small rendered
+// size) built from two matched cubic curves rather than freehand points.
 export function StudentLifeIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <path d="M12 20.5s-7.5-4.6-9.9-9C.5 7.8 2 4 5.8 4c2 0 3.7 1.1 4.5 2.7C11.1 5.1 12.8 4 14.8 4c3.8 0 5.3 3.8 3.7 7.5-2.4 4.4-9.9 9-9.9 9Z" />
+      <path d="M12 20 C12 20 3 14.3 3 8.3 C3 5.3 5.4 3.7 8 3.7 C9.8 3.7 11.3 4.8 12 6.4 C12.7 4.8 14.2 3.7 16 3.7 C18.6 3.7 21 5.3 21 8.3 C21 14.3 12 20 12 20 Z" />
     </svg>
   );
 }
@@ -73,20 +80,34 @@ export function HistoryIcon() {
   );
 }
 
+// A basketball, not a soccer ball: the pentagon-panel pattern the earlier
+// attempt used only reads at large sizes — at this glyph's actual rendered
+// size (20px) it collapsed into an illegible flower/badge. A plain circle
+// with a cross and two bowed seams reads as "a ball" clearly even tiny.
 export function AthleticsIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <polygon points="12 3 14.6 9.1 21.3 9.6 16.2 13.9 17.8 20.4 12 16.8 6.2 20.4 7.8 13.9 2.7 9.6 9.4 9.1" />
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 3v18" />
+      <path d="M3 12h18" />
+      <path d="M5.3 5.3c3.2 3 3.2 10.4 0 13.4" />
+      <path d="M18.7 5.3c-3.2 3-3.2 10.4 0 13.4" />
     </svg>
   );
 }
 
+// A bulldozer in side profile: tracks, body, cab, and a front blade on its
+// arm. Two crane attempts before this both read as a flag on a pole at
+// this glyph's small rendered size — a bulldozer's boxy, wide silhouette
+// holds up better that small than a crane's tall, thin one.
 export function BuildIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <rect x="9.5" y="1.8" width="6" height="8.6" rx="1.3" transform="rotate(45 12.5 6.1)" />
-      <line x1="9.8" y1="9.8" x2="3.2" y2="16.4" />
-      <line x1="2" y1="21" x2="6.6" y2="16.4" />
+      <rect x="2" y="15.5" width="15" height="3.5" rx="1.5" />
+      <rect x="6" y="10" width="12" height="6" rx="1" />
+      <rect x="9.5" y="5.5" width="6" height="5" rx="1" />
+      <path d="M2 15.5V11h2.5v3.5" />
+      <line x1="4.5" y1="12.2" x2="6" y2="12.2" />
     </svg>
   );
 }
@@ -216,6 +237,16 @@ export function AcademicIcon() {
       <line x1="15" y1="9.5" x2="15" y2="18" />
       <line x1="19" y1="9.5" x2="19" y2="18" />
       <line x1="3" y1="20" x2="21" y2="20" />
+    </svg>
+  );
+}
+
+export function MenuIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <line x1="4" y1="7" x2="20" y2="7" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <line x1="4" y1="17" x2="20" y2="17" />
     </svg>
   );
 }
