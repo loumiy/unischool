@@ -5,7 +5,7 @@ import { money, rollAmount, weeksOfOpEx } from './moneyScale';
 import { firstFreeSpot, footprintOf, placementFor } from '../state/campusMap';
 import {
   CHAPTER_HOUSE_CAPACITY_BONUS, CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
-  promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, venueForCategory,
+  promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, VARSITY_PETITION_MIN_TENURE_YEARS, venueForCategory,
 } from './studentLifeData';
 import { discoverySchools, graduateProgram, milestoneSchools } from './techData';
 
@@ -1188,11 +1188,11 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       {
         id: 'decline',
         label: 'Stay a club',
-        describe: () => `No cash spent. ${VARSITY_DECLINE_SATISFACTION_HIT}-point satisfaction dent that heals over the following weeks. The club keeps everything it already contributes and will not ask again.`,
+        describe: () => `No cash spent. ${VARSITY_DECLINE_SATISFACTION_HIT}-point satisfaction dent that heals over the following weeks. The club keeps everything it already contributes and will petition again in ${VARSITY_PETITION_MIN_TENURE_YEARS} years.`,
         cost: () => 0,
         apply: (s, ctx) => {
           const club = s.orgs.clubs.find((c) => c.id === ctx.subjectId);
-          if (club) club.varsityAsked = true;
+          if (club) club.varsityLastAskedYear = s.clock.year;
           dentSatisfaction(s, VARSITY_DECLINE_SATISFACTION_HIT);
           return entry(s, `${ctx.subjectName}'s petition to go varsity was declined.`, 'bad');
         },

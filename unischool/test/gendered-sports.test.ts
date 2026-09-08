@@ -47,7 +47,7 @@ function makeSportClub(id: string, sportId: string): StudentClub {
   const def = sportById(sportId)!;
   return {
     id, name: def.clubName, foundedYear: 1, foundingMembers: 14, foundingEnrolled: 350,
-    upkeepPerWeek: 100, sport: sportId, varsityAsked: false,
+    upkeepPerWeek: 100, sport: sportId, varsityLastAskedYear: null,
   };
 }
 

@@ -422,10 +422,14 @@ export const VARSITY_PETITION_MIN_TENURE_YEARS = 5;
 
 // A sport club eligible to be OFFERED the varsity petition: it plays a
 // sport, has cleared VARSITY_PETITION_MIN_TENURE_YEARS since founding, and
-// has never been asked before (whatever the answer was).
+// either has never been asked before or cleared the same tenure gate again
+// since its last decline — a rejection cools the ask down, it doesn't shut
+// it off (see StudentClub.varsityLastAskedYear).
 export function sportClubsAwaitingVarsity(s: GameState): StudentClub[] {
   return s.orgs.clubs.filter((c) =>
-    c.sport !== null && !c.varsityAsked && s.clock.year - c.foundedYear >= VARSITY_PETITION_MIN_TENURE_YEARS);
+    c.sport !== null
+    && s.clock.year - c.foundedYear >= VARSITY_PETITION_MIN_TENURE_YEARS
+    && (c.varsityLastAskedYear === null || s.clock.year - c.varsityLastAskedYear >= VARSITY_PETITION_MIN_TENURE_YEARS));
 }
 
 // Turns an approved club into a live VarsityTeam (item 2's "promotes the
@@ -619,7 +623,7 @@ export function activatePetition(s: GameState, petition: OrgPetition): void {
     upkeepPerWeek: petition.upkeepPerWeek,
   };
   if (petition.kind === 'club') {
-    const club: StudentClub = { ...base, sport: petition.sport ?? null, varsityAsked: false };
+    const club: StudentClub = { ...base, sport: petition.sport ?? null, varsityLastAskedYear: null };
     s.orgs.clubs.push(club);
   } else {
     const chapter: GreekChapter = {

@@ -263,7 +263,7 @@ function makeV24GenderedSportsSave(): void {
     ...(state.orgs as Loose),
     clubs: [{
       id: 'club-soccer', name: 'Soccer Club', foundedYear: 3, foundingMembers: 12, foundingEnrolled: 400,
-      upkeepPerWeek: 80, sport: 'soccer', varsityAsked: true, // already asked, whichever way — must survive untouched
+      upkeepPerWeek: 80, sport: 'soccer', varsityAsked: true, // pre-v28 shape — MIGRATIONS[27] converts this
     }],
     teams: [
       // One-gender: id doesn't move, but the name still gains "Team" —
@@ -309,7 +309,8 @@ function testGenderedSportsMigration(): void {
   if (club) {
     assert(club.sport === 'soccer-m', `bare 'soccer' club defaults to the men's lineage (got '${club.sport}')`);
     assert(club.name === "Men's Soccer Club", `club is renamed to match the new naming scheme (got '${club.name}')`);
-    assert(club.varsityAsked === true, "varsityAsked survives untouched — a migrated club doesn't re-open its own petition");
+    assert(club.varsityLastAskedYear === loaded.clock.year,
+      `pre-v28 varsityAsked=true converts to varsityLastAskedYear = the load-time clock year (got ${club.varsityLastAskedYear}, clock year ${loaded.clock.year})`);
   }
 
   const football = loaded.orgs.teams.find((t) => t.id === 'team-football');
@@ -347,6 +348,44 @@ function testGenderedSportsMigration(): void {
     !loaded.orgs.clubs.some((c) => c.sport === 'soccer-w') && !loaded.orgs.teams.some((t) => t.sport === 'soccer-w'),
     'no soccer-w record was invented by the migration — it is genuinely unformed, exactly like a fresh game',
   );
+}
+
+// ---- Test: v27's boolean varsityAsked converts to varsityLastAskedYear ----
+function testVarsityAskedMigration(): void {
+  const base = createInitialState('VarsityMigrator', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+  state.clock = { year: 9, week: 3 };
+  state.orgs = {
+    ...(state.orgs as Loose),
+    clubs: [
+      {
+        id: 'club-declined', name: 'Declined Club', foundedYear: 1, foundingMembers: 12, foundingEnrolled: 400,
+        upkeepPerWeek: 80, sport: 'soccer-m', varsityAsked: true,
+      },
+      {
+        id: 'club-unasked', name: 'Unasked Club', foundedYear: 4, foundingMembers: 10, foundingEnrolled: 400,
+        upkeepPerWeek: 70, sport: 'volleyball-m', varsityAsked: false,
+      },
+    ],
+  };
+  writeSave(27, state);
+
+  const loaded = loadGame();
+  assert(loaded !== null, 'v27 varsityAsked save loads (does not fall back to null)');
+  if (!loaded) return;
+
+  const declined = loaded.orgs.clubs.find((c) => c.id === 'club-declined');
+  assert(!!declined, 'the previously-declined club survives under its own id');
+  if (declined) {
+    assert(declined.varsityLastAskedYear === 9, `varsityAsked=true backfills to the load-time clock year (got ${declined.varsityLastAskedYear})`);
+    assert(!('varsityAsked' in declined), 'the old varsityAsked key is dropped, not left dangling');
+  }
+
+  const unasked = loaded.orgs.clubs.find((c) => c.id === 'club-unasked');
+  assert(!!unasked, 'the never-asked club survives under its own id');
+  if (unasked) {
+    assert(unasked.varsityLastAskedYear === null, `varsityAsked=false backfills to null (got ${unasked.varsityLastAskedYear})`);
+  }
 }
 
 // ---- Test: a current-version save round-trips unchanged ----
@@ -391,6 +430,7 @@ testArtsCapstoneRepoint();
 testSeenSeeded();
 testFoundingSeenExcludesStartingContent();
 testGenderedSportsMigration();
+testVarsityAskedMigration();
 testRoundTrip();
 testRejects();
 

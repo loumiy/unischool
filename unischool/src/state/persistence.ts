@@ -588,7 +588,21 @@ export const SAVE_KEY = 'unischool.save';
 // the common American-nationality case that carries no such signal. Nothing
 // mechanical reads either field — only the portrait does — so an imperfect
 // backfill costs nothing beyond what it would have anyway. See MIGRATIONS[26].
-export const SAVE_VERSION = 27;
+//
+// v27 -> v28: a declined varsity petition is no longer permanent (see
+// studentLifeData.ts's sportClubsAwaitingVarsity). StudentClub.varsityAsked
+// (a boolean, set true only on decline — see MIGRATIONS[15]) is replaced by
+// varsityLastAskedYear (the year of that decline, or null if never asked),
+// which the petition pipeline now re-checks against the same five-year
+// tenure gate a club clears once to be asked at all. A pre-v28 club that
+// was never asked (varsityAsked === false) simply gets null — identical
+// behaviour, nothing to recover. One that WAS declined (varsityAsked ===
+// true) has no recorded decline year to restore — the save never kept
+// one — so it is backfilled to the CURRENT clock year, i.e. treated as
+// freshly declined: the honest "we don't know when" answer, and it means
+// the club is never instantly re-offered the moment an old save loads,
+// only after its own five-year cooldown from here. See MIGRATIONS[27].
+export const SAVE_VERSION = 28;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1094,9 +1108,16 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
       state.orgs.athleticsInvestment = 'medium';
     }
     for (const club of state.orgs.clubs) {
-      const legacy = club as Partial<StudentClub>;
+      const legacy = club as Partial<StudentClub> & { varsityAsked?: boolean };
       if (legacy.sport === undefined) legacy.sport = null;
-      if (typeof legacy.varsityAsked !== 'boolean') legacy.varsityAsked = false;
+      // Backfilled straight to the CURRENT (v28+) shape rather than the v16
+      // boolean this migration originally wrote — MIGRATIONS[27] only
+      // converts a `varsityAsked` it finds, so a pre-v16 save (which never
+      // had either field) needs the real final shape here, not a
+      // since-removed intermediate one.
+      if (typeof legacy.varsityAsked !== 'boolean' && legacy.varsityLastAskedYear === undefined) {
+        legacy.varsityLastAskedYear = null;
+      }
     }
 
     const have = new Set(state.tech.map((node) => node.id));
@@ -1379,6 +1400,19 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
       const legacy = f as unknown as Record<string, string>;
       legacy.gender ??= Math.random() < 0.5 ? 'male' : 'female';
       legacy.heritage ??= originByNationality.get(f.nationality) ?? origins[Math.floor(Math.random() * origins.length)];
+    }
+  },
+
+  // v27 -> v28: see the SAVE_VERSION header comment above. Every club's
+  // boolean `varsityAsked` becomes `varsityLastAskedYear` — null if it was
+  // false, the CURRENT clock year (a freshly-declined backfill, not a real
+  // recovered date) if it was true — and the old key is dropped so no stale
+  // `varsityAsked` lingers on a migrated club.
+  27: (state) => {
+    for (const club of state.orgs.clubs) {
+      const legacy = club as unknown as { varsityAsked?: boolean; varsityLastAskedYear?: number | null };
+      legacy.varsityLastAskedYear = legacy.varsityAsked ? state.clock.year : null;
+      delete legacy.varsityAsked;
     }
   },
 };

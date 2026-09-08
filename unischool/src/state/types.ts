@@ -577,11 +577,18 @@ export interface StudentClub extends StudentOrgBase {
   // varsity petition's eligibility reads — item 1's "subset of club
   // formations are sport clubs".
   sport: string | null;
-  // Has this club already petitioned to go varsity, whatever the answer
-  // was? Mirrors GreekChapter.housingAsked below: never ask twice. Always
-  // false for a non-sport club, since only a sport club is ever offered the
-  // question (see data/eventData.ts's 'varsity-petition').
-  varsityAsked: boolean;
+  // The year this club was last offered (and declined) the varsity
+  // petition, or null if it has never been asked. A decline is not
+  // permanent: sportClubsAwaitingVarsity (studentLifeData.ts) re-offers the
+  // petition VARSITY_PETITION_MIN_TENURE_YEARS after this year, the same
+  // tenure gate a club clears once to be asked at all — a club that says no
+  // gets to grow and ask again, not close the door forever. An approval
+  // never sets this: the club is promoted straight to a VarsityTeam and
+  // removed from s.orgs.clubs (see promoteToVarsityTeam), so there is no
+  // club record left here to re-ask. Always null for a non-sport club,
+  // since only a sport club is ever offered the question (see
+  // data/eventData.ts's 'varsity-petition').
+  varsityLastAskedYear: number | null;
 }
 
 // A Greek-letter chapter. Everything a chapter needs beyond a club is
