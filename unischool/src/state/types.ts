@@ -208,6 +208,16 @@ export interface Buildable {
   // rather than the seeded catalogue name (see CurriculumTab.tsx's
   // buildSections). An additive optional field — no save migration needed.
   donorSurname?: string;
+  // How many times this Buildable has been renovated in place for more
+  // capacity — today, only the tier-1 library (see facilitiesData.ts's
+  // nextLibraryFloor and engine/reducer.ts's RENOVATE_LIBRARY). Unlike
+  // every other tiered facility, a renovation is not a second Buildable
+  // placed on the map: it puts this SAME node back into 'developing' at
+  // its existing spot and raises its own effects.servesPopulation on
+  // completion, so this counter — not another Buildable's status — is what
+  // both the reducer and the build panel read to agree on what the next
+  // renovation costs and grants. Undefined means never renovated, same as 0.
+  floorsAdded?: number;
 }
 
 // Effects a Buildable can grant when finished. Deliberately no reputation

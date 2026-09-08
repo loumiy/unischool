@@ -69,7 +69,11 @@ const UPKEEP_PER_SERVED_PER_WEEK: Record<string, number> = {
   footballStadium: 1.2,
 };
 
-function servedUpkeep(facilityType: keyof typeof UPKEEP_PER_SERVED_PER_WEEK, servesPopulation: number): number {
+// Exported so engine/reducer.ts's RENOVATE_LIBRARY case can recompute
+// tier 1's upkeep off its new, post-renovation servesPopulation with the
+// exact same per-seat rate this file uses everywhere else, rather than a
+// second copy of it living in the reducer.
+export function servedUpkeep(facilityType: keyof typeof UPKEEP_PER_SERVED_PER_WEEK, servesPopulation: number): number {
   return Math.round(UPKEEP_PER_SERVED_PER_WEEK[facilityType] * servesPopulation);
 }
 
@@ -200,8 +204,9 @@ function repeatableChain(opts: {
 // is deliberately narrow rather than a general-capacity fix: a research
 // collection reads as adjacent to the labs it multiplies output for (see
 // LIBRARY_TIER2_RESEARCH_RATE_BONUS below), not as "the library gets
-// bigger" — that's what the floors after it are for.
-const LIBRARY_TIER1_ID = 'LIB-T1';
+// bigger" — that's what renovating tier 1 (below) is for. It stays its own
+// separate building, with its own footprint, unlike tier 1's renovations.
+export const LIBRARY_TIER1_ID = 'LIB-T1';
 const LIBRARY_TIER1_SERVES = 1_200;
 const LIBRARY_TIER1_COST = 360_000;
 const LIBRARY_TIER1_WEEKS = 12;
@@ -219,67 +224,65 @@ export const LIBRARY_TIER2_PRESTIGE_GATE = 70;
 // because the gate is labs.
 const LIBRARY_TIER2_RESEARCH_RATE_BONUS = 0.15;
 
-// Added floors — the fix for the real gap tier 1+2 always had: a hall built
-// to serve a 350-student founding class and a once-only research wing
-// don't add up to anything close to what a 50,000-student campus needs, and
-// a THIRD specialized branch library (a law library, a science library...)
-// would only repeat the same mistake at a narrower scope — a specialized
-// collection is exactly that, specialized, never the answer to "the
-// general collection ran out of room." What actually needs to grow with
-// enrollment is the one, same building's own general capacity, so this
-// keeps building it taller instead: a repeatable chain of additional
-// floors on the SAME library (prereqs run off LIB-T2, same facilityType,
-// same footprint — footprintOf() never varies by tier, per campusMap.ts),
-// each just more stacks and seats, no research bonus of its own. Combined
-// with tier 1+2's 4,700 served (against satisfactionSystem.ts's
+// Renovations — added floors on the SAME tier-1 building, the fix for the
+// real gap tier 1+2 always had: a hall built to serve a 350-student
+// founding class and a once-only research wing don't add up to anything
+// close to what a 50,000-student campus needs, and a THIRD SEPARATE
+// building (a law library, a science library...) would only repeat the
+// same mistake at a narrower scope — a specialized branch collection is
+// exactly that, specialized, never the answer to "the general collection
+// ran out of room, and there's nowhere left to put a new building for it."
+//
+// Unlike every other tiered facility in this file, this is NOT a second
+// Buildable the player places on the map: engine/reducer.ts's
+// RENOVATE_LIBRARY case puts the EXISTING tier-1 Buildable back into
+// 'developing' status at its already-placed spot (no new footprint, no
+// second entry in s.placements) and, on completion, raises that same
+// node's own effects.servesPopulation/upkeepPerWeek in place — see
+// nextLibraryFloor below for the plan a renovation commits to, and its
+// floorsAdded read for why this needs no "which floor is this" state of
+// its own. While renovating, the whole building reads as under
+// construction and — like anything 'developing' — contributes nothing
+// (see servedPopulationFor's `status === 'done'` filter): the old seats go
+// away for those weeks along with the new ones not existing yet.
+//
+// Combined with tier 2's 3,500 (against satisfactionSystem.ts's
 // TARGET_RATIO.academic and prestigeSystem.ts's own LIBRARY_TARGET_RATIO,
-// both 0.15), a fully floored-out library serves 12,325 — fully adequate up
-// to ~82,000 enrolled, comfortably past the 40k-56k the balance sim's
-// strongest strategies reach by year 40 (see campusData.ts's own dorm-chain
-// tuning comment for the matching fix on the housing side). No visual
-// change on the campus map until the game has real 3D buildings — a floor
-// added to an existing footprint has nothing to draw yet.
-const LIBRARY_FLOOR_COUNT = 3;
+// both 0.15), a maxed-out tier 1 (1,200 base + all 3 renovations) plus
+// tier 2 serves 12,325 — fully adequate up to ~82,000 enrolled, comfortably
+// past the 40k-56k the balance sim's strongest strategies reach by year 40
+// (see campusData.ts's own dorm-chain tuning comment for the matching fix
+// on the housing side). No visual change on the campus map until the game
+// has real 3D buildings — a floor added to an existing footprint has
+// nothing to draw yet.
+const LIBRARY_FLOOR_MAX = 3;
 const LIBRARY_FLOOR_BASE_SERVES = 2_000;
 const LIBRARY_FLOOR_SERVES_GROWTH = 1.25;
 const LIBRARY_FLOOR_BASE_COST = 2_200_000;
 const LIBRARY_FLOOR_COST_GROWTH = 1.35;
 const LIBRARY_FLOOR_BASE_WEEKS = 26;
 const LIBRARY_FLOOR_WEEKS_GROWTH = 1.08;
-// Ordinal-numbered rather than named like the dorm chain's halls — these
-// are floors on one building, not new landmarks, so a plain "Third Floor"
-// reads truer than inventing a name for each one.
-const LIBRARY_FLOOR_ORDINALS = ['Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh', 'Eighth'];
 
-function libraryFloors(): Buildable[] {
-  const nodes: Buildable[] = [];
-  let previousId = LIBRARY_TIER2_ID;
-  for (let i = 0; i < LIBRARY_FLOOR_COUNT; i++) {
-    const ordinal = LIBRARY_FLOOR_ORDINALS[i] ?? `${i + 3}th`;
-    const id = `LIB-FLR${i + 3}`;
-    const servesPopulation = Math.round(LIBRARY_FLOOR_BASE_SERVES * LIBRARY_FLOOR_SERVES_GROWTH ** i);
-    const cost = Math.round(LIBRARY_FLOOR_BASE_COST * LIBRARY_FLOOR_COST_GROWTH ** i);
-    const duration = Math.round(LIBRARY_FLOOR_BASE_WEEKS * LIBRARY_FLOOR_WEEKS_GROWTH ** i);
-    nodes.push({
-      id,
-      kind: 'facility',
-      facilityType: 'library',
-      tier: i + 3,
-      name: `${ordinal} Floor`,
-      description: `Adds a ${ordinal.toLowerCase()} floor of stacks and study seats — ${servesPopulation.toLocaleString()} more seats for a growing student body.`,
-      cost,
-      duration,
-      prereqs: [previousId], // strictly sequential, same reasoning as the dorm chain
-      status: 'locked',
-      effects: {
-        servesPopulation,
-        satisfactionAttribute: 'academic',
-        upkeepPerWeek: servedUpkeep('library', servesPopulation),
-      },
-    });
-    previousId = id;
-  }
-  return nodes;
+export interface LibraryFloorPlan {
+  servesGain: number;
+  cost: number;
+  weeks: number;
+}
+
+// What the NEXT renovation on this Buildable would commit to, or null once
+// LIBRARY_FLOOR_MAX is reached. Reads node.floorsAdded (defaulting to 0 for
+// a tier 1 that has never been renovated) rather than taking an index, so
+// the reducer and the build-panel tile that offers the button always agree
+// on which renovation comes next without either one tracking it
+// separately.
+export function nextLibraryFloor(node: Buildable): LibraryFloorPlan | null {
+  const floorsAdded = node.floorsAdded ?? 0;
+  if (floorsAdded >= LIBRARY_FLOOR_MAX) return null;
+  return {
+    servesGain: Math.round(LIBRARY_FLOOR_BASE_SERVES * LIBRARY_FLOOR_SERVES_GROWTH ** floorsAdded),
+    cost: Math.round(LIBRARY_FLOOR_BASE_COST * LIBRARY_FLOOR_COST_GROWTH ** floorsAdded),
+    weeks: Math.round(LIBRARY_FLOOR_BASE_WEEKS * LIBRARY_FLOOR_WEEKS_GROWTH ** floorsAdded),
+  };
 }
 
 // --- Student center: single building, two tiers, social + passive retention ---
@@ -574,7 +577,6 @@ export function initialFacilities(): Buildable[] {
         researchRateBonus: LIBRARY_TIER2_RESEARCH_RATE_BONUS,
       },
     },
-    ...libraryFloors(),
 
     // Student center
     {

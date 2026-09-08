@@ -14,6 +14,7 @@ import { tickEvents } from '../systems/events/eventSystem';
 import { tickStudentLife } from '../systems/studentlife/studentLifeSystem';
 import { tickDemands } from '../systems/demands/demandSystem';
 import { findDecisionEvent } from '../data/eventData';
+import { LIBRARY_TIER1_ID, nextLibraryFloor, servedUpkeep } from '../data/facilitiesData';
 import {
   CHAPTER_APPROVAL_SATISFACTION_NUDGE, CHAPTER_DECLINE_SATISFACTION_HIT,
   CLUB_APPROVAL_SATISFACTION_NUDGE, CLUB_DECLINE_SATISFACTION_HIT, activatePetition,
@@ -581,6 +582,35 @@ export function reducer(state: GameState, action: Action): GameState {
     case 'DEVELOP_ALL_AVAILABLE_COURSES': {
       for (const node of s.tech) {
         if (node.kind === 'course' && canStartDevelopment(s, node)) startDevelopment(s, node);
+      }
+      return s;
+    }
+
+    // Renovates the tier-1 library in place (see facilitiesData.ts's
+    // nextLibraryFloor and actions.ts's RENOVATE_LIBRARY) rather than
+    // starting a new Buildable: the SAME node goes back to 'developing' at
+    // its already-placed spot — s.placements is untouched, there is no
+    // second footprint — and its own effects are raised right away so they
+    // take over the moment tickTech's ordinary completion flips status back
+    // to 'done'. Bumping effects at the START rather than waiting for
+    // completion changes nothing observable: a 'developing' Buildable
+    // already contributes zero to every live-read sum (satisfaction,
+    // prestige, research), so the library reads as fully offline for the
+    // whole renovation regardless of which moment the number itself changes.
+    case 'RENOVATE_LIBRARY': {
+      const node = s.tech.find((t) => t.id === LIBRARY_TIER1_ID);
+      const plan = node ? nextLibraryFloor(node) : null;
+      if (node && plan && node.status === 'done' && s.finance.cash >= plan.cost) {
+        const servesPopulation = (node.effects?.servesPopulation ?? 0) + plan.servesGain;
+        node.status = 'developing';
+        s.developing[node.id] = plan.weeks;
+        s.finance.cash -= plan.cost;
+        node.floorsAdded = (node.floorsAdded ?? 0) + 1;
+        node.effects = {
+          ...node.effects,
+          servesPopulation,
+          upkeepPerWeek: servedUpkeep('library', servesPopulation),
+        };
       }
       return s;
     }

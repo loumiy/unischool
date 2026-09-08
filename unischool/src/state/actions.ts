@@ -171,6 +171,13 @@ export type Action =
   // exactly as they would one click at a time. Playtest-only, gated the same
   // way as GRANT_FUNDS.
   | { type: 'DEVELOP_ALL_AVAILABLE_COURSES' }
+  // Renovates the tier-1 library in place for more capacity (see
+  // facilitiesData.ts's nextLibraryFloor) — puts that SAME already-placed
+  // Buildable back into 'developing' at its existing spot rather than
+  // starting a new one, and raises its own effects.servesPopulation on
+  // completion. No nodeId: there is exactly one tier-1 library, so unlike
+  // START_DEVELOPMENT there is nothing to disambiguate.
+  | { type: 'RENOVATE_LIBRARY' }
   // Writes the run to localStorage on demand (see state/persistence.ts).
   // The autosave already fires once a year at the admissions boundary; this
   // is the player's way to not lose the weeks since. It changes no game
