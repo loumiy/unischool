@@ -405,10 +405,18 @@ export function coachSalary(team: VarsityTeam, s: GameState): number {
   return team.coachBaseSalary * (1 + COACH_TENURE_PREMIUM_MAX * premiumFraction);
 }
 
+// The pipeline's whole cadence, per item's explicit ask: a sport club
+// petitions for varsity status on its own five-year mark, not whenever a
+// shared random lottery happens to land on it (see eventData.ts's
+// VARSITY_PETITION_WEEK for the "which week" half of that same ask).
+export const VARSITY_PETITION_MIN_TENURE_YEARS = 5;
+
 // A sport club eligible to be OFFERED the varsity petition: it plays a
-// sport, and it has never been asked before (whatever the answer was).
+// sport, has cleared VARSITY_PETITION_MIN_TENURE_YEARS since founding, and
+// has never been asked before (whatever the answer was).
 export function sportClubsAwaitingVarsity(s: GameState): StudentClub[] {
-  return s.orgs.clubs.filter((c) => c.sport !== null && !c.varsityAsked);
+  return s.orgs.clubs.filter((c) =>
+    c.sport !== null && !c.varsityAsked && s.clock.year - c.foundedYear >= VARSITY_PETITION_MIN_TENURE_YEARS);
 }
 
 // Turns an approved club into a live VarsityTeam (item 2's "promotes the

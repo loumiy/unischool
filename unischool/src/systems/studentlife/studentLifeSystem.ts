@@ -24,8 +24,11 @@ import {
 // (data/eventData.ts), fired by eventSystem.ts on the cadence that table
 // already runs on, so they redistribute the existing event budget rather
 // than adding a second stream of interrupts on top of it. The varsity
-// athletics petition (item 2 of that same feature) rides the same table for
-// the same reason — see 'varsity-petition' there.
+// athletics petition is authored in that SAME table (see 'varsity-petition'
+// there) purely to reuse its prompt/choices/interrupt shape — but it does
+// NOT share the table's random cadence: it fires on its own deterministic
+// five-year-tenure schedule (see eventSystem.ts's fireVarsityPetition and
+// studentLifeData.ts's VARSITY_PETITION_MIN_TENURE_YEARS).
 //
 // What IS here, alongside the formation roll: tickVarsityVenues below,
 // which resolves a durable condition (a shared venue finishing construction)

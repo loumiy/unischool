@@ -3,8 +3,8 @@ import type { DecisionEvent, DecisionEventContext, MilestoneEntry, MilestonePayl
 import {
   DECISION_EVENTS, DECISION_EVENT_COOLDOWN_WEEKS, DECISION_EVENT_FIRST_YEAR,
   DECISION_EVENT_REPEAT_COOLDOWN_WEEKS, DECISION_EVENT_WEEKLY_CHANCE,
-  MILESTONE_INTERRUPT_MIN_WEEKS_BETWEEN,
-  absoluteWeek, describeMilestone, hasFreeChoice,
+  MILESTONE_INTERRUPT_MIN_WEEKS_BETWEEN, VARSITY_PETITION_WEEK,
+  absoluteWeek, describeMilestone, findDecisionEvent, hasFreeChoice,
 } from '../../data/eventData';
 import { labEquippedFields } from '../../data/researchData';
 
@@ -41,6 +41,11 @@ import { labEquippedFields } from '../../data/researchData';
 //     finished lab exists" is a durable condition (nothing ever un-
 //     finishes), so a busy week simply means the offer waits, and the
 //     one-shot guard is the flag the answer sets.
+//   - The VARSITY PETITION's deterministic cadence (fireVarsityPetition
+//     below): a sport club that has cleared its five-year tenure gate
+//     (studentLifeData.ts) is asked on the first quiet week at or after
+//     VARSITY_PETITION_WEEK, GUARANTEED rather than merely eligible for
+//     the weighted lottery below — see the function's own comment for why.
 //
 // WHY A QUEUE FOR MILESTONES. techSystem.ts awards milestones the week
 // the last course finishes, which may well be the week the admissions
@@ -117,6 +122,32 @@ function fireCharterOffer(s: GameState): boolean {
   if (labEquippedFields(s).size === 0) return false;
 
   s.pendingInterrupt = { type: 'charter' };
+  return true;
+}
+
+// The varsity petition's OWN deterministic cadence (see data/eventData.ts's
+// 'varsity-petition' entry and studentLifeData.ts's VARSITY_PETITION_MIN_
+// TENURE_YEARS): a club that has cleared five years since founding is
+// GUARANTEED to be asked, rather than merely eligible to win the weighted
+// lottery rollDecisionEvent runs below — that lottery is what made the
+// pipeline slow (and unpredictable) in the first place. Reuses the same
+// authored prompt/choices/apply and the same 'decision-event' interrupt
+// shape; only how it gets raised differs.
+//
+// From VARSITY_PETITION_WEEK through year-end, any quiet week fires one
+// waiting club — the same self-healing shape fireCharterOffer uses, so a
+// week lost to a milestone or another interrupt just means the next quiet
+// week asks instead, never a lost petition.
+function fireVarsityPetition(s: GameState): boolean {
+  if (s.clock.week < VARSITY_PETITION_WEEK) return false;
+
+  const event = findDecisionEvent('varsity-petition');
+  if (!event?.rollContext) return false;
+  const ctx = event.rollContext(s);
+  if (ctx === null) return false;
+  if (!hasFreeChoice(s, event, ctx)) return false;
+
+  s.pendingInterrupt = { type: 'decision-event', payload: { eventId: event.id, ctx } };
   return true;
 }
 
@@ -199,6 +230,7 @@ export function tickEvents(s: GameState): void {
   if (fireMilestoneCelebration(s)) return;
   if (fireCharterOffer(s)) return;
   if (firePrizeCelebration(s)) return;
+  if (fireVarsityPetition(s)) return;
 
   rollDecisionEvent(s);
 }
