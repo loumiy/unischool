@@ -119,9 +119,9 @@ export default function App() {
             {overlay === 'curriculum' && <CurriculumTab s={s} act={act} />}
             {overlay === 'treasury' && <TreasuryTab s={s} act={act} />}
             {overlay === 'admissions' && <AdmissionsTab s={s} />}
-            {overlay === 'studentlife' && <StudentLifeTab s={s} act={act} />}
+            {overlay === 'studentlife' && <StudentLifeTab s={s} />}
+            {overlay === 'athletics' && <AthleticsTab s={s} act={act} />}
             {overlay === 'history' && <HistoryTab s={s} />}
-            {overlay === 'athletics' && <AthleticsTab />}
           </TabOverlay>
         )}
 

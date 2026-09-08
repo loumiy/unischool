@@ -7,6 +7,7 @@ import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from './types';
 import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES } from '../data/facultyData';
 import { initialTech } from '../data/techData';
 import { initialFacilities } from '../data/facilitiesData';
+import { LEGACY_TWO_GENDER_SPORT_MIGRATION, SPORTS } from '../data/studentLifeData';
 
 // ---------------------------------------------------------------------
 // Save / load (see README's "Save / load"). A run is measured in hours, so
@@ -508,7 +509,60 @@ export const SAVE_KEY = 'unischool.save';
 // simply reset to `{}`: purely decorative, read by no system, so a
 // resuming player loses some drawn walkways and nothing else. See
 // MIGRATIONS[23].
-export const SAVE_VERSION = 24;
+// v24 -> v25: gendered sports (see README's varsity athletics note and
+// data/studentLifeData.ts's SPORT_PROFILES). A sport is now one of three
+// profiles — men-only, women-only, or fielding independent men's AND
+// women's lineages — and SPORTS grew from 9 bare ids to 14 gendered ones.
+//
+// STATE SHAPE: a men's and a women's program of the same sport are two
+// separate StudentClub/VarsityTeam records, distinguished by a GENDERED
+// SPORTS id (club.sport / team.sport), not by a new `gender` field
+// alongside a shared bare id — see the STATE SHAPE note above
+// data/studentLifeData.ts's promoteToVarsityTeam for why. That is what
+// keeps THIS migration a pure re-pointing of one string field (plus a
+// rename) rather than a reshape: no field is added to StudentClub,
+// VarsityTeam or OrgPetition, so nothing here needs LegacyGameState.
+//
+// A one-gender sport's id (football/baseball/fieldHockey/softball) is
+// UNCHANGED — it was already a single lineage — so an existing club/team on
+// one of those needs no re-pointing at all, only the naming-scheme rename
+// below. Only the five TWO-GENDER sports' ids moved, from a bare 'soccer'
+// to 'soccer-m', defaulting every existing club/team on them to MEN'S (see
+// data/studentLifeData.ts's LEGACY_TWO_GENDER_SPORT_MIGRATION, which this
+// reads rather than re-deriving): the honest reading of an existing
+// "Soccer" program is that it was implicitly one squad, and defaulting to
+// men's preserves it rather than inventing a second one out of nothing.
+// The now-open women's lineage (soccer-w, etc.) is untouched — it was never
+// fielded, so there is nothing to migrate — and can form and petition
+// fresh from here: rollSportClub/sportClubsAwaitingVarsity read SPORTS and
+// s.orgs.clubs/teams directly, not anything this migration writes, and
+// 'soccer-w' is a plain not-yet-fielded id to both the moment this
+// migration finishes — see the PR notes' confirmation that a fresh
+// women's petition after migration isn't blocked by the shared original id.
+//
+// NAMING: every migrated club/team is also RENAMED to the new scheme,
+// which is the one genuinely visible consequence of this migration. A
+// pre-varsity club's name becomes its (possibly now-gendered) clubName —
+// "Soccer Club" -> "Men's Soccer Club" — and a varsity team's name becomes
+// its teamName — "Soccer" (captured, pre-this-PR, from the CLUB's own name
+// at promotion — see the old promoteToVarsityTeam) becomes "Men's Soccer
+// Team", and a ONE-gender team like 'Football' (which kept its bare
+// "Football Club" club-name at promotion under the old rule) becomes
+// "Football Team" — matching what every future promotion writes now that
+// promoteToVarsityTeam names a team from the sport's OWN teamName field
+// rather than inheriting the club's.
+//
+// `varsityAsked` is left completely UNTOUCHED on every migrated club/team —
+// a program that already petitioned (whichever way it went) does not
+// re-open, and cannot cross into the sibling gender, because the two are
+// now distinct ids/records: a migrated men's team's `varsityAsked` says
+// nothing about a women's club that has not even formed yet.
+//
+// A pending petition (raised, not yet resolved at the next summer digest)
+// carrying a two-gender sport id is migrated the same way, so a petition
+// already in the player's queue reads with its new name/id by the time it
+// is shown. See MIGRATIONS[24].
+export const SAVE_VERSION = 25;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1228,6 +1282,47 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   23: (state) => {
     state.pathways = {};
   },
+
+  // v24 -> v25: gendered sports (see the long note above SAVE_VERSION for
+  // the full reasoning). A straight re-pointing of one string field —
+  // club.sport/team.sport/petition.sport — plus the rename it causes, using
+  // LEGACY_TWO_GENDER_SPORT_MIGRATION so the "which old id moved where" fact
+  // lives in exactly one place (data/studentLifeData.ts) rather than being
+  // re-authored here. A one-gender sport's id passes through `?? sport`
+  // unchanged; only the five two-gender sports' bare ids are in that table
+  // at all, and they always resolve to the men's variant.
+  //
+  // `foundedYear`/`foundingMembers`/`foundingEnrolled`/`upkeepPerWeek` (and,
+  // for a team, `venueCategory`/`coachName`/`coachBaseSalary`/`status`) are
+  // completely untouched — none of them describe the sport or its gender,
+  // so there is nothing about them for this migration to touch.
+  24: (state) => {
+    const bySport = new Map(SPORTS.map((sp) => [sp.id, sp]));
+    const migrateSportId = (sport: string): string => LEGACY_TWO_GENDER_SPORT_MIGRATION[sport] ?? sport;
+
+    for (const club of state.orgs.clubs) {
+      if (club.sport == null) continue;
+      const def = bySport.get(migrateSportId(club.sport));
+      if (!def) continue; // defensive; can't happen against the real catalogue
+      club.sport = def.id;
+      club.name = def.clubName;
+    }
+
+    for (const team of state.orgs.teams) {
+      const def = bySport.get(migrateSportId(team.sport));
+      if (!def) continue;
+      team.sport = def.id;
+      team.name = def.teamName;
+    }
+
+    for (const petition of state.orgs.pendingPetitions) {
+      if (petition.kind !== 'club' || petition.sport == null) continue;
+      const def = bySport.get(migrateSportId(petition.sport));
+      if (!def) continue;
+      petition.sport = def.id;
+      petition.name = def.clubName;
+    }
+  },
 };
 
 // Placement hygiene, run on EVERY load (migrated or not). The map is a
@@ -1329,18 +1424,34 @@ const VENUE_CATEGORIES: readonly FacilityType[] = [
   'athleticsField', 'athleticsArena', 'athleticsDiamond', 'athleticsNatatorium', 'footballStadium',
 ];
 
+// Every sport+gender combination that can legitimately exist, read off
+// SPORTS itself (unlike VENUE_CATEGORIES above, this genuinely would drift
+// from the real catalogue if duplicated by hand — a gendered id like
+// 'soccer-m' has no meaning independent of SPORTS the way a FacilityType
+// string does). A combination that can't exist — a 'women's football', say
+// — never appears in SPORTS at all (football fields only 'football', the
+// men's-implied bare id), so membership here is exactly the check.
+const KNOWN_SPORT_IDS: ReadonlySet<string> = new Set(SPORTS.map((sp) => sp.id));
+
 // Team hygiene, run on EVERY load (migrated or not), mirroring
 // sanitizePlacements/sanitizePathways above for the same reason: a team is
 // a visual/derived reading away from being load-bearing (its upkeep and
 // social contribution are live-read every week — see
 // data/studentLifeData.ts), so a bad entry here would silently misprice the
-// weekly statement rather than crash outright, which is worse. Two things
+// weekly statement rather than crash outright, which is worse. Three things
 // get fixed, in this order:
 //   - a team whose venueCategory names something that isn't one of the five
 //     known venues (content was renamed or removed between builds — can't
 //     happen against the current seed, but neither could a stale placement
 //     before content ever moved) is DROPPED entirely, same as an orphaned
 //     placement.
+//   - a team whose sport isn't a sport+gender combination that can actually
+//     exist (a 'women's football' that the catalogue never fields, or an
+//     id predating the v24 -> v25 gendering that the migration somehow
+//     missed) is likewise DROPPED — venueCategory alone can't catch this,
+//     since it is captured at grant time and deliberately never re-derived
+//     from `sport` (see VarsityTeam's own comment), so an invalid sport
+//     can otherwise sit behind an entirely valid-looking venue category.
 //   - a team marked 'active' whose venue Buildable isn't actually 'done'
 //     (a hand-edited or corrupted save) is RESET to 'awaitingVenue' rather
 //     than dropped — the team itself, its coach and its upkeep are all
@@ -1350,7 +1461,9 @@ function sanitizeTeams(state: GameState): void {
     if (state.orgs) state.orgs.teams = [];
     return;
   }
-  state.orgs.teams = state.orgs.teams.filter((team) => VENUE_CATEGORIES.includes(team.venueCategory));
+  state.orgs.teams = state.orgs.teams.filter(
+    (team) => VENUE_CATEGORIES.includes(team.venueCategory) && KNOWN_SPORT_IDS.has(team.sport),
+  );
   for (const team of state.orgs.teams) {
     if (team.status !== 'active') continue;
     const venue = state.tech.find((t) => t.kind === 'facility' && t.facilityType === team.venueCategory);

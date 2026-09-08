@@ -10,16 +10,17 @@ const TABS: Array<{ id: TabId; label: string }> = [
   { id: 'treasury', label: 'Treasury' },
   { id: 'admissions', label: 'Admissions' },
   { id: 'studentlife', label: 'Student Life' },
-  { id: 'history', label: 'History' },
   { id: 'athletics', label: 'Athletics' },
+  { id: 'history', label: 'History' },
 ];
 
 // Tabs whose system doesn't exist yet: still in TabId and still routed in
 // App.tsx (and TAB_LABELS below still names them), just not offered as a
 // nav button — a permanent "Coming Soon" tab is noise. Drop the id from
-// here to light the tab up once its system lands. See README's roadmap:
-// athletics rides on Buildables + hiring + rivals all being mature.
-const HIDDEN_TABS: readonly TabId[] = ['athletics'];
+// here to light the tab up once its system lands. Currently empty: varsity
+// athletics moved out of Student Life and into its own live tab (see
+// AthleticsTab.tsx), so there is nothing left to hide.
+const HIDDEN_TABS: readonly TabId[] = [];
 
 // The toolbar's icon row (see Toolbar.tsx) reads this order directly —
 // this module is now pure tab metadata (ids, labels, which are offered)

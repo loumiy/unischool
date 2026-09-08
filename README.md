@@ -1012,13 +1012,23 @@ axis** — all explicitly deferred.
 
 A named share of new club formations (`SPORT_CLUB_SHARE`) roll as a **sport
 club** instead of an ordinary one — the same weekly club roll, no second
-formation stream — drawn from a fixed `SPORTS` list (`data/studentLifeData.ts`)
-that also maps each sport to the **venue category** it needs (field sports
-share a multi-sport field; basketball/volleyball share an arena; baseball and
-softball share a diamond; swimming needs a natatorium; football is alone,
-gated behind its own petition, and gets the pinnacle **football stadium** —
-the most expensive Buildable and largest map footprint in the game). A sport
-club may petition, **once**, to go varsity — an authored decision event
+formation stream — drawn from a fixed, **gendered** `SPORTS` list
+(`data/studentLifeData.ts`) that also maps each sport to the **venue
+category** it needs (field sports share a multi-sport field; basketball/
+volleyball share an arena; baseball and softball share a diamond; swimming
+needs a natatorium; football is alone, gated behind its own petition, and
+gets the pinnacle **football stadium** — the most expensive Buildable and
+largest map footprint in the game). Every sport is one of three profiles
+(`SPORT_PROFILES`): **men-only** (football, baseball), **women-only** (field
+hockey, softball), or **two-gender**, fielding independent men's and women's
+lineages (soccer, lacrosse, basketball, volleyball, swim & dive) — 14 gendered
+`SPORTS` entries in all. A men's and a women's program of the same sport are
+two entirely separate club/team records (a gendered id, not a `gender` field
+alongside a shared one), so they form, petition and graduate on their own
+timelines, sharing only the venue category — the second lineage into a
+category, of either gender, finds the venue already revealed or built and
+pays only the varsity fee. A sport club may petition, **once**, to go varsity
+— an authored decision event
 (`eventData.ts`'s `varsity-petition`) modeled directly on the chapter housing
 petition and riding the same shared decision-event budget, not a new stream.
 Granting it costs a weeks-of-opex program fee, auto-generates a coach from the
@@ -1052,12 +1062,15 @@ rather than wired. Disbanding a team is not built in this pass either; when it
 is, what happens to a now-teamless venue is a call worth making explicitly
 rather than silently.
 
-**The Student Life tab** is the home for all of it — active clubs (sport
-clubs tagged with their sport) and Greek chapters with founding year and
-current membership, a **Varsity Athletics** panel listing active and
-awaiting-venue teams plus the investment lever, the petitions waiting on
+**The Student Life tab** is the home for clubs (a sport club stays here,
+tagged, until it graduates — only VARSITY status moves out) and Greek
+chapters with founding year and current membership, the petitions waiting on
 the next digest, and an empty state that reads sensibly through the founding
-years before any student center exists. It also has to make the satisfaction
+years before any student center exists. **Athletics has its own tab**: once a
+sport club goes varsity it moves there — active and awaiting-venue teams plus
+the one investment lever — a plain relocation out of Student Life once
+athletics grew gendered lineages of its own, not a change to how any of it
+works. Student Life still has to make the satisfaction
 effect **legible**, which is what stops the system feeling arbitrary, and it
 does so by *reading the model rather than inventing a display number*:
 `satisfactionSystem.ts`'s `studentLifeSatisfaction` runs the very computation

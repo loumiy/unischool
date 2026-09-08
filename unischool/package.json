@@ -9,11 +9,12 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "sim": "rolldown sim/balanceSim.ts -o node_modules/.tmp/balanceSim.mjs -f esm -p node && node node_modules/.tmp/balanceSim.mjs",
-    "test": "npm run test:migrations && npm run test:finance && npm run test:faculty && npm run test:invariants",
+    "test": "npm run test:migrations && npm run test:finance && npm run test:faculty && npm run test:invariants && npm run test:athletics",
     "test:migrations": "rolldown test/save-migrations.test.ts -o node_modules/.tmp/save-migrations.test.mjs -f esm -p node && node node_modules/.tmp/save-migrations.test.mjs",
     "test:finance": "rolldown test/financial-distress.test.ts -o node_modules/.tmp/financial-distress.test.mjs -f esm -p node && node node_modules/.tmp/financial-distress.test.mjs",
     "test:faculty": "rolldown test/faculty.test.ts -o node_modules/.tmp/faculty.test.mjs -f esm -p node && node node_modules/.tmp/faculty.test.mjs",
-    "test:invariants": "rolldown test/invariants.test.ts -o node_modules/.tmp/invariants.test.mjs -f esm -p node && node node_modules/.tmp/invariants.test.mjs"
+    "test:invariants": "rolldown test/invariants.test.ts -o node_modules/.tmp/invariants.test.mjs -f esm -p node && node node_modules/.tmp/invariants.test.mjs",
+    "test:athletics": "rolldown test/gendered-sports.test.ts -o node_modules/.tmp/gendered-sports.test.mjs -f esm -p node && node node_modules/.tmp/gendered-sports.test.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",

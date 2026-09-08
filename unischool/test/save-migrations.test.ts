@@ -17,6 +17,7 @@
 
 import { createInitialState } from '../src/state/actions';
 import { loadGame, saveGame, clearSave, SAVE_KEY, SAVE_VERSION } from '../src/state/persistence';
+import { sportById } from '../src/data/studentLifeData';
 
 // In-memory localStorage so the persistence module works under Node. Assigned
 // before any loadGame/saveGame call (module imports run first, but nothing in
@@ -248,6 +249,106 @@ function testFoundingSeenExcludesStartingContent(): void {
   }
 }
 
+// Build a v24-shaped save: a real current-shape state carrying pre-gendering
+// (bare) sport ids on a club, two teams (one one-gender, one two-gender —
+// PLUS one deliberately CORRUPTED entry sanitizeTeams should prune) and a
+// pending petition, exactly the shapes MIGRATIONS[24] (v24 -> v25) exists to
+// re-point. See the long comment above SAVE_VERSION and above
+// MIGRATIONS[24] in persistence.ts.
+function makeV24GenderedSportsSave(): void {
+  const base = createInitialState('GenderMigrator', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+
+  state.orgs = {
+    ...(state.orgs as Loose),
+    clubs: [{
+      id: 'club-soccer', name: 'Soccer Club', foundedYear: 3, foundingMembers: 12, foundingEnrolled: 400,
+      upkeepPerWeek: 80, sport: 'soccer', varsityAsked: true, // already asked, whichever way — must survive untouched
+    }],
+    teams: [
+      // One-gender: id doesn't move, but the name still gains "Team" —
+      // captured, pre-this-PR, as the CLUB's own name at promotion.
+      {
+        id: 'team-football', name: 'Football Club', foundedYear: 2, foundingMembers: 15, foundingEnrolled: 350,
+        upkeepPerWeek: 200, sport: 'football', venueCategory: 'footballStadium',
+        coachName: 'Coach Old', coachBaseSalary: 3000, status: 'awaitingVenue',
+      },
+      // Two-gender: id moves to the men's default, name gains the prefix.
+      {
+        id: 'team-basketball', name: 'Basketball Club', foundedYear: 4, foundingMembers: 10, foundingEnrolled: 500,
+        upkeepPerWeek: 150, sport: 'basketball', venueCategory: 'athleticsArena',
+        coachName: 'Coach Hoops', coachBaseSalary: 2500, status: 'active',
+      },
+      // Corrupted: a sport+venue combination that can never exist under the
+      // new catalogue (there is no gendered id this could resolve to) —
+      // sanitizeTeams must drop it, not crash on it.
+      {
+        id: 'team-corrupt', name: 'Nothing', foundedYear: 1, foundingMembers: 1, foundingEnrolled: 1,
+        upkeepPerWeek: 1, sport: 'football-w', venueCategory: 'footballStadium',
+        coachName: 'Nobody', coachBaseSalary: 1, status: 'awaitingVenue',
+      },
+    ],
+    pendingPetitions: [{
+      id: 'pending-lacrosse', kind: 'club', name: 'Lacrosse Club', sport: 'lacrosse',
+      foundedYear: 5, foundingMembers: 14, foundingEnrolled: 600, upkeepPerWeek: 90,
+    }],
+  };
+
+  writeSave(24, state);
+}
+
+// ---- Test: v24's bare sport ids gender-migrate, and sanitizeTeams handles the new shape ----
+function testGenderedSportsMigration(): void {
+  makeV24GenderedSportsSave();
+  const loaded = loadGame();
+  assert(loaded !== null, 'v24 gendered-sports save loads (does not fall back to null)');
+  if (!loaded) return;
+
+  const club = loaded.orgs.clubs.find((c) => c.id === 'club-soccer');
+  assert(!!club, 'the migrated soccer club survives under its own id');
+  if (club) {
+    assert(club.sport === 'soccer-m', `bare 'soccer' club defaults to the men's lineage (got '${club.sport}')`);
+    assert(club.name === "Men's Soccer Club", `club is renamed to match the new naming scheme (got '${club.name}')`);
+    assert(club.varsityAsked === true, "varsityAsked survives untouched — a migrated club doesn't re-open its own petition");
+  }
+
+  const football = loaded.orgs.teams.find((t) => t.id === 'team-football');
+  assert(!!football, 'the one-gender football team survives under its own id');
+  if (football) {
+    assert(football.sport === 'football', "a one-gender sport's id does not move");
+    assert(football.name === 'Football Team', `team is renamed to the new "... Team" scheme (got '${football.name}')`);
+  }
+
+  const basketball = loaded.orgs.teams.find((t) => t.id === 'team-basketball');
+  assert(!!basketball, 'the two-gender basketball team survives under its own id');
+  if (basketball) {
+    assert(basketball.sport === 'basketball-m', `bare 'basketball' team defaults to the men's lineage (got '${basketball.sport}')`);
+    assert(basketball.name === "Men's Basketball Team", `team is renamed to match the new naming scheme (got '${basketball.name}')`);
+    assert(basketball.venueCategory === 'athleticsArena', 'venueCategory is left untouched by the gender migration');
+  }
+
+  assert(
+    loaded.orgs.teams.every((t) => t.id !== 'team-corrupt'),
+    "sanitizeTeams prunes the corrupted 'football-w' team — no such sport+gender combination can exist",
+  );
+
+  const petition = loaded.orgs.pendingPetitions.find((p) => p.id === 'pending-lacrosse');
+  assert(!!petition, 'the pending lacrosse petition survives');
+  if (petition) {
+    assert(petition.sport === 'lacrosse-m', `pending petition's bare sport id also defaults to men's (got '${petition.sport}')`);
+    assert(petition.name === "Men's Lacrosse Club", `pending petition is renamed too (got '${petition.name}')`);
+  }
+
+  // The sibling gender was never fielded, so it must still read as
+  // completely open — nothing about this migration should be able to block
+  // a fresh 'soccer-w' or 'basketball-w' club from forming and petitioning.
+  assert(sportById('soccer-w') !== undefined, "the women's soccer lineage still exists in the catalogue post-migration");
+  assert(
+    !loaded.orgs.clubs.some((c) => c.sport === 'soccer-w') && !loaded.orgs.teams.some((t) => t.sport === 'soccer-w'),
+    'no soccer-w record was invented by the migration — it is genuinely unformed, exactly like a fresh game',
+  );
+}
+
 // ---- Test: a current-version save round-trips unchanged ----
 function testRoundTrip(): void {
   clearSave();
@@ -289,6 +390,7 @@ testForwardMigration();
 testArtsCapstoneRepoint();
 testSeenSeeded();
 testFoundingSeenExcludesStartingContent();
+testGenderedSportsMigration();
 testRoundTrip();
 testRejects();
 

@@ -1145,6 +1145,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           const coachName = rollCoachName();
           const team = promoteToVarsityTeam(s, club, {
             sport: sport.id,
+            name: sport.teamName,
             venueCategory: sport.venueCategory,
             coachName,
             coachBaseSalary: weeksOfOpEx(s, VARSITY_COACH_BASE_SALARY_WEEKS_OF_OPEX),
