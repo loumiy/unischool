@@ -568,6 +568,23 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
+    // A shortcut for clicking every available course's own "Develop"
+    // button in turn (see CurriculumTab.tsx's "Develop All" button) — not a
+    // new capability, so it goes through canStartDevelopment/
+    // startDevelopment one course at a time, in s.tech's own order, exactly
+    // as START_DEVELOPMENT does for a single course. Re-checking the gate
+    // before every course (rather than snapshotting the available list
+    // once) is what makes cash and faculty-slot limits bite mid-loop
+    // exactly as they would clicking by hand: a course started earlier in
+    // the loop can spend the cash or fill the faculty slot a later one
+    // needed.
+    case 'DEVELOP_ALL_AVAILABLE_COURSES': {
+      for (const node of s.tech) {
+        if (node.kind === 'course' && canStartDevelopment(s, node)) startDevelopment(s, node);
+      }
+      return s;
+    }
+
     case 'SAVE_GAME': {
       // The manual save. Logs either way: the confirmation is the whole
       // point of an explicit save affordance, and a silent failure would
