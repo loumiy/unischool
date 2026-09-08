@@ -79,7 +79,7 @@ const ATTRIBUTE_SCORE_FLOOR = 12;
 // ahead on social once could coast on it forever. At 0.34, that same full
 // build is only adequate up to ~25,600 capacity — comfortably covers a
 // modest-to-large campus, but a school that keeps growing past that (the
-// balance sim's growth strategies reach 13k-18k capacity by year 40 and are
+// balance sim's growth strategies reach 40k-56k ENROLLED by year 40 and are
 // still climbing — see sim/balanceSim.ts) keeps diluting its social ratio
 // even with both buildings fully tiered well before it gets there, because
 // SOCIAL_PENALTY_CURVATURE below bites before the ratio hits 1.0. It has to
