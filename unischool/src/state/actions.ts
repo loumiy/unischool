@@ -163,6 +163,21 @@ export type Action =
   // naming the university "test", the same as the sandbox Fast speed and
   // the removed debug-interrupt trigger — never reachable in normal play.
   | { type: 'GRANT_FUNDS'; amount: number }
+  // Starts development on every currently 'available' course in one shot
+  // (see CurriculumTab.tsx's "Develop All" button) — a shortcut for
+  // clicking each one individually, not a new capability: it goes through
+  // the exact same canStartDevelopment/startDevelopment pair START_DEVELOPMENT
+  // uses, course by course, so cash and faculty-slot limits still apply
+  // exactly as they would one click at a time. Playtest-only, gated the same
+  // way as GRANT_FUNDS.
+  | { type: 'DEVELOP_ALL_AVAILABLE_COURSES' }
+  // Renovates the tier-1 library in place for more capacity (see
+  // facilitiesData.ts's nextLibraryFloor) — puts that SAME already-placed
+  // Buildable back into 'developing' at its existing spot rather than
+  // starting a new one, and raises its own effects.servesPopulation on
+  // completion. No nodeId: there is exactly one tier-1 library, so unlike
+  // START_DEVELOPMENT there is nothing to disambiguate.
+  | { type: 'RENOVATE_LIBRARY' }
   // Writes the run to localStorage on demand (see state/persistence.ts).
   // The autosave already fires once a year at the admissions boundary; this
   // is the player's way to not lose the weeks since. It changes no game

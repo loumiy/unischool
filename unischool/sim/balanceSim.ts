@@ -36,6 +36,7 @@ import { demandSubject } from '../src/data/demandData';
 import type { DecisionEventContext } from '../src/data/eventData';
 import { discoverySchools } from '../src/data/techData';
 import { hasStudentCenter, varsityTeamUpkeep } from '../src/data/studentLifeData';
+import { LIBRARY_TIER1_ID, nextLibraryFloor } from '../src/data/facilitiesData';
 
 // ---------------------------------------------------------------------
 // Deterministic environment. The game rolls dice (faculty potentials,
@@ -299,6 +300,25 @@ function decide(
       if (canCommitCapital(s, strategy) && affordable(s, f.cost, strategy)) {
         dispatchPlaceable(get, dispatch, id);
       }
+    }
+  }
+
+  // The tier-1 library's own renovations (facilitiesData.ts's
+  // nextLibraryFloor) aren't a normal 'available' Buildable — the SAME
+  // node stays 'done' between renovations — so the generic "build whatever
+  // the satisfaction breakdown says is short" loop above never sees them.
+  // This is the one extra decision rule RENOVATE_LIBRARY needs, mirroring
+  // that loop's own threshold/affordability checks.
+  if (strategy.buildsFacilities && !savingForDorm) {
+    const s = get();
+    const lib = s.tech.find((t) => t.id === LIBRARY_TIER1_ID);
+    const plan = lib ? nextLibraryFloor(lib) : null;
+    if (
+      lib && plan && lib.status === 'done' &&
+      s.students.satisfactionBreakdown.academic < strategy.facilityThreshold &&
+      canCommitCapital(s, strategy) && affordable(s, plan.cost, strategy)
+    ) {
+      dispatch({ type: 'RENOVATE_LIBRARY' });
     }
   }
 

@@ -6,6 +6,7 @@ import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/tec
 import { instructorOf } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
 import { ProgressRing } from '../components/Progress';
+import { isTestUniversity } from '../components/StatusHeader';
 
 // ---------------------------------------------------------------------
 // Progressive discovery: the curriculum is not laid out whole. What's
@@ -526,7 +527,19 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
     <div className="tab-content">
       <section className="panel curriculum-panel">
         <div className="panel-head">
-          <h2>The Curriculum</h2>
+          <span className="panel-head-title">
+            <h2>The Curriculum</h2>
+            {isTestUniversity(s.self.name) && (
+              <button
+                type="button"
+                className="grant-funds-btn"
+                onClick={() => act({ type: 'DEVELOP_ALL_AVAILABLE_COURSES' })}
+                title="Playtest only — starts development on every course currently available, cash and faculty slots permitting. Same effect as clicking each one's own Develop button."
+              >
+                Develop All
+              </button>
+            )}
+          </span>
           <span className="panel-head-figure">
             <span className="progress-figure">
               <ProgressRing

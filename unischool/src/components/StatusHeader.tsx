@@ -48,12 +48,15 @@ function termName(week: number): string {
 }
 
 // Playtesting controls (the sandbox speed, the +$1B grant, the fast-speed
-// hotkey below) are only useful during development, not normal play — they
-// stay reachable by naming the university "test" rather than being removed
-// outright, so they're still there for anyone iterating on the game. Checked against
-// the player-written half of the name only (see types.ts's University), so
-// it keeps working whether the school is Test College or Test University.
-function isTestUniversity(name: string): boolean {
+// hotkey below, CurriculumTab.tsx's "Develop All" button) are only useful
+// during development, not normal play — they stay reachable by naming the
+// university "test" rather than being removed outright, so they're still
+// there for anyone iterating on the game. Checked against the
+// player-written half of the name only (see types.ts's University), so it
+// keeps working whether the school is Test College or Test University.
+// Exported so every playtest-only control shares this one gate rather than
+// each re-deriving its own copy.
+export function isTestUniversity(name: string): boolean {
   return name.trim().toLowerCase() === 'test';
 }
 

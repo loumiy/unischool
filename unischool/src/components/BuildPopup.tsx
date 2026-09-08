@@ -4,7 +4,7 @@ import type { Buildable, FacilityType, GameState } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import { canSiteRetroactively, RETROACTIVE_SITING_COST } from '../state/campusMap';
-import { FACILITY_CATEGORY_OF, type FacilityCategory } from '../data/facilitiesData';
+import { FACILITY_CATEGORY_OF, type FacilityCategory, LIBRARY_TIER1_ID, nextLibraryFloor } from '../data/facilitiesData';
 import HelpHint from './HelpHint';
 import { ProgressBar } from './Progress';
 import ToolbarPopup from './ToolbarPopup';
@@ -290,21 +290,50 @@ function rowMarker(t: Buildable, group: TypeGroup, index: number): string | unde
 // (arm a pickup), a plain div for the settled 'done, placed' case. The
 // arm/site flow is unchanged from the old text rows: click (or drag onto the
 // map) arms a pickup, and PLACE_BUILDABLE fires on the map once a tile is
-// chosen (see CampusMap.tsx's placeById). `act` is deliberately not threaded
-// here — every tile is a placeable kind, and arming is pure local UI state.
+// chosen (see CampusMap.tsx's placeById). `act` is otherwise unused here —
+// every OTHER tile is a placeable kind, and arming is pure local UI state —
+// except for the one 'done, placed' exception below: the library's "add a
+// floor" renovation, which dispatches directly rather than arming a pickup,
+// since it never needs a map click (see facilitiesData.ts's
+// LIBRARY_TIER1_ID for why that one Buildable is the exception).
 function BuildTile({
-  s, t, marker, placingId, onArmPlacement,
+  s, t, marker, placingId, onArmPlacement, act,
 }: {
   s: GameState; t: Buildable; marker?: string;
   placingId: string | null; onArmPlacement: (id: string | null) => void;
+  act: (a: Action) => void;
 }) {
   const Icon = iconForBuildable(t);
   const missingFaculty = !!(t.requiresFaculty && !hasFreeFacultySlot(s, t.requiresFaculty));
 
   // done + already placed on the map: nothing left to decide, so a plain
-  // (non-interactive) tile that just records what stands there.
+  // (non-interactive) tile that just records what stands there — UNLESS
+  // this is the tier-1 library and it still has a renovation left (see
+  // nextLibraryFloor), in which case it gets its own interactive tile
+  // offering to renovate it in place instead of the usual static one.
   if (t.status === 'done' && t.id in s.placements) {
     const detail = builtDetail(t);
+    const floorPlan = t.id === LIBRARY_TIER1_ID ? nextLibraryFloor(t) : null;
+    if (floorPlan) {
+      const shortfall = floorPlan.cost - s.finance.cash;
+      return (
+        <button
+          type="button"
+          className="build-tile available"
+          disabled={shortfall > 0}
+          title={shortfall > 0
+            ? `$${Math.ceil(shortfall).toLocaleString()} short.`
+            : `Renovates the existing library in place — no new building. Adds ${floorPlan.servesGain.toLocaleString()} seats over ${floorPlan.weeks} weeks; the library serves no one while the work is underway.`}
+          onClick={() => act({ type: 'RENOVATE_LIBRARY' })}
+        >
+          {marker && <span className="kind-tag">{marker}</span>}
+          <span className="build-tile-icon"><Icon /></span>
+          <span className="build-tile-name">{t.name}</span>
+          {detail && <span className="build-tile-sub">{detail}</span>}
+          <span className="build-tile-foot">add a floor · ${floorPlan.cost.toLocaleString()} · {floorPlan.weeks}w</span>
+        </button>
+      );
+    }
     return (
       <div className="build-tile done" title={detail ? `${t.name} · ${detail}` : t.name}>
         {marker && <span className="kind-tag">{marker}</span>}
@@ -442,8 +471,9 @@ function BuiltSummaryTile({ group, built, open, onToggle }: {
 // still has something to decide), the rest of a repeatable group's finished
 // instances collapse behind BuiltSummaryTile once there are COLLAPSE_BUILT_FROM
 // of them.
-function BuildGroupTiles({ s, group, placingId, onArmPlacement }: {
+function BuildGroupTiles({ s, group, placingId, onArmPlacement, act }: {
   s: GameState; group: TypeGroup; placingId: string | null; onArmPlacement: (id: string | null) => void;
+  act: (a: Action) => void;
 }) {
   const [open, setOpen] = useState(false);
   // Chain position is read off the group's own order (chains are strictly
@@ -459,22 +489,22 @@ function BuildGroupTiles({ s, group, placingId, onArmPlacement }: {
   return (
     <>
       {awaitingSiting.map(({ t, marker }) => (
-        <BuildTile key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} />
+        <BuildTile key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
       ))}
       {collapseBuilt
         ? (
           <>
             <BuiltSummaryTile group={group} built={built.map(({ t }) => t)} open={open} onToggle={() => setOpen((v) => !v)} />
             {open && built.map(({ t, marker }) => (
-              <BuildTile key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} />
+              <BuildTile key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
             ))}
           </>
         )
         : built.map(({ t, marker }) => (
-          <BuildTile key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} />
+          <BuildTile key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
         ))}
       {rest.map(({ t, marker }) => (
-        <BuildTile key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} />
+        <BuildTile key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
       ))}
     </>
   );
@@ -520,10 +550,12 @@ export default function BuildPopup({
   s, act, placingId, onArmPlacement, pathTool, onSetPathTool, onClose,
 }: {
   s: GameState;
-  // Only used to report which buildable ids the player has now seen (see
-  // types.ts's SeenState) — nothing else in this popup dispatches through
-  // here; PLACE_BUILDABLE is still the map's own job (see CampusMap.tsx's
-  // placeById).
+  // Mostly used to report which buildable ids the player has now seen (see
+  // types.ts's SeenState) — PLACE_BUILDABLE is still the map's own job (see
+  // CampusMap.tsx's placeById). The one exception is threaded down to
+  // BuildTile: the tier-1 library's "add a floor" renovation, which
+  // dispatches RENOVATE_LIBRARY straight from its own tile rather than
+  // arming a pickup, since it never needs a map click.
   act: (a: Action) => void;
   // Which placeable Buildable is currently picked up for siting on the map,
   // and how to change it — lifted to App.tsx (see CampusMap.tsx's module
@@ -616,7 +648,7 @@ export default function BuildPopup({
             : (
               <div className="build-tile-row">
                 {active.groups.map((group) => (
-                  <BuildGroupTiles key={group.key} s={s} group={group} placingId={placingId} onArmPlacement={onArmPlacement} />
+                  <BuildGroupTiles key={group.key} s={s} group={group} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
                 ))}
               </div>
             )}
