@@ -3,13 +3,13 @@ import type { Action } from '../state/actions';
 import type { GameState } from '../state/types';
 import { TAB_LABELS, TAB_ORDER, type TabId } from './TabNav';
 import BuildPopup, { visibleBuildableIds } from './BuildPopup';
-import LogFeed from './LogStrip';
-import ToolbarPopup from './ToolbarPopup';
+import { FundsAndStats, SchoolAndClock } from './StatusHeader';
+import type { Speed } from '../engine/useGame';
 import { visibleCourseIds } from '../tabs/CurriculumTab';
 import { neededFacultyFields } from '../systems/techtree/techSystem';
 import {
-  FacultyIcon, CurriculumIcon, TreasuryIcon, AdmissionsIcon,
-  StudentLifeIcon, HistoryIcon, AthleticsIcon, BuildIcon, LogIcon,
+  FacultyIcon, CurriculumIcon, AdmissionsIcon,
+  StudentLifeIcon, HistoryIcon, AthleticsIcon, BuildIcon,
 } from './icons';
 
 // Which tab icons can carry the small red alert badge, and how each decides
@@ -26,38 +26,39 @@ const TAB_ALERT: Partial<Record<TabId, (s: GameState) => boolean>> = {
   },
 };
 
-// C2: the one cohesive bottom band. Tabs, the build menu, and the log used
-// to be three separate floating pieces of chrome (TabNav in the topbar,
-// BuildPanel as a permanent right-side rail, LogStrip as its own floating
-// card) — this docks all three along the bottom edge instead, full width,
-// as a single band. Forwards its ref so App.tsx can measure its real height
-// with useCssHeightVar, exactly like the topbar: `.campus-map-canvas`
-// insets its interactive area away from both, so a tile is never left on
-// screen but unreachable under either.
-//
-// The build popup and the log popup (below) are the two things this band
-// can pop open above itself. Neither is a TabOverlay: see ToolbarPopup's
-// own module comment for why they carry no dimming backdrop — the campus
-// map has to stay visible and clickable around them, especially the build
-// popup, since siting a building is now a map click made while the popup
-// deciding what to build is still open (see BuildPopup.tsx).
-//
+// C3: Treasury has no icon of its own here — the funds button in the left
+// zone (see StatusHeader.tsx's FundsAndStats) is its one entry point now,
+// so the middle cluster only needs the tabs that button doesn't cover.
+const ICON_TAB_ORDER = TAB_ORDER.filter((id) => id !== 'treasury');
+
 // Tab icons come from icons.tsx (no icon library is installed — see that
 // file's own module comment for why these are hand-rolled inline SVG
 // rather than a new dependency). TAB_LABELS (TabNav.tsx) still supplies the
 // words, now as each button's aria-label/title instead of visible text, so
 // the tab set stays just as legible to a screen reader or a hover as it was
 // before.
-const TAB_ICONS: Record<TabId, () => React.JSX.Element> = {
+const TAB_ICONS: Record<Exclude<TabId, 'treasury'>, () => React.JSX.Element> = {
   faculty: FacultyIcon,
   curriculum: CurriculumIcon,
-  treasury: TreasuryIcon,
   admissions: AdmissionsIcon,
   studentlife: StudentLifeIcon,
   history: HistoryIcon,
   athletics: AthleticsIcon,
 };
 
+// C2 first folded the tab nav, the build rail, and the log strip into one
+// docked bottom band; C3 goes further and absorbs the old topbar into the
+// same band (see StatusHeader.tsx's module comment) — funds/headline stats
+// in the left zone, the tab icons + build in the middle, speed controls and
+// the school's own identity/clock in the right zone. Save/New Game/Credits
+// moved up into MainMenu.tsx's own top-right overlay instead, and the log
+// ticker is dropped for now (no natural slot for it in this layout).
+//
+// The build popup is the one thing this band can still pop open above
+// itself — see ToolbarPopup's own module comment for why it carries no
+// dimming backdrop: the campus map has to stay visible and clickable
+// around it, since siting a building is a map click made while the popup
+// deciding what to build is still open (see BuildPopup.tsx).
 const Toolbar = forwardRef<HTMLDivElement, {
   s: GameState;
   // Only threaded through to the build popup, which reports seen buildable
@@ -67,6 +68,8 @@ const Toolbar = forwardRef<HTMLDivElement, {
   act: (a: Action) => void;
   active: TabId | null;
   onChangeTab: (tab: TabId | null) => void;
+  speed: Speed;
+  setSpeed: (speed: Speed) => void;
   // Which placeable Buildable is currently picked up for siting, and the
   // active path tool, if any — both lifted all the way to App.tsx now that
   // the build popup (not just the map itself) can arm either one. See
@@ -76,9 +79,8 @@ const Toolbar = forwardRef<HTMLDivElement, {
   onArmPlacement: (id: string | null) => void;
   pathTool: 'draw' | 'erase' | null;
   onSetPathTool: (mode: 'draw' | 'erase') => void;
-}>(({ s, act, active, onChangeTab, placingId, onArmPlacement, pathTool, onSetPathTool }, ref) => {
+}>(({ s, act, active, onChangeTab, speed, setSpeed, placingId, onArmPlacement, pathTool, onSetPathTool }, ref) => {
   const [buildOpen, setBuildOpen] = useState(false);
-  const [logOpen, setLogOpen] = useState(false);
   // Shared by both ways the build popup can close (the toolbar's own Build
   // button toggling off, and the popup's own ✕/Escape — see BuildPopup's
   // onClose below): either one drops whatever path tool was still armed,
@@ -90,30 +92,19 @@ const Toolbar = forwardRef<HTMLDivElement, {
     setBuildOpen(false);
     if (pathTool) onSetPathTool(pathTool);
   }
-  // Log entries are newest-first (see reducer.ts's s.log.unshift), so the
-  // ticker's "latest line" is simply the first one.
-  const latest = s.log[0];
 
   return (
     <div className="toolbar" ref={ref}>
-      <div className="toolbar-log">
-        <button
-          type="button"
-          className={`toolbar-icon-btn ${logOpen ? 'active' : ''}`}
-          aria-expanded={logOpen}
-          aria-label={logOpen ? 'Close activity log' : 'Open activity log'}
-          title="Activity log"
-          onClick={() => setLogOpen((v) => !v)}
-        >
-          <LogIcon />
-        </button>
-        <span className="toolbar-log-ticker">
-          {latest ? <>Y{latest.year}W{latest.week} · {latest.message}</> : 'No activity yet.'}
-        </span>
+      <div className="toolbar-left">
+        <FundsAndStats
+          s={s}
+          treasuryOpen={active === 'treasury'}
+          onOpenTreasury={() => onChangeTab(active === 'treasury' ? null : 'treasury')}
+        />
       </div>
 
       <nav className="toolbar-tabs">
-        {TAB_ORDER.map((id) => {
+        {ICON_TAB_ORDER.map((id) => {
           const Icon = TAB_ICONS[id];
           const isActive = active === id;
           // Suppressed while this tab is the active one — see the module
@@ -138,32 +129,30 @@ const Toolbar = forwardRef<HTMLDivElement, {
             </button>
           );
         })}
+
+        <button
+          type="button"
+          className={`toolbar-icon-btn toolbar-build-btn ${buildOpen ? 'active' : ''}`}
+          aria-expanded={buildOpen}
+          aria-label={buildOpen ? 'Close build menu' : 'Open build menu'}
+          title="Build"
+          onClick={() => (buildOpen ? closeBuild() : setBuildOpen(true))}
+        >
+          <BuildIcon />
+          <span className="toolbar-build-label">Build</span>
+          {/* Stays lit for as long as ANY category tab holds an unseen tile,
+              whether or not the popup is open — opening the popup at its
+              default tab is not the same as switching to the tab the new
+              building is actually in (see BuildPopup.tsx's own per-tab dot). */}
+          {visibleBuildableIds(s).some((id) => !s.seen.buildableIds[id]) && (
+            <span className="alert-badge" aria-hidden="true">!</span>
+          )}
+        </button>
       </nav>
 
-      <button
-        type="button"
-        className={`toolbar-icon-btn toolbar-build-btn ${buildOpen ? 'active' : ''}`}
-        aria-expanded={buildOpen}
-        aria-label={buildOpen ? 'Close build menu' : 'Open build menu'}
-        title="Build"
-        onClick={() => (buildOpen ? closeBuild() : setBuildOpen(true))}
-      >
-        <BuildIcon />
-        <span className="toolbar-build-label">Build</span>
-        {/* Stays lit for as long as ANY category tab holds an unseen tile,
-            whether or not the popup is open — opening the popup at its
-            default tab is not the same as switching to the tab the new
-            building is actually in (see BuildPopup.tsx's own per-tab dot). */}
-        {visibleBuildableIds(s).some((id) => !s.seen.buildableIds[id]) && (
-          <span className="alert-badge" aria-hidden="true">!</span>
-        )}
-      </button>
-
-      {logOpen && (
-        <ToolbarPopup title="Activity Log" onClose={() => setLogOpen(false)} className="log-popup">
-          <LogFeed s={s} />
-        </ToolbarPopup>
-      )}
+      <div className="toolbar-right">
+        <SchoolAndClock s={s} speed={speed} setSpeed={setSpeed} act={act} />
+      </div>
 
       {buildOpen && (
         <BuildPopup

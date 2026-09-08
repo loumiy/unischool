@@ -1,22 +1,23 @@
-import { Fragment } from 'react';
-import type { GameState, GreekChapter, StudentClub, StudentOrgBase } from '../state/types';
+import { useState } from 'react';
+import type { GameState, GreekChapter, SatisfactionAttributes, StudentClub, StudentOrgBase } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import {
   HELLENIC_COUNCIL_HINT, clubCapacity, chapterCapacity,
   hasStudentCenter, orgMembership, studentOrgUpkeep,
 } from '../data/studentLifeData';
-import { studentLifeSatisfaction } from '../systems/satisfaction/satisfactionSystem';
+import { attributeDetail, studentLifeSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { DEMAND_SATISFACTION_THRESHOLD, DEMAND_URGENT_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import { ProgressBar } from '../components/Progress';
 
-const ATTRIBUTE_LABELS: Record<string, string> = {
-  academic: 'Academic (library, faculty quality)',
-  social: 'Social (student center, rec, quad, clubs, Greek life, athletics)',
-  basicNeeds: 'Basic needs (dining)',
-  health: 'Health (counseling center)',
+const ATTRIBUTE_LABELS: Record<keyof SatisfactionAttributes, string> = {
+  academic: 'Academic',
+  social: 'Social',
+  basicNeeds: 'Basic Needs',
+  health: 'Health',
 };
+const ATTRIBUTE_ORDER: Array<keyof SatisfactionAttributes> = ['academic', 'social', 'basicNeeds', 'health'];
 
 // ---------------------------------------------------------------------
 // The home for the student-life layer: the clubs the campus has grown, the
@@ -99,32 +100,96 @@ function StudentLifeEffect({ s }: { s: GameState }) {
   );
 }
 
-// The per-attribute reading behind the headline number and the target above:
-// s.students.satisfactionBreakdown is NOT smoothed (see satisfactionSystem.ts),
-// so a facility that finished this week shows up here immediately even while
-// "Satisfaction today" is still drifting toward its new target. Its own panel
-// rather than a toggle inside the club-effect panel above: it answers a
-// different question ("what's dragging the number down right now") from that
-// panel's ("what are clubs/chapters/athletics adding to the target").
-function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
-  const breakdown = s.students.satisfactionBreakdown;
+function money2(v: number): string {
+  return v >= 0 ? `+${v.toFixed(1)}` : v.toFixed(1);
+}
 
+// One attribute's expandable row: collapsed to its name and score by
+// default (the "faculty roster" expand pattern — see FacultyTab.tsx's own
+// FacultyRow), opening to show exactly what's behind that score — every
+// 'done' building feeding it, how many it serves, the total against what a
+// fully-covered campus would need, and any named point bonus beyond served
+// population (faculty quality, campus pride, scholarships, student
+// organisations). Replaces the old parenthetical "(library, faculty
+// quality)" labels with the real thing, read from attributeDetail rather
+// than reauthored here — see satisfactionSystem.ts's own note on why.
+function AttributeRow({ s, attribute }: { s: GameState; attribute: keyof SatisfactionAttributes }) {
+  const [open, setOpen] = useState(false);
+  const detail = attributeDetail(s, attribute);
+
+  return (
+    <li className="faculty-row satisfaction-attribute-row">
+      <div className="faculty-row-summary">
+        <button
+          type="button"
+          className="faculty-expand-btn"
+          aria-expanded={open}
+          aria-label={open ? `Hide ${ATTRIBUTE_LABELS[attribute]} breakdown` : `Show ${ATTRIBUTE_LABELS[attribute]} breakdown`}
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open ? '▾' : '▸'}
+        </button>
+        <span className="faculty-name">{ATTRIBUTE_LABELS[attribute]}</span>
+        <span className="faculty-row-spacer" />
+        <span className="stat">{Math.round(detail.score)}</span>
+      </div>
+      {open && (
+        <div className="faculty-row-detail">
+          {detail.dormant ? (
+            <p className="empty-note">Dormant — the campus hasn&rsquo;t crossed the population where this need starts to matter yet.</p>
+          ) : (
+            <>
+              {detail.contributors.length > 0 ? (
+                <ul className="satisfaction-contributor-list">
+                  {detail.contributors.map((c) => (
+                    <li key={c.label}><span>{c.label}</span><span>{Math.round(c.value).toLocaleString()}</span></li>
+                  ))}
+                  <li className="satisfaction-contributor-total">
+                    <span>Total served</span>
+                    <span>{detail.totalServed.toLocaleString()}{detail.neededForFullScore > 0 ? ` / ${detail.neededForFullScore.toLocaleString()}` : ''}</span>
+                  </li>
+                </ul>
+              ) : (
+                <p className="empty-note">Nothing built yet serves this need.</p>
+              )}
+              {detail.bonuses.length > 0 && (
+                <ul className="satisfaction-contributor-list">
+                  {detail.bonuses.map((b) => (
+                    <li key={b.label}><span>{b.label}</span><span>{money2(b.value)}</span></li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
+
+// The per-attribute reading behind the headline number and the target above:
+// each attribute is read live off the campus as it stands right now — not
+// smoothed the way s.students.satisfaction itself is (see
+// satisfactionSystem.ts), so a facility that finished this week shows up
+// here immediately even while "Satisfaction today" is still drifting
+// toward its new target. Its own panel rather than a toggle inside the
+// club-effect panel above: it answers a different question ("what's
+// dragging the number down right now") from that panel's ("what are
+// clubs/chapters/athletics adding to the target").
+function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
   return (
     <section className="panel panel-span-2">
       <div className="panel-head">
         <h2>Satisfaction Breakdown</h2>
         <HelpHint
-          text="The four attributes the satisfaction target is a weighted sum of, read live off the campus as it stands right now — not smoothed, so a building finished this week already shows here even while the headline number above is still drifting toward its new target."
+          text="The four attributes the satisfaction target is a weighted sum of, read live off the campus as it stands right now — not smoothed, so a building finished this week already shows here even while the headline number above is still drifting toward its new target. Expand one to see exactly what's behind its score: every building serving that need, how many it serves, and any other named contributor."
         />
       </div>
-      <dl className="satisfaction-breakdown">
-        {(Object.keys(breakdown) as Array<keyof typeof breakdown>).map((key) => (
-          <Fragment key={key}>
-            <dt>{ATTRIBUTE_LABELS[key]}</dt>
-            <dd>{Math.round(breakdown[key])}</dd>
-          </Fragment>
+      <ul className="faculty-list satisfaction-breakdown-list">
+        {ATTRIBUTE_ORDER.map((attribute) => (
+          <AttributeRow key={attribute} s={s} attribute={attribute} />
         ))}
-      </dl>
+      </ul>
     </section>
   );
 }

@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { useGame } from './engine/useGame';
 import type { GameState } from './state/types';
 import StartupScreen from './components/StartupScreen';
-import StatusHeader from './components/StatusHeader';
+import MainMenu from './components/MainMenu';
 import InterruptModal from './components/InterruptModal';
 import { TAB_LABELS, type TabId } from './components/TabNav';
 import CampusMap from './components/CampusMap';
@@ -39,19 +39,21 @@ import './styles.css';
 //
 // C2 unifies what used to be three separate floating pieces — the tab nav,
 // the build rail, and the log ticker — into one bottom Toolbar (see
-// Toolbar.tsx), and reclaims the side rail's column entirely: the map now
-// only insets away from the topbar (top) and the toolbar (bottom), never a
-// right-hand rail. The topbar and the toolbar both have real, non-constant
-// heights — the masthead's stat row wraps at moderate widths, and the
-// toolbar's own log ticker can wrap too (see styles.css's media queries) —
-// so a fixed CSS inset would either waste map area on a wide screen or,
-// worse, leave a strip of tiles physically under an opaque panel — on
-// screen but never clickable — on a narrower one. `useCssHeightVar` keeps
-// `--topbar-height` and `--toolbar-height` synced to their real rendered
-// heights; the map's own bottom hint strip does the same for `--tray-height`
-// in CampusMap.tsx. Together those are what .campus-map-canvas (see
-// styles.css) insets its interactive area by, so every tile stays reachable
-// at any viewport size.
+// Toolbar.tsx), reclaiming the side rail's column entirely. C3 goes
+// further and removes the topbar altogether: everything it used to show
+// (the school's identity, the headline stats, speed/save controls) now
+// lives either in that same bottom Toolbar or in the top-right corner
+// overlays (MainMenu's hamburger, the map's own zoom/'?' pill — see
+// CampusMap.tsx), so the map now only insets away from the toolbar
+// (bottom), never from the top or a right-hand rail. The toolbar has a
+// real, non-constant height — its content can wrap at narrower widths (see
+// styles.css's media queries) — so a fixed CSS inset would either waste
+// map area on a wide screen or, worse, leave a strip of tiles physically
+// under an opaque panel — on screen but never clickable — on a narrower
+// one. `useCssHeightVar` keeps `--toolbar-height` synced to its real
+// rendered height, which is what .campus-map-canvas (see styles.css)
+// insets its interactive area by, so every tile stays reachable at any
+// viewport size.
 export default function App() {
   const { state, act, speed, setSpeed } = useGame();
   const s: GameState = state;
@@ -69,9 +71,7 @@ export default function App() {
   // either one.
   const [placingId, setPlacingIdState] = useState<string | null>(null);
   const [pathTool, setPathToolState] = useState<'draw' | 'erase' | null>(null);
-  const topbarRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
-  useCssHeightVar(topbarRef, '--topbar-height');
   useCssHeightVar(toolbarRef, '--toolbar-height');
 
   // Picking up a building for siting and drawing/erasing a path are two
@@ -95,18 +95,17 @@ export default function App() {
   return (
     <>
       <CampusMap s={s} act={act} selectedId={placingId} onSelect={setPlacingId} pathTool={pathTool} onSetPathTool={setPathTool} />
+      <MainMenu act={act} />
 
       <div className="app">
-        <div className="topbar" ref={topbarRef}>
-          <StatusHeader s={s} speed={speed} setSpeed={setSpeed} act={act} />
-        </div>
-
         <Toolbar
           ref={toolbarRef}
           s={s}
           act={act}
           active={overlay}
           onChangeTab={setOverlay}
+          speed={speed}
+          setSpeed={setSpeed}
           placingId={placingId}
           onArmPlacement={setPlacingId}
           pathTool={pathTool}

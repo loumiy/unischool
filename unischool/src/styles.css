@@ -29,22 +29,22 @@
   --grass-highlight: #a3c17d;
   --serif: Georgia, 'Times New Roman', serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  /* --topbar-height, --toolbar-height and --tray-height are each kept in
-     sync with their element's REAL rendered height (App.tsx's
-     useCssHeightVar, and CampusMap.tsx's own use of it for the tray) —
-     none of the three is a constant: the topbar wraps at narrower widths,
-     the toolbar's log ticker can too, and the tray sizes to its own
-     content. These defaults are only what's used for the very first paint,
-     before those effects have measured anything. .campus-map-canvas insets
-     by all three (topbar above, toolbar+tray stacked below), so a tile is
-     never left on screen but unreachable under one of them. There is no
-     more --side-panel-width or --log-strip-width (C2 folded the build rail
-     and the log strip into the bottom toolbar — see Toolbar.tsx — so the
-     map keeps that width back instead of insetting away from a rail that
-     no longer exists). */
-  --topbar-height: 141px;
-  --toolbar-height: 56px;
-  --tray-height: 44px;
+  /* --toolbar-height is kept in sync with the toolbar's REAL rendered
+     height (App.tsx's useCssHeightVar) — it isn't a constant, since the
+     band wraps at narrower widths. This default is only what's used for
+     the very first paint, before that effect has measured anything.
+     .campus-map-canvas insets its bottom edge by it, so a tile is never
+     left on screen but unreachable underneath it. There is no more
+     --topbar-height or --tray-height (C3 removed the topbar entirely —
+     everything it showed now lives in the bottom toolbar or the top-right
+     corner overlays — and folded the map's own bottom tray into the '?' in
+     that same corner; see App.tsx/Toolbar.tsx/CampusMap.tsx), and no more
+     --side-panel-width or --log-strip-width (C2 folded the build rail and
+     the log strip into the bottom toolbar). --corner-menu-height is the
+     fixed (never measured) height of MainMenu's hamburger button, which the
+     map's zoom/'?' pill stacks directly beneath in the top-right corner. */
+  --toolbar-height: 64px;
+  --corner-menu-height: 40px;
 }
 
 /* The shell fills the viewport rather than scrolling as a document: the map
@@ -57,115 +57,129 @@ button { cursor: pointer; font-family: inherit; }
 
 /* ---------- the chrome layer ----------
    `.app` sits above the map (see .campus-map's z-index below), full-
-   viewport but carrying NO layout of its own beyond ordinary block flow —
-   there is no rail to lay out beside the map any more (C2 folded the build
-   rail into the bottom toolbar's popup, reclaiming that whole column), so
-   `.topbar` simply renders as this container's one real block-flow child,
-   flush to the top. Everything else in here (the Toolbar band, TabOverlay,
-   InterruptModal) escapes flow entirely via its own `position: fixed`. It
-   carries NO background of its own — `pointer-events: none` on the
-   container itself, with `auto` restored on each direct child, means the
-   empty space (map showing through, unobstructed) never intercepts a click
-   meant for the map beneath it; only the actual floating cards (and the
-   tab/interrupt overlays) are clickable. */
+   viewport but carrying NO layout of its own — there is no topbar and no
+   rail to lay out beside the map any more (C3 removed the topbar entirely;
+   C2 folded the build rail into the bottom toolbar's popup), so every
+   direct child (the Toolbar band, MainMenu, TabOverlay, InterruptModal)
+   escapes flow entirely via its own `position: fixed`. It carries NO
+   background of its own — `pointer-events: none` on the container itself,
+   with `auto` restored on each direct child, means the empty space (map
+   showing through, unobstructed) never intercepts a click meant for the
+   map beneath it; only the actual floating cards (and the tab/interrupt
+   overlays) are clickable. */
 .app { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
 .app > * { pointer-events: auto; }
 
-/* ---------- top strip: masthead + control bar, one solid band ----------
-   Flush to the top and both side edges (its own padding stands in for
-   `.app`'s, which carries none) — a status ribbon the width of the
-   viewport, the way the reference lays its top chrome across the world
-   rather than as an inset card. The tab nav that used to live at the
-   bottom of this band moved into the bottom Toolbar as icon buttons (C2 —
-   see Toolbar.tsx), so this is masthead + control bar only now. */
-.topbar { background: var(--navy); border-bottom: 1px solid var(--navy-line);
-  padding: 10px 20px 0; }
-
-/* ---------- masthead ---------- */
-.masthead { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;
-  padding-bottom: 8px; border-bottom: 2px solid var(--gold); margin-bottom: 6px; }
-.eyebrow { text-transform: uppercase; letter-spacing: 0.16em; font-size: 11px; color: var(--gold); }
-.masthead-id h1 { font-family: var(--serif); font-size: 28px; margin: 4px 0 0; color: var(--ink-hi); }
-.masthead-stats { display: flex; gap: 26px; flex-wrap: wrap; }
-.stat-block { text-align: right; }
+/* ---------- shared stat-chip look ----------
+   Used by the bottom toolbar's left cluster (rank/enrolled/prestige/
+   satisfaction — see Toolbar.tsx/StatusHeader.tsx) and by nothing else now
+   that the old top masthead is gone (C3). */
 .stat-label { text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; color: var(--gold-dim); }
-.stat-value { font-family: var(--mono); font-size: 17px; font-weight: 700; color: var(--ink-hi); }
+.stat-value { font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--ink-hi); }
 .stat-value.money { color: #7dd3a0; }
 .stat-value.money-negative { color: #e58a8a; }
 .stat-value.gold { color: var(--gold); }
-.stat-sub { font-size: 11px; color: var(--ink-lo); font-family: var(--mono); }
 
-/* ---------- control bar ---------- */
-.controlbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 6px; }
+/* ---------- speed / save controls, now living in the bottom toolbar ---- */
 .speeds button { margin: 0 2px; padding: 5px 14px; background: transparent; color: #c7cee0;
   border: 1px solid var(--navy-line); border-radius: 4px; font-size: 12px; letter-spacing: 0.02em; }
 .speeds button.active { background: var(--gold); color: #1a2035; border-color: var(--gold); font-weight: 700; }
 .speeds button.sandbox { border-style: dashed; border-color: #a67c1c; color: #e0b04a; }
 .speeds button.sandbox.active { background: #a67c1c; color: #14161a; border-color: #a67c1c; }
-.controlbar-right { display: flex; gap: 8px; align-items: center; }
 /* The playtest-only "+$1B" grant button — same sandbox palette as the
    Fast speed button, so both read as the same "not normal play" register. */
 .grant-funds-btn { background: #3a2f1c; color: #e0b04a; border: 1px dashed #a67c1c; border-radius: 4px;
   padding: 5px 10px; font-size: 11px; font-weight: 700; }
 .grant-funds-btn:hover { background: #a67c1c; color: #14161a; }
-/* Save / New Game (see StatusHeader.tsx's SaveControls). Sized and spoken
-   in the same quiet register as the speed buttons beside them — these are
-   chrome, not a call to action. `armed` is the second half of New Game's
+/* Save / New Game, now inside MainMenu's popup (see MainMenu.tsx) rather
+   than a topbar control bar. `armed` is the second half of New Game's
    inline confirm: the same button, now unmistakably destructive. */
-.save-btn { background: transparent; border: 1px solid var(--navy-line); color: #c7cee0;
-  border-radius: 4px; padding: 5px 14px; font-size: 12px; letter-spacing: 0.02em; }
-.save-btn:hover { border-color: var(--gold); color: var(--gold); }
-.newgame-btn { background: transparent; border: 1px solid var(--navy-line); color: var(--ink-lo);
-  border-radius: 4px; padding: 5px 12px; font-size: 12px; letter-spacing: 0.02em; }
-.newgame-btn:hover { color: var(--ink-hi); }
-.newgame-btn.armed { border-color: #b0524f; color: #e58a8a; }
-.newgame-btn.armed:hover { background: #b0524f; color: var(--ink-hi); }
-.newgame-confirm-label { font-size: 11px; color: #e58a8a; letter-spacing: 0.02em; }
+.save-btn { background: transparent; border: 1px solid var(--parchment-line); color: var(--ink);
+  border-radius: 4px; padding: 7px 14px; font-size: 13px; letter-spacing: 0.02em; text-align: left; width: 100%; }
+.save-btn:hover { border-color: var(--gold-dim); color: var(--gold-dim); }
+.newgame-btn { background: transparent; border: 1px solid var(--parchment-line); color: var(--ink-muted);
+  border-radius: 4px; padding: 7px 14px; font-size: 13px; letter-spacing: 0.02em; text-align: left; width: 100%; }
+.newgame-btn:hover { color: var(--ink); }
+.newgame-btn.armed { border-color: #b0524f; color: #8a2f2f; background: #f4dede; }
+.newgame-btn.armed:hover { background: #b0524f; color: #fff; }
+.newgame-confirm-label { font-size: 11px; color: #8a2f2f; letter-spacing: 0.02em; }
 
-/* ---------- bottom toolbar: tabs + build + log, one cohesive band ----------
-   C2's unification of what used to be three separate floating pieces (see
-   Toolbar.tsx's own module comment) into a single docked bar the width of
-   the viewport, mirroring the topbar's own "flush ribbon" language at the
-   opposite edge. Three sections in a row — the log ticker (flexible, so it
-   absorbs whatever width the tabs/build button don't need), the tab icons,
-   and the build button — rather than a symmetric three-column layout: the
-   log's width genuinely varies with its message, while the tabs and build
-   button are fixed-size, so anchoring flex on the one variable-width piece
-   keeps the other two from jittering. */
+/* ---------- bottom toolbar: the whole chrome band, C3 ----------
+   C2 first unified the tab nav, the build rail, and the log strip into one
+   docked bar; C3 goes further and absorbs the old top masthead into this
+   same band too, now that the topbar is gone entirely — funds/stats move
+   to the left, the school identity/clock/speed controls move to the
+   right, save/new game/credits move up into MainMenu.tsx's own top-right
+   overlay, and the log ticker is dropped (no natural slot for it here —
+   see StatusHeader.tsx's module comment). Three zones in a row — left
+   (funds + the headline stats), middle (tab icons + build, the one fixed-
+   width cluster that stays centered), right (speed controls + school/
+   clock) — with the two side zones sharing the remaining space evenly so
+   the middle cluster is never pushed off-center by one side outweighing
+   the other. */
 .toolbar { position: fixed; z-index: 10; left: 0; right: 0; bottom: 0;
-  display: flex; align-items: center; gap: 18px;
+  display: flex; align-items: center; justify-content: space-between; gap: 18px;
   background: var(--navy); border-top: 1px solid var(--navy-line);
   padding: 8px 16px; }
 
-/* The log ticker: an icon that opens the fuller feed (see .log-popup below)
-   plus a one-line "latest entry" reading, in the same monospace register
-   the masthead's own figures use. A compact ticker was picked over always
-   showing several lines (the old log-strip's own approach) because a
-   horizontal band has height to spare for exactly one line, not several —
-   the fuller history is one click away instead of permanently on screen. */
-.toolbar-log { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; }
-.toolbar-log-ticker { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-family: var(--mono); font-size: 12px; color: var(--ink-lo); }
+/* NOT flex: 1 1 0 (equal-halves growth) — with a fixed-width middle nav
+   between them, forcing both side zones to the exact same box width means
+   whichever zone's actual content is wider than that box (e.g. the
+   playtest-only grant button pushing the right zone wider) overflows past
+   its own box edge and visually overlaps the middle nav, since none of
+   these three zones wraps internally. Auto-basis lets each zone claim
+   just what its content needs, so .toolbar's own space-between spreads
+   them to the two edges without forcing either into the other's way — the
+   middle nav can drift off dead-center when the two sides are very
+   different widths, which is a far smaller cost than overlap. */
+.toolbar-left, .toolbar-right { flex: 0 1 auto; display: flex; align-items: center; gap: 18px; }
+.toolbar-right { justify-content: flex-end; }
 
-.toolbar-tabs { display: flex; gap: 4px; flex: none; }
+/* The funds button: cash + this week's net, in the same money-colour
+   register the old masthead used, now also the entry point into Treasury
+   (see Toolbar.tsx) — there is no separate Treasury icon in the middle
+   row any more. */
+.toolbar-funds-btn { flex: none; display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 4px 10px; }
+.toolbar-funds-btn:hover { border-color: var(--navy-line); }
+.toolbar-funds-btn.active { border-color: var(--gold); background: rgba(201, 162, 39, 0.12); }
+.toolbar-funds-net { font-family: var(--mono); font-size: 11px; color: var(--ink-lo); }
 
-/* Shared by every icon button in the band — tab icons, the log toggle, and
-   the build toggle — so all three read as one family of controls. Square,
-   generously sized (a real touch/click target, not a cramped glyph), quiet
-   until hovered or active, gold on active exactly like the old text tabs'
-   underline used to be, just as a filled chip instead since there's no
-   text baseline left to underline. */
-.toolbar-icon-btn { position: relative; flex: none; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
-  background: transparent; border: 1px solid transparent; border-radius: 8px; color: var(--ink-lo); }
+/* The headline stats (rank/enrolled/prestige/satisfaction) — plain
+   figures, no "of N" suffix (see StatusHeader.tsx): each is read against
+   context available elsewhere (the Admissions/Student Life tabs), not
+   reconstructed here. */
+.toolbar-stats { display: flex; gap: 16px; flex-wrap: wrap; }
+.toolbar-stat { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+
+/* The school identity + clock, now the bottom-right's own prominent
+   cluster (see StatusHeader.tsx) — replacing the old masthead's h1. */
+.toolbar-school { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.toolbar-school-name { font-family: var(--serif); font-size: 17px; color: var(--ink-hi); white-space: nowrap; }
+.toolbar-clock { font-family: var(--mono); font-size: 11px; color: var(--ink-lo); white-space: nowrap; }
+
+.toolbar-speed { flex: none; display: flex; align-items: center; gap: 6px; }
+
+.toolbar-tabs { display: flex; align-items: center; gap: 4px; flex: none; }
+
+/* Shared by every icon button in the middle cluster — tab icons and the
+   build toggle — so all read as one family of controls: round (per the
+   design ask), generously sized (a real touch/click target, not a cramped
+   glyph), quiet until hovered or active, gold on active exactly like the
+   old text tabs' underline used to be, just as a filled chip instead since
+   there's no text baseline left to underline. */
+.toolbar-icon-btn { position: relative; flex: none; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid transparent; border-radius: 50%; color: var(--ink-lo); }
 .toolbar-icon-btn svg { width: 20px; height: 20px; display: block; }
 .toolbar-icon-btn:hover { color: var(--ink-hi); border-color: var(--navy-line); }
 .toolbar-icon-btn.active { color: var(--gold); background: rgba(201, 162, 39, 0.16); border-color: var(--gold); }
 
-/* The build button: same icon-button family, but wide enough to carry its
-   own text label too — it's the one primary action in the band (every
-   other button here opens a view; this one starts placing something), so
-   it earns a little more visual weight than a bare icon. */
-.toolbar-build-btn { flex: none; width: auto; gap: 7px; padding: 0 14px; border-color: var(--gold-dim); }
+/* The build button: same round-icon family, but wide enough to carry its
+   own text label too (a pill rather than a circle) — it's the one primary
+   action in the band (every other button here opens a view; this one
+   starts placing something), so it earns a little more visual weight than
+   a bare icon. */
+.toolbar-build-btn { flex: none; width: auto; height: 40px; border-radius: 20px; gap: 7px; padding: 0 16px; border-color: var(--gold-dim); }
 .toolbar-build-label { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.06em; font-size: 12px; }
 
 /* The "new content" alert badge (see types.ts's SeenState): a small red
@@ -498,10 +512,13 @@ button.build-tile { font-family: inherit; }
    never between the map and the cursor. `.campus-map` itself still bleeds
    to every edge (a seamless ground colour with no seam where chrome sits),
    but `.campus-map-canvas` — the actual SVG, everything clickable — insets
-   away from the topbar and the bottom dock (the toolbar, plus the map's own
-   tray strip sitting just above it). That inset is deliberate, not
-   cosmetic: both are always on screen and fully opaque, so a tile rendered
-   behind one of them would be on screen but permanently unreachable.
+   away from the bottom dock (the toolbar). There is no more top inset
+   (C3 removed the topbar entirely, so the map now runs flush to the very
+   top of the viewport too — the corner overlays that used to sit below it,
+   MainMenu and the zoom/'?' pill, float independently on top of the map
+   rather than the map insetting away from them). That inset is deliberate,
+   not cosmetic: the toolbar is always on screen and fully opaque, so a
+   tile rendered behind it would be on screen but permanently unreachable.
    Insetting the interactive area means the SVG's own viewBox-driven scaling
    (tileX/tileY in CampusMap.tsx, unchanged) does the rest — it fits itself
    to whatever box it's given, same as before this layout moved it out of a
@@ -511,13 +528,12 @@ button.build-tile { font-family: inherit; }
    floats OVER the map instead of beside it (see BuildPopup.tsx), so the map
    now runs edge to edge horizontally. */
 .campus-map { position: fixed; inset: 0; z-index: 0; background: var(--grass-deep); color: var(--ink); }
-/* The bottom inset is the toolbar's own real height plus the tray's (they
-   stack, tray directly above toolbar — see .campus-map-tray below), each
-   measured live rather than assumed at a ceiling: most of the time both
-   are short, and the map should get that space back rather than always
-   reserving room it doesn't need. */
-.campus-map-canvas { position: fixed; top: var(--topbar-height); right: 0;
-  bottom: calc(var(--toolbar-height) + var(--tray-height) + 24px); left: 0; }
+/* The bottom inset is the toolbar's own real height, measured live rather
+   than assumed at a ceiling: most of the time it's short, and the map
+   should get that space back rather than always reserving room it
+   doesn't need. */
+.campus-map-canvas { position: fixed; top: 0; right: 0;
+  bottom: calc(var(--toolbar-height) + 24px); left: 0; }
 /* `grab`/`grabbing` say the map is draggable before a player ever tries —
    `.panning` is toggled imperatively (see CampusMap.tsx's onMove), not
    through React state, for the same reason the transform itself is:
@@ -531,12 +547,11 @@ button.build-tile { font-family: inherit; }
 /* The clicked-building info panel: a fixed card in the map's otherwise-
    empty top-left corner (see the comment on BuildingInfoPanel's usage in
    CampusMap.tsx for why it's a fixed corner rather than a popover anchored
-   to the building itself). Same parchment-card language as the tray and
-   the zoom pill, sized to sit comfortably above the tray/toolbar without
-   reaching the zoom pill on the opposite corner at any but the narrowest
-   widths. */
-.building-info-panel { position: fixed; z-index: 10; top: calc(var(--topbar-height) + 16px); left: 16px;
-  width: 260px; max-height: calc(100vh - var(--topbar-height) - var(--toolbar-height) - var(--tray-height) - 40px); overflow-y: auto;
+   to the building itself). Same parchment-card language as the zoom pill,
+   sized to sit comfortably above the toolbar without reaching the zoom
+   pill on the opposite corner at any but the narrowest widths. */
+.building-info-panel { position: fixed; z-index: 10; top: 16px; left: 16px;
+  width: 260px; max-height: calc(100vh - var(--toolbar-height) - 32px); overflow-y: auto;
   background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px;
   padding: 10px 14px 12px; }
 .building-info-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
@@ -550,49 +565,56 @@ button.build-tile { font-family: inherit; }
 .building-info-completion { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; }
 .building-info-completion .stat { font-size: 11px; }
 
-/* Zoom in/out — reachable without a wheel or trackpad, since the map (see
-   TILE_SIZE in CampusMap.tsx) usually doesn't fit the screen at its native
-   size. A small vertical pill in the canvas's own top-right corner, clear
-   of the topbar above. (A third "recenter" button used to live here too;
-   dropped as chrome that didn't earn its place — panning back to the
-   default view by hand is one drag away, and the button was never more
-   than that. The draw/erase path controls that used to sit beside this
-   pill moved into the build popup for C2 — see BuildPopup.tsx's
-   CampusToolsSection — since zoom is a viewport control and they're campus-
-   editing tools, not the same family; see CampusMap.tsx's own note on why
-   zoom stayed put instead of following them.) */
-.campus-map-zoom-controls { position: fixed; z-index: 10; top: calc(var(--topbar-height) + 16px); right: 16px;
-  display: flex; flex-direction: column; gap: 4px;
+/* MainMenu: the hamburger overlay in the map's top-right corner (see
+   MainMenu.tsx) carrying what the old topbar's control bar used to —
+   Save, New Game, Credits — now that those no longer sit inline in the
+   bottom toolbar. Sits directly above the zoom/'?' pill in that same
+   corner (see --corner-menu-height and .campus-map-zoom-controls' own top
+   offset), same parchment-pill language as the rest of the map's floating
+   corner chrome. */
+.main-menu { position: fixed; z-index: 11; top: 16px; right: 16px; }
+.main-menu-btn { width: var(--corner-menu-height); height: var(--corner-menu-height);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px; color: var(--ink); }
+.main-menu-btn svg { width: 20px; height: 20px; display: block; }
+.main-menu-btn:hover, .main-menu-btn.active { border-color: var(--gold-dim); background: #efe1b8; }
+.main-menu-popup { position: absolute; top: calc(var(--corner-menu-height) + 8px); right: 0; width: 220px;
+  display: flex; flex-direction: column; gap: 6px;
+  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35); padding: 10px; }
+.main-menu-credits { font-size: 12px; line-height: 1.5; color: var(--ink-muted); padding: 7px 10px 2px; border-top: 1px solid var(--parchment-line); margin-top: 2px; }
+.main-menu-credits strong { color: var(--ink); }
+
+/* Zoom in/out (plus the map's own '?' — see CampusMap.tsx) — reachable
+   without a wheel or trackpad, since the map (see TILE_SIZE in
+   CampusMap.tsx) usually doesn't fit the screen at its native size. A small
+   vertical pill in the canvas's own top-right corner, stacked directly
+   under MainMenu.tsx's hamburger button in that same corner (see
+   --corner-menu-height below — the two are authored as one vertical stack
+   on purpose, rather than two independently-placed floating widgets, now
+   that the topbar that used to separate them is gone). (A third "recenter"
+   button used to live here too; dropped as chrome that didn't earn its
+   place — panning back to the default view by hand is one drag away, and
+   the button was never more than that. The draw/erase path controls that
+   used to sit beside this pill moved into the build popup for C2 — see
+   BuildPopup.tsx's CampusToolsSection — since zoom is a viewport control
+   and they're campus-editing tools, not the same family; see
+   CampusMap.tsx's own note on why zoom stayed put instead of following
+   them.) */
+.campus-map-zoom-controls { position: fixed; z-index: 10; top: calc(var(--corner-menu-height) + 24px); right: 16px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
   background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px; padding: 4px; }
 .campus-map-zoom-controls button { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
   background: #f5efdd; border: 1px solid var(--parchment-line); border-radius: 5px; color: var(--ink);
   font-size: 15px; line-height: 1; padding: 0; }
 .campus-map-zoom-controls button:hover { border-color: var(--gold-dim); background: #efe1b8; }
-
-/* A slim strip along the map's bottom edge, directly above the toolbar
-   (see .toolbar) — `position: fixed` puts it in its own stacking context,
-   same as every other floating card, so it isn't subject to `.app`'s
-   pointer-events: none (it lives inside .campus-map, outside `.app`
-   entirely, and needs no such rule — nothing in the campus map's own box
-   is transparent chrome the way `.app`'s empty space is). Title, help, and
-   a live one-line hint — see CampusMap.tsx. What USED to also live here —
-   the "awaiting siting" list of finished-but-unplaced buildings (picking
-   something up for siting happens from BuildPopup.tsx's "site →" row now),
-   and later a tiles-built counter — is gone, so this is one row, not a
-   multi-row card: orientation only, sized to its own single line rather
-   than reserving a card's worth of height along the bottom of the map.
-   Solid parchment background, same as every other floating panel, so its
-   text stays legible over the map behind it. Spans the full width now that
-   there's no build rail or log strip on either side to leave room for. */
-.campus-map-tray { position: fixed; z-index: 10; left: 16px; right: 16px;
-  bottom: calc(var(--toolbar-height) + 16px);
-  display: flex; align-items: baseline; gap: 14px;
-  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px;
-  padding: 8px 14px; }
-.campus-map-tray .panel-head-title { flex: none; }
-.campus-map-tray h2 { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em;
-  font-size: 13px; color: var(--gold-dim); margin: 0; white-space: nowrap; }
-.campus-map-hint { flex: 1; min-width: 0; font-size: 12px; font-style: italic; color: var(--ink-muted); margin: 0; }
+/* The '?' sits at the same 30x30 scale as the zoom buttons beneath it
+   (its default size — see .help-hint-btn — is sized for sitting inline
+   next to a panel heading, not for anchoring its own pill). */
+.campus-map-zoom-controls .help-hint-btn { width: 30px; height: 30px; border-radius: 5px;
+  background: #f5efdd; border: 1px solid var(--parchment-line); color: var(--ink); font-size: 14px; }
+.campus-map-zoom-controls .help-hint-btn:hover { border-color: var(--gold-dim); background: #efe1b8; color: var(--ink); }
+.campus-map-zoom-controls .help-hint-text { top: 0; right: 34px; left: auto; }
 
 /* The grounds: one flat lawn, not individual tiles sitting apart from each
    other — tiles are edge to edge (see TILE_GAP in CampusMap.tsx) and
@@ -758,7 +780,21 @@ button.build-tile { font-family: inherit; }
 .panel dl { display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; margin: 0; }
 .panel dt { color: var(--ink-muted); } .panel dd { margin: 0; text-align: right; font-family: var(--mono); }
 
-.satisfaction-breakdown { font-size: 12px; }
+/* The Satisfaction Breakdown panel's expandable rows (see
+   StudentLifeTab.tsx's AttributeRow) reuse the faculty roster's own
+   collapsed-row family below (.faculty-list/.faculty-row/...) — same
+   "collapsed to a name and a figure, click to expand" shape — plus these
+   two list styles for what's inside the expansion: a contributor list
+   (building name -> what it serves, or a bonus's name -> its points) and
+   its own total row, bold and rule-topped to read as a sum rather than one
+   more line item. */
+.satisfaction-breakdown-list { max-height: none; }
+.satisfaction-contributor-list { margin: 0 0 8px; }
+.satisfaction-contributor-list:last-child { margin-bottom: 0; }
+.satisfaction-contributor-list li { display: flex; justify-content: space-between; gap: 10px;
+  padding: 2px 0; font-family: var(--mono); font-size: 11px; }
+.satisfaction-contributor-total { margin-top: 4px; padding-top: 4px !important;
+  border-top: 1px dashed var(--parchment-line-lo); font-weight: 700; }
 .demand-note { margin-top: 10px; }
 
 ul, ol { list-style: none; margin: 0; padding: 0; }
@@ -777,6 +813,12 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-row-summary button { background: #f4dede; color: #8a2f2f; border: 1px solid #d9a8a8; border-radius: 5px;
   padding: 3px 10px; font-size: 11px; white-space: nowrap; }
 .faculty-row-summary button.appoint { background: #dcefe0; color: var(--green); border: 1px solid #9fd3af; }
+/* The expand/collapse toggle is a <button> too, but it's a disclosure
+   arrow, not an action like Appoint/Dismiss — this two-class selector
+   outranks the bare-`button` rule above (which only ever meant to style
+   those actions) so the arrow stays a plain, borderless glyph instead of
+   picking up their red action-button chrome. */
+.faculty-row-summary .faculty-expand-btn { background: none; border: none; color: var(--gold-dim); padding: 0 2px; width: 16px; }
 .faculty-row-detail { margin: 8px 0 2px 24px; padding: 8px 10px; background: #f5efdd;
   border: 1px solid var(--parchment-line-lo); border-radius: 6px; font-size: 12px; }
 .faculty-bio { margin: 0 0 8px; font-style: italic; color: var(--ink-muted); }
@@ -1093,16 +1135,15 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    The map stays the background at every width — there's no scrolling-
    document fallback any more (see .app / .campus-map above): a floating
    HUD over a persistent world is the point of this layout, not something
-   that only holds above 1000px. The toolbar band (see .toolbar) is a
-   single flex row that already narrows its own log ticker before anything
-   else, so most widths need no override at all; below this breakpoint the
-   band itself is tight enough that the ticker drops to its own line
-   instead, so nothing overlaps or runs off screen. Genuinely phone-narrow
-   widths are a lighter touch here — the campus grid wants real width to
-   read, and playing it that small is out of scope for this pass. */
+   that only holds above 1000px. Below this breakpoint the toolbar's three
+   zones wrap onto their own lines (left stats, then the tab cluster, then
+   the school/clock/speed zone) rather than overlaps or off-screen content.
+   Genuinely phone-narrow widths are a lighter touch here — the campus grid
+   wants real width to read, and playing it that small is out of scope for
+   this pass. */
 @media (max-width: 640px) {
-  .toolbar { flex-wrap: wrap; gap: 10px; padding: 8px 10px; }
-  .toolbar-log { order: 3; flex-basis: 100%; }
+  .toolbar { flex-wrap: wrap; gap: 10px; padding: 8px 10px; justify-content: center; }
+  .toolbar-left, .toolbar-right { flex-basis: 100%; justify-content: center; }
   .toolbar-build-label { display: none; }
 }
 

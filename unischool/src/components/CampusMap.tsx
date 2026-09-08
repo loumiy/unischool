@@ -9,7 +9,6 @@ import {
 import { canStartDevelopment } from '../systems/techtree/techSystem';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
-import { useCssHeightVar } from './useCssHeightVar';
 
 // The campus map: the game's base layer, always on screen under everything
 // else (see App.tsx), and a placement + rendering layer over the SAME
@@ -449,13 +448,6 @@ export default function CampusMap({
   useEffect(() => {
     setInspectedId(null);
   }, [pathTool]);
-  // This strip's own rendered height feeds --tray-height (see
-  // styles.css's .campus-map-canvas), sized to sit just above the bottom
-  // toolbar (App.tsx/Toolbar.tsx) rather than reserving a card's worth of
-  // height for a list it no longer holds.
-  const trayRef = useRef<HTMLDivElement>(null);
-  useCssHeightVar(trayRef, '--tray-height');
-
   // The one place selection changes: always resets rotation (a fresh pickup
   // starts unrotated) and closes the info panel, so a building picked up
   // for siting and an open inspector can never both be live. Dropping out
@@ -900,39 +892,26 @@ export default function CampusMap({
             viewport control, not a campus-editing tool like draw/erase
             path (which DID move — see BuildPopup.tsx's CampusToolsSection):
             zoom belongs anchored to the thing it controls, not bundled with
-            the build menu. */}
+            the build menu.
+
+            The map used to carry a whole strip along its bottom edge (title
+            + a '?' + a live one-line status hint) for this same
+            orientation — collapsed here instead into one '?' beside the
+            zoom buttons it already shares a corner with, in the same
+            language as MainMenu's hamburger a little further up that same
+            corner (see App.tsx). Losing the live status hint (what mode the
+            map is currently in) is deliberate: the popup this explains
+            covers the mechanic once, on demand, rather than a sentence that
+            had to keep re-describing whatever was already visible on
+            screen (an armed ghost, a path tool's own cursor). */}
         <div className="campus-map-zoom-controls">
+          <HelpHint
+            align="end"
+            text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. The Draw path / Erase path buttons (also in the build popup) let you fill in tiles as walkways — free, purely decorative, and unrelated to building. Drag the map to pan, or scroll/pinch to zoom."
+          />
           <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
           <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>
         </div>
-      </div>
-
-      {/* A slim, single-line strip docked along the bottom edge, just above
-          the toolbar: a title, a help hint, and a live one-line hint for
-          whatever mode the map is currently in. What USED to live here —
-          the "awaiting siting" tray of finished-but-unplaced buildings, and
-          later a tiles-built counter — is gone: picking something up for
-          siting happens from BuildPopup.tsx's "site →" row (placement
-          starts a build, so the affordance belongs where every other build
-          decision is made), and the counter told the player nothing they
-          act on. What's left is orientation only, kept to one row so it no
-          longer reads as a card competing with the toolbar for the bottom
-          of the screen. */}
-      <div className="campus-map-tray" ref={trayRef}>
-        <span className="panel-head-title">
-          <h2>Campus Map</h2>
-          <HelpHint text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. The Draw path / Erase path buttons (also in the build popup) let you fill in tiles as walkways — free, purely decorative, and unrelated to building." />
-        </span>
-        <span className="campus-map-hint">
-          {pathTool
-            ? pathTool === 'draw'
-              ? 'Click or drag across tiles to draw a pathway. Purely decorative — it grants nothing.'
-              : 'Click or drag across drawn tiles to erase that pathway.'
-            : selected && selectedFootprint
-              ? `Click or drop on ${selectedFootprint.w}×${selectedFootprint.h} of empty tiles to ${selected.status === 'done' ? 'site' : 'start building'} ${selected.name} there.`
-                + (canRotateSelected ? ' Press R (or the ⟳ on the ghost) to rotate.' : '')
-              : 'Pick something to build from the Build popup, then click (or drag) an empty tile here to start it.'}
-        </span>
       </div>
     </section>
   );
