@@ -101,15 +101,9 @@ export const DEMAND_FAILED_SATISFACTION_PENALTY = 8;
 // =====================================================================
 // TUNING — WHICH SHORTFALL. A demand is derived, not drawn: the system
 // scores every candidate shortfall and asks for the worst one (see
-// demandSystem.ts's rollShortfallDemand).
-// =====================================================================
-
-// A housing demand is the one candidate not measured as a served-population
-// ratio, so it needs its own gate: students only ask for more beds when
-// there are effectively none spare. Below this fill the campus has room and
-// the grievance would not be true.
-export const HOUSING_DEMAND_FILL_GATE = 0.95;
-
+// demandSystem.ts's rollShortfallDemand). Housing is scored the same way
+// as every other shortfall now — off satisfactionSystem.ts's own
+// attributeCoverage — so there is no separate gate constant for it here.
 // =====================================================================
 // THE COPY. One entry per shortfall a demand can be about, keyed by the
 // satisfaction attribute it is measured against (plus 'housing', the one

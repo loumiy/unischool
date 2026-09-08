@@ -23,10 +23,16 @@ export interface Finance {
 // show the player exactly what's dragging the single displayed number down
 // and which building fixes it.
 export interface SatisfactionAttributes {
-  academic: number;       // library seats-to-capacity ratio
+  academic: number;       // library seats-to-enrolled ratio
   social: number;         // student center + rec center (ratio) + quad (flat) + live student organisations (flat, see data/studentLifeData.ts)
-  basicNeeds: number;     // dining hall seats-to-capacity ratio — the sharpest penalty curve of the four
+  basicNeeds: number;     // dining hall seats-to-enrolled ratio — the sharpest penalty curve of the five
   health: number;         // health/counseling center — dormant (scores full) below the population threshold it unlocks at
+  // Dorm (+ housed Greek chapter) beds against the enrolled body — most
+  // students are commuters by design, so this is NOT scored against a 1:1
+  // target the way basicNeeds is (see satisfactionSystem.ts's TARGET_RATIO):
+  // a school that houses a healthy minority of its students scores fully
+  // adequate here. Not having enough beds for that share is what dents it.
+  housing: number;
 }
 
 // The student body is FOUR aggregate cohorts — never individuals (see
@@ -46,7 +52,13 @@ export interface StudentBody {
   // The four class-year cohorts. Total enrolled is their sum — read it via
   // totalEnrolled() rather than storing a separate total that could drift.
   cohorts: CohortCounts;
-  capacity: number;      // total-body bed capacity, driven by unlocked buildings/tech
+  // Total HOUSING (bed) capacity — dorms plus housed Greek chapter houses —
+  // never an admissions ceiling. Enrollment is uncapped and driven purely by
+  // the admissions funnel (see admissionsSystem.ts); most students are
+  // commuters, and this is only what's needed to keep the physical plant
+  // upkeep (financeSystem.ts) and the Housing satisfaction attribute
+  // (satisfactionSystem.ts) honest.
+  capacity: number;
   satisfaction: number;  // 0..100 — the weighted sum of satisfactionBreakdown, drifted toward smoothly (see satisfactionSystem.ts)
   satisfactionBreakdown: SatisfactionAttributes; // this week's per-attribute scores that satisfaction's target is computed from — the expandable UI reads this directly
   // Trailing-year satisfaction: summed every week and counted (see
@@ -168,7 +180,11 @@ export interface Buildable {
   // only re-resolve when something finishes) because the population/prestige
   // they read can also fall back below the threshold — see techSystem.ts's
   // unlockAvailable. Both are ADDITIONAL to prereqs, not a replacement.
-  minCapacityToUnlock?: number; // e.g. the health center: large campuses only, see campusData/facilitiesData
+  // A population gate, despite the name — checked against total ENROLLED
+  // students (techSystem.ts's meetsUnlockGates), not bed capacity. Kept the
+  // field name it always had rather than a save-shape rename; e.g. the
+  // health center: large campuses only, see facilitiesData.ts.
+  minCapacityToUnlock?: number;
   minPrestigeToUnlock?: number; // e.g. a research library / athletics complex tier
   // (the third such gate is `graduateProgram` above — a graduate course
   // waits on its program's parent-school gate, which is a reading of
@@ -214,7 +230,7 @@ export interface BuildableEffects {
 
   // --- live-read, every tick, never mutated into state (see above) ---
   researchRateBonus: number; // added into a campus-wide multiplier on weekly research output (see systems/research/researchSystem.ts). Live-read, like upkeep: a lab that exists is research infrastructure every week it stands, not a one-off bump the week it opened. It MULTIPLIES output, it does not create it — a school with no lab of its own produces nothing however much equipment sits elsewhere on campus (see researchData.ts's lab gate)
-  servesPopulation: number;    // how many students' worth of this need one instance covers, compared against s.students.capacity (needs scale with planned campus size, not today's enrollment)
+  servesPopulation: number;    // how many students' worth of this need one instance covers, compared against total ENROLLED students (needs scale with how many students the campus actually has)
   satisfactionAttribute: keyof SatisfactionAttributes; // which breakdown attribute servesPopulation/flatSatisfactionBonus feeds
   flatSatisfactionBonus: number; // added directly to the attribute score, NOT ratio/population-scaled (the quad: cheap, and its contribution doesn't shrink as the campus grows)
   prestigeContribution: number; // 0..1 share fed into prestige's campus-life input (see prestigeSystem.ts) — the rec center's "small prestige contribution"

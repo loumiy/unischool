@@ -1,15 +1,17 @@
 import type { Buildable, FacilityType, SatisfactionAttributes } from '../state/types';
+import { FOUNDING_BODY } from './schoolTypeData';
 
 // ---------------------------------------------------------------------
 // Campus-life facilities: the six non-housing, non-lab needs a campus has
 // (see README's "central abstraction" — these are all just `facility`-kind
 // Buildables, same develop/build machinery as everything else; do not fork
 // a subsystem). Each instance "serves" a fixed number of students against
-// s.students.capacity — CAPACITY, not today's enrollment, on purpose: needs
-// scale with how big the campus is planned to be, so expanding housing
-// carries a felt, plan-ahead satisfaction cost, not just an upkeep bill.
+// total ENROLLED students — a big commuter school with few dorms is still a
+// big school that needs feeding, studying space, and so on; only Housing
+// itself (satisfactionSystem.ts) is scored against bed capacity, since
+// that ratio is the whole point of that one attribute.
 // satisfactionSystem.ts sums servesPopulation across every 'done' facility
-// of a given satisfactionAttribute and compares it to capacity to score
+// of a given satisfactionAttribute and compares it to enrolled to score
 // that attribute 0..100 each week — see BuildableEffects in state/types.ts
 // for the live-read-not-applied contract these effects follow.
 //
@@ -33,13 +35,17 @@ import type { Buildable, FacilityType, SatisfactionAttributes } from '../state/t
 
 // ---------------------------------------------------------------------
 // FACILITY TUNING. Facilities are the relief valve of the growth loop and
-// they are deliberately priced as a COST THAT ARRIVES FIRST: a dorm
-// dilutes every ratio attribute the week it finishes, so the dining hall
-// that fixes it has to be bought (and its upkeep carried) before the
-// enrollment that dilutes it has paid for anything. Build costs are sized
-// against the dorm chain — roughly a third to a half of the dorm whose
-// capacity forced them — and per-served upkeep is sized so a fully served
-// campus spends a real, visible slice of tuition on keeping the lights on.
+// they are deliberately priced as a COST THAT ARRIVES FIRST: GROWING
+// ENROLLMENT dilutes every ratio attribute the week the admissions funnel
+// commits it, so the dining hall that fixes it has to be bought (and its
+// upkeep carried) before the tuition that class pays has landed. Dorms no
+// longer play this role at all — they dilute only their own Housing
+// attribute, never basicNeeds/academic/social/health, since enrollment and
+// bed count are independent (see admissionsSystem.ts). Build costs are
+// sized against the dorm chain purely as a scale reference — roughly a
+// third to a half of the dorm whose bed count is in the same ballpark —
+// and per-served upkeep is sized so a fully served campus spends a real,
+// visible slice of tuition on keeping the lights on.
 // ---------------------------------------------------------------------
 const UPKEEP_PER_SERVED_PER_WEEK: Record<string, number> = {
   diningHall: 2.2,
@@ -89,11 +95,10 @@ function servedUpkeep(facilityType: keyof typeof UPKEEP_PER_SERVED_PER_WEEK, ser
 // the founding hall is small enough to be a restaurant here — everything
 // the school adds afterward is sized to matter.
 const DINING_STARTING_ID = 'DINING-01';
-const DINING_STARTING_SERVES = 350; // matches STARTING_DORM_CAPACITY: one founding hall feeds exactly the founding hall's beds
-// A cheap, quick starter — like the founding dorm (campusData.ts), sized so a
-// new school can feed its founding class alongside housing it without the two
-// builds swallowing the whole opening budget. Cheaper per seat than the
-// escalating chain below.
+const DINING_STARTING_SERVES = FOUNDING_BODY; // one founding hall feeds exactly the founding (all-commuter) class
+// A cheap, quick starter, sized so a new school can feed its founding class
+// without the build swallowing the whole opening budget. Cheaper per seat
+// than the escalating chain below.
 const DINING_STARTING_COST = 250_000;
 const DINING_STARTING_WEEKS = 12;
 const DINING_ADDITIONAL_COUNT = 4;
@@ -411,16 +416,17 @@ export const FACILITY_CATEGORY_OF: Partial<Record<FacilityType, FacilityCategory
 
 // --- Health/counseling center: single building, two tiers, gated by population ---
 // "Unlocks at a population threshold" per the design ask: below
-// HEALTH_CENTER_TIER1_CAPACITY_GATE, a school is small enough that not
-// having one yet doesn't cost anything — see satisfactionSystem.ts's
-// dormancy rule. Cross it and neglecting health becomes a real, scoring
-// need like any other.
-export const HEALTH_CENTER_TIER1_CAPACITY_GATE = 1_500;
+// HEALTH_CENTER_TIER1_POPULATION_GATE ENROLLED students (not beds — a big
+// commuter school with few dorms is still a big school), a school is small
+// enough that not having one yet doesn't cost anything — see
+// satisfactionSystem.ts's dormancy rule. Cross it and neglecting health
+// becomes a real, scoring need like any other.
+export const HEALTH_CENTER_TIER1_POPULATION_GATE = 1_500;
 const HEALTH_CENTER_TIER1_ID = 'HLTH-T1';
 const HEALTH_CENTER_TIER1_SERVES = 2_000;
 const HEALTH_CENTER_TIER1_COST = 560_000;
 const HEALTH_CENTER_TIER1_WEEKS = 14;
-export const HEALTH_CENTER_TIER2_CAPACITY_GATE = 6_000;
+export const HEALTH_CENTER_TIER2_POPULATION_GATE = 6_000;
 const HEALTH_CENTER_TIER2_ID = 'HLTH-T2';
 const HEALTH_CENTER_TIER2_SERVES = 6_000;
 const HEALTH_CENTER_TIER2_COST = 2_100_000;
@@ -760,11 +766,11 @@ export function initialFacilities(): Buildable[] {
       facilityType: 'healthCenter',
       tier: 1,
       name: 'Health & Counseling Center',
-      description: `Care for ${HEALTH_CENTER_TIER1_SERVES.toLocaleString()} students. Only needed once the campus crosses ${HEALTH_CENTER_TIER1_CAPACITY_GATE.toLocaleString()} beds of capacity.`,
+      description: `Care for ${HEALTH_CENTER_TIER1_SERVES.toLocaleString()} students. Only needed once the campus crosses ${HEALTH_CENTER_TIER1_POPULATION_GATE.toLocaleString()} students enrolled.`,
       cost: HEALTH_CENTER_TIER1_COST,
       duration: HEALTH_CENTER_TIER1_WEEKS,
       prereqs: [],
-      minCapacityToUnlock: HEALTH_CENTER_TIER1_CAPACITY_GATE,
+      minCapacityToUnlock: HEALTH_CENTER_TIER1_POPULATION_GATE,
       status: 'locked',
       effects: {
         servesPopulation: HEALTH_CENTER_TIER1_SERVES,
@@ -778,11 +784,11 @@ export function initialFacilities(): Buildable[] {
       facilityType: 'healthCenter',
       tier: 2,
       name: 'Health & Wellness Complex',
-      description: `Adds ${HEALTH_CENTER_TIER2_SERVES.toLocaleString()} more capacity for a campus past ${HEALTH_CENTER_TIER2_CAPACITY_GATE.toLocaleString()} beds.`,
+      description: `Adds ${HEALTH_CENTER_TIER2_SERVES.toLocaleString()} more capacity for a campus past ${HEALTH_CENTER_TIER2_POPULATION_GATE.toLocaleString()} students enrolled.`,
       cost: HEALTH_CENTER_TIER2_COST,
       duration: HEALTH_CENTER_TIER2_WEEKS,
       prereqs: [HEALTH_CENTER_TIER1_ID],
-      minCapacityToUnlock: HEALTH_CENTER_TIER2_CAPACITY_GATE,
+      minCapacityToUnlock: HEALTH_CENTER_TIER2_POPULATION_GATE,
       status: 'locked',
       effects: {
         servesPopulation: HEALTH_CENTER_TIER2_SERVES,

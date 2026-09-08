@@ -80,8 +80,10 @@ export const MAX_PETITIONS_PER_DIGEST = 4;
 // How many organisations a campus of a given size can sustain. This is the
 // "reveal on thresholds the loop already produces" rule (see README's
 // pacing model) rather than a second scarcity: a bigger school simply has
-// more student life in it, and a 350-bed college supports one club, not
-// twenty. Read against CAPACITY, like every other campus-life ratio.
+// more student life in it, and a 350-student college supports one club, not
+// twenty. Read against total ENROLLED, not bed capacity — most students are
+// commuters, and a big commuter school is still a big school full of
+// people who might start a club.
 export const STUDENTS_PER_CLUB = 220;
 export const STUDENTS_PER_CHAPTER = 900;
 // Absolute caps on top, so a 40-year run ends with a list a player can
@@ -116,6 +118,13 @@ export const CHAPTER_UPKEEP_WEEKS_OF_OPEX = 0.0060; // a chapter is a house, a s
 export const CLUB_SOCIAL_BONUS = 0.6;          // points added to `social` per approved club
 export const CHAPTER_SOCIAL_BONUS = 2.5;       // significantly heavier per chapter — a chapter IS a social institution
 export const CHAPTER_HOUSED_SOCIAL_BONUS = 1.5; // added on top once a chapter has its own house
+// A chapter house is real student housing, not just a meeting place — see
+// eventData.ts's 'greek-housing' event, which adds this directly to
+// s.students.capacity the same way a dorm's capacityBonus effect would
+// (chapter houses aren't Buildables with effects of their own, so this is
+// applied by hand rather than live-read). Sized well under a dorm rung: a
+// real fraternity/sorority house, not a small residence hall.
+export const CHAPTER_HOUSE_CAPACITY_BONUS = 40;
 // The ceiling on the sum of all of the above. Sized so a full club scene
 // AND a full row of housed chapters still bumps against it (they total
 // ~40 uncapped), but nothing short of that does — and so that student life
@@ -485,11 +494,11 @@ export function hasStudentCenter(s: GameState): boolean {
 }
 
 export function clubCapacity(s: GameState): number {
-  return Math.min(MAX_ACTIVE_CLUBS, Math.floor(s.students.capacity / STUDENTS_PER_CLUB));
+  return Math.min(MAX_ACTIVE_CLUBS, Math.floor(totalEnrolled(s.students) / STUDENTS_PER_CLUB));
 }
 
 export function chapterCapacity(s: GameState): number {
-  return Math.min(MAX_ACTIVE_CHAPTERS, Math.floor(s.students.capacity / STUDENTS_PER_CHAPTER));
+  return Math.min(MAX_ACTIVE_CHAPTERS, Math.floor(totalEnrolled(s.students) / STUDENTS_PER_CHAPTER));
 }
 
 // Petitions count against the cap too — otherwise a campus at its limit

@@ -16,8 +16,9 @@ const ATTRIBUTE_LABELS: Record<keyof SatisfactionAttributes, string> = {
   social: 'Social',
   basicNeeds: 'Basic Needs',
   health: 'Health',
+  housing: 'Housing',
 };
-const ATTRIBUTE_ORDER: Array<keyof SatisfactionAttributes> = ['academic', 'social', 'basicNeeds', 'health'];
+const ATTRIBUTE_ORDER: Array<keyof SatisfactionAttributes> = ['academic', 'social', 'basicNeeds', 'health', 'housing'];
 
 // ---------------------------------------------------------------------
 // The home for the student-life layer: the clubs the campus has grown, the

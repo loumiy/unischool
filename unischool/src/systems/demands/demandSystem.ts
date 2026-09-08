@@ -4,9 +4,9 @@ import { absoluteWeek, DECISION_EVENT_COOLDOWN_WEEKS } from '../../data/eventDat
 import {
   DEMAND_COOLDOWN_WEEKS, DEMAND_DEADLINE_WEEKS, DEMAND_FAILED_SATISFACTION_PENALTY,
   DEMAND_FIRST_YEAR, DEMAND_MET_SATISFACTION_REWARD, DEMAND_SATISFACTION_THRESHOLD,
-  HOUSING_DEMAND_FILL_GATE, demandCopy,
+  demandCopy,
 } from '../../data/demandData';
-import { HEALTH_CENTER_TIER1_CAPACITY_GATE } from '../../data/facilitiesData';
+import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../../data/facilitiesData';
 import { attributeCoverage, servedPopulationFor } from '../satisfaction/satisfactionSystem';
 import { projectAdmissions } from '../admissions/admissionsSystem';
 
@@ -181,7 +181,7 @@ function candidateFor(s: GameState, attribute: keyof SatisfactionAttributes): Ca
   // population threshold the health center itself unlocks at (see
   // satisfactionSystem.ts's dormancy rule). Students cannot demand a
   // building the campus is too small to have a use for.
-  if (attribute === 'health' && s.students.capacity < HEALTH_CENTER_TIER1_CAPACITY_GATE) return null;
+  if (attribute === 'health' && totalEnrolled(s.students) < HEALTH_CENTER_TIER1_POPULATION_GATE) return null;
 
   const ask = nextAskFor(s, attribute);
   if (!ask) return null; // nothing left to build for this need: not a demand anyone could meet
@@ -198,9 +198,9 @@ function candidateFor(s: GameState, attribute: keyof SatisfactionAttributes): Ca
       // The ask, in the units the satisfaction model already counts: what
       // this need serves today plus what the demanded building would add.
       // Fixed at the moment the demand is rolled and never re-derived, so
-      // finishing a dorm later cannot silently move the goalposts — a
+      // enrollment growing later cannot silently move the goalposts — a
       // coverage RATIO target would do exactly that, since every ratio is
-      // scored against capacity.
+      // scored against enrolled.
       target: servedPopulationFor(s, attribute) + (ask.effects?.servesPopulation ?? 0),
       raisedWeek: 0,
       deadlineWeek: 0,
@@ -208,27 +208,26 @@ function candidateFor(s: GameState, attribute: keyof SatisfactionAttributes): Ca
   };
 }
 
+// Housing is scored exactly like the four RATIO_ATTRIBUTES above — off
+// satisfactionSystem.ts's own attributeCoverage — rather than a bespoke
+// fill-ratio gate: with commuters the norm, "every bed is full" is true of
+// almost any campus almost all the time, so the real question is the same
+// one basicNeeds/academic/social/health ask: is this need, per the target
+// ratio the satisfaction model itself uses, adequately covered right now.
 function housingCandidate(s: GameState): Candidate | null {
-  const capacity = s.students.capacity;
-  if (capacity <= 0) return null;
-  const fill = totalEnrolled(s.students) / capacity;
-  if (fill < HOUSING_DEMAND_FILL_GATE) return null; // there are beds spare; the grievance would not be true
-
   const dorm = nextDorm(s);
-  if (!dorm) return null;
+  if (!dorm) return null; // nothing left to build for this need: not a demand anyone could meet
 
+  const coverage = attributeCoverage(s, 'housing');
   return {
-    // Normalized into the same 0..1 severity the coverage shortfalls use,
-    // so a campus that is merely at its gate ranks below a real shortfall
-    // and only a campus with literally nothing spare outranks one.
-    severity: clamp((fill - HOUSING_DEMAND_FILL_GATE) / (1 - HOUSING_DEMAND_FILL_GATE), 0, 1),
+    severity: 1 - coverage,
     demand: {
       id: crypto.randomUUID(),
       metric: 'capacity',
       attribute: null,
       askId: dorm.id,
       askName: dorm.name,
-      target: capacity + (dorm.effects?.capacityBonus ?? 0),
+      target: s.students.capacity + (dorm.effects?.capacityBonus ?? 0),
       raisedWeek: 0,
       deadlineWeek: 0,
     },

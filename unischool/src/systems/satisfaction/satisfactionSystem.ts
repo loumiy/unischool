@@ -1,12 +1,13 @@
 import type { GameState, SatisfactionAttributes } from '../../state/types';
-import { HEALTH_CENTER_TIER1_CAPACITY_GATE } from '../../data/facilitiesData';
+import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../../data/facilitiesData';
 import {
-  athleticsSocialBonus, clubSocialBonus, greekSocialBonus, studentLifeSocialBonus,
+  athleticsSocialBonus, CHAPTER_HOUSE_CAPACITY_BONUS, clubSocialBonus, greekSocialBonus, studentLifeSocialBonus,
 } from '../../data/studentLifeData';
+import { totalEnrolled } from '../../state/types';
 
 // ---------------------------------------------------------------------
 // Satisfaction stays ONE displayed number (s.students.satisfaction), but
-// it is now the weighted sum of four named attributes computed here, each
+// it is now the weighted sum of five named attributes computed here, each
 // written to by a specific cluster of campus facilities/needs — never by
 // an ad hoc catch-all formula. s.students.satisfactionBreakdown carries
 // this week's raw per-attribute scores for its own panel (see
@@ -14,10 +15,13 @@ import {
 //
 // Every ratio-based attribute compares total servesPopulation (summed
 // live off 'done' facilities — see BuildableEffects's live-read contract
-// in state/types.ts) against s.students.CAPACITY, not today's enrollment:
-// needs scale with how big the campus is planned to be, so expanding
-// housing carries a felt, plan-ahead satisfaction cost (per the design
-// ask), not just an upkeep bill that shows up on the balance sheet.
+// in state/types.ts) against total ENROLLED students: needs scale with how
+// many students the campus actually has, not with bed count — enrollment is
+// never capacity-gated (see admissionsSystem.ts), so a big commuter school
+// with few dorms is still a big school that needs feeding. Housing is the
+// one deliberate exception: it compares bed CAPACITY (dorms plus housed
+// Greek chapters) against enrolled, since that ratio is the whole point of
+// the attribute (see TARGET_RATIO.housing below).
 //
 // The headline number still drifts smoothly toward its target at the same
 // weekly rate the old single-formula version used — only the TARGET is now
@@ -34,20 +38,21 @@ const SATISFACTION_DRIFT_RATE = 0.05; // fraction of the gap to target closed pe
 // 0..100 scale as each attribute. Basic needs stays heaviest — going
 // hungry should move the headline number the most.
 //
-// This is the re-tune the parking-removal PR deliberately deferred (see its
-// note, kept above in git history): social is moved up from a share equal
-// to academic's to the clear second-heaviest attribute, so a social
-// shortfall now moves the headline number more than an academic or health
-// one does. Health gives up the difference — it is dormant below
-// HEALTH_CENTER_TIER1_CAPACITY_GATE and, even scoring, is the attribute a
+// Housing carves out a real, felt weight (per the design ask that not
+// having enough beds should impact satisfaction) without dominating: most
+// students are commuters by design, so the target ratio it's scored
+// against (see TARGET_RATIO.housing) is deliberately not 1:1 the way basic
+// needs is. The other four give up a proportional share to make room —
+// health least, since it is dormant below
+// HEALTH_CENTER_TIER1_POPULATION_GATE and, even scoring, is the attribute a
 // player interacts with least (two tiers, one gate, no orgs/prestige
-// nudges), so it can afford to matter least. Academic gives up a little
-// too. Still sums to 100.
+// nudges). Still sums to 100.
 const ATTRIBUTE_WEIGHTS: SatisfactionAttributes = {
-  academic: 23,
-  social: 28,
-  basicNeeds: 34,
-  health: 15,
+  academic: 20,
+  social: 24,
+  basicNeeds: 30,
+  health: 11,
+  housing: 15,
 };
 
 // No ratio-based attribute ever bottoms out at a literal 0 — "stall, don't
@@ -81,11 +86,19 @@ const ATTRIBUTE_SCORE_FLOOR = 12;
 // lean on the quad and student life to close the rest of the way, which is
 // the intended path back to a high score, not a bug to fix by raising the
 // ratio further.
+// Housing's target ratio is bed CAPACITY over ENROLLED, not servesPopulation
+// over enrolled like the other four — commuters are the norm, so scoring it
+// against 1.0 (as if every student should get a bed) would make an ordinary,
+// well-run commuter campus read as permanently housing-starved. 0.35 says a
+// school housing about a third of its students — roughly the freshman class
+// plus a slice of upperclassmen, the real-world shape — is fully adequate;
+// short of that is a felt shortfall, per the design ask.
 const TARGET_RATIO: SatisfactionAttributes = {
   academic: 0.15,
   social: 0.34,
   basicNeeds: 1.0,
   health: 1.0,
+  housing: 0.35,
 };
 
 // Basic needs gets the STEEPEST under-capacity penalty (ratio^curvature,
@@ -96,8 +109,9 @@ const TARGET_RATIO: SatisfactionAttributes = {
 // Social gets a curvature of its own now, > 1 but well short of basic
 // needs': neglecting student life should read as an acute problem too
 // (per this pass's design ask), just not the MOST acute one — a bored
-// student and a hungry one are not the same emergency. Academic and
-// health stay linear (curvature 1).
+// student and a hungry one are not the same emergency. Academic, health and
+// housing stay linear (curvature 1) — a housing shortfall is a real, felt
+// need per the design ask, but not the acute emergency going hungry is.
 const BASIC_NEEDS_PENALTY_CURVATURE = 2.2;
 const SOCIAL_PENALTY_CURVATURE = 1.4;
 
@@ -176,16 +190,19 @@ function flatBonusFor(s: GameState, attribute: keyof SatisfactionAttributes): nu
 // Exported for the student-demand system, which derives what students ask
 // for from the WORST-covered attribute (see demandSystem.ts's
 // rollShortfallDemand) — so a demand can never be about a need the
-// satisfaction model does not itself think is short.
+// satisfaction model does not itself think is short. Housing is a special
+// case here, same as it is in computeSatisfactionBreakdown below: it reads
+// bed CAPACITY over enrolled, not servesPopulation over enrolled.
 export function attributeCoverage(s: GameState, attribute: keyof SatisfactionAttributes): number {
-  const capacity = s.students.capacity;
-  if (capacity <= 0) return 1;
-  return clamp(servedPopulationFor(s, attribute) / (capacity * TARGET_RATIO[attribute]), 0, 1);
+  const enrolled = totalEnrolled(s.students);
+  if (enrolled <= 0) return 1;
+  const served = attribute === 'housing' ? s.students.capacity : servedPopulationFor(s, attribute);
+  return clamp(served / (enrolled * TARGET_RATIO[attribute]), 0, 1);
 }
 
-function ratioScore(servesPopulation: number, capacity: number, targetRatio: number, curvature: number): number {
-  if (capacity <= 0) return 100; // nothing to serve yet — not a problem
-  const ratio = clamp(servesPopulation / (capacity * targetRatio), 0, 1);
+function ratioScore(servesPopulation: number, enrolled: number, targetRatio: number, curvature: number): number {
+  if (enrolled <= 0) return 100; // nothing to serve yet — not a problem
+  const ratio = clamp(servesPopulation / (enrolled * targetRatio), 0, 1);
   return clamp(100 * ratio ** curvature, ATTRIBUTE_SCORE_FLOOR, 100);
 }
 
@@ -203,7 +220,7 @@ function facultyQualityScore(s: GameState): number {
 }
 
 export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttributes {
-  const capacity = s.students.capacity;
+  const enrolled = totalEnrolled(s.students);
 
   // Library adequacy and faculty quality are two independent inputs to how
   // academically satisfying the school reads, combined additively so
@@ -211,11 +228,11 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
   // FACULTY_QUALITY_MAX_BONUS above) — then clamped to the same
   // [ATTRIBUTE_SCORE_FLOOR, 100] band every other attribute uses, so a
   // library already at its ceiling gains nothing further from faculty.
-  const academicLibraryRatio = ratioScore(servedPopulationFor(s, 'academic'), capacity, TARGET_RATIO.academic, 1);
+  const academicLibraryRatio = ratioScore(servedPopulationFor(s, 'academic'), enrolled, TARGET_RATIO.academic, 1);
   const academicFacultyBonus = facultyQualityScore(s) * FACULTY_QUALITY_MAX_BONUS;
   const academic = clamp(academicLibraryRatio + academicFacultyBonus, ATTRIBUTE_SCORE_FLOOR, 100);
 
-  const socialRatio = ratioScore(servedPopulationFor(s, 'social'), capacity, TARGET_RATIO.social, SOCIAL_PENALTY_CURVATURE);
+  const socialRatio = ratioScore(servedPopulationFor(s, 'social'), enrolled, TARGET_RATIO.social, SOCIAL_PENALTY_CURVATURE);
   const pride = clamp(s.self.reputation / REPUTATION_PRIDE_PRESTIGE_MAX, 0, 1) * REPUTATION_PRIDE_MAX_BONUS;
   // Student organisations (see data/studentLifeData.ts) are the third
   // contributor to `social`, alongside the ratio-scored facilities and the
@@ -231,19 +248,31 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
     100,
   );
 
-  const basicNeedsRatio = ratioScore(servedPopulationFor(s, 'basicNeeds'), capacity, TARGET_RATIO.basicNeeds, BASIC_NEEDS_PENALTY_CURVATURE);
+  const basicNeedsRatio = ratioScore(servedPopulationFor(s, 'basicNeeds'), enrolled, TARGET_RATIO.basicNeeds, BASIC_NEEDS_PENALTY_CURVATURE);
   const affordability = clamp(s.admissions.scholarshipRate, 0, 1) * SCHOLARSHIP_AFFORDABILITY_MAX_BONUS;
   const basicNeeds = clamp(basicNeedsRatio + affordability, ATTRIBUTE_SCORE_FLOOR, 100);
 
   // Health is DORMANT — scores full — below the population threshold the
   // health center itself unlocks at (see facilitiesData.ts): a small campus
   // isn't expected to have one yet, so not having one costs nothing. Cross
-  // the threshold and it becomes a real, scoring need like any other.
-  const health = capacity < HEALTH_CENTER_TIER1_CAPACITY_GATE
+  // the threshold and it becomes a real, scoring need like any other. Read
+  // against enrolled, not capacity — capacity is beds now, and a large
+  // commuter school with few dorms is still a large school.
+  const health = enrolled < HEALTH_CENTER_TIER1_POPULATION_GATE
     ? 100
-    : ratioScore(servedPopulationFor(s, 'health'), capacity, TARGET_RATIO.health, 1);
+    : ratioScore(servedPopulationFor(s, 'health'), enrolled, TARGET_RATIO.health, 1);
 
-  return { academic, social, basicNeeds, health };
+  // Housing: bed CAPACITY (dorms plus housed Greek chapters — see
+  // eventData.ts's 'greek-housing' event) against enrolled, not
+  // servesPopulation — there is no Buildable effect feeding this attribute
+  // the way a dining hall feeds basicNeeds, since a dorm's beds are already
+  // tracked as s.students.capacity (see types.ts). Most students are
+  // commuters by design (TARGET_RATIO.housing well under 1.0), so this is
+  // "is there enough housing for the share of students who'd want it", not
+  // "is everyone housed".
+  const housing = ratioScore(s.students.capacity, enrolled, TARGET_RATIO.housing, 1);
+
+  return { academic, social, basicNeeds, health, housing };
 }
 
 // ---------------------------------------------------------------------
@@ -269,13 +298,28 @@ export interface AttributeDetail {
 }
 
 export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttributes): AttributeDetail {
-  const capacity = s.students.capacity;
-  const dormant = attribute === 'health' && capacity < HEALTH_CENTER_TIER1_CAPACITY_GATE;
+  const enrolled = totalEnrolled(s.students);
+  const dormant = attribute === 'health' && enrolled < HEALTH_CENTER_TIER1_POPULATION_GATE;
 
-  const contributors = s.tech
-    .filter((t) => t.status === 'done' && t.effects?.satisfactionAttribute === attribute && (t.effects?.servesPopulation ?? 0) > 0)
-    .map((t) => ({ label: t.name, value: t.effects!.servesPopulation! }))
-    .sort((a, b) => b.value - a.value);
+  // Housing has no Buildable effect feeding it the way a dining hall feeds
+  // basicNeeds (see computeSatisfactionBreakdown above) — its contributors
+  // are every 'done' dorm's capacityBonus plus a flat bonus per housed
+  // Greek chapter, reconstructed here rather than read off a live sum
+  // because s.students.capacity is a single accumulated number with no
+  // per-source breakdown of its own.
+  const contributors = attribute === 'housing'
+    ? [
+        ...s.tech
+          .filter((t) => t.kind === 'dorm' && t.status === 'done' && (t.effects?.capacityBonus ?? 0) > 0)
+          .map((t) => ({ label: t.name, value: t.effects!.capacityBonus! })),
+        ...s.orgs.chapters
+          .filter((c) => c.housed)
+          .map((c) => ({ label: `${c.name} House`, value: CHAPTER_HOUSE_CAPACITY_BONUS })),
+      ].sort((a, b) => b.value - a.value)
+    : s.tech
+        .filter((t) => t.status === 'done' && t.effects?.satisfactionAttribute === attribute && (t.effects?.servesPopulation ?? 0) > 0)
+        .map((t) => ({ label: t.name, value: t.effects!.servesPopulation! }))
+        .sort((a, b) => b.value - a.value);
   const totalServed = contributors.reduce((sum, c) => sum + c.value, 0);
 
   const bonuses: AttributeContributor[] = [];
@@ -299,7 +343,7 @@ export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttri
   return {
     contributors,
     totalServed,
-    neededForFullScore: Math.round(capacity * TARGET_RATIO[attribute]),
+    neededForFullScore: Math.round(enrolled * TARGET_RATIO[attribute]),
     bonuses,
     score: computeSatisfactionBreakdown(s)[attribute],
     dormant,
@@ -311,7 +355,8 @@ function weightedSum(breakdown: SatisfactionAttributes): number {
     breakdown.academic * ATTRIBUTE_WEIGHTS.academic +
     breakdown.social * ATTRIBUTE_WEIGHTS.social +
     breakdown.basicNeeds * ATTRIBUTE_WEIGHTS.basicNeeds +
-    breakdown.health * ATTRIBUTE_WEIGHTS.health
+    breakdown.health * ATTRIBUTE_WEIGHTS.health +
+    breakdown.housing * ATTRIBUTE_WEIGHTS.housing
   ) / 100;
 }
 
