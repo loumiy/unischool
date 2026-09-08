@@ -156,9 +156,15 @@ export type BuildableKind = 'course' | 'building' | 'dorm' | 'facility';
 export type FacilityType =
   | 'library' | 'studentCenter' | 'diningHall' | 'recCenter'
   | 'healthCenter' | 'quad' | 'lab'
-  // Recreational and arts facilities (see facilitiesData.ts): more social-
-  // satisfaction capacity, one-off (no tier upgrades) rather than the
-  // single-instance-with-upgrades shape library/studentCenter/recCenter use.
+  // A campus grocery store (facilitiesData.ts): a second, single-instance
+  // basicNeeds feeder alongside the repeatable dining chain, not a chain of
+  // its own — real campuses have several dining halls but one grocery.
+  | 'grocery'
+  // Recreational and arts facilities (see facilitiesData.ts): gym/pool/
+  // tennisCourts feed `health` (fitness is a health need, on top of the
+  // health center itself); performingArtsCenter/artGallery feed `social`.
+  // All one-off (no tier upgrades) rather than the single-instance-with-
+  // upgrades shape library/studentCenter/recCenter use.
   | 'gym' | 'tennisCourts' | 'pool' | 'performingArtsCenter' | 'artGallery'
   // Varsity athletics venues (facilitiesData.ts): shared COMPETITION
   // facilities for the teams in data/studentLifeData.ts's SPORTS, one per

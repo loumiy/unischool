@@ -913,9 +913,9 @@ plain tier-2 prereq every non-gated major's capstones get.
 **Both facilities also feed student satisfaction** like any other
 campus-life facility — `satisfactionAttribute: 'social'` plus a
 `servesPopulation` (1,500 for the Performing Arts Center, 500 for the Art
-Gallery), read by the same `social` ratio every rec center, gym, and
-student-center tile feeds. There is no separate arts-specific satisfaction
-input; it is the existing mechanism, not a new one.
+Gallery), read by the same `social` ratio the rec center and student-center
+tiles feed. There is no separate arts-specific satisfaction input; it is the
+existing mechanism, not a new one.
 
 ## Student life: clubs, Greek letters, and varsity athletics
 

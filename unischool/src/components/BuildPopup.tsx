@@ -53,6 +53,7 @@ const FACILITY_LABELS: Record<FacilityType, string> = {
   library: 'Library',
   studentCenter: 'Student Center',
   diningHall: 'Dining',
+  grocery: 'Grocery Store',
   recCenter: 'Recreation',
   healthCenter: 'Health & Counseling',
   quad: 'Quad',
@@ -125,7 +126,10 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; ma
   { key: 'chapterHouse', label: 'Chapter Houses', repeatable: false, match: (t) => !!t.chapterHouse },
   { key: 'library', label: FACILITY_LABELS.library, repeatable: false, match: (t) => t.facilityType === 'library' },
   { key: 'studentCenter', label: FACILITY_LABELS.studentCenter, repeatable: false, match: (t) => t.facilityType === 'studentCenter' },
-  { key: 'diningHall', label: FACILITY_LABELS.diningHall, repeatable: true, match: (t) => t.facilityType === 'diningHall' },
+  // The grocery store folds into the same "Dining" tab as the dining
+  // chain (see facilitiesData.ts's note above GROCERY_ID) — one more
+  // basicNeeds option, not a category of its own.
+  { key: 'diningHall', label: FACILITY_LABELS.diningHall, repeatable: true, match: (t) => t.facilityType === 'diningHall' || t.facilityType === 'grocery' },
   { key: 'healthCenter', label: FACILITY_LABELS.healthCenter, repeatable: false, match: (t) => t.facilityType === 'healthCenter' },
   { key: 'quad', label: FACILITY_LABELS.quad, repeatable: false, match: (t) => t.facilityType === 'quad' },
   { key: 'lab', label: FACILITY_LABELS.lab, repeatable: false, match: (t) => t.facilityType === 'lab' },
@@ -263,7 +267,8 @@ function iconForBuildable(t: Buildable): () => React.JSX.Element {
   switch (t.facilityType) {
     case 'library': return LibraryIcon;
     case 'studentCenter': return StudentLifeIcon;
-    case 'diningHall': return DiningIcon;
+    case 'diningHall':
+    case 'grocery': return DiningIcon;
     case 'healthCenter': return HealthIcon;
     case 'quad': return QuadIcon;
     case 'lab': return LabIcon;

@@ -181,6 +181,8 @@ const FACILITY_TINT_ORDER = [
   // gold (see the single-Buildable-model note on why it isn't `building`
   // kind at all).
   'athleticsField', 'athleticsArena', 'athleticsDiamond', 'athleticsNatatorium', 'footballStadium',
+  // The campus grocery store: same append-only rule as above.
+  'grocery',
 ] as const;
 const HASHED_TINT_COUNT = 4; // shades available to dorms
 

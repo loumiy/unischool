@@ -720,6 +720,7 @@ button.build-tile { font-family: inherit; }
 .campus-building.kind-facility.tint-14 rect { fill: #d7c49a; stroke: #b39c68; } /* baseball/softball diamond */
 .campus-building.kind-facility.tint-15 rect { fill: #a9c7cf; stroke: #7ea3ac; } /* natatorium — distinct blue from the rec pool's tint-9 */
 .campus-building.kind-facility.tint-16 rect { fill: #d4a94f; stroke: #a67f2e; } /* football stadium — the pinnacle, boldest of the facility tints */
+.campus-building.kind-facility.tint-17 rect { fill: #ecd9a4; stroke: #c7a862; } /* grocery store — warm, dining-adjacent but distinct from tint-2's dining hall */
 .campus-building.kind-facility text { fill: #3d3524; }
 
 /* Under construction: a developing placement is sited exactly like a
