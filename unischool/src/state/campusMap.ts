@@ -237,11 +237,14 @@ export function canPlace(s: GameState, t: Buildable, row: number, col: number, f
 
 // A placeable Buildable that's already 'done' but has no home on the map.
 // The founding dorm opens 'done' AND pre-placed (see actions.ts's
-// createInitialState), so it is not one of these; this covers a 'done' row
-// that has no placement — one granted on the spot by an authored event
-// (eventData.ts's chapter house) when firstFreeSpot found no room for it (the
-// documented pathological case), or an old save that predates the logic that
-// places these automatically.
+// createInitialState), so it is not one of these; today this covers only an
+// old save that predates the logic that places founding Buildables
+// automatically (see persistence.ts's v17 -> v18 migration). A chapter
+// house (eventData.ts's 'greek-housing') used to be manufactured 'done' and
+// auto-placed the same way, with this as its documented pathological
+// fallback when no room was found — it is revealed 'available' and
+// player-placed instead now, the same pattern a varsity venue already used
+// (see types.ts's Buildable.chapterHouse), so it never reaches this path.
 // Distinct from an ordinary 'available' row: there's no construction left to
 // start, only a location to mark, so the build menu offers it for the flat
 // RETROACTIVE_SITING_COST below instead of its own (much larger) founding

@@ -66,7 +66,7 @@ function AthleticsVenueInfo({ t, s }: { t: Buildable; s: GameState }) {
         <ul className="building-info-majors">
           {teams.map((team) => (
             <li key={team.id}>
-              {team.name} — coach {team.coachName}
+              {team.name} — coach {team.headCoach?.name ?? 'vacant'}
               {team.status === 'awaitingVenue' ? ' (awaiting this venue)' : ''}
             </li>
           ))}

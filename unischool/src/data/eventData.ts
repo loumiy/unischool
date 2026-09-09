@@ -1,11 +1,10 @@
 import type { Buildable, Faculty, GameState, GreekChapter, LogEntry } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
-import { FACULTY_FIELDS, generateCandidate, rollCoachName, rollSurname } from './facultyData';
+import { FACULTY_FIELDS, generateCandidate, rollSurname } from './facultyData';
 import { money, rollAmount, weeksOfOpEx } from './moneyScale';
-import { firstFreeSpot, footprintOf, placementFor } from '../state/campusMap';
 import {
   CHAPTER_HOUSE_CAPACITY_BONUS, CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
-  promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, venueForCategory,
+  promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, VARSITY_PETITION_MIN_TENURE_YEARS, venueForCategory,
 } from './studentLifeData';
 import { discoverySchools, graduateProgram, milestoneSchools } from './techData';
 
@@ -440,22 +439,24 @@ const GREEK_HOUSE_REFUSAL_SATISFACTION_HIT = 2;
 
 // --- varsity athletics (see data/studentLifeData.ts) -------------------
 //
-// UNLIKE the Greek house grant above, going varsity does NOT manufacture an
-// already-'done' Buildable and place it for the player: the required
-// venue is only REVEALED here (see techSystem.ts's meetsUnlockGates, which
-// flips it 'locked' -> 'available' the moment promoteToVarsityTeam below
-// pushes a team referencing its category) and still has to be built —
-// player-placed — through the ordinary build-rail PLACE_BUILDABLE cycle,
-// like a gym or a pool. That is a deliberate fork from the chapter-house
-// pattern this event is otherwise modeled on, flagged rather than resolved
-// silently: a
-// football stadium (or any shared venue) reads as a genuine construction
-// project the player commits capacity to, not a line item this event's own
-// cost quietly pre-pays. VARSITY_ESTABLISH_COST below therefore prices the
-// PROGRAM (a coach, uniforms, a conference's dues) — never the building.
+// Like the Greek house grant above, going varsity does not manufacture an
+// already-'done', already-sited Buildable: the required venue is only
+// REVEALED here (see techSystem.ts's meetsUnlockGates, which flips it
+// 'locked' -> 'available' the moment promoteToVarsityTeam below pushes a
+// team referencing its category) and still has to be placed — player-
+// chosen — through the ordinary build-rail PLACE_BUILDABLE cycle, like a
+// gym or a pool. A football stadium (or any shared venue) reads as a
+// genuine construction project the player commits capacity to, not a line
+// item this event's own cost quietly pre-pays. VARSITY_ESTABLISH_COST
+// below therefore prices the PROGRAM (a coach, uniforms, a conference's
+// dues) — never the building. The coaching staff itself is no longer
+// costed here at all: a head coach, assistant coach, and trainer are hired
+// separately from the Athletics tab's own candidate pool, each drawing
+// their own salary the same way a faculty hire does (see
+// studentLifeData.ts's coachSalaryFor) — VARSITY_ESTABLISH_COST_WEEKS below
+// prices only the program's launch (uniforms, a conference's dues).
 const VARSITY_ESTABLISH_COST_WEEKS = 2.5;
-const VARSITY_COACH_BASE_SALARY_WEEKS_OF_OPEX = 0.0018; // fixed at hire; appreciates live with tenure (see studentLifeData.ts's coachSalary)
-const VARSITY_TEAM_UPKEEP_WEEKS_OF_OPEX = 0.003;        // the program's own running cost, on top of the coach — travel, equipment, officiating
+const VARSITY_TEAM_UPKEEP_WEEKS_OF_OPEX = 0.003;        // the program's own running cost, on top of its coaching staff — travel, equipment, officiating
 const VARSITY_DECLINE_SATISFACTION_HIT = 2;             // same weight as a chapter's housing refusal — the club stays exactly as it was, just told no
 
 // The week a club's five-year mark (studentLifeData.ts's VARSITY_PETITION_
@@ -1030,7 +1031,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         id: 'build',
         label: 'Build the chapter house',
         describe: (s, ctx) =>
-          `${money(ctx.amount ?? 0)} up front and ${money(weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX))} a week to run it, forever. ${ctx.subjectName} contributes a further ${CHAPTER_HOUSED_SOCIAL_BONUS} points of social satisfaction from the week it opens, adds ${CHAPTER_HOUSE_CAPACITY_BONUS} beds of campus housing, and the house itself takes its place on campus immediately.`,
+          `${money(ctx.amount ?? 0)} up front and ${money(weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX))} a week to run it, forever. ${ctx.subjectName} contributes a further ${CHAPTER_HOUSED_SOCIAL_BONUS} points of social satisfaction from the week it opens and adds ${CHAPTER_HOUSE_CAPACITY_BONUS} beds of campus housing, both effective immediately — the house itself is revealed in the build menu, under Housing, for you to place on campus.`,
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
           const chapter = findChapter(s, ctx.subjectId);
@@ -1048,44 +1049,36 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
             // directly here since a chapter house isn't a Buildable with
             // effects of its own.
             s.students.capacity += CHAPTER_HOUSE_CAPACITY_BONUS;
-            // A real, sitable campus asset, through the same placement path
-            // every other building uses (see state/campusMap.ts and
-            // README's "The central abstraction") — pushed in already
-            // 'done' since the money and the running cost above are what
-            // pay for it, not a develop/finish cycle of its own. It carries
-            // no `effects`: the satisfaction bonus and upkeep it represents
-            // are already live-read off `chapter.housed`/`upkeepPerWeek`
-            // above, and giving the Buildable its own effects would double
-            // them. Its only job is to exist so it can be sited.
+            // Revealed in the build menu instead of manufactured already
+            // 'done' and auto-placed — the same fork away from the old
+            // pattern varsity athletics venues already took (see the note
+            // above VARSITY_ESTABLISH_COST_WEEKS). `cost: 0` and
+            // `duration: 0` because the school's share was already charged
+            // above and there is no construction left to decide, only a
+            // spot to choose — canStartDevelopment (the ordinary
+            // PLACE_BUILDABLE gate) admits it unconditionally the instant
+            // the player clicks an empty tile. `chapterHouse: true` is what
+            // BuildPopup.tsx groups it under Housing (alongside, but never
+            // interleaved with, the sequential dorm chain) by, and what
+            // gives it a beds figure on its tile despite carrying no
+            // `effects` of its own — the satisfaction bonus and upkeep it
+            // represents are already live-read off
+            // `chapter.housed`/`upkeepPerWeek` above, and giving the
+            // Buildable its own effects would double them.
             const house: Buildable = {
               id: chapterHouseId(chapter.id),
               kind: 'facility',
               name: `${chapter.name} House`,
               description: `The dedicated chapter house built for ${chapter.name}.`,
-              cost: ctx.amount ?? 0,
+              cost: 0,
               duration: 0,
               prereqs: [],
-              status: 'done',
+              status: 'available',
+              chapterHouse: true,
             };
             s.tech.push(house);
-            // Sited immediately, at whatever spot a plain top-left scan
-            // finds first — the same firstFreeSpot every other Buildable
-            // that starts 'done' without ever asking the player where it
-            // goes uses (see actions.ts's createInitialState and
-            // persistence.ts's v17 -> v18 migration). There is no siting
-            // tray to defer this into any more: placement is how a
-            // placeable Buildable comes to exist on the map, and this one
-            // is manufactured whole rather than built through the ordinary
-            // PLACE_BUILDABLE cycle, so it has to place itself. The
-            // pathological case where no room is found is left unplaced —
-            // it stays a real, 'done' chapter house with its bonus and
-            // upkeep already live, simply invisible on the map — rather
-            // than blocking the event or crashing.
-            const fp = footprintOf(house);
-            const spot = firstFreeSpot(s.placements, fp);
-            if (spot) s.placements[house.id] = placementFor(spot.row, spot.col, fp);
           }
-          return entry(s, `A chapter house has been built for ${ctx.subjectName}.`, 'good');
+          return entry(s, `A chapter house has been approved for ${ctx.subjectName} — place it from the build menu.`, 'good');
         },
       },
       {
@@ -1153,7 +1146,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           const sport = sportById(ctx.subjectField);
           const venue = sport ? venueForCategory(s, sport.venueCategory) : undefined;
           const ready = venue?.status === 'done';
-          return `${money(ctx.amount ?? 0)} up front for a coach and a program budget. ` + (
+          return `${money(ctx.amount ?? 0)} up front for a program budget — the coaching staff is hired separately, from the Athletics tab's own candidate pool. ` + (
             ready
               ? `${venue!.name} is already standing, so the team is varsity-active immediately.`
               : `${venue ? venue.name : 'A shared venue'} is revealed for construction on the build rail — the team is varsity-active once it is built, and shared with any other team in the same category.`
@@ -1166,21 +1159,18 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           if (!club || !sport) return entry(s, 'The petition could not be resolved.', 'info');
           const venue = venueForCategory(s, sport.venueCategory);
           const status = venue?.status === 'done' ? 'active' : 'awaitingVenue';
-          const coachName = rollCoachName(sport.gender === 'women' ? 'female' : 'male');
           const team = promoteToVarsityTeam(s, club, {
             sport: sport.id,
             name: sport.teamName,
             venueCategory: sport.venueCategory,
-            coachName,
-            coachBaseSalary: weeksOfOpEx(s, VARSITY_COACH_BASE_SALARY_WEEKS_OF_OPEX),
             upkeepPerWeek: weeksOfOpEx(s, VARSITY_TEAM_UPKEEP_WEEKS_OF_OPEX),
             status,
           });
           return entry(
             s,
             status === 'active'
-              ? `${team.name} is now a varsity program, coached by ${coachName}.`
-              : `${team.name} is now a varsity program, coached by ${coachName} — awaiting its venue before it can compete.`,
+              ? `${team.name} is now a varsity program — head coach, assistant coach, and trainer all still to be hired from the Athletics tab.`
+              : `${team.name} is now a varsity program, awaiting its venue before it can compete — head coach, assistant coach, and trainer all still to be hired from the Athletics tab.`,
             'good',
           );
         },
@@ -1188,11 +1178,11 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       {
         id: 'decline',
         label: 'Stay a club',
-        describe: () => `No cash spent. ${VARSITY_DECLINE_SATISFACTION_HIT}-point satisfaction dent that heals over the following weeks. The club keeps everything it already contributes and will not ask again.`,
+        describe: () => `No cash spent. ${VARSITY_DECLINE_SATISFACTION_HIT}-point satisfaction dent that heals over the following weeks. The club keeps everything it already contributes and will petition again in ${VARSITY_PETITION_MIN_TENURE_YEARS} years.`,
         cost: () => 0,
         apply: (s, ctx) => {
           const club = s.orgs.clubs.find((c) => c.id === ctx.subjectId);
-          if (club) club.varsityAsked = true;
+          if (club) club.varsityLastAskedYear = s.clock.year;
           dentSatisfaction(s, VARSITY_DECLINE_SATISFACTION_HIT);
           return entry(s, `${ctx.subjectName}'s petition to go varsity was declined.`, 'bad');
         },

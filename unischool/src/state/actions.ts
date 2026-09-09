@@ -1,5 +1,5 @@
-import type { AthleticsInvestmentTier, GameState, SchoolType, TileCoord } from './types';
-import { DEFAULT_ATHLETICS_INVESTMENT } from '../data/studentLifeData';
+import type { AthleticsBudgetTier, GameState, SchoolType, TileCoord } from './types';
+import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
 import { WEEKS_PER_YEAR, CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT } from './types';
 import { footprintOf, isPlaceableKind, placementFor } from './campusMap';
@@ -143,12 +143,25 @@ export type Action =
   // cannot afford the chosen option — every event always offers at least
   // one that costs nothing. Advances the clock, like RESOLVE_REPORT.
   | { type: 'RESOLVE_DECISION_EVENT'; eventId: string; choiceId: string; ctx: DecisionEventContext }
-  // Sets the one athletics-wide funding lever (see data/studentLifeData.ts's
-  // ATHLETICS_INVESTMENT_TIERS). Free and reversible at any time — unlike
-  // tuition/scholarships this is not an annual policy decision, it's a standing dial
-  // the player can adjust as often as they like, so there is nothing to
-  // refuse and no cost charged here.
-  | { type: 'SET_ATHLETICS_INVESTMENT'; tier: AthleticsInvestmentTier }
+  // Sets the one athletics-wide recruiting & scholarship budget lever (see
+  // data/studentLifeData.ts's ATHLETICS_BUDGET_TIERS). Free and reversible
+  // at any time — unlike tuition/scholarships this is not an annual policy
+  // decision, it's a standing dial the player can adjust as often as they
+  // like, so there is nothing to refuse and no cost charged here.
+  | { type: 'SET_ATHLETICS_BUDGET'; tier: AthleticsBudgetTier }
+  // Hires a coach candidate into one of a team's three staff roles (see
+  // types.ts's VarsityTeam/Coach). Refused (no-op) if the candidate isn't
+  // listed, the team doesn't exist, the candidate's field doesn't match
+  // what the role needs (team.sport for head/assistant, TRAINER_FIELD for
+  // trainer — see studentLifeData.ts), or the role is already filled: fire
+  // the incumbent first, the same explicit two-step HIRE_FACULTY/
+  // FIRE_FACULTY already uses rather than a silent hire-over-and-discard.
+  // Free: a coach's salary is a recurring line (see varsityTeamUpkeep), not
+  // an up-front cost.
+  | { type: 'HIRE_COACH'; candidateId: string; teamId: string; role: 'head' | 'assistant' | 'trainer' }
+  // Releases a team's coach from the given role — discarded, not returned
+  // to the candidate pool, exactly like FIRE_FACULTY.
+  | { type: 'FIRE_COACH'; teamId: string; role: 'head' | 'assistant' | 'trainer' }
   // Records that the player has now seen these ids in the relevant view —
   // the Curriculum tab (kind 'course'), the build popup's active category
   // tab (kind 'buildable'), or the Faculty tab's candidate pool (kind
@@ -223,9 +236,9 @@ export function createPreStartState(): GameState {
       pendingDemand: null, activeDemand: null, lastDemandWeek: 0,
     },
     orgs: {
-      clubs: [], chapters: [], teams: [], pendingPetitions: [],
+      clubs: [], chapters: [], teams: [], coachCandidates: [], pendingPetitions: [],
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
-      athleticsInvestment: DEFAULT_ATHLETICS_INVESTMENT,
+      athleticsBudget: DEFAULT_ATHLETICS_BUDGET,
     },
     research: {
       points: 0, lifetimePoints: 0, grants: 0, grantIncome: 0,
@@ -438,9 +451,15 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // and one empty flag forever, which is exactly what a school without
     // Greek life should look like in state.
     orgs: {
-      clubs: [], chapters: [], teams: [], pendingPetitions: [],
+      clubs: [], chapters: [], teams: [],
+      // A full, staggered coaching-staff market from week one — see
+      // facultyData.ts's initialCandidatePool for why "starts full, not
+      // empty" matters (a pool seeded flat would age out as one
+      // synchronized cohort instead of churning continuously).
+      coachCandidates: initialCoachCandidatePool(),
+      pendingPetitions: [],
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
-      athleticsInvestment: DEFAULT_ATHLETICS_INVESTMENT,
+      athleticsBudget: DEFAULT_ATHLETICS_BUDGET,
     },
     // No labs at founding, so nothing produces research and no output can
     // fire — the whole slice sits at zero until the first lab finishes

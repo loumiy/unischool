@@ -5,6 +5,7 @@ import { totalEnrolled } from '../state/types';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import { canSiteRetroactively, RETROACTIVE_SITING_COST } from '../state/campusMap';
 import { FACILITY_CATEGORY_OF, type FacilityCategory, LIBRARY_TIER1_ID, nextLibraryFloor } from '../data/facilitiesData';
+import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
 import HelpHint from './HelpHint';
 import { ProgressBar } from './Progress';
 import ToolbarPopup from './ToolbarPopup';
@@ -52,6 +53,7 @@ const FACILITY_LABELS: Record<FacilityType, string> = {
   library: 'Library',
   studentCenter: 'Student Center',
   diningHall: 'Dining',
+  grocery: 'Grocery Store',
   recCenter: 'Recreation',
   healthCenter: 'Health & Counseling',
   quad: 'Quad',
@@ -73,16 +75,23 @@ const FACILITY_LABELS: Record<FacilityType, string> = {
 // single finished hall reads better as itself than as "1 built".
 const COLLAPSE_BUILT_FROM = 2;
 
+// FacilityCategory (facilitiesData.ts) plus 'housing' — this popup's own
+// merged tab for dorm + chapterHouse (see HOUSING_GROUP_KEYS below), which
+// isn't a FacilityType grouping at all (a dorm is its own Buildable kind; a
+// chapter house is a facility with no facilityType), so it doesn't belong
+// on FacilityCategory itself.
+type BuildCategory = FacilityCategory | 'housing';
+
 interface TypeGroup {
   key: string;
   label: string;
   repeatable: boolean;
-  // Set only for the facility types FACILITY_CATEGORY_OF (facilitiesData.ts)
-  // names — the single source for "which types are athletics vs recreation"
-  // — so this is a lookup, never a second authoring of that line. Absent
-  // for every other group (housing, library, labs, academic buildings, ...),
+  // Set for the facility types FACILITY_CATEGORY_OF (facilitiesData.ts)
+  // names (the single source for "which types are athletics vs
+  // recreation") plus dorm/chapterHouse (see HOUSING_GROUP_KEYS below).
+  // Absent for every other group (library, labs, academic buildings, ...),
   // which render as their own standalone category tab.
-  category?: FacilityCategory;
+  category?: BuildCategory;
   items: Buildable[];
 }
 
@@ -106,9 +115,21 @@ interface TypeGroup {
 // decision, so they stay listed.
 const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; match: (t: Buildable) => boolean }> = [
   { key: 'dorm', label: 'Housing', repeatable: true, match: (t) => t.kind === 'dorm' },
+  // Greek chapter houses (see types.ts's Buildable.chapterHouse and
+  // eventData.ts's 'greek-housing'): merged into the same Housing tab as
+  // the dorm chain above (see the HOUSING_GROUP_KEYS/buildGroups category
+  // assignment below), but its own group within it — each house is a
+  // distinct, one-off decision belonging to a specific chapter, not
+  // another rung in the dorm chain's strict build order, so it stays
+  // `repeatable: false` and never picks up a dorm-style "#N" marker or
+  // collapses into a "Built xN" tile.
+  { key: 'chapterHouse', label: 'Chapter Houses', repeatable: false, match: (t) => !!t.chapterHouse },
   { key: 'library', label: FACILITY_LABELS.library, repeatable: false, match: (t) => t.facilityType === 'library' },
   { key: 'studentCenter', label: FACILITY_LABELS.studentCenter, repeatable: false, match: (t) => t.facilityType === 'studentCenter' },
-  { key: 'diningHall', label: FACILITY_LABELS.diningHall, repeatable: true, match: (t) => t.facilityType === 'diningHall' },
+  // The grocery store folds into the same "Dining" tab as the dining
+  // chain (see facilitiesData.ts's note above GROCERY_ID) — one more
+  // basicNeeds option, not a category of its own.
+  { key: 'diningHall', label: FACILITY_LABELS.diningHall, repeatable: true, match: (t) => t.facilityType === 'diningHall' || t.facilityType === 'grocery' },
   { key: 'healthCenter', label: FACILITY_LABELS.healthCenter, repeatable: false, match: (t) => t.facilityType === 'healthCenter' },
   { key: 'quad', label: FACILITY_LABELS.quad, repeatable: false, match: (t) => t.facilityType === 'quad' },
   { key: 'lab', label: FACILITY_LABELS.lab, repeatable: false, match: (t) => t.facilityType === 'lab' },
@@ -145,6 +166,14 @@ export function visibleBuildableIds(s: GameState): string[] {
   return buildGroups(s).flatMap((g) => g.items.map((t) => t.id));
 }
 
+// dorm/chapterHouse merge into one "Housing" tab (see TYPE_MATCHERS above)
+// the same way blocksFor already merges same-category facility groups —
+// but FACILITY_CATEGORY_OF only maps real FacilityTypes, and neither key is
+// one (a dorm is its own Buildable kind; a chapter house is a facility with
+// no facilityType at all), so the pairing is named directly here rather
+// than routed through that lookup.
+const HOUSING_GROUP_KEYS: ReadonlySet<string> = new Set(['dorm', 'chapterHouse']);
+
 function buildGroups(s: GameState): TypeGroup[] {
   return TYPE_MATCHERS
     .map(({ key, label, repeatable, match }) => ({
@@ -153,9 +182,9 @@ function buildGroups(s: GameState): TypeGroup[] {
       repeatable,
       // Most TYPE_MATCHERS keys ARE the FacilityType they match (gym,
       // athleticsField, ...) — the lookup below is a no-op for the ones
-      // that aren't (dorm, academicBuilding, lab, ...), which simply have
-      // no entry in FACILITY_CATEGORY_OF and so no category.
-      category: FACILITY_CATEGORY_OF[key as FacilityType],
+      // that aren't (academicBuilding, lab, ...), which simply have no
+      // entry in FACILITY_CATEGORY_OF and so no category.
+      category: (HOUSING_GROUP_KEYS.has(key) ? 'housing' : FACILITY_CATEGORY_OF[key as FacilityType]) as BuildCategory | undefined,
       items: s.tech.filter((t) => match(t) && t.status !== 'locked'),
     }))
     .filter((g) => g.items.length > 0);
@@ -166,7 +195,7 @@ function buildGroups(s: GameState): TypeGroup[] {
 // only ever MERGES adjacent same-category groups, so a future reordering
 // degrades to more (smaller) tabs rather than breaking.
 interface RenderBlock {
-  category?: FacilityCategory;
+  category?: BuildCategory;
   groups: TypeGroup[];
 }
 
@@ -180,9 +209,10 @@ function blocksFor(groups: TypeGroup[]): RenderBlock[] {
   return blocks;
 }
 
-const CATEGORY_LABELS: Record<FacilityCategory, string> = {
+const CATEGORY_LABELS: Record<BuildCategory, string> = {
   athletics: 'Athletics',
   recreation: 'Recreation',
+  housing: 'Housing',
 };
 
 // The build menu's category tabs (see BuildSection below): the campus-editing
@@ -211,7 +241,10 @@ function buildSections(s: GameState): BuildSection[] {
 // a dedicated icon, so a new type never renders iconless.
 const SECTION_ICON: Record<string, () => React.JSX.Element> = {
   [TOOLS_SECTION_ID]: ToolsIcon,
-  dorm: HousingIcon,
+  // dorm and chapterHouse both now carry the 'housing' category (see
+  // HOUSING_GROUP_KEYS above), so the merged tab's id is 'housing', never
+  // the bare 'dorm' key.
+  housing: HousingIcon,
   library: LibraryIcon,
   studentCenter: StudentLifeIcon,
   diningHall: DiningIcon,
@@ -229,12 +262,13 @@ const SECTION_ICON: Record<string, () => React.JSX.Element> = {
 // kind/facilityType. Distinct from SECTION_ICON so a category holding several
 // venue types (Athletics) still gives each its recognisable picture.
 function iconForBuildable(t: Buildable): () => React.JSX.Element {
-  if (t.kind === 'dorm') return HousingIcon;
+  if (t.kind === 'dorm' || t.chapterHouse) return HousingIcon;
   if (t.kind === 'building') return AcademicIcon;
   switch (t.facilityType) {
     case 'library': return LibraryIcon;
     case 'studentCenter': return StudentLifeIcon;
-    case 'diningHall': return DiningIcon;
+    case 'diningHall':
+    case 'grocery': return DiningIcon;
     case 'healthCenter': return HealthIcon;
     case 'quad': return QuadIcon;
     case 'lab': return LabIcon;
@@ -258,6 +292,10 @@ function iconForBuildable(t: Buildable): () => React.JSX.Element {
 function builtDetail(t: Buildable): string | undefined {
   if (t.facilityType === 'lab') return 'gates capstone coursework';
   if (t.kind === 'dorm') return `${(t.effects?.capacityBonus ?? 0).toLocaleString()} beds`;
+  // Carries no `effects` of its own (see types.ts's Buildable.chapterHouse)
+  // — its beds are a fixed constant applied directly to s.students.capacity
+  // when the petition was approved, not something to read off this tile.
+  if (t.chapterHouse) return `${CHAPTER_HOUSE_CAPACITY_BONUS.toLocaleString()} beds`;
   const flat = t.effects?.flatSatisfactionBonus;
   if (flat) return `+${flat} flat`;
   const serves = t.effects?.servesPopulation;
@@ -412,6 +450,7 @@ function BuildTile({
       : undefined;
   const startable = canStartDevelopment(s, t);
   const armed = placingId === t.id;
+  const detail = builtDetail(t);
   return (
     <button
       type="button"
@@ -429,10 +468,17 @@ function BuildTile({
       {marker && <span className="kind-tag">{marker}</span>}
       <span className="build-tile-icon"><Icon /></span>
       <span className="build-tile-name">{t.name}</span>
+      {detail && <span className="build-tile-sub">{detail}</span>}
       <span className="build-tile-foot">
         {armed
           ? 'placing…'
-          : <>{t.cost > 0 ? `$${t.cost.toLocaleString()} · ` : ''}{t.duration}w</>}
+          // A chapter house is already paid for (see types.ts's
+          // Buildable.chapterHouse) — cost and duration are both 0, so it
+          // reads as "already built, just needs a spot" rather than the
+          // misleading "0w" a bare duration would show.
+          : t.cost === 0 && t.duration === 0
+            ? 'already paid · place it'
+            : <>{t.cost > 0 ? `$${t.cost.toLocaleString()} · ` : ''}{t.duration}w</>}
       </span>
       {t.requiresFaculty && <span className="build-tile-note">needs {t.requiresFaculty}</span>}
     </button>

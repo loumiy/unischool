@@ -5,6 +5,7 @@ import { WEEKS_PER_YEAR, institutionName, totalEnrolled } from '../state/types';
 import { weeklyNet } from '../systems/finance/financeSystem';
 import { playerRank } from '../systems/rivals/rivalsSystem';
 import { SPEEDS, SANDBOX_SPEEDS, type Speed } from '../engine/useGame';
+import DayTicker from './DayTicker';
 
 // The playtest grant (see the "+$1B" button below): a round, memorable
 // figure — not tuned to any particular shortfall — since its only job is
@@ -163,6 +164,7 @@ export function SchoolAndClock({ s, speed, setSpeed, act }: {
       <div className="toolbar-school">
         <span className="toolbar-school-name">{institutionName(s.self)}</span>
         <span className="toolbar-clock">Year {s.clock.year} · {termName(s.clock.week)} · Week {s.clock.week}</span>
+        <DayTicker s={s} speed={speed} />
       </div>
     </>
   );

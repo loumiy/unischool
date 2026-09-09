@@ -156,9 +156,15 @@ export type BuildableKind = 'course' | 'building' | 'dorm' | 'facility';
 export type FacilityType =
   | 'library' | 'studentCenter' | 'diningHall' | 'recCenter'
   | 'healthCenter' | 'quad' | 'lab'
-  // Recreational and arts facilities (see facilitiesData.ts): more social-
-  // satisfaction capacity, one-off (no tier upgrades) rather than the
-  // single-instance-with-upgrades shape library/studentCenter/recCenter use.
+  // A campus grocery store (facilitiesData.ts): a second, single-instance
+  // basicNeeds feeder alongside the repeatable dining chain, not a chain of
+  // its own — real campuses have several dining halls but one grocery.
+  | 'grocery'
+  // Recreational and arts facilities (see facilitiesData.ts): gym/pool/
+  // tennisCourts feed `health` (fitness is a health need, on top of the
+  // health center itself); performingArtsCenter/artGallery feed `social`.
+  // All one-off (no tier upgrades) rather than the single-instance-with-
+  // upgrades shape library/studentCenter/recCenter use.
   | 'gym' | 'tennisCourts' | 'pool' | 'performingArtsCenter' | 'artGallery'
   // Varsity athletics venues (facilitiesData.ts): shared COMPETITION
   // facilities for the teams in data/studentLifeData.ts's SPORTS, one per
@@ -212,6 +218,20 @@ export interface Buildable {
   // The Medicine/Law reveal-on-gate pattern, with team formation as the
   // gate instead of a milestone count.
   athleticsVenueReveal?: true;
+  // Set only on a Greek chapter's own house (see eventData.ts's
+  // 'greek-housing'), one per chapter, id'd deterministically off the
+  // chapter's own id rather than drawn from any static seed catalogue —
+  // unlike every other flag/gate on this interface, which describes a
+  // FIXED Buildable from campusData.ts/facilitiesData.ts, a chapter house
+  // is manufactured at runtime the moment its petition is approved. It
+  // carries no `effects`: the satisfaction bonus and housing capacity it
+  // represents are applied directly to the chapter/s.students.capacity at
+  // that same moment, live-read off GreekChapter.housed ever after, not
+  // off this Buildable finishing. This flag's only jobs are cosmetic —
+  // BuildPopup.tsx groups it under Housing (alongside, but never
+  // interleaved with, the sequential dorm chain) and gives its tile a beds
+  // figure despite the missing `effects`.
+  chapterHouse?: true;
   status: BuildableStatus;
   effects?: Partial<BuildableEffects>; // read by the systems below; see each field's own comment for exactly when
   // Set only once this school's naming rights are sold (see eventData.ts's
@@ -281,9 +301,17 @@ export interface BuildableEffects {
 // aspect ratio, for the footprint rescale that put an academic hall at 9x9
 // (see campusMap.ts's footprintOf and the PR notes) — a hall's own footprint
 // grew by the same 4.5x per side that the grid did (2x2 -> 9x9, 28x12 ->
-// 126x54), so the campus reads at a consistently bigger scale throughout
-// rather than the grid and its landmark building drifting apart. Grow these
-// two numbers to grow the campus.
+// 126x54). It was squared off after that, height alone growing 126x54 ->
+// 126x126: the map is now a fixed full-viewport background panned/zoomed
+// like any map app (see CampusMap.tsx's .campus-map, position: fixed;
+// inset: 0), not a box squeezed beside other panels, so there is no more
+// wide-short screen shape to match — a square grid reads as neutral in
+// every window shape, and CampusMap.tsx's defaultView()/MAP_WIDTH/
+// MAP_HEIGHT and actions.ts's createInitialState Founders Hall centering
+// are both already pure functions of these two constants, so nothing else
+// needed to change for the map, the founding placement, and the starting
+// camera to all recentre themselves. Grow these two numbers together to
+// grow the campus and keep it square.
 //
 // Sized against what can actually be built: the full catalogue is 60
 // placeable Buildables (10 school buildings — the eight undergraduate
@@ -291,16 +319,11 @@ export interface BuildableEffects {
 // GraduateProgramSeed.buildingId — 15 dorms, 35 facilities: 5 dining, 2
 // each of library/studentCenter/recCenter/healthCenter/quad, 10 labs, and
 // 11 one-off campus-life/athletics facilities) whose footprints (see
-// campusMap.ts's footprintOf) total 2,179 tiles, so a fully built-out
-// campus covers about 32% (2,179 / 6,804) of the grid — open ground between
-// buildings, room to arrange, and headroom for future content, without the
-// map reading as empty.
-//
-// The proportions are chosen for the space the map column actually gets
-// (a wide, short box beside the build rail), so the grid fills its canvas
-// instead of letterboxing into the middle of it.
+// campusMap.ts's footprintOf) total 2,179 tiles — under 14% of the now-
+// square 15,876-tile grid (2,179 / 15,876), open ground and headroom for
+// future content without the map reading as empty.
 export const CAMPUS_GRID_WIDTH = 126;  // tiles across (columns)
-export const CAMPUS_GRID_HEIGHT = 54;  // tiles down (rows)
+export const CAMPUS_GRID_HEIGHT = 126; // tiles down (rows) — kept equal to CAMPUS_GRID_WIDTH so the map stays square
 
 // Which Buildable kinds can be sited on the map at all. `course` is
 // absent on purpose and must stay absent — a course is not a place.
@@ -482,6 +505,14 @@ export interface Rival {
   name: string;
   reputation: number;   // the metric the ranking sorts on
   momentum: number;     // hidden trend, makes rivals dynamic over decades
+  // A second, independent ranking axis for Athletics V2's standings (see
+  // data/rivalData.ts's athleticStrengthFor and rivalsSystem.ts's
+  // athleticRank) — deliberately NOT derived from `reputation` at read
+  // time, so a rival can be an athletic power without being an academic
+  // one and vice versa, the same real-world decoupling `reputation` alone
+  // could never express. Static for now (no annual drift of its own, unlike
+  // reputation/momentum) — a deferred deepening, not an oversight.
+  athleticStrength: number;
 }
 
 // ---------------------------------------------------------------------
@@ -574,11 +605,18 @@ export interface StudentClub extends StudentOrgBase {
   // varsity petition's eligibility reads — item 1's "subset of club
   // formations are sport clubs".
   sport: string | null;
-  // Has this club already petitioned to go varsity, whatever the answer
-  // was? Mirrors GreekChapter.housingAsked below: never ask twice. Always
-  // false for a non-sport club, since only a sport club is ever offered the
-  // question (see data/eventData.ts's 'varsity-petition').
-  varsityAsked: boolean;
+  // The year this club was last offered (and declined) the varsity
+  // petition, or null if it has never been asked. A decline is not
+  // permanent: sportClubsAwaitingVarsity (studentLifeData.ts) re-offers the
+  // petition VARSITY_PETITION_MIN_TENURE_YEARS after this year, the same
+  // tenure gate a club clears once to be asked at all — a club that says no
+  // gets to grow and ask again, not close the door forever. An approval
+  // never sets this: the club is promoted straight to a VarsityTeam and
+  // removed from s.orgs.clubs (see promoteToVarsityTeam), so there is no
+  // club record left here to re-ask. Always null for a non-sport club,
+  // since only a sport club is ever offered the question (see
+  // data/eventData.ts's 'varsity-petition').
+  varsityLastAskedYear: number | null;
 }
 
 // A Greek-letter chapter. Everything a chapter needs beyond a club is
@@ -591,15 +629,40 @@ export interface GreekChapter extends StudentOrgBase {
   housingAsked: boolean; // they have already petitioned for one — never ask again, whatever the answer was
 }
 
+// A hired member of the athletics staff — a head coach, an assistant coach,
+// or a trainer (see VarsityTeam below and data/studentLifeData.ts's coach
+// hiring pool). Mirrors Faculty's own hiring-pool shape (a rolled ceiling
+// grown toward over tenure, a salary recomputed live from current quality —
+// see facultyData.ts's grownStat/facultySalary) deliberately: Athletics V2's
+// whole ask was a SEPARATE pool that follows the same mechanism, not a new
+// one. Simpler than Faculty by one axis — one `quality` stat, not a
+// teaching/research split — since a coach is evaluated on one thing, not
+// two.
+export interface Coach {
+  id: string;
+  name: string;
+  gender: 'male' | 'female';
+  // A head/assistant coach candidate's field is the SPORTS id (see
+  // data/studentLifeData.ts) they coach — 'soccer-m', 'lacrosse-w', etc. — so
+  // only a candidate for THIS team's own sport is hireable into either of
+  // those two roles. A trainer's field is always TRAINER_FIELD
+  // ('strength-conditioning'): strength & conditioning is a discipline, not
+  // a sport, so one trainer pool serves every team regardless of sport.
+  field: string;
+  quality: number;          // current, 0..100 — grown toward qualityPotential over tenureWeeks, like Faculty.teaching/research
+  qualityPotential: number; // ceiling, rolled once at generation
+  tenureWeeks: number;      // weeks assigned to a team's roster; 0 for a candidate still on the market
+  weeksListed: number;      // weeks on the market; stops mattering once hired, exactly like Faculty.weeksListed
+  salary: number;           // current annual salary, recomputed live from quality + tenureWeeks (see coachSalaryFor)
+}
+
 // A sport club that petitioned and was granted varsity status (see
 // data/eventData.ts's 'varsity-petition' and data/studentLifeData.ts). Lives
 // alongside clubs/chapters in s.orgs.teams, reusing the same flat-per-org
 // capped social contribution and weeks-of-opex upkeep contract every other
-// organisation here does — the whole "shallow v1" premise of this feature is
-// that a varsity team is mechanically close to a Greek chapter that needs a
-// venue, not a parallel sport simulation. Promoted straight FROM a
-// StudentClub (same id — see studentLifeData.ts's promoteToVarsityTeam), so
-// the club stops drawing its old club-level contribution the same week.
+// organisation here does. Promoted straight FROM a StudentClub (same id —
+// see studentLifeData.ts's promoteToVarsityTeam), so the club stops drawing
+// its old club-level contribution the same week.
 export interface VarsityTeam extends StudentOrgBase {
   sport: string;               // a SPORTS id (see data/studentLifeData.ts)
   // The venue facilityType this sport needs, CAPTURED at grant time rather
@@ -607,8 +670,16 @@ export interface VarsityTeam extends StudentOrgBase {
   // sport -> venue-category mapping can never strand an existing team's
   // reference to the venue it was actually promised.
   venueCategory: FacilityType;
-  coachName: string;      // auto-generated from the faculty name pool the week the team goes varsity — not recruited (see facultyData.ts's rollCoachName; the standing candidate market is a deferred deepening)
-  coachBaseSalary: number; // fixed in dollars at the moment the coach was hired, weeks-of-opex sized like a club's own upkeepPerWeek — an appreciating premium on top is computed live (see studentLifeData.ts's coachSalary), in the faculty tenure spirit
+  // The three roles Athletics V2 asks every team to staff (see Coach
+  // above). All three start vacant (null) the week a team goes varsity —
+  // hired from s.orgs.coachCandidates through the Athletics tab, same as a
+  // faculty hire, rather than auto-generated the way a v1 team's single
+  // coachName used to be. A vacant role is a real, felt gap: teamQuality
+  // (studentLifeData.ts) scores it at the same floor an empty course slot
+  // would.
+  headCoach: Coach | null;
+  assistantCoach: Coach | null;
+  trainer: Coach | null;
   // Whether the team can actually compete yet. Goes straight to 'active' if
   // a compatible venue was already 'done' when the petition was granted
   // (the "second team in a category" case); otherwise it sits here until
@@ -638,17 +709,25 @@ export interface OrgPetition {
   upkeepPerWeek: number; // sized in weeks of opex the week the petition was raised
 }
 
-// The one athletics-wide funding dial (see data/studentLifeData.ts's
-// ATHLETICS_INVESTMENT_TIERS). Scales every active varsity team's social
-// contribution AND the whole program's upkeep together — deliberately not a
-// per-team budget, so v1 athletics stays one lever the player turns for the
-// whole department, not a line item per sport.
-export type AthleticsInvestmentTier = 'low' | 'medium' | 'high';
+// The one athletics-wide recruiting & scholarship budget dial (see
+// data/studentLifeData.ts's ATHLETICS_BUDGET_TIERS). Scales every active
+// varsity team's social contribution AND the whole program's upkeep
+// together, same as the investment tier it replaces — deliberately not a
+// per-team budget, so athletics stays one lever the player turns for the
+// whole department, not a line item per sport — and now ALSO feeds
+// teamQuality (studentLifeData.ts): a bigger budget means better recruiting,
+// not just a bigger program.
+export type AthleticsBudgetTier = 'low' | 'medium' | 'high';
 
 export interface StudentOrgState {
   clubs: StudentClub[];
   chapters: GreekChapter[];
   teams: VarsityTeam[];
+  // The standing coach/trainer hiring pool (see Coach above and
+  // data/studentLifeData.ts's tickCoachCandidatePool) — mirrors s.candidates
+  // (Faculty's own market), just scoped to athletics and kept separate per
+  // the design ask for its own pool.
+  coachCandidates: Coach[];
   // Petitions raised since the last summer boundary, drained wholesale
   // there: approved ones become organisations, the rest are declined.
   pendingPetitions: OrgPetition[];
@@ -659,7 +738,7 @@ export interface StudentOrgState {
   hellenicCouncilApproved: boolean;
   hellenicCouncilOffered: boolean;
   lastFormationWeek: number; // absolute week a club or chapter last formed; 0 = never
-  athleticsInvestment: AthleticsInvestmentTier;
+  athleticsBudget: AthleticsBudgetTier;
 }
 
 // Private/public is the only starting fork (see README's "Startup and

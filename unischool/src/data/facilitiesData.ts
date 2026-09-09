@@ -49,6 +49,7 @@ import { FOUNDING_BODY } from './schoolTypeData';
 // ---------------------------------------------------------------------
 const UPKEEP_PER_SERVED_PER_WEEK: Record<string, number> = {
   diningHall: 2.2,
+  grocery: 1.0,           // shelving/registers, lighter than a full-service dining hall's kitchen staff
   library: 0.9,
   studentCenter: 1.0,
   recCenter: 1.1,
@@ -107,7 +108,13 @@ const DINING_STARTING_SERVES = FOUNDING_BODY; // one founding hall feeds exactly
 // than the escalating chain below.
 const DINING_STARTING_COST = 250_000;
 const DINING_STARTING_WEEKS = 12;
-const DINING_ADDITIONAL_COUNT = 4;
+// Raised from 4 to 5 (see the max-buildout note above SAVE_VERSION-scale
+// tuning in satisfactionSystem.ts's TARGET_RATIO): even the rebalanced
+// 5-instance chain this comment used to describe (~21,700 served) fell well
+// short of feeding a fully built-out, large-enrollment campus at
+// basicNeeds' strict 1:1 ratio. A sixth instance plus the new grocery store
+// below (GROCERY_SERVES) together close that gap.
+const DINING_ADDITIONAL_COUNT = 5;
 const DINING_BASE_SERVES = 1_600;
 const DINING_SERVES_GROWTH = 1.9;
 const DINING_BASE_COST = 2_400_000; // ~$1,500/seat at the base, the same rough rate the old chain built at
@@ -119,7 +126,7 @@ const DINING_WEEKS_GROWTH = 1.12;
 // stand-in (the build panel lists these by name once the group collapses).
 const DINING_NAMES = [
   'The Original Dining Hall', 'Union Square Eatery', 'Commons Cafeteria', 'The Grand Table',
-  'Founders Commons',
+  'Founders Commons', 'Lakeside Dining Commons',
 ];
 
 function repeatableChain(opts: {
@@ -196,6 +203,23 @@ function repeatableChain(opts: {
 
   return nodes;
 }
+
+// --- Campus grocery store: single building, basicNeeds, population-gated ---
+// A SECOND basicNeeds feeder alongside the dining chain, not another link in
+// it: real campuses have several dining halls but typically one grocery, so
+// this is shaped like the health center (one building, unlocked past a
+// population threshold) rather than repeatable. Exists purely to close the
+// max-buildout gap the dining chain alone couldn't (see the note above
+// DINING_ADDITIONAL_COUNT) — a big, single, late-game capacity top-up, not
+// an early strategic choice. Cheaper per seat than a full dining hall
+// (~1,500/seat): a grocery needs shelving and registers, not a kitchen and
+// a dining room, so its labor/equipment cost per student served is lower —
+// see GROCERY's own rate in UPKEEP_PER_SERVED_PER_WEEK.
+export const GROCERY_POPULATION_GATE = 8_000;
+const GROCERY_ID = 'GROCERY-01';
+const GROCERY_SERVES = 17_500;
+const GROCERY_COST = 15_750_000; // 900/seat
+const GROCERY_WEEKS = 20;
 
 // --- Library: single building, academic ---
 // Tier 2 (the research library) is a real prestige gate, not just a bigger
@@ -322,11 +346,18 @@ const STUDENT_CENTER_TIER2_WEEKS = 20;
 // meetsUnlockGates), so it needs the whole chain built AND enough prestige,
 // whichever clears second.
 //
-// These give `social` more levers now that TARGET_RATIO.social is 0.34 (see
-// satisfactionSystem.ts's note on the harshening pass): more capacity to
-// hold the ratio as a campus keeps growing, not a replacement for the
-// student center.
+// Recreation Center keeps `social` (an open-use campus-life amenity, in the
+// same family as the student center); gym/pool/tennis feed `health` instead
+// (fitness is a wellness need on top of the health center itself — see
+// satisfactionSystem.ts and the health center block below) now that they
+// carry real capacity rather than a token gesture, and Athletics Complex
+// (tier 2) stays `social`, the same "big capstone amenity" role tier 1 has.
+// Splitting the chain's satisfactionAttribute per-facility rather than
+// keeping the whole five-building run on one is deliberate: `health` needs
+// its own scaling capacity just as much as `social` does, and this chain
+// already has three facilities suited to carrying it.
 //
+
 // RESOLVED (the athletics PR this flag was left for): the rec pool stays,
 // unchanged, alongside a separate NATATORIUM below, and the same split
 // applies to every other rec/competition pair. DESIGN FORK, made explicit
@@ -349,18 +380,22 @@ const REC_CENTER_TIER1_SERVES = 1_200;
 const REC_CENTER_TIER1_COST = 450_000;
 const REC_CENTER_TIER1_WEEKS = 12;
 const REC_CENTER_TIER1_PRESTIGE = 0.05;
+// Serves figures raised well past their old "quick recreational win" scale
+// (1,000/700/400) now that they carry real `health` capacity rather than a
+// token social gesture — cost keeps the same $/seat rate each already built
+// at, so the jump is honestly priced, not a freebie.
 const GYM_ID = 'GYM';
-const GYM_SERVES = 1_000;
-const GYM_COST = 350_000;
-const GYM_WEEKS = 12;
+const GYM_SERVES = 4_000;
+const GYM_COST = 1_400_000;
+const GYM_WEEKS = 22;
 const POOL_ID = 'POOL';
-const POOL_SERVES = 700;
-const POOL_COST = 320_000;
-const POOL_WEEKS = 10;
+const POOL_SERVES = 3_000;
+const POOL_COST = 1_370_000;
+const POOL_WEEKS = 20;
 const TENNIS_COURTS_ID = 'TENNIS-COURTS';
-const TENNIS_COURTS_SERVES = 400;
-const TENNIS_COURTS_COST = 140_000;
-const TENNIS_COURTS_WEEKS = 6;
+const TENNIS_COURTS_SERVES = 2_000;
+const TENNIS_COURTS_COST = 700_000;
+const TENNIS_COURTS_WEEKS = 14;
 const REC_CENTER_TIER2_ID = 'REC-T2';
 const REC_CENTER_TIER2_SERVES = 3_500;
 const REC_CENTER_TIER2_COST = 1_900_000;
@@ -503,6 +538,18 @@ const HEALTH_CENTER_TIER2_ID = 'HLTH-T2';
 const HEALTH_CENTER_TIER2_SERVES = 6_000;
 const HEALTH_CENTER_TIER2_COST = 2_100_000;
 const HEALTH_CENTER_TIER2_WEEKS = 26;
+// A third tier, past a genuinely large-campus population gate: two tiers
+// (8,000 served total) plus gym/pool/tennis's own health capacity (see the
+// rec/fitness chain above) still fell well short of feeding `health`'s
+// strict 1:1 ratio at a fully built-out, large-enrollment campus — the same
+// max-buildout shortfall the extra dining hall/grocery store above address
+// for basicNeeds. Continues the cost-per-seat climb tier 1 -> tier 2
+// already set (280/seat -> 350/seat) rather than a discount at scale.
+export const HEALTH_CENTER_TIER3_POPULATION_GATE = 20_000;
+const HEALTH_CENTER_TIER3_ID = 'HLTH-T3';
+const HEALTH_CENTER_TIER3_SERVES = 42_000;
+const HEALTH_CENTER_TIER3_COST = 19_000_000;
+const HEALTH_CENTER_TIER3_WEEKS = 40;
 
 // --- Green space/quad: single, cheap, FLAT (non-population-scaling) bonus ---
 // The one attribute contributor that doesn't play the capacity-ratio game
@@ -539,6 +586,25 @@ export function initialFacilities(): Buildable[] {
       names: DINING_NAMES.slice(1),
       fallbackName: 'Dining Hall',
     }),
+
+    // Campus grocery store — see the block above DINING_ADDITIONAL_COUNT.
+    {
+      id: GROCERY_ID,
+      kind: 'facility',
+      facilityType: 'grocery',
+      name: 'Campus Grocery Store',
+      description: `A full grocery store for ${GROCERY_SERVES.toLocaleString()} students — a second basic-needs option alongside the dining halls. Only needed once the campus crosses ${GROCERY_POPULATION_GATE.toLocaleString()} students enrolled.`,
+      cost: GROCERY_COST,
+      duration: GROCERY_WEEKS,
+      prereqs: [],
+      minCapacityToUnlock: GROCERY_POPULATION_GATE,
+      status: 'locked',
+      effects: {
+        servesPopulation: GROCERY_SERVES,
+        satisfactionAttribute: 'basicNeeds',
+        upkeepPerWeek: servedUpkeep('grocery', GROCERY_SERVES),
+      },
+    },
 
     // Library
     {
@@ -650,7 +716,7 @@ export function initialFacilities(): Buildable[] {
       status: 'locked',
       effects: {
         servesPopulation: GYM_SERVES,
-        satisfactionAttribute: 'social',
+        satisfactionAttribute: 'health',
         upkeepPerWeek: servedUpkeep('gym', GYM_SERVES),
       },
     },
@@ -666,7 +732,7 @@ export function initialFacilities(): Buildable[] {
       status: 'locked',
       effects: {
         servesPopulation: POOL_SERVES,
-        satisfactionAttribute: 'social',
+        satisfactionAttribute: 'health',
         upkeepPerWeek: servedUpkeep('pool', POOL_SERVES),
       },
     },
@@ -675,14 +741,14 @@ export function initialFacilities(): Buildable[] {
       kind: 'facility',
       facilityType: 'tennisCourts',
       name: 'Tennis Courts',
-      description: `A handful of courts open to ${TENNIS_COURTS_SERVES.toLocaleString()} students — cheap, and a quick win for campus life.`,
+      description: `Courts open to ${TENNIS_COURTS_SERVES.toLocaleString()} students.`,
       cost: TENNIS_COURTS_COST,
       duration: TENNIS_COURTS_WEEKS,
       prereqs: [POOL_ID],
       status: 'locked',
       effects: {
         servesPopulation: TENNIS_COURTS_SERVES,
-        satisfactionAttribute: 'social',
+        satisfactionAttribute: 'health',
         upkeepPerWeek: servedUpkeep('tennisCourts', TENNIS_COURTS_SERVES),
       },
     },
@@ -866,6 +932,24 @@ export function initialFacilities(): Buildable[] {
         servesPopulation: HEALTH_CENTER_TIER2_SERVES,
         satisfactionAttribute: 'health',
         upkeepPerWeek: servedUpkeep('healthCenter', HEALTH_CENTER_TIER2_SERVES),
+      },
+    },
+    {
+      id: HEALTH_CENTER_TIER3_ID,
+      kind: 'facility',
+      facilityType: 'healthCenter',
+      tier: 3,
+      name: 'University Health Center',
+      description: `Adds ${HEALTH_CENTER_TIER3_SERVES.toLocaleString()} more capacity for a campus past ${HEALTH_CENTER_TIER3_POPULATION_GATE.toLocaleString()} students enrolled.`,
+      cost: HEALTH_CENTER_TIER3_COST,
+      duration: HEALTH_CENTER_TIER3_WEEKS,
+      prereqs: [HEALTH_CENTER_TIER2_ID],
+      minCapacityToUnlock: HEALTH_CENTER_TIER3_POPULATION_GATE,
+      status: 'locked',
+      effects: {
+        servesPopulation: HEALTH_CENTER_TIER3_SERVES,
+        satisfactionAttribute: 'health',
+        upkeepPerWeek: servedUpkeep('healthCenter', HEALTH_CENTER_TIER3_SERVES),
       },
     },
 

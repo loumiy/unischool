@@ -18,6 +18,8 @@
 import { createInitialState } from '../src/state/actions';
 import { loadGame, saveGame, clearSave, SAVE_KEY, SAVE_VERSION } from '../src/state/persistence';
 import { sportById } from '../src/data/studentLifeData';
+import { athleticStrengthFor } from '../src/data/rivalData';
+import { WEEKS_PER_YEAR } from '../src/state/types';
 
 // In-memory localStorage so the persistence module works under Node. Assigned
 // before any loadGame/saveGame call (module imports run first, but nothing in
@@ -263,7 +265,7 @@ function makeV24GenderedSportsSave(): void {
     ...(state.orgs as Loose),
     clubs: [{
       id: 'club-soccer', name: 'Soccer Club', foundedYear: 3, foundingMembers: 12, foundingEnrolled: 400,
-      upkeepPerWeek: 80, sport: 'soccer', varsityAsked: true, // already asked, whichever way — must survive untouched
+      upkeepPerWeek: 80, sport: 'soccer', varsityAsked: true, // pre-v28 shape — MIGRATIONS[27] converts this
     }],
     teams: [
       // One-gender: id doesn't move, but the name still gains "Team" —
@@ -309,7 +311,8 @@ function testGenderedSportsMigration(): void {
   if (club) {
     assert(club.sport === 'soccer-m', `bare 'soccer' club defaults to the men's lineage (got '${club.sport}')`);
     assert(club.name === "Men's Soccer Club", `club is renamed to match the new naming scheme (got '${club.name}')`);
-    assert(club.varsityAsked === true, "varsityAsked survives untouched — a migrated club doesn't re-open its own petition");
+    assert(club.varsityLastAskedYear === loaded.clock.year,
+      `pre-v28 varsityAsked=true converts to varsityLastAskedYear = the load-time clock year (got ${club.varsityLastAskedYear}, clock year ${loaded.clock.year})`);
   }
 
   const football = loaded.orgs.teams.find((t) => t.id === 'team-football');
@@ -317,6 +320,13 @@ function testGenderedSportsMigration(): void {
   if (football) {
     assert(football.sport === 'football', "a one-gender sport's id does not move");
     assert(football.name === 'Football Team', `team is renamed to the new "... Team" scheme (got '${football.name}')`);
+    assert(football.headCoach?.name === 'Coach Old', `pre-v29 coachName becomes headCoach.name (got '${football.headCoach?.name}')`);
+    assert(football.assistantCoach === null, 'a pre-v29 team never had an assistant coach — arrives vacant');
+    assert(football.trainer === null, 'a pre-v29 team never had a trainer — arrives vacant');
+    assert(
+      football.headCoach !== null && football.headCoach.tenureWeeks >= 0,
+      `migrated headCoach.tenureWeeks is a non-negative estimate from foundedYear (got ${football.headCoach?.tenureWeeks})`,
+    );
   }
 
   const basketball = loaded.orgs.teams.find((t) => t.id === 'team-basketball');
@@ -325,6 +335,7 @@ function testGenderedSportsMigration(): void {
     assert(basketball.sport === 'basketball-m', `bare 'basketball' team defaults to the men's lineage (got '${basketball.sport}')`);
     assert(basketball.name === "Men's Basketball Team", `team is renamed to match the new naming scheme (got '${basketball.name}')`);
     assert(basketball.venueCategory === 'athleticsArena', 'venueCategory is left untouched by the gender migration');
+    assert(basketball.headCoach?.name === 'Coach Hoops', `pre-v29 coachName becomes headCoach.name (got '${basketball.headCoach?.name}')`);
   }
 
   assert(
@@ -347,6 +358,98 @@ function testGenderedSportsMigration(): void {
     !loaded.orgs.clubs.some((c) => c.sport === 'soccer-w') && !loaded.orgs.teams.some((t) => t.sport === 'soccer-w'),
     'no soccer-w record was invented by the migration — it is genuinely unformed, exactly like a fresh game',
   );
+}
+
+// ---- Test: v27's boolean varsityAsked converts to varsityLastAskedYear ----
+function testVarsityAskedMigration(): void {
+  const base = createInitialState('VarsityMigrator', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+  state.clock = { year: 9, week: 3 };
+  state.orgs = {
+    ...(state.orgs as Loose),
+    clubs: [
+      {
+        id: 'club-declined', name: 'Declined Club', foundedYear: 1, foundingMembers: 12, foundingEnrolled: 400,
+        upkeepPerWeek: 80, sport: 'soccer-m', varsityAsked: true,
+      },
+      {
+        id: 'club-unasked', name: 'Unasked Club', foundedYear: 4, foundingMembers: 10, foundingEnrolled: 400,
+        upkeepPerWeek: 70, sport: 'volleyball-m', varsityAsked: false,
+      },
+    ],
+  };
+  writeSave(27, state);
+
+  const loaded = loadGame();
+  assert(loaded !== null, 'v27 varsityAsked save loads (does not fall back to null)');
+  if (!loaded) return;
+
+  const declined = loaded.orgs.clubs.find((c) => c.id === 'club-declined');
+  assert(!!declined, 'the previously-declined club survives under its own id');
+  if (declined) {
+    assert(declined.varsityLastAskedYear === 9, `varsityAsked=true backfills to the load-time clock year (got ${declined.varsityLastAskedYear})`);
+    assert(!('varsityAsked' in declined), 'the old varsityAsked key is dropped, not left dangling');
+  }
+
+  const unasked = loaded.orgs.clubs.find((c) => c.id === 'club-unasked');
+  assert(!!unasked, 'the never-asked club survives under its own id');
+  if (unasked) {
+    assert(unasked.varsityLastAskedYear === null, `varsityAsked=false backfills to null (got ${unasked.varsityLastAskedYear})`);
+  }
+}
+
+// ---- Test: v28 -> v29 Athletics V2 (coachName -> headCoach, the budget
+// rename, and rivals gaining athleticStrength) ----
+function testAthleticsV2Migration(): void {
+  const base = createInitialState('AthleticsMigrator', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+  state.clock = { year: 5, week: 10 };
+  state.orgs = {
+    ...(state.orgs as Loose),
+    teams: [{
+      id: 'team-lacrosse', name: "Men's Lacrosse Team", foundedYear: 1, foundingMembers: 12, foundingEnrolled: 350,
+      upkeepPerWeek: 400, sport: 'lacrosse-m', venueCategory: 'athleticsField',
+      coachName: 'Coach Legacy', coachBaseSalary: 5000, status: 'active',
+    }],
+    athleticsInvestment: 'high', // the pre-v29 key — no athleticsBudget yet
+  };
+  delete (state.orgs as Loose).athleticsBudget;
+  delete (state.orgs as Loose).coachCandidates;
+  // Strip athleticStrength off one rival, as if it were saved before this
+  // migration existed.
+  const rivals = state.rivals as Loose[];
+  delete rivals[0].athleticStrength;
+  writeSave(28, state);
+
+  const loaded = loadGame();
+  assert(loaded !== null, 'v28 athletics save loads (does not fall back to null)');
+  if (!loaded) return;
+
+  assert(loaded.orgs.athleticsBudget === 'high', `athleticsInvestment renames to athleticsBudget, value preserved (got '${loaded.orgs.athleticsBudget}')`);
+  assert(Array.isArray(loaded.orgs.coachCandidates) && loaded.orgs.coachCandidates.length > 0,
+    'a real, full coach candidate pool is seeded, not an empty array');
+
+  const team = loaded.orgs.teams.find((t) => t.id === 'team-lacrosse');
+  assert(!!team, 'the migrated team survives under its own id');
+  if (team) {
+    assert(team.headCoach?.name === 'Coach Legacy', `pre-v29 coachName becomes headCoach.name (got '${team.headCoach?.name}')`);
+    assert(team.headCoach?.field === 'lacrosse-m', `migrated headCoach.field matches the team's own sport (got '${team.headCoach?.field}')`);
+    assert(team.assistantCoach === null && team.trainer === null, 'assistant coach and trainer both arrive vacant');
+    const expectedTenureWeeks = Math.round((5 - 1) * WEEKS_PER_YEAR);
+    assert(team.headCoach?.tenureWeeks === expectedTenureWeeks,
+      `migrated headCoach.tenureWeeks is estimated from foundedYear (got ${team.headCoach?.tenureWeeks}, expected ${expectedTenureWeeks})`);
+  }
+
+  const firstRival = loaded.rivals.find((r) => r.id === (rivals[0].id as string));
+  assert(!!firstRival, 'the rival missing athleticStrength survives under its own id');
+  if (firstRival) {
+    assert(
+      firstRival.athleticStrength === athleticStrengthFor(firstRival.reputation, firstRival.id),
+      `backfilled athleticStrength matches what a fresh game would derive (got ${firstRival.athleticStrength})`,
+    );
+  }
+  const otherRival = loaded.rivals.find((r) => r.id !== firstRival?.id);
+  assert(!!otherRival && typeof otherRival.athleticStrength === 'number', 'a rival that already had athleticStrength keeps a real number');
 }
 
 // ---- Test: a current-version save round-trips unchanged ----
@@ -391,6 +494,8 @@ testArtsCapstoneRepoint();
 testSeenSeeded();
 testFoundingSeenExcludesStartingContent();
 testGenderedSportsMigration();
+testVarsityAskedMigration();
+testAthleticsV2Migration();
 testRoundTrip();
 testRejects();
 

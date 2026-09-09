@@ -47,7 +47,7 @@ function makeSportClub(id: string, sportId: string): StudentClub {
   const def = sportById(sportId)!;
   return {
     id, name: def.clubName, foundedYear: 1, foundingMembers: 14, foundingEnrolled: 350,
-    upkeepPerWeek: 100, sport: sportId, varsityAsked: false,
+    upkeepPerWeek: 100, sport: sportId, varsityLastAskedYear: null,
   };
 }
 
@@ -129,7 +129,7 @@ function testIndependentLineages(): void {
 
   const menTeam = promoteToVarsityTeam(s, menClub, {
     sport: 'soccer-m', name: sportById('soccer-m')!.teamName, venueCategory: 'athleticsField',
-    coachName: 'Coach A', coachBaseSalary: 1000, upkeepPerWeek: 500, status: 'awaitingVenue',
+    upkeepPerWeek: 500, status: 'awaitingVenue',
   });
   assert(menTeam.name === "Men's Soccer Team", `promoted team is named from the sport's teamName (got '${menTeam.name}')`);
   assert(s.orgs.clubs.find((c) => c.id === menClub.id) === undefined, 'the promoted club is removed from s.orgs.clubs');
@@ -150,7 +150,7 @@ function testIndependentLineages(): void {
   field.status = 'done';
   const womenTeam = promoteToVarsityTeam(s, womenClub, {
     sport: 'soccer-w', name: sportById('soccer-w')!.teamName, venueCategory: 'athleticsField',
-    coachName: 'Coach B', coachBaseSalary: 1000, upkeepPerWeek: 500,
+    upkeepPerWeek: 500,
     status: venueForCategory(s, 'athleticsField')?.status === 'done' ? 'active' : 'awaitingVenue',
   });
   assert(womenTeam.status === 'active', "women's team goes active immediately: the men's field already stands");
