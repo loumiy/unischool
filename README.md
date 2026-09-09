@@ -446,17 +446,34 @@ target and no target enrollment. Admissions is a distribution funnel resolved by
 `admissionsSystem.ts`, modeled as aggregate applicant *statistics*, never
 individual applicants:
 
-- **Applications** are driven by **sticker tuition**, **current prestige**, and
-  the **average student satisfaction over the preceding year** (word of mouth).
-  Higher prestige and a lower net price grow the pool; a happy student body grows
-  it further. Word of mouth reads the **average satisfaction over the preceding
-  year** — accumulated weekly and averaged at the summer boundary
+- **Applications** are driven by **net price** (sticker tuition x
+  (1 - scholarship rate)), **current prestige**, and the **average student
+  satisfaction over the preceding year** (word of mouth). Higher prestige and a
+  lower net price grow the pool; a happy student body grows it further. Word of
+  mouth reads the **average satisfaction over the preceding year** —
+  accumulated weekly and averaged at the summer boundary
   (`admissionsSystem.ts`'s `trailingYearSatisfaction`), not the current week's
-  reading.
+  reading. Dorm capacity scales the pool toward its full size as housing
+  investment grows, but is a floor rather than a wall — even a pure commuter
+  school with zero beds draws a real, meaningful pool.
+- **Sticker shock** is a second, separate cost to a high **listed** price,
+  independent of net price: a family decides whether to even apply off the
+  sticker, months before any aid offer exists, so a tuition figure that
+  overreaches what the school's prestige has earned (`priceTolerance`) scares
+  off real applicants — hardest in the lower/mid quality bands, barely at all
+  in the top band (the real-world "undermatching" effect: price-sensitive
+  families distrust aid they haven't seen yet and self-select away). This is
+  what stops "raise tuition and scholarships together, holding net price
+  fixed" from being a free lunch: without it, inflating the sticker only ever
+  helped, since applicant *volume* is scored against net price alone. See
+  `admissionsSystem.ts`'s `STICKER_SHOCK_RATE`.
 - **Selectivity** (the admit rate) is an emergent *output*, reported back to the
   player — never a dial they set.
 - **Scholarships drive yield** — how many admitted students actually enroll —
-  with diminishing returns, on top of prestige.
+  with diminishing returns, on top of prestige. A generous scholarship rate is a
+  genuine, realistic lever (real universities buy yield with aid); pairing it
+  with an inflated sticker purely to launder the discount is what sticker shock
+  now taxes.
 
 Students **attend for four years**, so each summer admits a **new freshman
 cohort** while the existing cohorts advance a year and the seniors graduate (see
@@ -487,29 +504,32 @@ The settled v1 rules:
 - **Full progression, no attrition.** Every student who enrolls advances each
   year and graduates after four; there is no inter-year dropout. (Retention as a
   satisfaction consequence is a plausible future hook, deliberately not built.)
-- **Capacity caps the total body.** The funnel sizes the incoming freshman class
-  to fill whatever seats the three returning cohorts leave open
-  (`freshmanCapacity()`), so over-built beds still sit empty and cost money —
-  the pacing the finance model depends on.
-- **Founding mix.** A new college opens with **all four class years present**
-  and **balanced** — each cohort ≈ capacity / 4 (`FOUNDING_COHORTS`,
-  `88 / 88 / 87 / 87` at the founding hall's 350 beds). The founding dorm is
-  **pre-built and pre-placed** (centred on the map), so the body opens **fully
-  housed**, at the steady-state cohort structure the campus would otherwise
-  take years of lumpy cycles to reach. This puts a graduating class on the
-  books from year one and makes intake and graduation both sit near
-  capacity / 4 from the first summer. Because the cohort advance is a
-  **zero-damping shift register**, opening balanced-and-fully-housed is what
-  removes the founding wave — any gap between the body and its capacity, or
-  any cohort imbalance, would otherwise re-graduate every four years forever.
-- **Intake smoothing.** Growth beyond the founding hall is damped so a newly
-  built dorm doesn't refill in one oversized class (which would itself become a
-  wave): the entering class is capped at one steady-state slot — capacity / 4,
-  scaled by `INTAKE_SURGE_MULTIPLIER` (1.0, the fully-smooth value). A new dorm
-  therefore fills smoothly over the ~4 years its beds take to propagate into
-  all four class years. The cap never bites in a steady year and never forces
-  enrollment above demand — it only lowers the seat ceiling the funnel fills
-  toward. See `ALIGNMENT_ROADMAP.md`'s cohort-smoothing note for the model.
+- **Capacity is a demand floor, never an enrollment ceiling.** Housing and
+  enrollment are decoupled (see "Commuters" below): the funnel sizes the
+  incoming freshman class purely from the admissions model above, with no
+  reference to open seats. Bed capacity still matters, just earlier in the
+  pipeline — it scales the applicant *pool* toward its full size
+  (`admissionsSystem.ts`'s `capacityFactor`), so a school with no dorms at all
+  still draws a real pool (the floor), while one that invests in housing draws
+  a bigger one, up to a reference scale beyond which more beds buy nothing
+  further. An older design capped the incoming class at open seats and damped
+  growth with an `INTAKE_SURGE_MULTIPLIER`; both were deliberately removed
+  (commit "Introduce commuters: decouple enrollment from dorm capacity") once
+  a build-nothing school was found growing to five figures of enrollment with
+  no throttle at all — `ALIGNMENT_ROADMAP.md`'s cohort-smoothing follow-up note
+  predates that removal and is superseded on this point.
+- **Founding mix.** A new college opens **fully commuter** — capacity 0, no
+  dorm built yet (see "Commuters" below) — with **all four class years
+  present** and **balanced**: each cohort ≈ FOUNDING_BODY / 4
+  (`FOUNDING_COHORTS`, `88 / 88 / 87 / 87`, summing to 350). This puts a
+  graduating class on the books from year one, without needing a founding dorm
+  to justify it.
+- **Commuters.** Enrollment is never capacity-gated: `students.capacity` is
+  bed count, tracked separately from `totalEnrolled()`, and a large commuter
+  school with few dorms is still a large school for every other purpose
+  (instruction cost, satisfaction's non-housing attributes, prestige). Housing
+  is one input to the admissions applicant-pool factor and its own
+  satisfaction attribute — never a ceiling.
 
 Implemented in the four-cohort model (`students.cohorts`), with a save
 migration that splits an existing `students.enrolled` scalar evenly across the

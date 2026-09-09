@@ -862,3 +862,16 @@ Not taken: a satisfaction-driven **attrition** term (retention as a
 consequence of unhappiness). README still flags it as a deliberately-deferred
 hook; it would be an alternative damper to lever 3, turning the wave into a
 decaying transient rather than capping it, and remains open as future work.
+
+**Superseded note (added later):** commit "Introduce commuters: decouple
+enrollment from dorm capacity" removed both lever 2 (the pre-built founding
+dorm / fully-housed opening) and lever 3 (`freshmanCapacity`'s
+`INTAKE_SURGE_MULTIPLIER` damper) described above, after a fast-forward showed
+a build-nothing school growing to five figures of enrollment and no throttle
+at all under the pre-existing capacity-gated model. Enrollment is no longer
+capacity-gated in any form; a founded school opens fully commuter
+(`capacity: 0`) and dorm capacity now only scales the admissions applicant
+*pool* (a floor, not a wall — see `admissionsSystem.ts`'s `capacityFactor`).
+This section is kept as the historical record of why the damper existed, not
+as a description of current behavior — see `README.md`'s "Students" section
+for what actually ships today.

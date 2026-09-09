@@ -146,6 +146,10 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
           <dt>What your prestige supports <span className="outcome-note">(net price before demand falls away)</span></dt>
           <dd>${tolerance.toLocaleString()}/yr</dd>
         </div>
+        <div>
+          <dt>Sticker shock <span className="outcome-note">(listed price above what your prestige supports scares off price-sensitive families, however much aid you back it with)</span></dt>
+          <dd>{outcome.stickerShockMultiplier >= 1 ? 'none' : `-${Math.round((1 - outcome.stickerShockMultiplier) * 100)}% applicants`}</dd>
+        </div>
       </dl>
 
       <StudentLifeDigest

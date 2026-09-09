@@ -47,7 +47,11 @@ export function trailingYearSatisfaction(s: GameState): number {
 //      — that is satisfaction's one mechanical consequence, applied here
 //      once a year rather than as a weekly drip; and dorm capacity scales
 //      the pool toward its full size as housing investment grows (see
-//      CAPACITY_FACTOR_FLOOR/CAPACITY_FACTOR_REFERENCE below).
+//      CAPACITY_FACTOR_FLOOR/CAPACITY_FACTOR_REFERENCE below). A STICKER
+//      price that overreaches what the school's prestige has earned (see
+//      STICKER_SHOCK_RATE below) additionally self-selects away exactly the
+//      price-sensitive bands scholarships would otherwise win back — a real
+//      sticker is never laundered for free by matching it with aid.
 //   2. Admit rate = f(prestige) alone (see admitRate below): a school's
 //      standing is what makes it selective, on the real-world curve from a
 //      barely-selective young school to a single-digit admit rate at the
@@ -140,6 +144,45 @@ const PRICE_TOLERANCE_BASE = 5_500;             // what a school with no reputat
 const PRICE_TOLERANCE_PER_PRESTIGE_POINT = 240; // added per point of prestige
 const PRICE_SENSITIVITY = 1.0;                  // applicants ~ exp(-sensitivity x netPrice/tolerance)
 
+// --- Sticker shock: a family decides whether to APPLY off the listed
+// price, months before financial aid is ever an offer on the table — a
+// net-price calculator does not help someone who never opens it. So a
+// sticker that overreaches what the school's prestige has earned (see
+// priceTolerance above — the same curve the net-price discount is measured
+// against) costs real applicants, on top of and independent of whatever
+// net price the tuition/scholarships combination works out to.
+//
+// This is what makes "raise tuition and scholarships together, holding net
+// price fixed" a real trade-off rather than a free lunch: without it,
+// inflating the sticker only ever helps (it shifts qualityMix's band split
+// toward the band that — once scholarships are raised to match — has the
+// smallest yield penalty; see YIELD_QUALITY_PENALTY below), since applicant
+// VOLUME is scored against net price alone and never falls. A large,
+// deliberately-provoked fast-forward comparison at fixed net price ($10k,
+// prestige 50) found $60k-sticker/83%-scholarship nearly tripling enrolled
+// class size and net revenue over an honest $10k/0% policy for a mere ~17%
+// hit to average incoming quality — the sticker-shock band split below is
+// sized to close that gap, not merely narrow it (see the sim's admissions
+// sweep for the check).
+//
+// BAND-SPECIFIC, and deliberately so: the real phenomenon this models
+// (well-documented in the higher-ed research as "undermatching") is that
+// price-sensitive families distrust or never learn about the aid they
+// would actually receive, and self-select away from an intimidating list
+// price — precisely the low/mid-band applicants scholarships exist to win
+// back. A top-band family is more sophisticated about the aid process (or
+// simply richer), same as YIELD_QUALITY_PENALTY already treats the top
+// band as pickier about NET price rather than skittish about the sticker —
+// so top is barely shocked at all, mid loses a real share, and low —
+// already zero-rated on the yield penalty, which is exactly why inflating
+// tuition floods it — loses the most.
+//
+// Rates are the exponent's coefficient in exp(-rate x overreach), where
+// overreach is how far RAW tuition sits past priceTolerance(prestige) as a
+// fraction of it (0 = priced exactly at earned tolerance or under; there is
+// no shock at all for a sticker the school's own standing can support).
+const STICKER_SHOCK_RATE: Record<QualityBand, number> = { top: 0.05, mid: 0.35, low: 0.65 };
+
 // --- Word of mouth: current student satisfaction scales the applicant pool.
 // This is satisfaction's ONE mechanical consequence (the weekly attrition
 // trickle it used to drive is gone): a miserable student body talks the
@@ -214,8 +257,13 @@ type QualityBand = 'top' | 'mid' | 'low';
 // The emergent outcome of the funnel for a given policy. Everything here is
 // a displayed consequence of the two inputs (tuition, scholarships), not an input.
 export interface AdmissionsProjection {
-  applicants: number;          // total applicant pool, after word of mouth
+  applicants: number;          // total applicant pool, after word of mouth AND sticker shock
   wordOfMouthMultiplier: number; // satisfaction's multiplier on the pool (1.0 = neutral) — see WORD_OF_MOUTH_STRENGTH
+  // What sticker shock alone cost the pool: realized applicants / what the
+  // pool would have been at this net price with no shock at all (1.0 =
+  // sticker priced at or under earned tolerance, no families self-selected
+  // away). See STICKER_SHOCK_RATE above.
+  stickerShockMultiplier: number;
   admits: number;              // admitted: applicants x admitRate(prestige), skimmed top band first
   admitRate: number;           // admits / applicants — matches admitRate(prestige) unless a thin top/mid band ran out to skim
   yieldRate: number;           // enrolled / admits — the emergent yield
@@ -271,6 +319,15 @@ function qualityMix(prestige: number, tuition: number): Record<QualityBand, numb
   return { top: top / sum, mid: mid / sum, low: low / sum };
 }
 
+// Per-band self-selection away from an overreaching sticker price — see
+// STICKER_SHOCK_RATE above for why this exists and why it is band-specific.
+// 1.0 (no shock at all) whenever the sticker sits at or under what the
+// school's own prestige can already support.
+function stickerShockFactor(prestige: number, tuition: number, band: QualityBand): number {
+  const overreach = Math.max(0, Math.max(tuition, 0) / priceTolerance(prestige) - 1);
+  return Math.exp(-STICKER_SHOCK_RATE[band] * overreach);
+}
+
 // Yield for one quality band: scholarships (diminishing returns) and prestige lift
 // it, higher band quality drags it down.
 function bandYield(prestige: number, scholarshipRate: number, band: QualityBand): number {
@@ -295,15 +352,22 @@ export function projectAdmissions(
 ): AdmissionsProjection {
   const wordOfMouth = wordOfMouthFactor(satisfaction);
   const netPrice = Math.max(tuition, 0) * (1 - clamp(scholarshipRate, 0, 1));
-  const applicants = applicantVolume(prestige, netPrice, capacity) * wordOfMouth;
+  const rawApplicants = applicantVolume(prestige, netPrice, capacity) * wordOfMouth;
   const mix = qualityMix(prestige, tuition);
-  const pool: Record<QualityBand, number> = {
-    top: applicants * mix.top,
-    mid: applicants * mix.mid,
-    low: applicants * mix.low,
-  };
 
   const bands: QualityBand[] = ['top', 'mid', 'low'];
+  // Sticker shock is applied per band, straight onto the raw pool split —
+  // it is real attrition (a family that never applied), not a redistribution
+  // the way qualityMix's own shift is. `applicants` below is therefore the
+  // REALIZED pool, after both word of mouth and sticker shock, and is what
+  // the rest of the funnel (admit rate, the modal's headline figure) reads.
+  const pool: Record<QualityBand, number> = { top: 0, mid: 0, low: 0 };
+  for (const band of bands) {
+    pool[band] = rawApplicants * mix[band] * stickerShockFactor(prestige, tuition, band);
+  }
+  const applicants = pool.top + pool.mid + pool.low;
+  const stickerShockMultiplier = rawApplicants > 0 ? applicants / rawApplicants : 1;
+
   const yieldByBand: Record<QualityBand, number> = {
     top: bandYield(prestige, scholarshipRate, 'top'),
     mid: bandYield(prestige, scholarshipRate, 'mid'),
@@ -344,6 +408,7 @@ export function projectAdmissions(
   return {
     applicants: Math.round(applicants),
     wordOfMouthMultiplier: wordOfMouth,
+    stickerShockMultiplier,
     admits: Math.round(admits),
     admitRate: applicants > 0 ? admits / applicants : 0,
     yieldRate: admits > 0 ? enrolled / admits : 0,
