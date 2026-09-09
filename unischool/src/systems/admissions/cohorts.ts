@@ -173,6 +173,17 @@ function priceSensitivePull(tolerance: number, tuition: number, scholarshipRate:
   return 1 + PRICE_SENSITIVE_STRENGTH * Math.max(-1, Math.min(1, 1 - ratio));
 }
 
+// The athletes cohort's own pull, broken out as its own export (unlike
+// every other cohort) because AthleticsTab.tsx needs exactly this one
+// number to surface the payoff of investing in teams/coaching right where
+// that investment happens — without needing a price/tolerance reading it
+// has no other reason to compute (every OTHER cohort's pull only matters
+// blended into cohortDemandFactor, read from the admissions interrupt that
+// already has those figures on hand).
+export function athleticsCohortPull(signals: CohortSignals): number {
+  return boundedPull(ATHLETICS_STRENGTH, ATHLETICS_DECAY, signals.activeTeams * (signals.athleticsQuality / 100));
+}
+
 // One cohort's pull, keyed by id — the single place every cohort's own
 // formula lives, read by both cohortDemandFactor (the blended total) and
 // cohortBreakdown (the per-cohort UI detail) so the two can never drift
@@ -187,7 +198,7 @@ function pullFor(id: CohortId, signals: CohortSignals, tolerance: number, tuitio
     case 'social': return boundedPull(SOCIAL_STRENGTH, SOCIAL_DECAY, signals.socialOrgCount);
     case 'artsFocused': return boundedPull(ARTS_STRENGTH, ARTS_DECAY, signals.artsPrograms * 1.5 + signals.artsFacilities * 2);
     case 'priceSensitive': return priceSensitivePull(tolerance, tuition, scholarshipRate);
-    case 'athletes': return boundedPull(ATHLETICS_STRENGTH, ATHLETICS_DECAY, signals.activeTeams * (signals.athleticsQuality / 100));
+    case 'athletes': return athleticsCohortPull(signals);
   }
 }
 

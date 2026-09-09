@@ -5,6 +5,7 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import { ATHLETICS_BUDGET_ORDER, TRAINER_FIELD, coachGrayChance, teamQuality, venueForCategory } from '../data/studentLifeData';
 import { athleticRank } from '../systems/rivals/rivalsSystem';
+import { athleticsCohortPull, deriveCohortSignals } from '../systems/admissions/cohorts';
 import PersonPortrait from '../components/PersonPortrait';
 
 function money(v: number): string {
@@ -125,6 +126,7 @@ export default function AthleticsTab({ s, act }: { s: GameState; act: (a: Action
   const active = teams.filter((t) => t.status === 'active');
   const awaiting = teams.filter((t) => t.status === 'awaitingVenue');
   const rank = active.length > 0 ? athleticRank(s) : null;
+  const cohortPull = active.length > 0 ? athleticsCohortPull(deriveCohortSignals(s)) : null;
 
   return (
     <div className="tab-content">
@@ -132,7 +134,7 @@ export default function AthleticsTab({ s, act }: { s: GameState; act: (a: Action
         <div className="panel-head">
           <h2>Varsity Athletics</h2>
           <HelpHint
-            text="A sport club (see Student Life) can petition to go varsity: a program budget and a shared competition venue for its sport's category — the coaching staff is hired separately, right here, from a standing candidate pool (mirroring how Faculty hiring works). Every team needs a head coach, an assistant coach, and a trainer; a trainer's field is strength & conditioning, so the same trainer candidates are hireable by any team regardless of sport, while a head/assistant coach candidate is scoped to one specific sport. A vacant role still functions, just at a lower team quality — there's no hard block on an understaffed program. The recruiting & scholarship budget below is the one department-wide knob: it scales every active team's social contribution and the whole program's upkeep together, and now also adds a flat bonus to every team's quality. Standings compare your program's overall quality against rival schools' own athletic strength — a second, independent ranking axis from the academic one."
+            text="A sport club (see Student Life) can petition to go varsity: a program budget and a shared competition venue for its sport's category — the coaching staff is hired separately, right here, from a standing candidate pool (mirroring how Faculty hiring works). Every team needs a head coach, an assistant coach, and a trainer; a trainer's field is strength & conditioning, so the same trainer candidates are hireable by any team regardless of sport, while a head/assistant coach candidate is scoped to one specific sport. A vacant role still functions, just at a lower team quality — there's no hard block on an understaffed program. The recruiting & scholarship budget below is the one department-wide knob: it scales every active team's social contribution and the whole program's upkeep together, and now also adds a flat bonus to every team's quality. Standings compare your program's overall quality against rival schools' own athletic strength — a second, independent ranking axis from the academic one. Fielding real, well-staffed teams also pulls in athletics-minded applicants directly — the recruiting pull below is how much bigger the applicant pool is because of it."
           />
         </div>
         <div className="athletics-budget">
@@ -151,8 +153,13 @@ export default function AthleticsTab({ s, act }: { s: GameState; act: (a: Action
             ))}
           </div>
         </div>
-        {rank !== null && (
-          <p className="athletics-rank">Athletic standing: <strong>#{rank}</strong> of {s.rivals.length + 1}</p>
+        {rank !== null && cohortPull !== null && (
+          <div className="athletics-summary">
+            <p className="athletics-rank">Athletic standing: <strong>#{rank}</strong> of {s.rivals.length + 1}</p>
+            <p className="athletics-rank">
+              Recruiting pull: <strong>{cohortPull >= 1 ? '+' : ''}{Math.round((cohortPull - 1) * 100)}%</strong> athletics-minded applicants
+            </p>
+          </div>
         )}
         {teams.length === 0 ? (
           <p className="empty-note">No sport club has gone varsity yet.</p>

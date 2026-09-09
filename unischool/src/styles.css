@@ -1172,7 +1172,8 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   border: 1px solid var(--parchment-line); color: var(--ink-muted); border-radius: 5px;
   padding: 3px 10px; font-size: 12px; cursor: pointer; }
 .athletics-budget-tiers button.active { background: var(--gold); color: #1a2035; border-color: var(--gold); font-weight: 700; }
-.athletics-rank { font-family: var(--mono); font-size: 13px; color: var(--ink-muted); margin: 0 0 10px; }
+.athletics-summary { display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 0 0 10px; }
+.athletics-rank { font-family: var(--mono); font-size: 13px; color: var(--ink-muted); margin: 0; }
 .athletics-rank strong { color: var(--ink); }
 .team-card-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px;
   max-height: 480px; overflow-y: auto; }
