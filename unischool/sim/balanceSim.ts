@@ -553,7 +553,19 @@ function resetSimEnvironment(): void {
   fakeStorage.clear();
 }
 
-export function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTally; venuesBuilt: string[] } {
+// `onWeek`, when given, is called with the post-TICK state after every
+// simulated week — finer-grained than `rows` (one snapshot a YEAR, at the
+// admissions boundary). Optional and a no-op by default so every existing
+// caller (the CLI report below, test/balance-regression.test.ts) is
+// unaffected; sim/milestones.ts is the one caller that needs week-level
+// resolution, to say which week a one-time completion milestone (a
+// building, a full catalogue) first became true rather than which YEAR it
+// fell in.
+export function play(
+  strategy: Strategy,
+  years: number,
+  onWeek?: (s: GameState) => void,
+): { rows: Row[]; tally: EventTally; venuesBuilt: string[] } {
   resetSimEnvironment();
   let s = createPreStartState();
   s = reducer(s, { type: 'START_GAME', name: 'Test University', schoolType: strategy.schoolType });
@@ -663,6 +675,7 @@ export function play(strategy: Strategy, years: number): { rows: Row[]; tally: E
     }
     if (s.finance.cash < 0) weeksInTheRed += 1;
     minCash = Math.min(minCash, s.finance.cash);
+    onWeek?.(s);
   }
   const venuesBuilt = VENUE_IDS.filter((id) => s.tech.find((t) => t.id === id)?.status === 'done');
   return { rows, tally, venuesBuilt };
@@ -867,6 +880,27 @@ export const STRATEGIES: Strategy[] = [
     netMargin: 0.12,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
     dormFillThreshold: 0.85, facilityThreshold: 72, campaigns: true,
+  },
+  {
+    // Same discipline as Balanced builder — nothing about finishing the
+    // catalogue requires being reckless — with the one thing that stops
+    // Balanced builder short of it removed. decide()'s facility rule only
+    // builds "whatever satisfaction currently says is short", which
+    // naturally settles once a handful of cheap facilities clear the
+    // threshold: a second dining hall, the Arts Center (and the four
+    // Music courses gated behind it), and every athletics venue (so no
+    // varsity team this strategy ever forms actually fields, stuck
+    // 'awaitingVenue' forever) are left permanently unbuilt — see
+    // sim/milestones.ts, which this strategy exists to answer.
+    // facilityThreshold: Infinity means "satisfaction is never high enough
+    // to skip a facility", i.e. build every available one regardless —
+    // the only strategy here that ever reaches 100% of the catalogue.
+    name: 'Completionist (build everything)', schoolType: 'private',
+    tuition: rampTuition(300), scholarships: () => 0.25,
+    buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
+    netMargin: 0.12,
+    buildsCourses: true, buildsDorms: true, buildsFacilities: true,
+    dormFillThreshold: 0.85, facilityThreshold: Infinity, campaigns: true,
   },
   {
     // The stall test: beds far ahead of demand, priced too CHEAPLY to carry

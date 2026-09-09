@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "sim": "rolldown sim/balanceSim.ts -o node_modules/.tmp/balanceSim.mjs -f esm -p node && node node_modules/.tmp/balanceSim.mjs",
+    "milestones": "rolldown sim/milestones.ts -o node_modules/.tmp/milestones.mjs -f esm -p node && node node_modules/.tmp/milestones.mjs",
     "test": "npm run test:migrations && npm run test:finance && npm run test:faculty && npm run test:invariants && npm run test:athletics && npm run test:admissions && npm run test:balance",
     "test:migrations": "rolldown test/save-migrations.test.ts -o node_modules/.tmp/save-migrations.test.mjs -f esm -p node && node node_modules/.tmp/save-migrations.test.mjs",
     "test:finance": "rolldown test/financial-distress.test.ts -o node_modules/.tmp/financial-distress.test.mjs -f esm -p node && node node_modules/.tmp/financial-distress.test.mjs",
