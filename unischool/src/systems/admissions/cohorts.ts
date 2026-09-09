@@ -148,7 +148,21 @@ const SOCIAL_DECAY = 0.08;
 const ARTS_STRENGTH = 0.7;
 const ARTS_DECAY = 0.35;
 const ATHLETICS_STRENGTH = 0.7;
-const ATHLETICS_DECAY = 0.5;
+// 0.25, not 0.5: signal here is activeTeams * (athleticsQuality/100), which
+// can run all the way up to ~14 (one team per SPORTS entry, all maxed) —
+// a far bigger ceiling than any other cohort's signal gets per unit of
+// player investment (see AthleticsTab.tsx, where this pull is now shown
+// directly). At the old 0.5, a single team of merely decent quality
+// (signal ~0.7-0.8) already reached roughly a third of the cohort's max
+// pull, and three or four such teams fully saturated it — fielding a
+// tenth or fourteenth team, despite costing just as much in staff and
+// venues as the first, bought almost nothing more. 0.25 keeps the first
+// team's payoff real but modest and lets the curve keep climbing
+// meaningfully through a genuinely large athletics department, so
+// committing to the FULL buildout the game's other systems make possible
+// is still a strategy with a growing payoff, not a plateau you hit after
+// three teams.
+const ATHLETICS_DECAY = 0.25;
 
 // Price-sensitive is the one cohort that responds to price rather than a
 // built asset, and the one place this module needs a price-tolerance
