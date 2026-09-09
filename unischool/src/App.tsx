@@ -7,6 +7,7 @@ import InterruptModal from './components/InterruptModal';
 import { TAB_LABELS, type TabId } from './components/TabNav';
 import CampusMap from './components/CampusMap';
 import Toolbar from './components/Toolbar';
+import LogTicker from './components/LogTicker';
 import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
 import FacultyTab from './tabs/FacultyTab';
@@ -53,7 +54,10 @@ import './styles.css';
 // one. `useCssHeightVar` keeps `--toolbar-height` synced to its real
 // rendered height, which is what .campus-map-canvas (see styles.css)
 // insets its interactive area by, so every tile stays reachable at any
-// viewport size.
+// viewport size. The log ticker C2 folded away is back as LogTicker.tsx —
+// its own thin strip stacked above the toolbar rather than a fourth zone
+// inside it, at a fixed (not measured) height, since one line of text never
+// wraps the way the toolbar's own zones can.
 export default function App() {
   const { state, act, speed, setSpeed } = useGame();
   const s: GameState = state;
@@ -98,6 +102,7 @@ export default function App() {
       <MainMenu act={act} />
 
       <div className="app">
+        <LogTicker s={s} />
         <Toolbar
           ref={toolbarRef}
           s={s}

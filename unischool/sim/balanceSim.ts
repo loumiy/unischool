@@ -24,8 +24,8 @@ import { reducer } from '../src/engine/reducer';
 import type { Action } from '../src/state/actions';
 import { createPreStartState } from '../src/state/actions';
 import type { GameState, Buildable, SchoolType } from '../src/state/types';
-import { totalEnrolled } from '../src/state/types';
-import { financeBreakdown, endowmentCampaign, weeklyNet } from '../src/systems/finance/financeSystem';
+import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
+import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudent } from '../src/systems/finance/financeSystem';
 import { canStartDevelopment, hasFreeFacultySlot } from '../src/systems/techtree/techSystem';
 import { firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { findDecisionEvent, HELLENIC_COUNCIL_MIN_CLUBS } from '../src/data/eventData';
@@ -76,7 +76,7 @@ const fakeStorage = new Map<string, string>();
 // player does (build breadth first, build enrollment first, overreach,
 // sit still).
 // ---------------------------------------------------------------------
-interface Strategy {
+export interface Strategy {
   name: string;
   schoolType: SchoolType;
   tuition(s: GameState): number;
@@ -93,6 +93,22 @@ interface Strategy {
   dormFillThreshold: number;      // start the next dorm once enrolled/capacity passes this
   facilityThreshold: number;      // build for any satisfaction attribute scoring under this
   campaigns: boolean;             // run endowment campaigns with the late-game surplus
+  // Whether this strategy projects a course's RECURRING cost before
+  // committing to it, rather than only checking the one-time build cost
+  // against cash (canStartDevelopment's own gate). Optional, defaulting to
+  // off (false/undefined) for every strategy this was tuned against
+  // (market-rate private pricing comfortably outruns instruction cost —
+  // see financeSystem.ts's own "an extra student is never a loss" claim).
+  // Turned on for the one strategy whose thin, heavily-discounted margin
+  // does NOT hold that claim: without it, a strategy that saves for years
+  // then finally clears its cash buffer will happily start every available
+  // course in one summer, and once they finish, their combined recurring
+  // instruction cost can exceed what that strategy's OWN net tuition per
+  // student brings in — a real, catastrophic emergent collapse this
+  // harness caught (see the audit finding this field closes). A player
+  // watching their own margin would not make that mistake twice; this is
+  // that same ordinary caution, not a game-balance change.
+  courseAffordabilityAware?: boolean;
 }
 
 // The course's tier, recovered from its id (101 / 1x0 / 2x0) purely so the
@@ -111,6 +127,27 @@ function tierOf(t: Buildable): number {
 
 function affordable(s: GameState, cost: number, strategy: Strategy): boolean {
   return s.finance.cash - cost >= strategy.buffer(s);
+}
+
+// Whether adding one more course to the catalogue would still leave THIS
+// strategy's own current net tuition per student covering instruction cost
+// — see Strategy.courseAffordabilityAware. Instruction cost rises by
+// exactly INSTRUCTION_PER_STUDENT_PER_COURSE_OFFERED (1.00/wk) per course
+// OFFERED, and a course counts as offered the moment it is 'developing',
+// not only once it is 'done' (see techData.ts) — but instructionCostPerStudent
+// itself only reads 'done' nodes (financeSystem.ts), since that is the only
+// state that actually charges the cost today. A strategy deciding whether
+// to start ANOTHER course has to count every course already 'developing'
+// too, or a whole week's worth of course starts (none of which have
+// finished yet, so none show up in instructionCostPerStudent) would each
+// individually look affordable while their COMBINED future cost is not —
+// exactly the binge-then-collapse pattern this field exists to prevent.
+function courseStaysSustainable(s: GameState, strategy: Strategy): boolean {
+  if (!strategy.courseAffordabilityAware) return true;
+  const netTuitionPerStudentPerWeek = (strategy.tuition(s) * (1 - strategy.scholarships(s))) / WEEKS_PER_YEAR;
+  const developingCourses = s.tech.filter((t) => t.kind === 'course' && t.status === 'developing').length;
+  const projectedInstructionCostPerStudent = instructionCostPerStudent(s) + developingCourses + 1;
+  return netTuitionPerStudentPerWeek >= projectedInstructionCostPerStudent;
 }
 
 // Whether this week's cash flow leaves room to take on a new RECURRING
@@ -268,6 +305,7 @@ function decide(
       const c = s.tech.find((t) => t.id === id);
       if (!c || c.status !== 'available') continue;
       if (!hasHeadroom(s, strategy) || !affordable(s, c.cost, strategy)) continue;
+      if (!courseStaysSustainable(s, strategy)) continue;
       if (canStartDevelopment(s, c)) dispatch({ type: 'START_DEVELOPMENT', nodeId: id });
     }
     for (const id of get().tech.filter((t) => t.kind === 'building' && t.status === 'available').map((t) => t.id)) {
@@ -337,7 +375,7 @@ function decide(
 // One year's row of the trajectory table, captured at the admissions
 // boundary right after the funnel and the prestige drift resolve.
 // ---------------------------------------------------------------------
-interface Row {
+export interface Row {
   year: number; cash: number; enrolled: number; capacity: number; prestige: number;
   opex: number; net: number; satisfaction: number; courses: number; majors: number;
   faculty: number; tuition: number; scholarships: number; applicants: number; admitRate: number;
@@ -503,7 +541,32 @@ function chooseEventOption(s: GameState): { eventId: string; choiceId: string; c
 // a run actually finished building.
 const VENUE_IDS = ['ATH-FIELD', 'ATH-ARENA', 'ATH-DIAMOND', 'ATH-NATATORIUM', 'ATH-STADIUM'];
 
-function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTally; venuesBuilt: string[] } {
+// Resets the two pieces of shared, mutable module state a run depends on
+// for reproducibility (the seeded RNG and the fake localStorage) so `play`
+// is self-contained and deterministic regardless of what ran before it in
+// the same process — the CLI loop below relies on this, and so does
+// test/balance-regression.test.ts, which calls `play` for several
+// strategies in one process and would otherwise have each run inherit
+// RNG/storage state left over by whichever ran first.
+function resetSimEnvironment(): void {
+  seed = INITIAL_SEED;
+  fakeStorage.clear();
+}
+
+// `onWeek`, when given, is called with the post-TICK state after every
+// simulated week — finer-grained than `rows` (one snapshot a YEAR, at the
+// admissions boundary). Optional and a no-op by default so every existing
+// caller (the CLI report below, test/balance-regression.test.ts) is
+// unaffected; sim/milestones.ts is the one caller that needs week-level
+// resolution, to say which week a one-time completion milestone (a
+// building, a full catalogue) first became true rather than which YEAR it
+// fell in.
+export function play(
+  strategy: Strategy,
+  years: number,
+  onWeek?: (s: GameState) => void,
+): { rows: Row[]; tally: EventTally; venuesBuilt: string[] } {
+  resetSimEnvironment();
   let s = createPreStartState();
   s = reducer(s, { type: 'START_GAME', name: 'Test University', schoolType: strategy.schoolType });
   const dispatch = (a: Action) => { s = reducer(s, a); };
@@ -612,6 +675,7 @@ function play(strategy: Strategy, years: number): { rows: Row[]; tally: EventTal
     }
     if (s.finance.cash < 0) weeksInTheRed += 1;
     minCash = Math.min(minCash, s.finance.cash);
+    onWeek?.(s);
   }
   const venuesBuilt = VENUE_IDS.filter((id) => s.tech.find((t) => t.id === id)?.status === 'done');
   return { rows, tally, venuesBuilt };
@@ -755,7 +819,20 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
 const rampTuition = (perPrestigePoint: number) => (s: GameState) =>
   Math.min(s.finance.tuitionCeiling, Math.round((4_000 + s.self.reputation * perPrestigePoint) / 500) * 500);
 
-const STRATEGIES: Strategy[] = [
+// A real administration trims its own discount before it starts firing
+// people (see cutPayrollIfStalled below, and financeSystem.ts's "stall,
+// don't die" note on raising net price / cutting scholarships being the
+// cheaper, non-destructive lever). `s.finance.cash` is read live off
+// GameState — this is exactly the number a strategy would see on its own
+// Treasury tab, not a harness-only signal — so a strategy whose margin is
+// thin enough to go negative sees its own aid taper back toward `floor`
+// for as long as it stays underwater, and back to `base` the moment it
+// recovers. Strategies whose margin never goes negative (market-rate
+// pricing) never see this fire at all.
+const trimAidWhenUnderwater = (base: number, floor: number) => (s: GameState) =>
+  s.finance.cash < 0 ? floor : base;
+
+export const STRATEGIES: Strategy[] = [
   {
     // The intended line of play: grow one thing at a time, never take on a
     // commitment the current cash flow can't carry.
@@ -780,11 +857,21 @@ const STRATEGIES: Strategy[] = [
     // The volume archetype: cheap, heavily discounted, beds first. Tests
     // that a big low-selectivity school is a viable, different shape.
     name: 'Discount volume (beds first)', schoolType: 'private',
-    tuition: rampTuition(150), scholarships: () => 0.5,
+    tuition: rampTuition(150),
+    // See trimAidWhenUnderwater above: 50% off is this strategy's whole
+    // identity, but it is not a suicide pact — a school that finds itself
+    // actually underwater trims back to 30% before anything more drastic,
+    // the same annual-decision lever financeSystem.ts's own note points to.
+    scholarships: trimAidWhenUnderwater(0.5, 0.3),
     buffer: (s) => Math.max(200_000, s.finance.weeklyOpEx * 8),
     netMargin: 0.08,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
     dormFillThreshold: 0.7, facilityThreshold: 80, campaigns: true,
+    // See Strategy.courseAffordabilityAware — its 50%-discounted net
+    // tuition does not clear instruction cost at a full catalogue, so
+    // without this it eventually binges on years of saved-up cash and
+    // collapses once the new courses' recurring cost lands.
+    courseAffordabilityAware: true,
   },
   {
     name: 'Public flagship', schoolType: 'public',
@@ -795,12 +882,48 @@ const STRATEGIES: Strategy[] = [
     dormFillThreshold: 0.85, facilityThreshold: 72, campaigns: true,
   },
   {
-    // The stall test: beds far ahead of demand, at a price the school's
-    // prestige cannot support. Every mistake the pacing model is supposed
-    // to punish, made at once. It must go deep into the red and CLIMB BACK
-    // OUT — that is the whole content of "stall, don't die".
+    // Same discipline as Balanced builder — nothing about finishing the
+    // catalogue requires being reckless — with the one thing that stops
+    // Balanced builder short of it removed. decide()'s facility rule only
+    // builds "whatever satisfaction currently says is short", which
+    // naturally settles once a handful of cheap facilities clear the
+    // threshold: a second dining hall, the Arts Center (and the four
+    // Music courses gated behind it), and every athletics venue (so no
+    // varsity team this strategy ever forms actually fields, stuck
+    // 'awaitingVenue' forever) are left permanently unbuilt — see
+    // sim/milestones.ts, which this strategy exists to answer.
+    // facilityThreshold: Infinity means "satisfaction is never high enough
+    // to skip a facility", i.e. build every available one regardless —
+    // the only strategy here that ever reaches 100% of the catalogue.
+    name: 'Completionist (build everything)', schoolType: 'private',
+    tuition: rampTuition(300), scholarships: () => 0.25,
+    buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
+    netMargin: 0.12,
+    buildsCourses: true, buildsDorms: true, buildsFacilities: true,
+    dormFillThreshold: 0.85, facilityThreshold: Infinity, campaigns: true,
+  },
+  {
+    // The stall test: beds far ahead of demand, priced too CHEAPLY to carry
+    // them. Every mistake the pacing model is supposed to punish, made at
+    // once. It must go deep into the red and CLIMB BACK OUT — that is the
+    // whole content of "stall, don't die".
+    //
+    // Flat low tuition, not high, is what actually stresses this economy —
+    // see the audit finding this replaced: a flat HIGH tuition (near the
+    // ceiling) survives overbuilding comfortably, because net tuition per
+    // enrolled student so vastly exceeds UPKEEP_PER_SEAT_PER_WEEK that even
+    // a campus at a fraction of capacity nets positive. A flat LOW tuition
+    // that never scales with prestige, paired with dorms built the moment
+    // the campus is even nominally full (dormFillThreshold: 0) and a
+    // growing course catalogue's rising per-student instruction cost (see
+    // financeSystem.ts's INSTRUCTION_PER_STUDENT_PER_COURSE_OFFERED), is
+    // the naive real mistake this strategy is supposed to model: "more
+    // beds means I should charge less to fill them" — thin margin per
+    // student, an ever-growing empty-seat bill from building ahead of
+    // demand every single year, and instruction cost that outgrows a
+    // stagnant tuition line as the curriculum matures.
     name: 'Overbuilder (beds ahead of demand)', schoolType: 'private',
-    tuition: (s) => Math.min(s.finance.tuitionCeiling, 45_000), scholarships: () => 0.1,
+    tuition: () => 8_000, scholarships: () => 0,
     buffer: () => 0,
     netMargin: -1,
     buildsCourses: true, buildsDorms: true, buildsFacilities: false,
@@ -818,12 +941,20 @@ const STRATEGIES: Strategy[] = [
   },
 ];
 
-const years = Number(process.argv[2] ?? 40);
-const every = Number(process.argv[3] ?? 2);
-const filter = process.argv[4];
-for (const strategy of STRATEGIES) {
-  if (filter && !strategy.name.toLowerCase().includes(filter.toLowerCase())) continue;
-  seed = INITIAL_SEED;
-  fakeStorage.clear();
-  report(strategy, play(strategy, years), every);
+// Guarded so `npm run sim` (which invokes this file directly as the
+// compiled entry point — process.argv[1] is then that entry's own path)
+// prints the CLI report, while test/balance-regression.test.ts can import
+// STRATEGIES/play/Strategy/Row above without also triggering a full,
+// unwanted 40-year print run as a side effect of the import.
+const isCliEntry = process.argv[1]?.includes('balanceSim') ?? false;
+if (isCliEntry) {
+  const years = Number(process.argv[2] ?? 40);
+  const every = Number(process.argv[3] ?? 2);
+  const filter = process.argv[4];
+  for (const strategy of STRATEGIES) {
+    if (filter && !strategy.name.toLowerCase().includes(filter.toLowerCase())) continue;
+    // play() resets seed/fakeStorage itself (see resetSimEnvironment) — no
+    // reset needed here.
+    report(strategy, play(strategy, years), every);
+  }
 }

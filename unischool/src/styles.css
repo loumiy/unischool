@@ -39,12 +39,16 @@
      everything it showed now lives in the bottom toolbar or the top-right
      corner overlays — and folded the map's own bottom tray into the '?' in
      that same corner; see App.tsx/Toolbar.tsx/CampusMap.tsx), and no more
-     --side-panel-width or --log-strip-width (C2 folded the build rail and
-     the log strip into the bottom toolbar). --corner-menu-height is the
-     fixed (never measured) height of MainMenu's hamburger button, which the
-     map's zoom/'?' pill stacks directly beneath in the top-right corner. */
+     --side-panel-width (C2 folded the build rail into the bottom toolbar).
+     --corner-menu-height is the fixed (never measured) height of MainMenu's
+     hamburger button, which the map's zoom/'?' pill stacks directly beneath
+     in the top-right corner. --log-ticker-height is the log ticker's own
+     fixed (never measured) height — see LogTicker.tsx/App.tsx — a single
+     line of text never wraps, so unlike --toolbar-height this needs no
+     ResizeObserver. */
   --toolbar-height: 64px;
   --corner-menu-height: 40px;
+  --log-ticker-height: 26px;
 }
 
 /* The shell fills the viewport rather than scrolling as a document: the map
@@ -110,8 +114,9 @@ button { cursor: pointer; font-family: inherit; }
    same band too, now that the topbar is gone entirely — funds/stats move
    to the left, the school identity/clock/speed controls move to the
    right, save/new game/credits move up into MainMenu.tsx's own top-right
-   overlay, and the log ticker is dropped (no natural slot for it here —
-   see StatusHeader.tsx's module comment). Three zones in a row — left
+   overlay. The log ticker (see LogTicker.tsx) lives just above this band
+   instead of inside it — its own thin fixed strip, not a fourth zone
+   competing with funds/tabs/school for room in this one. Three zones in a row — left
    (funds + the headline stats), middle (tab icons + build, the one fixed-
    width cluster that stays centered), right (speed controls + school/
    clock) — with the two side zones sharing the remaining space evenly so
@@ -121,6 +126,31 @@ button { cursor: pointer; font-family: inherit; }
   display: flex; align-items: center; justify-content: space-between; gap: 18px;
   background: var(--navy); border-top: 1px solid var(--navy-line);
   padding: 8px 16px; }
+
+/* The log ticker: one line, the newest s.log entry, in the strip directly
+   above the toolbar — the same strip that used to just show the campus
+   grass through the gap between the map canvas and the opaque toolbar
+   (see .campus-map-canvas's own comment). --navy-line is the toolbar
+   family's own neutral accent (already the toolbar's top border and every
+   icon's hover ring), not another saturated colour competing with the
+   grass behind it or the gold the toolbar reserves for "active" — a second
+   band in the same quiet family reads as one chrome unit with the toolbar
+   below it, not a distinct, separately-themed panel. z-index sits between
+   the map (0) and the toolbar/every other floating card (10): above the
+   ground, below anything a player can actually interact with, since this
+   strip never is. */
+.log-ticker { position: fixed; z-index: 5; left: 0; right: 0; bottom: var(--toolbar-height);
+  height: var(--log-ticker-height); display: flex; align-items: center;
+  padding: 0 16px; background: var(--navy-line); color: var(--ink-hi); font-size: 12px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log-ticker .ts { color: var(--ink-lo); font-family: var(--mono); margin-right: 6px; }
+/* The bright, dark-background pair StatusHeader.tsx already uses for
+   cash/satisfaction (money / money-negative) — not --green/#a13a3a, which
+   are tuned for the light parchment tab panels and read as muddy, low-
+   contrast text against this strip's dark --navy-line. */
+.log-ticker .good { color: #7dd3a0; }
+.log-ticker .bad { color: #e58a8a; }
+.log-ticker-empty { color: var(--ink-lo); font-style: italic; }
 
 /* NOT flex: 1 1 0 (equal-halves growth) — with a fixed-width middle nav
    between them, forcing both side zones to the exact same box width means
@@ -534,9 +564,12 @@ button.build-tile { font-family: inherit; }
 /* The bottom inset is the toolbar's own real height, measured live rather
    than assumed at a ceiling: most of the time it's short, and the map
    should get that space back rather than always reserving room it
-   doesn't need. */
+   doesn't need. Stacked on top of that is the log ticker's own fixed
+   height (see LogTicker.tsx) — that strip is opaque chrome too, so a tile
+   sitting under it would be exactly as unreachable as one under the
+   toolbar itself. */
 .campus-map-canvas { position: fixed; top: 0; right: 0;
-  bottom: calc(var(--toolbar-height) + 24px); left: 0; }
+  bottom: calc(var(--toolbar-height) + var(--log-ticker-height)); left: 0; }
 /* `grab`/`grabbing` say the map is draggable before a player ever tries —
    `.panning` is toggled imperatively (see CampusMap.tsx's onMove), not
    through React state, for the same reason the transform itself is:

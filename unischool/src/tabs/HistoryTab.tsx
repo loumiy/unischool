@@ -162,7 +162,7 @@ export default function HistoryTab({ s }: { s: GameState }) {
             years={years}
             values={history.map((h) => h.enrolled)}
             format={(v) => Math.round(v).toLocaleString()}
-            note="The class each summer's funnel committed — capped by beds, fed by prestige, scholarships and word of mouth."
+            note="The class each summer's funnel committed — fed by prestige, tuition, scholarships and word of mouth. Beds scale the applicant pool, never a hard cap on enrollment."
           />
           <HistoryChart
             label="Operating funds"

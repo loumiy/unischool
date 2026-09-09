@@ -470,7 +470,7 @@ const VARSITY_DECLINE_SATISFACTION_HIT = 2;             // same weight as a chap
 export const VARSITY_PETITION_WEEK = Math.floor((WEEKS_PER_YEAR * 3) / 4);
 
 // =====================================================================
-// THE TABLE. Thirteen authored events. Trigger conditions are deliberately
+// THE TABLE. Fourteen authored events. Trigger conditions are deliberately
 // state-driven rather than calendar-driven: a donor shows up once the
 // school is worth donating to, a heating plant fails once there is a
 // campus big enough to have one. That is the same "reveal on thresholds

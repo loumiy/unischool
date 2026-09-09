@@ -51,8 +51,9 @@ const TAB_ICONS: Record<Exclude<TabId, 'treasury'>, () => React.JSX.Element> = {
 // same band (see StatusHeader.tsx's module comment) — funds/headline stats
 // in the left zone, the tab icons + build in the middle, speed controls and
 // the school's own identity/clock in the right zone. Save/New Game/Credits
-// moved up into MainMenu.tsx's own top-right overlay instead, and the log
-// ticker is dropped for now (no natural slot for it in this layout).
+// moved up into MainMenu.tsx's own top-right overlay instead. The log
+// ticker lives just above this band now (see LogTicker.tsx/App.tsx) rather
+// than inside it — this component knows nothing about it.
 //
 // The build popup is the one thing this band can still pop open above
 // itself — see ToolbarPopup's own module comment for why it carries no

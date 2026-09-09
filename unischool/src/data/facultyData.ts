@@ -10,22 +10,36 @@ import { initialTech } from './techData';
 // as the minority case rather than the systematic result of two uniform,
 // unrelated picks. WHICH pool supplies the first name is itself weighted,
 // not uniform (see pickPool()/ANGLO_POOL_WEIGHT below), so this reads as a
-// typical American university's faculty roster rather than as one-in-seven
-// name origins. Seven pools x fourteen first names (seven per gender) x
-// fourteen last names each gives ~4,800 first+last combinations across all
-// origins before either weighting applies; even restricted to the dominant
-// Anglo/Western European pool alone (the worst case for collisions, since
-// it's drawn ~50% of the time and then paired same-origin 85% of the time)
-// that's still 7x14 = 98 combinations for a given gender — comfortably
-// larger than the handful of faculty any single playthrough ever rolls, so
-// rollFullName's dedupe below essentially never has to fall back. This same
-// pool is also where donor/alumni surnames come from (see eventData.ts's
-// rollSurname()), so `last` needs to stay generic enough for a name to
-// plausibly belong to a professor OR a decades-graduated alumnus — but
-// `firstMale`/`firstFemale` are read against Faculty.gender (see below and
-// types.ts), so a first name IS tied to a gender, deliberately: gender
-// drives FacultyPortrait.tsx's hairstyle/garment, and a portrait presenting
-// differently from the name beside it would read as a bug, not variety.
+// typical American university's faculty roster rather than as one-in-N
+// name origins.
+//
+// Ten pools, not evenly sized: most carry fourteen first names (seven per
+// gender) and fourteen last, but Chinese/Korean/Japanese split what used
+// to be one combined "East Asian" pool, and West African/East African
+// split what used to be one "West/East African" pool — see the git history
+// for why: three languages with zero surname overlap (a "Zhang" is never
+// Korean or Japanese) rolling a shared nationality was a real bug, an
+// ocean and a language family apart, not variety, and the same objection
+// applied a continent-length-scale down to lumping Nigeria/Ghana/Senegal
+// in with Kenya. Each split pool keeps its share of the ORIGINAL pool's
+// selection weight (see OTHER_POOL_WEIGHT below) rather than each claiming
+// a full share of its own — splitting a pool for accuracy should not also
+// triple how often that region's names come up relative to every other
+// one. Anglo/Western European alone still has the old 7x14 shape (the
+// worst case for collisions, since it's drawn ~40% of the time and then
+// paired same-origin 85% of the time) — comfortably larger than the
+// handful of faculty any single playthrough ever rolls, so rollFullName's
+// dedupe below essentially never has to fall back; the split pools are
+// smaller (as few as 2 first names a gender) but drawn correspondingly
+// less often, so collisions within one stay just as rare in practice. This
+// same data is also where donor/alumni surnames come from (see
+// eventData.ts's rollSurname()), so `last` needs to stay generic enough
+// for a name to plausibly belong to a professor OR a decades-graduated
+// alumnus — but `firstMale`/`firstFemale` are read against Faculty.gender
+// (see below and types.ts), so a first name IS tied to a gender,
+// deliberately: gender drives FacultyPortrait.tsx's hairstyle/garment, and
+// a portrait presenting differently from the name beside it would read as
+// a bug, not variety.
 // ---------------------------------------------------------------------
 interface NamePool {
   origin: string;
@@ -40,24 +54,59 @@ function firstNamesFor(pool: NamePool, gender: 'male' | 'female'): string[] {
 }
 
 // Relative weight for pool SELECTION (see pickPool() below) — not pool
-// size; every pool still has 14 first/14 last names regardless of weight.
+// size (the split pools below are smaller; see the module comment above).
 // Anglo/Western European carries ANGLO_POOL_WEIGHT against the other six
-// origins' shared OTHER_POOL_WEIGHT, which (with equal weight per non-Anglo
-// pool) works out to a 6-in-12 = 50% share for Anglo/Western European and a
-// 1-in-12 = ~8.3% share for each of the other six — a majority-to-large-
-// plurality English/American name pool, matched to a real American
-// university's demographics, while every other origin still surfaces
-// regularly rather than as a rare/token draw.
+// ORIGINAL regions' shared OTHER_POOL_WEIGHT each, which (with equal weight
+// per non-Anglo region) works out to a 6-in-12 = 50% share for Anglo/
+// Western European and a 1-in-12 = ~8.3% share for each of the other six —
+// a majority-to-large-plurality English/American name pool, matched to a
+// real American university's demographics, while every other region still
+// surfaces regularly rather than as a rare/token draw. Chinese/Korean/
+// Japanese each carry OTHER_POOL_WEIGHT / 3, and West African/East African
+// each carry OTHER_POOL_WEIGHT / 2, so splitting a region for naming
+// accuracy leaves that region's TOTAL ~8.3% share exactly where it was —
+// this only decides how a region's own share is drawn internally, not how
+// often the region as a whole comes up against Anglo/South Asian/Hispanic/
+// Arabic/Slavic.
 const ANGLO_POOL_WEIGHT = 6;
 const OTHER_POOL_WEIGHT = 1;
 
 const NAME_POOLS: NamePool[] = [
+  // Formerly one combined "East Asian" pool. Split because the three
+  // languages share no surnames at all (a "Zhang" is never a plausible
+  // Korean or Japanese name) — rolling first/last/nationality independently
+  // across all three, as the combined pool did, could hand a distinctly
+  // Chinese name a Japanese nationality on the same draw, which reads as a
+  // bug the moment a player notices it, not as multicultural variety. Every
+  // surname below is unchanged from the old combined list, just regrouped
+  // by which language it actually belongs to (14 split cleanly into 5/4/5,
+  // no leftovers); the old combined list's 7 first names a gender split
+  // 3/2/2 the same way, which is too few for three separate pools to each
+  // stay believably varied on its own (a repeat every few rolls, not the
+  // occasional one every other pool's size keeps rare — see
+  // rollFullName's dedupe below), so each pool's first names are topped up
+  // with more common real given names in that same language rather than
+  // left thin.
   {
-    origin: 'East Asian',
-    firstMale: ['Wei', 'Jun', 'Minjun', 'Feng', 'Haruto', 'Seojin', 'Ren'],
-    firstFemale: ['Mei', 'Hana', 'Yuki', 'Xin', 'Li', 'Sooah', 'Aiko'],
-    last: ['Zhang', 'Kim', 'Tanaka', 'Chen', 'Park', 'Nakamura', 'Liu', 'Wang', 'Lee', 'Sato', 'Watanabe', 'Choi', 'Huang', 'Kobayashi'],
-    weight: OTHER_POOL_WEIGHT,
+    origin: 'Chinese',
+    firstMale: ['Wei', 'Jun', 'Feng', 'Hao', 'Chao', 'Xiang', 'Long'],
+    firstFemale: ['Mei', 'Xin', 'Li', 'Fang', 'Jing', 'Ying', 'Hui'],
+    last: ['Zhang', 'Chen', 'Liu', 'Wang', 'Huang', 'Zhou', 'Yang'],
+    weight: OTHER_POOL_WEIGHT / 3,
+  },
+  {
+    origin: 'Korean',
+    firstMale: ['Minjun', 'Seojin', 'Jihoon', 'Dohyun', 'Sungmin', 'Taehyun', 'Jinwoo'],
+    firstFemale: ['Sooah', 'Hana', 'Jiwoo', 'Yerin', 'Minji', 'Soyeon', 'Eunji'],
+    last: ['Kim', 'Park', 'Lee', 'Choi', 'Jung', 'Yoon'],
+    weight: OTHER_POOL_WEIGHT / 3,
+  },
+  {
+    origin: 'Japanese',
+    firstMale: ['Haruto', 'Ren', 'Sora', 'Yuto', 'Kaito', 'Daiki', 'Riku'],
+    firstFemale: ['Yuki', 'Aiko', 'Sakura', 'Rin', 'Emi', 'Yui', 'Nanami'],
+    last: ['Tanaka', 'Nakamura', 'Sato', 'Watanabe', 'Kobayashi', 'Suzuki', 'Yamamoto'],
+    weight: OTHER_POOL_WEIGHT / 3,
   },
   {
     origin: 'South Asian',
@@ -94,12 +143,35 @@ const NAME_POOLS: NamePool[] = [
     last: ['Novak', 'Petrov', 'Kowalski', 'Horvat', 'Ivanov', 'Dvorak', 'Sokolov', 'Marek', 'Zielinski', 'Vasiliev', 'Jovanovic', 'Nowak', 'Kucera', 'Baran'],
     weight: OTHER_POOL_WEIGHT,
   },
+  // Formerly one combined "West/East African" pool — two real regions an
+  // ocean-scale distance apart on the same continent, not a natural single
+  // origin the way, say, "Slavic/Eastern European" is one contiguous
+  // cultural-linguistic area. West African keeps every Nigerian (Igbo/
+  // Yoruba) and Ghanaian (Akan) first name the combined pool had (none of
+  // those were ever East African), plus a few more real Nigerian/Ghanaian/
+  // Senegalese surnames so it isn't left thinner than before the split by
+  // giving up the three Kenyan ones below. East African is the one place
+  // this split needed real NEW content rather than a straight regroup — the
+  // old combined pool's only East African material was three Kikuyu Kenyan
+  // surnames (Mwangi, Kamau, Njoroge) with zero first names to pair them
+  // with, so a straight split would have left this pool unable to generate
+  // a first name at all. Filled out with a real spread of East African
+  // first and last names — Kikuyu, Luo, Kalenjin, Luhya, and Swahili (the
+  // regional lingua franca) — sized to match every other region here
+  // rather than left conspicuously thin.
   {
-    origin: 'West/East African',
+    origin: 'West African',
     firstMale: ['Kwame', 'Chidi', 'Kofi', 'Femi', 'Tunde', 'Kwesi', 'Emeka'],
     firstFemale: ['Amara', 'Adaeze', 'Zainab', 'Ngozi', 'Abena', 'Fatou', 'Ifeoma'],
-    last: ['Okafor', 'Mensah', 'Adeyemi', 'Nwosu', 'Diallo', 'Osei', 'Mwangi', 'Balogun', 'Owusu', 'Kamau', 'Sow', 'Achebe', 'Boateng', 'Njoroge'],
-    weight: OTHER_POOL_WEIGHT,
+    last: ['Okafor', 'Mensah', 'Adeyemi', 'Nwosu', 'Diallo', 'Osei', 'Balogun', 'Owusu', 'Sow', 'Achebe', 'Boateng', 'Abiodun', 'Danso', 'Toure'],
+    weight: OTHER_POOL_WEIGHT / 2,
+  },
+  {
+    origin: 'East African',
+    firstMale: ['Otieno', 'Kiprotich', 'Wekesa', 'Juma', 'Baraka', 'Kiptoo', 'Omondi'],
+    firstFemale: ['Wanjiru', 'Akinyi', 'Chebet', 'Zawadi', 'Naliaka', 'Nyokabi', 'Amani'],
+    last: ['Mwangi', 'Kamau', 'Njoroge', 'Cheruiyot', 'Odhiambo', 'Kimani', 'Wanyama'],
+    weight: OTHER_POOL_WEIGHT / 2,
   },
 ];
 
@@ -296,14 +368,22 @@ const AMERICAN_NATIONALITY = { nationality: 'United States', flag: '🇺🇸' };
 // Exported so persistence.ts's v26 -> v27 migration can reverse-map an
 // existing faculty member's stored `nationality` back to a plausible
 // `heritage` where the mapping is unambiguous (a saved "Nigeria" can only
-// have come from the West/East African pool) — better than a blind random
-// guess for the ~28% of faculty whose nationality isn't the generic
-// American default (see AMERICAN_NATIONALITY_CHANCE), which carries no such
-// signal.
+// have come from the West African pool) — better than a blind random guess
+// for the ~28% of faculty whose nationality isn't the generic American
+// default (see AMERICAN_NATIONALITY_CHANCE), which carries no such signal.
+// One nationality per pool for Chinese/Korean/Japanese, unlike every other
+// entry here: that's the whole point of having split them off a combined
+// "East Asian" pool (see NAME_POOLS above) — a Chinese name now always
+// carries Chinese nationality when it isn't the American default, never a
+// plausible-sounding but wrong South Korea/Japan.
 export const ORIGIN_NATIONALITIES: Record<string, Array<{ nationality: string; flag: string }>> = {
-  'East Asian': [
+  'Chinese': [
     { nationality: 'China', flag: '🇨🇳' },
+  ],
+  'Korean': [
     { nationality: 'South Korea', flag: '🇰🇷' },
+  ],
+  'Japanese': [
     { nationality: 'Japan', flag: '🇯🇵' },
   ],
   'South Asian': [
@@ -333,11 +413,15 @@ export const ORIGIN_NATIONALITIES: Record<string, Array<{ nationality: string; f
     { nationality: 'Serbia', flag: '🇷🇸' },
     { nationality: 'Czechia', flag: '🇨🇿' },
   ],
-  'West/East African': [
+  'West African': [
     { nationality: 'Nigeria', flag: '🇳🇬' },
     { nationality: 'Ghana', flag: '🇬🇭' },
-    { nationality: 'Kenya', flag: '🇰🇪' },
     { nationality: 'Senegal', flag: '🇸🇳' },
+  ],
+  'East African': [
+    { nationality: 'Kenya', flag: '🇰🇪' },
+    { nationality: 'Tanzania', flag: '🇹🇿' },
+    { nationality: 'Uganda', flag: '🇺🇬' },
   ],
 };
 
