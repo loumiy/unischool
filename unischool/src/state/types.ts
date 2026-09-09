@@ -117,14 +117,14 @@ export interface Faculty {
   // Rolled BEFORE the name (see facultyData.ts's generateCandidate) and used
   // to pick which of a NAME_POOL's firstMale/firstFemale lists the first
   // name itself is drawn from — a flat 50/50, and never mutated after. Its
-  // other consumer is FacultyPortrait.tsx, which picks a hairstyle/garment
+  // other consumer is PersonPortrait.tsx, which picks a hairstyle/garment
   // pool from it — either way, a name and a portrait that disagreed on this
   // would read as a bug, not variety, so the two are never rolled apart.
   gender: 'male' | 'female';
   // The rolled name's cultural origin pool (e.g. "Chinese", "West African"
   // — see facultyData.ts's NAME_POOLS) — distinct from `nationality`, which
   // is disproportionately American regardless of this.
-  // FacultyPortrait.tsx reads it to bias skin tone the same logical way a
+  // PersonPortrait.tsx reads it to bias skin tone the same logical way a
   // name's heritage would in reality, without pretending nationality (a
   // passport, not an ethnicity) is the right signal for that.
   heritage: string;
@@ -654,6 +654,12 @@ export interface Coach {
   tenureWeeks: number;      // weeks assigned to a team's roster; 0 for a candidate still on the market
   weeksListed: number;      // weeks on the market; stops mattering once hired, exactly like Faculty.weeksListed
   salary: number;           // current annual salary, recomputed live from quality + tenureWeeks (see coachSalaryFor)
+  // The rolled name's cultural origin pool (see facultyData.ts's
+  // NAME_POOLS) — the same field Faculty carries, added so a coach's
+  // portrait (PersonPortrait.tsx, shared with Faculty) can bias skin tone
+  // off the name it was actually rolled from instead of guessing. Nothing
+  // mechanical reads this, same as Faculty.heritage.
+  heritage: string;
 }
 
 // A sport club that petitioned and was granted varsity status (see

@@ -37,7 +37,7 @@ import { initialTech } from './techData';
 // for a name to plausibly belong to a professor OR a decades-graduated
 // alumnus — but `firstMale`/`firstFemale` are read against Faculty.gender
 // (see below and types.ts), so a first name IS tied to a gender,
-// deliberately: gender drives FacultyPortrait.tsx's hairstyle/garment, and
+// deliberately: gender drives PersonPortrait.tsx's hairstyle/garment, and
 // a portrait presenting differently from the name beside it would read as
 // a bug, not variety.
 // ---------------------------------------------------------------------
@@ -310,29 +310,30 @@ export function rollSurname(): string {
   return pick(pickPool().last);
 }
 
-// A full "First Last" name, no "Dr." prefix and no dedupe/nationality/bio —
-// for a varsity coach (see eventData.ts's 'varsity-petition' and
-// data/studentLifeData.ts's VarsityTeam). Coaches are deliberately the
-// LIGHT faculty-model this feature asks for: auto-generated the week a team
-// goes varsity, not drawn from or checked against the standing candidate
-// market — that full recruiting loop is a deferred deepening, not v1-shallow
-// scope. A run mints at most fourteen of these (one per SPORTS entry, up
-// from nine before gendering split five sports into independent men's/
-// women's lineages), so the
-// name-pool collision risk that justifies rollFullName's dedupe loop for
-// faculty/candidates never meaningfully arises here. Takes the TEAM's own
-// gender (its sport is already men's or women's — see
-// studentLifeData.ts's SportGender) rather than rolling one fresh: a men's
-// team's coach reads oddly with a name from the women's pool and vice versa.
-export function rollCoachName(gender: 'male' | 'female'): string {
+// A full "First Last" name plus its origin, no "Dr." prefix and no
+// dedupe/nationality/bio — for a varsity coach (see eventData.ts's
+// 'varsity-petition' and data/studentLifeData.ts's VarsityTeam). Coaches
+// are deliberately a LIGHTER model than Faculty: auto-generated on demand,
+// not drawn from or checked against a standing candidate market the way
+// faculty hires are — no dedupe loop, since a run mints at most a few
+// dozen coach candidates total, comfortably below where the name pools'
+// own collision odds start to matter. The origin IS captured, though (see
+// Coach.heritage) — a coach gets the same procedural portrait a professor
+// does (PersonPortrait.tsx), and that needs a real heritage to bias skin
+// tone from, not a guess. Takes the TEAM's/role's own gender (a sport is
+// already men's or women's — see studentLifeData.ts's SportGender) rather
+// than rolling one fresh: a men's team's coach reads oddly with a name
+// from the women's pool and vice versa.
+export function rollCoachName(gender: 'male' | 'female'): { name: string; heritage: string } {
   const firstPool = pickPool();
   const lastPool = Math.random() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pickPool();
-  return `${pick(firstNamesFor(firstPool, gender))} ${pick(lastPool.last)}`;
+  const name = `${pick(firstNamesFor(firstPool, gender))} ${pick(lastPool.last)}`;
+  return { name, heritage: firstPool.origin };
 }
 
 interface RolledName {
   name: string;
-  origin: string; // the first-name pool's origin — what nationality AND skin tone are tied to (see rollNationality/FacultyPortrait.tsx)
+  origin: string; // the first-name pool's origin — what nationality AND skin tone are tied to (see rollNationality/PersonPortrait.tsx)
 }
 
 // `gender` is rolled by the caller (generateCandidate) BEFORE this runs,
@@ -624,6 +625,23 @@ export function facultyQualityTier(f: Faculty): FacultyQualityTier {
     if (avg >= min) return tier;
   }
   return 'Adjunct';
+}
+
+// A senior professor is more likely to have gone gray — a small, deliberate
+// nod rather than a hard rule (a Distinguished professor going gray 65% of
+// the time still leaves plenty who haven't, same as real faculty). Read by
+// PersonPortrait.tsx (shared with Coach — see studentLifeData.ts's own
+// coachGrayChance, the same idea against a coach's single quality stat
+// rather than a tier).
+const GRAY_CHANCE_BY_TIER: Record<FacultyQualityTier, number> = {
+  Distinguished: 0.65,
+  Full: 0.4,
+  Associate: 0.2,
+  Assistant: 0.1,
+  Adjunct: 0.08,
+};
+export function facultyGrayChance(f: Faculty): number {
+  return GRAY_CHANCE_BY_TIER[facultyQualityTier(f)];
 }
 
 // ---------------------------------------------------------------------

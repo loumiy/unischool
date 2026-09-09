@@ -493,9 +493,11 @@ export function generateCoachCandidate(field: string): Coach {
   const qualityPotential = COACH_POTENTIAL_MIN + Math.round(Math.random() * COACH_POTENTIAL_RANGE);
   const quality = grownCoachQuality(qualityPotential, 0);
   const gender = rollCoachGender(field);
+  const { name, heritage } = rollCoachName(gender);
   return {
     id: crypto.randomUUID(),
-    name: rollCoachName(gender),
+    name,
+    heritage,
     gender,
     field,
     quality,
@@ -506,13 +508,38 @@ export function generateCoachCandidate(field: string): Coach {
   };
 }
 
+// Gray chance by raw quality, mirroring facultyData.ts's own
+// facultyGrayChance band-for-band (85/70/55/35/0 -> 65/40/20/10/8%) — a
+// coach has one quality stat instead of a teaching/research average, but
+// "how likely is someone this senior to have gone gray" doesn't need a
+// different curve just because the two roles score seniority differently.
+const COACH_GRAY_CHANCE_BANDS: Array<[number, number]> = [
+  [85, 0.65], [70, 0.4], [55, 0.2], [35, 0.1], [0, 0.08],
+];
+export function coachGrayChance(c: Coach): number {
+  for (const [min, chance] of COACH_GRAY_CHANCE_BANDS) {
+    if (c.quality >= min) return chance;
+  }
+  return 0.08;
+}
+
 // Coach candidates arrive already staggered across the listing window, the
 // exact same reasoning facultyData.ts's initialCandidatePool uses — a pool
 // seeded flat would empty and refill in synchronized waves instead of
 // churning smoothly.
-export const COACH_CANDIDATE_POOL_TARGET = 18;
+//
+// 30, not the original 18: every ACTIVE team needs three roles filled at
+// once (head coach, assistant, trainer — see VarsityTeam), so a school
+// running several teams simultaneously can easily need a dozen-plus
+// coaches staffed at the same time, against a market spread across 15
+// fields (14 SPORTS + TRAINER_FIELD). The old 18/12 = 1.5/wk turnover was
+// thinner than facultyData.ts's own 30/12 = 2.5/wk for a comparable number
+// of fields, so this brings the two markets to parity in both standing
+// depth and churn rate rather than leaving athletics feel scarcer for no
+// real reason.
+export const COACH_CANDIDATE_POOL_TARGET = 30;
 export const COACH_CANDIDATE_LISTING_WEEKS = 12;
-const COACH_CANDIDATE_ARRIVALS_PER_WEEK_MAX = 3;
+const COACH_CANDIDATE_ARRIVALS_PER_WEEK_MAX = 5;
 
 export function initialCoachCandidatePool(): Coach[] {
   const pool: Coach[] = [];

@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Faculty, GameState } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
-import { facultyQualityTier, CANDIDATE_LISTING_WEEKS } from '../data/facultyData';
+import { facultyQualityTier, facultyGrayChance, CANDIDATE_LISTING_WEEKS } from '../data/facultyData';
 import {
   facultyResearchOutput, labEquippedFields, researchRateMultiplier, weeklyResearchPoints,
 } from '../data/researchData';
@@ -10,7 +10,7 @@ import { researchSchools } from '../data/techData';
 import { usedFacultySlots, totalFacultySlots, neededFacultyFields } from '../systems/techtree/techSystem';
 import { coursesTaughtBy } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
-import FacultyPortrait from '../components/FacultyPortrait';
+import PersonPortrait from '../components/PersonPortrait';
 
 // The two halves of the faculty picture, side by side: who you have, and
 // who is on the market. They are half-width panels rather than stacked
@@ -60,7 +60,7 @@ function FacultyRow(
         >
           {open ? '▾' : '▸'}
         </button>
-        <FacultyPortrait f={f} size={22} />
+        <PersonPortrait subject={f} grayChance={facultyGrayChance(f)} size={22} />
         <span className="faculty-name">{f.name}</span>
         {/* The prize badge. Permanent, and the only mark on a roster row
             that isn't derived from stats — see types.ts's Faculty.acclaim. */}
@@ -95,7 +95,7 @@ function FacultyRow(
       {open && (
         <div className="faculty-row-detail">
           <div className="faculty-detail-head">
-            <FacultyPortrait f={f} size={48} />
+            <PersonPortrait subject={f} grayChance={facultyGrayChance(f)} size={48} />
             <p className="faculty-bio">{f.bio}</p>
           </div>
           <dl>

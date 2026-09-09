@@ -3,8 +3,9 @@ import type { Action } from '../state/actions';
 import type { Coach, GameState, VarsityTeam } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import HelpHint from '../components/HelpHint';
-import { ATHLETICS_BUDGET_ORDER, TRAINER_FIELD, teamQuality, venueForCategory } from '../data/studentLifeData';
+import { ATHLETICS_BUDGET_ORDER, TRAINER_FIELD, coachGrayChance, teamQuality, venueForCategory } from '../data/studentLifeData';
 import { athleticRank } from '../systems/rivals/rivalsSystem';
+import PersonPortrait from '../components/PersonPortrait';
 
 function money(v: number): string {
   return `$${Math.round(v).toLocaleString()}`;
@@ -52,6 +53,7 @@ function StaffRow({ s, act, team, role }: { s: GameState; act: (a: Action) => vo
     return (
       <div className="coach-row">
         <span className="coach-role">{ROLE_LABEL[role]}</span>
+        <PersonPortrait subject={coach} grayChance={coachGrayChance(coach)} size={20} />
         <span className="coach-name">{coach.name}</span>
         <span className="stat">quality {coach.quality}</span>
         <span className="stat">{money(coach.salary)}/yr</span>

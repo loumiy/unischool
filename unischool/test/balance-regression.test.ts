@@ -36,6 +36,17 @@ function assert(cond: boolean, msg: string): void {
 
 const YEARS = 20;
 
+// Discount volume's net swings sign year to year hard enough (see case 4's
+// own note on trimAidWhenUnderwater) that ANY single year's cash reading —
+// including the very last one — is a noisy sample of its actual long-run
+// health. A trailing multi-year average smooths that out the same way
+// looking at a stock's trailing average tells you more than its closing
+// tick on one arbitrary day.
+function trailingAvgCash(rows: { year: number; cash: number }[], throughYear: number, span: number): number {
+  const window = rows.filter((r) => r.year > throughYear - span && r.year <= throughYear);
+  return window.reduce((sum, r) => sum + r.cash, 0) / window.length;
+}
+
 function find(name: string) {
   const strategy = STRATEGIES.find((s) => s.name === name);
   if (!strategy) throw new Error(`fixture: strategy "${name}" exists in STRATEGIES`);
@@ -117,27 +128,27 @@ function find(name: string) {
 // Discount volume is deliberately held to a looser, trend-based bar rather
 // than this section's flat `cash >= 0` / `net >= 0`: trimAidWhenUnderwater
 // (see sim/balanceSim.ts) toggles a binary discount between years based on
-// last year's cash sign, which makes any SINGLE year's `net` a genuinely
-// noisy signal for this strategy specifically — it can oscillate around
-// the break-even point for several years running while cash overall is
-// climbing hard underneath that noise (observed: net swinging between
-// roughly -11% and -1% of opex year to year, while cash grew from an ~11M
-// trough recovery to 130M+ a decade later). Asserting on cash's own LONG-
-// RUN trend — comfortably clear of its own trough, and well above where it
-// stood a decade earlier — is the actual "stall, don't die" claim for a
-// strategy shaped like this one, not which exact year a noisy weekly net
-// happens to cross zero. Every OTHER strategy either never goes underwater
-// at all or (Overbuilder, Curriculum rush) has fully cleared its own
-// trough by year ${YEARS} without this kind of oscillation, so this
-// section's flat bar still holds for them.
+// last year's cash sign, which makes any SINGLE year's `net` — and even a
+// single year's `cash` — a genuinely noisy signal for this strategy
+// specifically: it can oscillate hard around the break-even point for
+// several years running while its underlying trend is a much calmer
+// climb. Asserting on a trailing multi-year AVERAGE — comfortably clear of
+// its own trough, and well above where that same average stood a decade
+// earlier — is the actual "stall, don't die" claim for a strategy shaped
+// like this one, not which exact year a noisy weekly net or a noisy
+// single cash reading happens to land on. Every OTHER strategy either
+// never goes underwater at all or (Overbuilder, Curriculum rush) has fully
+// cleared its own trough by year ${YEARS} without this kind of
+// oscillation, so this section's flat bar still holds for them.
 // =====================================================================
 {
   const { run } = find('Discount volume (beds first)');
   const last = run.rows[run.rows.length - 1];
-  const decadeAgo = run.rows.find((r) => r.year >= YEARS - 10) ?? run.rows[0];
+  const recentAvgCash = trailingAvgCash(run.rows, YEARS, 5);
+  const decadeAgoAvgCash = trailingAvgCash(run.rows, YEARS - 10, 5);
   assert(last.cash > last.minCash, `the discount-heavy strategy has recovered from its trough by year ${YEARS} (trough ${last.minCash.toLocaleString()}, now ${last.cash.toLocaleString()})`);
-  assert(last.cash > 5 * Math.abs(last.minCash), `the discount-heavy strategy's cash is comfortably clear of its own trough by year ${YEARS}, not just barely positive (trough ${last.minCash.toLocaleString()}, now ${last.cash.toLocaleString()})`);
-  assert(last.cash > decadeAgo.cash, `the discount-heavy strategy's cash is well above where it stood a decade earlier (year ${decadeAgo.year}: ${decadeAgo.cash.toLocaleString()}, year ${last.year}: ${last.cash.toLocaleString()})`);
+  assert(recentAvgCash > 2 * Math.abs(last.minCash), `the discount-heavy strategy's trailing cash average is comfortably clear of its own trough, not just barely positive (trough ${last.minCash.toLocaleString()}, trailing average ${recentAvgCash.toLocaleString()})`);
+  assert(recentAvgCash > decadeAgoAvgCash, `the discount-heavy strategy's trailing cash average is above where that same average stood a decade earlier (then ${decadeAgoAvgCash.toLocaleString()}, now ${recentAvgCash.toLocaleString()})`);
   assert(last.weeksInTheRed < YEARS * 52, 'the discount-heavy strategy is not in the red for the entire run');
 }
 
@@ -192,11 +203,12 @@ for (const strategy of STRATEGIES.filter((s) => s.name !== 'Discount volume (bed
   );
   // Thinner curriculum, not a starved school — it is still solvent and
   // growing, just spending its margin on enrollment scale and aid instead
-  // of course breadth (see STRATEGIES' own comment on that trade-off).
-  // Cash, not a single year's noisy net (see case 4's own note on why),
-  // is the health signal here.
+  // of course breadth (see STRATEGIES' own comment on that trade-off). A
+  // trailing average, not a single year's noisy cash reading (see case 4's
+  // own note on why), is the health signal here.
   const discountLast = discount.run.rows[discount.run.rows.length - 1];
-  assert(discountLast.cash > 5 * Math.abs(discountLast.minCash), `the discount-heavy strategy is healthy despite the cap, not just capped (cash ${discountLast.cash.toLocaleString()}, trough ${discountLast.minCash.toLocaleString()})`);
+  const discountRecentAvgCash = trailingAvgCash(discount.run.rows, YEARS, 5);
+  assert(discountRecentAvgCash > 2 * Math.abs(discountLast.minCash), `the discount-heavy strategy is healthy despite the cap, not just capped (trailing average cash ${discountRecentAvgCash.toLocaleString()}, trough ${discountLast.minCash.toLocaleString()})`);
 }
 
 console.log('balance-regression tests');

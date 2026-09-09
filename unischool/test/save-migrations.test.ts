@@ -19,6 +19,7 @@ import { createInitialState } from '../src/state/actions';
 import { loadGame, saveGame, clearSave, SAVE_KEY, SAVE_VERSION } from '../src/state/persistence';
 import { sportById } from '../src/data/studentLifeData';
 import { athleticStrengthFor } from '../src/data/rivalData';
+import { ORIGIN_NATIONALITIES } from '../src/data/facultyData';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 
 // In-memory localStorage so the persistence module works under Node. Assigned
@@ -452,6 +453,49 @@ function testAthleticsV2Migration(): void {
   assert(!!otherRival && typeof otherRival.athleticStrength === 'number', 'a rival that already had athleticStrength keeps a real number');
 }
 
+// ---- Test: v29 -> v30 coach heritage backfill (see PersonPortrait.tsx /
+// Athletics V3) ----
+function testCoachHeritageMigration(): void {
+  const base = createInitialState('HeritageMigrator', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+
+  // The v29 candidate pool is already real (initialCoachCandidatePool), so
+  // stripping heritage off it reproduces exactly what a pre-v30 save looks
+  // like: real coaches, no heritage field at all.
+  const candidatePool = (state.orgs as Loose).coachCandidates as Loose[];
+  assert(candidatePool.length > 0, 'fixture has a real coach candidate pool to strip heritage from');
+  for (const c of candidatePool) delete c.heritage;
+
+  const headCoach: Loose = {
+    id: 'coach-head', name: 'Coach Pre30', gender: 'male', field: 'soccer-m',
+    quality: 70, qualityPotential: 85, tenureWeeks: 40, weeksListed: 0, salary: 60_000,
+  };
+  (state.orgs as Loose).teams = [{
+    id: 'team-soccer', name: "Men's Soccer Team", foundedYear: 1, foundingMembers: 14, foundingEnrolled: 300,
+    upkeepPerWeek: 350, sport: 'soccer-m', venueCategory: 'athleticsField', status: 'active',
+    headCoach, assistantCoach: null, trainer: null,
+  }];
+
+  writeSave(29, state);
+
+  const loaded = loadGame();
+  assert(loaded !== null, 'v29 coach save loads (does not fall back to null)');
+  if (!loaded) return;
+
+  const origins = new Set(Object.keys(ORIGIN_NATIONALITIES));
+  const team = loaded.orgs.teams.find((t) => t.id === 'team-soccer');
+  assert(!!team, 'the migrated team survives under its own id');
+  if (team) {
+    assert(team.headCoach?.name === 'Coach Pre30', `pre-v30 headCoach survives untouched aside from heritage (got '${team.headCoach?.name}')`);
+    assert(!!team.headCoach && origins.has(team.headCoach.heritage), `backfilled headCoach.heritage is a real origin pool (got '${team.headCoach?.heritage}')`);
+  }
+
+  assert(
+    loaded.orgs.coachCandidates.every((c) => origins.has(c.heritage)),
+    'every pre-v30 coach candidate is backfilled with a real origin pool',
+  );
+}
+
 // ---- Test: a current-version save round-trips unchanged ----
 function testRoundTrip(): void {
   clearSave();
@@ -496,6 +540,7 @@ testFoundingSeenExcludesStartingContent();
 testGenderedSportsMigration();
 testVarsityAskedMigration();
 testAthleticsV2Migration();
+testCoachHeritageMigration();
 testRoundTrip();
 testRejects();
 

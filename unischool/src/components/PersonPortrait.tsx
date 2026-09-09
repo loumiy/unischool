@@ -1,31 +1,40 @@
-import type { Faculty } from '../state/types';
-import { facultyQualityTier } from '../data/facultyData';
+// Procedural headshots, shared by Faculty and Coach (see FacultyTab.tsx and
+// AthleticsTab.tsx). Same house rule as icons.tsx and CampusMap.tsx: no icon
+// library, no external art, hand-rolled inline SVG — but unlike icons.tsx's
+// toolbar glyphs (which inherit `currentColor` on purpose, since they sit
+// inside a button that recolors itself), a headshot is illustrative content,
+// so it hardcodes real colors the same way CampusMap.tsx's dorm/facility
+// tiles do.
+//
+// Deterministic per subject id, the same way CampusMap.tsx's hashTint picks
+// a dorm's color from its id: a person must render identically every time —
+// on every re-render, on every tab switch, after a reload — without storing
+// a single extra byte of "what they look like" in the save. A small hash of
+// (salt + id) buckets each independent trait (hairstyle WITHIN a pool, hair
+// color, skin tone WITHIN a heritage's weighting, glasses, background tint)
+// on its own, so they vary independently instead of all of them moving
+// together off one number.
+//
+// Hairstyle/garment and skin tone each start from a real field on the
+// subject rather than a flat hash, though: hairstyle/garment pick which pool
+// to hash within based on gender, and skin tone weights ITS pool by heritage
+// (see HERITAGE_SKIN_TONES below) — unlike "what color is this person's
+// hair", presentation and apparent ethnicity aren't things a portrait should
+// invent independently of the person it's drawing. Either it uses the
+// fields the game already rolled for exactly this purpose, or a name and a
+// face that disagreed on either would read as a bug, not variety.
+//
+// `grayChance` is the one trait the caller computes instead of this
+// component deriving it — Faculty and Coach each have their own notion of
+// seniority (facultyQualityTier vs. raw coach quality; see
+// facultyData.ts's facultyGrayChance and studentLifeData.ts's
+// coachGrayChance) and this component has no business knowing either.
 
-// Procedural faculty headshots. Same house rule as icons.tsx and
-// CampusMap.tsx: no icon library, no external art, hand-rolled inline SVG —
-// but unlike icons.tsx's toolbar glyphs (which inherit `currentColor` on
-// purpose, since they sit inside a button that recolors itself), a headshot
-// is illustrative content, so it hardcodes real colors the same way
-// CampusMap.tsx's dorm/facility tiles do.
-//
-// Deterministic per faculty id, the same way CampusMap.tsx's hashTint picks
-// a dorm's color from its id: a professor must render identically every
-// time — on every re-render, on every tab switch, after a reload — without
-// storing a single extra byte of "what they look like" in the save. A small
-// hash of (salt + id) buckets each independent trait (hairstyle WITHIN a
-// pool, hair color, skin tone WITHIN a heritage's weighting, glasses,
-// background tint) on its own, so they vary independently instead of all
-// of them moving together off one number.
-//
-// Hairstyle/garment and skin tone each start from a real stored field
-// rather than a flat hash, though: hairstyle/garment pick which pool to
-// hash within based on Faculty.gender, and skin tone weights ITS pool by
-// Faculty.heritage (see HERITAGE_SKIN_TONES below) — unlike "what color is
-// this person's hair", presentation and apparent ethnicity aren't things a
-// portrait should invent independently of the person it's drawing. Either
-// it uses the fields the game already rolled for exactly this purpose, or
-// a name and a face that disagreed on either would read as a bug, not
-// variety.
+export interface PortraitSubject {
+  id: string;
+  gender: 'male' | 'female';
+  heritage: string;
+}
 
 function hash(s: string): number {
   let h = 0;
@@ -33,11 +42,11 @@ function hash(s: string): number {
   return h;
 }
 
-// One independent bucket per (salt, faculty). Salting the hash rather than
+// One independent bucket per (salt, subject). Salting the hash rather than
 // reusing one number for every trait is what keeps skin tone, hairstyle,
 // hair color, glasses and background from all swinging together off a
-// single roll — two professors who happen to share a bucket on one trait
-// are still very unlikely to share it on the other four.
+// single roll — two people who happen to share a bucket on one trait are
+// still very unlikely to share it on the other four.
 function bucket(id: string, salt: string, count: number): number {
   return hash(`${salt}:${id}`) % count;
 }
@@ -45,18 +54,17 @@ function bucket(id: string, salt: string, count: number): number {
 const SKIN_TONES = ['#f2c9a0', '#e0a878', '#c68642', '#8d5524', '#5c3a21'];
 
 // Biases skin tone toward what a person's rolled heritage (NAME_POOLS'
-// origin — see types.ts's Faculty.heritage) would plausibly produce,
-// instead of a flat draw across all five tones for everyone. Each list is
-// a WEIGHTED spread over SKIN_TONES indices, not a single fixed tone —
-// repeats bias the odds without making a whole heritage into one
-// interchangeable skin color, since real diversity within any one
-// heritage is exactly the thing a rigid 1-to-1 mapping would erase.
-// Deliberately keyed off `heritage`, never `nationality`: nationality is
+// origin — see types.ts's Faculty.heritage/Coach.heritage) would plausibly
+// produce, instead of a flat draw across all five tones for everyone. Each
+// list is a WEIGHTED spread over SKIN_TONES indices, not a single fixed
+// tone — repeats bias the odds without making a whole heritage into one
+// interchangeable skin color, since real diversity within any one heritage
+// is exactly the thing a rigid 1-to-1 mapping would erase. Deliberately
+// keyed off `heritage`, never `nationality`: nationality is
 // disproportionately American regardless of heritage (see
 // AMERICAN_NATIONALITY_CHANCE in facultyData.ts), and most real Americans
 // span every one of these tones — tying skin tone to a passport instead of
-// a name's cultural origin would be the actually illogical version of
-// this.
+// a name's cultural origin would be the actually illogical version of this.
 const HERITAGE_SKIN_TONES: Record<string, number[]> = {
   // Chinese/Korean/Japanese share one weighting, same as they did as one
   // combined "East Asian" pool before facultyData.ts split the NAMES apart
@@ -78,9 +86,9 @@ const HERITAGE_SKIN_TONES: Record<string, number[]> = {
   'East African': [2, 3, 3, 4, 4],
 };
 
-function skinTone(f: Faculty): string {
-  const weights = HERITAGE_SKIN_TONES[f.heritage] ?? SKIN_TONES.map((_, i) => i);
-  return SKIN_TONES[weights[bucket(f.id, 'skin', weights.length)]];
+function skinTone(subject: PortraitSubject): string {
+  const weights = HERITAGE_SKIN_TONES[subject.heritage] ?? SKIN_TONES.map((_, i) => i);
+  return SKIN_TONES[weights[bucket(subject.id, 'skin', weights.length)]];
 }
 
 // Black / dark brown / light brown-blonde / gray-white. Gray is not just
@@ -89,25 +97,10 @@ function skinTone(f: Faculty): string {
 const HAIR_COLORS = ['#1b1712', '#3b2314', '#8a5a2b'];
 const GRAY_HAIR = '#c8c2b8';
 
-// A senior professor is more likely to have gone gray — a small, deliberate
-// nod rather than a hard rule (a Distinguished professor going gray 65% of
-// the time still leaves plenty who haven't, same as real faculty). Reads
-// facultyQualityTier rather than tenureWeeks directly since a CANDIDATE
-// (tenureWeeks always 0) can still be senior-caliber the moment they're
-// rolled, and the portrait should read that the same way a hire's does.
-const GRAY_CHANCE_BY_TIER: Record<string, number> = {
-  Distinguished: 0.65,
-  Full: 0.4,
-  Associate: 0.2,
-  Assistant: 0.1,
-  Adjunct: 0.08,
-};
-
-function hairColor(f: Faculty): string {
-  const grayChance = GRAY_CHANCE_BY_TIER[facultyQualityTier(f)] ?? 0.1;
-  const roll = bucket(f.id, 'hairGray', 100);
+function hairColor(subject: PortraitSubject, grayChance: number): string {
+  const roll = bucket(subject.id, 'hairGray', 100);
   if (roll < grayChance * 100) return GRAY_HAIR;
-  return HAIR_COLORS[bucket(f.id, 'hairColor', HAIR_COLORS.length)];
+  return HAIR_COLORS[bucket(subject.id, 'hairColor', HAIR_COLORS.length)];
 }
 
 // Muted parchment-family tints so a row of portraits reads as part of the
@@ -133,7 +126,7 @@ const MALE_HAIR: HairStyle[] = [
   // Curly/coiled short hair: overlapping bumps along the top.
   { front: 'M7.3 8.7a1.5 1.5 0 1 1 2.4-1.6 1.5 1.5 0 1 1 2.6-1 1.5 1.5 0 1 1 2.6.9 1.5 1.5 0 1 1 2.4 1.6c.1.4.1.9 0 1.3-1.5-1.6-3.4-1.8-4.6-1.8s-3 .2-4.6 1.8c-.1-.4-.1-.9.2-1.2Z' },
   // Receding: a smaller cap pulled back from the forehead, pairs well with
-  // gray on an older-reading professor.
+  // gray on an older-reading person.
   { front: 'M7.6 7.7a4.8 4.8 0 0 1 8.9-1.1c.5.9.7 1.9.5 2.9-1.3-1.4-2.9-1.6-3.9-1.4-.7.1-1.3.5-1.7 1-.5-.6-1.2-1-2-1.1-.9-.1-1.7.1-2.4.6.1-.3.3-.6.6-.9Z' },
 ];
 
@@ -187,22 +180,26 @@ function darken(hex: string, amount: number): string {
   return `rgb(${r},${g},${b})`;
 }
 
-export default function FacultyPortrait({ f, size = 24 }: { f: Faculty; size?: number }) {
-  const skin = skinTone(f);
-  const hair = hairColor(f);
-  const bg = BACKGROUND_TINTS[bucket(f.id, 'bg', BACKGROUND_TINTS.length)];
-  const wearsGlasses = bucket(f.id, 'glasses', 3) === 0; // ~1 in 3
+export default function PersonPortrait({ subject, grayChance, size = 24 }: {
+  subject: PortraitSubject;
+  grayChance: number;
+  size?: number;
+}) {
+  const skin = skinTone(subject);
+  const hair = hairColor(subject, grayChance);
+  const bg = BACKGROUND_TINTS[bucket(subject.id, 'bg', BACKGROUND_TINTS.length)];
+  const wearsGlasses = bucket(subject.id, 'glasses', 3) === 0; // ~1 in 3
 
-  const hairPool = f.gender === 'male' ? MALE_HAIR : FEMALE_HAIR;
-  const style = hairPool[bucket(f.id, 'hairStyle', hairPool.length)];
+  const hairPool = subject.gender === 'male' ? MALE_HAIR : FEMALE_HAIR;
+  const style = hairPool[bucket(subject.id, 'hairStyle', hairPool.length)];
 
-  const garmentPool = f.gender === 'male' ? SHIRT_COLORS : BLOUSE_COLORS;
-  const garment = garmentPool[bucket(f.id, 'garment', garmentPool.length)];
+  const garmentPool = subject.gender === 'male' ? SHIRT_COLORS : BLOUSE_COLORS;
+  const garment = garmentPool[bucket(subject.id, 'garment', garmentPool.length)];
   const collarShade = darken(garment, 20);
-  const clipId = `portrait-clip-${f.id}`;
+  const clipId = `portrait-clip-${subject.id}`;
 
   return (
-    <svg className="faculty-portrait" viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
+    <svg className="person-portrait" viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
       <defs>
         <clipPath id={clipId}>
           <circle cx="12" cy="12" r="12" />
@@ -226,7 +223,7 @@ export default function FacultyPortrait({ f, size = 24 }: { f: Faculty; size?: n
             visibly overlaps the neck rather than just meeting it. A
             collared shirt's flaps come to points; a blouse's neckline is a
             single soft scoop instead. */}
-        {f.gender === 'male'
+        {subject.gender === 'male'
           ? (
             <path
               d="M8.8 15.6 L12 18.6 L11 15.3 Z M15.2 15.6 L12 18.6 L13 15.3 Z"

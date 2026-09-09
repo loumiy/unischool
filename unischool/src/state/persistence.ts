@@ -579,7 +579,7 @@ export const SAVE_KEY = 'unischool.save';
 // carries over unchanged and is simply read differently by the systems that
 // use it now. See MIGRATIONS[25].
 //
-// v26 -> v27: procedural faculty headshots (see FacultyPortrait.tsx). Faculty
+// v26 -> v27: procedural faculty headshots (see PersonPortrait.tsx). Faculty
 // gains `gender` (also now what picks which of a name pool's firstMale/
 // firstFemale lists a first name is drawn from — see facultyData.ts's
 // NAME_POOLS) and `heritage` (the name's cultural origin pool, which the
@@ -636,7 +636,18 @@ export const SAVE_KEY = 'unischool.save';
 //     like a fresh game's would at the same reputation, not a special case.
 //
 // See MIGRATIONS[28].
-export const SAVE_VERSION = 29;
+//
+// v29 -> v30: coach headshots (see PersonPortrait.tsx / Athletics V3).
+// Coach gains a required `heritage`, the same portrait-biasing field
+// MIGRATIONS[26] added to Faculty — reusing rollCoachName's real heritage
+// for coaches created from here on. A pre-v30 save already has Coach
+// objects (every non-null headCoach/assistantCoach/trainer, plus the whole
+// coachCandidates pool) with no heritage to recover: there is no
+// nationality-style signal for a coach the way MIGRATIONS[26] had one for
+// faculty, so every one of them gets the same uniform random origin
+// fallback that migration uses for its own no-signal case. See
+// MIGRATIONS[29].
+export const SAVE_VERSION = 30;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -704,6 +715,15 @@ interface LegacyGameState extends GameState {
 // name was one free-form string the player typed, so this is the only
 // evidence available about which half is which.
 const KNOWN_SUFFIXES = ['College', 'University'];
+
+// A uniform random pick off ORIGIN_NATIONALITIES's own keys — the shared
+// "no signal, fresh roll" fallback MIGRATIONS[26], MIGRATIONS[28], and
+// MIGRATIONS[29] all use for a heritage that can't be recovered from
+// anything saved.
+function randomHeritageOrigin(): string {
+  const origins = Object.keys(ORIGIN_NATIONALITIES);
+  return origins[Math.floor(Math.random() * origins.length)];
+}
 
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   // v3 -> v4: placements gained a footprint. A placement written before
@@ -1440,11 +1460,10 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     for (const [origin, countries] of Object.entries(ORIGIN_NATIONALITIES)) {
       for (const country of countries) originByNationality.set(country.nationality, origin);
     }
-    const origins = Object.keys(ORIGIN_NATIONALITIES);
     for (const f of [...state.faculty, ...state.candidates]) {
       const legacy = f as unknown as Record<string, string>;
       legacy.gender ??= Math.random() < 0.5 ? 'male' : 'female';
-      legacy.heritage ??= originByNationality.get(f.nationality) ?? origins[Math.floor(Math.random() * origins.length)];
+      legacy.heritage ??= originByNationality.get(f.nationality) ?? randomHeritageOrigin();
     }
   },
 
@@ -1499,6 +1518,11 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
             id: crypto.randomUUID(),
             name: legacy.coachName,
             gender: Math.random() < 0.5 ? 'male' : 'female', // no signal to recover — a pre-v29 coach was never gendered
+            // Same "no signal, fresh roll" honesty as gender above — see
+            // MIGRATIONS[29]'s own note for why every coach here (old and
+            // new) gets this treatment rather than only the ones this exact
+            // branch constructs.
+            heritage: randomHeritageOrigin(),
             field: team.sport,
             quality,
             qualityPotential: Math.min(100, quality + 15),
@@ -1524,6 +1548,24 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
         legacy.athleticStrength = athleticStrengthFor(r.reputation, r.id);
       }
     }
+  },
+
+  // v29 -> v30: see the SAVE_VERSION header comment above. Every Coach
+  // already on the save — each team's headCoach/assistantCoach/trainer, and
+  // the whole coachCandidates pool — predates `heritage` and gets the same
+  // no-signal random-origin fallback MIGRATIONS[26] uses for faculty.
+  29: (state) => {
+    const backfill = (c: Coach | null | undefined) => {
+      if (!c) return;
+      const legacy = c as unknown as Record<string, string>;
+      legacy.heritage ??= randomHeritageOrigin();
+    };
+    for (const team of state.orgs.teams) {
+      backfill(team.headCoach);
+      backfill(team.assistantCoach);
+      backfill(team.trainer);
+    }
+    for (const c of state.orgs.coachCandidates) backfill(c);
   },
 };
 
