@@ -67,7 +67,11 @@ export function tickRivals(s: GameState): void {
         // comparison would be meaningless on the week they first appear.
         s.pendingInterrupt = {
           type: 'rankings-entry',
-          payload: { rank, previousRank: null, movers: [], passed: [], passedBy: [], standings: rankedList(s).slice(0, TOP_50_CUTOFF) },
+          payload: {
+            rank, previousRank: null, movers: [], passed: [], passedBy: [],
+            standings: rankedList(s).slice(0, TOP_50_CUTOFF),
+            athletics: athleticsReportPayload(s),
+          },
         };
       }
     } else if (s.clock.week === REPORT_WEEK) {
@@ -180,6 +184,22 @@ export interface RankMove {
   delta: number;
 }
 
+// The one-paragraph "season report" the item asked for, folded into the
+// existing annual report rather than a standalone modal or interrupt of
+// its own — see rivalsSystem.ts's own header note on why this got the
+// lighter treatment. Athletics gets no year-over-year movement section of
+// its own the way academic rank does: nothing records a rival's athletic
+// strength from a year ago (only prestige history is kept — see
+// state/history.ts), so there is nothing honest to reconstruct it from,
+// unlike academic rank's momentum-based estimate. `null` when the school
+// has no active varsity team yet — there is no season to report on, the
+// same reasoning AthleticsTab.tsx already uses to hide its own standings
+// line until then.
+export interface AthleticsReportPayload {
+  rank: number;
+  total: number;
+}
+
 export interface ReportPayload {
   rank: number;
   previousRank: number | null; // null when there is no prior year to compare against
@@ -187,11 +207,18 @@ export interface ReportPayload {
   passed: string[];            // schools that were ahead a year ago and are behind now
   passedBy: string[];          // schools that were behind a year ago and are ahead now
   standings: Array<{ name: string; reputation: number; isPlayer: boolean }>;
+  athletics: AthleticsReportPayload | null;
+}
+
+function athleticsReportPayload(s: GameState): AthleticsReportPayload | null {
+  if (!s.orgs.teams.some((t) => t.status === 'active')) return null;
+  return { rank: athleticRank(s), total: s.rivals.length + 1 };
 }
 
 export function buildReportPayload(s: GameState): ReportPayload {
   const standings = rankedList(s).slice(0, TOP_50_CUTOFF);
   const rank = playerRank(s);
+  const athletics = athleticsReportPayload(s);
 
   // The history row from a year ago. The most recent row (at -1) is the
   // standing the school ENTERED this year with — and since rivals only move
@@ -201,7 +228,7 @@ export function buildReportPayload(s: GameState): ReportPayload {
   // "a year ago" means for this report.
   const priorYear = s.history.length >= 2 ? s.history[s.history.length - 2] : null;
   if (!priorYear) {
-    return { rank, previousRank: null, movers: [], passed: [], passedBy: [], standings };
+    return { rank, previousRank: null, movers: [], passed: [], passedBy: [], standings, athletics };
   }
 
   const current = currentEntries(s);
@@ -242,5 +269,6 @@ export function buildReportPayload(s: GameState): ReportPayload {
     passed: passed.slice(0, MAX_PASSED_SHOWN),
     passedBy: passedBy.slice(0, MAX_PASSED_SHOWN),
     standings,
+    athletics,
   };
 }

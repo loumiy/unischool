@@ -1032,6 +1032,9 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .report-mover-move { display: inline-flex; align-items: baseline; gap: 8px; white-space: nowrap; }
 .report-mover-places { font-family: var(--mono); font-size: 11px; color: var(--ink-lo); }
 
+.report-athletics { font-family: var(--mono); font-size: 13px; color: #cbd0d8; margin: 0 0 14px; }
+.report-athletics strong { color: var(--ink); }
+
 .report-standings { max-height: 320px; overflow-y: auto; margin: 0 0 16px; padding-right: 6px; }
 .report-standings li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--navy-line); font-size: 13px; }
 .report-standings li.me { color: #7dd3a0; font-weight: 700; }

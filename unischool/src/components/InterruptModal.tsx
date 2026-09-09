@@ -280,7 +280,7 @@ function RankingsReportView({ payload, isFirstReveal, onDismiss }: {
   isFirstReveal: boolean;
   onDismiss: () => void;
 }) {
-  const { rank, previousRank, movers, passed, passedBy, standings } = payload;
+  const { rank, previousRank, movers, passed, passedBy, standings, athletics } = payload;
   const delta = previousRank === null ? null : previousRank - rank;
 
   return (
@@ -329,6 +329,12 @@ function RankingsReportView({ payload, isFirstReveal, onDismiss }: {
             ))}
           </ul>
         </div>
+      )}
+
+      {athletics && (
+        <p className="report-athletics">
+          Athletic standing: <strong>#{athletics.rank}</strong> of {athletics.total}
+        </p>
       )}
 
       <h3 className="report-standings-head">Top {standings.length}</h3>
