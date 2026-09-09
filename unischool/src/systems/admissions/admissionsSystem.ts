@@ -1,5 +1,6 @@
 import type { GameState } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
+import { cohortDemandFactor, NEUTRAL_COHORT_SIGNALS, type CohortSignals } from './cohorts';
 
 // The trailing-year satisfaction that drives word of mouth: the average of
 // every weekly satisfaction reading accumulated since last summer (see
@@ -39,19 +40,26 @@ export function trailingYearSatisfaction(s: GameState): number {
 // The player sets exactly two things: tuition and an average scholarship
 // percentage. Everything else is emergent:
 //
-//   1. Applicant pool = f(prestige, tuition, satisfaction, dorm capacity).
-//      Higher prestige draws more applicants and shifts the distribution
-//      toward higher quality; higher tuition shrinks the pool and fattens
-//      the low-quality tail; current student satisfaction scales the whole
-//      pool up or down as word of mouth (see WORD_OF_MOUTH_STRENGTH below)
-//      — that is satisfaction's one mechanical consequence, applied here
-//      once a year rather than as a weekly drip; and dorm capacity scales
-//      the pool toward its full size as housing investment grows (see
-//      CAPACITY_FACTOR_FLOOR/CAPACITY_FACTOR_REFERENCE below). A STICKER
-//      price that overreaches what the school's prestige has earned (see
-//      STICKER_SHOCK_RATE below) additionally self-selects away exactly the
-//      price-sensitive bands scholarships would otherwise win back — a real
-//      sticker is never laundered for free by matching it with aid.
+//   1. Applicant pool = f(prestige, tuition, satisfaction, dorm capacity,
+//      cohort demand). Higher prestige draws more applicants and shifts the
+//      distribution toward higher quality; higher tuition shrinks the pool
+//      and fattens the low-quality tail; current student satisfaction
+//      scales the whole pool up or down as word of mouth (see
+//      WORD_OF_MOUTH_STRENGTH below) — that is satisfaction's one
+//      mechanical consequence, applied here once a year rather than as a
+//      weekly drip; and dorm capacity scales the pool toward its full size
+//      as housing investment grows (see CAPACITY_FACTOR_FLOOR/
+//      CAPACITY_FACTOR_REFERENCE below). A STICKER price that overreaches
+//      what the school's prestige has earned (see STICKER_SHOCK_RATE below)
+//      additionally self-selects away exactly the price-sensitive bands
+//      scholarships would otherwise win back — a real sticker is never
+//      laundered for free by matching it with aid. Cohort demand (see
+//      cohorts.ts) is a further, independent multiplier on the same pool:
+//      seven named audiences (high achievers, pre-professional, research-
+//      oriented, social, arts-focused, price-sensitive, athletes) each
+//      pulled by a DIFFERENT investment — labs, established majors, clubs,
+//      a fielded varsity team — so growing enrollment is never only a
+//      prestige/price question.
 //   2. Admit rate = f(prestige) alone (see admitRate below): a school's
 //      standing is what makes it selective, on the real-world curve from a
 //      barely-selective young school to a single-digit admit rate at the
@@ -257,8 +265,13 @@ type QualityBand = 'top' | 'mid' | 'low';
 // The emergent outcome of the funnel for a given policy. Everything here is
 // a displayed consequence of the two inputs (tuition, scholarships), not an input.
 export interface AdmissionsProjection {
-  applicants: number;          // total applicant pool, after word of mouth AND sticker shock
+  applicants: number;          // total applicant pool, after word of mouth, cohort demand, AND sticker shock
   wordOfMouthMultiplier: number; // satisfaction's multiplier on the pool (1.0 = neutral) — see WORD_OF_MOUTH_STRENGTH
+  // The blended cohort-demand multiplier (1.0 = neutral) — see cohorts.ts's
+  // cohortDemandFactor. Applied alongside word of mouth, before sticker
+  // shock; the UI reads cohorts.ts's own cohortBreakdown directly for the
+  // per-cohort detail behind this one number.
+  cohortDemandMultiplier: number;
   // What sticker shock alone cost the pool: realized applicants / what the
   // pool would have been at this net price with no shock at all (1.0 =
   // sticker priced at or under earned tolerance, no families self-selected
@@ -283,6 +296,30 @@ function clamp(v: number, lo: number, hi: number): number {
 // the most important curve in the game invisible.
 export function priceTolerance(prestige: number): number {
   return PRICE_TOLERANCE_BASE + PRICE_TOLERANCE_PER_PRESTIGE_POINT * Math.max(prestige, 0);
+}
+
+// A price relative to priceTolerance, bucketed into four bands a player can
+// read at a glance rather than having to do the division themselves — the
+// same "$40k is a steal for a top-20 school, reckless for a founding one"
+// judgment call priceTolerance itself exists to make legible, now surfaced
+// as a color/label instead of a bare number the admissions form's own
+// tuition/scholarship inputs can be styled by (see InterruptModal.tsx).
+// Deliberately reusable for BOTH a raw sticker price and a net price
+// against the SAME thresholds: the admissions form uses it once for the
+// tuition slider (sticker, before aid) and again for the resulting net
+// price after scholarships, so the two colors on screen at once make the
+// sticker/net distinction visible rather than just described in a tooltip.
+export type PriceTier = 'bargain' | 'fair' | 'expensive' | 'reckless';
+const PRICE_TIER_FAIR_MAX = 1.15;      // at/under tolerance x this: reads as fair, not just "not a bargain"
+const PRICE_TIER_EXPENSIVE_MAX = 1.6;  // over this: reckless, not just pricey
+const PRICE_TIER_BARGAIN_MAX = 0.7;    // at/under tolerance x this: a genuine bargain, not just fair
+
+export function priceTier(price: number, tolerance: number): PriceTier {
+  const ratio = tolerance > 0 ? Math.max(price, 0) / tolerance : Infinity;
+  if (ratio <= PRICE_TIER_BARGAIN_MAX) return 'bargain';
+  if (ratio <= PRICE_TIER_FAIR_MAX) return 'fair';
+  if (ratio <= PRICE_TIER_EXPENSIVE_MAX) return 'expensive';
+  return 'reckless';
 }
 
 // Total applicant count as a function of prestige, NET price (tuition after
@@ -339,20 +376,25 @@ function bandYield(prestige: number, scholarshipRate: number, band: QualityBand)
 // Pure funnel resolution. Given the school's prestige, its dorm capacity
 // (an input to applicant VOLUME only now — see capacityFactor above, never
 // a ceiling), the trailing-year student satisfaction that drives word of
-// mouth, and the player's two levers (tuition, scholarships), returns the
-// full set of emergent outcomes. `enrolled` here is the incoming FRESHMAN
-// class, not the whole body. No individual applicants are modeled — only
-// band aggregates.
+// mouth, the player's two levers (tuition, scholarships), and its cohort
+// signals (see cohorts.ts — defaulted to neutral so every existing caller,
+// admissions-pricing.test.ts included, is unaffected unless it opts in),
+// returns the full set of emergent outcomes. `enrolled` here is the
+// incoming FRESHMAN class, not the whole body. No individual applicants
+// are modeled — only band aggregates.
 export function projectAdmissions(
   prestige: number,
   tuition: number,
   scholarshipRate: number,
   capacity: number,
   satisfaction: number,
+  cohortSignals: CohortSignals = NEUTRAL_COHORT_SIGNALS,
 ): AdmissionsProjection {
+  const tolerance = priceTolerance(prestige);
   const wordOfMouth = wordOfMouthFactor(satisfaction);
+  const cohortDemand = cohortDemandFactor(cohortSignals, tolerance, tuition, scholarshipRate);
   const netPrice = Math.max(tuition, 0) * (1 - clamp(scholarshipRate, 0, 1));
-  const rawApplicants = applicantVolume(prestige, netPrice, capacity) * wordOfMouth;
+  const rawApplicants = applicantVolume(prestige, netPrice, capacity) * wordOfMouth * cohortDemand;
   const mix = qualityMix(prestige, tuition);
 
   const bands: QualityBand[] = ['top', 'mid', 'low'];
@@ -408,6 +450,7 @@ export function projectAdmissions(
   return {
     applicants: Math.round(applicants),
     wordOfMouthMultiplier: wordOfMouth,
+    cohortDemandMultiplier: cohortDemand,
     stickerShockMultiplier,
     admits: Math.round(admits),
     admitRate: applicants > 0 ? admits / applicants : 0,

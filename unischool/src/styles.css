@@ -137,12 +137,21 @@ button { cursor: pointer; font-family: inherit; }
    band in the same quiet family reads as one chrome unit with the toolbar
    below it, not a distinct, separately-themed panel. z-index sits between
    the map (0) and the toolbar/every other floating card (10): above the
-   ground, below anything a player can actually interact with, since this
-   strip never is. */
+   ground, below every other floating card. A plain div, not a button —
+   only .log-ticker-toggle (the small icon on the left) is clickable; the
+   text itself is inert content, the same as the toolbar's own funds/stats
+   readouts, not a giant click target the whole strip's width invites a
+   mis-click on. */
 .log-ticker { position: fixed; z-index: 5; left: 0; right: 0; bottom: var(--toolbar-height);
-  height: var(--log-ticker-height); display: flex; align-items: center;
-  padding: 0 16px; background: var(--navy-line); color: var(--ink-hi); font-size: 12px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  height: var(--log-ticker-height); display: flex; align-items: center; gap: 8px;
+  padding: 0 12px; background: var(--navy-line); color: var(--ink-hi); font-size: 12px;
+  white-space: nowrap; overflow: hidden; }
+.log-ticker-toggle { flex: none; display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; padding: 0; background: transparent; border: none;
+  border-radius: 4px; color: var(--ink-lo); cursor: pointer; }
+.log-ticker-toggle svg { width: 14px; height: 14px; display: block; }
+.log-ticker-toggle:hover, .log-ticker-toggle[aria-expanded="true"] { color: var(--ink-hi); background: var(--navy); }
+.log-ticker > span { overflow: hidden; text-overflow: ellipsis; }
 .log-ticker .ts { color: var(--ink-lo); font-family: var(--mono); margin-right: 6px; }
 /* The bright, dark-background pair StatusHeader.tsx already uses for
    cash/satisfaction (money / money-negative) — not --green/#a13a3a, which
@@ -1067,6 +1076,44 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .admissions-outcomes dt { font-size: 13px; color: #cbd0d8; margin: 0; }
 .admissions-outcomes dt .outcome-note { color: var(--gold-dim); font-size: 11px; }
 .admissions-outcomes dd { margin: 0; color: var(--ink-hi); font-family: var(--mono); font-size: 14px; }
+
+/* Price-tier feedback (see admissionsSystem.ts's priceTier): the same
+   bright-on-dark pair the log ticker/StatusHeader already use for good/bad
+   (--green/#a13a3a are tuned for parchment, not this navy modal), plus a
+   fair/gold reusing the toolbar's own "neutral highlight" and an amber
+   between the two for "expensive but not reckless" — four bands, four
+   colors, used identically for both the raw sticker (step 1) and the net
+   price after aid (step 2), so the same color meaning carries across both
+   without a second legend. */
+/* .price-tier-value.price-tier-* (not a bare .price-tier-bargain etc.):
+   the value is rendered as a <strong> inside .admissions-field's own
+   `span strong { color: var(--ink-hi) }` rule, which a single-class
+   selector can't outrank on specificity alone. */
+.price-tier-value.price-tier-bargain { color: #7dd3a0; }
+.price-tier-value.price-tier-fair { color: var(--gold); }
+.price-tier-value.price-tier-expensive { color: #e0a860; }
+.price-tier-value.price-tier-reckless { color: #e58a8a; }
+.price-tier-tag.price-tier-bargain { color: #7dd3a0; }
+.price-tier-tag.price-tier-fair { color: var(--gold); }
+.price-tier-tag.price-tier-expensive { color: #e0a860; }
+.price-tier-tag.price-tier-reckless { color: #e58a8a; }
+.price-tier-tag { display: block; font-size: 11px; font-style: italic; margin-top: 4px; }
+.admissions-net-price { display: flex; align-items: baseline; gap: 8px; margin-top: 8px; font-size: 13px; color: #cbd0d8; }
+.admissions-net-price .price-tier-tag { display: inline; margin: 0; }
+
+/* The per-cohort demand breakdown (see cohorts.ts) — a compact list, not
+   another dl, since each row carries its own signed color rather than a
+   plain value. */
+.cohort-breakdown { margin: 4px 0 18px; padding: 10px 14px; background: #1a2338;
+  border: 1px solid var(--navy-line); border-radius: 6px; }
+.cohort-breakdown h3 { margin: 0 0 6px; font-family: var(--serif); text-transform: uppercase;
+  letter-spacing: 0.06em; font-size: 12px; color: var(--gold-dim); }
+.cohort-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 3px 0; }
+.cohort-row-label { font-size: 13px; color: #cbd0d8; }
+.cohort-row-pct { font-family: var(--mono); font-size: 13px; }
+.cohort-row-pct.cohort-up { color: #7dd3a0; }
+.cohort-row-pct.cohort-down { color: #e58a8a; }
+.cohort-row-pct.cohort-flat { color: var(--ink-lo); }
 
 /* ---------- the student-life digest, inside the admissions interrupt ----
    Clubs and new Greek chapters never get a modal of their own (see

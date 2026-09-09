@@ -5,6 +5,7 @@ import { createInitialState, createPreStartState } from '../state/actions';
 import { tickFinance, endowmentCampaign } from '../systems/finance/financeSystem';
 import { tickTech, canStartDevelopment, startDevelopment } from '../systems/techtree/techSystem';
 import { tickAdmissions, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
+import { deriveCohortSignals } from '../systems/admissions/cohorts';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
 import { tickFaculty } from '../systems/faculty/facultySystem';
 import { tickResearch } from '../systems/research/researchSystem';
@@ -457,6 +458,7 @@ export function reducer(state: GameState, action: Action): GameState {
         s.admissions.scholarshipRate,
         s.students.capacity,
         priorYearAvgSatisfaction,
+        deriveCohortSignals(s),
       );
       cohorts.freshman = outcome.enrolled;
       s.students.applicantPool = outcome.applicants;

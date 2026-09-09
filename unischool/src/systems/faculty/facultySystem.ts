@@ -47,16 +47,16 @@ function growFaculty(f: Faculty): void {
 // makes a common field feel abundant and a thin-market specialist feel
 // like a find.
 //
-// Almost none of that churn is logged, on purpose: at ~2.5 arrivals and
-// ~2.5 withdrawals a week, narrating it would bury every other line in the
-// ticker and train the player to ignore it. The one exception is a listing
-// in a field the school has NOBODY in — the case where the player is most
-// likely to be waiting on exactly this, and the only one where "go and
-// look" is real news. It goes quiet for good once the field is staffed.
-// Deliberately a roster check rather than a course-slot check: slot
-// capacity is techSystem.ts's to compute, and a system reaching into
-// another system's helpers is the coupling the architecture rules out —
-// this reads only faculty state.
+// None of that churn is logged: at ~2.5 arrivals and ~2.5 withdrawals a
+// week, narrating any of it would bury every other line in the ticker and
+// train the player to ignore it — including a listing in a field the
+// school has nobody in, which reads as real news exactly once (a founding
+// school starts unstaffed in most of the ~30 fields, so this alone would
+// fire on nearly every early arrival) and then as noise every time after.
+// The alert badge on the Faculty tab (see Toolbar.tsx's TAB_ALERT, which
+// already flags an unseen candidate in a field the curriculum needs) is
+// where this actually belongs — a glance at the tab a player is going to
+// open anyway, not a line competing for space in the log.
 function tickCandidatePool(s: GameState): void {
   for (const c of s.candidates) c.weeksListed += 1;
   s.candidates = s.candidates.filter((c) => c.weeksListed < CANDIDATE_LISTING_WEEKS);
@@ -64,17 +64,7 @@ function tickCandidatePool(s: GameState): void {
   const arrivals = candidateArrivalsThisWeek(s.candidates.length);
   for (let i = 0; i < arrivals; i += 1) {
     const existingNames = [...s.faculty, ...s.candidates].map((f) => f.name);
-    const candidate = generateCandidate(rollCandidateField(), existingNames);
-    const unstaffedField = !s.faculty.some((f) => f.field === candidate.field);
-    s.candidates.push(candidate);
-    if (unstaffedField) {
-      s.log.unshift({
-        year: s.clock.year,
-        week: s.clock.week,
-        message: `${candidate.name} is on the market — a ${candidate.field} candidate, a department with nobody in it.`,
-        kind: 'good',
-      });
-    }
+    s.candidates.push(generateCandidate(rollCandidateField(), existingNames));
   }
 }
 
