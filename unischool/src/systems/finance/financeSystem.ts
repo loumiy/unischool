@@ -95,11 +95,26 @@ const UPKEEP_EMPTY_SEAT_MULTIPLIER = 0.5;
 // At the founding catalogue (6 gen-ed courses) that is ~$44/wk (~$2.3k a
 // year, against a founding net tuition around $15k); at a fully built
 // 330-course catalogue it is ~$368/wk (~$19k a year, against a top-50
-// school's net tuition around $45k). That is the taper made concrete: the
-// margin per student stays positive at every stage — an extra student is
-// never a loss, which is what keeps a stalled school recoverable — but it
-// narrows as the catalogue grows, so the late game's enormous tuition
-// line does not simply become free money.
+// school's net tuition around $45k). That is the taper made concrete: at
+// MARKET-RATE pricing the margin per student stays positive at every
+// stage — an extra student is never a loss there — but it narrows as the
+// catalogue grows, so the late game's enormous tuition line does not
+// simply become free money.
+//
+// That margin is NOT a law of the formula, though — it is two numbers a
+// player sets (tuitionPerStudent, scholarshipRate) racing one the
+// catalogue sets (coursesOffered), and a school that discounts heavily
+// while building out a full curriculum can push its own net tuition per
+// student below this line, same as a real college whose list of majors
+// outgrew what its net price actually recovers per student. Deliberate,
+// not a bug: a big catalogue is a market-rate or a large-scale-enrollment
+// proposition, not a discount one — see admissionsSystem.ts's sticker
+// shock (why simply raising the sticker price to compensate doesn't work
+// for a school that also wants to look affordable) and sim/balanceSim.ts's
+// Strategy.courseAffordabilityAware (a heavily-discounted strategy that
+// tracks this and throttles its own curriculum build-out rather than
+// walking into the deficit). See the "stall, don't die" note further down
+// this file for why a school that walks into it anyway is not stuck there.
 const INSTRUCTION_PER_STUDENT_PER_WEEK = 38;
 const INSTRUCTION_PER_STUDENT_PER_COURSE_OFFERED = 1.00;
 
@@ -341,10 +356,21 @@ export function tickFinance(s: GameState): void {
 //  1. Empty capacity self-mothballs (UPKEEP_EMPTY_SEAT_MULTIPLIER above),
 //     so the cost of over-building is bounded and falls as the school
 //     shrinks back toward the enrollment it can actually draw.
-//  2. Instruction is charged per ENROLLED student, never per bed, and
-//     always below the net tuition a student pays at any sane price — so
-//     an extra student is never a loss, and the enrollment side of the
-//     loop can only ever dig the school out, never further in.
+//  2. Instruction is charged per ENROLLED student, never per bed, so it
+//     tapers with enrollment automatically the same way seat upkeep does
+//     — it is never a fixed bill a shrinking school is stuck under. At
+//     market-rate pricing it also stays below net tuition per student at
+//     every catalogue size (see instructionCostPerStudent's own note
+//     above), so an extra student there is never a loss. A school that
+//     discounts far enough while building out its curriculum CAN invert
+//     that margin — deliberately, the intended tension between curriculum
+//     breadth and a low net price — and unlike an empty bed it will not
+//     self-correct by enrollment growth alone: a per-student loss gets
+//     wider, not narrower, the more students walk into it. What still
+//     makes it recoverable is lever 4 below (raise net price or cut
+//     scholarships) plus firing faculty, both unconditional; no combination
+//     of tuition, aid and catalogue size can put the margin somewhere
+//     neither one reaches.
 //  3. Demand cannot collapse to zero: satisfaction is floored by
 //     satisfactionSystem.ts's ATTRIBUTE_SCORE_FLOOR (so word of mouth
 //     bottoms out around 0.63x, not 0), and prestige's biggest input,

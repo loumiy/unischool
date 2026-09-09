@@ -113,8 +113,27 @@ function find(name: string) {
 // negative cash, and nobody ends it with a negative weekly net (a school
 // that is still bleeding every week at the horizon has not actually
 // stalled-and-held, it is still spiraling).
+//
+// Discount volume is deliberately held to the same looser bar case 2 gives
+// Overbuilder, not this section's flat `cash >= 0`: trimAidWhenUnderwater
+// (see sim/balanceSim.ts) means this strategy can, and sometimes does,
+// still be mid-recovery from a real curriculum-vs-price squeeze right at
+// year ${YEARS} — a trough shallow enough and a net income already
+// unambiguously positive again is the actual "stall, don't die" claim,
+// not which exact year the balance crosses back through zero. Every OTHER
+// strategy either never goes underwater at all or (Overbuilder,
+// Curriculum rush) has fully cleared its own trough by year ${YEARS}, so
+// this section's flat bar still holds for them.
 // =====================================================================
-for (const strategy of STRATEGIES) {
+{
+  const { run } = find('Discount volume (beds first)');
+  const last = run.rows[run.rows.length - 1];
+  assert(last.cash > last.minCash, `the discount-heavy strategy has recovered from its trough by year ${YEARS} (trough ${last.minCash.toLocaleString()}, now ${last.cash.toLocaleString()})`);
+  assert(last.net > 0, `the discount-heavy strategy's weekly net is unambiguously positive again by year ${YEARS} (got ${last.net.toLocaleString()})`);
+  assert(last.weeksInTheRed < YEARS * 52, 'the discount-heavy strategy is not in the red for the entire run');
+}
+
+for (const strategy of STRATEGIES.filter((s) => s.name !== 'Discount volume (beds first)')) {
   const { run } = find(strategy.name);
   const last = run.rows[run.rows.length - 1];
   assert(last.cash >= 0, `"${strategy.name}" ends year ${YEARS} solvent (cash ${last.cash.toLocaleString()})`);
@@ -132,6 +151,34 @@ for (const strategy of STRATEGIES) {
   const founding = run.rows[0];
   const last = run.rows[run.rows.length - 1];
   assert(last.opex > founding.opex * 4, `opex grows substantially from founding to year ${YEARS} (founding ${founding.opex.toLocaleString()}, now ${last.opex.toLocaleString()})`);
+}
+
+// =====================================================================
+// 6. CURRICULUM BREADTH IS AN ENROLLMENT-SCALE-OR-PRICE PROPOSITION — the
+// design this replaces financeSystem.ts's old "instruction is never a
+// loss" blanket claim with (see that file's own note on
+// instructionCostPerStudent): a heavily-discounted strategy's own net
+// tuition per student can fall below what a large catalogue costs to
+// teach, so courseAffordabilityAware throttles Discount volume's course
+// build-out well below what a market-rate strategy reaches on the same
+// clock. This locks in that the throttle is actually doing something, not
+// a no-op guard that never fires because nothing ever gets close to its
+// line.
+// =====================================================================
+{
+  const discount = find('Discount volume (beds first)');
+  const marketRate = find('Curriculum rush (overreach)');
+  const discountCourses = discount.run.rows[discount.run.rows.length - 1].courses;
+  const marketRateCourses = marketRate.run.rows[marketRate.run.rows.length - 1].courses;
+  assert(
+    discountCourses < marketRateCourses * 0.5,
+    `the discount-heavy strategy's curriculum stays materially thinner than the market-rate strategy's by year ${YEARS} (discount ${discountCourses} courses vs. market-rate ${marketRateCourses} courses)`,
+  );
+  // Thinner curriculum, not a starved school — it is still solvent and
+  // growing, just spending its margin on enrollment scale and aid instead
+  // of course breadth (see STRATEGIES' own comment on that trade-off).
+  const discountLast = discount.run.rows[discount.run.rows.length - 1];
+  assert(discountLast.net > 0, `the discount-heavy strategy is healthy despite the cap, not just capped (net ${discountLast.net.toLocaleString()})`);
 }
 
 console.log('balance-regression tests');

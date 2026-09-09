@@ -88,12 +88,17 @@ export type Action =
   // curriculum have run out of things to buy. Rejected by the reducer if
   // prestige is below the campaign gate or the cash isn't there.
   | { type: 'LAUNCH_ENDOWMENT_CAMPAIGN' }
-  | { type: 'RESOLVE_INTERRUPT' }                      // clears pendingInterrupt, lets the clock resume
+  // The generic fallback for an interrupt type InterruptModal.tsx's own
+  // switch doesn't recognise — normally unreachable, since every type that
+  // exists today is wired to its own dedicated resolve action below
+  // instead (see reducer.ts's own comment on this case for why it still
+  // advances the clock, same as every one of those).
+  | { type: 'RESOLVE_INTERRUPT' }
   // Resolves the annual summer admissions interrupt: sets next year's two
   // policy levers (tuition, scholarships), runs the admissions funnel to commit the
-  // enrolled class, and — unlike RESOLVE_INTERRUPT — advances the clock into
-  // that year itself (see reducer.ts). Tuition is set ONLY here, once a
-  // year — there is no other action that changes it.
+  // enrolled class, and advances the clock into that year itself (see
+  // reducer.ts). Tuition is set ONLY here, once a year — there is no other
+  // action that changes it.
   // `approvedPetitionIds` is the student-life digest folded into this same
   // interrupt (see data/studentLifeData.ts and the reducer): the ids of the
   // club/chapter petitions raised since last summer that the player is
@@ -102,10 +107,10 @@ export type Action =
   // years, and clubs never need a stop-the-clock modal of their own.
   | { type: 'RESOLVE_ADMISSIONS'; tuition: number; scholarshipRate: number; approvedPetitionIds: string[] }
   // Dismisses the "you've entered the rankings" reveal or an annual U.S.
-  // News report interrupt. Like RESOLVE_ADMISSIONS (and unlike the plain
-  // RESOLVE_INTERRUPT), this advances the clock — both fire as a trailing
-  // step after that week's systems already ran, so dismissing means
-  // moving on to the next week, not replaying this one.
+  // News report interrupt. Advances the clock, like every other interrupt
+  // raised mid-tick: it fires as a trailing step after that week's systems
+  // already ran, so dismissing means moving on to the next week, not
+  // replaying this one.
   | { type: 'RESOLVE_REPORT' }
   // Dismisses a milestone celebration — the stop-the-clock moment for a
   // established/distinguished program or a distinguished school (see
@@ -374,7 +379,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       {
         id: 'f2', name: 'Dr. John Okafor', field: 'History', teaching: 80, research: 55, teachingPotential: 88, researchPotential: 68,
         tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: facultySalary(80, 55, 0), courseSlots: 2,
-        nationality: 'Nigeria', flag: '🇳🇬', gender: 'male', heritage: 'West/East African',
+        nationality: 'Nigeria', flag: '🇳🇬', gender: 'male', heritage: 'West African',
         bio: 'Earned a doctorate in History at the University of Calderwood; research centers on maritime trade networks.',
       },
       {

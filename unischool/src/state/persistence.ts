@@ -1431,9 +1431,9 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   // coin flip generateCandidate itself uses, just applied after the fact
   // instead of at creation; there is no signal in an old save to do better.
   // `heritage` gets a real reverse lookup where one exists: a saved
-  // `nationality` of "Nigeria" can only have come from the West/East
-  // African pool (see ORIGIN_NATIONALITIES), so that's an actual recovery,
-  // not a guess — only the ~72% of faculty whose nationality is the generic
+  // `nationality` of "Nigeria" can only have come from the West African
+  // pool (see ORIGIN_NATIONALITIES), so that's an actual recovery, not a
+  // guess — only the ~72% of faculty whose nationality is the generic
   // American default fall back to a uniform random origin, same as gender.
   26: (state) => {
     const originByNationality = new Map<string, string>();

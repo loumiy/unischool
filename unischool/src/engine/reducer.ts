@@ -398,8 +398,25 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
+    // The generic fallback for an interrupt type the UI's own switch
+    // doesn't recognise (see InterruptModal.tsx's final, normally-
+    // unreachable render branch — every one of the 8 interrupt types that
+    // exist today is wired to its own dedicated resolve action instead,
+    // every one of which advances the clock; see e.g. RESOLVE_MILESTONE).
+    // That is not incidental: every interrupt today is raised mid-TICK (see
+    // the SYSTEMS loop below), which skips its OWN advanceClock call to
+    // hold the week open, so resolving has to advance it or the next
+    // ordinary TICK would silently re-run that same week's systems a
+    // second time before finally moving on. This action used to skip that
+    // call, leaving it a live footgun rather than a safe fallback: a future
+    // interrupt type reaching here by accident (its own resolve action
+    // never wired up) would wedge the clock on that week forever instead of
+    // erroring loudly. Advancing here matches every dedicated resolve
+    // action and is the correct behavior for the case this fallback
+    // actually exists to catch.
     case 'RESOLVE_INTERRUPT': {
       s.pendingInterrupt = null;
+      advanceClock(s);
       return s;
     }
 

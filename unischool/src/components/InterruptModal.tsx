@@ -617,14 +617,15 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
   // same escape hatch the dismiss button below uses for a content-table
   // miss, never one specific paid choice, so there is never an
   // affordability check to get wrong). Every other type is a deliberate
-  // no-op, not a fallthrough to the generic RESOLVE_INTERRUPT: milestone,
-  // research-prize, demand and charter all fire mid-TICK (see reducer.ts's
-  // SYSTEMS) and their own resolve actions advance the clock as part of
-  // clearing them, which generic RESOLVE_INTERRUPT does not — dispatching
-  // it for one of those would clear the interrupt without moving the
-  // week forward, and the NEXT tick would then re-run that same week's
-  // systems a second time before finally advancing. Extending Enter to
-  // any of them later means wiring its own dedicated action, never this
+  // no-op, not a fallthrough to generic RESOLVE_INTERRUPT — milestone,
+  // research-prize and demand are mechanically just clear-and-advance today
+  // (see reducer.ts), same as the generic action itself, but each still
+  // gets its OWN dedicated action rather than reusing it, so that stays
+  // true if one of them ever grows real work of its own to do on resolve.
+  // Charter is not mechanically equivalent even today — accepting or
+  // declining sets `universityCharterOffered`/`suffix`, which generic
+  // RESOLVE_INTERRUPT has no way to do. Extending Enter to any of these
+  // later means wiring it to that type's own dedicated action, never the
   // generic one. The admissions form is left out for a different reason:
   // its tuition/scholarships values live in AdmissionsInterruptForm's own local
   // state, not reachable from here without lifting that state up just for
@@ -722,6 +723,11 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
             onDismiss={() => act({ type: 'RESOLVE_REPORT' })}
           />
         ) : (
+          // See interruptBody's own comment above: reachable only on
+          // content drift, never in real play. RESOLVE_INTERRUPT advances
+          // the clock exactly like every named branch's own dedicated
+          // action (see reducer.ts) rather than silently holding the week
+          // open forever.
           <>
             <h2>{interruptBody(interrupt).title}</h2>
             <p>{interruptBody(interrupt).body}</p>

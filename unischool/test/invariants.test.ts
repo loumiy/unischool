@@ -421,6 +421,34 @@ function relPath(f: string): string {
   }
 }
 
+// =====================================================================
+// 11. THE GENERIC INTERRUPT FALLBACK NEVER WEDGES THE CLOCK — every
+// pendingInterrupt-resolving action must advance the clock, the same way
+// every one of the 8 real interrupt types' own dedicated RESOLVE_* action
+// does (see reducer.ts's TICK: a system that raises an interrupt mid-tick
+// skips that tick's own advanceClock call to hold the week open, so
+// whatever clears the interrupt has to advance it, or the next ordinary
+// TICK would silently re-run that same week's systems a second time).
+// RESOLVE_INTERRUPT is InterruptModal.tsx's fallback for a type its own
+// switch doesn't recognise — normally unreachable, but a real bug once
+// (it cleared the interrupt without advancing, which would have wedged
+// the clock on that exact week forever if a future interrupt type ever
+// fell through to it by accident).
+// =====================================================================
+{
+  const s = fresh();
+  const week = s.clock.week;
+  const year = s.clock.year;
+  // A type nothing in InterruptModal.tsx's switch recognises — PendingInterrupt.type
+  // is a plain string, so this is exactly the "content drift" case its own
+  // module comment describes, not a real interrupt this test is faking.
+  s.pendingInterrupt = { type: 'test-unrecognised-interrupt' };
+  const resolved = reducer(s, { type: 'RESOLVE_INTERRUPT' });
+  assert(resolved.pendingInterrupt === null, 'RESOLVE_INTERRUPT clears pendingInterrupt');
+  const advanced = resolved.clock.year > year || (resolved.clock.year === year && resolved.clock.week > week);
+  assert(advanced, `RESOLVE_INTERRUPT advances the clock (was Y${year}W${week}, now Y${resolved.clock.year}W${resolved.clock.week})`);
+}
+
 console.log('spec-conformance invariant sweep (PR H)');
 if (failures === 0) {
   console.log(`  ✓ all ${checks} checks passed`);

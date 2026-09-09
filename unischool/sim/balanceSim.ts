@@ -806,6 +806,19 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
 const rampTuition = (perPrestigePoint: number) => (s: GameState) =>
   Math.min(s.finance.tuitionCeiling, Math.round((4_000 + s.self.reputation * perPrestigePoint) / 500) * 500);
 
+// A real administration trims its own discount before it starts firing
+// people (see cutPayrollIfStalled below, and financeSystem.ts's "stall,
+// don't die" note on raising net price / cutting scholarships being the
+// cheaper, non-destructive lever). `s.finance.cash` is read live off
+// GameState — this is exactly the number a strategy would see on its own
+// Treasury tab, not a harness-only signal — so a strategy whose margin is
+// thin enough to go negative sees its own aid taper back toward `floor`
+// for as long as it stays underwater, and back to `base` the moment it
+// recovers. Strategies whose margin never goes negative (market-rate
+// pricing) never see this fire at all.
+const trimAidWhenUnderwater = (base: number, floor: number) => (s: GameState) =>
+  s.finance.cash < 0 ? floor : base;
+
 export const STRATEGIES: Strategy[] = [
   {
     // The intended line of play: grow one thing at a time, never take on a
@@ -831,7 +844,12 @@ export const STRATEGIES: Strategy[] = [
     // The volume archetype: cheap, heavily discounted, beds first. Tests
     // that a big low-selectivity school is a viable, different shape.
     name: 'Discount volume (beds first)', schoolType: 'private',
-    tuition: rampTuition(150), scholarships: () => 0.5,
+    tuition: rampTuition(150),
+    // See trimAidWhenUnderwater above: 50% off is this strategy's whole
+    // identity, but it is not a suicide pact — a school that finds itself
+    // actually underwater trims back to 30% before anything more drastic,
+    // the same annual-decision lever financeSystem.ts's own note points to.
+    scholarships: trimAidWhenUnderwater(0.5, 0.3),
     buffer: (s) => Math.max(200_000, s.finance.weeklyOpEx * 8),
     netMargin: 0.08,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,

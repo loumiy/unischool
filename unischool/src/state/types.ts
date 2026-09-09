@@ -121,9 +121,9 @@ export interface Faculty {
   // pool from it — either way, a name and a portrait that disagreed on this
   // would read as a bug, not variety, so the two are never rolled apart.
   gender: 'male' | 'female';
-  // The rolled name's cultural origin pool (e.g. "East Asian", "West/East
-  // African" — see facultyData.ts's NAME_POOLS) — distinct from
-  // `nationality`, which is disproportionately American regardless of this.
+  // The rolled name's cultural origin pool (e.g. "Chinese", "West African"
+  // — see facultyData.ts's NAME_POOLS) — distinct from `nationality`, which
+  // is disproportionately American regardless of this.
   // FacultyPortrait.tsx reads it to bias skin tone the same logical way a
   // name's heritage would in reality, without pretending nationality (a
   // passport, not an ethnicity) is the right signal for that.

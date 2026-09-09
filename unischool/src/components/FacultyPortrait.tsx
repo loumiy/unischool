@@ -58,13 +58,24 @@ const SKIN_TONES = ['#f2c9a0', '#e0a878', '#c68642', '#8d5524', '#5c3a21'];
 // a name's cultural origin would be the actually illogical version of
 // this.
 const HERITAGE_SKIN_TONES: Record<string, number[]> = {
-  'East Asian': [0, 0, 1, 1, 2],
+  // Chinese/Korean/Japanese share one weighting, same as they did as one
+  // combined "East Asian" pool before facultyData.ts split the NAMES apart
+  // for accuracy (see NAME_POOLS there) — five flat swatches have nothing
+  // finer to say about the three than the old pool already did, so there's
+  // no real distinction to draw here just because the names now are.
+  'Chinese': [0, 0, 1, 1, 2],
+  'Korean': [0, 0, 1, 1, 2],
+  'Japanese': [0, 0, 1, 1, 2],
   'South Asian': [1, 2, 2, 3, 3],
   'Anglo/Western European': [0, 0, 0, 1, 1],
   'Hispanic/Latin American': [0, 1, 1, 2, 2, 3],
   'Arabic/Middle Eastern': [0, 1, 1, 2, 2],
   'Slavic/Eastern European': [0, 0, 0, 1, 1],
-  'West/East African': [2, 3, 3, 4, 4],
+  // Same reasoning as Chinese/Korean/Japanese above, mirrored: West
+  // African/East African were one combined "West/East African" pool's
+  // worth of skin tone weighting before the NAME split, and still share it.
+  'West African': [2, 3, 3, 4, 4],
+  'East African': [2, 3, 3, 4, 4],
 };
 
 function skinTone(f: Faculty): string {
