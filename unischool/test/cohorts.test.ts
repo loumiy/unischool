@@ -13,7 +13,7 @@
 // ---------------------------------------------------------------------
 
 import {
-  COHORTS, cohortDemandFactor, cohortBreakdown, deriveCohortSignals, NEUTRAL_COHORT_SIGNALS,
+  COHORTS, cohortDemandFactor, cohortBreakdown, deriveCohortSignals, athleticsCohortPull, NEUTRAL_COHORT_SIGNALS,
   type CohortSignals,
 } from '../src/systems/admissions/cohorts';
 import { priceTolerance } from '../src/systems/admissions/admissionsSystem';
@@ -204,6 +204,55 @@ function withSignal(overrides: Partial<CohortSignals>): CohortSignals {
   assert(signals.socialOrgCount === 2, `one club + one chapter = 2 (got ${signals.socialOrgCount})`);
   assert(signals.activeTeams === 1, `one active team is counted (got ${signals.activeTeams})`);
   assert(signals.athleticsQuality > 0, `an active team with a real coach has non-zero athletics quality (got ${signals.athleticsQuality})`);
+}
+
+// =====================================================================
+// 9. athleticsCohortPull NEVER DRIFTS FROM cohortBreakdown's OWN 'athletes'
+// ENTRY — AthleticsTab.tsx reads athleticsCohortPull directly (it has no
+// price/tolerance reading to spare for a full cohortBreakdown call), while
+// the admissions interrupt reads the same underlying number through
+// cohortBreakdown. If these ever disagreed, the recruiting-pull figure
+// Athletics shows would misrepresent what admissions actually applies.
+// =====================================================================
+{
+  const signals = withSignal({ activeTeams: 3, athleticsQuality: 70 });
+  const direct = athleticsCohortPull(signals);
+  const viaBreakdown = cohortBreakdown(signals, TOLERANCE, TOLERANCE, 0).find((d) => d.id === 'athletes')!.pull;
+  assert(Math.abs(direct - viaBreakdown) < 1e-9, `athleticsCohortPull matches cohortBreakdown's own athletes entry (direct ${direct.toFixed(6)}, breakdown ${viaBreakdown.toFixed(6)})`);
+  assert(direct > 1, `athleticsCohortPull is above neutral when teams exist with real quality (got ${direct.toFixed(4)})`);
+  assert(athleticsCohortPull(NEUTRAL_COHORT_SIGNALS) === 1, `athleticsCohortPull is exactly neutral with no active teams (got ${athleticsCohortPull(NEUTRAL_COHORT_SIGNALS)})`);
+}
+
+// =====================================================================
+// 10. END TO END: FIELDING A REAL, STAFFED TEAM RAISES THE RECRUITING PULL
+// AthleticsTab.tsx SHOWS — the actual regression this guards against:
+// building athletics genuinely earns the enrollment payoff the tab claims,
+// starting from real GameState rather than hand-built CohortSignals.
+// =====================================================================
+{
+  const bare = createInitialState('Athletics Payoff Bare', 'private');
+  const staffed = createInitialState('Athletics Payoff Staffed', 'private');
+  staffed.orgs.teams.push({
+    id: 'team-varsity', name: 'Test Team', foundedYear: 1, foundingMembers: 20, foundingEnrolled: 400,
+    upkeepPerWeek: 500, sport: 'soccer-m', venueCategory: 'athleticsField', status: 'active',
+    headCoach: {
+      id: 'c1', name: 'Coach A', gender: 'male', heritage: 'Anglo/Western European', field: 'soccer-m',
+      quality: 80, qualityPotential: 90, tenureWeeks: 10, weeksListed: 0, salary: 50_000,
+    },
+    assistantCoach: {
+      id: 'c2', name: 'Coach B', gender: 'female', heritage: 'Chinese', field: 'soccer-m',
+      quality: 70, qualityPotential: 85, tenureWeeks: 5, weeksListed: 0, salary: 45_000,
+    },
+    trainer: {
+      id: 'c3', name: 'Coach C', gender: 'male', heritage: 'West African', field: 'strength-conditioning',
+      quality: 60, qualityPotential: 75, tenureWeeks: 3, weeksListed: 0, salary: 40_000,
+    },
+  });
+
+  const barePull = athleticsCohortPull(deriveCohortSignals(bare));
+  const staffedPull = athleticsCohortPull(deriveCohortSignals(staffed));
+  assert(barePull === 1, `no varsity teams means no recruiting pull yet (got ${barePull})`);
+  assert(staffedPull > barePull, `a real, staffed varsity team raises the recruiting pull AthleticsTab.tsx shows (bare ${barePull}, staffed ${staffedPull.toFixed(4)})`);
 }
 
 console.log('cohorts tests');
