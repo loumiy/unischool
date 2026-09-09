@@ -137,16 +137,21 @@ button { cursor: pointer; font-family: inherit; }
    band in the same quiet family reads as one chrome unit with the toolbar
    below it, not a distinct, separately-themed panel. z-index sits between
    the map (0) and the toolbar/every other floating card (10): above the
-   ground, below every other floating card. A real <button> (see
-   LogTicker.tsx), not a div — clicking it opens the fuller feed
-   (.log-popup below) — so the usual button resets (border/font/text-align/
-   cursor) apply on top of the same box this used to be as a plain div. */
+   ground, below every other floating card. A plain div, not a button —
+   only .log-ticker-toggle (the small icon on the left) is clickable; the
+   text itself is inert content, the same as the toolbar's own funds/stats
+   readouts, not a giant click target the whole strip's width invites a
+   mis-click on. */
 .log-ticker { position: fixed; z-index: 5; left: 0; right: 0; bottom: var(--toolbar-height);
-  height: var(--log-ticker-height); display: flex; align-items: center;
-  padding: 0 16px; background: var(--navy-line); color: var(--ink-hi); font-size: 12px;
-  font-family: inherit; text-align: left; border: none; cursor: pointer;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.log-ticker:hover, .log-ticker[aria-expanded="true"] { background: var(--navy); }
+  height: var(--log-ticker-height); display: flex; align-items: center; gap: 8px;
+  padding: 0 12px; background: var(--navy-line); color: var(--ink-hi); font-size: 12px;
+  white-space: nowrap; overflow: hidden; }
+.log-ticker-toggle { flex: none; display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; padding: 0; background: transparent; border: none;
+  border-radius: 4px; color: var(--ink-lo); cursor: pointer; }
+.log-ticker-toggle svg { width: 14px; height: 14px; display: block; }
+.log-ticker-toggle:hover, .log-ticker-toggle[aria-expanded="true"] { color: var(--ink-hi); background: var(--navy); }
+.log-ticker > span { overflow: hidden; text-overflow: ellipsis; }
 .log-ticker .ts { color: var(--ink-lo); font-family: var(--mono); margin-right: 6px; }
 /* The bright, dark-background pair StatusHeader.tsx already uses for
    cash/satisfaction (money / money-negative) — not --green/#a13a3a, which

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useGame } from './engine/useGame';
 import type { GameState } from './state/types';
 import StartupScreen from './components/StartupScreen';
@@ -75,8 +75,7 @@ export default function App() {
   // either one.
   const [placingId, setPlacingIdState] = useState<string | null>(null);
   const [pathTool, setPathToolState] = useState<'draw' | 'erase' | null>(null);
-  const toolbarRef = useRef<HTMLDivElement>(null);
-  useCssHeightVar(toolbarRef, '--toolbar-height');
+  const toolbarRef = useCssHeightVar('--toolbar-height');
 
   // Picking up a building for siting and drawing/erasing a path are two
   // different jobs for the same click on the same grid, so exactly one is
