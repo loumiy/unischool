@@ -653,7 +653,11 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
       <div className="event-choices">
         {event.choices.map((choice) => {
           const cost = choice.cost(s, ctx);
-          const affordable = cost <= s.finance.cash;
+          // A free choice must stay pickable even with cash already
+          // negative — `cost <= s.finance.cash` alone would disable every
+          // choice, including the guaranteed no-cost one, and strand the
+          // player behind the modal with no way out.
+          const affordable = cost === 0 || cost <= s.finance.cash;
           return (
             <button
               key={choice.id}
