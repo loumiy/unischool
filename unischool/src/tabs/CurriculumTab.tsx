@@ -357,10 +357,14 @@ function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => v
   }, [pos, placeTooltip]);
 
   const state = cellState(s, t);
-  const code = t.name.split(' · ')[0];
-  const spaceAt = code.lastIndexOf(' ');
-  const dept = spaceAt === -1 ? code : code.slice(0, spaceAt);
-  const num = spaceAt === -1 ? '' : code.slice(spaceAt + 1);
+  // A course's stored name is "CODE · Title" (see techData). The cell used
+  // to show only the code, which meant reading the catalogue was a matter of
+  // hovering each cell in turn to find out what it actually taught. The card
+  // leads with the TITLE and keeps the code as an eyebrow above it — the
+  // code still identifies the course, it just stops being the only thing on
+  // offer at a glance.
+  const [code, titleFromName] = t.name.split(' · ');
+  const title = titleFromName ?? code;
   const missingFaculty = !!(t.requiresFaculty && !hasFreeFacultySlot(s, t.requiresFaculty));
   // Only a DONE course has an instructor to name — an available or
   // developing course hasn't been assigned a slot in the round-robin's
@@ -404,10 +408,9 @@ function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => v
         disabled={state !== 'available'}
         onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: t.id })}
       >
-        <span className="cell-code">
-          <span className="cell-code-dept">{dept}</span>
-          {num && <span className="cell-code-num">{num}</span>}
-        </span>
+        <span className="cell-code">{code}</span>
+        <span className="cell-title">{title}</span>
+        {state === 'done' && <span className="cell-stamp" aria-hidden="true">✓</span>}
         {showGateDot && <span className="cell-gate-dot" aria-hidden="true" />}
         {state === 'developing' && (
           <span className="cell-progress" aria-hidden="true">

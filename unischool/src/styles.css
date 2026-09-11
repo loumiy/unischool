@@ -502,18 +502,32 @@ button { cursor: pointer; font-family: inherit; }
 /* An even grid rather than a ragged wrap: every cell is one column wide,
    so codes line up in columns and the block reads as a table of contents
    instead of a paragraph. */
-.cell-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 7px 8px; }
+/* Cards, not chips. The grid used to be 78px-wide cells carrying a course
+   CODE and nothing else, which made the catalogue unreadable without
+   hovering every cell in turn to find out what each one taught. A card is
+   wide enough for the title and tall enough for two or three lines of it,
+   with the code demoted to an eyebrow — still there to identify the course,
+   just no longer the only thing on offer. */
+.cell-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 8px; }
 .course-cell-wrap { position: relative; }
-/* Typographic hierarchy inside the cell: the department carries the
-   weight, the number trails it smaller and lighter, so scanning reads
-   departments first and numbers only when wanted. */
-.course-cell { position: relative; width: 100%; height: 34px; display: flex; align-items: center; justify-content: center;
-  border-radius: var(--radius-sm); padding: 0 6px; overflow: hidden;
+.course-cell { position: relative; width: 100%; min-height: 58px; display: flex; flex-direction: column;
+  align-items: flex-start; justify-content: flex-start; gap: 2px; text-align: left;
+  border-radius: var(--radius-md); padding: 6px 8px 8px; overflow: hidden;
   border: 1px dashed #cdc2a3; color: #b6ab89; background: transparent; box-sizing: border-box;
   transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.12s ease, border-color 0.12s ease; }
-.cell-code { display: inline-flex; align-items: baseline; gap: 3px; font-family: var(--mono); }
-.cell-code-dept { font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.03em; }
-.cell-code-num { font-size: var(--text-2xs); font-weight: 400; letter-spacing: 0.02em; opacity: 0.68; }
+.cell-code { font-family: var(--mono); font-size: var(--text-2xs); font-weight: 700;
+  letter-spacing: 0.06em; opacity: 0.75; }
+/* Three lines, then ellipsis. A handful of titles in the catalogue run to
+   36 characters ("Governmental & Non-Profit Accounting"), and a card that
+   grew to fit the longest one would set the row height for every card
+   beside it. */
+.cell-title { font-size: var(--text-xs); line-height: 1.25; font-weight: 600;
+  display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden; }
+/* The stamp on a finished course: the one mark that reads as "done" without
+   needing its colour decoded. */
+.cell-stamp { position: absolute; top: 5px; right: 6px; font-size: var(--text-xs);
+  line-height: 1; opacity: 0.75; }
 
 .course-cell.locked { opacity: 0.5; cursor: default; }
 .course-cell.blocked { border-style: solid; border-color: #c4b591; background: #e4dcc5; color: #8d8261; cursor: not-allowed; }
@@ -524,8 +538,8 @@ button { cursor: pointer; font-family: inherit; }
   box-shadow: var(--shadow-1); }
 .course-cell.developing { border-style: solid; border-color: var(--gold); color: #4a3c14; cursor: default;
   animation: cell-pulse 1.7s ease-in-out infinite; }
+.course-cell.developing .cell-title, .course-cell.done .cell-title { font-weight: 600; }
 .course-cell.done { border-style: solid; border-color: #6d5610; background: var(--brass-deep); color: #f7ecc6; cursor: default; }
-.course-cell.done .cell-code-num { opacity: 0.78; }
 
 /* The pulse stays (it is what says "work is happening here"), but it now
    plays between two PALE creams and a soft halo instead of filling to
