@@ -6,6 +6,7 @@ import { weeklyNet } from '../systems/finance/financeSystem';
 import { playerRank } from '../systems/rivals/rivalsSystem';
 import { SPEEDS, SANDBOX_SPEEDS, type Speed } from '../engine/useGame';
 import DayTicker from './DayTicker';
+import AnimatedNumber from './AnimatedNumber';
 
 // The playtest grant (see the "+$1B" button below): a round, memorable
 // figure — not tuned to any particular shortfall — since its only job is
@@ -94,7 +95,15 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
         title="Operating funds — opens Treasury"
         onClick={onOpenTreasury}
       >
-        <span className={`stat-value ${s.finance.cash < 0 ? 'money-negative' : 'money'}`}>${Math.round(s.finance.cash).toLocaleString()}</span>
+        {/* The headline figures TICK to their new value rather than
+            snapping. AnimatedNumber already existed for exactly this and was
+            used only by the admissions form; a management sim's money moving
+            visibly every week is the clearest place for it. Rank is
+            deliberately left alone — it is an ordinal, and counting through
+            the places between two ranks says something that isn't true. */}
+        <span className={`stat-value ${s.finance.cash < 0 ? 'money-negative' : 'money'}`}>
+          <AnimatedNumber value={s.finance.cash} format={(n) => `$${Math.round(n).toLocaleString()}`} />
+        </span>
         <span className="toolbar-funds-net">{netWeekly >= 0 ? '+' : '-'}${Math.round(Math.abs(netWeekly)).toLocaleString()}/wk</span>
       </button>
       <div className="toolbar-stats">
@@ -104,15 +113,17 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
         </div>
         <div className="toolbar-stat">
           <span className="stat-label">Enrolled</span>
-          <span className="stat-value">{totalEnrolled(s.students).toLocaleString()}</span>
+          <span className="stat-value"><AnimatedNumber value={totalEnrolled(s.students)} /></span>
         </div>
         <div className="toolbar-stat">
           <span className="stat-label">Prestige</span>
-          <span className="stat-value gold">{Math.round(s.self.reputation)}</span>
+          <span className="stat-value gold"><AnimatedNumber value={s.self.reputation} /></span>
         </div>
         <div className="toolbar-stat">
           <span className="stat-label">Satisfaction</span>
-          <span className={`stat-value ${s.students.satisfaction < SATISFACTION_WARN ? 'money-negative' : ''}`}>{Math.round(s.students.satisfaction)}</span>
+          <span className={`stat-value ${s.students.satisfaction < SATISFACTION_WARN ? 'money-negative' : ''}`}>
+            <AnimatedNumber value={s.students.satisfaction} />
+          </span>
         </div>
       </div>
     </>

@@ -9,6 +9,16 @@ import { useEffect, useRef, useState } from 'react';
 // wherever the animation currently is, never fights or resets.
 const DURATION_MS = 450;
 
+// This tween is driven by requestAnimationFrame, not by CSS, so the
+// stylesheet's blanket prefers-reduced-motion rule cannot reach it — it has
+// to ask for itself. A reader who has asked for less motion gets the settled
+// figure immediately, which is the same number either way.
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 export default function AnimatedNumber({ value, format = defaultFormat }: {
   value: number;
   format?: (n: number) => string;
@@ -22,6 +32,11 @@ export default function AnimatedNumber({ value, format = defaultFormat }: {
     const to = value;
     if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
     if (from === to) return;
+    if (prefersReducedMotion()) {
+      displayedRef.current = to;
+      setDisplayed(to);
+      return;
+    }
 
     let start: number | null = null;
     function tick(now: number) {
