@@ -10,7 +10,8 @@ import { canStartDevelopment } from '../systems/techtree/techSystem';
 import { isTypingTarget, useHotkeys } from './hotkeys';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
-import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf, tintFor } from './buildingMotifs';
+import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf, motifOf, tintFor } from './buildingMotifs';
+import { groundProps } from './groundMarkings';
 import PathwayLayer from './pathways';
 import Tree from './trees';
 import { TILE_H, WORLD, boxFaces, lift, polyPoints, project, tileAt } from './isoProjection';
@@ -989,6 +990,21 @@ export default function CampusMap({
     for (const tile of placementTiles(p)) covered.add(`${tile.row},${tile.col}`);
   }
 
+  // FLAT GROUND VS EVERYTHING THAT STANDS ON IT. An open-ground facility —
+  // a quad, a pitch, a ball field, the courts, the pool deck — is paint on
+  // the ground with no height at all, so it can never legitimately occlude
+  // anything and is drawn in a pass of its own UNDER every mass (see
+  // groundMarkings.tsx's own note on why a single depth key cannot express
+  // a large flat footprint: a 9x9 quad sorted on its far corner painted
+  // over trees standing in front of its near one).
+  //
+  // What genuinely stands on one of those plots — planting, hedges, a
+  // fountain, a monument, a stand, an outfield fence — comes back from
+  // groundProps and joins the ordinary sorted pass below, each prop on the
+  // point it actually stands on.
+  const groundPlaced = placed.filter(({ t }) => motifOf(t) === 'grounds');
+  const massPlaced = placed.filter(({ t }) => motifOf(t) !== 'grounds');
+
   // The trees currently VISIBLE: every tree whose tile has no path drawn on
   // it (see state/types.ts's Trees block — paving hides a tree, it never
   // deletes one, so this is the entire implementation of "lifting the path
@@ -1093,8 +1109,24 @@ export default function CampusMap({
                 in front of or behind every building. Both sort on the same
                 thing: the far corner of the tiles the thing occupies, which
                 for a tree is simply its own single tile. */}
+            {/* The flat ground plates, before every mass. They have no
+                height, so nothing can stand behind one — and sorting them
+                against masses at all is what made a quad paint over a tree
+                in front of it. */}
+            {groundPlaced.map(({ t, p }) => (
+              <PlacedBuilding
+                key={t.id}
+                t={t}
+                p={p}
+                onInspect={() => inspectBuilding(t.id)}
+                inspected={t.id === inspectedId}
+                weeksLeft={s.developing[t.id]}
+                justFinished={justFinished.includes(t.id)}
+              />
+            ))}
+
             {[
-              ...placed.map((m) => ({
+              ...massPlaced.map((m) => ({
                 depth: m.p.row + m.p.h + m.p.col + m.p.w,
                 key: `b-${m.t.id}`,
                 node: (
@@ -1113,6 +1145,19 @@ export default function CampusMap({
                 key: `t-${key}`,
                 node: <Tree row={tile.row} col={tile.col} seed={seed} />,
               })),
+              // The raised half of every flat plate drawn above. Each prop
+              // sorts on the point it stands on, so a quad's own trees
+              // correctly interleave with the woodland around them instead
+              // of arriving as one block at the plate's depth.
+              ...groundPlaced.flatMap(({ t, p }) => {
+                const d = drawnFootprint(p);
+                return groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier)
+                  .map((prop) => ({
+                    depth: prop.col + prop.row,
+                    key: `g-${t.id}-${prop.key}`,
+                    node: prop.node,
+                  }));
+              }),
             ]
               .sort((m, n) => m.depth - n.depth)
               .map(({ key, node }) => <g key={key}>{node}</g>)}

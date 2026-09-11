@@ -1348,6 +1348,23 @@ hidden by it, which a separate layer could never do. And, like `placements`
 and `pathways`, `trees` is **read by no system** — the invariant sweep
 enforces it.
 
+**Flat ground is the exception to that pass, and has to be.** Painter's
+order is the occlusion here, and one depth key per placement (the far corner
+of its footprint) expresses a mass well enough — but it cannot express a
+large FLAT plate. A 9x9 quad sorted on its far corner draws *after*, and so
+over, a tree standing in front of its near corner but off to one side, whose
+own depth is smaller. That is not a tuning problem; it is what a single sort
+key cannot say about a big footprint.
+
+So an open-ground facility (quad, pitch, ball field, courts, pool deck) is
+split in two. Its **paint** has no height, can never legitimately occlude
+anything, and is drawn in a pass of its own *under* every mass, needing no
+depth at all. What genuinely **stands** on it — planting, hedges, a
+fountain, a monument, a stand, an outfield fence — comes back from
+`groundMarkings.ts`'s `groundProps` and joins the ordinary sorted pass, each
+prop on the point it actually stands on, so a quad's own trees interleave
+correctly with the woodland around them.
+
 ## College, and University
 
 A school opens as **"<Name> College"**. The player writes only the first half at
