@@ -9,7 +9,8 @@ import {
 import { canStartDevelopment } from '../systems/techtree/techSystem';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
-import BuildingMotif from './buildingMotifs';
+import BuildingMotif, { heightOf, tintFor } from './buildingMotifs';
+import { TILE_H, WORLD, boxFaces, lift, polyPoints, project, tileAt } from './isoProjection';
 
 // The campus map: the game's base layer, always on screen under everything
 // else (see App.tsx), and a placement + rendering layer over the SAME
@@ -46,138 +47,61 @@ import BuildingMotif from './buildingMotifs';
 // library, no new deps. (The isometric rebuild is a separate, later arc;
 // this is the flat map made finer-grained, not a step toward it.)
 
-// --- layout (SVG user units; 1 unit = 1 CSS px at zoom 1 — see the pan/
-// zoom transform below) ---
-// Tiles are deliberately small now that the grid is 126x126 rather than 8x6:
-// a plot, not a placard. The label sizing below is what makes that
-// readable — a small facility gets a terse two-or-three-line name, a 9x9
-// hall gets room for its full one.
-const TILE_SIZE = 64;      // edge length of one square tile
-// No gutter: the ground is one continuous lawn, not a field of separate
-// paving stones — see GROUND_CORNER below and .campus-tile's thin, low-
-// contrast grid line in styles.css, which is what marks the grid now that
-// a gap and a rounded corner per tile no longer do.
-const TILE_GAP = 0;
-const MAP_PADDING = 16;      // breathing room around the whole grid
-const GROUND_CORNER = 0;     // ground tiles are square — a seam in a lawn, not a tile's own edge
-const BUILDING_CORNER = 8;   // placed buildings (and the footprint ghost) keep a soft corner: they're objects ON the ground, not the ground itself
+// --- layout ---
+// The map is drawn in 2:1 dimetric projection (see isoProjection.ts, which
+// owns every bit of the geometry). This file keeps only what is about the
+// MAP rather than about the projection: how big the world is, how far it
+// zooms, and what is drawn on it.
+//
+// The flat map's per-tile <rect> ground is gone. An angled grid is drawn as
+// one plate polygon plus two families of parallel lines — about 250 line
+// segments in a single <path> — instead of CAMPUS_GRID_WIDTH *
+// CAMPUS_GRID_HEIGHT (126 * 126 = 15,876) rects. That is not a compromise
+// forced by the projection; it is strictly cheaper than what it replaces,
+// and it is possible because a mouse position now resolves to a tile by
+// arithmetic (isoProjection's unproject) rather than by asking the DOM
+// which rect was hit.
+const MAP_PADDING = 64;
 
-// Placed buildings draw slightly INSET within the tiles their footprint
-// covers — a pure RENDER offset, not a footprint change: occupancy,
-// canPlace, bounds and the stored Placement (campusMap.ts) still all work
-// in whole tiles, a 9x9 hall still occupies 81 of them. Two buildings on
-// adjacent footprints share a tile boundary with nothing between them (see
-// TILE_GAP above), so without this their drawn edges would touch exactly
-// like their footprints do; insetting each one by BUILDING_INSET opens a
-// (2 * BUILDING_INSET)-wide gutter centred on that shared boundary, so two
-// adjacent buildings always read as two objects with a seam between them
-// rather than one fused block. Kept a few px, not a fraction of TILE_SIZE:
-// at the smallest footprint (3x3 tiles, e.g. a lab) it's still a thin seam,
-// not a visible bite out of the building. A path tile (see the Pathways
-// render block below) is drawn UNDER buildings regardless of this inset
-// (see the render order below), so one drawn on a tile a building later
-// covers simply disappears under it.
-const BUILDING_INSET = 4;
+// Placed buildings draw slightly INSET within their footprint — a pure
+// RENDER offset, not a footprint change: occupancy, canPlace, bounds and the
+// stored Placement all still work in whole tiles. Without it two buildings
+// on tile-adjacent footprints would share an edge with nothing between them
+// and fuse into one mass. In tile units rather than pixels now, since the
+// projection turns a fixed pixel inset into a different real distance on
+// each axis.
+const BUILDING_INSET = 0.06;
 
-// A placed building sits ON the lawn rather than being painted into it, so
-// it casts a small shadow down and to the right. A second <rect> under the
-// body, NOT an SVG drop-shadow filter: there are only ever a few dozen
-// placed buildings so a filter would be affordable here, but a hard flat
-// offset is the language the rest of the map already speaks (flat fills,
-// hairline strokes, no blur anywhere), and it costs one more rect in the
-// same paint instead of a separate filter region per building. Kept smaller
-// than BUILDING_INSET's own (2 * BUILDING_INSET) gutter so a building's
-// shadow always falls in the seam beside it and never climbs onto a
-// tile-adjacent neighbour.
-const BUILDING_SHADOW_OFFSET = 3;
+// Labels. On an angled map a name can no longer be typeset INTO the shape
+// it belongs to — a building's roof is a rhombus, not a text box — so the
+// label became its own thing: one line, centred over the mass, on a small
+// plate that keeps it readable whatever roof tint or wall happens to be
+// behind it. Drawn in a pass after every building (see the render below) so
+// a label is never half-hidden by whatever stands in front of its own
+// building.
+//
+// Size scales with the footprint rather than being fixed: a fixed size is
+// what made the prototype's labels unreadable, because the camera scales
+// the world and a 11px label at DEFAULT_ZOOM is about six real pixels. A
+// 9x9 hall now carries a label more than twice the size of a 3x3 lab's, and
+// both stay in proportion to the thing they name at every zoom.
+// The floor is generous on purpose. A label's size is in WORLD units, so
+// the camera scales it: at DEFAULT_ZOOM (0.4) a world size of 11 lands as
+// about four real pixels, which is why the prototype's labels were
+// unreadable. The floor is set so the smallest footprint on campus still
+// carries a legible name at the zoom the game opens at.
+const LABEL_MIN_FONT_SIZE = 19;
+const LABEL_MAX_FONT_SIZE = 34;
+const LABEL_SIZE_PER_TILE = 1.8;   // font size grows this much per tile of (w + h)
+const LABEL_CHAR_WIDTH_RATIO = 8 / 15;
+const LABEL_PLATE_PAD_X = 5;
+const LABEL_PLATE_PAD_Y = 3;
+const LABEL_CLEARANCE = 10;        // gap between a building's apex and its label plate
 
-// The brass ring drawn around the building whose info panel is open — see
-// .campus-building-halo in styles.css for why the connection to that panel
-// is made here on the map rather than by anchoring the panel itself.
-const BUILDING_HALO_GAP = 3;
-
-// --- ground texture ---
-// ONE tiled <pattern> stretched across a SINGLE rect covering the whole
-// grid — deliberately not per-tile variation. The grid is
-// CAMPUS_GRID_WIDTH * CAMPUS_GRID_HEIGHT (126 * 126 = 15,876) <rect>s, every
-// one of them rendered at all times (see the rows/cols map in the render
-// below) and every one sharing a single CSS class, so the browser keeps one
-// computed style for the lot. Mottling the lawn by giving each tile its own
-// fill would replace that one shared style with ~16k distinct ones — the
-// same per-frame cost the pan/zoom refs above exist specifically to avoid.
-// A pattern costs one element and one paint, at any grid size.
-const TURF_PATTERN_ID = 'campus-turf-pattern';
-const TURF_PATTERN_SIZE = 384;   // 6 tiles square: large enough that the repeat never reads as a second grid over the first
-const TURF_BAND_HEIGHT = 96;     // 1.5 tiles — deliberately NOT a whole number of tiles, so a mow band's edge never lands on a tile seam
-
-// Worn flecks in the turf, hand-placed within one pattern tile:
-// [cx, cy, rx, ry]. All kept clear of the pattern box's edges so none is
-// clipped at the repeat seam, and irregularly spaced so the repeat reads as
-// texture rather than as a motif. Ellipses rather than circles — a round dot
-// at this size reads as a bullet point, not as ground.
-const TURF_FLECKS: readonly (readonly [number, number, number, number])[] = [
-  [34, 58, 3.5, 2.2], [112, 27, 2.4, 1.6], [201, 74, 4.1, 2.6], [297, 41, 2.8, 1.9],
-  [352, 103, 3.2, 2.1], [66, 148, 2.6, 1.8], [158, 186, 3.8, 2.4], [243, 137, 2.2, 1.5],
-  [331, 199, 3.4, 2.2], [26, 247, 3.0, 2.0], [129, 291, 2.5, 1.7], [214, 262, 3.6, 2.3],
-  [305, 328, 2.9, 1.9], [88, 352, 3.3, 2.1], [368, 279, 2.3, 1.6],
-];
-
-// The pattern definition and the one rect that wears it. Geometry lives
-// here and colour lives in styles.css (.campus-turf-band/.campus-turf-fleck),
-// the same split every other shape on this map follows — the `fill` below is
-// a reference to this pattern, not a colour, so it stays on this side.
-function TurfTexture() {
-  return (
-    <>
-      <defs>
-        <pattern id={TURF_PATTERN_ID} width={TURF_PATTERN_SIZE} height={TURF_PATTERN_SIZE} patternUnits="userSpaceOnUse">
-          <rect className="campus-turf-band" x={0} y={0} width={TURF_PATTERN_SIZE} height={TURF_BAND_HEIGHT} />
-          <rect className="campus-turf-band" x={0} y={TURF_PATTERN_SIZE / 2} width={TURF_PATTERN_SIZE} height={TURF_BAND_HEIGHT} />
-          {TURF_FLECKS.map(([cx, cy, rx, ry]) => (
-            <ellipse key={`${cx},${cy}`} className="campus-turf-fleck" cx={cx} cy={cy} rx={rx} ry={ry} />
-          ))}
-        </pattern>
-      </defs>
-      <rect
-        className="campus-turf"
-        x={tileX(0)}
-        y={tileY(0)}
-        width={spanSize(CAMPUS_GRID_WIDTH)}
-        height={spanSize(CAMPUS_GRID_HEIGHT)}
-        fill={`url(#${TURF_PATTERN_ID})`}
-      />
-    </>
-  );
-}
-
-// Label metrics: shrink-to-fit sizing (see labelFor below). SVG <text> has
-// no CSS text-overflow, so "does the full name fit" has to be computed
-// rather than measured live in the DOM — LABEL_CHAR_WIDTH_RATIO and
-// LABEL_LINE_HEIGHT_RATIO approximate an average glyph's advance and a
-// line's pitch as a fraction of font size (close enough to pick a size,
-// not to typeset). They're kept as font-size-relative RATIOS, not fixed
-// pixel deltas, and LABEL_MIN_FONT_SIZE/LABEL_MAX_FONT_SIZE are absolute
-// floors/ceilings independent of TILE_SIZE — so none of this needs to
-// change when SCHOOL_BUILDING_FOOTPRINT grows from 2x2 to 9x9: a bigger
-// footprint just gives the search more room to reach the ceiling, it never
-// needs a different formula or a redrawn floor.
-const LABEL_MAX_FONT_SIZE = 22;          // the largest a label ever renders, footprint permitting
-const LABEL_MIN_FONT_SIZE = 14;          // the floor: never shrink past this, even if the wrap still overflows — the full name always renders, just cramped
-const LABEL_FONT_STEP = 1;               // granularity of the shrink-to-fit search between the two sizes above
-const LABEL_CHAR_WIDTH_RATIO = 8 / 15;   // avg glyph advance as a fraction of font size
-const LABEL_LINE_HEIGHT_RATIO = 17 / 15; // line pitch as a fraction of font size
-const LABEL_INSET = 6;          // padding between the label block and the footprint's edge
-const LABEL_MAX_LINES = 3;      // a readability ceiling on lines, independent of how much vertical room the footprint has
-const LABEL_MIN_CHARS = 4;      // narrower than this at every font size down to the floor, and the label is dropped rather than shredded
-
-// The under-construction progress bar drawn along the bottom of a
-// developing placement's own footprint (see PlacedBuilding below) — the
-// map's visual cue that this is a building site, not a finished building,
-// without needing to hover for the tooltip. Sized off TILE_SIZE the same
-// spirit LABEL_* is: proportions that hold whether the footprint is a 3x3
-// lab or a 12x9 stadium.
-const PROGRESS_BAR_HEIGHT = 5;
-const PROGRESS_BAR_INSET = LABEL_INSET;
+// The under-construction progress bar. On the angled map it lies flat on
+// the ground along the FRONT edge of the site's own footprint, where nothing
+// can stand on top of it, rather than across the building's face.
+const PROGRESS_BAR_DEPTH = 0.22;   // in tiles
 
 // --- pan & zoom ---
 // Deliberately kept OUT of React state (see the view*Ref below): the whole
@@ -204,244 +128,85 @@ const DEFAULT_ZOOM = 0.4;
 const ZOOM_SPEED = 0.0016;       // wheel deltaY -> zoom factor
 const PAN_CLICK_THRESHOLD = 4;   // px of movement before a mousedown counts as a drag, not a click
 
-const MAP_WIDTH = MAP_PADDING * 2 + CAMPUS_GRID_WIDTH * TILE_SIZE + (CAMPUS_GRID_WIDTH - 1) * TILE_GAP;
-const MAP_HEIGHT = MAP_PADDING * 2 + CAMPUS_GRID_HEIGHT * TILE_SIZE + (CAMPUS_GRID_HEIGHT - 1) * TILE_GAP;
+// The world's drawn extent. Unlike the flat map's, this is NOT anchored at
+// the origin: the grid projects to a diamond whose left corner sits at
+// negative x, so defaultView below has to centre on the real bounds rather
+// than assume the world starts at 0,0. Headroom is added at the top for the
+// tallest building's roof, which draws above its own footprint.
+const WORLD_TOP_HEADROOM = 140;
 
-function tileX(col: number): number {
-  return MAP_PADDING + col * (TILE_SIZE + TILE_GAP);
-}
-
-function tileY(row: number): number {
-  return MAP_PADDING + row * (TILE_SIZE + TILE_GAP);
-}
-
-// A footprint w tiles across spans its own tiles plus the gutters between
-// them, so a 2-wide building reads as one solid block rather than two.
-function spanSize(tiles: number): number {
-  return tiles * TILE_SIZE + (tiles - 1) * TILE_GAP;
-}
-
-// ---------------------------------------------------------------------
-// COLOUR VARIETY. The map used to draw one fill per kind, which made a
-// built-out campus a field of three colours. Placements now also carry a
-// `tint-N` class, and styles.css owns every actual colour (this file owns
-// geometry only, per the panel's own convention).
-//
-// N is chosen by what the thing IS, not at random:
-//   - facility -> its facilityType's index, so all dining halls match each
-//     other and none of them match the library. This is the meaningful axis.
-//   - dorm -> a hash of the id, so the fifteen dorms differ from their
-//     neighbours while staying in one family. Stable across sessions
-//     because ids are.
-//   - building has no tint class at all: the academic halls are the
-//     campus's landmarks and read as ONE family, not id-hashed shades of
-//     one — see `.campus-building.kind-building rect` in styles.css.
-// Every tint is a shade inside the same brass/ink/parchment language; the
-// classes are per-kind in CSS, so `tint-0` means a different (but related)
-// colour for a dorm than for a facility.
-// ---------------------------------------------------------------------
-const FACILITY_TINT_ORDER = [
-  'library', 'studentCenter', 'diningHall', 'recCenter',
-  'healthCenter', 'quad', 'lab',
-  // Appended, not interleaved: existing tint indices must never move (an
-  // old save's placed buildings would otherwise silently repaint).
-  'gym', 'tennisCourts', 'pool', 'performingArtsCenter', 'artGallery',
-  // Varsity athletics venues, same append-only discipline. footballStadium
-  // gets the boldest of the five in styles.css — the pinnacle venue reads
-  // as a landmark in colour, not just in footprint, while staying an
-  // ordinary tinted facility rather than borrowing kind-building's fixed
-  // gold (see the single-Buildable-model note on why it isn't `building`
-  // kind at all).
-  'athleticsField', 'athleticsArena', 'athleticsDiamond', 'athleticsNatatorium', 'footballStadium',
-  // The campus grocery store: same append-only rule as above.
-  'grocery',
-] as const;
-const HASHED_TINT_COUNT = 4; // shades available to dorms
-
-function hashTint(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 1000003;
-  return h % HASHED_TINT_COUNT;
-}
-
-// Building has no tint class of its own (see comment above), so this is
-// only ever called for facility/dorm kinds.
-function tintIndex(t: Buildable): number {
-  if (t.kind === 'facility' && t.facilityType) {
-    const i = FACILITY_TINT_ORDER.indexOf(t.facilityType);
-    return i >= 0 ? i : 0;
+// The ground: one plate polygon and one <path> holding both families of
+// grid lines. Built once at module scope — the grid never changes shape, so
+// there is no reason to rebuild ~250 line segments on every render.
+const GROUND_PLATE = boxFaces(0, 0, CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT, 0, 0).top;
+const GRID_LINES = (() => {
+  const seg: string[] = [];
+  for (let r = 0; r <= CAMPUS_GRID_HEIGHT; r++) {
+    const a = project(0, r); const b = project(CAMPUS_GRID_WIDTH, r);
+    seg.push(`M${a.x.toFixed(1)},${a.y.toFixed(1)}L${b.x.toFixed(1)},${b.y.toFixed(1)}`);
   }
-  return hashTint(t.id);
-}
+  for (let c = 0; c <= CAMPUS_GRID_WIDTH; c++) {
+    const a = project(c, 0); const b = project(c, CAMPUS_GRID_HEIGHT);
+    seg.push(`M${a.x.toFixed(1)},${a.y.toFixed(1)}L${b.x.toFixed(1)},${b.y.toFixed(1)}`);
+  }
+  return seg.join('');
+})();
+const MAP_HEIGHT = WORLD.maxY - WORLD.minY + MAP_PADDING * 2 + WORLD_TOP_HEADROOM;
 
-// The class list for a placed/tray Buildable: `kind-<kind>` always, plus a
-// `tint-N` shade for dorm/facility. Building gets no tint class — it's a
-// single fixed landmark colour in CSS, not a variety axis.
+// The CSS hook for a placed building. Colour is no longer decided here —
+// tintFor (buildingMotifs.tsx) owns it, because the angled map derives five
+// shades from each tint and a stylesheet cannot do that arithmetic. What is
+// left is the kind class, which drives behaviour rules (the inspect dimming)
+// rather than any fill.
 function kindClasses(t: Buildable): string {
-  return t.kind === 'building' ? `kind-${t.kind}` : `kind-${t.kind} tint-${tintIndex(t)}`;
+  return `kind-${t.kind}`;
 }
 
-// Greedy word wrap into lines of at most `maxChars` — no dropping, no
-// truncation. A single word longer than maxChars still gets its own line
-// rather than being cut short: shrink-to-fit (see labelFor below) is what
-// keeps that rare in practice, by trying smaller font sizes — and so
-// larger maxChars — before ever falling back to the floor. This function's
-// job is just "never lose a word", which is what makes ellipsis
-// unnecessary; "always fit the box" is labelFor's job, not this one's.
-function wrapLabelFull(name: string, maxChars: number): string[] {
-  const lines: string[] = [];
-  let line = '';
-  for (const word of name.split(' ')) {
-    const candidate = line ? `${line} ${word}` : word;
-    if (!line || candidate.length <= maxChars) {
-      line = candidate;
-    } else {
-      lines.push(line);
-      line = word;
-    }
-  }
-  if (line) lines.push(line);
-  return lines;
+// A placed building's drawn footprint: its own tiles, inset so two
+// tile-adjacent buildings read as two masses with a seam rather than one
+// fused block. Occupancy is untouched — this is render geometry only.
+function drawnFootprint(p: Placement) {
+  return {
+    col: p.col + BUILDING_INSET,
+    row: p.row + BUILDING_INSET,
+    w: p.w - BUILDING_INSET * 2,
+    h: p.h - BUILDING_INSET * 2,
+  };
 }
 
-// Shrink-to-fit: search font sizes from LABEL_MAX_FONT_SIZE down to
-// LABEL_MIN_FONT_SIZE (step LABEL_FONT_STEP) and use the first — i.e.
-// largest — one whose full wrapped name fits the footprint's inner box,
-// both in line width (LABEL_CHAR_WIDTH_RATIO * fontSize per character) and
-// in line count (LABEL_LINE_HEIGHT_RATIO * fontSize per line, capped at
-// LABEL_MAX_LINES so a huge future footprint still reads as a label, not a
-// wall of small text). This is what keeps "a 2x2 hall gets more lines /
-// larger text than a 1x1 lab" as the starting point: a bigger footprint's
-// larger innerWidth/innerHeight let the search land on a bigger font
-// before it ever needs to shrink.
-//
-// If nothing in the range fits, LABEL_MIN_FONT_SIZE is used anyway and the
-// wrap is allowed to overflow the footprint vertically — the full name is
-// non-negotiable (no ellipsis), a cramped fit at the floor is the accepted
-// trade-off (see the PR notes for which names hit this on today's smallest
-// footprints).
-//
-// Pure function of (name, boxWidth, boxHeight) only — never reads the live
-// DOM — so the same building always sizes the same way, render after
-// render. boxWidth/boxHeight are the drawn rect's own pixel dimensions
-// (already net of BUILDING_INSET — see the caller), not tile counts: the
-// label has to fit the INSET rect it's centred in, not the full footprint
-// span behind it.
-function labelFor(name: string, boxWidth: number, boxHeight: number): { lines: string[]; fontSize: number; lineHeight: number } {
-  const innerWidth = boxWidth - LABEL_INSET * 2;
-  const innerHeight = boxHeight - LABEL_INSET;
-  let attempt = { lines: [] as string[], fontSize: LABEL_MIN_FONT_SIZE, lineHeight: LABEL_MIN_FONT_SIZE * LABEL_LINE_HEIGHT_RATIO };
-  for (let fontSize = LABEL_MAX_FONT_SIZE; fontSize >= LABEL_MIN_FONT_SIZE; fontSize -= LABEL_FONT_STEP) {
-    const lineHeight = fontSize * LABEL_LINE_HEIGHT_RATIO;
-    const maxChars = Math.floor(innerWidth / (fontSize * LABEL_CHAR_WIDTH_RATIO));
-    const maxLines = Math.min(LABEL_MAX_LINES, Math.floor(innerHeight / lineHeight));
-    if (maxChars < LABEL_MIN_CHARS || maxLines < 1) {
-      attempt = { lines: [], fontSize, lineHeight };
-      continue;
-    }
-    const lines = wrapLabelFull(name, maxChars);
-    attempt = { lines, fontSize, lineHeight };
-    if (lines.length <= maxLines) return attempt;
-  }
-  // Nothing fit down to the floor — `attempt` is the LABEL_MIN_FONT_SIZE
-  // pass: the full name, possibly taller than the footprint (see comment
-  // above), or [] if even the floor can't hold LABEL_MIN_CHARS.
-  return attempt;
-}
-
-// One cell of the grid ground. Empty cells are the placement targets;
-// covered cells are drawn over by their building and are inert.
-function GroundTile({ row, col, empty, targetable, onEnter, onClick, onDrop }: {
-  row: number;
-  col: number;
-  empty: boolean;
-  targetable: boolean;   // something is picked up, so this empty cell is a live click target
-  onEnter: () => void;
-  onClick: () => void;
-  onDrop: (buildableId: string) => void;
-}) {
-  const live = targetable && empty;
-  return (
-    <rect
-      className={`campus-tile ${empty ? 'empty' : 'covered'} ${live ? 'targetable' : ''}`}
-      x={tileX(col)}
-      y={tileY(row)}
-      width={TILE_SIZE}
-      height={TILE_SIZE}
-      rx={GROUND_CORNER}
-      onMouseEnter={live ? onEnter : undefined}
-      // Live for placement, or not: an empty tile still needs a click
-      // handler while nothing is being placed, purely so clicking open
-      // ground can close an open building-info panel (see onGroundClick in
-      // CampusMap below, which is what actually decides what a click does).
-      onClick={empty ? onClick : undefined}
-      // Drag-and-drop is the same placement reached a second way, and it
-      // ends in the same place() the click does — one placement path, not
-      // two. It hangs off `empty` rather than `live` and carries the
-      // building's id in the drag itself, so it never depends on React
-      // having re-rendered between dragstart and the first dragover:
-      // preventDefault here is what makes the cell a drop target at all,
-      // and missing it on the first event would swallow the drop.
-      onDragOver={empty ? (e) => { e.preventDefault(); onEnter(); } : undefined}
-      onDrop={empty ? (e) => { e.preventDefault(); onDrop(e.dataTransfer.getData('text/plain')); } : undefined}
-      role={live ? 'button' : undefined}
-      aria-label={live ? `Empty tile, row ${row + 1}, column ${col + 1}` : undefined}
-    >
-      {/* Only empty ground says so — a covered cell is described by the
-          building drawn over it, not by the ground under it. */}
-      {empty && <title>{`Empty · row ${row + 1}, column ${col + 1}`}</title>}
-    </rect>
+// Where a building's label sits, and how big: centred on the footprint's
+// projected centre, raised clear of the mass's apex.
+function labelLayout(t: Buildable, p: Placement) {
+  const size = Math.max(
+    LABEL_MIN_FONT_SIZE,
+    Math.min(LABEL_MAX_FONT_SIZE, (p.w + p.h) * LABEL_SIZE_PER_TILE),
   );
+  const anchor = lift(
+    project(p.col + p.w / 2, p.row + p.h / 2),
+    heightOf(t) + LABEL_CLEARANCE + size,
+  );
+  const textWidth = t.name.length * size * LABEL_CHAR_WIDTH_RATIO;
+  return { size, anchor, textWidth };
 }
 
-// A placed Buildable: one rect spanning its whole footprint, with its label
-// centred in it. `onInspect` is always wired (never conditionally omitted)
-// — CampusMap's inspectBuilding decides whether a click actually opens the
-// info panel (it no-ops while a building is picked up for siting or a path
-// tool is active; see the disambiguation note there), so this component
-// itself carries no mode awareness. `inspected` only drives the highlight.
+// One placed building: its mass (buildingMotifs.tsx draws the roof, the
+// walls and whatever the motif adds) plus, while it is going up, a progress
+// bar lying on the ground along the front of its own site.
 //
-// `weeksLeft` is set exactly when `t.status === 'developing'` (read off
-// s.developing by the caller — see the `placed.map` below) — the under-
-// construction visual cue the PR is about: a distinct `.under-construction`
-// class (styles.css) and a progress bar along the footprint's own bottom
-// edge, the same "how far along" reading BuildPopup's ProgressBar gives a
-// developing row there, just drawn in SVG for the map's own footprint
-// instead of a fixed-width bar. A 'done' Buildable renders exactly as it
-// always did.
+// Clicking is handled by this group's own onClick rather than by the ground
+// underneath it. That matters on an angled map: a tall building is DRAWN
+// above the tiles it occupies, so a click on its roof lands, in ground
+// terms, on a tile somewhere behind it. Letting the SVG hit-test the shape
+// actually drawn is both correct and free — there are only ever a few dozen
+// buildings, so nothing here needs the arithmetic picking the ground uses.
 function PlacedBuilding({
   t, p, onInspect, inspected, weeksLeft,
 }: {
   t: Buildable; p: Placement; onInspect: () => void; inspected: boolean; weeksLeft?: number;
 }) {
-  // The footprint's own span, in whole tiles — unchanged by the inset
-  // below (it still exactly matches placementTiles/canPlace's occupancy).
-  // x/y/width/height are what actually gets DRAWN: the footprint inset by
-  // BUILDING_INSET on every side, so this building's own edges never touch
-  // a neighbour's even when their footprints are tile-adjacent (see
-  // BUILDING_INSET above).
-  const x = tileX(p.col) + BUILDING_INSET;
-  const y = tileY(p.row) + BUILDING_INSET;
-  const width = spanSize(p.w) - BUILDING_INSET * 2;
-  const height = spanSize(p.h) - BUILDING_INSET * 2;
-  const { lines, fontSize, lineHeight } = labelFor(t.name, width, height);
-  // Centre the wrapped block vertically inside the drawn (inset) rect.
-  const firstLineY = y + height / 2 - ((lines.length - 1) * lineHeight) / 2;
-
+  const d = drawnFootprint(p);
   const developing = t.status === 'developing' && weeksLeft !== undefined;
-  // The horizontal band the name occupies, handed to the motif so its
-  // windows skip it (see buildingMotifs.tsx's windowRects). Derived from the
-  // same numbers that position the <text> below, so the two can never drift
-  // apart. Null when the name didn't fit at all and no text is drawn.
-  const labelBand = lines.length > 0
-    ? {
-      top: firstLineY - fontSize * 0.85,
-      bottom: firstLineY + (lines.length - 1) * lineHeight + fontSize * 0.3,
-    }
-    : null;
-  const elapsedFraction = developing && t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
-  const barWidth = width - PROGRESS_BAR_INSET * 2;
-  const barY = y + height - PROGRESS_BAR_INSET - PROGRESS_BAR_HEIGHT;
+  const elapsedFraction = developing && t.duration > 0 ? (t.duration - weeksLeft!) / t.duration : 1;
 
   return (
     <g
@@ -450,64 +215,45 @@ function PlacedBuilding({
       role="button"
       onClick={onInspect}
     >
-      {/* Drawn before the body so it lies under it. Carries no
-          `.campus-building-body` class on purpose — that class is what every
-          kind/tint fill in styles.css targets, so staying off it is what
-          lets the shadow keep its own colour instead of being repainted the
-          building's own. */}
-      <rect
-        className="campus-building-shadow"
-        x={x + BUILDING_SHADOW_OFFSET}
-        y={y + BUILDING_SHADOW_OFFSET}
-        width={width}
-        height={height}
-        rx={BUILDING_CORNER}
-      />
-      <rect className="campus-building-body" x={x} y={y} width={width} height={height} rx={BUILDING_CORNER} />
-      {/* The architectural motif (see buildingMotifs.tsx). No clip path: the
-          only parts that reach the body's edge are the roof and plinth
-          bands, and they carry the body's own corner radius rather than
-          needing to be clipped to it — which keeps this to one <g> per
-          building instead of a per-building <clipPath> in <defs>.
-          Deliberately NOT drawn while developing: a site under construction
-          has no facade yet, so the silhouette arriving — alongside the
-          shadow coming up to full strength — is what completion looks like. */}
-      {!developing && (
-        // Wrapped in one <g> so the whole facade can be dimmed as a unit
-        // while another building is inspected — otherwise a stepped-back
-        // building would wear a full-strength facade over a faded body.
-        <g className="campus-building-motif">
-          <BuildingMotif t={t} x={x} y={y} width={width} height={height} corner={BUILDING_CORNER} label={labelBand} />
-        </g>
-      )}
+      <BuildingMotif t={t} p={d} tint={tintFor(t)} developing={developing} />
       {inspected && (
-        <rect
-          className="campus-building-halo"
-          x={x - BUILDING_HALO_GAP}
-          y={y - BUILDING_HALO_GAP}
-          width={width + BUILDING_HALO_GAP * 2}
-          height={height + BUILDING_HALO_GAP * 2}
-          rx={BUILDING_CORNER + BUILDING_HALO_GAP}
-        />
+        // The footprint picked out on the ground, which is the one outline
+        // that cannot be hidden by the building standing on it.
+        <polygon className="campus-building-halo" points={polyPoints(boxFaces(p.col, p.row, p.w, p.h, 0, 0).top)} />
       )}
-      {lines.map((line, i) => (
-        <text
-          key={i}
-          x={x + width / 2}
-          y={firstLineY + i * lineHeight}
-          textAnchor="middle"
-          fontSize={fontSize}
-        >
-          {line}
-        </text>
-      ))}
       {developing && (
         <>
-          <rect className="campus-building-progress-track" x={x + PROGRESS_BAR_INSET} y={barY} width={barWidth} height={PROGRESS_BAR_HEIGHT} rx={PROGRESS_BAR_HEIGHT / 2} />
-          <rect className="campus-building-progress-fill" x={x + PROGRESS_BAR_INSET} y={barY} width={Math.max(0, barWidth * elapsedFraction)} height={PROGRESS_BAR_HEIGHT} rx={PROGRESS_BAR_HEIGHT / 2} />
+          <polygon
+            className="campus-building-progress-track"
+            points={polyPoints(boxFaces(p.col, p.row + p.h - PROGRESS_BAR_DEPTH, p.w, PROGRESS_BAR_DEPTH, 0, 0).top)}
+          />
+          <polygon
+            className="campus-building-progress-fill"
+            points={polyPoints(boxFaces(p.col, p.row + p.h - PROGRESS_BAR_DEPTH, Math.max(0, p.w * elapsedFraction), PROGRESS_BAR_DEPTH, 0, 0).top)}
+          />
         </>
       )}
       <title>{developing ? `${t.name} · under construction · ${weeksLeft}w left` : `${t.name} · ${p.w}×${p.h}`}</title>
+    </g>
+  );
+}
+
+// The label layer. Rendered after every building so a name is never
+// occluded by whatever stands in front of the thing it names, and on a
+// plate so it stays readable over any roof tint, wall or pitch.
+function BuildingLabel({ t, p }: { t: Buildable; p: Placement }) {
+  const { size, anchor, textWidth } = labelLayout(t, p);
+  return (
+    <g className="campus-label" aria-hidden="true">
+      <rect
+        className="campus-label-plate"
+        x={anchor.x - textWidth / 2 - LABEL_PLATE_PAD_X}
+        y={anchor.y - size * 0.72 - LABEL_PLATE_PAD_Y}
+        width={textWidth + LABEL_PLATE_PAD_X * 2}
+        height={size * 0.95 + LABEL_PLATE_PAD_Y * 2}
+        rx={3}
+      />
+      <text className="campus-label-text" x={anchor.x} y={anchor.y} fontSize={size}>{t.name}</text>
     </g>
   );
 }
@@ -604,6 +350,12 @@ export default function CampusMap({
   // mousedown, read on every tile's mouseenter while still set, cleared on
   // the same global mouseup dragRef already listens for.
   const pathDragRef = useRef<'draw' | 'erase' | null>(null);
+  // The last world point a path stroke painted at. The flat map painted from
+  // each tile's own mouseenter, which physically cannot skip a tile; this one
+  // samples mousemove instead, which can — a quick drag jumps several tiles
+  // between events and would leave a dotted line. Interpolating from here to
+  // the current point closes those gaps (see paintStroke).
+  const pathLastRef = useRef<{ x: number; y: number } | null>(null);
 
   function applyView(next: { x: number; y: number; zoom: number }) {
     const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next.zoom));
@@ -623,7 +375,12 @@ export default function CampusMap({
   function defaultView(rect: { width: number; height: number }) {
     const MIN_COVERAGE = 1.15;
     const zoom = Math.max(DEFAULT_ZOOM, (rect.height * MIN_COVERAGE) / MAP_HEIGHT);
-    return { x: (rect.width - MAP_WIDTH * zoom) / 2, y: (rect.height - MAP_HEIGHT * zoom) / 2, zoom };
+    // Centre on the world's real midpoint. The angled grid is a diamond
+    // whose left corner is at negative x, so unlike the flat map this
+    // cannot assume the world begins at the origin.
+    const midX = (WORLD.minX + WORLD.maxX) / 2;
+    const midY = (WORLD.minY + WORLD.maxY) / 2;
+    return { x: rect.width / 2 - midX * zoom, y: rect.height / 2 - midY * zoom, zoom };
   }
 
   // Center the grid in whatever space the canvas has on first paint.
@@ -662,6 +419,7 @@ export default function CampusMap({
       // Ends a path click-drag exactly like a pan drag: wherever the mouse
       // comes up, painting stops.
       pathDragRef.current = null;
+      pathLastRef.current = null;
     }
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
@@ -672,7 +430,79 @@ export default function CampusMap({
   }, []);
 
 
+  // The ground tile under a pointer event, or null off-grid. The whole of
+  // the angled map's hit-testing: screen -> world (undo the view transform)
+  // -> tile (undo the projection). No per-tile DOM, no hit-target layer.
+  //
+  // This resolves to the GROUND, deliberately. A tall building is drawn
+  // above the tiles it stands on, so the tile under the cursor while the
+  // cursor is over a roof is the one behind that building — which is the
+  // correct answer for "where would this go", and is why placement uses
+  // this while inspecting a building uses the building's own click target.
+  function worldFromEvent(e: { clientX: number; clientY: number }): { x: number; y: number } | null {
+    const svg = svgRef.current;
+    if (!svg) return null;
+    const rect = svg.getBoundingClientRect();
+    const v = viewRef.current;
+    return { x: (e.clientX - rect.left - v.x) / v.zoom, y: (e.clientY - rect.top - v.y) / v.zoom };
+  }
+  function tileFromEvent(e: { clientX: number; clientY: number }): TileCoord | null {
+    const w = worldFromEvent(e);
+    return w ? tileAt(w.x, w.y) : null;
+  }
+
+  // Hover drives the footprint ghost, and while a path tool is held down it
+  // also paints. One handler on the map, where the flat version needed a
+  // mouseenter on every tile.
+  function onMapMouseMove(e: React.MouseEvent<SVGSVGElement>) {
+    if (dragRef.current?.moved) return;   // panning: don't jitter the ghost across the tiles a drag crosses
+    if (pathDragRef.current) { paintStroke(e, pathDragRef.current); return; }
+    const tile = tileFromEvent(e);
+    if (!selected) return;
+    setHover((cur) => (cur && tile && cur.row === tile.row && cur.col === tile.col ? cur : tile));
+  }
+
+  // Paint every tile between the last sampled point and this one, so a fast
+  // drag draws a continuous walkway rather than a dotted one. Steps at half a
+  // tile, which cannot step over a whole tile however the stroke is angled.
+  function paintStroke(e: { clientX: number; clientY: number }, tool: 'draw' | 'erase') {
+    const here = worldFromEvent(e);
+    if (!here) return;
+    const from = pathLastRef.current ?? here;
+    pathLastRef.current = here;
+    const dist = Math.hypot(here.x - from.x, here.y - from.y);
+    const steps = Math.max(1, Math.ceil(dist / (TILE_H / 2)));
+    let last = '';
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const tile = tileAt(from.x + (here.x - from.x) * t, from.y + (here.y - from.y) * t);
+      if (!tile) continue;
+      const key = `${tile.row},${tile.col}`;
+      if (key === last) continue;
+      last = key;
+      paintTile(tile, tool);
+    }
+  }
+
+  function onMapClick(e: React.MouseEvent<SVGSVGElement>) {
+    const tile = tileFromEvent(e);
+    if (!tile) return;
+    onGroundClick(tile.row, tile.col);
+  }
+
   function onMapMouseDown(e: React.MouseEvent<SVGSVGElement>) {
+    // A path tool owns the gesture: start painting immediately and keep
+    // painting across whatever tiles the pointer crosses, without ever
+    // arming the pan-drag that the same mousedown would otherwise start.
+    if (pathTool && e.button === 0) {
+      const tile = tileFromEvent(e);
+      if (tile) {
+        pathDragRef.current = pathTool;
+        pathLastRef.current = null;   // a new stroke never interpolates from where the last one ended
+        paintStroke(e, pathTool);
+        return;
+      }
+    }
     if (e.button !== 0) return;
     justPannedRef.current = false;
     dragRef.current = { startX: e.clientX, startY: e.clientY, startView: { x: viewRef.current.x, y: viewRef.current.y }, moved: false };
@@ -831,8 +661,6 @@ export default function CampusMap({
     setInspectedId((cur) => (cur === id ? null : id));
   };
 
-  const rows = Array.from({ length: CAMPUS_GRID_HEIGHT }, (_, row) => row);
-  const cols = Array.from({ length: CAMPUS_GRID_WIDTH }, (_, col) => col);
 
   // One end of a path click-drag: acts on the tile immediately (so a plain
   // click without any movement still draws/erases one square) and arms
@@ -890,112 +718,100 @@ export default function CampusMap({
           role="group"
           aria-label="Campus map"
           onMouseLeave={() => setHover(null)}
+          onMouseMove={onMapMouseMove}
           onMouseDown={onMapMouseDown}
+          onClick={onMapClick}
           onContextMenu={onMapContextMenu}
           onWheel={onWheel}
+          // Drag-and-drop from the build popup lands here rather than on a
+          // per-tile target: the drop point resolves to a tile the same way
+          // every other pointer event does.
+          onDragOver={(e) => {
+            if (!selected) return;
+            e.preventDefault();
+            const tile = tileFromEvent(e);
+            if (tile) setHover(tile);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            const tile = tileFromEvent(e);
+            if (tile) placeById(e.dataTransfer.getData('text/plain'), tile.row, tile.col);
+          }}
         >
           <g ref={worldRef}>
-            {/* Ground, then its texture (an inert overlay — it has to lie
-                OVER the ground tiles, whose own fills are opaque, so it
-                cannot simply sit underneath them), then drawn pathways (so a
-                building placed over a path tile draws on top of it, never
-                the other way around),
-                then buildings, then path hit-targets (path mode only — see
-                the disambiguation note on pathTool above, which is what
-                keeps these from ever being live at the same time as
-                placement's own tile clicks), then the drop/rotate ghost. */}
-            {rows.map((row) => cols.map((col) => (
-              <GroundTile
-                key={`${row}-${col}`}
-                row={row}
-                col={col}
-                empty={!covered.has(`${row},${col}`)}
-                targetable={selected !== null}
-                // A pan crosses many tiles' mouseenter as it drags — don't
-                // let the footprint ghost jitter across all of them while
-                // the player is just moving the world around.
-                onEnter={() => { if (!dragRef.current?.moved) setHover({ row, col }); }}
-                onClick={() => onGroundClick(row, col)}
-                onDrop={(id) => placeById(id, row, col)}
-              />
-            )))}
-
-            <TurfTexture />
+            {/* Ground, then drawn pathways, then buildings back-to-front,
+                then the footprint ghost, then labels on top of everything.
+                The flat map's two per-tile layers — 15,876 ground rects and,
+                in path mode, 15,876 more hit targets — are both gone: the
+                ground is one plate plus one <path> of grid lines, and every
+                tile question is answered by tileFromEvent's arithmetic. */}
+            <polygon className="campus-ground" points={polyPoints(GROUND_PLATE)} />
+            <path className="campus-grid" d={GRID_LINES} />
 
             {Object.keys(s.pathways).map((key) => {
               const tile = parsePathTileKey(key);
               if (!tile) return null;
-              // A drawn path tile fills the whole grid square it's on —
-              // literally a TILE_SIZE x TILE_SIZE paving stone, not a line
-              // straddling the boundary between two tiles.
+              // A path tile paves its whole grid square, so on the angled
+              // map it is that square's own rhombus rather than a rect.
               return (
-                <rect
+                <polygon
                   key={key}
                   className="campus-path-tile"
-                  x={tileX(tile.col)}
-                  y={tileY(tile.row)}
-                  width={TILE_SIZE}
-                  height={TILE_SIZE}
+                  points={polyPoints(boxFaces(tile.col, tile.row, 1, 1, 0, 0).top)}
                 />
               );
             })}
 
-            {placed.map(({ t, p }) => (
-              <PlacedBuilding key={t.id} t={t} p={p} onInspect={() => inspectBuilding(t.id)} inspected={t.id === inspectedId} weeksLeft={s.developing[t.id]} />
-            ))}
-
-            {pathTool && rows.map((row) => cols.map((col) => (
-              <rect
-                key={`path-hit-${row}-${col}`}
-                className={`campus-path-hit ${pathTool}`}
-                x={tileX(col)}
-                y={tileY(row)}
-                width={TILE_SIZE}
-                height={TILE_SIZE}
-                // Stopped here so pressing down on a tile never also arms
-                // the map's own pan-drag tracking (onMapMouseDown, above) —
-                // the two gestures would otherwise start on the exact same
-                // mousedown.
-                onMouseDown={(e) => { e.stopPropagation(); pathDragRef.current = pathTool; paintTile({ row, col }, pathTool); }}
-                onMouseEnter={() => { if (pathDragRef.current) paintTile({ row, col }, pathDragRef.current); }}
-              />
-            )))}
+            {/* Back to front. On an angled map this ordering IS the
+                occlusion: a building nearer the camera must paint over one
+                behind it. Sorting on the footprint's FAR corner (row + h,
+                col + w) rather than its origin is what keeps a large
+                building from being drawn behind a small one it actually
+                stands in front of. */}
+            {[...placed]
+              .sort((m, n) => (m.p.row + m.p.h + m.p.col + m.p.w) - (n.p.row + n.p.h + n.p.col + n.p.w))
+              .map(({ t, p }) => (
+                <PlacedBuilding
+                  key={t.id}
+                  t={t}
+                  p={p}
+                  onInspect={() => inspectBuilding(t.id)}
+                  inspected={t.id === inspectedId}
+                  weeksLeft={s.developing[t.id]}
+                />
+              ))}
 
             {preview && (
               <>
-                <rect
+                <polygon
                   className={`campus-preview ${preview.ok ? 'ok' : 'blocked'}`}
-                  x={tileX(preview.col)}
-                  y={tileY(preview.row)}
-                  width={spanSize(preview.w)}
-                  height={spanSize(preview.h)}
-                  rx={BUILDING_CORNER}
+                  points={polyPoints(boxFaces(preview.col, preview.row, preview.w, preview.h, 0, 0).top)}
                 />
-                {/* The rotate control: a small dial at the ghost's corner,
-                    only offered when rotating would actually change
-                    anything (see canRotate — a square footprint rotated is
-                    the same footprint) AND the pickup isn't a 'done' item
-                    awaiting siting, which always sites unrotated (see
-                    canRotateSelected above). It sits inside the same panned/
-                    zoomed <g> as the ghost it belongs to, so it tracks the
-                    ghost under pan/zoom for free rather than needing its
-                    own screen-space positioning logic. */}
-                {canRotateSelected && (
-                  <g
-                    className="campus-rotate-btn"
-                    transform={`translate(${tileX(preview.col) + spanSize(preview.w) - 14}, ${tileY(preview.row) - 14})`}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onClick={() => setRotated((r) => !r)}
-                    role="button"
-                    aria-label="Rotate building 90 degrees"
-                  >
-                    <circle r={13} />
-                    <text textAnchor="middle" dominantBaseline="central">⟳</text>
-                    <title>Rotate (R)</title>
-                  </g>
-                )}
+                {/* The rotate control, pinned to the ghost's right corner.
+                    It lives inside the panned/zoomed world <g>, so it tracks
+                    the ghost for free rather than needing screen-space
+                    positioning of its own. */}
+                {canRotateSelected && (() => {
+                  const at = project(preview.col + preview.w, preview.row);
+                  return (
+                    <g
+                      className="campus-rotate-btn"
+                      transform={`translate(${at.x.toFixed(1)}, ${at.y.toFixed(1)})`}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => { e.stopPropagation(); setRotated((r) => !r); }}
+                      role="button"
+                      aria-label="Rotate building 90 degrees"
+                    >
+                      <circle r={13} />
+                      <text textAnchor="middle" dominantBaseline="central">⟳</text>
+                      <title>Rotate (R)</title>
+                    </g>
+                  );
+                })()}
               </>
             )}
+
+            {placed.map(({ t, p }) => <BuildingLabel key={`label-${t.id}`} t={t} p={p} />)}
           </g>
         </svg>
 
