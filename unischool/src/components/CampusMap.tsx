@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState, Placement, TileCoord } from '../state/types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
@@ -9,7 +9,7 @@ import {
 import { canStartDevelopment } from '../systems/techtree/techSystem';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
-import BuildingMotif, { ScaffoldPattern, heightOf, tintFor } from './buildingMotifs';
+import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf, tintFor } from './buildingMotifs';
 import PathwayLayer from './pathways';
 import { TILE_H, WORLD, boxFaces, lift, polyPoints, project, tileAt } from './isoProjection';
 
@@ -99,12 +99,29 @@ const LABEL_SIZE_PER_TILE = 1.8;   // font size grows this much per tile of (w +
 const LABEL_CHAR_WIDTH_RATIO = 8 / 15;
 const LABEL_PLATE_PAD_X = 5;
 const LABEL_PLATE_PAD_Y = 3;
-const LABEL_CLEARANCE = 10;        // gap between a building's apex and its label plate
 
 // The under-construction progress bar. On the angled map it lies flat on
 // the ground along the FRONT edge of the site's own footprint, where nothing
 // can stand on top of it, rather than across the building's face.
 const PROGRESS_BAR_DEPTH = 0.22;   // in tiles
+
+// The cast shadow. The flat map had drop shadows and the angled rewrite lost
+// them, which left every mass floating on the lawn with no contact — the
+// --building-shadow token survived as an orphan with nothing referencing it,
+// which is how the gap came to light.
+//
+// A shadow here is simply the footprint TRANSLATED toward the light's
+// opposite: down and to the right, matching the upper-left key that
+// paletteFrom already shades every wall from. It does not need to be the
+// swept hull of base and offset — the overlapping half is hidden under the
+// building itself, since the shadow is drawn first — so a plain translated
+// rhombus reads exactly right for a fraction of the geometry.
+//
+// Scaled by the mass's real height, so a nine-storey hall throws a longer
+// shadow than a lab, and a site under construction throws almost none until
+// it rises.
+const SHADOW_PER_HEIGHT_X = 0.22;
+const SHADOW_PER_HEIGHT_Y = 0.11;
 
 // How long a finished building's completion ring stays on screen. Long
 // enough to notice at a glance, short enough that a run of completions in a
@@ -182,19 +199,19 @@ function drawnFootprint(p: Placement) {
   };
 }
 
-// Where a building's label sits, and how big: centred on the footprint's
-// projected centre, raised clear of the mass's apex.
+// Where a building's label sits, and how big: on the middle of the mass,
+// over the footprint's projected centre. The point returned is the CENTRE of
+// the plate, not a text baseline — the plate used to hang off the baseline,
+// which put its visual middle a quarter of a line above the point it was
+// nominally placed at and compounded the float.
 function labelLayout(t: Buildable, p: Placement) {
   const size = Math.max(
     LABEL_MIN_FONT_SIZE,
     Math.min(LABEL_MAX_FONT_SIZE, (p.w + p.h) * LABEL_SIZE_PER_TILE),
   );
-  const anchor = lift(
-    project(p.col + p.w / 2, p.row + p.h / 2),
-    heightOf(t) + LABEL_CLEARANCE + size,
-  );
+  const centre = lift(project(p.col + p.w / 2, p.row + p.h / 2), labelHeightOf(t));
   const textWidth = t.name.length * size * LABEL_CHAR_WIDTH_RATIO;
-  return { size, anchor, textWidth };
+  return { size, centre, textWidth };
 }
 
 // One placed building: its mass (buildingMotifs.tsx draws the roof, the
@@ -224,6 +241,22 @@ function PlacedBuilding({
       role="button"
       onClick={onInspect}
     >
+      {(() => {
+        // Drawn BEFORE the mass, so the half of the shadow that falls under
+        // the building is simply covered by it. It falls toward the camera,
+        // onto ground and paths — and onto nothing else, because anything it
+        // would reach is nearer the camera and therefore painted after it.
+        const lift = drawnHeightOf(t, developing);
+        if (lift <= 0) return null;
+        const dx = lift * SHADOW_PER_HEIGHT_X;
+        const dy = lift * SHADOW_PER_HEIGHT_Y;
+        return (
+          <polygon
+            className="campus-building-shadow"
+            points={polyPoints(boxFaces(d.col, d.row, d.w, d.h, 0, 0).top.map((q) => ({ x: q.x + dx, y: q.y + dy })))}
+          />
+        );
+      })()}
       <BuildingMotif t={t} p={d} tint={tintFor(t)} developing={developing} />
       {inspected && (
         // The footprint picked out on the ground, which is the one outline
@@ -260,19 +293,58 @@ function PlacedBuilding({
 // The label layer. Rendered after every building so a name is never
 // occluded by whatever stands in front of the thing it names, and on a
 // plate so it stays readable over any roof tint, wall or pitch.
+//
+// The plate is sized from the text's OWN measured box rather than from an
+// estimate. Estimating it as characters x size x a fixed ratio cannot be
+// right for a proportional face — "Founders Hall" and "IIIIIIIIIIIII" are
+// the same length and nothing like the same width — and the estimate ran
+// narrow enough for real names to overhang the plate they were meant to sit
+// on. getBBox reports the box the browser actually laid out, so the plate
+// fits by construction, in any font, at any name.
+//
+// The measure runs in a LAYOUT effect, so the corrected plate is in place
+// before the browser paints and no frame shows the estimate.
 function BuildingLabel({ t, p }: { t: Buildable; p: Placement }) {
-  const { size, anchor, textWidth } = labelLayout(t, p);
+  const { size, centre, textWidth } = labelLayout(t, p);
+  const textRef = useRef<SVGTextElement>(null);
+  const [box, setBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const el = textRef.current;
+    if (!el) return;
+    const b = el.getBBox();
+    setBox((prev) => (prev && prev.x === b.x && prev.y === b.y
+      && prev.w === b.width && prev.h === b.height
+      ? prev
+      : { x: b.x, y: b.y, w: b.width, h: b.height }));
+  }, [t.name, size, centre.x, centre.y]);
+
+  // Until the first measure lands, fall back to the estimate so there is
+  // never a nameplate-less label.
+  const plate = box ?? {
+    x: centre.x - textWidth / 2,
+    y: centre.y - size * 0.475,
+    w: textWidth,
+    h: size * 0.95,
+  };
+
   return (
     <g className="campus-label" aria-hidden="true">
       <rect
         className="campus-label-plate"
-        x={anchor.x - textWidth / 2 - LABEL_PLATE_PAD_X}
-        y={anchor.y - size * 0.72 - LABEL_PLATE_PAD_Y}
-        width={textWidth + LABEL_PLATE_PAD_X * 2}
-        height={size * 0.95 + LABEL_PLATE_PAD_Y * 2}
+        x={plate.x - LABEL_PLATE_PAD_X}
+        y={plate.y - LABEL_PLATE_PAD_Y}
+        width={plate.w + LABEL_PLATE_PAD_X * 2}
+        height={plate.h + LABEL_PLATE_PAD_Y * 2}
         rx={3}
       />
-      <text className="campus-label-text" x={anchor.x} y={anchor.y} fontSize={size}>{t.name}</text>
+      {/* No baseline nudge here: .campus-label-text already carries
+          dominant-baseline: middle, so the text is centred on y by the
+          stylesheet. Adding a manual half-cap-height on top of that was
+          double-correcting, and dropped the text below its own plate. */}
+      <text ref={textRef} className="campus-label-text" x={centre.x} y={centre.y} fontSize={size}>
+        {t.name}
+      </text>
     </g>
   );
 }
