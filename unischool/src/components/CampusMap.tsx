@@ -9,7 +9,7 @@ import {
 import { canStartDevelopment } from '../systems/techtree/techSystem';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
-import BuildingMotif, { ScaffoldPattern, heightOf, tintFor } from './buildingMotifs';
+import BuildingMotif, { ScaffoldPattern, drawnHeightOf, heightOf, tintFor } from './buildingMotifs';
 import PathwayLayer from './pathways';
 import { TILE_H, WORLD, boxFaces, lift, polyPoints, project, tileAt } from './isoProjection';
 
@@ -105,6 +105,24 @@ const LABEL_CLEARANCE = 10;        // gap between a building's apex and its labe
 // the ground along the FRONT edge of the site's own footprint, where nothing
 // can stand on top of it, rather than across the building's face.
 const PROGRESS_BAR_DEPTH = 0.22;   // in tiles
+
+// The cast shadow. The flat map had drop shadows and the angled rewrite lost
+// them, which left every mass floating on the lawn with no contact — the
+// --building-shadow token survived as an orphan with nothing referencing it,
+// which is how the gap came to light.
+//
+// A shadow here is simply the footprint TRANSLATED toward the light's
+// opposite: down and to the right, matching the upper-left key that
+// paletteFrom already shades every wall from. It does not need to be the
+// swept hull of base and offset — the overlapping half is hidden under the
+// building itself, since the shadow is drawn first — so a plain translated
+// rhombus reads exactly right for a fraction of the geometry.
+//
+// Scaled by the mass's real height, so a nine-storey hall throws a longer
+// shadow than a lab, and a site under construction throws almost none until
+// it rises.
+const SHADOW_PER_HEIGHT_X = 0.22;
+const SHADOW_PER_HEIGHT_Y = 0.11;
 
 // How long a finished building's completion ring stays on screen. Long
 // enough to notice at a glance, short enough that a run of completions in a
@@ -224,6 +242,22 @@ function PlacedBuilding({
       role="button"
       onClick={onInspect}
     >
+      {(() => {
+        // Drawn BEFORE the mass, so the half of the shadow that falls under
+        // the building is simply covered by it. It falls toward the camera,
+        // onto ground and paths — and onto nothing else, because anything it
+        // would reach is nearer the camera and therefore painted after it.
+        const lift = drawnHeightOf(t, developing);
+        if (lift <= 0) return null;
+        const dx = lift * SHADOW_PER_HEIGHT_X;
+        const dy = lift * SHADOW_PER_HEIGHT_Y;
+        return (
+          <polygon
+            className="campus-building-shadow"
+            points={polyPoints(boxFaces(d.col, d.row, d.w, d.h, 0, 0).top.map((q) => ({ x: q.x + dx, y: q.y + dy })))}
+          />
+        );
+      })()}
       <BuildingMotif t={t} p={d} tint={tintFor(t)} developing={developing} />
       {inspected && (
         // The footprint picked out on the ground, which is the one outline

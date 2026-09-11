@@ -99,6 +99,17 @@ export function heightOf(t: Buildable): number {
   return HEIGHT[m] + (RIDGE[m] ?? 0) + addedFloors(t) * STOREY_HEIGHT;
 }
 
+// How tall the mass ACTUALLY stands right now — full height when finished,
+// a frame barely off the ground while developing. Exported so the cast
+// shadow is computed from the same number the mass is drawn at, rather than
+// a second copy of the developing fraction that could drift from it.
+export function drawnHeightOf(t: Buildable, developing: boolean): number {
+  const m = motifOf(t);
+  if (m === 'grounds') return 0;
+  const full = HEIGHT[m] + addedFloors(t) * STOREY_HEIGHT;
+  return developing ? Math.max(4, full * 0.16) : full + (RIDGE[m] ?? 0);
+}
+
 function shade(hex: string, factor: number): string {
   const n = parseInt(hex.slice(1), 16);
   if (Number.isNaN(n)) return hex;
