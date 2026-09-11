@@ -17,6 +17,7 @@ import { tickAthletics } from '../systems/athletics/athleticsSystem';
 import { tickDemands } from '../systems/demands/demandSystem';
 import { findDecisionEvent } from '../data/eventData';
 import { LIBRARY_TIER1_ID, nextLibraryFloor, servedUpkeep } from '../data/facilitiesData';
+import { fellTrees } from '../data/treeData';
 import {
   CHAPTER_APPROVAL_SATISFACTION_NUDGE, CHAPTER_DECLINE_SATISFACTION_HIT,
   CLUB_APPROVAL_SATISFACTION_NUDGE, CLUB_DECLINE_SATISFACTION_HIT, activatePetition, TRAINER_FIELD,
@@ -298,13 +299,24 @@ export function reducer(state: GameState, action: Action): GameState {
         // is exactly what canPlace/placementFor need.
         const fp = node.status === 'done' ? footprintOf(node) : orientedFootprint(node, action.rotated);
         if (canPlace(s, node, action.row, action.col, fp)) {
+          // Clearing the ground is part of committing a site: every tree
+          // under the footprint is felled, permanently (see
+          // data/treeData.ts). Done here, in the same transaction as the
+          // placement, for both branches — a retroactive siting stands on
+          // its ground exactly as a fresh build does. Paving over a tree, by
+          // contrast, deletes nothing: that is a render-time read of
+          // `pathways` (see CampusMap.tsx), which is what lets lifting the
+          // path bring the tree back.
+          const placement = placementFor(action.row, action.col, fp);
           if (node.status === 'done') {
             if (canSiteRetroactively(s, node)) {
-              s.placements[node.id] = placementFor(action.row, action.col, fp);
+              s.placements[node.id] = placement;
+              fellTrees(s.trees, placement);
               s.finance.cash -= RETROACTIVE_SITING_COST;
             }
           } else if (canStartDevelopment(s, node)) {
-            s.placements[node.id] = placementFor(action.row, action.col, fp);
+            s.placements[node.id] = placement;
+            fellTrees(s.trees, placement);
             startDevelopment(s, node);
           }
         }

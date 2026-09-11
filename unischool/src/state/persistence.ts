@@ -1,4 +1,4 @@
-import type { Buildable, Coach, FacilityType, GameState, Pathways, Placement, StudentClub } from './types';
+import type { Buildable, Coach, FacilityType, GameState, Pathways, Placement, StudentClub, Trees } from './types';
 import {
   firstFreeSpot, footprintFits, footprintIsClear, footprintOf, isInBounds, isPlaceableKind,
   parsePathTileKey, pathTileKey, placementFor,
@@ -7,6 +7,8 @@ import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR } from './types';
 import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES, ORIGIN_NATIONALITIES } from '../data/facultyData';
 import { initialTech } from '../data/techData';
 import { initialFacilities } from '../data/facilitiesData';
+import { initialDorms } from '../data/campusData';
+import { fellTrees, seedTrees } from '../data/treeData';
 import {
   coachSalaryFor, initialCoachCandidatePool, LEGACY_TWO_GENDER_SPORT_MIGRATION, SPORTS,
 } from '../data/studentLifeData';
@@ -636,7 +638,64 @@ export const SAVE_KEY = 'unischool.save';
 //     like a fresh game's would at the same reputation, not a special case.
 //
 // See MIGRATIONS[28].
-export const SAVE_VERSION = 29;
+//
+// v29 -> v30: the campus content pass — the health chain, the dorm chain,
+// the dining chain, footprints, and the founding woodland. Four separate
+// shapes of change, and only one of them is a new FIELD:
+//
+//   - GameState gains `trees`: the founding woodland (see types.ts's Trees
+//     block). A resumed campus is SEEDED WITH ONE, not left bare — a save
+//     that predates trees is a campus that always stood on ground, and
+//     opening it to a plate with no woodland on it anywhere would read as
+//     the feature being broken rather than as the campus having been
+//     cleared. Seeded against the save's own CURRENT placements, so no tree
+//     lands under a building the player has already built; that is the same
+//     `seedTrees(placements)` call a fresh game makes, not a second code
+//     path. Paths are deliberately NOT excluded: a path only HIDES a tree
+//     (see the Trees block), so a tree seeded under an existing walkway
+//     simply doesn't draw until the walkway is lifted, which is exactly
+//     the rule working.
+//   - THE DORM CHAIN was re-authored end to end: eighteen geometric rungs
+//     became fifteen hand-sized ones across four building classes, so three
+//     ids (DORM-16..18) no longer exist in the seed and several surviving
+//     ids carry a different name, capacity, cost and duration. Handled as a
+//     RE-POINT OF THE UNBUILT ONLY: a dorm the save has not started is
+//     replaced with its seed counterpart (or dropped if the seed no longer
+//     has that id), while one that is 'done' or 'developing' is left
+//     completely alone. That split is the whole of the care this needs.
+//     A 'done' dorm's capacityBonus was applied ONCE into
+//     s.students.capacity (see techSystem.ts's applyEffects) and nothing
+//     recomputes it, so rewriting a built hall's bed count would leave the
+//     Housing breakdown (which reads those same per-dorm figures — see
+//     satisfactionSystem.ts's attributeDetail) disagreeing with the
+//     capacity the school actually has. A player who already reached
+//     DORM-16 keeps it, and its two successors, as extra rungs past the new
+//     chain's end: a real, earned tail rather than a refund.
+//   - THE DINING CHAIN gained two rungs and re-sized the rest, and the
+//     health chain re-sized its three. Both are the SAME unbuilt-only
+//     re-point — the dining hall the player is eating in keeps feeding
+//     exactly as many students as it did — plus the ordinary id-splice for
+//     the two genuinely new halls, which arrive 'locked' and unlock the
+//     normal way behind whatever the save has already built.
+//   - FOOTPRINTS changed for almost everything, and nothing here touches
+//     them. A placement STORES the footprint it was made with (see types.ts's
+//     Placement), precisely so a retune can never reshape a standing
+//     building into an overlap: a resumed campus keeps every building
+//     exactly where and how big it is, and only what the player builds
+//     AFTER this lands is sized by the new tables.
+//
+// One consequence is flagged rather than fixed, and it is the honest cost
+// of the health redesign: the University Hospital now requires the School
+// of Medicine's building, where the old tier 3 needed only a population
+// threshold. A save that had already built the old "University Health
+// Center" keeps it, its capacity and its upkeep untouched (it is 'done', so
+// the re-point above leaves it alone). A save that had merely UNLOCKED it
+// will find it locked again until a medical school stands — the same
+// re-gating any content change can cause, and the same class of accepted
+// consequence MIGRATIONS[11]'s own note spells out.
+//
+// See MIGRATIONS[29].
+export const SAVE_VERSION = 30;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1461,6 +1520,57 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     }
   },
 
+  // v29 -> v30: the campus content pass. See the SAVE_VERSION header
+  // comment above for the full reasoning; this applies it.
+  29: (state) => {
+    // 1. THE UNBUILT-ONLY RE-POINT, for the three re-authored chains. A
+    //    node the save has not committed to (still 'locked' or 'available')
+    //    is replaced wholesale by its seed counterpart, keeping only its
+    //    own current STATUS — the prereq resolver re-derives everything
+    //    else on the first tick after load. A node that is 'done' or
+    //    'developing' is left exactly as it is, because its effects are
+    //    either already applied or already paid for.
+    const REPOINTED = (id: string): boolean =>
+      id.startsWith('DORM-') || id.startsWith('DINING-') || id.startsWith('DININGHALL-') || id.startsWith('HLTH-');
+
+    const seed = new Map([...initialTech(), ...initialDorms(), ...initialFacilities()].map((n) => [n.id, n]));
+
+    state.tech = state.tech.flatMap((node) => {
+      if (!REPOINTED(node.id)) return [node];
+      if (node.status === 'done' || node.status === 'developing') return [node];
+      const fresh = seed.get(node.id);
+      // DORM-16..18: rungs the new chain doesn't have. Dropped, like
+      // MIGRATIONS[12]'s retired parking ids — nothing in the graph names a
+      // dorm id as a prereq except the dorm after it, and the dorm after
+      // these is nothing.
+      if (!fresh) return [];
+      return [{ ...fresh, status: node.status }];
+    });
+
+    // 2. THE ID SPLICE, for content that is genuinely new: the two extra
+    //    dining halls. Same shape as MIGRATIONS[10]/[11] — append at the
+    //    seeded status, touch nothing the save already has.
+    const have = new Set(state.tech.map((node) => node.id));
+    for (const node of [...initialTech(), ...initialDorms(), ...initialFacilities()]) {
+      if (!have.has(node.id)) state.tech.push({ ...node });
+    }
+
+    // 3. Nothing may be left counting down on a node that is gone.
+    for (const id of Object.keys(state.developing)) {
+      if (!state.tech.some((t) => t.id === id)) delete state.developing[id];
+    }
+    // A dropped node's placement is handled by sanitizePlacements (run on
+    // every load, after every migration), exactly as MIGRATIONS[12] relied
+    // on for its own retired ids rather than duplicating the rule here.
+
+    // 4. The founding woodland, seeded against the campus as it actually
+    //    stands — see the header note for why a resumed save gets a real
+    //    one rather than an empty record.
+    if (typeof state.trees !== 'object' || state.trees === null) {
+      state.trees = seedTrees(state.placements ?? {});
+    }
+  },
+
   // v28 -> v29: Athletics V2. See the SAVE_VERSION header comment above for
   // the full shape change; this just applies it.
   28: (state) => {
@@ -1618,6 +1728,40 @@ function sanitizePathways(state: GameState): void {
   state.pathways = clean;
 }
 
+// Tree hygiene, run on EVERY load (migrated or not), and the exact mirror
+// of sanitizePathways above: trees are a visual layer no system reads, and
+// a tree key is a free-form string nothing has type-checked since it left
+// localStorage. Three things get dropped or fixed:
+//   - unparseable keys, and out-of-bounds tiles. Same rule and same
+//     reasoning as a path tile: a tree is one square with no footprint to
+//     slide within, so there is nothing sensible to clamp it to.
+//   - a non-numeric seed, which would make the renderer's hash produce NaN
+//     and draw a tree at no position at all.
+//   - A TREE STANDING UNDER A BUILDING. This is the one check pathways
+//     doesn't have an equivalent of, and it is what keeps the fell-on-build
+//     rule true across a save: the reducer fells trees as it commits a
+//     placement, but a save migrated forward (or hand-edited) can carry a
+//     tree under a building that was placed before trees existed. Applying
+//     fellTrees over every current placement here is the same rule, applied
+//     once at load, rather than a second version of it.
+// Dropping a tree costs the player nothing: it is ground cover on a layer
+// no system reads.
+function sanitizeTrees(state: GameState): void {
+  if (typeof state.trees !== 'object' || state.trees === null) {
+    state.trees = {};
+    return;
+  }
+  const clean: Trees = {};
+  for (const [key, seed] of Object.entries(state.trees)) {
+    if (typeof seed !== 'number' || !Number.isFinite(seed)) continue;
+    const tile = parsePathTileKey(key);
+    if (!tile || !isInBounds(tile.row, tile.col)) continue;
+    clean[pathTileKey(tile)] = seed;
+  }
+  for (const placement of Object.values(state.placements)) fellTrees(clean, placement);
+  state.trees = clean;
+}
+
 // The five venue categories a team can legitimately reference — the same
 // list facilitiesData.ts seeds, kept here rather than imported from it so
 // this stays a defensive, self-contained check the way sanitizePlacements'
@@ -1756,6 +1900,9 @@ export function loadGame(): GameState | null {
 
   sanitizePlacements(state);
   sanitizePathways(state);
+  // After sanitizePlacements, never before: it reads the CLEANED placements
+  // to decide which trees are standing under a building.
+  sanitizeTrees(state);
   sanitizeTeams(state);
   sanitizeSeen(state);
   return state;

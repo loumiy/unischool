@@ -37,12 +37,18 @@ export function isPlaceableKind(t: Buildable): boolean {
 // campus, and a map of uniform squares reads as a spreadsheet — so size
 // varies by what the thing IS.
 //
-// This is a placement RULE keyed on the Buildable's existing data (kind,
-// for facilities facilityType, and — dining halls only, see below —
-// effects.servesPopulation), NOT a new field on Buildable: the single
+// This is a placement RULE keyed on the Buildable's existing data (kind;
+// for facilities facilityType and, where the type's instances vary in
+// scale, effects.servesPopulation or `tier`; for dorms
+// effects.capacityBonus), NOT a new field on Buildable: the single
 // Buildable model stays unforked, and `course` Buildables — which are
 // never placeable — carry no vestigial map data (see README's "The
 // central abstraction").
+//
+// Sizes are pinned to a rough 15m per tile, which the football stadium (a
+// real one is about 220m by 180m, i.e. 15 by 12 tiles) fixes; everything
+// else below is sized against that so a library, a pool, a hospital and a
+// stadium stand in something like their real proportions to each other.
 //
 // Footprints are pure geometry: a bigger building grants nothing extra and
 // costs nothing extra. Placement is still visual-only.
@@ -53,74 +59,159 @@ export function isPlaceableKind(t: Buildable): boolean {
 // an overlap.
 // ---------------------------------------------------------------------
 
-// Defensive fallback only. Every FacilityType below (diningHall included,
-// via its own branch in footprintOf) has a real named entry, so this is
-// never actually read against today's catalogue — it exists so a future
-// facilityType added without a table entry renders as a small building
-// rather than a 1x1 speck beside a 9x9 hall. Sized like the smallest real
-// facility (a lab).
+// Defensive fallback only. Every FacilityType below has a real entry —
+// either a fixed one in FACILITY_FOOTPRINTS or a ladder in
+// FACILITY_SIZE_LADDERS — so this is never actually read against today's
+// catalogue; it exists so a future facilityType added without a table entry
+// renders as a small building rather than a 1x1 speck beside a hospital.
+// Sized like the smallest real facility (a lab).
 const DEFAULT_FACILITY_FOOTPRINT: Footprint = { w: 3, h: 3 };
 
-// Academic halls are the campus landmarks — the biggest thing on the map,
-// and the anchor every other footprint below is sized relative to (see the
-// PR notes for the full table and the coverage math against
-// CAMPUS_GRID_WIDTH/HEIGHT in types.ts).
-const SCHOOL_BUILDING_FOOTPRINT: Footprint = { w: 9, h: 9 };
-// A dorm is a long block: as wide as a hall, much shallower.
-const DORM_FOOTPRINT: Footprint = { w: 9, h: 3 };
+// ---------------------------------------------------------------------
+// SIZE LADDERS. The rule for everything whose instances differ in SCALE
+// rather than in kind: a dining hall feeding 350 and one feeding 16,000 are
+// not the same building, and neither are a 500-bed residence hall and a
+// 5,000-bed tower. A ladder maps "how much does this instance hold" onto
+// "how much ground does it cover", so a chain's capacity jumps are visible
+// on the map instead of every rung being the same block with a bigger
+// number in its tooltip.
+//
+// Read off data the Buildable ALREADY carries — effects.servesPopulation
+// for a facility, effects.capacityBonus for a dorm — so this stays a
+// placement rule keyed on existing fields, exactly as the single-threshold
+// version footprintOf used for dining halls always was. No new field on
+// Buildable, and `course` Buildables still carry no map data at all.
+//
+// Rungs are listed LARGEST FIRST and matched on `min`, so the last entry
+// (min 0) is the floor and a ladder can never fail to match.
+// ---------------------------------------------------------------------
+interface SizeRung { min: number; fp: Footprint }
 
-// Per facility type; anything absent falls back to DEFAULT_FACILITY_FOOTPRINT
-// (see above — in practice never, every type has an entry).
-// diningHall is deliberately absent here — its footprint isn't fixed by
-// type, it's read off size (see DINING_MAJOR_FOOTPRINT below).
+function rungFootprint(rungs: SizeRung[], size: number): Footprint {
+  return (rungs.find((r) => size >= r.min) ?? rungs[rungs.length - 1]).fp;
+}
+
+// Housing, by bed count (see campusData.ts's four size classes). The
+// village is the one entry that is not a single building at all — it is a
+// PLOT, which is why it covers more ground than the tower that sleeps three
+// times as many people: the tower goes up, the village goes out.
+const DORM_FOOTPRINTS: SizeRung[] = [
+  { min: 5_000, fp: { w: 7, h: 7 } },    // residential tower: a small plan, very tall (see buildingMotifs' 'tower')
+  { min: 1_500, fp: { w: 12, h: 10 } },  // village: a dozen small houses around shared green
+  { min: 1_000, fp: { w: 10, h: 5 } },   // mid-game high-rise hall
+  { min: 500, fp: { w: 9, h: 4 } },      // early four-storey hall
+  { min: 0, fp: { w: 8, h: 3 } },        // the founding hall
+];
+
+// Facilities whose footprint steps with how many students they serve.
+// Everything NOT here has one fixed size in FACILITY_FOOTPRINTS below,
+// because its instances don't vary in scale — there is exactly one
+// natatorium, and a tennis court is a tennis court.
+const FACILITY_SIZE_LADDERS: Partial<Record<FacilityType, SizeRung[]>> = {
+  // Eight halls from a 350-seat campus restaurant to a 16,000-seat market
+  // hall (facilitiesData.ts's DINING_RUNGS). Density climbs with size on
+  // purpose: the big halls are multi-storey, so they feed more people per
+  // tile than the single-storey café at the bottom of the chain.
+  diningHall: [
+    { min: 14_000, fp: { w: 12, h: 9 } },
+    { min: 10_000, fp: { w: 11, h: 7 } },
+    { min: 7_000, fp: { w: 10, h: 6 } },
+    { min: 4_000, fp: { w: 8, h: 6 } },
+    { min: 2_500, fp: { w: 7, h: 5 } },
+    { min: 1_200, fp: { w: 6, h: 4 } },
+    { min: 700, fp: { w: 5, h: 3 } },
+    { min: 0, fp: { w: 3, h: 3 } },
+  ],
+  // The health chain's three rungs, and the clearest case for a ladder:
+  // a counselling centre, a clinic and a teaching hospital are three
+  // different institutions (see facilitiesData.ts's health block).
+  healthCenter: [
+    { min: 20_000, fp: { w: 11, h: 11 } }, // University Hospital — the largest BUILDING on campus
+    { min: 4_000, fp: { w: 5, h: 5 } },    // University Clinic
+    { min: 0, fp: { w: 3, h: 3 } },        // Health & Counseling Center
+  ],
+  // The research library is a bigger building than the general one, not
+  // the same one relabelled. (Renovating tier 1 adds STOREYS rather than
+  // ground — see facilitiesData.ts's nextLibraryFloor — so its footprint
+  // deliberately stays put as it grows.)
+  library: [
+    { min: 2_000, fp: { w: 8, h: 6 } },
+    { min: 0, fp: { w: 7, h: 5 } },
+  ],
+  studentCenter: [
+    { min: 2_000, fp: { w: 7, h: 5 } },    // the Student Union Expansion
+    { min: 0, fp: { w: 5, h: 4 } },
+  ],
+  // recCenter covers both ends of the fitness chain: the modest Recreation
+  // Center a young campus opens with, and the Athletics Complex capstone.
+  recCenter: [
+    { min: 2_000, fp: { w: 7, h: 5 } },
+    { min: 0, fp: { w: 5, h: 4 } },
+  ],
+};
+
+// The quad is the one ladder keyed on `tier` rather than on a capacity: it
+// has no servesPopulation at all (its contribution is a flat bonus that
+// never scales — see facilitiesData.ts), so there is no size to read.
+// Both rungs are large. A campus quad is the open middle of the place, and
+// at 7x7 the first one was smaller than the library beside it.
+const QUAD_FOOTPRINTS: SizeRung[] = [
+  { min: 2, fp: { w: 13, h: 13 } },  // Grand Quad & Gardens
+  { min: 0, fp: { w: 9, h: 9 } },    // Campus Quad
+];
+
+// Academic halls are the campus's landmarks. Rectangular rather than the
+// old 9x9 square: a square hall reads as a block, and 8x6 is both closer to
+// the proportions of a real academic building and a shape rotation actually
+// does something to. At roughly 15m to a tile (the scale the football
+// stadium below is sized from) that is about 120m by 90m — a large teaching
+// building, which is what these are.
+const SCHOOL_BUILDING_FOOTPRINT: Footprint = { w: 8, h: 6 };
+// The two professional schools (Medicine, Law) get a rung more ground, the
+// same way they cost a rung more than an undergraduate school building —
+// identified by `graduateProgram`, which is set on exactly those two
+// buildings and on nothing else of kind 'building' (see techData.ts).
+const PROFESSIONAL_SCHOOL_FOOTPRINT: Footprint = { w: 9, h: 7 };
+
+// Per facility type, for everything that ISN'T on a ladder above. Sized
+// against a rough 15m to a tile, which is what the football stadium (a real
+// one is about 220m by 180m) pins down.
 const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
-  quad: { w: 7, h: 7 },          // open ground, second only to a hall among the squares
-  library: { w: 7, h: 5 },       // broad reading rooms and stacks, not a tall narrow tower
-  studentCenter: { w: 6, h: 5 },
-  recCenter: { w: 6, h: 5 },
-  healthCenter: { w: 5, h: 4 },
-  lab: { w: 3, h: 3 },           // small and utilitarian — one per lab-gated major
-  gym: { w: 5, h: 4 },
-  tennisCourts: { w: 6, h: 3 },  // courts read long and narrow, not square
-  pool: { w: 6, h: 4 },          // a real pool needs a footprint like a gym's, not a utility-sized box
+  lab: { w: 4, h: 3 },           // a teaching/research lab building — one per lab-gated major
+  grocery: { w: 5, h: 4 },       // a full supermarket, not a corner shop
+  gym: { w: 6, h: 5 },
+  tennisCourts: { w: 7, h: 3 },  // six courts read long and narrow, not square
+  pool: { w: 6, h: 4 },          // a 50m pool and its deck
   // performingArtsCenter is the landmark of this batch: a concert hall and
-  // theater reads as a real building — grand, just a notch under a hall.
+  // theater reads as a real building — grand, and on more ground than a
+  // teaching hall.
   performingArtsCenter: { w: 8, h: 7 },
   artGallery: { w: 4, h: 3 },    // small, but no longer a bare utility box
 
   // Varsity athletics venues (facilitiesData.ts): real competition venues,
-  // sized accordingly. athleticsField is deliberately RECTANGULAR — a
-  // soccer pitch, not a square lot — clearly wider than deep (5:3). The
-  // football stadium is deliberately the largest footprint of any Buildable
-  // in the game, bigger even than a 9x9 academic hall — the pinnacle venue
-  // should read as one on the map, not just in its cost.
-  athleticsField: { w: 10, h: 6 },
+  // sized from what they actually are rather than from each other.
+  // athleticsField is deliberately RECTANGULAR and LONG — it carries a
+  // 400m track now (see groundMarkings.tsx), and a 400m track is 176m down
+  // the straight, so 10 tiles was never enough to hold one. The football
+  // stadium stays the largest footprint of any Buildable in the game,
+  // bigger even than the hospital — the pinnacle venue should read as one
+  // on the map, not just in its cost.
+  athleticsField: { w: 12, h: 7 },
   athleticsArena: { w: 8, h: 6 },
-  athleticsDiamond: { w: 7, h: 7 },
+  athleticsDiamond: { w: 9, h: 9 },   // a real outfield is ~120m to the fence in every direction
   athleticsNatatorium: { w: 6, h: 5 },
-  footballStadium: { w: 12, h: 9 },
+  footballStadium: { w: 15, h: 12 },
 };
 
-// Dining halls are the one facility type sized by how many students they
-// serve rather than by type alone (see facilitiesData.ts's dining chain):
-// a compact campus restaurant stays DINING_MINOR_FOOTPRINT, but once a hall
-// serves enough people to be a real "major dining hall" it earns a footprint
-// on the order of a student center. Reads effects.servesPopulation —
-// already on the Buildable for satisfactionSystem.ts's sake — rather than
-// adding a field of its own.
-const DINING_MAJOR_FOOTPRINT: Footprint = { w: 7, h: 4 };
-const DINING_MINOR_FOOTPRINT: Footprint = { w: 3, h: 3 }; // the founding hall / a compact campus restaurant
-const DINING_MAJOR_FOOTPRINT_SERVES_THRESHOLD = 1_000;
-
 export function footprintOf(t: Buildable): Footprint {
-  if (t.kind === 'building') return SCHOOL_BUILDING_FOOTPRINT;
-  if (t.kind === 'dorm') return DORM_FOOTPRINT;
-  if (t.kind === 'facility' && t.facilityType === 'diningHall') {
-    return (t.effects?.servesPopulation ?? 0) >= DINING_MAJOR_FOOTPRINT_SERVES_THRESHOLD
-      ? DINING_MAJOR_FOOTPRINT
-      : DINING_MINOR_FOOTPRINT;
+  if (t.kind === 'building') {
+    return t.graduateProgram ? PROFESSIONAL_SCHOOL_FOOTPRINT : SCHOOL_BUILDING_FOOTPRINT;
   }
+  if (t.kind === 'dorm') return rungFootprint(DORM_FOOTPRINTS, t.effects?.capacityBonus ?? 0);
   if (t.kind === 'facility' && t.facilityType) {
+    if (t.facilityType === 'quad') return rungFootprint(QUAD_FOOTPRINTS, t.tier ?? 1);
+    const ladder = FACILITY_SIZE_LADDERS[t.facilityType];
+    if (ladder) return rungFootprint(ladder, t.effects?.servesPopulation ?? 0);
     return FACILITY_FOOTPRINTS[t.facilityType] ?? DEFAULT_FACILITY_FOOTPRINT;
   }
   return DEFAULT_FACILITY_FOOTPRINT;

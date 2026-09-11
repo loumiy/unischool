@@ -6,7 +6,7 @@ import {
   HELLENIC_COUNCIL_HINT, clubCapacity, chapterCapacity,
   hasStudentCenter, orgMembership, studentOrgUpkeep,
 } from '../data/studentLifeData';
-import { attributeDetail, studentLifeSatisfaction } from '../systems/satisfaction/satisfactionSystem';
+import { ATTRIBUTE_WEIGHTS, attributeDetail, studentLifeSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { DEMAND_SATISFACTION_THRESHOLD, DEMAND_URGENT_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import { ProgressBar } from '../components/Progress';
@@ -105,37 +105,112 @@ function money2(v: number): string {
   return v >= 0 ? `+${v.toFixed(1)}` : v.toFixed(1);
 }
 
-// One attribute's expandable row: collapsed to its name and score by
-// default (the "faculty roster" expand pattern — see FacultyTab.tsx's own
-// the faculty cards' own disclosure), opening to show exactly what's behind that score — every
-// 'done' building feeding it, how many it serves, the total against what a
-// fully-covered campus would need, and any named point bonus beyond served
-// population (faculty quality, campus pride, scholarships, student
-// organisations). Replaces the old parenthetical "(library, faculty
-// quality)" labels with the real thing, read from attributeDetail rather
-// than reauthored here — see satisfactionSystem.ts's own note on why.
-function AttributeRow({ s, attribute }: { s: GameState; attribute: keyof SatisfactionAttributes }) {
-  const [open, setOpen] = useState(false);
-  const detail = attributeDetail(s, attribute);
+// ---------------------------------------------------------------------
+// THE SATISFACTION DIAL. One attribute's 0..100 score drawn as a ring that
+// fills — the shape a bounded score wants, and the one thing a row of five
+// numbers could never do: let the eye find the low one without reading.
+//
+// Plain inline SVG, like every other drawing in this app (see
+// buildingMotifs.tsx's house rule). The arc is a stroked circle with
+// stroke-dasharray set to the filled fraction of its own circumference,
+// rotated so it starts at twelve o'clock — no arc-path maths, and it stays
+// correct at any radius because the dash is computed from the radius.
+//
+// Colour is banded rather than continuous: a score is read as "fine /
+// slipping / a problem", and three bands say that where a smooth gradient
+// only says "some colour". The bands are the app's existing ok/warn/bad
+// tokens, so this panel agrees with every other health reading on screen.
+// ---------------------------------------------------------------------
+const DIAL_SIZE = 64;
+const DIAL_STROKE = 7;
+
+function dialBand(score: number): 'ok' | 'warn' | 'bad' {
+  if (score >= 70) return 'ok';
+  if (score >= 45) return 'warn';
+  return 'bad';
+}
+
+function SatisfactionDial({ score, dormant }: { score: number; dormant: boolean }) {
+  const r = (DIAL_SIZE - DIAL_STROKE) / 2;
+  const circumference = 2 * Math.PI * r;
+  const filled = Math.max(0, Math.min(1, score / 100));
+  const band = dormant ? 'dormant' : dialBand(score);
 
   return (
-    <li className="disclosure-row satisfaction-attribute-row">
-      <div className="disclosure-row-head">
-        <button
-          type="button"
-          className="disclosure-toggle"
-          aria-expanded={open}
-          aria-label={open ? `Hide ${ATTRIBUTE_LABELS[attribute]} breakdown` : `Show ${ATTRIBUTE_LABELS[attribute]} breakdown`}
-          onClick={() => setOpen((v) => !v)}
-        >
-          {open ? '▾' : '▸'}
-        </button>
-        <span className="disclosure-row-label">{ATTRIBUTE_LABELS[attribute]}</span>
-        <span className="disclosure-row-spacer" />
-        <span className="stat">{Math.round(detail.score)}</span>
+    <svg
+      className={`satisfaction-dial ${band}`}
+      width={DIAL_SIZE}
+      height={DIAL_SIZE}
+      viewBox={`0 0 ${DIAL_SIZE} ${DIAL_SIZE}`}
+      aria-hidden="true"
+    >
+      <circle
+        className="satisfaction-dial-track"
+        cx={DIAL_SIZE / 2} cy={DIAL_SIZE / 2} r={r}
+        strokeWidth={DIAL_STROKE}
+      />
+      <circle
+        className="satisfaction-dial-fill"
+        cx={DIAL_SIZE / 2} cy={DIAL_SIZE / 2} r={r}
+        strokeWidth={DIAL_STROKE}
+        strokeDasharray={`${(circumference * filled).toFixed(2)} ${circumference.toFixed(2)}`}
+        // Start the fill at twelve o'clock rather than at three, where a
+        // stroked circle's dash otherwise begins.
+        transform={`rotate(-90 ${DIAL_SIZE / 2} ${DIAL_SIZE / 2})`}
+      />
+      <text className="satisfaction-dial-value" x={DIAL_SIZE / 2} y={DIAL_SIZE / 2} textAnchor="middle" dominantBaseline="central">
+        {dormant ? '–' : Math.round(score)}
+      </text>
+    </svg>
+  );
+}
+
+// One attribute's CARD: the dial, the attribute's name, how much of the
+// headline number it is worth, a one-line reading of the coverage behind
+// the score — and, still collapsed by default, exactly what is behind it,
+// building by building (the disclosure this panel has always had, kept
+// verbatim because it is the part that makes the score checkable).
+//
+// Everything here is read from attributeDetail rather than reauthored —
+// see satisfactionSystem.ts's own note on why.
+function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof SatisfactionAttributes }) {
+  const [open, setOpen] = useState(false);
+  const detail = attributeDetail(s, attribute);
+  const label = ATTRIBUTE_LABELS[attribute];
+  // The coverage line. Housing counts BEDS and the other four count
+  // students served (see satisfactionSystem.ts's one deliberate exception),
+  // so the unit is named rather than left to be inferred from two numbers.
+  const unit = attribute === 'housing' ? 'beds' : 'served';
+
+  return (
+    <li className={`satisfaction-card${open ? ' open' : ''}`}>
+      <div className="satisfaction-card-head">
+        <SatisfactionDial score={detail.score} dormant={detail.dormant} />
+        <div className="satisfaction-card-text">
+          <span className="satisfaction-card-label">{label}</span>
+          {/* How much of the headline number this attribute is worth. Kept
+              to two words so it never wraps inside a card narrow enough for
+              five to sit in a row; the panel's help text spells it out. */}
+          <span className="satisfaction-card-weight">{ATTRIBUTE_WEIGHTS[attribute]}% weight</span>
+          <span className="satisfaction-card-coverage">
+            {detail.dormant
+              ? 'Not yet a need'
+              : detail.neededForFullScore > 0
+                ? `${Math.round(detail.totalServed).toLocaleString()} / ${detail.neededForFullScore.toLocaleString()} ${unit}`
+                : `${Math.round(detail.totalServed).toLocaleString()} ${unit}`}
+          </span>
+        </div>
       </div>
+      <button
+        type="button"
+        className="satisfaction-card-toggle"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        {open ? 'Hide sources' : 'Show sources'}
+      </button>
       {open && (
-        <div className="disclosure-row-detail">
+        <div className="satisfaction-card-detail">
           {detail.dormant ? (
             <p className="empty-note">Dormant — the campus hasn&rsquo;t crossed the population where this need starts to matter yet.</p>
           ) : (
@@ -146,7 +221,7 @@ function AttributeRow({ s, attribute }: { s: GameState; attribute: keyof Satisfa
                     <li key={c.label}><span>{c.label}</span><span>{Math.round(c.value).toLocaleString()}</span></li>
                   ))}
                   <li className="satisfaction-contributor-total">
-                    <span>Total served</span>
+                    <span>Total {unit}</span>
                     <span>{detail.totalServed.toLocaleString()}{detail.neededForFullScore > 0 ? ` / ${detail.neededForFullScore.toLocaleString()}` : ''}</span>
                   </li>
                 </ul>
@@ -173,28 +248,32 @@ function AttributeRow({ s, attribute }: { s: GameState; attribute: keyof Satisfa
 // smoothed the way s.students.satisfaction itself is (see
 // satisfactionSystem.ts), so a facility that finished this week shows up
 // here immediately even while "Satisfaction today" is still drifting
-// toward its new target. Its own panel rather than a toggle inside the
-// club-effect panel above: it answers a different question ("what's
-// dragging the number down right now") from that panel's ("what are
-// clubs/chapters/athletics adding to the target").
+// toward its new target.
+//
+// ALWAYS ON SCREEN, at every stage of a run. It used to sit below an early
+// return that fired whenever the campus had no clubs and no pending
+// petitions — which is the first ten to fifteen years of most runs and the
+// whole of some — so the one panel that explains what satisfaction IS was
+// hidden for exactly as long as a player most needed it, and appeared, for
+// no visible reason, the week a chess club was recognised. It is the first
+// thing on the tab now (see StudentLifeTab below).
 function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
   return (
     <section className="panel panel-span-2">
       <div className="panel-head">
         <h2>Satisfaction Breakdown</h2>
         <HelpHint
-          text="The four attributes the satisfaction target is a weighted sum of, read live off the campus as it stands right now — not smoothed, so a building finished this week already shows here even while the headline number above is still drifting toward its new target. Expand one to see exactly what's behind its score: every building serving that need, how many it serves, and any other named contributor."
+          text="The five attributes the satisfaction target is a weighted sum of, read live off the campus as it stands right now — not smoothed, so a building finished this week already shows here even while the headline number is still drifting toward its new target. Each dial fills toward 100; the percentage under each name is how much of the headline number that attribute is worth. Expand one to see exactly what's behind its score: every building serving that need, how many it serves, and any other named contributor."
         />
       </div>
-      <ul className="disclosure-list">
+      <ul className="satisfaction-cards">
         {ATTRIBUTE_ORDER.map((attribute) => (
-          <AttributeRow key={attribute} s={s} attribute={attribute} />
+          <AttributeCard key={attribute} s={s} attribute={attribute} />
         ))}
       </ul>
     </section>
   );
 }
-
 
 // ---------------------------------------------------------------------
 // THE OUTSTANDING DEMAND (see systems/demands/demandSystem.ts). The
@@ -287,14 +366,27 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
   // state — only clubs and chapters (this tab's actual content) do.
   const anyOrgs = clubs.length > 0 || chapters.length > 0;
 
-  // The empty state has to read sensibly for the ten to fifteen founding
-  // years before a student center exists — which is most of the early game,
-  // and the whole of some runs.
-  if (!anyOrgs && pending.length === 0) {
-    return (
-      <div className="tab-content">
-        <div className="student-life-columns">
-          <StudentDemandPanel s={s} />
+  // THE EMPTY STATE IS NOW ONLY THE ORGANISATIONS' OWN. It used to be the
+  // whole TAB's: a campus with no clubs and no pending petitions returned
+  // early, taking the satisfaction breakdown down with it. That is the
+  // first ten to fifteen founding years of most runs and the whole of some
+  // — precisely the stretch where a player is trying to work out what
+  // satisfaction responds to — and it meant the panel appeared for the
+  // first time the week a chess club was recognised, as if the club had
+  // summoned it. The breakdown is campus-wide and true from week one, so it
+  // renders unconditionally below; only the two organisation panels and the
+  // clubs-vs-chapters contribution reading (which genuinely has nothing to
+  // report with no organisations) collapse to a note.
+  const emptyOrgs = !anyOrgs && pending.length === 0;
+
+  return (
+    <div className="tab-content">
+      <div className="student-life-columns">
+        {/* First, and always: the reading that explains the headline
+            number, whatever stage the campus is at. */}
+        <SatisfactionBreakdownPanel s={s} />
+        <StudentDemandPanel s={s} />
+        {emptyOrgs ? (
           <section className="panel">
             <h2>Student Organisations</h2>
             <p className="empty-note">
@@ -303,17 +395,9 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
                 : 'No student organisations yet — build a student center to let students start forming clubs.'}
             </p>
           </section>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="tab-content">
-      <div className="student-life-columns">
-        <StudentDemandPanel s={s} />
-        <StudentLifeEffect s={s} />
-        <SatisfactionBreakdownPanel s={s} />
+        ) : (
+          <StudentLifeEffect s={s} />
+        )}
 
         {pending.length > 0 && (
           <section className="panel panel-span-2">
@@ -337,52 +421,60 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
           </section>
         )}
 
-        <section className="panel">
-          <div className="panel-head">
-            <h2>Clubs</h2>
-            <span className="panel-count">{clubs.length} / {clubCapacity(s)}</span>
-          </div>
-          {clubs.length === 0 ? (
-            <p className="empty-note">No recognised clubs.</p>
-          ) : (
-            <ul className="org-list">
-              {clubs.map((c) => (
-                <OrgRow key={c.id} org={c} s={s} tag={c.sport ? 'sport' : undefined} />
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="panel">
-          <div className="panel-head">
-            <h2>Greek Chapters</h2>
-            {s.orgs.hellenicCouncilApproved && (
-              <span className="panel-count">{chapters.length} / {chapterCapacity(s)}</span>
+        {/* The two rosters, hidden entirely while the campus has no
+            organisations at all — the single note above says it once,
+            and two more panels each saying "none" says nothing further. */}
+        {!emptyOrgs && (
+          <>
+          <section className="panel">
+            <div className="panel-head">
+              <h2>Clubs</h2>
+              <span className="panel-count">{clubs.length} / {clubCapacity(s)}</span>
+            </div>
+            {clubs.length === 0 ? (
+              <p className="empty-note">No recognised clubs.</p>
+            ) : (
+              <ul className="org-list">
+                {clubs.map((c) => (
+                  <OrgRow key={c.id} org={c} s={s} tag={c.sport ? 'sport' : undefined} />
+                ))}
+              </ul>
             )}
-          </div>
-          {!s.orgs.hellenicCouncilApproved ? (
-            <p className="empty-note">
-              {s.orgs.hellenicCouncilOffered
-                ? 'This school has no Greek life. The Hellenic Council was declined, and the question does not come back.'
-                : HELLENIC_COUNCIL_HINT}
-            </p>
-          ) : chapters.length === 0 ? (
-            <p className="empty-note">
-              The Hellenic Council is chartered; no chapter currently holds one.
-            </p>
-          ) : (
-            <ul className="org-list">
-              {chapters.map((c) => (
-                <OrgRow
-                  key={c.id}
-                  org={c}
-                  s={s}
-                  tag={c.housed ? `${c.kind} · housed` : c.kind}
-                />
-              ))}
-            </ul>
-          )}
-        </section>
+          </section>
+
+          <section className="panel">
+            <div className="panel-head">
+              <h2>Greek Chapters</h2>
+              {s.orgs.hellenicCouncilApproved && (
+                <span className="panel-count">{chapters.length} / {chapterCapacity(s)}</span>
+              )}
+            </div>
+            {!s.orgs.hellenicCouncilApproved ? (
+              <p className="empty-note">
+                {s.orgs.hellenicCouncilOffered
+                  ? 'This school has no Greek life. The Hellenic Council was declined, and the question does not come back.'
+                  : HELLENIC_COUNCIL_HINT}
+              </p>
+            ) : chapters.length === 0 ? (
+              <p className="empty-note">
+                The Hellenic Council is chartered; no chapter currently holds one.
+              </p>
+            ) : (
+              <ul className="org-list">
+                {chapters.map((c) => (
+                  <OrgRow
+                    key={c.id}
+                    org={c}
+                    s={s}
+                    tag={c.housed ? `${c.kind} · housed` : c.kind}
+                  />
+                ))}
+              </ul>
+            )}
+          </section>
+          </>
+        )}
+
       </div>
     </div>
   );

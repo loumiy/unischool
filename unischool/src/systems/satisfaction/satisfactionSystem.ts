@@ -47,7 +47,12 @@ const SATISFACTION_DRIFT_RATE = 0.05; // fraction of the gap to target closed pe
 // HEALTH_CENTER_TIER1_POPULATION_GATE and, even scoring, is the attribute a
 // player interacts with least (two tiers, one gate, no orgs/prestige
 // nudges). Still sums to 100.
-const ATTRIBUTE_WEIGHTS: SatisfactionAttributes = {
+// Exported so the Student Life tab's attribute cards can say how much of
+// the headline number each attribute is actually worth — "basic needs is
+// 30% of this" is the difference between five equal-looking dials and a
+// reading of where the campus should spend next. Read rather than
+// re-authored, same rule the rest of that panel follows.
+export const ATTRIBUTE_WEIGHTS: SatisfactionAttributes = {
   academic: 20,
   social: 24,
   basicNeeds: 30,

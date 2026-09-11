@@ -937,6 +937,11 @@ button.build-tile { font-family: inherit; }
    makes one read as cut grass rather than as a green rectangle. */
 .ground-mow { fill: rgba(255, 255, 255, 0.055); }
 .ground-walk { stroke: #cbbd8e; stroke-width: 5; fill: none; }
+/* Paving drawn as a SHAPE rather than a stroke — a walk with real width in
+   tile units (the village's ranks, the quad's cross walks), which a stroke
+   cannot be because a stroke's width is in screen units and so changes what
+   it covers on the ground as the camera zooms. */
+.ground-walk-fill { fill: #cbbd8e; }
 /* The outfield fence: a real low face standing on the field, with a rail
    along its top — a stroke alone would have read as one more painted
    marking among the base lines. */
@@ -948,6 +953,56 @@ button.build-tile { font-family: inherit; }
    here. */
 .stand-seat { stroke-width: 1; vector-effect: non-scaling-stroke; }
 .ground-medallion { fill: #cbbd8e; }
+
+/* ---------- trees, fountains, flowers ----------
+   The founding woodland (components/trees.tsx) and the quad's landscaping
+   (groundMarkings.tsx). Same split as everywhere else on the map: shapes
+   are computed there, tones live here.
+
+   Three species get three greens rather than one, because a wood of a
+   single colour reads as one shape with holes in it. The crown's TOP disc
+   is lighter than the discs under it — the map is lit from the upper left
+   and a crown is a mass, not a disc, so the face pointing up catches more
+   light than the ones below it. */
+.campus-tree-shadow { fill: rgba(42, 56, 28, 0.20); }
+.campus-tree-trunk { fill: #6b5236; }
+/* The base tones are UNSCOPED: a crown must have a fill even where no
+   species class is in scope, or it falls back to SVG's default black. The
+   species rules below then override, and only the species rules need the
+   ancestor selector. */
+.campus-tree-crown { fill: #4f7a3c; }
+.campus-tree-crown-top { fill: #679a4c; }
+.campus-tree.conifer .campus-tree-crown { fill: #37623f; }
+.campus-tree.conifer .campus-tree-crown-top { fill: #467c4f; }
+.campus-tree.ornamental .campus-tree-crown { fill: #7d9e4a; }
+.campus-tree.ornamental .campus-tree-crown-top { fill: #9ab85f; }
+
+/* The Grand Quad's fountain: a stone kerb, the basin's water, the standing
+   jet and the ring of spray around it. The jet is deliberately the only
+   near-white on the map — it is the one thing on the ground that is meant
+   to catch the eye from across the campus. */
+.ground-fountain-kerb { fill: #d8cfb4; }
+.ground-fountain-water { fill: #7fb2c9; }
+.ground-fountain-basin { fill: #5f96b0; }
+.ground-fountain-jet { fill: rgba(246, 252, 255, 0.86); }
+/* The plain quad's own centrepiece: a stone column on a plinth, lit from
+   the upper left like every other mass on the map — hence a paler cap. */
+.ground-monument { fill: #b9ad8a; }
+.ground-monument-cap { fill: #d8cfb4; }
+.ground-fountain-spray { fill: rgba(246, 252, 255, 0.34); }
+
+/* Flower beds: a bed of dark earth with blooms scattered over it. Four
+   bloom colours, cycled by index, so a border reads as planting rather
+   than as one more coloured rectangle. */
+.ground-bed { fill: #7a6248; }
+.ground-bloom-0 { fill: #d9566a; }
+.ground-bloom-1 { fill: #e8b33f; }
+.ground-bloom-2 { fill: #e9e3ee; }
+.ground-bloom-3 { fill: #b070c4; }
+/* A hedge: a low mass with a lit top, the same two-tone treatment the tree
+   crowns get and for the same reason. */
+.ground-hedge { fill: #3f6b34; }
+.ground-hedge-top { fill: #55863f; }
 
 /* ---------- labels ---------- */
 /* One line per building, centred over its mass on a plate, drawn after every
@@ -1020,14 +1075,67 @@ button.build-tile { font-family: inherit; }
 .panel dl { display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; margin: 0; }
 .panel dt { color: var(--ink-muted); } .panel dd { margin: 0; text-align: right; font-family: var(--mono); }
 
-/* The Satisfaction Breakdown panel's expandable rows (see
-   StudentLifeTab.tsx's AttributeRow) reuse the faculty roster's own
-   disclosure-row family below (.disclosure-list/.disclosure-row/...) — same
-   "collapsed to a name and a figure, click to expand" shape — plus these
-   two list styles for what's inside the expansion: a contributor list
-   (building name -> what it serves, or a bonus's name -> its points) and
-   its own total row, bold and rule-topped to read as a sum rather than one
-   more line item. */
+/* ---------- satisfaction: five cards, each with a dial ----------
+   The Satisfaction Breakdown panel (StudentLifeTab.tsx). Five attributes
+   used to be five rows of a list with a number on the right, which made
+   "which of these is dragging the school down" a reading exercise. They are
+   cards now, each carrying a ring that fills toward 100, so the low one is
+   the one that looks wrong.
+
+   The grid is auto-fit rather than a fixed five columns: this panel spans
+   both columns of .student-life-columns on a wide screen and one on a
+   narrow one, so the cards have to reflow from a row of five to a column of
+   one without a breakpoint of their own.
+
+   `dense` is load-bearing, not a flourish. An OPEN card spans every column
+   (see below) so its source list has room to be a list; without dense
+   packing the cards after it would leave the rest of its original row
+   empty, which is what the first pass at this panel actually looked like —
+   two dials, a wide hole, and the other three pushed onto a line of their
+   own. Dense backfills that hole with the cards that follow. */
+.satisfaction-cards { display: grid; gap: 10px; grid-auto-flow: row dense;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.satisfaction-card { border: 1px solid var(--parchment-line-lo); border-radius: var(--radius-lg);
+  background: #f5efdd; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+/* An open card spans the full width of the grid, so the source list under
+   it has room to be a list rather than a column of wrapped fragments. */
+.satisfaction-card.open { grid-column: 1 / -1; }
+.satisfaction-card-head { display: flex; align-items: center; gap: 10px; }
+.satisfaction-card-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.satisfaction-card-label { font-weight: 700; font-size: var(--text-md); }
+.satisfaction-card-weight { color: var(--ink-muted); font-size: var(--text-2xs);
+  text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+.satisfaction-card-coverage { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted); }
+.satisfaction-card-toggle { background: none; border: none; padding: 0; text-align: left;
+  color: var(--gold-dim); font-size: var(--text-xs); text-decoration: underline;
+  text-underline-offset: 2px; cursor: pointer; }
+.satisfaction-card-detail { padding-top: 6px; border-top: 1px dashed var(--parchment-line-lo);
+  font-size: var(--text-sm); }
+
+/* The dial itself. Both circles are stroked, never filled: the track is the
+   full ring, the fill is the same ring dashed to the score's fraction of
+   its circumference (see SatisfactionDial). round caps so a very low score
+   still reads as a mark on the ring rather than a hairline. */
+.satisfaction-dial { flex: none; }
+.satisfaction-dial-track { fill: none; stroke: var(--parchment-line); }
+.satisfaction-dial-fill { fill: none; stroke-linecap: round; transition: stroke-dasharray 320ms ease; }
+.satisfaction-dial-value { font-family: var(--mono); font-size: 17px; font-weight: 700; fill: var(--ink); }
+.satisfaction-dial.ok .satisfaction-dial-fill { stroke: var(--ok-on-light); }
+.satisfaction-dial.warn .satisfaction-dial-fill { stroke: var(--warn-on-light); }
+.satisfaction-dial.bad .satisfaction-dial-fill { stroke: var(--bad-on-light); }
+/* Dormant (health, below its population gate): no fill at all and a muted
+   dash in the middle, because the attribute is not scoring rather than
+   scoring zero. */
+.satisfaction-dial.dormant .satisfaction-dial-fill { stroke: none; }
+.satisfaction-dial.dormant .satisfaction-dial-value { fill: var(--ink-muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .satisfaction-dial-fill { transition: none; }
+}
+
+/* What's inside an expanded card: a contributor list (building name -> what
+   it serves, or a bonus's name -> its points) and its own total row, bold
+   and rule-topped to read as a sum rather than one more line item. */
 .satisfaction-contributor-list { margin: 0 0 8px; }
 .satisfaction-contributor-list:last-child { margin-bottom: 0; }
 .satisfaction-contributor-list li { display: flex; justify-content: space-between; gap: 10px;
@@ -1103,22 +1211,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-courses { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--parchment-line-lo); }
 .faculty-courses-list { margin: 4px 0 0; padding: 0; list-style: none; }
 .faculty-courses-list li { font-family: var(--mono); font-size: var(--text-xs); padding: 1px 0; }
-
-/* ---------- a disclosure row ----------
-   A label, a figure, and a toggle that opens a detail block under it. The
-   Student Life tab's satisfaction attributes used to borrow the faculty
-   roster's row classes for this, which coupled two screens that have
-   nothing to do with each other — the faculty rewrite to cards broke it,
-   which is how the coupling came to light. Its own family now. */
-.disclosure-list { margin: 0; padding: 0; }
-.disclosure-row { border-bottom: 1px solid var(--parchment-line-lo); padding: 6px 0; }
-.disclosure-row-head { display: flex; align-items: center; gap: 8px; font-size: var(--text-base); }
-.disclosure-row-label { font-weight: 600; }
-.disclosure-row-spacer { flex: 1; }
-.disclosure-toggle { background: none; border: none; color: var(--gold-dim);
-  font-size: var(--text-xs); padding: 0 2px; width: 16px; }
-.disclosure-row-detail { margin: 8px 0 2px 24px; padding: 8px 10px; background: #f5efdd;
-  border: 1px solid var(--parchment-line-lo); border-radius: var(--radius-md); font-size: var(--text-sm); }
 
 /* ---------- research: the lab gate, school by school ----------
    Research is mostly silent, so this small table is where the rule
