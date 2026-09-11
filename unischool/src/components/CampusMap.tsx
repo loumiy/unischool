@@ -7,6 +7,7 @@ import {
   isPlaceableKind, orientedFootprint, placementTiles,
 } from '../state/campusMap';
 import { canStartDevelopment } from '../systems/techtree/techSystem';
+import { isTypingTarget, useHotkeys } from './hotkeys';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
 import BuildingMotif, { ScaffoldPattern, heightOf, tintFor } from './buildingMotifs';
@@ -136,6 +137,28 @@ const DEFAULT_ZOOM = 0.4;
 const ZOOM_SPEED = 0.0016;       // wheel deltaY -> zoom factor
 const PAN_CLICK_THRESHOLD = 4;   // px of movement before a mousedown counts as a drag, not a click
 
+// Keyboard panning. W/A/S/D and the arrow keys move the camera the way a
+// player already expects them to, which matters more here than on most
+// maps: the mouse is frequently BUSY — holding a path stroke down, or
+// carrying a picked-up building toward the spot it's going — and a
+// drag-to-pan is exactly the gesture that can't be made at the same time.
+//
+// The offsets are what the VIEW translate moves by, so they read inverted
+// against the key: pressing D looks rightward, which slides the world left.
+const PAN_KEYS: Record<string, readonly [number, number]> = {
+  w: [0, 1], a: [1, 0], s: [0, -1], d: [-1, 0],
+  arrowup: [0, 1], arrowleft: [1, 0], arrowdown: [0, -1], arrowright: [-1, 0],
+};
+// Screen pixels per second, deliberately NOT scaled by zoom: the player is
+// moving the view across the screen they're looking at, so the same key
+// press should cover the same amount of SCREEN whether they're zoomed into
+// one quad or pulled back over the whole campus.
+const KEY_PAN_SPEED = 1100;
+// Longest frame gap a single pan step will integrate. A backgrounded tab
+// resumes with one enormous delta, which without this would teleport the
+// camera the moment the player comes back.
+const MAX_PAN_FRAME_S = 0.1;
+
 // The world's drawn extent. Unlike the flat map's, this is NOT anchored at
 // the origin: the grid projects to a diamond whose left corner sits at
 // negative x, so defaultView below has to centre on the real bounds rather
@@ -160,6 +183,14 @@ const GRID_LINES = (() => {
   return seg.join('');
 })();
 const MAP_HEIGHT = WORLD.maxY - WORLD.minY + MAP_PADDING * 2 + WORLD_TOP_HEADROOM;
+
+// The path tool the SECONDARY mouse button paints with, given the armed
+// one. Draw and erase are exact opposites, so the pair needs no table — it
+// just needs a name, so that "the other one" is a thing the mousedown
+// handler says rather than a ternary the reader has to decode.
+function otherPathTool(tool: 'draw' | 'erase'): 'draw' | 'erase' {
+  return tool === 'draw' ? 'erase' : 'draw';
+}
 
 // The CSS hook for a placed building. Colour is no longer decided here —
 // tintFor (buildingMotifs.tsx) owns it, because the angled map derives five
@@ -278,7 +309,7 @@ function BuildingLabel({ t, p }: { t: Buildable; p: Placement }) {
 }
 
 export default function CampusMap({
-  s, act, selectedId, onSelect, pathTool, onSetPathTool,
+  s, act, selectedId, onSelect, pathTool, onSetPathTool, hotkeysEnabled,
 }: {
   s: GameState;
   act: (a: Action) => void;
@@ -296,10 +327,16 @@ export default function CampusMap({
   pathTool: 'draw' | 'erase' | null;
   // The same toggle the build popup's tool tiles drive (App.tsx's
   // setPathTool: calling it again with the CURRENTLY active mode turns it
-  // off). Right-clicking the map while a path tool is active reuses that
-  // exact toggle (see onMapContextMenu below) rather than inventing a
-  // separate cancel path.
+  // off). The 'P' hotkey and Escape both reuse that exact toggle (see the
+  // useHotkeys block below) rather than inventing a separate arm/cancel
+  // path of their own.
   onSetPathTool: (mode: 'draw' | 'erase') => void;
+  // Whether the map currently owns the keyboard — false while a tab overlay
+  // or an interrupt modal is on top of it (App.tsx decides). Everything this
+  // component binds a key for is a thing you do while LOOKING at the map, so
+  // all of it goes quiet together rather than each hotkey growing its own
+  // idea of when it applies.
+  hotkeysEnabled: boolean;
 }) {
   // Whether the currently-selected building has been turned 90 degrees
   // before siting (see campusMap.ts's orientedFootprint). Transient UI
@@ -364,6 +401,9 @@ export default function CampusMap({
   // side of this.
   useEffect(() => {
     setInspectedId(null);
+    // The tile ghost belongs to whichever mode is live, so it goes with the
+    // mode rather than waiting for the pointer to move somewhere new.
+    setHover(null);
   }, [pathTool]);
   // The one place selection changes: always resets rotation (a fresh pickup
   // starts unrotated) and closes the info panel, so a building picked up
@@ -385,7 +425,15 @@ export default function CampusMap({
   // onClick); one that moves past the threshold is a drag-to-pan. Tracked
   // here, at the map level, rather than per-tile, since a pan can cross
   // dozens of tiles before the pointer comes up.
-  const dragRef = useRef<{ startX: number; startY: number; startView: { x: number; y: number }; moved: boolean } | null>(null);
+  //
+  // `button` is recorded because a pan can now be started by either the
+  // LEFT button (on an idle map) or the MIDDLE one (the scroll wheel pressed
+  // in, which pans in every mode — see onMapMouseDown). Only the left one
+  // needs the justPanned guard below: the browser fires a `click` after a
+  // left mouseup regardless of how far the pointer travelled, but a middle
+  // mouseup fires `auxclick` instead, so a middle-button pan that also set
+  // the flag would leave it armed to swallow the player's next real click.
+  const dragRef = useRef<{ button: number; startX: number; startY: number; startView: { x: number; y: number }; moved: boolean } | null>(null);
   // Set the instant a drag is recognised as a pan, so the click the browser
   // fires right after mouseup doesn't ALSO place a building — consumed by
   // the very next place() call, or by the next mousedown if that click
@@ -461,7 +509,7 @@ export default function CampusMap({
       const d = dragRef.current;
       dragRef.current = null;
       if (d?.moved) {
-        justPannedRef.current = true;
+        if (d.button === 0) justPannedRef.current = true;
         svgRef.current?.classList.remove('panning');
       }
       // Ends a path click-drag exactly like a pan drag: wherever the mouse
@@ -477,6 +525,87 @@ export default function CampusMap({
     };
   }, []);
 
+  // W/A/S/D and the arrow keys pan the camera (see PAN_KEYS above).
+  //
+  // Held keys drive an animation frame loop rather than one jump per
+  // keydown, so the camera GLIDES for as long as the key is down instead of
+  // stuttering along at the OS's key-repeat rate — and because the step is
+  // scaled by real elapsed time, the same key press covers the same ground
+  // whether the machine is managing 120fps or 30. Two keys held at once
+  // (W and D for a diagonal) are normalised, so a corner is not travelled at
+  // 1.41x the speed of a straight edge.
+  //
+  // Entirely self-contained — the held set, the frame loop and both
+  // listeners live and die together — and it writes through applyView, so
+  // keyboard panning is the same camera move the mouse drag makes, with no
+  // second copy of the transform arithmetic. Like that drag, it never
+  // re-renders React.
+  useEffect(() => {
+    if (!hotkeysEnabled) return;
+    const held = new Set<string>();
+    let frame: number | null = null;
+    let prevTs = 0;
+
+    function step(ts: number) {
+      if (held.size === 0) { frame = null; return; }
+      // First frame of a stretch has no previous timestamp to measure
+      // against, so it moves nothing and simply establishes the baseline.
+      const dt = prevTs === 0 ? 0 : Math.min(MAX_PAN_FRAME_S, (ts - prevTs) / 1000);
+      prevTs = ts;
+      let dx = 0;
+      let dy = 0;
+      for (const key of held) {
+        const [kx, ky] = PAN_KEYS[key];
+        dx += kx;
+        dy += ky;
+      }
+      // Opposite keys held together (A and D) cancel to zero, which is the
+      // right answer and also the one that must not be normalised.
+      const len = Math.hypot(dx, dy);
+      if (len > 0 && dt > 0) {
+        const view = viewRef.current;
+        applyView({
+          x: view.x + (dx / len) * KEY_PAN_SPEED * dt,
+          y: view.y + (dy / len) * KEY_PAN_SPEED * dt,
+          zoom: view.zoom,
+        });
+      }
+      frame = requestAnimationFrame(step);
+    }
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (isTypingTarget(e.target)) return;
+      const key = e.key.toLowerCase();
+      if (!(key in PAN_KEYS)) return;
+      // The arrows would otherwise scroll the page under the map.
+      e.preventDefault();
+      if (held.has(key)) return;   // OS key-repeat, not a second press
+      held.add(key);
+      if (frame === null) { prevTs = 0; frame = requestAnimationFrame(step); }
+    }
+    function onKeyUp(e: KeyboardEvent) {
+      held.delete(e.key.toLowerCase());
+    }
+    // A key held while the window loses focus never delivers its keyup, and
+    // the camera would otherwise drift on forever once focus came back.
+    function onBlur() {
+      held.clear();
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
+      if (frame !== null) cancelAnimationFrame(frame);
+    };
+    // applyView reads and writes refs only, so the stretch-long closure here
+    // is never stale in any way that matters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hotkeysEnabled]);
 
   // The ground tile under a pointer event, or null off-grid. The whole of
   // the angled map's hit-testing: screen -> world (undo the view transform)
@@ -499,15 +628,25 @@ export default function CampusMap({
     return w ? tileAt(w.x, w.y) : null;
   }
 
-  // Hover drives the footprint ghost, and while a path tool is held down it
-  // also paints. One handler on the map, where the flat version needed a
-  // mouseenter on every tile.
+  // Hover drives the ghost — the picked-up building's footprint, or, under a
+  // path tool, the single tile a click would pave or lift (a path tile's
+  // footprint is 1x1, so it is the same question asked of a smaller shape).
+  // Drawing needs it at least as much as placing does: a tile on an angled
+  // grid is a rhombus whose edges run nowhere near the cursor's own axes, so
+  // "which square am I actually about to paint" is genuinely hard to read off
+  // the grid lines alone.
+  //
+  // While a stroke is held down it also paints. The ghost keeps tracking
+  // through the stroke rather than being suppressed by it, so the leading
+  // edge of a drag is always marked. One handler on the map, where the flat
+  // version needed a mouseenter on every tile.
   function onMapMouseMove(e: React.MouseEvent<SVGSVGElement>) {
     if (dragRef.current?.moved) return;   // panning: don't jitter the ghost across the tiles a drag crosses
-    if (pathDragRef.current) { paintStroke(e, pathDragRef.current); return; }
-    const tile = tileFromEvent(e);
-    if (!selected) return;
-    setHover((cur) => (cur && tile && cur.row === tile.row && cur.col === tile.col ? cur : tile));
+    if (selected || pathTool) {
+      const tile = tileFromEvent(e);
+      setHover((cur) => (cur && tile && cur.row === tile.row && cur.col === tile.col ? cur : tile));
+    }
+    if (pathDragRef.current) paintStroke(e, pathDragRef.current);
   }
 
   // Paint every tile between the last sampled point and this one, so a fast
@@ -539,32 +678,66 @@ export default function CampusMap({
   }
 
   function onMapMouseDown(e: React.MouseEvent<SVGSVGElement>) {
+    // The MIDDLE button (the scroll wheel pressed in) always pans, in every
+    // mode, and this is checked first so it outranks whatever else has the
+    // map. That is the whole point of it: under a path tool the left button
+    // is busy painting, so drag-to-pan — the only way to move the camera
+    // with the mouse — is gone exactly when a long walkway most needs the
+    // camera moved. preventDefault suppresses the browser's own
+    // middle-click autoscroll widget, which would otherwise open on top of
+    // the map and fight the drag.
+    if (e.button === 1) {
+      e.preventDefault();
+      startPanDrag(e);
+      return;
+    }
     // A path tool owns the gesture: start painting immediately and keep
     // painting across whatever tiles the pointer crosses, without ever
     // arming the pan-drag that the same mousedown would otherwise start.
-    if (pathTool && e.button === 0) {
+    // Left paints with the armed tool; right paints with the other one, so
+    // fixing a stroke that went one tile too far never means going back to
+    // the build popup to swap tools and back again. With the map's ordinary
+    // arming (P, or the popup's Draw path tile) that reads as the plain
+    // rule it is meant to be: left draws, right erases.
+    if (pathTool && (e.button === 0 || e.button === 2)) {
+      const tool = e.button === 0 ? pathTool : otherPathTool(pathTool);
       const tile = tileFromEvent(e);
       if (tile) {
-        pathDragRef.current = pathTool;
+        pathDragRef.current = tool;
         pathLastRef.current = null;   // a new stroke never interpolates from where the last one ended
-        paintStroke(e, pathTool);
+        paintStroke(e, tool);
         return;
       }
     }
     if (e.button !== 0) return;
     justPannedRef.current = false;
-    dragRef.current = { startX: e.clientX, startY: e.clientY, startView: { x: viewRef.current.x, y: viewRef.current.y }, moved: false };
+    startPanDrag(e);
   }
 
-  // Right-click backs out of an active path tool — the map's own equivalent
-  // of the build popup's "click the same tool tile again" toggle. Only ever
-  // preventDefault (suppressing the browser's own context menu) while there
-  // is actually a tool to cancel; an ordinary right-click elsewhere on the
-  // map is left alone.
+  function startPanDrag(e: React.MouseEvent<SVGSVGElement>) {
+    dragRef.current = {
+      button: e.button,
+      startX: e.clientX,
+      startY: e.clientY,
+      startView: { x: viewRef.current.x, y: viewRef.current.y },
+      moved: false,
+    };
+  }
+
+  // While a path tool is armed the right button is the tool's SECONDARY
+  // stroke (see onMapMouseDown), so the browser's context menu has to stay
+  // out of the way of it. Only then: an ordinary right-click on an idle map
+  // is left entirely alone.
+  //
+  // Right-click used to back out of the tool instead. Erasing is the more
+  // useful thing for that button to do by a wide margin — undoing a stroke
+  // is most of what drawing a walkway actually consists of — and backing out
+  // is no harder for losing it: P toggles the tool, Escape drops it (see the
+  // hotkeys below), and so do the build popup's own tile and closing that
+  // popup.
   function onMapContextMenu(e: React.MouseEvent<SVGSVGElement>) {
     if (!pathTool) return;
     e.preventDefault();
-    onSetPathTool(pathTool);
   }
 
   // Zoom toward the cursor, not the map's centre — the standard "point
@@ -626,26 +799,41 @@ export default function CampusMap({
   // control below offers it for one.
   const canRotateSelected = !!selected && selected.status !== 'done' && canRotate(footprintOf(selected));
 
-  // The 'R' hotkey rotates the currently-picked-up building; the on-screen
-  // rotate control (near the footprint ghost, below) does the same thing.
-  // Re-subscribed whenever the selection changes rather than closing over a
-  // ref, since it only needs `selected`'s current footprint to decide
-  // whether rotating is even meaningful (see canRotate) — a plain effect
-  // dependency is simpler than threading that through a ref for a listener
-  // that is this cheap to rebind. Doesn't conflict with StatusHeader's
-  // 1/2/3 speed hotkeys, TabOverlay's Escape, or InterruptModal's Enter —
-  // none of those bind 'r'.
-  useEffect(() => {
-    if (!canRotateSelected) return;
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key.toLowerCase() !== 'r') return;
-      const tag = (e.target as HTMLElement | null)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      setRotated((r) => !r);
+  // The map's keyboard, minus panning (which needs keyup and a frame loop of
+  // its own — see the effect above).
+  //
+  //   R       rotate the currently-picked-up building, the same thing the
+  //           on-screen ⟳ control near the footprint ghost does. A no-op
+  //           unless something rotatable is actually picked up.
+  //   P       arm the draw tool, or put it away if it is already armed —
+  //           App.tsx's setPathTool is itself a toggle, so pressing P with
+  //           the ERASE tool armed swaps to draw rather than turning
+  //           everything off, which is what a player reaching for "draw"
+  //           means by it.
+  //   Escape  back out of whatever the map is currently doing, one layer at
+  //           a time: the path tool, then a picked-up building, then an open
+  //           info panel. Only ever reaches here with no tab open over the
+  //           map (hotkeysEnabled), so it never competes with TabOverlay's
+  //           own Escape.
+  //
+  // None of these collide with StatusHeader's 1/2/3/Space, App.tsx's C/F/L
+  // or InterruptModal's Enter.
+  useHotkeys((e) => {
+    const key = e.key.toLowerCase();
+    if (key === 'r') {
+      if (canRotateSelected) setRotated((r) => !r);
+      return;
     }
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [canRotateSelected]);
+    if (key === 'p') {
+      onSetPathTool('draw');
+      return;
+    }
+    if (e.key === 'Escape') {
+      if (pathTool) onSetPathTool(pathTool);
+      else if (selected) selectBuilding(null);
+      else if (inspectedId) setInspectedId(null);
+    }
+  }, hotkeysEnabled);
 
   // The one placement path, whether the building was clicked into place or
   // dropped there. canPlace is re-checked in the reducer too — this copy is
@@ -750,6 +938,15 @@ export default function CampusMap({
       }
     : null;
 
+  // The path tool's own ghost: the one tile under the cursor that the next
+  // click would pave or lift. No `ok` flag to go with it — unlike a
+  // building, a path tile costs nothing, needs no room and can never be
+  // refused, so there is nothing for the ghost to warn about; it only has to
+  // answer "which square", which on a grid of rhombuses is question enough.
+  // Mutually exclusive with `preview` by construction, since App.tsx never
+  // lets a pickup and a path tool be live at the same time.
+  const pathGhost = pathTool && hover ? { ...hover, tool: pathTool } : null;
+
   return (
     <section className="campus-map">
       <div className="campus-map-canvas">
@@ -849,6 +1046,13 @@ export default function CampusMap({
               </>
             )}
 
+            {pathGhost && (
+              <polygon
+                className={`campus-path-ghost ${pathGhost.tool}`}
+                points={polyPoints(boxFaces(pathGhost.col, pathGhost.row, 1, 1, 0, 0).top)}
+              />
+            )}
+
             {placed.map(({ t, p }) => <BuildingLabel key={`label-${t.id}`} t={t} p={p} />)}
           </g>
         </svg>
@@ -889,7 +1093,7 @@ export default function CampusMap({
         <div className="campus-map-zoom-controls">
           <HelpHint
             align="end"
-            text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. The Draw path / Erase path buttons (also in the build popup) let you fill in tiles as walkways — free, purely decorative, and unrelated to building. Drag the map to pan, or scroll/pinch to zoom."
+            text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. Press P (or use the build popup's Draw path tile) to lay walkways — free, purely decorative, and unrelated to building: drag with the left button to pave, the right button to lift, and the ghost tile shows which square you're on. Keys: W/A/S/D or the arrows pan, Space pauses and resumes, R rotates, P draws, Escape backs out, C/F/L open Curriculum, Faculty and Student Life. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll/pinch to zoom."
           />
           <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
           <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useGame } from './engine/useGame';
+import { useHotkeys } from './components/hotkeys';
 import type { GameState } from './state/types';
 import StartupScreen from './components/StartupScreen';
 import MainMenu from './components/MainMenu';
@@ -58,6 +59,20 @@ import './styles.css';
 // its own thin strip stacked above the toolbar rather than a fourth zone
 // inside it, at a fixed (not measured) height, since one line of text never
 // wraps the way the toolbar's own zones can.
+
+// The three views with a letter of their own. Deliberately a SUBSET of
+// TAB_ORDER rather than one key per tab: these are the three a player dips
+// into and back out of constantly mid-run, and every extra letter claimed
+// here is one the map can never use. Treasury already has a permanent
+// on-screen figure that opens it, and Admissions/Athletics/History are
+// places you go once a year rather than mid-week. Each key TOGGLES, exactly
+// like clicking the same tab's toolbar icon twice.
+const TAB_HOTKEYS: Record<string, TabId> = {
+  c: 'curriculum',
+  f: 'faculty',
+  l: 'studentlife',
+};
+
 export default function App() {
   const { state, act, speed, setSpeed } = useGame();
   const s: GameState = state;
@@ -76,6 +91,26 @@ export default function App() {
   const [placingId, setPlacingIdState] = useState<string | null>(null);
   const [pathTool, setPathToolState] = useState<'draw' | 'erase' | null>(null);
   const toolbarRef = useCssHeightVar('--toolbar-height');
+
+  // C / F / L open the three views that get opened most (see TAB_HOTKEYS).
+  // Held back while an interrupt is pending: that modal is the one thing in
+  // the game the player must answer before anything else, and opening a tab
+  // underneath it would put a panel behind a dialog that already covers it.
+  useHotkeys((e) => {
+    if (s.pendingInterrupt) return;
+    const tab = TAB_HOTKEYS[e.key.toLowerCase()];
+    if (!tab) return;
+    setOverlay((cur) => (cur === tab ? null : tab));
+  }, s.started);
+
+  // The map's own keys (W/A/S/D and the arrows to pan, P for the path tool,
+  // R to rotate, Escape to back out) answer only while the player is
+  // actually looking at the map. With a tab open over it or an interrupt
+  // halting the clock, the keyboard belongs to what's on top — Escape
+  // closes the overlay rather than dropping a path tool behind it, and
+  // panning a map nobody can see is just a camera that has moved by the
+  // time they come back to it.
+  const mapHotkeysEnabled = overlay === null && s.pendingInterrupt === null;
 
   // Picking up a building for siting and drawing/erasing a path are two
   // different jobs for the same click on the same grid, so exactly one is
@@ -97,7 +132,15 @@ export default function App() {
 
   return (
     <>
-      <CampusMap s={s} act={act} selectedId={placingId} onSelect={setPlacingId} pathTool={pathTool} onSetPathTool={setPathTool} />
+      <CampusMap
+        s={s}
+        act={act}
+        selectedId={placingId}
+        onSelect={setPlacingId}
+        pathTool={pathTool}
+        onSetPathTool={setPathTool}
+        hotkeysEnabled={mapHotkeysEnabled}
+      />
       <MainMenu act={act} />
 
       <div className="app">

@@ -1,4 +1,5 @@
-import { useEffect, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
+import { useHotkeys } from './hotkeys';
 
 // Every view other than the campus map opens as an overlay ON TOP of the
 // map (see App.tsx) rather than replacing it, so the map is the one screen
@@ -15,13 +16,13 @@ export default function TabOverlay({ title, onClose, children }: {
   onClose: () => void;
   children: ReactNode;
 }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  // Escape closes the sheet. The map binds Escape too (to drop a path tool
+  // or a picked-up building), but App.tsx keeps the map's hotkeys switched
+  // off for exactly as long as an overlay is open, so only one of the two
+  // is ever listening.
+  useHotkeys((e) => {
+    if (e.key === 'Escape') onClose();
+  });
 
   return (
     <div className="tab-overlay-backdrop" onClick={onClose}>

@@ -810,6 +810,16 @@ button.build-tile { font-family: inherit; }
 .campus-preview.ok { stroke: var(--gold); fill: rgba(201, 162, 39, 0.22); }
 .campus-preview.blocked { stroke: #b4544a; fill: rgba(180, 84, 74, 0.18); stroke-dasharray: 4 3; }
 
+/* The path tool's ghost: the single tile a click would pave or lift. Same
+   non-scaling-stroke reasoning as the footprint ghost above, and the same
+   two-colour language the rest of the map already speaks — brass for the
+   thing being added, red for the thing being taken away — so which of the
+   two buttons is under the cursor's finger is readable without looking away
+   from the tile. */
+.campus-path-ghost { pointer-events: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.campus-path-ghost.draw { stroke: var(--gold); fill: rgba(201, 162, 39, 0.28); }
+.campus-path-ghost.erase { stroke: #b4544a; fill: rgba(180, 84, 74, 0.22); stroke-dasharray: 4 3; }
+
 .campus-rotate-btn { cursor: pointer; }
 .campus-rotate-btn circle { fill: var(--parchment); stroke: var(--gold-dim); stroke-width: 1.5; }
 .campus-rotate-btn:hover circle { fill: #efe1b8; }
