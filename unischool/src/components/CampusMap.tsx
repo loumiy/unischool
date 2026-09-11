@@ -4,12 +4,13 @@ import type { Buildable, GameState, Placement, TileCoord } from '../state/types'
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import {
   canPlace, canRotate, canSiteRetroactively, footprintIsClear, footprintOf,
-  isPlaceableKind, orientedFootprint, parsePathTileKey, placementTiles,
+  isPlaceableKind, orientedFootprint, placementTiles,
 } from '../state/campusMap';
 import { canStartDevelopment } from '../systems/techtree/techSystem';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
 import BuildingMotif, { heightOf, tintFor } from './buildingMotifs';
+import PathwayLayer from './pathways';
 import { TILE_H, WORLD, boxFaces, lift, polyPoints, project, tileAt } from './isoProjection';
 
 // The campus map: the game's base layer, always on screen under everything
@@ -42,10 +43,12 @@ import { TILE_H, WORLD, boxFaces, lift, polyPoints, project, tileAt } from './is
 // visual: it moves a `<g>` transform, never touches tileX/tileY, so every
 // placement coordinate below is completely unaware it can happen.
 //
-// Plain SVG on purpose: tiles are <rect>s, placed buildings are a <rect>
-// spanning their footprint plus a wrapped <text> label. No canvas, no game
-// library, no new deps. (The isometric rebuild is a separate, later arc;
-// this is the flat map made finer-grained, not a step toward it.)
+// Plain SVG on purpose: no canvas, no game library, no new deps. The map is
+// drawn at an angle (2:1 dimetric — see isoProjection.ts), so the ground is
+// one plate plus a path of grid lines, and a placed building is a mass with
+// a roof and two walls (buildingMotifs.tsx). Camera rotation is the piece
+// that is still missing, and the one the angle argues for: a tall building
+// can hide a shorter one behind it.
 
 // --- layout ---
 // The map is drawn in 2:1 dimetric projection (see isoProjection.ts, which
@@ -748,19 +751,7 @@ export default function CampusMap({
             <polygon className="campus-ground" points={polyPoints(GROUND_PLATE)} />
             <path className="campus-grid" d={GRID_LINES} />
 
-            {Object.keys(s.pathways).map((key) => {
-              const tile = parsePathTileKey(key);
-              if (!tile) return null;
-              // A path tile paves its whole grid square, so on the angled
-              // map it is that square's own rhombus rather than a rect.
-              return (
-                <polygon
-                  key={key}
-                  className="campus-path-tile"
-                  points={polyPoints(boxFaces(tile.col, tile.row, 1, 1, 0, 0).top)}
-                />
-              );
-            })}
+            <PathwayLayer pathways={s.pathways} />
 
             {/* Back to front. On an angled map this ordering IS the
                 occlusion: a building nearer the camera must paint over one

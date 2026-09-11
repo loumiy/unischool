@@ -712,8 +712,16 @@ button.build-tile { font-family: inherit; }
 .campus-rotate-btn:hover circle { fill: #efe1b8; }
 .campus-rotate-btn text { font-size: 13px; fill: var(--ink); pointer-events: none; }
 
-/* Drawn pathways: a worn-stone paving square, under everything placed. */
-.campus-path-tile { fill: #cbbd8e; pointer-events: none; }
+/* Drawn pathways (see pathways.tsx). Autotiled: the fill is every paving
+   square as one path, the kerb runs ONLY along edges with no neighbour, and
+   the joints are the seams where paving does continue. That split is what
+   makes a run read as a walkway and a block read as a plaza, instead of
+   every tile carrying its own outline and a wide area reading as a grid of
+   separate squares. */
+.campus-paths { pointer-events: none; }
+.campus-path-fill { fill: #cbbd8e; }
+.campus-path-joint { stroke: rgba(120, 106, 66, 0.28); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
+.campus-path-kerb { stroke: #a89566; stroke-width: 1.5; fill: none; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 
 /* ---------- placed buildings ---------- */
 .campus-building { cursor: pointer; }
