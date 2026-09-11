@@ -811,6 +811,7 @@ button.build-tile { font-family: inherit; }
 .campus-building-halo { fill: none; stroke: var(--gold); stroke-width: 1.5; opacity: 0.5; pointer-events: none; }
 .campus-map-svg.inspecting .campus-building:not(.inspected) .campus-building-body { opacity: 0.5; }
 .campus-map-svg.inspecting .campus-building:not(.inspected) .campus-building-shadow { opacity: 0.35; }
+.campus-map-svg.inspecting .campus-building:not(.inspected) .campus-building-motif { opacity: 0.45; }
 .campus-map-svg.inspecting .campus-building:not(.inspected) text { opacity: 0.35; }
 
 /* Academic halls: the campus's brass landmarks. They're all the same
@@ -851,6 +852,43 @@ button.build-tile { font-family: inherit; }
 .campus-building.kind-facility.tint-16 .campus-building-body { fill: #d4a94f; stroke: #a67f2e; } /* football stadium — the pinnacle, boldest of the facility tints */
 .campus-building.kind-facility.tint-17 .campus-building-body { fill: #ecd9a4; stroke: #c7a862; } /* grocery store — warm, dining-adjacent but distinct from tint-2's dining hall */
 .campus-building.kind-facility text { fill: #3d3524; }
+
+/* ---------- building motifs ---------- */
+/* The drawn structure inside a placed building — roof, windows, columns,
+   doorway, ground markings (geometry in buildingMotifs.tsx). Every value
+   here is a TONAL OVERLAY rather than a colour: a translucent dark or light
+   wash that darkens or lightens whatever tint it happens to be sitting on.
+   That is what lets ONE set of motif parts sit correctly on all ~22 building
+   tints above — a bespoke palette per motif part would otherwise need 22
+   variants of each, and would have to be retuned every time a tint moved.
+   The whole set is deliberately low-contrast: a motif should say what kind
+   of place this is when you glance at the campus, not compete with the
+   building's own tint or with the name written across it. */
+.motif-roof { fill: rgba(42, 56, 28, 0.17); }
+.motif-plinth { fill: rgba(42, 56, 28, 0.13); }
+/* Deliberately much darker than --motif-roof rather than near it: a
+   pediment sits ON the roof band, so matching the roof's own tone makes it
+   invisible however large it is drawn. */
+.motif-pediment { fill: rgba(42, 56, 28, 0.30); }
+.motif-barrel { fill: rgba(42, 56, 28, 0.15); }
+.motif-window { fill: rgba(255, 253, 246, 0.44); }
+.motif-column { fill: rgba(255, 253, 246, 0.34); }
+.motif-door { fill: rgba(42, 56, 28, 0.34); }
+.motif-canopy { fill: rgba(42, 56, 28, 0.22); }
+.motif-stack { fill: rgba(42, 56, 28, 0.28); }
+/* Open ground (quad, field, courts, diamond, pool deck): no roof and no
+   windows, so its parts are strokes rather than fills — a boundary and a
+   marking painted ON the surface, which is what they are. */
+.motif-ground-edge { fill: none; stroke: rgba(255, 253, 246, 0.30); stroke-width: 1.5; }
+.motif-ground-line { fill: none; stroke: rgba(255, 253, 246, 0.34); stroke-width: 1.5; }
+.motif-water { fill: rgba(96, 152, 176, 0.42); }
+/* Where a quad's crossing walks meet — a fountain or a monument. Without it
+   two corner-to-corner paths read as a box struck through, not as a lawn
+   people cut across. */
+.motif-ground-medallion { fill: rgba(255, 253, 246, 0.30); }
+/* The stadium: the rim is the stand, the pitch is what it surrounds. */
+.motif-rim { fill: none; stroke: rgba(42, 56, 28, 0.20); stroke-width: 1; }
+.motif-pitch { fill: rgba(125, 156, 96, 0.55); }
 
 /* Under construction: a developing placement is sited exactly like a
    finished one, but must never be mistaken for one — this is the whole

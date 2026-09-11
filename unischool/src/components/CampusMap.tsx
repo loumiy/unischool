@@ -9,6 +9,7 @@ import {
 import { canStartDevelopment } from '../systems/techtree/techSystem';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
+import BuildingMotif from './buildingMotifs';
 
 // The campus map: the game's base layer, always on screen under everything
 // else (see App.tsx), and a placement + rendering layer over the SAME
@@ -428,6 +429,16 @@ function PlacedBuilding({
   const firstLineY = y + height / 2 - ((lines.length - 1) * lineHeight) / 2;
 
   const developing = t.status === 'developing' && weeksLeft !== undefined;
+  // The horizontal band the name occupies, handed to the motif so its
+  // windows skip it (see buildingMotifs.tsx's windowRects). Derived from the
+  // same numbers that position the <text> below, so the two can never drift
+  // apart. Null when the name didn't fit at all and no text is drawn.
+  const labelBand = lines.length > 0
+    ? {
+      top: firstLineY - fontSize * 0.85,
+      bottom: firstLineY + (lines.length - 1) * lineHeight + fontSize * 0.3,
+    }
+    : null;
   const elapsedFraction = developing && t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
   const barWidth = width - PROGRESS_BAR_INSET * 2;
   const barY = y + height - PROGRESS_BAR_INSET - PROGRESS_BAR_HEIGHT;
@@ -453,6 +464,22 @@ function PlacedBuilding({
         rx={BUILDING_CORNER}
       />
       <rect className="campus-building-body" x={x} y={y} width={width} height={height} rx={BUILDING_CORNER} />
+      {/* The architectural motif (see buildingMotifs.tsx). No clip path: the
+          only parts that reach the body's edge are the roof and plinth
+          bands, and they carry the body's own corner radius rather than
+          needing to be clipped to it — which keeps this to one <g> per
+          building instead of a per-building <clipPath> in <defs>.
+          Deliberately NOT drawn while developing: a site under construction
+          has no facade yet, so the silhouette arriving — alongside the
+          shadow coming up to full strength — is what completion looks like. */}
+      {!developing && (
+        // Wrapped in one <g> so the whole facade can be dimmed as a unit
+        // while another building is inspected — otherwise a stepped-back
+        // building would wear a full-strength facade over a faded body.
+        <g className="campus-building-motif">
+          <BuildingMotif t={t} x={x} y={y} width={width} height={height} corner={BUILDING_CORNER} label={labelBand} />
+        </g>
+      )}
       {inspected && (
         <rect
           className="campus-building-halo"
