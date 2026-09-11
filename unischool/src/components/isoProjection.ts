@@ -117,17 +117,39 @@ export function projectedCircle(
   return out;
 }
 
-// An ellipse on the ground — a running track's oval, where a circle's single
-// radius will not do. Sampled as a polygon for the same reason
-// projectedCircle is: the projection turns it into an ellipse whose axes are
-// not screen-aligned, and a sampled ring needs no rotation maths.
-export function projectedEllipse(
-  centreCol: number, centreRow: number, radiusCol: number, radiusRow: number, segments = 56,
+// A STADIUM (running-track) outline on the ground: two dead-straight sides
+// joined by semicircular ends. This is what a 400m track actually is, and it
+// is not an ellipse — an ellipse curves continuously, so its long sides bow
+// where a track's are straight, which is the first thing that reads as wrong
+// about one.
+//
+// `halfLen` is measured along the long axis and `halfWid` across it, both
+// from the centre, so the straight portion is (halfLen - halfWid) long on
+// each side and the caps have radius halfWid. `landscape` says which grid
+// axis the long one is, so a rotated field gets an oval the right way round.
+export function projectedStadium(
+  centreCol: number, centreRow: number,
+  halfLen: number, halfWid: number, landscape: boolean, segments = 20,
 ): Pt[] {
+  const straight = Math.max(0, halfLen - halfWid);
+  const r = halfWid;
   const out: Pt[] = [];
-  for (let i = 0; i < segments; i++) {
-    const a = (i / segments) * Math.PI * 2;
-    out.push(project(centreCol + Math.cos(a) * radiusCol, centreRow + Math.sin(a) * radiusRow));
+  // (along, across) offsets from the centre, mapped onto whichever grid axis
+  // is the long one.
+  const push = (a: number, c: number) => {
+    out.push(landscape ? project(centreCol + a, centreRow + c) : project(centreCol + c, centreRow + a));
+  };
+  push(straight, -r);
+  push(-straight, -r);
+  for (let i = 1; i < segments; i++) {
+    const t = -Math.PI / 2 - (i / segments) * Math.PI;   // round the far cap
+    push(-straight + r * Math.cos(t), r * Math.sin(t));
+  }
+  push(-straight, r);
+  push(straight, r);
+  for (let i = 1; i < segments; i++) {
+    const t = Math.PI / 2 - (i / segments) * Math.PI;    // round the near cap
+    push(straight + r * Math.cos(t), r * Math.sin(t));
   }
   return out;
 }

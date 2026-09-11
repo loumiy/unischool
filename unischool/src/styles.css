@@ -916,7 +916,10 @@ button.build-tile { font-family: inherit; }
 .ground-line { stroke: rgba(255, 253, 246, 0.72); stroke-width: 1.4; fill: none; vector-effect: non-scaling-stroke; }
 .ground-line-heavy { stroke: rgba(255, 253, 246, 0.85); stroke-width: 2.2; fill: none; vector-effect: non-scaling-stroke; }
 .ground-line-fine { stroke: rgba(255, 253, 246, 0.6); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
-.ground-lane { stroke: rgba(255, 253, 246, 0.45); stroke-width: 1.2; fill: none; vector-effect: non-scaling-stroke; }
+.ground-lane { stroke: rgba(255, 253, 246, 0.55); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
+/* Mowing stripes: alternating bands across a pitch, which is most of what
+   makes one read as cut grass rather than as a green rectangle. */
+.ground-mow { fill: rgba(255, 255, 255, 0.055); }
 .ground-walk { stroke: #cbbd8e; stroke-width: 5; fill: none; }
 /* The outfield fence: a real low face standing on the field, with a rail
    along its top — a stroke alone would have read as one more painted

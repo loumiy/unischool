@@ -1,5 +1,5 @@
 import type { FacilityType } from '../state/types';
-import { boxFaces, lift, polyPoints, project, projectedArc, projectedCircle, projectedEllipse, type Pt } from './isoProjection';
+import { boxFaces, lift, polyPoints, project, projectedArc, projectedCircle, projectedStadium, type Pt } from './isoProjection';
 
 // Open ground: the Buildables you walk across rather than into — the quad,
 // the pool deck, the courts, the pitches, and the stadium's own field. These
@@ -287,72 +287,118 @@ function Diamond({ col, row, w, h }: GroundProps) {
 
 // A soccer pitch: centre circle, halfway line, and the two penalty areas
 // that stop it being "a field with a circle on it".
+// The number of running lanes. Eight is the competition standard and what a
+// track looks like from above — the concentric lines ARE the read.
+const TRACK_LANES = 8;
+
 function Pitch({ col, row, w, h }: GroundProps) {
   const landscape = w >= h;
-  const A = (a: number, c: number): [number, number] => (landscape ? [a, c] : [c, a]);
   const cc = col + w * 0.5;
   const cr = row + h * 0.5;
+  const along = landscape ? w : h;    // the footprint side the track's long axis runs down
+  const across = landscape ? h : w;
 
-  // The running track: an oval around the pitch, which is what a
-  // multi-sport field actually is. The band between the two ellipses is the
-  // track surface; the pitch sits in the infield inside it.
-  //
-  // Radii are taken along the footprint's own axes so a rotated field gets
-  // an oval the right way round, and the outer one stops short of the edge
-  // to leave a strip for the stand.
-  const outerA = 0.46;   // along the long axis, as a fraction of that side
-  const outerC = 0.40;   // across it
-  const innerA = 0.355;
-  const innerC = 0.285;
-  const rA = (fr: number) => (landscape ? w : h) * fr;
-  const rC = (fr: number) => (landscape ? h : w) * fr;
-  const ell = (fa: number, fc: number) => (landscape
-    ? projectedEllipse(cc, cr, rA(fa), rC(fc))
-    : projectedEllipse(cc, cr, rC(fc), rA(fa)));
+  // A track is a STADIUM, not an ellipse: two dead-straight sides joined by
+  // semicircular ends. An ellipse bows where the straights should be, which
+  // is the first thing that reads as wrong about one.
+  // Proportions are the real ones: a 400m track is about 176m long by 92m
+  // across, so the outer oval stays near 1.95:1 whatever the footprint. The
+  // margin left over is what the stand sits in, which is why these are not
+  // simply as large as they fit.
+  const outerLen = along * 0.43;
+  const outerWid = across * 0.375;
+  const trackWidth = Math.min(w, h) * 0.13;    // all eight lanes together
+  const innerLen = outerLen - trackWidth;
+  const innerWid = outerWid - trackWidth;
 
-  // The pitch itself, inscribed in the infield.
-  const at = (a: number, c: number): [number, number] => A(0.5 + (a - 0.5) * 0.60, 0.5 + (c - 0.5) * 0.50);
-  const half = uvLine(col, row, w, h, ...at(0.5, 0), ...at(0.5, 1));
-  const box = (from: number, to: number) => uvPoly(col, row, w, h, [at(from, 0.24), at(to, 0.24), at(to, 0.76), at(from, 0.76)]);
+  const stadium = (fraction: number) => projectedStadium(
+    cc, cr,
+    innerLen + (outerLen - innerLen) * fraction,
+    innerWid + (outerWid - innerWid) * fraction,
+    landscape,
+  );
+
+  // The pitch inside, sized from the shape a pitch actually IS rather than
+  // from two independent fractions of the infield: 105m by 68m, so the width
+  // comes off the infield and the length follows from the ratio. Doing it the
+  // other way round gave a pitch half again too long for its width, which
+  // read as a stretched rectangle no amount of correct marking could fix.
+  // What is left over at each end is the D-zone, exactly as on a real track.
+  const PITCH_RATIO = 105 / 68;
+  const pitchWid = innerWid * 0.93;
+  const pitchLen = Math.min(pitchWid * PITCH_RATIO, innerLen * 0.96);
+
+  // Markings are laid out in the pitch's own (along, across) frame, so a
+  // rotated field keeps its halfway line across the short way.
+  const pp = (a: number, c: number): Pt => (landscape
+    ? project(cc + a * pitchLen, cr + c * pitchWid)
+    : project(cc + c * pitchWid, cr + a * pitchLen));
+  const rect = (a0: number, a1: number, c0: number, c1: number) =>
+    polyPoints([pp(a0, c0), pp(a1, c0), pp(a1, c1), pp(a0, c1)]);
+  const seg = (a0: number, c0: number, a1: number, c1: number) => {
+    const p0 = pp(a0, c0); const p1 = pp(a1, c1);
+    return { x1: p0.x, y1: p0.y, x2: p1.x, y2: p1.y };
+  };
+
+  const STRIPES = 10;
 
   return (
     <>
-      {/* Track surface, then the infield cut back out of it. */}
-      <polygon className="ground-track" points={polyPoints(ell(outerA, outerC))} />
-      <polygon className="ground-lane" fill="none" points={polyPoints(ell(outerA - 0.03, outerC - 0.035))} />
-      <polygon className="ground-lane" fill="none" points={polyPoints(ell(outerA - 0.06, outerC - 0.07))} />
-      <polygon className="ground-turf" points={polyPoints(ell(innerA, innerC))} />
+      {/* The running surface, then the lane lines over it. The area inside
+          the innermost lane stays track-coloured at both ends, which is what
+          the D-zones either side of a pitch actually are. */}
+      <polygon className="ground-track" points={polyPoints(stadium(1))} />
+      {Array.from({ length: TRACK_LANES + 1 }, (_, i) => (
+        <polygon
+          key={i}
+          className="ground-lane"
+          fill="none"
+          points={polyPoints(stadium(i / TRACK_LANES))}
+        />
+      ))}
 
-      <polygon className="ground-turf" points={uvPoly(col, row, w, h, [at(0, 0), at(1, 0), at(1, 1), at(0, 1)])} />
-      <polygon className="ground-line" fill="none" points={uvPoly(col, row, w, h, [at(0, 0), at(1, 0), at(1, 1), at(0, 1)])} />
-      <line className="ground-line" {...half} />
-      <polygon className="ground-line" points={box(0, 0.16)} fill="none" />
-      <polygon className="ground-line" points={box(0.84, 1)} fill="none" />
+      {/* The pitch, with mowing stripes — the bands are most of what makes a
+          pitch read as cut grass rather than as a green rectangle. */}
+      <polygon className="ground-turf" points={rect(-1, 1, -1, 1)} />
+      {Array.from({ length: STRIPES }, (_, i) => (i % 2 === 0 ? null : (
+        <polygon
+          key={i}
+          className="ground-mow"
+          points={rect(-1 + (2 * i) / STRIPES, -1 + (2 * (i + 1)) / STRIPES, -1, 1)}
+        />
+      )))}
+
+      <polygon className="ground-line" fill="none" points={rect(-1, 1, -1, 1)} />
+      <line className="ground-line" {...seg(0, -1, 0, 1)} />
+      <polygon className="ground-line" fill="none" points={rect(-1, -0.68, -0.42, 0.42)} />
+      <polygon className="ground-line" fill="none" points={rect(0.68, 1, -0.42, 0.42)} />
+      <polygon className="ground-line" fill="none" points={rect(-1, -0.86, -0.2, 0.2)} />
+      <polygon className="ground-line" fill="none" points={rect(0.86, 1, -0.2, 0.2)} />
       <polygon
         className="ground-line"
         fill="none"
-        points={polyPoints(projectedCircle(cc, cr, Math.min(w, h) * 0.10))}
+        points={polyPoints(projectedCircle(cc, cr, Math.min(w, h) * 0.09))}
       />
 
-      {/* The stand, outside the track on the far side. */}
+      {/* The stand, outside the track on the far side. Spanning the middle
+          only, where the track's straight runs — and seated ON the track's
+          edge rather than at a guessed offset, so shrinking or widening the
+          oval above cannot leave it floating in the margin. */}
       {(() => {
-        const tp = (a: number, c: number): TilePt => {
-          const [u, v] = A(a, c);
-          return [col + w * u, row + h * v];
-        };
+        const tp = (a: number, c: number): TilePt => (landscape
+          ? [col + w * a, row + h * c]
+          : [col + w * c, row + h * a]);
+        const trackEdge = 0.5 - outerWid / across;   // the oval's far side, as a footprint fraction
         return (
-          // Spanning the middle only, where the oval is straightest. A stand
-          // running the full width stood off the curve at both ends and read
-          // as detached from the track it serves.
           <RakedStand
             outer={[tp(0.32, 0.02), tp(0.68, 0.02)]}
-            inner={[tp(0.32, 0.10), tp(0.68, 0.10)]}
-            bottomH={5}
-            topH={14}
+            inner={[tp(0.32, trackEdge), tp(0.68, trackEdge)]}
+            bottomH={4}
+            topH={16}
             rakeFill={CONCRETE.rake}
             wallFill={CONCRETE.wall}
             seatStroke={CONCRETE.seat}
-            rows={4}
+            rows={5}
             frontWall
           />
         );
