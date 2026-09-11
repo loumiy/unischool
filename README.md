@@ -12,7 +12,9 @@ This is a **systems-first build with no art**, on purpose. Everything is kept as
 clean data and logic that presentation layers read from without rework. In
 particular, **buildings are modeled as data first and placed on a map second**:
 `building`/`dorm`/`facility` Buildables can be sited on a tile grid once they
-finish, purely as rendering. Placement grants nothing, gates nothing, and no
+finish, purely as rendering — drawn at an angle, with each kind carrying an
+architectural form (see `src/components/buildingMotifs.tsx`), which is still
+only rendering: no system reads any of it. Placement grants nothing, gates nothing, and no
 system reads it; adjacency effects and any economic/prestige feedback from the
 map are still deliberately deferred.
 
@@ -1414,8 +1416,11 @@ any refactor.
 - A circle-network view of the curriculum, replacing the current cell grid.
   Deliberately deferred: the graduate-programs pass fitted itself into the
   existing view rather than starting that overhaul (see "Graduate programs").
-- An isometric rebuild of the map. Deliberately a separate, later arc: the map
-  is still plain flat SVG, and the refinement passes on it (finer grid, mixed
-  footprints, per-kind colour) are not steps toward isometric.
+- Camera rotation on the campus map. The map is now drawn at an angle (2:1
+  dimetric — see `src/components/isoProjection.ts`), which means a tall
+  building can hide a shorter one standing behind it. The genre's answer is
+  letting the player turn the camera through four views; until that exists,
+  occlusion is a real cost of the angle and a reason to leave room around
+  what you build.
 
 UniSchool — systems-first, no art (yet)
