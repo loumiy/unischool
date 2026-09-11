@@ -516,16 +516,16 @@ export default function BuildingMotif({ t, p, tint, developing }: {
             points={polyPoints(alongW ? [f.Dt, f.Ct, re, rs] : [f.Bt, f.Ct, re, rs])}
             fill={alongW ? pal.posRow : pal.posCol}
           />
-          {/* The two hip ends, capping the ridge. The rs hip is the -col face
-              when the ridge runs along col and the -row face when it runs
-              along row; the re hip is its opposite. */}
-          <polygon
-            points={polyPoints(alongW ? [f.At, f.Dt, rs] : [f.At, f.Bt, rs])}
-            fill={alongW ? pal.negCol : pal.negRow}
-          />
+          {/* ONE gable end — the near one. These are vertical triangles
+              capping the ridge, not hips, and only the near one can be seen:
+              the far one is geometrically inside the front slope. It was
+              being drawn anyway, and drawn LAST, so painter's order put an
+              occluded face over the roof and the roof read as transparent.
+              Its tone is the wall's, not a slope's, because a gable end is
+              the wall below it carried on up — same plane, same light. */}
           <polygon
             points={polyPoints(alongW ? [f.Bt, f.Ct, re] : [f.Dt, f.Ct, re])}
-            fill={alongW ? pal.posCol : pal.posRow}
+            fill={alongW ? pal.wallRight : pal.wallLeft}
           />
           <line className="iso-ridge" x1={rs.x} y1={rs.y} x2={re.x} y2={re.y} />
         </>

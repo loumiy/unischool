@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState, Placement, TileCoord } from '../state/types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
@@ -293,23 +293,56 @@ function PlacedBuilding({
 // The label layer. Rendered after every building so a name is never
 // occluded by whatever stands in front of the thing it names, and on a
 // plate so it stays readable over any roof tint, wall or pitch.
+//
+// The plate is sized from the text's OWN measured box rather than from an
+// estimate. Estimating it as characters x size x a fixed ratio cannot be
+// right for a proportional face — "Founders Hall" and "IIIIIIIIIIIII" are
+// the same length and nothing like the same width — and the estimate ran
+// narrow enough for real names to overhang the plate they were meant to sit
+// on. getBBox reports the box the browser actually laid out, so the plate
+// fits by construction, in any font, at any name.
+//
+// The measure runs in a LAYOUT effect, so the corrected plate is in place
+// before the browser paints and no frame shows the estimate.
 function BuildingLabel({ t, p }: { t: Buildable; p: Placement }) {
   const { size, centre, textWidth } = labelLayout(t, p);
-  const plateH = size * 0.95 + LABEL_PLATE_PAD_Y * 2;
+  const textRef = useRef<SVGTextElement>(null);
+  const [box, setBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const el = textRef.current;
+    if (!el) return;
+    const b = el.getBBox();
+    setBox((prev) => (prev && prev.x === b.x && prev.y === b.y
+      && prev.w === b.width && prev.h === b.height
+      ? prev
+      : { x: b.x, y: b.y, w: b.width, h: b.height }));
+  }, [t.name, size, centre.x, centre.y]);
+
+  // Until the first measure lands, fall back to the estimate so there is
+  // never a nameplate-less label.
+  const plate = box ?? {
+    x: centre.x - textWidth / 2,
+    y: centre.y - size * 0.475,
+    w: textWidth,
+    h: size * 0.95,
+  };
+
   return (
     <g className="campus-label" aria-hidden="true">
       <rect
         className="campus-label-plate"
-        x={centre.x - textWidth / 2 - LABEL_PLATE_PAD_X}
-        y={centre.y - plateH / 2}
-        width={textWidth + LABEL_PLATE_PAD_X * 2}
-        height={plateH}
+        x={plate.x - LABEL_PLATE_PAD_X}
+        y={plate.y - LABEL_PLATE_PAD_Y}
+        width={plate.w + LABEL_PLATE_PAD_X * 2}
+        height={plate.h + LABEL_PLATE_PAD_Y * 2}
         rx={3}
       />
-      {/* Cap height is about 0.7 of the font size, so dropping the baseline
-          by 0.35 of it centres the letters on the plate rather than on the
-          line box, which sits low because of the descender space. */}
-      <text className="campus-label-text" x={centre.x} y={centre.y + size * 0.35} fontSize={size}>
+      {/* No baseline nudge here: .campus-label-text already carries
+          dominant-baseline: middle, so the text is centred on y by the
+          stylesheet. Adding a manual half-cap-height on top of that was
+          double-correcting, and dropped the text below its own plate. */}
+      <text ref={textRef} className="campus-label-text" x={centre.x} y={centre.y} fontSize={size}>
         {t.name}
       </text>
     </g>
