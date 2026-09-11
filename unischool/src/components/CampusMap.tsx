@@ -4,7 +4,7 @@ import type { Buildable, GameState, Placement, TileCoord } from '../state/types'
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import {
   canPlace, canRotate, canSiteRetroactively, footprintIsClear, footprintOf,
-  isPlaceableKind, orientedFootprint, placementTiles,
+  isPlaceableKind, orientedFootprint, parsePathTileKey, placementTiles,
 } from '../state/campusMap';
 import { canStartDevelopment } from '../systems/techtree/techSystem';
 import { isTypingTarget, useHotkeys } from './hotkeys';
@@ -12,6 +12,7 @@ import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
 import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf, tintFor } from './buildingMotifs';
 import PathwayLayer from './pathways';
+import Tree from './trees';
 import { TILE_H, WORLD, boxFaces, lift, polyPoints, project, tileAt } from './isoProjection';
 
 // The campus map: the game's base layer, always on screen under everything
@@ -87,7 +88,7 @@ const BUILDING_INSET = 0.06;
 // Size scales with the footprint rather than being fixed: a fixed size is
 // what made the prototype's labels unreadable, because the camera scales
 // the world and a 11px label at DEFAULT_ZOOM is about six real pixels. A
-// 9x9 hall now carries a label more than twice the size of a 3x3 lab's, and
+// 8x6 hall now carries a label well over twice the size of a 4x3 lab's, and
 // both stay in proportion to the thing they name at every zoom.
 // The floor is generous on purpose. A label's size is in WORLD units, so
 // the camera scales it: at DEFAULT_ZOOM (0.4) a world size of 11 lands as
@@ -988,6 +989,17 @@ export default function CampusMap({
     for (const tile of placementTiles(p)) covered.add(`${tile.row},${tile.col}`);
   }
 
+  // The trees currently VISIBLE: every tree whose tile has no path drawn on
+  // it (see state/types.ts's Trees block — paving hides a tree, it never
+  // deletes one, so this is the entire implementation of "lifting the path
+  // brings it back"). Building over a tree is the other half, and that one
+  // is a real deletion the reducer commits, so nothing is filtered here for
+  // it: a felled tree is simply no longer in `s.trees`.
+  const visibleTrees = Object.entries(s.trees)
+    .filter(([key]) => !(key in s.pathways))
+    .map(([key, seed]) => ({ key, seed, tile: parsePathTileKey(key) }))
+    .filter((entry): entry is { key: string; seed: number; tile: TileCoord } => entry.tile !== null);
+
   // The inspected building, if any, re-resolved against `placed` on every
   // render rather than trusted from state — same reasoning as `selected`
   // above: a placement can vanish (see eventData.ts's demolition event),
@@ -1074,19 +1086,36 @@ export default function CampusMap({
                 col + w) rather than its origin is what keeps a large
                 building from being drawn behind a small one it actually
                 stands in front of. */}
-            {[...placed]
-              .sort((m, n) => (m.p.row + m.p.h + m.p.col + m.p.w) - (n.p.row + n.p.h + n.p.col + n.p.w))
-              .map(({ t, p }) => (
-                <PlacedBuilding
-                  key={t.id}
-                  t={t}
-                  p={p}
-                  onInspect={() => inspectBuilding(t.id)}
-                  inspected={t.id === inspectedId}
-                  weeksLeft={s.developing[t.id]}
-                  justFinished={justFinished.includes(t.id)}
-                />
-              ))}
+            {/* Buildings AND trees in ONE sorted pass, not two layers.
+                A tree standing in front of a hall has to paint over it and
+                one behind it has to be hidden by it — which a separate tree
+                layer could never do, since it would put every tree either
+                in front of or behind every building. Both sort on the same
+                thing: the far corner of the tiles the thing occupies, which
+                for a tree is simply its own single tile. */}
+            {[
+              ...placed.map((m) => ({
+                depth: m.p.row + m.p.h + m.p.col + m.p.w,
+                key: `b-${m.t.id}`,
+                node: (
+                  <PlacedBuilding
+                    t={m.t}
+                    p={m.p}
+                    onInspect={() => inspectBuilding(m.t.id)}
+                    inspected={m.t.id === inspectedId}
+                    weeksLeft={s.developing[m.t.id]}
+                    justFinished={justFinished.includes(m.t.id)}
+                  />
+                ),
+              })),
+              ...visibleTrees.map(({ key, seed, tile }) => ({
+                depth: tile.row + tile.col + 2,
+                key: `t-${key}`,
+                node: <Tree row={tile.row} col={tile.col} seed={seed} />,
+              })),
+            ]
+              .sort((m, n) => m.depth - n.depth)
+              .map(({ key, node }) => <g key={key}>{node}</g>)}
 
             {preview && (
               <>

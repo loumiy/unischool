@@ -141,6 +141,13 @@ function makeV21ArtsSave(): void {
   // not — chosen so the migration's status recompute has something to prove
   // in both directions.
   for (const id of [...t2Ids('GRDS'), ...t2Ids('SART')]) node(id).status = 'done';
+  // Plus COMP101, which Web Design (GRDS210) carries an authored
+  // cross-discipline bridge to (techData.ts's CROSS_MAJOR_BRIDGES: a web
+  // design course needs introductory programming). This fixture is about
+  // the ARTS FACILITY gate re-split and nothing else, so the one non-arts
+  // prereq GRDS210 has is satisfied here rather than left to make the
+  // assertion below fail for an unrelated reason.
+  node('COMP101').status = 'done';
 
   for (const prefix of ['GRDS', 'MUSC', 'SART']) {
     for (const num of [210, 220, 230, 240]) {
@@ -174,7 +181,7 @@ function testArtsCapstoneRepoint(): void {
   const grds210 = node('GRDS210');
   assert(!grds210.prereqs.includes('ARTS-PAC'), 'Graphic Design capstone drops the Performing Arts Center prereq');
   assert(!grds210.prereqs.includes('ART-GALLERY'), 'Graphic Design capstone gains no Gallery prereq either');
-  assert(grds210.status === 'available', 'Graphic Design capstone opens once its tier-2 quartet alone is done');
+  assert(grds210.status === 'available', 'Graphic Design capstone opens with no arts-facility gate of its own, on its tier-2 quartet and its authored bridge');
 
   const musc210 = node('MUSC210');
   assert(musc210.prereqs.includes('ARTS-PAC'), 'Music capstone keeps the Performing Arts Center prereq');
@@ -469,6 +476,98 @@ function testRoundTrip(): void {
   assert(loaded.admissions.scholarshipRate === cur.admissions.scholarshipRate, 'scholarshipRate survives round trip');
 }
 
+// ---- Test: v29's campus content pass (MIGRATIONS[29]) ----
+// The dorm/dining/health chains were re-authored under ids the save already
+// holds, so the migration's whole job is the built/unbuilt split: a hall
+// the player has already paid for keeps every number it was bought with, a
+// hall they have not is replaced by the seed. Plus the founding woodland,
+// which a resumed campus gets a real one of.
+function makeV29Save(): void {
+  const base = createInitialState('CampusMigrator', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+  const tech = state.tech as Array<Loose>;
+  const node = (id: string): Loose => tech.find((n) => n.id === id) as Loose;
+
+  // Put the save into the OLD dorm shape: DORM-02 at the old geometric
+  // chain's 350 beds / $2.8M, already BUILT, and DORM-03 at the old 413
+  // beds still locked. Plus DORM-16, a rung the new chain doesn't have,
+  // also unbuilt.
+  node('DORM-02').status = 'done';
+  node('DORM-02').name = 'Lakeside Hall';
+  node('DORM-02').cost = 2_800_000;
+  (node('DORM-02').effects as Loose).capacityBonus = 350;
+
+  node('DORM-03').status = 'locked';
+  node('DORM-03').cost = 3_836_000;
+  (node('DORM-03').effects as Loose).capacityBonus = 413;
+
+  tech.push({
+    id: 'DORM-16', kind: 'dorm', name: 'Crestline Hall',
+    description: 'Adds 3,552 beds of student housing.',
+    cost: 229_700_000, duration: 28, prereqs: ['DORM-15'], status: 'locked',
+    effects: { capacityBonus: 3552 },
+  });
+
+  // An old tier-3 health centre, unbuilt: under the new chain this id is
+  // the University Hospital and gates on the medical school.
+  node('HLTH-T3').name = 'University Health Center';
+  node('HLTH-T3').status = 'available';
+  (node('HLTH-T3').effects as Loose).servesPopulation = 42_000;
+
+  // A pre-trees save has no `trees` key at all.
+  delete state.trees;
+
+  writeSave(29, state);
+}
+
+function testCampusContentMigration(): void {
+  makeV29Save();
+  const loaded = loadGame();
+  assert(loaded !== null, 'v29 campus save loads (does not fall back to null)');
+  if (!loaded) return;
+
+  const node = (id: string) => loaded.tech.find((n) => n.id === id);
+
+  // BUILT: untouched, down to the bed count s.students.capacity was
+  // computed from. This is the assertion the whole built/unbuilt split
+  // exists for — see MIGRATIONS[29].
+  const built = node('DORM-02')!;
+  assert(built.status === 'done', 'a dorm already built stays done');
+  assert(built.effects?.capacityBonus === 350, 'a built dorm keeps the bed count its capacity was granted from');
+  assert(built.cost === 2_800_000, 'a built dorm keeps the price it was actually bought at');
+
+  // UNBUILT: re-pointed to the seed.
+  const unbuilt = node('DORM-03')!;
+  assert(unbuilt.status === 'locked', 'an unbuilt dorm keeps its own status');
+  assert(unbuilt.effects?.capacityBonus === 500, 'an unbuilt dorm takes the new chain\'s bed count');
+  assert(unbuilt.name === 'Riverside Commons', 'an unbuilt dorm takes the new chain\'s name');
+
+  // A rung the new chain does not have, never started: dropped.
+  assert(node('DORM-16') === undefined, 'an unbuilt dorm the new chain no longer has is dropped');
+
+  // The health chain's top rung, unbuilt: re-pointed to the hospital, and
+  // re-locked behind the medical school it now needs.
+  const hospital = node('HLTH-T3')!;
+  assert(hospital.name === 'University Hospital', 'the unbuilt top health rung becomes the University Hospital');
+  assert(hospital.prereqs.includes('BLDG-MED'), 'the hospital gains its medical-school building prereq');
+
+  // The two genuinely new dining halls arrive by id-splice, locked.
+  assert(node('DININGHALL-07')?.status === 'locked', 'a brand-new dining hall is spliced in locked');
+  assert(node('DININGHALL-08') !== undefined, 'every new dining rung is spliced in');
+
+  // The founding woodland: a real one, and none of it under a building.
+  const treeKeys = Object.keys(loaded.trees);
+  assert(treeKeys.length > 100, `a resumed campus is seeded with a real woodland (got ${treeKeys.length} trees)`);
+  assert(treeKeys.every((k) => typeof loaded.trees[k] === 'number'), 'every tree carries a numeric render seed');
+  const underABuilding = treeKeys.filter((key) => {
+    const [row, col] = key.split(',').map(Number);
+    return Object.values(loaded.placements).some(
+      (p) => row >= p.row && row < p.row + p.h && col >= p.col && col < p.col + p.w,
+    );
+  });
+  assert(underABuilding.length === 0, `no seeded tree stands under a placed building (found ${underABuilding.length})`);
+}
+
 // ---- Test: unmigratable / malformed saves fall back to null, never throw ----
 function testRejects(): void {
   // A version with no migration path (v1) cannot be carried forward.
@@ -496,6 +595,7 @@ testFoundingSeenExcludesStartingContent();
 testGenderedSportsMigration();
 testVarsityAskedMigration();
 testAthleticsV2Migration();
+testCampusContentMigration();
 testRoundTrip();
 testRejects();
 

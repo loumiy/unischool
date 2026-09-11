@@ -21,8 +21,11 @@ import GroundMarking, { RakedStand, StadiumField, type TilePt } from './groundMa
 
 export type Motif =
   | 'hall'         // academic halls: the campus's landmarks — a deep gabled roof
-  | 'residential'  // dorms: one long gable down a shallow block, ranked windows
+  | 'residential'  // dorms up to 1,000 beds: one long gable down a block, ranked windows
+  | 'village'      // a residential village: many small houses on one plot, around green
+  | 'tower'        // a residential tower: a small plan carried very high, over a retail podium
   | 'portico'      // library / performing arts / gallery: flat roof, rooflights
+  | 'block'        // the university hospital: a big institutional mass, flat-roofed, rooftop plant
   | 'pavilion'     // student centre, dining, health, grocery: low, a unit or two
   | 'hangar'       // rec centre, gym, arena, natatorium: clear-span vault
   | 'works'        // labs: low, flat, crowded with rooftop plant
@@ -53,10 +56,33 @@ const FACILITY_MOTIFS: Record<FacilityType, Motif> = {
   grocery: 'pavilion',
 };
 
+// Bed counts at which housing stops being a hall. The same two numbers
+// campusMap.ts's DORM_FOOTPRINTS steps its footprint on, and read off the
+// same field (effects.capacityBonus) — so a village gets a village's plot
+// AND a village's motif from one fact about the building, with no third
+// place to keep in step. Kept as literals rather than imported: campusMap.ts
+// is placement geometry and this is drawing, and neither should have to
+// import the other to agree about what 5,000 beds looks like.
+const DORM_VILLAGE_MIN_BEDS = 1_500;
+const DORM_TOWER_MIN_BEDS = 5_000;
+// And the one health-chain rung that is a hospital rather than a clinic.
+const HOSPITAL_MIN_SERVES = 20_000;
+
 export function motifOf(t: Buildable): Motif {
   if (t.kind === 'building') return 'hall';
-  if (t.kind === 'dorm') return 'residential';
-  if (t.kind === 'facility' && t.facilityType) return FACILITY_MOTIFS[t.facilityType] ?? 'pavilion';
+  if (t.kind === 'dorm') {
+    const beds = t.effects?.capacityBonus ?? 0;
+    if (beds >= DORM_TOWER_MIN_BEDS) return 'tower';
+    if (beds >= DORM_VILLAGE_MIN_BEDS) return 'village';
+    return 'residential';
+  }
+  if (t.kind === 'facility' && t.facilityType) {
+    // The health chain is three different institutions, not one building
+    // relabelled twice (see facilitiesData.ts): a counselling centre and a
+    // clinic are pavilions, a teaching hospital is not.
+    if (t.facilityType === 'healthCenter' && (t.effects?.servesPopulation ?? 0) >= HOSPITAL_MIN_SERVES) return 'block';
+    return FACILITY_MOTIFS[t.facilityType] ?? 'pavilion';
+  }
   return 'pavilion';
 }
 
@@ -65,15 +91,17 @@ export function motifOf(t: Buildable): Motif {
 // footprint. This is the one dimension an angled camera ADDS: the flat map
 // never had to have an opinion about how tall anything was.
 const HEIGHT: Record<Motif, number> = {
-  hall: 84, residential: 54, portico: 68, pavilion: 42, hangar: 56, works: 30, grounds: 0, bowl: 46,
+  hall: 84, residential: 54, village: 34, tower: 190, portico: 68, block: 104,
+  pavilion: 42, hangar: 56, works: 30, grounds: 0, bowl: 46,
 };
 // How far the ridge rises above the eaves, for the two motifs that are
 // gabled. Everything else is flat-roofed, which is what those buildings
 // actually are.
-const RIDGE: Partial<Record<Motif, number>> = { hall: 30, residential: 20 };
+const RIDGE: Partial<Record<Motif, number>> = { hall: 30, residential: 20, village: 14 };
 // Windows per wall: [along the wall, up it].
 const WALL_GRID: Partial<Record<Motif, [number, number]>> = {
-  hall: [8, 3], residential: [10, 2], portico: [7, 2], pavilion: [6, 1], works: [4, 1], hangar: [7, 1],
+  hall: [8, 3], residential: [10, 2], tower: [6, 12], portico: [7, 2], block: [10, 5],
+  pavilion: [6, 1], works: [4, 1], hangar: [7, 1],
 };
 
 // Added storeys. The library is renovated by adding FLOORS to the building
@@ -268,7 +296,17 @@ function Scaffolding({ col, row, w, h, height }: {
 // storey the door opens into.
 const DOOR: Record<Motif, [number, number]> = {
   hall: [1.0, 0.46], residential: [0.62, 0.40], portico: [1.0, 0.44],
+  // A tower's door is a shopfront: the podium's whole ground floor is
+  // retail, so the opening is wide and — as a fraction of a 190-unit mass —
+  // very shallow.
+  tower: [1.6, 0.055],
+  // A hospital's is an ambulance entrance under a canopy: the widest on
+  // campus.
+  block: [1.8, 0.22],
   pavilion: [0.85, 0.52], hangar: [1.25, 0.46], works: [0.6, 0.5],
+  // A village has no single front door — each house has its own, drawn by
+  // the motif itself.
+  village: [0, 0],
   grounds: [0, 0], bowl: [0, 0],
 };
 
@@ -385,6 +423,56 @@ function RoofBox({ col, row, w, h, base, height, tint }: {
   );
 }
 
+// ---------------------------------------------------------------------
+// A SMALL GABLED HOUSE, standing on its own. The unit a residential village
+// is made of — six to twelve of these around shared green, rather than one
+// more slab (see campusData.ts's village rung). Its own component because a
+// village draws many of them and each needs the full walls-plus-roof
+// treatment the main motif gives one building, at a size where windows
+// would be sub-pixel and are deliberately left off.
+// ---------------------------------------------------------------------
+function VillageHouse({ col, row, w, h, height, ridge, pal }: {
+  col: number; row: number; w: number; h: number; height: number; ridge: number; pal: Palette;
+}) {
+  const f = boxFaces(col, row, w, h, 0, height);
+  const alongW = w >= h;
+  const rs = lift(alongW ? project(col, row + h / 2) : project(col + w / 2, row), height + ridge);
+  const re = lift(alongW ? project(col + w, row + h / 2) : project(col + w / 2, row + h), height + ridge);
+  return (
+    <>
+      <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+      <polygon
+        points={polyPoints(alongW ? [f.At, f.Bt, re, rs] : [f.At, f.Dt, re, rs])}
+        fill={alongW ? pal.negRow : pal.negCol}
+      />
+      <polygon
+        points={polyPoints(alongW ? [f.Dt, f.Ct, re, rs] : [f.Bt, f.Ct, re, rs])}
+        fill={alongW ? pal.posRow : pal.posCol}
+      />
+      <polygon
+        points={polyPoints(alongW ? [f.Bt, f.Ct, re] : [f.Dt, f.Ct, re])}
+        fill={alongW ? pal.wallRight : pal.wallLeft}
+      />
+      <line className="iso-ridge" x1={rs.x} y1={rs.y} x2={re.x} y2={re.y} />
+    </>
+  );
+}
+
+// Where a village's houses stand on its plot, in NORMALISED footprint
+// coordinates (u across, v down, 0..1) — so the same arrangement comes out
+// correctly proportioned whether the plot was placed landscape or rotated.
+// Two ranks facing each other across a green, with a third short rank
+// closing one end: the courtyard arrangement a real student village uses,
+// rather than a grid of identical boxes.
+const VILLAGE_HOUSES: Array<[number, number, number, number]> = [
+  // [u, v, uw, vh]
+  [0.06, 0.06, 0.22, 0.17], [0.34, 0.06, 0.22, 0.17], [0.62, 0.06, 0.22, 0.17],
+  [0.06, 0.40, 0.22, 0.17], [0.34, 0.40, 0.22, 0.17], [0.62, 0.40, 0.22, 0.17],
+  [0.06, 0.74, 0.22, 0.17], [0.34, 0.74, 0.22, 0.17], [0.62, 0.74, 0.22, 0.17],
+  [0.88, 0.20, 0.09, 0.56],
+];
+
 export default function BuildingMotif({ t, p, tint, developing }: {
   t: Buildable;
   p: { row: number; col: number; w: number; h: number };
@@ -398,7 +486,7 @@ export default function BuildingMotif({ t, p, tint, developing }: {
   // Open ground has no mass at all — and no construction state worth
   // drawing either, since there is nothing to raise.
   if (motif === 'grounds') {
-    return <GroundMarking facilityType={t.facilityType} col={col} row={row} w={w} h={h} />;
+    return <GroundMarking facilityType={t.facilityType} tier={t.tier} col={col} row={row} w={w} h={h} />;
   }
 
   // A site under construction is a footprint pegged out and a frame barely
@@ -417,6 +505,105 @@ export default function BuildingMotif({ t, p, tint, developing }: {
   const grid: [number, number] | undefined = baseGrid
     ? [baseGrid[0], baseGrid[1] + floors]
     : undefined;
+
+  if (motif === 'village') {
+    // A PLOT, not a building: lawn, walks between the ranks, and ten small
+    // houses standing on it (see VILLAGE_HOUSES). Drawn back-to-front by
+    // each house's own distance from the camera, exactly as CampusMap sorts
+    // whole buildings, so a near house correctly overlaps the one behind it.
+    const houses = [...VILLAGE_HOUSES]
+      .map(([u, v, uw, vh]) => ({
+        col: col + w * u, row: row + h * v, w: w * uw, h: h * vh,
+      }))
+      .sort((a, b) => (a.row + a.h + a.col + a.w) - (b.row + b.h + b.col + b.w));
+
+    if (developing) {
+      return (
+        <>
+          <polygon points={polyPoints(f.top)} fill={shade(tint, 0.9)} />
+          <polygon points={polyPoints(f.top)} fill={`url(#${SCAFFOLD_PATTERN_ID})`} />
+          <Scaffolding col={col} row={row} w={w} h={h} height={H} />
+        </>
+      );
+    }
+    return (
+      <>
+        <polygon className="ground-lawn" points={polyPoints(boxFaces(col, row, w, h, 0, 0).top)} />
+        {/* The green down the middle, and the cross walk at its head. */}
+        <polygon
+          className="ground-walk-fill"
+          points={polyPoints(boxFaces(col + w * 0.04, row + h * 0.30, w * 0.80, h * 0.07, 0, 0).top)}
+        />
+        <polygon
+          className="ground-walk-fill"
+          points={polyPoints(boxFaces(col + w * 0.04, row + h * 0.64, w * 0.80, h * 0.07, 0, 0).top)}
+        />
+        {houses.map((house, i) => (
+          <VillageHouse
+            key={i}
+            {...house}
+            height={HEIGHT.village}
+            ridge={RIDGE.village ?? 0}
+            pal={pal}
+          />
+        ))}
+      </>
+    );
+  }
+
+  if (motif === 'tower') {
+    // A RETAIL PODIUM with a tower on it. The podium is the whole footprint,
+    // two storeys of shopfront (which is the part of a residential tower the
+    // campus around it actually uses — see campusData.ts's TOWER_RETAIL_SERVES);
+    // the shaft is inset from it and carried the rest of the way up, which is
+    // what stops a 190-unit mass reading as a single blank obelisk.
+    const PODIUM_H = 34;
+    const inset = 0.17;
+    const sc = col + w * inset; const sr = row + h * inset;
+    const sw = w * (1 - inset * 2); const sh = h * (1 - inset * 2);
+
+    if (developing) {
+      return (
+        <>
+          <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+          <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+          <polygon points={polyPoints(f.top)} fill={shade(tint, 0.9)} />
+          <polygon points={polyPoints(f.top)} fill={`url(#${SCAFFOLD_PATTERN_ID})`} />
+          <Scaffolding col={col} row={row} w={w} h={h} height={H} />
+        </>
+      );
+    }
+
+    const pod = boxFaces(col, row, w, h, 0, PODIUM_H);
+    const shaft = boxFaces(sc, sr, sw, sh, PODIUM_H, H - PODIUM_H);
+    const shaftGrid = WALL_GRID.tower!;
+    return (
+      <>
+        {/* Podium: glazed at street level, so its "windows" are one tall
+            rank of shopfront rather than the shaft's ranks of flats. */}
+        <polygon points={polyPoints(pod.left)} fill={shade(tint, 0.88)} />
+        <polygon points={polyPoints(pod.right)} fill={shade(tint, 0.70)} />
+        {windows(pod.D, pod.C, PODIUM_H, Math.max(3, Math.round(w * 1.2)), 1, 'pl', doorBay('tower', w))}
+        {windows(pod.C, pod.B, PODIUM_H, Math.max(3, Math.round(h * 1.2)), 1, 'pr', doorBay('tower', h))}
+        <Door motif="tower" origin={pod.D} along={pod.C} height={PODIUM_H} span={w} />
+        <Door motif="tower" origin={pod.C} along={pod.B} height={PODIUM_H} span={h} />
+        <polygon points={polyPoints(pod.top)} fill={pal.roofDeck} />
+
+        {/* The shaft, ranked floor by floor. */}
+        <polygon points={polyPoints(shaft.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(shaft.right)} fill={pal.wallRight} />
+        {windows(shaft.D, shaft.C, H - PODIUM_H, shaftGrid[0], shaftGrid[1] + floors, 'tl')}
+        {windows(shaft.C, shaft.B, H - PODIUM_H, shaftGrid[0], shaftGrid[1] + floors, 'tr')}
+        <polygon points={polyPoints(shaft.top)} fill={pal.roof} />
+        {/* Lift overrun and plant on the roof — what tells a tower's top
+            from a flat lid at this distance. */}
+        <RoofBox
+          col={sc + sw * 0.24} row={sr + sh * 0.24} w={sw * 0.5} h={sh * 0.5}
+          base={H} height={16} tint={tint}
+        />
+      </>
+    );
+  }
 
   if (motif === 'bowl') {
     // FOUR RAKED BANKS around a gridiron, not a box with a hole in it.
@@ -569,18 +756,22 @@ export default function BuildingMotif({ t, p, tint, developing }: {
               />
             ))
           ))}
-          {!developing && (motif === 'works' || motif === 'pavilion') && (
+          {!developing && (motif === 'works' || motif === 'pavilion' || motif === 'block') && (
             // A lab's roof is the most crowded on campus; a pavilion's
-            // carries a unit or two. Same vocabulary, different density.
+            // carries a unit or two; a hospital's carries the heaviest plant
+            // of all plus a helipad-sized deck, which is what reads as
+            // "hospital" rather than "very large pavilion" from above.
             (motif === 'works'
               ? [[0.12, 0.18, 0.28, 0.26], [0.48, 0.44, 0.32, 0.28], [0.18, 0.6, 0.22, 0.22]]
-              : [[0.18, 0.26, 0.26, 0.24], [0.54, 0.52, 0.28, 0.22]]
+              : motif === 'block'
+                ? [[0.08, 0.10, 0.30, 0.26], [0.46, 0.12, 0.22, 0.18], [0.10, 0.52, 0.24, 0.22], [0.52, 0.56, 0.34, 0.32]]
+                : [[0.18, 0.26, 0.26, 0.24], [0.54, 0.52, 0.28, 0.22]]
             ).map(([fx, fy, fw, fh], i) => (
               <RoofBox
                 key={i}
                 col={col + w * fx} row={row + h * fy}
                 w={w * fw} h={h * fh}
-                base={H} height={motif === 'works' ? 12 : 9}
+                base={H} height={motif === 'works' ? 12 : motif === 'block' ? 15 : 9}
                 tint={tint}
               />
             ))

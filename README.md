@@ -181,10 +181,18 @@ Placement lives in a separate `placements` record on `GameState` (id ->
 never as a field on `Buildable`, so the single Buildable model stays unforked
 and `course` Buildables — which are never placeable, at any status — never
 carry a `placements` entry. **How big a footprint a Buildable gets is a
-placement rule, not data on the Buildable** — a school hall covers 9x9 tiles, a
-dorm 9x3, a lab 3x3 — and it lives in `campusMap.ts`'s `footprintOf`, keyed on
-the `kind`/`facilityType` the Buildable already carries. Size is purely
-geometric: a bigger building grants nothing and costs nothing extra — and
+placement rule, not data on the Buildable** — and it lives in `campusMap.ts`'s
+`footprintOf`, keyed on what the Buildable already carries: its `kind` and
+`facilityType`, plus, for anything whose instances differ in SCALE rather than
+in kind, a SIZE LADDER read off `effects.servesPopulation` (facilities) or
+`effects.capacityBonus` (dorms). A 350-seat campus restaurant is 3x3 and the
+16,000-seat market hall at the end of the same dining chain is 12x9; a 500-bed
+residence hall is 9x4 and a 5,000-bed residential tower is 7x7 carried very
+high. Everything is sized against a rough **15m to a tile**, which the football
+stadium (a real one is about 220m by 180m — 15x12) pins down, so a library, a
+pool, a hospital and a stadium stand in something like their real proportions
+to each other. Size is purely geometric: a bigger building grants nothing and
+costs nothing extra — and
 placement itself still grants nothing beyond what `START_DEVELOPMENT` always
 granted a course: a placed-but-`developing` building contributes nothing until
 it's `done`, exactly like an undeveloped course. Keep both screens dumb.
@@ -933,6 +941,46 @@ one-line data change (`techData.ts`'s `LAB_GATED_MAJOR_PREFIXES`); what a
 humanities or business "lab" should even be is a content question, not a
 mechanical one, and is deliberately left open.
 
+## The health chain, and clinical coursework
+
+Three buildings, each a different institution rather than the same one with
+a bigger number on it (`facilitiesData.ts`), unlocked in order past rising
+population thresholds:
+
+- **Health & Counseling Center** (3x3) — the small campus clinic a school
+  needs once it crosses 1,500 enrolled.
+- **University Clinic** (5x5) — real outpatient care, and the **practicum
+  site** two clinical majors train in (see below).
+- **University Hospital** (11x11, the largest *building* on campus) — the
+  late-game rung, and the one facility in the game gated on **another
+  building**: `BLDG-MED`, the School of Medicine's own hall. A university
+  hospital is a teaching hospital, and a campus without a medical school
+  does not have one.
+
+Capacity tracks footprint at a near-flat ~220-250 students served per tile
+across all three, while cost per seat climbs (280 -> 400 -> 650) the way
+every chain in that file does.
+
+**Clinical coursework gates on a clinical facility**, the same cross-kind
+mechanism the labs and the arts facilities use — but keyed by COURSE id
+rather than by major prefix (`techData.ts`'s `CLINICAL_PRACTICUM_GATE`),
+because a clinic gates the courses that are actually clinical:
+
+- **Nursing's four capstones** need the University Clinic. This retired the
+  **Nursing Lab**: a lab here means a *bench science*, and nursing is not
+  one — its capstones are clinical practica, which happen where patients
+  are. Health Science stays a research school on Neuroscience's lab, which
+  is a bench science and keeps its own.
+- **Pharmacy's Clinical Pharmacy Practicum** — and only that one of its
+  capstones — needs the Clinic too.
+- **The MD's Advanced Clinical Practicum** needs the **Hospital**. A
+  clerkship is inpatient work, so the chain reads: found the school ->
+  build its hospital -> finish the degree.
+
+None of this can be circular: every gate points at a health-chain facility,
+and the health chain's own prereqs are earlier rungs of itself plus the
+medical school BUILDING — never a course.
+
 ## Arts payoffs: two facilities, two majors
 
 Arts & Media's version of "every school gets a meaningful tier-3 payoff" —
@@ -1195,6 +1243,20 @@ attribute is already clamped at its ceiling from facilities alone, the panel
 reports that the clubs are adding *nothing*, because nothing is what the
 model is applying.
 
+**The Satisfaction Breakdown is the other half of that legibility, and it is
+on screen from week one.** Five cards, one per attribute, each with a ring
+that fills toward 100, how much of the headline number that attribute is
+worth, and a one-line coverage reading; expanding a card lists every
+building behind the score, what it serves, and any named bonus — all of it
+read from `attributeDetail` rather than reauthored, so the expansion can
+never disagree with the dial above it. It renders **unconditionally**: the
+panel used to sit below an early return that fired whenever the campus had
+no clubs and no pending petitions, which is the first ten to fifteen
+founding years of most runs — precisely the stretch where a player is
+working out what satisfaction responds to — and made the panel appear for
+the first time the week a chess club was recognised, as if the club had
+summoned it. Only the two organisation rosters collapse to a note when
+there are no organisations.
 
 ## Student demands: the inverse of clubs
 
@@ -1257,6 +1319,34 @@ satisfaction figures are the nudges the system would apply, and the applicant
 figures come from running the shipped admissions funnel (`projectAdmissions`)
 at today's policy against each of them. When nothing is outstanding the section
 says so in one quiet line.
+
+## The campus you build on: trees
+
+A new university does not open on a bare plate. `data/treeData.ts` seeds a
+**founding woodland** at `createInitialState` — groves rather than an even
+scatter, with a deliberate clearing around the middle where Founders Hall
+already stands, so the map has *places* on it and siting a building is a
+choice about ground. `GameState.trees` is one entry per wooded tile,
+keyed by the same `pathTileKey()` `pathways` uses, and its value is a single
+integer SEED: `components/trees.tsx` derives species, size and the tree's
+offset within its own tile from it, so a wood is varied without storing
+anything per tree and a given tree looks the same forever.
+
+**Two rules, and the difference between them is the whole feature:**
+
+- **Building FELLS.** The reducer's `PLACE_BUILDABLE` deletes every tree
+  under the footprint it commits, in the same transaction, permanently. You
+  cleared the ground to build there.
+- **Paving only HIDES.** A path tile on a tree's tile stops it being drawn,
+  and lifting the path brings it straight back. Nothing is deleted, so this
+  is a pure *render-time* read of `pathways` in `CampusMap.tsx` — not a
+  second piece of state to keep in step.
+
+Trees draw in the **same depth-sorted pass as buildings**, not a layer of
+their own: a tree in front of a hall paints over it and one behind it is
+hidden by it, which a separate layer could never do. And, like `placements`
+and `pathways`, `trees` is **read by no system** — the invariant sweep
+enforces it.
 
 ## College, and University
 

@@ -1,5 +1,7 @@
 import type { Buildable, GameState } from '../state/types';
-import { PERFORMING_ARTS_CENTER_ID, ART_GALLERY_ID } from './facilitiesData';
+import {
+  ART_GALLERY_ID, HEALTH_CENTER_TIER2_ID, HEALTH_CENTER_TIER3_ID, PERFORMING_ARTS_CENTER_ID,
+} from './facilitiesData';
 
 /*
   Your real curriculum, expressed as seed data and expanded into Buildable[].
@@ -36,7 +38,16 @@ import { PERFORMING_ARTS_CENTER_ID, ART_GALLERY_ID } from './facilitiesData';
   On top of that backbone, a curated set of cross-major/cross-school prereq
   bridges (CROSS_MAJOR_BRIDGES below) are patched in — deliberately NOT a
   systematic web (see the PR notes on why a curated set was chosen over
-  building out cross-major prereqs for all 384 courses).
+  building out cross-major prereqs for all 384 courses). The set is larger
+  than it was (about forty edges, up from twenty), and four of them now
+  make a major's ESTABLISHMENT depend on another school standing:
+  Econometrics and Epidemiology both need Probability & Statistics, so
+  Economics and Public Health wait on the Science Center; Public Policy
+  Analysis needs Macroeconomics, so Political Science waits on Business
+  Hall. That is the intended weight of a cross-discipline prereq rather
+  than an oversight — but it is why no bridge may point UP a tier (see
+  CROSS_MAJOR_BRIDGES's own rules), which is what keeps the coupling to one
+  extra school rather than to another school's endgame.
 
   requiresFaculty, unlike the prereq bridges, IS systematic: every major
   seed carries one `field` (a Faculty.field from facultyData.ts's
@@ -334,40 +345,95 @@ const GENED_FIELDS: Record<string, string> = {
 // without changing the core one-major-at-a-time pacing.
 // ---------------------------------------------------------------------
 
-// Cross-major/cross-school prereq bridges: each entry adds ONE extra
-// prereq id on top of that course's normal within-major chain (its own
-// tier-1 + school building, or its own tier-2 quartet). All are plausible
-// real-world prerequisites, deliberately spanning different schools where
-// it makes sense (e.g. Philosophy -> AI Ethics).
+// Cross-major/cross-school prereq bridges: each entry adds ONE OR MORE
+// extra prereq ids on top of that course's normal within-major chain (its
+// own tier-1 + school building, or its own tier-2 quartet). All are
+// plausible real-world prerequisites, deliberately spanning different
+// schools where it makes sense (e.g. Philosophy -> AI Ethics).
 //
-// The Science reorg re-pointed one bridge and added eight. Every bridge
-// that crossed into Pre-Med or Dentistry had to go somewhere, and every
-// bridge out of a MOVED major (Biology, Psychology) still resolves — those
-// majors kept their course ids, they only changed school, which turns
-// NUTR130 -> BIOL101 from a within-school prereq into a cross-school one
-// without touching a single id.
-const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
-  DATA120: ['COMP101'],  // Machine Learning needs programming fundamentals
-  DATA240: ['MATH120'],  // Bayesian Statistics needs probability & statistics
-  ARTF130: ['DATA120'],  // Neural Networks builds on Machine Learning
-  CYBR130: ['COMP110'],  // Ethical Hacking needs real programming chops
-  PHRM120: ['CHMY101'],  // Pharmaceutical Chemistry needs general chemistry (inherits the retired PMED120 -> CHEM101 bridge, re-pointed at the real Chemistry major)
-  NUTR130: ['BIOL101'],  // Applied Dietetics needs biology fundamentals
-  KINE120: ['BIOL101'],  // Exercise Physiology needs biology fundamentals
-  NEUR110: ['BIOL101'],  // Neuroanatomy needs biology fundamentals
-  NEUR130: ['PSYC101'],  // Cognitive Neuroscience needs general psychology — the Science/Health bridge, in prereq form
-  MRKT130: ['INFO101'],  // Digital Marketing Strategy needs basic IT literacy
-  FINA140: ['ECON110'],  // International Finance needs macroeconomics
-  SPCO130: ['INDE120'],  // Quality Management draws on industrial safety/ergonomics
-  PHLT130: ['POLS130'],  // Health Policy & Management needs government fundamentals
-  ARTF240: ['PHIL110'],  // AI Ethics & Society draws on philosophical ethics
-  GRDS130: ['MDIA101'],  // Layout Design draws on mass-communication fundamentals
-  AERO130: ['CHEM110'],  // Spacecraft Propulsion needs chemical thermodynamics
-  ELEC130: ['PHYS110'],  // Electromagnetics needs undergraduate electricity & magnetism
-  CHEM230: ['CHMY120'],  // Biochemical Engineering needs organic chemistry
-  ECON240: ['ENVS101'],  // Environmental Economics needs the environmental science it prices
-  PSYC220: ['BIOL101'],  // Biopsychology needs biology fundamentals
-  ANTH110: ['SOCY101'],  // Cultural Anthropology and Sociology share a department and a starting point
+// TWO RULES EVERY BRIDGE HOLDS TO, both checked by
+// test/curriculum-graph.test.ts rather than left to review:
+//
+//   1. A BRIDGE NEVER POINTS UP THE TIER CLIMB. A tier-2 course may lean
+//      on tier-1 or tier-2 work; it may never require a tier-3 capstone.
+//      An inverted bridge would hold a whole major's ESTABLISHMENT (its
+//      tier-2 quartet, which is what `program-established:` and every
+//      professional-school gate read) behind another school's endgame —
+//      and, for a run that never touches that other school, behind content
+//      the player has no reason to have bought. Same-tier bridges between
+//      two tier-3 capstones are fine: a capstone gates nothing but itself
+//      and its own `program-distinguished:` milestone.
+//   2. A BRIDGE NEVER REPEATS THE BACKBONE. A tier-3 course already
+//      requires its own major's whole tier-2 quartet, each of which
+//      requires the major's tier-1 course — so "Finite Element Analysis
+//      requires Materials Science" or "VLSI Design requires
+//      Microelectronics", true as they are, are already what the climb
+//      says. Authoring them here would put a line in the tooltip that
+//      changes nothing about when the course opens.
+//
+// Grouped by the school the BRIDGED course belongs to, since that is how
+// the Curriculum tab reads and how a retune of one school's pacing would
+// arrive.
+export const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
+  // --- Business ---
+  FINA140: ['ECON110'],           // International Finance needs macroeconomics
+  FINA220: ['COMP110'],           // Fintech & Blockchain needs data structures — a distributed ledger is a data structure before it is a financial product
+  ACCT240: ['INFO101'],           // Accounting Information Systems needs the information-systems fundamentals it is an application of
+  ECON120: ['MATH120'],           // Econometrics needs probability & statistics
+  ECON140: ['HIST101'],           // Economic History needs world history
+  ECON240: ['ENVS101'],           // Environmental Economics needs the environmental science it prices
+  MRKT130: ['INFO101'],           // Digital Marketing Strategy needs basic IT literacy
+  SPCO130: ['INDE120'],           // Quality Management draws on industrial safety/ergonomics
+  SPCO220: ['MGMT120'],           // Inventory Control Systems needs operations management
+  SPCO230: ['DATA101'],           // Data Analytics for Operations needs the data-science fundamentals
+  SPCO240: ['MGMT120'],           // Transportation Management needs operations management
+
+  // --- Engineering ---
+  MECH210: ['ELEC101'],           // Robotics needs circuits — the half of a robot that is not mechanism
+  AERO130: ['CHEM110'],           // Spacecraft Propulsion needs chemical thermodynamics
+  AERO210: ['MATH101'],           // Astrodynamics needs calculus II
+  AERO220: ['MECH120'],           // Rocketry needs thermodynamics
+  ELEC130: ['PHYS110'],           // Electromagnetics needs undergraduate electricity & magnetism
+  CHEM220: ['CHMY210'],           // Biochemical Engineering needs biochemistry itself, not just the organic chemistry under it
+  CHEM230: ['CHMY120'],           // Polymer Science needs organic chemistry — "polymer science requires Chemistry II" is already what the tier-3 climb says (rule 2 above), so the bridge goes one step deeper, into the Chemistry major
+  CIVE140: ['SPCO101'],           // Transportation Engineering needs the supply-chain fundamentals it moves goods for. NOT SPCO240 ("Transportation Management"), which is a tier-3 capstone: this is a tier-2 course, and rule 1 above is why — bridging a tier-2 course to a capstone would hold Civil Engineering's ESTABLISHMENT behind most of a Business major. SPCO101 is also the lightest honest stand-in available, gating on nothing but the gen-ed core, so Civil Engineering doesn't quietly acquire a Business Hall dependency either
+  CIVE220: ['ENVS101'],           // Environmental Impact Assessment needs environmental science
+  CIVE230: ['MGMT210'],           // Construction Management needs project management
+  CIVE240: ['SOCY101'],           // Urban Planning needs the sociology of the people being planned for
+  INDE210: ['COMP101'],           // Simulation Modeling needs introductory programming
+
+  // --- Arts & Media ---
+  GRDS130: ['MDIA101'],           // Layout Design draws on mass-communication fundamentals
+  GRDS210: ['COMP101'],           // Web Design needs introductory programming
+  MDIA220: ['DATA101'],           // Social Media Analytics needs data-science fundamentals (the catalogue's nearest thing to "data analytics" — there is no course by that name)
+  CRWR210: ['ENGL101'],           // Screenwriting needs introduction to literary studies
+  FILM210: ['ANTH101'],           // Documentary Filmmaking needs anthropology — a documentary is fieldwork with a camera
+  ARTF240: ['PHIL110'],           // AI Ethics & Society draws on philosophical ethics
+
+  // --- Social Sciences & Humanities ---
+  ANTH110: ['SOCY101'],           // Cultural Anthropology and Sociology share a department and a starting point
+  HIST230: ['ANTH101'],           // Historical Anthropology needs introduction to anthropology
+  POLS140: ['ECON110'],           // Public Policy Analysis needs macroeconomics
+
+  // --- Science ---
+  CHMY210: ['BIOL101'],           // Biochemistry needs biology I
+  PSYC220: ['BIOL101', 'NEUR101'], // Biopsychology needs biology fundamentals AND foundations of neuroscience — the two halves it actually sits between
+
+  // --- Health Science ---
+  PHLT110: ['MATH120'],           // Epidemiology needs probability & statistics
+  PHLT130: ['POLS130'],           // Health Policy & Management needs government fundamentals
+  NUTR130: ['BIOL101'],           // Applied Dietetics needs biology fundamentals
+  KINE120: ['BIOL101'],           // Exercise Physiology needs biology fundamentals
+  NEUR110: ['BIOL101'],           // Neuroanatomy needs biology fundamentals
+  NEUR130: ['PSYC101'],           // Cognitive Neuroscience needs general psychology — the Science/Health bridge, in prereq form
+  NEUR210: ['PHRM101'],           // Neuropharmacology needs introduction to pharmaceutical sciences
+  PHRM120: ['CHMY101'],           // Pharmaceutical Chemistry needs general chemistry
+
+  // --- Computer Science ---
+  DATA120: ['COMP101'],           // Machine Learning needs programming fundamentals
+  DATA240: ['MATH120'],           // Bayesian Statistics needs probability & statistics
+  ARTF130: ['DATA120'],           // Neural Networks builds on Machine Learning
+  CYBR130: ['COMP110'],           // Ethical Hacking needs real programming chops
 };
 
 // Labs/specialized academic buildings: a curated set of lab-heavy majors
@@ -399,7 +465,17 @@ const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
 // lab: a maths department is not a bench science, and holding the line at
 // the genuinely lab-based majors keeps a lab a decision rather than a
 // formality.
-const LAB_GATED_MAJOR_PREFIXES = ['CHEM', 'CHMY', 'BIOL', 'PHYS', 'MECH', 'ELEC', 'CIVE', 'AERO', 'NURS', 'NEUR'];
+//
+// NURSING LEFT THIS LIST, and the Nursing Lab with it. A lab here means a
+// BENCH science — a room of instruments a research question is answered in
+// — and nursing is not one: its capstones are clinical practica, which
+// happen where patients are. So Nursing's capstone gate moved to the
+// University Clinic (see CLINICAL_PRACTICUM_GATE below), which is a real
+// building the campus has to site and pay for, rather than a lab that
+// existed only because the gate mechanism happened to be spelled "lab".
+// Health Science stays a research school on Neuroscience's lab, which is
+// a bench science and keeps its own.
+const LAB_GATED_MAJOR_PREFIXES = ['CHEM', 'CHMY', 'BIOL', 'PHYS', 'MECH', 'ELEC', 'CIVE', 'AERO', 'NEUR'];
 const LAB_COST = 700_000;
 const LAB_WEEKS = 16;
 const LAB_UPKEEP_PER_WEEK = 1_400; // ~$73k/yr — specialized equipment is expensive to keep running, and a lab serves one major's cohort rather than the whole campus
@@ -438,6 +514,38 @@ function labId(prefix: string): string {
 const ARTS_CAPSTONE_GATE: Partial<Record<string, string>> = {
   MUSC: PERFORMING_ARTS_CENTER_ID,
   SART: ART_GALLERY_ID,
+};
+
+// CLINICAL COURSEWORK gates on a real clinical facility, the same
+// cross-kind mechanism ARTS_CAPSTONE_GATE and the labs use — a facility
+// Buildable named as an extra prereq on specific courses. Two differences
+// from both of those, and they are why this is its own table rather than
+// another entry in either:
+//
+//   - It is keyed by COURSE id, not by major prefix. A lab or an arts
+//     facility gates a major's whole tier-3 quartet; a clinic gates the
+//     courses that are actually clinical. All four of Nursing's capstones
+//     are (critical care, paediatrics, gerontology, and Clinical Practicum
+//     II by name), so Nursing reads like a lab-gated major — but Pharmacy
+//     has exactly ONE clinical course, its Clinical Pharmacy Practicum,
+//     and gating its computational and regulatory capstones on a clinic
+//     too would be gating them on somewhere they never go.
+//   - The MD's capstone clerkship points at the HOSPITAL rather than the
+//     clinic. A medical clerkship is inpatient work; the hospital is the
+//     rung of the health chain that gates on the medical school's own
+//     building, so the chain reads: found the school -> build its hospital
+//     -> finish the degree.
+//
+// None of these can be circular. Every gate points at a health-chain
+// facility, and the health chain's own prereqs are earlier rungs of itself
+// plus the medical school BUILDING — never a course.
+const CLINICAL_PRACTICUM_GATE: Partial<Record<string, string>> = {
+  NURS210: HEALTH_CENTER_TIER2_ID, // Critical Care Nursing
+  NURS220: HEALTH_CENTER_TIER2_ID, // Pediatric Nursing
+  NURS230: HEALTH_CENTER_TIER2_ID, // Gerontology
+  NURS240: HEALTH_CENTER_TIER2_ID, // Clinical Practicum II
+  PHRM230: HEALTH_CENTER_TIER2_ID, // Clinical Pharmacy Practicum
+  MED610: HEALTH_CENTER_TIER3_ID,  // Advanced Clinical Practicum — the MD's clerkship year
 };
 
 // ---------------------------------------------------------------------
@@ -931,6 +1039,8 @@ export function initialTech(): Buildable[] {
           ];
         }
         prereqs = [...prereqs, ...(CROSS_MAJOR_BRIDGES[id] ?? [])];
+        const clinicalGate = CLINICAL_PRACTICUM_GATE[id];
+        if (clinicalGate) prereqs = [...prereqs, clinicalGate];
 
         const description = tier === 1
           ? (TIER1_DESCRIPTIONS[id] ?? `${major.name} (${school.name}) entry course: ${title}.`)
@@ -1020,9 +1130,17 @@ export function initialTech(): Buildable[] {
     program.courses.forEach((course, i) => {
       const id = ids[i];
       const last = i === program.courses.length - 1;
-      const prereqs = i === 0
-        ? (program.buildingId ? [program.buildingId] : [])
-        : last ? ids.slice(0, i) : [entryId];
+      // Same CLINICAL_PRACTICUM_GATE the undergraduate loop applies, for
+      // the one graduate course that has an entry (the MD's clerkship year,
+      // which needs the University Hospital) — read from the same table
+      // rather than special-cased here, so "which coursework needs a
+      // clinical facility" stays authored in exactly one place.
+      const prereqs = [
+        ...(i === 0
+          ? (program.buildingId ? [program.buildingId] : [])
+          : last ? ids.slice(0, i) : [entryId]),
+        ...(CLINICAL_PRACTICUM_GATE[id] ? [CLINICAL_PRACTICUM_GATE[id]!] : []),
+      ];
 
       nodes.push({
         id,

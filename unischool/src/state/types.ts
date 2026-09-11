@@ -385,6 +385,34 @@ export type Placements = Record<string, Placement>;
 // the only information a key carries.
 export type Pathways = Record<string, true>;
 
+// ---------------------------------------------------------------------
+// TREES: the ground the campus was founded on. A new university does not
+// open on a bare plate — it opens on a piece of land with woodland already
+// on it, and what a player does over the following decades is CLEAR some of
+// that and keep the rest. Which is the whole mechanic here, and it is
+// three rules:
+//
+//   - A tree lives on one TILE, the same unit a path tile and a footprint
+//     are measured in, so "is there a tree here" needs no scheme of its own.
+//   - BUILDING over a tree FELLS it: the reducer's PLACE_BUILDABLE deletes
+//     every tree under the footprint it commits, permanently. You cleared
+//     the ground to build there.
+//   - PAVING over a tree only HIDES it: a path tile on a tree's tile stops
+//     it being drawn, and lifting the path brings it straight back. Nothing
+//     is deleted, so this is a pure render-time read of `pathways` (see
+//     CampusMap.tsx) rather than a second piece of state to keep in step.
+//
+// The value is a SEED, not a description: the renderer derives species,
+// size and the tree's offset within its own tile from it (see
+// components/trees.tsx), so a grove reads as a grove rather than as a grid
+// of identical lollipops, and one integer per tree is all that has to be
+// saved. Keyed by campusMap.ts's pathTileKey(), the same key `pathways`
+// uses — which is also what makes the path lookup above a plain key test.
+//
+// Visual only, like `placements` and `pathways`: no system reads it, no
+// Buildable gates on it, and felling a wood costs and grants nothing.
+export type Trees = Record<string, number>;
+
 // The generic pause-the-clock decision-event mechanism (see README's
 // "Interrupts: the decision-event system"). Any system enqueues one by
 // setting `pendingInterrupt` directly on state; while it is set, the game
@@ -809,6 +837,7 @@ export interface GameState {
   developing: Record<string, number>; // course id -> weeks remaining
   placements: Placements;            // Buildable id -> the campus tiles it covers; visual only (see the campus map block above)
   pathways: Pathways;                 // drawn walkway tiles; visual only, read by no system (see the Pathways block above)
+  trees: Trees;                       // the founding woodland, tile -> render seed; felled by building, hidden by paving (see the Trees block above)
   rivals: Rival[];
   self: University;
   history: YearSnapshot[];       // one entry per completed in-game year, oldest first — the game's only time series (see YearSnapshot above)

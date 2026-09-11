@@ -1,4 +1,4 @@
-import type { Buildable, FacilityType, SatisfactionAttributes } from '../state/types';
+import type { Buildable, FacilityType } from '../state/types';
 import { FOUNDING_BODY } from './schoolTypeData';
 
 // ---------------------------------------------------------------------
@@ -83,24 +83,25 @@ export function servedUpkeep(facilityType: keyof typeof UPKEEP_PER_SERVED_PER_WE
 // (see satisfactionSystem.ts's BASIC_NEEDS_PENALTY_CURVATURE) — going
 // hungry reads as an acute problem, not a gentle drift.
 //
-// Sized at roughly one dining hall per 3-4 dorms rather than one per dorm:
-// the OLD chain (13 instances averaging ~690 served each) could never
-// actually cover a maxed-out dorm chain even fully built (its ceiling was
-// ~8,900 served) — every dining hall was cheap and small, but there were
-// too few of them to ever exist to close that gap. This chain is short (5
-// instances) and each one dramatically bigger, so five real decisions serve
-// ~21,700 — a scale sized against the dorm chain as it stood at the time
-// (see campusData.ts's own tuning comment for its current, larger total;
-// dining scores against ENROLLED, not bed capacity, so it doesn't need to
-// track the dorm chain exactly) instead of thirteen small ones that ran out
-// partway through it.
+// EIGHT HALLS, AUTHORED, not five generated from `1,600 * 1.9^n`. That
+// growth rate is what produced the chain's worst reading: the founding hall
+// fed 350 and the sixth fed 20,851 — sixty times as many people, through
+// four doublings so steep that the fifth and sixth halls between them were
+// most of the campus's dining and the three before them were rounding
+// error. The rungs below roughly double at the small end and taper to about
+// 1.35x at the large end (350, 900, 1,800, 3,000, 5,000, 8,000, 12,000,
+// 16,000), so every hall in the queue is a meaningful fraction of what the
+// campus has — and each one is visibly bigger on the map than the last,
+// because campusMap.ts's DINING_FOOTPRINTS ladder reads
+// effects.servesPopulation and steps the footprint with it (a 350-seat
+// campus restaurant is 3x3; the 16,000-seat market hall is 12x9, on the
+// order of an academic quad).
 //
-// Size is what the campus map draws, too (see campusMap.ts's footprintOf):
-// a hall at or above DINING_MAJOR_FOOTPRINT_SERVES_THRESHOLD is a real "major
-// dining hall" and gets a footprint on the order of a student center; a
-// smaller one reads as a compact campus restaurant and stays small. Only
-// the founding hall is small enough to be a restaurant here — everything
-// the school adds afterward is sized to matter.
+// The chain serves 47,050 fully built, up from 42,591, over eight decisions
+// instead of six; with the grocery store below and the residential towers'
+// street-level retail (campusData.ts) the campus can feed about 70,000 at
+// basicNeeds' strict 1:1 ratio. Cost per seat still climbs the whole way
+// (1.3k -> 2.4k), the same cost-outgrows-capacity shape the dorm chain has.
 const DINING_STARTING_ID = 'DINING-01';
 const DINING_STARTING_SERVES = FOUNDING_BODY; // one founding hall feeds exactly the founding (all-commuter) class
 // A cheap, quick starter, sized so a new school can feed its founding class
@@ -108,54 +109,40 @@ const DINING_STARTING_SERVES = FOUNDING_BODY; // one founding hall feeds exactly
 // than the escalating chain below.
 const DINING_STARTING_COST = 250_000;
 const DINING_STARTING_WEEKS = 12;
-// Raised from 4 to 5 (see the max-buildout note above SAVE_VERSION-scale
-// tuning in satisfactionSystem.ts's TARGET_RATIO): even the rebalanced
-// 5-instance chain this comment used to describe (~21,700 served) fell well
-// short of feeding a fully built-out, large-enrollment campus at
-// basicNeeds' strict 1:1 ratio. A sixth instance plus the new grocery store
-// below (GROCERY_SERVES) together close that gap.
-const DINING_ADDITIONAL_COUNT = 5;
-const DINING_BASE_SERVES = 1_600;
-const DINING_SERVES_GROWTH = 1.9;
-const DINING_BASE_COST = 2_400_000; // ~$1,500/seat at the base, the same rough rate the old chain built at
-const DINING_COST_GROWTH = 2.0; // outpaces servesGrowth on purpose — cost-per-seat still climbs at the high end, same shape as the dorm chain's own cost-outgrows-capacity curve
-const DINING_BASE_WEEKS = 14;
-const DINING_WEEKS_GROWTH = 1.12;
-// One name per instance in the chain: the starting hall plus every one of
-// DINING_ADDITIONAL_COUNT, so no built hall ever falls back to a generated
-// stand-in (the build panel lists these by name once the group collapses).
-const DINING_NAMES = [
-  'The Original Dining Hall', 'Union Square Eatery', 'Commons Cafeteria', 'The Grand Table',
-  'Founders Commons', 'Lakeside Dining Commons',
+
+// One rung per hall after the founding one, in build order. Same authored-
+// table shape campusData.ts's dorm chain uses, and for the same reason: the
+// interesting facts about a chain (how big each rung is, what it costs per
+// seat, where the jumps are) belong where they can be read, not derived
+// from three growth constants.
+interface DiningRung {
+  id: string;
+  name: string;
+  serves: number;
+  cost: number;
+  weeks: number;
+}
+
+const DINING_RUNGS: DiningRung[] = [
+  { id: 'DININGHALL-02', name: 'Union Square Eatery', serves: 900, cost: 1_200_000, weeks: 14 },
+  { id: 'DININGHALL-03', name: 'Commons Cafeteria', serves: 1_800, cost: 2_700_000, weeks: 16 },
+  { id: 'DININGHALL-04', name: 'The Grand Table', serves: 3_000, cost: 5_000_000, weeks: 18 },
+  { id: 'DININGHALL-05', name: 'Founders Commons', serves: 5_000, cost: 9_000_000, weeks: 20 },
+  { id: 'DININGHALL-06', name: 'Lakeside Dining Commons', serves: 8_000, cost: 16_000_000, weeks: 22 },
+  { id: 'DININGHALL-07', name: 'Harborview Market Hall', serves: 12_000, cost: 26_400_000, weeks: 24 },
+  { id: 'DININGHALL-08', name: 'Central Dining Pavilion', serves: 16_000, cost: 38_400_000, weeks: 26 },
 ];
 
-function repeatableChain(opts: {
-  facilityType: 'diningHall';
-  startingId: string;
-  startingName: string;
-  startingServes: number;
-  startingCost: number;
-  startingWeeks: number;
-  satisfactionAttribute: keyof SatisfactionAttributes;
-  additionalCount: number;
-  baseServes: number;
-  servesGrowth: number;
-  baseCost: number;
-  costGrowth: number;
-  baseWeeks: number;
-  weeksGrowth: number;
-  names: string[];
-  fallbackName: string; // only used if additionalCount is raised past `names` — a plain numbered name, never a copy of the starting instance's
-}): Buildable[] {
+function diningChain(): Buildable[] {
   const nodes: Buildable[] = [
     {
-      id: opts.startingId,
+      id: DINING_STARTING_ID,
       kind: 'facility',
-      facilityType: opts.facilityType,
-      name: opts.startingName,
-      description: `The university's first dining hall — build it to feed the founding class. Serves ${opts.startingServes.toLocaleString()} students.`,
-      cost: opts.startingCost,
-      duration: opts.startingWeeks,
+      facilityType: 'diningHall',
+      name: 'The Original Dining Hall',
+      description: `The university's first dining hall — build it to feed the founding class. Serves ${DINING_STARTING_SERVES.toLocaleString()} students.`,
+      cost: DINING_STARTING_COST,
+      duration: DINING_STARTING_WEEKS,
       prereqs: [],
       // Available (not 'done') from day one: the campus opens empty, so the
       // player builds the founding dining hall like any other facility (see
@@ -166,39 +153,35 @@ function repeatableChain(opts: {
       // to double-count.
       status: 'available',
       effects: {
-        servesPopulation: opts.startingServes,
-        satisfactionAttribute: opts.satisfactionAttribute,
-        upkeepPerWeek: servedUpkeep(opts.facilityType, opts.startingServes),
+        servesPopulation: DINING_STARTING_SERVES,
+        satisfactionAttribute: 'basicNeeds',
+        upkeepPerWeek: servedUpkeep('diningHall', DINING_STARTING_SERVES),
       },
     },
   ];
 
-  let previousId = opts.startingId;
-  for (let i = 1; i <= opts.additionalCount; i++) {
-    const id = `${opts.facilityType.toUpperCase()}-${String(i + 1).padStart(2, '0')}`;
-    const servesPopulation = Math.round(opts.baseServes * opts.servesGrowth ** (i - 1));
-    const cost = Math.round(opts.baseCost * opts.costGrowth ** (i - 1));
-    const duration = Math.round(opts.baseWeeks * opts.weeksGrowth ** (i - 1));
+  let previousId = DINING_STARTING_ID;
+  for (const rung of DINING_RUNGS) {
     nodes.push({
-      id,
+      id: rung.id,
       kind: 'facility',
-      facilityType: opts.facilityType,
-      name: opts.names[i - 1] ?? `${opts.fallbackName} ${i + 1}`,
-      description: `Serves ${servesPopulation.toLocaleString()} more students.`,
-      cost,
-      duration,
+      facilityType: 'diningHall',
+      name: rung.name,
+      description: `Serves ${rung.serves.toLocaleString()} more students.`,
+      cost: rung.cost,
+      duration: rung.weeks,
       prereqs: [previousId], // strictly sequential, same reasoning as the dorm chain
       // All locked; each unlocks the tick its prereq finishes — including the
       // first, now that the founding hall is itself built rather than seeded
       // 'done' (see the starting instance above).
       status: 'locked',
       effects: {
-        servesPopulation,
-        satisfactionAttribute: opts.satisfactionAttribute,
-        upkeepPerWeek: servedUpkeep(opts.facilityType, servesPopulation),
+        servesPopulation: rung.serves,
+        satisfactionAttribute: 'basicNeeds',
+        upkeepPerWeek: servedUpkeep('diningHall', rung.serves),
       },
     });
-    previousId = id;
+    previousId = rung.id;
   }
 
   return nodes;
@@ -210,7 +193,7 @@ function repeatableChain(opts: {
 // this is shaped like the health center (one building, unlocked past a
 // population threshold) rather than repeatable. Exists purely to close the
 // max-buildout gap the dining chain alone couldn't (see the note above
-// DINING_ADDITIONAL_COUNT) — a big, single, late-game capacity top-up, not
+// DINING_STARTING_ID) — a big, single, late-game capacity top-up, not
 // an early strategic choice. Cheaper per seat than a full dining hall
 // (~1,500/seat): a grocery needs shelving and registers, not a kitchen and
 // a dining room, so its labor/equipment cost per student served is lower —
@@ -522,35 +505,71 @@ export const FACILITY_CATEGORY_OF: Partial<Record<FacilityType, FacilityCategory
   footballStadium: 'athletics',
 };
 
-// --- Health/counseling center: single building, two tiers, gated by population ---
-// "Unlocks at a population threshold" per the design ask: below
-// HEALTH_CENTER_TIER1_POPULATION_GATE ENROLLED students (not beds — a big
-// commuter school with few dorms is still a big school), a school is small
-// enough that not having one yet doesn't cost anything — see
-// satisfactionSystem.ts's dormancy rule. Cross it and neglecting health
-// becomes a real, scoring need like any other.
+// --- The health chain: Health & Counseling Center -> University Clinic ---
+// --- -> University Hospital ---
+// Three buildings, each a genuinely different institution rather than
+// "the health center, but with a bigger number on it". The old chain was
+// three tiers on one 5x4 footprint whose capacities ran 2,000 -> 6,000 ->
+// 42,000: the same building serving twenty-one times as many people as it
+// did two upgrades ago, with not one extra tile of ground under it. What
+// follows keeps the shape (one building per rung, upgraded in place, each
+// unlocked past a population threshold) and fixes the scale:
+//
+//   - HEALTH & COUNSELING CENTER (3x3). Unchanged in cost and capacity —
+//     this rung was never the problem. It IS smaller on the map now: a
+//     campus clinic with a nurse practitioner and a couple of counsellors
+//     is a small building, and starting it at a lab's footprint is what
+//     leaves room for the two below it to be visibly bigger.
+//   - UNIVERSITY CLINIC (5x5). The mid-game rung: real outpatient care,
+//     three times the ground and three times the people. Also the
+//     PRACTICUM SITE two clinical majors now train in (see techData.ts's
+//     CLINICAL_PRACTICUM_GATE) — nursing students do their practicum in a
+//     clinic, not in a teaching lab, which is what retired the Nursing Lab
+//     that used to gate that coursework.
+//   - UNIVERSITY HOSPITAL (11x11). The largest BUILDING on campus (only
+//     the football stadium covers more ground) and the late-game rung,
+//     gated on the School of Medicine standing rather than on population
+//     alone: a university hospital is a teaching hospital, and a campus
+//     without a medical school does not have one. It is in turn what the
+//     MD's own capstone clerkship needs.
+//
+// Capacity now tracks FOOTPRINT at a near-flat rate — about 220-250
+// students served per tile across all three rungs — instead of the old
+// chain's 100 -> 300 -> 2,100. Cost per seat still climbs (280 -> 400 ->
+// 650), so the marginal bed of care keeps getting more expensive the way
+// every other chain in this file does.
+//
+// THE CEILING MOVED, and deliberately. A fully built-out health chain
+// serves 38,000 (plus the fitness trio's 9,000 — see the rec chain above),
+// down from 50,000, and 20,000 of that 38,000 is behind the medical
+// school. A large campus that never founds one will feel `health` as a
+// real, permanent shortfall rather than a box it ticked at 20,000
+// enrolled. That is the point of gating the hospital: the medical school
+// now pays off in campus terms and not only in prestige.
 export const HEALTH_CENTER_TIER1_POPULATION_GATE = 1_500;
 const HEALTH_CENTER_TIER1_ID = 'HLTH-T1';
 const HEALTH_CENTER_TIER1_SERVES = 2_000;
 const HEALTH_CENTER_TIER1_COST = 560_000;
 const HEALTH_CENTER_TIER1_WEEKS = 14;
+// Exported for techData.ts's CLINICAL_PRACTICUM_GATE — the clinic gates
+// Nursing's and Pharmacy's clinical coursework the same cross-kind way a
+// lab gates a bench science's capstones, and the arts facilities above gate
+// Music's and Studio Art's.
 export const HEALTH_CENTER_TIER2_POPULATION_GATE = 6_000;
-const HEALTH_CENTER_TIER2_ID = 'HLTH-T2';
+export const HEALTH_CENTER_TIER2_ID = 'HLTH-T2';
 const HEALTH_CENTER_TIER2_SERVES = 6_000;
-const HEALTH_CENTER_TIER2_COST = 2_100_000;
+const HEALTH_CENTER_TIER2_COST = 2_400_000; // 400/seat
 const HEALTH_CENTER_TIER2_WEEKS = 26;
-// A third tier, past a genuinely large-campus population gate: two tiers
-// (8,000 served total) plus gym/pool/tennis's own health capacity (see the
-// rec/fitness chain above) still fell well short of feeding `health`'s
-// strict 1:1 ratio at a fully built-out, large-enrollment campus — the same
-// max-buildout shortfall the extra dining hall/grocery store above address
-// for basicNeeds. Continues the cost-per-seat climb tier 1 -> tier 2
-// already set (280/seat -> 350/seat) rather than a discount at scale.
+// The medical school's own building, named as a raw id rather than
+// imported: techData.ts already imports FROM this file (for the arts and
+// clinical gates), so importing back would make the two data modules
+// circular — the same reason MUSIC_TIER2_IDS above is written out.
+const MEDICAL_SCHOOL_BUILDING_ID = 'BLDG-MED';
 export const HEALTH_CENTER_TIER3_POPULATION_GATE = 20_000;
-const HEALTH_CENTER_TIER3_ID = 'HLTH-T3';
-const HEALTH_CENTER_TIER3_SERVES = 42_000;
-const HEALTH_CENTER_TIER3_COST = 19_000_000;
-const HEALTH_CENTER_TIER3_WEEKS = 40;
+export const HEALTH_CENTER_TIER3_ID = 'HLTH-T3';
+const HEALTH_CENTER_TIER3_SERVES = 30_000;
+const HEALTH_CENTER_TIER3_COST = 19_500_000; // 650/seat
+const HEALTH_CENTER_TIER3_WEEKS = 48;
 
 // --- Green space/quad: single, cheap, FLAT (non-population-scaling) bonus ---
 // The one attribute contributor that doesn't play the capacity-ratio game
@@ -569,26 +588,9 @@ const QUAD_TIER2_UPKEEP = 1_000;
 
 export function initialFacilities(): Buildable[] {
   return [
-    ...repeatableChain({
-      facilityType: 'diningHall',
-      startingId: DINING_STARTING_ID,
-      startingName: DINING_NAMES[0]!,
-      startingServes: DINING_STARTING_SERVES,
-      startingCost: DINING_STARTING_COST,
-      startingWeeks: DINING_STARTING_WEEKS,
-      satisfactionAttribute: 'basicNeeds',
-      additionalCount: DINING_ADDITIONAL_COUNT,
-      baseServes: DINING_BASE_SERVES,
-      servesGrowth: DINING_SERVES_GROWTH,
-      baseCost: DINING_BASE_COST,
-      costGrowth: DINING_COST_GROWTH,
-      baseWeeks: DINING_BASE_WEEKS,
-      weeksGrowth: DINING_WEEKS_GROWTH,
-      names: DINING_NAMES.slice(1),
-      fallbackName: 'Dining Hall',
-    }),
+    ...diningChain(),
 
-    // Campus grocery store — see the block above DINING_ADDITIONAL_COUNT.
+    // Campus grocery store — see the block above GROCERY_POPULATION_GATE.
     {
       id: GROCERY_ID,
       kind: 'facility',
@@ -898,7 +900,12 @@ export function initialFacilities(): Buildable[] {
       },
     },
 
-    // Health / counseling center
+    // The health chain — see the long note above
+    // HEALTH_CENTER_TIER1_POPULATION_GATE. `tier` is kept on all three
+    // (this is one institution upgraded in place, the library/student
+    // center shape, not five different named facilities the way the
+    // recreation chain is), even though each rung now has a name and a
+    // footprint of its own.
     {
       id: HEALTH_CENTER_TIER1_ID,
       kind: 'facility',
@@ -922,8 +929,8 @@ export function initialFacilities(): Buildable[] {
       kind: 'facility',
       facilityType: 'healthCenter',
       tier: 2,
-      name: 'Health & Wellness Complex',
-      description: `Adds ${HEALTH_CENTER_TIER2_SERVES.toLocaleString()} more capacity for a campus past ${HEALTH_CENTER_TIER2_POPULATION_GATE.toLocaleString()} students enrolled.`,
+      name: 'University Clinic',
+      description: `Full outpatient care for ${HEALTH_CENTER_TIER2_SERVES.toLocaleString()} more students, and the practicum site Nursing's and Pharmacy's clinical coursework trains in. Unlocks past ${HEALTH_CENTER_TIER2_POPULATION_GATE.toLocaleString()} students enrolled.`,
       cost: HEALTH_CENTER_TIER2_COST,
       duration: HEALTH_CENTER_TIER2_WEEKS,
       prereqs: [HEALTH_CENTER_TIER1_ID],
@@ -940,11 +947,16 @@ export function initialFacilities(): Buildable[] {
       kind: 'facility',
       facilityType: 'healthCenter',
       tier: 3,
-      name: 'University Health Center',
-      description: `Adds ${HEALTH_CENTER_TIER3_SERVES.toLocaleString()} more capacity for a campus past ${HEALTH_CENTER_TIER3_POPULATION_GATE.toLocaleString()} students enrolled.`,
+      name: 'University Hospital',
+      description: `A teaching hospital caring for ${HEALTH_CENTER_TIER3_SERVES.toLocaleString()} more students, and where the MD's clerkship year is spent. Needs the School of Medicine standing, and a campus past ${HEALTH_CENTER_TIER3_POPULATION_GATE.toLocaleString()} students enrolled.`,
       cost: HEALTH_CENTER_TIER3_COST,
       duration: HEALTH_CENTER_TIER3_WEEKS,
-      prereqs: [HEALTH_CENTER_TIER2_ID],
+      // The medical school's BUILDING, not merely its academic gate: a
+      // teaching hospital belongs to a school of medicine that actually
+      // stands. Never circular with the MD capstone this in turn gates
+      // (techData.ts) — that is a course inside the program, several rungs
+      // past the building.
+      prereqs: [HEALTH_CENTER_TIER2_ID, MEDICAL_SCHOOL_BUILDING_ID],
       minCapacityToUnlock: HEALTH_CENTER_TIER3_POPULATION_GATE,
       status: 'locked',
       effects: {

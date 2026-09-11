@@ -1,5 +1,6 @@
 import type { FacilityType } from '../state/types';
 import { boxFaces, lift, polyPoints, project, projectedArc, projectedCircle, projectedStadium, type Pt } from './isoProjection';
+import { TreeAt, type Species } from './trees';
 
 // Open ground: the Buildables you walk across rather than into — the quad,
 // the pool deck, the courts, the pitches, and the stadium's own field. These
@@ -425,18 +426,264 @@ function Courts({ col, row, w, h }: GroundProps) {
   );
 }
 
-// The quad: lawn with walks cut across it, meeting at something worth
-// walking to.
-function Quad({ col, row, w, h }: GroundProps) {
+// ---------------------------------------------------------------------
+// THE QUAD. The open middle of the campus, and the one Buildable whose
+// whole payoff is how it looks — its satisfaction contribution is a flat
+// bonus that never scales, so it is bought for the place it makes rather
+// than for the capacity it adds (see facilitiesData.ts).
+//
+// Both tiers are drawn from the same parts, at different densities: lawn,
+// a CROSS of paved walks, planting, and something at the middle worth
+// walking to. Two things about the walks matter and neither is decoration:
+//
+//   - They run from the MIDPOINT of each edge to the centre, not corner to
+//     corner. A drawn walkway (see pathways.tsx) arriving at the quad's
+//     edge therefore meets a walk rather than a lawn, whichever side it
+//     comes from — which is what makes a hand-drawn path network join the
+//     quad instead of stopping at it.
+//   - They are filled SHAPES with a width in tiles, not strokes. A stroke's
+//     width is in screen units, so a stroked walk covers a different amount
+//     of ground at every zoom; a 13x13 quad's walks have to be a real width
+//     on the ground to read as paving at all.
+//
+// Tier 1 is a plain college green: grass, the cross, a stone roundel where
+// the walks meet, and trees at the corners. Tier 2 (the Grand Quad &
+// Gardens) keeps every one of those and adds the things a garden has — a
+// big fountain in place of the roundel, flower beds down the walks, clipped
+// hedges, and more trees.
+// ---------------------------------------------------------------------
+
+// The walks, as a fraction of the quad's own width/height. Wide enough to
+// walk four abreast at the scale the rest of the map is drawn to.
+const QUAD_WALK = 0.075;
+
+function QuadWalks({ col, row, w, h }: GroundProps) {
+  const half = QUAD_WALK / 2;
+  return (
+    <>
+      {/* Edge midpoint to edge midpoint, both ways — so the walks cross at
+          the centre and meet every side square on. */}
+      <polygon
+        className="ground-walk-fill"
+        points={uvPoly(col, row, w, h, [[0, 0.5 - half], [1, 0.5 - half], [1, 0.5 + half], [0, 0.5 + half]])}
+      />
+      <polygon
+        className="ground-walk-fill"
+        points={uvPoly(col, row, w, h, [[0.5 - half, 0], [0.5 + half, 0], [0.5 + half, 1], [0.5 - half, 1]])}
+      />
+    </>
+  );
+}
+
+// The quad's own planting. Drawn through components/trees.tsx's TreeAt,
+// the SAME component the founding woodland uses, so a tree on the quad is
+// the same object as a tree in the wood beside it rather than a
+// second-class lookalike. What differs is only where it comes from: a
+// woodland tree is one tile's entry in `trees` (its own state, felled by
+// building — see state/types.ts), while a quad's planting is part of the
+// quad, arriving and leaving with the building, so it is authored geometry
+// here and carries no state at all.
+//
+// Authored rather than random, and that is load-bearing: the map re-renders
+// on every pan and every tick, so planting rolled at draw time would shift
+// between frames and read as a rendering fault.
+type QuadPlanting = [u: number, v: number, species: Species, scale: number];
+
+const QUAD_TREES: QuadPlanting[] = [
+  [0.15, 0.15, 'canopy', 1.0], [0.85, 0.15, 'canopy', 1.0],
+  [0.15, 0.85, 'canopy', 1.05], [0.85, 0.85, 'canopy', 1.05],
+  [0.5, 0.12, 'ornamental', 1.0], [0.5, 0.88, 'ornamental', 1.0],
+];
+
+// The gardens tier keeps every one of those and fills in between them: the
+// corners of the four lawn panels the cross walk makes, and a conifer on
+// each side to break the line of round crowns.
+const GARDEN_TREES: QuadPlanting[] = [
+  ...QUAD_TREES,
+  [0.08, 0.5, 'conifer', 1.1], [0.92, 0.5, 'conifer', 1.1],
+  [0.26, 0.26, 'ornamental', 0.85], [0.74, 0.26, 'ornamental', 0.85],
+  [0.26, 0.74, 'canopy', 0.8], [0.74, 0.74, 'canopy', 0.8],
+];
+
+// A bed of flowers: dark earth with blooms scattered over it. The blooms
+// are placed from a fixed lattice with a fixed nudge per index rather than
+// at random — the map re-renders constantly (every pan, every tick), and
+// planting that moved between frames would read as a rendering fault.
+function FlowerBed({ col, row, w, h, u0, v0, u1, v1 }: GroundProps & {
+  u0: number; v0: number; u1: number; v1: number;
+}) {
+  const cols = 5; const rows = 3;
+  const blooms = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const i = r * cols + c;
+      const u = u0 + ((c + 0.5) / cols) * (u1 - u0) + ((i % 3) - 1) * 0.004;
+      const v = v0 + ((r + 0.5) / rows) * (v1 - v0) + ((i % 2) - 0.5) * 0.004;
+      blooms.push(
+        <polygon
+          key={i}
+          className={`ground-bloom-${i % 4}`}
+          points={polyPoints(projectedCircle(col + w * u, row + h * v, Math.min(w, h) * 0.011, 8))}
+        />,
+      );
+    }
+  }
+  return (
+    <>
+      <polygon className="ground-bed" points={uvPoly(col, row, w, h, [[u0, v0], [u1, v0], [u1, v1], [u0, v1]])} />
+      {blooms}
+    </>
+  );
+}
+
+// A clipped hedge: a low box with a lit top face, so it has mass rather
+// than being a green stripe painted on the grass.
+function Hedge({ col, row, w, h, u0, v0, u1, v1 }: GroundProps & {
+  u0: number; v0: number; u1: number; v1: number;
+}) {
+  const HEIGHT = 7;
+  const f = boxFaces(col + w * u0, row + h * v0, w * (u1 - u0), h * (v1 - v0), 0, HEIGHT);
+  return (
+    <>
+      <polygon className="ground-hedge" points={polyPoints(f.left)} />
+      <polygon className="ground-hedge" points={polyPoints(f.right)} />
+      <polygon className="ground-hedge-top" points={polyPoints(f.top)} />
+    </>
+  );
+}
+
+// The fountain at the centre of the Grand Quad: a stone kerb, the water
+// inside it, a raised basin, and a jet standing out of that with a ring of
+// spray falling back into the pool. Static geometry — a real animation
+// would have to run every frame on a surface that is otherwise only redrawn
+// when something changes, and the shape alone already reads as a fountain.
+function Fountain({ col, row, w, h }: GroundProps) {
+  const cc = col + w * 0.5; const cr = row + h * 0.5;
+  const R = Math.min(w, h) * 0.20;
+  const centre = project(cc, cr);
+  const ring = (r: number, up = 0) => polyPoints(projectedCircle(cc, cr, r, 36).map((q) => lift(q, up)));
+
+  return (
+    <>
+      <polygon className="ground-fountain-kerb" points={ring(R)} />
+      <polygon className="ground-fountain-water" points={ring(R * 0.84)} />
+      {/* The raised basin standing in the middle of the pool. */}
+      <polygon className="ground-fountain-kerb" points={ring(R * 0.30, 7)} />
+      <polygon className="ground-fountain-basin" points={ring(R * 0.24, 9)} />
+      {/* The jet: a tapering column of water over the basin, with spray
+          falling back around it. The spray ring is deliberately small and
+          close to the basin — at the first pass it was wide enough to
+          cover most of the pool, which washed the water out to near-white
+          and lost the one blue on the quad. */}
+      <polygon
+        className="ground-fountain-spray"
+        points={ring(R * 0.44, 11)}
+      />
+      <polygon
+        className="ground-fountain-jet"
+        points={polyPoints([
+          { x: centre.x - 3.4, y: centre.y - 9 },
+          { x: centre.x + 3.4, y: centre.y - 9 },
+          { x: centre.x + 1.1, y: centre.y - 44 },
+          { x: centre.x - 1.1, y: centre.y - 44 },
+        ])}
+      />
+      <polygon
+        className="ground-fountain-jet"
+        points={polyPoints(projectedCircle(cc, cr, R * 0.09, 12).map((q) => lift(q, 46)))}
+      />
+    </>
+  );
+}
+
+// The tier-1 quad's centrepiece: a paved roundel, a stepped plinth on it,
+// and a column standing on that. Drawn in the same two-part language the
+// fountain below uses — a ground ring, then mass lifted above it — so the
+// two tiers' centres read as the same KIND of thing at different scales.
+function Monument({ col, row, w, h }: GroundProps) {
+  const cc = col + w * 0.5; const cr = row + h * 0.5;
+  const R = Math.min(w, h) * 0.13;
+  const centre = project(cc, cr);
+  const ring = (r: number, up = 0) => polyPoints(projectedCircle(cc, cr, r, 30).map((q) => lift(q, up)));
+  return (
+    <>
+      <polygon className="ground-medallion" points={ring(R)} />
+      <polygon className="ground-fountain-kerb" points={ring(R * 0.46, 5)} />
+      {/* The shaft: a tapering column, in screen space like a tree's crown —
+          it is mass in the air, not a marking on the ground. */}
+      <polygon
+        className="ground-monument"
+        points={polyPoints([
+          { x: centre.x - 4.5, y: centre.y - 5 },
+          { x: centre.x + 4.5, y: centre.y - 5 },
+          { x: centre.x + 3.0, y: centre.y - 34 },
+          { x: centre.x - 3.0, y: centre.y - 34 },
+        ])}
+      />
+      <polygon
+        className="ground-monument-cap"
+        points={polyPoints([
+          { x: centre.x - 5.0, y: centre.y - 33 },
+          { x: centre.x + 5.0, y: centre.y - 33 },
+          { x: centre.x, y: centre.y - 43 },
+        ])}
+      />
+    </>
+  );
+}
+
+function Quad({ col, row, w, h, tier }: GroundProps & { tier: number }) {
+  const gardens = tier >= 2;
   return (
     <>
       <polygon className="ground-lawn" points={uvPoly(col, row, w, h, [[0, 0], [1, 0], [1, 1], [0, 1]])} />
-      <line className="ground-walk" {...uvLine(col, row, w, h, 0.04, 0.04, 0.96, 0.96)} />
-      <line className="ground-walk" {...uvLine(col, row, w, h, 0.96, 0.04, 0.04, 0.96)} />
-      <polygon
-        className="ground-medallion"
-        points={polyPoints(projectedCircle(col + w * 0.5, row + h * 0.5, Math.min(w, h) * 0.13))}
-      />
+      {/* Mowing stripes, which are most of what makes a big green read as
+          kept lawn rather than a flat colour. */}
+      {[0.12, 0.28, 0.44, 0.60, 0.76, 0.92].map((v) => (
+        <polygon
+          key={v}
+          className="ground-mow"
+          points={uvPoly(col, row, w, h, [[0, v - 0.05], [1, v - 0.05], [1, v + 0.03], [0, v + 0.03]])}
+        />
+      ))}
+      <QuadWalks col={col} row={row} w={w} h={h} />
+
+      {gardens ? (
+        <>
+          {/* Beds down both sides of each walk, and hedges closing the
+              corners of the four lawn panels the cross makes. */}
+          <FlowerBed col={col} row={row} w={w} h={h} u0={0.10} v0={0.38} u1={0.40} v1={0.44} />
+          <FlowerBed col={col} row={row} w={w} h={h} u0={0.60} v0={0.38} u1={0.90} v1={0.44} />
+          <FlowerBed col={col} row={row} w={w} h={h} u0={0.10} v0={0.56} u1={0.40} v1={0.62} />
+          <FlowerBed col={col} row={row} w={w} h={h} u0={0.60} v0={0.56} u1={0.90} v1={0.62} />
+          <Hedge col={col} row={row} w={w} h={h} u0={0.38} v0={0.10} u1={0.44} v1={0.32} />
+          <Hedge col={col} row={row} w={w} h={h} u0={0.56} v0={0.10} u1={0.62} v1={0.32} />
+          <Hedge col={col} row={row} w={w} h={h} u0={0.38} v0={0.68} u1={0.44} v1={0.90} />
+          <Hedge col={col} row={row} w={w} h={h} u0={0.56} v0={0.68} u1={0.62} v1={0.90} />
+        </>
+      ) : (
+        // Tier 1's centre: a paved roundel where the walks meet, with a
+        // plinth and a column standing on it. The roundel alone was there
+        // first and was invisible — it is the same stone as the walks that
+        // run into it, so on a lawn it read as a slight widening of the
+        // crossing and nothing more. What the walks need at their meeting
+        // point is something to be walking TO, and one standing object is
+        // the cheapest honest version of that.
+        <Monument col={col} row={row} w={w} h={h} />
+      )}
+
+      {/* Planting, drawn back-to-front so a near tree overlaps a far one —
+          the same depth rule CampusMap applies to whole buildings. */}
+      {(gardens ? GARDEN_TREES : QUAD_TREES)
+        .slice()
+        .sort((a, b) => (a[0] + a[1]) - (b[0] + b[1]))
+        .map(([u, v, species, size], i) => (
+          <TreeAt key={i} col={col + w * u} row={row + h * v} species={species} scale={size} />
+        ))}
+
+      {/* The fountain last: it is the tallest thing on the quad, so it
+          paints over the planting behind it. */}
+      {gardens && <Fountain col={col} row={row} w={w} h={h} />}
     </>
   );
 }
@@ -458,13 +705,19 @@ function PoolDeck({ col, row, w, h }: GroundProps) {
 // Which marking each open-ground facility wears. The stadium's own field
 // is a gridiron too — see StadiumField below, which the bowl motif draws
 // inside its stands.
-export default function GroundMarking({ facilityType, col, row, w, h }: GroundProps & { facilityType?: FacilityType }) {
+export default function GroundMarking({ facilityType, col, row, w, h, tier }: GroundProps & {
+  facilityType?: FacilityType;
+  // The quad is the one open-ground facility with TIERS, and its two are
+  // genuinely different places rather than the same lawn at two sizes (see
+  // the quad block above). Nothing else here reads it.
+  tier?: number;
+}) {
   switch (facilityType) {
     case 'athleticsField': return <Pitch col={col} row={row} w={w} h={h} />;
     case 'athleticsDiamond': return <Diamond col={col} row={row} w={w} h={h} />;
     case 'tennisCourts': return <Courts col={col} row={row} w={w} h={h} />;
     case 'pool': return <PoolDeck col={col} row={row} w={w} h={h} />;
-    case 'quad': return <Quad col={col} row={row} w={w} h={h} />;
+    case 'quad': return <Quad col={col} row={row} w={w} h={h} tier={tier ?? 1} />;
     default:
       return <polygon className="ground-lawn" points={polyPoints(boxFaces(col, row, w, h, 0, 0).top)} />;
   }

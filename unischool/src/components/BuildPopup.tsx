@@ -55,7 +55,7 @@ const FACILITY_LABELS: Record<FacilityType, string> = {
   diningHall: 'Dining',
   grocery: 'Grocery Store',
   recCenter: 'Recreation',
-  healthCenter: 'Health & Counseling',
+  healthCenter: 'Health',
   quad: 'Quad',
   lab: 'Labs',
   gym: 'Gym',
@@ -130,6 +130,11 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; ma
   // chain (see facilitiesData.ts's note above GROCERY_ID) — one more
   // basicNeeds option, not a category of its own.
   { key: 'diningHall', label: FACILITY_LABELS.diningHall, repeatable: true, match: (t) => t.facilityType === 'diningHall' || t.facilityType === 'grocery' },
+  // The health chain is three differently-named buildings upgraded in
+  // place (Health & Counseling Center -> University Clinic -> University
+  // Hospital, see facilitiesData.ts), so it keeps `repeatable: false` and
+  // its own tier chips — but the tab heading can no longer be one of their
+  // names. "Health" is the need; the rungs name themselves.
   { key: 'healthCenter', label: FACILITY_LABELS.healthCenter, repeatable: false, match: (t) => t.facilityType === 'healthCenter' },
   { key: 'quad', label: FACILITY_LABELS.quad, repeatable: false, match: (t) => t.facilityType === 'quad' },
   { key: 'lab', label: FACILITY_LABELS.lab, repeatable: false, match: (t) => t.facilityType === 'lab' },

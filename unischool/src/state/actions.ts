@@ -5,6 +5,7 @@ import { WEEKS_PER_YEAR, CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT } from './types';
 import { footprintOf, isPlaceableKind, placementFor } from './campusMap';
 import { initialTech, GENED_BUILDING_REPUTATION_BONUS, GENED_BUILDING_ID } from '../data/techData';
 import { initialDorms } from '../data/campusData';
+import { seedTrees } from '../data/treeData';
 import { initialFacilities } from '../data/facilitiesData';
 import { initialRivals } from '../data/rivalData';
 import { initialCandidatePool, facultySalary } from '../data/facultyData';
@@ -229,6 +230,7 @@ export function createPreStartState(): GameState {
     developing: {},
     placements: {},
     pathways: {},
+    trees: {},
     rivals: [],
     self: { name: '', suffix: '', universityCharterOffered: false, reputation: 0, schoolType: 'private' },
     history: [],
@@ -414,6 +416,11 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // included, is placed by the player as it is built.
     placements: { [GENED_BUILDING_ID]: foundersHallPlacement },
     pathways: {},
+    // The ground the university is founded on (see data/treeData.ts). Seeded
+    // AGAINST the placements above, so no tree is generated under Founders
+    // Hall — the only building that exists at founding — rather than planted
+    // and then felled.
+    trees: seedTrees({ [GENED_BUILDING_ID]: foundersHallPlacement }),
     rivals: initialRivals(),
     // +GENED_BUILDING_REPUTATION_BONUS: a small gen-ed academic-standing
     // baseline the founding institution opens with (see techData.ts — it is

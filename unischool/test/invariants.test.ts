@@ -201,16 +201,22 @@ function relPath(f: string): string {
 }
 
 // =====================================================================
-// 4. PLACEMENT IS COSMETIC — no system reads placements/pathways
+// 4. THE MAP IS COSMETIC — no system reads placements/pathways/trees
+//
+// `trees` joined this list with the founding woodland (see types.ts's Trees
+// block). It is the same claim for the same reason: where a building stands,
+// which squares are paved, and which squares have a tree on them are facts
+// about the picture, and a system that started scoring one of them would
+// make the map load-bearing without anyone deciding that it should.
 // =====================================================================
 {
   const systemFiles = ALL_SRC_FILES.filter((f) => relPath(f).startsWith(`systems${'/'}`));
   const offenders: string[] = [];
   for (const f of systemFiles) {
     const text = SOURCE.get(f)!;
-    if (/\.placements\b|\.pathways\b/.test(text)) offenders.push(relPath(f));
+    if (/\.placements\b|\.pathways\b|\.trees\b/.test(text)) offenders.push(relPath(f));
   }
-  assert(offenders.length === 0, `no tick system reads placements/pathways (found in: ${offenders.join(', ')})`);
+  assert(offenders.length === 0, `no tick system reads placements/pathways/trees (found in: ${offenders.join(', ')})`);
 }
 
 // =====================================================================
