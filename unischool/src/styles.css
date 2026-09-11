@@ -754,8 +754,11 @@ button.build-tile { font-family: inherit; }
    own — and they scale with the world, so a line stays the right width
    relative to the pitch it is on at every zoom. */
 .ground-lawn { fill: #8fae6b; }
-.ground-turf { fill: #7fa25c; }
-.ground-endzone { fill: #6f9150; }
+/* Deliberately deeper than --grass (#7d9c60): a marked pitch is a
+   different surface from the lawn around it, and at the first pass the two
+   were close enough that the pitch had no edge at all. */
+.ground-turf { fill: #6d9150; }
+.ground-endzone { fill: #5d7f43; }
 .ground-court { fill: #b08b64; }
 .ground-deck { fill: #d8d2bd; }
 .ground-water { fill: #6ba3bd; }
@@ -767,6 +770,16 @@ button.build-tile { font-family: inherit; }
 .ground-line-fine { stroke: rgba(255, 253, 246, 0.6); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
 .ground-lane { stroke: rgba(255, 253, 246, 0.45); stroke-width: 1.2; fill: none; vector-effect: non-scaling-stroke; }
 .ground-walk { stroke: #cbbd8e; stroke-width: 5; fill: none; }
+/* The outfield fence: a real low face standing on the field, with a rail
+   along its top — a stroke alone would have read as one more painted
+   marking among the base lines. */
+.ground-fence { fill: rgba(70, 62, 48, 0.5); }
+.ground-fence-rail { stroke: rgba(246, 241, 226, 0.5); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+/* Seat rows stepping up a raked stand (groundMarkings.tsx's RakedStand).
+   The stroke colour is passed per stand — the stadium shades its own from
+   its tint, the small bleachers are concrete — so only the width lives
+   here. */
+.stand-seat { stroke-width: 1; vector-effect: non-scaling-stroke; }
 .ground-medallion { fill: #cbbd8e; }
 
 /* ---------- labels ---------- */

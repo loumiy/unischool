@@ -1,5 +1,5 @@
 import type { FacilityType } from '../state/types';
-import { boxFaces, polyPoints, project, projectedArc, projectedCircle, type Pt } from './isoProjection';
+import { boxFaces, lift, polyPoints, project, projectedArc, projectedCircle, type Pt } from './isoProjection';
 
 // Open ground: the Buildables you walk across rather than into — the quad,
 // the pool deck, the courts, the pitches, and the stadium's own field. These
@@ -27,6 +27,71 @@ function uvLine(col: number, row: number, w: number, h: number, u0: number, v0: 
 }
 
 interface GroundProps { col: number; row: number; w: number; h: number; }
+
+// A tile-space point: [col, row].
+export type TilePt = [number, number];
+
+// ---------------------------------------------------------------------
+// A raked stand. This is the one piece of furniture every venue on campus
+// shares — the stadium is four of them around a gridiron, and the pitch and
+// the ball field each get one small one — so it is defined once here and
+// the geometry is identical wherever it appears.
+//
+// A stand is NOT a box. It is a wedge: the row nearest the field sits low,
+// and each row behind it sits higher, so the surface the camera sees is a
+// rake climbing away from the play. Drawing it as a box was what made the
+// stadium read as "a field inside a container" — a box has a flat top and
+// vertical inner walls, which is a wall around a pitch, not seating.
+//
+// Colours are passed in rather than taken from CSS: the stadium shades its
+// stands from its own tint the way every building shades its walls, while
+// the small bleachers beside a pitch are plain concrete. One geometry, two
+// palettes.
+// ---------------------------------------------------------------------
+export function RakedStand({ outer, inner, bottomH, topH, rakeFill, wallFill, seatStroke, rows = 4, wall = false, frontWall = false }: {
+  outer: [TilePt, TilePt];   // the back edge, furthest from the field and highest
+  inner: [TilePt, TilePt];   // the front edge, at the field and lowest
+  bottomH: number; topH: number;
+  rakeFill: string; wallFill: string; seatStroke: string;
+  rows?: number;
+  // Which of the stand's two vertical faces the camera can actually see.
+  // A stand on the near side of a pitch (max row / max col) shows its OUTER
+  // back; one on the far side shows the face toward the field instead. Draw
+  // the wrong one and the stand has no mass at all — it reads as a striped
+  // ramp lying in the grass, which is exactly what the first version of the
+  // small bleachers looked like.
+  wall?: boolean;
+  frontWall?: boolean;
+}) {
+  const [o0, o1] = outer;
+  const [i0, i1] = inner;
+  const at = (t: TilePt, up: number) => lift(project(t[0], t[1]), up);
+  const between = (a: TilePt, b: TilePt, f: number): TilePt => [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+
+  return (
+    <>
+      {wall && (
+        <polygon points={polyPoints([at(o0, 0), at(o1, 0), at(o1, topH), at(o0, topH)])} fill={wallFill} />
+      )}
+      {frontWall && (
+        <polygon points={polyPoints([at(i0, 0), at(i1, 0), at(i1, bottomH), at(i0, bottomH)])} fill={wallFill} />
+      )}
+      <polygon points={polyPoints([at(o0, topH), at(o1, topH), at(i1, bottomH), at(i0, bottomH)])} fill={rakeFill} />
+      {/* Seat rows: lines stepping down the rake. Cheap, and they are what
+          actually say "seating" rather than "ramp". */}
+      {Array.from({ length: rows - 1 }, (_, k) => {
+        const f = (k + 1) / rows;
+        const up = topH + (bottomH - topH) * f;
+        const a = at(between(o0, i0, f), up);
+        const b = at(between(o1, i1, f), up);
+        return <line key={k} className="stand-seat" x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={seatStroke} />;
+      })}
+    </>
+  );
+}
+
+// Plain concrete, for the bleachers that are not part of a tinted building.
+const CONCRETE = { rake: '#cfc7b4', wall: '#b3ab99', seat: 'rgba(60, 54, 42, 0.35)' };
 
 // ---------------------------------------------------------------------
 // Gridiron. The markings ARE the recognition: without cross-field yard
@@ -123,6 +188,47 @@ function Diamond({ col, row, w, h }: GroundProps) {
         const end = polar(R, a);
         return <line key={i} className="ground-line" x1={home.x} y1={home.y} x2={end.x} y2={end.y} />;
       })}
+      {/* The outfield fence: a low wall following the boundary, drawn as a
+          real face rather than a stroke so it reads as something standing on
+          the field rather than another painted line among the markings. */}
+      {(() => {
+        const FENCE_H = 5;
+        const arcPts = projectedArc(hc, hr, R * 0.96, from, to, 36);
+        const face = [...arcPts, ...[...arcPts].reverse().map((q) => lift(q, FENCE_H))];
+        return (
+          <>
+            <polygon className="ground-fence" points={polyPoints(face)} />
+            <polyline
+              className="ground-fence-rail"
+              fill="none"
+              points={polyPoints(arcPts.map((q) => lift(q, FENCE_H)))}
+            />
+          </>
+        );
+      })()}
+      {/* Outfield bleachers, set just beyond the fence and facing home —
+          positioned in the field's OWN polar frame rather than along a
+          footprint edge, which is what keeps them hugging the boundary
+          instead of stranded in the corner of the lot. */}
+      {(() => {
+        const dA = 0.24;
+        const outerR = R * 1.2;
+        const innerR = R * 1.02;
+        const tp = (r: number, a: number): TilePt => [hc + r * Math.cos(a), hr + r * Math.sin(a)];
+        return (
+          <RakedStand
+            outer={[tp(outerR, bisect - dA), tp(outerR, bisect + dA)]}
+            inner={[tp(innerR, bisect - dA), tp(innerR, bisect + dA)]}
+            bottomH={5}
+            topH={13}
+            rakeFill={CONCRETE.rake}
+            wallFill={CONCRETE.wall}
+            seatStroke={CONCRETE.seat}
+            rows={3}
+            frontWall
+          />
+        );
+      })()}
     </>
   );
 }
@@ -132,8 +238,10 @@ function Diamond({ col, row, w, h }: GroundProps) {
 function Pitch({ col, row, w, h }: GroundProps) {
   const landscape = w >= h;
   const A = (a: number, c: number): [number, number] => (landscape ? [a, c] : [c, a]);
-  const lo = 0.06; const span = 1 - lo * 2;
-  const at = (a: number, c: number): [number, number] => A(lo + a * span, lo + c * span);
+  // Asymmetric margins: the playing surface is pushed off the back edge to
+  // leave a band for the stand, rather than the stand being drawn on top of
+  // the pitch it is supposed to be beside.
+  const at = (a: number, c: number): [number, number] => A(0.05 + a * 0.9, 0.26 + c * 0.68);
   const half = uvLine(col, row, w, h, ...at(0.5, 0), ...at(0.5, 1));
   const box = (from: number, to: number) => uvPoly(col, row, w, h, [at(from, 0.22), at(to, 0.22), at(to, 0.78), at(from, 0.78)]);
   return (
@@ -145,8 +253,34 @@ function Pitch({ col, row, w, h }: GroundProps) {
       <polygon
         className="ground-line"
         fill="none"
-        points={polyPoints(projectedCircle(col + w * 0.5, row + h * 0.5, Math.min(w, h) * 0.16))}
+        points={polyPoints(projectedCircle(
+          col + w * (landscape ? 0.5 : 0.6), row + h * (landscape ? 0.6 : 0.5), Math.min(w, h) * 0.14,
+        ))}
       />
+      {/* The stand sits AGAINST the touchline rather than on the footprint's
+          own edge — placed in the pitch's (along, across) frame, the same
+          frame the markings use, so it hugs the line whichever way round the
+          footprint is rotated instead of leaving a strip of lawn between
+          itself and the play. */}
+      {(() => {
+        const tp = (a: number, c: number): TilePt => {
+          const [u, v] = A(a, c);
+          return [col + w * u, row + h * v];
+        };
+        return (
+          <RakedStand
+            outer={[tp(0.2, 0.06), tp(0.8, 0.06)]}
+            inner={[tp(0.2, 0.24), tp(0.8, 0.24)]}
+            bottomH={5}
+            topH={14}
+            rakeFill={CONCRETE.rake}
+            wallFill={CONCRETE.wall}
+            seatStroke={CONCRETE.seat}
+            rows={4}
+            frontWall
+          />
+        );
+      })()}
     </>
   );
 }
@@ -224,7 +358,7 @@ export function StadiumField({ col, row, w, h }: GroundProps) {
       {/* The full interior, so nothing behind the stands is ever visible
           through the opening. Drawn before the gridiron sitting on it. */}
       <polygon className="ground-track" points={polyPoints(boxFaces(col, row, w, h, 0, 0).top)} />
-      <Gridiron col={col} row={row} w={w} h={h} inset={0.16} />
+      <Gridiron col={col} row={row} w={w} h={h} inset={0.10} />
     </>
   );
 }

@@ -1,6 +1,6 @@
 import type { Buildable, FacilityType } from '../state/types';
 import { boxFaces, facePoint, lift, polyPoints, project, type Pt } from './isoProjection';
-import GroundMarking, { StadiumField } from './groundMarkings';
+import GroundMarking, { RakedStand, StadiumField, type TilePt } from './groundMarkings';
 
 // Architectural motifs: what makes a placed Buildable read as a BUILDING
 // rather than as a coloured shape with a name on it.
@@ -76,11 +76,27 @@ const WALL_GRID: Partial<Record<Motif, [number, number]>> = {
   hall: [8, 3], residential: [10, 2], portico: [7, 2], pavilion: [6, 1], works: [4, 1], hangar: [7, 1],
 };
 
+// Added storeys. The library is renovated by adding FLOORS to the building
+// already standing rather than by siting a second one (see facilitiesData's
+// nextLibraryFloor and the reducer's RENOVATE_LIBRARY) — the one upgrade in
+// the game whose whole point is that the same building gets bigger. On a
+// flat map there was nothing to draw for it, which is why the data comment
+// said so; an angled map has the one axis that can show it, so a renovated
+// library now visibly grows a storey and a rank of windows per floor.
+//
+// Read generically off Buildable.floorsAdded rather than keyed to the
+// library, so anything else that ever gains floors gets the same treatment
+// without another branch here.
+const STOREY_HEIGHT = 17;
+function addedFloors(t: Buildable): number {
+  return Math.max(0, t.floorsAdded ?? 0);
+}
+
 // The building's full drawn height including its roof — what the label
 // layer and the draw-order sort need in order to clear it.
 export function heightOf(t: Buildable): number {
   const m = motifOf(t);
-  return HEIGHT[m] + (RIDGE[m] ?? 0);
+  return HEIGHT[m] + (RIDGE[m] ?? 0) + addedFloors(t) * STOREY_HEIGHT;
 }
 
 function shade(hex: string, factor: number): string {
@@ -169,39 +185,81 @@ export default function BuildingMotif({ t, p, tint, developing }: {
   // off the ground, not a building with the roof left off. The mass RISING
   // is what completion looks like — which is a thing an angled map can show
   // and a flat one never could.
-  const full = HEIGHT[motif];
+  const floors = addedFloors(t);
+  const full = HEIGHT[motif] + floors * STOREY_HEIGHT;
   const H = developing ? Math.max(4, full * 0.16) : full;
   const ridge = developing ? 0 : (RIDGE[motif] ?? 0);
   const f = boxFaces(col, row, w, h, 0, H);
-  const grid = WALL_GRID[motif];
+  // Each added floor is a real extra rank of windows, not just a taller
+  // blank wall — that is what makes the growth legible rather than just
+  // making the building bigger.
+  const baseGrid = WALL_GRID[motif];
+  const grid: [number, number] | undefined = baseGrid
+    ? [baseGrid[0], baseGrid[1] + floors]
+    : undefined;
 
   if (motif === 'bowl') {
-    // The stands: a ring around a field. The interior is drawn FIRST and
-    // covers the whole opening (see StadiumField) — the first pass left the
-    // gap between the pitch edge and the stands showing bare lawn and grid
-    // lines, which read as a hole in the map rather than as a stadium.
-    const inset = 0.17;
-    const iCol = col + w * inset; const iRow = row + h * inset;
-    const iW = w * (1 - inset * 2); const iH = h * (1 - inset * 2);
-    const inner = boxFaces(iCol, iRow, iW, iH, 0, H);
+    // FOUR RAKED BANKS around a gridiron, not a box with a hole in it.
+    //
+    // The previous version drew the stands as a ring-shaped slab: an
+    // evenodd top face, outer walls, and two vertical inner faces dropped
+    // from the opening's back edges. Those inner faces hung down-screen
+    // across the ring's own arms and outer walls, which is what garbled it —
+    // and even drawn cleanly a box with a flat top and vertical inner walls
+    // is a wall around a pitch, not seating.
+    //
+    // Each bank is a wedge instead: low at the field, climbing away from it,
+    // with seat rows stepping up the rake. The four are mitred at the
+    // corners (each one's inner edge is inset by the stand depth at both
+    // ends), so they tile the ring exactly with no overlap to garble.
+    const d = Math.min(w, h) * 0.17;          // stand depth, in tiles
+    const iCol = col + d; const iRow = row + d;
+    const iW = w - d * 2; const iH = h - d * 2;
+    const top = H;
+    const bottom = H * 0.22;
+    const fills = (f: number) => ({
+      rakeFill: shade(tint, f),
+      wallFill: shade(tint, f * 0.82),
+      seatStroke: 'rgba(42, 56, 28, 0.30)',
+    });
+    // Corner points of the outer ring and of the field it encloses.
+    const O = { nw: [col, row], ne: [col + w, row], se: [col + w, row + h], sw: [col, row + h] } as Record<string, TilePt>;
+    const I = { nw: [iCol, iRow], ne: [iCol + iW, iRow], se: [iCol + iW, iRow + iH], sw: [iCol, iRow + iH] } as Record<string, TilePt>;
+
+    // Painter's order by each bank's own distance from the camera: the two
+    // far banks, then the field, then the two near ones — so the near stands
+    // correctly overlap the front edge of the field, the way you look OVER a
+    // near stand into a stadium.
+    const west = (
+      <RakedStand outer={[O.nw, O.sw]} inner={[I.nw, I.sw]} bottomH={bottom} topH={top} rows={5} {...fills(0.96)} />
+    );
+    const north = (
+      <RakedStand outer={[O.nw, O.ne]} inner={[I.nw, I.ne]} bottomH={bottom} topH={top} rows={5} {...fills(1.04)} />
+    );
+    const south = (
+      <RakedStand outer={[O.sw, O.se]} inner={[I.sw, I.se]} bottomH={bottom} topH={top} rows={5} wall {...fills(0.8)} />
+    );
+    const east = (
+      <RakedStand outer={[O.ne, O.se]} inner={[I.ne, I.se]} bottomH={bottom} topH={top} rows={5} wall {...fills(0.72)} />
+    );
+
+    // A site under construction is the bowl's earthworks, not a stadium.
+    if (developing) {
+      return (
+        <>
+          <polygon points={polyPoints(f.top)} fill={shade(tint, 0.9)} />
+          <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+          <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        </>
+      );
+    }
     return (
       <>
-        {!developing && <StadiumField col={iCol} row={iRow} w={iW} h={iH} />}
-        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
-        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
-        {/* evenodd, so the bowl is genuinely open rather than a filled slab
-            sitting on top of the field that was just drawn. */}
-        <path
-          d={`M${polyPoints(f.top).replace(/ /g, 'L')}Z M${polyPoints(inner.top).replace(/ /g, 'L')}Z`}
-          fillRule="evenodd"
-          fill={pal.roof}
-        />
-        {/* The inner faces of the FAR stands — both of them. Drawing only
-            one read as a dark slab dropped across the field rather than as
-            the inside of a bowl; the pair reads as depth because they meet
-            at the back corner the way the outer walls meet at the front. */}
-        <polygon points={polyPoints([inner.At, inner.Bt, inner.B, inner.A])} fill={shade(tint, 0.72)} />
-        <polygon points={polyPoints([inner.At, inner.Dt, inner.D, inner.A])} fill={shade(tint, 0.62)} />
+        {west}
+        {north}
+        <StadiumField col={iCol} row={iRow} w={iW} h={iH} />
+        {south}
+        {east}
       </>
     );
   }

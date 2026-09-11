@@ -276,9 +276,10 @@ const LIBRARY_TIER2_RESEARCH_RATE_BONUS = 0.15;
 // tier 2 serves 12,325 — fully adequate up to ~82,000 enrolled, comfortably
 // past the 40k-56k the balance sim's strongest strategies reach by year 40
 // (see campusData.ts's own dorm-chain tuning comment for the matching fix
-// on the housing side). No visual change on the campus map until the game
-// has real 3D buildings — a floor added to an existing footprint has
-// nothing to draw yet.
+// on the housing side). A renovation now DOES show on the campus map: the
+// map is drawn at an angle, so buildings have a height, and a renovated
+// library grows a storey and a rank of windows per floor added — read
+// generically off floorsAdded, see buildingMotifs.tsx's addedFloors.
 const LIBRARY_FLOOR_MAX = 3;
 const LIBRARY_FLOOR_BASE_SERVES = 2_000;
 const LIBRARY_FLOOR_SERVES_GROWTH = 1.25;
