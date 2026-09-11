@@ -1,16 +1,23 @@
 import { useEffect } from 'react';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { discoverySchools, professionalSchools } from '../data/techData';
-import { completion, discoverySections } from '../tabs/CurriculumTab';
+import { completion, discoverySections } from '../tabs/curriculumData';
 import { ProgressRing } from './Progress';
 
 // A read-only popover for a PLACED building — what clicking it (outside
 // placement/path-draw mode; see CampusMap.tsx's inspectBuilding) shows.
 // Pure projection: every figure here already lives on the Buildable itself
-// or in the curriculum data CurriculumTab.tsx reads, nothing is computed
+// or in the curriculum data curriculumData.ts derives, nothing is computed
 // fresh for this panel and nothing it reads is written back — see the PR
 // notes on why this stays a read, never a second source of truth for the
 // school/majors mapping or a school's course-completion count.
+//
+// One thing here is NOT read-only: an academic hall carries a button that
+// opens that school's own course list (SchoolCurriculumPanel.tsx), which
+// is where courses are started now that the Curriculum tab itself shows
+// the constellation rather than a wall of cards. It belongs on this panel
+// because this panel is already the answer to "tell me about this
+// building", and a school's curriculum is the larger half of that answer.
 
 const INFO_RING_SIZE = 30;
 
@@ -107,9 +114,9 @@ function FacilityInfo({ t, s }: { t: Buildable; s: GameState }) {
 }
 
 // The completion figure shown for an academic building: the exact same
-// done/total CurriculumTab.tsx's own ring for this school computes (see
-// discoverySections/completion, both exported from there for this purpose)
-// — never re-derived here, so the two can't drift apart. `courseIds` is
+// done/total the school's own course list computes (see
+// discoverySections/completion in curriculumData.ts, the one place either
+// is derived) — never re-derived here, so the two can't drift apart. `courseIds` is
 // the section's schoolCourseIds when a section exists, or a direct fallback
 // (General Studies has no section of its own — see discoverySections'
 // comment — and a professional school not yet revealed, which can't
@@ -128,8 +135,9 @@ function CourseCompletion({ s, courseIds }: { s: GameState; courseIds: string[] 
 // An academic hall's info: either one of the seven undergraduate schools
 // (discoverySchools()) or Medicine/Law, which are their own top-level
 // curriculum sections rather than a school (professionalSchools()) — the
-// same two mappings CurriculumTab.tsx itself reads, imported rather than
-// duplicated so this panel's majors list can never disagree with that tab.
+// same two mappings every other curriculum view reads, imported rather
+// than duplicated so this panel's majors list can never disagree with the
+// school's own course list.
 function BuildingHallInfo({ t, s }: { t: Buildable; s: GameState }) {
   const school = discoverySchools().find((sc) => sc.buildingId === t.id);
   if (school) {
@@ -166,7 +174,14 @@ function BuildingHallInfo({ t, s }: { t: Buildable; s: GameState }) {
   return <p className="building-info-line">{t.description}</p>;
 }
 
-export default function BuildingInfoPanel({ t, s, onClose }: { t: Buildable; s: GameState; onClose: () => void }) {
+export default function BuildingInfoPanel({ t, s, onClose, onOpenCurriculum }: {
+  t: Buildable;
+  s: GameState;
+  onClose: () => void;
+  // Raises this school's course list. Only academic halls offer it — a
+  // dorm or a dining hall teaches nothing.
+  onOpenCurriculum: (buildingId: string) => void;
+}) {
   // Escape closes the panel, same as TabOverlay's own dismiss — this only
   // binds while the panel is actually mounted (see CampusMap.tsx, which
   // renders this component only when a building is inspected).
@@ -205,7 +220,14 @@ export default function BuildingInfoPanel({ t, s, onClose }: { t: Buildable; s: 
         </p>
       )}
       {t.kind === 'facility' && <FacilityInfo t={t} s={s} />}
-      {t.kind === 'building' && <BuildingHallInfo t={t} s={s} />}
+      {t.kind === 'building' && (
+        <>
+          <BuildingHallInfo t={t} s={s} />
+          <button type="button" className="building-info-action" onClick={() => onOpenCurriculum(t.id)}>
+            Course list →
+          </button>
+        </>
+      )}
     </div>
   );
 }

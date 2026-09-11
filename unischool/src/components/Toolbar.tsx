@@ -5,7 +5,7 @@ import { TAB_LABELS, TAB_ORDER, type TabId } from './TabNav';
 import BuildPopup, { visibleBuildableIds } from './BuildPopup';
 import { FundsAndStats, SchoolAndClock } from './StatusHeader';
 import type { Speed } from '../engine/useGame';
-import { visibleCourseIds } from '../tabs/CurriculumTab';
+import { visibleCourseIds } from '../tabs/curriculumData';
 import { neededFacultyFields } from '../systems/techtree/techSystem';
 import {
   FacultyIcon, CurriculumIcon, AdmissionsIcon,

@@ -10,6 +10,7 @@ import CampusMap from './components/CampusMap';
 import Toolbar from './components/Toolbar';
 import LogTicker from './components/LogTicker';
 import TabOverlay from './components/TabOverlay';
+import SchoolCurriculumPanel from './components/SchoolCurriculumPanel';
 import { useCssHeightVar } from './components/useCssHeightVar';
 import FacultyTab from './tabs/FacultyTab';
 import CurriculumTab from './tabs/CurriculumTab';
@@ -90,6 +91,13 @@ export default function App() {
   // either one.
   const [placingId, setPlacingIdState] = useState<string | null>(null);
   const [pathTool, setPathToolState] = useState<'draw' | 'erase' | null>(null);
+  // The academic hall whose own course list is open, if any — raised from
+  // that building's info popover on the map (see CampusMap.tsx ->
+  // BuildingInfoPanel.tsx). It lives here, beside `overlay`, because it IS
+  // one: every view that covers the map is an overlay App owns, so there
+  // is one place that knows the map is currently underneath something and
+  // must not answer the keyboard.
+  const [curriculumBuildingId, setCurriculumBuildingId] = useState<string | null>(null);
   const toolbarRef = useCssHeightVar('--toolbar-height');
 
   // C / F / L open the three views that get opened most (see TAB_HOTKEYS).
@@ -100,6 +108,9 @@ export default function App() {
     if (s.pendingInterrupt) return;
     const tab = TAB_HOTKEYS[e.key.toLowerCase()];
     if (!tab) return;
+    // A school's course list is a view over the map like any other, so
+    // opening a tab replaces it rather than stacking on top of it.
+    setCurriculumBuildingId(null);
     setOverlay((cur) => (cur === tab ? null : tab));
   }, s.started);
 
@@ -110,7 +121,7 @@ export default function App() {
   // closes the overlay rather than dropping a path tool behind it, and
   // panning a map nobody can see is just a camera that has moved by the
   // time they come back to it.
-  const mapHotkeysEnabled = overlay === null && s.pendingInterrupt === null;
+  const mapHotkeysEnabled = overlay === null && curriculumBuildingId === null && s.pendingInterrupt === null;
 
   // Picking up a building for siting and drawing/erasing a path are two
   // different jobs for the same click on the same grid, so exactly one is
@@ -140,7 +151,21 @@ export default function App() {
         pathTool={pathTool}
         onSetPathTool={setPathTool}
         hotkeysEnabled={mapHotkeysEnabled}
+        onOpenCurriculum={setCurriculumBuildingId}
+        chromeHidden={overlay === 'curriculum'}
       />
+
+      {/* The curriculum is the one view that is NOT a sheet over the map:
+          it is a full-viewport canvas of its own, a plain sibling of the
+          map exactly as the map is a plain sibling of `.app`, so the
+          toolbar and the hamburger keep floating over it and the map's own
+          corner chrome steps aside (see CampusMap's `chromeHidden`). It is a
+          pan-and-zoom view of four hundred courses — the same kind of
+          thing the map is — and a 1180px sheet was a letterbox to read it
+          through. Every other tab stays a sheet, because every other tab
+          is a page of figures rather than a place. */}
+      {overlay === 'curriculum' && <CurriculumTab s={s} act={act} onClose={() => setOverlay(null)} />}
+
       <MainMenu act={act} />
 
       <div className="app">
@@ -150,7 +175,7 @@ export default function App() {
           s={s}
           act={act}
           active={overlay}
-          onChangeTab={setOverlay}
+          onChangeTab={(tab) => { setCurriculumBuildingId(null); setOverlay(tab); }}
           speed={speed}
           setSpeed={setSpeed}
           placingId={placingId}
@@ -159,15 +184,23 @@ export default function App() {
           onSetPathTool={setPathTool}
         />
 
-        {overlay && (
+        {overlay && overlay !== 'curriculum' && (
           <TabOverlay title={TAB_LABELS[overlay]} onClose={() => setOverlay(null)}>
             {overlay === 'faculty' && <FacultyTab s={s} act={act} />}
-            {overlay === 'curriculum' && <CurriculumTab s={s} act={act} />}
             {overlay === 'treasury' && <TreasuryTab s={s} act={act} />}
             {overlay === 'admissions' && <AdmissionsTab s={s} />}
             {overlay === 'studentlife' && <StudentLifeTab s={s} />}
             {overlay === 'athletics' && <AthleticsTab s={s} act={act} />}
             {overlay === 'history' && <HistoryTab s={s} />}
+          </TabOverlay>
+        )}
+
+        {curriculumBuildingId && (
+          <TabOverlay
+            title={s.tech.find((t) => t.id === curriculumBuildingId)?.name ?? 'Curriculum'}
+            onClose={() => setCurriculumBuildingId(null)}
+          >
+            <SchoolCurriculumPanel s={s} act={act} buildingId={curriculumBuildingId} />
           </TabOverlay>
         )}
 

@@ -81,11 +81,16 @@ for `Esc`.
   campus map (`CampusMap.tsx`), the build rail beside it (`BuildPanel.tsx`),
   the log ticker under it (`LogStrip.tsx`), the frame every other view pops up
   in (`TabOverlay.tsx`), and the persistent header/status bar, interrupt modal,
-  tab nav, and startup screen
-- `src/tabs/` — one component per overlay view (Faculty, Curriculum, Treasury,
+  tab nav, and startup screen. The curriculum constellation lives here too
+  (`constellationLayout.ts` for its geometry, `CurriculumConstellation.tsx`
+  for the camera over it), as does a single school's course list
+  (`SchoolCurriculumPanel.tsx`) and the course card/tooltip vocabulary the two
+  share (`courseCells.tsx`) — see "The curriculum, drawn"
+- `src/tabs/` — one component per view (Faculty, Curriculum, Treasury,
   Admissions, Student Life, History, Athletics); each reads the slice of
-  `GameState` it needs and dispatches actions, and knows nothing about being
-  rendered in an overlay
+  `GameState` it needs and dispatches actions. All but Curriculum know nothing
+  about being rendered in an overlay; Curriculum is a full-screen canvas of
+  its own, for the reasons in "The curriculum, drawn"
 - `src/App.tsx` — the shell: owns the game loop hook and which view (if any) is
   open over the map, renders the persistent chrome, the map + build rail + log,
   and the active overlay
@@ -243,6 +248,72 @@ longer grant reputation directly; instead they are the durable "curriculum
 breadth" stock that feeds the prestige target (see below) — establishing or
 distinguishing a program, or distinguishing a whole school, raises the ceiling
 prestige can drift toward, rather than instantly bumping it.
+
+## The curriculum, drawn
+
+The milestone chain above is a shape — the gen-ed core under every major, four
+tier-2 courses on one entry course, six majors on one school — and for a long
+while the Curriculum tab was the one place that shape could not be seen. It was
+a column of card grids: a pool, a section per school, a sub-group per
+established major. The cards said what each course cost and what it needed;
+nothing on screen said that the whole catalogue hangs off six gen-ed courses.
+
+So it is drawn instead. The Curriculum view is now a **constellation**, and it
+is the one view that is not a sheet over the campus map — it is a full-viewport
+canvas laid out exactly like the map, drag to pan and scroll to zoom, the
+toolbar still floating over it and its chrome in the map's own two corners.
+Reading it from the inside out is reading up the prereq chain:
+
+1. **A major is a wheel.** Its tier-1 entry course is the hub disc; its four
+   tier-2 courses are the four arcs of the inner ring; its four tier-3 courses
+   are the four arcs of the outer ring.
+2. **A school is a hub** with its six major wheels ringed around it and spoked
+   to the middle. A school with a graduate program of its own (the MBA, the
+   three doctorates) wears it as a **crown**: one more ring of arcs outside
+   every major, because that is where it sits in the climb.
+3. **The constellation** is the gen-ed core at the centre, with the schools
+   ringed around it. Medicine and Law ride that ring as clusters of their own
+   rather than as a crown on anyone — they award an external degree and stand
+   as their own building — and each is seated next to the school it grows out
+   of.
+
+**Nothing about what is revealed changed.** The constellation reads the same
+predicates the card list did, from the same module (`src/tabs/curriculumData.ts`)
+— gen-ed complete reveals every school's hub and its majors' tier-1 discs, the
+school BUILDING being done reveals its majors' tier-2 rings, the
+`program-established:` milestone reveals a major's tier-3 ring, and a graduate
+gate reveals a crown. A course's five states are the same five, from the same
+`cellState`, so a brass arc and a brass card mean the identical thing.
+
+**The geometry is solved once, from the seed, and never again**
+(`constellationLayout.ts`). That is not an optimisation. Courses arrive over
+decades of game time, and a layout derived from what is currently revealed
+would re-solve itself on every reveal, sliding whole schools across the canvas
+the moment one of them grew. Solving for the finished catalogue and hiding the
+rest means a major sits in the same place in year one as in year forty.
+
+**Where the card list went.** It still exists, unchanged, but it answers a
+narrower question — "what does the School of Business actually teach?" — so it
+moved to where that question is asked: clicking that school's building on the
+campus map, whose info popover now carries a **Course list** button
+(`SchoolCurriculumPanel.tsx`). Forty course titles, costs and prereqs are worth
+reading as a list and are the wrong thing to ask of a map of the whole
+catalogue; a shape is the wrong thing to ask of a list. Each view now does the
+one it is good at, over the same data.
+
+Two details worth knowing when changing it:
+
+- **The camera is imperative.** The view transform is written straight onto the
+  world `<g>` and never appears in JSX, exactly as `CampusMap.tsx` does it and
+  for the same reason: four hundred-odd paths re-rendering on every pixel of a
+  drag is the difference between a smooth pan and a slideshow. React is told
+  about the view only when the zoom crosses a level-of-detail threshold.
+- **Level of detail is what makes the zoom-out legible.** Course codes appear
+  only when zoomed in far enough to read them; a cluster's name leaves its hub
+  when the camera is too far out for a hub to hold a word, and reappears
+  outside the cluster at a size fixed in screen pixels (the live scale is
+  published to CSS as `--cz`), so the whole university still reads as nine
+  named places rather than nine anonymous rosettes.
 
 ## Prestige: a slow-moving stock
 
@@ -808,14 +879,15 @@ is entirely graduate, so it carries the taxonomy's only above-1 market-supply
 multiplier — an oversupplied market with nowhere to teach until a school founds
 one.
 
-**The Curriculum UI** fits most programs into the view that already exists: a
-revealed program is one more labeled sub-group inside its parent school's
-section, marked as the higher tier it is, with its credential beside the name
-and one line naming the gate it cleared. That's still exactly how the MBA and
-all three PhD doctorates work — they build on the same subject matter as their
+**The Curriculum UI** puts most programs where they sit in the climb: a
+revealed program is one more ring around its parent school — the crown outside
+every one of that school's majors — in the constellation, and one more labeled
+sub-group inside that school's own course list. That's how the MBA and all
+three PhD doctorates work; they build on the same subject matter as their
 parent school and correctly live there. Medicine and Law are the two
-exceptions (see below). The circle-network overhaul of the curriculum view is
-a separate, later arc and was not attempted here.
+exceptions (see below), and stand as clusters of their own. (The
+circle-network overhaul this section once deferred has since landed — see
+"The curriculum, drawn".)
 
 **Two of six get their own building.** Medicine and Law are the only
 programs that award an external professional degree rather than extending
@@ -840,11 +912,11 @@ The gate chain reuses every existing mechanism, adding none:
    BUILT -> first course available -> the rest of the program follows its
    ordinary internal prereqs, unchanged.
 
-The Curriculum tab reveals each section on the same boolean an undergraduate
-school section reveals on — `building.status === 'done'` — not merely on the
-academic gate, so there is no greyed-out School of Medicine sitting on screen
-years before the building exists (reveal, not scarcity, same as everywhere
-else in this feature).
+Both views reveal Medicine and Law on the same boolean an undergraduate school
+reveals on — `building.status === 'done'` — not merely on the academic gate, so
+there is no greyed-out School of Medicine sitting on screen years before the
+building exists (reveal, not scarcity, same as everywhere else in this
+feature).
 
 Two judgment calls from this pass, flagged rather than resolved quietly:
 
@@ -1549,9 +1621,6 @@ any refactor.
   placement of finished `building`/`dorm`/`facility` Buildables at their own
   footprint sizes, SVG rendering) now exists as a visual-only layer; nothing
   mechanical reads it yet.
-- A circle-network view of the curriculum, replacing the current cell grid.
-  Deliberately deferred: the graduate-programs pass fitted itself into the
-  existing view rather than starting that overhaul (see "Graduate programs").
 - Camera rotation on the campus map. The map is now drawn at an angle (2:1
   dimetric — see `src/components/isoProjection.ts`), which means a tall
   building can hide a shorter one standing behind it. The genre's answer is

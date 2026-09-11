@@ -383,7 +383,7 @@ function BuildingLabel({ t, p }: { t: Buildable; p: Placement }) {
 }
 
 export default function CampusMap({
-  s, act, selectedId, onSelect, pathTool, onSetPathTool, hotkeysEnabled,
+  s, act, selectedId, onSelect, pathTool, onSetPathTool, hotkeysEnabled, onOpenCurriculum, chromeHidden,
 }: {
   s: GameState;
   act: (a: Action) => void;
@@ -411,6 +411,17 @@ export default function CampusMap({
   // all of it goes quiet together rather than each hotkey growing its own
   // idea of when it applies.
   hotkeysEnabled: boolean;
+  // Opens one academic hall's own course list, raised as an overlay by
+  // App.tsx (which owns every overlay) rather than by the map. This is
+  // where courses are started now that the Curriculum tab shows the
+  // constellation — see SchoolCurriculumPanel.tsx.
+  onOpenCurriculum: (buildingId: string) => void;
+  // True while a full-viewport view (the curriculum) is drawn over the
+  // map. The map's own floating corner chrome — the building inspector and
+  // the zoom pill — is fixed-position and would otherwise sit on top of
+  // that view, offering the controls of a map nobody can see. The map
+  // itself is simply painted over and needs no other change.
+  chromeHidden: boolean;
 }) {
   // Whether the currently-selected building has been turned 90 degrees
   // before siting (see campusMap.ts's orientedFootprint). Transient UI
@@ -1215,7 +1226,14 @@ export default function CampusMap({
             bottom, and C2 folded the build rail and the draw/erase path
             controls into the bottom toolbar/build popup — see Toolbar.tsx),
             so it's a natural home for a card that doesn't move. */}
-        {inspected && <BuildingInfoPanel t={inspected.t} s={s} onClose={() => setInspectedId(null)} />}
+        {inspected && !chromeHidden && (
+          <BuildingInfoPanel
+            t={inspected.t}
+            s={s}
+            onClose={() => setInspectedId(null)}
+            onOpenCurriculum={onOpenCurriculum}
+          />
+        )}
 
         {/* Zoom floats over the map's own top-right corner — reachable
             without a wheel/trackpad (a hard requirement on a map that no
@@ -1236,7 +1254,7 @@ export default function CampusMap({
             covers the mechanic once, on demand, rather than a sentence that
             had to keep re-describing whatever was already visible on
             screen (an armed ghost, a path tool's own cursor). */}
-        <div className="campus-map-zoom-controls">
+        <div className="campus-map-zoom-controls" hidden={chromeHidden}>
           <HelpHint
             align="end"
             text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. Press P (or use the build popup's Draw path tile) to lay walkways — free, purely decorative, and unrelated to building: drag with the left button to pave, the right button to lift, and the ghost tile shows which square you're on. Keys: W/A/S/D or the arrows pan, Space pauses and resumes, R rotates, P draws, Escape backs out, C/F/L open Curriculum, Faculty and Student Life. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll/pinch to zoom."

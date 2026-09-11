@@ -454,35 +454,25 @@ button { cursor: pointer; font-family: inherit; }
 .progress-figure { display: inline-flex; align-items: center; gap: 8px; }
 .progress-figure .stat { line-height: 1.25; }
 
-/* ---------- curriculum: progressive discovery ---------- */
-/* No inner scroll box here (unlike the other panel lists) — the overlay
+/* ---------- curriculum: one school's card list ----------
+   The Curriculum TAB is the constellation now (further down this file);
+   these are the cards of a single school's course list, opened from that
+   school's building on the campus map — see SchoolCurriculumPanel.tsx.
+   No inner scroll box here (unlike the other panel lists) — the overlay
    body scrolls instead, so a cell's tooltip only ever has one edge to
    worry about, and it flips above the cell when it gets near it. */
 .curriculum-scroll { padding-right: 6px; }
 
 .discovery-pool-caption { font-size: var(--text-sm); font-style: italic; color: var(--ink-muted); margin: 0 0 10px; }
-/* The pool is framed as a single object rather than left as loose type:
-   at full spread it is forty-odd codes with no headings of its own, so
-   the frame is what tells the eye where the undivided wall begins and
-   ends. Its grouping stops there, deliberately — see CurriculumTab.tsx. */
-.discovery-pool { margin-bottom: 22px; padding: 12px 14px; border-radius: var(--radius-lg);
-  background: #f2ecda; border: 1px solid var(--parchment-line-lo); }
-.discovery-pool .cell-grid { gap: 9px 10px; }
-
-.discovery-section { margin-bottom: 22px; }
-.discovery-section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px;
-  border-bottom: 1px solid var(--parchment-line-lo); padding-bottom: 5px; margin-bottom: 10px; }
-.discovery-section-head h3 { font-family: var(--serif); font-size: var(--text-lg); margin: 0; color: var(--ink); }
 
 .discovery-subgroup { margin: 14px 0 0 6px; padding-left: 12px; border-left: 2px solid var(--parchment-line); }
 .discovery-subgroup h4 { font-family: var(--serif); font-size: var(--text-sm); text-transform: uppercase; letter-spacing: 0.05em;
   margin: 0 0 8px; color: var(--gold-dim); }
 
-/* A graduate program inside its parent school's section: the same
-   sub-group shape a completed major gets, marked as the higher tier it is
-   with a heavier rule, the credential beside the name, and one line saying
-   which gate opened it. Minimum to make graduate work legible — the
-   circle-network view of the curriculum is a separate, later arc. */
+/* A graduate program inside its parent school's list: the same sub-group
+   shape a completed major gets, marked as the higher tier it is with a
+   heavier rule, the credential beside the name, and one line saying which
+   gate opened it. */
 .discovery-subgroup.graduate { border-left-color: var(--gold); border-left-width: 3px; }
 .discovery-subgroup.graduate h4 { color: var(--ink); display: flex; align-items: baseline; gap: 8px; }
 .subgroup-degree { font-family: var(--mono); font-size: var(--text-2xs); letter-spacing: 0.08em;
@@ -591,6 +581,185 @@ button { cursor: pointer; font-family: inherit; }
 .course-tooltip-instructor { font-family: var(--mono); font-size: var(--text-xs); font-style: italic; color: var(--ink-lo); padding: 3px 0 0; }
 .course-tooltip-meta { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-lo); margin-top: 6px; }
 .course-tooltip-reason { margin: 6px 0 0; color: var(--bad-on-dark); font-size: var(--text-xs); font-style: italic; }
+
+/* ---------- curriculum: the full-screen constellation ----------
+   The Curriculum view (CurriculumTab.tsx -> CurriculumConstellation.tsx),
+   laid out exactly like the campus map: a fixed full-viewport canvas, its
+   interactive area inset away from the opaque bottom dock the same way the
+   map's is, and its chrome floating in the map's own two corners. It sits
+   ABOVE the map (z-index 0) and below the chrome layer (`.app`, z-index
+   10), so the toolbar, the log ticker and the hamburger all stay over it —
+   which is the whole point of it being a sibling rather than a sheet.
+
+   Geometry is all in constellationLayout.ts — every path, every label
+   position, and the camera's transform are written by script, so what is
+   here is colour, cursor and the one animation.
+
+   NIGHT, not parchment. The catalogue is the one view in the game that is
+   nothing but relationships between four hundred small shapes, and on the
+   parchment every one of those shapes was a light thing on a light ground:
+   the rings read as texture rather than as a structure with lit and unlit
+   parts. On navy the same five states separate at a glance from across the
+   whole university — an untouched course is barely there, a finished one
+   is warm brass, and the handful you can actually start now are the only
+   pale things on screen. The states are still the SAME five the card cells
+   wear, and still driven by the same cellState: what changes is which side
+   of the contrast they sit on, not what any of them means.
+
+   Every stroke is non-scaling: the camera runs from a whole university in
+   one frame down to a single major filling it, and a 1.5px hairline
+   multiplied by that range is either invisible at one end or a slab at
+   the other. */
+.curriculum-screen { position: fixed; inset: 0; z-index: 2; background: var(--navy); color: var(--ink-hi); }
+.constellation { position: fixed; top: 0; right: 0;
+  bottom: calc(var(--toolbar-height) + var(--log-ticker-height)); left: 0; }
+.constellation-svg { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none;
+  user-select: none; background: var(--navy); }
+.constellation-svg.panning { cursor: grabbing; }
+
+/* The prereq the drawing is built on, drawn: every school hangs off the
+   gen-ed core, every major off its school. Kept to a hairline — it is the
+   scaffolding the wheels sit on, not a thing to read. */
+.constellation-tether, .constellation-spoke { stroke: var(--navy-line); stroke-width: 1.5;
+  vector-effect: non-scaling-stroke; }
+.constellation-tether { stroke-dasharray: 6 6; opacity: 0.8; }
+
+.constellation-node { stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+/* Revealed but not yet reachable: present enough to show the shape of what
+   is coming, dim enough never to compete with the courses that are. */
+.constellation-node-group.locked .constellation-node { fill: #182136; stroke: #2f3a58; stroke-dasharray: 5 4; }
+.constellation-node-group.blocked .constellation-node { fill: #1e2840; stroke: #41507a; cursor: not-allowed; }
+/* The only pale shapes on the canvas, and deliberately so: on a screen of
+   four hundred courses these are the few you can start this week. */
+.constellation-node-group.available .constellation-node { fill: #f6edcf; stroke: var(--gold); cursor: pointer; }
+.constellation-node-group.available:hover .constellation-node,
+.constellation-node-group.available .constellation-node:focus-visible {
+  fill: #fffdf2; stroke: #f0d06a; stroke-width: 2.5; outline: none; }
+.constellation-node-group.developing .constellation-node { stroke: var(--gold); stroke-width: 2;
+  animation: node-pulse 1.7s ease-in-out infinite; }
+.constellation-node-group.done .constellation-node { fill: var(--brass-deep); stroke: #b08c2a; }
+/* A graduate course reads a shade heavier than the tier-3 ring beside it
+   without a sixth state of its own — the same trick .course-cell.graduate
+   plays in the card list. */
+.constellation-node-group.graduate .constellation-node { stroke-width: 2.5; }
+
+/* "Work is happening here" — the one moving thing on the canvas. It plays
+   between a warm gold and a deep ember rather than the card list's two
+   pale creams: against navy it is the swing between lit and unlit that
+   carries across the room, and both ends stay clear of the flat brass a
+   FINISHED course wears, which is what the pulse must never be mistaken
+   for. */
+@keyframes node-pulse {
+  0%, 100% { fill: #6a5210; }
+  50% { fill: #e8c45a; }
+}
+/* How far a developing course has run: its own segment, re-cut short (see
+   CurriculumConstellation.tsx). The same figure the card list draws as a
+   bar along the bottom of a cell. */
+.constellation-node-fill { fill: #f7e6b0; opacity: 0.55; pointer-events: none; }
+/* Its faculty field has no free slot — hire to start it. Same mark, same
+   colour as the card list's corner dot. */
+.constellation-gate-dot { fill: var(--bad-on-dark); pointer-events: none; }
+
+.constellation-code { text-anchor: middle; font-family: var(--mono); font-weight: 700;
+  letter-spacing: 0.02em; fill: #9aa3bb; pointer-events: none; }
+.constellation-node-group.locked .constellation-code { fill: #55608094; }
+.constellation-node-group.blocked .constellation-code { fill: #8b96b3; }
+/* Dark on the one pale fill; cream on brass; warm on the ember pulse. */
+.constellation-node-group.available .constellation-code { fill: #3a2f12; }
+.constellation-node-group.developing .constellation-code { fill: #fdf3d4; }
+.constellation-node-group.done .constellation-code { fill: #f7ecc6; }
+
+/* A cluster's hub is its BUILDING, so it wears the building's own three
+   phases rather than a course's five: not yet raised, going up, standing. */
+.constellation-hub { cursor: pointer; outline: none; }
+.constellation-hub circle { fill: #1b2740; stroke: var(--gold-dim); stroke-width: 2;
+  vector-effect: non-scaling-stroke; }
+.constellation-hub.pending circle { fill: #182136; stroke: #2f3a58; stroke-dasharray: 6 5; }
+.constellation-hub.building circle { fill: #6a5210; stroke: var(--gold); }
+.constellation-hub.built circle { fill: var(--brass-deep); stroke: #d8b551; }
+.constellation-hub:hover circle, .constellation-hub:focus-visible circle { stroke: #f0d06a; stroke-width: 3.5; }
+.constellation-hub text { font-family: var(--serif); font-weight: 700;
+  fill: var(--ink-hi); pointer-events: none; }
+.constellation-hub-name { text-anchor: middle; }
+.constellation-hub.pending text { fill: var(--ink-lo); }
+
+/* A major's name, seated outboard of its own wheel on the spoke's own ray
+   — and the camera's other landing target, so it reads as clickable. */
+.constellation-major-label { text-anchor: middle; font-family: var(--serif); fill: #9aa3bb;
+  cursor: pointer; }
+.constellation-major-label:hover { fill: var(--ink-hi); text-decoration: underline; }
+.constellation-crown-label { text-anchor: middle; font-family: var(--serif); font-style: italic;
+  fill: var(--gold); pointer-events: none; }
+
+/* A cluster's name when the camera is pulled back past the point where a
+   hub could hold it. Everything else inside the world <g> is drawn in
+   world units and shrinks with the view; this one divides by the live
+   scale (published as --cz by CurriculumConstellation's applyView) and so
+   holds the same size on screen from one major filling the canvas out to
+   the whole university in it. Without that, the only zoom at which you
+   can see the university entire is the one at which nothing on it is
+   named. */
+.constellation-far-label { font-family: var(--serif); font-weight: 700;
+  fill: var(--ink-hi); pointer-events: none; font-size: calc(15px / var(--cz, 1)); }
+
+/* The zoom/fit/'?' pill, in exactly the corner and at exactly the offset
+   the campus map keeps its own (under MainMenu's hamburger — see
+   --corner-menu-height): the map's pill steps aside while this view is up
+   (CampusMap's chromeHidden), so the same corner means the same thing on
+   whichever canvas is in front. Night colours, to sit on this one. */
+.constellation-controls { position: fixed; z-index: 3;
+  top: calc(var(--corner-menu-height) + 24px); right: 16px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: #182136; border: 1px solid var(--navy-line);
+  border-radius: var(--radius-lg); padding: 4px; }
+.constellation-controls button { width: 30px; height: 30px; display: flex; align-items: center;
+  justify-content: center; background: #202b45; border: 1px solid var(--navy-line);
+  border-radius: var(--radius-sm); color: var(--ink-hi); font-size: var(--text-md); line-height: 1; padding: 0; }
+.constellation-controls button:hover { border-color: var(--gold); color: var(--gold); }
+.constellation-controls .help-hint-btn { width: 30px; height: 30px; border-radius: var(--radius-sm);
+  background: #202b45; border: 1px solid var(--navy-line); color: var(--ink-hi); font-size: var(--text-md); }
+.constellation-controls .help-hint-btn:hover { border-color: var(--gold); background: #202b45; color: var(--gold); }
+.constellation-controls .help-hint-text { top: 0; right: 34px; left: auto; }
+
+/* The card in the map's other corner — the one the building inspector
+   uses. It says what this view is, how far the catalogue has got, and what
+   the five shades on the canvas mean, and then gets out of the way. */
+.curriculum-screen-head { position: fixed; z-index: 3; top: 16px; left: 16px; width: 320px;
+  max-height: calc(100vh - var(--toolbar-height) - 32px); overflow-y: auto;
+  background: #182136; border: 1px solid var(--navy-line); border-radius: var(--radius-lg);
+  padding: 10px 14px 12px; }
+.curriculum-screen-title { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--navy-line); padding-bottom: 8px; margin-bottom: 9px; }
+.curriculum-screen-title h2 { margin: 0; flex: 1; font-family: var(--serif); text-transform: uppercase;
+  letter-spacing: 0.1em; font-size: var(--text-md); color: var(--gold); }
+.curriculum-screen-close { background: transparent; border: 1px solid var(--navy-line); color: #c7cee0;
+  border-radius: var(--radius-sm); padding: 3px 10px; font-size: var(--text-xs); font-family: var(--mono); }
+.curriculum-screen-close:hover { border-color: var(--gold); color: var(--gold); }
+.curriculum-screen-head .progress-figure { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.curriculum-screen-head .stat { font-family: var(--mono); font-size: var(--text-sm); color: var(--ink-lo); line-height: 1.25; }
+.curriculum-screen-head .progress-ring-track { stroke: var(--navy-line); }
+.curriculum-screen-head .progress-ring-center { fill: var(--ink-hi); }
+/* The shared legend (courseCells.tsx) is authored for the parchment cards
+   of a school's course list; on this canvas its swatches have to be the
+   canvas's own five shades, or the key would explain colours that aren't
+   on screen. */
+.curriculum-screen-head .cell-legend { margin: 0; color: var(--ink-lo); gap: 5px 12px; }
+.curriculum-screen-head .cell-legend-swatch.done { background: var(--brass-deep); border-color: #b08c2a; }
+.curriculum-screen-head .cell-legend-swatch.developing { background: #b8921f; border-color: var(--gold); }
+.curriculum-screen-head .cell-legend-swatch.available { background: #f6edcf; border-color: var(--gold); }
+.curriculum-screen-head .cell-legend-swatch.blocked { background: #1e2840; border-color: #41507a; }
+.curriculum-screen-head .cell-legend-dot { background: var(--bad-on-dark); }
+.curriculum-screen-head .stall-note { margin: 10px 0 0; }
+
+/* The constellation keeps ONE hover card and moves it, rather than the
+   four hundred hidden ones the card list can afford — so unlike a cell's,
+   its visibility is scripted, not a :hover rule. It is shown only once
+   measured and placed (see NodeTooltip), which is what this class marks.
+   It is portalled to <body> — above every layer — so a card raised over
+   the bottom of the canvas is not covered by the toolbar floating there. */
+.constellation-tooltip { z-index: 70; }
+.constellation-tooltip.shown { visibility: visible; opacity: 1; }
 
 .kind-tag { display: inline-block; background: var(--gold-dim); color: #fff8e8; font-size: var(--text-2xs); font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.04em; border-radius: var(--radius-xs); padding: 1px 5px; margin-right: 6px; vertical-align: middle; }
@@ -739,6 +908,15 @@ button.build-tile { font-family: inherit; }
 .building-info-majors { margin: 0 0 8px; padding-left: 18px; font-size: var(--text-sm); line-height: 1.5; color: var(--ink); }
 .building-info-completion { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; }
 .building-info-completion .stat { font-size: var(--text-xs); }
+/* The one thing on this read-only panel that DOES something: opens this
+   school's own course list (SchoolCurriculumPanel.tsx), which is where
+   courses are started now that the Curriculum tab shows the constellation.
+   Full width, so it reads as the panel's action rather than as one more
+   line of its text. */
+.building-info-action { display: block; width: 100%; margin-top: 10px; padding: 6px 10px;
+  background: #f5efdd; border: 1px solid var(--parchment-line); border-radius: var(--radius-sm);
+  color: var(--ink); font-family: var(--mono); font-size: var(--text-sm); text-align: center; }
+.building-info-action:hover { border-color: var(--gold-dim); background: #efe1b8; }
 
 /* MainMenu: the hamburger overlay in the map's top-right corner (see
    MainMenu.tsx) carrying what the old topbar's control bar used to —
