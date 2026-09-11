@@ -92,11 +92,17 @@ function addedFloors(t: Buildable): number {
   return Math.max(0, t.floorsAdded ?? 0);
 }
 
-// The building's full drawn height including its roof — what the label
-// layer and the draw-order sort need in order to clear it.
-export function heightOf(t: Buildable): number {
+// Where a building's LABEL sits: the middle of its mass, not its apex. The
+// full standing height (walls + ridge + any added floors) put the plate
+// clear above the roof, where it read as floating rather than as naming the
+// thing under it; half the ridge lands it on the roof's own centre.
+//
+// This is the only place a whole-building height is wanted — the cast shadow
+// uses drawnHeightOf below, which accounts for construction state — so there
+// is deliberately no general "how tall is this" helper to drift from it.
+export function labelHeightOf(t: Buildable): number {
   const m = motifOf(t);
-  return HEIGHT[m] + (RIDGE[m] ?? 0) + addedFloors(t) * STOREY_HEIGHT;
+  return HEIGHT[m] + addedFloors(t) * STOREY_HEIGHT + (RIDGE[m] ?? 0) * 0.5;
 }
 
 // How tall the mass ACTUALLY stands right now — full height when finished,
@@ -118,32 +124,78 @@ function shade(hex: string, factor: number): string {
   return `#${ch.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
 }
 
+// Roof faces are keyed by the GRID DIRECTION they point, not by a role like
+// "lit" or "shade". A pitched roof has four faces and which of them catches
+// the light depends on which way the ridge runs — so a palette that names
+// them by role can only be right for one of the two orientations, and was
+// wrong for the other. See SLOPE below for the tones themselves.
 export interface Palette {
-  roof: string; roofLit: string; roofShade: string; gable: string; wallLeft: string; wallRight: string;
+  roof: string; roofDeck: string;
+  negCol: string; negRow: string; posRow: string; posCol: string;
+  wallLeft: string; wallRight: string;
 }
-// Five tones from one tint. Deriving rather than authoring keeps a single
-// source of truth per building and guarantees every mass on the map is lit
-// from the same direction — the upper left, which is the direction the flat
-// map's own drop shadows already fell.
+// How bright a sloped face is, by the grid direction its outward normal
+// points. The map is lit from the UPPER LEFT — the direction the flat map's
+// own drop shadows already fell — and on this projection decreasing col runs
+// up-left on screen, decreasing row up-right, increasing row down-left and
+// increasing col down-right. So:
+//
+//        -col  up-left    faces the light head-on   brightest
+//        -row  up-right   glancing                  bright
+//        +row  down-left  glancing, away            dim
+//        +col  down-right faces away head-on        darkest
+//
+// Ordering these WRONG is not a subtle mis-tint: a roof whose up-left face
+// is darker than its up-right one looks exactly like something is casting a
+// shadow across it, and there is nothing there to cast one.
+function SLOPE(tint: string) {
+  return {
+    negCol: shade(tint, 1.07),
+    negRow: shade(tint, 1.0),
+    posRow: shade(tint, 0.86),
+    posCol: shade(tint, 0.72),
+  };
+}
+
+// Tones from one tint. Deriving rather than authoring keeps a single source
+// of truth per building and guarantees every mass on the map is lit from the
+// same direction.
 export function paletteFrom(tint: string): Palette {
   return {
     roof: tint,
-    roofLit: shade(tint, 1.07),
-    roofShade: shade(tint, 0.84),
-    gable: shade(tint, 0.76),
+    // A raised flat deck (the hangar's clear-span roof), which faces
+    // straight up and so takes no slope tone at all.
+    roofDeck: shade(tint, 1.04),
+    ...SLOPE(tint),
     wallLeft: shade(tint, 0.93),
     wallRight: shade(tint, 0.75),
   };
 }
 
+// A rectangle in a wall's own (u, v) coordinates. Used to reserve the bay a
+// door stands in so no window is drawn behind it.
+interface FaceRect { u0: number; u1: number; v0: number; v1: number; }
+function overlaps(a: FaceRect, b: FaceRect): boolean {
+  return a.u0 < b.u1 && a.u1 > b.u0 && a.v0 < b.v1 && a.v1 > b.v0;
+}
+
 // Windows on one wall, in that wall's own (u along, v up) coordinates — so
 // they come out correctly skewed with no projection maths of their own.
-function windows(origin: Pt, along: Pt, height: number, cols: number, rows: number, key: string) {
+//
+// `reserved` is the door's bay. Windows were previously drawn as a full
+// grid and the door laid over the top, which left panes showing through it
+// wherever the door was the more transparent of the two. A wall does not
+// have windows behind its door, so the grid skips those cells outright.
+function windows(
+  origin: Pt, along: Pt, height: number, cols: number, rows: number, key: string,
+  reserved?: FaceRect,
+) {
   const out: React.JSX.Element[] = [];
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const u0 = (c + 0.28) / cols; const u1 = (c + 0.72) / cols;
       const v0 = (r + 0.3) / rows; const v1 = (r + 0.74) / rows;
+      if (reserved && overlaps({ u0, u1, v0, v1 }, reserved)) continue;
       out.push(
         <polygon
           key={`${key}${r}-${c}`}
@@ -204,41 +256,107 @@ function Scaffolding({ col, row, w, h, height }: {
   );
 }
 
-// How wide and how tall the entrance is, as a fraction of the wall it sits
-// on. A gym's doors are wide and low; a lab's is a single service door; a
-// hall's is the formal front.
+// How wide the entrance is IN TILES, and how tall as a fraction of the wall
+// it sits on. A gym's doors are wide and low; a lab's is a single service
+// door; a hall's is the formal front.
+//
+// Width is a tile measure rather than a fraction of the wall because a door
+// is a fixed physical size: as a fraction, a hall's door came out at 0.64
+// tiles on a short wall and 1.44 on a long one, and the two walls of the
+// same building disagreed with each other by the ratio of their lengths.
+// Height stays a fraction — that IS proportional, since it is set by the
+// storey the door opens into.
 const DOOR: Record<Motif, [number, number]> = {
-  hall: [0.16, 0.46], residential: [0.09, 0.40], portico: [0.15, 0.44],
-  pavilion: [0.20, 0.52], hangar: [0.22, 0.46], works: [0.12, 0.5],
+  hall: [1.0, 0.46], residential: [0.62, 0.40], portico: [1.0, 0.44],
+  pavilion: [0.85, 0.52], hangar: [1.25, 0.46], works: [0.6, 0.5],
   grounds: [0, 0], bowl: [0, 0],
 };
+
+// The door's width as a fraction of the wall it is on, given that wall's
+// length in tiles — capped so a door never eats a short wall whole.
+function doorFraction(motif: Motif, span: number): number {
+  const [tiles] = DOOR[motif];
+  if (tiles <= 0 || span <= 0) return 0;
+  return Math.min(tiles / span, 0.55);
+}
+
+// The bay a door reserves on its wall, in that wall's (u, v) coordinates —
+// the opening plus its surround and lintel, so windows clear the whole
+// assembly rather than just the leaves.
+function doorBay(motif: Motif, span: number): FaceRect | undefined {
+  const dw = doorFraction(motif, span);
+  if (dw <= 0) return undefined;
+  const dh = DOOR[motif][1];
+  return { u0: 0.5 - dw / 2 - SURROUND, u1: 0.5 + dw / 2 + SURROUND, v0: 0, v1: dh + LINTEL + 0.02 };
+}
+
+const SURROUND = 0.018;   // how far the frame stands proud of the opening, in u
+const LINTEL = 0.05;      // the lintel's depth above the head, in v
 
 // The way in. Every roofed building had walls and windows and no door at
 // all, which is the one thing that says a wall is the FRONT of somewhere
 // rather than just the side of a box.
 //
-// It goes on the f.left face, which on this projection is the wall along the
-// footprint's max-row edge — the one facing the camera most directly, and
-// the natural front. Drawn in the wall's own (u along, v up) coordinates so
-// it skews correctly like everything else on that face, with a step at its
-// foot on the ground to stop it reading as a painted rectangle.
-function Door({ motif, f, height }: { motif: Motif; f: ReturnType<typeof boxFaces>; height: number }) {
-  const [dw, dh] = DOOR[motif];
+// Drawn in the wall's own (u along, v up) coordinates so the whole assembly
+// skews correctly like everything else on that face, with no projection
+// maths of its own. Both visible walls get one: which of the two a given
+// building "fronts" onto depends on where the player put it and which way
+// the paths run, and a blank wall beside a path reads as the back of the
+// building wherever it happens to stand.
+//
+// A plain dark rectangle read as a hole rather than a door, so the opening
+// carries what actually makes one legible at this size: a surround, a pair
+// of leaves with a mull between them, and a fanlight over the transom.
+// Handles and panel mouldings are below a pixel here and are not drawn.
+function Door({ motif, origin, along, height, span }: {
+  motif: Motif; origin: Pt; along: Pt; height: number;
+  span: number;   // this wall's length in tiles, so the door is the same real size on both
+}) {
+  const dw = doorFraction(motif, span);
+  const dh = DOOR[motif][1];
   if (dw <= 0) return null;
   const u0 = 0.5 - dw / 2;
   const u1 = 0.5 + dw / 2;
-  const at = (u: number, v: number) => facePoint(f.D, f.C, height, u, v);
+  const at = (u: number, v: number) => facePoint(origin, along, height, u, v);
+  const quad = (a: number, b: number, c: number, d: number) =>
+    polyPoints([at(a, c), at(b, c), at(b, d), at(a, d)]);
+
+  const transom = dh * 0.72;      // head of the leaves; the fanlight sits above
+  const mull = dw * 0.035;        // the centre post between the two leaves
+  const reveal = dw * 0.08;       // how far the leaves sit inside the opening
+  const bar = dh * 0.045;         // the transom bar itself
+
   return (
     <>
+      {/* The surround, then the opening cut into it. */}
       <polygon
-        className="iso-door"
-        points={polyPoints([at(u0, 0), at(u1, 0), at(u1, dh), at(u0, dh)])}
+        className="iso-door-surround"
+        points={quad(u0 - SURROUND, u1 + SURROUND, 0, dh + 0.012)}
       />
+      <polygon className="iso-door" points={quad(u0, u1, 0, dh)} />
+
+      {/* Two leaves either side of the mull. */}
+      <polygon
+        className="iso-door-leaf"
+        points={quad(u0 + reveal, 0.5 - mull, reveal * 0.4, transom - bar)}
+      />
+      <polygon
+        className="iso-door-leaf"
+        points={quad(0.5 + mull, u1 - reveal, reveal * 0.4, transom - bar)}
+      />
+
+      {/* The transom bar, and the fanlight over it. */}
+      <polygon className="iso-door-bar" points={quad(u0, u1, transom - bar, transom)} />
+      <polygon
+        className="iso-door-glass"
+        points={quad(u0 + reveal, u1 - reveal, transom + bar * 0.5, dh - reveal * 0.4)}
+      />
+
       {/* A lintel across the head, and a step at the threshold lying on the
           ground in front of it. */}
       <polygon
         className="iso-door-lintel"
-        points={polyPoints([at(u0 - 0.015, dh), at(u1 + 0.015, dh), at(u1 + 0.015, dh + 0.05), at(u0 - 0.015, dh + 0.05)])}
+        points={quad(u0 - SURROUND - 0.012, u1 + SURROUND + 0.012, dh + 0.012, dh + LINTEL)}
       />
       <polygon
         className="iso-door-step"
@@ -377,16 +495,38 @@ export default function BuildingMotif({ t, p, tint, developing }: {
     <>
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
-      {!developing && grid && windows(f.D, f.C, H, grid[0], grid[1], 'l')}
-      {!developing && grid && windows(f.C, f.B, H, grid[0], grid[1], 'r')}
-      {!developing && <Door motif={motif} f={f} height={H} />}
+      {/* The left wall runs w tiles along col, the right wall h tiles along
+          row, so each gets its own bay and its own door fraction. */}
+      {!developing && grid && windows(f.D, f.C, H, grid[0], grid[1], 'l', doorBay(motif, w))}
+      {!developing && grid && windows(f.C, f.B, H, grid[0], grid[1], 'r', doorBay(motif, h))}
+      {!developing && <Door motif={motif} origin={f.D} along={f.C} height={H} span={w} />}
+      {!developing && <Door motif={motif} origin={f.C} along={f.B} height={H} span={h} />}
 
       {gabled ? (
         <>
-          <polygon points={polyPoints(alongW ? [f.At, f.Bt, re, rs] : [f.At, f.Dt, re, rs])} fill={pal.roofLit} />
-          <polygon points={polyPoints(alongW ? [f.Dt, f.Ct, re, rs] : [f.Bt, f.Ct, re, rs])} fill={pal.roofShade} />
-          <polygon points={polyPoints(alongW ? [f.At, f.Dt, rs] : [f.At, f.Bt, rs])} fill={pal.gable} />
-          <polygon points={polyPoints(alongW ? [f.Bt, f.Ct, re] : [f.Dt, f.Ct, re])} fill={pal.gable} />
+          {/* The two long slopes. When the ridge runs along col (alongW) they
+              are the -row and +row faces; when it runs along row they are
+              -col and +col. Same polygons as before, tones now chosen by
+              which way each one actually points. */}
+          <polygon
+            points={polyPoints(alongW ? [f.At, f.Bt, re, rs] : [f.At, f.Dt, re, rs])}
+            fill={alongW ? pal.negRow : pal.negCol}
+          />
+          <polygon
+            points={polyPoints(alongW ? [f.Dt, f.Ct, re, rs] : [f.Bt, f.Ct, re, rs])}
+            fill={alongW ? pal.posRow : pal.posCol}
+          />
+          {/* The two hip ends, capping the ridge. The rs hip is the -col face
+              when the ridge runs along col and the -row face when it runs
+              along row; the re hip is its opposite. */}
+          <polygon
+            points={polyPoints(alongW ? [f.At, f.Dt, rs] : [f.At, f.Bt, rs])}
+            fill={alongW ? pal.negCol : pal.negRow}
+          />
+          <polygon
+            points={polyPoints(alongW ? [f.Bt, f.Ct, re] : [f.Dt, f.Ct, re])}
+            fill={alongW ? pal.posCol : pal.posRow}
+          />
           <line className="iso-ridge" x1={rs.x} y1={rs.y} x2={re.x} y2={re.y} />
         </>
       ) : motif === 'hangar' && !developing ? (
@@ -400,7 +540,7 @@ export default function BuildingMotif({ t, p, tint, developing }: {
                 lift(project(col + w, row + h * 0.72), H + 9), lift(project(col, row + h * 0.72), H + 9)]
               : [lift(project(col + w * 0.28, row), H + 9), lift(project(col + w * 0.28, row + h), H + 9),
                 lift(project(col + w * 0.72, row + h), H + 9), lift(project(col + w * 0.72, row), H + 9)])}
-            fill={pal.roofLit}
+            fill={pal.roofDeck}
           />
           <polygon
             className="iso-rooflight"

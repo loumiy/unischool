@@ -849,7 +849,13 @@ button.build-tile { font-family: inherit; }
 /* The way in. Darker than any window so it reads as an opening rather than
    one more pane, with a lintel over it and a step on the ground at its
    foot. */
-.iso-door { fill: rgba(38, 30, 16, 0.55); }
+.iso-door { fill: rgba(38, 30, 16, 0.62); }
+.iso-door-surround { fill: rgba(255, 253, 246, 0.22); }
+/* The leaves read as timber against the dark of the opening; the fanlight
+   over the transom is glazed, so it takes the window fill instead. */
+.iso-door-leaf { fill: rgba(96, 68, 36, 0.75); }
+.iso-door-bar { fill: rgba(38, 30, 16, 0.42); }
+.iso-door-glass { fill: rgba(255, 253, 246, 0.42); }
 .iso-door-lintel { fill: rgba(38, 30, 16, 0.3); }
 .iso-door-step { fill: rgba(255, 253, 246, 0.3); }
 .iso-rooflight { fill: rgba(255, 253, 246, 0.42); }

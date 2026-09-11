@@ -9,7 +9,7 @@ import {
 import { canStartDevelopment } from '../systems/techtree/techSystem';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
-import BuildingMotif, { ScaffoldPattern, drawnHeightOf, heightOf, tintFor } from './buildingMotifs';
+import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf, tintFor } from './buildingMotifs';
 import PathwayLayer from './pathways';
 import { TILE_H, WORLD, boxFaces, lift, polyPoints, project, tileAt } from './isoProjection';
 
@@ -99,7 +99,6 @@ const LABEL_SIZE_PER_TILE = 1.8;   // font size grows this much per tile of (w +
 const LABEL_CHAR_WIDTH_RATIO = 8 / 15;
 const LABEL_PLATE_PAD_X = 5;
 const LABEL_PLATE_PAD_Y = 3;
-const LABEL_CLEARANCE = 10;        // gap between a building's apex and its label plate
 
 // The under-construction progress bar. On the angled map it lies flat on
 // the ground along the FRONT edge of the site's own footprint, where nothing
@@ -200,19 +199,19 @@ function drawnFootprint(p: Placement) {
   };
 }
 
-// Where a building's label sits, and how big: centred on the footprint's
-// projected centre, raised clear of the mass's apex.
+// Where a building's label sits, and how big: on the middle of the mass,
+// over the footprint's projected centre. The point returned is the CENTRE of
+// the plate, not a text baseline — the plate used to hang off the baseline,
+// which put its visual middle a quarter of a line above the point it was
+// nominally placed at and compounded the float.
 function labelLayout(t: Buildable, p: Placement) {
   const size = Math.max(
     LABEL_MIN_FONT_SIZE,
     Math.min(LABEL_MAX_FONT_SIZE, (p.w + p.h) * LABEL_SIZE_PER_TILE),
   );
-  const anchor = lift(
-    project(p.col + p.w / 2, p.row + p.h / 2),
-    heightOf(t) + LABEL_CLEARANCE + size,
-  );
+  const centre = lift(project(p.col + p.w / 2, p.row + p.h / 2), labelHeightOf(t));
   const textWidth = t.name.length * size * LABEL_CHAR_WIDTH_RATIO;
-  return { size, anchor, textWidth };
+  return { size, centre, textWidth };
 }
 
 // One placed building: its mass (buildingMotifs.tsx draws the roof, the
@@ -295,18 +294,24 @@ function PlacedBuilding({
 // occluded by whatever stands in front of the thing it names, and on a
 // plate so it stays readable over any roof tint, wall or pitch.
 function BuildingLabel({ t, p }: { t: Buildable; p: Placement }) {
-  const { size, anchor, textWidth } = labelLayout(t, p);
+  const { size, centre, textWidth } = labelLayout(t, p);
+  const plateH = size * 0.95 + LABEL_PLATE_PAD_Y * 2;
   return (
     <g className="campus-label" aria-hidden="true">
       <rect
         className="campus-label-plate"
-        x={anchor.x - textWidth / 2 - LABEL_PLATE_PAD_X}
-        y={anchor.y - size * 0.72 - LABEL_PLATE_PAD_Y}
+        x={centre.x - textWidth / 2 - LABEL_PLATE_PAD_X}
+        y={centre.y - plateH / 2}
         width={textWidth + LABEL_PLATE_PAD_X * 2}
-        height={size * 0.95 + LABEL_PLATE_PAD_Y * 2}
+        height={plateH}
         rx={3}
       />
-      <text className="campus-label-text" x={anchor.x} y={anchor.y} fontSize={size}>{t.name}</text>
+      {/* Cap height is about 0.7 of the font size, so dropping the baseline
+          by 0.35 of it centres the letters on the plate rather than on the
+          line box, which sits low because of the descender space. */}
+      <text className="campus-label-text" x={centre.x} y={centre.y + size * 0.35} fontSize={size}>
+        {t.name}
+      </text>
     </g>
   );
 }
