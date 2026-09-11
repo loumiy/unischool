@@ -48,6 +48,56 @@
      BUILDING_SHADOW_OFFSET in CampusMap.tsx for why this is a second rect
      rather than an SVG filter). */
   --building-shadow: rgba(42, 56, 28, 0.28);
+
+  /* ---------- design tokens ----------
+     Added because the stylesheet had grown 78 distinct colour values, 12
+     font sizes (including a 10.5px and a 12.5px) and 10 corner radii, with
+     no shared vocabulary behind any of them. These are the three axes where
+     that drift was real and mechanical to fix.
+
+     SPACING is deliberately NOT tokenised. Its values here are mostly
+     component-specific — the 4px gap inside a stat pair is not the same
+     concept as the 18px between toolbar zones — and a spacing scale applied
+     to only some of them is worse than none at all. */
+
+  /* Type. Eight steps, which is what the file already used once the
+     half-pixel sizes are folded into their neighbours. */
+  --text-2xs: 10px;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-lg: 15px;
+  --text-xl: 17px;
+  --text-2xl: 24px;
+
+  /* Corners. */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-pill: 999px;
+
+  /* Elevation. One three-step scale, replacing nine one-off shadows. */
+  --shadow-1: 0 2px 6px rgba(8, 10, 16, 0.22);
+  --shadow-2: 0 8px 22px rgba(8, 10, 16, 0.34);
+  --shadow-3: 0 18px 48px rgba(8, 10, 16, 0.45);
+
+  /* Semantic colour, in PAIRS. The duplication this removes was not
+     sloppiness: a green tuned for the navy chrome reads muddy on parchment,
+     so the file genuinely carried two of each. It just never named them,
+     so #7dd3a0 appeared 11 times and #e58a8a 9 times as literals. */
+  --ok-on-dark: #7dd3a0;
+  --ok-on-light: #1f6b3a;
+  --bad-on-dark: #e58a8a;
+  --bad-on-light: #a13a3a;
+  --warn-on-dark: #e0b04a;
+  --warn-on-light: #9c7a2e;
+  --danger-ink: #8a2f2f;
+  --danger-bg: #f4dede;
+  --danger-line: #d9a8a8;
+
   --serif: Georgia, 'Times New Roman', serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   /* --toolbar-height is kept in sync with the toolbar's REAL rendered
@@ -80,6 +130,33 @@ html, body, #root { height: 100%; }
 body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: var(--navy); color: var(--ink-hi); }
 button { cursor: pointer; font-family: inherit; }
 
+/* A visible keyboard focus ring, everywhere. There was exactly one
+   :focus-visible rule in the whole stylesheet, and one place that removed an
+   outline outright and replaced it with a border colour change — so keyboard
+   focus was effectively invisible across the game. Brass, because that is
+   already the language every other "this one is active" cue speaks. */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+/* Motion is a preference, not a default. The map's construction pulse, the
+   curriculum's developing cells, the toolbar's ticking figures and every
+   transition below are decoration over information that is already on
+   screen, so a reader who asks for less motion loses nothing by switching
+   them off. Kept as one blanket rule rather than per-animation opt-ins: a
+   guard that has to be remembered at each new animation is a guard that
+   will be forgotten. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ---------- the chrome layer ----------
    `.app` sits above the map (see .campus-map's z-index below), full-
    viewport but carrying NO layout of its own — there is no topbar and no
@@ -99,35 +176,47 @@ button { cursor: pointer; font-family: inherit; }
    Used by the bottom toolbar's left cluster (rank/enrolled/prestige/
    satisfaction — see Toolbar.tsx/StatusHeader.tsx) and by nothing else now
    that the old top masthead is gone (C3). */
-.stat-label { text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; color: var(--gold-dim); }
-.stat-value { font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--ink-hi); }
-.stat-value.money { color: #7dd3a0; }
-.stat-value.money-negative { color: #e58a8a; }
+/* The toolbar should read money -> actions -> time at a glance. It did not:
+   operating funds and "Rank" were both .stat-value at the same size and
+   weight, so the single most important number on screen carried no more
+   emphasis than a rank of four characters. The secondary stats step down;
+   cash steps up. */
+.stat-label { text-transform: uppercase; letter-spacing: 0.1em; font-size: var(--text-2xs); color: var(--gold-dim); }
+.stat-value { font-family: var(--mono); font-size: var(--text-base); font-weight: 700; color: var(--ink-hi); }
+.toolbar-funds-btn .stat-value { font-size: var(--text-xl); letter-spacing: -0.01em; }
+.stat-value.money { color: var(--ok-on-dark); }
+.stat-value.money-negative { color: var(--bad-on-dark); }
 .stat-value.gold { color: var(--gold); }
 
 /* ---------- speed / save controls, now living in the bottom toolbar ---- */
+/* Quiet until they matter. Every speed button used to carry its own visible
+   border, which made a row of four read as four boxes rather than one
+   control; the band's own navy separates them perfectly well. A border is
+   now reserved for state — active, or the dashed sandbox marking — which is
+   the only thing it was ever telling you. */
 .speeds button { margin: 0 2px; padding: 5px 14px; background: transparent; color: #c7cee0;
-  border: 1px solid var(--navy-line); border-radius: 4px; font-size: 12px; letter-spacing: 0.02em; }
+  border: 1px solid transparent; border-radius: var(--radius-sm); font-size: var(--text-sm); letter-spacing: 0.02em; }
+.speeds button:hover { background: rgba(255, 255, 255, 0.06); }
 .speeds button.active { background: var(--gold); color: #1a2035; border-color: var(--gold); font-weight: 700; }
-.speeds button.sandbox { border-style: dashed; border-color: #a67c1c; color: #e0b04a; }
+.speeds button.sandbox { border-style: dashed; border-color: #a67c1c; color: var(--warn-on-dark); }
 .speeds button.sandbox.active { background: #a67c1c; color: #14161a; border-color: #a67c1c; }
 /* The playtest-only "+$1B" grant button — same sandbox palette as the
    Fast speed button, so both read as the same "not normal play" register. */
-.grant-funds-btn { background: #3a2f1c; color: #e0b04a; border: 1px dashed #a67c1c; border-radius: 4px;
-  padding: 5px 10px; font-size: 11px; font-weight: 700; }
+.grant-funds-btn { background: #3a2f1c; color: var(--warn-on-dark); border: 1px dashed #a67c1c; border-radius: var(--radius-sm);
+  padding: 5px 10px; font-size: var(--text-xs); font-weight: 700; }
 .grant-funds-btn:hover { background: #a67c1c; color: #14161a; }
 /* Save / New Game, now inside MainMenu's popup (see MainMenu.tsx) rather
    than a topbar control bar. `armed` is the second half of New Game's
    inline confirm: the same button, now unmistakably destructive. */
 .save-btn { background: transparent; border: 1px solid var(--parchment-line); color: var(--ink);
-  border-radius: 4px; padding: 7px 14px; font-size: 13px; letter-spacing: 0.02em; text-align: left; width: 100%; }
+  border-radius: var(--radius-sm); padding: 7px 14px; font-size: var(--text-base); letter-spacing: 0.02em; text-align: left; width: 100%; }
 .save-btn:hover { border-color: var(--gold-dim); color: var(--gold-dim); }
 .newgame-btn { background: transparent; border: 1px solid var(--parchment-line); color: var(--ink-muted);
-  border-radius: 4px; padding: 7px 14px; font-size: 13px; letter-spacing: 0.02em; text-align: left; width: 100%; }
+  border-radius: var(--radius-sm); padding: 7px 14px; font-size: var(--text-base); letter-spacing: 0.02em; text-align: left; width: 100%; }
 .newgame-btn:hover { color: var(--ink); }
-.newgame-btn.armed { border-color: #b0524f; color: #8a2f2f; background: #f4dede; }
+.newgame-btn.armed { border-color: #b0524f; color: var(--danger-ink); background: var(--danger-bg); }
 .newgame-btn.armed:hover { background: #b0524f; color: #fff; }
-.newgame-confirm-label { font-size: 11px; color: #8a2f2f; letter-spacing: 0.02em; }
+.newgame-confirm-label { font-size: var(--text-xs); color: var(--danger-ink); letter-spacing: 0.02em; }
 
 /* ---------- bottom toolbar: the whole chrome band, C3 ----------
    C2 first unified the tab nav, the build rail, and the log strip into one
@@ -165,11 +254,11 @@ button { cursor: pointer; font-family: inherit; }
    mis-click on. */
 .log-ticker { position: fixed; z-index: 5; left: 0; right: 0; bottom: var(--toolbar-height);
   height: var(--log-ticker-height); display: flex; align-items: center; gap: 8px;
-  padding: 0 12px; background: var(--navy-line); color: var(--ink-hi); font-size: 12px;
+  padding: 0 12px; background: var(--navy-line); color: var(--ink-hi); font-size: var(--text-sm);
   white-space: nowrap; overflow: hidden; }
 .log-ticker-toggle { flex: none; display: flex; align-items: center; justify-content: center;
   width: 20px; height: 20px; padding: 0; background: transparent; border: none;
-  border-radius: 4px; color: var(--ink-lo); cursor: pointer; }
+  border-radius: var(--radius-sm); color: var(--ink-lo); cursor: pointer; }
 .log-ticker-toggle svg { width: 14px; height: 14px; display: block; }
 .log-ticker-toggle:hover, .log-ticker-toggle[aria-expanded="true"] { color: var(--ink-hi); background: var(--navy); }
 .log-ticker > span { overflow: hidden; text-overflow: ellipsis; }
@@ -178,8 +267,8 @@ button { cursor: pointer; font-family: inherit; }
    cash/satisfaction (money / money-negative) — not --green/#a13a3a, which
    are tuned for the light parchment tab panels and read as muddy, low-
    contrast text against this strip's dark --navy-line. */
-.log-ticker .good { color: #7dd3a0; }
-.log-ticker .bad { color: #e58a8a; }
+.log-ticker .good { color: var(--ok-on-dark); }
+.log-ticker .bad { color: var(--bad-on-dark); }
 .log-ticker-empty { color: var(--ink-lo); font-style: italic; }
 
 /* NOT flex: 1 1 0 (equal-halves growth) — with a fixed-width middle nav
@@ -200,10 +289,10 @@ button { cursor: pointer; font-family: inherit; }
    (see Toolbar.tsx) — there is no separate Treasury icon in the middle
    row any more. */
 .toolbar-funds-btn { flex: none; display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
-  background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 4px 10px; }
+  background: transparent; border: 1px solid transparent; border-radius: var(--radius-lg); padding: 4px 10px; }
 .toolbar-funds-btn:hover { border-color: var(--navy-line); }
 .toolbar-funds-btn.active { border-color: var(--gold); background: rgba(201, 162, 39, 0.12); }
-.toolbar-funds-net { font-family: var(--mono); font-size: 11px; color: var(--ink-lo); }
+.toolbar-funds-net { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-lo); }
 
 /* The headline stats (rank/enrolled/prestige/satisfaction) — plain
    figures, no "of N" suffix (see StatusHeader.tsx): each is read against
@@ -215,10 +304,10 @@ button { cursor: pointer; font-family: inherit; }
 /* The school identity + clock, now the bottom-right's own prominent
    cluster (see StatusHeader.tsx) — replacing the old masthead's h1. */
 .toolbar-school { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-.toolbar-school-name { font-family: var(--serif); font-size: 17px; color: var(--ink-hi); white-space: nowrap; }
-.toolbar-clock { font-family: var(--mono); font-size: 11px; color: var(--ink-lo); white-space: nowrap; }
+.toolbar-school-name { font-family: var(--serif); font-size: var(--text-xl); color: var(--ink-hi); white-space: nowrap; }
+.toolbar-clock { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-lo); white-space: nowrap; }
 .day-ticker { display: flex; gap: 3px; margin-top: 3px; }
-.day-ticker-cell { width: 7px; height: 7px; border-radius: 2px; background: var(--navy-line); }
+.day-ticker-cell { width: 7px; height: 7px; border-radius: var(--radius-xs); background: var(--navy-line); }
 .day-ticker-cell.lit { background: var(--gold); }
 
 .toolbar-speed { flex: none; display: flex; align-items: center; gap: 6px; }
@@ -242,8 +331,8 @@ button { cursor: pointer; font-family: inherit; }
    action in the band (every other button here opens a view; this one
    starts placing something), so it earns a little more visual weight than
    a bare icon. */
-.toolbar-build-btn { flex: none; width: auto; height: 40px; border-radius: 20px; gap: 7px; padding: 0 16px; border-color: var(--gold-dim); }
-.toolbar-build-label { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.06em; font-size: 12px; }
+.toolbar-build-btn { flex: none; width: auto; height: 40px; border-radius: var(--radius-pill); gap: 7px; padding: 0 16px; border-color: var(--gold-dim); }
+.toolbar-build-label { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.06em; font-size: var(--text-sm); }
 
 /* The "new content" alert badge (see types.ts's SeenState): a small red
    circle with a white "!", pinned to the top-right corner of whatever it's
@@ -255,7 +344,7 @@ button { cursor: pointer; font-family: inherit; }
    it. */
 .alert-badge { position: absolute; top: -3px; right: -3px; width: 15px; height: 15px; border-radius: 50%;
   background: #c23b3b; color: #fff; border: 1.5px solid var(--parchment);
-  font-family: var(--serif); font-size: 10px; font-weight: 800; line-height: 1;
+  font-family: var(--serif); font-size: var(--text-2xs); font-weight: 800; line-height: 1;
   display: flex; align-items: center; justify-content: center; pointer-events: none; }
 
 /* ---------- tab content ---------- */
@@ -263,9 +352,9 @@ button { cursor: pointer; font-family: inherit; }
    body — the overlay owns the scrolling, so no bottom margin here. */
 .tab-content { display: flex; flex-direction: column; gap: 16px; }
 
-.panel { background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px;
+.panel { background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: var(--radius-lg);
   padding: 16px 18px; color: var(--ink); }
-.panel h2 { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em; font-size: 13px;
+.panel h2 { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em; font-size: var(--text-base);
   color: var(--gold-dim); margin: 0 0 10px; }
 .panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
   border-bottom: 1px solid var(--parchment-line); padding-bottom: 8px; margin-bottom: 12px; }
@@ -275,7 +364,7 @@ button { cursor: pointer; font-family: inherit; }
 /* The right-hand end of a panel head: its figure and its '?' as one
    cluster, so space-between doesn't strand the figure mid-heading. */
 .panel-head-figure { display: inline-flex; align-items: center; gap: 10px; }
-.panel .stat { font-family: var(--mono); color: var(--ink-muted); font-size: 12px; }
+.panel .stat { font-family: var(--mono); color: var(--ink-muted); font-size: var(--text-sm); }
 
 /* ---------- toolbar popups: the build menu and the fuller log feed ----------
    What the toolbar's build icon and log icon each pop open (see
@@ -290,17 +379,17 @@ button { cursor: pointer; font-family: inherit; }
    since the toolbar's own log ticker can wrap. */
 .toolbar-popup { position: fixed; z-index: 20; bottom: calc(var(--toolbar-height) + 12px);
   display: flex; flex-direction: column; background: var(--parchment); border: 1px solid var(--parchment-line);
-  border-radius: 10px; box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.35); color: var(--ink); }
+  border-radius: var(--radius-xl); box-shadow: var(--shadow-2); color: var(--ink); }
 .toolbar-popup-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
   border-bottom: 1px solid var(--parchment-line); padding: 10px 14px 8px; flex: none; }
 .toolbar-popup-head h2 { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em;
-  font-size: 13px; color: var(--gold-dim); margin: 0; }
+  font-size: var(--text-base); color: var(--gold-dim); margin: 0; }
 .toolbar-popup-close { background: transparent; border: 1px solid var(--parchment-line); color: var(--ink-muted);
-  border-radius: 4px; width: 22px; height: 22px; line-height: 1; padding: 0; font-size: 12px; flex: none; }
+  border-radius: var(--radius-sm); width: 22px; height: 22px; line-height: 1; padding: 0; font-size: var(--text-sm); flex: none; }
 .toolbar-popup-close:hover { border-color: var(--gold-dim); color: var(--ink); }
 .toolbar-popup-body { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 14px 14px; }
 .toolbar-popup-body::-webkit-scrollbar { width: 8px; }
-.toolbar-popup-body::-webkit-scrollbar-thumb { background: var(--parchment-line); border-radius: 4px; }
+.toolbar-popup-body::-webkit-scrollbar-thumb { background: var(--parchment-line); border-radius: var(--radius-sm); }
 .toolbar-popup-body { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
 
 /* Build popup: a wide horizontal band spanning the map's width, capped well
@@ -325,16 +414,16 @@ button { cursor: pointer; font-family: inherit; }
 .help-hint { position: relative; display: inline-block; }
 .help-hint-btn { width: 16px; height: 16px; border-radius: 50%; padding: 0; line-height: 1;
   display: inline-flex; align-items: center; justify-content: center;
-  background: transparent; border: 1px solid var(--gold-dim); color: var(--gold-dim); font-size: 10px; font-weight: 700; }
+  background: transparent; border: 1px solid var(--gold-dim); color: var(--gold-dim); font-size: var(--text-2xs); font-weight: 700; }
 .help-hint-btn:hover { background: var(--gold-dim); color: #fff8e8; }
 .help-hint-text { position: absolute; z-index: 15; top: 22px; left: 0; width: 240px;
-  background: var(--navy); color: #cbd0d8; border: 1px solid var(--navy-line); border-radius: 6px;
-  padding: 8px 10px; font-size: 12px; font-style: italic; line-height: 1.4; margin: 0;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
+  background: var(--navy); color: #cbd0d8; border: 1px solid var(--navy-line); border-radius: var(--radius-md);
+  padding: 8px 10px; font-size: var(--text-sm); font-style: italic; line-height: 1.4; margin: 0;
+  box-shadow: var(--shadow-2); }
 .help-hint-text.align-end { left: auto; right: 0; }
 
 .badge { display: inline-block; background: var(--navy); color: var(--ink-hi); font-family: var(--mono);
-  font-size: 10px; border-radius: 3px; padding: 1px 6px; margin-left: 6px; vertical-align: middle; }
+  font-size: var(--text-2xs); border-radius: var(--radius-xs); padding: 1px 6px; margin-left: 6px; vertical-align: middle; }
 
 /* ---------- progress: shared bars and rings ---------- */
 /* Geometry lives in Progress.tsx (ring radius, stroke); only the palette
@@ -342,11 +431,11 @@ button { cursor: pointer; font-family: inherit; }
    place — a Buildable under construction, the catalogue, a school — so
    they are styled once rather than per screen. */
 .progress-bar { display: flex; align-items: center; gap: 7px; flex: 1; min-width: 0; }
-.progress-bar-track { flex: 1; min-width: 0; height: 6px; border-radius: 3px; overflow: hidden;
+.progress-bar-track { flex: 1; min-width: 0; height: 6px; border-radius: var(--radius-xs); overflow: hidden;
   background: #ded3b4; border: 1px solid var(--parchment-line); }
 .progress-bar-fill { display: block; height: 100%; background: linear-gradient(90deg, var(--gold-dim), var(--gold));
   transition: width 0.25s ease; }
-.progress-bar-label { font-family: var(--mono); font-size: 10px; color: var(--ink-muted); white-space: nowrap; }
+.progress-bar-label { font-family: var(--mono); font-size: var(--text-2xs); color: var(--ink-muted); white-space: nowrap; }
 
 .progress-ring { display: block; flex: none; }
 .progress-ring-track { fill: none; stroke: var(--parchment-line); }
@@ -365,22 +454,22 @@ button { cursor: pointer; font-family: inherit; }
    worry about, and it flips above the cell when it gets near it. */
 .curriculum-scroll { padding-right: 6px; }
 
-.discovery-pool-caption { font-size: 12px; font-style: italic; color: var(--ink-muted); margin: 0 0 10px; }
+.discovery-pool-caption { font-size: var(--text-sm); font-style: italic; color: var(--ink-muted); margin: 0 0 10px; }
 /* The pool is framed as a single object rather than left as loose type:
    at full spread it is forty-odd codes with no headings of its own, so
    the frame is what tells the eye where the undivided wall begins and
    ends. Its grouping stops there, deliberately — see CurriculumTab.tsx. */
-.discovery-pool { margin-bottom: 22px; padding: 12px 14px; border-radius: 8px;
+.discovery-pool { margin-bottom: 22px; padding: 12px 14px; border-radius: var(--radius-lg);
   background: #f2ecda; border: 1px solid var(--parchment-line-lo); }
 .discovery-pool .cell-grid { gap: 9px 10px; }
 
 .discovery-section { margin-bottom: 22px; }
 .discovery-section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px;
   border-bottom: 1px solid var(--parchment-line-lo); padding-bottom: 5px; margin-bottom: 10px; }
-.discovery-section-head h3 { font-family: var(--serif); font-size: 15px; margin: 0; color: var(--ink); }
+.discovery-section-head h3 { font-family: var(--serif); font-size: var(--text-lg); margin: 0; color: var(--ink); }
 
 .discovery-subgroup { margin: 14px 0 0 6px; padding-left: 12px; border-left: 2px solid var(--parchment-line); }
-.discovery-subgroup h4 { font-family: var(--serif); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
+.discovery-subgroup h4 { font-family: var(--serif); font-size: var(--text-sm); text-transform: uppercase; letter-spacing: 0.05em;
   margin: 0 0 8px; color: var(--gold-dim); }
 
 /* A graduate program inside its parent school's section: the same
@@ -390,9 +479,9 @@ button { cursor: pointer; font-family: inherit; }
    circle-network view of the curriculum is a separate, later arc. */
 .discovery-subgroup.graduate { border-left-color: var(--gold); border-left-width: 3px; }
 .discovery-subgroup.graduate h4 { color: var(--ink); display: flex; align-items: baseline; gap: 8px; }
-.subgroup-degree { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em;
-  padding: 1px 5px; border-radius: 3px; background: var(--brass-deep); color: #f7ecc6; }
-.subgroup-note { margin: -4px 0 8px; font-size: 10px; color: var(--ink-muted); }
+.subgroup-degree { font-family: var(--mono); font-size: var(--text-2xs); letter-spacing: 0.08em;
+  padding: 1px 5px; border-radius: var(--radius-xs); background: var(--brass-deep); color: #f7ecc6; }
+.subgroup-note { margin: -4px 0 8px; font-size: var(--text-2xs); color: var(--ink-muted); }
 /* Graduate cells read a shade heavier than the tier-3 cells beside them
    in every state, without a fifth state of their own: the state classes
    above still do all the work, this only thickens the frame. */
@@ -401,14 +490,14 @@ button { cursor: pointer; font-family: inherit; }
 /* One line under the panel head standing in for four hovers: what each
    shade means, and what the gate dot is. */
 .cell-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
-  margin: 0 0 12px; font-size: 11px; color: var(--ink-muted); }
+  margin: 0 0 12px; font-size: var(--text-xs); color: var(--ink-muted); }
 .cell-legend-item { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
-.cell-legend-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.cell-legend-swatch { width: 12px; height: 12px; border-radius: var(--radius-xs); display: inline-block; }
 .cell-legend-swatch.done { background: var(--brass-deep); border: 1px solid #6d5610; }
 .cell-legend-swatch.developing { background: #f6e4ae; border: 1px solid var(--gold); }
 .cell-legend-swatch.available { background: #fffdf6; border: 1px solid var(--gold-dim); }
 .cell-legend-swatch.blocked { background: #e4dcc5; border: 1px solid #c4b591; }
-.cell-legend-dot { width: 6px; height: 6px; border-radius: 50%; background: #a13a3a; display: inline-block; }
+.cell-legend-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--bad-on-light); display: inline-block; }
 
 /* An even grid rather than a ragged wrap: every cell is one column wide,
    so codes line up in columns and the block reads as a table of contents
@@ -419,12 +508,12 @@ button { cursor: pointer; font-family: inherit; }
    weight, the number trails it smaller and lighter, so scanning reads
    departments first and numbers only when wanted. */
 .course-cell { position: relative; width: 100%; height: 34px; display: flex; align-items: center; justify-content: center;
-  border-radius: 4px; padding: 0 6px; overflow: hidden;
+  border-radius: var(--radius-sm); padding: 0 6px; overflow: hidden;
   border: 1px dashed #cdc2a3; color: #b6ab89; background: transparent; box-sizing: border-box;
   transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.12s ease, border-color 0.12s ease; }
 .cell-code { display: inline-flex; align-items: baseline; gap: 3px; font-family: var(--mono); }
-.cell-code-dept { font-size: 11px; font-weight: 700; letter-spacing: 0.03em; }
-.cell-code-num { font-size: 10px; font-weight: 400; letter-spacing: 0.02em; opacity: 0.68; }
+.cell-code-dept { font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.03em; }
+.cell-code-num { font-size: var(--text-2xs); font-weight: 400; letter-spacing: 0.02em; opacity: 0.68; }
 
 .course-cell.locked { opacity: 0.5; cursor: default; }
 .course-cell.blocked { border-style: solid; border-color: #c4b591; background: #e4dcc5; color: #8d8261; cursor: not-allowed; }
@@ -432,7 +521,7 @@ button { cursor: pointer; font-family: inherit; }
   cursor: pointer; box-shadow: inset 0 -2px 0 rgba(156, 122, 46, 0.28); }
 .course-cell.available:hover, .course-cell.available:focus-visible {
   border-color: var(--gold); background: #fff5da; transform: translateY(-1px);
-  box-shadow: 0 3px 7px rgba(58, 47, 14, 0.22); }
+  box-shadow: var(--shadow-1); }
 .course-cell.developing { border-style: solid; border-color: var(--gold); color: #4a3c14; cursor: default;
   animation: cell-pulse 1.7s ease-in-out infinite; }
 .course-cell.done { border-style: solid; border-color: #6d5610; background: var(--brass-deep); color: #f7ecc6; cursor: default; }
@@ -451,7 +540,7 @@ button { cursor: pointer; font-family: inherit; }
    before hovering — "its field is full" and "how far along is it" — are
    simply visible. */
 .cell-gate-dot { position: absolute; top: 3px; right: 3px; width: 5px; height: 5px; border-radius: 50%;
-  background: #a13a3a; box-shadow: 0 0 0 1px rgba(255, 253, 246, 0.7); }
+  background: var(--bad-on-light); box-shadow: 0 0 0 1px rgba(255, 253, 246, 0.7); }
 .cell-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(109, 86, 16, 0.18); }
 .cell-progress-fill { display: block; height: 100%; background: var(--brass-deep); transition: width 0.25s ease; }
 
@@ -462,29 +551,29 @@ button { cursor: pointer; font-family: inherit; }
    is the un-scripted fallback (and what the tooltip is measured at): hung
    under the cell, with the 4px gap TOOLTIP_GAP mirrors. */
 .course-tooltip { position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; width: 220px;
-  background: var(--navy); color: var(--ink-hi); border: 1px solid var(--navy-line); border-radius: 6px;
-  padding: 10px 12px; font-size: 12px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  background: var(--navy); color: var(--ink-hi); border: 1px solid var(--navy-line); border-radius: var(--radius-md);
+  padding: 10px 12px; font-size: var(--text-sm); box-shadow: var(--shadow-2);
   visibility: hidden; opacity: 0; transition: opacity 0.12s ease; pointer-events: none; }
 .course-cell-wrap:hover .course-tooltip, .course-cell-wrap:focus-within .course-tooltip { visibility: visible; opacity: 1; }
-.course-tooltip-name { font-family: var(--serif); font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.course-tooltip-name { font-family: var(--serif); font-size: var(--text-base); font-weight: 700; margin-bottom: 4px; }
 .course-tooltip-desc { margin: 0 0 8px; color: #cbd0d8; line-height: 1.4; }
 .course-tooltip-prereqs { margin: 0 0 6px; padding: 0; list-style: none; }
-.course-tooltip-prereqs li { font-family: var(--mono); font-size: 11px; padding: 1px 0; }
-.course-tooltip-prereqs li.met { color: #7dd3a0; }
-.course-tooltip-prereqs li.unmet { color: #e58a8a; }
-.course-tooltip-faculty { font-family: var(--mono); font-size: 11px; font-style: italic; padding: 3px 0;
+.course-tooltip-prereqs li { font-family: var(--mono); font-size: var(--text-xs); padding: 1px 0; }
+.course-tooltip-prereqs li.met { color: var(--ok-on-dark); }
+.course-tooltip-prereqs li.unmet { color: var(--bad-on-dark); }
+.course-tooltip-faculty { font-family: var(--mono); font-size: var(--text-xs); font-style: italic; padding: 3px 0;
   border-top: 1px dashed var(--navy-line); margin-top: 4px; }
-.course-tooltip-faculty.met { color: #7dd3a0; }
-.course-tooltip-faculty.unmet { color: #e0b04a; }
+.course-tooltip-faculty.met { color: var(--ok-on-dark); }
+.course-tooltip-faculty.unmet { color: var(--warn-on-dark); }
 /* Who teaches a DONE course — a display-only projection (see
    facultyAssignment.ts), shown only once the course actually has an
    assigned instructor to name. */
-.course-tooltip-instructor { font-family: var(--mono); font-size: 11px; font-style: italic; color: var(--ink-lo); padding: 3px 0 0; }
-.course-tooltip-meta { font-family: var(--mono); font-size: 11px; color: var(--ink-lo); margin-top: 6px; }
-.course-tooltip-reason { margin: 6px 0 0; color: #e58a8a; font-size: 11px; font-style: italic; }
+.course-tooltip-instructor { font-family: var(--mono); font-size: var(--text-xs); font-style: italic; color: var(--ink-lo); padding: 3px 0 0; }
+.course-tooltip-meta { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-lo); margin-top: 6px; }
+.course-tooltip-reason { margin: 6px 0 0; color: var(--bad-on-dark); font-size: var(--text-xs); font-style: italic; }
 
-.kind-tag { display: inline-block; background: var(--gold-dim); color: #fff8e8; font-size: 9px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.04em; border-radius: 3px; padding: 1px 5px; margin-right: 6px; vertical-align: middle; }
+.kind-tag { display: inline-block; background: var(--gold-dim); color: #fff8e8; font-size: var(--text-2xs); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em; border-radius: var(--radius-xs); padding: 1px 5px; margin-right: 6px; vertical-align: middle; }
 
 /* The construction banner at the top of a developing Buildable's info
    panel (see BuildingInfoPanel.tsx) — same gold accent as everywhere else
@@ -500,7 +589,7 @@ button { cursor: pointer; font-family: inherit; }
    than the categories stacking into one tall list. */
 .build-mode { display: flex; flex-direction: column; gap: 10px; }
 .build-mode-topline { display: flex; gap: 16px; }
-.build-mode-topline .stat { font-family: var(--mono); font-size: 12px; color: var(--ink-muted); }
+.build-mode-topline .stat { font-family: var(--mono); font-size: var(--text-sm); color: var(--ink-muted); }
 
 /* Category tabs: the "menu icons". Each carries its glyph and label, quiet
    until hovered, and gold-filled when it's the open category — exactly the
@@ -510,8 +599,8 @@ button { cursor: pointer; font-family: inherit; }
 .build-mode-tabs { display: flex; flex-wrap: wrap; gap: 6px;
   border-bottom: 1px solid var(--parchment-line); padding-bottom: 10px; }
 .build-cat-tab { position: relative; display: inline-flex; align-items: center; gap: 6px;
-  background: #f5efdd; border: 1px solid var(--parchment-line); border-radius: 7px;
-  padding: 6px 11px; color: var(--ink-muted); font-family: var(--serif); font-size: 12px; }
+  background: #f5efdd; border: 1px solid var(--parchment-line); border-radius: var(--radius-md);
+  padding: 6px 11px; color: var(--ink-muted); font-family: var(--serif); font-size: var(--text-sm); }
 .build-cat-tab svg { width: 18px; height: 18px; display: block; }
 .build-cat-label { text-transform: uppercase; letter-spacing: 0.05em; }
 .build-cat-tab:hover { border-color: var(--gold-dim); color: var(--ink); }
@@ -522,7 +611,7 @@ button { cursor: pointer; font-family: inherit; }
    wrapping into a grid that grows the band taller. */
 .build-mode-tray { overflow-x: auto; overflow-y: hidden; padding-bottom: 4px; }
 .build-mode-tray::-webkit-scrollbar { height: 8px; }
-.build-mode-tray::-webkit-scrollbar-thumb { background: var(--parchment-line); border-radius: 4px; }
+.build-mode-tray::-webkit-scrollbar-thumb { background: var(--parchment-line); border-radius: var(--radius-sm); }
 .build-mode-tray { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
 .build-tile-row { display: flex; flex-wrap: nowrap; gap: 10px; align-items: stretch; min-height: 116px; }
 
@@ -532,16 +621,16 @@ button { cursor: pointer; font-family: inherit; }
    actionable (arm a pickup). */
 .build-tile { position: relative; flex: 0 0 132px; width: 132px; display: flex; flex-direction: column;
   align-items: center; text-align: center; gap: 5px; background: #f5efdd;
-  border: 1px solid var(--parchment-line); border-radius: 9px; padding: 12px 9px 10px; color: var(--ink); }
+  border: 1px solid var(--parchment-line); border-radius: var(--radius-lg); padding: 12px 9px 10px; color: var(--ink); }
 button.build-tile { font-family: inherit; }
 .build-tile-icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
   color: var(--gold-dim); }
 .build-tile-icon svg { width: 32px; height: 32px; display: block; }
-.build-tile-name { font-weight: 600; font-size: 12.5px; line-height: 1.2; }
-.build-tile-sub { font-size: 10.5px; color: var(--ink-muted); line-height: 1.2; }
-.build-tile-foot { margin-top: auto; font-family: var(--mono); font-size: 10.5px; color: var(--ink-muted);
+.build-tile-name { font-weight: 600; font-size: var(--text-base); line-height: 1.2; }
+.build-tile-sub { font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.2; }
+.build-tile-foot { margin-top: auto; font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted);
   padding-top: 4px; }
-.build-tile-note { font-size: 10px; color: #a13a3a; font-style: italic; line-height: 1.15; }
+.build-tile-note { font-size: var(--text-2xs); color: var(--bad-on-light); font-style: italic; line-height: 1.15; }
 .build-tile-progress { width: 100%; margin-top: auto; padding-top: 6px; }
 .build-tile .kind-tag { position: absolute; top: 6px; right: 6px; margin: 0; }
 
@@ -618,18 +707,18 @@ button.build-tile { font-family: inherit; }
    pill on the opposite corner at any but the narrowest widths. */
 .building-info-panel { position: fixed; z-index: 10; top: 16px; left: 16px;
   width: 260px; max-height: calc(100vh - var(--toolbar-height) - 32px); overflow-y: auto;
-  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px;
+  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: var(--radius-lg);
   padding: 10px 14px 12px; }
 .building-info-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
   border-bottom: 1px solid var(--parchment-line); padding-bottom: 8px; margin-bottom: 8px; }
-.building-info-head h3 { font-family: var(--serif); font-size: 14px; margin: 0; color: var(--ink); }
+.building-info-head h3 { font-family: var(--serif); font-size: var(--text-md); margin: 0; color: var(--ink); }
 .building-info-close { background: transparent; border: 1px solid var(--parchment-line); color: var(--ink-muted);
-  border-radius: 4px; width: 22px; height: 22px; line-height: 1; padding: 0; font-size: 12px; flex: none; }
+  border-radius: var(--radius-sm); width: 22px; height: 22px; line-height: 1; padding: 0; font-size: var(--text-sm); flex: none; }
 .building-info-close:hover { border-color: var(--gold-dim); color: var(--ink); }
-.building-info-line { margin: 0 0 6px; font-size: 12px; line-height: 1.4; color: var(--ink); }
-.building-info-majors { margin: 0 0 8px; padding-left: 18px; font-size: 12px; line-height: 1.5; color: var(--ink); }
+.building-info-line { margin: 0 0 6px; font-size: var(--text-sm); line-height: 1.4; color: var(--ink); }
+.building-info-majors { margin: 0 0 8px; padding-left: 18px; font-size: var(--text-sm); line-height: 1.5; color: var(--ink); }
 .building-info-completion { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; }
-.building-info-completion .stat { font-size: 11px; }
+.building-info-completion .stat { font-size: var(--text-xs); }
 
 /* MainMenu: the hamburger overlay in the map's top-right corner (see
    MainMenu.tsx) carrying what the old topbar's control bar used to —
@@ -641,14 +730,14 @@ button.build-tile { font-family: inherit; }
 .main-menu { position: fixed; z-index: 11; top: 16px; right: 16px; }
 .main-menu-btn { width: var(--corner-menu-height); height: var(--corner-menu-height);
   display: flex; align-items: center; justify-content: center;
-  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px; color: var(--ink); }
+  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: var(--radius-lg); color: var(--ink); }
 .main-menu-btn svg { width: 20px; height: 20px; display: block; }
 .main-menu-btn:hover, .main-menu-btn.active { border-color: var(--gold-dim); background: #efe1b8; }
 .main-menu-popup { position: absolute; top: calc(var(--corner-menu-height) + 8px); right: 0; width: 220px;
   display: flex; flex-direction: column; gap: 6px;
-  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35); padding: 10px; }
-.main-menu-credits { font-size: 12px; line-height: 1.5; color: var(--ink-muted); padding: 7px 10px 2px; border-top: 1px solid var(--parchment-line); margin-top: 2px; }
+  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2); padding: 10px; }
+.main-menu-credits { font-size: var(--text-sm); line-height: 1.5; color: var(--ink-muted); padding: 7px 10px 2px; border-top: 1px solid var(--parchment-line); margin-top: 2px; }
 .main-menu-credits strong { color: var(--ink); }
 
 /* Zoom in/out (plus the map's own '?' — see CampusMap.tsx) — reachable
@@ -669,16 +758,16 @@ button.build-tile { font-family: inherit; }
    them.) */
 .campus-map-zoom-controls { position: fixed; z-index: 10; top: calc(var(--corner-menu-height) + 24px); right: 16px;
   display: flex; flex-direction: column; align-items: center; gap: 4px;
-  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 8px; padding: 4px; }
+  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: var(--radius-lg); padding: 4px; }
 .campus-map-zoom-controls button { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
-  background: #f5efdd; border: 1px solid var(--parchment-line); border-radius: 5px; color: var(--ink);
-  font-size: 15px; line-height: 1; padding: 0; }
+  background: #f5efdd; border: 1px solid var(--parchment-line); border-radius: var(--radius-sm); color: var(--ink);
+  font-size: var(--text-lg); line-height: 1; padding: 0; }
 .campus-map-zoom-controls button:hover { border-color: var(--gold-dim); background: #efe1b8; }
 /* The '?' sits at the same 30x30 scale as the zoom buttons beneath it
    (its default size — see .help-hint-btn — is sized for sitting inline
    next to a panel heading, not for anchoring its own pill). */
-.campus-map-zoom-controls .help-hint-btn { width: 30px; height: 30px; border-radius: 5px;
-  background: #f5efdd; border: 1px solid var(--parchment-line); color: var(--ink); font-size: 14px; }
+.campus-map-zoom-controls .help-hint-btn { width: 30px; height: 30px; border-radius: var(--radius-sm);
+  background: #f5efdd; border: 1px solid var(--parchment-line); color: var(--ink); font-size: var(--text-md); }
 .campus-map-zoom-controls .help-hint-btn:hover { border-color: var(--gold-dim); background: #efe1b8; color: var(--ink); }
 .campus-map-zoom-controls .help-hint-text { top: 0; right: 34px; left: auto; }
 
@@ -710,7 +799,7 @@ button.build-tile { font-family: inherit; }
 .campus-rotate-btn { cursor: pointer; }
 .campus-rotate-btn circle { fill: var(--parchment); stroke: var(--gold-dim); stroke-width: 1.5; }
 .campus-rotate-btn:hover circle { fill: #efe1b8; }
-.campus-rotate-btn text { font-size: 13px; fill: var(--ink); pointer-events: none; }
+.campus-rotate-btn text { font-size: var(--text-base); fill: var(--ink); pointer-events: none; }
 
 /* Drawn pathways (see pathways.tsx). Autotiled: the fill is every paving
    square as one path, the kerb runs ONLY along edges with no neighbour, and
@@ -813,14 +902,14 @@ button.build-tile { font-family: inherit; }
   align-items: flex-start; justify-content: center; padding: 12px 16px 20px;
   background: rgba(10, 11, 14, 0.55); }
 .tab-overlay { width: 100%; max-width: 1180px; max-height: 100%; display: flex; flex-direction: column;
-  background: var(--navy); border: 1px solid var(--gold-dim); border-radius: 10px;
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45); }
+  background: var(--navy); border: 1px solid var(--gold-dim); border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-3); }
 .tab-overlay-head { display: flex; justify-content: space-between; align-items: center; gap: 12px;
   padding: 11px 18px; border-bottom: 2px solid var(--gold); flex: none; }
 .tab-overlay-head h2 { margin: 0; font-family: var(--serif); text-transform: uppercase;
-  letter-spacing: 0.1em; font-size: 14px; color: var(--gold); }
+  letter-spacing: 0.1em; font-size: var(--text-md); color: var(--gold); }
 .tab-overlay-close { background: transparent; border: 1px solid var(--navy-line); color: #c7cee0;
-  border-radius: 5px; padding: 4px 12px; font-size: 11px; font-family: var(--mono); }
+  border-radius: var(--radius-sm); padding: 4px 12px; font-size: var(--text-xs); font-family: var(--mono); }
 .tab-overlay-close:hover { border-color: var(--gold); color: var(--gold); }
 /* Generous bottom padding so the last row of any panel doesn't end flush
    against the scroll box. The curriculum's tooltips no longer depend on it:
@@ -828,15 +917,15 @@ button.build-tile { font-family: inherit; }
    CurriculumTab.tsx). */
 .tab-overlay-body { overflow-y: auto; padding: 14px 18px 40px; }
 .tab-overlay-body::-webkit-scrollbar { width: 8px; }
-.tab-overlay-body::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: 4px; }
+.tab-overlay-body::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: var(--radius-sm); }
 .tab-overlay-body { scrollbar-width: thin; scrollbar-color: var(--navy-line) transparent; }
 
 /* ---------- sidebar panels ---------- */
-.empty-note { font-style: italic; color: var(--ink-muted); font-size: 13px; margin: 0; }
-.stall-note { background: #f4dede; color: #8a2f2f; border: 1px solid #d9a8a8; border-radius: 5px;
-  padding: 6px 10px; font-size: 12px; margin: 0 0 8px; }
+.empty-note { font-style: italic; color: var(--ink-muted); font-size: var(--text-base); margin: 0; }
+.stall-note { background: var(--danger-bg); color: var(--danger-ink); border: 1px solid var(--danger-line); border-radius: var(--radius-sm);
+  padding: 6px 10px; font-size: var(--text-sm); margin: 0 0 8px; }
 .developing-list { list-style: none; margin: 0; padding: 0; }
-.developing-list li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--parchment-line-lo); font-size: 13px; }
+.developing-list li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--parchment-line-lo); font-size: var(--text-base); }
 
 /* Scoped to .panel deliberately: this two-column grid assumes bare
    <dt>/<dd> children. .admissions-outcomes (in the interrupt modal) wraps
@@ -859,27 +948,27 @@ button.build-tile { font-family: inherit; }
 .satisfaction-contributor-list { margin: 0 0 8px; }
 .satisfaction-contributor-list:last-child { margin-bottom: 0; }
 .satisfaction-contributor-list li { display: flex; justify-content: space-between; gap: 10px;
-  padding: 2px 0; font-family: var(--mono); font-size: 11px; }
+  padding: 2px 0; font-family: var(--mono); font-size: var(--text-xs); }
 .satisfaction-contributor-total { margin-top: 4px; padding-top: 4px !important;
   border-top: 1px dashed var(--parchment-line-lo); font-weight: 700; }
 .demand-note { margin-top: 10px; }
 
 ul, ol { list-style: none; margin: 0; padding: 0; }
-.outcome-note { color: var(--gold-dim); font-size: 11px; }
+.outcome-note { color: var(--gold-dim); font-size: var(--text-xs); }
 
 /* ---------- faculty: collapsed-by-default expandable rows ---------- */
 .faculty-list { max-height: 320px; overflow-y: auto; margin: 0; padding: 0; }
 .faculty-row { border-bottom: 1px solid var(--parchment-line-lo); padding: 6px 0; }
-.faculty-row-summary { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-.faculty-expand-btn { background: none; border: none; color: var(--gold-dim); font-size: 11px; padding: 0 2px; width: 16px; }
+.faculty-row-summary { display: flex; align-items: center; gap: 8px; font-size: var(--text-base); }
+.faculty-expand-btn { background: none; border: none; color: var(--gold-dim); font-size: var(--text-xs); padding: 0 2px; width: 16px; }
 .faculty-name { font-weight: 600; }
 /* The research-prize badge: permanent, and the only mark on a roster row
    that isn't derived from stats (see types.ts's Faculty.acclaim). */
-.faculty-acclaim { color: var(--gold); font-size: 12px; letter-spacing: 1px; }
+.faculty-acclaim { color: var(--gold); font-size: var(--text-sm); letter-spacing: 1px; }
 .faculty-row-spacer { flex: 1; }
-.faculty-row-summary button { background: #f4dede; color: #8a2f2f; border: 1px solid #d9a8a8; border-radius: 5px;
-  padding: 3px 10px; font-size: 11px; white-space: nowrap; }
-.faculty-row-summary button.appoint { background: #dcefe0; color: var(--green); border: 1px solid #9fd3af; }
+.faculty-row-summary button { background: var(--danger-bg); color: var(--danger-ink); border: 1px solid var(--danger-line); border-radius: var(--radius-sm);
+  padding: 3px 10px; font-size: var(--text-xs); white-space: nowrap; }
+.faculty-row-summary button.appoint { background: #dcefe0; color: var(--ok-on-light); border: 1px solid #9fd3af; }
 /* The expand/collapse toggle is a <button> too, but it's a disclosure
    arrow, not an action like Appoint/Dismiss — this two-class selector
    outranks the bare-`button` rule above (which only ever meant to style
@@ -887,7 +976,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    picking up their red action-button chrome. */
 .faculty-row-summary .faculty-expand-btn { background: none; border: none; color: var(--gold-dim); padding: 0 2px; width: 16px; }
 .faculty-row-detail { margin: 8px 0 2px 24px; padding: 8px 10px; background: #f5efdd;
-  border: 1px solid var(--parchment-line-lo); border-radius: 6px; font-size: 12px; }
+  border: 1px solid var(--parchment-line-lo); border-radius: var(--radius-md); font-size: var(--text-sm); }
 .faculty-bio { margin: 0 0 8px; font-style: italic; color: var(--ink-muted); }
 /* Procedural headshots (see components/FacultyPortrait.tsx) — a fixed
    circular chip that never shrinks in a tight flex row, at either the
@@ -897,7 +986,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-detail-head .faculty-bio { margin: 0; flex: 1; }
 .faculty-courses { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--parchment-line-lo); }
 .faculty-courses-list { margin: 4px 0 0; padding: 0; list-style: none; }
-.faculty-courses-list li { font-family: var(--mono); font-size: 11px; padding: 1px 0; }
+.faculty-courses-list li { font-family: var(--mono); font-size: var(--text-xs); padding: 1px 0; }
 
 /* ---------- research: the lab gate, school by school ----------
    Research is mostly silent, so this small table is where the rule
@@ -905,8 +994,8 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    listed too, deliberately — see FacultyTab's ResearchPanel. */
 .research-schools { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--parchment-line-lo);
   display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2px 16px; }
-.research-school { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 12px; }
-.research-school .empty-note { font-size: 11px; }
+.research-school { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: var(--text-sm); }
+.research-school .empty-note { font-size: var(--text-xs); }
 
 /* ---------- faculty: roster/market and research/slots, paired ----------
    Two equal columns, auto-flowing two panels per row: Roster + Market
@@ -930,80 +1019,80 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* The market's field filter — the other half of making a 30-name list
    scannable, alongside sorting short-handed fields to the top. */
 .candidate-filter { margin-bottom: 8px; }
-.candidate-filter select { width: 100%; padding: 6px 8px; border-radius: 5px; border: 1px solid var(--parchment-line);
-  background: #f8f3e6; color: var(--ink); font-family: inherit; font-size: 12px; }
+.candidate-filter select { width: 100%; padding: 6px 8px; border-radius: var(--radius-sm); border: 1px solid var(--parchment-line);
+  background: #f8f3e6; color: var(--ink); font-family: inherit; font-size: var(--text-sm); }
 
 /* The always-visible second line on a candidate row: field, stats, price,
    and how long the listing has left. Deliberately mono and small — it is
    read by scanning down a column, not by reading sentences. */
 .candidate-meta { display: flex; align-items: baseline; gap: 8px; margin: 2px 0 0 24px;
-  font-family: var(--mono); font-size: 11px; color: var(--ink-muted); }
+  font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted); }
 .candidate-field { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.candidate-field.needed { color: var(--green); font-weight: 700; }
+.candidate-field.needed { color: var(--ok-on-light); font-weight: 700; }
 .candidate-stats, .candidate-salary { white-space: nowrap; }
 .candidate-expiry { white-space: nowrap; color: var(--gold-dim); }
-.candidate-expiry.soon { color: #a13a3a; font-weight: 700; }
+.candidate-expiry.soon { color: var(--bad-on-light); font-weight: 700; }
 
-.log { max-height: 190px; overflow-y: auto; font-size: 12px; }
+.log { max-height: 190px; overflow-y: auto; font-size: var(--text-sm); }
 .log li { padding: 3px 0; border-bottom: 1px solid var(--parchment-line-lo); }
 .log .ts { color: var(--ink-muted); font-family: var(--mono); margin-right: 6px; }
-.log .good { color: var(--green); } .log .bad { color: #a13a3a; }
+.log .good { color: var(--ok-on-light); } .log .bad { color: var(--bad-on-light); }
 
 /* ---------- institutional history: the long arc ---------- */
 /* Plain SVG polylines (see HistoryTab.tsx) — no charting library. Chart
    geometry lives in that file as named constants; only presentation here. */
-.history-summary { font-size: 13px; color: var(--ink-muted); margin: 0 0 14px; line-height: 1.5; }
+.history-summary { font-size: var(--text-base); color: var(--ink-muted); margin: 0 0 14px; line-height: 1.5; }
 .history-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px 22px; }
 .history-chart { margin: 0; }
 .history-chart figcaption { display: flex; justify-content: space-between; align-items: baseline;
   gap: 8px; margin-bottom: 6px; }
-.history-chart-label { font-family: var(--serif); font-size: 13px; color: var(--ink); font-weight: 700; }
-.history-chart-latest { font-family: var(--mono); font-size: 13px; color: var(--gold-dim); }
+.history-chart-label { font-family: var(--serif); font-size: var(--text-base); color: var(--ink); font-weight: 700; }
+.history-chart-latest { font-family: var(--mono); font-size: var(--text-base); color: var(--gold-dim); }
 .history-chart-svg { display: block; width: 100%; height: auto; background: #f5efdd;
-  border: 1px solid var(--parchment-line-lo); border-radius: 5px; }
+  border: 1px solid var(--parchment-line-lo); border-radius: var(--radius-sm); }
 .history-chart-rule { stroke: var(--parchment-line); stroke-width: 1; }
 .history-chart-rule.faint { stroke: var(--parchment-line-lo); stroke-dasharray: 3 4; }
 .history-chart-line { fill: none; stroke: var(--gold-dim); stroke-width: 1.6;
   stroke-linejoin: round; stroke-linecap: round; }
 .history-chart-axis { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px;
-  font-family: var(--mono); font-size: 11px; color: var(--ink-lo); }
+  font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-lo); }
 .history-chart-range { color: var(--ink-muted); }
-.history-chart-note { margin: 6px 0 0; font-size: 11px; font-style: italic;
+.history-chart-note { margin: 6px 0 0; font-size: var(--text-xs); font-style: italic;
   color: var(--ink-muted); line-height: 1.45; }
 
 .history-table-scroll { overflow-y: auto; }
-.history-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.history-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
 .history-table th { position: sticky; top: 0; background: var(--parchment); text-align: right;
-  font-family: var(--serif); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+  font-family: var(--serif); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.06em;
   color: var(--ink-muted); font-weight: 400; padding: 4px 6px;
   border-bottom: 1px solid var(--parchment-line); }
 .history-table td { text-align: right; padding: 3px 6px; font-family: var(--mono);
   border-bottom: 1px solid var(--parchment-line-lo); }
 .history-table th:first-child, .history-table td:first-child { text-align: left; }
 .history-table-scroll::-webkit-scrollbar { width: 8px; }
-.history-table-scroll::-webkit-scrollbar-thumb { background: var(--parchment-line); border-radius: 4px; }
+.history-table-scroll::-webkit-scrollbar-thumb { background: var(--parchment-line); border-radius: var(--radius-sm); }
 .history-table-scroll { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
 
 /* ---------- treasury: the weekly income statement ---------- */
 /* Two columns, income against expenses, with the net underneath — the
    figures come straight from financeSystem.ts's financeBreakdown. */
 .income-statement { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px 28px; }
-.statement-col h3 { font-family: var(--serif); font-size: 12px; text-transform: uppercase;
+.statement-col h3 { font-family: var(--serif); font-size: var(--text-sm); text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--ink-muted); margin: 0 0 6px;
   border-bottom: 1px solid var(--parchment-line); padding-bottom: 4px; }
 .statement-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
   padding: 5px 0; border-bottom: 1px solid var(--parchment-line-lo); }
-.statement-line-label { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
-.statement-line-note { font-size: 11px; font-style: italic; color: var(--ink-muted); line-height: 1.35; }
-.statement-line-amount { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+.statement-line-label { display: flex; flex-direction: column; gap: 2px; font-size: var(--text-base); }
+.statement-line-note { font-size: var(--text-xs); font-style: italic; color: var(--ink-muted); line-height: 1.35; }
+.statement-line-amount { font-family: var(--mono); font-size: var(--text-base); white-space: nowrap; }
 .statement-total { display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
-  padding: 6px 0 0; font-size: 13px; font-weight: 700; color: var(--ink); }
+  padding: 6px 0 0; font-size: var(--text-base); font-weight: 700; color: var(--ink); }
 .statement-net { display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
-  margin-top: 14px; padding: 9px 12px; border-radius: 6px; background: #f5efdd;
-  border: 1px solid var(--gold-dim); font-family: var(--serif); font-size: 15px;
+  margin-top: 14px; padding: 9px 12px; border-radius: var(--radius-md); background: #f5efdd;
+  border: 1px solid var(--gold-dim); font-family: var(--serif); font-size: var(--text-lg);
   font-weight: 700; color: #5c4a1e; }
-.statement-net.negative { background: #f4dede; border-color: #d9a8a8; color: #8a2f2f; }
-.statement-net .statement-line-amount { font-size: 15px; }
+.statement-net.negative { background: var(--danger-bg); border-color: var(--danger-line); color: var(--danger-ink); }
+.statement-net .statement-line-amount { font-size: var(--text-lg); }
 
 /* Endowment Campaign and Balance & Policy paired half-width below the
    full-width income statement — same two-column idiom as .faculty-columns
@@ -1016,47 +1105,47 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* ---------- overlays ---------- */
 .modal-backdrop { position: fixed; inset: 0; background: rgba(10, 11, 14, 0.7);
   display: flex; align-items: center; justify-content: center; z-index: 100; }
-.modal { background: var(--navy); color: var(--ink-hi); border-radius: 10px; padding: 20px 24px; max-width: 440px; width: 100%;
+.modal { background: var(--navy); color: var(--ink-hi); border-radius: var(--radius-xl); padding: 20px 24px; max-width: 440px; width: 100%;
   border: 1px solid var(--navy-line); max-height: 90vh; overflow-y: auto; }
 /* An interrupt halts the clock until it is resolved, so its resolve button
    must always be reachable: the modal scrolls internally rather than
    growing past the viewport on a short screen (the annual report is the
    tall one — movement, movers, and fifty standings). */
 .modal::-webkit-scrollbar { width: 8px; }
-.modal::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: 4px; }
+.modal::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: var(--radius-sm); }
 .modal { scrollbar-width: thin; scrollbar-color: var(--navy-line) transparent; }
-.modal h2 { margin: 0 0 10px; font-size: 16px; font-family: var(--serif); }
-.modal p { margin: 0 0 16px; color: #cbd0d8; font-size: 14px; }
+.modal h2 { margin: 0 0 10px; font-size: var(--text-xl); font-family: var(--serif); }
+.modal p { margin: 0 0 16px; color: #cbd0d8; font-size: var(--text-md); }
 /* Same gold-on-navy treatment as .startup-begin-btn. */
-.modal button { background: var(--gold); color: #1a2035; border: none; border-radius: 6px;
-  padding: 6px 16px; font-family: var(--serif); font-size: 14px; font-weight: 700; }
+.modal button { background: var(--gold); color: #1a2035; border: none; border-radius: var(--radius-md);
+  padding: 6px 16px; font-family: var(--serif); font-size: var(--text-md); font-weight: 700; }
 .modal button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Year-over-year movement in the annual report (see InterruptModal.tsx). */
 .report-headline { display: flex; align-items: baseline; gap: 10px; margin: 0 0 14px !important;
-  padding: 9px 12px; background: #1a2338; border: 1px solid var(--navy-line); border-radius: 6px; }
-.report-headline-detail { font-family: var(--mono); font-size: 13px; color: #cbd0d8; }
-.rank-move { font-family: var(--mono); font-size: 15px; font-weight: 700; }
-.rank-move.up { color: #7dd3a0; }
-.rank-move.down { color: #e58a8a; }
-.rank-move.flat { color: var(--ink-lo); font-size: 13px; }
-.report-crossing { font-size: 13px; margin: 0 0 8px !important; line-height: 1.45; }
-.report-crossing.passed { color: #7dd3a0; }
-.report-crossing.passed-by { color: #e58a8a; }
+  padding: 9px 12px; background: #1a2338; border: 1px solid var(--navy-line); border-radius: var(--radius-md); }
+.report-headline-detail { font-family: var(--mono); font-size: var(--text-base); color: #cbd0d8; }
+.rank-move { font-family: var(--mono); font-size: var(--text-lg); font-weight: 700; }
+.rank-move.up { color: var(--ok-on-dark); }
+.rank-move.down { color: var(--bad-on-dark); }
+.rank-move.flat { color: var(--ink-lo); font-size: var(--text-base); }
+.report-crossing { font-size: var(--text-base); margin: 0 0 8px !important; line-height: 1.45; }
+.report-crossing.passed { color: var(--ok-on-dark); }
+.report-crossing.passed-by { color: var(--bad-on-dark); }
 .report-movers { margin: 14px 0; }
-.report-movers h3, .report-standings-head { font-family: var(--serif); font-size: 12px;
+.report-movers h3, .report-standings-head { font-family: var(--serif); font-size: var(--text-sm);
   text-transform: uppercase; letter-spacing: 0.08em; color: var(--gold); margin: 0 0 6px; }
 .report-movers ul { list-style: none; margin: 0; padding: 0; }
 .report-movers li { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
-  padding: 3px 0; font-size: 13px; border-bottom: 1px solid var(--navy-line); }
+  padding: 3px 0; font-size: var(--text-base); border-bottom: 1px solid var(--navy-line); }
 .report-mover-move { display: inline-flex; align-items: baseline; gap: 8px; white-space: nowrap; }
-.report-mover-places { font-family: var(--mono); font-size: 11px; color: var(--ink-lo); }
+.report-mover-places { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-lo); }
 
 .report-standings { max-height: 320px; overflow-y: auto; margin: 0 0 16px; padding-right: 6px; }
-.report-standings li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--navy-line); font-size: 13px; }
-.report-standings li.me { color: #7dd3a0; font-weight: 700; }
+.report-standings li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--navy-line); font-size: var(--text-base); }
+.report-standings li.me { color: var(--ok-on-dark); font-weight: 700; }
 .report-standings::-webkit-scrollbar { width: 8px; }
-.report-standings::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: 4px; }
+.report-standings::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: var(--radius-sm); }
 .report-standings { scrollbar-width: thin; scrollbar-color: var(--navy-line) transparent; }
 
 /* Milestone celebrations (see InterruptModal.tsx). Deliberately the same
@@ -1064,13 +1153,13 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    a stop-the-clock moment for a finished major should feel like the
    report does, not like a different game. */
 .milestone-entry { margin: 0 0 12px; }
-.milestone-entry h3 { font-family: var(--serif); font-size: 13px; margin: 0 0 4px; color: var(--ink-hi); }
-.milestone-detail { font-size: 13px; margin: 0 0 8px !important; }
-.milestone-unlocks-head { font-family: var(--serif); font-size: 12px; text-transform: uppercase;
+.milestone-entry h3 { font-family: var(--serif); font-size: var(--text-base); margin: 0 0 4px; color: var(--ink-hi); }
+.milestone-detail { font-size: var(--text-base); margin: 0 0 8px !important; }
+.milestone-unlocks-head { font-family: var(--serif); font-size: var(--text-sm); text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--gold); margin: 0 0 6px; }
 .milestone-unlocks { list-style: none; margin: 0 0 4px; padding: 0; }
-.milestone-unlocks li { font-size: 13px; padding: 3px 0; border-bottom: 1px solid var(--navy-line); color: #cbd0d8; }
-.milestone-gain { color: #7dd3a0; }
+.milestone-unlocks li { font-size: var(--text-base); padding: 3px 0; border-bottom: 1px solid var(--navy-line); color: #cbd0d8; }
+.milestone-gain { color: var(--ok-on-dark); }
 
 /* Authored decision events (see data/eventData.ts). Each choice is a
    full-width button carrying its own consequence text, so the tradeoff is
@@ -1078,25 +1167,25 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    disabled rather than hidden. */
 .event-choices { display: grid; gap: 8px; }
 .event-choice { display: block; width: 100%; text-align: left; background: #1a2338 !important;
-  color: var(--ink-hi) !important; border: 1px solid var(--navy-line) !important; border-radius: 6px;
+  color: var(--ink-hi) !important; border: 1px solid var(--navy-line) !important; border-radius: var(--radius-md);
   padding: 10px 12px !important; font-weight: 400 !important; }
 .event-choice:not(:disabled):hover { border-color: var(--gold) !important; }
 .event-choice-label { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
-  font-family: var(--serif); font-weight: 700; font-size: 14px; }
-.event-choice-cost { font-family: var(--mono); font-size: 12px; color: var(--gold); white-space: nowrap; }
-.event-choice-detail { display: block; margin-top: 5px; font-size: 12px; line-height: 1.45; color: #cbd0d8; }
+  font-family: var(--serif); font-weight: 700; font-size: var(--text-md); }
+.event-choice-cost { font-family: var(--mono); font-size: var(--text-sm); color: var(--gold); white-space: nowrap; }
+.event-choice-detail { display: block; margin-top: 5px; font-size: var(--text-sm); line-height: 1.45; color: #cbd0d8; }
 
 .admissions-field { display: block; margin-bottom: 16px; }
-.admissions-field span { display: block; font-size: 13px; color: #cbd0d8; margin-bottom: 6px; }
+.admissions-field span { display: block; font-size: var(--text-base); color: #cbd0d8; margin-bottom: 6px; }
 .admissions-field span strong { color: var(--ink-hi); font-family: var(--mono); }
 .admissions-field input[type="range"] { width: 100%; accent-color: var(--gold); }
 /* Emergent funnel outcomes previewed live in the admissions interrupt. */
 .admissions-outcomes { display: grid; gap: 2px; margin: 4px 0 18px; padding: 12px 14px;
-  background: #1a2338; border: 1px solid var(--navy-line); border-radius: 6px; }
+  background: #1a2338; border: 1px solid var(--navy-line); border-radius: var(--radius-md); }
 .admissions-outcomes > div { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 0; }
-.admissions-outcomes dt { font-size: 13px; color: #cbd0d8; margin: 0; }
-.admissions-outcomes dt .outcome-note { color: var(--gold-dim); font-size: 11px; }
-.admissions-outcomes dd { margin: 0; color: var(--ink-hi); font-family: var(--mono); font-size: 14px; }
+.admissions-outcomes dt { font-size: var(--text-base); color: #cbd0d8; margin: 0; }
+.admissions-outcomes dt .outcome-note { color: var(--gold-dim); font-size: var(--text-xs); }
+.admissions-outcomes dd { margin: 0; color: var(--ink-hi); font-family: var(--mono); font-size: var(--text-md); }
 
 /* Price-tier feedback (see admissionsSystem.ts's priceTier): the same
    bright-on-dark pair the log ticker/StatusHeader already use for good/bad
@@ -1110,30 +1199,30 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    the value is rendered as a <strong> inside .admissions-field's own
    `span strong { color: var(--ink-hi) }` rule, which a single-class
    selector can't outrank on specificity alone. */
-.price-tier-value.price-tier-bargain { color: #7dd3a0; }
+.price-tier-value.price-tier-bargain { color: var(--ok-on-dark); }
 .price-tier-value.price-tier-fair { color: var(--gold); }
 .price-tier-value.price-tier-expensive { color: #e0a860; }
-.price-tier-value.price-tier-reckless { color: #e58a8a; }
-.price-tier-tag.price-tier-bargain { color: #7dd3a0; }
+.price-tier-value.price-tier-reckless { color: var(--bad-on-dark); }
+.price-tier-tag.price-tier-bargain { color: var(--ok-on-dark); }
 .price-tier-tag.price-tier-fair { color: var(--gold); }
 .price-tier-tag.price-tier-expensive { color: #e0a860; }
-.price-tier-tag.price-tier-reckless { color: #e58a8a; }
-.price-tier-tag { display: block; font-size: 11px; font-style: italic; margin-top: 4px; }
-.admissions-net-price { display: flex; align-items: baseline; gap: 8px; margin-top: 8px; font-size: 13px; color: #cbd0d8; }
+.price-tier-tag.price-tier-reckless { color: var(--bad-on-dark); }
+.price-tier-tag { display: block; font-size: var(--text-xs); font-style: italic; margin-top: 4px; }
+.admissions-net-price { display: flex; align-items: baseline; gap: 8px; margin-top: 8px; font-size: var(--text-base); color: #cbd0d8; }
 .admissions-net-price .price-tier-tag { display: inline; margin: 0; }
 
 /* The per-cohort demand breakdown (see cohorts.ts) — a compact list, not
    another dl, since each row carries its own signed color rather than a
    plain value. */
 .cohort-breakdown { margin: 4px 0 18px; padding: 10px 14px; background: #1a2338;
-  border: 1px solid var(--navy-line); border-radius: 6px; }
+  border: 1px solid var(--navy-line); border-radius: var(--radius-md); }
 .cohort-breakdown h3 { margin: 0 0 6px; font-family: var(--serif); text-transform: uppercase;
-  letter-spacing: 0.06em; font-size: 12px; color: var(--gold-dim); }
+  letter-spacing: 0.06em; font-size: var(--text-sm); color: var(--gold-dim); }
 .cohort-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 3px 0; }
-.cohort-row-label { font-size: 13px; color: #cbd0d8; }
-.cohort-row-pct { font-family: var(--mono); font-size: 13px; }
-.cohort-row-pct.cohort-up { color: #7dd3a0; }
-.cohort-row-pct.cohort-down { color: #e58a8a; }
+.cohort-row-label { font-size: var(--text-base); color: #cbd0d8; }
+.cohort-row-pct { font-family: var(--mono); font-size: var(--text-base); }
+.cohort-row-pct.cohort-up { color: var(--ok-on-dark); }
+.cohort-row-pct.cohort-down { color: var(--bad-on-dark); }
 .cohort-row-pct.cohort-flat { color: var(--ink-lo); }
 
 /* ---------- the student-life digest, inside the admissions interrupt ----
@@ -1143,18 +1232,18 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    dark-navy modal as everything else, and read as a checklist rather than
    as another form. */
 .digest { margin: 4px 0 18px; padding: 12px 14px; background: #1a2338;
-  border: 1px solid var(--navy-line); border-radius: 6px; }
-.digest-head { font-family: var(--serif); font-size: 12px; text-transform: uppercase;
+  border: 1px solid var(--navy-line); border-radius: var(--radius-md); }
+.digest-head { font-family: var(--serif); font-size: var(--text-sm); text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--gold); margin: 0 0 6px; }
-.digest-note { font-size: 12px; line-height: 1.45; color: #cbd0d8; margin: 0 0 10px !important; }
+.digest-note { font-size: var(--text-sm); line-height: 1.45; color: #cbd0d8; margin: 0 0 10px !important; }
 .digest-row { display: flex; align-items: baseline; gap: 8px; padding: 5px 0;
-  border-top: 1px solid var(--navy-line); font-size: 13px; cursor: pointer; }
+  border-top: 1px solid var(--navy-line); font-size: var(--text-base); cursor: pointer; }
 .digest-row input { accent-color: var(--gold); }
 .digest-row.declined { opacity: 0.5; }
 .digest-row-name { flex: 1; min-width: 0; color: var(--ink-hi); }
-.digest-row-kind { margin-left: 8px; font-family: var(--mono); font-size: 10px;
+.digest-row-kind { margin-left: 8px; font-family: var(--mono); font-size: var(--text-2xs);
   text-transform: uppercase; letter-spacing: 0.06em; color: var(--gold-dim); }
-.digest-row-cost { font-family: var(--mono); font-size: 11px; color: var(--ink-lo); white-space: nowrap; }
+.digest-row-cost { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-lo); white-space: nowrap; }
 
 /* ---------- Student Life tab ----------
    One row per organisation: name, what it is, and the three facts worth
@@ -1171,16 +1260,16 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    arbitrarily with whichever panel precedes it. */
 .student-life-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
 .student-life-columns .panel-span-2, .faculty-columns .panel-span-2 { grid-column: 1 / -1; }
-.panel-count { font-family: var(--mono); font-size: 11px; color: var(--ink-muted); white-space: nowrap; }
+.panel-count { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted); white-space: nowrap; }
 .org-list { max-height: 320px; overflow-y: auto; margin: 0; padding: 0; }
 .org-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
-  padding: 5px 0; border-bottom: 1px solid var(--parchment-line-lo); font-size: 13px; }
+  padding: 5px 0; border-bottom: 1px solid var(--parchment-line-lo); font-size: var(--text-base); }
 .org-name { font-weight: 600; min-width: 0; }
-.org-tag { margin-left: 8px; font-family: var(--mono); font-size: 10px; font-weight: 400;
+.org-tag { margin-left: 8px; font-family: var(--mono); font-size: var(--text-2xs); font-weight: 400;
   text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
-.org-meta { font-family: var(--mono); font-size: 11px; color: var(--ink-muted); white-space: nowrap; }
+.org-meta { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted); white-space: nowrap; }
 .org-list::-webkit-scrollbar { width: 8px; }
-.org-list::-webkit-scrollbar-thumb { background: var(--parchment-line); border-radius: 4px; }
+.org-list::-webkit-scrollbar-thumb { background: var(--parchment-line); border-radius: var(--radius-sm); }
 .org-list { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
 
 /* Athletics V2 (AthleticsTab.tsx): the recruiting/scholarship budget dial
@@ -1189,20 +1278,20 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .athletics-budget { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
 .athletics-budget-tiers { display: flex; gap: 6px; }
 .athletics-budget-tiers button { text-transform: capitalize; background: transparent;
-  border: 1px solid var(--parchment-line); color: var(--ink-muted); border-radius: 5px;
-  padding: 3px 10px; font-size: 12px; cursor: pointer; }
+  border: 1px solid var(--parchment-line); color: var(--ink-muted); border-radius: var(--radius-sm);
+  padding: 3px 10px; font-size: var(--text-sm); cursor: pointer; }
 .athletics-budget-tiers button.active { background: var(--gold); color: #1a2035; border-color: var(--gold); font-weight: 700; }
-.athletics-rank { font-family: var(--mono); font-size: 13px; color: var(--ink-muted); margin: 0 0 10px; }
+.athletics-rank { font-family: var(--mono); font-size: var(--text-base); color: var(--ink-muted); margin: 0 0 10px; }
 .athletics-rank strong { color: var(--ink); }
 .team-card-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px;
   max-height: 480px; overflow-y: auto; }
 .team-card { padding: 10px 12px; }
 .team-card-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
-.coach-row { display: flex; align-items: center; gap: 8px; font-size: 12px;
+.coach-row { display: flex; align-items: center; gap: 8px; font-size: var(--text-sm);
   padding: 4px 0; border-top: 1px dashed var(--parchment-line-lo); flex-wrap: wrap; }
 .coach-row.vacant { color: var(--ink-muted); }
 .coach-role { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.05em;
-  font-size: 10px; color: var(--gold-dim); min-width: 92px; }
+  font-size: var(--text-2xs); color: var(--gold-dim); min-width: 92px; }
 .coach-name { font-weight: 600; }
 .coach-row-spacer { flex: 1; }
 .coach-candidates { width: 100%; margin-top: 4px; max-height: 160px; }
@@ -1216,23 +1305,23 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    other panel reading. */
 .demand-grievance { margin: 0 0 10px; }
 .demand-progress { display: flex; align-items: center; margin: 0 0 12px; }
-.demand-deadline { font-family: var(--mono); font-size: 11px; color: var(--ink-muted); white-space: nowrap; }
-.demand-deadline.urgent { color: #8a2f2f; }
+.demand-deadline { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted); white-space: nowrap; }
+.demand-deadline.urgent { color: var(--danger-ink); }
 .demand-footnote { margin-top: 10px; }
 
 /* ---------- startup screen ---------- */
 .startup { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
-.startup-card { background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: 10px;
+.startup-card { background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: var(--radius-xl);
   padding: 32px 36px; max-width: 480px; width: 100%; color: var(--ink); }
 .startup-card .eyebrow { color: var(--gold-dim); }
-.startup-card h1 { font-family: var(--serif); font-size: 24px; margin: 6px 0 20px; }
+.startup-card h1 { font-family: var(--serif); font-size: var(--text-2xl); margin: 6px 0 20px; }
 /* The name field: just what the player types. The fixed institutional
    half is no longer shown here at all — it's carved into the facade
    below instead (see .startup-facade), so the input can be an ordinary
    text box with nothing appended to explain. */
-.startup-name { width: 100%; font-size: 16px; padding: 10px 12px; border-radius: 6px;
+.startup-name { width: 100%; font-size: var(--text-xl); padding: 10px 12px; border-radius: var(--radius-md);
   border: 1px solid var(--parchment-line); background: #f8f3e6; color: var(--ink); font-family: var(--serif); }
-.startup-name:focus { outline: none; border-color: var(--gold-dim); }
+.startup-name:focus { border-color: var(--gold-dim); }
 
 /* The facade (see StartupScreen.tsx's SchoolFacade): a flat classical
    building front in the same stone/gold register as the rest of the
@@ -1252,19 +1341,19 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 
 .startup-types { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
 .startup-type-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left;
-  background: #f8f3e6; border: 1px solid var(--parchment-line); border-radius: 8px; padding: 12px 14px; }
-.startup-type-btn strong { font-family: var(--serif); font-size: 15px; }
-.startup-type-btn span { font-size: 12px; color: var(--ink-muted); line-height: 1.4; }
+  background: #f8f3e6; border: 1px solid var(--parchment-line); border-radius: var(--radius-lg); padding: 12px 14px; }
+.startup-type-btn strong { font-family: var(--serif); font-size: var(--text-lg); }
+.startup-type-btn span { font-size: var(--text-sm); color: var(--ink-muted); line-height: 1.4; }
 .startup-type-btn.active { border-color: var(--gold); background: #f5ecd2; }
 .startup-type-btn.active strong { color: var(--gold-dim); }
-.startup-begin-btn { width: 100%; background: var(--gold); color: #1a2035; border: none; border-radius: 6px;
-  padding: 11px; font-family: var(--serif); font-size: 15px; font-weight: 700; }
+.startup-begin-btn { width: 100%; background: var(--gold); color: #1a2035; border: none; border-radius: var(--radius-md);
+  padding: 11px; font-family: var(--serif); font-size: var(--text-lg); font-weight: 700; }
 .startup-begin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* thin scrollbars inside parchment panels */
 .available-list::-webkit-scrollbar, .log::-webkit-scrollbar { width: 8px; }
 .available-list::-webkit-scrollbar-thumb, .log::-webkit-scrollbar-thumb {
-  background: var(--parchment-line); border-radius: 4px; }
+  background: var(--parchment-line); border-radius: var(--radius-sm); }
 .available-list, .log { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
 
 /* ---------- narrower viewports: same fixed full-viewport model, tighter ----
