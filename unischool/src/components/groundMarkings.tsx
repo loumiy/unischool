@@ -90,6 +90,54 @@ export function RakedStand({ outer, inner, bottomH, topH, rakeFill, wallFill, se
   );
 }
 
+// Seating that WRAPS, rather than a straight bank. A ballpark's stands curve
+// around home plate and run some way down both foul lines — see any aerial
+// photograph of one — so a single straight box behind the plate is both the
+// wrong shape and, at the size one has to be to fit, far too small a part of
+// the complex.
+//
+// Same wedge section as RakedStand (low at the field, climbing away from it,
+// seat rows stepping up the rake); the difference is that every edge here is
+// an arc about a centre rather than a straight line between two points.
+export function ArcStand({ cc, cr, rInner, rOuter, from, to, bottomH, topH, rakeFill, wallFill, seatStroke, rows = 5 }: {
+  cc: number; cr: number;          // the centre the seating wraps around, in tiles
+  rInner: number; rOuter: number;  // the front edge at the field, and the back edge
+  from: number; to: number;        // the sweep, in radians
+  bottomH: number; topH: number;
+  rakeFill: string; wallFill: string; seatStroke: string;
+  rows?: number;
+}) {
+  const SEGMENTS = 30;
+  const arcAt = (r: number, h: number) => projectedArc(cc, cr, r, from, to, SEGMENTS).map((q) => lift(q, h));
+  const innerGround = arcAt(rInner, 0);
+  const innerTop = arcAt(rInner, bottomH);
+  const outerGround = arcAt(rOuter, 0);
+  const outerTop = arcAt(rOuter, topH);
+
+  return (
+    <>
+      {/* The back of the stand, then the low face toward the field, then the
+          rake over both — so whichever way a given stretch of the curve
+          happens to face, the surface the camera sees is drawn last. */}
+      <polygon points={polyPoints([...outerGround, ...[...outerTop].reverse()])} fill={wallFill} />
+      <polygon points={polyPoints([...innerGround, ...[...innerTop].reverse()])} fill={wallFill} />
+      <polygon points={polyPoints([...outerTop, ...[...innerTop].reverse()])} fill={rakeFill} />
+      {Array.from({ length: rows - 1 }, (_, k) => {
+        const f = (k + 1) / rows;
+        return (
+          <polyline
+            key={k}
+            className="stand-seat"
+            fill="none"
+            stroke={seatStroke}
+            points={polyPoints(arcAt(rOuter + (rInner - rOuter) * f, topH + (bottomH - topH) * f))}
+          />
+        );
+      })}
+    </>
+  );
+}
+
 // Plain concrete, for the bleachers that are not part of a tinted building.
 const CONCRETE = { rake: '#cfc7b4', wall: '#b3ab99', seat: 'rgba(60, 54, 42, 0.35)' };
 
@@ -150,29 +198,40 @@ function Gridiron({ col, row, w, h, inset = 0 }: GroundProps & { inset?: number 
 // around the bases. The dirt is what makes it read instantly.
 // ---------------------------------------------------------------------
 function Diamond({ col, row, w, h }: GroundProps) {
-  // Home plate sits back from the footprint's front corner rather than on
-  // it, which is what leaves room for the stand BEHIND the plate — where a
-  // ballpark actually puts its seats. The outfield radius shrinks to match
-  // so the arc still finishes inside the plot.
-  const hc = col + w * 0.82;
-  const hr = row + h * 0.82;
-  const R = Math.min(w, h) * 0.74;      // outfield boundary
-  const TRACK = R * 0.88;               // inner edge of the warning track
-  const DIRT = Math.min(w, h) * 0.30;   // infield dirt
+  // Home plate sits well back from the footprint's front corner, because the
+  // SEATING needs that room: a ballpark's stands wrap around the plate and
+  // run down both foul lines, and at 0.82 across the plot there was only
+  // 1.35 tiles of arc radius to fit them in. At 0.70 there is 2.25, which is
+  // the difference between a small box behind the backstop and seating that
+  // reads as part of the complex. The outfield shrinks to match so the arc
+  // still finishes inside the plot.
+  const hc = col + w * 0.70;
+  const hr = row + h * 0.70;
+  const R = Math.min(w, h) * 0.66;      // outfield boundary
+  const TRACK = R * 0.87;               // inner edge of the warning track
+  const DIRT = Math.min(w, h) * 0.30;   // the infield skin
   const BASE = Math.min(w, h) * 0.19;   // home-to-base
   const from = Math.PI;                 // foul line toward -col
   const to = Math.PI * 1.5;             // foul line toward -row
   const bisect = Math.PI * 1.25;        // toward the outfield's centre
+  const behind = bisect + Math.PI;      // out past the plate, where the seats are
   const home = project(hc, hr);
   const polar = (r: number, a: number) => project(hc + r * Math.cos(a), hr + r * Math.sin(a));
-  const tp = (r: number, a: number): TilePt => [hc + r * Math.cos(a), hr + r * Math.sin(a)];
+
+  // The base path, and the grass inside it. A real infield is not a solid
+  // wedge of dirt — the skin runs around the bases and the middle of the
+  // diamond is turf, which is most of what the pattern reads as from above.
+  const basePath = [home, polar(BASE, from), polar(BASE * Math.SQRT2, bisect), polar(BASE, to)];
+  const infieldGrass = [
+    polar(BASE * 0.34, bisect), polar(BASE * 0.72, from), polar(BASE * 1.06, bisect), polar(BASE * 0.72, to),
+  ];
 
   return (
     <>
       <polygon className="ground-turf" points={polyPoints([home, ...projectedArc(hc, hr, R, from, to), home])} />
       {/* The warning track: a band of dirt inside the fence, so a fielder
-          knows the wall is coming. Drawn as the ring between the boundary
-          and TRACK — an arc out and the inner arc back. */}
+          knows the wall is coming. The ring between the boundary arc and one
+          just inside it. */}
       <polygon
         className="ground-dirt"
         points={polyPoints([
@@ -181,11 +240,8 @@ function Diamond({ col, row, w, h }: GroundProps) {
         ])}
       />
       <polygon className="ground-dirt" points={polyPoints([home, ...projectedArc(hc, hr, DIRT, from, to), home])} />
-      <polygon
-        className="ground-line"
-        fill="none"
-        points={polyPoints([home, polar(BASE, from), polar(BASE * Math.SQRT2, bisect), polar(BASE, to)])}
-      />
+      <polygon className="ground-turf" points={polyPoints(infieldGrass)} />
+      <polygon className="ground-line" fill="none" points={polyPoints(basePath)} />
       <polygon className="ground-dirt-pale" points={polyPoints(projectedCircle(
         hc + BASE * 0.62 * Math.cos(bisect), hr + BASE * 0.62 * Math.sin(bisect), Math.min(w, h) * 0.045, 20,
       ))} />
@@ -204,36 +260,27 @@ function Diamond({ col, row, w, h }: GroundProps) {
           </>
         );
       })()}
-      {/* The stand, BEHIND home plate and facing out over the diamond —
-          which is where a ballpark's seats are. It was in the outfield
-          corner before, which is a real place to put bleachers but not the
-          place you watch a game from. */}
-      {(() => {
-        const behind = bisect + Math.PI;   // away from the field, past the plate
-        const dA = 0.45;
-        // The plate sits 0.82 of the way across, so the room behind it runs
-        // (1 - 0.82) * min(w, h) * sqrt(2) along this diagonal — about 1.78
-        // tiles on a 7x7. The first version put the stand's back edge at
-        // 0.32 of the short side (2.24 tiles) and it overran the plot, which
-        // is what made it read as detached rather than as seating behind the
-        // backstop. Both radii now sit inside that room, and the near edge
-        // is close enough to the plate to read as behind it.
-        const OUTER = 0.22;
-        const INNER = 0.06;
-        return (
-          <RakedStand
-            outer={[tp(Math.min(w, h) * OUTER, behind - dA), tp(Math.min(w, h) * OUTER, behind + dA)]}
-            inner={[tp(Math.min(w, h) * INNER, behind - dA), tp(Math.min(w, h) * INNER, behind + dA)]}
-            bottomH={5}
-            topH={15}
-            rakeFill={CONCRETE.rake}
-            wallFill={CONCRETE.wall}
-            seatStroke={CONCRETE.seat}
-            rows={4}
-            wall
-          />
-        );
-      })()}
+      {/* The stands, wrapping the plate and running down both foul lines. */}
+      {/* 172 degrees of wrap, which reaches most of the way down both foul
+          lines — a narrower arc left the seating sitting behind the plate
+          only, and a ballpark's stands run well past it on both sides. Both
+          ends stay inside the plot: at this radius the far end lands at
+          (3.57, 6.43) on a 7x7. The inner edge hugs the plate rather than
+          standing off it, so the backstop reads as a gap of a few feet
+          rather than a moat. */}
+      <ArcStand
+        cc={hc} cr={hr}
+        rInner={Math.min(w, h) * 0.055}
+        rOuter={Math.min(w, h) * 0.29}
+        from={behind - 1.5}
+        to={behind + 1.5}
+        bottomH={5}
+        topH={17}
+        rakeFill={CONCRETE.rake}
+        wallFill={CONCRETE.wall}
+        seatStroke={CONCRETE.seat}
+        rows={5}
+      />
     </>
   );
 }
