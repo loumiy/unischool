@@ -39,7 +39,42 @@ import FacultyPortrait from '../components/FacultyPortrait';
 // emoji flags failed to render in some browsers, so nationality lives in
 // the expanded detail as plain text only.
 
-function FacultyRow(
+// Teaching and research as a bar rather than a bare number, with the
+// headroom to this hire's POTENTIAL shown behind the filled part.
+//
+// The numbers were always there, but comparing "T 62 · R 41" across twenty
+// listings is slow work, and the potential — the thing that decides whether
+// a cheap 40 is a bargain or a dead end — was buried behind an expand
+// toggle. A bar answers both at a glance: how good they are now, and how
+// much of them is still ahead.
+function StatBar({ label, value, potential }: { label: string; value: number; potential: number }) {
+  return (
+    <span className="faculty-bar" title={`${label} ${value} of a possible ${potential}`}>
+      <span className="faculty-bar-label">{label}</span>
+      <span className="faculty-bar-track">
+        <span className="faculty-bar-headroom" style={{ width: `${Math.max(0, Math.min(100, potential))}%` }} />
+        <span className="faculty-bar-fill" style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
+      </span>
+      <span className="faculty-bar-value">{value}</span>
+    </span>
+  );
+}
+
+// One person, as a card rather than a row in a table.
+//
+// The information is almost all what the row already carried; what changes
+// is that a hire reads as a PERSON — the procedural portrait
+// (FacultyPortrait.tsx) at a size you can actually see, their name and rank
+// given the weight of a heading, their two stats as bars. The rank badge is
+// facultyQualityTier, which was already the familiar academic ladder
+// (Adjunct through Distinguished) and was already on the row; it was just
+// rendered as one more small tag among several.
+//
+// Everything beyond that — bio, nationality, salary detail, what they are
+// actually teaching — still lives one click away behind the same expand
+// toggle, so a fifty-name roster stays a roster rather than becoming fifty
+// spreadsheets.
+function FacultyCard(
   { s, act, f, isCandidate, needed = false }:
   { s: GameState; act: (a: Action) => void; f: Faculty; isCandidate: boolean; needed?: boolean },
 ) {
@@ -49,61 +84,61 @@ function FacultyRow(
   const researches = !isCandidate && labEquippedFields(s).has(f.field);
 
   return (
-    <li className="faculty-row">
-      <div className="faculty-row-summary">
-        <button
-          type="button"
-          className="faculty-expand-btn"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          aria-label={open ? 'Show less' : 'Show more'}
-        >
-          {open ? '▾' : '▸'}
-        </button>
-        <FacultyPortrait f={f} size={22} />
-        <span className="faculty-name">{f.name}</span>
-        {/* The prize badge. Permanent, and the only mark on a roster row
-            that isn't derived from stats — see types.ts's Faculty.acclaim. */}
-        {f.acclaim > 0 && (
-          <span className="faculty-acclaim" title={`${f.acclaim} research ${f.acclaim === 1 ? 'prize' : 'prizes'}`}>
-            {'★'.repeat(f.acclaim)}
-          </span>
-        )}
-        {!isCandidate && <span className="stat">{f.field}</span>}
-        <span className="kind-tag">{facultyQualityTier(f)}</span>
-        <span className="faculty-row-spacer" />
-        {isCandidate ? (
-          <button className="appoint" onClick={() => act({ type: 'HIRE_FACULTY', facultyId: f.id })}>Appoint</button>
-        ) : (
-          <button onClick={() => act({ type: 'FIRE_FACULTY', facultyId: f.id })}>Dismiss</button>
-        )}
-      </div>
-      {/* Candidates only: the at-a-glance line. Field first and unabbreviated
-          (it is what you are scanning for), marked when the school is
-          actually short in it, then the two stats that decide whether
-          they're worth the salary, then the deadline. */}
-      {isCandidate && (
-        <div className="candidate-meta">
-          <span className={needed ? 'candidate-field needed' : 'candidate-field'}>
-            {f.field}{needed ? ' · needed' : ''}
-          </span>
-          <span className="candidate-stats">T {f.teaching} · R {f.research}</span>
-          <span className="candidate-salary">${Math.round(f.salary / 1000)}k</span>
-          <span className={weeksLeft <= 2 ? 'candidate-expiry soon' : 'candidate-expiry'}>{weeksLeft}w left</span>
-        </div>
-      )}
-      {open && (
-        <div className="faculty-row-detail">
-          <div className="faculty-detail-head">
-            <FacultyPortrait f={f} size={48} />
-            <p className="faculty-bio">{f.bio}</p>
+    <li className={`faculty-card${needed ? ' needed' : ''}`}>
+      <div className="faculty-card-main">
+        <FacultyPortrait f={f} size={44} />
+        <div className="faculty-card-body">
+          <div className="faculty-card-head">
+            <span className="faculty-name">{f.name}</span>
+            {/* The prize badge. Permanent, and the only mark on a card that
+                isn't derived from stats — see types.ts's Faculty.acclaim. */}
+            {f.acclaim > 0 && (
+              <span className="faculty-acclaim" title={`${f.acclaim} research ${f.acclaim === 1 ? 'prize' : 'prizes'}`}>
+                {'★'.repeat(f.acclaim)}
+              </span>
+            )}
+            <span className="faculty-card-spacer" />
+            <span className="kind-tag">{facultyQualityTier(f)}</span>
           </div>
+          <div className="faculty-card-field">
+            {f.field}{needed && <span className="faculty-needed"> · needed</span>}
+          </div>
+          <div className="faculty-bars">
+            <StatBar label="T" value={f.teaching} potential={f.teachingPotential} />
+            <StatBar label="R" value={f.research} potential={f.researchPotential} />
+          </div>
+          <div className="faculty-card-foot">
+            <span className="faculty-card-salary">${Math.round(f.salary / 1000)}k/yr</span>
+            {isCandidate && (
+              <span className={weeksLeft <= 2 ? 'candidate-expiry soon' : 'candidate-expiry'}>{weeksLeft}w left</span>
+            )}
+            {!isCandidate && <span className="faculty-card-tenure">{Math.floor(f.tenureWeeks / WEEKS_PER_YEAR)}y tenure</span>}
+            <span className="faculty-card-spacer" />
+            <button
+              type="button"
+              className="faculty-expand-btn"
+              onClick={() => setOpen((v) => !v)}
+              aria-expanded={open}
+              aria-label={open ? `Show less about ${f.name}` : `Show more about ${f.name}`}
+            >
+              {open ? '▾ less' : '▸ more'}
+            </button>
+            {isCandidate ? (
+              <button className="appoint" onClick={() => act({ type: 'HIRE_FACULTY', facultyId: f.id })}>Appoint</button>
+            ) : (
+              <button onClick={() => act({ type: 'FIRE_FACULTY', facultyId: f.id })}>Dismiss</button>
+            )}
+          </div>
+        </div>
+      </div>
+      {open && (
+        <div className="faculty-card-detail">
+          <p className="faculty-bio">{f.bio}</p>
           <dl>
             <dt>Nationality</dt><dd>{f.nationality}</dd>
             <dt>Teaching</dt><dd>{f.teaching} <span className="outcome-note">(→ {f.teachingPotential})</span></dd>
             <dt>Research</dt><dd>{f.research} <span className="outcome-note">(→ {f.researchPotential})</span></dd>
             <dt>Salary</dt><dd>${f.salary.toLocaleString()}/yr</dd>
-            {!isCandidate && <><dt>Tenure</dt><dd>{Math.floor(f.tenureWeeks / WEEKS_PER_YEAR)}y</dd></>}
             <dt>Course slots</dt><dd>{f.courseSlots}</dd>
             {f.acclaim > 0 && <><dt>Prizes won</dt><dd>{f.acclaim}</dd></>}
             {/* Research output, shown for roster members only: a candidate
@@ -285,7 +320,7 @@ export default function FacultyTab({ s, act }: { s: GameState; act: (a: Action) 
             <span className="stat">{s.faculty.length} on payroll</span>
           </div>
           <ul className="faculty-list">
-            {s.faculty.map((f) => <FacultyRow key={f.id} s={s} act={act} f={f} isCandidate={false} />)}
+            {s.faculty.map((f) => <FacultyCard key={f.id} s={s} act={act} f={f} isCandidate={false} />)}
             {s.faculty.length === 0 && <li className="empty-note">No faculty on the roster.</li>}
           </ul>
         </section>
@@ -310,7 +345,7 @@ export default function FacultyTab({ s, act }: { s: GameState; act: (a: Action) 
           </div>
           <ul className="faculty-list candidate-list">
             {visibleCandidates.map((c) => (
-              <FacultyRow key={c.id} s={s} act={act} f={c} isCandidate={true} needed={shortFields.has(c.field)} />
+              <FacultyCard key={c.id} s={s} act={act} f={c} isCandidate={true} needed={shortFields.has(c.field)} />
             ))}
             {visibleCandidates.length === 0 && (
               <li className="empty-note">

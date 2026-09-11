@@ -973,13 +973,12 @@ button.build-tile { font-family: inherit; }
 
 /* The Satisfaction Breakdown panel's expandable rows (see
    StudentLifeTab.tsx's AttributeRow) reuse the faculty roster's own
-   collapsed-row family below (.faculty-list/.faculty-row/...) — same
+   disclosure-row family below (.disclosure-list/.disclosure-row/...) — same
    "collapsed to a name and a figure, click to expand" shape — plus these
    two list styles for what's inside the expansion: a contributor list
    (building name -> what it serves, or a bonus's name -> its points) and
    its own total row, bold and rule-topped to read as a sum rather than one
    more line item. */
-.satisfaction-breakdown-list { max-height: none; }
 .satisfaction-contributor-list { margin: 0 0 8px; }
 .satisfaction-contributor-list:last-child { margin-bottom: 0; }
 .satisfaction-contributor-list li { display: flex; justify-content: space-between; gap: 10px;
@@ -992,36 +991,85 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .outcome-note { color: var(--gold-dim); font-size: var(--text-xs); }
 
 /* ---------- faculty: collapsed-by-default expandable rows ---------- */
-.faculty-list { max-height: 320px; overflow-y: auto; margin: 0; padding: 0; }
-.faculty-row { border-bottom: 1px solid var(--parchment-line-lo); padding: 6px 0; }
-.faculty-row-summary { display: flex; align-items: center; gap: 8px; font-size: var(--text-base); }
-.faculty-expand-btn { background: none; border: none; color: var(--gold-dim); font-size: var(--text-xs); padding: 0 2px; width: 16px; }
-.faculty-name { font-weight: 600; }
-/* The research-prize badge: permanent, and the only mark on a roster row
-   that isn't derived from stats (see types.ts's Faculty.acclaim). */
-.faculty-acclaim { color: var(--gold); font-size: var(--text-sm); letter-spacing: 1px; }
-.faculty-row-spacer { flex: 1; }
-.faculty-row-summary button { background: var(--danger-bg); color: var(--danger-ink); border: 1px solid var(--danger-line); border-radius: var(--radius-sm);
-  padding: 3px 10px; font-size: var(--text-xs); white-space: nowrap; }
-.faculty-row-summary button.appoint { background: #dcefe0; color: var(--ok-on-light); border: 1px solid #9fd3af; }
-/* The expand/collapse toggle is a <button> too, but it's a disclosure
-   arrow, not an action like Appoint/Dismiss — this two-class selector
-   outranks the bare-`button` rule above (which only ever meant to style
-   those actions) so the arrow stays a plain, borderless glyph instead of
-   picking up their red action-button chrome. */
-.faculty-row-summary .faculty-expand-btn { background: none; border: none; color: var(--gold-dim); padding: 0 2px; width: 16px; }
-.faculty-row-detail { margin: 8px 0 2px 24px; padding: 8px 10px; background: #f5efdd;
-  border: 1px solid var(--parchment-line-lo); border-radius: var(--radius-md); font-size: var(--text-sm); }
+/* ---------- faculty, as cards ----------
+   The roster used to be rows in what amounted to a table: a 22px portrait,
+   a name, a field, a tag, a button. Everything a card shows was already
+   there — what changes is that a hire reads as a PERSON rather than a
+   record, which is the whole point of having a procedural portrait
+   generator (FacultyPortrait.tsx) and then rendering it at 22px. */
+.faculty-list { max-height: 380px; overflow-y: auto; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 8px; }
+.faculty-card { background: #f6f1e0; border: 1px solid var(--parchment-line-lo);
+  border-radius: var(--radius-md); padding: 8px 10px; }
+/* A candidate in a field the school is actually short in gets a brass edge.
+   It was a word on a meta line before, which is the sort of thing you read
+   only if you were already looking at that row. */
+.faculty-card.needed { border-color: var(--gold-dim); box-shadow: inset 2px 0 0 var(--gold-dim); }
+.faculty-card-main { display: flex; align-items: flex-start; gap: 10px; }
+.faculty-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.faculty-card-head { display: flex; align-items: baseline; gap: 6px; }
+.faculty-card-spacer { flex: 1; }
+.faculty-name { font-weight: 700; font-size: var(--text-base); color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The research-prize badge: permanent, and the only mark on a card that
+   isn't derived from stats (see types.ts's Faculty.acclaim). */
+.faculty-acclaim { color: var(--gold); font-size: var(--text-sm); letter-spacing: 1px; flex: none; }
+.faculty-card-field { font-size: var(--text-xs); color: var(--ink-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.faculty-needed { color: var(--ok-on-light); font-weight: 700; }
+
+/* Teaching and research. Two bars beat two numbers here because the job on
+   this screen is COMPARING people, and the headroom behind the fill is the
+   thing that decides whether a cheap 40 is a bargain or a dead end. */
+.faculty-bars { display: flex; gap: 10px; margin: 1px 0 2px; }
+.faculty-bar { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; }
+.faculty-bar-label { font-family: var(--mono); font-size: var(--text-2xs); color: var(--ink-muted); }
+.faculty-bar-track { position: relative; flex: 1; min-width: 0; height: 5px;
+  border-radius: var(--radius-xs); background: #e4dcc5; overflow: hidden; }
+.faculty-bar-headroom { position: absolute; inset: 0 auto 0 0; background: #d8c893; }
+.faculty-bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--gold-dim); }
+.faculty-bar-value { font-family: var(--mono); font-size: var(--text-2xs); color: var(--ink-muted);
+  min-width: 16px; text-align: right; }
+
+.faculty-card-foot { display: flex; align-items: center; gap: 8px; font-family: var(--mono);
+  font-size: var(--text-2xs); color: var(--ink-muted); }
+.faculty-card-salary { white-space: nowrap; }
+.faculty-card-tenure { white-space: nowrap; }
+.faculty-card-foot button { background: var(--danger-bg); color: var(--danger-ink);
+  border: 1px solid var(--danger-line); border-radius: var(--radius-sm);
+  padding: 2px 9px; font-size: var(--text-2xs); white-space: nowrap; }
+.faculty-card-foot button.appoint { background: #dcefe0; color: var(--ok-on-light); border-color: #9fd3af; }
+/* The disclosure toggle is a <button> too, but it is not an action like
+   Appoint/Dismiss — this two-class selector outranks the rule above so it
+   stays a plain brass glyph rather than picking up their chrome. */
+.faculty-card-foot .faculty-expand-btn { background: none; border: none; color: var(--gold-dim);
+  padding: 0 2px; width: auto; font-family: var(--mono); font-size: var(--text-2xs); }
+
+.faculty-card-detail { margin-top: 8px; padding-top: 8px;
+  border-top: 1px dashed var(--parchment-line-lo); font-size: var(--text-sm); }
 .faculty-bio { margin: 0 0 8px; font-style: italic; color: var(--ink-muted); }
-/* Procedural headshots (see components/FacultyPortrait.tsx) — a fixed
-   circular chip that never shrinks in a tight flex row, at either the
-   small summary-row size or the larger detail-panel one. */
+/* Procedural headshots (FacultyPortrait.tsx) — a fixed circular chip that
+   never shrinks in a tight flex row. */
 .faculty-portrait { flex-shrink: 0; border-radius: 50%; }
-.faculty-detail-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
-.faculty-detail-head .faculty-bio { margin: 0; flex: 1; }
 .faculty-courses { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--parchment-line-lo); }
 .faculty-courses-list { margin: 4px 0 0; padding: 0; list-style: none; }
 .faculty-courses-list li { font-family: var(--mono); font-size: var(--text-xs); padding: 1px 0; }
+
+/* ---------- a disclosure row ----------
+   A label, a figure, and a toggle that opens a detail block under it. The
+   Student Life tab's satisfaction attributes used to borrow the faculty
+   roster's row classes for this, which coupled two screens that have
+   nothing to do with each other — the faculty rewrite to cards broke it,
+   which is how the coupling came to light. Its own family now. */
+.disclosure-list { margin: 0; padding: 0; }
+.disclosure-row { border-bottom: 1px solid var(--parchment-line-lo); padding: 6px 0; }
+.disclosure-row-head { display: flex; align-items: center; gap: 8px; font-size: var(--text-base); }
+.disclosure-row-label { font-weight: 600; }
+.disclosure-row-spacer { flex: 1; }
+.disclosure-toggle { background: none; border: none; color: var(--gold-dim);
+  font-size: var(--text-xs); padding: 0 2px; width: 16px; }
+.disclosure-row-detail { margin: 8px 0 2px 24px; padding: 8px 10px; background: #f5efdd;
+  border: 1px solid var(--parchment-line-lo); border-radius: var(--radius-md); font-size: var(--text-sm); }
 
 /* ---------- research: the lab gate, school by school ----------
    Research is mostly silent, so this small table is where the rule
@@ -1049,7 +1097,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    spans the row instead of leaving an empty gutter (see FacultyTab.tsx). */
 .faculty-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .faculty-columns .panel { display: flex; flex-direction: column; }
-.faculty-columns .faculty-list { max-height: 440px; flex: 1; min-height: 0; }
+.faculty-columns .faculty-list { max-height: 560px; flex: 1; min-height: 0; }
 
 /* The market's field filter — the other half of making a 30-name list
    scannable, alongside sorting short-handed fields to the top. */
@@ -1060,11 +1108,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* The always-visible second line on a candidate row: field, stats, price,
    and how long the listing has left. Deliberately mono and small — it is
    read by scanning down a column, not by reading sentences. */
-.candidate-meta { display: flex; align-items: baseline; gap: 8px; margin: 2px 0 0 24px;
-  font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted); }
-.candidate-field { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.candidate-field.needed { color: var(--ok-on-light); font-weight: 700; }
-.candidate-stats, .candidate-salary { white-space: nowrap; }
 .candidate-expiry { white-space: nowrap; color: var(--gold-dim); }
 .candidate-expiry.soon { color: var(--bad-on-light); font-weight: 700; }
 
@@ -1414,7 +1457,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
      a candidate's field, stats, price and deadline share one line. Stack
      them here, market first: it is the panel with a deadline on it. */
   .faculty-columns { grid-template-columns: 1fr; }
-  .faculty-columns .faculty-list { max-height: 340px; }
+  .faculty-columns .faculty-list { max-height: 420px; }
   .student-life-columns { grid-template-columns: 1fr; }
   .treasury-columns { grid-template-columns: 1fr; }
 }

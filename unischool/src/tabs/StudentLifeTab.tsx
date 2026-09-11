@@ -107,7 +107,7 @@ function money2(v: number): string {
 
 // One attribute's expandable row: collapsed to its name and score by
 // default (the "faculty roster" expand pattern — see FacultyTab.tsx's own
-// FacultyRow), opening to show exactly what's behind that score — every
+// the faculty cards' own disclosure), opening to show exactly what's behind that score — every
 // 'done' building feeding it, how many it serves, the total against what a
 // fully-covered campus would need, and any named point bonus beyond served
 // population (faculty quality, campus pride, scholarships, student
@@ -119,23 +119,23 @@ function AttributeRow({ s, attribute }: { s: GameState; attribute: keyof Satisfa
   const detail = attributeDetail(s, attribute);
 
   return (
-    <li className="faculty-row satisfaction-attribute-row">
-      <div className="faculty-row-summary">
+    <li className="disclosure-row satisfaction-attribute-row">
+      <div className="disclosure-row-head">
         <button
           type="button"
-          className="faculty-expand-btn"
+          className="disclosure-toggle"
           aria-expanded={open}
           aria-label={open ? `Hide ${ATTRIBUTE_LABELS[attribute]} breakdown` : `Show ${ATTRIBUTE_LABELS[attribute]} breakdown`}
           onClick={() => setOpen((v) => !v)}
         >
           {open ? '▾' : '▸'}
         </button>
-        <span className="faculty-name">{ATTRIBUTE_LABELS[attribute]}</span>
-        <span className="faculty-row-spacer" />
+        <span className="disclosure-row-label">{ATTRIBUTE_LABELS[attribute]}</span>
+        <span className="disclosure-row-spacer" />
         <span className="stat">{Math.round(detail.score)}</span>
       </div>
       {open && (
-        <div className="faculty-row-detail">
+        <div className="disclosure-row-detail">
           {detail.dormant ? (
             <p className="empty-note">Dormant — the campus hasn&rsquo;t crossed the population where this need starts to matter yet.</p>
           ) : (
@@ -186,7 +186,7 @@ function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
           text="The four attributes the satisfaction target is a weighted sum of, read live off the campus as it stands right now — not smoothed, so a building finished this week already shows here even while the headline number above is still drifting toward its new target. Expand one to see exactly what's behind its score: every building serving that need, how many it serves, and any other named contributor."
         />
       </div>
-      <ul className="faculty-list satisfaction-breakdown-list">
+      <ul className="disclosure-list">
         {ATTRIBUTE_ORDER.map((attribute) => (
           <AttributeRow key={attribute} s={s} attribute={attribute} />
         ))}
