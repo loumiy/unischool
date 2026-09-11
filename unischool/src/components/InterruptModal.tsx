@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { Action } from '../state/actions';
 import type { GameState, PendingInterrupt, PrizeAward } from '../state/types';
 import { institutionName, WEEKS_PER_YEAR } from '../state/types';
@@ -14,6 +14,7 @@ import type { DecisionEventContext, MilestonePayload } from '../data/eventData';
 import type { OrgPetition } from '../state/types';
 import type { ReportPayload } from '../systems/rivals/rivalsSystem';
 import AnimatedNumber from './AnimatedNumber';
+import { isActivationTarget, useHotkeys } from './hotkeys';
 
 // Placeholder modal content for an interrupt type with no dedicated view
 // (see AdmissionsInterruptForm below for 'admissions', and every other
@@ -695,58 +696,64 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
     ? interrupt.payload as { eventId: string; ctx: DecisionEventContext }
     : null;
 
-  // Enter resolves whichever modal is open, but ONLY for the interrupt
-  // types explicitly wired below — the report and an authored decision
-  // event (Enter here means CONTINUE: resolve with no choice picked, the
-  // same escape hatch the dismiss button below uses for a content-table
-  // miss, never one specific paid choice, so there is never an
-  // affordability check to get wrong). Every other type is a deliberate
-  // no-op, not a fallthrough to generic RESOLVE_INTERRUPT — milestone,
-  // research-prize and demand are mechanically just clear-and-advance today
-  // (see reducer.ts), same as the generic action itself, but each still
-  // gets its OWN dedicated action rather than reusing it, so that stays
-  // true if one of them ever grows real work of its own to do on resolve.
-  // Charter is not mechanically equivalent even today — accepting or
-  // declining sets `universityCharterOffered`/`suffix`, which generic
-  // RESOLVE_INTERRUPT has no way to do. Extending Enter to any of these
-  // later means wiring it to that type's own dedicated action, never the
-  // generic one. The admissions form is left out for a different reason:
-  // its tuition/scholarships values live in AdmissionsInterruptForm's own local
-  // state, not reachable from here without lifting that state up just for
-  // a hotkey, so it stays click-to-confirm (see the PR notes for more).
+  // Enter dismisses whichever modal is open, for every interrupt type that
+  // has a plain "continue" to press — the report, a milestone, a research
+  // prize, a student demand, and an authored decision event (Enter there
+  // means CONTINUE: resolve with no choice picked, the same escape hatch the
+  // dismiss button below uses for a content-table miss, never one specific
+  // paid choice, so there is never an affordability check to get wrong).
+  // These are the interrupts a long run throws most often and that the
+  // player reads and waves through, so making them answer the key the
+  // keyboard already puts under that hand is most of what stops a
+  // fast-forwarded decade being a click hunt.
+  //
+  // Each type is wired to its OWN dedicated action, never a fallthrough to
+  // generic RESOLVE_INTERRUPT — milestone, research-prize and demand are
+  // mechanically just clear-and-advance today (see reducer.ts), same as the
+  // generic action itself, but keeping them separate is what makes that stay
+  // correct if one of them ever grows real work of its own to do on resolve.
+  //
+  // Two types are deliberately left out, for two different reasons. Charter
+  // is a real either/or — accepting or declining sets
+  // `universityCharterOffered`/`suffix` — so there is no neutral "continue"
+  // for a key to stand for, and picking one silently would be picking for
+  // the player. The admissions form is left out because its
+  // tuition/scholarship values live in AdmissionsInterruptForm's own local
+  // state, not reachable from here without lifting that state up just for a
+  // hotkey, so it stays click-to-confirm.
   //
   // Guarded against a focused button/input so a Tab-focused decision-event
   // choice (or, if a future interrupt ever grows a text field) keeps
-  // handling its own Enter natively instead of racing this handler.
-  //
-  // The listener is re-registered whenever `interrupt`/`decision` change
-  // identity (every interrupt is a fresh object off structuredClone — see
-  // reducer.ts), so the closure below always reads the CURRENT interrupt,
-  // never a stale one from a previous render.
-  useEffect(() => {
-    if (!interrupt) return;
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key !== 'Enter') return;
-      const tag = (e.target as HTMLElement | null)?.tagName;
-      if (tag === 'BUTTON' || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  // handling its own Enter natively instead of racing this handler. The
+  // typing guard and the window listener itself come from useHotkeys (see
+  // hotkeys.ts), which also keeps the handler reading the CURRENT interrupt
+  // rather than one from an earlier render.
+  useHotkeys((e) => {
+    if (e.key !== 'Enter' || !interrupt) return;
+    if (isActivationTarget(e.target)) return;
 
-      switch (interrupt!.type) {
-        case 'rankings-entry':
-        case 'annual-report':
-          act({ type: 'RESOLVE_REPORT' });
-          break;
-        case 'decision-event':
-          if (decision) {
-            act({ type: 'RESOLVE_DECISION_EVENT', eventId: decision.eventId, choiceId: '', ctx: decision.ctx });
-          }
-          break;
-        // admissions, milestone, research-prize, demand, charter, and
-        // anything unrecognised: no-op — see the comment above.
-      }
+    switch (interrupt.type) {
+      case 'rankings-entry':
+      case 'annual-report':
+        act({ type: 'RESOLVE_REPORT' });
+        break;
+      case 'milestone':
+        act({ type: 'RESOLVE_MILESTONE' });
+        break;
+      case 'research-prize':
+        act({ type: 'RESOLVE_PRIZE' });
+        break;
+      case 'demand':
+        act({ type: 'RESOLVE_DEMAND' });
+        break;
+      case 'decision-event':
+        if (decision) {
+          act({ type: 'RESOLVE_DECISION_EVENT', eventId: decision.eventId, choiceId: '', ctx: decision.ctx });
+        }
+        break;
+      // admissions, charter, and anything unrecognised: no-op — see above.
     }
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [interrupt, decision, act]);
+  }, interrupt !== null);
 
   if (!interrupt) return null;
 

@@ -571,18 +571,18 @@ function CampusToolsTiles({ pathTool, onSetPathTool }: {
         className={`build-tile tool ${pathTool === 'draw' ? 'placing' : ''}`}
         aria-pressed={pathTool === 'draw'}
         onClick={() => onSetPathTool('draw')}
-        title="Draw a pathway by filling in tiles"
+        title="Draw a pathway by filling in tiles — P on the map does the same, and the right mouse button erases while either tool is armed"
       >
         <span className="build-tile-icon"><DrawPathIcon /></span>
         <span className="build-tile-name">Draw path</span>
-        <span className="build-tile-foot">fills in tiles</span>
+        <span className="build-tile-foot">fills in tiles · P</span>
       </button>
       <button
         type="button"
         className={`build-tile tool ${pathTool === 'erase' ? 'placing' : ''}`}
         aria-pressed={pathTool === 'erase'}
         onClick={() => onSetPathTool('erase')}
-        title="Erase a drawn pathway"
+        title="Erase a drawn pathway — with either tool armed the right mouse button erases too, so this is for a long clearing pass rather than a correction"
       >
         <span className="build-tile-icon"><EraseIcon /></span>
         <span className="build-tile-name">Erase path</span>

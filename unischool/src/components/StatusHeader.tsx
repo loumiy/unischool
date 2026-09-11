@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { Action } from '../state/actions';
 import type { GameState } from '../state/types';
 import { WEEKS_PER_YEAR, institutionName, totalEnrolled } from '../state/types';
@@ -7,6 +7,7 @@ import { playerRank } from '../systems/rivals/rivalsSystem';
 import { SPEEDS, SANDBOX_SPEEDS, type Speed } from '../engine/useGame';
 import DayTicker from './DayTicker';
 import AnimatedNumber from './AnimatedNumber';
+import { isActivationTarget, useHotkeys } from './hotkeys';
 
 // The playtest grant (see the "+$1B" button below): a round, memorable
 // figure — not tuned to any particular shortfall — since its only job is
@@ -14,25 +15,41 @@ import AnimatedNumber from './AnimatedNumber';
 // cash event.
 const PLAYTEST_GRANT_AMOUNT = 1_000_000_000;
 
-// Keys 1/2/3 set the speed directly to real/double/fast, without having to
-// click the control-bar buttons — real and double are ordinary gameplay
-// speeds so both hotkeys are live for every player, but '3' only does
-// anything for a test university, matching the Fast button's own gating
-// just below. Ignored while focus sits in a text control (the startup
-// screen's school-name field, a future text input) so typing "3" into a
-// name doesn't yank the clock into fast-forward.
-function useSpeedHotkeys(setSpeed: (speed: Speed) => void, sandboxAllowed: boolean) {
+// Keys 1/2/3 set the speed directly to real/double/fast, and Space toggles
+// between paused and playing, without having to click the control-bar
+// buttons — real and double are ordinary gameplay speeds so both hotkeys
+// are live for every player, but '3' only does anything for a test
+// university, matching the Fast button's own gating just below. The typing
+// guard (so typing "3" into the startup screen's school-name field doesn't
+// yank the clock into fast-forward) lives in useHotkeys now — see
+// hotkeys.ts.
+//
+// Space is a toggle rather than a set, so it needs to know what to go BACK
+// to: it returns to whatever speed was last actually running rather than
+// always to `real`, so a player who was watching at 2x gets 2x back after
+// a pause instead of being quietly downshifted every time they stop to
+// read something. The game itself opens paused, so `real` is what an
+// un-pause falls back to until something has run at least once.
+function useSpeedHotkeys(speed: Speed, setSpeed: (speed: Speed) => void, sandboxAllowed: boolean) {
+  const resumeSpeedRef = useRef<Speed>('real');
   useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      const tag = (e.target as HTMLElement | null)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if (e.key === '1') setSpeed('real');
-      else if (e.key === '2') setSpeed('double');
-      else if (e.key === '3' && sandboxAllowed) setSpeed('fast');
+    if (speed !== 'paused') resumeSpeedRef.current = speed;
+  }, [speed]);
+
+  useHotkeys((e) => {
+    if (e.key === '1') setSpeed('real');
+    else if (e.key === '2') setSpeed('double');
+    else if (e.key === '3' && sandboxAllowed) setSpeed('fast');
+    else if (e.key === ' ') {
+      // A Tab-focused button answers Space by clicking itself; that native
+      // behaviour wins, rather than the press both clicking a button and
+      // pausing the game. Otherwise Space is ours — and preventDefault
+      // keeps the browser from also scrolling the page with it.
+      if (isActivationTarget(e.target)) return;
+      e.preventDefault();
+      setSpeed(speed === 'paused' ? resumeSpeedRef.current : 'paused');
     }
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [setSpeed, sandboxAllowed]);
+  });
 }
 
 const SPEED_LABELS: Record<Speed, string> = { paused: 'Paused', real: 'Play', double: 'Play 2×', fast: 'Fast (sandbox)' };
@@ -142,7 +159,7 @@ export function SchoolAndClock({ s, speed, setSpeed, act }: {
     (sp) => showPlaytestControls || !SANDBOX_SPEEDS.includes(sp),
   );
 
-  useSpeedHotkeys(setSpeed, showPlaytestControls);
+  useSpeedHotkeys(speed, setSpeed, showPlaytestControls);
 
   return (
     <>
@@ -165,7 +182,9 @@ export function SchoolAndClock({ s, speed, setSpeed, act }: {
                 SANDBOX_SPEEDS.includes(sp) ? 'sandbox' : '',
               ].join(' ').trim()}
               onClick={() => setSpeed(sp)}
-              title={SANDBOX_SPEEDS.includes(sp) ? 'Playtesting only — not intended for normal play' : undefined}
+              title={SANDBOX_SPEEDS.includes(sp)
+                ? 'Playtesting only — not intended for normal play'
+                : 'Space pauses and resumes; 1 and 2 set the speed directly'}
             >
               {SPEED_LABELS[sp]}
             </button>

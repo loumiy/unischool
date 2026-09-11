@@ -41,6 +41,35 @@ npm run dev
 
 Open the printed localhost URL. Start the clock to begin.
 
+## Keyboard
+
+The map is the screen the player spends the most time on and the one where the
+mouse is most often already busy — holding a path stroke down, or carrying a
+picked-up building toward its spot — so most of the game is reachable without
+it.
+
+| Key | Does |
+| --- | --- |
+| `W` `A` `S` `D`, arrows | Pan the camera. Held keys glide; two at once give a diagonal. |
+| Middle mouse drag | Pan too, in every mode — including mid-stroke under a path tool, where the left button is busy painting. |
+| Scroll / pinch, `+` `−` | Zoom. |
+| `Space` | Pause, or resume at whatever speed was last running. |
+| `1` `2` | Play, play at 2×. (`3` is sandbox fast — see `isTestUniversity`.) |
+| `P` | Arm the path tool. Left button draws, right button erases; a ghost tile marks the square under the cursor. |
+| `R` | Rotate the picked-up building 90°, same as the ⟳ on its footprint ghost. |
+| `Esc` | Close the open view; on the map, back out of the path tool, then a picked-up building, then an open info panel. |
+| `Enter` | Dismiss the interrupt on screen (every type with a plain "continue" — not the admissions form or the charter offer, which are real choices). |
+| `C` `F` `L` | Open (or close) Curriculum, Faculty, Student Life. |
+
+The plumbing is one module, `src/components/hotkeys.ts`: it owns the window
+listener, the "not while the player is typing" guard, and the rule that a key
+held with Ctrl/Meta/Alt belongs to the browser. What each key MEANS stays with
+the component that owns the thing it does — speed on `StatusHeader.tsx`,
+pan/draw/rotate on `CampusMap.tsx`, the tab letters on `App.tsx`, `Enter` on
+`InterruptModal.tsx`. `App.tsx` gates the map's whole keyboard off while a tab
+overlay or an interrupt is on top of it, so only one layer is ever listening
+for `Esc`.
+
 ## Project structure
 
 - `src/state/` — the shared `GameState` type, initial state, and action definitions
