@@ -204,6 +204,54 @@ function Scaffolding({ col, row, w, h, height }: {
   );
 }
 
+// How wide and how tall the entrance is, as a fraction of the wall it sits
+// on. A gym's doors are wide and low; a lab's is a single service door; a
+// hall's is the formal front.
+const DOOR: Record<Motif, [number, number]> = {
+  hall: [0.16, 0.46], residential: [0.09, 0.40], portico: [0.15, 0.44],
+  pavilion: [0.20, 0.52], hangar: [0.22, 0.46], works: [0.12, 0.5],
+  grounds: [0, 0], bowl: [0, 0],
+};
+
+// The way in. Every roofed building had walls and windows and no door at
+// all, which is the one thing that says a wall is the FRONT of somewhere
+// rather than just the side of a box.
+//
+// It goes on the f.left face, which on this projection is the wall along the
+// footprint's max-row edge — the one facing the camera most directly, and
+// the natural front. Drawn in the wall's own (u along, v up) coordinates so
+// it skews correctly like everything else on that face, with a step at its
+// foot on the ground to stop it reading as a painted rectangle.
+function Door({ motif, f, height }: { motif: Motif; f: ReturnType<typeof boxFaces>; height: number }) {
+  const [dw, dh] = DOOR[motif];
+  if (dw <= 0) return null;
+  const u0 = 0.5 - dw / 2;
+  const u1 = 0.5 + dw / 2;
+  const at = (u: number, v: number) => facePoint(f.D, f.C, height, u, v);
+  return (
+    <>
+      <polygon
+        className="iso-door"
+        points={polyPoints([at(u0, 0), at(u1, 0), at(u1, dh), at(u0, dh)])}
+      />
+      {/* A lintel across the head, and a step at the threshold lying on the
+          ground in front of it. */}
+      <polygon
+        className="iso-door-lintel"
+        points={polyPoints([at(u0 - 0.015, dh), at(u1 + 0.015, dh), at(u1 + 0.015, dh + 0.05), at(u0 - 0.015, dh + 0.05)])}
+      />
+      <polygon
+        className="iso-door-step"
+        points={polyPoints([
+          at(u0 - 0.01, 0), at(u1 + 0.01, 0),
+          { x: at(u1 + 0.01, 0).x, y: at(u1 + 0.01, 0).y + 3 },
+          { x: at(u0 - 0.01, 0).x, y: at(u0 - 0.01, 0).y + 3 },
+        ])}
+      />
+    </>
+  );
+}
+
 // A small box standing on a roof: plant, a stair head, a lift overrun — the
 // thing you actually see on a flat roof from above and to one side.
 function RoofBox({ col, row, w, h, base, height, tint }: {
@@ -331,6 +379,7 @@ export default function BuildingMotif({ t, p, tint, developing }: {
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
       {!developing && grid && windows(f.D, f.C, H, grid[0], grid[1], 'l')}
       {!developing && grid && windows(f.C, f.B, H, grid[0], grid[1], 'r')}
+      {!developing && <Door motif={motif} f={f} height={H} />}
 
       {gabled ? (
         <>

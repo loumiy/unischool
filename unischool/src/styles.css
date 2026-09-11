@@ -846,6 +846,12 @@ button.build-tile { font-family: inherit; }
 .campus-map-svg.path-erase .campus-building { pointer-events: none; }
 
 .iso-window { fill: rgba(255, 253, 246, 0.5); }
+/* The way in. Darker than any window so it reads as an opening rather than
+   one more pane, with a lintel over it and a step on the ground at its
+   foot. */
+.iso-door { fill: rgba(38, 30, 16, 0.55); }
+.iso-door-lintel { fill: rgba(38, 30, 16, 0.3); }
+.iso-door-step { fill: rgba(255, 253, 246, 0.3); }
 .iso-rooflight { fill: rgba(255, 253, 246, 0.42); }
 .iso-ridge { stroke: rgba(42, 56, 28, 0.28); stroke-width: 1; vector-effect: non-scaling-stroke; }
 

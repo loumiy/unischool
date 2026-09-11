@@ -1,5 +1,5 @@
 import type { FacilityType } from '../state/types';
-import { boxFaces, lift, polyPoints, project, projectedArc, projectedCircle, type Pt } from './isoProjection';
+import { boxFaces, lift, polyPoints, project, projectedArc, projectedCircle, projectedEllipse, type Pt } from './isoProjection';
 
 // Open ground: the Buildables you walk across rather than into — the quad,
 // the pool deck, the courts, the pitches, and the stadium's own field. These
@@ -150,82 +150,87 @@ function Gridiron({ col, row, w, h, inset = 0 }: GroundProps & { inset?: number 
 // around the bases. The dirt is what makes it read instantly.
 // ---------------------------------------------------------------------
 function Diamond({ col, row, w, h }: GroundProps) {
-  // Home plate sits at the FRONT corner of the footprint — the one nearest
-  // the camera — with the field opening away from it, so the view is the one
-  // you get from behind the plate. The foul lines run along -col and -row,
-  // exactly 90 degrees apart, and the outfield arc sweeps between them.
-  //
-  // The radius is bounded by the footprint rather than chosen freely: the
-  // first version used 0.86 of the short side, which put the arc's widest
-  // point outside the footprint entirely and spilled the outfield across the
-  // neighbouring lawn.
-  const hc = col + w * 0.93;
-  const hr = row + h * 0.93;
-  const R = Math.min(w, h) * 0.82;      // outfield, sized to stay inside the plot
-  const DIRT = Math.min(w, h) * 0.32;   // infield dirt
-  const BASE = Math.min(w, h) * 0.21;   // home-to-base
+  // Home plate sits back from the footprint's front corner rather than on
+  // it, which is what leaves room for the stand BEHIND the plate — where a
+  // ballpark actually puts its seats. The outfield radius shrinks to match
+  // so the arc still finishes inside the plot.
+  const hc = col + w * 0.82;
+  const hr = row + h * 0.82;
+  const R = Math.min(w, h) * 0.74;      // outfield boundary
+  const TRACK = R * 0.88;               // inner edge of the warning track
+  const DIRT = Math.min(w, h) * 0.30;   // infield dirt
+  const BASE = Math.min(w, h) * 0.19;   // home-to-base
   const from = Math.PI;                 // foul line toward -col
   const to = Math.PI * 1.5;             // foul line toward -row
   const bisect = Math.PI * 1.25;        // toward the outfield's centre
   const home = project(hc, hr);
   const polar = (r: number, a: number) => project(hc + r * Math.cos(a), hr + r * Math.sin(a));
+  const tp = (r: number, a: number): TilePt => [hc + r * Math.cos(a), hr + r * Math.sin(a)];
 
   return (
     <>
       <polygon className="ground-turf" points={polyPoints([home, ...projectedArc(hc, hr, R, from, to), home])} />
+      {/* The warning track: a band of dirt inside the fence, so a fielder
+          knows the wall is coming. Drawn as the ring between the boundary
+          and TRACK — an arc out and the inner arc back. */}
+      <polygon
+        className="ground-dirt"
+        points={polyPoints([
+          ...projectedArc(hc, hr, R, from, to, 36),
+          ...projectedArc(hc, hr, TRACK, to, from, 36),
+        ])}
+      />
       <polygon className="ground-dirt" points={polyPoints([home, ...projectedArc(hc, hr, DIRT, from, to), home])} />
-      {/* The base path: home, first, second, third — a square stood on one
-          corner, with home at the near end. */}
       <polygon
         className="ground-line"
         fill="none"
         points={polyPoints([home, polar(BASE, from), polar(BASE * Math.SQRT2, bisect), polar(BASE, to)])}
       />
       <polygon className="ground-dirt-pale" points={polyPoints(projectedCircle(
-        hc + BASE * 0.62 * Math.cos(bisect), hr + BASE * 0.62 * Math.sin(bisect), Math.min(w, h) * 0.05, 20,
+        hc + BASE * 0.62 * Math.cos(bisect), hr + BASE * 0.62 * Math.sin(bisect), Math.min(w, h) * 0.045, 20,
       ))} />
       {[from, to].map((a, i) => {
         const end = polar(R, a);
         return <line key={i} className="ground-line" x1={home.x} y1={home.y} x2={end.x} y2={end.y} />;
       })}
-      {/* The outfield fence: a low wall following the boundary, drawn as a
-          real face rather than a stroke so it reads as something standing on
-          the field rather than another painted line among the markings. */}
+      {/* The outfield fence, following the boundary. */}
       {(() => {
         const FENCE_H = 5;
-        const arcPts = projectedArc(hc, hr, R * 0.96, from, to, 36);
-        const face = [...arcPts, ...[...arcPts].reverse().map((q) => lift(q, FENCE_H))];
+        const arcPts = projectedArc(hc, hr, R, from, to, 36);
         return (
           <>
-            <polygon className="ground-fence" points={polyPoints(face)} />
-            <polyline
-              className="ground-fence-rail"
-              fill="none"
-              points={polyPoints(arcPts.map((q) => lift(q, FENCE_H)))}
-            />
+            <polygon className="ground-fence" points={polyPoints([...arcPts, ...[...arcPts].reverse().map((q) => lift(q, FENCE_H))])} />
+            <polyline className="ground-fence-rail" fill="none" points={polyPoints(arcPts.map((q) => lift(q, FENCE_H)))} />
           </>
         );
       })()}
-      {/* Outfield bleachers, set just beyond the fence and facing home —
-          positioned in the field's OWN polar frame rather than along a
-          footprint edge, which is what keeps them hugging the boundary
-          instead of stranded in the corner of the lot. */}
+      {/* The stand, BEHIND home plate and facing out over the diamond —
+          which is where a ballpark's seats are. It was in the outfield
+          corner before, which is a real place to put bleachers but not the
+          place you watch a game from. */}
       {(() => {
-        const dA = 0.24;
-        const outerR = R * 1.2;
-        const innerR = R * 1.02;
-        const tp = (r: number, a: number): TilePt => [hc + r * Math.cos(a), hr + r * Math.sin(a)];
+        const behind = bisect + Math.PI;   // away from the field, past the plate
+        const dA = 0.45;
+        // The plate sits 0.82 of the way across, so the room behind it runs
+        // (1 - 0.82) * min(w, h) * sqrt(2) along this diagonal — about 1.78
+        // tiles on a 7x7. The first version put the stand's back edge at
+        // 0.32 of the short side (2.24 tiles) and it overran the plot, which
+        // is what made it read as detached rather than as seating behind the
+        // backstop. Both radii now sit inside that room, and the near edge
+        // is close enough to the plate to read as behind it.
+        const OUTER = 0.22;
+        const INNER = 0.06;
         return (
           <RakedStand
-            outer={[tp(outerR, bisect - dA), tp(outerR, bisect + dA)]}
-            inner={[tp(innerR, bisect - dA), tp(innerR, bisect + dA)]}
+            outer={[tp(Math.min(w, h) * OUTER, behind - dA), tp(Math.min(w, h) * OUTER, behind + dA)]}
+            inner={[tp(Math.min(w, h) * INNER, behind - dA), tp(Math.min(w, h) * INNER, behind + dA)]}
             bottomH={5}
-            topH={13}
+            topH={15}
             rakeFill={CONCRETE.rake}
             wallFill={CONCRETE.wall}
             seatStroke={CONCRETE.seat}
-            rows={3}
-            frontWall
+            rows={4}
+            wall
           />
         );
       })()}
@@ -238,39 +243,63 @@ function Diamond({ col, row, w, h }: GroundProps) {
 function Pitch({ col, row, w, h }: GroundProps) {
   const landscape = w >= h;
   const A = (a: number, c: number): [number, number] => (landscape ? [a, c] : [c, a]);
-  // Asymmetric margins: the playing surface is pushed off the back edge to
-  // leave a band for the stand, rather than the stand being drawn on top of
-  // the pitch it is supposed to be beside.
-  const at = (a: number, c: number): [number, number] => A(0.05 + a * 0.9, 0.26 + c * 0.68);
+  const cc = col + w * 0.5;
+  const cr = row + h * 0.5;
+
+  // The running track: an oval around the pitch, which is what a
+  // multi-sport field actually is. The band between the two ellipses is the
+  // track surface; the pitch sits in the infield inside it.
+  //
+  // Radii are taken along the footprint's own axes so a rotated field gets
+  // an oval the right way round, and the outer one stops short of the edge
+  // to leave a strip for the stand.
+  const outerA = 0.46;   // along the long axis, as a fraction of that side
+  const outerC = 0.40;   // across it
+  const innerA = 0.355;
+  const innerC = 0.285;
+  const rA = (fr: number) => (landscape ? w : h) * fr;
+  const rC = (fr: number) => (landscape ? h : w) * fr;
+  const ell = (fa: number, fc: number) => (landscape
+    ? projectedEllipse(cc, cr, rA(fa), rC(fc))
+    : projectedEllipse(cc, cr, rC(fc), rA(fa)));
+
+  // The pitch itself, inscribed in the infield.
+  const at = (a: number, c: number): [number, number] => A(0.5 + (a - 0.5) * 0.60, 0.5 + (c - 0.5) * 0.50);
   const half = uvLine(col, row, w, h, ...at(0.5, 0), ...at(0.5, 1));
-  const box = (from: number, to: number) => uvPoly(col, row, w, h, [at(from, 0.22), at(to, 0.22), at(to, 0.78), at(from, 0.78)]);
+  const box = (from: number, to: number) => uvPoly(col, row, w, h, [at(from, 0.24), at(to, 0.24), at(to, 0.76), at(from, 0.76)]);
+
   return (
     <>
+      {/* Track surface, then the infield cut back out of it. */}
+      <polygon className="ground-track" points={polyPoints(ell(outerA, outerC))} />
+      <polygon className="ground-lane" fill="none" points={polyPoints(ell(outerA - 0.03, outerC - 0.035))} />
+      <polygon className="ground-lane" fill="none" points={polyPoints(ell(outerA - 0.06, outerC - 0.07))} />
+      <polygon className="ground-turf" points={polyPoints(ell(innerA, innerC))} />
+
       <polygon className="ground-turf" points={uvPoly(col, row, w, h, [at(0, 0), at(1, 0), at(1, 1), at(0, 1)])} />
+      <polygon className="ground-line" fill="none" points={uvPoly(col, row, w, h, [at(0, 0), at(1, 0), at(1, 1), at(0, 1)])} />
       <line className="ground-line" {...half} />
       <polygon className="ground-line" points={box(0, 0.16)} fill="none" />
       <polygon className="ground-line" points={box(0.84, 1)} fill="none" />
       <polygon
         className="ground-line"
         fill="none"
-        points={polyPoints(projectedCircle(
-          col + w * (landscape ? 0.5 : 0.6), row + h * (landscape ? 0.6 : 0.5), Math.min(w, h) * 0.14,
-        ))}
+        points={polyPoints(projectedCircle(cc, cr, Math.min(w, h) * 0.10))}
       />
-      {/* The stand sits AGAINST the touchline rather than on the footprint's
-          own edge — placed in the pitch's (along, across) frame, the same
-          frame the markings use, so it hugs the line whichever way round the
-          footprint is rotated instead of leaving a strip of lawn between
-          itself and the play. */}
+
+      {/* The stand, outside the track on the far side. */}
       {(() => {
         const tp = (a: number, c: number): TilePt => {
           const [u, v] = A(a, c);
           return [col + w * u, row + h * v];
         };
         return (
+          // Spanning the middle only, where the oval is straightest. A stand
+          // running the full width stood off the curve at both ends and read
+          // as detached from the track it serves.
           <RakedStand
-            outer={[tp(0.2, 0.06), tp(0.8, 0.06)]}
-            inner={[tp(0.2, 0.24), tp(0.8, 0.24)]}
+            outer={[tp(0.32, 0.02), tp(0.68, 0.02)]}
+            inner={[tp(0.32, 0.10), tp(0.68, 0.10)]}
             bottomH={5}
             topH={14}
             rakeFill={CONCRETE.rake}

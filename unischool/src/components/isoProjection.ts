@@ -117,6 +117,21 @@ export function projectedCircle(
   return out;
 }
 
+// An ellipse on the ground — a running track's oval, where a circle's single
+// radius will not do. Sampled as a polygon for the same reason
+// projectedCircle is: the projection turns it into an ellipse whose axes are
+// not screen-aligned, and a sampled ring needs no rotation maths.
+export function projectedEllipse(
+  centreCol: number, centreRow: number, radiusCol: number, radiusRow: number, segments = 56,
+): Pt[] {
+  const out: Pt[] = [];
+  for (let i = 0; i < segments; i++) {
+    const a = (i / segments) * Math.PI * 2;
+    out.push(project(centreCol + Math.cos(a) * radiusCol, centreRow + Math.sin(a) * radiusRow));
+  }
+  return out;
+}
+
 // An arc on the ground between two angles — the outfield boundary and the
 // infield dirt of a ball field are both this.
 export function projectedArc(
