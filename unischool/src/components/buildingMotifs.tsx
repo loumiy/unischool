@@ -150,6 +150,49 @@ function windows(origin: Pt, along: Pt, height: number, cols: number, rows: numb
   return out;
 }
 
+// The scaffolding hatch, referenced by every site under construction. One
+// <pattern> defined once for the whole map rather than per building — see
+// SCAFFOLD_PATTERN_ID's use in CampusMap's <defs>.
+export const SCAFFOLD_PATTERN_ID = 'campus-scaffold';
+export function ScaffoldPattern() {
+  return (
+    <pattern id={SCAFFOLD_PATTERN_ID} width={14} height={14} patternUnits="userSpaceOnUse">
+      <path className="scaffold-hatch" d="M-4,4 L4,-4 M0,14 L14,0 M10,18 L18,10" />
+    </pattern>
+  );
+}
+
+// Scaffold poles standing at the corners of a site, with a lift line between
+// them. A hatch alone reads as a texture; the poles are what say "work is
+// happening here" rather than "this rectangle is a different colour".
+function Scaffolding({ col, row, w, h, height }: {
+  col: number; row: number; w: number; h: number; height: number;
+}) {
+  const posts: [number, number][] = [
+    [col + w * 0.06, row + h * 0.06], [col + w * 0.94, row + h * 0.06],
+    [col + w * 0.94, row + h * 0.94], [col + w * 0.06, row + h * 0.94],
+  ];
+  const POLE = height * 2.6;
+  return (
+    <>
+      {posts.map(([c, r], i) => {
+        const foot = project(c, r);
+        const head = lift(foot, POLE);
+        return <line key={i} className="scaffold-pole" x1={foot.x} y1={foot.y} x2={head.x} y2={head.y} />;
+      })}
+      {/* One lift line along the back, where it reads against the sky rather
+          than against the site's own hatch. */}
+      <line
+        className="scaffold-rail"
+        x1={lift(project(posts[0][0], posts[0][1]), POLE * 0.72).x}
+        y1={lift(project(posts[0][0], posts[0][1]), POLE * 0.72).y}
+        x2={lift(project(posts[1][0], posts[1][1]), POLE * 0.72).x}
+        y2={lift(project(posts[1][0], posts[1][1]), POLE * 0.72).y}
+      />
+    </>
+  );
+}
+
 // A small box standing on a roof: plant, a stair head, a lift overrun — the
 // thing you actually see on a flat roof from above and to one side.
 function RoofBox({ col, row, w, h, base, height, tint }: {
@@ -248,8 +291,10 @@ export default function BuildingMotif({ t, p, tint, developing }: {
       return (
         <>
           <polygon points={polyPoints(f.top)} fill={shade(tint, 0.9)} />
+          <polygon points={polyPoints(f.top)} fill={`url(#${SCAFFOLD_PATTERN_ID})`} />
           <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
           <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+          <Scaffolding col={col} row={row} w={w} h={h} height={H} />
         </>
       );
     }
@@ -309,6 +354,10 @@ export default function BuildingMotif({ t, p, tint, developing }: {
       ) : (
         <>
           <polygon points={polyPoints(f.top)} fill={pal.roof} />
+          {/* Scaffolding hatch over the site's own deck: the diagonal
+              boarding you see looking down into a half-built frame. */}
+          {developing && <polygon points={polyPoints(f.top)} fill={`url(#${SCAFFOLD_PATTERN_ID})`} />}
+          {developing && <Scaffolding col={col} row={row} w={w} h={h} height={H} />}
           {!developing && motif === 'portico' && [0.26, 0.5, 0.74].map((v) => (
             // Libraries and galleries are top-lit. Rooflights are both true
             // and the thing that tells them apart from a plain shed.

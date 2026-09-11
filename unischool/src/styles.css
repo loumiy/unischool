@@ -842,6 +842,27 @@ button.build-tile { font-family: inherit; }
 /* A site under construction: the progress bar lies flat on the ground along
    the front of its own footprint, where the mass rising behind it cannot
    cover it up. */
+/* Scaffolding on a site under construction: diagonal boarding over the deck,
+   poles at the corners, one lift rail across the back. The hatch alone reads
+   as a texture — the poles are what say work is happening here. */
+.scaffold-hatch { stroke: rgba(42, 56, 28, 0.34); stroke-width: 2.5; fill: none; }
+.scaffold-pole { stroke: rgba(58, 47, 14, 0.55); stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+.scaffold-rail { stroke: rgba(58, 47, 14, 0.4); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+
+/* The completion beat: a brass ring on the ground, once, as a building
+   becomes real. Guarded by the stylesheet's blanket reduced-motion rule
+   above, which collapses it to a single frame. */
+.campus-building-complete {
+  fill: none; stroke: var(--gold); stroke-width: 3; pointer-events: none;
+  vector-effect: non-scaling-stroke;
+  animation: campus-complete 1.5s ease-out forwards;
+}
+@keyframes campus-complete {
+  0% { opacity: 0; stroke-width: 1; }
+  22% { opacity: 1; stroke-width: 4; }
+  100% { opacity: 0; stroke-width: 2; }
+}
+
 .campus-building-progress-track { fill: rgba(42, 56, 28, 0.3); pointer-events: none; }
 .campus-building-progress-fill { fill: var(--gold); pointer-events: none; }
 

@@ -9,7 +9,7 @@ import {
 import { canStartDevelopment } from '../systems/techtree/techSystem';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
-import BuildingMotif, { heightOf, tintFor } from './buildingMotifs';
+import BuildingMotif, { ScaffoldPattern, heightOf, tintFor } from './buildingMotifs';
 import PathwayLayer from './pathways';
 import { TILE_H, WORLD, boxFaces, lift, polyPoints, project, tileAt } from './isoProjection';
 
@@ -105,6 +105,11 @@ const LABEL_CLEARANCE = 10;        // gap between a building's apex and its labe
 // the ground along the FRONT edge of the site's own footprint, where nothing
 // can stand on top of it, rather than across the building's face.
 const PROGRESS_BAR_DEPTH = 0.22;   // in tiles
+
+// How long a finished building's completion ring stays on screen. Long
+// enough to notice at a glance, short enough that a run of completions in a
+// fast-forwarded year does not leave the map permanently flashing.
+const COMPLETION_PULSE_MS = 1500;
 
 // --- pan & zoom ---
 // Deliberately kept OUT of React state (see the view*Ref below): the whole
@@ -203,9 +208,10 @@ function labelLayout(t: Buildable, p: Placement) {
 // actually drawn is both correct and free — there are only ever a few dozen
 // buildings, so nothing here needs the arithmetic picking the ground uses.
 function PlacedBuilding({
-  t, p, onInspect, inspected, weeksLeft,
+  t, p, onInspect, inspected, weeksLeft, justFinished,
 }: {
-  t: Buildable; p: Placement; onInspect: () => void; inspected: boolean; weeksLeft?: number;
+  t: Buildable; p: Placement; onInspect: () => void; inspected: boolean;
+  weeksLeft?: number; justFinished?: boolean;
 }) {
   const d = drawnFootprint(p);
   const developing = t.status === 'developing' && weeksLeft !== undefined;
@@ -223,6 +229,16 @@ function PlacedBuilding({
         // The footprint picked out on the ground, which is the one outline
         // that cannot be hidden by the building standing on it.
         <polygon className="campus-building-halo" points={polyPoints(boxFaces(p.col, p.row, p.w, p.h, 0, 0).top)} />
+      )}
+      {justFinished && (
+        // A ring on the ground around the footprint that has just become a
+        // real building. On the ground rather than around the mass, because
+        // the mass is what the player is looking at and a ring drawn over it
+        // would obscure the thing it is celebrating.
+        <polygon
+          className="campus-building-complete"
+          points={polyPoints(boxFaces(p.col - 0.15, p.row - 0.15, p.w + 0.3, p.h + 0.3, 0, 0).top)}
+        />
       )}
       {developing && (
         <>
@@ -303,6 +319,35 @@ export default function CampusMap({
   // about to land can be previewed. Multi-tile buildings need this: where a
   // 2x2 hall goes is no longer obvious from the tile you clicked.
   const [hover, setHover] = useState<{ row: number; col: number } | null>(null);
+  // Buildings that finished within the last COMPLETION_PULSE_MS, so the
+  // moment a thing you paid for and waited on becomes real gets a beat of
+  // its own. DERIVED, not stored: the previous set of developing ids is kept
+  // in a ref and diffed each render, so nothing about completion enters
+  // GameState or the save, and a reload simply shows no pulse — which is
+  // right, since nothing completed just now.
+  const [justFinished, setJustFinished] = useState<readonly string[]>([]);
+  const wasDevelopingRef = useRef<Set<string>>(new Set());
+  // Pending expiries are held here rather than cancelled by the effect's own
+  // cleanup. The effect re-runs on every tick that touches developing or
+  // placements, and a cleanup would have cancelled the timer each time —
+  // which is exactly what happened: the ring appeared and then never left,
+  // because the run that would have removed it kept being torn down by the
+  // next unrelated tick. They are cancelled on unmount only.
+  const pulseTimersRef = useRef<number[]>([]);
+  useEffect(() => {
+    const now = new Set(Object.keys(s.developing));
+    const done = [...wasDevelopingRef.current].filter((id) => !now.has(id) && id in s.placements);
+    wasDevelopingRef.current = now;
+    if (done.length === 0) return;
+    setJustFinished((cur) => [...cur, ...done]);
+    pulseTimersRef.current.push(window.setTimeout(
+      () => setJustFinished((cur) => cur.filter((id) => !done.includes(id))),
+      COMPLETION_PULSE_MS,
+    ));
+  }, [s.developing, s.placements]);
+  useEffect(() => () => {
+    for (const timer of pulseTimersRef.current) window.clearTimeout(timer);
+  }, []);
 
   // `selectedId` can now change from OUTSIDE this component (BuildPopup.tsx
   // arming a new pickup), not just through selectBuilding below — so
@@ -741,6 +786,7 @@ export default function CampusMap({
             if (tile) placeById(e.dataTransfer.getData('text/plain'), tile.row, tile.col);
           }}
         >
+          <defs><ScaffoldPattern /></defs>
           <g ref={worldRef}>
             {/* Ground, then drawn pathways, then buildings back-to-front,
                 then the footprint ghost, then labels on top of everything.
@@ -769,6 +815,7 @@ export default function CampusMap({
                   onInspect={() => inspectBuilding(t.id)}
                   inspected={t.id === inspectedId}
                   weeksLeft={s.developing[t.id]}
+                  justFinished={justFinished.includes(t.id)}
                 />
               ))}
 
