@@ -78,6 +78,77 @@ const BUILDING_CORNER = 8;   // placed buildings (and the footprint ghost) keep 
 // covers simply disappears under it.
 const BUILDING_INSET = 4;
 
+// A placed building sits ON the lawn rather than being painted into it, so
+// it casts a small shadow down and to the right. A second <rect> under the
+// body, NOT an SVG drop-shadow filter: there are only ever a few dozen
+// placed buildings so a filter would be affordable here, but a hard flat
+// offset is the language the rest of the map already speaks (flat fills,
+// hairline strokes, no blur anywhere), and it costs one more rect in the
+// same paint instead of a separate filter region per building. Kept smaller
+// than BUILDING_INSET's own (2 * BUILDING_INSET) gutter so a building's
+// shadow always falls in the seam beside it and never climbs onto a
+// tile-adjacent neighbour.
+const BUILDING_SHADOW_OFFSET = 3;
+
+// The brass ring drawn around the building whose info panel is open — see
+// .campus-building-halo in styles.css for why the connection to that panel
+// is made here on the map rather than by anchoring the panel itself.
+const BUILDING_HALO_GAP = 3;
+
+// --- ground texture ---
+// ONE tiled <pattern> stretched across a SINGLE rect covering the whole
+// grid — deliberately not per-tile variation. The grid is
+// CAMPUS_GRID_WIDTH * CAMPUS_GRID_HEIGHT (126 * 126 = 15,876) <rect>s, every
+// one of them rendered at all times (see the rows/cols map in the render
+// below) and every one sharing a single CSS class, so the browser keeps one
+// computed style for the lot. Mottling the lawn by giving each tile its own
+// fill would replace that one shared style with ~16k distinct ones — the
+// same per-frame cost the pan/zoom refs above exist specifically to avoid.
+// A pattern costs one element and one paint, at any grid size.
+const TURF_PATTERN_ID = 'campus-turf-pattern';
+const TURF_PATTERN_SIZE = 384;   // 6 tiles square: large enough that the repeat never reads as a second grid over the first
+const TURF_BAND_HEIGHT = 96;     // 1.5 tiles — deliberately NOT a whole number of tiles, so a mow band's edge never lands on a tile seam
+
+// Worn flecks in the turf, hand-placed within one pattern tile:
+// [cx, cy, rx, ry]. All kept clear of the pattern box's edges so none is
+// clipped at the repeat seam, and irregularly spaced so the repeat reads as
+// texture rather than as a motif. Ellipses rather than circles — a round dot
+// at this size reads as a bullet point, not as ground.
+const TURF_FLECKS: readonly (readonly [number, number, number, number])[] = [
+  [34, 58, 3.5, 2.2], [112, 27, 2.4, 1.6], [201, 74, 4.1, 2.6], [297, 41, 2.8, 1.9],
+  [352, 103, 3.2, 2.1], [66, 148, 2.6, 1.8], [158, 186, 3.8, 2.4], [243, 137, 2.2, 1.5],
+  [331, 199, 3.4, 2.2], [26, 247, 3.0, 2.0], [129, 291, 2.5, 1.7], [214, 262, 3.6, 2.3],
+  [305, 328, 2.9, 1.9], [88, 352, 3.3, 2.1], [368, 279, 2.3, 1.6],
+];
+
+// The pattern definition and the one rect that wears it. Geometry lives
+// here and colour lives in styles.css (.campus-turf-band/.campus-turf-fleck),
+// the same split every other shape on this map follows — the `fill` below is
+// a reference to this pattern, not a colour, so it stays on this side.
+function TurfTexture() {
+  return (
+    <>
+      <defs>
+        <pattern id={TURF_PATTERN_ID} width={TURF_PATTERN_SIZE} height={TURF_PATTERN_SIZE} patternUnits="userSpaceOnUse">
+          <rect className="campus-turf-band" x={0} y={0} width={TURF_PATTERN_SIZE} height={TURF_BAND_HEIGHT} />
+          <rect className="campus-turf-band" x={0} y={TURF_PATTERN_SIZE / 2} width={TURF_PATTERN_SIZE} height={TURF_BAND_HEIGHT} />
+          {TURF_FLECKS.map(([cx, cy, rx, ry]) => (
+            <ellipse key={`${cx},${cy}`} className="campus-turf-fleck" cx={cx} cy={cy} rx={rx} ry={ry} />
+          ))}
+        </pattern>
+      </defs>
+      <rect
+        className="campus-turf"
+        x={tileX(0)}
+        y={tileY(0)}
+        width={spanSize(CAMPUS_GRID_WIDTH)}
+        height={spanSize(CAMPUS_GRID_HEIGHT)}
+        fill={`url(#${TURF_PATTERN_ID})`}
+      />
+    </>
+  );
+}
+
 // Label metrics: shrink-to-fit sizing (see labelFor below). SVG <text> has
 // no CSS text-overflow, so "does the full name fit" has to be computed
 // rather than measured live in the DOM — LABEL_CHAR_WIDTH_RATIO and
@@ -368,7 +439,30 @@ function PlacedBuilding({
       role="button"
       onClick={onInspect}
     >
-      <rect x={x} y={y} width={width} height={height} rx={BUILDING_CORNER} />
+      {/* Drawn before the body so it lies under it. Carries no
+          `.campus-building-body` class on purpose — that class is what every
+          kind/tint fill in styles.css targets, so staying off it is what
+          lets the shadow keep its own colour instead of being repainted the
+          building's own. */}
+      <rect
+        className="campus-building-shadow"
+        x={x + BUILDING_SHADOW_OFFSET}
+        y={y + BUILDING_SHADOW_OFFSET}
+        width={width}
+        height={height}
+        rx={BUILDING_CORNER}
+      />
+      <rect className="campus-building-body" x={x} y={y} width={width} height={height} rx={BUILDING_CORNER} />
+      {inspected && (
+        <rect
+          className="campus-building-halo"
+          x={x - BUILDING_HALO_GAP}
+          y={y - BUILDING_HALO_GAP}
+          width={width + BUILDING_HALO_GAP * 2}
+          height={height + BUILDING_HALO_GAP * 2}
+          rx={BUILDING_CORNER + BUILDING_HALO_GAP}
+        />
+      )}
       {lines.map((line, i) => (
         <text
           key={i}
@@ -758,7 +852,7 @@ export default function CampusMap({
       <div className="campus-map-canvas">
         <svg
           ref={svgRef}
-          className={`campus-map-svg ${selected ? 'placing' : ''} ${pathTool ? `path-${pathTool}` : ''}`}
+          className={`campus-map-svg ${selected ? 'placing' : ''} ${pathTool ? `path-${pathTool}` : ''} ${inspectedId ? 'inspecting' : ''}`}
           // No viewBox: 1 SVG user unit is then exactly 1 CSS px, so the
           // pan/zoom transform on the <g> below (in the same units) needs
           // no extra conversion, and the map's true pixel size (TILE_SIZE
@@ -774,8 +868,11 @@ export default function CampusMap({
           onWheel={onWheel}
         >
           <g ref={worldRef}>
-            {/* Ground, then drawn pathways (so a building placed over a
-                path tile draws on top of it, never the other way around),
+            {/* Ground, then its texture (an inert overlay — it has to lie
+                OVER the ground tiles, whose own fills are opaque, so it
+                cannot simply sit underneath them), then drawn pathways (so a
+                building placed over a path tile draws on top of it, never
+                the other way around),
                 then buildings, then path hit-targets (path mode only — see
                 the disambiguation note on pathTool above, which is what
                 keeps these from ever being live at the same time as
@@ -795,6 +892,8 @@ export default function CampusMap({
                 onDrop={(id) => placeById(id, row, col)}
               />
             )))}
+
+            <TurfTexture />
 
             {Object.keys(s.pathways).map((key) => {
               const tile = parsePathTileKey(key);

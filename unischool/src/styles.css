@@ -25,8 +25,29 @@
      grid itself is a hairline, not a border — see --grass-line. */
   --grass: #7d9c60;
   --grass-deep: #6d8c52;
-  --grass-line: rgba(42, 56, 28, 0.16);
+  /* The grid hairline has TWO strengths, not one, because the grid is only
+     ever a working aid: it answers "where exactly will this land", which is
+     a question the player only asks while placing a building or drawing a
+     path. --grass-line is that working strength, switched on by the mode
+     classes the map root already carries (.placing / .path-draw /
+     .path-erase — see .campus-tile below); --grass-line-idle is what the
+     lawn wears the rest of the time, faint enough to read as mown ground
+     rather than as graph paper. Same hue, so the switch is a change in
+     emphasis rather than a change in material. */
+  --grass-line: rgba(42, 56, 28, 0.18);
+  --grass-line-idle: rgba(42, 56, 28, 0.05);
   --grass-highlight: #a3c17d;
+  /* Ground texture (see CampusMap.tsx's TurfTexture): a mow band and a
+     scatter of worn flecks, both barely there. Deliberately near the
+     threshold of visible — the lawn should stop reading as one flat swatch
+     without ever becoming something the eye has to look past to see the
+     campus on top of it. */
+  --turf-band: rgba(255, 255, 255, 0.03);
+  --turf-fleck: rgba(42, 56, 28, 0.05);
+  /* A placed building's own cast shadow — flat and offset, no blur (see
+     BUILDING_SHADOW_OFFSET in CampusMap.tsx for why this is a second rect
+     rather than an SVG filter). */
+  --building-shadow: rgba(42, 56, 28, 0.28);
   --serif: Georgia, 'Times New Roman', serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   /* --toolbar-height is kept in sync with the toolbar's REAL rendered
@@ -667,8 +688,39 @@ button.build-tile { font-family: inherit; }
    this hairline stroke, low-contrast against the fill on purpose. A
    covered cell is drawn over by its building and never actually seen, so
    its own colour only has to not show through at the seams. */
-.campus-tile { fill: var(--grass); stroke: var(--grass-line); stroke-width: 1; }
+.campus-tile { fill: var(--grass); stroke: var(--grass-line-idle); stroke-width: 1; }
 .campus-tile.covered { fill: var(--grass-deep); stroke: none; }
+/* The grid is a working aid, not scenery: it comes up to full strength
+   exactly when the player is asking a grid question — and sinks back to
+   --grass-line-idle the rest of the time, so simply looking around the
+   campus shows grounds rather than graph paper. The path-tool classes are
+   already computed on the map root for their cursors (see CampusMap.tsx's
+   .campus-map-svg className), so this needs no new state, no new prop, and
+   no JS at all.
+   Only the PATH tools are listed. Placement (.placing) is deliberately
+   absent: it already brings the grid up by its own route, since every empty
+   tile becomes .targetable and takes the lightened fill and gold stroke
+   just below. Adding .placing here would not just be redundant, it would
+   actively break that — `.campus-map-svg.placing .campus-tile` (0,3,0)
+   outranks `.campus-tile.targetable` (0,2,0), so it would overwrite the
+   gold placement cue with a plain grid line and hand covered tiles a stroke
+   they are explicitly meant not to have. Hence :not(.covered) here too: a
+   covered tile is drawn over by its building and must stay seamless.
+   NOT transitioned: there are CAMPUS_GRID_WIDTH * CAMPUS_GRID_HEIGHT
+   (126 * 126 = 15,876) tiles on screen at once and animating a property on
+   every one of them would stall the very interaction it's decorating. The
+   switch is instant on purpose. */
+.campus-map-svg.path-draw .campus-tile:not(.covered),
+.campus-map-svg.path-erase .campus-tile:not(.covered) { stroke: var(--grass-line); }
+
+/* Ground texture: ONE <pattern>-filled rect over the whole grid, never a
+   per-tile fill — see TurfTexture in CampusMap.tsx for why (it would trade
+   one shared computed style for ~16k distinct ones). Inert: it lies over
+   the ground tiles, so without this the lawn itself would swallow every
+   placement click. */
+.campus-turf { pointer-events: none; }
+.campus-turf-band { fill: var(--turf-band); }
+.campus-turf-fleck { fill: var(--turf-fleck); }
 /* Placement mode. Deliberately quiet: with hundreds of tiles on screen,
    outlining every free one shouts. The available ground just lightens, and
    the footprint ghost below is what actually points at where the building
@@ -679,7 +731,13 @@ button.build-tile { font-family: inherit; }
 /* The footprint ghost: where the picked-up building would land, and whether
    it fits. Multi-tile buildings make this necessary — the tile you click is
    the top-left corner, not the whole building. */
-.campus-preview { pointer-events: none; fill: none; stroke-width: 1.5; }
+/* non-scaling-stroke so the ghost's outline stays exactly as crisp zoomed
+   all the way out (MIN_ZOOM 0.22, where a scaled 1.5px stroke would thin to
+   a third of a pixel and effectively vanish) as it is at native size. The
+   ghost answers "does this fit" — it is the one thing on the map that must
+   stay legible at every zoom, and unlike the grid hairline it is a handful
+   of elements, not 15,876, so the per-element cost is irrelevant. */
+.campus-preview { pointer-events: none; fill: none; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .campus-preview.ok { stroke: var(--gold); fill: rgba(201, 162, 39, 0.18); }
 .campus-preview.blocked { stroke: #b4544a; fill: rgba(180, 84, 74, 0.14); stroke-dasharray: 3 2; }
 
@@ -715,7 +773,23 @@ button.build-tile { font-family: inherit; }
    Which N a Buildable gets is decided in CampusMap.tsx: by facility type
    for facilities (all dining halls match), by a hash of the id for dorms
    (neighbours differ). Building carries no tint class at all — see below. */
-.campus-building rect { stroke-width: 1; }
+.campus-building .campus-building-body { stroke-width: 1; }
+/* The cast shadow, drawn first so it sits under its own building (see
+   PlacedBuilding). It is NOT a `.campus-building-body`, which is exactly
+   why that class exists: every kind/tint fill above is written as
+   `.campus-building.kind-x .campus-building-body`, so a bare `rect` in this
+   group — a shadow, a progress bar — keeps its own colour instead of being
+   repainted the building's. Stroke is cleared explicitly because the body
+   rule above would otherwise lend it one. */
+.campus-building-shadow { fill: var(--building-shadow); stroke: none; pointer-events: none; }
+/* A site under construction casts less shadow than a finished building, for
+   one practical reason and one honest one. Practical: the body above it is
+   only 55% opaque while developing, so a shadow at full strength shows
+   THROUGH the whole footprint rather than just past its edge, muddying the
+   faded-and-unfinished read that fill-opacity is there to create. Honest: a
+   half-built thing has less of itself to cast a shadow with, so the shadow
+   arriving at full strength is part of what completion looks like. */
+.campus-building.under-construction .campus-building-shadow { opacity: 0.4; }
 .campus-building text { font-family: var(--serif); fill: var(--ink); pointer-events: none;
   user-select: none; }
 /* Every placed building is a click target for its (read-only) info panel —
@@ -724,45 +798,58 @@ button.build-tile { font-family: inherit; }
    all in the handler. `.inspected` marks whichever one currently has its
    panel open. */
 .campus-building { cursor: pointer; }
-.campus-building.inspected rect { stroke-width: 2.5; stroke: var(--gold); }
+/* Inspecting one building: rather than anchor the info panel to the
+   building (the panel is a FIXED corner card, and deliberately so — see the
+   note on BuildingInfoPanel's usage in CampusMap.tsx: pan/zoom is applied
+   imperatively precisely so dragging never re-renders React, and a panel
+   tracking its building would undo exactly that), the connection is made on
+   the MAP side. The inspected building keeps its colour and gains a brass
+   ring; every other building on campus steps back. The player's eye is left
+   in no doubt which object the card in the corner is describing, and the
+   pan/zoom path is untouched. */
+.campus-building.inspected .campus-building-body { stroke-width: 2.5; stroke: var(--gold); }
+.campus-building-halo { fill: none; stroke: var(--gold); stroke-width: 1.5; opacity: 0.5; pointer-events: none; }
+.campus-map-svg.inspecting .campus-building:not(.inspected) .campus-building-body { opacity: 0.5; }
+.campus-map-svg.inspecting .campus-building:not(.inspected) .campus-building-shadow { opacity: 0.35; }
+.campus-map-svg.inspecting .campus-building:not(.inspected) text { opacity: 0.35; }
 
 /* Academic halls: the campus's brass landmarks. They're all the same
    building family and should read as ONE colour, not id-hashed shades of
    one — so, unlike dorm/facility, this is the only rule for kind-building;
    CampusMap.tsx never adds a tint-N class to it. */
-.campus-building.kind-building rect { fill: var(--gold); stroke: var(--gold-dim); }
+.campus-building.kind-building .campus-building-body { fill: var(--gold); stroke: var(--gold-dim); }
 .campus-building.kind-building text { fill: #3a2f0e; font-weight: 700; }
 
 /* Dorms: the green family, kept muted so the halls stay dominant. */
-.campus-building.kind-dorm rect { fill: #cfe0cf; stroke: #9fd3af; }
-.campus-building.kind-dorm.tint-0 rect { fill: #cfe0cf; stroke: #9cc4a6; }
-.campus-building.kind-dorm.tint-1 rect { fill: #c2d8c1; stroke: #92bb9c; }
-.campus-building.kind-dorm.tint-2 rect { fill: #d8e6d3; stroke: #a8cdaf; }
-.campus-building.kind-dorm.tint-3 rect { fill: #c8ddd0; stroke: #96c0a4; }
+.campus-building.kind-dorm .campus-building-body { fill: #cfe0cf; stroke: #9fd3af; }
+.campus-building.kind-dorm.tint-0 .campus-building-body { fill: #cfe0cf; stroke: #9cc4a6; }
+.campus-building.kind-dorm.tint-1 .campus-building-body { fill: #c2d8c1; stroke: #92bb9c; }
+.campus-building.kind-dorm.tint-2 .campus-building-body { fill: #d8e6d3; stroke: #a8cdaf; }
+.campus-building.kind-dorm.tint-3 .campus-building-body { fill: #c8ddd0; stroke: #96c0a4; }
 .campus-building.kind-dorm text { fill: #24402c; }
 
 /* Facilities: one parchment/stone shade per facility type, in the order
    CampusMap.tsx's FACILITY_TINT_ORDER lists them — library, student
    center, dining hall, rec center, health center, quad, lab. */
-.campus-building.kind-facility rect { fill: #dccfa6; stroke: var(--parchment-line); }
-.campus-building.kind-facility.tint-0 rect { fill: #d9cba3; stroke: #b9a874; } /* library */
-.campus-building.kind-facility.tint-1 rect { fill: #e0cdb4; stroke: #c0a889; } /* student center */
-.campus-building.kind-facility.tint-2 rect { fill: #e6d3ae; stroke: #c4ad7c; } /* dining hall */
-.campus-building.kind-facility.tint-3 rect { fill: #d3cdb2; stroke: #aca684; } /* rec center */
-.campus-building.kind-facility.tint-4 rect { fill: #e3d6c6; stroke: #bdae99; } /* health center */
-.campus-building.kind-facility.tint-5 rect { fill: #cfdcc4; stroke: #a5b895; } /* quad */
-.campus-building.kind-facility.tint-6 rect { fill: #cdd0c0; stroke: #a2a68f; } /* lab */
-.campus-building.kind-facility.tint-7 rect { fill: #d6c9a0; stroke: #b39f70; } /* gym */
-.campus-building.kind-facility.tint-8 rect { fill: #d1d9b8; stroke: #a7b488; } /* tennis courts */
-.campus-building.kind-facility.tint-9 rect { fill: #b9cdd4; stroke: #88a7b0; } /* pool */
-.campus-building.kind-facility.tint-10 rect { fill: #d8c2c9; stroke: #b2909b; } /* performing arts center */
-.campus-building.kind-facility.tint-11 rect { fill: #cbc0d3; stroke: #a294ac; } /* art gallery */
-.campus-building.kind-facility.tint-12 rect { fill: #c9d9a8; stroke: #a3bd7c; } /* athletics field */
-.campus-building.kind-facility.tint-13 rect { fill: #cdbfa0; stroke: #a89469; } /* arena */
-.campus-building.kind-facility.tint-14 rect { fill: #d7c49a; stroke: #b39c68; } /* baseball/softball diamond */
-.campus-building.kind-facility.tint-15 rect { fill: #a9c7cf; stroke: #7ea3ac; } /* natatorium — distinct blue from the rec pool's tint-9 */
-.campus-building.kind-facility.tint-16 rect { fill: #d4a94f; stroke: #a67f2e; } /* football stadium — the pinnacle, boldest of the facility tints */
-.campus-building.kind-facility.tint-17 rect { fill: #ecd9a4; stroke: #c7a862; } /* grocery store — warm, dining-adjacent but distinct from tint-2's dining hall */
+.campus-building.kind-facility .campus-building-body { fill: #dccfa6; stroke: var(--parchment-line); }
+.campus-building.kind-facility.tint-0 .campus-building-body { fill: #d9cba3; stroke: #b9a874; } /* library */
+.campus-building.kind-facility.tint-1 .campus-building-body { fill: #e0cdb4; stroke: #c0a889; } /* student center */
+.campus-building.kind-facility.tint-2 .campus-building-body { fill: #e6d3ae; stroke: #c4ad7c; } /* dining hall */
+.campus-building.kind-facility.tint-3 .campus-building-body { fill: #d3cdb2; stroke: #aca684; } /* rec center */
+.campus-building.kind-facility.tint-4 .campus-building-body { fill: #e3d6c6; stroke: #bdae99; } /* health center */
+.campus-building.kind-facility.tint-5 .campus-building-body { fill: #cfdcc4; stroke: #a5b895; } /* quad */
+.campus-building.kind-facility.tint-6 .campus-building-body { fill: #cdd0c0; stroke: #a2a68f; } /* lab */
+.campus-building.kind-facility.tint-7 .campus-building-body { fill: #d6c9a0; stroke: #b39f70; } /* gym */
+.campus-building.kind-facility.tint-8 .campus-building-body { fill: #d1d9b8; stroke: #a7b488; } /* tennis courts */
+.campus-building.kind-facility.tint-9 .campus-building-body { fill: #b9cdd4; stroke: #88a7b0; } /* pool */
+.campus-building.kind-facility.tint-10 .campus-building-body { fill: #d8c2c9; stroke: #b2909b; } /* performing arts center */
+.campus-building.kind-facility.tint-11 .campus-building-body { fill: #cbc0d3; stroke: #a294ac; } /* art gallery */
+.campus-building.kind-facility.tint-12 .campus-building-body { fill: #c9d9a8; stroke: #a3bd7c; } /* athletics field */
+.campus-building.kind-facility.tint-13 .campus-building-body { fill: #cdbfa0; stroke: #a89469; } /* arena */
+.campus-building.kind-facility.tint-14 .campus-building-body { fill: #d7c49a; stroke: #b39c68; } /* baseball/softball diamond */
+.campus-building.kind-facility.tint-15 .campus-building-body { fill: #a9c7cf; stroke: #7ea3ac; } /* natatorium — distinct blue from the rec pool's tint-9 */
+.campus-building.kind-facility.tint-16 .campus-building-body { fill: #d4a94f; stroke: #a67f2e; } /* football stadium — the pinnacle, boldest of the facility tints */
+.campus-building.kind-facility.tint-17 .campus-building-body { fill: #ecd9a4; stroke: #c7a862; } /* grocery store — warm, dining-adjacent but distinct from tint-2's dining hall */
 .campus-building.kind-facility text { fill: #3d3524; }
 
 /* Under construction: a developing placement is sited exactly like a
@@ -773,7 +860,7 @@ button.build-tile { font-family: inherit; }
    needing a whole second colour language on top of the kind tints above;
    the progress bar along the bottom edge (see the two rects below) is what
    actually says how far along it is. */
-.campus-building.under-construction rect:first-of-type {
+.campus-building.under-construction .campus-building-body {
   stroke-dasharray: 5 3; stroke-width: 2; fill-opacity: 0.55;
 }
 .campus-building.under-construction text { opacity: 0.75; }
