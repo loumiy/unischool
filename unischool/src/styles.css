@@ -1502,9 +1502,14 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    Research is mostly silent, so this small table is where the rule
    ("no lab, no research") is actually visible. Schools with no lab are
    listed too, deliberately — see FacultyTab's ResearchPanel. */
+/* One column, not two. The rows now carry a school name AND a facility
+   count, and at 200px two of those per line wrapped mid-name ("Computer
+   Science" breaking across two rows next to its own status). A single
+   column is a list of seven schools, which is what it is. */
 .research-schools { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--parchment-line-lo);
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2px 16px; }
-.research-school { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: var(--text-sm); }
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 3px; }
+.research-school { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: var(--text-sm); }
+.research-school > span:first-child { white-space: nowrap; }
 .research-school .empty-note { font-size: var(--text-xs); }
 
 /* ---------- faculty: roster/market and research/slots, paired ----------

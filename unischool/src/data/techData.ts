@@ -475,7 +475,52 @@ export const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
 // existed only because the gate mechanism happened to be spelled "lab".
 // Health Science stays a research school on Neuroscience's lab, which is
 // a bench science and keeps its own.
-const LAB_GATED_MAJOR_PREFIXES = ['CHEM', 'CHMY', 'BIOL', 'PHYS', 'MECH', 'ELEC', 'CIVE', 'AERO', 'NEUR'];
+// Which majors carry a RESEARCH FACILITY: the building that gates their
+// capstone coursework and, campus-wide, is what lets a school do
+// scholarship at all (see README's "Research" and labEquippedFields).
+//
+// FOUR SCHOOLS USED TO HAVE NONE, and under the initiative model that is
+// coming this stops being a gap and becomes an exclusion: a school with no
+// facility has not merely no output but no PLACE to run anything, so
+// Business, Computer Science, Social Sciences & Humanities and Arts &
+// Media could not participate in scholarship in any form. Each now has
+// one, and one is enough — labEquippedFields equips EVERY field a school
+// teaches the moment any one of its facilities stands, so a single
+// building brings a whole faculty into production.
+//
+// What a "lab" IS is the only thing that varies, and only in name. The
+// mechanism is identical throughout, which is the same rule the graduate
+// programs follow: no bespoke per-school system, only authored data over
+// shared machinery. A humanities institute and a chemistry lab cost the
+// same, take the same weeks and multiply output by the same amount —
+// because what the building represents is a school being equipped to do
+// its own kind of serious work, and that is worth the same anywhere.
+const LAB_GATED_MAJOR_PREFIXES = [
+  // The lab sciences and engineering, unchanged.
+  'CHEM', 'CHMY', 'BIOL', 'PHYS', 'MECH', 'ELEC', 'CIVE', 'AERO', 'NEUR',
+  // One per school that had nothing. Chosen so the facility sits in the
+  // major where that kind of work most plausibly happens — and, since one
+  // facility equips the whole school, so that every field the school
+  // teaches comes into production behind it.
+  'ECON', 'COMP', 'HIST', 'FILM',
+];
+
+// Where "{Major} Labs" would be wrong. A history department does not have
+// labs; it has an institute with archives in it, and calling the building
+// what it actually is does more for the school reading as a real place
+// than any mechanical difference would.
+const RESEARCH_FACILITY_NAMES: Partial<Record<string, string>> = {
+  ECON: 'Experimental Economics Lab',
+  COMP: 'Computing Research Center',
+  HIST: 'Humanities Research Institute',
+  FILM: 'Media Production Studio',
+};
+const RESEARCH_FACILITY_BLURBS: Partial<Record<string, string>> = {
+  ECON: 'Behavioural labs and market-simulation suites',
+  COMP: 'A compute cluster and research offices',
+  HIST: 'Archives, reading rooms and a documents collection',
+  FILM: 'Sound stages, edit bays and a screening theatre',
+};
 const LAB_COST = 700_000;
 const LAB_WEEKS = 16;
 const LAB_UPKEEP_PER_WEEK = 1_400; // ~$73k/yr — specialized equipment is expensive to keep running, and a lab serves one major's cohort rather than the whole campus
@@ -1002,8 +1047,8 @@ export function initialTech(): Buildable[] {
           id: labId(major.prefix),
           kind: 'facility',
           facilityType: 'lab',
-          name: `${major.name} Labs`,
-          description: `Specialized lab space gating ${major.name}'s capstone (tier-3) coursework.`,
+          name: RESEARCH_FACILITY_NAMES[major.prefix] ?? `${major.name} Labs`,
+          description: `${RESEARCH_FACILITY_BLURBS[major.prefix] ?? 'Specialized lab space'} — gates ${major.name}'s capstone (tier-3) coursework, and lets the school produce scholarship.`,
           cost: LAB_COST,
           duration: LAB_WEEKS,
           // Buildable once the major's entry course AND its school building

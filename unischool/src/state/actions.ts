@@ -275,7 +275,7 @@ export function createPreStartState(): GameState {
       athleticsBudget: DEFAULT_ATHLETICS_BUDGET,
     },
     research: {
-      points: 0, lifetimePoints: 0, grants: 0, grantIncome: 0,
+      points: 0, lifetimePoints: 0, publications: 0, grants: 0, grantIncome: 0,
       breakthroughs: 0, prizes: 0, lastOutputWeek: 0, pendingPrizes: [],
     },
     candidates: [],
@@ -526,7 +526,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // fire — the whole slice sits at zero until the first lab finishes
     // (see systems/research/researchSystem.ts).
     research: {
-      points: 0, lifetimePoints: 0, grants: 0, grantIncome: 0,
+      points: 0, lifetimePoints: 0, publications: 0, grants: 0, grantIncome: 0,
       breakthroughs: 0, prizes: 0, lastOutputWeek: 0, pendingPrizes: [],
     },
     candidates: initialCandidatePool(),

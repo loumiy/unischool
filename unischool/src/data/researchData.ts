@@ -197,7 +197,7 @@ export function researchOutputWeeklyChance(points: number): number {
 // grants, one that has been investing for a decade unlocks breakthroughs,
 // and a prize needs years of banked work on top of that. `weight` sets
 // the mix among whatever is currently affordable.
-export type ResearchOutputKind = 'grant' | 'breakthrough' | 'prize';
+export type ResearchOutputKind = 'publication' | 'grant' | 'breakthrough' | 'prize';
 
 export interface ResearchOutputDef {
   kind: ResearchOutputKind;
@@ -206,6 +206,14 @@ export interface ResearchOutputDef {
 }
 
 export const RESEARCH_OUTPUTS: readonly ResearchOutputDef[] = [
+  // The bottom rung, and the reason it exists: the other three all cost
+  // enough that a young department's first decade of scholarship was a
+  // long silence broken by a grant. A cheap, frequent output gives a
+  // school something to show from its first year of having a facility at
+  // all — and gives the humanities an output that reads right, since a
+  // monograph is what that work actually produces and "a breakthrough" is
+  // not (see DISCIPLINE_VOCAB).
+  { kind: 'publication', pointCost: 90, weight: 22 },
   { kind: 'grant', pointCost: 300, weight: 10 },
   { kind: 'breakthrough', pointCost: 750, weight: 6 },
   // Rare twice over: it is the most expensive output AND the least likely
@@ -285,4 +293,85 @@ export function rollGrantFunder(): string {
 
 export function rollPrizeName(): string {
   return pick(PRIZE_NAMES);
+}
+
+// =====================================================================
+// WHAT THE WORK IS CALLED, by the discipline that did it.
+//
+// One shared table over one shared mechanism — the same rule the graduate
+// programs follow. Nothing branches on these: a publication costs the same
+// points and moves the same counter whoever produced it. What changes is
+// the word, because "a breakthrough out of the university's labs" is
+// simply the wrong sentence about a history department, and a system that
+// can only describe scholarship as laboratory science is one that quietly
+// tells four schools their work does not count.
+// =====================================================================
+interface DisciplineVocab {
+  publication: string;   // the cheap, frequent output
+  breakthrough: string;  // the rare, prestigious one
+  where: string;         // where it came out of, for the log line
+}
+
+const DEFAULT_VOCAB: DisciplineVocab = {
+  publication: 'paper',
+  breakthrough: 'breakthrough',
+  where: 'the university\'s laboratories',
+};
+
+const DISCIPLINE_VOCAB: Record<string, DisciplineVocab> = {
+  'Social Sciences & Humanities': {
+    publication: 'monograph',
+    breakthrough: 'landmark work of scholarship',
+    where: 'the Humanities Research Institute',
+  },
+  'Business': {
+    publication: 'case study',
+    breakthrough: 'influential study',
+    where: 'the university\'s economists',
+  },
+  'Arts & Media': {
+    publication: 'exhibited work',
+    breakthrough: 'acclaimed work',
+    where: 'the university\'s studios',
+  },
+  'Computer Science': {
+    publication: 'paper',
+    breakthrough: 'breakthrough',
+    where: 'the Computing Research Center',
+  },
+};
+
+export function disciplineVocab(schoolName: string | null): DisciplineVocab {
+  return (schoolName && DISCIPLINE_VOCAB[schoolName]) || DEFAULT_VOCAB;
+}
+
+// Which school an output came out of: a weighted draw across the faculty
+// actually producing scholarship, by how much they produce, then the
+// school their field teaches in. So the vocabulary tracks where the work
+// is really happening — a campus whose only facility is the Humanities
+// Research Institute describes its output as monographs, and one running
+// labs everywhere mostly says papers, without either being a special case.
+//
+// Returns null when nobody is producing, which is the same "nothing
+// happened this week" the prize draw already handles.
+export function rollProducingSchool(s: GameState): string | null {
+  const producing = researchingFaculty(s);
+  const total = producing.reduce((sum, f) => sum + facultyResearchOutput(f), 0);
+  if (total <= 0) return null;
+
+  let roll = Math.random() * total;
+  let winner = producing[producing.length - 1];
+  for (const f of producing) {
+    roll -= facultyResearchOutput(f);
+    if (roll <= 0) { winner = f; break; }
+  }
+
+  const equipped = labEquippedFields(s);
+  for (const school of researchSchools()) {
+    if (!school.fields.includes(winner.field)) continue;
+    if (!school.labIds.some((id) => s.tech.find((t) => t.id === id)?.status === 'done')) continue;
+    if (!equipped.has(winner.field)) continue;
+    return school.schoolName;
+  }
+  return null;
 }

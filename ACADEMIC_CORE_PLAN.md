@@ -813,9 +813,10 @@ first; then the map has something to be a map *of*.
 ## 7. Decisions needed before implementation
 
 Flagged rather than silently chosen, per the README's working-style note.
-**Six are now settled** (1, 2, 3, 6, 7, 8) and are struck through with the
-decision recorded. Three remain open, each to be answered at the PR that first
-needs it rather than up front: 4 at PR C, 5 and 9 at PR E/F.
+**Seven are now settled** (1, 2, 3, 5, 6, 7, 8) and are struck through with
+the decision recorded. Two remain open: 4 (the prestige teaching/research
+split, a tuning pass once both loops exist) and 9 (how many topics a first
+pass needs, due at PR F).
 
 1. ~~**Absolute or curved grading?**~~ **SETTLED: absolute, with generous low
    bands.** Fixed thresholds against the teaching stat, set so a founding
@@ -860,9 +861,13 @@ needs it rather than up front: 4 at PR C, 5 and 9 at PR E/F.
    if it shows up in play, is a "best available" suggestion in the drawer.
 4. **Does the prestige faculty-quality input split into teaching and research?**
    Probably yes eventually, but a tuning pass after both loops exist.
-5. **Full `research` → `scholarship` code rename, or player-facing only?**
-   (Recommend player-facing only; defer the code rename to its own terminology
-   pass with a migration.)
+5. ~~**Full `research` → `scholarship` code rename, or player-facing only?**~~
+   **SETTLED: player-facing only.** The umbrella concept reads *Scholarship*
+   wherever a player sees it, because that word has to cover a monograph and a
+   chemistry breakthrough equally. The specific things keep their own real
+   names — a grant is a grant, a lab is a lab — and the code stays `research`
+   throughout, so there is no migration and no mechanical diff buried inside a
+   content PR.
 6. ~~**Grade bands vs. `QUALITY_TIER_THRESHOLDS`.**~~ **SETTLED: distinct, at
    78 / 62 / 44 / 30.** Kept apart from the faculty ladder so the two tune
    independently. See §2 for the distributions behind the choice, and for the

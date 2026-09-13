@@ -744,7 +744,37 @@ export const SAVE_KEY = 'unischool.save';
 // exists to avoid.
 //
 // See MIGRATIONS[30].
-export const SAVE_VERSION = 31;
+//
+// v31 -> v32: scholarship reaches every school. Two shape changes, both
+// additive, and one consequence worth naming.
+//
+//   - ResearchState gains `publications`, the new cheap/frequent output
+//     (researchData.ts's RESEARCH_OUTPUTS). Seeded at 0 rather than
+//     back-derived: a resumed save never produced one, so any other figure
+//     would be inventing history. It feeds prestige at a tenth of a
+//     breakthrough's credit, inside the same clamped input, so a resumed
+//     school's standing is untouched on load and only changes as it
+//     publishes from here.
+//   - Four research facilities are spliced in — one each for Business,
+//     Computer Science, Social Sciences & Humanities and Arts & Media (see
+//     techData.ts's LAB_GATED_MAJOR_PREFIXES). They arrive 'locked' like
+//     any new content and unlock behind whatever the save has already
+//     built, through the ordinary id-splice MIGRATIONS[10]/[11]/[29]
+//     already use.
+//
+// THE CONSEQUENCE: those four majors' tier-3 courses now require their
+// school's facility, exactly as a lab science's always have. Nothing ever
+// re-locks (see techSystem.ts's unlockAvailable), so a capstone a save has
+// already unlocked or finished is untouched — but one that had NOT been
+// reached yet now waits on a building that did not exist last version.
+// That is the same class of accepted re-gating MIGRATIONS[11] and [29]
+// both describe, and it is the point rather than a side effect: the
+// facility is what lets the school do scholarship at all, so putting it on
+// the path to those majors' capstones is what makes it something a player
+// builds rather than an optional ornament.
+//
+// See MIGRATIONS[31].
+export const SAVE_VERSION = 32;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -936,7 +966,7 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   // rename the player's school out from under them.
   6: (state) => {
     state.research = {
-      points: 0, lifetimePoints: 0, grants: 0, grantIncome: 0,
+      points: 0, lifetimePoints: 0, publications: 0, grants: 0, grantIncome: 0,
       breakthroughs: 0, prizes: 0, lastOutputWeek: 0, pendingPrizes: [],
     };
     for (const f of state.faculty) f.acclaim = 0;
@@ -1626,6 +1656,44 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   30: (state) => {
     if (typeof state.courseFaculty !== 'object' || state.courseFaculty === null) {
       state.courseFaculty = legacyRoundRobinAssignments(state);
+    }
+  },
+
+  // v31 -> v32: scholarship reaches every school. See the SAVE_VERSION
+  // header note for the shape change and the one re-gating consequence.
+  31: (state) => {
+    if (typeof state.research.publications !== 'number') state.research.publications = 0;
+
+    const seed = initialTech();
+
+    // 1. The four new research facilities, at their seeded status. The same
+    //    id-splice MIGRATIONS[10]/[11]/[29] use: append what the save does
+    //    not have, touch nothing it does.
+    const have = new Set(state.tech.map((node) => node.id));
+    for (const node of seed) {
+      if (!have.has(node.id)) state.tech.push({ ...node });
+    }
+
+    // 2. Re-point the capstones that now need one — UNBUILT ONLY, which is
+    //    exactly the split MIGRATIONS[29] draws and for the same reason.
+    //    A capstone the player has already started or finished keeps the
+    //    prereqs it was actually bought under; one they have not reached
+    //    takes the new gate, so a resumed run and a fresh one converge on
+    //    the same rule rather than diverging forever on when they began.
+    //
+    //    Identified by what the SEED says rather than by a prefix list:
+    //    a course needs re-pointing when its seeded prereqs name a
+    //    facility the saved copy does not know about. That stays correct
+    //    if the facility table is ever widened again.
+    const byId = new Map(state.tech.map((node) => [node.id, node]));
+    for (const seeded of seed) {
+      if (seeded.kind !== 'course') continue;
+      const saved = byId.get(seeded.id);
+      if (!saved) continue;
+      if (saved.status === 'done' || saved.status === 'developing') continue;
+      const added = seeded.prereqs.filter((id) => !saved.prereqs.includes(id));
+      if (added.length === 0) continue;
+      saved.prereqs = [...seeded.prereqs];
     }
   },
 

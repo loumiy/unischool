@@ -177,11 +177,11 @@ function FacultyCard(
                 has a lab at all. */}
             {!isCandidate && (
               <>
-                <dt>Research output</dt>
+                <dt>Scholarly output</dt>
                 <dd>
                   {researches
                     ? `${facultyResearchOutput(f).toFixed(2)} pts/wk`
-                    : `none — no lab in ${f.field}'s school`}
+                    : `none — no research facility in ${f.field}'s school`}
                 </dd>
               </>
             )}
@@ -233,28 +233,36 @@ function ResearchPanel({ s, full }: { s: GameState; full: boolean }) {
     <section className={full ? 'panel panel-span-2' : 'panel'}>
       <div className="panel-head">
         <span className="panel-head-title">
-          <h2>Research</h2>
-          <HelpHint text="Faculty in a school that has finished a laboratory produce research points every week, weighted by how strong and how senior they are. Points accumulate, and every so often they convert into a grant (cash), a breakthrough (which feeds the prestige target), or — rarely — a prize for the researcher behind it. No lab, no research: a school with no laboratory contributes nothing however it is staffed." />
+          {/* SCHOLARSHIP, not Research, as the umbrella — the word has to
+              cover a monograph and a chemistry breakthrough equally, and
+              "research output" is the wrong name for what a history or
+              studio-art department produces. The specific things keep
+              their own real names: a grant is a grant and a lab is a lab.
+              Player-facing only; the code stays `research` throughout. */}
+          <h2>Scholarship</h2>
+          <HelpHint text="Faculty in a school with a finished research facility produce scholarship every week, weighted by how strong and how senior they are. It accumulates, and every so often converts into a publication, a grant (cash), a breakthrough (which feeds the prestige target), or — rarely — a prize for the scholar behind it. Every school can build a facility now, and what it is called varies: labs for the sciences, an institute for the humanities, studios for the arts. No facility, no scholarship, however the school is staffed." />
         </span>
         <span className="stat">{rate.toFixed(1)} pts/wk</span>
       </div>
 
       {equipped.size === 0 ? (
         <p className="empty-note">
-          No laboratories finished, so the university does no research yet. A lab needs its
-          school's building and that major's entry course first; the schools that can build one
-          are {schools.map((school) => school.schoolName).join(', ')}.
+          No research facility finished, so the university produces no scholarship yet. One needs
+          its school's building and that major's entry course first — every school can build one:
+          {' '}{schools.map((school) => school.schoolName).join(', ')}.
         </p>
       ) : (
         <dl>
-          <dt>Research points banked</dt>
+          <dt>Scholarship banked</dt>
           <dd>{Math.round(s.research.points).toLocaleString()}</dd>
           <dt>Produced all-time</dt>
           <dd>{Math.round(s.research.lifetimePoints).toLocaleString()}</dd>
-          <dt>Researching faculty</dt>
+          <dt>Active scholars</dt>
           <dd>{producing.length} of {s.faculty.length} on the roster</dd>
           <dt>Facilities multiplier</dt>
-          <dd>×{multiplier.toFixed(2)} <span className="outcome-note">(labs and the research library)</span></dd>
+          <dd>×{multiplier.toFixed(2)} <span className="outcome-note">(research facilities and the research library)</span></dd>
+          <dt>Published</dt>
+          <dd>{s.research.publications} <span className="outcome-note">(papers, monographs, case studies, exhibited works)</span></dd>
           <dt>Grants received</dt>
           <dd>{s.research.grants} — ${Math.round(s.research.grantIncome).toLocaleString()} in total</dd>
           <dt>Breakthroughs published</dt>
@@ -273,7 +281,15 @@ function ResearchPanel({ s, full }: { s: GameState; full: boolean }) {
             <div key={school.schoolName} className="research-school">
               <span>{school.schoolName}</span>
               <span className={built > 0 ? 'stat' : 'empty-note'}>
-                {built > 0 ? `${built} of ${school.labIds.length} labs` : 'no lab — no research'}
+                {/* "labs" no longer covers it: four schools' facilities
+                    are an institute, a studio, a computing centre and a
+                    behavioural lab (see techData.ts's
+                    RESEARCH_FACILITY_NAMES), so the row counts FACILITIES
+                    and the empty state says what is missing without
+                    naming the wrong kind of building. */}
+                {built > 0
+                  ? `${built} of ${school.labIds.length} ${school.labIds.length === 1 ? 'facility' : 'facilities'}`
+                  : 'no facility — no scholarship'}
               </span>
             </div>
           );

@@ -2,8 +2,8 @@ import type { Faculty, GameState } from '../../state/types';
 import { absoluteWeek } from '../../data/eventData';
 import {
   CHEAPEST_OUTPUT_COST, RESEARCH_OUTPUTS, RESEARCH_OUTPUT_COOLDOWN_WEEKS,
-  facultyResearchOutput, researchOutputWeeklyChance, researchingFaculty,
-  rollGrantAmount, rollGrantFunder, rollPrizeName, weeklyResearchPoints,
+  disciplineVocab, facultyResearchOutput, researchOutputWeeklyChance, researchingFaculty,
+  rollGrantAmount, rollGrantFunder, rollPrizeName, rollProducingSchool, weeklyResearchPoints,
 } from '../../data/researchData';
 import type { ResearchOutputDef } from '../../data/researchData';
 
@@ -70,11 +70,29 @@ function awardGrant(s: GameState): void {
 // curriculum-breadth term (see prestigeSystem.ts).
 function awardBreakthrough(s: GameState): void {
   s.research.breakthroughs += 1;
+  // Named by the discipline that produced it (see researchData.ts's
+  // DISCIPLINE_VOCAB). Nothing branches on the word — the counter and the
+  // prestige input are identical whoever did the work — but "a
+  // breakthrough out of the university's labs" is the wrong sentence about
+  // a history department, and the log is where the school's own character
+  // is most often read.
+  const vocab = disciplineVocab(rollProducingSchool(s));
   log(
     s,
-    'A breakthrough out of the university\'s labs has been published and taken up widely — the school\'s academic standing is the better for it.',
+    `A ${vocab.breakthrough} out of ${vocab.where} has been published and taken up widely — the school's academic standing is the better for it.`,
     'good',
   );
+}
+
+// The cheap, frequent rung. Silent in the same way a grant is: a line in
+// the ticker and a counter moving, no interrupt, no decision. Its whole
+// job is that a department with one facility and two professors sees its
+// scholarship doing SOMETHING within a year or two, rather than waiting a
+// decade for the first output it can afford.
+function awardPublication(s: GameState): void {
+  s.research.publications += 1;
+  const vocab = disciplineVocab(rollProducingSchool(s));
+  log(s, `A new ${vocab.publication} has come out of ${vocab.where}.`, 'info');
 }
 
 // Who wins the prize: a weighted draw across the faculty who are actually
@@ -151,6 +169,7 @@ function rollResearchOutput(s: GameState): void {
   // draw follows, and for the same reason: silently substituting would
   // bias the mix.
   if (chosen.kind === 'prize' && !awardPrize(s)) return;
+  if (chosen.kind === 'publication') awardPublication(s);
   if (chosen.kind === 'grant') awardGrant(s);
   if (chosen.kind === 'breakthrough') awardBreakthrough(s);
 

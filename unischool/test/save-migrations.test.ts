@@ -19,6 +19,7 @@ import { createInitialState } from '../src/state/actions';
 import { loadGame, saveGame, clearSave, SAVE_KEY, SAVE_VERSION } from '../src/state/persistence';
 import { sportById } from '../src/data/studentLifeData';
 import { athleticStrengthFor } from '../src/data/rivalData';
+import { researchSchools } from '../src/data/techData';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import { isUnstaffed, usedFacultySlots, facultyLoad } from '../src/systems/techtree/techSystem';
 
@@ -697,6 +698,70 @@ function testCourseFacultySanitizer(): void {
   assert(loaded.courseFaculty['NO-SUCH-COURSE'] === undefined, 'an assignment to a course that does not exist is dropped');
 }
 
+// ---- v31 -> v32: scholarship reaches every school ----
+//
+// Two promises worth pinning: the four new facilities arrive, and the
+// capstones that now need one are re-pointed ONLY where the player has not
+// already started them (see MIGRATIONS[31], and MIGRATIONS[29]'s identical
+// built/unbuilt split).
+function makeV31Save(): void {
+  const base = createInitialState('Scholar', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+  const tech = state.tech as Array<Record<string, unknown>>;
+  const node = (id: string) => tech.find((n) => n.id === id);
+
+  // Strip the four new facilities out, and put the four majors' capstones
+  // back on their pre-v32 prereqs (no facility named).
+  const NEW_FACILITIES = ['LAB-ECON', 'LAB-COMP', 'LAB-HIST', 'LAB-FILM'];
+  for (const n of tech) {
+    const prereqs = n.prereqs as string[] | undefined;
+    if (prereqs) n.prereqs = prereqs.filter((id) => !NEW_FACILITIES.includes(id));
+  }
+  state.tech = tech.filter((n) => !NEW_FACILITIES.includes(n.id as string));
+
+  // One capstone the player has already finished, and one still locked.
+  node('HIST210')!.status = 'done';
+  node('HIST220')!.status = 'locked';
+
+  delete (state.research as Loose).publications;
+  writeSave(31, state);
+}
+
+function testScholarshipMigration(): void {
+  makeV31Save();
+  const loaded = loadGame();
+  assert(loaded !== null, 'v31 save loads (does not fall back to null)');
+  if (!loaded) return;
+
+  const node = (id: string) => loaded.tech.find((n) => n.id === id);
+
+  assert(loaded.research.publications === 0, 'publications seeds at 0, not back-derived');
+
+  for (const id of ['LAB-ECON', 'LAB-COMP', 'LAB-HIST', 'LAB-FILM']) {
+    assert(node(id) !== undefined, `${id} is spliced into a resumed save`);
+    assert(node(id)!.status === 'locked', `${id} arrives locked, like any new content`);
+  }
+
+  // Every school can now produce scholarship, which is the whole point.
+  const schoolsWithFacilities = researchSchools().filter((school) => school.labIds.length > 0);
+  assert(
+    schoolsWithFacilities.length === researchSchools().filter((s2) => s2.fields.length > 0 && s2.schoolName !== 'General Studies').length,
+    `every subject school has a research facility (got ${schoolsWithFacilities.map((s2) => s2.schoolName).join(', ')})`,
+  );
+
+  // UNBUILT: re-pointed, so a resumed run and a fresh one converge.
+  assert(
+    node('HIST220')!.prereqs.includes('LAB-HIST'),
+    'a capstone the player has not started takes the new facility gate',
+  );
+  // BUILT: untouched, so nothing the player already earned is re-gated.
+  assert(
+    !node('HIST210')!.prereqs.includes('LAB-HIST'),
+    'a capstone already finished keeps the prereqs it was actually bought under',
+  );
+  assert(node('HIST210')!.status === 'done', 'and stays done');
+}
+
 // ---- Test: unmigratable / malformed saves fall back to null, never throw ----
 function testRejects(): void {
   // A version with no migration path (v1) cannot be carried forward.
@@ -727,6 +792,7 @@ testAthleticsV2Migration();
 testCampusContentMigration();
 testCourseFacultyMigration();
 testCourseFacultySanitizer();
+testScholarshipMigration();
 testRoundTrip();
 testRejects();
 

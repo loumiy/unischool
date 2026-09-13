@@ -328,6 +328,17 @@ function campusLifeScore(s: GameState): number {
 // is unchanged, so this cannot become a second route to prestige any more
 // than breakthroughs can. Professional schools get nothing here: a medical
 // school with no lab publishes nothing.
+// A publication counts, but at a steep discount: ten of them are worth one
+// breakthrough. Both halves of that matter. It counts because a department
+// publishing steadily for a decade has genuinely built standing, and
+// because the alternative — a frequent output that moves nothing — is a
+// log line pretending to be a mechanic. And it is discounted hard because
+// publications are common by design (the cheapest rung, the heaviest
+// weight in RESEARCH_OUTPUTS), so anything less would let volume outrun the
+// rare work this input is mostly about. The whole term stays clamped to
+// RESEARCH_WEIGHT regardless, so this cannot widen research's reach into
+// prestige at all — only change which work gets there first.
+const PUBLICATION_PRESTIGE_CREDIT = 0.1;
 const BREAKTHROUGH_PRESTIGE_CREDIT = 1;
 const PRIZE_PRESTIGE_CREDIT = 3;      // a prize is worth three breakthroughs to the school's standing, on top of what its winner's own output gains
 const DOCTORATE_PRESTIGE_CREDIT = 2;  // a founded research doctorate, worth two breakthroughs
@@ -337,6 +348,7 @@ function researchScore(s: GameState): number {
     (program) => program.type === 'doctoral' && s.milestones[`grad-program-complete:${program.id}`],
   ).length;
   const credits =
+    PUBLICATION_PRESTIGE_CREDIT * s.research.publications +
     BREAKTHROUGH_PRESTIGE_CREDIT * s.research.breakthroughs +
     PRIZE_PRESTIGE_CREDIT * s.research.prizes +
     DOCTORATE_PRESTIGE_CREDIT * doctorates;
