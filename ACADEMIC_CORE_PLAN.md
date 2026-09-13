@@ -259,19 +259,35 @@ actually pull, because a modifier they cannot influence is just noise:
 | **`acclaim`** | small positive | A prize-winner's course benefits. Ties the research loop back into teaching at one point, cheaply |
 | **Facilities** | small positive, capped | The school building being done, library adequacy. Deliberately small — see the risk note below |
 
-Grade bands sit alongside `facultyData.ts`'s existing `QUALITY_TIER_THRESHOLDS`
-(85 / 70 / 55 / 35), and should probably *not* be identical to them: an 85
-faculty member is Distinguished, but an 85-point course being an A is a
-different claim. Propose A ≥ 82, B ≥ 68, C ≥ 52, D ≥ 36, F below — tuned so a
-**founding school reads C, not F**.
+**The scale is ABSOLUTE** (decision 1) and its bands are **A ≥ 78, B ≥ 62,
+C ≥ 44, D ≥ 30, F below** (decision 6). Deliberately NOT `facultyData.ts`'s
+`QUALITY_TIER_THRESHOLDS` (85/70/55/35): an 85 faculty member being
+Distinguished and an 85-point course being an A are different claims, and one
+shared ladder would couple two things that want tuning apart.
 
-> **Open question, flagged rather than decided:** absolute or curved? An
-> absolute scale is honest (a new school genuinely is not good yet) and gives
-> decades of visible improvement, but risks an opening hour that is a wall of
-> Ds. A curve against what is currently hirable flatters the early game but
-> makes the grade meaningless as a long-run measure. **Recommendation: absolute,
-> with the low bands set generously**, so F means "you assigned badly or left it
-> unstaffed" — a state the player caused and can fix — rather than "you are new".
+**The finding that set the bands.** `grownStat` starts a hire at 55% of their
+potential and potential caps at 100, so **a brand-new hire's teaching is capped
+at 55**, whoever they are. No fresh appointment can open a course above C under
+any band scheme. Early on, with one eligible person per field, the grade
+therefore measures TENURE rather than the player's choice — choice only begins
+to matter once there is a bench to choose from. That is not a flaw; it makes
+retention the lever, exactly as the prestige model already does. But it means
+the decision is not really about where A sits. It is about **how often a new
+department's first course reads F**, and about leaving the downward modifiers
+room to be felt:
+
+| | fresh hire | after 6 years |
+|---|---|---|
+| strict 82/68/52/36 | 35% F, 53% D, 12% C | 30% A, 26% B, 31% C, 14% D |
+| **shifted 78/62/44/30** | **15% F, 47% D, 37% C** | **37% A, 31% B, 32% C, 0% D** |
+| forgiving 76/58/40/26 | 3% F, 46% D, 52% C | 41% A, 35% B, 25% C |
+
+The shifted bands keep F reachable by hiring badly (~1 in 7) without making
+expansion read as failure, and they put D at 0% for anyone matured — so a D on
+a veteran's course means something the player DID (overloaded them), which is
+the signal worth having. Under the strict bands a matured 71 reads B whether or
+not it is carrying −10 of penalties, which would make overloading invisible
+across the middle of the range, where most courses live.
 
 ### What the grade feeds
 
@@ -770,9 +786,9 @@ first; then the map has something to be a map *of*.
 ## 7. Decisions needed before implementation
 
 Flagged rather than silently chosen, per the README's working-style note.
-**Four are now settled** (1, 2, 7, 8) and are struck through with the decision
-recorded. The rest are still open, and each is answered at the PR that first
-needs it rather than up front: 3 at PR B, 4 and 6 at PR C, 5 and 9 at PR E/F.
+**Six are now settled** (1, 2, 3, 6, 7, 8) and are struck through with the
+decision recorded. Three remain open, each to be answered at the PR that first
+needs it rather than up front: 4 at PR C, 5 and 9 at PR E/F.
 
 1. ~~**Absolute or curved grading?**~~ **SETTLED: absolute, with generous low
    bands.** Fixed thresholds against the teaching stat, set so a founding
@@ -797,15 +813,35 @@ needs it rather than up front: 3 at PR B, 4 and 6 at PR C, 5 and 9 at PR E/F.
    Program costs four or five people's entire course loads for five years. That
    is the real reason to build a deep bench, and the tuning to watch is whether
    the payoff justifies it (`npm run sim`).
-3. **Does course reassignment cost anything?** (Recommend free and immediate to
-   start, add friction only if it proves exploitable.)
+3. ~~**Does course reassignment cost anything?**~~ **SETTLED: free and
+   immediate.** Checked for a stacking exploit; there is none to guard against.
+   Both consumers are time-averaged — academic satisfaction is recomputed
+   weekly and accumulates into `satisfactionYearSum` for word-of-mouth, and
+   prestige is a stock that drifts toward a target — so the assignment is never
+   sampled at a moment, and a one-week shuffle moves nothing.
+
+   Two things argue for it positively. It is what lets a player clear someone's
+   courses BEFORE committing them to an initiative; without it, decision 2's
+   hard constraint makes every Landmark Program open with an unavoidable
+   satisfaction hit. And re-staffing after a dismissal has to be immediate, so
+   any deferred scheme would need an exception for unstaffed courses anyway.
+
+   **The real risk is tedium, not balance.** With live grades and free moves,
+   optimal play is re-running a best-fit across a field on every hire, which
+   over 400 courses is spreadsheet work. Friction makes that worse rather than
+   better — it charges the player for cleanup they did not choose. The lever,
+   if it shows up in play, is a "best available" suggestion in the drawer.
 4. **Does the prestige faculty-quality input split into teaching and research?**
    Probably yes eventually, but a tuning pass after both loops exist.
 5. **Full `research` → `scholarship` code rename, or player-facing only?**
    (Recommend player-facing only; defer the code rename to its own terminology
    pass with a migration.)
-6. **Grade bands vs. `QUALITY_TIER_THRESHOLDS`.** Related but should not be
-   identical; needs one explicit decision so the two ladders do not drift.
+6. ~~**Grade bands vs. `QUALITY_TIER_THRESHOLDS`.**~~ **SETTLED: distinct, at
+   78 / 62 / 44 / 30.** Kept apart from the faculty ladder so the two tune
+   independently. See §2 for the distributions behind the choice, and for the
+   constraint that set it — a fresh hire's teaching is capped at 55, so the
+   bands are really a decision about the F rate on a new department and about
+   headroom for the modifiers, which only ever push down.
 7. ~~**Does the aggregate research-points stock survive?**~~ **SETTLED: retired
    as a driver.** Idle lab-equipped faculty produce nothing; the way to produce
    is to start something. `s.research.points` and `lifetimePoints` stop being
