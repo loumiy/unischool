@@ -3,9 +3,8 @@ import type { Action } from '../state/actions';
 import type { Faculty, GameState } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { facultyQualityTier, CANDIDATE_LISTING_WEEKS } from '../data/facultyData';
-import {
-  facultyResearchOutput, labEquippedFields, researchRateMultiplier, weeklyResearchPoints,
-} from '../data/researchData';
+import { facultyResearchOutput, labEquippedFields } from '../data/researchData';
+import { researchTopic } from '../data/researchTopics';
 import { researchSchools } from '../data/techData';
 import { usedFacultySlots, totalFacultySlots, neededFacultyFields } from '../systems/techtree/techSystem';
 import { coursesTaughtBy } from '../systems/faculty/facultyAssignment';
@@ -205,96 +204,105 @@ function FacultyCard(
 }
 
 // ---------------------------------------------------------------------
-// The research panel. Research is meant to be mostly silent (see README's
-// "Research"): grants and breakthroughs land as log lines and nothing
-// else, so this is where a player who wants to understand WHY comes to
-// look. It reads the same pure functions the tick applies, so the rate
-// shown is exactly the rate that accumulates.
+// WHO IS AWAY, and until when.
 //
-// It lives on the Faculty tab rather than in a tab of its own because
-// research is a property of the roster: who is producing it, and which
-// schools have a lab for them to produce it in, are both faculty
-// questions. A dedicated tab would be a fifth screen for one stock and
-// three counters.
+// This panel used to be the whole research system: a banked-points figure,
+// a weekly rate, output counters, a facilities multiplier, and a
+// school-by-school lab gate. All of that described a model where the
+// campus produced scholarship for owning buildings, and every line of it
+// was wrong the moment initiatives landed — the banked figure read zero
+// forever because nothing writes that stock any more, and the rate
+// reported what lab-equipped faculty COULD produce, which stopped
+// corresponding to anything once production moved inside a running
+// project.
 //
-// Deliberately shows the LAB GATE first, including the schools that are
-// producing nothing. That gate is the whole rule, and a player wondering
-// why their thirty professors generate no research needs to be told
-// which building answers it, not left to infer it.
+// The whole of that belongs to the Research tab, where it now lives
+// properly, and duplicating it here only gave a player two screens
+// disagreeing about the same thing.
+//
+// What is left is the one part of scholarship that is genuinely a FACULTY
+// question: which of these people are committed, to what, and for how
+// much longer — because a committed scholar is not teaching, and the
+// roster screen is where the player notices their department is short.
 // ---------------------------------------------------------------------
 function ResearchPanel({ s, full }: { s: GameState; full: boolean }) {
   const equipped = labEquippedFields(s);
   const schools = researchSchools().filter((school) => school.labIds.length > 0);
-  const producing = s.faculty.filter((f) => equipped.has(f.field));
-  const rate = weeklyResearchPoints(s);
-  const multiplier = researchRateMultiplier(s);
+
+  // Who is on what. Read off the running initiatives rather than asking
+  // each person in turn, so the panel costs one pass over a handful of
+  // projects instead of one over the whole roster per project.
+  const commitments = new Map<string, { topic: string; weeksRemaining: number; weeksTotal: number }>();
+  for (const initiative of Object.values(s.research.initiatives)) {
+    const topic = researchTopic(initiative.topicId);
+    for (const id of initiative.participantIds) {
+      commitments.set(id, {
+        topic: topic?.name ?? 'a project',
+        weeksRemaining: initiative.weeksRemaining,
+        weeksTotal: initiative.weeksTotal,
+      });
+    }
+  }
+  const committed = s.faculty.filter((f) => commitments.has(f.id));
+  const free = s.faculty.filter((f) => equipped.has(f.field) && !commitments.has(f.id)).length;
 
   return (
     <section className={full ? 'panel panel-span-2' : 'panel'}>
       <div className="panel-head">
         <span className="panel-head-title">
-          {/* SCHOLARSHIP, not Research, as the umbrella — the word has to
-              cover a monograph and a chemistry breakthrough equally, and
-              "research output" is the wrong name for what a history or
-              studio-art department produces. The specific things keep
-              their own real names: a grant is a grant and a lab is a lab.
-              Player-facing only; the code stays `research` throughout. */}
           <h2>Scholarship</h2>
-          <HelpHint text="Faculty in a school with a finished research facility produce scholarship every week, weighted by how strong and how senior they are. It accumulates, and every so often converts into a publication, a grant (cash), a breakthrough (which feeds the prestige target), or — rarely — a prize for the scholar behind it. Every school can build a facility now, and what it is called varies: labs for the sciences, an institute for the humanities, studios for the arts. No facility, no scholarship, however the school is staffed." />
+          <HelpHint text="Scholars committed to a research project stop teaching for its whole duration — their course slots drop to zero and whatever they were teaching is left without an instructor until somebody else takes it. That is the real price of a deep project, and it is why a university needs a bench rather than just good people. Projects themselves, and the facilities that host them, are on the Research tab." />
         </span>
-        <span className="stat">{rate.toFixed(1)} pts/wk</span>
+        <span className="stat">{committed.length} committed</span>
       </div>
 
-      {equipped.size === 0 ? (
+      {schools.every((school) => !school.labIds.some((id) => s.tech.find((t) => t.id === id)?.status === 'done')) ? (
         <p className="empty-note">
-          No research facility finished, so the university produces no scholarship yet. One needs
-          its school's building and that major's entry course first — every school can build one:
-          {' '}{schools.map((school) => school.schoolName).join(', ')}.
+          No research facility finished, so nobody can be committed to a project yet. Every school can
+          build one — a lab, an institute, a studio or a computing centre — once its building and that
+          major&apos;s entry course are done.
+        </p>
+      ) : committed.length === 0 ? (
+        <p className="empty-note">
+          Nobody is committed to a project. {free > 0
+            ? `${free} of the roster could be — start one from the Research tab.`
+            : 'No scholar is in a school with a finished facility.'}
         </p>
       ) : (
-        <dl>
-          <dt>Scholarship banked</dt>
-          <dd>{Math.round(s.research.points).toLocaleString()}</dd>
-          <dt>Produced all-time</dt>
-          <dd>{Math.round(s.research.lifetimePoints).toLocaleString()}</dd>
-          <dt>Active scholars</dt>
-          <dd>{producing.length} of {s.faculty.length} on the roster</dd>
-          <dt>Facilities multiplier</dt>
-          <dd>×{multiplier.toFixed(2)} <span className="outcome-note">(research facilities and the research library)</span></dd>
-          <dt>Published</dt>
-          <dd>{s.research.publications} <span className="outcome-note">(papers, monographs, case studies, exhibited works)</span></dd>
-          <dt>Grants received</dt>
-          <dd>{s.research.grants} — ${Math.round(s.research.grantIncome).toLocaleString()} in total</dd>
-          <dt>Breakthroughs published</dt>
-          <dd>{s.research.breakthroughs} <span className="outcome-note">(feeds the prestige target)</span></dd>
-          <dt>Prizes awarded</dt>
-          <dd>{s.research.prizes}</dd>
-        </dl>
+        <>
+          {/* THE ROSTER'S SIDE of the initiative system, and the only part
+              of it that belongs on this screen: which of these people are
+              unavailable to teach, and until when. Everything about
+              facilities, output and funding is the Research tab's — this
+              panel used to carry all of it, describing a banked-points
+              model that no longer exists. */}
+          <div className="commitment-list">
+            {committed.map((f) => {
+              const on = commitments.get(f.id)!;
+              return (
+                <div key={f.id} className="commitment">
+                  <span className="commitment-who">
+                    <span className="commitment-name">{f.name}</span>
+                    <span className="commitment-field">{f.field}</span>
+                  </span>
+                  <span className="commitment-what">
+                    <span className="commitment-topic">{on.topic}</span>
+                    <span className="commitment-left">
+                      {on.weeksRemaining} of {on.weeksTotal} weeks left · not teaching
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          {free > 0 && (
+            <p className="outcome-note commitment-free">
+              {free} more {free === 1 ? 'scholar is' : 'scholars are'} in a school with a facility and
+              free to join a project.
+            </p>
+          )}
+        </>
       )}
-
-      <div className="research-schools">
-        {schools.map((school) => {
-          const built = school.labIds.filter(
-            (id) => s.tech.find((t) => t.id === id)?.status === 'done',
-          ).length;
-          return (
-            <div key={school.schoolName} className="research-school">
-              <span>{school.schoolName}</span>
-              <span className={built > 0 ? 'stat' : 'empty-note'}>
-                {/* "labs" no longer covers it: four schools' facilities
-                    are an institute, a studio, a computing centre and a
-                    behavioural lab (see techData.ts's
-                    RESEARCH_FACILITY_NAMES), so the row counts FACILITIES
-                    and the empty state says what is missing without
-                    naming the wrong kind of building. */}
-                {built > 0
-                  ? `${built} of ${school.labIds.length} ${school.labIds.length === 1 ? 'facility' : 'facilities'}`
-                  : 'no facility — no scholarship'}
-              </span>
-            </div>
-          );
-        })}
-      </div>
     </section>
   );
 }

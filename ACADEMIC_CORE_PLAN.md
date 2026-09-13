@@ -820,9 +820,11 @@ live bugs, two pieces of semantic drift, one decision that was always
 deferred to this point, and two bits of polish. Ordered by whether they
 are actually wrong.
 
+**G1 and G2 are done.** G3–G7 remain open.
+
 ### Bugs — things that are incorrect right now
 
-**G1. "Scholarship banked" always reads 0.** Retiring the points stock
+**G1. ~~"Scholarship banked" always reads 0.~~ FIXED.** Retiring the points stock
 (decision 7) means nothing writes `s.research.points` any more — but the
 Faculty tab still displays it, so the figure has read zero since PR F
 landed regardless of what the university is doing. It is the single
@@ -833,7 +835,9 @@ concept; there is nothing to replace it with, because scholarship is no
 longer banked anywhere. `points` itself stays as dead saved state, the way
 `Faculty.morale` did — harmless, and not worth a shape change.
 
-**G2. The Faculty tab's Scholarship panel describes the retired model.**
+**G2. ~~The Faculty tab's Scholarship panel describes the retired model.~~
+FIXED — the panel is now about who is committed, to what, and until when;
+everything about facilities and output is the Research tab's.**
 Its rate line reads `weeklyResearchPoints`, which computes what
 lab-equipped faculty COULD produce — a figure that no longer corresponds
 to anything, since production now happens only inside a running

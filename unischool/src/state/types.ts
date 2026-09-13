@@ -617,7 +617,16 @@ export interface CompletedInitiative {
 export const INITIATIVE_HISTORY_LIMIT = 24;
 
 export interface ResearchState {
-  points: number;          // the unspent stock. Grows weekly with lab-equipped faculty output; an output SPENDS its cost out of it (see researchData.ts's RESEARCH_OUTPUTS), which is what makes the rarer outputs need years of accumulation rather than luck
+  // DEAD STATE, kept rather than removed. This was the campus-wide bank
+  // that lab-equipped faculty trickled into and outputs were bought out
+  // of; initiatives replaced it (decision 7 — idle capacity produces
+  // nothing, the way to produce is to start something), so nothing writes
+  // it and, since the Faculty tab stopped displaying a figure that had
+  // read zero ever since, nothing reads it either. Left in the saved shape
+  // exactly as Faculty.morale was: harmless, and not worth a migration to
+  // delete. Do not wire it back up — if scholarship ever needs a stock
+  // again it should be per-initiative, where the work actually is.
+  points: number;
   lifetimePoints: number;  // every point ever produced, never spent down — display only, so the Faculty tab can show the long arc rather than a stock that sawtooths
   publications: number;    // papers, monographs, case studies and exhibited works — the cheap, frequent output (see researchData.ts's RESEARCH_OUTPUTS). A monotone stock like the others; feeds prestige at a steep discount to a breakthrough (see prestigeSystem.ts's researchScore)
   grants: number;          // research grants awarded so far

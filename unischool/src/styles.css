@@ -1639,15 +1639,21 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    Research is mostly silent, so this small table is where the rule
    ("no lab, no research") is actually visible. Schools with no lab are
    listed too, deliberately — see FacultyTab's ResearchPanel. */
-/* One column, not two. The rows now carry a school name AND a facility
-   count, and at 200px two of those per line wrapped mid-name ("Computer
-   Science" breaking across two rows next to its own status). A single
-   column is a list of seven schools, which is what it is. */
-.research-schools { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--parchment-line-lo);
-  display: grid; grid-template-columns: minmax(0, 1fr); gap: 3px; }
-.research-school { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: var(--text-sm); }
-.research-school > span:first-child { white-space: nowrap; }
-.research-school .empty-note { font-size: var(--text-xs); }
+
+/* Who is committed to a project, on the faculty screen. A row pairs the
+   person with what has taken them, so the cost of a deep project reads as
+   names rather than as a count. */
+.commitment-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(228px, 1fr));
+  gap: 8px; align-items: start; }
+.commitment { display: flex; flex-direction: column; gap: 3px; padding: 8px 10px;
+  border: 1px solid var(--parchment-line-lo); border-radius: var(--radius-md); }
+.commitment-who { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.commitment-name { font-size: var(--text-sm); font-weight: 600; color: var(--ink); }
+.commitment-field { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted); }
+.commitment-what { display: flex; flex-direction: column; gap: 1px; }
+.commitment-topic { font-family: var(--serif); font-size: var(--text-sm); color: var(--ink); }
+.commitment-left { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted); }
+.commitment-free { margin: 10px 0 0; }
 
 /* ---------- faculty: roster/market and research/slots, paired ----------
    Two equal columns, auto-flowing two panels per row: Roster + Market
