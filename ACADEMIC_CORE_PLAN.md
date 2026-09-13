@@ -419,118 +419,284 @@ for after both loops exist, not a prerequisite for either.
 
 ---
 
-## 4. Scholarship — keeping the dice, moving the hand
+## 4. Scholarship — initiatives in the labs
 
 ### What is right today, and must survive
 
-`researchSystem.ts` is well-built and the plan should be additive to it, not a
-rewrite. Specifically worth preserving:
+`researchSystem.ts` is well-built, and this section is additive to most of it.
+Three things are load-bearing and must hold through the rework:
 
-- Outputs never write `s.self.reputation` — a breakthrough increments a count
+- **Outputs never write `s.self.reputation`.** A breakthrough increments a count
   that `prestigeSystem.ts`'s `researchScore` reads as one clamped input among
-  seven. That invariant is load-bearing and must hold through this work.
-- The two-dial cadence (weekly chance rising with the banked stock, floored by a
-  cooldown) shared with the decision-event table.
-- The prize being *queued* rather than fired, so it can't be eaten by a week
-  that already owns an interrupt.
+  seven. That invariant is the whole reason research can't outrun curriculum
+  breadth, and nothing below may break it.
+- **The two-dial cadence** — a weekly chance floored by a cooldown, then a
+  weighted draw — is reused wholesale, just scoped to a running initiative
+  instead of to a global stock.
+- **The prize is queued, not fired** (`pendingPrizes` / `RESOLVE_PRIZE`), so it
+  can't be eaten by a week that already owns an interrupt. That machinery is
+  kept exactly as-is; only what *triggers* it changes.
 
-### The reframe
+### The model
 
-Today the whole system is production → stock → dice. The brief's ask is that the
-dice stay but stop being the entire system. The cleanest way to get there is to
-change **which end** the player touches:
+An initiative is **authored content**, not a procedural roll: a named advanced
+topic, in a named field or across several, run out of a specific lab by named
+people, for a long time.
 
-> **Initiatives are the production side. The existing output machinery is the
-> resolution side, unchanged.**
+> **The lab is the slot.** Each research facility hosts **one** initiative at a
+> time. The number of things a university can pursue at once is the number of
+> places it has built to pursue them in.
 
-That is the low-risk shape, and it is the same discipline the graduate-programs
-feature used: one new loop, reusing everything underneath, no parallel subsystem.
-Initiatives feed `s.research.points`; `rollResearchOutput` keeps doing exactly
-what it does now. The randomness the brief wants to keep is kept *entirely
-intact* — what changes is that the player now decides how much enters the hopper,
-from whom, and in what area.
+This is a better constraint than gating on faculty time alone, and it is worth
+saying why: it makes **building a lab a direct research-capacity decision**
+rather than a multiplier on a number. Today a lab does two vague things (opens a
+gate, adds to a campus-wide rate). Under this model a lab is a concrete,
+countable thing — a bench you either have free or don't — and the question
+"should we build another lab" acquires an obvious, legible answer. It also scales
+correctly with the existing build economy: **nine labs exist today** (Engineering
+holds five — Chemical, Mechanical, Electrical, Civil, Aerospace; Science holds
+three — Chemistry, Biology, Physics; Health Science holds Neuroscience), rising
+to roughly fifteen once the four lab-less schools get infrastructure of their
+own. So a founding school runs one initiative, and a mature research university
+runs a dozen or so in parallel. That is the right shape without any new tuning.
 
-### The initiative
+### Authored topics
+
+A new `data/researchTopics.ts`, and it should be understood up front as **the
+largest content-authoring job in this plan** — comparable in scale to the 421
+course titles, and the main reason PR F is expensive.
+
+```ts
+interface ResearchTopic {
+  id: string;
+  name: string;            // "Room-Temperature Superconductivity"
+  fields: string[];        // one field, or several for a cross-disciplinary topic
+  minDepth: InitiativeDepth;   // a landmark topic can't be run as a pilot study
+  blurb: string;           // one line of flavour, shown on the offer card
+}
+```
+
+Two kinds:
+
+**Single-field topics.** Advanced subject matter for each of the 28 fields —
+roughly three to five apiece, so a field always has something to offer and the
+offers don't repeat immediately. ~110–140 topics.
+
+**Cross-disciplinary topics**, which list two or three fields and **can only be
+staffed by drawing a participant from each**. These are the ones worth spending
+authoring care on, because they are the mechanic that makes a large university
+feel like one thing rather than a collection of departments — *Computational
+Neuroscience* wants Neuroscience and Computer Science; *Climate Economics* wants
+Biology and Economics; *Medical Imaging Physics* wants Physics and Clinical
+Health; *Digital Humanities* wants History and Computer Science. ~25–40 of them.
+
+The payoff: a cross-disciplinary initiative should be **meaningfully stronger**
+than a single-field one of the same depth — better outcome odds, richer awards.
+That is the reward for having built breadth instead of drilling one school.
+
+**Which topics are offered** when a lab falls vacant is gated, not random-from-
+everything: the lab's own fields, plus any field the school has actually built
+out (a developed T3 catalogue in it), plus who is on the roster to staff it. And
+the offer is a **draw**, not the full list — the same discipline as the candidate
+market, so "what came up this time" is itself a small piece of texture.
+
+### Depth
+
+A vacant lab shows a **"Start research"** panel offering several options, one per
+depth tier, each pre-loaded with an eligible topic. Deeper means more faculty,
+more money up front, longer commitment, bigger payoff:
+
+| Depth | Faculty | Duration | Funding | Outcome profile |
+|---|---|---|---|---|
+| **Pilot Study** | 1 | ~26 weeks (6 mo) | small | Publications; a grant now and then. Breakthrough unlikely |
+| **Funded Project** | 2 | ~78 weeks (1.5 yr) | moderate | Regular grants; a real breakthrough chance |
+| **Major Program** | 3 | ~156 weeks (3 yr) | large | Multiple breakthroughs likely; award possible |
+| **Landmark Program** | 4–5, **cross-disciplinary required** | ~260 weeks (5 yr) | very large | The Nobel tier |
+
+(Durations against `WEEKS_PER_YEAR = 52`.) Funding is charged **up front**, like
+every other Buildable cost in the game — the same "commit the money at the moment
+of the decision" rule `startDevelopment` follows, so research borrows the pacing
+model rather than inventing a second one.
+
+Note what the Landmark tier does: it makes the single most prestigious thing in
+the game *structurally* require an interdisciplinary team. You cannot win a Nobel
+out of one department.
+
+### State
 
 ```ts
 interface Initiative {
   id: string;
-  name: string;          // authored per area, e.g. "Study of Urban Migration"
-  area: string;          // a school, or a faculty field
+  labId: string;            // the facility hosting it — one initiative per lab
+  topicId: string;
+  depth: InitiativeDepth;
   participantIds: string[];
-  fundingPerWeek: number;
-  weeksRemaining: number;
   weeksTotal: number;
-  progress: number;      // banked points, resolved at completion
+  weeksRemaining: number;
+  breakthroughs: number;    // banked during the run; gates the award roll at conclusion
+  grantIncome: number;      // for the conclusion report
 }
+
+// on ResearchState:
+initiatives: Record<string, Initiative>;   // keyed by labId — the slot IS the key
 ```
 
-The player picks an area, picks participants, sets a funding level, commits.
-Weekly output into the stock is driven by:
+Keying by `labId` makes "one per lab" an invariant of the data shape rather than
+a rule some system has to remember to enforce. A lab is vacant exactly when it
+has no key.
 
-- **Participants' `research` stats** (and `acclaim`) — the primary term;
-- **Funding level** — money converts to output, with diminishing returns, so
-  cash is a lever but not a bypass;
-- **Infrastructure** — the existing `researchRateBonus` multiplier, live-read off
-  finished Buildables, applies here unchanged;
-- **Interdisciplinarity** — a bonus when participants come from different
-  fields. This is the mechanic that makes a big university *feel* like one, and
-  it is the reason to build breadth rather than depth in one place. Worth
-  treating as a headline feature rather than a modifier.
+### How a run resolves
 
-**The keystone constraint: a faculty member's time is finite across both loops.**
-A person in an initiative has less capacity for courses; a person carrying a full
-course load contributes less to an initiative. Whether that is a hard slot
-(`courseSlots` reduced while committed) or a soft penalty on both sides is a
-tuning question, but the *tension* is the single most valuable mechanic in this
-entire plan. It is what makes each hire an allocation decision instead of a
-number that goes up, and it is what finally couples the teaching loop and the
-research loop into one economy rather than two that happen to share a roster.
-Everything else here is refinement; this is the part worth getting right.
+**During the run** — the weighted-random events the brief wants kept, now scoped
+to a specific project instead of floating free over a global stock:
+
+- **Grants** → cash, as today. Amount scales with the participants' combined
+  `research` strength (and `acclaim`), so a strong team is genuinely better at
+  pulling money in, exactly as the brief asks.
+- **Breakthroughs** → increment `s.research.breakthroughs` (unchanged, so the
+  prestige path is untouched) *and* bank one on the initiative, which is what
+  makes the award possible later.
+- **Publications** → a new, cheap, frequent low rung. Worth adding because the
+  existing three outputs all cost enough that early research is a long silence
+  followed by a grant; a cheap fourth rung gives a young department something to
+  show from week one, and gives humanities an output that reads right at any
+  scale.
+
+Per-week chances are driven by the participants' research strength, the depth
+tier, the hosting lab's own `researchRateBonus`, and the cross-disciplinary
+bonus. The existing cooldown machinery keeps a single project from firing four
+weeks running.
+
+**At conclusion** — the part that is genuinely new:
+
+1. A **completion payoff** sized by depth and by how the run actually went
+   (breakthroughs banked, team strength). Feeds the same capped prestige input;
+   never writes reputation.
+2. **The major award roll.** Per the brief: **gated on having produced at least
+   one breakthrough**, then rolled on the participants' research strength plus
+   noise, with depth weighting the odds. A Pilot Study should essentially never
+   produce one; a Landmark Program with three breakthroughs and a Distinguished
+   team should have a real chance.
+
+This **moves the prize out of `RESEARCH_OUTPUTS`** and into initiative
+conclusion. That's the one real deletion in this section, and it is an
+improvement on two counts: a Nobel now has a *story* attached — a named topic,
+a named team, five years — instead of arriving as a weighted draw against a
+stock. And the existing `pendingPrizes` queue, `RESOLVE_PRIZE`, the `acclaim`
+field, and the celebration interrupt are all reused unchanged. Only the trigger
+moves.
+
+Faculty participants are **committed for the duration**. At 26 to 260 weeks this
+is a serious commitment, and it is where the teaching/scholarship tension
+actually bites (see decision 2): the question is whether commitment reduces
+`courseSlots`, penalizes course quality, or is purely an opportunity cost of
+being unavailable for *other* initiatives.
+
+### What happens to the aggregate points stock
+
+Under this model `s.research.points` loses its job: production is per-initiative,
+and outputs are triggered by a running project rather than bought out of a bank.
+The monotone counts it lives beside — `breakthroughs`, `grants`, `prizes`,
+`grantIncome` — all stay exactly as they are, which is what keeps
+`prestigeSystem.ts`'s `researchScore` working untouched.
+
+The open question is whether lab-equipped faculty who are *not* on an initiative
+still trickle into a stock (see decision 7). **Recommendation: retire the stock
+as a driver.** "Player-directed research rather than the entire system" reads
+most cleanly as: idle capacity produces nothing, and the way to produce is to
+start something. It also removes the slightly odd current situation where
+research happens because you own a building.
+
+### The UI: a Research tab of its own
+
+The brief floats Faculty tab or a new tab. **Recommend a new Research tab**, for
+three reasons: the Faculty tab is already a dense two-panel screen (roster +
+market) and this content is a full screen on its own; the interaction is about
+*labs and projects*, with faculty as an input, so filing it under Faculty inverts
+the subject; and — the real argument — Curriculum is where `teaching` lives, so
+Research being where `research` lives completes the symmetry that makes the two
+stats finally mean different things. It takes the same full-bleed treatment
+(PR A).
+
+**Layout: one horizontal panel per research facility**, stacked. Each panel is a
+lab, and a lab is either running something or vacant.
+
+```
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ ⌬ PHYSICS LAB · Science Center                          Major Program · 3 yr  │
+│ ───────────────────────────────────────────────────────────────────────────── │
+│ "Room-Temperature Superconductivity"                                          │
+│                                                                               │
+│  (◕)  Dr. Amara Osei      Physics      research 78 ▓▓▓▓▓▓▓▓░░                  │
+│  (◕)  Dr. Jae-won Park    Chemistry    research 64 ▓▓▓▓▓▓░░░░   ⚛ cross-disc. │
+│  (◕)  Dr. Ines Marchetti  Mathematics  research 71 ▓▓▓▓▓▓▓░░░                 │
+│                                                                               │
+│  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░  94 of 156 weeks · 1 breakthrough │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ ⌬ BIOLOGY LAB · Science Center                                        VACANT  │
+│                                                    ┌────────────────────────┐ │
+│                                                    │    Start research →    │ │
+│                                                    └────────────────────────┘ │
+└───────────────────────────────────────────────────────────────────────────────┘
+```
+
+Everything the brief asks for is on the panel: the lab it runs out of, the topic,
+the participants with headshots (`FacultyPortrait.tsx`, already built), their
+fields, their research strength as bars (`StatBar` in `FacultyTab.tsx`, already
+built), and a progress bar. Breakthroughs banked so far sit next to the progress
+bar, because that's the number that decides whether this run can end in an award
+— the player should be able to watch it.
+
+**"Start research"** opens the offer set: one card per depth tier, each showing
+topic, required fields, faculty count, up-front cost, duration, and a plain-words
+outcome expectation. Choosing a card then assigns participants — auto-filled with
+the strongest eligible person per required field, editable, and blocked with a
+clear reason when a required field has nobody free (with the same inline **Hire
+Faculty** affordance the curriculum drawer gets, since it is the identical dead
+end).
+
+A completed initiative leaves a **result card** in a history strip below — topic,
+team, what it produced, whether it took an award. Over a long run that strip
+becomes the university's research record, and it is the cheapest possible version
+of "publications and awards" as a visible institutional history.
 
 ### Making it work outside STEM
 
-The blocker is structural, not thematic: `researchData.ts` gates production on
-`labEquippedFields`, and four schools — Business, Arts & Media, Social Sciences
-& Humanities, Computer Science — have no lab-gated major, so a run concentrated
-in any of them produces literally nothing. The README already names this as the
-open tension and correctly identifies it as a content question.
-
-Two moves, in order:
+Unchanged in substance from the previous draft, and now **load-bearing rather
+than nice-to-have**: under a lab-as-slot model, a school with no lab has not just
+no output but *no slot* — it literally cannot participate. Business, Arts & Media,
+Social Sciences & Humanities and Computer Science all currently have none.
 
 1. **Generalize "lab" to research infrastructure.** Mechanically identical
-   Buildables; different names, art, and homes. A humanities research institute
+   Buildables, different names, art and homes: a humanities research institute
    and archive; a behavioural lab and trading floor for Business; studios and a
-   performance space for Arts & Media. This is overwhelmingly a `data/` change —
-   `facilitiesData.ts` plus widening `LAB_GATED_MAJOR_PREFIXES` — and it follows
-   the graduate-programs rule exactly: **no bespoke per-school system**, only
-   authored data over shared machinery. It also unblocks the research doctorates
-   those four schools cannot currently have, for the same reason.
-2. **Discipline-specific output names over identical mechanics.** The same draw,
-   relabelled by the initiative's area: a breakthrough is a *monograph* in
-   humanities, a *study* in social science, an *exhibition* in the arts, a
-   *case study* in business. Purely authored strings — the prestige input,
-   the cost, the weight are all one shared table.
+   performance space for Arts & Media; a computing centre for CS. Overwhelmingly
+   a `data/` change — `facilitiesData.ts` plus widening
+   `LAB_GATED_MAJOR_PREFIXES` — and it follows the graduate-programs rule
+   exactly: **no bespoke per-school system**, only authored data over shared
+   machinery. It also unblocks the research doctorates those four schools cannot
+   currently have, for the same reason.
+2. **Discipline-specific output names over identical mechanics.** A breakthrough
+   is a *monograph* in humanities, a *study* in social science, an *exhibition*
+   in the arts, a *case study* in business. Authored strings over one shared
+   table.
 
-And one genuinely new output: **publications** — cheap, frequent, low-value.
-The existing three all cost enough that early research is long silence followed
-by a grant. A cheap fourth rung gives a young department something to show, gives
-humanities an output that reads right at any scale, and makes the stock's growth
-legible from week one.
-
-Whether the concept is *renamed* Scholarship throughout (with a save migration,
-the way the README's terminology pass handled `major-complete:`) or stays
-`research` in code with Scholarship as the player-facing word, is a call worth
-making deliberately. **Recommendation: player-facing rename only, at first.** The
-code churn of a full rename buys nothing mechanical, and the roadmap has a
-precedent for deferring terminology to its own pass.
+On terminology: whether the concept is *renamed* Scholarship in code (with a save
+migration, as the README's terminology pass handled `major-complete:`) or stays
+`research` with Scholarship as the player-facing word is decision 5.
+**Recommendation: player-facing only at first** — the code churn buys nothing
+mechanical, and the roadmap has precedent for deferring terminology to its own
+pass.
 
 ### Later, explicitly not now
 
-Research centers as placeable Buildables that host initiatives; competitive grant
-*applications* (an initiative that targets a named funder); multi-university
-collaborations; publication records per faculty member. All of these are natural
-growths from the initiative object. None should be in its first version.
+Grant *applications* (an initiative that targets a named funder competitively);
+multi-university collaborations with rivals; per-faculty publication records;
+research centers as a Buildable tier above the lab that hosts several initiatives
+at once. All are natural growths from this object. None belong in its first
+version.
 
 ---
 
@@ -544,28 +710,37 @@ growths from the initiative object. None should be in its first version.
           │   teaching stat                research stat
           │        │                             │
           │        ▼                             ▼
-          │   assigned to courses          joined to initiatives
+          │   assigned to courses     committed to an initiative in a lab
           │        │                             │
-          │   course grades (A–F)          scholarship output
+          │   course grades (A–F)      during: publications, grants, breakthroughs
           │        │                             │
           │        ├──▶ academic satisfaction    ├──▶ grants ──▶ money ─┘
           │        │                             │
+          │        │                    at conclusion: payoff, and
+          │        │                    a major award if a breakthrough landed
+          │        │                             │
           │        └──▶ curriculum breadth × quality ──┬── prestige
           │                                            │
-          │        publications/breakthroughs/prizes ──┘
+          │                              research score ┘
           │                                            │
           └───── tuition ◀── enrollment ◀── applicants ◀┘
 ```
 
-The two things that make it a loop rather than a diagram:
+Four things make this a loop rather than a diagram:
 
-1. **Faculty time is the shared scarce resource.** Teaching and scholarship
-   compete for the same people. Every hire is an allocation.
-2. **Expansion and quality compete for the same prestige term.** Breadth is
-   multiplied by quality, so a wide weak curriculum and a narrow strong one both
-   fall short, and the player must decide which way to lean this decade.
+1. **Faculty time is the shared scarce resource.** A person teaching four courses
+   and a person five years into a Landmark Program are the same person. Every
+   hire is an allocation.
+2. **Labs are the throttle on scholarship**, the way money is the throttle on
+   everything else. Concurrency is bought with buildings.
+3. **Expansion and quality compete for the same prestige term**, because breadth
+   is multiplied by quality.
+4. **Breadth pays off twice.** Building many schools is what makes
+   cross-disciplinary topics — and therefore Landmark Programs, and therefore
+   awards — reachable at all. The most prestigious outcome in the game is gated
+   on having built a genuine *university* rather than a good department.
 
-Neither of those decisions exists in the game today. Both come from this plan.
+None of those decisions exist in the game today.
 
 ---
 
@@ -580,8 +755,9 @@ information that doesn't exist yet.
 | **B** | **Course→faculty assignment as real state.** `courseFaculty` record; `START_DEVELOPMENT` takes a `facultyId`; `REASSIGN_COURSE_FACULTY`; faculty-picker UI **in the existing curriculum tab**; dismissal leaves courses unstaffed; round-robin becomes the legacy fallback; save migration + harness extension. | The keystone. Deliberately lands in the *old* layout so the interaction is proven before any new rendering work depends on it. |
 | **C** | **Course quality grades.** `data/courseQuality.ts`, grade chips on cards, aggregation to major/school, drawer breakdown. Wire into `satisfactionSystem`'s academic term and `prestigeSystem`'s breadth multiplier. Sim pass on the compounding risk. | Needs B. Gives D something to display. |
 | **D** | **The Curriculum Map.** Three-level zoomable canvas over the same `DiscoverySection[]`, lane layout, tier hierarchy, on-demand bridges, badge navigation, filters and search, side drawer. | The big one, and now the only one that is purely a rendering change — every fact it displays already exists. |
-| **E** | **Scholarship groundwork.** Research infrastructure for the four schools that have none (data); publications as a fourth output; discipline-specific output naming; player-facing terminology. | Independent of A–D; could run in parallel. Fixes a known gap on its own even if F slips. |
-| **F** | **Research initiatives.** The initiative object, the tick that produces into the existing stock, the faculty-time constraint, the UI. | Needs E to be worth doing outside STEM. The faculty-time constraint needs B's assignment record to be meaningful. |
+| **E** | **Research infrastructure for the four schools that have none** (data); publications as a fourth output; discipline-specific output naming; player-facing terminology. | Independent of A–D; could run in parallel. Now a **prerequisite** for F rather than a nicety: no lab means no slot, so without this, F ships a system four schools cannot touch at all. |
+| **F1** | **Initiatives — engine.** `data/researchTopics.ts` (the authoring job), the `Initiative` object keyed by labId, the tick that runs a project and fires its during-run events, conclusion payoff, the award roll, prize trigger moved out of `RESEARCH_OUTPUTS`. Migration for the retired points stock. | Needs E to be worth doing outside STEM. The faculty-commitment rule needs B's assignment record to mean anything. |
+| **F2** | **The Research tab.** Full-bleed; one horizontal panel per facility; the start-research offer set; participant assignment with inline hiring; the results history strip. | Split from F1 so the engine can be balanced against `npm run sim` before a screen is built on top of it. |
 
 **The ordering argument, since it inverts the brief:** building the map first
 (D before B and C) would mean designing course cards and a school-level overview
@@ -597,34 +773,49 @@ Flagged rather than silently chosen, per the README's working-style note.
 
 1. **Absolute or curved grading?** (Recommend absolute, generous low bands.)
    Decides whether the first hour reads as "we are new" or "we are failing".
-2. **How hard is the faculty-time constraint?** Hard slot reduction while on an
-   initiative, or a soft penalty to both sides? Decides whether research feels
-   like a commitment or a dial.
-3. **Does reassignment cost anything?** (Recommend free and immediate to start,
-   add friction only if it proves exploitable.)
+2. **How hard is the teaching/scholarship constraint?** A faculty member
+   committed to a 3-year Major Program: do their `courseSlots` drop (hard — they
+   stop teaching), do their courses take a quality penalty (soft — they teach
+   worse while distracted), or is the only cost that they're unavailable for
+   other initiatives (loose)? Decides whether research feels like a sacrifice or
+   a free upgrade for anyone idle.
+3. **Does course reassignment cost anything?** (Recommend free and immediate to
+   start, add friction only if it proves exploitable.)
 4. **Does the prestige faculty-quality input split into teaching and research?**
-   Probably yes eventually, but it should be a tuning pass after both loops
-   exist, not a prerequisite for either.
+   Probably yes eventually, but a tuning pass after both loops exist.
 5. **Full `research` → `scholarship` code rename, or player-facing only?**
-   (Recommend player-facing only; defer the code rename to a terminology pass
-   with its own migration, as PR C of the alignment roadmap did.)
+   (Recommend player-facing only; defer the code rename to its own terminology
+   pass with a migration.)
 6. **Grade bands vs. `QUALITY_TIER_THRESHOLDS`.** Related but should not be
    identical; needs one explicit decision so the two ladders do not drift.
+7. **Does the aggregate research-points stock survive?** (Recommend retiring it
+   as a driver — idle labs produce nothing; the way to produce is to start
+   something.) The alternative is a small passive trickle from lab-equipped
+   faculty not on an initiative.
+8. **Can an initiative be cancelled, and at what cost?** A 5-year commitment with
+   no exit is a trap the first time a player misjudges it; a free exit makes the
+   commitment meaningless. (Lean: cancellable, forfeiting the up-front funding
+   and banking nothing.)
+9. **How many topics for a first pass?** The full ~150 is a large authoring job.
+   A first version could ship 2 per field plus ~15 cross-disciplinary (~70) and
+   grow, accepting that offers repeat more often early on.
 
 ---
 
 ## 8. What this plan deliberately does not do
 
 - **No new Buildable kind, and no fork of the Buildable model.** Assignment is a
-  side record keyed by id, exactly as placement is.
-- **No second population, no per-school research ledger.** The aggregate
-  `s.research.points` stock stays aggregate; the "only equipped schools produce"
-  rule stays a property of the production function, not of where the total is
-  kept.
-- **No prestige written directly by anything.** Every new input reaches
-  reputation through a clamped term in `prestigeSystem.ts`'s target, or it does
-  not reach it at all.
-- **No systems calling systems.** Everything new is a pure `(state) => void`
-  tick registered in `SYSTEMS`, or a pure function in `data/`.
+  side record keyed by id, exactly as placement is; an initiative is a side
+  record keyed by the lab's id.
+- **No second population, no per-school research ledger.** The monotone output
+  counts stay aggregate on `ResearchState`; what becomes per-place is the
+  *initiative*, which is a slot, not a ledger.
+- **No prestige written directly by anything.** Every new input — course quality,
+  initiative payoffs, awards — reaches reputation through a clamped term in
+  `prestigeSystem.ts`'s target, or it does not reach it at all.
+- **No systems calling systems.** Everything new is a pure `(state) => void` tick
+  registered in `SYSTEMS`, or a pure function in `data/`.
+- **No second pacing model.** Initiative funding is charged up front at the
+  moment of commitment, exactly as every Buildable cost is.
 - **No constellation.** The layout metaphor is retired; the full-bleed shell it
   proved is kept.
