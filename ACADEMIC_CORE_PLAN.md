@@ -6,7 +6,9 @@ course development, the faculty roster, and research) become one interconnected
 loop, and to sequence that work so each step ships on its own.*
 
 **Status: A–F shipped.** Every PR in the sequence below has landed on
-`claude/curriculum-quality-faculty-plan-334qrn`. The constellation-layout experiment
+`claude/curriculum-quality-faculty-plan-334qrn`. A follow-up cleanup — two
+live bugs, two pieces of semantic drift and the one decision deferred until
+both loops existed — is proposed in §6b and not yet built. The constellation-layout experiment
 that preceded this document is deliberately not being carried forward — see
 "Why the constellation failed" below, which is the most useful thing it
 produced.
@@ -808,6 +810,104 @@ information that doesn't exist yet.
 around information that does not exist — which is very close to how the
 constellation ended up optimizing layout for its own sake. Let the data land
 first; then the map has something to be a map *of*.
+
+---
+
+## 6b. PR G — the cleanup PR F earned (PROPOSED, not built)
+
+Everything above has shipped. This is what shipping it left behind: two
+live bugs, two pieces of semantic drift, one decision that was always
+deferred to this point, and two bits of polish. Ordered by whether they
+are actually wrong.
+
+### Bugs — things that are incorrect right now
+
+**G1. "Scholarship banked" always reads 0.** Retiring the points stock
+(decision 7) means nothing writes `s.research.points` any more — but the
+Faculty tab still displays it, so the figure has read zero since PR F
+landed regardless of what the university is doing. It is the single
+clearest "this is broken" a player would hit.
+
+*Fix:* delete the row. The number it was reporting no longer exists as a
+concept; there is nothing to replace it with, because scholarship is no
+longer banked anywhere. `points` itself stays as dead saved state, the way
+`Faculty.morale` did — harmless, and not worth a shape change.
+
+**G2. The Faculty tab's Scholarship panel describes the retired model.**
+Its rate line reads `weeklyResearchPoints`, which computes what
+lab-equipped faculty COULD produce — a figure that no longer corresponds
+to anything, since production now happens only inside a running
+initiative. The panel also lists banked/produced/multiplier figures that
+were the old stock's vocabulary, and it now duplicates a Research tab that
+says all of it better.
+
+*Fix:* cut it down to what belongs on a FACULTY screen — how many of the
+roster are committed to projects and to which, which is a fact about
+people. Everything about facilities and output moves to (and already
+exists on) the Research tab.
+
+### Drift — things that are still true but no longer mean what they say
+
+**G3. Admissions reads research CAPACITY, not activity.**
+`cohorts.ts`'s `researchOriented` pull is driven by
+`signals.researchRate = weeklyResearchPoints(s)` plus a lab count. After
+PR F that reads "this school owns buildings and employs researchers",
+which was the right proxy when owning a building was how research
+happened. A campus with seven facilities all standing idle now attracts
+research-minded students exactly as strongly as one running seven
+programs.
+
+*Fix:* derive the signal from running initiatives — their count, depth and
+team strength — so the applicants a research university attracts track
+what it is actually doing. Small, and it makes the idle-facility state
+cost something in a second place, which it should.
+
+**G4. The prestige faculty-quality input now double-counts (decision 4).**
+This was always deferred to "after both loops exist", and both now do.
+`prestigeSystem`'s `facultyQualityScore` averages teaching AND research
+across the roster — but teaching already reaches prestige through the
+curriculum-quality multiplier on the breadth term, and research already
+reaches it through `researchScore`. The same two stats are being paid for
+twice, once directly and once through the loop they drive.
+
+*Recommendation, for review rather than settled:* narrow this input to
+what neither loop captures — the roster's DEPTH and maturity (how many
+scholars, how long retained) rather than their stats — or retire it and
+let the two loops carry faculty's contribution entirely. The second is
+cleaner and is probably right; it is also the bigger change, since
+`FACULTY_QUALITY_WEIGHT` is 40 and removing it needs the other weights
+re-balanced against `npm run sim`.
+
+### Polish
+
+**G5. The sim's payroll lever predates course quality.**
+`cutPayrollIfStalled` fires the priciest hire once a week, with no floor,
+until the weekly net turns non-negative. That was harmless when dismissal
+only removed a salary. It now orphans courses, drops academic
+satisfaction, cuts applicants and revenue, and can drive the exact spiral
+it is meant to model recovering from — which is why two strategies still
+end a run at zero faculty. The engine is fine; the harness encodes an
+assumption the engine no longer holds.
+
+*Fix:* give it a floor (never fire below what it takes to staff the
+courses already offered) and let it reach for tuition before payroll.
+
+**G6. The four new research facilities are drawn as industrial works.**
+`buildingMotifs` maps `facilityType: 'lab'` to the `works` motif — low,
+flat, rooftop plant. Correct for a chemistry lab; wrong for a humanities
+institute, a media studio and a computing centre, which all now render as
+the same shed.
+
+*Fix:* either give them their own `facilityType`s, or let a Buildable
+carry a motif override. The override is smaller and does not disturb the
+lab gate, which reads `facilityType === 'lab'` in several places.
+
+**G7. Prize frequency wants play-testing, not tuning-by-sim.** One to two
+per forty-year run across the sim's strategies — but the sim rarely
+commissions Landmark Programs, because its heuristic refuses to thin a
+department. A player chasing prestige will commission them deliberately,
+so the real rate is probably higher than the harness suggests. Worth
+feeling out in play before touching `AWARD_BASE_BY_DEPTH`.
 
 ---
 
