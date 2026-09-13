@@ -71,8 +71,11 @@ export type Action =
   // Dismisses someone from the roster. This ORPHANS every course they were
   // teaching: their assignments are cleared, and those courses go unstaffed
   // until the player gives them a new instructor (see types.ts's
-  // CourseFaculty). Their field capacity comes back at the same moment, so
-  // a replacement hire can take the courses straight over. The UI warns
+  // CourseFaculty). The department does NOT get that capacity back — the
+  // courses still exist and still need teaching — so it is left
+  // over-committed until somebody takes them on. A replacement hire can
+  // always do that (eligibility is a per-person check), but the school
+  // cannot open NEW courses in that field until it has. The UI warns
   // before this, naming the courses, because it is not recoverable by
   // undo — see FacultyTab.tsx.
   | { type: 'FIRE_FACULTY'; facultyId: string }

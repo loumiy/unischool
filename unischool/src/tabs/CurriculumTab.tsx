@@ -7,6 +7,10 @@ import {
   isUnstaffed, facultyLoad,
 } from '../systems/techtree/techSystem';
 import { facultyQualityTier } from '../data/facultyData';
+import { gradeFor, qualityOf, tierOf, type Grade } from '../data/courseQuality';
+import {
+  averageCourseQuality, courseQuality, facultyLoads, type FacultyLoads,
+} from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
 import FacultyPortrait from '../components/FacultyPortrait';
 import { ProgressRing } from '../components/Progress';
@@ -272,6 +276,32 @@ function cellState(s: GameState, t: Buildable): CellState {
   return canStartDevelopment(s, t) ? 'available' : 'blocked';
 }
 
+// The grade chip. One component for a course's own grade and for an
+// aggregate (a major's, a school's), because they are the same claim at
+// different scales and must read identically — a school showing "B" means
+// its courses average a B, not something else that happens to look alike.
+//
+// The letter carries the meaning and the tint is only a cue: colour alone
+// would be unreadable to a colour-blind player, and unreadable at the
+// zoomed-out sizes the curriculum map will want, so the letter never drops.
+function GradeChip({ grade, title, size = 'sm' }: { grade: Grade; title?: string; size?: 'sm' | 'lg' }) {
+  return (
+    <span className={`grade-chip grade-${grade.toLowerCase()} ${size}`} title={title}>
+      {grade}
+    </span>
+  );
+}
+
+// An aggregate grade across a set of courses, or nothing when none of them
+// are graded yet. What a school section head and a major subgroup show —
+// and, once the curriculum map lands, what its university-level view is
+// built from.
+function AggregateGrade({ s, ids, label, loads }: { s: GameState; ids: string[]; label: string; loads: FacultyLoads }) {
+  const avg = averageCourseQuality(s, ids, loads);
+  if (avg === null) return null;
+  return <GradeChip grade={gradeFor(avg)} title={`${label} averages ${Math.round(avg)} / 100 across its developed courses`} />;
+}
+
 // One course cell: its code (e.g. "FINA 101") over its title, filling
 // brass when done and pulsing while developing. Clicking it opens the
 // course drawer (see CourseDrawer below). The code is split into
@@ -298,7 +328,7 @@ function cellState(s: GameState, t: Buildable): CellState {
 // lighting up together with a letter on them would draw the eye to
 // clusters that correlate with school membership the pool is not meant to
 // reveal yet.
-function CourseCell({ s, t, selected, onSelect }: { s: GameState; t: Buildable; selected: boolean; onSelect: (id: string) => void }) {
+function CourseCell({ s, t, selected, onSelect, loads }: { s: GameState; t: Buildable; selected: boolean; onSelect: (id: string) => void; loads: FacultyLoads }) {
   const state = cellState(s, t);
   // A course's stored name is "CODE · Title" (see techData). The cell used
   // to show only the code, which meant reading the catalogue was a matter of
@@ -313,6 +343,10 @@ function CourseCell({ s, t, selected, onSelect }: { s: GameState; t: Buildable; 
   // CourseFaculty) — marked on the cell because it is a thing the player
   // must fix, and they should not have to open a course to discover it.
   const unstaffed = isUnstaffed(s, t);
+  // Only an offered, staffed course carries a grade: an undeveloped one is
+  // an empty slot in the catalogue rather than a failing course, and an
+  // unstaffed one is not being taught at all (see courseQuality).
+  const quality = courseQuality(s, t, loads);
   // The gate is only news while the course is still ahead of the player:
   // a developing or finished course already holds its slot.
   const showGateDot = missingFaculty && state !== 'developing' && state !== 'done';
@@ -329,7 +363,11 @@ function CourseCell({ s, t, selected, onSelect }: { s: GameState; t: Buildable; 
     >
       <span className="cell-code">{code}</span>
       <span className="cell-title">{title}</span>
-      {state === 'done' && !unstaffed && <span className="cell-stamp" aria-hidden="true">✓</span>}
+      {/* The grade replaces the done-tick: a graded course is self-evidently
+          developed, and two marks in one corner competing for the same
+          glance is one mark too many. */}
+      {quality && <GradeChip grade={quality.grade} title={`Quality ${Math.round(quality.score)} / 100`} />}
+      {state === 'done' && !quality && !unstaffed && <span className="cell-stamp" aria-hidden="true">✓</span>}
       {unstaffed && <span className="cell-stamp unstaffed" title="No instructor">!</span>}
       {showGateDot && <span className="cell-gate-dot" aria-hidden="true" />}
       {state === 'developing' && (
@@ -341,12 +379,12 @@ function CourseCell({ s, t, selected, onSelect }: { s: GameState; t: Buildable; 
   );
 }
 
-function CellGrid({ s, ids, lookup, selectedId, onSelect }: { s: GameState; ids: string[]; lookup: Map<string, Buildable>; selectedId: string | null; onSelect: (id: string) => void }) {
+function CellGrid({ s, ids, lookup, selectedId, onSelect, loads }: { s: GameState; ids: string[]; lookup: Map<string, Buildable>; selectedId: string | null; onSelect: (id: string) => void; loads: FacultyLoads }) {
   return (
     <div className="cell-grid">
       {ids.map((id) => {
         const t = lookup.get(id);
-        return t ? <CourseCell key={id} s={s} t={t} selected={selectedId === id} onSelect={onSelect} /> : null;
+        return t ? <CourseCell key={id} s={s} t={t} selected={selectedId === id} onSelect={onSelect} loads={loads} /> : null;
       })}
     </div>
   );
@@ -390,10 +428,30 @@ function CellGrid({ s, ids, lookup, selectedId, onSelect }: { s: GameState; ids:
 // matter HERE and nowhere else: how good a teacher they are, and how
 // loaded they already are.
 function InstructorOption(
-  { s, f, selected, disabled = false, onPick }:
-  { s: GameState; f: Faculty; selected: boolean; disabled?: boolean; onPick?: () => void },
+  { s, f, selected, disabled = false, projectedFor, onPick }:
+  { s: GameState; f: Faculty; selected: boolean; disabled?: boolean; projectedFor?: Buildable; onPick?: () => void },
 ) {
   const load = facultyLoad(s, f.id);
+  // WHAT THIS COURSE WOULD BE GRADED if they took it — the single most
+  // useful thing on the card, and the reason the picker is a list of
+  // people rather than a dropdown of names. Comparing "teaching 71" with
+  // "teaching 64" is abstract; comparing a B with a C is the actual
+  // consequence, and it already folds in what their existing load and this
+  // course's tier will do to it.
+  //
+  // Costs nothing to compute speculatively: qualityOf is pure arithmetic
+  // on four numbers (see data/courseQuality.ts). The load passed is what
+  // theirs WOULD become — their current count plus this course, unless
+  // they already teach it.
+  const projected = projectedFor
+    ? qualityOf({
+      teaching: f.teaching,
+      acclaim: f.acclaim,
+      load: s.courseFaculty[projectedFor.id] === f.id ? load : load + 1,
+      slots: f.courseSlots,
+      tier: tierOf(projectedFor.id),
+    })
+    : null;
   return (
     <button
       type="button"
@@ -419,23 +477,31 @@ function InstructorOption(
           </span>
         </span>
       </span>
-      <span className={`instructor-option-load${load >= f.courseSlots ? ' full' : ''}`}>
-        {load} / {f.courseSlots}
-        <br />
-        <span className="instructor-load-label">courses</span>
+      <span className="instructor-option-right">
+        {projected && (
+          <GradeChip
+            grade={projected.grade}
+            title={`This course would be graded ${projected.grade} (${Math.round(projected.score)} / 100) with them`}
+          />
+        )}
+        <span className={`instructor-option-load${load >= f.courseSlots ? ' full' : ''}`}>
+          {load} / {f.courseSlots}
+          <span className="instructor-load-label">courses</span>
+        </span>
       </span>
     </button>
   );
 }
 
 function CourseDrawer(
-  { s, act, t, lookup, onClose }:
-  { s: GameState; act: (a: Action) => void; t: Buildable; lookup: Map<string, Buildable>; onClose: () => void },
+  { s, act, t, lookup, onClose, loads }:
+  { s: GameState; act: (a: Action) => void; t: Buildable; lookup: Map<string, Buildable>; onClose: () => void; loads: FacultyLoads },
 ) {
   const state = cellState(s, t);
   const offered = t.status === 'developing' || t.status === 'done';
   const instructor = assignedInstructor(s, t);
   const unstaffed = isUnstaffed(s, t);
+  const quality = courseQuality(s, t, loads);
 
   // For an offered course the current instructor must stay eligible for
   // their own course (see techSystem.ts's eligibleInstructors `except`),
@@ -485,6 +551,30 @@ function CourseDrawer(
           {state === 'developing' && <div><dt>Remaining</dt><dd>{weeksLeft} weeks</dd></div>}
         </dl>
 
+        {/* THE GRADE, ITEMIZED. A letter on its own tells the player
+            nothing they can act on; the factors tell them exactly what to
+            do — move a course off this professor, or put a stronger one on
+            the capstone. Every line names something they decided. */}
+        {quality && (
+          <section className="course-drawer-section">
+            <h4>Quality</h4>
+            <div className="course-drawer-grade">
+              <GradeChip grade={quality.grade} size="lg" />
+              <div className="course-drawer-grade-body">
+                <span className="course-drawer-grade-score">{Math.round(quality.score)} / 100</span>
+                <ul className="course-drawer-factors">
+                  {quality.factors.map((factor) => (
+                    <li key={factor.label} className={factor.value < 0 ? 'down' : 'up'}>
+                      <span>{factor.label}</span>
+                      <span className="num">{factor.value > 0 ? '+' : '−'}{Math.abs(Math.round(factor.value))}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
+        )}
+
         {t.prereqs.length > 0 && (
           <section className="course-drawer-section">
             <h4>Prerequisites</h4>
@@ -522,6 +612,7 @@ function CourseDrawer(
                       s={s}
                       f={f}
                       selected={chosen === f.id}
+                      projectedFor={t}
                       onPick={() => setPicked(f.id)}
                     />
                   ))}
@@ -576,7 +667,7 @@ function CourseDrawer(
                 ) : (
                   marketInField.map((c) => (
                     <div key={c.id} className="course-drawer-candidate">
-                      <InstructorOption s={s} f={c} selected={false} />
+                      <InstructorOption s={s} f={c} selected={false} projectedFor={t} />
                       <button
                         type="button"
                         className="course-drawer-appoint"
@@ -644,6 +735,11 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
   const catalogPct = Math.round(catalogFraction * 100);
 
   const lookup = new Map(s.tech.map((t) => [t.id, t]));
+  // Built ONCE per render and threaded to every cell, every section head
+  // and the drawer. Grading is cheap; counting a professor's load is not
+  // (see facultyLoads), and a screen of four hundred cells each counting
+  // it for itself is the same quadratic that would stall the weekly tick.
+  const loads = facultyLoads(s);
   const genEdComplete = isGenEdComplete(s);
   const sections = buildSections(s, genEdComplete, revealedGrad);
   const [pool, ...schoolSections] = sections;
@@ -699,6 +795,7 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
                 title={`${doneCourses} of ${courses.length} courses developed`}
               />
               <span className="stat">{doneCourses} / {courses.length}<br />developed</span>
+            <AggregateGrade s={s} ids={courses.map((c) => c.id)} label="The catalogue" loads={loads} />
             </span>
             <HelpHint
               align="end"
@@ -718,7 +815,7 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
               purpose: a "x / 42" here would count the majors that exist
               before the player has met any of them. */}
           <div className="discovery-pool">
-            <CellGrid s={s} ids={pool.courseIds} lookup={lookup} selectedId={selectedId} onSelect={onSelect} />
+            <CellGrid s={s} ids={pool.courseIds} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} />
           </div>
 
           {schoolSections.map((section) => {
@@ -727,6 +824,11 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
               <div key={section.key} className="discovery-section">
                 <div className="discovery-section-head">
                   <h3>{section.heading}</h3>
+                  {/* Breadth and quality side by side, which is the whole
+                      point of grading courses: the ring says how much of
+                      this school exists, the chip says how good it is, and
+                      a school can now be visibly one without the other. */}
+                  <AggregateGrade s={s} ids={section.schoolCourseIds} label={section.label ?? 'This school'} loads={loads} />
                   <span className="progress-figure">
                     <ProgressRing
                       fraction={school.fraction}
@@ -736,17 +838,18 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
                     <span className="stat">{school.done} / {school.total}</span>
                   </span>
                 </div>
-                {section.courseIds.length > 0 && <CellGrid s={s} ids={section.courseIds} lookup={lookup} selectedId={selectedId} onSelect={onSelect} />}
+                {section.courseIds.length > 0 && <CellGrid s={s} ids={section.courseIds} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} />}
                 {section.subgroups.map((sub) => (
                   <div key={sub.key} className={`discovery-subgroup${sub.graduate ? ' graduate' : ''}`}>
                     <h4>
                       {sub.label}
                       {sub.graduate && <span className="subgroup-degree">{sub.graduate.degree}</span>}
+                      <AggregateGrade s={s} ids={sub.courseIds} label={sub.label} loads={loads} />
                     </h4>
                     {sub.graduate && (
                       <p className="subgroup-note">Graduate · opened by {sub.graduate.gate}</p>
                     )}
-                    <CellGrid s={s} ids={sub.courseIds} lookup={lookup} selectedId={selectedId} onSelect={onSelect} />
+                    <CellGrid s={s} ids={sub.courseIds} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} />
                   </div>
                 ))}
               </div>
@@ -755,7 +858,7 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
         </div>
       </section>
       {selected && (
-        <CourseDrawer s={s} act={act} t={selected} lookup={lookup} onClose={() => setSelectedId(null)} />
+        <CourseDrawer s={s} act={act} t={selected} lookup={lookup} onClose={() => setSelectedId(null)} loads={loads} />
       )}
     </div>
   );

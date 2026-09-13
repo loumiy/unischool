@@ -24,7 +24,7 @@ import { findDecisionEvent, type DecisionEventContext } from '../src/data/eventD
 import { totalEnrolled } from '../src/state/types';
 import type { GameState, OrgPetition } from '../src/state/types';
 import {
-  usedFacultySlots, hasFreeFacultySlot, eligibleInstructors, facultyLoad, isUnstaffed,
+  usedFacultySlots, hasFreeFacultySlot, eligibleInstructors, facultyLoad, isUnstaffed, hasFreeSlot,
 } from '../src/systems/techtree/techSystem';
 
 let seed = 12345;
@@ -496,9 +496,13 @@ function relPath(f: string): string {
     const loadSum = state.faculty
       .filter((f) => f.field === field)
       .reduce((sum, f) => sum + facultyLoad(state, f.id), 0);
+    // Field usage counts every OFFERED course; the members' loads count
+    // only the ones somebody is actually teaching. So loads can never
+    // exceed usage, and the gap between them IS the unstaffed count —
+    // courses the school still owes and has nobody for.
     assert(
-      used === loadSum,
-      `field slot usage equals the sum of its members' loads (${field}: ${used} vs ${loadSum})`,
+      loadSum <= used,
+      `a field's assigned loads never exceed its offered courses (${field}: ${loadSum} vs ${used})`,
     );
 
     // The gates themselves: a free slot in the field must mean a real
@@ -559,10 +563,26 @@ function relPath(f: string): string {
       isUnstaffed(state, state.tech.find((t) => t.id === theirCourse.id)!),
       'the orphaned course reads as unstaffed',
     );
+    // The capacity does NOT come back: the course is still offered and
+    // still needs teaching, which is exactly what the school no longer has
+    // anyone to do. Letting it come back would make dismissal a way to buy
+    // room for more courses (see usedFacultySlots).
     assert(
-      usedFacultySlots(state, victim.field) < usedBefore,
-      'the dismissed professor\'s slots come back to the department',
+      usedFacultySlots(state, victim.field) === usedBefore,
+      'an orphaned course keeps holding its field slot after the dismissal',
     );
+    // But re-staffing it is still possible, because eligibility is a
+    // PER-PERSON check: a replacement with a free slot can take it over.
+    const replacement = state.faculty.find((f) => f.field === victim.field && hasFreeSlot(state, f));
+    if (replacement) {
+      const restaffed = reducer(state, {
+        type: 'REASSIGN_COURSE_FACULTY', courseId: theirCourse.id, facultyId: replacement.id,
+      });
+      assert(
+        restaffed.courseFaculty[theirCourse.id] === replacement.id,
+        'an orphaned course can still be given to someone with room',
+      );
+    }
   }
 }
 

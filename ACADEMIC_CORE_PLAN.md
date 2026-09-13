@@ -289,6 +289,25 @@ the signal worth having. Under the strict bands a matured 71 reads B whether or
 not it is carrying −10 of penalties, which would make overloading invisible
 across the middle of the range, where most courses live.
 
+> **A PRE-EXISTING BUG THIS UNCOVERED, not fixed here.** The founding five are
+> authored as established professors (teaching 70–80, with a comment in
+> `actions.ts` explaining they get "a small headroom to their potential rather
+> than generateCandidate's usual ~45% gap"). Those values survive exactly zero
+> ticks: `facultySystem.ts`'s `growFaculty` recomputes teaching from
+> `grownStat(potential, tenureWeeks)` every week, and their `tenureWeeks`
+> starts at 0 — so on week 1 Dr. Bennett drops from 78 to 47, which is
+> precisely the fresh-candidate formula the comment says she is not using.
+> Verified in the browser: week 1 shows T 72 for Dr. Reyes, week 2 shows 47 for
+> Dr. Bennett.
+>
+> Nothing read those numbers per-person before, so it was invisible; a grade on
+> a course card is what made it visible. **The opening still reads C**, so the
+> bands hold, but any claim that the founding five are "strong hires" is not
+> currently true in play. The fix (seed them with a real `tenureWeeks`, so
+> `grownStat` reproduces the intended stats) also raises their salaries through
+> the seniority premium, which is a founding-balance change and belongs in its
+> own pass rather than smuggled into a UI PR.
+
 ### What the grade feeds
 
 Two places, and the second one is the whole point of the feature.

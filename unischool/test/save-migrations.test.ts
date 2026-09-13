@@ -646,8 +646,10 @@ function testCourseFacultyMigration(): void {
   assert(loaded.courseFaculty['GE140'] === undefined, 'a course whose whole department is gone resumes unassigned');
   assert(isUnstaffed(loaded, loaded.tech.find((t) => t.id === 'GE140')!), 'that course reads as unstaffed');
 
-  // ...and it holds nobody's slot, so the field's capacity is free again.
-  assert(usedFacultySlots(loaded, 'Physics') === 0, 'an unstaffed course hands its field capacity back');
+  // ...and it STILL HOLDS its slot. An unstaffed course has not gone away:
+  // it is still offered and still owed to students, so the department is
+  // over-committed rather than freshly roomy (see usedFacultySlots).
+  assert(usedFacultySlots(loaded, 'Physics') === 1, 'an unstaffed course still holds its field slot');
 
   // Nothing is assigned to someone who is not on the roster.
   const roster = new Set(loaded.faculty.map((f) => f.id));

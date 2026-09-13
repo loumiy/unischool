@@ -106,18 +106,36 @@ export function eligibleInstructors(s: GameState, node: Buildable, except?: stri
     .sort((a, b) => b.teaching - a.teaching || a.id.localeCompare(b.id));
 }
 
-// Counts how many faculty course-slots in `field` are currently spoken
-// for — every offered course in that field that has a live instructor.
+// How many faculty course-slots in `field` are spoken for: every OFFERED
+// course in it, whether or not somebody is currently teaching it.
 //
-// Note what is NOT counted: an UNSTAFFED course (see isUnstaffed). It is
-// still offered, but nobody is teaching it, so it holds no one's slot.
-// That is what makes a dismissal free the department's capacity at the
-// same moment it orphans that person's courses — the two halves of one
-// event, rather than a school that has lost the teacher and the capacity
-// both. Only the curated set of courses with a requiresFaculty field are
+// UNSTAFFED COURSES STILL COUNT, and that is the whole subtlety. The
+// tempting reading is that a course nobody teaches holds nobody's slot, so
+// a dismissal should hand its capacity back — losing the teacher, not the
+// teacher and the capacity both. That is wrong, and the balance sim is
+// what proved it: an unstaffed course has not gone away. It is still in
+// the catalogue, still owed to students, and still needs somebody to teach
+// it. The capacity to teach it is precisely what the school just lost.
+//
+// Counting only staffed courses made dismissal a way to BUY capacity:
+// fire a professor, their courses go quiet, the department reads as having
+// room again, and the school opens more courses it equally cannot staff.
+// Run to its conclusion in the sim, a school reached 421 offered courses
+// on 68 faculty — a catalogue five times larger than anyone could teach,
+// which looked healthy only because nothing yet read the silence.
+//
+// Note what this does NOT block. Re-staffing an orphan is a PER-PERSON
+// check (eligibleInstructors -> hasFreeSlot), not this field-level one, so
+// a replacement hire can always take over the courses their predecessor
+// left — what an over-committed department cannot do is open NEW ones
+// until it has the people for the ones it already offers. That is the
+// right pressure, and the right order: staff what you promised before
+// promising more.
+//
+// Only the curated set of courses with a requiresFaculty field are
 // slot-gated at all (see techData.ts's REQUIRES_FACULTY).
 export function usedFacultySlots(s: GameState, field: string): number {
-  return s.tech.filter((t) => t.requiresFaculty === field && isOffered(t) && assignedInstructor(s, t) !== undefined).length;
+  return s.tech.filter((t) => t.requiresFaculty === field && isOffered(t)).length;
 }
 
 // Total course-slot capacity the roster offers in `field` — the sum of

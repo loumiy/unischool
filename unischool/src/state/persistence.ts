@@ -723,11 +723,13 @@ export const SAVE_KEY = 'unischool.save';
 //     field re-taxonomy, whose own note flags exactly this), and the old
 //     build simply had no way to say so. It now shows on the course and
 //     invites a hire.
-//   - usedFacultySlots counts ASSIGNED courses rather than merely offered
-//     ones, so those same unstaffed courses hand their field capacity back.
-//     A resumed save can therefore be slightly LESS slot-constrained than
-//     it was, never more — the school is short a teacher, not short a
-//     teacher and their capacity both.
+//   - Those unstaffed courses STILL HOLD their field slots. A course
+//     nobody teaches has not gone away — it is still offered and still
+//     owed to students, and the capacity to teach it is precisely what the
+//     department is missing. So a resumed save with an emptied department
+//     reads as over-committed, which it is: it cannot open new courses in
+//     that field until it has staffed the ones it already offers, though
+//     re-staffing them is always available (eligibility is per-person).
 //
 // One further wrinkle, accepted rather than corrected: the round-robin
 // deals courses out without regard to anyone's courseSlots, so a resumed

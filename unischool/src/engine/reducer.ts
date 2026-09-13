@@ -269,12 +269,14 @@ export function reducer(state: GameState, action: Action): GameState {
     // their assignments are cleared, so those courses go unstaffed until
     // the player gives them a new instructor (see types.ts's CourseFaculty).
     //
-    // Clearing the entries rather than leaving them dangling is what makes
-    // the department's capacity come back at the same instant — an
-    // unstaffed course holds nobody's slot (see techSystem.ts's
-    // usedFacultySlots), so a replacement hire can take the orphans
-    // straight over rather than finding the field still full of a
-    // departed colleague's load.
+    // Clearing the entries rather than leaving them dangling is what lets
+    // a replacement take the orphans over: eligibility is a per-person
+    // check, so anyone hired into the field with a free slot can pick them
+    // up. What does NOT happen is the department getting its capacity
+    // back — an unstaffed course still holds its field slot (see
+    // techSystem.ts's usedFacultySlots), because the course still exists
+    // and still needs teaching. The school is left over-committed, and has
+    // to staff what it already offers before it can offer more.
     //
     // It is logged because it is the one player action in the game with a
     // consequence that outlives the click: the roster shrinking is

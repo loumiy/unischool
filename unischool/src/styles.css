@@ -1085,6 +1085,53 @@ button.build-tile { font-family: inherit; }
    16px inset + a 12px breath. */
 .tab-overlay.full-bleed .tab-overlay-head { padding-right: 68px; }
 
+/* ---------- course grades ----------
+   The A-F chip a developed course carries, and the aggregate a major,
+   school or the whole catalogue carries (see data/courseQuality.ts).
+
+   THE LETTER CARRIES THE MEANING; the tint is a cue on top of it. A pure
+   colour scale would be unreadable to a colour-blind player and gone
+   entirely at the zoomed-out sizes the curriculum map will want, so the
+   letter is never dropped in favour of the colour. The ramp is
+   deliberately narrow in saturation: a wall of forty cells each wearing a
+   saturated grade would read as a heat map rather than a catalogue, and
+   the cell's own status fill (brass for done, pulse for developing) has to
+   stay the louder signal. */
+.grade-chip { display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--serif); font-weight: 700; line-height: 1; border-radius: var(--radius-xs);
+  border: 1px solid currentColor; flex: none; }
+.grade-chip.sm { min-width: 17px; height: 17px; font-size: var(--text-xs); padding: 0 3px; }
+.grade-chip.lg { min-width: 34px; height: 34px; font-size: var(--text-lg); padding: 0 6px; }
+.grade-a { color: #2f6b42; background: #dbeadf; }
+.grade-b { color: #4a6a2c; background: #e3ecd6; }
+.grade-c { color: #7d6218; background: #f0e7c9; }
+.grade-d { color: #8a4e1e; background: #f3e0cd; }
+.grade-f { color: var(--danger-ink); background: var(--danger-bg); }
+
+/* On a cell the chip sits where the done-tick used to, which is why the
+   tick now only draws when there is no grade to show. */
+.course-cell .grade-chip { position: absolute; top: 4px; right: 5px; }
+/* A done cell is dark brass, so the chip needs its own light ground to
+   stay legible rather than inheriting the cell's contrast. */
+.course-cell.done .grade-chip { box-shadow: 0 0 0 1px rgba(255, 250, 235, 0.35); }
+
+.discovery-section-head .grade-chip { margin-left: 2px; }
+.discovery-subgroup h4 .grade-chip { margin-left: 7px; vertical-align: middle; }
+.panel-head-figure .grade-chip { margin-left: 2px; }
+
+/* The itemized breakdown in the drawer. A grade the player cannot
+   decompose is a grade they cannot act on, so every factor is named and
+   signed. */
+.course-drawer-grade { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; }
+.course-drawer-grade-body { min-width: 0; }
+.course-drawer-grade-score { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted); }
+.course-drawer-factors { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.course-drawer-factors li { display: flex; justify-content: space-between; gap: 10px;
+  font-size: var(--text-sm); color: var(--ink-muted); }
+.course-drawer-factors li .num { font-family: var(--mono); font-size: var(--text-xs); flex: none; }
+.course-drawer-factors li.up .num { color: var(--ok-on-light); }
+.course-drawer-factors li.down .num { color: var(--danger-ink); }
+
 /* ---------- the course drawer ----------
    Opened by clicking any course cell (see CurriculumTab.tsx's CourseDrawer).
    A DRAWER BESIDE THE MAP, not a dialog in front of it: the catalogue stays
@@ -1162,8 +1209,9 @@ button.build-tile { font-family: inherit; }
 .instructor-bar-headroom { position: absolute; inset: 0 auto 0 0; background: #d3c49a; }
 .instructor-bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--gold); }
 .instructor-stat-value { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink); }
+.instructor-option-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
 .instructor-option-load { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted);
-  text-align: right; line-height: 1.25; flex: none; }
+  display: flex; flex-direction: column; align-items: flex-end; text-align: right; line-height: 1.25; }
 .instructor-option-load.full { color: var(--danger-ink); }
 .instructor-load-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; }
 

@@ -1,6 +1,8 @@
 import type { GameState } from '../../state/types';
 import { totalEnrolled } from '../../state/types';
 import { graduatePrograms, milestoneSchools } from '../../data/techData';
+import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
+import { qualityMultiplier } from '../../data/courseQuality';
 
 // ---------------------------------------------------------------------
 // Prestige (s.self.reputation) is a slow-moving STOCK, not a flow. It used
@@ -247,6 +249,39 @@ function libraryAdequacyScore(s: GameState): number {
   return clamp(ratio, LIBRARY_ADEQUACY_FLOOR, 1);
 }
 
+// Curriculum quality: how good the courses the school actually offers
+// are, 0..1, read off the same grades the Curriculum tab shows (see
+// data/courseQuality.ts).
+//
+// A MULTIPLIER on the breadth term, not an input of its own — the same
+// shape libraryAdequacyScore already has on that line, and for a closely
+// related reason. Breadth counts how much curriculum exists; this asks
+// how good it is. A school that has opened four hundred courses and
+// staffed them with whoever was cheapest has the breadth of a great
+// university and the teaching of a poor one, and the prestige term that
+// dominates the target should say so.
+//
+// This is what turns "expand or improve" into a real decision rather than
+// a slogan. Before it, the only way to move the dominant term was to open
+// more courses, so improving a weak one paid nothing at all. Now both
+// paths move the same number, and a player with finite money has to
+// choose which one buys more this decade.
+//
+// THE MAPPING IS LOAD-BEARING, and it is why this is not avg/100 — see
+// data/courseQuality.ts's qualityMultiplier for why dividing by 100 cut
+// every well-run school's largest prestige input by nearly forty percent,
+// and what the achievable range of a mean grade actually is.
+//
+// A school with nothing open yet reads 1, not 0: it has no courses to be
+// bad at, and zeroing its breadth would punish a founding campus for not
+// having finished anything — the same reasoning behind
+// LIBRARY_ADEQUACY_FLOOR's own existence, on the same line.
+function curriculumQualityScore(s: GameState): number {
+  const avg = campusAverageCourseQuality(s);
+  if (avg === null) return 1;
+  return qualityMultiplier(avg);
+}
+
 // Campus life: the rec center / athletics complex's "small prestige
 // contribution" — the sum of prestigeContribution across every done
 // facility that carries one (today, only the rec center's two tiers; see
@@ -335,7 +370,7 @@ function endowmentScore(s: GameState): number {
 export function computePrestigeTarget(s: GameState): number {
   const target =
     PRESTIGE_BASELINE +
-    CURRICULUM_BREADTH_WEIGHT * curriculumBreadthScore(s) * libraryAdequacyScore(s) +
+    CURRICULUM_BREADTH_WEIGHT * curriculumBreadthScore(s) * libraryAdequacyScore(s) * curriculumQualityScore(s) +
     STUDENT_QUALITY_WEIGHT * studentQualityScore(s) * admissionsScaleScore(s) +
     FACULTY_QUALITY_WEIGHT * facultyQualityScore(s) +
     RESEARCH_WEIGHT * researchScore(s) +
