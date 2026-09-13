@@ -1195,7 +1195,33 @@ button.build-tile { font-family: inherit; }
    One horizontal panel per research facility, stacked. A facility is
    either running something or vacant, and both are worth seeing down the
    page — a vacant one is idle capital, which the player should feel. */
-.facility-list { display: flex; flex-direction: column; gap: 12px; }
+/* A GRID, not a stack of full-width bands.
+   Each facility panel is a compact card of its own — a name, a team, a
+   progress bar — and stretching one across a 1440px screen put its left
+   edge a thousand pixels from its right with nothing in between. Two or
+   three to a row instead, and they stay legible down to a phone.
+   The exception is a panel the player is actively working in: an open
+   offer set needs the width to show four depth tiers and a team being
+   assembled side by side, so it takes the whole row back for as long as
+   it is open (see .facility-panel.expanded). */
+.facility-list { display: grid; gap: 12px; align-items: start; }
+/* Running panels carry a team and a progress bar, so they want real width
+   — two to a row on a wide screen. Vacant ones are a name and a button and
+   tile three or four across. Each list is internally uniform in height,
+   which is what keeps the rows from leaving holes. */
+.facility-list.running-list { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); }
+.facility-list.vacant-list { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; }
+.facility-panel.expanded { grid-column: 1 / -1; }
+/* A vacant card always stacks: name, then the button on its own line.
+   Letting the head wrap only when the name is long made four identical
+   cards sit at two different heights with the button in two different
+   places — the kind of inconsistency that reads as a bug rather than as
+   a layout. */
+.vacant-list .facility-head { display: block; margin-bottom: 10px; }
+.vacant-list .facility-start { display: block; width: 100%; margin-top: 9px; }
+
+.facility-group-head { margin: 16px 0 8px; font-size: var(--text-xs); text-transform: uppercase;
+  letter-spacing: 0.09em; color: var(--ink-muted); }
 .facility-panel { border: 1px solid var(--gold-dim); border-radius: var(--radius-lg);
   background: #fffdf6; padding: 12px 14px 14px; }
 .facility-panel.vacant { border-style: dashed; background: transparent; }
@@ -1235,7 +1261,7 @@ button.build-tile { font-family: inherit; }
 .facility-progress { border-top: 1px solid var(--parchment-line-lo); padding-top: 10px; }
 .facility-track { display: block; height: 8px; border-radius: 4px; background: #e4dcc5; overflow: hidden; margin-bottom: 7px; }
 .facility-fill { display: block; height: 100%; background: var(--gold); }
-.facility-progress-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; justify-content: space-between;
+.facility-progress-meta { display: flex; flex-wrap: wrap; gap: 3px 14px;
   font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted); }
 .facility-progress-meta b { color: var(--gold-deep, #7a5c12); }
 .facility-rate { margin-left: auto; }
@@ -1279,17 +1305,19 @@ button.build-tile { font-family: inherit; }
 
 /* The record: over a long run this strip IS the university's research
    history, and the only place a finished project is still visible. */
-.record-list { display: flex; flex-direction: column; gap: 4px; }
-.record { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: baseline;
-  padding: 6px 0; border-bottom: 1px solid var(--parchment-line-lo); }
-.record:last-child { border-bottom: none; }
+/* Same reasoning: a finished project is a small card, not a full-width
+   ledger line with its outcome flung to the far margin. */
+.record-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 8px; align-items: start; }
+.record { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 4px 10px;
+  padding: 9px 11px; border: 1px solid var(--parchment-line-lo); border-radius: var(--radius-md); }
 .record.cancelled { opacity: 0.6; }
 .record-year { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted); }
 .record-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .record-topic { font-size: var(--text-sm); font-weight: 600; color: var(--ink); }
 .record-team { font-size: var(--text-xs); color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; }
-.record-outcome { display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
-  font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted); text-align: right; }
+.record-outcome { grid-column: 2; display: flex; flex-wrap: wrap; gap: 2px 10px;
+  font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted); }
 .record-award { color: var(--gold-deep, #7a5c12); font-weight: 700; }
 .record-grant { color: var(--ok-on-light); }
 .record-cancelled { font-style: italic; }
@@ -1297,8 +1325,7 @@ button.build-tile { font-family: inherit; }
 @media (max-width: 760px) {
   .scholar-row { grid-template-columns: 32px minmax(0, 1fr) auto; }
   .scholar-stat { grid-column: 1 / -1; grid-template-columns: auto minmax(0, 1fr) auto; }
-  .record { grid-template-columns: 40px minmax(0, 1fr); }
-  .record-outcome { grid-column: 2; align-items: flex-start; text-align: left; }
+
 }
 
 /* ---------- course grades ----------

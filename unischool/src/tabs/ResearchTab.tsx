@@ -169,7 +169,10 @@ function VacantPanel(
   );
 
   return (
-    <section className="facility-panel vacant">
+    // An open offer set takes the whole row back: four depth tiers and a
+    // team being assembled need the width, and a player working in one
+    // panel is not comparing it to its neighbours at that moment.
+    <section className={`facility-panel vacant${open ? ' expanded' : ''}`}>
       <header className="facility-head">
         <span className="facility-name">
           {lab.name}
@@ -280,7 +283,10 @@ export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action)
       .filter((lab): lab is Buildable => !!lab && lab.status === 'done')
       .map((lab) => ({ lab, fields: school.fields })));
 
-  const running = Object.keys(s.research.initiatives).length;
+  const underway = facilities
+    .map(({ lab }) => ({ lab, initiative: s.research.initiatives[lab.id] }))
+    .filter((entry): entry is { lab: Buildable; initiative: Initiative } => !!entry.initiative);
+  const vacant = facilities.filter(({ lab }) => !s.research.initiatives[lab.id]);
   const history = s.research.completedInitiatives;
 
   return (
@@ -292,7 +298,7 @@ export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action)
             <HelpHint text="Each research facility hosts one project at a time, so the number of things the university can pursue at once is the number of places it has built to pursue them in. Choose an area, a team and a depth; the team stops teaching for the duration. Deeper work costs more, runs longer and pays off bigger — and the Landmark tier needs scholars from different disciplines, so the most prestigious work is out of reach for a single department however strong." />
           </span>
           <span className="stat">
-            {running} of {facilities.length} {facilities.length === 1 ? 'facility' : 'facilities'} in use
+            {underway.length} of {facilities.length} {facilities.length === 1 ? 'facility' : 'facilities'} in use
           </span>
         </div>
 
@@ -302,14 +308,40 @@ export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action)
             a studio or a computing centre — once its building and that major's entry course are done.
           </p>
         ) : (
-          <div className="facility-list">
-            {facilities.map(({ lab, fields }) => {
-              const initiative = s.research.initiatives[lab.id];
-              return initiative
-                ? <RunningPanel key={lab.id} s={s} act={act} lab={lab} initiative={initiative} />
-                : <VacantPanel key={lab.id} s={s} act={act} lab={lab} fields={fields} />;
-            })}
-          </div>
+          <>
+            {/* SPLIT BY STATE, not listed in facility order. Two reasons,
+                and the second is the one that matters. A running panel
+                carries a team and a progress bar; a vacant one is a name
+                and a button. Mixed in a single grid, every row sizes to
+                the tallest thing in it and the short cards sit in a
+                column of dead space — which is the same "full-width row
+                with a hole in it" problem one axis over.
+
+                And they are genuinely different things to look at. What
+                the university is working on is the news; what it is NOT
+                working on is a worklist. Grouping them says that, and it
+                makes idle capital visible as a block rather than as
+                scattered gaps. */}
+            {underway.length > 0 && (
+              <div className="facility-list running-list">
+                {underway.map(({ lab, initiative }) => (
+                  <RunningPanel key={lab.id} s={s} act={act} lab={lab} initiative={initiative} />
+                ))}
+              </div>
+            )}
+            {vacant.length > 0 && (
+              <>
+                <h3 className="facility-group-head">
+                  {underway.length > 0 ? 'Standing idle' : 'Ready for work'}
+                </h3>
+                <div className="facility-list vacant-list">
+                  {vacant.map(({ lab, fields }) => (
+                    <VacantPanel key={lab.id} s={s} act={act} lab={lab} fields={fields} />
+                  ))}
+                </div>
+              </>
+            )}
+          </>
         )}
       </section>
 
