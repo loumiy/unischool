@@ -8,7 +8,7 @@ import { initialDorms } from '../data/campusData';
 import { seedTrees } from '../data/treeData';
 import { initialFacilities } from '../data/facilitiesData';
 import { initialRivals } from '../data/rivalData';
-import { initialCandidatePool, facultySalary } from '../data/facultyData';
+import { initialCandidatePool, facultySalary, grownStat, FOUNDING_TENURE_WEEKS } from '../data/facultyData';
 import {
   SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION, STARTING_ENDOWMENT, STARTING_TUITION,
   FOUNDING_COHORTS,
@@ -379,10 +379,21 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       scholarshipRate: 0,
     },
     // Founding faculty are already-established hires, not brand-new
-    // candidates — a small headroom to their potential (rather than
-    // generateCandidate's usual ~45% gap) reflects that; tenureWeeks starts
-    // at 0 regardless, so they still grow (and get pricier) from here. See
-    // facultyData.ts's grownStat/facultySalary for the shared growth curve.
+    // candidates, and THE WAY THAT IS EXPRESSED IS TENURE (see
+    // facultyData.ts's FOUNDING_TENURE_WEEKS). Their teaching, research and
+    // salary are not authored figures: they are derived from each person's
+    // rolled potential and that tenure, through exactly the curves
+    // growFaculty will keep applying from week one onward.
+    //
+    // That indirection is load-bearing, not tidiness. All three fields are
+    // RECOMPUTED every tick, so a literal written here survives zero weeks —
+    // which is what used to happen. The five were authored at teaching 70-80
+    // and silently became 44-48 on the first tick: precisely the
+    // fresh-candidate figures this comment claimed they were not using.
+    // Nothing read the numbers per-person, so it stayed invisible until a
+    // course grade put one on a card. Deriving them from the functions that
+    // will overwrite them means the roster on week one is the roster the
+    // engine actually believes in.
     //
     // acclaim is 0 for all five and stays there until one of them wins a
     // research prize — which none of them can until the school has built
@@ -401,32 +412,37 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // fresh hire before its tier-1 course can start.
     faculty: [
       {
-        id: 'f1', name: 'Dr. Alma Reyes', field: 'Physics', teaching: 72, research: 65, teachingPotential: 82, researchPotential: 78,
-        tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: facultySalary(72, 65, 0), courseSlots: 2,
+        id: 'f1', name: 'Dr. Alma Reyes', field: 'Physics', teaching: grownStat(82, FOUNDING_TENURE_WEEKS), research: grownStat(78, FOUNDING_TENURE_WEEKS), teachingPotential: 82, researchPotential: 78,
+        tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
+        salary: facultySalary(grownStat(82, FOUNDING_TENURE_WEEKS), grownStat(78, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
         nationality: 'United States', flag: '🇺🇸', gender: 'female', heritage: 'Hispanic/Latin American',
         bio: 'Earned a doctorate in Physics at Ravensmoor Institute; research centers on astrophysical modeling.',
       },
       {
-        id: 'f2', name: 'Dr. John Okafor', field: 'History', teaching: 80, research: 55, teachingPotential: 88, researchPotential: 68,
-        tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: facultySalary(80, 55, 0), courseSlots: 2,
+        id: 'f2', name: 'Dr. John Okafor', field: 'History', teaching: grownStat(88, FOUNDING_TENURE_WEEKS), research: grownStat(68, FOUNDING_TENURE_WEEKS), teachingPotential: 88, researchPotential: 68,
+        tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
+        salary: facultySalary(grownStat(88, FOUNDING_TENURE_WEEKS), grownStat(68, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
         nationality: 'Nigeria', flag: '🇳🇬', gender: 'male', heritage: 'West African',
         bio: 'Earned a doctorate in History at the University of Calderwood; research centers on maritime trade networks.',
       },
       {
-        id: 'f3', name: 'Dr. Grace Bennett', field: 'English', teaching: 78, research: 60, teachingPotential: 85, researchPotential: 72,
-        tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: facultySalary(78, 60, 0), courseSlots: 3,
+        id: 'f3', name: 'Dr. Grace Bennett', field: 'English', teaching: grownStat(85, FOUNDING_TENURE_WEEKS), research: grownStat(72, FOUNDING_TENURE_WEEKS), teachingPotential: 85, researchPotential: 72,
+        tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
+        salary: facultySalary(grownStat(85, FOUNDING_TENURE_WEEKS), grownStat(72, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 3,
         nationality: 'United Kingdom', flag: '🇬🇧', gender: 'female', heritage: 'Anglo/Western European',
         bio: 'Earned a doctorate in English at Marchmont University; research centers on rhetoric and composition.',
       },
       {
-        id: 'f4', name: 'Dr. Priya Iyer', field: 'Mathematics', teaching: 70, research: 68, teachingPotential: 80, researchPotential: 79,
-        tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: facultySalary(70, 68, 0), courseSlots: 2,
+        id: 'f4', name: 'Dr. Priya Iyer', field: 'Mathematics', teaching: grownStat(80, FOUNDING_TENURE_WEEKS), research: grownStat(79, FOUNDING_TENURE_WEEKS), teachingPotential: 80, researchPotential: 79,
+        tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
+        salary: facultySalary(grownStat(80, FOUNDING_TENURE_WEEKS), grownStat(79, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
         nationality: 'India', flag: '🇮🇳', gender: 'female', heritage: 'South Asian',
         bio: 'Earned a doctorate in Mathematics at Ironwood University; research centers on numerical analysis.',
       },
       {
-        id: 'f5', name: 'Dr. Elena Novak', field: 'Philosophy', teaching: 75, research: 62, teachingPotential: 83, researchPotential: 71,
-        tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: facultySalary(75, 62, 0), courseSlots: 2,
+        id: 'f5', name: 'Dr. Elena Novak', field: 'Philosophy', teaching: grownStat(83, FOUNDING_TENURE_WEEKS), research: grownStat(71, FOUNDING_TENURE_WEEKS), teachingPotential: 83, researchPotential: 71,
+        tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
+        salary: facultySalary(grownStat(83, FOUNDING_TENURE_WEEKS), grownStat(71, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
         nationality: 'Poland', flag: '🇵🇱', gender: 'female', heritage: 'Slavic/Eastern European',
         bio: 'Earned a doctorate in Philosophy at Amberfield University; research centers on ethics and moral philosophy.',
       },

@@ -301,12 +301,20 @@ across the middle of the range, where most courses live.
 > Dr. Bennett.
 >
 > Nothing read those numbers per-person before, so it was invisible; a grade on
-> a course card is what made it visible. **The opening still reads C**, so the
-> bands hold, but any claim that the founding five are "strong hires" is not
-> currently true in play. The fix (seed them with a real `tenureWeeks`, so
-> `grownStat` reproduces the intended stats) also raises their salaries through
-> the seniority premium, which is a founding-balance change and belongs in its
-> own pass rather than smuggled into a UI PR.
+> a course card is what made it visible.
+>
+> **Fixed in its own pass, after PR C.** Tenure is the only input that can make
+> somebody established here, since all three fields are derived from potential
+> plus tenure — so the five are seeded at `FOUNDING_TENURE_WEEKS = 78` and
+> their stats derived through the same curves that overwrite them. That lands
+> the roster at a mean teaching of 66, which is ASSOCIATE on the game's own
+> ladder. Deliberately not the old authored figures: those meant a mean of 73,
+> five FULL professors at an institution that did not exist last week. The
+> tenure carries a +38% founding payroll premium, which is what hiring people
+> who are already good costs — and the school now gets what it pays for, since
+> their teaching feeds course grades, academic satisfaction and the prestige
+> breadth multiplier. 2.5 years' tenure (+55%) was tried first and is what the
+> thinnest sim strategy, the low-tuition discount build, could not carry.
 
 ### What the grade feeds
 
