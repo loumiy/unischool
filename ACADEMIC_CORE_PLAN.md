@@ -770,15 +770,33 @@ first; then the map has something to be a map *of*.
 ## 7. Decisions needed before implementation
 
 Flagged rather than silently chosen, per the README's working-style note.
+**Four are now settled** (1, 2, 7, 8) and are struck through with the decision
+recorded. The rest are still open, and each is answered at the PR that first
+needs it rather than up front: 3 at PR B, 4 and 6 at PR C, 5 and 9 at PR E/F.
 
-1. **Absolute or curved grading?** (Recommend absolute, generous low bands.)
-   Decides whether the first hour reads as "we are new" or "we are failing".
-2. **How hard is the teaching/scholarship constraint?** A faculty member
-   committed to a 3-year Major Program: do their `courseSlots` drop (hard — they
-   stop teaching), do their courses take a quality penalty (soft — they teach
-   worse while distracted), or is the only cost that they're unavailable for
-   other initiatives (loose)? Decides whether research feels like a sacrifice or
-   a free upgrade for anyone idle.
+1. ~~**Absolute or curved grading?**~~ **SETTLED: absolute, with generous low
+   bands.** Fixed thresholds against the teaching stat, set so a founding
+   school reads C rather than F. F means "you assigned badly or left it
+   unstaffed" — a state the player caused — never "you are new".
+2. ~~**How hard is the teaching/scholarship constraint?**~~ **SETTLED: hard —
+   a committed faculty member stops teaching.** Their `courseSlots` drop for
+   the duration, so joining an initiative is a genuine institutional sacrifice
+   rather than a free upgrade for anyone idle.
+
+   **This has a consequence that must be designed for, not discovered.** A hard
+   slot drop means committing someone ORPHANS the courses they currently hold —
+   they go unstaffed, grade `—`, and drag the academic-satisfaction average, by
+   exactly the machinery PR B builds for dismissal. So the commit step needs the
+   same warning the fire-faculty flow gets (*"Dr. Chen teaches 4 courses. They
+   will be left unstaffed."*), listing the affected courses and offering
+   reassignment before confirming. Without that warning this rule is a trap; with
+   it, it is the best decision in the game — five years of a star's teaching,
+   against a shot at a Landmark Program.
+
+   It also means **depth is priced in teaching, not just money**: a Landmark
+   Program costs four or five people's entire course loads for five years. That
+   is the real reason to build a deep bench, and the tuning to watch is whether
+   the payoff justifies it (`npm run sim`).
 3. **Does course reassignment cost anything?** (Recommend free and immediate to
    start, add friction only if it proves exploitable.)
 4. **Does the prestige faculty-quality input split into teaching and research?**
@@ -788,14 +806,23 @@ Flagged rather than silently chosen, per the README's working-style note.
    pass with a migration.)
 6. **Grade bands vs. `QUALITY_TIER_THRESHOLDS`.** Related but should not be
    identical; needs one explicit decision so the two ladders do not drift.
-7. **Does the aggregate research-points stock survive?** (Recommend retiring it
-   as a driver — idle labs produce nothing; the way to produce is to start
-   something.) The alternative is a small passive trickle from lab-equipped
-   faculty not on an initiative.
-8. **Can an initiative be cancelled, and at what cost?** A 5-year commitment with
-   no exit is a trap the first time a player misjudges it; a free exit makes the
-   commitment meaningless. (Lean: cancellable, forfeiting the up-front funding
-   and banking nothing.)
+7. ~~**Does the aggregate research-points stock survive?**~~ **SETTLED: retired
+   as a driver.** Idle lab-equipped faculty produce nothing; the way to produce
+   is to start something. `s.research.points` and `lifetimePoints` stop being
+   written, and `weeklyResearchPoints`/`researchOutputWeeklyChance` retire with
+   them. The monotone counts beside them — `breakthroughs`, `grants`, `prizes`,
+   `grantIncome` — all stay, which is what keeps `prestigeSystem.ts`'s
+   `researchScore` working untouched. Save migration keeps the dead fields
+   harmless rather than removing them, the way `Faculty.morale` was handled.
+8. ~~**Can an initiative be cancelled, and at what cost?**~~ **SETTLED:
+   cancellable, forfeiting the up-front funding and banking nothing.** Enough
+   sting to make commitment real, enough of an exit that a five-year
+   misjudgment is not a trap. The participants' `courseSlots` come back
+   immediately (see decision 2), which is often the actual reason to cancel.
+   One thing to watch in tuning: cancelling also frees the lab to draw a fresh
+   offer set, so if re-drawing is cheap a player can reroll toward a Landmark
+   topic. If that shows up in play, the answer is a cooldown on the lab, not a
+   larger cash penalty.
 9. **How many topics for a first pass?** The full ~150 is a large authoring job.
    A first version could ship 2 per field plus ~15 cross-disciplinary (~70) and
    grow, accepting that offers repeat more often early on.
