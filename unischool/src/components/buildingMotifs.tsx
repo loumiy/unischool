@@ -56,6 +56,32 @@ const FACILITY_MOTIFS: Record<FacilityType, Motif> = {
   grocery: 'pavilion',
 };
 
+// Research facilities that are not laboratories.
+//
+// Every facility that lets a school do scholarship carries
+// facilityType 'lab', because that string is the GATE — techData.ts,
+// researchData.ts and the Research tab all read it to decide what can host
+// work. Four of them are not labs in any other sense: an institute with
+// archives, a studio with sound stages, a computing centre, a behavioural
+// lab suite. Drawn on the map they were all the same low industrial shed.
+//
+// Keyed by id rather than given facilityTypes of their own precisely so
+// the gate stays one string. Adding four new types would mean widening
+// every `=== 'lab'` test in three modules to keep one building from
+// looking wrong, which is a lot of load-bearing code touched for a roof.
+// This is the same shape as the health chain's split below: one
+// facilityType, more than one building.
+const RESEARCH_FACILITY_MOTIFS: Partial<Record<string, Motif>> = {
+  // Archives and reading rooms — the library's own language.
+  'LAB-HIST': 'portico',
+  // Sound stages are clear-span volumes, which is what a hangar is.
+  'LAB-FILM': 'hangar',
+  // A compute cluster is an institutional mass with plant on the roof.
+  'LAB-COMP': 'block',
+  // Behavioural labs and simulation suites: a couple of rooms, not a works.
+  'LAB-ECON': 'pavilion',
+};
+
 // Bed counts at which housing stops being a hall. The same two numbers
 // campusMap.ts's DORM_FOOTPRINTS steps its footprint on, and read off the
 // same field (effects.capacityBonus) — so a village gets a village's plot
@@ -77,6 +103,8 @@ export function motifOf(t: Buildable): Motif {
     return 'residential';
   }
   if (t.kind === 'facility' && t.facilityType) {
+    const research = RESEARCH_FACILITY_MOTIFS[t.id];
+    if (research) return research;
     // The health chain is three different institutions, not one building
     // relabelled twice (see facilitiesData.ts): a counselling centre and a
     // clinic are pavilions, a teaching hospital is not.

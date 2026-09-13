@@ -531,8 +531,15 @@ export function initiativeOutputChance(weeklyOutput: number): number {
 // The point of the move is the story: a Nobel now arrives attached to a
 // named topic, a named team and five years, rather than to a counter
 // crossing a threshold.
+// Tuned for roughly three to five awards across a forty-year run at a
+// strong school. The sim reads lower than that (one or two) and is
+// expected to: its heuristic refuses to thin a department, so it almost
+// never commissions the Landmark Programs that are where awards actually
+// come from. A player chasing prestige commissions them deliberately, so
+// the honest target sits above what the harness measures — which is why
+// these are nudged rather than fitted to the sim's own number.
 const AWARD_BASE_BY_DEPTH: Record<InitiativeDepth, number> = {
-  pilot: 0.01, project: 0.05, program: 0.16, landmark: 0.36,
+  pilot: 0.015, project: 0.07, program: 0.2, landmark: 0.45,
 };
 // How much of the roll the TEAM accounts for. The offset is deliberately
 // small: at 0.45 the depth tier swamped everybody, and a mediocre landmark

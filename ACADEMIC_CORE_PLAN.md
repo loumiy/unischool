@@ -820,7 +820,8 @@ live bugs, two pieces of semantic drift, one decision that was always
 deferred to this point, and two bits of polish. Ordered by whether they
 are actually wrong.
 
-**G1 and G2 are done.** G3–G7 remain open.
+**All of G is now resolved.** G1, G2, G4, G6 and G7 are built; G3 was
+reviewed and deliberately left alone; G5 is deferred.
 
 ### Bugs — things that are incorrect right now
 
@@ -852,7 +853,14 @@ exists on) the Research tab.
 
 ### Drift — things that are still true but no longer mean what they say
 
-**G3. Admissions reads research CAPACITY, not activity.**
+**G3. ~~Admissions reads research CAPACITY, not activity.~~ REVIEWED, NO
+CHANGE.** Reading capacity is the right signal here after all: what draws a
+research-minded applicant is a university that has built the places and hired
+the people to do the work, which is what the facilities and the roster say.
+Whether a project happens to be running this particular week is not something
+an applicant would know or weigh. Left as it is, deliberately.
+
+*Original finding, kept for the record:*
 `cohorts.ts`'s `researchOriented` pull is driven by
 `signals.researchRate = weeklyResearchPoints(s)` plus a lab count. After
 PR F that reads "this school owns buildings and employs researchers",
@@ -866,7 +874,13 @@ team strength — so the applicants a research university attracts track
 what it is actually doing. Small, and it makes the idle-facility state
 cost something in a second place, which it should.
 
-**G4. The prestige faculty-quality input now double-counts (decision 4).**
+**G4. ~~The prestige faculty-quality input double-counts.~~ RETIRED
+(decision 4, settled).** The roster-average input is gone. Its weight went to
+a new standalone TEACHING QUALITY input rather than being spread across the
+existing ones — see the note below on why the obvious redistribution broke
+the game.
+
+*Original finding:*
 This was always deferred to "after both loops exist", and both now do.
 `prestigeSystem`'s `facultyQualityScore` averages teaching AND research
 across the roster — but teaching already reaches prestige through the
@@ -884,7 +898,11 @@ re-balanced against `npm run sim`.
 
 ### Polish
 
-**G5. The sim's payroll lever predates course quality.**
+**G5. DEFERRED.** Left as it is for now, by decision — the engine is correct
+and this is harness behaviour that only distorts what the sim reports, not
+what a player experiences.
+
+*Original finding:*
 `cutPayrollIfStalled` fires the priciest hire once a week, with no floor,
 until the weekly net turns non-negative. That was harmless when dismissal
 only removed a salary. It now orphans courses, drops academic
@@ -896,7 +914,12 @@ assumption the engine no longer holds.
 *Fix:* give it a floor (never fire below what it takes to staff the
 courses already offered) and let it reach for tuition before payroll.
 
-**G6. The four new research facilities are drawn as industrial works.**
+**G6. ~~The four new research facilities are drawn as industrial works.~~
+FIXED** — an institute, a clear-span studio, an institutional computing mass
+and a small behavioural-lab pavilion, keyed by id so `facilityType === 'lab'`
+stays the one gate.
+
+*Original finding:*
 `buildingMotifs` maps `facilityType: 'lab'` to the `works` motif — low,
 flat, rooftop plant. Correct for a chemistry lab; wrong for a humanities
 institute, a media studio and a computing centre, which all now render as
@@ -906,12 +929,52 @@ the same shed.
 carry a motif override. The override is smaller and does not disturb the
 lab gate, which reads `facilityType === 'lab'` in several places.
 
-**G7. Prize frequency wants play-testing, not tuning-by-sim.** One to two
+**G7. NUDGED toward three to five per forty years**, which reads as 3/9/3
+across the sim's strong strategies. Still to be confirmed in play.
+
+*Original finding:* One to two
 per forty-year run across the sim's strategies — but the sim rarely
 commissions Landmark Programs, because its heuristic refuses to thin a
 department. A player chasing prestige will commission them deliberately,
 so the real rate is probably higher than the harness suggests. Worth
 feeling out in play before touching `AWARD_BASE_BY_DEPTH`.
+
+---
+
+### What retiring the faculty input actually took
+
+Worth recording, because the obvious version of this change broke the game
+and the reason is not obvious.
+
+Deleting the input and spreading its weight of 40 across the surviving
+terms collapsed the whole growth loop: year-40 prestige fell from ~145 to
+~63, courses developed from 421 to 212, closing cash from billions to
+millions. The weights summed to the same ceiling, so nothing was "lost" —
+but WHEN it could be earned changed completely. Faculty quality was
+earnable in year one by hiring well. Curriculum breadth, where most of the
+weight went, is milestone-gated and takes decades, and it is multiplied by
+two factors below 1 on top of that. The early-game prestige floor that
+drives applicants, tuition and therefore everything else simply vanished.
+
+Tracing that surfaced a real flaw in the PR C design rather than just a
+tuning error. Course quality entered prestige only as a MULTIPLIER on
+breadth — so a school teaching twenty courses beautifully in its first
+decade earned nothing at all for them, because no program had completed
+yet. Teaching had no path to prestige until a whole program finished.
+
+So teaching quality became an input in its own right, and the breadth term
+went back to being breadth × library. That fixes three things at once: the
+retired input's early-game role is filled by something earned through
+teaching actually delivered rather than through who is on the payroll,
+teaching finally pays from the first well-taught course, and the
+two-multipliers-compounding-on-the-largest-term risk flagged back in PR C
+is gone. Weights now: breadth 90, teaching quality 30, student quality 24,
+research 22, endowment 18, campus life 12.
+
+One consequence is visible in the sim and is the change working as
+intended: the "builds nothing" strategy's prestige fell from 76 to 36. It
+employs five professors and teaches no courses, and it used to be paid ~28
+for the payroll alone.
 
 ---
 

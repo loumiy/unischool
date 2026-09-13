@@ -2,7 +2,7 @@ import type { GameState } from '../../state/types';
 import { totalEnrolled } from '../../state/types';
 import { graduatePrograms, milestoneSchools } from '../../data/techData';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
-import { qualityMultiplier } from '../../data/courseQuality';
+import { teachingQualityScore } from '../../data/courseQuality';
 import { INITIATIVE_COMPLETION_CREDIT } from '../../data/researchData';
 
 // ---------------------------------------------------------------------
@@ -89,12 +89,31 @@ const PRESTIGE_DRIFT_RATE = 0.0025;
 // the two inputs that were already this model's main drivers, curriculum
 // breadth and faculty quality (see the module note above on why selectivity
 // itself is gone).
+// FACULTY QUALITY IS NO LONGER AN INPUT OF ITS OWN, and its old weight of
+// 40 is redistributed below. It averaged every hire's teaching and research
+// straight off the roster, which was the right reading when that was the
+// ONLY way either stat reached prestige — neither had a job then.
+//
+// Both have one now, and each arrives through the work it actually does:
+// teaching through course grades, which multiply the breadth term
+// (curriculumQualityScore); research through what initiatives produce
+// (researchScore). Keeping the old input as well charged for the same two
+// numbers twice — once for the work, and once again for merely being on the
+// payroll. It also quietly preserved the exact flaw PR C removed from
+// academic satisfaction: a brilliant chemist hired and never assigned to
+// anything still raised the school's standing.
+//
+// So the 40 goes where the two stats now do their work. Breadth takes the
+// larger share because teaching reaches prestige through it, and research
+// takes a smaller one — still far below breadth, which is the invariant
+// researchScore's own note exists to protect: scholarship supplements a
+// university's standing, it never substitutes for being one.
 const CURRICULUM_BREADTH_WEIGHT = 90; // majors/schools completed — the stock only sustained buildout grows
-const STUDENT_QUALITY_WEIGHT = 22;    // emergent avg incoming quality — grows with a low-tuition, high-yield posture
-const FACULTY_QUALITY_WEIGHT = 40;    // avg roster teaching+research — grows by hiring well and, more importantly, retaining hires long enough to mature
-const RESEARCH_WEIGHT = 14;           // breakthroughs and prizes out of the labs (see researchScore below)
+const TEACHING_QUALITY_WEIGHT = 30;   // how good the courses actually are, as its own input (see teachingScore below)
+const STUDENT_QUALITY_WEIGHT = 24;    // emergent avg incoming quality — grows with a low-tuition, high-yield posture
+const RESEARCH_WEIGHT = 22;           // what the university's scholarship has actually produced (see researchScore below)
 const CAMPUS_LIFE_WEIGHT = 12;        // rec center / athletics complex — a small, capped draw on its own (see campusLifeScore below)
-const ENDOWMENT_WEIGHT = 16;          // financial resources per student — what the late-game endowment campaigns buy (see endowmentScore below)
+const ENDOWMENT_WEIGHT = 18;          // financial resources per student — what the late-game endowment campaigns buy (see endowmentScore below)
 
 // Same band as rivalsSystem.ts's RIVAL_REPUTATION_MIN/MAX, so the player's
 // prestige and rivals' reputation stay on one comparable scale.
@@ -214,16 +233,6 @@ function studentQualityScore(s: GameState): number {
   return clamp01(s.students.incomingQuality / 100);
 }
 
-// Faculty quality: the roster's average current teaching+research (each
-// 0..100), normalized to 0..1. Reads current (already-grown) stats only —
-// a brand-new hire barely moves this, a long-retained one moves it a lot,
-// which is what makes retention (not just hiring) the actual lever.
-function facultyQualityScore(s: GameState): number {
-  if (s.faculty.length === 0) return 0;
-  const avgStat = s.faculty.reduce((sum, f) => sum + f.teaching + f.research, 0) / (s.faculty.length * 2);
-  return clamp01(avgStat / 100);
-}
-
 // Library adequacy: how well the library's total servesPopulation (tier-1's
 // own seats, raised in place by any renovated-in floors, plus the
 // research-library tier-2 upgrade if built — see facilitiesData.ts) covers
@@ -250,37 +259,20 @@ function libraryAdequacyScore(s: GameState): number {
   return clamp(ratio, LIBRARY_ADEQUACY_FLOOR, 1);
 }
 
-// Curriculum quality: how good the courses the school actually offers
-// are, 0..1, read off the same grades the Curriculum tab shows (see
-// data/courseQuality.ts).
+// How good the teaching is, as an input in its own right rather than a
+// multiplier on breadth. See data/courseQuality.ts's teachingQualityScore
+// for why that changed: breadth is milestone-gated, so as a multiplier
+// this paid nothing at all for a decade of well-taught courses, and it
+// compounded with the library multiplier already on that term.
 //
-// A MULTIPLIER on the breadth term, not an input of its own — the same
-// shape libraryAdequacyScore already has on that line, and for a closely
-// related reason. Breadth counts how much curriculum exists; this asks
-// how good it is. A school that has opened four hundred courses and
-// staffed them with whoever was cheapest has the breadth of a great
-// university and the teaching of a poor one, and the prestige term that
-// dominates the target should say so.
-//
-// This is what turns "expand or improve" into a real decision rather than
-// a slogan. Before it, the only way to move the dominant term was to open
-// more courses, so improving a weak one paid nothing at all. Now both
-// paths move the same number, and a player with finite money has to
-// choose which one buys more this decade.
-//
-// THE MAPPING IS LOAD-BEARING, and it is why this is not avg/100 — see
-// data/courseQuality.ts's qualityMultiplier for why dividing by 100 cut
-// every well-run school's largest prestige input by nearly forty percent,
-// and what the achievable range of a mean grade actually is.
-//
-// A school with nothing open yet reads 1, not 0: it has no courses to be
-// bad at, and zeroing its breadth would punish a founding campus for not
-// having finished anything — the same reasoning behind
-// LIBRARY_ADEQUACY_FLOOR's own existence, on the same line.
-function curriculumQualityScore(s: GameState): number {
+// This is also where the retired faculty-quality input's work went. That
+// one averaged every hire's raw stats, which charged the school for good
+// professors whether or not they ever taught anybody; this charges for the
+// teaching they actually deliver. A campus with no courses open reads 0 —
+// it is not teaching badly, but it is equally not teaching.
+function teachingScore(s: GameState): number {
   const avg = campusAverageCourseQuality(s);
-  if (avg === null) return 1;
-  return qualityMultiplier(avg);
+  return avg === null ? 0 : teachingQualityScore(avg);
 }
 
 // Campus life: the rec center / athletics complex's "small prestige
@@ -393,9 +385,9 @@ function endowmentScore(s: GameState): number {
 export function computePrestigeTarget(s: GameState): number {
   const target =
     PRESTIGE_BASELINE +
-    CURRICULUM_BREADTH_WEIGHT * curriculumBreadthScore(s) * libraryAdequacyScore(s) * curriculumQualityScore(s) +
+    CURRICULUM_BREADTH_WEIGHT * curriculumBreadthScore(s) * libraryAdequacyScore(s) +
+    TEACHING_QUALITY_WEIGHT * teachingScore(s) +
     STUDENT_QUALITY_WEIGHT * studentQualityScore(s) * admissionsScaleScore(s) +
-    FACULTY_QUALITY_WEIGHT * facultyQualityScore(s) +
     RESEARCH_WEIGHT * researchScore(s) +
     CAMPUS_LIFE_WEIGHT * campusLifeScore(s) +
     ENDOWMENT_WEIGHT * endowmentScore(s);

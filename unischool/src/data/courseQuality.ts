@@ -222,41 +222,36 @@ export function qualityOf(
 // action — and keeps buildings paying off once each, where they already do.
 
 // =====================================================================
-// FROM A MEAN GRADE TO A MULTIPLIER.
+// FROM A MEAN GRADE TO A PRESTIGE SCORE.
 //
-// Both consumers that scale something by "how good is the teaching"
-// (prestigeSystem's breadth term, and anything that follows it) go through
-// this rather than dividing the mean by 100, and the difference is not
-// cosmetic — dividing by 100 was actively wrong.
+// How good the teaching a university delivers is, 0..1, for
+// prestigeSystem's standalone teaching-quality input.
 //
-// 100 IS NOT REACHABLE. A course scores 100 only with a professor at
-// teaching 100 who carries no load penalty and teaches nothing above
-// tier 1 — and teaching 100 itself requires rolling the maximum potential
-// AND years of tenure. In practice a mature, well-matched, well-staffed
-// university averages around 80; a healthy ordinary one averages in the
-// low 60s; a young school of fresh hires sits near 40 (see the band
-// distributions above — a fresh hire is capped at 55 before any penalty).
+// IT IS AN INPUT RATHER THAN A MULTIPLIER, and that is a correction. It
+// began as a multiplier on the curriculum-breadth term — how much
+// curriculum exists, scaled by how good it is — which reads sensibly and
+// had two problems. It stacked on the library multiplier already on that
+// line, so two factors compounded on the single largest term. And
+// breadth is MILESTONE-gated: it only moves when a program is established
+// or distinguished, so a school teaching twenty courses beautifully in its
+// first decade got nothing for them. Teaching had no path to prestige at
+// all until a whole program completed.
 //
-// So avg/100 hands a perfectly well-run school a multiplier of 0.62 and
-// cuts the largest term in the prestige model by nearly forty percent for
-// doing nothing wrong. That is not "quality modulates breadth", it is
-// "quality slashes breadth for everybody", and stacked on top of the
-// library multiplier already on that line it compounds into the model
-// eating itself — which the balance sim duly did, halving the prestige of
-// strategies that were thriving.
+// As its own input it is earned the moment there are courses to teach
+// well, which is what the retired faculty-quality input used to provide —
+// except earned through teaching actually delivered rather than through
+// who happens to be on the payroll.
 //
-// This maps the ACHIEVABLE range onto a bounded multiplier instead: a
-// school teaching at the realistic high end gets its breadth in full, a
-// school teaching badly keeps most of it, and the span between them is a
-// real but survivable difference. The floor is what keeps a distressed
-// school recoverable rather than spiralling — it loses a slice of its
-// prestige, not the ability to earn any.
-const QUALITY_REFERENCE_LOW = 40;   // a young school of fresh hires
-const QUALITY_REFERENCE_HIGH = 80;  // a mature, well-matched roster
-const QUALITY_MULTIPLIER_FLOOR = 0.7;
+// 100 IS NOT REACHABLE (see the band note above: a fresh hire is capped at
+// 55 before any penalty, and a course scores 100 only with a maxed
+// professor carrying no load on a tier-1 course), so this maps the range
+// that actually occurs rather than dividing by 100. A young school of
+// fresh hires averages around 40 and reads near zero; a mature,
+// well-matched, well-staffed one averages around 80 and reads near one.
+const QUALITY_SCORE_FLOOR = 35;   // below this the teaching earns nothing
+const QUALITY_SCORE_CEILING = 85; // at this it earns the whole input
 
-export function qualityMultiplier(averageScore: number): number {
-  const span = (averageScore - QUALITY_REFERENCE_LOW) / (QUALITY_REFERENCE_HIGH - QUALITY_REFERENCE_LOW);
-  const scaled = QUALITY_MULTIPLIER_FLOOR + (1 - QUALITY_MULTIPLIER_FLOOR) * span;
-  return Math.max(QUALITY_MULTIPLIER_FLOOR, Math.min(1, scaled));
+export function teachingQualityScore(averageScore: number): number {
+  const t = (averageScore - QUALITY_SCORE_FLOOR) / (QUALITY_SCORE_CEILING - QUALITY_SCORE_FLOOR);
+  return Math.max(0, Math.min(1, t));
 }
