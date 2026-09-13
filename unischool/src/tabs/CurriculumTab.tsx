@@ -2,11 +2,16 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
 import { discoverySchools, graduateGateMet, graduatePrograms, professionalSchools } from '../data/techData';
-import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
-import { instructorOf } from '../systems/faculty/facultyAssignment';
+import {
+  canStartDevelopment, hasFreeFacultySlot, eligibleInstructors, assignedInstructor,
+  isUnstaffed, facultyLoad,
+} from '../systems/techtree/techSystem';
+import { facultyQualityTier } from '../data/facultyData';
 import HelpHint from '../components/HelpHint';
+import FacultyPortrait from '../components/FacultyPortrait';
 import { ProgressRing } from '../components/Progress';
 import { isTestUniversity } from '../components/StatusHeader';
+import type { Faculty } from '../state/types';
 
 // ---------------------------------------------------------------------
 // Progressive discovery: the curriculum is not laid out whole. What's
@@ -326,7 +331,7 @@ function tooltipPosition(cell: DOMRect, width: number, height: number): TooltipP
 // course needs is already in its tooltip, but same-field cells lighting up
 // together with a letter on them would draw the eye to clusters that
 // correlate with school membership the pool is not meant to reveal yet.
-function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => void; t: Buildable; lookup: Map<string, Buildable> }) {
+function CourseCell({ s, t, selected, onSelect }: { s: GameState; t: Buildable; selected: boolean; onSelect: (id: string) => void }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<TooltipPos | null>(null);
@@ -366,11 +371,11 @@ function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => v
   const [code, titleFromName] = t.name.split(' · ');
   const title = titleFromName ?? code;
   const missingFaculty = !!(t.requiresFaculty && !hasFreeFacultySlot(s, t.requiresFaculty));
-  // Only a DONE course has an instructor to name — an available or
-  // developing course hasn't been assigned a slot in the round-robin's
-  // eyes yet (see facultyAssignment.ts), so implying a teacher for it
-  // would be a claim the projection can't back up.
-  const instructor = t.status === 'done' ? instructorOf(s, t) : undefined;
+  // Every offered course now names a real instructor — the one the player
+  // chose when they started it (see types.ts's CourseFaculty) — so a
+  // DEVELOPING course can say who is teaching it too, which the old
+  // round-robin projection could not honestly claim.
+  const unstaffed = isUnstaffed(s, t);
   // The gate is only news while the course is still ahead of the player:
   // a developing or finished course already holds its slot.
   const showGateDot = missingFaculty && state !== 'developing' && state !== 'done';
@@ -395,7 +400,12 @@ function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => v
 
   return (
     <div
-      className="course-cell-wrap"
+      // A selected cell keeps keyboard focus after the click, which used to
+      // be harmless (the old cell became disabled and lost it) but now
+      // leaves its hover card pinned open beside a drawer already showing
+      // everything it says. The drawer supersedes the preview, so the
+      // selected cell suppresses its own.
+      className={`course-cell-wrap${selected ? ' tooltip-suppressed' : ''}`}
       ref={wrapRef}
       onPointerEnter={placeTooltip}
       onPointerLeave={() => setPos(null)}
@@ -404,13 +414,14 @@ function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => v
     >
       <button
         type="button"
-        className={`course-cell ${state}${t.graduateProgram ? ' graduate' : ''}`}
-        disabled={state !== 'available'}
-        onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: t.id })}
+        className={`course-cell ${state}${t.graduateProgram ? ' graduate' : ''}${unstaffed ? ' unstaffed' : ''}${selected ? ' selected' : ''}`}
+        aria-pressed={selected}
+        onClick={() => onSelect(t.id)}
       >
         <span className="cell-code">{code}</span>
         <span className="cell-title">{title}</span>
-        {state === 'done' && <span className="cell-stamp" aria-hidden="true">✓</span>}
+        {state === 'done' && !unstaffed && <span className="cell-stamp" aria-hidden="true">✓</span>}
+        {unstaffed && <span className="cell-stamp unstaffed" title="No instructor">!</span>}
         {showGateDot && <span className="cell-gate-dot" aria-hidden="true" />}
         {state === 'developing' && (
           <span className="cell-progress" aria-hidden="true">
@@ -424,27 +435,19 @@ function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => v
         ref={tooltipRef}
         style={pos ? { position: 'fixed', top: pos.top, left: pos.left } : undefined}
       >
+        {/* A PREVIEW, not a second detail panel. The tooltip used to be the
+            only way to learn anything about a course, so it carried
+            everything: prereqs, the faculty gate, the instructor. All of
+            that now lives in the drawer a click away (see CourseDrawer),
+            and a hover card repeating it both duplicated the drawer and,
+            at that height, covered the neighbouring cells the player was
+            scanning. What is left is what hover is actually FOR with 421
+            courses — read the shelf without committing to anything: what
+            it teaches, what it costs, and, when the cell is refusing, the
+            one line saying why. */}
         <div className="course-tooltip-name">{t.name}</div>
         <p className="course-tooltip-desc">{t.description}</p>
-        {t.prereqs.length > 0 && (
-          <ul className="course-tooltip-prereqs">
-            {t.prereqs.map((id) => {
-              const p = lookup.get(id);
-              const met = p?.status === 'done';
-              return (
-                <li key={id} className={met ? 'met' : 'unmet'}>
-                  {met ? '✓' : '✗'} {p?.name ?? id}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        {t.requiresFaculty && (
-          <div className={`course-tooltip-faculty ${missingFaculty ? 'unmet' : 'met'}`}>
-            {missingFaculty ? '✗' : '✓'} Faculty: {t.requiresFaculty}
-          </div>
-        )}
-        {instructor && <div className="course-tooltip-instructor">Taught by: {instructor.name}</div>}
+        {unstaffed && <div className="course-tooltip-instructor unstaffed">No instructor</div>}
         <div className="course-tooltip-meta">
           ${t.cost.toLocaleString()} · {t.duration}w
           {state === 'developing' && ` · ${weeksLeft}w left`}
@@ -455,14 +458,265 @@ function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => v
   );
 }
 
-function CellGrid({ s, act, ids, lookup }: { s: GameState; act: (a: Action) => void; ids: string[]; lookup: Map<string, Buildable> }) {
+function CellGrid({ s, ids, lookup, selectedId, onSelect }: { s: GameState; ids: string[]; lookup: Map<string, Buildable>; selectedId: string | null; onSelect: (id: string) => void }) {
   return (
     <div className="cell-grid">
       {ids.map((id) => {
         const t = lookup.get(id);
-        return t ? <CourseCell key={id} s={s} act={act} t={t} lookup={lookup} /> : null;
+        return t ? <CourseCell key={id} s={s} t={t} selected={selectedId === id} onSelect={onSelect} /> : null;
       })}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------
+// THE COURSE DRAWER, and the decision it exists for.
+//
+// Clicking a course no longer starts it. It opens this, and the drawer
+// leads with the question the old build never asked: WHO TEACHES IT.
+// Before, development auto-assigned nobody in particular — the engine
+// tracked only per-field slot capacity, and the name under a cell was a
+// round-robin computed on read. Now the player picks, the pick is stored
+// (see types.ts's CourseFaculty), and it is editable for the life of the
+// course.
+//
+// Four cases, and the last two are the reason this is a panel rather than
+// a confirm dialog:
+//
+//   1. SEVERAL eligible. A list, strongest teacher first, each a real
+//      person — portrait, rank, teaching, current load. The player chooses.
+//   2. EXACTLY ONE eligible. Pre-selected, one button. Frictionless, as it
+//      should be — but never silent: the player still learns who it is,
+//      because they will want to know in five years when the grade is bad.
+//   3. NOBODY free, but the department EXISTS. The old build showed a dot
+//      on a cell and left the player to work out what to do. Here the
+//      people who are full are listed by name with their loads, because
+//      "Dr. Iyer is teaching 2 of 2" is the actual information — it says
+//      reassign, or hire, rather than just "no".
+//   4. NOBODY at all. The hire happens HERE, from the standing market, in
+//      the course's own field. And when the market is empty in that field
+//      this says so plainly, because that is real information too (a
+//      thin-market specialist turns up only every few months — see
+//      facultyData.ts's churn block), and it tells the player to wait and
+//      watch rather than hunt for a button that does not exist.
+// ---------------------------------------------------------------------
+
+// One selectable person. Deliberately the same furniture the Faculty tab
+// uses for a roster card — portrait, name, rank badge — so a professor
+// reads as the same professor in both places, plus the two things that
+// matter HERE and nowhere else: how good a teacher they are, and how
+// loaded they already are.
+function InstructorOption(
+  { s, f, selected, disabled = false, onPick }:
+  { s: GameState; f: Faculty; selected: boolean; disabled?: boolean; onPick?: () => void },
+) {
+  const load = facultyLoad(s, f.id);
+  return (
+    <button
+      type="button"
+      className={`instructor-option${selected ? ' selected' : ''}${disabled ? ' full' : ''}`}
+      disabled={disabled}
+      aria-pressed={selected}
+      onClick={onPick}
+    >
+      <FacultyPortrait f={f} size={34} />
+      <span className="instructor-option-body">
+        <span className="instructor-option-name">{f.name}</span>
+        <span className="instructor-option-meta">
+          {facultyQualityTier(f)} · {f.field}
+        </span>
+        <span className="instructor-option-bars">
+          <span className="instructor-stat" title={`Teaching ${f.teaching} of a possible ${f.teachingPotential}`}>
+            <span className="instructor-stat-label">Teaching</span>
+            <span className="instructor-bar-track">
+              <span className="instructor-bar-headroom" style={{ width: `${f.teachingPotential}%` }} />
+              <span className="instructor-bar-fill" style={{ width: `${f.teaching}%` }} />
+            </span>
+            <span className="instructor-stat-value">{f.teaching}</span>
+          </span>
+        </span>
+      </span>
+      <span className={`instructor-option-load${load >= f.courseSlots ? ' full' : ''}`}>
+        {load} / {f.courseSlots}
+        <br />
+        <span className="instructor-load-label">courses</span>
+      </span>
+    </button>
+  );
+}
+
+function CourseDrawer(
+  { s, act, t, lookup, onClose }:
+  { s: GameState; act: (a: Action) => void; t: Buildable; lookup: Map<string, Buildable>; onClose: () => void },
+) {
+  const state = cellState(s, t);
+  const offered = t.status === 'developing' || t.status === 'done';
+  const instructor = assignedInstructor(s, t);
+  const unstaffed = isUnstaffed(s, t);
+
+  // For an offered course the current instructor must stay eligible for
+  // their own course (see techSystem.ts's eligibleInstructors `except`),
+  // or a full professor would read as unable to go on teaching what they
+  // already teach.
+  const eligible = eligibleInstructors(s, t, offered ? t.id : undefined);
+  const inField = t.requiresFaculty ? s.faculty.filter((f) => f.field === t.requiresFaculty) : [];
+  const marketInField = t.requiresFaculty ? s.candidates.filter((c) => c.field === t.requiresFaculty) : [];
+
+  // The pick resets whenever the course changes, and defaults to the
+  // current instructor for an offered course or the strongest eligible
+  // teacher for a new one — which is what makes the one-candidate case a
+  // single click rather than a click to choose and a click to confirm.
+  const [picked, setPicked] = useState<string | null>(null);
+  useEffect(() => { setPicked(null); }, [t.id]);
+  const chosen = picked ?? instructor?.id ?? eligible[0]?.id ?? null;
+
+  const [code, titleFromName] = t.name.split(' · ');
+  const title = titleFromName ?? code;
+  const weeksLeft = s.developing[t.id] ?? 0;
+  const shortfall = t.cost - s.finance.cash;
+
+  function develop() {
+    if (chosen) act({ type: 'START_DEVELOPMENT', nodeId: t.id, facultyId: chosen });
+  }
+  function reassign() {
+    if (chosen && chosen !== instructor?.id) act({ type: 'REASSIGN_COURSE_FACULTY', courseId: t.id, facultyId: chosen });
+  }
+
+  return (
+    <aside className="course-drawer" aria-label={`${title} detail`}>
+      <div className="course-drawer-head">
+        <div>
+          <span className="course-drawer-code">{code}</span>
+          <h3>{title}</h3>
+        </div>
+        <button type="button" className="course-drawer-close" onClick={onClose} aria-label="Close course detail">✕</button>
+      </div>
+
+      <div className="course-drawer-body">
+        <p className="course-drawer-desc">{t.description}</p>
+
+        <dl className="course-drawer-facts">
+          <div><dt>Cost</dt><dd>${t.cost.toLocaleString()}</dd></div>
+          <div><dt>Duration</dt><dd>{t.duration} weeks</dd></div>
+          <div><dt>Department</dt><dd>{t.requiresFaculty ?? '—'}</dd></div>
+          {state === 'developing' && <div><dt>Remaining</dt><dd>{weeksLeft} weeks</dd></div>}
+        </dl>
+
+        {t.prereqs.length > 0 && (
+          <section className="course-drawer-section">
+            <h4>Prerequisites</h4>
+            <ul className="course-drawer-prereqs">
+              {t.prereqs.map((id) => {
+                const p = lookup.get(id);
+                const met = p?.status === 'done';
+                return (
+                  <li key={id} className={met ? 'met' : 'unmet'}>
+                    {met ? '✓' : '✗'} {p?.name ?? id}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        {t.requiresFaculty && (
+          <section className="course-drawer-section">
+            <h4>{offered ? 'Instructor' : 'Choose an instructor'}</h4>
+
+            {unstaffed && (
+              <p className="course-drawer-warning">
+                This course has no instructor and is not being taught. Assign someone to restore it.
+              </p>
+            )}
+
+            {/* CASE 1 & 2: somebody can take it. */}
+            {eligible.length > 0 && (
+              <>
+                <div className="instructor-options">
+                  {eligible.map((f) => (
+                    <InstructorOption
+                      key={f.id}
+                      s={s}
+                      f={f}
+                      selected={chosen === f.id}
+                      onPick={() => setPicked(f.id)}
+                    />
+                  ))}
+                </div>
+
+                {state === 'available' && (
+                  <button type="button" className="course-drawer-action" disabled={!chosen || !canStartDevelopment(s, t, chosen)} onClick={develop}>
+                    {chosen
+                      ? `Develop with ${eligible.find((f) => f.id === chosen)?.name ?? 'selected faculty'}`
+                      : 'Develop'}
+                  </button>
+                )}
+                {offered && (
+                  <button type="button" className="course-drawer-action" disabled={!chosen || chosen === instructor?.id} onClick={reassign}>
+                    {chosen && chosen !== instructor?.id ? 'Move this course to them' : 'Currently assigned'}
+                  </button>
+                )}
+              </>
+            )}
+
+            {/* CASE 3: the department exists but everyone is full. Naming
+                who, and how loaded, is what turns a refusal into a choice
+                between reassigning and hiring. */}
+            {eligible.length === 0 && inField.length > 0 && (
+              <>
+                <p className="course-drawer-note">
+                  Every {t.requiresFaculty} professor is at capacity. Free a slot by moving one of their
+                  courses, or appoint someone new.
+                </p>
+                <div className="instructor-options">
+                  {inField.map((f) => <InstructorOption key={f.id} s={s} f={f} selected={false} disabled />)}
+                </div>
+              </>
+            )}
+
+            {/* CASE 4: nobody in the department at all. The hire happens
+                here rather than in a separate explanation of the problem. */}
+            {eligible.length === 0 && inField.length === 0 && (
+              <p className="course-drawer-note">
+                The university has no {t.requiresFaculty} faculty. Appoint someone to open this course.
+              </p>
+            )}
+
+            {eligible.length === 0 && (
+              <div className="course-drawer-hire">
+                <h5>On the market in {t.requiresFaculty}</h5>
+                {marketInField.length === 0 ? (
+                  <p className="course-drawer-note quiet">
+                    No {t.requiresFaculty} candidates are listed this week. The market turns over
+                    constantly — check back.
+                  </p>
+                ) : (
+                  marketInField.map((c) => (
+                    <div key={c.id} className="course-drawer-candidate">
+                      <InstructorOption s={s} f={c} selected={false} />
+                      <button
+                        type="button"
+                        className="course-drawer-appoint"
+                        onClick={() => act({ type: 'HIRE_FACULTY', facultyId: c.id })}
+                      >
+                        Appoint · ${Math.round(c.salary).toLocaleString()}/yr
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
+        {state === 'blocked' && shortfall > 0 && (
+          <p className="course-drawer-warning">${Math.ceil(shortfall).toLocaleString()} short of the development cost.</p>
+        )}
+        {state === 'locked' && (
+          <p className="course-drawer-note quiet">Locked until its prerequisites are complete.</p>
+        )}
+      </div>
+    </aside>
   );
 }
 
@@ -519,6 +773,16 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
   // change to it, not just a change in count. That's what makes "already
   // had curriculum open when new courses unlocked" show no badge: the
   // toolbar and this tab agree the instant this runs.
+  // Which course the player is looking at, if any. Clicking a cell opens
+  // it; clicking the same cell again closes it. A course whose id stops
+  // being valid (nothing removes courses today, but a save migration can
+  // retire an id) simply resolves to nothing and the drawer closes itself.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = selectedId ? lookup.get(selectedId) ?? null : null;
+  const onSelect = useCallback((id: string) => {
+    setSelectedId((cur) => (cur === id ? null : id));
+  }, []);
+
   const unseenIds = visibleCourseIds(s).filter((id) => !s.seen.courseIds[id]);
   const unseenKey = unseenIds.join('|');
   useEffect(() => {
@@ -527,7 +791,7 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
   }, [unseenKey]);
 
   return (
-    <div className="tab-content">
+    <div className={`tab-content curriculum-layout${selected ? ' with-drawer' : ''}`}>
       <section className="panel curriculum-panel">
         <div className="panel-head">
           <span className="panel-head-title">
@@ -571,7 +835,7 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
               purpose: a "x / 42" here would count the majors that exist
               before the player has met any of them. */}
           <div className="discovery-pool">
-            <CellGrid s={s} act={act} ids={pool.courseIds} lookup={lookup} />
+            <CellGrid s={s} ids={pool.courseIds} lookup={lookup} selectedId={selectedId} onSelect={onSelect} />
           </div>
 
           {schoolSections.map((section) => {
@@ -589,7 +853,7 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
                     <span className="stat">{school.done} / {school.total}</span>
                   </span>
                 </div>
-                {section.courseIds.length > 0 && <CellGrid s={s} act={act} ids={section.courseIds} lookup={lookup} />}
+                {section.courseIds.length > 0 && <CellGrid s={s} ids={section.courseIds} lookup={lookup} selectedId={selectedId} onSelect={onSelect} />}
                 {section.subgroups.map((sub) => (
                   <div key={sub.key} className={`discovery-subgroup${sub.graduate ? ' graduate' : ''}`}>
                     <h4>
@@ -599,7 +863,7 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
                     {sub.graduate && (
                       <p className="subgroup-note">Graduate · opened by {sub.graduate.gate}</p>
                     )}
-                    <CellGrid s={s} act={act} ids={sub.courseIds} lookup={lookup} />
+                    <CellGrid s={s} ids={sub.courseIds} lookup={lookup} selectedId={selectedId} onSelect={onSelect} />
                   </div>
                 ))}
               </div>
@@ -607,6 +871,9 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
           })}
         </div>
       </section>
+      {selected && (
+        <CourseDrawer s={s} act={act} t={selected} lookup={lookup} onClose={() => setSelectedId(null)} />
+      )}
     </div>
   );
 }

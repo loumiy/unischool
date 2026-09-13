@@ -535,17 +535,31 @@ button { cursor: pointer; font-family: inherit; }
 .cell-stamp { position: absolute; top: 5px; right: 6px; font-size: var(--text-xs);
   line-height: 1; opacity: 0.75; }
 
-.course-cell.locked { opacity: 0.5; cursor: default; }
-.course-cell.blocked { border-style: solid; border-color: #c4b591; background: #e4dcc5; color: #8d8261; cursor: not-allowed; }
+/* Every cell is clickable now: a click opens the course drawer rather than
+   starting development, so even a locked or blocked course has something
+   to say (what it needs, and who could teach it once it opens). The old
+   cursor:not-allowed / cursor:default on these states said the opposite
+   and had to go. */
+.course-cell.locked { opacity: 0.5; cursor: pointer; }
+.course-cell.blocked { border-style: solid; border-color: #c4b591; background: #e4dcc5; color: #8d8261; cursor: pointer; }
 .course-cell.available { border-style: solid; border-color: var(--gold-dim); background: #fffdf6; color: var(--ink);
   cursor: pointer; box-shadow: inset 0 -2px 0 rgba(156, 122, 46, 0.28); }
 .course-cell.available:hover, .course-cell.available:focus-visible {
   border-color: var(--gold); background: #fff5da; transform: translateY(-1px);
   box-shadow: var(--shadow-1); }
-.course-cell.developing { border-style: solid; border-color: var(--gold); color: #4a3c14; cursor: default;
+.course-cell.developing { border-style: solid; border-color: var(--gold); color: #4a3c14; cursor: pointer;
   animation: cell-pulse 1.7s ease-in-out infinite; }
 .course-cell.developing .cell-title, .course-cell.done .cell-title { font-weight: 600; }
-.course-cell.done { border-style: solid; border-color: #6d5610; background: var(--brass-deep); color: #f7ecc6; cursor: default; }
+.course-cell.done { border-style: solid; border-color: #6d5610; background: var(--brass-deep); color: #f7ecc6; cursor: pointer; }
+
+/* An offered course whose instructor has left (see types.ts's
+   CourseFaculty). Deliberately NOT drawn as another failure shade: the
+   course still exists and still counts, it is missing a person. So it
+   keeps its own done/developing colour and takes a warning edge plus the
+   '!' stamp where the ✓ would be — "attention", not "broken". */
+.course-cell.unstaffed { border-color: var(--danger-line); box-shadow: inset 0 0 0 1px var(--danger-line); }
+.cell-stamp.unstaffed { color: var(--danger-ink); opacity: 1; font-weight: 700; }
+.course-cell.selected { outline: 2px solid var(--gold); outline-offset: 1px; }
 
 /* The pulse stays (it is what says "work is happening here"), but it now
    plays between two PALE creams and a soft halo instead of filling to
@@ -575,6 +589,9 @@ button { cursor: pointer; font-family: inherit; }
   padding: 10px 12px; font-size: var(--text-sm); box-shadow: var(--shadow-2);
   visibility: hidden; opacity: 0; transition: opacity 0.12s ease; pointer-events: none; }
 .course-cell-wrap:hover .course-tooltip, .course-cell-wrap:focus-within .course-tooltip { visibility: visible; opacity: 1; }
+/* The open drawer is this cell's detail view; a preview card pinned over
+   its neighbours as well is just noise (see CurriculumTab.tsx). */
+.course-cell-wrap.tooltip-suppressed .course-tooltip { visibility: hidden; opacity: 0; }
 .course-tooltip-name { font-family: var(--serif); font-size: var(--text-base); font-weight: 700; margin-bottom: 4px; }
 .course-tooltip-desc { margin: 0 0 8px; color: #cbd0d8; line-height: 1.4; }
 .course-tooltip-prereqs { margin: 0 0 6px; padding: 0; list-style: none; }
@@ -1099,6 +1116,112 @@ button.build-tile { font-family: inherit; }
    the dock: reserve the space rather than draw under it. 40px button +
    16px inset + a 12px breath. */
 .tab-overlay.full-bleed .tab-overlay-head { padding-right: 68px; }
+
+/* ---------- the course drawer ----------
+   Opened by clicking any course cell (see CurriculumTab.tsx's CourseDrawer).
+   A DRAWER BESIDE THE MAP, not a dialog in front of it: the catalogue stays
+   on screen and stays clickable, so clicking a second course swaps the
+   drawer's contents rather than closing and reopening a modal. Browsing the
+   curriculum should feel like browsing, not like a sequence of dialogs —
+   and this is also the shape the curriculum map itself will want, so it
+   arrives here first and does not change when the map lands.
+
+   The layout is a two-column grid rather than a floating panel so the
+   catalogue genuinely narrows when the drawer opens: nothing important
+   ends up underneath it. At narrow widths the grid collapses and the
+   drawer stacks above the catalogue — above, because it is what the
+   player just asked to see. */
+.curriculum-layout.with-drawer { display: grid; grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 16px; align-items: start; }
+
+.course-drawer { position: sticky; top: 0; background: var(--parchment); border: 1px solid var(--gold-dim);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-2); overflow: hidden;
+  display: flex; flex-direction: column; max-height: calc(100vh - var(--toolbar-height) - var(--log-ticker-height) - 96px); }
+.course-drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+  padding: 12px 14px; border-bottom: 2px solid var(--gold); flex: none; }
+.course-drawer-head h2, .course-drawer-head h3 { margin: 2px 0 0; font-family: var(--serif);
+  font-size: var(--text-md); line-height: 1.2; color: var(--ink); }
+.course-drawer-code { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted);
+  letter-spacing: 0.08em; }
+.course-drawer-close { background: transparent; border: 1px solid var(--gold-dim); color: var(--ink-muted);
+  border-radius: var(--radius-sm); padding: 2px 8px; font-size: var(--text-xs); flex: none; }
+.course-drawer-close:hover { border-color: var(--gold); color: var(--ink); }
+.course-drawer-body { overflow-y: auto; padding: 12px 14px 18px; display: flex; flex-direction: column; gap: 14px; }
+.course-drawer-desc { margin: 0; font-size: var(--text-sm); line-height: 1.5; color: var(--ink-muted); }
+
+.course-drawer-facts { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+.course-drawer-facts > div { display: flex; flex-direction: column; gap: 1px; }
+.course-drawer-facts dt { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--ink-muted); }
+.course-drawer-facts dd { margin: 0; font-size: var(--text-sm); font-weight: 600; color: var(--ink); }
+
+.course-drawer-section { display: flex; flex-direction: column; gap: 8px; }
+.course-drawer-section h4 { margin: 0; font-size: var(--text-xs); text-transform: uppercase;
+  letter-spacing: 0.09em; color: var(--ink-muted); }
+.course-drawer-section h5 { margin: 0 0 6px; font-size: var(--text-xs); text-transform: uppercase;
+  letter-spacing: 0.09em; color: var(--ink-muted); }
+.course-drawer-prereqs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px;
+  font-size: var(--text-sm); }
+.course-drawer-prereqs .met { color: var(--ok-on-light); }
+.course-drawer-prereqs .unmet { color: var(--danger-ink); }
+.course-drawer-note { margin: 0; font-size: var(--text-sm); line-height: 1.45; color: var(--ink-muted); }
+.course-drawer-note.quiet { font-style: italic; }
+.course-drawer-warning { margin: 0; background: var(--danger-bg); color: var(--danger-ink);
+  border: 1px solid var(--danger-line); border-radius: var(--radius-sm); padding: 7px 10px;
+  font-size: var(--text-sm); line-height: 1.4; }
+
+/* One selectable person. A real card rather than a row in a select: the
+   player is choosing a colleague, and the whole point of the change is
+   that faculty read as people who shape the university. */
+.instructor-options { display: flex; flex-direction: column; gap: 6px; }
+.instructor-option { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px;
+  align-items: center; width: 100%; text-align: left; padding: 8px 10px; background: #fffdf6;
+  border: 1px solid var(--gold-dim); border-radius: var(--radius-md); cursor: pointer; }
+.instructor-option:hover:not(:disabled) { border-color: var(--gold); background: #fff5da; }
+.instructor-option.selected { border-color: var(--gold); background: #fff5da;
+  box-shadow: inset 0 0 0 1px var(--gold); }
+.instructor-option.full { opacity: 0.62; cursor: default; }
+.instructor-option-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.instructor-option-name { font-weight: 600; font-size: var(--text-sm); color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.instructor-option-meta { font-size: var(--text-xs); color: var(--ink-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.instructor-option-bars { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
+.instructor-stat { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+.instructor-stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--ink-muted); }
+.instructor-bar-track { position: relative; height: 5px; border-radius: 3px; background: #e4dcc5; overflow: hidden; }
+.instructor-bar-headroom { position: absolute; inset: 0 auto 0 0; background: #d3c49a; }
+.instructor-bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--gold); }
+.instructor-stat-value { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink); }
+.instructor-option-load { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted);
+  text-align: right; line-height: 1.25; flex: none; }
+.instructor-option-load.full { color: var(--danger-ink); }
+.instructor-load-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+.course-drawer-action { width: 100%; padding: 9px 12px; border-radius: var(--radius-md);
+  border: 1px solid var(--gold); background: var(--gold); color: #3a2e08; font-weight: 700;
+  font-size: var(--text-sm); cursor: pointer; }
+.course-drawer-action:hover:not(:disabled) { background: var(--gold-bright, #f0cf72); }
+.course-drawer-action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Hiring, in the course that needs the hire. The dead end the old build
+   left here (a dot on a cell, and a separate screen to work out why) is
+   the whole reason this exists. */
+.course-drawer-hire { border-top: 1px dashed var(--gold-dim); padding-top: 10px; }
+.course-drawer-candidate { display: flex; flex-direction: column; gap: 5px; margin-bottom: 9px; }
+.course-drawer-appoint { align-self: stretch; padding: 6px 10px; border-radius: var(--radius-sm);
+  border: 1px solid var(--gold-dim); background: transparent; color: var(--ink); font-size: var(--text-xs);
+  font-weight: 600; cursor: pointer; }
+.course-drawer-appoint:hover { border-color: var(--gold); background: #fff5da; }
+
+/* The dismissal warning on a faculty card (see FacultyTab.tsx): shown only
+   once the button is armed, and only when there is actually something to
+   lose. */
+.faculty-dismiss-warning { margin: 0; background: var(--danger-bg); color: var(--danger-ink);
+  border-top: 1px solid var(--danger-line); padding: 8px 12px; font-size: var(--text-sm); line-height: 1.4; }
+.faculty-card button.dismiss-confirm { border-color: var(--danger-line); background: var(--danger-bg);
+  color: var(--danger-ink); font-weight: 700; }
 
 /* ---------- sidebar panels ---------- */
 .empty-note { font-style: italic; color: var(--ink-muted); font-size: var(--text-base); margin: 0; }
@@ -1642,4 +1765,11 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   .faculty-columns .faculty-list { max-height: 420px; }
   .student-life-columns { grid-template-columns: 1fr; }
   .treasury-columns { grid-template-columns: 1fr; }
+  /* The drawer stacks ABOVE the catalogue here, not below: it is what the
+     player just clicked to see, and 340px of detail is not worth scrolling
+     past a wall of course cells to reach. It also stops being sticky —
+     sticky inside a stacked column would pin it over the cells it is
+     meant to sit beside. */
+  .curriculum-layout.with-drawer { grid-template-columns: 1fr; }
+  .curriculum-layout.with-drawer .course-drawer { order: -1; position: static; max-height: none; }
 }

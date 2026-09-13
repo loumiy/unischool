@@ -80,6 +80,10 @@ function FacultyCard(
 ) {
   const [open, setOpen] = useState(false);
   const taught = isCandidate ? [] : coursesTaughtBy(s, f);
+  // Two-step dismissal, armed only when there is something to lose. Reset
+  // on blur so an armed button never sits waiting across an unrelated
+  // interaction.
+  const [confirmingDismiss, setConfirmingDismiss] = useState(false);
   const weeksLeft = Math.max(0, CANDIDATE_LISTING_WEEKS - f.weeksListed);
   const researches = !isCandidate && labEquippedFields(s).has(f.field);
 
@@ -126,11 +130,37 @@ function FacultyCard(
             {isCandidate ? (
               <button className="appoint" onClick={() => act({ type: 'HIRE_FACULTY', facultyId: f.id })}>Appoint</button>
             ) : (
-              <button onClick={() => act({ type: 'FIRE_FACULTY', facultyId: f.id })}>Dismiss</button>
+              <button
+                className={confirmingDismiss ? 'dismiss-confirm' : undefined}
+                onClick={() => {
+                  if (!confirmingDismiss && taught.length > 0) { setConfirmingDismiss(true); return; }
+                  act({ type: 'FIRE_FACULTY', facultyId: f.id });
+                }}
+                onBlur={() => setConfirmingDismiss(false)}
+              >
+                {confirmingDismiss ? 'Confirm — leave them unstaffed' : 'Dismiss'}
+              </button>
             )}
           </div>
         </div>
       </div>
+      {/* Dismissing someone now ORPHANS whatever they teach: their
+          assignments are cleared and those courses go unstaffed until
+          somebody else takes them (see the reducer's FIRE_FACULTY). That
+          is a consequence that outlives the click and is invisible on this
+          screen — the roster shrinking is obvious, four courses quietly
+          losing their teacher is not — so it is spelled out, by name,
+          BEFORE the second click rather than logged after it.
+
+          Someone teaching nothing is dismissed on the first click, with no
+          confirm step: there is nothing to warn about, and a confirmation
+          that always fires is one people learn to click through. */}
+      {confirmingDismiss && taught.length > 0 && (
+        <p className="faculty-dismiss-warning">
+          {f.name} teaches {taught.length} {taught.length === 1 ? 'course' : 'courses'}, which will be left
+          without an instructor: {taught.map((c) => c.name.split(' · ')[0]).join(', ')}.
+        </p>
+      )}
       {open && (
         <div className="faculty-card-detail">
           <p className="faculty-bio">{f.bio}</p>

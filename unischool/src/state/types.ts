@@ -827,6 +827,46 @@ export interface YearSnapshot {
   satisfaction: number;   // 0..100
 }
 
+// ---------------------------------------------------------------------
+// WHO TEACHES WHAT. Course id -> the id of the Faculty member the player
+// chose to teach it, written when development starts and editable
+// afterwards (REASSIGN_COURSE_FACULTY).
+//
+// A SEPARATE RECORD, keyed by id, rather than a field on Buildable — for
+// exactly the reason `placements` is a separate record and not a field on
+// Buildable (see README's "Courses and buildings share one flow"). A
+// building's location and a course's instructor are the same SHAPE of
+// fact: something true of one KIND of Buildable, which must not fork the
+// single Buildable model that serves all four kinds. Courses are never
+// placed and so never carry a `placements` entry; buildings never have
+// instructors and so never carry one here. Same reasoning, same shape, in
+// both directions.
+//
+// WHY THIS IS REAL STATE AND NOT A PROJECTION. It used to be neither: the
+// engine tracked only per-field slot CAPACITY, and who taught what was a
+// deterministic round-robin computed on read (see
+// systems/faculty/facultyAssignment.ts, which now reads this record
+// instead). That was fine while the answer was only ever a caption. It
+// cannot carry a course QUALITY GRADE, which is what lands next: hire one
+// more person into a field and the round-robin silently re-pairs every
+// course in it, so a grade computed off it would change whenever the
+// roster did, for reasons the player never chose and cannot see. Letting
+// the player pick is what makes the pairing stable enough to grade.
+//
+// An id here may go STALE in exactly one way: the person is dismissed
+// (FIRE_FACULTY clears their entries) or is otherwise no longer on the
+// roster. A course that is offered but has no live entry is UNSTAFFED —
+// see techSystem.ts's isUnstaffed. That is a real, visible state the
+// player has to fix, not an error: it is the "department left
+// understaffed, its courses on hold" chain the README's faculty section
+// describes. Unstaffed courses hold no slot, so dismissing someone frees
+// their field capacity at the same moment it orphans their courses.
+//
+// A plain id -> id record, the same shape rationale as `milestones` and
+// `pathways`: no Map, no reference into `faculty` or `tech`, so it
+// survives a JSON round trip untouched.
+export type CourseFaculty = Record<string, string>;
+
 export interface GameState {
   clock: GameClock;
   finance: Finance;
@@ -835,6 +875,7 @@ export interface GameState {
   faculty: Faculty[];
   tech: Buildable[];
   developing: Record<string, number>; // course id -> weeks remaining
+  courseFaculty: CourseFaculty;       // course id -> the faculty member teaching it; the player's choice, made when development starts (see the CourseFaculty block above)
   placements: Placements;            // Buildable id -> the campus tiles it covers; visual only (see the campus map block above)
   pathways: Pathways;                 // drawn walkway tiles; visual only, read by no system (see the Pathways block above)
   trees: Trees;                       // the founding woodland, tile -> render seed; felled by building, hidden by paving (see the Trees block above)

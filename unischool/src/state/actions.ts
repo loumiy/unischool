@@ -43,7 +43,24 @@ export type Action =
   // placeable Buildable (building/dorm/facility) never starts this way —
   // it starts through PLACE_BUILDABLE instead, which combines the same
   // gate with siting a location in one step.
-  | { type: 'START_DEVELOPMENT'; nodeId: string }
+  //
+  // `facultyId` is the instructor the player picked for it. The Curriculum
+  // tab ALWAYS supplies one — choosing who teaches a course is the point of
+  // the interaction, and the assignment is written in the same transaction
+  // as the start (see techSystem.ts's startDevelopment), so a developing
+  // course is never without a teacher. It is optional only for the two
+  // callers that are not a player making a choice: the playtest-only
+  // DEVELOP_ALL_AVAILABLE_COURSES button and the headless balance sim, both
+  // of which let the engine take the strongest eligible teacher instead.
+  | { type: 'START_DEVELOPMENT'; nodeId: string; facultyId?: string }
+  | { type: 'REASSIGN_COURSE_FACULTY'; courseId: string; facultyId: string }
+  // Moves an already-offered course to a different instructor — the lever
+  // for fixing a weak course, and for re-staffing one a dismissal left
+  // unstaffed. Free and immediate: the real cost is an opportunity cost,
+  // since the person taking it on is one slot less available to everything
+  // else. Rejected unless the course is offered and the new instructor is
+  // eligible for it (on the roster, in its field, not already full — see
+  // techSystem.ts's eligibleInstructors).
   // Appoints someone straight off the standing candidate list (see
   // facultyData.ts's churn block): they move from s.candidates to
   // s.faculty this instant, with no fee and no waiting period. The only
@@ -51,6 +68,13 @@ export type Action =
   // market this week — availability IS the recruiting constraint now, and
   // the money constraint is the salary they start drawing immediately.
   | { type: 'HIRE_FACULTY'; facultyId: string }
+  // Dismisses someone from the roster. This ORPHANS every course they were
+  // teaching: their assignments are cleared, and those courses go unstaffed
+  // until the player gives them a new instructor (see types.ts's
+  // CourseFaculty). Their field capacity comes back at the same moment, so
+  // a replacement hire can take the courses straight over. The UI warns
+  // before this, naming the courses, because it is not recoverable by
+  // undo — see FacultyTab.tsx.
   | { type: 'FIRE_FACULTY'; facultyId: string }
   // The unified build-and-site action for a placeable Buildable (building/
   // dorm/facility — a `course` never dispatches this). Placement IS how a
@@ -255,6 +279,7 @@ export function createPreStartState(): GameState {
     started: false,
     hasEnteredRankings: false,
     milestones: {},
+    courseFaculty: {},
     seen: { courseIds: {}, buildableIds: {}, candidateIds: {} },
   };
 }
@@ -408,6 +433,11 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // live here together.
     tech,
     developing: {},
+    // Nothing is offered at founding — every gen-ed course opens
+    // 'available', none 'done' — so there is nothing to have assigned yet.
+    // The first entry is written the moment the player starts their first
+    // course and picks who teaches it.
+    courseFaculty: {},
     // Only Founders Hall is pre-placed: it opens 'done' (techData.ts), so
     // it needs a spot on the map from day one. It is centred on the grid
     // (foundersHallPlacement above) — the founding landmark the rest of the

@@ -13,6 +13,7 @@ import {
   coachSalaryFor, initialCoachCandidatePool, LEGACY_TWO_GENDER_SPORT_MIGRATION, SPORTS,
 } from '../data/studentLifeData';
 import { athleticStrengthFor } from '../data/rivalData';
+import { legacyRoundRobinAssignments } from '../systems/faculty/facultyAssignment';
 
 // ---------------------------------------------------------------------
 // Save / load (see README's "Save / load"). A run is measured in hours, so
@@ -695,7 +696,53 @@ export const SAVE_KEY = 'unischool.save';
 // consequence MIGRATIONS[11]'s own note spells out.
 //
 // See MIGRATIONS[29].
-export const SAVE_VERSION = 30;
+//
+// v30 -> v31: who teaches what becomes real state. GameState gains
+// `courseFaculty` (course id -> faculty id — see types.ts's CourseFaculty
+// block): the instructor the player picks when they start a course, and
+// can change afterwards.
+//
+// The whole migration is one idea: MATERIALIZE THE PROJECTION. Before this
+// version the pairing was not stored at all — it was a round-robin computed
+// on read, dealing a field's faculty against that field's offered courses,
+// both sorted by id. That is what every resumed save has been DRAWING under
+// its course cells and on its faculty cards for its whole run, so writing
+// exactly those pairings into the new record means the game the player
+// reopens says precisely what the game they closed said. The feature
+// arrives as "you can change this now", never as "everyone has been
+// reshuffled behind your back" — which is what any cleverer seeding rule
+// would produce, and is the reason the round-robin is kept frozen in
+// facultyAssignment.ts rather than improved.
+//
+// Two consequences follow from the record existing, and both are correct
+// rather than incidental:
+//
+//   - A course in a field with NOBODY on the roster gets no entry, and so
+//     resumes UNSTAFFED. That is not damage: it is the true state of a
+//     department the save had already emptied (by dismissal, or by the v5
+//     field re-taxonomy, whose own note flags exactly this), and the old
+//     build simply had no way to say so. It now shows on the course and
+//     invites a hire.
+//   - usedFacultySlots counts ASSIGNED courses rather than merely offered
+//     ones, so those same unstaffed courses hand their field capacity back.
+//     A resumed save can therefore be slightly LESS slot-constrained than
+//     it was, never more — the school is short a teacher, not short a
+//     teacher and their capacity both.
+//
+// One further wrinkle, accepted rather than corrected: the round-robin
+// deals courses out without regard to anyone's courseSlots, so a resumed
+// save CAN open with somebody carrying more than their own ceiling (three
+// English courses across a department of one). That is not new — it is the
+// over-subscription MIGRATIONS[5]'s own note already describes, and it is
+// what the save has actually been doing. Nothing breaks: an over-loaded
+// professor simply has no free slot, so they can take nothing further
+// until the player moves something off them, which is the honest reading
+// of an over-stretched department and a thing the player can now see and
+// fix. Rebalancing them here would be the silent reshuffle this migration
+// exists to avoid.
+//
+// See MIGRATIONS[30].
+export const SAVE_VERSION = 31;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1571,6 +1618,15 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     }
   },
 
+  // v30 -> v31: materialize the course -> instructor pairing the old build
+  // computed on read. See the SAVE_VERSION header note for why the frozen
+  // round-robin is the only correct seeding rule here.
+  30: (state) => {
+    if (typeof state.courseFaculty !== 'object' || state.courseFaculty === null) {
+      state.courseFaculty = legacyRoundRobinAssignments(state);
+    }
+  },
+
   // v28 -> v29: Athletics V2. See the SAVE_VERSION header comment above for
   // the full shape change; this just applies it.
   28: (state) => {
@@ -1836,6 +1892,33 @@ function sanitizeSeen(state: GameState): void {
   };
 }
 
+// Drops course -> instructor entries that no longer name a real pairing:
+// the course is gone from the seed, the faculty member is not on the
+// roster, or the value isn't a string at all. Same defensive posture as
+// sanitizePlacements/sanitizeSeen above, and cheap for the same reason —
+// a stale entry here is not a crash but it IS a lie, and the one thing
+// this record must never do is claim a course is taught by somebody who
+// does not work here.
+//
+// Note what is deliberately NOT repaired: a course left with no entry is
+// not reassigned to somebody available. Unstaffed is a legitimate, visible
+// state with a fix the player owns (see types.ts's CourseFaculty) —
+// quietly filling it in here would hide exactly the situation the feature
+// exists to surface.
+function sanitizeCourseFaculty(state: GameState): void {
+  const source = (typeof state.courseFaculty === 'object' && state.courseFaculty !== null) ? state.courseFaculty : {};
+  const courseIds = new Set(state.tech.map((t) => t.id));
+  const facultyIds = new Set(state.faculty.map((f) => f.id));
+
+  const clean: GameState['courseFaculty'] = {};
+  for (const [courseId, facultyId] of Object.entries(source)) {
+    if (typeof facultyId !== 'string') continue;
+    if (!courseIds.has(courseId) || !facultyIds.has(facultyId)) continue;
+    clean[courseId] = facultyId;
+  }
+  state.courseFaculty = clean;
+}
+
 // A shallow structural check, not a full validation of GameState. The point
 // is to reject the things that actually happen — a truncated write, a key
 // collision, a payload from an older shape that shares the version number
@@ -1905,5 +1988,6 @@ export function loadGame(): GameState | null {
   sanitizeTrees(state);
   sanitizeTeams(state);
   sanitizeSeen(state);
+  sanitizeCourseFaculty(state);
   return state;
 }

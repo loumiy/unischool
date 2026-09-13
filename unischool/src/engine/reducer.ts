@@ -3,7 +3,7 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import type { Action } from '../state/actions';
 import { createInitialState, createPreStartState } from '../state/actions';
 import { tickFinance, endowmentCampaign } from '../systems/finance/financeSystem';
-import { tickTech, canStartDevelopment, startDevelopment } from '../systems/techtree/techSystem';
+import { tickTech, canStartDevelopment, startDevelopment, eligibleInstructors } from '../systems/techtree/techSystem';
 import { tickAdmissions, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
 import { deriveCohortSignals } from '../systems/admissions/cohorts';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
@@ -236,8 +236,17 @@ export function reducer(state: GameState, action: Action): GameState {
       // placeable Buildable can be started structurally, not just by
       // convention — exactly as canStartDevelopment stays the one gate,
       // reused rather than forked, for both actions.
+      //
+      // action.facultyId is the instructor the player chose. It is threaded
+      // through BOTH halves — the gate and the mutation — so the person who
+      // is checked for eligibility is exactly the person who gets recorded,
+      // and a stale or ineligible pick is refused rather than silently
+      // swapped for someone else. Omitted only by the two non-player
+      // callers (see actions.ts), where startDevelopment auto-picks.
       const node = s.tech.find((t) => t.id === action.nodeId);
-      if (node && !isPlaceableKind(node) && canStartDevelopment(s, node)) startDevelopment(s, node);
+      if (node && !isPlaceableKind(node) && canStartDevelopment(s, node, action.facultyId)) {
+        startDevelopment(s, node, action.facultyId);
+      }
       return s;
     }
 
@@ -255,8 +264,56 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
+    // Dismissal is now two things happening together, not one. The person
+    // leaves the roster, AND every course they were teaching is orphaned:
+    // their assignments are cleared, so those courses go unstaffed until
+    // the player gives them a new instructor (see types.ts's CourseFaculty).
+    //
+    // Clearing the entries rather than leaving them dangling is what makes
+    // the department's capacity come back at the same instant — an
+    // unstaffed course holds nobody's slot (see techSystem.ts's
+    // usedFacultySlots), so a replacement hire can take the orphans
+    // straight over rather than finding the field still full of a
+    // departed colleague's load.
+    //
+    // It is logged because it is the one player action in the game with a
+    // consequence that outlives the click: the roster shrinking is
+    // obvious, four courses quietly losing their teacher is not. The UI
+    // warns beforehand (FacultyTab.tsx); this is the record afterwards.
     case 'FIRE_FACULTY': {
+      const leaving = s.faculty.find((f) => f.id === action.facultyId);
+      if (!leaving) return s;
+
+      const orphaned = s.tech.filter((t) => s.courseFaculty[t.id] === leaving.id && (t.status === 'developing' || t.status === 'done'));
+      for (const course of orphaned) delete s.courseFaculty[course.id];
       s.faculty = s.faculty.filter((f) => f.id !== action.facultyId);
+
+      if (orphaned.length > 0) {
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: `${leaving.name} has left the university. ${orphaned.length} ${orphaned.length === 1 ? 'course is' : 'courses are'} without an instructor until ${leaving.field} is staffed again.`,
+          kind: 'bad',
+        });
+      }
+      return s;
+    }
+
+    // Moves an offered course to a different instructor — the lever for
+    // improving a weak course, and for re-staffing one a dismissal left
+    // orphaned. Free and immediate by design: the real cost is the
+    // opportunity cost, since whoever takes it on has one slot less for
+    // everything else.
+    //
+    // The course itself is passed as `except` so its CURRENT instructor
+    // still counts as eligible: the slot that course occupies is already
+    // theirs, so a full professor must not be judged unable to go on
+    // teaching something they are teaching right now.
+    case 'REASSIGN_COURSE_FACULTY': {
+      const course = s.tech.find((t) => t.id === action.courseId);
+      if (!course || (course.status !== 'developing' && course.status !== 'done')) return s;
+      if (!eligibleInstructors(s, course, course.id).some((f) => f.id === action.facultyId)) return s;
+      s.courseFaculty[course.id] = action.facultyId;
       return s;
     }
 
