@@ -60,9 +60,9 @@ import type { Faculty } from '../state/types';
 // ---------------------------------------------------------------------
 
 // Ring sizes: the catalogue's own completion is the panel's headline
-// figure, a school section's is a marginal note next to its title.
+// figure; a school card carries its own, one level down.
 const CATALOG_RING_SIZE = 46;
-const SECTION_RING_SIZE = 26;
+const SCHOOL_CARD_RING_SIZE = 44;
 
 // A sub-group inside a school section: a completed major (its own tier-3
 // catalogue now visible) or a revealed graduate program. `graduate` is set
@@ -265,6 +265,161 @@ export function visibleCourseIds(s: GameState): string[] {
     for (const sub of section.subgroups) ids.push(...sub.courseIds);
   }
   return ids;
+}
+
+// =====================================================================
+// THE MAP'S OWN SHAPE: schools, and the lanes inside them.
+//
+// A second reading of the SAME revealed set the sections above compute —
+// never a second set of reveal rules. `visibleCourseIds` stays the one
+// answer to "has the player met this course yet"; all this does is regroup
+// what it returns from flat pools into the structure the catalogue
+// actually has: school -> major -> tier.
+//
+// WHY LANES RATHER THAN A GRAPH. The curriculum is a total hierarchy with
+// a sparse graph laid over it. 42 majors of exactly nine courses in a
+// fixed 1/4/4 shape means the tier chain is ~336 edges every one of which
+// says the same thing, while the ~50 authored CROSS_MAJOR_BRIDGES are the
+// only interesting ones. Drawing them all spends the whole visual budget
+// on the boring 336 and buries the 50 — and shrinks the node to a dot,
+// which is what undid full course names last time. So the regular
+// structure is carried by POSITION (three bands, left to right, with a
+// chevron between) and drawn with zero lines, and an edge is only ever
+// drawn for a bridge, on demand.
+// =====================================================================
+
+interface MajorLane {
+  key: string;
+  name: string;
+  tier1: string[];
+  tier2: string[];
+  tier3: string[];
+  // Set only for a graduate program, which is a lane like any other but
+  // has two things a major does not: the credential it awards, and the
+  // gate it cleared to appear at all.
+  graduate?: { degree: string; gate: string };
+}
+
+interface SchoolView {
+  key: string;         // the school building's Buildable id
+  heading: string;
+  label: string;
+  schoolCourseIds: string[];
+  lanes: MajorLane[];
+}
+
+// Every revealed school, with its majors as lanes. Built by intersecting
+// each major's authored tiers with the revealed set, so a major that has
+// not established yet simply shows an empty tier-3 band rather than being
+// grouped differently — the progression reads as one lane filling up,
+// left to right, instead of a course jumping between sections when its
+// major completes.
+function schoolViews(s: GameState, sections: DiscoverySection[]): SchoolView[] {
+  const revealed = new Set(visibleCourseIds(s));
+  const keep = (ids: string[]) => ids.filter((id) => revealed.has(id));
+  const schools = new Map(discoverySchools().map((school) => [school.buildingId, school]));
+  const professional = new Map(professionalSchools().map((program) => [program.buildingId, program]));
+
+  const views: SchoolView[] = [];
+  for (const section of sections) {
+    if (section.label === null) continue; // the ungrouped pool has no lanes
+
+    const school = schools.get(section.key);
+    if (school) {
+      const lanes: MajorLane[] = [];
+      for (const major of school.majors) {
+        const tier1 = keep([major.tier1Id]);
+        const tier2 = keep(major.tier2Ids);
+        const tier3 = keep(major.tier3Ids);
+        if (tier1.length + tier2.length + tier3.length === 0) continue;
+        lanes.push({ key: major.prefix, name: major.name, tier1, tier2, tier3 });
+      }
+      // Graduate programs come last inside a school, where they sit in the
+      // climb. Their courses have no tier ladder of their own, so the
+      // whole program rides in the tier-2 band: one row of cards, which is
+      // what it is.
+      for (const program of school.graduate) {
+        const ids = keep(program.courseIds);
+        if (ids.length === 0) continue;
+        lanes.push({
+          key: program.id,
+          name: program.name,
+          tier1: [],
+          tier2: ids,
+          tier3: [],
+          graduate: { degree: program.degree, gate: program.gate },
+        });
+      }
+      views.push({ key: section.key, heading: section.heading, label: section.label, schoolCourseIds: section.schoolCourseIds, lanes });
+      continue;
+    }
+
+    // Medicine and Law: their own top-level school, one lane.
+    const program = professional.get(section.key);
+    if (program) {
+      const ids = keep(program.courseIds);
+      views.push({
+        key: section.key,
+        heading: section.heading,
+        label: section.label,
+        schoolCourseIds: section.schoolCourseIds,
+        lanes: ids.length === 0 ? [] : [{
+          key: program.id,
+          name: program.name,
+          tier1: [],
+          tier2: ids,
+          tier3: [],
+          graduate: { degree: program.degree, gate: 'its own building' },
+        }],
+      });
+    }
+  }
+  return views;
+}
+
+// Which school a course belongs to, so search results and a bridge badge
+// can say where a course lives and navigate straight to it. Derived from
+// the seed, memoized — the catalogue is static.
+let courseSchoolMap: Map<string, { buildingId: string; school: string }> | null = null;
+function courseSchools(): Map<string, { buildingId: string; school: string }> {
+  if (courseSchoolMap) return courseSchoolMap;
+  const map = new Map<string, { buildingId: string; school: string }>();
+  for (const school of discoverySchools()) {
+    const entry = { buildingId: school.buildingId, school: school.name };
+    for (const id of school.coreIds) map.set(id, entry);
+    for (const major of school.majors) {
+      for (const id of [major.tier1Id, ...major.tier2Ids, ...major.tier3Ids]) map.set(id, entry);
+    }
+    for (const program of school.graduate) {
+      for (const id of program.courseIds) map.set(id, entry);
+    }
+  }
+  for (const program of professionalSchools()) {
+    const entry = { buildingId: program.buildingId, school: program.name };
+    for (const id of program.courseIds) map.set(id, entry);
+  }
+  courseSchoolMap = map;
+  return map;
+}
+
+// The cross-major prereqs of a course: prereqs that are THEMSELVES COURSES
+// and come from a different major. Read off the course's own prereqs rather
+// than CROSS_MAJOR_BRIDGES directly, so a bridge authored anywhere still
+// shows up.
+//
+// The course check is not defensive tidying — prereqs cross KINDS as well
+// as majors (README's "central abstraction"), so a tier-3 course routinely
+// requires its major's LAB. `LAB-CHEM` trivially has a different id prefix
+// from `CHEM230`, so a prefix test alone calls a building a cross-listed
+// course and offers to navigate to it, which the map cannot do and the
+// player would not want: the lab is something you BUILD, not somewhere you
+// go in the catalogue.
+function crossMajorPrereqs(t: Buildable, lookup: Map<string, Buildable>): string[] {
+  const prefix = t.id.replace(/[0-9]+$/, '');
+  return t.prereqs.filter((id) => {
+    if (lookup.get(id)?.kind !== 'course') return false;
+    return id.replace(/[0-9]+$/, '') !== prefix;
+  });
 }
 
 type CellState = 'locked' | 'blocked' | 'available' | 'developing' | 'done';
@@ -494,14 +649,18 @@ function InstructorOption(
 }
 
 function CourseDrawer(
-  { s, act, t, lookup, onClose, loads }:
-  { s: GameState; act: (a: Action) => void; t: Buildable; lookup: Map<string, Buildable>; onClose: () => void; loads: FacultyLoads },
+  { s, act, t, lookup, onClose, loads, onGoToCourse }:
+  {
+    s: GameState; act: (a: Action) => void; t: Buildable; lookup: Map<string, Buildable>;
+    onClose: () => void; loads: FacultyLoads; onGoToCourse: (id: string) => void;
+  },
 ) {
   const state = cellState(s, t);
   const offered = t.status === 'developing' || t.status === 'done';
   const instructor = assignedInstructor(s, t);
   const unstaffed = isUnstaffed(s, t);
   const quality = courseQuality(s, t, loads);
+  const bridges = crossMajorPrereqs(t, lookup);
 
   // For an offered course the current instructor must stay eligible for
   // their own course (see techSystem.ts's eligibleInstructors `except`),
@@ -578,13 +737,45 @@ function CourseDrawer(
         {t.prereqs.length > 0 && (
           <section className="course-drawer-section">
             <h4>Prerequisites</h4>
+            {/* EVERY PREREQUISITE IS A DOOR. Clicking one goes there —
+                opens its school, selects it, and clears any filter in the
+                way. This is the map's most useful move and the reason
+                cross-major bridges are not drawn as lines: the prerequisite
+                that matters is almost always one the player cannot
+                currently see, and a line to an offscreen node is worth
+                nothing next to arriving at it.
+
+                A bridge (a prereq from another major — see
+                crossMajorPrereqs) is marked, because "this course needs
+                something from another school" is the genuinely surprising
+                fact in a catalogue whose other 336 prereq edges all say
+                the same thing. */}
             <ul className="course-drawer-prereqs">
               {t.prereqs.map((id) => {
                 const p = lookup.get(id);
                 const met = p?.status === 'done';
+                const bridge = bridges.includes(id);
+                // Only a course is somewhere to go. A prereq of another
+                // kind — a school building, a lab — is something to build,
+                // so it is stated rather than offered as a door that leads
+                // nowhere this view can show.
+                if (p?.kind !== 'course') {
+                  return (
+                    <li key={id} className={met ? 'met' : 'unmet'}>
+                      <span className="prereq-static">
+                        {met ? '✓' : '✗'} {p?.name ?? id}
+                        <span className="prereq-bridge" title="Built on the campus map, not developed here">build</span>
+                      </span>
+                    </li>
+                  );
+                }
                 return (
                   <li key={id} className={met ? 'met' : 'unmet'}>
-                    {met ? '✓' : '✗'} {p?.name ?? id}
+                    <button type="button" className="prereq-link" onClick={() => onGoToCourse(id)}>
+                      {met ? '✓' : '✗'} {p.name}
+                      {bridge && <span className="prereq-bridge" title="A prerequisite from another program">cross-listed</span>}
+                      <span className="prereq-go" aria-hidden="true">→</span>
+                    </button>
                   </li>
                 );
               })}
@@ -694,19 +885,214 @@ function CourseDrawer(
   );
 }
 
-// The one-line key under the panel head. It explains the four cell states
-// and the faculty-gate dot in the same breath, so the two things the
-// player would otherwise have to hover for — what a shade means, and why a
-// cell won't start — are both answered on sight.
-function CellLegend() {
+// =====================================================================
+// LEVEL 1 — THE UNIVERSITY. One card per school.
+//
+// The view that did not exist in any form before, and the direct answer to
+// "look at a school and see its strengths and weaknesses": breadth as a
+// completion ring, quality as a grade, side by side, so a school can
+// visibly be one without the other.
+// =====================================================================
+function SchoolCard(
+  { s, view, loads, onOpen }:
+  { s: GameState; view: SchoolView; loads: FacultyLoads; onOpen: () => void },
+) {
+  const done = completion(s, view.schoolCourseIds);
+  const avg = averageCourseQuality(s, view.schoolCourseIds, loads);
+  const majors = view.lanes.filter((lane) => !lane.graduate).length;
+  const grad = view.lanes.filter((lane) => lane.graduate).length;
+
   return (
-    <p className="cell-legend">
-      <span className="cell-legend-item"><span className="cell-legend-swatch done" />done</span>
-      <span className="cell-legend-item"><span className="cell-legend-swatch developing" />developing</span>
-      <span className="cell-legend-item"><span className="cell-legend-swatch available" />ready to start</span>
-      <span className="cell-legend-item"><span className="cell-legend-swatch blocked" />blocked</span>
-      <span className="cell-legend-item"><span className="cell-legend-dot" />no free faculty slot in its field — hire to start it</span>
-    </p>
+    <button type="button" className="school-card" onClick={onOpen}>
+      <span className="school-card-head">
+        <span className="school-card-name">{view.heading}</span>
+        {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${Math.round(avg)} / 100 across its developed courses`} />}
+      </span>
+      <span className="school-card-body">
+        <ProgressRing
+          fraction={done.fraction}
+          size={SCHOOL_CARD_RING_SIZE}
+          center={`${Math.round(done.fraction * 100)}%`}
+          title={`${done.done} of ${done.total} courses developed`}
+        />
+        <span className="school-card-stats">
+          <span className="school-card-count">{done.done} / {done.total}</span>
+          <span className="school-card-sub">courses developed</span>
+          <span className="school-card-sub">
+            {majors} {majors === 1 ? 'program' : 'programs'}
+            {grad > 0 && ` · ${grad} graduate`}
+          </span>
+        </span>
+      </span>
+    </button>
+  );
+}
+
+// =====================================================================
+// LEVEL 2 — ONE SCHOOL. Its majors as lanes.
+//
+// T1 leads at full width because it is the gateway and the course the
+// player acts on first; T2 and T3 follow as bands. The chevron between
+// bands replaces sixteen prereq lines per major and says the same thing
+// more clearly. An empty band is drawn as a rule rather than omitted, so
+// a lane's shape stays constant as it fills and the eye can compare
+// majors down the column.
+// =====================================================================
+function TierBand(
+  { s, ids, lookup, selectedId, onSelect, loads, tier, empty }:
+  {
+    s: GameState; ids: string[]; lookup: Map<string, Buildable>; selectedId: string | null;
+    onSelect: (id: string) => void; loads: FacultyLoads; tier: 'tier1' | 'tier2' | 'tier3'; empty: string;
+  },
+) {
+  if (ids.length === 0) return <div className={`tier-band ${tier} empty`}><span>{empty}</span></div>;
+  return (
+    <div className={`tier-band ${tier}`}>
+      {ids.map((id) => {
+        const t = lookup.get(id);
+        return t ? <CourseCell key={id} s={s} t={t} selected={selectedId === id} onSelect={onSelect} loads={loads} /> : null;
+      })}
+    </div>
+  );
+}
+
+function Lane(
+  { s, lane, lookup, selectedId, onSelect, loads }:
+  {
+    s: GameState; lane: MajorLane; lookup: Map<string, Buildable>;
+    selectedId: string | null; onSelect: (id: string) => void; loads: FacultyLoads;
+  },
+) {
+  const ids = [...lane.tier1, ...lane.tier2, ...lane.tier3];
+  const avg = averageCourseQuality(s, ids, loads);
+  const done = completion(s, ids);
+
+  return (
+    <section className={`lane${lane.graduate ? ' graduate' : ''}`}>
+      <header className="lane-head">
+        <h4>{lane.name}</h4>
+        {lane.graduate && <span className="subgroup-degree">{lane.graduate.degree}</span>}
+        {avg !== null && <GradeChip grade={gradeFor(avg)} title={`${lane.name} averages ${Math.round(avg)} / 100`} />}
+        <span className="lane-count">{done.done} / {done.total}</span>
+      </header>
+      {lane.graduate ? (
+        <div className="lane-bands graduate">
+          <TierBand s={s} ids={lane.tier2} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} tier="tier2" empty="" />
+        </div>
+      ) : (
+        <div className="lane-bands">
+          <TierBand s={s} ids={lane.tier1} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} tier="tier1" empty="—" />
+          <span className="lane-chevron" aria-hidden="true">›</span>
+          <TierBand s={s} ids={lane.tier2} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} tier="tier2" empty="Opens with the entry course" />
+          <span className="lane-chevron" aria-hidden="true">›</span>
+          <TierBand s={s} ids={lane.tier3} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} tier="tier3" empty="Opens when the program is established" />
+        </div>
+      )}
+    </section>
+  );
+}
+
+// =====================================================================
+// FINDING THINGS IN 421 COURSES.
+//
+// Progressive discovery already does the heavy lifting — a player only
+// ever sees what they have unlocked — but a mature catalogue is still
+// hundreds of cards across eight schools, and the two questions that get
+// hard are "where is X" and "what needs my attention".
+//
+// Both are answered by the same mechanism: a filter turns the map into a
+// WORKLIST — one flat, cross-school list of exactly what matched. That is
+// deliberately not a dimming pass over the lanes. "Show me everything at D
+// or below" is a to-do list, and a to-do list spread across eight screens
+// with the irrelevant items greyed out is not one. When nothing is
+// filtered, the map is the map.
+// =====================================================================
+
+type StatusFilter = 'all' | 'available' | 'developing' | 'done' | 'unstaffed';
+type GradeFilter = 'all' | 'weak';
+
+const WEAK_GRADES = new Set<Grade>(['D', 'F']);
+
+interface Filters {
+  query: string;
+  status: StatusFilter;
+  grade: GradeFilter;
+}
+
+const NO_FILTERS: Filters = { query: '', status: 'all', grade: 'all' };
+
+function filtersActive(f: Filters): boolean {
+  return f.query.trim() !== '' || f.status !== 'all' || f.grade !== 'all';
+}
+
+function matchesFilters(s: GameState, t: Buildable, f: Filters, loads: FacultyLoads): boolean {
+  const query = f.query.trim().toLowerCase();
+  if (query !== '' && !t.name.toLowerCase().includes(query)) return false;
+
+  if (f.status !== 'all') {
+    if (f.status === 'unstaffed') {
+      if (!isUnstaffed(s, t)) return false;
+    } else if (cellState(s, t) !== f.status) return false;
+  }
+
+  if (f.grade === 'weak') {
+    const q = courseQuality(s, t, loads);
+    // An unstaffed course belongs in the improvement worklist too: it is
+    // the most broken thing a course can be, and it has no grade to match
+    // on, so it is admitted explicitly rather than filtered out for
+    // lacking the very letter that would qualify it.
+    if (!q) return isUnstaffed(s, t);
+    if (!WEAK_GRADES.has(q.grade)) return false;
+  }
+  return true;
+}
+
+function FilterBar(
+  { filters, onChange, resultCount }:
+  { filters: Filters; onChange: (f: Filters) => void; resultCount: number | null },
+) {
+  return (
+    <div className="curriculum-filters">
+      <input
+        id="curriculum-search"
+        type="search"
+        className="curriculum-search"
+        placeholder="Search courses…"
+        value={filters.query}
+        onChange={(e) => onChange({ ...filters, query: e.target.value })}
+      />
+      <select
+        id="curriculum-status"
+        className="curriculum-select"
+        value={filters.status}
+        onChange={(e) => onChange({ ...filters, status: e.target.value as StatusFilter })}
+      >
+        <option value="all">Any status</option>
+        <option value="available">Ready to start</option>
+        <option value="developing">In development</option>
+        <option value="done">Developed</option>
+        <option value="unstaffed">Unstaffed</option>
+      </select>
+      <button
+        type="button"
+        className={`curriculum-chip${filters.grade === 'weak' ? ' on' : ''}`}
+        aria-pressed={filters.grade === 'weak'}
+        onClick={() => onChange({ ...filters, grade: filters.grade === 'weak' ? 'all' : 'weak' })}
+        title="Every developed course graded D or F, plus any left unstaffed"
+      >
+        Needs attention
+      </button>
+      {resultCount !== null && (
+        <span className="curriculum-result-count">
+          {resultCount} {resultCount === 1 ? 'course' : 'courses'}
+        </span>
+      )}
+      {filtersActive(filters) && (
+        <button type="button" className="curriculum-chip clear" onClick={() => onChange(NO_FILTERS)}>
+          Clear
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -735,32 +1121,42 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
   const catalogPct = Math.round(catalogFraction * 100);
 
   const lookup = new Map(s.tech.map((t) => [t.id, t]));
-  // Built ONCE per render and threaded to every cell, every section head
-  // and the drawer. Grading is cheap; counting a professor's load is not
-  // (see facultyLoads), and a screen of four hundred cells each counting
-  // it for itself is the same quadratic that would stall the weekly tick.
+  // Built ONCE per render and threaded to every cell, every heading and
+  // the drawer. Grading is cheap; counting a professor's load is not (see
+  // facultyLoads), and a screen of four hundred cells each counting it for
+  // itself is the same quadratic that would stall the weekly tick.
   const loads = facultyLoads(s);
   const genEdComplete = isGenEdComplete(s);
   const sections = buildSections(s, genEdComplete, revealedGrad);
-  const [pool, ...schoolSections] = sections;
+  const pool = sections[0];
+  const views = schoolViews(s, sections);
 
-  // The curriculum alert badge (see types.ts's SeenState): every currently
-  // visible course id this tab hasn't reported seeing yet. Marked the
-  // moment the tab is open, and again whenever a fresh reveal (a school
-  // built, gen-ed cleared) adds to the visible set while it stays open —
-  // the dependency is the exact unseen id set, so this fires again on any
-  // change to it, not just a change in count. That's what makes "already
-  // had curriculum open when new courses unlocked" show no badge: the
-  // toolbar and this tab agree the instant this runs.
-  // Which course the player is looking at, if any. Clicking a cell opens
-  // it; clicking the same cell again closes it. A course whose id stops
-  // being valid (nothing removes courses today, but a save migration can
-  // retire an id) simply resolves to nothing and the drawer closes itself.
+  // WHERE THE PLAYER IS. null = the university view (every school at
+  // once); a building id = inside that school. The course drawer is the
+  // third level and rides on top of either, so selecting a course never
+  // costs the player their place.
+  const [openSchool, setOpenSchool] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+
   const selected = selectedId ? lookup.get(selectedId) ?? null : null;
   const onSelect = useCallback((id: string) => {
     setSelectedId((cur) => (cur === id ? null : id));
   }, []);
+
+  // Jumping to a course from anywhere: a search result, or a bridge badge
+  // naming a prerequisite in another school. This is the single most
+  // useful thing the map does — the prerequisite you care about is almost
+  // always one you cannot currently see, and a line drawn to an offscreen
+  // node is worth nothing next to actually going there.
+  const goToCourse = useCallback((id: string) => {
+    const home = courseSchools().get(id);
+    const revealed = new Set(visibleCourseIds(s));
+    // A course still in the ungrouped pool has no school to open yet.
+    setOpenSchool(home && revealed.has(id) && !pool.courseIds.includes(id) ? home.buildingId : null);
+    setSelectedId(id);
+    setFilters(NO_FILTERS);
+  }, [s, pool.courseIds]);
 
   const unseenIds = visibleCourseIds(s).filter((id) => !s.seen.courseIds[id]);
   const unseenKey = unseenIds.join('|');
@@ -769,18 +1165,53 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unseenKey]);
 
+  const filtering = filtersActive(filters);
+  const matches = filtering
+    ? visibleCourseIds(s)
+      .map((id) => lookup.get(id))
+      .filter((t): t is Buildable => !!t && matchesFilters(s, t, filters, loads))
+    : [];
+
+  const school = openSchool ? views.find((v) => v.key === openSchool) ?? null : null;
+
   return (
     <div className={`tab-content curriculum-layout${selected ? ' with-drawer' : ''}`}>
       <section className="panel curriculum-panel">
         <div className="panel-head">
           <span className="panel-head-title">
-            <h2>The Curriculum</h2>
+            {/* The breadcrumb IS the level indicator: at the university
+                view it is a plain title, inside a school it becomes a way
+                back. One control, so there is never a "close this view"
+                button competing with the tab's own close. */}
+            {/* A filter searches the WHOLE catalogue, so while one is on
+                the crumb must say so — claiming "School of Engineering"
+                over a list drawn from four schools is a straightforward
+                lie about where the player is. Leaving the filter restores
+                whatever level they were on, which is why openSchool is
+                left alone rather than cleared. */}
+            {filtering ? (
+              <h2 className="curriculum-crumbs">
+                <button type="button" className="crumb" onClick={() => setFilters(NO_FILTERS)}>
+                  {school ? school.heading : 'The Curriculum'}
+                </button>
+                <span className="crumb-sep" aria-hidden="true">›</span>
+                <span className="crumb-current">Matching courses</span>
+              </h2>
+            ) : school ? (
+              <h2 className="curriculum-crumbs">
+                <button type="button" className="crumb" onClick={() => setOpenSchool(null)}>The Curriculum</button>
+                <span className="crumb-sep" aria-hidden="true">›</span>
+                <span className="crumb-current">{school.heading}</span>
+              </h2>
+            ) : (
+              <h2>The Curriculum</h2>
+            )}
             {isTestUniversity(s.self.name) && (
               <button
                 type="button"
                 className="grant-funds-btn"
                 onClick={() => act({ type: 'DEVELOP_ALL_AVAILABLE_COURSES' })}
-                title="Playtest only — starts development on every course currently available, cash and faculty slots permitting. Same effect as clicking each one's own Develop button."
+                title="Playtest only — starts development on every course currently available, cash and faculty slots permitting."
               >
                 Develop All
               </button>
@@ -795,70 +1226,88 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
                 title={`${doneCourses} of ${courses.length} courses developed`}
               />
               <span className="stat">{doneCourses} / {courses.length}<br />developed</span>
-            <AggregateGrade s={s} ids={courses.map((c) => c.id)} label="The catalogue" loads={loads} />
             </span>
+            <AggregateGrade s={s} ids={courses.map((c) => c.id)} label="The catalogue" loads={loads} />
             <HelpHint
               align="end"
               text={genEdComplete
-                ? "Open to all incoming students — not yet organized by school. Complete a school's entry courses to raise its building."
+                ? 'Open a school to see its programs. Every course shows the grade its instructor earns it.'
                 : 'The general-education core — every major waits on it. Complete it to unlock every major\'s entry course.'}
             />
           </span>
         </div>
-        <CellLegend />
+
+        <FilterBar filters={filters} onChange={setFilters} resultCount={filtering ? matches.length : null} />
+
         {s.finance.cash < 0 && (
           <p className="stall-note">Cash is negative — the school is running an operating deficit, so nothing can be started until the balance recovers.</p>
         )}
 
         <div className="curriculum-scroll">
-          {/* The pool carries no completion indicator of its own on
-              purpose: a "x / 42" here would count the majors that exist
-              before the player has met any of them. */}
-          <div className="discovery-pool">
-            <CellGrid s={s} ids={pool.courseIds} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} />
-          </div>
-
-          {schoolSections.map((section) => {
-            const school = completion(s, section.schoolCourseIds);
-            return (
-              <div key={section.key} className="discovery-section">
-                <div className="discovery-section-head">
-                  <h3>{section.heading}</h3>
-                  {/* Breadth and quality side by side, which is the whole
-                      point of grading courses: the ring says how much of
-                      this school exists, the chip says how good it is, and
-                      a school can now be visibly one without the other. */}
-                  <AggregateGrade s={s} ids={section.schoolCourseIds} label={section.label ?? 'This school'} loads={loads} />
-                  <span className="progress-figure">
-                    <ProgressRing
-                      fraction={school.fraction}
-                      size={SECTION_RING_SIZE}
-                      title={`${school.done} of ${school.total} ${section.label} courses developed`}
-                    />
-                    <span className="stat">{school.done} / {school.total}</span>
-                  </span>
-                </div>
-                {section.courseIds.length > 0 && <CellGrid s={s} ids={section.courseIds} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} />}
-                {section.subgroups.map((sub) => (
-                  <div key={sub.key} className={`discovery-subgroup${sub.graduate ? ' graduate' : ''}`}>
-                    <h4>
-                      {sub.label}
-                      {sub.graduate && <span className="subgroup-degree">{sub.graduate.degree}</span>}
-                      <AggregateGrade s={s} ids={sub.courseIds} label={sub.label} loads={loads} />
-                    </h4>
-                    {sub.graduate && (
-                      <p className="subgroup-note">Graduate · opened by {sub.graduate.gate}</p>
-                    )}
-                    <CellGrid s={s} ids={sub.courseIds} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} />
-                  </div>
-                ))}
+          {/* A filter replaces the map with its results, across every
+              school at once (see the worklist note above). */}
+          {filtering ? (
+            matches.length === 0 ? (
+              <p className="empty-note">Nothing matches those filters.</p>
+            ) : (
+              <div className="worklist">
+                {matches.map((t) => {
+                  const home = courseSchools().get(t.id);
+                  return (
+                    <div key={t.id} className="worklist-row">
+                      <CourseCell s={s} t={t} selected={selectedId === t.id} onSelect={onSelect} loads={loads} />
+                      <span className="worklist-where">{home?.school ?? 'General Studies'}</span>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+            )
+          ) : school ? (
+            // LEVEL 2 — one school, its majors as lanes.
+            <div className="school-lanes">
+              {school.lanes.length === 0
+                ? <p className="empty-note">Nothing revealed in this school yet.</p>
+                : school.lanes.map((lane) => (
+                  <Lane key={lane.key} s={s} lane={lane} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} />
+                ))}
+            </div>
+          ) : (
+            // LEVEL 1 — the university.
+            <>
+              {pool.courseIds.length > 0 && (
+                <div className="discovery-pool">
+                  {/* The pool carries no completion indicator on purpose:
+                      an "x / 42" here would count majors the player has
+                      not met. */}
+                  <p className="pool-caption">
+                    {genEdComplete
+                      ? 'Entry courses, not yet organised by school — complete a school\'s entry courses to raise its building.'
+                      : 'The general-education core. Every major waits on it.'}
+                  </p>
+                  <CellGrid s={s} ids={pool.courseIds} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} />
+                </div>
+              )}
+              {views.length > 0 && (
+                <div className="school-grid">
+                  {views.map((view) => (
+                    <SchoolCard key={view.key} s={s} view={view} loads={loads} onOpen={() => setOpenSchool(view.key)} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </section>
       {selected && (
-        <CourseDrawer s={s} act={act} t={selected} lookup={lookup} onClose={() => setSelectedId(null)} loads={loads} />
+        <CourseDrawer
+          s={s}
+          act={act}
+          t={selected}
+          lookup={lookup}
+          onClose={() => setSelectedId(null)}
+          loads={loads}
+          onGoToCourse={goToCourse}
+        />
       )}
     </div>
   );
