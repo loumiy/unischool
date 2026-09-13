@@ -1059,6 +1059,47 @@ button.build-tile { font-family: inherit; }
 .tab-overlay-body::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: var(--radius-sm); }
 .tab-overlay-body { scrollbar-width: thin; scrollbar-color: var(--navy-line) transparent; }
 
+/* ---------- full-bleed tabs ----------
+   The second shape of the same frame (see TabOverlay.tsx). The panel takes
+   the whole viewport and the bottom dock is laid OVER it, so a view the
+   player works in keeps its own tools reachable without closing it first.
+
+   The layering is the crux, and it is the one rule the two shapes disagree
+   about. A sheet sits at z-index 60, above everything in `.app` including
+   the toolbar, because a sheet is a thing standing IN FRONT of the screen.
+   A full-bleed tab is the screen, so it drops BELOW the dock's own layers
+   (.log-ticker's 5 and .toolbar's 10 — both further up this file) while
+   staying inside `.app`, which is itself above the map. Hence 3: above
+   nothing else in the chrome layer, and that is exactly right.
+
+   Nothing here fights the sheet rules above — every property the two shapes
+   differ on is re-stated, so neither depends on the other's leftovers. */
+.tab-overlay-backdrop.full-bleed { z-index: 3; padding: 0; align-items: stretch;
+  /* No scrim: the panel covers the map edge to edge, so a dim behind it
+     would only be compositing something nobody can see. */
+  background: none; }
+.tab-overlay.full-bleed { max-width: none; max-height: none; height: 100%;
+  border: none; border-radius: 0; box-shadow: none;
+  /* Fade only. The sheet's 8px rise would open an 8px gap under a panel
+     that is exactly viewport-tall, which reads as the screen slipping. */
+  animation: overlay-fade 140ms ease-out; }
+/* The dock is opaque and always on screen, so the last row of a tab drawn
+   behind it would be visible-but-unreachable — the same trap
+   .campus-map-canvas insets away from, answered with the same two figures.
+   The 40px the sheet already reserves stays on top of them, so a panel's
+   final row still ends clear of the ticker rather than flush against it. */
+.tab-overlay.full-bleed .tab-overlay-body {
+  padding-bottom: calc(var(--toolbar-height) + var(--log-ticker-height) + 40px); }
+/* The bottom dock is not the only chrome laid over a full-bleed tab: the
+   main-menu hamburger floats in the top-right corner at z-index 11 (see
+   .main-menu below), which is over this panel's 3 and therefore over the
+   head's own close button. A sheet never has to think about it — at
+   z-index 60 the sheet is above the corner overlays too — so this is
+   full-bleed's to answer, and it answers it the same way the body answers
+   the dock: reserve the space rather than draw under it. 40px button +
+   16px inset + a 12px breath. */
+.tab-overlay.full-bleed .tab-overlay-head { padding-right: 68px; }
+
 /* ---------- sidebar panels ---------- */
 .empty-note { font-style: italic; color: var(--ink-muted); font-size: var(--text-base); margin: 0; }
 .stall-note { background: var(--danger-bg); color: var(--danger-ink); border: 1px solid var(--danger-line); border-radius: var(--radius-sm);
@@ -1592,8 +1633,8 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 }
 
 @media (max-width: 760px) {
-  .tab-overlay-backdrop { align-items: center; padding: 12px; }
-  .tab-overlay { max-height: 88vh; }
+  .tab-overlay-backdrop:not(.full-bleed) { align-items: center; padding: 12px; }
+  .tab-overlay:not(.full-bleed) { max-height: 88vh; }
   /* Half-width roster/market columns need real width to stay readable —
      a candidate's field, stats, price and deadline share one line. Stack
      them here, market first: it is the panel with a deadline on it. */
