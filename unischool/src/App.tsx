@@ -13,6 +13,7 @@ import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
 import FacultyTab from './tabs/FacultyTab';
 import CurriculumTab from './tabs/CurriculumTab';
+import ResearchTab from './tabs/ResearchTab';
 import TreasuryTab from './tabs/TreasuryTab';
 import AdmissionsTab from './tabs/AdmissionsTab';
 import StudentLifeTab from './tabs/StudentLifeTab';
@@ -89,7 +90,7 @@ const TAB_HOTKEYS: Record<string, TabId> = {
 //
 // Adding a tab here is the whole change: the tab components know nothing
 // about which shape frames them.
-const FULL_BLEED_TABS: readonly TabId[] = ['curriculum'];
+const FULL_BLEED_TABS: readonly TabId[] = ['curriculum', 'research'];
 
 export default function App() {
   const { state, act, speed, setSpeed } = useGame();
@@ -185,6 +186,7 @@ export default function App() {
           >
             {overlay === 'faculty' && <FacultyTab s={s} act={act} />}
             {overlay === 'curriculum' && <CurriculumTab s={s} act={act} />}
+            {overlay === 'research' && <ResearchTab s={s} act={act} />}
             {overlay === 'treasury' && <TreasuryTab s={s} act={act} />}
             {overlay === 'admissions' && <AdmissionsTab s={s} />}
             {overlay === 'studentlife' && <StudentLifeTab s={s} />}

@@ -5,7 +5,8 @@ to work out how four systems that are currently separate (the curriculum view,
 course development, the faculty roster, and research) become one interconnected
 loop, and to sequence that work so each step ships on its own.*
 
-**Status: proposed.** Nothing here is built. The constellation-layout experiment
+**Status: A–F shipped.** Every PR in the sequence below has landed on
+`claude/curriculum-quality-faculty-plan-334qrn`. The constellation-layout experiment
 that preceded this document is deliberately not being carried forward — see
 "Why the constellation failed" below, which is the most useful thing it
 produced.
@@ -813,10 +814,10 @@ first; then the map has something to be a map *of*.
 ## 7. Decisions needed before implementation
 
 Flagged rather than silently chosen, per the README's working-style note.
-**Seven are now settled** (1, 2, 3, 5, 6, 7, 8) and are struck through with
-the decision recorded. Two remain open: 4 (the prestige teaching/research
-split, a tuning pass once both loops exist) and 9 (how many topics a first
-pass needs, due at PR F).
+**Eight are now settled** and are struck through with the decision recorded.
+One remains open: 4 — whether the prestige faculty-quality input splits into
+teaching and research. Both loops now exist, so that tuning pass is finally
+possible; it was always meant to come after them.
 
 1. ~~**Absolute or curved grading?**~~ **SETTLED: absolute, with generous low
    bands.** Fixed thresholds against the teaching stat, set so a founding
@@ -891,9 +892,11 @@ pass needs, due at PR F).
    offer set, so if re-drawing is cheap a player can reroll toward a Landmark
    topic. If that shows up in play, the answer is a cooldown on the lab, not a
    larger cash penalty.
-9. **How many topics for a first pass?** The full ~150 is a large authoring job.
-   A first version could ship 2 per field plus ~15 cross-disciplinary (~70) and
-   grow, accepting that offers repeat more often early on.
+9. ~~**How many topics for a first pass?**~~ **SETTLED: 76 shipped** — 58
+   single-field (two per department) plus 18 cross-disciplinary. Sized to ship
+   rather than to be complete; offers repeat more often than they eventually
+   will, and nothing about the engine changes when more are added, since a
+   topic is a row in a table.
 
 ---
 

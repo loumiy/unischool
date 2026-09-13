@@ -569,6 +569,53 @@ export interface PrizeAward {
   prizeName: string;
 }
 
+// How deep a commitment an initiative is. Lives here rather than beside
+// its tuning table (data/researchData.ts's INITIATIVE_DEPTHS) because this
+// module is the base of the import graph — everything reads types, types
+// reads nothing — and the depth is part of the saved shape.
+export type InitiativeDepth = 'pilot' | 'project' | 'program' | 'landmark';
+
+// A piece of scholarship the player commissioned: a named topic, run out
+// of one research facility by named people, for years. See
+// data/researchData.ts's initiative block for the model and
+// data/researchTopics.ts for the topics themselves.
+//
+// Participants are COMMITTED for the duration: their course slots go to
+// zero and whatever they were teaching is orphaned (see techSystem.ts's
+// isCommitted), which is what makes starting one a real institutional
+// decision rather than a free upgrade for anybody idle.
+export interface Initiative {
+  labId: string;            // the facility hosting it — the slot IS the key in `initiatives`
+  topicId: string;
+  depth: InitiativeDepth;
+  participantIds: string[];
+  weeksTotal: number;
+  weeksRemaining: number;
+  // Banked during the run. breakthroughs is what gates the award roll at
+  // conclusion; the rest are for the report it leaves behind.
+  publications: number;
+  breakthroughs: number;
+  grantIncome: number;
+}
+
+// What an initiative leaves behind once it ends — the university's own
+// research record, and the only place a finished project is still visible.
+// Bounded (see INITIATIVE_HISTORY_LIMIT) because a long run would
+// otherwise grow this without limit.
+export interface CompletedInitiative {
+  topicId: string;
+  depth: InitiativeDepth;
+  year: number;
+  facultyNames: string[];
+  publications: number;
+  breakthroughs: number;
+  grantIncome: number;
+  award: string | null;     // the prize name, when the work took one
+  cancelled?: true;         // ended early by the player, forfeiting its funding
+}
+
+export const INITIATIVE_HISTORY_LIMIT = 24;
+
 export interface ResearchState {
   points: number;          // the unspent stock. Grows weekly with lab-equipped faculty output; an output SPENDS its cost out of it (see researchData.ts's RESEARCH_OUTPUTS), which is what makes the rarer outputs need years of accumulation rather than luck
   lifetimePoints: number;  // every point ever produced, never spent down — display only, so the Faculty tab can show the long arc rather than a stock that sawtooths
@@ -577,6 +624,12 @@ export interface ResearchState {
   grantIncome: number;     // total cash those grants brought in — displayed in the Treasury, since a grant lands as a one-off rather than as a line of the weekly statement
   breakthroughs: number;   // published breakthroughs. A monotone STOCK, and the whole of research's reach into prestige: prestigeSystem.ts's researchScore reads this (never s.self.reputation directly — see that file)
   prizes: number;          // prizes awarded; counts for a heavier share of the same capped prestige input
+  // Running initiatives, KEYED BY THE FACILITY hosting each one — which is
+  // how "one initiative per facility" is enforced by the shape of the data
+  // rather than by a rule somebody has to remember to check. A facility is
+  // vacant exactly when it has no key here.
+  initiatives: Record<string, Initiative>;
+  completedInitiatives: CompletedInitiative[]; // newest first, capped at INITIATIVE_HISTORY_LIMIT
   lastOutputWeek: number;  // absolute week the last research output landed; 0 = never. The cooldown half of the cadence, exactly like events.lastDecisionWeek
   pendingPrizes: PrizeAward[]; // awarded but not yet celebrated — a QUEUE for the same reason events.pendingMilestones is one: the week a prize lands may already belong to admissions or the U.S. News report, and only one interrupt can be pending at a time
 }

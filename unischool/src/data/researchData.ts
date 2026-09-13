@@ -1,4 +1,5 @@
-import type { Faculty, GameState } from '../state/types';
+import type { Faculty, GameState, InitiativeDepth } from '../state/types';
+import { RESEARCH_TOPICS, isCrossDisciplinary, type ResearchTopic } from './researchTopics';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { researchSchools } from './techData';
 
@@ -213,9 +214,13 @@ export const RESEARCH_OUTPUTS: readonly ResearchOutputDef[] = [
   // all — and gives the humanities an output that reads right, since a
   // monograph is what that work actually produces and "a breakthrough" is
   // not (see DISCIPLINE_VOCAB).
-  { kind: 'publication', pointCost: 90, weight: 22 },
-  { kind: 'grant', pointCost: 300, weight: 10 },
-  { kind: 'breakthrough', pointCost: 750, weight: 6 },
+  { kind: 'publication', pointCost: 90, weight: 26 },
+  { kind: 'grant', pointCost: 300, weight: 6 },
+  // Weighted against the award gate as much as against the log. A run
+  // that banks no breakthrough can never end in a prize however strong its
+  // team (see awardChance), so pushing this too low does not make awards
+  // rare — it makes them impossible, which is a different and worse thing.
+  { kind: 'breakthrough', pointCost: 750, weight: 5 },
   // Rare twice over: it is the most expensive output AND the least likely
   // of the three even once affordable. Both dials matter — the cost keeps
   // it out of the early game entirely, the weight keeps it from becoming
@@ -236,8 +241,12 @@ export const CHEAPEST_OUTPUT_COST = Math.min(...RESEARCH_OUTPUTS.map((o) => o.po
 // they actually came to as a share of income across the sim runs.
 // =====================================================================
 const MIN_OPEX_SCALE = 45_000; // floor, matching eventData.ts, so a young school still produces sane figures
-const GRANT_MIN_WEEKS = 1.2;
-const GRANT_MAX_WEEKS = 3.0;
+// Sized DOWN from the 1.2-3.0 the single-stock model used, for the same
+// reason the output odds came down: grants used to be rare campus-wide
+// because one bank fed them, and are now drawn by every running project
+// independently. A grant is a welcome cheque, not a funding round.
+const GRANT_MIN_WEEKS = 0.4;
+const GRANT_MAX_WEEKS = 1.2;
 
 export function rollGrantAmount(s: GameState): number {
   const weeks = GRANT_MIN_WEEKS + Math.random() * (GRANT_MAX_WEEKS - GRANT_MIN_WEEKS);
@@ -374,4 +383,291 @@ export function rollProducingSchool(s: GameState): string | null {
     return school.schoolName;
   }
   return null;
+}
+
+// =====================================================================
+// INITIATIVES — player-directed scholarship.
+//
+// THE LAB IS THE SLOT. Each research facility hosts one initiative at a
+// time, and the record is keyed by the facility's own id, so "one per
+// lab" is an invariant of the data shape rather than a rule some system
+// has to remember. A facility is vacant exactly when it has no key.
+//
+// That constraint is doing real work. Before it, research was something a
+// campus did because it owned a building; now the number of things a
+// university can pursue at once is the number of places it has built to
+// pursue them in, which makes "should we build another facility" a
+// question with an obvious, countable answer. It also scales itself:
+// thirteen facilities exist across the catalogue, so a young school runs
+// one project and a mature one runs a dozen, with no separate tuning.
+//
+// WHAT THE RANDOMNESS DOES NOW. All of it is kept — grants, breakthroughs
+// and publications still arrive on a weighted draw behind a cooldown, the
+// same two-dial machinery the decision events use. What changed is which
+// end the player touches: they choose the area, the people and the depth,
+// and the dice resolve that rather than resolving everything.
+// =====================================================================
+
+export interface InitiativeDepthDef {
+  key: InitiativeDepth;
+  name: string;
+  participants: number;
+  weeks: number;
+  /** Up-front funding, in weeks of operating cost — the same scaling device
+   *  grants and the decision-event table use, so the figure stays sane
+   *  across four orders of magnitude of budget. */
+  fundingWeeks: number;
+  /** Multiplier on weekly output, and on how often an output lands. */
+  intensity: number;
+  /** Requires a cross-disciplinary topic. Landmark only. */
+  requiresCrossDisciplinary?: true;
+  blurb: string;
+}
+
+// Durations against WEEKS_PER_YEAR: six months, a year and a half, three
+// years, five. A Landmark Program costs four people's entire teaching load
+// for five years (see techSystem.ts's committed-faculty rule), which is
+// the real price of it — the money is the smaller half.
+export const INITIATIVE_DEPTHS: readonly InitiativeDepthDef[] = [
+  {
+    key: 'pilot', name: 'Pilot Study', participants: 1, weeks: 26, fundingWeeks: 0.5, intensity: 1,
+    blurb: 'One scholar, six months. Publications, and a grant now and then.',
+  },
+  {
+    key: 'project', name: 'Funded Project', participants: 2, weeks: 78, fundingWeeks: 1.6, intensity: 1.35,
+    blurb: 'Two scholars, eighteen months. Regular grants, and a real chance of a breakthrough.',
+  },
+  {
+    key: 'program', name: 'Major Program', participants: 3, weeks: 156, fundingWeeks: 4, intensity: 1.8,
+    blurb: 'Three scholars, three years. Breakthroughs likely; an award is possible.',
+  },
+  {
+    key: 'landmark', name: 'Landmark Program', participants: 4, weeks: 260, fundingWeeks: 9, intensity: 2.4,
+    requiresCrossDisciplinary: true,
+    blurb: 'Four scholars across disciplines, five years. The work prizes are given for.',
+  },
+];
+
+export function initiativeDepth(key: InitiativeDepth): InitiativeDepthDef {
+  return INITIATIVE_DEPTHS.find((d) => d.key === key) ?? INITIATIVE_DEPTHS[0];
+}
+
+export function initiativeFundingCost(s: GameState, depth: InitiativeDepthDef): number {
+  return Math.round(Math.max(s.finance.weeklyOpEx, MIN_OPEX_SCALE) * depth.fundingWeeks);
+}
+
+// A team's combined strength, 0..1-ish: mean research stat plus the
+// acclaim its members already carry. What drives both how much the work
+// produces and how likely it is to end in an award.
+export function teamStrength(participants: readonly Faculty[]): number {
+  if (participants.length === 0) return 0;
+  // The RESEARCH STAT, not facultyResearchOutput. They are different
+  // scales and confusing them is silent: output is points per week (a
+  // small number, ~1-4), so dividing it by 100 produced a "strength" of
+  // about 0.02 for every team ever assembled — which made the grant
+  // scaling and the award roll into constants and quietly deleted the
+  // one thing the brief asked for, that stronger faculty get better
+  // outcomes. The stat is already 0..100 and is what "how good are these
+  // scholars" means.
+  const mean = participants.reduce((sum, f) => sum + f.research, 0) / participants.length;
+  const acclaim = participants.reduce((sum, f) => sum + f.acclaim, 0);
+  return Math.min(1.4, mean / 100 + ACCLAIM_TEAM_STRENGTH_BONUS * acclaim);
+}
+
+// A prize already won makes its winner better at winning the next one.
+const ACCLAIM_TEAM_STRENGTH_BONUS = 0.08;
+
+// THE INTERDISCIPLINARY BONUS, and the reason breadth pays off twice. A
+// team drawn from several departments produces meaningfully more than the
+// same people would apart — which is what makes a wide university worth
+// building, rather than a deep one worth drilling.
+const INTERDISCIPLINARY_BONUS_PER_EXTRA_FIELD = 0.18;
+
+export function interdisciplinaryBonus(participants: readonly Faculty[]): number {
+  const fields = new Set(participants.map((f) => f.field));
+  return 1 + INTERDISCIPLINARY_BONUS_PER_EXTRA_FIELD * Math.max(0, fields.size - 1);
+}
+
+// One week of an initiative's output. Everything that shapes it is
+// something the player chose: who is on it, how deep they committed, what
+// the campus has built.
+export function initiativeWeeklyOutput(
+  s: GameState, participants: readonly Faculty[], depth: InitiativeDepthDef,
+): number {
+  const raw = participants.reduce((sum, f) => sum + facultyResearchOutput(f), 0);
+  return raw * depth.intensity * interdisciplinaryBonus(participants) * researchRateMultiplier(s);
+}
+
+// How likely an output lands this week. Rises with what the project is
+// actually producing, floored by the same global cooldown the decision
+// events use, so a deep well-staffed program is eventful and a lone pilot
+// study is quiet without either needing a schedule of its own.
+// TUNED AGAINST THE WHOLE CAMPUS, not one project. These read as modest
+// per-initiative odds and they have to: a mature university runs a dozen
+// facilities at once for decades, so the campus-wide rate is this number
+// times thirteen times two thousand weeks. The first pass used a rate that
+// felt right for a single project and produced grant income worth a fifth
+// of the university's lifetime operating cost — a second economy, which is
+// exactly what README's "Research" says grants must never become.
+const INITIATIVE_OUTPUT_CHANCE_MIN = 0.005;
+const INITIATIVE_OUTPUT_CHANCE_MAX = 0.034;
+const INITIATIVE_OUTPUT_FULL_RATE = 40; // weekly output at which the chance tops out
+
+export function initiativeOutputChance(weeklyOutput: number): number {
+  const t = Math.min(1, weeklyOutput / INITIATIVE_OUTPUT_FULL_RATE);
+  return INITIATIVE_OUTPUT_CHANCE_MIN + (INITIATIVE_OUTPUT_CHANCE_MAX - INITIATIVE_OUTPUT_CHANCE_MIN) * t;
+}
+
+// THE AWARD, at conclusion and nowhere else.
+//
+// Moved out of the output table entirely: a prize is no longer a weighted
+// draw against a bank, it is what a finished piece of work is judged to
+// have been. Gated on the run having produced at least one breakthrough —
+// no breakthrough, no award, however strong the team — then rolled on team
+// strength and depth with real noise on top, so a Landmark Program with a
+// distinguished team has a genuine chance and a pilot study essentially
+// never does.
+//
+// The point of the move is the story: a Nobel now arrives attached to a
+// named topic, a named team and five years, rather than to a counter
+// crossing a threshold.
+const AWARD_BASE_BY_DEPTH: Record<InitiativeDepth, number> = {
+  pilot: 0.01, project: 0.05, program: 0.16, landmark: 0.36,
+};
+// How much of the roll the TEAM accounts for. The offset is deliberately
+// small: at 0.45 the depth tier swamped everybody, and a mediocre landmark
+// team came out barely behind a distinguished one, which makes the choice
+// of who to commit not matter. At 0.15 a strong team roughly doubles a
+// weak one's odds at the same depth, which is the point.
+const AWARD_TEAM_FLOOR = 0.15;
+
+export function awardChance(depth: InitiativeDepth, strength: number, breakthroughs: number): number {
+  if (breakthroughs <= 0) return 0;
+  const depthBase = AWARD_BASE_BY_DEPTH[depth];
+  // Each breakthrough past the first helps, with diminishing returns.
+  const breakthroughFactor = 1 + 0.35 * Math.log2(breakthroughs + 1);
+  return Math.min(0.85, depthBase * (AWARD_TEAM_FLOOR + strength) * breakthroughFactor);
+}
+
+// What finishing one is worth to the school's standing, in the same
+// credits researchScore counts breakthroughs and prizes in (see
+// prestigeSystem.ts). Finishing a five-year program is an achievement in
+// itself, separate from whatever it happened to produce along the way.
+export const INITIATIVE_COMPLETION_CREDIT: Record<InitiativeDepth, number> = {
+  pilot: 0.3, project: 1, program: 2.5, landmark: 6,
+};
+
+// =====================================================================
+// WHAT IS ON OFFER AT A VACANT FACILITY.
+//
+// Derived, never stored. Offers are a deterministic function of the
+// facility's id and a slowly-turning epoch, so they are STABLE across
+// renders (a list that reshuffled every repaint would be unusable) and
+// they TURN OVER every few months, which is what makes "what came up this
+// time" a small piece of texture rather than a fixed menu. No state, no
+// migration, nothing to keep in sync.
+//
+// A topic is eligible when the university can actually staff it: somebody
+// free in every field it names, and at least one of those fields taught by
+// the facility's own school — a physics lab does not host a monograph on
+// Shakespeare.
+// =====================================================================
+
+const OFFER_EPOCH_WEEKS = 13; // offers turn over each quarter
+
+function hashString(text: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+export interface InitiativeOffer {
+  depth: InitiativeDepthDef;
+  topic: ResearchTopic;
+  /** The strongest eligible person per required field, in field order —
+   *  what the picker pre-fills, and what a one-click start commits. */
+  suggested: Faculty[];
+  fundingCost: number;
+  /** Why this option cannot be taken, if it cannot. */
+  blockedReason?: string;
+}
+
+// Everyone who could join an initiative right now: on the roster, in the
+// field, and not already committed elsewhere. Deliberately NOT filtered on
+// teaching load — joining costs them their courses, it does not require
+// them to be free of any first.
+export function availableScholars(s: GameState, field: string): Faculty[] {
+  return s.faculty
+    .filter((f) => f.field === field)
+    .filter((f) => !Object.values(s.research.initiatives).some((i) => i.participantIds.includes(f.id)))
+    .sort((a, b) => facultyResearchOutput(b) - facultyResearchOutput(a) || a.id.localeCompare(b.id));
+}
+
+// The offer set for one vacant facility: one option per depth tier, each
+// carrying a topic drawn from what this school could actually run.
+export function initiativeOffers(s: GameState, labId: string, schoolFields: readonly string[]): InitiativeOffer[] {
+  const epoch = Math.floor((s.clock.year * WEEKS_PER_YEAR + s.clock.week) / OFFER_EPOCH_WEEKS);
+  const fieldSet = new Set(schoolFields);
+
+  const runnable = RESEARCH_TOPICS.filter((topic) => topic.fields.some((f) => fieldSet.has(f)));
+
+  return INITIATIVE_DEPTHS.map((depth, depthIndex) => {
+    const pool = runnable.filter((topic) => {
+      if (depth.requiresCrossDisciplinary && !isCrossDisciplinary(topic)) return false;
+      // A team of N cannot cover more than N fields.
+      return topic.fields.length <= depth.participants;
+    });
+    const topic = pool.length === 0
+      ? null
+      : pool[hashString(`${labId}:${depth.key}:${epoch}`) % pool.length];
+
+    if (!topic) {
+      return {
+        depth,
+        topic: { id: 'none', name: '—', fields: [] },
+        suggested: [],
+        fundingCost: initiativeFundingCost(s, depth),
+        blockedReason: depth.requiresCrossDisciplinary
+          ? 'No interdisciplinary topic this school can lead'
+          : 'No topic available for this school',
+      } satisfies InitiativeOffer;
+    }
+
+    // One scholar per required field, strongest first; then fill the rest
+    // of the team from whichever of those fields still has people, so a
+    // four-person landmark on a two-field topic is staffable.
+    const used = new Set<string>();
+    const suggested: Faculty[] = [];
+    for (const field of topic.fields) {
+      const pick = availableScholars(s, field).find((f) => !used.has(f.id));
+      if (pick) { used.add(pick.id); suggested.push(pick); }
+    }
+    if (suggested.length === topic.fields.length) {
+      const extras = topic.fields
+        .flatMap((field) => availableScholars(s, field))
+        .filter((f) => !used.has(f.id))
+        .sort((a, b) => facultyResearchOutput(b) - facultyResearchOutput(a));
+      for (const extra of extras) {
+        if (suggested.length >= depth.participants) break;
+        used.add(extra.id);
+        suggested.push(extra);
+      }
+    }
+
+    const missing = topic.fields.filter((field) => !suggested.some((f) => f.field === field));
+    const blockedReason = missing.length > 0
+      ? `No ${missing.join(' or ')} scholar free`
+      : suggested.length < depth.participants
+        ? `Needs ${depth.participants} scholars; ${suggested.length} free`
+        : s.finance.cash < initiativeFundingCost(s, depth)
+          ? 'Not enough cash for the up-front funding'
+          : undefined;
+
+    // Unused, but kept in signature order for the caller's convenience.
+    void depthIndex;
+    return { depth, topic, suggested, fundingCost: initiativeFundingCost(s, depth), blockedReason } satisfies InitiativeOffer;
+  });
 }

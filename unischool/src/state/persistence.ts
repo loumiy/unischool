@@ -774,7 +774,35 @@ export const SAVE_KEY = 'unischool.save';
 // builds rather than an optional ornament.
 //
 // See MIGRATIONS[31].
-export const SAVE_VERSION = 32;
+//
+// v32 -> v33: scholarship becomes something the player commissions.
+// ResearchState gains `initiatives` (keyed by the facility hosting each
+// one) and `completedInitiatives`, both empty on a resumed save — nothing
+// to reconstruct, because no prior version had the concept.
+//
+// WHAT A RESUMED SAVE LOSES, stated plainly because it is a real change
+// rather than a no-op: the weekly trickle is gone. Under the old model,
+// lab-equipped faculty banked points into one campus pool and the pool
+// occasionally bought an output, so a school produced research simply for
+// owning a building. That is retired (decision 7) — idle capacity produces
+// nothing now, and the way to produce is to start something. A resumed run
+// therefore stops generating grants and breakthroughs the week it loads,
+// until the player commissions work at one of its facilities.
+//
+// `points` and `lifetimePoints` survive untouched rather than being
+// deleted: lifetimePoints is still written (it tracks what running
+// projects produce), and `points` becomes a dead figure the way
+// Faculty.morale once did — harmless, read by nothing, and not worth a
+// shape change to remove.
+//
+// Everything the old model actually EARNED is kept whole. breakthroughs,
+// prizes, publications, grants and grantIncome are monotone stocks and
+// carry forward, so a research university resumes with exactly the
+// standing it built (prestigeSystem.ts's researchScore reads those same
+// counts) — it just has to commission work to add to it.
+//
+// See MIGRATIONS[32].
+export const SAVE_VERSION = 33;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -967,7 +995,8 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   6: (state) => {
     state.research = {
       points: 0, lifetimePoints: 0, publications: 0, grants: 0, grantIncome: 0,
-      breakthroughs: 0, prizes: 0, lastOutputWeek: 0, pendingPrizes: [],
+      breakthroughs: 0, prizes: 0, initiatives: {}, completedInitiatives: [],
+      lastOutputWeek: 0, pendingPrizes: [],
     };
     for (const f of state.faculty) f.acclaim = 0;
     for (const c of state.candidates ?? []) c.acclaim = 0;
@@ -1695,6 +1724,16 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
       if (added.length === 0) continue;
       saved.prereqs = [...seeded.prereqs];
     }
+  },
+
+  // v32 -> v33: initiatives. Nothing to reconstruct — no prior version had
+  // the concept — so this only makes room for them. See the SAVE_VERSION
+  // header note for what a resumed save stops doing.
+  32: (state) => {
+    if (typeof state.research.initiatives !== 'object' || state.research.initiatives === null) {
+      state.research.initiatives = {};
+    }
+    if (!Array.isArray(state.research.completedInitiatives)) state.research.completedInitiatives = [];
   },
 
   // v28 -> v29: Athletics V2. See the SAVE_VERSION header comment above for

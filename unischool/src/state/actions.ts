@@ -1,4 +1,4 @@
-import type { AthleticsBudgetTier, GameState, SchoolType, TileCoord } from './types';
+import type { AthleticsBudgetTier, GameState, InitiativeDepth, SchoolType, TileCoord } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
 import { WEEKS_PER_YEAR, CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT } from './types';
@@ -54,6 +54,22 @@ export type Action =
   // of which let the engine take the strongest eligible teacher instead.
   | { type: 'START_DEVELOPMENT'; nodeId: string; facultyId?: string }
   | { type: 'REASSIGN_COURSE_FACULTY'; courseId: string; facultyId: string }
+  // Commissions a research initiative in a vacant facility: a topic, a
+  // team and a depth, paid for up front out of cash (see
+  // researchData.ts's initiative block).
+  //
+  // It COSTS THE TEAM'S TEACHING. Every participant is committed for the
+  // duration, their course slots drop to zero, and whatever they were
+  // teaching is orphaned exactly as a dismissal orphans it — which is why
+  // the UI names those courses before the click, not after. Rejected if
+  // the facility is not finished or already busy, the topic's fields are
+  // not all covered, anyone named is already committed, or the funding
+  // cannot be paid.
+  | { type: 'START_INITIATIVE'; labId: string; topicId: string; depth: InitiativeDepth; facultyIds: string[] }
+  // Ends one early. The up-front funding is forfeit and nothing banks, but
+  // the participants are released immediately — which is usually the real
+  // reason to do it (decision 8).
+  | { type: 'CANCEL_INITIATIVE'; labId: string }
   // Moves an already-offered course to a different instructor — the lever
   // for fixing a weak course, and for re-staffing one a dismissal left
   // unstaffed. Free and immediate: the real cost is an opportunity cost,
@@ -276,7 +292,8 @@ export function createPreStartState(): GameState {
     },
     research: {
       points: 0, lifetimePoints: 0, publications: 0, grants: 0, grantIncome: 0,
-      breakthroughs: 0, prizes: 0, lastOutputWeek: 0, pendingPrizes: [],
+      breakthroughs: 0, prizes: 0, initiatives: {}, completedInitiatives: [],
+      lastOutputWeek: 0, pendingPrizes: [],
     },
     candidates: [],
     started: false,
@@ -527,7 +544,8 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // (see systems/research/researchSystem.ts).
     research: {
       points: 0, lifetimePoints: 0, publications: 0, grants: 0, grantIncome: 0,
-      breakthroughs: 0, prizes: 0, lastOutputWeek: 0, pendingPrizes: [],
+      breakthroughs: 0, prizes: 0, initiatives: {}, completedInitiatives: [],
+      lastOutputWeek: 0, pendingPrizes: [],
     },
     candidates: initialCandidatePool(),
     started: true,

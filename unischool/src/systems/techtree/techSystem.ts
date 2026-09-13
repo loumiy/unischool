@@ -71,6 +71,30 @@ export function unstaffedCourses(s: GameState): Buildable[] {
   return s.tech.filter((t) => isUnstaffed(s, t));
 }
 
+// Is this person committed to a running research initiative?
+//
+// THE KEYSTONE CONSTRAINT, and the one place teaching and scholarship
+// actually compete. A committed scholar stops teaching for the duration —
+// six months to five years — so every initiative is paid for twice: once
+// in money, and once in the courses those people are no longer holding.
+// That is what makes a hire an allocation decision rather than a number
+// going up, and it is why a Landmark Program is a genuine institutional
+// sacrifice rather than something to switch on for whoever is idle.
+export function isCommitted(s: GameState, facultyId: string): boolean {
+  for (const initiative of Object.values(s.research.initiatives)) {
+    if (initiative.participantIds.includes(facultyId)) return true;
+  }
+  return false;
+}
+
+// The course slots this person actually offers the school right now: none
+// while they are committed, their own count otherwise. Every capacity
+// read goes through this rather than f.courseSlots directly, so the
+// commitment cannot be forgotten in one place and honoured in another.
+export function effectiveCourseSlots(s: GameState, f: Faculty): number {
+  return isCommitted(s, f.id) ? 0 : f.courseSlots;
+}
+
 // How many courses this specific person is currently teaching — their
 // personal load against their own `courseSlots`.
 //
@@ -85,7 +109,7 @@ export function facultyLoad(s: GameState, facultyId: string): number {
 
 // Can this person take on one more course?
 export function hasFreeSlot(s: GameState, f: Faculty): boolean {
-  return facultyLoad(s, f.id) < f.courseSlots;
+  return facultyLoad(s, f.id) < effectiveCourseSlots(s, f);
 }
 
 // Everyone who could be assigned to this course right now: on the roster,
@@ -143,7 +167,9 @@ export function usedFacultySlots(s: GameState, field: string): number {
 // facultyData.ts's grownSlots: an individual's slot count grows slowly with
 // tenure, on top of the base rolled at hire).
 export function totalFacultySlots(s: GameState, field: string): number {
-  return s.faculty.filter((f) => f.field === field).reduce((sum, f) => sum + f.courseSlots, 0);
+  return s.faculty
+    .filter((f) => f.field === field)
+    .reduce((sum, f) => sum + effectiveCourseSlots(s, f), 0);
 }
 
 // UI-facing helper (CurriculumTab.tsx, CampusTab.tsx) so "is there a free

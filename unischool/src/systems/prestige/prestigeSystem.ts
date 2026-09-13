@@ -3,6 +3,7 @@ import { totalEnrolled } from '../../state/types';
 import { graduatePrograms, milestoneSchools } from '../../data/techData';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
 import { qualityMultiplier } from '../../data/courseQuality';
+import { INITIATIVE_COMPLETION_CREDIT } from '../../data/researchData';
 
 // ---------------------------------------------------------------------
 // Prestige (s.self.reputation) is a slow-moving STOCK, not a flow. It used
@@ -339,6 +340,12 @@ function campusLifeScore(s: GameState): number {
 // RESEARCH_WEIGHT regardless, so this cannot widen research's reach into
 // prestige at all — only change which work gets there first.
 const PUBLICATION_PRESTIGE_CREDIT = 0.1;
+// FINISHING one is worth something in itself, separately from whatever it
+// produced along the way — five years of committed people is an
+// achievement a university is known for even when the work was quiet.
+// Sized by depth (see researchData.ts's INITIATIVE_COMPLETION_CREDIT), and
+// a cancelled run earns none of it, which is most of what makes cancelling
+// cost anything at all beyond the forfeited funding.
 const BREAKTHROUGH_PRESTIGE_CREDIT = 1;
 const PRIZE_PRESTIGE_CREDIT = 3;      // a prize is worth three breakthroughs to the school's standing, on top of what its winner's own output gains
 const DOCTORATE_PRESTIGE_CREDIT = 2;  // a founded research doctorate, worth two breakthroughs
@@ -349,6 +356,10 @@ function researchScore(s: GameState): number {
   ).length;
   const credits =
     PUBLICATION_PRESTIGE_CREDIT * s.research.publications +
+    s.research.completedInitiatives.reduce(
+      (sum, done) => sum + (done.cancelled ? 0 : INITIATIVE_COMPLETION_CREDIT[done.depth]),
+      0,
+    ) +
     BREAKTHROUGH_PRESTIGE_CREDIT * s.research.breakthroughs +
     PRIZE_PRESTIGE_CREDIT * s.research.prizes +
     DOCTORATE_PRESTIGE_CREDIT * doctorates;

@@ -26,7 +26,11 @@ import { createPreStartState } from '../src/state/actions';
 import type { GameState, Buildable, SchoolType } from '../src/state/types';
 import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudent } from '../src/systems/finance/financeSystem';
-import { canStartDevelopment, hasFreeFacultySlot } from '../src/systems/techtree/techSystem';
+import {
+  canStartDevelopment, hasFreeFacultySlot, eligibleInstructors, unstaffedCourses,
+} from '../src/systems/techtree/techSystem';
+import { initiativeOffers } from '../src/data/researchData';
+import { researchSchools } from '../src/data/techData';
 import { firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { findDecisionEvent, HELLENIC_COUNCIL_MIN_CLUBS } from '../src/data/eventData';
 import { weeklyResearchPoints } from '../src/data/researchData';
@@ -163,6 +167,86 @@ function canCommitCapital(s: GameState, strategy: Strategy): boolean {
   return strategy.buildsDorms && weeklyNet(s) >= 0;
 }
 
+// Courses lose their instructor two ways now — a dismissal, and a scholar
+// being committed to an initiative — and a player faced with an unstaffed
+// course reassigns somebody or hires. The harness has to do the same, or
+// it models a university that lets its curriculum quietly go dark and then
+// reports the resulting satisfaction collapse as a balance finding.
+function restaffOrphans(get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy): void {
+  for (const course of unstaffedCourses(get())) {
+    const s = get();
+    const replacement = eligibleInstructors(s, course, course.id)[0];
+    if (replacement) {
+      dispatch({ type: 'REASSIGN_COURSE_FACULTY', courseId: course.id, facultyId: replacement.id });
+      continue;
+    }
+    // Nobody free: appoint someone from the standing market if the field
+    // has anyone listed and the school can carry the salary.
+    const candidate = s.candidates.find((c) => c.field === course.requiresFaculty);
+    // Same affordability gate the ordinary hiring loop uses — without it
+    // the harness hires on any positive balance and ends a run with three
+    // times the faculty a school that size would carry.
+    if (candidate && s.finance.cash > strategy.buffer(s) && hasHeadroom(s, strategy)) {
+      dispatch({ type: 'HIRE_FACULTY', facultyId: candidate.id });
+    }
+  }
+}
+
+// Scholarship is now something a player COMMISSIONS, so the harness has to
+// commission it or it models a university that simply never does research
+// (see systems/research/researchSystem.ts). Without this the sim lost every
+// grant and the whole research prestige input overnight, which is a stale
+// harness reporting a regression rather than a regression.
+//
+// The heuristic is a cautious player's: fill a vacant facility with the
+// deepest option it can afford, but ONLY using scholars who are teaching
+// nothing right now. Committing someone mid-course orphans it (decision
+// 2's cost), and a model that ignored that would happily strip the
+// faculty to run projects and then report the teaching collapse as a
+// balance finding.
+function commissionScholarship(
+  get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy,
+): void {
+  if (!strategy.buildsCourses) return;
+  const schools = researchSchools();
+
+  for (const school of schools) {
+    for (const labId of school.labIds) {
+      const s = get();
+      const lab = s.tech.find((t) => t.id === labId);
+      if (!lab || lab.status !== 'done' || s.research.initiatives[labId]) continue;
+
+      const offers = initiativeOffers(s, labId, school.fields);
+      // Deepest first: a player with cash and a department deep enough to
+      // spare the people commits them. Committing DOES orphan whatever
+      // they teach — that is decision 2's cost, and restaffOrphans below
+      // is the other half of modelling it, exactly as a player would
+      // reassign or hire to cover the hole.
+      for (const offer of [...offers].reverse()) {
+        if (offer.blockedReason) continue;
+        if (offer.suggested.length !== offer.depth.participants) continue;
+        if (!affordable(s, offer.fundingCost, strategy)) continue;
+        // Don't gut a thin department: only commit out of a field that
+        // keeps a couple of people teaching afterwards.
+        const wouldGut = offer.topic.fields.some((field) => {
+          const inField = s.faculty.filter((f) => f.field === field).length;
+          const taken = offer.suggested.filter((f) => f.field === field).length;
+          return inField - taken < 2;
+        });
+        if (wouldGut) continue;
+        dispatch({
+          type: 'START_INITIATIVE',
+          labId,
+          topicId: offer.topic.id,
+          depth: offer.depth.key,
+          facultyIds: offer.suggested.map((f) => f.id),
+        });
+        break;
+      }
+    }
+  }
+}
+
 // The recovery lever every stalled player has and no Buildable can take
 // away: payroll. Fires the single most expensive hire, once a run has been
 // underwater long enough that a real player would have acted. This is the
@@ -213,6 +297,8 @@ function decide(
   weeksInTheRed: number,
   dispatch: (a: Action) => void,
 ): void {
+  commissionScholarship(get, dispatch, strategy);
+  restaffOrphans(get, dispatch, strategy);
   cutPayrollIfStalled(get, weeksInTheRed, dispatch);
 
   // Faculty: appoint straight off the standing candidate market when a

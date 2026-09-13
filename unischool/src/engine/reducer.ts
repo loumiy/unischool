@@ -1,9 +1,14 @@
-import type { GameState, LogEntry } from '../state/types';
+import type { Faculty, GameState, LogEntry } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import type { Action } from '../state/actions';
 import { createInitialState, createPreStartState } from '../state/actions';
 import { tickFinance, endowmentCampaign } from '../systems/finance/financeSystem';
-import { tickTech, canStartDevelopment, startDevelopment, eligibleInstructors } from '../systems/techtree/techSystem';
+import {
+  tickTech, canStartDevelopment, startDevelopment, eligibleInstructors, isCommitted,
+} from '../systems/techtree/techSystem';
+import { endInitiative } from '../systems/research/researchSystem';
+import { initiativeDepth, initiativeFundingCost } from '../data/researchData';
+import { researchTopic } from '../data/researchTopics';
 import { tickAdmissions, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
 import { deriveCohortSignals } from '../systems/admissions/cohorts';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
@@ -311,6 +316,85 @@ export function reducer(state: GameState, action: Action): GameState {
     // still counts as eligible: the slot that course occupies is already
     // theirs, so a full professor must not be judged unable to go on
     // teaching something they are teaching right now.
+    // Commissioning scholarship. The gate is deliberately strict, because
+    // this is the most expensive commitment in the game: the facility must
+    // be finished and free, the topic real, the team the right size, every
+    // field the topic names covered, nobody already committed elsewhere,
+    // and the funding payable in full up front — the same "charge at the
+    // moment of the decision" rule every Buildable follows, so scholarship
+    // borrows the pacing model rather than inventing a second one.
+    //
+    // And then it takes the team's teaching. Their assignments are cleared
+    // exactly as FIRE_FACULTY clears them, because the consequence is the
+    // same: those courses have no instructor until somebody else takes
+    // them. That is the cost decision 2 chose, and it is why the UI names
+    // the affected courses before this is dispatched.
+    case 'START_INITIATIVE': {
+      const lab = s.tech.find((t) => t.id === action.labId);
+      if (!lab || lab.facilityType !== 'lab' || lab.status !== 'done') return s;
+      if (s.research.initiatives[action.labId]) return s;
+
+      const topic = researchTopic(action.topicId);
+      const depth = initiativeDepth(action.depth);
+      if (!topic || action.facultyIds.length !== depth.participants) return s;
+      if (depth.requiresCrossDisciplinary && topic.fields.length < 2) return s;
+
+      const team = action.facultyIds.map((id) => s.faculty.find((f) => f.id === id));
+      if (team.some((f) => f === undefined)) return s;
+      const participants = team as Faculty[];
+      if (participants.some((f) => isCommitted(s, f.id))) return s;
+      // Every field the topic names must actually be on the team — the
+      // whole point of a cross-disciplinary topic.
+      if (!topic.fields.every((field) => participants.some((f) => f.field === field))) return s;
+
+      const cost = initiativeFundingCost(s, depth);
+      if (s.finance.cash < cost) return s;
+      s.finance.cash -= cost;
+
+      s.research.initiatives[action.labId] = {
+        labId: action.labId,
+        topicId: topic.id,
+        depth: depth.key,
+        participantIds: participants.map((f) => f.id),
+        weeksTotal: depth.weeks,
+        weeksRemaining: depth.weeks,
+        publications: 0,
+        breakthroughs: 0,
+        grantIncome: 0,
+      };
+
+      const orphaned = s.tech.filter(
+        (t) => action.facultyIds.includes(s.courseFaculty[t.id]) && (t.status === 'developing' || t.status === 'done'),
+      );
+      for (const course of orphaned) delete s.courseFaculty[course.id];
+
+      s.log.unshift({
+        year: s.clock.year,
+        week: s.clock.week,
+        message: orphaned.length > 0
+          ? `“${topic.name}” has begun at ${lab.name}. ${orphaned.length} ${orphaned.length === 1 ? 'course is' : 'courses are'} without an instructor while its team is committed.`
+          : `“${topic.name}” has begun at ${lab.name}.`,
+        kind: orphaned.length > 0 ? 'info' : 'good',
+      });
+      return s;
+    }
+
+    // Ending one early: the funding is gone and nothing banks, but the
+    // team comes back this instant, which is usually why a player does it.
+    case 'CANCEL_INITIATIVE': {
+      const running = s.research.initiatives[action.labId];
+      if (!running) return s;
+      const topic = researchTopic(running.topicId);
+      endInitiative(s, action.labId, true);
+      s.log.unshift({
+        year: s.clock.year,
+        week: s.clock.week,
+        message: `“${topic?.name ?? 'A project'}” has been wound up early. Its funding is not recovered.`,
+        kind: 'bad',
+      });
+      return s;
+    }
+
     case 'REASSIGN_COURSE_FACULTY': {
       const course = s.tech.find((t) => t.id === action.courseId);
       if (!course || (course.status !== 'developing' && course.status !== 'done')) return s;
