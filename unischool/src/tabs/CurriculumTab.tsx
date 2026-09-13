@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
 import { discoverySchools, graduateGateMet, graduatePrograms, professionalSchools } from '../data/techData';
@@ -272,95 +272,33 @@ function cellState(s: GameState, t: Buildable): CellState {
   return canStartDevelopment(s, t) ? 'available' : 'blocked';
 }
 
-// ---------------------------------------------------------------------
-// Tooltip placement. The tooltip hangs below its cell, which clips as soon
-// as the cell nears the bottom of the overlay's scroll box
-// (.tab-overlay-body) — and flipping it above the cell isn't enough on its
-// own, because early on that box is only a couple of hundred pixels tall
-// and neither side of the cell has room inside it.
+// One course cell: its code (e.g. "FINA 101") over its title, filling
+// brass when done and pulsing while developing. Clicking it opens the
+// course drawer (see CourseDrawer below). The code is split into
+// department and number so a wall of forty-odd codes reads as a column of
+// departments with a number attached, rather than eight undifferentiated
+// characters.
 //
-// So the tooltip escapes the box: it is positioned FIXED, in viewport
-// coordinates, measured at the moment it is shown. It prefers to sit below
-// its cell, flips above when the window has no room there, and is clamped
-// into the viewport as a last resort, so it is always fully readable. Its
-// content is untouched by any of this.
-// ---------------------------------------------------------------------
-
-// The gap between the cell and its tooltip, both directions. Mirrors the
-// fallback offset in styles.css's .course-tooltip.
-const TOOLTIP_GAP = 4;
-
-// How close to the window edge the tooltip may sit once clamped.
-const TOOLTIP_VIEWPORT_MARGIN = 8;
-
-interface TooltipPos { top: number; left: number }
-
-// Where to put a tooltip of this size for a cell at this rect, in viewport
-// coordinates. Below by default; above when below would run off the bottom
-// and above actually fits; clamped into the window if neither does (a
-// window shorter than the tooltip itself), because a tooltip overlapping
-// its own cell still reads, and one running off the screen doesn't.
-function tooltipPosition(cell: DOMRect, width: number, height: number): TooltipPos {
-  const below = cell.bottom + TOOLTIP_GAP;
-  const above = cell.top - TOOLTIP_GAP - height;
-  const maxTop = window.innerHeight - height - TOOLTIP_VIEWPORT_MARGIN;
-
-  let top = below;
-  if (below > maxTop && above >= TOOLTIP_VIEWPORT_MARGIN) top = above;
-  top = Math.max(TOOLTIP_VIEWPORT_MARGIN, Math.min(top, maxTop));
-
-  const maxLeft = window.innerWidth - width - TOOLTIP_VIEWPORT_MARGIN;
-  const left = Math.max(TOOLTIP_VIEWPORT_MARGIN, Math.min(cell.left, maxLeft));
-
-  return { top, left };
-}
-
-// One course cell: shows its course code (e.g. "FINA 101"), fills brass
-// when done, pulses while developing, and is directly clickable to start
-// development when eligible. The code is split into department and number
-// so a wall of forty-odd codes reads as a column of departments with a
-// number attached, rather than eight undifferentiated characters.
+// THERE IS NO HOVER CARD. There used to be, and it carried everything a
+// course had to say — description, prereqs, the faculty gate, cost,
+// instructor — because hovering was the only way to learn any of it. The
+// drawer is that now, and better: it holds the same facts plus the
+// decision they are there to inform, it stays put while you read it, and
+// it does not cover the neighbouring cells you are scanning. A hover card
+// repeating a strict subset of an open panel is not a shortcut, it is a
+// second answer to the same question.
 //
-// Two things are drawn ON the cell rather than left to hover: the fill
-// bar tracking how far a developing course has run, and a dot marking a
-// course whose faculty field currently has no free slot (see the legend
-// under the panel head). Everything else stays in the tooltip: full name,
-// description, prereqs (met/unmet), the faculty gate, cost, and duration.
+// So the cell carries only what has to be legible WITHOUT clicking, at a
+// glance, across a whole screen of cells: state (by fill), progress (the
+// bar on a developing course), an unstaffed marker, and a dot for a
+// course whose field has no free slot (see the legend under the panel
+// head). Everything else is one click away.
 //
-// The dot is a neutral marker, NOT the field's initial: which field a
-// course needs is already in its tooltip, but same-field cells lighting up
-// together with a letter on them would draw the eye to clusters that
-// correlate with school membership the pool is not meant to reveal yet.
+// The dot is a neutral marker, NOT the field's initial: same-field cells
+// lighting up together with a letter on them would draw the eye to
+// clusters that correlate with school membership the pool is not meant to
+// reveal yet.
 function CourseCell({ s, t, selected, onSelect }: { s: GameState; t: Buildable; selected: boolean; onSelect: (id: string) => void }) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<TooltipPos | null>(null);
-
-  // Measured at the moment the tooltip is about to be shown, so it uses
-  // where the cell actually is right now. The tooltip is only
-  // visibility:hidden until then, never display:none, so it already has
-  // its real laid-out size to measure.
-  const placeTooltip = useCallback(() => {
-    const wrap = wrapRef.current;
-    const tip = tooltipRef.current;
-    if (!wrap || !tip) return;
-    setPos(tooltipPosition(wrap.getBoundingClientRect(), tip.offsetWidth, tip.offsetHeight));
-  }, []);
-
-  // A fixed tooltip doesn't travel with its cell, so while one is up the
-  // cell re-measures on any scroll (capture: the overlay body scrolls, not
-  // the window) or resize. Only the one open tooltip listens — every other
-  // cell has pos === null and registers nothing.
-  useEffect(() => {
-    if (!pos) return;
-    window.addEventListener('scroll', placeTooltip, true);
-    window.addEventListener('resize', placeTooltip);
-    return () => {
-      window.removeEventListener('scroll', placeTooltip, true);
-      window.removeEventListener('resize', placeTooltip);
-    };
-  }, [pos, placeTooltip]);
-
   const state = cellState(s, t);
   // A course's stored name is "CODE · Title" (see techData). The cell used
   // to show only the code, which meant reading the catalogue was a matter of
@@ -371,10 +309,9 @@ function CourseCell({ s, t, selected, onSelect }: { s: GameState; t: Buildable; 
   const [code, titleFromName] = t.name.split(' · ');
   const title = titleFromName ?? code;
   const missingFaculty = !!(t.requiresFaculty && !hasFreeFacultySlot(s, t.requiresFaculty));
-  // Every offered course now names a real instructor — the one the player
-  // chose when they started it (see types.ts's CourseFaculty) — so a
-  // DEVELOPING course can say who is teaching it too, which the old
-  // round-robin projection could not honestly claim.
+  // An offered course whose instructor has left (see types.ts's
+  // CourseFaculty) — marked on the cell because it is a thing the player
+  // must fix, and they should not have to open a course to discover it.
   const unstaffed = isUnstaffed(s, t);
   // The gate is only news while the course is still ahead of the player:
   // a developing or finished course already holds its slot.
@@ -383,78 +320,24 @@ function CourseCell({ s, t, selected, onSelect }: { s: GameState; t: Buildable; 
   const weeksLeft = s.developing[t.id] ?? 0;
   const elapsed = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
 
-  // Same order the build rail uses: price first, then the faculty gate.
-  // `state` is derived from canStartDevelopment (see cellState above), so
-  // the reason always explains the actual refusal. Kept to a fragment:
-  // the cost is on the meta line right above it and the faculty line
-  // above that already names the field, so the reason only has to say
-  // which of the two is in the way, and by how much.
-  const shortfall = t.cost - s.finance.cash;
-  const blockedReason = state === 'blocked'
-    ? shortfall > 0
-      ? `$${Math.ceil(shortfall).toLocaleString()} short.`
-      : missingFaculty
-        ? `No free ${t.requiresFaculty} slot.`
-        : undefined
-    : undefined;
-
   return (
-    <div
-      // A selected cell keeps keyboard focus after the click, which used to
-      // be harmless (the old cell became disabled and lost it) but now
-      // leaves its hover card pinned open beside a drawer already showing
-      // everything it says. The drawer supersedes the preview, so the
-      // selected cell suppresses its own.
-      className={`course-cell-wrap${selected ? ' tooltip-suppressed' : ''}`}
-      ref={wrapRef}
-      onPointerEnter={placeTooltip}
-      onPointerLeave={() => setPos(null)}
-      onFocus={placeTooltip}
-      onBlur={() => setPos(null)}
+    <button
+      type="button"
+      className={`course-cell ${state}${t.graduateProgram ? ' graduate' : ''}${unstaffed ? ' unstaffed' : ''}${selected ? ' selected' : ''}`}
+      aria-pressed={selected}
+      onClick={() => onSelect(t.id)}
     >
-      <button
-        type="button"
-        className={`course-cell ${state}${t.graduateProgram ? ' graduate' : ''}${unstaffed ? ' unstaffed' : ''}${selected ? ' selected' : ''}`}
-        aria-pressed={selected}
-        onClick={() => onSelect(t.id)}
-      >
-        <span className="cell-code">{code}</span>
-        <span className="cell-title">{title}</span>
-        {state === 'done' && !unstaffed && <span className="cell-stamp" aria-hidden="true">✓</span>}
-        {unstaffed && <span className="cell-stamp unstaffed" title="No instructor">!</span>}
-        {showGateDot && <span className="cell-gate-dot" aria-hidden="true" />}
-        {state === 'developing' && (
-          <span className="cell-progress" aria-hidden="true">
-            <span className="cell-progress-fill" style={{ width: `${Math.round(elapsed * 100)}%` }} />
-          </span>
-        )}
-      </button>
-      <div
-        className="course-tooltip"
-        role="tooltip"
-        ref={tooltipRef}
-        style={pos ? { position: 'fixed', top: pos.top, left: pos.left } : undefined}
-      >
-        {/* A PREVIEW, not a second detail panel. The tooltip used to be the
-            only way to learn anything about a course, so it carried
-            everything: prereqs, the faculty gate, the instructor. All of
-            that now lives in the drawer a click away (see CourseDrawer),
-            and a hover card repeating it both duplicated the drawer and,
-            at that height, covered the neighbouring cells the player was
-            scanning. What is left is what hover is actually FOR with 421
-            courses — read the shelf without committing to anything: what
-            it teaches, what it costs, and, when the cell is refusing, the
-            one line saying why. */}
-        <div className="course-tooltip-name">{t.name}</div>
-        <p className="course-tooltip-desc">{t.description}</p>
-        {unstaffed && <div className="course-tooltip-instructor unstaffed">No instructor</div>}
-        <div className="course-tooltip-meta">
-          ${t.cost.toLocaleString()} · {t.duration}w
-          {state === 'developing' && ` · ${weeksLeft}w left`}
-        </div>
-        {blockedReason && <p className="course-tooltip-reason">{blockedReason}</p>}
-      </div>
-    </div>
+      <span className="cell-code">{code}</span>
+      <span className="cell-title">{title}</span>
+      {state === 'done' && !unstaffed && <span className="cell-stamp" aria-hidden="true">✓</span>}
+      {unstaffed && <span className="cell-stamp unstaffed" title="No instructor">!</span>}
+      {showGateDot && <span className="cell-gate-dot" aria-hidden="true" />}
+      {state === 'developing' && (
+        <span className="cell-progress" aria-hidden="true">
+          <span className="cell-progress-fill" style={{ width: `${Math.round(elapsed * 100)}%` }} />
+        </span>
+      )}
+    </button>
   );
 }
 
