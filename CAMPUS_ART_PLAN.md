@@ -198,29 +198,41 @@ from them.
 // One tile is 9 m on a side, for DRAWING purposes.
 export const METRES_PER_TILE = 9;
 
-// A tile of HEIGHT projects to TILE_W / 2, the ratio at which a one-tile cube
-// reads as a cube in 2:1 dimetric.
-const UNITS_PER_METRE = (TILE_W / 2) / METRES_PER_TILE;   // 3.556
+// How far one tile of HEIGHT rises on screen. DERIVED from the projection, not
+// chosen: project() is an axonometric at azimuth 45 degrees, and its two
+// constants pin the camera's pitch (sin p = TILE_H / TILE_W, i.e. 30 degrees)
+// and its uniform world scale (k = TILE_W / sqrt2). A vertical edge is
+// foreshortened by cos(pitch), so:
+const PITCH = Math.asin(TILE_H / TILE_W);                      // 30 degrees
+export const UNITS_PER_TILE_UP = (TILE_W / Math.SQRT2) * Math.cos(PITCH);  // 39.19
 
-// The genre's standard vertical stretch: strict realism on a grid this coarse
-// makes every building read as a pancake. Applied UNIFORMLY to every vertical
-// dimension, so proportion between buildings survives it intact.
-export const VERTICAL_EXAGGERATION = 1.2;
+const UNITS_PER_METRE = UNITS_PER_TILE_UP / METRES_PER_TILE;   // 4.355
 
-export const STOREY_METRES = 4.0;
+export const STOREY_METRES = 3.9;
 
-export const across = (m: number) => m / METRES_PER_TILE;               // -> tiles
-export const up = (m: number) => m * UNITS_PER_METRE * VERTICAL_EXAGGERATION;  // -> screen units
+export const across = (m: number) => m / METRES_PER_TILE;   // -> tiles
+export const up = (m: number) => m * UNITS_PER_METRE;       // -> screen units
 
-export const STOREY = up(STOREY_METRES);   // 17.07
+export const STOREY = up(STOREY_METRES);   // 16.98
 ```
 
-**`STOREY` comes out at 17.07 — which is `STOREY_HEIGHT`, the constant already
+**`STOREY` comes out at 16.98 — which is `STOREY_HEIGHT`, the constant already
 in the file.** The one number in `buildingMotifs.tsx` that was authored as a
 real storey height is correct; it simply was never used to derive anything.
 This proposal promotes it rather than replacing it, which is the strongest
 evidence available that the scale being chosen here is the one the art was
 always reaching for.
+
+There is **no vertical exaggeration constant**, and that is worth dwelling on
+because the first draft of this plan had one. It took the convenient shortcut
+of calling a tile of height `TILE_W / 2` = 32 units, which is the number a
+sprite artist would use, and then needed a 1.2x stretch on top to make the
+buildings look right. The true foreshortening is 39.19, and **39.19 / 32 =
+1.22** — the "stylistic" exaggeration was the shortcut's own error, wearing a
+justification. Deriving the vertical scale from the projection instead makes
+the fudge factor disappear and the storey height land on a textbook 3.9 m
+floor-to-floor. A campus drawn to a scale it can state exactly needs no
+apology.
 
 On `METRES_PER_TILE = 9` versus the 15 m that `campusMap.ts`'s footprint
 comment cites: 15 m is what the football stadium's footprint was sized from,
@@ -489,7 +501,7 @@ Each PR ships on its own and leaves the map in a better state than it found it.
 | PR | what | why here |
 |---|---|---|
 | **A** | The topological depth sort, its test, and the three smaller ordering fixes | Independent of everything else, pure bug fix, highest value per line changed, and it is the complaint that is still live. Ships first. |
-| **B** | `campusScale.ts`; `storeysOf`; height and window ranks derived from it | The foundation. Nothing after this is authored in invented units. Fixes the library's half-height renovation on the way past. |
+| **B** | `campusScale.ts` and `buildingSpec.ts` (no JSX in either); `storeysOf`; height and window ranks derived from it | The foundation. Nothing after this is authored in invented units. Fixes the library's half-height renovation on the way past, and keeps the specification separate from the renderer — see §6. |
 | **C** | The bay grid: windows at fixed real size, sills, lintels, glazing-bar pattern, spandrel courses | Needs B's storey count to know how many ranks to draw. |
 | **D** | The door catalogue: six families at fixed real sizes, real entrance steps | Needs B's storey height to sit a `formal` portal correctly. Fixes the tower's 0.88 m shopfront. |
 | **E** | Founders Hall and the academic halls: plinth, string courses, centre pavilion, pediment, cornice, end pavilions, hipped roof, and the clock tower | Needs C and D — the vocabulary is built out of bays and doors. |
@@ -499,7 +511,103 @@ Each PR ships on its own and leaves the map in a better state than it found it.
 A–D are mechanical and low-risk. E is the one with real drawing in it. F is a
 judgement call and is sequenced so it can be taken or left.
 
-## 6. Risks, and what is not being touched
+## 6. Does a rotating or tilting camera overwrite all of this?
+
+Asked before starting, and it deserves a direct answer, because the two things
+the question could mean have different answers.
+
+### If "rotate" means 90-degree steps and "tilt" means a few fixed pitches
+
+Nothing here is overwritten. Most of it is a **prerequisite**.
+
+`isoProjection.ts` is already parameterised on exactly the two numbers a
+discrete camera needs. The pitch is `asin(TILE_H / TILE_W)` — **tilt *is*
+`TILE_H`.** Drop it from 32 to 26 and the camera rises from a 30-degree pitch
+to 24 degrees; the scale module above then recomputes `UNITS_PER_TILE_UP` and
+every storey, sill, window head and door on the campus re-foreshortens
+correctly with no table touched. That only works if the vertical scale is
+derived rather than authored, which is the change made two sections up. A
+hard-coded 32 with a 1.2x stretch bolted on would have had to be re-tuned by
+hand at every pitch.
+
+Rotation is a coordinate transform applied to `(col, row)` before `project()`.
+The parts of the plan that touch walls survive it because of a decision the
+codebase already made:
+
+- **`facePoint(origin, along, height, u, v)` is face-agnostic.** It
+  parameterises *any* wall in that wall's own coordinates. The bay grid (PR C)
+  and the door catalogue (PR D) are authored in `(u, v)` and metres, so they
+  apply to a north or east wall with zero changes — you hand them a different
+  origin and a different `along`, and the skew comes out right for free.
+- **`SLOPE()` already keys roof faces by GRID DIRECTION rather than by role.**
+  Its own comment explains why: a palette that names faces "lit" and "shade"
+  "can only be right for one of the two orientations". That is precisely the
+  discipline a rotating camera needs, made two PRs before anyone asked for one.
+- **`boxFaces` returns only `top`, `left`, `right`.** Rotation needs all four
+  walls. But that is true of the code *today*, independent of this plan — and
+  it is one generalisation in one function, shared by every motif at once.
+
+And the depth sort is not merely compatible with rotation, it is required by
+it. **The current scalar key `row + h + col + w` hard-codes the camera**: it
+assumes increasing `col` runs down-right and increasing `row` down-left. Rotate
+90 degrees and it is not 15% wrong, it is inverted. The separating-axis
+comparator in PR A takes the camera's near-direction as a parameter — or,
+equivalently, sorts in camera space — so it is correct at all four rotations by
+construction. `CampusMap.tsx`'s own module comment already names camera
+rotation as "the piece that is still missing, and the one the angle argues
+for". PR A is the piece that has to land before that is even attemptable.
+
+### If "rotate and tilt" means a real free camera
+
+Then the *renderer* changes — SVG painter's algorithm to WebGL meshes with a
+depth buffer — and it is worth being precise about what that costs, because it
+is much less than it sounds.
+
+| PR | survives 90-degree rotation + fixed tilts | survives a full 3D rewrite |
+|---|---|---|
+| **A** depth sort | required by it | replaced by the z-buffer |
+| **B** scale, storeys | unchanged | **unchanged** — metres and floor counts are camera-independent facts |
+| **C** bay grid, window sizes | unchanged | **unchanged** — becomes UVs or instanced quads, same numbers |
+| **D** door catalogue | unchanged | **unchanged** — same six families, same dimensions |
+| **E** Founders Hall vocabulary | massing unchanged; needs 4 faces not 2 | massing spec **unchanged**; the SVG emission is replaced |
+| **F** materials | unchanged | **unchanged** — becomes material definitions |
+
+The split is the point. This plan is mostly an **asset specification** and only
+incidentally drawing code. A procedural building generator in three dimensions
+needs, as its input: a footprint, a storey count, a storey height, a bay
+spacing, a window size and sill height, a door family with real dimensions, and
+a material. That list is not *similar* to what PRs B–F produce. It **is** what
+they produce, item for item. Today none of it exists in any form — the
+information is smeared across three tables that disagree — so a 3D rewrite
+attempted now would have to invent all of it first, from a reference that
+contradicts itself.
+
+What genuinely gets thrown away in that scenario is the SVG emission: the
+polygon-point arithmetic and the depth sort. That code is largely *already
+written* — much of this plan deletes tables rather than adding them — and the
+one substantial new piece of drawing is PR E's hall vocabulary, whose *spec*
+(which elements, what size, which building gets the tower) is the durable half
+and carries over intact.
+
+### The short version
+
+Doing this work first makes a discrete rotating camera **cheaper**, because it
+removes the one hard-coded camera assumption on the map. It makes a full 3D
+rewrite cheaper too, because it produces the building specification such a
+rewrite would otherwise have to derive from scratch. The scenario in which this
+work is wasted is the one where you rewrite in 3D *and* would have been happy
+to re-invent every dimension by hand along the way.
+
+The one concrete thing I would change on the strength of the question: keep the
+**massing spec and the SVG emission in separate modules** from PR B onward —
+`campusScale.ts` and a `buildingSpec.ts` (storeys, bays, doors, materials per
+Buildable) that contain no JSX at all, with `buildingMotifs.tsx` reduced to
+"turn a spec into polygons". That costs nothing now and makes the renderer the
+only replaceable part later.
+
+---
+
+## 7. Risks, and what is not being touched
 
 **Nothing mechanical changes.** No cost, duration, prereq, effect, gate or
 grant. No `Buildable` field is added. No footprint changes, so no existing
