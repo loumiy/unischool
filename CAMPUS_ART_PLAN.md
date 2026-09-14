@@ -6,7 +6,11 @@ to work out why the campus map's art reads as inconsistent, and to sequence the
 work that makes every asset on the map share one scale, one detail vocabulary,
 and one correct notion of what stands in front of what.*
 
-**Status: proposed.** Nothing below has been implemented.
+**Status: A and B shipped; C-G proposed.** The depth sort (PR A) and the unit
+system (PR B) are on the branch, each with a test that pins its invariant. The
+sections below are kept as written, with the two shipped PRs marked in the
+sequencing table — the audit in §1 is the state of the code BEFORE this work
+and is left intact as the record of what was measured.
 
 ---
 
@@ -500,8 +504,8 @@ Each PR ships on its own and leaves the map in a better state than it found it.
 
 | PR | what | why here |
 |---|---|---|
-| **A** | The topological depth sort, its test, and the three smaller ordering fixes | Independent of everything else, pure bug fix, highest value per line changed, and it is the complaint that is still live. Ships first. |
-| **B** | `campusScale.ts` and `buildingSpec.ts` (no JSX in either); `storeysOf`; height and window ranks derived from it | The foundation. Nothing after this is authored in invented units. Fixes the library's half-height renovation on the way past, and keeps the specification separate from the renderer — see §6. |
+| **A** ✅ | The topological depth sort, its test, and the three smaller ordering fixes | Independent of everything else, pure bug fix, highest value per line changed, and it is the complaint that is still live. Ships first. **Shipped:** 0 occlusion violations against the old key's 10,826 on the same layouts; ~3ms per sort, memoised. |
+| **B** ✅ | `campusScale.ts` and `buildingSpec.ts` (no JSX in either); `storeysOf`; height and window ranks derived from it | The foundation. Nothing after this is authored in invented units. Fixes the library's half-height renovation on the way past, and keeps the specification separate from the renderer — see §6. **Shipped:** one storey height campus-wide (3.9 m everywhere, was 6.1–26.3 m), `height = storeys × STOREY` and `ranks = storeys` asserted over the whole catalogue. |
 | **C** | The bay grid: windows at fixed real size, sills, lintels, glazing-bar pattern, spandrel courses | Needs B's storey count to know how many ranks to draw. |
 | **D** | The door catalogue: six families at fixed real sizes, real entrance steps | Needs B's storey height to sit a `formal` portal correctly. Fixes the tower's 0.88 m shopfront. |
 | **E** | Founders Hall and the academic halls: plinth, string courses, centre pavilion, pediment, cornice, end pavilions, hipped roof, and the clock tower | Needs C and D — the vocabulary is built out of bays and doors. |

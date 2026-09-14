@@ -1,6 +1,10 @@
 import type { Buildable, FacilityType } from '../state/types';
 import { boxFaces, facePoint, lift, polyPoints, project, type Pt } from './isoProjection';
 import { depthOrder } from './depthSort';
+import { STOREY } from './campusScale';
+import {
+  TOWER_PODIUM_STOREYS, motifOf, ridgeOf, storeysOf, wallHeightOf, windowRanksOf, type Motif,
+} from './buildingSpec';
 import GroundMarking, { RakedStand, StadiumField, type TilePt } from './groundMarkings';
 
 // Architectural motifs: what makes a placed Buildable read as a BUILDING
@@ -20,134 +24,20 @@ import GroundMarking, { RakedStand, StadiumField, type TilePt } from './groundMa
 // and hand-authoring five shades of each would be 110 values to keep in sync
 // with each other forever.
 
-export type Motif =
-  | 'hall'         // academic halls: the campus's landmarks — a deep gabled roof
-  | 'residential'  // dorms up to 1,000 beds: one long gable down a block, ranked windows
-  | 'village'      // a residential village: many small houses on one plot, around green
-  | 'tower'        // a residential tower: a small plan carried very high, over a retail podium
-  | 'portico'      // library / performing arts / gallery: flat roof, rooflights
-  | 'block'        // the university hospital: a big institutional mass, flat-roofed, rooftop plant
-  | 'pavilion'     // student centre, dining, health, grocery: low, a unit or two
-  | 'hangar'       // rec centre, gym, arena, natatorium: clear-span vault
-  | 'works'        // labs: low, flat, crowded with rooftop plant
-  | 'grounds'      // quad, field, courts, diamond, pool: markings, no mass
-  | 'bowl';        // the football stadium: stands around a gridiron
-
-const FACILITY_MOTIFS: Record<FacilityType, Motif> = {
-  library: 'portico',
-  studentCenter: 'pavilion',
-  diningHall: 'pavilion',
-  recCenter: 'hangar',
-  healthCenter: 'pavilion',
-  quad: 'grounds',
-  lab: 'works',
-  gym: 'hangar',
-  tennisCourts: 'grounds',
-  // The rec pool is an open-air deck; the natatorium is a roofed competition
-  // venue. Same water, different building — the same distinction styles.css
-  // already draws between their two blues.
-  pool: 'grounds',
-  performingArtsCenter: 'portico',
-  artGallery: 'portico',
-  athleticsField: 'grounds',
-  athleticsArena: 'hangar',
-  athleticsDiamond: 'grounds',
-  athleticsNatatorium: 'hangar',
-  footballStadium: 'bowl',
-  grocery: 'pavilion',
-};
-
-// Research facilities that are not laboratories.
+// The motifs no longer carry a height, a ridge or a window-rank count of
+// their own: buildingSpec.ts derives all three from one storey count, so a
+// building cannot be taller than the floors it has (see storeysOf there for
+// why that used to be possible and what it looked like).
 //
-// Every facility that lets a school do scholarship carries
-// facilityType 'lab', because that string is the GATE — techData.ts,
-// researchData.ts and the Research tab all read it to decide what can host
-// work. Four of them are not labs in any other sense: an institute with
-// archives, a studio with sound stages, a computing centre, a behavioural
-// lab suite. Drawn on the map they were all the same low industrial shed.
-//
-// Keyed by id rather than given facilityTypes of their own precisely so
-// the gate stays one string. Adding four new types would mean widening
-// every `=== 'lab'` test in three modules to keep one building from
-// looking wrong, which is a lot of load-bearing code touched for a roof.
-// This is the same shape as the health chain's split below: one
-// facilityType, more than one building.
-const RESEARCH_FACILITY_MOTIFS: Partial<Record<string, Motif>> = {
-  // Archives and reading rooms — the library's own language.
-  'LAB-HIST': 'portico',
-  // Sound stages are clear-span volumes, which is what a hangar is.
-  'LAB-FILM': 'hangar',
-  // A compute cluster is an institutional mass with plant on the roof.
-  'LAB-COMP': 'block',
-  // Behavioural labs and simulation suites: a couple of rooms, not a works.
-  'LAB-ECON': 'pavilion',
+// What stays here is the one dimension that is genuinely about DRAWING rather
+// than about the building: how many window bays run along a wall. PR C
+// replaces this with a real bay spacing in metres — a count is still wrong,
+// because it makes a window's width depend on the length of the wall it sits
+// on, and so gives the two walls of one building two different windows.
+const WALL_BAYS: Partial<Record<Motif, number>> = {
+  hall: 8, residential: 10, tower: 6, portico: 7, block: 10,
+  pavilion: 6, works: 4, hangar: 7,
 };
-
-// Bed counts at which housing stops being a hall. The same two numbers
-// campusMap.ts's DORM_FOOTPRINTS steps its footprint on, and read off the
-// same field (effects.capacityBonus) — so a village gets a village's plot
-// AND a village's motif from one fact about the building, with no third
-// place to keep in step. Kept as literals rather than imported: campusMap.ts
-// is placement geometry and this is drawing, and neither should have to
-// import the other to agree about what 5,000 beds looks like.
-const DORM_VILLAGE_MIN_BEDS = 1_500;
-const DORM_TOWER_MIN_BEDS = 5_000;
-// And the one health-chain rung that is a hospital rather than a clinic.
-const HOSPITAL_MIN_SERVES = 20_000;
-
-export function motifOf(t: Buildable): Motif {
-  if (t.kind === 'building') return 'hall';
-  if (t.kind === 'dorm') {
-    const beds = t.effects?.capacityBonus ?? 0;
-    if (beds >= DORM_TOWER_MIN_BEDS) return 'tower';
-    if (beds >= DORM_VILLAGE_MIN_BEDS) return 'village';
-    return 'residential';
-  }
-  if (t.kind === 'facility' && t.facilityType) {
-    const research = RESEARCH_FACILITY_MOTIFS[t.id];
-    if (research) return research;
-    // The health chain is three different institutions, not one building
-    // relabelled twice (see facilitiesData.ts): a counselling centre and a
-    // clinic are pavilions, a teaching hospital is not.
-    if (t.facilityType === 'healthCenter' && (t.effects?.servesPopulation ?? 0) >= HOSPITAL_MIN_SERVES) return 'block';
-    return FACILITY_MOTIFS[t.facilityType] ?? 'pavilion';
-  }
-  return 'pavilion';
-}
-
-// How tall each motif stands, in screen units at zoom 1. A tile is TILE_H
-// (32) deep, so a hall at 84 reads as roughly three storeys over its own
-// footprint. This is the one dimension an angled camera ADDS: the flat map
-// never had to have an opinion about how tall anything was.
-const HEIGHT: Record<Motif, number> = {
-  hall: 84, residential: 54, village: 34, tower: 190, portico: 68, block: 104,
-  pavilion: 42, hangar: 56, works: 30, grounds: 0, bowl: 46,
-};
-// How far the ridge rises above the eaves, for the two motifs that are
-// gabled. Everything else is flat-roofed, which is what those buildings
-// actually are.
-const RIDGE: Partial<Record<Motif, number>> = { hall: 30, residential: 20, village: 14 };
-// Windows per wall: [along the wall, up it].
-const WALL_GRID: Partial<Record<Motif, [number, number]>> = {
-  hall: [8, 3], residential: [10, 2], tower: [6, 12], portico: [7, 2], block: [10, 5],
-  pavilion: [6, 1], works: [4, 1], hangar: [7, 1],
-};
-
-// Added storeys. The library is renovated by adding FLOORS to the building
-// already standing rather than by siting a second one (see facilitiesData's
-// nextLibraryFloor and the reducer's RENOVATE_LIBRARY) — the one upgrade in
-// the game whose whole point is that the same building gets bigger. On a
-// flat map there was nothing to draw for it, which is why the data comment
-// said so; an angled map has the one axis that can show it, so a renovated
-// library now visibly grows a storey and a rank of windows per floor.
-//
-// Read generically off Buildable.floorsAdded rather than keyed to the
-// library, so anything else that ever gains floors gets the same treatment
-// without another branch here.
-const STOREY_HEIGHT = 17;
-function addedFloors(t: Buildable): number {
-  return Math.max(0, t.floorsAdded ?? 0);
-}
 
 // Where a building's LABEL sits: the middle of its mass, not its apex. The
 // full standing height (walls + ridge + any added floors) put the plate
@@ -158,8 +48,7 @@ function addedFloors(t: Buildable): number {
 // uses drawnHeightOf below, which accounts for construction state — so there
 // is deliberately no general "how tall is this" helper to drift from it.
 export function labelHeightOf(t: Buildable): number {
-  const m = motifOf(t);
-  return HEIGHT[m] + addedFloors(t) * STOREY_HEIGHT + (RIDGE[m] ?? 0) * 0.5;
+  return wallHeightOf(t) + ridgeOf(t) * 0.5;
 }
 
 // How tall the mass ACTUALLY stands right now — full height when finished,
@@ -167,10 +56,9 @@ export function labelHeightOf(t: Buildable): number {
 // shadow is computed from the same number the mass is drawn at, rather than
 // a second copy of the developing fraction that could drift from it.
 export function drawnHeightOf(t: Buildable, developing: boolean): number {
-  const m = motifOf(t);
-  if (m === 'grounds') return 0;
-  const full = HEIGHT[m] + addedFloors(t) * STOREY_HEIGHT;
-  return developing ? Math.max(4, full * 0.16) : full + (RIDGE[m] ?? 0);
+  if (motifOf(t) === 'grounds') return 0;
+  const full = wallHeightOf(t);
+  return developing ? Math.max(4, full * 0.16) : full + ridgeOf(t);
 }
 
 function shade(hex: string, factor: number): string {
@@ -522,18 +410,15 @@ export default function BuildingMotif({ t, p, tint, developing }: {
   // off the ground, not a building with the roof left off. The mass RISING
   // is what completion looks like — which is a thing an angled map can show
   // and a flat one never could.
-  const floors = addedFloors(t);
-  const full = HEIGHT[motif] + floors * STOREY_HEIGHT;
+  const full = wallHeightOf(t);
   const H = developing ? Math.max(4, full * 0.16) : full;
-  const ridge = developing ? 0 : (RIDGE[motif] ?? 0);
+  const ridge = developing ? 0 : ridgeOf(t);
   const f = boxFaces(col, row, w, h, 0, H);
-  // Each added floor is a real extra rank of windows, not just a taller
-  // blank wall — that is what makes the growth legible rather than just
-  // making the building bigger.
-  const baseGrid = WALL_GRID[motif];
-  const grid: [number, number] | undefined = baseGrid
-    ? [baseGrid[0], baseGrid[1] + floors]
-    : undefined;
+  // One rank of windows per storey, always — including the storeys a
+  // renovation added, which is what makes that growth legible rather than
+  // just making the building taller.
+  const bays = WALL_BAYS[motif];
+  const grid: [number, number] | undefined = bays ? [bays, windowRanksOf(t)] : undefined;
 
   if (motif === 'village') {
     // A PLOT, not a building: lawn, walks between the ranks, and ten small
@@ -569,8 +454,8 @@ export default function BuildingMotif({ t, p, tint, developing }: {
           <VillageHouse
             key={i}
             {...house}
-            height={HEIGHT.village}
-            ridge={RIDGE.village ?? 0}
+            height={full}
+            ridge={ridge}
             pal={pal}
           />
         ))}
@@ -584,7 +469,7 @@ export default function BuildingMotif({ t, p, tint, developing }: {
     // campus around it actually uses — see campusData.ts's TOWER_RETAIL_SERVES);
     // the shaft is inset from it and carried the rest of the way up, which is
     // what stops a 190-unit mass reading as a single blank obelisk.
-    const PODIUM_H = 34;
+    const PODIUM_H = TOWER_PODIUM_STOREYS * STOREY;
     const inset = 0.17;
     const sc = col + w * inset; const sr = row + h * inset;
     const sw = w * (1 - inset * 2); const sh = h * (1 - inset * 2);
@@ -603,7 +488,9 @@ export default function BuildingMotif({ t, p, tint, developing }: {
 
     const pod = boxFaces(col, row, w, h, 0, PODIUM_H);
     const shaft = boxFaces(sc, sr, sw, sh, PODIUM_H, H - PODIUM_H);
-    const shaftGrid = WALL_GRID.tower!;
+    // The shaft carries every storey the tower has except the podium's.
+    const shaftBays = WALL_BAYS.tower!;
+    const shaftRanks = Math.max(1, storeysOf(t) - TOWER_PODIUM_STOREYS);
     return (
       <>
         {/* Podium: glazed at street level, so its "windows" are one tall
@@ -619,8 +506,8 @@ export default function BuildingMotif({ t, p, tint, developing }: {
         {/* The shaft, ranked floor by floor. */}
         <polygon points={polyPoints(shaft.left)} fill={pal.wallLeft} />
         <polygon points={polyPoints(shaft.right)} fill={pal.wallRight} />
-        {windows(shaft.D, shaft.C, H - PODIUM_H, shaftGrid[0], shaftGrid[1] + floors, 'tl')}
-        {windows(shaft.C, shaft.B, H - PODIUM_H, shaftGrid[0], shaftGrid[1] + floors, 'tr')}
+        {windows(shaft.D, shaft.C, H - PODIUM_H, shaftBays, shaftRanks, 'tl')}
+        {windows(shaft.C, shaft.B, H - PODIUM_H, shaftBays, shaftRanks, 'tr')}
         <polygon points={polyPoints(shaft.top)} fill={pal.roof} />
         {/* Lift overrun and plant on the roof — what tells a tower's top
             from a flat lid at this distance. */}
