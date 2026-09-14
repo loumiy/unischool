@@ -491,7 +491,11 @@ export const PEDIMENT_RISE = up(2.9);
 export const PORTICO_COLUMNS = 4;
 export const PORTICO_HEIGHT = up(10.4);         // up to the second-floor line, as in the reference
 export const PORTICO_COLUMN_PLAN = across(1.4);  // a column is round; this is its square
-export const PORTICO_STANDOFF = across(2.2);     // how far clear of the pavilion face it stands
+// How far clear of the pavilion face the columns stand. Small on purpose: this
+// is an ENGAGED portico, shallow against the centre bay, not a freestanding
+// one out on the lawn. At 2.2 m the columns read as a detached porch parked in
+// front of the building; at 0.4 they read as part of its front.
+export const PORTICO_STANDOFF = across(0.4);
 export const ENTABLATURE = up(1.5);
 
 // Raised brick blocks closing each end of the roofline.
