@@ -1,5 +1,6 @@
 import type { Buildable, FacilityType } from '../state/types';
 import { boxFaces, facePoint, lift, polyPoints, project, type Pt } from './isoProjection';
+import { depthOrder } from './depthSort';
 import GroundMarking, { RakedStand, StadiumField, type TilePt } from './groundMarkings';
 
 // Architectural motifs: what makes a placed Buildable read as a BUILDING
@@ -539,11 +540,9 @@ export default function BuildingMotif({ t, p, tint, developing }: {
     // houses standing on it (see VILLAGE_HOUSES). Drawn back-to-front by
     // each house's own distance from the camera, exactly as CampusMap sorts
     // whole buildings, so a near house correctly overlaps the one behind it.
-    const houses = [...VILLAGE_HOUSES]
-      .map(([u, v, uw, vh]) => ({
-        col: col + w * u, row: row + h * v, w: w * uw, h: h * vh,
-      }))
-      .sort((a, b) => (a.row + a.h + a.col + a.w) - (b.row + b.h + b.col + b.w));
+    const houses = depthOrder(VILLAGE_HOUSES.map(([u, v, uw, vh]) => ({
+      col: col + w * u, row: row + h * v, w: w * uw, h: h * vh,
+    })));
 
     if (developing) {
       return (
@@ -789,16 +788,26 @@ export default function BuildingMotif({ t, p, tint, developing }: {
             // carries a unit or two; a hospital's carries the heaviest plant
             // of all plus a helipad-sized deck, which is what reads as
             // "hospital" rather than "very large pavilion" from above.
-            (motif === 'works'
-              ? [[0.12, 0.18, 0.28, 0.26], [0.48, 0.44, 0.32, 0.28], [0.18, 0.6, 0.22, 0.22]]
-              : motif === 'block'
-                ? [[0.08, 0.10, 0.30, 0.26], [0.46, 0.12, 0.22, 0.18], [0.10, 0.52, 0.24, 0.22], [0.52, 0.56, 0.34, 0.32]]
-                : [[0.18, 0.26, 0.26, 0.24], [0.54, 0.52, 0.28, 0.22]]
-            ).map(([fx, fy, fw, fh], i) => (
+            // Back to front, like everything else that stands on this map.
+            // These are authored in the order that reads best on the page, not
+            // in the order they have to be painted in — a lab's three units
+            // were listed 0.30, 0.92, 0.78 deep, so the nearest was drawn
+            // before the farthest and the farthest painted over it. Sorted
+            // through the map's own comparator (depthSort.ts), in the
+            // building's own footprint fractions: it is scale-free, so the
+            // same relation that orders two halls orders two air handlers.
+            depthOrder(
+              (motif === 'works'
+                ? [[0.12, 0.18, 0.28, 0.26], [0.48, 0.44, 0.32, 0.28], [0.18, 0.6, 0.22, 0.22]]
+                : motif === 'block'
+                  ? [[0.08, 0.10, 0.30, 0.26], [0.46, 0.12, 0.22, 0.18], [0.10, 0.52, 0.24, 0.22], [0.52, 0.56, 0.34, 0.32]]
+                  : [[0.18, 0.26, 0.26, 0.24], [0.54, 0.52, 0.28, 0.22]]
+              ).map(([fx, fy, fw, fh]) => ({ col: fx, row: fy, w: fw, h: fh })),
+            ).map((unit, i) => (
               <RoofBox
                 key={i}
-                col={col + w * fx} row={row + h * fy}
-                w={w * fw} h={h * fh}
+                col={col + w * unit.col} row={row + h * unit.row}
+                w={w * unit.w} h={h * unit.h}
                 base={H} height={motif === 'works' ? 12 : motif === 'block' ? 15 : 9}
                 tint={tint}
               />

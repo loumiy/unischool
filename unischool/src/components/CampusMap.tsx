@@ -1,10 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState, Placement, TileCoord } from '../state/types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import {
   canPlace, canRotate, canSiteRetroactively, footprintIsClear, footprintOf,
-  isPlaceableKind, orientedFootprint, parsePathTileKey, placementTiles,
+  isPlaceableKind, orientedFootprint, parsePathTileKey,
 } from '../state/campusMap';
 import { canStartDevelopment } from '../systems/techtree/techSystem';
 import { isTypingTarget, useHotkeys } from './hotkeys';
@@ -12,6 +12,7 @@ import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
 import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf, motifOf, tintFor } from './buildingMotifs';
 import { groundProps } from './groundMarkings';
+import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
 import Tree from './trees';
 import { TILE_H, WORLD, boxFaces, lift, polyPoints, project, tileAt } from './isoProjection';
@@ -246,6 +247,18 @@ function labelLayout(t: Buildable, p: Placement) {
   const textWidth = t.name.length * size * LABEL_CHAR_WIDTH_RATIO;
   return { size, centre, textWidth };
 }
+
+// One thing standing on the map, as the depth sort sees it: a box of ground
+// plus enough to build its element from afterwards. Three kinds, because a
+// mass, a tree and a prop are resolved differently at render time — but they
+// are sorted as one list, which is the point. A tree in front of a hall has to
+// paint over it and one behind it has to be hidden by it, and no arrangement
+// of separate layers can do both.
+type SceneEntry = DepthBox & (
+  | { kind: 'mass'; key: string; id: string }
+  | { kind: 'tree'; key: string; seed: number }
+  | { kind: 'prop'; key: string; node: React.JSX.Element }
+);
 
 // One placed building: its mass (buildingMotifs.tsx draws the roof, the
 // walls and whatever the motif adds) plus, while it is going up, a progress
@@ -985,10 +998,6 @@ export default function CampusMap({
   const placed = Object.entries(s.placements)
     .map(([id, p]) => ({ p, t: s.tech.find((x) => x.id === id) }))
     .filter((entry): entry is { p: Placement; t: Buildable } => entry.t !== undefined);
-  const covered = new Set<string>();
-  for (const { p } of placed) {
-    for (const tile of placementTiles(p)) covered.add(`${tile.row},${tile.col}`);
-  }
 
   // FLAT GROUND VS EVERYTHING THAT STANDS ON IT. An open-ground facility —
   // a quad, a pitch, a ball field, the courts, the pool deck — is paint on
@@ -1000,21 +1009,58 @@ export default function CampusMap({
   //
   // What genuinely stands on one of those plots — planting, hedges, a
   // fountain, a monument, a stand, an outfield fence — comes back from
-  // groundProps and joins the ordinary sorted pass below, each prop on the
-  // point it actually stands on.
+  // groundProps and joins the ordinary sorted pass below, each prop over the
+  // ground it actually covers.
   const groundPlaced = placed.filter(({ t }) => motifOf(t) === 'grounds');
-  const massPlaced = placed.filter(({ t }) => motifOf(t) !== 'grounds');
 
-  // The trees currently VISIBLE: every tree whose tile has no path drawn on
-  // it (see state/types.ts's Trees block — paving hides a tree, it never
-  // deletes one, so this is the entire implementation of "lifting the path
-  // brings it back"). Building over a tree is the other half, and that one
-  // is a real deletion the reducer commits, so nothing is filtered here for
-  // it: a felled tree is simply no longer in `s.trees`.
-  const visibleTrees = Object.entries(s.trees)
-    .filter(([key]) => !(key in s.pathways))
-    .map(([key, seed]) => ({ key, seed, tile: parsePathTileKey(key) }))
-    .filter((entry): entry is { key: string; seed: number; tile: TileCoord } => entry.tile !== null);
+  // THE SORTED SCENE — every mass, every tree and every raised prop, in the
+  // order they have to be painted in (see depthSort.ts for why that is a
+  // topological sort over an occlusion relation rather than a sort key).
+  //
+  // Memoised on the state it reads, and that is not an optimisation detail,
+  // it is what makes the sort affordable at all. `hover` is React state that
+  // changes on every mouse move, so the render path runs constantly; the
+  // scene only changes when something is built, felled or paved. A built-out
+  // campus sorts in a few milliseconds, which is nothing once a week and
+  // everything on every pointer event.
+  //
+  // What comes out is DESCRIPTORS, not elements: the order depends only on
+  // geometry, while a building's element also depends on what is inspected,
+  // what just finished and how many weeks are left — all of which change
+  // without moving anything. Keeping the elements outside the memo means
+  // those never invalidate the sort.
+  const scene = useMemo(() => {
+    const entries: SceneEntry[] = [];
+    for (const [id, p] of Object.entries(s.placements)) {
+      const t = s.tech.find((x) => x.id === id);
+      if (!t) continue;
+      if (motifOf(t) === 'grounds') {
+        // The raised half of a flat plate. Each prop enters the sort on the
+        // ground IT covers, so a quad's own trees interleave with the
+        // woodland around them instead of arriving as one block at the
+        // plate's depth.
+        const d = drawnFootprint(p);
+        for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier)) {
+          entries.push({
+            kind: 'prop', key: `g-${id}-${prop.key}`, node: prop.node,
+            col: prop.col, row: prop.row, w: prop.w, h: prop.h,
+          });
+        }
+      } else {
+        entries.push({ kind: 'mass', key: `b-${id}`, id, col: p.col, row: p.row, w: p.w, h: p.h });
+      }
+    }
+    // A tree whose tile has been paved is hidden, not deleted (see
+    // state/types.ts's Trees block) — which is the whole implementation of
+    // "lifting the path brings it back".
+    for (const [key, seed] of Object.entries(s.trees)) {
+      if (key in s.pathways) continue;
+      const tile = parsePathTileKey(key);
+      if (!tile) continue;
+      entries.push({ kind: 'tree', key: `t-${key}`, seed, col: tile.col, row: tile.row, w: 1, h: 1 });
+    }
+    return depthOrder(entries);
+  }, [s.placements, s.tech, s.trees, s.pathways]);
 
   // The inspected building, if any, re-resolved against `placed` on every
   // render rather than trusted from state — same reasoning as `selected`
@@ -1125,42 +1171,31 @@ export default function CampusMap({
               />
             ))}
 
-            {[
-              ...massPlaced.map((m) => ({
-                depth: m.p.row + m.p.h + m.p.col + m.p.w,
-                key: `b-${m.t.id}`,
-                node: (
+            {scene.map((entry) => {
+              if (entry.kind === 'tree') {
+                return (
+                  <g key={entry.key}>
+                    <Tree row={entry.row} col={entry.col} seed={entry.seed} />
+                  </g>
+                );
+              }
+              if (entry.kind === 'prop') return <g key={entry.key}>{entry.node}</g>;
+              const t = s.tech.find((x) => x.id === entry.id);
+              const p = s.placements[entry.id];
+              if (!t || !p) return null;
+              return (
+                <g key={entry.key}>
                   <PlacedBuilding
-                    t={m.t}
-                    p={m.p}
-                    onInspect={() => inspectBuilding(m.t.id)}
-                    inspected={m.t.id === inspectedId}
-                    weeksLeft={s.developing[m.t.id]}
-                    justFinished={justFinished.includes(m.t.id)}
+                    t={t}
+                    p={p}
+                    onInspect={() => inspectBuilding(entry.id)}
+                    inspected={entry.id === inspectedId}
+                    weeksLeft={s.developing[entry.id]}
+                    justFinished={justFinished.includes(entry.id)}
                   />
-                ),
-              })),
-              ...visibleTrees.map(({ key, seed, tile }) => ({
-                depth: tile.row + tile.col + 2,
-                key: `t-${key}`,
-                node: <Tree row={tile.row} col={tile.col} seed={seed} />,
-              })),
-              // The raised half of every flat plate drawn above. Each prop
-              // sorts on the point it stands on, so a quad's own trees
-              // correctly interleave with the woodland around them instead
-              // of arriving as one block at the plate's depth.
-              ...groundPlaced.flatMap(({ t, p }) => {
-                const d = drawnFootprint(p);
-                return groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier)
-                  .map((prop) => ({
-                    depth: prop.col + prop.row,
-                    key: `g-${t.id}-${prop.key}`,
-                    node: prop.node,
-                  }));
-              }),
-            ]
-              .sort((m, n) => m.depth - n.depth)
-              .map(({ key, node }) => <g key={key}>{node}</g>)}
+                </g>
+              );
+            })}
 
             {preview && (
               <>
