@@ -49,17 +49,35 @@ export type TilePt = [number, number];
 // drawn in a pass of its own before them, and needs no depth at all. What
 // genuinely stands on a quad or a ball field — planting, hedges, a
 // fountain, a monument, a stand, a fence — is a mass like any other and
-// sorts like one, each on the point it actually stands on.
+// sorts like one, each over the ground it actually covers.
 //
 // So each open-ground marking below comes in two halves: a component that
 // draws the paint, and a function returning its raised props. `groundProps`
 // at the bottom of this file is the one entry point for the second half.
 export interface GroundProp {
   key: string;
-  // Where this prop stands, in grid coordinates — what the map sorts it on.
+  // The GROUND this prop covers, in grid coordinates: origin plus extent, the
+  // same {col,row,w,h} shape a Placement uses, and what the map depth-sorts it
+  // on (see depthSort.ts).
+  //
+  // An extent rather than a point, because several of these are not points. A
+  // stand behind home plate, an outfield fence and a garden hedge each cover
+  // real ground, and a prop that declares itself a point has to nominate ONE
+  // spot to be sorted at — which is the same class of mistake as sorting a
+  // building on its far corner, at a smaller scale. Anything genuinely
+  // point-like (a tree) declares the tile it stands in, exactly as the
+  // woodland on the map around it does.
   col: number;
   row: number;
+  w: number;
+  h: number;
   node: React.JSX.Element;
+}
+
+// The box a round prop covers, from its centre and radius — the shape a
+// fountain, a medallion or a tree crown actually occupies on the ground.
+function aroundPoint(cc: number, cr: number, radius: number): { col: number; row: number; w: number; h: number } {
+  return { col: cc - radius, row: cr - radius, w: radius * 2, h: radius * 2 };
 }
 
 // ---------------------------------------------------------------------
@@ -305,11 +323,9 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
   return [
     {
       key: 'fence',
-      // The fence rings the OUTFIELD, which is the far half of the plot, so
-      // it sorts from the deepest point of that arc — its nearest point to
-      // the camera is still well behind home plate.
-      col: hc + R * 0.5 * Math.cos(bisect),
-      row: hr + R * 0.5 * Math.sin(bisect),
+      // The fence rings the OUTFIELD — the quarter-disc of the plot away from
+      // home plate — so the ground it covers is the box that arc sweeps.
+      col: hc - R, row: hr - R, w: R, h: R,
       node: (
         <>
           <polygon className="ground-fence" points={polyPoints([...arcPts, ...[...arcPts].reverse().map((q) => lift(q, FENCE_H))])} />
@@ -321,9 +337,9 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
       key: 'stands',
       // The stands sit BEHIND the plate, i.e. nearest the camera — the one
       // thing on this plot that anything walking past it has to be painted
-      // behind.
-      col: hc + Math.min(w, h) * 0.29 * Math.cos(behind),
-      row: hr + Math.min(w, h) * 0.29 * Math.sin(behind),
+      // behind. They wrap 172 degrees, so the ground they cover is most of the
+      // disc out to their own outer radius.
+      ...aroundPoint(hc, hr, Math.min(w, h) * 0.29),
       node: (
         // 172 degrees of wrap, which reaches most of the way down both foul
         // lines — a narrower arc left the seating sitting behind the plate
@@ -461,11 +477,16 @@ function pitchProps(col: number, row: number, w: number, h: number): GroundProp[
     ? [col + w * a, row + h * c]
     : [col + w * c, row + h * a]);
   const trackEdge = 0.5 - outerWid / across;   // the oval's far side, as a footprint fraction
-  const footing = tp(0.5, trackEdge);
+  // The ground the stand covers: between its outer and inner edges, across
+  // the middle third of the plot's long side.
+  const back = tp(0.32, 0.02);
+  const front = tp(0.68, trackEdge);
   return [{
     key: 'stand',
-    col: footing[0],
-    row: footing[1],
+    col: Math.min(back[0], front[0]),
+    row: Math.min(back[1], front[1]),
+    w: Math.abs(front[0] - back[0]),
+    h: Math.abs(front[1] - back[1]),
     node: (
       <RakedStand
         outer={[tp(0.32, 0.02), tp(0.68, 0.02)]}
@@ -745,7 +766,11 @@ function Quad({ col, row, w, h, tier }: GroundProps & { tier: number }) {
 // point it stands on so the map can depth-sort it individually.
 function quadProps(col: number, row: number, w: number, h: number, tier: number): GroundProp[] {
   const gardens = tier >= 2;
-  const at = (u: number, v: number) => ({ col: col + w * u, row: row + h * v });
+  // A planting stands in one tile, like every tree in the woodland around the
+  // quad — so it sorts against them on the same terms.
+  const at = (u: number, v: number) => ({
+    col: col + w * u - 0.5, row: row + h * v - 0.5, w: 1, h: 1,
+  });
 
   const hedges: Array<[number, number, number, number]> = [
     [0.38, 0.10, 0.44, 0.32], [0.56, 0.10, 0.62, 0.32],
@@ -756,10 +781,8 @@ function quadProps(col: number, row: number, w: number, h: number, tier: number)
     ...(gardens
       ? hedges.map(([u0, v0, u1, v1], i) => ({
         key: `hedge-${i}`,
-        // A hedge's footing is its NEAR corner (largest u/v), the edge of it
-        // closest to the camera — that is the part something in front of it
-        // has to paint over.
-        ...at(u1, v1),
+        // A hedge covers the whole bed it is clipped into, near edge to far.
+        col: col + w * u0, row: row + h * v0, w: w * (u1 - u0), h: h * (v1 - v0),
         node: <Hedge col={col} row={row} w={w} h={h} u0={u0} v0={v0} u1={u1} v1={v1} />,
       }))
       : []),
@@ -769,14 +792,23 @@ function quadProps(col: number, row: number, w: number, h: number, tier: number)
       node: <TreeAt col={col + w * u} row={row + h * v} species={species} scale={size} />,
     })),
     gardens
-      ? { key: 'fountain', ...at(0.5, 0.5), node: <Fountain col={col} row={row} w={w} h={h} /> }
+      ? {
+        key: 'fountain',
+        // The same radius Fountain draws its kerb at, so the two cannot drift.
+        ...aroundPoint(col + w * 0.5, row + h * 0.5, Math.min(w, h) * 0.20),
+        node: <Fountain col={col} row={row} w={w} h={h} />,
+      }
       // Tier 1's centre: a paved roundel where the walks meet, with a plinth
       // and a column standing on it. The roundel alone was there first and
       // was invisible — it is the same stone as the walks that run into it,
       // so on a lawn it read as a slight widening of the crossing and
       // nothing more. What the walks need at their meeting point is
       // something to be walking TO.
-      : { key: 'monument', ...at(0.5, 0.5), node: <Monument col={col} row={row} w={w} h={h} /> },
+      : {
+        key: 'monument',
+        ...aroundPoint(col + w * 0.5, row + h * 0.5, Math.min(w, h) * 0.13),
+        node: <Monument col={col} row={row} w={w} h={h} />,
+      },
   ];
 }
 

@@ -45,10 +45,14 @@ export function isPlaceableKind(t: Buildable): boolean {
 // never placeable — carry no vestigial map data (see README's "The
 // central abstraction").
 //
-// Sizes are pinned to a rough 15m per tile, which the football stadium (a
-// real one is about 220m by 180m, i.e. 15 by 12 tiles) fixes; everything
-// else below is sized against that so a library, a pool, a hospital and a
-// stadium stand in something like their real proportions to each other.
+// Sizes are pinned to 9m per tile — the scale the map actually DRAWS at (see
+// components/campusScale.ts, which derives it from the projection). An earlier
+// pass took 15m from the football stadium's own footprint and sized the rest
+// against that, which left every athletics venue two-thirds the size it should
+// be next to the buildings: a 400m running track needs 176m down the straight
+// and had 108m to do it in. The venues below are sized from what they really
+// are, at 9m, so a pitch, a ballpark and a teaching hall stand in something
+// like their true proportions to each other.
 //
 // Footprints are pure geometry: a bigger building grants nothing extra and
 // costs nothing extra. Placement is still visual-only.
@@ -180,8 +184,8 @@ const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
   lab: { w: 4, h: 3 },           // a teaching/research lab building — one per lab-gated major
   grocery: { w: 5, h: 4 },       // a full supermarket, not a corner shop
   gym: { w: 6, h: 5 },
-  tennisCourts: { w: 7, h: 3 },  // six courts read long and narrow, not square
-  pool: { w: 6, h: 4 },          // a 50m pool and its deck
+  tennisCourts: { w: 12, h: 4 }, // six courts in a row, which is ~110m by 36m
+  pool: { w: 7, h: 4 },          // a 50m pool and its deck
   // performingArtsCenter is the landmark of this batch: a concert hall and
   // theater reads as a real building — grand, and on more ground than a
   // teaching hall.
@@ -196,11 +200,14 @@ const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
   // stadium stays the largest footprint of any Buildable in the game,
   // bigger even than the hospital — the pinnacle venue should read as one
   // on the map, not just in its cost.
-  athleticsField: { w: 12, h: 7 },
-  athleticsArena: { w: 8, h: 6 },
-  athleticsDiamond: { w: 9, h: 9 },   // a real outfield is ~120m to the fence in every direction
-  athleticsNatatorium: { w: 6, h: 5 },
-  footballStadium: { w: 15, h: 12 },
+  // A 400m track is 176m down each straight with 36m radius bends, so its
+  // envelope is about 176 by 92 — which is what this is, and what 12 by 7
+  // could not have been at any scale.
+  athleticsField: { w: 20, h: 11 },
+  athleticsArena: { w: 12, h: 9 },        // ~110m by 80m, the footprint of a real arena bowl
+  athleticsDiamond: { w: 14, h: 14 },     // ~125m, a real outfield being ~120m to the fence
+  athleticsNatatorium: { w: 8, h: 5 },    // a 50m competition pool, its deck and its stand
+  footballStadium: { w: 24, h: 20 },      // ~220m by 180m: still the largest footprint in the game
 };
 
 export function footprintOf(t: Buildable): Footprint {
