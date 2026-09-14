@@ -21,9 +21,9 @@ import {
 } from '../src/components/campusScale';
 import {
   BAY_METRES, TOWER_PODIUM_STOREYS, WINDOW_HEIGHT, baysAcross, clerestorySill,
-  CORNICE, PARAPET, PLINTH, doorFamilyOf, doorOf, floorLinesOf, hasClockTower, motifOf,
-  rankSills, ridgeOf, storeysOf, wallHeightOf, windowRanksOf, windowWidthOf,
-  type DoorFamily,
+  CORNICE, GILT, PARAPET, PLINTH, doorFamilyOf, doorOf, floorLinesOf, hasClockTower,
+  materialOf, motifOf, rankSills, ridgeOf, storeysOf, wallHeightOf, wallShadeOf,
+  windowRanksOf, windowWidthOf, type DoorFamily,
 } from '../src/components/buildingSpec';
 import { footprintOf, isPlaceableKind } from '../src/state/campusMap';
 import { initialTech } from '../src/data/techData';
@@ -357,6 +357,55 @@ console.log('campus scale and building spec');
     assert(ridgeOf(hall) < STOREY, 'a hall\'s ridge rises less than one storey above its eaves');
     assert(ridgeOf(hall) > 0, 'but it is still a pitched roof');
   }
+}
+
+// --- 12. Materials, not a colour chart -----------------------------------
+{
+  const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const dist = (a: string, b: string) => Math.hypot(...rgb(a).map((v, i) => v - rgb(b)[i]));
+
+  const walls = [...new Set(CATALOGUE.map((t) => materialOf(t).wall))];
+  const roofs = [...new Set(CATALOGUE.map((t) => materialOf(t).roof))];
+  assert(walls.length <= 5, `the campus is built of at most five materials (got ${walls.length})`);
+  assert(roofs.length <= 2, `and roofed in at most two (got ${roofs.length})`);
+
+  // The measure the old palette failed. Twenty-three tints formed 253 pairs,
+  // of which 40 sat within an RGB distance of 22 — the library and the gym
+  // were 4.7 apart. Every pair of materials has to be a difference a player
+  // can actually see.
+  let closest = { d: Infinity, a: '', b: '' };
+  for (let i = 0; i < walls.length; i++) {
+    for (let j = i + 1; j < walls.length; j++) {
+      const d = dist(walls[i], walls[j]);
+      if (d < closest.d) closest = { d, a: walls[i], b: walls[j] };
+    }
+  }
+  assert(closest.d > 35,
+    `the closest two materials are ${closest.d.toFixed(1)} apart (${closest.a} vs ${closest.b}), against the old palette's 4.7`);
+
+  // A roof is not a shade of its own wall. This is the split that stops a
+  // building reading as one undifferentiated mass: roof tones used to be
+  // derived from the wall tint, so a gold hall stood under a gold roof.
+  let worstRoof = { d: Infinity, id: '' };
+  for (const t of CATALOGUE) {
+    const m = materialOf(t);
+    const d = dist(m.wall, m.roof);
+    if (d < worstRoof.d) worstRoof = { d, id: t.id };
+  }
+  assert(worstRoof.d > 60,
+    `every building's roof reads against its own walls (worst: ${worstRoof.id} at ${worstRoof.d.toFixed(1)})`);
+
+  // And nothing is gilded but the one thing that should be.
+  assert(!walls.includes(GILT) && !roofs.includes(GILT),
+    'the landmark gold is no longer the colour of nine whole buildings');
+
+  // Neighbouring residence halls still differ, which is what the four hashed
+  // dorm tints used to buy — now a nudge within one brick rather than four
+  // separate colours.
+  const dormShades = new Set(CATALOGUE.filter((t) => t.kind === 'dorm').map(wallShadeOf));
+  assert(dormShades.size > 1, `residence halls still vary (${dormShades.size} shades of the same brick)`);
+  assert(CATALOGUE.filter((t) => t.kind !== 'dorm').every((t) => wallShadeOf(t) === 1),
+    'and nothing else is nudged at all');
 }
 
 // --- 7. Nothing in the catalogue is missing a spec -------------------------

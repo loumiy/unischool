@@ -771,7 +771,7 @@ button.build-tile { font-family: inherit; }
    Geometry is all in isoProjection.ts / buildingMotifs.tsx / groundMarkings.tsx;
    what is here is colour and mode behaviour. Two things that WERE here are
    deliberately gone: the per-tile ground rules (the ground is now one plate
-   and one path of grid lines) and the whole kind-/tint- fill table (tintFor
+   and one path of grid lines) and the whole kind-/tint- fill table (materialOf
    in buildingMotifs.tsx owns tints now, because the angled map derives five
    shades from each and a stylesheet cannot do that arithmetic). */
 .campus-ground { fill: var(--grass); }

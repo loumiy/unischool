@@ -517,3 +517,117 @@ export const TOWER_FINIAL_RISE = up(3.0);
 const CLOCK_RADIUS_METRES = 2.1;
 export const CLOCK_RADIUS = up(CLOCK_RADIUS_METRES);
 export const CLOCK_RADIUS_TILES = across(CLOCK_RADIUS_METRES);
+
+// ---------------------------------------------------------------------
+// MATERIALS. What a building is MADE of, rather than what colour it was
+// assigned.
+//
+// The campus used to carry twenty-two tints: one per facility type plus four
+// for housing plus a landmark gold, each chosen against nothing in particular.
+// Of the 253 pairs those 23 form, 40 sit within an RGB distance of 22 — the
+// library and the gym are 4.7 apart, a difference no player will ever see —
+// and not one of them is a material. Twenty-two near-neighbours is not a
+// palette, it is a colour chart, and it is why a campus of well-drawn
+// buildings still did not read as one place.
+//
+// Five materials instead, each with its own WALL and its own ROOF. That
+// second field is the change that matters most on screen: roof tones used to
+// be derived from the wall tint, so an academic hall was a gold box under a
+// gold roof and the two read as one mass. Slate over brick is a building
+// under a roof.
+//
+// The trim is shared by everything. A plinth, a cornice, a pediment and a
+// window surround are the same limestone wherever they appear, which is what
+// makes the vocabulary read as one vocabulary across a campus of five
+// different walls.
+// ---------------------------------------------------------------------
+
+export interface Material {
+  wall: string;
+  roof: string;
+}
+
+// Slate and lead, on everything. A campus does not roof each building in a
+// different colour, and the one place the map needs variety — which building
+// is which — is answered by the walls.
+const SLATE = '#5f6b5f';
+// Flat roofs read lighter than pitched ones: you are looking at the deck
+// rather than at a slope turned away from the light.
+const DECK = '#7c8377';
+
+const MATERIALS = {
+  // The campus's default, and the reference building's own: warm red brick.
+  brickRed: { wall: '#a2564a', roof: SLATE },
+  // The support buildings — refectories, shops, the union. Buff brick reads
+  // as the same family of construction at a lower key.
+  brickBuff: { wall: '#bb9468', roof: SLATE },
+  // The civic set: ashlar stone, for the buildings a campus puts its name on.
+  limestone: { wall: '#d8cdb4', roof: DECK },
+  // Rendered blockwork: labs, works, sheds. Deliberately the dullest wall on
+  // the map, because that is what these buildings are.
+  render: { wall: '#b0a992', roof: DECK },
+  // Glass and steel, for the two things that are actually curtain-walled.
+  curtain: { wall: '#93a9b4', roof: DECK },
+} as const satisfies Record<string, Material>;
+
+// The limestone every building's stonework is cut from, whatever its walls
+// are made of — see the note above. Exported for the motifs' entrance steps,
+// which are the one piece of trim drawn as a solid rather than as a band.
+export const TRIM = '#efe9da';
+
+// The gilding, and the only place it appears: the dome and finial of Founders
+// Hall's clock tower. This is the campus's old BUILDING_TINT, which used to be
+// the colour of all nine academic halls. It is not deleted, it is
+// concentrated — a landmark reads as one because it is the single gilded
+// thing in view, not because it is the ninth building painted gold.
+export const GILT = '#c9a227';
+
+// The clock tower is painted STONE, not brick — it is white in the reference
+// photograph, and a white tower over a red building is most of what makes that
+// building recognisable. Kept beside the trim it is cut from rather than given
+// a material of its own, since nothing else on the campus is built of it.
+export const TOWER_STONE = '#e4dcc8';
+
+export function materialOf(t: Buildable): Material {
+  if (t.kind === 'building') return MATERIALS.brickRed;
+  if (t.kind === 'dorm') {
+    return motifOf(t) === 'tower' ? MATERIALS.curtain : MATERIALS.brickRed;
+  }
+  switch (t.facilityType) {
+    case 'library':
+    case 'performingArtsCenter':
+    case 'artGallery':
+    case 'healthCenter':
+      return MATERIALS.limestone;
+    case 'diningHall':
+    case 'grocery':
+    case 'studentCenter':
+      return MATERIALS.brickBuff;
+    case 'athleticsNatatorium':
+      return MATERIALS.curtain;
+    case 'lab':
+    case 'gym':
+    case 'recCenter':
+    case 'athleticsArena':
+      return MATERIALS.render;
+    // Open ground and the venues drawn as markings take a wall colour only so
+    // their props (a stand, a fence, a fountain kerb) have something to shade
+    // from; nothing of theirs is actually a wall.
+    default:
+      return MATERIALS.render;
+  }
+}
+
+// Neighbouring residence halls should not be identical. The old tints gave
+// housing four separate colours hashed off the id; that variety is worth
+// keeping and a whole extra colour is not, so the SAME brick is nudged a few
+// percent either way instead. A hall still differs from the one beside it,
+// and both are still obviously brick.
+const DORM_SHADE_STEPS = [0.94, 1.0, 1.06, 1.11];
+
+export function wallShadeOf(t: Buildable): number {
+  if (t.kind !== 'dorm') return 1;
+  let h = 0;
+  for (let i = 0; i < t.id.length; i++) h = (h * 31 + t.id.charCodeAt(i)) % 1000003;
+  return DORM_SHADE_STEPS[h % DORM_SHADE_STEPS.length];
+}

@@ -10,8 +10,8 @@ import { canStartDevelopment } from '../systems/techtree/techSystem';
 import { isTypingTarget, useHotkeys } from './hotkeys';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
-import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf, tintFor } from './buildingMotifs';
-import { motifOf } from './buildingSpec';
+import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf } from './buildingMotifs';
+import { materialOf, motifOf } from './buildingSpec';
 import { groundProps } from './groundMarkings';
 import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
@@ -214,8 +214,9 @@ function otherPathTool(tool: 'draw' | 'erase'): 'draw' | 'erase' {
 }
 
 // The CSS hook for a placed building. Colour is no longer decided here —
-// tintFor (buildingMotifs.tsx) owns it, because the angled map derives five
-// shades from each tint and a stylesheet cannot do that arithmetic. What is
+// materialOf (buildingSpec.ts) owns it, because a building has a MATERIAL —
+// a wall and a roof — from which the angled map derives its shades at
+// runtime, and a stylesheet cannot do that arithmetic. What is
 // left is the kind class, which drives behaviour rules (the inspect dimming)
 // rather than any fill.
 function kindClasses(t: Buildable): string {
@@ -304,7 +305,7 @@ function PlacedBuilding({
           />
         );
       })()}
-      <BuildingMotif t={t} p={d} tint={tintFor(t)} developing={developing} />
+      <BuildingMotif t={t} p={d} material={materialOf(t)} developing={developing} />
       {inspected && (
         // The footprint picked out on the ground, which is the one outline
         // that cannot be hidden by the building standing on it.

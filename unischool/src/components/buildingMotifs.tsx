@@ -1,16 +1,17 @@
 import { memo } from 'react';
-import type { Buildable, FacilityType } from '../state/types';
+import type { Buildable } from '../state/types';
 import { TILE_W, boxFaces, facePoint, lift, polyPoints, project, type Pt } from './isoProjection';
 import { depthOrder } from './depthSort';
 import { STOREY, across, up } from './campusScale';
 import {
-  CLOCK_RADIUS, CLOCK_RADIUS_TILES, CORNICE, END_PAVILION_PLAN, END_PAVILION_RISE, FLOOR_COURSE, PARAPET,
+  CLOCK_RADIUS, CLOCK_RADIUS_TILES, CORNICE, GILT, TOWER_STONE, TRIM, END_PAVILION_PLAN, END_PAVILION_RISE, FLOOR_COURSE, PARAPET,
   END_PAVILION_DEPTH, PAVILION_BAYS, PAVILION_DEPTH, PAVILION_RISE, PEDIMENT_RISE, PLINTH, STEP_OVERHANG,
   TOWER_BASE_PLAN, TOWER_BASE_RISE, TOWER_DOME_RISE, TOWER_DRUM_PLAN, TOWER_DRUM_RISE,
   TOWER_FINIAL_RISE, TOWER_PODIUM_STOREYS, TREAD_DEPTH, WINDOW_HEIGHT,
   baysAcross, clerestorySill, doorDimensions, doorOf, floorLinesOf, hasClockTower, motifOf,
-  rankSills, ridgeOf, storeysOf, wallHeightOf, windowRanksOf, windowWidthOf,
-  type DoorDimensions,
+  rankSills, ridgeOf, storeysOf, wallHeightOf, wallShadeOf, windowRanksOf,
+  windowWidthOf,
+  type DoorDimensions, type Material,
 } from './buildingSpec';
 import GroundMarking, { RakedStand, StadiumField, type TilePt } from './groundMarkings';
 
@@ -69,14 +70,16 @@ function shade(hex: string, factor: number): string {
 
 // Roof faces are keyed by the GRID DIRECTION they point, not by a role like
 // "lit" or "shade". A pitched roof has four faces and which of them catches
-// the light depends on which way the ridge runs — so a palette that names
-// them by role can only be right for one of the two orientations, and was
-// wrong for the other. See SLOPE below for the tones themselves.
+// the light depends on which way the ridge runs — so a palette that names them
+// by role can only be right for one of the two orientations, and was wrong for
+// the other. It is also the discipline a rotating camera needs: turn the view
+// and the roles swap, while the directions do not.
 export interface Palette {
   roof: string; roofDeck: string;
   negCol: string; negRow: string; posRow: string; posCol: string;
   wallLeft: string; wallRight: string;
 }
+
 // How bright a sloped face is, by the grid direction its outward normal
 // points. The map is lit from the UPPER LEFT — the direction the flat map's
 // own drop shadows already fell — and on this projection decreasing col runs
@@ -88,30 +91,34 @@ export interface Palette {
 //        +row  down-left  glancing, away            dim
 //        +col  down-right faces away head-on        darkest
 //
-// Ordering these WRONG is not a subtle mis-tint: a roof whose up-left face
-// is darker than its up-right one looks exactly like something is casting a
+// Ordering these WRONG is not a subtle mis-tint: a roof whose up-left face is
+// darker than its up-right one looks exactly like something is casting a
 // shadow across it, and there is nothing there to cast one.
-function SLOPE(tint: string) {
+function SLOPE(roof: string) {
   return {
-    negCol: shade(tint, 1.07),
-    negRow: shade(tint, 1.0),
-    posRow: shade(tint, 0.86),
-    posCol: shade(tint, 0.72),
+    negCol: shade(roof, 1.12),
+    negRow: shade(roof, 1.0),
+    posRow: shade(roof, 0.84),
+    posCol: shade(roof, 0.7),
   };
 }
 
-// Tones from one tint. Deriving rather than authoring keeps a single source
-// of truth per building and guarantees every mass on the map is lit from the
-// same direction.
-export function paletteFrom(tint: string): Palette {
+// Tones from one MATERIAL — a wall colour and a roof colour, not one tint for
+// both. That split is the whole of PR F on screen: roof tones used to be
+// derived from the wall, so a gold hall stood under a gold roof and the two
+// read as a single mass. Deriving each family's shades from its own base still
+// keeps one source of truth per surface and guarantees every face on the map
+// is lit from the same direction.
+export function paletteFrom(m: Material, shadeFactor = 1): Palette {
+  const wall = shadeFactor === 1 ? m.wall : shade(m.wall, shadeFactor);
   return {
-    roof: tint,
-    // A raised flat deck (the hangar's clear-span roof), which faces
-    // straight up and so takes no slope tone at all.
-    roofDeck: shade(tint, 1.04),
-    ...SLOPE(tint),
-    wallLeft: shade(tint, 0.93),
-    wallRight: shade(tint, 0.75),
+    roof: m.roof,
+    // A raised flat deck (the hangar's clear-span roof), which faces straight
+    // up and so takes no slope tone at all.
+    roofDeck: shade(m.roof, 1.06),
+    ...SLOPE(m.roof),
+    wallLeft: shade(wall, 0.98),
+    wallRight: shade(wall, 0.78),
   };
 }
 
@@ -383,12 +390,11 @@ function Door({ d, origin, along, wallHeight, span }: {
 // the left wall faces down-row, the right wall faces down-col. Treads are
 // drawn from the top down, so the lowest (which projects furthest toward the
 // camera) paints over the ones behind it.
-function EntranceSteps({ d, centreCol, centreRow, outCol, outRow, span, tint }: {
+function EntranceSteps({ d, centreCol, centreRow, outCol, outRow, span }: {
   d: DoorDimensions;
   centreCol: number; centreRow: number;
   outCol: number; outRow: number;
   span: number;
-  tint: string;
 }) {
   if (d.treads <= 0 || d.threshold <= 0) return null;
   const halfW = Math.min(d.widthTiles, span * 0.6) / 2 + STEP_OVERHANG;
@@ -405,8 +411,8 @@ function EntranceSteps({ d, centreCol, centreRow, outCol, outRow, span, tint }: 
     const f = boxFaces(col, row, w, h, 0, (i + 1) * rise);
     out.push(
       <g key={i}>
-        <polygon points={polyPoints(f.left)} fill={shade(tint, 0.86)} />
-        <polygon points={polyPoints(f.right)} fill={shade(tint, 0.74)} />
+        <polygon points={polyPoints(f.left)} fill={shade(TRIM, 0.82)} />
+        <polygon points={polyPoints(f.right)} fill={shade(TRIM, 0.68)} />
         <polygon className="iso-step-tread" points={polyPoints(f.top)} />
       </g>,
     );
@@ -569,8 +575,8 @@ function CentrePavilion({ col, row, w, h, wallHeight, outward, pal, door, sills,
 // ellipse, which is right for something lying flat and exactly wrong for
 // something round — it would read as a dinner plate balanced on a drum. A
 // roughly spherical thing looks roughly circular from every direction.
-function ClockTower({ col, row, w, h, base, tint, pal }: {
-  col: number; row: number; w: number; h: number; base: number; tint: string; pal: Palette;
+function ClockTower({ col, row, w, h, base }: {
+  col: number; row: number; w: number; h: number; base: number;
 }) {
   const plan = Math.min(TOWER_BASE_PLAN, Math.min(w, h) * 0.42);
   const drumPlan = plan * (TOWER_DRUM_PLAN / TOWER_BASE_PLAN);
@@ -623,25 +629,27 @@ function ClockTower({ col, row, w, h, base, tint, pal }: {
 
   return (
     <>
-      <polygon points={polyPoints(shaft.left)} fill={pal.wallLeft} />
-      <polygon points={polyPoints(shaft.right)} fill={pal.wallRight} />
+      <polygon points={polyPoints(shaft.left)} fill={shade(TOWER_STONE, 0.98)} />
+      <polygon points={polyPoints(shaft.right)} fill={shade(TOWER_STONE, 0.82)} />
       <WallBand origin={shaft.D} along={shaft.C} wallHeight={TOWER_BASE_RISE} from={TOWER_BASE_RISE - CORNICE} to={TOWER_BASE_RISE} className="iso-cornice" />
       <WallBand origin={shaft.C} along={shaft.B} wallHeight={TOWER_BASE_RISE} from={TOWER_BASE_RISE - CORNICE} to={TOWER_BASE_RISE} className="iso-cornice" />
       {clock(shaft.D, shaft.C, 'cl')}
       {clock(shaft.C, shaft.B, 'cr')}
-      <polygon points={polyPoints(shaft.top)} fill={pal.roofDeck} />
+      <polygon points={polyPoints(shaft.top)} fill={shade(TOWER_STONE, 0.9)} />
 
-      <polygon points={polyPoints(drum.left)} fill={shade(tint, 1.02)} />
-      <polygon points={polyPoints(drum.right)} fill={shade(tint, 0.88)} />
-      <polygon points={polyPoints(drum.top)} fill={shade(tint, 1.06)} />
+      {/* The colonnaded drum, a shade brighter than the base it stands on. */}
+      <polygon points={polyPoints(drum.left)} fill={TOWER_STONE} />
+      <polygon points={polyPoints(drum.right)} fill={shade(TOWER_STONE, 0.86)} />
+      <polygon points={polyPoints(drum.top)} fill={shade(TOWER_STONE, 1.03)} />
 
-      <polygon className="iso-dome" points={dome.join(' ')} />
+      <polygon className="iso-dome" points={dome.join(' ')} fill={GILT} />
       <line
         className="iso-finial"
         x1={finialFoot.x} y1={finialFoot.y}
         x2={finialFoot.x} y2={finialFoot.y - TOWER_FINIAL_RISE}
+        stroke={GILT}
       />
-      <circle className="iso-dome" cx={finialFoot.x} cy={finialFoot.y - TOWER_FINIAL_RISE} r={2.2} />
+      <circle className="iso-dome" cx={finialFoot.x} cy={finialFoot.y - TOWER_FINIAL_RISE} r={2.2} fill={GILT} />
     </>
   );
 }
@@ -696,15 +704,20 @@ const VILLAGE_HOUSES: Array<[number, number, number, number]> = [
   [0.88, 0.20, 0.09, 0.56],
 ];
 
-function BuildingMotif({ t, p, tint, developing }: {
+function BuildingMotif({ t, p, material, developing }: {
   t: Buildable;
   p: { row: number; col: number; w: number; h: number };
-  tint: string;
+  material: Material;
   developing: boolean;
 }) {
   const motif = motifOf(t);
   const { row, col, w, h } = p;
-  const pal = paletteFrom(tint);
+  const pal = paletteFrom(material, wallShadeOf(t));
+  // What the solid helpers below shade from. A roof unit, a stair tread and a
+  // stand are not made of the wall they stand on — plant is roof-coloured,
+  // stonework is trim — so each takes the surface it actually belongs to.
+  const tint = pal.wallLeft;
+  const roofTint = material.roof;
 
   // Open ground has no mass at all — and no construction state worth
   // drawing either, since there is nothing to raise.
@@ -968,7 +981,7 @@ function BuildingMotif({ t, p, tint, developing }: {
         ))}
 
         {hasClockTower(t) && (
-          <ClockTower col={col} row={row} w={w} h={h} base={WH + ridge * 0.4} tint={tint} pal={pal} />
+          <ClockTower col={col} row={row} w={w} h={h} base={WH + ridge * 0.4} />
         )}
 
         {/* Last, because they project toward the camera and must paint over
@@ -984,13 +997,13 @@ function BuildingMotif({ t, p, tint, developing }: {
         {door && (
           <EntranceSteps
             d={door} centreCol={col + w / 2} centreRow={row + h + PAVILION_DEPTH}
-            outCol={0} outRow={1} span={w} tint={tint}
+            outCol={0} outRow={1} span={w}
           />
         )}
         {door && (
           <EntranceSteps
             d={door} centreCol={col + w + PAVILION_DEPTH} centreRow={row + h / 2}
-            outCol={1} outRow={0} span={h} tint={tint}
+            outCol={1} outRow={0} span={h}
           />
         )}
       </>
@@ -1025,13 +1038,13 @@ function BuildingMotif({ t, p, tint, developing }: {
       {!developing && door && (
         <EntranceSteps
           d={door} centreCol={col + w / 2} centreRow={row + h}
-          outCol={0} outRow={1} span={w} tint={tint}
+          outCol={0} outRow={1} span={w}
         />
       )}
       {!developing && door && (
         <EntranceSteps
           d={door} centreCol={col + w} centreRow={row + h / 2}
-          outCol={1} outRow={0} span={h} tint={tint}
+          outCol={1} outRow={0} span={h}
         />
       )}
 
@@ -1128,7 +1141,7 @@ function BuildingMotif({ t, p, tint, developing }: {
                 col={col + w * unit.col} row={row + h * unit.row}
                 w={w * unit.w} h={h * unit.h}
                 base={H} height={motif === 'works' ? 12 : motif === 'block' ? 15 : 9}
-                tint={tint}
+                tint={roofTint}
               />
             ))
           )}
@@ -1152,56 +1165,15 @@ function BuildingMotif({ t, p, tint, developing }: {
 // identity; `t` genuinely is the same object until the reducer runs.
 export default memo(BuildingMotif, (a, b) => (
   a.t === b.t
-  && a.tint === b.tint
+  && a.material === b.material
   && a.developing === b.developing
   && a.p.col === b.p.col && a.p.row === b.p.row
   && a.p.w === b.p.w && a.p.h === b.p.h
 ));
 
-// ---------------------------------------------------------------------
-// Building tints. These moved OUT of styles.css: the motifs above derive
-// five tones from each tint at runtime, so the tint has to be a value this
-// code can read rather than a rule a stylesheet applies. Keeping both would
-// have meant one source of truth for the flat colour and another for every
-// shade of it, drifting apart at the first retune.
-//
-// Facility values and the dorm shades are carried over UNCHANGED from the
-// stylesheet's own kind-/tint- table, so no placed building changes colour.
-// ---------------------------------------------------------------------
-const BUILDING_TINT = '#c9a227';           // academic halls: one fixed landmark gold, never id-hashed
-const DORM_TINTS = ['#cfe0cf', '#c2d8c1', '#d8e6d3', '#c8ddd0'];
-const FACILITY_TINTS: Record<FacilityType, string> = {
-  library: '#d9cba3',
-  studentCenter: '#e0cdb4',
-  diningHall: '#e6d3ae',
-  recCenter: '#d3cdb2',
-  healthCenter: '#e3d6c6',
-  quad: '#cfdcc4',
-  lab: '#cdd0c0',
-  gym: '#d6c9a0',
-  tennisCourts: '#d1d9b8',
-  pool: '#b9cdd4',
-  performingArtsCenter: '#d8c2c9',
-  artGallery: '#cbc0d3',
-  athleticsField: '#c9d9a8',
-  athleticsArena: '#cdbfa0',
-  athleticsDiamond: '#d7c49a',
-  athleticsNatatorium: '#a9c7cf',   // a distinct blue from the rec pool's
-  footballStadium: '#d4a94f',       // the pinnacle venue, boldest of the facility tints
-  grocery: '#ecd9a4',
-};
-
-// Dorms take their shade from a hash of their own id, so neighbouring
-// residences differ; every other kind is fixed by what it is.
-function hashTint(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 1000003;
-  return h % DORM_TINTS.length;
-}
-
-export function tintFor(t: Buildable): string {
-  if (t.kind === 'building') return BUILDING_TINT;
-  if (t.kind === 'dorm') return DORM_TINTS[hashTint(t.id)];
-  if (t.kind === 'facility' && t.facilityType) return FACILITY_TINTS[t.facilityType] ?? '#dccfa6';
-  return '#dccfa6';
-}
+// Colour lives in buildingSpec.ts's MATERIALS now, not here and not in
+// styles.css. A stylesheet cannot derive five shades of a surface at runtime,
+// which is why the tints were ever in this file; and a material is a fact
+// about a BUILDING, not about how it is drawn, which is why they are in the
+// spec rather than in the renderer. See the note above materialOf.
+export { materialOf } from './buildingSpec';
