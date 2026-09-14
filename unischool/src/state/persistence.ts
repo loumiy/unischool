@@ -13,6 +13,7 @@ import {
   coachSalaryFor, initialCoachCandidatePool, LEGACY_TWO_GENDER_SPORT_MIGRATION, SPORTS,
 } from '../data/studentLifeData';
 import { athleticStrengthFor } from '../data/rivalData';
+import { legacyRoundRobinAssignments } from '../systems/faculty/facultyAssignment';
 
 // ---------------------------------------------------------------------
 // Save / load (see README's "Save / load"). A run is measured in hours, so
@@ -695,7 +696,113 @@ export const SAVE_KEY = 'unischool.save';
 // consequence MIGRATIONS[11]'s own note spells out.
 //
 // See MIGRATIONS[29].
-export const SAVE_VERSION = 30;
+//
+// v30 -> v31: who teaches what becomes real state. GameState gains
+// `courseFaculty` (course id -> faculty id — see types.ts's CourseFaculty
+// block): the instructor the player picks when they start a course, and
+// can change afterwards.
+//
+// The whole migration is one idea: MATERIALIZE THE PROJECTION. Before this
+// version the pairing was not stored at all — it was a round-robin computed
+// on read, dealing a field's faculty against that field's offered courses,
+// both sorted by id. That is what every resumed save has been DRAWING under
+// its course cells and on its faculty cards for its whole run, so writing
+// exactly those pairings into the new record means the game the player
+// reopens says precisely what the game they closed said. The feature
+// arrives as "you can change this now", never as "everyone has been
+// reshuffled behind your back" — which is what any cleverer seeding rule
+// would produce, and is the reason the round-robin is kept frozen in
+// facultyAssignment.ts rather than improved.
+//
+// Two consequences follow from the record existing, and both are correct
+// rather than incidental:
+//
+//   - A course in a field with NOBODY on the roster gets no entry, and so
+//     resumes UNSTAFFED. That is not damage: it is the true state of a
+//     department the save had already emptied (by dismissal, or by the v5
+//     field re-taxonomy, whose own note flags exactly this), and the old
+//     build simply had no way to say so. It now shows on the course and
+//     invites a hire.
+//   - Those unstaffed courses STILL HOLD their field slots. A course
+//     nobody teaches has not gone away — it is still offered and still
+//     owed to students, and the capacity to teach it is precisely what the
+//     department is missing. So a resumed save with an emptied department
+//     reads as over-committed, which it is: it cannot open new courses in
+//     that field until it has staffed the ones it already offers, though
+//     re-staffing them is always available (eligibility is per-person).
+//
+// One further wrinkle, accepted rather than corrected: the round-robin
+// deals courses out without regard to anyone's courseSlots, so a resumed
+// save CAN open with somebody carrying more than their own ceiling (three
+// English courses across a department of one). That is not new — it is the
+// over-subscription MIGRATIONS[5]'s own note already describes, and it is
+// what the save has actually been doing. Nothing breaks: an over-loaded
+// professor simply has no free slot, so they can take nothing further
+// until the player moves something off them, which is the honest reading
+// of an over-stretched department and a thing the player can now see and
+// fix. Rebalancing them here would be the silent reshuffle this migration
+// exists to avoid.
+//
+// See MIGRATIONS[30].
+//
+// v31 -> v32: scholarship reaches every school. Two shape changes, both
+// additive, and one consequence worth naming.
+//
+//   - ResearchState gains `publications`, the new cheap/frequent output
+//     (researchData.ts's RESEARCH_OUTPUTS). Seeded at 0 rather than
+//     back-derived: a resumed save never produced one, so any other figure
+//     would be inventing history. It feeds prestige at a tenth of a
+//     breakthrough's credit, inside the same clamped input, so a resumed
+//     school's standing is untouched on load and only changes as it
+//     publishes from here.
+//   - Four research facilities are spliced in — one each for Business,
+//     Computer Science, Social Sciences & Humanities and Arts & Media (see
+//     techData.ts's LAB_GATED_MAJOR_PREFIXES). They arrive 'locked' like
+//     any new content and unlock behind whatever the save has already
+//     built, through the ordinary id-splice MIGRATIONS[10]/[11]/[29]
+//     already use.
+//
+// THE CONSEQUENCE: those four majors' tier-3 courses now require their
+// school's facility, exactly as a lab science's always have. Nothing ever
+// re-locks (see techSystem.ts's unlockAvailable), so a capstone a save has
+// already unlocked or finished is untouched — but one that had NOT been
+// reached yet now waits on a building that did not exist last version.
+// That is the same class of accepted re-gating MIGRATIONS[11] and [29]
+// both describe, and it is the point rather than a side effect: the
+// facility is what lets the school do scholarship at all, so putting it on
+// the path to those majors' capstones is what makes it something a player
+// builds rather than an optional ornament.
+//
+// See MIGRATIONS[31].
+//
+// v32 -> v33: scholarship becomes something the player commissions.
+// ResearchState gains `initiatives` (keyed by the facility hosting each
+// one) and `completedInitiatives`, both empty on a resumed save — nothing
+// to reconstruct, because no prior version had the concept.
+//
+// WHAT A RESUMED SAVE LOSES, stated plainly because it is a real change
+// rather than a no-op: the weekly trickle is gone. Under the old model,
+// lab-equipped faculty banked points into one campus pool and the pool
+// occasionally bought an output, so a school produced research simply for
+// owning a building. That is retired (decision 7) — idle capacity produces
+// nothing now, and the way to produce is to start something. A resumed run
+// therefore stops generating grants and breakthroughs the week it loads,
+// until the player commissions work at one of its facilities.
+//
+// `points` and `lifetimePoints` survive untouched rather than being
+// deleted: lifetimePoints is still written (it tracks what running
+// projects produce), and `points` becomes a dead figure the way
+// Faculty.morale once did — harmless, read by nothing, and not worth a
+// shape change to remove.
+//
+// Everything the old model actually EARNED is kept whole. breakthroughs,
+// prizes, publications, grants and grantIncome are monotone stocks and
+// carry forward, so a research university resumes with exactly the
+// standing it built (prestigeSystem.ts's researchScore reads those same
+// counts) — it just has to commission work to add to it.
+//
+// See MIGRATIONS[32].
+export const SAVE_VERSION = 33;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -887,8 +994,9 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   // rename the player's school out from under them.
   6: (state) => {
     state.research = {
-      points: 0, lifetimePoints: 0, grants: 0, grantIncome: 0,
-      breakthroughs: 0, prizes: 0, lastOutputWeek: 0, pendingPrizes: [],
+      points: 0, lifetimePoints: 0, publications: 0, grants: 0, grantIncome: 0,
+      breakthroughs: 0, prizes: 0, initiatives: {}, completedInitiatives: [],
+      lastOutputWeek: 0, pendingPrizes: [],
     };
     for (const f of state.faculty) f.acclaim = 0;
     for (const c of state.candidates ?? []) c.acclaim = 0;
@@ -1571,6 +1679,63 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     }
   },
 
+  // v30 -> v31: materialize the course -> instructor pairing the old build
+  // computed on read. See the SAVE_VERSION header note for why the frozen
+  // round-robin is the only correct seeding rule here.
+  30: (state) => {
+    if (typeof state.courseFaculty !== 'object' || state.courseFaculty === null) {
+      state.courseFaculty = legacyRoundRobinAssignments(state);
+    }
+  },
+
+  // v31 -> v32: scholarship reaches every school. See the SAVE_VERSION
+  // header note for the shape change and the one re-gating consequence.
+  31: (state) => {
+    if (typeof state.research.publications !== 'number') state.research.publications = 0;
+
+    const seed = initialTech();
+
+    // 1. The four new research facilities, at their seeded status. The same
+    //    id-splice MIGRATIONS[10]/[11]/[29] use: append what the save does
+    //    not have, touch nothing it does.
+    const have = new Set(state.tech.map((node) => node.id));
+    for (const node of seed) {
+      if (!have.has(node.id)) state.tech.push({ ...node });
+    }
+
+    // 2. Re-point the capstones that now need one — UNBUILT ONLY, which is
+    //    exactly the split MIGRATIONS[29] draws and for the same reason.
+    //    A capstone the player has already started or finished keeps the
+    //    prereqs it was actually bought under; one they have not reached
+    //    takes the new gate, so a resumed run and a fresh one converge on
+    //    the same rule rather than diverging forever on when they began.
+    //
+    //    Identified by what the SEED says rather than by a prefix list:
+    //    a course needs re-pointing when its seeded prereqs name a
+    //    facility the saved copy does not know about. That stays correct
+    //    if the facility table is ever widened again.
+    const byId = new Map(state.tech.map((node) => [node.id, node]));
+    for (const seeded of seed) {
+      if (seeded.kind !== 'course') continue;
+      const saved = byId.get(seeded.id);
+      if (!saved) continue;
+      if (saved.status === 'done' || saved.status === 'developing') continue;
+      const added = seeded.prereqs.filter((id) => !saved.prereqs.includes(id));
+      if (added.length === 0) continue;
+      saved.prereqs = [...seeded.prereqs];
+    }
+  },
+
+  // v32 -> v33: initiatives. Nothing to reconstruct — no prior version had
+  // the concept — so this only makes room for them. See the SAVE_VERSION
+  // header note for what a resumed save stops doing.
+  32: (state) => {
+    if (typeof state.research.initiatives !== 'object' || state.research.initiatives === null) {
+      state.research.initiatives = {};
+    }
+    if (!Array.isArray(state.research.completedInitiatives)) state.research.completedInitiatives = [];
+  },
+
   // v28 -> v29: Athletics V2. See the SAVE_VERSION header comment above for
   // the full shape change; this just applies it.
   28: (state) => {
@@ -1836,6 +2001,33 @@ function sanitizeSeen(state: GameState): void {
   };
 }
 
+// Drops course -> instructor entries that no longer name a real pairing:
+// the course is gone from the seed, the faculty member is not on the
+// roster, or the value isn't a string at all. Same defensive posture as
+// sanitizePlacements/sanitizeSeen above, and cheap for the same reason —
+// a stale entry here is not a crash but it IS a lie, and the one thing
+// this record must never do is claim a course is taught by somebody who
+// does not work here.
+//
+// Note what is deliberately NOT repaired: a course left with no entry is
+// not reassigned to somebody available. Unstaffed is a legitimate, visible
+// state with a fix the player owns (see types.ts's CourseFaculty) —
+// quietly filling it in here would hide exactly the situation the feature
+// exists to surface.
+function sanitizeCourseFaculty(state: GameState): void {
+  const source = (typeof state.courseFaculty === 'object' && state.courseFaculty !== null) ? state.courseFaculty : {};
+  const courseIds = new Set(state.tech.map((t) => t.id));
+  const facultyIds = new Set(state.faculty.map((f) => f.id));
+
+  const clean: GameState['courseFaculty'] = {};
+  for (const [courseId, facultyId] of Object.entries(source)) {
+    if (typeof facultyId !== 'string') continue;
+    if (!courseIds.has(courseId) || !facultyIds.has(facultyId)) continue;
+    clean[courseId] = facultyId;
+  }
+  state.courseFaculty = clean;
+}
+
 // A shallow structural check, not a full validation of GameState. The point
 // is to reject the things that actually happen — a truncated write, a key
 // collision, a payload from an older shape that shares the version number
@@ -1905,5 +2097,6 @@ export function loadGame(): GameState | null {
   sanitizeTrees(state);
   sanitizeTeams(state);
   sanitizeSeen(state);
+  sanitizeCourseFaculty(state);
   return state;
 }

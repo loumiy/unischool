@@ -4,6 +4,7 @@ import {
   athleticsSocialBonus, CHAPTER_HOUSE_CAPACITY_BONUS, clubSocialBonus, greekSocialBonus, studentLifeSocialBonus,
 } from '../../data/studentLifeData';
 import { totalEnrolled } from '../../state/types';
+import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
 
 // ---------------------------------------------------------------------
 // Satisfaction stays ONE displayed number (s.students.satisfaction), but
@@ -138,7 +139,7 @@ const SCHOLARSHIP_AFFORDABILITY_MAX_BONUS = 20; // added to `basicNeeds` at 100%
 // REPUTATION_PRIDE_MAX_BONUS/SCHOLARSHIP_AFFORDABILITY_MAX_BONUS above, so a
 // library already scoring 100 cannot be pushed past it and a bare roster
 // cannot pull academic down below what the library alone earned.
-const FACULTY_QUALITY_MAX_BONUS = 15; // added to `academic` at a fully-matured, top-tier average roster
+const FACULTY_QUALITY_MAX_BONUS = 15; // added to `academic` when every course offered is graded at the top of the scale (see teachingQualityScore)
 
 // Satisfaction has exactly one mechanical consequence: it scales the next
 // annual admissions cycle's applicant pool as word of mouth (see
@@ -211,17 +212,30 @@ function ratioScore(servesPopulation: number, enrolled: number, targetRatio: num
   return clamp(100 * ratio ** curvature, ATTRIBUTE_SCORE_FLOOR, 100);
 }
 
-// The roster's average current teaching+research (each 0..100), normalized
-// to 0..1 — mirrors prestigeSystem.ts's own facultyQualityScore exactly
-// (current, already-grown stats only, so a retained hire matters more than
-// a fresh one), kept as an independent local reading rather than an import
-// since systems only ever read/write shared state, never call into each
-// other. An empty roster reads as 0, its floor, rather than dividing by
-// zero.
-function facultyQualityScore(s: GameState): number {
-  if (s.faculty.length === 0) return 0;
-  const avgStat = s.faculty.reduce((sum, f) => sum + f.teaching + f.research, 0) / (s.faculty.length * 2);
-  return clamp(avgStat / 100, 0, 1);
+// How good the teaching a student actually RECEIVES is, normalized to
+// 0..1: the mean quality grade across every course the university
+// currently offers (see data/courseQuality.ts).
+//
+// This replaces a roster average of teaching+research. The roster average
+// was answering the wrong question — it counted a brilliant chemist the
+// school hired and never assigned to anything, and it counted research
+// ability, which no undergraduate experiences. Students experience the
+// COURSES THEY TAKE, so that is what this reads now.
+//
+// The change is also what makes the academic attribute move on the
+// player's second lever. Before, the only way to raise it was to build
+// more library; faculty entered as an average that barely shifted. Now
+// improving a weak course — moving it to a better teacher, or taking load
+// off the one who has it — moves the same number that opening another
+// course does, which is the whole "expand or improve" decision the grade
+// exists to create.
+//
+// A campus with nothing open yet reads 0 here, its floor, exactly as an
+// empty roster did: no courses is not the same as bad courses, but it is
+// equally not a claim to academic quality.
+function teachingQualityScore(s: GameState): number {
+  const avg = campusAverageCourseQuality(s);
+  return avg === null ? 0 : clamp(avg / 100, 0, 1);
 }
 
 export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttributes {
@@ -234,7 +248,7 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
   // [ATTRIBUTE_SCORE_FLOOR, 100] band every other attribute uses, so a
   // library already at its ceiling gains nothing further from faculty.
   const academicLibraryRatio = ratioScore(servedPopulationFor(s, 'academic'), enrolled, TARGET_RATIO.academic, 1);
-  const academicFacultyBonus = facultyQualityScore(s) * FACULTY_QUALITY_MAX_BONUS;
+  const academicFacultyBonus = teachingQualityScore(s) * FACULTY_QUALITY_MAX_BONUS;
   const academic = clamp(academicLibraryRatio + academicFacultyBonus, ATTRIBUTE_SCORE_FLOOR, 100);
 
   const socialRatio = ratioScore(servedPopulationFor(s, 'social'), enrolled, TARGET_RATIO.social, SOCIAL_PENALTY_CURVATURE);
@@ -331,8 +345,8 @@ export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttri
   const flat = flatBonusFor(s, attribute);
   if (flat > 0) bonuses.push({ label: 'Quad & other flat contributors', value: flat });
   if (attribute === 'academic') {
-    const facultyBonus = facultyQualityScore(s) * FACULTY_QUALITY_MAX_BONUS;
-    if (facultyBonus > 0) bonuses.push({ label: 'Faculty quality', value: facultyBonus });
+    const facultyBonus = teachingQualityScore(s) * FACULTY_QUALITY_MAX_BONUS;
+    if (facultyBonus > 0) bonuses.push({ label: 'Course quality', value: facultyBonus });
   }
   if (attribute === 'social') {
     const pride = clamp(s.self.reputation / REPUTATION_PRIDE_PRESTIGE_MAX, 0, 1) * REPUTATION_PRIDE_MAX_BONUS;

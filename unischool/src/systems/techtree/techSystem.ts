@@ -1,4 +1,4 @@
-import type { GameState, Buildable, BuildableEffects } from '../../state/types';
+import type { GameState, Buildable, BuildableEffects, Faculty } from '../../state/types';
 import { totalEnrolled } from '../../state/types';
 import { graduateCourseIds, graduateGateMet, graduatePrograms, milestoneSchools } from '../../data/techData';
 import { isCelebratedMilestone } from '../../data/eventData';
@@ -32,17 +32,134 @@ const PROGRAM_ESTABLISHED_APPLICANT_BONUS = 30;
 // payoff is the capped breadth input it lifts (see prestigeSystem.ts).
 const GRAD_PROGRAM_COMPLETE_APPLICANT_BONUS = 60;
 
-// Counts how many course Buildables currently occupy a faculty course-slot
-// in `field` — every course whose requiresFaculty matches that has started
-// developing or finished. A course never "retires" once offered (there's no
-// course-removal in this model), so it keeps occupying its slot forever —
-// which is exactly what makes offering more courses in a subject a real,
-// ongoing faculty-capacity cost rather than a one-time hiring gate. Only
-// the curated set of courses with a requiresFaculty field are slot-gated at
-// all (see techData.ts's REQUIRES_FACULTY) — most of the curriculum has no
-// requiresFaculty and so never touches this.
+// Is this Buildable currently OFFERED — i.e. does it hold a faculty course
+// slot? Development is the commitment, not completion: a course never
+// "retires" once offered (there's no course-removal in this model), so from
+// the week it starts it occupies a slot forever, which is what makes
+// offering more courses in a subject an ongoing faculty-capacity cost
+// rather than a one-time hiring gate.
+function isOffered(t: Buildable): boolean {
+  return t.status === 'developing' || t.status === 'done';
+}
+
+// Who is actually teaching this course right now: the faculty member the
+// player assigned, if they are still on the roster. undefined for a course
+// that is not offered, has no faculty field, or whose instructor has left
+// (see isUnstaffed below).
+//
+// This is the ONE place a `courseFaculty` id is resolved against the
+// roster, so "the assignment names someone who no longer works here" can
+// never be answered two different ways by two different callers.
+export function assignedInstructor(s: GameState, t: Buildable): Faculty | undefined {
+  const facultyId = s.courseFaculty[t.id];
+  if (!facultyId) return undefined;
+  return s.faculty.find((f) => f.id === facultyId);
+}
+
+// An offered course with a faculty field and nobody live teaching it —
+// the state a dismissal leaves behind (see the reducer's FIRE_FACULTY).
+// The course is still offered and still counts toward the catalogue; what
+// it has lost is its teacher, which is a thing the player must fix rather
+// than an error the engine should paper over.
+export function isUnstaffed(s: GameState, t: Buildable): boolean {
+  return isOffered(t) && !!t.requiresFaculty && assignedInstructor(s, t) === undefined;
+}
+
+// Every offered course currently without a live instructor, in s.tech
+// order. The UI's worklist, and the count a dismissal reports.
+export function unstaffedCourses(s: GameState): Buildable[] {
+  return s.tech.filter((t) => isUnstaffed(s, t));
+}
+
+// Is this person committed to a running research initiative?
+//
+// THE KEYSTONE CONSTRAINT, and the one place teaching and scholarship
+// actually compete. A committed scholar stops teaching for the duration —
+// six months to five years — so every initiative is paid for twice: once
+// in money, and once in the courses those people are no longer holding.
+// That is what makes a hire an allocation decision rather than a number
+// going up, and it is why a Landmark Program is a genuine institutional
+// sacrifice rather than something to switch on for whoever is idle.
+export function isCommitted(s: GameState, facultyId: string): boolean {
+  for (const initiative of Object.values(s.research.initiatives)) {
+    if (initiative.participantIds.includes(facultyId)) return true;
+  }
+  return false;
+}
+
+// The course slots this person actually offers the school right now: none
+// while they are committed, their own count otherwise. Every capacity
+// read goes through this rather than f.courseSlots directly, so the
+// commitment cannot be forgotten in one place and honoured in another.
+export function effectiveCourseSlots(s: GameState, f: Faculty): number {
+  return isCommitted(s, f.id) ? 0 : f.courseSlots;
+}
+
+// How many courses this specific person is currently teaching — their
+// personal load against their own `courseSlots`.
+//
+// The per-PERSON half of the capacity rule. Before assignments were real
+// state there was only the per-FIELD aggregate below, because there was no
+// answer to "whose slot is this": the round-robin spread a field's courses
+// across its faculty on read. Now that the player picks, load is a fact
+// about a person, and it is what decides whether THEY can take one more.
+export function facultyLoad(s: GameState, facultyId: string): number {
+  return s.tech.filter((t) => isOffered(t) && s.courseFaculty[t.id] === facultyId).length;
+}
+
+// Can this person take on one more course?
+export function hasFreeSlot(s: GameState, f: Faculty): boolean {
+  return facultyLoad(s, f.id) < effectiveCourseSlots(s, f);
+}
+
+// Everyone who could be assigned to this course right now: on the roster,
+// in its field, and not already at their own slot ceiling. Sorted
+// strongest-teacher first, so the list the player is offered leads with
+// the answer they most likely want and the engine's own auto-pick (see
+// startDevelopment) is simply its first entry.
+//
+// `except` is the course being REASSIGNED away from, if any: its current
+// instructor keeps the slot that course occupies, so without this they
+// would appear ineligible to go on teaching a course they already teach
+// whenever they are otherwise full.
+export function eligibleInstructors(s: GameState, node: Buildable, except?: string): Faculty[] {
+  if (!node.requiresFaculty) return [];
+  return s.faculty
+    .filter((f) => f.field === node.requiresFaculty)
+    .filter((f) => hasFreeSlot(s, f) || (except !== undefined && s.courseFaculty[except] === f.id))
+    .sort((a, b) => b.teaching - a.teaching || a.id.localeCompare(b.id));
+}
+
+// How many faculty course-slots in `field` are spoken for: every OFFERED
+// course in it, whether or not somebody is currently teaching it.
+//
+// UNSTAFFED COURSES STILL COUNT, and that is the whole subtlety. The
+// tempting reading is that a course nobody teaches holds nobody's slot, so
+// a dismissal should hand its capacity back — losing the teacher, not the
+// teacher and the capacity both. That is wrong, and the balance sim is
+// what proved it: an unstaffed course has not gone away. It is still in
+// the catalogue, still owed to students, and still needs somebody to teach
+// it. The capacity to teach it is precisely what the school just lost.
+//
+// Counting only staffed courses made dismissal a way to BUY capacity:
+// fire a professor, their courses go quiet, the department reads as having
+// room again, and the school opens more courses it equally cannot staff.
+// Run to its conclusion in the sim, a school reached 421 offered courses
+// on 68 faculty — a catalogue five times larger than anyone could teach,
+// which looked healthy only because nothing yet read the silence.
+//
+// Note what this does NOT block. Re-staffing an orphan is a PER-PERSON
+// check (eligibleInstructors -> hasFreeSlot), not this field-level one, so
+// a replacement hire can always take over the courses their predecessor
+// left — what an over-committed department cannot do is open NEW ones
+// until it has the people for the ones it already offers. That is the
+// right pressure, and the right order: staff what you promised before
+// promising more.
+//
+// Only the curated set of courses with a requiresFaculty field are
+// slot-gated at all (see techData.ts's REQUIRES_FACULTY).
 export function usedFacultySlots(s: GameState, field: string): number {
-  return s.tech.filter((t) => t.requiresFaculty === field && (t.status === 'developing' || t.status === 'done')).length;
+  return s.tech.filter((t) => t.requiresFaculty === field && isOffered(t)).length;
 }
 
 // Total course-slot capacity the roster offers in `field` — the sum of
@@ -50,7 +167,9 @@ export function usedFacultySlots(s: GameState, field: string): number {
 // facultyData.ts's grownSlots: an individual's slot count grows slowly with
 // tenure, on top of the base rolled at hire).
 export function totalFacultySlots(s: GameState, field: string): number {
-  return s.faculty.filter((f) => f.field === field).reduce((sum, f) => sum + f.courseSlots, 0);
+  return s.faculty
+    .filter((f) => f.field === field)
+    .reduce((sum, f) => sum + effectiveCourseSlots(s, f), 0);
 }
 
 // UI-facing helper (CurriculumTab.tsx, CampusTab.tsx) so "is there a free
@@ -102,19 +221,49 @@ export function neededFacultyFields(s: GameState): Set<string> {
 // through this function. The faculty course-slot gate is a
 // separate, per-field capacity rule on the curated requiresFaculty
 // courses, not a throttle on development volume.
-export function canStartDevelopment(s: GameState, node: Buildable): boolean {
-  const facultyOk = !node.requiresFaculty || hasFreeFacultySlot(s, node.requiresFaculty);
+//
+// `facultyId` is the instructor the player CHOSE (see the Curriculum tab).
+// Supplying it narrows the faculty half of the gate from "this department
+// has a free slot somewhere" to "this specific person can take it" —
+// they are on the roster, in the right field, and not already full.
+// Omitting it keeps the old department-level question, which is what a
+// placeable Buildable's PLACE_BUILDABLE still asks (a building is not
+// taught by anyone) and what the UI asks when it only needs to know
+// whether a course is startable AT ALL before offering the picker.
+export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: string): boolean {
+  const facultyOk = !node.requiresFaculty
+    || (facultyId === undefined
+      ? hasFreeFacultySlot(s, node.requiresFaculty)
+      : eligibleInstructors(s, node).some((f) => f.id === facultyId));
   const canAfford = s.finance.cash >= node.cost;
   return node.status === 'available' && facultyOk && canAfford;
 }
 
-export function startDevelopment(s: GameState, node: Buildable): void {
+export function startDevelopment(s: GameState, node: Buildable, facultyId?: string): void {
   node.status = 'developing';
   s.developing[node.id] = node.duration;
   // Charged in full, up front. Never takes cash below zero: only
   // canStartDevelopment admits a start, and it requires the cash to be
   // there first.
   s.finance.cash -= node.cost;
+
+  // Record who teaches it. The assignment is written in the SAME
+  // transaction as the start, for the same reason PLACE_BUILDABLE writes a
+  // placement in the same transaction as its start: a developing course is
+  // never without an instructor, exactly as a developing building is never
+  // without a location.
+  //
+  // An omitted facultyId auto-picks the strongest eligible teacher rather
+  // than leaving the course unstaffed. That path is deliberately NOT the
+  // player's: the UI always passes an explicit choice, because the choice
+  // is the feature. It exists for the two callers that are not a player
+  // making one — the playtest-only "Develop All" button and the headless
+  // balance sim — where a forced pick would be noise, and for a course
+  // with no faculty field at all, which simply records nothing.
+  if (node.requiresFaculty) {
+    const chosen = facultyId ?? eligibleInstructors(s, node)[0]?.id;
+    if (chosen) s.courseFaculty[node.id] = chosen;
+  }
 }
 
 // Applies only the "apply-once, at completion" effect fields (see the split

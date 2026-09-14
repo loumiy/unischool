@@ -1,11 +1,12 @@
-import type { Faculty, GameState } from '../../state/types';
-import { absoluteWeek } from '../../data/eventData';
+import type { Faculty, GameState, Initiative } from '../../state/types';
+import { INITIATIVE_HISTORY_LIMIT, WEEKS_PER_YEAR } from '../../state/types';
 import {
-  CHEAPEST_OUTPUT_COST, RESEARCH_OUTPUTS, RESEARCH_OUTPUT_COOLDOWN_WEEKS,
-  facultyResearchOutput, researchOutputWeeklyChance, researchingFaculty,
-  rollGrantAmount, rollGrantFunder, rollPrizeName, weeklyResearchPoints,
+  RESEARCH_OUTPUTS, awardChance, disciplineVocab, facultyResearchOutput, initiativeDepth,
+  initiativeOutputChance, initiativeWeeklyOutput, rollGrantAmount, rollGrantFunder,
+  rollPrizeName, rollProducingSchool, teamStrength,
 } from '../../data/researchData';
-import type { ResearchOutputDef } from '../../data/researchData';
+import { researchTopic } from '../../data/researchTopics';
+import type { ResearchOutputDef, ResearchOutputKind } from '../../data/researchData';
 
 // ---------------------------------------------------------------------
 // One ordinary pure tick function (see README's "Research"). Two things
@@ -47,115 +48,122 @@ function log(s: GameState, message: string, kind: 'info' | 'good' | 'bad'): void
   s.log.unshift({ year: s.clock.year, week: s.clock.week, message, kind });
 }
 
-// A grant: cash, silently. Routed straight into the operating account the
-// same way an estate gift is — financeSystem.ts needs to know nothing
-// about research for this to work, which is the point.
-function awardGrant(s: GameState): void {
-  const amount = rollGrantAmount(s);
-  s.finance.cash += amount;
-  s.research.grants += 1;
-  s.research.grantIncome += amount;
-  log(
-    s,
-    `Research grant: ${rollGrantFunder()} has awarded $${amount.toLocaleString()} to the university's laboratories.`,
-    'good',
-  );
+// =====================================================================
+// THE INITIATIVE LOOP — what replaced the stock.
+//
+// Scholarship used to be a bank: lab-equipped faculty trickled points into
+// one campus-wide pool every week, and the pool occasionally bought an
+// output. That produced research because the school OWNED A BUILDING, with
+// no decision anywhere in it.
+//
+// Now the player commissions the work — a topic, a team, a depth, out of a
+// specific facility — and this runs it. The randomness is all still here
+// and does the same job; what changed is that it resolves something the
+// player chose rather than resolving everything. Idle capacity produces
+// nothing (decision 7): the way to produce is to start something.
+// =====================================================================
+
+const OUTPUT_KINDS_DURING_RUN: readonly ResearchOutputKind[] = ['publication', 'grant', 'breakthrough'];
+
+// The during-run draw: the same weighted table the old bank used, minus
+// the prize, which is now judged at conclusion instead (see concludeInitiative).
+function rollDuringRunOutput(s: GameState, initiative: Initiative, participants: Faculty[]): void {
+  const depth = initiativeDepth(initiative.depth);
+  const output = initiativeWeeklyOutput(s, participants, depth);
+  if (Math.random() >= initiativeOutputChance(output)) return;
+
+  const eligible = RESEARCH_OUTPUTS.filter((o) => OUTPUT_KINDS_DURING_RUN.includes(o.kind));
+  const chosen = weightedPick(eligible);
+  if (!chosen) return;
+
+  const school = rollProducingSchool(s);
+  const vocab = disciplineVocab(school);
+  const topic = researchTopic(initiative.topicId);
+  const where = topic ? `“${topic.name}”` : 'the project';
+
+  if (chosen.kind === 'publication') {
+    initiative.publications += 1;
+    s.research.publications += 1;
+    log(s, `A new ${vocab.publication} out of ${where}.`, 'info');
+  } else if (chosen.kind === 'grant') {
+    const amount = rollGrantAmount(s);
+    // A strong team pulls more money in — the brief's "faculty research
+    // strength improves outcomes", applied where it is most legible.
+    const scaled = Math.round(amount * (0.7 + teamStrength(participants)));
+    s.finance.cash += scaled;
+    s.research.grants += 1;
+    s.research.grantIncome += scaled;
+    initiative.grantIncome += scaled;
+    log(s, `${rollGrantFunder()} has awarded $${scaled.toLocaleString()} to ${where}.`, 'good');
+  } else {
+    initiative.breakthroughs += 1;
+    s.research.breakthroughs += 1;
+    log(s, `A ${vocab.breakthrough} out of ${where} has been published and taken up widely.`, 'good');
+  }
 }
 
-// A breakthrough: prestige, silently, and ONLY through the capped input.
-// Note what this does NOT do — it never touches s.self.reputation. It
-// increments a monotone count that prestigeSystem.ts's researchScore
-// reads as one clamped 0..1 input among seven, so a research-heavy school
-// gains at most that input's own weight and still cannot outrun the
-// curriculum-breadth term (see prestigeSystem.ts).
-function awardBreakthrough(s: GameState): void {
-  s.research.breakthroughs += 1;
-  log(
-    s,
-    'A breakthrough out of the university\'s labs has been published and taken up widely — the school\'s academic standing is the better for it.',
-    'good',
-  );
+// The end of a run. The payoff is the completion itself (a credit in
+// researchScore, sized by depth), and then the one thing that can only
+// happen here: the award roll, gated on the work having actually produced
+// a breakthrough.
+function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boolean): void {
+  const participants = s.faculty.filter((f) => initiative.participantIds.includes(f.id));
+  const topic = researchTopic(initiative.topicId);
+  const name = topic?.name ?? 'the project';
+  let award: string | null = null;
+
+  if (!cancelled) {
+    const strength = teamStrength(participants);
+    if (Math.random() < awardChance(initiative.depth, strength, initiative.breakthroughs)) {
+      // Drawn from the team that did the work, weighted by their own
+      // output — so it usually, but not always, goes to the strongest
+      // person on it.
+      const winner = pickFrom(participants);
+      if (winner) {
+        winner.acclaim += 1;
+        s.research.prizes += 1;
+        award = rollPrizeName();
+        s.research.pendingPrizes.push({
+          facultyId: winner.id, facultyName: winner.name, field: winner.field, prizeName: award,
+        });
+        log(s, `${winner.name} has been awarded ${award} for “${name}”.`, 'good');
+      }
+    }
+    log(s, `“${name}” has concluded after ${Math.round(initiative.weeksTotal / WEEKS_PER_YEAR * 10) / 10} years.`, 'good');
+  }
+
+  s.research.completedInitiatives.unshift({
+    topicId: initiative.topicId,
+    depth: initiative.depth,
+    year: s.clock.year,
+    facultyNames: participants.map((f) => f.name),
+    publications: initiative.publications,
+    breakthroughs: initiative.breakthroughs,
+    grantIncome: initiative.grantIncome,
+    award,
+    ...(cancelled ? { cancelled: true as const } : {}),
+  });
+  s.research.completedInitiatives = s.research.completedInitiatives.slice(0, INITIATIVE_HISTORY_LIMIT);
+  delete s.research.initiatives[initiative.labId];
 }
 
-// Who wins the prize: a weighted draw across the faculty who are actually
-// producing research, by how much they produce. So it usually — but not
-// always — goes to a senior star in a well-equipped department, which is
-// both plausible and a real reward for having retained them. Returns null
-// if nobody qualifies, which can happen if the roster changed between the
-// stock being banked and the output firing.
-function pickLaureate(s: GameState): Faculty | null {
-  const candidates = researchingFaculty(s);
-  const total = candidates.reduce((sum, f) => sum + facultyResearchOutput(f), 0);
-  if (total <= 0) return null;
+// Exported so the reducer's CANCEL_INITIATIVE can end one the same way the
+// tick does, rather than forking the bookkeeping.
+export function endInitiative(s: GameState, labId: string, cancelled: boolean): void {
+  const initiative = s.research.initiatives[labId];
+  if (!initiative) return;
+  concludeInitiative(s, initiative, cancelled);
+}
 
+function pickFrom(participants: Faculty[]): Faculty | null {
+  const total = participants.reduce((sum, f) => sum + facultyResearchOutput(f), 0);
+  if (total <= 0) return participants[0] ?? null;
   let roll = Math.random() * total;
-  for (const f of candidates) {
+  for (const f of participants) {
     roll -= facultyResearchOutput(f);
     if (roll <= 0) return f;
   }
-  return candidates[candidates.length - 1];
-}
-
-// A prize: the momentous one. The award lands immediately and permanently
-// on the winner via the single new Faculty field; the celebration is
-// queued for the next quiet week.
-//
-// Salary is NOT written here even though the prize raises it: salary is
-// recomputed from stats + tenure + acclaim on every tick (see
-// facultySystem.ts's growFaculty), so bumping acclaim IS the raise, and
-// writing a figure here would only be overwritten next week.
-function awardPrize(s: GameState): boolean {
-  const winner = pickLaureate(s);
-  if (winner === null) return false;
-
-  winner.acclaim += 1;
-  s.research.prizes += 1;
-  const prizeName = rollPrizeName();
-  s.research.pendingPrizes.push({
-    facultyId: winner.id,
-    facultyName: winner.name,
-    field: winner.field,
-    prizeName,
-  });
-  log(s, `${winner.name} (${winner.field}) has been awarded ${prizeName}.`, 'good');
-  return true;
-}
-
-// The trigger model, deliberately identical in shape to
-// eventSystem.ts's rollDecisionEvent: a global cooldown, then a weekly
-// probability, then a weighted draw across everything eligible. What
-// makes the outputs "weighted by accumulated research" is that the stock
-// drives BOTH halves of the roll: the eligibility test (an output is only
-// in the draw if the stock can pay its pointCost, so the mix shifts from
-// grants-only to grants-and-breakthroughs to the occasional prize as the
-// research base deepens) and the weekly chance itself. Neither needs a
-// schedule of its own per output kind.
-function rollResearchOutput(s: GameState): void {
-  if (s.research.points < CHEAPEST_OUTPUT_COST) return;
-
-  const week = absoluteWeek(s);
-  if (s.research.lastOutputWeek > 0 && week - s.research.lastOutputWeek < RESEARCH_OUTPUT_COOLDOWN_WEEKS) return;
-  // The chance itself rises with the banked stock (see researchData.ts's
-  // researchOutputWeeklyChance) — a deep research base produces more
-  // often, not just richer.
-  if (Math.random() >= researchOutputWeeklyChance(s.research.points)) return;
-
-  const affordable = RESEARCH_OUTPUTS.filter((o) => o.pointCost <= s.research.points);
-  const chosen = weightedPick(affordable);
-  if (!chosen) return;
-
-  // The prize is the one output that can decline to happen (nobody is
-  // producing research this week, so there is nobody to award it to). It
-  // spends nothing and the week simply stays quiet, rather than falling
-  // through to a second-choice output — the same rule the decision-event
-  // draw follows, and for the same reason: silently substituting would
-  // bias the mix.
-  if (chosen.kind === 'prize' && !awardPrize(s)) return;
-  if (chosen.kind === 'grant') awardGrant(s);
-  if (chosen.kind === 'breakthrough') awardBreakthrough(s);
-
-  s.research.points -= chosen.pointCost;
-  s.research.lastOutputWeek = week;
+  return participants[participants.length - 1];
 }
 
 function weightedPick(outputs: readonly ResearchOutputDef[]): ResearchOutputDef | null {
@@ -171,9 +179,26 @@ function weightedPick(outputs: readonly ResearchOutputDef[]): ResearchOutputDef 
 }
 
 export function tickResearch(s: GameState): void {
-  const produced = weeklyResearchPoints(s);
-  s.research.points += produced;
-  s.research.lifetimePoints += produced;
+  // A facility whose initiative has lost its whole team — every
+  // participant dismissed — cannot continue, and is ended rather than left
+  // running on nobody. A team that lost SOME of its people carries on
+  // short-handed, which is the honest outcome and shows in what it produces.
+  for (const initiative of Object.values(s.research.initiatives)) {
+    const participants = s.faculty.filter((f) => initiative.participantIds.includes(f.id));
+    if (participants.length === 0) {
+      const topic = researchTopic(initiative.topicId);
+      log(s, `“${topic?.name ?? 'A project'}” has been abandoned — nobody is left on it.`, 'bad');
+      concludeInitiative(s, initiative, true);
+      continue;
+    }
 
-  rollResearchOutput(s);
+    // Production is tracked for display only; what the run actually
+    // produces is the draw below (see researchData.ts's initiative block).
+    s.research.lifetimePoints += initiativeWeeklyOutput(s, participants, initiativeDepth(initiative.depth));
+
+    rollDuringRunOutput(s, initiative, participants);
+
+    initiative.weeksRemaining -= 1;
+    if (initiative.weeksRemaining <= 0) concludeInitiative(s, initiative, false);
+  }
 }

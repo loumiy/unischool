@@ -40,6 +40,20 @@ export function CurriculumIcon() {
   );
 }
 
+// Scholarship. A flask reads as "lab" and four of the university's
+// facilities are not labs — an institute, a studio, a computing centre —
+// so this is a lamp: the thing that is on when someone is working late,
+// in any discipline.
+export function ResearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M8 4h8l3 7H5l3-7Z" />
+      <path d="M12 11v7" />
+      <path d="M9 20h6" />
+    </svg>
+  );
+}
+
 export function TreasuryIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>

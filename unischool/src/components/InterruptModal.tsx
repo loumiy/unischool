@@ -460,7 +460,7 @@ function PrizeCelebrationView({ s, awards, onDismiss }: {
 
       <dl className="admissions-outcomes">
         <div>
-          <dt>Research output <span className="outcome-note">(permanent, per prize)</span></dt>
+          <dt>Scholarly output <span className="outcome-note">(permanent, per prize)</span></dt>
           <dd>+{Math.round(ACCLAIM_RESEARCH_BONUS * 100)}%</dd>
         </div>
         <div>

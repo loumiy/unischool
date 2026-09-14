@@ -23,6 +23,9 @@ import { weeklyResearchPoints } from '../src/data/researchData';
 import { findDecisionEvent, type DecisionEventContext } from '../src/data/eventData';
 import { totalEnrolled } from '../src/state/types';
 import type { GameState, OrgPetition } from '../src/state/types';
+import {
+  usedFacultySlots, hasFreeFacultySlot, eligibleInstructors, facultyLoad, isUnstaffed, hasFreeSlot,
+} from '../src/systems/techtree/techSystem';
 
 let seed = 12345;
 Math.random = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
@@ -453,6 +456,134 @@ function relPath(f: string): string {
   assert(resolved.pendingInterrupt === null, 'RESOLVE_INTERRUPT clears pendingInterrupt');
   const advanced = resolved.clock.year > year || (resolved.clock.year === year && resolved.clock.week > week);
   assert(advanced, `RESOLVE_INTERRUPT advances the clock (was Y${year}W${week}, now Y${resolved.clock.year}W${resolved.clock.week})`);
+}
+
+// =====================================================================
+// THE TWO FACULTY-CAPACITY GATES MUST AGREE.
+//
+// There are two ways to ask "can this course be staffed", and they are
+// asked by different callers at different moments:
+//
+//   - FIELD level. hasFreeFacultySlot: does this department have a free
+//     slot anywhere? Asked by the cell's blocked/available state and by
+//     canStartDevelopment when no specific person has been chosen yet.
+//   - PERSON level. eligibleInstructors: is there somebody who can
+//     actually take it? Asked the moment the player opens the picker.
+//
+// If these ever disagree, the game shows a course as startable and then
+// offers an empty list of people to start it with — a dead end with no
+// explanation, which is precisely the failure this whole change exists to
+// remove. They agree because the two sums are the same sum: a field's used
+// slots is its assigned offered courses, and that is exactly the total of
+// its members' individual loads, since an assignment is always in-field.
+// This pins that down, because the coupling is invisible in the types and
+// easy to break by "optimizing" either counter alone.
+// =====================================================================
+{
+  const s = fresh();
+  // Offer some courses so the counters have something to count, taking
+  // whoever the engine picks — the auto-pick path, which is what a
+  // headless caller uses.
+  let state = s;
+  for (const node of state.tech.filter((t) => t.kind === 'course' && t.status === 'available').slice(0, 6)) {
+    state = reducer(state, { type: 'START_DEVELOPMENT', nodeId: node.id });
+  }
+
+  const fields = [...new Set(state.tech.map((t) => t.requiresFaculty).filter((f): f is string => !!f))];
+  let offered = 0;
+  for (const field of fields) {
+    const used = usedFacultySlots(state, field);
+    const loadSum = state.faculty
+      .filter((f) => f.field === field)
+      .reduce((sum, f) => sum + facultyLoad(state, f.id), 0);
+    // Field usage counts every OFFERED course; the members' loads count
+    // only the ones somebody is actually teaching. So loads can never
+    // exceed usage, and the gap between them IS the unstaffed count —
+    // courses the school still owes and has nobody for.
+    assert(
+      loadSum <= used,
+      `a field's assigned loads never exceed its offered courses (${field}: ${loadSum} vs ${used})`,
+    );
+
+    // The gates themselves: a free slot in the field must mean a real
+    // person who can take one more.
+    if (hasFreeFacultySlot(state, field)) {
+      const anyCourse = state.tech.find((t) => t.requiresFaculty === field);
+      if (anyCourse) {
+        assert(
+          eligibleInstructors(state, anyCourse).length > 0,
+          `a free slot in ${field} means somebody is actually eligible to teach in it`,
+        );
+      }
+    }
+  }
+
+  // Nobody is over their own ceiling on a state the engine itself built.
+  for (const f of state.faculty) {
+    assert(
+      facultyLoad(state, f.id) <= f.courseSlots,
+      `${f.name} is not assigned beyond their own course slots`,
+    );
+  }
+
+  // Every offered course the engine started has a real, in-field
+  // instructor: startDevelopment writes the assignment in the same
+  // transaction, so a developing course is never without a teacher.
+  for (const t of state.tech) {
+    if (t.status !== 'developing' && t.status !== 'done') continue;
+    if (!t.requiresFaculty) continue;
+    offered += 1;
+    const holder = state.faculty.find((f) => f.id === state.courseFaculty[t.id]);
+    assert(holder !== undefined, `${t.id} has an instructor on the roster`);
+    assert(holder === undefined || holder.field === t.requiresFaculty, `${t.id}'s instructor is in its own field`);
+  }
+  assert(offered > 0, 'the capacity sweep actually exercised some offered courses');
+}
+
+// =====================================================================
+// DISMISSAL ORPHANS, AND HANDS THE CAPACITY BACK.
+// The two halves of one event (see the reducer's FIRE_FACULTY): the
+// courses lose their teacher AND the department gets its slots back, so a
+// replacement can take the orphans straight over rather than finding the
+// field still full of someone who no longer works here.
+// =====================================================================
+{
+  let state = fresh();
+  const victim = state.faculty[0];
+  const theirCourse = state.tech.find((t) => t.requiresFaculty === victim.field && t.status === 'available');
+  assert(theirCourse !== undefined, 'the dismissal sweep found a course in the target field');
+  if (theirCourse) {
+    state = reducer(state, { type: 'START_DEVELOPMENT', nodeId: theirCourse.id, facultyId: victim.id });
+    assert(state.courseFaculty[theirCourse.id] === victim.id, 'the chosen instructor is the one recorded');
+    const usedBefore = usedFacultySlots(state, victim.field);
+
+    state = reducer(state, { type: 'FIRE_FACULTY', facultyId: victim.id });
+    assert(state.courseFaculty[theirCourse.id] === undefined, 'dismissal clears their course assignments');
+    assert(
+      isUnstaffed(state, state.tech.find((t) => t.id === theirCourse.id)!),
+      'the orphaned course reads as unstaffed',
+    );
+    // The capacity does NOT come back: the course is still offered and
+    // still needs teaching, which is exactly what the school no longer has
+    // anyone to do. Letting it come back would make dismissal a way to buy
+    // room for more courses (see usedFacultySlots).
+    assert(
+      usedFacultySlots(state, victim.field) === usedBefore,
+      'an orphaned course keeps holding its field slot after the dismissal',
+    );
+    // But re-staffing it is still possible, because eligibility is a
+    // PER-PERSON check: a replacement with a free slot can take it over.
+    const replacement = state.faculty.find((f) => f.field === victim.field && hasFreeSlot(state, f));
+    if (replacement) {
+      const restaffed = reducer(state, {
+        type: 'REASSIGN_COURSE_FACULTY', courseId: theirCourse.id, facultyId: replacement.id,
+      });
+      assert(
+        restaffed.courseFaculty[theirCourse.id] === replacement.id,
+        'an orphaned course can still be given to someone with room',
+      );
+    }
+  }
 }
 
 console.log('spec-conformance invariant sweep (PR H)');

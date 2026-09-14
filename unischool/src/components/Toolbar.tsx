@@ -10,6 +10,7 @@ import { neededFacultyFields } from '../systems/techtree/techSystem';
 import {
   FacultyIcon, CurriculumIcon, AdmissionsIcon,
   StudentLifeIcon, HistoryIcon, AthleticsIcon, BuildIcon,
+  ResearchIcon,
 } from './icons';
 
 // Which tab icons can carry the small red alert badge, and how each decides
@@ -40,6 +41,7 @@ const ICON_TAB_ORDER = TAB_ORDER.filter((id) => id !== 'treasury');
 const TAB_ICONS: Record<Exclude<TabId, 'treasury'>, () => React.JSX.Element> = {
   faculty: FacultyIcon,
   curriculum: CurriculumIcon,
+  research: ResearchIcon,
   admissions: AdmissionsIcon,
   studentlife: StudentLifeIcon,
   history: HistoryIcon,

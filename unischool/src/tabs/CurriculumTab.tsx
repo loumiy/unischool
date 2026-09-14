@@ -1,12 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
 import { discoverySchools, graduateGateMet, graduatePrograms, professionalSchools } from '../data/techData';
-import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
-import { instructorOf } from '../systems/faculty/facultyAssignment';
+import {
+  canStartDevelopment, hasFreeFacultySlot, eligibleInstructors, assignedInstructor,
+  isUnstaffed, facultyLoad,
+} from '../systems/techtree/techSystem';
+import { facultyQualityTier } from '../data/facultyData';
+import { gradeFor, qualityOf, tierOf, type Grade } from '../data/courseQuality';
+import {
+  averageCourseQuality, courseQuality, facultyLoads, type FacultyLoads,
+} from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
+import FacultyPortrait from '../components/FacultyPortrait';
 import { ProgressRing } from '../components/Progress';
 import { isTestUniversity } from '../components/StatusHeader';
+import type { Faculty } from '../state/types';
 
 // ---------------------------------------------------------------------
 // Progressive discovery: the curriculum is not laid out whole. What's
@@ -51,9 +60,9 @@ import { isTestUniversity } from '../components/StatusHeader';
 // ---------------------------------------------------------------------
 
 // Ring sizes: the catalogue's own completion is the panel's headline
-// figure, a school section's is a marginal note next to its title.
+// figure; a school card carries its own, one level down.
 const CATALOG_RING_SIZE = 46;
-const SECTION_RING_SIZE = 26;
+const SCHOOL_CARD_RING_SIZE = 44;
 
 // A sub-group inside a school section: a completed major (its own tier-3
 // catalogue now visible) or a revealed graduate program. `graduate` is set
@@ -258,6 +267,161 @@ export function visibleCourseIds(s: GameState): string[] {
   return ids;
 }
 
+// =====================================================================
+// THE MAP'S OWN SHAPE: schools, and the lanes inside them.
+//
+// A second reading of the SAME revealed set the sections above compute —
+// never a second set of reveal rules. `visibleCourseIds` stays the one
+// answer to "has the player met this course yet"; all this does is regroup
+// what it returns from flat pools into the structure the catalogue
+// actually has: school -> major -> tier.
+//
+// WHY LANES RATHER THAN A GRAPH. The curriculum is a total hierarchy with
+// a sparse graph laid over it. 42 majors of exactly nine courses in a
+// fixed 1/4/4 shape means the tier chain is ~336 edges every one of which
+// says the same thing, while the ~50 authored CROSS_MAJOR_BRIDGES are the
+// only interesting ones. Drawing them all spends the whole visual budget
+// on the boring 336 and buries the 50 — and shrinks the node to a dot,
+// which is what undid full course names last time. So the regular
+// structure is carried by POSITION (three bands, left to right, with a
+// chevron between) and drawn with zero lines, and an edge is only ever
+// drawn for a bridge, on demand.
+// =====================================================================
+
+interface MajorLane {
+  key: string;
+  name: string;
+  tier1: string[];
+  tier2: string[];
+  tier3: string[];
+  // Set only for a graduate program, which is a lane like any other but
+  // has two things a major does not: the credential it awards, and the
+  // gate it cleared to appear at all.
+  graduate?: { degree: string; gate: string };
+}
+
+interface SchoolView {
+  key: string;         // the school building's Buildable id
+  heading: string;
+  label: string;
+  schoolCourseIds: string[];
+  lanes: MajorLane[];
+}
+
+// Every revealed school, with its majors as lanes. Built by intersecting
+// each major's authored tiers with the revealed set, so a major that has
+// not established yet simply shows an empty tier-3 band rather than being
+// grouped differently — the progression reads as one lane filling up,
+// left to right, instead of a course jumping between sections when its
+// major completes.
+function schoolViews(s: GameState, sections: DiscoverySection[]): SchoolView[] {
+  const revealed = new Set(visibleCourseIds(s));
+  const keep = (ids: string[]) => ids.filter((id) => revealed.has(id));
+  const schools = new Map(discoverySchools().map((school) => [school.buildingId, school]));
+  const professional = new Map(professionalSchools().map((program) => [program.buildingId, program]));
+
+  const views: SchoolView[] = [];
+  for (const section of sections) {
+    if (section.label === null) continue; // the ungrouped pool has no lanes
+
+    const school = schools.get(section.key);
+    if (school) {
+      const lanes: MajorLane[] = [];
+      for (const major of school.majors) {
+        const tier1 = keep([major.tier1Id]);
+        const tier2 = keep(major.tier2Ids);
+        const tier3 = keep(major.tier3Ids);
+        if (tier1.length + tier2.length + tier3.length === 0) continue;
+        lanes.push({ key: major.prefix, name: major.name, tier1, tier2, tier3 });
+      }
+      // Graduate programs come last inside a school, where they sit in the
+      // climb. Their courses have no tier ladder of their own, so the
+      // whole program rides in the tier-2 band: one row of cards, which is
+      // what it is.
+      for (const program of school.graduate) {
+        const ids = keep(program.courseIds);
+        if (ids.length === 0) continue;
+        lanes.push({
+          key: program.id,
+          name: program.name,
+          tier1: [],
+          tier2: ids,
+          tier3: [],
+          graduate: { degree: program.degree, gate: program.gate },
+        });
+      }
+      views.push({ key: section.key, heading: section.heading, label: section.label, schoolCourseIds: section.schoolCourseIds, lanes });
+      continue;
+    }
+
+    // Medicine and Law: their own top-level school, one lane.
+    const program = professional.get(section.key);
+    if (program) {
+      const ids = keep(program.courseIds);
+      views.push({
+        key: section.key,
+        heading: section.heading,
+        label: section.label,
+        schoolCourseIds: section.schoolCourseIds,
+        lanes: ids.length === 0 ? [] : [{
+          key: program.id,
+          name: program.name,
+          tier1: [],
+          tier2: ids,
+          tier3: [],
+          graduate: { degree: program.degree, gate: 'its own building' },
+        }],
+      });
+    }
+  }
+  return views;
+}
+
+// Which school a course belongs to, so search results and a bridge badge
+// can say where a course lives and navigate straight to it. Derived from
+// the seed, memoized — the catalogue is static.
+let courseSchoolMap: Map<string, { buildingId: string; school: string }> | null = null;
+function courseSchools(): Map<string, { buildingId: string; school: string }> {
+  if (courseSchoolMap) return courseSchoolMap;
+  const map = new Map<string, { buildingId: string; school: string }>();
+  for (const school of discoverySchools()) {
+    const entry = { buildingId: school.buildingId, school: school.name };
+    for (const id of school.coreIds) map.set(id, entry);
+    for (const major of school.majors) {
+      for (const id of [major.tier1Id, ...major.tier2Ids, ...major.tier3Ids]) map.set(id, entry);
+    }
+    for (const program of school.graduate) {
+      for (const id of program.courseIds) map.set(id, entry);
+    }
+  }
+  for (const program of professionalSchools()) {
+    const entry = { buildingId: program.buildingId, school: program.name };
+    for (const id of program.courseIds) map.set(id, entry);
+  }
+  courseSchoolMap = map;
+  return map;
+}
+
+// The cross-major prereqs of a course: prereqs that are THEMSELVES COURSES
+// and come from a different major. Read off the course's own prereqs rather
+// than CROSS_MAJOR_BRIDGES directly, so a bridge authored anywhere still
+// shows up.
+//
+// The course check is not defensive tidying — prereqs cross KINDS as well
+// as majors (README's "central abstraction"), so a tier-3 course routinely
+// requires its major's LAB. `LAB-CHEM` trivially has a different id prefix
+// from `CHEM230`, so a prefix test alone calls a building a cross-listed
+// course and offers to navigate to it, which the map cannot do and the
+// player would not want: the lab is something you BUILD, not somewhere you
+// go in the catalogue.
+function crossMajorPrereqs(t: Buildable, lookup: Map<string, Buildable>): string[] {
+  const prefix = t.id.replace(/[0-9]+$/, '');
+  return t.prereqs.filter((id) => {
+    if (lookup.get(id)?.kind !== 'course') return false;
+    return id.replace(/[0-9]+$/, '') !== prefix;
+  });
+}
+
 type CellState = 'locked' | 'blocked' | 'available' | 'developing' | 'done';
 
 function cellState(s: GameState, t: Buildable): CellState {
@@ -267,95 +431,59 @@ function cellState(s: GameState, t: Buildable): CellState {
   return canStartDevelopment(s, t) ? 'available' : 'blocked';
 }
 
-// ---------------------------------------------------------------------
-// Tooltip placement. The tooltip hangs below its cell, which clips as soon
-// as the cell nears the bottom of the overlay's scroll box
-// (.tab-overlay-body) — and flipping it above the cell isn't enough on its
-// own, because early on that box is only a couple of hundred pixels tall
-// and neither side of the cell has room inside it.
+// The grade chip. One component for a course's own grade and for an
+// aggregate (a major's, a school's), because they are the same claim at
+// different scales and must read identically — a school showing "B" means
+// its courses average a B, not something else that happens to look alike.
 //
-// So the tooltip escapes the box: it is positioned FIXED, in viewport
-// coordinates, measured at the moment it is shown. It prefers to sit below
-// its cell, flips above when the window has no room there, and is clamped
-// into the viewport as a last resort, so it is always fully readable. Its
-// content is untouched by any of this.
-// ---------------------------------------------------------------------
-
-// The gap between the cell and its tooltip, both directions. Mirrors the
-// fallback offset in styles.css's .course-tooltip.
-const TOOLTIP_GAP = 4;
-
-// How close to the window edge the tooltip may sit once clamped.
-const TOOLTIP_VIEWPORT_MARGIN = 8;
-
-interface TooltipPos { top: number; left: number }
-
-// Where to put a tooltip of this size for a cell at this rect, in viewport
-// coordinates. Below by default; above when below would run off the bottom
-// and above actually fits; clamped into the window if neither does (a
-// window shorter than the tooltip itself), because a tooltip overlapping
-// its own cell still reads, and one running off the screen doesn't.
-function tooltipPosition(cell: DOMRect, width: number, height: number): TooltipPos {
-  const below = cell.bottom + TOOLTIP_GAP;
-  const above = cell.top - TOOLTIP_GAP - height;
-  const maxTop = window.innerHeight - height - TOOLTIP_VIEWPORT_MARGIN;
-
-  let top = below;
-  if (below > maxTop && above >= TOOLTIP_VIEWPORT_MARGIN) top = above;
-  top = Math.max(TOOLTIP_VIEWPORT_MARGIN, Math.min(top, maxTop));
-
-  const maxLeft = window.innerWidth - width - TOOLTIP_VIEWPORT_MARGIN;
-  const left = Math.max(TOOLTIP_VIEWPORT_MARGIN, Math.min(cell.left, maxLeft));
-
-  return { top, left };
+// The letter carries the meaning and the tint is only a cue: colour alone
+// would be unreadable to a colour-blind player, and unreadable at the
+// zoomed-out sizes the curriculum map will want, so the letter never drops.
+function GradeChip({ grade, title, size = 'sm' }: { grade: Grade; title?: string; size?: 'sm' | 'lg' }) {
+  return (
+    <span className={`grade-chip grade-${grade.toLowerCase()} ${size}`} title={title}>
+      {grade}
+    </span>
+  );
 }
 
-// One course cell: shows its course code (e.g. "FINA 101"), fills brass
-// when done, pulses while developing, and is directly clickable to start
-// development when eligible. The code is split into department and number
-// so a wall of forty-odd codes reads as a column of departments with a
-// number attached, rather than eight undifferentiated characters.
+// An aggregate grade across a set of courses, or nothing when none of them
+// are graded yet. What a school section head and a major subgroup show —
+// and, once the curriculum map lands, what its university-level view is
+// built from.
+function AggregateGrade({ s, ids, label, loads }: { s: GameState; ids: string[]; label: string; loads: FacultyLoads }) {
+  const avg = averageCourseQuality(s, ids, loads);
+  if (avg === null) return null;
+  return <GradeChip grade={gradeFor(avg)} title={`${label} averages ${Math.round(avg)} / 100 across its developed courses`} />;
+}
+
+// One course cell: its code (e.g. "FINA 101") over its title, filling
+// brass when done and pulsing while developing. Clicking it opens the
+// course drawer (see CourseDrawer below). The code is split into
+// department and number so a wall of forty-odd codes reads as a column of
+// departments with a number attached, rather than eight undifferentiated
+// characters.
 //
-// Two things are drawn ON the cell rather than left to hover: the fill
-// bar tracking how far a developing course has run, and a dot marking a
-// course whose faculty field currently has no free slot (see the legend
-// under the panel head). Everything else stays in the tooltip: full name,
-// description, prereqs (met/unmet), the faculty gate, cost, and duration.
+// THERE IS NO HOVER CARD. There used to be, and it carried everything a
+// course had to say — description, prereqs, the faculty gate, cost,
+// instructor — because hovering was the only way to learn any of it. The
+// drawer is that now, and better: it holds the same facts plus the
+// decision they are there to inform, it stays put while you read it, and
+// it does not cover the neighbouring cells you are scanning. A hover card
+// repeating a strict subset of an open panel is not a shortcut, it is a
+// second answer to the same question.
 //
-// The dot is a neutral marker, NOT the field's initial: which field a
-// course needs is already in its tooltip, but same-field cells lighting up
-// together with a letter on them would draw the eye to clusters that
-// correlate with school membership the pool is not meant to reveal yet.
-function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => void; t: Buildable; lookup: Map<string, Buildable> }) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<TooltipPos | null>(null);
-
-  // Measured at the moment the tooltip is about to be shown, so it uses
-  // where the cell actually is right now. The tooltip is only
-  // visibility:hidden until then, never display:none, so it already has
-  // its real laid-out size to measure.
-  const placeTooltip = useCallback(() => {
-    const wrap = wrapRef.current;
-    const tip = tooltipRef.current;
-    if (!wrap || !tip) return;
-    setPos(tooltipPosition(wrap.getBoundingClientRect(), tip.offsetWidth, tip.offsetHeight));
-  }, []);
-
-  // A fixed tooltip doesn't travel with its cell, so while one is up the
-  // cell re-measures on any scroll (capture: the overlay body scrolls, not
-  // the window) or resize. Only the one open tooltip listens — every other
-  // cell has pos === null and registers nothing.
-  useEffect(() => {
-    if (!pos) return;
-    window.addEventListener('scroll', placeTooltip, true);
-    window.addEventListener('resize', placeTooltip);
-    return () => {
-      window.removeEventListener('scroll', placeTooltip, true);
-      window.removeEventListener('resize', placeTooltip);
-    };
-  }, [pos, placeTooltip]);
-
+// So the cell carries only what has to be legible WITHOUT clicking, at a
+// glance, across a whole screen of cells: state (by fill), progress (the
+// bar on a developing course), an unstaffed marker, and a dot for a
+// course whose field has no free slot (see the legend under the panel
+// head). Everything else is one click away.
+//
+// The dot is a neutral marker, NOT the field's initial: same-field cells
+// lighting up together with a letter on them would draw the eye to
+// clusters that correlate with school membership the pool is not meant to
+// reveal yet.
+function CourseCell({ s, t, selected, onSelect, loads }: { s: GameState; t: Buildable; selected: boolean; onSelect: (id: string) => void; loads: FacultyLoads }) {
   const state = cellState(s, t);
   // A course's stored name is "CODE · Title" (see techData). The cell used
   // to show only the code, which meant reading the catalogue was a matter of
@@ -366,11 +494,14 @@ function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => v
   const [code, titleFromName] = t.name.split(' · ');
   const title = titleFromName ?? code;
   const missingFaculty = !!(t.requiresFaculty && !hasFreeFacultySlot(s, t.requiresFaculty));
-  // Only a DONE course has an instructor to name — an available or
-  // developing course hasn't been assigned a slot in the round-robin's
-  // eyes yet (see facultyAssignment.ts), so implying a teacher for it
-  // would be a claim the projection can't back up.
-  const instructor = t.status === 'done' ? instructorOf(s, t) : undefined;
+  // An offered course whose instructor has left (see types.ts's
+  // CourseFaculty) — marked on the cell because it is a thing the player
+  // must fix, and they should not have to open a course to discover it.
+  const unstaffed = isUnstaffed(s, t);
+  // Only an offered, staffed course carries a grade: an undeveloped one is
+  // an empty slot in the catalogue rather than a failing course, and an
+  // unstaffed one is not being taught at all (see courseQuality).
+  const quality = courseQuality(s, t, loads);
   // The gate is only news while the course is still ahead of the player:
   // a developing or finished course already holds its slot.
   const showGateDot = missingFaculty && state !== 'developing' && state !== 'done';
@@ -378,107 +509,590 @@ function CourseCell({ s, act, t, lookup }: { s: GameState; act: (a: Action) => v
   const weeksLeft = s.developing[t.id] ?? 0;
   const elapsed = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
 
-  // Same order the build rail uses: price first, then the faculty gate.
-  // `state` is derived from canStartDevelopment (see cellState above), so
-  // the reason always explains the actual refusal. Kept to a fragment:
-  // the cost is on the meta line right above it and the faculty line
-  // above that already names the field, so the reason only has to say
-  // which of the two is in the way, and by how much.
-  const shortfall = t.cost - s.finance.cash;
-  const blockedReason = state === 'blocked'
-    ? shortfall > 0
-      ? `$${Math.ceil(shortfall).toLocaleString()} short.`
-      : missingFaculty
-        ? `No free ${t.requiresFaculty} slot.`
-        : undefined
-    : undefined;
-
   return (
-    <div
-      className="course-cell-wrap"
-      ref={wrapRef}
-      onPointerEnter={placeTooltip}
-      onPointerLeave={() => setPos(null)}
-      onFocus={placeTooltip}
-      onBlur={() => setPos(null)}
+    <button
+      type="button"
+      className={`course-cell ${state}${t.graduateProgram ? ' graduate' : ''}${unstaffed ? ' unstaffed' : ''}${selected ? ' selected' : ''}`}
+      aria-pressed={selected}
+      onClick={() => onSelect(t.id)}
     >
-      <button
-        type="button"
-        className={`course-cell ${state}${t.graduateProgram ? ' graduate' : ''}`}
-        disabled={state !== 'available'}
-        onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: t.id })}
-      >
-        <span className="cell-code">{code}</span>
-        <span className="cell-title">{title}</span>
-        {state === 'done' && <span className="cell-stamp" aria-hidden="true">✓</span>}
-        {showGateDot && <span className="cell-gate-dot" aria-hidden="true" />}
-        {state === 'developing' && (
-          <span className="cell-progress" aria-hidden="true">
-            <span className="cell-progress-fill" style={{ width: `${Math.round(elapsed * 100)}%` }} />
-          </span>
-        )}
-      </button>
-      <div
-        className="course-tooltip"
-        role="tooltip"
-        ref={tooltipRef}
-        style={pos ? { position: 'fixed', top: pos.top, left: pos.left } : undefined}
-      >
-        <div className="course-tooltip-name">{t.name}</div>
-        <p className="course-tooltip-desc">{t.description}</p>
-        {t.prereqs.length > 0 && (
-          <ul className="course-tooltip-prereqs">
-            {t.prereqs.map((id) => {
-              const p = lookup.get(id);
-              const met = p?.status === 'done';
-              return (
-                <li key={id} className={met ? 'met' : 'unmet'}>
-                  {met ? '✓' : '✗'} {p?.name ?? id}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        {t.requiresFaculty && (
-          <div className={`course-tooltip-faculty ${missingFaculty ? 'unmet' : 'met'}`}>
-            {missingFaculty ? '✗' : '✓'} Faculty: {t.requiresFaculty}
-          </div>
-        )}
-        {instructor && <div className="course-tooltip-instructor">Taught by: {instructor.name}</div>}
-        <div className="course-tooltip-meta">
-          ${t.cost.toLocaleString()} · {t.duration}w
-          {state === 'developing' && ` · ${weeksLeft}w left`}
-        </div>
-        {blockedReason && <p className="course-tooltip-reason">{blockedReason}</p>}
-      </div>
-    </div>
+      <span className="cell-code">{code}</span>
+      <span className="cell-title">{title}</span>
+      {/* The grade replaces the done-tick: a graded course is self-evidently
+          developed, and two marks in one corner competing for the same
+          glance is one mark too many. */}
+      {quality && <GradeChip grade={quality.grade} title={`Quality ${Math.round(quality.score)} / 100`} />}
+      {state === 'done' && !quality && !unstaffed && <span className="cell-stamp" aria-hidden="true">✓</span>}
+      {unstaffed && <span className="cell-stamp unstaffed" title="No instructor">!</span>}
+      {showGateDot && <span className="cell-gate-dot" aria-hidden="true" />}
+      {state === 'developing' && (
+        <span className="cell-progress" aria-hidden="true">
+          <span className="cell-progress-fill" style={{ width: `${Math.round(elapsed * 100)}%` }} />
+        </span>
+      )}
+    </button>
   );
 }
 
-function CellGrid({ s, act, ids, lookup }: { s: GameState; act: (a: Action) => void; ids: string[]; lookup: Map<string, Buildable> }) {
+function CellGrid({ s, ids, lookup, selectedId, onSelect, loads }: { s: GameState; ids: string[]; lookup: Map<string, Buildable>; selectedId: string | null; onSelect: (id: string) => void; loads: FacultyLoads }) {
   return (
     <div className="cell-grid">
       {ids.map((id) => {
         const t = lookup.get(id);
-        return t ? <CourseCell key={id} s={s} act={act} t={t} lookup={lookup} /> : null;
+        return t ? <CourseCell key={id} s={s} t={t} selected={selectedId === id} onSelect={onSelect} loads={loads} /> : null;
       })}
     </div>
   );
 }
 
-// The one-line key under the panel head. It explains the four cell states
-// and the faculty-gate dot in the same breath, so the two things the
-// player would otherwise have to hover for — what a shade means, and why a
-// cell won't start — are both answered on sight.
-function CellLegend() {
+// ---------------------------------------------------------------------
+// THE COURSE DRAWER, and the decision it exists for.
+//
+// Clicking a course no longer starts it. It opens this, and the drawer
+// leads with the question the old build never asked: WHO TEACHES IT.
+// Before, development auto-assigned nobody in particular — the engine
+// tracked only per-field slot capacity, and the name under a cell was a
+// round-robin computed on read. Now the player picks, the pick is stored
+// (see types.ts's CourseFaculty), and it is editable for the life of the
+// course.
+//
+// Four cases, and the last two are the reason this is a panel rather than
+// a confirm dialog:
+//
+//   1. SEVERAL eligible. A list, strongest teacher first, each a real
+//      person — portrait, rank, teaching, current load. The player chooses.
+//   2. EXACTLY ONE eligible. Pre-selected, one button. Frictionless, as it
+//      should be — but never silent: the player still learns who it is,
+//      because they will want to know in five years when the grade is bad.
+//   3. NOBODY free, but the department EXISTS. The old build showed a dot
+//      on a cell and left the player to work out what to do. Here the
+//      people who are full are listed by name with their loads, because
+//      "Dr. Iyer is teaching 2 of 2" is the actual information — it says
+//      reassign, or hire, rather than just "no".
+//   4. NOBODY at all. The hire happens HERE, from the standing market, in
+//      the course's own field. And when the market is empty in that field
+//      this says so plainly, because that is real information too (a
+//      thin-market specialist turns up only every few months — see
+//      facultyData.ts's churn block), and it tells the player to wait and
+//      watch rather than hunt for a button that does not exist.
+// ---------------------------------------------------------------------
+
+// One selectable person. Deliberately the same furniture the Faculty tab
+// uses for a roster card — portrait, name, rank badge — so a professor
+// reads as the same professor in both places, plus the two things that
+// matter HERE and nowhere else: how good a teacher they are, and how
+// loaded they already are.
+function InstructorOption(
+  { s, f, selected, disabled = false, projectedFor, onPick }:
+  { s: GameState; f: Faculty; selected: boolean; disabled?: boolean; projectedFor?: Buildable; onPick?: () => void },
+) {
+  const load = facultyLoad(s, f.id);
+  // WHAT THIS COURSE WOULD BE GRADED if they took it — the single most
+  // useful thing on the card, and the reason the picker is a list of
+  // people rather than a dropdown of names. Comparing "teaching 71" with
+  // "teaching 64" is abstract; comparing a B with a C is the actual
+  // consequence, and it already folds in what their existing load and this
+  // course's tier will do to it.
+  //
+  // Costs nothing to compute speculatively: qualityOf is pure arithmetic
+  // on four numbers (see data/courseQuality.ts). The load passed is what
+  // theirs WOULD become — their current count plus this course, unless
+  // they already teach it.
+  const projected = projectedFor
+    ? qualityOf({
+      teaching: f.teaching,
+      acclaim: f.acclaim,
+      load: s.courseFaculty[projectedFor.id] === f.id ? load : load + 1,
+      slots: f.courseSlots,
+      tier: tierOf(projectedFor.id),
+    })
+    : null;
   return (
-    <p className="cell-legend">
-      <span className="cell-legend-item"><span className="cell-legend-swatch done" />done</span>
-      <span className="cell-legend-item"><span className="cell-legend-swatch developing" />developing</span>
-      <span className="cell-legend-item"><span className="cell-legend-swatch available" />ready to start</span>
-      <span className="cell-legend-item"><span className="cell-legend-swatch blocked" />blocked</span>
-      <span className="cell-legend-item"><span className="cell-legend-dot" />no free faculty slot in its field — hire to start it</span>
-    </p>
+    <button
+      type="button"
+      className={`instructor-option${selected ? ' selected' : ''}${disabled ? ' full' : ''}`}
+      disabled={disabled}
+      aria-pressed={selected}
+      onClick={onPick}
+    >
+      <FacultyPortrait f={f} size={34} />
+      <span className="instructor-option-body">
+        <span className="instructor-option-name">{f.name}</span>
+        <span className="instructor-option-meta">
+          {facultyQualityTier(f)} · {f.field}
+        </span>
+        <span className="instructor-option-bars">
+          <span className="instructor-stat" title={`Teaching ${f.teaching} of a possible ${f.teachingPotential}`}>
+            <span className="instructor-stat-label">Teaching</span>
+            <span className="instructor-bar-track">
+              <span className="instructor-bar-headroom" style={{ width: `${f.teachingPotential}%` }} />
+              <span className="instructor-bar-fill" style={{ width: `${f.teaching}%` }} />
+            </span>
+            <span className="instructor-stat-value">{f.teaching}</span>
+          </span>
+        </span>
+      </span>
+      <span className="instructor-option-right">
+        {projected && (
+          <GradeChip
+            grade={projected.grade}
+            title={`This course would be graded ${projected.grade} (${Math.round(projected.score)} / 100) with them`}
+          />
+        )}
+        <span className={`instructor-option-load${load >= f.courseSlots ? ' full' : ''}`}>
+          {load} / {f.courseSlots}
+          <span className="instructor-load-label">courses</span>
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function CourseDrawer(
+  { s, act, t, lookup, onClose, loads, onGoToCourse }:
+  {
+    s: GameState; act: (a: Action) => void; t: Buildable; lookup: Map<string, Buildable>;
+    onClose: () => void; loads: FacultyLoads; onGoToCourse: (id: string) => void;
+  },
+) {
+  const state = cellState(s, t);
+  const offered = t.status === 'developing' || t.status === 'done';
+  const instructor = assignedInstructor(s, t);
+  const unstaffed = isUnstaffed(s, t);
+  const quality = courseQuality(s, t, loads);
+  const bridges = crossMajorPrereqs(t, lookup);
+
+  // For an offered course the current instructor must stay eligible for
+  // their own course (see techSystem.ts's eligibleInstructors `except`),
+  // or a full professor would read as unable to go on teaching what they
+  // already teach.
+  const eligible = eligibleInstructors(s, t, offered ? t.id : undefined);
+  const inField = t.requiresFaculty ? s.faculty.filter((f) => f.field === t.requiresFaculty) : [];
+  const marketInField = t.requiresFaculty ? s.candidates.filter((c) => c.field === t.requiresFaculty) : [];
+
+  // The pick resets whenever the course changes, and defaults to the
+  // current instructor for an offered course or the strongest eligible
+  // teacher for a new one — which is what makes the one-candidate case a
+  // single click rather than a click to choose and a click to confirm.
+  const [picked, setPicked] = useState<string | null>(null);
+  useEffect(() => { setPicked(null); }, [t.id]);
+  const chosen = picked ?? instructor?.id ?? eligible[0]?.id ?? null;
+
+  const [code, titleFromName] = t.name.split(' · ');
+  const title = titleFromName ?? code;
+  const weeksLeft = s.developing[t.id] ?? 0;
+  const shortfall = t.cost - s.finance.cash;
+
+  function develop() {
+    if (chosen) act({ type: 'START_DEVELOPMENT', nodeId: t.id, facultyId: chosen });
+  }
+  function reassign() {
+    if (chosen && chosen !== instructor?.id) act({ type: 'REASSIGN_COURSE_FACULTY', courseId: t.id, facultyId: chosen });
+  }
+
+  return (
+    <aside className="course-drawer" aria-label={`${title} detail`}>
+      <div className="course-drawer-head">
+        <div>
+          <span className="course-drawer-code">{code}</span>
+          <h3>{title}</h3>
+        </div>
+        <button type="button" className="course-drawer-close" onClick={onClose} aria-label="Close course detail">✕</button>
+      </div>
+
+      <div className="course-drawer-body">
+        <p className="course-drawer-desc">{t.description}</p>
+
+        <dl className="course-drawer-facts">
+          <div><dt>Cost</dt><dd>${t.cost.toLocaleString()}</dd></div>
+          <div><dt>Duration</dt><dd>{t.duration} weeks</dd></div>
+          <div><dt>Department</dt><dd>{t.requiresFaculty ?? '—'}</dd></div>
+          {state === 'developing' && <div><dt>Remaining</dt><dd>{weeksLeft} weeks</dd></div>}
+        </dl>
+
+        {/* THE GRADE, ITEMIZED. A letter on its own tells the player
+            nothing they can act on; the factors tell them exactly what to
+            do — move a course off this professor, or put a stronger one on
+            the capstone. Every line names something they decided. */}
+        {quality && (
+          <section className="course-drawer-section">
+            <h4>Quality</h4>
+            <div className="course-drawer-grade">
+              <GradeChip grade={quality.grade} size="lg" />
+              <div className="course-drawer-grade-body">
+                <span className="course-drawer-grade-score">{Math.round(quality.score)} / 100</span>
+                <ul className="course-drawer-factors">
+                  {quality.factors.map((factor) => (
+                    <li key={factor.label} className={factor.value < 0 ? 'down' : 'up'}>
+                      <span>{factor.label}</span>
+                      <span className="num">{factor.value > 0 ? '+' : '−'}{Math.abs(Math.round(factor.value))}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {t.prereqs.length > 0 && (
+          <section className="course-drawer-section">
+            <h4>Prerequisites</h4>
+            {/* EVERY PREREQUISITE IS A DOOR. Clicking one goes there —
+                opens its school, selects it, and clears any filter in the
+                way. This is the map's most useful move and the reason
+                cross-major bridges are not drawn as lines: the prerequisite
+                that matters is almost always one the player cannot
+                currently see, and a line to an offscreen node is worth
+                nothing next to arriving at it.
+
+                A bridge (a prereq from another major — see
+                crossMajorPrereqs) is marked, because "this course needs
+                something from another school" is the genuinely surprising
+                fact in a catalogue whose other 336 prereq edges all say
+                the same thing. */}
+            <ul className="course-drawer-prereqs">
+              {t.prereqs.map((id) => {
+                const p = lookup.get(id);
+                const met = p?.status === 'done';
+                const bridge = bridges.includes(id);
+                // Only a course is somewhere to go. A prereq of another
+                // kind — a school building, a lab — is something to build,
+                // so it is stated rather than offered as a door that leads
+                // nowhere this view can show.
+                if (p?.kind !== 'course') {
+                  return (
+                    <li key={id} className={met ? 'met' : 'unmet'}>
+                      <span className="prereq-static">
+                        {met ? '✓' : '✗'} {p?.name ?? id}
+                        <span className="prereq-bridge" title="Built on the campus map, not developed here">build</span>
+                      </span>
+                    </li>
+                  );
+                }
+                return (
+                  <li key={id} className={met ? 'met' : 'unmet'}>
+                    <button type="button" className="prereq-link" onClick={() => onGoToCourse(id)}>
+                      {met ? '✓' : '✗'} {p.name}
+                      {bridge && <span className="prereq-bridge" title="A prerequisite from another program">cross-listed</span>}
+                      <span className="prereq-go" aria-hidden="true">→</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        {t.requiresFaculty && (
+          <section className="course-drawer-section">
+            <h4>{offered ? 'Instructor' : 'Choose an instructor'}</h4>
+
+            {unstaffed && (
+              <p className="course-drawer-warning">
+                This course has no instructor and is not being taught. Assign someone to restore it.
+              </p>
+            )}
+
+            {/* CASE 1 & 2: somebody can take it. */}
+            {eligible.length > 0 && (
+              <>
+                <div className="instructor-options">
+                  {eligible.map((f) => (
+                    <InstructorOption
+                      key={f.id}
+                      s={s}
+                      f={f}
+                      selected={chosen === f.id}
+                      projectedFor={t}
+                      onPick={() => setPicked(f.id)}
+                    />
+                  ))}
+                </div>
+
+                {state === 'available' && (
+                  <button type="button" className="course-drawer-action" disabled={!chosen || !canStartDevelopment(s, t, chosen)} onClick={develop}>
+                    {chosen
+                      ? `Develop with ${eligible.find((f) => f.id === chosen)?.name ?? 'selected faculty'}`
+                      : 'Develop'}
+                  </button>
+                )}
+                {offered && (
+                  <button type="button" className="course-drawer-action" disabled={!chosen || chosen === instructor?.id} onClick={reassign}>
+                    {chosen && chosen !== instructor?.id ? 'Move this course to them' : 'Currently assigned'}
+                  </button>
+                )}
+              </>
+            )}
+
+            {/* CASE 3: the department exists but everyone is full. Naming
+                who, and how loaded, is what turns a refusal into a choice
+                between reassigning and hiring. */}
+            {eligible.length === 0 && inField.length > 0 && (
+              <>
+                <p className="course-drawer-note">
+                  Every {t.requiresFaculty} professor is at capacity. Free a slot by moving one of their
+                  courses, or appoint someone new.
+                </p>
+                <div className="instructor-options">
+                  {inField.map((f) => <InstructorOption key={f.id} s={s} f={f} selected={false} disabled />)}
+                </div>
+              </>
+            )}
+
+            {/* CASE 4: nobody in the department at all. The hire happens
+                here rather than in a separate explanation of the problem. */}
+            {eligible.length === 0 && inField.length === 0 && (
+              <p className="course-drawer-note">
+                The university has no {t.requiresFaculty} faculty. Appoint someone to open this course.
+              </p>
+            )}
+
+            {eligible.length === 0 && (
+              <div className="course-drawer-hire">
+                <h5>On the market in {t.requiresFaculty}</h5>
+                {marketInField.length === 0 ? (
+                  <p className="course-drawer-note quiet">
+                    No {t.requiresFaculty} candidates are listed this week. The market turns over
+                    constantly — check back.
+                  </p>
+                ) : (
+                  marketInField.map((c) => (
+                    <div key={c.id} className="course-drawer-candidate">
+                      <InstructorOption s={s} f={c} selected={false} projectedFor={t} />
+                      <button
+                        type="button"
+                        className="course-drawer-appoint"
+                        onClick={() => act({ type: 'HIRE_FACULTY', facultyId: c.id })}
+                      >
+                        Appoint · ${Math.round(c.salary).toLocaleString()}/yr
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
+        {state === 'blocked' && shortfall > 0 && (
+          <p className="course-drawer-warning">${Math.ceil(shortfall).toLocaleString()} short of the development cost.</p>
+        )}
+        {state === 'locked' && (
+          <p className="course-drawer-note quiet">Locked until its prerequisites are complete.</p>
+        )}
+      </div>
+    </aside>
+  );
+}
+
+// =====================================================================
+// LEVEL 1 — THE UNIVERSITY. One card per school.
+//
+// The view that did not exist in any form before, and the direct answer to
+// "look at a school and see its strengths and weaknesses": breadth as a
+// completion ring, quality as a grade, side by side, so a school can
+// visibly be one without the other.
+// =====================================================================
+function SchoolCard(
+  { s, view, loads, onOpen }:
+  { s: GameState; view: SchoolView; loads: FacultyLoads; onOpen: () => void },
+) {
+  const done = completion(s, view.schoolCourseIds);
+  const avg = averageCourseQuality(s, view.schoolCourseIds, loads);
+  const majors = view.lanes.filter((lane) => !lane.graduate).length;
+  const grad = view.lanes.filter((lane) => lane.graduate).length;
+
+  return (
+    <button type="button" className="school-card" onClick={onOpen}>
+      <span className="school-card-head">
+        <span className="school-card-name">{view.heading}</span>
+        {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${Math.round(avg)} / 100 across its developed courses`} />}
+      </span>
+      <span className="school-card-body">
+        <ProgressRing
+          fraction={done.fraction}
+          size={SCHOOL_CARD_RING_SIZE}
+          center={`${Math.round(done.fraction * 100)}%`}
+          title={`${done.done} of ${done.total} courses developed`}
+        />
+        <span className="school-card-stats">
+          <span className="school-card-count">{done.done} / {done.total}</span>
+          <span className="school-card-sub">courses developed</span>
+          <span className="school-card-sub">
+            {majors} {majors === 1 ? 'program' : 'programs'}
+            {grad > 0 && ` · ${grad} graduate`}
+          </span>
+        </span>
+      </span>
+    </button>
+  );
+}
+
+// =====================================================================
+// LEVEL 2 — ONE SCHOOL. Its majors as lanes.
+//
+// T1 leads at full width because it is the gateway and the course the
+// player acts on first; T2 and T3 follow as bands. The chevron between
+// bands replaces sixteen prereq lines per major and says the same thing
+// more clearly. An empty band is drawn as a rule rather than omitted, so
+// a lane's shape stays constant as it fills and the eye can compare
+// majors down the column.
+// =====================================================================
+function TierBand(
+  { s, ids, lookup, selectedId, onSelect, loads, tier, empty }:
+  {
+    s: GameState; ids: string[]; lookup: Map<string, Buildable>; selectedId: string | null;
+    onSelect: (id: string) => void; loads: FacultyLoads; tier: 'tier1' | 'tier2' | 'tier3'; empty: string;
+  },
+) {
+  if (ids.length === 0) return <div className={`tier-band ${tier} empty`}><span>{empty}</span></div>;
+  return (
+    <div className={`tier-band ${tier}`}>
+      {ids.map((id) => {
+        const t = lookup.get(id);
+        return t ? <CourseCell key={id} s={s} t={t} selected={selectedId === id} onSelect={onSelect} loads={loads} /> : null;
+      })}
+    </div>
+  );
+}
+
+function Lane(
+  { s, lane, lookup, selectedId, onSelect, loads }:
+  {
+    s: GameState; lane: MajorLane; lookup: Map<string, Buildable>;
+    selectedId: string | null; onSelect: (id: string) => void; loads: FacultyLoads;
+  },
+) {
+  const ids = [...lane.tier1, ...lane.tier2, ...lane.tier3];
+  const avg = averageCourseQuality(s, ids, loads);
+  const done = completion(s, ids);
+
+  return (
+    <section className={`lane${lane.graduate ? ' graduate' : ''}`}>
+      <header className="lane-head">
+        <h4>{lane.name}</h4>
+        {lane.graduate && <span className="subgroup-degree">{lane.graduate.degree}</span>}
+        {avg !== null && <GradeChip grade={gradeFor(avg)} title={`${lane.name} averages ${Math.round(avg)} / 100`} />}
+        <span className="lane-count">{done.done} / {done.total}</span>
+      </header>
+      {lane.graduate ? (
+        <div className="lane-bands graduate">
+          <TierBand s={s} ids={lane.tier2} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} tier="tier2" empty="" />
+        </div>
+      ) : (
+        <div className="lane-bands">
+          <TierBand s={s} ids={lane.tier1} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} tier="tier1" empty="—" />
+          <span className="lane-chevron" aria-hidden="true">›</span>
+          <TierBand s={s} ids={lane.tier2} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} tier="tier2" empty="Opens with the entry course" />
+          <span className="lane-chevron" aria-hidden="true">›</span>
+          <TierBand s={s} ids={lane.tier3} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} tier="tier3" empty="Opens when the program is established" />
+        </div>
+      )}
+    </section>
+  );
+}
+
+// =====================================================================
+// FINDING THINGS IN 421 COURSES.
+//
+// Progressive discovery already does the heavy lifting — a player only
+// ever sees what they have unlocked — but a mature catalogue is still
+// hundreds of cards across eight schools, and the two questions that get
+// hard are "where is X" and "what needs my attention".
+//
+// Both are answered by the same mechanism: a filter turns the map into a
+// WORKLIST — one flat, cross-school list of exactly what matched. That is
+// deliberately not a dimming pass over the lanes. "Show me everything at D
+// or below" is a to-do list, and a to-do list spread across eight screens
+// with the irrelevant items greyed out is not one. When nothing is
+// filtered, the map is the map.
+// =====================================================================
+
+type StatusFilter = 'all' | 'available' | 'developing' | 'done' | 'unstaffed';
+type GradeFilter = 'all' | 'weak';
+
+const WEAK_GRADES = new Set<Grade>(['D', 'F']);
+
+interface Filters {
+  query: string;
+  status: StatusFilter;
+  grade: GradeFilter;
+}
+
+const NO_FILTERS: Filters = { query: '', status: 'all', grade: 'all' };
+
+function filtersActive(f: Filters): boolean {
+  return f.query.trim() !== '' || f.status !== 'all' || f.grade !== 'all';
+}
+
+function matchesFilters(s: GameState, t: Buildable, f: Filters, loads: FacultyLoads): boolean {
+  const query = f.query.trim().toLowerCase();
+  if (query !== '' && !t.name.toLowerCase().includes(query)) return false;
+
+  if (f.status !== 'all') {
+    if (f.status === 'unstaffed') {
+      if (!isUnstaffed(s, t)) return false;
+    } else if (cellState(s, t) !== f.status) return false;
+  }
+
+  if (f.grade === 'weak') {
+    const q = courseQuality(s, t, loads);
+    // An unstaffed course belongs in the improvement worklist too: it is
+    // the most broken thing a course can be, and it has no grade to match
+    // on, so it is admitted explicitly rather than filtered out for
+    // lacking the very letter that would qualify it.
+    if (!q) return isUnstaffed(s, t);
+    if (!WEAK_GRADES.has(q.grade)) return false;
+  }
+  return true;
+}
+
+function FilterBar(
+  { filters, onChange, resultCount }:
+  { filters: Filters; onChange: (f: Filters) => void; resultCount: number | null },
+) {
+  return (
+    <div className="curriculum-filters">
+      <input
+        id="curriculum-search"
+        type="search"
+        className="curriculum-search"
+        placeholder="Search courses…"
+        value={filters.query}
+        onChange={(e) => onChange({ ...filters, query: e.target.value })}
+      />
+      <select
+        id="curriculum-status"
+        className="curriculum-select"
+        value={filters.status}
+        onChange={(e) => onChange({ ...filters, status: e.target.value as StatusFilter })}
+      >
+        <option value="all">Any status</option>
+        <option value="available">Ready to start</option>
+        <option value="developing">In development</option>
+        <option value="done">Developed</option>
+        <option value="unstaffed">Unstaffed</option>
+      </select>
+      <button
+        type="button"
+        className={`curriculum-chip${filters.grade === 'weak' ? ' on' : ''}`}
+        aria-pressed={filters.grade === 'weak'}
+        onClick={() => onChange({ ...filters, grade: filters.grade === 'weak' ? 'all' : 'weak' })}
+        title="Every developed course graded D or F, plus any left unstaffed"
+      >
+        Needs attention
+      </button>
+      {resultCount !== null && (
+        <span className="curriculum-result-count">
+          {resultCount} {resultCount === 1 ? 'course' : 'courses'}
+        </span>
+      )}
+      {filtersActive(filters) && (
+        <button type="button" className="curriculum-chip clear" onClick={() => onChange(NO_FILTERS)}>
+          Clear
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -507,18 +1121,43 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
   const catalogPct = Math.round(catalogFraction * 100);
 
   const lookup = new Map(s.tech.map((t) => [t.id, t]));
+  // Built ONCE per render and threaded to every cell, every heading and
+  // the drawer. Grading is cheap; counting a professor's load is not (see
+  // facultyLoads), and a screen of four hundred cells each counting it for
+  // itself is the same quadratic that would stall the weekly tick.
+  const loads = facultyLoads(s);
   const genEdComplete = isGenEdComplete(s);
   const sections = buildSections(s, genEdComplete, revealedGrad);
-  const [pool, ...schoolSections] = sections;
+  const pool = sections[0];
+  const views = schoolViews(s, sections);
 
-  // The curriculum alert badge (see types.ts's SeenState): every currently
-  // visible course id this tab hasn't reported seeing yet. Marked the
-  // moment the tab is open, and again whenever a fresh reveal (a school
-  // built, gen-ed cleared) adds to the visible set while it stays open —
-  // the dependency is the exact unseen id set, so this fires again on any
-  // change to it, not just a change in count. That's what makes "already
-  // had curriculum open when new courses unlocked" show no badge: the
-  // toolbar and this tab agree the instant this runs.
+  // WHERE THE PLAYER IS. null = the university view (every school at
+  // once); a building id = inside that school. The course drawer is the
+  // third level and rides on top of either, so selecting a course never
+  // costs the player their place.
+  const [openSchool, setOpenSchool] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+
+  const selected = selectedId ? lookup.get(selectedId) ?? null : null;
+  const onSelect = useCallback((id: string) => {
+    setSelectedId((cur) => (cur === id ? null : id));
+  }, []);
+
+  // Jumping to a course from anywhere: a search result, or a bridge badge
+  // naming a prerequisite in another school. This is the single most
+  // useful thing the map does — the prerequisite you care about is almost
+  // always one you cannot currently see, and a line drawn to an offscreen
+  // node is worth nothing next to actually going there.
+  const goToCourse = useCallback((id: string) => {
+    const home = courseSchools().get(id);
+    const revealed = new Set(visibleCourseIds(s));
+    // A course still in the ungrouped pool has no school to open yet.
+    setOpenSchool(home && revealed.has(id) && !pool.courseIds.includes(id) ? home.buildingId : null);
+    setSelectedId(id);
+    setFilters(NO_FILTERS);
+  }, [s, pool.courseIds]);
+
   const unseenIds = visibleCourseIds(s).filter((id) => !s.seen.courseIds[id]);
   const unseenKey = unseenIds.join('|');
   useEffect(() => {
@@ -526,18 +1165,53 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unseenKey]);
 
+  const filtering = filtersActive(filters);
+  const matches = filtering
+    ? visibleCourseIds(s)
+      .map((id) => lookup.get(id))
+      .filter((t): t is Buildable => !!t && matchesFilters(s, t, filters, loads))
+    : [];
+
+  const school = openSchool ? views.find((v) => v.key === openSchool) ?? null : null;
+
   return (
-    <div className="tab-content">
+    <div className={`tab-content curriculum-layout${selected ? ' with-drawer' : ''}`}>
       <section className="panel curriculum-panel">
         <div className="panel-head">
           <span className="panel-head-title">
-            <h2>The Curriculum</h2>
+            {/* The breadcrumb IS the level indicator: at the university
+                view it is a plain title, inside a school it becomes a way
+                back. One control, so there is never a "close this view"
+                button competing with the tab's own close. */}
+            {/* A filter searches the WHOLE catalogue, so while one is on
+                the crumb must say so — claiming "School of Engineering"
+                over a list drawn from four schools is a straightforward
+                lie about where the player is. Leaving the filter restores
+                whatever level they were on, which is why openSchool is
+                left alone rather than cleared. */}
+            {filtering ? (
+              <h2 className="curriculum-crumbs">
+                <button type="button" className="crumb" onClick={() => setFilters(NO_FILTERS)}>
+                  {school ? school.heading : 'The Curriculum'}
+                </button>
+                <span className="crumb-sep" aria-hidden="true">›</span>
+                <span className="crumb-current">Matching courses</span>
+              </h2>
+            ) : school ? (
+              <h2 className="curriculum-crumbs">
+                <button type="button" className="crumb" onClick={() => setOpenSchool(null)}>The Curriculum</button>
+                <span className="crumb-sep" aria-hidden="true">›</span>
+                <span className="crumb-current">{school.heading}</span>
+              </h2>
+            ) : (
+              <h2>The Curriculum</h2>
+            )}
             {isTestUniversity(s.self.name) && (
               <button
                 type="button"
                 className="grant-funds-btn"
                 onClick={() => act({ type: 'DEVELOP_ALL_AVAILABLE_COURSES' })}
-                title="Playtest only — starts development on every course currently available, cash and faculty slots permitting. Same effect as clicking each one's own Develop button."
+                title="Playtest only — starts development on every course currently available, cash and faculty slots permitting."
               >
                 Develop All
               </button>
@@ -553,60 +1227,88 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
               />
               <span className="stat">{doneCourses} / {courses.length}<br />developed</span>
             </span>
+            <AggregateGrade s={s} ids={courses.map((c) => c.id)} label="The catalogue" loads={loads} />
             <HelpHint
               align="end"
               text={genEdComplete
-                ? "Open to all incoming students — not yet organized by school. Complete a school's entry courses to raise its building."
+                ? 'Open a school to see its programs. Every course shows the grade its instructor earns it.'
                 : 'The general-education core — every major waits on it. Complete it to unlock every major\'s entry course.'}
             />
           </span>
         </div>
-        <CellLegend />
+
+        <FilterBar filters={filters} onChange={setFilters} resultCount={filtering ? matches.length : null} />
+
         {s.finance.cash < 0 && (
           <p className="stall-note">Cash is negative — the school is running an operating deficit, so nothing can be started until the balance recovers.</p>
         )}
 
         <div className="curriculum-scroll">
-          {/* The pool carries no completion indicator of its own on
-              purpose: a "x / 42" here would count the majors that exist
-              before the player has met any of them. */}
-          <div className="discovery-pool">
-            <CellGrid s={s} act={act} ids={pool.courseIds} lookup={lookup} />
-          </div>
-
-          {schoolSections.map((section) => {
-            const school = completion(s, section.schoolCourseIds);
-            return (
-              <div key={section.key} className="discovery-section">
-                <div className="discovery-section-head">
-                  <h3>{section.heading}</h3>
-                  <span className="progress-figure">
-                    <ProgressRing
-                      fraction={school.fraction}
-                      size={SECTION_RING_SIZE}
-                      title={`${school.done} of ${school.total} ${section.label} courses developed`}
-                    />
-                    <span className="stat">{school.done} / {school.total}</span>
-                  </span>
-                </div>
-                {section.courseIds.length > 0 && <CellGrid s={s} act={act} ids={section.courseIds} lookup={lookup} />}
-                {section.subgroups.map((sub) => (
-                  <div key={sub.key} className={`discovery-subgroup${sub.graduate ? ' graduate' : ''}`}>
-                    <h4>
-                      {sub.label}
-                      {sub.graduate && <span className="subgroup-degree">{sub.graduate.degree}</span>}
-                    </h4>
-                    {sub.graduate && (
-                      <p className="subgroup-note">Graduate · opened by {sub.graduate.gate}</p>
-                    )}
-                    <CellGrid s={s} act={act} ids={sub.courseIds} lookup={lookup} />
-                  </div>
-                ))}
+          {/* A filter replaces the map with its results, across every
+              school at once (see the worklist note above). */}
+          {filtering ? (
+            matches.length === 0 ? (
+              <p className="empty-note">Nothing matches those filters.</p>
+            ) : (
+              <div className="worklist">
+                {matches.map((t) => {
+                  const home = courseSchools().get(t.id);
+                  return (
+                    <div key={t.id} className="worklist-row">
+                      <CourseCell s={s} t={t} selected={selectedId === t.id} onSelect={onSelect} loads={loads} />
+                      <span className="worklist-where">{home?.school ?? 'General Studies'}</span>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+            )
+          ) : school ? (
+            // LEVEL 2 — one school, its majors as lanes.
+            <div className="school-lanes">
+              {school.lanes.length === 0
+                ? <p className="empty-note">Nothing revealed in this school yet.</p>
+                : school.lanes.map((lane) => (
+                  <Lane key={lane.key} s={s} lane={lane} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} />
+                ))}
+            </div>
+          ) : (
+            // LEVEL 1 — the university.
+            <>
+              {pool.courseIds.length > 0 && (
+                <div className="discovery-pool">
+                  {/* The pool carries no completion indicator on purpose:
+                      an "x / 42" here would count majors the player has
+                      not met. */}
+                  <p className="pool-caption">
+                    {genEdComplete
+                      ? 'Entry courses, not yet organised by school — complete a school\'s entry courses to raise its building.'
+                      : 'The general-education core. Every major waits on it.'}
+                  </p>
+                  <CellGrid s={s} ids={pool.courseIds} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} />
+                </div>
+              )}
+              {views.length > 0 && (
+                <div className="school-grid">
+                  {views.map((view) => (
+                    <SchoolCard key={view.key} s={s} view={view} loads={loads} onOpen={() => setOpenSchool(view.key)} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </section>
+      {selected && (
+        <CourseDrawer
+          s={s}
+          act={act}
+          t={selected}
+          lookup={lookup}
+          onClose={() => setSelectedId(null)}
+          loads={loads}
+          onGoToCourse={goToCourse}
+        />
+      )}
     </div>
   );
 }

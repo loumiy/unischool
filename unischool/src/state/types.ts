@@ -569,13 +569,76 @@ export interface PrizeAward {
   prizeName: string;
 }
 
+// How deep a commitment an initiative is. Lives here rather than beside
+// its tuning table (data/researchData.ts's INITIATIVE_DEPTHS) because this
+// module is the base of the import graph — everything reads types, types
+// reads nothing — and the depth is part of the saved shape.
+export type InitiativeDepth = 'pilot' | 'project' | 'program' | 'landmark';
+
+// A piece of scholarship the player commissioned: a named topic, run out
+// of one research facility by named people, for years. See
+// data/researchData.ts's initiative block for the model and
+// data/researchTopics.ts for the topics themselves.
+//
+// Participants are COMMITTED for the duration: their course slots go to
+// zero and whatever they were teaching is orphaned (see techSystem.ts's
+// isCommitted), which is what makes starting one a real institutional
+// decision rather than a free upgrade for anybody idle.
+export interface Initiative {
+  labId: string;            // the facility hosting it — the slot IS the key in `initiatives`
+  topicId: string;
+  depth: InitiativeDepth;
+  participantIds: string[];
+  weeksTotal: number;
+  weeksRemaining: number;
+  // Banked during the run. breakthroughs is what gates the award roll at
+  // conclusion; the rest are for the report it leaves behind.
+  publications: number;
+  breakthroughs: number;
+  grantIncome: number;
+}
+
+// What an initiative leaves behind once it ends — the university's own
+// research record, and the only place a finished project is still visible.
+// Bounded (see INITIATIVE_HISTORY_LIMIT) because a long run would
+// otherwise grow this without limit.
+export interface CompletedInitiative {
+  topicId: string;
+  depth: InitiativeDepth;
+  year: number;
+  facultyNames: string[];
+  publications: number;
+  breakthroughs: number;
+  grantIncome: number;
+  award: string | null;     // the prize name, when the work took one
+  cancelled?: true;         // ended early by the player, forfeiting its funding
+}
+
+export const INITIATIVE_HISTORY_LIMIT = 24;
+
 export interface ResearchState {
-  points: number;          // the unspent stock. Grows weekly with lab-equipped faculty output; an output SPENDS its cost out of it (see researchData.ts's RESEARCH_OUTPUTS), which is what makes the rarer outputs need years of accumulation rather than luck
+  // DEAD STATE, kept rather than removed. This was the campus-wide bank
+  // that lab-equipped faculty trickled into and outputs were bought out
+  // of; initiatives replaced it (decision 7 — idle capacity produces
+  // nothing, the way to produce is to start something), so nothing writes
+  // it and, since the Faculty tab stopped displaying a figure that had
+  // read zero ever since, nothing reads it either. Left in the saved shape
+  // exactly as Faculty.morale was: harmless, and not worth a migration to
+  // delete. Do not wire it back up — if scholarship ever needs a stock
+  // again it should be per-initiative, where the work actually is.
+  points: number;
   lifetimePoints: number;  // every point ever produced, never spent down — display only, so the Faculty tab can show the long arc rather than a stock that sawtooths
+  publications: number;    // papers, monographs, case studies and exhibited works — the cheap, frequent output (see researchData.ts's RESEARCH_OUTPUTS). A monotone stock like the others; feeds prestige at a steep discount to a breakthrough (see prestigeSystem.ts's researchScore)
   grants: number;          // research grants awarded so far
   grantIncome: number;     // total cash those grants brought in — displayed in the Treasury, since a grant lands as a one-off rather than as a line of the weekly statement
   breakthroughs: number;   // published breakthroughs. A monotone STOCK, and the whole of research's reach into prestige: prestigeSystem.ts's researchScore reads this (never s.self.reputation directly — see that file)
   prizes: number;          // prizes awarded; counts for a heavier share of the same capped prestige input
+  // Running initiatives, KEYED BY THE FACILITY hosting each one — which is
+  // how "one initiative per facility" is enforced by the shape of the data
+  // rather than by a rule somebody has to remember to check. A facility is
+  // vacant exactly when it has no key here.
+  initiatives: Record<string, Initiative>;
+  completedInitiatives: CompletedInitiative[]; // newest first, capped at INITIATIVE_HISTORY_LIMIT
   lastOutputWeek: number;  // absolute week the last research output landed; 0 = never. The cooldown half of the cadence, exactly like events.lastDecisionWeek
   pendingPrizes: PrizeAward[]; // awarded but not yet celebrated — a QUEUE for the same reason events.pendingMilestones is one: the week a prize lands may already belong to admissions or the U.S. News report, and only one interrupt can be pending at a time
 }
@@ -827,6 +890,46 @@ export interface YearSnapshot {
   satisfaction: number;   // 0..100
 }
 
+// ---------------------------------------------------------------------
+// WHO TEACHES WHAT. Course id -> the id of the Faculty member the player
+// chose to teach it, written when development starts and editable
+// afterwards (REASSIGN_COURSE_FACULTY).
+//
+// A SEPARATE RECORD, keyed by id, rather than a field on Buildable — for
+// exactly the reason `placements` is a separate record and not a field on
+// Buildable (see README's "Courses and buildings share one flow"). A
+// building's location and a course's instructor are the same SHAPE of
+// fact: something true of one KIND of Buildable, which must not fork the
+// single Buildable model that serves all four kinds. Courses are never
+// placed and so never carry a `placements` entry; buildings never have
+// instructors and so never carry one here. Same reasoning, same shape, in
+// both directions.
+//
+// WHY THIS IS REAL STATE AND NOT A PROJECTION. It used to be neither: the
+// engine tracked only per-field slot CAPACITY, and who taught what was a
+// deterministic round-robin computed on read (see
+// systems/faculty/facultyAssignment.ts, which now reads this record
+// instead). That was fine while the answer was only ever a caption. It
+// cannot carry a course QUALITY GRADE, which is what lands next: hire one
+// more person into a field and the round-robin silently re-pairs every
+// course in it, so a grade computed off it would change whenever the
+// roster did, for reasons the player never chose and cannot see. Letting
+// the player pick is what makes the pairing stable enough to grade.
+//
+// An id here may go STALE in exactly one way: the person is dismissed
+// (FIRE_FACULTY clears their entries) or is otherwise no longer on the
+// roster. A course that is offered but has no live entry is UNSTAFFED —
+// see techSystem.ts's isUnstaffed. That is a real, visible state the
+// player has to fix, not an error: it is the "department left
+// understaffed, its courses on hold" chain the README's faculty section
+// describes. Unstaffed courses hold no slot, so dismissing someone frees
+// their field capacity at the same moment it orphans their courses.
+//
+// A plain id -> id record, the same shape rationale as `milestones` and
+// `pathways`: no Map, no reference into `faculty` or `tech`, so it
+// survives a JSON round trip untouched.
+export type CourseFaculty = Record<string, string>;
+
 export interface GameState {
   clock: GameClock;
   finance: Finance;
@@ -835,6 +938,7 @@ export interface GameState {
   faculty: Faculty[];
   tech: Buildable[];
   developing: Record<string, number>; // course id -> weeks remaining
+  courseFaculty: CourseFaculty;       // course id -> the faculty member teaching it; the player's choice, made when development starts (see the CourseFaculty block above)
   placements: Placements;            // Buildable id -> the campus tiles it covers; visual only (see the campus map block above)
   pathways: Pathways;                 // drawn walkway tiles; visual only, read by no system (see the Pathways block above)
   trees: Trees;                       // the founding woodland, tile -> render seed; felled by building, hidden by paving (see the Trees block above)

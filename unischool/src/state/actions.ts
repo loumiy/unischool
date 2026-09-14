@@ -1,4 +1,4 @@
-import type { AthleticsBudgetTier, GameState, SchoolType, TileCoord } from './types';
+import type { AthleticsBudgetTier, GameState, InitiativeDepth, SchoolType, TileCoord } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
 import { WEEKS_PER_YEAR, CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT } from './types';
@@ -8,7 +8,7 @@ import { initialDorms } from '../data/campusData';
 import { seedTrees } from '../data/treeData';
 import { initialFacilities } from '../data/facilitiesData';
 import { initialRivals } from '../data/rivalData';
-import { initialCandidatePool, facultySalary } from '../data/facultyData';
+import { initialCandidatePool, facultySalary, grownStat, FOUNDING_TENURE_WEEKS } from '../data/facultyData';
 import {
   SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION, STARTING_ENDOWMENT, STARTING_TUITION,
   FOUNDING_COHORTS,
@@ -43,7 +43,40 @@ export type Action =
   // placeable Buildable (building/dorm/facility) never starts this way —
   // it starts through PLACE_BUILDABLE instead, which combines the same
   // gate with siting a location in one step.
-  | { type: 'START_DEVELOPMENT'; nodeId: string }
+  //
+  // `facultyId` is the instructor the player picked for it. The Curriculum
+  // tab ALWAYS supplies one — choosing who teaches a course is the point of
+  // the interaction, and the assignment is written in the same transaction
+  // as the start (see techSystem.ts's startDevelopment), so a developing
+  // course is never without a teacher. It is optional only for the two
+  // callers that are not a player making a choice: the playtest-only
+  // DEVELOP_ALL_AVAILABLE_COURSES button and the headless balance sim, both
+  // of which let the engine take the strongest eligible teacher instead.
+  | { type: 'START_DEVELOPMENT'; nodeId: string; facultyId?: string }
+  | { type: 'REASSIGN_COURSE_FACULTY'; courseId: string; facultyId: string }
+  // Commissions a research initiative in a vacant facility: a topic, a
+  // team and a depth, paid for up front out of cash (see
+  // researchData.ts's initiative block).
+  //
+  // It COSTS THE TEAM'S TEACHING. Every participant is committed for the
+  // duration, their course slots drop to zero, and whatever they were
+  // teaching is orphaned exactly as a dismissal orphans it — which is why
+  // the UI names those courses before the click, not after. Rejected if
+  // the facility is not finished or already busy, the topic's fields are
+  // not all covered, anyone named is already committed, or the funding
+  // cannot be paid.
+  | { type: 'START_INITIATIVE'; labId: string; topicId: string; depth: InitiativeDepth; facultyIds: string[] }
+  // Ends one early. The up-front funding is forfeit and nothing banks, but
+  // the participants are released immediately — which is usually the real
+  // reason to do it (decision 8).
+  | { type: 'CANCEL_INITIATIVE'; labId: string }
+  // Moves an already-offered course to a different instructor — the lever
+  // for fixing a weak course, and for re-staffing one a dismissal left
+  // unstaffed. Free and immediate: the real cost is an opportunity cost,
+  // since the person taking it on is one slot less available to everything
+  // else. Rejected unless the course is offered and the new instructor is
+  // eligible for it (on the roster, in its field, not already full — see
+  // techSystem.ts's eligibleInstructors).
   // Appoints someone straight off the standing candidate list (see
   // facultyData.ts's churn block): they move from s.candidates to
   // s.faculty this instant, with no fee and no waiting period. The only
@@ -51,6 +84,16 @@ export type Action =
   // market this week — availability IS the recruiting constraint now, and
   // the money constraint is the salary they start drawing immediately.
   | { type: 'HIRE_FACULTY'; facultyId: string }
+  // Dismisses someone from the roster. This ORPHANS every course they were
+  // teaching: their assignments are cleared, and those courses go unstaffed
+  // until the player gives them a new instructor (see types.ts's
+  // CourseFaculty). The department does NOT get that capacity back — the
+  // courses still exist and still need teaching — so it is left
+  // over-committed until somebody takes them on. A replacement hire can
+  // always do that (eligibility is a per-person check), but the school
+  // cannot open NEW courses in that field until it has. The UI warns
+  // before this, naming the courses, because it is not recoverable by
+  // undo — see FacultyTab.tsx.
   | { type: 'FIRE_FACULTY'; facultyId: string }
   // The unified build-and-site action for a placeable Buildable (building/
   // dorm/facility — a `course` never dispatches this). Placement IS how a
@@ -248,13 +291,15 @@ export function createPreStartState(): GameState {
       athleticsBudget: DEFAULT_ATHLETICS_BUDGET,
     },
     research: {
-      points: 0, lifetimePoints: 0, grants: 0, grantIncome: 0,
-      breakthroughs: 0, prizes: 0, lastOutputWeek: 0, pendingPrizes: [],
+      points: 0, lifetimePoints: 0, publications: 0, grants: 0, grantIncome: 0,
+      breakthroughs: 0, prizes: 0, initiatives: {}, completedInitiatives: [],
+      lastOutputWeek: 0, pendingPrizes: [],
     },
     candidates: [],
     started: false,
     hasEnteredRankings: false,
     milestones: {},
+    courseFaculty: {},
     seen: { courseIds: {}, buildableIds: {}, candidateIds: {} },
   };
 }
@@ -351,10 +396,21 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       scholarshipRate: 0,
     },
     // Founding faculty are already-established hires, not brand-new
-    // candidates — a small headroom to their potential (rather than
-    // generateCandidate's usual ~45% gap) reflects that; tenureWeeks starts
-    // at 0 regardless, so they still grow (and get pricier) from here. See
-    // facultyData.ts's grownStat/facultySalary for the shared growth curve.
+    // candidates, and THE WAY THAT IS EXPRESSED IS TENURE (see
+    // facultyData.ts's FOUNDING_TENURE_WEEKS). Their teaching, research and
+    // salary are not authored figures: they are derived from each person's
+    // rolled potential and that tenure, through exactly the curves
+    // growFaculty will keep applying from week one onward.
+    //
+    // That indirection is load-bearing, not tidiness. All three fields are
+    // RECOMPUTED every tick, so a literal written here survives zero weeks —
+    // which is what used to happen. The five were authored at teaching 70-80
+    // and silently became 44-48 on the first tick: precisely the
+    // fresh-candidate figures this comment claimed they were not using.
+    // Nothing read the numbers per-person, so it stayed invisible until a
+    // course grade put one on a card. Deriving them from the functions that
+    // will overwrite them means the roster on week one is the roster the
+    // engine actually believes in.
     //
     // acclaim is 0 for all five and stays there until one of them wins a
     // research prize — which none of them can until the school has built
@@ -373,32 +429,37 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // fresh hire before its tier-1 course can start.
     faculty: [
       {
-        id: 'f1', name: 'Dr. Alma Reyes', field: 'Physics', teaching: 72, research: 65, teachingPotential: 82, researchPotential: 78,
-        tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: facultySalary(72, 65, 0), courseSlots: 2,
+        id: 'f1', name: 'Dr. Alma Reyes', field: 'Physics', teaching: grownStat(82, FOUNDING_TENURE_WEEKS), research: grownStat(78, FOUNDING_TENURE_WEEKS), teachingPotential: 82, researchPotential: 78,
+        tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
+        salary: facultySalary(grownStat(82, FOUNDING_TENURE_WEEKS), grownStat(78, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
         nationality: 'United States', flag: '🇺🇸', gender: 'female', heritage: 'Hispanic/Latin American',
         bio: 'Earned a doctorate in Physics at Ravensmoor Institute; research centers on astrophysical modeling.',
       },
       {
-        id: 'f2', name: 'Dr. John Okafor', field: 'History', teaching: 80, research: 55, teachingPotential: 88, researchPotential: 68,
-        tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: facultySalary(80, 55, 0), courseSlots: 2,
+        id: 'f2', name: 'Dr. John Okafor', field: 'History', teaching: grownStat(88, FOUNDING_TENURE_WEEKS), research: grownStat(68, FOUNDING_TENURE_WEEKS), teachingPotential: 88, researchPotential: 68,
+        tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
+        salary: facultySalary(grownStat(88, FOUNDING_TENURE_WEEKS), grownStat(68, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
         nationality: 'Nigeria', flag: '🇳🇬', gender: 'male', heritage: 'West African',
         bio: 'Earned a doctorate in History at the University of Calderwood; research centers on maritime trade networks.',
       },
       {
-        id: 'f3', name: 'Dr. Grace Bennett', field: 'English', teaching: 78, research: 60, teachingPotential: 85, researchPotential: 72,
-        tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: facultySalary(78, 60, 0), courseSlots: 3,
+        id: 'f3', name: 'Dr. Grace Bennett', field: 'English', teaching: grownStat(85, FOUNDING_TENURE_WEEKS), research: grownStat(72, FOUNDING_TENURE_WEEKS), teachingPotential: 85, researchPotential: 72,
+        tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
+        salary: facultySalary(grownStat(85, FOUNDING_TENURE_WEEKS), grownStat(72, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 3,
         nationality: 'United Kingdom', flag: '🇬🇧', gender: 'female', heritage: 'Anglo/Western European',
         bio: 'Earned a doctorate in English at Marchmont University; research centers on rhetoric and composition.',
       },
       {
-        id: 'f4', name: 'Dr. Priya Iyer', field: 'Mathematics', teaching: 70, research: 68, teachingPotential: 80, researchPotential: 79,
-        tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: facultySalary(70, 68, 0), courseSlots: 2,
+        id: 'f4', name: 'Dr. Priya Iyer', field: 'Mathematics', teaching: grownStat(80, FOUNDING_TENURE_WEEKS), research: grownStat(79, FOUNDING_TENURE_WEEKS), teachingPotential: 80, researchPotential: 79,
+        tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
+        salary: facultySalary(grownStat(80, FOUNDING_TENURE_WEEKS), grownStat(79, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
         nationality: 'India', flag: '🇮🇳', gender: 'female', heritage: 'South Asian',
         bio: 'Earned a doctorate in Mathematics at Ironwood University; research centers on numerical analysis.',
       },
       {
-        id: 'f5', name: 'Dr. Elena Novak', field: 'Philosophy', teaching: 75, research: 62, teachingPotential: 83, researchPotential: 71,
-        tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: facultySalary(75, 62, 0), courseSlots: 2,
+        id: 'f5', name: 'Dr. Elena Novak', field: 'Philosophy', teaching: grownStat(83, FOUNDING_TENURE_WEEKS), research: grownStat(71, FOUNDING_TENURE_WEEKS), teachingPotential: 83, researchPotential: 71,
+        tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
+        salary: facultySalary(grownStat(83, FOUNDING_TENURE_WEEKS), grownStat(71, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
         nationality: 'Poland', flag: '🇵🇱', gender: 'female', heritage: 'Slavic/Eastern European',
         bio: 'Earned a doctorate in Philosophy at Amberfield University; research centers on ethics and moral philosophy.',
       },
@@ -408,6 +469,11 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // live here together.
     tech,
     developing: {},
+    // Nothing is offered at founding — every gen-ed course opens
+    // 'available', none 'done' — so there is nothing to have assigned yet.
+    // The first entry is written the moment the player starts their first
+    // course and picks who teaches it.
+    courseFaculty: {},
     // Only Founders Hall is pre-placed: it opens 'done' (techData.ts), so
     // it needs a spot on the map from day one. It is centred on the grid
     // (foundersHallPlacement above) — the founding landmark the rest of the
@@ -477,8 +543,9 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // fire — the whole slice sits at zero until the first lab finishes
     // (see systems/research/researchSystem.ts).
     research: {
-      points: 0, lifetimePoints: 0, grants: 0, grantIncome: 0,
-      breakthroughs: 0, prizes: 0, lastOutputWeek: 0, pendingPrizes: [],
+      points: 0, lifetimePoints: 0, publications: 0, grants: 0, grantIncome: 0,
+      breakthroughs: 0, prizes: 0, initiatives: {}, completedInitiatives: [],
+      lastOutputWeek: 0, pendingPrizes: [],
     },
     candidates: initialCandidatePool(),
     started: true,

@@ -1,9 +1,14 @@
-import type { GameState, LogEntry } from '../state/types';
+import type { Faculty, GameState, LogEntry } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import type { Action } from '../state/actions';
 import { createInitialState, createPreStartState } from '../state/actions';
 import { tickFinance, endowmentCampaign } from '../systems/finance/financeSystem';
-import { tickTech, canStartDevelopment, startDevelopment } from '../systems/techtree/techSystem';
+import {
+  tickTech, canStartDevelopment, startDevelopment, eligibleInstructors, isCommitted,
+} from '../systems/techtree/techSystem';
+import { endInitiative } from '../systems/research/researchSystem';
+import { initiativeDepth, initiativeFundingCost } from '../data/researchData';
+import { researchTopic } from '../data/researchTopics';
 import { tickAdmissions, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
 import { deriveCohortSignals } from '../systems/admissions/cohorts';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
@@ -236,8 +241,17 @@ export function reducer(state: GameState, action: Action): GameState {
       // placeable Buildable can be started structurally, not just by
       // convention — exactly as canStartDevelopment stays the one gate,
       // reused rather than forked, for both actions.
+      //
+      // action.facultyId is the instructor the player chose. It is threaded
+      // through BOTH halves — the gate and the mutation — so the person who
+      // is checked for eligibility is exactly the person who gets recorded,
+      // and a stale or ineligible pick is refused rather than silently
+      // swapped for someone else. Omitted only by the two non-player
+      // callers (see actions.ts), where startDevelopment auto-picks.
       const node = s.tech.find((t) => t.id === action.nodeId);
-      if (node && !isPlaceableKind(node) && canStartDevelopment(s, node)) startDevelopment(s, node);
+      if (node && !isPlaceableKind(node) && canStartDevelopment(s, node, action.facultyId)) {
+        startDevelopment(s, node, action.facultyId);
+      }
       return s;
     }
 
@@ -255,8 +269,137 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
+    // Dismissal is now two things happening together, not one. The person
+    // leaves the roster, AND every course they were teaching is orphaned:
+    // their assignments are cleared, so those courses go unstaffed until
+    // the player gives them a new instructor (see types.ts's CourseFaculty).
+    //
+    // Clearing the entries rather than leaving them dangling is what lets
+    // a replacement take the orphans over: eligibility is a per-person
+    // check, so anyone hired into the field with a free slot can pick them
+    // up. What does NOT happen is the department getting its capacity
+    // back — an unstaffed course still holds its field slot (see
+    // techSystem.ts's usedFacultySlots), because the course still exists
+    // and still needs teaching. The school is left over-committed, and has
+    // to staff what it already offers before it can offer more.
+    //
+    // It is logged because it is the one player action in the game with a
+    // consequence that outlives the click: the roster shrinking is
+    // obvious, four courses quietly losing their teacher is not. The UI
+    // warns beforehand (FacultyTab.tsx); this is the record afterwards.
     case 'FIRE_FACULTY': {
+      const leaving = s.faculty.find((f) => f.id === action.facultyId);
+      if (!leaving) return s;
+
+      const orphaned = s.tech.filter((t) => s.courseFaculty[t.id] === leaving.id && (t.status === 'developing' || t.status === 'done'));
+      for (const course of orphaned) delete s.courseFaculty[course.id];
       s.faculty = s.faculty.filter((f) => f.id !== action.facultyId);
+
+      if (orphaned.length > 0) {
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: `${leaving.name} has left the university. ${orphaned.length} ${orphaned.length === 1 ? 'course is' : 'courses are'} without an instructor until ${leaving.field} is staffed again.`,
+          kind: 'bad',
+        });
+      }
+      return s;
+    }
+
+    // Moves an offered course to a different instructor — the lever for
+    // improving a weak course, and for re-staffing one a dismissal left
+    // orphaned. Free and immediate by design: the real cost is the
+    // opportunity cost, since whoever takes it on has one slot less for
+    // everything else.
+    //
+    // The course itself is passed as `except` so its CURRENT instructor
+    // still counts as eligible: the slot that course occupies is already
+    // theirs, so a full professor must not be judged unable to go on
+    // teaching something they are teaching right now.
+    // Commissioning scholarship. The gate is deliberately strict, because
+    // this is the most expensive commitment in the game: the facility must
+    // be finished and free, the topic real, the team the right size, every
+    // field the topic names covered, nobody already committed elsewhere,
+    // and the funding payable in full up front — the same "charge at the
+    // moment of the decision" rule every Buildable follows, so scholarship
+    // borrows the pacing model rather than inventing a second one.
+    //
+    // And then it takes the team's teaching. Their assignments are cleared
+    // exactly as FIRE_FACULTY clears them, because the consequence is the
+    // same: those courses have no instructor until somebody else takes
+    // them. That is the cost decision 2 chose, and it is why the UI names
+    // the affected courses before this is dispatched.
+    case 'START_INITIATIVE': {
+      const lab = s.tech.find((t) => t.id === action.labId);
+      if (!lab || lab.facilityType !== 'lab' || lab.status !== 'done') return s;
+      if (s.research.initiatives[action.labId]) return s;
+
+      const topic = researchTopic(action.topicId);
+      const depth = initiativeDepth(action.depth);
+      if (!topic || action.facultyIds.length !== depth.participants) return s;
+      if (depth.requiresCrossDisciplinary && topic.fields.length < 2) return s;
+
+      const team = action.facultyIds.map((id) => s.faculty.find((f) => f.id === id));
+      if (team.some((f) => f === undefined)) return s;
+      const participants = team as Faculty[];
+      if (participants.some((f) => isCommitted(s, f.id))) return s;
+      // Every field the topic names must actually be on the team — the
+      // whole point of a cross-disciplinary topic.
+      if (!topic.fields.every((field) => participants.some((f) => f.field === field))) return s;
+
+      const cost = initiativeFundingCost(s, depth);
+      if (s.finance.cash < cost) return s;
+      s.finance.cash -= cost;
+
+      s.research.initiatives[action.labId] = {
+        labId: action.labId,
+        topicId: topic.id,
+        depth: depth.key,
+        participantIds: participants.map((f) => f.id),
+        weeksTotal: depth.weeks,
+        weeksRemaining: depth.weeks,
+        publications: 0,
+        breakthroughs: 0,
+        grantIncome: 0,
+      };
+
+      const orphaned = s.tech.filter(
+        (t) => action.facultyIds.includes(s.courseFaculty[t.id]) && (t.status === 'developing' || t.status === 'done'),
+      );
+      for (const course of orphaned) delete s.courseFaculty[course.id];
+
+      s.log.unshift({
+        year: s.clock.year,
+        week: s.clock.week,
+        message: orphaned.length > 0
+          ? `“${topic.name}” has begun at ${lab.name}. ${orphaned.length} ${orphaned.length === 1 ? 'course is' : 'courses are'} without an instructor while its team is committed.`
+          : `“${topic.name}” has begun at ${lab.name}.`,
+        kind: orphaned.length > 0 ? 'info' : 'good',
+      });
+      return s;
+    }
+
+    // Ending one early: the funding is gone and nothing banks, but the
+    // team comes back this instant, which is usually why a player does it.
+    case 'CANCEL_INITIATIVE': {
+      const running = s.research.initiatives[action.labId];
+      if (!running) return s;
+      const topic = researchTopic(running.topicId);
+      endInitiative(s, action.labId, true);
+      s.log.unshift({
+        year: s.clock.year,
+        week: s.clock.week,
+        message: `“${topic?.name ?? 'A project'}” has been wound up early. Its funding is not recovered.`,
+        kind: 'bad',
+      });
+      return s;
+    }
+
+    case 'REASSIGN_COURSE_FACULTY': {
+      const course = s.tech.find((t) => t.id === action.courseId);
+      if (!course || (course.status !== 'developing' && course.status !== 'done')) return s;
+      if (!eligibleInstructors(s, course, course.id).some((f) => f.id === action.facultyId)) return s;
+      s.courseFaculty[course.id] = action.facultyId;
       return s;
     }
 

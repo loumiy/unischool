@@ -19,7 +19,9 @@ import { createInitialState } from '../src/state/actions';
 import { loadGame, saveGame, clearSave, SAVE_KEY, SAVE_VERSION } from '../src/state/persistence';
 import { sportById } from '../src/data/studentLifeData';
 import { athleticStrengthFor } from '../src/data/rivalData';
+import { researchSchools } from '../src/data/techData';
 import { WEEKS_PER_YEAR } from '../src/state/types';
+import { isUnstaffed, usedFacultySlots, facultyLoad } from '../src/systems/techtree/techSystem';
 
 // In-memory localStorage so the persistence module works under Node. Assigned
 // before any loadGame/saveGame call (module imports run first, but nothing in
@@ -568,6 +570,198 @@ function testCampusContentMigration(): void {
   assert(underABuilding.length === 0, `no seeded tree stands under a placed building (found ${underABuilding.length})`);
 }
 
+// ---- v30 -> v31: who teaches what becomes real state ----
+//
+// The migration materializes the pairing the old build computed on read
+// (see persistence.ts's MIGRATIONS[30]). What is worth testing is exactly
+// that promise: the resumed save says what the closed save was DRAWING,
+// down to which specific professor holds which specific course — plus the
+// two consequences the header note calls out, an emptied department
+// resuming unstaffed and its slots coming back.
+function makeV30Save(): void {
+  const base = createInitialState('Assigner', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+
+  const tech = state.tech as Array<Record<string, unknown>>;
+  const node = (id: string) => tech.find((n) => n.id === id)!;
+  const faculty = state.faculty as Array<Record<string, unknown>>;
+
+  // Three English courses offered, against a two-person English department
+  // (the founding Dr. Bennett plus one more). The old round-robin sorts
+  // both sides by id and deals: GE110 -> the first, GE160 -> the second,
+  // ENGL101 -> back to the first.
+  faculty.push({
+    ...JSON.parse(JSON.stringify(faculty.find((f) => f.field === 'English'))),
+    id: 'f9', name: 'Dr. Rosa Lindqvist',
+  });
+  node('GE110').status = 'done';
+  node('GE160').status = 'done';
+  node('ENGL101').status = 'developing';
+  (state.developing as Record<string, number>)['ENGL101'] = 4;
+
+  // A Physics course offered by a department that has since been emptied:
+  // the founding physicist is dismissed here, so nobody in the field
+  // remains. The old build drew no instructor for it and had no way to say
+  // why; the new one calls it unstaffed.
+  node('GE140').status = 'done';
+  state.faculty = faculty.filter((f) => f.field !== 'Physics');
+
+  // A pre-assignment save has no courseFaculty key at all.
+  delete state.courseFaculty;
+
+  writeSave(30, state);
+}
+
+function testCourseFacultyMigration(): void {
+  makeV30Save();
+  const loaded = loadGame();
+  assert(loaded !== null, 'v30 save loads (does not fall back to null)');
+  if (!loaded) return;
+
+  const english = loaded.faculty.filter((f) => f.field === 'English').sort((a, b) => a.id.localeCompare(b.id));
+  assert(english.length === 2, 'both English professors survive the migration');
+
+  // The round-robin, reproduced exactly: sorted courses dealt against
+  // sorted faculty. This is the whole promise of the migration — a
+  // resumed save keeps the pairings it was already showing.
+  assert(
+    loaded.courseFaculty['ENGL101'] === english[0].id,
+    'the first English course by id keeps the first English professor by id',
+  );
+  assert(
+    loaded.courseFaculty['GE110'] === english[1].id,
+    'the round-robin deals the second course to the second professor',
+  );
+  assert(
+    loaded.courseFaculty['GE160'] === english[0].id,
+    'the round-robin wraps back to the first professor for the third course',
+  );
+
+  // A developing course carries an instructor too, not just a done one.
+  assert(
+    typeof loaded.courseFaculty['ENGL101'] === 'string',
+    'a course still developing resumes with an instructor',
+  );
+
+  // An emptied department: offered, but nobody to teach it.
+  assert(loaded.courseFaculty['GE140'] === undefined, 'a course whose whole department is gone resumes unassigned');
+  assert(isUnstaffed(loaded, loaded.tech.find((t) => t.id === 'GE140')!), 'that course reads as unstaffed');
+
+  // ...and it STILL HOLDS its slot. An unstaffed course has not gone away:
+  // it is still offered and still owed to students, so the department is
+  // over-committed rather than freshly roomy (see usedFacultySlots).
+  assert(usedFacultySlots(loaded, 'Physics') === 1, 'an unstaffed course still holds its field slot');
+
+  // Nothing is assigned to someone who is not on the roster.
+  const roster = new Set(loaded.faculty.map((f) => f.id));
+  assert(
+    Object.values(loaded.courseFaculty).every((id) => roster.has(id)),
+    'no assignment names a faculty member who is not on the roster',
+  );
+
+  // Per-person load never exceeds what the record actually says.
+  assert(
+    facultyLoad(loaded, english[0].id) === 2 && facultyLoad(loaded, english[1].id) === 1,
+    'per-person load matches the materialized assignments',
+  );
+
+  // An unoffered course is never assigned: only what is actually being
+  // taught holds a slot.
+  assert(
+    Object.keys(loaded.courseFaculty).every((id) => {
+      const t = loaded.tech.find((n) => n.id === id)!;
+      return t.status === 'developing' || t.status === 'done';
+    }),
+    'only offered courses carry an assignment',
+  );
+}
+
+// ---- The sanitizer drops assignments that no longer name a real pairing ----
+function testCourseFacultySanitizer(): void {
+  const base = createInitialState('Sanitizer', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+  const tech = state.tech as Array<Record<string, unknown>>;
+  tech.find((n) => n.id === 'GE110')!.status = 'done';
+
+  state.courseFaculty = {
+    'GE110': 'f3',              // real course, real professor: kept
+    'GE120': 'nobody-at-all',   // real course, departed professor: dropped
+    'NO-SUCH-COURSE': 'f3',     // course that does not exist: dropped
+  };
+  writeSave(SAVE_VERSION, state);
+
+  const loaded = loadGame();
+  assert(loaded !== null, 'a save with stale assignments still loads');
+  if (!loaded) return;
+  assert(loaded.courseFaculty['GE110'] === 'f3', 'a valid assignment survives sanitizing');
+  assert(loaded.courseFaculty['GE120'] === undefined, 'an assignment to someone off the roster is dropped');
+  assert(loaded.courseFaculty['NO-SUCH-COURSE'] === undefined, 'an assignment to a course that does not exist is dropped');
+}
+
+// ---- v31 -> v32: scholarship reaches every school ----
+//
+// Two promises worth pinning: the four new facilities arrive, and the
+// capstones that now need one are re-pointed ONLY where the player has not
+// already started them (see MIGRATIONS[31], and MIGRATIONS[29]'s identical
+// built/unbuilt split).
+function makeV31Save(): void {
+  const base = createInitialState('Scholar', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+  const tech = state.tech as Array<Record<string, unknown>>;
+  const node = (id: string) => tech.find((n) => n.id === id);
+
+  // Strip the four new facilities out, and put the four majors' capstones
+  // back on their pre-v32 prereqs (no facility named).
+  const NEW_FACILITIES = ['LAB-ECON', 'LAB-COMP', 'LAB-HIST', 'LAB-FILM'];
+  for (const n of tech) {
+    const prereqs = n.prereqs as string[] | undefined;
+    if (prereqs) n.prereqs = prereqs.filter((id) => !NEW_FACILITIES.includes(id));
+  }
+  state.tech = tech.filter((n) => !NEW_FACILITIES.includes(n.id as string));
+
+  // One capstone the player has already finished, and one still locked.
+  node('HIST210')!.status = 'done';
+  node('HIST220')!.status = 'locked';
+
+  delete (state.research as Loose).publications;
+  writeSave(31, state);
+}
+
+function testScholarshipMigration(): void {
+  makeV31Save();
+  const loaded = loadGame();
+  assert(loaded !== null, 'v31 save loads (does not fall back to null)');
+  if (!loaded) return;
+
+  const node = (id: string) => loaded.tech.find((n) => n.id === id);
+
+  assert(loaded.research.publications === 0, 'publications seeds at 0, not back-derived');
+
+  for (const id of ['LAB-ECON', 'LAB-COMP', 'LAB-HIST', 'LAB-FILM']) {
+    assert(node(id) !== undefined, `${id} is spliced into a resumed save`);
+    assert(node(id)!.status === 'locked', `${id} arrives locked, like any new content`);
+  }
+
+  // Every school can now produce scholarship, which is the whole point.
+  const schoolsWithFacilities = researchSchools().filter((school) => school.labIds.length > 0);
+  assert(
+    schoolsWithFacilities.length === researchSchools().filter((s2) => s2.fields.length > 0 && s2.schoolName !== 'General Studies').length,
+    `every subject school has a research facility (got ${schoolsWithFacilities.map((s2) => s2.schoolName).join(', ')})`,
+  );
+
+  // UNBUILT: re-pointed, so a resumed run and a fresh one converge.
+  assert(
+    node('HIST220')!.prereqs.includes('LAB-HIST'),
+    'a capstone the player has not started takes the new facility gate',
+  );
+  // BUILT: untouched, so nothing the player already earned is re-gated.
+  assert(
+    !node('HIST210')!.prereqs.includes('LAB-HIST'),
+    'a capstone already finished keeps the prereqs it was actually bought under',
+  );
+  assert(node('HIST210')!.status === 'done', 'and stays done');
+}
+
 // ---- Test: unmigratable / malformed saves fall back to null, never throw ----
 function testRejects(): void {
   // A version with no migration path (v1) cannot be carried forward.
@@ -596,6 +790,9 @@ testGenderedSportsMigration();
 testVarsityAskedMigration();
 testAthleticsV2Migration();
 testCampusContentMigration();
+testCourseFacultyMigration();
+testCourseFacultySanitizer();
+testScholarshipMigration();
 testRoundTrip();
 testRejects();
 

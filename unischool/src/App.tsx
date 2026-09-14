@@ -13,6 +13,7 @@ import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
 import FacultyTab from './tabs/FacultyTab';
 import CurriculumTab from './tabs/CurriculumTab';
+import ResearchTab from './tabs/ResearchTab';
 import TreasuryTab from './tabs/TreasuryTab';
 import AdmissionsTab from './tabs/AdmissionsTab';
 import StudentLifeTab from './tabs/StudentLifeTab';
@@ -72,6 +73,24 @@ const TAB_HOTKEYS: Record<string, TabId> = {
   f: 'faculty',
   l: 'studentlife',
 };
+
+// Which tabs open as a FULL-BLEED screen rather than as a sheet floating
+// over the map — the panel takes the whole viewport and the bottom dock
+// (log ticker + toolbar) is laid over it (see TabOverlay.tsx, which draws
+// both shapes, and styles.css, which layers them).
+//
+// Deliberately a short list rather than the default. Full bleed is for a
+// view the player WORKS IN: a large canvas that wants every pixel and wants
+// its own tools reachable without closing it first. Curriculum is that view
+// — 421 courses across 42 majors is a map, and it was pinched into a
+// centred card. Treasury, Admissions and History are read-and-leave pages
+// where a full screen would only make a short page look empty, and where
+// keeping the map visible around the edges is the reminder that you are one
+// Escape away from it.
+//
+// Adding a tab here is the whole change: the tab components know nothing
+// about which shape frames them.
+const FULL_BLEED_TABS: readonly TabId[] = ['curriculum', 'research'];
 
 export default function App() {
   const { state, act, speed, setSpeed } = useGame();
@@ -160,9 +179,14 @@ export default function App() {
         />
 
         {overlay && (
-          <TabOverlay title={TAB_LABELS[overlay]} onClose={() => setOverlay(null)}>
+          <TabOverlay
+            title={TAB_LABELS[overlay]}
+            onClose={() => setOverlay(null)}
+            fullBleed={FULL_BLEED_TABS.includes(overlay)}
+          >
             {overlay === 'faculty' && <FacultyTab s={s} act={act} />}
             {overlay === 'curriculum' && <CurriculumTab s={s} act={act} />}
+            {overlay === 'research' && <ResearchTab s={s} act={act} />}
             {overlay === 'treasury' && <TreasuryTab s={s} act={act} />}
             {overlay === 'admissions' && <AdmissionsTab s={s} />}
             {overlay === 'studentlife' && <StudentLifeTab s={s} />}

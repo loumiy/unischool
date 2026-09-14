@@ -2,11 +2,12 @@
 // App.tsx), so it is NOT one of these — every id here is a view that pops
 // up over the map and can be dismissed to get back to it. `active` is null
 // when nothing is open and the player is looking at the map itself.
-export type TabId = 'faculty' | 'curriculum' | 'treasury' | 'admissions' | 'studentlife' | 'history' | 'athletics';
+export type TabId = 'faculty' | 'curriculum' | 'research' | 'treasury' | 'admissions' | 'studentlife' | 'history' | 'athletics';
 
 const TABS: Array<{ id: TabId; label: string }> = [
   { id: 'faculty', label: 'Faculty' },
   { id: 'curriculum', label: 'Curriculum' },
+  { id: 'research', label: 'Research' },
   { id: 'treasury', label: 'Treasury' },
   { id: 'admissions', label: 'Admissions' },
   { id: 'studentlife', label: 'Student Life' },

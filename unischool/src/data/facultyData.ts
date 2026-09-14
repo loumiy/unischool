@@ -518,6 +518,37 @@ const FACULTY_GROWTH_RATE_PER_WEEK =
 // the remaining gap a fixed fraction at a time each week, so growth is
 // fast early and flattens into a real plateau by FACULTY_GROWTH_PLATEAU_
 // YEARS rather than a hard cliff.
+// How long the five founding professors are taken to have already been
+// teaching when the university opens (see actions.ts's roster).
+//
+// A founding school is not five people fresh out of their doctorates — it
+// is a faculty someone assembled to open the place. Tenure is how that is
+// said in this model, because teaching, research and salary are all
+// DERIVED from potential plus tenure on every tick (see growFaculty), so
+// tenure is the only input that can make somebody established. Authoring
+// their stats directly cannot: the first tick overwrites whatever was
+// written with the fresh-candidate figures.
+//
+// 78 weeks — a year and a half — puts the five at a mean teaching of 66,
+// which on this file's own ladder (QUALITY_TIER_THRESHOLDS) is ASSOCIATE.
+// That is the deliberate reading, and it is not quite the figures they
+// used to be authored with: those put the mean at 73, i.e. five FULL
+// professors at an institution that did not exist until this week, which
+// is a stretch on its face. Mid-career people who took a chance on a new
+// college is the more honest founding roster, and it is still a
+// transformation of what the bug actually produced — a mean of 46, five
+// brand-new assistant professors.
+//
+// The tenure also carries a salary premium, and that premium is the point
+// rather than a side effect: +38% on founding payroll is what hiring
+// people who are already good actually costs, and the school now gets
+// what it is paying for (their teaching feeds course grades, which feed
+// academic satisfaction and the prestige breadth multiplier). Raising it
+// further buys better professors at a steeper price — 2.5 years would be
+// +55% — and the balance sim's thinnest strategy, the low-tuition
+// discount build, is the one that cannot carry it.
+export const FOUNDING_TENURE_WEEKS = 78;
+
 export function grownStat(potential: number, tenureWeeks: number): number {
   const start = potential * FACULTY_STARTING_POTENTIAL_FRACTION;
   const grownFraction = 1 - (1 - FACULTY_GROWTH_RATE_PER_WEEK) ** tenureWeeks;
