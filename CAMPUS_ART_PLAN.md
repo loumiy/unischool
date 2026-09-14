@@ -6,10 +6,11 @@ to work out why the campus map's art reads as inconsistent, and to sequence the
 work that makes every asset on the map share one scale, one detail vocabulary,
 and one correct notion of what stands in front of what.*
 
-**Status: A-F plus F2 shipped; G proposed.** The depth sort (PR A), the unit system
+**Status: complete. A-G, plus the F2 corrections, all shipped.** The depth sort (PR A), the unit system
 (PR B), the bay grid (PR C), the door catalogue (PR D), the academic hall
-(PR E), the materials (PR F) and the corrections in F2 are on the branch, each
-with a test that pins its invariant. The
+(PR E), the materials (PR F), the corrections in F2 and
+the rest of the catalogue (PR G) are on the branch, each with a test that pins
+its invariant. The
 sections below are kept as written, with the two shipped PRs marked in the
 sequencing table — the audit in §1 is the state of the code BEFORE this work
 and is left intact as the record of what was measured.
@@ -518,7 +519,7 @@ Each PR ships on its own and leaves the map in a better state than it found it.
 | **E** ✅ | Founders Hall and the academic halls: plinth, string courses, centre pavilion, pediment, cornice, parapet, raised ends, hipped roof, and the clock tower | Needs C and D — the vocabulary is built out of bays and doors. **Shipped:** every hall wears the whole vocabulary; `hasClockTower` is the one flag that separates Founders Hall from the rest. The roof still reads as a flat expanse in the walls' own tone — PR F's slate is what separates them. |
 | **F** ✅ | Materials, not tints: five materials, two roofs, shared trim, gold concentrated on the dome | Last on purpose. Colour is the change most likely to want a second opinion, and it is the one PR that is trivially revertible on its own. **Shipped:** closest two materials 44.7 apart against the old palette's 4.7; a roof is no longer a shade of its own wall, which is what stopped a hall reading as one undifferentiated mass. |
 | **F2** ✅ | Corrections from looking at F: the roof/wall gap, the end pavilions, a portico, and the athletics venues' scale | Four things only visible once the campus was built. **Shipped:** a gutter where the lawn used to show through between roof and wall; raised ends rebuilt as stone-capped wall rather than dark slabs; a four-column limestone portico in front of each entrance; every athletics venue resized from 15m-per-tile assumptions to the 9m the map actually draws at. |
-| **G** *(optional)* | The rest of the catalogue brought to the same vocabulary — a real colonnade on `portico`, a clerestory on `hangar`, plinth and banding on `block`, an entrance canopy on `pavilion` | Cleanup that E's vocabulary makes cheap. |
+| **G** ✅ | The rest of the catalogue brought to the same vocabulary — a base and eaves course on every roofed motif, a colonnade on `portico`, buttress piers on `hangar`, an entrance canopy on `pavilion` | Cleanup that E's vocabulary makes cheap. **Shipped:** one set of parts, assembled differently; the test now checks every applied piece against the SHORTEST building that wears it, which is the bug this sequence kept making. |
 
 A–D are mechanical and low-risk. E is the one with real drawing in it. F is a
 judgement call and is sequenced so it can be taken or left.

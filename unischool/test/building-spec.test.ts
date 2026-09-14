@@ -21,7 +21,8 @@ import {
 } from '../src/components/campusScale';
 import {
   BAY_METRES, TOWER_PODIUM_STOREYS, WINDOW_HEIGHT, baysAcross, clerestorySill,
-  CORNICE, GILT, PARAPET, PLINTH, doorFamilyOf, doorOf, floorLinesOf, hasClockTower,
+  BASE_COURSE, CANOPY_SLAB, COLONNADE_HEIGHT, CORNICE, EAVES_COURSE, GILT, PARAPET, PLINTH,
+  doorFamilyOf, doorOf, floorLinesOf, hasClockTower,
   materialOf, motifOf, rankSills, ridgeOf, storeysOf, wallHeightOf, wallShadeOf,
   windowRanksOf, windowWidthOf, type DoorFamily,
 } from '../src/components/buildingSpec';
@@ -441,6 +442,50 @@ console.log('campus scale and building spec');
     .sort((x, y) => y.a - x.a);
   assert(stadium !== undefined && areas[0].id === stadium.id,
     `the football stadium covers more ground than anything else (biggest is ${areas[0].id})`);
+}
+
+// --- 14. Applied pieces fit the buildings they are applied to ------------
+{
+  // The recurring bug of this whole sequence, in one check. A civic door was
+  // taller than a single-storey wall; a plinth was taller than a ground-floor
+  // sill; a canopy's slab sat above the roof of the building it hung on. Each
+  // was invisible in the numbers and obvious on screen, and each is the same
+  // mistake: a piece sized in the abstract against a wall that is too short
+  // for it. So every applied piece is checked against the SHORTEST building
+  // that wears it.
+  const shortest = (predicate: (t: Buildable) => boolean) =>
+    CATALOGUE.filter(predicate).sort((a, b) => wallHeightOf(a) - wallHeightOf(b))[0];
+
+  const pavilion = shortest((t) => motifOf(t) === 'pavilion');
+  if (pavilion) {
+    const d = doorOf(pavilion);
+    const wall = wallHeightOf(pavilion);
+    assert(BASE_COURSE + EAVES_COURSE < wall,
+      `the shared base and eaves courses fit the shortest pavilion (${pavilion.id}, ${wall.toFixed(1)} units)`);
+    assert(!!d && d.threshold + d.height < wall - EAVES_COURSE,
+      `and its door clears the eaves course above it`);
+    assert(wall - EAVES_COURSE - CANOPY_SLAB > (d ? d.threshold + d.height * 0.5 : 0),
+      'and there is room under the eaves for an entrance canopy');
+  }
+
+  const portico = shortest((t) => motifOf(t) === 'portico');
+  if (portico) {
+    const wall = wallHeightOf(portico);
+    // The colonnade is clamped at draw time; this asserts the clamp leaves
+    // something worth drawing rather than a knee-high stub.
+    assert(Math.min(COLONNADE_HEIGHT, wall - EAVES_COURSE * 2) > STOREY,
+      `the shortest colonnaded building (${portico.id}) can still carry a colonnade over a storey tall`);
+  }
+
+  // And every roofed motif on the campus can wear the shared courses.
+  for (const t of CATALOGUE) {
+    if (motifOf(t) === 'grounds') continue;
+    if (!(BASE_COURSE + EAVES_COURSE < wallHeightOf(t))) {
+      assert(false, `${t.id}: too short for the base and eaves courses every building shares`);
+      break;
+    }
+  }
+  assert(true, 'every roofed building on the campus can wear the shared base and eaves courses');
 }
 
 // --- 7. Nothing in the catalogue is missing a spec -------------------------

@@ -2,9 +2,12 @@ import { memo } from 'react';
 import type { Buildable } from '../state/types';
 import { TILE_W, boxFaces, facePoint, lift, polyPoints, project, type Pt } from './isoProjection';
 import { depthOrder } from './depthSort';
-import { STOREY, across, up } from './campusScale';
+import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
 import {
-  CLOCK_RADIUS, CLOCK_RADIUS_TILES, CORNICE, ENTABLATURE, GILT, PORTICO_COLUMNS,
+  BASE_COURSE, BAY_METRES, CANOPY_DEPTH, CANOPY_POST, CANOPY_SLAB, CLOCK_RADIUS,
+  CLOCK_RADIUS_TILES, COLONNADE_BAY_METRES, COLONNADE_HEIGHT, COLONNADE_MAX, CORNICE,
+  EAVES_COURSE, ENTABLATURE, GILT, PIER_PROJECTION, PIER_WIDTH_METRES,
+  PORTICO_COLUMNS,
   PORTICO_COLUMN_PLAN, PORTICO_HEIGHT, PORTICO_STANDOFF, TOWER_STONE, TRIM, END_PAVILION_PLAN, END_PAVILION_RISE, FLOOR_COURSE, PARAPET,
   COPING, COPING_OVERHANG, END_PAVILION_DEPTH, PAVILION_BAYS, PAVILION_DEPTH, PAVILION_RISE, PEDIMENT_RISE, PLINTH, STEP_OVERHANG,
   TOWER_BASE_PLAN, TOWER_BASE_RISE, TOWER_DOME_RISE, TOWER_DRUM_PLAN, TOWER_DRUM_RISE,
@@ -609,27 +612,29 @@ function CentrePavilion({ col, row, w, h, wallHeight, outward, pal, door, sills,
 //
 // `outward` matches CentrePavilion's: 'row' for the front on the col-running
 // wall, 'col' for the one on the row-running wall.
-function Portico({ centreCol, centreRow, width, outward }: {
+function Portico({ centreCol, centreRow, width, outward, columns = PORTICO_COLUMNS, height = PORTICO_HEIGHT }: {
   centreCol: number; centreRow: number; width: number; outward: 'row' | 'col';
+  columns?: number; height?: number;
 }) {
-  const gap = (width - PORTICO_COLUMN_PLAN) / (PORTICO_COLUMNS - 1);
+  if (columns < 2 || width <= 0) return null;
+  const gap = (width - PORTICO_COLUMN_PLAN) / (columns - 1);
   const half = width / 2;
-  const columns = Array.from({ length: PORTICO_COLUMNS }, (_, i) => {
+  const shafts = Array.from({ length: columns }, (_, i) => {
     const along = -half + PORTICO_COLUMN_PLAN / 2 + i * gap;
     return outward === 'row'
       ? { col: centreCol + along - PORTICO_COLUMN_PLAN / 2, row: centreRow }
       : { col: centreCol, row: centreRow + along - PORTICO_COLUMN_PLAN / 2 };
   });
   const ent = outward === 'row'
-    ? boxFaces(centreCol - half, centreRow - COPING_OVERHANG, width, PORTICO_COLUMN_PLAN + COPING_OVERHANG * 2, PORTICO_HEIGHT, ENTABLATURE)
-    : boxFaces(centreCol - COPING_OVERHANG, centreRow - half, PORTICO_COLUMN_PLAN + COPING_OVERHANG * 2, width, PORTICO_HEIGHT, ENTABLATURE);
+    ? boxFaces(centreCol - half, centreRow - COPING_OVERHANG, width, PORTICO_COLUMN_PLAN + COPING_OVERHANG * 2, height, ENTABLATURE)
+    : boxFaces(centreCol - COPING_OVERHANG, centreRow - half, PORTICO_COLUMN_PLAN + COPING_OVERHANG * 2, width, height, ENTABLATURE);
   return (
     <>
       {/* Back to front, so a near column paints over the entablature's
           underside rather than the other way round. */}
-      {depthOrder(columns.map((c) => ({ ...c, w: PORTICO_COLUMN_PLAN, h: PORTICO_COLUMN_PLAN })))
+      {depthOrder(shafts.map((c) => ({ ...c, w: PORTICO_COLUMN_PLAN, h: PORTICO_COLUMN_PLAN })))
         .map((c, i) => {
-          const f = boxFaces(c.col, c.row, c.w, c.h, 0, PORTICO_HEIGHT);
+          const f = boxFaces(c.col, c.row, c.w, c.h, 0, height);
           return (
             <g key={i}>
               <polygon points={polyPoints(f.left)} fill={shade(TOWER_STONE, 0.96)} />
@@ -641,6 +646,85 @@ function Portico({ centreCol, centreRow, width, outward }: {
       <polygon points={polyPoints(ent.left)} fill={shade(TOWER_STONE, 0.92)} />
       <polygon points={polyPoints(ent.right)} fill={shade(TOWER_STONE, 0.74)} />
       <polygon points={polyPoints(ent.top)} fill={shade(TOWER_STONE, 1.02)} />
+    </>
+  );
+}
+
+// BUTTRESS PIERS along a clear-span wall. A sports hall's walls are held up
+// at bay centres, and those piers are most of what you actually see of a gym
+// from outside — without them a hangar is a blank box with one stripe of glass
+// across it. Shallow boxes standing against the wall rather than bands painted
+// on it, so they catch the light on one face and not the other, which is the
+// whole reason they read as depth.
+function Piers({ col, row, w, h, height, outward, pal }: {
+  col: number; row: number; w: number; h: number; height: number;
+  outward: 'row' | 'col'; pal: Palette;
+}) {
+  const span = outward === 'row' ? w : h;
+  const count = Math.max(2, Math.round((span * METRES_PER_TILE) / (BAY_METRES * 2)));
+  const plan = across(PIER_WIDTH_METRES);
+  return (
+    <>
+      {Array.from({ length: count + 1 }, (_, i) => {
+        const at = (i / count) * span - plan / 2;
+        const pc = outward === 'row' ? col + at : col + w;
+        const pr = outward === 'row' ? row + h : row + at;
+        const pw = outward === 'row' ? plan : PIER_PROJECTION;
+        const ph = outward === 'row' ? PIER_PROJECTION : plan;
+        const f = boxFaces(pc, pr, pw, ph, 0, height);
+        return (
+          <g key={i}>
+            <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+            <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+            <polygon points={polyPoints(f.top)} fill={shade(TRIM, 0.86)} />
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
+// A CANOPY over a door: a slab on two posts. What a dining hall, a clinic or a
+// union puts over its entrance, and the cheapest way to make a low pavilion
+// read as somewhere you go IN rather than as a shed with a door in it.
+function Canopy({ d, centreCol, centreRow, outward, wallHeight }: {
+  d: DoorDimensions; centreCol: number; centreRow: number; outward: 'row' | 'col';
+  wallHeight: number;
+}) {
+  // Clamped under the eaves. The smallest pavilion on the campus is ONE storey
+  // — the founding dining hall — and a civic door plus its threshold plus the
+  // clearance this wanted came to more than that wall is tall, so the slab
+  // floated above the roof of the building it was supposed to be attached to.
+  // Same class of mistake as a door taller than its own wall, and caught the
+  // same way: by measuring rather than by looking.
+  const top = Math.min(d.threshold + d.height + up(0.6), wallHeight - EAVES_COURSE - CANOPY_SLAB);
+  if (top <= d.threshold + d.height * 0.5) return null;
+  const width = d.widthTiles * 1.7;
+  const slabCol = outward === 'row' ? centreCol - width / 2 : centreCol;
+  const slabRow = outward === 'row' ? centreRow : centreRow - width / 2;
+  const slabW = outward === 'row' ? width : CANOPY_DEPTH;
+  const slabH = outward === 'row' ? CANOPY_DEPTH : width;
+  const slab = boxFaces(slabCol, slabRow, slabW, slabH, top, CANOPY_SLAB);
+  const postAt = (sign: number) => {
+    const along = sign * (width / 2 - CANOPY_POST);
+    const pc = outward === 'row' ? centreCol + along : centreCol + CANOPY_DEPTH - CANOPY_POST;
+    const pr = outward === 'row' ? centreRow + CANOPY_DEPTH - CANOPY_POST : centreRow + along;
+    return boxFaces(pc, pr, CANOPY_POST, CANOPY_POST, 0, top);
+  };
+  return (
+    <>
+      {[-1, 1].map((sign) => {
+        const f = postAt(sign);
+        return (
+          <g key={sign}>
+            <polygon points={polyPoints(f.left)} fill={shade(TRIM, 0.8)} />
+            <polygon points={polyPoints(f.right)} fill={shade(TRIM, 0.66)} />
+          </g>
+        );
+      })}
+      <polygon points={polyPoints(slab.left)} fill={shade(TRIM, 0.88)} />
+      <polygon points={polyPoints(slab.right)} fill={shade(TRIM, 0.72)} />
+      <polygon points={polyPoints(slab.top)} fill={TRIM} />
     </>
   );
 }
@@ -1115,10 +1199,26 @@ function BuildingMotif({ t, p, material, developing }: {
     <>
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
-      {/* The left wall runs w tiles along col, the right wall h tiles along
-          row, so each gets its own bay and its own door fraction. */}
+      {/* Piers first: they stand against the wall, so everything applied to
+          the wall is drawn over them rather than the other way round. */}
+      {!developing && motif === 'hangar' && (
+        <>
+          <Piers col={col} row={row} w={w} h={h} height={H} outward="row" pal={pal} />
+          <Piers col={col} row={row} w={w} h={h} height={H} outward="col" pal={pal} />
+        </>
+      )}
       {!developing && floorCourses(f.D, f.C, H, courses, 'l')}
       {!developing && floorCourses(f.C, f.B, H, courses, 'r')}
+      {/* The base course and the eaves course every roofed building on this
+          campus shares with the halls. One set of parts, assembled
+          differently — which is the whole of what makes a library and a lab
+          read as the same campus. */}
+      {!developing && ([[f.D, f.C] as const, [f.C, f.B] as const]).map(([o, a], i) => (
+        <g key={`b${i}`}>
+          <WallBand origin={o} along={a} wallHeight={H} from={0} to={BASE_COURSE} className="iso-plinth" />
+          <WallBand origin={o} along={a} wallHeight={H} from={H - EAVES_COURSE} to={H} className="iso-cornice" />
+        </g>
+      ))}
       {/* The left wall runs w tiles along col, the right wall h tiles along
           row. Each gets its bay count from its OWN length — which is the whole
           point: the same window then goes in both, instead of one wall's
@@ -1128,6 +1228,29 @@ function BuildingMotif({ t, p, material, developing }: {
       {!developing && windows(f.C, f.B, H, h, sills, paneW, 'r', door ? doorBay(door, h, H) : undefined)}
       {!developing && door && <Door d={door} origin={f.D} along={f.C} wallHeight={H} span={w} />}
       {!developing && door && <Door d={door} origin={f.C} along={f.B} wallHeight={H} span={h} />}
+      {/* The civic set's colonnade: the hall's own columns, run the length of
+          the front rather than gathered into a centre bay. That is the
+          difference between a building with an entrance and a building that
+          IS one, which is what a library and a concert hall are. */}
+      {!developing && motif === 'portico' && ([['row', w] as const, ['col', h] as const]).map(([out, span]) => (
+        <Portico
+          key={out}
+          centreCol={out === 'row' ? col + w / 2 : col + w + PORTICO_STANDOFF}
+          centreRow={out === 'row' ? row + h + PORTICO_STANDOFF : row + h / 2}
+          width={span * 0.9}
+          outward={out}
+          columns={Math.max(2, Math.min(COLONNADE_MAX,
+            Math.round((span * 0.9 * METRES_PER_TILE) / COLONNADE_BAY_METRES)))}
+          height={Math.min(COLONNADE_HEIGHT, H - EAVES_COURSE * 2)}
+        />
+      ))}
+      {/* A canopy over a low building's door. */}
+      {!developing && motif === 'pavilion' && door && (
+        <>
+          <Canopy d={door} centreCol={col + w / 2} centreRow={row + h} outward="row" wallHeight={H} />
+          <Canopy d={door} centreCol={col + w} centreRow={row + h / 2} outward="col" wallHeight={H} />
+        </>
+      )}
       {/* The flights, on the ground in front of each door. Drawn after the
           walls so they stand in front of the mass they climb to, and after
           both doors so neither one's steps are cut by the other's wall. */}

@@ -379,14 +379,16 @@ const DOOR_FAMILIES: Record<DoorFamily, DoorSpec> = {
   // The formal portal: double height, reaching into the first floor, which is
   // what an academic entrance IS. Up a flight of five.
   formal: { widthMetres: 4.0, heightMetres: 5.4, thresholdMetres: 1.4, treads: 5 },
-  // Sized to fit a SINGLE STOREY, because its smallest user is one: the
-  // founding campus restaurant is one storey of 3.9 m, and an earlier pass
-  // gave this family 3.6 m of opening over a 0.45 m threshold — 4.05 m, taller
-  // than the wall it was drawn on, so Door bailed and that building rendered
-  // with no way in at all. Every family has to fit its shortest user; this is
-  // the only one where that bites, and test/building-spec.test.ts now checks
-  // all six against every building that uses them.
-  civic: { widthMetres: 2.9, heightMetres: 3.2, thresholdMetres: 0.35, treads: 2 },
+  // Sized to fit a SINGLE STOREY UNDER ITS EAVES COURSE, because its smallest
+  // user is exactly that: the founding campus restaurant is one storey of
+  // 3.9 m. This family has been retuned twice by the test rather than by eye.
+  // First it was 3.6 m of opening over a 0.45 m threshold — taller than the
+  // wall itself, so Door declined to draw it and that building rendered with
+  // no way in at all. Then, once PR G gave every building the shared eaves
+  // course, the head ran into it. Every family has to fit its shortest user
+  // with the applied stonework already on the wall, and this is the only one
+  // where that bites.
+  civic: { widthMetres: 2.6, heightMetres: 3.0, thresholdMetres: 0.25, treads: 1 },
   residential: { widthMetres: 2.2, heightMetres: 3.0, thresholdMetres: 0.3, treads: 1 },
   service: { widthMetres: 1.6, heightMetres: 2.6, thresholdMetres: 0.15, treads: 1 },
   // A glazed bay, not a door with windows beside it.
@@ -654,3 +656,42 @@ export function wallShadeOf(t: Buildable): number {
   for (let i = 0; i < t.id.length; i++) h = (h * 31 + t.id.charCodeAt(i)) % 1000003;
   return DORM_SHADE_STEPS[h % DORM_SHADE_STEPS.length];
 }
+
+// ---------------------------------------------------------------------
+// THE REST OF THE CATALOGUE. PR G: the vocabulary the academic hall proved
+// out, applied to every other roofed motif.
+//
+// The point is not to make every building look like a hall. It is that a
+// campus should be built of ONE set of parts — a base course, a cornice, a
+// bay, a door from six families — assembled differently. A library has a
+// colonnade and a lab does not; both stand on the same plinth and are capped
+// by the same cornice, and that is what makes them read as the same campus
+// rather than as a collection of separately-drawn objects.
+// ---------------------------------------------------------------------
+
+// Every roofed motif gets these two. A flat-roofed building's cornice is the
+// slab edge; a gabled one's is the eaves course. Both are the same stone as
+// the halls'.
+export const BASE_COURSE = up(0.55);
+export const EAVES_COURSE = up(0.5);
+
+// A COLONNADE, for the civic set — library, performing arts, gallery. The same
+// columns the hall's portico is built from, run the length of the front
+// instead of gathered into a centre bay: that is the difference between a
+// building with an entrance and a building that IS an entrance, which is what
+// these are.
+export const COLONNADE_HEIGHT = up(8.2);
+export const COLONNADE_BAY_METRES = 6.5;   // wider spacing than a window bay
+export const COLONNADE_MAX = 9;
+
+// PIERS, for the clear-span sheds. A big hall's walls are held up by
+// buttresses at bay centres, and they are most of what you see of a gym from
+// outside — without them a hangar is a blank box with a stripe of glass.
+export const PIER_WIDTH_METRES = 1.1;
+export const PIER_PROJECTION = across(0.5);
+
+// A CANOPY over a pavilion's door: a slab on two posts, which is what a
+// dining hall, a clinic or a union puts over its entrance.
+export const CANOPY_DEPTH = across(2.6);
+export const CANOPY_SLAB = up(0.45);
+export const CANOPY_POST = across(0.35);
