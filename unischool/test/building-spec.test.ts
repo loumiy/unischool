@@ -408,6 +408,41 @@ console.log('campus scale and building spec');
     'and nothing else is nudged at all');
 }
 
+// --- 13. The athletics venues are the size the things they are -----------
+{
+  // These were sized from an assumed 15 m per tile, while the map draws at 9 —
+  // so every venue came out two-thirds of its proper size beside the
+  // buildings, and a 400 m running track had 108 m to fit a 176 m straight
+  // into. Checked in METRES against what each venue actually is, with a
+  // generous tolerance: the requirement is the right ballpark, not the survey.
+  const metres = (t: Buildable) => {
+    const fp = footprintOf(t);
+    return { long: Math.max(fp.w, fp.h) * METRES_PER_TILE, short: Math.min(fp.w, fp.h) * METRES_PER_TILE };
+  };
+  const check = (facilityType: string, name: string, long: number, short: number, tol = 0.3) => {
+    const t = CATALOGUE.find((x) => x.facilityType === facilityType);
+    if (!t) { assert(false, `the catalogue has a ${name}`); return; }
+    const m = metres(t);
+    const ok = Math.abs(m.long - long) / long <= tol && Math.abs(m.short - short) / short <= tol;
+    assert(ok, `${name} is about ${long}m by ${short}m (got ${m.long.toFixed(0)} by ${m.short.toFixed(0)})`);
+  };
+  check('athleticsField', 'a 400m track and its infield', 176, 92);
+  check('footballStadium', 'a football stadium', 220, 180);
+  check('athleticsDiamond', 'a ball field to the outfield fence', 125, 125);
+  check('athleticsArena', 'an arena', 110, 80);
+  check('athleticsNatatorium', 'a 50m competition pool hall', 72, 45);
+  check('tennisCourts', 'six tennis courts in a row', 110, 36);
+  check('pool', 'an open-air 50m pool and its deck', 63, 36);
+
+  // And the pinnacle venue is still the biggest thing on campus, which is the
+  // one relationship its footprint is actually load-bearing for.
+  const stadium = CATALOGUE.find((t) => t.facilityType === 'footballStadium');
+  const areas = CATALOGUE.map((t) => { const fp = footprintOf(t); return { id: t.id, a: fp.w * fp.h }; })
+    .sort((x, y) => y.a - x.a);
+  assert(stadium !== undefined && areas[0].id === stadium.id,
+    `the football stadium covers more ground than anything else (biggest is ${areas[0].id})`);
+}
+
 // --- 7. Nothing in the catalogue is missing a spec -------------------------
 {
   for (const t of CATALOGUE) {

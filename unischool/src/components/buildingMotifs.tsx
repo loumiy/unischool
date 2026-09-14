@@ -4,8 +4,9 @@ import { TILE_W, boxFaces, facePoint, lift, polyPoints, project, type Pt } from 
 import { depthOrder } from './depthSort';
 import { STOREY, across, up } from './campusScale';
 import {
-  CLOCK_RADIUS, CLOCK_RADIUS_TILES, CORNICE, GILT, TOWER_STONE, TRIM, END_PAVILION_PLAN, END_PAVILION_RISE, FLOOR_COURSE, PARAPET,
-  END_PAVILION_DEPTH, PAVILION_BAYS, PAVILION_DEPTH, PAVILION_RISE, PEDIMENT_RISE, PLINTH, STEP_OVERHANG,
+  CLOCK_RADIUS, CLOCK_RADIUS_TILES, CORNICE, ENTABLATURE, GILT, PORTICO_COLUMNS,
+  PORTICO_COLUMN_PLAN, PORTICO_HEIGHT, PORTICO_STANDOFF, TOWER_STONE, TRIM, END_PAVILION_PLAN, END_PAVILION_RISE, FLOOR_COURSE, PARAPET,
+  COPING, COPING_OVERHANG, END_PAVILION_DEPTH, PAVILION_BAYS, PAVILION_DEPTH, PAVILION_RISE, PEDIMENT_RISE, PLINTH, STEP_OVERHANG,
   TOWER_BASE_PLAN, TOWER_BASE_RISE, TOWER_DOME_RISE, TOWER_DRUM_PLAN, TOWER_DRUM_RISE,
   TOWER_FINIAL_RISE, TOWER_PODIUM_STOREYS, TREAD_DEPTH, WINDOW_HEIGHT,
   baysAcross, clerestorySill, doorDimensions, doorOf, floorLinesOf, hasClockTower, motifOf,
@@ -514,6 +515,32 @@ function HippedRoof({ col, row, w, h, base, rise, pal }: {
   );
 }
 
+// A raised end of the roofline: the WALL carried up past the parapet and
+// capped in stone.
+//
+// These were RoofBoxes, which shade a plain box three ways off one tint and
+// are right for an air handler and wrong for a piece of a building — at the
+// brick's own 0.66 they read as dark red slabs balanced on the roof. A section
+// of wall takes the wall's own two tones, and its coping takes the same
+// limestone as the plinth and the cornice, which is what ties it back to the
+// vocabulary rather than leaving it an object sitting on top of one.
+function EndPavilion({ col, row, w, h, base, pal }: {
+  col: number; row: number; w: number; h: number; base: number; pal: Palette;
+}) {
+  const f = boxFaces(col, row, w, h, base, END_PAVILION_RISE);
+  const cap = boxFaces(col - COPING_OVERHANG, row - COPING_OVERHANG,
+    w + COPING_OVERHANG * 2, h + COPING_OVERHANG * 2, base + END_PAVILION_RISE, COPING);
+  return (
+    <>
+      <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+      <polygon points={polyPoints(cap.left)} fill={shade(TRIM, 0.82)} />
+      <polygon points={polyPoints(cap.right)} fill={shade(TRIM, 0.7)} />
+      <polygon points={polyPoints(cap.top)} fill={TRIM} />
+    </>
+  );
+}
+
 // The centre bay: a shallow box projecting from the middle of a front, carried
 // past the cornice and capped with a pediment. The building's door goes on
 // ITS face rather than on the wall behind it, which is the whole point — an
@@ -522,6 +549,14 @@ function HippedRoof({ col, row, w, h, base, rise, pal }: {
 //
 // `outward` says which way the front faces: 'row' for the wall running along
 // col, 'col' for the one running along row.
+// How wide a centre bay is, in tiles: three structural bays of the wall it
+// sits on, capped so it can never eat a short front. Shared by the pavilion
+// and the portico that stands in front of it, so the two cannot disagree about
+// where the middle of the building is.
+function pavilionWidth(span: number): number {
+  return Math.min(span * 0.5, (span / baysAcross(span)) * PAVILION_BAYS);
+}
+
 function CentrePavilion({ col, row, w, h, wallHeight, outward, pal, door, sills, paneW }: {
   col: number; row: number; w: number; h: number; wallHeight: number;
   outward: 'row' | 'col';
@@ -530,7 +565,7 @@ function CentrePavilion({ col, row, w, h, wallHeight, outward, pal, door, sills,
   sills: number[]; paneW: number;
 }) {
   const span = outward === 'row' ? w : h;
-  const width = Math.min(span * 0.55, (span / baysAcross(span)) * PAVILION_BAYS);
+  const width = pavilionWidth(span);
   const top = wallHeight + PAVILION_RISE;
   const pc = outward === 'row' ? col + w / 2 - width / 2 : col + w;
   const pr = outward === 'row' ? row + h : row + h / 2 - width / 2;
@@ -559,6 +594,53 @@ function CentrePavilion({ col, row, w, h, wallHeight, outward, pal, door, sills,
       <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />
       {/* The pediment, on the face the door is in. */}
       <polygon className="iso-pediment" points={polyPoints([frontTopL, frontTopR, apex])} />
+    </>
+  );
+}
+
+// The portico: columns standing clear of the centre bay, under an entablature.
+//
+// Drawn in front of the pavilion and behind the steps, which is where it
+// stands: you climb the flight, pass between the columns, and reach the door.
+// Columns are boxes rather than cylinders — a round shaft at this size is
+// three or four pixels across, and the shading that would make it read as
+// round costs more than the difference is worth. What does read is the RHYTHM:
+// four uprights, evenly spaced, carrying one horizontal.
+//
+// `outward` matches CentrePavilion's: 'row' for the front on the col-running
+// wall, 'col' for the one on the row-running wall.
+function Portico({ centreCol, centreRow, width, outward }: {
+  centreCol: number; centreRow: number; width: number; outward: 'row' | 'col';
+}) {
+  const gap = (width - PORTICO_COLUMN_PLAN) / (PORTICO_COLUMNS - 1);
+  const half = width / 2;
+  const columns = Array.from({ length: PORTICO_COLUMNS }, (_, i) => {
+    const along = -half + PORTICO_COLUMN_PLAN / 2 + i * gap;
+    return outward === 'row'
+      ? { col: centreCol + along - PORTICO_COLUMN_PLAN / 2, row: centreRow }
+      : { col: centreCol, row: centreRow + along - PORTICO_COLUMN_PLAN / 2 };
+  });
+  const ent = outward === 'row'
+    ? boxFaces(centreCol - half, centreRow - COPING_OVERHANG, width, PORTICO_COLUMN_PLAN + COPING_OVERHANG * 2, PORTICO_HEIGHT, ENTABLATURE)
+    : boxFaces(centreCol - COPING_OVERHANG, centreRow - half, PORTICO_COLUMN_PLAN + COPING_OVERHANG * 2, width, PORTICO_HEIGHT, ENTABLATURE);
+  return (
+    <>
+      {/* Back to front, so a near column paints over the entablature's
+          underside rather than the other way round. */}
+      {depthOrder(columns.map((c) => ({ ...c, w: PORTICO_COLUMN_PLAN, h: PORTICO_COLUMN_PLAN })))
+        .map((c, i) => {
+          const f = boxFaces(c.col, c.row, c.w, c.h, 0, PORTICO_HEIGHT);
+          return (
+            <g key={i}>
+              <polygon points={polyPoints(f.left)} fill={shade(TOWER_STONE, 0.96)} />
+              <polygon points={polyPoints(f.right)} fill={shade(TOWER_STONE, 0.78)} />
+              <polygon points={polyPoints(f.top)} fill={TOWER_STONE} />
+            </g>
+          );
+        })}
+      <polygon points={polyPoints(ent.left)} fill={shade(TOWER_STONE, 0.92)} />
+      <polygon points={polyPoints(ent.right)} fill={shade(TOWER_STONE, 0.74)} />
+      <polygon points={polyPoints(ent.top)} fill={shade(TOWER_STONE, 1.02)} />
     </>
   );
 }
@@ -960,6 +1042,12 @@ function BuildingMotif({ t, p, material, developing }: {
         {windows(hf.D, hf.C, WH, w, sills, paneW, 'l', door ? doorBay(door, w, WH) : undefined)}
         {windows(hf.C, hf.B, WH, h, sills, paneW, 'r', door ? doorBay(door, h, WH) : undefined)}
 
+        {/* The flat between the parapet and the eaves. Without it the roof's
+            inset leaves a ring of nothing at the head of the wall, and the
+            LAWN shows through it — a green stripe running right round the
+            building where its roof should meet its walls. A parapet roof has a
+            gutter behind it; this is that gutter. */}
+        <polygon points={polyPoints(boxFaces(col, row, w, h, 0, WH).top)} fill={pal.roofDeck} />
         <HippedRoof
           col={col + inset} row={row + inset} w={w - inset * 2} h={h - inset * 2}
           base={WH} rise={ridge} pal={pal}
@@ -977,7 +1065,7 @@ function BuildingMotif({ t, p, material, developing }: {
           [col + w - END_PAVILION_DEPTH, row, END_PAVILION_DEPTH, endPlan],
           [col + w - END_PAVILION_DEPTH, row + h - endPlan, END_PAVILION_DEPTH, endPlan],
         ] as const).map(([ec, er, ew, eh], i) => (
-          <RoofBox key={`e${i}`} col={ec} row={er} w={ew} h={eh} base={WH} height={END_PAVILION_RISE} tint={tint} />
+          <EndPavilion key={`e${i}`} col={ec} row={er} w={ew} h={eh} base={WH} pal={pal} />
         ))}
 
         {hasClockTower(t) && (
@@ -994,15 +1082,23 @@ function BuildingMotif({ t, p, material, developing }: {
           col={col} row={row} w={w} h={h} wallHeight={H} outward="col"
           pal={pal} door={door} sills={sills} paneW={paneW}
         />
+        <Portico
+          centreCol={col + w / 2} centreRow={row + h + PAVILION_DEPTH + PORTICO_STANDOFF}
+          width={pavilionWidth(w)} outward="row"
+        />
+        <Portico
+          centreCol={col + w + PAVILION_DEPTH + PORTICO_STANDOFF} centreRow={row + h / 2}
+          width={pavilionWidth(h)} outward="col"
+        />
         {door && (
           <EntranceSteps
-            d={door} centreCol={col + w / 2} centreRow={row + h + PAVILION_DEPTH}
+            d={door} centreCol={col + w / 2} centreRow={row + h + PAVILION_DEPTH + PORTICO_STANDOFF + PORTICO_COLUMN_PLAN}
             outCol={0} outRow={1} span={w}
           />
         )}
         {door && (
           <EntranceSteps
-            d={door} centreCol={col + w + PAVILION_DEPTH} centreRow={row + h / 2}
+            d={door} centreCol={col + w + PAVILION_DEPTH + PORTICO_STANDOFF + PORTICO_COLUMN_PLAN} centreRow={row + h / 2}
             outCol={1} outRow={0} span={h}
           />
         )}

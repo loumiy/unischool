@@ -476,9 +476,23 @@ export const PARAPET = up(0.85);
 // cornice and is capped with a pediment. This is what makes an entrance read
 // as the front of a building rather than as a hole in a long wall.
 export const PAVILION_DEPTH = across(1.9);
-export const PAVILION_BAYS = 3;
+export const PAVILION_BAYS = 4;
 export const PAVILION_RISE = up(2.1);
 export const PEDIMENT_RISE = up(2.9);
+
+// THE PORTICO. A rank of columns standing clear of the centre bay, carrying an
+// entablature across their heads — the thing that makes an academic entrance
+// read as one from across a lawn, and the most recognisable feature of the
+// reference building's front after the tower itself.
+//
+// Four columns (a tetrastyle portico), because at this scale six read as a
+// fence and two do not read as a portico at all. They are cut from the same
+// limestone as the clock tower, not from the wall behind them.
+export const PORTICO_COLUMNS = 4;
+export const PORTICO_HEIGHT = up(10.4);         // up to the second-floor line, as in the reference
+export const PORTICO_COLUMN_PLAN = across(1.4);  // a column is round; this is its square
+export const PORTICO_STANDOFF = across(2.2);     // how far clear of the pavilion face it stands
+export const ENTABLATURE = up(1.5);
 
 // Raised brick blocks closing each end of the roofline.
 export const END_PAVILION_PLAN = across(12.0);
@@ -486,6 +500,11 @@ export const END_PAVILION_RISE = up(1.9);
 // How far into the plan a raised end reaches — enough to read as a section of
 // wall carried up, not as a slab balanced on the roof.
 export const END_PAVILION_DEPTH = across(4.0);
+// The stone coping that caps a raised end, and how far it oversails the brick
+// it sits on. A coping always projects — that overhang is what stops the top
+// of a wall reading as a cut edge.
+export const COPING = up(0.45);
+export const COPING_OVERHANG = across(0.35);
 
 // ---------------------------------------------------------------------
 // THE CLOCK TOWER. Founders Hall only.
