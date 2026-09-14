@@ -153,13 +153,6 @@ export function weeklyResearchPoints(s: GameState): number {
   return raw * researchRateMultiplier(s);
 }
 
-// The subset of the roster currently producing anything — what the
-// Faculty tab counts, and what the prize is drawn from.
-export function researchingFaculty(s: GameState): Faculty[] {
-  const equipped = labEquippedFields(s);
-  return s.faculty.filter((f) => equipped.has(f.field));
-}
-
 // =====================================================================
 // CADENCE — how often an output lands
 //
@@ -258,33 +251,11 @@ export function rollGrantAmount(s: GameState): number {
   return Math.round(Math.max(s.finance.weeklyOpEx, MIN_OPEX_SCALE) * weeks);
 }
 
-// The funders a grant can come from. Flavor only — nothing branches on
-// which one it is — but a log line that names a body reads as an event
-// rather than as a number appearing in the balance.
-const GRANT_FUNDERS: readonly string[] = [
-  'the National Science Foundation',
-  'the Kellner Foundation',
-  'a federal research council',
-  'the Marchmont Trust',
-  'a defense research agency',
-  'the Institute of Health Sciences',
-  'an industrial research consortium',
-];
-
-// =====================================================================
-// PRIZES — the one momentous output
-//
-// Fictional, like every other institution the game names (see
-// facultyData.ts's universities). One is drawn per award purely so two
-// prizes in one run don't read as the same trophy handed out twice.
-// =====================================================================
-const PRIZE_NAMES: readonly string[] = [
-  'the Halvorsen Prize',
-  'the Marchmont Medal',
-  'the Ravensmoor Prize',
-  'the Kellner Award for Scientific Achievement',
-  'the International Prize for Advancement of Knowledge',
-];
+// Grant funders and prize names are FLAVOR ONLY — nothing branches on
+// which one is drawn — but a log line that names a body reads as an event
+// rather than as a number appearing in the balance, and naming the WRONG
+// body reads as a bug. Both tables are authored per discipline; see "What
+// the work is called" below.
 
 // What a prize permanently buys its winner, beyond the badge:
 //   - research output: ACCLAIM_RESEARCH_BONUS, above.
@@ -301,12 +272,12 @@ export function pick<T>(items: readonly T[]): T {
   return items[Math.floor(Math.random() * items.length)];
 }
 
-export function rollGrantFunder(): string {
-  return pick(GRANT_FUNDERS);
+export function rollGrantFunder(vocab: DisciplineVocab): string {
+  return pick([...SHARED_FUNDERS, ...vocab.funders]);
 }
 
-export function rollPrizeName(): string {
-  return pick(PRIZE_NAMES);
+export function rollPrizeName(vocab: DisciplineVocab): string {
+  return pick([...SHARED_PRIZES, ...vocab.prizes]);
 }
 
 // =====================================================================
@@ -315,43 +286,116 @@ export function rollPrizeName(): string {
 // One shared table over one shared mechanism — the same rule the graduate
 // programs follow. Nothing branches on these: a publication costs the same
 // points and moves the same counter whoever produced it. What changes is
-// the word, because "a breakthrough out of the university's labs" is
+// the WORDS, because "a breakthrough out of the university's labs" is
 // simply the wrong sentence about a history department, and a system that
 // can only describe scholarship as laboratory science is one that quietly
 // tells four schools their work does not count.
+//
+// Three things are named, not one. The first pass did only the outputs,
+// which left a monograph out of the Humanities Research Institute funded
+// by a defense research agency and rewarded with an award for Scientific
+// Achievement — the sentence around the word was still wrong. Funders and
+// prize names are authored per discipline for the same reason the output
+// nouns are.
+//
+// Each discipline's funders and prizes are drawn from a SHARED neutral
+// pool plus its own additions, rather than a complete list each. A trust
+// or a federal research council funds anybody; the National Science
+// Foundation does not fund a film. That keeps the authored content to the
+// part that actually differs, and means a new school needs a couple of
+// lines rather than a full table.
 // =====================================================================
-interface DisciplineVocab {
-  publication: string;   // the cheap, frequent output
-  breakthrough: string;  // the rare, prestigious one
-  where: string;         // where it came out of, for the log line
+
+// Fictional, like every other institution the game names (see
+// facultyData.ts's universities).
+const SHARED_FUNDERS: readonly string[] = [
+  'the Kellner Foundation',
+  'a federal research council',
+  'the Marchmont Trust',
+  'the Halvorsen Endowment',
+];
+
+// Discipline-neutral prize names. One is drawn per award purely so two
+// prizes in one run don't read as the same trophy handed out twice.
+const SHARED_PRIZES: readonly string[] = [
+  'the Halvorsen Prize',
+  'the Marchmont Medal',
+  'the Ravensmoor Prize',
+  'the International Prize for Advancement of Knowledge',
+];
+
+export interface DisciplineVocab {
+  publication: string;             // the cheap, frequent output
+  breakthrough: string;            // the rare, prestigious one
+  /** How the rare one reached the world, finishing the sentence
+   *  "<An> <breakthrough> out of <topic> has been ___." A film is not
+   *  published and a monograph is not screened, so the VERB is authored
+   *  per discipline exactly as the noun is — getting the noun right and
+   *  then publishing it anyway only moves where the sentence is wrong. */
+  breakthroughTail: string;
+  funders: readonly string[];      // added to SHARED_FUNDERS for this discipline
+  prizes: readonly string[];       // added to SHARED_PRIZES for this discipline
 }
 
+// "A acclaimed work" is what authoring the noun alone gets you. The
+// article has to follow whatever word the table happens to supply, so it
+// is computed rather than baked into the log template.
+export function article(noun: string): string {
+  return /^[aeiou]/i.test(noun) ? 'An' : 'A';
+}
+
+// The lab sciences, engineering and health — the schools whose work the
+// original single vocabulary was written for, so this is what it says.
 const DEFAULT_VOCAB: DisciplineVocab = {
   publication: 'paper',
   breakthrough: 'breakthrough',
-  where: 'the university\'s laboratories',
+  breakthroughTail: 'published and taken up widely',
+  funders: ['the National Science Foundation', 'an industrial research consortium'],
+  prizes: ['the Kellner Award for Scientific Achievement'],
 };
 
 const DISCIPLINE_VOCAB: Record<string, DisciplineVocab> = {
   'Social Sciences & Humanities': {
     publication: 'monograph',
     breakthrough: 'landmark work of scholarship',
-    where: 'the Humanities Research Institute',
+    breakthroughTail: 'published to wide acclaim',
+    funders: ['the National Endowment for the Humanities', 'the Ravensmoor Library Fellowship'],
+    prizes: ['the Ashcombe Prize for Historical Scholarship'],
   },
   'Business': {
     publication: 'case study',
     breakthrough: 'influential study',
-    where: 'the university\'s economists',
+    breakthroughTail: 'published and widely cited',
+    funders: ['a central bank research office', 'the Institute for Economic Research'],
+    prizes: ['the Ashcombe Medal in Economic Sciences'],
   },
   'Arts & Media': {
     publication: 'exhibited work',
     breakthrough: 'acclaimed work',
-    where: 'the university\'s studios',
+    breakthroughTail: 'shown and widely praised',
+    funders: ['the National Arts Council', 'the Delacourt Film Fund'],
+    prizes: ['the Delacourt Award for Artistic Achievement'],
   },
   'Computer Science': {
     publication: 'paper',
     breakthrough: 'breakthrough',
-    where: 'the Computing Research Center',
+    breakthroughTail: 'published and taken up widely',
+    funders: ['the National Science Foundation', 'a technology research consortium'],
+    prizes: ['the Vance Prize in Computing'],
+  },
+  'Engineering': {
+    publication: 'paper',
+    breakthrough: 'breakthrough',
+    breakthroughTail: 'published and put into practice',
+    funders: ['a defense research agency', 'an industrial research consortium'],
+    prizes: ['the Kellner Award for Scientific Achievement'],
+  },
+  'Health Science': {
+    publication: 'paper',
+    breakthrough: 'clinical breakthrough',
+    breakthroughTail: 'published and taken into the clinic',
+    funders: ['the Institute of Health Sciences', 'a medical research charity'],
+    prizes: ['the Kellner Award for Medicine'],
   },
 };
 
@@ -359,33 +403,25 @@ export function disciplineVocab(schoolName: string | null): DisciplineVocab {
   return (schoolName && DISCIPLINE_VOCAB[schoolName]) || DEFAULT_VOCAB;
 }
 
-// Which school an output came out of: a weighted draw across the faculty
-// actually producing scholarship, by how much they produce, then the
-// school their field teaches in. So the vocabulary tracks where the work
-// is really happening — a campus whose only facility is the Humanities
-// Research Institute describes its output as monographs, and one running
-// labs everywhere mostly says papers, without either being a special case.
+// WHICH SCHOOL AN OUTPUT CAME OUT OF: the one whose facility the work is
+// running in. Nothing else would be right — an initiative IS a topic, a
+// team and a facility, and the facility is the half of that with a school.
 //
-// Returns null when nobody is producing, which is the same "nothing
-// happened this week" the prize draw already handles.
-export function rollProducingSchool(s: GameState): string | null {
-  const producing = researchingFaculty(s);
-  const total = producing.reduce((sum, f) => sum + facultyResearchOutput(f), 0);
-  if (total <= 0) return null;
-
-  let roll = Math.random() * total;
-  let winner = producing[producing.length - 1];
-  for (const f of producing) {
-    roll -= facultyResearchOutput(f);
-    if (roll <= 0) { winner = f; break; }
-  }
-
-  const equipped = labEquippedFields(s);
+// This replaced a campus-wide weighted draw across everyone producing
+// scholarship. That was the correct reading under the old model, where
+// production genuinely was the whole equipped roster trickling into one
+// pool and no output belonged to anybody in particular. Against
+// initiatives it is simply wrong, and visibly so: a project in the
+// Humanities Research Institute logged "a new paper" whenever the campus
+// also ran physics labs, because the draw landed on a physicist who had
+// nothing to do with it.
+//
+// Returns null for a facility that belongs to no school, which cannot
+// happen with the seeded catalogue but keeps this total — the caller
+// falls back to DEFAULT_VOCAB.
+export function facilitySchool(labId: string): string | null {
   for (const school of researchSchools()) {
-    if (!school.fields.includes(winner.field)) continue;
-    if (!school.labIds.some((id) => s.tech.find((t) => t.id === id)?.status === 'done')) continue;
-    if (!equipped.has(winner.field)) continue;
-    return school.schoolName;
+    if (school.labIds.includes(labId)) return school.schoolName;
   }
   return null;
 }

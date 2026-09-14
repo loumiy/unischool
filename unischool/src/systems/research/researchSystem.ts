@@ -1,9 +1,9 @@
 import type { Faculty, GameState, Initiative } from '../../state/types';
 import { INITIATIVE_HISTORY_LIMIT, WEEKS_PER_YEAR } from '../../state/types';
 import {
-  RESEARCH_OUTPUTS, awardChance, disciplineVocab, facultyResearchOutput, initiativeDepth,
-  initiativeOutputChance, initiativeWeeklyOutput, rollGrantAmount, rollGrantFunder,
-  rollPrizeName, rollProducingSchool, teamStrength,
+  RESEARCH_OUTPUTS, article, awardChance, disciplineVocab, facilitySchool, facultyResearchOutput,
+  initiativeDepth, initiativeOutputChance, initiativeWeeklyOutput, rollGrantAmount,
+  rollGrantFunder, rollPrizeName, teamStrength,
 } from '../../data/researchData';
 import { researchTopic } from '../../data/researchTopics';
 import type { ResearchOutputDef, ResearchOutputKind } from '../../data/researchData';
@@ -81,15 +81,17 @@ function rollDuringRunOutput(s: GameState, initiative: Initiative, participants:
   const chosen = weightedPick(eligible);
   if (!chosen) return;
 
-  const school = rollProducingSchool(s);
-  const vocab = disciplineVocab(school);
+  // The vocabulary of the school whose facility this work is running in —
+  // not of whoever on campus happens to publish most (see
+  // researchData.ts's facilitySchool for what that got wrong).
+  const vocab = disciplineVocab(facilitySchool(initiative.labId));
   const topic = researchTopic(initiative.topicId);
   const where = topic ? `“${topic.name}”` : 'the project';
 
   if (chosen.kind === 'publication') {
     initiative.publications += 1;
     s.research.publications += 1;
-    log(s, `A new ${vocab.publication} out of ${where}.`, 'info');
+    log(s, `${article(vocab.publication)} new ${vocab.publication} out of ${where}.`, 'info');
   } else if (chosen.kind === 'grant') {
     const amount = rollGrantAmount(s);
     // A strong team pulls more money in — the brief's "faculty research
@@ -99,11 +101,11 @@ function rollDuringRunOutput(s: GameState, initiative: Initiative, participants:
     s.research.grants += 1;
     s.research.grantIncome += scaled;
     initiative.grantIncome += scaled;
-    log(s, `${rollGrantFunder()} has awarded $${scaled.toLocaleString()} to ${where}.`, 'good');
+    log(s, `${rollGrantFunder(vocab)} has awarded $${scaled.toLocaleString()} to ${where}.`, 'good');
   } else {
     initiative.breakthroughs += 1;
     s.research.breakthroughs += 1;
-    log(s, `A ${vocab.breakthrough} out of ${where} has been published and taken up widely.`, 'good');
+    log(s, `${article(vocab.breakthrough)} ${vocab.breakthrough} out of ${where} has been ${vocab.breakthroughTail}.`, 'good');
   }
 }
 
@@ -127,7 +129,10 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
       if (winner) {
         winner.acclaim += 1;
         s.research.prizes += 1;
-        award = rollPrizeName();
+        // Named by the discipline that won it, same as every other log
+        // line this run produced: an award for Scientific Achievement is
+        // the wrong trophy for a five-year work of history.
+        award = rollPrizeName(disciplineVocab(facilitySchool(initiative.labId)));
         s.research.pendingPrizes.push({
           facultyId: winner.id, facultyName: winner.name, field: winner.field, prizeName: award,
         });

@@ -19,7 +19,8 @@ import { join } from 'node:path';
 import { reducer } from '../src/engine/reducer';
 import { createInitialState } from '../src/state/actions';
 import { initialTech } from '../src/data/techData';
-import { weeklyResearchPoints } from '../src/data/researchData';
+import { weeklyResearchPoints, facilitySchool, disciplineVocab, rollGrantFunder, rollPrizeName } from '../src/data/researchData';
+import { researchSchools } from '../src/data/techData';
 import { findDecisionEvent, type DecisionEventContext } from '../src/data/eventData';
 import { totalEnrolled } from '../src/state/types';
 import type { GameState, OrgPetition } from '../src/state/types';
@@ -381,6 +382,64 @@ function relPath(f: string): string {
   assert(s.tech.filter((t) => t.facilityType === 'lab' && t.status === 'done').length === 0,
     'fixture: a founding school has no finished lab');
   assert(weeklyResearchPoints(s) === 0, 'zero labs -> zero weekly research output, however large the faculty roster');
+}
+
+// =====================================================================
+// 8b. AN OUTPUT IS DESCRIBED BY THE DISCIPLINE THAT PRODUCED IT
+//
+// Every research facility resolves to the school that owns it, and every
+// word the log puts around an output — the noun, the funder, the prize —
+// comes from that school's vocabulary. The bug this guards used a
+// campus-wide weighted draw across everyone producing scholarship, which
+// was right when production WAS the whole equipped roster and is simply
+// wrong against initiatives: a project in the Humanities Research
+// Institute logged "a new paper" whenever the campus also ran physics
+// labs, because the draw landed on a physicist with nothing to do with it.
+// =====================================================================
+{
+  const schools = researchSchools();
+
+  // Every facility in the catalogue belongs to exactly the school that lists it.
+  for (const school of schools) {
+    for (const labId of school.labIds) {
+      assert(facilitySchool(labId) === school.schoolName,
+        `${labId} resolves to ${school.schoolName} (got ${facilitySchool(labId)})`);
+    }
+  }
+
+  assert(facilitySchool('NOT-A-FACILITY') === null, 'an unknown facility id resolves to no school, rather than throwing');
+
+  // The humanities do not have breakthroughs, and are not funded by the
+  // agencies that fund bench science. Both halves of the same point.
+  const humanities = disciplineVocab('Social Sciences & Humanities');
+  assert(humanities.publication === 'monograph', `the humanities publish monographs (got "${humanities.publication}")`);
+  assert(humanities.breakthrough !== 'breakthrough', `the humanities do not have "breakthroughs" (got "${humanities.breakthrough}")`);
+
+  // Nothing science-specific can be drawn for a humanities project, however
+  // many times it is rolled. 400 draws over a pool of this size makes a
+  // miss vanishingly unlikely to be luck.
+  const SCIENCE_ONLY = ['Science Foundation', 'defense', 'industrial', 'Scientific Achievement', 'Health Sciences', 'Medicine'];
+  let strayFunder: string | null = null;
+  let strayPrize: string | null = null;
+  for (let i = 0; i < 400; i += 1) {
+    const funder = rollGrantFunder(humanities);
+    const prize = rollPrizeName(humanities);
+    if (SCIENCE_ONLY.some((w) => funder.includes(w))) strayFunder = funder;
+    if (SCIENCE_ONLY.some((w) => prize.includes(w))) strayPrize = prize;
+  }
+  assert(strayFunder === null, `a humanities project is never funded by a science body (drew "${strayFunder}")`);
+  assert(strayPrize === null, `a humanities project never wins a science prize (drew "${strayPrize}")`);
+
+  // And every school that can run research has vocabulary of its own or a
+  // default that fits it — no school draws from an empty pool.
+  for (const school of schools) {
+    if (school.labIds.length === 0) continue;
+    const vocab = disciplineVocab(school.schoolName);
+    assert(vocab.funders.length > 0 && vocab.prizes.length > 0,
+      `${school.schoolName} has funders and prizes to draw from`);
+    assert(rollGrantFunder(vocab).length > 0 && rollPrizeName(vocab).length > 0,
+      `${school.schoolName} draws a real funder and a real prize name`);
+  }
 }
 
 // =====================================================================

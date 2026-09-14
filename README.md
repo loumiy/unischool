@@ -1039,12 +1039,33 @@ Institute, a Media Production Studio (`techData.ts`'s
 it). They run on identical machinery — no second kind of research — and since
 one facility equips the whole school, every field that school teaches comes
 into production behind it. Only General Studies, which has no majors of its
-own, has no facility. What differs is **vocabulary**, not mechanics:
-`DISCIPLINE_VOCAB` calls the humanities' cheap output a monograph and its rare
-one a landmark work of scholarship; business publishes case studies and
-influential studies; the arts exhibit works and acclaimed works. A model that
-can only describe scholarship as laboratory science is one that quietly tells
-four schools their work does not count.
+own, has no facility. What differs is **vocabulary**, not mechanics. A model
+that can only describe scholarship as laboratory science is one that quietly
+tells four schools their work does not count, so `DISCIPLINE_VOCAB` authors
+**three** things per school, not one:
+
+- **The output nouns and the verb.** The humanities publish monographs and
+  landmark works of scholarship; business publishes case studies and influential
+  studies; the arts show exhibited works and acclaimed works, and are *shown*
+  rather than published, because a film that "has been published" is the same
+  mistake one word further along.
+- **The funders.** Each discipline draws from a shared neutral pool — trusts,
+  foundations, a federal research council — plus its own: the National Science
+  Foundation and a defense research agency for the lab sciences, the National
+  Endowment for the Humanities and a library fellowship for the humanities, an
+  arts council and a film fund for the arts.
+- **The prize names.** Same shape: four discipline-neutral names everybody can
+  win, plus one of the discipline's own. A history department does not win an
+  award for Scientific Achievement.
+
+**The vocabulary follows the facility the work is running in**, not the campus.
+That is the only reading that makes sense — an initiative *is* a topic, a team
+and a facility, and the facility is the half of it that has a school
+(`facilitySchool`). An earlier pass drew the school campus-wide, weighted across
+everyone producing scholarship, which was right under the old model where
+production genuinely was the whole roster trickling into one pool; against
+initiatives it meant a project in the Humanities Research Institute logged "a
+new paper" whenever the campus also ran physics labs.
 
 ### Topics, teams and depth
 
