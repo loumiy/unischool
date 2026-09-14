@@ -21,8 +21,8 @@ import {
 } from '../src/components/campusScale';
 import {
   BAY_METRES, TOWER_PODIUM_STOREYS, WINDOW_HEIGHT, baysAcross, clerestorySill,
-  floorLinesOf, motifOf, rankSills, ridgeOf, storeysOf, wallHeightOf, windowRanksOf,
-  windowWidthOf,
+  doorFamilyOf, doorOf, floorLinesOf, motifOf, rankSills, ridgeOf, storeysOf,
+  wallHeightOf, windowRanksOf, windowWidthOf, type DoorFamily,
 } from '../src/components/buildingSpec';
 import { footprintOf, isPlaceableKind } from '../src/state/campusMap';
 import { initialTech } from '../src/data/techData';
@@ -233,6 +233,83 @@ console.log('campus scale and building spec');
     assert(sill + WINDOW_HEIGHT < h, 'and its band fits under the eaves');
     assert(floorLinesOf(gym).length === 0, 'with no floor lines, because it has no floors');
   }
+}
+
+// --- 9. Doors are one family of shapes, not one shape stretched ----------
+{
+  // Every door of a family is the same door, and there are only six. The old
+  // table gave every motif its own width AND a height that was a fraction of
+  // whatever wall it landed on, so aspect ratios ran 0.83 to 27.38.
+  const sizes = new Map<string, string>();
+  for (const t of CATALOGUE) {
+    const d = doorOf(t);
+    if (!d) continue;
+    const key = `${d.widthTiles.toFixed(6)}x${d.height.toFixed(6)}`;
+    const seen = sizes.get(d.family);
+    if (seen && seen !== key) {
+      assert(false, `${d.family}: one size everywhere (got ${seen} and ${key})`);
+      break;
+    }
+    sizes.set(d.family, key);
+  }
+  assert(sizes.size > 0 && sizes.size <= 6, `the catalogue draws ${sizes.size} door families, one size each`);
+
+  // The proportions. Four of the six are doors you walk through and cluster
+  // tightly; the two that are wide are a shop window and an ambulance bay.
+  const aspects: Array<[DoorFamily, number]> = [];
+  for (const t of CATALOGUE) {
+    const d = doorOf(t);
+    if (d && !aspects.some(([f]) => f === d.family)) {
+      aspects.push([d.family, (d.widthTiles * METRES_PER_TILE) / (d.height / (UNITS_PER_TILE_UP / METRES_PER_TILE))]);
+    }
+  }
+  const walkThrough = aspects.filter(([f]) => f !== 'shopfront' && f !== 'canopy').map(([, a]) => a);
+  assert(walkThrough.length >= 3 && Math.max(...walkThrough) / Math.min(...walkThrough) < 1.6,
+    `the walk-through families share a proportion (spread ${(Math.max(...walkThrough) / Math.min(...walkThrough)).toFixed(2)}x)`);
+  const all = aspects.map(([, a]) => a);
+  assert(Math.max(...all) / Math.min(...all) < 4,
+    `and the whole catalogue spans ${(Math.max(...all) / Math.min(...all)).toFixed(1)}x, against the old table's 33x`);
+}
+
+// --- 10. Every door actually fits the wall it is drawn on ----------------
+{
+  // The assertion that would have caught the founding dining hall rendering
+  // with no way in: its civic door was 4.05 m over a 3.9 m storey, so the
+  // motif declined to draw it rather than overflowing the wall. Silent, and
+  // invisible unless you go and look at that one building.
+  let checked = 0;
+  for (const t of CATALOGUE) {
+    const d = doorOf(t);
+    if (!d) continue;
+    // A tower's entrance is on its PODIUM, which is shorter than the mass.
+    const wall = motifOf(t) === 'tower' ? TOWER_PODIUM_STOREYS * STOREY : wallHeightOf(t);
+    if (!(d.threshold + d.height < wall)) {
+      assert(false, `${t.id} (${d.family}): its door is taller than the ${wall.toFixed(1)}-unit wall it is drawn on`);
+      break;
+    }
+    checked += 1;
+  }
+  assert(checked > 40, `all ${checked} doors in the catalogue fit the walls they are drawn on`);
+
+  // And the specific case that was wrong in the old table: a tower's shopfront
+  // was a height fraction measured against the 190-unit mass and then applied
+  // to the 34-unit podium, which made a 24 m opening 0.88 m high.
+  const tower = CATALOGUE.find((t) => motifOf(t) === 'tower');
+  if (tower) {
+    const d = doorOf(tower);
+    assert(d?.family === 'shopfront', 'a tower is entered through its podium shopfront');
+    assert(!!d && d.height > STOREY * 0.5,
+      `and that shopfront is a real opening, not the 0.88 m sliver the old fraction produced`);
+  }
+
+  // Nothing with no front door claims one.
+  for (const t of CATALOGUE) {
+    const motif = motifOf(t);
+    if (motif === 'grounds' || motif === 'bowl' || motif === 'village') {
+      if (doorFamilyOf(t) !== null) { assert(false, `${t.id}: open ground and villages have no single front door`); break; }
+    }
+  }
+  assert(true, 'open ground, the stadium and the villages carry no single front door');
 }
 
 // --- 7. Nothing in the catalogue is missing a spec -------------------------

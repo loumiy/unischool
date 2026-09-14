@@ -340,3 +340,107 @@ export function floorLinesOf(t: Buildable): number[] {
   const storeys = storeysOf(t);
   return Array.from({ length: Math.max(0, storeys - 1) }, (_, i) => (i + 1) * STOREY);
 }
+
+// ---------------------------------------------------------------------
+// DOORS. Six families, each a fixed real size.
+//
+// There used to be one door — a single parametric shape handed a width and a
+// height and stretched into whatever box it was given. The boxes were a tile
+// of width (so the same on every wall, which was right) and a FRACTION OF THE
+// WALL'S HEIGHT (so a hall's door was 18.11 m tall, a lab's 7.03 m, and a
+// retail podium's 0.88 m). Aspect ratios ran from 0.83 to 27.38. "The same
+// shape stretched different ways" was not an impression; it was literally the
+// implementation.
+//
+// A door is now a member of a family, and a family has one real width and one
+// real height. Four of the six sit between 0.62 and 0.89 — one family of
+// proportions, which is what a door looks like. The two that are wide are wide
+// because the things they are, a shop window and an ambulance bay, are wide.
+// ---------------------------------------------------------------------
+
+export type DoorFamily = 'formal' | 'civic' | 'residential' | 'service' | 'shopfront' | 'canopy';
+
+interface DoorSpec {
+  widthMetres: number;
+  heightMetres: number;
+  // How far the threshold stands above grade, and how many treads climb to it.
+  // A formal entrance is approached up a broad flight — it is the most
+  // recognisable thing about the front of an academic building, and the old
+  // three-pixel sliver of a step was the least.
+  thresholdMetres: number;
+  treads: number;
+}
+
+const DOOR_FAMILIES: Record<DoorFamily, DoorSpec> = {
+  // The formal portal: double height, reaching into the first floor, which is
+  // what an academic entrance IS. Up a flight of five.
+  formal: { widthMetres: 4.0, heightMetres: 5.4, thresholdMetres: 1.4, treads: 5 },
+  // Sized to fit a SINGLE STOREY, because its smallest user is one: the
+  // founding campus restaurant is one storey of 3.9 m, and an earlier pass
+  // gave this family 3.6 m of opening over a 0.45 m threshold — 4.05 m, taller
+  // than the wall it was drawn on, so Door bailed and that building rendered
+  // with no way in at all. Every family has to fit its shortest user; this is
+  // the only one where that bites, and test/building-spec.test.ts now checks
+  // all six against every building that uses them.
+  civic: { widthMetres: 2.9, heightMetres: 3.2, thresholdMetres: 0.35, treads: 2 },
+  residential: { widthMetres: 2.2, heightMetres: 3.0, thresholdMetres: 0.3, treads: 1 },
+  service: { widthMetres: 1.6, heightMetres: 2.6, thresholdMetres: 0.15, treads: 1 },
+  // A glazed bay, not a door with windows beside it.
+  shopfront: { widthMetres: 6.0, heightMetres: 3.4, thresholdMetres: 0, treads: 0 },
+  // An ambulance entrance drives straight in, so there is nothing to climb.
+  canopy: { widthMetres: 8.0, heightMetres: 4.2, thresholdMetres: 0, treads: 0 },
+};
+
+// Which family a building's entrance belongs to, or null for something with no
+// single front door — open ground, a stadium, and a village, whose houses each
+// have their own (drawn by the motif).
+export function doorFamilyOf(t: Buildable): DoorFamily | null {
+  const motif = motifOf(t);
+  if (motif === 'grounds' || motif === 'bowl' || motif === 'village') return null;
+  if (t.kind === 'building') return 'formal';
+  if (t.kind === 'dorm') return motif === 'tower' ? 'shopfront' : 'residential';
+  switch (t.facilityType) {
+    // Every lab-gated building takes a service door whatever roof its id
+    // earned it (see RESEARCH_FACILITY_MOTIFS): an institute and a compute
+    // centre are still back-of-house buildings to walk into.
+    case 'lab': return 'service';
+    case 'library':
+    case 'performingArtsCenter': return 'formal';
+    case 'grocery': return 'shopfront';
+    case 'healthCenter':
+      return (t.effects?.servesPopulation ?? 0) >= HOSPITAL_MIN_SERVES ? 'canopy' : 'civic';
+    default: return 'civic';
+  }
+}
+
+// A door's width in TILES and its height, threshold and tread count in screen
+// units — the units the wall it goes on is already measured in.
+export interface DoorDimensions {
+  family: DoorFamily;
+  widthTiles: number;
+  height: number;
+  threshold: number;
+  treads: number;
+}
+
+export function doorOf(t: Buildable): DoorDimensions | null {
+  const family = doorFamilyOf(t);
+  if (!family) return null;
+  return doorDimensions(family);
+}
+
+export function doorDimensions(family: DoorFamily): DoorDimensions {
+  const d = DOOR_FAMILIES[family];
+  return {
+    family,
+    widthTiles: across(d.widthMetres),
+    height: up(d.heightMetres),
+    threshold: up(d.thresholdMetres),
+    treads: d.treads,
+  };
+}
+
+// How deep one tread is, and how far the flight stands proud of the opening on
+// each side. Both real measures, so a stair is the same stair everywhere.
+export const TREAD_DEPTH = across(0.42);
+export const STEP_OVERHANG = across(0.8);

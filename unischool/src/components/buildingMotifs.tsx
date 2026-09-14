@@ -4,9 +4,10 @@ import { boxFaces, facePoint, lift, polyPoints, project, type Pt } from './isoPr
 import { depthOrder } from './depthSort';
 import { STOREY, across, up } from './campusScale';
 import {
-  FLOOR_COURSE, TOWER_PODIUM_STOREYS, WINDOW_HEIGHT, baysAcross, clerestorySill,
-  floorLinesOf, motifOf, rankSills, ridgeOf, storeysOf, wallHeightOf, windowRanksOf,
-  windowWidthOf, type Motif,
+  FLOOR_COURSE, STEP_OVERHANG, TOWER_PODIUM_STOREYS, TREAD_DEPTH, WINDOW_HEIGHT,
+  baysAcross, clerestorySill, doorDimensions, doorOf, floorLinesOf, motifOf, rankSills,
+  ridgeOf, storeysOf, wallHeightOf, windowRanksOf, windowWidthOf,
+  type DoorDimensions,
 } from './buildingSpec';
 import GroundMarking, { RakedStand, StadiumField, type TilePt } from './groundMarkings';
 
@@ -272,128 +273,142 @@ function Scaffolding({ col, row, w, h, height }: {
   );
 }
 
-// How wide the entrance is IN TILES, and how tall as a fraction of the wall
-// it sits on. A gym's doors are wide and low; a lab's is a single service
-// door; a hall's is the formal front.
-//
-// Width is a tile measure rather than a fraction of the wall because a door
-// is a fixed physical size: as a fraction, a hall's door came out at 0.64
-// tiles on a short wall and 1.44 on a long one, and the two walls of the
-// same building disagreed with each other by the ratio of their lengths.
-// Height stays a fraction — that IS proportional, since it is set by the
-// storey the door opens into.
-const DOOR: Record<Motif, [number, number]> = {
-  hall: [1.0, 0.46], residential: [0.62, 0.40], portico: [1.0, 0.44],
-  // A tower's door is a shopfront: the podium's whole ground floor is
-  // retail, so the opening is wide and — as a fraction of a 190-unit mass —
-  // very shallow.
-  tower: [1.6, 0.055],
-  // A hospital's is an ambulance entrance under a canopy: the widest on
-  // campus.
-  block: [1.8, 0.22],
-  pavilion: [0.85, 0.52], hangar: [1.25, 0.46], works: [0.6, 0.5],
-  // A village has no single front door — each house has its own, drawn by
-  // the motif itself.
-  village: [0, 0],
-  grounds: [0, 0], bowl: [0, 0],
-};
-
-// The door's width as a fraction of the wall it is on, given that wall's
-// length in tiles — capped so a door never eats a short wall whole.
-function doorFraction(motif: Motif, span: number): number {
-  const [tiles] = DOOR[motif];
-  if (tiles <= 0 || span <= 0) return 0;
-  return Math.min(tiles / span, 0.55);
+// The door's width as a fraction of the wall it is on. The width itself is a
+// real measure (see buildingSpec's DOOR_FAMILIES); this only converts it into
+// the wall's own u, which is the one thing that legitimately depends on how
+// long that wall is. Capped so an entrance can never eat a short wall whole.
+function doorFraction(d: DoorDimensions, span: number): number {
+  if (d.widthTiles <= 0 || span <= 0) return 0;
+  return Math.min(d.widthTiles / span, 0.6);
 }
 
-// The bay a door reserves on its wall, in that wall's (u, v) coordinates —
-// the opening plus its surround and lintel, so windows clear the whole
-// assembly rather than just the leaves.
-function doorBay(motif: Motif, span: number): FaceRect | undefined {
-  const dw = doorFraction(motif, span);
-  if (dw <= 0) return undefined;
-  const dh = DOOR[motif][1];
-  return { u0: 0.5 - dw / 2 - SURROUND, u1: 0.5 + dw / 2 + SURROUND, v0: 0, v1: dh + LINTEL + 0.02 };
+// The bay a door reserves on its wall, in that wall's (u, v) coordinates — the
+// opening plus its surround and lintel, so windows clear the whole assembly
+// rather than just the leaves. Reserved from the GROUND up rather than from
+// the threshold, so nothing is drawn behind the steps either.
+//
+// A formal portal is taller than a storey, which means it reaches into the
+// first floor and the rank up there clears it too. That is not a special case
+// here: the rectangle is simply tall enough, and `overlaps` does the rest.
+function doorBay(d: DoorDimensions, span: number, wallHeight: number): FaceRect | undefined {
+  const dw = doorFraction(d, span);
+  if (dw <= 0 || wallHeight <= 0) return undefined;
+  const head = (d.threshold + d.height) / wallHeight;
+  return {
+    u0: 0.5 - dw / 2 - SURROUND,
+    u1: 0.5 + dw / 2 + SURROUND,
+    v0: 0,
+    v1: head + LINTEL + 0.02,
+  };
 }
 
 const SURROUND = 0.018;   // how far the frame stands proud of the opening, in u
 const LINTEL = 0.05;      // the lintel's depth above the head, in v
 
-// The way in. Every roofed building had walls and windows and no door at
-// all, which is the one thing that says a wall is the FRONT of somewhere
-// rather than just the side of a box.
+// The way in.
 //
 // Drawn in the wall's own (u along, v up) coordinates so the whole assembly
-// skews correctly like everything else on that face, with no projection
-// maths of its own. Both visible walls get one: which of the two a given
-// building "fronts" onto depends on where the player put it and which way
-// the paths run, and a blank wall beside a path reads as the back of the
-// building wherever it happens to stand.
+// skews correctly like everything else on that face, with no projection maths
+// of its own. Both visible walls get one: which of the two a building "fronts"
+// onto depends on where the player put it and which way the paths run, and a
+// blank wall beside a path reads as the back of the building wherever it
+// happens to stand.
 //
-// A plain dark rectangle read as a hole rather than a door, so the opening
-// carries what actually makes one legible at this size: a surround, a pair
-// of leaves with a mull between them, and a fanlight over the transom.
-// Handles and panel mouldings are below a pixel here and are not drawn.
-function Door({ motif, origin, along, height, span }: {
-  motif: Motif; origin: Pt; along: Pt; height: number;
+// The opening carries what makes a door legible at this size: a surround, a
+// pair of leaves with a mull between them, and a fanlight over the transom.
+// Handles and panel mouldings are below a pixel here and are not drawn. What
+// IS drawn now, and was not, is the threshold the door sits on — see
+// EntranceSteps below.
+function Door({ d, origin, along, wallHeight, span }: {
+  d: DoorDimensions;
+  origin: Pt; along: Pt; wallHeight: number;
   span: number;   // this wall's length in tiles, so the door is the same real size on both
 }) {
-  const dw = doorFraction(motif, span);
-  const dh = DOOR[motif][1];
-  if (dw <= 0) return null;
+  const dw = doorFraction(d, span);
+  if (dw <= 0 || wallHeight <= 0) return null;
+  // The opening in this wall's v: a real height, converted once.
+  const v0 = d.threshold / wallHeight;
+  const v1 = (d.threshold + d.height) / wallHeight;
+  if (v1 > 1) return null;            // taller than the wall it is on: draw nothing rather than overflow
+  const h = v1 - v0;
   const u0 = 0.5 - dw / 2;
   const u1 = 0.5 + dw / 2;
-  const at = (u: number, v: number) => facePoint(origin, along, height, u, v);
-  const quad = (a: number, b: number, c: number, d: number) =>
-    polyPoints([at(a, c), at(b, c), at(b, d), at(a, d)]);
+  const at = (u: number, v: number) => facePoint(origin, along, wallHeight, u, v);
+  const quad = (a: number, b: number, c: number, e: number) =>
+    polyPoints([at(a, c), at(b, c), at(b, e), at(a, e)]);
 
-  const transom = dh * 0.72;      // head of the leaves; the fanlight sits above
-  const mull = dw * 0.035;        // the centre post between the two leaves
-  const reveal = dw * 0.08;       // how far the leaves sit inside the opening
-  const bar = dh * 0.045;         // the transom bar itself
+  const transom = v0 + h * 0.72;    // head of the leaves; the fanlight sits above
+  const mull = dw * 0.035;          // the centre post between the two leaves
+  const reveal = dw * 0.08;         // how far the leaves sit inside the opening
+  const bar = h * 0.045;            // the transom bar itself
 
   return (
     <>
       {/* The surround, then the opening cut into it. */}
-      <polygon
-        className="iso-door-surround"
-        points={quad(u0 - SURROUND, u1 + SURROUND, 0, dh + 0.012)}
-      />
-      <polygon className="iso-door" points={quad(u0, u1, 0, dh)} />
+      <polygon className="iso-door-surround" points={quad(u0 - SURROUND, u1 + SURROUND, v0, v1 + 0.012)} />
+      <polygon className="iso-door" points={quad(u0, u1, v0, v1)} />
 
       {/* Two leaves either side of the mull. */}
-      <polygon
-        className="iso-door-leaf"
-        points={quad(u0 + reveal, 0.5 - mull, reveal * 0.4, transom - bar)}
-      />
-      <polygon
-        className="iso-door-leaf"
-        points={quad(0.5 + mull, u1 - reveal, reveal * 0.4, transom - bar)}
-      />
+      <polygon className="iso-door-leaf" points={quad(u0 + reveal, 0.5 - mull, v0 + h * 0.02, transom - bar)} />
+      <polygon className="iso-door-leaf" points={quad(0.5 + mull, u1 - reveal, v0 + h * 0.02, transom - bar)} />
 
       {/* The transom bar, and the fanlight over it. */}
       <polygon className="iso-door-bar" points={quad(u0, u1, transom - bar, transom)} />
       <polygon
         className="iso-door-glass"
-        points={quad(u0 + reveal, u1 - reveal, transom + bar * 0.5, dh - reveal * 0.4)}
+        points={quad(u0 + reveal, u1 - reveal, transom + bar * 0.5, v1 - h * 0.04)}
       />
 
-      {/* A lintel across the head, and a step at the threshold lying on the
-          ground in front of it. */}
+      {/* A lintel across the head. */}
       <polygon
         className="iso-door-lintel"
-        points={quad(u0 - SURROUND - 0.012, u1 + SURROUND + 0.012, dh + 0.012, dh + LINTEL)}
-      />
-      <polygon
-        className="iso-door-step"
-        points={polyPoints([
-          at(u0 - 0.01, 0), at(u1 + 0.01, 0),
-          { x: at(u1 + 0.01, 0).x, y: at(u1 + 0.01, 0).y + 3 },
-          { x: at(u0 - 0.01, 0).x, y: at(u0 - 0.01, 0).y + 3 },
-        ])}
+        points={quad(u0 - SURROUND - 0.012, u1 + SURROUND + 0.012, v1 + 0.012, v1 + LINTEL)}
       />
     </>
   );
+}
+
+// The flight up to a threshold, standing on the ground in front of the door.
+//
+// This is the piece the old drawing was missing entirely — its "step" was a
+// three-pixel sliver in SCREEN space, which is the one measure on this map
+// that means nothing. A real stair is boxes on the grid: each tread stands one
+// rise higher and one tread-depth shallower than the one in front of it, so
+// the flight climbs back toward the wall.
+//
+// `outCol`/`outRow` is the direction away from the building, in grid units —
+// the left wall faces down-row, the right wall faces down-col. Treads are
+// drawn from the top down, so the lowest (which projects furthest toward the
+// camera) paints over the ones behind it.
+function EntranceSteps({ d, centreCol, centreRow, outCol, outRow, span, tint }: {
+  d: DoorDimensions;
+  centreCol: number; centreRow: number;
+  outCol: number; outRow: number;
+  span: number;
+  tint: string;
+}) {
+  if (d.treads <= 0 || d.threshold <= 0) return null;
+  const halfW = Math.min(d.widthTiles, span * 0.6) / 2 + STEP_OVERHANG;
+  const rise = d.threshold / d.treads;
+  const out: React.JSX.Element[] = [];
+  for (let i = d.treads - 1; i >= 0; i--) {
+    // Tread i counts from the bottom, so it stands (i + 1) rises high and
+    // reaches (d.treads - i) tread-depths out from the wall.
+    const depth = (d.treads - i) * TREAD_DEPTH;
+    const col = outCol !== 0 ? centreCol : centreCol - halfW;
+    const row = outRow !== 0 ? centreRow : centreRow - halfW;
+    const w = outCol !== 0 ? depth : halfW * 2;
+    const h = outRow !== 0 ? depth : halfW * 2;
+    const f = boxFaces(col, row, w, h, 0, (i + 1) * rise);
+    out.push(
+      <g key={i}>
+        <polygon points={polyPoints(f.left)} fill={shade(tint, 0.86)} />
+        <polygon points={polyPoints(f.right)} fill={shade(tint, 0.74)} />
+        <polygon className="iso-step-tread" points={polyPoints(f.top)} />
+      </g>,
+    );
+  }
+  return <>{out}</>;
 }
 
 // A small box standing on a roof: plant, a stair head, a lift overrun — the
@@ -492,6 +507,7 @@ function BuildingMotif({ t, p, tint, developing }: {
   const sills = storeysOf(t) > 0 ? rankSills(windowRanksOf(t)) : [clerestorySill(H)];
   const paneW = windowWidthOf(t);
   const courses = floorLinesOf(t);
+  const door = doorOf(t);
 
   if (motif === 'village') {
     // A PLOT, not a building: lawn, walks between the ranks, and ten small
@@ -543,6 +559,12 @@ function BuildingMotif({ t, p, tint, developing }: {
     // the shaft is inset from it and carried the rest of the way up, which is
     // what stops a 190-unit mass reading as a single blank obelisk.
     const PODIUM_H = TOWER_PODIUM_STOREYS * STOREY;
+    // The way into a tower is its podium's shopfront, measured against the
+    // PODIUM's own height rather than the shaft's. The old table said its
+    // height fraction was small because the mass was 190 units tall, and then
+    // applied that fraction to the 34-unit podium — which is how a 24 m
+    // opening came to be 0.88 m high.
+    const podiumDoor = doorDimensions('shopfront');
     const inset = 0.17;
     const sc = col + w * inset; const sr = row + h * inset;
     const sw = w * (1 - inset * 2); const sh = h * (1 - inset * 2);
@@ -571,10 +593,10 @@ function BuildingMotif({ t, p, tint, developing }: {
             rank of shopfront rather than the shaft's ranks of flats. */}
         <polygon points={polyPoints(pod.left)} fill={shade(tint, 0.88)} />
         <polygon points={polyPoints(pod.right)} fill={shade(tint, 0.70)} />
-        {windows(pod.D, pod.C, PODIUM_H, w, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pl', doorBay('tower', w))}
-        {windows(pod.C, pod.B, PODIUM_H, h, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pr', doorBay('tower', h))}
-        <Door motif="tower" origin={pod.D} along={pod.C} height={PODIUM_H} span={w} />
-        <Door motif="tower" origin={pod.C} along={pod.B} height={PODIUM_H} span={h} />
+        {windows(pod.D, pod.C, PODIUM_H, w, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pl', doorBay(podiumDoor, w, PODIUM_H))}
+        {windows(pod.C, pod.B, PODIUM_H, h, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pr', doorBay(podiumDoor, h, PODIUM_H))}
+        <Door d={podiumDoor} origin={pod.D} along={pod.C} wallHeight={PODIUM_H} span={w} />
+        <Door d={podiumDoor} origin={pod.C} along={pod.B} wallHeight={PODIUM_H} span={h} />
         <polygon points={polyPoints(pod.top)} fill={pal.roofDeck} />
 
         {/* The shaft, ranked floor by floor. */}
@@ -679,10 +701,25 @@ function BuildingMotif({ t, p, tint, developing }: {
           point: the same window then goes in both, instead of one wall's
           windows coming out wider than the other's by the ratio of the two
           spans. */}
-      {!developing && windows(f.D, f.C, H, w, sills, paneW, 'l', doorBay(motif, w))}
-      {!developing && windows(f.C, f.B, H, h, sills, paneW, 'r', doorBay(motif, h))}
-      {!developing && <Door motif={motif} origin={f.D} along={f.C} height={H} span={w} />}
-      {!developing && <Door motif={motif} origin={f.C} along={f.B} height={H} span={h} />}
+      {!developing && windows(f.D, f.C, H, w, sills, paneW, 'l', door ? doorBay(door, w, H) : undefined)}
+      {!developing && windows(f.C, f.B, H, h, sills, paneW, 'r', door ? doorBay(door, h, H) : undefined)}
+      {!developing && door && <Door d={door} origin={f.D} along={f.C} wallHeight={H} span={w} />}
+      {!developing && door && <Door d={door} origin={f.C} along={f.B} wallHeight={H} span={h} />}
+      {/* The flights, on the ground in front of each door. Drawn after the
+          walls so they stand in front of the mass they climb to, and after
+          both doors so neither one's steps are cut by the other's wall. */}
+      {!developing && door && (
+        <EntranceSteps
+          d={door} centreCol={col + w / 2} centreRow={row + h}
+          outCol={0} outRow={1} span={w} tint={tint}
+        />
+      )}
+      {!developing && door && (
+        <EntranceSteps
+          d={door} centreCol={col + w} centreRow={row + h / 2}
+          outCol={1} outRow={0} span={h} tint={tint}
+        />
+      )}
 
       {gabled ? (
         <>

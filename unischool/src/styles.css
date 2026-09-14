@@ -846,7 +846,11 @@ button.build-tile { font-family: inherit; }
 .iso-door-bar { fill: rgba(38, 30, 16, 0.42); }
 .iso-door-glass { fill: rgba(255, 253, 246, 0.42); }
 .iso-door-lintel { fill: rgba(38, 30, 16, 0.3); }
-.iso-door-step { fill: rgba(255, 253, 246, 0.3); }
+/* The tread of an entrance stair. Stone, so it reads against the wall it
+   climbs to rather than as part of it. (The old .iso-door-step this replaces
+   was a three-pixel sliver in screen space; the flight is real boxes on the
+   grid now — see buildingMotifs' EntranceSteps.) */
+.iso-step-tread { fill: rgba(255, 253, 246, 0.34); }
 .iso-rooflight { fill: rgba(255, 253, 246, 0.42); }
 .iso-ridge { stroke: rgba(42, 56, 28, 0.28); stroke-width: 1; vector-effect: non-scaling-stroke; }
 
