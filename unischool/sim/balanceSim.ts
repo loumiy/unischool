@@ -28,7 +28,9 @@ import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudent } from '../src/systems/finance/financeSystem';
 import {
   canStartDevelopment, hasFreeFacultySlot, eligibleInstructors, unstaffedCourses,
+  isCommitted, effectiveCourseSlots, totalFacultySlots, usedFacultySlots,
 } from '../src/systems/techtree/techSystem';
+import { facultyLoads } from '../src/systems/faculty/facultyAssignment';
 import { initiativeOffers } from '../src/data/researchData';
 import { researchSchools } from '../src/data/techData';
 import { firstFreeSpot, footprintOf } from '../src/state/campusMap';
@@ -248,17 +250,80 @@ function commissionScholarship(
 }
 
 // The recovery lever every stalled player has and no Buildable can take
-// away: payroll. Fires the single most expensive hire, once a run has been
-// underwater long enough that a real player would have acted. This is the
-// harness's test of "stall, don't die" — a school that overreached has to
-// be able to climb back out without any special-case rescue in the engine.
-const STALL_WEEKS_BEFORE_CUTS = 26;
-function cutPayrollIfStalled(get: () => GameState, weeksInTheRed: number, dispatch: (a: Action) => void): void {
+// away: payroll. This is the harness's test of "stall, don't die" — a
+// school that overreached has to be able to climb back out without any
+// special-case rescue in the engine.
+//
+// It used to be one line: fire the single most expensive hire, every week,
+// until the bleeding stopped. That was a fair model of payroll when
+// faculty were interchangeable salary, and course quality is what made it
+// false. A dismissal now orphans whatever that person taught, so the
+// unbounded version walked a stalled run straight off a cliff — the
+// discount-volume strategy ended a forty-year run at ZERO faculty and 91
+// courses still on offer, a school with a full catalogue and nobody to
+// teach any of it, reporting a prestige and an enrolment that no longer
+// described anything. The runs it printed were measuring the harness.
+//
+// So the lever gets the two limits a real administration has.
+//
+// ORDER. Price before people. If this strategy would charge more than the
+// school is currently charging — which underwater it will, since
+// rampTuition reaches for the ceiling and trimAidWhenUnderwater pulls the
+// discount back — then a decision to raise revenue is already made and
+// simply hasn't reached an admissions round yet. Firing somebody this week
+// pre-empts it. Strategies priced flat by design (the low-tuition stress
+// case) are unaffected: what they charge already equals what they would
+// charge, so the lever is free to fire immediately, and the stress test
+// they exist to apply is untouched.
+//
+// FLOOR. A school may shed people it is not using; it may not dismantle
+// the capacity to teach what it already offers. Candidates are taken in
+// this order:
+//
+//   1. Nobody committed to an initiative. The funding was paid in full up
+//      front, and a team that loses everybody has its work abandoned
+//      outright (see researchSystem.ts's tickResearch) — writing off a
+//      five-year programme to save one salary is not a saving.
+//   2. Priciest of those teaching nothing. This is the honest cut and
+//      usually the only one needed: an over-hired department carries
+//      people no course depends on.
+//   3. Failing that, the priciest whose department can still cover its own
+//      offered courses without them. usedFacultySlots counts unstaffed
+//      courses too, so this cannot be gamed by orphaning first.
+//
+// If nothing passes, the lever does not fire, and the run has to recover on
+// price alone — which is the true position of a school whose every
+// professor is in front of a class.
+export const STALL_WEEKS_BEFORE_CUTS = 26;
+//
+// Exported for test/balance-regression.test.ts. The collapse this guards
+// against took a stalled run about thirty years to complete, so a 20-year
+// sweep cannot see it — the gate has to call the lever directly, on a
+// state built to put it in the position the floor exists for.
+export function cutPayrollIfStalled(
+  get: () => GameState, weeksInTheRed: number, dispatch: (a: Action) => void, strategy: Strategy,
+): void {
   const s = get();
   if (s.finance.cash >= 0 || weeksInTheRed < STALL_WEEKS_BEFORE_CUTS) return;
   if (weeklyNet(s) >= 0 || s.faculty.length === 0) return;
-  const priciest = s.faculty.slice().sort((a, b) => b.salary - a.salary)[0];
-  dispatch({ type: 'FIRE_FACULTY', facultyId: priciest.id });
+
+  // Price first: a raise or a discount cut already decided but not yet
+  // applied is cheaper than anybody's job.
+  if (strategy.tuition(s) > s.finance.tuitionPerStudent) return;
+  if (strategy.scholarships(s) < s.admissions.scholarshipRate) return;
+
+  const loads = facultyLoads(s);
+  const byCost = s.faculty
+    .filter((f) => !isCommitted(s, f.id))
+    .sort((a, b) => b.salary - a.salary);
+
+  const idle = byCost.find((f) => (loads.get(f.id) ?? 0) === 0);
+  const sparable = idle ?? byCost.find(
+    (f) => totalFacultySlots(s, f.field) - effectiveCourseSlots(s, f) >= usedFacultySlots(s, f.field),
+  );
+  if (!sparable) return;
+
+  dispatch({ type: 'FIRE_FACULTY', facultyId: sparable.id });
 }
 
 // Placeable kinds (dorm/building/facility, including labs) now start
@@ -299,7 +364,7 @@ function decide(
 ): void {
   commissionScholarship(get, dispatch, strategy);
   restaffOrphans(get, dispatch, strategy);
-  cutPayrollIfStalled(get, weeksInTheRed, dispatch);
+  cutPayrollIfStalled(get, weeksInTheRed, dispatch, strategy);
 
   // Faculty: appoint straight off the standing candidate market when a
   // field is blocking a course this strategy could actually start today.
@@ -902,8 +967,36 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
 // unable to recover, and that each one should show the tier-shaped
 // cost-leads-revenue pinch.
 // ---------------------------------------------------------------------
-const rampTuition = (perPrestigePoint: number) => (s: GameState) =>
-  Math.min(s.finance.tuitionCeiling, Math.round((4_000 + s.self.reputation * perPrestigePoint) / 500) * 500);
+//
+// Underwater, it reaches for the ceiling instead. That is the other half of
+// cutPayrollIfStalled's "price before people": a school running a deficit
+// raises its own price to the cap it is allowed before it starts dismissing
+// professors, and the payroll lever defers to it while the raise is still
+// waiting on an admissions round. It is a reach, not a rescue — the ceiling
+// is set by school type at founding, and a public flagship's is low enough
+// that this alone rarely closes a real gap.
+//
+// Strategies priced FLAT are deliberately left out of this: their whole
+// purpose is to hold a price still while costs climb (see the low-tuition
+// stress case below), and giving them an escape hatch would delete the
+// pressure they exist to apply.
+//
+// The size of the surcharge is the whole question, and 15% is small on
+// purpose. Reaching straight for the ceiling was tried first and is an
+// exploit, not a recovery: enrolment is a four-cohort stock, so a school
+// can charge the cap for one year and collect from students who applied
+// under the old price long before the applicant pool reacts. In the
+// discount-volume run that single year printed +11.09M a week and an
+// endowment that went from 4.43M to 466M — a harness teaching itself to
+// play a trick no balance figure should be fitted against. A notch above
+// list price, repeated for as long as the deficit lasts, is the lever a
+// real administration actually has.
+const DEFICIT_SURCHARGE = 1.15;
+const rampTuition = (perPrestigePoint: number) => (s: GameState) => {
+  const ramped = Math.round((4_000 + s.self.reputation * perPrestigePoint) / 500) * 500;
+  const surcharged = s.finance.cash < 0 ? Math.round(ramped * DEFICIT_SURCHARGE / 500) * 500 : ramped;
+  return Math.min(s.finance.tuitionCeiling, surcharged);
+};
 
 // A real administration trims its own discount before it starts firing
 // people (see cutPayrollIfStalled below, and financeSystem.ts's "stall,

@@ -22,7 +22,9 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { play, STRATEGIES } from '../sim/balanceSim';
+import { play, STRATEGIES, cutPayrollIfStalled, STALL_WEEKS_BEFORE_CUTS } from '../sim/balanceSim';
+import { createInitialState } from '../src/state/actions';
+import type { GameState, Faculty } from '../src/state/types';
 
 let checks = 0;
 let failures = 0;
@@ -154,6 +156,111 @@ for (const strategy of STRATEGIES.filter((s) => s.name !== 'Discount volume (bed
   // opex, so a real spiral (net deeply negative relative to the size of
   // the operation) still fails this exactly as before.
   assert(last.net >= -0.01 * last.opex, `"${strategy.name}" ends year ${YEARS} without a real ongoing deficit (net ${last.net.toLocaleString()}, opex ${last.opex.toLocaleString()})`);
+}
+
+// =====================================================================
+// 4b. THE PAYROLL LEVER HAS A FLOOR — a stalled school sheds people it is
+// not using, and stops at the ones teaching.
+//
+// This guards the harness against itself rather than the game. The
+// scripted player's recovery lever is dismissal (see balanceSim.ts's
+// cutPayrollIfStalled), and while faculty were interchangeable salary an
+// unbounded version of it was a fair model. Course quality made it false:
+// a dismissal orphans whatever that person taught, and the unbounded lever
+// walked the discount strategy to ZERO faculty with 91 courses still on
+// offer — a school with a full catalogue and nobody in front of any class,
+// still printing a prestige and an enrolment, so every figure downstream
+// of it described a university that could not exist.
+//
+// Called DIRECTLY rather than read off a run, and that is the point: the
+// collapse took a stalled trajectory about thirty years to complete, so the
+// 20-year sweep above cannot see it — a run-shaped assertion here would
+// have passed against the very bug it was written for. Three small states,
+// each built to put the lever in the position one of its limits exists
+// for, catch it in a millisecond and keep catching it at any horizon.
+// =====================================================================
+{
+  const FIELD = 'Economics';
+  function professor(id: string, salary: number): Faculty {
+    return {
+      id, name: `Dr. ${id}`, field: FIELD,
+      teaching: 80, research: 60, teachingPotential: 90, researchPotential: 70,
+      tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary, courseSlots: 1,
+      nationality: 'United States', flag: '🇺🇸', bio: 'A test fixture, not a character.',
+      gender: 'male', heritage: 'Anglo/Western European',
+    };
+  }
+
+  // A school deep underwater, long past the stall threshold, with a
+  // three-person department. `staffed` is how many of them are actually
+  // teaching one of the department's offered courses.
+  function stalled(staffed: number): GameState {
+    const s = createInitialState('Floor', 'private');
+    s.finance.cash = -10_000_000;
+    // Salaries are ANNUAL (financeSystem.ts divides by WEEKS_PER_YEAR), and
+    // they have to be large enough that this payroll alone puts the weekly
+    // net under water — the lever declines outright on a school that is
+    // merely holding negative cash while trading at a profit.
+    s.faculty = [professor('cheap', 1_000_000), professor('mid', 2_000_000), professor('dear', 3_000_000)];
+
+    const courses = s.tech.filter((t) => t.requiresFaculty === FIELD).slice(0, staffed);
+    if (courses.length !== staffed) throw new Error(`fixture: ${FIELD} offers at least ${staffed} courses`);
+    const ids = ['dear', 'mid', 'cheap'];
+    courses.forEach((t, i) => {
+      t.status = 'done';
+      s.courseFaculty[t.id] = ids[i];
+    });
+    return s;
+  }
+
+  // Flat pricing, so the "price before people" gate never defers: this
+  // block is about the floor, and the gate gets its own check below.
+  const flat = { tuition: () => 0, scholarships: () => 1 } as unknown as typeof STRATEGIES[number];
+
+  function fire(s: GameState): string | null {
+    let fired: string | null = null;
+    cutPayrollIfStalled(() => s, STALL_WEEKS_BEFORE_CUTS, (a) => {
+      if (a.type === 'FIRE_FACULTY') fired = a.facultyId;
+    }, flat);
+    return fired;
+  }
+
+  // Nobody teaching: the priciest goes, exactly as before.
+  assert(fire(stalled(0)) === 'dear', `the payroll lever cuts the priciest idle professor (got ${fire(stalled(0))})`);
+
+  // One teaching: the priciest IDLE one goes, not the priciest overall —
+  // 'dear' is in front of a class, so the cut steps past them.
+  assert(fire(stalled(1)) === 'mid', `the payroll lever steps past a professor who is teaching (got ${fire(stalled(1))})`);
+
+  // Every professor teaching, every slot spoken for: the lever declines.
+  // This is the floor itself, and the case the old lever got wrong.
+  assert(fire(stalled(3)) === null, `the payroll lever declines to strip a fully-committed department (got ${fire(stalled(3))})`);
+
+  // Price before people: a strategy that would charge more than the school
+  // currently charges has a raise pending, and nobody is cut this week.
+  const pending = { tuition: (s: GameState) => s.finance.tuitionPerStudent + 1, scholarships: () => 1 } as unknown as typeof STRATEGIES[number];
+  let cutUnderPendingRaise: string | null = null;
+  cutPayrollIfStalled(() => stalled(0), STALL_WEEKS_BEFORE_CUTS, (a) => {
+    if (a.type === 'FIRE_FACULTY') cutUnderPendingRaise = a.facultyId;
+  }, pending);
+  assert(cutUnderPendingRaise === null, `the payroll lever waits for a tuition raise it has already decided on (got ${cutUnderPendingRaise})`);
+}
+
+// =====================================================================
+// 4c. And the standing version of the same invariant over the sweep: no
+// strategy, in any year, offers courses with nobody at all on the roster.
+// Vacuous at 20 years for the reason 4b explains — kept because it costs
+// one pass over rows already computed, and because a future horizon
+// change is exactly when it stops being vacuous.
+// =====================================================================
+for (const strategy of STRATEGIES) {
+  const { run } = find(strategy.name);
+  const stripped = run.rows.find((r) => r.courses > 0 && r.faculty === 0);
+  assert(
+    stripped === undefined,
+    `"${strategy.name}" never offers courses with an empty roster` +
+    (stripped ? ` (year ${stripped.year}: ${stripped.courses} courses, 0 faculty)` : ''),
+  );
 }
 
 // =====================================================================

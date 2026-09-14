@@ -5,10 +5,10 @@ to work out how four systems that are currently separate (the curriculum view,
 course development, the faculty roster, and research) become one interconnected
 loop, and to sequence that work so each step ships on its own.*
 
-**Status: A–F shipped.** Every PR in the sequence below has landed on
-`claude/curriculum-quality-faculty-plan-334qrn`. A follow-up cleanup — two
-live bugs, two pieces of semantic drift and the one decision deferred until
-both loops existed — is proposed in §6b and not yet built. The constellation-layout experiment
+**Status: A–G shipped.** Every PR in the sequence below has landed on
+`main`, together with the follow-up cleanup — two live bugs, two pieces of
+semantic drift and the one decision deferred until both loops existed —
+recorded in §6b. The constellation-layout experiment
 that preceded this document is deliberately not being carried forward — see
 "Why the constellation failed" below, which is the most useful thing it
 produced.
@@ -820,8 +820,8 @@ live bugs, two pieces of semantic drift, one decision that was always
 deferred to this point, and two bits of polish. Ordered by whether they
 are actually wrong.
 
-**All of G is now resolved.** G1, G2, G4, G6 and G7 are built; G3 was
-reviewed and deliberately left alone; G5 is deferred.
+**All of G is now resolved.** G1, G2, G4, G5, G6 and G7 are built; G3 was
+reviewed and deliberately left alone.
 
 ### Bugs — things that are incorrect right now
 
@@ -898,9 +898,7 @@ re-balanced against `npm run sim`.
 
 ### Polish
 
-**G5. DEFERRED.** Left as it is for now, by decision — the engine is correct
-and this is harness behaviour that only distorts what the sim reports, not
-what a player experiences.
+**G5. ~~The payroll lever has no floor.~~ FIXED** (deferred once, then built).
 
 *Original finding:*
 `cutPayrollIfStalled` fires the priciest hire once a week, with no floor,
@@ -913,6 +911,54 @@ assumption the engine no longer holds.
 
 *Fix:* give it a floor (never fire below what it takes to staff the
 courses already offered) and let it reach for tuition before payroll.
+
+*Built:* both halves, plus a third limit that fell out of the first.
+
+**Order — price before people.** The lever declines to fire while the
+strategy would charge more than the school currently charges: a raise or a
+discount cut already decided but not yet applied is cheaper than anybody's
+job, and firing this week pre-empts a decision that lands at the next
+admissions round. To give that gate something to defer to, `rampTuition`
+now carries a **15% deficit surcharge** while cash is negative.
+
+The size of that surcharge is the whole question, and reaching straight
+for the ceiling was tried first and is an *exploit*, not a recovery.
+Enrolment is a four-cohort stock, so a school can charge the cap for one
+year and collect from students who applied under the old price long before
+the applicant pool reacts: that single year printed **+11.09M a week** and
+an endowment going **4.43M → 466M**. A harness that taught itself that
+trick would fit every balance figure downstream against it. A notch above
+list price, held for as long as the deficit lasts, is the lever a real
+administration actually has. Strategies priced FLAT are deliberately
+excluded — holding a price still while costs climb is the pressure they
+exist to apply.
+
+**Floor — a school may shed people it is not using, and stops there.**
+Candidates in order: nobody committed to an initiative (the funding was
+paid up front, and a team that loses everybody has its work abandoned
+outright, so writing off a five-year programme to save one salary is not a
+saving); then the priciest teaching *nothing*; then, failing that, the
+priciest whose department can still cover its own offered courses without
+them. `usedFacultySlots` counts unstaffed courses, so this cannot be gamed
+by orphaning first. If nothing passes, the lever does not fire and the run
+recovers on price alone — the true position of a school whose every
+professor is in front of a class.
+
+*What it was actually hiding.* The unbounded lever walked the
+discount-volume strategy to **zero faculty with 91 courses still on
+offer** — a full catalogue with nobody in front of any class, still
+printing a prestige of 51 and an enrolment of 9k, so every figure
+downstream described a university that could not exist. With the floor,
+that run holds 30–31 faculty across the whole forty years: **437 → 96
+weeks in the red**, min cash **−25.21M → −14.26M**, and closing prestige
+**51.4 → 68.3**. It still stalls, which is what it is for; it no longer
+dies quietly while reporting that it is fine.
+
+*Guarded by* four direct assertions on the lever in
+`test/balance-regression.test.ts`, not by the 20-year sweep — the collapse
+took a stalled run about thirty years to complete, so a run-shaped
+assertion would have passed against the very bug it was written for. All
+three limits fail the test when the old lever is put back.
 
 **G6. ~~The four new research facilities are drawn as industrial works.~~
 FIXED** — an institute, a clear-span studio, an institutional computing mass
