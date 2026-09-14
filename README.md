@@ -27,8 +27,10 @@ roadmap sketched.
 
 The **campus map is the central interface** (see `src/App.tsx`): it holds the
 middle of the screen at all times, the build rail sits beside it, and every
-other view — Faculty, Curriculum, Treasury, Admissions, Student Life,
-Athletics — opens as a dismissible overlay on top of it. That is a **layout fact, not a mechanical
+other view — Faculty, Curriculum, Research, Treasury, Admissions, Student Life,
+Athletics — opens as a dismissible overlay on top of it (the two densest,
+Curriculum and Research, open full-bleed: they take the viewport and the dock
+lays over them). That is a **layout fact, not a mechanical
 one**: no system reads the map, and nothing gained authority over the sim by
 moving to the middle of the screen.
 
@@ -82,10 +84,12 @@ for `Esc`.
   the log ticker under it (`LogStrip.tsx`), the frame every other view pops up
   in (`TabOverlay.tsx`), and the persistent header/status bar, interrupt modal,
   tab nav, and startup screen
-- `src/tabs/` — one component per overlay view (Faculty, Curriculum, Treasury,
-  Admissions, Student Life, History, Athletics); each reads the slice of
-  `GameState` it needs and dispatches actions, and knows nothing about being
-  rendered in an overlay
+- `src/tabs/` — one component per overlay view (Faculty, Curriculum, Research,
+  Treasury, Admissions, Student Life, History, Athletics); each reads the slice
+  of `GameState` it needs and dispatches actions, and knows nothing about being
+  rendered in an overlay. `TabOverlay` has two shapes: the default sheet in
+  front of the map, and **full-bleed**, where the tab owns the viewport and the
+  dock is laid over it (Curriculum and Research use it)
 - `src/App.tsx` — the shell: owns the game loop hook and which view (if any) is
   open over the map, renders the persistent chrome, the map + build rail + log,
   and the active overlay
@@ -255,7 +259,7 @@ target: a long-established school's prestige is sticky and does not evaporate th
 moment growth stalls, but it can move gently week to week rather than sitting
 frozen all year between summers. The drift runs **weekly**, in the `SYSTEMS`
 array (`prestigeSystem.ts`'s `tickPrestige`), at a rate sized to preserve the
-old ~12%-per-year stickiness; the two admissions-derived inputs below change
+old ~12%-per-year stickiness; the admissions-derived input below changes
 only at the summer boundary, while every other input can move any week. The
 inputs:
 
@@ -265,25 +269,41 @@ inputs:
   input sum to 1, so finishing everything scores exactly 1 and graduate work
   raises no ceiling — it occupies the last 0.15 of the one that already
   existed (see "Graduate programs").
-- **selectivity** — the emergent admit rate from the most recently resolved
-  admissions cycle; more selective scores higher.
+- **teaching quality** — the campus average course grade (see "Course quality"
+  below). Its own input, not a multiplier on anything: a school teaching twenty
+  courses beautifully in its first decade is credited for them, years before any
+  milestone gate opens.
 - **incoming student quality** — the average quality of the class that actually
   enrolled that cycle.
-- **faculty quality** — the roster's average current teaching/research, which
-  rises with retention.
-- **research standing** — the breakthroughs and prizes the school's labs have
-  produced (see "Research" below). A monotone count of the same shape as
-  curriculum breadth, weighted small and clamped like every other input.
+- **research standing** — what the university's scholarship has actually
+  produced: publications, breakthroughs, prizes, doctorates, and a credit for
+  every initiative carried to completion (see "Research" below). A monotone
+  count of the same shape as curriculum breadth, weighted small and clamped like
+  every other input.
 - **campus life** and **financial resources per student** (endowment measured
   against capacity) — two smaller inputs; the second is what the late-game
   endowment campaigns buy.
 
+**Faculty quality is no longer an input of its own.** It used to average every
+hire's teaching and research straight off the roster, which was the right
+reading while that was the only way either stat reached prestige. Both have a
+job now, and each arrives through the work it actually does — teaching through
+the grades its courses earn, research through what its initiatives produce — so
+the old input was paying a third time for the same people. *Retiring it broke
+the game before it fixed it:* deleting the term and spreading its weight across
+the survivors sent a forty-year run from prestige 145 to 63 and from 421 courses
+to 212. The ceiling was unchanged; *when* it could be earned was not, and that
+traced to a real flaw rather than a tuning error — course quality reached
+prestige only as a multiplier on breadth, and breadth is milestone-gated.
+Teaching quality became its own input and breadth went back to breadth ×
+library. Recorded in `ACADEMIC_CORE_PLAN.md` §6b so it is not re-attempted.
+
 Each input is clamped to its own 0..1 share of the target before being
-weighted, and the two admissions-derived inputs (selectivity, incoming quality)
-are additionally scaled by how big the enrolled class is — being selective with
+weighted, and the admissions-derived input (incoming student quality)
+is additionally scaled by how big the enrolled class is — being selective with
 a class of 200 is a boutique, not a national university, and without that a
 school that built nothing at all could drift into the top of the rankings. This
-is what keeps the prestige/selectivity/quality feedback loop from spiraling: selectivity and quality alone can only push prestige to a
+is what keeps the prestige/quality feedback loop from spiraling: student quality alone can only push prestige to a
 fixed ceiling (reachable by staying small and cutting tuition), and climbing
 past that ceiling toward the very top of the rankings requires the curriculum-
 breadth term too — i.e. sustained, decades-long buildout, not an early
@@ -449,7 +469,8 @@ Everything that needs to stop time rides on this one mechanism:
   prestige is a stock (see above). Every event is guaranteed to offer at least
   one zero-cost choice, so no event can strand a school that has no money.
 - **A research prize** — the one research output momentous enough to stop the
-  clock (see "Research" below). Grants and breakthroughs never do.
+  clock, awarded when an initiative concludes (see "Research" below).
+  Publications, grants and breakthroughs never do.
 - **Greek-life decisions** — the Hellenic Council opt-in, chapter scandals
   and chapter-housing petitions (see "Student life" below). These are
   entries in the decision-event table above rather than a stream of their
@@ -653,6 +674,40 @@ the specialisation stops mattering, and if it is too short or too slow
 recruiting is just tedium again. Those are the two failure modes the constants
 are tuned between.
 
+**Who teaches what is real state, and the player chooses it.**
+`s.courseFaculty` maps course id -> faculty id: a side record keyed by id, the
+same idiom `placements` uses, so the single `Buildable` model stays unforked.
+Starting a course names its instructor; `REASSIGN_COURSE_FACULTY` moves it
+later, free and immediate, since the real cost is the opportunity cost — whoever
+takes it on has one slot less for everything else.
+
+This replaced a **display-only projection**, and the reason matters. The old
+round-robin sorted a field's faculty by id, sorted its courses by id, and paired
+them off. Fine for a caption; it cannot carry a grade. Hire one person into
+Economics and every Economics course silently re-pairs, so the A− Microeconomics
+wore last week is now attached to somebody else, for reasons the player never
+chose and cannot see. **Player-selected faculty is not a feature next to course
+quality — it is the mechanism that makes the pairing stable enough to grade.**
+
+Two consequences fall straight out of the record existing:
+
+- **Dismissal orphans courses.** `FIRE_FACULTY` clears the leaving person's
+  assignments and logs how many courses are now without an instructor. What does
+  NOT happen is the department getting its capacity back — `usedFacultySlots`
+  counts an unstaffed course exactly as it counts a staffed one, because the
+  course still exists and still needs teaching. (Counting only staffed courses
+  made dismissal a way to *buy* capacity: the sim reached 421 offered courses on
+  68 faculty, healthy-looking only because nothing read the silence.) A
+  replacement hire can always take the orphans over — eligibility is per-person —
+  but an over-committed department cannot open NEW courses until it has the
+  people for the ones it already offers.
+- **Committing somebody to research takes their teaching**, the same way and with
+  the same bookkeeping (see "Research").
+
+That is the first half of the "department left understaffed → its courses go on
+hold" chain the roadmap had deferred: the consequence is built, and it arrives
+through the player's own decisions rather than through attrition.
+
 **In the current build, faculty are ageless: no aging, no retirement, and no
 rival poaching** — a hire stays on the roster until the player dismisses them.
 This is the *current* state, **not** a permanent design commitment: **occasional
@@ -667,14 +722,94 @@ faculty member's teaching/research stats start below a rolled ceiling
 rises with them, on its own slower-to-plateau curve, so a long-retained star
 costs substantially more than the day they were hired (see `facultyData.ts`'s
 `grownStat`/`facultySalary`). This makes faculty a genuine **prestige
-investment** — aggregate roster quality is one of the inputs to the
-prestige target (see `prestigeSystem.ts`) — with a real "great cheap early
-hire, kept and matured" payoff. The scarcity that keeps a player from staffing
+investment**, though no longer a direct one: roster quality is not itself a
+prestige input any more (see "Prestige"). A matured hire reaches standing
+through the work they do — the grades their courses earn, and what their
+initiatives produce — which keeps the "great cheap early hire, kept and matured"
+payoff and stops paying for people who are doing neither. The scarcity that keeps a player from staffing
 every school at top quality is money and hiring-pool availability, not
 attrition: salaries compound as a roster matures, and a thin-market field
 puts someone on the list only every few months, so specialization is a choice
 forced by what you can afford and who happens to be available that week, not
 by losing people you already have.
+
+## Course quality: every course carries a grade
+
+Every offered course has a letter grade, A–F, and it is **derived on read** —
+there is no stored score to migrate, and a course quietly improves as its
+instructor matures or is relieved of some of their load. `courseQuality.ts`
+holds the whole model; `facultyAssignment.ts` holds the aggregates.
+
+This is what makes academic satisfaction more than "develop everything". A
+catalogue of 421 courses staffed by whoever was free is a school full of Ds, and
+it now reads as one.
+
+**The inputs are all things the player decided about a person:**
+
+| Input | Effect |
+| --- | --- |
+| Instructor's teaching stat | the base, 0..100 |
+| Teaching load | up to −12, scaling with how full their slots are |
+| Course tier | 0 for core and tier-1, −2 tier-2, −5 tier-3, −8 graduate |
+| Prize-winning instructor | +3 per prize, capped at +6 |
+
+Bands at 78 / 62 / 44 / 30. The **tier penalty is the load-bearing one**: it
+turns assignment from a RANKING problem ("who is best") into a MATCHING one
+("who is right for this"), and it gives a senior hire a natural home. Put your
+star on the tier-3 seminar, not the gen-ed survey, because that is where their
+strength shows up in the grade.
+
+**Campus facilities are deliberately NOT an input.** The library already reaches
+academic satisfaction through seats-per-student and already reaches prestige as
+a multiplier on curriculum breadth. A third path would let one building move the
+dominant input three ways at once.
+
+**An unstaffed course scores zero, not nothing.** Aggregates count it, because a
+school gutted to fifteen professors across four hundred courses is not a
+comfortable B — excluding orphans was tried, and that is exactly what it
+reported. A course that has not been developed at all is a different case and
+scores `null`: an empty slot in the catalogue is not a failing course, it is a
+course the university has not opened.
+
+**A performance trap worth knowing about before you touch this.**
+`techSystem.ts`'s `facultyLoad` answers "how many courses does this person
+teach" by filtering all of `s.tech` — fine for the one call the reducer makes,
+fatal in a loop. Grading every course that way is 421 × 421 filtered rows, twice
+a week, which over a forty-year sim is billions of comparisons and a run that
+never finishes. **Anything grading more than one course builds
+`facultyLoads(s)` first** — one pass over `s.tech`, then every lookup is O(1) —
+and threads it through.
+
+## The Curriculum map: three levels over one revealed set
+
+The Curriculum tab is a **full-bleed** tab: it owns the viewport and the dock is
+laid over it, rather than opening as a sheet in front of the campus. The
+layering is the crux — a sheet sits *above* the chrome because it stands in
+front of the screen; a full-bleed tab *is* the screen, so it drops below and
+reserves the dock's measured height instead of drawing under it.
+
+Three levels, all derived from the unlock/milestone state progressive discovery
+already computes — the view adds no state of its own:
+
+1. **Schools.** One card per revealed school, with its completion and its
+   aggregate grade.
+2. **Lanes and tier bands.** A school opens into its majors, each a lane banded
+   by tier, so position carries the regular structure.
+3. **The course drawer.** A course opens into who teaches it, what grade that
+   earns, who else is eligible and what it leads to.
+
+**Almost no edges are drawn, and that is the argument.** 42 majors in a fixed
+1/4/4 shape means the tier chain is ~336 edges all saying the same thing.
+Position carries that; what gets highlighted instead are the **~50 authored
+cross-major bridges**, which are the interesting ones — and only when they are
+relevant to what you are looking at. Every prerequisite in the drawer is a link
+that opens its school and selects it, so the only edges that exist are the ones
+you walk.
+
+*(A literal constellation layout was built and abandoned before this — see
+`ACADEMIC_CORE_PLAN.md`'s "Why the constellation failed", which is the most
+useful thing that experiment produced. The one finding carried forward is the
+full-bleed shell above.)*
 
 ## Graduate programs
 
@@ -736,10 +871,12 @@ the school structure the rest of the game reads:
   run on. (Today the code derives the count from one shared dial,
   `PROFESSIONAL_GATE_MAJOR_SHARE` at 0.75 — five of a six-program school; the move
   to authored per-program thresholds is the roadmap's PR C.)
-- a **research doctorate** gates on `researchSchools()` — a finished lab in its
-  parent school, the same gate research itself and the university charter hang
-  off. Three schools bear labs after the Science reorg, which is exactly why
-  there are three doctorates.
+- a **research doctorate** gates on `researchSchools()` — a finished facility
+  in its parent school, the same gate research itself and the university charter
+  hang off. Three doctorates were authored back when three schools bore labs.
+  Every school with majors now has a facility, so the gate would admit more —
+  but the doctorates themselves are authored content that does not yet exist
+  (see the Roadmap).
 - **medicine's gate is two of those readings and-ed together** — the School of
   Science *and* Health Science, because medicine draws on the basic sciences and
   the applied health majors both. A two-school gate is a conjunction, not a new
@@ -814,8 +951,9 @@ section, marked as the higher tier it is, with its credential beside the name
 and one line naming the gate it cleared. That's still exactly how the MBA and
 all three PhD doctorates work — they build on the same subject matter as their
 parent school and correctly live there. Medicine and Law are the two
-exceptions (see below). The circle-network overhaul of the curriculum view is
-a separate, later arc and was not attempted here.
+exceptions (see below). That view has since become the three-level curriculum
+map (see "The Curriculum map" above); graduate programs kept their place inside
+it unchanged.
 
 **Two of six get their own building.** Medicine and Law are the only
 programs that award an external professional degree rather than extending
@@ -867,79 +1005,157 @@ Two judgment calls from this pass, flagged rather than resolved quietly:
   accepted as the cost of the feature rather than smoothed over — see
   persistence.ts's v11 -> v12 migration comment.
 
-## Research: the quiet second output
+## Research: scholarship the player commissions
 
-Research is **mostly-silent flavour, not a second decision stream**. The
-mid-game stays a build-and-price game; research runs underneath it, resolving
-into systems that already exist.
+Research is **work the university commissions**, not a by-product of owning a
+building. The player picks a topic, a team and a depth, out of a specific
+facility; the dice then resolve *that*, rather than resolving everything. All
+the randomness the old model had is still here and still does the same job —
+what changed is which end the player touches.
 
-**Only a school with a finished lab does research at all.** Labs
-(`facilityType: 'lab'`, authored in `techData.ts` for ten lab-heavy majors)
-already require their school's building and their major's entry course, so the
-full chain is school building -> lab -> research. Faculty are tied to a school
-through the field they were hired into, so a hire researches once *any* school
-their field teaches in has a lab — and a school with no lab contributes exactly
-zero however many professors it employs. That invariant is the feature; keep it
-true through any refactor.
+**What this replaced, and why.** Scholarship used to be a bank: every faculty
+member in a school with a finished lab trickled points into one campus-wide
+pool (`s.research.points`), and the pool occasionally bought an output. It
+produced research because the school OWNED A BUILDING, with no decision
+anywhere in it. The stock is now dead state — kept in the saved shape, written
+by nothing, marked not to be rewired, the way `Faculty.morale` was. **Idle
+capacity produces nothing**: the way to produce is to start something.
 
-**Research points are one aggregate stock** (`s.research.points`), not a
-per-school ledger. The "only a school with a lab produces" rule lives in the
-production function (`researchData.ts`'s `weeklyResearchPoints` walks the roster
-school by school and skips every school with no finished lab), not in where the
-total is kept, so a per-school record would be state no rule actually needs.
-Weekly output is weighted by **quality and seniority** — the research stat, a
-tenure premium on its own slower curve, and any prizes won — and multiplied
-campus-wide by `effects.researchRateBonus`, live-read off every finished
-Buildable that carries one (each lab, plus the research library). That effect
-field is the hook: it multiplies output, it never creates it.
+### The facility is the slot
 
-Every so often — a weekly chance that **rises with the banked stock**, floored by
-a cooldown, the same two-dial cadence machinery the decision events use — the
-stock converts into one of three outputs, **spending** its cost:
+Each research facility hosts **one initiative at a time**, and that is an
+invariant of the data shape rather than a rule anybody enforces:
+`s.research.initiatives` is keyed by the facility's Buildable id, so a second
+one cannot be started there without overwriting the first. It also scales
+itself — thirteen facilities exist across the catalogue, so a young school runs
+one project and a mature one runs a dozen, with no separate tuning.
 
-- **Grants** -> cash. Silent: a log line, straight into the operating account.
-  Sized in **weeks of opex**, like the decision-event table, so the figure scales
-  across a run spanning four orders of magnitude of budget.
-- **Breakthroughs** -> prestige, and **only through a capped input**. A
-  breakthrough increments a count that `prestigeSystem.ts`'s `researchScore`
-  reads as one clamped 0..1 input among seven. It never writes
+**Every school can now do research.** The nine lab-science and engineering
+facilities are joined by one apiece for the four schools that had none — an
+Experimental Economics Lab, a Computing Research Center, a Humanities Research
+Institute, a Media Production Studio (`techData.ts`'s
+`LAB_GATED_MAJOR_PREFIXES`, with `RESEARCH_FACILITY_NAMES` for the ones where
+"Labs" would be wrong: a history department has an institute with archives in
+it). They run on identical machinery — no second kind of research — and since
+one facility equips the whole school, every field that school teaches comes
+into production behind it. Only General Studies, which has no majors of its
+own, has no facility. What differs is **vocabulary**, not mechanics:
+`DISCIPLINE_VOCAB` calls the humanities' cheap output a monograph and its rare
+one a landmark work of scholarship; business publishes case studies and
+influential studies; the arts exhibit works and acclaimed works. A model that
+can only describe scholarship as laboratory science is one that quietly tells
+four schools their work does not count.
+
+### Topics, teams and depth
+
+**76 authored topics** (`researchTopics.ts`) — two per department, plus **18
+cross-disciplinary** ones that name more than one field and can only be staffed
+by drawing somebody from each. What is on offer at a vacant facility is
+**derived, never stored**: a deterministic function of the facility's id and a
+slowly-turning quarterly epoch, so the list is stable across renders and still
+turns over every few months. A topic is only offered when the university can
+actually staff it.
+
+Four depths, and the money is the smaller half of what they cost:
+
+| Depth | Scholars | Duration | Up-front funding |
+| --- | --- | --- | --- |
+| Pilot Study | 1 | 6 months | 0.5 weeks of opex |
+| Funded Project | 2 | 18 months | 1.6 weeks |
+| Major Program | 3 | 3 years | 4 weeks |
+| Landmark Program | 4 | 5 years | 9 weeks |
+
+Funding is sized in **weeks of operating cost**, the same scaling device grants
+and the decision-event table use, so the figure stays sane across four orders
+of magnitude of budget. A **Landmark Program requires a cross-disciplinary
+topic**, which is the structural point of the tier: the most prestigious work
+in the game is out of reach for a single strong department however deep it
+goes.
+
+**Participants stop teaching for the duration.** `effectiveCourseSlots` reads
+zero while somebody is committed, and their courses are orphaned exactly as
+`FIRE_FACULTY` orphans them — same consequence, same bookkeeping. This is the
+one place the two loops compete for the same people, and it is deliberately the
+real price of a Landmark Program: four professors' entire teaching load, for
+five years.
+
+### What a run produces
+
+Weekly output is `Σ facultyResearchOutput × depth intensity ×
+interdisciplinary bonus × researchRateMultiplier` — every term something the
+player chose: who is on it, how deep they committed, what the campus has built.
+The **interdisciplinary bonus** (+18% per extra field on the team) is why
+breadth pays off twice: a team drawn from several departments produces
+meaningfully more than the same people would apart, which is what makes a wide
+university worth building rather than a deep one worth drilling.
+`researchRateMultiplier` is live-read off every finished Buildable carrying
+`effects.researchRateBonus` (each facility, plus the research library) — that
+field multiplies output, it never creates it.
+
+Against that output, a weekly chance — 0.5% at a standing start, rising to 3.4%
+for a team producing flat out — draws one of three **during-run** outputs:
+
+- **Publications** (weight 26) — the bottom rung, and the reason it exists: the
+  other outputs all cost enough that a young department's first decade was a
+  long silence. A cheap, frequent output gives a school something to show from
+  its first year, and gives the humanities an output that reads right.
+- **Grants** (weight 6) -> cash, sized at 0.4–1.2 weeks of opex and then
+  **scaled by team strength** — the most legible place stronger faculty produce
+  better outcomes. A grant is a welcome cheque, not a funding round: across the
+  sim's runs they settle at **0.6–3.5% of lifetime operating cost**. They must
+  never become a second economy.
+- **Breakthroughs** (weight 5) -> prestige, and **only through a capped input**.
+  A breakthrough increments a count that `prestigeSystem.ts`'s `researchScore`
+  reads as one clamped 0..1 input among six. It never writes
   `s.self.reputation` — that would be exactly the completion-bonus flow the
-  prestige model exists to forbid (the decision-events pass refused events any
-  prestige access for the same reason). Weighted small on purpose: a lab-heavy,
-  curriculum-thin school can move its prestige target by at most the research
-  weight, nowhere near enough to outrun the breadth term.
-- **A prize** -> the momentous case, and the only one that stops the clock. A
-  named faculty member gains a permanent honor, a permanent boost to their own
-  research output and to the school's prestige input, and a permanently higher
-  salary. Rare twice over: the most expensive output *and* the least likely of
-  the three even once affordable.
+  prestige model exists to forbid.
 
-The prize needs the one new `Faculty` field, **`acclaim`**. Teaching, research
-and salary are all recomputed from potential + tenure on *every* tick, so a
-permanent post-prize bump cannot hang on any of them — it would be erased the
-following week. Both the salary curve and the research-output formula read
+**Team strength** is the mean research *stat* (0..100) plus 0.08 per point of
+acclaim the team already carries, capped at 1.4. It is the research stat and
+NOT `facultyResearchOutput`, which is points per week on a completely different
+scale; confusing the two is silent, and did happen — see the note in
+`researchData.ts`'s `teamStrength`.
+
+### The award, at conclusion and nowhere else
+
+A prize is no longer a weighted draw against a bank. It is **what a finished
+piece of work is judged to have been**, rolled once when an initiative
+concludes:
+
+- **Gated on a breakthrough.** A run that banked none can never end in an award,
+  however distinguished its team. This is why the breakthrough weight cannot be
+  pushed too low: that would not make awards rare, it would make them
+  impossible.
+- **Then depth × team strength, with real noise.** Base odds run 1.5% for a
+  pilot study to 45% for a landmark program, multiplied by
+  `(0.15 + teamStrength)` — the team floor is small on purpose, so a strong team
+  roughly doubles a weak one's odds at the same depth rather than the tier
+  swamping the choice of who to commit.
+- **The winner is drawn from the team**, weighted by their own output, so it
+  usually but not always goes to the strongest person on it.
+
+So a prize arrives with a named topic, a named team and five years behind it,
+rather than out of a pool. Like a milestone it is **queued**, not fired: the
+week it lands may already belong to the summer admissions decision, and only
+one interrupt can be pending at a time. The award itself — the badge, the
+salary and output premium — is applied the week it is won; the celebration is a
+report on something that already happened.
+
+Finishing a run is worth something **in itself**, separate from whatever it
+produced along the way: `INITIATIVE_COMPLETION_CREDIT` (0.3 / 1 / 2.5 / 6 by
+depth) counts into `researchScore` for every non-cancelled completion.
+
+The prize still needs the one extra `Faculty` field, **`acclaim`**. Teaching,
+research and salary are all recomputed from potential + tenure on *every* tick,
+so a permanent post-prize bump cannot hang on any of them — it would be erased
+the following week. Both the salary curve and the research-output formula read
 `acclaim` as an input instead.
 
-**How wide research reaches**, and what still doesn't. Three schools bear labs
-— Engineering, Health Science, and the School of Science — and Science is the
-one that widened it, because its majors are the lab sciences (Chemistry,
-Biology, Physics) and its FIELDS are the ones that turn up everywhere else in
-the catalogue. Since a hire researches once *any* school their field teaches in
-has a lab, the Science Center puts a Mathematics hire made for Data Science, a
-Physics hire made for Aerospace Engineering, and a Psychology hire (which could
-previously never research at all, Psychology having sat in Social Sciences) all
-into production at once. Neuroscience carries Health Science's second lab,
-which is what keeps that school a research school after Biology moved to
-Science and Pre-Med and Dentistry were retired.
-
-**The tension that remains** is narrower but real: Business, Arts & Media,
-Social Sciences & Humanities and Computer Science still have no lab-gated
-major, so a run concentrated in any of them produces nothing directly — though
-Computer Science now reaches research sideways, through the Mathematics
-department it shares with Science. Widening it further is still the same
-one-line data change (`techData.ts`'s `LAB_GATED_MAJOR_PREFIXES`); what a
-humanities or business "lab" should even be is a content question, not a
-mechanical one, and is deliberately left open.
+**One survival from the old model.** `weeklyResearchPoints` still exists, but
+as a reading of **capacity**, not a stock that accumulates: "how much research
+could this campus be doing", consumed by the admissions funnel's applicant
+appeal (`cohorts.ts`) and printed as the sim's `rsch/wk` column. Nothing banks
+it any more.
 
 ## The health chain, and clinical coursework
 
@@ -1368,10 +1584,10 @@ correctly with the woodland around them.
 ## College, and University
 
 A school opens as **"<Name> College"**. The player writes only the first half at
-founding; the word after it is fixed institutional form. When the **first lab**
-finishes, a one-time interrupt offers to promote it to **"<Name> University"** —
-the same lab gate research hangs off, read through the same helper so the two
-can never drift apart. It is a naming change and nothing else: a `suffix` string
+founding; the word after it is fixed institutional form. When the **first
+research facility** finishes, a one-time interrupt offers to promote it to
+**"<Name> University"** — the same gate research hangs off, read through the
+same helper so the two can never drift apart. It is a naming change and nothing else: a `suffix` string
 plus a flag recording that the question has been asked, joined for display by
 `institutionName()`. No system reads the name, and either answer closes the
 question for good.
@@ -1467,6 +1683,18 @@ had, not a bug;
 discard when it doesn't (v1 and v2 predate an economy rebalance, so those runs
 would be describing a different game).
 
+**The narrative above stops at v12; `SAVE_VERSION` is well past it.** Each
+later migration documents itself at its own entry in the `MIGRATIONS` table,
+which is the canonical record — this prose is a walk through the *shapes* a
+migration can take, not an index. The three from the academic-core arc are
+worth naming here because they are the ones a reader of the sections above will
+look for: **v30 -> v31** materialises the old display-only round-robin into real
+`courseFaculty` assignments, so a resumed run keeps the instructors it appeared
+to have rather than waking up with four hundred orphans; **v31 -> v32** splices
+in the four new research facilities and re-points the unbuilt capstones that
+gate on them; **v32 -> v33** adds the initiative slices, empty. Each keeps what
+a resumed run earned, and each is covered in `test/save-migrations.test.ts`.
+
 Loading also runs **placement hygiene** on the campus map every time: orphaned
 ids (or ones that aren't currently `done`/`developing` — see "Courses and
 buildings share one flow" above), placements whose footprint no longer fits the
@@ -1482,8 +1710,14 @@ Keep changes focused on the task described. If you spot a tension or a decision
 the task doesn't specify, **flag it in the PR summary rather than silently
 choosing** — surfacing tradeoffs is more useful than smoothing them over. After
 making changes, run `npm run build` (compiles), `npm run lint`, and `npm test`
-(the save-migration harness, `test/save-migrations.test.ts`) before opening a
-PR; a change that alters save shape or migrations should extend that harness.
+before opening a PR. `npm test` chains nine suites with `&&` — invariants, save
+migrations, faculty, the curriculum graph, cohorts, admissions pricing,
+financial distress, gendered sports, and the balance regression gate — so
+**a failure in an early suite silently skips the later ones**; read the tail of
+the output, not just the exit line. A change that alters save shape or
+migrations should extend `test/save-migrations.test.ts`. A change that moves a
+number the economy depends on should be checked against `npm run sim` (40 years
+× seven scripted strategies) as well, and its result quoted in the PR summary.
 Preserve the pure-tick-function architecture and the single-Buildable model in
 any refactor.
 
@@ -1531,27 +1765,38 @@ any refactor.
   comparable strength number per school, not a simulated season), any
   prestige coupling, and a considered answer for what happens to a shared
   venue once its last team disbands.
-- Research depth: labs for the four schools that still have none, so a
-  fully non-STEM run has a research path of its own rather than reaching it
-  through a shared department (see "Research"). This would also give those
-  schools a research doctorate, which they cannot have today for exactly the
-  same reason (see "Graduate programs").
+- **Research depth: shipped**, and more than this line asked for. The four
+  schools that had no facility each got one, so every school but General
+  Studies can do research directly; and research itself stopped being a
+  by-product of owning the building — the player now commissions a topic, a
+  team and a depth out of a specific facility (see "Research"). Still open:
+  research doctorates for those four schools, which the facilities now make
+  possible (see "Graduate programs").
 - Campus life depth, and more authored decision events on top of the thirteen
   that now exist (see "Interrupts" above) — including events that reach
   systems the first pass deliberately left alone.
 - Faculty lifecycle: **rival poaching and paid retention** (a poached hire the
-  player can spend to keep), plus the downstream chain a departure sets off —
-  department understaffed → its courses go on hold → hire a replacement. An
-  intended future direction (see "Faculty"); aging/retirement remain optional.
+  player can spend to keep). The downstream chain a departure sets off —
+  department understaffed → its courses left without an instructor → hire or
+  reassign a replacement — **now exists**, reached through the player's own
+  dismissals and research commitments rather than through attrition (see
+  "Faculty"); what poaching would add is a departure the player did not choose.
+  Aging/retirement remain optional.
 - A richer demand-curve finance model with prestige/scale archetypes.
 - Campus map depth: adjacency weighting between neighboring buildings, and any
   economic/prestige feedback from the layout. The map itself (a fixed tile grid,
   placement of finished `building`/`dorm`/`facility` Buildables at their own
   footprint sizes, SVG rendering) now exists as a visual-only layer; nothing
   mechanical reads it yet.
-- A circle-network view of the curriculum, replacing the current cell grid.
-  Deliberately deferred: the graduate-programs pass fitted itself into the
-  existing view rather than starting that overhaul (see "Graduate programs").
+- **The curriculum view: shipped, but not as this line described it.** A
+  literal constellation layout was built and abandoned — 421 nodes of a graph
+  whose edges are almost all the same edge is a picture of nothing. What
+  replaced it is the three-level map: schools, then tier-banded lanes, then a
+  course drawer, with position carrying the regular structure and only the ~50
+  authored cross-major bridges highlighted (see "The Curriculum map"). Still
+  open from the original idea: nothing worth keeping —
+  `ACADEMIC_CORE_PLAN.md`'s "Why the constellation failed" is the record of
+  why.
 - Camera rotation on the campus map. The map is now drawn at an angle (2:1
   dimetric — see `src/components/isoProjection.ts`), which means a tall
   building can hide a shorter one standing behind it. The genre's answer is

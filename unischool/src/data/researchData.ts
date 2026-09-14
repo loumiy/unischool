@@ -125,10 +125,10 @@ export function labEquippedFields(s: GameState): Set<string> {
 // their own effect reads — nothing is ever mutated into state when a lab
 // finishes.
 //
-// It is campus-wide rather than per-school on purpose: research points
-// are one aggregate stock (see types.ts's ResearchState), so a second,
-// per-school multiplier would need a per-school ledger to apply to. The
-// gate above is what keeps schools distinct; this is shared equipment.
+// It is campus-wide rather than per-school on purpose: a research library
+// serves whoever is using it, and an initiative is already tied to its own
+// facility and its own team, which is what keeps schools distinct. This is
+// shared equipment on top of that.
 export function researchRateMultiplier(s: GameState): number {
   const bonus = s.tech
     .filter((t) => t.status === 'done')
@@ -136,9 +136,14 @@ export function researchRateMultiplier(s: GameState): number {
   return 1 + bonus;
 }
 
-// This week's research production. Pure — the tick applies it, and the
-// Faculty tab renders it, so what the player is shown is exactly what
-// accumulates.
+// The campus's research CAPACITY: what the equipped roster could be
+// producing, if it were all committed. Nothing banks this any more — the
+// stock it used to feed is gone (see README's "Research"), and what a run
+// actually produces is initiativeWeeklyOutput on the initiatives that are
+// actually running. This survives as a SIGNAL: the admissions funnel reads
+// it for applicant appeal (cohorts.ts), and the balance sim prints it as
+// its rsch/wk column. Keep it a pure read of the roster and the facilities,
+// not of what happens to be commissioned this week.
 export function weeklyResearchPoints(s: GameState): number {
   const equipped = labEquippedFields(s);
   if (equipped.size === 0) return 0;

@@ -9,21 +9,26 @@ import { researchTopic } from '../../data/researchTopics';
 import type { ResearchOutputDef, ResearchOutputKind } from '../../data/researchData';
 
 // ---------------------------------------------------------------------
-// One ordinary pure tick function (see README's "Research"). Two things
-// happen here, in this order:
+// One ordinary pure tick function (see README's "Research"). It walks the
+// running initiatives — one per research facility — and for each one, in
+// this order:
 //
-//   1. PRODUCTION. Every faculty member in a school with a finished lab
-//      adds their weekly output to the stock. All of the rules — who
-//      counts, how seniority and honors weight them, what the campus's
-//      finished labs multiply it by — live in data/researchData.ts; this
-//      only banks the result.
+//   1. PRODUCTION. The team's weekly output, from who is on it, how deep
+//      they committed and what the campus has built. All of the rules live
+//      in data/researchData.ts; this only applies them. A run whose whole
+//      team has been dismissed is abandoned rather than left running on
+//      nobody; one that lost SOME of its people carries on short-handed,
+//      which shows in what it produces.
 //
-//   2. OUTPUTS. A weighted draw across whatever the current stock can
-//      afford, behind the same weekly-chance-plus-cooldown gate the
-//      authored decision events use. Two of the three outputs are
-//      SILENT — they write a log line and land in a system that already
-//      exists, and the clock never stops. The third queues a
-//      celebration.
+//   2. OUTPUTS. A weighted draw across publications, grants and
+//      breakthroughs, behind the same weekly-chance gate the authored
+//      decision events use. All three are SILENT — they write a log line
+//      and land in a system that already exists, and the clock never stops.
+//
+//   3. CONCLUSION, when the weeks run out. The completion itself is worth
+//      a credit in researchScore, and then the award is rolled — the one
+//      thing that can only happen here, gated on the run having actually
+//      banked a breakthrough. That queues a celebration.
 //
 // WHY THIS IS NOT AN EVENT. The decision-event table is for things the
 // player RESOLVES: every entry is a prompt with choices and a cash cost.

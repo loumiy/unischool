@@ -544,17 +544,16 @@ export interface Rival {
 }
 
 // ---------------------------------------------------------------------
-// RESEARCH (see README's "Research: the quiet second output"). A stock of
-// research points produced weekly by faculty, which occasionally converts
-// into one of three outputs. Deliberately AGGREGATE — one number for the
-// whole institution — rather than a per-school ledger: the "only a school
-// with a lab produces research" rule is a property of the PRODUCTION
-// function (researchData.ts's weeklyResearchPoints walks the roster
-// school by school and skips every school with no finished lab), not of
-// where the total is stored, so a per-school record would be extra state
-// that no rule actually needs. Everything here is a plain number, a plain
-// string or an array of flat records — the same JSON-round-trippable
-// shape rationale as `events` and `placements`.
+// RESEARCH (see README's "Research: scholarship the player commissions").
+// Player-commissioned initiatives — one per research facility, keyed by the
+// facility's Buildable id so "one at a time" is a property of the shape
+// rather than a rule somebody has to enforce — plus the lifetime counters
+// each run adds to. Deliberately AGGREGATE where it counts: publications,
+// breakthroughs, prizes and grant income are one tally for the whole
+// institution rather than a per-school ledger, because nothing reads them
+// per school. Everything here is a plain number, a plain string or an
+// array of flat records — the same JSON-round-trippable shape rationale as
+// `events` and `placements`.
 // ---------------------------------------------------------------------
 
 // One awarded research prize, queued for its celebration. The faculty
