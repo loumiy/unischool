@@ -1292,18 +1292,19 @@ export function milestoneSchools(): MilestoneSchool[] {
 // of "faculty in a college that has a lab": the person has a lab to work
 // in.
 //
-// The School of Science widens this considerably. Three schools now bear
-// labs (Engineering, Health Science, Science) rather than two, and because
-// Science's fields are the ones that turn up everywhere else in the
-// catalogue, a Mathematics hire made for Data Science and a Physics hire
-// made for Aerospace both start researching the moment the Science Center
-// has a lab. Psychology, which could previously never research at all,
-// moved into Science with its major.
+// The School of Science widens this considerably. Because Science's fields
+// are the ones that turn up everywhere else in the catalogue, a Mathematics
+// hire made for Data Science and a Physics hire made for Aerospace both
+// start researching the moment the Science Center has a lab. Psychology,
+// which could previously never research at all, moved into Science with its
+// major.
 //
-// `labIds` is empty for the four schools with no lab-gated majors
-// (Business, Arts & Media, Social Sciences & Humanities, Computer
-// Science) and for General Studies. Those schools still produce no research
-// however they are staffed — see the note in README's "Research".
+// EVERY SCHOOL WITH MAJORS NOW BEARS A FACILITY. Business, Arts & Media,
+// Social Sciences & Humanities and Computer Science each got one — see
+// LAB_GATED_MAJOR_PREFIXES and RESEARCH_FACILITY_NAMES above — so `labIds`
+// is empty only for General Studies, which has no majors of its own. What
+// differs between schools is vocabulary, not mechanics (researchData.ts's
+// DISCIPLINE_VOCAB); see README's "Research".
 export interface ResearchSchool {
   schoolName: string;
   labIds: string[];  // lab Buildable ids belonging to this school's majors; empty means this school can never produce research
