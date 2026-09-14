@@ -16,7 +16,7 @@ import { groundProps } from './groundMarkings';
 import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
 import Tree from './trees';
-import { TILE_H, WORLD, boxFaces, lift, polyPoints, project, tileAt } from './isoProjection';
+import { TILE_H, TILE_W, WORLD, boxFaces, lift, polyPoints, project, tileAt, unproject } from './isoProjection';
 
 // The campus map: the game's base layer, always on screen under everything
 // else (see App.tsx), and a placement + rendering layer over the SAME
@@ -127,6 +127,18 @@ const PROGRESS_BAR_DEPTH = 0.22;   // in tiles
 // it rises.
 const SHADOW_PER_HEIGHT_X = 0.22;
 const SHADOW_PER_HEIGHT_Y = 0.11;
+
+// LABELS FADE WITH THE CURSOR. A name over every building at once is a wall of
+// text on a built-out campus, and none of it is what the player is looking at.
+// A label is full strength while the cursor is on its building, falls away over
+// the next couple of hundred pixels, and is invisible beyond that.
+//
+// Measured in SCREEN pixels rather than in tiles on purpose: the falloff should
+// feel the same whether you are zoomed into one quad or pulled back over the
+// whole campus, and a fixed tile radius would pop every label on at once when
+// zoomed out.
+const LABEL_FULL_PX = 30;    // within this of the footprint, fully lit
+const LABEL_FADE_PX = 130;   // and gone by this
 
 // How long a finished building's completion ring stays on screen. Long
 // enough to notice at a glance, short enough that a run of completions in a
@@ -352,7 +364,7 @@ function PlacedBuilding({
 //
 // The measure runs in a LAYOUT effect, so the corrected plate is in place
 // before the browser paints and no frame shows the estimate.
-function BuildingLabel({ t, p }: { t: Buildable; p: Placement }) {
+function BuildingLabel({ t, p, pinned }: { t: Buildable; p: Placement; pinned: boolean }) {
   const { size, centre, textWidth } = labelLayout(t, p);
   const textRef = useRef<SVGTextElement>(null);
   const [box, setBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
@@ -377,7 +389,19 @@ function BuildingLabel({ t, p }: { t: Buildable; p: Placement }) {
   };
 
   return (
-    <g className="campus-label" aria-hidden="true">
+    <g
+      className="campus-label"
+      aria-hidden="true"
+      // The footprint, for the cursor-distance pass below. Read off the DOM
+      // rather than held in React state because that pass runs on every mouse
+      // move, and the whole point of this map's architecture is that a mouse
+      // move never re-renders (see the pan/zoom note above worldRef).
+      data-col={p.col}
+      data-row={p.row}
+      data-w={p.w}
+      data-h={p.h}
+      data-pinned={pinned ? '1' : undefined}
+    >
       <rect
         className="campus-label-plate"
         x={plate.x - LABEL_PLATE_PAD_X}
@@ -510,6 +534,11 @@ export default function CampusMap({
   const svgRef = useRef<SVGSVGElement>(null);
   const worldRef = useRef<SVGGElement>(null);
   const viewRef = useRef({ x: 0, y: 0, zoom: 1 });
+  // The label layer, and the last place the cursor was in WORLD coordinates.
+  // Both refs, and the pass below writes opacity straight onto the DOM: it
+  // runs on every mouse move, and React must not (see the note above).
+  const labelLayerRef = useRef<SVGGElement>(null);
+  const cursorRef = useRef<{ x: number; y: number } | null>(null);
   // A mousedown that never moves is a click (handled by the tiles' own
   // onClick); one that moves past the threshold is a drag-to-pan. Tracked
   // here, at the map level, rather than per-tile, since a pan can cross
@@ -542,10 +571,48 @@ export default function CampusMap({
   // the current point closes those gaps (see paintStroke).
   const pathLastRef = useRef<{ x: number; y: number } | null>(null);
 
+  // Light each label by how far the cursor is from the building it names.
+  //
+  // Distance is measured to the FOOTPRINT, not to the label: a hall is eight
+  // tiles across, and its name should be at full strength with the cursor
+  // anywhere on it rather than only over its middle. The nearest point on the
+  // footprint is found in grid coordinates, then the offset to it is projected
+  // into world space and scaled by the zoom — which is what makes the falloff
+  // a real screen distance instead of a tile count that means something
+  // different at every zoom.
+  function paintLabels(cursor: { x: number; y: number } | null) {
+    const layer = labelLayerRef.current;
+    if (!layer) return;
+    const zoom = viewRef.current.zoom;
+    const at = cursor ? unproject(cursor.x, cursor.y) : null;
+    for (const node of Array.from(layer.children)) {
+      const el = node as SVGGElement;
+      if (el.dataset.pinned === '1') { el.style.opacity = '1'; continue; }
+      if (!at) { el.style.opacity = '0'; continue; }
+      const c0 = Number(el.dataset.col); const r0 = Number(el.dataset.row);
+      const c1 = c0 + Number(el.dataset.w); const r1 = r0 + Number(el.dataset.h);
+      // Nearest point on the footprint, in grid units — zero on both axes
+      // whenever the cursor is over the building itself.
+      const dc = at.col < c0 ? c0 - at.col : at.col > c1 ? at.col - c1 : 0;
+      const dr = at.row < r0 ? r0 - at.row : at.row > r1 ? at.row - r1 : 0;
+      const px = Math.hypot((dc - dr) * (TILE_W / 2), (dc + dr) * (TILE_H / 2)) * zoom;
+      const t = (px - LABEL_FULL_PX) / (LABEL_FADE_PX - LABEL_FULL_PX);
+      el.style.opacity = String(Math.max(0, Math.min(1, 1 - t)));
+    }
+  }
+
+  // Re-light after every render, because React rebuilds the label nodes when
+  // the campus changes and a fresh node carries no opacity of its own — so a
+  // building finishing under a stationary cursor would otherwise leave its
+  // neighbours dark until the next mouse move.
+  useEffect(paintLabelsFromCursor);
+  function paintLabelsFromCursor() { paintLabels(cursorRef.current); }
+
   function applyView(next: { x: number; y: number; zoom: number }) {
     const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next.zoom));
     viewRef.current = { x: next.x, y: next.y, zoom };
     worldRef.current?.setAttribute('transform', `translate(${next.x} ${next.y}) scale(${zoom})`);
+    paintLabels(cursorRef.current);
   }
 
   // The starting/recentered view: centered on DEFAULT_ZOOM, but never so far
@@ -730,6 +797,10 @@ export default function CampusMap({
   // edge of a drag is always marked. One handler on the map, where the flat
   // version needed a mouseenter on every tile.
   function onMapMouseMove(e: React.MouseEvent<SVGSVGElement>) {
+    // Labels track the cursor in every mode, including mid-pan — the names
+    // should follow the pointer whatever else it is doing.
+    cursorRef.current = worldFromEvent(e);
+    paintLabels(cursorRef.current);
     if (dragRef.current?.moved) return;   // panning: don't jitter the ghost across the tiles a drag crosses
     if (selected || pathTool) {
       const tile = tileFromEvent(e);
@@ -1110,7 +1181,7 @@ export default function CampusMap({
           height="100%"
           role="group"
           aria-label="Campus map"
-          onMouseLeave={() => setHover(null)}
+          onMouseLeave={() => { setHover(null); cursorRef.current = null; paintLabels(null); }}
           onMouseMove={onMapMouseMove}
           onMouseDown={onMapMouseDown}
           onClick={onMapClick}
@@ -1236,7 +1307,11 @@ export default function CampusMap({
               />
             )}
 
-            {placed.map(({ t, p }) => <BuildingLabel key={`label-${t.id}`} t={t} p={p} />)}
+            <g ref={labelLayerRef}>
+              {placed.map(({ t, p }) => (
+                <BuildingLabel key={`label-${t.id}`} t={t} p={p} pinned={t.id === inspectedId} />
+              ))}
+            </g>
           </g>
         </svg>
 
