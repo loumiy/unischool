@@ -1,11 +1,11 @@
-# UniSchool — Development Plan: The Shell, Scholarship, the Roster, and the Site
+# UniSchool — Development Plan: The Shell, Research, the Roster, and the Site
 
 *Planning document only — no gameplay code is changed by this file. Its job is
 to take a page of playtest notes and turn it into an ordered sequence of PRs,
 each one small enough to land on its own and each one landing in the order that
 makes the next one cheaper.*
 
-**Status: proposed.** Nothing here is implemented. Four phases, 24 PRs, plus a
+**Status: proposed.** Nothing here is implemented. Four phases, 23 PRs, plus a
 named set of deferred directions at the end.
 
 ---
@@ -55,8 +55,8 @@ on it.
 | All tabs full screen; home button; re-order | `App.tsx`, `TabNav.tsx`, `Toolbar.tsx` | 1 |
 | Build ↔ tab mutual exclusion | `App.tsx`, `Toolbar.tsx` | 1 |
 | Space always pauses; Esc closes | `StatusHeader.tsx`, `hotkeys.ts` | 1 |
-| Hide Scholarship / Athletics / History until usable | `TabNav.tsx` | 1 |
-| Scholarship icon: lamp → microscope | `icons.tsx` | 1 |
+| Hide Research / Athletics / History until usable | `TabNav.tsx` | 1 |
+| Research icon: lamp → microscope; "scholarship" retired | `icons.tsx`, `TabNav.tsx` | 1 |
 | Admissions log comma inconsistency | `reducer.ts` one line | 1 |
 | Projects not linked to their lab | `researchData.ts`, `ResearchTab.tsx` | 2 |
 | Far more authored research topics | `researchTopics.ts` | 2 |
@@ -64,7 +64,6 @@ on it.
 | Auto-reassign courses research orphans | `reducer.ts` | 2 |
 | Research funding too expensive | `researchData.ts` | 2 |
 | Research completion interrupt; prizes folded in | `researchSystem.ts`, `InterruptModal.tsx` | 2 |
-| Grants on the income statement | `financeSystem.ts`, `TreasuryTab.tsx` | 2 |
 | Visiting chairs hired from the interrupt | `eventData.ts` | 2 |
 | Faculty tab rebuilt as a roster by field | `FacultyTab.tsx`, `Toolbar.tsx` | 3 |
 | Curriculum: yellow vs red gate dot | `CurriculumTab.tsx` | 3 |
@@ -79,53 +78,60 @@ on it.
 
 ---
 
-## Decisions to make before implementation
+## Decisions — all six settled
 
-Cheap to answer now, expensive to guess. Each names the PR it blocks.
+Answered before implementation. The reasoning is kept because each one is a
+constraint later PRs are written against, not just a preference.
 
-1. **What is the Research tab called?** (Blocks 1C.) The code calls the system
-   `research` everywhere; the notes call the tab "Scholarship", and so does
-   `icons.tsx`'s own comment and `ResearchTab.tsx`'s heading. **Recommendation:
-   label it "Scholarship" in `TAB_LABELS` and leave the `TabId` as `research`.**
-   Ids are internal; the word the player reads is the one that should match the
-   notes. (Note that "scholarship" is already overloaded — `admissions.scholarshipRate`
-   is tuition discounting. The two never appear in the same view, but if that
-   collision bothers you, the alternative is to keep "Research" as the label.)
+1. **What is the Research tab called?** (1C.) **RESOLVED → "Research"
+   everywhere; the word "scholarship" is dropped from the research system.**
+   The code already calls the system `research` throughout, and the label now
+   matches it. This is slightly more than a `TAB_LABELS` entry: `FacultyTab.tsx`
+   heads its research panel "Scholarship", `ResearchTab.tsx` uses the word in
+   its copy, and `icons.tsx`, `researchSystem.ts` and `prestigeSystem.ts` all
+   carry it in comments. All of it becomes "research" — see 1C for the sweep.
 
-2. **When the clock is paused mid-week, what is preserved?** (Blocks 1B.) The
-   elapsed *fraction* of the week (day 5 stays day 5 at any speed), or the
-   elapsed *milliseconds* (5/7 of a 5000ms week becomes 1.4 days when you switch
-   to 2500ms/week)? **Recommendation: the fraction.** It is what "day 5 of
-   week 3" means to the player, and it makes a speed change free rather than a
-   thing to do at a week boundary.
+   **The one place "scholarship" stays** is `admissions.scholarshipRate` and the
+   admissions interrupt's "Scholarships" slider. That is tuition discounting —
+   a genuinely different thing that the word genuinely means, deliberately named
+   in the alignment roadmap's PR C, and no longer colliding with anything once
+   research stops borrowing it.
 
-3. **How do grants appear on a weekly income statement?** (Blocks 2G.) A grant
-   is an episodic lump into `finance.cash`, not a weekly flow, so a literal
-   weekly line reads $0 for months and then $8m once. **Recommendation: a
-   trailing-52-week average, labelled as such, under a "Non-operating" heading**
-   — the statement's job is "can I sustain this", and a trailing average answers
-   that where a spot figure does not.
+2. **When the clock is paused mid-week, what is preserved?** (1B.)
+   **RESOLVED → the elapsed *fraction* of the week.** Day 5 stays day 5 at any
+   speed, rather than 5/7 of a 5000ms week becoming 1.4 days on a switch to
+   2500ms/week. It is what "day 5 of week 3" means to the player, and it makes a
+   speed change free rather than a thing to do at a week boundary.
 
-4. **Do footprint changes apply to existing saves?** (Blocks 4A.) A `Placement`
-   stores the footprint it was made with, so shrinking `SCHOOL_BUILDING_FOOTPRINT`
-   changes only *new* placements; existing campuses keep their 8×6 halls, and
-   Founders Hall — pre-placed at founding — keeps its even width forever in an
-   old save. **Recommendation: new games only, no migration.** Re-footprinting a
+3. **How do grants appear on a weekly income statement?** (Was 2G.)
+   **RESOLVED → they do not. The PR is dropped and the Treasury tab is left as
+   it is.** A grant is an episodic lump into `finance.cash`, not a weekly flow,
+   so every way of putting it on a weekly statement is a compromise: a spot line
+   reads $0 for months and then $8m once, and a trailing average reports money
+   that has already been spent as though it were income to plan against. The
+   lifetime total and count already live in the Treasury tab's research block,
+   and each grant already logs when it lands — which is the honest reporting.
+   Phase 2 is seven PRs, not eight.
+
+4. **Do footprint changes apply to existing saves?** (4A.) **RESOLVED → new
+   games only, no migration.** A `Placement` stores the footprint it was made
+   with, so shrinking `SCHOOL_BUILDING_FOOTPRINT` changes only new placements;
+   existing campuses keep their 8×6 halls, and Founders Hall — pre-placed at
+   founding — keeps its even width forever in an old save. Re-footprinting a
    placed building can collide with whatever was built next to it, and there is
    no good automatic answer to that collision.
 
-5. **What should a Landmark Program actually cost?** (Blocks 2E.) The note
-   reports $260m against a grant yield up to ~$50m. Current tuning is 9 weeks of
-   operating expense. **Recommendation: 4 weeks** (~$115m at the same scale),
-   with the lower tiers pulled down proportionally — see 2E for the ladder. Worth
-   confirming the target number rather than the multiplier.
+5. **What should a Landmark Program actually cost?** (2E.) **RESOLVED → 4 weeks
+   of operating expense**, with the lower tiers pulled down proportionally — the
+   ladder in 2E is adopted as written. That is ~$115m at the scale the note
+   reports, against a grant yield up to ~$50m: still firmly negative on direct
+   ROI, which the note explicitly allows.
 
-6. **Does "Develop All" stay unlimited once it ships?** (Blocks 3D.) It already
-   routes through `canStartDevelopment`, so it cannot start anything unaffordable
-   or unstaffable — but on a rich school it empties the catalogue in one click.
-   **Recommendation: ship it unlimited and unchanged.** The note is right that it
-   is useful, and the faculty-slot gate is already the real throttle; adding a
-   second one would be inventing a constraint the game does not otherwise have.
+6. **Does "Develop All" stay unlimited once it ships?** (3D.) **RESOLVED →
+   unlimited and unchanged.** It already routes through `canStartDevelopment`,
+   so it cannot start anything unaffordable, unstaffable or unrevealed. The
+   faculty-slot gate is the real throttle; adding a second one would be
+   inventing a constraint the game does not otherwise have.
 
 ---
 
@@ -147,11 +153,13 @@ Unrelated to each other, and none worth its own PR.
   `${outcome.enrolled} freshmen enrolled, ${graduating.toLocaleString()} graduated`
   — one of the two is formatted. Give `outcome.enrolled` the same
   `toLocaleString()`.
-- **The Scholarship icon is a microscope.** `icons.tsx`'s `ResearchIcon` is a
+- **The Research icon is a microscope.** `icons.tsx`'s `ResearchIcon` is a
   lamp (its own comment explains the reasoning: a flask reads as "lab" and four
   research facilities are not labs). The note overrules that; draw a microscope
   — arm, stage, eyepiece — in the same 24×24 stroke vocabulary as its neighbours,
-  and update the comment so the next reader does not re-derive the lamp.
+  and update the comment so the next reader does not re-derive the lamp. The
+  comment also opens with the word "Scholarship", which decision 1 retires; 1C
+  does the rest of that sweep, but this one line is here anyway.
 
 **Verification:** by eye. Nothing here has a testable invariant.
 
@@ -209,11 +217,26 @@ alongside Build, and both should be modelled that way rather than smuggled into
 `TabId`.
 
 **The order.** `TabNav.tsx`'s `TABS` is re-sorted to the notes' order, and the
-toolbar renders: `home · curriculum · faculty · scholarship · student life ·
+toolbar renders: `home · curriculum · faculty · research · student life ·
 athletics · admissions · history · build`. Treasury is deliberately absent from
 that row — it already has a permanent entry point in the funds figure at the
 left of the toolbar (`StatusHeader.tsx`'s `FundsAndStats`), which is also why the
 notes' list omits it. `ICON_TAB_ORDER` keeps filtering it out.
+
+**The naming sweep** decision 1 settles lands here, since this PR is already
+rewriting the tab metadata. "Scholarship" is retired as a name for the research
+system wherever a player can read it or a developer can be misled by it:
+`TAB_LABELS.research` is "Research"; `FacultyTab.tsx`'s `<h2>Scholarship</h2>`
+becomes "Research" (and is then deleted outright by 3A, which folds that panel
+into the roster cards — so this is a one-line stopgap, not wasted work);
+`ResearchTab.tsx`'s copy follows; and the comments in `icons.tsx`,
+`researchSystem.ts`, `researchData.ts` and `prestigeSystem.ts` that call the
+system "scholarship" are corrected as they are touched.
+
+`admissions.scholarshipRate` and the admissions interrupt's "Scholarships"
+slider are **not** in the sweep — that is tuition discounting, which is what the
+word actually means there. Grep for `scholarship` before finishing this PR and
+confirm every surviving hit is on the admissions side.
 
 **Also here:** the `TAB_HOTKEYS` map (C/F/L) keeps working unchanged, and the
 help text in `CampusMap.tsx` that enumerates the keys gets its one-line update.
@@ -285,7 +308,7 @@ tab (so a stale `overlay` or a hotkey cannot route to one), and `TAB_HOTKEYS`
 respects it for the same reason.
 
 **Worth adding while here:** when a gate first opens, a log line
-("The Scholarship view is now available") — a tab that silently appears in a
+("The Research view is now available") — a tab that silently appears in a
 nine-icon row is a tab nobody notices. `s.seen` already exists for exactly this
 kind of first-time bookkeeping.
 
@@ -294,9 +317,9 @@ team / year 2.
 
 ---
 
-# PHASE 2 — Scholarship, end to end
+# PHASE 2 — Research, end to end
 
-*Eight PRs. This is where the notes are densest, and they describe one coherent
+*Seven PRs. This is where the notes are densest, and they describe one coherent
 complaint: research costs too much, resolves invisibly, and does not appear to
 know where it is happening.*
 
@@ -448,28 +471,7 @@ nothing mechanical is lost.
 **Test:** a concluded initiative queues exactly one interrupt carrying its
 award; a cancelled one queues none.
 
-## PR 2G — Grants on the income statement
-
-`financeSystem.ts`'s `WeeklyFlow` has tuition, prestige revenue, endowment
-payout and baseline funding on the income side. Grants are absent — they land as
-`s.finance.cash += scaled` inside `researchSystem.ts`, and surface only as a
-lifetime total in the Treasury tab's research block.
-
-Per decision 3, the statement gets a **Non-operating** heading under Income with
-one line: *Grants (trailing year)*, showing the 52-week trailing total divided by
-52, with the lifetime figure and count still available below.
-
-**State:** a rolling window on `s.finance` — a 52-slot ring of weekly grant
-receipts, written by `researchSystem` where the grant lands and advanced by
-`financeSystem`'s weekly pass. Additive and defaulted, so the migration is a
-default rather than a transform.
-
-Keep it out of `totalIncome` or fold it in, but *say which* in the UI — a player
-reading a surplus needs to know whether it depends on money that may not arrive
-next year. Recommendation: show it under a separate subtotal, outside the
-operating total.
-
-## PR 2H — A visiting chair is appointed from the interrupt
+## PR 2G — A visiting chair is appointed from the interrupt
 
 `eventData.ts`'s `visiting-scholar` charges the funding and then pushes the
 generated candidate into `s.candidates`, leaving the player to find them in the
@@ -521,7 +523,7 @@ with:
   answered;
 - the hired faculty as cards, each now showing **what they are working on** —
   their courses as today, plus their initiative (topic, lab, weeks remaining)
-  where they have one, which retires the separate Scholarship panel;
+  where they have one, which retires the separate research panel;
 - the candidates in that field below them, visually separated, each still
   appointable from here (the affordance stays; it is just no longer the primary
   way to hire).
