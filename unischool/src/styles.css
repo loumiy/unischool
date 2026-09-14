@@ -852,6 +852,20 @@ button.build-tile { font-family: inherit; }
    grid now — see buildingMotifs' EntranceSteps.) */
 .iso-step-tread { fill: rgba(255, 253, 246, 0.34); }
 .iso-rooflight { fill: rgba(255, 253, 246, 0.42); }
+/* The academic hall's stonework: a base course under the brick, a cornice
+   over it, and the pediment capping the centre bay. All the same limestone,
+   lighter than any wall tint, so the vocabulary reads as one material. */
+.iso-plinth { fill: rgba(250, 246, 234, 0.42); }
+.iso-cornice { fill: rgba(250, 246, 234, 0.5); }
+.iso-parapet { fill: rgba(250, 246, 234, 0.14); }
+/* An end section of wall carried above the parapet, closing the roofline. */
+.iso-end-pavilion { fill: rgba(120, 88, 40, 0.20); }
+.iso-pediment { fill: rgba(250, 246, 234, 0.62); }
+/* The clock tower's dome and finial: the campus's one gilded thing. */
+.iso-dome { fill: #d8b23c; }
+.iso-finial { stroke: #d8b23c; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.iso-clock-face { fill: rgba(252, 250, 242, 0.92); stroke: rgba(60, 48, 24, 0.45); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.iso-clock-hand { stroke: rgba(48, 38, 18, 0.85); stroke-width: 1.4; vector-effect: non-scaling-stroke; stroke-linecap: round; }
 .iso-ridge { stroke: rgba(42, 56, 28, 0.28); stroke-width: 1; vector-effect: non-scaling-stroke; }
 
 /* Inspecting one building: the info panel is a FIXED corner card by design

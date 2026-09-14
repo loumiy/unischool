@@ -21,8 +21,9 @@ import {
 } from '../src/components/campusScale';
 import {
   BAY_METRES, TOWER_PODIUM_STOREYS, WINDOW_HEIGHT, baysAcross, clerestorySill,
-  doorFamilyOf, doorOf, floorLinesOf, motifOf, rankSills, ridgeOf, storeysOf,
-  wallHeightOf, windowRanksOf, windowWidthOf, type DoorFamily,
+  CORNICE, PARAPET, PLINTH, doorFamilyOf, doorOf, floorLinesOf, hasClockTower, motifOf,
+  rankSills, ridgeOf, storeysOf, wallHeightOf, windowRanksOf, windowWidthOf,
+  type DoorFamily,
 } from '../src/components/buildingSpec';
 import { footprintOf, isPlaceableKind } from '../src/state/campusMap';
 import { initialTech } from '../src/data/techData';
@@ -310,6 +311,52 @@ console.log('campus scale and building spec');
     }
   }
   assert(true, 'open ground, the stadium and the villages carry no single front door');
+}
+
+// --- 11. The academic halls, and the one that carries a tower ------------
+{
+  const halls = CATALOGUE.filter((t) => motifOf(t) === 'hall');
+  assert(halls.length >= 8, `every academic building wears the hall motif (${halls.length} of them)`);
+
+  // "The same style, without the spire" is one flag, not a second motif — so
+  // every hall has to agree on everything except that flag.
+  const families = new Set(halls.map((t) => doorFamilyOf(t)));
+  assert(families.size === 1 && families.has('formal'),
+    'every hall is entered through the same formal portal');
+  const storeyCounts = new Set(halls.map((t) => storeysOf(t)));
+  assert(storeyCounts.size <= 2,
+    `halls come in ${storeyCounts.size} heights — the undergraduate one and the professional schools' extra storey`);
+
+  const towered = CATALOGUE.filter(hasClockTower);
+  assert(towered.length === 1, `exactly one building on campus carries a clock tower (got ${towered.length})`);
+  assert(towered[0]?.id === 'BLDG-GENSTUDIES', 'and it is Founders Hall');
+  assert(motifOf(towered[0]) === 'hall', 'which is an ordinary academic hall in every other respect');
+
+  // The applied stonework has to fit inside the wall it is applied to, or a
+  // band silently lands outside the mass.
+  for (const t of halls) {
+    const wall = wallHeightOf(t);
+    if (!(PLINTH + CORNICE < wall && PARAPET > 0)) {
+      assert(false, `${t.id}: plinth and cornice fit inside a ${wall.toFixed(1)}-unit wall`);
+      break;
+    }
+    // The plinth must clear the bottom rank's sill, or the base course eats
+    // the ground-floor windows.
+    if (!(PLINTH < rankSills(windowRanksOf(t))[0])) {
+      assert(false, `${t.id}: the base course sits below the ground-floor sills`);
+      break;
+    }
+  }
+  assert(true, 'every hall\'s stonework fits the wall it is applied to');
+
+  // A hall's roof is a shallow HIP now, not the barn gable it was: a ridge
+  // deeper than a storey and a half is what made the campus's landmarks read
+  // as sheds.
+  const hall = byId('BLDG-GENSTUDIES');
+  if (hall) {
+    assert(ridgeOf(hall) < STOREY, 'a hall\'s ridge rises less than one storey above its eaves');
+    assert(ridgeOf(hall) > 0, 'but it is still a pitched roof');
+  }
 }
 
 // --- 7. Nothing in the catalogue is missing a spec -------------------------

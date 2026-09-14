@@ -6,9 +6,9 @@ to work out why the campus map's art reads as inconsistent, and to sequence the
 work that makes every asset on the map share one scale, one detail vocabulary,
 and one correct notion of what stands in front of what.*
 
-**Status: A-D shipped; E-G proposed.** The depth sort (PR A), the unit system
-(PR B), the bay grid (PR C) and the door catalogue (PR D) are on the branch,
-each with a test that pins its invariant. The
+**Status: A-E shipped; F-G proposed.** The depth sort (PR A), the unit system
+(PR B), the bay grid (PR C), the door catalogue (PR D) and the academic hall
+(PR E) are on the branch, each with a test that pins its invariant. The
 sections below are kept as written, with the two shipped PRs marked in the
 sequencing table — the audit in §1 is the state of the code BEFORE this work
 and is left intact as the record of what was measured.
@@ -514,7 +514,7 @@ Each PR ships on its own and leaves the map in a better state than it found it.
 | **B** ✅ | `campusScale.ts` and `buildingSpec.ts` (no JSX in either); `storeysOf`; height and window ranks derived from it | The foundation. Nothing after this is authored in invented units. Fixes the library's half-height renovation on the way past, and keeps the specification separate from the renderer — see §6. **Shipped:** one storey height campus-wide (3.9 m everywhere, was 6.1–26.3 m), `height = storeys × STOREY` and `ranks = storeys` asserted over the whole catalogue. |
 | **C** ✅ | The bay grid: windows at fixed real size, floor courses | Needs B's storey count to know how many ranks to draw. **Shipped:** three window sizes campus-wide (standard, wide-glazed, shopfront), all one height, measured off the rendered DOM. The glazing-bar pattern was built and then removed — see §2C. |
 | **D** ✅ | The door catalogue: six families at fixed real sizes, real entrance steps | Needs B's storey height to sit a `formal` portal correctly. Fixes the tower's 0.88 m shopfront. **Shipped:** six families, one size each, aspect spread 3.1x against the old 33x; also found and fixed the founding dining hall rendering with no door at all. |
-| **E** | Founders Hall and the academic halls: plinth, string courses, centre pavilion, pediment, cornice, end pavilions, hipped roof, and the clock tower | Needs C and D — the vocabulary is built out of bays and doors. |
+| **E** ✅ | Founders Hall and the academic halls: plinth, string courses, centre pavilion, pediment, cornice, parapet, raised ends, hipped roof, and the clock tower | Needs C and D — the vocabulary is built out of bays and doors. **Shipped:** every hall wears the whole vocabulary; `hasClockTower` is the one flag that separates Founders Hall from the rest. The roof still reads as a flat expanse in the walls' own tone — PR F's slate is what separates them. |
 | **F** | Materials, not tints: five materials, two shared trims, gold concentrated on the dome | Last on purpose. Colour is the change most likely to want a second opinion, and it is the one PR that is trivially revertible on its own. |
 | **G** *(optional)* | The rest of the catalogue brought to the same vocabulary — a real colonnade on `portico`, a clerestory on `hangar`, plinth and banding on `block`, an entrance canopy on `pavilion` | Cleanup that E's vocabulary makes cheap. |
 

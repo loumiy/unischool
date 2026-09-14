@@ -1,12 +1,15 @@
 import { memo } from 'react';
 import type { Buildable, FacilityType } from '../state/types';
-import { boxFaces, facePoint, lift, polyPoints, project, type Pt } from './isoProjection';
+import { TILE_W, boxFaces, facePoint, lift, polyPoints, project, type Pt } from './isoProjection';
 import { depthOrder } from './depthSort';
 import { STOREY, across, up } from './campusScale';
 import {
-  FLOOR_COURSE, STEP_OVERHANG, TOWER_PODIUM_STOREYS, TREAD_DEPTH, WINDOW_HEIGHT,
-  baysAcross, clerestorySill, doorDimensions, doorOf, floorLinesOf, motifOf, rankSills,
-  ridgeOf, storeysOf, wallHeightOf, windowRanksOf, windowWidthOf,
+  CLOCK_RADIUS, CLOCK_RADIUS_TILES, CORNICE, END_PAVILION_PLAN, END_PAVILION_RISE, FLOOR_COURSE, PARAPET,
+  END_PAVILION_DEPTH, PAVILION_BAYS, PAVILION_DEPTH, PAVILION_RISE, PEDIMENT_RISE, PLINTH, STEP_OVERHANG,
+  TOWER_BASE_PLAN, TOWER_BASE_RISE, TOWER_DOME_RISE, TOWER_DRUM_PLAN, TOWER_DRUM_RISE,
+  TOWER_FINIAL_RISE, TOWER_PODIUM_STOREYS, TREAD_DEPTH, WINDOW_HEIGHT,
+  baysAcross, clerestorySill, doorDimensions, doorOf, floorLinesOf, hasClockTower, motifOf,
+  rankSills, ridgeOf, storeysOf, wallHeightOf, windowRanksOf, windowWidthOf,
   type DoorDimensions,
 } from './buildingSpec';
 import GroundMarking, { RakedStand, StadiumField, type TilePt } from './groundMarkings';
@@ -427,6 +430,223 @@ function RoofBox({ col, row, w, h, base, height, tint }: {
 }
 
 // ---------------------------------------------------------------------
+// THE ACADEMIC HALL. The campus's landmark, and the one motif drawn from a
+// real reference building rather than from a description.
+//
+// Everything here is an element of that building — a stone plinth, a course at
+// each floor, a cornice and parapet at the eaves, a shallow hipped roof set
+// back behind them, a centre bay that projects and is capped with a pediment,
+// raised blocks closing each end of the roofline, and (on Founders Hall alone)
+// a clock tower with a gilded dome. Their DIMENSIONS all live in
+// buildingSpec.ts; what is here is only how to turn them into polygons.
+//
+// This is why "the other academic halls in the same style, without the spire"
+// is one flag and not a second motif: every hall gets the whole vocabulary,
+// and hasClockTower decides the one element that is singular.
+// ---------------------------------------------------------------------
+
+// A horizontal band across a wall — a plinth, a cornice, a parapet. Same
+// (u, v) trick as everything else on a face, so it skews for free.
+function WallBand({ origin, along, wallHeight, from, to, className, u0 = 0, u1 = 1 }: {
+  origin: Pt; along: Pt; wallHeight: number; from: number; to: number; className: string;
+  // A band usually runs the whole width of the wall. Giving it a u range is
+  // what lets the parapet be RAISED over the end bays alone, which is how the
+  // reference building closes each end of its roofline — a section of the wall
+  // carried higher, not a block sitting on the roof.
+  u0?: number; u1?: number;
+}) {
+  if (wallHeight <= 0) return null;
+  const v0 = Math.max(0, from) / wallHeight;
+  const v1 = Math.min(wallHeight, to) / wallHeight;
+  if (v1 <= v0) return null;
+  return (
+    <polygon
+      className={className}
+      points={polyPoints([
+        facePoint(origin, along, wallHeight, u0, v0),
+        facePoint(origin, along, wallHeight, u1, v0),
+        facePoint(origin, along, wallHeight, u1, v1),
+        facePoint(origin, along, wallHeight, u0, v1),
+      ])}
+    />
+  );
+}
+
+// A HIPPED roof: four slopes meeting at a ridge that stops short of both ends,
+// rather than two slopes and a gable wall. This is what the reference building
+// has, and at a shallow pitch behind a parapet it reads as a landmark where
+// the old barn gable (a ridge deeper than a storey and a half) read as a shed.
+//
+// The ridge is inset from each end by half the SHORTER span, which is what
+// makes the two end slopes proper hips rather than clipped triangles. Faces
+// are tinted by the grid direction they point, like every other sloped surface
+// on this map (see SLOPE) — so the roof is lit correctly whichever way it runs
+// and, when the camera can eventually turn, whichever way it is looked at.
+function HippedRoof({ col, row, w, h, base, rise, pal }: {
+  col: number; row: number; w: number; h: number; base: number; rise: number; pal: Palette;
+}) {
+  const alongW = w >= h;
+  const inset = Math.min(w, h) / 2;
+  const At = lift(project(col, row), base);
+  const Bt = lift(project(col + w, row), base);
+  const Ct = lift(project(col + w, row + h), base);
+  const Dt = lift(project(col, row + h), base);
+  const rs = alongW
+    ? lift(project(col + inset, row + h / 2), base + rise)
+    : lift(project(col + w / 2, row + inset), base + rise);
+  const re = alongW
+    ? lift(project(col + w - inset, row + h / 2), base + rise)
+    : lift(project(col + w / 2, row + h - inset), base + rise);
+  return (
+    <>
+      <polygon points={polyPoints(alongW ? [At, Bt, re, rs] : [At, Bt, rs])} fill={pal.negRow} />
+      <polygon points={polyPoints(alongW ? [At, Dt, rs] : [At, Dt, re, rs])} fill={pal.negCol} />
+      <polygon points={polyPoints(alongW ? [Dt, Ct, re, rs] : [Dt, Ct, re])} fill={pal.posRow} />
+      <polygon points={polyPoints(alongW ? [Bt, Ct, re] : [Bt, Ct, re, rs])} fill={pal.posCol} />
+      <line className="iso-ridge" x1={rs.x} y1={rs.y} x2={re.x} y2={re.y} />
+    </>
+  );
+}
+
+// The centre bay: a shallow box projecting from the middle of a front, carried
+// past the cornice and capped with a pediment. The building's door goes on
+// ITS face rather than on the wall behind it, which is the whole point — an
+// entrance that projects reads as the front of a building, where the same door
+// flush in a seventy-metre wall reads as a hole in it.
+//
+// `outward` says which way the front faces: 'row' for the wall running along
+// col, 'col' for the one running along row.
+function CentrePavilion({ col, row, w, h, wallHeight, outward, pal, door, sills, paneW }: {
+  col: number; row: number; w: number; h: number; wallHeight: number;
+  outward: 'row' | 'col';
+  pal: Palette;
+  door: DoorDimensions | null;
+  sills: number[]; paneW: number;
+}) {
+  const span = outward === 'row' ? w : h;
+  const width = Math.min(span * 0.55, (span / baysAcross(span)) * PAVILION_BAYS);
+  const top = wallHeight + PAVILION_RISE;
+  const pc = outward === 'row' ? col + w / 2 - width / 2 : col + w;
+  const pr = outward === 'row' ? row + h : row + h / 2 - width / 2;
+  const pw = outward === 'row' ? width : PAVILION_DEPTH;
+  const ph = outward === 'row' ? PAVILION_DEPTH : width;
+  const f = boxFaces(pc, pr, pw, ph, 0, top);
+  // The face looking away from the building: the +row face of a box on the
+  // col-running wall, the +col face of one on the row-running wall.
+  const front = outward === 'row' ? { o: f.D, a: f.C } : { o: f.C, a: f.B };
+  const side = outward === 'row' ? { poly: f.right, fill: pal.wallRight } : { poly: f.left, fill: pal.wallLeft };
+  const frontFill = outward === 'row' ? pal.wallLeft : pal.wallRight;
+  const apex = lift(
+    { x: (front.o.x + front.a.x) / 2, y: (front.o.y + front.a.y) / 2 - top },
+    PEDIMENT_RISE,
+  );
+  const frontTopL = lift(front.o, top);
+  const frontTopR = lift(front.a, top);
+  return (
+    <>
+      <polygon points={polyPoints(side.poly)} fill={side.fill} />
+      <polygon points={polyPoints([front.o, front.a, frontTopR, frontTopL])} fill={frontFill} />
+      <WallBand origin={front.o} along={front.a} wallHeight={top} from={0} to={PLINTH} className="iso-plinth" />
+      <WallBand origin={front.o} along={front.a} wallHeight={top} from={wallHeight - CORNICE} to={wallHeight} className="iso-cornice" />
+      {windows(front.o, front.a, top, width, sills, paneW, 'pv', door ? doorBay(door, width, top) : undefined)}
+      {door && <Door d={door} origin={front.o} along={front.a} wallHeight={top} span={width} />}
+      <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />
+      {/* The pediment, on the face the door is in. */}
+      <polygon className="iso-pediment" points={polyPoints([frontTopL, frontTopR, apex])} />
+    </>
+  );
+}
+
+// THE CLOCK TOWER. Founders Hall and nothing else (see hasClockTower).
+//
+// Four pieces, bottom to top: a square base rising out of the roof with a
+// clock face on each visible side, a colonnaded drum set back from it, a
+// gilded dome, and a finial.
+//
+// The DOME is drawn in SCREEN space rather than projected onto the grid, for
+// the same reason trees.tsx draws a crown that way: it is a mass in the air,
+// not a marking on the ground. Projecting a hemisphere gives a 2:1 squashed
+// ellipse, which is right for something lying flat and exactly wrong for
+// something round — it would read as a dinner plate balanced on a drum. A
+// roughly spherical thing looks roughly circular from every direction.
+function ClockTower({ col, row, w, h, base, tint, pal }: {
+  col: number; row: number; w: number; h: number; base: number; tint: string; pal: Palette;
+}) {
+  const plan = Math.min(TOWER_BASE_PLAN, Math.min(w, h) * 0.42);
+  const drumPlan = plan * (TOWER_DRUM_PLAN / TOWER_BASE_PLAN);
+  const cc = col + w / 2; const cr = row + h / 2;
+  const shaft = boxFaces(cc - plan / 2, cr - plan / 2, plan, plan, base, TOWER_BASE_RISE);
+  const drumBase = base + TOWER_BASE_RISE;
+  const drum = boxFaces(cc - drumPlan / 2, cr - drumPlan / 2, drumPlan, drumPlan, drumBase, TOWER_DRUM_RISE);
+
+  // A clock face on a wall, in that wall's own (u, v) — sampled as a polygon
+  // because a circle on a skewed face is an ellipse whose axes are not screen
+  // aligned, and sampling needs no rotation maths and stays right if the
+  // projection is ever retuned. Same reasoning as projectedCircle's.
+  const clock = (origin: Pt, along: Pt, key: string) => {
+    // A ROUND face, which means converting its radius separately on each axis:
+    // u runs along the wall in tiles and v is a fraction of the wall's height,
+    // so one number for both gives an ellipse. (An earlier pass did exactly
+    // that, and the two faces read as a pair of eyes.)
+    const ru = CLOCK_RADIUS_TILES / plan;
+    const rv = CLOCK_RADIUS / TOWER_BASE_RISE;
+    const pts: Pt[] = [];
+    for (let i = 0; i < 24; i++) {
+      const a = (i / 24) * Math.PI * 2;
+      pts.push(facePoint(origin, along, TOWER_BASE_RISE, 0.5 + Math.cos(a) * ru, 0.56 + Math.sin(a) * rv));
+    }
+    // Hands, and a dot at their centre. Without them two white circles side by
+    // side on a tower read unmistakably as a pair of eyes — which is what an
+    // earlier pass produced, and is very hard to stop seeing afterwards.
+    const centre = facePoint(origin, along, TOWER_BASE_RISE, 0.5, 0.56);
+    const hand = (fu: number, fv: number) => facePoint(
+      origin, along, TOWER_BASE_RISE, 0.5 + ru * fu, 0.56 + rv * fv,
+    );
+    const big = hand(0.1, 0.62); const small = hand(0.5, -0.18);
+    return (
+      <g key={key}>
+        <polygon className="iso-clock-face" points={polyPoints(pts)} />
+        <line className="iso-clock-hand" x1={centre.x} y1={centre.y} x2={big.x} y2={big.y} />
+        <line className="iso-clock-hand" x1={centre.x} y1={centre.y} x2={small.x} y2={small.y} />
+      </g>
+    );
+  };
+
+  const domeCentre = lift(project(cc, cr), drumBase + TOWER_DRUM_RISE);
+  const domeR = (drumPlan / 2) * TILE_W * 0.55;
+  const dome: string[] = [];
+  for (let i = 0; i <= 18; i++) {
+    const a = Math.PI + (i / 18) * Math.PI;          // a half circle, flat side down
+    dome.push(`${(domeCentre.x + Math.cos(a) * domeR).toFixed(2)},${(domeCentre.y + Math.sin(a) * TOWER_DOME_RISE).toFixed(2)}`);
+  }
+  const finialFoot = { x: domeCentre.x, y: domeCentre.y - TOWER_DOME_RISE };
+
+  return (
+    <>
+      <polygon points={polyPoints(shaft.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(shaft.right)} fill={pal.wallRight} />
+      <WallBand origin={shaft.D} along={shaft.C} wallHeight={TOWER_BASE_RISE} from={TOWER_BASE_RISE - CORNICE} to={TOWER_BASE_RISE} className="iso-cornice" />
+      <WallBand origin={shaft.C} along={shaft.B} wallHeight={TOWER_BASE_RISE} from={TOWER_BASE_RISE - CORNICE} to={TOWER_BASE_RISE} className="iso-cornice" />
+      {clock(shaft.D, shaft.C, 'cl')}
+      {clock(shaft.C, shaft.B, 'cr')}
+      <polygon points={polyPoints(shaft.top)} fill={pal.roofDeck} />
+
+      <polygon points={polyPoints(drum.left)} fill={shade(tint, 1.02)} />
+      <polygon points={polyPoints(drum.right)} fill={shade(tint, 0.88)} />
+      <polygon points={polyPoints(drum.top)} fill={shade(tint, 1.06)} />
+
+      <polygon className="iso-dome" points={dome.join(' ')} />
+      <line
+        className="iso-finial"
+        x1={finialFoot.x} y1={finialFoot.y}
+        x2={finialFoot.x} y2={finialFoot.y - TOWER_FINIAL_RISE}
+      />
+      <circle className="iso-dome" cx={finialFoot.x} cy={finialFoot.y - TOWER_FINIAL_RISE} r={2.2} />
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------
 // A SMALL GABLED HOUSE, standing on its own. The unit a residential village
 // is made of — six to twelve of these around shared green, rather than one
 // more slab (see campusData.ts's village rung). Its own component because a
@@ -679,6 +899,100 @@ function BuildingMotif({ t, p, tint, developing }: {
         <StadiumField col={iCol} row={iRow} w={iW} h={iH} />
         {south}
         {east}
+      </>
+    );
+  }
+
+  if (motif === 'hall' && !developing) {
+    // THE ACADEMIC HALL, assembled from the vocabulary above. The order is the
+    // order you would build it in, which is also the order it has to be
+    // painted in: mass, then what is applied to the mass, then what stands on
+    // top of it, then what stands in front of it.
+    //
+    // The wall runs to the top of the PARAPET, not to the cornice, and every
+    // band and window below is a fraction of that one height. Computing the
+    // parapet as a second box over the first is what an earlier pass did, and
+    // it drew a full-height blank wall straight over the windows, the courses
+    // and the plinth — a parapet is the top of this wall, not another one.
+    const WH = H + PARAPET;
+    const hf = boxFaces(col, row, w, h, 0, WH);
+    const endPlan = Math.min(END_PAVILION_PLAN, Math.min(w, h) * 0.28);
+    // The roof is set BACK behind the parapet, which is what a parapet is for.
+    const inset = Math.min(0.3, Math.min(w, h) * 0.06);
+
+    const band = (from: number, to: number, className: string, key: string) => (
+      <>
+        <WallBand key={`${key}l`} origin={hf.D} along={hf.C} wallHeight={WH} from={from} to={to} className={className} />
+        <WallBand key={`${key}r`} origin={hf.C} along={hf.B} wallHeight={WH} from={from} to={to} className={className} />
+      </>
+    );
+    return (
+      <>
+        <polygon points={polyPoints(hf.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(hf.right)} fill={pal.wallRight} />
+
+        {/* A course at every floor, a stone base under them all, a cornice
+            over them and the parapet above that — the horizontals that give a
+            long brick front its structure, and the reason the reference
+            building reads as storeys rather than as a wall with holes in it. */}
+        {floorCourses(hf.D, hf.C, WH, courses, 'l')}
+        {floorCourses(hf.C, hf.B, WH, courses, 'r')}
+        {band(0, PLINTH, 'iso-plinth', 'p')}
+        {band(H - CORNICE, H, 'iso-cornice', 'c')}
+        {band(H, WH, 'iso-parapet', 'q')}
+
+        {/* The door's bay is reserved on the main wall even though the door
+            itself goes on the pavilion in front of it — otherwise a rank of
+            windows sits behind the entrance. */}
+        {windows(hf.D, hf.C, WH, w, sills, paneW, 'l', door ? doorBay(door, w, WH) : undefined)}
+        {windows(hf.C, hf.B, WH, h, sills, paneW, 'r', door ? doorBay(door, h, WH) : undefined)}
+
+        <HippedRoof
+          col={col + inset} row={row + inset} w={w - inset * 2} h={h - inset * 2}
+          base={WH} rise={ridge} pal={pal}
+        />
+        {/* Each end of the roofline closed by carrying the wall itself higher.
+            Real blocks hugging the wall rather than a band painted over it —
+            an earlier pass drew these as a translucent band from the ground up,
+            which washed brown over the windows underneath instead of standing
+            above them. Drawn AFTER the roof, so they close it rather than
+            disappear behind it. */}
+        {([
+          // [col, row, w, h] of each raised end, hugging the wall it caps.
+          [col, row + h - END_PAVILION_DEPTH, endPlan, END_PAVILION_DEPTH],
+          [col + w - endPlan, row + h - END_PAVILION_DEPTH, endPlan, END_PAVILION_DEPTH],
+          [col + w - END_PAVILION_DEPTH, row, END_PAVILION_DEPTH, endPlan],
+          [col + w - END_PAVILION_DEPTH, row + h - endPlan, END_PAVILION_DEPTH, endPlan],
+        ] as const).map(([ec, er, ew, eh], i) => (
+          <RoofBox key={`e${i}`} col={ec} row={er} w={ew} h={eh} base={WH} height={END_PAVILION_RISE} tint={tint} />
+        ))}
+
+        {hasClockTower(t) && (
+          <ClockTower col={col} row={row} w={w} h={h} base={WH + ridge * 0.4} tint={tint} pal={pal} />
+        )}
+
+        {/* Last, because they project toward the camera and must paint over
+            the wall they stand against. */}
+        <CentrePavilion
+          col={col} row={row} w={w} h={h} wallHeight={H} outward="row"
+          pal={pal} door={door} sills={sills} paneW={paneW}
+        />
+        <CentrePavilion
+          col={col} row={row} w={w} h={h} wallHeight={H} outward="col"
+          pal={pal} door={door} sills={sills} paneW={paneW}
+        />
+        {door && (
+          <EntranceSteps
+            d={door} centreCol={col + w / 2} centreRow={row + h + PAVILION_DEPTH}
+            outCol={0} outRow={1} span={w} tint={tint}
+          />
+        )}
+        {door && (
+          <EntranceSteps
+            d={door} centreCol={col + w + PAVILION_DEPTH} centreRow={row + h / 2}
+            outCol={1} outRow={0} span={h} tint={tint}
+          />
+        )}
       </>
     );
   }

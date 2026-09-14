@@ -248,7 +248,11 @@ export function windowRanksOf(t: Buildable): number {
 // How far a pitched roof's ridge rises above the eaves, in metres. Everything
 // not listed is flat-roofed, which is what those buildings actually are.
 const RIDGE_METRES: Partial<Record<Motif, number>> = {
-  hall: 6.0,
+  // Shallow, because an academic hall's roof is a HIP set back behind a
+  // parapet, not a barn gable. The 6.0 m this carried was a ridge deeper than
+  // a storey and a half, which is what made the campus's landmarks read as
+  // sheds with windows.
+  hall: 2.2,
   residential: 4.6,
   village: 3.0,
 };
@@ -444,3 +448,72 @@ export function doorDimensions(family: DoorFamily): DoorDimensions {
 // each side. Both real measures, so a stair is the same stair everywhere.
 export const TREAD_DEPTH = across(0.42);
 export const STEP_OVERHANG = across(0.8);
+
+// ---------------------------------------------------------------------
+// THE ACADEMIC HALL'S VOCABULARY.
+//
+// Every element of the reference building, as a real dimension. They belong
+// here rather than in the drawing because they are what the building IS: a
+// three-dimensional renderer would need this exact list and these exact
+// numbers, and would throw away only the polygons.
+//
+// All of it goes on the shared `hall` motif, which is what makes "the other
+// academic buildings in the same style, without the spire" one flag rather
+// than a second motif. Only the clock tower is singular.
+// ---------------------------------------------------------------------
+
+// The stone base the brick stands on, and the band that caps it at the eaves.
+// Deliberately shallower than a ground-floor sill (SILL_METRES above): a base
+// course runs UNDER the windows, and at 1.15 m against a 0.85 m sill it ate
+// the bottom of every ground-floor opening on the campus's landmarks.
+export const PLINTH = up(0.7);
+export const CORNICE = up(1.05);
+// The wall carries on a little above the cornice, so the roof sits BEHIND
+// something rather than springing straight off the top of the windows.
+export const PARAPET = up(0.85);
+
+// The centre bay projects from the middle of each front, rises past the
+// cornice and is capped with a pediment. This is what makes an entrance read
+// as the front of a building rather than as a hole in a long wall.
+export const PAVILION_DEPTH = across(1.9);
+export const PAVILION_BAYS = 3;
+export const PAVILION_RISE = up(2.1);
+export const PEDIMENT_RISE = up(2.9);
+
+// Raised brick blocks closing each end of the roofline.
+export const END_PAVILION_PLAN = across(12.0);
+export const END_PAVILION_RISE = up(1.9);
+// How far into the plan a raised end reaches — enough to read as a section of
+// wall carried up, not as a slab balanced on the roof.
+export const END_PAVILION_DEPTH = across(4.0);
+
+// ---------------------------------------------------------------------
+// THE CLOCK TOWER. Founders Hall only.
+//
+// Keyed by id, the same way RESEARCH_FACILITY_MOTIFS gives four lab-gated
+// buildings four different roofs without widening the `=== 'lab'` gate that
+// three other modules read. The id is techData's exported GENED_BUILDING_ID;
+// spelled as a literal here rather than imported because this module is
+// drawing geometry and that one is course content, and neither should have to
+// depend on the other to agree about which building is the founding one.
+// ---------------------------------------------------------------------
+const CLOCK_TOWER_ID = 'BLDG-GENSTUDIES';
+
+export function hasClockTower(t: Buildable): boolean {
+  return t.kind === 'building' && t.id === CLOCK_TOWER_ID;
+}
+
+// The tower, bottom to top: a square brick-and-stone base rising out of the
+// roof, a shorter colonnaded drum set back from it, a dome, and a finial.
+export const TOWER_BASE_PLAN = across(11);
+export const TOWER_BASE_RISE = up(12.5);
+export const TOWER_DRUM_PLAN = across(8);
+export const TOWER_DRUM_RISE = up(3.6);
+export const TOWER_DOME_RISE = up(5.2);
+export const TOWER_FINIAL_RISE = up(3.0);
+// The clock face. A real radius, converted separately for the two axes of a
+// wall's own coordinates — across the wall it is a distance in tiles, up it a
+// distance in screen units, and they are not the same number.
+const CLOCK_RADIUS_METRES = 2.1;
+export const CLOCK_RADIUS = up(CLOCK_RADIUS_METRES);
+export const CLOCK_RADIUS_TILES = across(CLOCK_RADIUS_METRES);
