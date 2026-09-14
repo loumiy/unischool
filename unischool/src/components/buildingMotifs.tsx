@@ -4,10 +4,12 @@ import { TILE_W, boxFaces, facePoint, lift, polyPoints, project, type Pt } from 
 import { depthOrder } from './depthSort';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
 import {
-  BASE_COURSE, BAY_METRES, CANOPY_DEPTH, CANOPY_POST, CANOPY_SLAB, CLOCK_RADIUS,
+  BASE_COURSE, BAY_METRES, BLOCK_SPLIT_MIN_TILES, CANOPY_DEPTH, CROSS_ARM_METRES,
+  CROSS_BAR_METRES, CANOPY_POST, CANOPY_SLAB, CLOCK_RADIUS,
   CLOCK_RADIUS_TILES, COLONNADE_BAY_METRES, COLONNADE_HEIGHT, COLONNADE_MAX, CORNICE,
   EAVES_COURSE, ENTABLATURE, GILT, PIER_PROJECTION, PIER_WIDTH_METRES,
-  PORTICO_COLUMNS,
+  PORTICO_COLUMNS, SLAB_ROW_FRACTION, UNDERCROFT_STOREYS, WING_COL_FRACTION,
+  WING_STOREY_FRACTION,
   PORTICO_COLUMN_PLAN, PORTICO_HEIGHT, PORTICO_STANDOFF, TOWER_STONE, TRIM, END_PAVILION_PLAN, END_PAVILION_RISE, FLOOR_COURSE, PARAPET,
   COPING, COPING_OVERHANG, END_PAVILION_DEPTH, PAVILION_BAYS, PAVILION_DEPTH, PAVILION_RISE, PEDIMENT_RISE, PLINTH, STEP_OVERHANG,
   TOWER_BASE_PLAN, TOWER_BASE_RISE, TOWER_DOME_RISE, TOWER_DRUM_PLAN, TOWER_DRUM_RISE,
@@ -729,6 +731,81 @@ function Canopy({ d, centreCol, centreRow, outward, wallHeight }: {
   );
 }
 
+// A CURTAIN WALL: a continuous field of glass divided by mullions, rather than
+// openings punched in a wall.
+//
+// That distinction is the whole reason the hospital's public wing needed its
+// own treatment. Punched windows say "masonry with holes in it"; a curtain
+// wall says the wall IS the glazing, which is what a hospital's entrance front
+// and an atrium actually are. The mullions sit on the same bay grid every
+// window on the campus uses, so the two systems agree about where the
+// structure is even though they look nothing alike.
+function CurtainWall({ origin, along, wallHeight, spanTiles, from, floors, id }: {
+  origin: Pt; along: Pt; wallHeight: number; spanTiles: number;
+  from: number;          // the head of the undercroft: glazing starts here
+  floors: number[];      // floor lines, for the transoms
+  id: string;            // NOT `key`: React reserves that, and passing it here
+                         // reaches the component as undefined
+}) {
+  if (wallHeight <= 0 || spanTiles <= 0) return null;
+  const v0 = from / wallHeight;
+  const quad = (u0: number, u1: number, a: number, b: number) => polyPoints([
+    facePoint(origin, along, wallHeight, u0, a),
+    facePoint(origin, along, wallHeight, u1, a),
+    facePoint(origin, along, wallHeight, u1, b),
+    facePoint(origin, along, wallHeight, u0, b),
+  ]);
+  const bays = baysAcross(spanTiles);
+  const mullion = Math.min(0.16 / bays, 0.01);
+  const transom = FLOOR_COURSE * 0.35 / wallHeight;
+  return (
+    <>
+      <polygon className="iso-curtain-glass" points={quad(0, 1, v0, 1)} />
+      {Array.from({ length: bays + 1 }, (_, i) => {
+        const u = i / bays;
+        return (
+          <polygon
+            key={`${id}m${i}`}
+            className="iso-mullion"
+            points={quad(Math.max(0, u - mullion), Math.min(1, u + mullion), v0, 1)}
+          />
+        );
+      })}
+      {floors.filter((at) => at > from).map((at, i) => (
+        <polygon
+          key={`${id}t${i}`}
+          className="iso-mullion"
+          points={quad(0, 1, at / wallHeight - transom, at / wallHeight + transom)}
+        />
+      ))}
+    </>
+  );
+}
+
+// The red cross. One shape, in the wall's own (u, v) — so it skews with the
+// face it is painted on like everything else, and stays a cross.
+function RedCross({ origin, along, wallHeight, spanTiles, centreU, centreV }: {
+  origin: Pt; along: Pt; wallHeight: number; spanTiles: number;
+  centreU: number; centreV: number;
+}) {
+  const armU = across(CROSS_ARM_METRES) / spanTiles / 2;
+  const armV = up(CROSS_ARM_METRES) / wallHeight / 2;
+  const barU = across(CROSS_BAR_METRES) / spanTiles / 2;
+  const barV = up(CROSS_BAR_METRES) / wallHeight / 2;
+  const quad = (u0: number, u1: number, v0: number, v1: number) => polyPoints([
+    facePoint(origin, along, wallHeight, u0, v0),
+    facePoint(origin, along, wallHeight, u1, v0),
+    facePoint(origin, along, wallHeight, u1, v1),
+    facePoint(origin, along, wallHeight, u0, v1),
+  ]);
+  return (
+    <>
+      <polygon className="iso-cross" points={quad(centreU - barU, centreU + barU, centreV - armV, centreV + armV)} />
+      <polygon className="iso-cross" points={quad(centreU - armU, centreU + armU, centreV - barV, centreV + barV)} />
+    </>
+  );
+}
+
 // THE CLOCK TOWER. Founders Hall and nothing else (see hasClockTower).
 //
 // Four pieces, bottom to top: a square base rising out of the roof with a
@@ -1078,6 +1155,90 @@ function BuildingMotif({ t, p, material, developing }: {
         <StadiumField col={iCol} row={iRow} w={iW} h={iH} />
         {south}
         {east}
+      </>
+    );
+  }
+
+  if (motif === 'block' && !developing && Math.min(w, h) >= BLOCK_SPLIT_MIN_TILES) {
+    // THE HOSPITAL: a tall ward slab across the back, with a lower, fully
+    // glazed public wing standing in front of it — the entrance, the atrium,
+    // the outpatient front. That stepped massing is most of what makes a
+    // hospital recognisable from a distance; drawn as one box it read as a
+    // very large pavilion with plant on the roof.
+    //
+    // Only the large instances split. `block` also carries the computing
+    // research centre, which is a 4x3 building — two slivers read worse than
+    // one honest box (see BLOCK_SPLIT_MIN_TILES).
+    const slabStoreys = storeysOf(t);
+    const wingStoreys = Math.max(2, Math.round(slabStoreys * WING_STOREY_FRACTION));
+    const slabH = slabStoreys * STOREY;
+    const wingH = wingStoreys * STOREY;
+    const undercroft = UNDERCROFT_STOREYS * STOREY;
+    const slab = { col, row, w, h: h * SLAB_ROW_FRACTION };
+    const wing = {
+      col, row: row + h * SLAB_ROW_FRACTION,
+      w: w * WING_COL_FRACTION, h: h * (1 - SLAB_ROW_FRACTION),
+    };
+    const sf = boxFaces(slab.col, slab.row, slab.w, slab.h, 0, slabH);
+    const wf = boxFaces(wing.col, wing.row, wing.w, wing.h, 0, wingH);
+    const lines = (storeys: number) => Array.from({ length: storeys - 1 }, (_, i) => (i + 1) * STOREY);
+    const slabSills = rankSills(slabStoreys).filter((v) => v >= undercroft);
+    const undercroftBand = (o: Pt, a: Pt, wh: number) => (
+      <WallBand origin={o} along={a} wallHeight={wh} from={0} to={undercroft} className="iso-undercroft" />
+    );
+    const eaves = (o: Pt, a: Pt, wh: number) => (
+      <WallBand origin={o} along={a} wallHeight={wh} from={wh - EAVES_COURSE} to={wh} className="iso-cornice" />
+    );
+
+    return (
+      <>
+        {/* The ward slab, across the back. */}
+        <polygon points={polyPoints(sf.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(sf.right)} fill={pal.wallRight} />
+        {floorCourses(sf.D, sf.C, slabH, lines(slabStoreys), 'sl')}
+        {floorCourses(sf.C, sf.B, slabH, lines(slabStoreys), 'sr')}
+        {windows(sf.D, sf.C, slabH, slab.w, slabSills, paneW, 'sl')}
+        {windows(sf.C, sf.B, slabH, slab.h, slabSills, paneW, 'sr')}
+        {undercroftBand(sf.D, sf.C, slabH)}
+        {undercroftBand(sf.C, sf.B, slabH)}
+        {eaves(sf.D, sf.C, slabH)}
+        {eaves(sf.C, sf.B, slabH)}
+        <polygon points={polyPoints(sf.top)} fill={pal.roofDeck} />
+        {[[0.08, 0.16, 0.26, 0.34], [0.40, 0.12, 0.22, 0.30], [0.70, 0.20, 0.24, 0.36]]
+          .map(([fx, fy, fw, fh], i) => (
+            <RoofBox
+              key={i} col={slab.col + slab.w * fx} row={slab.row + slab.h * fy}
+              w={slab.w * fw} h={slab.h * fh} base={slabH} height={15} tint={roofTint}
+            />
+          ))}
+
+        {/* The glazed public wing, in front of it. Its long face is a curtain
+            wall; its short end is the white panel the cross goes on, which is
+            exactly where the reference building puts it. */}
+        <polygon points={polyPoints(wf.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(wf.right)} fill={pal.wallRight} />
+        <CurtainWall
+          origin={wf.D} along={wf.C} wallHeight={wingH} spanTiles={wing.w}
+          from={undercroft} floors={lines(wingStoreys)} id="wl"
+        />
+        {undercroftBand(wf.D, wf.C, wingH)}
+        {undercroftBand(wf.C, wf.B, wingH)}
+        {eaves(wf.D, wf.C, wingH)}
+        {eaves(wf.C, wf.B, wingH)}
+        <polygon points={polyPoints(wf.top)} fill={pal.roofDeck} />
+        <RedCross
+          origin={wf.C} along={wf.B} wallHeight={wingH} spanTiles={wing.h}
+          centreU={0.5} centreV={(wingH - STOREY * 1.1) / wingH}
+        />
+
+        {/* The way in, under the glazed front. */}
+        {door && <Door d={door} origin={wf.D} along={wf.C} wallHeight={wingH} span={wing.w} />}
+        {door && (
+          <Canopy
+            d={door} centreCol={wing.col + wing.w / 2} centreRow={wing.row + wing.h}
+            outward="row" wallHeight={wingH}
+          />
+        )}
       </>
     );
   }

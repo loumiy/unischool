@@ -367,8 +367,8 @@ console.log('campus scale and building spec');
 
   const walls = [...new Set(CATALOGUE.map((t) => materialOf(t).wall))];
   const roofs = [...new Set(CATALOGUE.map((t) => materialOf(t).roof))];
-  assert(walls.length <= 5, `the campus is built of at most five materials (got ${walls.length})`);
-  assert(roofs.length <= 2, `and roofed in at most two (got ${roofs.length})`);
+  assert(walls.length <= 6, `the campus is built of at most six materials (got ${walls.length})`);
+  assert(roofs.length <= 3, `and roofed in at most three (got ${roofs.length})`);
 
   // The measure the old palette failed. Twenty-three tints formed 253 pairs,
   // of which 40 sat within an RGB distance of 22 — the library and the gym

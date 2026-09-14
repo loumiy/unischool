@@ -593,6 +593,11 @@ const MATERIALS = {
   render: { wall: '#b0a992', roof: DECK },
   // Glass and steel, for the two things that are actually curtain-walled.
   curtain: { wall: '#93a9b4', roof: DECK },
+  // The health chain. A modern hospital is white panel and glazing rather than
+  // stone, and it is the one building type on this campus that genuinely is a
+  // different construction from everything around it — which is worth a
+  // material of its own rather than being dressed as a library.
+  clinical: { wall: '#eef1f2', roof: '#c2ccd1' },
 } as const satisfies Record<string, Material>;
 
 // The limestone every building's stonework is cut from, whatever its walls
@@ -622,8 +627,9 @@ export function materialOf(t: Buildable): Material {
     case 'library':
     case 'performingArtsCenter':
     case 'artGallery':
-    case 'healthCenter':
       return MATERIALS.limestone;
+    case 'healthCenter':
+      return MATERIALS.clinical;
     case 'diningHall':
     case 'grocery':
     case 'studentCenter':
@@ -695,3 +701,47 @@ export const PIER_PROJECTION = across(0.5);
 export const CANOPY_DEPTH = across(2.6);
 export const CANOPY_SLAB = up(0.45);
 export const CANOPY_POST = across(0.35);
+
+// ---------------------------------------------------------------------
+// THE HOSPITAL. The `block` motif's large instances.
+//
+// A teaching hospital is not one mass. It is a tall ward slab with a lower,
+// fully glazed public wing against it — the entrance, the atrium, the
+// outpatient front — and that stepped massing is most of what makes one
+// recognisable from a distance. Drawn as a single box it read as a very large
+// pavilion with plant on the roof.
+//
+// Only the LARGE instances get it. `block` also carries the computing research
+// centre, which is a 4x3 building: splitting that into two wings would give
+// each of them about a tile and a half of frontage, and two slivers read worse
+// than one honest box.
+// ---------------------------------------------------------------------
+
+export const BLOCK_SPLIT_MIN_TILES = 7;
+
+// How the plan divides. The ward slab takes the FAR half of the footprint at
+// full width; the glazed public wing sits in front of it, across the near-left,
+// leaving the near-right corner as the forecourt an ambulance entrance needs.
+//
+// Which half is "far" matters, and getting it backwards is invisible in the
+// numbers: on this projection increasing row runs toward the camera, so the
+// wing has to take the HIGH rows to stand in front. An earlier pass put it at
+// low col instead, which is up-LEFT — away — and the glazed front ended up
+// tucked behind the slab where almost none of it could be seen.
+export const SLAB_ROW_FRACTION = 0.5;
+export const WING_COL_FRACTION = 0.62;
+// The public wing is this much of the slab's height, rounded to whole storeys
+// so it still lines up with the floors beside it.
+export const WING_STOREY_FRACTION = 0.6;
+
+// The recessed, glazed ground floor both wings stand on. A hospital's entrance
+// level is set back under the mass above it, which is why the bottom of one
+// reads as a dark band rather than as more wall.
+export const UNDERCROFT_STOREYS = 1;
+
+// The red cross, on the slab's own front. A real size, like everything else —
+// and the one piece of signage on the campus, because it is the one building
+// whose sign is a recognisable shape rather than a word you would need to be
+// able to read.
+export const CROSS_ARM_METRES = 4.2;
+export const CROSS_BAR_METRES = 1.5;

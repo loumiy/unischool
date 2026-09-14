@@ -835,6 +835,14 @@ button.build-tile { font-family: inherit; }
 /* The band at each floor line: stone against brick, and the horizontal that
    still reads once the panes themselves are a few pixels across. */
 .iso-course { fill: rgba(255, 253, 246, 0.22); }
+/* A curtain wall: the glazing IS the wall, divided by mullions on the same bay
+   grid every punched window on the campus uses. */
+.iso-curtain-glass { fill: #7fb3d8; }
+.iso-mullion { fill: rgba(250, 252, 253, 0.82); }
+/* The recessed, glazed entrance level a hospital's mass stands on. */
+.iso-undercroft { fill: rgba(28, 38, 46, 0.66); }
+/* The one piece of signage on the campus. */
+.iso-cross { fill: #cf2f2a; }
 /* The way in. Darker than any window so it reads as an opening rather than
    one more pane, with a lintel over it and a step on the ground at its
    foot. */
