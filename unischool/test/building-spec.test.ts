@@ -20,9 +20,11 @@ import {
   METRES_PER_TILE, PITCH, STOREY, STOREY_METRES, UNITS_PER_TILE_UP, across, up,
 } from '../src/components/campusScale';
 import {
-  TOWER_PODIUM_STOREYS, motifOf, ridgeOf, storeysOf, wallHeightOf, windowRanksOf,
+  BAY_METRES, TOWER_PODIUM_STOREYS, WINDOW_HEIGHT, baysAcross, clerestorySill,
+  floorLinesOf, motifOf, rankSills, ridgeOf, storeysOf, wallHeightOf, windowRanksOf,
+  windowWidthOf,
 } from '../src/components/buildingSpec';
-import { isPlaceableKind } from '../src/state/campusMap';
+import { footprintOf, isPlaceableKind } from '../src/state/campusMap';
 import { initialTech } from '../src/data/techData';
 import { initialDorms } from '../src/data/campusData';
 import { initialFacilities } from '../src/data/facilitiesData';
@@ -155,6 +157,81 @@ console.log('campus scale and building spec');
     assert(storeysOf(hospital) > storeysOf(hall), 'the teaching hospital towers over a teaching hall');
     assert(storeysOf(counselling) < storeysOf(hospital),
       'and a counselling centre is not the same building relabelled');
+  }
+}
+
+// --- 7. A window is the same window everywhere ----------------------------
+{
+  // The measure that matters. A window's size must be a property of the
+  // WINDOW, not of the building it is on — the old grid made it the wall's
+  // length divided by a fixed count, so one residence hall's two walls carried
+  // windows 5.94 m and 2.64 m wide, and rotating the building resized them.
+  const widths = new Set(CATALOGUE.map((t) => windowWidthOf(t).toFixed(6)));
+  assert(widths.size <= 3,
+    `the whole catalogue draws at most three window widths (got ${widths.size}: ${[...widths].join(', ')})`);
+  assert(CATALOGUE.every((t) => windowWidthOf(t) > 0), 'and every one of them is a real width');
+
+  // Height is a single constant, so it cannot vary at all.
+  assert(WINDOW_HEIGHT > 0 && Number.isFinite(WINDOW_HEIGHT), 'a window has one height, campus-wide');
+
+  // Bays are set out at a fixed pitch, so a longer wall gets MORE windows
+  // rather than wider ones. Checked across every span the catalogue produces.
+  const spans = new Set<number>();
+  for (const t of CATALOGUE) { const fp = footprintOf(t); spans.add(fp.w); spans.add(fp.h); }
+  let worstPitch = 0;
+  for (const span of spans) {
+    const pitch = (span * METRES_PER_TILE) / baysAcross(span);
+    worstPitch = Math.max(worstPitch, Math.abs(pitch - BAY_METRES));
+  }
+  assert(worstPitch < 0.9,
+    `every wall span in the catalogue sets out near a ${BAY_METRES} m bay (worst drift ${worstPitch.toFixed(2)} m)`);
+
+  // And the specific thing that was visibly wrong: one building, two walls of
+  // different length, one window. A fixed REAL width means the window takes up
+  // two different FRACTIONS of the two walls — which is precisely what a
+  // count-based grid cannot express, because it fixes the fraction and lets
+  // the size vary instead. So the fractions differing is the property to
+  // assert, not the widths matching.
+  let checkedTwoWalls = 0;
+  for (const t of CATALOGUE) {
+    if (motifOf(t) === 'grounds') continue;
+    const fp = footprintOf(t);
+    if (fp.w === fp.h) continue;
+    const width = windowWidthOf(t);
+    if (!(width / fp.w !== width / fp.h)) {
+      assert(false, `${t.id}: one real window width should span two different wall fractions`);
+      break;
+    }
+    if (baysAcross(fp.w) <= baysAcross(fp.h)) {
+      assert(false, `${t.id}: the longer wall should get MORE bays, not wider windows`);
+      break;
+    }
+    checkedTwoWalls += 1;
+  }
+  assert(checkedTwoWalls > 20,
+    `checked ${checkedTwoWalls} buildings with unequal walls: each gets more bays on the longer one, same window on both`);
+}
+
+// --- 8. Ranks and courses sit where the storeys are -----------------------
+{
+  const hall = byId('BLDG-GENSTUDIES');
+  if (hall) {
+    const sills = rankSills(windowRanksOf(hall));
+    assert(sills.length === storeysOf(hall), 'one sill height per storey');
+    const gaps = sills.slice(1).map((v, i) => v - sills[i]);
+    assert(gaps.every((g) => near(g, STOREY)), 'each rank sits exactly one storey above the last');
+    assert(sills[sills.length - 1] + WINDOW_HEIGHT < wallHeightOf(hall),
+      'and the top rank still fits under the eaves');
+    assert(floorLinesOf(hall).length === storeysOf(hall) - 1,
+      'a four-storey building shows three floor lines');
+  }
+  const gym = CATALOGUE.find((t) => motifOf(t) === 'hangar');
+  if (gym) {
+    const h = wallHeightOf(gym);
+    const sill = clerestorySill(h);
+    assert(sill > h / 2, 'a clear-span volume is lit from high up, not from a rank near the ground');
+    assert(sill + WINDOW_HEIGHT < h, 'and its band fits under the eaves');
+    assert(floorLinesOf(gym).length === 0, 'with no floor lines, because it has no floors');
   }
 }
 

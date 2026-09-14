@@ -1,5 +1,5 @@
 import type { Buildable, FacilityType } from '../state/types';
-import { STOREY, up } from './campusScale';
+import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
 
 // WHAT a placed Buildable is, dimensionally: which architectural motif it
 // wears, how many floors it has, and therefore how tall it stands.
@@ -255,4 +255,88 @@ const RIDGE_METRES: Partial<Record<Motif, number>> = {
 
 export function ridgeOf(t: Buildable): number {
   return up(RIDGE_METRES[motifOf(t)] ?? 0);
+}
+
+// ---------------------------------------------------------------------
+// BAYS AND WINDOWS. The second half of what "proportional" asks for.
+//
+// Windows used to be a COUNT per motif — eight along a wall, whatever that
+// wall's length. A window's width was therefore the wall's length divided by
+// eight, which made it depend on the building rather than on the window. The
+// two visible walls of one residence hall came out 5.94 m and 2.64 m wide, and
+// rotating the building (which swaps w and h) resized every window on it.
+// Heights were the same mistake on the other axis: a fraction of the wall, so
+// a single-storey supermarket carried an 8.66 m pane and a residential tower a
+// 2.68 m one.
+//
+// A window is a fixed real size. A wall gets as many BAYS as it has room for,
+// and the same window goes in every one of them — on both walls of a building,
+// on every building, at every footprint, rotated or not.
+// ---------------------------------------------------------------------
+
+// One structural bay. Two per tile at 9 m, which puts sixteen bays on the
+// eight-tile facade of an academic hall — the bay count the building these
+// motifs are drawn from actually has.
+export const BAY_METRES = 4.5;
+
+// The window itself. Tall and narrow — a sash window in a masonry wall, which
+// is what most of this campus is built of, and the proportion the reference
+// building's windows actually have: roughly one to one and three quarters,
+// filling about a third of its bay. An earlier pass had these nearly square at
+// 1.8 x 2.2, which read as punched holes rather than as windows.
+const WINDOW_W_METRES = 1.5;
+const WINDOW_H_METRES = 2.4;
+const SILL_METRES = 0.85;
+
+// The two families that are glazed rather than punched — a curtain-walled
+// tower shaft and a hospital's ribbon windows. They get a WIDER window in the
+// SAME bay, so they read as glassier without reading as a different scale. One
+// dimension varies across the whole campus, and this is it.
+const WIDE_WINDOW_W_METRES = 2.8;
+const WIDE_WINDOW_MOTIFS: Motif[] = ['tower', 'block'];
+
+// A clerestory's head sits this far below the eaves. A clear-span volume is
+// lit from high up rather than through ranks (see windowRanksOf), because
+// that is what actually lights a sports hall or a pool.
+const CLERESTORY_HEAD_DROP_METRES = 1.4;
+
+export const WINDOW_HEIGHT = up(WINDOW_H_METRES);
+export const SILL_HEIGHT = up(SILL_METRES);
+
+// How thick the band at each floor line is. A string course this size is what
+// gives a multi-storey facade its horizontal structure, and it is the part
+// that still reads when the panes themselves are a few pixels across.
+export const FLOOR_COURSE = up(0.42);
+
+// How many bays fit along a wall of this many tiles. At least one, so a
+// footprint smaller than a single bay still gets a window rather than none.
+export function baysAcross(spanTiles: number): number {
+  return Math.max(1, Math.round((spanTiles * METRES_PER_TILE) / BAY_METRES));
+}
+
+// A window's width, in TILES — the unit a wall span is already measured in, so
+// the caller needs no conversion of its own.
+export function windowWidthOf(t: Buildable): number {
+  return across(WIDE_WINDOW_MOTIFS.includes(motifOf(t)) ? WIDE_WINDOW_W_METRES : WINDOW_W_METRES);
+}
+
+// The sill height of each rank, in screen units above the building's base.
+// One entry per storey, each one storey above the last — so a window's height
+// above its own floor is the same on the ground floor and the eighth.
+export function rankSills(ranks: number): number[] {
+  return Array.from({ length: Math.max(0, ranks) }, (_, i) => i * STOREY + SILL_HEIGHT);
+}
+
+// A clear-span volume's single band, hung from the eaves rather than stacked
+// from the ground.
+export function clerestorySill(wallHeight: number): number {
+  return Math.max(0, wallHeight - up(CLERESTORY_HEAD_DROP_METRES) - WINDOW_HEIGHT);
+}
+
+// Where the floor lines fall, in screen units above the base — one band per
+// storey boundary, so a four-storey building shows three. Empty for a
+// clear-span volume, which has no floors to mark.
+export function floorLinesOf(t: Buildable): number[] {
+  const storeys = storeysOf(t);
+  return Array.from({ length: Math.max(0, storeys - 1) }, (_, i) => (i + 1) * STOREY);
 }

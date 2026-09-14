@@ -6,8 +6,9 @@ to work out why the campus map's art reads as inconsistent, and to sequence the
 work that makes every asset on the map share one scale, one detail vocabulary,
 and one correct notion of what stands in front of what.*
 
-**Status: A and B shipped; C-G proposed.** The depth sort (PR A) and the unit
-system (PR B) are on the branch, each with a test that pins its invariant. The
+**Status: A, B and C shipped; D-G proposed.** The depth sort (PR A), the unit system
+(PR B) and the bay grid (PR C) are on the branch, each with a test that pins
+its invariant. The
 sections below are kept as written, with the two shipped PRs marked in the
 sequencing table — the audit in §1 is the state of the code BEFORE this work
 and is left intact as the record of what was measured.
@@ -329,9 +330,14 @@ Detail this unlocks, cheaply:
 
 - **Sills and lintels** — a light band under and over each pane. This is what
   makes the reference photo's windows read as windows rather than as holes.
-- **Glazing bars** via one `<pattern>` in `<defs>`, filled into the pane
-  polygon — the same trick `ScaffoldPattern` already uses. Sash muntins for
-  *zero* extra SVG nodes per window.
+- ~~**Glazing bars** via one `<pattern>` in `<defs>`~~ — **tried and removed.**
+  The arithmetic is right and the drawing is wrong: a pattern is laid out in
+  world coordinates and a pane is a skewed rectangle in a wall's, so every pane
+  samples a different part of it. Some came out with a bright bar across one
+  corner and some with none, and the rank read as irregular — the exact
+  complaint this PR exists to fix. Drawing each bar in the wall's own (u, v)
+  space would align correctly and triples the polygon count for a detail that
+  is under a pixel at the zoom the map is played at. The panes are flat.
 - **A spandrel course** between ranks, which is the horizontal banding that
   makes a multi-storey brick facade legible at low zoom.
 
@@ -506,7 +512,7 @@ Each PR ships on its own and leaves the map in a better state than it found it.
 |---|---|---|
 | **A** ✅ | The topological depth sort, its test, and the three smaller ordering fixes | Independent of everything else, pure bug fix, highest value per line changed, and it is the complaint that is still live. Ships first. **Shipped:** 0 occlusion violations against the old key's 10,826 on the same layouts; ~3ms per sort, memoised. |
 | **B** ✅ | `campusScale.ts` and `buildingSpec.ts` (no JSX in either); `storeysOf`; height and window ranks derived from it | The foundation. Nothing after this is authored in invented units. Fixes the library's half-height renovation on the way past, and keeps the specification separate from the renderer — see §6. **Shipped:** one storey height campus-wide (3.9 m everywhere, was 6.1–26.3 m), `height = storeys × STOREY` and `ranks = storeys` asserted over the whole catalogue. |
-| **C** | The bay grid: windows at fixed real size, sills, lintels, glazing-bar pattern, spandrel courses | Needs B's storey count to know how many ranks to draw. |
+| **C** ✅ | The bay grid: windows at fixed real size, floor courses | Needs B's storey count to know how many ranks to draw. **Shipped:** three window sizes campus-wide (standard, wide-glazed, shopfront), all one height, measured off the rendered DOM. The glazing-bar pattern was built and then removed — see §2C. |
 | **D** | The door catalogue: six families at fixed real sizes, real entrance steps | Needs B's storey height to sit a `formal` portal correctly. Fixes the tower's 0.88 m shopfront. |
 | **E** | Founders Hall and the academic halls: plinth, string courses, centre pavilion, pediment, cornice, end pavilions, hipped roof, and the clock tower | Needs C and D — the vocabulary is built out of bays and doors. |
 | **F** | Materials, not tints: five materials, two shared trims, gold concentrated on the dome | Last on purpose. Colour is the change most likely to want a second opinion, and it is the one PR that is trivially revertible on its own. |

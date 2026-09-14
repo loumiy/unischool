@@ -1,9 +1,12 @@
+import { memo } from 'react';
 import type { Buildable, FacilityType } from '../state/types';
 import { boxFaces, facePoint, lift, polyPoints, project, type Pt } from './isoProjection';
 import { depthOrder } from './depthSort';
-import { STOREY } from './campusScale';
+import { STOREY, across, up } from './campusScale';
 import {
-  TOWER_PODIUM_STOREYS, motifOf, ridgeOf, storeysOf, wallHeightOf, windowRanksOf, type Motif,
+  FLOOR_COURSE, TOWER_PODIUM_STOREYS, WINDOW_HEIGHT, baysAcross, clerestorySill,
+  floorLinesOf, motifOf, rankSills, ridgeOf, storeysOf, wallHeightOf, windowRanksOf,
+  windowWidthOf, type Motif,
 } from './buildingSpec';
 import GroundMarking, { RakedStand, StadiumField, type TilePt } from './groundMarkings';
 
@@ -24,20 +27,11 @@ import GroundMarking, { RakedStand, StadiumField, type TilePt } from './groundMa
 // and hand-authoring five shades of each would be 110 values to keep in sync
 // with each other forever.
 
-// The motifs no longer carry a height, a ridge or a window-rank count of
-// their own: buildingSpec.ts derives all three from one storey count, so a
-// building cannot be taller than the floors it has (see storeysOf there for
-// why that used to be possible and what it looked like).
-//
-// What stays here is the one dimension that is genuinely about DRAWING rather
-// than about the building: how many window bays run along a wall. PR C
-// replaces this with a real bay spacing in metres — a count is still wrong,
-// because it makes a window's width depend on the length of the wall it sits
-// on, and so gives the two walls of one building two different windows.
-const WALL_BAYS: Partial<Record<Motif, number>> = {
-  hall: 8, residential: 10, tower: 6, portico: 7, block: 10,
-  pavilion: 6, works: 4, hangar: 7,
-};
+// The motifs no longer carry a height, a ridge, a window-rank count or a
+// window-bay count of their own. buildingSpec.ts derives all four: the first
+// three from one storey count, and the fourth from the length of the wall the
+// bays actually run along — so a building cannot be taller than the floors it
+// has, and a window cannot change size because the wall it sits on is longer.
 
 // Where a building's LABEL sits: the middle of its mass, not its apex. The
 // full standing height (walls + ridge + any added floors) put the plate
@@ -117,6 +111,13 @@ export function paletteFrom(tint: string): Palette {
   };
 }
 
+// A retail podium's street level is a shopfront, not a rank of flats: one
+// tall opening per bay, sitting almost on the pavement. Its own two numbers
+// rather than the ordinary window's, because that is genuinely what differs —
+// the bay spacing it is set out on is the campus's.
+const SHOPFRONT_SILL = up(0.5);
+const SHOPFRONT_WIDTH = across(3.4);
+
 // A rectangle in a wall's own (u, v) coordinates. Used to reserve the bay a
 // door stands in so no window is drawn behind it.
 interface FaceRect { u0: number; u1: number; v0: number; v1: number; }
@@ -124,32 +125,52 @@ function overlaps(a: FaceRect, b: FaceRect): boolean {
   return a.u0 < b.u1 && a.u1 > b.u0 && a.v0 < b.v1 && a.v1 > b.v0;
 }
 
-// Windows on one wall, in that wall's own (u along, v up) coordinates — so
-// they come out correctly skewed with no projection maths of their own.
+// Windows on one wall, at their REAL size.
 //
-// `reserved` is the door's bay. Windows were previously drawn as a full
-// grid and the door laid over the top, which left panes showing through it
-// wherever the door was the more transparent of the two. A wall does not
-// have windows behind its door, so the grid skips those cells outright.
+// The wall's own (u along, v up) coordinates still do the projection work — a
+// pane is a rectangle in (u, v) and comes out correctly skewed for free. What
+// changed is where the rectangle's edges come from. They used to be a fraction
+// of the wall in both directions, which is what made a window's size a
+// property of the building rather than of the window. Now the width is a fixed
+// number of TILES (converted to u by dividing by this wall's span) and the
+// height is a fixed number of SCREEN UNITS (converted to v by dividing by this
+// wall's height), so the same window is drawn everywhere and the conversion is
+// the only thing that differs.
+//
+// `sills` is where each rank sits, in screen units above the base — one entry
+// per storey for an ordinary building, one entry near the eaves for a
+// clear-span volume (see buildingSpec's rankSills and clerestorySill).
+//
+// `reserved` is the door's bay. A wall does not have windows behind its door,
+// so the grid skips those cells outright rather than drawing them and letting
+// the door cover them — which left panes showing through wherever the door was
+// the more transparent of the two.
 function windows(
-  origin: Pt, along: Pt, height: number, cols: number, rows: number, key: string,
+  origin: Pt, along: Pt, wallHeight: number, spanTiles: number,
+  sills: number[], windowWidthTiles: number, key: string,
   reserved?: FaceRect,
 ) {
   const out: React.JSX.Element[] = [];
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const u0 = (c + 0.28) / cols; const u1 = (c + 0.72) / cols;
-      const v0 = (r + 0.3) / rows; const v1 = (r + 0.74) / rows;
+  if (wallHeight <= 0 || spanTiles <= 0) return out;
+  const bays = baysAcross(spanTiles);
+  const halfU = Math.min(windowWidthTiles / spanTiles, 1 / bays) / 2;
+  for (let r = 0; r < sills.length; r++) {
+    const v0 = sills[r] / wallHeight;
+    const v1 = (sills[r] + WINDOW_HEIGHT) / wallHeight;
+    if (v1 > 1) continue;             // no rank above the eaves
+    for (let b = 0; b < bays; b++) {
+      const centre = (b + 0.5) / bays;
+      const u0 = centre - halfU; const u1 = centre + halfU;
       if (reserved && overlaps({ u0, u1, v0, v1 }, reserved)) continue;
       out.push(
         <polygon
-          key={`${key}${r}-${c}`}
+          key={`${key}${r}-${b}`}
           className="iso-window"
           points={polyPoints([
-            facePoint(origin, along, height, u0, v0),
-            facePoint(origin, along, height, u1, v0),
-            facePoint(origin, along, height, u1, v1),
-            facePoint(origin, along, height, u0, v1),
+            facePoint(origin, along, wallHeight, u0, v0),
+            facePoint(origin, along, wallHeight, u1, v0),
+            facePoint(origin, along, wallHeight, u1, v1),
+            facePoint(origin, along, wallHeight, u0, v1),
           ])}
         />,
       );
@@ -158,6 +179,56 @@ function windows(
   return out;
 }
 
+// The band at each floor line, running the whole width of the wall.
+//
+// This is the horizontal structure a multi-storey facade needs, and it is the
+// part that still reads at the zoom the game opens at, when the panes
+// themselves are a few pixels across. It is also the honest way to draw what a
+// rank of windows sits on: one course per storey boundary rather than a sill
+// and a lintel around every opening, which would treble the polygon count for
+// a line the eye reads as continuous anyway.
+function floorCourses(
+  origin: Pt, along: Pt, wallHeight: number, lines: number[], key: string,
+) {
+  if (wallHeight <= 0) return [];
+  return lines.map((at, i) => {
+    const v0 = (at - FLOOR_COURSE / 2) / wallHeight;
+    const v1 = (at + FLOOR_COURSE / 2) / wallHeight;
+    if (v0 <= 0 || v1 >= 1) return null;
+    return (
+      <polygon
+        key={`${key}c${i}`}
+        className="iso-course"
+        points={polyPoints([
+          facePoint(origin, along, wallHeight, 0, v0),
+          facePoint(origin, along, wallHeight, 1, v0),
+          facePoint(origin, along, wallHeight, 1, v1),
+          facePoint(origin, along, wallHeight, 0, v1),
+        ])}
+      />
+    );
+  }).filter(Boolean);
+}
+
+// NO GLAZING BARS. This is worth recording, because the plan called for them
+// and they were built before being taken out again.
+//
+// The idea was one <pattern> in <defs>, filled into every pane, so a sash
+// window's muntins cost nothing per window on a campus that has several
+// thousand of them. It works as arithmetic and fails as drawing: a pattern is
+// laid out in the world's coordinates and a pane is a SKEWED rectangle in a
+// wall's, so every pane samples a different part of the pattern. Some came out
+// with a bright bar across a corner, some with none, and the rank as a whole
+// read as irregular — which is precisely the complaint this PR exists to fix.
+// The alternative, drawing each bar in the wall's own (u, v) space where it
+// would align correctly, triples the polygon count for a detail that is under
+// a pixel at the zoom the map is actually played at.
+//
+// So the panes are flat, and the facade's structure comes from the thing that
+// genuinely does read at this size: the floor courses above.
+
+// A rectangle in a wall's own (u, v) coordinates. Used to reserve the bay a
+// door stands in so no window is drawn behind it.
 // The scaffolding hatch, referenced by every site under construction. One
 // <pattern> defined once for the whole map rather than per building — see
 // SCAFFOLD_PATTERN_ID's use in CampusMap's <defs>.
@@ -390,7 +461,7 @@ const VILLAGE_HOUSES: Array<[number, number, number, number]> = [
   [0.88, 0.20, 0.09, 0.56],
 ];
 
-export default function BuildingMotif({ t, p, tint, developing }: {
+function BuildingMotif({ t, p, tint, developing }: {
   t: Buildable;
   p: { row: number; col: number; w: number; h: number };
   tint: string;
@@ -416,9 +487,11 @@ export default function BuildingMotif({ t, p, tint, developing }: {
   const f = boxFaces(col, row, w, h, 0, H);
   // One rank of windows per storey, always — including the storeys a
   // renovation added, which is what makes that growth legible rather than
-  // just making the building taller.
-  const bays = WALL_BAYS[motif];
-  const grid: [number, number] | undefined = bays ? [bays, windowRanksOf(t)] : undefined;
+  // just making the building taller. A clear-span volume has no storeys and
+  // gets one band near its eaves instead (see buildingSpec's clerestorySill).
+  const sills = storeysOf(t) > 0 ? rankSills(windowRanksOf(t)) : [clerestorySill(H)];
+  const paneW = windowWidthOf(t);
+  const courses = floorLinesOf(t);
 
   if (motif === 'village') {
     // A PLOT, not a building: lawn, walks between the ranks, and ten small
@@ -489,16 +562,17 @@ export default function BuildingMotif({ t, p, tint, developing }: {
     const pod = boxFaces(col, row, w, h, 0, PODIUM_H);
     const shaft = boxFaces(sc, sr, sw, sh, PODIUM_H, H - PODIUM_H);
     // The shaft carries every storey the tower has except the podium's.
-    const shaftBays = WALL_BAYS.tower!;
     const shaftRanks = Math.max(1, storeysOf(t) - TOWER_PODIUM_STOREYS);
+    const shaftSills = rankSills(shaftRanks);
+    const shaftW = windowWidthOf(t);
     return (
       <>
         {/* Podium: glazed at street level, so its "windows" are one tall
             rank of shopfront rather than the shaft's ranks of flats. */}
         <polygon points={polyPoints(pod.left)} fill={shade(tint, 0.88)} />
         <polygon points={polyPoints(pod.right)} fill={shade(tint, 0.70)} />
-        {windows(pod.D, pod.C, PODIUM_H, Math.max(3, Math.round(w * 1.2)), 1, 'pl', doorBay('tower', w))}
-        {windows(pod.C, pod.B, PODIUM_H, Math.max(3, Math.round(h * 1.2)), 1, 'pr', doorBay('tower', h))}
+        {windows(pod.D, pod.C, PODIUM_H, w, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pl', doorBay('tower', w))}
+        {windows(pod.C, pod.B, PODIUM_H, h, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pr', doorBay('tower', h))}
         <Door motif="tower" origin={pod.D} along={pod.C} height={PODIUM_H} span={w} />
         <Door motif="tower" origin={pod.C} along={pod.B} height={PODIUM_H} span={h} />
         <polygon points={polyPoints(pod.top)} fill={pal.roofDeck} />
@@ -506,8 +580,8 @@ export default function BuildingMotif({ t, p, tint, developing }: {
         {/* The shaft, ranked floor by floor. */}
         <polygon points={polyPoints(shaft.left)} fill={pal.wallLeft} />
         <polygon points={polyPoints(shaft.right)} fill={pal.wallRight} />
-        {windows(shaft.D, shaft.C, H - PODIUM_H, shaftBays, shaftRanks, 'tl')}
-        {windows(shaft.C, shaft.B, H - PODIUM_H, shaftBays, shaftRanks, 'tr')}
+        {windows(shaft.D, shaft.C, H - PODIUM_H, sw, shaftSills, shaftW, 'tl')}
+        {windows(shaft.C, shaft.B, H - PODIUM_H, sh, shaftSills, shaftW, 'tr')}
         <polygon points={polyPoints(shaft.top)} fill={pal.roof} />
         {/* Lift overrun and plant on the roof — what tells a tower's top
             from a flat lid at this distance. */}
@@ -598,8 +672,15 @@ export default function BuildingMotif({ t, p, tint, developing }: {
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
       {/* The left wall runs w tiles along col, the right wall h tiles along
           row, so each gets its own bay and its own door fraction. */}
-      {!developing && grid && windows(f.D, f.C, H, grid[0], grid[1], 'l', doorBay(motif, w))}
-      {!developing && grid && windows(f.C, f.B, H, grid[0], grid[1], 'r', doorBay(motif, h))}
+      {!developing && floorCourses(f.D, f.C, H, courses, 'l')}
+      {!developing && floorCourses(f.C, f.B, H, courses, 'r')}
+      {/* The left wall runs w tiles along col, the right wall h tiles along
+          row. Each gets its bay count from its OWN length — which is the whole
+          point: the same window then goes in both, instead of one wall's
+          windows coming out wider than the other's by the ratio of the two
+          spans. */}
+      {!developing && windows(f.D, f.C, H, w, sills, paneW, 'l', doorBay(motif, w))}
+      {!developing && windows(f.C, f.B, H, h, sills, paneW, 'r', doorBay(motif, h))}
       {!developing && <Door motif={motif} origin={f.D} along={f.C} height={H} span={w} />}
       {!developing && <Door motif={motif} origin={f.C} along={f.B} height={H} span={h} />}
 
@@ -705,6 +786,26 @@ export default function BuildingMotif({ t, p, tint, developing }: {
     </>
   );
 }
+
+// MEMOISED, and by PR C it has to be. A wall's windows are now set out on real
+// bays rather than on a fixed count of eight, so an eleven-tile hospital wall
+// carries twenty-two bays over eight storeys instead of ten over five — the
+// campus draws roughly three times the polygons it used to. The map's render
+// path runs on every mouse move (hover is React state), and re-reconciling
+// every pane on every pointer event is the difference between a smooth pan and
+// a janky one.
+//
+// A motif is a pure function of these four things, so the comparison is exact
+// rather than a heuristic. `p` is rebuilt on every render (see CampusMap's
+// drawnFootprint), which is why its fields are compared rather than its
+// identity; `t` genuinely is the same object until the reducer runs.
+export default memo(BuildingMotif, (a, b) => (
+  a.t === b.t
+  && a.tint === b.tint
+  && a.developing === b.developing
+  && a.p.col === b.p.col && a.p.row === b.p.row
+  && a.p.w === b.p.w && a.p.h === b.p.h
+));
 
 // ---------------------------------------------------------------------
 // Building tints. These moved OUT of styles.css: the motifs above derive

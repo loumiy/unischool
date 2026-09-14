@@ -832,6 +832,9 @@ button.build-tile { font-family: inherit; }
 .campus-map-svg.path-erase .campus-building { pointer-events: none; }
 
 .iso-window { fill: rgba(255, 253, 246, 0.5); }
+/* The band at each floor line: stone against brick, and the horizontal that
+   still reads once the panes themselves are a few pixels across. */
+.iso-course { fill: rgba(255, 253, 246, 0.22); }
 /* The way in. Darker than any window so it reads as an opening rather than
    one more pane, with a lintel over it and a step on the ground at its
    foot. */
