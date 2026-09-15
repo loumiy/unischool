@@ -962,6 +962,20 @@ button.build-tile { font-family: inherit; }
    own — and they scale with the world, so a line stays the right width
    relative to the pitch it is on at every zoom. */
 .ground-lawn { fill: #8fae6b; }
+/* A plate under construction (groundMarkings.tsx's GroundSite): graded
+   earth where the markings will go, inside a site hoarding. Deliberately
+   greyer and flatter than .ground-dirt, which is a MAINTAINED surface — an
+   infield somebody rakes — where this is ground that has been scraped and
+   left. */
+.ground-graded { fill: #a08965; }
+.ground-graded-scrape { stroke: rgba(74, 58, 38, 0.13); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
+/* Hoarding boards. Two tones on the same convention the walls use: a face
+   running along the columns catches the light, one running along the rows
+   is in shade (see buildingMotifs.tsx's paletteFrom). */
+.site-hoarding-a { fill: #cdb98c; }
+.site-hoarding-b { fill: #a8976f; }
+.site-hoarding-post { stroke: rgba(58, 47, 14, 0.28); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
+.site-hoarding-cap { stroke: rgba(58, 47, 14, 0.45); stroke-width: 1.2; fill: none; vector-effect: non-scaling-stroke; }
 /* Deliberately deeper than --grass (#7d9c60): a marked pitch is a
    different surface from the lawn around it, and at the first pass the two
    were close enough that the pitch had no edge at all. */

@@ -1117,7 +1117,11 @@ export default function CampusMap({
         // woodland around them instead of arriving as one block at the
         // plate's depth.
         const d = drawnFootprint(p);
-        for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier)) {
+        // A site has no props yet — same test PlacedBuilding uses for the
+        // plate itself, so the paint and the things standing on it can never
+        // disagree about whether the ground is finished.
+        const siteDeveloping = t.status === 'developing' && s.developing[id] !== undefined;
+        for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, siteDeveloping)) {
           entries.push({
             kind: 'prop', key: `g-${id}-${prop.key}`, node: prop.node,
             col: prop.col, row: prop.row, w: prop.w, h: prop.h,
@@ -1137,7 +1141,7 @@ export default function CampusMap({
       entries.push({ kind: 'tree', key: `t-${key}`, seed, col: tile.col, row: tile.row, w: 1, h: 1 });
     }
     return depthOrder(entries);
-  }, [s.placements, s.tech, s.trees, s.pathways]);
+  }, [s.placements, s.tech, s.trees, s.pathways, s.developing]);
 
   // The inspected building, if any, re-resolved against `placed` on every
   // render rather than trusted from state — same reasoning as `selected`

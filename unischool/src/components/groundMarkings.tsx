@@ -1,5 +1,6 @@
 import type { FacilityType } from '../state/types';
 import { boxFaces, lift, polyPoints, project, projectedArc, projectedCircle, projectedStadium, type Pt } from './isoProjection';
+import { up } from './campusScale';
 import { TreeAt, type Species } from './trees';
 
 // Open ground: the Buildables you walk across rather than into — the quad,
@@ -826,16 +827,128 @@ function PoolDeck({ col, row, w, h }: GroundProps) {
   );
 }
 
+// ---------------------------------------------------------------------
+// OPEN GROUND UNDER CONSTRUCTION — the state every marking above shares
+// while it is being laid.
+//
+// The old comment in buildingMotifs.tsx said open ground had "no
+// construction state worth drawing either, since there is nothing to
+// raise", and drew the finished surface throughout. That reasoning is
+// backwards: RISING MASS is how a building shows its progress, but it is
+// not what makes construction legible. The absence of the finished surface
+// is. A quad being laid was drawn complete — lawn, walks, fountain, trees —
+// with a progress bar lying on top of it, which reads as a finished quad
+// somebody has put a bar on rather than as a site.
+//
+// So a developing plate is graded earth inside a site hoarding, and nothing
+// else: no markings, no planting, no furniture (see groundProps below,
+// which returns an empty list while a plate is developing, so the trees and
+// fountains that stand ON a quad do not arrive before the quad does). The
+// progress bar along the front is drawn by CampusMap for every site alike.
+// ---------------------------------------------------------------------
+
+// A real site hoarding, near enough: high enough to stand in front of, low
+// enough that it never reads as a wall somebody is building.
+const HOARDING_H = up(2.1);
+
+// How far in from the plot edge the hoarding stands. Off the boundary by a
+// little so two adjacent sites do not draw their boards through each other.
+const HOARDING_INSET = 0.08;
+
+export function GroundSite({ col, row, w, h }: GroundProps) {
+  // The grader's passes, as scrape lines running the LONG way across the
+  // plot — which is the way a machine would actually work it. Counted from
+  // the short span in tiles rather than fixed, so a 3x3 courts site and a
+  // 20x11 field site both come out with passes about half a tile apart
+  // instead of the small one looking ploughed and the large one swept.
+  //
+  // Each pass is short of the edges by a different amount. Evenly spaced
+  // full-width lines are what a DECK looks like; ground that has been
+  // worked reads as overlapping runs that stop short, which is the whole
+  // difference between this and a plank floor. The offsets come off the
+  // index rather than Math.random: a site that reshuffled its own scrapes
+  // on every render would crawl.
+  const alongW = w >= h;
+  const passes = Math.max(3, Math.round((alongW ? h : w) * 1.8));
+  const jitter = (i: number, salt: number) => ((Math.sin((i + 1) * 12.9898 + salt) * 43758.5453) % 1 + 1) % 1;
+
+  const ic = col + w * HOARDING_INSET;
+  const ir = row + h * HOARDING_INSET;
+  const iw = w * (1 - HOARDING_INSET * 2);
+  const ih = h * (1 - HOARDING_INSET * 2);
+  const f = boxFaces(ic, ir, iw, ih, 0, HOARDING_H);
+
+  // The two panels facing the camera are f.left and f.right; the two behind
+  // are the same edges on the far side, and we see their inner faces. Each
+  // takes the tone of the panel it runs parallel to, so the four boards
+  // read as one enclosure rather than as four unrelated strips. Back before
+  // front, so a near board covers the far one it crosses.
+  const boards: Array<{ tone: string; pts: Pt[]; span: number }> = [
+    { tone: 'a', pts: [f.A, f.B, f.Bt, f.At], span: iw },
+    { tone: 'b', pts: [f.A, f.D, f.Dt, f.At], span: ih },
+    { tone: 'a', pts: f.left, span: iw },
+    { tone: 'b', pts: f.right, span: ih },
+  ];
+
+  return (
+    <>
+      <polygon className="ground-graded" points={polyPoints(boxFaces(col, row, w, h, 0, 0).top)} />
+      {Array.from({ length: passes }, (_, i) => {
+        const t = (i + 1) / (passes + 1);
+        const a = 0.03 + jitter(i, 0) * 0.22;
+        const b = 0.97 - jitter(i, 7) * 0.22;
+        return (
+          <line
+            key={i}
+            className="ground-graded-scrape"
+            {...(alongW ? uvLine(col, row, w, h, a, t, b, t) : uvLine(col, row, w, h, t, a, t, b))}
+          />
+        );
+      })}
+      {boards.map(({ tone, pts, span }, i) => {
+        // Posts every couple of tiles along the run. Without them the board
+        // is a ribbon of flat colour; with them it is a hoarding somebody
+        // erected, which is the difference this whole component is about.
+        const posts = Math.max(1, Math.round(span / 2.5) - 1);
+        return (
+          <g key={i}>
+            <polygon className={`site-hoarding-${tone}`} points={polyPoints(pts)} />
+            {Array.from({ length: posts }, (_, j) => {
+              const u = (j + 1) / (posts + 1);
+              const foot = { x: pts[0].x + (pts[1].x - pts[0].x) * u, y: pts[0].y + (pts[1].y - pts[0].y) * u };
+              return (
+                <line
+                  key={j}
+                  className="site-hoarding-post"
+                  x1={foot.x} y1={foot.y} x2={foot.x} y2={foot.y - HOARDING_H}
+                />
+              );
+            })}
+            {/* The capping rail along the top edge of each board, which is
+                what stops a flat plate reading as a change of colour. */}
+            <line className="site-hoarding-cap" x1={pts[3].x} y1={pts[3].y} x2={pts[2].x} y2={pts[2].y} />
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
 // Which marking each open-ground facility wears. The stadium's own field
 // is a gridiron too — see StadiumField below, which the bowl motif draws
 // inside its stands.
-export default function GroundMarking({ facilityType, col, row, w, h, tier }: GroundProps & {
+export default function GroundMarking({ facilityType, col, row, w, h, tier, developing }: GroundProps & {
   facilityType?: FacilityType;
   // The quad is the one open-ground facility with TIERS, and its two are
   // genuinely different places rather than the same lawn at two sizes (see
   // the quad block above). Nothing else here reads it.
   tier?: number;
+  // Before the switch, not inside it: a site is a site whatever is going to
+  // be on it when it is done, and the point of GroundSite is that every
+  // open-ground facility shares one.
+  developing?: boolean;
 }) {
+  if (developing) return <GroundSite col={col} row={row} w={w} h={h} />;
   switch (facilityType) {
     case 'athleticsField': return <Pitch col={col} row={row} w={w} h={h} />;
     case 'athleticsDiamond': return <Diamond col={col} row={row} w={w} h={h} />;
@@ -849,13 +962,21 @@ export default function GroundMarking({ facilityType, col, row, w, h, tier }: Gr
 
 // The raised half of an open-ground facility: every prop standing on it,
 // each with the point it stands on. Mirrors GroundMarking above exactly —
-// same switch, same argument list — so a facility can never have its paint
-// drawn without its props, or vice versa. An empty list is the normal
-// answer: a tennis court and a pool deck are paint all the way down.
+// same switch, same argument list, same `developing` shortcut ahead of it —
+// so a facility can never have its paint drawn without its props, or vice
+// versa. An empty list is the normal answer: a tennis court and a pool deck
+// are paint all the way down.
 export function groundProps(
   facilityType: FacilityType | undefined,
-  col: number, row: number, w: number, h: number, tier?: number,
+  col: number, row: number, w: number, h: number, tier?: number, developing?: boolean,
 ): GroundProp[] {
+  // Nothing stands on a site yet. Without this a quad under construction
+  // kept its full-grown trees, its fountain and its monument while the
+  // ground under them was still being graded — the props are a separate
+  // pass from the paint (see the note at the top of this file), so hiding
+  // one half and not the other is exactly the mistake the mirroring is
+  // meant to prevent.
+  if (developing) return [];
   switch (facilityType) {
     case 'athleticsField': return pitchProps(col, row, w, h);
     case 'athleticsDiamond': return diamondProps(col, row, w, h);

@@ -962,10 +962,23 @@ function BuildingMotif({ t, p, material, developing }: {
   const tint = pal.wallLeft;
   const roofTint = material.roof;
 
-  // Open ground has no mass at all — and no construction state worth
-  // drawing either, since there is nothing to raise.
+  // Open ground has no mass at all, so none of the raising below applies to
+  // it — but it does have a construction state, and it is GroundMarking's
+  // own (see groundMarkings.tsx's GroundSite). The mass rising is how a
+  // BUILDING shows progress; what shows it on a plate is that the finished
+  // surface is not there yet.
   if (motif === 'grounds') {
-    return <GroundMarking facilityType={t.facilityType} tier={t.tier} col={col} row={row} w={w} h={h} />;
+    return (
+      <GroundMarking
+        facilityType={t.facilityType}
+        tier={t.tier}
+        col={col}
+        row={row}
+        w={w}
+        h={h}
+        developing={developing}
+      />
+    );
   }
 
   // A site under construction is a footprint pegged out and a frame barely
