@@ -40,16 +40,27 @@ export function CurriculumIcon() {
   );
 }
 
-// Scholarship. A flask reads as "lab" and four of the university's
-// facilities are not labs — an institute, a studio, a computing centre —
-// so this is a lamp: the thing that is on when someone is working late,
-// in any discipline.
+// Research. This was a lamp, on the reasoning that a flask reads as "lab"
+// and four of the university's research facilities are not labs — an
+// institute, a studio, a computing centre. Overruled by playtest: a lamp
+// beside eight other glyphs reads as "lighting", or as a hint, and not as
+// the one thing the university is here to do. A microscope is the glyph
+// everyone already knows means research, and the tab it marks is where the
+// player commissions work, so being read instantly beats being read
+// precisely.
+//
+// Drawn as a real instrument rather than a symbol: eyepiece and canted
+// body tube, the limb curving back to the base, and the stage the tube
+// looks down at meeting that limb.
 export function ResearchIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <path d="M8 4h8l3 7H5l3-7Z" />
-      <path d="M12 11v7" />
-      <path d="M9 20h6" />
+      <path d="M13.3 3.5 15.7 4.9" />
+      <path d="M14.5 4.2 10.5 10.5" />
+      <path d="M9.6 9.9 11.4 11.1" />
+      <path d="M13.2 6.2c4 2.4 4.4 9.8 0.8 13.4" />
+      <path d="M7.2 12.4h9.2" />
+      <path d="M6 19.6h12" />
     </svg>
   );
 }

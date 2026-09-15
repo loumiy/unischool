@@ -1555,9 +1555,12 @@ button.build-tile { font-family: inherit; }
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 .satisfaction-card { border: 1px solid var(--parchment-line-lo); border-radius: var(--radius-lg);
   background: #f5efdd; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-/* An open card spans the full width of the grid, so the source list under
-   it has room to be a list rather than a column of wrapped fragments. */
-.satisfaction-card.open { grid-column: 1 / -1; }
+/* An open card deliberately does NOT span the row. It used to
+   (grid-column: 1 / -1), which meant expanding one card shoved every card
+   after it onto a new line — the whole panel reflowed to read one
+   breakdown. It grows in height inside its own column instead, and
+   grid-auto-flow: row dense above absorbs the ragged bottom edge that
+   leaves. */
 .satisfaction-card-head { display: flex; align-items: center; gap: 10px; }
 .satisfaction-card-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .satisfaction-card-label { font-weight: 700; font-size: var(--text-md); }
