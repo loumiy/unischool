@@ -1,7 +1,7 @@
 import type { Faculty, GameState, InitiativeDepth } from '../state/types';
 import { RESEARCH_TOPICS, isCrossDisciplinary, type ResearchTopic } from './researchTopics';
 import { WEEKS_PER_YEAR } from '../state/types';
-import { researchSchools } from './techData';
+import { labFields, researchSchools } from './techData';
 
 // ---------------------------------------------------------------------
 // RESEARCH, AS AUTHORED DATA — the tuning and the output table.
@@ -662,10 +662,26 @@ export function availableScholars(s: GameState, field: string): Faculty[] {
 }
 
 // The offer set for one vacant facility: one option per depth tier, each
-// carrying a topic drawn from what this school could actually run.
-export function initiativeOffers(s: GameState, labId: string, schoolFields: readonly string[]): InitiativeOffer[] {
+// carrying a topic THIS FACILITY could actually run.
+//
+// The pool is the facility's own, derived here from its id rather than
+// passed in — the bug this fixes was precisely a caller handing over the
+// wrong set of fields (the whole school's), and a function that cannot be
+// told the wrong pool cannot have that bug again.
+//
+// "Could run" means the facility's field is AMONG the topic's fields, not
+// merely overlapping some school-wide set. A single-field topic is offered
+// in the one lab that field belongs to; a cross-disciplinary topic is
+// offered in each of the labs it names, and in no others — so a project
+// always belongs to the place it is happening, while a physicist can still
+// be on a Materials + Chemistry project running out of either lab.
+//
+// A facility id that names no research facility (or one whose field the
+// catalogue no longer has) yields an empty pool and four blocked tiers,
+// which is the honest answer rather than a crash.
+export function initiativeOffers(s: GameState, labId: string): InitiativeOffer[] {
   const epoch = Math.floor((s.clock.year * WEEKS_PER_YEAR + s.clock.week) / OFFER_EPOCH_WEEKS);
-  const fieldSet = new Set(schoolFields);
+  const fieldSet = new Set(labFields(labId));
 
   const runnable = RESEARCH_TOPICS.filter((topic) => topic.fields.some((f) => fieldSet.has(f)));
 
@@ -686,8 +702,8 @@ export function initiativeOffers(s: GameState, labId: string, schoolFields: read
         suggested: [],
         fundingCost: initiativeFundingCost(s, depth),
         blockedReason: depth.requiresCrossDisciplinary
-          ? 'No interdisciplinary topic this school can lead'
-          : 'No topic available for this school',
+          ? 'No interdisciplinary topic this facility can lead'
+          : 'No topic available for this facility',
       } satisfies InitiativeOffer;
     }
 

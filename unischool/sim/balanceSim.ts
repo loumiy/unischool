@@ -218,7 +218,7 @@ function commissionScholarship(
       const lab = s.tech.find((t) => t.id === labId);
       if (!lab || lab.status !== 'done' || s.research.initiatives[labId]) continue;
 
-      const offers = initiativeOffers(s, labId, school.fields);
+      const offers = initiativeOffers(s, labId);
       // Deepest first: a player with cash and a department deep enough to
       // spare the people commits them. Committing DOES orphan whatever
       // they teach — that is decision 2's cost, and restaffOrphans below

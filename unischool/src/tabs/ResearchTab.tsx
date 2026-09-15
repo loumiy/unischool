@@ -138,14 +138,16 @@ function RunningPanel(
 // A vacant facility, and the offer set that fills it. One card per depth
 // tier, each pre-loaded with a topic this school could actually lead.
 function VacantPanel(
-  { s, act, lab, fields }:
-  { s: GameState; act: (a: Action) => void; lab: Buildable; fields: readonly string[] },
+  { s, act, lab }:
+  { s: GameState; act: (a: Action) => void; lab: Buildable },
 ) {
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState<InitiativeOffer | null>(null);
   const [team, setTeam] = useState<string[]>([]);
 
-  const offers = useMemo(() => initiativeOffers(s, lab.id, fields), [s, lab.id, fields]);
+  // The offers are the FACILITY's — see initiativeOffers, which reads the
+  // lab's own field off its id rather than being handed a pool.
+  const offers = useMemo(() => initiativeOffers(s, lab.id), [s, lab.id]);
 
   function choose(offer: InitiativeOffer) {
     setPicked(offer);
@@ -281,7 +283,7 @@ export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action)
     school.labIds
       .map((id) => s.tech.find((t) => t.id === id))
       .filter((lab): lab is Buildable => !!lab && lab.status === 'done')
-      .map((lab) => ({ lab, fields: school.fields })));
+      .map((lab) => ({ lab })));
 
   const underway = facilities
     .map(({ lab }) => ({ lab, initiative: s.research.initiatives[lab.id] }))
@@ -335,8 +337,8 @@ export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action)
                   {underway.length > 0 ? 'Standing idle' : 'Ready for work'}
                 </h3>
                 <div className="facility-list vacant-list">
-                  {vacant.map(({ lab, fields }) => (
-                    <VacantPanel key={lab.id} s={s} act={act} lab={lab} fields={fields} />
+                  {vacant.map(({ lab }) => (
+                    <VacantPanel key={lab.id} s={s} act={act} lab={lab} />
                   ))}
                 </div>
               </>

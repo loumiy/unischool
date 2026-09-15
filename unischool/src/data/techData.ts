@@ -1311,6 +1311,34 @@ export interface ResearchSchool {
   fields: string[];  // every Faculty field that teaches in this school (deduplicated)
 }
 
+// WHICH FIELD'S WORK HAPPENS IN THIS FACILITY. A research facility is
+// authored per lab-gated major (LAB_GATED_MAJOR_PREFIXES above, through
+// labId), so the mapping already exists — this only surfaces it.
+//
+// It is NOT researchSchools().fields, and the difference is the whole point
+// of the function. A school's fields are everyone who could staff a project
+// there; a facility's fields are what the facility is FOR. Conflating them
+// is what produced "Acoustics of Performance Spaces in the Aerospace
+// Engineering Lab": every lab in a school was offered the same school-wide
+// topic pool, so a school with a dozen labs offered each of them the same
+// dozen unrelated projects.
+//
+// Plural because the shape should not have to change if a facility ever
+// serves more than one major — today every one of them serves exactly one,
+// so this returns a single field, or nothing at all for an id that names no
+// research facility.
+export function labFields(facilityId: string): string[] {
+  const fields: string[] = [];
+  for (const school of SCHOOLS) {
+    for (const major of school.majors) {
+      if (LAB_GATED_MAJOR_PREFIXES.includes(major.prefix) && labId(major.prefix) === facilityId) {
+        fields.push(major.field);
+      }
+    }
+  }
+  return fields;
+}
+
 export function researchSchools(): ResearchSchool[] {
   return SCHOOLS.map((school) => {
     const fields = new Set<string>(school.majors.map((major) => major.field));
