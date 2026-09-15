@@ -226,6 +226,29 @@ const GREEK_LETTERS: readonly string[] = [
   'Phi', 'Chi', 'Psi', 'Omega',
 ];
 
+// The same twenty-four, as the letters themselves. A chapter has always been
+// named out of the list above and has always been WRITTEN in English words,
+// which is fine in a list of organisations and wrong on a building: what goes
+// over a chapter house's door is ΑΒΓ.
+//
+// Indexed against GREEK_LETTERS rather than paired with it entry by entry, so
+// the two can never drift into disagreeing about which letter is which.
+const GREEK_GLYPHS = 'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ';
+
+// A chapter's name in its own alphabet. Exported because a save that predates
+// the stored field is carried forward by deriving it from the name the save
+// does have (see state/persistence.ts) rather than by a transform migration:
+// the name IS the letters, so nothing is being invented.
+export function glyphsFor(name: string): string {
+  return name
+    .split(' ')
+    .map((word) => {
+      const i = GREEK_LETTERS.indexOf(word);
+      return i === -1 ? '' : GREEK_GLYPHS[i];
+    })
+    .join('');
+}
+
 function pick<T>(items: readonly T[]): T {
   return items[Math.floor(Math.random() * items.length)];
 }
@@ -798,6 +821,7 @@ export function activatePetition(s: GameState, petition: OrgPetition): void {
     const chapter: GreekChapter = {
       ...base,
       kind: petition.greekKind ?? 'fraternity',
+      glyphs: glyphsFor(base.name),
       housed: false,
       housingAsked: false,
     };

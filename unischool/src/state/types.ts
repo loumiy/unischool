@@ -252,6 +252,34 @@ export interface Buildable {
   // both the reducer and the build panel read to agree on what the next
   // renovation costs and grants. Undefined means never renovated, same as 0.
   floorsAdded?: number;
+  // The servesPopulation this Buildable had BEFORE the renovation it is
+  // currently in, and the whole of what makes a renovation add capacity
+  // rather than take it away and give it back. Set when RENOVATE_LIBRARY
+  // puts the node back into 'developing'; cleared when it finishes.
+  //
+  // A renovating library is not a building site with nothing in it: three
+  // finished floors of study seats are still open while the fourth goes up.
+  // The live-read contract below says 'done' facilities are what the sums
+  // count, and that reading is right for everything that has never opened —
+  // this is the one case where the node is 'developing' and yet a real part
+  // of it is in use, so it is spelled out as its own field rather than
+  // inferred from status. Additive and optional: an old save has no
+  // renovation in flight to describe, and reads as undefined.
+  renovatingFrom?: number;
+}
+
+// What a Buildable is contributing to the satisfaction sums RIGHT NOW.
+//
+// Not the same as effects.servesPopulation, which is what it will serve
+// when it is finished. A 'done' facility serves its full figure; a facility
+// that has never opened serves nothing; and a facility part-way through an
+// in-place renovation serves what it served before the work started (see
+// renovatingFrom above). Written once, here, because three separate sums
+// and one drawer all have to agree about it.
+export function servingPopulation(t: Buildable): number {
+  if (t.status === 'done') return t.effects?.servesPopulation ?? 0;
+  if (t.status === 'developing' && t.renovatingFrom !== undefined) return t.renovatingFrom;
+  return 0;
 }
 
 // Effects a Buildable can grant when finished. Deliberately no reputation
@@ -262,7 +290,8 @@ export interface Buildable {
 // (techSystem.ts's applyEffects mutates state directly). The second block is
 // never mutated into state — it's read LIVE, every tick, off every currently
 // 'done' Buildable by the system that cares (satisfactionSystem.ts sums
-// servesPopulation/satisfactionAttribute/flatSatisfactionBonus;
+// servesPopulation/satisfactionAttribute/flatSatisfactionBonus, through
+// servingPopulation above, which is 'done' plus the one renovation case;
 // prestigeSystem.ts sums prestigeContribution;
 // financeSystem.ts sums upkeepPerWeek) — so a facility's contribution stays
 // current even though nothing "happens" on the weeks after it finishes.
@@ -744,6 +773,13 @@ export interface StudentClub extends StudentOrgBase {
 // has to be able to ask each chapter at most once.
 export interface GreekChapter extends StudentOrgBase {
   kind: 'fraternity' | 'sorority';
+  // The chapter's three letters as LETTERS — 'ΑΒΓ' for Alpha Beta Gamma.
+  // Stored rather than derived at every read because it is what goes on the
+  // chapter house's pediment on the campus map, and a building should not be
+  // re-parsing an English sentence on every frame to find out its own name.
+  // Derived from `name` on load for saves that predate the field (see
+  // persistence.ts), which is exact: the name is the letters.
+  glyphs: string;
   housed: boolean;       // a dedicated chapter house has been built for them
   housingAsked: boolean; // they have already petitioned for one — never ask again, whatever the answer was
 }

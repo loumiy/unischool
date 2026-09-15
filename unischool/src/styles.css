@@ -962,6 +962,20 @@ button.build-tile { font-family: inherit; }
    own — and they scale with the world, so a line stays the right width
    relative to the pitch it is on at every zoom. */
 .ground-lawn { fill: #8fae6b; }
+/* A plate under construction (groundMarkings.tsx's GroundSite): graded
+   earth where the markings will go, inside a site hoarding. Deliberately
+   greyer and flatter than .ground-dirt, which is a MAINTAINED surface — an
+   infield somebody rakes — where this is ground that has been scraped and
+   left. */
+.ground-graded { fill: #a08965; }
+.ground-graded-scrape { stroke: rgba(74, 58, 38, 0.13); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
+/* Hoarding boards. Two tones on the same convention the walls use: a face
+   running along the columns catches the light, one running along the rows
+   is in shade (see buildingMotifs.tsx's paletteFrom). */
+.site-hoarding-a { fill: #cdb98c; }
+.site-hoarding-b { fill: #a8976f; }
+.site-hoarding-post { stroke: rgba(58, 47, 14, 0.28); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
+.site-hoarding-cap { stroke: rgba(58, 47, 14, 0.45); stroke-width: 1.2; fill: none; vector-effect: non-scaling-stroke; }
 /* Deliberately deeper than --grass (#7d9c60): a marked pitch is a
    different surface from the lawn around it, and at the first pass the two
    were close enough that the pitch had no edge at all. */
@@ -990,6 +1004,10 @@ button.build-tile { font-family: inherit; }
    along its top — a stroke alone would have read as one more painted
    marking among the base lines. */
 .ground-fence { fill: rgba(70, 62, 48, 0.5); }
+/* The backstop screen behind home plate: netting, so it is drawn far
+   lighter than the outfield fence — you are meant to see the plate
+   through it. */
+.ground-backstop { fill: rgba(70, 62, 48, 0.22); }
 .ground-fence-rail { stroke: rgba(246, 241, 226, 0.5); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
 /* Seat rows stepping up a raked stand (groundMarkings.tsx's RakedStand).
    The stroke colour is passed per stand — the stadium shades its own from
@@ -1061,6 +1079,17 @@ button.build-tile { font-family: inherit; }
    building finishing, a save loading) is dark until that pass reaches it
    rather than flashing on at full strength. The transition only has to smooth
    the ends of the range; the falloff itself is continuous. */
+/* A chapter house's pediment and the letters on it (buildingMotifs.tsx's
+   ChapterPediment). The stone is the same limestone every other piece of
+   trim on the campus is cut from; the letters are cut INTO it, which is why
+   they are a darker tone of the same stone rather than a colour of their
+   own. */
+.chapter-pediment { fill: #efe9da; }
+.chapter-letters {
+  fill: #8a7f63; font-family: var(--serif); font-weight: 700;
+  dominant-baseline: middle; user-select: none; pointer-events: none;
+}
+
 .campus-label { pointer-events: none; opacity: 0; transition: opacity 90ms linear; }
 .campus-label-plate { fill: rgba(20, 26, 16, 0.5); }
 .campus-label-text { fill: #f6f1e2; font-family: var(--serif); text-anchor: middle; dominant-baseline: middle; user-select: none; }

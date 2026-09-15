@@ -832,16 +832,22 @@ export function reducer(state: GameState, action: Action): GameState {
     // its already-placed spot — s.placements is untouched, there is no
     // second footprint — and its own effects are raised right away so they
     // take over the moment tickTech's ordinary completion flips status back
-    // to 'done'. Bumping effects at the START rather than waiting for
-    // completion changes nothing observable: a 'developing' Buildable
-    // already contributes zero to every live-read sum (satisfaction,
-    // prestige, research), so the library reads as fully offline for the
-    // whole renovation regardless of which moment the number itself changes.
+    // to 'done'.
+    //
+    // Raising effects at the START is only safe because the node also
+    // records what it was serving BEFORE the work (renovatingFrom), which
+    // is what the satisfaction sums read while it is 'developing' — see
+    // types.ts's servingPopulation. Without that the library went fully
+    // offline for the whole renovation and the new figure arrived only at
+    // completion, so adding a fourth floor first took three away: a school
+    // could watch its academic score fall for a year and read the
+    // renovation as having caused it. The floors that exist keep working.
     case 'RENOVATE_LIBRARY': {
       const node = s.tech.find((t) => t.id === LIBRARY_TIER1_ID);
       const plan = node ? nextLibraryFloor(node) : null;
       if (node && plan && node.status === 'done' && s.finance.cash >= plan.cost) {
         const servesPopulation = (node.effects?.servesPopulation ?? 0) + plan.servesGain;
+        node.renovatingFrom = node.effects?.servesPopulation ?? 0;
         node.status = 'developing';
         s.developing[node.id] = plan.weeks;
         s.finance.cash -= plan.cost;

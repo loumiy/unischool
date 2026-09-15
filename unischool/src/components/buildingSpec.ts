@@ -155,6 +155,20 @@ function addedFloors(t: Buildable): number {
   return Math.max(0, t.floorsAdded ?? 0);
 }
 
+// How many of those floors are not built yet.
+//
+// floorsAdded is bumped when the renovation STARTS (see the reducer's
+// RENOVATE_LIBRARY), so storeysOf already counts the floor going up. That is
+// right for everything that asks how tall the building will be and wrong for
+// the one thing that asks how tall it is standing today.
+//
+// One at a time, because that is what a renovation commits to: nextLibraryFloor
+// plans exactly one floor per RENOVATE_LIBRARY, and a second cannot be
+// started while the first is running (the node is not 'done').
+export function floorsUnderConstruction(t: Buildable): number {
+  return t.renovatingFrom !== undefined ? 1 : 0;
+}
+
 // The two professional schools (Medicine, Law) stand a storey taller than an
 // undergraduate school building, the same way they cost a rung more and cover
 // a rung more ground — identified by `graduateProgram`, which is set on
@@ -253,12 +267,34 @@ const RIDGE_METRES: Partial<Record<Motif, number>> = {
   // a storey and a half, which is what made the campus's landmarks read as
   // sheds with windows.
   hall: 2.2,
-  residential: 4.6,
   village: 3.0,
 };
 
+// A residence hall's roof, by how big the hall IS — the one motif whose ridge
+// is not a constant.
+//
+// The academic halls were fixed by the note above and the dorms were left at
+// 4.6 m, a ridge a storey and a third deep carried the length of a block, so
+// every rung of the chain from the founding hall to a 1,000-bed slab wore the
+// same barn roof at a different size. A roofline is one of the two things (the
+// other being ground) that tell you a building's size and kind at a glance,
+// and using it for neither was a waste of both.
+//
+// The ladder now genuinely changes shape as it climbs: a three-storey hall is
+// a HOUSE and keeps a real domestic pitch; four and five storeys are an
+// institutional hall and get the same shallow hip the academic halls wear; six
+// and up is a block, and a block is flat behind its own parapet, which is what
+// buildings that size are actually built as.
+function residentialRidgeMetres(storeys: number): number {
+  if (storeys <= 3) return 4.2;
+  if (storeys <= 5) return 2.4;
+  return 0;
+}
+
 export function ridgeOf(t: Buildable): number {
-  return up(RIDGE_METRES[motifOf(t)] ?? 0);
+  const motif = motifOf(t);
+  if (motif === 'residential') return up(residentialRidgeMetres(storeysOf(t)));
+  return up(RIDGE_METRES[motif] ?? 0);
 }
 
 // ---------------------------------------------------------------------
@@ -576,8 +612,13 @@ export interface Material {
 // different colour, and the one place the map needs variety — which building
 // is which — is answered by the walls.
 const SLATE = '#5f6b5f';
-// Flat roofs read lighter than pitched ones: you are looking at the deck
-// rather than at a slope turned away from the light.
+// The campus's LIGHT roof. Flat roofs wear it because you are looking at the
+// deck rather than at a slope turned away from the light — and so do the
+// residence halls, whose walls are the one dark material on the map (see
+// brickDark below). Dark brick under dark slate is one mass with a line
+// across it, which is exactly the failure the wall/roof split exists to
+// prevent; dark brick under a pale lead roof is a building. Two uses, one
+// tone, because a third grey would be the colour chart creeping back.
 const DECK = '#7c8377';
 
 const MATERIALS = {
@@ -593,6 +634,17 @@ const MATERIALS = {
   render: { wall: '#b0a992', roof: DECK },
   // Glass and steel, for the two things that are actually curtain-walled.
   curtain: { wall: '#93a9b4', roof: DECK },
+  // The residence halls, and the one wall on the map that is DARK. They used
+  // to be the same red brick as the academic halls, which is how a campus of
+  // nine landmarks and a dozen dorms came to read as one long row of the same
+  // building: the halls lost their standing and the dorms looked like barns.
+  // Dark brick is the empty slot in this palette — every other wall here sits
+  // in the top half of the range — so the residential quarter now reads as a
+  // different KIND of place from across the map rather than as more of the
+  // same at a different size. It also earns the trim: the plinth, the cornice
+  // and the floor courses are pale limestone, and against a dark wall they
+  // are bands you can see rather than a 22%-white ghost on red.
+  brickDark: { wall: '#6d4b3c', roof: DECK },
   // The health chain. A modern hospital is white panel and glazing rather than
   // stone, and it is the one building type on this campus that genuinely is a
   // different construction from everything around it — which is worth a
@@ -621,7 +673,7 @@ export const TOWER_STONE = '#e4dcc8';
 export function materialOf(t: Buildable): Material {
   if (t.kind === 'building') return MATERIALS.brickRed;
   if (t.kind === 'dorm') {
-    return motifOf(t) === 'tower' ? MATERIALS.curtain : MATERIALS.brickRed;
+    return motifOf(t) === 'tower' ? MATERIALS.curtain : MATERIALS.brickDark;
   }
   switch (t.facilityType) {
     case 'library':

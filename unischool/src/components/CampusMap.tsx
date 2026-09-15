@@ -7,6 +7,7 @@ import {
   isPlaceableKind, orientedFootprint, parsePathTileKey,
 } from '../state/campusMap';
 import { canStartDevelopment } from '../systems/techtree/techSystem';
+import { chapterHouseId } from '../data/eventData';
 import { isTypingTarget, useHotkeys } from './hotkeys';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
@@ -285,10 +286,13 @@ type SceneEntry = DepthBox & (
 // actually drawn is both correct and free — there are only ever a few dozen
 // buildings, so nothing here needs the arithmetic picking the ground uses.
 function PlacedBuilding({
-  t, p, onInspect, inspected, weeksLeft, justFinished,
+  t, p, onInspect, inspected, weeksLeft, justFinished, glyphs,
 }: {
   t: Buildable; p: Placement; onInspect: () => void; inspected: boolean;
   weeksLeft?: number; justFinished?: boolean;
+  // A chapter house's letters, looked up from the chapter that owns it
+  // rather than stored on the Buildable — see BuildingMotif's own note.
+  glyphs?: string;
 }) {
   const d = drawnFootprint(p);
   const developing = t.status === 'developing' && weeksLeft !== undefined;
@@ -317,7 +321,7 @@ function PlacedBuilding({
           />
         );
       })()}
-      <BuildingMotif t={t} p={d} material={materialOf(t)} developing={developing} />
+      <BuildingMotif t={t} p={d} material={materialOf(t)} developing={developing} glyphs={glyphs} />
       {inspected && (
         // The footprint picked out on the ground, which is the one outline
         // that cannot be hidden by the building standing on it.
@@ -1090,6 +1094,16 @@ export default function CampusMap({
   // ground it actually covers.
   const groundPlaced = placed.filter(({ t }) => motifOf(t) === 'grounds');
 
+  // A chapter house's letters, by Buildable id. Derived from the roster of
+  // chapters every render rather than copied onto the house when it is
+  // built: a scandal can disband a chapter (and take its house with it), so
+  // the letters have to come from the thing that owns them.
+  const chapterGlyphs = useMemo(() => {
+    const byId: Record<string, string> = {};
+    for (const c of s.orgs.chapters) byId[chapterHouseId(c.id)] = c.glyphs;
+    return byId;
+  }, [s.orgs.chapters]);
+
   // THE SORTED SCENE — every mass, every tree and every raised prop, in the
   // order they have to be painted in (see depthSort.ts for why that is a
   // topological sort over an occlusion relation rather than a sort key).
@@ -1117,7 +1131,11 @@ export default function CampusMap({
         // woodland around them instead of arriving as one block at the
         // plate's depth.
         const d = drawnFootprint(p);
-        for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier)) {
+        // A site has no props yet — same test PlacedBuilding uses for the
+        // plate itself, so the paint and the things standing on it can never
+        // disagree about whether the ground is finished.
+        const siteDeveloping = t.status === 'developing' && s.developing[id] !== undefined;
+        for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, siteDeveloping)) {
           entries.push({
             kind: 'prop', key: `g-${id}-${prop.key}`, node: prop.node,
             col: prop.col, row: prop.row, w: prop.w, h: prop.h,
@@ -1137,7 +1155,7 @@ export default function CampusMap({
       entries.push({ kind: 'tree', key: `t-${key}`, seed, col: tile.col, row: tile.row, w: 1, h: 1 });
     }
     return depthOrder(entries);
-  }, [s.placements, s.tech, s.trees, s.pathways]);
+  }, [s.placements, s.tech, s.trees, s.pathways, s.developing]);
 
   // The inspected building, if any, re-resolved against `placed` on every
   // render rather than trusted from state — same reasoning as `selected`
@@ -1245,6 +1263,7 @@ export default function CampusMap({
                 inspected={t.id === inspectedId}
                 weeksLeft={s.developing[t.id]}
                 justFinished={justFinished.includes(t.id)}
+                glyphs={chapterGlyphs[t.id]}
               />
             ))}
 
@@ -1269,6 +1288,7 @@ export default function CampusMap({
                     inspected={entry.id === inspectedId}
                     weeksLeft={s.developing[entry.id]}
                     justFinished={justFinished.includes(entry.id)}
+                    glyphs={chapterGlyphs[entry.id]}
                   />
                 </g>
               );

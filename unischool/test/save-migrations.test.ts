@@ -698,6 +698,60 @@ function testCourseFacultySanitizer(): void {
   assert(loaded.courseFaculty['NO-SUCH-COURSE'] === undefined, 'an assignment to a course that does not exist is dropped');
 }
 
+// ---- a chapter's letters, filled in on load ----
+//
+// GreekChapter.glyphs was added after SAVE_VERSION 33 and deliberately did
+// NOT get a version bump and a transform, because there is nothing to
+// transform: a chapter has always been NAMED out of the Greek alphabet, so
+// the letters are the same name written the way a building writes it (see
+// persistence.ts's sanitizeChapters). What is worth pinning is that a save
+// written before the field loads with the letters present — the campus map
+// reads them straight off the chapter, and an undefined here is an empty
+// pediment on every chapter house the player has built.
+function testChapterGlyphs(): void {
+  const base = createInitialState('Hellenic', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+  const orgs = state.orgs as Record<string, unknown>;
+  orgs.chapters = [
+    // A chapter as an older save wrote it: no `glyphs` at all.
+    {
+      id: 'c1', name: 'Alpha Beta Gamma', kind: 'fraternity', foundedYear: 3,
+      foundingMembers: 18, foundingEnrolled: 900, upkeepPerWeek: 1200,
+      members: 40, housed: true, housingAsked: true,
+    },
+    {
+      id: 'c2', name: 'Delta Sigma Phi', kind: 'sorority', foundedYear: 5,
+      foundingMembers: 22, foundingEnrolled: 1400, upkeepPerWeek: 1400,
+      members: 51, housed: false, housingAsked: false,
+    },
+    // A hand-edited name that is not three Greek words at all.
+    {
+      id: 'c3', name: 'The Tuesday Club', kind: 'fraternity', foundedYear: 6,
+      foundingMembers: 9, foundingEnrolled: 1500, upkeepPerWeek: 900,
+      members: 12, housed: false, housingAsked: true,
+    },
+  ];
+  writeSave(SAVE_VERSION, state);
+
+  const loaded = loadGame();
+  assert(loaded !== null, 'a save written before chapters had letters still loads');
+  if (!loaded) return;
+  const by = (id: string) => loaded.orgs.chapters.find((c) => c.id === id)!;
+  assert(by('c1').glyphs === 'ΑΒΓ', `Alpha Beta Gamma comes back as ΑΒΓ (got ${by('c1').glyphs})`);
+  assert(by('c2').glyphs === 'ΔΣΦ', `Delta Sigma Phi comes back as ΔΣΦ (got ${by('c2').glyphs})`);
+  assert(
+    by('c3').glyphs === '',
+    'and a name that is not Greek letters comes back empty rather than wrong — an empty pediment beats a made-up one',
+  );
+
+  // A chapter that already carries its letters is left alone, which is what
+  // makes this safe to run on every load rather than once.
+  const again = JSON.parse(JSON.stringify(loaded)) as Loose;
+  (again.orgs as { chapters: Array<{ glyphs: string }> }).chapters[0].glyphs = 'ΩΩΩ';
+  writeSave(SAVE_VERSION, again);
+  assert(loadGame()!.orgs.chapters[0].glyphs === 'ΩΩΩ', 'a chapter that already has letters keeps them');
+}
+
 // ---- v31 -> v32: scholarship reaches every school ----
 //
 // Two promises worth pinning: the four new facilities arrive, and the
@@ -792,6 +846,7 @@ testAthleticsV2Migration();
 testCampusContentMigration();
 testCourseFacultyMigration();
 testCourseFacultySanitizer();
+testChapterGlyphs();
 testScholarshipMigration();
 testRoundTrip();
 testRejects();

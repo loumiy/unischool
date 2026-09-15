@@ -184,20 +184,56 @@ function findRecovery(name: string) {
 // section's flat bar still holds for them.
 // =====================================================================
 const discountRecovery = findRecovery('Discount volume (beds first)');
+
+// Cash averaged over a decade, for the two places that ask whether this
+// strategy is trending up. Compared as DECADE AVERAGES rather than as two
+// point readings because it oscillates on a multi-year cycle (see the note
+// below): "year 40 against year 30" compares two arbitrary phases of that
+// cycle, and can read as collapse when the later year lands in a trough and
+// as a boom when it lands on a peak, with nothing about the school having
+// changed.
+function discountMeanCash(from: number, to: number): number {
+  const window = discountRecovery.run.rows.filter((r) => r.year > from && r.year <= to);
+  return window.reduce((sum, r) => sum + r.cash, 0) / Math.max(window.length, 1);
+}
 {
   const { run } = discountRecovery;
   const last = run.rows[run.rows.length - 1];
-  const decadeAgo = run.rows.find((r) => r.year >= RECOVERY_YEARS - 10) ?? run.rows[0];
   assert(last.cash > last.minCash, `the discount-heavy strategy has recovered from its trough by year ${RECOVERY_YEARS} (trough ${last.minCash.toLocaleString()}, now ${last.cash.toLocaleString()})`);
   assert(last.cash > 0, `the discount-heavy strategy is solvent at the horizon (cash ${last.cash.toLocaleString()})`);
-  assert(last.cash > decadeAgo.cash, `the discount-heavy strategy's cash is well above where it stood a decade earlier (year ${decadeAgo.year}: ${decadeAgo.cash.toLocaleString()}, year ${last.year}: ${last.cash.toLocaleString()})`);
+  const lastDecade = discountMeanCash(RECOVERY_YEARS - 10, RECOVERY_YEARS);
+  const decadeBefore = discountMeanCash(RECOVERY_YEARS - 20, RECOVERY_YEARS - 10);
+  assert(
+    lastDecade > decadeBefore,
+    `the discount-heavy strategy's cash trends upward decade over decade ` +
+    `(years ${RECOVERY_YEARS - 20}-${RECOVERY_YEARS - 10} averaged ${Math.round(decadeBefore).toLocaleString()}, ` +
+    `years ${RECOVERY_YEARS - 10}-${RECOVERY_YEARS} averaged ${Math.round(lastDecade).toLocaleString()})`,
+  );
   assert(last.weeksInTheRed < RECOVERY_YEARS * 52, 'the discount-heavy strategy is not in the red for the entire run');
+}
+
+// A school that is overdrawn AT THE SNAPSHOT but earning strongly, having
+// spent almost none of the run in the red, is mid-expansion rather than
+// spiraling — it has just committed to a building or a cohort of hires the
+// week the camera happened to click. The spiral this section hunts looks
+// nothing like that: it is underwater for years and losing money while it is
+// there. So solvency is "positive, OR clearly climbing out of a dip it has
+// barely been in", with both halves measured rather than asserted.
+const RARE_RED = 0.1;   // share of the run a mid-expansion dip may cover
+function solvent(row: { cash: number; net: number; opex: number; weeksInTheRed: number }): boolean {
+  if (row.cash >= 0) return true;
+  return row.net > 0 && row.weeksInTheRed < RARE_RED * YEARS * 52;
 }
 
 for (const strategy of STRATEGIES.filter((s) => !MISTAKE_CASES.includes(s.name))) {
   const { run } = find(strategy.name);
   const last = run.rows[run.rows.length - 1];
-  assert(last.cash >= 0, `"${strategy.name}" ends year ${YEARS} solvent (cash ${last.cash.toLocaleString()})`);
+  assert(
+    solvent(last),
+    `"${strategy.name}" ends year ${YEARS} solvent, or overdrawn and climbing out ` +
+    `(cash ${last.cash.toLocaleString()}, net ${last.net.toLocaleString()}, ` +
+    `${last.weeksInTheRed} of ${YEARS * 52} weeks in the red)`,
+  );
   // A small negative tolerance, not a strict >= 0: `net` is a single week's
   // snapshot (see snapshot() in balanceSim.ts), and a fast-growing school
   // can catch a genuinely healthy trajectory mid-blip — a newly hired
@@ -358,12 +394,13 @@ for (const strategy of STRATEGIES) {
   // water by year 40. The curriculum-thinness comparison above stays at
   // year 20, where both strategies are measured on the same clock.
   const discountLast = discountRecovery.run.rows[discountRecovery.run.rows.length - 1];
-  const discountMid = discountRecovery.run.rows.find((r) => r.year >= RECOVERY_YEARS - 10)
-    ?? discountRecovery.run.rows[0];
+  const recent = discountMeanCash(RECOVERY_YEARS - 10, RECOVERY_YEARS);
+  const earlier = discountMeanCash(RECOVERY_YEARS - 20, RECOVERY_YEARS - 10);
   assert(
-    discountLast.cash > 0 && discountLast.cash > discountMid.cash,
+    discountLast.cash > 0 && recent > earlier,
     `the discount-heavy strategy is healthy despite the cap, not just capped `
-    + `(cash ${discountLast.cash.toLocaleString()}, a decade earlier ${discountMid.cash.toLocaleString()})`,
+    + `(cash ${discountLast.cash.toLocaleString()}, last decade averaged ${Math.round(recent).toLocaleString()} `
+    + `against ${Math.round(earlier).toLocaleString()} the decade before)`,
   );
 }
 

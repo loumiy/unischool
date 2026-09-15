@@ -367,7 +367,15 @@ console.log('campus scale and building spec');
 
   const walls = [...new Set(CATALOGUE.map((t) => materialOf(t).wall))];
   const roofs = [...new Set(CATALOGUE.map((t) => materialOf(t).roof))];
-  assert(walls.length <= 6, `the campus is built of at most six materials (got ${walls.length})`);
+  // Seven, not six: 4E gave the residence halls a dark brick of their own
+  // (buildingSpec's brickDark), and the bar moved to let it in. Stated here
+  // rather than quietly relaxed, because a cap that follows the palette
+  // around is not a cap. What it is guarding is the 23-tint colour chart
+  // this replaced, and the real guard against that is the pairwise-distance
+  // check below, which has NOT moved: seven materials a player can tell
+  // apart is a palette; seven near-neighbours would fail on the next line
+  // whatever this number said.
+  assert(walls.length <= 7, `the campus is built of at most seven materials (got ${walls.length})`);
   assert(roofs.length <= 3, `and roofed in at most three (got ${roofs.length})`);
 
   // The measure the old palette failed. Twenty-three tints formed 253 pairs,
@@ -496,6 +504,48 @@ console.log('campus scale and building spec');
     if (motifOf(t) !== 'grounds' && h <= 0) { assert(false, `${t.id}: stands up`); break; }
   }
   assert(true, `all ${CATALOGUE.length} placeable Buildables carry a usable spec`);
+}
+
+// --- 8. A door lands on a tile, not on a seam ------------------------------
+//
+// The rule campusMap.ts's footprint tables are written against: any footprint
+// whose motif draws a CENTRED DOOR has an odd width. An even width centres
+// the door on the boundary between two tiles, so no walkway can arrive at it
+// and the building cannot line up with the quad it faces.
+//
+// Checked over the real catalogue rather than over the tables, because the
+// tables are three (fixed sizes, size ladders, the two building constants)
+// and the property is about what comes out of them.
+{
+  const doored = CATALOGUE.filter((t) => doorFamilyOf(t) !== null);
+  assert(doored.length > 20, `the catalogue has buildings with front doors (${doored.length})`);
+
+  const seams = doored.filter((t) => footprintOf(t).w % 2 === 0);
+  assert(
+    seams.length === 0,
+    `every building with a door has an odd width — ${seams.length} centre theirs on a seam` +
+    (seams.length ? ` (e.g. ${seams[0].id} at ${footprintOf(seams[0]).w} wide)` : ''),
+  );
+
+  // Rotation swaps the two spans (see campusMap.ts's orientedFootprint), so a
+  // building turned 90 degrees puts its door on the OTHER span. Both have to
+  // be odd for the door to land on a tile either way round — which is why the
+  // rule is about the footprint rather than about one wall.
+  const rotatedSeams = doored.filter((t) => footprintOf(t).h % 2 === 0);
+  console.log(
+    `  · ${doored.length} doored buildings: all odd across the front, ` +
+    `${doored.length - rotatedSeams.length} odd on both spans`,
+  );
+
+  // Open ground and the stadium are exempt, and it matters that they ARE
+  // exempt rather than accidentally compliant: the tennis courts are 12 wide
+  // precisely because six courts in a row is what that plot is.
+  const exempt = CATALOGUE.filter((t) => doorFamilyOf(t) === null);
+  assert(exempt.length > 0, `and the catalogue has doorless plots too (${exempt.length})`);
+  assert(
+    exempt.some((t) => footprintOf(t).w % 2 === 0),
+    'at least one of which keeps an even width, because it has no door to centre',
+  );
 }
 
 if (failures === 0) {

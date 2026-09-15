@@ -248,10 +248,11 @@ const LIBRARY_TIER2_RESEARCH_RATE_BONUS = 0.15;
 // node's own effects.servesPopulation/upkeepPerWeek in place — see
 // nextLibraryFloor below for the plan a renovation commits to, and its
 // floorsAdded read for why this needs no "which floor is this" state of
-// its own. While renovating, the whole building reads as under
-// construction and — like anything 'developing' — contributes nothing
-// (see servedPopulationFor's `status === 'done'` filter): the old seats go
-// away for those weeks along with the new ones not existing yet.
+// its own. While renovating, the floors that already exist keep working:
+// the node records what it was serving when the work started and the
+// satisfaction sums read that (see types.ts's servingPopulation), so a
+// renovation ADDS seats on completion rather than taking the old ones away
+// for six months and giving them back.
 //
 // Combined with tier 2's 3,500 (against satisfactionSystem.ts's
 // TARGET_RATIO.academic and prestigeSystem.ts's own LIBRARY_TARGET_RATIO,

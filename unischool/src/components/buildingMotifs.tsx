@@ -14,7 +14,7 @@ import {
   COPING, COPING_OVERHANG, END_PAVILION_DEPTH, PAVILION_BAYS, PAVILION_DEPTH, PAVILION_RISE, PEDIMENT_RISE, PLINTH, STEP_OVERHANG,
   TOWER_BASE_PLAN, TOWER_BASE_RISE, TOWER_DOME_RISE, TOWER_DRUM_PLAN, TOWER_DRUM_RISE,
   TOWER_FINIAL_RISE, TOWER_PODIUM_STOREYS, TREAD_DEPTH, WINDOW_HEIGHT,
-  baysAcross, clerestorySill, doorDimensions, doorOf, floorLinesOf, hasClockTower, motifOf,
+  baysAcross, clerestorySill, doorDimensions, doorOf, floorLinesOf, floorsUnderConstruction, hasClockTower, motifOf,
   rankSills, ridgeOf, storeysOf, wallHeightOf, wallShadeOf, windowRanksOf,
   windowWidthOf,
   type DoorDimensions, type Material,
@@ -60,10 +60,24 @@ export function labelHeightOf(t: Buildable): number {
 // a frame barely off the ground while developing. Exported so the cast
 // shadow is computed from the same number the mass is drawn at, rather than
 // a second copy of the developing fraction that could drift from it.
+//
+// The RENOVATION case is the exception, and it is not a special case so much
+// as the general rule applied honestly: 16% of full height is right for a
+// site where nothing has been built yet, and wrong for a library adding a
+// fourth floor to three that are standing. A building that is 'developing'
+// because it is being EXTENDED is drawn at the height of the floors it
+// already has — which is also why it is still open for business (see
+// types.ts's servingPopulation). The scaffold then rises off the finished
+// roof rather than off the grass, which is what a renovation looks like.
 export function drawnHeightOf(t: Buildable, developing: boolean): number {
   if (motifOf(t) === 'grounds') return 0;
   const full = wallHeightOf(t);
-  return developing ? Math.max(4, full * 0.16) : full + ridgeOf(t);
+  if (!developing) return full + ridgeOf(t);
+  const inFlight = floorsUnderConstruction(t);
+  // Nothing built yet: a frame barely off the ground, as before.
+  if (inFlight === 0) return Math.max(4, full * 0.16);
+  const standing = full - inFlight * STOREY;
+  return standing > 0 ? standing : Math.max(4, full * 0.16);
 }
 
 function shade(hex: string, factor: number): string {
@@ -261,18 +275,22 @@ export function ScaffoldPattern() {
 // Scaffold poles standing at the corners of a site, with a lift line between
 // them. A hatch alone reads as a texture; the poles are what say "work is
 // happening here" rather than "this rectangle is a different colour".
-function Scaffolding({ col, row, w, h, height }: {
+function Scaffolding({ col, row, w, h, height, base = 0 }: {
   col: number; row: number; w: number; h: number; height: number;
+  // Where the poles are footed. Ground, for a site; the finished roof, for
+  // a building being extended a storey (see BuildingMotif's `extending`).
+  base?: number;
 }) {
   const posts: [number, number][] = [
     [col + w * 0.06, row + h * 0.06], [col + w * 0.94, row + h * 0.06],
     [col + w * 0.94, row + h * 0.94], [col + w * 0.06, row + h * 0.94],
   ];
   const POLE = height * 2.6;
+  const footAt = (c: number, r: number) => lift(project(c, r), base);
   return (
     <>
       {posts.map(([c, r], i) => {
-        const foot = project(c, r);
+        const foot = footAt(c, r);
         const head = lift(foot, POLE);
         return <line key={i} className="scaffold-pole" x1={foot.x} y1={foot.y} x2={head.x} y2={head.y} />;
       })}
@@ -280,10 +298,10 @@ function Scaffolding({ col, row, w, h, height }: {
           than against the site's own hatch. */}
       <line
         className="scaffold-rail"
-        x1={lift(project(posts[0][0], posts[0][1]), POLE * 0.72).x}
-        y1={lift(project(posts[0][0], posts[0][1]), POLE * 0.72).y}
-        x2={lift(project(posts[1][0], posts[1][1]), POLE * 0.72).x}
-        y2={lift(project(posts[1][0], posts[1][1]), POLE * 0.72).y}
+        x1={lift(footAt(posts[0][0], posts[0][1]), POLE * 0.72).x}
+        y1={lift(footAt(posts[0][0], posts[0][1]), POLE * 0.72).y}
+        x2={lift(footAt(posts[1][0], posts[1][1]), POLE * 0.72).x}
+        y2={lift(footAt(posts[1][0], posts[1][1]), POLE * 0.72).y}
       />
     </>
   );
@@ -947,13 +965,142 @@ const VILLAGE_HOUSES: Array<[number, number, number, number]> = [
   [0.88, 0.20, 0.09, 0.56],
 ];
 
-function BuildingMotif({ t, p, material, developing }: {
+// ---------------------------------------------------------------------
+// A CHAPTER HOUSE'S LETTERS.
+//
+// A Greek chapter has always been named out of the alphabet it is named for
+// — "Alpha Beta Gamma" — and the name has always been stored in English
+// words. That is right in a list of organisations and wrong on a building:
+// what goes over a chapter house's door is ΑΒΓ, in letters, and it is the
+// one thing that tells you which house on the map belongs to whom.
+//
+// The pediment rises ABOVE the wall rather than sitting inside it. The
+// smallest chapter house is a one-storey pavilion whose door, threshold and
+// canopy already use most of that wall (see Canopy's own note on the same
+// problem), so a tympanum fitted under the eaves would have had nowhere to
+// go. A pedimented parapet always has room, and is a real thing a fraternity
+// house does to announce itself.
+// ---------------------------------------------------------------------
+// Sized off the WALL rather than the door. A chapter house's door is a
+// domestic one, barely a quarter of a tile wide, and a pediment scaled from
+// it came out narrower than the letters it was meant to hold. What a house
+// actually does is carry its letters across the front.
+// Sized off the WALL rather than the door. A chapter house's door is a
+// domestic one, barely a quarter of a tile wide, and a pediment scaled from
+// it came out narrower than the three letters it exists to hold.
+const PEDIMENT_SPAN = 0.62;    // share of the wall the assembly covers
+const FRIEZE_DEPTH = 0.16;     // the lettered band, as a share of its own width
+const PEDIMENT_PITCH = 0.17;   // and the gable above it
+// However tall the arithmetic makes it, a nameplate never eats more than
+// this much of the wall it stands on — the smallest chapter house is two
+// storeys, and a parapet half as tall again as the building is a folly.
+const PEDIMENT_MAX_OF_WALL = 0.5;
+
+function ChapterPediment({ glyphs, origin, along, wallHeight, span, doorWidth }: {
+  glyphs: string;
+  origin: Pt; along: Pt;     // the wall's two ends, at its BASE
+  wallHeight: number;
+  span: number;              // the wall's length in tiles
+  doorWidth: number;         // the door's width in tiles
+}) {
+  if (!glyphs || span <= 0 || doorWidth <= 0) return null;
+  const half = PEDIMENT_SPAN / 2;
+  const left = facePoint(origin, along, wallHeight, 0.5 - half, 1);
+  const right = facePoint(origin, along, wallHeight, 0.5 + half, 1);
+  const width = Math.hypot(right.x - left.x, right.y - left.y);
+  if (width <= 0) return null;
+
+  const fit = Math.min(1, (wallHeight * PEDIMENT_MAX_OF_WALL) / (width * (FRIEZE_DEPTH + PEDIMENT_PITCH)));
+  const frieze = width * FRIEZE_DEPTH * fit;
+  const rise = width * PEDIMENT_PITCH * fit;
+
+  const bandLeft = lift(left, frieze);
+  const bandRight = lift(right, frieze);
+  const apex = lift({ x: (bandLeft.x + bandRight.x) / 2, y: (bandLeft.y + bandRight.y) / 2 }, rise);
+
+  // The wall's own slope, which is what the letters have to lie in to read
+  // as cut INTO it rather than floating in front of it. On this projection
+  // a wall running along the columns falls one unit for every two across
+  // and one running along the rows climbs at the same rate, so the shear is
+  // simply the line between the band's two ends.
+  const slope = (right.y - left.y) / (right.x - left.x || 1);
+  const seat = lift({ x: (left.x + right.x) / 2, y: (left.y + right.y) / 2 }, frieze * 0.5);
+
+  return (
+    <>
+      {/* The frieze carries the letters and the gable sits on it, which is
+          the order a real one is built in — and the reason the letters get a
+          rectangle rather than the pinched middle of a triangle. */}
+      <polygon className="chapter-pediment" points={polyPoints([left, right, bandRight, bandLeft])} />
+      <polygon className="chapter-pediment" points={polyPoints([bandLeft, bandRight, apex])} />
+      <text
+        className="chapter-letters"
+        transform={`matrix(1 ${slope} 0 1 ${seat.x} ${seat.y})`}
+        textAnchor="middle"
+        fontSize={Math.max(5, Math.min(width * 0.26, frieze * 0.88))}
+      >
+        {glyphs}
+      </text>
+    </>
+  );
+}
+
+// A building being EXTENDED, not a building site.
+//
+// The library is renovated by adding a floor to the building already
+// standing (see the reducer's RENOVATE_LIBRARY), which puts the SAME node
+// back into 'developing' — and 'developing' meant a footprint pegged out and
+// a frame barely off the ground, so three built floors of library
+// disappeared for the six months the fourth took, and came back at the end.
+// A renovation is drawn as what it is: the finished floors standing at their
+// full height, still wearing their windows, with the scaffold rising off
+// their roof rather than off the grass.
+//
+// It is the same building that stays OPEN through the work — see types.ts's
+// servingPopulation, which is the other half of this PR.
+function BuildingMotif({ t, p, material, developing, glyphs }: {
   t: Buildable;
   p: { row: number; col: number; w: number; h: number };
   material: Material;
   developing: boolean;
+  // A Greek chapter's letters, for the one Buildable that wears any (see
+  // ChapterPediment). Passed in rather than stored on the Buildable: the
+  // chapter is the thing that has a name, and a chapter house that read its
+  // own letters off a copy would keep them after a scandal renamed or
+  // disbanded the chapter that owned them.
+  glyphs?: string;
+}) {
+  const extending = developing && floorsUnderConstruction(t) > 0 && motifOf(t) !== 'grounds';
+  if (!extending) return <BuildingMass t={t} p={p} material={material} developing={developing} glyphs={glyphs} />;
+
+  const { col, row, w, h } = p;
+  const roof = drawnHeightOf(t, true);
+  return (
+    <>
+      <BuildingMass t={t} p={p} material={material} developing glyphs={glyphs} />
+      {/* The work, where the work is. Boarding over the finished roof and
+          poles standing off it — at ground level both would say the wrong
+          thing about a building that is open underneath them. */}
+      <polygon points={polyPoints(boxFaces(col, row, w, h, roof, 0).top)} fill={`url(#${SCAFFOLD_PATTERN_ID})`} />
+      <Scaffolding col={col} row={row} w={w} h={h} height={STOREY * 0.5} base={roof} />
+    </>
+  );
+}
+
+function BuildingMass({ t, p, material, developing, glyphs }: {
+  t: Buildable;
+  p: { row: number; col: number; w: number; h: number };
+  material: Material;
+  developing: boolean;
+  glyphs?: string;
 }) {
   const motif = motifOf(t);
+  // How much of this mass is not built yet, and so what `developing` means
+  // for it: a SITE has nothing standing, while a building being extended
+  // has everything but the top floor (see BuildingMotif above). Every
+  // construction branch below is the site case.
+  const inFlight = developing ? floorsUnderConstruction(t) : 0;
+  const site = developing && inFlight === 0;
   const { row, col, w, h } = p;
   const pal = paletteFrom(material, wallShadeOf(t));
   // What the solid helpers below shade from. A roof unit, a stair tread and a
@@ -962,25 +1109,43 @@ function BuildingMotif({ t, p, material, developing }: {
   const tint = pal.wallLeft;
   const roofTint = material.roof;
 
-  // Open ground has no mass at all — and no construction state worth
-  // drawing either, since there is nothing to raise.
+  // Open ground has no mass at all, so none of the raising below applies to
+  // it — but it does have a construction state, and it is GroundMarking's
+  // own (see groundMarkings.tsx's GroundSite). The mass rising is how a
+  // BUILDING shows progress; what shows it on a plate is that the finished
+  // surface is not there yet.
   if (motif === 'grounds') {
-    return <GroundMarking facilityType={t.facilityType} tier={t.tier} col={col} row={row} w={w} h={h} />;
+    return (
+      <GroundMarking
+        facilityType={t.facilityType}
+        tier={t.tier}
+        col={col}
+        row={row}
+        w={w}
+        h={h}
+        developing={site}
+      />
+    );
   }
 
   // A site under construction is a footprint pegged out and a frame barely
   // off the ground, not a building with the roof left off. The mass RISING
   // is what completion looks like — which is a thing an angled map can show
   // and a flat one never could.
-  const full = wallHeightOf(t);
-  const H = developing ? Math.max(4, full * 0.16) : full;
-  const ridge = developing ? 0 : ridgeOf(t);
+  // What is STANDING, which for an extension is everything below the floor
+  // going up. Used by the motifs below wherever they raise real mass.
+  const full = wallHeightOf(t) - inFlight * STOREY;
+  const H = site ? Math.max(4, wallHeightOf(t) * 0.16) : full;
+  const ridge = site ? 0 : ridgeOf(t);
   const f = boxFaces(col, row, w, h, 0, H);
   // One rank of windows per storey, always — including the storeys a
   // renovation added, which is what makes that growth legible rather than
   // just making the building taller. A clear-span volume has no storeys and
   // gets one band near its eaves instead (see buildingSpec's clerestorySill).
-  const sills = storeysOf(t) > 0 ? rankSills(windowRanksOf(t)) : [clerestorySill(H)];
+  // Minus the rank that has nowhere to go yet: a renovation's new floor gets
+  // its windows when it has walls to put them in.
+  const ranks = windowRanksOf(t) - inFlight;
+  const sills = storeysOf(t) - inFlight > 0 ? rankSills(ranks) : [clerestorySill(H)];
   const paneW = windowWidthOf(t);
   const courses = floorLinesOf(t);
   const door = doorOf(t);
@@ -994,7 +1159,7 @@ function BuildingMotif({ t, p, material, developing }: {
       col: col + w * u, row: row + h * v, w: w * uw, h: h * vh,
     })));
 
-    if (developing) {
+    if (site) {
       return (
         <>
           <polygon points={polyPoints(f.top)} fill={shade(tint, 0.9)} />
@@ -1045,7 +1210,7 @@ function BuildingMotif({ t, p, material, developing }: {
     const sc = col + w * inset; const sr = row + h * inset;
     const sw = w * (1 - inset * 2); const sh = h * (1 - inset * 2);
 
-    if (developing) {
+    if (site) {
       return (
         <>
           <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
@@ -1137,7 +1302,7 @@ function BuildingMotif({ t, p, material, developing }: {
     );
 
     // A site under construction is the bowl's earthworks, not a stadium.
-    if (developing) {
+    if (site) {
       return (
         <>
           <polygon points={polyPoints(f.top)} fill={shade(tint, 0.9)} />
@@ -1159,7 +1324,7 @@ function BuildingMotif({ t, p, material, developing }: {
     );
   }
 
-  if (motif === 'block' && !developing && Math.min(w, h) >= BLOCK_SPLIT_MIN_TILES) {
+  if (motif === 'block' && !site && Math.min(w, h) >= BLOCK_SPLIT_MIN_TILES) {
     // THE HOSPITAL: a tall ward slab across the back, with a lower, fully
     // glazed public wing standing in front of it — the entrance, the atrium,
     // the outpatient front. That stepped massing is most of what makes a
@@ -1243,7 +1408,7 @@ function BuildingMotif({ t, p, material, developing }: {
     );
   }
 
-  if (motif === 'hall' && !developing) {
+  if (motif === 'hall' && !site) {
     // THE ACADEMIC HALL, assembled from the vocabulary above. The order is the
     // order you would build it in, which is also the order it has to be
     // painted in: mass, then what is applied to the mass, then what stands on
@@ -1362,19 +1527,19 @@ function BuildingMotif({ t, p, material, developing }: {
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
       {/* Piers first: they stand against the wall, so everything applied to
           the wall is drawn over them rather than the other way round. */}
-      {!developing && motif === 'hangar' && (
+      {!site && motif === 'hangar' && (
         <>
           <Piers col={col} row={row} w={w} h={h} height={H} outward="row" pal={pal} />
           <Piers col={col} row={row} w={w} h={h} height={H} outward="col" pal={pal} />
         </>
       )}
-      {!developing && floorCourses(f.D, f.C, H, courses, 'l')}
-      {!developing && floorCourses(f.C, f.B, H, courses, 'r')}
+      {!site && floorCourses(f.D, f.C, H, courses, 'l')}
+      {!site && floorCourses(f.C, f.B, H, courses, 'r')}
       {/* The base course and the eaves course every roofed building on this
           campus shares with the halls. One set of parts, assembled
           differently — which is the whole of what makes a library and a lab
           read as the same campus. */}
-      {!developing && ([[f.D, f.C] as const, [f.C, f.B] as const]).map(([o, a], i) => (
+      {!site && ([[f.D, f.C] as const, [f.C, f.B] as const]).map(([o, a], i) => (
         <g key={`b${i}`}>
           <WallBand origin={o} along={a} wallHeight={H} from={0} to={BASE_COURSE} className="iso-plinth" />
           <WallBand origin={o} along={a} wallHeight={H} from={H - EAVES_COURSE} to={H} className="iso-cornice" />
@@ -1385,15 +1550,15 @@ function BuildingMotif({ t, p, material, developing }: {
           point: the same window then goes in both, instead of one wall's
           windows coming out wider than the other's by the ratio of the two
           spans. */}
-      {!developing && windows(f.D, f.C, H, w, sills, paneW, 'l', door ? doorBay(door, w, H) : undefined)}
-      {!developing && windows(f.C, f.B, H, h, sills, paneW, 'r', door ? doorBay(door, h, H) : undefined)}
-      {!developing && door && <Door d={door} origin={f.D} along={f.C} wallHeight={H} span={w} />}
-      {!developing && door && <Door d={door} origin={f.C} along={f.B} wallHeight={H} span={h} />}
+      {!site && windows(f.D, f.C, H, w, sills, paneW, 'l', door ? doorBay(door, w, H) : undefined)}
+      {!site && windows(f.C, f.B, H, h, sills, paneW, 'r', door ? doorBay(door, h, H) : undefined)}
+      {!site && door && <Door d={door} origin={f.D} along={f.C} wallHeight={H} span={w} />}
+      {!site && door && <Door d={door} origin={f.C} along={f.B} wallHeight={H} span={h} />}
       {/* The civic set's colonnade: the hall's own columns, run the length of
           the front rather than gathered into a centre bay. That is the
           difference between a building with an entrance and a building that
           IS one, which is what a library and a concert hall are. */}
-      {!developing && motif === 'portico' && ([['row', w] as const, ['col', h] as const]).map(([out, span]) => (
+      {!site && motif === 'portico' && ([['row', w] as const, ['col', h] as const]).map(([out, span]) => (
         <Portico
           key={out}
           centreCol={out === 'row' ? col + w / 2 : col + w + PORTICO_STANDOFF}
@@ -1405,8 +1570,12 @@ function BuildingMotif({ t, p, material, developing }: {
           height={Math.min(COLONNADE_HEIGHT, H - EAVES_COURSE * 2)}
         />
       ))}
-      {/* A canopy over a low building's door. */}
-      {!developing && motif === 'pavilion' && door && (
+      {/* A canopy over the door. A pavilion has always had one; a residence
+          hall now does too, because the way INTO a building is the thing a
+          long brick block was most obviously missing — a slab with ranked
+          windows and a flush opening is a barn, and the canopy is most of
+          what turns it into somewhere people live. */}
+      {!site && (motif === 'pavilion' || motif === 'residential') && door && (
         <>
           <Canopy d={door} centreCol={col + w / 2} centreRow={row + h} outward="row" wallHeight={H} />
           <Canopy d={door} centreCol={col + w} centreRow={row + h / 2} outward="col" wallHeight={H} />
@@ -1415,13 +1584,13 @@ function BuildingMotif({ t, p, material, developing }: {
       {/* The flights, on the ground in front of each door. Drawn after the
           walls so they stand in front of the mass they climb to, and after
           both doors so neither one's steps are cut by the other's wall. */}
-      {!developing && door && (
+      {!site && door && (
         <EntranceSteps
           d={door} centreCol={col + w / 2} centreRow={row + h}
           outCol={0} outRow={1} span={w}
         />
       )}
-      {!developing && door && (
+      {!site && door && (
         <EntranceSteps
           d={door} centreCol={col + w} centreRow={row + h / 2}
           outCol={1} outRow={0} span={h}
@@ -1455,7 +1624,7 @@ function BuildingMotif({ t, p, material, developing }: {
           />
           <line className="iso-ridge" x1={rs.x} y1={rs.y} x2={re.x} y2={re.y} />
         </>
-      ) : motif === 'hangar' && !developing ? (
+      ) : motif === 'hangar' && !site ? (
         // A clear-span roof: a shallow raised deck with a glazed strip along
         // its ridge, which is what actually lights a gym or a pool hall.
         <>
@@ -1482,9 +1651,9 @@ function BuildingMotif({ t, p, material, developing }: {
           <polygon points={polyPoints(f.top)} fill={pal.roof} />
           {/* Scaffolding hatch over the site's own deck: the diagonal
               boarding you see looking down into a half-built frame. */}
-          {developing && <polygon points={polyPoints(f.top)} fill={`url(#${SCAFFOLD_PATTERN_ID})`} />}
-          {developing && <Scaffolding col={col} row={row} w={w} h={h} height={H} />}
-          {!developing && motif === 'portico' && [0.26, 0.5, 0.74].map((v) => (
+          {site && <polygon points={polyPoints(f.top)} fill={`url(#${SCAFFOLD_PATTERN_ID})`} />}
+          {site && <Scaffolding col={col} row={row} w={w} h={h} height={H} />}
+          {!site && motif === 'portico' && [0.26, 0.5, 0.74].map((v) => (
             // Libraries and galleries are top-lit. Rooflights are both true
             // and the thing that tells them apart from a plain shed.
             [0.24, 0.54].map((u) => (
@@ -1495,7 +1664,7 @@ function BuildingMotif({ t, p, material, developing }: {
               />
             ))
           ))}
-          {!developing && (motif === 'works' || motif === 'pavilion' || motif === 'block') && (
+          {!site && (motif === 'works' || motif === 'pavilion' || motif === 'block') && (
             // A lab's roof is the most crowded on campus; a pavilion's
             // carries a unit or two; a hospital's carries the heaviest plant
             // of all plus a helipad-sized deck, which is what reads as
@@ -1527,6 +1696,24 @@ function BuildingMotif({ t, p, material, developing }: {
           )}
         </>
       )}
+      {/* The chapter's letters, over both doors — a house announces itself
+          to whichever way you walk up to it.
+
+          LAST, after the roof. The pediment is a parapet: it rises above
+          the eaves rather than fitting under them, so anything drawn after
+          it covers it, and the roof slab is drawn after everything else. */}
+      {!site && glyphs && door && (
+        <>
+          <ChapterPediment
+            glyphs={glyphs} origin={f.D} along={f.C}
+            wallHeight={H} span={w} doorWidth={door.widthTiles}
+          />
+          <ChapterPediment
+            glyphs={glyphs} origin={f.C} along={f.B}
+            wallHeight={H} span={h} doorWidth={door.widthTiles}
+          />
+        </>
+      )}
     </>
   );
 }
@@ -1547,6 +1734,7 @@ export default memo(BuildingMotif, (a, b) => (
   a.t === b.t
   && a.material === b.material
   && a.developing === b.developing
+  && a.glyphs === b.glyphs
   && a.p.col === b.p.col && a.p.row === b.p.row
   && a.p.w === b.p.w && a.p.h === b.p.h
 ));
