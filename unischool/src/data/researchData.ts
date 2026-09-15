@@ -676,6 +676,13 @@ export function availableScholars(s: GameState, field: string): Faculty[] {
 // always belongs to the place it is happening, while a physicist can still
 // be on a Materials + Chemistry project running out of either lab.
 //
+// A topic may also name the facilities it belongs in (ResearchTopic.labs),
+// which is how the two pairs of facilities that SHARE a field are kept
+// apart — a plant-scale synthesis project belongs in the chemical
+// engineering labs and not the chemistry ones, and "Acoustics of
+// Performance Spaces" is physics but it is not aerospace. Unset, the
+// common case, means any facility whose field it names.
+//
 // A facility id that names no research facility (or one whose field the
 // catalogue no longer has) yields an empty pool and four blocked tiers,
 // which is the honest answer rather than a crash.
@@ -683,7 +690,9 @@ export function initiativeOffers(s: GameState, labId: string): InitiativeOffer[]
   const epoch = Math.floor((s.clock.year * WEEKS_PER_YEAR + s.clock.week) / OFFER_EPOCH_WEEKS);
   const fieldSet = new Set(labFields(labId));
 
-  const runnable = RESEARCH_TOPICS.filter((topic) => topic.fields.some((f) => fieldSet.has(f)));
+  const runnable = RESEARCH_TOPICS.filter((topic) => (
+    topic.fields.some((f) => fieldSet.has(f)) && (!topic.labs || topic.labs.includes(labId))
+  ));
 
   return INITIATIVE_DEPTHS.map((depth, depthIndex) => {
     const pool = runnable.filter((topic) => {
