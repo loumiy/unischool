@@ -13,9 +13,10 @@ here.
 
 ## Sequenced enough to start
 
-*Each of these is a plan's worth of work on its own. None of them blocks any
-other, and none has been sequenced into PRs yet — that is what writing the next
-plan does. Lifted from Plan 04, which is where they were first named.*
+*Each of these is a plan's worth of work on its own, and none of them blocks any
+other. Lifted from Plan 04, which is where they were first named. Turning one
+into an ordered sequence of PRs is what writing the next plan does — Summer
+admissions has had that done to it (Plan 05) and the rest have not.*
 
 ### Startup screen
 Drop public/private. Possible additions: a **motif set** chosen at founding
@@ -44,33 +45,11 @@ split at admission or reconstructing it, and that is the real decision this
 feature has to make.
 
 ### Summer admissions
-The largest single redesign in the notes, and a genuine rework of a decision the
-game already has:
-- Far less text on screen.
-- **Tuition is a gamble.** The slider tells you only whether you are in line with
-  your prestige. No applicant interest, no sticker shock, no stated cap (the cap
-  is where the slider ends; raise it to $100k). Setting it locks it.
-- **The reveal** is a slow tick up to the applicant count — slower than any other
-  number animation in the game, because it is the payoff. It breaks the total
-  down **by cohort, as head counts** — how many research-minded applicants, how
-  many athletes — never as percentages or multipliers. The decision panel
-  already does this (`cohorts.ts`'s `cohortBreakdown` returns whole applicants
-  that sum to the pool); the reveal is where the same numbers get their
-  moment.
-- **Admit rate is the second decision**, and its consequences are visible before
-  commitment: moving the slider moves the freshman class size (yield goes away),
-  and the panel projects weekly profit/loss and satisfaction against current
-  capacity — *including the three older classes who are still enrolled*.
-- **Scholarships go away** — one rate.
-- **The tuition exploit closes**: tuition is set per *class* and follows that
-  class to graduation, rather than repricing everyone retroactively.
-
-Note that the last item is a real model change — `finance.tuitionPerStudent` is a
-single scalar today, read by finance, the demand system, the tech tree's
-`tuitionBonus` and Treasury, and per-class pricing means it becomes four prices
-carried on `students.classes` and advanced with it every summer (see
-`reducer.ts`'s `RESOLVE_ADMISSIONS`, which already shifts those four counts a
-year).
+**Sequenced — see [Plan 05](docs/plans/05-summer-admissions.md), PRs A–G.** The
+notes that were here (tuition as a gamble, the reveal, admit rate as the second
+decision, scholarships retired, the tuition exploit closed) moved into that plan
+rather than being restated in two places. Nothing has landed yet; this entry
+stays until it has, so the backlog does not look like the work was forgotten.
 
 ### Athletics V3
 Better layout; a bigger coach pool reusing faculty headshots and the old
