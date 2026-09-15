@@ -5,11 +5,16 @@ to take a page of playtest notes and turn it into an ordered sequence of PRs,
 each one small enough to land on its own and each one landing in the order that
 makes the next one cheaper.*
 
-**Status: Phase 1 landed; Phases 2-4 proposed.** Four phases, 23 PRs, plus a
+**Status: Phases 1-2 landed; Phases 3-4 proposed.** Four phases, 23 PRs, plus a
 named set of deferred directions at the end. Phase 1 (the shell — 1A through
-1F) is implemented; its six PRs are described below as they were planned, and
-the one place the implementation departs from the plan is noted in 1E, where
-`:focus-visible` turned out to be half an answer.
+1F) and Phase 2 (research, end to end — 2A through 2G) are implemented. Their
+PRs are described below as they were planned, with the places the
+implementation departed from the plan noted in the PR that departed: 1E, where
+`:focus-visible` turned out to be half an answer; 2A, where narrowing each
+facility's topic pool put more of the catalogue out of reach than the plan
+estimated; 2B, which needed a per-topic facility list to finish the job 2A
+started; and 2F, where reporting every completion cost more of the modal
+budget than the cadence allows.
 
 ---
 
@@ -362,6 +367,15 @@ school-wide set. A school with a dozen labs offers each of them the same pool.
 **Test:** for every lab and every depth tier, assert that every offered topic
 names that lab's field.
 
+**As implemented: the narrowing costs more than this estimates.** Only 11 of
+the 29 faculty fields have a facility, so requiring the lab's own field put 42
+of the catalogue's 76 topics out of reach at once — every departmental topic in
+the other 18 fields, plus six interdisciplinary ones that named no equipped
+field at all. 2B absorbs that (six per field, and every interdisciplinary topic
+re-anchored on a field that has a facility), and the route into research for an
+unequipped department is the interdisciplinary tier rather than a topic of its
+own.
+
 ## PR 2B — Enough topics that they stop repeating
 
 `researchTopics.ts` holds 60 single-field topics (exactly two per field) and 18
@@ -381,6 +395,15 @@ concern, and the file's existing two-table shape absorbs it unchanged.
 **Test:** every field in `FACULTY_FIELDS` has at least six topics; every field
 named by a cross-disciplinary topic is a real field; no duplicate ids; no
 duplicate names.
+
+**As implemented: one mechanism came with the authoring.** Two pairs of
+facilities share a field — chemistry / chemical engineering, and physics /
+aerospace — so 2A's rule alone still offers "Acoustics of Performance Spaces"
+to an aerospace lab, which is the complaint that started the pass. A topic may
+now name the facilities it belongs in (`ResearchTopic.labs`), set only for
+those twins and exhaustive when set. Final counts: 238 topics, 176
+departmental (eight for each of the two split fields) and 62
+interdisciplinary.
 
 ## PR 2C — A research commitment costs two courses, not a career
 
@@ -486,6 +509,16 @@ nothing mechanical is lost.
 **Test:** a concluded initiative queues exactly one interrupt carrying its
 award; a cancelled one queues none.
 
+**As implemented: two cadence deviations.** The queue drains ONE report per
+quiet week rather than the whole thing into one modal the way milestones do — a
+milestone is a headline and several read as one page, while a completion report
+is a page about one project. And a QUIET PILOT STUDY does not report at all:
+reporting every completion took the balance sim's texture count from 1.7 to 3.0
+modals a year, nearly all of it six-month pilots concluding with a couple of
+papers. A pilot reports only if it won an award or produced a breakthrough;
+Funded Project depth and deeper always report. That lands the cadence at
+1.8/yr.
+
 ## PR 2G — A visiting chair is appointed from the interrupt
 
 `eventData.ts`'s `visiting-scholar` charges the funding and then pushes the
@@ -498,6 +531,16 @@ reducer's hire uses (payroll, `courseSlots`, the roster entry), reused rather
 than duplicated, so nothing about an appointed visitor differs from any other
 hire. The choice's `describe` shows their salary up front, since that is now the
 ongoing commitment the player is agreeing to rather than a later one.
+
+**As implemented: the person is rolled at fire time, and the gift comes down.**
+The candidate is rolled into the event's context when the event fires rather
+than inside `apply`, so the modal can quote the name, salary and stats of
+exactly the person who will be appointed — two rolls would be two different
+people, one of them fictional. And `VISITING_SCHOLAR_COST_WEEKS` drops from 3
+to 1.5: the choice now buys an appointment rather than a name on a list, so the
+salary is part of the price. Without that, the balance harness — whose scripted
+player takes the first affordable choice — was buying six unbudgeted permanent
+salaries a run, and `test:balance` went red at its default seed.
 
 The `pass` branch is unchanged.
 
