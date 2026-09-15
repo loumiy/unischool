@@ -2,6 +2,7 @@ import type { GameState, Buildable, BuildableEffects, Faculty } from '../../stat
 import { totalEnrolled } from '../../state/types';
 import { graduateCourseIds, graduateGateMet, graduatePrograms, milestoneSchools } from '../../data/techData';
 import { isCelebratedMilestone } from '../../data/eventData';
+import { tierOf, type CourseTier } from '../../data/courseQuality';
 
 // ---------------------------------------------------------------------
 // The milestone chain (see README's "The milestone chain"). Unlocking
@@ -74,9 +75,11 @@ export function unstaffedCourses(s: GameState): Buildable[] {
 // Is this person committed to a running research initiative?
 //
 // THE KEYSTONE CONSTRAINT, and the one place teaching and research
-// actually compete. A committed scholar stops teaching for the duration —
-// six months to five years — so every initiative is paid for twice: once
-// in money, and once in the courses those people are no longer holding.
+// actually compete. A committed scholar teaches a reduced load for the
+// duration — six months to five years — so every initiative is paid for
+// twice: once in money, and once in the courses those people are no longer
+// holding (see RESEARCH_COMMITMENT_SLOTS below for how much that is, and
+// why it is no longer all of them).
 // That is what makes a hire an allocation decision rather than a number
 // going up, and it is why a Landmark Program is a genuine institutional
 // sacrifice rather than something to switch on for whoever is idle.
@@ -87,12 +90,64 @@ export function isCommitted(s: GameState, facultyId: string): boolean {
   return false;
 }
 
-// The course slots this person actually offers the school right now: none
-// while they are committed, their own count otherwise. Every capacity
+// WHAT A COMMITMENT COSTS IN TEACHING: two course slots, not the career.
+//
+// This used to be all of them — a committed scholar taught nothing for the
+// duration, which for a five-year Landmark Program meant four professors'
+// entire capacity and every course they held. The playtest overruled that:
+// the constraint is right, the price was not. A funded project is a
+// reduced teaching load, which is what it is at a real university, and at
+// two slots it is still the thing that makes a hire an allocation decision
+// rather than a number going up.
+//
+// Note where the floor bites: somebody with two slots or fewer still
+// teaches nothing while committed, so a junior hire is a genuinely
+// expensive person to commit and a senior one (whose slots have grown with
+// tenure — see facultyData.ts's grownSlots) is the cheaper choice. That is
+// the same shape the old rule had, just no longer applied to everybody.
+export const RESEARCH_COMMITMENT_SLOTS = 2;
+
+// The course slots this person actually offers the school right now: their
+// own count, less the commitment if they are on a project. Every capacity
 // read goes through this rather than f.courseSlots directly, so the
 // commitment cannot be forgotten in one place and honoured in another.
 export function effectiveCourseSlots(s: GameState, f: Faculty): number {
-  return isCommitted(s, f.id) ? 0 : f.courseSlots;
+  return isCommitted(s, f.id) ? Math.max(0, f.courseSlots - RESEARCH_COMMITMENT_SLOTS) : f.courseSlots;
+}
+
+// Which courses a team would have to give up by committing — the ONE
+// answer, so the warning the player reads before clicking and the
+// reassignment the reducer performs after cannot disagree.
+//
+// Only the EXCESS moves. Each member keeps as many courses as their
+// reduced load allows and sheds the rest, and which ones they shed is
+// decided here rather than left to s.tech order: lowest tier first, so a
+// professor committed to a five-year programme keeps the capstone and
+// hands away the survey course. Ties break on course id, so the same
+// commitment always sheds the same courses.
+//
+// Callers: START_INITIATIVE (reducer.ts), which re-homes what it can and
+// orphans the rest, and ResearchTab's pre-commitment warning.
+const TIER_RANK: Record<string, number> = { core: 0, '1': 1, '2': 2, '3': 3, graduate: 4 };
+function tierRank(tier: CourseTier): number {
+  return TIER_RANK[String(tier)] ?? 0;
+}
+
+export function coursesShedByCommitment(s: GameState, facultyIds: readonly string[]): Buildable[] {
+  const shed: Buildable[] = [];
+  for (const id of facultyIds) {
+    const f = s.faculty.find((person) => person.id === id);
+    if (!f) continue;
+    // Their load under the commitment, computed from courseSlots directly:
+    // effectiveCourseSlots reads the CURRENT state, where they are not
+    // committed yet, so it would answer about the wrong world.
+    const keeps = Math.max(0, f.courseSlots - RESEARCH_COMMITMENT_SLOTS);
+    const theirs = s.tech
+      .filter((t) => isOffered(t) && s.courseFaculty[t.id] === id)
+      .sort((a, b) => tierRank(tierOf(b.id)) - tierRank(tierOf(a.id)) || a.id.localeCompare(b.id));
+    shed.push(...theirs.slice(keeps));
+  }
+  return shed;
 }
 
 // How many courses this specific person is currently teaching — their

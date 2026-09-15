@@ -473,9 +473,10 @@ export interface InitiativeDepthDef {
 }
 
 // Durations against WEEKS_PER_YEAR: six months, a year and a half, three
-// years, five. A Landmark Program costs four people's entire teaching load
-// for five years (see techSystem.ts's committed-faculty rule), which is
-// the real price of it — the money is the smaller half.
+// years, five. A Landmark Program costs four people two course slots each
+// for five years (see techSystem.ts's RESEARCH_COMMITMENT_SLOTS), which is
+// a real institutional commitment on top of the money — eight courses that
+// have to be covered by somebody else, or not offered.
 export const INITIATIVE_DEPTHS: readonly InitiativeDepthDef[] = [
   {
     key: 'pilot', name: 'Pilot Study', participants: 1, weeks: 26, fundingWeeks: 0.5, intensity: 1,
@@ -652,7 +653,7 @@ export interface InitiativeOffer {
 
 // Everyone who could join an initiative right now: on the roster, in the
 // field, and not already committed elsewhere. Deliberately NOT filtered on
-// teaching load — joining costs them their courses, it does not require
+// teaching load — joining costs them two course slots, it does not require
 // them to be free of any first.
 export function availableScholars(s: GameState, field: string): Faculty[] {
   return s.faculty

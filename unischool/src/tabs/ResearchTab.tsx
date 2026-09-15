@@ -8,6 +8,7 @@ import {
   type InitiativeOffer,
 } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
+import { coursesShedByCommitment } from '../systems/techtree/techSystem';
 import { researchSchools } from '../data/techData';
 import FacultyPortrait from '../components/FacultyPortrait';
 import HelpHint from '../components/HelpHint';
@@ -164,11 +165,11 @@ function VacantPanel(
     && s.finance.cash >= picked.fundingCost;
 
   // What committing this team costs in teaching — named BEFORE the click,
-  // because a shrinking roster is obvious and four courses quietly losing
-  // their instructor is not (the same rule the dismissal warning follows).
-  const orphaned = s.tech.filter(
-    (t) => team.includes(s.courseFaculty[t.id]) && (t.status === 'developing' || t.status === 'done'),
-  );
+  // because a shrinking roster is obvious and courses quietly losing their
+  // instructor is not (the same rule the dismissal warning follows). This
+  // is the same function the reducer sheds with, so the warning cannot
+  // promise one thing and the commitment do another.
+  const orphaned = coursesShedByCommitment(s, team);
 
   return (
     // An open offer set takes the whole row back: four depth tiers and a
@@ -297,7 +298,7 @@ export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action)
         <div className="panel-head">
           <span className="panel-head-title">
             <h2>Research</h2>
-            <HelpHint text="Each research facility hosts one project at a time, so the number of things the university can pursue at once is the number of places it has built to pursue them in. Choose an area, a team and a depth; the team stops teaching for the duration. Deeper work costs more, runs longer and pays off bigger — and the Landmark tier needs scholars from different disciplines, so the most prestigious work is out of reach for a single department however strong." />
+            <HelpHint text="Each research facility hosts one project at a time, so the number of things the university can pursue at once is the number of places it has built to pursue them in. Choose an area, a team and a depth; each member gives up two course slots for the duration. Deeper work costs more, runs longer and pays off bigger — and the Landmark tier needs scholars from different disciplines, so the most prestigious work is out of reach for a single department however strong." />
           </span>
           <span className="stat">
             {underway.length} of {facilities.length} {facilities.length === 1 ? 'facility' : 'facilities'} in use
