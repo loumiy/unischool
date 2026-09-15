@@ -61,9 +61,9 @@ export type Action =
   // It COSTS THE TEAM'S TEACHING. Every participant is committed for the
   // duration and loses two course slots (see techSystem.ts's
   // RESEARCH_COMMITMENT_SLOTS); whatever no longer fits in what remains is
-  // shed, lowest tier first, and orphaned exactly as a dismissal orphans
-  // it — which is why the UI names those courses before the click, not
-  // after. Rejected if
+  // shed lowest tier first, offered to any colleague in the field with
+  // room (planCommitmentCoverage), and orphaned only if nobody has any —
+  // which is why the UI names both numbers before the click, not after. Rejected if
   // the facility is not finished or already busy, the topic's fields are
   // not all covered, anyone named is already committed, or the funding
   // cannot be paid.

@@ -22,7 +22,7 @@ import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import {
   RESEARCH_COMMITMENT_SLOTS, coursesShedByCommitment, effectiveCourseSlots,
-  facultyLoad, isCommitted,
+  facultyLoad, isCommitted, planCommitmentCoverage,
 } from '../src/systems/techtree/techSystem';
 import { tierOf } from '../src/data/courseQuality';
 import { RESEARCH_TOPICS } from '../src/data/researchTopics';
@@ -185,6 +185,81 @@ console.log('research commitment tests');
 
   // The old behaviour, stated as the thing that must not come back.
   assert(orphaned.length !== courses.length, 'a commitment no longer empties a professor’s whole catalogue');
+}
+
+// --- 2D: a colleague picks up what they can --------------------------
+{
+  // The plan's own scenario: a 3-slot professor teaching 3 courses, one
+  // idle colleague in field. One course stays with them (3 slots less the
+  // commitment leaves 1), one moves to the colleague, one is unstaffed.
+  const { s, labId, field } = equipped();
+  const prof = hire(s, field, 3, 'committed');
+  const colleague = hire(s, field, 1, 'colleague');
+  const courses = teach(s, prof, 3);
+  assert(courses.length === 3, 'three courses to place');
+
+  const plan = planCommitmentCoverage(s, [prof.id]);
+  assert(plan.shed.length === 2, 'a three-slot professor sheds two of three courses');
+  assert(plan.covered.length === 1, 'the idle colleague takes one of them');
+  assert(plan.covered[0]?.instructor.id === colleague.id, 'and it is the colleague, not the committed professor');
+  assert(plan.orphaned.length === 1, 'the third has nobody with room and goes unstaffed');
+  assert(
+    rank(plan.covered[0].course.id) >= rank(plan.orphaned[0].id),
+    'the higher tier of the two is the one that found cover',
+  );
+
+  const topic = RESEARCH_TOPICS.find((t) => t.fields.length === 1 && t.fields[0] === field)!;
+  const after = reducer(s, {
+    type: 'START_INITIATIVE', labId, topicId: topic.id, depth: 'pilot', facultyIds: [prof.id],
+  });
+  assert(after.courseFaculty[plan.covered[0].course.id] === colleague.id, 'the reducer actually moved it');
+  assert(after.courseFaculty[plan.orphaned[0].id] === undefined, 'and left the uncovered one open');
+  assert(facultyLoad(after, colleague.id) === 1, 'the colleague is now teaching one course');
+  assert(
+    after.log[0].message.includes('moved to colleagues') && after.log[0].message.includes('without an instructor'),
+    `the log reports both facts (got: "${after.log[0].message}")`,
+  );
+}
+
+// --- nobody is covered twice, and capacity is respected ---------------
+{
+  // Two idle colleagues, one slot each: two shed courses find homes and no
+  // single colleague is handed both.
+  const { s, field } = equipped();
+  const prof = hire(s, field, 4, 'busy');
+  hire(s, field, 1, 'a');
+  hire(s, field, 1, 'b');
+  teach(s, prof, 4);
+
+  const plan = planCommitmentCoverage(s, [prof.id]);
+  assert(plan.shed.length === 2, 'two courses shed');
+  assert(plan.covered.length === 2, 'both find cover');
+  assert(plan.orphaned.length === 0, 'and nothing is left open');
+  const takers = plan.covered.map((c) => c.instructor.id);
+  assert(new Set(takers).size === 2, 'a one-slot colleague is never handed two courses');
+}
+
+// --- a committed colleague with room is still a colleague -------------
+{
+  // Both are on the project. One has five slots and teaches one course, so
+  // after losing two to the commitment they still have room; the other has
+  // three slots and teaches three. The capacity arithmetic says the first
+  // can take one, and refusing that would be a rule the arithmetic does not
+  // have.
+  const { s, field } = equipped();
+  const loaded = hire(s, field, 3, 'loaded');
+  const spare = hire(s, field, 5, 'spare');
+  const theirs = s.tech.filter((t) => t.kind === 'course' && t.requiresFaculty === field).slice(0, 4);
+  for (const c of theirs.slice(0, 3)) { c.status = 'done'; s.courseFaculty[c.id] = loaded.id; }
+  theirs[3].status = 'done';
+  s.courseFaculty[theirs[3].id] = spare.id;
+
+  const plan = planCommitmentCoverage(s, [loaded.id, spare.id]);
+  assert(plan.shed.length === 2, 'the loaded professor sheds two; the spare one sheds none');
+  assert(
+    plan.covered.some((c) => c.instructor.id === spare.id),
+    'and their teammate, who has room even while committed, picks one up',
+  );
 }
 
 if (failures === 0) {

@@ -5,7 +5,7 @@ import { createInitialState, createPreStartState } from '../state/actions';
 import { tickFinance, endowmentCampaign } from '../systems/finance/financeSystem';
 import {
   tickTech, canStartDevelopment, startDevelopment, eligibleInstructors, isCommitted,
-  coursesShedByCommitment,
+  planCommitmentCoverage,
 } from '../systems/techtree/techSystem';
 import { endInitiative } from '../systems/research/researchSystem';
 import { initiativeDepth, initiativeFundingCost } from '../data/researchData';
@@ -376,16 +376,28 @@ export function reducer(state: GameState, action: Action): GameState {
       // now is except for the one thing it must not (see
       // coursesShedByCommitment's own note on why it does not call
       // effectiveCourseSlots).
-      const shed = coursesShedByCommitment(s, action.facultyIds);
-      for (const course of shed) delete s.courseFaculty[course.id];
+      const coverage = planCommitmentCoverage(s, action.facultyIds);
+      for (const course of coverage.shed) delete s.courseFaculty[course.id];
+      for (const { course, instructor } of coverage.covered) s.courseFaculty[course.id] = instructor.id;
 
+      // Two different facts, reported as two: a department that absorbed
+      // the load is not the same news as a course nobody can teach, and
+      // the player can act on each (hire, or reassign, or leave it).
+      const { covered, orphaned } = coverage;
+      const moved = `${covered.length} of its team's ${coverage.shed.length} courses moved to colleagues`;
+      const open = `${orphaned.length} ${orphaned.length === 1 ? 'course is' : 'courses are'} without an instructor`;
+      const consequence = covered.length > 0 && orphaned.length > 0
+        ? ` ${moved}; ${open}.`
+        : covered.length > 0
+          ? ` ${moved}.`
+          : orphaned.length > 0
+            ? ` ${open} while its team is committed.`
+            : '';
       s.log.unshift({
         year: s.clock.year,
         week: s.clock.week,
-        message: shed.length > 0
-          ? `“${topic.name}” has begun at ${lab.name}. ${shed.length} ${shed.length === 1 ? 'course is' : 'courses are'} without an instructor while its team is committed.`
-          : `“${topic.name}” has begun at ${lab.name}.`,
-        kind: shed.length > 0 ? 'info' : 'good',
+        message: `“${topic.name}” has begun at ${lab.name}.${consequence}`,
+        kind: orphaned.length > 0 ? 'info' : 'good',
       });
       return s;
     }

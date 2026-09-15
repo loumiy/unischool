@@ -8,7 +8,7 @@ import {
   type InitiativeOffer,
 } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
-import { coursesShedByCommitment } from '../systems/techtree/techSystem';
+import { planCommitmentCoverage } from '../systems/techtree/techSystem';
 import { researchSchools } from '../data/techData';
 import FacultyPortrait from '../components/FacultyPortrait';
 import HelpHint from '../components/HelpHint';
@@ -167,9 +167,11 @@ function VacantPanel(
   // What committing this team costs in teaching — named BEFORE the click,
   // because a shrinking roster is obvious and courses quietly losing their
   // instructor is not (the same rule the dismissal warning follows). This
-  // is the same function the reducer sheds with, so the warning cannot
-  // promise one thing and the commitment do another.
-  const orphaned = coursesShedByCommitment(s, team);
+  // is the same plan the reducer applies, so the warning cannot promise one
+  // thing and the commitment do another — including which courses a
+  // colleague picks up, which is a different fact from a course going
+  // quiet and is worth the player knowing before they decide.
+  const coverage = planCommitmentCoverage(s, team);
 
   return (
     // An open offer set takes the whole row back: four depth tiers and a
@@ -236,10 +238,23 @@ function VacantPanel(
             </div>
           )}
 
-          {orphaned.length > 0 && (
-            <p className="offer-warning">
-              Committing this team leaves {orphaned.length} {orphaned.length === 1 ? 'course' : 'courses'} without an
-              instructor for {years(picked.depth.weeks)}: {orphaned.map((t) => t.name.split(' · ')[0]).join(', ')}.
+          {coverage.shed.length > 0 && (
+            <p className={coverage.orphaned.length > 0 ? 'offer-warning' : 'offer-note'}>
+              {coverage.covered.length > 0 && (
+                <>
+                  {coverage.covered.length} of this team&rsquo;s {coverage.shed.length}{' '}
+                  {coverage.shed.length === 1 ? 'course' : 'courses'} would move to colleagues
+                  {coverage.orphaned.length === 0 ? ', with none left uncovered.' : '. '}
+                </>
+              )}
+              {coverage.orphaned.length > 0 && (
+                <>
+                  {coverage.covered.length > 0
+                    ? `The other ${coverage.orphaned.length} would be`
+                    : `Committing this team leaves ${coverage.orphaned.length} ${coverage.orphaned.length === 1 ? 'course' : 'courses'}`}
+                  {' '}without an instructor for {years(picked.depth.weeks)}: {coverage.orphaned.map((t) => t.name.split(' · ')[0]).join(', ')}.
+                </>
+              )}
             </p>
           )}
           {chosenTeam.length > 0 && (

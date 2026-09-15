@@ -251,7 +251,7 @@ function ResearchPanel({ s, full }: { s: GameState; full: boolean }) {
       <div className="panel-head">
         <span className="panel-head-title">
           <h2>Research</h2>
-          <HelpHint text="A scholar committed to a research project teaches a reduced load for its whole duration — two course slots fewer, so a junior professor may stop teaching entirely while a senior one keeps most of their catalogue. Whatever no longer fits is left without an instructor until somebody else takes it, starting with their lowest-tier courses so a capstone stays with the person who knows it. That is the real price of a deep project, and it is why a university needs a bench rather than just good people. Projects themselves, and the facilities that host them, are on the Research tab." />
+          <HelpHint text="A scholar committed to a research project teaches a reduced load for its whole duration — two course slots fewer, so a junior professor may stop teaching entirely while a senior one keeps most of their catalogue. Whatever no longer fits is handed to a colleague in the same field who has room, and left without an instructor only if nobody does — their lowest-tier courses go first, so a capstone stays with the person who knows it. That is the real price of a deep project, and it is why a university needs a bench rather than just good people. Projects themselves, and the facilities that host them, are on the Research tab." />
         </span>
         <span className="stat">{committed.length} committed</span>
       </div>

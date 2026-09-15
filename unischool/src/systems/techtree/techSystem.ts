@@ -150,6 +150,81 @@ export function coursesShedByCommitment(s: GameState, facultyIds: readonly strin
   return shed;
 }
 
+// WHAT ACTUALLY HAPPENS TO THE SHED COURSES: the whole plan, worked out
+// before anything is changed, so the Research tab can show it and the
+// reducer can apply it from the same arithmetic.
+//
+// The rule the playtest asked for: when committing a team leaves a course
+// without a professor, and another professor in that field is on the
+// roster with room, they take it. This is not a second assignment rule —
+// it is the same eligibleInstructors list the Curriculum tab's assignment
+// panel offers, already sorted strongest-teacher-first and already
+// filtered on free capacity, so a re-homed course lands with whoever the
+// player would most likely have picked.
+//
+// Two details that are choices rather than mechanics:
+//
+//   - Courses are re-homed HIGHEST TIER FIRST. When there is not enough
+//     free capacity for all of them, the capstone finds cover and the
+//     survey course is the one left open, which is the same priority the
+//     shedding order takes from the other end.
+//   - A member of the committing team can be the one who takes it. They
+//     are committed, not gone: somebody with five slots teaching one still
+//     has room for two more after losing two to the project, and refusing
+//     that would be inventing a rule the capacity arithmetic does not have.
+//
+// Capacity is computed here rather than read through effectiveCourseSlots
+// because this answers a question about a world that does not exist yet:
+// the team is not committed at the moment the tab asks. Anyone ALREADY
+// committed elsewhere is read normally, so the two kinds of commitment
+// compose.
+export interface CommitmentCoverage {
+  /** Courses the team can no longer hold. */
+  shed: Buildable[];
+  /** Of those, the ones a colleague picks up, with who takes each. */
+  covered: Array<{ course: Buildable; instructor: Faculty }>;
+  /** And the ones nobody has room for. */
+  orphaned: Buildable[];
+}
+
+export function planCommitmentCoverage(s: GameState, facultyIds: readonly string[]): CommitmentCoverage {
+  const shed = coursesShedByCommitment(s, facultyIds);
+
+  const capacity = new Map<string, number>();
+  const load = new Map<string, number>();
+  for (const f of s.faculty) {
+    capacity.set(f.id, facultyIds.includes(f.id)
+      ? Math.max(0, f.courseSlots - RESEARCH_COMMITMENT_SLOTS)
+      : effectiveCourseSlots(s, f));
+    load.set(f.id, facultyLoad(s, f.id));
+  }
+  // The shed courses are off their old instructor's plate before anybody
+  // else is asked to take one.
+  for (const course of shed) {
+    const previous = s.courseFaculty[course.id];
+    if (previous) load.set(previous, (load.get(previous) ?? 1) - 1);
+  }
+
+  const covered: CommitmentCoverage['covered'] = [];
+  const orphaned: Buildable[] = [];
+  const byTierThenId = [...shed].sort(
+    (a, b) => tierRank(tierOf(b.id)) - tierRank(tierOf(a.id)) || a.id.localeCompare(b.id),
+  );
+  for (const course of byTierThenId) {
+    const taker = s.faculty
+      .filter((f) => f.field === course.requiresFaculty)
+      .filter((f) => (load.get(f.id) ?? 0) < (capacity.get(f.id) ?? 0))
+      .sort((a, b) => b.teaching - a.teaching || a.id.localeCompare(b.id))[0];
+    if (taker) {
+      load.set(taker.id, (load.get(taker.id) ?? 0) + 1);
+      covered.push({ course, instructor: taker });
+    } else {
+      orphaned.push(course);
+    }
+  }
+  return { shed, covered, orphaned };
+}
+
 // How many courses this specific person is currently teaching — their
 // personal load against their own `courseSlots`.
 //
