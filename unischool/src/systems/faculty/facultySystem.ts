@@ -1,4 +1,20 @@
 import type { Faculty, GameState } from '../../state/types';
+
+// THE ONE WAY SOMEBODY JOINS THE ROSTER. Two callers reach it: the
+// reducer's HIRE_FACULTY, which appoints off the candidate market, and the
+// visiting-chair decision event, which appoints somebody the market never
+// listed. Shared rather than duplicated so an appointment can never mean
+// two slightly different things — a bug that would show up as a professor
+// who works here but is quietly still "listed", aged out of a job they
+// already hold.
+//
+// weeksListed is the POOL's clock and tenureWeeks is the ROSTER's, so
+// clearing the first is what actually moves a person from one to the
+// other.
+export function appointFaculty(s: GameState, person: Faculty): void {
+  person.weeksListed = 0;
+  s.faculty.push(person);
+}
 import {
   generateCandidate, grownStat, facultySalary, rollCandidateField, candidateArrivalsThisWeek,
   SLOT_GROWTH_INTERVAL_WEEKS, MAX_FACULTY_SLOTS, CANDIDATE_LISTING_WEEKS,

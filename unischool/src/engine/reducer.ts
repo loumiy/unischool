@@ -13,7 +13,7 @@ import { researchTopic } from '../data/researchTopics';
 import { tickAdmissions, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
 import { deriveCohortSignals } from '../systems/admissions/cohorts';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
-import { tickFaculty } from '../systems/faculty/facultySystem';
+import { appointFaculty, tickFaculty } from '../systems/faculty/facultySystem';
 import { tickResearch } from '../systems/research/researchSystem';
 import { tickPrestige } from '../systems/prestige/prestigeSystem';
 import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
@@ -260,12 +260,9 @@ export function reducer(state: GameState, action: Action): GameState {
       const idx = s.candidates.findIndex((c) => c.id === action.facultyId);
       if (idx !== -1) {
         const [hired] = s.candidates.splice(idx, 1);
-        // weeksListed is the pool's clock, tenureWeeks is the roster's:
-        // clearing it here is what moves them from one to the other, so a
-        // hire never carries a stale listing age (and can never be aged
-        // out of a job they already hold).
-        hired.weeksListed = 0;
-        s.faculty.push(hired);
+        // The one appointment path, shared with the visiting-chair event
+        // (see facultySystem.ts's appointFaculty).
+        appointFaculty(s, hired);
       }
       return s;
     }
