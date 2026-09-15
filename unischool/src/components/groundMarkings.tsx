@@ -1,6 +1,6 @@
 import type { FacilityType } from '../state/types';
 import { boxFaces, lift, polyPoints, project, projectedArc, projectedCircle, projectedStadium, type Pt } from './isoProjection';
-import { up } from './campusScale';
+import { METRES_PER_TILE, up } from './campusScale';
 import { TreeAt, type Species } from './trees';
 
 // Open ground: the Buildables you walk across rather than into — the quad,
@@ -519,52 +519,81 @@ function pitchProps(col: number, row: number, w: number, h: number): GroundProp[
 }
 
 // Courts: a net across the middle and the service boxes either side.
+// Six courts, which is what a 12x4 plot IS.
+//
+// FACILITY_FOOTPRINTS.tennisCourts says so in its own comment -- "six courts
+// in a row, which is ~110m by 36m" -- and the drawing ignored it, stretching
+// ONE court over the whole plot. That is why the courts read as enormous: a
+// net 108 metres long and a service box the size of a basketball hall. The
+// footprint was right all along; only the paint was wrong.
+//
+// Every number below is a real dimension divided by the ground it sits on,
+// so the courts stay the right size if the footprint ever changes rather
+// than scaling with it. The count comes off the plot too: a longer plot is
+// more courts, not wider ones.
+const COURT_BAY_METRES = 18;      // one court and its side run-off
+const COURT_WIDTH_METRES = 10.97; // doubles sidelines
+const COURT_LENGTH_METRES = 23.77;// baseline to baseline
+const SINGLES_INSET = (10.97 - 8.23) / 2 / 10.97;  // the doubles alley, as a share of the court's width
+const SERVICE_LINE = 6.4 / (23.77 / 2);            // service line, as a share of a half court
+
 function Courts({ col, row, w, h }: GroundProps) {
   const landscape = w >= h;
+  // u runs ALONG the row of courts, v across one court's length, whichever
+  // way the plot was placed.
   const A = (a: number, c: number): [number, number] => (landscape ? [a, c] : [c, a]);
-  const lo = 0.08; const span = 1 - lo * 2;
-  const at = (a: number, c: number): [number, number] => A(lo + a * span, lo + c * span);
+  const alongM = (landscape ? w : h) * METRES_PER_TILE;
+  const deepM = (landscape ? h : w) * METRES_PER_TILE;
+
+  const courts = Math.max(1, Math.round(alongM / COURT_BAY_METRES));
+  const cw = Math.min(COURT_WIDTH_METRES / alongM, 1 / courts);  // one court's width, in plot u
+  const cl = Math.min(COURT_LENGTH_METRES / deepM, 1);           // its length, in plot v
+  const v0 = (1 - cl) / 2;
+  const v1 = v0 + cl;
+
+  const line = (a0: number, c0: number, a1: number, c1: number, cls = 'ground-line') => (
+    <line className={cls} {...uvLine(col, row, w, h, ...A(a0, c0), ...A(a1, c1))} />
+  );
+
   return (
     <>
-      <polygon className="ground-court" points={uvPoly(col, row, w, h, [at(0, 0), at(1, 0), at(1, 1), at(0, 1)])} />
-      <line className="ground-line-heavy" {...uvLine(col, row, w, h, ...at(0.5, 0), ...at(0.5, 1))} />
-      <line className="ground-line" {...uvLine(col, row, w, h, ...at(0.25, 0.16), ...at(0.75, 0.16))} />
-      <line className="ground-line" {...uvLine(col, row, w, h, ...at(0.25, 0.84), ...at(0.75, 0.84))} />
-      <line className="ground-line" {...uvLine(col, row, w, h, ...at(0.25, 0.16), ...at(0.25, 0.84))} />
-      <line className="ground-line" {...uvLine(col, row, w, h, ...at(0.75, 0.16), ...at(0.75, 0.84))} />
+      {/* One surface under all of them. A six-court block is laid as a single
+          slab and fenced as one, not as six islands in the grass. */}
+      <polygon className="ground-court" points={uvPoly(col, row, w, h, [
+        A(0, 0), A(1, 0), A(1, 1), A(0, 1),
+      ])} />
+      {Array.from({ length: courts }, (_, k) => {
+        const centre = (k + 0.5) / courts;
+        const u0 = centre - cw / 2;
+        const u1 = centre + cw / 2;
+        const alley = cw * SINGLES_INSET;
+        const service = v0 + cl * 0.5 * (1 - SERVICE_LINE);
+        return (
+          <g key={k}>
+            {/* Baselines and doubles sidelines: the court itself. */}
+            <polygon
+              className="ground-line"
+              fill="none"
+              points={uvPoly(col, row, w, h, [A(u0, v0), A(u1, v0), A(u1, v1), A(u0, v1)])}
+            />
+            {/* The singles sidelines, which is what the alley is the gap
+                between — and the one marking that says "tennis" rather than
+                "a rectangle with a net across it". */}
+            {line(u0 + alley, v0, u0 + alley, v1, 'ground-line-fine')}
+            {line(u1 - alley, v0, u1 - alley, v1, 'ground-line-fine')}
+            {/* The net, across the middle, and the service court behind it
+                on each side. */}
+            {line(u0, (v0 + v1) / 2, u1, (v0 + v1) / 2, 'ground-line-heavy')}
+            {line(u0 + alley, service, u1 - alley, service)}
+            {line(u0 + alley, v1 - (service - v0), u1 - alley, v1 - (service - v0))}
+            {line(centre, service, centre, v1 - (service - v0))}
+          </g>
+        );
+      })}
     </>
   );
 }
 
-// ---------------------------------------------------------------------
-// THE QUAD. The open middle of the campus, and the one Buildable whose
-// whole payoff is how it looks — its satisfaction contribution is a flat
-// bonus that never scales, so it is bought for the place it makes rather
-// than for the capacity it adds (see facilitiesData.ts).
-//
-// Both tiers are drawn from the same parts, at different densities: lawn,
-// a CROSS of paved walks, planting, and something at the middle worth
-// walking to. Two things about the walks matter and neither is decoration:
-//
-//   - They run from the MIDPOINT of each edge to the centre, not corner to
-//     corner. A drawn walkway (see pathways.tsx) arriving at the quad's
-//     edge therefore meets a walk rather than a lawn, whichever side it
-//     comes from — which is what makes a hand-drawn path network join the
-//     quad instead of stopping at it.
-//   - They are filled SHAPES with a width in tiles, not strokes. A stroke's
-//     width is in screen units, so a stroked walk covers a different amount
-//     of ground at every zoom; a 13x13 quad's walks have to be a real width
-//     on the ground to read as paving at all.
-//
-// Tier 1 is a plain college green: grass, the cross, a stone roundel where
-// the walks meet, and trees at the corners. Tier 2 (the Grand Quad &
-// Gardens) keeps every one of those and adds the things a garden has — a
-// big fountain in place of the roundel, flower beds down the walks, clipped
-// hedges, and more trees.
-// ---------------------------------------------------------------------
-
-// The walks, as a fraction of the quad's own width/height. Wide enough to
-// walk four abreast at the scale the rest of the map is drawn to.
 const QUAD_WALK = 0.075;
 
 function QuadWalks({ col, row, w, h }: GroundProps) {

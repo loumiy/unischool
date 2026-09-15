@@ -965,6 +965,86 @@ const VILLAGE_HOUSES: Array<[number, number, number, number]> = [
   [0.88, 0.20, 0.09, 0.56],
 ];
 
+// ---------------------------------------------------------------------
+// A CHAPTER HOUSE'S LETTERS.
+//
+// A Greek chapter has always been named out of the alphabet it is named for
+// — "Alpha Beta Gamma" — and the name has always been stored in English
+// words. That is right in a list of organisations and wrong on a building:
+// what goes over a chapter house's door is ΑΒΓ, in letters, and it is the
+// one thing that tells you which house on the map belongs to whom.
+//
+// The pediment rises ABOVE the wall rather than sitting inside it. The
+// smallest chapter house is a one-storey pavilion whose door, threshold and
+// canopy already use most of that wall (see Canopy's own note on the same
+// problem), so a tympanum fitted under the eaves would have had nowhere to
+// go. A pedimented parapet always has room, and is a real thing a fraternity
+// house does to announce itself.
+// ---------------------------------------------------------------------
+// Sized off the WALL rather than the door. A chapter house's door is a
+// domestic one, barely a quarter of a tile wide, and a pediment scaled from
+// it came out narrower than the letters it was meant to hold. What a house
+// actually does is carry its letters across the front.
+// Sized off the WALL rather than the door. A chapter house's door is a
+// domestic one, barely a quarter of a tile wide, and a pediment scaled from
+// it came out narrower than the three letters it exists to hold.
+const PEDIMENT_SPAN = 0.62;    // share of the wall the assembly covers
+const FRIEZE_DEPTH = 0.16;     // the lettered band, as a share of its own width
+const PEDIMENT_PITCH = 0.17;   // and the gable above it
+// However tall the arithmetic makes it, a nameplate never eats more than
+// this much of the wall it stands on — the smallest chapter house is two
+// storeys, and a parapet half as tall again as the building is a folly.
+const PEDIMENT_MAX_OF_WALL = 0.5;
+
+function ChapterPediment({ glyphs, origin, along, wallHeight, span, doorWidth }: {
+  glyphs: string;
+  origin: Pt; along: Pt;     // the wall's two ends, at its BASE
+  wallHeight: number;
+  span: number;              // the wall's length in tiles
+  doorWidth: number;         // the door's width in tiles
+}) {
+  if (!glyphs || span <= 0 || doorWidth <= 0) return null;
+  const half = PEDIMENT_SPAN / 2;
+  const left = facePoint(origin, along, wallHeight, 0.5 - half, 1);
+  const right = facePoint(origin, along, wallHeight, 0.5 + half, 1);
+  const width = Math.hypot(right.x - left.x, right.y - left.y);
+  if (width <= 0) return null;
+
+  const fit = Math.min(1, (wallHeight * PEDIMENT_MAX_OF_WALL) / (width * (FRIEZE_DEPTH + PEDIMENT_PITCH)));
+  const frieze = width * FRIEZE_DEPTH * fit;
+  const rise = width * PEDIMENT_PITCH * fit;
+
+  const bandLeft = lift(left, frieze);
+  const bandRight = lift(right, frieze);
+  const apex = lift({ x: (bandLeft.x + bandRight.x) / 2, y: (bandLeft.y + bandRight.y) / 2 }, rise);
+
+  // The wall's own slope, which is what the letters have to lie in to read
+  // as cut INTO it rather than floating in front of it. On this projection
+  // a wall running along the columns falls one unit for every two across
+  // and one running along the rows climbs at the same rate, so the shear is
+  // simply the line between the band's two ends.
+  const slope = (right.y - left.y) / (right.x - left.x || 1);
+  const seat = lift({ x: (left.x + right.x) / 2, y: (left.y + right.y) / 2 }, frieze * 0.5);
+
+  return (
+    <>
+      {/* The frieze carries the letters and the gable sits on it, which is
+          the order a real one is built in — and the reason the letters get a
+          rectangle rather than the pinched middle of a triangle. */}
+      <polygon className="chapter-pediment" points={polyPoints([left, right, bandRight, bandLeft])} />
+      <polygon className="chapter-pediment" points={polyPoints([bandLeft, bandRight, apex])} />
+      <text
+        className="chapter-letters"
+        transform={`matrix(1 ${slope} 0 1 ${seat.x} ${seat.y})`}
+        textAnchor="middle"
+        fontSize={Math.max(5, Math.min(width * 0.26, frieze * 0.88))}
+      >
+        {glyphs}
+      </text>
+    </>
+  );
+}
+
 // A building being EXTENDED, not a building site.
 //
 // The library is renovated by adding a floor to the building already
@@ -978,20 +1058,26 @@ const VILLAGE_HOUSES: Array<[number, number, number, number]> = [
 //
 // It is the same building that stays OPEN through the work — see types.ts's
 // servingPopulation, which is the other half of this PR.
-function BuildingMotif({ t, p, material, developing }: {
+function BuildingMotif({ t, p, material, developing, glyphs }: {
   t: Buildable;
   p: { row: number; col: number; w: number; h: number };
   material: Material;
   developing: boolean;
+  // A Greek chapter's letters, for the one Buildable that wears any (see
+  // ChapterPediment). Passed in rather than stored on the Buildable: the
+  // chapter is the thing that has a name, and a chapter house that read its
+  // own letters off a copy would keep them after a scandal renamed or
+  // disbanded the chapter that owned them.
+  glyphs?: string;
 }) {
   const extending = developing && floorsUnderConstruction(t) > 0 && motifOf(t) !== 'grounds';
-  if (!extending) return <BuildingMass t={t} p={p} material={material} developing={developing} />;
+  if (!extending) return <BuildingMass t={t} p={p} material={material} developing={developing} glyphs={glyphs} />;
 
   const { col, row, w, h } = p;
   const roof = drawnHeightOf(t, true);
   return (
     <>
-      <BuildingMass t={t} p={p} material={material} developing />
+      <BuildingMass t={t} p={p} material={material} developing glyphs={glyphs} />
       {/* The work, where the work is. Boarding over the finished roof and
           poles standing off it — at ground level both would say the wrong
           thing about a building that is open underneath them. */}
@@ -1001,11 +1087,12 @@ function BuildingMotif({ t, p, material, developing }: {
   );
 }
 
-function BuildingMass({ t, p, material, developing }: {
+function BuildingMass({ t, p, material, developing, glyphs }: {
   t: Buildable;
   p: { row: number; col: number; w: number; h: number };
   material: Material;
   developing: boolean;
+  glyphs?: string;
 }) {
   const motif = motifOf(t);
   // How much of this mass is not built yet, and so what `developing` means
@@ -1483,8 +1570,12 @@ function BuildingMass({ t, p, material, developing }: {
           height={Math.min(COLONNADE_HEIGHT, H - EAVES_COURSE * 2)}
         />
       ))}
-      {/* A canopy over a low building's door. */}
-      {!site && motif === 'pavilion' && door && (
+      {/* A canopy over the door. A pavilion has always had one; a residence
+          hall now does too, because the way INTO a building is the thing a
+          long brick block was most obviously missing — a slab with ranked
+          windows and a flush opening is a barn, and the canopy is most of
+          what turns it into somewhere people live. */}
+      {!site && (motif === 'pavilion' || motif === 'residential') && door && (
         <>
           <Canopy d={door} centreCol={col + w / 2} centreRow={row + h} outward="row" wallHeight={H} />
           <Canopy d={door} centreCol={col + w} centreRow={row + h / 2} outward="col" wallHeight={H} />
@@ -1605,6 +1696,24 @@ function BuildingMass({ t, p, material, developing }: {
           )}
         </>
       )}
+      {/* The chapter's letters, over both doors — a house announces itself
+          to whichever way you walk up to it.
+
+          LAST, after the roof. The pediment is a parapet: it rises above
+          the eaves rather than fitting under them, so anything drawn after
+          it covers it, and the roof slab is drawn after everything else. */}
+      {!site && glyphs && door && (
+        <>
+          <ChapterPediment
+            glyphs={glyphs} origin={f.D} along={f.C}
+            wallHeight={H} span={w} doorWidth={door.widthTiles}
+          />
+          <ChapterPediment
+            glyphs={glyphs} origin={f.C} along={f.B}
+            wallHeight={H} span={h} doorWidth={door.widthTiles}
+          />
+        </>
+      )}
     </>
   );
 }
@@ -1625,6 +1734,7 @@ export default memo(BuildingMotif, (a, b) => (
   a.t === b.t
   && a.material === b.material
   && a.developing === b.developing
+  && a.glyphs === b.glyphs
   && a.p.col === b.p.col && a.p.row === b.p.row
   && a.p.w === b.p.w && a.p.h === b.p.h
 ));

@@ -367,7 +367,15 @@ console.log('campus scale and building spec');
 
   const walls = [...new Set(CATALOGUE.map((t) => materialOf(t).wall))];
   const roofs = [...new Set(CATALOGUE.map((t) => materialOf(t).roof))];
-  assert(walls.length <= 6, `the campus is built of at most six materials (got ${walls.length})`);
+  // Seven, not six: 4E gave the residence halls a dark brick of their own
+  // (buildingSpec's brickDark), and the bar moved to let it in. Stated here
+  // rather than quietly relaxed, because a cap that follows the palette
+  // around is not a cap. What it is guarding is the 23-tint colour chart
+  // this replaced, and the real guard against that is the pairwise-distance
+  // check below, which has NOT moved: seven materials a player can tell
+  // apart is a palette; seven near-neighbours would fail on the next line
+  // whatever this number said.
+  assert(walls.length <= 7, `the campus is built of at most seven materials (got ${walls.length})`);
   assert(roofs.length <= 3, `and roofed in at most three (got ${roofs.length})`);
 
   // The measure the old palette failed. Twenty-three tints formed 253 pairs,

@@ -1079,6 +1079,17 @@ button.build-tile { font-family: inherit; }
    building finishing, a save loading) is dark until that pass reaches it
    rather than flashing on at full strength. The transition only has to smooth
    the ends of the range; the falloff itself is continuous. */
+/* A chapter house's pediment and the letters on it (buildingMotifs.tsx's
+   ChapterPediment). The stone is the same limestone every other piece of
+   trim on the campus is cut from; the letters are cut INTO it, which is why
+   they are a darker tone of the same stone rather than a colour of their
+   own. */
+.chapter-pediment { fill: #efe9da; }
+.chapter-letters {
+  fill: #8a7f63; font-family: var(--serif); font-weight: 700;
+  dominant-baseline: middle; user-select: none; pointer-events: none;
+}
+
 .campus-label { pointer-events: none; opacity: 0; transition: opacity 90ms linear; }
 .campus-label-plate { fill: rgba(20, 26, 16, 0.5); }
 .campus-label-text { fill: #f6f1e2; font-family: var(--serif); text-anchor: middle; dominant-baseline: middle; user-select: none; }

@@ -773,6 +773,13 @@ export interface StudentClub extends StudentOrgBase {
 // has to be able to ask each chapter at most once.
 export interface GreekChapter extends StudentOrgBase {
   kind: 'fraternity' | 'sorority';
+  // The chapter's three letters as LETTERS — 'ΑΒΓ' for Alpha Beta Gamma.
+  // Stored rather than derived at every read because it is what goes on the
+  // chapter house's pediment on the campus map, and a building should not be
+  // re-parsing an English sentence on every frame to find out its own name.
+  // Derived from `name` on load for saves that predate the field (see
+  // persistence.ts), which is exact: the name is the letters.
+  glyphs: string;
   housed: boolean;       // a dedicated chapter house has been built for them
   housingAsked: boolean; // they have already petitioned for one — never ask again, whatever the answer was
 }

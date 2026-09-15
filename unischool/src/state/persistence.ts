@@ -10,7 +10,7 @@ import { initialFacilities } from '../data/facilitiesData';
 import { initialDorms } from '../data/campusData';
 import { fellTrees, seedTrees } from '../data/treeData';
 import {
-  coachSalaryFor, initialCoachCandidatePool, LEGACY_TWO_GENDER_SPORT_MIGRATION, SPORTS,
+  coachSalaryFor, glyphsFor, initialCoachCandidatePool, LEGACY_TWO_GENDER_SPORT_MIGRATION, SPORTS,
 } from '../data/studentLifeData';
 import { athleticStrengthFor } from '../data/rivalData';
 import { legacyRoundRobinAssignments } from '../systems/faculty/facultyAssignment';
@@ -2032,6 +2032,30 @@ function sanitizeTeams(state: GameState): void {
   }
 }
 
+// Chapter hygiene, run on EVERY load (migrated or not). One job: fill in
+// `glyphs` for a chapter saved before the field existed.
+//
+// Deliberately a sanitize rather than a MIGRATIONS entry and a SAVE_VERSION
+// bump, because there is nothing to migrate. A chapter's name has always
+// BEEN its letters ("Alpha Beta Gamma"), so the glyphs are not new
+// information recovered from somewhere, they are the same name written the
+// way a building writes it — and glyphsFor is the same function that
+// produced the field in the first place, not a second reading of it.
+//
+// A chapter whose name is not three Greek words (a hand-edited save) comes
+// back with an empty string, and an empty pediment is the right answer to
+// "what letters does this house wear": the campus map draws nothing rather
+// than drawing something wrong.
+function sanitizeChapters(state: GameState): void {
+  if (!Array.isArray(state.orgs?.chapters)) {
+    if (state.orgs) state.orgs.chapters = [];
+    return;
+  }
+  for (const chapter of state.orgs.chapters) {
+    if (typeof chapter.glyphs !== 'string') chapter.glyphs = glyphsFor(chapter.name);
+  }
+}
+
 // Seen-slice hygiene, run on EVERY load (migrated or not), mirroring
 // sanitizeTeams above: `seen` is display-only (no system reads it — see
 // types.ts's SeenState), so a bad entry here can't corrupt the sim, but a
@@ -2154,6 +2178,7 @@ export function loadGame(): GameState | null {
   // to decide which trees are standing under a building.
   sanitizeTrees(state);
   sanitizeTeams(state);
+  sanitizeChapters(state);
   sanitizeSeen(state);
   sanitizeCourseFaculty(state);
   return state;

@@ -355,7 +355,7 @@ function chaptersAwaitingHousing(s: GameState): GreekChapter[] {
 // The chapter house's own Buildable id, deterministic from the chapter it
 // belongs to — one house per chapter, and the pairing survives save/load
 // without a separate lookup table (see 'greek-housing' below).
-function chapterHouseId(chapterId: string): string {
+export function chapterHouseId(chapterId: string): string {
   return `chapter-house:${chapterId}`;
 }
 
