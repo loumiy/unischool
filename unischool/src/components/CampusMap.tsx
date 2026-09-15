@@ -426,7 +426,7 @@ function BuildingLabel({ t, p, pinned }: { t: Buildable; p: Placement; pinned: b
 }
 
 export default function CampusMap({
-  s, act, selectedId, onSelect, pathTool, onSetPathTool, hotkeysEnabled, sitingHotkeysEnabled,
+  s, act, selectedId, onSelect, pathTool, onSetPathTool, backOutEnabled, controlsEnabled,
   onOpenCurriculum,
 }: {
   s: GameState;
@@ -454,12 +454,12 @@ export default function CampusMap({
   // component binds a key for is a thing you do while LOOKING at the map, so
   // all of it goes quiet together rather than each hotkey growing its own
   // idea of when it applies.
-  hotkeysEnabled: boolean;
-  // Separate from hotkeysEnabled on purpose: the build popup leaves the map
-  // live underneath it and is where a building is picked up, so R has to keep
-  // working while it is open — which is the whole of the bug this splits (see
-  // hotkeys.ts's sitingKeysLive).
-  sitingHotkeysEnabled: boolean;
+  // Escape only. The build popup takes this one key from the map, because
+  // App.tsx's ladder has to arbitrate it (see hotkeys.ts's mapBackOutLive).
+  backOutEnabled: boolean;
+  // Everything else the map does — panning, R, P. Live under the build popup,
+  // which is where those tools are reached from in the first place.
+  controlsEnabled: boolean;
   // Opens the Curriculum tab at a given school, for the academic hall's own
   // info panel (see BuildingInfoPanel.tsx). The map does not know what a
   // tab is — it hands the id up to App, which owns what is open.
@@ -711,7 +711,7 @@ export default function CampusMap({
   // second copy of the transform arithmetic. Like that drag, it never
   // re-renders React.
   useEffect(() => {
-    if (!hotkeysEnabled) return;
+    if (!controlsEnabled) return;
     const held = new Set<string>();
     let frame: number | null = null;
     let prevTs = 0;
@@ -775,7 +775,7 @@ export default function CampusMap({
     // applyView reads and writes refs only, so the stretch-long closure here
     // is never stale in any way that matters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hotkeysEnabled]);
+  }, [controlsEnabled]);
 
   // The ground tile under a pointer event, or null off-grid. The whole of
   // the angled map's hit-testing: screen -> world (undo the view transform)
@@ -974,8 +974,11 @@ export default function CampusMap({
   const canRotateSelected = !!selected && selected.status !== 'done' && canRotate(footprintOf(selected));
 
   // The map's keyboard, minus panning (which needs keyup and a frame loop of
-  // its own — see the effect above).
+  // its own — see the effect above, on the same gate as these).
   //
+  //   R       turn the currently-picked-up building, the same thing the
+  //           on-screen ⟳ control near the footprint ghost does. A no-op
+  //           unless something rotatable is actually picked up.
   //   P       arm the draw tool, or put it away if it is already armed —
   //           App.tsx's setPathTool is itself a toggle, so pressing P with
   //           the ERASE tool armed swaps to draw rather than turning
@@ -983,34 +986,30 @@ export default function CampusMap({
   //           means by it.
   //   Escape  back out of whatever the map is currently doing, one layer at
   //           a time: the path tool, then a picked-up building, then an open
-  //           info panel. Only ever reaches here with no tab open over the
-  //           map (hotkeysEnabled), so it never competes with TabOverlay's
-  //           own Escape.
+  //           info panel. Only ever reaches here with nothing of the shell's
+  //           own left to close (backOutEnabled), so it never competes with
+  //           TabOverlay's or the build menu's own Escape.
   //
   // None of these collide with StatusHeader's 1/2/3/Space, App.tsx's C/F/L
   // or InterruptModal's Enter.
   //
-  // R is registered SEPARATELY, on sitingHotkeysEnabled rather than
-  // hotkeysEnabled, because the build popup does not take the map's keyboard
-  // away the way a tab does — and the popup is open for the whole of the only
-  // window in which R means anything.
-  useHotkeys((e) => {
-    if (e.key.toLowerCase() !== 'r') return;
-    if (canRotateSelected) setRotated((r) => !r);
-  }, sitingHotkeysEnabled);
-
+  // The TOOLS, on controlsEnabled: both keep working with the build menu up,
+  // which is where each of them is reached from in the first place and so is
+  // exactly when a player reaches for them.
   useHotkeys((e) => {
     const key = e.key.toLowerCase();
-    if (key === 'p') {
-      onSetPathTool('draw');
-      return;
-    }
+    if (key === 'r' && canRotateSelected) setRotated((r) => !r);
+    if (key === 'p') onSetPathTool('draw');
+  }, controlsEnabled);
+
+  // Escape on its own gate, because App.tsx's ladder hands off to it.
+  useHotkeys((e) => {
     if (e.key === 'Escape') {
       if (pathTool) onSetPathTool(pathTool);
       else if (selected) selectBuilding(null);
       else if (inspectedId) setInspectedId(null);
     }
-  }, hotkeysEnabled);
+  }, backOutEnabled);
 
   // The one placement path, whether the building was clicked into place or
   // dropped there. canPlace is re-checked in the reducer too — this copy is
