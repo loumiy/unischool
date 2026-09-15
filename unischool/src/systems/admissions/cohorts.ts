@@ -202,21 +202,68 @@ export function cohortDemandFactor(signals: CohortSignals, tolerance: number, tu
 }
 
 // Per-cohort detail for the admissions UI: not just the blended total, but
-// which cohorts are up, which are down, and by how much — so a player can
-// actually see which of their choices (or which building) is moving which
-// audience, rather than reading one opaque multiplier.
+// HOW MANY APPLICANTS each cohort is actually worth — so a player can see
+// which of their choices (or which building) is moving which audience, and
+// by how many people, rather than reading a multiplier and doing the
+// arithmetic themselves.
+//
+// `applicants` is a real head count out of the realized pool, not a second
+// opinion about it. cohortDemandFactor is a share-weighted blend of the
+// same pulls, so a cohort's share of the pool is exactly its own weighted
+// term over that blend — which means these counts are a decomposition of
+// the pool the funnel already produced, not a parallel model that could
+// disagree with it. Quality band and cohort are independent dimensions in
+// this model (sticker shock scales bands, never cohorts), so the split is
+// the same before and after the funnel's own attrition, and applying it to
+// the realized pool is exact rather than an approximation.
 export interface CohortDetail {
   id: CohortId;
   label: string;
   driverLabel: string;
-  pull: number; // this cohort's own multiplier, 1.0 = neutral
+  pull: number;       // this cohort's own multiplier, 1.0 = neutral
+  applicants: number; // whole applicants from this cohort; the seven sum to `applicants`
 }
 
-export function cohortBreakdown(signals: CohortSignals, tolerance: number, tuition: number, scholarshipRate: number): CohortDetail[] {
-  return COHORTS.map((c) => ({
+// Whole people, and the seven of them add up. Apportioned by largest
+// remainder (the same method used to seat a legislature, and for the same
+// reason): floor every share, then hand the leftover applicants out to the
+// cohorts with the biggest fractions. Rounding each share on its own would
+// leave a breakdown that misses its own total by a few students, which on a
+// panel that shows both is just a visible arithmetic error.
+function apportion(weights: number[], total: number): number[] {
+  const sum = weights.reduce((a, b) => a + b, 0);
+  if (sum <= 0 || total <= 0) return weights.map(() => 0);
+  const exact = weights.map((w) => (w / sum) * total);
+  const counts = exact.map(Math.floor);
+  let remainder = total - counts.reduce((a, b) => a + b, 0);
+  const byFraction = exact
+    .map((v, i) => ({ i, frac: v - Math.floor(v) }))
+    .sort((a, b) => b.frac - a.frac);
+  for (const { i } of byFraction) {
+    if (remainder <= 0) break;
+    counts[i] += 1;
+    remainder -= 1;
+  }
+  return counts;
+}
+
+// `applicants` is the realized pool — projectAdmissions's own rounded
+// figure, the one the panel puts at the top — so the breakdown and the
+// headline can never disagree by a student.
+export function cohortBreakdown(
+  signals: CohortSignals,
+  tolerance: number,
+  tuition: number,
+  scholarshipRate: number,
+  applicants: number,
+): CohortDetail[] {
+  const pulls = COHORTS.map((c) => pullFor(c.id, signals, tolerance, tuition, scholarshipRate));
+  const counts = apportion(COHORTS.map((c, i) => c.baseShare * pulls[i]), Math.max(0, Math.round(applicants)));
+  return COHORTS.map((c, i) => ({
     id: c.id,
     label: c.label,
     driverLabel: c.driverLabel,
-    pull: pullFor(c.id, signals, tolerance, tuition, scholarshipRate),
+    pull: pulls[i],
+    applicants: counts[i],
   }));
 }

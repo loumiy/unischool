@@ -616,14 +616,14 @@ export function reducer(state: GameState, action: Action): GameState {
       s.students.satisfactionYearSum = 0;
       s.students.satisfactionYearWeeks = 0;
 
-      // Advance the cohorts a year: seniors graduate and leave, everyone
+      // Advance the classes a year: seniors graduate and leave, everyone
       // else moves up. Full progression, no attrition, in this model.
-      const cohorts = s.students.cohorts;
-      const graduating = cohorts.senior;
-      cohorts.senior = cohorts.junior;
-      cohorts.junior = cohorts.sophomore;
-      cohorts.sophomore = cohorts.freshman;
-      cohorts.freshman = 0;
+      const classes = s.students.classes;
+      const graduating = classes.senior;
+      classes.senior = classes.junior;
+      classes.junior = classes.sophomore;
+      classes.sophomore = classes.freshman;
+      classes.freshman = 0;
 
       // Run the distribution funnel with the committed policy: it sizes the
       // incoming FRESHMAN class from demand and policy alone — dorm capacity
@@ -637,7 +637,7 @@ export function reducer(state: GameState, action: Action): GameState {
         priorYearAvgSatisfaction,
         deriveCohortSignals(s),
       );
-      cohorts.freshman = outcome.enrolled;
+      classes.freshman = outcome.enrolled;
       s.students.applicantPool = outcome.applicants;
       s.students.admitRate = outcome.admitRate;
       s.students.incomingQuality = outcome.avgIncomingQuality;

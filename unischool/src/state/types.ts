@@ -35,13 +35,20 @@ export interface SatisfactionAttributes {
   housing: number;
 }
 
-// The student body is FOUR aggregate cohorts — never individuals (see
-// README's "Students: four aggregate cohorts"). Students attend four years:
+// The student body is FOUR aggregate CLASSES — never individuals (see
+// README's "Students: four aggregate classes"). Students attend four years:
 // each summer (reducer.ts's RESOLVE_ADMISSIONS) seniors graduate and leave,
-// every younger cohort advances a year, and the admissions funnel commits a
-// new freshman cohort. This is NOT individual-student simulation — each
-// cohort is a plain head count.
-export interface CohortCounts {
+// every younger class advances a year, and the admissions funnel commits a
+// new freshman class. This is NOT individual-student simulation — each class
+// is a plain head count.
+//
+// "Class" is the year group and ONLY the year group. The other grouping of
+// students this game models — research-oriented, price-sensitive, athletes —
+// is a COHORT (see systems/admissions/cohorts.ts), and the two words are
+// never swapped: a class is admitted in a given year, a cohort is a kind of
+// applicant. Neither has anything to do with a course, which is what a
+// student enrolls in (see techData.ts's Buildables).
+export interface ClassCounts {
   freshman: number;
   sophomore: number;
   junior: number;
@@ -49,9 +56,9 @@ export interface CohortCounts {
 }
 
 export interface StudentBody {
-  // The four class-year cohorts. Total enrolled is their sum — read it via
+  // The four classes. Total enrolled is their sum — read it via
   // totalEnrolled() rather than storing a separate total that could drift.
-  cohorts: CohortCounts;
+  classes: ClassCounts;
   // Total HOUSING (bed) capacity — dorms plus housed Greek chapter houses —
   // never an admissions ceiling. Enrollment is uncapped and driven purely by
   // the admissions funnel (see admissionsSystem.ts); most students are
@@ -923,12 +930,12 @@ export function institutionName(u: University): string {
   return u.suffix ? `${u.name} ${u.suffix}` : u.name;
 }
 
-// Total enrolled across the four cohorts — the whole student body. Derived,
-// never stored, so it can never drift from the cohorts it sums. Every
+// Total enrolled across the four classes — the whole student body. Derived,
+// never stored, so it can never drift from the classes it sums. Every
 // per-student reading (tuition, instruction cost, appropriations, scale)
 // goes through this.
 export function totalEnrolled(s: StudentBody): number {
-  return s.cohorts.freshman + s.cohorts.sophomore + s.cohorts.junior + s.cohorts.senior;
+  return s.classes.freshman + s.classes.sophomore + s.classes.junior + s.classes.senior;
 }
 
 // One year's worth of the school's headline numbers, appended once a year

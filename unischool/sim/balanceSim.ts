@@ -1023,7 +1023,7 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
 //
 // The size of the surcharge is the whole question, and 15% is small on
 // purpose. Reaching straight for the ceiling was tried first and is an
-// exploit, not a recovery: enrolment is a four-cohort stock, so a school
+// exploit, not a recovery: enrolment is a four-class stock, so a school
 // can charge the cap for one year and collect from students who applied
 // under the old price long before the applicant pool reacts. In the
 // discount-volume run that single year printed +11.09M a week and an

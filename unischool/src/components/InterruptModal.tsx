@@ -104,19 +104,26 @@ function PriceTierTag({ tier }: { tier: PriceTier }) {
   return <span className={`price-tier-tag ${copy.className}`}>{copy.label}</span>;
 }
 
-// One cohort's row in the breakdown below — a signed percentage in the
-// same bright good/bad pair the log ticker uses on this same dark modal
-// background, so "this audience is up" reads the same way everywhere.
-function CohortRow({ label, driverLabel, pull }: { label: string; driverLabel: string; pull: number }) {
-  const pct = Math.round((pull - 1) * 100);
-  const toneClass = pct > 0 ? 'cohort-up' : pct < 0 ? 'cohort-down' : 'cohort-flat';
+// One cohort's row in the breakdown below — a head count, because the
+// question a player is actually asking here is how many people a lab or a
+// varsity program brings in, and a multiplier makes them do that
+// arithmetic themselves against a pool printed six lines above. The seven
+// rows sum to the applicant pool (see cohorts.ts's apportion).
+//
+// The count still carries the tone: whether this cohort is above or below
+// neutral is what says which of the player's choices is working, and it
+// is drawn in the same bright good/bad pair the log ticker uses on this
+// same dark modal background, so "this audience is up" reads the same way
+// everywhere.
+function CohortRow({ label, driverLabel, pull, applicants }: { label: string; driverLabel: string; pull: number; applicants: number }) {
+  const toneClass = pull > 1 ? 'cohort-up' : pull < 1 ? 'cohort-down' : 'cohort-flat';
   return (
     <div className="cohort-row">
       <span className="cohort-row-label">
         {label}
         <span className="outcome-note">({driverLabel})</span>
       </span>
-      <span className={`cohort-row-pct ${toneClass}`}>{pct > 0 ? '+' : ''}{pct}%</span>
+      <span className={`cohort-row-count ${toneClass}`}>{applicants.toLocaleString()}</span>
     </div>
   );
 }
@@ -168,7 +175,7 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
   const stickerTier = priceTier(tuition, tolerance);
   const netPrice = tuition * (1 - scholarshipRate);
   const netTier = priceTier(netPrice, tolerance);
-  const cohorts = cohortBreakdown(cohortSignals, tolerance, tuition, scholarshipRate);
+  const cohorts = cohortBreakdown(cohortSignals, tolerance, tuition, scholarshipRate, outcome.applicants);
 
   return (
     <>
@@ -227,8 +234,8 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
           </dl>
 
           <div className="cohort-breakdown">
-            <h3>Who this pulls in <span className="outcome-note">(vs. a school with nothing built)</span></h3>
-            {cohorts.map((c) => <CohortRow key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} />)}
+            <h3>Who this pulls in <span className="outcome-note">(applicants, summing to the pool above)</span></h3>
+            {cohorts.map((c) => <CohortRow key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants} />)}
           </div>
 
           <StudentLifeDigest

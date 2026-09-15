@@ -446,7 +446,7 @@ export const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
 // own — its whole job is course-gating — and a flat recurring upkeep for
 // specialized equipment (see facilitiesData.ts's servedUpkeep for the
 // population-scaled version; labs are a flat cost instead, since one lab
-// serves a major's cohort, not the whole campus).
+// serves a major's students, not the whole campus).
 //
 // This list is also, in effect, WHICH SCHOOLS CAN DO RESEARCH: a lab is the
 // research gate (see below and README's "Research"), and a school with no
@@ -523,7 +523,7 @@ const RESEARCH_FACILITY_BLURBS: Partial<Record<string, string>> = {
 };
 const LAB_COST = 700_000;
 const LAB_WEEKS = 16;
-const LAB_UPKEEP_PER_WEEK = 1_400; // ~$73k/yr — specialized equipment is expensive to keep running, and a lab serves one major's cohort rather than the whole campus
+const LAB_UPKEEP_PER_WEEK = 1_400; // ~$73k/yr — specialized equipment is expensive to keep running, and a lab serves one major's students rather than the whole campus
 // A lab is now the gate on RESEARCH as well as on tier-3 coursework (see
 // README's "Research"): a school with no finished lab produces no research
 // at all, and the first lab anywhere on campus is also what offers the

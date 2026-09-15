@@ -30,11 +30,18 @@ already out of step and one of them has to move.
 
 ### Admissions and History
 Admissions has no gameplay in it; folding it into History is plausible. The
-content that would justify either tab is the same: the student body has **year
-cohorts** (freshman → senior) *and* **admissions cohorts** (research-minded,
-athletes, …), and neither is displayed. An infographic view of who actually
-attends this university is the feature; which tab it lives in is a consequence of
-building it.
+content that would justify either tab is the same: the student body has
+**classes** (freshman → senior) *and* **cohorts** (research-minded, athletes,
+…), and only the first is displayed, as a single line of four counts. An
+infographic view of who actually attends this university is the feature; which
+tab it lives in is a consequence of building it.
+
+The summer interrupt now shows cohort head counts for the *incoming* pool (see
+README's "Admissions cohorts"), which is one year's applicants — not the same
+thing as the standing body, where four admitted classes are layered on top of
+each other. Showing the enrolled mix means either storing each class's cohort
+split at admission or reconstructing it, and that is the real decision this
+feature has to make.
 
 ### Summer admissions
 The largest single redesign in the notes, and a genuine rework of a decision the
@@ -44,19 +51,26 @@ game already has:
   your prestige. No applicant interest, no sticker shock, no stated cap (the cap
   is where the slider ends; raise it to $100k). Setting it locks it.
 - **The reveal** is a slow tick up to the applicant count — slower than any other
-  number animation in the game, because it is the payoff.
+  number animation in the game, because it is the payoff. It breaks the total
+  down **by cohort, as head counts** — how many research-minded applicants, how
+  many athletes — never as percentages or multipliers. The decision panel
+  already does this (`cohorts.ts`'s `cohortBreakdown` returns whole applicants
+  that sum to the pool); the reveal is where the same numbers get their
+  moment.
 - **Admit rate is the second decision**, and its consequences are visible before
   commitment: moving the slider moves the freshman class size (yield goes away),
   and the panel projects weekly profit/loss and satisfaction against current
-  capacity — *including the three older cohorts who are still enrolled*.
+  capacity — *including the three older classes who are still enrolled*.
 - **Scholarships go away** — one rate.
-- **The tuition exploit closes**: tuition is set per *cohort* and follows that
-  cohort to graduation, rather than repricing everyone retroactively.
+- **The tuition exploit closes**: tuition is set per *class* and follows that
+  class to graduation, rather than repricing everyone retroactively.
 
 Note that the last item is a real model change — `finance.tuitionPerStudent` is a
-single scalar today, and per-cohort pricing means it becomes four (see
-`admissions/cohorts.ts`, which already carries the cohort structure this would
-hang off).
+single scalar today, read by finance, the demand system, the tech tree's
+`tuitionBonus` and Treasury, and per-class pricing means it becomes four prices
+carried on `students.classes` and advanced with it every summer (see
+`reducer.ts`'s `RESOLVE_ADMISSIONS`, which already shifts those four counts a
+year).
 
 ### Athletics V3
 Better layout; a bigger coach pool reusing faculty headshots and the old

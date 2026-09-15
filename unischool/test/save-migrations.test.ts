@@ -67,7 +67,7 @@ function makeV18Save(): void {
     'school-complete:Science': true,
     'grad-program-complete:MBAX': true,
   };
-  // Old student body: a single enrolled scalar, no cohorts, no satisfaction
+  // Old student body: a single enrolled scalar, no classes, no satisfaction
   // accumulator (pre-PR-D).
   state.students = {
     enrolled: 800,
@@ -105,8 +105,13 @@ function testForwardMigration(): void {
   assert(m['grad-program-complete:MBAX'] === true, 'grad-program-complete: kept as-is');
 
   const students = loaded.students;
-  const total = students.cohorts.freshman + students.cohorts.sophomore + students.cohorts.junior + students.cohorts.senior;
-  assert(total === 800, `enrolled 800 -> four cohorts summing to 800 (got ${total})`);
+  const total = students.classes.freshman + students.classes.sophomore + students.classes.junior + students.classes.senior;
+  assert(total === 800, `enrolled 800 -> four classes summing to 800 (got ${total})`);
+  // MIGRATIONS[19] writes the field under its v20 name and MIGRATIONS[34]
+  // renames it; a save coming all the way up from v19 must arrive with only
+  // the new name, never both.
+  assert((students as unknown as Loose).cohorts === undefined,
+    'students.cohorts renamed to students.classes on the way up');
   assert((students as unknown as Loose).enrolled === undefined, 'old students.enrolled scalar removed');
   assert(students.satisfactionYearWeeks === 0, 'satisfaction accumulator seeded (weeks 0)');
   assert(students.satisfactionYearSum === 0, 'satisfaction accumulator seeded (sum 0)');
@@ -472,8 +477,8 @@ function testRoundTrip(): void {
   assert(loaded.self.name === 'RoundTrip', 'name survives round trip');
   assert(loaded.self.schoolType === 'public', 'school type survives round trip');
   assert(
-    JSON.stringify(loaded.students.cohorts) === JSON.stringify(cur.students.cohorts),
-    'founding cohort mix survives round trip',
+    JSON.stringify(loaded.students.classes) === JSON.stringify(cur.students.classes),
+    'founding class mix survives round trip',
   );
   assert(loaded.admissions.scholarshipRate === cur.admissions.scholarshipRate, 'scholarshipRate survives round trip');
 }

@@ -11,7 +11,7 @@ import { initialRivals } from '../data/rivalData';
 import { initialCandidatePool, facultySalary, grownStat, FOUNDING_TENURE_WEEKS } from '../data/facultyData';
 import {
   SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION, STARTING_ENDOWMENT, STARTING_TUITION,
-  FOUNDING_COHORTS,
+  FOUNDING_CLASSES,
 } from '../data/schoolTypeData';
 
 // A founded university opens with a near-empty campus, with ONE exception:
@@ -272,7 +272,7 @@ export function createPreStartState(): GameState {
       baselineFundingPerWeek: 0, appropriationPerStudentPerYear: 0, weeklyOpEx: 0,
     },
     students: {
-      cohorts: { freshman: 0, sophomore: 0, junior: 0, senior: 0 },
+      classes: { freshman: 0, sophomore: 0, junior: 0, senior: 0 },
       capacity: 0, satisfaction: 0,
       satisfactionBreakdown: { academic: 0, social: 0, basicNeeds: 0, health: 0, housing: 0 },
       satisfactionYearSum: 0, satisfactionYearWeeks: 0, priorYearAvgSatisfaction: 0,
@@ -373,8 +373,8 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       // BALANCED (≈ FOUNDING_BODY / 4 each), not a freshman class only — so
       // there is a graduating class from year one and the body opens at the
       // steady-state structure the campus would otherwise take years of
-      // lumpy cycles to reach. See FOUNDING_COHORTS in schoolTypeData.ts.
-      cohorts: { ...FOUNDING_COHORTS },
+      // lumpy cycles to reach. See FOUNDING_CLASSES in schoolTypeData.ts.
+      classes: { ...FOUNDING_CLASSES },
       // No housing at founding: the whole body is commuters, and dorm beds
       // are built up from zero like every other facility (see
       // campusData.ts). Enrollment is never capacity-gated (see
@@ -544,7 +544,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       // A full, staggered coaching-staff market from week one — see
       // facultyData.ts's initialCandidatePool for why "starts full, not
       // empty" matters (a pool seeded flat would age out as one
-      // synchronized cohort instead of churning continuously).
+      // synchronized wave instead of churning continuously).
       coachCandidates: initialCoachCandidatePool(),
       pendingPetitions: [],
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,

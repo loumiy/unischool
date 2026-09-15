@@ -445,12 +445,13 @@ export const SAVE_KEY = 'unischool.save';
 // change to meaning, so breadth and prestige are untouched. grad-program-
 // complete: is deliberately left as-is. See MIGRATIONS[18].
 //
-// v19 -> v20: the four-cohort student model (see README's "Students: four
-// aggregate cohorts" and the alignment roadmap's PR D). A v19 save carries a
+// v19 -> v20: the four-class student model (see README's "Students: four
+// aggregate classes" and the alignment roadmap's PR D). A v19 save carries a
 // single students.enrolled number for the whole body; a mid-flight run has
 // all four class years, so it is split evenly across freshman/sophomore/
-// junior/senior (remainder to freshman). The trailing-year satisfaction
-// accumulator is seeded empty with priorYearAvgSatisfaction set to the
+// junior/senior (remainder to freshman). It writes the field under the name
+// it had at the time, `students.cohorts`; MIGRATIONS[34] renames it. The
+// trailing-year satisfaction accumulator is seeded empty with priorYearAvgSatisfaction set to the
 // current satisfaction, so the next funnel behaves as before until a real
 // year accumulates. See MIGRATIONS[19].
 //
@@ -824,7 +825,18 @@ export const SAVE_KEY = 'unischool.save';
 // have done.
 //
 // See MIGRATIONS[33].
-export const SAVE_VERSION = 34;
+//
+// v34 -> v35: classes and cohorts become two different words. The year
+// group a student belongs to is a CLASS (freshman/sophomore/junior/senior)
+// and `students.cohorts` is renamed `students.classes` to say so; "cohort"
+// is now reserved for the admissions cohorts in
+// systems/admissions/cohorts.ts (research-oriented, price-sensitive,
+// athletes, ...), which are a different cut of the same students and were
+// the reason one word doing both jobs had to stop. A straight rename with
+// no change in meaning — the same four head counts, summing to the same
+// body, read by the same totalEnrolled() — so nothing mechanical moves and
+// a resumed save plays exactly as it did. See MIGRATIONS[34].
+export const SAVE_VERSION = 35;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -894,6 +906,24 @@ interface LegacyGameState extends GameState {
 const KNOWN_SUFFIXES = ['College', 'University'];
 
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v34 -> v35: `students.cohorts` becomes `students.classes` (see the
+  // SAVE_VERSION header note above). Purely a rename — the object moves
+  // across under its new name with its four counts untouched, so the body
+  // a save resumes with is the one it was saved with, to the student.
+  //
+  // MIGRATIONS[19] still writes the OLD name, deliberately: it is the
+  // migration that created this field back at v20, and a save coming up
+  // the chain from there passes through here anyway and gets renamed on
+  // the way. Nothing needs to be in two names at once.
+  34: (state) => {
+    const students = state.students as unknown as {
+      cohorts?: { freshman: number; sophomore: number; junior: number; senior: number };
+      classes?: { freshman: number; sophomore: number; junior: number; senior: number };
+    };
+    if (students.cohorts && !students.classes) students.classes = students.cohorts;
+    delete students.cohorts;
+  },
+
   // v33 -> v34: research ends with a report (see the SAVE_VERSION header
   // note above). Written at the top of the table rather than in numeric
   // order with the rest only because the newest migration is the one a
@@ -1472,10 +1502,11 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     }
   },
 
-  // v19 -> v20: the four-cohort student model (see the note above SAVE_VERSION
-  // and README's "Students: four aggregate cohorts"). Converts the single
-  // students.enrolled scalar into four class-year cohorts and seeds the
-  // trailing-year satisfaction accumulator. A mid-flight run genuinely has all
+  // v19 -> v20: the four-class student model (see the note above SAVE_VERSION
+  // and README's "Students: four aggregate classes"). Converts the single
+  // students.enrolled scalar into four class-year counts — under the name
+  // they had at v20, `cohorts`, which MIGRATIONS[34] renames to `classes` —
+  // and seeds the trailing-year satisfaction accumulator. A mid-flight run genuinely has all
   // four years, so the body is split evenly (any remainder to freshman); this
   // is a display/accounting reshape, not a change to how many students the
   // school has, so tuition/instruction/prestige read the same total the tick

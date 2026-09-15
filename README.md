@@ -605,27 +605,51 @@ individual applicants:
   now taxes.
 
 Students **attend for four years**, so each summer admits a **new freshman
-cohort** while the existing cohorts advance a year and the seniors graduate (see
-"Students: four aggregate cohorts" below). Shape the tuition / scholarship inputs
+class** while the existing classes advance a year and the seniors graduate (see
+"Students: four aggregate classes" below). Shape the tuition / scholarship inputs
 with the future demand-curve model in mind.
 
-## Students: four aggregate cohorts
+### Admissions cohorts: who the school pulls in
+
+The applicant pool is not undifferentiated. **Seven cohorts** — high achievers,
+pre-professional, research-oriented, social, arts-focused, price-sensitive,
+athletes (`systems/admissions/cohorts.ts`) — each respond to something the
+player has actually built: labs and research output pull the research-oriented,
+established career-track majors pull the pre-professional, clubs and chapters
+pull the social, a real varsity program pulls athletes, and an honest net price
+pulls the price-sensitive. This is what gives several different strategies each
+their own reason for enrollment to grow, instead of only prestige and price.
+
+A cohort is **not a segment of the funnel**: it gets no quality band, yield
+curve or sticker-shock rate of its own. Every cohort's pull blends into one
+multiplier on the whole pool, the same architectural role word of mouth and
+capacity already play. Nothing about a cohort is stored — its pull is a pure
+function of state, recomputed wherever it is needed.
+
+The summer interrupt shows the breakdown as **head counts, not multipliers**:
+how many of this year's applicants each cohort is worth. The seven rows sum
+exactly to the applicant pool printed above them (apportioned by largest
+remainder, so they are whole students that actually add up), which makes "the
+new labs brought in 400 more research-minded applicants" a thing the player can
+read straight off the panel rather than compute.
+
+## Students: four aggregate classes
 
 The player manages an **institution**, not individual students. The student body
-is modeled as **four aggregate cohorts** — **freshmen, sophomores, juniors,
+is modeled as **four aggregate classes** — **freshmen, sophomores, juniors,
 seniors** — each a plain count, never a list of simulated people. **Do not
 introduce individual-student simulation.**
 
 - Students attend for **four years**. Each summer, at the admissions boundary
-  (`RESOLVE_ADMISSIONS`), cohorts **advance**: seniors graduate and leave, each
-  younger cohort moves up a year, and the admissions funnel commits a **new
-  freshman cohort**. Total enrolled = the sum of the four cohorts.
+  (`RESOLVE_ADMISSIONS`), classes **advance**: seniors graduate and leave, each
+  younger class moves up a year, and the admissions funnel commits a **new
+  freshman class**. Total enrolled = the sum of the four classes.
 - **Satisfaction** represents both current student happiness *and* an input to
   future attractiveness: the causal chain is **current student experience →
   satisfaction → next year's applications**. Satisfaction stays an aggregate
   institutional reading, not a per-student one.
 - Capacity, tuition, instruction cost and appropriations all scale with the
-  **total body** across the four cohorts (`totalEnrolled()` in `types.ts` is the
+  **total body** across the four classes (`totalEnrolled()` in `types.ts` is the
   one place the sum lives; nothing stores a separate total that could drift).
 
 The settled v1 rules:
@@ -645,12 +669,12 @@ The settled v1 rules:
   growth with an `INTAKE_SURGE_MULTIPLIER`; both were deliberately removed
   (commit "Introduce commuters: decouple enrollment from dorm capacity") once
   a build-nothing school was found growing to five figures of enrollment with
-  no throttle at all — `docs/plans/01-design-alignment.md`'s cohort-smoothing follow-up note
+  no throttle at all — `docs/plans/01-design-alignment.md`'s class-smoothing follow-up note
   predates that removal and is superseded on this point.
 - **Founding mix.** A new college opens **fully commuter** — capacity 0, no
   dorm built yet (see "Commuters" below) — with **all four class years
-  present** and **balanced**: each cohort ≈ FOUNDING_BODY / 4
-  (`FOUNDING_COHORTS`, `88 / 88 / 87 / 87`, summing to 350). This puts a
+  present** and **balanced**: each class ≈ FOUNDING_BODY / 4
+  (`FOUNDING_CLASSES`, `88 / 88 / 87 / 87`, summing to 350). This puts a
   graduating class on the books from year one, without needing a founding dorm
   to justify it.
 - **Commuters.** Enrollment is never capacity-gated: `students.capacity` is
@@ -660,9 +684,27 @@ The settled v1 rules:
   is one input to the admissions applicant-pool factor and its own
   satisfaction attribute — never a ceiling.
 
-Implemented in the four-cohort model (`students.cohorts`), with a save
+Implemented in the four-class model (`students.classes`), with a save
 migration that splits an existing `students.enrolled` scalar evenly across the
-four cohorts.
+four classes.
+
+### Class, cohort, course
+
+Three words that all sound like "a group of students", kept strictly apart:
+
+- A **class** is a year group — freshman, sophomore, junior, senior. It is
+  admitted in one summer and graduates four years later, and it is what
+  `students.classes` counts.
+- A **cohort** is a *kind* of applicant — research-oriented, price-sensitive,
+  athletes, and four more (see "Admissions cohorts" above and
+  `systems/admissions/cohorts.ts`). It cuts across all four classes, and
+  nothing stores it: a cohort's size is recomputed from what the school has
+  built whenever it is needed.
+- A **course** is a Buildable a student enrolls in (`techData.ts`), and is
+  never called a class anywhere in this codebase or its UI.
+
+Every class is made of students from every cohort, which is why one word could
+not go on doing both jobs.
 
 ## Rankings: the U.S. News report
 
@@ -703,8 +745,8 @@ schemes, more customization.)
 Faculty are **named individuals** with **lightweight** attributes (teaching,
 research, salary) — enough to make a hire a real, appreciating asset, but
 deliberately *not* a detailed life/personality simulation. Students, by contrast,
-are **aggregate cohorts**, not individuals (see "Students: four aggregate
-cohorts"). Faculty are needed to unlock course development via `requiresFaculty`,
+are **aggregate classes**, not individuals (see "Students: four aggregate
+classes"). Faculty are needed to unlock course development via `requiresFaculty`,
 so a **real hiring pool** is required — hiring is a genuine subsystem, not a stub
 (`HIRE_FACULTY`/`FIRE_FACULTY` are wired up in the reducer; see
 `facultySystem.ts`).

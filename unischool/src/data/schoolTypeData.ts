@@ -55,7 +55,7 @@ export interface SchoolTypePreset {
 export const STARTING_TUITION = 13_000;
 export const STARTING_ENDOWMENT = 3_000_000; // pays out ~$120k/yr from day one (see financeSystem.ts's ENDOWMENT_PAYOUT_RATE)
 
-// --- Founding cohort mix (see actions.ts's createInitialState) ---------
+// --- Founding class mix (see actions.ts's createInitialState) ----------
 // A founded college opens with ALL FOUR class years present and BALANCED —
 // roughly equal freshman / sophomore / junior / senior counts — rather than
 // a freshman-only lump, so there is a graduating class from year one and the
@@ -71,16 +71,16 @@ export const STARTING_ENDOWMENT = 3_000_000; // pays out ~$120k/yr from day one 
 // naming coincidence (a real founding class is roughly the size of a real
 // first dorm), not because anything ties the two together.
 //
-// The remainder from dividing by four is loaded onto the younger cohorts,
+// The remainder from dividing by four is loaded onto the younger classes,
 // so the "ramp" is at most a one-student tilt toward the freshmen.
 export const FOUNDING_BODY = 350;
-const FOUNDING_PER_COHORT = Math.floor(FOUNDING_BODY / 4);
-const FOUNDING_REMAINDER = FOUNDING_BODY - FOUNDING_PER_COHORT * 4; // 0..3, spread over the younger cohorts
-export const FOUNDING_COHORTS = {
-  freshman: FOUNDING_PER_COHORT + (FOUNDING_REMAINDER > 0 ? 1 : 0),
-  sophomore: FOUNDING_PER_COHORT + (FOUNDING_REMAINDER > 1 ? 1 : 0),
-  junior: FOUNDING_PER_COHORT + (FOUNDING_REMAINDER > 2 ? 1 : 0),
-  senior: FOUNDING_PER_COHORT,
+const FOUNDING_PER_CLASS = Math.floor(FOUNDING_BODY / 4);
+const FOUNDING_REMAINDER = FOUNDING_BODY - FOUNDING_PER_CLASS * 4; // 0..3, spread over the younger classes
+export const FOUNDING_CLASSES = {
+  freshman: FOUNDING_PER_CLASS + (FOUNDING_REMAINDER > 0 ? 1 : 0),
+  sophomore: FOUNDING_PER_CLASS + (FOUNDING_REMAINDER > 1 ? 1 : 0),
+  junior: FOUNDING_PER_CLASS + (FOUNDING_REMAINDER > 2 ? 1 : 0),
+  senior: FOUNDING_PER_CLASS,
 } as const; // { freshman: 88, sophomore: 88, junior: 87, senior: 87 }, all commuters
 
 export const SCHOOL_TYPE_PRESETS: Record<SchoolType, SchoolTypePreset> = {

@@ -19,7 +19,7 @@ export default function AdmissionsTab({ s }: { s: GameState }) {
         <h2>Enrollment</h2>
         <dl>
           <dt>Enrolled</dt><dd>{totalEnrolled(s.students).toLocaleString()}</dd>
-          <dt>Cohorts</dt><dd>{s.students.cohorts.freshman.toLocaleString()} Fr · {s.students.cohorts.sophomore.toLocaleString()} So · {s.students.cohorts.junior.toLocaleString()} Jr · {s.students.cohorts.senior.toLocaleString()} Sr</dd>
+          <dt>Classes</dt><dd>{s.students.classes.freshman.toLocaleString()} Fr · {s.students.classes.sophomore.toLocaleString()} So · {s.students.classes.junior.toLocaleString()} Jr · {s.students.classes.senior.toLocaleString()} Sr</dd>
           <dt>Satisfaction</dt><dd>{Math.round(s.students.satisfaction)}</dd>
           <dt>Applicant pool</dt><dd>{Math.round(s.students.applicantPool)}</dd>
           <dt>Admit rate</dt><dd>{Math.round(s.students.admitRate * 100)}%</dd>

@@ -1983,18 +1983,18 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .admissions-net-price .price-tier-tag { display: inline; margin: 0; }
 
 /* The per-cohort demand breakdown (see cohorts.ts) — a compact list, not
-   another dl, since each row carries its own signed color rather than a
-   plain value. */
+   another dl, since each row is a head count colored by whether that
+   cohort is above or below neutral, rather than a plain value. */
 .cohort-breakdown { margin: 4px 0 18px; padding: 10px 14px; background: #1a2338;
   border: 1px solid var(--navy-line); border-radius: var(--radius-md); }
 .cohort-breakdown h3 { margin: 0 0 6px; font-family: var(--serif); text-transform: uppercase;
   letter-spacing: 0.06em; font-size: var(--text-sm); color: var(--gold-dim); }
 .cohort-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 3px 0; }
 .cohort-row-label { font-size: var(--text-base); color: #cbd0d8; }
-.cohort-row-pct { font-family: var(--mono); font-size: var(--text-base); }
-.cohort-row-pct.cohort-up { color: var(--ok-on-dark); }
-.cohort-row-pct.cohort-down { color: var(--bad-on-dark); }
-.cohort-row-pct.cohort-flat { color: var(--ink-lo); }
+.cohort-row-count { font-family: var(--mono); font-size: var(--text-base); }
+.cohort-row-count.cohort-up { color: var(--ok-on-dark); }
+.cohort-row-count.cohort-down { color: var(--bad-on-dark); }
+.cohort-row-count.cohort-flat { color: var(--ink-lo); }
 
 /* ---------- the student-life digest, inside the admissions interrupt ----
    Clubs and new Greek chapters never get a modal of their own (see

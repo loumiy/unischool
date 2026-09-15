@@ -214,7 +214,7 @@ function discountMeanCash(from: number, to: number): number {
 
 // A school that is overdrawn AT THE SNAPSHOT but earning strongly, having
 // spent almost none of the run in the red, is mid-expansion rather than
-// spiraling — it has just committed to a building or a cohort of hires the
+// spiraling — it has just committed to a building or a round of hires the
 // week the camera happened to click. The spiral this section hunts looks
 // nothing like that: it is underwater for years and losing money while it is
 // there. So solvency is "positive, OR clearly climbing out of a dip it has
