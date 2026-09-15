@@ -1526,7 +1526,9 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     }
     const candidateIds: Record<string, true> = {};
     for (const c of state.candidates ?? []) candidateIds[c.id] = true;
-    state.seen = { courseIds, buildableIds, candidateIds };
+    // tabIds is left to sanitizeSeen, which runs on every load and fills it
+    // from nothing — see its own note on why this one needs no migration.
+    state.seen = { courseIds, buildableIds, candidateIds, tabIds: {} };
   },
 
   // v23 -> v24: pathways switched from edges to tiles (see SAVE_VERSION
@@ -1986,7 +1988,7 @@ function sanitizeTeams(state: GameState): void {
 // sanitizeTeams above: `seen` is display-only (no system reads it — see
 // types.ts's SeenState), so a bad entry here can't corrupt the sim, but a
 // missing or malformed bucket would crash the first MARK_SEEN dispatch or
-// the first badge check that indexes into it. Each of the three buckets is
+// the first badge check that indexes into it. Each bucket is
 // reset to empty if it isn't a plain object; a badge briefly re-lighting
 // for content the player already saw is a harmless, self-correcting cost,
 // the same trade sanitizePlacements/sanitizePathways/sanitizeTeams already
@@ -1998,6 +2000,14 @@ function sanitizeSeen(state: GameState): void {
     courseIds: isRecord(seen.courseIds) ? seen.courseIds : {},
     buildableIds: isRecord(seen.buildableIds) ? seen.buildableIds : {},
     candidateIds: isRecord(seen.candidateIds) ? seen.candidateIds : {},
+    // Added after SAVE_VERSION 33 and deliberately NOT a migration of its
+    // own: an absent bucket is indistinguishable from an empty one here,
+    // and App.tsx fills it silently from whichever gates it finds ALREADY
+    // open on its first render (see NOTE_TAB_AVAILABLE's `announce`). So a
+    // save written before this field existed resumes with no tab
+    // announcements at all — which is right: it has had those views for
+    // years.
+    tabIds: isRecord(seen.tabIds) ? seen.tabIds : {},
   };
 }
 

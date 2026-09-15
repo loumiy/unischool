@@ -1,7 +1,7 @@
 import { forwardRef } from 'react';
 import type { Action } from '../state/actions';
 import type { GameState } from '../state/types';
-import { TAB_LABELS, TAB_ORDER, type TabId } from './TabNav';
+import { TAB_LABELS, TAB_ORDER, tabAvailable, type TabId } from './TabNav';
 import BuildPopup, { visibleBuildableIds } from './BuildPopup';
 import { FundsAndStats, SchoolAndClock } from './StatusHeader';
 import type { Speed } from '../engine/useGame';
@@ -30,6 +30,9 @@ const TAB_ALERT: Partial<Record<TabId, (s: GameState) => boolean>> = {
 // C3: Treasury has no icon of its own here — the funds button in the left
 // zone (see StatusHeader.tsx's FundsAndStats) is its one entry point now,
 // so the middle cluster only needs the tabs that button doesn't cover.
+// The row is filtered a second time, per render, by tabAvailable: three of
+// these appear only once the thing they are about exists (see TabNav.tsx's
+// TAB_GATES), so the row a new university sees is six icons, not nine.
 const ICON_TAB_ORDER = TAB_ORDER.filter((id) => id !== 'treasury');
 
 // Tab icons come from icons.tsx (no icon library is installed — see that
@@ -125,7 +128,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
           <HomeIcon />
         </button>
 
-        {ICON_TAB_ORDER.map((id) => {
+        {ICON_TAB_ORDER.filter((id) => tabAvailable(s, id)).map((id) => {
           const Icon = TAB_ICONS[id];
           const isActive = active === id;
           // Suppressed while this tab is the active one — see the module

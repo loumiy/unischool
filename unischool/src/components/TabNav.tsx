@@ -1,3 +1,6 @@
+import type { GameState } from '../state/types';
+import { labEquippedFields } from '../data/researchData';
+
 // The campus map is the game's base layer and is always on screen (see
 // App.tsx), so it is NOT one of these — every id here is a view that pops
 // up over the map and can be dismissed to get back to it. `active` is null
@@ -27,22 +30,56 @@ const TABS: Array<{ id: TabId; label: string }> = [
   { id: 'treasury', label: 'Treasury' },
 ];
 
-// Tabs whose system doesn't exist yet: still in TabId and still routed in
-// App.tsx (and TAB_LABELS below still names them), just not offered as a
-// nav button — a permanent "Coming Soon" tab is noise. Drop the id from
-// here to light the tab up once its system lands. Currently empty: varsity
-// athletics moved out of Student Life and into its own live tab (see
-// AthleticsTab.tsx), so there is nothing left to hide.
-const HIDDEN_TABS: readonly TabId[] = [];
+// WHEN IS A TAB WORTH OFFERING? This used to be a constant list of ids to
+// hide (HIDDEN_TABS, latterly empty) — the right shape for "this system
+// doesn't exist yet", and the wrong one for what the playtest notes ask
+// for, which is a tab that appears the week the thing it is about becomes
+// real. Every one of those gates reads game state, so this is a predicate
+// rather than a list.
+//
+// Three tabs are gated, and each gate is the same condition the system
+// behind it already hangs off rather than a second rule invented here:
+//
+//   - research: at least one finished lab. labEquippedFields is the gate
+//     research itself uses (researchData.ts: "no lab, no research"), so a
+//     school with no facility gets no tab, which is honest — there is
+//     nothing it could do on that screen.
+//   - athletics: at least one varsity team. A club petitioning to go
+//     varsity is what creates the first one (see AthleticsTab.tsx).
+//   - history: the second year. Year 1 has no year to look back on, so the
+//     tab would open on an empty page.
+//
+// Everything else is always available. A tab absent from this table is not
+// "never gated by accident" — it is a tab whose screen says something
+// useful from the first week.
+const TAB_GATES: Partial<Record<TabId, (s: GameState) => boolean>> = {
+  research: (s) => labEquippedFields(s).size > 0,
+  athletics: (s) => s.orgs.teams.length > 0,
+  history: (s) => s.clock.year >= 2,
+};
+
+// The gated ids, for the caller that has to notice one OPENING (App.tsx
+// logs a line the first time each does — a tab that silently appears in a
+// nine-icon row is a tab nobody notices).
+export const GATED_TABS: readonly TabId[] = Object.keys(TAB_GATES) as TabId[];
+
+// Is this tab worth offering right now? The one answer, used by the toolbar
+// (which filters its icon row through it), by App (which refuses to open a
+// tab that isn't available, so neither a hotkey nor a stale overlay can
+// route to one) and by the unlock log line.
+export function tabAvailable(s: GameState, id: TabId): boolean {
+  return TAB_GATES[id]?.(s) ?? true;
+}
 
 // The toolbar's icon row (see Toolbar.tsx) reads this order directly —
-// this module is now pure tab metadata (ids, labels, which are offered)
-// rather than a rendering component: the toolbar's icon buttons are what
-// actually render a clickable tab nav, one unified band instead of a
-// separate text-label strip in the topbar. TAB_LABELS survives as the
+// this module is pure tab metadata (ids, labels, order, and which are
+// offered) rather than a rendering component: the toolbar's icon buttons
+// are what actually render a clickable tab nav, one unified band instead of
+// a separate text-label strip in the topbar. TAB_LABELS survives as the
 // aria-label/title source for those icon buttons, so a screen reader (or a
-// hover tooltip) still gets the same words a text button used to show.
-export const TAB_ORDER: readonly TabId[] = TABS.filter((t) => !HIDDEN_TABS.includes(t.id)).map((t) => t.id);
+// hover tooltip) still gets the same words a text button used to show, and
+// TabOverlay's header shows the same word again.
+export const TAB_ORDER: readonly TabId[] = TABS.map((t) => t.id);
 
 export const TAB_LABELS: Record<TabId, string> = Object.fromEntries(
   TABS.map((t) => [t.id, t.label]),

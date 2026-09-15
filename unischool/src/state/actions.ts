@@ -220,6 +220,15 @@ export type Action =
   // never by anything else: seeing is something only the view a badge
   // points at can report.
   | { type: 'MARK_SEEN'; kind: 'course' | 'buildable' | 'candidate'; ids: string[] }
+  // Records that a gated tab's gate is open (see components/TabNav.tsx's
+  // TAB_GATES) — the first time for each tab, and only the first time. With
+  // `announce`, the same dispatch also logs a line saying the view is now
+  // available, which is the point: a tab that silently appears in a
+  // nine-icon row is a tab nobody notices. Dispatched from App.tsx, which is
+  // where the gates are actually evaluated; it passes announce: false for
+  // the gates it finds ALREADY open on its first render, since a save that
+  // resumes with three labs standing has nothing to announce.
+  | { type: 'NOTE_TAB_AVAILABLE'; id: string; label: string; announce: boolean }
   // Grants operating funds directly, with no event or interrupt behind it
   // (see StatusHeader.tsx's "+$1B" button). Playtest-only: gated behind
   // naming the university "test", the same as the sandbox Fast speed and
@@ -300,7 +309,7 @@ export function createPreStartState(): GameState {
     hasEnteredRankings: false,
     milestones: {},
     courseFaculty: {},
-    seen: { courseIds: {}, buildableIds: {}, candidateIds: {} },
+    seen: { courseIds: {}, buildableIds: {}, candidateIds: {}, tabIds: {} },
   };
 }
 
@@ -559,7 +568,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // ever "needed" at founding (every founding hire has a free slot to
     // spare beyond their own gen-ed course — see the roster above), so
     // there is nothing here to except.
-    seen: { courseIds: foundingCourseIds, buildableIds: foundingBuildableIds, candidateIds: {} },
+    seen: { courseIds: foundingCourseIds, buildableIds: foundingBuildableIds, candidateIds: {}, tabIds: {} },
   };
   return state;
 }

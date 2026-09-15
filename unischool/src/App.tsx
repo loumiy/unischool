@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGame } from './engine/useGame';
 import { useHotkeys } from './components/hotkeys';
 import type { GameState } from './state/types';
 import StartupScreen from './components/StartupScreen';
 import MainMenu from './components/MainMenu';
 import InterruptModal from './components/InterruptModal';
-import { TAB_LABELS, type TabId } from './components/TabNav';
+import { GATED_TABS, TAB_LABELS, tabAvailable, type TabId } from './components/TabNav';
 import CampusMap from './components/CampusMap';
 import Toolbar from './components/Toolbar';
 import LogTicker from './components/LogTicker';
@@ -139,8 +139,46 @@ export default function App() {
     if (s.pendingInterrupt) return;
     const tab = TAB_HOTKEYS[e.key.toLowerCase()];
     if (!tab) return;
+    // openTab refuses an unavailable tab, so a letter cannot route to a
+    // view the toolbar is not offering (see tabAvailable). None of C/F/L is
+    // gated today; this is so that stays true if one ever is.
     openTab(overlay === tab ? null : tab);
   }, s.started);
+
+  // A GATE OPENING IS NEWS. Research, Athletics and History each appear the
+  // week the thing they are about becomes real (TabNav.tsx's TAB_GATES), and
+  // a ninth icon quietly arriving in a row of eight is a tab nobody
+  // notices — so the first time each gate is found open, the log says so.
+  //
+  // Except on the first render of a run, which seeds the same bookkeeping
+  // SILENTLY: a resumed save arrives with its labs already built and its
+  // teams already playing, and announcing three views it has had for a
+  // decade would be a lie in the activity log. Everything after that first
+  // pass is a gate that genuinely opened while the player was watching.
+  // The ref holds the ids already reported, not just a "have we started
+  // yet" flag: a dispatch does not change `s` until the next render, and
+  // under StrictMode this effect runs twice before that render happens, so
+  // a flag alone would report the same gate twice — the second time as
+  // news.
+  const reportedGates = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!s.started) return;
+    const firstPass = reportedGates.current === null;
+    const reported = reportedGates.current ?? new Set<string>();
+    reportedGates.current = reported;
+    for (const id of GATED_TABS) {
+      if (!tabAvailable(s, id) || s.seen.tabIds[id] || reported.has(id)) continue;
+      reported.add(id);
+      act({ type: 'NOTE_TAB_AVAILABLE', id, label: TAB_LABELS[id], announce: !firstPass });
+    }
+  });
+
+  // A tab that is open when its own gate closes again (the last varsity
+  // team disbands) closes with it, rather than leaving the player inside a
+  // view the toolbar no longer offers a way back into.
+  useEffect(() => {
+    if (overlay && !tabAvailable(s, overlay)) setOverlay(null);
+  }, [overlay, s]);
 
   // The map's own keys (W/A/S/D and the arrows to pan, P for the path tool,
   // R to rotate, Escape to back out) answer only while the player is
@@ -189,6 +227,7 @@ export default function App() {
   // back minutes later, is a click away from siting a building nobody meant
   // to site.
   function openTab(tab: TabId | null) {
+    if (tab !== null && !tabAvailable(s, tab)) return;
     setOverlay(tab);
     if (tab !== null) {
       closeBuild();

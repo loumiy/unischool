@@ -974,6 +974,13 @@ export interface GameState {
 //     that appears in a tab the player hasn't switched to yet stays
 //     unseen, and the build button's badge stays lit, even while the
 //     popup itself is open on a different tab.
+//   - tabIds: every gated tab (see components/TabNav.tsx's TAB_GATES) whose
+//     gate has been noticed OPEN. Unlike the other three this is not a
+//     badge: it is what keeps the one-off "the Research view is now
+//     available" log line one-off — including across a save that resumes
+//     with the gate already open, and across a gate that closes and reopens
+//     (a school that disbands its last varsity team and founds another does
+//     not get told twice).
 //   - candidateIds: every candidate id the Faculty tab has rendered while
 //     that candidate counted as "needed" (their field is short a slot —
 //     see systems/techtree/techSystem.ts's neededFacultyFields) — a
@@ -994,6 +1001,7 @@ export interface SeenState {
   courseIds: Record<string, true>;
   buildableIds: Record<string, true>;
   candidateIds: Record<string, true>;
+  tabIds: Record<string, true>;
 }
 
 export interface LogEntry {

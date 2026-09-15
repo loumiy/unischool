@@ -544,6 +544,25 @@ export function reducer(state: GameState, action: Action): GameState {
     // types.ts's SeenState and the alert-badge module comment there).
     // Purely additive — nothing here ever un-sees an id — so this can
     // never resurrect a badge, only retire one.
+    // A gated tab's gate has opened (see TabNav.tsx's TAB_GATES). Idempotent
+    // through the seen bucket rather than through the caller being careful:
+    // App.tsx dispatches this from an effect, which runs twice under
+    // StrictMode and again for any render in between, and however many times
+    // that happens the log must carry one line.
+    case 'NOTE_TAB_AVAILABLE': {
+      if (s.seen.tabIds[action.id]) return state;
+      s.seen.tabIds[action.id] = true;
+      if (action.announce) {
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: `The ${action.label} view is now available.`,
+          kind: 'good',
+        });
+      }
+      return s;
+    }
+
     case 'MARK_SEEN': {
       const bucket = action.kind === 'course'
         ? s.seen.courseIds
