@@ -204,19 +204,6 @@ export function reducer(state: GameState, action: Action): GameState {
       // rolling into the next one until it's resolved.
       if (!s.pendingInterrupt) advanceClock(s);
       if (s.log.length > LOG_CAP) s.log.length = LOG_CAP; // cap log growth
-      // The candidate market churns every week (see facultySystem.ts's
-      // tickCandidatePool) — listings withdraw and new ones arrive
-      // constantly — so s.seen.candidateIds is pruned down to whoever is
-      // still actually listed on every tick, the same way weeksListed
-      // itself only ever means something for a current listing. Without
-      // this, a decades-long run would accumulate one entry per candidate
-      // who ever passed through the pool, unlike courseIds/buildableIds,
-      // which are bounded by the fixed catalogue size (see types.ts's
-      // SeenState).
-      const listedIds = new Set(s.candidates.map((c) => c.id));
-      for (const id of Object.keys(s.seen.candidateIds)) {
-        if (!listedIds.has(id)) delete s.seen.candidateIds[id];
-      }
       return s;
     }
 
@@ -584,11 +571,7 @@ export function reducer(state: GameState, action: Action): GameState {
     }
 
     case 'MARK_SEEN': {
-      const bucket = action.kind === 'course'
-        ? s.seen.courseIds
-        : action.kind === 'buildable'
-          ? s.seen.buildableIds
-          : s.seen.candidateIds;
+      const bucket = action.kind === 'course' ? s.seen.courseIds : s.seen.buildableIds;
       for (const id of action.ids) bucket[id] = true;
       return s;
     }

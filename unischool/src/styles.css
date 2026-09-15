@@ -1600,10 +1600,12 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   display: flex; flex-direction: column; gap: 8px; }
 .faculty-card { background: #f6f1e0; border: 1px solid var(--parchment-line-lo);
   border-radius: var(--radius-md); padding: 8px 10px; }
-/* A candidate in a field the school is actually short in gets a brass edge.
-   It was a word on a meta line before, which is the sort of thing you read
-   only if you were already looking at that row. */
-.faculty-card.needed { border-color: var(--gold-dim); box-shadow: inset 2px 0 0 var(--gold-dim); }
+/* A scholar on a research project gets a brass edge. The short-field
+   highlight this replaces was for the retired hiring loop — with the roster
+   grouped by field, a department's shortage is its own header's arithmetic,
+   while "this person is committed for the next three years" is a fact about
+   the PERSON and belongs on their card. */
+.faculty-card.committed { border-color: var(--gold-dim); box-shadow: inset 2px 0 0 var(--gold-dim); }
 .faculty-card-main { display: flex; align-items: flex-start; gap: 10px; }
 .faculty-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .faculty-card-head { display: flex; align-items: baseline; gap: 6px; }
@@ -1615,7 +1617,11 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-acclaim { color: var(--gold); font-size: var(--text-sm); letter-spacing: 1px; flex: none; }
 .faculty-card-field { font-size: var(--text-xs); color: var(--ink-muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.faculty-needed { color: var(--ok-on-light); font-weight: 700; }
+.faculty-commitment { color: var(--gold-dim); }
+.faculty-commitment strong { color: var(--ink); font-weight: 700; }
+.faculty-commitment-left { color: var(--ink-muted); }
+.faculty-card-teaching.idle { color: var(--ink-lo); font-style: italic; }
+.faculty-card-listing { color: var(--ok-on-light); font-weight: 700; }
 
 /* Teaching and research. Two bars beat two numbers here because the job on
    this screen is COMPARING people, and the headroom behind the fill is the
@@ -1689,15 +1695,51 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    height instead of leaving it a mismatched short card. Course Slots only
    renders once a school has gated courses; when it's absent, Research
    spans the row instead of leaving an empty gutter (see FacultyTab.tsx). */
-.faculty-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.faculty-columns .panel { display: flex; flex-direction: column; }
-.faculty-columns .faculty-list { max-height: 560px; flex: 1; min-height: 0; }
+/* ---------- the roster, by field ----------
+   One section per department, flowing into as many columns as the width
+   allows. A department is a SHORT block — four or five cards at most — so
+   the list inside it is not independently scrollable the way the old
+   single roster panel had to be: scrolling a scroll box inside a scrolling
+   page is the worst of both, and with the tab full-bleed (see
+   TabOverlay.tsx) the page has the height to spend.
 
-/* The market's field filter — the other half of making a 30-name list
-   scannable, alongside sorting short-handed fields to the top. */
-.candidate-filter { margin-bottom: 8px; }
-.candidate-filter select { width: 100%; padding: 6px 8px; border-radius: var(--radius-sm); border: 1px solid var(--parchment-line);
-  background: #f8f3e6; color: var(--ink); font-family: inherit; font-size: var(--text-sm); }
+   The columns are masonry-ish rather than a grid of equal rows: `columns`
+   keeps a two-card department from being stretched to the height of an
+   eight-card one, and break-inside keeps a section from being split down
+   the middle of somebody's card. */
+.faculty-fields { columns: 2; column-gap: 16px; }
+.faculty-field { break-inside: avoid; display: inline-block; width: 100%;
+  margin: 0 0 16px; padding: 10px 12px;
+  background: var(--parchment); border: 1px solid var(--parchment-line);
+  border-radius: var(--radius-lg); }
+.faculty-field-head { display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; margin-bottom: 8px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--parchment-line-lo); }
+.faculty-field-head h3 { margin: 0; font-family: var(--serif); font-size: var(--text-md);
+  color: var(--ink); text-transform: uppercase; letter-spacing: 0.06em; }
+/* A field section is not a .panel, so it does not inherit .panel .stat —
+   the slot arithmetic is the second most important thing in the header and
+   must not read as a watermark. */
+.faculty-field .stat { font-family: var(--mono); color: var(--ink-muted); font-size: var(--text-sm);
+  white-space: nowrap; }
+/* A department that cannot start the course waiting on it. Same alarmed
+   register the funds figure uses, because it is the same kind of fact: a
+   thing the school wants to do and currently cannot. */
+.faculty-field-short { color: var(--danger-ink); font-weight: 700; }
+.faculty-field .faculty-list { max-height: none; overflow: visible; }
+/* The market, underneath the people who already work here, separated
+   rather than in a panel of its own. */
+.faculty-market-head { display: flex; align-items: baseline; justify-content: space-between;
+  gap: 8px; margin: 10px 0 6px; padding-top: 8px;
+  border-top: 1px dashed var(--parchment-line-lo);
+  font-family: var(--mono); font-size: var(--text-2xs); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ink-muted); }
+.faculty-summary .panel-head { flex-wrap: wrap; }
+.faculty-summary .panel-head .stat + .stat { margin-left: 12px; }
+
+@media (max-width: 1100px) {
+  .faculty-fields { columns: 1; }
+}
 
 /* The always-visible second line on a candidate row: field, stats, price,
    and how long the listing has left. Deliberately mono and small — it is
@@ -1767,7 +1809,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .statement-net .statement-line-amount { font-size: var(--text-lg); }
 
 /* Endowment Campaign and Balance & Policy paired half-width below the
-   full-width income statement — same two-column idiom as .faculty-columns
+   full-width income statement — same two-column idiom as the student-life
    and .student-life-columns. align-items: start (the StudentLifeTab
    precedent) rather than stretch: Endowment Campaign's early-game empty
    note is much shorter than Balance & Policy's full dl, and stretching it
@@ -1923,15 +1965,16 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    a current number and nothing else — no trend, no sparkline (see
    StudentLifeTab.tsx).
 
-   Panels lay out two-up rather than stacked full-width, same reasoning as
-   .faculty-columns: a single-column stack of short panels means a lot of
-   scrolling past wide empty gutters either side of a narrow dl/list. The
+   Panels lay out two-up rather than stacked full-width, for the same
+   reason the roster flows into columns: a single-column stack of short
+   panels means a lot of scrolling past wide empty gutters either side of a
+   narrow dl/list. The
    grid is left to auto-flow its panels two per row (Demand + Effect, then
    Clubs + Chapters); Awaiting Recognition spans both columns when present,
    since it is occasional and reads better as one wide strip than paired
    arbitrarily with whichever panel precedes it. */
 .student-life-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
-.student-life-columns .panel-span-2, .faculty-columns .panel-span-2 { grid-column: 1 / -1; }
+.student-life-columns .panel-span-2 { grid-column: 1 / -1; }
 .panel-count { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted); white-space: nowrap; }
 .org-list { max-height: 320px; overflow-y: auto; margin: 0; padding: 0; }
 .org-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
@@ -2064,11 +2107,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 }
 
 @media (max-width: 760px) {
-  /* Half-width roster/market columns need real width to stay readable —
-     a candidate's field, stats, price and deadline share one line. Stack
-     them here, market first: it is the panel with a deadline on it. */
-  .faculty-columns { grid-template-columns: 1fr; }
-  .faculty-columns .faculty-list { max-height: 420px; }
   .student-life-columns { grid-template-columns: 1fr; }
   .treasury-columns { grid-template-columns: 1fr; }
   /* The drawer stacks ABOVE the catalogue here, not below: it is what the

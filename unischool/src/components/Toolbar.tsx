@@ -6,7 +6,6 @@ import BuildPopup, { visibleBuildableIds } from './BuildPopup';
 import { FundsAndStats, SchoolAndClock } from './StatusHeader';
 import type { Speed } from '../engine/useGame';
 import { visibleCourseIds } from '../tabs/CurriculumTab';
-import { neededFacultyFields } from '../systems/techtree/techSystem';
 import {
   FacultyIcon, CurriculumIcon, AdmissionsIcon,
   StudentLifeIcon, HistoryIcon, AthleticsIcon, BuildIcon,
@@ -14,17 +13,21 @@ import {
 } from './icons';
 
 // Which tab icons can carry the small red alert badge, and how each decides
-// it has something unseen (see types.ts's SeenState). Curriculum and Faculty
-// are the only two TAB_ORDER entries with a badge of their own — every other
-// tab (Treasury, Admissions, Student Life, History, Athletics) has no
-// "new content you haven't looked at yet" concept, so it's simply absent
-// from this table rather than wired to an always-false check.
+// it has something unseen (see types.ts's SeenState). Curriculum is the only
+// TAB_ORDER entry with a badge of its own — every other tab (Treasury,
+// Admissions, Student Life, History, Athletics) has no "new content you
+// haven't looked at yet" concept, so it's simply absent from this table
+// rather than wired to an always-false check.
+//
+// FACULTY USED TO HAVE ONE, for an unseen candidate in a field the school
+// was short on, and it is gone deliberately. A badge is a prompt, and that
+// prompt was the last piece of the retired hiring loop: develop everything,
+// go appoint whoever the game flagged, repeat. Hiring belongs where the
+// shortage is felt — the Curriculum tab, where a course will not start —
+// and the Faculty tab is now a place to look at your faculty rather than a
+// queue of chores (see FacultyTab.tsx).
 const TAB_ALERT: Partial<Record<TabId, (s: GameState) => boolean>> = {
   curriculum: (s) => visibleCourseIds(s).some((id) => !s.seen.courseIds[id]),
-  faculty: (s) => {
-    const needed = neededFacultyFields(s);
-    return s.candidates.some((c) => needed.has(c.field) && !s.seen.candidateIds[c.id]);
-  },
 };
 
 // C3: Treasury has no icon of its own here — the funds button in the left

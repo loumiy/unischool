@@ -221,7 +221,7 @@ export type Action =
   // SeenState). Dispatched by each of those three views' own effect,
   // never by anything else: seeing is something only the view a badge
   // points at can report.
-  | { type: 'MARK_SEEN'; kind: 'course' | 'buildable' | 'candidate'; ids: string[] }
+  | { type: 'MARK_SEEN'; kind: 'course' | 'buildable'; ids: string[] }
   // Records that a gated tab's gate is open (see components/TabNav.tsx's
   // TAB_GATES) — the first time for each tab, and only the first time. With
   // `announce`, the same dispatch also logs a line saying the view is now

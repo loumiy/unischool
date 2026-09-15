@@ -1009,12 +1009,15 @@ export interface GameState {
 //     with the gate already open, and across a gate that closes and reopens
 //     (a school that disbands its last varsity team and founds another does
 //     not get told twice).
-//   - candidateIds: every candidate id the Faculty tab has rendered while
-//     that candidate counted as "needed" (their field is short a slot —
-//     see systems/techtree/techSystem.ts's neededFacultyFields) — a
-//     candidate who was never short-listed is never marked seen, so if
-//     their field later goes short while they're still on the market they
-//     still raise a fresh alert.
+//   - candidateIds: DEAD STATE. It fed the Faculty tab's alert badge —
+//     an unseen candidate in a field the school was short on — and that
+//     badge is retired: it was a prompt to run the old hiring loop, and
+//     hiring now happens where the shortage is felt (see FacultyTab.tsx and
+//     Toolbar.tsx's TAB_ALERT). Nothing writes it and nothing reads it. Left
+//     in the saved shape exactly as Faculty.morale and ResearchState.points
+//     were, rather than spending a migration to remove a record that costs
+//     nothing; the weekly prune that used to bound its growth went with the
+//     writes, since an empty record does not grow.
 //
 // Each is a plain id -> true record, the same shape rationale as
 // `pathways` and `milestones`: no Map/Set, no reference into `tech`, so it
