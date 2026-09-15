@@ -3,7 +3,7 @@ import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
 import { discoverySchools, graduateGateMet, graduatePrograms, professionalSchools } from '../data/techData';
 import {
-  canStartDevelopment, hasFreeFacultySlot, eligibleInstructors, assignedInstructor,
+  canStartDevelopment, facultyGate, eligibleInstructors, assignedInstructor,
   isUnstaffed, facultyLoad,
 } from '../systems/techtree/techSystem';
 import { facultyQualityTier } from '../data/facultyData';
@@ -493,7 +493,9 @@ function CourseCell({ s, t, selected, onSelect, loads }: { s: GameState; t: Buil
   // offer at a glance.
   const [code, titleFromName] = t.name.split(' · ');
   const title = titleFromName ?? code;
-  const missingFaculty = !!(t.requiresFaculty && !hasFreeFacultySlot(s, t.requiresFaculty));
+  // Not just "is the field full" but "would waiting help" — see
+  // techSystem.ts's facultyGate.
+  const gate = t.requiresFaculty ? facultyGate(s, t.requiresFaculty) : 'open';
   // An offered course whose instructor has left (see types.ts's
   // CourseFaculty) — marked on the cell because it is a thing the player
   // must fix, and they should not have to open a course to discover it.
@@ -504,7 +506,7 @@ function CourseCell({ s, t, selected, onSelect, loads }: { s: GameState; t: Buil
   const quality = courseQuality(s, t, loads);
   // The gate is only news while the course is still ahead of the player:
   // a developing or finished course already holds its slot.
-  const showGateDot = missingFaculty && state !== 'developing' && state !== 'done';
+  const showGateDot = gate !== 'open' && state !== 'developing' && state !== 'done';
 
   const weeksLeft = s.developing[t.id] ?? 0;
   const elapsed = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
@@ -524,7 +526,18 @@ function CourseCell({ s, t, selected, onSelect, loads }: { s: GameState; t: Buil
       {quality && <GradeChip grade={quality.grade} title={`Quality ${Math.round(quality.score)} / 100`} />}
       {state === 'done' && !quality && !unstaffed && <span className="cell-stamp" aria-hidden="true">✓</span>}
       {unstaffed && <span className="cell-stamp unstaffed" title="No instructor">!</span>}
-      {showGateDot && <span className="cell-gate-dot" aria-hidden="true" />}
+      {/* Two colours, two actions. Yellow: the department is full but
+          somebody is listed, so this is one appointment away. Red: full and
+          nobody to appoint, so only time fixes it. */}
+      {showGateDot && (
+        <span
+          className={`cell-gate-dot ${gate}`}
+          aria-hidden="true"
+          title={gate === 'hireable'
+            ? `No free ${t.requiresFaculty} slot — a candidate is on the market`
+            : `No free ${t.requiresFaculty} slot, and nobody on the market`}
+        />
+      )}
       {state === 'developing' && (
         <span className="cell-progress" aria-hidden="true">
           <span className="cell-progress-fill" style={{ width: `${Math.round(elapsed * 100)}%` }} />

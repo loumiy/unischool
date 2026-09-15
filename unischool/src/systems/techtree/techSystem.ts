@@ -309,6 +309,29 @@ export function hasFreeFacultySlot(s: GameState, field: string): boolean {
   return totalFacultySlots(s, field) > usedFacultySlots(s, field);
 }
 
+// CAN WAITING HELP? The three states a field-gated course can be in, and
+// the reason the curriculum draws two different dots rather than one.
+//
+// A course blocked on faculty capacity used to get one mark whatever the
+// reason, which collapsed two situations that call for opposite actions:
+//
+//   'open'     — there is a free slot. Nothing is in the way.
+//   'hireable' — no free slot, but somebody in that field is on the market.
+//                Go and appoint them; the block lifts today.
+//   'blocked'  — no free slot and nobody listed. Nothing to do but grow the
+//                department and wait for the market to turn over.
+//
+// Both halves were already computed elsewhere (slot arithmetic here, the
+// market on s.candidates); this is only the one place that says what the
+// pair of them MEANS, so the cell, its tooltip and any future caller cannot
+// disagree about it.
+export type FacultyGate = 'open' | 'hireable' | 'blocked';
+
+export function facultyGate(s: GameState, field: string): FacultyGate {
+  if (hasFreeFacultySlot(s, field)) return 'open';
+  return s.candidates.some((c) => c.field === field) ? 'hireable' : 'blocked';
+}
+
 // Every field the school is actually short on right now: a course sits
 // 'available' needing it and there's no free slot to start it. The single
 // definition of "needed", shared by the Faculty tab (which flags these

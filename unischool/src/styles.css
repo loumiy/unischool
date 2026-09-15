@@ -575,7 +575,14 @@ button { cursor: pointer; font-family: inherit; }
    before hovering — "its field is full" and "how far along is it" — are
    simply visible. */
 .cell-gate-dot { position: absolute; top: 3px; right: 3px; width: 5px; height: 5px; border-radius: 50%;
-  background: var(--bad-on-light); box-shadow: 0 0 0 1px rgba(255, 253, 246, 0.7); }
+  box-shadow: 0 0 0 1px rgba(255, 253, 246, 0.7); }
+/* Two states, because they call for opposite actions (see techSystem.ts's
+   facultyGate): amber means the department is full but somebody is on the
+   market, so this is one appointment away; red means full with nobody
+   listed, and only time fixes it. The same two registers the rest of the
+   game uses for "act on this" and "you cannot". */
+.cell-gate-dot.hireable { background: var(--warn-on-light); }
+.cell-gate-dot.blocked { background: var(--bad-on-light); }
 .cell-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(109, 86, 16, 0.18); }
 .cell-progress-fill { display: block; height: 100%; background: var(--brass-deep); transition: width 0.25s ease; }
 
