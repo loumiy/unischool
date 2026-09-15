@@ -544,8 +544,7 @@ export interface Rival {
 }
 
 // ---------------------------------------------------------------------
-// RESEARCH (see README's "Research: scholarship the player commissions" —
-// the system is called research everywhere a player can read it now).
+// RESEARCH (see README's "Research: work the player commissions").
 // Player-commissioned initiatives — one per research facility, keyed by the
 // facility's Buildable id so "one at a time" is a property of the shape
 // rather than a rule somebody has to enforce — plus the lifetime counters

@@ -26,13 +26,22 @@ varsity athletics" below) — there is no separate sports subsystem and no
 roadmap sketched.
 
 The **campus map is the central interface** (see `src/App.tsx`): it holds the
-middle of the screen at all times, the build rail sits beside it, and every
-other view — Faculty, Curriculum, Research, Treasury, Admissions, Student Life,
-Athletics — opens as a dismissible overlay on top of it (the two densest,
-Curriculum and Research, open full-bleed: they take the viewport and the dock
-lays over them). That is a **layout fact, not a mechanical
-one**: no system reads the map, and nothing gained authority over the sim by
-moving to the middle of the screen.
+middle of the screen at all times, the build menu opens over it, and every
+other view — Curriculum, Faculty, Research, Student Life, Athletics,
+Admissions, History, Treasury — opens as a dismissible **full-bleed screen** on
+top of it: the tab takes the viewport and the dock (log ticker + toolbar) lays
+over it. Every tab, the same way — the shell used to draw two shapes and a
+short list of which tabs got which, and the playtest notes retired the sheet.
+The map is what a player returns to, by the home button at the head of the
+toolbar's icon row, the panel's own close button, or `Esc`. That is a **layout
+fact, not a mechanical one**: no system reads the map, and nothing gained
+authority over the sim by moving to the middle of the screen.
+
+Three tabs are **gated on the thing they are about existing** (see
+`TabNav.tsx`'s `TAB_GATES`): Research appears once a lab is finished, Athletics
+once a varsity team exists, History in year 2. Each gate is the same condition
+the system behind it already hangs off, and the first time one opens the
+activity log says so.
 
 ## Run it
 
@@ -59,18 +68,28 @@ it.
 | `1` `2` | Play, play at 2×. (`3` is sandbox fast — see `isTestUniversity`.) |
 | `P` | Arm the path tool. Left button draws, right button erases; a ghost tile marks the square under the cursor. |
 | `R` | Rotate the picked-up building 90°, same as the ⟳ on its footprint ghost. |
-| `Esc` | Close the open view; on the map, back out of the path tool, then a picked-up building, then an open info panel. |
+| `Esc` | One ladder, top down: the activity-log popup, then the build menu, then the open view; on the map, back out of the path tool, then a picked-up building, then an open info panel. |
 | `Enter` | Dismiss the interrupt on screen (every type with a plain "continue" — not the admissions form or the charter offer, which are real choices). |
 | `C` `F` `L` | Open (or close) Curriculum, Faculty, Student Life. |
 
 The plumbing is one module, `src/components/hotkeys.ts`: it owns the window
-listener, the "not while the player is typing" guard, and the rule that a key
-held with Ctrl/Meta/Alt belongs to the browser. What each key MEANS stays with
-the component that owns the thing it does — speed on `StatusHeader.tsx`,
-pan/draw/rotate on `CampusMap.tsx`, the tab letters on `App.tsx`, `Enter` on
-`InterruptModal.tsx`. `App.tsx` gates the map's whole keyboard off while a tab
-overlay or an interrupt is on top of it, so only one layer is ever listening
-for `Esc`.
+listener, the "not while the player is typing" guard, the rule that a key held
+with Ctrl/Meta/Alt belongs to the browser, and which device the player is
+currently driving with. That last one is what keeps `Space` honest: a focused
+button answers `Space` natively, so the game must stand aside for a player who
+tabbed to one — but a button that was *clicked* is focused too, which is how
+`Space` came to re-click a tab icon instead of pausing. The modality is settled
+by the interaction that chose the device (a pointer press, or `Tab`) rather
+than by the key being arbitrated, because `:focus-visible` alone flips true on
+that very keypress.
+
+What each key MEANS stays with the component that owns the thing it does —
+speed on `StatusHeader.tsx`, pan/draw/rotate on `CampusMap.tsx`, the tab
+letters and the whole `Esc` ladder on `App.tsx`, `Enter` on
+`InterruptModal.tsx`. `App.tsx` owns `Esc` because it is the only place that
+can see every rung, and it gates the map's whole keyboard off while anything —
+a tab, the build menu, the log popup, an interrupt — is on top of it, so only
+one layer is ever listening.
 
 ## Project structure
 
@@ -83,13 +102,12 @@ for `Esc`.
   campus map (`CampusMap.tsx`), the build rail beside it (`BuildPanel.tsx`),
   the log ticker under it (`LogStrip.tsx`), the frame every other view pops up
   in (`TabOverlay.tsx`), and the persistent header/status bar, interrupt modal,
-  tab nav, and startup screen
+  tab metadata, and startup screen
 - `src/tabs/` — one component per overlay view (Faculty, Curriculum, Research,
   Treasury, Admissions, Student Life, History, Athletics); each reads the slice
   of `GameState` it needs and dispatches actions, and knows nothing about being
-  rendered in an overlay. `TabOverlay` has two shapes: the default sheet in
-  front of the map, and **full-bleed**, where the tab owns the viewport and the
-  dock is laid over it (Curriculum and Research use it)
+  rendered in an overlay. `TabOverlay` draws one shape — **full-bleed**, where
+  the tab owns the viewport and the dock is laid over it
 - `src/App.tsx` — the shell: owns the game loop hook and which view (if any) is
   open over the map, renders the persistent chrome, the map + build rail + log,
   and the active overlay
@@ -275,7 +293,7 @@ inputs:
   milestone gate opens.
 - **incoming student quality** — the average quality of the class that actually
   enrolled that cycle.
-- **research standing** — what the university's scholarship has actually
+- **research standing** — what the university's research has actually
   produced: publications, breakthroughs, prizes, doctorates, and a credit for
   every initiative carried to completion (see "Research" below). A monotone
   count of the same shape as curriculum breadth, weighted small and clamped like
@@ -782,11 +800,12 @@ and threads it through.
 
 ## The Curriculum map: three levels over one revealed set
 
-The Curriculum tab is a **full-bleed** tab: it owns the viewport and the dock is
-laid over it, rather than opening as a sheet in front of the campus. The
-layering is the crux — a sheet sits *above* the chrome because it stands in
-front of the screen; a full-bleed tab *is* the screen, so it drops below and
-reserves the dock's measured height instead of drawing under it.
+The Curriculum tab, like every tab, is **full-bleed**: it owns the viewport and
+the dock is laid over it. The layering is the crux — a dialog sits *above* the
+chrome because it stands in front of the screen; a full-bleed tab *is* the
+screen, so it drops below and reserves the dock's measured height instead of
+drawing under it. (Curriculum is where the shape was first proven, which is why
+it is described here; the shell now gives it to everything.)
 
 Three levels, all derived from the unlock/milestone state progressive discovery
 already computes — the view adds no state of its own:
@@ -1005,7 +1024,7 @@ Two judgment calls from this pass, flagged rather than resolved quietly:
   accepted as the cost of the feature rather than smoothed over — see
   persistence.ts's v11 -> v12 migration comment.
 
-## Research: scholarship the player commissions
+## Research: work the player commissions
 
 Research is **work the university commissions**, not a by-product of owning a
 building. The player picks a topic, a team and a depth, out of a specific
@@ -1040,7 +1059,7 @@ it). They run on identical machinery — no second kind of research — and sinc
 one facility equips the whole school, every field that school teaches comes
 into production behind it. Only General Studies, which has no majors of its
 own, has no facility. What differs is **vocabulary**, not mechanics. A model
-that can only describe scholarship as laboratory science is one that quietly
+that can only describe research as laboratory science is one that quietly
 tells four schools their work does not count, so `DISCIPLINE_VOCAB` authors
 **three** things per school, not one:
 
@@ -1062,7 +1081,7 @@ tells four schools their work does not count, so `DISCIPLINE_VOCAB` authors
 That is the only reading that makes sense — an initiative *is* a topic, a team
 and a facility, and the facility is the half of it that has a school
 (`facilitySchool`). An earlier pass drew the school campus-wide, weighted across
-everyone producing scholarship, which was right under the old model where
+everyone producing research, which was right under the old model where
 production genuinely was the whole roster trickling into one pool; against
 initiatives it meant a project in the Humanities Research Institute logged "a
 new paper" whenever the campus also ran physics labs.

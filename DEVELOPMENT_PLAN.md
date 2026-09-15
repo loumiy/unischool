@@ -5,8 +5,11 @@ to take a page of playtest notes and turn it into an ordered sequence of PRs,
 each one small enough to land on its own and each one landing in the order that
 makes the next one cheaper.*
 
-**Status: proposed.** Nothing here is implemented. Four phases, 23 PRs, plus a
-named set of deferred directions at the end.
+**Status: Phase 1 landed; Phases 2-4 proposed.** Four phases, 23 PRs, plus a
+named set of deferred directions at the end. Phase 1 (the shell — 1A through
+1F) is implemented; its six PRs are described below as they were planned, and
+the one place the implementation departs from the plan is noted in 1E, where
+`:focus-visible` turned out to be half an answer.
 
 ---
 
@@ -278,6 +281,18 @@ which is exactly the browser's own "this element is focused *and* the user is
 driving by keyboard" heuristic. A keyboard user tabbing to the Play button still
 gets native Space activation; a mouse user who clicked a tab gets the pause. The
 same narrowing applies to Enter in `InterruptModal`.
+
+**As implemented: `:focus-visible` is half of it.** Probed directly in
+Chromium, an already-focused button flips to `:focus-visible` on the FIRST
+keypress after a mouse click — and that keypress is the Space being
+arbitrated, so `matches(':focus-visible')` reads true inside the very handler
+that needs it to read false. The browser's heuristic cannot answer a question
+asked during the key it is about. So `hotkeys.ts` also tracks the input
+modality itself, settled BEFORE the key by the interaction that chose the
+device: a pointer press means mouse, `Tab` means keyboard, and neither Space
+and Enter (the keys under arbitration) nor the arrows (they pan the campus)
+get a vote. `isActivationTarget` requires the modality AND `:focus-visible`,
+so it never claims a native activation the browser will not perform.
 
 **Escape.** One ladder, top down: an open build popup closes first, then an open
 tab, then the map's own back-out (drop a path tool, drop a placement). Today
