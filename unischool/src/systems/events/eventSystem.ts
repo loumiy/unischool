@@ -30,12 +30,13 @@ import { labEquippedFields } from '../../data/researchData';
 // WHAT ELSE RIDES HERE. Two more things use this same stand-down-and-
 // drain slot rather than raising interrupts of their own:
 //
-//   - The RESEARCH PRIZE celebration. researchSystem.ts applies the award
-//     the week it is won and pushes it onto s.research.pendingPrizes; this
-//     drains it on the next quiet week, exactly as it drains milestones.
-//     It is the ONLY research output that stops the clock — grants and
-//     breakthroughs resolve silently into finance and the prestige target
-//     (see README's "Research").
+//   - The RESEARCH COMPLETION report. researchSystem.ts files one when a
+//     project runs its course — outputs, team, and the award if it won
+//     one — onto s.research.pendingCompletions; this drains it on the next
+//     quiet week, exactly as it drains milestones. It is the ONLY research
+//     moment that stops the clock: grants, publications and breakthroughs
+//     resolve silently into finance and the prestige target as they land
+//     (see README's "Research"), and are reported together at the end.
 //   - The COLLEGE -> UNIVERSITY charter offer, fired once, the first
 //     quiet week after any lab finishes. It needs no queue at all: "a
 //     finished lab exists" is a durable condition (nothing ever un-
@@ -85,24 +86,29 @@ function fireMilestoneCelebration(s: GameState): boolean {
   return true;
 }
 
-// The research prize celebration (see systems/research/researchSystem.ts).
-// Same contract as the milestone celebration above: the award already
-// landed — the badge, the permanent research and salary premium, the
-// prestige credit — and this is the report on it, so a delayed modal
-// never delays an effect. Drains the WHOLE queue into one interrupt for
-// the same reason milestones do, though two prizes inside one quiet
-// stretch is not something a real run is likely to see.
+// The research completion report (see systems/research/researchSystem.ts).
+// Same contract as the milestone celebration above: everything in it has
+// already happened — the outputs banked, the grant money spent, the award's
+// permanent premium applied — and this is the report on it, so a delayed
+// modal never delays an effect.
 //
-// No frequency floor of its own: prizes are already rare twice over (see
-// researchData.ts's RESEARCH_OUTPUTS — the most expensive output and the
-// least likely of the three), and adding a second spacing rule on top
-// would only be able to delay the one modal research is allowed.
-function firePrizeCelebration(s: GameState): boolean {
-  if (s.research.pendingPrizes.length === 0) return false;
+// ONE AT A TIME, unlike the milestone queue this otherwise mirrors. A
+// milestone celebration is a headline and several of them read as one
+// modal; a completion report is a page about one project, with its own
+// team and its own outputs, and two of them stacked would be two pages the
+// player has to read as one. Concluding two projects in the same week is
+// rare enough that the next quiet week reporting the second is the right
+// trade.
+//
+// No frequency floor of its own: a project takes between six months and
+// five years, so the queue is naturally spaced, and adding a second
+// spacing rule on top would only be able to delay the one modal research
+// is allowed.
+function fireResearchReport(s: GameState): boolean {
+  const report = s.research.pendingCompletions.shift();
+  if (!report) return false;
 
-  const awards = s.research.pendingPrizes;
-  s.research.pendingPrizes = [];
-  s.pendingInterrupt = { type: 'research-prize', payload: { awards } };
+  s.pendingInterrupt = { type: 'research-complete', payload: { report } };
   return true;
 }
 
@@ -223,13 +229,13 @@ export function tickEvents(s: GameState): void {
   if (s.pendingInterrupt) return;
 
   // Celebrations take priority over authored events: a queued milestone or
-  // a research prize is something the player earned, an event is something
-  // that merely happened. The charter offer sits between them — it is a
+  // a concluded research project is something the player earned, an event
+  // is something that merely happened. The charter offer sits between them — it is a
   // question rather than a celebration, but it is a one-shot tied to a
   // moment, so it should not wait behind a random draw.
   if (fireMilestoneCelebration(s)) return;
   if (fireCharterOffer(s)) return;
-  if (firePrizeCelebration(s)) return;
+  if (fireResearchReport(s)) return;
   if (fireVarsityPetition(s)) return;
 
   rollDecisionEvent(s);

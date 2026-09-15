@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { Action } from '../state/actions';
-import type { GameState, PendingInterrupt, PrizeAward } from '../state/types';
+import type { GameState, InitiativeReport, PendingInterrupt } from '../state/types';
 import { institutionName, WEEKS_PER_YEAR } from '../state/types';
-import { ACCLAIM_RESEARCH_BONUS } from '../data/researchData';
+import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
 import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction, type PriceTier } from '../systems/admissions/admissionsSystem';
 import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
@@ -417,61 +417,88 @@ function MilestoneCelebrationView({ s, payload, onDismiss }: {
 }
 
 // ---------------------------------------------------------------------
-// The research prize: the ONLY research output that stops the clock (see
-// README's "Research" — grants and breakthroughs resolve silently into
-// finance and the prestige target, with nothing but a log line). It is
-// here because it is genuinely momentous and genuinely rare: a prize is
-// the most expensive of the three outputs and the least likely of them
-// even once affordable, so a long run sees a handful at most.
+// A RESEARCH PROJECT HAS CONCLUDED (see systems/research/researchSystem.ts).
 //
-// It grants nothing and asks nothing. Everything it reports already
-// happened the week the prize was won: the winner's permanent acclaim,
-// and with it the higher salary and higher research output that acclaim
-// buys, plus the school's share of the capped research prestige input.
-// This is the same contract the milestone celebration follows.
+// THE COMPLETION IS THE EVENT. This used to be a prize celebration, which
+// meant the modal that stopped the clock was the one for the trophy while
+// the work itself — three or five years of a team not teaching — passed as
+// a single line in the log. The playtest asked for the inverse and is
+// right: the report is what the player wants at the end of a long
+// commitment, and the award is one of its results rather than a separate
+// occasion.
 //
-// The winner's details come from the PAYLOAD rather than from the roster,
-// so the modal still says something true if they were dismissed in the
-// weeks between the award and the quiet week it finally fired on.
+// It grants nothing and asks nothing. Everything here already happened as
+// it landed: publications and breakthroughs counted into the prestige
+// target, grant money into cash the week it arrived, and — if the work won
+// an award — the winner's permanent acclaim, with the higher salary and
+// research output acclaim buys. This is the same contract the milestone
+// celebration follows.
+//
+// Everything displayed comes from the PAYLOAD rather than from live state,
+// so the report still says something true if a professor on it has since
+// been dismissed, or the facility has been renamed, in the weeks between
+// the project ending and the quiet week this finally fired on.
 // ---------------------------------------------------------------------
-function PrizeCelebrationView({ s, awards, onDismiss }: {
+function ResearchReportView({ s, report, onDismiss }: {
   s: GameState;
-  awards: PrizeAward[];
+  report: InitiativeReport;
   onDismiss: () => void;
 }) {
-  const single = awards.length === 1 ? awards[0] : null;
+  const depth = initiativeDepth(report.depth);
+  const nothingToShow = report.publications === 0 && report.breakthroughs === 0 && report.grantIncome === 0;
 
   return (
     <>
-      <h2>{single ? `${single.facultyName} wins ${single.prizeName}` : `${awards.length} prizes awarded`}</h2>
+      <h2>{report.award ? `${report.topicName} concludes — and wins ${report.award.prizeName}` : `${report.topicName} concludes`}</h2>
       <p>
-        {single
-          ? `The award recognises work done in this university's laboratories. ${single.facultyName} joins the very short list of ${single.field} researchers to have received it, and ${institutionName(s.self)} is named alongside them everywhere the citation is printed.`
-          : 'The university’s laboratories have been recognised more than once this season.'}
+        {depth.name} · {report.labName} · {report.years} {report.years === 1 ? 'year' : 'years'} ·{' '}
+        {report.facultyNames.join(', ')}
       </p>
 
-      {!single && (
-        <ul className="milestone-unlocks">
-          {awards.map((a) => (
-            <li key={a.facultyId + a.prizeName}>{a.facultyName} ({a.field}) — {a.prizeName}</li>
-          ))}
-        </ul>
+      {report.award && (
+        <p>
+          {report.award.facultyName} joins the very short list of {report.award.field} researchers to have
+          received it, and {institutionName(s.self)} is named alongside them everywhere the citation is printed.
+        </p>
       )}
 
       <dl className="admissions-outcomes">
         <div>
-          <dt>Scholarly output <span className="outcome-note">(permanent, per prize)</span></dt>
-          <dd>+{Math.round(ACCLAIM_RESEARCH_BONUS * 100)}%</dd>
+          <dt>Published <span className="outcome-note">(papers, monographs, works)</span></dt>
+          <dd>{report.publications}</dd>
         </div>
         <div>
-          <dt>Salary <span className="outcome-note">(permanent, per prize)</span></dt>
-          <dd>+{Math.round(ACCLAIM_SALARY_PREMIUM * 100)}%</dd>
+          <dt>Breakthroughs <span className="outcome-note">(feeds the prestige target)</span></dt>
+          <dd>{report.breakthroughs}</dd>
         </div>
         <div>
-          <dt>Prizes to date <span className="outcome-note">(feeds the prestige target)</span></dt>
-          <dd>{s.research.prizes}</dd>
+          <dt>Grant income <span className="outcome-note">(already banked)</span></dt>
+          <dd>${report.grantIncome.toLocaleString()}</dd>
         </div>
+        {report.award && (
+          <>
+            <div>
+              <dt>{report.award.facultyName}&rsquo;s output <span className="outcome-note">(permanent, per prize)</span></dt>
+              <dd>+{Math.round(ACCLAIM_RESEARCH_BONUS * 100)}%</dd>
+            </div>
+            <div>
+              <dt>Their salary <span className="outcome-note">(permanent, per prize)</span></dt>
+              <dd>+{Math.round(ACCLAIM_SALARY_PREMIUM * 100)}%</dd>
+            </div>
+            <div>
+              <dt>Prizes to date <span className="outcome-note">(feeds the prestige target)</span></dt>
+              <dd>{s.research.prizes}</dd>
+            </div>
+          </>
+        )}
       </dl>
+
+      {nothingToShow && (
+        <p className="empty-note">
+          The work produced nothing publishable. The team returns to teaching, and the facility is free for
+          whatever comes next.
+        </p>
+      )}
 
       <button onClick={onDismiss}>Continue</button>
     </>
@@ -708,7 +735,7 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
   // fast-forwarded decade being a click hunt.
   //
   // Each type is wired to its OWN dedicated action, never a fallthrough to
-  // generic RESOLVE_INTERRUPT — milestone, research-prize and demand are
+  // generic RESOLVE_INTERRUPT — milestone, research-complete and demand are
   // mechanically just clear-and-advance today (see reducer.ts), same as the
   // generic action itself, but keeping them separate is what makes that stay
   // correct if one of them ever grows real work of its own to do on resolve.
@@ -740,8 +767,8 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
       case 'milestone':
         act({ type: 'RESOLVE_MILESTONE' });
         break;
-      case 'research-prize':
-        act({ type: 'RESOLVE_PRIZE' });
+      case 'research-complete':
+        act({ type: 'RESOLVE_RESEARCH_REPORT' });
         break;
       case 'demand':
         act({ type: 'RESOLVE_DEMAND' });
@@ -777,11 +804,11 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
             payload={interrupt.payload as MilestonePayload}
             onDismiss={() => act({ type: 'RESOLVE_MILESTONE' })}
           />
-        ) : interrupt.type === 'research-prize' ? (
-          <PrizeCelebrationView
+        ) : interrupt.type === 'research-complete' ? (
+          <ResearchReportView
             s={s}
-            awards={(interrupt.payload as { awards: PrizeAward[] }).awards}
-            onDismiss={() => act({ type: 'RESOLVE_PRIZE' })}
+            report={(interrupt.payload as { report: InitiativeReport }).report}
+            onDismiss={() => act({ type: 'RESOLVE_RESEARCH_REPORT' })}
           />
         ) : interrupt.type === 'demand' ? (
           <DemandView s={s} onDismiss={() => act({ type: 'RESOLVE_DEMAND' })} />

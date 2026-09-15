@@ -568,6 +568,35 @@ export interface PrizeAward {
   prizeName: string;
 }
 
+// THE REPORT A CONCLUDED PROJECT FILES. Queued by researchSystem.ts when
+// an initiative runs its course, and rendered as the `research-complete`
+// interrupt — the one modal research is allowed, and now the right one.
+//
+// It used to be the prize that stopped the clock, through a separate
+// `research-prize` interrupt, which meant the modal celebrated the trophy
+// while the five years of work that earned it passed as a log line. The
+// completion IS the event; the award is one of its results, and sits in
+// here as one field among the outputs rather than as an interrupt of its
+// own.
+//
+// Names are CAPTURED rather than looked up later, the same reason
+// PrizeAward captured them: the week a project ends may not be the week
+// the report fires, and a professor can be dismissed or a topic re-authored
+// in between. A report says what was true when the work finished.
+export interface InitiativeReport {
+  topicId: string;
+  topicName: string;
+  labId: string;
+  labName: string;
+  depth: InitiativeDepth;
+  years: number;              // rounded to one decimal, as the log line reports it
+  facultyNames: string[];
+  publications: number;
+  breakthroughs: number;
+  grantIncome: number;
+  award: PrizeAward | null;   // the one thing that can only be won at conclusion
+}
+
 // How deep a commitment an initiative is. Lives here rather than beside
 // its tuning table (data/researchData.ts's INITIATIVE_DEPTHS) because this
 // module is the base of the import graph — everything reads types, types
@@ -639,7 +668,7 @@ export interface ResearchState {
   initiatives: Record<string, Initiative>;
   completedInitiatives: CompletedInitiative[]; // newest first, capped at INITIATIVE_HISTORY_LIMIT
   lastOutputWeek: number;  // absolute week the last research output landed; 0 = never. The cooldown half of the cadence, exactly like events.lastDecisionWeek
-  pendingPrizes: PrizeAward[]; // awarded but not yet celebrated — a QUEUE for the same reason events.pendingMilestones is one: the week a prize lands may already belong to admissions or the U.S. News report, and only one interrupt can be pending at a time
+  pendingCompletions: InitiativeReport[]; // concluded but not yet reported — a QUEUE for the same reason events.pendingMilestones is one: the week a project ends may already belong to admissions or the U.S. News report, and only one interrupt can be pending at a time. Drained one at a time (see eventSystem.ts): each is a report on a different project and they do not read as one modal.
 }
 
 // ---------------------------------------------------------------------

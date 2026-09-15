@@ -802,7 +802,29 @@ export const SAVE_KEY = 'unischool.save';
 // counts) — it just has to commission work to add to it.
 //
 // See MIGRATIONS[32].
-export const SAVE_VERSION = 33;
+//
+// v33 -> v34: research ends with a report. The `research-prize` interrupt
+// and ResearchState.pendingPrizes are retired; a concluded project now
+// files a full report (topic, facility, team, years, outputs, and the award
+// if it won one) onto ResearchState.pendingCompletions, which the same
+// quiet-week slot drains.
+//
+// WHAT A RESUMED SAVE LOSES, stated plainly: a prize that was won but not
+// yet celebrated has no completion to attach to — the project it came out
+// of is already in completedInitiatives and its own record is gone. Those
+// queued awards are dropped, and the load logs one line saying so. Nothing
+// mechanical goes with them: an award applies its acclaim, salary premium
+// and prestige credit the week it is won, so what is dropped is the
+// celebration and only the celebration.
+//
+// A save halted ON that interrupt is the one case that must not be left
+// alone: its pendingInterrupt names a type no version of the UI renders any
+// more, which would be a modal the player cannot dismiss and a clock that
+// never restarts. It is cleared, which is exactly what dismissing it would
+// have done.
+//
+// See MIGRATIONS[33].
+export const SAVE_VERSION = 34;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -872,6 +894,32 @@ interface LegacyGameState extends GameState {
 const KNOWN_SUFFIXES = ['College', 'University'];
 
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v33 -> v34: research ends with a report (see the SAVE_VERSION header
+  // note above). Written at the top of the table rather than in numeric
+  // order with the rest only because the newest migration is the one a
+  // reader is most often looking for.
+  33: (state) => {
+    const research = state.research as unknown as { pendingPrizes?: unknown[] };
+    const dropped = Array.isArray(research.pendingPrizes) ? research.pendingPrizes.length : 0;
+    delete research.pendingPrizes;
+    state.research.pendingCompletions = [];
+
+    // A save frozen on the retired interrupt would otherwise load into a
+    // modal nothing renders, with the clock halted behind it.
+    if (state.pendingInterrupt?.type === 'research-prize') state.pendingInterrupt = null;
+
+    if (dropped > 0) {
+      state.log.unshift({
+        year: state.clock.year,
+        week: state.clock.week,
+        message: dropped === 1
+          ? 'An awarded prize was still waiting to be celebrated and has been noted here instead. The award itself stands.'
+          : `${dropped} awarded prizes were still waiting to be celebrated and have been noted here instead. The awards themselves stand.`,
+        kind: 'good',
+      });
+    }
+  },
+
   // v3 -> v4: placements gained a footprint. A placement written before
   // footprints existed covered exactly one tile, which is precisely a 1x1,
   // so this is a pure fill-in — no layout moves and nothing is dropped.
@@ -996,7 +1044,7 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     state.research = {
       points: 0, lifetimePoints: 0, publications: 0, grants: 0, grantIncome: 0,
       breakthroughs: 0, prizes: 0, initiatives: {}, completedInitiatives: [],
-      lastOutputWeek: 0, pendingPrizes: [],
+      lastOutputWeek: 0, pendingCompletions: [],
     };
     for (const f of state.faculty) f.acclaim = 0;
     for (const c of state.candidates ?? []) c.acclaim = 0;

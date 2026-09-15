@@ -1610,7 +1610,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-card-spacer { flex: 1; }
 .faculty-name { font-weight: 700; font-size: var(--text-base); color: var(--ink);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* The research-prize badge: permanent, and the only mark on a card that
+/* The award badge on a concluded project's card: permanent, and the only mark on a card that
    isn't derived from stats (see types.ts's Faculty.acclaim). */
 .faculty-acclaim { color: var(--gold); font-size: var(--text-sm); letter-spacing: 1px; flex: none; }
 .faculty-card-field { font-size: var(--text-xs); color: var(--ink-muted);

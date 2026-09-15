@@ -1,4 +1,4 @@
-import type { Faculty, GameState, Initiative } from '../../state/types';
+import type { Faculty, GameState, Initiative, PrizeAward } from '../../state/types';
 import { INITIATIVE_HISTORY_LIMIT, WEEKS_PER_YEAR } from '../../state/types';
 import {
   RESEARCH_OUTPUTS, article, awardChance, disciplineVocab, facilitySchool, facultyResearchOutput,
@@ -117,7 +117,7 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
   const participants = s.faculty.filter((f) => initiative.participantIds.includes(f.id));
   const topic = researchTopic(initiative.topicId);
   const name = topic?.name ?? 'the project';
-  let award: string | null = null;
+  let award: PrizeAward | null = null;
 
   if (!cancelled) {
     const strength = teamStrength(participants);
@@ -132,14 +132,51 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
         // Named by the discipline that won it, same as every other log
         // line this run produced: an award for Scientific Achievement is
         // the wrong trophy for a five-year work of history.
-        award = rollPrizeName(disciplineVocab(facilitySchool(initiative.labId)));
-        s.research.pendingPrizes.push({
-          facultyId: winner.id, facultyName: winner.name, field: winner.field, prizeName: award,
-        });
-        log(s, `${winner.name} has been awarded ${award} for “${name}”.`, 'good');
+        const prizeName = rollPrizeName(disciplineVocab(facilitySchool(initiative.labId)));
+        award = { facultyId: winner.id, facultyName: winner.name, field: winner.field, prizeName };
+        log(s, `${winner.name} has been awarded ${prizeName} for “${name}”.`, 'good');
       }
     }
     log(s, `“${name}” has concluded after ${Math.round(initiative.weeksTotal / WEEKS_PER_YEAR * 10) / 10} years.`, 'good');
+
+    // THE COMPLETION IS THE EVENT, and the award is one of its results.
+    // Queued rather than raised here for the same reason a prize used to
+    // be: the week a five-year programme ends may already belong to summer
+    // admissions or the U.S. News report, and only one interrupt can be
+    // pending at a time. The award's own EFFECTS have already applied
+    // above, so a delayed report never delays anything mechanical.
+    //
+    // A CANCELLED project queues nothing. Winding one up early is the
+    // player's own action and already logs; a modal confirming what they
+    // just did is noise.
+    //
+    // NOR DOES A QUIET PILOT STUDY, which is a cadence decision rather than
+    // a mechanical one. A modal is a thing the game spends the player's
+    // attention on, and the budget is roughly one or two a year on top of
+    // the annual admissions decision (see README's cadence note). Reporting
+    // every completion took the balance sim's texture count from 1.7 to 3.0
+    // modals a year, almost all of it six-month pilot studies concluding
+    // with a couple of papers — the smallest tier of work, on the shortest
+    // clock, interrupting most often. So a pilot reports only when it did
+    // something a player would want stopping for: won an award, or produced
+    // a breakthrough. Everything at Funded Project depth or deeper always
+    // reports, because eighteen months of a team's teaching is a
+    // commitment worth an ending. A quiet pilot still logs, and still
+    // appears in the Research tab's history.
+    const notable = award !== null || initiative.breakthroughs > 0 || initiative.depth !== 'pilot';
+    if (notable) s.research.pendingCompletions.push({
+      topicId: initiative.topicId,
+      topicName: name,
+      labId: initiative.labId,
+      labName: s.tech.find((t) => t.id === initiative.labId)?.name ?? 'the facility',
+      depth: initiative.depth,
+      years: Math.round((initiative.weeksTotal / WEEKS_PER_YEAR) * 10) / 10,
+      facultyNames: participants.map((f) => f.name),
+      publications: initiative.publications,
+      breakthroughs: initiative.breakthroughs,
+      grantIncome: initiative.grantIncome,
+      award,
+    });
   }
 
   s.research.completedInitiatives.unshift({
@@ -150,7 +187,7 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
     publications: initiative.publications,
     breakthroughs: initiative.breakthroughs,
     grantIncome: initiative.grantIncome,
-    award,
+    award: award?.prizeName ?? null,
     ...(cancelled ? { cancelled: true as const } : {}),
   });
   s.research.completedInitiatives = s.research.completedInitiatives.slice(0, INITIATIVE_HISTORY_LIMIT);

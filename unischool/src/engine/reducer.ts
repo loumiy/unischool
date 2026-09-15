@@ -725,7 +725,7 @@ export function reducer(state: GameState, action: Action): GameState {
     // acclaim, and with it their higher salary and research output, plus
     // the school's prestige credit — landed the week the prize was won.
     // Advances the clock, like every other trailing interrupt.
-    case 'RESOLVE_PRIZE': {
+    case 'RESOLVE_RESEARCH_REPORT': {
       s.pendingInterrupt = null;
       advanceClock(s);
       return s;

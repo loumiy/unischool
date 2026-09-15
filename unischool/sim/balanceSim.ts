@@ -23,7 +23,7 @@
 import { reducer } from '../src/engine/reducer';
 import type { Action } from '../src/state/actions';
 import { createPreStartState } from '../src/state/actions';
-import type { GameState, Buildable, SchoolType } from '../src/state/types';
+import type { GameState, Buildable, InitiativeReport, SchoolType } from '../src/state/types';
 import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudent } from '../src/systems/finance/financeSystem';
 import {
@@ -642,6 +642,7 @@ interface EventTally {
   // harness has to be told about.
   initiativesStarted: number;
   peakConcurrent: number;
+  reports: number;           // completions that stopped the clock (see researchSystem.ts)
   initiativeSpend: number;   // cumulative up-front funding, against lifetime opex below
   // Student demands (see src/systems/demands/demandSystem.ts). The
   // question these answer is the one the feature's whole cadence argument
@@ -739,7 +740,7 @@ export function play(
 
   const tally: EventTally = {
     milestones: 0, decisions: 0, cash: 0, prizes: 0,
-    initiativesStarted: 0, peakConcurrent: 0, initiativeSpend: 0,
+    initiativesStarted: 0, peakConcurrent: 0, initiativeSpend: 0, reports: 0,
     petitionsApproved: 0, greekEventsSeen: 0,
     demandsRaised: 0, demandsMet: 0, demandsFailed: 0, demandSubjects: {},
     schoolsNamed: 0, chaptersFormed: 0, chaptersAskedForHousing: 0,
@@ -774,9 +775,14 @@ export function play(
       } else if (s.pendingInterrupt.type === 'milestone') {
         tally.milestones += 1;
         dispatch({ type: 'RESOLVE_MILESTONE' });
-      } else if (s.pendingInterrupt.type === 'research-prize') {
-        tally.prizes += 1;
-        dispatch({ type: 'RESOLVE_PRIZE' });
+      } else if (s.pendingInterrupt.type === 'research-complete') {
+        // The completion report, which carries the award if the work won
+        // one — so the prize tally is read off the payload now rather than
+        // off an interrupt of its own (see researchSystem.ts).
+        const { report } = s.pendingInterrupt.payload as { report: InitiativeReport };
+        tally.reports += 1;
+        if (report.award) tally.prizes += 1;
+        dispatch({ type: 'RESOLVE_RESEARCH_REPORT' });
       } else if (s.pendingInterrupt.type === 'demand') {
         // A student demand (see src/systems/demands/demandSystem.ts). The
         // scripted player acknowledges it and does nothing else — there is
@@ -899,7 +905,7 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
   // the decision events do — the point of the line is that adding them
   // moves it very little.
   const years = rows.length;
-  const texture = tally.milestones + tally.decisions + tally.prizes + tally.demandsRaised;
+  const texture = tally.milestones + tally.decisions + tally.reports + tally.demandsRaised;
   const subjects = Object.entries(tally.demandSubjects)
     .sort((a, b) => b[1] - a[1])
     .map(([subject, n]) => `${subject} x${n}`)
@@ -909,7 +915,7 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
     `${subjects ? ` — ${subjects}` : ''}`,
   );
   console.log(
-    `   texture modals (milestones + events + prizes + demands): ${texture} over ${years} years ` +
+    `   texture modals (milestones + events + research reports + demands): ${texture} over ${years} years ` +
     `= ${(texture / Math.max(years, 1)).toFixed(2)}/yr, on top of the ${years} annual admissions decisions`,
   );
   // Grant income is compared against the run's total operating cost rather
@@ -928,7 +934,8 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
   const spendShare = lifetimeOpEx > 0 ? (tally.initiativeSpend / lifetimeOpEx) * 100 : 0;
   console.log(
     `   initiatives: ${tally.initiativesStarted} started, ${tally.peakConcurrent} running at once at the peak, ` +
-    `${fmt(tally.initiativeSpend)} of funding (${spendShare.toFixed(1)}% of lifetime opex)`,
+    `${fmt(tally.initiativeSpend)} of funding (${spendShare.toFixed(1)}% of lifetime opex), ` +
+    `${tally.reports} concluded with a report`,
   );
   // Graduate programs, judged the same way grants and student life are:
   // the bare figure means nothing, WHEN it arrives and what share of the

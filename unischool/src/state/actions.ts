@@ -170,7 +170,7 @@ export type Action =
   // raised salary and research output, and the school's prestige credit
   // all landed the week the prize was won. Advances the clock, for the
   // same reason RESOLVE_MILESTONE does.
-  | { type: 'RESOLVE_PRIZE' }
+  | { type: 'RESOLVE_RESEARCH_REPORT' }
   // Acknowledges a student demand at the moment it is raised (see
   // systems/demands/demandSystem.ts). Grants nothing and costs nothing —
   // the demand is already open on s.events.activeDemand with its target
@@ -304,7 +304,7 @@ export function createPreStartState(): GameState {
     research: {
       points: 0, lifetimePoints: 0, publications: 0, grants: 0, grantIncome: 0,
       breakthroughs: 0, prizes: 0, initiatives: {}, completedInitiatives: [],
-      lastOutputWeek: 0, pendingPrizes: [],
+      lastOutputWeek: 0, pendingCompletions: [],
     },
     candidates: [],
     started: false,
@@ -556,7 +556,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     research: {
       points: 0, lifetimePoints: 0, publications: 0, grants: 0, grantIncome: 0,
       breakthroughs: 0, prizes: 0, initiatives: {}, completedInitiatives: [],
-      lastOutputWeek: 0, pendingPrizes: [],
+      lastOutputWeek: 0, pendingCompletions: [],
     },
     candidates: initialCandidatePool(),
     started: true,
