@@ -88,7 +88,28 @@ export function gradeFraction(score: number): number {
 // rather than the same number twice, and it is the moment-to-moment
 // version of the whole feature's question — is this professor's next
 // course worth what it does to their others?
-const LOAD_PENALTY_MAX = 12;
+// 12 -> 7. At 12 a full load was reliably a whole letter grade against
+// bands 16-18 points wide, and an over-full one (the migration-only case
+// below) nearly two — so a professor's second and third course read as a
+// punishment for expanding the catalogue rather than as a price paid for
+// it. The playtest calls that a cliff; this is the same rule as a cost.
+//
+// It lands here rather than in Phase 2 because it and the research
+// commitment push the same number in the same direction: cutting a
+// commitment to two slots (techSystem.ts's RESEARCH_COMMITMENT_SLOTS)
+// leaves more professors carrying a partial load alongside a project, so
+// the load penalty now fires more often than it used to.
+//
+// WHAT THE RETUNE PRESERVES, checked at the new value rather than assumed:
+// a matured instructor (teaching ~71) on a tier-3 course still drops a
+// visible grade when carrying a full load — 66 (B) to 59 (C) — so
+// overloading somebody is still legible in the middle of the range where
+// most courses live. What changes is the depth of the drop, not whether it
+// happens: the window of teaching scores that changes band at a full load
+// narrows from 12 points to 7 at each boundary. The invariant above still
+// holds, and holds harder: D on a veteran's course still means the player
+// overloaded them, it just takes more overloading to get there.
+const LOAD_PENALTY_MAX = 7;
 // An over-ceiling load (migration only) keeps scaling past the max rather
 // than clamping at it, up to this multiple — an over-stretched department
 // should read worse than a merely full one.
