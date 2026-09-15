@@ -50,6 +50,16 @@ import './styles.css';
 // it, and the player leaves by Escape, the close button, or the home button
 // at the head of the toolbar's icon row.
 //
+// BUILD AND A TAB ARE THE SAME SLOT, which is the other half of the same
+// decision. Build mode only means anything while the player is looking at
+// the map, so the two states are mutually exclusive by construction rather
+// than by anyone remembering: opening the build popup sets `overlay` to
+// null, and opening any tab closes the popup. Clicking Build from inside a
+// tab therefore reads as one action — the tab closes, the map is there, the
+// build menu is open over it. This is the same kind of invariant, one layer
+// up, as the "only one of build-pickup and path-tool is ever live" rule
+// further down.
+//
 // The tab components themselves are untouched by this: they still read
 // their slice of GameState and dispatch actions exactly as before, and know
 // nothing about being rendered in an overlay.
@@ -105,6 +115,12 @@ export default function App() {
   // either one.
   const [placingId, setPlacingIdState] = useState<string | null>(null);
   const [pathTool, setPathToolState] = useState<'draw' | 'erase' | null>(null);
+  // Whether the build popup is open. It lives here rather than in Toolbar,
+  // where it used to, because it is not the toolbar's private business: it
+  // and `overlay` are two states of ONE slot (see the module comment), and
+  // this is the nearest common ancestor of both — the same reason placingId
+  // and pathTool are already here.
+  const [buildOpen, setBuildOpenState] = useState(false);
   const toolbarRef = useCssHeightVar('--toolbar-height');
 
   // C / F / L open the three views that get opened most (see TAB_HOTKEYS).
@@ -115,7 +131,7 @@ export default function App() {
     if (s.pendingInterrupt) return;
     const tab = TAB_HOTKEYS[e.key.toLowerCase()];
     if (!tab) return;
-    setOverlay((cur) => (cur === tab ? null : tab));
+    openTab(overlay === tab ? null : tab);
   }, s.started);
 
   // The map's own keys (W/A/S/D and the arrows to pan, P for the path tool,
@@ -125,7 +141,10 @@ export default function App() {
   // closes the overlay rather than dropping a path tool behind it, and
   // panning a map nobody can see is just a camera that has moved by the
   // time they come back to it.
-  const mapHotkeysEnabled = overlay === null && s.pendingInterrupt === null;
+  // ...and only while the build popup is closed, now that the popup is one
+  // of the things Escape has to be able to back out of (see 1E's ladder in
+  // the Escape handler below).
+  const mapHotkeysEnabled = overlay === null && !buildOpen && s.pendingInterrupt === null;
 
   // Picking up a building for siting and drawing/erasing a path are two
   // different jobs for the same click on the same grid, so exactly one is
@@ -139,6 +158,41 @@ export default function App() {
   function setPathTool(mode: 'draw' | 'erase') {
     setPathToolState((cur) => (cur === mode ? null : mode));
     setPlacingIdState(null);
+  }
+
+  // Closing the build popup drops whatever path tool it had armed: a path
+  // tool is the popup's own control (it is only armed from in there, or by
+  // P), so it should not outlive the popup. A picked-up building is NOT
+  // dropped here — the popup carries no backdrop precisely so the map stays
+  // clickable underneath it, so collapsing the popup to see the ground you
+  // are about to build on is part of siting, not a cancellation of it.
+  function closeBuild() {
+    setBuildOpenState(false);
+    setPathToolState(null);
+  }
+
+  // THE ONE SLOT. Build mode only means anything while the player is looking
+  // at the map, so opening a tab closes the build popup and opening the
+  // build popup closes the tab; the two can never be live at once (see the
+  // module comment). Leaving the map for a full-screen tab also drops a
+  // picked-up building, which closeBuild deliberately does not: an armed
+  // ghost that survives behind a screen, still armed when the player comes
+  // back minutes later, is a click away from siting a building nobody meant
+  // to site.
+  function openTab(tab: TabId | null) {
+    setOverlay(tab);
+    if (tab !== null) {
+      closeBuild();
+      setPlacingIdState(null);
+    }
+  }
+  function setBuildOpen(open: boolean) {
+    if (!open) {
+      closeBuild();
+      return;
+    }
+    setBuildOpenState(true);
+    setOverlay(null);
   }
 
   if (!s.started) {
@@ -165,7 +219,9 @@ export default function App() {
           s={s}
           act={act}
           active={overlay}
-          onChangeTab={setOverlay}
+          onChangeTab={openTab}
+          buildOpen={buildOpen}
+          onSetBuildOpen={setBuildOpen}
           speed={speed}
           setSpeed={setSpeed}
           weekProgress={weekProgress}
@@ -176,7 +232,7 @@ export default function App() {
         />
 
         {overlay && (
-          <TabOverlay title={TAB_LABELS[overlay]} onClose={() => setOverlay(null)}>
+          <TabOverlay title={TAB_LABELS[overlay]} onClose={() => openTab(null)}>
             {overlay === 'faculty' && <FacultyTab s={s} act={act} />}
             {overlay === 'curriculum' && <CurriculumTab s={s} act={act} />}
             {overlay === 'research' && <ResearchTab s={s} act={act} />}

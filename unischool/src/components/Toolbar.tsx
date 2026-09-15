@@ -1,4 +1,4 @@
-import { forwardRef, useState } from 'react';
+import { forwardRef } from 'react';
 import type { Action } from '../state/actions';
 import type { GameState } from '../state/types';
 import { TAB_LABELS, TAB_ORDER, type TabId } from './TabNav';
@@ -71,6 +71,12 @@ const Toolbar = forwardRef<HTMLDivElement, {
   act: (a: Action) => void;
   active: TabId | null;
   onChangeTab: (tab: TabId | null) => void;
+  // Whether the build popup is open, and the one way to change that. Both
+  // live in App.tsx now: build mode and an open tab are two states of one
+  // slot, and App is the nearest common ancestor of the two (see its module
+  // comment). This band only reports the click.
+  buildOpen: boolean;
+  onSetBuildOpen: (open: boolean) => void;
   speed: Speed;
   setSpeed: (speed: Speed) => void;
   // Threaded straight through to the day squares beside the clock (see
@@ -87,19 +93,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
   onArmPlacement: (id: string | null) => void;
   pathTool: 'draw' | 'erase' | null;
   onSetPathTool: (mode: 'draw' | 'erase') => void;
-}>(({ s, act, active, onChangeTab, speed, setSpeed, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool }, ref) => {
-  const [buildOpen, setBuildOpen] = useState(false);
-  // Shared by both ways the build popup can close (the toolbar's own Build
-  // button toggling off, and the popup's own ✕/Escape — see BuildPopup's
-  // onClose below): either one drops whatever path tool was still armed,
-  // the same "turn it off" toggle a second click on its own tile does
-  // (setPathTool(mode) with mode already active clears it — see App.tsx). A
-  // path tool is the build popup's own control, so it shouldn't outlive the
-  // popup that armed it.
-  function closeBuild() {
-    setBuildOpen(false);
-    if (pathTool) onSetPathTool(pathTool);
-  }
+}>(({ s, act, active, onChangeTab, buildOpen, onSetBuildOpen, speed, setSpeed, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool }, ref) => {
 
   return (
     <div className="toolbar" ref={ref}>
@@ -118,13 +112,15 @@ const Toolbar = forwardRef<HTMLDivElement, {
             control that is always in the same place rather than only the
             panel's own ✕ in the far corner: this is the button that says
             the campus map is where you came from. It reads as active when
-            nothing is open, which is when the player IS at home. */}
+            nothing is open, which is when the player IS at home — an open
+            build popup is still something over the map, so that does not
+            count as home either. */}
         <button
           type="button"
-          className={`toolbar-icon-btn ${active === null ? 'active' : ''}`}
+          className={`toolbar-icon-btn ${active === null && !buildOpen ? 'active' : ''}`}
           aria-label="Campus map"
           title="Campus map"
-          onClick={() => onChangeTab(null)}
+          onClick={() => { onChangeTab(null); onSetBuildOpen(false); }}
         >
           <HomeIcon />
         </button>
@@ -161,7 +157,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
           aria-expanded={buildOpen}
           aria-label={buildOpen ? 'Close build menu' : 'Open build menu'}
           title="Build"
-          onClick={() => (buildOpen ? closeBuild() : setBuildOpen(true))}
+          onClick={() => onSetBuildOpen(!buildOpen)}
         >
           <BuildIcon />
           <span className="toolbar-build-label">Build</span>
@@ -187,7 +183,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
           onArmPlacement={onArmPlacement}
           pathTool={pathTool}
           onSetPathTool={onSetPathTool}
-          onClose={closeBuild}
+          onClose={() => onSetBuildOpen(false)}
         />
       )}
     </div>
