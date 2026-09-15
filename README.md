@@ -208,9 +208,16 @@ placement rule, not data on the Buildable** — and it lives in `campusMap.ts`'s
 `facilityType`, plus, for anything whose instances differ in SCALE rather than
 in kind, a SIZE LADDER read off `effects.servesPopulation` (facilities) or
 `effects.capacityBonus` (dorms). A 350-seat campus restaurant is 3x3 and the
-16,000-seat market hall at the end of the same dining chain is 12x9; a 500-bed
+16,000-seat market hall at the end of the same dining chain is 11x9; a 500-bed
 residence hall is 9x4 and a 5,000-bed residential tower is 7x7 carried very
-high. Everything is sized against a rough **15m to a tile**, which the football
+high. **Every footprint with a door on it is an ODD number of tiles across.**
+A door is drawn at the centre of its front span, and on an even width that
+centre is a tile SEAM — so the one square a student would walk through does
+not exist, and a path can only ever reach the corner of two tiles. Open
+ground keeps its even spans, because nothing enters a tennis court or a
+running track through a drawn door. A `Placement` stores the footprint it was
+built with, so this applies to new campuses only; an existing one keeps the
+halls it has. Everything is sized against a rough **15m to a tile**, which the football
 stadium (a real one is about 220m by 180m — 15x12) pins down, so a library, a
 pool, a hospital and a stadium stand in something like their real proportions
 to each other. Size is purely geometric: a bigger building grants nothing and
@@ -218,6 +225,18 @@ costs nothing extra — and
 placement itself still grants nothing beyond what `START_DEVELOPMENT` always
 granted a course: a placed-but-`developing` building contributes nothing until
 it's `done`, exactly like an undeveloped course. Keep both screens dumb.
+
+There is **one exception**, and it is about a building being EXTENDED rather
+than built. The tier-1 library is renovated by adding a floor to the building
+already standing — the same node goes back to `'developing'` at its existing
+spot (see `RENOVATE_LIBRARY`) — and the floors that already exist keep
+working: the node records what it was serving before the work started
+(`Buildable.renovatingFrom`) and the satisfaction sums read that, through
+`types.ts`'s `servingPopulation`. Otherwise adding a fourth floor first took
+three away for six months, and a school could watch its academic score fall
+for a year and read the renovation as the cause. The map agrees: such a
+building is drawn at the height of the floors it has, with the scaffold
+rising off its finished roof rather than off the grass.
 
 ## The milestone chain (how the curriculum gets its shape)
 

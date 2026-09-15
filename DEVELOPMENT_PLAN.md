@@ -5,17 +5,22 @@ to take a page of playtest notes and turn it into an ordered sequence of PRs,
 each one small enough to land on its own and each one landing in the order that
 makes the next one cheaper.*
 
-**Status: Phases 1-3 landed; Phase 4 proposed.** Four phases, 23 PRs, plus a
+**Status: Phases 1-4 landed.** Four phases, 23 PRs, plus a
 named set of deferred directions at the end. Phase 1 (the shell — 1A through
-1F), Phase 2 (research, end to end — 2A through 2G) and Phase 3 (the roster —
-3A through 3E) are implemented. Their PRs are described below as they were
+1F), Phase 2 (research, end to end — 2A through 2G), Phase 3 (the roster —
+3A through 3E) and Phase 4 (campus art — 4A through 4E) are implemented. Their
+PRs are described below as they were
 planned, with the places the implementation departed from the plan noted in the
 PR that departed: 1E, where `:focus-visible` turned out to be half an answer;
 2A, where narrowing each facility's topic pool put more of the catalogue out of
 reach than the plan estimated; 2B, which needed a per-topic facility list to
 finish the job 2A started; 2F, where reporting every completion cost more of the
-modal budget than the cadence allows; and 3C, where softening the overload
-penalty moved the balance harness's own horizon.
+modal budget than the cadence allows; 3C, where softening the overload
+penalty moved the balance harness's own horizon; 4A, where the new footprints
+turned two snapshot-shaped balance assertions red while the schools they
+measured were healthier; 4C, where the multi-sport field needed no work of its
+own because 4B had already covered it; and 4E, where the spec test's cap on
+wall materials had to move to admit the dorms' own brick.
 
 ---
 
@@ -719,6 +724,18 @@ Say so in the PR rather than discovering it in testing.
 **Test:** extend `test/building-spec.test.ts` — for every footprint whose motif
 draws a centred door, assert `w % 2 === 1`.
 
+**As implemented: the balance harness moved, and the schools did not.** The
+new footprints turned three checks red at the default seed only. The sim said
+both affected strategies were HEALTHIER after the change — Completionist
+finished year 40 at +1.44B, Discount volume spent 131 weeks in the red instead
+of 267 — and what had gone red were two assertions that read a single week's
+cash as if it were a trend. Both were replaced with robust forms: solvency now
+accepts an overdrawn snapshot when the weekly net is positive and under 10% of
+the run has been spent in the red, and the discount strategy's upward-trend
+check compares decade AVERAGES rather than year 40 against year 30. Both loosen
+what the suite will accept, which is why they are recorded here as well as in
+the file.
+
 ## PR 4B — Open ground under construction
 
 **The bug.** `buildingMotifs.tsx`'s `BuildingMotif` returns early for
@@ -753,6 +770,15 @@ Two notes, one file (`groundMarkings.tsx`), and they want looking at together.
 
 Both are drawing work with no state behind them, which is why they are one PR:
 the diamond is being re-drawn anyway, and the two share every helper.
+
+**As implemented: the field needed nothing.** 4B's `GroundSite` covers every
+plate drawn with the `grounds` motif, the 20x11 multi-sport field included, so
+the second half of this PR was already done when it started — verified in a
+browser rather than assumed. What was left was the diamond, and the redesign
+went one step further than "discrete sections": the banks TAPER away from home
+plate, because five identical wedges read as a fan of petals, which is the
+continuous arc's own fault repeated five times. A backstop screen was added
+too — without it the seating could be looking at anything.
 
 ## PR 4D — A library that keeps the floors it has
 
@@ -803,6 +829,18 @@ Three appearance notes, none big enough alone.
   (`ΑΒΓ`) on the `GreekChapter` alongside the name, derived from the existing
   name for saves that predate the field, and draw them on the chapter house's
   pediment in the motif.
+
+**As implemented: one bar moved, and the bands were already there.** Two
+notes. The "banded storeys" the dorms wanted turned out to be drawn already —
+floor courses go on every wall — and invisible, because a 22%-white band on red
+brick is nothing; giving the dorms a DARK brick is what made them read, so no
+banding code was written. And the spec test's cap of six wall materials had to
+become seven to admit that brick. The cap was moved rather than worked around,
+and the pairwise-distance check it is really guarding — no two materials within
+an RGB distance of 35 — was left alone. The same test also caught a real
+mistake before a browser could: dark brick under the campus's dark slate failed
+the wall-versus-roof check at 49.4 against a bar of 60, so the residence halls
+wear the light roof instead.
 
 ---
 
