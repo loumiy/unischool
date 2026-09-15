@@ -426,7 +426,8 @@ function BuildingLabel({ t, p, pinned }: { t: Buildable; p: Placement; pinned: b
 }
 
 export default function CampusMap({
-  s, act, selectedId, onSelect, pathTool, onSetPathTool, hotkeysEnabled, onOpenCurriculum,
+  s, act, selectedId, onSelect, pathTool, onSetPathTool, hotkeysEnabled, sitingHotkeysEnabled,
+  onOpenCurriculum,
 }: {
   s: GameState;
   act: (a: Action) => void;
@@ -454,6 +455,11 @@ export default function CampusMap({
   // all of it goes quiet together rather than each hotkey growing its own
   // idea of when it applies.
   hotkeysEnabled: boolean;
+  // Separate from hotkeysEnabled on purpose: the build popup leaves the map
+  // live underneath it and is where a building is picked up, so R has to keep
+  // working while it is open — which is the whole of the bug this splits (see
+  // hotkeys.ts's sitingKeysLive).
+  sitingHotkeysEnabled: boolean;
   // Opens the Curriculum tab at a given school, for the academic hall's own
   // info panel (see BuildingInfoPanel.tsx). The map does not know what a
   // tab is — it hands the id up to App, which owns what is open.
@@ -970,9 +976,6 @@ export default function CampusMap({
   // The map's keyboard, minus panning (which needs keyup and a frame loop of
   // its own — see the effect above).
   //
-  //   R       rotate the currently-picked-up building, the same thing the
-  //           on-screen ⟳ control near the footprint ghost does. A no-op
-  //           unless something rotatable is actually picked up.
   //   P       arm the draw tool, or put it away if it is already armed —
   //           App.tsx's setPathTool is itself a toggle, so pressing P with
   //           the ERASE tool armed swaps to draw rather than turning
@@ -986,12 +989,18 @@ export default function CampusMap({
   //
   // None of these collide with StatusHeader's 1/2/3/Space, App.tsx's C/F/L
   // or InterruptModal's Enter.
+  //
+  // R is registered SEPARATELY, on sitingHotkeysEnabled rather than
+  // hotkeysEnabled, because the build popup does not take the map's keyboard
+  // away the way a tab does — and the popup is open for the whole of the only
+  // window in which R means anything.
+  useHotkeys((e) => {
+    if (e.key.toLowerCase() !== 'r') return;
+    if (canRotateSelected) setRotated((r) => !r);
+  }, sitingHotkeysEnabled);
+
   useHotkeys((e) => {
     const key = e.key.toLowerCase();
-    if (key === 'r') {
-      if (canRotateSelected) setRotated((r) => !r);
-      return;
-    }
     if (key === 'p') {
       onSetPathTool('draw');
       return;

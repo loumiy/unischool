@@ -87,9 +87,20 @@ What each key MEANS stays with the component that owns the thing it does —
 speed on `StatusHeader.tsx`, pan/draw/rotate on `CampusMap.tsx`, the tab
 letters and the whole `Esc` ladder on `App.tsx`, `Enter` on
 `InterruptModal.tsx`. `App.tsx` owns `Esc` because it is the only place that
-can see every rung, and it gates the map's whole keyboard off while anything —
-a tab, the build menu, the log popup, an interrupt — is on top of it, so only
-one layer is ever listening.
+can see every rung, and it gates the map's keyboard off while something is on
+top of it, so only one layer is ever listening.
+
+**The build menu is not "on top" in that sense, and this is the one place the
+gate is not a single switch.** It has no backdrop: the map stays visible and
+clickable underneath it, a building is picked up from inside it, and the popup
+deliberately stays open across that pick so the player can see the ground they
+are siting on. So `hotkeys.ts` answers the question twice —
+`mapKeysLive` for pan and `Esc`, which the build menu *does* switch off (`Esc`
+belongs to the menu, and a camera that moved behind a popup has moved by the
+time you look again), and `sitingKeysLive` for `R`, which it does not. Folding
+the two together is what made `R` do nothing for the whole of the only window
+in which it means anything; a tab, the log popup and an interrupt still close
+both.
 
 ## Project structure
 
