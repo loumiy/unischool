@@ -1,11 +1,11 @@
-# UniSchool — The Academic Core: Curriculum, Quality, Faculty, Scholarship
+# Plan 02 — The academic core: curriculum, quality, faculty, scholarship
 
 *Planning document only — no gameplay code is changed by this file. Its job is
 to work out how four systems that are currently separate (the curriculum view,
 course development, the faculty roster, and research) become one interconnected
 loop, and to sequence that work so each step ships on its own.*
 
-**Status: A–G shipped.** Every PR in the sequence below has landed on
+**Status: Landed.** Every PR in the A–G sequence below has landed on
 `main`, together with the follow-up cleanup — two live bugs, two pieces of
 semantic drift and the one decision deferred until both loops existed —
 recorded in §6b. The constellation-layout experiment

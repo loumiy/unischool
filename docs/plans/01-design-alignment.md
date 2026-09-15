@@ -1,10 +1,10 @@
-# UniSchool — Design-Alignment Implementation Roadmap
+# Plan 01 — Design alignment
 
 *Planning document only — no gameplay code is changed by this file. Its job is
 to sequence the work that makes the existing game faithfully execute the
 intended design and makes `README.md` an accurate specification of that design.*
 
-**Status: complete.** All eight PRs (A–H) below have been implemented and
+**Status: Landed.** All eight PRs (A–H) below have been implemented and
 merged. This document is kept as the historical record of the audit and the
 sequencing rationale — see the closing summary after PR H for what shipped,
 what was found to already conform, and what remains a deliberately deferred
