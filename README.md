@@ -90,17 +90,21 @@ letters and the whole `Esc` ladder on `App.tsx`, `Enter` on
 can see every rung, and it gates the map's keyboard off while something is on
 top of it, so only one layer is ever listening.
 
-**The build menu is not "on top" in that sense, and this is the one place the
+**The build menu is not "on top" in that sense, and it is the one place the
 gate is not a single switch.** It has no backdrop: the map stays visible and
-clickable underneath it, a building is picked up from inside it, and the popup
-deliberately stays open across that pick so the player can see the ground they
-are siting on. So `hotkeys.ts` answers the question twice —
-`mapKeysLive` for pan and `Esc`, which the build menu *does* switch off (`Esc`
-belongs to the menu, and a camera that moved behind a popup has moved by the
-time you look again), and `sitingKeysLive` for `R`, which it does not. Folding
-the two together is what made `R` do nothing for the whole of the only window
-in which it means anything; a tab, the log popup and an interrupt still close
-both.
+clickable underneath it, and it is where the map's own tools are reached from
+— a building is picked up in there and deliberately survives the menu staying
+open, the path tool is armed in there and is deliberately dropped when it
+closes. Working the map with the menu up is the main line, not an edge case.
+
+So **the build menu takes exactly one key from the map, and it is `Esc`** —
+because `App.tsx` owns one `Esc` ladder and two handlers answering the same
+key is what arbitration exists to prevent. `hotkeys.ts` answers the question
+twice: `mapBackOutLive` for `Esc`, and `mapControlsLive` for everything else
+the map does (pan, `R`, `P`), which the menu leaves alone. Folding those
+together produced the same bug three times — `R`, `P` and `W`/`A`/`S`/`D` each
+went dead for exactly the stretch in which a player reaches for them. A tab,
+the log popup and an interrupt still silence both.
 
 ## Project structure
 

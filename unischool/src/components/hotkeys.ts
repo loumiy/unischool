@@ -85,18 +85,32 @@ export function isActivationTarget(target: EventTarget | null): boolean {
 
 // WHICH OF THE MAP'S KEYS ARE LIVE, given what the shell has open over it.
 //
-// These used to be one boolean, and that was the bug behind "R does not
-// rotate". The map's keys were treated as one bag — pan, Escape, P, R — and
-// switched off whenever anything of the shell's own was open, the build
-// popup included. But the build popup is not something open OVER the map: it
-// has no backdrop, the map stays live and clickable underneath it, and a
-// building is picked up from inside it and deliberately survives the popup
-// staying open (see App.tsx's closeBuild and BuildPopup's own note). So the
-// entire window in which R means anything was exactly the window in which R
-// was switched off. The only way to reach it was to collapse the popup
-// first, which no player would guess and the help text does not mention.
+// This used to be one boolean and it produced the same bug three times: R did
+// not rotate while placing a building, P did not arm the path tool, and
+// W/A/S/D did not pan — all of them only while the build menu was up, which
+// is to say while the player was in the middle of using them. Every report
+// looked like a separate broken key. It was one wrong idea about what the
+// build menu IS.
 //
-// Two rules, because the keys genuinely have two different requirements.
+// A full-screen tab covers the map: the map is not the subject, and its
+// keyboard should be silent. The build popup does the opposite. It has no
+// backdrop, the map stays visible and clickable underneath it, and it is the
+// place the map's own tools are reached from — a building is picked up in
+// there and deliberately survives the popup staying open, the path tool is
+// armed in there and is deliberately dropped when it closes (see App.tsx's
+// closeBuild and BuildPopup's own note). Working the map with the menu up is
+// not an edge case, it is the main line.
+//
+// So the build popup takes exactly ONE key from the map, and it is Escape.
+//
+//   Escape   the popup's. App.tsx owns one Escape ladder and hands off to the
+//            map's own back-out by enabling it EXACTLY when it has nothing
+//            left to close; two handlers answering Escape is the thing that
+//            arbitration exists to prevent.
+//   the rest pan, R, P — the map's, and the popup is part of using the map.
+//            Nothing to arbitrate: the popup binds no key of its own.
+//
+// A tab, the log popup and an interrupt still silence both.
 export interface ShellOverlays {
   overlayOpen: boolean;   // a full-screen tab is up
   buildOpen: boolean;     // the build popup is up — note the map is still visible under it
@@ -104,28 +118,19 @@ export interface ShellOverlays {
   interrupted: boolean;   // a decision modal has halted the clock
 }
 
-// PAN AND ESCAPE. Off whenever the shell has anything of its own open.
-//
-// Escape's gate is load-bearing and must not be widened: App.tsx owns one
-// Escape ladder and hands off to the map's own back-out by switching these
-// keys on EXACTLY when it has nothing left to close. Panning wants the same
-// answer for its own reason — a camera that moved behind a popup has moved
-// by the time the player looks again.
-export function mapKeysLive(o: ShellOverlays): boolean {
+// ESCAPE, and nothing else. The one key the build popup takes.
+export function mapBackOutLive(o: ShellOverlays): boolean {
   return !o.overlayOpen && !o.buildOpen && !o.logOpen && !o.interrupted;
 }
 
-// SITING KEYS — today just R, which turns a picked-up building before it is
-// set down. The build popup does NOT switch these off, because siting is
-// what the build popup is for: the player picks a building in there, the
-// popup stays open, and they place it on the map underneath. A full-screen
-// tab and the log popup still do (the map is not visible or not the subject),
-// and an interrupt outranks everything.
+// EVERYTHING ELSE THE MAP DOES: panning, R to turn a picked-up building, P to
+// arm the path tool.
 //
-// Safe to leave live under the build popup because the popup binds no key of
-// its own, so there is nothing for these to double-handle — which is not
-// true of Escape, hence the two rules.
-export function sitingKeysLive(o: ShellOverlays): boolean {
+// Any new key that ACTS ON THE MAP belongs here. Only Escape belongs above,
+// and only because the ladder has to arbitrate it — if the reason for putting
+// a key there is not "two handlers would both answer it", it is the wrong
+// place.
+export function mapControlsLive(o: ShellOverlays): boolean {
   return !o.overlayOpen && !o.logOpen && !o.interrupted;
 }
 

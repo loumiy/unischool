@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from './engine/useGame';
-import { mapKeysLive, sitingKeysLive, useHotkeys, type ShellOverlays } from './components/hotkeys';
+import { mapBackOutLive, mapControlsLive, useHotkeys, type ShellOverlays } from './components/hotkeys';
 import type { GameState } from './state/types';
 import StartupScreen from './components/StartupScreen';
 import MainMenu from './components/MainMenu';
@@ -200,17 +200,19 @@ export default function App() {
   // and panning a map behind an open popup is a camera that has moved by
   // the time the player comes back to it.
   //
-  // Two answers, not one: the build popup leaves the map live underneath it
-  // (it has no backdrop) and is where a building is picked up, so it must not
-  // switch off the key that turns one. See hotkeys.ts, which owns both rules.
+  // Two answers, not one. The build popup leaves the map live underneath it
+  // (it has no backdrop) and is where the map's own tools are reached from,
+  // so it takes exactly one key from the map — Escape, which App's ladder
+  // below has to arbitrate. Panning, R and P keep working under it. See
+  // hotkeys.ts, which owns both rules and the reasoning.
   const overlays: ShellOverlays = {
     overlayOpen: overlay !== null,
     buildOpen,
     logOpen,
     interrupted: s.pendingInterrupt !== null,
   };
-  const mapHotkeysEnabled = mapKeysLive(overlays);
-  const sitingHotkeysEnabled = sitingKeysLive(overlays);
+  const mapBackOutEnabled = mapBackOutLive(overlays);
+  const mapControlsEnabled = mapControlsLive(overlays);
 
   // Picking up a building for siting and drawing/erasing a path are two
   // different jobs for the same click on the same grid, so exactly one is
@@ -300,8 +302,8 @@ export default function App() {
         onSelect={setPlacingId}
         pathTool={pathTool}
         onSetPathTool={setPathTool}
-        hotkeysEnabled={mapHotkeysEnabled}
-        sitingHotkeysEnabled={sitingHotkeysEnabled}
+        backOutEnabled={mapBackOutEnabled}
+        controlsEnabled={mapControlsEnabled}
         onOpenCurriculum={(buildingId) => openTab('curriculum', buildingId)}
       />
       <MainMenu act={act} />
