@@ -3,7 +3,7 @@ import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../../data/facilitiesData';
 import {
   athleticsSocialBonus, CHAPTER_HOUSE_CAPACITY_BONUS, clubSocialBonus, greekSocialBonus, studentLifeSocialBonus,
 } from '../../data/studentLifeData';
-import { totalEnrolled } from '../../state/types';
+import { servingPopulation, totalEnrolled } from '../../state/types';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
 
 // ---------------------------------------------------------------------
@@ -15,8 +15,9 @@ import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
 // StudentLifeTab.tsx) to show exactly what's dragging the number down.
 //
 // Every ratio-based attribute compares total servesPopulation (summed
-// live off 'done' facilities — see BuildableEffects's live-read contract
-// in state/types.ts) against total ENROLLED students: needs scale with how
+// live off the facilities currently serving — see types.ts's
+// servingPopulation, which is 'done' plus a library mid-renovation, still
+// open on the floors it already has) against total ENROLLED students: needs scale with how
 // many students the campus actually has, not with bed count — enrollment is
 // never capacity-gated (see admissionsSystem.ts), so a big commuter school
 // with few dorms is still a big school that needs feeding. Housing is the
@@ -177,8 +178,8 @@ function clamp(v: number, lo: number, hi: number): number {
 // the demanded total, which is the same number scored below.
 export function servedPopulationFor(s: GameState, attribute: keyof SatisfactionAttributes): number {
   return s.tech
-    .filter((t) => t.status === 'done' && t.effects?.satisfactionAttribute === attribute)
-    .reduce((sum, t) => sum + (t.effects?.servesPopulation ?? 0), 0);
+    .filter((t) => t.effects?.satisfactionAttribute === attribute)
+    .reduce((sum, t) => sum + servingPopulation(t), 0);
 }
 
 function flatBonusFor(s: GameState, attribute: keyof SatisfactionAttributes): number {
@@ -336,8 +337,11 @@ export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttri
           .map((c) => ({ label: `${c.name} House`, value: CHAPTER_HOUSE_CAPACITY_BONUS })),
       ].sort((a, b) => b.value - a.value)
     : s.tech
-        .filter((t) => t.status === 'done' && t.effects?.satisfactionAttribute === attribute && (t.effects?.servesPopulation ?? 0) > 0)
-        .map((t) => ({ label: t.name, value: t.effects!.servesPopulation! }))
+        .filter((t) => t.effects?.satisfactionAttribute === attribute && servingPopulation(t) > 0)
+        // A library mid-renovation is listed at what it is actually serving
+        // this week, not at what it will serve when the floor is finished —
+        // the drawer's whole job is to add up to the score beside it.
+        .map((t) => ({ label: t.name, value: servingPopulation(t) }))
         .sort((a, b) => b.value - a.value);
   const totalServed = contributors.reduce((sum, c) => sum + c.value, 0);
 

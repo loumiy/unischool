@@ -624,6 +624,10 @@ export function tickTech(s: GameState): void {
 
   for (const node of finished) {
     node.status = 'done';
+    // An in-place renovation is over: the node is serving its new figure
+    // outright, so the pre-renovation reading it was standing in for has
+    // nothing left to describe (see types.ts's servingPopulation).
+    delete node.renovatingFrom;
     applyEffects(s, node.effects);
     s.log.unshift({
       year: s.clock.year,

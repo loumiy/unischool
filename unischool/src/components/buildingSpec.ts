@@ -155,6 +155,20 @@ function addedFloors(t: Buildable): number {
   return Math.max(0, t.floorsAdded ?? 0);
 }
 
+// How many of those floors are not built yet.
+//
+// floorsAdded is bumped when the renovation STARTS (see the reducer's
+// RENOVATE_LIBRARY), so storeysOf already counts the floor going up. That is
+// right for everything that asks how tall the building will be and wrong for
+// the one thing that asks how tall it is standing today.
+//
+// One at a time, because that is what a renovation commits to: nextLibraryFloor
+// plans exactly one floor per RENOVATE_LIBRARY, and a second cannot be
+// started while the first is running (the node is not 'done').
+export function floorsUnderConstruction(t: Buildable): number {
+  return t.renovatingFrom !== undefined ? 1 : 0;
+}
+
 // The two professional schools (Medicine, Law) stand a storey taller than an
 // undergraduate school building, the same way they cost a rung more and cover
 // a rung more ground — identified by `graduateProgram`, which is set on
