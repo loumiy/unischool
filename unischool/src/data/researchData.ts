@@ -479,19 +479,19 @@ export interface InitiativeDepthDef {
 // have to be covered by somebody else, or not offered.
 export const INITIATIVE_DEPTHS: readonly InitiativeDepthDef[] = [
   {
-    key: 'pilot', name: 'Pilot Study', participants: 1, weeks: 26, fundingWeeks: 0.5, intensity: 1,
+    key: 'pilot', name: 'Pilot Study', participants: 1, weeks: 26, fundingWeeks: 0.4, intensity: 1,
     blurb: 'One scholar, six months. Publications, and a grant now and then.',
   },
   {
-    key: 'project', name: 'Funded Project', participants: 2, weeks: 78, fundingWeeks: 1.6, intensity: 1.35,
+    key: 'project', name: 'Funded Project', participants: 2, weeks: 78, fundingWeeks: 1.0, intensity: 1.35,
     blurb: 'Two scholars, eighteen months. Regular grants, and a real chance of a breakthrough.',
   },
   {
-    key: 'program', name: 'Major Program', participants: 3, weeks: 156, fundingWeeks: 4, intensity: 1.8,
+    key: 'program', name: 'Major Program', participants: 3, weeks: 156, fundingWeeks: 2.2, intensity: 1.8,
     blurb: 'Three scholars, three years. Breakthroughs likely; an award is possible.',
   },
   {
-    key: 'landmark', name: 'Landmark Program', participants: 4, weeks: 260, fundingWeeks: 9, intensity: 2.4,
+    key: 'landmark', name: 'Landmark Program', participants: 4, weeks: 260, fundingWeeks: 4.0, intensity: 2.4,
     requiresCrossDisciplinary: true,
     blurb: 'Four scholars across disciplines, five years. The work prizes are given for.',
   },
