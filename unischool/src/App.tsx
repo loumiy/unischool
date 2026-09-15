@@ -106,7 +106,15 @@ export default function App() {
   const { state, act, speed, setSpeed, weekProgress } = useGame();
   const s: GameState = state;
   // null = looking at the map itself, with nothing open over it.
-  const [overlay, setOverlay] = useState<TabId | null>(null);
+  //
+  // A tab plus an OPTIONAL TARGET inside it, rather than a bare TabId: some
+  // ways of opening a tab are about a specific thing in it — a hall on the
+  // map offering "open this school in the Curriculum" — and the alternative
+  // is a second channel running alongside this one, which is how two
+  // sources of truth about what is open get started. The target is consumed
+  // by the tab and cleared (see onTargetConsumed below), so clicking the
+  // same hall twice arrives twice rather than once.
+  const [overlay, setOverlay] = useState<{ tab: TabId; target?: string } | null>(null);
   // Which placeable Buildable (building/dorm/facility) is currently picked
   // up for siting, if any, and which path-drawing tool (if any) is active —
   // the two pieces of CampusMap's transient UI state that have to live here
@@ -142,7 +150,7 @@ export default function App() {
     // openTab refuses an unavailable tab, so a letter cannot route to a
     // view the toolbar is not offering (see tabAvailable). None of C/F/L is
     // gated today; this is so that stays true if one ever is.
-    openTab(overlay === tab ? null : tab);
+    openTab(overlay?.tab === tab ? null : tab);
   }, s.started);
 
   // A GATE OPENING IS NEWS. Research, Athletics and History each appear the
@@ -177,7 +185,7 @@ export default function App() {
   // team disbands) closes with it, rather than leaving the player inside a
   // view the toolbar no longer offers a way back into.
   useEffect(() => {
-    if (overlay && !tabAvailable(s, overlay)) setOverlay(null);
+    if (overlay && !tabAvailable(s, overlay.tab)) setOverlay(null);
   }, [overlay, s]);
 
   // The map's own keys (W/A/S/D and the arrows to pan, P for the path tool,
@@ -226,9 +234,9 @@ export default function App() {
   // ghost that survives behind a screen, still armed when the player comes
   // back minutes later, is a click away from siting a building nobody meant
   // to site.
-  function openTab(tab: TabId | null) {
+  function openTab(tab: TabId | null, target?: string) {
     if (tab !== null && !tabAvailable(s, tab)) return;
-    setOverlay(tab);
+    setOverlay(tab === null ? null : { tab, target });
     if (tab !== null) {
       closeBuild();
       setPlacingIdState(null);
@@ -282,6 +290,7 @@ export default function App() {
         pathTool={pathTool}
         onSetPathTool={setPathTool}
         hotkeysEnabled={mapHotkeysEnabled}
+        onOpenCurriculum={(buildingId) => openTab('curriculum', buildingId)}
       />
       <MainMenu act={act} />
 
@@ -291,7 +300,7 @@ export default function App() {
           ref={toolbarRef}
           s={s}
           act={act}
-          active={overlay}
+          active={overlay?.tab ?? null}
           onChangeTab={openTab}
           buildOpen={buildOpen}
           onSetBuildOpen={setBuildOpen}
@@ -305,15 +314,22 @@ export default function App() {
         />
 
         {overlay && (
-          <TabOverlay title={TAB_LABELS[overlay]} onClose={() => openTab(null)}>
-            {overlay === 'faculty' && <FacultyTab s={s} act={act} />}
-            {overlay === 'curriculum' && <CurriculumTab s={s} act={act} />}
-            {overlay === 'research' && <ResearchTab s={s} act={act} />}
-            {overlay === 'treasury' && <TreasuryTab s={s} act={act} />}
-            {overlay === 'admissions' && <AdmissionsTab s={s} />}
-            {overlay === 'studentlife' && <StudentLifeTab s={s} />}
-            {overlay === 'athletics' && <AthleticsTab s={s} act={act} />}
-            {overlay === 'history' && <HistoryTab s={s} />}
+          <TabOverlay title={TAB_LABELS[overlay.tab]} onClose={() => openTab(null)}>
+            {overlay.tab === 'faculty' && <FacultyTab s={s} act={act} />}
+            {overlay.tab === 'curriculum' && (
+              <CurriculumTab
+                s={s}
+                act={act}
+                target={overlay.target}
+                onTargetConsumed={() => setOverlay((cur) => (cur ? { tab: cur.tab } : cur))}
+              />
+            )}
+            {overlay.tab === 'research' && <ResearchTab s={s} act={act} />}
+            {overlay.tab === 'treasury' && <TreasuryTab s={s} act={act} />}
+            {overlay.tab === 'admissions' && <AdmissionsTab s={s} />}
+            {overlay.tab === 'studentlife' && <StudentLifeTab s={s} />}
+            {overlay.tab === 'athletics' && <AthleticsTab s={s} act={act} />}
+            {overlay.tab === 'history' && <HistoryTab s={s} />}
           </TabOverlay>
         )}
 

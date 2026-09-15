@@ -438,7 +438,7 @@ function cellState(s: GameState, t: Buildable): CellState {
 // The letter carries the meaning and the tint is only a cue: colour alone
 // would be unreadable to a colour-blind player, and unreadable at the
 // zoomed-out sizes the curriculum map will want, so the letter never drops.
-function GradeChip({ grade, title, size = 'sm' }: { grade: Grade; title?: string; size?: 'sm' | 'lg' }) {
+export function GradeChip({ grade, title, size = 'sm' }: { grade: Grade; title?: string; size?: 'sm' | 'lg' }) {
   return (
     <span className={`grade-chip grade-${grade.toLowerCase()} ${size}`} title={title}>
       {grade}
@@ -1118,7 +1118,18 @@ export function completion(s: GameState, ids: string[]): { done: number; total: 
   return { done, total: ids.length, fraction: ids.length > 0 ? done / ids.length : 0 };
 }
 
-export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
+export default function CurriculumTab(
+  { s, act, target, onTargetConsumed }:
+  {
+    s: GameState; act: (a: Action) => void;
+    // A school building id to open on arrival, when the tab was opened
+    // FROM something — today the hall's own info panel on the map (see
+    // BuildingInfoPanel.tsx). Consumed on arrival and cleared by the
+    // caller, so clicking the same hall twice arrives twice.
+    target?: string;
+    onTargetConsumed?: () => void;
+  },
+) {
   const revealedGrad = revealedGraduatePrograms(s);
   // The headline ring counts the undergraduate catalogue plus whatever
   // graduate work has been revealed — never the whole seed. A "0 / 421"
@@ -1175,6 +1186,20 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
     setSelectedId(id);
     setFilters(NO_FILTERS);
   }, [s, pool.courseIds]);
+
+  // Arriving with somewhere to be. Deliberately the same three pieces of
+  // state goToCourse sets — which school is open, which course is selected,
+  // and no filters left over from last time — because "open the tab at this
+  // school" and "jump to this course" are the same act of navigation, and a
+  // second mechanism would be a second place for them to disagree.
+  useEffect(() => {
+    if (!target) return;
+    setOpenSchool(target);
+    setSelectedId(null);
+    setFilters(NO_FILTERS);
+    onTargetConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
 
   const unseenIds = visibleCourseIds(s).filter((id) => !s.seen.courseIds[id]);
   const unseenKey = unseenIds.join('|');

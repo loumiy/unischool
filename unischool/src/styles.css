@@ -741,8 +741,19 @@ button.build-tile { font-family: inherit; }
 .building-info-close:hover { border-color: var(--gold-dim); color: var(--ink); }
 .building-info-line { margin: 0 0 6px; font-size: var(--text-sm); line-height: 1.4; color: var(--ink); }
 .building-info-majors { margin: 0 0 8px; padding-left: 18px; font-size: var(--text-sm); line-height: 1.5; color: var(--ink); }
-.building-info-completion { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; }
+.building-info-completion { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; flex-wrap: wrap; }
 .building-info-completion .stat { font-size: var(--text-xs); }
+/* How much of the school exists, then how it is doing — the same chip and
+   ramp the curriculum's own headings use (see BuildingInfoPanel.tsx). */
+.building-info-grade { display: inline-flex; align-items: center; gap: 6px; }
+/* The way back to the courses this hall stands for. A full-width control
+   rather than a link in the prose: it is the one thing on this panel that
+   DOES something, and the panel is small enough that a quiet link would be
+   missed. */
+.building-info-jump { display: block; width: 100%; margin-top: 8px; padding: 5px 8px;
+  background: #f0e8d1; color: var(--ink); border: 1px solid var(--gold-dim);
+  border-radius: var(--radius-sm); font-family: var(--mono); font-size: var(--text-xs); }
+.building-info-jump:hover { background: var(--gold-dim); color: #fff8e8; }
 
 /* MainMenu: the hamburger overlay in the map's top-right corner (see
    MainMenu.tsx) carrying what the old topbar's control bar used to —

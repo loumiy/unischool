@@ -422,7 +422,7 @@ function BuildingLabel({ t, p, pinned }: { t: Buildable; p: Placement; pinned: b
 }
 
 export default function CampusMap({
-  s, act, selectedId, onSelect, pathTool, onSetPathTool, hotkeysEnabled,
+  s, act, selectedId, onSelect, pathTool, onSetPathTool, hotkeysEnabled, onOpenCurriculum,
 }: {
   s: GameState;
   act: (a: Action) => void;
@@ -450,6 +450,10 @@ export default function CampusMap({
   // all of it goes quiet together rather than each hotkey growing its own
   // idea of when it applies.
   hotkeysEnabled: boolean;
+  // Opens the Curriculum tab at a given school, for the academic hall's own
+  // info panel (see BuildingInfoPanel.tsx). The map does not know what a
+  // tab is — it hands the id up to App, which owns what is open.
+  onOpenCurriculum: (buildingId: string) => void;
 }) {
   // Whether the currently-selected building has been turned 90 degrees
   // before siting (see campusMap.ts's orientedFootprint). Transient UI
@@ -1327,7 +1331,14 @@ export default function CampusMap({
             bottom, and C2 folded the build rail and the draw/erase path
             controls into the bottom toolbar/build popup — see Toolbar.tsx),
             so it's a natural home for a card that doesn't move. */}
-        {inspected && <BuildingInfoPanel t={inspected.t} s={s} onClose={() => setInspectedId(null)} />}
+        {inspected && (
+          <BuildingInfoPanel
+            t={inspected.t}
+            s={s}
+            onClose={() => setInspectedId(null)}
+            onOpenCurriculum={(buildingId) => { setInspectedId(null); onOpenCurriculum(buildingId); }}
+          />
+        )}
 
         {/* Zoom floats over the map's own top-right corner — reachable
             without a wheel/trackpad (a hard requirement on a map that no
