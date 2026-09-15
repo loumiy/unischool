@@ -73,7 +73,7 @@ export function unstaffedCourses(s: GameState): Buildable[] {
 
 // Is this person committed to a running research initiative?
 //
-// THE KEYSTONE CONSTRAINT, and the one place teaching and scholarship
+// THE KEYSTONE CONSTRAINT, and the one place teaching and research
 // actually compete. A committed scholar stops teaching for the duration —
 // six months to five years — so every initiative is paid for twice: once
 // in money, and once in the courses those people are no longer holding.

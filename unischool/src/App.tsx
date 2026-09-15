@@ -36,6 +36,20 @@ import './styles.css';
 // its direct children (the actual floating cards) re-enabled, so a click
 // anywhere the chrome is visually empty falls straight through to the map.
 //
+// EVERY TAB IS A SCREEN. There is one overlay shape, not two. This module
+// used to name a FULL_BLEED_TABS subset and argue for the split: that
+// Treasury, Admissions and History are read-and-leave pages where a full
+// screen would only make a short page look empty, and where keeping the map
+// visible around the edges reminds the player they are one Escape away from
+// it. That argument loses to the one the playtest notes make. A shell that
+// answers "what happens when I click a tab?" the same way every time is
+// worth more than a per-tab fit, and almost every other note in those notes
+// — the Faculty rework, build mode never overlaying a tab, Space closing a
+// tab instead of pausing — was downstream of the shell not having settled
+// this one question. So: the panel takes the viewport, the dock is laid over
+// it, and the player leaves by Escape, the close button, or the home button
+// at the head of the toolbar's icon row.
+//
 // The tab components themselves are untouched by this: they still read
 // their slice of GameState and dispatch actions exactly as before, and know
 // nothing about being rendered in an overlay.
@@ -73,24 +87,6 @@ const TAB_HOTKEYS: Record<string, TabId> = {
   f: 'faculty',
   l: 'studentlife',
 };
-
-// Which tabs open as a FULL-BLEED screen rather than as a sheet floating
-// over the map — the panel takes the whole viewport and the bottom dock
-// (log ticker + toolbar) is laid over it (see TabOverlay.tsx, which draws
-// both shapes, and styles.css, which layers them).
-//
-// Deliberately a short list rather than the default. Full bleed is for a
-// view the player WORKS IN: a large canvas that wants every pixel and wants
-// its own tools reachable without closing it first. Curriculum is that view
-// — 421 courses across 42 majors is a map, and it was pinched into a
-// centred card. Treasury, Admissions and History are read-and-leave pages
-// where a full screen would only make a short page look empty, and where
-// keeping the map visible around the edges is the reminder that you are one
-// Escape away from it.
-//
-// Adding a tab here is the whole change: the tab components know nothing
-// about which shape frames them.
-const FULL_BLEED_TABS: readonly TabId[] = ['curriculum', 'research'];
 
 export default function App() {
   const { state, act, speed, setSpeed, weekProgress } = useGame();
@@ -180,11 +176,7 @@ export default function App() {
         />
 
         {overlay && (
-          <TabOverlay
-            title={TAB_LABELS[overlay]}
-            onClose={() => setOverlay(null)}
-            fullBleed={FULL_BLEED_TABS.includes(overlay)}
-          >
+          <TabOverlay title={TAB_LABELS[overlay]} onClose={() => setOverlay(null)}>
             {overlay === 'faculty' && <FacultyTab s={s} act={act} />}
             {overlay === 'curriculum' && <CurriculumTab s={s} act={act} />}
             {overlay === 'research' && <ResearchTab s={s} act={act} />}

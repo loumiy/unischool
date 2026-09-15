@@ -57,7 +57,7 @@ const FACILITY_MOTIFS: Record<FacilityType, Motif> = {
 
 // Research facilities that are not laboratories.
 //
-// Every facility that lets a school do scholarship carries facilityType 'lab',
+// Every facility that lets a school do research carries facilityType 'lab',
 // because that string is the GATE — techData.ts, researchData.ts and the
 // Research tab all read it to decide what can host work. Four of them are not
 // labs in any other sense: an institute with archives, a studio with sound

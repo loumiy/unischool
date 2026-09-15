@@ -106,12 +106,12 @@ const PRESTIGE_DRIFT_RATE = 0.0025;
 // So the 40 goes where the two stats now do their work. Breadth takes the
 // larger share because teaching reaches prestige through it, and research
 // takes a smaller one — still far below breadth, which is the invariant
-// researchScore's own note exists to protect: scholarship supplements a
+// researchScore's own note exists to protect: research supplements a
 // university's standing, it never substitutes for being one.
 const CURRICULUM_BREADTH_WEIGHT = 90; // majors/schools completed — the stock only sustained buildout grows
 const TEACHING_QUALITY_WEIGHT = 30;   // how good the courses actually are, as its own input (see teachingScore below)
 const STUDENT_QUALITY_WEIGHT = 24;    // emergent avg incoming quality — grows with a low-tuition, high-yield posture
-const RESEARCH_WEIGHT = 22;           // what the university's scholarship has actually produced (see researchScore below)
+const RESEARCH_WEIGHT = 22;           // what the university's research has actually produced (see researchScore below)
 const CAMPUS_LIFE_WEIGHT = 12;        // rec center / athletics complex — a small, capped draw on its own (see campusLifeScore below)
 const ENDOWMENT_WEIGHT = 18;          // financial resources per student — what the late-game endowment campaigns buy (see endowmentScore below)
 

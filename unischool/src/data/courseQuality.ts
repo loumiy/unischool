@@ -153,7 +153,7 @@ export function tierOf(courseId: string): CourseTier {
 }
 
 // --- ACCLAIM. A laureate's teaching benefits from it too. -------------
-// Small, and capped: this is the one place the scholarship loop reaches
+// Small, and capped: this is the one place the research loop reaches
 // back into the teaching loop, and it should be a nod rather than a
 // second career's worth of grade.
 const ACCLAIM_BONUS_PER_PRIZE = 3;

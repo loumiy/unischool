@@ -13,7 +13,7 @@ import FacultyPortrait from '../components/FacultyPortrait';
 import HelpHint from '../components/HelpHint';
 
 // =====================================================================
-// SCHOLARSHIP, AS A SCREEN.
+// RESEARCH, AS A SCREEN.
 //
 // Its own tab rather than a corner of Faculty, for three reasons. Faculty
 // is already a dense two-panel screen and this is a full one. The subject
@@ -294,7 +294,7 @@ export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action)
       <section className="panel">
         <div className="panel-head">
           <span className="panel-head-title">
-            <h2>Scholarship</h2>
+            <h2>Research</h2>
             <HelpHint text="Each research facility hosts one project at a time, so the number of things the university can pursue at once is the number of places it has built to pursue them in. Choose an area, a team and a depth; the team stops teaching for the duration. Deeper work costs more, runs longer and pays off bigger — and the Landmark tier needs scholars from different disciplines, so the most prestigious work is out of reach for a single department however strong." />
           </span>
           <span className="stat">

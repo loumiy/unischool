@@ -477,13 +477,13 @@ export const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
 // a bench science and keeps its own.
 // Which majors carry a RESEARCH FACILITY: the building that gates their
 // capstone coursework and, campus-wide, is what lets a school do
-// scholarship at all (see README's "Research" and labEquippedFields).
+// research at all (see README's "Research" and labEquippedFields).
 //
 // FOUR SCHOOLS USED TO HAVE NONE, and under the initiative model that is
 // coming this stops being a gap and becomes an exclusion: a school with no
 // facility has not merely no output but no PLACE to run anything, so
 // Business, Computer Science, Social Sciences & Humanities and Arts &
-// Media could not participate in scholarship in any form. Each now has
+// Media could not participate in research in any form. Each now has
 // one, and one is enough — labEquippedFields equips EVERY field a school
 // teaches the moment any one of its facilities stands, so a single
 // building brings a whole faculty into production.
@@ -1048,7 +1048,7 @@ export function initialTech(): Buildable[] {
           kind: 'facility',
           facilityType: 'lab',
           name: RESEARCH_FACILITY_NAMES[major.prefix] ?? `${major.name} Labs`,
-          description: `${RESEARCH_FACILITY_BLURBS[major.prefix] ?? 'Specialized lab space'} — gates ${major.name}'s capstone (tier-3) coursework, and lets the school produce scholarship.`,
+          description: `${RESEARCH_FACILITY_BLURBS[major.prefix] ?? 'Specialized lab space'} — gates ${major.name}'s capstone (tier-3) coursework, and lets the school produce research.`,
           cost: LAB_COST,
           duration: LAB_WEEKS,
           // Buildable once the major's entry course AND its school building

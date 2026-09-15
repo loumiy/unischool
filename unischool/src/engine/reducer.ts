@@ -316,12 +316,12 @@ export function reducer(state: GameState, action: Action): GameState {
     // still counts as eligible: the slot that course occupies is already
     // theirs, so a full professor must not be judged unable to go on
     // teaching something they are teaching right now.
-    // Commissioning scholarship. The gate is deliberately strict, because
+    // Commissioning research. The gate is deliberately strict, because
     // this is the most expensive commitment in the game: the facility must
     // be finished and free, the topic real, the team the right size, every
     // field the topic names covered, nobody already committed elsewhere,
     // and the funding payable in full up front — the same "charge at the
-    // moment of the decision" rule every Buildable follows, so scholarship
+    // moment of the decision" rule every Buildable follows, so research
     // borrows the pacing model rather than inventing a second one.
     //
     // And then it takes the team's teaching. Their assignments are cleared

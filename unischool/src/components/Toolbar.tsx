@@ -10,7 +10,7 @@ import { neededFacultyFields } from '../systems/techtree/techSystem';
 import {
   FacultyIcon, CurriculumIcon, AdmissionsIcon,
   StudentLifeIcon, HistoryIcon, AthleticsIcon, BuildIcon,
-  ResearchIcon,
+  ResearchIcon, HomeIcon,
 } from './icons';
 
 // Which tab icons can carry the small red alert badge, and how each decides
@@ -112,6 +112,23 @@ const Toolbar = forwardRef<HTMLDivElement, {
       </div>
 
       <nav className="toolbar-tabs">
+        {/* HOME leads the row, and is one of the two controls here that is
+            not a TabId (Build is the other — see App.tsx). Every tab is a
+            full screen now, so "close the thing I am looking at" needed a
+            control that is always in the same place rather than only the
+            panel's own ✕ in the far corner: this is the button that says
+            the campus map is where you came from. It reads as active when
+            nothing is open, which is when the player IS at home. */}
+        <button
+          type="button"
+          className={`toolbar-icon-btn ${active === null ? 'active' : ''}`}
+          aria-label="Campus map"
+          title="Campus map"
+          onClick={() => onChangeTab(null)}
+        >
+          <HomeIcon />
+        </button>
+
         {ICON_TAB_ORDER.map((id) => {
           const Icon = TAB_ICONS[id];
           const isActive = active === id;

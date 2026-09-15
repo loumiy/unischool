@@ -745,7 +745,7 @@ export const SAVE_KEY = 'unischool.save';
 //
 // See MIGRATIONS[30].
 //
-// v31 -> v32: scholarship reaches every school. Two shape changes, both
+// v31 -> v32: research reaches every school. Two shape changes, both
 // additive, and one consequence worth naming.
 //
 //   - ResearchState gains `publications`, the new cheap/frequent output
@@ -769,13 +769,13 @@ export const SAVE_KEY = 'unischool.save';
 // reached yet now waits on a building that did not exist last version.
 // That is the same class of accepted re-gating MIGRATIONS[11] and [29]
 // both describe, and it is the point rather than a side effect: the
-// facility is what lets the school do scholarship at all, so putting it on
+// facility is what lets the school do research at all, so putting it on
 // the path to those majors' capstones is what makes it something a player
 // builds rather than an optional ornament.
 //
 // See MIGRATIONS[31].
 //
-// v32 -> v33: scholarship becomes something the player commissions.
+// v32 -> v33: research becomes something the player commissions.
 // ResearchState gains `initiatives` (keyed by the facility hosting each
 // one) and `completedInitiatives`, both empty on a resumed save — nothing
 // to reconstruct, because no prior version had the concept.
@@ -1688,7 +1688,7 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     }
   },
 
-  // v31 -> v32: scholarship reaches every school. See the SAVE_VERSION
+  // v31 -> v32: research reaches every school. See the SAVE_VERSION
   // header note for the shape change and the one re-gating consequence.
   31: (state) => {
     if (typeof state.research.publications !== 'number') state.research.publications = 0;

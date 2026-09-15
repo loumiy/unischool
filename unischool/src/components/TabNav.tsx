@@ -4,15 +4,27 @@
 // when nothing is open and the player is looking at the map itself.
 export type TabId = 'faculty' | 'curriculum' | 'research' | 'treasury' | 'admissions' | 'studentlife' | 'history' | 'athletics';
 
+// THE ORDER IS THE TOOLBAR'S ORDER, and it is the playtest notes' order:
+// the academic core first (what the university teaches, who teaches it,
+// what it discovers), then the campus the students live on, then the two
+// annual read-and-leave pages, then the record. Roughly how often a player
+// opens each, which is the only ordering principle a nine-icon row can
+// carry.
+//
+// Treasury is last here and is filtered out of the icon row entirely (see
+// Toolbar.tsx's ICON_TAB_ORDER): it already has a permanent entry point in
+// the funds figure at the left of the toolbar, which is why the notes'
+// list omits it. It stays in this table because it is still a real tab with
+// a real label — the label is what TabOverlay's header shows.
 const TABS: Array<{ id: TabId; label: string }> = [
-  { id: 'faculty', label: 'Faculty' },
   { id: 'curriculum', label: 'Curriculum' },
+  { id: 'faculty', label: 'Faculty' },
   { id: 'research', label: 'Research' },
-  { id: 'treasury', label: 'Treasury' },
-  { id: 'admissions', label: 'Admissions' },
   { id: 'studentlife', label: 'Student Life' },
   { id: 'athletics', label: 'Athletics' },
+  { id: 'admissions', label: 'Admissions' },
   { id: 'history', label: 'History' },
+  { id: 'treasury', label: 'Treasury' },
 ];
 
 // Tabs whose system doesn't exist yet: still in TabId and still routed in

@@ -16,6 +16,21 @@
 // height props.
 const STROKE = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
 
+// Home: back to the campus map, which is the one screen the player always
+// returns to (see App.tsx). A house rather than an arrow — an arrow says
+// "back", which is only sometimes what this does; the map is a PLACE, and
+// this button goes to it whether one tab is open, the build menu is, or
+// nothing at all.
+export function HomeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M3.5 11 12 4l8.5 7" />
+      <path d="M5.8 9.6V19h12.4V9.6" />
+      <path d="M10 19v-5h4v5" />
+    </svg>
+  );
+}
+
 export function FacultyIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>

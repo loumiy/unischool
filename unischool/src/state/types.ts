@@ -544,7 +544,8 @@ export interface Rival {
 }
 
 // ---------------------------------------------------------------------
-// RESEARCH (see README's "Research: scholarship the player commissions").
+// RESEARCH (see README's "Research: scholarship the player commissions" —
+// the system is called research everywhere a player can read it now).
 // Player-commissioned initiatives — one per research facility, keyed by the
 // facility's Buildable id so "one at a time" is a property of the shape
 // rather than a rule somebody has to enforce — plus the lifetime counters
@@ -574,7 +575,7 @@ export interface PrizeAward {
 // reads nothing — and the depth is part of the saved shape.
 export type InitiativeDepth = 'pilot' | 'project' | 'program' | 'landmark';
 
-// A piece of scholarship the player commissioned: a named topic, run out
+// A piece of research the player commissioned: a named topic, run out
 // of one research facility by named people, for years. See
 // data/researchData.ts's initiative block for the model and
 // data/researchTopics.ts for the topics themselves.
@@ -623,7 +624,7 @@ export interface ResearchState {
   // it and, since the Faculty tab stopped displaying a figure that had
   // read zero ever since, nothing reads it either. Left in the saved shape
   // exactly as Faculty.morale was: harmless, and not worth a migration to
-  // delete. Do not wire it back up — if scholarship ever needs a stock
+  // delete. Do not wire it back up — if research ever needs a stock
   // again it should be per-initiative, where the work actually is.
   points: number;
   lifetimePoints: number;  // every point ever produced, never spent down — display only, so the Faculty tab can show the long arc rather than a stock that sawtooths

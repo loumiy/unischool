@@ -1,74 +1,58 @@
 import { type ReactNode } from 'react';
-import { useHotkeys } from './hotkeys';
 
-// Every view other than the campus map opens as an overlay ON TOP of the
-// map (see App.tsx) rather than replacing it, so the map is the one screen
-// the player always returns to. The tab components underneath are rendered
-// unchanged — this only supplies the frame: a titled header with a close
-// button, Escape-to-dismiss, and the scroll container the tab's own
-// content sits in.
+// The frame every view other than the campus map is rendered in (see
+// App.tsx): a titled header with a close button, and the scroll container
+// the tab's own content sits in. The tab components underneath are rendered
+// unchanged and still know nothing about being framed.
+//
+// ONE SHAPE. This used to draw two — a centred sheet floating over a dimmed
+// map, and a full-bleed screen — with App.tsx's FULL_BLEED_TABS naming the
+// two tabs that got the second one. The playtest notes retire the sheet:
+// every tab is a screen. The argument for the split was that a short
+// read-and-leave page (Treasury, Admissions, History) looks empty at full
+// size and that keeping the map visible around the edges reminds the player
+// they are one Escape away from it. That loses to the argument against it —
+// a shell that answers "what happens when I click a tab?" the same way every
+// time is worth more than a per-tab fit, and the split was quietly producing
+// a second bug class besides: a sheet left the tab you clicked holding DOM
+// focus over a visible map, which is how Space came to close a tab instead
+// of pausing (see hotkeys.ts's isActivationTarget).
+//
+// So: the panel takes the whole viewport, and the bottom dock (log ticker +
+// toolbar) is laid OVER it rather than covered by it — a view the player
+// works in keeps the game's own controls reachable without closing it first,
+// and reads as a screen rather than as a dialog standing in front of one.
 //
 // Deliberately NOT the interrupt modal (InterruptModal.tsx): an interrupt
-// halts the clock and must be resolved, while these are dismissible views.
+// halts the clock and must be resolved, while this is a dismissible view.
 // The interrupt modal sits at a higher layer, so it still covers this.
 //
-// TWO SHAPES, one frame. `fullBleed` picks between them, and which tabs ask
-// for it is App.tsx's call (see FULL_BLEED_TABS there) — the tab components
-// themselves still know nothing about how they are framed.
+// The dock staying on top is the whole point of the shape, and it is why
+// this panel sits BELOW the toolbar's layer (see styles.css) rather than
+// above it. Everything below the dock's own height is reserved rather than
+// drawn into: .tab-overlay-body pads its bottom by --toolbar-height +
+// --log-ticker-height, for exactly the reason .campus-map-canvas insets by
+// the same figures — the toolbar is opaque and always on screen, so content
+// rendered behind it would be on screen but permanently unreachable.
 //
-//   - The SHEET (default): a bordered card floating over a dimmed map, sized
-//     to its content. Right for a view you dip into and leave — Treasury,
-//     Admissions, History — where a full screen would only make a short page
-//     look empty, and where keeping the map visible around the edges is the
-//     reminder that you are one Escape from it.
-//
-//   - FULL BLEED: the tab owns the viewport and the bottom dock (log ticker
-//     + toolbar) is laid OVER it rather than covered by it. Right for a view
-//     the player works IN — a large canvas that wants every pixel, and wants
-//     its own tools reachable without closing it first. This is what the
-//     curriculum's map-shaped view needs, and it reads as a screen rather
-//     than as a dialog standing in front of one.
-//
-// The dock staying on top is the whole point of the mode, and it is why a
-// full-bleed backdrop sits BELOW the toolbar's layer rather than above it
-// (see styles.css) — the ONE thing the two shapes genuinely disagree about.
-// Everything below the dock's own height is reserved rather than drawn into:
-// .tab-overlay-body pads its bottom by --toolbar-height + --log-ticker-height,
-// for exactly the reason .campus-map-canvas insets by the same figures — the
-// toolbar is opaque and always on screen, so content rendered behind it would
-// be on screen but permanently unreachable.
-export default function TabOverlay({ title, onClose, fullBleed = false, children }: {
+// Escape is not bound here. App.tsx owns the one Escape ladder for the whole
+// shell (build popup, then tab, then the map's own back-out) — see its
+// module comment — rather than three components each binding the key and
+// guessing about the other two.
+export default function TabOverlay({ title, onClose, children }: {
   title: string;
   onClose: () => void;
-  fullBleed?: boolean;
   children: ReactNode;
 }) {
-  // Escape closes the sheet. The map binds Escape too (to drop a path tool
-  // or a picked-up building), but App.tsx keeps the map's hotkeys switched
-  // off for exactly as long as an overlay is open, so only one of the two
-  // is ever listening.
-  useHotkeys((e) => {
-    if (e.key === 'Escape') onClose();
-  });
-
-  const mode = fullBleed ? ' full-bleed' : '';
-
   return (
-    // Click-to-dismiss on the backdrop is a SHEET affordance: in full-bleed
-    // the panel covers the backdrop edge to edge, so there is no backdrop
-    // left to click and the handler simply never fires. Escape and the close
-    // button are what dismiss a full-bleed view.
-    <div className={`tab-overlay-backdrop${mode}`} onClick={onClose}>
-      {/* Clicks inside the sheet must not reach the backdrop's dismiss. */}
-      <div className={`tab-overlay${mode}`} role="dialog" aria-modal="false" aria-label={title} onClick={(e) => e.stopPropagation()}>
-        <div className="tab-overlay-head">
-          <h2>{title}</h2>
-          <button type="button" className="tab-overlay-close" onClick={onClose} aria-label={`Close ${title}`}>
-            close ✕
-          </button>
-        </div>
-        <div className="tab-overlay-body">{children}</div>
+    <div className="tab-overlay" role="dialog" aria-modal="false" aria-label={title}>
+      <div className="tab-overlay-head">
+        <h2>{title}</h2>
+        <button type="button" className="tab-overlay-close" onClick={onClose} aria-label={`Close ${title}`}>
+          close ✕
+        </button>
       </div>
+      <div className="tab-overlay-body">{children}</div>
     </div>
   );
 }

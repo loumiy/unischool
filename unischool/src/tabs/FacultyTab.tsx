@@ -209,7 +209,7 @@ function FacultyCard(
 // This panel used to be the whole research system: a banked-points figure,
 // a weekly rate, output counters, a facilities multiplier, and a
 // school-by-school lab gate. All of that described a model where the
-// campus produced scholarship for owning buildings, and every line of it
+// campus produced research for owning buildings, and every line of it
 // was wrong the moment initiatives landed — the banked figure read zero
 // forever because nothing writes that stock any more, and the rate
 // reported what lab-equipped faculty COULD produce, which stopped
@@ -220,7 +220,7 @@ function FacultyCard(
 // properly, and duplicating it here only gave a player two screens
 // disagreeing about the same thing.
 //
-// What is left is the one part of scholarship that is genuinely a FACULTY
+// What is left is the one part of research that is genuinely a FACULTY
 // question: which of these people are committed, to what, and for how
 // much longer — because a committed scholar is not teaching, and the
 // roster screen is where the player notices their department is short.
@@ -250,7 +250,7 @@ function ResearchPanel({ s, full }: { s: GameState; full: boolean }) {
     <section className={full ? 'panel panel-span-2' : 'panel'}>
       <div className="panel-head">
         <span className="panel-head-title">
-          <h2>Scholarship</h2>
+          <h2>Research</h2>
           <HelpHint text="Scholars committed to a research project stop teaching for its whole duration — their course slots drop to zero and whatever they were teaching is left without an instructor until somebody else takes it. That is the real price of a deep project, and it is why a university needs a bench rather than just good people. Projects themselves, and the facilities that host them, are on the Research tab." />
         </span>
         <span className="stat">{committed.length} committed</span>

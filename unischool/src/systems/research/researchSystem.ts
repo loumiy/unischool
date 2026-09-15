@@ -56,7 +56,7 @@ function log(s: GameState, message: string, kind: 'info' | 'good' | 'bad'): void
 // =====================================================================
 // THE INITIATIVE LOOP — what replaced the stock.
 //
-// Scholarship used to be a bank: lab-equipped faculty trickled points into
+// Research used to be a bank: lab-equipped faculty trickled points into
 // one campus-wide pool every week, and the pool occasionally bought an
 // output. That produced research because the school OWNED A BUILDING, with
 // no decision anywhere in it.

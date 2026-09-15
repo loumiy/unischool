@@ -206,7 +206,7 @@ export interface ResearchOutputDef {
 
 export const RESEARCH_OUTPUTS: readonly ResearchOutputDef[] = [
   // The bottom rung, and the reason it exists: the other three all cost
-  // enough that a young department's first decade of scholarship was a
+  // enough that a young department's first decade of research was a
   // long silence broken by a grant. A cheap, frequent output gives a
   // school something to show from its first year of having a facility at
   // all — and gives the humanities an output that reads right, since a
@@ -288,7 +288,7 @@ export function rollPrizeName(vocab: DisciplineVocab): string {
 // points and moves the same counter whoever produced it. What changes is
 // the WORDS, because "a breakthrough out of the university's labs" is
 // simply the wrong sentence about a history department, and a system that
-// can only describe scholarship as laboratory science is one that quietly
+// can only describe research as laboratory science is one that quietly
 // tells four schools their work does not count.
 //
 // Three things are named, not one. The first pass did only the outputs,
@@ -354,6 +354,13 @@ const DEFAULT_VOCAB: DisciplineVocab = {
   prizes: ['the Kellner Award for Scientific Achievement'],
 };
 
+// The one place the word "scholarship" survives outside admissions (see
+// the naming sweep: the research system is called research everywhere a
+// player can read it). Here it is not the system's name — it is the
+// Humanities' own word for the work, chosen by this table for exactly the
+// reason the table exists: "a breakthrough" is the wrong sentence about a
+// history department, and so is "a landmark work of research". Renaming it
+// would be the sweep overruling the thing the sweep is for.
 const DISCIPLINE_VOCAB: Record<string, DisciplineVocab> = {
   'Social Sciences & Humanities': {
     publication: 'monograph',
@@ -408,7 +415,7 @@ export function disciplineVocab(schoolName: string | null): DisciplineVocab {
 // team and a facility, and the facility is the half of that with a school.
 //
 // This replaced a campus-wide weighted draw across everyone producing
-// scholarship. That was the correct reading under the old model, where
+// research. That was the correct reading under the old model, where
 // production genuinely was the whole equipped roster trickling into one
 // pool and no output belonged to anybody in particular. Against
 // initiatives it is simply wrong, and visibly so: a project in the
@@ -427,7 +434,7 @@ export function facilitySchool(labId: string): string | null {
 }
 
 // =====================================================================
-// INITIATIVES — player-directed scholarship.
+// INITIATIVES — player-directed research.
 //
 // THE LAB IS THE SLOT. Each research facility hosts one initiative at a
 // time, and the record is keyed by the facility's own id, so "one per
