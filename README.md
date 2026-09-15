@@ -26,13 +26,22 @@ varsity athletics" below) — there is no separate sports subsystem and no
 roadmap sketched.
 
 The **campus map is the central interface** (see `src/App.tsx`): it holds the
-middle of the screen at all times, the build rail sits beside it, and every
-other view — Faculty, Curriculum, Research, Treasury, Admissions, Student Life,
-Athletics — opens as a dismissible overlay on top of it (the two densest,
-Curriculum and Research, open full-bleed: they take the viewport and the dock
-lays over them). That is a **layout fact, not a mechanical
-one**: no system reads the map, and nothing gained authority over the sim by
-moving to the middle of the screen.
+middle of the screen at all times, the build menu opens over it, and every
+other view — Curriculum, Faculty, Research, Student Life, Athletics,
+Admissions, History, Treasury — opens as a dismissible **full-bleed screen** on
+top of it: the tab takes the viewport and the dock (log ticker + toolbar) lays
+over it. Every tab, the same way — the shell used to draw two shapes and a
+short list of which tabs got which, and the playtest notes retired the sheet.
+The map is what a player returns to, by the home button at the head of the
+toolbar's icon row, the panel's own close button, or `Esc`. That is a **layout
+fact, not a mechanical one**: no system reads the map, and nothing gained
+authority over the sim by moving to the middle of the screen.
+
+Three tabs are **gated on the thing they are about existing** (see
+`TabNav.tsx`'s `TAB_GATES`): Research appears once a lab is finished, Athletics
+once a varsity team exists, History in year 2. Each gate is the same condition
+the system behind it already hangs off, and the first time one opens the
+activity log says so.
 
 ## Run it
 
@@ -59,18 +68,28 @@ it.
 | `1` `2` | Play, play at 2×. (`3` is sandbox fast — see `isTestUniversity`.) |
 | `P` | Arm the path tool. Left button draws, right button erases; a ghost tile marks the square under the cursor. |
 | `R` | Rotate the picked-up building 90°, same as the ⟳ on its footprint ghost. |
-| `Esc` | Close the open view; on the map, back out of the path tool, then a picked-up building, then an open info panel. |
+| `Esc` | One ladder, top down: the activity-log popup, then the build menu, then the open view; on the map, back out of the path tool, then a picked-up building, then an open info panel. |
 | `Enter` | Dismiss the interrupt on screen (every type with a plain "continue" — not the admissions form or the charter offer, which are real choices). |
 | `C` `F` `L` | Open (or close) Curriculum, Faculty, Student Life. |
 
 The plumbing is one module, `src/components/hotkeys.ts`: it owns the window
-listener, the "not while the player is typing" guard, and the rule that a key
-held with Ctrl/Meta/Alt belongs to the browser. What each key MEANS stays with
-the component that owns the thing it does — speed on `StatusHeader.tsx`,
-pan/draw/rotate on `CampusMap.tsx`, the tab letters on `App.tsx`, `Enter` on
-`InterruptModal.tsx`. `App.tsx` gates the map's whole keyboard off while a tab
-overlay or an interrupt is on top of it, so only one layer is ever listening
-for `Esc`.
+listener, the "not while the player is typing" guard, the rule that a key held
+with Ctrl/Meta/Alt belongs to the browser, and which device the player is
+currently driving with. That last one is what keeps `Space` honest: a focused
+button answers `Space` natively, so the game must stand aside for a player who
+tabbed to one — but a button that was *clicked* is focused too, which is how
+`Space` came to re-click a tab icon instead of pausing. The modality is settled
+by the interaction that chose the device (a pointer press, or `Tab`) rather
+than by the key being arbitrated, because `:focus-visible` alone flips true on
+that very keypress.
+
+What each key MEANS stays with the component that owns the thing it does —
+speed on `StatusHeader.tsx`, pan/draw/rotate on `CampusMap.tsx`, the tab
+letters and the whole `Esc` ladder on `App.tsx`, `Enter` on
+`InterruptModal.tsx`. `App.tsx` owns `Esc` because it is the only place that
+can see every rung, and it gates the map's whole keyboard off while anything —
+a tab, the build menu, the log popup, an interrupt — is on top of it, so only
+one layer is ever listening.
 
 ## Project structure
 
@@ -83,13 +102,12 @@ for `Esc`.
   campus map (`CampusMap.tsx`), the build rail beside it (`BuildPanel.tsx`),
   the log ticker under it (`LogStrip.tsx`), the frame every other view pops up
   in (`TabOverlay.tsx`), and the persistent header/status bar, interrupt modal,
-  tab nav, and startup screen
+  tab metadata, and startup screen
 - `src/tabs/` — one component per overlay view (Faculty, Curriculum, Research,
   Treasury, Admissions, Student Life, History, Athletics); each reads the slice
   of `GameState` it needs and dispatches actions, and knows nothing about being
-  rendered in an overlay. `TabOverlay` has two shapes: the default sheet in
-  front of the map, and **full-bleed**, where the tab owns the viewport and the
-  dock is laid over it (Curriculum and Research use it)
+  rendered in an overlay. `TabOverlay` draws one shape — **full-bleed**, where
+  the tab owns the viewport and the dock is laid over it
 - `src/App.tsx` — the shell: owns the game loop hook and which view (if any) is
   open over the map, renders the persistent chrome, the map + build rail + log,
   and the active overlay
@@ -275,7 +293,7 @@ inputs:
   milestone gate opens.
 - **incoming student quality** — the average quality of the class that actually
   enrolled that cycle.
-- **research standing** — what the university's scholarship has actually
+- **research standing** — what the university's research has actually
   produced: publications, breakthroughs, prizes, doctorates, and a credit for
   every initiative carried to completion (see "Research" below). A monotone
   count of the same shape as curriculum breadth, weighted small and clamped like
@@ -701,8 +719,23 @@ Two consequences fall straight out of the record existing:
   replacement hire can always take the orphans over — eligibility is per-person —
   but an over-committed department cannot open NEW courses until it has the
   people for the ones it already offers.
-- **Committing somebody to research takes their teaching**, the same way and with
-  the same bookkeeping (see "Research").
+- **Committing somebody to research takes two of their course slots**, the same
+  way and with the same bookkeeping (see "Research").
+
+**The Faculty tab is a roster BY FIELD** (`FacultyTab.tsx`): one section per
+department, in the `FACULTY_FIELDS` grouping, each carrying its own slot
+arithmetic, its people, and the candidates listed in that field underneath them.
+The header's tooltip names the courses that pull from the field, grouped by
+major — the answer to "why do I need a physicist". A field nobody has hired
+into, nobody is listed in, and no revealed course asks for is not rendered; a
+field with courses and nobody in it is, and reads as the vacancy it is.
+
+It is a place to LOOK AT your faculty, not a place to hire from. Hiring belongs
+where the shortage is felt — the Curriculum tab, where a course will not start —
+and the tab's old alert badge went with the loop it prompted for. The curriculum
+says whether waiting will help: a course blocked on capacity draws an **amber**
+dot when somebody in that field is on the market (one appointment away) and a
+**red** one when nobody is (`techSystem.ts`'s `facultyGate`).
 
 That is the first half of the "department left understaffed → its courses go on
 hold" chain the roadmap had deferred: the consequence is built, and it arrives
@@ -749,7 +782,7 @@ it now reads as one.
 | Input | Effect |
 | --- | --- |
 | Instructor's teaching stat | the base, 0..100 |
-| Teaching load | up to −12, scaling with how full their slots are |
+| Teaching load | up to −7, scaling with how full their slots are |
 | Course tier | 0 for core and tier-1, −2 tier-2, −5 tier-3, −8 graduate |
 | Prize-winning instructor | +3 per prize, capped at +6 |
 
@@ -758,6 +791,17 @@ turns assignment from a RANKING problem ("who is best") into a MATCHING one
 ("who is right for this"), and it gives a senior hire a natural home. Put your
 star on the tier-3 seminar, not the gen-ed survey, because that is where their
 strength shows up in the grade.
+
+**Overload is a cost, not a cliff.** The load penalty was 12, against bands
+16–18 points wide, which made a professor's second and third course read as a
+punishment for expanding the catalogue rather than as a price paid for it. At 7
+a matured instructor (teaching ~71) on a capstone still drops a visible grade at
+a full load — B to C — so overloading somebody stays legible in the middle of
+the range where most courses live; what changed is the depth of the drop. The
+property to preserve through any further retune is stated in `courseQuality.ts`
+and checked in `test/course-quality.test.ts`: **a D on a new department's course
+is the system working, a D on a veteran's course means the player overloaded
+them**, and those must stay distinguishable.
 
 **Campus facilities are deliberately NOT an input.** The library already reaches
 academic satisfaction through seats-per-student and already reaches prestige as
@@ -782,11 +826,12 @@ and threads it through.
 
 ## The Curriculum map: three levels over one revealed set
 
-The Curriculum tab is a **full-bleed** tab: it owns the viewport and the dock is
-laid over it, rather than opening as a sheet in front of the campus. The
-layering is the crux — a sheet sits *above* the chrome because it stands in
-front of the screen; a full-bleed tab *is* the screen, so it drops below and
-reserves the dock's measured height instead of drawing under it.
+The Curriculum tab, like every tab, is **full-bleed**: it owns the viewport and
+the dock is laid over it. The layering is the crux — a dialog sits *above* the
+chrome because it stands in front of the screen; a full-bleed tab *is* the
+screen, so it drops below and reserves the dock's measured height instead of
+drawing under it. (Curriculum is where the shape was first proven, which is why
+it is described here; the shell now gives it to everything.)
 
 Three levels, all derived from the unlock/milestone state progressive discovery
 already computes — the view adds no state of its own:
@@ -1005,7 +1050,7 @@ Two judgment calls from this pass, flagged rather than resolved quietly:
   accepted as the cost of the feature rather than smoothed over — see
   persistence.ts's v11 -> v12 migration comment.
 
-## Research: scholarship the player commissions
+## Research: work the player commissions
 
 Research is **work the university commissions**, not a by-product of owning a
 building. The player picks a topic, a team and a depth, out of a specific
@@ -1040,7 +1085,7 @@ it). They run on identical machinery — no second kind of research — and sinc
 one facility equips the whole school, every field that school teaches comes
 into production behind it. Only General Studies, which has no majors of its
 own, has no facility. What differs is **vocabulary**, not mechanics. A model
-that can only describe scholarship as laboratory science is one that quietly
+that can only describe research as laboratory science is one that quietly
 tells four schools their work does not count, so `DISCIPLINE_VOCAB` authors
 **three** things per school, not one:
 
@@ -1062,14 +1107,14 @@ tells four schools their work does not count, so `DISCIPLINE_VOCAB` authors
 That is the only reading that makes sense — an initiative *is* a topic, a team
 and a facility, and the facility is the half of it that has a school
 (`facilitySchool`). An earlier pass drew the school campus-wide, weighted across
-everyone producing scholarship, which was right under the old model where
+everyone producing research, which was right under the old model where
 production genuinely was the whole roster trickling into one pool; against
 initiatives it meant a project in the Humanities Research Institute logged "a
 new paper" whenever the campus also ran physics labs.
 
 ### Topics, teams and depth
 
-**76 authored topics** (`researchTopics.ts`) — two per department, plus **18
+**238 authored topics** (`researchTopics.ts`) — six per department, plus **62
 cross-disciplinary** ones that name more than one field and can only be staffed
 by drawing somebody from each. What is on offer at a vacant facility is
 **derived, never stored**: a deterministic function of the facility's id and a
@@ -1077,14 +1122,32 @@ slowly-turning quarterly epoch, so the list is stable across renders and still
 turns over every few months. A topic is only offered when the university can
 actually staff it.
 
+**The pool belongs to the FACILITY, not to its school.** A topic is offerable
+where the facility's own field is among the fields the topic names (`labFields`,
+`initiativeOffers`), so a project always belongs to the place it is happening —
+the alternative, a school-wide pool, is what once offered "Acoustics of
+Performance Spaces" to an aerospace lab. A cross-disciplinary topic is offerable
+in each of the labs it names and in no others, and the two pairs of facilities
+that share a field (chemistry / chemical engineering, physics / aerospace) keep
+their halves apart through an optional per-topic facility list.
+
+Only **eleven** of the twenty-nine faculty fields have a facility, so only those
+eleven can LEAD work. That is not a department being locked out: the way a
+marketer, a violinist or a lawyer does research is the interdisciplinary tier,
+hosted by a facility whose field the topic names, with the rest of the team
+drawn from wherever the topic says. Every interdisciplinary topic names at least
+one field that has a facility; the departmental topics in the other eighteen
+fields are reserve content, ready the day the catalogue gives one of those
+fields a building.
+
 Four depths, and the money is the smaller half of what they cost:
 
 | Depth | Scholars | Duration | Up-front funding |
 | --- | --- | --- | --- |
-| Pilot Study | 1 | 6 months | 0.5 weeks of opex |
-| Funded Project | 2 | 18 months | 1.6 weeks |
-| Major Program | 3 | 3 years | 4 weeks |
-| Landmark Program | 4 | 5 years | 9 weeks |
+| Pilot Study | 1 | 6 months | 0.4 weeks of opex |
+| Funded Project | 2 | 18 months | 1.0 weeks |
+| Major Program | 3 | 3 years | 2.2 weeks |
+| Landmark Program | 4 | 5 years | 4.0 weeks |
 
 Funding is sized in **weeks of operating cost**, the same scaling device grants
 and the decision-event table use, so the figure stays sane across four orders
@@ -1093,12 +1156,20 @@ topic**, which is the structural point of the tier: the most prestigious work
 in the game is out of reach for a single strong department however deep it
 goes.
 
-**Participants stop teaching for the duration.** `effectiveCourseSlots` reads
-zero while somebody is committed, and their courses are orphaned exactly as
-`FIRE_FACULTY` orphans them — same consequence, same bookkeeping. This is the
-one place the two loops compete for the same people, and it is deliberately the
-real price of a Landmark Program: four professors' entire teaching load, for
-five years.
+**Participants teach a reduced load for the duration.** `effectiveCourseSlots`
+subtracts `RESEARCH_COMMITMENT_SLOTS` (2) with a floor at zero, so a junior hire
+with two slots stops teaching entirely while a senior professor keeps most of
+their catalogue — which makes WHO you commit a real choice rather than a uniform
+tax. This is the one place the two loops compete for the same people.
+
+Only the **excess** moves. Each member sheds courses lowest tier first, so a
+professor on a five-year programme keeps the capstone and hands away the survey
+course, and each shed course is then offered to any colleague in the field with
+room — the same `eligibleInstructors` list the Curriculum tab's assignment panel
+uses, strongest teacher first, highest-tier course first. What nobody can cover
+goes unstaffed. `planCommitmentCoverage` works all of that out before anything
+changes, so the warning the Research tab shows before the click and the
+reassignment the reducer performs after are the same arithmetic.
 
 ### What a run produces
 
@@ -1156,11 +1227,27 @@ concludes:
   usually but not always goes to the strongest person on it.
 
 So a prize arrives with a named topic, a named team and five years behind it,
-rather than out of a pool. Like a milestone it is **queued**, not fired: the
-week it lands may already belong to the summer admissions decision, and only
-one interrupt can be pending at a time. The award itself — the badge, the
-salary and output premium — is applied the week it is won; the celebration is a
-report on something that already happened.
+rather than out of a pool.
+
+**The completion is the event, and the award is one of its results.** A
+concluded project files a `research-complete` report — topic, facility, team,
+years, publications, breakthroughs, grant income, and the award if it won one —
+and that report is the modal. It used to be the other way round: a separate
+prize interrupt stopped the clock for the trophy while five years of work passed
+as a log line. Like a milestone the report is **queued**, not fired: the week a
+project ends may already belong to the summer admissions decision, and only one
+interrupt can be pending at a time. Everything in it has already happened —
+outputs counted, grant money banked, the winner's premium applied — so a delayed
+report never delays an effect.
+
+Two things deliberately do not report. A **cancelled** project: winding one up
+early is the player's own action and already logs, and a modal confirming what
+the player just did is noise. And a **quiet pilot study** — six months, no
+breakthrough, no award — because reporting every completion took the balance
+sim's texture count from 1.7 to 3.0 modals a year, nearly all of it the smallest
+tier of work interrupting most often. Anything at Funded Project depth or deeper
+always reports. A quiet pilot still logs, and still appears in the Research
+tab's history.
 
 Finishing a run is worth something **in itself**, separate from whatever it
 produced along the way: `INITIATIVE_COMPLETION_CREDIT` (0.3 / 1 / 2.5 / 6 by

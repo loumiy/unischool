@@ -182,8 +182,12 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
   // so the unit is named rather than left to be inferred from two numbers.
   const unit = attribute === 'housing' ? 'beds' : 'served';
 
+  // No `open` modifier class on the card: an expanded card is styled no
+  // differently from a closed one, it simply has more inside it (see
+  // styles.css) — `aria-expanded` on the toggle below is what actually
+  // reports the state, and it reports it to the people who need it.
   return (
-    <li className={`satisfaction-card${open ? ' open' : ''}`}>
+    <li className="satisfaction-card">
       <div className="satisfaction-card-head">
         <SatisfactionDial score={detail.score} dormant={detail.dormant} />
         <div className="satisfaction-card-text">

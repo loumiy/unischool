@@ -151,8 +151,12 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
 // identity and clock — prominent per the design ask, in place of the old
 // masthead's h1 and "Office of the President" eyebrow (dropped; it named a
 // role, not the school).
-export function SchoolAndClock({ s, speed, setSpeed, act }: {
-  s: GameState; speed: Speed; setSpeed: (speed: Speed) => void; act: (a: Action) => void;
+export function SchoolAndClock({ s, speed, setSpeed, weekProgress, act }: {
+  s: GameState; speed: Speed; setSpeed: (speed: Speed) => void;
+  // The live fraction of the current week, for the day squares under the
+  // clock (see useGame.ts's accumulator and DayTicker.tsx).
+  weekProgress: () => number;
+  act: (a: Action) => void;
 }) {
   const showPlaytestControls = isTestUniversity(s.self.name);
   const visibleSpeeds = (Object.keys(SPEEDS) as Speed[]).filter(
@@ -194,7 +198,7 @@ export function SchoolAndClock({ s, speed, setSpeed, act }: {
       <div className="toolbar-school">
         <span className="toolbar-school-name">{institutionName(s.self)}</span>
         <span className="toolbar-clock">Year {s.clock.year} · {termName(s.clock.week)} · Week {s.clock.week}</span>
-        <DayTicker s={s} speed={speed} />
+        <DayTicker s={s} speed={speed} weekProgress={weekProgress} />
       </div>
     </>
   );

@@ -544,7 +544,7 @@ export interface Rival {
 }
 
 // ---------------------------------------------------------------------
-// RESEARCH (see README's "Research: scholarship the player commissions").
+// RESEARCH (see README's "Research: work the player commissions").
 // Player-commissioned initiatives — one per research facility, keyed by the
 // facility's Buildable id so "one at a time" is a property of the shape
 // rather than a rule somebody has to enforce — plus the lifetime counters
@@ -568,13 +568,42 @@ export interface PrizeAward {
   prizeName: string;
 }
 
+// THE REPORT A CONCLUDED PROJECT FILES. Queued by researchSystem.ts when
+// an initiative runs its course, and rendered as the `research-complete`
+// interrupt — the one modal research is allowed, and now the right one.
+//
+// It used to be the prize that stopped the clock, through a separate
+// `research-prize` interrupt, which meant the modal celebrated the trophy
+// while the five years of work that earned it passed as a log line. The
+// completion IS the event; the award is one of its results, and sits in
+// here as one field among the outputs rather than as an interrupt of its
+// own.
+//
+// Names are CAPTURED rather than looked up later, the same reason
+// PrizeAward captured them: the week a project ends may not be the week
+// the report fires, and a professor can be dismissed or a topic re-authored
+// in between. A report says what was true when the work finished.
+export interface InitiativeReport {
+  topicId: string;
+  topicName: string;
+  labId: string;
+  labName: string;
+  depth: InitiativeDepth;
+  years: number;              // rounded to one decimal, as the log line reports it
+  facultyNames: string[];
+  publications: number;
+  breakthroughs: number;
+  grantIncome: number;
+  award: PrizeAward | null;   // the one thing that can only be won at conclusion
+}
+
 // How deep a commitment an initiative is. Lives here rather than beside
 // its tuning table (data/researchData.ts's INITIATIVE_DEPTHS) because this
 // module is the base of the import graph — everything reads types, types
 // reads nothing — and the depth is part of the saved shape.
 export type InitiativeDepth = 'pilot' | 'project' | 'program' | 'landmark';
 
-// A piece of scholarship the player commissioned: a named topic, run out
+// A piece of research the player commissioned: a named topic, run out
 // of one research facility by named people, for years. See
 // data/researchData.ts's initiative block for the model and
 // data/researchTopics.ts for the topics themselves.
@@ -623,7 +652,7 @@ export interface ResearchState {
   // it and, since the Faculty tab stopped displaying a figure that had
   // read zero ever since, nothing reads it either. Left in the saved shape
   // exactly as Faculty.morale was: harmless, and not worth a migration to
-  // delete. Do not wire it back up — if scholarship ever needs a stock
+  // delete. Do not wire it back up — if research ever needs a stock
   // again it should be per-initiative, where the work actually is.
   points: number;
   lifetimePoints: number;  // every point ever produced, never spent down — display only, so the Faculty tab can show the long arc rather than a stock that sawtooths
@@ -639,7 +668,7 @@ export interface ResearchState {
   initiatives: Record<string, Initiative>;
   completedInitiatives: CompletedInitiative[]; // newest first, capped at INITIATIVE_HISTORY_LIMIT
   lastOutputWeek: number;  // absolute week the last research output landed; 0 = never. The cooldown half of the cadence, exactly like events.lastDecisionWeek
-  pendingPrizes: PrizeAward[]; // awarded but not yet celebrated — a QUEUE for the same reason events.pendingMilestones is one: the week a prize lands may already belong to admissions or the U.S. News report, and only one interrupt can be pending at a time
+  pendingCompletions: InitiativeReport[]; // concluded but not yet reported — a QUEUE for the same reason events.pendingMilestones is one: the week a project ends may already belong to admissions or the U.S. News report, and only one interrupt can be pending at a time. Drained one at a time (see eventSystem.ts): each is a report on a different project and they do not read as one modal.
 }
 
 // ---------------------------------------------------------------------
@@ -973,12 +1002,22 @@ export interface GameState {
 //     that appears in a tab the player hasn't switched to yet stays
 //     unseen, and the build button's badge stays lit, even while the
 //     popup itself is open on a different tab.
-//   - candidateIds: every candidate id the Faculty tab has rendered while
-//     that candidate counted as "needed" (their field is short a slot —
-//     see systems/techtree/techSystem.ts's neededFacultyFields) — a
-//     candidate who was never short-listed is never marked seen, so if
-//     their field later goes short while they're still on the market they
-//     still raise a fresh alert.
+//   - tabIds: every gated tab (see components/TabNav.tsx's TAB_GATES) whose
+//     gate has been noticed OPEN. Unlike the other three this is not a
+//     badge: it is what keeps the one-off "the Research view is now
+//     available" log line one-off — including across a save that resumes
+//     with the gate already open, and across a gate that closes and reopens
+//     (a school that disbands its last varsity team and founds another does
+//     not get told twice).
+//   - candidateIds: DEAD STATE. It fed the Faculty tab's alert badge —
+//     an unseen candidate in a field the school was short on — and that
+//     badge is retired: it was a prompt to run the old hiring loop, and
+//     hiring now happens where the shortage is felt (see FacultyTab.tsx and
+//     Toolbar.tsx's TAB_ALERT). Nothing writes it and nothing reads it. Left
+//     in the saved shape exactly as Faculty.morale and ResearchState.points
+//     were, rather than spending a migration to remove a record that costs
+//     nothing; the weekly prune that used to bound its growth went with the
+//     writes, since an empty record does not grow.
 //
 // Each is a plain id -> true record, the same shape rationale as
 // `pathways` and `milestones`: no Map/Set, no reference into `tech`, so it
@@ -993,6 +1032,7 @@ export interface SeenState {
   courseIds: Record<string, true>;
   buildableIds: Record<string, true>;
   candidateIds: Record<string, true>;
+  tabIds: Record<string, true>;
 }
 
 export interface LogEntry {

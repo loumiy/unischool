@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { discoverySchools, professionalSchools } from '../data/techData';
-import { completion, discoverySections } from '../tabs/CurriculumTab';
+import { GradeChip, completion, discoverySections } from '../tabs/CurriculumTab';
+import { averageCourseQuality } from '../systems/faculty/facultyAssignment';
+import { gradeFor } from '../data/courseQuality';
 import { ProgressRing } from './Progress';
 
 // A read-only popover for a PLACED building — what clicking it (outside
@@ -117,11 +119,39 @@ function FacilityInfo({ t, s }: { t: Buildable; s: GameState }) {
 function CourseCompletion({ s, courseIds }: { s: GameState; courseIds: string[] }) {
   if (courseIds.length === 0) return null;
   const comp = completion(s, courseIds);
+  // HOW THE TEACHING IS GOING, beside how much of it exists. The same
+  // aggregate the Curriculum tab's own school heading shows, rendered with
+  // the same chip and the same ramp — a B on a hall and a B on a course
+  // cell have to mean the same thing, which they do because they are the
+  // same function (averageCourseQuality) and the same component.
+  //
+  // Absent rather than zero when nothing is graded yet: a school with no
+  // developed course has no average, and an F would be a lie about a
+  // building that has simply not opened anything.
+  const avg = averageCourseQuality(s, courseIds);
   return (
     <p className="building-info-completion">
       <ProgressRing fraction={comp.fraction} size={INFO_RING_SIZE} title={`${comp.done} of ${comp.total} courses developed`} />
       <span className="stat">{comp.done} / {comp.total}<br />developed</span>
+      {avg !== null && (
+        <span className="building-info-grade">
+          <GradeChip grade={gradeFor(avg)} title={`Averages ${Math.round(avg)} / 100 across its developed courses`} />
+          <span className="stat">average<br />grade</span>
+        </span>
+      )}
     </p>
+  );
+}
+
+// "Take me to it." The hall is where the player is looking; the courses it
+// stands for are two clicks and a scroll away in another view, and the map
+// has no way to show them. See App.tsx's overlay target for the channel.
+function OpenInCurriculum({ id, onOpenCurriculum }: { id: string; onOpenCurriculum?: (id: string) => void }) {
+  if (!onOpenCurriculum) return null;
+  return (
+    <button type="button" className="building-info-jump" onClick={() => onOpenCurriculum(id)}>
+      Open in Curriculum →
+    </button>
   );
 }
 
@@ -130,7 +160,9 @@ function CourseCompletion({ s, courseIds }: { s: GameState; courseIds: string[] 
 // curriculum sections rather than a school (professionalSchools()) — the
 // same two mappings CurriculumTab.tsx itself reads, imported rather than
 // duplicated so this panel's majors list can never disagree with that tab.
-function BuildingHallInfo({ t, s }: { t: Buildable; s: GameState }) {
+function BuildingHallInfo({ t, s, onOpenCurriculum }: {
+  t: Buildable; s: GameState; onOpenCurriculum?: (id: string) => void;
+}) {
   const school = discoverySchools().find((sc) => sc.buildingId === t.id);
   if (school) {
     const section = discoverySections(s).find((sec) => sec.key === t.id);
@@ -144,6 +176,7 @@ function BuildingHallInfo({ t, s }: { t: Buildable; s: GameState }) {
           <p className="building-info-line">The shared general-education core — no majors of its own.</p>
         )}
         <CourseCompletion s={s} courseIds={section ? section.schoolCourseIds : school.coreIds} />
+        <OpenInCurriculum id={t.id} onOpenCurriculum={onOpenCurriculum} />
       </>
     );
   }
@@ -155,6 +188,7 @@ function BuildingHallInfo({ t, s }: { t: Buildable; s: GameState }) {
       <>
         <p className="building-info-line">{prof.degree}</p>
         <CourseCompletion s={s} courseIds={section ? section.schoolCourseIds : prof.courseIds} />
+        <OpenInCurriculum id={t.id} onOpenCurriculum={onOpenCurriculum} />
       </>
     );
   }
@@ -166,7 +200,12 @@ function BuildingHallInfo({ t, s }: { t: Buildable; s: GameState }) {
   return <p className="building-info-line">{t.description}</p>;
 }
 
-export default function BuildingInfoPanel({ t, s, onClose }: { t: Buildable; s: GameState; onClose: () => void }) {
+export default function BuildingInfoPanel({ t, s, onClose, onOpenCurriculum }: {
+  t: Buildable; s: GameState; onClose: () => void;
+  // Optional so the panel stays renderable on its own terms; the map
+  // always passes it (see CampusMap.tsx).
+  onOpenCurriculum?: (buildingId: string) => void;
+}) {
   // Escape closes the panel, same as TabOverlay's own dismiss — this only
   // binds while the panel is actually mounted (see CampusMap.tsx, which
   // renders this component only when a building is inspected).
@@ -205,7 +244,7 @@ export default function BuildingInfoPanel({ t, s, onClose }: { t: Buildable; s: 
         </p>
       )}
       {t.kind === 'facility' && <FacilityInfo t={t} s={s} />}
-      {t.kind === 'building' && <BuildingHallInfo t={t} s={s} />}
+      {t.kind === 'building' && <BuildingHallInfo t={t} s={s} onOpenCurriculum={onOpenCurriculum} />}
     </div>
   );
 }

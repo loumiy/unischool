@@ -23,7 +23,7 @@
 import { reducer } from '../src/engine/reducer';
 import type { Action } from '../src/state/actions';
 import { createPreStartState } from '../src/state/actions';
-import type { GameState, Buildable, SchoolType } from '../src/state/types';
+import type { GameState, Buildable, InitiativeReport, SchoolType } from '../src/state/types';
 import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudent } from '../src/systems/finance/financeSystem';
 import {
@@ -31,7 +31,7 @@ import {
   isCommitted, effectiveCourseSlots, totalFacultySlots, usedFacultySlots,
 } from '../src/systems/techtree/techSystem';
 import { facultyLoads } from '../src/systems/faculty/facultyAssignment';
-import { initiativeOffers } from '../src/data/researchData';
+import { initiativeDepth, initiativeFundingCost, initiativeOffers } from '../src/data/researchData';
 import { researchSchools } from '../src/data/techData';
 import { firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { findDecisionEvent, HELLENIC_COUNCIL_MIN_CLUBS } from '../src/data/eventData';
@@ -218,7 +218,7 @@ function commissionScholarship(
       const lab = s.tech.find((t) => t.id === labId);
       if (!lab || lab.status !== 'done' || s.research.initiatives[labId]) continue;
 
-      const offers = initiativeOffers(s, labId, school.fields);
+      const offers = initiativeOffers(s, labId);
       // Deepest first: a player with cash and a department deep enough to
       // spare the people commits them. Committing DOES orphan whatever
       // they teach — that is decision 2's cost, and restaffOrphans below
@@ -632,6 +632,18 @@ interface EventTally {
   // a glance whether research is a quiet second income line or a second
   // economy. Prizes are the only one of the three that stops the clock.
   prizes: number;
+  // Research initiatives, which the funding ladder is tuned against (see
+  // researchData.ts's INITIATIVE_DEPTHS). "How many projects can a school
+  // afford to be running at once" is the question a funding change moves,
+  // and it is invisible in the outputs — a school running eight cheap
+  // projects and one running two expensive ones can bank the same number of
+  // breakthroughs. Counted by watching the keys of s.research.initiatives
+  // week to week, so a start is a transition rather than something the
+  // harness has to be told about.
+  initiativesStarted: number;
+  peakConcurrent: number;
+  reports: number;           // completions that stopped the clock (see researchSystem.ts)
+  initiativeSpend: number;   // cumulative up-front funding, against lifetime opex below
   // Student demands (see src/systems/demands/demandSystem.ts). The
   // question these answer is the one the feature's whole cadence argument
   // rests on: a well-run school should almost never be asked for anything,
@@ -724,9 +736,11 @@ export function play(
   const rows: Row[] = [];
   let weeksInTheRed = 0;
   let minCash = s.finance.cash;
+  const liveInitiatives = new Set<string>();
 
   const tally: EventTally = {
     milestones: 0, decisions: 0, cash: 0, prizes: 0,
+    initiativesStarted: 0, peakConcurrent: 0, initiativeSpend: 0, reports: 0,
     petitionsApproved: 0, greekEventsSeen: 0,
     demandsRaised: 0, demandsMet: 0, demandsFailed: 0, demandSubjects: {},
     schoolsNamed: 0, chaptersFormed: 0, chaptersAskedForHousing: 0,
@@ -761,9 +775,14 @@ export function play(
       } else if (s.pendingInterrupt.type === 'milestone') {
         tally.milestones += 1;
         dispatch({ type: 'RESOLVE_MILESTONE' });
-      } else if (s.pendingInterrupt.type === 'research-prize') {
-        tally.prizes += 1;
-        dispatch({ type: 'RESOLVE_PRIZE' });
+      } else if (s.pendingInterrupt.type === 'research-complete') {
+        // The completion report, which carries the award if the work won
+        // one — so the prize tally is read off the payload now rather than
+        // off an interrupt of its own (see researchSystem.ts).
+        const { report } = s.pendingInterrupt.payload as { report: InitiativeReport };
+        tally.reports += 1;
+        if (report.award) tally.prizes += 1;
+        dispatch({ type: 'RESOLVE_RESEARCH_REPORT' });
       } else if (s.pendingInterrupt.type === 'demand') {
         // A student demand (see src/systems/demands/demandSystem.ts). The
         // scripted player acknowledges it and does nothing else — there is
@@ -826,6 +845,18 @@ export function play(
     }
     if (s.finance.cash < 0) weeksInTheRed += 1;
     minCash = Math.min(minCash, s.finance.cash);
+    // Research initiatives, read as a transition: any facility key that was
+    // not running one last week and is now started one.
+    const running = Object.keys(s.research.initiatives);
+    for (const labId of running) {
+      if (!liveInitiatives.has(labId)) {
+        tally.initiativesStarted += 1;
+        tally.initiativeSpend += initiativeFundingCost(s, initiativeDepth(s.research.initiatives[labId].depth));
+      }
+    }
+    liveInitiatives.clear();
+    for (const labId of running) liveInitiatives.add(labId);
+    tally.peakConcurrent = Math.max(tally.peakConcurrent, running.length);
     onWeek?.(s);
   }
   const venuesBuilt = VENUE_IDS.filter((id) => s.tech.find((t) => t.id === id)?.status === 'done');
@@ -874,7 +905,7 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
   // the decision events do — the point of the line is that adding them
   // moves it very little.
   const years = rows.length;
-  const texture = tally.milestones + tally.decisions + tally.prizes + tally.demandsRaised;
+  const texture = tally.milestones + tally.decisions + tally.reports + tally.demandsRaised;
   const subjects = Object.entries(tally.demandSubjects)
     .sort((a, b) => b[1] - a[1])
     .map(([subject, n]) => `${subject} x${n}`)
@@ -884,7 +915,7 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
     `${subjects ? ` — ${subjects}` : ''}`,
   );
   console.log(
-    `   texture modals (milestones + events + prizes + demands): ${texture} over ${years} years ` +
+    `   texture modals (milestones + events + research reports + demands): ${texture} over ${years} years ` +
     `= ${(texture / Math.max(years, 1)).toFixed(2)}/yr, on top of the ${years} annual admissions decisions`,
   );
   // Grant income is compared against the run's total operating cost rather
@@ -896,6 +927,15 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
   console.log(
     `   research: ${last.researchRate.toFixed(1)} pts/wk at close, ${last.breakthroughs} breakthroughs, ` +
     `${tally.prizes} prizes, ${fmt(last.grantIncome)} in grants (${grantShare.toFixed(1)}% of lifetime opex)`,
+  );
+  // The funding ladder's own line. Two or three projects at once in a
+  // mature school is the target; eight would mean the money came down too
+  // far, and none would mean it never came down at all.
+  const spendShare = lifetimeOpEx > 0 ? (tally.initiativeSpend / lifetimeOpEx) * 100 : 0;
+  console.log(
+    `   initiatives: ${tally.initiativesStarted} started, ${tally.peakConcurrent} running at once at the peak, ` +
+    `${fmt(tally.initiativeSpend)} of funding (${spendShare.toFixed(1)}% of lifetime opex), ` +
+    `${tally.reports} concluded with a report`,
   );
   // Graduate programs, judged the same way grants and student life are:
   // the bare figure means nothing, WHEN it arrives and what share of the

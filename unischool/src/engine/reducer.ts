@@ -5,6 +5,7 @@ import { createInitialState, createPreStartState } from '../state/actions';
 import { tickFinance, endowmentCampaign } from '../systems/finance/financeSystem';
 import {
   tickTech, canStartDevelopment, startDevelopment, eligibleInstructors, isCommitted,
+  planCommitmentCoverage, developAllPlan,
 } from '../systems/techtree/techSystem';
 import { endInitiative } from '../systems/research/researchSystem';
 import { initiativeDepth, initiativeFundingCost } from '../data/researchData';
@@ -12,7 +13,7 @@ import { researchTopic } from '../data/researchTopics';
 import { tickAdmissions, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
 import { deriveCohortSignals } from '../systems/admissions/cohorts';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
-import { tickFaculty } from '../systems/faculty/facultySystem';
+import { appointFaculty, tickFaculty } from '../systems/faculty/facultySystem';
 import { tickResearch } from '../systems/research/researchSystem';
 import { tickPrestige } from '../systems/prestige/prestigeSystem';
 import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
@@ -203,19 +204,6 @@ export function reducer(state: GameState, action: Action): GameState {
       // rolling into the next one until it's resolved.
       if (!s.pendingInterrupt) advanceClock(s);
       if (s.log.length > LOG_CAP) s.log.length = LOG_CAP; // cap log growth
-      // The candidate market churns every week (see facultySystem.ts's
-      // tickCandidatePool) — listings withdraw and new ones arrive
-      // constantly — so s.seen.candidateIds is pruned down to whoever is
-      // still actually listed on every tick, the same way weeksListed
-      // itself only ever means something for a current listing. Without
-      // this, a decades-long run would accumulate one entry per candidate
-      // who ever passed through the pool, unlike courseIds/buildableIds,
-      // which are bounded by the fixed catalogue size (see types.ts's
-      // SeenState).
-      const listedIds = new Set(s.candidates.map((c) => c.id));
-      for (const id of Object.keys(s.seen.candidateIds)) {
-        if (!listedIds.has(id)) delete s.seen.candidateIds[id];
-      }
       return s;
     }
 
@@ -259,12 +247,9 @@ export function reducer(state: GameState, action: Action): GameState {
       const idx = s.candidates.findIndex((c) => c.id === action.facultyId);
       if (idx !== -1) {
         const [hired] = s.candidates.splice(idx, 1);
-        // weeksListed is the pool's clock, tenureWeeks is the roster's:
-        // clearing it here is what moves them from one to the other, so a
-        // hire never carries a stale listing age (and can never be aged
-        // out of a job they already hold).
-        hired.weeksListed = 0;
-        s.faculty.push(hired);
+        // The one appointment path, shared with the visiting-chair event
+        // (see facultySystem.ts's appointFaculty).
+        appointFaculty(s, hired);
       }
       return s;
     }
@@ -316,12 +301,12 @@ export function reducer(state: GameState, action: Action): GameState {
     // still counts as eligible: the slot that course occupies is already
     // theirs, so a full professor must not be judged unable to go on
     // teaching something they are teaching right now.
-    // Commissioning scholarship. The gate is deliberately strict, because
+    // Commissioning research. The gate is deliberately strict, because
     // this is the most expensive commitment in the game: the facility must
     // be finished and free, the topic real, the team the right size, every
     // field the topic names covered, nobody already committed elsewhere,
     // and the funding payable in full up front — the same "charge at the
-    // moment of the decision" rule every Buildable follows, so scholarship
+    // moment of the decision" rule every Buildable follows, so research
     // borrows the pacing model rather than inventing a second one.
     //
     // And then it takes the team's teaching. Their assignments are cleared
@@ -363,17 +348,39 @@ export function reducer(state: GameState, action: Action): GameState {
         grantIncome: 0,
       };
 
-      const orphaned = s.tech.filter(
-        (t) => action.facultyIds.includes(s.courseFaculty[t.id]) && (t.status === 'developing' || t.status === 'done'),
-      );
-      for (const course of orphaned) delete s.courseFaculty[course.id];
+      // Only the EXCESS teaching moves. A commitment costs two course
+      // slots (see techSystem.ts's RESEARCH_COMMITMENT_SLOTS), so each
+      // member keeps what their reduced load still covers and sheds the
+      // rest, lowest tier first — the star keeps the capstone. The shed
+      // set is computed by the same function ResearchTab warns with, so
+      // what the player was told and what happens cannot drift apart.
+      //
+      // Written BEFORE the initiative is recorded would be wrong: the team
+      // is committed as of the line above, and this reads the world as it
+      // now is except for the one thing it must not (see
+      // coursesShedByCommitment's own note on why it does not call
+      // effectiveCourseSlots).
+      const coverage = planCommitmentCoverage(s, action.facultyIds);
+      for (const course of coverage.shed) delete s.courseFaculty[course.id];
+      for (const { course, instructor } of coverage.covered) s.courseFaculty[course.id] = instructor.id;
 
+      // Two different facts, reported as two: a department that absorbed
+      // the load is not the same news as a course nobody can teach, and
+      // the player can act on each (hire, or reassign, or leave it).
+      const { covered, orphaned } = coverage;
+      const moved = `${covered.length} of its team's ${coverage.shed.length} courses moved to colleagues`;
+      const open = `${orphaned.length} ${orphaned.length === 1 ? 'course is' : 'courses are'} without an instructor`;
+      const consequence = covered.length > 0 && orphaned.length > 0
+        ? ` ${moved}; ${open}.`
+        : covered.length > 0
+          ? ` ${moved}.`
+          : orphaned.length > 0
+            ? ` ${open} while its team is committed.`
+            : '';
       s.log.unshift({
         year: s.clock.year,
         week: s.clock.week,
-        message: orphaned.length > 0
-          ? `“${topic.name}” has begun at ${lab.name}. ${orphaned.length} ${orphaned.length === 1 ? 'course is' : 'courses are'} without an instructor while its team is committed.`
-          : `“${topic.name}” has begun at ${lab.name}.`,
+        message: `“${topic.name}” has begun at ${lab.name}.${consequence}`,
         kind: orphaned.length > 0 ? 'info' : 'good',
       });
       return s;
@@ -544,12 +551,27 @@ export function reducer(state: GameState, action: Action): GameState {
     // types.ts's SeenState and the alert-badge module comment there).
     // Purely additive — nothing here ever un-sees an id — so this can
     // never resurrect a badge, only retire one.
+    // A gated tab's gate has opened (see TabNav.tsx's TAB_GATES). Idempotent
+    // through the seen bucket rather than through the caller being careful:
+    // App.tsx dispatches this from an effect, which runs twice under
+    // StrictMode and again for any render in between, and however many times
+    // that happens the log must carry one line.
+    case 'NOTE_TAB_AVAILABLE': {
+      if (s.seen.tabIds[action.id]) return state;
+      s.seen.tabIds[action.id] = true;
+      if (action.announce) {
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: `The ${action.label} view is now available.`,
+          kind: 'good',
+        });
+      }
+      return s;
+    }
+
     case 'MARK_SEEN': {
-      const bucket = action.kind === 'course'
-        ? s.seen.courseIds
-        : action.kind === 'buildable'
-          ? s.seen.buildableIds
-          : s.seen.candidateIds;
+      const bucket = action.kind === 'course' ? s.seen.courseIds : s.seen.buildableIds;
       for (const id of action.ids) bucket[id] = true;
       return s;
     }
@@ -636,7 +658,7 @@ export function reducer(state: GameState, action: Action): GameState {
       s.log.unshift({
         year: s.clock.year,
         week: s.clock.week,
-        message: `Admissions: tuition $${s.finance.tuitionPerStudent.toLocaleString()}/yr, ${Math.round(s.admissions.scholarshipRate * 100)}% scholarships — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admit rate, ${outcome.enrolled} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
+        message: `Admissions: tuition $${s.finance.tuitionPerStudent.toLocaleString()}/yr, ${Math.round(s.admissions.scholarshipRate * 100)}% scholarships — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admit rate, ${outcome.enrolled.toLocaleString()} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
         kind: 'info',
       });
 
@@ -683,7 +705,7 @@ export function reducer(state: GameState, action: Action): GameState {
     // acclaim, and with it their higher salary and research output, plus
     // the school's prestige credit — landed the week the prize was won.
     // Advances the clock, like every other trailing interrupt.
-    case 'RESOLVE_PRIZE': {
+    case 'RESOLVE_RESEARCH_REPORT': {
       s.pendingInterrupt = null;
       advanceClock(s);
       return s;
@@ -792,8 +814,14 @@ export function reducer(state: GameState, action: Action): GameState {
     // the loop can spend the cash or fill the faculty slot a later one
     // needed.
     case 'DEVELOP_ALL_AVAILABLE_COURSES': {
-      for (const node of s.tech) {
-        if (node.kind === 'course' && canStartDevelopment(s, node)) startDevelopment(s, node);
+      // Driven by the same plan the button quotes (see techSystem.ts's
+      // developAllPlan), so what the player was told it would cost is what
+      // it costs. Each start is still re-checked against the live state as
+      // the cash and the slots go: the plan decides WHICH, and
+      // canStartDevelopment remains the authority on whether.
+      for (const id of developAllPlan(s).ids) {
+        const node = s.tech.find((t) => t.id === id);
+        if (node && canStartDevelopment(s, node)) startDevelopment(s, node);
       }
       return s;
     }

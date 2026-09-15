@@ -202,6 +202,16 @@ button { cursor: pointer; font-family: inherit; }
 .speeds button.sandbox.active { background: #a67c1c; color: #14161a; border-color: #a67c1c; }
 /* The playtest-only "+$1B" grant button — same sandbox palette as the
    Fast speed button, so both read as the same "not normal play" register. */
+/* Develop All (CurriculumTab.tsx). An ordinary control now rather than a
+   playtest one, so it wears the panel's own register rather than the
+   dashed sandbox outline the +$1B grant keeps: it works inside the game's
+   constraints instead of breaking them. It carries a price, so it reads
+   like the other things in the game that do. */
+.develop-all-btn { background: #f0e8d1; color: var(--ink); border: 1px solid var(--gold-dim);
+  border-radius: var(--radius-sm); padding: 3px 10px; font-family: var(--mono);
+  font-size: var(--text-xs); white-space: nowrap; }
+.develop-all-btn:hover { background: var(--gold-dim); color: #fff8e8; }
+
 .grant-funds-btn { background: #3a2f1c; color: var(--warn-on-dark); border: 1px dashed #a67c1c; border-radius: var(--radius-sm);
   padding: 5px 10px; font-size: var(--text-xs); font-weight: 700; }
 .grant-funds-btn:hover { background: #a67c1c; color: #14161a; }
@@ -232,8 +242,19 @@ button { cursor: pointer; font-family: inherit; }
    clock) — with the two side zones sharing the remaining space evenly so
    the middle cluster is never pushed off-center by one side outweighing
    the other. */
+/* WRAPS AT EVERY WIDTH, not only at a breakpoint. The three zones hold
+   content that cannot shrink — a money figure, a row of round buttons, the
+   school's name — so a zone squeezed narrower than its contents does not
+   shrink, it OVERFLOWS into its neighbour (which is how the speed buttons
+   came to sit on top of the Build pill). Wrapping means the band answers
+   that by taking another line whenever it genuinely needs one, at whatever
+   width that turns out to be, rather than by trusting a breakpoint to have
+   guessed right — it also covers the playtest-only controls, which are
+   exactly the case no breakpoint was chosen for. The band's real height is
+   measured, not assumed (see useCssHeightVar), so a second line just insets
+   the map further and every tile stays reachable. */
 .toolbar { position: fixed; z-index: 10; left: 0; right: 0; bottom: 0;
-  display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px;
   background: var(--navy); border-top: 1px solid var(--navy-line);
   padding: 8px 16px; }
 
@@ -564,7 +585,14 @@ button { cursor: pointer; font-family: inherit; }
    before hovering — "its field is full" and "how far along is it" — are
    simply visible. */
 .cell-gate-dot { position: absolute; top: 3px; right: 3px; width: 5px; height: 5px; border-radius: 50%;
-  background: var(--bad-on-light); box-shadow: 0 0 0 1px rgba(255, 253, 246, 0.7); }
+  box-shadow: 0 0 0 1px rgba(255, 253, 246, 0.7); }
+/* Two states, because they call for opposite actions (see techSystem.ts's
+   facultyGate): amber means the department is full but somebody is on the
+   market, so this is one appointment away; red means full with nobody
+   listed, and only time fixes it. The same two registers the rest of the
+   game uses for "act on this" and "you cannot". */
+.cell-gate-dot.hireable { background: var(--warn-on-light); }
+.cell-gate-dot.blocked { background: var(--bad-on-light); }
 .cell-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(109, 86, 16, 0.18); }
 .cell-progress-fill { display: block; height: 100%; background: var(--brass-deep); transition: width 0.25s ease; }
 
@@ -654,7 +682,7 @@ button.build-tile { font-family: inherit; }
    constants — SVG user units, not CSS. Only the brass/ink/parchment palette
    and the layout box are here.
    The map is a fixed, full-viewport layer BEHIND everything (z-index: 0 —
-   see .app's z-index: 10 above and .tab-overlay-backdrop / .modal-backdrop
+   see .app's z-index: 10 above and .tab-overlay / .modal-backdrop
    further down): it is App.tsx's first rendered element, a plain sibling
    of `.app` rather than a child of it, so the chrome grid's own box is
    never between the map and the cursor. `.campus-map` itself still bleeds
@@ -713,8 +741,19 @@ button.build-tile { font-family: inherit; }
 .building-info-close:hover { border-color: var(--gold-dim); color: var(--ink); }
 .building-info-line { margin: 0 0 6px; font-size: var(--text-sm); line-height: 1.4; color: var(--ink); }
 .building-info-majors { margin: 0 0 8px; padding-left: 18px; font-size: var(--text-sm); line-height: 1.5; color: var(--ink); }
-.building-info-completion { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; }
+.building-info-completion { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; flex-wrap: wrap; }
 .building-info-completion .stat { font-size: var(--text-xs); }
+/* How much of the school exists, then how it is doing — the same chip and
+   ramp the curriculum's own headings use (see BuildingInfoPanel.tsx). */
+.building-info-grade { display: inline-flex; align-items: center; gap: 6px; }
+/* The way back to the courses this hall stands for. A full-width control
+   rather than a link in the prose: it is the one thing on this panel that
+   DOES something, and the panel is small enough that a quiet link would be
+   missed. */
+.building-info-jump { display: block; width: 100%; margin-top: 8px; padding: 5px 8px;
+  background: #f0e8d1; color: var(--ink); border: 1px solid var(--gold-dim);
+  border-radius: var(--radius-sm); font-family: var(--mono); font-size: var(--text-xs); }
+.building-info-jump:hover { background: var(--gold-dim); color: #fff8e8; }
 
 /* MainMenu: the hamburger overlay in the map's top-right corner (see
    MainMenu.tsx) carrying what the old topbar's control bar used to —
@@ -1034,82 +1073,52 @@ button.build-tile { font-family: inherit; }
    against, now that the map is a full-viewport background rather than a
    column inside one. The dimmed backdrop also does double duty as the
    "push the map back" scrim while a tab is open. */
-/* Overlays ARRIVE rather than snapping into place: the backdrop fades, the
-   sheet rises the last few pixels under it. Short enough that it never
-   stands between the player and the screen they asked for.
-   Safe to add now in a way it was not before — the blanket
-   prefers-reduced-motion rule at the top of this file collapses both to a
-   single frame for anyone who has asked for less movement. */
-.tab-overlay-backdrop { position: fixed; inset: 0; z-index: 60; display: flex;
-  align-items: flex-start; justify-content: center; padding: 12px 16px 20px;
-  background: rgba(10, 11, 14, 0.55);
+/* Overlays ARRIVE rather than snapping into place: the panel fades in.
+   Short enough that it never stands between the player and the screen they
+   asked for. Safe in a way it was not before — the blanket
+   prefers-reduced-motion rule at the top of this file collapses it to a
+   single frame for anyone who has asked for less movement.
+
+   ONE SHAPE (see TabOverlay.tsx). There used to be two: a centred sheet on
+   a dimmed backdrop at z-index 60, and this. The sheet is retired — every
+   tab is a screen now — and with it went the backdrop element, the scrim,
+   and the click-to-dismiss that only the sheet ever had.
+
+   The layering is the crux. This panel is the screen rather than a thing
+   standing in front of one, so it drops BELOW the dock's own layers
+   (.log-ticker's 5 and .toolbar's 10 — both further up this file) while
+   staying inside `.app`, which is itself above the map. Hence 3: above
+   nothing else in the chrome layer, and that is exactly right. */
+.tab-overlay { position: fixed; inset: 0; z-index: 3; display: flex; flex-direction: column;
+  background: var(--navy);
   animation: overlay-fade 140ms ease-out; }
-.tab-overlay { width: 100%; max-width: 1180px; max-height: 100%; display: flex; flex-direction: column;
-  background: var(--navy); border: 1px solid var(--gold-dim); border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-3);
-  animation: overlay-rise 160ms cubic-bezier(0.2, 0.8, 0.3, 1); }
 
 @keyframes overlay-fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes overlay-rise {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: none; }
-}
 .tab-overlay-head { display: flex; justify-content: space-between; align-items: center; gap: 12px;
-  padding: 11px 18px; border-bottom: 2px solid var(--gold); flex: none; }
+  padding: 11px 18px; border-bottom: 2px solid var(--gold); flex: none;
+  /* The bottom dock is not the only chrome laid over this panel: the
+     main-menu hamburger floats in the top-right corner at z-index 11 (see
+     .main-menu below), which is over this panel's 3 and therefore over the
+     close button. Reserve the space rather than draw under it: 40px button
+     + 16px inset + a 12px breath. */
+  padding-right: 68px; }
 .tab-overlay-head h2 { margin: 0; font-family: var(--serif); text-transform: uppercase;
   letter-spacing: 0.1em; font-size: var(--text-md); color: var(--gold); }
 .tab-overlay-close { background: transparent; border: 1px solid var(--navy-line); color: #c7cee0;
   border-radius: var(--radius-sm); padding: 4px 12px; font-size: var(--text-xs); font-family: var(--mono); }
 .tab-overlay-close:hover { border-color: var(--gold); color: var(--gold); }
-/* Generous bottom padding so the last row of any panel doesn't end flush
-   against the scroll box. The curriculum's tooltips no longer depend on it:
-   they flip above their cell when there isn't room below (see
-   CurriculumTab.tsx). */
-.tab-overlay-body { overflow-y: auto; padding: 14px 18px 40px; }
-.tab-overlay-body::-webkit-scrollbar { width: 8px; }
-.tab-overlay-body::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: var(--radius-sm); }
-.tab-overlay-body { scrollbar-width: thin; scrollbar-color: var(--navy-line) transparent; }
-
-/* ---------- full-bleed tabs ----------
-   The second shape of the same frame (see TabOverlay.tsx). The panel takes
-   the whole viewport and the bottom dock is laid OVER it, so a view the
-   player works in keeps its own tools reachable without closing it first.
-
-   The layering is the crux, and it is the one rule the two shapes disagree
-   about. A sheet sits at z-index 60, above everything in `.app` including
-   the toolbar, because a sheet is a thing standing IN FRONT of the screen.
-   A full-bleed tab is the screen, so it drops BELOW the dock's own layers
-   (.log-ticker's 5 and .toolbar's 10 — both further up this file) while
-   staying inside `.app`, which is itself above the map. Hence 3: above
-   nothing else in the chrome layer, and that is exactly right.
-
-   Nothing here fights the sheet rules above — every property the two shapes
-   differ on is re-stated, so neither depends on the other's leftovers. */
-.tab-overlay-backdrop.full-bleed { z-index: 3; padding: 0; align-items: stretch;
-  /* No scrim: the panel covers the map edge to edge, so a dim behind it
-     would only be compositing something nobody can see. */
-  background: none; }
-.tab-overlay.full-bleed { max-width: none; max-height: none; height: 100%;
-  border: none; border-radius: 0; box-shadow: none;
-  /* Fade only. The sheet's 8px rise would open an 8px gap under a panel
-     that is exactly viewport-tall, which reads as the screen slipping. */
-  animation: overlay-fade 140ms ease-out; }
 /* The dock is opaque and always on screen, so the last row of a tab drawn
    behind it would be visible-but-unreachable — the same trap
    .campus-map-canvas insets away from, answered with the same two figures.
-   The 40px the sheet already reserves stays on top of them, so a panel's
-   final row still ends clear of the ticker rather than flush against it. */
-.tab-overlay.full-bleed .tab-overlay-body {
+   The 40px on top of them is so a panel's final row ends clear of the
+   ticker rather than flush against it; the curriculum's tooltips no longer
+   depend on it, since they flip above their cell when there isn't room
+   below (see CurriculumTab.tsx). */
+.tab-overlay-body { overflow-y: auto; padding: 14px 18px;
   padding-bottom: calc(var(--toolbar-height) + var(--log-ticker-height) + 40px); }
-/* The bottom dock is not the only chrome laid over a full-bleed tab: the
-   main-menu hamburger floats in the top-right corner at z-index 11 (see
-   .main-menu below), which is over this panel's 3 and therefore over the
-   head's own close button. A sheet never has to think about it — at
-   z-index 60 the sheet is above the corner overlays too — so this is
-   full-bleed's to answer, and it answers it the same way the body answers
-   the dock: reserve the space rather than draw under it. 40px button +
-   16px inset + a 12px breath. */
-.tab-overlay.full-bleed .tab-overlay-head { padding-right: 68px; }
+.tab-overlay-body::-webkit-scrollbar { width: 8px; }
+.tab-overlay-body::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: var(--radius-sm); }
+.tab-overlay-body { scrollbar-width: thin; scrollbar-color: var(--navy-line) transparent; }
 
 /* ---------- the curriculum map ----------
    Three levels over the SAME revealed set progressive discovery already
@@ -1555,9 +1564,12 @@ button.build-tile { font-family: inherit; }
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 .satisfaction-card { border: 1px solid var(--parchment-line-lo); border-radius: var(--radius-lg);
   background: #f5efdd; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-/* An open card spans the full width of the grid, so the source list under
-   it has room to be a list rather than a column of wrapped fragments. */
-.satisfaction-card.open { grid-column: 1 / -1; }
+/* An open card deliberately does NOT span the row. It used to
+   (grid-column: 1 / -1), which meant expanding one card shoved every card
+   after it onto a new line — the whole panel reflowed to read one
+   breakdown. It grows in height inside its own column instead, and
+   grid-auto-flow: row dense above absorbs the ragged bottom edge that
+   leaves. */
 .satisfaction-card-head { display: flex; align-items: center; gap: 10px; }
 .satisfaction-card-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .satisfaction-card-label { font-weight: 700; font-size: var(--text-md); }
@@ -1616,22 +1628,28 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   display: flex; flex-direction: column; gap: 8px; }
 .faculty-card { background: #f6f1e0; border: 1px solid var(--parchment-line-lo);
   border-radius: var(--radius-md); padding: 8px 10px; }
-/* A candidate in a field the school is actually short in gets a brass edge.
-   It was a word on a meta line before, which is the sort of thing you read
-   only if you were already looking at that row. */
-.faculty-card.needed { border-color: var(--gold-dim); box-shadow: inset 2px 0 0 var(--gold-dim); }
+/* A scholar on a research project gets a brass edge. The short-field
+   highlight this replaces was for the retired hiring loop — with the roster
+   grouped by field, a department's shortage is its own header's arithmetic,
+   while "this person is committed for the next three years" is a fact about
+   the PERSON and belongs on their card. */
+.faculty-card.committed { border-color: var(--gold-dim); box-shadow: inset 2px 0 0 var(--gold-dim); }
 .faculty-card-main { display: flex; align-items: flex-start; gap: 10px; }
 .faculty-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .faculty-card-head { display: flex; align-items: baseline; gap: 6px; }
 .faculty-card-spacer { flex: 1; }
 .faculty-name { font-weight: 700; font-size: var(--text-base); color: var(--ink);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* The research-prize badge: permanent, and the only mark on a card that
+/* The award badge on a concluded project's card: permanent, and the only mark on a card that
    isn't derived from stats (see types.ts's Faculty.acclaim). */
 .faculty-acclaim { color: var(--gold); font-size: var(--text-sm); letter-spacing: 1px; flex: none; }
 .faculty-card-field { font-size: var(--text-xs); color: var(--ink-muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.faculty-needed { color: var(--ok-on-light); font-weight: 700; }
+.faculty-commitment { color: var(--gold-dim); }
+.faculty-commitment strong { color: var(--ink); font-weight: 700; }
+.faculty-commitment-left { color: var(--ink-muted); }
+.faculty-card-teaching.idle { color: var(--ink-lo); font-style: italic; }
+.faculty-card-listing { color: var(--ok-on-light); font-weight: 700; }
 
 /* Teaching and research. Two bars beat two numbers here because the job on
    this screen is COMPARING people, and the headroom behind the fill is the
@@ -1705,15 +1723,51 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    height instead of leaving it a mismatched short card. Course Slots only
    renders once a school has gated courses; when it's absent, Research
    spans the row instead of leaving an empty gutter (see FacultyTab.tsx). */
-.faculty-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.faculty-columns .panel { display: flex; flex-direction: column; }
-.faculty-columns .faculty-list { max-height: 560px; flex: 1; min-height: 0; }
+/* ---------- the roster, by field ----------
+   One section per department, flowing into as many columns as the width
+   allows. A department is a SHORT block — four or five cards at most — so
+   the list inside it is not independently scrollable the way the old
+   single roster panel had to be: scrolling a scroll box inside a scrolling
+   page is the worst of both, and with the tab full-bleed (see
+   TabOverlay.tsx) the page has the height to spend.
 
-/* The market's field filter — the other half of making a 30-name list
-   scannable, alongside sorting short-handed fields to the top. */
-.candidate-filter { margin-bottom: 8px; }
-.candidate-filter select { width: 100%; padding: 6px 8px; border-radius: var(--radius-sm); border: 1px solid var(--parchment-line);
-  background: #f8f3e6; color: var(--ink); font-family: inherit; font-size: var(--text-sm); }
+   The columns are masonry-ish rather than a grid of equal rows: `columns`
+   keeps a two-card department from being stretched to the height of an
+   eight-card one, and break-inside keeps a section from being split down
+   the middle of somebody's card. */
+.faculty-fields { columns: 2; column-gap: 16px; }
+.faculty-field { break-inside: avoid; display: inline-block; width: 100%;
+  margin: 0 0 16px; padding: 10px 12px;
+  background: var(--parchment); border: 1px solid var(--parchment-line);
+  border-radius: var(--radius-lg); }
+.faculty-field-head { display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; margin-bottom: 8px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--parchment-line-lo); }
+.faculty-field-head h3 { margin: 0; font-family: var(--serif); font-size: var(--text-md);
+  color: var(--ink); text-transform: uppercase; letter-spacing: 0.06em; }
+/* A field section is not a .panel, so it does not inherit .panel .stat —
+   the slot arithmetic is the second most important thing in the header and
+   must not read as a watermark. */
+.faculty-field .stat { font-family: var(--mono); color: var(--ink-muted); font-size: var(--text-sm);
+  white-space: nowrap; }
+/* A department that cannot start the course waiting on it. Same alarmed
+   register the funds figure uses, because it is the same kind of fact: a
+   thing the school wants to do and currently cannot. */
+.faculty-field-short { color: var(--danger-ink); font-weight: 700; }
+.faculty-field .faculty-list { max-height: none; overflow: visible; }
+/* The market, underneath the people who already work here, separated
+   rather than in a panel of its own. */
+.faculty-market-head { display: flex; align-items: baseline; justify-content: space-between;
+  gap: 8px; margin: 10px 0 6px; padding-top: 8px;
+  border-top: 1px dashed var(--parchment-line-lo);
+  font-family: var(--mono); font-size: var(--text-2xs); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ink-muted); }
+.faculty-summary .panel-head { flex-wrap: wrap; }
+.faculty-summary .panel-head .stat + .stat { margin-left: 12px; }
+
+@media (max-width: 1100px) {
+  .faculty-fields { columns: 1; }
+}
 
 /* The always-visible second line on a candidate row: field, stats, price,
    and how long the listing has left. Deliberately mono and small — it is
@@ -1783,7 +1837,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .statement-net .statement-line-amount { font-size: var(--text-lg); }
 
 /* Endowment Campaign and Balance & Policy paired half-width below the
-   full-width income statement — same two-column idiom as .faculty-columns
+   full-width income statement — same two-column idiom as the student-life
    and .student-life-columns. align-items: start (the StudentLifeTab
    precedent) rather than stretch: Endowment Campaign's early-game empty
    note is much shorter than Balance & Policy's full dl, and stretching it
@@ -1939,15 +1993,16 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    a current number and nothing else — no trend, no sparkline (see
    StudentLifeTab.tsx).
 
-   Panels lay out two-up rather than stacked full-width, same reasoning as
-   .faculty-columns: a single-column stack of short panels means a lot of
-   scrolling past wide empty gutters either side of a narrow dl/list. The
+   Panels lay out two-up rather than stacked full-width, for the same
+   reason the roster flows into columns: a single-column stack of short
+   panels means a lot of scrolling past wide empty gutters either side of a
+   narrow dl/list. The
    grid is left to auto-flow its panels two per row (Demand + Effect, then
    Clubs + Chapters); Awaiting Recognition spans both columns when present,
    since it is occasional and reads better as one wide strip than paired
    arbitrarily with whichever panel precedes it. */
 .student-life-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
-.student-life-columns .panel-span-2, .faculty-columns .panel-span-2 { grid-column: 1 / -1; }
+.student-life-columns .panel-span-2 { grid-column: 1 / -1; }
 .panel-count { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted); white-space: nowrap; }
 .org-list { max-height: 320px; overflow-y: auto; margin: 0; padding: 0; }
 .org-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
@@ -2048,26 +2103,38 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    The map stays the background at every width — there's no scrolling-
    document fallback any more (see .app / .campus-map above): a floating
    HUD over a persistent world is the point of this layout, not something
-   that only holds above 1000px. Below this breakpoint the toolbar's three
-   zones wrap onto their own lines (left stats, then the tab cluster, then
-   the school/clock/speed zone) rather than overlaps or off-screen content.
+   that only holds above 1000px.
+
+   TWO STEPS, because the band has three zones whose contents cannot shrink
+   (a figure, a row of round buttons, the school's name) and a flex item
+   that is squeezed narrower than its contents simply overflows into its
+   neighbour — which is exactly what the speed buttons did to the Build
+   pill once the home button joined the row.
+
+   First the middle cluster gives up what it can afford to: the Build pill
+   sheds its word (the icon is the same one the popup's own header carries)
+   and every icon button drops a few pixels. Then, when even that does not
+   fit, the three zones wrap onto their own lines — left stats, tab cluster,
+   school/clock/speed — rather than overlapping or running off-screen. The
+   toolbar's real height is measured, not assumed (see useCssHeightVar), so
+   a taller band just insets the map further and every tile stays reachable.
+
    Genuinely phone-narrow widths are a lighter touch here — the campus grid
    wants real width to read, and playing it that small is out of scope for
    this pass. */
-@media (max-width: 640px) {
+@media (max-width: 1400px) {
+  .toolbar { gap: 12px; }
+  .toolbar-build-label { display: none; }
+  .toolbar-icon-btn { width: 36px; height: 36px; }
+  .toolbar-build-btn { width: auto; padding: 0 12px; }
+}
+
+@media (max-width: 1150px) {
   .toolbar { flex-wrap: wrap; gap: 10px; padding: 8px 10px; justify-content: center; }
   .toolbar-left, .toolbar-right { flex-basis: 100%; justify-content: center; }
-  .toolbar-build-label { display: none; }
 }
 
 @media (max-width: 760px) {
-  .tab-overlay-backdrop:not(.full-bleed) { align-items: center; padding: 12px; }
-  .tab-overlay:not(.full-bleed) { max-height: 88vh; }
-  /* Half-width roster/market columns need real width to stay readable —
-     a candidate's field, stats, price and deadline share one line. Stack
-     them here, market first: it is the panel with a deadline on it. */
-  .faculty-columns { grid-template-columns: 1fr; }
-  .faculty-columns .faculty-list { max-height: 420px; }
   .student-life-columns { grid-template-columns: 1fr; }
   .treasury-columns { grid-template-columns: 1fr; }
   /* The drawer stacks ABOVE the catalogue here, not below: it is what the

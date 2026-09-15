@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGame } from './engine/useGame';
 import { useHotkeys } from './components/hotkeys';
 import type { GameState } from './state/types';
 import StartupScreen from './components/StartupScreen';
 import MainMenu from './components/MainMenu';
 import InterruptModal from './components/InterruptModal';
-import { TAB_LABELS, type TabId } from './components/TabNav';
+import { GATED_TABS, TAB_LABELS, tabAvailable, type TabId } from './components/TabNav';
 import CampusMap from './components/CampusMap';
 import Toolbar from './components/Toolbar';
 import LogTicker from './components/LogTicker';
@@ -35,6 +35,34 @@ import './styles.css';
 // player's cursor and the map — `.app` is pointer-events: none with only
 // its direct children (the actual floating cards) re-enabled, so a click
 // anywhere the chrome is visually empty falls straight through to the map.
+//
+// EVERY TAB IS A SCREEN. There is one overlay shape, not two. This module
+// used to name a FULL_BLEED_TABS subset and argue for the split: that
+// Treasury, Admissions and History are read-and-leave pages where a full
+// screen would only make a short page look empty, and where keeping the map
+// visible around the edges reminds the player they are one Escape away from
+// it. That argument loses to the one the playtest notes make. A shell that
+// answers "what happens when I click a tab?" the same way every time is
+// worth more than a per-tab fit, and almost every other note in those notes
+// — the Faculty rework, build mode never overlaying a tab, Space closing a
+// tab instead of pausing — was downstream of the shell not having settled
+// this one question. So: the panel takes the viewport, the dock is laid over
+// it, and the player leaves by Escape, the close button, or the home button
+// at the head of the toolbar's icon row.
+//
+// BUILD AND A TAB ARE THE SAME SLOT, which is the other half of the same
+// decision. Build mode only means anything while the player is looking at
+// the map, so the two states are mutually exclusive by construction rather
+// than by anyone remembering: opening the build popup sets `overlay` to
+// null, and opening any tab closes the popup. Clicking Build from inside a
+// tab therefore reads as one action — the tab closes, the map is there, the
+// build menu is open over it. This is the same kind of invariant, one layer
+// up, as the "only one of build-pickup and path-tool is ever live" rule
+// further down.
+//
+// AND ONE ESCAPE LADDER, which is the same decision read backwards: if the
+// shell owns what is open, the shell owns the key that backs out of it. See
+// the handler below for the rungs.
 //
 // The tab components themselves are untouched by this: they still read
 // their slice of GameState and dispatch actions exactly as before, and know
@@ -74,29 +102,19 @@ const TAB_HOTKEYS: Record<string, TabId> = {
   l: 'studentlife',
 };
 
-// Which tabs open as a FULL-BLEED screen rather than as a sheet floating
-// over the map — the panel takes the whole viewport and the bottom dock
-// (log ticker + toolbar) is laid over it (see TabOverlay.tsx, which draws
-// both shapes, and styles.css, which layers them).
-//
-// Deliberately a short list rather than the default. Full bleed is for a
-// view the player WORKS IN: a large canvas that wants every pixel and wants
-// its own tools reachable without closing it first. Curriculum is that view
-// — 421 courses across 42 majors is a map, and it was pinched into a
-// centred card. Treasury, Admissions and History are read-and-leave pages
-// where a full screen would only make a short page look empty, and where
-// keeping the map visible around the edges is the reminder that you are one
-// Escape away from it.
-//
-// Adding a tab here is the whole change: the tab components know nothing
-// about which shape frames them.
-const FULL_BLEED_TABS: readonly TabId[] = ['curriculum', 'research'];
-
 export default function App() {
-  const { state, act, speed, setSpeed } = useGame();
+  const { state, act, speed, setSpeed, weekProgress } = useGame();
   const s: GameState = state;
   // null = looking at the map itself, with nothing open over it.
-  const [overlay, setOverlay] = useState<TabId | null>(null);
+  //
+  // A tab plus an OPTIONAL TARGET inside it, rather than a bare TabId: some
+  // ways of opening a tab are about a specific thing in it — a hall on the
+  // map offering "open this school in the Curriculum" — and the alternative
+  // is a second channel running alongside this one, which is how two
+  // sources of truth about what is open get started. The target is consumed
+  // by the tab and cleared (see onTargetConsumed below), so clicking the
+  // same hall twice arrives twice rather than once.
+  const [overlay, setOverlay] = useState<{ tab: TabId; target?: string } | null>(null);
   // Which placeable Buildable (building/dorm/facility) is currently picked
   // up for siting, if any, and which path-drawing tool (if any) is active —
   // the two pieces of CampusMap's transient UI state that have to live here
@@ -109,6 +127,16 @@ export default function App() {
   // either one.
   const [placingId, setPlacingIdState] = useState<string | null>(null);
   const [pathTool, setPathToolState] = useState<'draw' | 'erase' | null>(null);
+  // Whether the build popup is open. It lives here rather than in Toolbar,
+  // where it used to, because it is not the toolbar's private business: it
+  // and `overlay` are two states of ONE slot (see the module comment), and
+  // this is the nearest common ancestor of both — the same reason placingId
+  // and pathTool are already here.
+  const [buildOpen, setBuildOpenState] = useState(false);
+  // And whether the activity-log popup is open, up here for the same reason
+  // one rung further down: it is the innermost thing the shell can have
+  // open, so Escape has to be able to see it (see the ladder below).
+  const [logOpen, setLogOpen] = useState(false);
   const toolbarRef = useCssHeightVar('--toolbar-height');
 
   // C / F / L open the three views that get opened most (see TAB_HOTKEYS).
@@ -119,8 +147,46 @@ export default function App() {
     if (s.pendingInterrupt) return;
     const tab = TAB_HOTKEYS[e.key.toLowerCase()];
     if (!tab) return;
-    setOverlay((cur) => (cur === tab ? null : tab));
+    // openTab refuses an unavailable tab, so a letter cannot route to a
+    // view the toolbar is not offering (see tabAvailable). None of C/F/L is
+    // gated today; this is so that stays true if one ever is.
+    openTab(overlay?.tab === tab ? null : tab);
   }, s.started);
+
+  // A GATE OPENING IS NEWS. Research, Athletics and History each appear the
+  // week the thing they are about becomes real (TabNav.tsx's TAB_GATES), and
+  // a ninth icon quietly arriving in a row of eight is a tab nobody
+  // notices — so the first time each gate is found open, the log says so.
+  //
+  // Except on the first render of a run, which seeds the same bookkeeping
+  // SILENTLY: a resumed save arrives with its labs already built and its
+  // teams already playing, and announcing three views it has had for a
+  // decade would be a lie in the activity log. Everything after that first
+  // pass is a gate that genuinely opened while the player was watching.
+  // The ref holds the ids already reported, not just a "have we started
+  // yet" flag: a dispatch does not change `s` until the next render, and
+  // under StrictMode this effect runs twice before that render happens, so
+  // a flag alone would report the same gate twice — the second time as
+  // news.
+  const reportedGates = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!s.started) return;
+    const firstPass = reportedGates.current === null;
+    const reported = reportedGates.current ?? new Set<string>();
+    reportedGates.current = reported;
+    for (const id of GATED_TABS) {
+      if (!tabAvailable(s, id) || s.seen.tabIds[id] || reported.has(id)) continue;
+      reported.add(id);
+      act({ type: 'NOTE_TAB_AVAILABLE', id, label: TAB_LABELS[id], announce: !firstPass });
+    }
+  });
+
+  // A tab that is open when its own gate closes again (the last varsity
+  // team disbands) closes with it, rather than leaving the player inside a
+  // view the toolbar no longer offers a way back into.
+  useEffect(() => {
+    if (overlay && !tabAvailable(s, overlay.tab)) setOverlay(null);
+  }, [overlay, s]);
 
   // The map's own keys (W/A/S/D and the arrows to pan, P for the path tool,
   // R to rotate, Escape to back out) answer only while the player is
@@ -129,7 +195,11 @@ export default function App() {
   // closes the overlay rather than dropping a path tool behind it, and
   // panning a map nobody can see is just a camera that has moved by the
   // time they come back to it.
-  const mapHotkeysEnabled = overlay === null && s.pendingInterrupt === null;
+  // ...and only while nothing of the shell's own is open over it either:
+  // every one of those is a rung above the map on the Escape ladder below,
+  // and panning a map behind an open popup is a camera that has moved by
+  // the time the player comes back to it.
+  const mapHotkeysEnabled = overlay === null && !buildOpen && !logOpen && s.pendingInterrupt === null;
 
   // Picking up a building for siting and drawing/erasing a path are two
   // different jobs for the same click on the same grid, so exactly one is
@@ -145,6 +215,67 @@ export default function App() {
     setPlacingIdState(null);
   }
 
+  // Closing the build popup drops whatever path tool it had armed: a path
+  // tool is the popup's own control (it is only armed from in there, or by
+  // P), so it should not outlive the popup. A picked-up building is NOT
+  // dropped here — the popup carries no backdrop precisely so the map stays
+  // clickable underneath it, so collapsing the popup to see the ground you
+  // are about to build on is part of siting, not a cancellation of it.
+  function closeBuild() {
+    setBuildOpenState(false);
+    setPathToolState(null);
+  }
+
+  // THE ONE SLOT. Build mode only means anything while the player is looking
+  // at the map, so opening a tab closes the build popup and opening the
+  // build popup closes the tab; the two can never be live at once (see the
+  // module comment). Leaving the map for a full-screen tab also drops a
+  // picked-up building, which closeBuild deliberately does not: an armed
+  // ghost that survives behind a screen, still armed when the player comes
+  // back minutes later, is a click away from siting a building nobody meant
+  // to site.
+  function openTab(tab: TabId | null, target?: string) {
+    if (tab !== null && !tabAvailable(s, tab)) return;
+    setOverlay(tab === null ? null : { tab, target });
+    if (tab !== null) {
+      closeBuild();
+      setPlacingIdState(null);
+    }
+  }
+  function setBuildOpen(open: boolean) {
+    if (!open) {
+      closeBuild();
+      return;
+    }
+    setBuildOpenState(true);
+    setOverlay(null);
+  }
+
+  // ONE ESCAPE LADDER, top down, for the whole shell.
+  //
+  // Escape used to be bound in three places — TabOverlay, ToolbarPopup and
+  // CampusMap — with App arbitrating between the last two by switching the
+  // map's hotkeys off whenever an overlay was open. That was right as far as
+  // it went and did not cover the build popup at all, so Escape over an open
+  // build menu fell through to the map. Three components each binding the
+  // same key and guessing about the other two is the arbitration; it belongs
+  // in one place, and this is the only place that can see all of them.
+  //
+  // Top down: the innermost popup, then the build menu, then an open tab,
+  // then the map's own back-out (drop a path tool, drop a picked-up
+  // building, close an info panel) — which is not handled here but in
+  // CampusMap, whose hotkeys are enabled EXACTLY when this handler has
+  // nothing of its own to close, so the fall-through is the handoff.
+  //
+  // An interrupt outranks all of it: that modal halts the clock and must be
+  // answered, so Escape must not quietly dismantle the shell behind it.
+  useHotkeys((e) => {
+    if (e.key !== 'Escape' || s.pendingInterrupt) return;
+    if (logOpen) setLogOpen(false);
+    else if (buildOpen) closeBuild();
+    else if (overlay) openTab(null);
+  }, s.started);
+
   if (!s.started) {
     return <StartupScreen onStart={(name, schoolType) => act({ type: 'START_GAME', name, schoolType })} />;
   }
@@ -159,19 +290,23 @@ export default function App() {
         pathTool={pathTool}
         onSetPathTool={setPathTool}
         hotkeysEnabled={mapHotkeysEnabled}
+        onOpenCurriculum={(buildingId) => openTab('curriculum', buildingId)}
       />
       <MainMenu act={act} />
 
       <div className="app">
-        <LogTicker s={s} />
+        <LogTicker s={s} open={logOpen} onSetOpen={setLogOpen} />
         <Toolbar
           ref={toolbarRef}
           s={s}
           act={act}
-          active={overlay}
-          onChangeTab={setOverlay}
+          active={overlay?.tab ?? null}
+          onChangeTab={openTab}
+          buildOpen={buildOpen}
+          onSetBuildOpen={setBuildOpen}
           speed={speed}
           setSpeed={setSpeed}
+          weekProgress={weekProgress}
           placingId={placingId}
           onArmPlacement={setPlacingId}
           pathTool={pathTool}
@@ -179,19 +314,22 @@ export default function App() {
         />
 
         {overlay && (
-          <TabOverlay
-            title={TAB_LABELS[overlay]}
-            onClose={() => setOverlay(null)}
-            fullBleed={FULL_BLEED_TABS.includes(overlay)}
-          >
-            {overlay === 'faculty' && <FacultyTab s={s} act={act} />}
-            {overlay === 'curriculum' && <CurriculumTab s={s} act={act} />}
-            {overlay === 'research' && <ResearchTab s={s} act={act} />}
-            {overlay === 'treasury' && <TreasuryTab s={s} act={act} />}
-            {overlay === 'admissions' && <AdmissionsTab s={s} />}
-            {overlay === 'studentlife' && <StudentLifeTab s={s} />}
-            {overlay === 'athletics' && <AthleticsTab s={s} act={act} />}
-            {overlay === 'history' && <HistoryTab s={s} />}
+          <TabOverlay title={TAB_LABELS[overlay.tab]} onClose={() => openTab(null)}>
+            {overlay.tab === 'faculty' && <FacultyTab s={s} act={act} />}
+            {overlay.tab === 'curriculum' && (
+              <CurriculumTab
+                s={s}
+                act={act}
+                target={overlay.target}
+                onTargetConsumed={() => setOverlay((cur) => (cur ? { tab: cur.tab } : cur))}
+              />
+            )}
+            {overlay.tab === 'research' && <ResearchTab s={s} act={act} />}
+            {overlay.tab === 'treasury' && <TreasuryTab s={s} act={act} />}
+            {overlay.tab === 'admissions' && <AdmissionsTab s={s} />}
+            {overlay.tab === 'studentlife' && <StudentLifeTab s={s} />}
+            {overlay.tab === 'athletics' && <AthleticsTab s={s} act={act} />}
+            {overlay.tab === 'history' && <HistoryTab s={s} />}
           </TabOverlay>
         )}
 

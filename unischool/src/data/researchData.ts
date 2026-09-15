@@ -1,7 +1,7 @@
 import type { Faculty, GameState, InitiativeDepth } from '../state/types';
 import { RESEARCH_TOPICS, isCrossDisciplinary, type ResearchTopic } from './researchTopics';
 import { WEEKS_PER_YEAR } from '../state/types';
-import { researchSchools } from './techData';
+import { labFields, researchSchools } from './techData';
 
 // ---------------------------------------------------------------------
 // RESEARCH, AS AUTHORED DATA — the tuning and the output table.
@@ -206,7 +206,7 @@ export interface ResearchOutputDef {
 
 export const RESEARCH_OUTPUTS: readonly ResearchOutputDef[] = [
   // The bottom rung, and the reason it exists: the other three all cost
-  // enough that a young department's first decade of scholarship was a
+  // enough that a young department's first decade of research was a
   // long silence broken by a grant. A cheap, frequent output gives a
   // school something to show from its first year of having a facility at
   // all — and gives the humanities an output that reads right, since a
@@ -288,7 +288,7 @@ export function rollPrizeName(vocab: DisciplineVocab): string {
 // points and moves the same counter whoever produced it. What changes is
 // the WORDS, because "a breakthrough out of the university's labs" is
 // simply the wrong sentence about a history department, and a system that
-// can only describe scholarship as laboratory science is one that quietly
+// can only describe research as laboratory science is one that quietly
 // tells four schools their work does not count.
 //
 // Three things are named, not one. The first pass did only the outputs,
@@ -354,6 +354,13 @@ const DEFAULT_VOCAB: DisciplineVocab = {
   prizes: ['the Kellner Award for Scientific Achievement'],
 };
 
+// The one place the word "scholarship" survives outside admissions (see
+// the naming sweep: the research system is called research everywhere a
+// player can read it). Here it is not the system's name — it is the
+// Humanities' own word for the work, chosen by this table for exactly the
+// reason the table exists: "a breakthrough" is the wrong sentence about a
+// history department, and so is "a landmark work of research". Renaming it
+// would be the sweep overruling the thing the sweep is for.
 const DISCIPLINE_VOCAB: Record<string, DisciplineVocab> = {
   'Social Sciences & Humanities': {
     publication: 'monograph',
@@ -408,7 +415,7 @@ export function disciplineVocab(schoolName: string | null): DisciplineVocab {
 // team and a facility, and the facility is the half of that with a school.
 //
 // This replaced a campus-wide weighted draw across everyone producing
-// scholarship. That was the correct reading under the old model, where
+// research. That was the correct reading under the old model, where
 // production genuinely was the whole equipped roster trickling into one
 // pool and no output belonged to anybody in particular. Against
 // initiatives it is simply wrong, and visibly so: a project in the
@@ -427,7 +434,7 @@ export function facilitySchool(labId: string): string | null {
 }
 
 // =====================================================================
-// INITIATIVES — player-directed scholarship.
+// INITIATIVES — player-directed research.
 //
 // THE LAB IS THE SLOT. Each research facility hosts one initiative at a
 // time, and the record is keyed by the facility's own id, so "one per
@@ -466,24 +473,25 @@ export interface InitiativeDepthDef {
 }
 
 // Durations against WEEKS_PER_YEAR: six months, a year and a half, three
-// years, five. A Landmark Program costs four people's entire teaching load
-// for five years (see techSystem.ts's committed-faculty rule), which is
-// the real price of it — the money is the smaller half.
+// years, five. A Landmark Program costs four people two course slots each
+// for five years (see techSystem.ts's RESEARCH_COMMITMENT_SLOTS), which is
+// a real institutional commitment on top of the money — eight courses that
+// have to be covered by somebody else, or not offered.
 export const INITIATIVE_DEPTHS: readonly InitiativeDepthDef[] = [
   {
-    key: 'pilot', name: 'Pilot Study', participants: 1, weeks: 26, fundingWeeks: 0.5, intensity: 1,
+    key: 'pilot', name: 'Pilot Study', participants: 1, weeks: 26, fundingWeeks: 0.4, intensity: 1,
     blurb: 'One scholar, six months. Publications, and a grant now and then.',
   },
   {
-    key: 'project', name: 'Funded Project', participants: 2, weeks: 78, fundingWeeks: 1.6, intensity: 1.35,
+    key: 'project', name: 'Funded Project', participants: 2, weeks: 78, fundingWeeks: 1.0, intensity: 1.35,
     blurb: 'Two scholars, eighteen months. Regular grants, and a real chance of a breakthrough.',
   },
   {
-    key: 'program', name: 'Major Program', participants: 3, weeks: 156, fundingWeeks: 4, intensity: 1.8,
+    key: 'program', name: 'Major Program', participants: 3, weeks: 156, fundingWeeks: 2.2, intensity: 1.8,
     blurb: 'Three scholars, three years. Breakthroughs likely; an award is possible.',
   },
   {
-    key: 'landmark', name: 'Landmark Program', participants: 4, weeks: 260, fundingWeeks: 9, intensity: 2.4,
+    key: 'landmark', name: 'Landmark Program', participants: 4, weeks: 260, fundingWeeks: 4.0, intensity: 2.4,
     requiresCrossDisciplinary: true,
     blurb: 'Four scholars across disciplines, five years. The work prizes are given for.',
   },
@@ -645,7 +653,7 @@ export interface InitiativeOffer {
 
 // Everyone who could join an initiative right now: on the roster, in the
 // field, and not already committed elsewhere. Deliberately NOT filtered on
-// teaching load — joining costs them their courses, it does not require
+// teaching load — joining costs them two course slots, it does not require
 // them to be free of any first.
 export function availableScholars(s: GameState, field: string): Faculty[] {
   return s.faculty
@@ -655,12 +663,37 @@ export function availableScholars(s: GameState, field: string): Faculty[] {
 }
 
 // The offer set for one vacant facility: one option per depth tier, each
-// carrying a topic drawn from what this school could actually run.
-export function initiativeOffers(s: GameState, labId: string, schoolFields: readonly string[]): InitiativeOffer[] {
+// carrying a topic THIS FACILITY could actually run.
+//
+// The pool is the facility's own, derived here from its id rather than
+// passed in — the bug this fixes was precisely a caller handing over the
+// wrong set of fields (the whole school's), and a function that cannot be
+// told the wrong pool cannot have that bug again.
+//
+// "Could run" means the facility's field is AMONG the topic's fields, not
+// merely overlapping some school-wide set. A single-field topic is offered
+// in the one lab that field belongs to; a cross-disciplinary topic is
+// offered in each of the labs it names, and in no others — so a project
+// always belongs to the place it is happening, while a physicist can still
+// be on a Materials + Chemistry project running out of either lab.
+//
+// A topic may also name the facilities it belongs in (ResearchTopic.labs),
+// which is how the two pairs of facilities that SHARE a field are kept
+// apart — a plant-scale synthesis project belongs in the chemical
+// engineering labs and not the chemistry ones, and "Acoustics of
+// Performance Spaces" is physics but it is not aerospace. Unset, the
+// common case, means any facility whose field it names.
+//
+// A facility id that names no research facility (or one whose field the
+// catalogue no longer has) yields an empty pool and four blocked tiers,
+// which is the honest answer rather than a crash.
+export function initiativeOffers(s: GameState, labId: string): InitiativeOffer[] {
   const epoch = Math.floor((s.clock.year * WEEKS_PER_YEAR + s.clock.week) / OFFER_EPOCH_WEEKS);
-  const fieldSet = new Set(schoolFields);
+  const fieldSet = new Set(labFields(labId));
 
-  const runnable = RESEARCH_TOPICS.filter((topic) => topic.fields.some((f) => fieldSet.has(f)));
+  const runnable = RESEARCH_TOPICS.filter((topic) => (
+    topic.fields.some((f) => fieldSet.has(f)) && (!topic.labs || topic.labs.includes(labId))
+  ));
 
   return INITIATIVE_DEPTHS.map((depth, depthIndex) => {
     const pool = runnable.filter((topic) => {
@@ -679,8 +712,8 @@ export function initiativeOffers(s: GameState, labId: string, schoolFields: read
         suggested: [],
         fundingCost: initiativeFundingCost(s, depth),
         blockedReason: depth.requiresCrossDisciplinary
-          ? 'No interdisciplinary topic this school can lead'
-          : 'No topic available for this school',
+          ? 'No interdisciplinary topic this facility can lead'
+          : 'No topic available for this facility',
       } satisfies InitiativeOffer;
     }
 

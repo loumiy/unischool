@@ -422,7 +422,7 @@ function BuildingLabel({ t, p, pinned }: { t: Buildable; p: Placement; pinned: b
 }
 
 export default function CampusMap({
-  s, act, selectedId, onSelect, pathTool, onSetPathTool, hotkeysEnabled,
+  s, act, selectedId, onSelect, pathTool, onSetPathTool, hotkeysEnabled, onOpenCurriculum,
 }: {
   s: GameState;
   act: (a: Action) => void;
@@ -450,6 +450,10 @@ export default function CampusMap({
   // all of it goes quiet together rather than each hotkey growing its own
   // idea of when it applies.
   hotkeysEnabled: boolean;
+  // Opens the Curriculum tab at a given school, for the academic hall's own
+  // info panel (see BuildingInfoPanel.tsx). The map does not know what a
+  // tab is — it hands the id up to App, which owns what is open.
+  onOpenCurriculum: (buildingId: string) => void;
 }) {
   // Whether the currently-selected building has been turned 90 degrees
   // before siting (see campusMap.ts's orientedFootprint). Transient UI
@@ -1327,7 +1331,14 @@ export default function CampusMap({
             bottom, and C2 folded the build rail and the draw/erase path
             controls into the bottom toolbar/build popup — see Toolbar.tsx),
             so it's a natural home for a card that doesn't move. */}
-        {inspected && <BuildingInfoPanel t={inspected.t} s={s} onClose={() => setInspectedId(null)} />}
+        {inspected && (
+          <BuildingInfoPanel
+            t={inspected.t}
+            s={s}
+            onClose={() => setInspectedId(null)}
+            onOpenCurriculum={(buildingId) => { setInspectedId(null); onOpenCurriculum(buildingId); }}
+          />
+        )}
 
         {/* Zoom floats over the map's own top-right corner — reachable
             without a wheel/trackpad (a hard requirement on a map that no
@@ -1351,7 +1362,7 @@ export default function CampusMap({
         <div className="campus-map-zoom-controls">
           <HelpHint
             align="end"
-            text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. Press P (or use the build popup's Draw path tile) to lay walkways — free, purely decorative, and unrelated to building: drag with the left button to pave, the right button to lift, and the ghost tile shows which square you're on. Keys: W/A/S/D or the arrows pan, Space pauses and resumes, R rotates, P draws, Escape backs out, C/F/L open Curriculum, Faculty and Student Life. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll/pinch to zoom."
+            text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. Press P (or use the build popup's Draw path tile) to lay walkways — free, purely decorative, and unrelated to building: drag with the left button to pave, the right button to lift, and the ghost tile shows which square you're on. Every other view — Curriculum, Faculty, Research and the rest — opens as a full screen over this one; the home button at the left of the toolbar's icon row, that view's own close button, or Escape brings you back here. Keys: W/A/S/D or the arrows pan, Space pauses and resumes wherever you are, R rotates, P draws, Escape backs out one layer at a time, C/F/L open Curriculum, Faculty and Student Life. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll/pinch to zoom."
           />
           <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
           <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>

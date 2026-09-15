@@ -745,7 +745,7 @@ export const SAVE_KEY = 'unischool.save';
 //
 // See MIGRATIONS[30].
 //
-// v31 -> v32: scholarship reaches every school. Two shape changes, both
+// v31 -> v32: research reaches every school. Two shape changes, both
 // additive, and one consequence worth naming.
 //
 //   - ResearchState gains `publications`, the new cheap/frequent output
@@ -769,13 +769,13 @@ export const SAVE_KEY = 'unischool.save';
 // reached yet now waits on a building that did not exist last version.
 // That is the same class of accepted re-gating MIGRATIONS[11] and [29]
 // both describe, and it is the point rather than a side effect: the
-// facility is what lets the school do scholarship at all, so putting it on
+// facility is what lets the school do research at all, so putting it on
 // the path to those majors' capstones is what makes it something a player
 // builds rather than an optional ornament.
 //
 // See MIGRATIONS[31].
 //
-// v32 -> v33: scholarship becomes something the player commissions.
+// v32 -> v33: research becomes something the player commissions.
 // ResearchState gains `initiatives` (keyed by the facility hosting each
 // one) and `completedInitiatives`, both empty on a resumed save — nothing
 // to reconstruct, because no prior version had the concept.
@@ -802,7 +802,29 @@ export const SAVE_KEY = 'unischool.save';
 // counts) — it just has to commission work to add to it.
 //
 // See MIGRATIONS[32].
-export const SAVE_VERSION = 33;
+//
+// v33 -> v34: research ends with a report. The `research-prize` interrupt
+// and ResearchState.pendingPrizes are retired; a concluded project now
+// files a full report (topic, facility, team, years, outputs, and the award
+// if it won one) onto ResearchState.pendingCompletions, which the same
+// quiet-week slot drains.
+//
+// WHAT A RESUMED SAVE LOSES, stated plainly: a prize that was won but not
+// yet celebrated has no completion to attach to — the project it came out
+// of is already in completedInitiatives and its own record is gone. Those
+// queued awards are dropped, and the load logs one line saying so. Nothing
+// mechanical goes with them: an award applies its acclaim, salary premium
+// and prestige credit the week it is won, so what is dropped is the
+// celebration and only the celebration.
+//
+// A save halted ON that interrupt is the one case that must not be left
+// alone: its pendingInterrupt names a type no version of the UI renders any
+// more, which would be a modal the player cannot dismiss and a clock that
+// never restarts. It is cleared, which is exactly what dismissing it would
+// have done.
+//
+// See MIGRATIONS[33].
+export const SAVE_VERSION = 34;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -872,6 +894,32 @@ interface LegacyGameState extends GameState {
 const KNOWN_SUFFIXES = ['College', 'University'];
 
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v33 -> v34: research ends with a report (see the SAVE_VERSION header
+  // note above). Written at the top of the table rather than in numeric
+  // order with the rest only because the newest migration is the one a
+  // reader is most often looking for.
+  33: (state) => {
+    const research = state.research as unknown as { pendingPrizes?: unknown[] };
+    const dropped = Array.isArray(research.pendingPrizes) ? research.pendingPrizes.length : 0;
+    delete research.pendingPrizes;
+    state.research.pendingCompletions = [];
+
+    // A save frozen on the retired interrupt would otherwise load into a
+    // modal nothing renders, with the clock halted behind it.
+    if (state.pendingInterrupt?.type === 'research-prize') state.pendingInterrupt = null;
+
+    if (dropped > 0) {
+      state.log.unshift({
+        year: state.clock.year,
+        week: state.clock.week,
+        message: dropped === 1
+          ? 'An awarded prize was still waiting to be celebrated and has been noted here instead. The award itself stands.'
+          : `${dropped} awarded prizes were still waiting to be celebrated and have been noted here instead. The awards themselves stand.`,
+        kind: 'good',
+      });
+    }
+  },
+
   // v3 -> v4: placements gained a footprint. A placement written before
   // footprints existed covered exactly one tile, which is precisely a 1x1,
   // so this is a pure fill-in — no layout moves and nothing is dropped.
@@ -996,7 +1044,7 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     state.research = {
       points: 0, lifetimePoints: 0, publications: 0, grants: 0, grantIncome: 0,
       breakthroughs: 0, prizes: 0, initiatives: {}, completedInitiatives: [],
-      lastOutputWeek: 0, pendingPrizes: [],
+      lastOutputWeek: 0, pendingCompletions: [],
     };
     for (const f of state.faculty) f.acclaim = 0;
     for (const c of state.candidates ?? []) c.acclaim = 0;
@@ -1526,7 +1574,9 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     }
     const candidateIds: Record<string, true> = {};
     for (const c of state.candidates ?? []) candidateIds[c.id] = true;
-    state.seen = { courseIds, buildableIds, candidateIds };
+    // tabIds is left to sanitizeSeen, which runs on every load and fills it
+    // from nothing — see its own note on why this one needs no migration.
+    state.seen = { courseIds, buildableIds, candidateIds, tabIds: {} };
   },
 
   // v23 -> v24: pathways switched from edges to tiles (see SAVE_VERSION
@@ -1688,7 +1738,7 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     }
   },
 
-  // v31 -> v32: scholarship reaches every school. See the SAVE_VERSION
+  // v31 -> v32: research reaches every school. See the SAVE_VERSION
   // header note for the shape change and the one re-gating consequence.
   31: (state) => {
     if (typeof state.research.publications !== 'number') state.research.publications = 0;
@@ -1986,7 +2036,7 @@ function sanitizeTeams(state: GameState): void {
 // sanitizeTeams above: `seen` is display-only (no system reads it — see
 // types.ts's SeenState), so a bad entry here can't corrupt the sim, but a
 // missing or malformed bucket would crash the first MARK_SEEN dispatch or
-// the first badge check that indexes into it. Each of the three buckets is
+// the first badge check that indexes into it. Each bucket is
 // reset to empty if it isn't a plain object; a badge briefly re-lighting
 // for content the player already saw is a harmless, self-correcting cost,
 // the same trade sanitizePlacements/sanitizePathways/sanitizeTeams already
@@ -1998,6 +2048,14 @@ function sanitizeSeen(state: GameState): void {
     courseIds: isRecord(seen.courseIds) ? seen.courseIds : {},
     buildableIds: isRecord(seen.buildableIds) ? seen.buildableIds : {},
     candidateIds: isRecord(seen.candidateIds) ? seen.candidateIds : {},
+    // Added after SAVE_VERSION 33 and deliberately NOT a migration of its
+    // own: an absent bucket is indistinguishable from an empty one here,
+    // and App.tsx fills it silently from whichever gates it finds ALREADY
+    // open on its first render (see NOTE_TAB_AVAILABLE's `announce`). So a
+    // save written before this field existed resumes with no tab
+    // announcements at all — which is right: it has had those views for
+    // years.
+    tabIds: isRecord(seen.tabIds) ? seen.tabIds : {},
   };
 }
 

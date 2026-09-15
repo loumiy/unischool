@@ -59,9 +59,11 @@ export type Action =
   // researchData.ts's initiative block).
   //
   // It COSTS THE TEAM'S TEACHING. Every participant is committed for the
-  // duration, their course slots drop to zero, and whatever they were
-  // teaching is orphaned exactly as a dismissal orphans it — which is why
-  // the UI names those courses before the click, not after. Rejected if
+  // duration and loses two course slots (see techSystem.ts's
+  // RESEARCH_COMMITMENT_SLOTS); whatever no longer fits in what remains is
+  // shed lowest tier first, offered to any colleague in the field with
+  // room (planCommitmentCoverage), and orphaned only if nobody has any —
+  // which is why the UI names both numbers before the click, not after. Rejected if
   // the facility is not finished or already busy, the topic's fields are
   // not all covered, anyone named is already committed, or the funding
   // cannot be paid.
@@ -168,7 +170,7 @@ export type Action =
   // raised salary and research output, and the school's prestige credit
   // all landed the week the prize was won. Advances the clock, for the
   // same reason RESOLVE_MILESTONE does.
-  | { type: 'RESOLVE_PRIZE' }
+  | { type: 'RESOLVE_RESEARCH_REPORT' }
   // Acknowledges a student demand at the moment it is raised (see
   // systems/demands/demandSystem.ts). Grants nothing and costs nothing —
   // the demand is already open on s.events.activeDemand with its target
@@ -219,7 +221,16 @@ export type Action =
   // SeenState). Dispatched by each of those three views' own effect,
   // never by anything else: seeing is something only the view a badge
   // points at can report.
-  | { type: 'MARK_SEEN'; kind: 'course' | 'buildable' | 'candidate'; ids: string[] }
+  | { type: 'MARK_SEEN'; kind: 'course' | 'buildable'; ids: string[] }
+  // Records that a gated tab's gate is open (see components/TabNav.tsx's
+  // TAB_GATES) — the first time for each tab, and only the first time. With
+  // `announce`, the same dispatch also logs a line saying the view is now
+  // available, which is the point: a tab that silently appears in a
+  // nine-icon row is a tab nobody notices. Dispatched from App.tsx, which is
+  // where the gates are actually evaluated; it passes announce: false for
+  // the gates it finds ALREADY open on its first render, since a save that
+  // resumes with three labs standing has nothing to announce.
+  | { type: 'NOTE_TAB_AVAILABLE'; id: string; label: string; announce: boolean }
   // Grants operating funds directly, with no event or interrupt behind it
   // (see StatusHeader.tsx's "+$1B" button). Playtest-only: gated behind
   // naming the university "test", the same as the sandbox Fast speed and
@@ -293,14 +304,14 @@ export function createPreStartState(): GameState {
     research: {
       points: 0, lifetimePoints: 0, publications: 0, grants: 0, grantIncome: 0,
       breakthroughs: 0, prizes: 0, initiatives: {}, completedInitiatives: [],
-      lastOutputWeek: 0, pendingPrizes: [],
+      lastOutputWeek: 0, pendingCompletions: [],
     },
     candidates: [],
     started: false,
     hasEnteredRankings: false,
     milestones: {},
     courseFaculty: {},
-    seen: { courseIds: {}, buildableIds: {}, candidateIds: {} },
+    seen: { courseIds: {}, buildableIds: {}, candidateIds: {}, tabIds: {} },
   };
 }
 
@@ -545,7 +556,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     research: {
       points: 0, lifetimePoints: 0, publications: 0, grants: 0, grantIncome: 0,
       breakthroughs: 0, prizes: 0, initiatives: {}, completedInitiatives: [],
-      lastOutputWeek: 0, pendingPrizes: [],
+      lastOutputWeek: 0, pendingCompletions: [],
     },
     candidates: initialCandidatePool(),
     started: true,
@@ -559,7 +570,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     // ever "needed" at founding (every founding hire has a free slot to
     // spare beyond their own gen-ed course — see the roster above), so
     // there is nothing here to except.
-    seen: { courseIds: foundingCourseIds, buildableIds: foundingBuildableIds, candidateIds: {} },
+    seen: { courseIds: foundingCourseIds, buildableIds: foundingBuildableIds, candidateIds: {}, tabIds: {} },
   };
   return state;
 }

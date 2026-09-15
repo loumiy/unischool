@@ -1,21 +1,44 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Faculty, GameState } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
-import { facultyQualityTier, CANDIDATE_LISTING_WEEKS } from '../data/facultyData';
+import { facultyQualityTier, CANDIDATE_LISTING_WEEKS, FACULTY_FIELDS } from '../data/facultyData';
 import { facultyResearchOutput, labEquippedFields } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
-import { researchSchools } from '../data/techData';
+import { discoverySchools, professionalSchools } from '../data/techData';
 import { usedFacultySlots, totalFacultySlots, neededFacultyFields } from '../systems/techtree/techSystem';
 import { coursesTaughtBy } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
 import FacultyPortrait from '../components/FacultyPortrait';
 
-// The two halves of the faculty picture, side by side: who you have, and
-// who is on the market. They are half-width panels rather than stacked
-// sections because the candidate list is the thing a player comes here to
-// scan — a roster that has grown to fifty names must never push it below
-// the fold.
+// THE ROSTER, BY FIELD — a place you look at your faculty, not a place you
+// hire from.
+//
+// It used to be two half-width columns, Roster and On the Market, plus a
+// research panel and a table of slot counts. That shape was built for a
+// loop that no longer exists: develop everything, appoint everyone the
+// game tagged "needed", repeat. Hiring moved to the Curriculum tab, where
+// the shortage is actually felt — you find out you need a kinesiologist
+// when a course will not start — and this screen was left as the place you
+// went to answer a prompt it should never have been giving.
+//
+// So: ONE SECTION PER FIELD, in the FACULTY_FIELDS grouping the rest of the
+// game uses (humanities, social sciences, sciences, health, computing,
+// engineering, business, law) rather than alphabetically, because a
+// department sits next to its neighbours. Each section carries its own slot
+// arithmetic in the header, its people as cards, and the candidates in that
+// field underneath them — the market is not a separate place any more, it
+// is a row of people who could join this department.
+//
+// THE HEADER ANSWERS "WHY DO I NEED ONE OF THESE", which no version of this
+// tab ever did: its tooltip names the courses that pull from the field,
+// grouped by the major they belong to.
+//
+// WHAT IS NOT RENDERED. A field with nobody hired, nobody listed and no
+// course asking for it is not a department this university has — it is one
+// of twenty-nine strings in a table, and printing it would bury the eight
+// that are real. A field with courses but nobody in it IS rendered, and
+// reads as the vacancy it is.
 //
 // Recruiting is a standing, churning market (see facultyData.ts's churn
 // block and facultySystem.ts's tickCandidatePool): there is no posting to
@@ -28,15 +51,15 @@ import FacultyPortrait from '../components/FacultyPortrait';
 // salary rising with it, course slots growing on tenure milestones)
 // happens passively on the weekly tick — see facultySystem.ts.
 //
-// Each roster/candidate row shows only a name, field, and quality tier by
-// default — everything else (bio, full stats including nationality, and what
-// they're actually teaching) is one click away behind an expand toggle, so
-// the tab reads as a roster, not a spreadsheet. Candidate rows carry one
-// extra always-visible line (stats and how long the listing has left),
+// Each card shows a name, field-relevant stats and what the person is
+// working on; everything else (bio, nationality, salary detail, the course
+// list) is one click away behind an expand toggle, so a fifty-name roster
+// stays a roster rather than becoming fifty spreadsheets. Candidate cards
+// carry one extra always-visible line (how long the listing has left),
 // because spotting a good specialist before it withdraws is the whole
-// scanning job this panel exists for. The row carries no flag glyph: the
-// emoji flags failed to render in some browsers, so nationality lives in
-// the expanded detail as plain text only.
+// scanning job. The card carries no flag glyph: the emoji flags failed to
+// render in some browsers, so nationality lives in the expanded detail as
+// plain text only.
 
 // Teaching and research as a bar rather than a bare number, with the
 // headroom to this hire's POTENTIAL shown behind the filled part.
@@ -74,8 +97,15 @@ function StatBar({ label, value, potential }: { label: string; value: number; po
 // toggle, so a fifty-name roster stays a roster rather than becoming fifty
 // spreadsheets.
 function FacultyCard(
-  { s, act, f, isCandidate, needed = false }:
-  { s: GameState; act: (a: Action) => void; f: Faculty; isCandidate: boolean; needed?: boolean },
+  { s, act, f, isCandidate, commitment }:
+  {
+    s: GameState; act: (a: Action) => void; f: Faculty; isCandidate: boolean;
+    // What this person is committed to, if anything (see the roster's
+    // commitment map below). The old research panel listed these
+    // separately, which meant a player scanning a thin department for who
+    // could cover a course had to read two lists and cross-reference them.
+    commitment?: Commitment;
+  },
 ) {
   const [open, setOpen] = useState(false);
   const taught = isCandidate ? [] : coursesTaughtBy(s, f);
@@ -87,7 +117,7 @@ function FacultyCard(
   const researches = !isCandidate && labEquippedFields(s).has(f.field);
 
   return (
-    <li className={`faculty-card${needed ? ' needed' : ''}`}>
+    <li className={`faculty-card${commitment ? ' committed' : ''}`}>
       <div className="faculty-card-main">
         <FacultyPortrait f={f} size={44} />
         <div className="faculty-card-body">
@@ -103,8 +133,31 @@ function FacultyCard(
             <span className="faculty-card-spacer" />
             <span className="kind-tag">{facultyQualityTier(f)}</span>
           </div>
+          {/* WHAT THEY ARE WORKING ON. A committed scholar is the single
+              most useful thing this screen can tell you about a
+              department — they are teaching two courses fewer for the next
+              six months to five years (techSystem.ts's
+              RESEARCH_COMMITMENT_SLOTS) — so it sits on the card rather
+              than in a panel of its own further down the page. The field
+              itself is the section heading now, so the line that used to
+              repeat it carries this instead. */}
           <div className="faculty-card-field">
-            {f.field}{needed && <span className="faculty-needed"> · needed</span>}
+            {commitment ? (
+              <span className="faculty-commitment" title={`${commitment.topic} · ${commitment.labName}`}>
+                On <strong>{commitment.topic}</strong>
+                <span className="faculty-commitment-left">
+                  {' '}· {commitment.weeksRemaining} of {commitment.weeksTotal} weeks left
+                </span>
+              </span>
+            ) : isCandidate ? (
+              <span className="faculty-card-listing">On the market</span>
+            ) : taught.length > 0 ? (
+              <span className="faculty-card-teaching">
+                Teaching {taught.length} {taught.length === 1 ? 'course' : 'courses'}
+              </span>
+            ) : (
+              <span className="faculty-card-teaching idle">Teaching nothing</span>
+            )}
           </div>
           <div className="faculty-bars">
             <StatBar label="T" value={f.teaching} potential={f.teachingPotential} />
@@ -203,242 +256,202 @@ function FacultyCard(
   );
 }
 
-// ---------------------------------------------------------------------
-// WHO IS AWAY, and until when.
-//
-// This panel used to be the whole research system: a banked-points figure,
-// a weekly rate, output counters, a facilities multiplier, and a
-// school-by-school lab gate. All of that described a model where the
-// campus produced scholarship for owning buildings, and every line of it
-// was wrong the moment initiatives landed — the banked figure read zero
-// forever because nothing writes that stock any more, and the rate
-// reported what lab-equipped faculty COULD produce, which stopped
-// corresponding to anything once production moved inside a running
-// project.
-//
-// The whole of that belongs to the Research tab, where it now lives
-// properly, and duplicating it here only gave a player two screens
-// disagreeing about the same thing.
-//
-// What is left is the one part of scholarship that is genuinely a FACULTY
-// question: which of these people are committed, to what, and for how
-// much longer — because a committed scholar is not teaching, and the
-// roster screen is where the player notices their department is short.
-// ---------------------------------------------------------------------
-function ResearchPanel({ s, full }: { s: GameState; full: boolean }) {
-  const equipped = labEquippedFields(s);
-  const schools = researchSchools().filter((school) => school.labIds.length > 0);
+// What somebody is committed to, flattened from the running initiatives so
+// a card can read it without walking every project (see the roster below).
+interface Commitment {
+  topic: string;
+  labName: string;
+  weeksRemaining: number;
+  weeksTotal: number;
+}
 
-  // Who is on what. Read off the running initiatives rather than asking
-  // each person in turn, so the panel costs one pass over a handful of
-  // projects instead of one over the whole roster per project.
-  const commitments = new Map<string, { topic: string; weeksRemaining: number; weeksTotal: number }>();
+// Everyone committed to a project right now, by faculty id. One pass over a
+// handful of initiatives rather than one pass over the roster per project.
+function commitmentsByFaculty(s: GameState): Map<string, Commitment> {
+  const map = new Map<string, Commitment>();
   for (const initiative of Object.values(s.research.initiatives)) {
     const topic = researchTopic(initiative.topicId);
-    for (const id of initiative.participantIds) {
-      commitments.set(id, {
-        topic: topic?.name ?? 'a project',
-        weeksRemaining: initiative.weeksRemaining,
-        weeksTotal: initiative.weeksTotal,
-      });
-    }
+    const commitment: Commitment = {
+      topic: topic?.name ?? 'a project',
+      labName: s.tech.find((t) => t.id === initiative.labId)?.name ?? 'a facility',
+      weeksRemaining: initiative.weeksRemaining,
+      weeksTotal: initiative.weeksTotal,
+    };
+    for (const id of initiative.participantIds) map.set(id, commitment);
   }
-  const committed = s.faculty.filter((f) => commitments.has(f.id));
-  const free = s.faculty.filter((f) => equipped.has(f.field) && !commitments.has(f.id)).length;
+  return map;
+}
+
+// WHICH COURSES PULL FROM THIS FIELD, grouped by the major they belong to —
+// the answer to "why do I need a kinesiologist", which no version of this
+// tab has ever given. Read off the same discovery metadata the Curriculum
+// tab groups by, so the grouping the player sees here is the grouping they
+// see there.
+//
+// Only courses that EXIST as far as the player is concerned are counted:
+// a locked course is not yet a reason for anything.
+function courseDemandByMajor(s: GameState, field: string): Array<{ group: string; courses: string[] }> {
+  const wanted = new Map<string, string>();
+  for (const t of s.tech) {
+    if (t.requiresFaculty === field && t.status !== 'locked') wanted.set(t.id, t.name.split(' · ').pop() ?? t.name);
+  }
+  if (wanted.size === 0) return [];
+
+  const groups: Array<{ group: string; courses: string[] }> = [];
+  const take = (group: string, ids: readonly string[]) => {
+    const courses = ids.filter((id) => wanted.has(id)).map((id) => wanted.get(id)!);
+    if (courses.length > 0) {
+      groups.push({ group, courses });
+      for (const id of ids) wanted.delete(id);
+    }
+  };
+
+  for (const school of discoverySchools()) {
+    take(`${school.name} core`, school.coreIds);
+    for (const major of school.majors) {
+      take(major.name, [major.tier1Id, ...major.tier2Ids, ...major.tier3Ids]);
+    }
+    for (const program of school.graduate) take(program.name, program.courseIds);
+  }
+  for (const program of professionalSchools()) take(program.name, program.courseIds);
+
+  // Anything the discovery metadata does not place (there is nothing today,
+  // but a future course kind would land here rather than vanishing).
+  if (wanted.size > 0) groups.push({ group: 'Elsewhere', courses: [...wanted.values()] });
+  return groups;
+}
+
+// One department: its slot arithmetic, its people, and who could join it.
+function FieldSection(
+  { s, act, field, hired, candidates, commitments, short }:
+  {
+    s: GameState; act: (a: Action) => void; field: string;
+    hired: Faculty[]; candidates: Faculty[];
+    commitments: Map<string, Commitment>;
+    short: boolean;
+  },
+) {
+  const used = usedFacultySlots(s, field);
+  const total = totalFacultySlots(s, field);
+  const demand = useMemo(() => courseDemandByMajor(s, field), [s, field]);
+
+  const demandCount = demand.reduce((n, g) => n + g.courses.length, 0);
+  const demandText = demand.length > 0
+    ? `${field} teaches ${demandCount} ${demandCount === 1 ? 'course' : 'courses'} the school has revealed: `
+      + demand.map((g) => `${g.group} (${g.courses.join(', ')})`).join('; ')
+      + '. Every one of those occupies a slot in this field for as long as it is offered, whether or not somebody is teaching it.'
+    : `No revealed course asks for ${field} yet. A hire in it can still join a research project, and will be ready when a course that needs them is revealed.`;
 
   return (
-    <section className={full ? 'panel panel-span-2' : 'panel'}>
-      <div className="panel-head">
+    <section className="faculty-field">
+      <header className="faculty-field-head">
         <span className="panel-head-title">
-          <h2>Scholarship</h2>
-          <HelpHint text="Scholars committed to a research project stop teaching for its whole duration — their course slots drop to zero and whatever they were teaching is left without an instructor until somebody else takes it. That is the real price of a deep project, and it is why a university needs a bench rather than just good people. Projects themselves, and the facilities that host them, are on the Research tab." />
+          <h3>{field}</h3>
+          <HelpHint text={demandText} />
         </span>
-        <span className="stat">{committed.length} committed</span>
-      </div>
+        <span className={`stat${short ? ' faculty-field-short' : ''}`}>
+          {used} / {total} slots used{short ? ' · short' : ''}
+        </span>
+      </header>
 
-      {schools.every((school) => !school.labIds.some((id) => s.tech.find((t) => t.id === id)?.status === 'done')) ? (
-        <p className="empty-note">
-          No research facility finished, so nobody can be committed to a project yet. Every school can
-          build one — a lab, an institute, a studio or a computing centre — once its building and that
-          major&apos;s entry course are done.
-        </p>
-      ) : committed.length === 0 ? (
-        <p className="empty-note">
-          Nobody is committed to a project. {free > 0
-            ? `${free} of the roster could be — start one from the Research tab.`
-            : 'No scholar is in a school with a finished facility.'}
-        </p>
+      {hired.length > 0 ? (
+        <ul className="faculty-list">
+          {hired.map((f) => (
+            <FacultyCard key={f.id} s={s} act={act} f={f} isCandidate={false} commitment={commitments.get(f.id)} />
+          ))}
+        </ul>
       ) : (
+        <p className="empty-note">
+          Nobody in {field}.{total === 0 && used > 0
+            ? ` ${used} ${used === 1 ? 'course is' : 'courses are'} offered with no one to teach them.`
+            : ''}
+        </p>
+      )}
+
+      {candidates.length > 0 && (
         <>
-          {/* THE ROSTER'S SIDE of the initiative system, and the only part
-              of it that belongs on this screen: which of these people are
-              unavailable to teach, and until when. Everything about
-              facilities, output and funding is the Research tab's — this
-              panel used to carry all of it, describing a banked-points
-              model that no longer exists. */}
-          <div className="commitment-list">
-            {committed.map((f) => {
-              const on = commitments.get(f.id)!;
-              return (
-                <div key={f.id} className="commitment">
-                  <span className="commitment-who">
-                    <span className="commitment-name">{f.name}</span>
-                    <span className="commitment-field">{f.field}</span>
-                  </span>
-                  <span className="commitment-what">
-                    <span className="commitment-topic">{on.topic}</span>
-                    <span className="commitment-left">
-                      {on.weeksRemaining} of {on.weeksTotal} weeks left · not teaching
-                    </span>
-                  </span>
-                </div>
-              );
-            })}
+          <div className="faculty-market-head">
+            <span>On the market</span>
+            <span className="outcome-note">
+              {candidates.length} listed · a listing withdraws after {CANDIDATE_LISTING_WEEKS} weeks
+            </span>
           </div>
-          {free > 0 && (
-            <p className="outcome-note commitment-free">
-              {free} more {free === 1 ? 'scholar is' : 'scholars are'} in a school with a facility and
-              free to join a project.
-            </p>
-          )}
+          <ul className="faculty-list candidate-list">
+            {candidates.map((c) => (
+              <FacultyCard key={c.id} s={s} act={act} f={c} isCandidate={true} />
+            ))}
+          </ul>
         </>
       )}
     </section>
   );
 }
 
-// Sentinel for the candidate filter's "show everything" option. A plain
-// empty string rather than a field name so it can never collide with one.
-const ALL_FIELDS = '';
-
 export default function FacultyTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
-  const [fieldFilter, setFieldFilter] = useState<string>(ALL_FIELDS);
+  const commitments = useMemo(() => commitmentsByFaculty(s), [s.research.initiatives, s.tech]);
+  const short = useMemo(() => neededFacultyFields(s), [s]);
 
-  // Every field a requiresFaculty-gated course actually needs, so the slots
-  // summary only shows fields that matter for starting new development —
-  // not every field the market can produce a candidate in.
-  const gatedFields = [...new Set(s.tech.filter((t) => t.requiresFaculty).map((t) => t.requiresFaculty!))].sort();
+  // Which fields are worth a section at all: anybody hired, anybody listed,
+  // or any revealed course that asks for them. A field nothing on campus
+  // has any relationship with is not a department, it is a string in a
+  // table.
+  const sections = useMemo(() => {
+    const hired = new Map<string, Faculty[]>();
+    for (const f of s.faculty) {
+      if (!hired.has(f.field)) hired.set(f.field, []);
+      hired.get(f.field)!.push(f);
+    }
+    const listed = new Map<string, Faculty[]>();
+    for (const c of s.candidates) {
+      if (!listed.has(c.field)) listed.set(c.field, []);
+      listed.get(c.field)!.push(c);
+    }
+    const wanted = new Set(
+      s.tech.filter((t) => t.requiresFaculty && t.status !== 'locked').map((t) => t.requiresFaculty!),
+    );
 
-  // Fields the school is actually short on right now: a gated course is
-  // sitting available and there's no free slot to start it. This is what
-  // turns a thirty-name list into a shortlist — the fields flagged here are
-  // the ones worth appointing into today.
-  const shortFields = useMemo(() => neededFacultyFields(s), [s]);
+    return FACULTY_FIELDS
+      .filter((field) => hired.has(field) || listed.has(field) || wanted.has(field))
+      .map((field) => ({
+        field,
+        // Strongest teacher first inside a department, which is the order a
+        // player reads it in when deciding who covers what.
+        hired: (hired.get(field) ?? []).sort((a, b) => b.teaching - a.teaching || a.name.localeCompare(b.name)),
+        candidates: (listed.get(field) ?? []).sort((a, b) => (b.teaching + b.research) - (a.teaching + a.research)),
+      }));
+  }, [s.faculty, s.candidates, s.tech]);
 
-  // The faculty alert badge (see types.ts's SeenState): every candidate
-  // currently flagged "needed" that this view hasn't reported seeing yet.
-  // Marked the moment this tab is open (and again whenever a fresh one
-  // shows up while it stays open — the dependency is the exact id set, not
-  // just its length, so a swap of one needed candidate for another still
-  // re-fires), which is what makes the badge go dark on open and never come
-  // back for a candidate already shown. A candidate never flagged "needed"
-  // is deliberately never marked seen here — if their field goes short
-  // later while they're still listed, that's a fresh thing worth a badge.
-  const unseenNeededIds = s.candidates
-    .filter((c) => shortFields.has(c.field) && !s.seen.candidateIds[c.id])
-    .map((c) => c.id);
-  const unseenNeededKey = unseenNeededIds.join('|');
-  useEffect(() => {
-    if (unseenNeededIds.length > 0) act({ type: 'MARK_SEEN', kind: 'candidate', ids: unseenNeededIds });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [unseenNeededKey]);
-
-  // Grouped by field, then best first within a field, so scanning for a
-  // specialist means finding one block rather than sweeping thirty rows.
-  // Fields the school is short on sort to the top of the list.
-  const sortedCandidates = useMemo(() => {
-    const rank = (c: Faculty) => (shortFields.has(c.field) ? 0 : 1);
-    return [...s.candidates].sort((a, b) =>
-      rank(a) - rank(b) ||
-      a.field.localeCompare(b.field) ||
-      (b.teaching + b.research) - (a.teaching + a.research));
-  }, [s.candidates, shortFields]);
-
-  const fieldsInPool = useMemo(
-    () => [...new Set(s.candidates.map((c) => c.field))].sort(),
-    [s.candidates],
-  );
-  const visibleCandidates = fieldFilter === ALL_FIELDS
-    ? sortedCandidates
-    : sortedCandidates.filter((c) => c.field === fieldFilter);
+  const committedCount = commitments.size;
 
   return (
     <div className="tab-content">
-      <div className="faculty-columns">
-        <section className="panel">
-          <div className="panel-head">
-            <span className="panel-head-title">
-              <h2>Roster</h2>
-              <HelpHint text="Everyone currently employed. Retained faculty grow toward their potential and get more expensive as they do; each carries course slots that gate how many courses in their field the school can offer at once." />
-            </span>
-            <span className="stat">{s.faculty.length} on payroll</span>
-          </div>
-          <ul className="faculty-list">
-            {s.faculty.map((f) => <FacultyCard key={f.id} s={s} act={act} f={f} isCandidate={false} />)}
-            {s.faculty.length === 0 && <li className="empty-note">No faculty on the roster.</li>}
-          </ul>
-        </section>
+      <section className="panel faculty-summary">
+        <div className="panel-head">
+          <span className="panel-head-title">
+            <h2>Faculty</h2>
+            <HelpHint text="Everyone employed, by department, with whoever is on the market for that department underneath them. A field's slot count is what gates how many courses in it the school can offer at once: each offered course holds one slot whether or not somebody is teaching it, and each professor supplies slots that grow slowly with tenure. A scholar on a research project supplies two fewer for its duration. Appointing is immediate and costs nothing up front — what costs is the salary." />
+          </span>
+          <span className="stat">{s.faculty.length} on payroll</span>
+          <span className="stat">{s.candidates.length} on the market</span>
+          {committedCount > 0 && <span className="stat">{committedCount} on projects</span>}
+        </div>
+      </section>
 
-        <section className="panel">
-          <div className="panel-head">
-            <span className="panel-head-title">
-              <h2>On the Market</h2>
-              <HelpHint text={`The academic job market as it stands this week. Appointing is immediate — no posting, no fee, no waiting — but a listing withdraws after ${CANDIDATE_LISTING_WEEKS} weeks if nobody takes it, and the mix turns over constantly. Common fields are nearly always represented; specialists in thin markets show up only now and then, so take one when you see one. Fields you're short on are flagged and sorted to the top.`} />
-            </span>
-            <span className="stat">{s.candidates.length} listed</span>
-          </div>
-          <div className="candidate-filter">
-            <select value={fieldFilter} onChange={(e) => setFieldFilter(e.target.value)}>
-              <option value={ALL_FIELDS}>All fields ({s.candidates.length})</option>
-              {fieldsInPool.map((field) => (
-                <option key={field} value={field}>
-                  {field} ({s.candidates.filter((c) => c.field === field).length}){shortFields.has(field) ? ' — needed' : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-          <ul className="faculty-list candidate-list">
-            {visibleCandidates.map((c) => (
-              <FacultyCard key={c.id} s={s} act={act} f={c} isCandidate={true} needed={shortFields.has(c.field)} />
-            ))}
-            {visibleCandidates.length === 0 && (
-              <li className="empty-note">
-                {s.candidates.length === 0
-                  ? 'Nobody on the market this week.'
-                  : `No ${fieldFilter} candidates listed right now — check back as the market turns over.`}
-              </li>
-            )}
-          </ul>
-        </section>
-        {/* Research and Course Slots pair up the same way Roster/Market do
-            above — auto-flowing into this grid's second row. Course Slots
-            only exists once a school has a gated field (a founding school
-            has none), and a lone half-width Research panel next to an
-            empty gutter would read as a layout bug, so Research spans the
-            full row instead whenever there's no partner. Research's own
-            empty state (no labs finished) doesn't get the same treatment
-            when a partner IS present — the empty-note text still reads
-            fine at half width, and pairing stays predictable rather than
-            reshuffling on Research's content alone. */}
-        <ResearchPanel s={s} full={gatedFields.length === 0} />
-
-        {gatedFields.length > 0 && (
-          <section className="panel">
-            <div className="panel-head">
-              <span className="panel-head-title">
-                <h2>Course Slots by Field</h2>
-                <HelpHint text="A field-gated course occupies one slot in its field for as long as it's under development or done — hire more (or more tenured) faculty in a field to unlock offering more courses in it." />
-              </span>
-            </div>
-            <dl>
-              {gatedFields.map((field) => (
-                <Fragment key={field}>
-                  <dt>{field}</dt>
-                  <dd>{usedFacultySlots(s, field)} / {totalFacultySlots(s, field)} slots used</dd>
-                </Fragment>
-              ))}
-            </dl>
-          </section>
+      <div className="faculty-fields">
+        {sections.map(({ field, hired, candidates }) => (
+          <FieldSection
+            key={field}
+            s={s}
+            act={act}
+            field={field}
+            hired={hired}
+            candidates={candidates}
+            commitments={commitments}
+            short={short.has(field)}
+          />
+        ))}
+        {sections.length === 0 && (
+          <p className="empty-note">No faculty, no candidates and no courses that need either. Develop a course to start.</p>
         )}
       </div>
     </div>

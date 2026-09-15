@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
 import { discoverySchools, graduateGateMet, graduatePrograms, professionalSchools } from '../data/techData';
 import {
-  canStartDevelopment, hasFreeFacultySlot, eligibleInstructors, assignedInstructor,
-  isUnstaffed, facultyLoad,
+  canStartDevelopment, facultyGate, eligibleInstructors, assignedInstructor,
+  isUnstaffed, facultyLoad, developAllPlan,
 } from '../systems/techtree/techSystem';
 import { facultyQualityTier } from '../data/facultyData';
 import { gradeFor, qualityOf, tierOf, type Grade } from '../data/courseQuality';
@@ -14,7 +14,6 @@ import {
 import HelpHint from '../components/HelpHint';
 import FacultyPortrait from '../components/FacultyPortrait';
 import { ProgressRing } from '../components/Progress';
-import { isTestUniversity } from '../components/StatusHeader';
 import type { Faculty } from '../state/types';
 
 // ---------------------------------------------------------------------
@@ -439,7 +438,7 @@ function cellState(s: GameState, t: Buildable): CellState {
 // The letter carries the meaning and the tint is only a cue: colour alone
 // would be unreadable to a colour-blind player, and unreadable at the
 // zoomed-out sizes the curriculum map will want, so the letter never drops.
-function GradeChip({ grade, title, size = 'sm' }: { grade: Grade; title?: string; size?: 'sm' | 'lg' }) {
+export function GradeChip({ grade, title, size = 'sm' }: { grade: Grade; title?: string; size?: 'sm' | 'lg' }) {
   return (
     <span className={`grade-chip grade-${grade.toLowerCase()} ${size}`} title={title}>
       {grade}
@@ -493,7 +492,9 @@ function CourseCell({ s, t, selected, onSelect, loads }: { s: GameState; t: Buil
   // offer at a glance.
   const [code, titleFromName] = t.name.split(' · ');
   const title = titleFromName ?? code;
-  const missingFaculty = !!(t.requiresFaculty && !hasFreeFacultySlot(s, t.requiresFaculty));
+  // Not just "is the field full" but "would waiting help" — see
+  // techSystem.ts's facultyGate.
+  const gate = t.requiresFaculty ? facultyGate(s, t.requiresFaculty) : 'open';
   // An offered course whose instructor has left (see types.ts's
   // CourseFaculty) — marked on the cell because it is a thing the player
   // must fix, and they should not have to open a course to discover it.
@@ -504,7 +505,7 @@ function CourseCell({ s, t, selected, onSelect, loads }: { s: GameState; t: Buil
   const quality = courseQuality(s, t, loads);
   // The gate is only news while the course is still ahead of the player:
   // a developing or finished course already holds its slot.
-  const showGateDot = missingFaculty && state !== 'developing' && state !== 'done';
+  const showGateDot = gate !== 'open' && state !== 'developing' && state !== 'done';
 
   const weeksLeft = s.developing[t.id] ?? 0;
   const elapsed = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
@@ -524,7 +525,18 @@ function CourseCell({ s, t, selected, onSelect, loads }: { s: GameState; t: Buil
       {quality && <GradeChip grade={quality.grade} title={`Quality ${Math.round(quality.score)} / 100`} />}
       {state === 'done' && !quality && !unstaffed && <span className="cell-stamp" aria-hidden="true">✓</span>}
       {unstaffed && <span className="cell-stamp unstaffed" title="No instructor">!</span>}
-      {showGateDot && <span className="cell-gate-dot" aria-hidden="true" />}
+      {/* Two colours, two actions. Yellow: the department is full but
+          somebody is listed, so this is one appointment away. Red: full and
+          nobody to appoint, so only time fixes it. */}
+      {showGateDot && (
+        <span
+          className={`cell-gate-dot ${gate}`}
+          aria-hidden="true"
+          title={gate === 'hireable'
+            ? `No free ${t.requiresFaculty} slot — a candidate is on the market`
+            : `No free ${t.requiresFaculty} slot, and nobody on the market`}
+        />
+      )}
       {state === 'developing' && (
         <span className="cell-progress" aria-hidden="true">
           <span className="cell-progress-fill" style={{ width: `${Math.round(elapsed * 100)}%` }} />
@@ -1106,7 +1118,18 @@ export function completion(s: GameState, ids: string[]): { done: number; total: 
   return { done, total: ids.length, fraction: ids.length > 0 ? done / ids.length : 0 };
 }
 
-export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
+export default function CurriculumTab(
+  { s, act, target, onTargetConsumed }:
+  {
+    s: GameState; act: (a: Action) => void;
+    // A school building id to open on arrival, when the tab was opened
+    // FROM something — today the hall's own info panel on the map (see
+    // BuildingInfoPanel.tsx). Consumed on arrival and cleared by the
+    // caller, so clicking the same hall twice arrives twice.
+    target?: string;
+    onTargetConsumed?: () => void;
+  },
+) {
   const revealedGrad = revealedGraduatePrograms(s);
   // The headline ring counts the undergraduate catalogue plus whatever
   // graduate work has been revealed — never the whole seed. A "0 / 421"
@@ -1119,6 +1142,12 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
   const doneCourses = courses.filter((t) => t.status === 'done').length;
   const catalogFraction = courses.length > 0 ? doneCourses / courses.length : 0;
   const catalogPct = Math.round(catalogFraction * 100);
+
+  // What Develop All would start, and what it would cost (see the button
+  // below, and techSystem.ts's developAllPlan). Memoised on the state
+  // because it walks the whole catalogue, and this header re-renders on
+  // every hover in the grid.
+  const developAll = useMemo(() => developAllPlan(s), [s]);
 
   const lookup = new Map(s.tech.map((t) => [t.id, t]));
   // Built ONCE per render and threaded to every cell, every heading and
@@ -1157,6 +1186,20 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
     setSelectedId(id);
     setFilters(NO_FILTERS);
   }, [s, pool.courseIds]);
+
+  // Arriving with somewhere to be. Deliberately the same three pieces of
+  // state goToCourse sets — which school is open, which course is selected,
+  // and no filters left over from last time — because "open the tab at this
+  // school" and "jump to this course" are the same act of navigation, and a
+  // second mechanism would be a second place for them to disagree.
+  useEffect(() => {
+    if (!target) return;
+    setOpenSchool(target);
+    setSelectedId(null);
+    setFilters(NO_FILTERS);
+    onTargetConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
 
   const unseenIds = visibleCourseIds(s).filter((id) => !s.seen.courseIds[id]);
   const unseenKey = unseenIds.join('|');
@@ -1206,14 +1249,29 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
             ) : (
               <h2>The Curriculum</h2>
             )}
-            {isTestUniversity(s.self.name) && (
+            {/* DEVELOP ALL, no longer playtest-only. It routes through the
+                same canStartDevelopment every manual click uses, so it
+                cannot start anything unaffordable, unstaffable or
+                unrevealed, and charges normally for everything it does
+                start — there was never a sandbox reason for it, only a
+                sandbox habit. The +$1B grant and the Fast speed stay
+                gated; they break the game's constraints, this one works
+                inside them.
+
+                It says what it is about to do. At a large catalogue the
+                bill is substantial and used to be invisible until it had
+                been spent, and the count is not simply "everything
+                available": each start takes cash and a faculty slot, so
+                the sweep runs out of one or the other partway (see
+                developAllPlan). */}
+            {developAll.ids.length > 0 && (
               <button
                 type="button"
-                className="grant-funds-btn"
+                className="develop-all-btn"
                 onClick={() => act({ type: 'DEVELOP_ALL_AVAILABLE_COURSES' })}
-                title="Playtest only — starts development on every course currently available, cash and faculty slots permitting."
+                title="Starts development on every course the school can currently afford and staff, in catalogue order."
               >
-                Develop All
+                Develop {developAll.ids.length} · ${developAll.cost.toLocaleString()}
               </button>
             )}
           </span>

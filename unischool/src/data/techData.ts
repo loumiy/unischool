@@ -477,13 +477,13 @@ export const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
 // a bench science and keeps its own.
 // Which majors carry a RESEARCH FACILITY: the building that gates their
 // capstone coursework and, campus-wide, is what lets a school do
-// scholarship at all (see README's "Research" and labEquippedFields).
+// research at all (see README's "Research" and labEquippedFields).
 //
 // FOUR SCHOOLS USED TO HAVE NONE, and under the initiative model that is
 // coming this stops being a gap and becomes an exclusion: a school with no
 // facility has not merely no output but no PLACE to run anything, so
 // Business, Computer Science, Social Sciences & Humanities and Arts &
-// Media could not participate in scholarship in any form. Each now has
+// Media could not participate in research in any form. Each now has
 // one, and one is enough — labEquippedFields equips EVERY field a school
 // teaches the moment any one of its facilities stands, so a single
 // building brings a whole faculty into production.
@@ -1048,7 +1048,7 @@ export function initialTech(): Buildable[] {
           kind: 'facility',
           facilityType: 'lab',
           name: RESEARCH_FACILITY_NAMES[major.prefix] ?? `${major.name} Labs`,
-          description: `${RESEARCH_FACILITY_BLURBS[major.prefix] ?? 'Specialized lab space'} — gates ${major.name}'s capstone (tier-3) coursework, and lets the school produce scholarship.`,
+          description: `${RESEARCH_FACILITY_BLURBS[major.prefix] ?? 'Specialized lab space'} — gates ${major.name}'s capstone (tier-3) coursework, and lets the school produce research.`,
           cost: LAB_COST,
           duration: LAB_WEEKS,
           // Buildable once the major's entry course AND its school building
@@ -1309,6 +1309,34 @@ export interface ResearchSchool {
   schoolName: string;
   labIds: string[];  // lab Buildable ids belonging to this school's majors; empty means this school can never produce research
   fields: string[];  // every Faculty field that teaches in this school (deduplicated)
+}
+
+// WHICH FIELD'S WORK HAPPENS IN THIS FACILITY. A research facility is
+// authored per lab-gated major (LAB_GATED_MAJOR_PREFIXES above, through
+// labId), so the mapping already exists — this only surfaces it.
+//
+// It is NOT researchSchools().fields, and the difference is the whole point
+// of the function. A school's fields are everyone who could staff a project
+// there; a facility's fields are what the facility is FOR. Conflating them
+// is what produced "Acoustics of Performance Spaces in the Aerospace
+// Engineering Lab": every lab in a school was offered the same school-wide
+// topic pool, so a school with a dozen labs offered each of them the same
+// dozen unrelated projects.
+//
+// Plural because the shape should not have to change if a facility ever
+// serves more than one major — today every one of them serves exactly one,
+// so this returns a single field, or nothing at all for an id that names no
+// research facility.
+export function labFields(facilityId: string): string[] {
+  const fields: string[] = [];
+  for (const school of SCHOOLS) {
+    for (const major of school.majors) {
+      if (LAB_GATED_MAJOR_PREFIXES.includes(major.prefix) && labId(major.prefix) === facilityId) {
+        fields.push(major.field);
+      }
+    }
+  }
+  return fields;
 }
 
 export function researchSchools(): ResearchSchool[] {

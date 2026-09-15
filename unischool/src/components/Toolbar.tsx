@@ -1,35 +1,41 @@
-import { forwardRef, useState } from 'react';
+import { forwardRef } from 'react';
 import type { Action } from '../state/actions';
 import type { GameState } from '../state/types';
-import { TAB_LABELS, TAB_ORDER, type TabId } from './TabNav';
+import { TAB_LABELS, TAB_ORDER, tabAvailable, type TabId } from './TabNav';
 import BuildPopup, { visibleBuildableIds } from './BuildPopup';
 import { FundsAndStats, SchoolAndClock } from './StatusHeader';
 import type { Speed } from '../engine/useGame';
 import { visibleCourseIds } from '../tabs/CurriculumTab';
-import { neededFacultyFields } from '../systems/techtree/techSystem';
 import {
   FacultyIcon, CurriculumIcon, AdmissionsIcon,
   StudentLifeIcon, HistoryIcon, AthleticsIcon, BuildIcon,
-  ResearchIcon,
+  ResearchIcon, HomeIcon,
 } from './icons';
 
 // Which tab icons can carry the small red alert badge, and how each decides
-// it has something unseen (see types.ts's SeenState). Curriculum and Faculty
-// are the only two TAB_ORDER entries with a badge of their own — every other
-// tab (Treasury, Admissions, Student Life, History, Athletics) has no
-// "new content you haven't looked at yet" concept, so it's simply absent
-// from this table rather than wired to an always-false check.
+// it has something unseen (see types.ts's SeenState). Curriculum is the only
+// TAB_ORDER entry with a badge of its own — every other tab (Treasury,
+// Admissions, Student Life, History, Athletics) has no "new content you
+// haven't looked at yet" concept, so it's simply absent from this table
+// rather than wired to an always-false check.
+//
+// FACULTY USED TO HAVE ONE, for an unseen candidate in a field the school
+// was short on, and it is gone deliberately. A badge is a prompt, and that
+// prompt was the last piece of the retired hiring loop: develop everything,
+// go appoint whoever the game flagged, repeat. Hiring belongs where the
+// shortage is felt — the Curriculum tab, where a course will not start —
+// and the Faculty tab is now a place to look at your faculty rather than a
+// queue of chores (see FacultyTab.tsx).
 const TAB_ALERT: Partial<Record<TabId, (s: GameState) => boolean>> = {
   curriculum: (s) => visibleCourseIds(s).some((id) => !s.seen.courseIds[id]),
-  faculty: (s) => {
-    const needed = neededFacultyFields(s);
-    return s.candidates.some((c) => needed.has(c.field) && !s.seen.candidateIds[c.id]);
-  },
 };
 
 // C3: Treasury has no icon of its own here — the funds button in the left
 // zone (see StatusHeader.tsx's FundsAndStats) is its one entry point now,
 // so the middle cluster only needs the tabs that button doesn't cover.
+// The row is filtered a second time, per render, by tabAvailable: three of
+// these appear only once the thing they are about exists (see TabNav.tsx's
+// TAB_GATES), so the row a new university sees is six icons, not nine.
 const ICON_TAB_ORDER = TAB_ORDER.filter((id) => id !== 'treasury');
 
 // Tab icons come from icons.tsx (no icon library is installed — see that
@@ -71,8 +77,19 @@ const Toolbar = forwardRef<HTMLDivElement, {
   act: (a: Action) => void;
   active: TabId | null;
   onChangeTab: (tab: TabId | null) => void;
+  // Whether the build popup is open, and the one way to change that. Both
+  // live in App.tsx now: build mode and an open tab are two states of one
+  // slot, and App is the nearest common ancestor of the two (see its module
+  // comment). This band only reports the click.
+  buildOpen: boolean;
+  onSetBuildOpen: (open: boolean) => void;
   speed: Speed;
   setSpeed: (speed: Speed) => void;
+  // Threaded straight through to the day squares beside the clock (see
+  // StatusHeader.tsx's SchoolAndClock -> DayTicker.tsx): the live fraction
+  // of the current week, read through a getter so nothing here re-renders
+  // as it moves.
+  weekProgress: () => number;
   // Which placeable Buildable is currently picked up for siting, and the
   // active path tool, if any — both lifted all the way to App.tsx now that
   // the build popup (not just the map itself) can arm either one. See
@@ -82,19 +99,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
   onArmPlacement: (id: string | null) => void;
   pathTool: 'draw' | 'erase' | null;
   onSetPathTool: (mode: 'draw' | 'erase') => void;
-}>(({ s, act, active, onChangeTab, speed, setSpeed, placingId, onArmPlacement, pathTool, onSetPathTool }, ref) => {
-  const [buildOpen, setBuildOpen] = useState(false);
-  // Shared by both ways the build popup can close (the toolbar's own Build
-  // button toggling off, and the popup's own ✕/Escape — see BuildPopup's
-  // onClose below): either one drops whatever path tool was still armed,
-  // the same "turn it off" toggle a second click on its own tile does
-  // (setPathTool(mode) with mode already active clears it — see App.tsx). A
-  // path tool is the build popup's own control, so it shouldn't outlive the
-  // popup that armed it.
-  function closeBuild() {
-    setBuildOpen(false);
-    if (pathTool) onSetPathTool(pathTool);
-  }
+}>(({ s, act, active, onChangeTab, buildOpen, onSetBuildOpen, speed, setSpeed, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool }, ref) => {
 
   return (
     <div className="toolbar" ref={ref}>
@@ -107,7 +112,26 @@ const Toolbar = forwardRef<HTMLDivElement, {
       </div>
 
       <nav className="toolbar-tabs">
-        {ICON_TAB_ORDER.map((id) => {
+        {/* HOME leads the row, and is one of the two controls here that is
+            not a TabId (Build is the other — see App.tsx). Every tab is a
+            full screen now, so "close the thing I am looking at" needed a
+            control that is always in the same place rather than only the
+            panel's own ✕ in the far corner: this is the button that says
+            the campus map is where you came from. It reads as active when
+            nothing is open, which is when the player IS at home — an open
+            build popup is still something over the map, so that does not
+            count as home either. */}
+        <button
+          type="button"
+          className={`toolbar-icon-btn ${active === null && !buildOpen ? 'active' : ''}`}
+          aria-label="Campus map"
+          title="Campus map"
+          onClick={() => { onChangeTab(null); onSetBuildOpen(false); }}
+        >
+          <HomeIcon />
+        </button>
+
+        {ICON_TAB_ORDER.filter((id) => tabAvailable(s, id)).map((id) => {
           const Icon = TAB_ICONS[id];
           const isActive = active === id;
           // Suppressed while this tab is the active one — see the module
@@ -139,7 +163,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
           aria-expanded={buildOpen}
           aria-label={buildOpen ? 'Close build menu' : 'Open build menu'}
           title="Build"
-          onClick={() => (buildOpen ? closeBuild() : setBuildOpen(true))}
+          onClick={() => onSetBuildOpen(!buildOpen)}
         >
           <BuildIcon />
           <span className="toolbar-build-label">Build</span>
@@ -154,7 +178,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
       </nav>
 
       <div className="toolbar-right">
-        <SchoolAndClock s={s} speed={speed} setSpeed={setSpeed} act={act} />
+        <SchoolAndClock s={s} speed={speed} setSpeed={setSpeed} weekProgress={weekProgress} act={act} />
       </div>
 
       {buildOpen && (
@@ -165,7 +189,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
           onArmPlacement={onArmPlacement}
           pathTool={pathTool}
           onSetPathTool={onSetPathTool}
-          onClose={closeBuild}
+          onClose={() => onSetBuildOpen(false)}
         />
       )}
     </div>

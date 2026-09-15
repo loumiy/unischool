@@ -8,12 +8,13 @@ import {
   type InitiativeOffer,
 } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
+import { planCommitmentCoverage } from '../systems/techtree/techSystem';
 import { researchSchools } from '../data/techData';
 import FacultyPortrait from '../components/FacultyPortrait';
 import HelpHint from '../components/HelpHint';
 
 // =====================================================================
-// SCHOLARSHIP, AS A SCREEN.
+// RESEARCH, AS A SCREEN.
 //
 // Its own tab rather than a corner of Faculty, for three reasons. Faculty
 // is already a dense two-panel screen and this is a full one. The subject
@@ -138,14 +139,16 @@ function RunningPanel(
 // A vacant facility, and the offer set that fills it. One card per depth
 // tier, each pre-loaded with a topic this school could actually lead.
 function VacantPanel(
-  { s, act, lab, fields }:
-  { s: GameState; act: (a: Action) => void; lab: Buildable; fields: readonly string[] },
+  { s, act, lab }:
+  { s: GameState; act: (a: Action) => void; lab: Buildable },
 ) {
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState<InitiativeOffer | null>(null);
   const [team, setTeam] = useState<string[]>([]);
 
-  const offers = useMemo(() => initiativeOffers(s, lab.id, fields), [s, lab.id, fields]);
+  // The offers are the FACILITY's — see initiativeOffers, which reads the
+  // lab's own field off its id rather than being handed a pool.
+  const offers = useMemo(() => initiativeOffers(s, lab.id), [s, lab.id]);
 
   function choose(offer: InitiativeOffer) {
     setPicked(offer);
@@ -162,11 +165,13 @@ function VacantPanel(
     && s.finance.cash >= picked.fundingCost;
 
   // What committing this team costs in teaching — named BEFORE the click,
-  // because a shrinking roster is obvious and four courses quietly losing
-  // their instructor is not (the same rule the dismissal warning follows).
-  const orphaned = s.tech.filter(
-    (t) => team.includes(s.courseFaculty[t.id]) && (t.status === 'developing' || t.status === 'done'),
-  );
+  // because a shrinking roster is obvious and courses quietly losing their
+  // instructor is not (the same rule the dismissal warning follows). This
+  // is the same plan the reducer applies, so the warning cannot promise one
+  // thing and the commitment do another — including which courses a
+  // colleague picks up, which is a different fact from a course going
+  // quiet and is worth the player knowing before they decide.
+  const coverage = planCommitmentCoverage(s, team);
 
   return (
     // An open offer set takes the whole row back: four depth tiers and a
@@ -233,10 +238,23 @@ function VacantPanel(
             </div>
           )}
 
-          {orphaned.length > 0 && (
-            <p className="offer-warning">
-              Committing this team leaves {orphaned.length} {orphaned.length === 1 ? 'course' : 'courses'} without an
-              instructor for {years(picked.depth.weeks)}: {orphaned.map((t) => t.name.split(' · ')[0]).join(', ')}.
+          {coverage.shed.length > 0 && (
+            <p className={coverage.orphaned.length > 0 ? 'offer-warning' : 'offer-note'}>
+              {coverage.covered.length > 0 && (
+                <>
+                  {coverage.covered.length} of this team&rsquo;s {coverage.shed.length}{' '}
+                  {coverage.shed.length === 1 ? 'course' : 'courses'} would move to colleagues
+                  {coverage.orphaned.length === 0 ? ', with none left uncovered.' : '. '}
+                </>
+              )}
+              {coverage.orphaned.length > 0 && (
+                <>
+                  {coverage.covered.length > 0
+                    ? `The other ${coverage.orphaned.length} would be`
+                    : `Committing this team leaves ${coverage.orphaned.length} ${coverage.orphaned.length === 1 ? 'course' : 'courses'}`}
+                  {' '}without an instructor for {years(picked.depth.weeks)}: {coverage.orphaned.map((t) => t.name.split(' · ')[0]).join(', ')}.
+                </>
+              )}
             </p>
           )}
           {chosenTeam.length > 0 && (
@@ -281,7 +299,7 @@ export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action)
     school.labIds
       .map((id) => s.tech.find((t) => t.id === id))
       .filter((lab): lab is Buildable => !!lab && lab.status === 'done')
-      .map((lab) => ({ lab, fields: school.fields })));
+      .map((lab) => ({ lab })));
 
   const underway = facilities
     .map(({ lab }) => ({ lab, initiative: s.research.initiatives[lab.id] }))
@@ -294,8 +312,8 @@ export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action)
       <section className="panel">
         <div className="panel-head">
           <span className="panel-head-title">
-            <h2>Scholarship</h2>
-            <HelpHint text="Each research facility hosts one project at a time, so the number of things the university can pursue at once is the number of places it has built to pursue them in. Choose an area, a team and a depth; the team stops teaching for the duration. Deeper work costs more, runs longer and pays off bigger — and the Landmark tier needs scholars from different disciplines, so the most prestigious work is out of reach for a single department however strong." />
+            <h2>Research</h2>
+            <HelpHint text="Each research facility hosts one project at a time, so the number of things the university can pursue at once is the number of places it has built to pursue them in. Choose an area, a team and a depth; each member gives up two course slots for the duration. Deeper work costs more, runs longer and pays off bigger — and the Landmark tier needs scholars from different disciplines, so the most prestigious work is out of reach for a single department however strong." />
           </span>
           <span className="stat">
             {underway.length} of {facilities.length} {facilities.length === 1 ? 'facility' : 'facilities'} in use
@@ -335,8 +353,8 @@ export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action)
                   {underway.length > 0 ? 'Standing idle' : 'Ready for work'}
                 </h3>
                 <div className="facility-list vacant-list">
-                  {vacant.map(({ lab, fields }) => (
-                    <VacantPanel key={lab.id} s={s} act={act} lab={lab} fields={fields} />
+                  {vacant.map(({ lab }) => (
+                    <VacantPanel key={lab.id} s={s} act={act} lab={lab} />
                   ))}
                 </div>
               </>

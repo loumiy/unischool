@@ -2,6 +2,7 @@ import type { GameState, Buildable, BuildableEffects, Faculty } from '../../stat
 import { totalEnrolled } from '../../state/types';
 import { graduateCourseIds, graduateGateMet, graduatePrograms, milestoneSchools } from '../../data/techData';
 import { isCelebratedMilestone } from '../../data/eventData';
+import { tierOf, type CourseTier } from '../../data/courseQuality';
 
 // ---------------------------------------------------------------------
 // The milestone chain (see README's "The milestone chain"). Unlocking
@@ -73,10 +74,12 @@ export function unstaffedCourses(s: GameState): Buildable[] {
 
 // Is this person committed to a running research initiative?
 //
-// THE KEYSTONE CONSTRAINT, and the one place teaching and scholarship
-// actually compete. A committed scholar stops teaching for the duration —
-// six months to five years — so every initiative is paid for twice: once
-// in money, and once in the courses those people are no longer holding.
+// THE KEYSTONE CONSTRAINT, and the one place teaching and research
+// actually compete. A committed scholar teaches a reduced load for the
+// duration — six months to five years — so every initiative is paid for
+// twice: once in money, and once in the courses those people are no longer
+// holding (see RESEARCH_COMMITMENT_SLOTS below for how much that is, and
+// why it is no longer all of them).
 // That is what makes a hire an allocation decision rather than a number
 // going up, and it is why a Landmark Program is a genuine institutional
 // sacrifice rather than something to switch on for whoever is idle.
@@ -87,12 +90,139 @@ export function isCommitted(s: GameState, facultyId: string): boolean {
   return false;
 }
 
-// The course slots this person actually offers the school right now: none
-// while they are committed, their own count otherwise. Every capacity
+// WHAT A COMMITMENT COSTS IN TEACHING: two course slots, not the career.
+//
+// This used to be all of them — a committed scholar taught nothing for the
+// duration, which for a five-year Landmark Program meant four professors'
+// entire capacity and every course they held. The playtest overruled that:
+// the constraint is right, the price was not. A funded project is a
+// reduced teaching load, which is what it is at a real university, and at
+// two slots it is still the thing that makes a hire an allocation decision
+// rather than a number going up.
+//
+// Note where the floor bites: somebody with two slots or fewer still
+// teaches nothing while committed, so a junior hire is a genuinely
+// expensive person to commit and a senior one (whose slots have grown with
+// tenure — see facultyData.ts's grownSlots) is the cheaper choice. That is
+// the same shape the old rule had, just no longer applied to everybody.
+export const RESEARCH_COMMITMENT_SLOTS = 2;
+
+// The course slots this person actually offers the school right now: their
+// own count, less the commitment if they are on a project. Every capacity
 // read goes through this rather than f.courseSlots directly, so the
 // commitment cannot be forgotten in one place and honoured in another.
 export function effectiveCourseSlots(s: GameState, f: Faculty): number {
-  return isCommitted(s, f.id) ? 0 : f.courseSlots;
+  return isCommitted(s, f.id) ? Math.max(0, f.courseSlots - RESEARCH_COMMITMENT_SLOTS) : f.courseSlots;
+}
+
+// Which courses a team would have to give up by committing — the ONE
+// answer, so the warning the player reads before clicking and the
+// reassignment the reducer performs after cannot disagree.
+//
+// Only the EXCESS moves. Each member keeps as many courses as their
+// reduced load allows and sheds the rest, and which ones they shed is
+// decided here rather than left to s.tech order: lowest tier first, so a
+// professor committed to a five-year programme keeps the capstone and
+// hands away the survey course. Ties break on course id, so the same
+// commitment always sheds the same courses.
+//
+// Callers: START_INITIATIVE (reducer.ts), which re-homes what it can and
+// orphans the rest, and ResearchTab's pre-commitment warning.
+const TIER_RANK: Record<string, number> = { core: 0, '1': 1, '2': 2, '3': 3, graduate: 4 };
+function tierRank(tier: CourseTier): number {
+  return TIER_RANK[String(tier)] ?? 0;
+}
+
+export function coursesShedByCommitment(s: GameState, facultyIds: readonly string[]): Buildable[] {
+  const shed: Buildable[] = [];
+  for (const id of facultyIds) {
+    const f = s.faculty.find((person) => person.id === id);
+    if (!f) continue;
+    // Their load under the commitment, computed from courseSlots directly:
+    // effectiveCourseSlots reads the CURRENT state, where they are not
+    // committed yet, so it would answer about the wrong world.
+    const keeps = Math.max(0, f.courseSlots - RESEARCH_COMMITMENT_SLOTS);
+    const theirs = s.tech
+      .filter((t) => isOffered(t) && s.courseFaculty[t.id] === id)
+      .sort((a, b) => tierRank(tierOf(b.id)) - tierRank(tierOf(a.id)) || a.id.localeCompare(b.id));
+    shed.push(...theirs.slice(keeps));
+  }
+  return shed;
+}
+
+// WHAT ACTUALLY HAPPENS TO THE SHED COURSES: the whole plan, worked out
+// before anything is changed, so the Research tab can show it and the
+// reducer can apply it from the same arithmetic.
+//
+// The rule the playtest asked for: when committing a team leaves a course
+// without a professor, and another professor in that field is on the
+// roster with room, they take it. This is not a second assignment rule —
+// it is the same eligibleInstructors list the Curriculum tab's assignment
+// panel offers, already sorted strongest-teacher-first and already
+// filtered on free capacity, so a re-homed course lands with whoever the
+// player would most likely have picked.
+//
+// Two details that are choices rather than mechanics:
+//
+//   - Courses are re-homed HIGHEST TIER FIRST. When there is not enough
+//     free capacity for all of them, the capstone finds cover and the
+//     survey course is the one left open, which is the same priority the
+//     shedding order takes from the other end.
+//   - A member of the committing team can be the one who takes it. They
+//     are committed, not gone: somebody with five slots teaching one still
+//     has room for two more after losing two to the project, and refusing
+//     that would be inventing a rule the capacity arithmetic does not have.
+//
+// Capacity is computed here rather than read through effectiveCourseSlots
+// because this answers a question about a world that does not exist yet:
+// the team is not committed at the moment the tab asks. Anyone ALREADY
+// committed elsewhere is read normally, so the two kinds of commitment
+// compose.
+export interface CommitmentCoverage {
+  /** Courses the team can no longer hold. */
+  shed: Buildable[];
+  /** Of those, the ones a colleague picks up, with who takes each. */
+  covered: Array<{ course: Buildable; instructor: Faculty }>;
+  /** And the ones nobody has room for. */
+  orphaned: Buildable[];
+}
+
+export function planCommitmentCoverage(s: GameState, facultyIds: readonly string[]): CommitmentCoverage {
+  const shed = coursesShedByCommitment(s, facultyIds);
+
+  const capacity = new Map<string, number>();
+  const load = new Map<string, number>();
+  for (const f of s.faculty) {
+    capacity.set(f.id, facultyIds.includes(f.id)
+      ? Math.max(0, f.courseSlots - RESEARCH_COMMITMENT_SLOTS)
+      : effectiveCourseSlots(s, f));
+    load.set(f.id, facultyLoad(s, f.id));
+  }
+  // The shed courses are off their old instructor's plate before anybody
+  // else is asked to take one.
+  for (const course of shed) {
+    const previous = s.courseFaculty[course.id];
+    if (previous) load.set(previous, (load.get(previous) ?? 1) - 1);
+  }
+
+  const covered: CommitmentCoverage['covered'] = [];
+  const orphaned: Buildable[] = [];
+  const byTierThenId = [...shed].sort(
+    (a, b) => tierRank(tierOf(b.id)) - tierRank(tierOf(a.id)) || a.id.localeCompare(b.id),
+  );
+  for (const course of byTierThenId) {
+    const taker = s.faculty
+      .filter((f) => f.field === course.requiresFaculty)
+      .filter((f) => (load.get(f.id) ?? 0) < (capacity.get(f.id) ?? 0))
+      .sort((a, b) => b.teaching - a.teaching || a.id.localeCompare(b.id))[0];
+    if (taker) {
+      load.set(taker.id, (load.get(taker.id) ?? 0) + 1);
+      covered.push({ course, instructor: taker });
+    } else {
+      orphaned.push(course);
+    }
+  }
+  return { shed, covered, orphaned };
 }
 
 // How many courses this specific person is currently teaching — their
@@ -179,6 +309,29 @@ export function hasFreeFacultySlot(s: GameState, field: string): boolean {
   return totalFacultySlots(s, field) > usedFacultySlots(s, field);
 }
 
+// CAN WAITING HELP? The three states a field-gated course can be in, and
+// the reason the curriculum draws two different dots rather than one.
+//
+// A course blocked on faculty capacity used to get one mark whatever the
+// reason, which collapsed two situations that call for opposite actions:
+//
+//   'open'     — there is a free slot. Nothing is in the way.
+//   'hireable' — no free slot, but somebody in that field is on the market.
+//                Go and appoint them; the block lifts today.
+//   'blocked'  — no free slot and nobody listed. Nothing to do but grow the
+//                department and wait for the market to turn over.
+//
+// Both halves were already computed elsewhere (slot arithmetic here, the
+// market on s.candidates); this is only the one place that says what the
+// pair of them MEANS, so the cell, its tooltip and any future caller cannot
+// disagree about it.
+export type FacultyGate = 'open' | 'hireable' | 'blocked';
+
+export function facultyGate(s: GameState, field: string): FacultyGate {
+  if (hasFreeFacultySlot(s, field)) return 'open';
+  return s.candidates.some((c) => c.field === field) ? 'hireable' : 'blocked';
+}
+
 // Every field the school is actually short on right now: a course sits
 // 'available' needing it and there's no free slot to start it. The single
 // definition of "needed", shared by the Faculty tab (which flags these
@@ -230,6 +383,43 @@ export function neededFacultyFields(s: GameState): Set<string> {
 // placeable Buildable's PLACE_BUILDABLE still asks (a building is not
 // taught by anyone) and what the UI asks when it only needs to know
 // whether a course is startable AT ALL before offering the picker.
+// WHAT "DEVELOP ALL" WOULD ACTUALLY DO, worked out before it does it.
+//
+// Two callers need the same answer: the reducer, which starts the courses,
+// and the Curriculum tab's button, which has to say how many and at what
+// total cost BEFORE the click — at a large catalogue that is a substantial
+// sum, and it used to be invisible until it had been spent.
+//
+// It cannot be "every course that passes canStartDevelopment right now",
+// because each start spends cash and takes a faculty slot, so the later
+// courses in the sweep are checked against a poorer, fuller school than
+// the earlier ones. This walks s.tech in the same order the reducer does,
+// carrying the running cash and per-field slot usage with it, which is what
+// makes the figure on the button the figure the player is charged.
+//
+// Deliberately no clone of the state: the tab recomputes this whenever the
+// state changes, and a structuredClone of the whole GameState per render is
+// a real cost for a button label.
+export function developAllPlan(s: GameState): { ids: string[]; cost: number } {
+  let cash = s.finance.cash;
+  const takenSlots = new Map<string, number>();
+  const ids: string[] = [];
+
+  for (const node of s.tech) {
+    if (node.kind !== 'course' || node.status !== 'available') continue;
+    if (node.cost > cash) continue;
+    if (node.requiresFaculty) {
+      const field = node.requiresFaculty;
+      const taken = takenSlots.get(field) ?? 0;
+      if (usedFacultySlots(s, field) + taken >= totalFacultySlots(s, field)) continue;
+      takenSlots.set(field, taken + 1);
+    }
+    cash -= node.cost;
+    ids.push(node.id);
+  }
+  return { ids, cost: s.finance.cash - cash };
+}
+
 export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: string): boolean {
   const facultyOk = !node.requiresFaculty
     || (facultyId === undefined

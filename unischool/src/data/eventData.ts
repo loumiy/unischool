@@ -1,6 +1,7 @@
 import type { Buildable, Faculty, GameState, GreekChapter, LogEntry } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { FACULTY_FIELDS, generateCandidate, rollSurname } from './facultyData';
+import { appointFaculty } from '../systems/faculty/facultySystem';
 import { money, rollAmount, weeksOfOpEx } from './moneyScale';
 import {
   CHAPTER_HOUSE_CAPACITY_BONUS, CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
@@ -234,6 +235,13 @@ export interface DecisionEventContext {
   amount?: number;       // a rolled sum of money, fixed at fire time
   donorName?: string;    // a rolled person surname, for events framed as a named gift (see 'naming-rights')
   newName?: string;      // the new display name a choice would apply, fixed at fire time (see 'naming-rights')
+  // A whole person, rolled at fire time (see 'visiting-scholar'). Plain
+  // JSON like everything else in a context, because a context is saved
+  // inside the pending interrupt. Rolled HERE rather than in apply() so the
+  // modal can name them and quote their salary, and so the person described
+  // is exactly the person appointed — two rolls would be two different
+  // people, one of them fictional.
+  candidate?: Faculty;
 }
 
 export interface DecisionChoice {
@@ -374,7 +382,13 @@ const NAMING_RIGHTS_SATISFACTION_HIT = 5;
 const RETENTION_PACKAGE_SALARY_SHARE = 0.6; // a lump sum, as a share of the hire's current annual salary
 
 const VISITING_SCHOLAR_PRESTIGE_GATE = 55;
-const VISITING_SCHOLAR_COST_WEEKS = 3;
+// Down from 3 weeks of opex, because what the choice costs changed. Funding
+// a chair used to buy a NAME ON A LIST: the money bought access to a strong
+// candidate the player could then hire, or not. It now buys the
+// appointment itself, so the salary — every week, for as long as they stay
+// — is part of the price, and the up-front gift is the smaller half of a
+// commitment rather than the whole of it.
+const VISITING_SCHOLAR_COST_WEEKS = 1.5;
 const VISITING_SCHOLAR_CANDIDATE_ROLLS = 4; // best of N rolls — a genuinely strong hire, not just a free one
 
 const ROOF_REPAIR_COST_WEEKS = 1.5;
@@ -628,33 +642,57 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     title: 'A distinguished visitor',
     weight: 6,
     eligible: (s) => s.self.reputation >= VISITING_SCHOLAR_PRESTIGE_GATE,
-    rollContext: (s) => ({ subjectField: pick(FACULTY_FIELDS), amount: weeksOfOpEx(s, VISITING_SCHOLAR_COST_WEEKS) }),
+    // The person is rolled HERE, at fire time, rather than inside the
+    // choice's apply: the modal quotes their name and their salary, and
+    // the only way that quote can be honest is if the person described is
+    // the person appointed.
+    //
+    // Best of N rolls: what the player is buying is QUALITY, not access.
+    // Against the old post-and-wait model this event also saved a fee and
+    // a countdown; against a standing candidate market that half is
+    // worthless — anyone can appoint off the list any week — so the
+    // best-of-N roll is the entire proposition, and the one thing the
+    // market itself never offers on demand.
+    rollContext: (s) => {
+      const field = pick(FACULTY_FIELDS);
+      const existing = [...s.faculty, ...s.candidates].map((f) => f.name);
+      let best = generateCandidate(field, existing);
+      for (let i = 1; i < VISITING_SCHOLAR_CANDIDATE_ROLLS; i += 1) {
+        const next = generateCandidate(field, [...existing, best.name]);
+        if (next.teachingPotential + next.researchPotential > best.teachingPotential + best.researchPotential) best = next;
+      }
+      return { subjectField: field, subjectName: best.name, amount: weeksOfOpEx(s, VISITING_SCHOLAR_COST_WEEKS), candidate: best };
+    },
     prompt: (_s, ctx) =>
-      `A well-regarded ${ctx.subjectField} scholar is between appointments and would consider a chair here — but only if the school funds the visit properly, at ${money(ctx.amount ?? 0)}.`,
+      `${ctx.subjectName}, a well-regarded ${ctx.subjectField} scholar, is between appointments and would take a chair here — but only if the school funds the visit properly, at ${money(ctx.amount ?? 0)}.`,
     choices: [
       {
         id: 'fund',
-        label: 'Fund the chair',
-        describe: (_s, ctx) =>
-          `${money(ctx.amount ?? 0)} up front. A ${ctx.subjectField} candidate better than the job market normally turns up joins the pool immediately, and still has to be appointed and paid like anyone else.`,
+        label: 'Appoint them',
+        // Both numbers, because they are two different commitments: the
+        // gift is once, the salary is every week for as long as they stay.
+        describe: (_s, ctx) => {
+          const c = ctx.candidate;
+          return `${money(ctx.amount ?? 0)} up front, and ${c ? `$${c.salary.toLocaleString()}/yr` : 'a salary'} thereafter. `
+            + `${ctx.subjectName} joins the faculty this week${c ? `, teaching ${c.teaching} · researching ${c.research}` : ''} — better than the job market normally turns up.`;
+        },
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
+          // Appointed outright rather than added to the candidate pool.
+          // There was no decision left in that second step — the money was
+          // already spent, so "find them in the market and hire them" was
+          // an errand, not a choice. Same path an ordinary hire takes (see
+          // facultySystem.ts's appointFaculty), so nothing about an
+          // appointed visitor differs from anyone else on the roster.
+          //
+          // The fallback roll is for a save written before the person was
+          // part of the context: an interrupt frozen mid-flight must still
+          // resolve into somebody.
           const field = ctx.subjectField ?? pick(FACULTY_FIELDS);
-          const existing = [...s.faculty, ...s.candidates].map((f) => f.name);
-          // Best of N rolls: what the player is buying is QUALITY, not
-          // access. Against the old post-and-wait model this event also
-          // saved a fee and a countdown; against a standing candidate
-          // market that half is worthless — anyone can appoint off the
-          // list any week — so the best-of-N roll is now the entire
-          // proposition, and the one thing the market itself never
-          // offers on demand.
-          let best = generateCandidate(field, existing);
-          for (let i = 1; i < VISITING_SCHOLAR_CANDIDATE_ROLLS; i += 1) {
-            const next = generateCandidate(field, [...existing, best.name]);
-            if (next.teachingPotential + next.researchPotential > best.teachingPotential + best.researchPotential) best = next;
-          }
-          s.candidates.push(best);
-          return entry(s, `${best.name} (${field}) has accepted a visiting chair and is available to hire.`, 'good');
+          const person = ctx.candidate
+            ?? generateCandidate(field, [...s.faculty, ...s.candidates].map((f) => f.name));
+          appointFaculty(s, person);
+          return entry(s, `${person.name} (${field}) has accepted a visiting chair and joined the faculty at $${person.salary.toLocaleString()}/yr.`, 'good');
         },
       },
       {
