@@ -83,6 +83,52 @@ export function isActivationTarget(target: EventTarget | null): boolean {
   return keyboardModality && el.matches(':focus-visible');
 }
 
+// WHICH OF THE MAP'S KEYS ARE LIVE, given what the shell has open over it.
+//
+// These used to be one boolean, and that was the bug behind "R does not
+// rotate". The map's keys were treated as one bag — pan, Escape, P, R — and
+// switched off whenever anything of the shell's own was open, the build
+// popup included. But the build popup is not something open OVER the map: it
+// has no backdrop, the map stays live and clickable underneath it, and a
+// building is picked up from inside it and deliberately survives the popup
+// staying open (see App.tsx's closeBuild and BuildPopup's own note). So the
+// entire window in which R means anything was exactly the window in which R
+// was switched off. The only way to reach it was to collapse the popup
+// first, which no player would guess and the help text does not mention.
+//
+// Two rules, because the keys genuinely have two different requirements.
+export interface ShellOverlays {
+  overlayOpen: boolean;   // a full-screen tab is up
+  buildOpen: boolean;     // the build popup is up — note the map is still visible under it
+  logOpen: boolean;       // the log popup is up
+  interrupted: boolean;   // a decision modal has halted the clock
+}
+
+// PAN AND ESCAPE. Off whenever the shell has anything of its own open.
+//
+// Escape's gate is load-bearing and must not be widened: App.tsx owns one
+// Escape ladder and hands off to the map's own back-out by switching these
+// keys on EXACTLY when it has nothing left to close. Panning wants the same
+// answer for its own reason — a camera that moved behind a popup has moved
+// by the time the player looks again.
+export function mapKeysLive(o: ShellOverlays): boolean {
+  return !o.overlayOpen && !o.buildOpen && !o.logOpen && !o.interrupted;
+}
+
+// SITING KEYS — today just R, which turns a picked-up building before it is
+// set down. The build popup does NOT switch these off, because siting is
+// what the build popup is for: the player picks a building in there, the
+// popup stays open, and they place it on the map underneath. A full-screen
+// tab and the log popup still do (the map is not visible or not the subject),
+// and an interrupt outranks everything.
+//
+// Safe to leave live under the build popup because the popup binds no key of
+// its own, so there is nothing for these to double-handle — which is not
+// true of Escape, hence the two rules.
+export function sitingKeysLive(o: ShellOverlays): boolean {
+  return !o.overlayOpen && !o.logOpen && !o.interrupted;
+}
+
 // Subscribe to global keydown for as long as `enabled` holds.
 //
 // The handler is read through a ref rather than captured in the effect, so
