@@ -202,6 +202,16 @@ button { cursor: pointer; font-family: inherit; }
 .speeds button.sandbox.active { background: #a67c1c; color: #14161a; border-color: #a67c1c; }
 /* The playtest-only "+$1B" grant button — same sandbox palette as the
    Fast speed button, so both read as the same "not normal play" register. */
+/* Develop All (CurriculumTab.tsx). An ordinary control now rather than a
+   playtest one, so it wears the panel's own register rather than the
+   dashed sandbox outline the +$1B grant keeps: it works inside the game's
+   constraints instead of breaking them. It carries a price, so it reads
+   like the other things in the game that do. */
+.develop-all-btn { background: #f0e8d1; color: var(--ink); border: 1px solid var(--gold-dim);
+  border-radius: var(--radius-sm); padding: 3px 10px; font-family: var(--mono);
+  font-size: var(--text-xs); white-space: nowrap; }
+.develop-all-btn:hover { background: var(--gold-dim); color: #fff8e8; }
+
 .grant-funds-btn { background: #3a2f1c; color: var(--warn-on-dark); border: 1px dashed #a67c1c; border-radius: var(--radius-sm);
   padding: 5px 10px; font-size: var(--text-xs); font-weight: 700; }
 .grant-funds-btn:hover { background: #a67c1c; color: #14161a; }

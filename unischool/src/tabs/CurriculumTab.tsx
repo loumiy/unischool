@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
 import { discoverySchools, graduateGateMet, graduatePrograms, professionalSchools } from '../data/techData';
 import {
   canStartDevelopment, facultyGate, eligibleInstructors, assignedInstructor,
-  isUnstaffed, facultyLoad,
+  isUnstaffed, facultyLoad, developAllPlan,
 } from '../systems/techtree/techSystem';
 import { facultyQualityTier } from '../data/facultyData';
 import { gradeFor, qualityOf, tierOf, type Grade } from '../data/courseQuality';
@@ -14,7 +14,6 @@ import {
 import HelpHint from '../components/HelpHint';
 import FacultyPortrait from '../components/FacultyPortrait';
 import { ProgressRing } from '../components/Progress';
-import { isTestUniversity } from '../components/StatusHeader';
 import type { Faculty } from '../state/types';
 
 // ---------------------------------------------------------------------
@@ -1133,6 +1132,12 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
   const catalogFraction = courses.length > 0 ? doneCourses / courses.length : 0;
   const catalogPct = Math.round(catalogFraction * 100);
 
+  // What Develop All would start, and what it would cost (see the button
+  // below, and techSystem.ts's developAllPlan). Memoised on the state
+  // because it walks the whole catalogue, and this header re-renders on
+  // every hover in the grid.
+  const developAll = useMemo(() => developAllPlan(s), [s]);
+
   const lookup = new Map(s.tech.map((t) => [t.id, t]));
   // Built ONCE per render and threaded to every cell, every heading and
   // the drawer. Grading is cheap; counting a professor's load is not (see
@@ -1219,14 +1224,29 @@ export default function CurriculumTab({ s, act }: { s: GameState; act: (a: Actio
             ) : (
               <h2>The Curriculum</h2>
             )}
-            {isTestUniversity(s.self.name) && (
+            {/* DEVELOP ALL, no longer playtest-only. It routes through the
+                same canStartDevelopment every manual click uses, so it
+                cannot start anything unaffordable, unstaffable or
+                unrevealed, and charges normally for everything it does
+                start — there was never a sandbox reason for it, only a
+                sandbox habit. The +$1B grant and the Fast speed stay
+                gated; they break the game's constraints, this one works
+                inside them.
+
+                It says what it is about to do. At a large catalogue the
+                bill is substantial and used to be invisible until it had
+                been spent, and the count is not simply "everything
+                available": each start takes cash and a faculty slot, so
+                the sweep runs out of one or the other partway (see
+                developAllPlan). */}
+            {developAll.ids.length > 0 && (
               <button
                 type="button"
-                className="grant-funds-btn"
+                className="develop-all-btn"
                 onClick={() => act({ type: 'DEVELOP_ALL_AVAILABLE_COURSES' })}
-                title="Playtest only — starts development on every course currently available, cash and faculty slots permitting."
+                title="Starts development on every course the school can currently afford and staff, in catalogue order."
               >
-                Develop All
+                Develop {developAll.ids.length} · ${developAll.cost.toLocaleString()}
               </button>
             )}
           </span>

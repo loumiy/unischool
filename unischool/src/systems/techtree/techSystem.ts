@@ -383,6 +383,43 @@ export function neededFacultyFields(s: GameState): Set<string> {
 // placeable Buildable's PLACE_BUILDABLE still asks (a building is not
 // taught by anyone) and what the UI asks when it only needs to know
 // whether a course is startable AT ALL before offering the picker.
+// WHAT "DEVELOP ALL" WOULD ACTUALLY DO, worked out before it does it.
+//
+// Two callers need the same answer: the reducer, which starts the courses,
+// and the Curriculum tab's button, which has to say how many and at what
+// total cost BEFORE the click — at a large catalogue that is a substantial
+// sum, and it used to be invisible until it had been spent.
+//
+// It cannot be "every course that passes canStartDevelopment right now",
+// because each start spends cash and takes a faculty slot, so the later
+// courses in the sweep are checked against a poorer, fuller school than
+// the earlier ones. This walks s.tech in the same order the reducer does,
+// carrying the running cash and per-field slot usage with it, which is what
+// makes the figure on the button the figure the player is charged.
+//
+// Deliberately no clone of the state: the tab recomputes this whenever the
+// state changes, and a structuredClone of the whole GameState per render is
+// a real cost for a button label.
+export function developAllPlan(s: GameState): { ids: string[]; cost: number } {
+  let cash = s.finance.cash;
+  const takenSlots = new Map<string, number>();
+  const ids: string[] = [];
+
+  for (const node of s.tech) {
+    if (node.kind !== 'course' || node.status !== 'available') continue;
+    if (node.cost > cash) continue;
+    if (node.requiresFaculty) {
+      const field = node.requiresFaculty;
+      const taken = takenSlots.get(field) ?? 0;
+      if (usedFacultySlots(s, field) + taken >= totalFacultySlots(s, field)) continue;
+      takenSlots.set(field, taken + 1);
+    }
+    cash -= node.cost;
+    ids.push(node.id);
+  }
+  return { ids, cost: s.finance.cash - cash };
+}
+
 export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: string): boolean {
   const facultyOk = !node.requiresFaculty
     || (facultyId === undefined

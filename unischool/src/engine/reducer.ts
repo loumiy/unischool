@@ -5,7 +5,7 @@ import { createInitialState, createPreStartState } from '../state/actions';
 import { tickFinance, endowmentCampaign } from '../systems/finance/financeSystem';
 import {
   tickTech, canStartDevelopment, startDevelopment, eligibleInstructors, isCommitted,
-  planCommitmentCoverage,
+  planCommitmentCoverage, developAllPlan,
 } from '../systems/techtree/techSystem';
 import { endInitiative } from '../systems/research/researchSystem';
 import { initiativeDepth, initiativeFundingCost } from '../data/researchData';
@@ -814,8 +814,14 @@ export function reducer(state: GameState, action: Action): GameState {
     // the loop can spend the cash or fill the faculty slot a later one
     // needed.
     case 'DEVELOP_ALL_AVAILABLE_COURSES': {
-      for (const node of s.tech) {
-        if (node.kind === 'course' && canStartDevelopment(s, node)) startDevelopment(s, node);
+      // Driven by the same plan the button quotes (see techSystem.ts's
+      // developAllPlan), so what the player was told it would cost is what
+      // it costs. Each start is still re-checked against the live state as
+      // the cash and the slots go: the plan decides WHICH, and
+      // canStartDevelopment remains the authority on whether.
+      for (const id of developAllPlan(s).ids) {
+        const node = s.tech.find((t) => t.id === id);
+        if (node && canStartDevelopment(s, node)) startDevelopment(s, node);
       }
       return s;
     }
