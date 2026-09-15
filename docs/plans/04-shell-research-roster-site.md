@@ -1,11 +1,11 @@
-# UniSchool — Development Plan: The Shell, Research, the Roster, and the Site
+# Plan 04 — The shell, research, the roster, and the site
 
 *Planning document only — no gameplay code is changed by this file. Its job is
 to take a page of playtest notes and turn it into an ordered sequence of PRs,
 each one small enough to land on its own and each one landing in the order that
 makes the next one cheaper.*
 
-**Status: Phases 1-4 landed.** Four phases, 23 PRs, plus a
+**Status: Landed.** Four phases, 23 PRs, plus a
 named set of deferred directions at the end. Phase 1 (the shell — 1A through
 1F), Phase 2 (research, end to end — 2A through 2G), Phase 3 (the roster —
 3A through 3E) and Phase 4 (campus art — 4A through 4E) are implemented. Their
@@ -844,84 +844,12 @@ wear the light roof instead.
 
 ---
 
-# Later — bigger efforts, deliberately deferred
-
-*Named here so the plan above can be read as complete rather than as everything.
-Each of these is a phase of its own and none of them blocks anything above.*
-
-### Startup screen
-Drop public/private. Possible additions: a **motif set** chosen at founding
-(classical — stone and columns; brutalist — concrete; modern — glass), which is a
-large art commission and the reason this is deferred rather than hard; and
-picking the mascot here rather than burying it in Athletics (which pairs with
-Athletics V3's own mascot step, so these should land together or not at all).
-Open question worth settling first: should the building on the startup screen
-*be* Founders Hall? If yes, that is a change to one of the two, and Phase 4A has
-just changed Founders Hall's footprint — so this waits on 4A either way.
-
-### Admissions and History
-Admissions has no gameplay in it; folding it into History is plausible. The
-content that would justify either tab is the same: the student body has **year
-cohorts** (freshman → senior) *and* **admissions cohorts** (research-minded,
-athletes, …), and neither is displayed. An infographic view of who actually
-attends this university is the feature; which tab it lives in is a consequence of
-building it.
-
-### Summer admissions
-The largest single redesign in the notes, and a genuine rework of a decision the
-game already has:
-- Far less text on screen.
-- **Tuition is a gamble.** The slider tells you only whether you are in line with
-  your prestige. No applicant interest, no sticker shock, no stated cap (the cap
-  is where the slider ends; raise it to $100k). Setting it locks it.
-- **The reveal** is a slow tick up to the applicant count — slower than any other
-  number animation in the game, because it is the payoff.
-- **Admit rate is the second decision**, and its consequences are visible before
-  commitment: moving the slider moves the freshman class size (yield goes away),
-  and the panel projects weekly profit/loss and satisfaction against current
-  capacity — *including the three older cohorts who are still enrolled*.
-- **Scholarships go away** — one rate.
-- **The tuition exploit closes**: tuition is set per *cohort* and follows that
-  cohort to graduation, rather than repricing everyone retroactively.
-
-Note that the last item is a real model change — `finance.tuitionPerStudent` is a
-single scalar today, and per-cohort pricing means it becomes four (see
-`admissions/cohorts.ts`, which already carries the cohort structure this would
-hang off).
-
-### Athletics V3
-Better layout; a bigger coach pool reusing faculty headshots and the old
-one-pool-tagged-by-need hiring UI (which is the right home for that pattern now
-that faculty no longer uses it). The tab appears on the first team, then an
-interrupt: hire an athletic director (three generated cards, salary the only real
-differentiator), name the mascot. Per-sport standings and playoff tournaments
-(needs per-sport rival strength — see Rival schools below). A mechanic that gives
-the player a *reason* to build venues and hire coaches, e.g. periodic AD
-interrupts naming a team without a coach. Championship interrupts. More sports:
-Track & Field (the multi-sport field already carries a track), Rowing (a lake and
-a boathouse, or no venue), Hockey (arena), Golf (probably too much ground).
-
-### Rival schools
-Prestige becomes more than one number — ranked separately by school, by social
-life, by research. Expand to 99 rivals (100 schools including the player's). Show
-rank outside the top 50 on the toolbar while keeping the U.S. News *interrupt* for
-top-50 entry only. Each school needs a mascot, which is what ties this to
-Athletics V3 — per-sport standings need per-sport rival strength, and that lives
-here.
-
 ---
 
-# Later later — direction, not plan
+## What came after this plan
 
-Not sequenced, not estimated, and listed only so the work above is not designed
-in a way that forecloses them.
-
-- Camera rotation and tilt — worth noting that `isoProjection.ts` derives
-  everything from one projection, so this is less far-fetched than it sounds.
-- Moving pedestrians.
-- Tutorial dialogue.
-- Sound and music.
-- Menu styling as physical objects — treasury as a ledger, athletics on a
-  clipboard, curriculum on a chalkboard. (Phase 1C makes every tab a full screen,
-  which is the canvas this would need.)
-- School deans, a board of directors, a CFO, other executive positions.
+The two sections this document used to end with — deferred efforts, and
+undirected direction — were lifted out to `BACKLOG.md` at the repository root
+when the plans were archived. They were the only forward-looking content in
+any of the four plans, and a backlog filed inside a document whose status line
+reads "Landed" is a backlog nobody will find.

@@ -1,4 +1,4 @@
-# UniSchool — Campus Assets: Scale, Detail, and Depth
+# Plan 03 — Campus assets: scale, detail, and depth
 
 *Planning document only — no gameplay code is changed by this file, and nothing
 it proposes changes a cost, a gate, a grant, a footprint, or a save. Its job is
@@ -6,8 +6,8 @@ to work out why the campus map's art reads as inconsistent, and to sequence the
 work that makes every asset on the map share one scale, one detail vocabulary,
 and one correct notion of what stands in front of what.*
 
-**Status: complete. A-G, plus the F2 corrections and the hospital in G2, all
-shipped.** The depth sort (PR A), the unit system
+**Status: Landed.** A-G, plus the F2 corrections and the hospital in G2, all
+shipped. The depth sort (PR A), the unit system
 (PR B), the bay grid (PR C), the door catalogue (PR D), the academic hall
 (PR E), the materials (PR F), the corrections in F2 and
 the rest of the catalogue (PR G) are on the branch, each with a test that pins

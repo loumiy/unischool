@@ -112,6 +112,23 @@ one layer is ever listening.
   open over the map, renders the persistent chrome, the map + build rail + log,
   and the active overlay
 
+### The three documents
+
+Everything written down about this project is in one of three places, and which
+one depends on **tense**:
+
+- **`README.md`** (this file) — the game as it **is**. The spec. Source comments
+  cite it by section, so it has to stay true.
+- **`BACKLOG.md`** — work that is going to happen but **has not**. Named, not
+  sequenced. The only forward-looking document here.
+- **`docs/plans/`** — numbered plans for work that **has** happened, each a
+  closed record of how a pile of notes became an ordered sequence of PRs. See
+  `docs/plans/README.md` for the naming and shape a new one follows.
+
+Nothing belongs in two of them at once. If a plan lands, what it changed goes
+into README and the plan is left alone as the record of what was believed at
+the time.
+
 ## Architecture — follow these rules strictly
 
 - There is **one central `GameState`** (in `src/state/types.ts`) that all systems
@@ -333,7 +350,7 @@ to 212. The ceiling was unchanged; *when* it could be earned was not, and that
 traced to a real flaw rather than a tuning error — course quality reached
 prestige only as a multiplier on breadth, and breadth is milestone-gated.
 Teaching quality became its own input and breadth went back to breadth ×
-library. Recorded in `ACADEMIC_CORE_PLAN.md` §6b so it is not re-attempted.
+library. Recorded in `docs/plans/02-academic-core.md` §6b so it is not re-attempted.
 
 Each input is clamped to its own 0..1 share of the target before being
 weighted, and the admissions-derived input (incoming student quality)
@@ -613,7 +630,7 @@ The settled v1 rules:
   growth with an `INTAKE_SURGE_MULTIPLIER`; both were deliberately removed
   (commit "Introduce commuters: decouple enrollment from dorm capacity") once
   a build-nothing school was found growing to five figures of enrollment with
-  no throttle at all — `ALIGNMENT_ROADMAP.md`'s cohort-smoothing follow-up note
+  no throttle at all — `docs/plans/01-design-alignment.md`'s cohort-smoothing follow-up note
   predates that removal and is superseded on this point.
 - **Founding mix.** A new college opens **fully commuter** — capacity 0, no
   dorm built yet (see "Commuters" below) — with **all four class years
@@ -871,7 +888,7 @@ that opens its school and selects it, so the only edges that exist are the ones
 you walk.
 
 *(A literal constellation layout was built and abandoned before this — see
-`ACADEMIC_CORE_PLAN.md`'s "Why the constellation failed", which is the most
+`docs/plans/02-academic-core.md`'s "Why the constellation failed", which is the most
 useful thing that experiment produced. The one finding carried forward is the
 full-bleed shell above.)*
 
@@ -1922,7 +1939,7 @@ any refactor.
   course drawer, with position carrying the regular structure and only the ~50
   authored cross-major bridges highlighted (see "The Curriculum map"). Still
   open from the original idea: nothing worth keeping —
-  `ACADEMIC_CORE_PLAN.md`'s "Why the constellation failed" is the record of
+  `docs/plans/02-academic-core.md`'s "Why the constellation failed" is the record of
   why.
 - Camera rotation on the campus map. The map is now drawn at an angle (2:1
   dimetric — see `src/components/isoProjection.ts`), which means a tall
