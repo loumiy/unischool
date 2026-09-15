@@ -93,7 +93,7 @@ const TAB_HOTKEYS: Record<string, TabId> = {
 const FULL_BLEED_TABS: readonly TabId[] = ['curriculum', 'research'];
 
 export default function App() {
-  const { state, act, speed, setSpeed } = useGame();
+  const { state, act, speed, setSpeed, weekProgress } = useGame();
   const s: GameState = state;
   // null = looking at the map itself, with nothing open over it.
   const [overlay, setOverlay] = useState<TabId | null>(null);
@@ -172,6 +172,7 @@ export default function App() {
           onChangeTab={setOverlay}
           speed={speed}
           setSpeed={setSpeed}
+          weekProgress={weekProgress}
           placingId={placingId}
           onArmPlacement={setPlacingId}
           pathTool={pathTool}

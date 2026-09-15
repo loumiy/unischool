@@ -73,6 +73,11 @@ const Toolbar = forwardRef<HTMLDivElement, {
   onChangeTab: (tab: TabId | null) => void;
   speed: Speed;
   setSpeed: (speed: Speed) => void;
+  // Threaded straight through to the day squares beside the clock (see
+  // StatusHeader.tsx's SchoolAndClock -> DayTicker.tsx): the live fraction
+  // of the current week, read through a getter so nothing here re-renders
+  // as it moves.
+  weekProgress: () => number;
   // Which placeable Buildable is currently picked up for siting, and the
   // active path tool, if any — both lifted all the way to App.tsx now that
   // the build popup (not just the map itself) can arm either one. See
@@ -82,7 +87,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
   onArmPlacement: (id: string | null) => void;
   pathTool: 'draw' | 'erase' | null;
   onSetPathTool: (mode: 'draw' | 'erase') => void;
-}>(({ s, act, active, onChangeTab, speed, setSpeed, placingId, onArmPlacement, pathTool, onSetPathTool }, ref) => {
+}>(({ s, act, active, onChangeTab, speed, setSpeed, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool }, ref) => {
   const [buildOpen, setBuildOpen] = useState(false);
   // Shared by both ways the build popup can close (the toolbar's own Build
   // button toggling off, and the popup's own ✕/Escape — see BuildPopup's
@@ -154,7 +159,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
       </nav>
 
       <div className="toolbar-right">
-        <SchoolAndClock s={s} speed={speed} setSpeed={setSpeed} act={act} />
+        <SchoolAndClock s={s} speed={speed} setSpeed={setSpeed} weekProgress={weekProgress} act={act} />
       </div>
 
       {buildOpen && (

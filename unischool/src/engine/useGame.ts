@@ -4,6 +4,7 @@ import { reducer } from './reducer';
 import { createPreStartState } from '../state/actions';
 import type { Action } from '../state/actions';
 import { loadGame, saveGame } from '../state/persistence';
+import { advanceWeekProgress, MAX_SAMPLE_MS } from './weekClock';
 
 // Speed presets in milliseconds per week-tick. 0 = paused.
 // `real` is the baseline play speed: slow enough that a 50-year
@@ -39,6 +40,14 @@ function initialGameState(): GameState {
   return loadGame() ?? createPreStartState();
 }
 
+// How often the week accumulator samples the real clock. Nothing about the
+// game is tied to this number — it is only the granularity a week boundary
+// can land on, and 50ms is 1% of the fastest week a player is offered, so a
+// tick is never visibly late. Deliberately NOT one interval per speed: the
+// whole point of the accumulator (see weekClock.ts) is that one steady
+// sampler outlives every pause, resume and speed change.
+const SAMPLE_MS = 50;
+
 export function useGame() {
   const [state, dispatch] = useReducer(reducer, undefined, initialGameState);
   const [speed, setSpeed] = useState<Speed>('paused');
@@ -47,12 +56,51 @@ export function useGame() {
 
   const interrupted = state.pendingInterrupt !== null;
 
+  // How far through the current week we are, 0..1 — a ref rather than
+  // state on purpose: the day squares beside the clock (DayTicker.tsx) are
+  // the only thing that reads it, and re-rendering the whole app twenty
+  // times a second to move a cosmetic square would be a real cost for a
+  // purely decorative one. DayTicker polls this at its own lazy cadence
+  // instead, through the getter returned below.
+  const weekProgressRef = useRef(0);
+
+  // The ms-per-week the sampler should be running at, recomputed every
+  // render and read through a ref so the sampler itself never has to be
+  // rebuilt. 0 means the clock is not running — paused, not yet started,
+  // or halted because an interrupt is pending (that last one is the same
+  // gate the old interval used, kept exactly as it was).
+  const msPerWeekRef = useRef(0);
+  msPerWeekRef.current = state.started && !interrupted ? SPEEDS[speed] : 0;
+
+  // ONE sampler, mounted once and never torn down, because tearing it down
+  // is precisely the bug: every rebuild used to discard the part-week in
+  // flight. It reads the rate from the ref above, so a speed change takes
+  // effect on the very next sample without touching the accumulator, and a
+  // pause simply stops the accumulator growing.
   useEffect(() => {
-    const ms = SPEEDS[speed];
-    if (ms === 0 || !state.started || interrupted) return; // also halted while an interrupt is pending
-    const id = setInterval(() => dispatch({ type: 'TICK' }), ms);
+    let last = performance.now();
+    const id = setInterval(() => {
+      const now = performance.now();
+      // Sampled (and capped) even while paused, so an un-pause can never
+      // hand the accumulator the whole length of the pause.
+      const delta = Math.min(now - last, MAX_SAMPLE_MS);
+      last = now;
+      const { progress, ticks } = advanceWeekProgress(weekProgressRef.current, delta, msPerWeekRef.current);
+      weekProgressRef.current = progress;
+      for (let i = 0; i < ticks; i++) dispatch({ type: 'TICK' });
+    }, SAMPLE_MS);
     return () => clearInterval(id);
-  }, [speed, state.started, interrupted]);
+  }, []);
+
+  // Resolving an interrupt turns the calendar page itself (every resolve
+  // action calls advanceClock — see reducer.ts), so the week in flight when
+  // the modal opened is over whether or not its accumulator had run out.
+  // This is the one place the clock advances without the accumulator
+  // crossing a boundary, so it is the one place the accumulator has to be
+  // told; otherwise the new year would open on day 4 and be a short week.
+  useEffect(() => {
+    if (!interrupted) weekProgressRef.current = 0;
+  }, [interrupted]);
 
   // The clock already halts the instant an interrupt is pending (above),
   // but that only stops ticking — it leaves `fast` as the SELECTED speed,
@@ -88,5 +136,10 @@ export function useGame() {
 
   const act = useCallback((a: Action) => dispatch(a), []);
 
-  return { state, act, speed, setSpeed };
+  // A getter, not a value: reading through it is always current, and
+  // handing it out costs its caller no re-renders (see weekProgressRef
+  // above). Stable across renders so an effect can depend on it.
+  const weekProgress = useCallback(() => weekProgressRef.current, []);
+
+  return { state, act, speed, setSpeed, weekProgress };
 }
