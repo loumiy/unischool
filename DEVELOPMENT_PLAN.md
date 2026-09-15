@@ -5,16 +5,17 @@ to take a page of playtest notes and turn it into an ordered sequence of PRs,
 each one small enough to land on its own and each one landing in the order that
 makes the next one cheaper.*
 
-**Status: Phases 1-2 landed; Phases 3-4 proposed.** Four phases, 23 PRs, plus a
+**Status: Phases 1-3 landed; Phase 4 proposed.** Four phases, 23 PRs, plus a
 named set of deferred directions at the end. Phase 1 (the shell — 1A through
-1F) and Phase 2 (research, end to end — 2A through 2G) are implemented. Their
-PRs are described below as they were planned, with the places the
-implementation departed from the plan noted in the PR that departed: 1E, where
-`:focus-visible` turned out to be half an answer; 2A, where narrowing each
-facility's topic pool put more of the catalogue out of reach than the plan
-estimated; 2B, which needed a per-topic facility list to finish the job 2A
-started; and 2F, where reporting every completion cost more of the modal
-budget than the cadence allows.
+1F), Phase 2 (research, end to end — 2A through 2G) and Phase 3 (the roster —
+3A through 3E) are implemented. Their PRs are described below as they were
+planned, with the places the implementation departed from the plan noted in the
+PR that departed: 1E, where `:focus-visible` turned out to be half an answer;
+2A, where narrowing each facility's topic pool put more of the catalogue out of
+reach than the plan estimated; 2B, which needed a per-topic facility list to
+finish the job 2A started; 2F, where reporting every completion cost more of the
+modal budget than the cadence allows; and 3C, where softening the overload
+penalty moved the balance harness's own horizon.
 
 ---
 
@@ -635,6 +636,18 @@ means the overload penalty fires more often. The two changes push the same
 number in the same direction and should be balanced against each other —
 `npm run sim` after both.
 
+**As implemented: the sim says the pair compounds, and the harness moved.**
+The invariant holds at 7 (a veteran on a capstone still drops B to C at a full
+load; a veteran teaching one course never reads D or F at any tier), and
+`test/course-quality.test.ts` pins it. But softer grades lift satisfaction and
+prestige, which widen the applicant pool, which makes the two DELIBERATE
+MISTAKE strategies overreach harder and for longer: Curriculum rush ends year 20
+at -11.8M where it used to end at +2.9M, and year 40 at +3.69B where it used to
+end at +1.49B. "Stall, don't die" still holds, over a longer arc — so
+`test/balance-regression.test.ts` judges those two strategies (and only those
+two) at a 40-year horizon, and retires one bar that measured dip depth rather
+than health. Every other strategy is still judged at year 20.
+
 ## PR 3D — "Develop All" ships
 
 `CurriculumTab.tsx`'s Develop All button is gated behind a university named
@@ -649,6 +662,12 @@ everything it does start. Per decision 6 it ships unlimited.
 **Worth doing while here:** the button should say what it is about to do — how
 many courses and at what total cost — because at a large catalogue the cost is
 substantial and currently invisible until it has been spent.
+
+**As implemented:** the count is not "everything that passes
+`canStartDevelopment` right now", because each start spends cash and takes a
+faculty slot out from under the courses later in the sweep. `developAllPlan`
+walks the catalogue carrying both, and the reducer runs that plan, so the quote
+and the bill cannot drift apart.
 
 ## PR 3E — A hall says how it is doing
 

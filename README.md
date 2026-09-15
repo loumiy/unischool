@@ -719,8 +719,23 @@ Two consequences fall straight out of the record existing:
   replacement hire can always take the orphans over — eligibility is per-person —
   but an over-committed department cannot open NEW courses until it has the
   people for the ones it already offers.
-- **Committing somebody to research takes their teaching**, the same way and with
-  the same bookkeeping (see "Research").
+- **Committing somebody to research takes two of their course slots**, the same
+  way and with the same bookkeeping (see "Research").
+
+**The Faculty tab is a roster BY FIELD** (`FacultyTab.tsx`): one section per
+department, in the `FACULTY_FIELDS` grouping, each carrying its own slot
+arithmetic, its people, and the candidates listed in that field underneath them.
+The header's tooltip names the courses that pull from the field, grouped by
+major — the answer to "why do I need a physicist". A field nobody has hired
+into, nobody is listed in, and no revealed course asks for is not rendered; a
+field with courses and nobody in it is, and reads as the vacancy it is.
+
+It is a place to LOOK AT your faculty, not a place to hire from. Hiring belongs
+where the shortage is felt — the Curriculum tab, where a course will not start —
+and the tab's old alert badge went with the loop it prompted for. The curriculum
+says whether waiting will help: a course blocked on capacity draws an **amber**
+dot when somebody in that field is on the market (one appointment away) and a
+**red** one when nobody is (`techSystem.ts`'s `facultyGate`).
 
 That is the first half of the "department left understaffed → its courses go on
 hold" chain the roadmap had deferred: the consequence is built, and it arrives
@@ -767,7 +782,7 @@ it now reads as one.
 | Input | Effect |
 | --- | --- |
 | Instructor's teaching stat | the base, 0..100 |
-| Teaching load | up to −12, scaling with how full their slots are |
+| Teaching load | up to −7, scaling with how full their slots are |
 | Course tier | 0 for core and tier-1, −2 tier-2, −5 tier-3, −8 graduate |
 | Prize-winning instructor | +3 per prize, capped at +6 |
 
@@ -776,6 +791,17 @@ turns assignment from a RANKING problem ("who is best") into a MATCHING one
 ("who is right for this"), and it gives a senior hire a natural home. Put your
 star on the tier-3 seminar, not the gen-ed survey, because that is where their
 strength shows up in the grade.
+
+**Overload is a cost, not a cliff.** The load penalty was 12, against bands
+16–18 points wide, which made a professor's second and third course read as a
+punishment for expanding the catalogue rather than as a price paid for it. At 7
+a matured instructor (teaching ~71) on a capstone still drops a visible grade at
+a full load — B to C — so overloading somebody stays legible in the middle of
+the range where most courses live; what changed is the depth of the drop. The
+property to preserve through any further retune is stated in `courseQuality.ts`
+and checked in `test/course-quality.test.ts`: **a D on a new department's course
+is the system working, a D on a veteran's course means the player overloaded
+them**, and those must stay distinguishable.
 
 **Campus facilities are deliberately NOT an input.** The library already reaches
 academic satisfaction through seats-per-student and already reaches prestige as
