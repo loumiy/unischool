@@ -20,6 +20,8 @@
 
 import { depthOrder, occludes, type DepthBox } from '../src/components/depthSort';
 import { footprintOf, isPlaceableKind } from '../src/state/campusMap';
+import { groundProps } from '../src/components/groundMarkings';
+import { motifOf } from '../src/components/buildingSpec';
 import { initialTech } from '../src/data/techData';
 import { initialDorms } from '../src/data/campusData';
 import { initialFacilities } from '../src/data/facilitiesData';
@@ -184,6 +186,61 @@ console.log('campus map painter\'s order');
   // map memoises it), so the bar is "nothing pathological" rather than a
   // frame budget. A quadratic creeping in over the trees would blow past it.
   assert(ms < 120, `a full scene sorts in well under a frame-ish budget (${ms.toFixed(1)} ms)`);
+}
+
+// --- 6. What stands on open ground ----------------------------------------
+// A plate's raised props enter THIS sort individually, each on the ground it
+// covers (see groundMarkings.tsx's own note on why a big flat footprint
+// cannot be sorted as one thing). That only works if the box each prop
+// declares is the box it actually occupies: a prop that declares somewhere
+// else sorts at the wrong depth and paints through whatever is standing
+// there, which is the exact failure the split exists to avoid.
+{
+  const PLATES = [...initialTech(), ...initialDorms(), ...initialFacilities()]
+    .filter(isPlaceableKind)
+    .filter((t) => motifOf(t) === 'grounds');
+
+  let real = 0;
+  let inside = 0;
+  let total = 0;
+  for (const t of PLATES) {
+    const fp = footprintOf(t);
+    for (const prop of groundProps(t.facilityType, 0, 0, fp.w, fp.h, t.tier)) {
+      total += 1;
+      if (prop.w > 0 && prop.h > 0) real += 1;
+      // Half a tile of slack: a tree's crown legitimately overhangs the edge
+      // of the lawn it stands at the corner of.
+      const S = 0.5;
+      if (prop.col >= -S && prop.row >= -S && prop.col + prop.w <= fp.w + S && prop.row + prop.h <= fp.h + S) inside += 1;
+    }
+  }
+  assert(total > 0, `open ground has raised props on it (${total} across ${PLATES.length} plates)`);
+  assert(real === total, `every prop covers real ground rather than a point (${real} of ${total})`);
+  assert(inside === total, `and every prop stands on the plate it belongs to (${inside} of ${total})`);
+
+  // The diamond's seating, specifically. 4C replaced one continuous arc of
+  // stand with discrete banks, and the reason it is a list rather than one
+  // prop is this sort: a tree beside the third-base line has to pass in
+  // front of the bank nearest it and behind the one further round, which one
+  // box spanning the whole sweep can never express.
+  const diamond = PLATES.find((t) => t.facilityType === 'athleticsDiamond')!;
+  const df = footprintOf(diamond);
+  const banks = groundProps('athleticsDiamond', 0, 0, df.w, df.h).filter((p) => p.key.startsWith('stand-'));
+  assert(banks.length > 1, `the diamond's seating is banks, not a bowl (${banks.length} of them)`);
+  const boxes = new Set(banks.map((b) => `${b.col.toFixed(3)},${b.row.toFixed(3)},${b.w.toFixed(3)},${b.h.toFixed(3)}`));
+  assert(boxes.size === banks.length, 'each bank declares its own ground rather than a shared box');
+
+  // And they sort: the sweep is centred on the camera, so the bank behind
+  // the plate is nearer than the ones out along the lines and must be
+  // painted after them.
+  const order = depthOrder(banks.map((b) => ({ col: b.col, row: b.row, w: b.w, h: b.h })));
+  const depth = (b: DepthBox) => b.col + b.w + b.row + b.h;
+  const middle = banks[Math.floor(banks.length / 2)];
+  const deepest = order[order.length - 1];
+  assert(
+    depth(deepest) >= depth({ col: middle.col, row: middle.row, w: middle.w, h: middle.h }),
+    'the bank nearest the camera is painted last',
+  );
 }
 
 if (failures === 0) {

@@ -1004,6 +1004,10 @@ button.build-tile { font-family: inherit; }
    along its top — a stroke alone would have read as one more painted
    marking among the base lines. */
 .ground-fence { fill: rgba(70, 62, 48, 0.5); }
+/* The backstop screen behind home plate: netting, so it is drawn far
+   lighter than the outfield fence — you are meant to see the plate
+   through it. */
+.ground-backstop { fill: rgba(70, 62, 48, 0.22); }
 .ground-fence-rail { stroke: rgba(246, 241, 226, 0.5); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
 /* Seat rows stepping up a raked stand (groundMarkings.tsx's RakedStand).
    The stroke colour is passed per stand — the stadium shades its own from

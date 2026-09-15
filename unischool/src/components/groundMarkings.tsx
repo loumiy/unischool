@@ -140,54 +140,6 @@ export function RakedStand({ outer, inner, bottomH, topH, rakeFill, wallFill, se
   );
 }
 
-// Seating that WRAPS, rather than a straight bank. A ballpark's stands curve
-// around home plate and run some way down both foul lines — see any aerial
-// photograph of one — so a single straight box behind the plate is both the
-// wrong shape and, at the size one has to be to fit, far too small a part of
-// the complex.
-//
-// Same wedge section as RakedStand (low at the field, climbing away from it,
-// seat rows stepping up the rake); the difference is that every edge here is
-// an arc about a centre rather than a straight line between two points.
-export function ArcStand({ cc, cr, rInner, rOuter, from, to, bottomH, topH, rakeFill, wallFill, seatStroke, rows = 5 }: {
-  cc: number; cr: number;          // the centre the seating wraps around, in tiles
-  rInner: number; rOuter: number;  // the front edge at the field, and the back edge
-  from: number; to: number;        // the sweep, in radians
-  bottomH: number; topH: number;
-  rakeFill: string; wallFill: string; seatStroke: string;
-  rows?: number;
-}) {
-  const SEGMENTS = 30;
-  const arcAt = (r: number, h: number) => projectedArc(cc, cr, r, from, to, SEGMENTS).map((q) => lift(q, h));
-  const innerGround = arcAt(rInner, 0);
-  const innerTop = arcAt(rInner, bottomH);
-  const outerGround = arcAt(rOuter, 0);
-  const outerTop = arcAt(rOuter, topH);
-
-  return (
-    <>
-      {/* The back of the stand, then the low face toward the field, then the
-          rake over both — so whichever way a given stretch of the curve
-          happens to face, the surface the camera sees is drawn last. */}
-      <polygon points={polyPoints([...outerGround, ...[...outerTop].reverse()])} fill={wallFill} />
-      <polygon points={polyPoints([...innerGround, ...[...innerTop].reverse()])} fill={wallFill} />
-      <polygon points={polyPoints([...outerTop, ...[...innerTop].reverse()])} fill={rakeFill} />
-      {Array.from({ length: rows - 1 }, (_, k) => {
-        const f = (k + 1) / rows;
-        return (
-          <polyline
-            key={k}
-            className="stand-seat"
-            fill="none"
-            stroke={seatStroke}
-            points={polyPoints(arcAt(rOuter + (rInner - rOuter) * f, topH + (bottomH - topH) * f))}
-          />
-        );
-      })}
-    </>
-  );
-}
-
 // Plain concrete, for the bleachers that are not part of a tinted building.
 const CONCRETE = { rake: '#cfc7b4', wall: '#b3ab99', seat: 'rgba(60, 54, 42, 0.35)' };
 
@@ -317,9 +269,73 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
   const to = Math.PI * 1.5;
   const bisect = Math.PI * 1.25;
   const behind = bisect + Math.PI;
+  const short = Math.min(w, h);
+  const polar = (r: number, a: number): TilePt => [hc + r * Math.cos(a), hr + r * Math.sin(a)];
 
   const FENCE_H = 5;
   const arcPts = projectedArc(hc, hr, R, from, to, 36);
+
+  // --- the seating -----------------------------------------------------
+  // Five straight banks around home plate, not one continuous curve. The
+  // first version wrapped 172 degrees of unbroken arc, and what it read as
+  // was an amphitheatre — a shell behind the plate with concentric rings on
+  // it, which is what an arc with no breaks in it looks like from above
+  // whatever its section says. Every ballpark worth the name is built the
+  // other way: separate banks, set at an angle to each other, with an aisle
+  // between each pair. The gaps are the whole read.
+  //
+  // Straight banks also let each one use RakedStand, which is the same
+  // wedge the stadium and the pitch bleachers are made of — so the seating
+  // on this plot is now built out of the campus's one piece of seating
+  // rather than a shape of its own.
+  const SECTIONS = 5;
+  const SWEEP = 2.5;        // radians of seating in all, a little over 140 degrees
+  const AISLE = 0.14;       // radians of gangway between neighbouring banks
+  const rIn = short * 0.1;
+  const rOut = short * 0.28;
+  const slice = SWEEP / SECTIONS;
+
+  const stands: GroundProp[] = Array.from({ length: SECTIONS }, (_, k) => {
+    const a0 = behind - SWEEP / 2 + k * slice + AISLE / 2;
+    const a1 = a0 + slice - AISLE;
+    // The bank behind the plate is the grandstand; the ones down the lines
+    // are bleachers, and a ballpark's bleachers are both shallower and
+    // lower. Uniform banks read as a fan of identical petals, which is the
+    // arc's fault repeated five times rather than fixed.
+    const deep = 1 - Math.abs(k - (SECTIONS - 1) / 2) * 0.16;
+    const back = rIn + (rOut - rIn) * deep;
+    const topH = 4 + 12 * deep;
+    const corners: TilePt[] = [polar(rIn, a0), polar(rIn, a1), polar(back, a0), polar(back, a1)];
+    const cols = corners.map((c) => c[0]);
+    const rows = corners.map((c) => c[1]);
+    return {
+      key: `stand-${k}`,
+      // Each bank sorts on the ground IT covers rather than on the plate's
+      // depth or on one shared box, which is what lets a tree or a path
+      // beside the third-base line pass in front of the bank nearest it and
+      // behind the one further round.
+      col: Math.min(...cols), row: Math.min(...rows),
+      w: Math.max(...cols) - Math.min(...cols), h: Math.max(...rows) - Math.min(...rows),
+      node: (
+        <RakedStand
+          outer={[corners[2], corners[3]]}
+          inner={[corners[0], corners[1]]}
+          bottomH={4}
+          topH={topH}
+          rakeFill={CONCRETE.rake}
+          wallFill={CONCRETE.wall}
+          seatStroke={CONCRETE.seat}
+          rows={4}
+          // Every bank in this sweep has its back toward the camera: the
+          // outer edge of each is nearer than its inner one for the whole
+          // of a sweep centred on `behind`, which is the direction the
+          // camera looks from. Draw the other face instead and the bank
+          // reads as a striped ramp lying in the grass.
+          wall
+        />
+      ),
+    };
+  });
 
   return [
     {
@@ -335,33 +351,31 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
       ),
     },
     {
-      key: 'stands',
-      // The stands sit BEHIND the plate, i.e. nearest the camera — the one
-      // thing on this plot that anything walking past it has to be painted
-      // behind. They wrap 172 degrees, so the ground they cover is most of the
-      // disc out to their own outer radius.
-      ...aroundPoint(hc, hr, Math.min(w, h) * 0.29),
-      node: (
-        // 172 degrees of wrap, which reaches most of the way down both foul
-        // lines — a narrower arc left the seating sitting behind the plate
-        // only, and a ballpark's stands run well past it on both sides. The
-        // inner edge hugs the plate rather than standing off it, so the
-        // backstop reads as a gap of a few feet rather than a moat.
-        <ArcStand
-          cc={hc} cr={hr}
-          rInner={Math.min(w, h) * 0.055}
-          rOuter={Math.min(w, h) * 0.29}
-          from={behind - 1.5}
-          to={behind + 1.5}
-          bottomH={5}
-          topH={17}
-          rakeFill={CONCRETE.rake}
-          wallFill={CONCRETE.wall}
-          seatStroke={CONCRETE.seat}
-          rows={5}
-        />
-      ),
+      key: 'backstop',
+      // What tells you the banks behind it are facing a BALL FIELD: the
+      // screen between the plate and the front row. Without it the seating
+      // could be looking at anything, and the few feet of gap it stands in
+      // read as the stands having been set back for no reason.
+      ...aroundPoint(hc, hr, rIn),
+      node: (() => {
+        // Only behind the plate. Carried the full width of the seating it
+        // read as a wall around the stands rather than as the screen a
+        // foul ball comes off.
+        const BACKSTOP = 1.3;
+        const pts = projectedArc(hc, hr, rIn * 0.86, behind - BACKSTOP / 2, behind + BACKSTOP / 2, 24);
+        const HEIGHT = 11;
+        return (
+          <>
+            <polygon
+              className="ground-backstop"
+              points={polyPoints([...pts, ...[...pts].reverse().map((q) => lift(q, HEIGHT))])}
+            />
+            <polyline className="ground-fence-rail" fill="none" points={polyPoints(pts.map((q) => lift(q, HEIGHT)))} />
+          </>
+        );
+      })(),
     },
+    ...stands,
   ];
 }
 
