@@ -89,6 +89,29 @@ const DEFAULT_FACILITY_FOOTPRINT: Footprint = { w: 3, h: 3 };
 // Rungs are listed LARGEST FIRST and matched on `min`, so the last entry
 // (min 0) is the floor and a ladder can never fail to match.
 // ---------------------------------------------------------------------
+// ODD WIDTHS, FOR EVERYTHING WITH A FRONT DOOR.
+//
+// A motif that draws a centred door on an even-width footprint centres it on
+// the SEAM between two tiles: the door is half on one tile and half on the
+// next, so nothing can arrive at it. A path stops one tile off, and a hall
+// cannot line up with the quad it faces. An odd width puts the door on a
+// tile, which is the thing a walkway can actually reach and the reason the
+// quad ladder (9x9, 13x13) was odd already.
+//
+// The rule applies to every footprint whose Buildable has a door at all —
+// buildingSpec.ts's doorFamilyOf, which is null for open ground, the
+// stadium, and a village (whose houses each have their own). Those are
+// exempt: there is no centred anything to land on a seam.
+//
+// Pinned by test/building-spec.test.ts, which walks the real catalogue
+// rather than this table, so a new rung cannot quietly break it.
+//
+// NEW GAMES ONLY (decision 4). A Placement stores the footprint it was made
+// with, so an existing campus keeps the ground its buildings already stand
+// on; Founders Hall is pre-placed at founding, so a save from before this
+// keeps its 8-wide hall for good. Re-footprinting a placed building can
+// collide with whatever was built next to it, and there is no good automatic
+// answer to that collision.
 interface SizeRung { min: number; fp: Footprint }
 
 function rungFootprint(rungs: SizeRung[], size: number): Footprint {
@@ -101,10 +124,10 @@ function rungFootprint(rungs: SizeRung[], size: number): Footprint {
 // times as many people: the tower goes up, the village goes out.
 const DORM_FOOTPRINTS: SizeRung[] = [
   { min: 5_000, fp: { w: 7, h: 7 } },    // residential tower: a small plan, very tall (see buildingMotifs' 'tower')
-  { min: 1_500, fp: { w: 12, h: 10 } },  // village: a dozen small houses around shared green
-  { min: 1_000, fp: { w: 10, h: 5 } },   // mid-game high-rise hall
+  { min: 1_500, fp: { w: 11, h: 10 } },  // village: a dozen small houses around shared green
+  { min: 1_000, fp: { w: 11, h: 5 } },   // mid-game high-rise hall
   { min: 500, fp: { w: 9, h: 4 } },      // early four-storey hall
-  { min: 0, fp: { w: 8, h: 3 } },        // the founding hall
+  { min: 0, fp: { w: 7, h: 3 } },        // the founding hall
 ];
 
 // Facilities whose footprint steps with how many students they serve.
@@ -117,12 +140,12 @@ const FACILITY_SIZE_LADDERS: Partial<Record<FacilityType, SizeRung[]>> = {
   // purpose: the big halls are multi-storey, so they feed more people per
   // tile than the single-storey café at the bottom of the chain.
   diningHall: [
-    { min: 14_000, fp: { w: 12, h: 9 } },
+    { min: 14_000, fp: { w: 11, h: 9 } },
     { min: 10_000, fp: { w: 11, h: 7 } },
-    { min: 7_000, fp: { w: 10, h: 6 } },
-    { min: 4_000, fp: { w: 8, h: 6 } },
+    { min: 7_000, fp: { w: 9, h: 6 } },
+    { min: 4_000, fp: { w: 7, h: 6 } },
     { min: 2_500, fp: { w: 7, h: 5 } },
-    { min: 1_200, fp: { w: 6, h: 4 } },
+    { min: 1_200, fp: { w: 5, h: 4 } },
     { min: 700, fp: { w: 5, h: 3 } },
     { min: 0, fp: { w: 3, h: 3 } },
   ],
@@ -139,7 +162,7 @@ const FACILITY_SIZE_LADDERS: Partial<Record<FacilityType, SizeRung[]>> = {
   // ground — see facilitiesData.ts's nextLibraryFloor — so its footprint
   // deliberately stays put as it grows.)
   library: [
-    { min: 2_000, fp: { w: 8, h: 6 } },
+    { min: 2_000, fp: { w: 9, h: 6 } },
     { min: 0, fp: { w: 7, h: 5 } },
   ],
   studentCenter: [
@@ -165,12 +188,15 @@ const QUAD_FOOTPRINTS: SizeRung[] = [
 ];
 
 // Academic halls are the campus's landmarks. Rectangular rather than the
-// old 9x9 square: a square hall reads as a block, and 8x6 is both closer to
+// old 9x9 square: a square hall reads as a block, and this is both closer to
 // the proportions of a real academic building and a shape rotation actually
-// does something to. At roughly 15m to a tile (the scale the football
-// stadium below is sized from) that is about 120m by 90m — a large teaching
-// building, which is what these are.
-const SCHOOL_BUILDING_FOOTPRINT: Footprint = { w: 8, h: 6 };
+// does something to. At 9m to a tile that is about 63m by 45m — a large
+// teaching building, which is what these are.
+//
+// ODD, and this is the note's own example: at 8 wide Founders Hall centred
+// its formal door on the seam between two tiles, so no walkway could arrive
+// at it and it could not line up with the quad it faces.
+const SCHOOL_BUILDING_FOOTPRINT: Footprint = { w: 7, h: 5 };
 // The two professional schools (Medicine, Law) get a rung more ground, the
 // same way they cost a rung more than an undergraduate school building —
 // identified by `graduateProgram`, which is set on exactly those two
@@ -181,16 +207,19 @@ const PROFESSIONAL_SCHOOL_FOOTPRINT: Footprint = { w: 9, h: 7 };
 // against a rough 15m to a tile, which is what the football stadium (a real
 // one is about 220m by 180m) pins down.
 const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
-  lab: { w: 4, h: 3 },           // a teaching/research lab building — one per lab-gated major
+  lab: { w: 5, h: 3 },           // a teaching/research lab building — one per lab-gated major
   grocery: { w: 5, h: 4 },       // a full supermarket, not a corner shop
-  gym: { w: 6, h: 5 },
-  tennisCourts: { w: 12, h: 4 }, // six courts in a row, which is ~110m by 36m
+  // Between the Recreation Center (5x4) and the Athletics Complex (7x5) in
+  // ground as it is in the chain. Square, so its door sits on a tile whichever
+  // way it is turned.
+  gym: { w: 5, h: 5 },
+  tennisCourts: { w: 12, h: 4 }, // six courts in a row, which is ~110m by 36m — open ground, no door to centre
   pool: { w: 7, h: 4 },          // a 50m pool and its deck
   // performingArtsCenter is the landmark of this batch: a concert hall and
   // theater reads as a real building — grand, and on more ground than a
   // teaching hall.
-  performingArtsCenter: { w: 8, h: 7 },
-  artGallery: { w: 4, h: 3 },    // small, but no longer a bare utility box
+  performingArtsCenter: { w: 9, h: 7 },
+  artGallery: { w: 5, h: 3 },    // small, but no longer a bare utility box
 
   // Varsity athletics venues (facilitiesData.ts): real competition venues,
   // sized from what they actually are rather than from each other.
@@ -204,9 +233,9 @@ const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
   // envelope is about 176 by 92 — which is what this is, and what 12 by 7
   // could not have been at any scale.
   athleticsField: { w: 20, h: 11 },
-  athleticsArena: { w: 12, h: 9 },        // ~110m by 80m, the footprint of a real arena bowl
+  athleticsArena: { w: 11, h: 9 },        // ~100m by 80m, the footprint of a real arena bowl
   athleticsDiamond: { w: 14, h: 14 },     // ~125m, a real outfield being ~120m to the fence
-  athleticsNatatorium: { w: 8, h: 5 },    // a 50m competition pool, its deck and its stand
+  athleticsNatatorium: { w: 7, h: 5 },    // a 50m competition pool, its deck and its stand
   footballStadium: { w: 24, h: 20 },      // ~220m by 180m: still the largest footprint in the game
 };
 
