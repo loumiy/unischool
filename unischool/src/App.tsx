@@ -60,6 +60,10 @@ import './styles.css';
 // up, as the "only one of build-pickup and path-tool is ever live" rule
 // further down.
 //
+// AND ONE ESCAPE LADDER, which is the same decision read backwards: if the
+// shell owns what is open, the shell owns the key that backs out of it. See
+// the handler below for the rungs.
+//
 // The tab components themselves are untouched by this: they still read
 // their slice of GameState and dispatch actions exactly as before, and know
 // nothing about being rendered in an overlay.
@@ -121,6 +125,10 @@ export default function App() {
   // this is the nearest common ancestor of both — the same reason placingId
   // and pathTool are already here.
   const [buildOpen, setBuildOpenState] = useState(false);
+  // And whether the activity-log popup is open, up here for the same reason
+  // one rung further down: it is the innermost thing the shell can have
+  // open, so Escape has to be able to see it (see the ladder below).
+  const [logOpen, setLogOpen] = useState(false);
   const toolbarRef = useCssHeightVar('--toolbar-height');
 
   // C / F / L open the three views that get opened most (see TAB_HOTKEYS).
@@ -141,10 +149,11 @@ export default function App() {
   // closes the overlay rather than dropping a path tool behind it, and
   // panning a map nobody can see is just a camera that has moved by the
   // time they come back to it.
-  // ...and only while the build popup is closed, now that the popup is one
-  // of the things Escape has to be able to back out of (see 1E's ladder in
-  // the Escape handler below).
-  const mapHotkeysEnabled = overlay === null && !buildOpen && s.pendingInterrupt === null;
+  // ...and only while nothing of the shell's own is open over it either:
+  // every one of those is a rung above the map on the Escape ladder below,
+  // and panning a map behind an open popup is a camera that has moved by
+  // the time the player comes back to it.
+  const mapHotkeysEnabled = overlay === null && !buildOpen && !logOpen && s.pendingInterrupt === null;
 
   // Picking up a building for siting and drawing/erasing a path are two
   // different jobs for the same click on the same grid, so exactly one is
@@ -195,6 +204,31 @@ export default function App() {
     setOverlay(null);
   }
 
+  // ONE ESCAPE LADDER, top down, for the whole shell.
+  //
+  // Escape used to be bound in three places — TabOverlay, ToolbarPopup and
+  // CampusMap — with App arbitrating between the last two by switching the
+  // map's hotkeys off whenever an overlay was open. That was right as far as
+  // it went and did not cover the build popup at all, so Escape over an open
+  // build menu fell through to the map. Three components each binding the
+  // same key and guessing about the other two is the arbitration; it belongs
+  // in one place, and this is the only place that can see all of them.
+  //
+  // Top down: the innermost popup, then the build menu, then an open tab,
+  // then the map's own back-out (drop a path tool, drop a picked-up
+  // building, close an info panel) — which is not handled here but in
+  // CampusMap, whose hotkeys are enabled EXACTLY when this handler has
+  // nothing of its own to close, so the fall-through is the handoff.
+  //
+  // An interrupt outranks all of it: that modal halts the clock and must be
+  // answered, so Escape must not quietly dismantle the shell behind it.
+  useHotkeys((e) => {
+    if (e.key !== 'Escape' || s.pendingInterrupt) return;
+    if (logOpen) setLogOpen(false);
+    else if (buildOpen) closeBuild();
+    else if (overlay) openTab(null);
+  }, s.started);
+
   if (!s.started) {
     return <StartupScreen onStart={(name, schoolType) => act({ type: 'START_GAME', name, schoolType })} />;
   }
@@ -213,7 +247,7 @@ export default function App() {
       <MainMenu act={act} />
 
       <div className="app">
-        <LogTicker s={s} />
+        <LogTicker s={s} open={logOpen} onSetOpen={setLogOpen} />
         <Toolbar
           ref={toolbarRef}
           s={s}

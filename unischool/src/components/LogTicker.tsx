@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { GameState } from '../state/types';
 import ToolbarPopup from './ToolbarPopup';
 import LogStrip from './LogStrip';
@@ -20,8 +19,12 @@ import { LogIcon } from './icons';
 // LogStrip.tsx already renders correctly, in the same ToolbarPopup shape
 // the build menu uses (see styles.css's .log-popup, sized and positioned
 // for exactly this since before this ticker existed).
-export default function LogTicker({ s }: { s: GameState }) {
-  const [open, setOpen] = useState(false);
+// The popup's open/closed state is App's, not this component's: it is the
+// innermost rung of the shell's one Escape ladder, and the ladder can only
+// be one handler if the handler can see every rung (see App.tsx).
+export default function LogTicker({ s, open, onSetOpen }: {
+  s: GameState; open: boolean; onSetOpen: (open: boolean) => void;
+}) {
   const latest = s.log[0];
 
   return (
@@ -32,7 +35,7 @@ export default function LogTicker({ s }: { s: GameState }) {
           className="log-ticker-toggle"
           aria-expanded={open}
           aria-label={open ? 'Close activity log' : 'Open activity log'}
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => onSetOpen(!open)}
         >
           <LogIcon />
         </button>
@@ -46,7 +49,7 @@ export default function LogTicker({ s }: { s: GameState }) {
         )}
       </div>
       {open && (
-        <ToolbarPopup title="Activity Log" onClose={() => setOpen(false)} className="log-popup">
+        <ToolbarPopup title="Activity Log" onClose={() => onSetOpen(false)} className="log-popup">
           <LogStrip s={s} />
         </ToolbarPopup>
       )}

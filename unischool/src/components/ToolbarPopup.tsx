@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 // The compact card a toolbar icon pops open (see Toolbar.tsx's build and
 // log buttons) — deliberately NOT TabOverlay: TabOverlay's whole point is a
@@ -11,6 +11,13 @@ import { useEffect, type ReactNode } from 'react';
 // parchment card (position is the caller's job, via `className` — see
 // styles.css's .build-popup / .log-popup), floating above the toolbar the
 // same way the old build rail / log strip floated over the map.
+//
+// It binds no keys. Escape used to be a raw window listener right here,
+// which made this the third component guessing about a key three components
+// were binding; App.tsx now owns one Escape ladder for the whole shell (log
+// popup, then build popup, then an open tab, then the map's own back-out),
+// and both of this component's callers have their open/closed state up
+// there for that reason. See App.tsx's module comment.
 export default function ToolbarPopup({ title, headExtra, onClose, className, children }: {
   title: string;
   headExtra?: ReactNode;
@@ -18,14 +25,6 @@ export default function ToolbarPopup({ title, headExtra, onClose, className, chi
   className?: string;
   children: ReactNode;
 }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   return (
     <div className={`toolbar-popup ${className ?? ''}`} role="dialog" aria-label={title}>
       <div className="toolbar-popup-head">
