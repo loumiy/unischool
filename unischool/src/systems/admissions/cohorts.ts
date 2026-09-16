@@ -1,5 +1,6 @@
 import type { CohortCounts, CohortId, GameState } from '../../state/types';
 import { weeklyResearchPoints } from '../../data/researchData';
+import { graduateCourseIds, graduatePrograms } from '../../data/techData';
 import { teamQuality } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
@@ -35,7 +36,8 @@ export type { CohortId };
 // baseShare is each cohort's rough weight in a "typical" applicant pool
 // (not a claim about the real world, just a relative sizing so no single
 // niche cohort — arts-focused, athletes — can swing the total as hard as a
-// broad one like pre-professional) — the seven MUST sum to 1, checked by
+// broad one like pre-professional) — the seven with a base share MUST sum
+// to 1, checked by
 // invariants.test.ts, so growing one cohort's share always means shrinking
 // another's rather than silently inflating the total.
 export const COHORTS: Array<{ id: CohortId; label: string; baseShare: number; driverLabel: string }> = [
@@ -46,6 +48,26 @@ export const COHORTS: Array<{ id: CohortId; label: string; baseShare: number; dr
   { id: 'artsFocused', label: 'Arts-focused', baseShare: 0.08, driverLabel: 'arts programs & venues' },
   { id: 'priceSensitive', label: 'Price-sensitive', baseShare: 0.15, driverLabel: 'your price vs. what your prestige supports' },
   { id: 'athletes', label: 'Athletes', baseShare: 0.10, driverLabel: 'active varsity teams & coaching' },
+  // UNDERGRADUATES WHO CHOSE THIS UNIVERSITY FOR ITS GRADUATE SCHOOLS —
+  // the pre-meds, the pre-laws, the ones intending to continue. NOT
+  // graduate students themselves, and the distinction is load-bearing:
+  // every cohort here is a kind of APPLICANT to the one undergraduate
+  // funnel, admitted into a freshman class and graduating four years
+  // later. An actual graduate student does none of those things (an MBA
+  // is two years, a JD three, a doctorate five or more), so modelling one
+  // as a cohort would put a two-year degree on a four-year conveyor. A
+  // real graduate population is a separate body with its own residencies
+  // — see docs/design/graduate-programs.md's first boundary, which says
+  // to re-open the design rather than bolt it on.
+  //
+  // THE ONE COHORT WITH NO BASE SHARE, and the reason baseShare is
+  // documented above as a share of a pool with no graduate school. A
+  // college with nothing to continue INTO does not draw a small number of
+  // students who came to continue — it draws none, which no
+  // `baseShare > 0` can express. Its share is computed instead (see
+  // gradBoundShare), growing from exactly zero as graduate and
+  // professional courses are developed.
+  { id: 'gradBound', label: 'Grad-school bound', baseShare: 0, driverLabel: 'graduate & professional school courses' },
 ];
 
 // Career-track majors (Business, Engineering, Health Science, Computer
@@ -99,6 +121,7 @@ export interface CohortSignals {
   artsFacilities: number;       // ARTS_FACILITY_IDS done, 0..2
   activeTeams: number;          // varsity teams with status 'active'
   athleticsQuality: number;     // avg teamQuality() across active teams, 0 if none
+  gradCourseDepth: number;      // 'done' graduate/professional course Buildables, 0..37
 }
 
 export function deriveCohortSignals(s: GameState): CohortSignals {
@@ -115,6 +138,14 @@ export function deriveCohortSignals(s: GameState): CohortSignals {
     athleticsQuality: activeTeams.length > 0
       ? activeTeams.reduce((sum, t) => sum + teamQuality(t, s), 0) / activeTeams.length
       : 0,
+    // Counted off DEVELOPED COURSES rather than off the
+    // `grad-program-complete:` milestones, deliberately. A milestone count
+    // is a step function: five of Medicine's twelve courses built would
+    // read as no graduate school at all, and the twelfth would summon a
+    // whole student body in one week. Courses make it a ramp, which is
+    // what "scales with the development of graduate programs" has to mean
+    // if the player is to see it responding while they build.
+    gradCourseDepth: doneIds(s, graduatePrograms().flatMap(graduateCourseIds)),
   };
 }
 
@@ -125,6 +156,7 @@ export function deriveCohortSignals(s: GameState): CohortSignals {
 export const NEUTRAL_COHORT_SIGNALS: CohortSignals = {
   distinguishedDepth: 0, professionalPrograms: 0, researchRate: 0, labCount: 0,
   socialOrgCount: 0, artsPrograms: 0, artsFacilities: 0, activeTeams: 0, athleticsQuality: 0,
+  gradCourseDepth: 0,
 };
 
 // Every growth-driven cohort (everything but priceSensitive) uses the same
@@ -193,17 +225,74 @@ function pullFor(id: CohortId, signals: CohortSignals, tolerance: number, tuitio
     case 'artsFocused': return boundedPull(ARTS_STRENGTH, ARTS_DECAY, signals.artsPrograms * 1.5 + signals.artsFacilities * 2);
     case 'priceSensitive': return priceSensitivePull(tolerance, tuition);
     case 'athletes': return boundedPull(ATHLETICS_STRENGTH, ATHLETICS_DECAY, signals.activeTeams * (signals.athleticsQuality / 100));
+    // Flat 1.0, and it must stay flat: this cohort's entire responsiveness
+    // to what the school has built lives in its SHARE (see gradBoundShare), so
+    // a pull that also read gradCourseDepth would count the same graduate
+    // courses twice. The `pull` column a panel shows for this cohort is
+    // therefore always neutral, which is honest — the number that moves
+    // for graduate students is how many of them there are.
+    case 'gradBound': return 1;
   }
 }
 
 // The single multiplier admissionsSystem.ts's applicantVolume applies on
-// top of everything else — a share-weighted blend of all seven cohorts'
+// top of everything else — a share-weighted blend of all eight cohorts'
 // pulls, so improving ANY one of them nudges the whole pool, in proportion
 // to how big that cohort's own baseShare is. Exactly 1.0 when every
 // cohort's pull is exactly 1.0 (a founding school pricing itself at
 // priceTolerance — see NEUTRAL_COHORT_SIGNALS above).
+// THE GRAD-SCHOOL-BOUND ARE AN EXTRA AUDIENCE, NOT A REDISTRIBUTION of
+// the rest. Their weight is ADDED to the seven rather than taken out of
+// them, which is the whole mechanical point: founding a law school does
+// not persuade prospective athletes to become lawyers, it puts the school
+// in front of applicants who were never going to consider it. So a school
+// with graduate programs draws a bigger undergraduate pool, and
+// cohortDemandFactor rises above 1 by exactly this weight even with every
+// other cohort sitting at neutral.
+//
+// The alternative — carving a grad share out of the seven and rescaling
+// them down — was tried on paper and is perverse: since this cohort's own
+// pull is 1.0 (see pullFor), diluting cohorts whose pulls are above 1.0
+// with one that is not would make BUILDING a graduate school shrink the
+// applicant pool.
+const GRAD_BOUND_SHARE_MAX = 0.18;
+const GRAD_BOUND_SHARE_DECAY = 0.05;
+
+// Zero at zero, which no boundedPull can be — every other cohort's curve
+// starts at 1.0 and rises, because every other cohort exists in some
+// proportion at a school that has built nothing. Nobody picks a college
+// for a graduate school it does not have, so this one is absent outright
+// until there is something to continue into: a share that grows, rather
+// than a pull that multiplies.
+//
+// Calibrated against the 37 authored graduate courses: the business school
+// alone (5) is worth about 4% of the pool, Medicine (12) about 8%, Medicine
+// and Law together (20) about 11%, and the full graduate build-out about
+// 15%. Diminishing, like every other curve in this module, so the first
+// programs matter most.
+export function gradBoundShare(signals: CohortSignals): number {
+  return GRAD_BOUND_SHARE_MAX * (1 - Math.exp(-GRAD_BOUND_SHARE_DECAY * Math.max(signals.gradCourseDepth, 0)));
+}
+
+// Each cohort's WEIGHT in the pool: its share times how keenly it responds.
+// The single place the eight weights are computed, read by both
+// cohortDemandFactor (which sums them) and cohortBreakdown (which
+// apportions by them), so the blended total and the per-cohort counts can
+// never be computed two different ways.
+//
+// These do NOT sum to 1, and are not meant to: they sum to 1 at a founding
+// school and rise from there. apportion() normalises by their total, so the
+// breakdown is unaffected by the scale.
+function cohortWeights(signals: CohortSignals, tolerance: number, tuition: number): number[] {
+  return COHORTS.map((c) => (
+    c.id === 'gradBound'
+      ? gradBoundShare(signals)
+      : c.baseShare * pullFor(c.id, signals, tolerance, tuition)
+  ));
+}
+
 export function cohortDemandFactor(signals: CohortSignals, tolerance: number, tuition: number): number {
-  return COHORTS.reduce((sum, c) => sum + c.baseShare * pullFor(c.id, signals, tolerance, tuition), 0);
+  return cohortWeights(signals, tolerance, tuition).reduce((sum, w) => sum + w, 0);
 }
 
 // Per-cohort detail for the admissions UI: not just the blended total, but
@@ -226,10 +315,10 @@ export interface CohortDetail {
   label: string;
   driverLabel: string;
   pull: number;       // this cohort's own multiplier, 1.0 = neutral
-  applicants: number; // whole applicants from this cohort; the seven sum to `applicants`
+  applicants: number; // whole applicants from this cohort; the eight sum to `applicants`
 }
 
-// Whole people, and the seven of them add up. Apportioned by largest
+// Whole people, and the eight of them add up. Apportioned by largest
 // remainder (the same method used to seat a legislature, and for the same
 // reason): floor every share, then hand the leftover applicants out to the
 // cohorts with the biggest fractions. Rounding each share on its own would
@@ -262,7 +351,7 @@ export function cohortBreakdown(
   applicants: number,
 ): CohortDetail[] {
   const pulls = COHORTS.map((c) => pullFor(c.id, signals, tolerance, tuition));
-  const counts = apportion(COHORTS.map((c, i) => c.baseShare * pulls[i]), Math.max(0, Math.round(applicants)));
+  const counts = apportion(cohortWeights(signals, tolerance, tuition), Math.max(0, Math.round(applicants)));
   return COHORTS.map((c, i) => ({
     id: c.id,
     label: c.label,
@@ -296,7 +385,7 @@ export function cohortCounts(
 }
 
 // The mix of a class NOBODY CHOSE: base shares alone, no pull from anything
-// built, apportioned the same way so the seven are still whole students that
+// built, apportioned the same way so the eight are still whole students that
 // sum to `total`.
 //
 // Two callers, and they are the same situation seen twice. A founding school

@@ -302,7 +302,7 @@ export interface AdmissionsProjection {
   admitRate: number;           // admits / applicants — matches the chosen rate unless a thin top/mid band ran out to skim
   enrolled: number;            // the incoming class, which IS the admits — no yield step, no ceiling of any kind
   avgIncomingQuality: number;  // 0..100 weighted-average quality of the enrolled class — an input to prestige
-  // What that enrolled class is MADE OF — the seven counts that sum to
+  // What that enrolled class is MADE OF — the eight counts that sum to
   // `enrolled`, which RESOLVE_ADMISSIONS records against the new freshman
   // class and never recomputes (see types.ts's ClassCohorts). Note this
   // decomposes the ENROLLED class, not `applicants`: the reveal shows the

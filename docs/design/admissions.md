@@ -24,7 +24,7 @@ purpose about how much the player is allowed to know:
    in the game** (`REVEAL_MS`): every other animated figure is a consequence of
    a slider the player is still holding and wants to keep up with them, while
    this one is the payoff for a price already committed and not retractable.
-   The pool and the seven cohort rows share the duration, so the panel fills as
+   The pool and the eight cohort rows share the duration, so the panel fills as
    one reveal rather than seven races. A reader who has asked for reduced motion
    gets the settled figures immediately — the same numbers either way.
 3. **Admit rate, fully projected.** The opposite posture: every consequence
@@ -137,30 +137,51 @@ three classes cushioned at the old one, and both readings say so.
 
 ### Admissions cohorts: who the school pulls in
 
-The applicant pool is not undifferentiated. **Seven cohorts** — high achievers,
+The applicant pool is not undifferentiated. **Eight cohorts** — high achievers,
 pre-professional, research-oriented, social, arts-focused, price-sensitive,
-athletes (`systems/admissions/cohorts.ts`) — each respond to something the
-player has actually built: labs and research output pull the research-oriented,
-established career-track majors pull the pre-professional, clubs and chapters
-pull the social, a real varsity program pulls athletes, and an honest net price
-pulls the price-sensitive. This is what gives several different strategies each
-their own reason for enrollment to grow, instead of only prestige and price.
+athletes, grad-school bound (`systems/admissions/cohorts.ts`) — each respond to
+something the player has actually built: labs and research output pull the
+research-oriented, established career-track majors pull the pre-professional,
+clubs and chapters pull the social, a real varsity program pulls athletes, an
+honest net price pulls the price-sensitive, and the graduate and professional
+schools pull the grad-school bound. This is what gives several different
+strategies each their own reason for enrollment to grow, instead of only
+prestige and price.
 
-A cohort is **not a segment of the funnel**: it gets no quality band or
-sticker-shock rate of its own. Every cohort's pull blends into one
-multiplier on the whole pool, the same architectural role word of mouth and
-capacity already play.
+**Every cohort here is a kind of undergraduate applicant.** That is what a
+cohort IS in this model: someone the one summer funnel admits into a freshman
+class, who graduates four years later. The grad-school bound are undergraduates
+who chose this university intending to continue into its graduate and
+professional schools — the pre-meds and the pre-laws — **not graduate students
+themselves**. The distinction is not pedantry: an MBA is two years and a
+doctorate five or more, so an actual graduate student modelled as a cohort
+would be a two-year degree riding a four-year conveyor. A real graduate
+population is a separate body with its own residencies, and
+[graduate-programs.md](graduate-programs.md)'s first boundary says to re-open
+the design rather than bolt one on.
 
-A cohort's **pull** is stored nowhere — it is a pure function of state,
-recomputed wherever it is needed. What *is* stored is the **composition of
-each enrolled class**, written once when that class is admitted
-(`students.cohortsByClass`, see `types.ts`'s `ClassCohorts`). The distinction
-is the whole reason the second exists: because a pull reads the campus as it
-stands today, deriving a standing class's mix would describe the school the
-player has now rather than the one that admitted them.
+**This cohort is modelled differently from the other seven, and the difference
+is the point.** The seven have a `baseShare` — a slice of a "typical" pool,
+present in some proportion at any school. Nobody picks a college for a graduate
+school it does not have, so this cohort is absent outright rather than merely
+small, and no base share can say that. Its share is **computed and starts at
+exactly zero**, growing as graduate and professional courses are developed
+(`gradBoundShare`): the business school alone is worth roughly 4% of the pool,
+Medicine about 8%, Medicine and Law together about 11%, and the full graduate
+build-out about 15%. It reads *developed courses* rather than completed
+programs, so it ramps while the player builds instead of stepping from nothing
+to a whole audience the week a final course lands.
+
+Their weight is **added** to the other seven rather than carved out of them,
+which is why founding a law school grows the applicant pool rather than
+persuading prospective athletes to become lawyers. This is the one thing that
+makes `cohortDemandFactor` rise above 1 with every other cohort sitting at
+neutral. Their own *pull* is therefore a flat 1.0 — all of their
+responsiveness lives in the share, and a pull that read the same courses again
+would count them twice.
 
 The summer reveal shows the breakdown as **head counts, not multipliers**: how
-many of this year's applicants each cohort is worth, as seven small cards — the
+many of this year's applicants each cohort is worth, as eight small cards — the
 audience's name small at the top, the count big in the middle. Seven squares
 read at a glance where seven labelled rows read as a paragraph. The counts sum
 exactly to the applicant pool above them (apportioned by largest remainder, so
@@ -175,7 +196,7 @@ rather than being the number, so it costs nothing until it is asked for.
 **Two cohort displays, showing different things.** The reveal above is one
 year's *applicants* — who was interested, before any of them were admitted.
 The Enrollment tab's standing body (below) is four years of *enrolled
-students*. They are drawn from the same seven cohorts and are not the same
+students*. They are drawn from the same eight cohorts and are not the same
 picture: one is demand, the other is the school. Keeping the distinction
 visible is the reason the tab shows classes stacked rather than a single
 total.

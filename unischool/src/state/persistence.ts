@@ -921,7 +921,19 @@ export const SAVE_KEY = 'unischool.save';
 // MIGRATIONS[39].
 //
 // See MIGRATIONS[39].
-export const SAVE_VERSION = 40;
+//
+// v40 -> v41: an EIGHTH cohort, the grad-school bound — undergraduates who
+// chose the university intending to continue into its graduate and
+// professional schools. Unlike the other seven it is absent at a school
+// with no graduate programs and grows from exactly zero as they are
+// developed (see cohorts.ts's gradBoundShare). Every
+// class's stored split in a v40 save therefore has seven keys where the
+// code now reads eight, and a missing key is not a harmless absence here:
+// `counts[id]` reads undefined, the Enrollment tab's segment sums go NaN,
+// and the bars stop rendering. Filled in at zero — see MIGRATIONS[40].
+//
+// See MIGRATIONS[40].
+export const SAVE_VERSION = 41;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -997,6 +1009,29 @@ interface LegacyGameState extends GameState {
 const KNOWN_SUFFIXES = ['College', 'University'];
 
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v40 -> v41: the grad-school bound join the cohort list (see the
+  // SAVE_VERSION header note above). Every standing class gets a zero.
+  //
+  // Zero is the RIGHT answer here rather than the convenient one, which is
+  // why this needs no neutral-prior apology the way MIGRATIONS[39] did. A
+  // v40 run had none of this cohort because the model had none, and its
+  // share is zero for any school whose graduate courses are unbuilt — so a
+  // resumed school that never founded a graduate program is being told
+  // exactly the truth. One that HAS built them starts drawing this cohort
+  // at the next admissions boundary, exactly as a new school with the same
+  // campus would: the standing classes were genuinely admitted before the
+  // university modeled this audience at all, and back-filling them would
+  // invent students who were never enrolled.
+  //
+  // The seven existing counts are untouched, so every class's split still
+  // sums to its own head count and the Enrollment tab's invariant holds
+  // across the migration without redistributing anybody.
+  40: (state) => {
+    for (const key of ['freshman', 'sophomore', 'junior', 'senior'] as const) {
+      state.students.cohortsByClass[key].gradBound = 0;
+    }
+  },
+
   // v39 -> v40: each class gains its cohort split (see the SAVE_VERSION
   // header note above). A pure fill-in, the same shape as v13 -> v14's
   // `pathways` slice: nothing existing moves, is renamed, or is retired.

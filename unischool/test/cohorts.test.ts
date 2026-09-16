@@ -13,7 +13,7 @@
 // ---------------------------------------------------------------------
 
 import {
-  COHORTS, cohortDemandFactor, cohortBreakdown, deriveCohortSignals, NEUTRAL_COHORT_SIGNALS,
+  COHORTS, cohortDemandFactor, cohortBreakdown, deriveCohortSignals, gradBoundShare, NEUTRAL_COHORT_SIGNALS,
   type CohortSignals,
 } from '../src/systems/admissions/cohorts';
 import { priceTolerance } from '../src/systems/admissions/admissionsSystem';
@@ -123,17 +123,66 @@ function withSignal(overrides: Partial<CohortSignals>): CohortSignals {
 // compute a different number for the same cohort, the UI would be lying
 // about what's actually driving enrollment.
 // =====================================================================
+//
+// Run WITH graduate courses built, deliberately. Graduate students are the
+// one cohort whose weight is a share rather than baseShare x pull, so a
+// reconstruction that assumed baseShare x pull for all eight would agree
+// with the direct total at any school that has no graduate programs and
+// silently disagree at every school that does — which is to say this
+// section would keep passing while testing nothing about the case it
+// exists to protect.
 {
-  const signals = withSignal({ distinguishedDepth: 5, professionalPrograms: 8, researchRate: 30, labCount: 3, socialOrgCount: 10, artsPrograms: 2, artsFacilities: 1, activeTeams: 2, athleticsQuality: 60 });
+  const signals = withSignal({ distinguishedDepth: 5, professionalPrograms: 8, researchRate: 30, labCount: 3, socialOrgCount: 10, artsPrograms: 2, artsFacilities: 1, activeTeams: 2, athleticsQuality: 60, gradCourseDepth: 20 });
   const tuition = TOLERANCE * 1.2;
   const details = cohortBreakdown(signals, TOLERANCE, tuition, 5_000);
   assert(details.length === COHORTS.length, `cohortBreakdown returns exactly the ${COHORTS.length} cohorts (got ${details.length})`);
   const reconstructed = details.reduce((sum, d) => {
     const cohort = COHORTS.find((c) => c.id === d.id)!;
-    return sum + cohort.baseShare * d.pull;
+    return sum + (d.id === 'gradBound' ? gradBoundShare(signals) : cohort.baseShare * d.pull);
   }, 0);
   const actual = cohortDemandFactor(signals, TOLERANCE, tuition);
-  assert(Math.abs(reconstructed - actual) < 1e-9, `cohortBreakdown's per-cohort pulls reconstruct cohortDemandFactor's own total exactly (breakdown ${reconstructed.toFixed(6)}, direct ${actual.toFixed(6)})`);
+  assert(Math.abs(reconstructed - actual) < 1e-9, `cohortBreakdown's per-cohort weights reconstruct cohortDemandFactor's own total exactly (breakdown ${reconstructed.toFixed(6)}, direct ${actual.toFixed(6)})`);
+
+  // The graduate cohort is REAL PEOPLE in that breakdown, not a weight that
+  // rounds to nobody.
+  const grads = details.find((d) => d.id === 'gradBound')!;
+  assert(grads.applicants > 0, `a school with 20 graduate courses draws graduate applicants (got ${grads.applicants})`);
+}
+
+// =====================================================================
+// 6b. GRADUATE STUDENTS ARE ABSENT UNTIL THERE IS SOMETHING TO ENROL IN,
+// and are ADDITIVE rather than a redistribution of the other seven. This
+// is the pair of properties no baseShare can express, and the reason this
+// cohort is modelled differently from every other one.
+// =====================================================================
+{
+  const bare = withSignal({ labCount: 2, socialOrgCount: 5 });
+  const withGrad = withSignal({ labCount: 2, socialOrgCount: 5, gradCourseDepth: 37 });
+
+  assert(gradBoundShare(bare) === 0, `no graduate courses means no graduate share (got ${gradBoundShare(bare)})`);
+  assert(cohortBreakdown(bare, TOLERANCE, TOLERANCE, 5_000).find((d) => d.id === 'gradBound')!.applicants === 0,
+    'a school with no graduate programs draws exactly zero graduate applicants');
+
+  // Additive: founding a graduate school GROWS the pool rather than moving
+  // undergraduates into it. If this ever inverts, the share is being carved
+  // out of the other seven instead of added alongside them.
+  const before = cohortDemandFactor(bare, TOLERANCE, TOLERANCE);
+  const after = cohortDemandFactor(withGrad, TOLERANCE, TOLERANCE);
+  assert(after > before, `building the graduate schools grows total demand (${before.toFixed(4)} -> ${after.toFixed(4)})`);
+
+  // And it does not do so by taking undergraduates: every other cohort's
+  // head count out of the same pool is unchanged, because their weights are
+  // untouched and only the normalising total moved... which DOES shift the
+  // apportionment, so the honest check is that none of them grew and the
+  // graduate cohort accounts for the difference.
+  const bareRows = cohortBreakdown(bare, TOLERANCE, TOLERANCE, 5_000);
+  const gradRows = cohortBreakdown(withGrad, TOLERANCE, TOLERANCE, 5_000);
+  const gradCount = gradRows.find((d) => d.id === 'gradBound')!.applicants;
+  const undergradLost = COHORTS
+    .filter((c) => c.id !== 'gradBound')
+    .reduce((t, c) => t + (bareRows.find((d) => d.id === c.id)!.applicants - gradRows.find((d) => d.id === c.id)!.applicants), 0);
+  assert(Math.abs(undergradLost - gradCount) <= COHORTS.length,
+    `within one fixed pool the graduate cohort's ${gradCount} come out of the apportionment, not out of thin air (undergrad delta ${undergradLost})`);
 }
 
 // =====================================================================

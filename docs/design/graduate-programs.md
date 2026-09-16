@@ -19,6 +19,24 @@ Two boundaries hold absolutely, and are the reason the feature is this shape:
    and graduate courses are curriculum breadth like every other course. If
    differentiating medicine from law ever seems to need a distinct population,
    that is the signal to stop and re-open the design rather than build one.
+
+   **This boundary has been tested once and held.** Graduate programs now pull
+   applicants — the *grad-school bound* cohort in
+   [admissions.md](admissions.md), undergraduates who chose the university
+   intending to continue here. The first attempt at it was called "graduate
+   students", which would have breached this boundary quietly: a cohort is
+   admitted into a freshman class and graduates four years later, so it would
+   have put a two-year MBA and a five-year doctorate on the undergraduate
+   conveyor and called the result a graduate student body. What the mechanic
+   actually models is who applies to the *undergraduate* funnel, so that is
+   what it is now named. Nothing about a graduate student's residency, cost or
+   satisfaction is modelled, because there is still no graduate student in the
+   simulation to have any.
+
+   Modelling one remains the re-open-the-design case above, and the shape it
+   would take is known: a body outside `students.classes` with per-program
+   residencies, which is a plan rather than a field.
+
 2. **No bespoke per-school system.** Medicine, law and the MBA are
    **mechanically identical**. Everything that distinguishes them is authored
    data in `techData.ts`'s `GRADUATE_PROGRAMS`: the gate, the prestige-input

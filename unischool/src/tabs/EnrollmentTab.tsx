@@ -50,6 +50,7 @@ const COHORT_COLOR: Record<CohortId, string> = {
   artsFocused: '#a9683a',      // terracotta
   priceSensitive: '#6a4a63',   // plum
   athletes: '#a98a3c',         // ochre
+  gradBound: '#33706a',        // verdigris — aged copper, the eighth pigment
 };
 
 // A class whose mix carries NO PULL from anything the school had built —
@@ -163,7 +164,11 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
 
         <div className="body-legend">
           {bodyTotals.map((c) => (
-            <span className="body-legend-item" key={c.id} title={c.driverLabel}>
+            <span
+              className={c.count > 0 ? 'body-legend-item' : 'body-legend-item is-absent'}
+              key={c.id}
+              title={c.driverLabel}
+            >
               <span className="body-legend-swatch" style={{ background: COHORT_COLOR[c.id] }} />
               {c.label}
               <span className="body-legend-count">{c.count.toLocaleString()}</span>
