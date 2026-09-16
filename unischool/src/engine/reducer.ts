@@ -601,7 +601,11 @@ export function reducer(state: GameState, action: Action): GameState {
     case 'RESOLVE_ADMISSIONS': {
       // Tuition is set ONLY here, once a year — see README's "Admissions:
       // an annual summer decision" and the removed live SET_TUITION control.
-      s.finance.tuitionPerStudent = Math.max(0, Math.min(action.tuition, s.finance.tuitionCeiling));
+      // This sets the LISTED price. It reaches a student only through the
+      // freshman entry of tuitionByClass, below, after the classes advance:
+      // the three classes already on the books keep the price they were
+      // admitted under (see types.ts's tuitionByClass).
+      s.finance.listedTuition = Math.max(0, Math.min(action.tuition, s.finance.tuitionCeiling));
       s.admissions = { scholarshipRate: clamp01(action.scholarshipRate) };
 
       resolveStudentLifeDigest(s, action.approvedPetitionIds);
@@ -618,11 +622,19 @@ export function reducer(state: GameState, action: Action): GameState {
 
       // Advance the classes a year: seniors graduate and leave, everyone
       // else moves up. Full progression, no attrition, in this model.
+      //
+      // Each class's TUITION moves with it, in the same direction and in
+      // the same statement — a price belongs to the class that was quoted
+      // it, and the graduating seniors take theirs with them. Written as
+      // pairs rather than two separate loops so that a future edit to one
+      // line has the other staring at it; the two falling out of step is
+      // the whole failure mode this model exists to prevent.
       const classes = s.students.classes;
+      const tuition = s.finance.tuitionByClass;
       const graduating = classes.senior;
-      classes.senior = classes.junior;
-      classes.junior = classes.sophomore;
-      classes.sophomore = classes.freshman;
+      classes.senior = classes.junior;        tuition.senior = tuition.junior;
+      classes.junior = classes.sophomore;     tuition.junior = tuition.sophomore;
+      classes.sophomore = classes.freshman;   tuition.sophomore = tuition.freshman;
       classes.freshman = 0;
 
       // Run the distribution funnel with the committed policy: it sizes the
@@ -631,13 +643,16 @@ export function reducer(state: GameState, action: Action): GameState {
       // module comment), never a ceiling to fill or be capped by.
       const outcome = projectAdmissions(
         s.self.reputation,
-        s.finance.tuitionPerStudent,
+        s.finance.listedTuition,
         s.admissions.scholarshipRate,
         s.students.capacity,
         priorYearAvgSatisfaction,
         deriveCohortSignals(s),
       );
       classes.freshman = outcome.enrolled;
+      // The incoming class is quoted the price that was just set, and keeps
+      // it for four years.
+      tuition.freshman = s.finance.listedTuition;
       s.students.applicantPool = outcome.applicants;
       s.students.admitRate = outcome.admitRate;
       s.students.incomingQuality = outcome.avgIncomingQuality;
@@ -658,7 +673,7 @@ export function reducer(state: GameState, action: Action): GameState {
       s.log.unshift({
         year: s.clock.year,
         week: s.clock.week,
-        message: `Admissions: tuition $${s.finance.tuitionPerStudent.toLocaleString()}/yr, ${Math.round(s.admissions.scholarshipRate * 100)}% scholarships — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admit rate, ${outcome.enrolled.toLocaleString()} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
+        message: `Admissions: tuition $${s.finance.listedTuition.toLocaleString()}/yr, ${Math.round(s.admissions.scholarshipRate * 100)}% scholarships — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admit rate, ${outcome.enrolled.toLocaleString()} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
         kind: 'info',
       });
 

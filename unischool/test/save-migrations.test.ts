@@ -22,6 +22,7 @@ import { athleticStrengthFor } from '../src/data/rivalData';
 import { researchSchools } from '../src/data/techData';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import { isUnstaffed, usedFacultySlots, facultyLoad } from '../src/systems/techtree/techSystem';
+import { annualTuitionBilled } from '../src/systems/finance/financeSystem';
 
 // In-memory localStorage so the persistence module works under Node. Assigned
 // before any loadGame/saveGame call (module imports run first, but nothing in
@@ -466,6 +467,52 @@ function testAthleticsV2Migration(): void {
   assert(!!otherRival && typeof otherRival.athleticStrength === 'number', 'a rival that already had athleticStrength keeps a real number');
 }
 
+// ---- v35 -> v36: one tuition scalar becomes a listed price + four class prices ----
+// The claim this migration makes is that it is EXACT — every class really
+// was paying the one scalar, so a resumed school bills what it billed the
+// week before. That is a checkable claim, so check it: build a v35 save
+// with a known scalar and an uneven body, migrate, and compare the weekly
+// tuition line against the old model's own arithmetic.
+function testPerClassTuitionMigration(): void {
+  clearSave();
+  const base = createInitialState('Pricer', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+
+  const finance = state.finance as Loose;
+  delete finance.listedTuition;
+  delete finance.tuitionByClass;
+  finance.tuitionPerStudent = 19_000;
+
+  // Deliberately uneven, so a migration that quietly dropped a class or
+  // reused one class's count for another would show up in the total.
+  const students = state.students as Loose;
+  students.classes = { freshman: 300, sophomore: 250, junior: 200, senior: 150 };
+  (state.admissions as Loose).scholarshipRate = 0.2;
+
+  writeSave(35, state);
+  const loaded = loadGame();
+  assert(loaded !== null, 'v35 save loads');
+  if (!loaded) return;
+
+  assert((loaded.finance as unknown as Loose).tuitionPerStudent === undefined,
+    'the old tuitionPerStudent scalar is removed');
+  assert(loaded.finance.listedTuition === 19_000,
+    `the scalar becomes the listed price (got ${loaded.finance.listedTuition})`);
+  const byClass = loaded.finance.tuitionByClass;
+  assert(
+    byClass.freshman === 19_000 && byClass.sophomore === 19_000
+      && byClass.junior === 19_000 && byClass.senior === 19_000,
+    'every class carries forward at the price it was actually paying',
+  );
+
+  // The exactness claim, in money: what the old model billed was
+  // enrolled x price x (1 - scholarships), because there was only one price.
+  const expected = (300 + 250 + 200 + 150) * 19_000 * 0.8;
+  const actual = annualTuitionBilled(loaded);
+  assert(Math.abs(actual - expected) < 1e-6,
+    `migrated tuition revenue is unchanged to the dollar (got ${actual}, expected ${expected})`);
+}
+
 // ---- Test: a current-version save round-trips unchanged ----
 function testRoundTrip(): void {
   clearSave();
@@ -853,6 +900,7 @@ testCourseFacultyMigration();
 testCourseFacultySanitizer();
 testChapterGlyphs();
 testScholarshipMigration();
+testPerClassTuitionMigration();
 testRoundTrip();
 testRejects();
 

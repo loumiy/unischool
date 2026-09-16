@@ -469,7 +469,13 @@ export function startDevelopment(s: GameState, node: Buildable, facultyId?: stri
 function applyEffects(s: GameState, e?: Partial<BuildableEffects>): void {
   if (!e) return;
   if (e.capacityBonus) s.students.capacity += e.capacityBonus;
-  if (e.tuitionBonus) s.finance.tuitionPerStudent += e.tuitionBonus;
+  // Raises the LISTED price only — the price the next class will be quoted
+  // — never a class already enrolled. A Buildable that repriced the four
+  // classes on the books would be the retroactive-hike exploit wearing a
+  // building's clothes (see types.ts's tuitionByClass). Nothing in
+  // src/data/ sets tuitionBonus today; this is the effect's contract for
+  // whenever something does.
+  if (e.tuitionBonus) s.finance.listedTuition += e.tuitionBonus;
   if (e.applicantPoolBonus) s.students.applicantPool += e.applicantPoolBonus;
   if (e.unlockIds) {
     for (const id of e.unlockIds) {

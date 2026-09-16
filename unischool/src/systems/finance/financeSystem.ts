@@ -1,4 +1,4 @@
-import type { GameState } from '../../state/types';
+import type { ClassTuition, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
 import { studentOrgUpkeep } from '../../data/studentLifeData';
 
@@ -102,7 +102,7 @@ const UPKEEP_EMPTY_SEAT_MULTIPLIER = 0.5;
 // simply become free money.
 //
 // That margin is NOT a law of the formula, though — it is two numbers a
-// player sets (tuitionPerStudent, scholarshipRate) racing one the
+// player sets (the listed tuition, scholarshipRate) racing one the
 // catalogue sets (coursesOffered), and a school that discounts heavily
 // while building out a full curriculum can push its own net tuition per
 // student below this line, same as a real college whose list of majors
@@ -238,7 +238,7 @@ export function endowmentCampaign(s: GameState): EndowmentCampaign {
 // rather than two that can disagree.
 export interface FinanceBreakdown {
   // income
-  tuitionRevenue: number;      // enrolled x tuition, net of scholarships
+  tuitionRevenue: number;      // every class at its own admission-year price, net of scholarships (see annualTuitionBilled)
   prestigeRevenue: number;     // the reputation dividend: donors/grants/brand, independent of enrollment
   endowmentPayout: number;     // the endowment's annual spend rate, sliced into weeks
   baselineFunding: number;     // school-type baseline: a flat appropriation plus a per-student one (0 for private)
@@ -274,6 +274,33 @@ export function instructionCostPerStudent(s: GameState): number {
   return INSTRUCTION_PER_STUDENT_PER_WEEK + INSTRUCTION_PER_STUDENT_PER_COURSE_OFFERED * coursesOffered;
 }
 
+// What the school bills in tuition across a whole year: every class's own
+// head count at its own price, net of scholarships. FOUR products, not
+// `enrolled x price` — each class pays what it was quoted at admission and
+// carries that to graduation (see types.ts's tuitionByClass), so a school
+// that has raised its price is collecting up to four different prices at
+// once and there is no single per-student figure to multiply by.
+//
+// Exported because the Treasury shows the same four rows it sums here, and
+// a second copy of this arithmetic in the UI is exactly how a displayed
+// income statement starts disagreeing with what the tick charges.
+export function tuitionByClassBilled(s: GameState): ClassTuition {
+  const net = 1 - s.admissions.scholarshipRate;
+  const classes = s.students.classes;
+  const price = s.finance.tuitionByClass;
+  return {
+    freshman: classes.freshman * price.freshman * net,
+    sophomore: classes.sophomore * price.sophomore * net,
+    junior: classes.junior * price.junior * net,
+    senior: classes.senior * price.senior * net,
+  };
+}
+
+export function annualTuitionBilled(s: GameState): number {
+  const billed = tuitionByClassBilled(s);
+  return billed.freshman + billed.sophomore + billed.junior + billed.senior;
+}
+
 // The single computation of the weekly cash flow. tickFinance applies it,
 // weeklyNet reads its bottom line, and the Treasury renders it line by
 // line as an income statement — so what the player is shown is exactly
@@ -281,8 +308,7 @@ export function instructionCostPerStudent(s: GameState): number {
 // sync. Pure: reads state, writes nothing.
 export function financeBreakdown(s: GameState): FinanceBreakdown {
   const enrolled = totalEnrolled(s.students);
-  const netTuitionPerStudent = s.finance.tuitionPerStudent * (1 - s.admissions.scholarshipRate);
-  const tuitionRevenue = (enrolled * netTuitionPerStudent) / WEEKS_PER_YEAR;
+  const tuitionRevenue = annualTuitionBilled(s) / WEEKS_PER_YEAR;
   const prestigeRevenue = (s.self.reputation * REPUTATION_DIVIDEND_PER_POINT_PER_YEAR) / WEEKS_PER_YEAR;
   const endowmentPayout = (s.finance.endowment * ENDOWMENT_PAYOUT_RATE) / WEEKS_PER_YEAR;
   // A public school's appropriation has two halves (see schoolTypeData.ts):

@@ -325,7 +325,7 @@ for (const strategy of STRATEGIES.filter((s) => !MISTAKE_CASES.includes(s.name))
 
   // Price before people: a strategy that would charge more than the school
   // currently charges has a raise pending, and nobody is cut this week.
-  const pending = { tuition: (s: GameState) => s.finance.tuitionPerStudent + 1, scholarships: () => 1 } as unknown as typeof STRATEGIES[number];
+  const pending = { tuition: (s: GameState) => s.finance.listedTuition + 1, scholarships: () => 1 } as unknown as typeof STRATEGIES[number];
   let cutUnderPendingRaise: string | null = null;
   cutPayrollIfStalled(() => stalled(0), STALL_WEEKS_BEFORE_CUTS, (a) => {
     if (a.type === 'FIRE_FACULTY') cutUnderPendingRaise = a.facultyId;

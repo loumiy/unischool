@@ -1,4 +1,4 @@
-import type { GameState } from '../state/types';
+import type { ClassTuition, GameState } from '../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../state/types';
 import type { Action } from '../state/actions';
 import { financeBreakdown, instructionCostPerStudent, endowmentCampaign } from '../systems/finance/financeSystem';
@@ -22,6 +22,12 @@ import HelpHint from '../components/HelpHint';
 // All figures are per week, the unit the sim runs on — the annualized
 // footer is a x WEEKS_PER_YEAR convenience, not a second set of numbers.
 // ---------------------------------------------------------------------
+
+// Youngest first, the same order the Admissions tab lists the classes in
+// and the same order reducer.ts advances them.
+const CLASS_ORDER: ReadonlyArray<[keyof ClassTuition, string]> = [
+  ['freshman', 'Fr'], ['sophomore', 'So'], ['junior', 'Jr'], ['senior', 'Sr'],
+];
 
 function money(v: number): string {
   return `${v < 0 ? '-' : ''}$${Math.round(Math.abs(v)).toLocaleString()}`;
@@ -60,7 +66,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
             <h3>Income</h3>
             <StatementLine
               label="Net tuition"
-              note={`${totalEnrolled(s.students).toLocaleString()} enrolled × $${s.finance.tuitionPerStudent.toLocaleString()}/yr less ${Math.round(s.admissions.scholarshipRate * 100)}% scholarships`}
+              note={`${totalEnrolled(s.students).toLocaleString()} enrolled across four classes, each at the price it was admitted under, less ${Math.round(s.admissions.scholarshipRate * 100)}% scholarships`}
               amount={flow.tuitionRevenue}
             />
             <StatementLine
@@ -169,8 +175,24 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
                 doesn't. See systems/research/researchSystem.ts. */}
             <dt>Research grants</dt>
             <dd>{money(s.research.grantIncome)} across {s.research.grants}</dd>
-            <dt>Tuition</dt><dd>${s.finance.tuitionPerStudent.toLocaleString()}/yr</dd>
+            {/* The listed price is what the next class will be quoted; the
+                four below are what the classes on the books actually pay.
+                They are equal until the player first moves the slider, and
+                the gap that opens afterwards is the point — a school that
+                has raised its price is collecting up to four prices at once,
+                and this is the only screen that says so. See types.ts's
+                tuitionByClass. */}
+            <dt>Tuition, listed</dt><dd>${s.finance.listedTuition.toLocaleString()}/yr</dd>
             <dt>Tuition ceiling</dt><dd>${s.finance.tuitionCeiling.toLocaleString()}/yr</dd>
+            <dt>Charged, by class</dt>
+            <dd>
+              {CLASS_ORDER.map(([key, label], i) => (
+                <span key={key}>
+                  {i > 0 && ' · '}
+                  {label} ${s.finance.tuitionByClass[key].toLocaleString()}
+                </span>
+              ))}
+            </dd>
             <dt>Scholarships</dt><dd>{Math.round(s.admissions.scholarshipRate * 100)}%</dd>
           </dl>
         </section>

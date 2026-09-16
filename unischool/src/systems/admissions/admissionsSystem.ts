@@ -477,7 +477,7 @@ export function tickAdmissions(s: GameState): void {
     s.pendingInterrupt = {
       type: 'admissions',
       payload: {
-        tuition: s.finance.tuitionPerStudent,
+        tuition: s.finance.listedTuition,
         scholarshipRate: s.admissions.scholarshipRate,
       },
     };

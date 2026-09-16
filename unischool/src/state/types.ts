@@ -10,8 +10,23 @@ export interface Finance {
   cash: number;          // liquid funds
   endowment: number;     // long-term reserve; earns a return and pays a fixed share of itself into income every year (see financeSystem.ts)
   endowmentCampaigns: number; // how many endowment campaigns have been run — each one costs more than the last (see financeSystem.ts's endowmentCampaign)
-  tuitionPerStudent: number;
-  tuitionCeiling: number;        // hard cap on tuitionPerStudent, set by school type at founding
+  // The school's standing LISTED price — what the summer slider opens at,
+  // what a prospective student is quoted, and the only tuition figure any
+  // projection of NEXT year's class reads. Setting it does not touch a
+  // student already enrolled; it becomes the freshman entry of
+  // tuitionByClass at the next admissions boundary, and nowhere else.
+  listedTuition: number;
+  // What each enrolled CLASS actually pays, locked at the price it was
+  // admitted under and carried to graduation (see reducer.ts's
+  // RESOLVE_ADMISSIONS, which advances these in lockstep with
+  // students.classes). Four prices rather than one scalar because one
+  // scalar meant a mid-stream raise repriced every student already on the
+  // books — a school could stay cheap while it grew and then bill four
+  // captive classes at the new price. Tuition revenue is the sum of four
+  // products now (financeSystem.ts's financeBreakdown), never
+  // enrolled x price.
+  tuitionByClass: ClassTuition;
+  tuitionCeiling: number;        // hard cap on listedTuition, set by school type at founding
   baselineFundingPerWeek: number; // FLAT non-tuition income (a public school's institutional appropriation), set by school type
   appropriationPerStudentPerYear: number; // per-enrolled-student non-tuition income, set by school type; 0 for private. Kept as a number on state rather than a schoolType branch in financeSystem.ts, so no system ever has to know which fork the player picked.
   weeklyOpEx: number;    // salaries + upkeep + instruction, recomputed each tick
@@ -49,6 +64,18 @@ export interface SatisfactionAttributes {
 // applicant. Neither has anything to do with a course, which is what a
 // student enrolls in (see techData.ts's Buildables).
 export interface ClassCounts {
+  freshman: number;
+  sophomore: number;
+  junior: number;
+  senior: number;
+}
+
+// The same four class keys as ClassCounts, carrying dollars instead of
+// people: what each class is charged per year. Deliberately its own
+// interface rather than a reuse of ClassCounts — the keys match but the
+// units do not, and a reader who finds one of these in `finance` should
+// not have to work out whether it is money or students.
+export interface ClassTuition {
   freshman: number;
   sophomore: number;
   junior: number;

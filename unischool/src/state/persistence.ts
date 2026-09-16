@@ -836,7 +836,23 @@ export const SAVE_KEY = 'unischool.save';
 // no change in meaning — the same four head counts, summing to the same
 // body, read by the same totalEnrolled() — so nothing mechanical moves and
 // a resumed save plays exactly as it did. See MIGRATIONS[34].
-export const SAVE_VERSION = 35;
+//
+// v35 -> v36: tuition follows the class that paid it. The single
+// `finance.tuitionPerStudent` scalar becomes `finance.listedTuition` (the
+// standing price the summer slider opens at, and the only figure a
+// projection of next year's class reads) plus `finance.tuitionByClass`
+// (what each enrolled class is actually charged, locked at admission and
+// carried to graduation). Revenue is four products now rather than
+// enrolled x price — see financeSystem.ts's annualTuitionBilled.
+//
+// This migration is EXACT, not a best guess, and it is worth saying why:
+// under the old model every class really was paying the one scalar, so
+// copying it into all four entries reproduces the save's own tuition
+// revenue to the dollar. A resumed school bills exactly what it billed the
+// week before, and only diverges once the player sets a NEW price — which
+// is the change working, not the migration losing anything. See
+// MIGRATIONS[35].
+export const SAVE_VERSION = 36;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -906,6 +922,25 @@ interface LegacyGameState extends GameState {
 const KNOWN_SUFFIXES = ['College', 'University'];
 
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v35 -> v36: one tuition scalar becomes a listed price plus four class
+  // prices (see the SAVE_VERSION header note above for why this is exact).
+  35: (state) => {
+    const finance = state.finance as unknown as {
+      tuitionPerStudent?: number;
+      listedTuition?: number;
+      tuitionByClass?: { freshman: number; sophomore: number; junior: number; senior: number };
+    };
+    const priceEveryoneWasPaying = Math.max(0, finance.tuitionPerStudent ?? 0);
+    finance.listedTuition ??= priceEveryoneWasPaying;
+    finance.tuitionByClass ??= {
+      freshman: priceEveryoneWasPaying,
+      sophomore: priceEveryoneWasPaying,
+      junior: priceEveryoneWasPaying,
+      senior: priceEveryoneWasPaying,
+    };
+    delete finance.tuitionPerStudent;
+  },
+
   // v34 -> v35: `students.cohorts` becomes `students.classes` (see the
   // SAVE_VERSION header note above). Purely a rename — the object moves
   // across under its new name with its four counts untouched, so the body

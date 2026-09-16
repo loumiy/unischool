@@ -422,7 +422,8 @@ is what the **growth loop** is for, and it is the shape everything in
    applicants at all.
 3. **Demand** — the applicant pool is prestige x price x word of mouth
    (satisfaction). Enrollment is earned, never automatic.
-4. **Revenue** — enrolled students x net tuition, the dominant income line.
+4. **Revenue** — every class at the price it was admitted under, summed; the
+   dominant income line (see "Tuition follows the class that paid it" below).
 5. **Strain** — more students and more beds mean more instruction cost, more
    upkeep, and diluted satisfaction (every ratio attribute is scored against
    planned capacity), which forces dorms and facilities, which cost money, which
@@ -568,7 +569,9 @@ When it fires, the clock stops and the player sets exactly **two** levers for th
 coming year: the **sticker tuition** and the **scholarship rate**
 (`admissions.scholarshipRate`, the average tuition discount across admits).
 **Tuition is set once a year here — there is no live, continuously adjustable
-tuition control.**
+tuition control.** What the slider sets is the **listed** price
+(`finance.listedTuition`), which reaches a student only as the price their class
+is admitted under — see "Tuition follows the class that paid it" below.
 
 Everything else is **emergent, not an input** — the player sets no selectivity
 target and no target enrollment. Admissions is a distribution funnel resolved by
@@ -609,6 +612,28 @@ class** while the existing classes advance a year and the seniors graduate (see
 "Students: four aggregate classes" below). Shape the tuition / scholarship inputs
 with the future demand-curve model in mind.
 
+### Tuition follows the class that paid it
+
+A price belongs to the class that was quoted it. The summer decision sets the
+**listed** price (`finance.listedTuition`); at the next admissions boundary that
+becomes the incoming class's price and is carried, unchanged, until that class
+graduates. `finance.tuitionByClass` holds the four, advanced in lockstep with
+`students.classes` by the same lines of `reducer.ts`'s `RESOLVE_ADMISSIONS` that
+move the head counts — the graduating seniors take their price with them.
+
+So **tuition revenue is the sum of four products, never `enrolled × price`**
+(`financeSystem.ts`'s `annualTuitionBilled`), and a school that has raised its
+price is collecting up to four different prices at once. The Treasury's
+Balance & Policy panel lists all four, which is the only screen that says so.
+
+**Why the model is worth the extra three numbers.** Under a single scalar, a
+raise repriced every student already enrolled, and the strongest line of play
+was to stay cheap while the school grew and then bill four captive classes at
+the new price. Per-class pricing closes that: a raise is worth exactly the
+incoming class and nothing more, which is also what makes the decision legible —
+the player is pricing one class, not the school. A `tuitionBonus` Buildable
+effect raises the listed price only, for the same reason (`techSystem.ts`).
+
 ### Admissions cohorts: who the school pulls in
 
 The applicant pool is not undifferentiated. **Seven cohorts** — high achievers,
@@ -648,9 +673,11 @@ introduce individual-student simulation.**
   future attractiveness: the causal chain is **current student experience →
   satisfaction → next year's applications**. Satisfaction stays an aggregate
   institutional reading, not a per-student one.
-- Capacity, tuition, instruction cost and appropriations all scale with the
-  **total body** across the four classes (`totalEnrolled()` in `types.ts` is the
-  one place the sum lives; nothing stores a separate total that could drift).
+- Capacity, instruction cost and appropriations all scale with the **total
+  body** across the four classes (`totalEnrolled()` in `types.ts` is the one
+  place the sum lives; nothing stores a separate total that could drift).
+  Tuition does **not** — it is charged per class, at four possibly different
+  prices (see "Tuition follows the class that paid it").
 
 The settled v1 rules:
 

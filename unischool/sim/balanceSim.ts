@@ -309,7 +309,7 @@ export function cutPayrollIfStalled(
 
   // Price first: a raise or a discount cut already decided but not yet
   // applied is cheaper than anybody's job.
-  if (strategy.tuition(s) > s.finance.tuitionPerStudent) return;
+  if (strategy.tuition(s) > s.finance.listedTuition) return;
   if (strategy.scholarships(s) < s.admissions.scholarshipRate) return;
 
   const loads = facultyLoads(s);
@@ -581,7 +581,7 @@ function snapshot(s: GameState, weeksInTheRed: number, minCash: number): Row {
     courses: s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length,
     majors: Object.keys(s.milestones).filter((k) => k.startsWith('program-established:')).length,
     faculty: s.faculty.length,
-    tuition: s.finance.tuitionPerStudent,
+    tuition: s.finance.listedTuition,
     scholarships: s.admissions.scholarshipRate,
     applicants: s.students.applicantPool,
     admitRate: s.students.admitRate,

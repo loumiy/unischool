@@ -6,7 +6,10 @@ in the notes, and a rework of a decision the game already has — and turn it in
 an ordered sequence of PRs, each one small enough to land on its own and each
 one landing in the order that makes the next one cheaper.*
 
-**Status: Proposed.** Seven PRs, A through G. Nothing has started.
+**Status: In progress.** Seven PRs, A through G. **A has landed**; B through G
+have not. A's departures from the plan are noted in A itself: the dormant
+`tuitionBonus` effect, and the balance harness moving a PR earlier than
+predicted.
 
 ---
 
@@ -151,6 +154,44 @@ $15k, raise the decision to $45k, and assert the three older classes'
 contribution to `financeBreakdown` is unchanged, and that total revenue rises by
 exactly the new freshman class times the difference. Plus the balance regression,
 which will move: see the note under B.
+
+**As implemented: two departures.**
+
+*The scalar split in two, and `tuitionBonus` had no users.* The plan said
+`finance.tuitionByClass` replaces `finance.tuitionPerStudent`; it took **two**
+fields, not one. The old scalar was quietly doing three jobs — the price
+charged, the slider's opening position, and the target of a `tuitionBonus`
+effect — and only the first is per-class. So the listed price became
+`finance.listedTuition` and kept the other two jobs, which is also the field
+open question 2's answer needed to exist. The question turned out to be cheaper
+than it looked for a reason the plan did not know: **nothing in `src/data/` sets
+`tuitionBonus` at all.** It is a declared-but-unused effect, so routing it to
+the listed price is a contract for a future Buildable rather than a change to
+any shipped one. It was routed and commented rather than deleted, since deleting
+a designed effect is not this PR's call to make.
+
+*The balance harness moved here, not at B.* The plan predicted the sim would
+need a re-baseline when scholarships go. It moved at A. `balance-regression`'s
+40 checks all still pass — they assert shape (growth isn't optional, stall
+don't die, no strategy permanently sunk, the pinch is real), not snapshots — but
+the 40-year runs are visibly different, and in both directions: "Balanced
+builder" closes on $281M instead of $410M, while "Public flagship" goes from
+closing $16M underwater with 668 weeks in the red to closing $224M up with none.
+
+That is much larger than the ~1% the pricing lag is worth per year, and it is
+not a bug — the arithmetic identity is tested twice over (a founded school at
+one price bills exactly `enrolled × price`, and the v35 migration reproduces a
+resumed save's revenue to the dollar). The sim is a threshold system: every
+strategy builds when cash clears a buffer, so a small, permanent change to cash
+flow *timing* moves which week a building goes up, and forty years of that
+compounds. The direction is not always down, because in this economy building
+sooner is often what sinks a school.
+
+The control strategy proves the mechanism precisely. "Idle" charges a flat
+$12,000 and moved by +$0.42M over forty years — it was *founded* at $13,000, so
+under per-class pricing its three older classes stay on the founding price for
+three more years and it bills slightly MORE early, which is the new model
+behaving exactly as specified on a school that never changes its price.
 
 ## PR 05B — Scholarships go away
 

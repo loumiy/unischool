@@ -268,7 +268,8 @@ export function createPreStartState(): GameState {
   return {
     clock: { year: 1, week: 1 },
     finance: {
-      cash: 0, endowment: 0, endowmentCampaigns: 0, tuitionPerStudent: 0, tuitionCeiling: 0,
+      cash: 0, endowment: 0, endowmentCampaigns: 0, tuitionCeiling: 0,
+      listedTuition: 0, tuitionByClass: { freshman: 0, sophomore: 0, junior: 0, senior: 0 },
       baselineFundingPerWeek: 0, appropriationPerStudentPerYear: 0, weeklyOpEx: 0,
     },
     students: {
@@ -356,13 +357,25 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     foundersHallFootprint,
   );
 
+  // One founding price, read into five places below (the listed price and
+  // the four classes), so they cannot be seeded out of step with each other.
+  const foundingTuition = Math.min(STARTING_TUITION, preset.tuitionCeiling);
+
   const state: GameState = {
     clock: { year: 1, week: 1 },
     finance: {
       cash: preset.startingCash,
       endowment: STARTING_ENDOWMENT,
       endowmentCampaigns: 0,
-      tuitionPerStudent: Math.min(STARTING_TUITION, preset.tuitionCeiling),
+      // The founding body is all four classes at once (see FOUNDING_CLASSES),
+      // and they were all admitted under the same founding price — so the
+      // listed price and all four class prices open equal. They only diverge
+      // once the player actually moves the slider.
+      listedTuition: foundingTuition,
+      tuitionByClass: {
+        freshman: foundingTuition, sophomore: foundingTuition,
+        junior: foundingTuition, senior: foundingTuition,
+      },
       tuitionCeiling: preset.tuitionCeiling,
       baselineFundingPerWeek: preset.baselineFundingPerWeek,
       appropriationPerStudentPerYear: preset.appropriationPerStudentPerYear,
