@@ -6,8 +6,12 @@ in the notes, and a rework of a decision the game already has — and turn it in
 an ordered sequence of PRs, each one small enough to land on its own and each
 one landing in the order that makes the next one cheaper.*
 
-**Status: In progress.** Seven PRs, A through G. **A, B, C and D have landed**;
-E through G have not. Each one's departures from the plan are noted in the PR
+**Status: Landed.** All seven PRs, A through G. The summer decision is three
+beats now — a blind price that locks, a reveal, and an admit rate with every
+consequence on screen before it is taken — over a model where tuition follows
+the class that paid it and there is neither a scholarship rate nor a yield step.
+Each PR's departures from this plan are noted in the PR that departed; there are
+eleven of them, and they are the most useful thing in this document. Each one's departures from the plan are noted in the PR
 that departed: A, where `tuitionBonus` turned out to have no users and the
 balance harness moved a PR earlier than predicted; and B, where scholarships
 had a third consumer in `satisfactionSystem.ts`, `YIELD_BASE` had to absorb the
@@ -15,7 +19,11 @@ retired yield term, two more pricing-test sections turned out to be unwritable
 rather than one, and the balance re-baseline landed on strategies the plan had
 not named; and C, where this plan's own verification step turned out to
 contradict the PR it was verifying; and D, where the reducer's class advance
-had to be extracted before the panel could project without copying it.
+had to be extracted before the panel could project without copying it; E, where
+the tuition cap had to actually move rather than just the slider; F, where
+`AnimatedNumber` needed a second prop to climb at all; and G, where reading
+README against the shipped screen caught two claims that had quietly stopped
+being true.
 
 ---
 
@@ -435,6 +443,15 @@ proved is what E reuses).
 
 **Verification:** by eye.
 
+**As implemented: the cap had to actually move.** The plan said the slider ends
+at $100k for a private school. But `RESOLVE_ADMISSIONS` clamps to
+`finance.tuitionCeiling`, so a slider running past it would have been a lie —
+drag to $80k, get billed $60k. The private ceiling itself moved to 100,000, and
+migration 38 (`SAVE_VERSION` 39) resets it from the preset so a resumed private
+school does not keep a cap a new one does not have. Public is untouched, as
+open question 4 decided. Nothing in the sim comes near either: the
+highest-priced strategy closes around 38k and the balance suite did not move.
+
 ## PR 05F — The reveal
 
 Beat 2, and the payoff the other six PRs are clearing the stage for.
@@ -453,6 +470,16 @@ Beat 2, and the payoff the other six PRs are clearing the stage for.
 **Verification:** by eye, and the existing `cohorts.test.ts` sum invariant keeps
 the rows honest against the headline.
 
+**As implemented: the duration was the easy half.** `AnimatedNumber` needed a
+second prop nobody had predicted. It initialises its displayed value to its own
+`value`, so a number mounting for the first time simply *appears* — right
+everywhere else in the game, and fatal for a reveal, whose whole content is the
+climb. Beat 2 opened with the answer already sitting there. `revealFrom` is what
+fixed it. The rows tick on the same duration rather than staggering, decided in
+the browser as the plan said it would be: staggered read as seven races, shared
+reads as one panel filling. Verified by sampling the figure mid-flight
+(0 -> 53 -> 96 -> ... -> 173) rather than by looking at a still.
+
 ## PR 05G — Far less text on screen
 
 Last, because it is only now knowable. With beat 1 blind, beat 3 projected, and
@@ -468,6 +495,22 @@ against `README.md`'s "Admissions: an annual summer decision" and update the
 spec, which by this point is describing a screen that no longer exists.
 
 **Verification:** by eye, and README read end to end against the shipped modal.
+
+**As implemented: the standing paragraph became a line per beat.** The old
+intro described both decisions at once and ended "see the projected outcomes
+below before you confirm" — which, on a beat 1 that deliberately shows nothing,
+was actively wrong rather than merely long. The screen asks a different question
+in each beat, so the prompt does too, and there is only ever one question on
+screen. The rest was trimming notes that restated their own heading ("Who this
+pulls in (applicants, summing to the pool above)") or explained a thing the
+layout already said.
+
+Reading README against the shipped modal caught two claims that had stopped
+being true and that no test could have: "everything else is emergent, not an
+input — the player sets no selectivity target", written when admit rate was an
+output and contradicted by PR C; and the sticker-shock bullet, which still read
+as though the funnel showed its own reading, when E removed it from beat 1 and
+beat 2 shows a pool that already has it priced in.
 
 ---
 

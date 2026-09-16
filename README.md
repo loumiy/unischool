@@ -593,15 +593,15 @@ What the tuition slider sets is the **listed** price
 (`finance.listedTuition`), which reaches a student only as the price their class
 is admitted under — see "Tuition follows the class that paid it" below.
 
-Everything else is **emergent, not an input** — the player sets no selectivity
-target and no target enrollment. Admissions is a distribution funnel resolved by
-`admissionsSystem.ts`, modeled as aggregate applicant *statistics*, never
-individual applicants:
+Everything else is **emergent** — the player sets no target enrollment, and the
+pool, the mix and the class that arrives all follow from the two decisions
+above. Admissions is a distribution funnel resolved by `admissionsSystem.ts`,
+modeled as aggregate applicant *statistics*, never individual applicants:
 
 - **Applications** are driven by **price**, **current prestige**, and the
   **average student satisfaction over the preceding year** (word of mouth).
-  Higher prestige and a lower price grow the pool; a happy student body grows it further. Word of
-  mouth reads the **average satisfaction over the preceding year** —
+  Higher prestige and a lower price grow the pool; a happy student body grows
+  it further. Word of mouth reads the **average satisfaction over the preceding year** —
   accumulated weekly and averaged at the summer boundary
   (`admissionsSystem.ts`'s `trailingYearSatisfaction`), not the current week's
   reading. Dorm capacity scales the pool toward its full size as housing
@@ -613,7 +613,9 @@ individual applicants:
   off applicants hardest in the lower/mid quality bands and barely at all in
   the top band (the real-world "undermatching" effect), so an overreaching
   school gets a smaller pool that is also relatively richer in the applicants
-  least sensitive to price. See `admissionsSystem.ts`'s `STICKER_SHOCK_RATE`,
+  least sensitive to price. It is **not shown as its own reading** — beat 1 is
+  blind, and by beat 2 it is already priced into the pool the player is
+  looking at. See `admissionsSystem.ts`'s `STICKER_SHOCK_RATE`,
   whose rates were sized to close an exploit that no longer exists — with one
   price, the "inflate the sticker and match it with aid" construction cannot be
   written — and which are kept for the effect itself.

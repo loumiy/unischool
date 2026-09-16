@@ -16,10 +16,16 @@ here.
 *Each of these is a plan's worth of work on its own, and none of them blocks any
 other. Lifted from Plan 04, which is where they were first named. Turning one
 into an ordered sequence of PRs is what writing the next plan does — Summer
-admissions has had that done to it (Plan 05) and the rest have not.*
+admissions has been through that and shipped (Plan 05), which is why it is no
+longer here: what it changed is in `README.md` now.*
 
 ### Startup screen
-Drop public/private. Possible additions: a **motif set** chosen at founding
+Drop public/private. Note what that now costs: Plan 05's PR E left the **public
+tuition ceiling** ($22k) in force while raising the private one out of reach
+($100k), precisely so this plan would not decide the school-type question on the
+startup screen's behalf. A public school's cap is most of what it is, so
+dropping the distinction means deciding what replaces it — the subsidy alone, or
+nothing. Possible additions: a **motif set** chosen at founding
 (classical — stone and columns; brutalist — concrete; modern — glass), which is a
 large art commission and the reason this is deferred rather than hard; and
 picking the mascot here rather than burying it in Athletics (which pairs with
@@ -37,19 +43,14 @@ content that would justify either tab is the same: the student body has
 infographic view of who actually attends this university is the feature; which
 tab it lives in is a consequence of building it.
 
-The summer interrupt now shows cohort head counts for the *incoming* pool (see
+The summer reveal now shows cohort head counts for the *incoming* pool (see
 README's "Admissions cohorts"), which is one year's applicants — not the same
 thing as the standing body, where four admitted classes are layered on top of
 each other. Showing the enrolled mix means either storing each class's cohort
 split at admission or reconstructing it, and that is the real decision this
-feature has to make.
-
-### Summer admissions
-**Sequenced — see [Plan 05](docs/plans/05-summer-admissions.md), PRs A–G.** The
-notes that were here (tuition as a gamble, the reveal, admit rate as the second
-decision, scholarships retired, the tuition exploit closed) moved into that plan
-rather than being restated in two places. Nothing has landed yet; this entry
-stays until it has, so the backlog does not look like the work was forgotten.
+feature has to make. Plan 05 established the pattern for the first option:
+`finance.tuitionByClass` already carries a per-class fact alongside the classes
+and advances with them.
 
 ### Athletics V3
 Better layout; a bigger coach pool reusing faculty headshots and the old

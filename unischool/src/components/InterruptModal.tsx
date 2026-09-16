@@ -234,7 +234,11 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeilin
   return (
     <>
       <h2>Summer Admissions</h2>
-      <p>Set next year's tuition and how much of the applicant pool to take. Admitting deeper means a bigger class drawn further down the quality distribution — see the projected outcomes below before you confirm.</p>
+      <p className="admissions-prompt">
+        {tuitionLocked
+          ? 'How much of this pool will you take?'
+          : 'What will you charge next year? You will see who it drew once it is set.'}
+      </p>
 
       {/* BEAT 1 — the price, set blind. The only feedback is the tier: are
           you in line with your own standing, or not. No applicant count, no
@@ -266,11 +270,11 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeilin
                 <AnimatedNumber value={outcome.applicants} durationMs={REVEAL_MS} revealFrom={0} />
               </dd>
             </div>
-            <div><dt>Word of mouth <span className="outcome-note">(avg satisfaction last year {Math.round(satisfaction)})</span></dt><dd>{outcome.wordOfMouthMultiplier >= 1 ? '+' : ''}{Math.round((outcome.wordOfMouthMultiplier - 1) * 100)}% applicants</dd></div>
+            <div><dt>Word of mouth <span className="outcome-note">(satisfaction {Math.round(satisfaction)} last year)</span></dt><dd>{outcome.wordOfMouthMultiplier >= 1 ? '+' : ''}{Math.round((outcome.wordOfMouthMultiplier - 1) * 100)}%</dd></div>
           </dl>
 
           <div className="cohort-breakdown">
-            <h3>Who this pulls in <span className="outcome-note">(applicants, summing to the pool above)</span></h3>
+            <h3>Who this pulls in</h3>
             {cohorts.map((c) => <CohortRow key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants} revealMs={REVEAL_MS} />)}
           </div>
 
@@ -278,10 +282,8 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeilin
               consequence visible before it is taken. */}
           <label className="admissions-field">
             <span>
-              Admit rate <strong>{Math.round(admitRateChoice * 100)}%</strong> of applicants
-              <span className="outcome-note">
-                {' '}(a school of your standing usually takes {Math.round(usualAdmitRate * 100)}%)
-              </span>
+              Admit rate <strong>{Math.round(admitRateChoice * 100)}%</strong>
+              <span className="outcome-note">{' '}(your standing usually takes {Math.round(usualAdmitRate * 100)}%)</span>
             </span>
             <input type="range" min={0.01} max={1} step={0.01} value={admitRateChoice}
               onChange={(e) => setAdmitRateChoice(Number(e.target.value))} />
@@ -310,7 +312,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeilin
                 </dd>
               </div>
               <div>
-                <dt>Satisfaction <span className="outcome-note">(heading toward, at current capacity — now {Math.round(consequence.satisfactionTargetNow)})</span></dt>
+                <dt>Satisfaction <span className="outcome-note">(heading toward — now {Math.round(consequence.satisfactionTargetNow)})</span></dt>
                 <dd>
                   <AnimatedNumber value={consequence.satisfactionTarget} format={(n) => `${Math.round(n)}`} />
                   <span className={`consequence-delta ${moodDelta >= 0 ? 'good' : 'bad'}`}>
@@ -319,10 +321,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeilin
                 </dd>
               </div>
               <div>
-                <dt>
-                  {NEED_LABEL[consequence.tightestNeed]}
-                  <span className="outcome-note"> (the need this class stretches furthest)</span>
-                </dt>
+                <dt>{NEED_LABEL[consequence.tightestNeed]} <span className="outcome-note">(tightest need)</span></dt>
                 <dd><CoverageValue now={consequence.tightestCoverageNow} next={consequence.tightestCoverage} /></dd>
               </div>
             </dl>

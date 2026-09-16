@@ -2009,6 +2009,11 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    given the size to be worth watching. */
 .reveal-figure { font-size: var(--text-lg); }
 
+/* One line per beat, not a standing paragraph (see InterruptModal.tsx).
+   The screen changes what it is asking between beats, so the prompt does
+   too — and there is only ever one question on screen at a time. */
+.admissions-prompt { margin: 0 0 16px; }
+
 /* The per-cohort demand breakdown (see cohorts.ts) — a compact list, not
    another dl, since each row is a head count colored by whether that
    cohort is above or below neutral, rather than a plain value. */
