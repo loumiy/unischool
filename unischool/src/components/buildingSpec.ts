@@ -562,6 +562,22 @@ export const PORTICO_COLUMN_PLAN = across(1.4);  // a column is round; this is i
 // applied, just a piece of the ground floor cut away and a slab left
 // oversailing it. The way in is a shadow under an overhang, which is the
 // only entrance move this architecture makes.
+// THE ARCADE: a covered walk of round arches along the front of a building,
+// standing clear of the wall on square piers. Lower and deeper than a
+// portico, because you walk ALONG it rather than through it.
+export const ARCADE_HEIGHT = up(7.2);
+export const ARCADE_DEPTH = across(2.6);
+export const ARCADE_PIER = across(0.75);
+export const ARCADE_BAY_METRES = 5.0;
+export const ARCADE_MAX = 10;
+// THE CAMPANILE: a square bell tower with an open belfry and a shallow
+// pyramid of tile. Taller and plainer than a cupola, which is what a bell
+// tower is next to a dome.
+export const CAMPANILE_PLAN = across(7.0);
+export const CAMPANILE_RISE = up(13.0);
+export const CAMPANILE_BELFRY_RISE = up(5.0);
+export const CAMPANILE_CAP_RISE = up(4.4);
+
 export const RECESS_WIDTH = 0.44;      // share of the wall it occupies
 export const RECESS_DEPTH = across(2.0);
 export const RECESS_OVERHANG = across(1.1);
@@ -1161,10 +1177,102 @@ const BRUTALIST: VernacularSpec = {
   massing: 'stacked',
 };
 
+// ---------------------------------------------------------------------
+// MISSION. Spanish Colonial Revival — Stanford, USC, UC Santa Barbara,
+// Santa Clara. Cream stucco, red clay tile, round arches, a bell tower.
+//
+// THE LOUDEST SET AT SMALL SIZE, and the reason it is worth having after
+// three sets that are all some shade of stone: its signal is the ROOF.
+// Every other vernacular here says what it is through its walls and its
+// ornament, and both of those are a few pixels across at the zoom the game
+// opens at. A red tile roof is the largest surface on a building and the
+// only one that carries a hue, so a Mission campus is recognisable from
+// further away than any of the others.
+//
+// It is also pure content, which is what PR I was always meant to be: one
+// table row, one new entrance part, one new apex. Nothing in the renderer
+// needed a new capability for it — the three sets before it had already
+// asked for everything.
+// ---------------------------------------------------------------------
+
+// Red clay tile: the whole point of the set. Its facet spread — how far
+// SLOPE's brightest face sits from its darkest — comes out at 73.9 against
+// Georgian slate's 68.8, so a Mission hip reads as pitched for the same
+// reason a Georgian one does (see GOTHIC_SLATE's note for what happens when
+// it does not).
+const CLAY_TILE = '#9c4f3a';
+const MISSION_DECK = '#7c8377';
+
+const MISSION_MATERIALS = {
+  // The academic halls: cream lime stucco, the palest walls on any campus
+  // here. It can be this pale because the roof above it is doing the work.
+  brickRed: { wall: '#e3d6b6', roof: CLAY_TILE },
+  // The support buildings in adobe — the same construction a shade earthier.
+  brickBuff: { wall: '#b98763', roof: CLAY_TILE },
+  // The civic set in warm ochre stone. NOT the palest, because `clinical` is
+  // pinned at near-white by the hospital and a white civic wall would sit
+  // 16 from it.
+  limestone: { wall: '#d4b276', roof: MISSION_DECK },
+  // INVARIANT — labs, gyms, stadium, natatorium, tower, hospital.
+  render: { wall: '#b0a992', roof: MISSION_DECK },
+  curtain: { wall: '#93a9b4', roof: MISSION_DECK },
+  clinical: { wall: '#eef1f2', roof: '#c2ccd1' },
+  // The residence halls, and still the one DARK wall: a deep weathered
+  // adobe. Darker than it would like to be — a mid adobe lands within 40 of
+  // the clay tile above it, and dark walls under a dark roof is the mass
+  // Georgian's own brickDark note warns about.
+  brickDark: { wall: '#5f5347', roof: CLAY_TILE },
+} as const satisfies MaterialSet;
+
+const MISSION: VernacularSpec = {
+  materials: MISSION_MATERIALS,
+  stone: {
+    // Whitewashed lime, a touch warmer than Georgian's limestone.
+    trim: '#fbf4e2',
+    // The bell and its cross. Mission keeps a metal, but it is a warmer,
+    // duller bronze than Georgian's gilding.
+    gilt: '#b08d3f',
+    towerStone: '#ece0c4',
+    glass: PAINTED_SASH,
+  },
+  roof: {
+    // Shallower than Georgian's and much shallower than Gothic's — a tile
+    // roof cannot be steep, because the tiles slide off. The pitch is low
+    // and the EAVES are deep, which is the opposite trade from Gothic.
+    ridgeMetres: { hall: 3.4, village: 3.6 },
+    residentialRidgeMetres: (storeys: number) => {
+      if (storeys <= 3) return 3.6;
+      if (storeys <= 5) return 3.0;
+      return 0;
+    },
+    // No parapet: a tile roof oversails its walls rather than hiding behind
+    // them, and the shadow under that overhang is the set's other signature.
+    parapet: 0,
+  },
+  windowShape: 'arched',
+  parts: {
+    entrance: {
+      // An arcade: the round-arched walk that every one of these campuses is
+      // organised around. Where Georgian gathers columns into a portico and
+      // Gothic pushes a porch forward, Mission runs a covered walk along the
+      // front and lets you arrive out of the sun.
+      hall: 'arcade',
+      portico: 'arcade',
+      pavilion: 'arcade',
+      residential: 'canopy',
+      village: 'none',
+    },
+    rooflineEnd: 'none',
+    apex: 'campanile',
+  },
+  massing: 'solid',
+};
+
 export const VERNACULARS: Record<Vernacular, VernacularSpec> = {
   georgian: GEORGIAN,
   gothic: GOTHIC,
   brutalist: BRUTALIST,
+  mission: MISSION,
 };
 
 // A vernacular that has no trim says so with this, rather than with a colour
@@ -1272,9 +1380,9 @@ export function apexPartOf(v: Vernacular): ApexPart {
 // test/building-spec.test.ts asserts every part named by a vernacular in
 // VERNACULARS is on them, so PR G adding `apex: 'spire'` fails loudly until
 // PR G also draws a spire.
-export const IMPLEMENTED_ENTRANCE_PARTS: EntrancePart[] = ['portico', 'colonnade', 'canopy', 'porch', 'recess', 'none'];
+export const IMPLEMENTED_ENTRANCE_PARTS: EntrancePart[] = ['portico', 'colonnade', 'canopy', 'porch', 'recess', 'arcade', 'none'];
 export const IMPLEMENTED_ROOFLINE_END_PARTS: RooflineEndPart[] = ['pavilion', 'none'];
-export const IMPLEMENTED_APEX_PARTS: ApexPart[] = ['cupola', 'spire', 'core', 'none'];
+export const IMPLEMENTED_APEX_PARTS: ApexPart[] = ['cupola', 'spire', 'core', 'campanile', 'none'];
 
 // How far the wall carries above the cornice. Zero is a real answer.
 // DOES THIS VERNACULAR HAVE A ROOF AT ALL, as distinct from a top?

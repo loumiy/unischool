@@ -638,6 +638,35 @@ the civic colonnade, and a campanile on Founders Hall. **Last, because by then
 it is pure content** — if D through H did their jobs this PR touches one table
 row and draws two parts.
 
+**As implemented:** exactly that. One table row, one new entrance part
+(`Arcade`), one new apex (`Campanile`), and **no change to the renderer's
+capabilities at all** — the three sets before it had already asked for
+everything this one needed. That is the clearest evidence the phase worked:
+the first set cost a refactor and four defects, the last cost a row.
+
+Two departures, both forced by the palette rather than chosen.
+
+*The civic set is not the palest.* Mission wants a whitewashed library, and
+`clinical` is pinned at near-white by the teaching hospital — a white civic
+wall lands 16 from it. So the halls take the cream and the civic set takes a
+warm ochre. The same pin bit Brutalism from the other end; between them the
+two sets have now mapped where the pinned materials actually constrain a
+palette, which is worth knowing before a fifth set is ever attempted.
+
+*The residence halls are darker than the style wants.* A mid adobe sits
+within 40 of the clay tile above it, which is the dark-wall-under-dark-roof
+mass that Georgian's own `brickDark` note warns about, so they go deeper.
+
+*No tile courses on the slope.* The plan suggested striping the roof with
+`floorCourses`' machinery. It is not needed: the tile's hue does all the work
+at map zoom — this is the only set whose signal is a colour rather than a
+shape — and stripes at this size would read as noise on the largest surface
+of every building. Declined rather than forgotten.
+
+**Phase 3 is done. Four sets, and the invariant six are identical in all
+four**, which section 16 asserts building by building rather than taking on
+trust.
+
 ## Phase 4 — The startup screen
 
 ### PR J — The facade becomes Founders Hall

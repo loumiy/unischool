@@ -23,6 +23,8 @@ import {
   rankSills, ridgeOf, parapetOf, stoneFor, paneShapeOf, windowOutline,
   entrancePartOf, rooflineEndPartOf, apexPartOf, type ApexPart, massingOf,
   STACK_LOWER_TOP, STACK_UPPER_INSET, STACK_UPPER_OVERHANG,
+  ARCADE_HEIGHT, ARCADE_DEPTH, ARCADE_PIER, ARCADE_BAY_METRES, ARCADE_MAX,
+  CAMPANILE_PLAN, CAMPANILE_RISE, CAMPANILE_BELFRY_RISE, CAMPANILE_CAP_RISE,
   hasTrim, hasGilt,
   storeysOf, wallHeightOf, wallShadeOf, windowRanksOf,
   windowWidthOf,
@@ -855,6 +857,134 @@ function StackedMass({ col, row, w, h, height, pal, stone, paneShape, paneW, ran
       {windows(up.D, up.C, upH, uw, upSills, paneW, 'ul', paneShape, stone.glass)}
       {windows(up.C, up.B, upH, uh, upSills, paneW, 'ur', paneShape, stone.glass)}
       <polygon points={polyPoints(up.top)} fill={pal.roof} />
+    </>
+  );
+}
+
+// THE ARCADE. A covered walk of round arches along the front of a building,
+// on square piers standing clear of the wall.
+//
+// Where a portico gathers columns into a centre bay you pass THROUGH, an
+// arcade runs the length of the front and you walk ALONG it — which is how
+// every one of these campuses is actually organised, and why the part is
+// worth having rather than tinting a colonnade terracotta. Lower than a
+// portico too: you are meant to be in its shade.
+function Arcade({ col, row, w, h, outward, pal, stone }: {
+  col: number; row: number; w: number; h: number;
+  outward: 'row' | 'col'; pal: Palette; stone: StonePalette;
+}) {
+  const span = outward === 'row' ? w : h;
+  const bays = Math.max(2, Math.min(ARCADE_MAX,
+    Math.round((span * METRES_PER_TILE) / ARCADE_BAY_METRES)));
+  const ac = outward === 'row' ? col : col + w;
+  const ar = outward === 'row' ? row + h : row;
+  const aw = outward === 'row' ? w : ARCADE_DEPTH;
+  const ah = outward === 'row' ? ARCADE_DEPTH : h;
+
+  // The piers, back to front so a near one paints over the arch behind it.
+  const piers = depthOrder(Array.from({ length: bays + 1 }, (_, i) => {
+    const at = (i / bays) * span - ARCADE_PIER / 2;
+    return outward === 'row'
+      ? { col: col + Math.min(Math.max(at, 0), w - ARCADE_PIER), row: ar, w: ARCADE_PIER, h: ARCADE_DEPTH }
+      : { col: ac, row: row + Math.min(Math.max(at, 0), h - ARCADE_PIER), w: ARCADE_DEPTH, h: ARCADE_PIER };
+  }));
+
+  const front = boxFaces(ac, ar, aw, ah, 0, ARCADE_HEIGHT);
+  const o = outward === 'row' ? front.D : front.C;
+  const a = outward === 'row' ? front.C : front.B;
+
+  return (
+    <>
+      {/* The shaded walk behind the arches. */}
+      <polygon className="iso-undercroft" points={polyPoints(
+        outward === 'row' ? front.left : front.right,
+      )} />
+      {/* One round-headed opening per bay, cut in the arcade's own front. */}
+      {Array.from({ length: bays }, (_, i) => {
+        const u0 = (i + 0.12) / bays;
+        const u1 = (i + 0.88) / bays;
+        return (
+          <polygon
+            key={i}
+            className="iso-undercroft"
+            points={polyPoints(
+              windowOutline('arched', u0, u1, 0.02, 0.86)
+                .map(([u, v]) => facePoint(o, a, ARCADE_HEIGHT, u, v)),
+            )}
+          />
+        );
+      })}
+      {piers.map((p, i) => {
+        const f = boxFaces(p.col, p.row, p.w, p.h, 0, ARCADE_HEIGHT);
+        return (
+          <g key={i}>
+            <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+            <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+          </g>
+        );
+      })}
+      {/* The tiled lean-to over the walk, and the deep eaves shadow it
+          throws — the other half of what makes this set legible. */}
+      <polygon points={polyPoints(boxFaces(
+        ac - COPING_OVERHANG, ar - COPING_OVERHANG,
+        aw + COPING_OVERHANG * 2, ah + COPING_OVERHANG * 2,
+        ARCADE_HEIGHT, COPING,
+      ).top)} fill={shade(pal.roof, 1.05)} />
+      <WallBand origin={o} along={a} wallHeight={ARCADE_HEIGHT}
+        from={ARCADE_HEIGHT - COPING} to={ARCADE_HEIGHT} className="iso-cornice" />
+      {void stone}
+    </>
+  );
+}
+
+// THE CAMPANILE. A square bell tower: a plain shaft, an open belfry with a
+// round-arched opening on each face, and a shallow pyramid of tile.
+//
+// Taller and plainer than a cupola, which is what a bell tower is next to a
+// dome — the ornament is the OPENING, not the crown.
+function Campanile({ col, row, w, h, base, stone, pal, gilded }: {
+  col: number; row: number; w: number; h: number; base: number;
+  stone: StonePalette; pal: Palette; gilded: boolean;
+}) {
+  const plan = Math.min(CAMPANILE_PLAN, Math.min(w, h) * 0.38);
+  const cc = col + w / 2; const cr = row + h / 2;
+  const shaft = boxFaces(cc - plan / 2, cr - plan / 2, plan, plan, base, CAMPANILE_RISE);
+  const belfryBase = base + CAMPANILE_RISE;
+  const belfry = boxFaces(cc - plan / 2, cr - plan / 2, plan, plan, belfryBase, CAMPANILE_BELFRY_RISE);
+  const capBase = belfryBase + CAMPANILE_BELFRY_RISE;
+
+  const At = lift(project(cc - plan / 2, cr - plan / 2), capBase);
+  const Bt = lift(project(cc + plan / 2, cr - plan / 2), capBase);
+  const Ct = lift(project(cc + plan / 2, cr + plan / 2), capBase);
+  const Dt = lift(project(cc - plan / 2, cr + plan / 2), capBase);
+  const tip = lift(project(cc, cr), capBase + CAMPANILE_CAP_RISE);
+  const faces: Array<[Pt, Pt, number]> = [
+    [At, Dt, 1.10], [At, Bt, 1.00], [Dt, Ct, 0.84], [Bt, Ct, 0.70],
+  ];
+
+  return (
+    <>
+      <polygon points={polyPoints(shaft.left)} fill={shade(stone.towerStone, 0.97)} />
+      <polygon points={polyPoints(shaft.right)} fill={shade(stone.towerStone, 0.8)} />
+      <polygon points={polyPoints(belfry.left)} fill={shade(stone.towerStone, 0.93)} />
+      <polygon points={polyPoints(belfry.right)} fill={shade(stone.towerStone, 0.77)} />
+      {([[belfry.D, belfry.C, 'cl'] as const, [belfry.C, belfry.B, 'cr'] as const]).map(([bo, ba, k]) => (
+        <polygon
+          key={k}
+          className="iso-undercroft"
+          points={polyPoints(
+            windowOutline('arched', 0.26, 0.74, 0.1, 0.9)
+              .map(([u, v]) => facePoint(bo, ba, CAMPANILE_BELFRY_RISE, u, v)),
+          )}
+        />
+      ))}
+      {/* A shallow pyramid of the same tile as the roofs below it. */}
+      {faces.map(([fa, fb], i) => (
+        <polygon key={i} points={polyPoints([fa, fb, tip])} fill={shade(pal.roof, faces[i][2])} />
+      ))}
+      {gilded && (
+        <circle className="iso-dome" cx={tip.x} cy={tip.y - 3} r={2} fill={stone.gilt} />
+      )}
     </>
   );
 }
@@ -1907,7 +2037,11 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         {/* The campus's one landmark tops out. hasClockTower still decides
             WHICH building (Founders Hall, and nothing else); the vernacular
             decides WHAT stands there. */}
-        {hasClockTower(t) && apex !== 'none' && apex !== 'core' && (
+        {hasClockTower(t) && apex === 'campanile' && (
+          <Campanile stone={stone} pal={pal} gilded={hasGilt(vernacular)}
+            col={col} row={row} w={w} h={h} base={WH + ridge * 0.4} />
+        )}
+        {hasClockTower(t) && apex !== 'none' && apex !== 'core' && apex !== 'campanile' && (
           <ClockTower stone={stone} apex={apex} gilded={hasGilt(vernacular)} col={col} row={row} w={w} h={h} base={WH + ridge * 0.4} />
         )}
         {hasClockTower(t) && apex === 'core' && (
@@ -1956,6 +2090,12 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           <>
             <Recess pal={pal} col={col} row={row} w={w} h={h} wallHeight={H} outward="row" />
             <Recess pal={pal} col={col} row={row} w={w} h={h} wallHeight={H} outward="col" />
+          </>
+        )}
+        {entrance === 'arcade' && (
+          <>
+            <Arcade pal={pal} stone={stone} col={col} row={row} w={w} h={h} outward="row" />
+            <Arcade pal={pal} stone={stone} col={col} row={row} w={w} h={h} outward="col" />
           </>
         )}
         {/* The flight lands at whatever the entrance actually presents: the
@@ -2041,6 +2181,12 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         <>
           <Recess pal={pal} col={col} row={row} w={w} h={h} wallHeight={H} outward="row" />
           <Recess pal={pal} col={col} row={row} w={w} h={h} wallHeight={H} outward="col" />
+        </>
+      )}
+      {!site && entrance === 'arcade' && (
+        <>
+          <Arcade pal={pal} stone={stone} col={col} row={row} w={w} h={h} outward="row" />
+          <Arcade pal={pal} stone={stone} col={col} row={row} w={w} h={h} outward="col" />
         </>
       )}
       {!site && entrance === 'canopy' && door && (
