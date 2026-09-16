@@ -7,6 +7,7 @@ import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR } from './types';
 import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES, ORIGIN_NATIONALITIES } from '../data/facultyData';
 import { initialTech } from '../data/techData';
 import { SCHOOL_TYPE_PRESETS } from '../data/schoolTypeData';
+import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import { admitRate } from '../systems/admissions/admissionsSystem';
 import { initialFacilities } from '../data/facilitiesData';
 import { initialDorms } from '../data/campusData';
@@ -906,7 +907,21 @@ export const SAVE_KEY = 'unischool.save';
 // same 22,000 it already had, so this migration is a no-op for them.
 //
 // See MIGRATIONS[38].
-export const SAVE_VERSION = 39;
+//
+// v39 -> v40: each class gains the cohort split it was ADMITTED under
+// (types.ts's ClassCohorts), which the Enrollment tab reads to show the
+// standing body's composition. Added as REQUIRED rather than optional, so
+// it takes a bump: every reader can then assume four splits are present
+// without a null branch that would go unreachable four in-game years later.
+//
+// A v39 save cannot have this recorded, and it cannot be recovered either:
+// a cohort's pull is a pure function of the CURRENT GameState, so
+// recomputing a standing class's mix would describe today's campus, not the
+// one that admitted it. Filled in with the neutral prior instead — see
+// MIGRATIONS[39].
+//
+// See MIGRATIONS[39].
+export const SAVE_VERSION = 40;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -982,6 +997,33 @@ interface LegacyGameState extends GameState {
 const KNOWN_SUFFIXES = ['College', 'University'];
 
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v39 -> v40: each class gains its cohort split (see the SAVE_VERSION
+  // header note above). A pure fill-in, the same shape as v13 -> v14's
+  // `pathways` slice: nothing existing moves, is renamed, or is retired.
+  //
+  // THE HONEST LIMIT, stated rather than smoothed over: this is a NEUTRAL
+  // PRIOR, not a reconstruction. These four classes were admitted by a
+  // player whose choices are not in the save, and deriving a mix from the
+  // campus as it stands today would be worse than admitting that — it would
+  // read as a record of who those students were while actually describing
+  // the school's CURRENT pull. Base shares alone claim nothing: they are the
+  // model's own statement of what a pool looks like absent any signal.
+  //
+  // It is also self-correcting on the same four-year clock the founding body
+  // runs on. Each summer one prior class graduates out and is replaced by a
+  // real recorded split, so a resumed run is fully its own within four
+  // in-game years — and the Enrollment tab says which classes are priors
+  // rather than leaving the player to assume they are records.
+  39: (state) => {
+    const classes = state.students.classes;
+    state.students.cohortsByClass = {
+      freshman: baseShareCohortCounts(classes.freshman),
+      sophomore: baseShareCohortCounts(classes.sophomore),
+      junior: baseShareCohortCounts(classes.junior),
+      senior: baseShareCohortCounts(classes.senior),
+    };
+  },
+
   // v38 -> v39: the private tuition ceiling moves out of reach (see the
   // SAVE_VERSION header note above). Read from the preset rather than
   // written as a literal, so this cannot drift from what founding does.

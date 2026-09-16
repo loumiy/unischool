@@ -1,6 +1,6 @@
-import type { ClassCounts, ClassTuition, GameState } from '../../state/types';
+import type { ClassCohorts, ClassCounts, ClassTuition, CohortCounts, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
-import { cohortDemandFactor, NEUTRAL_COHORT_SIGNALS, type CohortSignals } from './cohorts';
+import { cohortCounts, cohortDemandFactor, NEUTRAL_COHORT_SIGNALS, type CohortSignals } from './cohorts';
 
 // The trailing-year satisfaction that drives word of mouth: the average of
 // every weekly satisfaction reading accumulated since last summer (see
@@ -302,6 +302,12 @@ export interface AdmissionsProjection {
   admitRate: number;           // admits / applicants — matches the chosen rate unless a thin top/mid band ran out to skim
   enrolled: number;            // the incoming class, which IS the admits — no yield step, no ceiling of any kind
   avgIncomingQuality: number;  // 0..100 weighted-average quality of the enrolled class — an input to prestige
+  // What that enrolled class is MADE OF — the seven counts that sum to
+  // `enrolled`, which RESOLVE_ADMISSIONS records against the new freshman
+  // class and never recomputes (see types.ts's ClassCohorts). Note this
+  // decomposes the ENROLLED class, not `applicants`: the reveal shows the
+  // pool's mix, this is the mix that actually turned up.
+  enrolledCohorts: CohortCounts;
 }
 
 function clamp(v: number, lo: number, hi: number): number {
@@ -400,31 +406,54 @@ function stickerShockFactor(prestige: number, tuition: number, band: QualityBand
 // types.ts's tuitionByClass gives: a price belongs to the class that was
 // quoted it, and the graduating seniors take theirs with them.
 // ---------------------------------------------------------------------
+// The three per-class records that move together, grouped rather than passed
+// as three positional arguments — and the incoming class's three facts,
+// grouped for the same reason. This started as (classes, tuitionByClass,
+// incoming, incomingPrice) and would have been six positionals once the
+// cohort split joined them, half of them interchangeable-looking numbers.
+export interface EnrolledBody {
+  classes: ClassCounts;
+  tuitionByClass: ClassTuition;
+  cohortsByClass: ClassCohorts;
+}
+
+export interface IncomingClass {
+  count: number;
+  price: number;
+  cohorts: CohortCounts;
+}
+
 export interface AdvancedBody {
   classes: ClassCounts;
   tuitionByClass: ClassTuition;
+  cohortsByClass: ClassCohorts;
   graduating: number;   // the seniors who just left
 }
 
-export function advanceClasses(
-  classes: ClassCounts,
-  tuitionByClass: ClassTuition,
-  incoming: number,
-  incomingPrice: number,
-): AdvancedBody {
+export function advanceClasses(body: EnrolledBody, incoming: IncomingClass): AdvancedBody {
+  const { classes, tuitionByClass, cohortsByClass } = body;
   return {
     graduating: classes.senior,
     classes: {
       senior: classes.junior,
       junior: classes.sophomore,
       sophomore: classes.freshman,
-      freshman: incoming,
+      freshman: incoming.count,
     },
     tuitionByClass: {
       senior: tuitionByClass.junior,
       junior: tuitionByClass.sophomore,
       sophomore: tuitionByClass.freshman,
-      freshman: incomingPrice,
+      freshman: incoming.price,
+    },
+    // The mix moves in the same statements as the head count it describes,
+    // and the graduating seniors' mix is simply not carried forward — it
+    // left with them.
+    cohortsByClass: {
+      senior: cohortsByClass.junior,
+      junior: cohortsByClass.sophomore,
+      sophomore: cohortsByClass.freshman,
+      freshman: incoming.cohorts,
     },
   };
 }
@@ -512,6 +541,12 @@ export function projectAdmissions(
     admitRate: applicants > 0 ? admits / applicants : 0,
     enrolled,
     avgIncomingQuality,
+    // Computed HERE rather than by the reducer, although the reducer has
+    // everything it would need: consequences.ts runs this same commit on a
+    // copy to preview it, and two call sites apportioning independently is
+    // how a projection starts promising a body the tick does not produce —
+    // the hazard advanceClasses was extracted to avoid, in this same block.
+    enrolledCohorts: cohortCounts(cohortSignals, tolerance, tuition, enrolled),
   };
 }
 

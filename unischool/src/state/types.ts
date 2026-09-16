@@ -82,10 +82,53 @@ export interface ClassTuition {
   senior: number;
 }
 
+// The seven kinds of applicant the admissions model recognises. The id list
+// lives HERE rather than in systems/admissions/cohorts.ts, where it used to,
+// because a cohort is a concept of the game and this file is where those
+// live — the same charter the header states, and the reason this file spends
+// the paragraph above ClassCounts drawing the class/cohort line at all. What
+// stays in cohorts.ts is everything a cohort *does*: the COHORTS table, its
+// base shares, and the pull curve behind each one.
+export type CohortId =
+  | 'highAchievers' | 'preProfessional' | 'researchOriented'
+  | 'social' | 'artsFocused' | 'priceSensitive' | 'athletes';
+
+// Whole students, one count per cohort. Used for both an applicant pool's
+// composition (the summer reveal) and an enrolled class's (below); the seven
+// always sum to whatever total they decompose, apportioned by largest
+// remainder so they are people rather than rounded fractions.
+export type CohortCounts = Record<CohortId, number>;
+
+// The same four class keys again, carrying each class's cohort composition
+// AS ADMITTED. Its own interface for the reason ClassTuition is: matching
+// keys, different units.
+//
+// WHY THIS IS STORED AND NOT DERIVED — the one thing to understand before
+// touching it. Every cohort's pull is a pure function of the CURRENT
+// GameState (labs standing now, teams active now, programs established now),
+// so recomputing an older class's mix would apply today's campus to a class
+// admitted years ago: build an arts centre and last year's seniors would
+// become arts-focused in hindsight. The four classes being four different
+// schools stacked on top of each other is exactly what the Enrollment tab
+// exists to show, so the split is written once, at admission, and carried to
+// graduation — never recomputed. See docs/design/admissions.md.
+export interface ClassCohorts {
+  freshman: CohortCounts;
+  sophomore: CohortCounts;
+  junior: CohortCounts;
+  senior: CohortCounts;
+}
+
 export interface StudentBody {
   // The four classes. Total enrolled is their sum — read it via
   // totalEnrolled() rather than storing a separate total that could drift.
   classes: ClassCounts;
+  // What each of those four classes is MADE OF, recorded when it was
+  // admitted (see ClassCohorts above for why this is a record rather than a
+  // derivation). Advanced in lockstep with `classes` and
+  // finance.tuitionByClass at the one annual boundary that moves any of
+  // them; the graduating seniors take theirs with them.
+  cohortsByClass: ClassCohorts;
   // Total HOUSING (bed) capacity — dorms plus housed Greek chapter houses —
   // never an admissions ceiling. Enrollment is uncapped and driven purely by
   // the admissions funnel (see admissionsSystem.ts); most students are

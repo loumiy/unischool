@@ -10,6 +10,7 @@ import { initialFacilities } from '../data/facilitiesData';
 import { initialRivals } from '../data/rivalData';
 import { initialCandidatePool, facultySalary, grownStat, FOUNDING_TENURE_WEEKS } from '../data/facultyData';
 import { admitRate } from '../systems/admissions/admissionsSystem';
+import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import {
   SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION, STARTING_ENDOWMENT, STARTING_TUITION,
   FOUNDING_CLASSES,
@@ -275,6 +276,10 @@ export function createPreStartState(): GameState {
     },
     students: {
       classes: { freshman: 0, sophomore: 0, junior: 0, senior: 0 },
+      cohortsByClass: {
+        freshman: baseShareCohortCounts(0), sophomore: baseShareCohortCounts(0),
+        junior: baseShareCohortCounts(0), senior: baseShareCohortCounts(0),
+      },
       capacity: 0, satisfaction: 0,
       satisfactionBreakdown: { academic: 0, social: 0, basicNeeds: 0, health: 0, housing: 0 },
       satisfactionYearSum: 0, satisfactionYearWeeks: 0, priorYearAvgSatisfaction: 0,
@@ -393,6 +398,18 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       // steady-state structure the campus would otherwise take years of
       // lumpy cycles to reach. See FOUNDING_CLASSES in schoolTypeData.ts.
       classes: { ...FOUNDING_CLASSES },
+      // Not one of those four classes was admitted by the player — they
+      // arrived before the school had built a single thing for a cohort to
+      // respond to — so all four open on the neutral prior rather than on a
+      // mix that would imply choices nobody made. Each is replaced by a real
+      // recorded split as it graduates out, so by year five the whole body
+      // is the player's own doing. See cohorts.ts's baseShareCohortCounts.
+      cohortsByClass: {
+        freshman: baseShareCohortCounts(FOUNDING_CLASSES.freshman),
+        sophomore: baseShareCohortCounts(FOUNDING_CLASSES.sophomore),
+        junior: baseShareCohortCounts(FOUNDING_CLASSES.junior),
+        senior: baseShareCohortCounts(FOUNDING_CLASSES.senior),
+      },
       // No housing at founding: the whole body is commuters, and dorm beds
       // are built up from zero like every other facility (see
       // campusData.ts). Enrollment is never capacity-gated (see

@@ -149,8 +149,15 @@ their own reason for enrollment to grow, instead of only prestige and price.
 A cohort is **not a segment of the funnel**: it gets no quality band or
 sticker-shock rate of its own. Every cohort's pull blends into one
 multiplier on the whole pool, the same architectural role word of mouth and
-capacity already play. Nothing about a cohort is stored — its pull is a pure
-function of state, recomputed wherever it is needed.
+capacity already play.
+
+A cohort's **pull** is stored nowhere — it is a pure function of state,
+recomputed wherever it is needed. What *is* stored is the **composition of
+each enrolled class**, written once when that class is admitted
+(`students.cohortsByClass`, see `types.ts`'s `ClassCohorts`). The distinction
+is the whole reason the second exists: because a pull reads the campus as it
+stands today, deriving a standing class's mix would describe the school the
+player has now rather than the one that admitted them.
 
 The summer reveal shows the breakdown as **head counts, not multipliers**: how
 many of this year's applicants each cohort is worth, as seven small cards — the
@@ -231,9 +238,12 @@ Three words that all sound like "a group of students", kept strictly apart:
   `students.classes` counts.
 - A **cohort** is a *kind* of applicant — research-oriented, price-sensitive,
   athletes, and four more (see "Admissions cohorts" above and
-  `systems/admissions/cohorts.ts`). It cuts across all four classes, and
-  nothing stores it: a cohort's size is recomputed from what the school has
-  built whenever it is needed.
+  `systems/admissions/cohorts.ts`). It cuts across all four classes: how
+  strongly the school pulls one is recomputed from what has been built
+  whenever it is needed, and is never stored. What the **crossing** is worth
+  in people — this cohort, in that class — is recorded at admission and
+  carried to graduation (`students.cohortsByClass`). The two words still do
+  different jobs; the intersection of them is now a fact the game keeps.
 - A **course** is a Buildable a student enrolls in (`techData.ts`), and is
   never called a class anywhere in this codebase or its UI.
 
