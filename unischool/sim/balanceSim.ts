@@ -1203,8 +1203,39 @@ export const STRATEGIES: Strategy[] = [
     // prestige, and through that, the applicant pool) runs higher for
     // everyone; this strategy builds a dorm unconditionally, so a bigger
     // pool is a bigger bill every single year. See PR C's own note.
+    // RE-SWEPT at 5,250 (Plan 08's PR 1A). Not a rebalance: nothing about
+    // this strategy or the economy changed. Growing the rival field from 56
+    // schools to 100 moved the seeded Math.random stream once — the draw is
+    // pinned at one a year now, so it cannot move again from that direction —
+    // and 5,500 landed the DEFAULT seed on the wrong side of a knife-edge,
+    // bottoming out at +12,073 instead of going red at all.
+    //
+    // That the archetype could flip on a reshuffle is the real finding. At
+    // 5,500 this strategy's trough was typically -100k to -200k against a
+    // ~$12M/yr opex — about 1% of a year's spending — so `minCash < 0` was
+    // riding a coin flip whichever stream it ran on, and the gate that asserts
+    // it was not measuring a robust property. Re-swept the way the 5,500 above
+    // it was ("picked by sweeping, not derived"), but against FOURTEEN seeds
+    // rather than one, which is what the non-monotonicity below has always
+    // implied you have to do:
+    //
+    //   5,500  9/10 seeds    4,750  8/10      4,500  7/10      4,250  5/10
+    //   5,250  14/14 seeds
+    //
+    // The failures at the other prices are not all the same failure, and the
+    // shape is why 5,250 is the answer rather than the nearest passing value:
+    // above it the trough is too shallow to reliably go red, below it the
+    // school stops RECOVERING and ends the run underwater, which would
+    // falsify "stall, don't die" from the other direction. 5,250 clears both
+    // at every seed tried, with troughs from -65k to -19M and a positive
+    // weekly net at the horizon in all fourteen.
+    //
+    // At the default seed it reads -219,980 over 110 weeks in the red, which
+    // is within noise of the -209,657 over 71 weeks that 5,500 produced on the
+    // old stream — the same archetype, restated at a price that does not
+    // depend on the dice.
     name: 'Overbuilder (beds ahead of demand)',
-    tuition: () => 5_500,
+    tuition: () => 5_250,
     buffer: () => 0,
     netMargin: -1,
     buildsCourses: true, buildsDorms: true, buildsFacilities: false,

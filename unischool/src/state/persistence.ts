@@ -8,6 +8,7 @@ import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES, ORIGIN_NATIONALITIES } f
 import { initialTech } from '../data/techData';
 import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import { admitRate } from '../systems/admissions/admissionsSystem';
+import { RESEARCH_STANDING_BASELINE, SOCIAL_STANDING_BASELINE } from '../systems/prestige/prestigeSystem';
 import { initialFacilities } from '../data/facilitiesData';
 import { FOUNDING_VERNACULAR } from '../data/foundingData';
 import { initialDorms } from '../data/campusData';
@@ -15,7 +16,7 @@ import { fellTrees, seedTrees } from '../data/treeData';
 import {
   coachSalaryFor, glyphsFor, initialCoachCandidatePool, LEGACY_TWO_GENDER_SPORT_MIGRATION, SPORTS,
 } from '../data/studentLifeData';
-import { athleticStrengthFor } from '../data/rivalData';
+import { athleticStrengthFor, initialRivals, researchStandingFor, socialStandingFor, standingMomentumFor } from '../data/rivalData';
 import { legacyRoundRobinAssignments } from '../systems/faculty/facultyAssignment';
 
 // ---------------------------------------------------------------------
@@ -1048,7 +1049,104 @@ export const SAVE_KEY = 'unischool.save';
 // save already looked like.
 //
 // See MIGRATIONS[44].
-export const SAVE_VERSION = 45;
+// RENUMBERED ON MERGE. The three notes below were written against v41 -> v44
+// and moved up to v45 -> v48 when Plan 07's own four bumps landed first. The
+// numbers were always ordinal rather than literal — which is exactly why the
+// plan says so — and nothing about what each one carries changed.
+//
+// v45 -> v46: the field grows from 56 schools to 100, and every school in
+// it gains a MASCOT. `Rival.mascot` and `University.mascot` are both
+// added-as-required and the rival array changes length, so the bump is not
+// optional.
+//
+// THIS ONE IS WRITTEN, AND IT IS AN EXCEPTION — see
+// docs/architecture/game-state.md's "Discarding is the default", under which
+// the bump is the whole obligation and a migration is owed only when there is
+// a specific run worth carrying. The argument is not about a run.
+//
+// It is that v42 is the FIRST bump taken under that policy, and a skipped link
+// does not drop one save — it orphans every earlier one. loadGame walks the
+// chain a version at a time and returns null at the first gap, so with no
+// entry here a v28 save migrates cleanly through v40 and is then discarded at
+// v41 anyway. The whole v3 -> v40 chain becomes unreachable code the moment
+// this bump lands without an entry, and test/save-migrations.test.ts's ten
+// "vNN save loads" cases go with it.
+//
+// Retiring that chain may well be right — the test file's own header already
+// contemplates it ("when the chain is deleted, this file goes with it") — but
+// it is a decision about the chain, not about rival schools, and it should not
+// arrive as a side effect of a content PR. So this entry keeps the chain
+// walkable until that call is made on its own terms. It is also, as it
+// happens, the cheap kind the policy describes.
+//
+// WHAT IT DOES: fill each saved rival's mascot from data/rivalData.ts's
+// initialRivals() BY ID, append the 44 schools the save does not have, and set
+// the school's own mascot to the empty string. A saved rival keeps its own
+// reputation, momentum and athletic strength — those have been drifting all run
+// (see rivalsSystem.ts) while the authored table is a founding condition, so
+// only the mascot, which never moves, comes from it.
+//
+// AND THE FINDING THAT MAKES IT SAFE: rank counts the schools ABOVE you, and
+// all 44 are authored below the old field's ~45 floor. A run that has climbed
+// past that floor gains nothing above it and keeps its rank to the digit. Only
+// a save sitting INSIDE the new tail — a founding-era run, or a collapsed one —
+// picks up a few schools above it, and its rank number steps up once.
+// Recorded YearSnapshot rows cannot be corrected for that: nothing stores what
+// the field looked like in year 3, the same wall MIGRATIONS[39] hit. An early
+// save's History chart may therefore show a one-year step in the rank line.
+// Named rather than papered over — rewriting recorded history to match a field
+// that did not exist when it was recorded is the one thing the record is kept
+// to avoid.
+//
+// See MIGRATIONS[45].
+//
+// v46 -> v47: standing becomes THREE numbers. `University` gains
+// `socialStanding` and `researchStanding`; `Rival` gains the same two plus a
+// momentum for each. All six are added-as-required, so the bump is not
+// optional.
+//
+// A MIGRATION AGAIN, and for the same reason as v45 -> v46 rather than a new
+// one: the chain is only as reachable as its least-reachable link, so until
+// the decision to retire v3 -> v40 is taken on its own terms, skipping a link
+// here would orphan everything behind it just as effectively. Cheap, too —
+// every one of the six is derivable from what the save already holds.
+//
+// The player's two stocks open at their BASELINES rather than at anything
+// reconstructed from the run. That is the honest answer and not the
+// convenient one: a school twenty years in has a research record and a campus
+// life, but the stocks that measure them have never existed, so there is no
+// standing to recover — only a target they will now drift toward from
+// underneath, over the same decades a fresh school would take. A resumed run
+// therefore sees both numbers climb for a while, which is exactly what a
+// school that has just started being measured looks like.
+//
+// Rivals get theirs from data/rivalData.ts's own derivations, computed
+// against each school's CURRENT reputation rather than its authored one, so a
+// migrated field reads like a fresh one at the standing the run has actually
+// reached.
+//
+// See MIGRATIONS[46].
+//
+// v47 -> v48: a rival's athletic strength starts MOVING. `Rival` gains
+// `athleticMomentum`, added-as-required, so the bump is not optional.
+//
+// Small, and the same argued exception as the two before it: the chain is
+// only as reachable as its least-reachable link (see the v45 -> v46 note),
+// so skipping here would orphan everything behind it just as effectively.
+//
+// The momentum is seeded from the school's own id exactly as a fresh game
+// seeds it. `athleticStrength` itself is NOT touched — a save's value has
+// been sitting still because nothing moved it, which is the same value a
+// fresh game would have derived, so there is nothing to correct. It simply
+// starts drifting from where it is.
+//
+// Nothing is stored per sport. A school's strength in one sport is derived
+// on read from this number and the sport's id (data/rivalData.ts's
+// sportStrengthFor), so a save gains eighteen readings per school without
+// gaining a byte.
+//
+// See MIGRATIONS[47].
+export const SAVE_VERSION = 48;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1153,6 +1251,79 @@ const KNOWN_SUFFIXES = ['College', 'University'];
 // worth carrying, and delete the whole chain freely once nothing is
 // resuming from it.
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v47 -> v48: athletic strength starts moving (see the SAVE_VERSION header
+  // note above).
+  47: (state) => {
+    for (const r of state.rivals) {
+      const legacy = r as unknown as { athleticMomentum?: number };
+      if (typeof legacy.athleticMomentum !== 'number') {
+        legacy.athleticMomentum = standingMomentumFor(r.id, 'athletic');
+      }
+    }
+  },
+
+  // v46 -> v47: standing becomes three numbers (see the SAVE_VERSION header
+  // note above, including why this entry exists under a discard-by-default
+  // policy and why the player's two stocks start at their baselines).
+  46: (state) => {
+    const self = state.self as unknown as { socialStanding?: number; researchStanding?: number };
+    if (typeof self.socialStanding !== 'number') self.socialStanding = SOCIAL_STANDING_BASELINE;
+    if (typeof self.researchStanding !== 'number') self.researchStanding = RESEARCH_STANDING_BASELINE;
+
+    for (const r of state.rivals) {
+      const legacy = r as unknown as {
+        socialStanding?: number; researchStanding?: number;
+        socialMomentum?: number; researchMomentum?: number;
+      };
+      // Derived against the rival's CURRENT reputation and athletic strength,
+      // not the authored ones — a school that has spent twenty years climbing
+      // should have the campus life and the research record of the school it
+      // is now, not of the school it was seeded as.
+      if (typeof legacy.researchStanding !== 'number') {
+        legacy.researchStanding = researchStandingFor(r.reputation, r.id);
+      }
+      if (typeof legacy.socialStanding !== 'number') {
+        legacy.socialStanding = socialStandingFor(r.reputation, r.athleticStrength, r.id);
+      }
+      if (typeof legacy.socialMomentum !== 'number') legacy.socialMomentum = standingMomentumFor(r.id, 'social');
+      if (typeof legacy.researchMomentum !== 'number') legacy.researchMomentum = standingMomentumFor(r.id, 'research');
+    }
+  },
+
+  // v45 -> v46: the field grows to 100 schools and everybody gets a mascot
+  // (see the SAVE_VERSION header note above for why this entry exists at all
+  // under a policy whose default is to discard).
+  //
+  // initialRivals() is the authored source for both halves rather than a
+  // second copy of the table living here — the same reasoning MIGRATIONS[28]
+  // used when it derived athleticStrength through rivalData.ts's own function
+  // instead of reimplementing it.
+  45: (state) => {
+    const authored = new Map(initialRivals().map((r) => [r.id, r]));
+
+    // A SAVED RIVAL KEEPS ITS OWN NUMBERS. Only the mascot is taken from the
+    // table, because only the mascot is a fact about the school rather than a
+    // reading of where it currently stands.
+    for (const r of state.rivals) {
+      const legacy = r as unknown as { mascot?: string };
+      if (typeof legacy.mascot !== 'string') legacy.mascot = authored.get(r.id)?.mascot ?? '';
+    }
+
+    // The 44 join at their AUTHORED standing, which is the only honest option:
+    // there is no history for them to have drifted through. They start
+    // accumulating one from this year, like a school just noticed.
+    const present = new Set(state.rivals.map((r) => r.id));
+    for (const r of authored.values()) {
+      if (!present.has(r.id)) state.rivals.push({ ...r });
+    }
+
+    // Empty, not a rolled placeholder: the player has not been asked yet, and
+    // the athletic-director interrupt is where they will be (see types.ts's
+    // University.mascot).
+    const self = state.self as unknown as { mascot?: string };
+    if (typeof self.mascot !== 'string') self.mascot = '';
+  },
+
   // v44 -> v45: every campus gains a vernacular (see the SAVE_VERSION
   // header note above). There is one, and every standing campus was drawn
   // in it, so filling it in is not a guess — it is writing down what the

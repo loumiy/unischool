@@ -638,16 +638,52 @@ export interface EventState {
 export interface Rival {
   id: string;
   name: string;
+  // The school's teams' name — "Owls", "Aggies", "Kestrels". Authored per
+  // school in data/rivalData.ts and read by NOTHING mechanical: it exists
+  // so a standings row can read as a sports page rather than a spreadsheet.
+  // The player's own is University.mascot below, named at the
+  // athletic-director interrupt rather than at founding.
+  mascot: string;
   reputation: number;   // the metric the ranking sorts on
   momentum: number;     // hidden trend, makes rivals dynamic over decades
-  // A second, independent ranking axis for Athletics V2's standings (see
+  // A second, independent ranking axis for athletics' standings (see
   // data/rivalData.ts's athleticStrengthFor and rivalsSystem.ts's
   // athleticRank) — deliberately NOT derived from `reputation` at read
   // time, so a rival can be an athletic power without being an academic
   // one and vice versa, the same real-world decoupling `reputation` alone
-  // could never express. Static for now (no annual drift of its own, unlike
-  // reputation/momentum) — a deferred deepening, not an oversight.
+  // could never express.
+  //
+  // IT MOVES NOW. This used to read "static for now (no annual drift of its
+  // own, unlike reputation/momentum) — a deferred deepening, not an
+  // oversight", and the deepening is taken: it drifts annually on its own
+  // momentum like every other axis. A playoff bracket seeded off a field
+  // that never changes is a bracket whose result is known a decade in
+  // advance, so the drift is a prerequisite rather than a flourish.
+  //
+  // THIS IS THE DEPARTMENT-WIDE NUMBER. A school's strength in one
+  // particular sport is derived from it per sport, not stored — see
+  // rivalData.ts's sportStrengthFor for why 100 schools x 18 sports is
+  // derived rather than authored or saved.
   athleticStrength: number;
+  athleticMomentum: number;
+  // THE OTHER TWO RANKING AXES (see data/rivalData.ts's standingsFor and
+  // systems/rivals/rivalsSystem.ts's rankedListBy). `reputation` answers
+  // "how good is this university"; these answer "how good is its research"
+  // and "what is it like to be a student here", and a school is free to be
+  // three different things on the three lists — which is most of what makes
+  // a second and third list worth having.
+  //
+  // Named IDENTICALLY to the player's own fields on University below, which
+  // is not cosmetic: it is what lets one rankedListBy(axis) serve all four
+  // leaderboards instead of a fourth hand-copied sort.
+  //
+  // Seeded like athleticStrength — a deterministic spread off the school's
+  // own id — and drifted annually like reputation, each with its own
+  // momentum so the three tables move independently.
+  socialStanding: number;
+  researchStanding: number;
+  socialMomentum: number;
+  researchMomentum: number;
 }
 
 // ---------------------------------------------------------------------
@@ -1003,7 +1039,22 @@ export interface University {
   name: string;
   suffix: string;       // "College", then "University" if the charter is taken. May be empty on a run resumed from a save written before the split (see persistence.ts's v6 -> v7)
   universityCharterOffered: boolean; // the one-time offer has been made — set whether it was accepted or declined, so it never comes back around
-  reputation: number;   // player's own rank metric
+  // What this school's teams are called (see Rival.mascot). EMPTY until the
+  // athletic director is hired, which is the interrupt that asks for it —
+  // deliberately not the startup screen, which would ask a decade before
+  // anything wears the name. Empty is a real state every reader must
+  // handle: a school with no varsity program has no mascot and is not
+  // pretending otherwise.
+  mascot: string;
+  reputation: number;   // player's own rank metric — the ACADEMIC axis, and the one the whole economy reads (see systems/prestige/prestigeSystem.ts)
+  // The other two standings, added beside `reputation` and never inside it
+  // (see docs/design/progression.md's "Three standings"). Both are stocks of
+  // exactly the same shape — a target computed weekly from durable inputs,
+  // drifted toward at PRESTIGE_DRIFT_RATE — and both are READINGS: no system
+  // reads either one back. Admissions, tuition, the applicant pool and the
+  // balance sim all still read `reputation` alone.
+  socialStanding: number;
+  researchStanding: number;
   vernacular: Vernacular; // the architecture the campus is built in, fixed at founding
 }
 

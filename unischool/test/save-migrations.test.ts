@@ -28,7 +28,8 @@
 import { createInitialState } from '../src/state/actions';
 import { loadGame, saveGame, clearSave, SAVE_KEY, SAVE_VERSION } from '../src/state/persistence';
 import { sportById } from '../src/data/studentLifeData';
-import { athleticStrengthFor } from '../src/data/rivalData';
+import { athleticStrengthFor, initialRivals, researchStandingFor, socialStandingFor } from '../src/data/rivalData';
+import { RESEARCH_STANDING_BASELINE, SOCIAL_STANDING_BASELINE } from '../src/systems/prestige/prestigeSystem';
 import { researchSchools } from '../src/data/techData';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import { isUnstaffed, usedFacultySlots, facultyLoad } from '../src/systems/techtree/techSystem';
@@ -996,6 +997,186 @@ function testScholarshipMigration(): void {
   assert(node('HIST210')!.status === 'done', 'and stays done');
 }
 
+// ---- Test: v45 -> v46, the field grows to 100 and everybody gets a mascot ----
+//
+// This entry is an exception under the current policy (see the SAVE_VERSION
+// header note in persistence.ts: it exists to keep the v3 -> v40 chain
+// reachable, since a skipped link orphans every earlier one), so it is tested
+// like any other written migration.
+//
+// Three claims, and the middle one is load-bearing: a resumed run's own
+// schools must come back carrying the numbers they had DRIFTED to, not the
+// authored founding values, because reputation and momentum have been moving
+// all run while the authored table is a founding condition.
+function testHundredSchoolFieldMigration(): void {
+  const base = createInitialState('FieldMigrator', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+  state.clock = { year: 22, week: 30 };
+
+  // A v45 save: 55 rivals, none with a mascot, and no mascot on the school.
+  const rivals = (state.rivals as Loose[]).slice(0, 55);
+  for (const r of rivals) delete r.mascot;
+  // Two have drifted a long way from where they were authored — one up, one
+  // down — which is what a 22-year run looks like.
+  rivals[0].reputation = 128.5;
+  rivals[0].momentum = -1.25;
+  rivals[4].reputation = 19.75;
+  state.rivals = rivals;
+  delete (state.self as Loose).mascot;
+  writeSave(45, state);
+
+  const loaded = loadGame();
+  assert(loaded !== null, 'v45 save loads (does not fall back to null)');
+  if (!loaded) return;
+
+  assert(loaded.rivals.length === 99, `the field grows to 99 rivals (got ${loaded.rivals.length})`);
+  assert(
+    new Set(loaded.rivals.map((r) => r.id)).size === 99,
+    'and the 44 appended schools do not duplicate an id the save already had',
+  );
+
+  // The drifted schools keep every number they drifted to. Only the mascot —
+  // a fact about the school that never moves — comes from the table.
+  const drifted = loaded.rivals.find((r) => r.id === (rivals[0].id as string));
+  assert(drifted?.reputation === 128.5, `a saved rival keeps its drifted reputation (got ${drifted?.reputation})`);
+  assert(drifted?.momentum === -1.25, `and its drifted momentum (got ${drifted?.momentum})`);
+  assert(
+    typeof drifted?.mascot === 'string' && drifted.mascot.length > 0,
+    `a saved rival is backfilled with its authored mascot (got '${drifted?.mascot}')`,
+  );
+  const sunk = loaded.rivals.find((r) => r.id === (rivals[4].id as string));
+  assert(sunk?.reputation === 19.75, `a rival that has sunk keeps that too (got ${sunk?.reputation})`);
+
+  // Every backfilled mascot is the one a fresh game would author, matched by
+  // id rather than by position.
+  const authored = new Map(initialRivals().map((r) => [r.id, r.mascot]));
+  const wrong = loaded.rivals.filter((r) => r.mascot !== authored.get(r.id));
+  assert(wrong.length === 0, `every mascot matches the authored table by id (mismatched: ${wrong.map((r) => r.id).join(', ')})`);
+
+  // The player is not handed a mascot they never chose.
+  assert(loaded.self.mascot === '', `the school's own mascot stays empty until it is named (got '${loaded.self.mascot}')`);
+
+  // THE TAIL IS BELOW THE OLD ~45 FLOOR — the property the whole expansion
+  // rests on, and what makes this migration rank-neutral for a run that has
+  // climbed past that floor. Asserted against the authored values: the 44
+  // arrive fresh, with no history to have drifted through.
+  const appended = loaded.rivals.filter((r) => !rivals.some((old) => old.id === r.id));
+  assert(appended.length === 44, `exactly 44 schools are appended (got ${appended.length})`);
+  assert(
+    appended.every((r) => r.reputation < 45),
+    `every appended school is below the old floor (highest ${Math.max(...appended.map((r) => r.reputation))})`,
+  );
+  assert(
+    Math.min(...appended.map((r) => r.reputation)) >= 5,
+    'and none is below the reputation band rivals are clamped to',
+  );
+}
+
+// ---- Test: v46 -> v47, standing becomes three numbers ----
+//
+// The claim worth testing is the asymmetry between the two sides. A RIVAL's
+// two standings are derived from what the save already holds — and from its
+// CURRENT reputation, not its authored one, so a school twenty years into a
+// climb is measured as the school it is now. The PLAYER's two open at their
+// baselines, because the stocks never existed and there is nothing to
+// recover; they climb from underneath over the same decades a fresh school
+// would take.
+function testThreeStandingsMigration(): void {
+  const base = createInitialState('StandingsMigrator', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+  state.clock = { year: 22, week: 30 };
+
+  // A v46 save: mascots present (v45 added them), the three new numbers not.
+  (state.self as Loose).reputation = 118.25;
+  delete (state.self as Loose).socialStanding;
+  delete (state.self as Loose).researchStanding;
+  const rivals = state.rivals as Loose[];
+  // One school has climbed a long way from where it was authored.
+  rivals[0].reputation = 131;
+  for (const r of rivals) {
+    delete r.socialStanding;
+    delete r.researchStanding;
+    delete r.socialMomentum;
+    delete r.researchMomentum;
+  }
+  writeSave(46, state);
+
+  const loaded = loadGame();
+  assert(loaded !== null, 'v46 save loads (does not fall back to null)');
+  if (!loaded) return;
+
+  // The player keeps the academic standing they earned, and starts the other
+  // two from scratch.
+  assert(loaded.self.reputation === 118.25, `the academic standing is untouched (got ${loaded.self.reputation})`);
+  assert(loaded.self.socialStanding === SOCIAL_STANDING_BASELINE,
+    `campus-life standing opens at its baseline (got ${loaded.self.socialStanding})`);
+  assert(loaded.self.researchStanding === RESEARCH_STANDING_BASELINE,
+    `research standing opens at its baseline (got ${loaded.self.researchStanding})`);
+
+  // Every rival has all four, derived from its own current numbers.
+  const missing = loaded.rivals.filter((r) =>
+    typeof r.socialStanding !== 'number' || typeof r.researchStanding !== 'number'
+    || typeof r.socialMomentum !== 'number' || typeof r.researchMomentum !== 'number');
+  assert(missing.length === 0, `every rival gains all four fields (missing on: ${missing.map((r) => r.id).join(', ')})`);
+
+  const climbed = loaded.rivals.find((r) => r.id === (rivals[0].id as string))!;
+  assert(
+    climbed.researchStanding === researchStandingFor(131, climbed.id),
+    `a climbed rival's research standing is derived from its CURRENT reputation, not its authored one (got ${climbed.researchStanding})`,
+  );
+  assert(
+    climbed.socialStanding === socialStandingFor(131, climbed.athleticStrength, climbed.id),
+    `and its campus-life standing likewise (got ${climbed.socialStanding})`,
+  );
+
+  // THE THREE AXES ARE NOT ONE AXIS. If they ranked identically the second
+  // and third tables would say nothing the first does not, which is the
+  // failure mode the per-axis hash salts exist to prevent.
+  const byReputation = [...loaded.rivals].sort((a, b) => b.reputation - a.reputation).map((r) => r.id);
+  const byResearch = [...loaded.rivals].sort((a, b) => b.researchStanding - a.researchStanding).map((r) => r.id);
+  const bySocial = [...loaded.rivals].sort((a, b) => b.socialStanding - a.socialStanding).map((r) => r.id);
+  const agree = (x: string[], y: string[]) => x.filter((id, i) => y[i] === id).length;
+  assert(agree(byReputation, byResearch) < loaded.rivals.length / 2,
+    `the research table is not a copy of the academic one (${agree(byReputation, byResearch)} of ${loaded.rivals.length} schools in the same place)`);
+  assert(agree(byReputation, bySocial) < loaded.rivals.length / 2,
+    `nor is the campus-life table (${agree(byReputation, bySocial)} of ${loaded.rivals.length} in the same place)`);
+  assert(agree(byResearch, bySocial) < loaded.rivals.length / 2,
+    `nor are those two copies of each other (${agree(byResearch, bySocial)} of ${loaded.rivals.length} in the same place)`);
+}
+
+// ---- Test: v47 -> v48, athletic strength starts moving ----
+//
+// The small one. What is worth asserting is what it does NOT do: a saved
+// rival's athleticStrength has been sitting still because nothing moved it,
+// which is the same value a fresh game would have derived, so the migration
+// seeds a momentum and leaves the number alone.
+function testAthleticDriftMigration(): void {
+  const base = createInitialState('AthleticMigrator', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+  state.clock = { year: 14, week: 8 };
+
+  const rivals = state.rivals as Loose[];
+  rivals[0].athleticStrength = 63;
+  for (const r of rivals) delete r.athleticMomentum;
+  writeSave(47, state);
+
+  const loaded = loadGame();
+  assert(loaded !== null, 'v47 save loads (does not fall back to null)');
+  if (!loaded) return;
+
+  const missing = loaded.rivals.filter((r) => typeof r.athleticMomentum !== 'number');
+  assert(missing.length === 0, `every rival gains an athletic momentum (missing on: ${missing.map((r) => r.id).join(', ')})`);
+
+  const kept = loaded.rivals.find((r) => r.id === (rivals[0].id as string));
+  assert(kept?.athleticStrength === 63,
+    `athleticStrength itself is untouched — there is nothing to correct (got ${kept?.athleticStrength})`);
+
+  // Nothing is stored per sport: eighteen readings per school arrive without
+  // a byte of save growth (see rivalData.ts's sportStrengthFor).
+  const perSport = Object.keys(loaded.rivals[0]).filter((k) => k.toLowerCase().includes('sport'));
+  assert(perSport.length === 0, `no per-sport field is stored on a rival (found: ${perSport.join(', ')})`);
+}
+
 // ---- Test: unmigratable / malformed saves fall back to null, never throw ----
 function testRejects(): void {
   // A version with no migration path (v1) cannot be carried forward.
@@ -1031,6 +1212,9 @@ testScholarshipMigration();
 testPerClassTuitionMigration();
 testTuitionCeilingRemoval();
 testAppropriationRemoval();
+testHundredSchoolFieldMigration();
+testThreeStandingsMigration();
+testAthleticDriftMigration();
 testRoundTrip();
 testRejects();
 

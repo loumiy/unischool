@@ -10,6 +10,7 @@ import { initialFacilities } from '../data/facilitiesData';
 import { initialRivals } from '../data/rivalData';
 import { initialCandidatePool, facultySalary, grownStat, FOUNDING_TENURE_WEEKS } from '../data/facultyData';
 import { admitRate } from '../systems/admissions/admissionsSystem';
+import { RESEARCH_STANDING_BASELINE, SOCIAL_STANDING_BASELINE } from '../systems/prestige/prestigeSystem';
 import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import {
   FOUNDING_PRESET, FOUNDING_VERNACULAR, STARTING_ENDOWMENT, STARTING_TUITION,
@@ -292,7 +293,7 @@ export function createPreStartState(): GameState {
     pathways: {},
     trees: {},
     rivals: [],
-    self: { name: '', suffix: '', universityCharterOffered: false, reputation: 0, vernacular: FOUNDING_VERNACULAR },
+    self: { name: '', suffix: '', universityCharterOffered: false, mascot: '', reputation: 0, socialStanding: 0, researchStanding: 0, vernacular: FOUNDING_VERNACULAR },
     history: [],
     log: [],
     pendingInterrupt: null,
@@ -547,7 +548,20 @@ export function createInitialState(name: string, vernacular: Vernacular = FOUNDI
       name,
       suffix: STARTING_INSTITUTION_SUFFIX,
       universityCharterOffered: false,
+      // No mascot at founding, and the empty string is the honest answer
+      // rather than a placeholder: a school with no varsity program has
+      // nothing for a mascot to name. It is filled in at the
+      // athletic-director interrupt, which is the first moment the question
+      // has an answer (see types.ts's University.mascot).
+      mascot: '',
       reputation: foundingReputation,
+      // The other two standings open at their own baselines rather than at
+      // the academic one (see prestigeSystem.ts's RESEARCH_STANDING_BASELINE
+      // and SOCIAL_STANDING_BASELINE). A founding school is not a research
+      // university and has no campus life to speak of, and both numbers say
+      // so on day one.
+      socialStanding: SOCIAL_STANDING_BASELINE,
+      researchStanding: RESEARCH_STANDING_BASELINE,
       // Chosen on the startup screen and fixed from here on — a campus's
       // architecture is what it was built as, so nothing ever offers to
       // change it. Defaulted rather than required so the tests and the sim,

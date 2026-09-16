@@ -12,6 +12,7 @@ import { planCommitmentCoverage } from '../systems/techtree/techSystem';
 import { researchSchools } from '../data/techData';
 import FacultyPortrait from '../components/FacultyPortrait';
 import HelpHint from '../components/HelpHint';
+import { rankBy } from '../systems/rivals/rivalsSystem';
 
 // =====================================================================
 // RESEARCH, AS A SCREEN.
@@ -294,6 +295,7 @@ function VacantPanel(
 }
 
 export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
+  const researchRank = rankBy(s, 'researchStanding');
   const schools = researchSchools().filter((school) => school.labIds.length > 0);
   const facilities = schools.flatMap((school) =>
     school.labIds
@@ -316,6 +318,15 @@ export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action)
             <HelpHint text="Each research facility hosts one project at a time, so the number of things the university can pursue at once is the number of places it has built to pursue them in. Choose an area, a team and a depth; each member gives up two course slots for the duration. Deeper work costs more, runs longer and pays off bigger — and the Landmark tier needs scholars from different disciplines, so the most prestigious work is out of reach for a single department however strong." />
           </span>
           <span className="stat">
+            {/* The school's standing on the RESEARCH axis — one of the three
+                the field is ranked on (see
+                systems/prestige/prestigeSystem.ts's computeResearchTarget).
+                It lives here rather than on the toolbar because the toolbar
+                carries the academic rank and a second ordinal next to it
+                would read as a correction of the first. A number belongs
+                beside its subject. */}
+            Research standing #{researchRank} of {s.rivals.length + 1}
+            <span className="stat-sep"> · </span>
             {underway.length} of {facilities.length} {facilities.length === 1 ? 'facility' : 'facilities'} in use
           </span>
         </div>

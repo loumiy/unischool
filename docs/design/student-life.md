@@ -186,28 +186,64 @@ department's upkeep and social contribution together rather than
 budgeting per team, and now ALSO adding a flat quality bonus
 (`qualityBonus`) on top of whatever the coaching staff itself is worth —
 the "recruiting" a shallow model with no individual athlete roster can
-actually represent. Athletics reaches satisfaction only through this same
-capped social contribution, same as clubs and Greek life — **never
-prestige directly**; if athletics should eventually touch prestige, that
-is a separate prestige-model decision, flagged rather than wired.
+actually represent. Athletics reaches satisfaction through this same capped
+social contribution, same as clubs and Greek life.
+
+**It now also reaches a standing — and exactly one.** The flag this paragraph
+used to carry ("never prestige directly; if athletics should eventually touch
+prestige, that is a separate prestige-model decision, flagged rather than
+wired") has been answered in the narrow shape it asked for. A varsity program
+feeds **campus-life standing**, one of the three the school is ranked on (see
+[progression.md](progression.md)'s "Three standings") — a number no system
+reads back into a decision. The **academic** number, which is the one the whole
+economy reads, is still untouched by athletics and by everything else in this
+document.
 Disbanding a team is not built in this pass either; when it is, what
 happens to a now-teamless venue is a call worth making explicitly rather
 than silently.
 
-**Standings** are a second, independent ranking axis
-(`rivalsSystem.ts`'s `athleticRank`/`athleticRankedList`, read against
-`Rival.athleticStrength` — `rivalData.ts`'s `athleticStrengthFor`, a
-deterministic function of a rival's own id and current `reputation`, wide
-enough (0.6x-1.4x) that a rival can be an athletic power without being an
-academic one and vice versa) — the exact same shape `playerRank`/
-`rankedList` already use for the U.S. News report, just sorted on
+**Standings** are an independent ranking axis
+(`rivalsSystem.ts`'s `athleticRank`, read against `Rival.athleticStrength` —
+`rivalData.ts`'s `athleticStrengthFor`, a deterministic function of a rival's
+own id and current `reputation`, wide enough (0.6x-1.4x) that a rival can be an
+athletic power without being an academic one and vice versa) — the exact same
+shape `playerRank` already uses for the U.S. News report, just sorted on
 `athleticProgramStrength` (`studentLifeData.ts`: active teams' own
 `teamQuality`, averaged and scaled up with how many are fielded — a
 department with five solid teams outranks one with a single elite team)
 instead of `reputation`. No annual report, movers list, or reveal
-interrupt of its own — just a live rank readout on the Athletics tab, a
-narrower slice of the U.S. News machinery's own depth, not a parallel copy
-of it.
+interrupt of its own — just a live rank readout on the Athletics tab.
+
+**A rival's athletic strength moves.** It was static for years — a deferred
+deepening rather than an oversight — and now drifts annually on its own
+momentum like every other axis, because a field that never changes is a field
+whose standings are known a decade in advance.
+
+**And it splits per sport.** The department-wide number says whether a school
+runs a good athletics program; `sportStrengthFor` (`rivalData.ts`) says whether
+it is any good at *lacrosse*, which is the question a particular coach hire is
+an answer to. A rival's per-sport strength is **derived, never stored** — a
+deterministic hash of (school id, sport id) swinging its department number by
+up to 28 points — so 100 schools across 18 sports is 1,800 readings that cost
+nothing to save and never change. A school is therefore reliably strong at some
+sports and weak at others for the whole run, which is what makes a rivalry
+legible over forty years.
+
+The swing is **additive rather than multiplicative**, and the athletic band
+stops short of the ceiling `teamQuality` can reach, both for the same reason: a
+multiplicative spread scales with the base, so the strongest departments would
+lead every sport and the per-sport tables would be the department table with
+noise on it — and a band that reached the ceiling saturated it, piling a dozen
+schools onto exactly 100 so that every sport's table opened with a tie broken
+by position in an array.
+
+The player's own number in a sport is the `teamQuality` of the team they field,
+so the two sides of the comparison are the same scale by construction, and
+hiring a coach moves their place on the table rather than some parallel figure.
+**A school that does not field a sport is not on that sport's table** —
+`sportRank` returns null rather than a last place that would imply a program
+that does not exist — and neither is a team still `'awaitingVenue'`, for the
+same reason it contributes no social bonus: it cannot compete yet.
 
 **The Student Life tab** is the home for clubs (a sport club stays here,
 tagged, until it graduates — only VARSITY status moves out) and Greek

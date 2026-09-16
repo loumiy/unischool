@@ -1,6 +1,7 @@
-import type { GameState } from '../../state/types';
+import type { GameState, Rival, VarsityTeam } from '../../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../../state/types';
-import { athleticProgramStrength } from '../../data/studentLifeData';
+import { athleticProgramStrength, teamQuality } from '../../data/studentLifeData';
+import { makeRivalRng, sportStrengthFor } from '../../data/rivalData';
 
 // ---------------------------------------------------------------------
 // Rivals evolve so the ranking stays a live target across decades (see
@@ -19,6 +20,15 @@ const MOMENTUM_UPWARD_BIAS = 0.45;   // slight upward skew, so the field isn't a
 const ANNUAL_SHOCK_RANGE = 5;        // independent +/- jitter applied every year, on top of momentum
 const RIVAL_REPUTATION_MIN = 5;
 const RIVAL_REPUTATION_MAX = 150;
+// Athletics' own band, narrower than the three standings' 5..150. The ceiling
+// sits BELOW the 100 teamQuality can reach, on purpose: sportStrengthFor
+// (data/rivalData.ts) spreads this number by up to 28 points per sport and
+// has to land inside 0..100 without being clamped into it, or the top of
+// every sport's table collapses into a tie. A little above the seeding
+// ceiling of 80, so a school that climbs for decades is not stuck against the
+// same wall it started under.
+const ATHLETIC_STRENGTH_MIN = 5;
+const ATHLETIC_STRENGTH_MAX = 85;
 
 // The U.S. News report is a mid-game reveal (see
 // docs/design/progression.md): the player is unaware of it until prestige
@@ -49,13 +59,95 @@ export function tickRivals(s: GameState): void {
   // reducer.ts's SYSTEMS array.
 
   if (s.clock.week === WEEKS_PER_YEAR) {
+    // ONE draw on the global stream per year, whatever the field size, and
+    // then the whole field's drift runs off a local PRNG seeded from it.
+    //
+    // WHY, and it is a harness property rather than a gameplay one. The
+    // drift used to call Math.random() two or three times PER RIVAL, so the
+    // number of global draws a year scaled with the size of the rival
+    // table. sim/balanceSim.ts seeds Math.random to make a run
+    // reproducible, and its own note says the hazard outright: "any content
+    // change that alters how many times Math.random is called ... moves the
+    // whole stream, so a single seed cannot tell 'this rebalanced the game'
+    // from 'this reshuffled the dice'". Adding 44 schools moved it by ~120
+    // draws a year and knocked four checks off
+    // test/balance-regression.test.ts at the default seed — with, as the
+    // PR's controls showed, no economic effect whatsoever: nothing outside
+    // this module reads a rival, and a 100-school field run on the OLD
+    // stream reproduced main's results at every seed tried, including the
+    // seed main itself fails.
+    //
+    // Pinning consumption at one draw is what stops that happening again.
+    // The field can now grow, or gain axes of its own to drift (which is
+    // exactly what this plan's next two PRs do), without reshuffling a
+    // single faculty potential or candidate listing.
+    //
+    // Deliberately seeded from Math.random rather than from the id and the
+    // year: a deterministic function of those would make every run's
+    // leaderboard reshuffle identically, and the field's year-to-year
+    // surprise is the whole of what it is for.
+    // THREE STREAMS FROM ONE SEED, and the split is not fastidiousness.
+    // Running all three axes off a single generator would mean each rival's
+    // reputation draw came after the previous rival had consumed four more
+    // numbers for the other two axes — so adding an axis would silently
+    // change every rival's ACADEMIC trajectory, and through the one channel
+    // rivals do reach the economy (when the top-50 reveal fires, and
+    // therefore which weeks the annual report takes away from decision
+    // events) it would move the balance sim. Measured, before this split: it
+    // did, from year 10 onward.
+    //
+    // Derived by xor rather than by three separate Math.random() calls so the
+    // global stream still sees exactly one draw a year however many axes the
+    // field grows — the property PR 1A introduced this generator for.
+    const seed = Math.floor(Math.random() * 4294967296);
+    const roll = makeRivalRng(seed);
+    const socialRoll = makeRivalRng(seed ^ 0x9e37_79b9);
+    const researchRoll = makeRivalRng(seed ^ 0x85eb_ca6b);
+    const athleticRoll = makeRivalRng(seed ^ 0xc2b2_ae35);
     for (const r of s.rivals) {
       // Occasionally reroll momentum so trends aren't permanent.
-      if (Math.random() < MOMENTUM_REROLL_CHANCE) {
-        r.momentum = (Math.random() - MOMENTUM_UPWARD_BIAS) * MOMENTUM_RANGE;
+      if (roll() < MOMENTUM_REROLL_CHANCE) {
+        r.momentum = (roll() - MOMENTUM_UPWARD_BIAS) * MOMENTUM_RANGE;
       }
-      const shock = (Math.random() - 0.5) * ANNUAL_SHOCK_RANGE;
+      const shock = (roll() - 0.5) * ANNUAL_SHOCK_RANGE;
       r.reputation = clamp(r.reputation + r.momentum + shock, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
+
+      // The other two standings drift the same way, each on its OWN
+      // momentum — which is what keeps the three tables from moving as one
+      // body. A school can be climbing academically while its campus life
+      // slides, and a reader comparing two of the three lists should find
+      // them telling different stories.
+      //
+      // All of it still runs off `roll`, so the field's whole annual pass
+      // costs one draw on the global stream no matter how many axes it
+      // grows (see the note above).
+      r.socialMomentum = driftMomentum(r.socialMomentum, socialRoll);
+      r.researchMomentum = driftMomentum(r.researchMomentum, researchRoll);
+      r.socialStanding = clamp(
+        r.socialStanding + r.socialMomentum + (socialRoll() - 0.5) * ANNUAL_SHOCK_RANGE,
+        RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX,
+      );
+      r.researchStanding = clamp(
+        r.researchStanding + r.researchMomentum + (researchRoll() - 0.5) * ANNUAL_SHOCK_RANGE,
+        RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX,
+      );
+
+      // ATHLETIC STRENGTH MOVES TOO, which it did not until now (types.ts
+      // called that "a deferred deepening, not an oversight"). A playoff
+      // bracket seeded off a field that never changes is a bracket whose
+      // result is known a decade in advance, so this is a prerequisite for
+      // the tournament rather than a flourish.
+      //
+      // Clamped to ATHLETIC_STRENGTH_MIN/MAX rather than the reputation band
+      // the three standings share: athletics is scored on 0..100 on both
+      // sides (a rival's strength against the player's own teamQuality), and
+      // letting a rival drift to 150 would put the whole field permanently
+      // out of reach of a number that cannot exceed 100.
+      r.athleticMomentum = driftMomentum(r.athleticMomentum, athleticRoll);
+      r.athleticStrength = clamp(
+        r.athleticStrength + r.athleticMomentum + (athleticRoll() - 0.5) * ANNUAL_SHOCK_RANGE,
+        ATHLETIC_STRENGTH_MIN, ATHLETIC_STRENGTH_MAX,
+      );
     }
   }
 
@@ -69,7 +161,11 @@ export function tickRivals(s: GameState): void {
         // comparison would be meaningless on the week they first appear.
         s.pendingInterrupt = {
           type: 'rankings-entry',
-          payload: { rank, previousRank: null, movers: [], passed: [], passedBy: [], standings: rankedList(s).slice(0, TOP_50_CUTOFF) },
+          payload: {
+            rank, previousRank: null, movers: [], passed: [], passedBy: [],
+            standings: rankedList(s).slice(0, TOP_50_CUTOFF),
+            others: otherStandings(s),
+          },
         };
       }
     } else if (s.clock.week === REPORT_WEEK) {
@@ -81,41 +177,138 @@ export function tickRivals(s: GameState): void {
   }
 }
 
+// One axis's momentum, rerolled on the same odds and into the same band the
+// academic one uses. Extracted rather than written three times: the two new
+// axes do exactly what reputation's momentum has always done, and any future
+// retune of "how often does a trend break" should move all three together.
+function driftMomentum(current: number, roll: () => number): number {
+  if (roll() >= MOMENTUM_REROLL_CHANCE) return current;
+  return (roll() - MOMENTUM_UPWARD_BIAS) * MOMENTUM_RANGE;
+}
+
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
-// Convenience: full ranked list including the player.
+// ---------------------------------------------------------------------
+// THE LEADERBOARDS — four of them, from one function.
+//
+// This used to be three near-identical copies: rankedList/playerRank for
+// reputation and athleticRankedList/athleticRank for athletic strength,
+// differing only in which field they sorted on. Adding two more standings
+// (see prestigeSystem.ts) would have made it five, so the axis becomes a
+// parameter instead.
+//
+// What makes this a one-liner rather than a refactor is that the player and
+// a rival name these fields IDENTICALLY — `socialStanding` is
+// `socialStanding` on both sides — which is why types.ts says that is not
+// cosmetic. The one exception is athletics, where the player has no stored
+// field at all: their strength is computed live from the teams they field
+// (athleticProgramStrength), so that axis reads through a function while the
+// other three read a property.
+// ---------------------------------------------------------------------
+export type StandingAxis = 'reputation' | 'socialStanding' | 'researchStanding' | 'athleticStrength';
+
+export interface RankedEntry {
+  key: string;   // 'self', or the rival's id — never the name, which two schools may share
+  name: string;
+  mascot: string;
+  value: number;
+  isPlayer: boolean;
+}
+
+// The player's own number on an axis. Athletics is the odd one out (see
+// above); the other three are stocks sitting on s.self.
+function selfValue(s: GameState, axis: StandingAxis): number {
+  return axis === 'athleticStrength' ? athleticProgramStrength(s) : s.self[axis];
+}
+
+// The core every leaderboard is built from: one entry per school, sorted by
+// whatever the caller says a school's number is. Extracted so the per-sport
+// tables below are the same function with a different reading rather than a
+// fifth hand-written sort.
+//
+// `self` is null when the player does not belong on this table at all — see
+// sportRankedList, where a school that does not field the sport has no
+// program to rank.
+function rankedFrom(
+  s: GameState,
+  self: number | null,
+  rivalValue: (r: Rival) => number,
+): RankedEntry[] {
+  const all: RankedEntry[] = s.rivals.map((r) => ({
+    key: r.id, name: r.name, mascot: r.mascot, value: rivalValue(r), isPlayer: false,
+  }));
+  if (self !== null) {
+    all.push({ key: 'self', name: institutionName(s.self), mascot: s.self.mascot, value: self, isPlayer: true });
+  }
+  return all.sort((a, b) => b.value - a.value);
+}
+
+export function rankedListBy(s: GameState, axis: StandingAxis): RankedEntry[] {
+  return rankedFrom(s, selfValue(s, axis), (r) => r[axis]);
+}
+
+// The player's 1-indexed position on an axis.
+export function rankBy(s: GameState, axis: StandingAxis): number {
+  return rankedListBy(s, axis).findIndex((e) => e.isPlayer) + 1;
+}
+
+// Named wrappers, so nothing outside this module has to learn an axis
+// vocabulary to ask the question it was already asking.
 export function rankedList(s: GameState) {
-  const all = [
-    { name: institutionName(s.self), reputation: s.self.reputation, isPlayer: true },
-    ...s.rivals.map((r) => ({ name: r.name, reputation: r.reputation, isPlayer: false })),
-  ];
-  return all.sort((a, b) => b.reputation - a.reputation);
+  return rankedListBy(s, 'reputation');
 }
 
-// The player's 1-indexed position in the full ranked list.
 export function playerRank(s: GameState): number {
-  return rankedList(s).findIndex((r) => r.isPlayer) + 1;
+  return rankBy(s, 'reputation');
 }
 
-// Athletics V2's own ranking axis (item 4's "scores & standings, requires
-// giving rival schools athletic strength values") — the exact same shape as
-// playerRank/rankedList above, just sorted on athleticStrength/
-// athleticProgramStrength instead of reputation. A second, INDEPENDENT
-// leaderboard: a school can be an academic power and an athletic minnow, or
-// the reverse, same as real conferences (see rivalData.ts's
-// athleticStrengthFor for why the two axes are deliberately decoupled).
-export function athleticRankedList(s: GameState) {
-  const all = [
-    { name: institutionName(s.self), strength: athleticProgramStrength(s), isPlayer: true },
-    ...s.rivals.map((r) => ({ name: r.name, strength: r.athleticStrength, isPlayer: false })),
-  ];
-  return all.sort((a, b) => b.strength - a.strength);
-}
-
+// Athletics' own ranking axis (Athletics V2's "scores & standings"): a
+// second, INDEPENDENT leaderboard — a school can be an academic power and an
+// athletic minnow, or the reverse, same as real conferences (see
+// rivalData.ts's athleticStrengthFor for why the axes are decoupled).
 export function athleticRank(s: GameState): number {
-  return athleticRankedList(s).findIndex((r) => r.isPlayer) + 1;
+  return rankBy(s, 'athleticStrength');
+}
+
+// ---------------------------------------------------------------------
+// PER-SPORT STANDINGS. The department-wide table above says whether a school
+// runs a good athletics program; these say whether it is any good at
+// LACROSSE, which is the question a team's own coach hire is an answer to.
+//
+// A rival's number is derived per sport (rivalData.ts's sportStrengthFor);
+// the player's is the teamQuality of the team they actually field, which is
+// the number their coaching staff and recruiting budget already move. So the
+// two sides of the comparison are the same scale by construction rather than
+// by a conversion somebody has to keep honest.
+//
+// A SCHOOL THAT DOES NOT FIELD THE SPORT IS NOT ON THE TABLE. That is the
+// honest reading — there is no program to rank — and it is why sportRank
+// returns null rather than a last place that would imply one. An
+// 'awaitingVenue' team is not on it either, for the same reason it
+// contributes no social bonus and does not count toward
+// athleticProgramStrength: it cannot compete yet.
+// ---------------------------------------------------------------------
+
+// The player's own team in a sport, if they field one that can compete.
+export function playerTeamIn(s: GameState, sportId: string): VarsityTeam | undefined {
+  return s.orgs.teams.find((t) => t.sport === sportId && t.status === 'active');
+}
+
+export function sportRankedList(s: GameState, sportId: string): RankedEntry[] {
+  const team = playerTeamIn(s, sportId);
+  return rankedFrom(
+    s,
+    team ? teamQuality(team, s) : null,
+    (r) => sportStrengthFor(r, sportId),
+  );
+}
+
+// The player's 1-indexed place in one sport, or null if they do not field it.
+export function sportRank(s: GameState, sportId: string): number | null {
+  const place = sportRankedList(s, sportId).findIndex((e) => e.isPlayer);
+  return place === -1 ? null : place + 1;
 }
 
 // ---------------------------------------------------------------------
@@ -138,34 +331,24 @@ export function athleticRank(s: GameState): number {
 // current side; only the rivals' prior side is inferred.
 // ---------------------------------------------------------------------
 
-// A ranked entry keyed by identity rather than name, so two schools that
-// happen to share a name (the player is free to name theirs anything)
-// never collapse into one row when the two years are compared.
-interface RankedEntry {
-  key: string;
-  name: string;
-  reputation: number;
-  isPlayer: boolean;
-}
-
-function sortedByReputation(entries: RankedEntry[]): RankedEntry[] {
-  return [...entries].sort((a, b) => b.reputation - a.reputation);
+// The two years are compared on RankedEntry above, which is already keyed by
+// identity rather than by name — so two schools that happen to share a name
+// (the player is free to name theirs anything) never collapse into one row.
+function sortedByValue(entries: RankedEntry[]): RankedEntry[] {
+  return [...entries].sort((a, b) => b.value - a.value);
 }
 
 function currentEntries(s: GameState): RankedEntry[] {
-  return sortedByReputation([
-    { key: 'self', name: institutionName(s.self), reputation: s.self.reputation, isPlayer: true },
-    ...s.rivals.map((r) => ({ key: r.id, name: r.name, reputation: r.reputation, isPlayer: false })),
-  ]);
+  return rankedListBy(s, 'reputation');
 }
 
 // Last year's table, reconstructed: the player's prestige comes from the
 // history row recorded a year ago; each rival's is stepped back by one
 // momentum step (see the estimate note above).
 function previousEntries(s: GameState, previousPrestige: number): RankedEntry[] {
-  return sortedByReputation([
-    { key: 'self', name: institutionName(s.self), reputation: previousPrestige, isPlayer: true },
-    ...s.rivals.map((r) => ({ key: r.id, name: r.name, reputation: r.reputation - r.momentum, isPlayer: false })),
+  return sortedByValue([
+    { key: 'self', name: institutionName(s.self), mascot: s.self.mascot, value: previousPrestige, isPlayer: true },
+    ...s.rivals.map((r) => ({ key: r.id, name: r.name, mascot: r.mascot, value: r.reputation - r.momentum, isPlayer: false })),
   ]);
 }
 
@@ -188,7 +371,51 @@ export interface ReportPayload {
   movers: RankMove[];
   passed: string[];            // schools that were ahead a year ago and are behind now
   passedBy: string[];          // schools that were behind a year ago and are ahead now
-  standings: Array<{ name: string; reputation: number; isPlayer: boolean }>;
+  standings: RankedEntry[]; // the top TOP_50_CUTOFF on the ACADEMIC axis — the list the report is about
+  // The other two standings, as one line each under the headline rank (see
+  // prestigeSystem.ts). Deliberately NOT two more tables: the report is a
+  // modal, and the full lists belong where their subject does.
+  others: OtherStanding[];
+}
+
+// One of the two secondary axes, as the report shows it.
+//
+// NO YEAR-OVER-YEAR MOVE, and the absence is honest rather than lazy.
+// YearSnapshot records one `rank`, the academic one, and a move needs a
+// stored prior — the rivals' side of the academic movers list is
+// reconstructed by stepping momentum back, but the PLAYER's side is read off
+// the history row, and there is no row for these. Rather than infer a
+// number, each line carries the school that LEADS the axis, which is the
+// context a bare rank was missing: "#37 of 100, behind the Harrowgate
+// Ravens" says something a "#37" does not.
+export interface OtherStanding {
+  label: string;
+  rank: number;
+  value: number;
+  leader: string;      // the school at the top of this axis
+  leaderMascot: string;
+  isLeader: boolean;   // the player IS the leader, in which case the modal says so instead
+}
+
+function otherStanding(s: GameState, label: string, axis: StandingAxis): OtherStanding {
+  const list = rankedListBy(s, axis);
+  const top = list[0];
+  const me = list.find((e) => e.isPlayer)!;
+  return {
+    label,
+    rank: list.findIndex((e) => e.isPlayer) + 1,
+    value: me.value,
+    leader: top.name,
+    leaderMascot: top.mascot,
+    isLeader: top.isPlayer,
+  };
+}
+
+function otherStandings(s: GameState): OtherStanding[] {
+  return [
+    otherStanding(s, 'Research', 'researchStanding'),
+    otherStanding(s, 'Campus life', 'socialStanding'),
+  ];
 }
 
 export function buildReportPayload(s: GameState): ReportPayload {
@@ -203,7 +430,7 @@ export function buildReportPayload(s: GameState): ReportPayload {
   // "a year ago" means for this report.
   const priorYear = s.history.length >= 2 ? s.history[s.history.length - 2] : null;
   if (!priorYear) {
-    return { rank, previousRank: null, movers: [], passed: [], passedBy: [], standings };
+    return { rank, previousRank: null, movers: [], passed: [], passedBy: [], standings, others: otherStandings(s) };
   }
 
   const current = currentEntries(s);
@@ -244,5 +471,6 @@ export function buildReportPayload(s: GameState): ReportPayload {
     passed: passed.slice(0, MAX_PASSED_SHOWN),
     passedBy: passedBy.slice(0, MAX_PASSED_SHOWN),
     standings,
+    others: otherStandings(s),
   };
 }

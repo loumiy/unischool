@@ -142,28 +142,119 @@ student life, decision events, satisfaction and rankings all read prestige and
 never write it. In particular, **being ranked does not raise prestige** —
 rankings are a measurement *of* prestige (see "Rankings"), a strictly one-way
 read. Any future change must preserve this: prestige is composed from inputs, it
-is not a running tally of bonuses. (The long-term direction is to decompose
-prestige into several underlying components; that is future work, and must keep
-the composed-stock discipline.)
+is not a running tally of bonuses.
+
+## Three standings
+
+A school is ranked on **three** numbers, not one. All three are stocks of the
+same shape — a target computed weekly from durable inputs, drifted toward at
+`PRESTIGE_DRIFT_RATE`, clamped to the same band — and all three live in
+`prestigeSystem.ts`, which is what lets one file hold every writer of any of
+them.
+
+| Standing | Field | Composed from |
+|---|---|---|
+| Academic | `reputation` | Curriculum breadth (×library adequacy), teaching quality, incoming student quality (×admissions scale), research output, campus life, endowment per student |
+| Research | `researchStanding` | What the labs have produced, and how many fields the school can research in at all |
+| Campus life | `socialStanding` | Social facilities, student organisations, **varsity athletics**, and the `social` satisfaction attribute |
+
+**The academic number was not decomposed, and this is not that.** The earlier
+direction here was to split `reputation` into underlying components; what
+happened instead is that two more standings were added *beside* it. The reason
+is that `reputation` is what the economy reads — `admitRate`, the applicant
+pool, price tolerance, every recorded `YearSnapshot`, and
+`sim/balanceSim.ts`'s strategies — so a decomposition moves all of them at
+once. `computePrestigeTarget` is untouched by the three-standings change, and
+the sim's forty-year trajectories are byte-identical across it.
+
+**The new standings are readings, never inputs.** Nothing in
+`computePrestigeTarget` reads either one, and no system reads either back into
+a decision. This is the same one-way rule rankings already follow, extended to
+cover all three, and `test/invariants.test.ts` asserts it rather than trusting
+it: every writer of all three stocks is confined, and the academic target is
+checked for any mention of the other two.
+
+**This is where athletics finally reaches a standing.**
+[student-life.md](student-life.md) records that athletics touches satisfaction
+and "never prestige directly; if athletics should eventually touch prestige,
+that is a separate prestige-model decision, flagged rather than wired." That is
+the decision, made in the narrow shape it was flagged in: a varsity program
+moves **campus-life** standing, which no system reads back. The headline number
+athletics is forbidden to touch remains untouched.
+
+Rivals carry the same three fields under the same names — which is what lets
+one `rankedListBy(axis)` serve every leaderboard — seeded by a deterministic
+spread off each school's own id and drifted annually on independent momentum,
+so the three tables tell different stories. A school can be an academic power
+and an athletic minnow, or a modest college that is a wonderful place to spend
+four years.
+
+Each axis's drift runs on its own generator, all three seeded from a single
+global draw. That keeps the field's whole annual pass at one draw however many
+axes it grows — and, because the academic stream is then untouched by the
+others, adding a standing cannot perturb the trajectory the balance harness
+measures.
 
 ## Rankings: the U.S. News report
 
-Rivals are populated densely enough that a **top 50** is meaningful (~55 schools,
-not 5). Rival prestige **fluctuates dynamically** year to year rather than
-sitting static while the player grows. **Rankings are a measurement *of*
-prestige, not a driver of it:** entering or climbing the rankings never itself
-raises the player's prestige (see the prestige direct-mutation audit), and rivals
-stay deliberately lightweight — a dynamic scoreboard whose relative standings
-shift, not a strategic AI that reacts to the player. The report is a **mid-game
-reveal**:
+The field is **100 schools** — the player's, and 99 rivals (`rivalData.ts`) —
+so a **top 50** is the upper half of a real one rather than a near-certainty.
+Rival prestige **fluctuates dynamically** year to year rather than sitting
+static while the player grows. **Rankings are a measurement *of* prestige, not a
+driver of it:** entering or climbing the rankings never itself raises the
+player's prestige (see the prestige direct-mutation audit), and rivals stay
+deliberately lightweight — a dynamic scoreboard whose relative standings shift,
+not a strategic AI that reacts to the player.
 
-- The player starts **unaware** of the report.
+**The field is authored in two bands, and the split is what makes both halves
+work.** The first 55 span reputation 45 to 99, all of them above a founding
+school; the other 44 are a **tail** deliberately authored *below* that floor.
+Growing the field without that discipline would have changed what rank 50 means
+— six schools to pass instead of fifty — and quietly turned the mid-game reveal
+below into a late-game one. Authored downward, the 50th school by reputation is
+the same school it always was, so entering the top 50 costs exactly the prestige
+it did before.
+
+What the tail buys is the other half: **a standing that means something from
+week one.** A founding school opens at 50 (`foundingData.ts`'s
+`FOUNDING_PRESET`) — above the whole tail, and so ranked mid-table at about
+#55 of 100 rather than last of 56. It also gives the rank somewhere to
+**fall**: a school that stalls, or spends a decade in the red, slides into a
+field of real schools instead of sitting on a floor it cannot drop through.
+
+**Standing is shown from the first week** — on the toolbar, and in the History
+table — because the number now says something in both directions. The **report** remains a
+mid-game reveal, and the two are not in tension: the U.S. News list publishes
+fifty names, so where a school stands is knowable from the start and *being
+published* is the event.
+
+- The player starts **unaware of the report**, though not of their own rank.
 - Reaching enough prestige to crack the **top 50** (which should take some time)
   fires a one-time **"you've entered the rankings"** interrupt.
 - Thereafter the player gets an **annual report** (top 50 standings) once per year.
 
-"Standing among peers" does not need to be shown constantly — the annual report
-is the touchpoint.
+The report's subject is the academic table, with the other two standings as a
+line each beneath the headline rank — the school's place, and who leads that
+axis. Deliberately not two more tables: the report is a modal, and a full list
+belongs where its subject does (research standing reads on the Research tab).
+Neither line carries a year-over-year move, because `YearSnapshot` records only
+the academic rank and a move needs a stored prior; naming the leader is the
+context a bare ordinal was missing.
+
+Every school also carries a **mascot** — the player's own is named at the
+athletic-director interrupt rather than at founding, and is empty until then.
+Nothing mechanical reads one; they are what lets a standings row read as a
+sports page rather than a spreadsheet.
+
+**The field's annual drift takes exactly one draw on the global random stream
+per year**, whatever the field's size: `tickRivals` seeds a local generator from
+it and runs all 99 schools off that. This is a *harness* property rather than a
+gameplay one, and it is load-bearing — `sim/balanceSim.ts` seeds `Math.random`
+to make a run reproducible, so a per-rival draw meant that adding schools
+reshuffled every faculty potential and candidate listing in the game and made
+the balance gate unable to distinguish a rebalance from a reshuffle. Pinned at
+one draw, the rival table can grow, or gain axes of its own, without moving the
+economy's dice at all.
 
 ## College, and University
 

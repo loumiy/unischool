@@ -1,24 +1,34 @@
 import type { Rival } from '../state/types';
 
 // ---------------------------------------------------------------------
-// ~55 fictionalized rival schools, so a top-50 ranking is a genuine
-// competitive field (see docs/design/progression.md's "Rankings: the
-// U.S. News report") — not just edging out four other names.
+// 99 fictionalized rival schools, so the player's own institution makes a
+// field of exactly 100 and a top-50 ranking is the upper HALF of a real
+// one (see docs/design/progression.md's "Rankings: the U.S. News
+// report") — not just edging out four other names.
 // Reputation is the ranking metric; momentum is the hidden trend
 // tickRivals uses to keep the leaderboard alive over decades (see
 // rivalsSystem.ts for the annual reroll + shock that actually applies
 // it).
 //
-// Deliberately no rival starts below ~45: the player begins at 35-50
-// depending on school type (see foundingData.ts), so the whole field
-// starts ranked above a fresh university. Cracking the top 50 takes
-// real early-game growth, not a first-week fluke — see rivalsSystem.ts
-// and the PR notes for the exact resulting threshold.
+// TWO BANDS, and the split is load-bearing rather than tidy. The first 55
+// (r1-r55) span 45 to 99 and none of them starts below ~45: a founding
+// school opens at 50 (see foundingData.ts's FOUNDING_PRESET), so that whole
+// band starts at or above a fresh university, and cracking the top 50 means
+// passing the same handful of schools it has always meant. The other 44
+// (r56-r99) are the TAIL, authored deliberately BELOW that floor — see the
+// block comment above them for why the field had to grow downward and what
+// the tail buys.
+//
+// Every school also carries a MASCOT. Nothing mechanical reads it: it is
+// what lets a standings row read as a sports page rather than a
+// spreadsheet, and what a per-sport table names alongside the school
+// (see systems/rivals/rivalsSystem.ts). The player names their own at the
+// athletic-director interrupt rather than at founding.
 // ---------------------------------------------------------------------
 
 // Athletics V2's own ranking axis (see types.ts's Rival.athleticStrength and
 // rivalsSystem.ts's athleticRank). DERIVED rather than hand-authored per
-// school below — 55 more hand-picked numbers would be pure busywork with no
+// school below — 99 more hand-picked numbers would be pure busywork with no
 // signal a formula can't already give — but not a straight copy of
 // reputation either: a deterministic hash of the school's own id seeds a
 // wide (0.6x-1.4x) multiplier on reputation, so athletic strength loosely
@@ -28,88 +38,343 @@ import type { Rival } from '../state/types';
 // university can be a real power, same as real conferences. Deterministic
 // off the id (not Math.random()) so it's stable across a run rather than
 // reshuffling on every reload.
+// FNV-1a over the string, then Murmur3's finalizer to avalanche it.
+//
+// THE FINALIZER IS THE POINT, and this function did not have one. It used
+// to be `h = (h * 31 + c) % 1_000_003`, which for inputs as short and as
+// similar as 'r1'..'r99' does not disperse at all: r1..r9 all landed within
+// 0.000008 of each other and r10..r99 within 0.00026, so the "wide
+// (0.6x-1.4x) multiplier" the block below claims was, in practice, a band
+// of 0.603 to 0.689. Every rival's athletic strength was therefore about
+// 0.65x its reputation — a near-exact copy of the academic axis, which is
+// precisely the coupling athleticStrengthFor exists to break.
+//
+// A plain multiply-and-mod leaves adjacent inputs adjacent; the xor-shift/
+// multiply finalizer is what turns a one-character difference into an
+// unrelated output. Fixed here rather than left for the per-sport split to
+// inherit (see the plan's PR 1C, which hashes id-plus-sport through this
+// same function and would have given all 100 schools the same profile).
+//
+// CONSEQUENCE, stated plainly: every rival's athleticStrength in a NEW game
+// changes. A save keeps the value it stored — athleticStrength is state,
+// derived once at founding — so no run in progress is disturbed.
 function hashUnit(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 1_000_003;
-  return h / 1_000_003; // 0..1
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  h ^= h >>> 16;
+  h = Math.imul(h, 2246822507) >>> 0;
+  h ^= h >>> 13;
+  h = Math.imul(h, 3266489909) >>> 0;
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296; // 0..1
 }
+
+// A small local PRNG, seeded once and then run independently of
+// Math.random — see systems/rivals/rivalsSystem.ts's annual drift for the
+// one caller and the reason it exists.
+export function makeRivalRng(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+}
+
+// THE BAND IS DELIBERATELY SHORT OF THE CEILING, and that is a fix rather
+// than a preference. This used to map reputation straight onto 10..100, and
+// with reputations reaching 99 the product saturated: TWELVE of the 99 rivals
+// sat at exactly 100, so the department table opened with a twelve-way tie
+// broken by array order — and once sportStrengthFor spread those same
+// saturated numbers per sport, every one of the eighteen tables opened with a
+// thirteen-to-sixteen-way tie at 100. "Who is best at lacrosse" had no answer,
+// and a playoff seeded off that field would have been seeded by position in an
+// array.
+//
+// Scaling reputation down before the spread leaves the headroom the per-sport
+// derivation needs to sit INSIDE the 0..100 band teamQuality shares, instead
+// of being clamped into it. The ceiling here is the seeding one; the drift
+// (rivalsSystem.ts) is allowed a little above it so a school that climbs for
+// decades is not stuck against the same wall.
+const ATHLETIC_BASE_SCALE = 0.55;
+const ATHLETIC_SEED_MIN = 10;
+const ATHLETIC_SEED_MAX = 80;
 
 export function athleticStrengthFor(reputation: number, id: string): number {
   const multiplier = 0.6 + hashUnit(id) * 0.8; // 0.6..1.4
-  return Math.max(10, Math.min(100, Math.round(reputation * multiplier)));
+  return Math.max(
+    ATHLETIC_SEED_MIN,
+    Math.min(ATHLETIC_SEED_MAX, Math.round(reputation * ATHLETIC_BASE_SCALE * multiplier)),
+  );
+}
+
+// THE OTHER TWO AXES, derived the same way and for the same reason
+// athleticStrengthFor is (see above): 99 schools x two more numbers is 198
+// more hand-picked values with no signal a formula cannot already give, and a
+// deterministic spread off the school's own id is stable across a run rather
+// than reshuffling on every reload.
+//
+// What differs is the SALT and, for social standing, one deliberate coupling.
+// Hashing the bare id again would give all three axes the same ordering — a
+// school strong at one would be strong at all of them, which is exactly the
+// collapse the finalizer above was added to prevent. Each axis hashes the id
+// under its own suffix instead, so the three are independent readings of the
+// same school.
+//
+// RESEARCH leans HARDER on reputation than athletics does (a narrower band
+// around it): research standing and academic standing are genuinely
+// correlated in a way athletics is not — a university known for its research
+// is, most of the time, a well-regarded university — so a wide independent
+// spread here would read as noise rather than as character. The band still
+// leaves room for the two interesting cases: the teaching college that
+// publishes nothing, and the institute that outranks its own reputation.
+const RESEARCH_SPREAD_MIN = 0.75;
+const RESEARCH_SPREAD_RANGE = 0.5; // 0.75..1.25
+
+// SOCIAL is the wide one, and it borrows from athleticStrength rather than
+// standing alone. A school's athletic program is part of what it is like to
+// be a student there, so a sports school should read as a social school; the
+// remainder is its own hash, which is what lets a quiet athletic minnow still
+// be a wonderful place to spend four years.
+const SOCIAL_SPREAD_MIN = 0.55;
+const SOCIAL_SPREAD_RANGE = 0.9;  // 0.55..1.45
+const SOCIAL_ATHLETICS_SHARE = 0.35; // how much of the number the athletic program accounts for
+
+// The same band `reputation` lives in (rivalsSystem.ts's
+// RIVAL_REPUTATION_MIN/MAX and prestigeSystem.ts's PRESTIGE_MIN/MAX), NOT
+// athleticStrength's 10..100. These two are prestige-shaped stocks that the
+// player's own drifting standings are read against, so they have to be on the
+// player's scale: capped at 100 they would be trivially overtaken by a school
+// whose own standing can reach 150, and topping a table would mean nothing.
+// Athletics keeps its narrower band because nothing of the player's is scored
+// against it on a 150 scale — athleticProgramStrength is itself 0..100.
+const STANDING_MIN = 5;
+const STANDING_MAX = 150;
+
+function clampStanding(v: number): number {
+  return Math.max(STANDING_MIN, Math.min(STANDING_MAX, Math.round(v)));
+}
+
+export function researchStandingFor(reputation: number, id: string): number {
+  return clampStanding(reputation * (RESEARCH_SPREAD_MIN + hashUnit(`${id}:research`) * RESEARCH_SPREAD_RANGE));
+}
+
+export function socialStandingFor(reputation: number, athleticStrength: number, id: string): number {
+  const own = reputation * (SOCIAL_SPREAD_MIN + hashUnit(`${id}:social`) * SOCIAL_SPREAD_RANGE);
+  return clampStanding(own * (1 - SOCIAL_ATHLETICS_SHARE) + athleticStrength * SOCIAL_ATHLETICS_SHARE);
+}
+
+// A rival's starting momentum on each of the two new axes. Same band the
+// authored `momentum` values sit in, spread off the id so the three trends
+// are independent — a school can be climbing academically while its campus
+// life slides, which is the whole point of having three tables.
+const STANDING_MOMENTUM_RANGE = 1.6; // -0.8 .. +0.8
+
+export function standingMomentumFor(id: string, axis: string): number {
+  return Math.round((hashUnit(`${id}:${axis}:momentum`) - 0.5) * STANDING_MOMENTUM_RANGE * 100) / 100;
+}
+
+// A school's strength in ONE sport, spread around its department-wide
+// athleticStrength.
+//
+// DERIVED, NOT STORED, and the call is the opposite of Plan 06's on the
+// cohort mix — deliberately, because the thing being reconstructed is a
+// different kind of thing. A class's cohort mix is a fossil: a fact about a
+// decision made at one moment, unrecoverable afterwards because the inputs
+// have moved. A school's strength at lacrosse is a standing fact about the
+// school, and a deterministic hash of (id, sport) reproduces it identically
+// on every read, forever, across saves and reloads. There is nothing to
+// lose, and 100 schools x 18 sports is 1,800 numbers to author and to carry
+// in every save.
+//
+// The consequence is that a school is reliably strong at some sports and
+// weak at others, for the whole run. That is not a compromise — it is the
+// thing that makes a rivalry legible over forty years, and what lets a
+// per-sport table say something the department-wide one cannot.
+// ADDITIVE, in points, rather than a multiplier — which matters for the same
+// reason the band above is short of the ceiling. A multiplicative spread
+// scales with the base, so a strong department stays strong in every sport
+// and the eighteen tables are the department table with noise on it. A fixed
+// swing in points gives a mid-table school a real chance to be a genuine
+// hockey school, which is the only thing a per-sport table is for.
+//
+// +/-28 measured against the alternatives: at +/-20 the strongest departments
+// still led most sports; at +/-28 no sport's table opens with a tie, ten of
+// the eighteen have a different best school, and two sports share only about
+// two of their eight strongest — so each sport has its own field rather than
+// the same one reordered.
+const SPORT_SPREAD_POINTS = 28;
+
+export function sportStrengthFor(rival: Rival, sportId: string): number {
+  const swing = (hashUnit(`${rival.id}:${sportId}`) * 2 - 1) * SPORT_SPREAD_POINTS;
+  // The band teamQuality (studentLifeData.ts) produces, since the player's own
+  // per-sport number IS a teamQuality and the two are read against each other.
+  return Math.max(5, Math.min(100, Math.round(rival.athleticStrength + swing)));
 }
 
 export function initialRivals(): Rival[] {
-  return baseRivals().map((r) => ({ ...r, athleticStrength: athleticStrengthFor(r.reputation, r.id) }));
+  return baseRivals().map((r) => {
+    const athleticStrength = athleticStrengthFor(r.reputation, r.id);
+    return {
+      ...r,
+      athleticStrength,
+      athleticMomentum: standingMomentumFor(r.id, 'athletic'),
+      socialStanding: socialStandingFor(r.reputation, athleticStrength, r.id),
+      researchStanding: researchStandingFor(r.reputation, r.id),
+      socialMomentum: standingMomentumFor(r.id, 'social'),
+      researchMomentum: standingMomentumFor(r.id, 'research'),
+    };
+  });
 }
 
-function baseRivals(): Array<Omit<Rival, 'athleticStrength'>> {
+// What is AUTHORED, as opposed to derived. The four omitted fields are all
+// computed in initialRivals above — three from the school's own id, and the
+// momenta from it too — so the table below stays a table of decisions rather
+// than of arithmetic somebody has to keep consistent by hand.
+type AuthoredRival = Omit<Rival,
+  'athleticStrength' | 'athleticMomentum' | 'socialStanding' | 'researchStanding' | 'socialMomentum' | 'researchMomentum'>;
+
+function baseRivals(): AuthoredRival[] {
   return [
     // --- original five ---
-    { id: 'r1', name: 'Ashcombe University', reputation: 92, momentum: 0.2 },
-    { id: 'r2', name: 'Northgate Institute', reputation: 85, momentum: 0.5 },
-    { id: 'r3', name: 'Vale State', reputation: 71, momentum: -0.3 },
-    { id: 'r4', name: 'Bellhaven College', reputation: 58, momentum: 0.8 },
-    { id: 'r5', name: 'Portland Tech', reputation: 45, momentum: 1.1 },
+    { id: 'r1', name: 'Ashcombe University', mascot: 'Owls', reputation: 92, momentum: 0.2 },
+    { id: 'r2', name: 'Northgate Institute', mascot: 'Engineers', reputation: 85, momentum: 0.5 },
+    { id: 'r3', name: 'Vale State', mascot: 'Longhorns', reputation: 71, momentum: -0.3 },
+    { id: 'r4', name: 'Bellhaven College', mascot: 'Herons', reputation: 58, momentum: 0.8 },
+    { id: 'r5', name: 'Portland Tech', mascot: 'Pioneers', reputation: 45, momentum: 1.1 },
 
     // --- elite tier ---
-    { id: 'r6', name: 'Harrowgate University', reputation: 99, momentum: 0.1 },
-    { id: 'r7', name: 'Kestrel Bay Institute of Technology', reputation: 97, momentum: -0.4 },
-    { id: 'r8', name: 'University of Calderwood', reputation: 96, momentum: 0.3 },
-    { id: 'r9', name: 'Marchmont University', reputation: 94, momentum: 0.6 },
-    { id: 'r10', name: 'Ravensmoor Institute', reputation: 93, momentum: -0.2 },
-    { id: 'r11', name: 'Ironwood University', reputation: 91, momentum: 0.4 },
-    { id: 'r12', name: 'Sable Ridge College', reputation: 90, momentum: 0.9 },
-    { id: 'r13', name: 'Amberfield University', reputation: 89, momentum: -0.6 },
-    { id: 'r14', name: 'Cobalt Hills Institute of Technology', reputation: 88, momentum: 0.2 },
-    { id: 'r15', name: 'University of Wrenfield', reputation: 87, momentum: 0.7 },
+    { id: 'r6', name: 'Harrowgate University', mascot: 'Ravens', reputation: 99, momentum: 0.1 },
+    { id: 'r7', name: 'Kestrel Bay Institute of Technology', mascot: 'Kestrels', reputation: 97, momentum: -0.4 },
+    { id: 'r8', name: 'University of Calderwood', mascot: 'Stags', reputation: 96, momentum: 0.3 },
+    { id: 'r9', name: 'Marchmont University', mascot: 'Lions', reputation: 94, momentum: 0.6 },
+    { id: 'r10', name: 'Ravensmoor Institute', mascot: 'Nighthawks', reputation: 93, momentum: -0.2 },
+    { id: 'r11', name: 'Ironwood University', mascot: 'Ironmen', reputation: 91, momentum: 0.4 },
+    { id: 'r12', name: 'Sable Ridge College', mascot: 'Panthers', reputation: 90, momentum: 0.9 },
+    { id: 'r13', name: 'Amberfield University', mascot: 'Hornets', reputation: 89, momentum: -0.6 },
+    { id: 'r14', name: 'Cobalt Hills Institute of Technology', mascot: 'Miners', reputation: 88, momentum: 0.2 },
+    { id: 'r15', name: 'University of Wrenfield', mascot: 'Wrens', reputation: 87, momentum: 0.7 },
 
     // --- strong tier ---
-    { id: 'r16', name: 'Thornbury State University', reputation: 86, momentum: -0.5 },
-    { id: 'r17', name: 'Foxhollow University', reputation: 84, momentum: 0.3 },
-    { id: 'r18', name: 'Larkspur College', reputation: 83, momentum: 1.2 },
-    { id: 'r19', name: 'Millbrook Institute', reputation: 82, momentum: -0.1 },
-    { id: 'r20', name: 'Windermere Falls University', reputation: 81, momentum: 0.5 },
-    { id: 'r21', name: 'Graystone A&M University', reputation: 80, momentum: -0.8 },
-    { id: 'r22', name: 'Elderglen College', reputation: 79, momentum: 0.4 },
-    { id: 'r23', name: 'Silverpine University', reputation: 78, momentum: 0.1 },
-    { id: 'r24', name: 'Hollowcrest Institute of Technology', reputation: 77, momentum: -0.3 },
-    { id: 'r25', name: 'Briarcliff University', reputation: 76, momentum: 0.6 },
+    { id: 'r16', name: 'Thornbury State University', mascot: 'Bulldogs', reputation: 86, momentum: -0.5 },
+    { id: 'r17', name: 'Foxhollow University', mascot: 'Foxes', reputation: 84, momentum: 0.3 },
+    { id: 'r18', name: 'Larkspur College', mascot: 'Larks', reputation: 83, momentum: 1.2 },
+    { id: 'r19', name: 'Millbrook Institute', mascot: 'Millers', reputation: 82, momentum: -0.1 },
+    { id: 'r20', name: 'Windermere Falls University', mascot: 'Rapids', reputation: 81, momentum: 0.5 },
+    { id: 'r21', name: 'Graystone A&M University', mascot: 'Aggies', reputation: 80, momentum: -0.8 },
+    { id: 'r22', name: 'Elderglen College', mascot: 'Elk', reputation: 79, momentum: 0.4 },
+    { id: 'r23', name: 'Silverpine University', mascot: 'Timberwolves', reputation: 78, momentum: 0.1 },
+    { id: 'r24', name: 'Hollowcrest Institute of Technology', mascot: 'Voltmen', reputation: 77, momentum: -0.3 },
+    { id: 'r25', name: 'Briarcliff University', mascot: 'Badgers', reputation: 76, momentum: 0.6 },
 
     // --- upper-mid tier ---
-    { id: 'r26', name: 'Stonebridge State University', reputation: 75, momentum: 1.0 },
-    { id: 'r27', name: 'Fenwick College', reputation: 74, momentum: -0.4 },
-    { id: 'r28', name: 'Copperfield University', reputation: 73, momentum: 0.2 },
-    { id: 'r29', name: 'University of Wychwood', reputation: 72, momentum: 0.5 },
-    { id: 'r30', name: 'Dunmore Polytechnic', reputation: 70, momentum: -0.6 },
-    { id: 'r31', name: 'Osprey Point University', reputation: 69, momentum: 0.3 },
-    { id: 'r32', name: 'Thistledown College', reputation: 68, momentum: 0.8 },
-    { id: 'r33', name: 'Redmere University', reputation: 67, momentum: -0.2 },
-    { id: 'r34', name: 'Greywick Institute of Technology', reputation: 66, momentum: 0.4 },
-    { id: 'r35', name: 'Ashford Hollow University', reputation: 65, momentum: -0.5 },
+    { id: 'r26', name: 'Stonebridge State University', mascot: 'Masons', reputation: 75, momentum: 1.0 },
+    { id: 'r27', name: 'Fenwick College', mascot: 'Otters', reputation: 74, momentum: -0.4 },
+    { id: 'r28', name: 'Copperfield University', mascot: 'Colonels', reputation: 73, momentum: 0.2 },
+    { id: 'r29', name: 'University of Wychwood', mascot: 'Druids', reputation: 72, momentum: 0.5 },
+    { id: 'r30', name: 'Dunmore Polytechnic', mascot: 'Anvils', reputation: 70, momentum: -0.6 },
+    { id: 'r31', name: 'Osprey Point University', mascot: 'Ospreys', reputation: 69, momentum: 0.3 },
+    { id: 'r32', name: 'Thistledown College', mascot: 'Thistles', reputation: 68, momentum: 0.8 },
+    { id: 'r33', name: 'Redmere University', mascot: 'Cardinals', reputation: 67, momentum: -0.2 },
+    { id: 'r34', name: 'Greywick Institute of Technology', mascot: 'Machinists', reputation: 66, momentum: 0.4 },
+    { id: 'r35', name: 'Ashford Hollow University', mascot: 'Greyhounds', reputation: 65, momentum: -0.5 },
 
     // --- mid tier ---
-    { id: 'r36', name: 'Blackthorn State University', reputation: 81, momentum: 0.7 },
-    { id: 'r37', name: 'Cinderford College', reputation: 80, momentum: -0.1 },
-    { id: 'r38', name: 'Oakmere University', reputation: 78, momentum: 0.9 },
-    { id: 'r39', name: 'Pemberly Institute', reputation: 77, momentum: -0.3 },
-    { id: 'r40', name: 'Rushbrook University', reputation: 76, momentum: 0.2 },
-    { id: 'r41', name: 'Wintershall College', reputation: 75, momentum: 0.5 },
-    { id: 'r42', name: 'Faircross State University', reputation: 74, momentum: -0.7 },
-    { id: 'r43', name: 'Halloway University', reputation: 73, momentum: 0.3 },
-    { id: 'r44', name: 'Ironmark Institute of Technology', reputation: 72, momentum: 0.6 },
-    { id: 'r45', name: 'Quillfield College', reputation: 71, momentum: -0.2 },
+    { id: 'r36', name: 'Blackthorn State University', mascot: 'Blackbirds', reputation: 81, momentum: 0.7 },
+    { id: 'r37', name: 'Cinderford College', mascot: 'Smiths', reputation: 80, momentum: -0.1 },
+    { id: 'r38', name: 'Oakmere University', mascot: 'Oaks', reputation: 78, momentum: 0.9 },
+    { id: 'r39', name: 'Pemberly Institute', mascot: 'Pilgrims', reputation: 77, momentum: -0.3 },
+    { id: 'r40', name: 'Rushbrook University', mascot: 'Rivermen', reputation: 76, momentum: 0.2 },
+    { id: 'r41', name: 'Wintershall College', mascot: 'Snow Leopards', reputation: 75, momentum: 0.5 },
+    { id: 'r42', name: 'Faircross State University', mascot: 'Crusaders', reputation: 74, momentum: -0.7 },
+    { id: 'r43', name: 'Halloway University', mascot: 'Hawks', reputation: 73, momentum: 0.3 },
+    { id: 'r44', name: 'Ironmark Institute of Technology', mascot: 'Forgers', reputation: 72, momentum: 0.6 },
+    { id: 'r45', name: 'Quillfield College', mascot: 'Scribes', reputation: 71, momentum: -0.2 },
 
     // --- the pack the player must first pass to crack the top 50 ---
-    { id: 'r46', name: 'Sedgewick University', reputation: 70, momentum: 0.4 },
-    { id: 'r47', name: 'Thackeray College', reputation: 69, momentum: -0.4 },
-    { id: 'r48', name: 'Underbridge University', reputation: 68, momentum: 0.1 },
-    { id: 'r49', name: 'Vesper Point State University', reputation: 67, momentum: 0.8 },
-    { id: 'r50', name: 'Wrenmoor Institute', reputation: 66, momentum: -0.1 },
-    { id: 'r51', name: 'Yewcastle College', reputation: 65, momentum: 0.3 },
-    { id: 'r52', name: 'Zephyr Hills University', reputation: 64, momentum: -0.5 },
-    { id: 'r53', name: 'Alderford State University', reputation: 63, momentum: 0.6 },
-    { id: 'r54', name: 'Briskwater College', reputation: 62, momentum: 0.2 },
-    { id: 'r55', name: 'Cragmoor University', reputation: 61, momentum: -0.3 },
+    { id: 'r46', name: 'Sedgewick University', mascot: 'Mariners', reputation: 70, momentum: 0.4 },
+    { id: 'r47', name: 'Thackeray College', mascot: 'Rooks', reputation: 69, momentum: -0.4 },
+    { id: 'r48', name: 'Underbridge University', mascot: 'Bridgemen', reputation: 68, momentum: 0.1 },
+    { id: 'r49', name: 'Vesper Point State University', mascot: 'Nightjars', reputation: 67, momentum: 0.8 },
+    { id: 'r50', name: 'Wrenmoor Institute', mascot: 'Moorhens', reputation: 66, momentum: -0.1 },
+    { id: 'r51', name: 'Yewcastle College', mascot: 'Archers', reputation: 65, momentum: 0.3 },
+    { id: 'r52', name: 'Zephyr Hills University', mascot: 'Zephyrs', reputation: 64, momentum: -0.5 },
+    { id: 'r53', name: 'Alderford State University', mascot: 'Riverhawks', reputation: 63, momentum: 0.6 },
+    { id: 'r54', name: 'Briskwater College', mascot: 'Kingfishers', reputation: 62, momentum: 0.2 },
+    { id: 'r55', name: 'Cragmoor University', mascot: 'Mountaineers', reputation: 61, momentum: -0.3 },
+
+    // --- THE TAIL: the field BELOW a founding school ---------------------
+    // Forty-four schools authored beneath the block above's ~45 floor, and
+    // that placement is the whole point rather than an aesthetic choice
+    // (see docs/plans/07-athletics-rivals.md's section 0). Growing the
+    // field from 56 schools to 100 would otherwise change what rank 50
+    // MEANS — six schools to pass instead of fifty — and silently retune
+    // the mid-game reveal docs/design/progression.md describes into a
+    // late-game one. Authored below the old floor, the 50th school by
+    // reputation is the same school it has always been, so the top-50
+    // entry threshold costs exactly the prestige it did before and not one
+    // constant moves.
+    //
+    // What they buy is the other half: a standing that MEANS something from
+    // week one. A founding school opens at 50 (foundingData.ts's
+    // FOUNDING_PRESET) — above the whole tail, and so ranked mid-table at
+    // about #55 of 100 rather than last of 56. That is what makes an
+    // always-visible rank readout (see components/StatusHeader.tsx) worth
+    // showing: "#56 of 56" is not a standing, it is the bottom, and a
+    // number that can only ever improve teaches nothing about the year it
+    // did not.
+    //
+    // It also gives the rank somewhere to FALL. A school that stalls, or
+    // spends a decade in the red, now slides into a field of real schools
+    // instead of sitting on a floor it cannot drop through.
+    //
+    // Small colleges, community colleges and technical institutes by name,
+    // because that is what a field below a founding university is made of.
+    { id: 'r56', name: 'Pinehurst College', mascot: 'Quakers', reputation: 44, momentum: 0.5 },
+    { id: 'r57', name: 'Marlowe Community College', mascot: 'Mariners', reputation: 44, momentum: -0.2 },
+    { id: 'r58', name: 'Ashbury State College', mascot: 'Sentinels', reputation: 43, momentum: 0.9 },
+    { id: 'r59', name: 'Dunwich Technical Institute', mascot: 'Tinkers', reputation: 42, momentum: 0.3 },
+    { id: 'r60', name: 'Harlan Valley College', mascot: 'Valleymen', reputation: 41, momentum: -0.6 },
+    { id: 'r61', name: 'Westmarch College', mascot: 'Wardens', reputation: 41, momentum: 0.7 },
+    { id: 'r62', name: 'Cobblestone State College', mascot: 'Cobblers', reputation: 40, momentum: 0.2 },
+    { id: 'r63', name: 'Thornfield College', mascot: 'Brambles', reputation: 39, momentum: -0.4 },
+    { id: 'r64', name: 'Ellsworth Technical College', mascot: 'Dynamos', reputation: 38, momentum: 1.0 },
+    { id: 'r65', name: 'Nettlebrook College', mascot: 'Nettles', reputation: 38, momentum: 0.1 },
+    { id: 'r66', name: 'Gravesend State College', mascot: 'Gravediggers', reputation: 37, momentum: -0.5 },
+    { id: 'r67', name: 'Aldermere College', mascot: 'Alders', reputation: 36, momentum: 0.6 },
+    { id: 'r68', name: 'Ferncliff College', mascot: 'Cliffhawks', reputation: 35, momentum: 0.3 },
+    { id: 'r69', name: 'Brackwater Technical Institute', mascot: 'Dredgers', reputation: 35, momentum: -0.3 },
+    { id: 'r70', name: 'Lowmoor State College', mascot: 'Moorcats', reputation: 34, momentum: 0.8 },
+    { id: 'r71', name: 'Sandgate College', mascot: 'Sandpipers', reputation: 33, momentum: -0.1 },
+    { id: 'r72', name: 'Kirkhaven College', mascot: 'Chanters', reputation: 32, momentum: 0.4 },
+    { id: 'r73', name: 'Petersfield Technical College', mascot: 'Pistons', reputation: 32, momentum: 1.1 },
+    { id: 'r74', name: 'Oldbridge State College', mascot: 'Spans', reputation: 31, momentum: -0.7 },
+    { id: 'r75', name: 'Hazelmere College', mascot: 'Hazels', reputation: 30, momentum: 0.2 },
+    { id: 'r76', name: 'Duncastle College', mascot: 'Keepers', reputation: 29, momentum: 0.9 },
+    { id: 'r77', name: 'Willowmere Technical Institute', mascot: 'Willows', reputation: 29, momentum: -0.2 },
+    { id: 'r78', name: 'Barrowfield College', mascot: 'Barrowmen', reputation: 28, momentum: 0.5 },
+    { id: 'r79', name: 'Crestmill State College', mascot: 'Millhands', reputation: 27, momentum: -0.4 },
+    { id: 'r80', name: 'Nightingale College', mascot: 'Nightingales', reputation: 26, momentum: 0.7 },
+    { id: 'r81', name: 'Stillwater Technical College', mascot: 'Stillmen', reputation: 26, momentum: 0.1 },
+    { id: 'r82', name: 'Ashen Green College', mascot: 'Cinders', reputation: 25, momentum: -0.6 },
+    { id: 'r83', name: 'Meadowbank College', mascot: 'Meadowlarks', reputation: 24, momentum: 0.3 },
+    { id: 'r84', name: 'Fallowden State College', mascot: 'Harriers', reputation: 23, momentum: 1.2 },
+    { id: 'r85', name: 'Rookwood College', mascot: 'Rookery', reputation: 23, momentum: -0.1 },
+    { id: 'r86', name: "Tanner's Ford College", mascot: 'Tanners', reputation: 22, momentum: 0.6 },
+    { id: 'r87', name: 'Selby Point College', mascot: 'Lighthouses', reputation: 21, momentum: -0.3 },
+    { id: 'r88', name: 'Ironbark Technical College', mascot: 'Barkmen', reputation: 20, momentum: 0.4 },
+    { id: 'r89', name: 'Glassmoor College', mascot: 'Glassblowers', reputation: 20, momentum: 0.8 },
+    { id: 'r90', name: 'Hartsend College', mascot: 'Harts', reputation: 19, momentum: -0.5 },
+    { id: 'r91', name: "Peddler's Cross College", mascot: 'Peddlers', reputation: 18, momentum: 0.2 },
+    { id: 'r92', name: 'Winnow Hill College', mascot: 'Winnowers', reputation: 17, momentum: 0.5 },
+    { id: 'r93', name: 'Draycott College', mascot: 'Draymen', reputation: 17, momentum: -0.2 },
+    { id: 'r94', name: 'Saltmarsh Technical College', mascot: 'Saltmen', reputation: 16, momentum: 0.9 },
+    { id: 'r95', name: 'Coldharbour College', mascot: 'Harbourmen', reputation: 15, momentum: 0.1 },
+    { id: 'r96', name: 'Mirebeck College', mascot: 'Mirelarks', reputation: 14, momentum: -0.4 },
+    { id: 'r97', name: 'Tallow Creek College', mascot: 'Chandlers', reputation: 14, momentum: 0.7 },
+    { id: 'r98', name: 'Hollowford College', mascot: 'Hollowmen', reputation: 13, momentum: 0.3 },
+    { id: 'r99', name: 'Ravensgate Community College', mascot: 'Gatekeepers', reputation: 12, momentum: 0.6 },
   ];
 }

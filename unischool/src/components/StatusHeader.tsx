@@ -100,7 +100,20 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
   s: GameState; onOpenTreasury: () => void; treasuryOpen: boolean;
 }) {
   const netWeekly = weeklyNet(s);
-  const rank = s.hasEnteredRankings ? playerRank(s) : null;
+  // SHOWN FROM WEEK ONE, and it used to be withheld until the top-50 reveal
+  // had fired. That gate made sense while the field was 56 schools: a
+  // founding college ranked 56th of 56, and a readout whose only possible
+  // value is "last" is a floor, not a standing. The field is 100 now, with
+  // 44 schools authored below a founding school's own prestige (see
+  // data/rivalData.ts's tail), so there is somewhere to climb from and the
+  // number is worth reading on day one.
+  //
+  // The REVEAL is untouched and still means what it meant: the U.S. News
+  // list publishes fifty names, so where you stand is knowable from the
+  // start and being PUBLISHED is the event (see
+  // systems/rivals/rivalsSystem.ts's TOP_50_CUTOFF, still the only reader
+  // of s.hasEnteredRankings besides the annual report).
+  const rank = playerRank(s);
 
   return (
     <>
@@ -126,7 +139,7 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
       <div className="toolbar-stats">
         <div className="toolbar-stat">
           <span className="stat-label">Rank</span>
-          <span className="stat-value">{rank ? `#${rank}` : '—'}</span>
+          <span className="stat-value">#{rank}</span>
         </div>
         <div className="toolbar-stat">
           <span className="stat-label">Enrolled</span>

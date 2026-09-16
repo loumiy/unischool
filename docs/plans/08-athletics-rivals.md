@@ -446,17 +446,33 @@ the game — the player's included — acquires a mascot.
   makes a standings row read as a sports page rather than a spreadsheet, and it
   is what PR 2F's championship modal names when the player loses a final.
 - **`University.mascot: string`**, empty at founding and filled by PR 2C's
-  interrupt. Landing the field here rather than in 2C keeps the save-shape
-  change in one migration with the other three.
+  interrupt. **Re-argued** since the front matter, which rightly flagged that
+  the original reason — keeping the save-shape change in one migration — is
+  exactly the habit the new save policy retires. It belongs here anyway, for a
+  reason that has nothing to do with migration cost: `Rival.mascot` and
+  `University.mascot` are one concept on two sides of the same comparison, and
+  the field is read by the same standings code. Splitting them across two PRs
+  would mean writing the "what a mascot is and is not" comment twice, or
+  writing it in 1A against a type that only half exists. The empty string is
+  not a placeholder awaiting 2C; it is the true statement that a school with no
+  varsity program has nothing for a mascot to name.
 - **The toolbar shows rank unconditionally.** `StatusHeader.tsx`'s
   `s.hasEnteredRankings ? playerRank(s) : null` becomes `playerRank(s)`, and
   `HistoryTab.tsx`'s `showRank` follows it. `hasEnteredRankings` keeps its only
   remaining job: gating the reveal interrupt and the annual report, both
   unchanged.
-- **`SAVE_VERSION` 41 → 42.** The 44 new rivals are appended with their authored
-  values; every existing rival gains its authored mascot by id; `self.mascot`
-  fills with `''`. The shape of MIGRATIONS[28], which added `athleticStrength`
-  to every rival, and it carries open question 8's rank note.
+- **One `SAVE_VERSION` bump**, with a migration — which under the current
+  policy is an exception and is argued as one at the entry itself. Not for a
+  run worth carrying: this is the *first* bump taken under "discarding is the
+  default", and a skipped link does not drop one save, it orphans every earlier
+  one. `loadGame` returns null at the first gap, so with no entry here the
+  whole v3 → v40 chain becomes unreachable and ten of
+  `save-migrations.test.ts`'s cases go with it. Retiring that chain may well be
+  right, but it is a decision about the chain rather than about rival schools
+  and should not arrive as a side effect of a content PR. The carry itself is
+  the cheap kind the policy describes, in the shape of MIGRATIONS[28]: append
+  the 44, fill each saved rival's mascot by id, empty the school's own — and it
+  carries open question 8's rank note.
 
 **The documents this falsifies, fixed here.** `docs/design/progression.md`'s
 "Rankings" section opens *"Rivals are populated densely enough that a top 50 is
@@ -470,6 +486,90 @@ change: the field is 100, and standing is now on the toolbar with the
 read is that prestige columns are unchanged while rank columns move for exactly
 the founding years. The regression gate asserts prestige separation and cash
 arcs, neither of which this touches.
+
+**As implemented:** three things this PR had to fix that the plan did not
+anticipate, all three found by the verification above rather than by reading.
+
+**One: rival drift is now pinned to one global random draw a year.** It used to
+call `Math.random()` two or three times *per rival*, so the number of draws a
+year scaled with the size of the table. `sim/balanceSim.ts` seeds `Math.random`
+to make a run reproducible, and its own comment names the hazard exactly: a
+content change that moves the stream cannot be told apart from a rebalance at a
+single seed. Adding 44 schools moved it by ~120 draws a year and knocked four
+checks off `test/balance-regression.test.ts` at the default seed.
+
+Two controls established that the field itself is economically inert, and they
+are worth recording because the first one was wrong. Burning a flat 88 extra
+draws a year on an otherwise unmodified tree passed at three seeds — but that
+was not the same shift, because a rival consumes two draws or three depending
+on whether its momentum rerolls. The decisive control was the full 100-school
+field with the *drift loop restricted to the original 55*, so the stream is
+bit-identical to `main`'s: it reproduced `main` at every seed tried, including
+the seed `main` itself fails. Nothing outside `rivalsSystem.ts` reads a rival,
+and the standings reach no system.
+
+Pinning the draw at one a year is what stops this recurring — which matters
+immediately, because PR 1B gives every rival two more axes to drift and PR 1C
+gives athletic strength its own. Without it each of those would reshuffle every
+faculty potential and candidate listing in the game again.
+
+**Zero, in the sense that it arrived from outside: the founding band collapsed
+while this was in flight.** Section 0's third finding argues the tail from a
+player who "begins at 35-50 depending on school type" — a private opening above
+the whole tail, a public opening *inside* it with a dozen schools directly
+above to pass. Plan 07 retired the private/public fork, so every school now
+opens at a single reputation of 50, above the entire tail.
+
+The finding survives, and the half that mattered is untouched: the tail is
+still what keeps the 50th school by reputation the same school, so the top-50
+threshold still costs the prestige it always did. What changes is the second
+half's wording. A founding school is no longer *inside* the field; it is
+mid-table at about #55 of 100 rather than last of 56, and the tail's real gift
+is that the rank now has somewhere to **fall** — a school that stalls slides
+into a field of real schools instead of resting on a floor it cannot drop
+through. `docs/design/progression.md` carries the corrected version; the
+argument above is left as written, because that is the world it reasoned
+against.
+
+**Two: `hashUnit` had no avalanche, and the athletic axis was a near-copy of the
+academic one.** `athleticStrengthFor`'s comment claims a "wide (0.6x-1.4x)"
+multiplier that makes athletic standing genuinely independent of reputation.
+Measured, the multiplier over `r1`..`r99` spanned **0.603 to 0.689** — every
+school at about 0.65x its reputation. `h = (h * 31 + c) % 1_000_003` does not
+disperse inputs as short and as similar as these: `r1`..`r9` landed within
+0.000008 of each other. Fixed to FNV-1a plus Murmur3's finalizer, which restores
+the documented 0.607–1.392 band. Pre-existing, but fixed here rather than in PR
+1C, which hashes id-plus-sport through the same function and would have given
+all 100 schools one profile. A save keeps its stored `athleticStrength`; only
+new games differ.
+
+**Three: the `Overbuilder` archetype was re-swept, from 5,500 to 5,250.** The
+one-time stream shift is unavoidable for anything that touches the dice, and it
+landed the *default* seed on the wrong side of a knife-edge: the Overbuilder is
+supposed to go into real financial distress, and on the new stream it bottomed
+out at **+12,073** instead of going red at all.
+
+The interesting part is not the fix but what it exposed. At 5,500 that
+strategy's trough was typically **-100k to -200k against a ~$12M/yr opex** —
+about 1% of a year's spending — so `minCash < 0` was a coin flip on whichever
+stream it happened to run, and the gate asserting it was not measuring a robust
+property. `main` fails four of its own checks at seed 7 for the same reason.
+
+Re-swept the way the 5,500 was ("picked by sweeping, not derived"), but against
+fourteen seeds rather than one: 5,500 passes 9/10, 4,750 8/10, 4,500 7/10,
+4,250 5/10, and **5,250 passes 14/14**. The failures at the other prices are not
+one failure — above 5,250 the trough is too shallow to reliably go red, below it
+the school stops *recovering* and ends underwater, which falsifies "stall, don't
+die" from the other side. At the default seed 5,250 reads -219,980 over 110
+weeks in the red, within noise of the -209,657 over 71 weeks 5,500 produced on
+the old stream: the same archetype, restated at a price that does not depend on
+the dice.
+
+**A decision recorded rather than made quietly:** the two ways this could have
+gone — deepen the fixture, or make the gate assert its distress claim across a
+seed sweep — were put to the repository owner, who chose the fixture. The
+harness's own seed-fragility is untouched and remains a live issue for anything
+else that moves the stream.
 
 ## PR 1B — Standing becomes three numbers
 
@@ -519,6 +619,40 @@ discipline applies to all three.
 prestige, cash, enrolment and satisfaction figure identical to PR 1A's run.**
 Anything that moved means an axis leaked into the headline target.
 
+**As implemented:** the bar was met — the forty-year sim is byte-identical to
+PR 1A's across all seven strategies — but only after a mistake that is worth
+recording, because it is the one this plan's whole "additive, not a
+decomposition" argument could have died of quietly.
+
+**The two new axes first drifted off the SAME local generator as `reputation`,
+and that moved the economy.** Each rival's academic draw then came after the
+previous rival had consumed four more numbers for the other two standings, so
+adding an axis silently changed every rival's academic trajectory. That reaches
+the economy through the one channel PR 1A established rivals have: when the
+top-50 reveal fires, and therefore which weeks the annual report takes away
+from decision events. The sim diverged from year 10 onward — not because a
+standing leaked into `computePrestigeTarget` (it did not; the function is
+character-for-character unchanged) but because the *dice* moved again, one PR
+after being pinned.
+
+Fixed by seeding **three** generators from the single global draw, xor-derived
+rather than drawn separately so the global stream still sees one draw a year.
+The academic stream is then bit-identical to what it was, and the two new axes
+cannot perturb it however they grow. The general lesson is worth keeping: PR
+1A's pinning made the field's *size* safe, and this makes its *shape* safe;
+both were needed, and only one of them was foreseen.
+
+**Two smaller departures.** `researchScore`'s credit tally is extracted to a
+`researchCredits` helper so the two readings of it share one source — the
+arithmetic is untouched, and the two axes differ only in what they divide it
+by (the research axis uses three times the denominator, so twenty credits reads
+as "a good research school" rather than as the top of the national table).
+And the report's two extra lines carry **no year-over-year move**: `YearSnapshot`
+records only the academic rank, a move needs a stored prior, and this plan's
+own "what it does not do" keeps `YearSnapshot` at one rank. Each line names the
+school leading that axis instead, which is the context a bare ordinal was
+missing.
+
 ## PR 1C — A rival's athletic strength moves, and splits by sport
 
 **The change.** The two things PR 2F cannot be built without.
@@ -542,6 +676,45 @@ it has today.
 `docs/design/student-life.md`'s "Standings" paragraph describes
 `athleticStrengthFor` as the whole model and `Rival.athleticStrength` as static;
 `types.ts`'s comment on that field says the same.
+
+**As implemented:** a third collapse in the same derivation family, found the
+same way the first two were — by asserting the property rather than reading the
+code.
+
+**`athleticStrengthFor` saturated its own clamp.** It mapped reputation
+straight onto 10..100, and with reputations reaching 99 the product ran past
+the ceiling: **twelve of the 99 rivals sat at exactly 100.** Spread per sport,
+that became thirteen-to-sixteen schools tied at 100 on *every one* of the
+eighteen tables. "Who is best at lacrosse" had no answer, and PR 2F's bracket
+would have seeded its strongest eight by position in an array.
+
+Two changes fix it, and both are about leaving the ceiling alone rather than
+clamping into it. The department band now stops at 80 (scaled before the
+spread, so the distribution uses the band instead of piling against it), with
+the drift allowed a little above at 85 so a school climbing for decades is not
+stuck against the wall it started under. And the per-sport swing is **additive,
+±28 points, rather than a multiplier**: a multiplicative spread scales with the
+base, so the strongest departments led nearly every sport and the eighteen
+tables were the department table with noise on it.
+
+±28 was measured rather than picked. At ±20 no table tied but the top
+departments still led most sports; at ±28 no table opens with a tie, ten of the
+eighteen have a different best school, and two sports share only about two of
+their eight strongest — so each sport has a field of its own, which is the only
+thing a per-sport table is for.
+
+**The lesson is now three for three.** PR 1A found `hashUnit` with no
+avalanche; PR 1B found the axes sharing a generator; this found the band
+saturating. Every one was a derivation that looked right and collapsed under
+measurement, and every one was caught by a test that asserted the *property*
+the comment claimed — a wide spread, an untouched trajectory, no tie at the
+top — rather than by reading the arithmetic. `test/sport-standings.test.ts`
+exists for that reason and keeps all three properties asserted.
+
+**The fourth generator.** Athletic drift takes its own xor-derived stream, per
+PR 1B's note, so the academic stream stays bit-identical: `npm run sim` is
+unchanged from PR 1A across all seven strategies and forty years. The global
+draw is still one a year with four axes moving.
 
 ---
 
