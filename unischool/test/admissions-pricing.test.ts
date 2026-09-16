@@ -191,9 +191,82 @@ for (const prestige of [30, 50, 90]) {
   assert(o.admits >= 0, 'admits never negative under extreme sticker shock');
   assert(o.enrolled >= 0, 'enrolled never negative under extreme sticker shock');
   assert(o.admitRate >= 0 && o.admitRate <= 1, 'admit rate stays in [0, 1]');
-  assert(o.yieldRate >= 0 && o.yieldRate <= 1, 'yield rate stays in [0, 1]');
   assert(o.stickerShockMultiplier >= 0 && o.stickerShockMultiplier <= 1, 'shock multiplier stays in [0, 1]');
   assert(admitRate(prestige) >= 0 && admitRate(prestige) <= 1, 'admitRate(prestige) stays in [0, 1] independent of shock');
+}
+
+// =====================================================================
+// 7. THE ADMIT RATE IS A DECISION (Plan 05's PR C) — the class is the
+// share of the pool the player chose, so moving the slider moves class
+// size, monotonically and with nothing in between.
+// =====================================================================
+for (const prestige of [30, 50, 90]) {
+  const price = Math.round(priceTolerance(prestige));
+  let previousEnrolled = -1;
+  for (const rate of [0.05, 0.1, 0.25, 0.5, 0.75, 1]) {
+    const o = projectAdmissions(prestige, price, CAPACITY, SATISFACTION, undefined, rate);
+    assert(
+      o.enrolled >= previousEnrolled,
+      `prestige ${prestige}: a larger admit rate never commits a smaller class (${rate}: ${o.enrolled}, previous ${previousEnrolled})`,
+    );
+    previousEnrolled = o.enrolled;
+  }
+
+  // Admitted IS enrolled: there is no yield step left to take a cut. At a
+  // rate the pool can actually fill, the class is the chosen share of it.
+  const half = projectAdmissions(prestige, price, CAPACITY, SATISFACTION, undefined, 0.5);
+  assert(
+    Math.abs(half.enrolled - half.applicants * 0.5) <= 1,
+    `prestige ${prestige}: admitting half the pool enrolls half the pool (${half.enrolled} of ${half.applicants})`,
+  );
+  assert(
+    Math.abs(half.admitRate - 0.5) < 1e-9,
+    `prestige ${prestige}: the reported rate echoes the choice when the bands can fill it (got ${half.admitRate})`,
+  );
+}
+
+// =====================================================================
+// 8. A BIGGER CLASS COSTS QUALITY — the price of admitting deep, and the
+// only thing that punishes it now that yield is gone. The skim runs best
+// band first, so a larger share reaches further down the distribution and
+// drags the average quality of who arrives, which feeds prestige.
+// =====================================================================
+for (const prestige of [30, 50, 90]) {
+  const price = Math.round(priceTolerance(prestige));
+  let previousQuality = Infinity;
+  for (const rate of [0.05, 0.1, 0.25, 0.5, 0.75, 1]) {
+    const o = projectAdmissions(prestige, price, CAPACITY, SATISFACTION, undefined, rate);
+    assert(
+      o.avgIncomingQuality <= previousQuality + 1e-9,
+      `prestige ${prestige}: admitting a larger share never raises incoming quality (${rate}: ${o.avgIncomingQuality.toFixed(2)}, previous ${previousQuality.toFixed(2)})`,
+    );
+    previousQuality = o.avgIncomingQuality;
+  }
+  // And the trade is real, not a rounding artifact: taking the whole pool
+  // is a materially weaker class than skimming the top of it.
+  const skim = projectAdmissions(prestige, price, CAPACITY, SATISFACTION, undefined, 0.05);
+  const all = projectAdmissions(prestige, price, CAPACITY, SATISFACTION, undefined, 1);
+  assert(
+    skim.avgIncomingQuality > all.avgIncomingQuality + 5,
+    `prestige ${prestige}: skimming beats taking everyone by a real margin (${skim.avgIncomingQuality.toFixed(1)} vs ${all.avgIncomingQuality.toFixed(1)})`,
+  );
+  assert(all.enrolled > skim.enrolled, `prestige ${prestige}: and the bigger class really is bigger`);
+}
+
+// =====================================================================
+// 9. THE DEFAULT IS WHAT THE SLIDER OPENS AT — admitRate(prestige) is no
+// longer an answer the funnel computes, so the only claim left on it is
+// that it is a sane opening position: a real share, more selective the
+// more standing a school has.
+// =====================================================================
+{
+  let previous = Infinity;
+  for (const prestige of [0, 30, 50, 90, 130, 150]) {
+    const rate = admitRate(prestige);
+    assert(rate > 0 && rate < 1, `prestige ${prestige}: the default rate is a real share (got ${rate})`);
+    assert(rate < previous, `prestige ${prestige}: standing makes a school more selective by default (${rate.toFixed(4)} < ${previous.toFixed(4)})`);
+    previous = rate;
+  }
 }
 
 console.log('admissions-pricing tests');

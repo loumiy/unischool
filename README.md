@@ -565,11 +565,11 @@ as one-off pauses.
 ## Admissions: an annual summer decision
 
 Admissions is **a once-a-year task, in the summer**, delivered as an interrupt.
-When it fires, the clock stops and the player sets exactly **one** lever for the
-coming year: **tuition**. There is no scholarship rate and no discount — what a
-family is quoted is what they pay.
-**Tuition is set once a year here — there is no live, continuously adjustable
-tuition control.** What the slider sets is the **listed** price
+When it fires, the clock stops and the player sets exactly **two** levers for
+the coming year: **tuition** and the **admit rate**. There is no scholarship
+rate and no discount — what a family is quoted is what they pay.
+**Both are set once a year here — there is no live, continuously adjustable
+tuition control.** What the tuition slider sets is the **listed** price
 (`finance.listedTuition`), which reaches a student only as the price their class
 is admitted under — see "Tuition follows the class that paid it" below.
 
@@ -597,13 +597,25 @@ individual applicants:
   whose rates were sized to close an exploit that no longer exists — with one
   price, the "inflate the sticker and match it with aid" construction cannot be
   written — and which are kept for the effect itself.
-- **Selectivity** (the admit rate) is an emergent *output*, reported back to the
-  player — never a dial they set.
-- **Yield** — how many admitted students actually enroll — rises with prestige
-  and falls for higher-quality admits, who have better offers elsewhere.
-  Scholarships used to be its main lever; retiring them moved what that lever
-  typically contributed into `YIELD_BASE`, so a school that prices sensibly
-  enrolls about what it always did.
+- **Selectivity** (the admit rate) is the player's **second decision**. It is
+  still not capacity-derived — admissions skims from the top of the quality
+  distribution, taking that share of the pool, best band first — but the share
+  is chosen. `admitRate(prestige)` is what the slider *opens* at: what a school
+  of this standing would normally take, more selective the more standing it has.
+  The chosen rate is sticky, so an unchanged strategy is a one-click continue.
+- **There is no yield step.** What the skim takes is what enrolls. The price of
+  a bigger class is **quality**: admitting a larger share reaches further down
+  the distribution, dragging average incoming quality, which feeds prestige.
+  Class size is bought with quality rather than conceded to yield.
+
+  Two things followed from deleting yield, both deliberate. `admitRate`'s
+  constants were **refitted** against the enrolled share the old two-step funnel
+  produced, so a school accepting the default commits about the class it always
+  did — the number now means "share of applicants who enroll", not "share who
+  get a letter". And a school nobody has heard of is no longer hurt twice: it
+  used to have to admit nearly everyone *and* watch most of them go elsewhere,
+  so its enrolled share peaked mid-range. A single monotone curve cannot express
+  that, and a player setting the slider is not subject to it at all.
 
 Students **attend for four years**, so each summer admits a **new freshman
 class** while the existing classes advance a year and the seniors graduate (see
@@ -650,8 +662,8 @@ pull the social, a real varsity program pulls athletes, and an honest net price
 pulls the price-sensitive. This is what gives several different strategies each
 their own reason for enrollment to grow, instead of only prestige and price.
 
-A cohort is **not a segment of the funnel**: it gets no quality band, yield
-curve or sticker-shock rate of its own. Every cohort's pull blends into one
+A cohort is **not a segment of the funnel**: it gets no quality band or
+sticker-shock rate of its own. Every cohort's pull blends into one
 multiplier on the whole pool, the same architectural role word of mouth and
 capacity already play. Nothing about a cohort is stored — its pull is a pure
 function of state, recomputed wherever it is needed.
@@ -1972,8 +1984,8 @@ any refactor.
   trickle. The rebalancing pass that money-paces-alone needed is done — costs
   now lead revenue at every turn of the growth loop (see "Pacing model"), with
   the constants grouped for hand-tuning and `npm run sim` to check the shape.
-- Annual summer admissions interrupt: the player sets tuition; selectivity and
-  enrollment are emergent funnel outputs, not inputs.
+- Annual summer admissions interrupt: the player sets tuition and the admit
+  rate; the applicant pool, incoming quality and enrollment follow from them.
 - Dense rivals (~55) + the U.S. News report as a mid-game reveal.
 - The academic-buildings / milestone-chain / curriculum-depth cluster: school &
   major buildings, milestone bonuses, course descriptions, cross-kind and

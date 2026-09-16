@@ -636,19 +636,29 @@ export function reducer(state: GameState, action: Action): GameState {
       // incoming FRESHMAN class from demand and policy alone — dorm capacity
       // only scales the applicant pool now (see admissionsSystem.ts's
       // module comment), never a ceiling to fill or be capped by.
+      // The admit rate is the player's second decision now (Plan 05's PR
+      // C): the funnel takes it rather than computing one. What comes back
+      // as outcome.admitRate is admits/applicants, which matches the choice
+      // unless a thin top/mid band ran out before the share was filled.
+      const chosenAdmitRate = Math.max(0, Math.min(1, action.admitRate));
       const outcome = projectAdmissions(
         s.self.reputation,
         s.finance.listedTuition,
         s.students.capacity,
         priorYearAvgSatisfaction,
         deriveCohortSignals(s),
+        chosenAdmitRate,
       );
       classes.freshman = outcome.enrolled;
       // The incoming class is quoted the price that was just set, and keeps
       // it for four years.
       tuition.freshman = s.finance.listedTuition;
       s.students.applicantPool = outcome.applicants;
-      s.students.admitRate = outcome.admitRate;
+      // Stored as the CHOSEN rate, not the realized one, because this is
+      // what next summer's slider opens at (see admissionsSystem.ts's
+      // payload) — a school whose thin top band clipped its intake should
+      // reopen on the policy it set, not on the clipped consequence.
+      s.students.admitRate = chosenAdmitRate;
       s.students.incomingQuality = outcome.avgIncomingQuality;
 
       // The one annual boundary in the game, so the one place the history
@@ -667,7 +677,7 @@ export function reducer(state: GameState, action: Action): GameState {
       s.log.unshift({
         year: s.clock.year,
         week: s.clock.week,
-        message: `Admissions: tuition $${s.finance.listedTuition.toLocaleString()}/yr — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admit rate, ${outcome.enrolled.toLocaleString()} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
+        message: `Admissions: tuition $${s.finance.listedTuition.toLocaleString()}/yr — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admitted, ${outcome.enrolled.toLocaleString()} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
         kind: 'info',
       });
 

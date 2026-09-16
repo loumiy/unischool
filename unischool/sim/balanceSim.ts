@@ -26,6 +26,7 @@ import { createPreStartState } from '../src/state/actions';
 import type { GameState, Buildable, InitiativeReport, SchoolType } from '../src/state/types';
 import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudent } from '../src/systems/finance/financeSystem';
+import { admitRate } from '../src/systems/admissions/admissionsSystem';
 import {
   canStartDevelopment, hasFreeFacultySlot, eligibleInstructors, unstaffedCourses,
   isCommitted, effectiveCourseSlots, totalFacultySlots, usedFacultySlots,
@@ -765,6 +766,17 @@ export function play(
         dispatch({
           type: 'RESOLVE_ADMISSIONS',
           tuition: strategy.tuition(s),
+          // Every strategy takes the slider's own opening position for its
+          // CURRENT standing — what a school like this would normally take
+          // (see admissionsSystem.ts's admitRate). Deliberately recomputed
+          // each summer rather than read back off s.students.admitRate:
+          // that field is sticky by design, so a scripted player echoing it
+          // would freeze on its founding rate and go on taking a founding
+          // school's share of the pool at top-50 prestige. No strategy here
+          // plays the lever deliberately, so the harness measures what the
+          // DEFAULT policy does — which is what it measured before PR C
+          // made the rate a decision at all.
+          admitRate: admitRate(s.self.reputation),
           approvedPetitionIds,
         });
         rows.push(snapshot(s, weeksInTheRed, minCash));
@@ -1170,12 +1182,22 @@ export const STRATEGIES: Strategy[] = [
     // year 40 with no further red weeks.
     //
     // Picked by sweeping, not derived, and the sweep is worth recording:
-    // the response is not monotone. 6,000 ends year 40 at -86M while 5,500
-    // and 6,500 both end healthy. This economy is a threshold system — a
+    // the response is not monotone. This economy is a threshold system — a
     // strategy builds when cash clears a buffer — so small changes move
     // WHICH WEEK a dorm goes up and forty years compounds the difference.
     // Read a single price here as one sample of a noisy function, never as
     // a tuned optimum.
+    //
+    // KNOWN RESIDUAL, as of Plan 05's PR C: this holds at the 20-year
+    // horizon balance-regression.test.ts actually asserts, but the 40-year
+    // `npm run sim` display now ends deeply underwater where it used to end
+    // solvent. That is not a price that wants nudging — a sweep from 5,500
+    // to 11,000 finds no value that satisfies both horizons, because what
+    // changed is upstream of price. Deleting yield let a selective school
+    // keep the whole top band, so incoming quality (and through it,
+    // prestige, and through that, the applicant pool) runs higher for
+    // everyone; this strategy builds a dorm unconditionally, so a bigger
+    // pool is a bigger bill every single year. See PR C's own note.
     name: 'Overbuilder (beds ahead of demand)', schoolType: 'private',
     tuition: () => 5_500,
     buffer: () => 0,

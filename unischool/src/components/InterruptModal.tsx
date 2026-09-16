@@ -4,7 +4,7 @@ import type { GameState, InitiativeReport, PendingInterrupt } from '../state/typ
 import { institutionName, WEEKS_PER_YEAR } from '../state/types';
 import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
-import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction, type PriceTier } from '../systems/admissions/admissionsSystem';
+import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction, admitRate, type PriceTier } from '../systems/admissions/admissionsSystem';
 import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
 import { computePrestigeTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
 import { findDecisionEvent } from '../data/eventData';
@@ -28,6 +28,7 @@ function interruptBody(interrupt: PendingInterrupt): { title: string; body: stri
 
 interface AdmissionsDraft {
   tuition: number;
+  admitRate: number;
 }
 
 function money(v: number): string {
@@ -155,12 +156,17 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
   onResolve: (settings: AdmissionsDraft & { approvedPetitionIds: string[] }) => void;
 }) {
   const [tuition, setTuition] = useState(payload.tuition);
+  const [admitRateChoice, setAdmitRateChoice] = useState(payload.admitRate);
   // Approved by default — see the note on StudentLifeDigest above.
   const [approved, setApproved] = useState<Set<string>>(() => new Set(petitions.map((p) => p.id)));
 
   // Live preview of the emergent outcomes, computed with the very function
   // the reducer commits with — so the numbers shown are the numbers applied.
-  const outcome = projectAdmissions(prestige, tuition, capacity, satisfaction, cohortSignals);
+  const outcome = projectAdmissions(prestige, tuition, capacity, satisfaction, cohortSignals, admitRateChoice);
+  // What a school of this standing would normally take — the slider's own
+  // opening position on a fresh save, shown as a reference point so a
+  // player moving away from it knows they are moving away from something.
+  const usualAdmitRate = admitRate(prestige);
   // What this school's prestige lets it charge before demand starts
   // falling away (see admissionsSystem.ts's price tolerance). Shown
   // because it is the single most consequential curve behind this
@@ -173,7 +179,7 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
   return (
     <>
       <h2>Summer Admissions</h2>
-      <p>Set next year's tuition. Selectivity and enrollment follow from your applicant pool — see the projected outcomes below before you confirm.</p>
+      <p>Set next year's tuition and how much of the applicant pool to take. Admitting deeper means a bigger class drawn further down the quality distribution — see the projected outcomes below before you confirm.</p>
 
       <label className="admissions-field">
         <span>
@@ -185,6 +191,17 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
         <PriceTierTag tier={priceTierNow} />
       </label>
 
+      <label className="admissions-field">
+        <span>
+          Admit rate <strong>{Math.round(admitRateChoice * 100)}%</strong> of applicants
+          <span className="outcome-note">
+            {' '}(a school of your standing usually takes {Math.round(usualAdmitRate * 100)}%)
+          </span>
+        </span>
+        <input type="range" min={0.01} max={1} step={0.01} value={admitRateChoice}
+          onChange={(e) => setAdmitRateChoice(Number(e.target.value))} />
+      </label>
+
       <dl className="admissions-outcomes">
         <div><dt>Applicant pool</dt><dd><AnimatedNumber value={outcome.applicants} /></dd></div>
         <div>
@@ -192,8 +209,6 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
           <dd>{outcome.stickerShockMultiplier >= 1 ? 'none' : `-${Math.round((1 - outcome.stickerShockMultiplier) * 100)}% applicants`}</dd>
         </div>
         <div><dt>Word of mouth <span className="outcome-note">(avg satisfaction last year {Math.round(satisfaction)})</span></dt><dd>{outcome.wordOfMouthMultiplier >= 1 ? '+' : ''}{Math.round((outcome.wordOfMouthMultiplier - 1) * 100)}% applicants</dd></div>
-        <div><dt>Admit rate <span className="outcome-note">(selectivity)</span></dt><dd>{Math.round(outcome.admitRate * 100)}%</dd></div>
-        <div><dt>Yield</dt><dd><AnimatedNumber value={outcome.yieldRate * 100} format={(n) => `${Math.round(n)}%`} /></dd></div>
         <div><dt>Freshman class</dt><dd><AnimatedNumber value={outcome.enrolled} /></dd></div>
         <div><dt>Incoming quality <span className="outcome-note">(feeds prestige)</span></dt><dd><AnimatedNumber value={outcome.avgIncomingQuality} format={(n) => `${Math.round(n)} / 100`} /></dd></div>
       </dl>
@@ -213,7 +228,7 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
         })}
       />
 
-      <button onClick={() => onResolve({ tuition, approvedPetitionIds: [...approved] })}>
+      <button onClick={() => onResolve({ tuition, admitRate: admitRateChoice, approvedPetitionIds: [...approved] })}>
         Confirm Policy
       </button>
     </>

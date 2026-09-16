@@ -7,11 +7,11 @@ import { teamQuality } from '../../data/studentLifeData';
 // admissionsSystem.ts's funnel already grows and shrinks — prestige,
 // price, satisfaction, dorm capacity, sticker shock, quality bands.
 // Deliberately NOT a full segmentation of that funnel: a cohort does not
-// get its own quality band, yield curve, or sticker-shock rate. Instead
+// get its own quality band or sticker-shock rate. Instead
 // every cohort's `pull` blends into ONE extra multiplier on the whole pool
 // (see cohortDemandFactor below and admissionsSystem.ts's rawApplicants),
 // the same architectural role wordOfMouthFactor and capacityFactor already
-// play there. That keeps the funnel's well-tuned band/yield/sticker-shock
+// play there. That keeps the funnel's well-tuned band/sticker-shock
 // math (see admissions-pricing.test.ts) completely untouched, while still
 // giving the player several genuinely independent reasons enrollment can
 // grow, instead of only prestige and price: building labs pulls in

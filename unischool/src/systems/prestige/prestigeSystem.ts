@@ -110,7 +110,7 @@ const PRESTIGE_DRIFT_RATE = 0.0025;
 // university's standing, it never substitutes for being one.
 const CURRICULUM_BREADTH_WEIGHT = 90; // majors/schools completed — the stock only sustained buildout grows
 const TEACHING_QUALITY_WEIGHT = 30;   // how good the courses actually are, as its own input (see teachingScore below)
-const STUDENT_QUALITY_WEIGHT = 24;    // emergent avg incoming quality — grows with a low-tuition, high-yield posture
+const STUDENT_QUALITY_WEIGHT = 24;    // emergent avg incoming quality — grows with a low-tuition, selective posture
 const RESEARCH_WEIGHT = 22;           // what the university's research has actually produced (see researchScore below)
 const CAMPUS_LIFE_WEIGHT = 12;        // rec center / athletics complex — a small, capped draw on its own (see campusLifeScore below)
 const ENDOWMENT_WEIGHT = 18;          // financial resources per student — what the late-game endowment campaigns buy (see endowmentScore below)

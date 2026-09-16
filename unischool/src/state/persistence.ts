@@ -6,6 +6,7 @@ import {
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR } from './types';
 import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES, ORIGIN_NATIONALITIES } from '../data/facultyData';
 import { initialTech } from '../data/techData';
+import { admitRate } from '../systems/admissions/admissionsSystem';
 import { initialFacilities } from '../data/facilitiesData';
 import { initialDorms } from '../data/campusData';
 import { fellTrees, seedTrees } from '../data/treeData';
@@ -871,7 +872,26 @@ export const SAVE_KEY = 'unischool.save';
 // change working, not the migration losing anything.
 //
 // See MIGRATIONS[36].
-export const SAVE_VERSION = 37;
+//
+// v37 -> v38: the admit rate becomes the player's second decision (Plan
+// 05's PR C), and the yield step is deleted — what admissions skims is
+// what enrolls. `students.admitRate` stops being a record of what the
+// funnel computed and becomes the sticky policy the summer slider opens
+// at, so the number in a resumed save is in the OLD meaning and cannot be
+// carried across: it is a share of applicants ADMITTED, out of which only
+// about half used to arrive. Left alone, a resumed school would open its
+// next summer on a slider reading ~82% and commit a class roughly twice
+// the size it had been committing.
+//
+// So it is reset to admitRate(prestige) — the re-based curve's value for
+// that school, which is exactly what the slider would open at on a fresh
+// save of the same standing, and what the school was effectively enrolling
+// under the old two-step funnel. Nothing else is touched: the class sizes
+// already on the books are untouched, and the first summer after the load
+// is the player's own decision anyway.
+//
+// See MIGRATIONS[37].
+export const SAVE_VERSION = 38;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -947,6 +967,14 @@ interface LegacyGameState extends GameState {
 const KNOWN_SUFFIXES = ['College', 'University'];
 
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v37 -> v38: the admit rate becomes a decision, and the number stored
+  // under that name changes meaning with it (see the SAVE_VERSION header
+  // note above). Reset to what a school of this standing would normally
+  // take, which is what the old funnel was effectively enrolling.
+  37: (state) => {
+    state.students.admitRate = admitRate(state.self.reputation);
+  },
+
   // v36 -> v37: scholarships are retired (see the SAVE_VERSION header note
   // above). The whole admissions slice goes with the one rate it held.
   36: (state) => {

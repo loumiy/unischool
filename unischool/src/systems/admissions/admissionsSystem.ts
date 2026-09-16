@@ -59,15 +59,16 @@ export function trailingYearSatisfaction(s: GameState): number {
 //      pulled by a DIFFERENT investment — labs, established majors, clubs,
 //      a fielded varsity team — so growing enrollment is never only a
 //      prestige/price question.
-//   2. Admit rate = f(prestige) alone (see admitRate below): a school's
-//      standing is what makes it selective, on the real-world curve from a
-//      barely-selective young school to a single-digit admit rate at the
-//      very top. It is NOT a player lever and it is NOT capacity-derived —
-//      admissions skims from the top of the quality distribution, admitting
-//      that fraction of the applicant pool, most selective band first.
-//   3. Yield: not every admit enrolls. Yield rises with prestige and falls
-//      for higher-quality admits (who have better offers elsewhere).
-//      Enrolled class = yield x admits, with no ceiling of any kind.
+//   2. Admit rate is the PLAYER'S SECOND DECISION (Plan 05's PR C). It is
+//      still not capacity-derived — admissions skims from the top of the
+//      quality distribution, taking that fraction of the applicant pool,
+//      best band first — but the fraction is chosen, not computed.
+//      admitRate(prestige) below is what the slider opens at: what a school
+//      of this standing would normally take.
+//   3. The class IS the admits. There is no yield step: what the skim
+//      takes is what enrolls, with no ceiling of any kind. Admitting deeper
+//      costs incoming quality, since the skim runs best band first — that
+//      is the price of a bigger class, and it is paid in prestige.
 //   4. What flows into finance is each CLASS's own price (see
 //      financeSystem.ts's annualTuitionBilled and types.ts's
 //      tuitionByClass) — this funnel prices one class, not the school.
@@ -88,7 +89,7 @@ export function trailingYearSatisfaction(s: GameState): number {
 // cost money, which is exactly the lag the pacing model is built on.
 // =====================================================================
 
-// Reference points the quality/yield curves below are centered on: at
+// Reference points the quality curves below are centered on: at
 // PRESTIGE_REFERENCE and zero tuition they sit at their baseline. (Applicant
 // *volume* no longer uses either reference — see APPLICANT_VOLUME_MIDPOINT
 // and the price-tolerance block below, tuned independently.)
@@ -214,18 +215,47 @@ const STICKER_SHOCK_RATE: Record<QualityBand, number> = { top: 0.05, mid: 0.35, 
 const WORD_OF_MOUTH_NEUTRAL = 70;    // satisfaction score with no effect on demand — matches the founding value
 const WORD_OF_MOUTH_STRENGTH = 0.45; // max fractional change to the pool: +45% at satisfaction 100, -45% at 0
 
-// --- Admit rate: purely a function of prestige (see the module note above)
-// — never a player lever, and never derived from capacity. A decreasing
-// logistic, the mirror shape of applicantVolume's rising one: a school
-// nobody has heard of admits nearly everyone who applies, and standing
-// itself is what makes a top school selective, down to a single-digit
-// admit rate at the very top of the scale — the real-world shape, arrived
-// at without any notion of "how many seats are open."
-const ADMIT_RATE_CEILING = 0.92;    // admit rate at zero/negative prestige — a brand-new school turns almost nobody away
-const ADMIT_RATE_FLOOR = 0.04;      // the most selective a school can ever be, at the very top of the prestige scale
-const ADMIT_RATE_MIDPOINT = 90;     // prestige at which admit rate sits halfway between floor and ceiling
-const ADMIT_RATE_STEEPNESS = 0.05;  // curve steepness around the midpoint
+// --- Admit rate: A PLAYER DECISION as of Plan 05's PR C. This curve is no
+// longer what the funnel answers — it is what the slider OPENS at: what a
+// school of this standing would normally take. A decreasing logistic, the
+// mirror shape of applicantVolume's rising one, so standing itself is what
+// lets a school be selective, down to low single digits at the very top.
+//
+// WHAT THE NUMBER MEANS CHANGED, and the constants moved to match. There
+// is no yield step any more (PR C deleted it): an admitted student is an
+// enrolled student, so this is the share of the applicant pool that ends
+// up ON CAMPUS, not the share that gets a letter. Those were very
+// different numbers — the old model admitted 92% of a no-name school's
+// pool and enrolled about a fifth of them.
+//
+// ALL FOUR constants were therefore refitted, against the enrolled share
+// the two-step funnel actually produced at each prestige, so that a school
+// accepting the default commits about the class it always did. The fit is
+// within a few percent from prestige 50 up (-0.6% at 50, -7% at 70, -6%
+// at 90, -1.5% at 110, -0.3% at 130), which is the range a school spends a
+// run in. It is NOT a scaled copy of the old curve: the midpoint moved out
+// to 100 and the slope steepened, because the old admit curve and the
+// enrolled share it produced are different shapes.
+//
+// WHAT WAS LOST WITH YIELD, stated rather than quietly dropped, and it is
+// why the fit is +19% at prestige 30: a school nobody has heard of used to
+// be hurt twice — it had to admit nearly everyone AND few of them came —
+// so the share of applicants it actually enrolled PEAKED IN THE MIDDLE of
+// the prestige range rather than at the bottom. No monotone curve can
+// express that, and a player setting the slider is not subject to it at
+// all: a founding school can simply choose to take a large share of its
+// pool. What punishes admitting deep now is quality — the skim runs best
+// band first, so a bigger share reaches further down the distribution and
+// drags avgIncomingQuality, which feeds prestige. Class size is bought
+// with quality, not conceded to yield.
+const ADMIT_RATE_CEILING = 0.38;    // at zero/negative prestige — a brand-new school keeps a good share of the small pool it draws
+const ADMIT_RATE_FLOOR = 0.055;     // the most selective a school can ever be, at the very top of the prestige scale
+const ADMIT_RATE_MIDPOINT = 100;    // prestige at which the rate sits halfway between floor and ceiling
+const ADMIT_RATE_STEEPNESS = 0.06;  // curve steepness around the midpoint
 
+// The rate a school of this standing would normally take — the slider's
+// opening position, what a founding save is seeded with, and what a
+// migrated save is reset to.
 export function admitRate(prestige: number): number {
   return ADMIT_RATE_FLOOR + (ADMIT_RATE_CEILING - ADMIT_RATE_FLOOR) /
     (1 + Math.exp(ADMIT_RATE_STEEPNESS * (prestige - ADMIT_RATE_MIDPOINT)));
@@ -239,29 +269,16 @@ const QUALITY_BAND_FLOOR = 0.05;             // no band ever fully vanishes
 const PRESTIGE_QUALITY_SHIFT = 0.35;         // mass moved top<-low per unit of (prestige-ref)/ref
 const TUITION_QUALITY_SHIFT = 0.25;          // mass moved top->low per unit of tuition/ref
 
-// --- Yield: fraction of admits in a band who actually enroll ---
-//
-// YIELD_BASE ABSORBED THE RETIRED SCHOLARSHIP TERM, and the number moved
-// for that reason rather than a balance one. It was 0.30 — the yield of a
-// school offering NO aid — on top of which scholarships added up to +0.45
-// with diminishing returns. With the lever gone, leaving the base at 0.30
-// would not have removed a lever; it would have cut nearly every school's
-// intake roughly in half, since nearly every school ran some aid. 0.52 is
-// what the old formula produced at the rates the game was actually played
-// at (0.20 -> 0.503, 0.25 -> 0.537; five of the balance sim's seven
-// strategies sat in that band), so a school that prices sensibly yields
-// about what it always did. PR C deletes yield outright in favour of a
-// player-set admit rate, so this constant is a bridge, not a destination.
-const YIELD_BASE = 0.52;
-const PRESTIGE_YIELD_STRENGTH = 0.25;        // yield added per unit of (prestige-ref)/ref, for free
-// Higher-quality admits have better offers elsewhere, so they yield lower:
-// the top band pays the biggest yield penalty, the low band none.
-const YIELD_QUALITY_PENALTY = { top: 0.22, mid: 0.10, low: 0.0 };
+// NOTE: there is no yield here any more. `bandYield` and the
+// YIELD_BASE/PRESTIGE_YIELD_STRENGTH/YIELD_QUALITY_PENALTY constants were
+// deleted at Plan 05's PR C, when admit rate became the player's decision.
+// A second conversion between "the share I chose" and "the class I got" is
+// exactly what made the old panel need nine numbers to explain one
+// outcome. An admitted student is an enrolled student.
 
 // A 0..100 quality score per band, used only to summarize the enrolled
 // class's average incoming quality for prestige (see prestigeSystem.ts) —
-// the funnel itself never needed a scalar score before, only band
-// fractions and per-band yield.
+// the funnel itself never needed a scalar score, only band fractions.
 const QUALITY_BAND_SCORE = { top: 90, mid: 55, low: 20 };
 
 type QualityBand = 'top' | 'mid' | 'low';
@@ -282,9 +299,8 @@ export interface AdmissionsProjection {
   // away). See STICKER_SHOCK_RATE above.
   stickerShockMultiplier: number;
   admits: number;              // admitted: applicants x admitRate(prestige), skimmed top band first
-  admitRate: number;           // admits / applicants — matches admitRate(prestige) unless a thin top/mid band ran out to skim
-  yieldRate: number;           // enrolled / admits — the emergent yield
-  enrolled: number;            // enrolled class = yield x admits — no ceiling of any kind
+  admitRate: number;           // admits / applicants — matches the chosen rate unless a thin top/mid band ran out to skim
+  enrolled: number;            // the incoming class, which IS the admits — no yield step, no ceiling of any kind
   avgIncomingQuality: number;  // 0..100 weighted-average quality of the enrolled class — an input to prestige
 }
 
@@ -365,28 +381,27 @@ function stickerShockFactor(prestige: number, tuition: number, band: QualityBand
   return Math.exp(-STICKER_SHOCK_RATE[band] * overreach);
 }
 
-// Yield for one quality band: prestige lifts it, higher band quality drags
-// it down.
-function bandYield(prestige: number, band: QualityBand): number {
-  const prestigeTerm = PRESTIGE_YIELD_STRENGTH * (prestige - PRESTIGE_REFERENCE) / PRESTIGE_REFERENCE;
-  return clamp(YIELD_BASE + prestigeTerm - YIELD_QUALITY_PENALTY[band], 0, 1);
-}
-
 // Pure funnel resolution. Given the school's prestige, its dorm capacity
 // (an input to applicant VOLUME only now — see capacityFactor above, never
 // a ceiling), the trailing-year student satisfaction that drives word of
-// mouth, the player's one lever (tuition), and its cohort
-// signals (see cohorts.ts — defaulted to neutral so every existing caller,
-// admissions-pricing.test.ts included, is unaffected unless it opts in),
-// returns the full set of emergent outcomes. `enrolled` here is the
-// incoming FRESHMAN class, not the whole body. No individual applicants
-// are modeled — only band aggregates.
+// mouth, the player's two levers (tuition and, as of PR C, the admit
+// rate), and its cohort signals (see cohorts.ts — defaulted to neutral so
+// every existing caller, admissions-pricing.test.ts included, is unaffected
+// unless it opts in), returns the full set of emergent outcomes.
+// `enrolled` here is the incoming FRESHMAN class, not the whole body. No
+// individual applicants are modeled — only band aggregates.
 export function projectAdmissions(
   prestige: number,
   tuition: number,
   capacity: number,
   satisfaction: number,
   cohortSignals: CohortSignals = NEUTRAL_COHORT_SIGNALS,
+  // The player's decision as of PR C, LAST so the existing positional
+  // callers did not have to move. Defaulted to the curve's own value, so a
+  // caller that has not been taught about the slider — the demand system's
+  // what-if, the pricing tests — still reads "what a school of this
+  // standing would normally take", which is what they already meant.
+  chosenAdmitRate: number = admitRate(prestige),
 ): AdmissionsProjection {
   const tolerance = priceTolerance(prestige);
   const wordOfMouth = wordOfMouthFactor(satisfaction);
@@ -409,18 +424,15 @@ export function projectAdmissions(
   const applicants = pool.top + pool.mid + pool.low;
   const stickerShockMultiplier = rawApplicants > 0 ? applicants / rawApplicants : 1;
 
-  const yieldByBand: Record<QualityBand, number> = {
-    top: bandYield(prestige, 'top'),
-    mid: bandYield(prestige, 'mid'),
-    low: bandYield(prestige, 'low'),
-  };
-
-  // Skim from the top of the distribution until admitRate(prestige)'s share
-  // of the whole pool is used up — never toward a capacity target, since
-  // there is none. A thin top/mid band can leave admits short of that
-  // target (nothing left to skim), which is exactly why the reported
-  // admitRate below is admits/applicants rather than the curve's own value.
-  let remainingAdmits = applicants * admitRate(prestige);
+  // Skim from the top of the distribution until the CHOSEN share of the
+  // whole pool is used up — never toward a capacity target, since there is
+  // none. Top band first, which is the whole cost of admitting deep: a
+  // bigger share reaches further down the distribution, so it buys class
+  // size with incoming quality (see avgIncomingQuality below, which feeds
+  // prestige). A thin top/mid band can leave admits short of the chosen
+  // share (nothing left to skim), which is why the reported admitRate below
+  // is admits/applicants rather than the chosen value echoed back.
+  let remainingAdmits = applicants * clamp(chosenAdmitRate, 0, 1);
   const admitsByBand: Record<QualityBand, number> = { top: 0, mid: 0, low: 0 };
   for (const band of bands) {
     if (remainingAdmits <= 0) break;
@@ -430,20 +442,17 @@ export function projectAdmissions(
   }
   const admits = admitsByBand.top + admitsByBand.mid + admitsByBand.low;
 
-  const enrolledByBand: Record<QualityBand, number> = {
-    top: admitsByBand.top * yieldByBand.top,
-    mid: admitsByBand.mid * yieldByBand.mid,
-    low: admitsByBand.low * yieldByBand.low,
-  };
-  const enrolledRaw = enrolledByBand.top + enrolledByBand.mid + enrolledByBand.low;
+  // Admitted IS enrolled — there is no yield step (see the note above the
+  // quality-band scores). The class is what was skimmed.
+  const enrolledRaw = admits;
   const enrolled = Math.round(enrolledRaw);
 
-  // Average incoming quality is a weighted mean over the (pre-rounding)
-  // enrolled mix, not the admit mix — it describes who actually shows up.
+  // Average incoming quality is a weighted mean over the admitted mix,
+  // which IS the enrolled mix now that everyone admitted comes.
   const avgIncomingQuality = enrolledRaw > 0
-    ? (enrolledByBand.top * QUALITY_BAND_SCORE.top +
-       enrolledByBand.mid * QUALITY_BAND_SCORE.mid +
-       enrolledByBand.low * QUALITY_BAND_SCORE.low) / enrolledRaw
+    ? (admitsByBand.top * QUALITY_BAND_SCORE.top +
+       admitsByBand.mid * QUALITY_BAND_SCORE.mid +
+       admitsByBand.low * QUALITY_BAND_SCORE.low) / enrolledRaw
     : 0;
 
   return {
@@ -453,7 +462,6 @@ export function projectAdmissions(
     stickerShockMultiplier,
     admits: Math.round(admits),
     admitRate: applicants > 0 ? admits / applicants : 0,
-    yieldRate: admits > 0 ? enrolled / admits : 0,
     enrolled,
     avgIncomingQuality,
   };
@@ -474,7 +482,13 @@ export function tickAdmissions(s: GameState): void {
   if (s.clock.week === WEEKS_PER_YEAR && !s.pendingInterrupt) {
     s.pendingInterrupt = {
       type: 'admissions',
-      payload: { tuition: s.finance.listedTuition },
+      payload: {
+        tuition: s.finance.listedTuition,
+        // Sticky, like tuition: last year's committed rate, so an unchanged
+        // strategy stays a one-click continue. A founding save seeds this
+        // from the curve (see actions.ts), and a migrated one is set to it.
+        admitRate: s.students.admitRate,
+      },
     };
   }
 }

@@ -80,6 +80,7 @@ function advanceUntil(s: GameState, predicate: (s: GameState) => boolean, maxTic
         s = reducer(s, {
           type: 'RESOLVE_ADMISSIONS',
           tuition: s.finance.listedTuition,
+          admitRate: s.students.admitRate,
           approvedPetitionIds: [],
         });
       } else if (type === 'milestone') {
@@ -458,11 +459,11 @@ function relPath(f: string): string {
   };
   s.orgs.pendingPetitions = [petition];
   s.clock.week = 52; // the summer boundary
-  s.pendingInterrupt = { type: 'admissions', payload: { tuition: s.finance.listedTuition } };
+  s.pendingInterrupt = { type: 'admissions', payload: { tuition: s.finance.listedTuition, admitRate: s.students.admitRate } };
 
   // Decline it explicitly (approvedPetitionIds does not include it).
   const s1 = reducer(s, {
-    type: 'RESOLVE_ADMISSIONS', tuition: s.finance.listedTuition, approvedPetitionIds: [],
+    type: 'RESOLVE_ADMISSIONS', tuition: s.finance.listedTuition, admitRate: s.students.admitRate, approvedPetitionIds: [],
   });
   assert(s1.orgs.pendingPetitions.length === 0, 'the petition queue is empty after resolving — nothing carries over');
   assert(!s1.orgs.clubs.some((c) => c.id === 'test-petition'), 'a declined petition never becomes a live club');

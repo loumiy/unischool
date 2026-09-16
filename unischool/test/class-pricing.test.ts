@@ -67,6 +67,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
       return reducer(s, {
         type: 'RESOLVE_ADMISSIONS',
         tuition,
+        admitRate: s.students.admitRate,
         approvedPetitionIds: [],
       });
     }

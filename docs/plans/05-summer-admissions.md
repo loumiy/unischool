@@ -6,14 +6,15 @@ in the notes, and a rework of a decision the game already has — and turn it in
 an ordered sequence of PRs, each one small enough to land on its own and each
 one landing in the order that makes the next one cheaper.*
 
-**Status: In progress.** Seven PRs, A through G. **A and B have landed**; C
+**Status: In progress.** Seven PRs, A through G. **A, B and C have landed**; D
 through G have not. Each one's departures from the plan are noted in the PR
 that departed: A, where `tuitionBonus` turned out to have no users and the
 balance harness moved a PR earlier than predicted; and B, where scholarships
 had a third consumer in `satisfactionSystem.ts`, `YIELD_BASE` had to absorb the
 retired yield term, two more pricing-test sections turned out to be unwritable
 rather than one, and the balance re-baseline landed on strategies the plan had
-not named.
+not named; and C, where this plan's own verification step turned out to
+contradict the PR it was verifying.
 
 ---
 
@@ -303,6 +304,64 @@ in admit rate, incoming quality is monotone *against* it, and at the curve's own
 default rate the committed class matches what the pre-C funnel produced within a
 rounding student (so this PR is a promotion of an existing number, not a
 retuning of it).
+
+**As implemented: the verification above was impossible as written, and why.**
+
+*The parity check contradicts the PR.* "At the curve's default rate the class
+matches the pre-C funnel within a rounding student" cannot hold while yield is
+deleted: pre-C the class was admits x yield (~0.5), so leaving the curve alone
+would have roughly DOUBLED every class. The two halves of this PR were written
+without noticing they disagreed.
+
+What was done instead: **all four `admitRate` constants were refitted** against
+the enrolled share the two-step funnel actually produced, prestige by prestige.
+Ceiling 0.92 -> 0.38, floor 0.04 -> 0.055, midpoint 90 -> 100, steepness 0.05 ->
+0.06 — not a scaled copy, because the old admit curve and the enrolled share it
+produced are different shapes. The fit lands within a few percent from prestige
+50 up (-0.6% at 50, -7% at 70, -6% at 90, -1.5% at 110, -0.3% at 130), which is
+where a school spends a run. So the *intent* of the parity check is met, by
+moving the curve rather than by asserting a thing that could not be true.
+
+*The number's meaning changed, and it had to.* With no yield step, the rate is
+the share of applicants who END UP ON CAMPUS, not the share who get a letter.
+That is a plainer model and a more realistic reading besides (a real school
+admitting 80% at a 40% yield enrolls 32% of applicants). It is safe only because
+`prestigeSystem.ts` deliberately does NOT feed selectivity back into prestige —
+checked before touching it; had it been an input, this would have changed what
+prestige means.
+
+*What deleting yield really cost.* Two losses, neither of them small, both
+inherent to what the backlog asked for rather than to how it was built:
+
+1. **A school nobody has heard of is no longer hurt twice.** It used to admit
+   nearly everyone AND watch most of them go elsewhere, so the share of
+   applicants it actually enrolled peaked in the MIDDLE of the prestige range.
+   No monotone curve expresses that, and a player setting the slider is not
+   subject to it at all — which is why the refit runs +19% at prestige 30 and is
+   honest about it.
+2. **A selective school now keeps the whole top band.** Yield was the only thing
+   stopping "skim the best" from working: the best applicants had better offers.
+   Without it, any school admitting ~10% takes an all-top-band class and scores
+   the maximum 90 on incoming quality. That feeds prestige, which feeds the
+   applicant pool, so every school runs a little stronger than before.
+
+*The balance harness passes, and one strategy has a known residual.* All 40
+checks pass at the 20-year horizon they assert. But the 40-year `npm run sim`
+display now has "Overbuilder" — the deliberate stress case — ending deeply
+underwater where it used to end solvent. This is loss (2) meeting a strategy
+that builds a dorm unconditionally: a richer pool is a bigger bill every year.
+A sweep from 5,500 to 11,000 finds NO price that satisfies both horizons (5,500
+passes at 20 and dies by 40; 8,500 recovers by 40 but fails at 20; 7,500 and
+11,000 show no distress at all), so it was left at 5,500 — the value that meets
+the contract the tests actually state — rather than nudged until the display
+looked better. Recorded here and in `balanceSim.ts` rather than fixed, because
+fixing it means retuning the prestige/quality loop, which is not this PR's job.
+
+*One process note, since it cost real time.* The curve refit was written, lost
+to an atomic script that failed on a later edit, and silently not applied. The
+symptom was a sim showing 185k-student schools and a balance suite that PASSED
+anyway, because its shape invariants are loose at 20 years. Reading the sim
+output rather than trusting the green suite is what caught it.
 
 ## PR 05D — The panel projects the consequences
 

@@ -9,6 +9,7 @@ import { seedTrees } from '../data/treeData';
 import { initialFacilities } from '../data/facilitiesData';
 import { initialRivals } from '../data/rivalData';
 import { initialCandidatePool, facultySalary, grownStat, FOUNDING_TENURE_WEEKS } from '../data/facultyData';
+import { admitRate } from '../systems/admissions/admissionsSystem';
 import {
   SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION, STARTING_ENDOWMENT, STARTING_TUITION,
   FOUNDING_CLASSES,
@@ -140,8 +141,8 @@ export type Action =
   // instead (see reducer.ts's own comment on this case for why it still
   // advances the clock, same as every one of those).
   | { type: 'RESOLVE_INTERRUPT' }
-  // Resolves the annual summer admissions interrupt: sets next year's one
-  // policy lever (tuition), runs the admissions funnel to commit the
+  // Resolves the annual summer admissions interrupt: sets next year's two
+  // policy levers (tuition and the admit rate), runs the funnel to commit the
   // enrolled class, and advances the clock into that year itself (see
   // reducer.ts). Tuition is set ONLY here, once a year — there is no other
   // action that changes it.
@@ -151,7 +152,7 @@ export type Action =
   // recognising. Every pending petition NOT listed is declined, and the
   // queue drains either way — so the digest can never accumulate across
   // years, and clubs never need a stop-the-clock modal of their own.
-  | { type: 'RESOLVE_ADMISSIONS'; tuition: number; approvedPetitionIds: string[] }
+  | { type: 'RESOLVE_ADMISSIONS'; tuition: number; admitRate: number; approvedPetitionIds: string[] }
   // Dismisses the "you've entered the rankings" reveal or an annual U.S.
   // News report interrupt. Advances the clock, like every other interrupt
   // raised mid-tick: it fires as a trailing step after that week's systems
@@ -356,6 +357,11 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     foundersHallFootprint,
   );
 
+  // Read in two places below — self.reputation and the admit rate seeded
+  // from it — so the opening slider position cannot drift from the standing
+  // it is supposed to describe.
+  const foundingReputation = BASE_STARTING_REPUTATION + preset.prestigeBonus + GENED_BUILDING_REPUTATION_BONUS;
+
   // One founding price, read into five places below (the listed price and
   // the four classes), so they cannot be seeded out of step with each other.
   const foundingTuition = Math.min(STARTING_TUITION, preset.tuitionCeiling);
@@ -407,7 +413,11 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       applicantPool: preset.startingApplicantPool,
       // Neutral placeholders until the first summer admissions cycle
       // resolves and sets these for real — see RESOLVE_ADMISSIONS.
-      admitRate: 0.5,
+      // Seeded from the curve rather than a round placeholder: this is the
+      // slider's sticky opening position now (see admissionsSystem.ts's
+      // admitRate), so a founding school opens at what a school of its
+      // standing would normally take.
+      admitRate: admitRate(foundingReputation),
       incomingQuality: 50,
     },
     // Year 1 runs on the founding price with the starting enrolled/applicant
@@ -520,7 +530,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       name,
       suffix: STARTING_INSTITUTION_SUFFIX,
       universityCharterOffered: false,
-      reputation: BASE_STARTING_REPUTATION + preset.prestigeBonus + GENED_BUILDING_REPUTATION_BONUS,
+      reputation: foundingReputation,
       schoolType,
     },
     // Empty at founding: the first row lands at the end of year 1, when the
