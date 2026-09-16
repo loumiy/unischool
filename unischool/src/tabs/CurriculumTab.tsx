@@ -407,12 +407,12 @@ function courseSchools(): Map<string, { buildingId: string; school: string }> {
 // shows up.
 //
 // The course check is not defensive tidying — prereqs cross KINDS as well
-// as majors (README's "central abstraction"), so a tier-3 course routinely
-// requires its major's LAB. `LAB-CHEM` trivially has a different id prefix
-// from `CHEM230`, so a prefix test alone calls a building a cross-listed
-// course and offers to navigate to it, which the map cannot do and the
-// player would not want: the lab is something you BUILD, not somewhere you
-// go in the catalogue.
+// as majors (docs/architecture/buildables.md), so a tier-3 course
+// routinely requires its major's LAB. `LAB-CHEM` trivially has a different
+// id prefix from `CHEM230`, so a prefix test alone calls a building a
+// cross-listed course and offers to navigate to it, which the map cannot
+// do and the player would not want: the lab is something you BUILD, not
+// somewhere you go in the catalogue.
 function crossMajorPrereqs(t: Buildable, lookup: Map<string, Buildable>): string[] {
   const prefix = t.id.replace(/[0-9]+$/, '');
   return t.prereqs.filter((id) => {

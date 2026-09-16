@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------
-// Admissions pricing (see README's "Admissions: an annual summer decision"
-// and admissionsSystem.ts's STICKER_SHOCK_RATE).
+// Admissions pricing (see docs/design/admissions.md and
+// admissionsSystem.ts's STICKER_SHOCK_RATE).
 //
 // projectAdmissions() is pure and deterministic — no Math.random anywhere
 // in this module — so this file needs none of the seeding/localStorage

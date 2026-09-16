@@ -135,16 +135,16 @@ function clamp(v: number, lo: number, hi: number): number {
 // program established AND distinguished, every school distinguished, every
 // graduate program founded) scores exactly 1.
 //
-// GRADUATE PROGRAMS ARE THE FOURTH SHARE, and they are inside this term
-// rather than beside it on purpose (see README's "Graduate programs"). A
-// graduate program is more curriculum, so it feeds the input curriculum
-// already feeds; giving it a weight of its own would have raised the
-// prestige ceiling by exactly the amount the whole capped-input model
-// exists to prevent, and a grad-heavy school could then outrun the
-// breadth ceiling that decades of undergraduate buildout are what
-// actually buy. The four shares still sum to 1, so a school that finishes
-// everything — every program established AND distinguished, every school
-// distinguished, every graduate program founded — scores exactly 1 and no more.
+// GRADUATE PROGRAMS ARE THE FOURTH SHARE, and they are inside this term rather
+// than beside it on purpose (see docs/design/graduate-programs.md). A graduate
+// program is more curriculum, so it feeds the input curriculum already feeds;
+// giving it a weight of its own would have raised the prestige ceiling by
+// exactly the amount the whole capped-input model exists to prevent, and a
+// grad-heavy school could then outrun the breadth ceiling that decades of
+// undergraduate buildout are what actually buy. The four shares still sum to
+// 1, so a school that finishes everything — every program established AND
+// distinguished, every school distinguished, every graduate program founded —
+// scores exactly 1 and no more.
 //
 // The consequence is deliberate and worth stating plainly: a fully built
 // UNDERGRADUATE catalogue now scores 0.85 rather than 1.0, because the

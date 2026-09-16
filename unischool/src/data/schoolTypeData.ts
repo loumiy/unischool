@@ -1,13 +1,13 @@
 import type { SchoolType } from '../state/types';
 
 // ---------------------------------------------------------------------
-// Private vs. public is the game's one starting fork (see README's
-// "Startup and school type"). Everything the choice affects is a plain,
-// tunable starting condition here — no behavior branches on schoolType
-// anywhere else except where a system explicitly reads one of these
-// fields off state. Archetypes (Harvard-like, ASU-like, ...) are meant
-// to emerge from play, not from this table, so keep it to starting
-// conditions only.
+// Private vs. public is the game's one starting fork (see
+// docs/design/progression.md's "Startup and school type"). Everything
+// the choice affects is a plain, tunable starting condition here — no
+// behavior branches on schoolType anywhere else except where a system
+// explicitly reads one of these fields off state. Archetypes
+// (Harvard-like, ASU-like, ...) are meant to emerge from play, not from
+// this table, so keep it to starting conditions only.
 // ---------------------------------------------------------------------
 
 // Shared baseline reputation both types start from before their own

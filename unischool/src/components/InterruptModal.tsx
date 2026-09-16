@@ -188,15 +188,15 @@ function CohortCard({ label, driverLabel, pull, applicants, revealMs }: { label:
   );
 }
 
-// The once-a-year summer admissions decision (see README's "Admissions: an
-// annual summer decision"). The player sets exactly one lever — tuition —
-// and the distribution funnel resolves the rest (see admissionsSystem.ts),
-// with current student satisfaction and cohort demand (see cohorts.ts)
-// feeding the applicant pool alongside prestige and price. Selectivity and
-// enrollment are NOT inputs: they are emergent outcomes, previewed live
-// below so the player can see the consequences before confirming. This is
-// the only place tuition is ever set; there is no live, adjustable tuition
-// control.
+// The once-a-year summer admissions decision (see
+// docs/design/admissions.md). The player sets exactly one lever — tuition
+// — and the distribution funnel resolves the rest (see
+// admissionsSystem.ts), with current student satisfaction and cohort
+// demand (see cohorts.ts) feeding the applicant pool alongside prestige
+// and price. Selectivity and enrollment are NOT inputs: they are emergent
+// outcomes, previewed live below so the player can see the consequences
+// before confirming. This is the only place tuition is ever set; there is
+// no live, adjustable tuition control.
 //
 // ONE step, not two. The form used to stage tuition and scholarships
 // apart, holding the downstream numbers behind a "Continue" so each
@@ -379,9 +379,10 @@ function RankMovement({ delta }: { delta: number }) {
 }
 
 // Renders both rankings-related interrupts: the one-time "you've entered
-// the top 50" reveal and the recurring annual report (see README's
-// "Rankings: the U.S. News report"). Standing is otherwise never shown
-// outside the persistent header's rank stat and this modal.
+// the top 50" reveal and the recurring annual report (see
+// docs/design/progression.md's "Rankings: the U.S. News report").
+// Standing is otherwise never shown outside the persistent header's rank
+// stat and this modal.
 //
 // The standings list alone is a table of names; what makes a ranking
 // FELT is motion — where you moved, who you passed, who is surging up
@@ -826,9 +827,10 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
   );
 }
 
-// The generic pause-the-clock decision-event system (see README's
-// "Interrupts"): renders whichever modal s.pendingInterrupt calls for, on
-// top of every tab. Nothing to render when no interrupt is pending.
+// The generic pause-the-clock decision-event system (see
+// docs/architecture/interrupts.md): renders whichever modal
+// s.pendingInterrupt calls for, on top of every tab. Nothing to render
+// when no interrupt is pending.
 export default function InterruptModal({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const interrupt = s.pendingInterrupt;
 

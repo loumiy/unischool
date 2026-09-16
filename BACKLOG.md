@@ -4,10 +4,10 @@
 into PRs; turning one of these into a sequence is what writing the next plan
 does (see `docs/plans/README.md` for how that is done and named).*
 
-**This is the one forward-looking document in the repository.** `README.md`
-describes the game as it is; the plans in `docs/plans/` are closed records of
-work that has landed. If something is going to happen but has not, it belongs
-here.
+**This is the one forward-looking document in the repository.** The docs in
+`docs/design/` and `docs/architecture/` describe the game as it is; the plans
+in `docs/plans/` are closed records of work that has landed. If something is
+going to happen but has not, it belongs here.
 
 ---
 
@@ -17,7 +17,7 @@ here.
 other. Lifted from Plan 04, which is where they were first named. Turning one
 into an ordered sequence of PRs is what writing the next plan does — Summer
 admissions has been through that and shipped (Plan 05), which is why it is no
-longer here: what it changed is in `README.md` now.*
+longer here: what it changed is in `docs/design/admissions.md` now.*
 
 ### Startup screen
 Drop public/private. Note what that now costs: Plan 05's PR E left the **public
@@ -44,7 +44,8 @@ infographic view of who actually attends this university is the feature; which
 tab it lives in is a consequence of building it.
 
 The summer reveal now shows cohort head counts for the *incoming* pool (see
-README's "Admissions cohorts"), which is one year's applicants — not the same
+`docs/design/admissions.md`'s "Admissions cohorts"), which is one year's
+applicants — not the same
 thing as the standing body, where four admitted classes are layered on top of
 each other. Showing the enrolled mix means either storing each class's cohort
 split at admission or reconstructing it, and that is the real decision this
@@ -88,6 +89,37 @@ two-step funnel produced, which is a different target from "the rate a player
 should actually want" — see that PR's note. `sim/balanceSim.ts`'s `ADMIT_PROBES`
 measure the gap and are the check on any re-fit.
 
+## Named, not sequenced
+
+*Carried over from the roadmap the README used to hold. Each is a real piece of
+work with a known shape; none has been turned into a sequence of PRs.*
+
+- **Research doctorates for the four newest research schools.** Every school
+  with majors now has a facility, so the `researchSchools()` gate would admit
+  more doctorates than the three that were authored — the programs themselves
+  are content that does not exist yet. See
+  `docs/design/graduate-programs.md`.
+- **Faculty lifecycle: rival poaching and paid retention.** A departure the
+  player did not choose, and money spent to prevent it. The downstream chain (a
+  department left understaffed, its courses without an instructor) already
+  exists, reached through the player's own dismissals and research commitments.
+  Aging and retirement remain optional.
+- **A richer demand-curve finance model**, where prestige shifts the frontier
+  between tuition and enrollment volume, with prestige/scale archetypes. The
+  finances are structured so this can replace the simple version without
+  touching the rest of the system.
+- **Campus map feedback.** Adjacency weighting between neighbouring buildings,
+  and any economic or prestige consequence of the layout. The map is a
+  visual-only layer today and nothing mechanical reads it.
+- **More authored decision events**, including events that reach systems the
+  first pass deliberately left alone, and campus-life depth behind them.
+- **Athletics deferrals.** Match simulation and schedules (standings are one
+  comparable strength number per school, not a simulated season), any prestige
+  coupling, and a considered answer for what happens to a shared venue once its
+  last team disbands.
+- **The tutorial**: a scripted interrupt sequence walking the Year-0 opening —
+  develop the gen-ed core, hire faculty — and handing off to Summer Year 1.
+
 ## Direction, not plan
 
 *Not sequenced, not estimated, and listed only so the work above is not designed
@@ -96,7 +128,9 @@ in a way that forecloses them.*
 - Camera rotation and tilt — worth noting that `isoProjection.ts` derives
   everything from one projection, so this is less far-fetched than it sounds.
 - Moving pedestrians.
-- Tutorial dialogue.
+- More README screenshots as the presentation work lands: the curriculum
+  map, the faculty roster, a research run, and a late-game campus. The two
+  in `docs/images/` are a founding campus and the summer decision.
 - Sound and music.
 - Menu styling as physical objects — treasury as a ledger, athletics on a
   clipboard, curriculum on a chalkboard. (Plan 04's 1C made every tab a full

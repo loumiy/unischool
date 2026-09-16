@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------
-// Financial-distress invariants (see README's "Pacing model" / "No hard
+// Financial-distress invariants (see docs/design/economy.md / "No hard
 // insolvency game-over", and the alignment roadmap's PR F). The design is
 // "stall, don't die": a shortfall halts EXPANSION, never the run. These
 // tests drive the REAL reducer (the same one the app runs) to pin that down:

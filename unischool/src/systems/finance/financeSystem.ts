@@ -3,8 +3,8 @@ import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
 import { studentOrgUpkeep } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
-// This file is the game's primary throttle (see README's "Pacing model:
-// money is the throttle"). Since the development-slot mechanic was
+// This file is the game's primary throttle (see
+// docs/design/economy.md). Since the development-slot mechanic was
 // removed, money paces alone — and money only paces if the growth loop
 // makes it bite.
 //
@@ -143,8 +143,9 @@ const INSTRUCTION_PER_STUDENT_PER_COURSE_OFFERED = 1.00;
 //
 // On top of it, a "reputation dividend" — donors, grants, brand value —
 // scales with prestige, independent of enrollment. This is the simple
-// stand-in for the future demand-curve model the README describes, and it
-// is isolated to one line so that richer model can replace it later.
+// stand-in for the future demand-curve model the
+// docs/design/economy.mddescribes, and it is isolated to one line so that
+// richer model can replace it later.
 const REPUTATION_DIVIDEND_PER_POINT_PER_YEAR = 900;
 
 // The endowment: a long-term reserve that now actually does something.
@@ -365,9 +366,10 @@ export function tickFinance(s: GameState): void {
   // just collected as income above. Cash is allowed to go negative HERE —
   // an operating deficit is the only thing that can do it, since a
   // purchase is refused outright when the money isn't there (see
-  // canStartDevelopment in techSystem.ts). Per README's pacing model that
-  // shortfall stalls new development rather than ending the run, so there
-  // is deliberately no auto-draw and no insolvency game-over.
+  // canStartDevelopment in techSystem.ts). Per
+  // docs/design/economy.mdpacing model that shortfall stalls new
+  // development rather than ending the run, so there is deliberately no
+  // auto-draw and no insolvency game-over.
   s.finance.endowment *= 1 + (ENDOWMENT_ANNUAL_RETURN - ENDOWMENT_PAYOUT_RATE) / WEEKS_PER_YEAR;
 }
 

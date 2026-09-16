@@ -46,7 +46,7 @@ function growFaculty(f: Faculty): void {
 }
 
 // One week of the standing academic job market (see facultyData.ts's churn
-// block and README's "Faculty"). Three things happen, in this order:
+// block and docs/design/faculty.md). Three things happen, in this order:
 //
 //   1. every listing ages a week;
 //   2. anyone who has been up for CANDIDATE_LISTING_WEEKS withdraws — they

@@ -1,13 +1,13 @@
 import type { SatisfactionAttributes, StudentDemand } from '../state/types';
 
 // ---------------------------------------------------------------------
-// STUDENT DEMANDS, AS DATA (see README's "Student demands: the inverse of
-// clubs"). Clubs are what students give the institution when they are
-// happy; a demand is what they ask of it when they are not. Same discipline
-// as the student-organisation layer: everything tunable is a named constant
-// in this file, everything authored is a sentence in this file, and the one
-// tick function that reads them (systems/demands/demandSystem.ts) contains
-// only cadence and target logic.
+// STUDENT DEMANDS, AS DATA (see docs/design/student-life.md's "Student
+// demands: the inverse of clubs"). Clubs are what students give the
+// institution when they are happy; a demand is what they ask of it when
+// they are not. Same discipline as the student-organisation layer:
+// everything tunable is a named constant in this file, everything authored
+// is a sentence in this file, and the one tick function that reads them
+// (systems/demands/demandSystem.ts) contains only cadence and target logic.
 //
 // WHAT A DEMAND IS. One concrete, buildable ask — "somewhere to eat",
 // "somewhere to study" — DERIVED from an actual shortfall rather than picked

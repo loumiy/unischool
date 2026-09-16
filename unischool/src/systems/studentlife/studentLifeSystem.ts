@@ -6,9 +6,9 @@ import {
 } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
-// One ordinary pure tick function (see README's "Student life"). All it
-// does is roll for a new student organisation forming and, on a hit, raise
-// a PETITION — a record on s.orgs.pendingPetitions plus a log line.
+// One ordinary pure tick function (see docs/design/student-life.md). All
+// it does is roll for a new student organisation forming and, on a hit,
+// raise a PETITION — a record on s.orgs.pendingPetitions plus a log line.
 //
 // WHAT THIS DELIBERATELY NEVER DOES: set s.pendingInterrupt. A club
 // forming is the lightest beat in the game and must not stop the clock;

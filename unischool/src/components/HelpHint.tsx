@@ -1,11 +1,12 @@
 import { useState } from 'react';
 
 // A small, dismissible '?' toggle for panel explainer copy that's useful
-// once but busy if it's always on screen (see README-adjacent UI notes) —
-// the explanation is one click away instead of permanently taking up space
-// as an italic paragraph under every panel heading. `align="end"` opens the
-// popup leftward instead of rightward, for a hint sitting at a panel's right
-// edge (see TreasuryTab.tsx) where the default would run off-screen.
+// once but busy if it's always on screen (see
+// docs/architecture/ui-shell.md-adjacent UI notes) — the explanation is one
+// click away instead of permanently taking up space as an italic paragraph
+// under every panel heading. `align="end"` opens the popup leftward instead
+// of rightward, for a hint sitting at a panel's right edge (see
+// TreasuryTab.tsx) where the default would run off-screen.
 export default function HelpHint({ text, align = 'start' }: { text: string; align?: 'start' | 'end' }) {
   const [open, setOpen] = useState(false);
   return (

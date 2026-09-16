@@ -11,12 +11,12 @@ import { labEquippedFields } from '../../data/researchData';
 // ---------------------------------------------------------------------
 // The week-to-week texture system. One ordinary pure tick function, last
 // in the reducer's SYSTEMS order, that can raise exactly two kinds of
-// interrupt on the EXISTING mechanism (see README's "Interrupts"): a
-// celebration for a genuinely special curriculum milestone, and one of
-// the authored decision events in data/eventData.ts. All of the content —
-// which milestones are special, what the events are, what they cost, how
-// often they may fire — is data over there; what is here is only the
-// cadence logic that reads it.
+// interrupt on the EXISTING mechanism (see
+// docs/architecture/interrupts.md): a celebration for a genuinely special
+// curriculum milestone, and one of the authored decision events in
+// data/eventData.ts. All of the content — which milestones are special,
+// what the events are, what they cost, how often they may fire — is data
+// over there; what is here is only the cadence logic that reads it.
 //
 // WHY THIS RUNS LAST. The summer admissions decision (tickAdmissions) and
 // the U.S. News report (tickRivals) own their weeks, and only one
@@ -31,12 +31,12 @@ import { labEquippedFields } from '../../data/researchData';
 // drain slot rather than raising interrupts of their own:
 //
 //   - The RESEARCH COMPLETION report. researchSystem.ts files one when a
-//     project runs its course — outputs, team, and the award if it won
-//     one — onto s.research.pendingCompletions; this drains it on the next
-//     quiet week, exactly as it drains milestones. It is the ONLY research
-//     moment that stops the clock: grants, publications and breakthroughs
-//     resolve silently into finance and the prestige target as they land
-//     (see README's "Research"), and are reported together at the end.
+// project runs its course — outputs, team, and the award if it won one —
+// onto s.research.pendingCompletions; this drains it on the next quiet
+// week, exactly as it drains milestones. It is the ONLY research moment
+// that stops the clock: grants, publications and breakthroughs resolve
+// silently into finance and the prestige target as they land (see
+// docs/design/research.md), and are reported together at the end.
 //   - The COLLEGE -> UNIVERSITY charter offer, fired once, the first
 //     quiet week after any lab finishes. It needs no queue at all: "a
 //     finished lab exists" is a durable condition (nothing ever un-
@@ -113,9 +113,10 @@ function fireResearchReport(s: GameState): boolean {
 }
 
 // The one-time College -> University charter offer, gated on the same lab
-// that gates research (see README's "College and University"). Cosmetic:
-// what the player is choosing is which word follows their school's name,
-// and the flag is set either way so the question is asked exactly once.
+// that gates research (see docs/design/progression.md's "College and
+// University"). Cosmetic: what the player is choosing is which word
+// follows their school's name, and the flag is set either way so the
+// question is asked exactly once.
 //
 // Deliberately not an authored decision event: it has no cost, no roll and
 // no repeat, and putting it in that table would mean giving it a weight

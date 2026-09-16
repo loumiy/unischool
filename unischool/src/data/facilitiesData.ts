@@ -3,17 +3,17 @@ import { FOUNDING_BODY } from './schoolTypeData';
 
 // ---------------------------------------------------------------------
 // Campus-life facilities: the six non-housing, non-lab needs a campus has
-// (see README's "central abstraction" — these are all just `facility`-kind
+// (see docs/architecture/buildables.md — these are all just `facility`-kind
 // Buildables, same develop/build machinery as everything else; do not fork
 // a subsystem). Each instance "serves" a fixed number of students against
 // total ENROLLED students — a big commuter school with few dorms is still a
 // big school that needs feeding, studying space, and so on; only Housing
-// itself (satisfactionSystem.ts) is scored against bed capacity, since
-// that ratio is the whole point of that one attribute.
-// satisfactionSystem.ts sums servesPopulation across every 'done' facility
-// of a given satisfactionAttribute and compares it to enrolled to score
-// that attribute 0..100 each week — see BuildableEffects in state/types.ts
-// for the live-read-not-applied contract these effects follow.
+// itself (satisfactionSystem.ts) is scored against bed capacity, since that
+// ratio is the whole point of that one attribute. satisfactionSystem.ts
+// sums servesPopulation across every 'done' facility of a given
+// satisfactionAttribute and compares it to enrolled to score that attribute
+// 0..100 each week — see BuildableEffects in state/types.ts for the
+// live-read-not-applied contract these effects follow.
 //
 // Two shapes, per the design pass on this feature:
 //
