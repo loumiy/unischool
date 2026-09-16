@@ -2004,6 +2004,11 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    commitment, because the price cannot be changed after it. */
 .admissions-lock { display: block; margin: 2px 0 18px; }
 
+/* The reveal figure (see InterruptModal.tsx REVEAL_MS) — the one number on
+   this screen the player is meant to watch rather than read, so it is
+   given the size to be worth watching. */
+.reveal-figure { font-size: var(--text-lg); }
+
 /* The per-cohort demand breakdown (see cohorts.ts) — a compact list, not
    another dl, since each row is a head count colored by whether that
    cohort is above or below neutral, rather than a plain value. */

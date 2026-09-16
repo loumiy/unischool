@@ -36,6 +36,15 @@ function money(v: number): string {
   return `$${Math.round(v).toLocaleString()}`;
 }
 
+// The reveal ticks slower than any other number in the game, deliberately
+// (Plan 05's PR F): every other animated figure here is a consequence of a
+// slider the player is still holding, and wants to keep up with them. This
+// one is the payoff for a price they have already committed to and cannot
+// take back, so it is the one number worth waiting on. The pool and the
+// seven cohort rows share the duration so the panel fills as one reveal
+// rather than seven races.
+const REVEAL_MS = 2_600;
+
 const NEED_LABEL: Record<'housing' | 'basicNeeds', string> = {
   housing: 'Beds',
   basicNeeds: 'Dining & health',
@@ -141,7 +150,7 @@ function PriceTierTag({ tier }: { tier: PriceTier }) {
 // is drawn in the same bright good/bad pair the log ticker uses on this
 // same dark modal background, so "this audience is up" reads the same way
 // everywhere.
-function CohortRow({ label, driverLabel, pull, applicants }: { label: string; driverLabel: string; pull: number; applicants: number }) {
+function CohortRow({ label, driverLabel, pull, applicants, revealMs }: { label: string; driverLabel: string; pull: number; applicants: number; revealMs: number }) {
   const toneClass = pull > 1 ? 'cohort-up' : pull < 1 ? 'cohort-down' : 'cohort-flat';
   return (
     <div className="cohort-row">
@@ -149,7 +158,9 @@ function CohortRow({ label, driverLabel, pull, applicants }: { label: string; dr
         {label}
         <span className="outcome-note">({driverLabel})</span>
       </span>
-      <span className={`cohort-row-count ${toneClass}`}>{applicants.toLocaleString()}</span>
+      <span className={`cohort-row-count ${toneClass}`}>
+        <AnimatedNumber value={applicants} durationMs={revealMs} revealFrom={0} />
+      </span>
     </div>
   );
 }
@@ -249,13 +260,18 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeilin
         <>
           {/* BEAT 2 — the reveal. What that price actually drew. */}
           <dl className="admissions-outcomes">
-            <div><dt>Applicant pool</dt><dd><AnimatedNumber value={outcome.applicants} /></dd></div>
+            <div>
+              <dt>Applicant pool</dt>
+              <dd className="reveal-figure">
+                <AnimatedNumber value={outcome.applicants} durationMs={REVEAL_MS} revealFrom={0} />
+              </dd>
+            </div>
             <div><dt>Word of mouth <span className="outcome-note">(avg satisfaction last year {Math.round(satisfaction)})</span></dt><dd>{outcome.wordOfMouthMultiplier >= 1 ? '+' : ''}{Math.round((outcome.wordOfMouthMultiplier - 1) * 100)}% applicants</dd></div>
           </dl>
 
           <div className="cohort-breakdown">
             <h3>Who this pulls in <span className="outcome-note">(applicants, summing to the pool above)</span></h3>
-            {cohorts.map((c) => <CohortRow key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants} />)}
+            {cohorts.map((c) => <CohortRow key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants} revealMs={REVEAL_MS} />)}
           </div>
 
           {/* BEAT 3 — the second decision, and the opposite posture: every

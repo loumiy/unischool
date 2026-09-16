@@ -579,7 +579,13 @@ purpose about how much the player is allowed to know:
    and a price you could revise after seeing what it bought would be a lookup
    table rather than a gamble.
 2. **The reveal.** The applicant pool that price actually drew, broken down by
-   cohort as head counts.
+   cohort as head counts. It **ticks up from zero, slower than any other number
+   in the game** (`REVEAL_MS`): every other animated figure is a consequence of
+   a slider the player is still holding and wants to keep up with them, while
+   this one is the payoff for a price already committed and not retractable.
+   The pool and the seven cohort rows share the duration, so the panel fills as
+   one reveal rather than seven races. A reader who has asked for reduced motion
+   gets the settled figures immediately — the same numbers either way.
 3. **Admit rate, fully projected.** The opposite posture: every consequence
    visible before it is taken (see "Tuition follows the class that paid it").
 
