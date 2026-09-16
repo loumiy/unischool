@@ -28,7 +28,6 @@ function interruptBody(interrupt: PendingInterrupt): { title: string; body: stri
 
 interface AdmissionsDraft {
   tuition: number;
-  scholarshipRate: number;
 }
 
 function money(v: number): string {
@@ -129,24 +128,22 @@ function CohortRow({ label, driverLabel, pull, applicants }: { label: string; dr
 }
 
 // The once-a-year summer admissions decision (see README's "Admissions: an
-// annual summer decision"). The player sets exactly two levers — tuition
-// and average scholarships — and the distribution funnel resolves the rest
-// (see admissionsSystem.ts), with current student satisfaction and cohort
-// demand (see cohorts.ts) feeding the applicant pool alongside prestige and
-// price. Selectivity and enrollment are NOT inputs: they are emergent
-// outcomes, previewed live below so the player can see the consequences of
-// the two settings before confirming. This is the only place tuition is
-// ever set; there is no live, adjustable tuition control.
+// annual summer decision"). The player sets exactly one lever — tuition —
+// and the distribution funnel resolves the rest (see admissionsSystem.ts),
+// with current student satisfaction and cohort demand (see cohorts.ts)
+// feeding the applicant pool alongside prestige and price. Selectivity and
+// enrollment are NOT inputs: they are emergent outcomes, previewed live
+// below so the player can see the consequences before confirming. This is
+// the only place tuition is ever set; there is no live, adjustable tuition
+// control.
 //
-// Staged in two steps rather than one flat form, matching which quantities
-// the model actually depends on: applicant volume (step 1) is a function
-// of tuition already (through net price and the raw sticker's own shock),
-// so it previews as soon as tuition moves; admit rate, yield, the enrolled
-// class, incoming quality and the cohort breakdown all also depend on
-// scholarships, so they stay behind a "Continue" until the player has
-// engaged with tuition first — a deliberate, small delay that makes each
-// lever's own consequence legible on its own beat instead of nine numbers
-// changing at once the moment the modal opens.
+// ONE step, not two. The form used to stage tuition and scholarships
+// apart, holding the downstream numbers behind a "Continue" so each
+// lever's consequence read on its own beat. With scholarships retired
+// (Plan 05's PR B) there is one lever, and gating one slider behind a
+// button that reveals the rest of its own consequences is ceremony. The
+// staging returns in PR E for a different reason — the tuition decision
+// becomes blind and LOCKS, so the reveal has something to reveal.
 function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, satisfaction, cohortSignals, petitions, onResolve }: {
   payload: AdmissionsDraft;
   prestige: number;
@@ -158,101 +155,67 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
   onResolve: (settings: AdmissionsDraft & { approvedPetitionIds: string[] }) => void;
 }) {
   const [tuition, setTuition] = useState(payload.tuition);
-  const [scholarshipRate, setScholarshipRate] = useState(payload.scholarshipRate);
-  const [scholarshipsRevealed, setScholarshipsRevealed] = useState(false);
   // Approved by default — see the note on StudentLifeDigest above.
   const [approved, setApproved] = useState<Set<string>>(() => new Set(petitions.map((p) => p.id)));
 
   // Live preview of the emergent outcomes, computed with the very function
   // the reducer commits with — so the numbers shown are the numbers applied.
-  const outcome = projectAdmissions(prestige, tuition, scholarshipRate, capacity, satisfaction, cohortSignals);
+  const outcome = projectAdmissions(prestige, tuition, capacity, satisfaction, cohortSignals);
   // What this school's prestige lets it charge before demand starts
   // falling away (see admissionsSystem.ts's price tolerance). Shown
   // because it is the single most consequential curve behind this
   // decision: without it, a player pricing above their standing just
   // watches the applicant pool shrink with no idea why.
   const tolerance = priceTolerance(prestige);
-  const stickerTier = priceTier(tuition, tolerance);
-  const netPrice = tuition * (1 - scholarshipRate);
-  const netTier = priceTier(netPrice, tolerance);
-  const cohorts = cohortBreakdown(cohortSignals, tolerance, tuition, scholarshipRate, outcome.applicants);
+  const priceTierNow = priceTier(tuition, tolerance);
+  const cohorts = cohortBreakdown(cohortSignals, tolerance, tuition, outcome.applicants);
 
   return (
     <>
       <h2>Summer Admissions</h2>
-      <p>Set next year's tuition and scholarships. Selectivity and enrollment follow from your applicant pool — see the projected outcomes below before you confirm.</p>
+      <p>Set next year's tuition. Selectivity and enrollment follow from your applicant pool — see the projected outcomes below before you confirm.</p>
 
       <label className="admissions-field">
         <span>
-          Tuition <strong className={`price-tier-value ${PRICE_TIER_COPY[stickerTier].className}`}>${tuition.toLocaleString()}/yr</strong>
+          Tuition <strong className={`price-tier-value ${PRICE_TIER_COPY[priceTierNow].className}`}>${tuition.toLocaleString()}/yr</strong>
           {' '}(cap ${tuitionCeiling.toLocaleString()})
         </span>
         <input type="range" min={0} max={tuitionCeiling} step={500} value={tuition}
           onChange={(e) => setTuition(Number(e.target.value))} />
-        <PriceTierTag tier={stickerTier} />
+        <PriceTierTag tier={priceTierNow} />
       </label>
 
-      {!scholarshipsRevealed && (
-        <>
-          <dl className="admissions-outcomes">
-            <div>
-              <dt>Applicant interest <span className="outcome-note">(at last year's scholarship rate — set next)</span></dt>
-              <dd><AnimatedNumber value={outcome.applicants} /></dd>
-            </div>
-            <div>
-              <dt>Sticker shock <span className="outcome-note">(a listed price above what your prestige supports scares off price-sensitive families, however much aid you back it with)</span></dt>
-              <dd>{outcome.stickerShockMultiplier >= 1 ? 'none' : `-${Math.round((1 - outcome.stickerShockMultiplier) * 100)}% applicants`}</dd>
-            </div>
-          </dl>
-          <button type="button" onClick={() => setScholarshipsRevealed(true)}>
-            Continue to Scholarships →
-          </button>
-        </>
-      )}
+      <dl className="admissions-outcomes">
+        <div><dt>Applicant pool</dt><dd><AnimatedNumber value={outcome.applicants} /></dd></div>
+        <div>
+          <dt>Sticker shock <span className="outcome-note">(a price above what your prestige supports scares off price-sensitive families hardest)</span></dt>
+          <dd>{outcome.stickerShockMultiplier >= 1 ? 'none' : `-${Math.round((1 - outcome.stickerShockMultiplier) * 100)}% applicants`}</dd>
+        </div>
+        <div><dt>Word of mouth <span className="outcome-note">(avg satisfaction last year {Math.round(satisfaction)})</span></dt><dd>{outcome.wordOfMouthMultiplier >= 1 ? '+' : ''}{Math.round((outcome.wordOfMouthMultiplier - 1) * 100)}% applicants</dd></div>
+        <div><dt>Admit rate <span className="outcome-note">(selectivity)</span></dt><dd>{Math.round(outcome.admitRate * 100)}%</dd></div>
+        <div><dt>Yield</dt><dd><AnimatedNumber value={outcome.yieldRate * 100} format={(n) => `${Math.round(n)}%`} /></dd></div>
+        <div><dt>Freshman class</dt><dd><AnimatedNumber value={outcome.enrolled} /></dd></div>
+        <div><dt>Incoming quality <span className="outcome-note">(feeds prestige)</span></dt><dd><AnimatedNumber value={outcome.avgIncomingQuality} format={(n) => `${Math.round(n)} / 100`} /></dd></div>
+      </dl>
 
-      {scholarshipsRevealed && (
-        <>
-          <label className="admissions-field">
-            <span>Scholarships <strong>{Math.round(scholarshipRate * 100)}%</strong> avg. discount</span>
-            <input type="range" min={0} max={1} step={0.01} value={scholarshipRate}
-              onChange={(e) => setScholarshipRate(Number(e.target.value))} />
-            <span className="admissions-net-price">
-              Net price <strong className={`price-tier-value ${PRICE_TIER_COPY[netTier].className}`}>${Math.round(netPrice).toLocaleString()}/yr</strong>
-              {' — '}
-              <PriceTierTag tier={netTier} />
-            </span>
-          </label>
+      <div className="cohort-breakdown">
+        <h3>Who this pulls in <span className="outcome-note">(applicants, summing to the pool above)</span></h3>
+        {cohorts.map((c) => <CohortRow key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants} />)}
+      </div>
 
-          <dl className="admissions-outcomes">
-            <div><dt>Applicant pool <span className="outcome-note">(final, at this scholarship rate)</span></dt><dd><AnimatedNumber value={outcome.applicants} /></dd></div>
-            <div><dt>Word of mouth <span className="outcome-note">(avg satisfaction last year {Math.round(satisfaction)})</span></dt><dd>{outcome.wordOfMouthMultiplier >= 1 ? '+' : ''}{Math.round((outcome.wordOfMouthMultiplier - 1) * 100)}% applicants</dd></div>
-            <div><dt>Admit rate <span className="outcome-note">(selectivity)</span></dt><dd>{Math.round(outcome.admitRate * 100)}%</dd></div>
-            <div><dt>Yield</dt><dd><AnimatedNumber value={outcome.yieldRate * 100} format={(n) => `${Math.round(n)}%`} /></dd></div>
-            <div><dt>Freshman class</dt><dd><AnimatedNumber value={outcome.enrolled} /></dd></div>
-            <div><dt>Incoming quality <span className="outcome-note">(feeds prestige)</span></dt><dd><AnimatedNumber value={outcome.avgIncomingQuality} format={(n) => `${Math.round(n)} / 100`} /></dd></div>
-            <div><dt>Net tuition / student</dt><dd>${outcome.netTuitionPerStudent.toLocaleString()}/yr</dd></div>
-          </dl>
+      <StudentLifeDigest
+        petitions={petitions}
+        approved={approved}
+        onToggle={(id) => setApproved((prev) => {
+          const next = new Set(prev);
+          if (next.has(id)) next.delete(id); else next.add(id);
+          return next;
+        })}
+      />
 
-          <div className="cohort-breakdown">
-            <h3>Who this pulls in <span className="outcome-note">(applicants, summing to the pool above)</span></h3>
-            {cohorts.map((c) => <CohortRow key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants} />)}
-          </div>
-
-          <StudentLifeDigest
-            petitions={petitions}
-            approved={approved}
-            onToggle={(id) => setApproved((prev) => {
-              const next = new Set(prev);
-              if (next.has(id)) next.delete(id); else next.add(id);
-              return next;
-            })}
-          />
-
-          <button onClick={() => onResolve({ tuition, scholarshipRate, approvedPetitionIds: [...approved] })}>
-            Confirm Policy
-          </button>
-        </>
-      )}
+      <button onClick={() => onResolve({ tuition, approvedPetitionIds: [...approved] })}>
+        Confirm Policy
+      </button>
     </>
   );
 }
@@ -752,7 +715,7 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
   // `universityCharterOffered`/`suffix` — so there is no neutral "continue"
   // for a key to stand for, and picking one silently would be picking for
   // the player. The admissions form is left out because its
-  // tuition/scholarship values live in AdmissionsInterruptForm's own local
+  // tuition value lives in AdmissionsInterruptForm's own local
   // state, not reachable from here without lifting that state up just for a
   // hotkey, so it stays click-to-confirm.
   //

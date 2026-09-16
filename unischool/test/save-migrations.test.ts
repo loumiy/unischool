@@ -118,9 +118,13 @@ function testForwardMigration(): void {
   assert(students.satisfactionYearSum === 0, 'satisfaction accumulator seeded (sum 0)');
   assert(students.priorYearAvgSatisfaction === 66, 'priorYearAvgSatisfaction seeded from current satisfaction');
 
-  const admissions = loaded.admissions as unknown as Loose;
-  assert(admissions.scholarshipRate === 0.3, 'financialAidRate 0.3 -> scholarshipRate 0.3');
-  assert(admissions.financialAidRate === undefined, 'old financialAidRate field removed');
+  // MIGRATIONS[20] renames financialAidRate -> scholarshipRate, and
+  // MIGRATIONS[36] then deletes the whole admissions slice with
+  // scholarships themselves. A v18 save coming all the way up must arrive
+  // with neither field and no slice — and, critically, must not have
+  // thrown on the way through the rename it still passes over.
+  assert((loaded as unknown as Loose).admissions === undefined,
+    'the admissions slice is gone by the current version');
 
   const row = loaded.history[0] as unknown as Loose;
   assert(row.programsEstablished === 2, 'history majorsComplete 2 -> programsEstablished 2');
@@ -487,7 +491,10 @@ function testPerClassTuitionMigration(): void {
   // reused one class's count for another would show up in the total.
   const students = state.students as Loose;
   students.classes = { freshman: 300, sophomore: 250, junior: 200, senior: 150 };
-  (state.admissions as Loose).scholarshipRate = 0.2;
+  // v35 predates the retirement of scholarships, so this save still HAS
+  // the slice — the current shape does not, so it is put back by hand
+  // here. It is what MIGRATIONS[36] removes on the way up.
+  (state as Loose).admissions = { scholarshipRate: 0.2 };
 
   writeSave(35, state);
   const loaded = loadGame();
@@ -505,9 +512,12 @@ function testPerClassTuitionMigration(): void {
     'every class carries forward at the price it was actually paying',
   );
 
-  // The exactness claim, in money: what the old model billed was
-  // enrolled x price x (1 - scholarships), because there was only one price.
-  const expected = (300 + 250 + 200 + 150) * 19_000 * 0.8;
+  // The exactness claim, in money. NOTE the 0.8 that used to be here is
+  // gone: the v35 save's 20% scholarship rate is retired by MIGRATIONS[36]
+  // on the way up (Plan 05's PR B), so the resumed school charges its
+  // listed price in full. What this still pins is that the SPLIT across
+  // four classes is exact — every class at the one price it was paying.
+  const expected = (300 + 250 + 200 + 150) * 19_000;
   const actual = annualTuitionBilled(loaded);
   assert(Math.abs(actual - expected) < 1e-6,
     `migrated tuition revenue is unchanged to the dollar (got ${actual}, expected ${expected})`);
@@ -527,7 +537,8 @@ function testRoundTrip(): void {
     JSON.stringify(loaded.students.classes) === JSON.stringify(cur.students.classes),
     'founding class mix survives round trip',
   );
-  assert(loaded.admissions.scholarshipRate === cur.admissions.scholarshipRate, 'scholarshipRate survives round trip');
+  assert((loaded as unknown as Loose).admissions === undefined, 'no admissions slice on a current-version save');
+  assert(loaded.finance.listedTuition === cur.finance.listedTuition, 'listed tuition survives round trip');
 }
 
 // ---- Test: v29's campus content pass (MIGRATIONS[29]) ----

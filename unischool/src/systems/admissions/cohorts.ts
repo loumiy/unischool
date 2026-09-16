@@ -82,8 +82,8 @@ function doneIds(s: GameState, ids: string[]): number {
 
 // The structural signals every cohort but priceSensitive reads — plain
 // numbers, derived once per GameState read (see deriveCohortSignals),
-// never persisted. priceSensitive instead reads tuition/scholarshipRate
-// (and a price-tolerance reading derived from prestige) directly (see
+// never persisted. priceSensitive instead reads tuition (and a
+// price-tolerance reading derived from prestige) directly (see
 // cohortDemandFactor) since those are the values the admissions interrupt
 // previews LIVE, before they're ever written to GameState — the same
 // reason projectAdmissions itself takes them as explicit parameters rather
@@ -158,18 +158,22 @@ const ATHLETICS_DECAY = 0.5;
 // earned-price curve admissionsSystem.ts's own sticker shock and
 // applicant-volume discount are measured against — so pricing AT or under
 // what the school's own standing supports pulls this cohort in (up to
-// +STRENGTH at net price 0), and pricing over it pushes them away (down to
-// -STRENGTH at double tolerance or beyond, clamped). This compounds with
-// the funnel's existing price-driven volume discount rather than
+// +STRENGTH at a price of 0), and pricing over it pushes them away (down
+// to -STRENGTH at double tolerance or beyond, clamped). This compounds
+// with the funnel's existing price-driven volume discount rather than
 // duplicating it: that discount is about applicants overall; this is
 // specifically about how big a SHARE of them are the deal-conscious ones,
 // same real distinction as sticker shock already draws between quality
 // bands.
+//
+// It read NET price until scholarships were retired (Plan 05's PR B).
+// Nothing was retuned when they went: the curve is centered on
+// priceTolerance, not on the gap between a sticker and a net price, so
+// with one price it simply reads that one.
 const PRICE_SENSITIVE_STRENGTH = 0.35;
 
-function priceSensitivePull(tolerance: number, tuition: number, scholarshipRate: number): number {
-  const netPrice = Math.max(tuition, 0) * (1 - Math.max(0, Math.min(1, scholarshipRate)));
-  const ratio = tolerance > 0 ? netPrice / tolerance : 0;
+function priceSensitivePull(tolerance: number, tuition: number): number {
+  const ratio = tolerance > 0 ? Math.max(tuition, 0) / tolerance : 0;
   return 1 + PRICE_SENSITIVE_STRENGTH * Math.max(-1, Math.min(1, 1 - ratio));
 }
 
@@ -179,14 +183,14 @@ function priceSensitivePull(tolerance: number, tuition: number, scholarshipRate:
 // apart into different numbers for the same cohort. `tolerance` is
 // priceTolerance(prestige) — see admissionsSystem.ts — computed once by
 // the caller and threaded through rather than recomputed here.
-function pullFor(id: CohortId, signals: CohortSignals, tolerance: number, tuition: number, scholarshipRate: number): number {
+function pullFor(id: CohortId, signals: CohortSignals, tolerance: number, tuition: number): number {
   switch (id) {
     case 'highAchievers': return boundedPull(HIGH_ACHIEVER_STRENGTH, HIGH_ACHIEVER_DECAY, signals.distinguishedDepth);
     case 'preProfessional': return boundedPull(PRE_PROFESSIONAL_STRENGTH, PRE_PROFESSIONAL_DECAY, signals.professionalPrograms);
     case 'researchOriented': return boundedPull(RESEARCH_STRENGTH, RESEARCH_DECAY, signals.researchRate / 10 + signals.labCount);
     case 'social': return boundedPull(SOCIAL_STRENGTH, SOCIAL_DECAY, signals.socialOrgCount);
     case 'artsFocused': return boundedPull(ARTS_STRENGTH, ARTS_DECAY, signals.artsPrograms * 1.5 + signals.artsFacilities * 2);
-    case 'priceSensitive': return priceSensitivePull(tolerance, tuition, scholarshipRate);
+    case 'priceSensitive': return priceSensitivePull(tolerance, tuition);
     case 'athletes': return boundedPull(ATHLETICS_STRENGTH, ATHLETICS_DECAY, signals.activeTeams * (signals.athleticsQuality / 100));
   }
 }
@@ -197,8 +201,8 @@ function pullFor(id: CohortId, signals: CohortSignals, tolerance: number, tuitio
 // to how big that cohort's own baseShare is. Exactly 1.0 when every
 // cohort's pull is exactly 1.0 (a founding school pricing itself at
 // priceTolerance — see NEUTRAL_COHORT_SIGNALS above).
-export function cohortDemandFactor(signals: CohortSignals, tolerance: number, tuition: number, scholarshipRate: number): number {
-  return COHORTS.reduce((sum, c) => sum + c.baseShare * pullFor(c.id, signals, tolerance, tuition, scholarshipRate), 0);
+export function cohortDemandFactor(signals: CohortSignals, tolerance: number, tuition: number): number {
+  return COHORTS.reduce((sum, c) => sum + c.baseShare * pullFor(c.id, signals, tolerance, tuition), 0);
 }
 
 // Per-cohort detail for the admissions UI: not just the blended total, but
@@ -254,10 +258,9 @@ export function cohortBreakdown(
   signals: CohortSignals,
   tolerance: number,
   tuition: number,
-  scholarshipRate: number,
   applicants: number,
 ): CohortDetail[] {
-  const pulls = COHORTS.map((c) => pullFor(c.id, signals, tolerance, tuition, scholarshipRate));
+  const pulls = COHORTS.map((c) => pullFor(c.id, signals, tolerance, tuition));
   const counts = apportion(COHORTS.map((c, i) => c.baseShare * pulls[i]), Math.max(0, Math.round(applicants)));
   return COHORTS.map((c, i) => ({
     id: c.id,

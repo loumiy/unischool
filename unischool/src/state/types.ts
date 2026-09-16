@@ -579,17 +579,15 @@ export interface EventState {
   lastDemandWeek: number;
 }
 
-// The player's admissions policy, set once a year via the summer interrupt
-// (see README's "Admissions: an annual summer decision"). In the funnel
-// model there are exactly two player inputs: tuition and average scholarships.
-// Tuition itself lives on Finance (the single source of truth for the
-// actual price charged); the only policy that lives here is the scholarships rate.
-// Selectivity and enrollment are NOT inputs — they are emergent outcomes of
-// the funnel (see admissionsSystem.ts). scholarshipRate + tuition together
-// describe the price the student actually faces.
-export interface AdmissionsSettings {
-  scholarshipRate: number; // 0..1, average tuition discount across admits
-}
+// The player's admissions policy is set once a year via the summer
+// interrupt (see README's "Admissions: an annual summer decision").
+// NOTE: there is no AdmissionsSettings any more. Its only field was
+// scholarshipRate, retired with scholarships themselves (Plan 05's PR B),
+// and an interface with nothing in it is a slot the next reader has to
+// wonder about. Admissions policy is now exactly one number and it lives
+// where the price lives: finance.listedTuition. Selectivity and enrollment
+// are still NOT inputs — they are emergent outcomes of the funnel (see
+// admissionsSystem.ts).
 
 export interface Rival {
   id: string;
@@ -1032,7 +1030,6 @@ export interface GameState {
   clock: GameClock;
   finance: Finance;
   students: StudentBody;
-  admissions: AdmissionsSettings;
   faculty: Faculty[];
   tech: Buildable[];
   developing: Record<string, number>; // course id -> weeks remaining

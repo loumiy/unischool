@@ -852,7 +852,26 @@ export const SAVE_KEY = 'unischool.save';
 // week before, and only diverges once the player sets a NEW price — which
 // is the change working, not the migration losing anything. See
 // MIGRATIONS[35].
-export const SAVE_VERSION = 36;
+//
+// v36 -> v37: scholarships are retired (Plan 05's PR B). The player sets
+// one price now, so `admissions.scholarshipRate` — the average discount —
+// and the AdmissionsSettings slice that held it are both gone, and the
+// funnel's yield no longer carries a scholarship term at all.
+//
+// WHAT A RESUMED SAVE FEELS, stated plainly: a school that was running a
+// discount stops running it, so what its students pay is its listed price
+// and its tuition revenue goes UP. Nothing is quietly taken in exchange —
+// admissionsSystem.ts's YIELD_BASE absorbed the retired scholarship term
+// at the rates the game was actually played at, so a school that priced
+// sensibly keeps enrolling about what it did, and satisfaction's
+// affordability bonus now reads price against prestige rather than the
+// discount (satisfactionSystem.ts). The school that will feel this is the
+// one that was deep-discounting an inflated sticker: it resumes charging
+// that sticker in full, to a smaller and better-off pool. That is the
+// change working, not the migration losing anything.
+//
+// See MIGRATIONS[36].
+export const SAVE_VERSION = 37;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -914,6 +933,12 @@ interface LegacyGameState extends GameState {
   // market: Faculty `field` -> weeks remaining until that posting's
   // candidate arrived.
   openPostings?: Record<string, number>;
+
+  // Removed in v37, with scholarships themselves (Plan 05's PR B). Its only
+  // field was the average discount rate — first as `financialAidRate`, then
+  // renamed by MIGRATIONS[20] — so retiring scholarships emptied the slice
+  // and it went with them. MIGRATIONS[36] deletes it.
+  admissions?: { scholarshipRate?: number; financialAidRate?: number };
 }
 
 // The two institutional suffixes a saved name may already end in. A v6
@@ -922,6 +947,12 @@ interface LegacyGameState extends GameState {
 const KNOWN_SUFFIXES = ['College', 'University'];
 
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v36 -> v37: scholarships are retired (see the SAVE_VERSION header note
+  // above). The whole admissions slice goes with the one rate it held.
+  36: (state) => {
+    delete state.admissions;
+  },
+
   // v35 -> v36: one tuition scalar becomes a listed price plus four class
   // prices (see the SAVE_VERSION header note above for why this is exact).
   35: (state) => {
@@ -1576,10 +1607,12 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   // with no change in meaning — it is the same 0..1 average tuition discount —
   // so a resumed run keeps its exact admissions policy.
   20: (state) => {
-    const admissions = state.admissions as unknown as {
-      financialAidRate?: number;
-      scholarshipRate?: number;
-    };
+    // Guarded because the slice itself is optional now: MIGRATIONS[36]
+    // removes it at v37, so LegacyGameState carries it as maybe-absent.
+    // Arriving here it is always present — v20 is long before that — but
+    // the type no longer promises it.
+    const admissions = state.admissions;
+    if (!admissions) return;
     if (admissions.scholarshipRate === undefined) {
       admissions.scholarshipRate = admissions.financialAidRate ?? 0;
     }

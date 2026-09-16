@@ -102,10 +102,6 @@ const SYSTEMS: Array<(s: GameState) => void> = [
 // the next few routine lines.
 const LOG_CAP = 200;
 
-function clamp01(v: number): number {
-  return Math.max(0, Math.min(1, v));
-}
-
 // ---------------------------------------------------------------------
 // saveGame (see state/persistence.ts) is the ONE thing in this reducer
 // that reaches outside itself. It doesn't change the reducer's purity with
@@ -606,7 +602,6 @@ export function reducer(state: GameState, action: Action): GameState {
       // the three classes already on the books keep the price they were
       // admitted under (see types.ts's tuitionByClass).
       s.finance.listedTuition = Math.max(0, Math.min(action.tuition, s.finance.tuitionCeiling));
-      s.admissions = { scholarshipRate: clamp01(action.scholarshipRate) };
 
       resolveStudentLifeDigest(s, action.approvedPetitionIds);
 
@@ -644,7 +639,6 @@ export function reducer(state: GameState, action: Action): GameState {
       const outcome = projectAdmissions(
         s.self.reputation,
         s.finance.listedTuition,
-        s.admissions.scholarshipRate,
         s.students.capacity,
         priorYearAvgSatisfaction,
         deriveCohortSignals(s),
@@ -673,7 +667,7 @@ export function reducer(state: GameState, action: Action): GameState {
       s.log.unshift({
         year: s.clock.year,
         week: s.clock.week,
-        message: `Admissions: tuition $${s.finance.listedTuition.toLocaleString()}/yr, ${Math.round(s.admissions.scholarshipRate * 100)}% scholarships — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admit rate, ${outcome.enrolled.toLocaleString()} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
+        message: `Admissions: tuition $${s.finance.listedTuition.toLocaleString()}/yr — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admit rate, ${outcome.enrolled.toLocaleString()} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
         kind: 'info',
       });
 

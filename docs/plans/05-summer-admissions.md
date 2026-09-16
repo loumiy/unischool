@@ -6,10 +6,14 @@ in the notes, and a rework of a decision the game already has — and turn it in
 an ordered sequence of PRs, each one small enough to land on its own and each
 one landing in the order that makes the next one cheaper.*
 
-**Status: In progress.** Seven PRs, A through G. **A has landed**; B through G
-have not. A's departures from the plan are noted in A itself: the dormant
-`tuitionBonus` effect, and the balance harness moving a PR earlier than
-predicted.
+**Status: In progress.** Seven PRs, A through G. **A and B have landed**; C
+through G have not. Each one's departures from the plan are noted in the PR
+that departed: A, where `tuitionBonus` turned out to have no users and the
+balance harness moved a PR earlier than predicted; and B, where scholarships
+had a third consumer in `satisfactionSystem.ts`, `YIELD_BASE` had to absorb the
+retired yield term, two more pricing-test sections turned out to be unwritable
+rather than one, and the balance re-baseline landed on strategies the plan had
+not named.
 
 ---
 
@@ -222,6 +226,58 @@ why — not as a threshold nudge.
 **Verification:** `admissions-pricing.test.ts` loses section 3 (moved to A in
 its per-class form) and keeps 1, 2, 4, 5 and 6 with the scholarship argument
 dropped; the balance regression re-baselined with its deltas written down.
+
+**As implemented: four departures.**
+
+*Scholarships had a third consumer the plan never enumerated.*
+`satisfactionSystem.ts` read the rate as an **affordability** bonus, up to +20
+on basic needs — the sharpest attribute in the model, and upstream of word of
+mouth and so of next year's applicants. Deleting it would have quietly removed
+a gameplay input. It is re-expressed instead, as the same substitution the plan
+authorized for `priceSensitivePull`: affordability now scores the price the
+body ACTUALLY PAYS against `priceTolerance`. That reading is per-class, not
+listed, so a school that has just raised its price still has three classes
+cushioned at the old one — PR A's machinery paying for itself one PR later.
+
+*`YIELD_BASE` had to absorb the retired scholarship term.* The plan said delete
+`SCHOLARSHIP_YIELD_STRENGTH`; done naively that is not "remove a lever", it is
+"halve nearly every school's intake", because the term was worth up to +0.45
+against a base of 0.30 and nearly every school ran some aid. The base moved
+0.30 -> 0.52, which is what the old formula produced at the rates the game was
+actually played at (five of the sim's seven strategies sat at 0.20-0.25). PR C
+deletes yield outright, so this is a bridge.
+
+*Sections 4 AND 5 were unwritable, not just 3.* The plan expected to keep 4 and
+5 with an argument dropped. Both held net price fixed while moving the sticker,
+which one price makes impossible. Section 3 is now "the price-vs-revenue curve
+has an interior optimum" (section 4's question, asked of the model that
+exists), and section 4 is band-specificity tested by its one clean observable
+signature: at equal overreach, a school with more top-band applicants is
+shocked LESS, which a band-blind shock could not produce.
+
+That test also cost a wrong assumption, worth recording because it was nearly
+shipped: the obvious reading of band-specificity — that overreach raises the
+average quality of who enrolls — is NOT an invariant. Two price effects on
+composition run opposite ways (sticker shock pushes the mix up, `qualityMix`'s
+own tuition shift pushes it down), and which wins depends on prestige: up at
+30 and 50, down at 90. Asserting it would have been asserting today's tunings.
+
+*The balance re-baseline landed on the two strategies the plan did not name,
+and for a reason it did not anticipate.* Converting each strategy to its old
+NET price looked like the identity-preserving move. It is not, because a
+sticker and a net price were doing two different jobs and one number cannot do
+both: the sticker was ALSO throttling the pool through sticker shock and
+`qualityMix`. "Discount volume" lost both throttles, grew to 23k students it
+could not fund, and ended insolvent; its price sits between its old two prices
+now, which is the only place a single number can sit. "Overbuilder" never
+discounted, so it gained the whole `YIELD_BASE` rise, filled its own beds and
+stopped being a stress case at all — 8,000 -> 5,500 restores a real trough
+inside the 20-year window and a recovery that holds to year 40.
+
+Both were picked by sweeping, and the sweep is the finding: the response is not
+monotone. Overbuilder at 6,000 ends year 40 at -86M while 5,500 and 6,500 both
+end healthy. Read those prices as samples of a noisy function, not optima — the
+same threshold behaviour PR A's note describes, met head-on this time.
 
 ## PR 05C — Admit rate is the second decision
 

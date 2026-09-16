@@ -1,7 +1,6 @@
 // ---------------------------------------------------------------------
-// Admissions pricing: net price vs. sticker price (see README's
-// "Admissions: an annual summer decision" and admissionsSystem.ts's
-// STICKER_SHOCK_RATE).
+// Admissions pricing (see README's "Admissions: an annual summer decision"
+// and admissionsSystem.ts's STICKER_SHOCK_RATE).
 //
 // projectAdmissions() is pure and deterministic — no Math.random anywhere
 // in this module — so this file needs none of the seeding/localStorage
@@ -9,18 +8,25 @@
 // directly, at chosen policy points, exactly as the admissions modal and
 // the reducer's RESOLVE_ADMISSIONS do.
 //
-// WHAT THIS GUARDS. Before STICKER_SHOCK_RATE existed, inflating the
-// sticker price while raising scholarships to hold the STUDENT'S net price
-// fixed was a strict improvement with no offsetting cost: qualityMix's
-// tuition-driven shift moved mass into the low band, whose yield penalty is
-// zero, so a school that priced at its ceiling and discounted back down to
-// an honest net price nearly tripled its enrolled class and net revenue
-// over pricing honestly in the first place — see the fix's own commit
-// message for the exact verified numbers. These checks lock that shut: a
-// sticker within the school's earned tolerance costs nothing, one that
-// overreaches costs real applicants (worst in the low/mid bands, least in
-// the top band), and the profitability curve at a fixed net price has to
-// have a genuine interior optimum rather than favoring either extreme.
+// WHAT THIS GUARDS, and what it used to. This file was written against a
+// two-lever model where a school listed one price and charged another:
+// inflating the sticker while raising scholarships to hold the STUDENT'S
+// net price fixed was a strict improvement, because qualityMix's shift
+// moved mass into the low band, whose yield penalty is zero. Sticker shock
+// was the answer, and three of these sections tested it by holding net
+// price fixed while moving the sticker.
+//
+// Scholarships are retired (Plan 05's PR B), so there is one price and
+// that construction cannot be written at all. What survives is the half of
+// sticker shock that was never about the exploit: price moves WHO applies,
+// not just how many. A price inside the school's earned tolerance costs
+// nothing (1); overreach costs applicants, monotonically (2); it costs the
+// low and mid bands harder than the top, so the pool's composition shifts
+// (4); and there is a real interior optimum in what to charge (3).
+//
+// The exploit invariant itself did not vanish — it MOVED. The retroactive
+// hike is the exploit this model can express, and class-pricing.test.ts
+// carries it (see Plan 05's PR A).
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
@@ -40,39 +46,31 @@ function assert(cond: boolean, msg: string): void {
 const CAPACITY = 6_000; // admissionsScaleScore's own reference — a representative mid-size campus
 const SATISFACTION = 70; // WORD_OF_MOUTH_NEUTRAL — isolates pricing from word-of-mouth swings
 
-// Net revenue at a policy: what actually flows into finance for the
-// incoming class, the figure a player is really optimizing when they set
-// these two levers (see financeSystem.ts's tuitionRevenue line).
-function netRevenue(prestige: number, tuition: number, scholarshipRate: number): number {
-  const o = projectAdmissions(prestige, tuition, scholarshipRate, CAPACITY, SATISFACTION);
-  return o.enrolled * o.netTuitionPerStudent;
-}
-
-// The scholarship rate that lands exactly on `netPriceTarget` for a given
-// sticker tuition — the same "hold the student's price fixed, move the
-// sticker" construction the exploit relied on.
-function scholarshipFor(tuition: number, netPriceTarget: number): number {
-  return tuition > 0 ? Math.max(0, 1 - netPriceTarget / tuition) : 0;
+// First-year revenue from the incoming class at a given price: the figure
+// a player is really optimizing when they set the one lever. One price
+// now, so this is just the class times what it is charged (see
+// financeSystem.ts's annualTuitionBilled, which sums exactly this per
+// class).
+function firstYearRevenue(prestige: number, tuition: number): number {
+  return projectAdmissions(prestige, tuition, CAPACITY, SATISFACTION).enrolled * tuition;
 }
 
 // =====================================================================
-// 1. NO SHOCK WITHIN EARNED TOLERANCE — a sticker the school's own
-// standing can support costs nothing, at any scholarship rate.
+// 1. NO SHOCK WITHIN EARNED TOLERANCE — a price the school's own standing
+// can support costs nothing.
 // =====================================================================
 for (const prestige of [30, 50, 90, 130]) {
   const tolerance = priceTolerance(prestige);
-  for (const scholarshipRate of [0, 0.3, 0.7]) {
-    const atTolerance = projectAdmissions(prestige, Math.round(tolerance), scholarshipRate, CAPACITY, SATISFACTION);
-    assert(
-      Math.abs(atTolerance.stickerShockMultiplier - 1) < 1e-6,
-      `prestige ${prestige}: a sticker at earned tolerance draws zero shock (scholarship ${scholarshipRate}, got ${atTolerance.stickerShockMultiplier})`,
-    );
-    const underTolerance = projectAdmissions(prestige, Math.round(tolerance * 0.5), scholarshipRate, CAPACITY, SATISFACTION);
-    assert(
-      Math.abs(underTolerance.stickerShockMultiplier - 1) < 1e-6,
-      `prestige ${prestige}: a sticker well under earned tolerance draws zero shock`,
-    );
-  }
+  const atTolerance = projectAdmissions(prestige, Math.round(tolerance), CAPACITY, SATISFACTION);
+  assert(
+    Math.abs(atTolerance.stickerShockMultiplier - 1) < 1e-6,
+    `prestige ${prestige}: a price at earned tolerance draws zero shock (got ${atTolerance.stickerShockMultiplier})`,
+  );
+  const underTolerance = projectAdmissions(prestige, Math.round(tolerance * 0.5), CAPACITY, SATISFACTION);
+  assert(
+    Math.abs(underTolerance.stickerShockMultiplier - 1) < 1e-6,
+    `prestige ${prestige}: a price well under earned tolerance draws zero shock`,
+  );
 }
 
 // =====================================================================
@@ -85,72 +83,101 @@ for (const prestige of [30, 50, 90, 130]) {
   let previous = 1;
   for (const m of overreachMultipliers) {
     const tuition = Math.round(tolerance * m);
-    const o = projectAdmissions(prestige, tuition, 0.5, CAPACITY, SATISFACTION);
+    const o = projectAdmissions(prestige, tuition, CAPACITY, SATISFACTION);
     assert(
       o.stickerShockMultiplier <= previous + 1e-9,
-      `prestige ${prestige}: shock multiplier is non-increasing as the sticker climbs to ${m}x tolerance (was ${previous.toFixed(4)}, now ${o.stickerShockMultiplier.toFixed(4)})`,
+      `prestige ${prestige}: shock multiplier is non-increasing as the price climbs to ${m}x tolerance (was ${previous.toFixed(4)}, now ${o.stickerShockMultiplier.toFixed(4)})`,
     );
     previous = o.stickerShockMultiplier;
   }
-  assert(previous < 0.9, `prestige ${prestige}: a sticker at 5x earned tolerance draws a real, meaningful shock (got multiplier ${previous.toFixed(3)})`);
+  assert(previous < 0.9, `prestige ${prestige}: a price at 5x earned tolerance draws a real, meaningful shock (got multiplier ${previous.toFixed(3)})`);
 }
 
 // =====================================================================
-// 3. THE EXPLOIT IS CLOSED — at a fixed NET price, maxing out the sticker
-// (and matching it with scholarships) no longer beats honest pricing.
+// 3. A REAL DECISION EXISTS — with one price, the first-year revenue curve
+// has a genuine interior optimum: some price beats both giving the place
+// away and pricing it out of its own applicant pool. This is the same
+// question the old section 4 asked ("is there a real pricing decision, or
+// is one end always right?"), asked of the model that now exists — there
+// is no sticker-vs-net gap left to sweep, so it sweeps the price itself.
 // =====================================================================
-{
-  const prestige = 50;
-  const netPriceTarget = 10_000;
-  const honest = netRevenue(prestige, netPriceTarget, 0);
-  const extreme = netRevenue(prestige, 60_000, scholarshipFor(60_000, netPriceTarget));
+for (const prestige of [30, 50, 90]) {
+  const tolerance = priceTolerance(prestige);
+  const prices = [0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 5].map((m) => Math.round(tolerance * m));
+  const revenues = prices.map((price) => firstYearRevenue(prestige, price));
+  const peak = Math.max(...revenues);
+  const peakAt = prices[revenues.indexOf(peak)];
   assert(
-    extreme <= honest,
-    `sticker-inflation-plus-matching-aid no longer beats honest pricing at the same net price (honest $${honest.toLocaleString()}, extreme $${extreme.toLocaleString()})`,
+    peak > revenues[0] * 1.1 && peak > revenues[revenues.length - 1] * 1.1,
+    `prestige ${prestige}: the price-vs-revenue curve peaks in the middle, not at a corner (cheapest $${revenues[0].toLocaleString()}, peak $${peak.toLocaleString()} at $${peakAt.toLocaleString()}, dearest $${revenues[revenues.length - 1].toLocaleString()})`,
+  );
+  assert(
+    peakAt > tolerance * 0.2 && peakAt < tolerance * 3,
+    `prestige ${prestige}: the revenue-maximizing price is somewhere near earned tolerance, not at an extreme (peak $${peakAt.toLocaleString()} vs tolerance $${Math.round(tolerance).toLocaleString()})`,
   );
 }
 
 // =====================================================================
-// 4. A REAL DECISION EXISTS — the profitability curve at a fixed net price
-// has a genuine interior optimum: some sticker level beats BOTH the
-// honest-pricing floor and the maxed-out-sticker extreme. (Confirms the
-// fix didn't overcorrect into "honest pricing is always best either way" —
-// a little price discrimination should still be a legitimate, rewarded
-// real-world strategy, just not an unbounded one.)
+// 4. BAND-SPECIFIC — the whole of what sticker shock still claims to do,
+// tested by its one cleanly observable signature.
+//
+// The per-band factors depend only on overreach, so at the SAME overreach
+// every school gets the same three factors. What differs is the mix they
+// are applied to (qualityMix reads prestige), and the aggregate multiplier
+// is that mix's weighted blend. So if the shock were band-blind, two
+// schools at the same overreach would be shocked identically whatever
+// their prestige; because it is band-specific, the school with more of its
+// pool in the lightly-shocked top band is shocked LESS.
+//
+// The effect is small — a couple of percent — because the mix moves slowly
+// with prestige, and it is measured at 2x rather than further out because
+// qualityMix clamps at QUALITY_BAND_FLOOR under heavy overreach, which
+// makes every school's mix identical and the signature vanish. Small and
+// real is the honest claim here.
+//
+// NOTE the thing this deliberately does NOT assert: that overreach raises
+// the average quality of who enrolls. Two price effects on composition run
+// opposite ways — this one pushes the mix up, qualityMix's own tuition
+// shift pushes it down — and which wins depends on prestige (it is up at
+// 30 and 50, down at 90). That is a property of two tunings meeting, not
+// an invariant, and a test that asserted it would be asserting today's
+// numbers rather than the model's intent.
 // =====================================================================
 {
-  const prestige = 50;
-  const netPriceTarget = 10_000;
-  const stickers = [10_000, 12_500, 15_000, 17_500, 20_000, 25_000, 30_000, 40_000, 60_000];
-  const revenues = stickers.map((t) => netRevenue(prestige, t, scholarshipFor(t, netPriceTarget)));
-  const maxRevenue = Math.max(...revenues);
-  const first = revenues[0];
-  const last = revenues[revenues.length - 1];
-  assert(
-    maxRevenue > first * 1.1 && maxRevenue > last * 1.1,
-    `the sticker-vs-net-price curve has a real interior peak, not a corner solution (honest $${first.toLocaleString()}, peak $${maxRevenue.toLocaleString()}, maxed-out $${last.toLocaleString()})`,
-  );
+  const OVERREACH = 2;
+  const shockAt = (prestige: number): number => projectAdmissions(
+    prestige, Math.round(priceTolerance(prestige) * OVERREACH), CAPACITY, SATISFACTION,
+  ).stickerShockMultiplier;
+
+  let previous = 0;
+  for (const prestige of [30, 50, 90, 130]) {
+    const shock = shockAt(prestige);
+    assert(
+      shock > previous,
+      `prestige ${prestige}: at the same ${OVERREACH}x overreach, a school with more top-band applicants is shocked less (previous ${previous.toFixed(4)}, now ${shock.toFixed(4)})`,
+    );
+    previous = shock;
+  }
+  assert(previous < 1, 'even the most prestigious school is genuinely shocked by real overreach');
 }
 
 // =====================================================================
-// 5. BAND-SPECIFIC — the low band is shocked hardest, the top band least,
-// at the same overreach. Read indirectly through avgIncomingQuality: heavy
-// overreach should shift the enrolled mix toward LOWER average quality
-// (the top band's share of the realized pool shrinks least, so it becomes
-// relatively more of the mix... texture the multiplier band-by-band is not
-// exposed, so this checks the documented, intended consequence instead —
-// see the low band losing volume fastest is what floods the mix downward
-// even before qualityMix's own tuition shift is counted).
+// 5. ONE PRICE, ONE RESPONSE — the funnel reads a single number. Volume
+// falls with price and the pool never grows by charging more, which the
+// old model could not assert: volume was scored against net price while
+// the band split read the sticker, so the two could and did disagree.
 // =====================================================================
-{
-  const prestige = 50;
-  const netPriceTarget = 10_000;
-  const mild = projectAdmissions(prestige, 12_000, scholarshipFor(12_000, netPriceTarget), CAPACITY, SATISFACTION);
-  const extreme = projectAdmissions(prestige, 60_000, scholarshipFor(60_000, netPriceTarget), CAPACITY, SATISFACTION);
-  assert(
-    extreme.stickerShockMultiplier < mild.stickerShockMultiplier,
-    'heavier sticker overreach draws a stronger overall shock than mild overreach',
-  );
+for (const prestige of [30, 50, 90]) {
+  const tolerance = priceTolerance(prestige);
+  let previous = Infinity;
+  for (const m of [0.25, 0.5, 1, 1.5, 2, 3]) {
+    const o = projectAdmissions(prestige, Math.round(tolerance * m), CAPACITY, SATISFACTION);
+    assert(
+      o.applicants <= previous + 1e-9,
+      `prestige ${prestige}: the applicant pool never grows as price rises to ${m}x tolerance (was ${previous}, now ${o.applicants})`,
+    );
+    previous = o.applicants;
+  }
 }
 
 // =====================================================================
@@ -159,7 +186,7 @@ for (const prestige of [30, 50, 90, 130]) {
 // =====================================================================
 {
   const prestige = 20;
-  const o = projectAdmissions(prestige, 200_000, 0.95, CAPACITY, SATISFACTION);
+  const o = projectAdmissions(prestige, 200_000, CAPACITY, SATISFACTION);
   assert(o.applicants >= 0, 'applicants never negative under extreme sticker shock');
   assert(o.admits >= 0, 'admits never negative under extreme sticker shock');
   assert(o.enrolled >= 0, 'enrolled never negative under extreme sticker shock');

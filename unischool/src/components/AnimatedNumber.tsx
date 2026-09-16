@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 
 // Ticks from whatever is currently on screen to a new `value` over a
 // short, fixed duration instead of snapping straight to it — the "quick
-// animation" the admissions form wants whenever a lever (tuition,
-// scholarships) moves a downstream number (applicants, yield, enrolled).
+// animation" the admissions form wants whenever the tuition lever moves a
+// downstream number (applicants, yield, enrolled).
 // Purely cosmetic: the settled display always equals `value` exactly, and
 // interrupting mid-tween (dragging a slider quickly) just re-tweens from
 // wherever the animation currently is, never fights or resets.

@@ -7,7 +7,7 @@
 // This suite carries the invariant that used to live in
 // admissions-pricing.test.ts's "THE EXPLOIT IS CLOSED" section. That
 // section tested a DIFFERENT exploit — inflating the sticker while holding
-// net price fixed with scholarships — which sticker shock answers. The one
+// net price fixed with scholarships — which sticker shock answered. The one
 // here is the retroactive hike: stay cheap while the school grows, then
 // reprice four captive classes. Under one scalar that was free money.
 //
@@ -67,7 +67,6 @@ function playYearAt(start: GameState, tuition: number): GameState {
       return reducer(s, {
         type: 'RESOLVE_ADMISSIONS',
         tuition,
-        scholarshipRate: s.admissions.scholarshipRate,
         approvedPetitionIds: [],
       });
     }
@@ -92,8 +91,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
   assert(p.freshman === s.finance.listedTuition && p.sophomore === s.finance.listedTuition
     && p.junior === s.finance.listedTuition && p.senior === s.finance.listedTuition,
     'a founded school opens with all four classes at the listed price');
-  assert(Math.abs(annualTuitionBilled(s) - totalEnrolled(s.students) * s.finance.listedTuition
-    * (1 - s.admissions.scholarshipRate)) < 1e-6,
+  assert(Math.abs(annualTuitionBilled(s) - totalEnrolled(s.students) * s.finance.listedTuition) < 1e-6,
     'at one price, the four-product sum equals the old enrolled x price reading');
 }
 
@@ -141,8 +139,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
 
   // And the money, stated as the exploit would have stated it: under one
   // scalar, the raise would have repriced the WHOLE body at STEEP.
-  const wholeBodyAtNewPrice = totalEnrolled(afterRaise.students) * STEEP
-    * (1 - afterRaise.admissions.scholarshipRate);
+  const wholeBodyAtNewPrice = totalEnrolled(afterRaise.students) * STEEP;
   assert(annualTuitionBilled(afterRaise) < wholeBodyAtNewPrice,
     'a raise bills strictly less than repricing the whole body would have');
 }

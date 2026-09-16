@@ -101,8 +101,8 @@ const UPKEEP_EMPTY_SEAT_MULTIPLIER = 0.5;
 // catalogue grows, so the late game's enormous tuition line does not
 // simply become free money.
 //
-// That margin is NOT a law of the formula, though — it is two numbers a
-// player sets (the listed tuition, scholarshipRate) racing one the
+// That margin is NOT a law of the formula, though — it is one number a
+// player sets (the listed tuition) racing one the
 // catalogue sets (coursesOffered), and a school that discounts heavily
 // while building out a full curriculum can push its own net tuition per
 // student below this line, same as a real college whose list of majors
@@ -137,9 +137,8 @@ const INSTRUCTION_PER_STUDENT_PER_COURSE_OFFERED = 1.00;
 // GROUP 2 — REVENUE (all of it lagging, by construction)
 // =====================================================================
 
-// Tuition (player-set once a year via the summer admissions interrupt)
-// times the class the funnel committed, net of scholarships, is the main
-// line and the slowest to react: a decision made this week shows up in
+// Tuition — each class at the price it was admitted under (see
+// annualTuitionBilled) — is the main line and the slowest to react: a decision made this week shows up in
 // revenue after the NEXT summer's funnel resolves.
 //
 // On top of it, a "reputation dividend" — donors, grants, brand value —
@@ -238,7 +237,7 @@ export function endowmentCampaign(s: GameState): EndowmentCampaign {
 // rather than two that can disagree.
 export interface FinanceBreakdown {
   // income
-  tuitionRevenue: number;      // every class at its own admission-year price, net of scholarships (see annualTuitionBilled)
+  tuitionRevenue: number;      // every class at its own admission-year price (see annualTuitionBilled)
   prestigeRevenue: number;     // the reputation dividend: donors/grants/brand, independent of enrollment
   endowmentPayout: number;     // the endowment's annual spend rate, sliced into weeks
   baselineFunding: number;     // school-type baseline: a flat appropriation plus a per-student one (0 for private)
@@ -275,7 +274,7 @@ export function instructionCostPerStudent(s: GameState): number {
 }
 
 // What the school bills in tuition across a whole year: every class's own
-// head count at its own price, net of scholarships. FOUR products, not
+// head count at its own price. FOUR products, not
 // `enrolled x price` — each class pays what it was quoted at admission and
 // carries that to graduation (see types.ts's tuitionByClass), so a school
 // that has raised its price is collecting up to four different prices at
@@ -285,14 +284,13 @@ export function instructionCostPerStudent(s: GameState): number {
 // a second copy of this arithmetic in the UI is exactly how a displayed
 // income statement starts disagreeing with what the tick charges.
 export function tuitionByClassBilled(s: GameState): ClassTuition {
-  const net = 1 - s.admissions.scholarshipRate;
   const classes = s.students.classes;
   const price = s.finance.tuitionByClass;
   return {
-    freshman: classes.freshman * price.freshman * net,
-    sophomore: classes.sophomore * price.sophomore * net,
-    junior: classes.junior * price.junior * net,
-    senior: classes.senior * price.senior * net,
+    freshman: classes.freshman * price.freshman,
+    sophomore: classes.sophomore * price.sophomore,
+    junior: classes.junior * price.junior,
+    senior: classes.senior * price.senior,
   };
 }
 
@@ -393,10 +391,9 @@ export function tickFinance(s: GameState): void {
 //     breadth and a low net price — and unlike an empty bed it will not
 //     self-correct by enrollment growth alone: a per-student loss gets
 //     wider, not narrower, the more students walk into it. What still
-//     makes it recoverable is lever 4 below (raise net price or cut
-//     scholarships) plus firing faculty, both unconditional; no combination
-//     of tuition, aid and catalogue size can put the margin somewhere
-//     neither one reaches.
+//     makes it recoverable is lever 4 below (move the price) plus firing
+//     faculty, both unconditional; no combination of tuition and catalogue
+//     size can put the margin somewhere neither one reaches.
 //  3. Demand cannot collapse to zero: satisfaction is floored by
 //     satisfactionSystem.ts's ATTRIBUTE_SCORE_FLOOR (so word of mouth
 //     bottoms out around 0.63x, not 0), and prestige's biggest input,
@@ -404,9 +401,9 @@ export function tickFinance(s: GameState): void {
 //     never un-finish, so a school's floor prestige never falls back to a
 //     founding school's.
 //  4. Two zero-cost recovery levers are always available: the annual
-//     tuition/scholarships decision (a lower net price widens the pool
-//     immediately — see admissionsSystem.ts's price tolerance) and firing
-//     faculty, which is the largest single line on the expense side.
+//     tuition decision (a lower price widens the pool immediately — see
+//     admissionsSystem.ts's price tolerance) and firing faculty, which is
+//     the largest single line on the expense side.
 //  5. The endowment pays out every week regardless of the operating
 //     picture, so a stalled school still has a small, permanent income
 //     floor to climb back from.

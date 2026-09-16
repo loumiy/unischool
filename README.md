@@ -472,7 +472,7 @@ Consequences that the code must honor:
   with a cost is startable until it recovers. Every downward path has a floor, deliberately:
   empty beds are charged at a reduced mothball rate, an extra student is always
   worth more than they cost, satisfaction (and so word of mouth) is floored,
-  curriculum breadth is a stock that never decreases, and the tuition/scholarship
+  curriculum breadth is a stock that never decreases, and the tuition
   decision and firing faculty are zero-cost recovery levers. These invariants
   are guarded by `test/financial-distress.test.ts` (run with `npm test`): every
   priced action (course, placement, endowment campaign, decision-event choice,
@@ -565,9 +565,9 @@ as one-off pauses.
 ## Admissions: an annual summer decision
 
 Admissions is **a once-a-year task, in the summer**, delivered as an interrupt.
-When it fires, the clock stops and the player sets exactly **two** levers for the
-coming year: the **sticker tuition** and the **scholarship rate**
-(`admissions.scholarshipRate`, the average tuition discount across admits).
+When it fires, the clock stops and the player sets exactly **one** lever for the
+coming year: **tuition**. There is no scholarship rate and no discount — what a
+family is quoted is what they pay.
 **Tuition is set once a year here — there is no live, continuously adjustable
 tuition control.** What the slider sets is the **listed** price
 (`finance.listedTuition`), which reaches a student only as the price their class
@@ -578,39 +578,37 @@ target and no target enrollment. Admissions is a distribution funnel resolved by
 `admissionsSystem.ts`, modeled as aggregate applicant *statistics*, never
 individual applicants:
 
-- **Applications** are driven by **net price** (sticker tuition x
-  (1 - scholarship rate)), **current prestige**, and the **average student
-  satisfaction over the preceding year** (word of mouth). Higher prestige and a
-  lower net price grow the pool; a happy student body grows it further. Word of
+- **Applications** are driven by **price**, **current prestige**, and the
+  **average student satisfaction over the preceding year** (word of mouth).
+  Higher prestige and a lower price grow the pool; a happy student body grows it further. Word of
   mouth reads the **average satisfaction over the preceding year** —
   accumulated weekly and averaged at the summer boundary
   (`admissionsSystem.ts`'s `trailingYearSatisfaction`), not the current week's
   reading. Dorm capacity scales the pool toward its full size as housing
   investment grows, but is a floor rather than a wall — even a pure commuter
   school with zero beds draws a real, meaningful pool.
-- **Sticker shock** is a second, separate cost to a high **listed** price,
-  independent of net price: a family decides whether to even apply off the
-  sticker, months before any aid offer exists, so a tuition figure that
+- **Sticker shock** is the *band-specific* half of the price response, and it
+  is what ties price to **who** applies rather than only how many. A price that
   overreaches what the school's prestige has earned (`priceTolerance`) scares
-  off real applicants — hardest in the lower/mid quality bands, barely at all
-  in the top band (the real-world "undermatching" effect: price-sensitive
-  families distrust aid they haven't seen yet and self-select away). This is
-  what stops "raise tuition and scholarships together, holding net price
-  fixed" from being a free lunch: without it, inflating the sticker only ever
-  helped, since applicant *volume* is scored against net price alone. See
-  `admissionsSystem.ts`'s `STICKER_SHOCK_RATE`.
+  off applicants hardest in the lower/mid quality bands and barely at all in
+  the top band (the real-world "undermatching" effect), so an overreaching
+  school gets a smaller pool that is also relatively richer in the applicants
+  least sensitive to price. See `admissionsSystem.ts`'s `STICKER_SHOCK_RATE`,
+  whose rates were sized to close an exploit that no longer exists — with one
+  price, the "inflate the sticker and match it with aid" construction cannot be
+  written — and which are kept for the effect itself.
 - **Selectivity** (the admit rate) is an emergent *output*, reported back to the
   player — never a dial they set.
-- **Scholarships drive yield** — how many admitted students actually enroll —
-  with diminishing returns, on top of prestige. A generous scholarship rate is a
-  genuine, realistic lever (real universities buy yield with aid); pairing it
-  with an inflated sticker purely to launder the discount is what sticker shock
-  now taxes.
+- **Yield** — how many admitted students actually enroll — rises with prestige
+  and falls for higher-quality admits, who have better offers elsewhere.
+  Scholarships used to be its main lever; retiring them moved what that lever
+  typically contributed into `YIELD_BASE`, so a school that prices sensibly
+  enrolls about what it always did.
 
 Students **attend for four years**, so each summer admits a **new freshman
 class** while the existing classes advance a year and the seniors graduate (see
-"Students: four aggregate classes" below). Shape the tuition / scholarship inputs
-with the future demand-curve model in mind.
+"Students: four aggregate classes" below). Shape the tuition input with the
+future demand-curve model in mind.
 
 ### Tuition follows the class that paid it
 
@@ -633,6 +631,13 @@ the new price. Per-class pricing closes that: a raise is worth exactly the
 incoming class and nothing more, which is also what makes the decision legible —
 the player is pricing one class, not the school. A `tuitionBonus` Buildable
 effect raises the listed price only, for the same reason (`techSystem.ts`).
+
+Two readings follow the four prices rather than the listed one, because they are
+about the students actually on the books: the Treasury's tuition line, and
+satisfaction's **affordability** bonus to basic needs, which scores the
+enrollment-weighted average price the body pays against `priceTolerance` (see
+`satisfactionSystem.ts`). A school that has just raised its price hard still has
+three classes cushioned at the old one, and both readings say so.
 
 ### Admissions cohorts: who the school pulls in
 
@@ -1967,8 +1972,8 @@ any refactor.
   trickle. The rebalancing pass that money-paces-alone needed is done — costs
   now lead revenue at every turn of the growth loop (see "Pacing model"), with
   the constants grouped for hand-tuning and `npm run sim` to check the shape.
-- Annual summer admissions interrupt: the player sets tuition + scholarships;
-  selectivity and enrollment are emergent funnel outputs, not inputs.
+- Annual summer admissions interrupt: the player sets tuition; selectivity and
+  enrollment are emergent funnel outputs, not inputs.
 - Dense rivals (~55) + the U.S. News report as a mid-game reveal.
 - The academic-buildings / milestone-chain / curriculum-depth cluster: school &
   major buildings, milestone bonuses, course descriptions, cross-kind and
