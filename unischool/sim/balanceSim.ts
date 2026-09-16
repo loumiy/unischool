@@ -1242,6 +1242,46 @@ export const STRATEGIES: Strategy[] = [
 // that dies is a FINDING here rather than a failing build. If one of them
 // turns out to be a line of play worth supporting, promoting it into
 // STRATEGIES is how that gets said.
+//
+// WHAT THEY FOUND, on the 40-year run at the time they were written. Kept
+// here rather than in BACKLOG.md, which is for work that has not happened:
+// this is a record of a measurement, and here is where the next person to
+// re-run it will be standing.
+//
+//   broad then narrow   prestige 145.7   76k enrolled   794M cash
+//   default curve               140.2    65k            836M
+//   open door (100%)            106.3   273k            1.5B
+//   ivory tower (8%)            101.6    18k           22.6M
+//   band skimmer                 87.4    23k            6.1M
+//
+// 1. THE INTENDED ARC WINS, and beats simply accepting the slider's
+//    default — with MORE students, not fewer. The gap is an early-game
+//    one: broad-then-narrow has 218 courses by year 8 against the
+//    default's 117, because a bigger opening class pays for the buildout.
+//    That gap is the backlog's "admit-rate curve's early slope".
+//
+// 2. OPEN DOOR IS NOT AN EXPLOIT, and its ceiling is not where it looks.
+//    It ends rich and mediocre — a plausible big-state-school shape. What
+//    caps it is prestigeSystem.ts's libraryAdequacyScore, a seats-to-
+//    enrolled ratio floored at 0.4 that MULTIPLIES the 90-weight breadth
+//    term: at 273k students it sits on that floor, costing ~47 points of
+//    prestige target, against only ~9 from the incoming-quality term.
+//    Overcrowding capping academic prestige is exactly what that
+//    multiplier was built to do. Note what is NOT in that chain:
+//    satisfaction is not a prestige input at all (see computePrestigeTarget
+//    — breadth, teaching, quality, research, campus life, endowment, and
+//    nothing else). Satisfaction bites through word of mouth instead, and
+//    hard: open door's applicant POOL is 69k against broad-then-narrow's
+//    190k despite carrying four times the students.
+//
+// 3. PURE TOP-BAND SKIMMING IS A TRAP, NOT AN EXPLOIT, which is the
+//    opposite of what the arithmetic suggested before this was run. The
+//    quality dead zone is real — the skim runs best band first, so once
+//    the rate is under the top band's share, further selectivity buys no
+//    quality at all — but the top band is only ~5% of the pool at founding
+//    prestige, and skimming it starves the school of the tuition that buys
+//    the breadth that widens the band. The dead zone is only reachable by
+//    a school that already grew broad.
 // ---------------------------------------------------------------------
 const balancedBase = STRATEGIES.find((s) => s.name.startsWith('Balanced builder'))!;
 

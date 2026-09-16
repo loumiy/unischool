@@ -75,33 +75,18 @@ here.
 ---
 
 ### The admit-rate curve's early slope
-The admit rate became a player decision in Plan 05's PR C, and
-`sim/balanceSim.ts`'s `ADMIT_PROBES` were added afterwards to find out what
-the lever actually does over forty years. The headline: **the intended arc
-wins** — broad while small, narrowing as standing builds, closes at prestige
-145.7 against 140.2 for a school that just accepts the slider's default every
-year, and it gets there with MORE students (76k vs 65k).
+Re-fit `admitRate(prestige)` so the slider opens wide for a small school and
+narrows as standing builds. It currently opens at **36%** for a founding school
+where ~86% is better, which makes the default a mild handicap rather than a
+sensible opening: a small class is a small tuition line, a small tuition line
+builds the curriculum slowly, and curriculum breadth is the 90-weight prestige
+term that decides the run.
 
-That gap is the finding. The default curve opens at 36% for a founding school
-where ~86% is better: a small class is a small tuition line, a small tuition
-line builds the curriculum slowly, and curriculum breadth is the 90-weight
-prestige term that decides the whole run. Re-fitting `admitRate(prestige)` to
-open wide and narrow later would make the default a good opening rather than a
-mild handicap. The PR C refit deliberately targeted the OLD two-step funnel's
-class sizes, which is a different target from "the rate a player should want".
-
-Two things the probes settled that do not need re-testing:
-- **Open door is not an exploit.** It caps at prestige ~106 against ~146,
-  ending rich (1.5B) and mediocre with 273k students. Its ceiling is almost
-  entirely `libraryAdequacyScore`, which multiplies the breadth term and sits
-  on its 0.4 floor at that size — overcrowding capping academic prestige, which
-  is what that multiplier was built to do. Student quality is the smaller half.
-- **Pure top-band skimming is a trap, not an exploit.** It finishes LAST
-  (prestige 87.4). The top band is only ~5% of the pool at founding prestige,
-  so skimming it starves the school of the tuition that buys the breadth that
-  widens the band. The dead zone above prestige ~105 (where the default admits
-  less than the top band's share, so extra selectivity buys no quality at all)
-  is real, but it is only reachable by a school that already grew.
+The mis-shape has a known cause rather than being a tuning accident. Plan 05's
+PR C fitted those four constants to reproduce the enrolled-class sizes the OLD
+two-step funnel produced, which is a different target from "the rate a player
+should actually want" — see that PR's note. `sim/balanceSim.ts`'s `ADMIT_PROBES`
+measure the gap and are the check on any re-fit.
 
 ## Direction, not plan
 
