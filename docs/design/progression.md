@@ -5,9 +5,36 @@ reports on it.
 
 ## Startup
 
-A **startup screen** lets the player **name the school** before play — the
-player's half of the name only; every school opens as a *College* (see
-"College, and University" below). That is the whole of what it asks.
+A **startup screen** asks the player two things before play: the **name** of
+the school — their half of it only; every school opens as a *College* (see
+"College, and University" below) — and the **vernacular** its campus is built
+in.
+
+## The vernacular
+
+Which architecture the campus was founded in: **Georgian** (red brick, white
+trim, a gilded cupola), **Collegiate Gothic** (grey ashlar, steep slate, a
+spire), **Mission** (cream stucco, red tile, arcades and a campanile) or
+**Brutalist** (board-marked concrete in stacked slabs, and no ornament at
+all). Chosen at founding and **permanent** — a campus's architecture is what
+it was built as, so nothing ever offers to change it.
+
+It is deliberately the one thing on that screen with **no mechanical effect
+whatsoever**. Every founding condition is identical across the four, and no
+system reads `self.vernacular` except the map. That is what makes it a safe
+question to ask before the player knows anything: it cannot be the wrong
+answer. It is also why it does not contradict the rule below — you are
+choosing what your campus *looks* like, not what kind of school it becomes.
+
+**Six of the eleven building motifs do not vary**, and that is true of real
+campuses rather than a shortcut: a Gothic university's gym is still a
+clear-span shed, its teaching hospital is still a modern hospital, and its
+5,000-bed apartment tower still postdates the founding quad by eighty years.
+So the vernacular reads loudest on a young campus — where almost everything
+is a hall, a dorm or a dining room — and dilutes as labs, venues, towers and
+the hospital arrive, which is roughly what happens to a real campus's
+founding architecture. See `components/buildingSpec.ts`'s `VERNACULARS` for
+the sets and `VERNACULAR_INVARIANT_MOTIFS` for the six.
 
 **Archetypes emerge, they are not chosen.** The game should let different kinds
 of successful school (Harvard-like, ASU-like, Johns-Hopkins-like) arise from the

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { STARTING_INSTITUTION_SUFFIX } from '../state/actions';
-import { VERNACULARS } from './buildingSpec';
+import { VERNACULARS, VERNACULAR_CHOICES } from './buildingSpec';
 import { FOUNDING_VERNACULAR } from '../data/foundingData';
 import type { Vernacular } from '../state/types';
 
@@ -330,8 +330,9 @@ function SchoolFacade({ name, vernacular }: { name: string; vernacular: Vernacul
   );
 }
 
-export default function StartupScreen({ onStart }: { onStart: (name: string) => void }) {
+export default function StartupScreen({ onStart }: { onStart: (name: string, vernacular: Vernacular) => void }) {
   const [name, setName] = useState('');
+  const [vernacular, setVernacular] = useState<Vernacular>(FOUNDING_VERNACULAR);
 
   return (
     <div className="startup">
@@ -347,12 +348,34 @@ export default function StartupScreen({ onStart }: { onStart: (name: string) => 
           maxLength={60}
         />
         <div className="startup-facade">
-          <SchoolFacade name={name} vernacular={FOUNDING_VERNACULAR} />
+          <SchoolFacade name={name} vernacular={vernacular} />
+        </div>
+        {/* The second and last question. The facade above redraws as the
+            player moves between them, which is what PR J was for: this
+            screen already had a preview surface, it just was not previewing
+            anything yet.
+
+            PERMANENT, and not said in so many words because the drawing says
+            it — a campus's architecture is what it was built as, so nothing
+            offers to change it later. */}
+        <div className="startup-vernaculars">
+          {VERNACULAR_CHOICES.map((choice) => (
+            <button
+              key={choice.id}
+              type="button"
+              className={`startup-vern-btn ${vernacular === choice.id ? 'active' : ''}`}
+              onClick={() => setVernacular(choice.id)}
+              aria-pressed={vernacular === choice.id}
+            >
+              <strong>{choice.label}</strong>
+              <span>{choice.blurb}</span>
+            </button>
+          ))}
         </div>
         <button
           className="startup-begin-btn"
           disabled={name.trim().length === 0}
-          onClick={() => onStart(name.trim())}
+          onClick={() => onStart(name.trim(), vernacular)}
         >
           Open the Doors
         </button>

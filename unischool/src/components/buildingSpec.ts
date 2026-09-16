@@ -1343,6 +1343,27 @@ export const STACK_LOWER_TOP = 0.54;   // where the broad base stops
 export const STACK_UPPER_INSET = 0.34; // how far the upper slab pulls back, on one axis
 export const STACK_UPPER_OVERHANG = 0.10; // and how far it cantilevers past the other end
 
+// WHAT THE FOUNDING SCREEN CALLS EACH SET, and the order it offers them in.
+//
+// Here rather than in the component because the label and the palette are
+// two halves of one fact: adding a vernacular without naming it should not
+// compile, and this is what makes that true. The blurbs name what the player
+// will actually SEE on the map — a roof, a wall, a tower — rather than the
+// architectural period, because the period is not what they are choosing
+// between at a glance.
+export interface VernacularChoice {
+  id: Vernacular;
+  label: string;
+  blurb: string;
+}
+
+export const VERNACULAR_CHOICES: VernacularChoice[] = [
+  { id: 'georgian', label: 'Georgian', blurb: 'Red brick and white trim, under a gilded cupola.' },
+  { id: 'gothic', label: 'Collegiate Gothic', blurb: 'Grey ashlar and steep slate, under a spire.' },
+  { id: 'mission', label: 'Mission', blurb: 'Cream stucco and red tile, around a shaded arcade.' },
+  { id: 'brutalist', label: 'Brutalist', blurb: 'Board-marked concrete in stacked slabs, and no ornament at all.' },
+];
+
 export function partsFor(v: Vernacular): VernacularParts {
   return VERNACULARS[v].parts;
 }

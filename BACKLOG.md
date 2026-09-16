@@ -22,22 +22,18 @@ the infographic in a renamed Enrollment tab instead). Neither is here any
 more: what they changed is in `docs/design/admissions.md` now.*
 
 ### Startup screen
-**Sequenced into [Plan 07](docs/plans/07-startup-and-vernacular.md) (Proposed).**
-That plan drops public/private outright — both the public tuition ceiling and
-the state appropriation, rather than keeping the subsidy alone — and turns the
-"motif set" idea into a **vernacular** chosen at founding (the name `motif` is
-already taken by `buildingSpec.ts`'s building typology). It also settles that
-the current set is **Georgian**, not classical, and that the founding facade
-should be Founders Hall drawn as a flat elevation. Stays here until that plan
-lands.
+**Done — [Plan 07](docs/plans/07-startup-and-vernacular.md) landed.** The
+private/public fork is gone (ceiling, appropriation and school type), the
+campus has a **vernacular** chosen at founding — Georgian, Collegiate Gothic,
+Mission or Brutalist — and the founding facade is Founders Hall, drawn in the
+set the player is choosing. What that changed is in
+`docs/design/progression.md` now.
 
-Two pieces of this entry did *not* go into Plan 07. The **mascot at founding**
-is deferred to Athletics V3 below, where the rest of its machinery will be —
-nothing named `mascot` exists in the codebase yet, and gating the startup
-screen on Athletics V3's schedule would be a real coupling cost for a dropdown.
-The **Founders Hall / facade mismatch** turned out not to be one: the facade's
-seven columns are the whole front and `PORTICO_COLUMNS`' four are the engaged
-centre bay, so neither has to move.
+Two pieces of this entry did NOT go into Plan 07 and are still open. The
+**mascot at founding** is deferred to Athletics V3 below, where the rest of
+its machinery will be. The **admit-rate curve's early slope** is its own item
+below; Plan 07's PR C took the private applicant pool unchanged rather than
+re-fitting it, so the two want doing together.
 
 ### Athletics V3
 Better layout; a bigger coach pool reusing faculty headshots and the old

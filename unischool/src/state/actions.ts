@@ -1,4 +1,4 @@
-import type { AthleticsBudgetTier, GameState, InitiativeDepth, TileCoord } from './types';
+import type { AthleticsBudgetTier, GameState, InitiativeDepth, TileCoord, Vernacular } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
 import { WEEKS_PER_YEAR, CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT } from './types';
@@ -37,7 +37,7 @@ export const STARTING_INSTITUTION_SUFFIX = 'College';
 // only thing that interprets these. UI dispatches them; systems never do.
 export type Action =
   | { type: 'TICK' }                                   // advance one week
-  | { type: 'START_GAME'; name: string } // leaves the startup screen, founds the university
+  | { type: 'START_GAME'; name: string; vernacular: Vernacular } // leaves the startup screen, founds the university
   // Courses only (see the reducer's guard). Charges the cost up front, sets
   // status 'developing', and starts the countdown in s.developing — see
   // techSystem.ts's canStartDevelopment/startDevelopment, the single gate
@@ -325,7 +325,7 @@ export function createPreStartState(): GameState {
 // name is the WHOLE of what the startup screen asks for since Plan 07's
 // PR C — every other founding condition comes from FOUNDING_PRESET, which
 // is the same for every school (see data/foundingData.ts).
-export function createInitialState(name: string): GameState {
+export function createInitialState(name: string, vernacular: Vernacular = FOUNDING_VERNACULAR): GameState {
   const preset = FOUNDING_PRESET;
 
   // The central Buildable list, built up front so Founders Hall can be
@@ -548,10 +548,11 @@ export function createInitialState(name: string): GameState {
       suffix: STARTING_INSTITUTION_SUFFIX,
       universityCharterOffered: false,
       reputation: foundingReputation,
-      // Fixed at founding and never offered again — a campus's architecture
-      // is what it was built as. One value today; PR K puts the choice on
-      // the startup screen once there is more than one to choose between.
-      vernacular: FOUNDING_VERNACULAR,
+      // Chosen on the startup screen and fixed from here on — a campus's
+      // architecture is what it was built as, so nothing ever offers to
+      // change it. Defaulted rather than required so the tests and the sim,
+      // which are not about the picture, do not all have to say 'georgian'.
+      vernacular,
     },
     // Empty at founding: the first row lands at the end of year 1, when the
     // summer admissions interrupt resolves (see reducer.ts's

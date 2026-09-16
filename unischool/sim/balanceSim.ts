@@ -27,7 +27,7 @@ import type { GameState, Buildable, InitiativeReport } from '../src/state/types'
 import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudent } from '../src/systems/finance/financeSystem';
 import { admitRate, topBandShare } from '../src/systems/admissions/admissionsSystem';
-import { TUITION_SLIDER_MAX } from '../src/data/foundingData';
+import { TUITION_SLIDER_MAX, FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import {
   canStartDevelopment, hasFreeFacultySlot, eligibleInstructors, unstaffedCourses,
   isCommitted, effectiveCourseSlots, totalFacultySlots, usedFacultySlots,
@@ -735,7 +735,7 @@ export function play(
 ): { rows: Row[]; tally: EventTally; venuesBuilt: string[] } {
   resetSimEnvironment();
   let s = createPreStartState();
-  s = reducer(s, { type: 'START_GAME', name: 'Test University' });
+  s = reducer(s, { type: 'START_GAME', name: 'Test University', vernacular: FOUNDING_VERNACULAR });
   const dispatch = (a: Action) => { s = reducer(s, a); };
   const rows: Row[] = [];
   let weeksInTheRed = 0;

@@ -26,6 +26,7 @@ import {
   materialOf, materialsFor, stoneFor, roofFor, parapetOf, paneShapeOf,
   windowOutline, windowShapeOf, variesByVernacular, VERNACULAR_INVARIANT_MOTIFS,
   partsFor, entrancePartOf, rooflineEndPartOf, apexPartOf, hasRoofForm,
+  VERNACULAR_CHOICES,
   IMPLEMENTED_ENTRANCE_PARTS, IMPLEMENTED_ROOFLINE_END_PARTS, IMPLEMENTED_APEX_PARTS,
   hasClockTower as carriesClockTower,
   VERNACULARS, motifOf, rankSills, ridgeOf,
@@ -850,6 +851,27 @@ console.log('campus scale and building spec');
         `${t.id} (${motifOf(t)}) is the same material in '${vname}' as in 'georgian' `
         + `(got ${here.wall}/${here.roof}, expected ${base.wall}/${base.roof})`);
     }
+  }
+}
+
+// --- 17. Every vernacular is offerable ------------------------------------
+// The founding screen builds its picker from VERNACULAR_CHOICES (Plan 07's
+// PR K). A set that exists in VERNACULARS but not in that list is a set
+// nobody can ever choose — it would be in the game, tested, drawn, and
+// unreachable — and nothing about adding one would fail without this.
+{
+  const offered = VERNACULAR_CHOICES.map((c) => c.id);
+  const built = Object.keys(VERNACULARS) as Vernacular[];
+  for (const v of built) {
+    assert(offered.includes(v), `'${v}' is offered on the founding screen`);
+  }
+  for (const id of offered) {
+    assert(built.includes(id), `the founding screen does not offer '${id}', which is not a vernacular`);
+  }
+  assert(new Set(offered).size === offered.length, 'no vernacular is offered twice');
+  for (const c of VERNACULAR_CHOICES) {
+    assert(c.label.trim().length > 0 && c.blurb.trim().length > 0,
+      `'${c.id}' has a name and a description to offer`);
   }
 }
 

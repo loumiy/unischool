@@ -290,7 +290,7 @@ export default function App() {
   }, s.started);
 
   if (!s.started) {
-    return <StartupScreen onStart={(name) => act({ type: 'START_GAME', name })} />;
+    return <StartupScreen onStart={(name, vernacular) => act({ type: 'START_GAME', name, vernacular })} />;
   }
 
   return (

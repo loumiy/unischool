@@ -6,7 +6,10 @@ retire the private/public fork, give the campus a chosen architectural
 vernacular, and make the founding screen show the building the player is
 actually founding.*
 
-**Status: Proposed.** Nothing has landed.
+**Status: Landed.** All eleven PRs shipped. Where the implementation
+departed from the plan, each PR carries an `**As implemented:**` note — and
+there are nine of them, which is the useful part of this document: the
+record of what the planning got wrong.
 
 ---
 
@@ -716,6 +719,36 @@ already had a preview surface, it just was not previewing anything yet.
 The choice is **permanent**. A campus's architecture is what it was built as,
 and offering to change it later would undo the one thing the invariant six
 motifs are saying.
+
+**As implemented:** four cards in a 2x2 under the facade, which redraws live
+as the player moves between them. Two columns rather than a list of four
+because the choice is between *pictures* — the player is looking at the
+building while they move through the options, and a tall list would push it
+off the card.
+
+*`VERNACULAR_CHOICES` lives in `buildingSpec.ts`, beside the palettes.* The
+label and the palette are two halves of one fact, and putting the list next
+to the table is what makes "adding a set without naming it" a thing that
+fails rather than a thing that ships. The blurbs name what the player will
+*see* — a roof, a wall, a tower — rather than the architectural period,
+because the period is not what they are choosing between at a glance.
+
+*Section 17 closes the loop the rest of the suite could not.* A set present
+in `VERNACULARS` but absent from `VERNACULAR_CHOICES` would be fully built,
+fully tested, drawn correctly — and unreachable, with nothing failing. The
+check runs both ways, so neither list can drift from the other.
+
+*`createInitialState`'s vernacular is defaulted rather than required.* The
+sim and two dozen tests found schools for reasons that have nothing to do
+with the picture, and making all of them name a set would be noise.
+
+Verified end to end in the browser rather than by inspection: each of the
+four cards founds a campus whose saved `self.vernacular` is the one that was
+clicked.
+
+**Plan 07 is complete.** Eleven PRs: the fork retired (A–C), the seam proved
+invisible three times over (D–F), four sets (G–I), and the founding screen
+(J–K).
 
 ---
 
