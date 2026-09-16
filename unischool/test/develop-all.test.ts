@@ -37,7 +37,7 @@ function assert(cond: boolean, msg: string): void {
 }
 
 function fresh(): GameState {
-  return createInitialState('Ashcombe', 'private');
+  return createInitialState('Ashcombe');
 }
 
 console.log('develop-all tests');

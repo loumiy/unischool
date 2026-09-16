@@ -2224,7 +2224,10 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    parchment UI, carrying the live "<Name> College" banner across its
    entablature. Purely decorative SVG shapes, styled here rather than
    inline so the whole thing reads as one coherent illustration. */
-.startup-facade { margin: 14px 0 20px; }
+/* The facade now sits directly above the button: the school-type picker
+   that used to separate them went with the fork (Plan 07's PR C), so the
+   bottom margin carries the gap that block used to provide. */
+.startup-facade { margin: 14px 0 28px; }
 .startup-facade-svg { display: block; width: 100%; height: auto; }
 /* One stone color for every solid shape — roof, entablature, capitals and
    shafts alike — so the building reads as a single carved structure lit
@@ -2235,13 +2238,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .facade-line { fill: none; stroke: var(--gold-dim); stroke-width: 0.6; opacity: 0.55; }
 .facade-banner-text { fill: #6b4423; font-family: var(--serif); font-weight: 700; letter-spacing: 0.05em; }
 
-.startup-types { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
-.startup-type-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left;
-  background: #f8f3e6; border: 1px solid var(--parchment-line); border-radius: var(--radius-lg); padding: 12px 14px; }
-.startup-type-btn strong { font-family: var(--serif); font-size: var(--text-lg); }
-.startup-type-btn span { font-size: var(--text-sm); color: var(--ink-muted); line-height: 1.4; }
-.startup-type-btn.active { border-color: var(--gold); background: #f5ecd2; }
-.startup-type-btn.active strong { color: var(--gold-dim); }
 .startup-begin-btn { width: 100%; background: var(--gold); color: #1a2035; border: none; border-radius: var(--radius-md);
   padding: 11px; font-family: var(--serif); font-size: var(--text-lg); font-weight: 700; }
 .startup-begin-btn:disabled { opacity: 0.5; cursor: not-allowed; }

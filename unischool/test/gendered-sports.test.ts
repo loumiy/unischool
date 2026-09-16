@@ -35,7 +35,7 @@ function assert(cond: boolean, msg: string): void {
 }
 
 function fresh(): GameState {
-  return createInitialState('Gendered Sports', 'private');
+  return createInitialState('Gendered Sports');
 }
 
 // A live StudentClub for a given SPORTS id, built by hand (like

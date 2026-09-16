@@ -263,6 +263,60 @@ and leave the curve alone.
 `save-migrations.test.ts`'s "school type survives round trip" assertion
 inverts; the migration drops the field.
 
+**As implemented:** landed as written, plus three things the plan did not
+name.
+
+*`schoolTypeData.ts` is renamed `foundingData.ts`.* A file named for school
+types that contains none is a trap for whoever opens it next. Mechanical —
+one `git mv` and about sixteen references, six of them imports and the rest
+comments.
+
+*`BASE_STARTING_REPUTATION` + `prestigeBonus` collapse into one
+`startingReputation: 50`.* With a single preset the two numbers had nothing
+left to add up.
+
+*The state-capital-match event was WIDENED, not retired — and it is the only
+economic change in this PR, so it was measured on its own.* Widening is not
+additive: the decision-event pool is weighted, so making one more event
+eligible reshuffles which others fire, and every strategy moved. At year 40:
+
+| Strategy | prestige | weeks in the red | min cash | match fires |
+|---|---|---|---|---|
+| Balanced builder | 139.4 → 133.9 | **0 → 110** | 233k → -12.27M | 3 |
+| Curriculum rush | 142.5 → 142.9 | 254 → 254 | unchanged | 0 |
+| Discount volume | 77.3 → 85.7 | **509 → 198** | -49.5M → -46.5M | 5 |
+| Completionist | 143.7 → 140.0 | **156 → 9** | -46.3M → -885k | 2 |
+| Overbuilder | 73.1 → 74.1 | 557 → 733 | -85.3M → -113.9M | 4 |
+| Idle | 37.5 → 37.8 | 0 → 0 | unchanged | 8 |
+
+Mixed rather than uniformly bad — two strategies spend far *less* of the run
+underwater — and every one of them ends richer. The line worth explaining is
+Balanced builder, the reference "intended line of play", going from never in
+the red to 110 weeks of it. The mechanism is `chooseEventOption` in
+`sim/balanceSim.ts`: the harness takes **the first choice it can afford**,
+testing only `cost <= cash`. Committing the match costs three weeks of opex
+in one lump, so a school sitting just above that commits and is left with no
+buffer. That is the pre-existing harness policy applied to one more event,
+not new behaviour — and `balance-regression`'s solvency gate still passes,
+because it measures year 20 and because a mid-expansion trough that ends at
+1.15B is exactly the case its own `solvent()` comment describes. The strategy
+takes the trade three times in forty years, dips, and comes out ahead.
+
+**A finding worth its own line: the harness has `courseAffordabilityAware`
+for courses and nothing equivalent for events.** Its course logic refuses
+commitments its cash flow cannot carry; its event logic does not. That gap
+was invisible while the only lump-sum event was gated to one school type.
+It is not this plan's to fix, but it is the reason Balanced builder's arc
+looks the way it does above, and anyone re-fitting these numbers should know
+it is a harness policy rather than a property of the game.
+
+*The Public flagship strategy is retired here*, as this plan said, now that
+`schoolType` no longer exists to express it. `balance-regression`'s
+"growth isn't optional" check named it as one of three strategies; it is
+replaced with Completionist rather than left at two, since a check that
+quietly loses a third of its coverage because a strategy was deleted
+elsewhere is a weakened check pretending to be an unchanged one.
+
 ## Phase 2 — The vernacular seam
 
 Three PRs that are provably no-ops. The point of doing them before any art

@@ -1,24 +1,30 @@
-import type { SchoolType } from '../state/types';
-
 // ---------------------------------------------------------------------
-// Private vs. public is the game's one starting fork (see
-// docs/design/progression.md's "Startup and school type"). Everything
-// the choice affects is a plain, tunable starting condition here — no
-// behavior branches on schoolType anywhere else except where a system
-// explicitly reads one of these fields off state. Archetypes
-// (Harvard-like, ASU-like, ...) are meant to emerge from play, not from
-// this table, so keep it to starting conditions only.
+// WHERE EVERY SCHOOL STARTS. One set of conditions, for everybody.
+//
+// This file was schoolTypeData.ts and held two of these — a private preset
+// and a public one, the game's single starting fork. Plan 07 retired the
+// fork over three PRs: PR A took the tuition ceiling, PR B took the state
+// appropriation, and this one takes what was left, which by then was three
+// numbers and a label.
+//
+// WHY IT WENT rather than being kept and rebalanced: the two halves that
+// made it a real decision were a cap and a subsidy that existed to offset
+// the cap. Remove either and the other has no job. What remained —
+// slightly less cash, slightly less prestige, a bigger applicant pool —
+// was not a different kind of school, it was the same school with its
+// opening dials nudged, presented at the one moment a player knows least
+// about what those dials do. docs/design/progression.md has always said
+// "archetypes emerge, they are not chosen"; the fork was the one place the
+// game contradicted that, and now it doesn't.
+//
+// The startup screen asks for a name and nothing else (see
+// components/StartupScreen.tsx). Keep it that way: anything that wants to
+// vary between schools belongs in play, not here.
 // ---------------------------------------------------------------------
 
-// Shared baseline reputation both types start from before their own
-// prestigeBonus/penalty is added.
-export const BASE_STARTING_REPUTATION = 40;
-
-export interface SchoolTypePreset {
-  label: string;                  // shown on the startup screen
-  description: string;            // one-line flavor/tradeoff text for the startup screen
+export interface FoundingPreset {
   startingCash: number;
-  prestigeBonus: number;          // added to BASE_STARTING_REPUTATION; negative allowed
+  startingReputation: number;
   startingApplicantPool: number;
 }
 
@@ -103,30 +109,24 @@ export const FOUNDING_CLASSES = {
   senior: FOUNDING_PER_CLASS,
 } as const; // { freshman: 88, sophomore: 88, junior: 87, senior: 87 }, all commuters
 
-export const SCHOOL_TYPE_PRESETS: Record<SchoolType, SchoolTypePreset> = {
-  private: {
-    label: 'Private',
-    description: 'No state funding and a smaller applicant pool, but you start with more prestige.',
-    startingCash: 1_400_000,
-    prestigeBonus: 10,
-    startingApplicantPool: 150,
-  },
-  public: {
-    label: 'Public',
-    description: 'A much larger applicant pool, but prestige starts lower.',
-    startingCash: 1_200_000,
-    prestigeBonus: -5,
-    // BOTH HALVES OF THE SUBSIDY ARE GONE, and with them the last
-    // mechanical thing that made this a fork worth having. The flat grant
-    // was 7,000/wk and the per-student allocation 5,500/yr — sized against
-    // the 22,000 tuition cap PR A retired, because a school that could not
-    // price freely needed funding that grew with it or "public" would have
-    // meant "unplayable after year 15". With no cap to compensate for,
-    // there is nothing left for the subsidy to be compensation FOR.
-    //
-    // What survives here is two numbers and a prestige penalty — which is
-    // a difference in opening position, not a difference in kind. PR C
-    // deletes the fork itself.
-    startingApplicantPool: 400,
-  },
+// THE PRIVATE PRESET'S NUMBERS, kept as they were rather than averaged
+// with the public ones. Not a judgment that a private opening is the right
+// one — it is that six of the seven strategies in sim/balanceSim.ts are
+// fitted against exactly these three values, so adopting them is the
+// choice that moves the balance least while the fork comes out. Splitting
+// the difference would have retuned every strategy at once and made PR C
+// impossible to read.
+//
+// So they are TUNABLE and nothing here is load-bearing about them. The
+// founding applicant pool in particular is worth revisiting: 150 was the
+// smaller of the two, and the backlog's "admit-rate curve's early slope"
+// item is about the same founding funnel from the other end. Both should
+// be re-fitted together, against ADMIT_PROBES, rather than nudged here.
+export const FOUNDING_PRESET: FoundingPreset = {
+  startingCash: 1_400_000,
+  // Was BASE_STARTING_REPUTATION (40) plus a per-type bonus of +10 or -5.
+  // With one preset the two numbers had nothing to add up, so they are one
+  // number.
+  startingReputation: 50,
+  startingApplicantPool: 150,
 };

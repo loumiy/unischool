@@ -4,7 +4,7 @@ import type { GameState, InitiativeReport, PendingInterrupt } from '../state/typ
 import { institutionName, WEEKS_PER_YEAR } from '../state/types';
 import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
-import { TUITION_SLIDER_MAX } from '../data/schoolTypeData';
+import { TUITION_SLIDER_MAX } from '../data/foundingData';
 import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction, type PriceTier } from '../systems/admissions/admissionsSystem';
 import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
 import { projectConsequences } from '../systems/admissions/consequences';
@@ -263,7 +263,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
           you in line with your own standing, or not. No applicant count, no
           sticker-shock line, no cap printed — and since Plan 07's PR A
           there is no cap to print: the slider simply ends somewhere no
-          school sensibly reaches (see schoolTypeData.ts's
+          school sensibly reaches (see foundingData.ts's
           TUITION_SLIDER_MAX). */}
       <label className="admissions-field">
         <span>

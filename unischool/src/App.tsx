@@ -290,7 +290,7 @@ export default function App() {
   }, s.started);
 
   if (!s.started) {
-    return <StartupScreen onStart={(name, schoolType) => act({ type: 'START_GAME', name, schoolType })} />;
+    return <StartupScreen onStart={(name) => act({ type: 'START_GAME', name })} />;
   }
 
   return (

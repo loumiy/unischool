@@ -10,7 +10,7 @@ import type { Rival } from '../state/types';
 // it).
 //
 // Deliberately no rival starts below ~45: the player begins at 35-50
-// depending on school type (see schoolTypeData.ts), so the whole field
+// depending on school type (see foundingData.ts), so the whole field
 // starts ranked above a fresh university. Cracking the top 50 takes
 // real early-game growth, not a first-week fluke — see rivalsSystem.ts
 // and the PR notes for the exact resulting threshold.

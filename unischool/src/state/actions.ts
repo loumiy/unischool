@@ -1,4 +1,4 @@
-import type { AthleticsBudgetTier, GameState, InitiativeDepth, SchoolType, TileCoord } from './types';
+import type { AthleticsBudgetTier, GameState, InitiativeDepth, TileCoord } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
 import { WEEKS_PER_YEAR, CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT } from './types';
@@ -12,9 +12,9 @@ import { initialCandidatePool, facultySalary, grownStat, FOUNDING_TENURE_WEEKS }
 import { admitRate } from '../systems/admissions/admissionsSystem';
 import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import {
-  SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION, STARTING_ENDOWMENT, STARTING_TUITION,
+  FOUNDING_PRESET, STARTING_ENDOWMENT, STARTING_TUITION,
   FOUNDING_CLASSES,
-} from '../data/schoolTypeData';
+} from '../data/foundingData';
 
 // A founded university opens with a near-empty campus, with ONE exception:
 // Founders Hall (techData.ts's General Studies building), pre-built ('done')
@@ -37,7 +37,7 @@ export const STARTING_INSTITUTION_SUFFIX = 'College';
 // only thing that interprets these. UI dispatches them; systems never do.
 export type Action =
   | { type: 'TICK' }                                   // advance one week
-  | { type: 'START_GAME'; name: string; schoolType: SchoolType } // leaves the startup screen, founds the university
+  | { type: 'START_GAME'; name: string } // leaves the startup screen, founds the university
   // Courses only (see the reducer's guard). Charges the cost up front, sets
   // status 'developing', and starts the countdown in s.developing — see
   // techSystem.ts's canStartDevelopment/startDevelopment, the single gate
@@ -292,7 +292,7 @@ export function createPreStartState(): GameState {
     pathways: {},
     trees: {},
     rivals: [],
-    self: { name: '', suffix: '', universityCharterOffered: false, reputation: 0, schoolType: 'private' },
+    self: { name: '', suffix: '', universityCharterOffered: false, reputation: 0 },
     history: [],
     log: [],
     pendingInterrupt: null,
@@ -321,12 +321,12 @@ export function createPreStartState(): GameState {
   };
 }
 
-// The real starting state, once the player has named the university and
-// picked private/public on the startup screen. Private/public sets
-// starting conditions purely through SCHOOL_TYPE_PRESETS — see
-// docs/design/progression.md's "Startup and school type".
-export function createInitialState(name: string, schoolType: SchoolType): GameState {
-  const preset = SCHOOL_TYPE_PRESETS[schoolType];
+// The real starting state, once the player has named the university. The
+// name is the WHOLE of what the startup screen asks for since Plan 07's
+// PR C — every other founding condition comes from FOUNDING_PRESET, which
+// is the same for every school (see data/foundingData.ts).
+export function createInitialState(name: string): GameState {
+  const preset = FOUNDING_PRESET;
 
   // The central Buildable list, built up front so Founders Hall can be
   // pulled out of it to pre-place (it opens 'done' — see techData.ts).
@@ -365,7 +365,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
   // Read in two places below — self.reputation and the admit rate seeded
   // from it — so the opening slider position cannot drift from the standing
   // it is supposed to describe.
-  const foundingReputation = BASE_STARTING_REPUTATION + preset.prestigeBonus + GENED_BUILDING_REPUTATION_BONUS;
+  const foundingReputation = preset.startingReputation + GENED_BUILDING_REPUTATION_BONUS;
 
   // One founding price, read into five places below (the listed price and
   // the four classes), so they cannot be seeded out of step with each other.
@@ -396,7 +396,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       // BALANCED (≈ FOUNDING_BODY / 4 each), not a freshman class only — so
       // there is a graduating class from year one and the body opens at the
       // steady-state structure the campus would otherwise take years of
-      // lumpy cycles to reach. See FOUNDING_CLASSES in schoolTypeData.ts.
+      // lumpy cycles to reach. See FOUNDING_CLASSES in foundingData.ts.
       classes: { ...FOUNDING_CLASSES },
       // Not one of those four classes was admitted by the player — they
       // arrived before the school had built a single thing for a cohort to
@@ -548,7 +548,6 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       suffix: STARTING_INSTITUTION_SUFFIX,
       universityCharterOffered: false,
       reputation: foundingReputation,
-      schoolType,
     },
     // Empty at founding: the first row lands at the end of year 1, when the
     // summer admissions interrupt resolves (see reducer.ts's

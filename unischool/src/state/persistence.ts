@@ -983,13 +983,39 @@ export const SAVE_KEY = 'unischool.save';
 // order. v41 -> v42 removed that same school's 22,000 tuition cap, so the
 // price it may charge at its next summer decision is no longer held below
 // what its standing supports. The subsidy existed to compensate for the
-// cap (see data/schoolTypeData.ts); the cap went first, and this is the
+// cap (see data/foundingData.ts); the cap went first, and this is the
 // other half of the same trade. A resumed public school that was pinned at
 // its old cap can price its way back to where it was, which is exactly the
 // decision the game wants it making.
 //
 // See MIGRATIONS[42].
-export const SAVE_VERSION = 43;
+//
+// v43 -> v44: the private/public fork itself is deleted (Plan 07's PR C).
+// `self.schoolType` comes off state, `SCHOOL_TYPE_PRESETS` collapses into
+// one FOUNDING_PRESET, and the startup screen asks for a name and nothing
+// else. data/schoolTypeData.ts is renamed data/foundingData.ts, since a
+// file named for school types that contains none is a trap for whoever
+// reads it next.
+//
+// WHAT A RESUMED SAVE FEELS: NOTHING, for either kind of school, and this
+// is the one migration in this plan where that is true without
+// qualification. Everything the fork actually decided was already gone by
+// v43 — the tuition ceiling at v42, both halves of the appropriation at
+// v43 — and the three remaining differences (starting cash, starting
+// prestige, starting applicant pool) are FOUNDING conditions: they were
+// spent the moment the school was founded and are not re-read on load. A
+// resumed public school keeps the prestige it earned, the cash it has and
+// the pool its standing attracts. The field being deleted was, by this
+// point, a label on an empty box.
+//
+// The one authored event that read it — 'state-capital-match' in
+// data/eventData.ts — is WIDENED rather than retired, so it now fires for
+// every school past its first-year gate. A resumed private school gains an
+// event it could not previously see; see MIGRATIONS[43] and that event's
+// own note for why keeping it beats deleting it.
+//
+// See MIGRATIONS[43].
+export const SAVE_VERSION = 44;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1060,7 +1086,7 @@ interface LegacyGameState extends GameState {
 
   // Removed in v42 (Plan 07's PR A): `finance.tuitionCeiling`, the
   // per-school-type cap on the listed price. It is one constant for
-  // everybody now (schoolTypeData.ts's TUITION_SLIDER_MAX), so it stopped
+  // everybody now (foundingData.ts's TUITION_SLIDER_MAX), so it stopped
   // being something a save can disagree with the code about.
   // MIGRATIONS[41] deletes it.
   //
@@ -1072,6 +1098,10 @@ interface LegacyGameState extends GameState {
     baselineFundingPerWeek?: number;
     appropriationPerStudentPerYear?: number;
   };
+
+  // Removed in v44 (Plan 07's PR C): `self.schoolType`, the private/public
+  // fork itself. MIGRATIONS[43] deletes it.
+  self: GameState['self'] & { schoolType?: 'private' | 'public' };
 }
 
 // The two institutional suffixes a saved name may already end in. A v6
@@ -1080,6 +1110,14 @@ interface LegacyGameState extends GameState {
 const KNOWN_SUFFIXES = ['College', 'University'];
 
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v43 -> v44: the private/public fork is deleted (see the SAVE_VERSION
+  // header note above). Nothing reads the field any more — PRs A and B
+  // already took everything it decided — so this is the label coming off
+  // an empty box.
+  43: (state) => {
+    delete state.self.schoolType;
+  },
+
   // v42 -> v43: the state appropriation is retired (see the SAVE_VERSION
   // header note above). Both halves go. financeBreakdown has no baseline
   // funding line to read them into any more, so leaving them on state

@@ -51,7 +51,7 @@ function assert(cond: boolean, msg: string): void {
 
 // A school with its tier-1 library open and the money for a floor.
 function withLibrary(): { s: GameState; lib: Buildable } {
-  const s = createInitialState('Ashcombe', 'private');
+  const s = createInitialState('Ashcombe');
   const lib = s.tech.find((t) => t.id === LIBRARY_TIER1_ID)!;
   lib.status = 'done';
   delete s.developing[lib.id];
@@ -134,7 +134,7 @@ console.log('library renovation tests');
   // The narrow reading: only a node mid-RENOVATION is exempt. A library
   // that has never been built serves nothing and is drawn as a frame,
   // exactly as before.
-  const s = createInitialState('Ashcombe', 'private');
+  const s = createInitialState('Ashcombe');
   const lib = libraryIn(s);
   lib.status = 'developing';
   delete lib.renovatingFrom;

@@ -109,7 +109,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
 // make every later assertion here meaningless.
 // =====================================================================
 {
-  const s = createInitialState('Opening', 'private');
+  const s = createInitialState('Opening');
   const p = s.finance.tuitionByClass;
   assert(p.freshman === s.finance.listedTuition && p.sophomore === s.finance.listedTuition
     && p.junior === s.finance.listedTuition && p.senior === s.finance.listedTuition,
@@ -128,7 +128,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
   const CHEAP = 12_000;
   const STEEP = 48_000;
 
-  const founded = createInitialState('Hiker', 'private');
+  const founded = createInitialState('Hiker');
   const FOUNDING = founded.finance.listedTuition;
   const afterFirst = playYearAt(founded, CHEAP);
   const beforeRaise = tuitionByClassBilled(afterFirst);
@@ -178,7 +178,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
   const BASE = 15_000;
   const RAISED = 25_000;
 
-  const founded = createInitialState('Baseline', 'private');
+  const founded = createInitialState('Baseline');
   const afterFirst = playYearAt(founded, BASE);
 
   const flat = playYearAt(afterFirst, BASE);
@@ -206,7 +206,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
   const OLD = 10_000;
   const NEW = 30_000;
 
-  let s = createInitialState('Flusher', 'private');
+  let s = createInitialState('Flusher');
   s = playYearAt(s, OLD);
   for (let year = 0; year < 4; year += 1) s = playYearAt(s, NEW);
 
@@ -228,7 +228,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
 {
   const PRICE = 21_000;
 
-  let s = createInitialState('Projector', 'private');
+  let s = createInitialState('Projector');
   s = playYearAt(s, 16_000); // one ordinary year first, so the classes differ
   s = tickTo(s, 'admissions');
 
@@ -266,7 +266,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
   // And the projection must not have touched the live state it read: it
   // shares every slice it does not advance, so a stray write would corrupt
   // the game from a panel that only ever claimed to look.
-  const before = createInitialState('Projector', 'private');
+  const before = createInitialState('Projector');
   const untouched = playYearAt(before, 16_000);
   const snapshot = JSON.stringify(tickTo(untouched, 'admissions').students.classes);
   assert(

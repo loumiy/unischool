@@ -1,5 +1,5 @@
 import type { Buildable, FacilityType } from '../state/types';
-import { FOUNDING_BODY } from './schoolTypeData';
+import { FOUNDING_BODY } from './foundingData';
 
 // ---------------------------------------------------------------------
 // Campus-life facilities: the six non-housing, non-lab needs a campus has

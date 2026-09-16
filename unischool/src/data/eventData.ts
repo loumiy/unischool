@@ -809,10 +809,16 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     id: 'state-capital-match',
     title: 'A legislative capital match',
     weight: 7,
-    // Public schools only — the one place an authored event reads the
-    // single starting fork (see docs/design/progression.md's "Startup
-    // and school type").
-    eligible: (s) => s.self.schoolType === 'public' && s.clock.year >= STATE_MATCH_FIRST_YEAR,
+    // EVERY school, since Plan 07's PR C. This used to be the one authored
+    // event that read the private/public fork, and it was gated to public
+    // schools only. The fork is gone, so the gate had to go somewhere — and
+    // widening it is better than deleting it: a state capital-matching
+    // programme is something private universities really do win, and
+    // keeping it leaves a little of the public-money flavour in the game as
+    // something that HAPPENS to a school rather than something it was
+    // founded as. Which is what progression.md's "archetypes emerge, they
+    // are not chosen" asks for in the first place.
+    eligible: (s) => s.clock.year >= STATE_MATCH_FIRST_YEAR,
     rollContext: (s) => ({ amount: weeksOfOpEx(s, STATE_MATCH_COMMITMENT_WEEKS) }),
     prompt: (_s, ctx) =>
       `The state's capital committee has a matching programme with money left in it this biennium: commit ${money(ctx.amount ?? 0)} of the school's own funds and the state will match it several times over — into a restricted endowment, not into your operating account.`,
@@ -832,7 +838,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       {
         id: 'lapse',
         label: 'Let it lapse',
-        describe: () => 'Nothing changes. The money goes to another campus in the system.',
+        describe: () => 'Nothing changes. The money goes to a campus that asked for it.',
         cost: () => 0,
         apply: (s) => entry(s, 'The state capital match lapsed unclaimed.', 'info'),
       },

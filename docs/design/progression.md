@@ -3,37 +3,43 @@
 How a school is founded, how standing accumulates, and how the outside world
 reports on it.
 
-## Startup and school type
+## Startup
 
 A **startup screen** lets the player **name the school** before play — the
 player's half of the name only; every school opens as a *College* (see
-"College, and University" below). The MVP also asks one structural question:
-**private vs. public**. That single choice
-sets starting conditions — starting cash, prestige bonuses, applicant-pool
-size — expressed purely as tunable constants.
-
-**The fork is being retired, and most of it is already gone.** It used to set
-two more things, and both were the mechanical substance of it:
-
-- A **tuition ceiling** — $22,000 public, $100,000 private. The low cap was
-  most of what made a public school a different school. Plan 07's PR A
-  retired it; there is one `TUITION_SLIDER_MAX` for everybody now, which is
-  not a policy about what kind of school this is but the top of a control,
-  set somewhere no school sensibly reaches.
-- A **state appropriation** — a flat $7,000/week grant plus $5,500 per
-  enrolled student per year. It existed to compensate for the cap, so when
-  the cap went there was nothing left for it to compensate for. Plan 07's
-  PR B retired it, and nothing replaced it: every school now lives on
-  tuition, the reputation dividend and its endowment payout.
-
-What remains is a difference in opening position — cash, prestige, pool size
-— rather than a difference in kind. Plan 07's PR C deletes the fork itself.
+"College, and University" below). That is the whole of what it asks.
 
 **Archetypes emerge, they are not chosen.** The game should let different kinds
 of successful school (Harvard-like, ASU-like, Johns-Hopkins-like) arise from the
-player's choices over time, rather than being selected up front. Private/public
-is the only starting fork; everything else is emergent. (Later: save/load, color
-schemes, more customization.)
+player's choices over time, rather than being selected up front. Every founding
+condition is the same for every school and lives in one `FOUNDING_PRESET` (see
+`data/foundingData.ts`); everything that distinguishes one run from another
+happens in play. (Later: save/load, color schemes, more customization.)
+
+**There used to be a second question — private vs. public — and Plan 07
+retired it.** It is worth recording what it was, because it is the clearest
+case the project has of a decision that looked structural and was not:
+
+- A **tuition ceiling**, $22,000 public against $100,000 private. The low cap
+  was the real mechanic; the high one had already been raised out of reach.
+- A **state appropriation**, a flat $7,000/week grant plus $5,500 per enrolled
+  student per year. It existed to compensate for the cap.
+- Three **opening dials** — starting cash, starting prestige, applicant-pool
+  size.
+
+The first two were one mechanic wearing two hats: the subsidy's entire job was
+to offset the cap, so removing either left the other with nothing to do. What
+remained was the third bullet, which is not a different kind of school but the
+same school with its dials nudged — asked at the one moment a player knows
+least about what those dials do. The fork was the single place the game
+contradicted "archetypes emerge, they are not chosen", and it no longer does.
+
+A note on what the removal cost, since it was measured rather than assumed:
+the appropriation turned out to be an *early-game* mechanic. It was funding the
+first decade's curriculum build-out, which is the 90-weight prestige term, which
+then compounds — so the public arc in `sim/balanceSim.ts` ended year 20 some 30
+prestige points lower without it, while never becoming insolvent. Nothing
+replaced it.
 
 ## Prestige: a slow-moving stock
 

@@ -55,7 +55,7 @@ const rank = (id: string) => TIER_RANK[String(tierOf(id))] ?? 0;
 // people actually teach things — the state in which committing somebody
 // means something.
 function equipped(): { s: GameState; labId: string; field: string } {
-  const s = createInitialState('Ashcombe', 'private');
+  const s = createInitialState('Ashcombe');
   const lab = s.tech.find((t) => t.kind === 'facility' && t.facilityType === 'lab')!;
   lab.status = 'done';
   s.finance.cash = 5_000_000_000;

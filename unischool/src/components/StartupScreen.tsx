@@ -1,13 +1,17 @@
 import { useState } from 'react';
-import { SCHOOL_TYPE_PRESETS } from '../data/schoolTypeData';
 import { STARTING_INSTITUTION_SUFFIX } from '../state/actions';
-import type { SchoolType } from '../state/types';
 
-// Shown once, before play begins: name the school and pick private vs.
-// public. That single choice sets starting conditions via
-// SCHOOL_TYPE_PRESETS (see data/schoolTypeData.ts) — no other customization
-// here, per docs/design/progression.md("archetypes emerge, they are not
-// chosen").
+// Shown once, before play begins: name the school. That is the whole of
+// it — every founding condition comes from FOUNDING_PRESET and is the same
+// for every school (see data/foundingData.ts).
+//
+// It used to ask a second question, private vs. public, which set starting
+// cash, prestige, the applicant pool, a tuition ceiling and a state
+// appropriation. Plan 07 retired that fork; docs/design/progression.md has
+// always said "archetypes emerge, they are not chosen", and a structural
+// question asked before the player has seen a single screen of the game was
+// the one place that was not true. What is left is the one input that is
+// genuinely the player's to give.
 //
 // The player writes only HALF the name. Every school opens as a College,
 // and the word after the name is fixed rather than typed, because it is
@@ -147,9 +151,8 @@ function SchoolFacade({ name }: { name: string }) {
   );
 }
 
-export default function StartupScreen({ onStart }: { onStart: (name: string, schoolType: SchoolType) => void }) {
+export default function StartupScreen({ onStart }: { onStart: (name: string) => void }) {
   const [name, setName] = useState('');
-  const [schoolType, setSchoolType] = useState<SchoolType>('private');
 
   return (
     <div className="startup">
@@ -167,22 +170,10 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, sch
         <div className="startup-facade">
           <SchoolFacade name={name} />
         </div>
-        <div className="startup-types">
-          {(Object.keys(SCHOOL_TYPE_PRESETS) as SchoolType[]).map((type) => (
-            <button
-              key={type}
-              className={`startup-type-btn ${schoolType === type ? 'active' : ''}`}
-              onClick={() => setSchoolType(type)}
-            >
-              <strong>{SCHOOL_TYPE_PRESETS[type].label}</strong>
-              <span>{SCHOOL_TYPE_PRESETS[type].description}</span>
-            </button>
-          ))}
-        </div>
         <button
           className="startup-begin-btn"
           disabled={name.trim().length === 0}
-          onClick={() => onStart(name.trim(), schoolType)}
+          onClick={() => onStart(name.trim())}
         >
           Open the Doors
         </button>

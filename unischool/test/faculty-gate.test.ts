@@ -43,7 +43,7 @@ const FIELD = 'Physics';
 // A school with nobody in the field and nothing listed in it: the blank
 // slate each case below builds up from.
 function bare(): GameState {
-  const s = createInitialState('Ashcombe', 'private');
+  const s = createInitialState('Ashcombe');
   s.faculty = s.faculty.filter((f) => f.field !== FIELD);
   s.candidates = s.candidates.filter((c) => c.field !== FIELD);
   for (const t of s.tech) {

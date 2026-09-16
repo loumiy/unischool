@@ -193,7 +193,7 @@ function withSignal(overrides: Partial<CohortSignals>): CohortSignals {
 // silently pre-builds one of these would otherwise never be caught.
 // =====================================================================
 {
-  const s = createInitialState('Cohort Test', 'private');
+  const s = createInitialState('Cohort Test');
   const signals = deriveCohortSignals(s);
   assert(signals.distinguishedDepth === 0, `a founding school has zero distinguished depth (got ${signals.distinguishedDepth})`);
   assert(signals.professionalPrograms === 0, `a founding school has zero established professional programs (got ${signals.professionalPrograms})`);
@@ -213,7 +213,7 @@ function withSignal(overrides: Partial<CohortSignals>): CohortSignals {
 // crossed with the wrong cohort.
 // =====================================================================
 {
-  const s: GameState = createInitialState('Cohort Test 2', 'private');
+  const s: GameState = createInitialState('Cohort Test 2');
 
   const lab = s.tech.find((t) => t.id === 'LAB-BIOL');
   if (lab) lab.status = 'done';
