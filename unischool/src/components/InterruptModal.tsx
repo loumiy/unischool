@@ -190,6 +190,10 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeilin
 }) {
   const [tuition, setTuition] = useState(payload.tuition);
   const [admitRateChoice, setAdmitRateChoice] = useState(payload.admitRate);
+  // Beat 1 ends when the player commits the price. There is no way back:
+  // the pool is revealed next, and a slider you can return to after seeing
+  // what it bought is not a gamble, it is a lookup table.
+  const [tuitionLocked, setTuitionLocked] = useState(false);
   // Approved by default — see the note on StudentLifeDigest above.
   const [approved, setApproved] = useState<Set<string>>(() => new Set(petitions.map((p) => p.id)));
 
@@ -221,92 +225,108 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeilin
       <h2>Summer Admissions</h2>
       <p>Set next year's tuition and how much of the applicant pool to take. Admitting deeper means a bigger class drawn further down the quality distribution — see the projected outcomes below before you confirm.</p>
 
+      {/* BEAT 1 — the price, set blind. The only feedback is the tier: are
+          you in line with your own standing, or not. No applicant count, no
+          sticker-shock line, no cap printed — the cap is simply where the
+          slider ends (see schoolTypeData.ts). */}
       <label className="admissions-field">
         <span>
           Tuition <strong className={`price-tier-value ${PRICE_TIER_COPY[priceTierNow].className}`}>${tuition.toLocaleString()}/yr</strong>
-          {' '}(cap ${tuitionCeiling.toLocaleString()})
         </span>
         <input type="range" min={0} max={tuitionCeiling} step={500} value={tuition}
+          disabled={tuitionLocked}
           onChange={(e) => setTuition(Number(e.target.value))} />
         <PriceTierTag tier={priceTierNow} />
       </label>
 
-      <label className="admissions-field">
-        <span>
-          Admit rate <strong>{Math.round(admitRateChoice * 100)}%</strong> of applicants
-          <span className="outcome-note">
-            {' '}(a school of your standing usually takes {Math.round(usualAdmitRate * 100)}%)
-          </span>
-        </span>
-        <input type="range" min={0.01} max={1} step={0.01} value={admitRateChoice}
-          onChange={(e) => setAdmitRateChoice(Number(e.target.value))} />
-      </label>
+      {!tuitionLocked && (
+        <button type="button" className="admissions-lock" onClick={() => setTuitionLocked(true)}>
+          Set tuition for the year →
+        </button>
+      )}
 
-      <dl className="admissions-outcomes">
-        <div><dt>Applicant pool</dt><dd><AnimatedNumber value={outcome.applicants} /></dd></div>
-        <div>
-          <dt>Sticker shock <span className="outcome-note">(a price above what your prestige supports scares off price-sensitive families hardest)</span></dt>
-          <dd>{outcome.stickerShockMultiplier >= 1 ? 'none' : `-${Math.round((1 - outcome.stickerShockMultiplier) * 100)}% applicants`}</dd>
-        </div>
-        <div><dt>Word of mouth <span className="outcome-note">(avg satisfaction last year {Math.round(satisfaction)})</span></dt><dd>{outcome.wordOfMouthMultiplier >= 1 ? '+' : ''}{Math.round((outcome.wordOfMouthMultiplier - 1) * 100)}% applicants</dd></div>
-        <div><dt>Freshman class</dt><dd><AnimatedNumber value={outcome.enrolled} /></dd></div>
-        <div><dt>Incoming quality <span className="outcome-note">(feeds prestige)</span></dt><dd><AnimatedNumber value={outcome.avgIncomingQuality} format={(n) => `${Math.round(n)} / 100`} /></dd></div>
-      </dl>
+      {tuitionLocked && (
+        <>
+          {/* BEAT 2 — the reveal. What that price actually drew. */}
+          <dl className="admissions-outcomes">
+            <div><dt>Applicant pool</dt><dd><AnimatedNumber value={outcome.applicants} /></dd></div>
+            <div><dt>Word of mouth <span className="outcome-note">(avg satisfaction last year {Math.round(satisfaction)})</span></dt><dd>{outcome.wordOfMouthMultiplier >= 1 ? '+' : ''}{Math.round((outcome.wordOfMouthMultiplier - 1) * 100)}% applicants</dd></div>
+          </dl>
 
-      {/* What committing does to the school, not just to the intake — the
-          decision's consequences, before it is taken (Plan 05's PR D).
-          Projected against the body this commit produces, which includes
-          the three older classes who are still here and still paying the
-          price they were admitted under. */}
-      <div className="consequence-panel">
-        <h3>If you commit <span className="outcome-note">({consequence.totalEnrolled.toLocaleString()} students next year, {consequence.graduating.toLocaleString()} graduating)</span></h3>
-        <dl className="admissions-outcomes">
-          <div>
-            <dt>Weekly net <span className="outcome-note">(now {money(consequence.weeklyNetNow)}/wk)</span></dt>
-            <dd>
-              <AnimatedNumber value={consequence.weeklyNet} format={(n) => `${money(n)}/wk`} />
-              <span className={`consequence-delta ${netDelta >= 0 ? 'good' : 'bad'}`}>
-                {netDelta >= 0 ? '+' : '−'}{money(Math.abs(netDelta))}
+          <div className="cohort-breakdown">
+            <h3>Who this pulls in <span className="outcome-note">(applicants, summing to the pool above)</span></h3>
+            {cohorts.map((c) => <CohortRow key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants} />)}
+          </div>
+
+          {/* BEAT 3 — the second decision, and the opposite posture: every
+              consequence visible before it is taken. */}
+          <label className="admissions-field">
+            <span>
+              Admit rate <strong>{Math.round(admitRateChoice * 100)}%</strong> of applicants
+              <span className="outcome-note">
+                {' '}(a school of your standing usually takes {Math.round(usualAdmitRate * 100)}%)
               </span>
-            </dd>
-          </div>
-          <div>
-            <dt>Satisfaction <span className="outcome-note">(heading toward, at current capacity — now {Math.round(consequence.satisfactionTargetNow)})</span></dt>
-            <dd>
-              <AnimatedNumber value={consequence.satisfactionTarget} format={(n) => `${Math.round(n)}`} />
-              <span className={`consequence-delta ${moodDelta >= 0 ? 'good' : 'bad'}`}>
-                {moodDelta >= 0 ? '+' : '−'}{Math.abs(moodDelta).toFixed(1)}
-              </span>
-            </dd>
-          </div>
-          <div>
-            <dt>
-              {NEED_LABEL[consequence.tightestNeed]}
-              <span className="outcome-note"> (the need this class stretches furthest)</span>
-            </dt>
-            <dd><CoverageValue now={consequence.tightestCoverageNow} next={consequence.tightestCoverage} /></dd>
-          </div>
-        </dl>
-      </div>
+            </span>
+            <input type="range" min={0.01} max={1} step={0.01} value={admitRateChoice}
+              onChange={(e) => setAdmitRateChoice(Number(e.target.value))} />
+          </label>
 
-      <div className="cohort-breakdown">
-        <h3>Who this pulls in <span className="outcome-note">(applicants, summing to the pool above)</span></h3>
-        {cohorts.map((c) => <CohortRow key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants} />)}
-      </div>
+          <dl className="admissions-outcomes">
+            <div><dt>Freshman class</dt><dd><AnimatedNumber value={outcome.enrolled} /></dd></div>
+            <div><dt>Incoming quality <span className="outcome-note">(feeds prestige)</span></dt><dd><AnimatedNumber value={outcome.avgIncomingQuality} format={(n) => `${Math.round(n)} / 100`} /></dd></div>
+          </dl>
 
-      <StudentLifeDigest
-        petitions={petitions}
-        approved={approved}
-        onToggle={(id) => setApproved((prev) => {
-          const next = new Set(prev);
-          if (next.has(id)) next.delete(id); else next.add(id);
-          return next;
-        })}
-      />
+          {/* What committing does to the school, not just to the intake — the
+              decision's consequences, before it is taken (Plan 05's PR D).
+              Projected against the body this commit produces, which includes
+              the three older classes who are still here and still paying the
+              price they were admitted under. */}
+          <div className="consequence-panel">
+            <h3>If you commit <span className="outcome-note">({consequence.totalEnrolled.toLocaleString()} students next year, {consequence.graduating.toLocaleString()} graduating)</span></h3>
+            <dl className="admissions-outcomes">
+              <div>
+                <dt>Weekly net <span className="outcome-note">(now {money(consequence.weeklyNetNow)}/wk)</span></dt>
+                <dd>
+                  <AnimatedNumber value={consequence.weeklyNet} format={(n) => `${money(n)}/wk`} />
+                  <span className={`consequence-delta ${netDelta >= 0 ? 'good' : 'bad'}`}>
+                    {netDelta >= 0 ? '+' : '−'}{money(Math.abs(netDelta))}
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt>Satisfaction <span className="outcome-note">(heading toward, at current capacity — now {Math.round(consequence.satisfactionTargetNow)})</span></dt>
+                <dd>
+                  <AnimatedNumber value={consequence.satisfactionTarget} format={(n) => `${Math.round(n)}`} />
+                  <span className={`consequence-delta ${moodDelta >= 0 ? 'good' : 'bad'}`}>
+                    {moodDelta >= 0 ? '+' : '−'}{Math.abs(moodDelta).toFixed(1)}
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt>
+                  {NEED_LABEL[consequence.tightestNeed]}
+                  <span className="outcome-note"> (the need this class stretches furthest)</span>
+                </dt>
+                <dd><CoverageValue now={consequence.tightestCoverageNow} next={consequence.tightestCoverage} /></dd>
+              </div>
+            </dl>
+          </div>
 
-      <button onClick={() => onResolve({ tuition, admitRate: admitRateChoice, approvedPetitionIds: [...approved] })}>
-        Confirm Policy
-      </button>
+          <StudentLifeDigest
+            petitions={petitions}
+            approved={approved}
+            onToggle={(id) => setApproved((prev) => {
+              const next = new Set(prev);
+              if (next.has(id)) next.delete(id); else next.add(id);
+              return next;
+            })}
+          />
+
+          <button onClick={() => onResolve({ tuition, admitRate: admitRateChoice, approvedPetitionIds: [...approved] })}>
+            Confirm Policy
+          </button>
+        </>
+      )}
     </>
   );
 }

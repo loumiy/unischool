@@ -6,6 +6,7 @@ import {
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR } from './types';
 import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES, ORIGIN_NATIONALITIES } from '../data/facultyData';
 import { initialTech } from '../data/techData';
+import { SCHOOL_TYPE_PRESETS } from '../data/schoolTypeData';
 import { admitRate } from '../systems/admissions/admissionsSystem';
 import { initialFacilities } from '../data/facilitiesData';
 import { initialDorms } from '../data/campusData';
@@ -891,7 +892,21 @@ export const SAVE_KEY = 'unischool.save';
 // is the player's own decision anyway.
 //
 // See MIGRATIONS[37].
-export const SAVE_VERSION = 38;
+//
+// v38 -> v39: the tuition decision becomes a blind gamble (Plan 05's PR E)
+// and the cap stops being stated on screen, so a private school's ceiling
+// moved from 60,000 to 100,000 — somewhere it will never sensibly reach
+// rather than somewhere it bumps into. A save carries its own ceiling from
+// founding, so an existing private school would otherwise keep a cap a new
+// one does not have, for no reason the player could see. It is reset from
+// the school-type preset, which is exactly where a fresh game gets it.
+//
+// A public school's ceiling is unchanged and deliberately so: the cap is
+// most of what a public school IS. Resetting from the preset reasserts the
+// same 22,000 it already had, so this migration is a no-op for them.
+//
+// See MIGRATIONS[38].
+export const SAVE_VERSION = 39;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -967,6 +982,13 @@ interface LegacyGameState extends GameState {
 const KNOWN_SUFFIXES = ['College', 'University'];
 
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v38 -> v39: the private tuition ceiling moves out of reach (see the
+  // SAVE_VERSION header note above). Read from the preset rather than
+  // written as a literal, so this cannot drift from what founding does.
+  38: (state) => {
+    state.finance.tuitionCeiling = SCHOOL_TYPE_PRESETS[state.self.schoolType].tuitionCeiling;
+  },
+
   // v37 -> v38: the admit rate becomes a decision, and the number stored
   // under that name changes meaning with it (see the SAVE_VERSION header
   // note above). Reset to what a school of this standing would normally

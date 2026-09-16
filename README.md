@@ -569,7 +569,21 @@ When it fires, the clock stops and the player sets exactly **two** levers for
 the coming year: **tuition** and the **admit rate**. There is no scholarship
 rate and no discount — what a family is quoted is what they pay.
 **Both are set once a year here — there is no live, continuously adjustable
-tuition control.** What the tuition slider sets is the **listed** price
+tuition control**, and they are taken as **three beats**, which disagree on
+purpose about how much the player is allowed to know:
+
+1. **Tuition, set blind.** The slider's only feedback is whether the price is in
+   line with what the school's standing supports (`priceTier`). No applicant
+   count, no sticker-shock reading, and **no stated cap** — the cap is simply
+   where the slider ends. **Setting it locks it**: the pool is revealed next,
+   and a price you could revise after seeing what it bought would be a lookup
+   table rather than a gamble.
+2. **The reveal.** The applicant pool that price actually drew, broken down by
+   cohort as head counts.
+3. **Admit rate, fully projected.** The opposite posture: every consequence
+   visible before it is taken (see "Tuition follows the class that paid it").
+
+What the tuition slider sets is the **listed** price
 (`finance.listedTuition`), which reaches a student only as the price their class
 is admitted under — see "Tuition follows the class that paid it" below.
 

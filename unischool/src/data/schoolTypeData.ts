@@ -86,11 +86,19 @@ export const FOUNDING_CLASSES = {
 export const SCHOOL_TYPE_PRESETS: Record<SchoolType, SchoolTypePreset> = {
   private: {
     label: 'Private',
-    description: 'No state funding and a smaller applicant pool, but tuition is uncapped and you start with more prestige.',
+    description: 'No state funding and a smaller applicant pool, but you can charge what you like and start with more prestige.',
     startingCash: 1_400_000,
     prestigeBonus: 10,
     startingApplicantPool: 150,
-    tuitionCeiling: 60_000,
+    // Raised from 60,000 at Plan 05's PR E. The tuition decision is a
+    // blind gamble now — the slider says only whether you are in line with
+    // your standing — and the backlog's ask was "no stated cap; the cap is
+    // where the slider ends". So the number is not shown any more, which
+    // means it has to be somewhere a private school will never sensibly
+    // reach rather than somewhere it bumps into. Nothing in the balance sim
+    // gets near it: the highest-priced strategy closes a 40-year run around
+    // 38k, and the deficit surcharge tops out well under this.
+    tuitionCeiling: 100_000,
     baselineFundingPerWeek: 0,
     appropriationPerStudentPerYear: 0,
   },
@@ -100,6 +108,12 @@ export const SCHOOL_TYPE_PRESETS: Record<SchoolType, SchoolTypePreset> = {
     startingCash: 1_200_000,
     prestigeBonus: -5,
     startingApplicantPool: 400,
+    // NOT raised with the private ceiling at PR E. A public school's cap is
+    // most of what distinguishes it — it trades pricing power for a
+    // subsidy — and dropping public/private is its own backlog item, so
+    // this plan does not decide that question on the startup screen's
+    // behalf. It is still never stated on screen; it is simply where this
+    // school type's slider ends.
     tuitionCeiling: 22_000,
     baselineFundingPerWeek: 7_000,
     // Roughly a third of the capped tuition: a public school trades
