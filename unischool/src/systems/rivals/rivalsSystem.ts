@@ -1,6 +1,7 @@
 import type { GameState } from '../../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../../state/types';
 import { athleticProgramStrength } from '../../data/studentLifeData';
+import { makeRivalRng } from '../../data/rivalData';
 
 // ---------------------------------------------------------------------
 // Rivals evolve so the ranking stays a live target across decades (see
@@ -49,12 +50,40 @@ export function tickRivals(s: GameState): void {
   // reducer.ts's SYSTEMS array.
 
   if (s.clock.week === WEEKS_PER_YEAR) {
+    // ONE draw on the global stream per year, whatever the field size, and
+    // then the whole field's drift runs off a local PRNG seeded from it.
+    //
+    // WHY, and it is a harness property rather than a gameplay one. The
+    // drift used to call Math.random() two or three times PER RIVAL, so the
+    // number of global draws a year scaled with the size of the rival
+    // table. sim/balanceSim.ts seeds Math.random to make a run
+    // reproducible, and its own note says the hazard outright: "any content
+    // change that alters how many times Math.random is called ... moves the
+    // whole stream, so a single seed cannot tell 'this rebalanced the game'
+    // from 'this reshuffled the dice'". Adding 44 schools moved it by ~120
+    // draws a year and knocked four checks off
+    // test/balance-regression.test.ts at the default seed — with, as the
+    // PR's controls showed, no economic effect whatsoever: nothing outside
+    // this module reads a rival, and a 100-school field run on the OLD
+    // stream reproduced main's results at every seed tried, including the
+    // seed main itself fails.
+    //
+    // Pinning consumption at one draw is what stops that happening again.
+    // The field can now grow, or gain axes of its own to drift (which is
+    // exactly what this plan's next two PRs do), without reshuffling a
+    // single faculty potential or candidate listing.
+    //
+    // Deliberately seeded from Math.random rather than from the id and the
+    // year: a deterministic function of those would make every run's
+    // leaderboard reshuffle identically, and the field's year-to-year
+    // surprise is the whole of what it is for.
+    const roll = makeRivalRng(Math.floor(Math.random() * 4294967296));
     for (const r of s.rivals) {
       // Occasionally reroll momentum so trends aren't permanent.
-      if (Math.random() < MOMENTUM_REROLL_CHANCE) {
-        r.momentum = (Math.random() - MOMENTUM_UPWARD_BIAS) * MOMENTUM_RANGE;
+      if (roll() < MOMENTUM_REROLL_CHANCE) {
+        r.momentum = (roll() - MOMENTUM_UPWARD_BIAS) * MOMENTUM_RANGE;
       }
-      const shock = (Math.random() - 0.5) * ANNUAL_SHOCK_RANGE;
+      const shock = (roll() - 0.5) * ANNUAL_SHOCK_RANGE;
       r.reputation = clamp(r.reputation + r.momentum + shock, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
     }
   }

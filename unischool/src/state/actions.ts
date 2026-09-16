@@ -292,7 +292,7 @@ export function createPreStartState(): GameState {
     pathways: {},
     trees: {},
     rivals: [],
-    self: { name: '', suffix: '', universityCharterOffered: false, reputation: 0, schoolType: 'private' },
+    self: { name: '', suffix: '', universityCharterOffered: false, mascot: '', reputation: 0, schoolType: 'private' },
     history: [],
     log: [],
     pendingInterrupt: null,
@@ -547,6 +547,12 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       name,
       suffix: STARTING_INSTITUTION_SUFFIX,
       universityCharterOffered: false,
+      // No mascot at founding, and the empty string is the honest answer
+      // rather than a placeholder: a school with no varsity program has
+      // nothing for a mascot to name. It is filled in at the
+      // athletic-director interrupt, which is the first moment the question
+      // has an answer (see types.ts's University.mascot).
+      mascot: '',
       reputation: foundingReputation,
       schoolType,
     },

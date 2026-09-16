@@ -635,6 +635,12 @@ export interface EventState {
 export interface Rival {
   id: string;
   name: string;
+  // The school's teams' name — "Owls", "Aggies", "Kestrels". Authored per
+  // school in data/rivalData.ts and read by NOTHING mechanical: it exists
+  // so a standings row can read as a sports page rather than a spreadsheet.
+  // The player's own is University.mascot below, named at the
+  // athletic-director interrupt rather than at founding.
+  mascot: string;
   reputation: number;   // the metric the ranking sorts on
   momentum: number;     // hidden trend, makes rivals dynamic over decades
   // A second, independent ranking axis for Athletics V2's standings (see
@@ -989,6 +995,13 @@ export interface University {
   name: string;
   suffix: string;       // "College", then "University" if the charter is taken. May be empty on a run resumed from a save written before the split (see persistence.ts's v6 -> v7)
   universityCharterOffered: boolean; // the one-time offer has been made — set whether it was accepted or declined, so it never comes back around
+  // What this school's teams are called (see Rival.mascot). EMPTY until the
+  // athletic director is hired, which is the interrupt that asks for it —
+  // deliberately not the startup screen, which would ask a decade before
+  // anything wears the name. Empty is a real state every reader must
+  // handle: a school with no varsity program has no mascot and is not
+  // pretending otherwise.
+  mascot: string;
   reputation: number;   // player's own rank metric
   schoolType: SchoolType;
 }

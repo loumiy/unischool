@@ -75,7 +75,7 @@ function HistoryChart({ label, years, values, format, note }: {
   );
 }
 
-function HistoryTable({ rows, showRank }: { rows: YearSnapshot[]; showRank: boolean }) {
+function HistoryTable({ rows }: { rows: YearSnapshot[] }) {
   return (
     <div className="history-table-scroll" style={{ maxHeight: `${TABLE_VISIBLE_ROWS * 24 + 28}px` }}>
       <table className="history-table">
@@ -92,11 +92,13 @@ function HistoryTable({ rows, showRank }: { rows: YearSnapshot[]; showRank: bool
             <tr key={h.year}>
               <td>{h.year}</td>
               <td>{Math.round(h.prestige)}</td>
-              {/* Standing is a mid-game reveal (see
-                  docs/design/progression.md's "Rankings"): the record keeps
-                  every year's rank, but the view withholds it until the
-                  reveal has fired, exactly like the header. */}
-              <td>{showRank ? `#${h.rank}` : '—'}</td>
+              {/* No longer withheld until the top-50 reveal fires. The
+                  record always kept every year's rank; the view hid it
+                  because a 56-school field made an unranked school's only
+                  possible answer "last". See components/StatusHeader.tsx
+                  for the same change and the reason the reveal itself is
+                  unaffected. */}
+              <td>#{h.rank}</td>
               <td>{h.enrolled.toLocaleString()}</td>
               <td>{formatMoney(h.cash)}</td>
               <td>{h.coursesDone}</td>
@@ -184,7 +186,7 @@ export default function HistoryTab({ s }: { s: GameState }) {
 
       <section className="panel">
         <h2>Year by Year</h2>
-        <HistoryTable rows={history} showRank={s.hasEnteredRankings} />
+        <HistoryTable rows={history} />
       </section>
     </div>
   );

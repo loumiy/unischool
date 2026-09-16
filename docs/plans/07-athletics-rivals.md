@@ -437,6 +437,55 @@ read is that prestige columns are unchanged while rank columns move for exactly
 the founding years. The regression gate asserts prestige separation and cash
 arcs, neither of which this touches.
 
+**As implemented:** two things this PR had to fix that the plan did not
+anticipate, both found by the verification above rather than by reading.
+
+**One: rival drift is now pinned to one global random draw a year.** It used to
+call `Math.random()` two or three times *per rival*, so the number of draws a
+year scaled with the size of the table. `sim/balanceSim.ts` seeds `Math.random`
+to make a run reproducible, and its own comment names the hazard exactly: a
+content change that moves the stream cannot be told apart from a rebalance at a
+single seed. Adding 44 schools moved it by ~120 draws a year and knocked four
+checks off `test/balance-regression.test.ts` at the default seed.
+
+Two controls established that the field itself is economically inert, and they
+are worth recording because the first one was wrong. Burning a flat 88 extra
+draws a year on an otherwise unmodified tree passed at three seeds — but that
+was not the same shift, because a rival consumes two draws or three depending
+on whether its momentum rerolls. The decisive control was the full 100-school
+field with the *drift loop restricted to the original 55*, so the stream is
+bit-identical to `main`'s: it reproduced `main` at every seed tried, including
+the seed `main` itself fails. Nothing outside `rivalsSystem.ts` reads a rival,
+and the standings reach no system.
+
+Pinning the draw at one a year is what stops this recurring — which matters
+immediately, because PR 1B gives every rival two more axes to drift and PR 1C
+gives athletic strength its own. Without it each of those would reshuffle every
+faculty potential and candidate listing in the game again.
+
+**Two: `hashUnit` had no avalanche, and the athletic axis was a near-copy of the
+academic one.** `athleticStrengthFor`'s comment claims a "wide (0.6x-1.4x)"
+multiplier that makes athletic standing genuinely independent of reputation.
+Measured, the multiplier over `r1`..`r99` spanned **0.603 to 0.689** — every
+school at about 0.65x its reputation. `h = (h * 31 + c) % 1_000_003` does not
+disperse inputs as short and as similar as these: `r1`..`r9` landed within
+0.000008 of each other. Fixed to FNV-1a plus Murmur3's finalizer, which restores
+the documented 0.607–1.392 band. Pre-existing, but fixed here rather than in PR
+1C, which hashes id-plus-sport through the same function and would have given
+all 100 schools one profile. A save keeps its stored `athleticStrength`; only
+new games differ.
+
+**Still open at the time of writing:** the balance gate is red at the *default*
+seed on two checks — the Overbuilder's `weeksInTheRed > 0` and `minCash < 0`.
+The one-time stream shift is unavoidable for any change that touches the dice,
+and it landed seed 12345 on the wrong side of a knife-edge: the Overbuilder's
+trough is typically **-100k to -200k against ~$12M/yr opex** on `main` (about 1%
+of a year's spending), and on the new stream it bottoms out at **+12,073**. The
+gate is already seed-fragile on `main`, which fails four of its own checks at
+seed 7. Resolving that is a decision about the harness, not about this feature,
+and is left to the repository owner rather than settled by tuning either the
+gate or the `Overbuilder` fixture until they agree.
+
 ## PR 1B — Standing becomes three numbers
 
 **The change.** Two new stocks beside `reputation`, two new fields beside

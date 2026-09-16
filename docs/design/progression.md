@@ -98,22 +98,53 @@ the composed-stock discipline.)
 
 ## Rankings: the U.S. News report
 
-Rivals are populated densely enough that a **top 50** is meaningful (~55 schools,
-not 5). Rival prestige **fluctuates dynamically** year to year rather than
-sitting static while the player grows. **Rankings are a measurement *of*
-prestige, not a driver of it:** entering or climbing the rankings never itself
-raises the player's prestige (see the prestige direct-mutation audit), and rivals
-stay deliberately lightweight — a dynamic scoreboard whose relative standings
-shift, not a strategic AI that reacts to the player. The report is a **mid-game
-reveal**:
+The field is **100 schools** — the player's, and 99 rivals (`rivalData.ts`) —
+so a **top 50** is the upper half of a real one rather than a near-certainty.
+Rival prestige **fluctuates dynamically** year to year rather than sitting
+static while the player grows. **Rankings are a measurement *of* prestige, not a
+driver of it:** entering or climbing the rankings never itself raises the
+player's prestige (see the prestige direct-mutation audit), and rivals stay
+deliberately lightweight — a dynamic scoreboard whose relative standings shift,
+not a strategic AI that reacts to the player.
 
-- The player starts **unaware** of the report.
+**The field is authored in two bands, and the split is what makes both halves
+work.** The first 55 span reputation 45 to 99, all of them above a founding
+school; the other 44 are a **tail** deliberately authored *below* that floor.
+Growing the field without that discipline would have changed what rank 50 means
+— six schools to pass instead of fifty — and quietly turned the mid-game reveal
+below into a late-game one. Authored downward, the 50th school by reputation is
+the same school it always was, so entering the top 50 costs exactly the prestige
+it did before.
+
+What the tail buys is the other half: **a field the player is inside from week
+one.** A private school opens at 50 ranked above the whole tail; a public opens
+at 35 with a dozen schools directly above it to pass in its first decade.
+
+**Standing is shown from the first week** — on the toolbar, and in the History
+table — because there is now somewhere to climb from. The **report** remains a
+mid-game reveal, and the two are not in tension: the U.S. News list publishes
+fifty names, so where a school stands is knowable from the start and *being
+published* is the event.
+
+- The player starts **unaware of the report**, though not of their own rank.
 - Reaching enough prestige to crack the **top 50** (which should take some time)
   fires a one-time **"you've entered the rankings"** interrupt.
 - Thereafter the player gets an **annual report** (top 50 standings) once per year.
 
-"Standing among peers" does not need to be shown constantly — the annual report
-is the touchpoint.
+Every school also carries a **mascot** — the player's own is named at the
+athletic-director interrupt rather than at founding, and is empty until then.
+Nothing mechanical reads one; they are what lets a standings row read as a
+sports page rather than a spreadsheet.
+
+**The field's annual drift takes exactly one draw on the global random stream
+per year**, whatever the field's size: `tickRivals` seeds a local generator from
+it and runs all 99 schools off that. This is a *harness* property rather than a
+gameplay one, and it is load-bearing — `sim/balanceSim.ts` seeds `Math.random`
+to make a run reproducible, so a per-rival draw meant that adding schools
+reshuffled every faculty potential and candidate listing in the game and made
+the balance gate unable to distinguish a rebalance from a reshuffle. Pinned at
+one draw, the rival table can grow, or gain axes of its own, without moving the
+economy's dice at all.
 
 ## College, and University
 
