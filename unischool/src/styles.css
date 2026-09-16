@@ -2062,6 +2062,25 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .report-mover-move { display: inline-flex; align-items: baseline; gap: 8px; white-space: nowrap; }
 .report-mover-places { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-lo); }
 
+/* The two secondary standings (research, campus life), one line each above
+   the academic table. Sized to read as a footnote to the report rather than
+   as a second report: the same row rhythm as .report-movers li, but with the
+   rank set in the gold the headline uses so the eye finds it first. */
+/* A thin separator inside a .stat that carries two readings (see
+   ResearchTab.tsx's header, which shows standing and facilities in use). */
+.stat-sep { color: var(--navy-line); }
+
+.report-others { list-style: none; margin: 14px 0; padding: 0;
+  border-top: 1px solid var(--navy-line); border-bottom: 1px solid var(--navy-line); }
+.report-others li { display: flex; align-items: baseline; gap: 10px; padding: 5px 0;
+  font-size: var(--text-base); }
+.report-others li + li { border-top: 1px solid var(--navy-line); }
+.report-other-label { font-family: var(--serif); text-transform: uppercase;
+  letter-spacing: 0.08em; font-size: var(--text-xs); color: var(--ink-lo); min-width: 96px; }
+.report-other-rank { font-family: var(--mono); color: var(--gold); font-weight: 700; }
+.report-other-note { color: var(--ink-lo); font-size: var(--text-xs); margin-left: auto;
+  text-align: right; }
+
 .report-standings { max-height: 320px; overflow-y: auto; margin: 0 0 16px; padding-right: 6px; }
 .report-standings li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--navy-line); font-size: var(--text-base); }
 .report-standings li.me { color: var(--ok-on-dark); font-weight: 700; }

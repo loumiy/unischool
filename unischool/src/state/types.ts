@@ -651,6 +651,24 @@ export interface Rival {
   // could never express. Static for now (no annual drift of its own, unlike
   // reputation/momentum) — a deferred deepening, not an oversight.
   athleticStrength: number;
+  // THE OTHER TWO RANKING AXES (see data/rivalData.ts's standingsFor and
+  // systems/rivals/rivalsSystem.ts's rankedListBy). `reputation` answers
+  // "how good is this university"; these answer "how good is its research"
+  // and "what is it like to be a student here", and a school is free to be
+  // three different things on the three lists — which is most of what makes
+  // a second and third list worth having.
+  //
+  // Named IDENTICALLY to the player's own fields on University below, which
+  // is not cosmetic: it is what lets one rankedListBy(axis) serve all four
+  // leaderboards instead of a fourth hand-copied sort.
+  //
+  // Seeded like athleticStrength — a deterministic spread off the school's
+  // own id — and drifted annually like reputation, each with its own
+  // momentum so the three tables move independently.
+  socialStanding: number;
+  researchStanding: number;
+  socialMomentum: number;
+  researchMomentum: number;
 }
 
 // ---------------------------------------------------------------------
@@ -1002,7 +1020,15 @@ export interface University {
   // handle: a school with no varsity program has no mascot and is not
   // pretending otherwise.
   mascot: string;
-  reputation: number;   // player's own rank metric
+  reputation: number;   // player's own rank metric — the ACADEMIC axis, and the one the whole economy reads (see systems/prestige/prestigeSystem.ts)
+  // The other two standings, added beside `reputation` and never inside it
+  // (see docs/design/progression.md's "Three standings"). Both are stocks of
+  // exactly the same shape — a target computed weekly from durable inputs,
+  // drifted toward at PRESTIGE_DRIFT_RATE — and both are READINGS: no system
+  // reads either one back. Admissions, tuition, the applicant pool and the
+  // balance sim all still read `reputation` alone.
+  socialStanding: number;
+  researchStanding: number;
   schoolType: SchoolType;
 }
 

@@ -254,10 +254,49 @@ function relPath(f: string): string {
   }
   assert(offenders.length === 0, `no unexpected writer of self.reputation (found in: ${offenders.join(', ')})`);
 
+  // THE SAME CONFINEMENT FOR THE OTHER TWO STANDINGS. They are stocks of
+  // exactly the same shape (see prestigeSystem.ts's computeSocialTarget /
+  // computeResearchTarget), so an event or a completion effect nudging one
+  // directly would be the same flow-not-stock mistake the rule above exists
+  // to forbid — just in a place nobody was watching yet.
+  //
+  // The allowed set gains one file over reputation's: a MIGRATION seeding a
+  // newly-added stock for a run already underway is the same act as founding
+  // init, just arriving late (see persistence.ts's MIGRATIONS[42]).
+  // Deliberately allowed by name here rather than dodged by renaming a local
+  // in that file — an invariant you can slip past by choosing a different
+  // variable name is not an invariant.
+  const ALLOWED_STANDING_WRITERS = new Set([...ALLOWED_REPUTATION_WRITERS, 'state/persistence.ts']);
+  for (const field of ['socialStanding', 'researchStanding'] as const) {
+    const found: string[] = [];
+    for (const [f, text] of SOURCE) {
+      const rel = relPath(f);
+      if (ALLOWED_STANDING_WRITERS.has(rel)) continue;
+      if (new RegExp(`self\\.${field}\\s*[+\\-*/]?=`).test(text)) found.push(rel);
+    }
+    assert(found.length === 0, `no unexpected writer of self.${field} (found in: ${found.join(', ')})`);
+  }
+
   // Rank is a measurement OF prestige, never an input TO it: the prestige
   // module must never read the rivals module's rank function.
   const prestigeText = SOURCE.get(join(SRC_ROOT, 'systems', 'prestige', 'prestigeSystem.ts'))!;
   assert(!/playerRank/.test(prestigeText), 'prestigeSystem.ts never reads playerRank (rankings cannot feed prestige)');
+  assert(!/rankBy|rankedListBy/.test(prestigeText),
+    'prestigeSystem.ts never reads any ranked list (the rule covers all three axes, not just the academic one)');
+
+  // THE CENTRAL PROMISE OF THE THREE-STANDINGS CHANGE, asserted rather than
+  // intended: the two new axes are READINGS of the school, never inputs to
+  // the academic number. computePrestigeTarget is the function the whole
+  // economy hangs off — admitRate, the applicant pool, price tolerance, every
+  // recorded YearSnapshot — and if either stock ever appeared inside it, the
+  // headline would start depending on campus life and the balance sim's
+  // forty-year runs would quietly stop meaning what they meant.
+  const targetFn = prestigeText.slice(prestigeText.indexOf('export function computePrestigeTarget'));
+  const targetBody = targetFn.slice(0, targetFn.indexOf('\n}'));
+  for (const field of ['socialStanding', 'researchStanding']) {
+    assert(!targetBody.includes(field),
+      `computePrestigeTarget does not read self.${field} (a standing is a reading of prestige, never an input to it)`);
+  }
 }
 
 // =====================================================================

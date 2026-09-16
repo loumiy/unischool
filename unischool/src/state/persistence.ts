@@ -9,13 +9,14 @@ import { initialTech } from '../data/techData';
 import { SCHOOL_TYPE_PRESETS } from '../data/schoolTypeData';
 import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import { admitRate } from '../systems/admissions/admissionsSystem';
+import { RESEARCH_STANDING_BASELINE, SOCIAL_STANDING_BASELINE } from '../systems/prestige/prestigeSystem';
 import { initialFacilities } from '../data/facilitiesData';
 import { initialDorms } from '../data/campusData';
 import { fellTrees, seedTrees } from '../data/treeData';
 import {
   coachSalaryFor, glyphsFor, initialCoachCandidatePool, LEGACY_TWO_GENDER_SPORT_MIGRATION, SPORTS,
 } from '../data/studentLifeData';
-import { athleticStrengthFor, initialRivals } from '../data/rivalData';
+import { athleticStrengthFor, initialRivals, researchStandingFor, socialStandingFor, standingMomentumFor } from '../data/rivalData';
 import { legacyRoundRobinAssignments } from '../systems/faculty/facultyAssignment';
 
 // ---------------------------------------------------------------------
@@ -996,7 +997,34 @@ export const SAVE_KEY = 'unischool.save';
 // to avoid.
 //
 // See MIGRATIONS[41].
-export const SAVE_VERSION = 42;
+//
+// v42 -> v43: standing becomes THREE numbers. `University` gains
+// `socialStanding` and `researchStanding`; `Rival` gains the same two plus a
+// momentum for each. All six are added-as-required, so the bump is not
+// optional.
+//
+// A MIGRATION AGAIN, and for the same reason as v41 -> v42 rather than a new
+// one: the chain is only as reachable as its least-reachable link, so until
+// the decision to retire v3 -> v40 is taken on its own terms, skipping a link
+// here would orphan everything behind it just as effectively. Cheap, too —
+// every one of the six is derivable from what the save already holds.
+//
+// The player's two stocks open at their BASELINES rather than at anything
+// reconstructed from the run. That is the honest answer and not the
+// convenient one: a school twenty years in has a research record and a campus
+// life, but the stocks that measure them have never existed, so there is no
+// standing to recover — only a target they will now drift toward from
+// underneath, over the same decades a fresh school would take. A resumed run
+// therefore sees both numbers climb for a while, which is exactly what a
+// school that has just started being measured looks like.
+//
+// Rivals get theirs from data/rivalData.ts's own derivations, computed
+// against each school's CURRENT reputation rather than its authored one, so a
+// migrated field reads like a fresh one at the standing the run has actually
+// reached.
+//
+// See MIGRATIONS[42].
+export const SAVE_VERSION = 43;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1082,6 +1110,34 @@ const KNOWN_SUFFIXES = ['College', 'University'];
 // worth carrying, and delete the whole chain freely once nothing is
 // resuming from it.
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v42 -> v43: standing becomes three numbers (see the SAVE_VERSION header
+  // note above, including why this entry exists under a discard-by-default
+  // policy and why the player's two stocks start at their baselines).
+  42: (state) => {
+    const self = state.self as unknown as { socialStanding?: number; researchStanding?: number };
+    if (typeof self.socialStanding !== 'number') self.socialStanding = SOCIAL_STANDING_BASELINE;
+    if (typeof self.researchStanding !== 'number') self.researchStanding = RESEARCH_STANDING_BASELINE;
+
+    for (const r of state.rivals) {
+      const legacy = r as unknown as {
+        socialStanding?: number; researchStanding?: number;
+        socialMomentum?: number; researchMomentum?: number;
+      };
+      // Derived against the rival's CURRENT reputation and athletic strength,
+      // not the authored ones — a school that has spent twenty years climbing
+      // should have the campus life and the research record of the school it
+      // is now, not of the school it was seeded as.
+      if (typeof legacy.researchStanding !== 'number') {
+        legacy.researchStanding = researchStandingFor(r.reputation, r.id);
+      }
+      if (typeof legacy.socialStanding !== 'number') {
+        legacy.socialStanding = socialStandingFor(r.reputation, r.athleticStrength, r.id);
+      }
+      if (typeof legacy.socialMomentum !== 'number') legacy.socialMomentum = standingMomentumFor(r.id, 'social');
+      if (typeof legacy.researchMomentum !== 'number') legacy.researchMomentum = standingMomentumFor(r.id, 'research');
+    }
+  },
+
   // v41 -> v42: the field grows to 100 schools and everybody gets a mascot
   // (see the SAVE_VERSION header note above for why this entry exists at all
   // under a policy whose default is to discard).

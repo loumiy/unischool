@@ -397,7 +397,7 @@ function RankingsReportView({ payload, isFirstReveal, onDismiss }: {
   isFirstReveal: boolean;
   onDismiss: () => void;
 }) {
-  const { rank, previousRank, movers, passed, passedBy, standings } = payload;
+  const { rank, previousRank, movers, passed, passedBy, standings, others } = payload;
   const delta = previousRank === null ? null : previousRank - rank;
 
   return (
@@ -448,12 +448,34 @@ function RankingsReportView({ payload, isFirstReveal, onDismiss }: {
         </div>
       )}
 
+      {/* The other two standings, one line each. The report's subject is the
+          academic table below; these say, in passing, that the school is
+          three different things on three different lists — which is the
+          point of having three (see systems/prestige/prestigeSystem.ts). */}
+      {others.length > 0 && (
+        <ul className="report-others">
+          {others.map((o) => (
+            <li key={o.label}>
+              <span className="report-other-label">{o.label}</span>
+              <span className="report-other-rank">#{o.rank}</span>
+              <span className="report-other-note">
+                {o.isLeader
+                  ? 'nobody in the country is ahead of you'
+                  : `${o.leader} ${o.leaderMascot} lead`}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
       <h3 className="report-standings-head">Top {standings.length}</h3>
       <ol className="report-standings">
         {standings.map((r, i) => (
-          <li key={r.name} className={r.isPlayer ? 'me' : ''}>
+          // Keyed by identity, not by name: the player may name their school
+          // anything, including something a rival is already called.
+          <li key={r.key} className={r.isPlayer ? 'me' : ''}>
             <span>{i + 1}. {r.name}</span>
-            <span className="stat">{Math.round(r.reputation)}</span>
+            <span className="stat">{Math.round(r.value)}</span>
           </li>
         ))}
       </ol>

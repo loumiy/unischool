@@ -186,10 +186,18 @@ department's upkeep and social contribution together rather than
 budgeting per team, and now ALSO adding a flat quality bonus
 (`qualityBonus`) on top of whatever the coaching staff itself is worth —
 the "recruiting" a shallow model with no individual athlete roster can
-actually represent. Athletics reaches satisfaction only through this same
-capped social contribution, same as clubs and Greek life — **never
-prestige directly**; if athletics should eventually touch prestige, that
-is a separate prestige-model decision, flagged rather than wired.
+actually represent. Athletics reaches satisfaction through this same capped
+social contribution, same as clubs and Greek life.
+
+**It now also reaches a standing — and exactly one.** The flag this paragraph
+used to carry ("never prestige directly; if athletics should eventually touch
+prestige, that is a separate prestige-model decision, flagged rather than
+wired") has been answered in the narrow shape it asked for. A varsity program
+feeds **campus-life standing**, one of the three the school is ranked on (see
+[progression.md](progression.md)'s "Three standings") — a number no system
+reads back into a decision. The **academic** number, which is the one the whole
+economy reads, is still untouched by athletics and by everything else in this
+document.
 Disbanding a team is not built in this pass either; when it is, what
 happens to a now-teamless venue is a call worth making explicitly rather
 than silently.

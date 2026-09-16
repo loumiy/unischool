@@ -10,6 +10,7 @@ import { initialFacilities } from '../data/facilitiesData';
 import { initialRivals } from '../data/rivalData';
 import { initialCandidatePool, facultySalary, grownStat, FOUNDING_TENURE_WEEKS } from '../data/facultyData';
 import { admitRate } from '../systems/admissions/admissionsSystem';
+import { RESEARCH_STANDING_BASELINE, SOCIAL_STANDING_BASELINE } from '../systems/prestige/prestigeSystem';
 import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import {
   SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION, STARTING_ENDOWMENT, STARTING_TUITION,
@@ -292,7 +293,7 @@ export function createPreStartState(): GameState {
     pathways: {},
     trees: {},
     rivals: [],
-    self: { name: '', suffix: '', universityCharterOffered: false, mascot: '', reputation: 0, schoolType: 'private' },
+    self: { name: '', suffix: '', universityCharterOffered: false, mascot: '', reputation: 0, socialStanding: 0, researchStanding: 0, schoolType: 'private' },
     history: [],
     log: [],
     pendingInterrupt: null,
@@ -554,6 +555,14 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       // has an answer (see types.ts's University.mascot).
       mascot: '',
       reputation: foundingReputation,
+      // The other two standings open at their own baselines rather than at
+      // the academic one (see prestigeSystem.ts's RESEARCH_STANDING_BASELINE
+      // and SOCIAL_STANDING_BASELINE). A founding school is not a research
+      // university and has no campus life to speak of, and both numbers say
+      // so on day one — the school type's prestige bonus/penalty is about
+      // academic standing and is deliberately not applied to either.
+      socialStanding: SOCIAL_STANDING_BASELINE,
+      researchStanding: RESEARCH_STANDING_BASELINE,
       schoolType,
     },
     // Empty at founding: the first row lands at the end of year 1, when the

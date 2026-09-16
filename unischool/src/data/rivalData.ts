@@ -88,11 +88,93 @@ export function athleticStrengthFor(reputation: number, id: string): number {
   return Math.max(10, Math.min(100, Math.round(reputation * multiplier)));
 }
 
-export function initialRivals(): Rival[] {
-  return baseRivals().map((r) => ({ ...r, athleticStrength: athleticStrengthFor(r.reputation, r.id) }));
+// THE OTHER TWO AXES, derived the same way and for the same reason
+// athleticStrengthFor is (see above): 99 schools x two more numbers is 198
+// more hand-picked values with no signal a formula cannot already give, and a
+// deterministic spread off the school's own id is stable across a run rather
+// than reshuffling on every reload.
+//
+// What differs is the SALT and, for social standing, one deliberate coupling.
+// Hashing the bare id again would give all three axes the same ordering — a
+// school strong at one would be strong at all of them, which is exactly the
+// collapse the finalizer above was added to prevent. Each axis hashes the id
+// under its own suffix instead, so the three are independent readings of the
+// same school.
+//
+// RESEARCH leans HARDER on reputation than athletics does (a narrower band
+// around it): research standing and academic standing are genuinely
+// correlated in a way athletics is not — a university known for its research
+// is, most of the time, a well-regarded university — so a wide independent
+// spread here would read as noise rather than as character. The band still
+// leaves room for the two interesting cases: the teaching college that
+// publishes nothing, and the institute that outranks its own reputation.
+const RESEARCH_SPREAD_MIN = 0.75;
+const RESEARCH_SPREAD_RANGE = 0.5; // 0.75..1.25
+
+// SOCIAL is the wide one, and it borrows from athleticStrength rather than
+// standing alone. A school's athletic program is part of what it is like to
+// be a student there, so a sports school should read as a social school; the
+// remainder is its own hash, which is what lets a quiet athletic minnow still
+// be a wonderful place to spend four years.
+const SOCIAL_SPREAD_MIN = 0.55;
+const SOCIAL_SPREAD_RANGE = 0.9;  // 0.55..1.45
+const SOCIAL_ATHLETICS_SHARE = 0.35; // how much of the number the athletic program accounts for
+
+// The same band `reputation` lives in (rivalsSystem.ts's
+// RIVAL_REPUTATION_MIN/MAX and prestigeSystem.ts's PRESTIGE_MIN/MAX), NOT
+// athleticStrength's 10..100. These two are prestige-shaped stocks that the
+// player's own drifting standings are read against, so they have to be on the
+// player's scale: capped at 100 they would be trivially overtaken by a school
+// whose own standing can reach 150, and topping a table would mean nothing.
+// Athletics keeps its narrower band because nothing of the player's is scored
+// against it on a 150 scale — athleticProgramStrength is itself 0..100.
+const STANDING_MIN = 5;
+const STANDING_MAX = 150;
+
+function clampStanding(v: number): number {
+  return Math.max(STANDING_MIN, Math.min(STANDING_MAX, Math.round(v)));
 }
 
-function baseRivals(): Array<Omit<Rival, 'athleticStrength'>> {
+export function researchStandingFor(reputation: number, id: string): number {
+  return clampStanding(reputation * (RESEARCH_SPREAD_MIN + hashUnit(`${id}:research`) * RESEARCH_SPREAD_RANGE));
+}
+
+export function socialStandingFor(reputation: number, athleticStrength: number, id: string): number {
+  const own = reputation * (SOCIAL_SPREAD_MIN + hashUnit(`${id}:social`) * SOCIAL_SPREAD_RANGE);
+  return clampStanding(own * (1 - SOCIAL_ATHLETICS_SHARE) + athleticStrength * SOCIAL_ATHLETICS_SHARE);
+}
+
+// A rival's starting momentum on each of the two new axes. Same band the
+// authored `momentum` values sit in, spread off the id so the three trends
+// are independent — a school can be climbing academically while its campus
+// life slides, which is the whole point of having three tables.
+const STANDING_MOMENTUM_RANGE = 1.6; // -0.8 .. +0.8
+
+export function standingMomentumFor(id: string, axis: string): number {
+  return Math.round((hashUnit(`${id}:${axis}:momentum`) - 0.5) * STANDING_MOMENTUM_RANGE * 100) / 100;
+}
+
+export function initialRivals(): Rival[] {
+  return baseRivals().map((r) => {
+    const athleticStrength = athleticStrengthFor(r.reputation, r.id);
+    return {
+      ...r,
+      athleticStrength,
+      socialStanding: socialStandingFor(r.reputation, athleticStrength, r.id),
+      researchStanding: researchStandingFor(r.reputation, r.id),
+      socialMomentum: standingMomentumFor(r.id, 'social'),
+      researchMomentum: standingMomentumFor(r.id, 'research'),
+    };
+  });
+}
+
+// What is AUTHORED, as opposed to derived. The four omitted fields are all
+// computed in initialRivals above — three from the school's own id, and the
+// momenta from it too — so the table below stays a table of decisions rather
+// than of arithmetic somebody has to keep consistent by hand.
+type AuthoredRival = Omit<Rival, 'athleticStrength' | 'socialStanding' | 'researchStanding' | 'socialMomentum' | 'researchMomentum'>;
+
+function baseRivals(): AuthoredRival[] {
   return [
     // --- original five ---
     { id: 'r1', name: 'Ashcombe University', mascot: 'Owls', reputation: 92, momentum: 0.2 },

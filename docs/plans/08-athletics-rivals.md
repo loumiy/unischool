@@ -601,6 +601,40 @@ discipline applies to all three.
 prestige, cash, enrolment and satisfaction figure identical to PR 1A's run.**
 Anything that moved means an axis leaked into the headline target.
 
+**As implemented:** the bar was met — the forty-year sim is byte-identical to
+PR 1A's across all seven strategies — but only after a mistake that is worth
+recording, because it is the one this plan's whole "additive, not a
+decomposition" argument could have died of quietly.
+
+**The two new axes first drifted off the SAME local generator as `reputation`,
+and that moved the economy.** Each rival's academic draw then came after the
+previous rival had consumed four more numbers for the other two standings, so
+adding an axis silently changed every rival's academic trajectory. That reaches
+the economy through the one channel PR 1A established rivals have: when the
+top-50 reveal fires, and therefore which weeks the annual report takes away
+from decision events. The sim diverged from year 10 onward — not because a
+standing leaked into `computePrestigeTarget` (it did not; the function is
+character-for-character unchanged) but because the *dice* moved again, one PR
+after being pinned.
+
+Fixed by seeding **three** generators from the single global draw, xor-derived
+rather than drawn separately so the global stream still sees one draw a year.
+The academic stream is then bit-identical to what it was, and the two new axes
+cannot perturb it however they grow. The general lesson is worth keeping: PR
+1A's pinning made the field's *size* safe, and this makes its *shape* safe;
+both were needed, and only one of them was foreseen.
+
+**Two smaller departures.** `researchScore`'s credit tally is extracted to a
+`researchCredits` helper so the two readings of it share one source — the
+arithmetic is untouched, and the two axes differ only in what they divide it
+by (the research axis uses three times the denominator, so twenty credits reads
+as "a good research school" rather than as the top of the national table).
+And the report's two extra lines carry **no year-over-year move**: `YearSnapshot`
+records only the academic rank, a move needs a stored prior, and this plan's
+own "what it does not do" keeps `YearSnapshot` at one rank. Each line names the
+school leading that axis instead, which is the context a bare ordinal was
+missing.
+
 ## PR 1C — A rival's athletic strength moves, and splits by sport
 
 **The change.** The two things PR 2F cannot be built without.

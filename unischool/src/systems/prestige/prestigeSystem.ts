@@ -1,9 +1,10 @@
 import type { GameState } from '../../state/types';
 import { totalEnrolled } from '../../state/types';
-import { graduatePrograms, milestoneSchools } from '../../data/techData';
+import { graduatePrograms, milestoneSchools, researchSchools } from '../../data/techData';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
 import { teachingQualityScore } from '../../data/courseQuality';
-import { INITIATIVE_COMPLETION_CREDIT } from '../../data/researchData';
+import { INITIATIVE_COMPLETION_CREDIT, labEquippedFields } from '../../data/researchData';
+import { athleticProgramStrength, studentLifeSocialBonus, STUDENT_LIFE_SOCIAL_BONUS_CAP } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
 // Prestige (s.self.reputation) is a slow-moving STOCK, not a flow. It used
@@ -342,11 +343,16 @@ const BREAKTHROUGH_PRESTIGE_CREDIT = 1;
 const PRIZE_PRESTIGE_CREDIT = 3;      // a prize is worth three breakthroughs to the school's standing, on top of what its winner's own output gains
 const DOCTORATE_PRESTIGE_CREDIT = 2;  // a founded research doctorate, worth two breakthroughs
 const RESEARCH_CREDITS_FOR_FULL_SCORE = 20;
-function researchScore(s: GameState): number {
+// The credit tally itself, extracted so the two readings of it share one
+// source. Nothing about the arithmetic changed when it was lifted out of
+// researchScore below — the whole point is that "what this university's
+// research has produced" is counted once, and the two axes that care differ
+// only in what they divide it by.
+function researchCredits(s: GameState): number {
   const doctorates = graduatePrograms().filter(
     (program) => program.type === 'doctoral' && s.milestones[`grad-program-complete:${program.id}`],
   ).length;
-  const credits =
+  return (
     PUBLICATION_PRESTIGE_CREDIT * s.research.publications +
     s.research.completedInitiatives.reduce(
       (sum, done) => sum + (done.cancelled ? 0 : INITIATIVE_COMPLETION_CREDIT[done.depth]),
@@ -354,8 +360,12 @@ function researchScore(s: GameState): number {
     ) +
     BREAKTHROUGH_PRESTIGE_CREDIT * s.research.breakthroughs +
     PRIZE_PRESTIGE_CREDIT * s.research.prizes +
-    DOCTORATE_PRESTIGE_CREDIT * doctorates;
-  return clamp01(credits / RESEARCH_CREDITS_FOR_FULL_SCORE);
+    DOCTORATE_PRESTIGE_CREDIT * doctorates
+  );
+}
+
+function researchScore(s: GameState): number {
+  return clamp01(researchCredits(s) / RESEARCH_CREDITS_FOR_FULL_SCORE);
 }
 
 // Financial resources per student: endowment measured against the size of
@@ -419,8 +429,115 @@ export function prestigeTargetWithout(s: GameState, milestoneKeys: readonly stri
 // rank (see rivalsSystem.ts). Incoming quality only changes once a year at
 // RESOLVE_ADMISSIONS; every other input can change any week, which is the
 // whole reason this runs weekly.
+// =====================================================================
+// THE OTHER TWO STANDINGS (see docs/design/progression.md's "Three
+// standings"). Two more stocks of exactly the shape above: a target
+// computed weekly from durable inputs, drifted toward at the same tiny
+// rate, clamped to the same band.
+//
+// THEY ARE ADDED BESIDE `reputation`, NEVER INSIDE IT, and that is the
+// whole reason this was affordable. computePrestigeTarget is not touched by
+// this change — not a weight, not the baseline, not an input. Splitting the
+// headline number into components that sum to it would have moved
+// admitRate, the applicant pool, price tolerance, every YearSnapshot ever
+// recorded, and sim/balanceSim.ts's seven strategies, all at once. So the
+// backlog's "prestige becomes more than one number" is read as two MORE
+// numbers rather than as a decomposition of the one.
+//
+// AND THEY ARE READINGS, NEVER INPUTS. Nothing in computePrestigeTarget
+// above reads either stock, and nothing outside this module reads them back
+// into a decision: admissions, tuition, the applicant pool and the balance
+// sim all still read `reputation` alone. That one-way rule is the same one
+// rankings already follow — a rank measures prestige and never feeds it —
+// and test/invariants.test.ts section 5 asserts it for all three.
+//
+// THE DOUBLE-COUNTING IS DELIBERATE. Research credits feed the academic
+// target (at RESEARCH_WEIGHT, where they already did) and the research axis
+// (at full scale). That is correct rather than sloppy: the two numbers
+// answer different questions — how good is this university, and how good is
+// its research — and a research university is supposed to score on both.
+// What is forbidden is the other direction.
+// =====================================================================
+
+// A school with no labs is not a research university, and a school with no
+// clubs, teams or social space is not much of a place to be a student. Both
+// baselines sit below the academic one for that reason: these are things a
+// school EARNS rather than arrives with.
+export const RESEARCH_STANDING_BASELINE = 18;
+export const SOCIAL_STANDING_BASELINE = 22;
+
+// Research standing's own denominator on the credit tally, and it is
+// deliberately three times RESEARCH_CREDITS_FOR_FULL_SCORE. That constant is
+// calibrated for a CAPPED 22-weight input inside the academic target, where
+// reaching the cap early and staying there is fine because the term can only
+// ever be worth 22. Here the same tally carries most of a whole axis, so
+// twenty credits has to read as "a good research school" rather than as the
+// top of the national table — otherwise the axis is won in a decade and
+// stops saying anything for the next three.
+const RESEARCH_STANDING_CREDITS_FOR_FULL = 60;
+
+const RESEARCH_OUTPUT_WEIGHT = 80;  // what the labs have actually produced
+const RESEARCH_BREADTH_WEIGHT = 40; // how many fields the school can research in at all
+
+// Lab breadth: equipped research fields against the schools that can have
+// one. Read through researchData.ts's own labEquippedFields, which is the
+// gate research itself runs on, so "a school researches in N fields" can
+// never drift from "research is possible in N fields".
+function researchBreadthScore(s: GameState): number {
+  const schools = researchSchools().filter((school) => school.fields.length > 0);
+  if (schools.length === 0) return 0;
+  return clamp01(labEquippedFields(s).size / schools.length);
+}
+
+export function computeResearchTarget(s: GameState): number {
+  const target =
+    RESEARCH_STANDING_BASELINE +
+    RESEARCH_OUTPUT_WEIGHT * clamp01(researchCredits(s) / RESEARCH_STANDING_CREDITS_FOR_FULL) +
+    RESEARCH_BREADTH_WEIGHT * researchBreadthScore(s);
+  return clamp(target, PRESTIGE_MIN, PRESTIGE_MAX);
+}
+
+// Social standing's four inputs. Between them they are the closest thing the
+// game has to "what is it like to be a student here": the places built for
+// it, the organisations that grew in them, the varsity programs, and what
+// the students themselves report.
+const SOCIAL_FACILITIES_WEIGHT = 30;   // the rec-centre chain's own prestigeContribution, the same sum campusLifeScore reads
+const SOCIAL_ORGANISATIONS_WEIGHT = 35; // clubs, chapters and housed chapters, through their own capped bonus
+const SOCIAL_ATHLETICS_WEIGHT = 30;     // athleticProgramStrength — and THIS is athletics' first reach into any standing at all
+const SOCIAL_SATISFACTION_WEIGHT = 25;  // what the student body actually reports about its social life
+
+// ATHLETICS FINALLY TOUCHES A STANDING, and it is worth being precise about
+// which one. docs/design/student-life.md says athletics reaches satisfaction
+// "never prestige directly; if athletics should eventually touch prestige,
+// that is a separate prestige-model decision, flagged rather than wired."
+// This is that decision, made in the narrow shape it was flagged in: a
+// program reaches SOCIAL standing, a number no system reads back. The
+// headline it is forbidden to touch is still untouched, and `npm run sim`
+// can prove it.
+function socialOrganisationsScore(s: GameState): number {
+  return clamp01(studentLifeSocialBonus(s) / STUDENT_LIFE_SOCIAL_BONUS_CAP);
+}
+
+export function computeSocialTarget(s: GameState): number {
+  const target =
+    SOCIAL_STANDING_BASELINE +
+    SOCIAL_FACILITIES_WEIGHT * campusLifeScore(s) +
+    SOCIAL_ORGANISATIONS_WEIGHT * socialOrganisationsScore(s) +
+    SOCIAL_ATHLETICS_WEIGHT * clamp01(athleticProgramStrength(s) / 100) +
+    SOCIAL_SATISFACTION_WEIGHT * clamp01(s.students.satisfactionBreakdown.social / 100);
+  return clamp(target, PRESTIGE_MIN, PRESTIGE_MAX);
+}
+
+// All three stocks drift together, at the same rate, toward their own
+// targets. One function rather than three registered systems: they are the
+// same mechanism three times, and keeping them here is what lets
+// invariants.test.ts confine every writer of all three to one file.
 export function tickPrestige(s: GameState): void {
-  const target = computePrestigeTarget(s);
-  s.self.reputation += (target - s.self.reputation) * PRESTIGE_DRIFT_RATE;
-  s.self.reputation = clamp(s.self.reputation, PRESTIGE_MIN, PRESTIGE_MAX);
+  s.self.reputation = drift(s.self.reputation, computePrestigeTarget(s));
+  s.self.researchStanding = drift(s.self.researchStanding, computeResearchTarget(s));
+  s.self.socialStanding = drift(s.self.socialStanding, computeSocialTarget(s));
+}
+
+function drift(current: number, target: number): number {
+  return clamp(current + (target - current) * PRESTIGE_DRIFT_RATE, PRESTIGE_MIN, PRESTIGE_MAX);
 }
