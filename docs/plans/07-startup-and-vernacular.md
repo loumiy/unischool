@@ -488,6 +488,59 @@ and a spire on Founders Hall. **First, because it proves substitution** — it
 is still an ornamented campus, just differently ornamented, so it exercises
 the table's normal case while the table is still young enough to change.
 
+**As implemented:** it landed as a table row plus two new parts (`Porch`,
+`Spire`), which is what Phase 2 was for. Georgian is untouched — sections
+13–15 still pass unchanged, and a rendered Founders Hall before and after
+is the same building.
+
+**Verified by looking at it**, not by tests alone. Art that cannot be seen
+should not be written (PR F's own argument for not drawing a spire blind),
+so this PR drove the real app with the pre-installed Chromium, founded a
+school and photographed Founders Hall in both vernaculars at the same
+camera. Four defects came out of that which no test caught, and three of
+them were invisible in the source:
+
+1. **`.iso-dome` and `.iso-finial` hardcoded Georgian gold in `styles.css`,
+   silently overriding the vernacular.** A CSS class rule beats a
+   presentation attribute, so the `fill`/`stroke` the motifs pass had never
+   been doing anything — unnoticeable while gold was the only answer, and it
+   painted a Gothic spire's stone pinnacles gold the moment there were two.
+   Colour for both now comes from the vernacular; the stylesheet keeps only
+   the geometry.
+2. **A dark roof flattens its own facets.** `SLOPE` shades a roof's four
+   faces *multiplicatively* off one colour, so the near-black slate real
+   Gothic wants (#4a5261, tried first) left the brightest and darkest faces
+   barely 40 apart and a steep hip read as one flat plate — the exact
+   opposite of the set's whole point. The slate is now matched to Georgian's
+   facet spread (68.9 against 68.8), which is the number that makes a
+   pitched roof legible as pitched.
+3. **The roof's inset is a parapet device.** `hall` set its roof back 0.3
+   tiles and painted a deck ring underneath, which is a gutter — and with no
+   parapet to gutter behind it drew a pale ring all the way round a Gothic
+   hall. Both now follow `parapet > 0`.
+4. The ridge itself needed to be **13 m, not 7.4**. A hall is 7x5 tiles, so
+   a hip has twenty-odd metres of span to climb and a ridge that sounds deep
+   in metres comes out gentle on screen.
+
+**Section 16 is the new quality gate, and it earned itself immediately**:
+it applies section 12's palette discipline (at most seven walls, three
+roofs, every pair of materials 35 apart, every roof 60 from its own wall) to
+*each* vernacular rather than to Georgian alone, and it caught two real
+defects in the first Gothic palette — four roof tones, and a refectory 32.8
+from a hall. It also adds the one rule that only exists once there are two
+sets: **the invariant motifs must be made of invariant materials.** A set
+that recolours every entry in its `MaterialSet` repaints the gym and the
+teaching hospital along with the halls. Measured off the catalogue rather
+than hand-listed, because which materials reach an invariant motif is a
+consequence of `materialOf`'s switch: as of PR G that is `render`, `curtain`
+and `clinical` — and two of those three *also* serve varying motifs, so
+"recolour everything the halls don't use" is not a safe shortcut either.
+
+**Gothic is not reachable in play yet.** `FOUNDING_VERNACULAR` is still
+`'georgian'` and PR K is what puts the choice on the founding screen. That
+is this plan's sequencing rather than an oversight — the screen wants all
+four sets to show at once.
+
 ### PR H — Brutalist
 
 Board-marked concrete, flat roofs throughout, deep-set slot windows with a

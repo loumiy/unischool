@@ -541,6 +541,21 @@ export const PORTICO_COLUMN_PLAN = across(1.4);  // a column is round; this is i
 // is an ENGAGED portico, shallow against the centre bay, not a freestanding
 // one out on the lawn. At 2.2 m the columns read as a detached porch parked in
 // front of the building; at 0.4 they read as part of its front.
+// THE PORCH, the Gothic entrance: a projecting gabled bay with a pointed
+// arch in it, flanked by two buttresses. Where a portico is a rank of
+// free-standing columns carrying a horizontal, a porch is a piece of the
+// building pushed forward and roofed — which is the whole difference between
+// the two vocabularies in one part.
+export const PORCH_WIDTH_METRES = 7.5;
+export const PORCH_DEPTH = across(2.4);
+export const PORCH_HEIGHT = up(9.0);
+export const PORCH_GABLE_RISE = up(4.6);
+export const BUTTRESS_PLAN = across(1.3);
+export const BUTTRESS_RISE = up(11.5);
+// A buttress steps back as it climbs — the set-off is most of what tells it
+// from a pilaster at this distance.
+export const BUTTRESS_SETOFF = up(7.0);
+
 export const PORTICO_STANDOFF = across(0.4);
 export const ENTABLATURE = up(1.5);
 
@@ -580,6 +595,16 @@ export const TOWER_DRUM_PLAN = across(8);
 export const TOWER_DRUM_RISE = up(3.6);
 export const TOWER_DOME_RISE = up(5.2);
 export const TOWER_FINIAL_RISE = up(3.0);
+// THE SPIRE, the Gothic answer to the drum and dome above. A belfry stage
+// with louvred openings, then a tall tapering pyramid — a spire is mostly
+// the taper, which is why this is so much deeper than TOWER_DOME_RISE.
+export const TOWER_BELFRY_PLAN = across(8.4);
+export const TOWER_BELFRY_RISE = up(5.4);
+export const TOWER_SPIRE_RISE = up(17.0);
+// The little pinnacles at the belfry's corners. A bare pyramid on a box
+// reads as a funnel; the pinnacles are what make it read as masonry.
+export const TOWER_PINNACLE_PLAN = across(1.5);
+export const TOWER_PINNACLE_RISE = up(4.2);
 // The clock face. A real radius, converted separately for the two axes of a
 // wall's own coordinates — across the wall it is a distance in tiles, up it a
 // distance in screen units, and they are not the same number.
@@ -846,8 +871,140 @@ const GEORGIAN: VernacularSpec = {
   },
 };
 
+// ---------------------------------------------------------------------
+// COLLEGIATE GOTHIC. Princeton, Yale's older courts, Duke, Chicago.
+//
+// The set that changes the SILHOUETTE, which is why it is the first one
+// added: every other vernacular in this plan is a different way of dressing
+// roughly the same massing, and this one is not. A Gothic hall is grey
+// ashlar under a roof steep enough to be half the building, with no parapet
+// hiding it and a spire on the landmark instead of a dome.
+//
+// THREE MATERIALS ARE DELIBERATELY IDENTICAL TO GEORGIAN'S — `render`,
+// `curtain` and `clinical` — and that is not laziness. Those three are the
+// walls the INVARIANT motifs are made of: the labs, the gyms, the stadium,
+// the natatorium, the residential tower and the teaching hospital. A campus
+// whose gym changed colour with its founding century would be claiming its
+// 1970s sports hall was built in 1890. materialsMatchOnInvariantMotifs in
+// test/building-spec.test.ts enforces this rather than trusting the comment.
+// ---------------------------------------------------------------------
+
+// Gothic roofs are the point of the set, so they get their own slate: bluer
+// than Georgian's green-grey, and at the SAME LIGHTNESS rather than darker.
+//
+// Darker was tried first (#4a5261) on the reasoning that real Gothic slate
+// is nearly black, and it was wrong for a reason only visible on the
+// rendered map: SLOPE shades a roof's four faces MULTIPLICATIVELY off this
+// one colour, so a dark roof has no room to separate them. At #4a5261 a
+// steep hip — the whole point of the set — read as one flat dark plate,
+// because the brightest and darkest faces were barely 40 apart. Matched to
+// Georgian's own facet spread instead (68.9 against 68.8), which is what
+// makes a pitched roof legible as pitched.
+const GOTHIC_SLATE = '#5a6270';
+// The flat-roofed buildings keep Georgian's own lead deck, and deliberately
+// the SAME one rather than a greyed variant. Three of the seven materials
+// are pinned to Georgian by the invariant motifs (see below) and already
+// wear this deck, so inventing a fourth roof tone for the two free
+// flat-roofed materials would push the campus to four roofs — past the
+// three the palette discipline allows, and for a difference nobody could
+// see against a building's own walls. A lead deck is a lead deck.
+const GOTHIC_DECK = '#7c8377';
+
+const GOTHIC_MATERIALS = {
+  // The academic halls: grey limestone ashlar, coursed and weathered. This
+  // is the one that carries the set — nine buildings wear it. Cooled and
+  // lightened from #8b8779 once the slate above was lightened, to stay
+  // clear of `render`, which is pinned to Georgian's value and sits close
+  // to any warm grey.
+  brickRed: { wall: '#8a8b86', roof: GOTHIC_SLATE },
+  // The support buildings, in a warmer sandstone: the same construction at
+  // a lower key, exactly as buff brick is to red in Georgian.
+  // Pushed warmer than it first read: at #a89573 it sat 32.8 from the
+  // halls' ashlar and 37 from `render`, under the 35 the palette check
+  // demands and close enough that a refectory and a lab would have been the
+  // same building at map zoom. Section 16 caught it; it was not visible by
+  // eye in the table.
+  brickBuff: { wall: '#b8975f', roof: GOTHIC_SLATE },
+  // The civic set — library, performing arts, gallery — in pale dressed
+  // stone. The buildings a campus puts its name on are the ones it cuts
+  // cleanly.
+  limestone: { wall: '#cbc5b0', roof: GOTHIC_DECK },
+  // INVARIANT, see above.
+  render: { wall: '#b0a992', roof: '#7c8377' },
+  curtain: { wall: '#93a9b4', roof: '#7c8377' },
+  clinical: { wall: '#eef1f2', roof: '#c2ccd1' },
+  // The residence halls, and still the one DARK wall on the map: a
+  // dark-grey weathered stone rather than dark brick. Same job as
+  // Georgian's brickDark — the residential quarter has to read as a
+  // different KIND of place from across the map.
+  brickDark: { wall: '#585448', roof: GOTHIC_DECK },
+} as const satisfies MaterialSet;
+
+const GOTHIC: VernacularSpec = {
+  materials: GOTHIC_MATERIALS,
+  stone: {
+    // Dressed stone for the trim, cooler than Georgian's cream limestone so
+    // the bands read against a grey wall rather than disappearing into it.
+    trim: '#e6e3d6',
+    // NOT gold. Gothic's landmark is a spire, and a spire is lead and stone;
+    // what little metal shows is the weathervane. Kept as a pale lead rather
+    // than dropped, because the finial still has to be visible against the
+    // sky.
+    gilt: '#b9bcc4',
+    towerStone: '#d9d5c4',
+  },
+  roof: {
+    ridgeMetres: {
+      // Georgian's hall is 2.2 m — a hip set back behind a parapet. Gothic's
+      // roof IS the building: unhidden, and about three storeys deep on a
+      // four-storey hall.
+      //
+      // First drawn at 7.4, which is more than three times Georgian's and
+      // still read as a shallow lid on the map — a hall is 7x5 tiles, so a
+      // hip has 20-odd metres of span to climb across and a ridge that
+      // sounds deep in metres comes out gentle on screen. Judged from the
+      // rendered campus rather than from the number.
+      hall: 13.0,
+      village: 6.0,
+    },
+    // A steeper version of the same ladder: a house keeps a real pitch, an
+    // institutional hall gets the hall's own roof, and a six-storey block is
+    // still flat because a block that size is flat in any century.
+    residentialRidgeMetres: (storeys: number) => {
+      if (storeys <= 3) return 7.5;
+      if (storeys <= 5) return 6.5;
+      return 0;
+    },
+    // NO PARAPET, and this is the half of the silhouette the ridge does not
+    // do. A Georgian roof hides behind its wall; a Gothic roof springs
+    // straight from the eaves, and leaving a parapet on would be a Georgian
+    // building wearing a steeper hat.
+    parapet: 0,
+  },
+  windowShape: 'lancet',
+  parts: {
+    entrance: {
+      // A gabled, buttressed porch instead of a colonnaded portico.
+      hall: 'porch',
+      // The civic set keeps a run of columns — a cloister walk is as Gothic
+      // as a colonnade is classical, and the geometry is the same rank of
+      // shafts. Substituting here would be a different building, not a
+      // different style.
+      portico: 'colonnade',
+      pavilion: 'canopy',
+      residential: 'canopy',
+      village: 'none',
+    },
+    // A gable end closes its own roofline; raised end pavilions are a
+    // parapet-roof device and have nothing to cap here.
+    rooflineEnd: 'none',
+    apex: 'spire',
+  },
+};
+
 export const VERNACULARS: Record<Vernacular, VernacularSpec> = {
   georgian: GEORGIAN,
+  gothic: GOTHIC,
 };
 
 export function roofFor(v: Vernacular): VernacularRoof {
@@ -924,9 +1081,9 @@ export function apexPartOf(v: Vernacular): ApexPart {
 // test/building-spec.test.ts asserts every part named by a vernacular in
 // VERNACULARS is on them, so PR G adding `apex: 'spire'` fails loudly until
 // PR G also draws a spire.
-export const IMPLEMENTED_ENTRANCE_PARTS: EntrancePart[] = ['portico', 'colonnade', 'canopy', 'none'];
+export const IMPLEMENTED_ENTRANCE_PARTS: EntrancePart[] = ['portico', 'colonnade', 'canopy', 'porch', 'none'];
 export const IMPLEMENTED_ROOFLINE_END_PARTS: RooflineEndPart[] = ['pavilion', 'none'];
-export const IMPLEMENTED_APEX_PARTS: ApexPart[] = ['cupola', 'none'];
+export const IMPLEMENTED_APEX_PARTS: ApexPart[] = ['cupola', 'spire', 'none'];
 
 // How far the wall carries above the cornice. Zero is a real answer.
 export function parapetOf(v: Vernacular): number {

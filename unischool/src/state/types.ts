@@ -984,9 +984,8 @@ export interface StudentOrgState {
 // imports it, the same direction it already imports Buildable. The palette
 // behind each name is that module's (see its VERNACULARS table).
 //
-// One value today. Plan 07's PRs G, H and I add 'gothic', 'brutalist' and
-// 'mission'.
-export type Vernacular = 'georgian';
+// Plan 07's PRs H and I add 'brutalist' and 'mission'.
+export type Vernacular = 'georgian' | 'gothic';
 
 // NO SchoolType. Private/public was the game's only starting fork and
 // Plan 07 retired it — see data/foundingData.ts for what it was and why it

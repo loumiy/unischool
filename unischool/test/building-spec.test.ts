@@ -765,6 +765,75 @@ console.log('campus scale and building spec');
   assert(rooflineEndPartOf(V) === 'pavilion', 'and the roofline-end lookup agrees with the table');
 }
 
+// --- 16. Every vernacular keeps the campus's own rules -------------------
+// Sections 12 to 15 pin GEORGIAN, which is the set that must not change.
+// This one is the gate every NEW set has to pass: the palette discipline of
+// section 12 applied to each vernacular in turn, plus the one rule that only
+// exists once there is more than one set.
+{
+  const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const dist = (a: string, b: string) => Math.hypot(...rgb(a).map((v, i) => v - rgb(b)[i]));
+
+  for (const vname of Object.keys(VERNACULARS) as Vernacular[]) {
+    const walls = [...new Set(CATALOGUE.map((t) => materialOf(t, vname).wall))];
+    const roofs = [...new Set(CATALOGUE.map((t) => materialOf(t, vname).roof))];
+    assert(walls.length <= 7, `'${vname}' is built of at most seven materials (got ${walls.length})`);
+    assert(roofs.length <= 3, `'${vname}' is roofed in at most three (got ${roofs.length})`);
+
+    let closest = { d: Infinity, a: '', b: '' };
+    for (let i = 0; i < walls.length; i++) {
+      for (let j = i + 1; j < walls.length; j++) {
+        const d = dist(walls[i], walls[j]);
+        if (d < closest.d) closest = { d, a: walls[i], b: walls[j] };
+      }
+    }
+    assert(closest.d > 35,
+      `'${vname}': its closest two materials are ${closest.d.toFixed(1)} apart (${closest.a} vs ${closest.b})`);
+
+    let worstRoof = { d: Infinity, id: '' };
+    for (const t of CATALOGUE) {
+      const m = materialOf(t, vname);
+      const d = dist(m.wall, m.roof);
+      if (d < worstRoof.d) worstRoof = { d, id: t.id };
+    }
+    assert(worstRoof.d > 60,
+      `'${vname}': every roof reads against its own walls (worst: ${worstRoof.id} at ${worstRoof.d.toFixed(1)})`);
+
+    const gilt = stoneFor(vname).gilt;
+    assert(!walls.includes(gilt) && !roofs.includes(gilt),
+      `'${vname}': its landmark metal is not also the colour of a building`);
+  }
+
+  // THE INVARIANT MOTIFS ARE MADE OF INVARIANT MATERIALS.
+  //
+  // This is the rule that only exists once there are two sets, and it is the
+  // one a set PR is most likely to break by eye: the six motifs no
+  // vernacular restyles are still drawn with materialOf, so a set that
+  // recolours every entry in its MaterialSet repaints the gym and the
+  // teaching hospital along with the halls — and a campus whose sports hall
+  // changed colour with its founding century would be claiming the 1970s
+  // shed was built in 1890.
+  //
+  // Measured off the CATALOGUE rather than asserted against a hand-listed
+  // set of material names, because which materials reach an invariant motif
+  // is a consequence of materialOf's switch and moves when that moves. As of
+  // PR G that is render (labs, gyms, the stadium, open ground), curtain (the
+  // natatorium and the residential tower) and clinical (the teaching
+  // hospital) — and note two of the three ALSO serve varying motifs, so
+  // "recolour everything the halls don't use" is not a safe shortcut either.
+  const invariantBuildings = CATALOGUE.filter((t) => !variesByVernacular(motifOf(t)));
+  assert(invariantBuildings.length > 0, 'the catalogue has invariant buildings to check');
+  for (const t of invariantBuildings) {
+    const base = materialOf(t, 'georgian');
+    for (const vname of Object.keys(VERNACULARS) as Vernacular[]) {
+      const here = materialOf(t, vname);
+      assert(here.wall === base.wall && here.roof === base.roof,
+        `${t.id} (${motifOf(t)}) is the same material in '${vname}' as in 'georgian' `
+        + `(got ${here.wall}/${here.roof}, expected ${base.wall}/${base.roof})`);
+    }
+  }
+}
+
 if (failures === 0) {
   console.log(`  ✓ all ${checks} checks passed`);
   process.exit(0);

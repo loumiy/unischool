@@ -899,6 +899,9 @@ button.build-tile { font-family: inherit; }
    grid now — see buildingMotifs' EntranceSteps.) */
 .iso-step-tread { fill: rgba(255, 253, 246, 0.34); }
 .iso-rooflight { fill: rgba(255, 253, 246, 0.42); }
+/* A belfry's louvred opening: dark, because you are looking INTO a bell
+   chamber rather than at glass. See buildingMotifs.tsx's Spire. */
+.iso-louvre { fill: rgba(30, 34, 42, 0.62); }
 /* The academic hall's stonework: a base course under the brick, a cornice
    over it, and the pediment capping the centre bay. All the same limestone,
    lighter than any wall tint, so the vocabulary reads as one material. */
@@ -909,8 +912,15 @@ button.build-tile { font-family: inherit; }
 .iso-end-pavilion { fill: rgba(120, 88, 40, 0.20); }
 .iso-pediment { fill: rgba(250, 246, 234, 0.62); }
 /* The clock tower's dome and finial: the campus's one gilded thing. */
-.iso-dome { fill: #d8b23c; }
-.iso-finial { stroke: #d8b23c; stroke-width: 2; vector-effect: non-scaling-stroke; }
+/* NO COLOUR ON THESE TWO. A class rule beats a presentation attribute, so
+   the `fill`/`stroke` the motifs pass from the campus's vernacular was being
+   silently overridden by a hardcoded Georgian gold — which nobody could see
+   while Georgian was the only set, and which painted a Gothic spire's stone
+   pinnacles gold the moment there were two. Colour for these comes from
+   buildingSpec's VERNACULARS now (see PR G); what is left here is the
+   geometry that does not vary. */
+.iso-dome { /* fill supplied by the motif, from the vernacular's stone */ }
+.iso-finial { stroke-width: 2; vector-effect: non-scaling-stroke; }
 .iso-clock-face { fill: rgba(252, 250, 242, 0.92); stroke: rgba(60, 48, 24, 0.45); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .iso-clock-hand { stroke: rgba(48, 38, 18, 0.85); stroke-width: 1.4; vector-effect: non-scaling-stroke; stroke-linecap: round; }
 .iso-ridge { stroke: rgba(42, 56, 28, 0.28); stroke-width: 1; vector-effect: non-scaling-stroke; }
