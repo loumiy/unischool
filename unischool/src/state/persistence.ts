@@ -960,7 +960,36 @@ export const SAVE_KEY = 'unischool.save';
 // for the last 25 years of a 40-year run.
 //
 // See MIGRATIONS[41].
-export const SAVE_VERSION = 42;
+//
+// v42 -> v43: the state appropriation is retired (Plan 07's PR B) — both
+// the flat institutional grant and the per-enrolled-student allocation.
+// With PR A's ceiling already gone, this is the last mechanical thing that
+// made a public school a different school rather than a differently-opened
+// one.
+//
+// WHAT A RESUMED SAVE FEELS, stated plainly: a PRIVATE school feels
+// nothing. Both numbers were 0 for it, so its income statement is the same
+// statement with one always-empty line removed.
+//
+// A PUBLIC school LOSES REAL WEEKLY INCOME, and there is no point dressing
+// that up: 7,000 a week flat, plus 5,500 a year for every enrolled
+// student. A 2,000-student public school resumes about 219,000 a week
+// poorer, and a large one loses proportionally more. Nothing is taken from
+// what it has — cash, endowment, buildings, faculty and every price on the
+// books are untouched — but the line that was topping up its weekly net is
+// gone from the next tick onward.
+//
+// It is NOT left without a lever, and this is why the two PRs land in this
+// order. v41 -> v42 removed that same school's 22,000 tuition cap, so the
+// price it may charge at its next summer decision is no longer held below
+// what its standing supports. The subsidy existed to compensate for the
+// cap (see data/schoolTypeData.ts); the cap went first, and this is the
+// other half of the same trade. A resumed public school that was pinned at
+// its old cap can price its way back to where it was, which is exactly the
+// decision the game wants it making.
+//
+// See MIGRATIONS[42].
+export const SAVE_VERSION = 43;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1034,7 +1063,15 @@ interface LegacyGameState extends GameState {
   // everybody now (schoolTypeData.ts's TUITION_SLIDER_MAX), so it stopped
   // being something a save can disagree with the code about.
   // MIGRATIONS[41] deletes it.
-  finance: GameState['finance'] & { tuitionCeiling?: number };
+  //
+  // Removed in v43 (Plan 07's PR B): `finance.baselineFundingPerWeek` and
+  // `finance.appropriationPerStudentPerYear`, the two halves of a public
+  // school's state subsidy. MIGRATIONS[42] deletes them.
+  finance: GameState['finance'] & {
+    tuitionCeiling?: number;
+    baselineFundingPerWeek?: number;
+    appropriationPerStudentPerYear?: number;
+  };
 }
 
 // The two institutional suffixes a saved name may already end in. A v6
@@ -1043,6 +1080,15 @@ interface LegacyGameState extends GameState {
 const KNOWN_SUFFIXES = ['College', 'University'];
 
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v42 -> v43: the state appropriation is retired (see the SAVE_VERSION
+  // header note above). Both halves go. financeBreakdown has no baseline
+  // funding line to read them into any more, so leaving them on state
+  // would be carrying a number nothing spends.
+  42: (state) => {
+    delete state.finance.baselineFundingPerWeek;
+    delete state.finance.appropriationPerStudentPerYear;
+  },
+
   // v41 -> v42: the tuition ceiling stops being a school-type fact (see
   // the SAVE_VERSION header note above). The field goes; the bound it
   // described is TUITION_SLIDER_MAX now, read straight from the module by

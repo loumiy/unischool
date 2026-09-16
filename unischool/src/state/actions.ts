@@ -272,7 +272,7 @@ export function createPreStartState(): GameState {
     finance: {
       cash: 0, endowment: 0, endowmentCampaigns: 0,
       listedTuition: 0, tuitionByClass: { freshman: 0, sophomore: 0, junior: 0, senior: 0 },
-      baselineFundingPerWeek: 0, appropriationPerStudentPerYear: 0, weeklyOpEx: 0,
+      weeklyOpEx: 0,
     },
     students: {
       classes: { freshman: 0, sophomore: 0, junior: 0, senior: 0 },
@@ -389,8 +389,6 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
         freshman: foundingTuition, sophomore: foundingTuition,
         junior: foundingTuition, senior: foundingTuition,
       },
-      baselineFundingPerWeek: preset.baselineFundingPerWeek,
-      appropriationPerStudentPerYear: preset.appropriationPerStudentPerYear,
       weeklyOpEx: 0,
     },
     students: {

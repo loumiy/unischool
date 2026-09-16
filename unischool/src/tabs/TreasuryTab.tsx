@@ -79,11 +79,6 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               note={`the endowment's annual spend rate on ${money(s.finance.endowment)}`}
               amount={flow.endowmentPayout}
             />
-            <StatementLine
-              label="Baseline funding"
-              note={s.self.schoolType === 'public' ? 'state appropriations: a flat grant plus a per-student allocation' : 'none — private schools receive no appropriation'}
-              amount={flow.baselineFunding}
-            />
             <div className="statement-total">
               <span>Total income</span>
               <span className="statement-line-amount">{money(flow.totalIncome)}</span>

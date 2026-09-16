@@ -189,6 +189,60 @@ loses $5,500 per enrolled student per year — which was that playstyle's whole
 economy. Expect the balance-regression baseline to move; re-run `npm run sim`
 and re-fit it in this PR rather than letting it drift into the next.
 
+**As implemented:** the removal landed as written. Two things this PR was
+told to take with it did NOT land here, and the reason is the same in both
+cases: they belong to deleting the FORK, which is PR C, not to deleting the
+SUBSIDY, which is this.
+
+*The Public flagship strategy was kept, not retired — deliberately, and it
+is what made this PR measurable.* Retiring the strategy in the same PR that
+removes the income it was built on would have measured nothing. Kept, it
+gives the actual answer:
+
+| Public flagship | Before PR B | After PR B |
+|---|---|---|
+| year 1 net/wk | 79k | 26k |
+| year 20 prestige | 104.1 | 74.6 |
+| year 20 enrolled | 52k | 18k |
+| year 20 courses | 390 | 294 |
+| year 40 prestige | 146.4 | 136.8 |
+| year 40 endowment | 19.32B | 2.44B |
+| weeks in the red | 0 | 0 |
+| min cash | 270k | 226k |
+
+The finding is that **the subsidy was an EARLY-game mechanic wearing a
+late-game costume.** Two thirds of this school's year-1 weekly net was the
+appropriation, and that money was buying curriculum — which is the
+90-weight prestige term, which compounds for the next forty years. Hence a
+school that is 30 prestige points behind at year 20 and has still not fully
+closed the gap at year 40. It never goes into the red and min cash barely
+moves, so "stall, don't die" holds; what it loses is not solvency but pace.
+That is the honest cost of answering the backlog's question with "nothing",
+and it is worth writing down rather than tuning away. The strategy is
+retired in PR C, where `schoolType` stops existing and it can no longer be
+expressed.
+
+*The state-capital-match event was left alone.* This plan said to retire it
+here because it "has no eligible population left" — which is simply wrong:
+`schoolType` survives until PR C, so public schools still exist and the
+event still fires for them. Nor is it incoherent in the meantime; real
+public systems fund operations and capital through separate channels, so a
+school with no appropriation that can still win a legislative capital match
+is a coherent thing for one PR. It becomes PR C's problem unavoidably, since
+`s.self.schoolType === 'public'` stops compiling there. **Recommendation for
+PR C: widen its gate rather than delete it.** It is decent authored content
+at weight 7, a state capital match is something private universities really
+do win, and keeping it preserves a little of the public-money flavour as
+something emergent rather than as a founding fork — which is what
+progression.md's "archetypes emerge, they are not chosen" wants anyway. It
+needs a prompt reword (it currently says "another campus in the system"),
+and widening it adds an income event to six strategies that do not have it
+today, so PR C should measure that on its own.
+
+The net effect is a cleaner split than this plan drew: **PR B removes one
+income line and measures it; PR C deletes the fork and everything that only
+existed to describe it.**
+
 ### PR C — `schoolType` comes off state and off the screen
 
 `SchoolType` and `SCHOOL_TYPE_PRESETS` collapse into one `FOUNDING_PRESET`.

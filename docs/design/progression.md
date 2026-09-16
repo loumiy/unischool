@@ -9,16 +9,25 @@ A **startup screen** lets the player **name the school** before play — the
 player's half of the name only; every school opens as a *College* (see
 "College, and University" below). The MVP also asks one structural question:
 **private vs. public**. That single choice
-sets starting conditions — starting cash, prestige bonuses, applicant-pool size,
-any baseline funding — expressed purely as tunable constants.
+sets starting conditions — starting cash, prestige bonuses, applicant-pool
+size — expressed purely as tunable constants.
 
-The fork no longer sets a **tuition ceiling**. It used to: a public school was
-capped at $22,000 and a private one at $100,000, and the low cap was most of
-what made a public school a different school. Plan 07's PR A retired it. There
-is one `TUITION_SLIDER_MAX` for everybody now — not a policy about what kind
-of school this is, just the top of a control, set somewhere no school
-sensibly reaches (see `data/schoolTypeData.ts`). Retiring the fork
-entirely is the rest of that plan.
+**The fork is being retired, and most of it is already gone.** It used to set
+two more things, and both were the mechanical substance of it:
+
+- A **tuition ceiling** — $22,000 public, $100,000 private. The low cap was
+  most of what made a public school a different school. Plan 07's PR A
+  retired it; there is one `TUITION_SLIDER_MAX` for everybody now, which is
+  not a policy about what kind of school this is but the top of a control,
+  set somewhere no school sensibly reaches.
+- A **state appropriation** — a flat $7,000/week grant plus $5,500 per
+  enrolled student per year. It existed to compensate for the cap, so when
+  the cap went there was nothing left for it to compensate for. Plan 07's
+  PR B retired it, and nothing replaced it: every school now lives on
+  tuition, the reputation dividend and its endowment payout.
+
+What remains is a difference in opening position — cash, prestige, pool size
+— rather than a difference in kind. Plan 07's PR C deletes the fork itself.
 
 **Archetypes emerge, they are not chosen.** The game should let different kinds
 of successful school (Harvard-like, ASU-like, Johns-Hopkins-like) arise from the

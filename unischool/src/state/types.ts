@@ -26,13 +26,12 @@ export interface Finance {
   // products now (financeSystem.ts's financeBreakdown), never
   // enrolled x price.
   tuitionByClass: ClassTuition;
-  // NO tuitionCeiling. It was a per-school-type cap and is now one constant
-  // for everybody (schoolTypeData.ts's TUITION_SLIDER_MAX), and a number
-  // that is identical in every save forever is not state — see the note
-  // beside appropriationPerStudentPerYear below, which is on state for the
-  // opposite reason: it genuinely differs by fork.
-  baselineFundingPerWeek: number; // FLAT non-tuition income (a public school's institutional appropriation), set by school type
-  appropriationPerStudentPerYear: number; // per-enrolled-student non-tuition income, set by school type; 0 for private. Kept as a number on state rather than a schoolType branch in financeSystem.ts, so no system ever has to know which fork the player picked.
+  // NO tuitionCeiling, and since Plan 07's PR B no baselineFundingPerWeek
+  // or appropriationPerStudentPerYear either. All three were set by school
+  // type at founding, which is the thing Plan 07 is retiring: the ceiling
+  // became one constant for everybody (schoolTypeData.ts's
+  // TUITION_SLIDER_MAX), and the two appropriation halves became nothing at
+  // all. What is left here is what every school has.
   weeklyOpEx: number;    // salaries + upkeep + instruction, recomputed each tick
 }
 

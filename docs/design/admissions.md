@@ -218,9 +218,10 @@ introduce individual-student simulation.**
   future attractiveness: the causal chain is **current student experience →
   satisfaction → next year's applications**. Satisfaction stays an aggregate
   institutional reading, not a per-student one.
-- Capacity, instruction cost and appropriations all scale with the **total
-  body** across the four classes (`totalEnrolled()` in `types.ts` is the one
-  place the sum lives; nothing stores a separate total that could drift).
+- Capacity and instruction cost both scale with the **total body** across the
+  four classes (`totalEnrolled()` in `types.ts` is the one place the sum
+  lives; nothing stores a separate total that could drift). A per-student
+  state appropriation used to scale with it too; Plan 07's PR B retired it.
   Tuition does **not** — it is charged per class, at four possibly different
   prices (see "Tuition follows the class that paid it").
 

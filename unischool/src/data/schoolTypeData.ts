@@ -20,8 +20,6 @@ export interface SchoolTypePreset {
   startingCash: number;
   prestigeBonus: number;          // added to BASE_STARTING_REPUTATION; negative allowed
   startingApplicantPool: number;
-  baselineFundingPerWeek: number; // FLAT non-tuition income (an institutional appropriation); 0 if none
-  appropriationPerStudentPerYear: number; // per-enrolled-student appropriation; 0 if none. A flat grant alone would shrink to nothing next to a mature school's costs — a public school's funding has to grow with the school it funds, or "public" would mean "unplayable after year 15".
 }
 
 // ---------------------------------------------------------------------
@@ -112,27 +110,23 @@ export const SCHOOL_TYPE_PRESETS: Record<SchoolType, SchoolTypePreset> = {
     startingCash: 1_400_000,
     prestigeBonus: 10,
     startingApplicantPool: 150,
-    baselineFundingPerWeek: 0,
-    appropriationPerStudentPerYear: 0,
   },
   public: {
     label: 'Public',
-    description: 'A state appropriation that grows with enrollment and a much larger applicant pool, but prestige starts lower.',
+    description: 'A much larger applicant pool, but prestige starts lower.',
     startingCash: 1_200_000,
     prestigeBonus: -5,
+    // BOTH HALVES OF THE SUBSIDY ARE GONE, and with them the last
+    // mechanical thing that made this a fork worth having. The flat grant
+    // was 7,000/wk and the per-student allocation 5,500/yr — sized against
+    // the 22,000 tuition cap PR A retired, because a school that could not
+    // price freely needed funding that grew with it or "public" would have
+    // meant "unplayable after year 15". With no cap to compensate for,
+    // there is nothing left for the subsidy to be compensation FOR.
+    //
+    // What survives here is two numbers and a prestige penalty — which is
+    // a difference in opening position, not a difference in kind. PR C
+    // deletes the fork itself.
     startingApplicantPool: 400,
-    // The 22,000 cap that used to sit here is GONE, and with it most of
-    // what made this fork a fork — see TUITION_SLIDER_MAX above. What is
-    // left of "public" until Plan 07's PR B is the subsidy and the pool.
-    baselineFundingPerWeek: 7_000,
-    // Roughly a third of the capped tuition: a public school trades
-    // pricing power for a subsidy that scales with the students it
-    // actually enrolls, which is what keeps the low tuition ceiling from
-    // becoming a slow death sentence as instruction costs rise. Sized so
-    // a public school's revenue per student lands slightly ABOVE a private
-    // one's at the same (low) prestige and slightly BELOW it once prestige
-    // — and so private pricing power — has grown; the two forks should
-    // trade places over the arc, not one dominate it.
-    appropriationPerStudentPerYear: 5_500,
   },
 };

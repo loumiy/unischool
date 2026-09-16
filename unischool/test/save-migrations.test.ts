@@ -22,7 +22,7 @@ import { athleticStrengthFor } from '../src/data/rivalData';
 import { researchSchools } from '../src/data/techData';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import { isUnstaffed, usedFacultySlots, facultyLoad } from '../src/systems/techtree/techSystem';
-import { annualTuitionBilled } from '../src/systems/finance/financeSystem';
+import { annualTuitionBilled, financeBreakdown } from '../src/systems/finance/financeSystem';
 import { TUITION_SLIDER_MAX } from '../src/data/schoolTypeData';
 import { reducer } from '../src/engine/reducer';
 
@@ -582,6 +582,52 @@ function testTuitionCeilingRemoval(): void {
     `the shared bound still clamps (got ${absurd.finance.listedTuition})`);
 }
 
+// ---- v42 -> v43: the state appropriation is retired ----
+// Unlike most migrations here this one deliberately COSTS a resumed school
+// money, so the check is that it costs exactly the right amount and nothing
+// else: both fields go, the weekly income drops by precisely what the two
+// halves were paying, and not a dollar of what the school HAS moves.
+function testAppropriationRemoval(): void {
+  clearSave();
+  const base = createInitialState('Land Grant', 'public');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+
+  const finance = state.finance as Loose;
+  finance.baselineFundingPerWeek = 7_000;
+  finance.appropriationPerStudentPerYear = 5_500;
+  const cashBefore = finance.cash as number;
+  const endowmentBefore = finance.endowment as number;
+
+  writeSave(42, state);
+  const loaded = loadGame();
+  assert(loaded !== null, 'v42 save loads');
+  if (!loaded) return;
+
+  const loose = loaded.finance as unknown as Loose;
+  assert(loose.baselineFundingPerWeek === undefined,
+    'the flat institutional grant is removed from state');
+  assert(loose.appropriationPerStudentPerYear === undefined,
+    'the per-student allocation is removed from state');
+
+  // What the school HAS is untouched — only the line topping up its weekly
+  // net is gone. A migration that also clawed back accumulated cash would
+  // be taking something the SAVE_VERSION note promises it does not.
+  assert(loaded.finance.cash === cashBefore, 'cash is untouched');
+  assert(loaded.finance.endowment === endowmentBefore, 'the endowment is untouched');
+  assert(loaded.finance.listedTuition === base.finance.listedTuition,
+    'the listed price is untouched');
+
+  // And the income statement has no appropriation line left to read them
+  // into. Three income lines, none of them a subsidy.
+  const flow = financeBreakdown(loaded);
+  assert((flow as unknown as Loose).baselineFunding === undefined,
+    'financeBreakdown no longer reports a baseline funding line');
+  assert(
+    Math.abs(flow.totalIncome - (flow.tuitionRevenue + flow.prestigeRevenue + flow.endowmentPayout)) < 1e-6,
+    'total income is exactly tuition + reputation dividend + endowment payout',
+  );
+}
+
 // ---- Test: a current-version save round-trips unchanged ----
 function testRoundTrip(): void {
   clearSave();
@@ -972,6 +1018,7 @@ testChapterGlyphs();
 testScholarshipMigration();
 testPerClassTuitionMigration();
 testTuitionCeilingRemoval();
+testAppropriationRemoval();
 testRoundTrip();
 testRejects();
 
