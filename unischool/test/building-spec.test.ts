@@ -21,16 +21,24 @@ import {
 } from '../src/components/campusScale';
 import {
   BAY_METRES, TOWER_PODIUM_STOREYS, WINDOW_HEIGHT, baysAcross, clerestorySill,
-  BASE_COURSE, CANOPY_SLAB, COLONNADE_HEIGHT, CORNICE, EAVES_COURSE, GILT, PARAPET, PLINTH,
+  BASE_COURSE, CANOPY_SLAB, COLONNADE_HEIGHT, CORNICE, EAVES_COURSE, PLINTH,
   doorFamilyOf, doorOf, floorLinesOf, hasClockTower,
-  materialOf, motifOf, rankSills, ridgeOf, storeysOf, wallHeightOf, wallShadeOf,
+  materialOf, materialsFor, stoneFor, roofFor, parapetOf, paneShapeOf,
+  windowOutline, windowShapeOf, variesByVernacular, VERNACULAR_INVARIANT_MOTIFS,
+  partsFor, entrancePartOf, rooflineEndPartOf, apexPartOf, hasRoofForm,
+  VERNACULAR_CHOICES,
+  IMPLEMENTED_ENTRANCE_PARTS, IMPLEMENTED_ROOFLINE_END_PARTS, IMPLEMENTED_APEX_PARTS,
+  hasClockTower as carriesClockTower,
+  VERNACULARS, motifOf, rankSills, ridgeOf,
+  storeysOf, wallHeightOf, wallShadeOf,
   windowRanksOf, windowWidthOf, type DoorFamily,
 } from '../src/components/buildingSpec';
 import { footprintOf, isPlaceableKind } from '../src/state/campusMap';
 import { initialTech } from '../src/data/techData';
 import { initialDorms } from '../src/data/campusData';
 import { initialFacilities } from '../src/data/facilitiesData';
-import type { Buildable } from '../src/state/types';
+import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
+import type { Buildable, Vernacular } from '../src/state/types';
 
 let checks = 0;
 let failures = 0;
@@ -111,7 +119,7 @@ console.log('campus scale and building spec');
   assert(clearSpan.every((t) => windowRanksOf(t) === 1),
     'and are lit by one continuous band rather than by ranks');
   const grounds = CATALOGUE.filter((t) => motifOf(t) === 'grounds');
-  assert(grounds.every((t) => wallHeightOf(t) === 0 && ridgeOf(t) === 0),
+  assert(grounds.every((t) => wallHeightOf(t) === 0 && ridgeOf(t, FOUNDING_VERNACULAR) === 0),
     'open ground has no mass at all');
 }
 
@@ -337,8 +345,13 @@ console.log('campus scale and building spec');
   // band silently lands outside the mass.
   for (const t of halls) {
     const wall = wallHeightOf(t);
-    if (!(PLINTH + CORNICE < wall && PARAPET > 0)) {
-      assert(false, `${t.id}: plinth and cornice fit inside a ${wall.toFixed(1)}-unit wall`);
+    // The parapet joins the sum since Plan 07's PR E made it
+    // per-vernacular: this is now the honest question (does the applied
+    // stonework fit?) rather than the old `PARAPET > 0`, which was really
+    // asserting that the one vernacular had a parapet at all. Zero is a
+    // legitimate answer — a Gothic roof springs from its eaves.
+    if (!(PLINTH + CORNICE + parapetOf(FOUNDING_VERNACULAR) < wall)) {
+      assert(false, `${t.id}: plinth, cornice and parapet fit inside a ${wall.toFixed(1)}-unit wall`);
       break;
     }
     // The plinth must clear the bottom rank's sill, or the base course eats
@@ -355,18 +368,19 @@ console.log('campus scale and building spec');
   // as sheds.
   const hall = byId('BLDG-GENSTUDIES');
   if (hall) {
-    assert(ridgeOf(hall) < STOREY, 'a hall\'s ridge rises less than one storey above its eaves');
-    assert(ridgeOf(hall) > 0, 'but it is still a pitched roof');
+    assert(ridgeOf(hall, FOUNDING_VERNACULAR) < STOREY, 'a hall\'s ridge rises less than one storey above its eaves');
+    assert(ridgeOf(hall, FOUNDING_VERNACULAR) > 0, 'but it is still a pitched roof');
   }
 }
 
 // --- 12. Materials, not a colour chart -----------------------------------
 {
+  const V = FOUNDING_VERNACULAR;
   const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
   const dist = (a: string, b: string) => Math.hypot(...rgb(a).map((v, i) => v - rgb(b)[i]));
 
-  const walls = [...new Set(CATALOGUE.map((t) => materialOf(t).wall))];
-  const roofs = [...new Set(CATALOGUE.map((t) => materialOf(t).roof))];
+  const walls = [...new Set(CATALOGUE.map((t) => materialOf(t, V).wall))];
+  const roofs = [...new Set(CATALOGUE.map((t) => materialOf(t, V).roof))];
   // Seven, not six: 4E gave the residence halls a dark brick of their own
   // (buildingSpec's brickDark), and the bar moved to let it in. Stated here
   // rather than quietly relaxed, because a cap that follows the palette
@@ -397,7 +411,7 @@ console.log('campus scale and building spec');
   // derived from the wall tint, so a gold hall stood under a gold roof.
   let worstRoof = { d: Infinity, id: '' };
   for (const t of CATALOGUE) {
-    const m = materialOf(t);
+    const m = materialOf(t, V);
     const d = dist(m.wall, m.roof);
     if (d < worstRoof.d) worstRoof = { d, id: t.id };
   }
@@ -405,7 +419,7 @@ console.log('campus scale and building spec');
     `every building's roof reads against its own walls (worst: ${worstRoof.id} at ${worstRoof.d.toFixed(1)})`);
 
   // And nothing is gilded but the one thing that should be.
-  assert(!walls.includes(GILT) && !roofs.includes(GILT),
+  assert(!walls.includes(stoneFor(V).gilt) && !roofs.includes(stoneFor(V).gilt),
     'the landmark gold is no longer the colour of nine whole buildings');
 
   // Neighbouring residence halls still differ, which is what the four hashed
@@ -546,6 +560,319 @@ console.log('campus scale and building spec');
     exempt.some((t) => footprintOf(t).w % 2 === 0),
     'at least one of which keeps an even width, because it has no door to centre',
   );
+}
+
+// --- 13. The vernacular seam changed nothing ------------------------------
+// Plan 07's PR D moved the campus's colours behind a per-vernacular table so
+// PRs G/H/I can add a second, third and fourth set. The whole claim of that
+// PR is that it is INVISIBLE, and a claim like that is worth pinning rather
+// than trusting: these are the literal values the campus was drawn with
+// before the table existed, written out by hand here so that a typo made
+// while moving them shows up as a failing test rather than as a slightly
+// wrong-coloured library nobody notices for three PRs.
+//
+// When a second vernacular lands, this block does NOT grow a second copy for
+// it — that would be asserting that a new palette equals itself. It stays
+// pinned to Georgian, whose job from then on is to be the set that did not
+// change.
+{
+  const SLATE = '#5f6b5f';
+  const DECK = '#7c8377';
+  const BEFORE = {
+    brickRed: { wall: '#a2564a', roof: SLATE },
+    brickBuff: { wall: '#bb9468', roof: SLATE },
+    limestone: { wall: '#d8cdb4', roof: DECK },
+    render: { wall: '#b0a992', roof: DECK },
+    curtain: { wall: '#93a9b4', roof: DECK },
+    brickDark: { wall: '#6d4b3c', roof: DECK },
+    clinical: { wall: '#eef1f2', roof: '#c2ccd1' },
+  };
+  const BEFORE_STONE = { trim: '#efe9da', gilt: '#c9a227', towerStone: '#e4dcc8' };
+
+  const georgian = materialsFor('georgian');
+  for (const [name, m] of Object.entries(BEFORE)) {
+    const got = georgian[name as keyof typeof BEFORE];
+    assert(got.wall === m.wall && got.roof === m.roof,
+      `georgian.${name} is unchanged by the vernacular table (got ${got.wall}/${got.roof}, was ${m.wall}/${m.roof})`);
+  }
+  const stone = stoneFor('georgian');
+  for (const [name, hex] of Object.entries(BEFORE_STONE)) {
+    assert(stone[name as keyof typeof BEFORE_STONE] === hex,
+      `georgian stone.${name} is unchanged (got ${stone[name as keyof typeof BEFORE_STONE]}, was ${hex})`);
+  }
+
+  // Every vernacular owes the same seven walls and three stones. Trivial
+  // with one entry and the point of the block with four: a set that forgets
+  // `clinical` would otherwise draw the hospital as undefined, and the first
+  // anyone would know is a blank building on the map.
+  const REQUIRED = Object.keys(BEFORE) as (keyof typeof BEFORE)[];
+  for (const [vname, palette] of Object.entries(VERNACULARS)) {
+    for (const key of REQUIRED) {
+      const m = palette.materials[key];
+      assert(!!m && typeof m.wall === 'string' && typeof m.roof === 'string',
+        `vernacular '${vname}' supplies a ${key} wall and roof`);
+    }
+    for (const key of ['trim', 'gilt', 'towerStone'] as const) {
+      assert(typeof palette.stone[key] === 'string',
+        `vernacular '${vname}' supplies its ${key}`);
+    }
+  }
+
+  // REFERENCE STABILITY, which is load-bearing and easy to break by
+  // "tidying" either helper into building a fresh object. CampusMap resolves
+  // these once per building per render and BuildingMotif's memo comparator
+  // compares them by identity (see its note): return a new object each call
+  // and every pane on the campus re-reconciles on every mouse move.
+  const v: Vernacular = 'georgian';
+  assert(materialsFor(v) === materialsFor(v), 'materialsFor returns a stable reference');
+  assert(stoneFor(v) === stoneFor(v), 'stoneFor returns a stable reference');
+  const anyHall = CATALOGUE.find((t) => t.kind === 'building');
+  assert(!!anyHall && materialOf(anyHall, v) === materialOf(anyHall, v),
+    'materialOf returns a stable reference for the same building');
+}
+
+// --- 14. The roof-and-openings seam changed nothing either ----------------
+// Plan 07's PR E moved the ridge table, the parapet and the window's shape
+// behind the same per-vernacular table PR D built. Same discipline as
+// section 13: the claim is that it is invisible, so the pre-refactor values
+// are written out here by hand and compared.
+{
+  const V = FOUNDING_VERNACULAR;
+
+  // The ridge table, exactly as it read before it was keyed by vernacular.
+  const roof = roofFor('georgian');
+  assert(roof.ridgeMetres.hall === 2.2, `georgian's hall ridge is unchanged (got ${roof.ridgeMetres.hall})`);
+  assert(roof.ridgeMetres.village === 3.0, `georgian's village ridge is unchanged (got ${roof.ridgeMetres.village})`);
+  assert(Object.keys(roof.ridgeMetres).length === 2,
+    `and nothing else is pitched (got ${Object.keys(roof.ridgeMetres).join(', ')})`);
+
+  // The residence-hall ladder: a house, an institutional hall, a flat block.
+  for (const [storeys, metres] of [[3, 4.2], [4, 2.4], [5, 2.4], [6, 0], [9, 0]] as const) {
+    assert(roof.residentialRidgeMetres(storeys) === metres,
+      `a ${storeys}-storey residence hall's ridge is unchanged (got ${roof.residentialRidgeMetres(storeys)}, was ${metres})`);
+  }
+
+  assert(parapetOf('georgian') === up(0.85), `georgian's parapet is unchanged (got ${parapetOf('georgian')})`);
+  assert(windowShapeOf('georgian') === 'rect', 'georgian windows are still rectangles');
+
+  // THE OUTLINE ITSELF, corner for corner and in the same order. windows()
+  // used to emit these four points inline; if the order rotated, every pane
+  // on the campus would still be a rectangle and nothing would look wrong
+  // until a non-convex shape went through the same path.
+  const rect = windowOutline('rect', 0.2, 0.8, 0.3, 0.7);
+  const EXPECTED: Array<[number, number]> = [[0.2, 0.3], [0.8, 0.3], [0.8, 0.7], [0.2, 0.7]];
+  assert(rect.length === 4, `a rectangular pane is four points (got ${rect.length})`);
+  assert(rect.every((pt, i) => pt[0] === EXPECTED[i][0] && pt[1] === EXPECTED[i][1]),
+    `and they are the same four, in the same order (got ${JSON.stringify(rect)})`);
+
+  // EVERY shape stays inside the bay it was given. An arch that bulged past
+  // its own bay would collide with its neighbour and a lancet that rose past
+  // the head would punch through the floor course above — both invisible in
+  // the numbers and obvious on the map, so the bound is what gets pinned.
+  for (const shape of ['rect', 'arched', 'lancet', 'slot'] as const) {
+    const pts = windowOutline(shape, 0.2, 0.8, 0.3, 0.7);
+    assert(pts.length >= 3, `a ${shape} opening is a closed outline (got ${pts.length} points)`);
+    const inside = pts.every(([u, v]) => u >= 0.2 - 1e-9 && u <= 0.8 + 1e-9 && v >= 0.3 - 1e-9 && v <= 0.7 + 1e-9);
+    assert(inside, `a ${shape} opening stays inside its own bay`);
+    // And it reaches the head, or it is not the shape it claims to be: an
+    // arch drawn upside down still passes the bound check above.
+    assert(pts.some(([, v]) => v > 0.7 - 1e-9), `a ${shape} opening actually reaches its head`);
+    assert(pts.some(([, v]) => v < 0.3 + 1e-9), `a ${shape} opening actually reaches its sill`);
+  }
+
+  // THE INVARIANT SIX, enforced rather than described. This is the check
+  // that stops a future set PR quietly restyling the gym.
+  assert(VERNACULAR_INVARIANT_MOTIFS.length === 6, 'six motifs are vernacular-invariant');
+  for (const t of CATALOGUE) {
+    const m = motifOf(t);
+    if (variesByVernacular(m)) continue;
+    assert(paneShapeOf(t, V) === 'rect',
+      `${t.id} (${m}) keeps rectangular openings whatever the vernacular`);
+  }
+  // No vernacular may pitch a roof onto one of them either — a Gothic gym
+  // is still a shed, and a ridge is the loudest way to break that.
+  for (const [vname, spec] of Object.entries(VERNACULARS)) {
+    for (const m of VERNACULAR_INVARIANT_MOTIFS) {
+      assert(spec.roof.ridgeMetres[m] === undefined,
+        `vernacular '${vname}' does not pitch a roof onto '${m}'`);
+    }
+  }
+}
+
+// --- 15. The ornament table names what the campus already wore -----------
+// Plan 07's PR F replaced the renderer's `motif === 'hall'` ornament
+// branches with a per-vernacular table of parts. Same claim as 13 and 14:
+// nothing moved on the map, so Georgian's row is checked against what each
+// motif was actually drawing before the table existed.
+{
+  const V = FOUNDING_VERNACULAR;
+  const parts = partsFor('georgian');
+
+  // The entrance, motif by motif, exactly as the old branches read: a hall
+  // had a portico, the civic set a colonnade, a dining hall and a residence
+  // hall a canopy, a village nothing applied.
+  const EXPECTED_ENTRANCE = {
+    hall: 'portico', portico: 'colonnade',
+    pavilion: 'canopy', residential: 'canopy', village: 'none',
+  } as const;
+  for (const [motif, part] of Object.entries(EXPECTED_ENTRANCE)) {
+    assert(parts.entrance[motif as keyof typeof EXPECTED_ENTRANCE] === part,
+      `georgian's ${motif} entrance is unchanged (got ${parts.entrance[motif as keyof typeof EXPECTED_ENTRANCE]}, was ${part})`);
+  }
+  assert(parts.rooflineEnd === 'pavilion', 'georgian still raises a pavilion at each end of the roofline');
+  assert(parts.apex === 'cupola', 'and still tops its landmark with a cupola');
+
+  // THE TABLE COVERS EXACTLY THE FIVE VARYING MOTIFS. One short is a
+  // building that silently loses its entrance; one extra is a vernacular
+  // reaching into the invariant six by the back door.
+  const varying = [...new Set(CATALOGUE.map(motifOf))].filter(variesByVernacular);
+  for (const m of varying) {
+    assert(parts.entrance[m] !== undefined,
+      `georgian says what goes at a '${m}' entrance`);
+  }
+  for (const m of VERNACULAR_INVARIANT_MOTIFS) {
+    assert(parts.entrance[m] === undefined,
+      `georgian does not reach into '${m}', which no vernacular restyles`);
+  }
+
+  // And the gate holds at the level the renderer actually asks at: every
+  // invariant building answers 'none', whatever the table says.
+  for (const t of CATALOGUE) {
+    if (variesByVernacular(motifOf(t))) continue;
+    assert(entrancePartOf(t, V) === 'none',
+      `${t.id} (${motifOf(t)}) has no applied entrance in any vernacular`);
+  }
+
+  // The apex belongs to the one building that has one. The vernacular says
+  // WHAT stands there; hasClockTower still says WHICH building.
+  const towered = CATALOGUE.filter(carriesClockTower);
+  assert(towered.length === 1 && apexPartOf(V) !== 'none',
+    'exactly one building tops out, and this vernacular has something to put there');
+
+  // NO VERNACULAR MAY NAME A PART NOTHING DRAWS. This is the check that
+  // makes it safe for EntrancePart/ApexPart to name the parts PRs G, H and
+  // I will need before those PRs exist: adding `apex: 'spire'` to a new row
+  // fails here until a spire is actually drawn.
+  for (const [vname, spec] of Object.entries(VERNACULARS)) {
+    for (const [m, part] of Object.entries(spec.parts.entrance)) {
+      assert(IMPLEMENTED_ENTRANCE_PARTS.includes(part),
+        `vernacular '${vname}' names entrance part '${part}' for '${m}', which nothing draws yet`);
+    }
+    assert(IMPLEMENTED_ROOFLINE_END_PARTS.includes(spec.parts.rooflineEnd),
+      `vernacular '${vname}' names roofline end '${spec.parts.rooflineEnd}', which nothing draws yet`);
+    assert(IMPLEMENTED_APEX_PARTS.includes(spec.parts.apex),
+      `vernacular '${vname}' names apex '${spec.parts.apex}', which nothing draws yet`);
+  }
+  assert(rooflineEndPartOf(V) === 'pavilion', 'and the roofline-end lookup agrees with the table');
+}
+
+// --- 16. Every vernacular keeps the campus's own rules -------------------
+// Sections 12 to 15 pin GEORGIAN, which is the set that must not change.
+// This one is the gate every NEW set has to pass: the palette discipline of
+// section 12 applied to each vernacular in turn, plus the one rule that only
+// exists once there is more than one set.
+{
+  const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const dist = (a: string, b: string) => Math.hypot(...rgb(a).map((v, i) => v - rgb(b)[i]));
+
+  for (const vname of Object.keys(VERNACULARS) as Vernacular[]) {
+    const walls = [...new Set(CATALOGUE.map((t) => materialOf(t, vname).wall))];
+    const roofs = [...new Set(CATALOGUE.map((t) => materialOf(t, vname).roof))];
+    assert(walls.length <= 7, `'${vname}' is built of at most seven materials (got ${walls.length})`);
+    assert(roofs.length <= 3, `'${vname}' is roofed in at most three (got ${roofs.length})`);
+
+    let closest = { d: Infinity, a: '', b: '' };
+    for (let i = 0; i < walls.length; i++) {
+      for (let j = i + 1; j < walls.length; j++) {
+        const d = dist(walls[i], walls[j]);
+        if (d < closest.d) closest = { d, a: walls[i], b: walls[j] };
+      }
+    }
+    assert(closest.d > 35,
+      `'${vname}': its closest two materials are ${closest.d.toFixed(1)} apart (${closest.a} vs ${closest.b})`);
+
+    // A ROOF MUST READ AGAINST ITS OWN WALLS — but only where there IS a
+    // roof. A vernacular that pitches nothing and carries no parapet has a
+    // TOP, not a roof: what you look down onto is the same concrete as the
+    // walls, and forcing it 60 away would put a dark lid on the one set
+    // whose whole argument is that the building is a single poured mass.
+    //
+    // Not skipped for those, INVERTED: they must stay close, or the "no
+    // roof" claim is not being honoured either. Both directions are checked,
+    // so neither can be quietly relaxed into the other.
+    let worstRoof = { d: Infinity, id: '' };
+    let widestRoof = { d: 0, id: '' };
+    for (const t of CATALOGUE) {
+      const m = materialOf(t, vname);
+      const d = dist(m.wall, m.roof);
+      if (d < worstRoof.d) worstRoof = { d, id: t.id };
+      // The invariant motifs keep Georgian's own materials whatever the set
+      // (see below), so their roofs are exempt from the "stays close" half.
+      if (variesByVernacular(motifOf(t)) && d > widestRoof.d) widestRoof = { d, id: t.id };
+    }
+    if (hasRoofForm(vname)) {
+      assert(worstRoof.d > 60,
+        `'${vname}': every roof reads against its own walls (worst: ${worstRoof.id} at ${worstRoof.d.toFixed(1)})`);
+    } else {
+      assert(widestRoof.d < 90,
+        `'${vname}' has no roof form, so its tops stay in the same material as its walls `
+        + `(widest: ${widestRoof.id} at ${widestRoof.d.toFixed(1)})`);
+    }
+
+    const gilt = stoneFor(vname).gilt;
+    assert(!walls.includes(gilt) && !roofs.includes(gilt),
+      `'${vname}': its landmark metal is not also the colour of a building`);
+  }
+
+  // THE INVARIANT MOTIFS ARE MADE OF INVARIANT MATERIALS.
+  //
+  // This is the rule that only exists once there are two sets, and it is the
+  // one a set PR is most likely to break by eye: the six motifs no
+  // vernacular restyles are still drawn with materialOf, so a set that
+  // recolours every entry in its MaterialSet repaints the gym and the
+  // teaching hospital along with the halls — and a campus whose sports hall
+  // changed colour with its founding century would be claiming the 1970s
+  // shed was built in 1890.
+  //
+  // Measured off the CATALOGUE rather than asserted against a hand-listed
+  // set of material names, because which materials reach an invariant motif
+  // is a consequence of materialOf's switch and moves when that moves. As of
+  // PR G that is render (labs, gyms, the stadium, open ground), curtain (the
+  // natatorium and the residential tower) and clinical (the teaching
+  // hospital) — and note two of the three ALSO serve varying motifs, so
+  // "recolour everything the halls don't use" is not a safe shortcut either.
+  const invariantBuildings = CATALOGUE.filter((t) => !variesByVernacular(motifOf(t)));
+  assert(invariantBuildings.length > 0, 'the catalogue has invariant buildings to check');
+  for (const t of invariantBuildings) {
+    const base = materialOf(t, 'georgian');
+    for (const vname of Object.keys(VERNACULARS) as Vernacular[]) {
+      const here = materialOf(t, vname);
+      assert(here.wall === base.wall && here.roof === base.roof,
+        `${t.id} (${motifOf(t)}) is the same material in '${vname}' as in 'georgian' `
+        + `(got ${here.wall}/${here.roof}, expected ${base.wall}/${base.roof})`);
+    }
+  }
+}
+
+// --- 17. Every vernacular is offerable ------------------------------------
+// The founding screen builds its picker from VERNACULAR_CHOICES (Plan 07's
+// PR K). A set that exists in VERNACULARS but not in that list is a set
+// nobody can ever choose — it would be in the game, tested, drawn, and
+// unreachable — and nothing about adding one would fail without this.
+{
+  const offered = VERNACULAR_CHOICES.map((c) => c.id);
+  const built = Object.keys(VERNACULARS) as Vernacular[];
+  for (const v of built) {
+    assert(offered.includes(v), `'${v}' is offered on the founding screen`);
+  }
+  for (const id of offered) {
+    assert(built.includes(id), `the founding screen does not offer '${id}', which is not a vernacular`);
+  }
+  assert(new Set(offered).size === offered.length, 'no vernacular is offered twice');
+  for (const c of VERNACULAR_CHOICES) {
+    assert(c.label.trim().length > 0 && c.blurb.trim().length > 0,
+      `'${c.id}' has a name and a description to offer`);
+  }
 }
 
 if (failures === 0) {

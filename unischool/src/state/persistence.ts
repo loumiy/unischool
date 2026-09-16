@@ -6,10 +6,10 @@ import {
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR } from './types';
 import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES, ORIGIN_NATIONALITIES } from '../data/facultyData';
 import { initialTech } from '../data/techData';
-import { SCHOOL_TYPE_PRESETS } from '../data/schoolTypeData';
 import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import { admitRate } from '../systems/admissions/admissionsSystem';
 import { initialFacilities } from '../data/facilitiesData';
+import { FOUNDING_VERNACULAR } from '../data/foundingData';
 import { initialDorms } from '../data/campusData';
 import { fellTrees, seedTrees } from '../data/treeData';
 import {
@@ -950,7 +950,105 @@ export const SAVE_KEY = 'unischool.save';
 // and the bars stop rendering. Filled in at zero — see MIGRATIONS[40].
 //
 // See MIGRATIONS[40].
-export const SAVE_VERSION = 41;
+//
+// v41 -> v42: the tuition ceiling stops being a school-type fact (Plan 07's
+// PR A). It was 22,000 for a public school and 100,000 for a private one;
+// it is now one TUITION_SLIDER_MAX for everybody, and since every save
+// would agree with every other save about it forever, it is no longer
+// carried on state at all.
+//
+// WHAT A RESUMED SAVE FEELS, stated plainly: a PRIVATE school feels
+// nothing. Its ceiling was already 100,000 and already unreachable — Plan
+// 05's PR E put it there precisely so it would never bind — so the same
+// slider ends in the same place and no price it was charging changes.
+//
+// A PUBLIC school's cap is GONE, and that is a real change rather than a
+// bookkeeping one: its slider ran to 22,000 and now runs to 100,000, so
+// the next summer decision can price above what the school type used to
+// permit. Nothing is repriced by the migration itself — the listed price
+// and all four class prices are untouched, and the school charges exactly
+// what it charged last week. What changes is what the player is allowed to
+// do at the next decision, which is the point of retiring the fork rather
+// than a side effect of it.
+//
+// A public school that was pinned AT its old cap is the one that will
+// notice, and it will notice as an opportunity rather than a loss. That is
+// the intended direction: see the note above sim/balanceSim.ts's
+// rampTuition, where the Public flagship strategy sat at exactly 22,000
+// for the last 25 years of a 40-year run.
+//
+// See MIGRATIONS[41].
+//
+// v42 -> v43: the state appropriation is retired (Plan 07's PR B) — both
+// the flat institutional grant and the per-enrolled-student allocation.
+// With PR A's ceiling already gone, this is the last mechanical thing that
+// made a public school a different school rather than a differently-opened
+// one.
+//
+// WHAT A RESUMED SAVE FEELS, stated plainly: a PRIVATE school feels
+// nothing. Both numbers were 0 for it, so its income statement is the same
+// statement with one always-empty line removed.
+//
+// A PUBLIC school LOSES REAL WEEKLY INCOME, and there is no point dressing
+// that up: 7,000 a week flat, plus 5,500 a year for every enrolled
+// student. A 2,000-student public school resumes about 219,000 a week
+// poorer, and a large one loses proportionally more. Nothing is taken from
+// what it has — cash, endowment, buildings, faculty and every price on the
+// books are untouched — but the line that was topping up its weekly net is
+// gone from the next tick onward.
+//
+// It is NOT left without a lever, and this is why the two PRs land in this
+// order. v41 -> v42 removed that same school's 22,000 tuition cap, so the
+// price it may charge at its next summer decision is no longer held below
+// what its standing supports. The subsidy existed to compensate for the
+// cap (see data/foundingData.ts); the cap went first, and this is the
+// other half of the same trade. A resumed public school that was pinned at
+// its old cap can price its way back to where it was, which is exactly the
+// decision the game wants it making.
+//
+// See MIGRATIONS[42].
+//
+// v43 -> v44: the private/public fork itself is deleted (Plan 07's PR C).
+// `self.schoolType` comes off state, `SCHOOL_TYPE_PRESETS` collapses into
+// one FOUNDING_PRESET, and the startup screen asks for a name and nothing
+// else. data/schoolTypeData.ts is renamed data/foundingData.ts, since a
+// file named for school types that contains none is a trap for whoever
+// reads it next.
+//
+// WHAT A RESUMED SAVE FEELS: NOTHING, for either kind of school, and this
+// is the one migration in this plan where that is true without
+// qualification. Everything the fork actually decided was already gone by
+// v43 — the tuition ceiling at v42, both halves of the appropriation at
+// v43 — and the three remaining differences (starting cash, starting
+// prestige, starting applicant pool) are FOUNDING conditions: they were
+// spent the moment the school was founded and are not re-read on load. A
+// resumed public school keeps the prestige it earned, the cash it has and
+// the pool its standing attracts. The field being deleted was, by this
+// point, a label on an empty box.
+//
+// The one authored event that read it — 'state-capital-match' in
+// data/eventData.ts — is WIDENED rather than retired, so it now fires for
+// every school past its first-year gate. A resumed private school gains an
+// event it could not previously see; see MIGRATIONS[43] and that event's
+// own note for why keeping it beats deleting it.
+//
+// See MIGRATIONS[43].
+//
+// v44 -> v45: `self.vernacular` — which architecture the campus is built in
+// (Plan 07's PR D). Added as REQUIRED rather than optional, so it takes a
+// bump: the map reads it on every render to resolve its materials, and an
+// optional field would mean a null branch in the one place that can least
+// afford one.
+//
+// WHAT A RESUMED SAVE FEELS: nothing, and unusually this is provable rather
+// than merely argued. There is exactly one vernacular ('georgian'), its
+// palette is asserted equal to the constants the campus was drawn with
+// before the table existed (see test/building-spec.test.ts), and every
+// standing building was drawn in it. The migration writes down what the
+// save already looked like.
+//
+// See MIGRATIONS[44].
+export const SAVE_VERSION = 45;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1018,6 +1116,25 @@ interface LegacyGameState extends GameState {
   // renamed by MIGRATIONS[20] — so retiring scholarships emptied the slice
   // and it went with them. MIGRATIONS[36] deletes it.
   admissions?: { scholarshipRate?: number; financialAidRate?: number };
+
+  // Removed in v42 (Plan 07's PR A): `finance.tuitionCeiling`, the
+  // per-school-type cap on the listed price. It is one constant for
+  // everybody now (foundingData.ts's TUITION_SLIDER_MAX), so it stopped
+  // being something a save can disagree with the code about.
+  // MIGRATIONS[41] deletes it.
+  //
+  // Removed in v43 (Plan 07's PR B): `finance.baselineFundingPerWeek` and
+  // `finance.appropriationPerStudentPerYear`, the two halves of a public
+  // school's state subsidy. MIGRATIONS[42] deletes them.
+  finance: GameState['finance'] & {
+    tuitionCeiling?: number;
+    baselineFundingPerWeek?: number;
+    appropriationPerStudentPerYear?: number;
+  };
+
+  // Removed in v44 (Plan 07's PR C): `self.schoolType`, the private/public
+  // fork itself. MIGRATIONS[43] deletes it.
+  self: GameState['self'] & { schoolType?: 'private' | 'public' };
 }
 
 // The two institutional suffixes a saved name may already end in. A v6
@@ -1036,6 +1153,39 @@ const KNOWN_SUFFIXES = ['College', 'University'];
 // worth carrying, and delete the whole chain freely once nothing is
 // resuming from it.
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v44 -> v45: every campus gains a vernacular (see the SAVE_VERSION
+  // header note above). There is one, and every standing campus was drawn
+  // in it, so filling it in is not a guess — it is writing down what the
+  // save already looked like.
+  44: (state) => {
+    state.self.vernacular = FOUNDING_VERNACULAR;
+  },
+
+  // v43 -> v44: the private/public fork is deleted (see the SAVE_VERSION
+  // header note above). Nothing reads the field any more — PRs A and B
+  // already took everything it decided — so this is the label coming off
+  // an empty box.
+  43: (state) => {
+    delete state.self.schoolType;
+  },
+
+  // v42 -> v43: the state appropriation is retired (see the SAVE_VERSION
+  // header note above). Both halves go. financeBreakdown has no baseline
+  // funding line to read them into any more, so leaving them on state
+  // would be carrying a number nothing spends.
+  42: (state) => {
+    delete state.finance.baselineFundingPerWeek;
+    delete state.finance.appropriationPerStudentPerYear;
+  },
+
+  // v41 -> v42: the tuition ceiling stops being a school-type fact (see
+  // the SAVE_VERSION header note above). The field goes; the bound it
+  // described is TUITION_SLIDER_MAX now, read straight from the module by
+  // the two places that clamp against it.
+  41: (state) => {
+    delete state.finance.tuitionCeiling;
+  },
+
   // v40 -> v41: the grad-school bound join the cohort list (see the
   // SAVE_VERSION header note above). Every standing class gets a zero.
   //
@@ -1086,12 +1236,14 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     };
   },
 
-  // v38 -> v39: the private tuition ceiling moves out of reach (see the
-  // SAVE_VERSION header note above). Read from the preset rather than
-  // written as a literal, so this cannot drift from what founding does.
-  38: (state) => {
-    state.finance.tuitionCeiling = SCHOOL_TYPE_PRESETS[state.self.schoolType].tuitionCeiling;
-  },
+  // v38 -> v39: the private tuition ceiling moved out of reach. A NO-OP
+  // since v42 (Plan 07's PR A) retired the ceiling altogether: this step
+  // used to reset `finance.tuitionCeiling` from the school-type preset,
+  // and both the field and the preset entry are gone. Kept as an empty
+  // step rather than deleted so the version chain stays contiguous — and
+  // it would be dead either way, since MIGRATIONS[41] below unconditionally
+  // drops the field a moment later on the same load.
+  38: () => {},
 
   // v37 -> v38: the admit rate becomes a decision, and the number stored
   // under that name changes meaning with it (see the SAVE_VERSION header

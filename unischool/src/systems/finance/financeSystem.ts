@@ -241,7 +241,6 @@ export interface FinanceBreakdown {
   tuitionRevenue: number;      // every class at its own admission-year price (see annualTuitionBilled)
   prestigeRevenue: number;     // the reputation dividend: donors/grants/brand, independent of enrollment
   endowmentPayout: number;     // the endowment's annual spend rate, sliced into weeks
-  baselineFunding: number;     // school-type baseline: a flat appropriation plus a per-student one (0 for private)
   totalIncome: number;
   // expenses
   weeklySalaries: number;      // the faculty payroll, annualized salaries sliced into weeks
@@ -310,13 +309,6 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   const tuitionRevenue = annualTuitionBilled(s) / WEEKS_PER_YEAR;
   const prestigeRevenue = (s.self.reputation * REPUTATION_DIVIDEND_PER_POINT_PER_YEAR) / WEEKS_PER_YEAR;
   const endowmentPayout = (s.finance.endowment * ENDOWMENT_PAYOUT_RATE) / WEEKS_PER_YEAR;
-  // A public school's appropriation has two halves (see schoolTypeData.ts):
-  // a flat institutional grant and a per-student allocation that grows
-  // with the school. Both are 0 for a private school, so nothing here
-  // branches on school type — it only reads the numbers founding set.
-  const baselineFunding = s.finance.baselineFundingPerWeek +
-    (enrolled * s.finance.appropriationPerStudentPerYear) / WEEKS_PER_YEAR;
-
   const weeklySalaries = s.faculty.reduce((sum, f) => sum + f.salary, 0) / WEEKS_PER_YEAR;
   const filledSeats = Math.min(enrolled, s.students.capacity);
   const emptySeats = Math.max(s.students.capacity - filledSeats, 0);
@@ -326,7 +318,12 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   const facilityUpkeep = upkeepFor(s, false);
   const studentLifeUpkeep = studentOrgUpkeep(s);
 
-  const totalIncome = tuitionRevenue + prestigeRevenue + endowmentPayout + baselineFunding;
+  // THREE income lines, and none of them is an appropriation. A public
+  // school used to add a fourth — a flat state grant plus a per-student
+  // allocation — which Plan 07's PR B retired along with the rest of the
+  // founding fork. Every school now lives on what it charges, what its
+  // standing attracts and what its endowment pays out.
+  const totalIncome = tuitionRevenue + prestigeRevenue + endowmentPayout;
   const totalExpenses = weeklySalaries + seatUpkeep + instructionCost + academicUpkeep +
     facilityUpkeep + studentLifeUpkeep;
 
@@ -334,7 +331,6 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
     tuitionRevenue,
     prestigeRevenue,
     endowmentPayout,
-    baselineFunding,
     totalIncome,
     weeklySalaries,
     seatUpkeep,

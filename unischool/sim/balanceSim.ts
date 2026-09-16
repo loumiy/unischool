@@ -23,10 +23,11 @@
 import { reducer } from '../src/engine/reducer';
 import type { Action } from '../src/state/actions';
 import { createPreStartState } from '../src/state/actions';
-import type { GameState, Buildable, InitiativeReport, SchoolType } from '../src/state/types';
+import type { GameState, Buildable, InitiativeReport } from '../src/state/types';
 import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudent } from '../src/systems/finance/financeSystem';
 import { admitRate, topBandShare } from '../src/systems/admissions/admissionsSystem';
+import { TUITION_SLIDER_MAX, FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import {
   canStartDevelopment, hasFreeFacultySlot, eligibleInstructors, unstaffedCourses,
   isCommitted, effectiveCourseSlots, totalFacultySlots, usedFacultySlots,
@@ -85,7 +86,6 @@ const fakeStorage = new Map<string, string>();
 // ---------------------------------------------------------------------
 export interface Strategy {
   name: string;
-  schoolType: SchoolType;
   tuition(s: GameState): number;
   // The share of the applicant pool to take. Optional: omitted means "take
   // the slider's own opening position for this standing", which is what
@@ -735,7 +735,7 @@ export function play(
 ): { rows: Row[]; tally: EventTally; venuesBuilt: string[] } {
   resetSimEnvironment();
   let s = createPreStartState();
-  s = reducer(s, { type: 'START_GAME', name: 'Test University', schoolType: strategy.schoolType });
+  s = reducer(s, { type: 'START_GAME', name: 'Test University', vernacular: FOUNDING_VERNACULAR });
   const dispatch = (a: Action) => { s = reducer(s, a); };
   const rows: Row[] = [];
   let weeksInTheRed = 0;
@@ -888,7 +888,7 @@ function fmt(n: number): string {
 
 function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venuesBuilt: string[] }, every: number): void {
   const { rows, tally } = run;
-  console.log(`\n=== ${strategy.name} (${strategy.schoolType}) ===`);
+  console.log(`\n=== ${strategy.name} ===`);
   console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | soc | aca | crs | maj | fac |  tuition |  applic | admit% |  endow | rsch/wk | brk | orgs | grad');
   const last = rows[rows.length - 1];
   for (const r of rows) {
@@ -1022,13 +1022,20 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
 // cost-leads-revenue pinch.
 // ---------------------------------------------------------------------
 //
-// Underwater, it reaches for the ceiling instead. That is the other half of
+// Underwater, it charges a notch more instead. That is the other half of
 // cutPayrollIfStalled's "price before people": a school running a deficit
-// raises its own price to the cap it is allowed before it starts dismissing
-// professors, and the payroll lever defers to it while the raise is still
-// waiting on an admissions round. It is a reach, not a rescue — the ceiling
-// is set by school type at founding, and a public flagship's is low enough
-// that this alone rarely closes a real gap.
+// raises its own price before it starts dismissing professors, and the
+// payroll lever defers to it while the raise is still waiting on an
+// admissions round. It is a reach, not a rescue — the surcharge is 15% of
+// a price that is itself pinned to prestige, so a school whose costs have
+// outrun its standing cannot price its way back out.
+//
+// The clamp below is TUITION_SLIDER_MAX and is purely defensive. It used
+// to be the per-school-type ceiling, and for the Public flagship strategy
+// it was load-bearing rather than defensive — that strategy sat at exactly
+// 22,000 from year 16 to year 40. Plan 07's PR A retired the ceiling and
+// PR C retired the strategy along with the fork that defined it, so no
+// strategy here comes within 60k of this number.
 //
 // Strategies priced FLAT are deliberately left out of this: their whole
 // purpose is to hold a price still while costs climb (see the low-tuition
@@ -1057,7 +1064,7 @@ const DEFICIT_SURCHARGE = 1.15;
 const rampTuition = (perPrestigePoint: number, base = 4_000) => (s: GameState) => {
   const ramped = Math.round((base + s.self.reputation * perPrestigePoint) / 500) * 500;
   const surcharged = s.finance.cash < 0 ? Math.round(ramped * DEFICIT_SURCHARGE / 500) * 500 : ramped;
-  return Math.min(s.finance.tuitionCeiling, surcharged);
+  return Math.min(TUITION_SLIDER_MAX, surcharged);
 };
 
 // NOTE: `trimAidWhenUnderwater` used to live here — a strategy tapering
@@ -1072,7 +1079,7 @@ export const STRATEGIES: Strategy[] = [
   {
     // The intended line of play: grow one thing at a time, never take on a
     // commitment the current cash flow can't carry.
-    name: 'Balanced builder', schoolType: 'private',
+    name: 'Balanced builder',
     tuition: rampTuition(225, 3_000), // was rampTuition(300) at 25% off
     buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
     netMargin: 0.12,
@@ -1082,7 +1089,7 @@ export const STRATEGIES: Strategy[] = [
   {
     // Deliberate overreach: buys everything the moment cash allows,
     // ignoring the flow. Should stall hard, then claw back out — never die.
-    name: 'Curriculum rush (overreach)', schoolType: 'private',
+    name: 'Curriculum rush (overreach)',
     tuition: rampTuition(240, 3_200), // was rampTuition(300) at 20% off
     buffer: () => 20_000,
     netMargin: 0,
@@ -1113,7 +1120,7 @@ export const STRATEGIES: Strategy[] = [
     // (~11k at the prestige it settles at, against ~35k for Balanced
     // builder) and still the volume archetype at ~26k enrolled and a ~67%
     // admit rate, but now carrying what it grows.
-    name: 'Discount volume (beds first)', schoolType: 'private',
+    name: 'Discount volume (beds first)',
     tuition: rampTuition(110, 3_000),
     buffer: (s) => Math.max(200_000, s.finance.weeklyOpEx * 8),
     netMargin: 0.08,
@@ -1124,14 +1131,6 @@ export const STRATEGIES: Strategy[] = [
     // without this it eventually binges on years of saved-up cash and
     // collapses once the new courses' recurring cost lands.
     courseAffordabilityAware: true,
-  },
-  {
-    name: 'Public flagship', schoolType: 'public',
-    tuition: rampTuition(240, 3_200), // was rampTuition(300) at 20% off
-    buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
-    netMargin: 0.12,
-    buildsCourses: true, buildsDorms: true, buildsFacilities: true,
-    dormFillThreshold: 0.85, facilityThreshold: 72, campaigns: true,
   },
   {
     // Same discipline as Balanced builder — nothing about finishing the
@@ -1147,7 +1146,7 @@ export const STRATEGIES: Strategy[] = [
     // facilityThreshold: Infinity means "satisfaction is never high enough
     // to skip a facility", i.e. build every available one regardless —
     // the only strategy here that ever reaches 100% of the catalogue.
-    name: 'Completionist (build everything)', schoolType: 'private',
+    name: 'Completionist (build everything)',
     tuition: rampTuition(225, 3_000), // was rampTuition(300) at 25% off
     buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
     netMargin: 0.12,
@@ -1204,7 +1203,7 @@ export const STRATEGIES: Strategy[] = [
     // prestige, and through that, the applicant pool) runs higher for
     // everyone; this strategy builds a dorm unconditionally, so a bigger
     // pool is a bigger bill every single year. See PR C's own note.
-    name: 'Overbuilder (beds ahead of demand)', schoolType: 'private',
+    name: 'Overbuilder (beds ahead of demand)',
     tuition: () => 5_500,
     buffer: () => 0,
     netMargin: -1,
@@ -1214,7 +1213,7 @@ export const STRATEGIES: Strategy[] = [
   {
     // The control: builds nothing, ever. Prestige and cash here are the
     // floor the whole loop has to beat, or growth is optional.
-    name: 'Idle (builds nothing)', schoolType: 'private',
+    name: 'Idle (builds nothing)',
     tuition: () => 9_600, // was 12,000 at 20% off
     buffer: () => Number.MAX_SAFE_INTEGER,
     netMargin: Number.MAX_SAFE_INTEGER,

@@ -389,7 +389,7 @@ export function cohortCounts(
 // sum to `total`.
 //
 // Two callers, and they are the same situation seen twice. A founding school
-// opens with all four classes already on the books (see schoolTypeData.ts's
+// opens with all four classes already on the books (see foundingData.ts's
 // FOUNDING_CLASSES) admitted before the player had built a single thing for a
 // cohort to respond to; and a save written before cohortsByClass existed is in
 // that position for its up-to-four standing classes. Both get the model's own

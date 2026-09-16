@@ -50,7 +50,7 @@ function assert(cond: boolean, msg: string): void {
 function aboutToFinish(opts: { breakthroughs?: number } = {}): {
   s: GameState; labId: string; labName: string; team: Faculty[]; topicName: string;
 } {
-  const s = createInitialState('Ashcombe', 'private');
+  const s = createInitialState('Ashcombe');
   const lab = s.tech.find((t) => t.kind === 'facility' && t.facilityType === 'lab')!;
   lab.status = 'done';
   // The charter offer fires on the first quiet week after any lab finishes

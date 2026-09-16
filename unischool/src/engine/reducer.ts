@@ -10,6 +10,7 @@ import {
 import { endInitiative } from '../systems/research/researchSystem';
 import { initiativeDepth, initiativeFundingCost } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
+import { TUITION_SLIDER_MAX } from '../data/foundingData';
 import { tickAdmissions, advanceClasses, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
 import { deriveCohortSignals } from '../systems/admissions/cohorts';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
@@ -211,7 +212,7 @@ export function reducer(state: GameState, action: Action): GameState {
       // universities and a write from inside the reducer could persist the
       // one React discards. The founding save is taken in useGame.ts
       // instead, from the state actually committed — see the note above.
-      return createInitialState(action.name, action.schoolType);
+      return createInitialState(action.name, action.vernacular);
 
     case 'START_DEVELOPMENT': {
       // Courses only now. A placeable Buildable (building/dorm/facility)
@@ -601,7 +602,7 @@ export function reducer(state: GameState, action: Action): GameState {
       // freshman entry of tuitionByClass, below, after the classes advance:
       // the three classes already on the books keep the price they were
       // admitted under (see types.ts's tuitionByClass).
-      s.finance.listedTuition = Math.max(0, Math.min(action.tuition, s.finance.tuitionCeiling));
+      s.finance.listedTuition = Math.max(0, Math.min(action.tuition, TUITION_SLIDER_MAX));
 
       resolveStudentLifeDigest(s, action.approvedPetitionIds);
 

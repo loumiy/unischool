@@ -32,7 +32,7 @@ function assert(cond: boolean, msg: string): void {
   }
 }
 
-const s = createInitialState('FacultyAudit', 'private');
+const s = createInitialState('FacultyAudit');
 
 // ---- Faculty (and candidates) are individuals ----
 function checkIndividuals(people: Faculty[], label: string): void {

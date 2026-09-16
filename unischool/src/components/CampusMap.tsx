@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Action } from '../state/actions';
-import type { Buildable, GameState, Placement, TileCoord } from '../state/types';
+import type { Buildable, GameState, Placement, TileCoord, Vernacular } from '../state/types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import {
   canPlace, canRotate, canSiteRetroactively, footprintIsClear, footprintOf,
@@ -227,7 +227,8 @@ function otherPathTool(tool: 'draw' | 'erase'): 'draw' | 'erase' {
 }
 
 // The CSS hook for a placed building. Colour is no longer decided here —
-// materialOf (buildingSpec.ts) owns it, because a building has a MATERIAL —
+// materialOf (buildingSpec.ts) owns it — given the campus's vernacular —
+// because a building has a MATERIAL —
 // a wall and a roof — from which the angled map derives its shades at
 // runtime, and a stylesheet cannot do that arithmetic. What is
 // left is the kind class, which drives behaviour rules (the inspect dimming)
@@ -253,12 +254,12 @@ function drawnFootprint(p: Placement) {
 // the plate, not a text baseline — the plate used to hang off the baseline,
 // which put its visual middle a quarter of a line above the point it was
 // nominally placed at and compounded the float.
-function labelLayout(t: Buildable, p: Placement) {
+function labelLayout(t: Buildable, p: Placement, v: Vernacular) {
   const size = Math.max(
     LABEL_MIN_FONT_SIZE,
     Math.min(LABEL_MAX_FONT_SIZE, (p.w + p.h) * LABEL_SIZE_PER_TILE),
   );
-  const centre = lift(project(p.col + p.w / 2, p.row + p.h / 2), labelHeightOf(t));
+  const centre = lift(project(p.col + p.w / 2, p.row + p.h / 2), labelHeightOf(t, v));
   const textWidth = t.name.length * size * LABEL_CHAR_WIDTH_RATIO;
   return { size, centre, textWidth };
 }
@@ -286,10 +287,15 @@ type SceneEntry = DepthBox & (
 // actually drawn is both correct and free — there are only ever a few dozen
 // buildings, so nothing here needs the arithmetic picking the ground uses.
 function PlacedBuilding({
-  t, p, onInspect, inspected, weeksLeft, justFinished, glyphs,
+  t, p, onInspect, inspected, weeksLeft, justFinished, glyphs, vernacular,
 }: {
   t: Buildable; p: Placement; onInspect: () => void; inspected: boolean;
   weeksLeft?: number; justFinished?: boolean;
+  // The architecture this campus was built in (state's self.vernacular).
+  // Both lookups below resolve to objects held on buildingSpec's own
+  // VERNACULARS table, so they are reference-stable across renders and
+  // BuildingMotif's memo comparator still short-circuits on them.
+  vernacular: Vernacular;
   // A chapter house's letters, looked up from the chapter that owns it
   // rather than stored on the Buildable — see BuildingMotif's own note.
   glyphs?: string;
@@ -310,7 +316,7 @@ function PlacedBuilding({
         // the building is simply covered by it. It falls toward the camera,
         // onto ground and paths — and onto nothing else, because anything it
         // would reach is nearer the camera and therefore painted after it.
-        const lift = drawnHeightOf(t, developing);
+        const lift = drawnHeightOf(t, developing, vernacular);
         if (lift <= 0) return null;
         const dx = lift * SHADOW_PER_HEIGHT_X;
         const dy = lift * SHADOW_PER_HEIGHT_Y;
@@ -321,7 +327,12 @@ function PlacedBuilding({
           />
         );
       })()}
-      <BuildingMotif t={t} p={d} material={materialOf(t)} developing={developing} glyphs={glyphs} />
+      <BuildingMotif
+        t={t} p={d}
+        material={materialOf(t, vernacular)}
+        vernacular={vernacular}
+        developing={developing} glyphs={glyphs}
+      />
       {inspected && (
         // The footprint picked out on the ground, which is the one outline
         // that cannot be hidden by the building standing on it.
@@ -368,8 +379,10 @@ function PlacedBuilding({
 //
 // The measure runs in a LAYOUT effect, so the corrected plate is in place
 // before the browser paints and no frame shows the estimate.
-function BuildingLabel({ t, p, pinned }: { t: Buildable; p: Placement; pinned: boolean }) {
-  const { size, centre, textWidth } = labelLayout(t, p);
+function BuildingLabel({ t, p, pinned, vernacular }: {
+  t: Buildable; p: Placement; pinned: boolean; vernacular: Vernacular;
+}) {
+  const { size, centre, textWidth } = labelLayout(t, p, vernacular);
   const textRef = useRef<SVGTextElement>(null);
   const [box, setBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
 
@@ -1272,6 +1285,7 @@ export default function CampusMap({
                 weeksLeft={s.developing[t.id]}
                 justFinished={justFinished.includes(t.id)}
                 glyphs={chapterGlyphs[t.id]}
+                vernacular={s.self.vernacular}
               />
             ))}
 
@@ -1297,6 +1311,7 @@ export default function CampusMap({
                     weeksLeft={s.developing[entry.id]}
                     justFinished={justFinished.includes(entry.id)}
                     glyphs={chapterGlyphs[entry.id]}
+                    vernacular={s.self.vernacular}
                   />
                 </g>
               );
@@ -1341,7 +1356,7 @@ export default function CampusMap({
 
             <g ref={labelLayerRef}>
               {placed.map(({ t, p }) => (
-                <BuildingLabel key={`label-${t.id}`} t={t} p={p} pinned={t.id === inspectedId} />
+                <BuildingLabel key={`label-${t.id}`} t={t} p={p} pinned={t.id === inspectedId} vernacular={s.self.vernacular} />
               ))}
             </g>
           </g>

@@ -79,11 +79,6 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               note={`the endowment's annual spend rate on ${money(s.finance.endowment)}`}
               amount={flow.endowmentPayout}
             />
-            <StatementLine
-              label="Baseline funding"
-              note={s.self.schoolType === 'public' ? 'state appropriations: a flat grant plus a per-student allocation' : 'none — private schools receive no appropriation'}
-              amount={flow.baselineFunding}
-            />
             <div className="statement-total">
               <span>Total income</span>
               <span className="statement-line-amount">{money(flow.totalIncome)}</span>
@@ -183,7 +178,6 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
                 and this is the only screen that says so. See types.ts's
                 tuitionByClass. */}
             <dt>Tuition, listed</dt><dd>${s.finance.listedTuition.toLocaleString()}/yr</dd>
-            <dt>Tuition ceiling</dt><dd>${s.finance.tuitionCeiling.toLocaleString()}/yr</dd>
             <dt>Charged, by class</dt>
             <dd>
               {CLASS_ORDER.map(([key, label], i) => (

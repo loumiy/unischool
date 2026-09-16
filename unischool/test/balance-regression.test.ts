@@ -95,7 +95,14 @@ function findRecovery(name: string) {
   // kind of viable, not a worse version of a curriculum-focused strategy.
   // "Growth isn't optional" is a claim about strategies that spend on
   // curriculum breadth; this one spends its margin on aid instead.
-  for (const name of ['Balanced builder', 'Curriculum rush (overreach)', 'Public flagship']) {
+  //
+  // 'Public flagship' used to be the third name here and was retired with
+  // the private/public fork (Plan 07's PR C). 'Completionist' takes its
+  // place rather than the list shrinking to two: it is also a
+  // curriculum-breadth strategy, so it defends the same claim, and a check
+  // that quietly loses a third of its coverage because a strategy was
+  // deleted elsewhere is a weakened check pretending to be an unchanged one.
+  for (const name of ['Balanced builder', 'Curriculum rush (overreach)', 'Completionist (build everything)']) {
     const built = find(name);
     const builtPrestige = built.run.rows[built.run.rows.length - 1].prestige;
     assert(
@@ -282,7 +289,7 @@ for (const strategy of STRATEGIES.filter((s) => !MISTAKE_CASES.includes(s.name))
   // three-person department. `staffed` is how many of them are actually
   // teaching one of the department's offered courses.
   function stalled(staffed: number): GameState {
-    const s = createInitialState('Floor', 'private');
+    const s = createInitialState('Floor');
     s.finance.cash = -10_000_000;
     // Salaries are ANNUAL (financeSystem.ts divides by WEEKS_PER_YEAR), and
     // they have to be large enough that this payroll alone puts the weekly
