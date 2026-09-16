@@ -446,17 +446,33 @@ the game — the player's included — acquires a mascot.
   makes a standings row read as a sports page rather than a spreadsheet, and it
   is what PR 2F's championship modal names when the player loses a final.
 - **`University.mascot: string`**, empty at founding and filled by PR 2C's
-  interrupt. Landing the field here rather than in 2C keeps the save-shape
-  change in one migration with the other three.
+  interrupt. **Re-argued** since the front matter, which rightly flagged that
+  the original reason — keeping the save-shape change in one migration — is
+  exactly the habit the new save policy retires. It belongs here anyway, for a
+  reason that has nothing to do with migration cost: `Rival.mascot` and
+  `University.mascot` are one concept on two sides of the same comparison, and
+  the field is read by the same standings code. Splitting them across two PRs
+  would mean writing the "what a mascot is and is not" comment twice, or
+  writing it in 1A against a type that only half exists. The empty string is
+  not a placeholder awaiting 2C; it is the true statement that a school with no
+  varsity program has nothing for a mascot to name.
 - **The toolbar shows rank unconditionally.** `StatusHeader.tsx`'s
   `s.hasEnteredRankings ? playerRank(s) : null` becomes `playerRank(s)`, and
   `HistoryTab.tsx`'s `showRank` follows it. `hasEnteredRankings` keeps its only
   remaining job: gating the reveal interrupt and the annual report, both
   unchanged.
-- **`SAVE_VERSION` 41 → 42.** The 44 new rivals are appended with their authored
-  values; every existing rival gains its authored mascot by id; `self.mascot`
-  fills with `''`. The shape of MIGRATIONS[28], which added `athleticStrength`
-  to every rival, and it carries open question 8's rank note.
+- **One `SAVE_VERSION` bump**, with a migration — which under the current
+  policy is an exception and is argued as one at the entry itself. Not for a
+  run worth carrying: this is the *first* bump taken under "discarding is the
+  default", and a skipped link does not drop one save, it orphans every earlier
+  one. `loadGame` returns null at the first gap, so with no entry here the
+  whole v3 → v40 chain becomes unreachable and ten of
+  `save-migrations.test.ts`'s cases go with it. Retiring that chain may well be
+  right, but it is a decision about the chain rather than about rival schools
+  and should not arrive as a side effect of a content PR. The carry itself is
+  the cheap kind the policy describes, in the shape of MIGRATIONS[28]: append
+  the 44, fill each saved rival's mascot by id, empty the school's own — and it
+  carries open question 8's rank note.
 
 **The documents this falsifies, fixed here.** `docs/design/progression.md`'s
 "Rankings" section opens *"Rivals are populated densely enough that a top 50 is
@@ -471,8 +487,8 @@ read is that prestige columns are unchanged while rank columns move for exactly
 the founding years. The regression gate asserts prestige separation and cash
 arcs, neither of which this touches.
 
-**As implemented:** two things this PR had to fix that the plan did not
-anticipate, both found by the verification above rather than by reading.
+**As implemented:** three things this PR had to fix that the plan did not
+anticipate, all three found by the verification above rather than by reading.
 
 **One: rival drift is now pinned to one global random draw a year.** It used to
 call `Math.random()` two or three times *per rival*, so the number of draws a
@@ -509,16 +525,33 @@ the documented 0.607–1.392 band. Pre-existing, but fixed here rather than in P
 all 100 schools one profile. A save keeps its stored `athleticStrength`; only
 new games differ.
 
-**Still open at the time of writing:** the balance gate is red at the *default*
-seed on two checks — the Overbuilder's `weeksInTheRed > 0` and `minCash < 0`.
-The one-time stream shift is unavoidable for any change that touches the dice,
-and it landed seed 12345 on the wrong side of a knife-edge: the Overbuilder's
-trough is typically **-100k to -200k against ~$12M/yr opex** on `main` (about 1%
-of a year's spending), and on the new stream it bottoms out at **+12,073**. The
-gate is already seed-fragile on `main`, which fails four of its own checks at
-seed 7. Resolving that is a decision about the harness, not about this feature,
-and is left to the repository owner rather than settled by tuning either the
-gate or the `Overbuilder` fixture until they agree.
+**Three: the `Overbuilder` archetype was re-swept, from 5,500 to 5,250.** The
+one-time stream shift is unavoidable for anything that touches the dice, and it
+landed the *default* seed on the wrong side of a knife-edge: the Overbuilder is
+supposed to go into real financial distress, and on the new stream it bottomed
+out at **+12,073** instead of going red at all.
+
+The interesting part is not the fix but what it exposed. At 5,500 that
+strategy's trough was typically **-100k to -200k against a ~$12M/yr opex** —
+about 1% of a year's spending — so `minCash < 0` was a coin flip on whichever
+stream it happened to run, and the gate asserting it was not measuring a robust
+property. `main` fails four of its own checks at seed 7 for the same reason.
+
+Re-swept the way the 5,500 was ("picked by sweeping, not derived"), but against
+fourteen seeds rather than one: 5,500 passes 9/10, 4,750 8/10, 4,500 7/10,
+4,250 5/10, and **5,250 passes 14/14**. The failures at the other prices are not
+one failure — above 5,250 the trough is too shallow to reliably go red, below it
+the school stops *recovering* and ends underwater, which falsifies "stall, don't
+die" from the other side. At the default seed 5,250 reads -219,980 over 110
+weeks in the red, within noise of the -209,657 over 71 weeks 5,500 produced on
+the old stream: the same archetype, restated at a price that does not depend on
+the dice.
+
+**A decision recorded rather than made quietly:** the two ways this could have
+gone — deepen the fixture, or make the gate assert its distress claim across a
+seed sweep — were put to the repository owner, who chose the fixture. The
+harness's own seed-fragility is untouched and remains a live issue for anything
+else that moves the stream.
 
 ## PR 1B — Standing becomes three numbers
 

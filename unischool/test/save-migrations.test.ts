@@ -891,11 +891,15 @@ function testScholarshipMigration(): void {
 
 // ---- Test: v41 -> v42, the field grows to 100 and everybody gets a mascot ----
 //
-// Three distinct claims, and the middle one is the load-bearing one: a
-// resumed run's own schools must come back carrying the numbers they had
-// DRIFTED to, not the authored founding values, because reputation and
-// momentum have been moving all run (see rivalsSystem.ts's annual drift)
-// while the authored table is a founding condition.
+// This entry is an exception under the current policy (see the SAVE_VERSION
+// header note in persistence.ts: it exists to keep the v3 -> v40 chain
+// reachable, since a skipped link orphans every earlier one), so it is tested
+// like any other written migration.
+//
+// Three claims, and the middle one is load-bearing: a resumed run's own
+// schools must come back carrying the numbers they had DRIFTED to, not the
+// authored founding values, because reputation and momentum have been moving
+// all run while the authored table is a founding condition.
 function testHundredSchoolFieldMigration(): void {
   const base = createInitialState('FieldMigrator', 'private');
   const state = JSON.parse(JSON.stringify(base)) as Loose;
@@ -904,8 +908,8 @@ function testHundredSchoolFieldMigration(): void {
   // A v41 save: 55 rivals, none with a mascot, and no mascot on the school.
   const rivals = (state.rivals as Loose[]).slice(0, 55);
   for (const r of rivals) delete r.mascot;
-  // Two of them have drifted a long way from where they were authored —
-  // one up, one down — which is what a 22-year run looks like.
+  // Two have drifted a long way from where they were authored — one up, one
+  // down — which is what a 22-year run looks like.
   rivals[0].reputation = 128.5;
   rivals[0].momentum = -1.25;
   rivals[4].reputation = 19.75;
@@ -923,8 +927,8 @@ function testHundredSchoolFieldMigration(): void {
     'and the 44 appended schools do not duplicate an id the save already had',
   );
 
-  // The drifted schools keep every number they drifted to. Only the mascot
-  // — a fact about the school that never moves — comes from the table.
+  // The drifted schools keep every number they drifted to. Only the mascot —
+  // a fact about the school that never moves — comes from the table.
   const drifted = loaded.rivals.find((r) => r.id === (rivals[0].id as string));
   assert(drifted?.reputation === 128.5, `a saved rival keeps its drifted reputation (got ${drifted?.reputation})`);
   assert(drifted?.momentum === -1.25, `and its drifted momentum (got ${drifted?.momentum})`);
@@ -935,25 +939,29 @@ function testHundredSchoolFieldMigration(): void {
   const sunk = loaded.rivals.find((r) => r.id === (rivals[4].id as string));
   assert(sunk?.reputation === 19.75, `a rival that has sunk keeps that too (got ${sunk?.reputation})`);
 
-  // Every backfilled mascot is the one a fresh game would author, matched
-  // by id rather than by position.
+  // Every backfilled mascot is the one a fresh game would author, matched by
+  // id rather than by position.
   const authored = new Map(initialRivals().map((r) => [r.id, r.mascot]));
   const wrong = loaded.rivals.filter((r) => r.mascot !== authored.get(r.id));
   assert(wrong.length === 0, `every mascot matches the authored table by id (mismatched: ${wrong.map((r) => r.id).join(', ')})`);
 
-  // THE TAIL IS BELOW THE OLD FLOOR, which is what makes this migration
-  // rank-neutral for a school that has climbed past it (see the SAVE_VERSION
-  // header note). Asserted against the authored values, not the drifted
-  // ones: the 44 arrive fresh.
+  // The player is not handed a mascot they never chose.
+  assert(loaded.self.mascot === '', `the school's own mascot stays empty until it is named (got '${loaded.self.mascot}')`);
+
+  // THE TAIL IS BELOW THE OLD ~45 FLOOR — the property the whole expansion
+  // rests on, and what makes this migration rank-neutral for a run that has
+  // climbed past that floor. Asserted against the authored values: the 44
+  // arrive fresh, with no history to have drifted through.
   const appended = loaded.rivals.filter((r) => !rivals.some((old) => old.id === r.id));
   assert(appended.length === 44, `exactly 44 schools are appended (got ${appended.length})`);
   assert(
     appended.every((r) => r.reputation < 45),
-    `every appended school is authored below the old ~45 floor (highest ${Math.max(...appended.map((r) => r.reputation))})`,
+    `every appended school is below the old floor (highest ${Math.max(...appended.map((r) => r.reputation))})`,
   );
-
-  // The player is not handed a mascot they never chose.
-  assert(loaded.self.mascot === '', `the school's own mascot stays empty until it is named (got '${loaded.self.mascot}')`);
+  assert(
+    Math.min(...appended.map((r) => r.reputation)) >= 5,
+    'and none is below the reputation band rivals are clamped to',
+  );
 }
 
 // ---- Test: unmigratable / malformed saves fall back to null, never throw ----

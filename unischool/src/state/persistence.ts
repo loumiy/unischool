@@ -952,29 +952,48 @@ export const SAVE_KEY = 'unischool.save';
 // See MIGRATIONS[40].
 //
 // v41 -> v42: the field grows from 56 schools to 100, and every school in
-// it gains a MASCOT.
+// it gains a MASCOT. `Rival.mascot` and `University.mascot` are both
+// added-as-required and the rival array changes length, so the bump is not
+// optional.
 //
-// Two shapes of change, both required rather than optional. The 44 new
-// rivals (data/rivalData.ts's r56-r99) are appended with their authored
-// values; `Rival.mascot` and `University.mascot` are filled in — authored
-// by id for a rival, empty for the player, who names theirs at the
-// athletic-director interrupt.
+// THIS ONE IS WRITTEN, AND IT IS AN EXCEPTION — see
+// docs/architecture/game-state.md's "Discarding is the default", under which
+// the bump is the whole obligation and a migration is owed only when there is
+// a specific run worth carrying. The argument is not about a run.
 //
-// THE RANK NOTE, because a resumed run's standing is the one thing this
-// could disturb. Rank counts the schools ABOVE you, and every one of the
-// 44 is authored below the old field's ~45 floor — so a school that has
-// climbed past that floor gains nothing above it and keeps its rank to the
-// digit. The exception is a save whose prestige currently sits INSIDE the
-// new tail (a founding-era run, or a collapsed one): it picks up a handful
-// of schools above it and its rank number steps up once, permanently.
+// It is that v42 is the FIRST bump taken under that policy, and a skipped link
+// does not drop one save — it orphans every earlier one. loadGame walks the
+// chain a version at a time and returns null at the first gap, so with no
+// entry here a v28 save migrates cleanly through v40 and is then discarded at
+// v41 anyway. The whole v3 -> v40 chain becomes unreachable code the moment
+// this bump lands without an entry, and test/save-migrations.test.ts's ten
+// "vNN save loads" cases go with it.
 //
-// The YearSnapshot rows already recorded cannot be corrected for it, for
-// the same reason MIGRATIONS[39] could not reconstruct a cohort split:
-// nothing stores what the field looked like in year 3. So an early save's
-// History chart may show a one-year step in the rank line. Named here
-// rather than papered over — the alternative, rewriting recorded history
-// to match a field that did not exist when it was recorded, would be a lie
-// the record is specifically kept to avoid.
+// Retiring that chain may well be right — the test file's own header already
+// contemplates it ("when the chain is deleted, this file goes with it") — but
+// it is a decision about the chain, not about rival schools, and it should not
+// arrive as a side effect of a content PR. So this entry keeps the chain
+// walkable until that call is made on its own terms. It is also, as it
+// happens, the cheap kind the policy describes.
+//
+// WHAT IT DOES: fill each saved rival's mascot from data/rivalData.ts's
+// initialRivals() BY ID, append the 44 schools the save does not have, and set
+// the school's own mascot to the empty string. A saved rival keeps its own
+// reputation, momentum and athletic strength — those have been drifting all run
+// (see rivalsSystem.ts) while the authored table is a founding condition, so
+// only the mascot, which never moves, comes from it.
+//
+// AND THE FINDING THAT MAKES IT SAFE: rank counts the schools ABOVE you, and
+// all 44 are authored below the old field's ~45 floor. A run that has climbed
+// past that floor gains nothing above it and keeps its rank to the digit. Only
+// a save sitting INSIDE the new tail — a founding-era run, or a collapsed one —
+// picks up a few schools above it, and its rank number steps up once.
+// Recorded YearSnapshot rows cannot be corrected for that: nothing stores what
+// the field looked like in year 3, the same wall MIGRATIONS[39] hit. An early
+// save's History chart may therefore show a one-year step in the rank line.
+// Named rather than papered over — rewriting recorded history to match a field
+// that did not exist when it was recorded is the one thing the record is kept
+// to avoid.
 //
 // See MIGRATIONS[41].
 export const SAVE_VERSION = 42;
@@ -1064,40 +1083,35 @@ const KNOWN_SUFFIXES = ['College', 'University'];
 // resuming from it.
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   // v41 -> v42: the field grows to 100 schools and everybody gets a mascot
-  // (see the SAVE_VERSION header note above, which carries the rank note
-  // this one is the mechanism for).
+  // (see the SAVE_VERSION header note above for why this entry exists at all
+  // under a policy whose default is to discard).
   //
-  // initialRivals() is the authored source for BOTH halves, rather than a
+  // initialRivals() is the authored source for both halves rather than a
   // second copy of the table living here — the same reasoning MIGRATIONS[28]
-  // used when it derived athleticStrength through rivalData.ts's own
-  // function instead of reimplementing it.
-  //
-  // A SAVED RIVAL KEEPS ITS OWN NUMBERS. Reputation, momentum and athletic
-  // strength have been drifting for however many in-game decades this run
-  // has lasted (see rivalsSystem.ts's annual reroll), and the authored table
-  // is a founding condition, not a current reading. Only the mascot — a
-  // fact about the school that never moves — is taken from it.
-  //
-  // The 44 new schools join at their AUTHORED standing rather than at
-  // anything drifted, which is the only honest option: there is no history
-  // to have drifted through. They begin accumulating one from this year,
-  // like a school that has just been noticed.
+  // used when it derived athleticStrength through rivalData.ts's own function
+  // instead of reimplementing it.
   41: (state) => {
     const authored = new Map(initialRivals().map((r) => [r.id, r]));
 
+    // A SAVED RIVAL KEEPS ITS OWN NUMBERS. Only the mascot is taken from the
+    // table, because only the mascot is a fact about the school rather than a
+    // reading of where it currently stands.
     for (const r of state.rivals) {
       const legacy = r as unknown as { mascot?: string };
       if (typeof legacy.mascot !== 'string') legacy.mascot = authored.get(r.id)?.mascot ?? '';
     }
 
+    // The 44 join at their AUTHORED standing, which is the only honest option:
+    // there is no history for them to have drifted through. They start
+    // accumulating one from this year, like a school just noticed.
     const present = new Set(state.rivals.map((r) => r.id));
     for (const r of authored.values()) {
       if (!present.has(r.id)) state.rivals.push({ ...r });
     }
 
-    // Empty, not a rolled placeholder: the player has not been asked yet,
-    // and the athletic-director interrupt is where they will be (see
-    // types.ts's University.mascot).
+    // Empty, not a rolled placeholder: the player has not been asked yet, and
+    // the athletic-director interrupt is where they will be (see types.ts's
+    // University.mascot).
     const self = state.self as unknown as { mascot?: string };
     if (typeof self.mascot !== 'string') self.mascot = '';
   },
