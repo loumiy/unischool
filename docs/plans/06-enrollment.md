@@ -12,6 +12,14 @@ Admissions tab becomes Enrollment and grows the infographic that mix makes
 possible; History is not touched. The backlog's merge option is **declined**,
 and section 0 argues why.
 
+**Written against PR 98**, which splits the README into `docs/design/` and
+`docs/architecture/` and is open but not merged. Every documentation reference
+below names the post-98 file. The two branches merge clean today, and nothing
+in this plan's model or sequence depends on 98 landing — only the names of the
+files each PR has to keep true. If 98 is abandoned, every such reference
+collapses back to a section of `README.md` and the shape of the sequence is
+unchanged.
+
 ---
 
 ## 0. The shape of the feature, and why the order is what it is
@@ -85,15 +93,34 @@ single subject. The backlog's own line settles it: *"which tab it lives in is a
 consequence of building it."* Having looked at both, the consequence is
 Admissions.
 
+**The third finding, from PR 98: documentation is not a trailing PR.**
+`docs/architecture/README.md` states the rule outright — "These documents are
+the spec, and source comments cite them by name, so they have to stay true.
+When a change makes one of them wrong, fix the document in the same PR."
+
+That is a real constraint on this sequence, not a formality, because PR A makes
+a documented claim false the moment it lands. `docs/design/admissions.md` says
+it twice: "Nothing about a cohort is stored — its pull is a pure function of
+state, recomputed wherever it is needed", and, of a cohort, "it cuts across all
+four classes, and nothing stores it". Storing the enrolled split contradicts
+both, and a spec that is wrong between PR A and PR E is a spec that 89 source
+comments are citing.
+
+So the trailing documentation PR this plan would otherwise have ended with is
+**dissolved into the PRs that earn it**. Each PR below carries the documents it
+falsifies. What survives as a final PR is only the thing no earlier PR makes
+wrong: closing the backlog entry, which is not a spec claim going stale but a
+piece of forward-looking work becoming past.
+
 ### The map
 
 | Note | Touches | PR |
 |---|---|---|
-| The enrolled cohort split, stored per class and carried to graduation | `types.ts`, `cohorts.ts`, `admissionsSystem.ts`, `reducer.ts`, `consequences.ts`, `persistence.ts` | A |
-| Admissions becomes Enrollment | `TabNav.tsx`, `AdmissionsTab.tsx` → `EnrollmentTab.tsx`, `App.tsx`, `tab-gates.test.ts` | B |
-| The standing body, four classes by seven cohorts | `EnrollmentTab.tsx`, `styles.css` | C |
+| The enrolled cohort split, stored per class and carried to graduation | `types.ts`, `cohorts.ts`, `admissionsSystem.ts`, `reducer.ts`, `consequences.ts`, `persistence.ts`, `docs/design/admissions.md` | A |
+| Admissions becomes Enrollment | `TabNav.tsx`, `AdmissionsTab.tsx` → `EnrollmentTab.tsx`, `App.tsx`, `tab-gates.test.ts`, `docs/architecture/ui-shell.md` | B |
+| The standing body, four classes by seven cohorts | `EnrollmentTab.tsx`, `styles.css`, `docs/design/admissions.md` | C |
 | The funnel, in context | `EnrollmentTab.tsx` | D |
-| README, and the backlog entry closes | `README.md`, `BACKLOG.md`, `docs/plans/README.md` | E |
+| The backlog entry closes | `BACKLOG.md`, `docs/plans/README.md` | E |
 
 A is invisible to the player and lands behind the existing screen. B is a
 rename with no content change. C and D are the screen.
@@ -204,6 +231,29 @@ CohortCounts>`, where `CohortCounts` is `Record<CohortId, number>` and
   question 5). A pure fill-in in the shape of v13 → v14's `pathways` slice:
   nothing existing moves, is renamed, or is retired.
 
+**The documents this falsifies, fixed here.**
+`docs/design/admissions.md`'s "Admissions cohorts" section ends "Nothing about
+a cohort is stored — its pull is a pure function of state, recomputed wherever
+it is needed." Half of that stays true and the half that does not is the
+interesting half: **the pull is still derived; the enrolled split is now a
+record.** The section has to draw a line it has never needed to draw.
+
+"Class, cohort, course" needs the sharper edit. It currently reads that a
+cohort "cuts across all four classes, and nothing stores it" — and that
+crossing is exactly what PR A turns into the stored thing. A class is still a
+year group and a cohort is still a kind of applicant; what is new is that their
+**intersection** is recorded at admission, once, and never recomputed. The
+three-way distinction the section exists to protect survives intact, which is
+worth saying, because a reader meeting `cohortsByClass` for the first time will
+reasonably wonder whether it has been broken.
+
+`docs/architecture/game-state.md` needs nothing. It documents `GameState` at the
+slice level rather than field by field, its migration prose deliberately stops
+at v12 and names the `MIGRATIONS` table as canonical, and 28 numbers do not
+move its ~165 KiB budget. `cohortsByClass` is plain data — no `Map`, no `Set`,
+no cross-slice reference — so the JSON-round-trip rule that keeps that module
+ten lines long holds without comment.
+
 **Invisible to the player.** Nothing reads `cohortsByClass` until PR C. This is
 deliberate and is the same posture Plan 05's A and B took: the model lands
 behind the existing screen, and the screen is drawn against a model that has
@@ -216,8 +266,21 @@ advances with its class and the senior split is dropped on graduation; (3) the
 split written at admission is unchanged by later `GameState` changes that would
 move `deriveCohortSignals` — the retroactivity guard, which is the whole reason
 this is stored rather than derived. `save-migrations.test.ts` gains a v39 → v40
-case; `invariants.test.ts`'s existing `baseShare` sum check is what makes the
+case, which `docs/architecture/README.md` requires of any change to save shape;
+`invariants.test.ts`'s existing `baseShare` sum check is what makes the
 migration's prior well-formed and needs nothing new.
+
+**`npm run sim` is not needed here, and the reason should be in the PR
+summary.** `docs/architecture/README.md` asks for a 40-year balance run
+whenever a change moves a number the economy depends on. This does not.
+`cohortDemandFactor`, `applicantVolume`, the quality bands and sticker shock
+are untouched, and `enrolledCohorts` is a decomposition of an `enrolled` figure
+the funnel has already produced — every input to the economy is the same number
+it was. Say so explicitly rather than leaving a reviewer to wonder whether the
+run was skipped or forgotten.
+
+Note also that `npm test` chains with `&&`, so an early failure silently skips
+the later suites: read the tail of the output, not the exit line.
 
 ## PR 06B — Admissions becomes Enrollment
 
@@ -230,6 +293,13 @@ rewrite at once, and neither is readable.
 stays ungated — it says something useful from the first week, which is the
 condition `TabNav.tsx` sets, and the standing body exists from week one even
 though no history does.
+
+`docs/architecture/ui-shell.md` names the eight tabs in its opening paragraph
+and describes the three gates below it. The first list gains Enrollment in
+place of Admissions; the gates paragraph is untouched, because none of the
+three gated tabs moves and Enrollment stays ungated. The new `README.md` no
+longer lists tabs at all — PR 98 cut it to 934 words and left the shell's
+detail in `ui-shell.md` — so that is the only place the name appears.
 
 Nothing about the tab's *contents* changes in this PR.
 
@@ -271,6 +341,20 @@ is the truth, not a bug, but it will look like one. A line under the panel
 naming the founding body — and, on a migrated save, saying the same of classes
 admitted before the record was kept — is what keeps it honest.
 
+**The document this falsifies.** `docs/design/admissions.md`'s cohorts section
+describes exactly one place cohorts are drawn — the summer reveal's seven cards
+— and says what they are: "how many of this year's applicants each cohort is
+worth". After this PR there are two, and they show different things: the reveal
+is one year's *applicants*, the tab is four years of *enrolled* students. That
+is the distinction `BACKLOG.md` opened this whole entry by drawing, so the
+section should draw it too rather than leaving two cohort displays that look
+alike and are not.
+
+"Students: four aggregate classes" gains the standing mix beside the four
+counts, and the founding-mix bullet — already there, already naming
+`FOUNDING_CLASSES` and 88/88/87/87 — is where the neutral prior belongs, since
+it is the same fact seen from the other side.
+
 **Verification:** by eye for the layout; the PR A sum invariant is what keeps
 the bars honest against the class totals they segment.
 
@@ -293,33 +377,41 @@ reads the number.
 The classes line goes away here rather than in C — "88 Fr · 88 So · 87 Jr · 87
 Sr" is the infographic's axis labels, restated as a sentence.
 
+**Documentation: check, do not assume.** This PR displays the funnel rather
+than changing it, so `docs/design/admissions.md`'s "Admissions: an annual
+summer decision" should come through untouched. Read it against the shipped
+panel anyway — it is the section the panel is now a second rendering of, and
+Plan 05's PR G is the precedent for what that reading catches.
+
 **Verification:** by eye. No new state and no new math; every figure on this
 panel is one `s.students` field or one call the tab already makes.
 
-## PR 06E — README, and the backlog entry closes
+## PR 06E — The backlog entry closes
 
-Last, because it is only now knowable.
+What is left once the documents have been kept true along the way (section 0's
+third finding): the forward-looking document catching up with the fact that the
+work happened.
 
-- README's tab lists (lines 31 and 122) name Admissions; both become
-  Enrollment.
-- "Admissions cohorts: who the school pulls in" (697) describes cohorts as a
-  thing nothing about which is stored — "its pull is a pure function of state,
-  recomputed wherever it is needed". PR A makes half of that false. The pull is
-  still derived; the **enrolled split is now a record**, and the paragraph has
-  to draw the line it currently does not need to.
-- "Students: four aggregate classes" (727) gains the standing mix, and "Class,
-  cohort, course" (784) is where the distinction is already drawn and where the
-  new record belongs.
-- `BACKLOG.md`'s "Admissions and History" entry is removed — and the merge it
-  proposed is not silently dropped. It was considered and declined, and the
-  reasoning lives in section 0 above, which is where a reader who wonders why
-  the tabs are still separate will look.
+- `BACKLOG.md`'s "Admissions and History" entry is removed. `docs/README.md`
+  states the discipline this serves — "Nothing belongs in two places at once:
+  when a plan lands, what it changed goes into `design/` or `architecture/`,
+  and the plan is left alone as the record of what was believed at the time."
+  By this point the design docs already hold it, so the entry is the only copy
+  left in the wrong tense.
+- **The declined merge does not vanish with it.** The entry proposed folding
+  Admissions into History; a reader who later wonders why the tabs are still
+  separate needs somewhere to land. That is section 0 above, and it is why the
+  argument was written into the plan rather than into a PR description.
 - `docs/plans/README.md`'s table moves this plan's row to `Landed`. The row
   itself goes in when this document does, not here: a plan reading `Proposed`
-  belongs in the index from the day it is written.
+  belongs in the index from the day it is written — the exception Plan 05 wrote
+  into that file, and the first plan to use it.
 
-**Verification:** README read end to end against the shipped tab, which is what
-caught two false claims in Plan 05's PR G and is the only check that can.
+**Verification:** the design and architecture docs read end to end against the
+shipped tab. Each earlier PR has already fixed what it falsified, so this is
+the pass that catches what none of them noticed — the job Plan 05's PR G did
+when it found two claims that had quietly stopped being true and that no test
+could have caught.
 
 ---
 
@@ -329,6 +421,11 @@ caught two false claims in Plan 05's PR G and is the only check that can.
   year-by-year table. A cohort series would want a mix per *year* rather than
   per class, which is a different record from the one PR A stores, and there is
   no reason to guess at it before the standing-body panel has been looked at.
+- **`docs/architecture/game-state.md` is not rewritten.** PR A adds a state
+  field and a migration, and that document takes neither: it is written at the
+  slice level, and its migration narrative stops at v12 on purpose, naming the
+  `MIGRATIONS` table as the canonical record. The v40 entry documents itself
+  there, as every migration since v12 has.
 - **`YearSnapshot` does not change.** It is deliberately numbers-only for JSON
   round-tripping, and adding a seven-key record per year to a 50-row history
   earns nothing this plan needs.
@@ -337,8 +434,9 @@ caught two false claims in Plan 05's PR G and is the only check that can.
   display the 36% opening rate that entry calls a mild handicap without
   changing it.
 - **No individual-student simulation.** The split is seven counts per class,
-  which is four more aggregate records, not a roster. README's "Do not
-  introduce individual-student simulation" stands untouched.
+  which is four more aggregate records, not a roster.
+  `docs/design/admissions.md`'s "Do not introduce individual-student
+  simulation" stands untouched.
 - **Cohorts gain no gameplay.** No cohort-specific quality band, no
   sticker-shock rate, no per-cohort satisfaction. `cohorts.ts` is explicit that
   a cohort is one blended multiplier and not a segment of the funnel, and this
