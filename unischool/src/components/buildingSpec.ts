@@ -261,7 +261,7 @@ export function windowRanksOf(t: Buildable): number {
 
 // How far a pitched roof's ridge rises above the eaves, in metres. Everything
 // not listed is flat-roofed, which is what those buildings actually are.
-const RIDGE_METRES: Partial<Record<Motif, number>> = {
+const GEORGIAN_RIDGE_METRES: Partial<Record<Motif, number>> = {
   // Shallow, because an academic hall's roof is a HIP set back behind a
   // parapet, not a barn gable. The 6.0 m this carried was a ridge deeper than
   // a storey and a half, which is what made the campus's landmarks read as
@@ -285,16 +285,23 @@ const RIDGE_METRES: Partial<Record<Motif, number>> = {
 // institutional hall and get the same shallow hip the academic halls wear; six
 // and up is a block, and a block is flat behind its own parapet, which is what
 // buildings that size are actually built as.
-function residentialRidgeMetres(storeys: number): number {
+function georgianResidentialRidgeMetres(storeys: number): number {
   if (storeys <= 3) return 4.2;
   if (storeys <= 5) return 2.4;
   return 0;
 }
 
-export function ridgeOf(t: Buildable): number {
+// Both tables above are GEORGIAN's answers, and since Plan 07's PR E they
+// are reached through the vernacular rather than read directly — see
+// VERNACULARS below. They stay declared here, beside the reasoning that
+// produced them, because that reasoning is about what an academic hall or a
+// residence hall IS; a second vernacular disagreeing about the numbers does
+// not make the argument for these ones wrong.
+export function ridgeOf(t: Buildable, v: Vernacular): number {
+  const roof = roofFor(v);
   const motif = motifOf(t);
-  if (motif === 'residential') return up(residentialRidgeMetres(storeysOf(t)));
-  return up(RIDGE_METRES[motif] ?? 0);
+  if (motif === 'residential') return up(roof.residentialRidgeMetres(storeysOf(t)));
+  return up(roof.ridgeMetres[motif] ?? 0);
 }
 
 // ---------------------------------------------------------------------
@@ -508,7 +515,8 @@ export const PLINTH = up(0.7);
 export const CORNICE = up(1.05);
 // The wall carries on a little above the cornice, so the roof sits BEHIND
 // something rather than springing straight off the top of the windows.
-export const PARAPET = up(0.85);
+// Per-vernacular since Plan 07's PR E — read it through parapetOf(v), which
+// is allowed to answer zero. See VERNACULARS below.
 
 // The centre bay projects from the middle of each front, rises past the
 // cornice and is capped with a pediment. This is what makes an entrance read
@@ -723,23 +731,164 @@ export interface StonePalette {
   towerStone: string;
 }
 
-export interface VernacularPalette {
-  materials: MaterialSet;
-  stone: StonePalette;
+// HOW THIS VERNACULAR ROOFS A BUILDING. The single loudest signal at map
+// zoom after wall colour: a steep slate roof and a flat parapeted one read
+// as different campuses from across the screen, before a single window or
+// column is legible.
+export interface VernacularRoof {
+  // Ridge rise above the eaves, in METRES, by motif. Absent means flat,
+  // which is what those buildings actually are. Gothic will steepen `hall`
+  // several times over; Brutalism will empty this table entirely.
+  ridgeMetres: Partial<Record<Motif, number>>;
+  // A residence hall's ridge by storey count — the one motif whose ridge is
+  // not a constant, because the ladder from a three-storey house to a
+  // six-storey block genuinely changes shape as it climbs.
+  residentialRidgeMetres(storeys: number): number;
+  // How far the wall carries above the cornice, in UNITS, so the roof sits
+  // behind something rather than springing off the top of the windows.
+  // ZERO means this vernacular has no parapet — which is not a missing
+  // value but a real architectural statement: a Gothic roof springs
+  // straight from its eaves, and giving it a parapet would be drawing a
+  // Georgian building with a steeper hat.
+  parapet: number;
 }
 
-const GEORGIAN: VernacularPalette = {
+// The shape of a single opening. One branch inside windows(), and the
+// cheapest per-vernacular signal there is — the pane is already being drawn,
+// this only changes which points it is drawn through.
+export type WindowShape =
+  | 'rect'     // a sash window: four corners
+  | 'arched'   // round-headed, springing from the upper third
+  | 'lancet'   // pointed, the Gothic light
+  | 'slot';    // a deep narrow opening in a concrete wall
+
+export interface VernacularSpec {
+  materials: MaterialSet;
+  stone: StonePalette;
+  roof: VernacularRoof;
+  windowShape: WindowShape;
+}
+
+const GEORGIAN: VernacularSpec = {
   materials: GEORGIAN_MATERIALS,
   stone: {
     trim: GEORGIAN_TRIM,
     gilt: GEORGIAN_GILT,
     towerStone: GEORGIAN_TOWER_STONE,
   },
+  roof: {
+    ridgeMetres: GEORGIAN_RIDGE_METRES,
+    residentialRidgeMetres: georgianResidentialRidgeMetres,
+    parapet: up(0.85),
+  },
+  windowShape: 'rect',
 };
 
-export const VERNACULARS: Record<Vernacular, VernacularPalette> = {
+export const VERNACULARS: Record<Vernacular, VernacularSpec> = {
   georgian: GEORGIAN,
 };
+
+export function roofFor(v: Vernacular): VernacularRoof {
+  return VERNACULARS[v].roof;
+}
+
+export function windowShapeOf(v: Vernacular): WindowShape {
+  return VERNACULARS[v].windowShape;
+}
+
+// THE SIX MOTIFS NO VERNACULAR MAY RESTYLE, as a list rather than as a
+// sentence in a comment — because a rule that only exists in prose is a rule
+// the next set PR gets to reinterpret.
+//
+// This is not a shortcut taken to make Plan 07 cheaper. It is true of real
+// campuses: a Gothic university's gym is a clear-span shed, its teaching
+// hospital is a modern hospital, its 5,000-bed apartment tower is curtain
+// wall, and its football field is a football field. Building those in the
+// founding vernacular would be the fiction, not the other way round.
+export const VERNACULAR_INVARIANT_MOTIFS = [
+  'grounds',  // a gridiron is a gridiron
+  'bowl',     // a concrete stadium in every era
+  'hangar',   // clear-span sheds are engineering, not architecture
+  'works',    // the dullest wall on the map, by design
+  'block',    // a teaching hospital is a modern hospital
+  'tower',    // a late-game apartment tower postdates the founding campus
+] as const satisfies readonly Motif[];
+
+export function variesByVernacular(m: Motif): boolean {
+  return !(VERNACULAR_INVARIANT_MOTIFS as readonly Motif[]).includes(m);
+}
+
+// What shape THIS building's openings are. The one call the renderer makes,
+// so the invariance above is enforced in the taxonomy rather than being
+// re-decided at each of the eleven places a window gets drawn.
+export function paneShapeOf(t: Buildable, v: Vernacular): WindowShape {
+  return variesByVernacular(motifOf(t)) ? windowShapeOf(v) : 'rect';
+}
+
+// How far the wall carries above the cornice. Zero is a real answer.
+export function parapetOf(v: Vernacular): number {
+  return VERNACULARS[v].roof.parapet;
+}
+
+// ---------------------------------------------------------------------
+// THE OPENING ITSELF, as a closed outline in the wall face's own (u, v).
+//
+// Pure geometry and deliberately free of JSX, like everything else in this
+// module: the caller turns (u, v) pairs into screen points through
+// facePoint, which is what makes this correct on a skewed face without
+// knowing anything about the projection.
+//
+// EVERY SHAPE STAYS INSIDE THE BOX it is given — the same [u0,u1] x [v0,v1]
+// a rectangular pane would have occupied. An arch that bulged past its own
+// bay would collide with its neighbour, and a lancet that rose past v1
+// would punch through the floor course above it; both are invisible in the
+// numbers and obvious on the map, which is why the test pins the bound
+// rather than the appearance.
+//
+// NOTE the v axis runs UP the wall: v1 is the head of the window, v0 the
+// sill. An earlier reading of this had arches opening downward.
+// ---------------------------------------------------------------------
+
+// How much of an arched or lancet opening is straight-sided wall before the
+// head begins. Two thirds leaves a head that reads as a head at map zoom
+// without the opening becoming mostly arch.
+const ARCH_SPRING = 0.66;
+// Points around the round head. Six is enough for an arc a few pixels
+// across and keeps the campus's polygon count honest.
+const ARCH_STEPS = 6;
+// A concrete slot is inset from its own bay: the reveal is most of what
+// makes it read as punched through a thick wall rather than as a pane.
+const SLOT_INSET = 0.22;
+
+export function windowOutline(
+  shape: WindowShape, u0: number, u1: number, v0: number, v1: number,
+): Array<[number, number]> {
+  const uc = (u0 + u1) / 2;
+  const half = (u1 - u0) / 2;
+  switch (shape) {
+    case 'rect':
+      // The four corners, in the order the campus has always drawn them.
+      return [[u0, v0], [u1, v0], [u1, v1], [u0, v1]];
+    case 'arched': {
+      const spring = v0 + (v1 - v0) * ARCH_SPRING;
+      const head: Array<[number, number]> = [];
+      for (let i = 0; i <= ARCH_STEPS; i++) {
+        const a = Math.PI * (i / ARCH_STEPS);
+        head.push([uc + half * Math.cos(a), spring + (v1 - spring) * Math.sin(a)]);
+      }
+      // Up the right jamb, over the head right-to-left, down the left jamb.
+      return [[u0, v0], [u1, v0], [u1, spring], ...head.slice(1, ARCH_STEPS), [u0, spring]];
+    }
+    case 'lancet': {
+      const spring = v0 + (v1 - v0) * ARCH_SPRING;
+      return [[u0, v0], [u1, v0], [u1, spring], [uc, v1], [u0, spring]];
+    }
+    case 'slot': {
+      const i = half * SLOT_INSET;
+      return [[u0 + i, v0], [u1 - i, v0], [u1 - i, v1], [u0 + i, v1]];
+    }
+  }
+}
 
 export function materialsFor(v: Vernacular): MaterialSet {
   return VERNACULARS[v].materials;

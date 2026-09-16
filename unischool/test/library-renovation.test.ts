@@ -25,6 +25,7 @@ import { reducer } from '../src/engine/reducer';
 import { tickTech } from '../src/systems/techtree/techSystem';
 import { servedPopulationFor } from '../src/systems/satisfaction/satisfactionSystem';
 import { drawnHeightOf } from '../src/components/buildingMotifs';
+import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import { wallHeightOf } from '../src/components/buildingSpec';
 import { STOREY } from '../src/components/campusScale';
 import { LIBRARY_TIER1_ID, nextLibraryFloor } from '../src/data/facilitiesData';
@@ -142,18 +143,18 @@ console.log('library renovation tests');
     servedPopulationFor(s, 'academic') === 0 || !s.tech.some((t) => t.id === lib.id && t.status === 'done'),
     'a library that has never opened serves nobody',
   );
-  const site = drawnHeightOf(lib, true);
+  const site = drawnHeightOf(lib, true, FOUNDING_VERNACULAR);
   assert(site < wallHeightOf(lib) * 0.2, `and is drawn as a site, not a building (${site.toFixed(1)} units)`);
 }
 
 // --- the map agrees with the sum ---------------------------------------
 {
   const { s } = withLibrary();
-  const finished = drawnHeightOf(libraryIn(s), false);
+  const finished = drawnHeightOf(libraryIn(s), false, FOUNDING_VERNACULAR);
 
   const during = reducer(s, { type: 'RENOVATE_LIBRARY' });
   const node = libraryIn(during);
-  const standing = drawnHeightOf(node, true);
+  const standing = drawnHeightOf(node, true, FOUNDING_VERNACULAR);
 
   assert(standing > 0, 'a library mid-renovation is drawn standing');
   assert(
@@ -171,7 +172,7 @@ console.log('library renovation tests');
     tickTech(during);
     const n = libraryIn(during);
     const serving = servedPopulationFor(during, 'academic');
-    const drawn = drawnHeightOf(n, n.status === 'developing');
+    const drawn = drawnHeightOf(n, n.status === 'developing', FOUNDING_VERNACULAR);
     if (serving > 0 && drawn <= wallHeightOf(n) * 0.2) {
       assert(false, `week ${week}: the library is open (${serving}) but drawn as a building site`);
       break;

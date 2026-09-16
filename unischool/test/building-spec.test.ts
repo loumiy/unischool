@@ -21,9 +21,11 @@ import {
 } from '../src/components/campusScale';
 import {
   BAY_METRES, TOWER_PODIUM_STOREYS, WINDOW_HEIGHT, baysAcross, clerestorySill,
-  BASE_COURSE, CANOPY_SLAB, COLONNADE_HEIGHT, CORNICE, EAVES_COURSE, PARAPET, PLINTH,
+  BASE_COURSE, CANOPY_SLAB, COLONNADE_HEIGHT, CORNICE, EAVES_COURSE, PLINTH,
   doorFamilyOf, doorOf, floorLinesOf, hasClockTower,
-  materialOf, materialsFor, stoneFor, VERNACULARS, motifOf, rankSills, ridgeOf,
+  materialOf, materialsFor, stoneFor, roofFor, parapetOf, paneShapeOf,
+  windowOutline, windowShapeOf, variesByVernacular, VERNACULAR_INVARIANT_MOTIFS,
+  VERNACULARS, motifOf, rankSills, ridgeOf,
   storeysOf, wallHeightOf, wallShadeOf,
   windowRanksOf, windowWidthOf, type DoorFamily,
 } from '../src/components/buildingSpec';
@@ -113,7 +115,7 @@ console.log('campus scale and building spec');
   assert(clearSpan.every((t) => windowRanksOf(t) === 1),
     'and are lit by one continuous band rather than by ranks');
   const grounds = CATALOGUE.filter((t) => motifOf(t) === 'grounds');
-  assert(grounds.every((t) => wallHeightOf(t) === 0 && ridgeOf(t) === 0),
+  assert(grounds.every((t) => wallHeightOf(t) === 0 && ridgeOf(t, FOUNDING_VERNACULAR) === 0),
     'open ground has no mass at all');
 }
 
@@ -339,8 +341,13 @@ console.log('campus scale and building spec');
   // band silently lands outside the mass.
   for (const t of halls) {
     const wall = wallHeightOf(t);
-    if (!(PLINTH + CORNICE < wall && PARAPET > 0)) {
-      assert(false, `${t.id}: plinth and cornice fit inside a ${wall.toFixed(1)}-unit wall`);
+    // The parapet joins the sum since Plan 07's PR E made it
+    // per-vernacular: this is now the honest question (does the applied
+    // stonework fit?) rather than the old `PARAPET > 0`, which was really
+    // asserting that the one vernacular had a parapet at all. Zero is a
+    // legitimate answer — a Gothic roof springs from its eaves.
+    if (!(PLINTH + CORNICE + parapetOf(FOUNDING_VERNACULAR) < wall)) {
+      assert(false, `${t.id}: plinth, cornice and parapet fit inside a ${wall.toFixed(1)}-unit wall`);
       break;
     }
     // The plinth must clear the bottom rank's sill, or the base course eats
@@ -357,8 +364,8 @@ console.log('campus scale and building spec');
   // as sheds.
   const hall = byId('BLDG-GENSTUDIES');
   if (hall) {
-    assert(ridgeOf(hall) < STOREY, 'a hall\'s ridge rises less than one storey above its eaves');
-    assert(ridgeOf(hall) > 0, 'but it is still a pitched roof');
+    assert(ridgeOf(hall, FOUNDING_VERNACULAR) < STOREY, 'a hall\'s ridge rises less than one storey above its eaves');
+    assert(ridgeOf(hall, FOUNDING_VERNACULAR) > 0, 'but it is still a pitched roof');
   }
 }
 
@@ -618,6 +625,74 @@ console.log('campus scale and building spec');
   const anyHall = CATALOGUE.find((t) => t.kind === 'building');
   assert(!!anyHall && materialOf(anyHall, v) === materialOf(anyHall, v),
     'materialOf returns a stable reference for the same building');
+}
+
+// --- 14. The roof-and-openings seam changed nothing either ----------------
+// Plan 07's PR E moved the ridge table, the parapet and the window's shape
+// behind the same per-vernacular table PR D built. Same discipline as
+// section 13: the claim is that it is invisible, so the pre-refactor values
+// are written out here by hand and compared.
+{
+  const V = FOUNDING_VERNACULAR;
+
+  // The ridge table, exactly as it read before it was keyed by vernacular.
+  const roof = roofFor('georgian');
+  assert(roof.ridgeMetres.hall === 2.2, `georgian's hall ridge is unchanged (got ${roof.ridgeMetres.hall})`);
+  assert(roof.ridgeMetres.village === 3.0, `georgian's village ridge is unchanged (got ${roof.ridgeMetres.village})`);
+  assert(Object.keys(roof.ridgeMetres).length === 2,
+    `and nothing else is pitched (got ${Object.keys(roof.ridgeMetres).join(', ')})`);
+
+  // The residence-hall ladder: a house, an institutional hall, a flat block.
+  for (const [storeys, metres] of [[3, 4.2], [4, 2.4], [5, 2.4], [6, 0], [9, 0]] as const) {
+    assert(roof.residentialRidgeMetres(storeys) === metres,
+      `a ${storeys}-storey residence hall's ridge is unchanged (got ${roof.residentialRidgeMetres(storeys)}, was ${metres})`);
+  }
+
+  assert(parapetOf('georgian') === up(0.85), `georgian's parapet is unchanged (got ${parapetOf('georgian')})`);
+  assert(windowShapeOf('georgian') === 'rect', 'georgian windows are still rectangles');
+
+  // THE OUTLINE ITSELF, corner for corner and in the same order. windows()
+  // used to emit these four points inline; if the order rotated, every pane
+  // on the campus would still be a rectangle and nothing would look wrong
+  // until a non-convex shape went through the same path.
+  const rect = windowOutline('rect', 0.2, 0.8, 0.3, 0.7);
+  const EXPECTED: Array<[number, number]> = [[0.2, 0.3], [0.8, 0.3], [0.8, 0.7], [0.2, 0.7]];
+  assert(rect.length === 4, `a rectangular pane is four points (got ${rect.length})`);
+  assert(rect.every((pt, i) => pt[0] === EXPECTED[i][0] && pt[1] === EXPECTED[i][1]),
+    `and they are the same four, in the same order (got ${JSON.stringify(rect)})`);
+
+  // EVERY shape stays inside the bay it was given. An arch that bulged past
+  // its own bay would collide with its neighbour and a lancet that rose past
+  // the head would punch through the floor course above — both invisible in
+  // the numbers and obvious on the map, so the bound is what gets pinned.
+  for (const shape of ['rect', 'arched', 'lancet', 'slot'] as const) {
+    const pts = windowOutline(shape, 0.2, 0.8, 0.3, 0.7);
+    assert(pts.length >= 3, `a ${shape} opening is a closed outline (got ${pts.length} points)`);
+    const inside = pts.every(([u, v]) => u >= 0.2 - 1e-9 && u <= 0.8 + 1e-9 && v >= 0.3 - 1e-9 && v <= 0.7 + 1e-9);
+    assert(inside, `a ${shape} opening stays inside its own bay`);
+    // And it reaches the head, or it is not the shape it claims to be: an
+    // arch drawn upside down still passes the bound check above.
+    assert(pts.some(([, v]) => v > 0.7 - 1e-9), `a ${shape} opening actually reaches its head`);
+    assert(pts.some(([, v]) => v < 0.3 + 1e-9), `a ${shape} opening actually reaches its sill`);
+  }
+
+  // THE INVARIANT SIX, enforced rather than described. This is the check
+  // that stops a future set PR quietly restyling the gym.
+  assert(VERNACULAR_INVARIANT_MOTIFS.length === 6, 'six motifs are vernacular-invariant');
+  for (const t of CATALOGUE) {
+    const m = motifOf(t);
+    if (variesByVernacular(m)) continue;
+    assert(paneShapeOf(t, V) === 'rect',
+      `${t.id} (${m}) keeps rectangular openings whatever the vernacular`);
+  }
+  // No vernacular may pitch a roof onto one of them either — a Gothic gym
+  // is still a shed, and a ridge is the loudest way to break that.
+  for (const [vname, spec] of Object.entries(VERNACULARS)) {
+    for (const m of VERNACULAR_INVARIANT_MOTIFS) {
+      assert(spec.roof.ridgeMetres[m] === undefined,
+        `vernacular '${vname}' does not pitch a roof onto '${m}'`);
+    }
+  }
 }
 
 if (failures === 0) {

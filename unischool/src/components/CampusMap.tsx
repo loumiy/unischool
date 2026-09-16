@@ -12,7 +12,7 @@ import { isTypingTarget, useHotkeys } from './hotkeys';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
 import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf } from './buildingMotifs';
-import { materialOf, motifOf, stoneFor } from './buildingSpec';
+import { materialOf, motifOf } from './buildingSpec';
 import { groundProps } from './groundMarkings';
 import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
@@ -254,12 +254,12 @@ function drawnFootprint(p: Placement) {
 // the plate, not a text baseline — the plate used to hang off the baseline,
 // which put its visual middle a quarter of a line above the point it was
 // nominally placed at and compounded the float.
-function labelLayout(t: Buildable, p: Placement) {
+function labelLayout(t: Buildable, p: Placement, v: Vernacular) {
   const size = Math.max(
     LABEL_MIN_FONT_SIZE,
     Math.min(LABEL_MAX_FONT_SIZE, (p.w + p.h) * LABEL_SIZE_PER_TILE),
   );
-  const centre = lift(project(p.col + p.w / 2, p.row + p.h / 2), labelHeightOf(t));
+  const centre = lift(project(p.col + p.w / 2, p.row + p.h / 2), labelHeightOf(t, v));
   const textWidth = t.name.length * size * LABEL_CHAR_WIDTH_RATIO;
   return { size, centre, textWidth };
 }
@@ -316,7 +316,7 @@ function PlacedBuilding({
         // the building is simply covered by it. It falls toward the camera,
         // onto ground and paths — and onto nothing else, because anything it
         // would reach is nearer the camera and therefore painted after it.
-        const lift = drawnHeightOf(t, developing);
+        const lift = drawnHeightOf(t, developing, vernacular);
         if (lift <= 0) return null;
         const dx = lift * SHADOW_PER_HEIGHT_X;
         const dy = lift * SHADOW_PER_HEIGHT_Y;
@@ -330,7 +330,7 @@ function PlacedBuilding({
       <BuildingMotif
         t={t} p={d}
         material={materialOf(t, vernacular)}
-        stone={stoneFor(vernacular)}
+        vernacular={vernacular}
         developing={developing} glyphs={glyphs}
       />
       {inspected && (
@@ -379,8 +379,10 @@ function PlacedBuilding({
 //
 // The measure runs in a LAYOUT effect, so the corrected plate is in place
 // before the browser paints and no frame shows the estimate.
-function BuildingLabel({ t, p, pinned }: { t: Buildable; p: Placement; pinned: boolean }) {
-  const { size, centre, textWidth } = labelLayout(t, p);
+function BuildingLabel({ t, p, pinned, vernacular }: {
+  t: Buildable; p: Placement; pinned: boolean; vernacular: Vernacular;
+}) {
+  const { size, centre, textWidth } = labelLayout(t, p, vernacular);
   const textRef = useRef<SVGTextElement>(null);
   const [box, setBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
 
@@ -1354,7 +1356,7 @@ export default function CampusMap({
 
             <g ref={labelLayerRef}>
               {placed.map(({ t, p }) => (
-                <BuildingLabel key={`label-${t.id}`} t={t} p={p} pinned={t.id === inspectedId} />
+                <BuildingLabel key={`label-${t.id}`} t={t} p={p} pinned={t.id === inspectedId} vernacular={s.self.vernacular} />
               ))}
             </g>
           </g>

@@ -384,6 +384,47 @@ building on the map.
 `windowShapeOf(v)` yields `'rect' | 'arched' | 'lancet' | 'slot'`, as one
 branch inside `windows()`. Still one vernacular, still a no-op.
 
+**As implemented:** a no-op again, proved the same two ways —
+`building-spec.test.ts` goes 107 → 170 checks, and the sim is identical row
+for row. `VernacularPalette` is renamed `VernacularSpec`, since it now holds
+roof metrics and an opening shape as well as colour.
+
+*The wrappers carry the vernacular itself, replacing PR D's resolved
+`stone`.* PR D passed a `StonePalette` down because colour was all that
+varied. PR E needs the ridge, the parapet and the window shape too, and
+threading four resolved values is four chances to pass a mismatched set —
+so one string goes down and `BuildingMass` resolves what it needs at the
+point of use. This is the sort of correction the three-no-op sequence exists
+to surface cheaply.
+
+*The invariant six are now enforced, not described.* PR D stated them in a
+comment. That was not enough: `windows()` is reached from eleven call sites
+covering a mix of varying and invariant motifs — the residential tower's
+podium and shaft, the hospital's ward slab, and a shared tail branch serving
+`portico`, `pavilion` and `residential` alongside `hangar` and `works`.
+Deciding per-call-site would have meant re-making the judgment eleven times.
+Instead `VERNACULAR_INVARIANT_MOTIFS` is a real list in `buildingSpec.ts`,
+`paneShapeOf(t, v)` returns `'rect'` for anything on it, and the renderer
+asks once per building. Section 14 asserts every invariant motif in the
+catalogue keeps rectangular openings, and that no vernacular's
+`ridgeMetres` names one of them — so a future set PR cannot quietly pitch a
+roof onto the gym.
+
+*`windowOutline` implements all four shapes now, not just `rect`.* Writing
+only the used one would have left PR G doing both "add Gothic" and "invent
+lancet geometry", which is the coupling this phase exists to prevent. The
+outlines are pure `(u, v)` geometry with no JSX, so they are testable
+without rendering: section 14 pins that every shape stays inside its own
+bay, and that it reaches both its sill and its head — the second check
+existing because an arch drawn upside down passes the first one.
+
+**Worth knowing for the set PRs: `npx tsc -b` does not typecheck `test/`.**
+The tsconfigs include `src`, `sim` and `vite.config.ts` only, and rolldown
+bundles the tests without checking them. Two `ridgeOf(hall)` call sites kept
+their old one-argument form through a clean typecheck and a clean lint, and
+surfaced only as a runtime `TypeError` when the suite actually ran. Changing
+a signature that tests touch means running them, not trusting the compiler.
+
 ### PR F — The ornament table
 
 `PARTS[vernacular]`, naming what fills the entrance slot, the eaves slot and
