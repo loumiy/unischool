@@ -23,6 +23,8 @@ import { researchSchools } from '../src/data/techData';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import { isUnstaffed, usedFacultySlots, facultyLoad } from '../src/systems/techtree/techSystem';
 import { annualTuitionBilled } from '../src/systems/finance/financeSystem';
+import { TUITION_SLIDER_MAX } from '../src/data/schoolTypeData';
+import { reducer } from '../src/engine/reducer';
 
 // In-memory localStorage so the persistence module works under Node. Assigned
 // before any loadGame/saveGame call (module imports run first, but nothing in
@@ -523,6 +525,63 @@ function testPerClassTuitionMigration(): void {
     `migrated tuition revenue is unchanged to the dollar (got ${actual}, expected ${expected})`);
 }
 
+// ---- v41 -> v42: the tuition ceiling stops being a school-type fact ----
+// The claim is that this is a pure widening: the field goes, and nothing a
+// resumed school CHARGES moves. Worth checking on a PUBLIC save, because
+// that is the one whose cap was real — 22,000, and low enough to bind. A
+// migration that "helpfully" clamped or reset a price on the way through
+// would show up as a changed tuition line here, and would be exactly the
+// kind of silent repricing the SAVE_VERSION note promises does not happen.
+function testTuitionCeilingRemoval(): void {
+  clearSave();
+  const base = createInitialState('Capped State', 'public');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+
+  const finance = state.finance as Loose;
+  // A v41 public save: carrying its own ceiling, and priced AT it — the
+  // pinned case, which is the only one that could notice this migration.
+  finance.tuitionCeiling = 22_000;
+  finance.listedTuition = 22_000;
+  finance.tuitionByClass = {
+    freshman: 22_000, sophomore: 22_000, junior: 22_000, senior: 22_000,
+  };
+
+  writeSave(41, state);
+  const loaded = loadGame();
+  assert(loaded !== null, 'v41 save loads');
+  if (!loaded) return;
+
+  assert((loaded.finance as unknown as Loose).tuitionCeiling === undefined,
+    'the per-school-type ceiling is removed from state');
+  assert(loaded.finance.listedTuition === 22_000,
+    `the listed price is untouched (got ${loaded.finance.listedTuition})`);
+  const byClass = loaded.finance.tuitionByClass;
+  assert(
+    byClass.freshman === 22_000 && byClass.sophomore === 22_000
+      && byClass.junior === 22_000 && byClass.senior === 22_000,
+    'every class still pays exactly what it was admitted under',
+  );
+
+  // The widening itself: what the school may charge NEXT is the shared
+  // bound, not the cap this save was founded with. Asserted against the
+  // reducer rather than against the constant, because the reducer's clamp
+  // is what actually decides it.
+  const raised = reducer(loaded, {
+    type: 'RESOLVE_ADMISSIONS',
+    tuition: 38_000, admitRate: loaded.students.admitRate, approvedPetitionIds: [],
+  });
+  assert(raised.finance.listedTuition === 38_000,
+    `a resumed public school may now price above its old cap (got ${raised.finance.listedTuition})`);
+
+  // And the bound still bounds — this is a widening, not a removal.
+  const absurd = reducer(loaded, {
+    type: 'RESOLVE_ADMISSIONS',
+    tuition: TUITION_SLIDER_MAX + 50_000, admitRate: loaded.students.admitRate, approvedPetitionIds: [],
+  });
+  assert(absurd.finance.listedTuition === TUITION_SLIDER_MAX,
+    `the shared bound still clamps (got ${absurd.finance.listedTuition})`);
+}
+
 // ---- Test: a current-version save round-trips unchanged ----
 function testRoundTrip(): void {
   clearSave();
@@ -912,6 +971,7 @@ testCourseFacultySanitizer();
 testChapterGlyphs();
 testScholarshipMigration();
 testPerClassTuitionMigration();
+testTuitionCeilingRemoval();
 testRoundTrip();
 testRejects();
 

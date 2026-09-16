@@ -27,6 +27,7 @@ import type { GameState, Buildable, InitiativeReport, SchoolType } from '../src/
 import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudent } from '../src/systems/finance/financeSystem';
 import { admitRate, topBandShare } from '../src/systems/admissions/admissionsSystem';
+import { TUITION_SLIDER_MAX } from '../src/data/schoolTypeData';
 import {
   canStartDevelopment, hasFreeFacultySlot, eligibleInstructors, unstaffedCourses,
   isCommitted, effectiveCourseSlots, totalFacultySlots, usedFacultySlots,
@@ -1022,13 +1023,20 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
 // cost-leads-revenue pinch.
 // ---------------------------------------------------------------------
 //
-// Underwater, it reaches for the ceiling instead. That is the other half of
+// Underwater, it charges a notch more instead. That is the other half of
 // cutPayrollIfStalled's "price before people": a school running a deficit
-// raises its own price to the cap it is allowed before it starts dismissing
-// professors, and the payroll lever defers to it while the raise is still
-// waiting on an admissions round. It is a reach, not a rescue — the ceiling
-// is set by school type at founding, and a public flagship's is low enough
-// that this alone rarely closes a real gap.
+// raises its own price before it starts dismissing professors, and the
+// payroll lever defers to it while the raise is still waiting on an
+// admissions round. It is a reach, not a rescue — the surcharge is 15% of
+// a price that is itself pinned to prestige, so a school whose costs have
+// outrun its standing cannot price its way back out.
+//
+// The clamp below is TUITION_SLIDER_MAX and is now purely defensive.
+// It used to be the per-school-type ceiling, and for the Public flagship
+// it was load-bearing rather than defensive: that strategy sat at exactly
+// 22,000 from year 16 to year 40. Plan 07's PR A retired the fork's
+// ceiling, so nothing here binds any more — see that PR's "As
+// implemented" note for what it did to this strategy's arc.
 //
 // Strategies priced FLAT are deliberately left out of this: their whole
 // purpose is to hold a price still while costs climb (see the low-tuition
@@ -1057,7 +1065,7 @@ const DEFICIT_SURCHARGE = 1.15;
 const rampTuition = (perPrestigePoint: number, base = 4_000) => (s: GameState) => {
   const ramped = Math.round((base + s.self.reputation * perPrestigePoint) / 500) * 500;
   const surcharged = s.finance.cash < 0 ? Math.round(ramped * DEFICIT_SURCHARGE / 500) * 500 : ramped;
-  return Math.min(s.finance.tuitionCeiling, surcharged);
+  return Math.min(TUITION_SLIDER_MAX, surcharged);
 };
 
 // NOTE: `trimAidWhenUnderwater` used to live here — a strategy tapering

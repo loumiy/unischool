@@ -183,7 +183,6 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
                 and this is the only screen that says so. See types.ts's
                 tuitionByClass. */}
             <dt>Tuition, listed</dt><dd>${s.finance.listedTuition.toLocaleString()}/yr</dd>
-            <dt>Tuition ceiling</dt><dd>${s.finance.tuitionCeiling.toLocaleString()}/yr</dd>
             <dt>Charged, by class</dt>
             <dd>
               {CLASS_ORDER.map(([key, label], i) => (

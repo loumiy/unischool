@@ -127,6 +127,54 @@ everyone and that nothing reaches is not information. The sim's deficit
 surcharge clamp points at the same constant. One migration sets every save's
 ceiling to it.
 
+**As implemented:** two departures, one of them a correction to this plan.
+
+*The field came off state rather than being reset on it.* The plan said "one
+migration sets every save's ceiling to it", which assumed `tuitionCeiling`
+would stay on `FinanceState`. It should not: a number identical in every save
+forever is not state. `finance.tuitionCeiling` is deleted (SAVE_VERSION 42,
+`MIGRATIONS[41]`), `TUITION_SLIDER_MAX` lives in `schoolTypeData.ts` beside
+`STARTING_TUITION`, and the two clamps — `reducer.ts`'s `RESOLVE_ADMISSIONS`
+and the slider's own `max` — read it from the module. `MIGRATIONS[38]`, which
+used to reset the ceiling from the school-type preset, becomes an empty step:
+whatever it wrote, `MIGRATIONS[41]` deletes on the same load.
+
+*PR A moves the economy, and PR B is not the only one that does.* The Risks
+section below says PR B is "the only PR in the plan that moves the economy."
+That is wrong, and measurably so. The sim's Public flagship sits at **exactly
+$22,000 from year 16 to year 40** — 25 of its 40 years pinned to the cap,
+wanting ~$38k by the close. Removing the cap is therefore not bookkeeping for
+that arc, it is the arc:
+
+| Public flagship, at year 40 | Before | After |
+|---|---|---|
+| tuition | 22k (pinned) | 39k |
+| enrolled | 82k | 64k |
+| net/wk | 4.09M | 35.00M |
+| endowment | 2.06B | 19.32B |
+| prestige | 146.2 | 146.4 |
+| weeks in the red | 0 | 0 |
+
+Read carefully, this is the change working rather than the balance breaking.
+The runs are **identical through year 15** and diverge only where the clamp
+used to bite. Enrollment *falls* 22% because `PRICE_SENSITIVITY` does its job
+against the higher price. Prestige is flat because it is dominated by
+curriculum breadth, which this strategy had already maxed. And every one of
+the six private strategies is **byte-identical** before and after — which is
+the first actual proof of Plan 05's PR E claim that the 100k ceiling is
+somewhere nothing reaches.
+
+What the money explosion really shows is that **the Public flagship strategy
+is now mis-specified, not the economy mis-balanced**: `rampTuition(240,
+3_200)` was authored against a 22k cap, so with the cap gone the strategy is
+just "a private school with a subsidy and a large pool" — which is precisely
+what PRs B and C finish deleting. It is retired in PR B. It is left alone
+here rather than retuned, because retuning a strategy that is about to be
+deleted would be fitting a number to a school type that is on its way out.
+`balance-regression` passes unchanged: its one Public flagship assertion is
+that prestige beats idling, and 146.4 against 37.5 clears it as comfortably
+as 146.2 did.
+
 ### PR B — The appropriation goes
 
 `baselineFundingPerWeek` and `appropriationPerStudentPerYear` come off
@@ -270,10 +318,15 @@ motifs are saying.
 
 ## Risks
 
-- **PR B is the economic one.** Everything else in Phase 1 is a rename or a
-  deletion; PR B removes a revenue line that one whole playstyle was built on.
-  If the balance regression moves more than re-fitting can absorb honestly,
-  that is a finding worth writing down rather than tuning away.
+- ~~**PR B is the economic one.**~~ **Wrong — see PR A's "As implemented"
+  note.** PR A is also an economic PR, and for the public arc a larger one
+  than PR B: the ceiling it removes was binding on that arc for 25 of 40
+  years, while the appropriation PR B removes was never the thing holding it
+  down. Both PRs move the same single playstyle, in opposite directions, and
+  the honest reading is that Phase 1 as a whole is the economic change rather
+  than any one PR in it. If the balance regression moves more than re-fitting
+  can absorb honestly, that is still a finding worth writing down rather than
+  tuning away.
 - **Phase 3 is the only unbounded art.** Each set is one row of a table and
   four or five motif families, and the six invariant motifs are the hard
   ceiling on how large any of them can become. If a set PR starts reaching

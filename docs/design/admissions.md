@@ -15,8 +15,10 @@ purpose about how much the player is allowed to know:
 
 1. **Tuition, set blind.** The slider's only feedback is whether the price is in
    line with what the school's standing supports (`priceTier`). No applicant
-   count, no sticker-shock reading, and **no stated cap** — the cap is simply
-   where the slider ends. **Setting it locks it**: the pool is revealed next,
+   count, no sticker-shock reading, and **no stated cap** — there is no cap
+   left to state, only where the slider ends (`TUITION_SLIDER_MAX`, the same
+   for every school since Plan 07's PR A). **Setting it locks it**: the pool
+   is revealed next,
    and a price you could revise after seeing what it bought would be a lookup
    table rather than a gamble.
 2. **The reveal.** The applicant pool that price actually drew, broken down by

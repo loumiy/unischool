@@ -270,7 +270,7 @@ export function createPreStartState(): GameState {
   return {
     clock: { year: 1, week: 1 },
     finance: {
-      cash: 0, endowment: 0, endowmentCampaigns: 0, tuitionCeiling: 0,
+      cash: 0, endowment: 0, endowmentCampaigns: 0,
       listedTuition: 0, tuitionByClass: { freshman: 0, sophomore: 0, junior: 0, senior: 0 },
       baselineFundingPerWeek: 0, appropriationPerStudentPerYear: 0, weeklyOpEx: 0,
     },
@@ -369,7 +369,10 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
 
   // One founding price, read into five places below (the listed price and
   // the four classes), so they cannot be seeded out of step with each other.
-  const foundingTuition = Math.min(STARTING_TUITION, preset.tuitionCeiling);
+  // No longer clamped on the way in: STARTING_TUITION is 13,000 against a
+  // slider that ends at 100,000, so the clamp only ever mattered while a
+  // public school's cap was 22,000 and it could not have bitten even then.
+  const foundingTuition = STARTING_TUITION;
 
   const state: GameState = {
     clock: { year: 1, week: 1 },
@@ -386,7 +389,6 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
         freshman: foundingTuition, sophomore: foundingTuition,
         junior: foundingTuition, senior: foundingTuition,
       },
-      tuitionCeiling: preset.tuitionCeiling,
       baselineFundingPerWeek: preset.baselineFundingPerWeek,
       appropriationPerStudentPerYear: preset.appropriationPerStudentPerYear,
       weeklyOpEx: 0,

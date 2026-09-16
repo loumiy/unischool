@@ -10,7 +10,15 @@ player's half of the name only; every school opens as a *College* (see
 "College, and University" below). The MVP also asks one structural question:
 **private vs. public**. That single choice
 sets starting conditions — starting cash, prestige bonuses, applicant-pool size,
-tuition ceiling, any baseline funding — expressed purely as tunable constants.
+any baseline funding — expressed purely as tunable constants.
+
+The fork no longer sets a **tuition ceiling**. It used to: a public school was
+capped at $22,000 and a private one at $100,000, and the low cap was most of
+what made a public school a different school. Plan 07's PR A retired it. There
+is one `TUITION_SLIDER_MAX` for everybody now — not a policy about what kind
+of school this is, just the top of a control, set somewhere no school
+sensibly reaches (see `data/schoolTypeData.ts`). Retiring the fork
+entirely is the rest of that plan.
 
 **Archetypes emerge, they are not chosen.** The game should let different kinds
 of successful school (Harvard-like, ASU-like, Johns-Hopkins-like) arise from the

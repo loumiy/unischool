@@ -20,7 +20,6 @@ export interface SchoolTypePreset {
   startingCash: number;
   prestigeBonus: number;          // added to BASE_STARTING_REPUTATION; negative allowed
   startingApplicantPool: number;
-  tuitionCeiling: number;         // hard cap enforced on the annual tuition decision
   baselineFundingPerWeek: number; // FLAT non-tuition income (an institutional appropriation); 0 if none
   appropriationPerStudentPerYear: number; // per-enrolled-student appropriation; 0 if none. A flat grant alone would shrink to nothing next to a mature school's costs — a public school's funding has to grow with the school it funds, or "public" would mean "unplayable after year 15".
 }
@@ -41,18 +40,41 @@ export interface SchoolTypePreset {
 // ---------------------------------------------------------------------
 
 // Both types start at the same tuition and endowment; the fork is in the
-// four numbers below them. Tuition still has real room to move at the
+// three numbers below them. Tuition still has real room to move at the
 // year-1 summer decision (raising it is meant to feel like a decision —
 // it shrinks the applicant pool, see admissionsSystem.ts's
 // PRICE_SENSITIVITY — not a free win), but it no longer starts so low
 // that a normal founding opening reads as a false-alarm cash scare that
-// only the summer decision can fix: comfortably under both school types'
-// tuitionCeiling and under the founding revenue-maximizing net price
-// (~$15k, per admissionsSystem.ts's price-tolerance model), so the pinch
-// comes from the tier-1 build-out dragging opex up (see techData.ts's
+// only the summer decision can fix: well under TUITION_SLIDER_MAX below
+// and under the founding revenue-maximizing net price (~$15k, per
+// admissionsSystem.ts's price-tolerance model), so the pinch comes from
+// the tier-1 build-out dragging opex up (see techData.ts's
 // TIER_COURSE_COST and financeSystem.ts's cost drivers), not from an
 // artificially low starting price.
 export const STARTING_TUITION = 13_000;
+
+// WHERE THE TUITION SLIDER ENDS, and nothing more than that.
+//
+// This used to be `tuitionCeiling`, a per-school-type number: 22,000 for a
+// public school and 100,000 for a private one. The low one was a real
+// mechanic — a public school traded pricing power for a subsidy, and the
+// cap was most of what made it a different school. The high one already
+// was not: Plan 05's PR E raised it precisely so that nothing would ever
+// reach it, and stopped printing it, leaving a private school with a
+// number that exists only to stop the slider somewhere.
+//
+// Plan 07 retires the public/private fork, so the cap stops being a policy
+// about what KIND of school this is and becomes what it now honestly is: a
+// control needs a top. Named for what it does rather than for what it used
+// to mean — calling it a ceiling would keep implying a rule that is no
+// longer being enforced.
+//
+// Deliberately out of reach rather than tuned. The highest-priced strategy
+// in sim/balanceSim.ts closes a 40-year run around 38k, and the deficit
+// surcharge tops out well under this, so a player who hits this number has
+// left the part of the curve the game is balanced over — which is the
+// difference between a bound and a cap.
+export const TUITION_SLIDER_MAX = 100_000;
 export const STARTING_ENDOWMENT = 3_000_000; // pays out ~$120k/yr from day one (see financeSystem.ts's ENDOWMENT_PAYOUT_RATE)
 
 // --- Founding class mix (see actions.ts's createInitialState) ----------
@@ -86,35 +108,22 @@ export const FOUNDING_CLASSES = {
 export const SCHOOL_TYPE_PRESETS: Record<SchoolType, SchoolTypePreset> = {
   private: {
     label: 'Private',
-    description: 'No state funding and a smaller applicant pool, but you can charge what you like and start with more prestige.',
+    description: 'No state funding and a smaller applicant pool, but you start with more prestige.',
     startingCash: 1_400_000,
     prestigeBonus: 10,
     startingApplicantPool: 150,
-    // Raised from 60,000 at Plan 05's PR E. The tuition decision is a
-    // blind gamble now — the slider says only whether you are in line with
-    // your standing — and the backlog's ask was "no stated cap; the cap is
-    // where the slider ends". So the number is not shown any more, which
-    // means it has to be somewhere a private school will never sensibly
-    // reach rather than somewhere it bumps into. Nothing in the balance sim
-    // gets near it: the highest-priced strategy closes a 40-year run around
-    // 38k, and the deficit surcharge tops out well under this.
-    tuitionCeiling: 100_000,
     baselineFundingPerWeek: 0,
     appropriationPerStudentPerYear: 0,
   },
   public: {
     label: 'Public',
-    description: 'A state appropriation that grows with enrollment and a much larger applicant pool, but tuition is capped and prestige starts lower.',
+    description: 'A state appropriation that grows with enrollment and a much larger applicant pool, but prestige starts lower.',
     startingCash: 1_200_000,
     prestigeBonus: -5,
     startingApplicantPool: 400,
-    // NOT raised with the private ceiling at PR E. A public school's cap is
-    // most of what distinguishes it — it trades pricing power for a
-    // subsidy — and dropping public/private is its own backlog item, so
-    // this plan does not decide that question on the startup screen's
-    // behalf. It is still never stated on screen; it is simply where this
-    // school type's slider ends.
-    tuitionCeiling: 22_000,
+    // The 22,000 cap that used to sit here is GONE, and with it most of
+    // what made this fork a fork — see TUITION_SLIDER_MAX above. What is
+    // left of "public" until Plan 07's PR B is the subsidy and the pool.
     baselineFundingPerWeek: 7_000,
     // Roughly a third of the capped tuition: a public school trades
     // pricing power for a subsidy that scales with the students it

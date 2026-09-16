@@ -26,7 +26,11 @@ export interface Finance {
   // products now (financeSystem.ts's financeBreakdown), never
   // enrolled x price.
   tuitionByClass: ClassTuition;
-  tuitionCeiling: number;        // hard cap on listedTuition, set by school type at founding
+  // NO tuitionCeiling. It was a per-school-type cap and is now one constant
+  // for everybody (schoolTypeData.ts's TUITION_SLIDER_MAX), and a number
+  // that is identical in every save forever is not state — see the note
+  // beside appropriationPerStudentPerYear below, which is on state for the
+  // opposite reason: it genuinely differs by fork.
   baselineFundingPerWeek: number; // FLAT non-tuition income (a public school's institutional appropriation), set by school type
   appropriationPerStudentPerYear: number; // per-enrolled-student non-tuition income, set by school type; 0 for private. Kept as a number on state rather than a schoolType branch in financeSystem.ts, so no system ever has to know which fork the player picked.
   weeklyOpEx: number;    // salaries + upkeep + instruction, recomputed each tick

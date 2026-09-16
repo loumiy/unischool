@@ -10,6 +10,7 @@ import {
 import { endInitiative } from '../systems/research/researchSystem';
 import { initiativeDepth, initiativeFundingCost } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
+import { TUITION_SLIDER_MAX } from '../data/schoolTypeData';
 import { tickAdmissions, advanceClasses, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
 import { deriveCohortSignals } from '../systems/admissions/cohorts';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
@@ -601,7 +602,7 @@ export function reducer(state: GameState, action: Action): GameState {
       // freshman entry of tuitionByClass, below, after the classes advance:
       // the three classes already on the books keep the price they were
       // admitted under (see types.ts's tuitionByClass).
-      s.finance.listedTuition = Math.max(0, Math.min(action.tuition, s.finance.tuitionCeiling));
+      s.finance.listedTuition = Math.max(0, Math.min(action.tuition, TUITION_SLIDER_MAX));
 
       resolveStudentLifeDigest(s, action.approvedPetitionIds);
 
