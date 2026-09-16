@@ -11,8 +11,8 @@ import {
   PORTICO_COLUMNS, SLAB_ROW_FRACTION, UNDERCROFT_STOREYS, WING_COL_FRACTION,
   WING_STOREY_FRACTION,
   PORTICO_COLUMN_PLAN, PORTICO_HEIGHT, PORTICO_STANDOFF, END_PAVILION_PLAN, END_PAVILION_RISE, FLOOR_COURSE,
-  PORCH_WIDTH_METRES, PORCH_DEPTH, PORCH_HEIGHT, PORCH_GABLE_RISE,
-  BUTTRESS_PLAN, BUTTRESS_RISE, BUTTRESS_SETOFF,
+  PORCH_GABLE_RISE, PORCH_ARCH_WIDTH, PORCH_ARCH_HEIGHT, PORCH_HEIGHT_FRACTION,
+  BUTTRESS_PLAN, BUTTRESS_SETOFF_FRACTION, BUTTRESS_SETOFF_DEPTH,
   COPING, COPING_OVERHANG, END_PAVILION_DEPTH, PAVILION_BAYS, PAVILION_DEPTH, PAVILION_RISE, PEDIMENT_RISE, PLINTH, STEP_OVERHANG,
   TOWER_BASE_PLAN, TOWER_BASE_RISE, TOWER_DOME_RISE, TOWER_DRUM_PLAN, TOWER_DRUM_RISE,
   TOWER_FINIAL_RISE, TOWER_PODIUM_STOREYS, TREAD_DEPTH, WINDOW_HEIGHT,
@@ -688,56 +688,60 @@ function Portico({ centreCol, centreRow, width, outward, stone, columns = PORTIC
 // roofed. So this draws mass and a gable where Portico draws shafts and a
 // slab, and takes the wall's own palette rather than the tower's stone,
 // because it is part of the wall it stands against.
-function Porch({ centreCol, centreRow, outward, pal, stone }: {
-  centreCol: number; centreRow: number; outward: 'row' | 'col';
+function Porch({ col, row, w, h, wallHeight, outward, pal, stone }: {
+  col: number; row: number; w: number; h: number; wallHeight: number;
+  outward: 'row' | 'col';
   pal: Palette; stone: StonePalette;
 }) {
-  const width = across(PORCH_WIDTH_METRES);
-  const half = width / 2;
-  const col = outward === 'row' ? centreCol - half : centreCol;
-  const row = outward === 'row' ? centreRow : centreRow - half;
-  const w = outward === 'row' ? width : PORCH_DEPTH;
-  const h = outward === 'row' ? PORCH_DEPTH : width;
-  const f = boxFaces(col, row, w, h, 0, PORCH_HEIGHT);
+  // Same plan as CentrePavilion, deliberately: this IS the centre bay, so
+  // it has to sit on the wall exactly where the Georgian one does or the
+  // door bay reserved on the main wall lines up with nothing.
+  const span = outward === 'row' ? w : h;
+  const width = pavilionWidth(span);
+  // Lower than the wall behind it — see PORCH_HEIGHT_FRACTION.
+  const top = wallHeight * PORCH_HEIGHT_FRACTION;
+  const pc = outward === 'row' ? col + w / 2 - width / 2 : col + w;
+  const pr = outward === 'row' ? row + h : row + h / 2 - width / 2;
+  const pw = outward === 'row' ? width : PAVILION_DEPTH;
+  const ph = outward === 'row' ? PAVILION_DEPTH : width;
+  const f = boxFaces(pc, pr, pw, ph, 0, top);
 
-  // The gable over it, springing from the porch's own eaves and facing the
-  // way you walk up to it. Two slopes meeting at a ridge that runs BACK into
-  // the building, so what you see from the front is the triangle.
-  const At = lift(project(col, row), PORCH_HEIGHT);
-  const Bt = lift(project(col + w, row), PORCH_HEIGHT);
-  const Ct = lift(project(col + w, row + h), PORCH_HEIGHT);
-  const Dt = lift(project(col, row + h), PORCH_HEIGHT);
-  const apexNear = outward === 'row'
-    ? lift(project(col + w / 2, row + h), PORCH_HEIGHT + PORCH_GABLE_RISE)
-    : lift(project(col + w, row + h / 2), PORCH_HEIGHT + PORCH_GABLE_RISE);
-  const apexFar = outward === 'row'
-    ? lift(project(col + w / 2, row), PORCH_HEIGHT + PORCH_GABLE_RISE)
-    : lift(project(col, row + h / 2), PORCH_HEIGHT + PORCH_GABLE_RISE);
+  const front = outward === 'row' ? { o: f.D, a: f.C } : { o: f.C, a: f.B };
+  const side = outward === 'row' ? { poly: f.right, fill: pal.wallRight } : { poly: f.left, fill: pal.wallLeft };
+  const frontFill = outward === 'row' ? pal.wallLeft : pal.wallRight;
+  const frontTopL = lift(front.o, top);
+  const frontTopR = lift(front.a, top);
+  // The gable: steep, and rising off the bay's own head rather than off a
+  // cornice, because there is no cornice to rise off in this vernacular.
+  const apex = lift(
+    { x: (front.o.x + front.a.x) / 2, y: (front.o.y + front.a.y) / 2 - top },
+    PORCH_GABLE_RISE,
+  );
 
-  // The two buttresses, one at each side of the porch, stepping back as they
-  // climb. Drawn as two stacked boxes rather than one, because the set-off
-  // is what tells a buttress from a pilaster at this distance.
-  const buttressAt = (near: boolean) => {
+  // A buttress at each front corner of the bay, flush with its sides. Two
+  // stacked boxes: the upper one shallower, so the set-off reads as a step
+  // rather than as a change of colour.
+  const buttress = (nearSide: boolean) => {
     const bc = outward === 'row'
-      ? (near ? col - BUTTRESS_PLAN : col + w)
-      : col;
+      ? (nearSide ? pc : pc + pw - BUTTRESS_PLAN)
+      : pc;
     const br = outward === 'row'
-      ? row
-      : (near ? row - BUTTRESS_PLAN : row + h);
-    const bw = outward === 'row' ? BUTTRESS_PLAN : PORCH_DEPTH;
-    const bh = outward === 'row' ? PORCH_DEPTH : BUTTRESS_PLAN;
-    const lower = boxFaces(bc, br, bw, bh, 0, BUTTRESS_SETOFF);
-    // The upper stage is set BACK toward the wall, which on this projection
-    // means shrinking the projecting dimension rather than the span.
-    const shrink = PORCH_DEPTH * 0.45;
+      ? pr
+      : (nearSide ? pr : pr + ph - BUTTRESS_PLAN);
+    const bw = outward === 'row' ? BUTTRESS_PLAN : PAVILION_DEPTH;
+    const bh = outward === 'row' ? PAVILION_DEPTH : BUTTRESS_PLAN;
+    const lowH = top * BUTTRESS_SETOFF_FRACTION;
+    const lower = boxFaces(bc, br, bw, bh, 0, lowH);
+    // Stepping back means losing DEPTH — the projecting dimension — not span.
+    const shrink = PAVILION_DEPTH * BUTTRESS_SETOFF_DEPTH;
     const upper = outward === 'row'
-      ? boxFaces(bc, br, bw, bh - shrink, BUTTRESS_SETOFF, BUTTRESS_RISE - BUTTRESS_SETOFF)
-      : boxFaces(bc, br, bw - shrink, bh, BUTTRESS_SETOFF, BUTTRESS_RISE - BUTTRESS_SETOFF);
+      ? boxFaces(bc, br, bw, bh - shrink, lowH, top - lowH)
+      : boxFaces(bc, br, bw - shrink, bh, lowH, top - lowH);
     return (
       <>
         <polygon points={polyPoints(lower.left)} fill={pal.wallLeft} />
         <polygon points={polyPoints(lower.right)} fill={pal.wallRight} />
-        <polygon points={polyPoints(lower.top)} fill={shade(stone.trim, 0.9)} />
+        <polygon points={polyPoints(lower.top)} fill={shade(stone.trim, 0.88)} />
         <polygon points={polyPoints(upper.left)} fill={pal.wallLeft} />
         <polygon points={polyPoints(upper.right)} fill={pal.wallRight} />
         <polygon points={polyPoints(upper.top)} fill={shade(stone.trim, 0.94)} />
@@ -745,36 +749,30 @@ function Porch({ centreCol, centreRow, outward, pal, stone }: {
     );
   };
 
+  const archU0 = 0.5 - PORCH_ARCH_WIDTH / 2;
+  const archU1 = 0.5 + PORCH_ARCH_WIDTH / 2;
+
   return (
     <>
-      {buttressAt(false)}
-      <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
-      <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
-      {/* The way in: one tall pointed arch, filling most of the front. */}
+      {buttress(false)}
+      <polygon points={polyPoints(side.poly)} fill={side.fill} />
+      <polygon points={polyPoints([front.o, front.a, frontTopR, frontTopL])} fill={frontFill} />
+      <WallBand origin={front.o} along={front.a} wallHeight={top} from={0} to={PLINTH} className="iso-plinth" />
+      {/* ONE OPENING AND NOTHING ELSE on this face. A rank of windows around
+          the doorway is what made this bay read as a Georgian pavilion with
+          a Gothic arch stuck on it; an entrance bay is an entrance. */}
       <polygon
         className="iso-door"
         points={polyPoints(
-          windowOutline('lancet', 0.22, 0.78, 0, 0.82)
-            .map(([u, v]) => (outward === 'row'
-              ? facePoint(f.D, f.C, PORCH_HEIGHT, u, v)
-              : facePoint(f.C, f.B, PORCH_HEIGHT, u, v))),
+          windowOutline('lancet', archU0, archU1, 0, PORCH_ARCH_HEIGHT)
+            .map(([u, v]) => facePoint(front.o, front.a, top, u, v)),
         )}
       />
-      {/* Roof: the near slope you look at, the far one you see over it. */}
-      <polygon
-        points={polyPoints(outward === 'row' ? [Dt, Ct, apexNear] : [Ct, Bt, apexNear])}
-        fill={shade(pal.roof, 0.88)}
-      />
-      <polygon
-        points={polyPoints(outward === 'row' ? [At, Bt, apexFar] : [At, Dt, apexFar])}
-        fill={shade(pal.roof, 1.06)}
-      />
-      <polygon
-        points={polyPoints([apexFar, apexNear,
-          outward === 'row' ? Ct : Bt, outward === 'row' ? Bt : At])}
-        fill={pal.roof}
-      />
-      {buttressAt(true)}
+      <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />
+      {/* The gable, last on this bay so it closes the roof rather than
+          disappearing behind it. */}
+      <polygon points={polyPoints([frontTopL, frontTopR, apex])} fill={shade(pal.roof, 1.04)} />
+      {buttress(true)}
     </>
   );
 }
@@ -1648,6 +1646,10 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
     // and the plinth — a parapet is the top of this wall, not another one.
     const parapet = parapetOf(vernacular);
     const WH = H + parapet;
+    // How far in front of the wall the entrance's own face stands.
+    const entranceStandoff = entrance === 'portico'
+      ? PAVILION_DEPTH + PORTICO_STANDOFF + PORTICO_COLUMN_PLAN
+      : PAVILION_DEPTH;
     const hf = boxFaces(col, row, w, h, 0, WH);
     const endPlan = Math.min(END_PAVILION_PLAN, Math.min(w, h) * 0.28);
     // The roof is set BACK behind the parapet, which is what a parapet is
@@ -1720,17 +1722,23 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         )}
 
         {/* Last, because they project toward the camera and must paint over
-            the wall they stand against. */}
-        <CentrePavilion paneShape={paneShape}
-          col={col} row={row} w={w} h={h} wallHeight={H} outward="row"
-          pal={pal} door={door} sills={sills} paneW={paneW}
-        />
-        <CentrePavilion paneShape={paneShape}
-          col={col} row={row} w={w} h={h} wallHeight={H} outward="col"
-          pal={pal} door={door} sills={sills} paneW={paneW}
-        />
+            the wall they stand against.
+
+            THE CENTRE BAY IS PART OF THE ENTRANCE, not a fixture underneath
+            it. It used to be drawn unconditionally, which left a Gothic hall
+            wearing a Georgian pavilion — windows and a classical pediment —
+            with a porch parked in front of it. Each vernacular now brings its
+            own bay. */}
         {entrance === 'portico' && (
           <>
+            <CentrePavilion paneShape={paneShape}
+              col={col} row={row} w={w} h={h} wallHeight={H} outward="row"
+              pal={pal} door={door} sills={sills} paneW={paneW}
+            />
+            <CentrePavilion paneShape={paneShape}
+              col={col} row={row} w={w} h={h} wallHeight={H} outward="col"
+              pal={pal} door={door} sills={sills} paneW={paneW}
+            />
             <Portico stone={stone}
               centreCol={col + w / 2} centreRow={row + h + PAVILION_DEPTH + PORTICO_STANDOFF}
               width={pavilionWidth(w)} outward="row"
@@ -1744,24 +1752,26 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         {entrance === 'porch' && (
           <>
             <Porch pal={pal} stone={stone}
-              centreCol={col + w / 2} centreRow={row + h + PAVILION_DEPTH}
-              outward="row"
+              col={col} row={row} w={w} h={h} wallHeight={H} outward="row"
             />
             <Porch pal={pal} stone={stone}
-              centreCol={col + w + PAVILION_DEPTH} centreRow={row + h / 2}
-              outward="col"
+              col={col} row={row} w={w} h={h} wallHeight={H} outward="col"
             />
           </>
         )}
+        {/* The flight lands at whatever the entrance actually presents: the
+            front of the columns where there is a portico, the front of the
+            bay where there is a porch. A porch's steps standing a portico's
+            depth out would float on the lawn. */}
         {door && (
           <EntranceSteps stone={stone}
-            d={door} centreCol={col + w / 2} centreRow={row + h + PAVILION_DEPTH + PORTICO_STANDOFF + PORTICO_COLUMN_PLAN}
+            d={door} centreCol={col + w / 2} centreRow={row + h + entranceStandoff}
             outCol={0} outRow={1} span={w}
           />
         )}
         {door && (
           <EntranceSteps stone={stone}
-            d={door} centreCol={col + w + PAVILION_DEPTH + PORTICO_STANDOFF + PORTICO_COLUMN_PLAN} centreRow={row + h / 2}
+            d={door} centreCol={col + w + entranceStandoff} centreRow={row + h / 2}
             outCol={1} outRow={0} span={h}
           />
         )}

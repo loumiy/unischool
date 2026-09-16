@@ -541,20 +541,38 @@ export const PORTICO_COLUMN_PLAN = across(1.4);  // a column is round; this is i
 // is an ENGAGED portico, shallow against the centre bay, not a freestanding
 // one out on the lawn. At 2.2 m the columns read as a detached porch parked in
 // front of the building; at 0.4 they read as part of its front.
-// THE PORCH, the Gothic entrance: a projecting gabled bay with a pointed
-// arch in it, flanked by two buttresses. Where a portico is a rank of
-// free-standing columns carrying a horizontal, a porch is a piece of the
-// building pushed forward and roofed — which is the whole difference between
-// the two vocabularies in one part.
-export const PORCH_WIDTH_METRES = 7.5;
-export const PORCH_DEPTH = across(2.4);
-export const PORCH_HEIGHT = up(9.0);
-export const PORCH_GABLE_RISE = up(4.6);
-export const BUTTRESS_PLAN = across(1.3);
-export const BUTTRESS_RISE = up(11.5);
-// A buttress steps back as it climbs — the set-off is most of what tells it
-// from a pilaster at this distance.
-export const BUTTRESS_SETOFF = up(7.0);
+// THE PORCH, the Gothic entrance. It is the CENTRE BAY ITSELF, not something
+// standing in front of one: same projection and same width as Georgian's
+// centre pavilion, but carrying one tall pointed arch instead of a rank of
+// windows, and capped by a steep gable instead of a pediment.
+//
+// It was first drawn as a small separate object parked in front of the
+// pavilion, which was wrong twice over on the rendered map: the Georgian bay
+// behind it still showed its own windows and its own classical pediment
+// around the edges, and the two buttresses meant to flank the arch ended up
+// standing clear of it, reading as a pair of columns — which is precisely
+// the classical thing a Gothic entrance does not have.
+// A PORCH IS LOWER THAN THE WALL IT STANDS AGAINST, which is most of what
+// makes it read as a porch rather than as a slab of blank stone. Georgian's
+// centre pavilion rises the full height and earns it with four ranks of
+// windows and a pediment; this face carries one door and nothing else, so at
+// full height it came out as a grey cliff with a small hole at the bottom.
+// Two thirds leaves the main wall's own lancets showing above the gable.
+export const PORCH_HEIGHT_FRACTION = 0.66;
+export const PORCH_GABLE_RISE = up(6.0);
+// The arch, as a fraction of the bay's width and height. Sized to read as a
+// DOORWAY: at 0.46 x 0.74 the bay was mostly opening and came out as a large
+// dark hole in a stone slab rather than as a way into a building. A Gothic
+// arch wants to be tall for its width — the proportion is what makes it
+// Gothic — but it is still a door in a wall.
+export const PORCH_ARCH_WIDTH = 0.36;
+export const PORCH_ARCH_HEIGHT = 0.66;
+// Buttresses at the bay's own front corners, flush with its sides rather
+// than standing off them, stepping back once as they climb. The set-off is
+// most of what tells a buttress from a pilaster at this distance.
+export const BUTTRESS_PLAN = across(1.15);
+export const BUTTRESS_SETOFF_FRACTION = 0.58;
+export const BUTTRESS_SETOFF_DEPTH = 0.45;
 
 export const PORTICO_STANDOFF = across(0.4);
 export const ENTABLATURE = up(1.5);

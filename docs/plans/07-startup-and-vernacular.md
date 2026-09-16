@@ -536,6 +536,35 @@ consequence of `materialOf`'s switch: as of PR G that is `render`, `curtain`
 and `clinical` — and two of those three *also* serve varying motifs, so
 "recolour everything the halls don't use" is not a safe shortcut either.
 
+**Follow-up from review, same PR.** Shown the rendered hall, the first thing
+noticed was that the doorway looked wrong: windows around it, and what read
+as a pair of columns either side. Both had one cause — the Gothic hall was
+still being given Georgian's **centre pavilion**, a projecting bay with four
+ranks of windows and a classical pediment, with the porch parked in front of
+it. The centre bay is part of the **entrance slot** now, so each vernacular
+brings its own: Georgian its pavilion, Gothic a porch that *is* the bay
+rather than an object standing on the lawn in front of one. The buttresses
+moved onto the bay's own front corners, flush with its sides, so they read as
+buttresses instead of free-standing columns — which were, of all things, the
+one classical element a Gothic entrance must not have.
+
+Two further corrections the fix made obvious once the windows were off: the
+arch was a large dark hole (now door-scaled), and a full-height bay carrying
+one door was a blank grey cliff. A porch is **lower than the wall it stands
+against** — that is most of what makes it read as a porch — so it rises two
+thirds and the wall's own lancets show above the gable. `EntranceSteps` now
+land at whatever the entrance actually presents, since a porch's steps set
+out at a portico's depth float on the grass.
+
+**The screenshot harness is committed** as `tools/makeSave.ts` and
+`tools/shoot.mjs` (`npm run shot:save`, `npm run shot`), because it earned
+it: six defects across this PR, none of which any test caught. It fast-
+forwards the sim's Completionist strategy to get every motif onto one map,
+overrides the vernacular on the way out so the *same* campus can be
+photographed in each set, and loads it into a headless Chromium through
+`localStorage`. The dependency is `playwright-core` rather than `playwright`
+so installing the repo does not pull a browser nobody asked for.
+
 **Gothic is not reachable in play yet.** `FOUNDING_VERNACULAR` is still
 `'georgian'` and PR K is what puts the choice on the founding screen. That
 is this plan's sequencing rather than an oversight — the screen wants all
