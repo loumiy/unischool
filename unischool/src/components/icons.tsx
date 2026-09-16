@@ -89,7 +89,7 @@ export function TreasuryIcon() {
   );
 }
 
-export function AdmissionsIcon() {
+export function EnrollmentIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
       <rect x="5" y="4" width="14" height="17" rx="2" />

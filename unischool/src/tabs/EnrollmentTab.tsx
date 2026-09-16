@@ -1,7 +1,7 @@
 import type { GameState } from '../state/types';
 import { totalEnrolled } from '../state/types';
 
-// Enrollment/admissions snapshot. Tuition is only ever set once a year,
+// The Enrollment tab. Tuition is only ever set once a year,
 // at the summer admissions interrupt (see
 // InterruptModal.tsx) — this tab is the read-only picture of where things
 // stand between those decisions.
@@ -12,7 +12,7 @@ import { totalEnrolled } from '../state/types';
 // WORD_OF_MOUTH_STRENGTH), so the note below says so rather than leaving
 // it unexplained. The expandable five-attribute breakdown lives in the
 // Student Life tab, alongside the rest of what drives that number.
-export default function AdmissionsTab({ s }: { s: GameState }) {
+export default function EnrollmentTab({ s }: { s: GameState }) {
   return (
     <div className="tab-content">
       <section className="panel">

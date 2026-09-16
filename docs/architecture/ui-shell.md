@@ -2,7 +2,7 @@
 
 The **campus map** holds the middle of the screen at all times. The build menu
 opens over it, and every other view — Curriculum, Faculty, Research, Student
-Life, Athletics, Admissions, History, Treasury — opens as a dismissible
+Life, Athletics, Enrollment, History, Treasury — opens as a dismissible
 **full-bleed screen** on top of it: the tab takes the viewport and the dock
 (log ticker + toolbar) lays over it. Every tab, the same way. The map is what a
 player returns to, by the home button at the head of the toolbar's icon row,

@@ -5,7 +5,7 @@ import { labEquippedFields } from '../data/researchData';
 // App.tsx), so it is NOT one of these — every id here is a view that pops
 // up over the map and can be dismissed to get back to it. `active` is null
 // when nothing is open and the player is looking at the map itself.
-export type TabId = 'faculty' | 'curriculum' | 'research' | 'treasury' | 'admissions' | 'studentlife' | 'history' | 'athletics';
+export type TabId = 'faculty' | 'curriculum' | 'research' | 'treasury' | 'enrollment' | 'studentlife' | 'history' | 'athletics';
 
 // THE ORDER IS THE TOOLBAR'S ORDER, and it is the playtest notes' order:
 // the academic core first (what the university teaches, who teaches it,
@@ -25,7 +25,7 @@ const TABS: Array<{ id: TabId; label: string }> = [
   { id: 'research', label: 'Research' },
   { id: 'studentlife', label: 'Student Life' },
   { id: 'athletics', label: 'Athletics' },
-  { id: 'admissions', label: 'Admissions' },
+  { id: 'enrollment', label: 'Enrollment' },
   { id: 'history', label: 'History' },
   { id: 'treasury', label: 'Treasury' },
 ];

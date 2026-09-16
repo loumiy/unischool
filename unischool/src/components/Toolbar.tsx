@@ -7,7 +7,7 @@ import { FundsAndStats, SchoolAndClock } from './StatusHeader';
 import type { Speed } from '../engine/useGame';
 import { visibleCourseIds } from '../tabs/CurriculumTab';
 import {
-  FacultyIcon, CurriculumIcon, AdmissionsIcon,
+  FacultyIcon, CurriculumIcon, EnrollmentIcon,
   StudentLifeIcon, HistoryIcon, AthleticsIcon, BuildIcon,
   ResearchIcon, HomeIcon,
 } from './icons';
@@ -15,7 +15,7 @@ import {
 // Which tab icons can carry the small red alert badge, and how each decides
 // it has something unseen (see types.ts's SeenState). Curriculum is the only
 // TAB_ORDER entry with a badge of its own — every other tab (Treasury,
-// Admissions, Student Life, History, Athletics) has no "new content you
+// Enrollment, Student Life, History, Athletics) has no "new content you
 // haven't looked at yet" concept, so it's simply absent from this table
 // rather than wired to an always-false check.
 //
@@ -48,7 +48,7 @@ const TAB_ICONS: Record<Exclude<TabId, 'treasury'>, () => React.JSX.Element> = {
   faculty: FacultyIcon,
   curriculum: CurriculumIcon,
   research: ResearchIcon,
-  admissions: AdmissionsIcon,
+  enrollment: EnrollmentIcon,
   studentlife: StudentLifeIcon,
   history: HistoryIcon,
   athletics: AthleticsIcon,
