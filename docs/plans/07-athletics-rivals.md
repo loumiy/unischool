@@ -1,0 +1,748 @@
+# Plan 07 — Athletics, and the field it plays in
+
+*Planning document only — no gameplay code is changed by this file. Its job is
+to take `BACKLOG.md`'s two entangled entries — **Athletics V3** and **Rival
+schools** — and turn them into one ordered sequence of PRs, each small enough
+to land on its own and each landing in the order that makes the next one
+cheaper.*
+
+**Status: Proposed.** Ten PRs in two phases. Phase 1 rebuilds the field the
+school is measured against: a hundred schools instead of fifty-six, each with a
+mascot, standing decomposed into three independently ranked numbers, and a
+rival's athletic strength split per sport and finally allowed to move. Phase 2
+spends that on the department: four more sports, a coach market that fits them,
+an athletic director and a mascot of the player's own, a laid-out tab, an AD who
+asks for what the department lacks, and a year-end playoff whose championships
+are the first thing athletics has ever produced that changes a number outside
+itself.
+
+**Written against `38a99bb`** (Plan 06 landed, plus the eighth cohort). Every
+documentation reference below names a file as it stands at that commit.
+
+---
+
+## 0. The shape of the feature, and why the order is what it is
+
+### The first finding: these are one feature, and the seam is not the mascot
+
+The backlog names the coupling twice and both times names it small — *"each
+school needs a mascot, which is what ties this to Athletics V3"*, and
+*"per-sport standings need per-sport rival strength, and that lives here"*.
+Both are true and neither is the reason these have to be planned together.
+
+The reason is that **Athletics V3 asks for consequences it has nowhere to put.**
+Read its own list: a mechanic that gives the player *a reason* to build venues
+and hire coaches; championship interrupts; per-sport standings. Today a coach
+costs money and raises `teamQuality`, `teamQuality` raises
+`athleticProgramStrength`, and `athleticProgramStrength` is read by exactly one
+thing: a rank readout on the Athletics tab. Nothing else in the game reads it.
+A team's only mechanical output is `TEAM_SOCIAL_BONUS`, which is flat per team
+and identical whether the team is excellent or staffed by nobody. **Hiring a
+good coach is, mechanically, a pure cost.** That is the actual defect behind the
+backlog's "a mechanic that gives the player a *reason*", and no amount of
+layout, interrupts or extra sports fixes it.
+
+`docs/design/student-life.md` says where the fix has to come from, and forbids
+taking it casually:
+
+> Athletics reaches satisfaction only through this same capped social
+> contribution, same as clubs and Greek life — **never prestige directly**; if
+> athletics should eventually touch prestige, that is a separate prestige-model
+> decision, flagged rather than wired.
+
+Rival schools' first line **is** that decision: *"Prestige becomes more than one
+number — ranked separately by school, by social life, by research."* A social
+standing that athletics moves is the destination Athletics V3 has been missing,
+and it lives in the other entry. Execute them apart and Athletics V3 ships a
+championship that changes nothing, then Rival schools ships an axis with nothing
+interesting feeding it.
+
+So the order is forced at the top level: **the field first, the department
+second.** Phase 1 builds the three-axis model, the hundred-school field and the
+per-sport strength; Phase 2 is athletics spending all three.
+
+### The second finding: the headline number cannot move, so nothing decomposes
+
+"Prestige becomes more than one number" has two possible readings, and only one
+of them is affordable.
+
+`s.self.reputation` is read by `admitRate(prestige)` (the whole admissions
+funnel), by the applicant-pool size, by price tolerance, by
+`sim/balanceSim.ts`'s seven strategies, by `test/balance-regression.test.ts`'s
+prestige-separation gate, and by every `YearSnapshot` ever recorded. Splitting
+it into three components that *sum* to it — the decomposition reading — moves
+every one of those at once, and moves them in the same plan that is trying to
+add playoff brackets.
+
+**So this plan takes the other reading: two new numbers beside the existing one,
+never inside it.** `computePrestigeTarget` is not touched by any PR here. Its
+inputs, weights, baseline, drift rate and clamps are the same after Plan 07 as
+before it, and PR 1B's own verification is that `npm run sim` prints byte-
+identical prestige columns. Three consequences worth stating plainly:
+
+- The backlog's separate entry, **the admit-rate curve's early slope**, stays
+  completely independent of this plan. It re-fits a curve whose input this plan
+  never moves, so the two can land in either order.
+- `docs/design/progression.md`'s standing note — *"The long-term direction is to
+  decompose prestige into several underlying components; that is future work,
+  and must keep the composed-stock discipline"* — is **not** what this plan
+  does, and the document has to say so rather than be quietly taken as done.
+  That is PR 1B's documentation obligation.
+- The one-way rule extends rather than bends. Rankings are a measurement *of*
+  standing and never an input to it; the new axes are two more measurements.
+  Nothing in `prestigeSystem.ts` reads a rank, and nothing in
+  `computePrestigeTarget` reads either new stock. `test/invariants.test.ts`'s
+  section 5 currently asserts this for one field and one function; it gains the
+  other two.
+
+### The third finding: the field has to grow *downward*, and that is what makes the toolbar readout worth anything
+
+Expanding 55 rivals to 99 looks like authoring work and is actually a balance
+change, because **rank 50 means something different in a field of 56 than in a
+field of 100.** Today the player passes six schools to crack the top 50. In a
+naively expanded field they would pass fifty, and the mid-game reveal
+`docs/design/progression.md` describes — *"reaching enough prestige to crack the
+top 50 (which should take some time)"* — would become the late-game reveal
+nobody designed.
+
+The fix is in where the 44 new schools are authored, not in retuning anything.
+`rivalData.ts`'s existing field spans **45 to 99** and its header comment says
+why the floor is where it is: *"Deliberately no rival starts below ~45: the
+player begins at 35-50 depending on school type, so the whole field starts
+ranked above a fresh university."* Author the new 44 **below that floor**, in a
+long tail from ~44 down to the low teens, and:
+
+- The 50th school by reputation is the **same school it is today**, so the
+  top-50 entry threshold is unchanged in prestige terms and the reveal fires at
+  the same point in the same run. No constant moves.
+- The existing 55 keep their reputations, their momenta and their positions
+  relative to each other, so `npm run sim`'s prestige arcs and the regression
+  gate's separation checks are untouched.
+- A founding school stops being last. A private school opens at 50
+  (`BASE_STARTING_REPUTATION` 40 + 10) — above the whole tail, ranked ~#55 of
+  100 rather than #55 of 56. A public opens at 35 and sits *inside* the tail,
+  ranked around #68 with a dozen schools directly above it to pass in its first
+  decade.
+
+That last line is the argument for the backlog's other rivals ask — *"show rank
+outside the top 50 on the toolbar"* — and the reason the two belong in one PR.
+A rank readout is motivating when there is a field below you and schools just
+above you to climb past. "#56 of 56" is not a readout, it is a floor, and that
+is why the toolbar has been hiding it behind `hasEnteredRankings` all along. The
+hundred-school field is what earns the readout; the readout is what makes the
+hundred-school field felt.
+
+**What the reveal then means** needs one sentence of fiction, and it has a good
+one: the U.S. News list publishes fifty names. Where you stand is knowable from
+week one; *being published* is the event. The interrupt keeps its top-50 gate
+untouched.
+
+### The fourth finding: per-sport strength is derived — the opposite call from Plan 06's, for the opposite reason
+
+Plan 06's central finding was that the enrolled cohort mix **cannot** be
+reconstructed and has to be stored, because every cohort pull is a function of
+*current* state and recomputing an old class's mix applies today's campus to a
+class admitted four years ago.
+
+Per-sport rival strength is the mirror image, and saying why keeps the two
+consistent rather than arbitrary. A hundred schools across eighteen sports is
+1,800 numbers: unauthorable (`rivalData.ts` already refuses 55 hand-picked
+athletic-strength numbers as *"pure busywork with no signal a formula can't
+already give"*) and, stored, 1,800 more numbers in every save. But the thing
+being reconstructed is not a fossil. A class's cohort mix is a fact about a
+decision made at a moment and gone forever; **a school's strength at lacrosse is
+a standing fact about the school**, and a deterministic hash of (`id`, sport id)
+spread around its stored department strength reproduces it identically on every
+read, forever, across saves and reloads. There is nothing to lose.
+
+So: **one stored number per rival that moves, eighteen derived from it that
+don't move independently.** And a school is permanently a hockey school or
+permanently a swimming school, which is not a compromise — it is the thing that
+makes a rivalry legible over forty years.
+
+The stored number does have to start moving, which closes a note the code
+already carries. `types.ts` on `Rival.athleticStrength`: *"Static for now (no
+annual drift of its own, unlike reputation/momentum) — a deferred deepening, not
+an oversight."* A playoff against a field that never changes is a playoff whose
+result is known in advance, so PR 1C gives athletic strength the momentum-plus-
+shock drift `reputation` already has.
+
+### The fifth finding: a playoff is not a season, and the line has to be drawn before PR 2F
+
+Two documents hold match simulation deferred. `docs/design/student-life.md`:
+*"there is still no match simulation and no schedules: standings are read off
+one comparable strength number per school."* `BACKLOG.md`'s **Athletics
+deferrals**: *"Match simulation and schedules (standings are one comparable
+strength number per school, not a simulated season)."*
+
+A bracket does not violate either, and the distinction is exact rather than
+convenient. What is deferred is a **season**: weeks, fixtures, opponents,
+results accumulating into a record. What PR 2F builds is a single function, run
+once a year, that seeds the top eight schools in a sport by the strength number
+standings *already* sort on and resolves three rounds of one-off comparisons.
+No week ever contains a game. No team ever has a schedule. The bracket reads the
+same input the rank readout reads and produces one more number: a champion.
+
+Stating this in the plan is load-bearing, because "playoffs" is exactly the
+feature that grows a regular season if nobody wrote down that it must not.
+
+### The sixth finding: the mascot is contested between two backlog entries, and this plan settles it
+
+`BACKLOG.md`'s **Startup screen** entry floats *"picking the mascot here rather
+than burying it in Athletics (which pairs with Athletics V3's own mascot step,
+so these should land together or not at all)"*. Athletics V3 lists *"name the
+mascot"* as part of its first interrupt. One of the two entries has to lose it,
+and only one of them is being executed here.
+
+**Settled: the mascot is named in athletics**, at the athletic-director
+interrupt, for a reason better than "that is the entry in flight". The startup
+screen asks for it before the player has any reason to care, before a single
+building stands, and typically a decade before a varsity team exists — a naming
+decision with no context, made at the one moment the game is trying to get out
+of the player's way. The first varsity team is the exact moment the question
+acquires an answer: there is now something that wears the name.
+
+The cost is real and gets paid rather than ignored: PR 2G edits the **Startup
+screen** entry to drop the mascot bullet and record where it went. The entry's
+own "together or not at all" is honoured — they are landing together, in
+athletics.
+
+### The seventh finding: documentation is not a trailing PR
+
+Plan 06's third finding still binds, and `docs/architecture/README.md` still
+states it outright: *"These documents are the spec, and source comments cite
+them by name, so they have to stay true. When a change makes one of them wrong,
+fix the document in the same PR."*
+
+This plan falsifies more spec than Plan 06 did — `progression.md`'s whole
+"Rankings" section, `student-life.md`'s "Standings" and "Varsity athletics"
+paragraphs, and half a dozen source comments that count sports as fourteen. Each
+PR below carries the documents it breaks. What is left for the last PR is only
+what no earlier one makes wrong: two pieces of forward-looking work becoming
+past.
+
+### The map
+
+| Note | Touches | PR |
+|---|---|---|
+| 99 rivals, each with a mascot; rank on the toolbar from week one | `rivalData.ts`, `types.ts`, `StatusHeader.tsx`, `HistoryTab.tsx`, `persistence.ts`, `docs/design/progression.md` | 1A |
+| Standing becomes three independently ranked numbers | `types.ts`, `prestigeSystem.ts`, `rivalsSystem.ts`, `rivalData.ts`, `InterruptModal.tsx`, `persistence.ts`, `invariants.test.ts`, `docs/design/progression.md` | 1B |
+| A rival's athletic strength drifts, and splits per sport | `rivalsSystem.ts`, `rivalData.ts`, `docs/design/student-life.md` | 1C |
+| Track & Field and Ice Hockey; golf declined, rowing deferred | `studentLifeData.ts`, `gendered-sports.test.ts`, `docs/design/student-life.md` | 2A |
+| One coach pool, tagged by need, with faces | `studentLifeData.ts`, `types.ts`, `FacultyPortrait.tsx`, `AthleticsTab.tsx`, `persistence.ts`, `styles.css` | 2B |
+| An athletic director, and a mascot | `types.ts`, `eventSystem.ts`, `InterruptModal.tsx`, `studentLifeData.ts`, `financeSystem.ts`, `persistence.ts`, `balanceSim.ts` | 2C |
+| The department, laid out | `AthleticsTab.tsx`, `styles.css`, `docs/design/student-life.md` | 2D |
+| The AD asks for what the department lacks | `eventData.ts`, `eventSystem.ts`, `docs/architecture/interrupts.md` | 2E |
+| Playoffs, and a championship that moves a number | `athleticsSystem.ts`, `types.ts`, `prestigeSystem.ts`, `InterruptModal.tsx`, `AthleticsTab.tsx`, `persistence.ts`, `docs/design/student-life.md` | 2F |
+| Two backlog entries close | `BACKLOG.md`, `docs/plans/README.md` | 2G |
+
+1A through 1C are invisible as athletics and land behind the existing screens.
+2A through 2C are the department's contents. 2D is the screen. 2E and 2F are the
+loop closing.
+
+---
+
+## Open questions, settled before the first PR
+
+**1. What exactly are the three axes, and what feeds each?**
+
+| Axis | Field (player and rival share the name) | Fed by |
+|---|---|---|
+| Academic | `reputation` | **Unchanged.** `computePrestigeTarget` exactly as it stands. |
+| Research | `researchStanding` | The credits `researchScore` already counts (publications at a tenth, completed initiatives, breakthroughs, prizes, doctorates), read on their own full scale rather than as one capped 22-weight input among six; plus lab breadth (`labEquippedFields`) and the research strength of faculty actually assigned to initiatives. |
+| Social | `socialStanding` | Campus-life facilities (the `prestigeContribution` sum `campusLifeScore` already reads), student-life breadth (clubs, chapters, housed chapters — capped, the same shape the social satisfaction ceiling uses), the `social` satisfaction attribute itself, and **athletics**: `athleticProgramStrength` now, plus championship titles from PR 2F. |
+
+Same field names on both sides of the comparison, which is not cosmetic: it
+turns `rankedList`/`playerRank`/`athleticRankedList` — three copies of one
+function today — into one `rankedListBy(s, axis)` covering four leaderboards.
+That de-duplication is part of PR 1B rather than a follow-up, because the fourth
+copy would otherwise be written in PR 1C.
+
+**Proposed: all three are stocks in `prestigeSystem.ts`**, computed as targets
+and drifted at `PRESTIGE_DRIFT_RATE` by one `tickPrestige` that now drifts
+three. One module owning all three is what keeps the composed-stock discipline
+checkable by the invariants test, which greps that module by path.
+
+**Note the double-counting that is deliberate.** Research credits feed both the
+academic target (at weight 22, where they already do) and the research axis (at
+full scale). That is correct: the two numbers answer different questions — *how
+good is this university* and *how good is its research* — and a research
+university is supposed to score on both. What is forbidden is the reverse
+direction, and it is the thing the invariants test guards: no new axis may ever
+appear in `computePrestigeTarget`.
+
+**2. Does athletics finally touch prestige, then?** No — and the distinction is
+the whole reason this is affordable. Athletics reaches `socialStanding`, a
+number no system reads back: not admissions, not tuition, not the applicant
+pool, not the funnel. It is a leaderboard and a championship's payoff. The
+headline number athletics is forbidden to touch stays untouched, so
+`student-life.md`'s flagged decision is made in exactly the narrow shape it was
+flagged in, and `npm run sim` can prove it.
+
+**3. Where does the athletic director live, and what do they actually do?**
+**Proposed: `s.orgs.athleticDirector: Coach | null`.** Reusing `Coach` rather
+than inventing a fourth person type — an AD is a person with a `quality`, a
+`salary` and a `field` (a new `AD_FIELD`, the same way `TRAINER_FIELD` marks a
+role rather than a sport), which is exactly `Coach`'s shape.
+
+They do two things, and both have to be real or the hire is another pure cost:
+
+- Their `quality` is a **department-wide addition to every team's
+  `teamQuality`**, in the same place `ATHLETICS_BUDGET_TIERS[...].qualityBonus`
+  is applied — so a good AD raises every program at once, which is what an AD
+  is, and is a different lever from the budget tier (people versus money).
+- They are the **voice**: PR 2E's shortage interrupts and PR 2F's championship
+  reports are written as the AD speaking, which is what makes a periodic "your
+  wrestling program has no head coach" read as a person doing their job rather
+  than the UI nagging.
+
+**4. "Three generated cards, salary the only real differentiator" — is that a
+choice at all?** It is, once read correctly, and the cards have to be honest
+about which one. A faculty hire trades teaching against research; an AD has one
+stat, so the only question the cards can pose is **how much of the department's
+budget goes to the person running it**. So: quality rolls across a wide band,
+salary tracks quality closely, and the three cards are a cheap one, a middling
+one and an expensive one. **Proposed: the modal says so in a line** rather than
+implying a hidden tradeoff — the same honesty `student-life.md` praises
+elsewhere, where the satisfaction panel reports that the clubs are adding
+nothing when nothing is what they add.
+
+**5. How many sports, and where do they play?** Four, and both venues already
+exist:
+
+- **Track & Field**, men's and women's, on `athleticsField`. The backlog's own
+  observation — *"the multi-sport field already carries a track"* — and
+  `groundMarkings.tsx` draws it. Zero new art, zero new facility.
+- **Ice Hockey**, men's and women's, in `athleticsArena`. **A named call rather
+  than an obvious one:** a real arena converts between hardwood and ice, which
+  is exactly the "shared among varsity teams in one category" model
+  `student-life.md` describes, and the alternative — an `athleticsIceRink`
+  facility type — costs a Buildable, a footprint, a ground marking, a build-rail
+  entry and a map asset for one sport. The cost of the call is that the arena
+  becomes the venue for six programs, which is a lot of load on one building and
+  is the thing to watch in playtest.
+- **Rowing: deferred**, and the reason is not scope. The backlog floats *"a lake
+  and a boathouse, or no venue"*; a lake is **terrain**, and the campus map has
+  no terrain concept at all — `campusData.ts` is a tile grid of placements, and
+  the only water in the game is drawn ornamentally inside two ground markings
+  (the quad fountain and the rec pool). Water on the map is a campus-map plan,
+  not an athletics one. "No venue" is the other option and is worse than it
+  sounds: every team carries a `venueCategory`, `promoteToVarsityTeam` and
+  `sanitizeTeams` both key off it, and the `awaitingVenue` status is the whole
+  shape of the varsity grant. A venueless sport is a special case threaded
+  through all of it for one program. It moves to **Athletics deferrals** in PR
+  2G with this reasoning attached.
+- **Golf: declined.** The backlog already suspects it — *"probably too much
+  ground"* — and it is right: a course is a footprint larger than the campus the
+  game draws.
+
+Eighteen `SPORTS` entries, from fourteen.
+
+**6. Reusing faculty headshots means what, exactly?** `FacultyPortrait.tsx`
+reads four things off its subject: `id` (every trait is a hash bucket off it),
+`gender`, `heritage` (skin tone), and `facultyQualityTier(f)` (gray hair —
+seniority). A `Coach` has the first two and neither of the last two, and
+`rollCoachName` currently **throws away** the name pool's origin that
+`rollFullName` keeps as `heritage`.
+
+**Proposed: `Coach` gains `heritage`, and the portrait is generalized off a
+small shape** — `{ id, gender, heritage, senior }` — that `Faculty` and `Coach`
+both satisfy, with `senior` computed by each caller from what it has
+(`facultyQualityTier` for a professor, a quality threshold for a coach). Two
+alternatives were considered and are worse: hashing a heritage out of the coach
+id decouples the face from the name, which is the exact defect `facultyData.ts`
+documents as the reason `heritage` exists separately from `nationality`; and
+copying the portrait into a second component doubles a 250-line file to avoid a
+four-field interface.
+
+Existing coaches in a save get a heritage in the same migration, rolled from the
+pools — a coach hired in year 9 does not change name, quality, salary or team,
+only acquires a face.
+
+**7. What does a championship actually store?** Forty years × eighteen sports of
+brackets is an archive nobody reads inside a save that has to stay JSON-plain.
+**Proposed, bounded by construction:**
+
+- `s.orgs.titles: Array<{ sport: string; year: number }>` — the player's own
+  championships only. Monotone, small, and the input `socialStanding` reads.
+- `s.orgs.lastSeason: Record<string, { champion: string; playerResult: string }>`
+  — **overwritten every year**, one entry per sport the player fields, so the
+  standings table can say who won last year and how far the player got. It never
+  grows.
+
+No bracket is stored. A bracket is a thing that happened for one modal's
+duration; what survives it is a champion and a title.
+
+**8. Does a migrated save get the 44 new schools?** Yes — a save that does not
+can never reach content authored below it, and the whole tail is where the
+early-game readout lives.
+
+**And it is rank-neutral for almost every save**, which is the finding that
+makes this safe rather than merely necessary. Rank counts the schools *above*
+you; the new 44 are all below reputation ~44. Any school that has climbed past
+the old field's floor — which is every school past its founding decade, and
+every private school from week one — gains exactly zero schools above it and
+keeps its rank to the digit. The exception is a save whose prestige currently
+sits *inside* the new tail (a founding-era run, or a collapsed one): it picks up
+a handful of schools above it and its rank number steps up once.
+
+The `YearSnapshot` rows already recorded cannot be corrected, for the same
+reason Plan 06 gave: nothing stores what the field looked like in year 3. So the
+History chart on an early save may show a one-year step in the rank line. Named
+in the migration comment, not papered over.
+
+---
+
+# PHASE 1 — THE FIELD
+
+*Three PRs. None of them renders anything on the Athletics tab, and none of them
+touches `computePrestigeTarget`.*
+
+## PR 1A — A hundred schools, each with a mascot, and a rank from week one
+
+**The change.** `rivalData.ts` grows from 55 rivals to 99, and every school in
+the game — the player's included — acquires a mascot.
+
+- **44 new schools, authored below the existing floor** (open question: section
+  0's third finding), spanning roughly 44 down to the low teens, with momenta
+  drawn from the same band as the existing field. The existing 55 entries are
+  not touched: same ids, same reputations, same momenta.
+- **`Rival.mascot: string`** on all 99, authored beside the names — one data
+  pass over the file rather than two. Nothing mechanical reads it; it is what
+  makes a standings row read as a sports page rather than a spreadsheet, and it
+  is what PR 2F's championship modal names when the player loses a final.
+- **`University.mascot: string`**, empty at founding and filled by PR 2C's
+  interrupt. Landing the field here rather than in 2C keeps the save-shape
+  change in one migration with the other three.
+- **The toolbar shows rank unconditionally.** `StatusHeader.tsx`'s
+  `s.hasEnteredRankings ? playerRank(s) : null` becomes `playerRank(s)`, and
+  `HistoryTab.tsx`'s `showRank` follows it. `hasEnteredRankings` keeps its only
+  remaining job: gating the reveal interrupt and the annual report, both
+  unchanged.
+- **`SAVE_VERSION` 41 → 42.** The 44 new rivals are appended with their authored
+  values; every existing rival gains its authored mascot by id; `self.mascot`
+  fills with `''`. The shape of MIGRATIONS[28], which added `athleticStrength`
+  to every rival, and it carries open question 8's rank note.
+
+**The documents this falsifies, fixed here.** `docs/design/progression.md`'s
+"Rankings" section opens *"Rivals are populated densely enough that a top 50 is
+meaningful (~55 schools, not 5)"* and describes the report as the touchpoint
+because *"standing among peers does not need to be shown constantly"*. Both
+change: the field is 100, and standing is now on the toolbar with the
+*published list* as the reveal. `rivalData.ts`'s own header comment about the
+~45 floor gains the tail's reasoning.
+
+**Verification.** `npm run sim` — quoted in the PR summary, and the thing to
+read is that prestige columns are unchanged while rank columns move for exactly
+the founding years. The regression gate asserts prestige separation and cash
+arcs, neither of which this touches.
+
+## PR 1B — Standing becomes three numbers
+
+**The change.** Two new stocks beside `reputation`, two new fields beside
+`Rival.reputation`, and one ranked-list function where there were three.
+
+- `University.socialStanding` / `University.researchStanding`;
+  `Rival.socialStanding` / `Rival.researchStanding`, seeded at founding the way
+  `athleticStrengthFor` seeds athletic strength — a deterministic hash off the
+  school's own id spreading its `reputation`, except that a rival's social
+  standing also leans on its `athleticStrength`, so a sports school reads as a
+  social school and the field's identities stay coherent across the three
+  tables.
+- `prestigeSystem.ts` grows `computeSocialTarget` and `computeResearchTarget`
+  beside `computePrestigeTarget`, and `tickPrestige` drifts three stocks at the
+  same rate. Inputs per open question 1. **`computePrestigeTarget` itself is not
+  edited.**
+- `rankedList`, `playerRank`, `athleticRankedList` and `athleticRank` collapse
+  into `rankedListBy(s, axis)` / `rankBy(s, axis)` over the four comparable
+  fields. Existing call sites keep thin named wrappers so nothing outside this
+  module learns a new vocabulary.
+- `tickRivals`'s annual pass drifts the two new rival fields with their own
+  momentum and shock, the same way `reputation` moves.
+- The **annual report** gains two lines under the headline rank — research and
+  campus life, each with the player's place and its year-over-year move — using
+  the machinery `buildReportPayload` already has. Not two more tables: the
+  report is a modal, and the full tables live where their subject does (the
+  Research tab gains a one-line rank readout; social standing lands on the
+  Athletics tab in PR 2D).
+- `SAVE_VERSION` 42 → 43, seeding all four fields from the same functions a
+  fresh game uses.
+
+**The invariant, extended.** `test/invariants.test.ts` section 5 asserts one
+writer set for `self.reputation` and that `prestigeSystem.ts` never reads
+`playerRank`. It gains: the same confined writer set for both new stocks, and
+that `computePrestigeTarget`'s body reads neither of them. That second assertion
+is the one that keeps this plan's central promise mechanically true rather than
+true by intention.
+
+**The documents this falsifies, fixed here.** `docs/design/progression.md`'s
+standing section — including the sentence about decomposing prestige as future
+work, which now has to say precisely what happened instead: the headline stock
+was **not** decomposed; two more were added beside it, and the composed-stock
+discipline applies to all three.
+
+**Verification.** `npm run sim`, and the bar is unusually specific: **every
+prestige, cash, enrolment and satisfaction figure identical to PR 1A's run.**
+Anything that moved means an axis leaked into the headline target.
+
+## PR 1C — A rival's athletic strength moves, and splits by sport
+
+**The change.** The two things PR 2F cannot be built without.
+
+- **Annual drift for `athleticStrength`**, closing `types.ts`'s own *"static for
+  now ... a deferred deepening"* note: its own momentum field, its own shock,
+  the same clamp band, in the same `tickRivals` annual block.
+- **`sportStrengthFor(rival, sportId)`** — a deterministic hash of
+  (`rival.id`, sport id) spreading the school's stored `athleticStrength`, so a
+  school is reliably strong at some sports and weak at others and stays that way
+  for the run (section 0's fourth finding). The player's own per-sport number is
+  the corresponding `teamQuality` of the team they field, which is the number
+  coaches and budget already move.
+- **`sportRankedList(s, sportId)` / `sportRank(s, sportId)`**, built on PR 1B's
+  `rankedListBy` rather than as a fifth copy.
+
+Nothing renders any of it. The Athletics tab keeps the department-wide readout
+it has today.
+
+**The documents this falsifies, fixed here.**
+`docs/design/student-life.md`'s "Standings" paragraph describes
+`athleticStrengthFor` as the whole model and `Rival.athleticStrength` as static;
+`types.ts`'s comment on that field says the same.
+
+---
+
+# PHASE 2 — THE DEPARTMENT
+
+## PR 2A — Four more sports
+
+**The change.** `SPORT_PROFILES` gains Track & Field (`athleticsField`, men's
+and women's) and Ice Hockey (`athleticsArena`, men's and women's), taking
+`SPORTS` from fourteen entries to eighteen. Golf is declined and rowing deferred
+per open question 5; both reasons are recorded where a reader will look for them
+— the design doc and, in PR 2G, the backlog.
+
+The one constant this forces: `COACH_CANDIDATE_POOL_TARGET` is **18 listings
+spread across 15 fields** today, which is already thin, and nineteen fields
+(eighteen sports plus `TRAINER_FIELD`) would make "nobody on the market for this
+role" the normal answer for most teams most weeks. It rises here, with the
+arithmetic stated, because it is forced by the sport count rather than by the UI
+work in 2B.
+
+**Everything that does not change, and why.** No migration. `SPORTS` is seed
+data, not state; `sanitizeTeams` filters saved teams against `KNOWN_SPORT_IDS`
+and *adding* ids strands nothing. A save in progress simply starts seeing
+track and hockey clubs form.
+
+**The documents this falsifies, fixed here.** `docs/design/student-life.md`
+enumerates the sports, the three gender profiles and the venue mapping, and says
+"14 gendered `SPORTS` entries in all". Half a dozen source comments in
+`studentLifeData.ts`, `facultyData.ts` and `types.ts` say "fourteen" about
+teams, coach fields or the social-bonus ceiling; the ceiling note in particular
+does arithmetic against fourteen active teams that is now wrong, and it is the
+one that matters because it is the argument for where the cap sits.
+
+**Verification.** `npm run sim` — more sports means more sport clubs, more
+varsity petitions and more upkeep, and `athleticsUpkeep` as a share of opex is
+already a row the sim prints for exactly this reason.
+
+## PR 2B — The market comes home: one pool, tagged by need
+
+**The change.** The backlog's *"a bigger coach pool reusing faculty headshots and
+the old one-pool-tagged-by-need hiring UI (which is the right home for that
+pattern now that faculty no longer uses it)"*, in full.
+
+- **`Coach` gains `heritage`**, rolled from the name pool's origin the way
+  `rollFullName` already keeps it for faculty (open question 6).
+  `rollCoachName` returns the origin instead of discarding it.
+- **`FacultyPortrait` is generalized** off a four-field shape both people
+  satisfy. The file keeps its name and every trait table; only its parameter
+  type and its seniority input change.
+- **The hiring UI is replaced.** Today each vacant role on each team carries its
+  own expand toggle over a filtered slice of the pool — a shape that works for
+  three listings and collapses at forty. It becomes **one list of the whole
+  market**, each candidate a card with a face, a name, a field, a quality and a
+  salary, **tagged with which of your teams needs them** — a head-coach
+  candidate in a sport whose team has an empty chair, a trainer while any team
+  has a vacancy. Hiring from the card picks the role; where a candidate could
+  fill more than one vacancy (a trainer, always) the card asks which team.
+- `SAVE_VERSION` 43 → 44: existing coaches, hired and listed, get a heritage.
+
+**Why this pattern comes home here.** `FacultyTab.tsx`'s own header records why
+faculty abandoned it: hiring moved to the Curriculum tab *"where the shortage is
+actually felt — you find out you need a kinesiologist when a course will not
+start"*. Athletics has no second screen where a coaching shortage surfaces; the
+Athletics tab **is** where it is felt. The pattern was not wrong, it was in the
+wrong building.
+
+## PR 2C — An athletic director, and a name to play under
+
+**The change.** The first varsity team already opens the Athletics tab
+(`TabNav.tsx`'s gate is `s.orgs.teams.length > 0`). It now also raises one
+interrupt, once per run.
+
+- **`s.orgs.athleticDirector: Coach | null`**, `field: AD_FIELD` (open question
+  3). Their quality is a department-wide addend to every team's `teamQuality`,
+  applied beside the budget tier's `qualityBonus`; their salary joins
+  `varsityTeamUpkeep` and therefore the sim's `athleticsUpkeep` row.
+- **Three generated candidates, rolled at fire time and carried in the
+  interrupt's payload** — the pattern `eventData.ts`'s `visiting-scholar`
+  already uses and explains: rolled once so the person described is exactly the
+  person hired, because *"two rolls would be two different people, one of them
+  fictional"*. Cheap, middling and expensive, with the modal saying plainly that
+  salary is the axis (open question 4).
+- **The mascot**, named in the same modal: a roll button over an authored word
+  list and a free-text field, length-capped, writing `self.mascot`.
+- It fires through `tickEvents`'s quiet-week slot, beside `fireCharterOffer`,
+  whose shape it copies exactly — a durable condition (a team exists and no AD
+  is hired), so a busy week means the offer waits rather than being dropped.
+- `SAVE_VERSION` 44 → 45 for the AD slot; a save that already has teams gets the
+  interrupt on its next quiet week, which is the right answer rather than a
+  special case.
+
+**A question this plan does not duck:** declining. The AD offer must have a free
+choice, like every decision event (`eventData.ts`'s no-soft-lock invariant), and
+declining has to be re-askable or a player who is broke in year 12 loses the
+feature for the run. **Proposed:** declining sets no flag, and the offer returns
+on the next quiet week after a cooldown, phrased as the search continuing.
+
+**Verification.** `npm run sim` — the AD is a new recurring salary and this is
+the PR where athletics' share of opex moves.
+
+## PR 2D — The department, laid out
+
+**The change.** `AthleticsTab.tsx` is 166 lines and one panel: a budget row, a
+rank line, and a flat list of team cards. It becomes three sections, which is
+the backlog's "better layout" made specific:
+
+- **The department.** The AD's card, the mascot, the recruiting budget lever,
+  and the school's **campus-life standing** (PR 1B's social axis) with the
+  athletic rank beside it.
+- **The teams**, as a grid rather than a column: each card its sport, venue and
+  venue status, quality, its three staff chairs, and — from PR 2F — its
+  championship banners.
+- **The standings**, per sport (PR 1C): for each sport the school fields, its
+  rank in that sport and the schools immediately above and below it, by name and
+  mascot. This is the first screen in the game where the field is something
+  other than a single ordered list of a hundred names, and it is what makes
+  hiring a hockey coach a decision about hockey.
+
+**The documents this falsifies, fixed here.** `docs/design/student-life.md`'s
+Athletics-tab paragraph describes the tab as teams plus one budget lever plus a
+department-wide standings readout, and says standings have *"no annual report,
+movers list, or reveal interrupt of its own"* — still true of the reveal, no
+longer true of the shape.
+
+## PR 2E — The AD asks for what the department lacks
+
+**The change.** The backlog's *"a mechanic that gives the player a reason to
+build venues and hire coaches, e.g. periodic AD interrupts naming a team without
+a coach"* — as an authored decision event in `eventData.ts`, fired from the same
+quiet-week slot as the varsity petition, subject to the same cooldowns, and
+therefore changing the **mix** of what stops the clock rather than how often it
+stops. `docs/architecture/interrupts.md` states that constraint for the Greek
+events and it applies unchanged here.
+
+The AD names one concrete gap — a team with no head coach, a team still
+awaiting its venue, a sport where a club has been waiting years — and the
+choices are the ordinary ones: fund it now, or not. Eligible only when a gap
+actually exists, so a fully staffed department never hears from them, which is
+the same *"a well-run run never sees one"* discipline student demands already
+follow.
+
+**Why this is not enough on its own, and why it lands here rather than first.**
+A nag is a reminder, not a reason. The reason arrives in 2F; this PR is what
+makes the reason visible at the moment it is actionable, and it needs the AD
+(2C) to have a voice and the tab (2D) to have somewhere to point.
+
+## PR 2F — Playoffs, and a championship that moves a number
+
+**The change.** The payoff, and the loop closing.
+
+- At a `PLAYOFF_WEEK` late in the year, `tickAthletics` resolves **one bracket
+  per sport the player fields**: the top eight schools by that sport's strength
+  (PR 1C), seeded, three rounds, each comparison a weighted roll on the two
+  strength numbers. No schedule, no fixtures, no regular season (section 0's
+  fifth finding). Sports the player does not field run no bracket — nobody would
+  read the result.
+- **Not qualifying is a result.** A program outside its sport's top eight does
+  not enter, and the tab says so. That is the sentence that makes a coach's
+  salary a decision: `teamQuality` is what seeds you, and `teamQuality` is
+  coaches plus budget plus the AD.
+- The outcome writes `s.orgs.lastSeason` and, on a win, appends to
+  `s.orgs.titles` (open question 7).
+- **A championship queues an interrupt** rather than firing on the spot, the way
+  milestones do — the playoff week may already belong to something else, and the
+  queue is how this game has always handled that. The modal is the AD reporting:
+  the bracket path by name and mascot, and what the title did to the school's
+  campus-life standing, computed the way the milestone modal computes what an
+  accomplishment was worth — by running the model without it and reporting the
+  difference.
+- `socialStanding`'s target gains its titles term (the one PR 1B could not
+  write, because the field did not exist).
+- `SAVE_VERSION` 45 → 46 for the two new `orgs` slices.
+
+**The loop this closes, stated once so a reader can check it later:** hire a
+coach → team quality rises → the team seeds higher in its sport → it qualifies,
+and sometimes wins → titles raise campus-life standing → a standing the player
+can see a rank for and climb. Every arrow exists after this PR, and none of them
+touched the headline prestige number.
+
+**The documents this falsifies, fixed here.**
+`docs/design/student-life.md`'s flat *"no match simulation and no schedules"* —
+which stays true of schedules and needs a sentence about what a bracket is and
+is not — and its "never prestige directly" paragraph, which is now precisely
+right and worth restating rather than leaving to be misread: still never the
+headline, now a social standing of its own.
+
+## PR 2G — Two backlog entries close
+
+What is left once every PR has kept its own documents true.
+
+- `BACKLOG.md`'s **Athletics V3** and **Rival schools** entries are removed.
+- **Three edits to entries this plan did not execute**, which is the part that
+  is easy to forget and the reason this PR is not a one-line deletion:
+  - **Startup screen** loses its mascot bullet, with a line recording that the
+    mascot is named at the athletic-director interrupt and why (section 0's
+    sixth finding). Everything else in that entry — the public/private drop, the
+    tuition-ceiling consequence, the motif set, the Founders Hall question — is
+    untouched.
+  - **Athletics deferrals** is rewritten rather than deleted: match simulation
+    and schedules are still deferred and the plan says why a bracket is not one;
+    per-sport standings are no longer deferred; **rowing and its lake join it**,
+    with open question 5's terrain reasoning; the teamless-venue question is
+    still open and still unanswered.
+  - **Direction, not plan** keeps camera rotation and the rest untouched, but
+    this is the pass that checks nothing there was quietly delivered.
+- `docs/plans/README.md`'s table moves this plan's row to `Landed`. The row
+  itself goes in when this document does, per that file's own exception for a
+  plan reading `Proposed`.
+
+**Verification:** the design and architecture docs read end to end against the
+shipped department — the pass that catches what the individual PRs missed, which
+Plan 05's PR G and Plan 06's PR E both found things in.
+
+---
+
+## What this plan does not do
+
+- **No match simulation, no schedules, no season.** Section 0's fifth finding.
+  A bracket once a year is the narrowest thing that produces a champion, and the
+  narrowness is the point.
+- **The headline prestige number is not decomposed, retuned or re-weighted.**
+  `computePrestigeTarget` is byte-identical afterwards. The backlog's admit-rate
+  re-fit is therefore untouched and unblocked.
+- **Rowing, its lake, and golf.** Deferred and declined respectively, with
+  reasons, in PR 2G.
+- **Disbanding a team**, and what happens to a venue whose last team is gone.
+  Still the open call `student-life.md` flags and the backlog carries. Adding
+  four sports and a playoff makes it more likely to be asked and no easier to
+  answer.
+- **The startup screen.** The mascot moves out of it; nothing else in that entry
+  is touched, and dropping public/private remains its own plan's work.
+- **Rival mascot art.** A mascot is a word. Nothing draws one.
+- **The History tab does not gain the two new axes.** `YearSnapshot` keeps one
+  `rank`, and the chart keeps one prestige line. Two more series is a History
+  plan, and there is no reason to guess at its shape before the three standings
+  have been lived with.
+- **Faculty poaching, retention, and the richer demand curve** are untouched
+  neighbours. Nothing here forecloses them.
