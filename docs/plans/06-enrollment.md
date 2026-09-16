@@ -6,7 +6,12 @@ infographic and a possible tab merge — and turn it into an ordered sequence of
 PRs, each one small enough to land on its own and each one landing in the order
 that makes the next one cheaper.*
 
-**Status: Proposed.** Five PRs, A through E. The enrolled body's cohort mix
+**Status: Landed.** All five, A through E — as five commits of one pull
+request rather than five pull requests, which is the one departure from this
+plan's own premise and was the repository owner's call. The sequence is
+otherwise exactly as written, each commit landing on its own and in this
+order. Each one's departures are noted in the PR that departed; there are
+eight, and they are the most useful thing in this document. The enrolled body's cohort mix
 becomes stored state carried by each class from admission to graduation; the
 Admissions tab becomes Enrollment and grows the infographic that mix makes
 possible; History is not touched. The backlog's merge option is **declined**,
@@ -282,6 +287,30 @@ run was skipped or forgotten.
 Note also that `npm test` chains with `&&`, so an early failure silently skips
 the later suites: read the tail of the output, not the exit line.
 
+**As implemented: two departures, both making A smaller than predicted.**
+
+The map above lists `class-pricing.test.ts` as a caller of `advanceClasses`
+that would have to move with its new signature. It is not one: it drives the
+real reducer rather than the pure function (its own header says so — "these
+checks drive the real reducer... because the invariant is about WHEN a price
+is applied"), so the regroup touched two call sites, not three. Worth knowing
+for the next per-class fact, because the reason generalises: the suites that
+care about the annual boundary go through `RESOLVE_ADMISSIONS`, so changing
+the boundary's internals moves fewer tests than it looks like it will.
+
+Related, and worth writing down because it is a gap rather than a saving:
+**`npm run build` does not typecheck `test/`.** `tsconfig.app.json` includes
+`src` only, and the suites are bundled by rolldown, which strips types without
+checking them. A test calling a changed signature fails at runtime if the
+change is observable and passes silently if it is not. The type system caught
+every `src` call site here; it would not have caught a test.
+
+`consequences.ts` needed an incoming cohort split it has no use for. The
+projection measures money, satisfaction and coverage, all of which read head
+counts — so it is passed the neutral prior with a comment saying nothing
+downstream reads it, rather than re-deriving the funnel's own split for a
+number nobody looks at.
+
 ## PR 06B — Admissions becomes Enrollment
 
 **Last cheap moment to do this.** The file is 32 lines now and about 250 after
@@ -306,6 +335,24 @@ Nothing about the tab's *contents* changes in this PR.
 **Verification:** `tab-gates.test.ts` compiles and passes unchanged — it names
 `history`, `research` and `athletics`, none of which move. The type change is
 what catches every call site; if it builds, the rename is complete.
+
+**As implemented: the type change found a call site the plan had not named.**
+`Toolbar.tsx` keys an icon map by `TabId`, so renaming the id broke it —
+`AdmissionsIcon` became `EnrollmentIcon` with it. The plan's claim that "if it
+builds, the rename is complete" held, and this is the case that proves it was
+worth relying on: a grep for the tab component alone would have missed it.
+
+In the other direction, `tab-gates.test.ts` needed no change at all, exactly
+as predicted — it names only the three gated tabs, none of which moved. The
+map above lists it anyway; it should not have.
+
+B also missed two prose references to the old name, swept in E once the
+whole tree was searched rather than the files the map named:
+`docs/architecture/systems.md`'s `src/tabs/` list, and `TreasuryTab.tsx`'s
+note that its class order matches "the Admissions tab" — which by then was
+wrong twice over, since the renamed tab stacks the classes rather than
+listing them. The lesson for the map is that a rename's blast radius is
+every mention of the word, not every file that imports the symbol.
 
 ## PR 06C — The standing body
 
@@ -358,6 +405,43 @@ it is the same fact seen from the other side.
 **Verification:** by eye for the layout; the PR A sum invariant is what keeps
 the bars honest against the class totals they segment.
 
+**As implemented: the plan flagged the wrong judgement call, and the colour
+risk did not materialise.**
+
+The plan reserved one decision for the browser — class order — and it turned
+out not to be a toss-up: youngest-first satisfies both readings at once, since
+it is the order Treasury and the reducer already use AND it puts the newest
+class on top with the oldest at the bottom, which is the strata reading. It
+was decided in ten seconds.
+
+**The decision that actually mattered was one the plan never considered: bar
+length.** Rendered as normalised full-width rows — the obvious way to draw a
+stacked composition — the four bars were near-indistinguishable. Class sizes
+vary by half again across four years (78 to 131 in the run used for this), and
+normalising throws exactly that away, leaving four identical-length bars whose
+mixes differ by a few percent. Scaling length to class size against the largest
+class fixed it: length carries the size, segments carry the mix, and a school
+that has been shrinking its intake now shows it at a glance. This is the
+finding that justifies "by eye" being a real verification step rather than a
+formality — no test would have failed.
+
+**The seven-colour fallback was not needed.** The plan kept one hue and four
+tints in reserve in case a categorical palette fought the parchment. Choosing
+pigments rather than hues — brass, ink-blue, moss, oxblood, terracotta, plum,
+ochre, the range a printed almanac of this era could be tinted in — sits on
+parchment without looking like a chart pasted in from a different game.
+
+**Marking the unsignalled classes needed a different claim than the plan
+made.** The plan said "a line under the panel naming the founding body". The
+panel cannot name it: which classes are priors is not stored, and deriving it
+from the clock lies for a migrated save (a v39 run at year 20 has four priors
+and a clock that says none). What IS derivable is the thing itself — a class
+whose split is exactly the base shares carries no pull from anything built —
+and three situations produce that: founding, migration, and a school that
+genuinely built nothing. So the label says **"no cohort signal"**, which is
+true of all three, instead of guessing between them. Marked per class with a
+dagger rather than as one line, since by year 3 only some classes are.
+
 ## PR 06D — The funnel, in context
 
 What the six numbers become, now that they are not the whole tab.
@@ -385,6 +469,23 @@ Plan 05's PR G is the precedent for what that reading catches.
 
 **Verification:** by eye. No new state and no new math; every figure on this
 panel is one `s.students` field or one call the tab already makes.
+
+**As implemented: reading the spec against the panel caught one of my own
+claims, and one tension worth naming.** The applicant-pool note said sticker
+shock "takes its cut off the top", which describes the wrong mechanism — it is
+the band-specific half of the price response and hits the bands unevenly,
+which is the entire reason it is about *who* applies rather than how many.
+Corrected before landing. This is the check Plan 05's PR G established, doing
+the same job again.
+
+The tension: `docs/design/admissions.md` says word of mouth is **deliberately
+not shown**, on the argument that a player told "+12% applicants" reads a
+number instead of learning the rule. Two notes on this panel name word of
+mouth as a force without quantifying it, and the tab already carried that
+sentence before this plan. Read here as a prohibition on a *readout* rather
+than on the causal explanation — flagged rather than silently resolved, per
+`docs/architecture/README.md`, because it is a judgement someone may want to
+take the other way.
 
 ## PR 06E — The backlog entry closes
 

@@ -16,8 +16,10 @@ going to happen but has not, it belongs here.
 *Each of these is a plan's worth of work on its own, and none of them blocks any
 other. Lifted from Plan 04, which is where they were first named. Turning one
 into an ordered sequence of PRs is what writing the next plan does — Summer
-admissions has been through that and shipped (Plan 05), which is why it is no
-longer here: what it changed is in `docs/design/admissions.md` now.*
+admissions has been through that and shipped (Plan 05), and Admissions and
+History has too (Plan 06, which declined the tab merge it proposed and built
+the infographic in a renamed Enrollment tab instead). Neither is here any
+more: what they changed is in `docs/design/admissions.md` now.*
 
 ### Startup screen
 Drop public/private. Note what that now costs: Plan 05's PR E left the **public
@@ -34,24 +36,6 @@ Open question worth settling first: should the building on the startup screen
 *be* Founders Hall? If yes, that is a change to one of the two. Plan 04's 4A has
 since narrowed Founders Hall to 7x5, so whichever is chosen, the two are
 already out of step and one of them has to move.
-
-### Admissions and History
-Admissions has no gameplay in it; folding it into History is plausible. The
-content that would justify either tab is the same: the student body has
-**classes** (freshman → senior) *and* **cohorts** (research-minded, athletes,
-…), and only the first is displayed, as a single line of four counts. An
-infographic view of who actually attends this university is the feature; which
-tab it lives in is a consequence of building it.
-
-The summer reveal now shows cohort head counts for the *incoming* pool (see
-`docs/design/admissions.md`'s "Admissions cohorts"), which is one year's
-applicants — not the same
-thing as the standing body, where four admitted classes are layered on top of
-each other. Showing the enrolled mix means either storing each class's cohort
-split at admission or reconstructing it, and that is the real decision this
-feature has to make. Plan 05 established the pattern for the first option:
-`finance.tuitionByClass` already carries a per-class fact alongside the classes
-and advances with them.
 
 ### Athletics V3
 Better layout; a bigger coach pool reusing faculty headshots and the old
