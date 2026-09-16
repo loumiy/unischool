@@ -68,6 +68,30 @@ function hasNoCohortSignal(counts: CohortCounts, total: number): boolean {
   return COHORTS.every((c) => counts[c.id] === prior[c.id]);
 }
 
+// One figure of the funnel, with what drives it underneath. Same shape and
+// the same classes as TreasuryTab's StatementLine, deliberately: these two
+// screens are doing the identical job of explaining a model the player only
+// ever sees the output of, and a second visual idiom for it would be a
+// second thing to learn. The value is a preformatted string here rather than
+// a number — these are people, percentages and a score out of 100, not one
+// unit the way an income statement is.
+function FunnelLine({ label, note, value, net }: {
+  label: string;
+  note: string;
+  value: string;
+  net?: boolean;
+}) {
+  return (
+    <div className={net ? 'statement-net funnel-net' : 'statement-line'}>
+      <div className="statement-line-label">
+        <span>{label}</span>
+        <span className="statement-line-note">{note}</span>
+      </div>
+      <span className="statement-line-amount">{value}</span>
+    </div>
+  );
+}
+
 function ClassBar({ label, total, counts, unsignalled, widest }: {
   label: string;
   total: number;
@@ -171,15 +195,35 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
       </section>
 
       <section className="panel">
-        <h2>Enrollment</h2>
-        <dl>
-          <dt>Enrolled</dt><dd>{enrolled.toLocaleString()}</dd>
-          <dt>Satisfaction</dt><dd>{Math.round(s.students.satisfaction)}</dd>
-          <dt>Applicant pool</dt><dd>{Math.round(s.students.applicantPool)}</dd>
-          <dt>Admit rate</dt><dd>{Math.round(s.students.admitRate * 100)}%</dd>
-          <dt>Incoming quality</dt><dd>{Math.round(s.students.incomingQuality)} / 100</dd>
-        </dl>
-        <p className="empty-note demand-note">Word of mouth: student satisfaction scales next summer's applicant pool.</p>
+        <h2>Last Summer's Funnel</h2>
+        <div className="funnel-lines">
+          <FunnelLine
+            label="Applicant pool"
+            note="What the school drew. Prestige and price set its size; beds, word of mouth and what you have built for each audience scale it; sticker shock then takes a cut, hitting the quality bands unevenly."
+            value={Math.round(s.students.applicantPool).toLocaleString()}
+          />
+          <FunnelLine
+            label="Admit rate"
+            note="Your decision, not a reading. Admitting deeper reaches further down the quality distribution, so it buys class size with incoming quality."
+            value={`${Math.round(s.students.admitRate * 100)}%`}
+          />
+          <FunnelLine
+            label="Incoming quality"
+            note="The weighted average of the class that enrolled — everyone admitted comes, there is no yield step. Feeds prestige, which is what makes admitting deep cost something."
+            value={`${Math.round(s.students.incomingQuality)} / 100`}
+          />
+          <FunnelLine
+            label="Satisfaction"
+            note="Next summer's word of mouth: the trailing-year average scales the pool above. The five attributes behind this number are on the Student Life tab."
+            value={`${Math.round(s.students.satisfaction)}`}
+          />
+          <FunnelLine
+            label="Enrolled"
+            note="The four classes summed. Set once a year at the summer decision and held: full progression, no attrition, and no capacity ceiling of any kind."
+            value={enrolled.toLocaleString()}
+            net
+          />
+        </div>
       </section>
     </div>
   );
