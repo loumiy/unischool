@@ -2026,21 +2026,32 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   letter-spacing: 0.06em; font-size: var(--text-sm); color: var(--gold-dim); }
 
 .cohort-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.cohort-card { position: relative; aspect-ratio: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: flex-start; gap: 2px; padding: 8px 4px;
+/* min-width: 0 is load-bearing. A grid item defaults to min-width: auto,
+   which means its MIN-CONTENT width wins over its track — so a card whose
+   longest unbreakable word ("PRE-PROFESSIONAL") is wider than a quarter of
+   the row silently pushes past the panel's right edge instead of wrapping.
+   overflow-wrap backs it up: with the track now authoritative, a name that
+   still does not fit breaks rather than spills. */
+.cohort-card { position: relative; min-width: 0; aspect-ratio: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-start; gap: 2px; padding: 8px 3px;
   background: #141b2c; border: 1px solid var(--navy-line); border-radius: var(--radius-sm); }
 /* Two lines' worth of space whether the name needs one or two. Without it
    a one-line name ("Social") leaves a taller gap than a two-line one
    ("High achievers"), and centring the figure in what is left puts the
    numbers at different heights across a row — which is exactly the
    at-a-glance reading the cards exist for. */
-.cohort-card-label { min-height: 2.3em; font-size: 10px; line-height: 1.15; text-align: center;
-  color: #cbd0d8; text-transform: uppercase; letter-spacing: 0.04em; }
+.cohort-card-label { min-height: 2.3em; width: 100%; font-size: 9px; line-height: 1.15;
+  text-align: center; overflow-wrap: anywhere; color: #cbd0d8;
+  text-transform: uppercase; letter-spacing: 0.02em; }
 .cohort-card-count { flex: 1; display: flex; align-items: center;
   font-family: var(--mono); font-size: 20px; font-weight: 700; }
 .cohort-card-count.cohort-up { color: var(--ok-on-dark); }
 .cohort-card-count.cohort-down { color: var(--bad-on-dark); }
 .cohort-card-count.cohort-flat { color: var(--ink-lo); }
+.cohort-card-count.count-sm { font-size: 17px; }
+.cohort-card-count.count-xs { font-size: 14px; }
+.cohort-card-count.count-xxs { font-size: 12px; }
 
 /* The driver, on hover. It is the explanation of the number, not the
    number, so it costs nothing until it is asked for. Pointer-events off so

@@ -139,6 +139,20 @@ function PriceTierTag({ tier }: { tier: PriceTier }) {
   return <span className={`price-tier-tag ${copy.className}`}>{copy.label}</span>;
 }
 
+// Steps measured against the card, not guessed: the mono figure runs about
+// 12px per character at the default 20px, so seven characters need ~17px,
+// nine need ~14px and ten need ~12px to stay inside a card's 78px of usable
+// width. The last step is past anything the game produces — a ten-character
+// cohort is twelve million applicants in one audience, against ~300k for
+// the whole pool at the top of a forty-year run — but a step costs a line
+// and reasoning about whether a number is reachable costs more.
+function SIZE_FOR_LENGTH(length: number): string {
+  if (length >= 10) return 'count-xxs';
+  if (length >= 9) return 'count-xs';
+  if (length >= 7) return 'count-sm';
+  return '';
+}
+
 // One cohort's card in the reveal below. A square: the audience's name
 // small at the top, the head count big in the middle, because the count is
 // what the beat is for and the name is only how you find the one you care
@@ -156,10 +170,17 @@ function PriceTierTag({ tier }: { tier: PriceTier }) {
 // same bright good/bad pair the log ticker uses on this dark background.
 function CohortCard({ label, driverLabel, pull, applicants, revealMs }: { label: string; driverLabel: string; pull: number; applicants: number; revealMs: number }) {
   const toneClass = pull > 1 ? 'cohort-up' : pull < 1 ? 'cohort-down' : 'cohort-flat';
+  // A card is a fixed square, so the figure has to give way rather than the
+  // box: at the default size 78px of card holds six characters ("13,097")
+  // and a seventh spills. A big late-game school reaches six digits in a
+  // single cohort, so the size steps down by the FINAL value's own length —
+  // final rather than currently-displayed, so the reveal's climb from zero
+  // does not resize the text under the player as it counts up.
+  const sizeClass = SIZE_FOR_LENGTH(applicants.toLocaleString().length);
   return (
     <div className="cohort-card" title={driverLabel}>
       <span className="cohort-card-label">{label}</span>
-      <span className={`cohort-card-count ${toneClass}`}>
+      <span className={`cohort-card-count ${toneClass} ${sizeClass}`}>
         <AnimatedNumber value={applicants} durationMs={revealMs} revealFrom={0} />
       </span>
       <span className="cohort-card-tip" role="tooltip">{driverLabel}</span>
