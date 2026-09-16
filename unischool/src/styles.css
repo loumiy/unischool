@@ -870,7 +870,11 @@ button.build-tile { font-family: inherit; }
 .campus-map-svg.path-draw .campus-building,
 .campus-map-svg.path-erase .campus-building { pointer-events: none; }
 
-.iso-window { fill: rgba(255, 253, 246, 0.5); }
+/* NO FILL. The glazing's colour is the vernacular's (buildingSpec's
+   StonePalette.glass) — a painted sash reads pale, a ribbon of curtain
+   glazing reads dark. A class rule here would silently beat the motif's own
+   attribute, which is exactly what `.iso-dome` did before PR G caught it. */
+.iso-window { /* fill supplied by the motif, from the vernacular's glass */ }
 /* The band at each floor line: stone against brick, and the horizontal that
    still reads once the panes themselves are a few pixels across. */
 .iso-course { fill: rgba(255, 253, 246, 0.22); }

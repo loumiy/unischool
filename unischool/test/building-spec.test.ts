@@ -25,7 +25,7 @@ import {
   doorFamilyOf, doorOf, floorLinesOf, hasClockTower,
   materialOf, materialsFor, stoneFor, roofFor, parapetOf, paneShapeOf,
   windowOutline, windowShapeOf, variesByVernacular, VERNACULAR_INVARIANT_MOTIFS,
-  partsFor, entrancePartOf, rooflineEndPartOf, apexPartOf,
+  partsFor, entrancePartOf, rooflineEndPartOf, apexPartOf, hasRoofForm,
   IMPLEMENTED_ENTRANCE_PARTS, IMPLEMENTED_ROOFLINE_END_PARTS, IMPLEMENTED_APEX_PARTS,
   hasClockTower as carriesClockTower,
   VERNACULARS, motifOf, rankSills, ridgeOf,
@@ -790,14 +790,33 @@ console.log('campus scale and building spec');
     assert(closest.d > 35,
       `'${vname}': its closest two materials are ${closest.d.toFixed(1)} apart (${closest.a} vs ${closest.b})`);
 
+    // A ROOF MUST READ AGAINST ITS OWN WALLS — but only where there IS a
+    // roof. A vernacular that pitches nothing and carries no parapet has a
+    // TOP, not a roof: what you look down onto is the same concrete as the
+    // walls, and forcing it 60 away would put a dark lid on the one set
+    // whose whole argument is that the building is a single poured mass.
+    //
+    // Not skipped for those, INVERTED: they must stay close, or the "no
+    // roof" claim is not being honoured either. Both directions are checked,
+    // so neither can be quietly relaxed into the other.
     let worstRoof = { d: Infinity, id: '' };
+    let widestRoof = { d: 0, id: '' };
     for (const t of CATALOGUE) {
       const m = materialOf(t, vname);
       const d = dist(m.wall, m.roof);
       if (d < worstRoof.d) worstRoof = { d, id: t.id };
+      // The invariant motifs keep Georgian's own materials whatever the set
+      // (see below), so their roofs are exempt from the "stays close" half.
+      if (variesByVernacular(motifOf(t)) && d > widestRoof.d) widestRoof = { d, id: t.id };
     }
-    assert(worstRoof.d > 60,
-      `'${vname}': every roof reads against its own walls (worst: ${worstRoof.id} at ${worstRoof.d.toFixed(1)})`);
+    if (hasRoofForm(vname)) {
+      assert(worstRoof.d > 60,
+        `'${vname}': every roof reads against its own walls (worst: ${worstRoof.id} at ${worstRoof.d.toFixed(1)})`);
+    } else {
+      assert(widestRoof.d < 90,
+        `'${vname}' has no roof form, so its tops stay in the same material as its walls `
+        + `(widest: ${widestRoof.id} at ${widestRoof.d.toFixed(1)})`);
+    }
 
     const gilt = stoneFor(vname).gilt;
     assert(!walls.includes(gilt) && !roofs.includes(gilt),

@@ -579,6 +579,57 @@ the trim classes need a `none` case, not a recoloured one. `GILT` has no home
 in this set and should be *absent* rather than repainted — the campus's one
 gilded thing simply is not there, which is a statement about the vernacular.
 
+**As implemented:** subtraction worked as planned — `trim: 'none'` and
+`gilt: 'none'` are read by `hasTrim`/`hasGilt` and every band, dome and
+finial is *skipped* rather than recoloured. Four things went beyond it, three
+of them from review of the rendered building against a photograph of a real
+Brutalist block.
+
+*Concrete is not a palette.* The obvious set — seven greys — fails the
+palette check outright: every concrete grey sits within 15–30 of every other
+one **and** of `render`, which the labs pin to Georgian's value. Real
+examples are not monochrome either, so the set pairs pale board-marked
+concrete with warm brown brick and a deeper civic concrete. The value order
+also **inverts**: in this architecture the library is the most monumental
+thing on the campus, not the palest.
+
+*Beige, not grey-green, and ribbons, not slots.* The first pass was tuned
+from memory; against the reference it was plainly the wrong century.
+`'ribbon'` joins `WindowShape` — it fills its bay **edge to edge** so
+neighbouring bays touch and a rank reads as one continuous band of glazing
+between two slabs, which is the single most recognisable thing about these
+buildings.
+
+*The glazing's colour moved out of the stylesheet into the vernacular.*
+`.iso-window` hardcoded a pale translucent fill, and a painted sash reads
+pale while a ribbon of curtain glazing reads dark. This is the **same trap
+`.iso-dome` sprang in PR G** — a class rule beats the presentation attribute
+a motif passes — and it was found the same way, by looking. `StonePalette`
+gains `glass`; Georgian and Gothic carry the exact value the stylesheet used
+to hold, so neither moves.
+
+*Massing is a fourth axis, and Brutalism needs it.* The set still read wrong
+after the palette was right, because these buildings are not decorated
+boxes — the decoration **is** the shape. `Massing` (`'solid' | 'stacked'`)
+joins the spec, and a stacked hall is a broad base with an upper slab
+stepped back on one axis and cantilevered past the other, over a dark
+soffit. Two attempts: insetting a middle slab on *all four* sides draws
+concentric rectangles, which from this camera is a pancake with a skirt.
+Stepping on **one** axis leaves a real L-shaped profile. The invariant six
+are always `'solid'` — a gym is one clear span in any century.
+
+**The roof rule met a case it was not written for, and was scoped rather
+than skipped.** Section 16 demands every roof sit 60 from its own walls,
+which exists so a building does not read as one undifferentiated mass. A
+Brutalist building *is* one undifferentiated mass: what you look down onto
+is the top of the concrete, and a dark lid was the single wrongest thing
+about the first pass. So `hasRoofForm(v)` — **derived**, from having no
+pitch anywhere and no parapet, rather than declared as a flag that would
+just be a switch for turning the check off — now selects which half applies.
+A vernacular with a roof must clear 60; one without must stay *within* 90,
+so the "no roof" claim is checked too. Both directions are asserted, and
+neither can be quietly relaxed into the other.
+
 ### PR I — Mission
 
 Cream stucco, red clay tile (the roof slope gets tile courses, which is

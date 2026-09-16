@@ -558,6 +558,20 @@ export const PORTICO_COLUMN_PLAN = across(1.4);  // a column is round; this is i
 // windows and a pediment; this face carries one door and nothing else, so at
 // full height it came out as a grey cliff with a small hole at the bottom.
 // Two thirds leaves the main wall's own lancets showing above the gable.
+// THE RECESS, the Brutalist entrance: no bay pushed forward and nothing
+// applied, just a piece of the ground floor cut away and a slab left
+// oversailing it. The way in is a shadow under an overhang, which is the
+// only entrance move this architecture makes.
+export const RECESS_WIDTH = 0.44;      // share of the wall it occupies
+export const RECESS_DEPTH = across(2.0);
+export const RECESS_OVERHANG = across(1.1);
+// THE STAIR CORE, the Brutalist apex: a blind concrete shaft with the lift
+// overrun on top. It is the only thing on such a building that rises above
+// the parapet, and it is deliberately not a landmark.
+export const CORE_PLAN = across(6.0);
+export const CORE_RISE = up(15.0);
+export const CORE_CAP_RISE = up(2.4);
+
 export const PORCH_HEIGHT_FRACTION = 0.66;
 export const PORCH_GABLE_RISE = up(6.0);
 // The arch, as a fraction of the bay's width and height. Sized to read as a
@@ -724,6 +738,11 @@ const GEORGIAN_MATERIALS = {
 // which are the one piece of trim drawn as a solid rather than as a band.
 const GEORGIAN_TRIM = '#efe9da';
 
+// The pale fill a painted sash window has always had — translucent, so the
+// wall behind tints it and a red brick hall's windows sit warmer than a
+// limestone library's. Shared by the sets whose windows are painted frames.
+const PAINTED_SASH = 'rgba(255, 253, 246, 0.5)';
+
 // The gilding, and the only place it appears: the dome and finial of Founders
 // Hall's clock tower. This is the campus's old BUILDING_TINT, which used to be
 // the colour of all nine academic halls. It is not deleted, it is
@@ -772,6 +791,14 @@ export interface StonePalette {
   trim: string;
   gilt: string;
   towerStone: string;
+  // WHAT IS BEHIND THE GLASS. A painted sash window reads pale against a
+  // wall; a continuous ribbon of curtain glazing reads dark, because you are
+  // looking into a room rather than at a painted frame. It lived in
+  // styles.css as `.iso-window`'s fill until Plan 07's PR H needed the two
+  // to differ — and it could not stay there, because a class rule beats the
+  // presentation attribute a motif passes, which is the same trap `.iso-dome`
+  // sprang in PR G.
+  glass: string;
 }
 
 // HOW THIS VERNACULAR ROOFS A BUILDING. The single loudest signal at map
@@ -803,7 +830,8 @@ export type WindowShape =
   | 'rect'     // a sash window: four corners
   | 'arched'   // round-headed, springing from the upper third
   | 'lancet'   // pointed, the Gothic light
-  | 'slot';    // a deep narrow opening in a concrete wall
+  | 'slot'     // a deep narrow opening in a concrete wall
+  | 'ribbon';  // a continuous horizontal strip of glazing
 
 // ---------------------------------------------------------------------
 // THE ORNAMENT SLOTS. What a vernacular puts in the three places a campus
@@ -853,12 +881,23 @@ export interface VernacularParts {
   apex: ApexPart;
 }
 
+// HOW A BUILDING IS MASSED, which is the one axis that is not ornament.
+//
+// 'solid' is a single mass with whatever roof its ridge gives it — every
+// campus before the war. 'stacked' is the postwar move: two or three slabs
+// of different plan piled up, the middle one cantilevering out past the base
+// it stands on. It is the difference between a building that is decorated
+// and a building whose decoration IS its shape, which is why Brutalism
+// cannot be done with the palette and the parts table alone.
+export type Massing = 'solid' | 'stacked';
+
 export interface VernacularSpec {
   materials: MaterialSet;
   stone: StonePalette;
   roof: VernacularRoof;
   windowShape: WindowShape;
   parts: VernacularParts;
+  massing: Massing;
 }
 
 const GEORGIAN: VernacularSpec = {
@@ -867,6 +906,7 @@ const GEORGIAN: VernacularSpec = {
     trim: GEORGIAN_TRIM,
     gilt: GEORGIAN_GILT,
     towerStone: GEORGIAN_TOWER_STONE,
+    glass: PAINTED_SASH,
   },
   roof: {
     ridgeMetres: GEORGIAN_RIDGE_METRES,
@@ -887,6 +927,7 @@ const GEORGIAN: VernacularSpec = {
     rooflineEnd: 'pavilion',
     apex: 'cupola',
   },
+  massing: 'solid',
 };
 
 // ---------------------------------------------------------------------
@@ -963,6 +1004,7 @@ const GOTHIC: VernacularSpec = {
   stone: {
     // Dressed stone for the trim, cooler than Georgian's cream limestone so
     // the bands read against a grey wall rather than disappearing into it.
+    glass: PAINTED_SASH,
     trim: '#e6e3d6',
     // NOT gold. Gothic's landmark is a spire, and a spire is lead and stone;
     // what little metal shows is the weathervane. Kept as a pale lead rather
@@ -1018,12 +1060,122 @@ const GOTHIC: VernacularSpec = {
     rooflineEnd: 'none',
     apex: 'spire',
   },
+  massing: 'solid',
+};
+
+// ---------------------------------------------------------------------
+// BRUTALIST. The postwar concrete campus — UC in the sixties and seventies,
+// SUNY Albany, Scarborough, a hundred state schools that doubled in size in
+// one decade and built the extra half in board-marked concrete.
+//
+// THE SET THAT SUBTRACTS. Gothic swapped one ornament for another; this one
+// removes the slot. There is no pitched roof anywhere, no parapet band, no
+// applied trim, and no gilding — the trim classes take a `none` and the
+// landmark's gold is simply absent rather than repainted grey, because a
+// campus whose one gilded thing is missing is making a statement and a
+// campus with a grey dome is making a mistake.
+//
+// It is also the set that proves concrete is not a palette. The obvious
+// version — seven shades of grey — fails the palette check outright: every
+// concrete grey sits within 15-30 of every other one AND of `render`, which
+// is pinned to Georgian's value by the labs. Real Brutalist campuses are not
+// monochrome either; they pair board-marked concrete with dark engineering
+// brick and a lot of glass, and that is what makes this legible.
+// ---------------------------------------------------------------------
+
+// THERE IS NO ROOF ON THESE BUILDINGS, and a near-black deck was the single
+// wrongest thing about the first pass: it put a heavy dark lid on a set
+// whose whole argument is that the building is one poured mass. What you
+// look down onto is the TOP OF THE CONCRETE.
+//
+// It still has to clear the palette check's 60 from its own walls, and it
+// does comfortably — a weathered slab top is genuinely darker than a wall
+// that has been rained on rather than stood in the rain. Mid-grey concrete,
+// not a roof.
+const CONCRETE_DECK = '#9c9484';
+
+const BRUTALIST_MATERIALS = {
+  // The academic halls: pale warm board-marked concrete, the sandy beige
+  // these buildings actually weather to. PALE on purpose — it is the top of
+  // the range because `render` sits in the middle of the beiges and is
+  // pinned there by the labs, so the halls have to clear it from above.
+  brickRed: { wall: '#d2c8b2', roof: CONCRETE_DECK },
+  // The support buildings in warm brown brick, which is what the period
+  // infilled its concrete frames with.
+  brickBuff: { wall: '#8a6a4e', roof: CONCRETE_DECK },
+  // The civic set in deeper board-marked concrete: in this architecture the
+  // library and the arts centre are the MOST monumental things on the
+  // campus, not the palest — the value order of the other sets inverts.
+  limestone: { wall: '#9d8869', roof: CONCRETE_DECK },
+  // INVARIANT — the labs, gyms, stadium, natatorium, tower and hospital.
+  render: { wall: '#b0a992', roof: '#7c8377' },
+  curtain: { wall: '#93a9b4', roof: '#7c8377' },
+  clinical: { wall: '#eef1f2', roof: '#c2ccd1' },
+  // The residence halls: charcoal concrete, and still the one DARK wall.
+  // Its roof is the PALE deck, not the concrete one — dark under dark is a
+  // single mass with a line across it, which is the failure the wall/roof
+  // split exists to prevent (see Georgian's own note on brickDark).
+  brickDark: { wall: '#5f584c', roof: '#7c8377' },
+} as const satisfies MaterialSet;
+
+const BRUTALIST: VernacularSpec = {
+  materials: BRUTALIST_MATERIALS,
+  stone: {
+    // NO TRIM. Not a pale band, not a grey one — nothing. A plinth, a
+    // cornice and a floor course are all devices for breaking a wall into
+    // storeys, and this architecture's whole argument is that the wall is
+    // one thing. The motifs read this as 'none' and skip the bands.
+    trim: 'none',
+    // NO GILDING either, and for the same reason: the campus's one gilded
+    // thing is absent rather than recoloured.
+    gilt: 'none',
+    // The stair core's own concrete, a shade off the walls so it reads as a
+    // separate pour.
+    towerStone: '#c2b79f',
+    // Dark. The whole point of a ribbon is that it reads as a slot of shadow
+    // between two slabs of concrete.
+    glass: 'rgba(38, 44, 46, 0.78)',
+  },
+  roof: {
+    // EMPTY, and that is the whole entry: nothing on this campus is pitched.
+    ridgeMetres: {},
+    residentialRidgeMetres: () => 0,
+    // No parapet band either — the slab edge is the top of the building.
+    parapet: 0,
+  },
+  // RIBBONS, not slots. The reference for this set is stacked slabs with
+  // continuous horizontal glazing between them; vertical slots read as a
+  // punched-window building, which is the previous era.
+  windowShape: 'ribbon',
+  parts: {
+    entrance: {
+      hall: 'recess',
+      portico: 'recess',
+      pavilion: 'recess',
+      residential: 'recess',
+      village: 'none',
+    },
+    rooflineEnd: 'none',
+    apex: 'core',
+  },
+  massing: 'stacked',
 };
 
 export const VERNACULARS: Record<Vernacular, VernacularSpec> = {
   georgian: GEORGIAN,
   gothic: GOTHIC,
+  brutalist: BRUTALIST,
 };
+
+// A vernacular that has no trim says so with this, rather than with a colour
+// nobody can see. Everything that draws a band checks it first.
+export const NO_STONE = 'none';
+export function hasTrim(v: Vernacular): boolean {
+  return stoneFor(v).trim !== NO_STONE;
+}
+export function hasGilt(v: Vernacular): boolean {
+  return stoneFor(v).gilt !== NO_STONE;
+}
 
 export function roofFor(v: Vernacular): VernacularRoof {
   return VERNACULARS[v].roof;
@@ -1062,6 +1214,27 @@ export function paneShapeOf(t: Buildable, v: Vernacular): WindowShape {
   return variesByVernacular(motifOf(t)) ? windowShapeOf(v) : 'rect';
 }
 
+export function massingOf(t: Buildable, v: Vernacular): Massing {
+  // The invariant six are massed the way they are built, not the way the
+  // campus was founded — a gym is one clear span whatever the century.
+  return variesByVernacular(motifOf(t)) ? VERNACULARS[v].massing : 'solid';
+}
+
+// THE STACK, as fractions of the footprint and of the full height.
+//
+// TWO VOLUMES, STEPPED ON ONE AXIS ONLY, and the "one axis" is the whole
+// trick. The first attempt inset a middle slab on all four sides, which
+// draws concentric rectangles: from above that reads as a pancake with a
+// skirt, not as a cantilever. Stepping on a single axis leaves a real
+// L-shaped profile that is legible from this camera, which is the only
+// test that matters for a shape.
+//
+// Both volumes stay INSIDE the footprint, so a stacked building occupies
+// exactly the tiles it is placed on and can never overhang its neighbour.
+export const STACK_LOWER_TOP = 0.54;   // where the broad base stops
+export const STACK_UPPER_INSET = 0.34; // how far the upper slab pulls back, on one axis
+export const STACK_UPPER_OVERHANG = 0.10; // and how far it cantilevers past the other end
+
 export function partsFor(v: Vernacular): VernacularParts {
   return VERNACULARS[v].parts;
 }
@@ -1099,11 +1272,25 @@ export function apexPartOf(v: Vernacular): ApexPart {
 // test/building-spec.test.ts asserts every part named by a vernacular in
 // VERNACULARS is on them, so PR G adding `apex: 'spire'` fails loudly until
 // PR G also draws a spire.
-export const IMPLEMENTED_ENTRANCE_PARTS: EntrancePart[] = ['portico', 'colonnade', 'canopy', 'porch', 'none'];
+export const IMPLEMENTED_ENTRANCE_PARTS: EntrancePart[] = ['portico', 'colonnade', 'canopy', 'porch', 'recess', 'none'];
 export const IMPLEMENTED_ROOFLINE_END_PARTS: RooflineEndPart[] = ['pavilion', 'none'];
-export const IMPLEMENTED_APEX_PARTS: ApexPart[] = ['cupola', 'spire', 'none'];
+export const IMPLEMENTED_APEX_PARTS: ApexPart[] = ['cupola', 'spire', 'core', 'none'];
 
 // How far the wall carries above the cornice. Zero is a real answer.
+// DOES THIS VERNACULAR HAVE A ROOF AT ALL, as distinct from a top?
+//
+// Derived rather than declared, on purpose: a flag would be a switch for
+// turning off the palette check that guards it, and this file already warns
+// (see section 12's note in the test) that a bar which follows the palette
+// around is not a bar. A vernacular that pitches nothing and carries no
+// parapet genuinely has no roof — what you look down onto is the top of the
+// mass, in the same material — and the "a roof must read against its own
+// walls" rule is about buildings that have one.
+export function hasRoofForm(v: Vernacular): boolean {
+  const r = roofFor(v);
+  return Object.keys(r.ridgeMetres).length > 0 || r.parapet > 0;
+}
+
 export function parapetOf(v: Vernacular): number {
   return VERNACULARS[v].roof.parapet;
 }
@@ -1137,6 +1324,12 @@ const ARCH_STEPS = 6;
 // A concrete slot is inset from its own bay: the reveal is most of what
 // makes it read as punched through a thick wall rather than as a pane.
 const SLOT_INSET = 0.22;
+// A RIBBON fills its bay edge to edge, so neighbouring bays touch and the
+// row reads as one continuous band rather than as a row of panes. What makes
+// it a ribbon is that it is SHORT — the glazing is a horizontal slot in a
+// wall, not a window with a wall between it and the next one.
+const RIBBON_HEIGHT = 0.46;
+const RIBBON_DROP = 0.30;   // where the band sits within its own rank
 
 export function windowOutline(
   shape: WindowShape, u0: number, u1: number, v0: number, v1: number,
@@ -1164,6 +1357,14 @@ export function windowOutline(
     case 'slot': {
       const i = half * SLOT_INSET;
       return [[u0 + i, v0], [u1 - i, v0], [u1 - i, v1], [u0 + i, v1]];
+    }
+    case 'ribbon': {
+      // Full bay width — see RIBBON_HEIGHT. windows() widens u0/u1 to the
+      // bay edges for this shape, so touching neighbours are the intent
+      // rather than an overlap bug.
+      const span = v1 - v0;
+      const lo = v0 + span * RIBBON_DROP;
+      return [[u0, lo], [u1, lo], [u1, lo + span * RIBBON_HEIGHT], [u0, lo + span * RIBBON_HEIGHT]];
     }
   }
 }
