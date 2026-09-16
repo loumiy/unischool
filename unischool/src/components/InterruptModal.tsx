@@ -4,7 +4,7 @@ import type { GameState, InitiativeReport, PendingInterrupt } from '../state/typ
 import { institutionName, WEEKS_PER_YEAR } from '../state/types';
 import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
-import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction, admitRate, type PriceTier } from '../systems/admissions/admissionsSystem';
+import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction, type PriceTier } from '../systems/admissions/admissionsSystem';
 import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
 import { projectConsequences } from '../systems/admissions/consequences';
 import { computePrestigeTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
@@ -139,28 +139,30 @@ function PriceTierTag({ tier }: { tier: PriceTier }) {
   return <span className={`price-tier-tag ${copy.className}`}>{copy.label}</span>;
 }
 
-// One cohort's row in the breakdown below — a head count, because the
-// question a player is actually asking here is how many people a lab or a
-// varsity program brings in, and a multiplier makes them do that
-// arithmetic themselves against a pool printed six lines above. The seven
-// rows sum to the applicant pool (see cohorts.ts's apportion).
+// One cohort's card in the reveal below. A square: the audience's name
+// small at the top, the head count big in the middle, because the count is
+// what the beat is for and the name is only how you find the one you care
+// about. Seven of these read as a board at a glance, which seven labelled
+// rows did not.
 //
-// The count still carries the tone: whether this cohort is above or below
-// neutral is what says which of the player's choices is working, and it
-// is drawn in the same bright good/bad pair the log ticker uses on this
-// same dark modal background, so "this audience is up" reads the same way
-// everywhere.
-function CohortRow({ label, driverLabel, pull, applicants, revealMs }: { label: string; driverLabel: string; pull: number; applicants: number; revealMs: number }) {
+// The driver — what the player actually built that pulls this audience —
+// is the explanation, not the reading, so it waits on hover rather than
+// sitting under every card. It is a plain `title` as well as a styled
+// tooltip: the styled one is what you see, the native one is what a
+// keyboard or touch device gets, and neither is the only copy of the text.
+//
+// The count keeps its tone colour: whether this audience is above or below
+// neutral is what says which of the player's choices is working, in the
+// same bright good/bad pair the log ticker uses on this dark background.
+function CohortCard({ label, driverLabel, pull, applicants, revealMs }: { label: string; driverLabel: string; pull: number; applicants: number; revealMs: number }) {
   const toneClass = pull > 1 ? 'cohort-up' : pull < 1 ? 'cohort-down' : 'cohort-flat';
   return (
-    <div className="cohort-row">
-      <span className="cohort-row-label">
-        {label}
-        <span className="outcome-note">({driverLabel})</span>
-      </span>
-      <span className={`cohort-row-count ${toneClass}`}>
+    <div className="cohort-card" title={driverLabel}>
+      <span className="cohort-card-label">{label}</span>
+      <span className={`cohort-card-count ${toneClass}`}>
         <AnimatedNumber value={applicants} durationMs={revealMs} revealFrom={0} />
       </span>
+      <span className="cohort-card-tip" role="tooltip">{driverLabel}</span>
     </div>
   );
 }
@@ -211,10 +213,6 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeilin
   // Live preview of the emergent outcomes, computed with the very function
   // the reducer commits with — so the numbers shown are the numbers applied.
   const outcome = projectAdmissions(prestige, tuition, capacity, satisfaction, cohortSignals, admitRateChoice);
-  // What a school of this standing would normally take — the slider's own
-  // opening position on a fresh save, shown as a reference point so a
-  // player moving away from it knows they are moving away from something.
-  const usualAdmitRate = admitRate(prestige);
   // What committing THIS pair of decisions would do to the school: the
   // money and the mood, at the body it would actually produce — the three
   // classes still enrolled plus the incoming one. Same advance the reducer
@@ -234,11 +232,11 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeilin
   return (
     <>
       <h2>Summer Admissions</h2>
-      <p className="admissions-prompt">
-        {tuitionLocked
-          ? 'How much of this pool will you take?'
-          : 'What will you charge next year? You will see who it drew once it is set.'}
-      </p>
+      {!tuitionLocked && (
+        <p className="admissions-prompt">
+          What will you charge next year? You will see who it drew once it is set.
+        </p>
+      )}
 
       {/* BEAT 1 — the price, set blind. The only feedback is the tier: are
           you in line with your own standing, or not. No applicant count, no
@@ -270,12 +268,13 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeilin
                 <AnimatedNumber value={outcome.applicants} durationMs={REVEAL_MS} revealFrom={0} />
               </dd>
             </div>
-            <div><dt>Word of mouth <span className="outcome-note">(satisfaction {Math.round(satisfaction)} last year)</span></dt><dd>{outcome.wordOfMouthMultiplier >= 1 ? '+' : ''}{Math.round((outcome.wordOfMouthMultiplier - 1) * 100)}%</dd></div>
           </dl>
 
           <div className="cohort-breakdown">
             <h3>Who this pulls in</h3>
-            {cohorts.map((c) => <CohortRow key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants} revealMs={REVEAL_MS} />)}
+            <div className="cohort-cards">
+              {cohorts.map((c) => <CohortCard key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants} revealMs={REVEAL_MS} />)}
+            </div>
           </div>
 
           {/* BEAT 3 — the second decision, and the opposite posture: every
@@ -283,7 +282,6 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeilin
           <label className="admissions-field">
             <span>
               Admit rate <strong>{Math.round(admitRateChoice * 100)}%</strong>
-              <span className="outcome-note">{' '}(your standing usually takes {Math.round(usualAdmitRate * 100)}%)</span>
             </span>
             <input type="range" min={0.01} max={1} step={0.01} value={admitRateChoice}
               onChange={(e) => setAdmitRateChoice(Number(e.target.value))} />
@@ -291,7 +289,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeilin
 
           <dl className="admissions-outcomes">
             <div><dt>Freshman class</dt><dd><AnimatedNumber value={outcome.enrolled} /></dd></div>
-            <div><dt>Incoming quality <span className="outcome-note">(feeds prestige)</span></dt><dd><AnimatedNumber value={outcome.avgIncomingQuality} format={(n) => `${Math.round(n)} / 100`} /></dd></div>
+            <div><dt>Incoming quality</dt><dd><AnimatedNumber value={outcome.avgIncomingQuality} format={(n) => `${Math.round(n)} / 100`} /></dd></div>
           </dl>
 
           {/* What committing does to the school, not just to the intake — the
@@ -300,10 +298,10 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeilin
               the three older classes who are still here and still paying the
               price they were admitted under. */}
           <div className="consequence-panel">
-            <h3>If you commit <span className="outcome-note">({consequence.totalEnrolled.toLocaleString()} students next year, {consequence.graduating.toLocaleString()} graduating)</span></h3>
+            <h3>Projections</h3>
             <dl className="admissions-outcomes">
               <div>
-                <dt>Weekly net <span className="outcome-note">(now {money(consequence.weeklyNetNow)}/wk)</span></dt>
+                <dt>Weekly net</dt>
                 <dd>
                   <AnimatedNumber value={consequence.weeklyNet} format={(n) => `${money(n)}/wk`} />
                   <span className={`consequence-delta ${netDelta >= 0 ? 'good' : 'bad'}`}>
@@ -312,7 +310,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeilin
                 </dd>
               </div>
               <div>
-                <dt>Satisfaction <span className="outcome-note">(heading toward — now {Math.round(consequence.satisfactionTargetNow)})</span></dt>
+                <dt>Satisfaction</dt>
                 <dd>
                   <AnimatedNumber value={consequence.satisfactionTarget} format={(n) => `${Math.round(n)}`} />
                   <span className={`consequence-delta ${moodDelta >= 0 ? 'good' : 'bad'}`}>
@@ -321,7 +319,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeilin
                 </dd>
               </div>
               <div>
-                <dt>{NEED_LABEL[consequence.tightestNeed]} <span className="outcome-note">(tightest need)</span></dt>
+                <dt>{NEED_LABEL[consequence.tightestNeed]}</dt>
                 <dd><CoverageValue now={consequence.tightestCoverageNow} next={consequence.tightestCoverage} /></dd>
               </div>
             </dl>

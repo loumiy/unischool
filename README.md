@@ -607,6 +607,13 @@ modeled as aggregate applicant *statistics*, never individual applicants:
   reading. Dorm capacity scales the pool toward its full size as housing
   investment grows, but is a floor rather than a wall — even a pure commuter
   school with zero beds draws a real, meaningful pool.
+
+  **Word of mouth is deliberately not shown.** It is one of the strongest
+  forces on the pool, and a player who is told "+12% applicants" reads a number
+  instead of learning the rule. Left unlabelled it is something to notice
+  across a few years — the pool grew and the only thing that changed was that
+  the students got happier — which is the understanding worth having. It is
+  the same reasoning sticker shock gets: real, and not its own readout.
 - **Sticker shock** is the *band-specific* half of the price response, and it
   is what ties price to **who** applies rather than only how many. A price that
   overreaches what the school's prestige has earned (`priceTolerance`) scares
@@ -704,12 +711,18 @@ multiplier on the whole pool, the same architectural role word of mouth and
 capacity already play. Nothing about a cohort is stored — its pull is a pure
 function of state, recomputed wherever it is needed.
 
-The summer interrupt shows the breakdown as **head counts, not multipliers**:
-how many of this year's applicants each cohort is worth. The seven rows sum
-exactly to the applicant pool printed above them (apportioned by largest
-remainder, so they are whole students that actually add up), which makes "the
-new labs brought in 400 more research-minded applicants" a thing the player can
-read straight off the panel rather than compute.
+The summer reveal shows the breakdown as **head counts, not multipliers**: how
+many of this year's applicants each cohort is worth, as seven small cards — the
+audience's name small at the top, the count big in the middle. Seven squares
+read at a glance where seven labelled rows read as a paragraph. The counts sum
+exactly to the applicant pool above them (apportioned by largest remainder, so
+they are whole students that actually add up), which makes "the new labs brought
+in 400 more research-minded applicants" something the player reads off the board
+rather than computes.
+
+What each cohort *responds to* — labs, established majors, clubs, a fielded
+team — is on the card's **hover tooltip**, not under it. It explains the number
+rather than being the number, so it costs nothing until it is asked for.
 
 ## Students: four aggregate classes
 
