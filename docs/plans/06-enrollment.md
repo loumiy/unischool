@@ -12,13 +12,13 @@ Admissions tab becomes Enrollment and grows the infographic that mix makes
 possible; History is not touched. The backlog's merge option is **declined**,
 and section 0 argues why.
 
-**Written against PR 98**, which splits the README into `docs/design/` and
-`docs/architecture/` and is open but not merged. Every documentation reference
-below names the post-98 file. The two branches merge clean today, and nothing
-in this plan's model or sequence depends on 98 landing — only the names of the
-files each PR has to keep true. If 98 is abandoned, every such reference
-collapses back to a section of `README.md` and the shape of the sequence is
-unchanged.
+**Written against PR 98**, which split the README into `docs/design/` and
+`docs/architecture/` and has since landed (`7dc084b`). Every documentation
+reference below names a post-98 file, and each was checked to resolve against
+`main` after that merge. The split did not change this plan's model or its
+sequence — only which files each PR has to keep true, and, by way of
+`docs/architecture/README.md`'s rule about keeping the spec honest, when each
+PR has to do it (section 0's third finding).
 
 ---
 
