@@ -39,8 +39,44 @@ field is added-as-required, renamed, retyped, or given a new meaning. Additive
 An older save is then either **migrated** forward or **discarded**, never
 half-loaded. Migrations live in `persistence.ts`'s `MIGRATIONS` table, keyed on
 the version they migrate *from*, and the load path walks them one version at a
-time; a version with no entry is discarded and the player starts fresh. Migrate
-when the old data still describes the same game (v3 -> v4 filled in the campus
+time; a version with no entry is discarded and the player starts fresh.
+
+### Discarding is the default
+
+**The bump is the whole obligation.** A shape change does not owe the chain a
+migration. The game is in development and is not deployed anywhere: there is no
+build anyone else is playing, and every save that exists is sitting in a
+developer's own browser, so a discarded one costs a single in-progress test run
+and nothing else.
+
+Write a migration only when there is a **specific run worth carrying** — a
+playtest in the middle of answering something, a long run a balance question
+depends on — and write it as the small thing it usually is. Otherwise bump the
+version, let the save drop, and start fresh. `sim/balanceSim.ts` reproduces
+forty-year runs headlessly, which is what most "but I'd lose the run" instincts
+actually want.
+
+The policy this replaces cost more than the code it saved. Under it, every
+shape change was migrated as a matter of course, and migration cost started
+reaching back into the design: Plan 01 weighed two names for a milestone key
+"with the migration cost in mind", and `MIGRATIONS[19]` still writes a field
+name nothing else in the codebase uses, because a later entry renames it.
+**Save compatibility does not get a vote on what the game is called or how it
+is shaped.** Rename the field and drop the save.
+
+What stays non-negotiable is the *other* half: never half-load. An unmigrated
+version returns `null` from `loadGame` and the player gets an obviously new
+game, not a run quietly missing a slice. That is one branch in the load path,
+it is covered by `testRejects` in `test/save-migrations.test.ts`, and it is
+what makes discarding safe enough to be the default.
+
+### The chain as it stands (v3 -> v40)
+
+Every version from v3 on has an entry, written under the old policy. They are
+kept rather than deleted: they are already paid for, and a save still sitting
+in a browser may need them. What follows is a walk through the *shapes* a
+migration took — history, not a standard to meet. Migrating made sense when
+the old data still described the same game (v3 -> v4 filled in the campus
 map's new placement footprints, which were all 1x1 before footprints existed;
 v4 -> v5 re-pointed every course's `requiresFaculty` and every hire's `field`
 at the re-specialised faculty-field taxonomy, which renamed and split the
@@ -99,20 +135,21 @@ locked and, since the gate it waits on is a milestone reading that save
 already satisfies, flips buildable on the very first tick — a real,
 honestly-flagged construction bill for a hall the school apparently never
 had, not a bug;
-discard when it doesn't (v1 and v2 predate an economy rebalance, so those runs
-would be describing a different game).
+and discarding when it didn't (v1 and v2 predate an economy rebalance, so those
+runs would be describing a different game).
 
 **The narrative above stops at v12; `SAVE_VERSION` is well past it.** Each
 later migration documents itself at its own entry in the `MIGRATIONS` table,
 which is the canonical record — this prose is a walk through the *shapes* a
-migration can take, not an index. The three from the academic-core arc are
-worth naming here because they are the ones a reader of the design docs will
-look for: **v30 -> v31** materialises the old display-only round-robin into real
-`courseFaculty` assignments, so a resumed run keeps the instructors it appeared
-to have rather than waking up with four hundred orphans; **v31 -> v32** splices
-in the four new research facilities and re-points the unbuilt capstones that
-gate on them; **v32 -> v33** adds the initiative slices, empty. Each keeps what
-a resumed run earned, and each is covered in `test/save-migrations.test.ts`.
+migration can take, not an index, and it is not extended by default. The three
+from the academic-core arc are worth naming here because they are the ones a
+reader of the design docs will look for: **v30 -> v31** materialises the old
+display-only round-robin into real `courseFaculty` assignments, so a resumed
+run keeps the instructors it appeared to have rather than waking up with four
+hundred orphans; **v31 -> v32** splices in the four new research facilities and
+re-points the unbuilt capstones that gate on them; **v32 -> v33** adds the
+initiative slices, empty. Each keeps what a resumed run earned, and each is
+covered in `test/save-migrations.test.ts`.
 
 Loading also runs **placement hygiene** on the campus map every time: orphaned
 ids (or ones that aren't currently `done`/`developing` — see

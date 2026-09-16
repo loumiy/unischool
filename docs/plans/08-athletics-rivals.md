@@ -1,4 +1,4 @@
-# Plan 07 — Athletics, and the field it plays in
+# Plan 08 — Athletics, and the field it plays in
 
 *Planning document only — no gameplay code is changed by this file. Its job is
 to take `BACKLOG.md`'s two entangled entries — **Athletics V3** and **Rival
@@ -18,6 +18,35 @@ itself.
 
 **Written against `38a99bb`** (Plan 06 landed, plus the eighth cohort). Every
 documentation reference below names a file as it stands at that commit.
+
+**One thing has moved since, and it reaches every phase below.** The PR titled
+*"Save migrations become the exception, not the rule"* makes discarding an
+incompatible save the default: the bump is the whole obligation, a migration is
+written only when a specific run is worth carrying, and
+`docs/architecture/game-state.md` now says outright that save compatibility does
+not get a vote on how the game is shaped.
+
+This plan was written under the previous policy and proposes five bumps —
+41 → 42 (1A), 42 → 43 (1B), 43 → 44 (2B), 44 → 45 (2C), 45 → 46 (2F) — each
+carrying a migration as a matter of course. **None of them owes one.** The bumps
+stand; the migration attached to each is now an exception to argue for at the
+time, against a run actually in progress. The migration text is kept at each PR
+because it records what the carry would have cost, and open question 8's
+rank-neutrality finding is worth reading whichever way that call goes.
+
+**The numbers themselves are as of `38a99bb` and are already out of date** —
+Plan 07's PR A has since taken 41 → 42 for the tuition ceiling. Read the five
+above as an ordered list of bumps this plan needs, not as the versions it will
+get; whatever `SAVE_VERSION` reads when a PR here starts is what it bumps from.
+That drift is the ordinary cost of two plans in flight at once and is not worth
+editing this document over each time it happens.
+
+One consequence is named here rather than left to be discovered: PR 1A lands
+`University.mascot` early on the stated grounds that it *"keeps the save-shape
+change in one migration with the other three."* That is a sequencing decision
+made for migration cost, which is the exact habit the new policy retires. The
+field may still belong in 1A — it is where the rest of the rival data lands —
+but that case now has to be made on its own.
 
 ---
 
@@ -76,7 +105,7 @@ add playoff brackets.
 
 **So this plan takes the other reading: two new numbers beside the existing one,
 never inside it.** `computePrestigeTarget` is not touched by any PR here. Its
-inputs, weights, baseline, drift rate and clamps are the same after Plan 07 as
+inputs, weights, baseline, drift rate and clamps are the same after Plan 08 as
 before it, and PR 1B's own verification is that `npm run sim` prints byte-
 identical prestige columns. Three consequences worth stating plainly:
 
@@ -202,10 +231,14 @@ decision with no context, made at the one moment the game is trying to get out
 of the player's way. The first varsity team is the exact moment the question
 acquires an answer: there is now something that wears the name.
 
-The cost is real and gets paid rather than ignored: PR 2G edits the **Startup
-screen** entry to drop the mascot bullet and record where it went. The entry's
-own "together or not at all" is honoured — they are landing together, in
-athletics.
+The cost is real and gets paid rather than ignored — though not, in the end, by
+this plan. The startup-screen plan reached the same conclusion independently and
+from the other side, and its branch has already edited both backlog entries to
+defer the mascot here. The quotation above is the entry as it stood at `38a99bb`
+and is left as written, because that is the text this finding was reasoning
+against. PR 2G's remaining obligation to that entry is a pointer, not a bullet.
+The entry's own "together or not at all" is honoured either way — they are
+landing together, in athletics.
 
 ### The seventh finding: documentation is not a trailing PR
 
@@ -355,9 +388,10 @@ documents as the reason `heritage` exists separately from `nationality`; and
 copying the portrait into a second component doubles a 250-line file to avoid a
 four-field interface.
 
-Existing coaches in a save get a heritage in the same migration, rolled from the
-pools — a coach hired in year 9 does not change name, quality, salary or team,
-only acquires a face.
+Existing coaches in a save get a heritage in the same migration *if one is
+written* — a coach hired in year 9 does not change name, quality, salary or team,
+only acquires a face. Under the current save policy the likelier answer is that
+the save drops and the question does not arise.
 
 **7. What does a championship actually store?** Forty years × eighteen sports of
 brackets is an archive nobody reads inside a save that has to stay JSON-plain.
@@ -614,7 +648,10 @@ pattern now that faculty no longer uses it)"*, in full.
   candidate in a sport whose team has an empty chair, a trainer while any team
   has a vacancy. Hiring from the card picks the role; where a candidate could
   fill more than one vacancy (a trainer, always) the card asks which team.
-- `SAVE_VERSION` 43 → 44: existing coaches, hired and listed, get a heritage.
+- `SAVE_VERSION` 43 → 44, **no migration owed** (see the front matter): existing
+  coaches predate `heritage`, and a dropped save costs one test run. If a run is
+  worth carrying when this lands, the carry is small — roll each existing coach a
+  heritage from the pools, changing nothing else about them.
 
 **Why this pattern comes home here.** `FacultyTab.tsx`'s own header records why
 faculty abandoned it: hiring moved to the Curriculum tab *"where the shortage is
@@ -750,11 +787,16 @@ What is left once every PR has kept its own documents true.
 - `BACKLOG.md`'s **Athletics V3** and **Rival schools** entries are removed.
 - **Three edits to entries this plan did not execute**, which is the part that
   is easy to forget and the reason this PR is not a one-line deletion:
-  - **Startup screen** loses its mascot bullet, with a line recording that the
-    mascot is named at the athletic-director interrupt and why (section 0's
-    sixth finding). Everything else in that entry — the public/private drop, the
-    tuition-ceiling consequence, the motif set, the Founders Hall question — is
-    untouched.
+  - **Startup screen** needs one edit, and it is no longer the mascot bullet.
+    The startup-screen plan's own branch already rewrote that entry to defer the
+    mascot here, so by the time this PR runs the bullet is gone and section 0's
+    sixth finding is recorded on both sides — writing it again would say it
+    twice, in two voices. What is left is a **dangling pointer**: that entry
+    defers the mascot to *"Athletics V3 below"*, and this PR deletes the
+    Athletics V3 entry. Re-point it at this plan, which by then reads `Landed`.
+    Everything else in the entry — the public/private drop, the tuition-ceiling
+    consequence, the vernacular, the Founders Hall question — is untouched, and
+    is that plan's to close.
   - **Athletics deferrals** is rewritten rather than deleted: match simulation
     and schedules are still deferred and the plan says why a bracket is not one;
     per-sport standings are no longer deferred; **rowing and its lake join it**,

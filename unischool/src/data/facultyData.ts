@@ -215,28 +215,40 @@ const MAX_NAME_ROLL_ATTEMPTS = 30;
 // it there is what re-partners Nursing after Dentistry's retirement.
 //
 // Ordered by division, the way a catalog lists departments, because this
-// array IS the recruiting dropdown's order (see FacultyTab.tsx).
+// order IS the order the Faculty tab lists departments in (see
+// FacultyTab.tsx, which renders every one of them whether or not anybody
+// is in it) — and the divisions themselves are now data, below.
 //
 // Adding/renaming an entry here is a save-compatibility event: a saved
 // faculty member stores their field as a plain string, so a field that
 // stops existing strands that hire. See LEGACY_FIELD_RENAMES below and
 // persistence.ts's v4 -> v5 migration.
 // ---------------------------------------------------------------------
-export const FACULTY_FIELDS = [
-  // Humanities & arts
-  'English', 'History', 'Philosophy', 'Communication', 'Art & Design', 'Music',
-  // Social sciences
-  'Economics', 'Political Science', 'Psychology', 'Sociology',
-  // Natural sciences & mathematics
-  'Mathematics', 'Physics', 'Chemistry', 'Biology',
-  // Health
-  'Public Health', 'Clinical Health', 'Neuroscience', 'Kinesiology',
-  // Computing
-  'Computer Science', 'Artificial Intelligence', 'Information Systems',
-  // Engineering
-  'Mechanical Engineering', 'Electrical Engineering', 'Civil Engineering', 'Operations Research',
-  // Business
-  'Accounting & Finance', 'Marketing', 'Management',
+// The eight divisions, as DATA rather than as comments between rows of a
+// flat array. They were comments until the Faculty tab started rendering
+// every department whether or not anybody is in it: a list of 29 rows with
+// no divisions in it is a list you scan rather than read, and the only
+// grouping the game already had was this one, written where no code could
+// reach it.
+//
+// Note what this is NOT grouped by: SCHOOL. techData's researchSchools()
+// maps a field to the schools it teaches in, and that is not a partition —
+// Biology teaches in Science and Health Science, Mathematics in three
+// schools, Operations Research in Business and Engineering. A department
+// belongs to exactly one division; it teaches wherever it is asked to.
+export interface FacultyFieldGroup {
+  name: string;
+  fields: string[];
+}
+
+export const FACULTY_FIELD_GROUPS: FacultyFieldGroup[] = [
+  { name: 'Humanities & arts', fields: ['English', 'History', 'Philosophy', 'Communication', 'Art & Design', 'Music'] },
+  { name: 'Social sciences', fields: ['Economics', 'Political Science', 'Psychology', 'Sociology'] },
+  { name: 'Natural sciences & mathematics', fields: ['Mathematics', 'Physics', 'Chemistry', 'Biology'] },
+  { name: 'Health', fields: ['Public Health', 'Clinical Health', 'Neuroscience', 'Kinesiology'] },
+  { name: 'Computing', fields: ['Computer Science', 'Artificial Intelligence', 'Information Systems'] },
+  { name: 'Engineering', fields: ['Mechanical Engineering', 'Electrical Engineering', 'Civil Engineering', 'Operations Research'] },
+  { name: 'Business', fields: ['Accounting & Finance', 'Marketing', 'Management'] },
   // Law. The one field the graduate-program pass added, and it was a
   // finding rather than a convenience: every other graduate course in the
   // catalogue is taught by a department that already exists (medicine by
@@ -250,9 +262,14 @@ export const FACULTY_FIELDS = [
   // recruiting at all. It is also the only field whose demand is entirely
   // graduate — five courses, all of them in the law school — which is
   // exactly why it needs its own market-supply entry below.
-  'Law',
+  { name: 'Law', fields: ['Law'] },
 ];
 
+// Every field, in division order — the flat list the rest of the game uses.
+// DERIVED from the groups above rather than written out beside them, so the
+// two cannot drift: a department added to a division is in the taxonomy,
+// and a department in the taxonomy is in exactly one division.
+export const FACULTY_FIELDS = FACULTY_FIELD_GROUPS.flatMap((group) => group.fields);
 // Old field names -> the field that inherits them, for saves written
 // before the taxonomy was re-specialised (see persistence.ts's v4 -> v5
 // migration, and v9 -> v10, which runs every saved hire back through this
