@@ -43,7 +43,7 @@ export const COHORTS: Array<{ id: CohortId; label: string; baseShare: number; dr
   { id: 'researchOriented', label: 'Research-oriented', baseShare: 0.10, driverLabel: 'research output & labs' },
   { id: 'social', label: 'Social', baseShare: 0.15, driverLabel: 'clubs & Greek chapters' },
   { id: 'artsFocused', label: 'Arts-focused', baseShare: 0.08, driverLabel: 'arts programs & venues' },
-  { id: 'priceSensitive', label: 'Price-sensitive', baseShare: 0.15, driverLabel: 'net price vs. what your prestige supports' },
+  { id: 'priceSensitive', label: 'Price-sensitive', baseShare: 0.15, driverLabel: 'your price vs. what your prestige supports' },
   { id: 'athletes', label: 'Athletes', baseShare: 0.10, driverLabel: 'active varsity teams & coaching' },
 ];
 

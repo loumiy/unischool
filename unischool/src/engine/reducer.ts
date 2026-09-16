@@ -10,7 +10,7 @@ import {
 import { endInitiative } from '../systems/research/researchSystem';
 import { initiativeDepth, initiativeFundingCost } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
-import { tickAdmissions, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
+import { tickAdmissions, advanceClasses, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
 import { deriveCohortSignals } from '../systems/admissions/cohorts';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
 import { appointFaculty, tickFaculty } from '../systems/faculty/facultySystem';
@@ -615,23 +615,6 @@ export function reducer(state: GameState, action: Action): GameState {
       s.students.satisfactionYearSum = 0;
       s.students.satisfactionYearWeeks = 0;
 
-      // Advance the classes a year: seniors graduate and leave, everyone
-      // else moves up. Full progression, no attrition, in this model.
-      //
-      // Each class's TUITION moves with it, in the same direction and in
-      // the same statement — a price belongs to the class that was quoted
-      // it, and the graduating seniors take theirs with them. Written as
-      // pairs rather than two separate loops so that a future edit to one
-      // line has the other staring at it; the two falling out of step is
-      // the whole failure mode this model exists to prevent.
-      const classes = s.students.classes;
-      const tuition = s.finance.tuitionByClass;
-      const graduating = classes.senior;
-      classes.senior = classes.junior;        tuition.senior = tuition.junior;
-      classes.junior = classes.sophomore;     tuition.junior = tuition.sophomore;
-      classes.sophomore = classes.freshman;   tuition.sophomore = tuition.freshman;
-      classes.freshman = 0;
-
       // Run the distribution funnel with the committed policy: it sizes the
       // incoming FRESHMAN class from demand and policy alone — dorm capacity
       // only scales the applicant pool now (see admissionsSystem.ts's
@@ -649,10 +632,23 @@ export function reducer(state: GameState, action: Action): GameState {
         deriveCohortSignals(s),
         chosenAdmitRate,
       );
-      classes.freshman = outcome.enrolled;
-      // The incoming class is quoted the price that was just set, and keeps
-      // it for four years.
-      tuition.freshman = s.finance.listedTuition;
+
+      // Advance the classes a year: seniors graduate and leave, everyone
+      // else moves up, and the incoming class arrives at the price just
+      // set. Full progression, no attrition, in this model. The advance
+      // itself is a pure function in admissionsSystem.ts because the
+      // admissions panel runs the SAME one on a copy to project what this
+      // commit will do (see consequences.ts) — two copies of it is how a
+      // projection starts promising a body the tick does not produce.
+      const advanced = advanceClasses(
+        s.students.classes,
+        s.finance.tuitionByClass,
+        outcome.enrolled,
+        s.finance.listedTuition,
+      );
+      const graduating = advanced.graduating;
+      s.students.classes = advanced.classes;
+      s.finance.tuitionByClass = advanced.tuitionByClass;
       s.students.applicantPool = outcome.applicants;
       // Stored as the CHOSEN rate, not the realized one, because this is
       // what next summer's slider opens at (see admissionsSystem.ts's

@@ -1,4 +1,4 @@
-import type { GameState } from '../../state/types';
+import type { ClassCounts, ClassTuition, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
 import { cohortDemandFactor, NEUTRAL_COHORT_SIGNALS, type CohortSignals } from './cohorts';
 
@@ -379,6 +379,46 @@ function qualityMix(prestige: number, tuition: number): Record<QualityBand, numb
 function stickerShockFactor(prestige: number, tuition: number, band: QualityBand): number {
   const overreach = Math.max(0, Math.max(tuition, 0) / priceTolerance(prestige) - 1);
   return Math.exp(-STICKER_SHOCK_RATE[band] * overreach);
+}
+
+// ---------------------------------------------------------------------
+// THE CLASS ADVANCE, as a pure function, because two callers need it and
+// they must never disagree: reducer.ts's RESOLVE_ADMISSIONS, which commits
+// it, and consequences.ts, which runs it on a copy to show the player what
+// committing would do. A second copy of this in the UI is exactly how a
+// projected panel starts promising a body the tick then does not produce.
+//
+// Prices move with their classes, in the same statements, for the reason
+// types.ts's tuitionByClass gives: a price belongs to the class that was
+// quoted it, and the graduating seniors take theirs with them.
+// ---------------------------------------------------------------------
+export interface AdvancedBody {
+  classes: ClassCounts;
+  tuitionByClass: ClassTuition;
+  graduating: number;   // the seniors who just left
+}
+
+export function advanceClasses(
+  classes: ClassCounts,
+  tuitionByClass: ClassTuition,
+  incoming: number,
+  incomingPrice: number,
+): AdvancedBody {
+  return {
+    graduating: classes.senior,
+    classes: {
+      senior: classes.junior,
+      junior: classes.sophomore,
+      sophomore: classes.freshman,
+      freshman: incoming,
+    },
+    tuitionByClass: {
+      senior: tuitionByClass.junior,
+      junior: tuitionByClass.sophomore,
+      sophomore: tuitionByClass.freshman,
+      freshman: incomingPrice,
+    },
+  };
 }
 
 // Pure funnel resolution. Given the school's prestige, its dorm capacity

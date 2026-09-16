@@ -1982,6 +1982,22 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .admissions-net-price { display: flex; align-items: baseline; gap: 8px; margin-top: 8px; font-size: var(--text-base); color: #cbd0d8; }
 .admissions-net-price .price-tier-tag { display: inline; margin: 0; }
 
+/* What committing the admissions decision would do (see
+   consequences.ts) — the same boxed treatment as the cohort breakdown
+   below it, since the two are read together as "who arrives, and what that
+   does to us". The delta beside each figure is the point of the panel:
+   the absolute number answers "what will it be", the delta answers "is
+   this decision better or worse than standing still". */
+.consequence-panel { margin: 4px 0 18px; padding: 10px 14px; background: #1a2338;
+  border: 1px solid var(--navy-line); border-radius: var(--radius-md); }
+.consequence-panel h3 { margin: 0 0 6px; font-family: var(--serif); text-transform: uppercase;
+  letter-spacing: 0.06em; font-size: var(--text-sm); color: var(--gold-dim); }
+.consequence-panel .admissions-outcomes { margin: 0; }
+.consequence-delta { margin-left: 8px; font-family: var(--mono); font-size: var(--text-sm); }
+.consequence-delta.good { color: var(--ok-on-dark); }
+.consequence-delta.bad { color: var(--bad-on-dark); }
+.coverage-adequate { color: var(--ink-lo); }
+
 /* The per-cohort demand breakdown (see cohorts.ts) — a compact list, not
    another dl, since each row is a head count colored by whether that
    cohort is above or below neutral, rather than a plain value. */

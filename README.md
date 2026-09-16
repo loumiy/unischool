@@ -608,6 +608,20 @@ individual applicants:
   the distribution, dragging average incoming quality, which feeds prestige.
   Class size is bought with quality rather than conceded to yield.
 
+The panel projects **what committing would do** before it is committed
+(`systems/admissions/consequences.ts`): the weekly net, the satisfaction target,
+and whichever capacity need the incoming class would stretch furthest — all read
+at the body this decision produces, which is the three classes still enrolled
+(each still paying the price it was admitted under) plus the incoming one.
+
+Nothing there is a second model. It advances a **shallow copy** of the state
+with `advanceClasses` — the very function `RESOLVE_ADMISSIONS` commits with —
+and reads it with `financeBreakdown` and `satisfactionTarget`, the same
+functions the Treasury and Student Life show. The copy replaces only the two
+slices the advance touches, and both readings are pure, so projecting cannot
+write back into the live game. `test/class-pricing.test.ts` pins the projection
+against what the tick actually charges on the far side of the interrupt.
+
   Two things followed from deleting yield, both deliberate. `admitRate`'s
   constants were **refitted** against the enrolled share the old two-step funnel
   produced, so a school accepting the default commits about the class it always

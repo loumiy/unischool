@@ -21,7 +21,11 @@
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { findDecisionEvent, type DecisionEventContext } from '../src/data/eventData';
-import { annualTuitionBilled, tuitionByClassBilled } from '../src/systems/finance/financeSystem';
+import { annualTuitionBilled, tuitionByClassBilled, weeklyNet } from '../src/systems/finance/financeSystem';
+import { projectAdmissions, trailingYearSatisfaction } from '../src/systems/admissions/admissionsSystem';
+import { deriveCohortSignals } from '../src/systems/admissions/cohorts';
+import { projectConsequences } from '../src/systems/admissions/consequences';
+import { satisfactionTarget } from '../src/systems/satisfaction/satisfactionSystem';
 import type { GameState } from '../src/state/types';
 import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 
@@ -53,6 +57,24 @@ function dismiss(s: GameState, type: string): GameState {
     });
   }
   return reducer(s, { type: 'RESOLVE_REPORT' });
+}
+
+// Tick until the named interrupt is the one holding the clock, dismissing
+// anything else that comes up on the way. Unlike playYearAt this STOPS on
+// it rather than resolving it, which is what a test about the panel needs:
+// the panel is what the player is looking at while that interrupt is up.
+function tickTo(start: GameState, type: string): GameState {
+  let s = start;
+  for (let i = 0; i < WEEKS_PER_YEAR * 2; i += 1) {
+    const pending = s.pendingInterrupt;
+    if (pending?.type === type) return s;
+    if (pending) {
+      s = dismiss(s, pending.type);
+      continue;
+    }
+    s = reducer(s, { type: 'TICK' });
+  }
+  throw new Error(`no ${type} interrupt inside two years`);
 }
 
 // Tick to the summer interrupt and resolve it at `tuition`, returning the
@@ -191,6 +213,66 @@ function playYearAt(start: GameState, tuition: number): GameState {
   const p = s.finance.tuitionByClass;
   assert(p.freshman === NEW && p.sophomore === NEW && p.junior === NEW && p.senior === NEW,
     `four intakes later, no class is still on the old price (got ${JSON.stringify(p)})`);
+}
+
+// =====================================================================
+// 5. THE PROJECTION DOES NOT LIE (Plan 05's PR D) — the only way the
+// admissions panel's "if you commit" figures can be wrong is by disagreeing
+// with the tick that follows them. So drive the real reducer: project at
+// the policy about to be committed, commit it, and compare against what
+// the shipped weekly reading says on the far side.
+//
+// This is the check that justifies consequences.ts advancing a COPY with
+// the reducer's own advanceClasses rather than reimplementing it.
+// =====================================================================
+{
+  const PRICE = 21_000;
+
+  let s = createInitialState('Projector', 'private');
+  s = playYearAt(s, 16_000); // one ordinary year first, so the classes differ
+  s = tickTo(s, 'admissions');
+
+  // What the panel would be showing, at the policy that is about to be set.
+  const outcome = projectAdmissions(
+    s.self.reputation,
+    PRICE,
+    s.students.capacity,
+    trailingYearSatisfaction(s),
+    deriveCohortSignals(s),
+    s.students.admitRate,
+  );
+  const projected = projectConsequences(s, outcome.enrolled, PRICE);
+
+  const after = reducer(s, {
+    type: 'RESOLVE_ADMISSIONS',
+    tuition: PRICE,
+    admitRate: s.students.admitRate,
+    approvedPetitionIds: [],
+  });
+
+  assert(
+    totalEnrolled(after.students) === projected.totalEnrolled,
+    `the projected body is the body committed (${projected.totalEnrolled} projected, ${totalEnrolled(after.students)} actual)`,
+  );
+  assert(
+    Math.abs(weeklyNet(after) - projected.weeklyNet) < 1e-6,
+    `the projected weekly net is what the tick charges (${projected.weeklyNet.toFixed(2)} projected, ${weeklyNet(after).toFixed(2)} actual)`,
+  );
+  assert(
+    Math.abs(satisfactionTarget(after) - projected.satisfactionTarget) < 1e-6,
+    `the projected satisfaction target is the one the school then drifts toward (${projected.satisfactionTarget.toFixed(3)} projected, ${satisfactionTarget(after).toFixed(3)} actual)`,
+  );
+
+  // And the projection must not have touched the live state it read: it
+  // shares every slice it does not advance, so a stray write would corrupt
+  // the game from a panel that only ever claimed to look.
+  const before = createInitialState('Projector', 'private');
+  const untouched = playYearAt(before, 16_000);
+  const snapshot = JSON.stringify(tickTo(untouched, 'admissions').students.classes);
+  assert(
+    JSON.stringify(s.students.classes) === snapshot,
+    'projecting leaves the live classes exactly as they were',
+  );
 }
 
 console.log('class-pricing tests');

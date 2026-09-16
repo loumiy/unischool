@@ -6,15 +6,16 @@ in the notes, and a rework of a decision the game already has — and turn it in
 an ordered sequence of PRs, each one small enough to land on its own and each
 one landing in the order that makes the next one cheaper.*
 
-**Status: In progress.** Seven PRs, A through G. **A, B and C have landed**; D
-through G have not. Each one's departures from the plan are noted in the PR
+**Status: In progress.** Seven PRs, A through G. **A, B, C and D have landed**;
+E through G have not. Each one's departures from the plan are noted in the PR
 that departed: A, where `tuitionBonus` turned out to have no users and the
 balance harness moved a PR earlier than predicted; and B, where scholarships
 had a third consumer in `satisfactionSystem.ts`, `YIELD_BASE` had to absorb the
 retired yield term, two more pricing-test sections turned out to be unwritable
 rather than one, and the balance re-baseline landed on strategies the plan had
 not named; and C, where this plan's own verification step turned out to
-contradict the PR it was verifying.
+contradict the PR it was verifying; and D, where the reducer's class advance
+had to be extracted before the panel could project without copying it.
 
 ---
 
@@ -383,6 +384,39 @@ Both read the shipped pure functions, the way the modal already reads
 **Verification:** by eye for the layout; a check that the projected weekly net
 at the committed rate equals `weeklyNet` on the tick after the interrupt
 resolves, which is the only way the panel can lie.
+
+**As implemented: one extraction, and one row that had to change shape.**
+
+*The reducer's class advance became a pure function first.* "Both read the
+shipped pure functions" was not achievable as the code stood, because the
+advance itself — seniors out, everyone up, freshmen in at the new price — lived
+inline in `RESOLVE_ADMISSIONS`, and a panel projecting the post-boundary body
+needs exactly that. Rather than copy it, it moved to `admissionsSystem.ts`'s
+`advanceClasses`, which the reducer now commits with and `consequences.ts` runs
+on a shallow copy. The copy replaces only the two slices the advance touches;
+both readings are pure, so it cannot write back. The test is a mutation-checked
+round trip: project, commit through the real reducer, compare — and it was
+verified to FAIL when the projection is deliberately skewed, rather than trusted
+because it was green.
+
+*Satisfaction alone was not enough, for a reason only the browser showed.* The
+plan asked for "satisfaction against current capacity, via the housing and
+basic-needs ratios". Showing the satisfaction TARGET turned out to answer
+nothing exactly when the question matters: every ratio attribute is floored at
+`ATTRIBUTE_SCORE_FLOOR`, so a school already at the floor reads the same +0.0
+whether it admits 60 students or 6,000. That was visible on screen — the panel
+rendered, the number sat still — and not in any test.
+
+So the ratios went in as the plan said. But both coverage readings clamp at 1,
+so a school with room to spare reads a flat 100% however many it takes, and two
+rows saying "fine" every year are two rows nobody reads. They are one row now:
+the WORST-covered of the two, showing the word "adequate" when there is no
+warning to give and a falling percentage when there is. A warning, not a gauge.
+
+*One stale label, caught by looking.* The cohort breakdown still described the
+price-sensitive cohort as reading "net price vs. what your prestige supports" —
+left over from before PR B retired net price. Nothing tests UI copy; it was
+visible in the screenshot.
 
 ## PR 05E — Tuition is a gamble
 

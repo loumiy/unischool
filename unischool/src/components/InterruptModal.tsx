@@ -6,6 +6,7 @@ import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
 import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction, admitRate, type PriceTier } from '../systems/admissions/admissionsSystem';
 import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
+import { projectConsequences } from '../systems/admissions/consequences';
 import { computePrestigeTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
 import { findDecisionEvent } from '../data/eventData';
 import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
@@ -33,6 +34,31 @@ interface AdmissionsDraft {
 
 function money(v: number): string {
   return `$${Math.round(v).toLocaleString()}`;
+}
+
+const NEED_LABEL: Record<'housing' | 'basicNeeds', string> = {
+  housing: 'Beds',
+  basicNeeds: 'Dining & health',
+};
+
+// The capacity row's value. Coverage is served-over-needed clamped to 1,
+// so a school with room to spare reads a flat 100% however many students
+// it takes — which is a fact, not a decision. So a covered school gets the
+// word "adequate" and no delta, and the percentage only appears once the
+// class would actually leave the campus short.
+function CoverageValue({ now, next }: { now: number; next: number }) {
+  if (next >= 1) return <span className="coverage-adequate">adequate</span>;
+  const delta = Math.round(next * 100) - Math.round(now * 100);
+  return (
+    <>
+      <AnimatedNumber value={next * 100} format={(n) => `${Math.round(n)}% covered`} />
+      {delta !== 0 && (
+        <span className={`consequence-delta ${delta > 0 ? 'good' : 'bad'}`}>
+          {delta > 0 ? '+' : '−'}{Math.abs(delta)}
+        </span>
+      )}
+    </>
+  );
 }
 
 // ---------------------------------------------------------------------
@@ -145,8 +171,15 @@ function CohortRow({ label, driverLabel, pull, applicants }: { label: string; dr
 // button that reveals the rest of its own consequences is ceremony. The
 // staging returns in PR E for a different reason — the tuition decision
 // becomes blind and LOCKS, so the reveal has something to reveal.
-function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, satisfaction, cohortSignals, petitions, onResolve }: {
+function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeiling, satisfaction, cohortSignals, petitions, onResolve }: {
   payload: AdmissionsDraft;
+  // The whole state, for the consequence projection alone (see
+  // consequences.ts): it advances a COPY of the classes and reads the real
+  // finance and satisfaction functions over it. The individual props above
+  // are kept as they are — this form reads them far more often than it
+  // reads `s`, and threading nine fields through one object would make the
+  // cheap reads look as expensive as the projection.
+  s: GameState;
   prestige: number;
   capacity: number;
   tuitionCeiling: number;
@@ -167,6 +200,13 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
   // opening position on a fresh save, shown as a reference point so a
   // player moving away from it knows they are moving away from something.
   const usualAdmitRate = admitRate(prestige);
+  // What committing THIS pair of decisions would do to the school: the
+  // money and the mood, at the body it would actually produce — the three
+  // classes still enrolled plus the incoming one. Same advance the reducer
+  // commits with, same readings the Treasury and Student Life show.
+  const consequence = projectConsequences(s, outcome.enrolled, tuition);
+  const netDelta = consequence.weeklyNet - consequence.weeklyNetNow;
+  const moodDelta = consequence.satisfactionTarget - consequence.satisfactionTargetNow;
   // What this school's prestige lets it charge before demand starts
   // falling away (see admissionsSystem.ts's price tolerance). Shown
   // because it is the single most consequential curve behind this
@@ -212,6 +252,42 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
         <div><dt>Freshman class</dt><dd><AnimatedNumber value={outcome.enrolled} /></dd></div>
         <div><dt>Incoming quality <span className="outcome-note">(feeds prestige)</span></dt><dd><AnimatedNumber value={outcome.avgIncomingQuality} format={(n) => `${Math.round(n)} / 100`} /></dd></div>
       </dl>
+
+      {/* What committing does to the school, not just to the intake — the
+          decision's consequences, before it is taken (Plan 05's PR D).
+          Projected against the body this commit produces, which includes
+          the three older classes who are still here and still paying the
+          price they were admitted under. */}
+      <div className="consequence-panel">
+        <h3>If you commit <span className="outcome-note">({consequence.totalEnrolled.toLocaleString()} students next year, {consequence.graduating.toLocaleString()} graduating)</span></h3>
+        <dl className="admissions-outcomes">
+          <div>
+            <dt>Weekly net <span className="outcome-note">(now {money(consequence.weeklyNetNow)}/wk)</span></dt>
+            <dd>
+              <AnimatedNumber value={consequence.weeklyNet} format={(n) => `${money(n)}/wk`} />
+              <span className={`consequence-delta ${netDelta >= 0 ? 'good' : 'bad'}`}>
+                {netDelta >= 0 ? '+' : '−'}{money(Math.abs(netDelta))}
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt>Satisfaction <span className="outcome-note">(heading toward, at current capacity — now {Math.round(consequence.satisfactionTargetNow)})</span></dt>
+            <dd>
+              <AnimatedNumber value={consequence.satisfactionTarget} format={(n) => `${Math.round(n)}`} />
+              <span className={`consequence-delta ${moodDelta >= 0 ? 'good' : 'bad'}`}>
+                {moodDelta >= 0 ? '+' : '−'}{Math.abs(moodDelta).toFixed(1)}
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt>
+              {NEED_LABEL[consequence.tightestNeed]}
+              <span className="outcome-note"> (the need this class stretches furthest)</span>
+            </dt>
+            <dd><CoverageValue now={consequence.tightestCoverageNow} next={consequence.tightestCoverage} /></dd>
+          </div>
+        </dl>
+      </div>
 
       <div className="cohort-breakdown">
         <h3>Who this pulls in <span className="outcome-note">(applicants, summing to the pool above)</span></h3>
@@ -775,6 +851,7 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
         {interrupt.type === 'admissions' ? (
           <AdmissionsInterruptForm
             payload={interrupt.payload as AdmissionsDraft}
+            s={s}
             prestige={s.self.reputation}
             capacity={s.students.capacity}
             tuitionCeiling={s.finance.tuitionCeiling}
