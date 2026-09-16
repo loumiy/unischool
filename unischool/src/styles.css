@@ -1705,8 +1705,15 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-bar-value { font-family: var(--mono); font-size: var(--text-2xs); color: var(--ink-muted);
   min-width: 16px; text-align: right; }
 
-.faculty-card-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+/* Five items in 224px of card: two figures, the disclosure and the one
+   action. It fits at the grid's usual width and wraps the action onto its
+   own line below that rather than clipping it — which is what the footer
+   did before it was allowed to wrap, taking the armed dismissal's warning
+   with it. The trailing pair is pushed right by a margin rather than by a
+   spacer element, because a spacer is one more thing on the line to fit. */
+.faculty-card-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
   font-family: var(--mono); font-size: var(--text-2xs); color: var(--ink-muted); }
+.faculty-card-foot .faculty-expand-btn { margin-left: auto; }
 .faculty-card-salary { white-space: nowrap; }
 /* How much of this person is already spent. Tenure used to hold this spot;
    it is a fact about their history, and this is a fact about whether they

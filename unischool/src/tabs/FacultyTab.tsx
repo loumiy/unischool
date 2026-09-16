@@ -182,7 +182,6 @@ function FacultyCard(
                 {load}/{slots} slots
               </span>
             )}
-            <span className="faculty-card-spacer" />
             <button
               type="button"
               className="faculty-expand-btn"
