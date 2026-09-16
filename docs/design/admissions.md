@@ -172,6 +172,14 @@ What each cohort *responds to* — labs, established majors, clubs, a fielded
 team — is on the card's **hover tooltip**, not under it. It explains the number
 rather than being the number, so it costs nothing until it is asked for.
 
+**Two cohort displays, showing different things.** The reveal above is one
+year's *applicants* — who was interested, before any of them were admitted.
+The Enrollment tab's standing body (below) is four years of *enrolled
+students*. They are drawn from the same seven cohorts and are not the same
+picture: one is demand, the other is the school. Keeping the distinction
+visible is the reason the tab shows classes stacked rather than a single
+total.
+
 ## Students: four aggregate classes
 
 The player manages an **institution**, not individual students. The student body
@@ -228,6 +236,34 @@ The settled v1 rules:
 Implemented in the four-class model (`students.classes`), with a save
 migration that splits an existing `students.enrolled` scalar evenly across the
 four classes.
+
+### The standing body: what each class is made of
+
+Beside the four head counts sits each class's **cohort composition as
+admitted** (`students.cohortsByClass`). It is written once, at the admissions
+boundary that enrolled the class, advances with that class every year, and
+leaves with it at graduation — the same lifecycle as the class's tuition (see
+"Tuition follows the class that paid it").
+
+**It is recorded rather than derived, and that is the whole design.** A
+cohort's pull is a reading of the campus as it stands *now*, so recomputing a
+standing class's mix would describe the school the player has today rather
+than the one that admitted those students: open an arts centre and last
+year's seniors would retroactively fill with arts students. Recording it makes
+the four classes four different schools stacked on each other, which is what
+the Enrollment tab draws — bar length for the size of each class, segments for
+its mix, so a class that was admitted by a different university from the one
+below it visibly is one.
+
+Two kinds of class carry **no cohort signal**: they read the model's base
+shares exactly, because nothing the school had built was pulling any audience
+in particular. The founding body is four of them — it arrives before the
+player has built anything — and a save written before this record existed is
+filled in the same way (`persistence.ts`'s `MIGRATIONS[39]`), since a mix that
+was never recorded cannot be recovered without inventing it. The tab marks
+those classes rather than presenting a prior as a record. Both cases clear
+themselves within four years, as each unsignalled class graduates out and is
+replaced by one the player actually admitted.
 
 ### Class, cohort, course
 
