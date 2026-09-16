@@ -1037,6 +1037,39 @@ function testThreeStandingsMigration(): void {
     `nor are those two copies of each other (${agree(byResearch, bySocial)} of ${loaded.rivals.length} in the same place)`);
 }
 
+// ---- Test: v43 -> v44, athletic strength starts moving ----
+//
+// The small one. What is worth asserting is what it does NOT do: a saved
+// rival's athleticStrength has been sitting still because nothing moved it,
+// which is the same value a fresh game would have derived, so the migration
+// seeds a momentum and leaves the number alone.
+function testAthleticDriftMigration(): void {
+  const base = createInitialState('AthleticMigrator', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+  state.clock = { year: 14, week: 8 };
+
+  const rivals = state.rivals as Loose[];
+  rivals[0].athleticStrength = 63;
+  for (const r of rivals) delete r.athleticMomentum;
+  writeSave(43, state);
+
+  const loaded = loadGame();
+  assert(loaded !== null, 'v43 save loads (does not fall back to null)');
+  if (!loaded) return;
+
+  const missing = loaded.rivals.filter((r) => typeof r.athleticMomentum !== 'number');
+  assert(missing.length === 0, `every rival gains an athletic momentum (missing on: ${missing.map((r) => r.id).join(', ')})`);
+
+  const kept = loaded.rivals.find((r) => r.id === (rivals[0].id as string));
+  assert(kept?.athleticStrength === 63,
+    `athleticStrength itself is untouched — there is nothing to correct (got ${kept?.athleticStrength})`);
+
+  // Nothing is stored per sport: eighteen readings per school arrive without
+  // a byte of save growth (see rivalData.ts's sportStrengthFor).
+  const perSport = Object.keys(loaded.rivals[0]).filter((k) => k.toLowerCase().includes('sport'));
+  assert(perSport.length === 0, `no per-sport field is stored on a rival (found: ${perSport.join(', ')})`);
+}
+
 // ---- Test: unmigratable / malformed saves fall back to null, never throw ----
 function testRejects(): void {
   // A version with no migration path (v1) cannot be carried forward.
@@ -1072,6 +1105,7 @@ testScholarshipMigration();
 testPerClassTuitionMigration();
 testHundredSchoolFieldMigration();
 testThreeStandingsMigration();
+testAthleticDriftMigration();
 testRoundTrip();
 testRejects();
 

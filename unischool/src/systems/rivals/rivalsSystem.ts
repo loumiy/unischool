@@ -1,7 +1,7 @@
-import type { GameState } from '../../state/types';
+import type { GameState, Rival, VarsityTeam } from '../../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../../state/types';
-import { athleticProgramStrength } from '../../data/studentLifeData';
-import { makeRivalRng } from '../../data/rivalData';
+import { athleticProgramStrength, teamQuality } from '../../data/studentLifeData';
+import { makeRivalRng, sportStrengthFor } from '../../data/rivalData';
 
 // ---------------------------------------------------------------------
 // Rivals evolve so the ranking stays a live target across decades (see
@@ -20,6 +20,15 @@ const MOMENTUM_UPWARD_BIAS = 0.45;   // slight upward skew, so the field isn't a
 const ANNUAL_SHOCK_RANGE = 5;        // independent +/- jitter applied every year, on top of momentum
 const RIVAL_REPUTATION_MIN = 5;
 const RIVAL_REPUTATION_MAX = 150;
+// Athletics' own band, narrower than the three standings' 5..150. The ceiling
+// sits BELOW the 100 teamQuality can reach, on purpose: sportStrengthFor
+// (data/rivalData.ts) spreads this number by up to 28 points per sport and
+// has to land inside 0..100 without being clamped into it, or the top of
+// every sport's table collapses into a tie. A little above the seeding
+// ceiling of 80, so a school that climbs for decades is not stuck against the
+// same wall it started under.
+const ATHLETIC_STRENGTH_MIN = 5;
+const ATHLETIC_STRENGTH_MAX = 85;
 
 // The U.S. News report is a mid-game reveal (see
 // docs/design/progression.md): the player is unaware of it until prestige
@@ -94,6 +103,7 @@ export function tickRivals(s: GameState): void {
     const roll = makeRivalRng(seed);
     const socialRoll = makeRivalRng(seed ^ 0x9e37_79b9);
     const researchRoll = makeRivalRng(seed ^ 0x85eb_ca6b);
+    const athleticRoll = makeRivalRng(seed ^ 0xc2b2_ae35);
     for (const r of s.rivals) {
       // Occasionally reroll momentum so trends aren't permanent.
       if (roll() < MOMENTUM_REROLL_CHANCE) {
@@ -120,6 +130,23 @@ export function tickRivals(s: GameState): void {
       r.researchStanding = clamp(
         r.researchStanding + r.researchMomentum + (researchRoll() - 0.5) * ANNUAL_SHOCK_RANGE,
         RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX,
+      );
+
+      // ATHLETIC STRENGTH MOVES TOO, which it did not until now (types.ts
+      // called that "a deferred deepening, not an oversight"). A playoff
+      // bracket seeded off a field that never changes is a bracket whose
+      // result is known a decade in advance, so this is a prerequisite for
+      // the tournament rather than a flourish.
+      //
+      // Clamped to ATHLETIC_STRENGTH_MIN/MAX rather than the reputation band
+      // the three standings share: athletics is scored on 0..100 on both
+      // sides (a rival's strength against the player's own teamQuality), and
+      // letting a rival drift to 150 would put the whole field permanently
+      // out of reach of a number that cannot exceed 100.
+      r.athleticMomentum = driftMomentum(r.athleticMomentum, athleticRoll);
+      r.athleticStrength = clamp(
+        r.athleticStrength + r.athleticMomentum + (athleticRoll() - 0.5) * ANNUAL_SHOCK_RANGE,
+        ATHLETIC_STRENGTH_MIN, ATHLETIC_STRENGTH_MAX,
       );
     }
   }
@@ -196,12 +223,30 @@ function selfValue(s: GameState, axis: StandingAxis): number {
   return axis === 'athleticStrength' ? athleticProgramStrength(s) : s.self[axis];
 }
 
-export function rankedListBy(s: GameState, axis: StandingAxis): RankedEntry[] {
-  const all: RankedEntry[] = [
-    { key: 'self', name: institutionName(s.self), mascot: s.self.mascot, value: selfValue(s, axis), isPlayer: true },
-    ...s.rivals.map((r) => ({ key: r.id, name: r.name, mascot: r.mascot, value: r[axis], isPlayer: false })),
-  ];
+// The core every leaderboard is built from: one entry per school, sorted by
+// whatever the caller says a school's number is. Extracted so the per-sport
+// tables below are the same function with a different reading rather than a
+// fifth hand-written sort.
+//
+// `self` is null when the player does not belong on this table at all — see
+// sportRankedList, where a school that does not field the sport has no
+// program to rank.
+function rankedFrom(
+  s: GameState,
+  self: number | null,
+  rivalValue: (r: Rival) => number,
+): RankedEntry[] {
+  const all: RankedEntry[] = s.rivals.map((r) => ({
+    key: r.id, name: r.name, mascot: r.mascot, value: rivalValue(r), isPlayer: false,
+  }));
+  if (self !== null) {
+    all.push({ key: 'self', name: institutionName(s.self), mascot: s.self.mascot, value: self, isPlayer: true });
+  }
   return all.sort((a, b) => b.value - a.value);
+}
+
+export function rankedListBy(s: GameState, axis: StandingAxis): RankedEntry[] {
+  return rankedFrom(s, selfValue(s, axis), (r) => r[axis]);
 }
 
 // The player's 1-indexed position on an axis.
@@ -225,6 +270,45 @@ export function playerRank(s: GameState): number {
 // rivalData.ts's athleticStrengthFor for why the axes are decoupled).
 export function athleticRank(s: GameState): number {
   return rankBy(s, 'athleticStrength');
+}
+
+// ---------------------------------------------------------------------
+// PER-SPORT STANDINGS. The department-wide table above says whether a school
+// runs a good athletics program; these say whether it is any good at
+// LACROSSE, which is the question a team's own coach hire is an answer to.
+//
+// A rival's number is derived per sport (rivalData.ts's sportStrengthFor);
+// the player's is the teamQuality of the team they actually field, which is
+// the number their coaching staff and recruiting budget already move. So the
+// two sides of the comparison are the same scale by construction rather than
+// by a conversion somebody has to keep honest.
+//
+// A SCHOOL THAT DOES NOT FIELD THE SPORT IS NOT ON THE TABLE. That is the
+// honest reading — there is no program to rank — and it is why sportRank
+// returns null rather than a last place that would imply one. An
+// 'awaitingVenue' team is not on it either, for the same reason it
+// contributes no social bonus and does not count toward
+// athleticProgramStrength: it cannot compete yet.
+// ---------------------------------------------------------------------
+
+// The player's own team in a sport, if they field one that can compete.
+export function playerTeamIn(s: GameState, sportId: string): VarsityTeam | undefined {
+  return s.orgs.teams.find((t) => t.sport === sportId && t.status === 'active');
+}
+
+export function sportRankedList(s: GameState, sportId: string): RankedEntry[] {
+  const team = playerTeamIn(s, sportId);
+  return rankedFrom(
+    s,
+    team ? teamQuality(team, s) : null,
+    (r) => sportStrengthFor(r, sportId),
+  );
+}
+
+// The player's 1-indexed place in one sport, or null if they do not field it.
+export function sportRank(s: GameState, sportId: string): number | null {
+  const place = sportRankedList(s, sportId).findIndex((e) => e.isPlayer);
+  return place === -1 ? null : place + 1;
 }
 
 // ---------------------------------------------------------------------

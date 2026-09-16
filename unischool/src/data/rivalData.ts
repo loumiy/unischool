@@ -83,9 +83,31 @@ export function makeRivalRng(seed: number): () => number {
   };
 }
 
+// THE BAND IS DELIBERATELY SHORT OF THE CEILING, and that is a fix rather
+// than a preference. This used to map reputation straight onto 10..100, and
+// with reputations reaching 99 the product saturated: TWELVE of the 99 rivals
+// sat at exactly 100, so the department table opened with a twelve-way tie
+// broken by array order — and once sportStrengthFor spread those same
+// saturated numbers per sport, every one of the eighteen tables opened with a
+// thirteen-to-sixteen-way tie at 100. "Who is best at lacrosse" had no answer,
+// and a playoff seeded off that field would have been seeded by position in an
+// array.
+//
+// Scaling reputation down before the spread leaves the headroom the per-sport
+// derivation needs to sit INSIDE the 0..100 band teamQuality shares, instead
+// of being clamped into it. The ceiling here is the seeding one; the drift
+// (rivalsSystem.ts) is allowed a little above it so a school that climbs for
+// decades is not stuck against the same wall.
+const ATHLETIC_BASE_SCALE = 0.55;
+const ATHLETIC_SEED_MIN = 10;
+const ATHLETIC_SEED_MAX = 80;
+
 export function athleticStrengthFor(reputation: number, id: string): number {
   const multiplier = 0.6 + hashUnit(id) * 0.8; // 0.6..1.4
-  return Math.max(10, Math.min(100, Math.round(reputation * multiplier)));
+  return Math.max(
+    ATHLETIC_SEED_MIN,
+    Math.min(ATHLETIC_SEED_MAX, Math.round(reputation * ATHLETIC_BASE_SCALE * multiplier)),
+  );
 }
 
 // THE OTHER TWO AXES, derived the same way and for the same reason
@@ -154,12 +176,51 @@ export function standingMomentumFor(id: string, axis: string): number {
   return Math.round((hashUnit(`${id}:${axis}:momentum`) - 0.5) * STANDING_MOMENTUM_RANGE * 100) / 100;
 }
 
+// A school's strength in ONE sport, spread around its department-wide
+// athleticStrength.
+//
+// DERIVED, NOT STORED, and the call is the opposite of Plan 06's on the
+// cohort mix — deliberately, because the thing being reconstructed is a
+// different kind of thing. A class's cohort mix is a fossil: a fact about a
+// decision made at one moment, unrecoverable afterwards because the inputs
+// have moved. A school's strength at lacrosse is a standing fact about the
+// school, and a deterministic hash of (id, sport) reproduces it identically
+// on every read, forever, across saves and reloads. There is nothing to
+// lose, and 100 schools x 18 sports is 1,800 numbers to author and to carry
+// in every save.
+//
+// The consequence is that a school is reliably strong at some sports and
+// weak at others, for the whole run. That is not a compromise — it is the
+// thing that makes a rivalry legible over forty years, and what lets a
+// per-sport table say something the department-wide one cannot.
+// ADDITIVE, in points, rather than a multiplier — which matters for the same
+// reason the band above is short of the ceiling. A multiplicative spread
+// scales with the base, so a strong department stays strong in every sport
+// and the eighteen tables are the department table with noise on it. A fixed
+// swing in points gives a mid-table school a real chance to be a genuine
+// hockey school, which is the only thing a per-sport table is for.
+//
+// +/-28 measured against the alternatives: at +/-20 the strongest departments
+// still led most sports; at +/-28 no sport's table opens with a tie, ten of
+// the eighteen have a different best school, and two sports share only about
+// two of their eight strongest — so each sport has its own field rather than
+// the same one reordered.
+const SPORT_SPREAD_POINTS = 28;
+
+export function sportStrengthFor(rival: Rival, sportId: string): number {
+  const swing = (hashUnit(`${rival.id}:${sportId}`) * 2 - 1) * SPORT_SPREAD_POINTS;
+  // The band teamQuality (studentLifeData.ts) produces, since the player's own
+  // per-sport number IS a teamQuality and the two are read against each other.
+  return Math.max(5, Math.min(100, Math.round(rival.athleticStrength + swing)));
+}
+
 export function initialRivals(): Rival[] {
   return baseRivals().map((r) => {
     const athleticStrength = athleticStrengthFor(r.reputation, r.id);
     return {
       ...r,
       athleticStrength,
+      athleticMomentum: standingMomentumFor(r.id, 'athletic'),
       socialStanding: socialStandingFor(r.reputation, athleticStrength, r.id),
       researchStanding: researchStandingFor(r.reputation, r.id),
       socialMomentum: standingMomentumFor(r.id, 'social'),
@@ -172,7 +233,8 @@ export function initialRivals(): Rival[] {
 // computed in initialRivals above — three from the school's own id, and the
 // momenta from it too — so the table below stays a table of decisions rather
 // than of arithmetic somebody has to keep consistent by hand.
-type AuthoredRival = Omit<Rival, 'athleticStrength' | 'socialStanding' | 'researchStanding' | 'socialMomentum' | 'researchMomentum'>;
+type AuthoredRival = Omit<Rival,
+  'athleticStrength' | 'athleticMomentum' | 'socialStanding' | 'researchStanding' | 'socialMomentum' | 'researchMomentum'>;
 
 function baseRivals(): AuthoredRival[] {
   return [

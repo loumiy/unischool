@@ -1024,7 +1024,27 @@ export const SAVE_KEY = 'unischool.save';
 // reached.
 //
 // See MIGRATIONS[42].
-export const SAVE_VERSION = 43;
+//
+// v43 -> v44: a rival's athletic strength starts MOVING. `Rival` gains
+// `athleticMomentum`, added-as-required, so the bump is not optional.
+//
+// Small, and the same argued exception as the two before it: the chain is
+// only as reachable as its least-reachable link (see the v41 -> v42 note),
+// so skipping here would orphan everything behind it just as effectively.
+//
+// The momentum is seeded from the school's own id exactly as a fresh game
+// seeds it. `athleticStrength` itself is NOT touched — a save's value has
+// been sitting still because nothing moved it, which is the same value a
+// fresh game would have derived, so there is nothing to correct. It simply
+// starts drifting from where it is.
+//
+// Nothing is stored per sport. A school's strength in one sport is derived
+// on read from this number and the sport's id (data/rivalData.ts's
+// sportStrengthFor), so a save gains eighteen readings per school without
+// gaining a byte.
+//
+// See MIGRATIONS[43].
+export const SAVE_VERSION = 44;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1110,6 +1130,17 @@ const KNOWN_SUFFIXES = ['College', 'University'];
 // worth carrying, and delete the whole chain freely once nothing is
 // resuming from it.
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v43 -> v44: athletic strength starts moving (see the SAVE_VERSION header
+  // note above).
+  43: (state) => {
+    for (const r of state.rivals) {
+      const legacy = r as unknown as { athleticMomentum?: number };
+      if (typeof legacy.athleticMomentum !== 'number') {
+        legacy.athleticMomentum = standingMomentumFor(r.id, 'athletic');
+      }
+    }
+  },
+
   // v42 -> v43: standing becomes three numbers (see the SAVE_VERSION header
   // note above, including why this entry exists under a discard-by-default
   // policy and why the player's two stocks start at their baselines).

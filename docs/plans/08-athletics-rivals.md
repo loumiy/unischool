@@ -659,6 +659,45 @@ it has today.
 `athleticStrengthFor` as the whole model and `Rival.athleticStrength` as static;
 `types.ts`'s comment on that field says the same.
 
+**As implemented:** a third collapse in the same derivation family, found the
+same way the first two were — by asserting the property rather than reading the
+code.
+
+**`athleticStrengthFor` saturated its own clamp.** It mapped reputation
+straight onto 10..100, and with reputations reaching 99 the product ran past
+the ceiling: **twelve of the 99 rivals sat at exactly 100.** Spread per sport,
+that became thirteen-to-sixteen schools tied at 100 on *every one* of the
+eighteen tables. "Who is best at lacrosse" had no answer, and PR 2F's bracket
+would have seeded its strongest eight by position in an array.
+
+Two changes fix it, and both are about leaving the ceiling alone rather than
+clamping into it. The department band now stops at 80 (scaled before the
+spread, so the distribution uses the band instead of piling against it), with
+the drift allowed a little above at 85 so a school climbing for decades is not
+stuck against the wall it started under. And the per-sport swing is **additive,
+±28 points, rather than a multiplier**: a multiplicative spread scales with the
+base, so the strongest departments led nearly every sport and the eighteen
+tables were the department table with noise on it.
+
+±28 was measured rather than picked. At ±20 no table tied but the top
+departments still led most sports; at ±28 no table opens with a tie, ten of the
+eighteen have a different best school, and two sports share only about two of
+their eight strongest — so each sport has a field of its own, which is the only
+thing a per-sport table is for.
+
+**The lesson is now three for three.** PR 1A found `hashUnit` with no
+avalanche; PR 1B found the axes sharing a generator; this found the band
+saturating. Every one was a derivation that looked right and collapsed under
+measurement, and every one was caught by a test that asserted the *property*
+the comment claimed — a wide spread, an untouched trajectory, no tie at the
+top — rather than by reading the arithmetic. `test/sport-standings.test.ts`
+exists for that reason and keeps all three properties asserted.
+
+**The fourth generator.** Athletic drift takes its own xor-derived stream, per
+PR 1B's note, so the academic stream stays bit-identical: `npm run sim` is
+unchanged from PR 1A across all seven strategies and forty years. The global
+draw is still one a year with four axes moving.
+
 ---
 
 # PHASE 2 — THE DEPARTMENT

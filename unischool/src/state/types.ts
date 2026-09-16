@@ -643,14 +643,26 @@ export interface Rival {
   mascot: string;
   reputation: number;   // the metric the ranking sorts on
   momentum: number;     // hidden trend, makes rivals dynamic over decades
-  // A second, independent ranking axis for Athletics V2's standings (see
+  // A second, independent ranking axis for athletics' standings (see
   // data/rivalData.ts's athleticStrengthFor and rivalsSystem.ts's
   // athleticRank) — deliberately NOT derived from `reputation` at read
   // time, so a rival can be an athletic power without being an academic
   // one and vice versa, the same real-world decoupling `reputation` alone
-  // could never express. Static for now (no annual drift of its own, unlike
-  // reputation/momentum) — a deferred deepening, not an oversight.
+  // could never express.
+  //
+  // IT MOVES NOW. This used to read "static for now (no annual drift of its
+  // own, unlike reputation/momentum) — a deferred deepening, not an
+  // oversight", and the deepening is taken: it drifts annually on its own
+  // momentum like every other axis. A playoff bracket seeded off a field
+  // that never changes is a bracket whose result is known a decade in
+  // advance, so the drift is a prerequisite rather than a flourish.
+  //
+  // THIS IS THE DEPARTMENT-WIDE NUMBER. A school's strength in one
+  // particular sport is derived from it per sport, not stored — see
+  // rivalData.ts's sportStrengthFor for why 100 schools x 18 sports is
+  // derived rather than authored or saved.
   athleticStrength: number;
+  athleticMomentum: number;
   // THE OTHER TWO RANKING AXES (see data/rivalData.ts's standingsFor and
   // systems/rivals/rivalsSystem.ts's rankedListBy). `reputation` answers
   // "how good is this university"; these answer "how good is its research"
