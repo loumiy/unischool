@@ -433,6 +433,49 @@ motifs opt out explicitly, with the reason in the comment rather than in a
 plan nobody will open again. Georgian's row is today's `Portico` /
 `CentrePavilion` / `EndPavilion` / `ClockTower`.
 
+**As implemented:** a no-op, proved the same two ways — 170 → 225 checks,
+and the sim identical row for row. Phase 2 is done and every one of its
+three PRs was provably invisible.
+
+*There is no eaves slot.* The plan named three; only two of them were real.
+How a wall meets its roof was already answered by PR E's
+`VernacularRoof.parapet` — a positive parapet is a Georgian eaves, zero is a
+Gothic one — so an eaves slot would restate one fact in a second place, and
+two places that must agree is the exact failure this table exists to
+prevent. The third real slot turned out to be the **roofline end**: Georgian
+raises a small pavilion at each end of a hall's roof, and a Gothic gable
+closes itself and wants nothing there. So the slots are `entrance`,
+`rooflineEnd`, `apex`.
+
+*The entrance slot is keyed per motif, not per vernacular alone.* Georgian
+already varies it — a hall gets a portico, the civic set gets a colonnade
+(it does not have an entrance, it *is* one), a dining hall gets a canopy. A
+single per-vernacular entrance would have flattened a distinction the campus
+already draws.
+
+*Unimplemented parts are named but not drawn — the opposite of PR E's
+call, on purpose.* `EntrancePart` and `ApexPart` name `porch`, `arcade`,
+`recess`, `spire`, `campanile` and `core`; only Georgian's three have
+geometry. PR E wrote all four window outlines because an outline is a dozen
+lines of pure `(u, v)` arithmetic checkable without rendering; a spire is
+eighty lines of iso SVG checkable only by looking at it, and writing three
+blind would be inventing three buildings nobody has seen.
+
+What makes that safe rather than sloppy is `IMPLEMENTED_*_PARTS` plus a
+test asserting every part a vernacular in `VERNACULARS` names is on those
+lists. **Verified adversarially rather than assumed:** flipping Georgian's
+apex to `'spire'` fails two checks, including `vernacular 'georgian' names
+apex 'spire', which nothing draws yet`. So PR G adding a Gothic row is
+forced to draw what it names.
+
+*The renderer now asks what goes here, not what this is.* The three
+ornament branches that read `motif === 'hall'`, `motif === 'portico'` and
+`motif === 'pavilion' || motif === 'residential'` now read `entrance ===
+'portico'`, `=== 'colonnade'` and `=== 'canopy'`. The fourteen remaining
+`motif ===` branches are all **structural** — which mass to build, not what
+to decorate it with — and are correctly motif-driven; the set PRs should
+leave them alone.
+
 ## Phase 3 — The sets
 
 Ordered so that each one tests something the next one depends on.

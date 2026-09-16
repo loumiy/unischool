@@ -25,6 +25,9 @@ import {
   doorFamilyOf, doorOf, floorLinesOf, hasClockTower,
   materialOf, materialsFor, stoneFor, roofFor, parapetOf, paneShapeOf,
   windowOutline, windowShapeOf, variesByVernacular, VERNACULAR_INVARIANT_MOTIFS,
+  partsFor, entrancePartOf, rooflineEndPartOf, apexPartOf,
+  IMPLEMENTED_ENTRANCE_PARTS, IMPLEMENTED_ROOFLINE_END_PARTS, IMPLEMENTED_APEX_PARTS,
+  hasClockTower as carriesClockTower,
   VERNACULARS, motifOf, rankSills, ridgeOf,
   storeysOf, wallHeightOf, wallShadeOf,
   windowRanksOf, windowWidthOf, type DoorFamily,
@@ -693,6 +696,73 @@ console.log('campus scale and building spec');
         `vernacular '${vname}' does not pitch a roof onto '${m}'`);
     }
   }
+}
+
+// --- 15. The ornament table names what the campus already wore -----------
+// Plan 07's PR F replaced the renderer's `motif === 'hall'` ornament
+// branches with a per-vernacular table of parts. Same claim as 13 and 14:
+// nothing moved on the map, so Georgian's row is checked against what each
+// motif was actually drawing before the table existed.
+{
+  const V = FOUNDING_VERNACULAR;
+  const parts = partsFor('georgian');
+
+  // The entrance, motif by motif, exactly as the old branches read: a hall
+  // had a portico, the civic set a colonnade, a dining hall and a residence
+  // hall a canopy, a village nothing applied.
+  const EXPECTED_ENTRANCE = {
+    hall: 'portico', portico: 'colonnade',
+    pavilion: 'canopy', residential: 'canopy', village: 'none',
+  } as const;
+  for (const [motif, part] of Object.entries(EXPECTED_ENTRANCE)) {
+    assert(parts.entrance[motif as keyof typeof EXPECTED_ENTRANCE] === part,
+      `georgian's ${motif} entrance is unchanged (got ${parts.entrance[motif as keyof typeof EXPECTED_ENTRANCE]}, was ${part})`);
+  }
+  assert(parts.rooflineEnd === 'pavilion', 'georgian still raises a pavilion at each end of the roofline');
+  assert(parts.apex === 'cupola', 'and still tops its landmark with a cupola');
+
+  // THE TABLE COVERS EXACTLY THE FIVE VARYING MOTIFS. One short is a
+  // building that silently loses its entrance; one extra is a vernacular
+  // reaching into the invariant six by the back door.
+  const varying = [...new Set(CATALOGUE.map(motifOf))].filter(variesByVernacular);
+  for (const m of varying) {
+    assert(parts.entrance[m] !== undefined,
+      `georgian says what goes at a '${m}' entrance`);
+  }
+  for (const m of VERNACULAR_INVARIANT_MOTIFS) {
+    assert(parts.entrance[m] === undefined,
+      `georgian does not reach into '${m}', which no vernacular restyles`);
+  }
+
+  // And the gate holds at the level the renderer actually asks at: every
+  // invariant building answers 'none', whatever the table says.
+  for (const t of CATALOGUE) {
+    if (variesByVernacular(motifOf(t))) continue;
+    assert(entrancePartOf(t, V) === 'none',
+      `${t.id} (${motifOf(t)}) has no applied entrance in any vernacular`);
+  }
+
+  // The apex belongs to the one building that has one. The vernacular says
+  // WHAT stands there; hasClockTower still says WHICH building.
+  const towered = CATALOGUE.filter(carriesClockTower);
+  assert(towered.length === 1 && apexPartOf(V) !== 'none',
+    'exactly one building tops out, and this vernacular has something to put there');
+
+  // NO VERNACULAR MAY NAME A PART NOTHING DRAWS. This is the check that
+  // makes it safe for EntrancePart/ApexPart to name the parts PRs G, H and
+  // I will need before those PRs exist: adding `apex: 'spire'` to a new row
+  // fails here until a spire is actually drawn.
+  for (const [vname, spec] of Object.entries(VERNACULARS)) {
+    for (const [m, part] of Object.entries(spec.parts.entrance)) {
+      assert(IMPLEMENTED_ENTRANCE_PARTS.includes(part),
+        `vernacular '${vname}' names entrance part '${part}' for '${m}', which nothing draws yet`);
+    }
+    assert(IMPLEMENTED_ROOFLINE_END_PARTS.includes(spec.parts.rooflineEnd),
+      `vernacular '${vname}' names roofline end '${spec.parts.rooflineEnd}', which nothing draws yet`);
+    assert(IMPLEMENTED_APEX_PARTS.includes(spec.parts.apex),
+      `vernacular '${vname}' names apex '${spec.parts.apex}', which nothing draws yet`);
+  }
+  assert(rooflineEndPartOf(V) === 'pavilion', 'and the roofline-end lookup agrees with the table');
 }
 
 if (failures === 0) {

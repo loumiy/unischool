@@ -762,11 +762,60 @@ export type WindowShape =
   | 'lancet'   // pointed, the Gothic light
   | 'slot';    // a deep narrow opening in a concrete wall
 
+// ---------------------------------------------------------------------
+// THE ORNAMENT SLOTS. What a vernacular puts in the three places a campus
+// building is decorated, as names rather than as components — so adding a
+// set is a table row, and so the renderer stops asking "is this a hall?"
+// and starts asking "what goes at this building's entrance?".
+//
+// THERE IS NO EAVES SLOT, and its absence is deliberate rather than an
+// oversight. How a wall meets its roof is already answered by
+// VernacularRoof.parapet above (PR E): a positive parapet is a Georgian
+// eaves, zero is a Gothic one. A slot here would restate that in a second
+// place, and two places that must agree about one fact is exactly the
+// failure this table exists to prevent.
+// ---------------------------------------------------------------------
+
+// What stands at a building's way in. Keyed per MOTIF as well as per
+// vernacular, because Georgian already varies it: a hall gets a portico, a
+// library IS an entrance and gets a colonnade, a dining hall gets a canopy.
+export type EntrancePart =
+  | 'portico'    // a rank of columns standing clear of a projecting centre bay
+  | 'colonnade'  // the same columns, run the length of the front
+  | 'canopy'     // a slab on two posts
+  | 'porch'      // buttressed, pointed-arched — the Gothic way in
+  | 'arcade'     // round-arched, walked under — Mission
+  | 'recess'     // an opening set back under an overhang — Brutalist
+  | 'none';
+
+// What closes the ends of a pitched roofline. Georgian raises the wall into
+// a small pavilion at each end; a Gothic gable end closes itself and wants
+// nothing here.
+export type RooflineEndPart = 'pavilion' | 'none';
+
+// What stands on top of the campus's one landmark (see hasClockTower).
+export type ApexPart =
+  | 'cupola'     // drum, dome and finial — the gilded thing
+  | 'spire'      // Gothic
+  | 'campanile'  // Mission
+  | 'core'       // a blank concrete stair core — Brutalist
+  | 'none';
+
+export interface VernacularParts {
+  // Only the five varying motifs appear. An absent motif means 'none',
+  // which is also what every invariant motif gets: a gym has no applied
+  // entrance in any vernacular.
+  entrance: Partial<Record<Motif, EntrancePart>>;
+  rooflineEnd: RooflineEndPart;
+  apex: ApexPart;
+}
+
 export interface VernacularSpec {
   materials: MaterialSet;
   stone: StonePalette;
   roof: VernacularRoof;
   windowShape: WindowShape;
+  parts: VernacularParts;
 }
 
 const GEORGIAN: VernacularSpec = {
@@ -782,6 +831,19 @@ const GEORGIAN: VernacularSpec = {
     parapet: up(0.85),
   },
   windowShape: 'rect',
+  parts: {
+    entrance: {
+      hall: 'portico',
+      portico: 'colonnade',
+      pavilion: 'canopy',
+      residential: 'canopy',
+      // A village house has a door and no applied entrance — the houses are
+      // the ornament (see VillageHouse).
+      village: 'none',
+    },
+    rooflineEnd: 'pavilion',
+    apex: 'cupola',
+  },
 };
 
 export const VERNACULARS: Record<Vernacular, VernacularSpec> = {
@@ -824,6 +886,47 @@ export function variesByVernacular(m: Motif): boolean {
 export function paneShapeOf(t: Buildable, v: Vernacular): WindowShape {
   return variesByVernacular(motifOf(t)) ? windowShapeOf(v) : 'rect';
 }
+
+export function partsFor(v: Vernacular): VernacularParts {
+  return VERNACULARS[v].parts;
+}
+
+// What goes at THIS building's entrance. The invariant six always get
+// 'none' — the same gate paneShapeOf uses, applied to the other axis, so
+// there is one answer to "does the vernacular reach this building?" rather
+// than two that can drift.
+export function entrancePartOf(t: Buildable, v: Vernacular): EntrancePart {
+  const motif = motifOf(t);
+  if (!variesByVernacular(motif)) return 'none';
+  return partsFor(v).entrance[motif] ?? 'none';
+}
+
+export function rooflineEndPartOf(v: Vernacular): RooflineEndPart {
+  return partsFor(v).rooflineEnd;
+}
+
+export function apexPartOf(v: Vernacular): ApexPart {
+  return partsFor(v).apex;
+}
+
+// WHICH PARTS ACTUALLY HAVE GEOMETRY BEHIND THEM, so a vernacular cannot
+// name one that nothing draws.
+//
+// The types above name every part the four planned sets need; only
+// Georgian's three are built. That asymmetry is on purpose and is NOT the
+// call PR E made for window shapes: an outline is a dozen lines of pure
+// (u, v) arithmetic that can be checked without rendering, while a spire is
+// eighty lines of iso SVG that can only be checked by looking at it. Naming
+// them costs nothing and writing them blind would be inventing three
+// buildings nobody has seen.
+//
+// The lists below are what makes the asymmetry safe rather than sloppy:
+// test/building-spec.test.ts asserts every part named by a vernacular in
+// VERNACULARS is on them, so PR G adding `apex: 'spire'` fails loudly until
+// PR G also draws a spire.
+export const IMPLEMENTED_ENTRANCE_PARTS: EntrancePart[] = ['portico', 'colonnade', 'canopy', 'none'];
+export const IMPLEMENTED_ROOFLINE_END_PARTS: RooflineEndPart[] = ['pavilion', 'none'];
+export const IMPLEMENTED_APEX_PARTS: ApexPart[] = ['cupola', 'none'];
 
 // How far the wall carries above the cornice. Zero is a real answer.
 export function parapetOf(v: Vernacular): number {

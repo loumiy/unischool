@@ -16,6 +16,7 @@ import {
   TOWER_FINIAL_RISE, TOWER_PODIUM_STOREYS, TREAD_DEPTH, WINDOW_HEIGHT,
   baysAcross, clerestorySill, doorDimensions, doorOf, floorLinesOf, floorsUnderConstruction, hasClockTower, motifOf,
   rankSills, ridgeOf, parapetOf, stoneFor, paneShapeOf, windowOutline,
+  entrancePartOf, rooflineEndPartOf, apexPartOf,
   storeysOf, wallHeightOf, wallShadeOf, windowRanksOf,
   windowWidthOf,
   type DoorDimensions, type Material, type StonePalette, type WindowShape,
@@ -1110,6 +1111,13 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
   const stone: StonePalette = stoneFor(vernacular);
   // 'rect' for the six motifs no vernacular restyles — see paneShapeOf.
   const paneShape = paneShapeOf(t, vernacular);
+  // What this vernacular puts in each of the three ornament slots (see
+  // buildingSpec's VernacularParts). The branches below ask what goes HERE
+  // rather than what motif this is, which is the whole point of the table:
+  // a second set is a table row, not another `motif === ...` arm.
+  const entrance = entrancePartOf(t, vernacular);
+  const rooflineEnd = rooflineEndPartOf(vernacular);
+  const apex = apexPartOf(vernacular);
   const motif = motifOf(t);
   // How much of this mass is not built yet, and so what `developing` means
   // for it: a SITE has nothing standing, while a building being extended
@@ -1485,7 +1493,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
             which washed brown over the windows underneath instead of standing
             above them. Drawn AFTER the roof, so they close it rather than
             disappear behind it. */}
-        {([
+        {rooflineEnd === 'pavilion' && ([
           // [col, row, w, h] of each raised end, hugging the wall it caps.
           [col, row + h - END_PAVILION_DEPTH, endPlan, END_PAVILION_DEPTH],
           [col + w - endPlan, row + h - END_PAVILION_DEPTH, endPlan, END_PAVILION_DEPTH],
@@ -1495,7 +1503,10 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           <EndPavilion stone={stone} key={`e${i}`} col={ec} row={er} w={ew} h={eh} base={WH} pal={pal} />
         ))}
 
-        {hasClockTower(t) && (
+        {/* The campus's one landmark tops out. hasClockTower still decides
+            WHICH building (Founders Hall, and nothing else); the vernacular
+            decides WHAT stands there. */}
+        {hasClockTower(t) && apex === 'cupola' && (
           <ClockTower stone={stone} col={col} row={row} w={w} h={h} base={WH + ridge * 0.4} />
         )}
 
@@ -1509,14 +1520,18 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           col={col} row={row} w={w} h={h} wallHeight={H} outward="col"
           pal={pal} door={door} sills={sills} paneW={paneW}
         />
-        <Portico stone={stone}
-          centreCol={col + w / 2} centreRow={row + h + PAVILION_DEPTH + PORTICO_STANDOFF}
-          width={pavilionWidth(w)} outward="row"
-        />
-        <Portico stone={stone}
-          centreCol={col + w + PAVILION_DEPTH + PORTICO_STANDOFF} centreRow={row + h / 2}
-          width={pavilionWidth(h)} outward="col"
-        />
+        {entrance === 'portico' && (
+          <>
+            <Portico stone={stone}
+              centreCol={col + w / 2} centreRow={row + h + PAVILION_DEPTH + PORTICO_STANDOFF}
+              width={pavilionWidth(w)} outward="row"
+            />
+            <Portico stone={stone}
+              centreCol={col + w + PAVILION_DEPTH + PORTICO_STANDOFF} centreRow={row + h / 2}
+              width={pavilionWidth(h)} outward="col"
+            />
+          </>
+        )}
         {door && (
           <EntranceSteps stone={stone}
             d={door} centreCol={col + w / 2} centreRow={row + h + PAVILION_DEPTH + PORTICO_STANDOFF + PORTICO_COLUMN_PLAN}
@@ -1575,7 +1590,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           the front rather than gathered into a centre bay. That is the
           difference between a building with an entrance and a building that
           IS one, which is what a library and a concert hall are. */}
-      {!site && motif === 'portico' && ([['row', w] as const, ['col', h] as const]).map(([out, span]) => (
+      {!site && entrance === 'colonnade' && ([['row', w] as const, ['col', h] as const]).map(([out, span]) => (
         <Portico stone={stone}
           key={out}
           centreCol={out === 'row' ? col + w / 2 : col + w + PORTICO_STANDOFF}
@@ -1592,7 +1607,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           long brick block was most obviously missing — a slab with ranked
           windows and a flush opening is a barn, and the canopy is most of
           what turns it into somewhere people live. */}
-      {!site && (motif === 'pavilion' || motif === 'residential') && door && (
+      {!site && entrance === 'canopy' && door && (
         <>
           <Canopy stone={stone} d={door} centreCol={col + w / 2} centreRow={row + h} outward="row" wallHeight={H} />
           <Canopy stone={stone} d={door} centreCol={col + w} centreRow={row + h / 2} outward="col" wallHeight={H} />
