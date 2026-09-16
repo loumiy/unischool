@@ -1,3 +1,5 @@
+import type { Vernacular } from '../state/types';
+
 // ---------------------------------------------------------------------
 // WHERE EVERY SCHOOL STARTS. One set of conditions, for everybody.
 //
@@ -122,6 +124,12 @@ export const FOUNDING_CLASSES = {
 // smaller of the two, and the backlog's "admit-rate curve's early slope"
 // item is about the same founding funnel from the other end. Both should
 // be re-fitted together, against ADMIT_PROBES, rather than nudged here.
+// WHICH ARCHITECTURE A NEW CAMPUS IS BUILT IN. One value today, so this is
+// a constant rather than a choice; Plan 07's PR K turns it into the startup
+// screen's one remaining question once PRs G, H and I have given it
+// something to choose between.
+export const FOUNDING_VERNACULAR: Vernacular = 'georgian';
+
 export const FOUNDING_PRESET: FoundingPreset = {
   startingCash: 1_400_000,
   // Was BASE_STARTING_REPUTATION (40) plus a per-type bonus of +10 or -5.

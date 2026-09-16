@@ -975,6 +975,19 @@ export interface StudentOrgState {
   athleticsBudget: AthleticsBudgetTier;
 }
 
+// WHICH ARCHITECTURE THIS CAMPUS WAS BUILT IN. Chosen at founding and
+// permanent: a campus's architecture is what it was built as, so nothing
+// offers to change it later.
+//
+// Lives here rather than in components/buildingSpec.ts because it is a fact
+// about the school that gets saved, not a drawing detail — buildingSpec.ts
+// imports it, the same direction it already imports Buildable. The palette
+// behind each name is that module's (see its VERNACULARS table).
+//
+// One value today. Plan 07's PRs G, H and I add 'gothic', 'brutalist' and
+// 'mission'.
+export type Vernacular = 'georgian';
+
 // NO SchoolType. Private/public was the game's only starting fork and
 // Plan 07 retired it — see data/foundingData.ts for what it was and why it
 // went. Everything about a school emerges from play now, which is what
@@ -993,6 +1006,7 @@ export interface University {
   suffix: string;       // "College", then "University" if the charter is taken. May be empty on a run resumed from a save written before the split (see persistence.ts's v6 -> v7)
   universityCharterOffered: boolean; // the one-time offer has been made — set whether it was accepted or declined, so it never comes back around
   reputation: number;   // player's own rank metric
+  vernacular: Vernacular; // the architecture the campus is built in, fixed at founding
 }
 
 // The institution's full display name. The one place the two halves are

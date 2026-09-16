@@ -1,4 +1,4 @@
-import type { Buildable, FacilityType } from '../state/types';
+import type { Buildable, FacilityType, Vernacular } from '../state/types';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
 
 // WHAT a placed Buildable is, dimensionally: which architectural motif it
@@ -621,7 +621,23 @@ const SLATE = '#5f6b5f';
 // tone, because a third grey would be the colour chart creeping back.
 const DECK = '#7c8377';
 
-const MATERIALS = {
+// THE NAMED WALLS A VERNACULAR HAS TO SUPPLY. Same seven keys whatever the
+// vernacular, different values behind them: the civic set is limestone in
+// Georgian and grey ashlar in Gothic, but it is always whatever THAT
+// vernacular calls its civic stone. materialOf below maps a Buildable onto
+// one of these seven names and never onto a colour, which is the whole
+// reason a second vernacular is a table entry rather than a rewrite.
+export interface MaterialSet {
+  brickRed: Material;
+  brickBuff: Material;
+  limestone: Material;
+  render: Material;
+  curtain: Material;
+  brickDark: Material;
+  clinical: Material;
+}
+
+const GEORGIAN_MATERIALS = {
   // The campus's default, and the reference building's own: warm red brick.
   brickRed: { wall: '#a2564a', roof: SLATE },
   // The support buildings — refectories, shops, the union. Buff brick reads
@@ -650,27 +666,95 @@ const MATERIALS = {
   // different construction from everything around it — which is worth a
   // material of its own rather than being dressed as a library.
   clinical: { wall: '#eef1f2', roof: '#c2ccd1' },
-} as const satisfies Record<string, Material>;
+} as const satisfies MaterialSet;
 
 // The limestone every building's stonework is cut from, whatever its walls
-// are made of — see the note above. Exported for the motifs' entrance steps,
+// are made of — see the note above. Used by the motifs' entrance steps,
 // which are the one piece of trim drawn as a solid rather than as a band.
-export const TRIM = '#efe9da';
+const GEORGIAN_TRIM = '#efe9da';
 
 // The gilding, and the only place it appears: the dome and finial of Founders
 // Hall's clock tower. This is the campus's old BUILDING_TINT, which used to be
 // the colour of all nine academic halls. It is not deleted, it is
 // concentrated — a landmark reads as one because it is the single gilded
 // thing in view, not because it is the ninth building painted gold.
-export const GILT = '#c9a227';
+//
+// A vernacular is allowed to have NO gilding. Brutalism will not want a
+// gold dome and must not be given a grey one instead: the campus's one
+// gilded thing is simply absent there, which is a statement about the
+// vernacular rather than a gap in its table.
+const GEORGIAN_GILT = '#c9a227';
 
 // The clock tower is painted STONE, not brick — it is white in the reference
 // photograph, and a white tower over a red building is most of what makes that
 // building recognisable. Kept beside the trim it is cut from rather than given
 // a material of its own, since nothing else on the campus is built of it.
-export const TOWER_STONE = '#e4dcc8';
+const GEORGIAN_TOWER_STONE = '#e4dcc8';
 
-export function materialOf(t: Buildable): Material {
+// ---------------------------------------------------------------------
+// THE VERNACULAR. Which architecture this campus was built in.
+//
+// Not to be confused with Motif above, which is the other axis and the
+// reason this one is not called a "motif set": a Motif is what a building
+// IS (a hall, a shed, a stadium), a Vernacular is how the whole campus is
+// BUILT. Every campus has one vernacular and eleven motifs.
+//
+// There is exactly one today, and that is deliberate — this seam is put in
+// while it can still be proved invisible (see test/building-spec.test.ts,
+// which asserts Georgian's table equals the constants the campus was drawn
+// with before the table existed). Plan 07's PRs G, H and I add the rest.
+//
+// SIX OF THE ELEVEN MOTIFS WILL NOT VARY, whatever gets added here:
+// `grounds`, `bowl`, `hangar`, `works`, `block` and `tower`. That is not a
+// shortcut, it is true of real campuses — a Gothic university's gym is
+// still a shed and its teaching hospital is still a modern hospital. What
+// varies is `hall`, `portico`, `residential`, `village` and, lightly,
+// `pavilion`.
+// ---------------------------------------------------------------------
+
+// The stonework that is NOT a wall: the trim every building's plinth,
+// cornice and pediment is cut from, the one gilded thing on the campus, and
+// the clock tower's own stone. Grouped because they travel together —
+// everything that draws one of them is drawing masonry rather than a
+// building's material.
+export interface StonePalette {
+  trim: string;
+  gilt: string;
+  towerStone: string;
+}
+
+export interface VernacularPalette {
+  materials: MaterialSet;
+  stone: StonePalette;
+}
+
+const GEORGIAN: VernacularPalette = {
+  materials: GEORGIAN_MATERIALS,
+  stone: {
+    trim: GEORGIAN_TRIM,
+    gilt: GEORGIAN_GILT,
+    towerStone: GEORGIAN_TOWER_STONE,
+  },
+};
+
+export const VERNACULARS: Record<Vernacular, VernacularPalette> = {
+  georgian: GEORGIAN,
+};
+
+export function materialsFor(v: Vernacular): MaterialSet {
+  return VERNACULARS[v].materials;
+}
+
+// The plan called this trimFor(). It returns all three stones rather than
+// the trim alone because nothing ever wants just one of them: a motif that
+// reaches for the trim is drawing masonry, and the gilding and the tower's
+// stone are the same decision made about two smaller pieces of it.
+export function stoneFor(v: Vernacular): StonePalette {
+  return VERNACULARS[v].stone;
+}
+
+export function materialOf(t: Buildable, v: Vernacular): Material {
+  const MATERIALS = materialsFor(v);
   if (t.kind === 'building') return MATERIALS.brickRed;
   if (t.kind === 'dorm') {
     return motifOf(t) === 'tower' ? MATERIALS.curtain : MATERIALS.brickDark;

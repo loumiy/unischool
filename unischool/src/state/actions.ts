@@ -12,7 +12,7 @@ import { initialCandidatePool, facultySalary, grownStat, FOUNDING_TENURE_WEEKS }
 import { admitRate } from '../systems/admissions/admissionsSystem';
 import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import {
-  FOUNDING_PRESET, STARTING_ENDOWMENT, STARTING_TUITION,
+  FOUNDING_PRESET, FOUNDING_VERNACULAR, STARTING_ENDOWMENT, STARTING_TUITION,
   FOUNDING_CLASSES,
 } from '../data/foundingData';
 
@@ -292,7 +292,7 @@ export function createPreStartState(): GameState {
     pathways: {},
     trees: {},
     rivals: [],
-    self: { name: '', suffix: '', universityCharterOffered: false, reputation: 0 },
+    self: { name: '', suffix: '', universityCharterOffered: false, reputation: 0, vernacular: FOUNDING_VERNACULAR },
     history: [],
     log: [],
     pendingInterrupt: null,
@@ -548,6 +548,10 @@ export function createInitialState(name: string): GameState {
       suffix: STARTING_INSTITUTION_SUFFIX,
       universityCharterOffered: false,
       reputation: foundingReputation,
+      // Fixed at founding and never offered again — a campus's architecture
+      // is what it was built as. One value today; PR K puts the choice on
+      // the startup screen once there is more than one to choose between.
+      vernacular: FOUNDING_VERNACULAR,
     },
     // Empty at founding: the first row lands at the end of year 1, when the
     // summer admissions interrupt resolves (see reducer.ts's

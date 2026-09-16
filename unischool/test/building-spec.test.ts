@@ -21,16 +21,18 @@ import {
 } from '../src/components/campusScale';
 import {
   BAY_METRES, TOWER_PODIUM_STOREYS, WINDOW_HEIGHT, baysAcross, clerestorySill,
-  BASE_COURSE, CANOPY_SLAB, COLONNADE_HEIGHT, CORNICE, EAVES_COURSE, GILT, PARAPET, PLINTH,
+  BASE_COURSE, CANOPY_SLAB, COLONNADE_HEIGHT, CORNICE, EAVES_COURSE, PARAPET, PLINTH,
   doorFamilyOf, doorOf, floorLinesOf, hasClockTower,
-  materialOf, motifOf, rankSills, ridgeOf, storeysOf, wallHeightOf, wallShadeOf,
+  materialOf, materialsFor, stoneFor, VERNACULARS, motifOf, rankSills, ridgeOf,
+  storeysOf, wallHeightOf, wallShadeOf,
   windowRanksOf, windowWidthOf, type DoorFamily,
 } from '../src/components/buildingSpec';
 import { footprintOf, isPlaceableKind } from '../src/state/campusMap';
 import { initialTech } from '../src/data/techData';
 import { initialDorms } from '../src/data/campusData';
 import { initialFacilities } from '../src/data/facilitiesData';
-import type { Buildable } from '../src/state/types';
+import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
+import type { Buildable, Vernacular } from '../src/state/types';
 
 let checks = 0;
 let failures = 0;
@@ -362,11 +364,12 @@ console.log('campus scale and building spec');
 
 // --- 12. Materials, not a colour chart -----------------------------------
 {
+  const V = FOUNDING_VERNACULAR;
   const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
   const dist = (a: string, b: string) => Math.hypot(...rgb(a).map((v, i) => v - rgb(b)[i]));
 
-  const walls = [...new Set(CATALOGUE.map((t) => materialOf(t).wall))];
-  const roofs = [...new Set(CATALOGUE.map((t) => materialOf(t).roof))];
+  const walls = [...new Set(CATALOGUE.map((t) => materialOf(t, V).wall))];
+  const roofs = [...new Set(CATALOGUE.map((t) => materialOf(t, V).roof))];
   // Seven, not six: 4E gave the residence halls a dark brick of their own
   // (buildingSpec's brickDark), and the bar moved to let it in. Stated here
   // rather than quietly relaxed, because a cap that follows the palette
@@ -397,7 +400,7 @@ console.log('campus scale and building spec');
   // derived from the wall tint, so a gold hall stood under a gold roof.
   let worstRoof = { d: Infinity, id: '' };
   for (const t of CATALOGUE) {
-    const m = materialOf(t);
+    const m = materialOf(t, V);
     const d = dist(m.wall, m.roof);
     if (d < worstRoof.d) worstRoof = { d, id: t.id };
   }
@@ -405,7 +408,7 @@ console.log('campus scale and building spec');
     `every building's roof reads against its own walls (worst: ${worstRoof.id} at ${worstRoof.d.toFixed(1)})`);
 
   // And nothing is gilded but the one thing that should be.
-  assert(!walls.includes(GILT) && !roofs.includes(GILT),
+  assert(!walls.includes(stoneFor(V).gilt) && !roofs.includes(stoneFor(V).gilt),
     'the landmark gold is no longer the colour of nine whole buildings');
 
   // Neighbouring residence halls still differ, which is what the four hashed
@@ -546,6 +549,75 @@ console.log('campus scale and building spec');
     exempt.some((t) => footprintOf(t).w % 2 === 0),
     'at least one of which keeps an even width, because it has no door to centre',
   );
+}
+
+// --- 13. The vernacular seam changed nothing ------------------------------
+// Plan 07's PR D moved the campus's colours behind a per-vernacular table so
+// PRs G/H/I can add a second, third and fourth set. The whole claim of that
+// PR is that it is INVISIBLE, and a claim like that is worth pinning rather
+// than trusting: these are the literal values the campus was drawn with
+// before the table existed, written out by hand here so that a typo made
+// while moving them shows up as a failing test rather than as a slightly
+// wrong-coloured library nobody notices for three PRs.
+//
+// When a second vernacular lands, this block does NOT grow a second copy for
+// it — that would be asserting that a new palette equals itself. It stays
+// pinned to Georgian, whose job from then on is to be the set that did not
+// change.
+{
+  const SLATE = '#5f6b5f';
+  const DECK = '#7c8377';
+  const BEFORE = {
+    brickRed: { wall: '#a2564a', roof: SLATE },
+    brickBuff: { wall: '#bb9468', roof: SLATE },
+    limestone: { wall: '#d8cdb4', roof: DECK },
+    render: { wall: '#b0a992', roof: DECK },
+    curtain: { wall: '#93a9b4', roof: DECK },
+    brickDark: { wall: '#6d4b3c', roof: DECK },
+    clinical: { wall: '#eef1f2', roof: '#c2ccd1' },
+  };
+  const BEFORE_STONE = { trim: '#efe9da', gilt: '#c9a227', towerStone: '#e4dcc8' };
+
+  const georgian = materialsFor('georgian');
+  for (const [name, m] of Object.entries(BEFORE)) {
+    const got = georgian[name as keyof typeof BEFORE];
+    assert(got.wall === m.wall && got.roof === m.roof,
+      `georgian.${name} is unchanged by the vernacular table (got ${got.wall}/${got.roof}, was ${m.wall}/${m.roof})`);
+  }
+  const stone = stoneFor('georgian');
+  for (const [name, hex] of Object.entries(BEFORE_STONE)) {
+    assert(stone[name as keyof typeof BEFORE_STONE] === hex,
+      `georgian stone.${name} is unchanged (got ${stone[name as keyof typeof BEFORE_STONE]}, was ${hex})`);
+  }
+
+  // Every vernacular owes the same seven walls and three stones. Trivial
+  // with one entry and the point of the block with four: a set that forgets
+  // `clinical` would otherwise draw the hospital as undefined, and the first
+  // anyone would know is a blank building on the map.
+  const REQUIRED = Object.keys(BEFORE) as (keyof typeof BEFORE)[];
+  for (const [vname, palette] of Object.entries(VERNACULARS)) {
+    for (const key of REQUIRED) {
+      const m = palette.materials[key];
+      assert(!!m && typeof m.wall === 'string' && typeof m.roof === 'string',
+        `vernacular '${vname}' supplies a ${key} wall and roof`);
+    }
+    for (const key of ['trim', 'gilt', 'towerStone'] as const) {
+      assert(typeof palette.stone[key] === 'string',
+        `vernacular '${vname}' supplies its ${key}`);
+    }
+  }
+
+  // REFERENCE STABILITY, which is load-bearing and easy to break by
+  // "tidying" either helper into building a fresh object. CampusMap resolves
+  // these once per building per render and BuildingMotif's memo comparator
+  // compares them by identity (see its note): return a new object each call
+  // and every pane on the campus re-reconciles on every mouse move.
+  const v: Vernacular = 'georgian';
+  assert(materialsFor(v) === materialsFor(v), 'materialsFor returns a stable reference');
+  assert(stoneFor(v) === stoneFor(v), 'stoneFor returns a stable reference');
+  const anyHall = CATALOGUE.find((t) => t.kind === 'building');
+  assert(!!anyHall && materialOf(anyHall, v) === materialOf(anyHall, v),
+    'materialOf returns a stable reference for the same building');
 }
 
 if (failures === 0) {

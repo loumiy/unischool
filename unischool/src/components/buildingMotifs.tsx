@@ -7,17 +7,17 @@ import {
   BASE_COURSE, BAY_METRES, BLOCK_SPLIT_MIN_TILES, CANOPY_DEPTH, CROSS_ARM_METRES,
   CROSS_BAR_METRES, CANOPY_POST, CANOPY_SLAB, CLOCK_RADIUS,
   CLOCK_RADIUS_TILES, COLONNADE_BAY_METRES, COLONNADE_HEIGHT, COLONNADE_MAX, CORNICE,
-  EAVES_COURSE, ENTABLATURE, GILT, PIER_PROJECTION, PIER_WIDTH_METRES,
+  EAVES_COURSE, ENTABLATURE, PIER_PROJECTION, PIER_WIDTH_METRES,
   PORTICO_COLUMNS, SLAB_ROW_FRACTION, UNDERCROFT_STOREYS, WING_COL_FRACTION,
   WING_STOREY_FRACTION,
-  PORTICO_COLUMN_PLAN, PORTICO_HEIGHT, PORTICO_STANDOFF, TOWER_STONE, TRIM, END_PAVILION_PLAN, END_PAVILION_RISE, FLOOR_COURSE, PARAPET,
+  PORTICO_COLUMN_PLAN, PORTICO_HEIGHT, PORTICO_STANDOFF, END_PAVILION_PLAN, END_PAVILION_RISE, FLOOR_COURSE, PARAPET,
   COPING, COPING_OVERHANG, END_PAVILION_DEPTH, PAVILION_BAYS, PAVILION_DEPTH, PAVILION_RISE, PEDIMENT_RISE, PLINTH, STEP_OVERHANG,
   TOWER_BASE_PLAN, TOWER_BASE_RISE, TOWER_DOME_RISE, TOWER_DRUM_PLAN, TOWER_DRUM_RISE,
   TOWER_FINIAL_RISE, TOWER_PODIUM_STOREYS, TREAD_DEPTH, WINDOW_HEIGHT,
   baysAcross, clerestorySill, doorDimensions, doorOf, floorLinesOf, floorsUnderConstruction, hasClockTower, motifOf,
   rankSills, ridgeOf, storeysOf, wallHeightOf, wallShadeOf, windowRanksOf,
   windowWidthOf,
-  type DoorDimensions, type Material,
+  type DoorDimensions, type Material, type StonePalette,
 } from './buildingSpec';
 import GroundMarking, { RakedStand, StadiumField, type TilePt } from './groundMarkings';
 
@@ -414,11 +414,11 @@ function Door({ d, origin, along, wallHeight, span }: {
 // the left wall faces down-row, the right wall faces down-col. Treads are
 // drawn from the top down, so the lowest (which projects furthest toward the
 // camera) paints over the ones behind it.
-function EntranceSteps({ d, centreCol, centreRow, outCol, outRow, span }: {
+function EntranceSteps({ d, centreCol, centreRow, outCol, outRow, span, stone }: {
   d: DoorDimensions;
   centreCol: number; centreRow: number;
   outCol: number; outRow: number;
-  span: number;
+  span: number; stone: StonePalette;
 }) {
   if (d.treads <= 0 || d.threshold <= 0) return null;
   const halfW = Math.min(d.widthTiles, span * 0.6) / 2 + STEP_OVERHANG;
@@ -435,8 +435,8 @@ function EntranceSteps({ d, centreCol, centreRow, outCol, outRow, span }: {
     const f = boxFaces(col, row, w, h, 0, (i + 1) * rise);
     out.push(
       <g key={i}>
-        <polygon points={polyPoints(f.left)} fill={shade(TRIM, 0.82)} />
-        <polygon points={polyPoints(f.right)} fill={shade(TRIM, 0.68)} />
+        <polygon points={polyPoints(f.left)} fill={shade(stone.trim, 0.82)} />
+        <polygon points={polyPoints(f.right)} fill={shade(stone.trim, 0.68)} />
         <polygon className="iso-step-tread" points={polyPoints(f.top)} />
       </g>,
     );
@@ -547,8 +547,8 @@ function HippedRoof({ col, row, w, h, base, rise, pal }: {
 // of wall takes the wall's own two tones, and its coping takes the same
 // limestone as the plinth and the cornice, which is what ties it back to the
 // vocabulary rather than leaving it an object sitting on top of one.
-function EndPavilion({ col, row, w, h, base, pal }: {
-  col: number; row: number; w: number; h: number; base: number; pal: Palette;
+function EndPavilion({ col, row, w, h, base, pal, stone }: {
+  col: number; row: number; w: number; h: number; base: number; pal: Palette; stone: StonePalette;
 }) {
   const f = boxFaces(col, row, w, h, base, END_PAVILION_RISE);
   const cap = boxFaces(col - COPING_OVERHANG, row - COPING_OVERHANG,
@@ -557,9 +557,9 @@ function EndPavilion({ col, row, w, h, base, pal }: {
     <>
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
-      <polygon points={polyPoints(cap.left)} fill={shade(TRIM, 0.82)} />
-      <polygon points={polyPoints(cap.right)} fill={shade(TRIM, 0.7)} />
-      <polygon points={polyPoints(cap.top)} fill={TRIM} />
+      <polygon points={polyPoints(cap.left)} fill={shade(stone.trim, 0.82)} />
+      <polygon points={polyPoints(cap.right)} fill={shade(stone.trim, 0.7)} />
+      <polygon points={polyPoints(cap.top)} fill={stone.trim} />
     </>
   );
 }
@@ -632,9 +632,9 @@ function CentrePavilion({ col, row, w, h, wallHeight, outward, pal, door, sills,
 //
 // `outward` matches CentrePavilion's: 'row' for the front on the col-running
 // wall, 'col' for the one on the row-running wall.
-function Portico({ centreCol, centreRow, width, outward, columns = PORTICO_COLUMNS, height = PORTICO_HEIGHT }: {
+function Portico({ centreCol, centreRow, width, outward, stone, columns = PORTICO_COLUMNS, height = PORTICO_HEIGHT }: {
   centreCol: number; centreRow: number; width: number; outward: 'row' | 'col';
-  columns?: number; height?: number;
+  stone: StonePalette; columns?: number; height?: number;
 }) {
   if (columns < 2 || width <= 0) return null;
   const gap = (width - PORTICO_COLUMN_PLAN) / (columns - 1);
@@ -657,15 +657,15 @@ function Portico({ centreCol, centreRow, width, outward, columns = PORTICO_COLUM
           const f = boxFaces(c.col, c.row, c.w, c.h, 0, height);
           return (
             <g key={i}>
-              <polygon points={polyPoints(f.left)} fill={shade(TOWER_STONE, 0.96)} />
-              <polygon points={polyPoints(f.right)} fill={shade(TOWER_STONE, 0.78)} />
-              <polygon points={polyPoints(f.top)} fill={TOWER_STONE} />
+              <polygon points={polyPoints(f.left)} fill={shade(stone.towerStone, 0.96)} />
+              <polygon points={polyPoints(f.right)} fill={shade(stone.towerStone, 0.78)} />
+              <polygon points={polyPoints(f.top)} fill={stone.towerStone} />
             </g>
           );
         })}
-      <polygon points={polyPoints(ent.left)} fill={shade(TOWER_STONE, 0.92)} />
-      <polygon points={polyPoints(ent.right)} fill={shade(TOWER_STONE, 0.74)} />
-      <polygon points={polyPoints(ent.top)} fill={shade(TOWER_STONE, 1.02)} />
+      <polygon points={polyPoints(ent.left)} fill={shade(stone.towerStone, 0.92)} />
+      <polygon points={polyPoints(ent.right)} fill={shade(stone.towerStone, 0.74)} />
+      <polygon points={polyPoints(ent.top)} fill={shade(stone.towerStone, 1.02)} />
     </>
   );
 }
@@ -676,9 +676,9 @@ function Portico({ centreCol, centreRow, width, outward, columns = PORTICO_COLUM
 // across it. Shallow boxes standing against the wall rather than bands painted
 // on it, so they catch the light on one face and not the other, which is the
 // whole reason they read as depth.
-function Piers({ col, row, w, h, height, outward, pal }: {
+function Piers({ col, row, w, h, height, outward, pal, stone }: {
   col: number; row: number; w: number; h: number; height: number;
-  outward: 'row' | 'col'; pal: Palette;
+  outward: 'row' | 'col'; pal: Palette; stone: StonePalette;
 }) {
   const span = outward === 'row' ? w : h;
   const count = Math.max(2, Math.round((span * METRES_PER_TILE) / (BAY_METRES * 2)));
@@ -696,7 +696,7 @@ function Piers({ col, row, w, h, height, outward, pal }: {
           <g key={i}>
             <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
             <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
-            <polygon points={polyPoints(f.top)} fill={shade(TRIM, 0.86)} />
+            <polygon points={polyPoints(f.top)} fill={shade(stone.trim, 0.86)} />
           </g>
         );
       })}
@@ -707,9 +707,9 @@ function Piers({ col, row, w, h, height, outward, pal }: {
 // A CANOPY over a door: a slab on two posts. What a dining hall, a clinic or a
 // union puts over its entrance, and the cheapest way to make a low pavilion
 // read as somewhere you go IN rather than as a shed with a door in it.
-function Canopy({ d, centreCol, centreRow, outward, wallHeight }: {
+function Canopy({ d, centreCol, centreRow, outward, wallHeight, stone }: {
   d: DoorDimensions; centreCol: number; centreRow: number; outward: 'row' | 'col';
-  wallHeight: number;
+  wallHeight: number; stone: StonePalette;
 }) {
   // Clamped under the eaves. The smallest pavilion on the campus is ONE storey
   // — the founding dining hall — and a civic door plus its threshold plus the
@@ -737,14 +737,14 @@ function Canopy({ d, centreCol, centreRow, outward, wallHeight }: {
         const f = postAt(sign);
         return (
           <g key={sign}>
-            <polygon points={polyPoints(f.left)} fill={shade(TRIM, 0.8)} />
-            <polygon points={polyPoints(f.right)} fill={shade(TRIM, 0.66)} />
+            <polygon points={polyPoints(f.left)} fill={shade(stone.trim, 0.8)} />
+            <polygon points={polyPoints(f.right)} fill={shade(stone.trim, 0.66)} />
           </g>
         );
       })}
-      <polygon points={polyPoints(slab.left)} fill={shade(TRIM, 0.88)} />
-      <polygon points={polyPoints(slab.right)} fill={shade(TRIM, 0.72)} />
-      <polygon points={polyPoints(slab.top)} fill={TRIM} />
+      <polygon points={polyPoints(slab.left)} fill={shade(stone.trim, 0.88)} />
+      <polygon points={polyPoints(slab.right)} fill={shade(stone.trim, 0.72)} />
+      <polygon points={polyPoints(slab.top)} fill={stone.trim} />
     </>
   );
 }
@@ -836,8 +836,8 @@ function RedCross({ origin, along, wallHeight, spanTiles, centreU, centreV }: {
 // ellipse, which is right for something lying flat and exactly wrong for
 // something round — it would read as a dinner plate balanced on a drum. A
 // roughly spherical thing looks roughly circular from every direction.
-function ClockTower({ col, row, w, h, base }: {
-  col: number; row: number; w: number; h: number; base: number;
+function ClockTower({ col, row, w, h, base, stone }: {
+  col: number; row: number; w: number; h: number; base: number; stone: StonePalette;
 }) {
   const plan = Math.min(TOWER_BASE_PLAN, Math.min(w, h) * 0.42);
   const drumPlan = plan * (TOWER_DRUM_PLAN / TOWER_BASE_PLAN);
@@ -890,27 +890,27 @@ function ClockTower({ col, row, w, h, base }: {
 
   return (
     <>
-      <polygon points={polyPoints(shaft.left)} fill={shade(TOWER_STONE, 0.98)} />
-      <polygon points={polyPoints(shaft.right)} fill={shade(TOWER_STONE, 0.82)} />
+      <polygon points={polyPoints(shaft.left)} fill={shade(stone.towerStone, 0.98)} />
+      <polygon points={polyPoints(shaft.right)} fill={shade(stone.towerStone, 0.82)} />
       <WallBand origin={shaft.D} along={shaft.C} wallHeight={TOWER_BASE_RISE} from={TOWER_BASE_RISE - CORNICE} to={TOWER_BASE_RISE} className="iso-cornice" />
       <WallBand origin={shaft.C} along={shaft.B} wallHeight={TOWER_BASE_RISE} from={TOWER_BASE_RISE - CORNICE} to={TOWER_BASE_RISE} className="iso-cornice" />
       {clock(shaft.D, shaft.C, 'cl')}
       {clock(shaft.C, shaft.B, 'cr')}
-      <polygon points={polyPoints(shaft.top)} fill={shade(TOWER_STONE, 0.9)} />
+      <polygon points={polyPoints(shaft.top)} fill={shade(stone.towerStone, 0.9)} />
 
       {/* The colonnaded drum, a shade brighter than the base it stands on. */}
-      <polygon points={polyPoints(drum.left)} fill={TOWER_STONE} />
-      <polygon points={polyPoints(drum.right)} fill={shade(TOWER_STONE, 0.86)} />
-      <polygon points={polyPoints(drum.top)} fill={shade(TOWER_STONE, 1.03)} />
+      <polygon points={polyPoints(drum.left)} fill={stone.towerStone} />
+      <polygon points={polyPoints(drum.right)} fill={shade(stone.towerStone, 0.86)} />
+      <polygon points={polyPoints(drum.top)} fill={shade(stone.towerStone, 1.03)} />
 
-      <polygon className="iso-dome" points={dome.join(' ')} fill={GILT} />
+      <polygon className="iso-dome" points={dome.join(' ')} fill={stone.gilt} />
       <line
         className="iso-finial"
         x1={finialFoot.x} y1={finialFoot.y}
         x2={finialFoot.x} y2={finialFoot.y - TOWER_FINIAL_RISE}
-        stroke={GILT}
+        stroke={stone.gilt}
       />
-      <circle className="iso-dome" cx={finialFoot.x} cy={finialFoot.y - TOWER_FINIAL_RISE} r={2.2} fill={GILT} />
+      <circle className="iso-dome" cx={finialFoot.x} cy={finialFoot.y - TOWER_FINIAL_RISE} r={2.2} fill={stone.gilt} />
     </>
   );
 }
@@ -1058,10 +1058,16 @@ function ChapterPediment({ glyphs, origin, along, wallHeight, span, doorWidth }:
 //
 // It is the same building that stays OPEN through the work — see types.ts's
 // servingPopulation, which is the other half of this PR.
-function BuildingMotif({ t, p, material, developing, glyphs }: {
+function BuildingMotif({ t, p, material, stone, developing, glyphs }: {
   t: Buildable;
   p: { row: number; col: number; w: number; h: number };
   material: Material;
+  // The campus's masonry, resolved from its vernacular once by CampusMap
+  // and passed down beside the building's own material. A trim, a gilded
+  // dome and a tower's stone are facts about the CAMPUS, not about this
+  // building, which is why they arrive as one object rather than being
+  // looked up per motif.
+  stone: StonePalette;
   developing: boolean;
   // A Greek chapter's letters, for the one Buildable that wears any (see
   // ChapterPediment). Passed in rather than stored on the Buildable: the
@@ -1071,13 +1077,13 @@ function BuildingMotif({ t, p, material, developing, glyphs }: {
   glyphs?: string;
 }) {
   const extending = developing && floorsUnderConstruction(t) > 0 && motifOf(t) !== 'grounds';
-  if (!extending) return <BuildingMass t={t} p={p} material={material} developing={developing} glyphs={glyphs} />;
+  if (!extending) return <BuildingMass t={t} p={p} material={material} stone={stone} developing={developing} glyphs={glyphs} />;
 
   const { col, row, w, h } = p;
   const roof = drawnHeightOf(t, true);
   return (
     <>
-      <BuildingMass t={t} p={p} material={material} developing glyphs={glyphs} />
+      <BuildingMass t={t} p={p} material={material} stone={stone} developing glyphs={glyphs} />
       {/* The work, where the work is. Boarding over the finished roof and
           poles standing off it — at ground level both would say the wrong
           thing about a building that is open underneath them. */}
@@ -1087,10 +1093,11 @@ function BuildingMotif({ t, p, material, developing, glyphs }: {
   );
 }
 
-function BuildingMass({ t, p, material, developing, glyphs }: {
+function BuildingMass({ t, p, material, stone, developing, glyphs }: {
   t: Buildable;
   p: { row: number; col: number; w: number; h: number };
   material: Material;
+  stone: StonePalette;
   developing: boolean;
   glyphs?: string;
 }) {
@@ -1399,7 +1406,7 @@ function BuildingMass({ t, p, material, developing, glyphs }: {
         {/* The way in, under the glazed front. */}
         {door && <Door d={door} origin={wf.D} along={wf.C} wallHeight={wingH} span={wing.w} />}
         {door && (
-          <Canopy
+          <Canopy stone={stone}
             d={door} centreCol={wing.col + wing.w / 2} centreRow={wing.row + wing.h}
             outward="row" wallHeight={wingH}
           />
@@ -1475,11 +1482,11 @@ function BuildingMass({ t, p, material, developing, glyphs }: {
           [col + w - END_PAVILION_DEPTH, row, END_PAVILION_DEPTH, endPlan],
           [col + w - END_PAVILION_DEPTH, row + h - endPlan, END_PAVILION_DEPTH, endPlan],
         ] as const).map(([ec, er, ew, eh], i) => (
-          <EndPavilion key={`e${i}`} col={ec} row={er} w={ew} h={eh} base={WH} pal={pal} />
+          <EndPavilion stone={stone} key={`e${i}`} col={ec} row={er} w={ew} h={eh} base={WH} pal={pal} />
         ))}
 
         {hasClockTower(t) && (
-          <ClockTower col={col} row={row} w={w} h={h} base={WH + ridge * 0.4} />
+          <ClockTower stone={stone} col={col} row={row} w={w} h={h} base={WH + ridge * 0.4} />
         )}
 
         {/* Last, because they project toward the camera and must paint over
@@ -1492,22 +1499,22 @@ function BuildingMass({ t, p, material, developing, glyphs }: {
           col={col} row={row} w={w} h={h} wallHeight={H} outward="col"
           pal={pal} door={door} sills={sills} paneW={paneW}
         />
-        <Portico
+        <Portico stone={stone}
           centreCol={col + w / 2} centreRow={row + h + PAVILION_DEPTH + PORTICO_STANDOFF}
           width={pavilionWidth(w)} outward="row"
         />
-        <Portico
+        <Portico stone={stone}
           centreCol={col + w + PAVILION_DEPTH + PORTICO_STANDOFF} centreRow={row + h / 2}
           width={pavilionWidth(h)} outward="col"
         />
         {door && (
-          <EntranceSteps
+          <EntranceSteps stone={stone}
             d={door} centreCol={col + w / 2} centreRow={row + h + PAVILION_DEPTH + PORTICO_STANDOFF + PORTICO_COLUMN_PLAN}
             outCol={0} outRow={1} span={w}
           />
         )}
         {door && (
-          <EntranceSteps
+          <EntranceSteps stone={stone}
             d={door} centreCol={col + w + PAVILION_DEPTH + PORTICO_STANDOFF + PORTICO_COLUMN_PLAN} centreRow={row + h / 2}
             outCol={1} outRow={0} span={h}
           />
@@ -1529,8 +1536,8 @@ function BuildingMass({ t, p, material, developing, glyphs }: {
           the wall is drawn over them rather than the other way round. */}
       {!site && motif === 'hangar' && (
         <>
-          <Piers col={col} row={row} w={w} h={h} height={H} outward="row" pal={pal} />
-          <Piers col={col} row={row} w={w} h={h} height={H} outward="col" pal={pal} />
+          <Piers stone={stone} col={col} row={row} w={w} h={h} height={H} outward="row" pal={pal} />
+          <Piers stone={stone} col={col} row={row} w={w} h={h} height={H} outward="col" pal={pal} />
         </>
       )}
       {!site && floorCourses(f.D, f.C, H, courses, 'l')}
@@ -1559,7 +1566,7 @@ function BuildingMass({ t, p, material, developing, glyphs }: {
           difference between a building with an entrance and a building that
           IS one, which is what a library and a concert hall are. */}
       {!site && motif === 'portico' && ([['row', w] as const, ['col', h] as const]).map(([out, span]) => (
-        <Portico
+        <Portico stone={stone}
           key={out}
           centreCol={out === 'row' ? col + w / 2 : col + w + PORTICO_STANDOFF}
           centreRow={out === 'row' ? row + h + PORTICO_STANDOFF : row + h / 2}
@@ -1577,21 +1584,21 @@ function BuildingMass({ t, p, material, developing, glyphs }: {
           what turns it into somewhere people live. */}
       {!site && (motif === 'pavilion' || motif === 'residential') && door && (
         <>
-          <Canopy d={door} centreCol={col + w / 2} centreRow={row + h} outward="row" wallHeight={H} />
-          <Canopy d={door} centreCol={col + w} centreRow={row + h / 2} outward="col" wallHeight={H} />
+          <Canopy stone={stone} d={door} centreCol={col + w / 2} centreRow={row + h} outward="row" wallHeight={H} />
+          <Canopy stone={stone} d={door} centreCol={col + w} centreRow={row + h / 2} outward="col" wallHeight={H} />
         </>
       )}
       {/* The flights, on the ground in front of each door. Drawn after the
           walls so they stand in front of the mass they climb to, and after
           both doors so neither one's steps are cut by the other's wall. */}
       {!site && door && (
-        <EntranceSteps
+        <EntranceSteps stone={stone}
           d={door} centreCol={col + w / 2} centreRow={row + h}
           outCol={0} outRow={1} span={w}
         />
       )}
       {!site && door && (
-        <EntranceSteps
+        <EntranceSteps stone={stone}
           d={door} centreCol={col + w} centreRow={row + h / 2}
           outCol={1} outRow={0} span={h}
         />
@@ -1733,6 +1740,7 @@ function BuildingMass({ t, p, material, developing, glyphs }: {
 export default memo(BuildingMotif, (a, b) => (
   a.t === b.t
   && a.material === b.material
+  && a.stone === b.stone
   && a.developing === b.developing
   && a.glyphs === b.glyphs
   && a.p.col === b.p.col && a.p.row === b.p.row

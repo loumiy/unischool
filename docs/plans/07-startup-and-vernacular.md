@@ -338,6 +338,46 @@ is PR H's problem and is flagged here so it is not a surprise.
 `building-spec.test.ts` gains a case asserting Georgian's tables equal today's
 constants exactly, so this PR is provably invisible.
 
+**As implemented:** invisible, and proved twice — `building-spec.test.ts`
+goes from 84 checks to 107, and `npm run sim`'s output is identical row for
+row (the only diff between runs is rolldown's own chunk size and build time).
+
+Three departures.
+
+*`trimFor(v)` is `stoneFor(v)`, and returns all three stones.* Nothing ever
+wants the trim alone: a motif reaching for it is drawing masonry, and the
+gilding and the clock tower's stone are the same decision made about two
+smaller pieces of it. They travel together, so they are one `StonePalette`.
+
+*`Vernacular` lives in `state/types.ts`, not `buildingSpec.ts`.* It is a
+saved fact about the school rather than a drawing detail, and
+`buildingSpec.ts` already imports `Buildable` from there — so this is the
+dependency direction that already exists rather than a new one.
+
+*The threading is explicit, not context.* `TRIM`, `GILT` and `TOWER_STONE`
+were module constants read at 26 sites inside six components
+(`EntranceSteps`, `EndPavilion`, `Portico`, `Piers`, `Canopy`,
+`ClockTower`). The repo uses no React context anywhere, and introducing it
+for this would be a new architectural pattern to carry forever; instead
+`stone` flows exactly as `material` already does — `CampusMap` →
+`PlacedBuilding` → `BuildingMotif` → `BuildingMass` → the six.
+
+**The one real trap, found while wiring it and now pinned by a test:**
+`BuildingMotif` is memoised on *reference* equality (`a.material ===
+b.material`), and `CampusMap` resolves the palette once per building per
+render. Both `materialsFor` and `stoneFor` therefore have to return objects
+held on the `VERNACULARS` table rather than building fresh ones — "tidying"
+either into an object literal would silently make every pane on the campus
+re-reconcile on every mouse move, which is precisely the cost the memo
+comment says it exists to avoid. Section 13 asserts the identity directly,
+so the next person to tidy it gets a failing test instead of a janky pan.
+
+Section 13 also asserts that every entry in `VERNACULARS` supplies all seven
+walls and all three stones. That is trivial with one vernacular and is the
+point of the block with four: a set that forgets `clinical` would draw the
+teaching hospital as `undefined`, and the first anyone would know is a blank
+building on the map.
+
 ### PR E — Roof and openings become vernacular-keyed
 
 `RIDGE_METRES`, `PARAPET` and whether there *is* a parapet go per-vernacular.

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Action } from '../state/actions';
-import type { Buildable, GameState, Placement, TileCoord } from '../state/types';
+import type { Buildable, GameState, Placement, TileCoord, Vernacular } from '../state/types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import {
   canPlace, canRotate, canSiteRetroactively, footprintIsClear, footprintOf,
@@ -12,7 +12,7 @@ import { isTypingTarget, useHotkeys } from './hotkeys';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
 import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf } from './buildingMotifs';
-import { materialOf, motifOf } from './buildingSpec';
+import { materialOf, motifOf, stoneFor } from './buildingSpec';
 import { groundProps } from './groundMarkings';
 import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
@@ -227,7 +227,8 @@ function otherPathTool(tool: 'draw' | 'erase'): 'draw' | 'erase' {
 }
 
 // The CSS hook for a placed building. Colour is no longer decided here —
-// materialOf (buildingSpec.ts) owns it, because a building has a MATERIAL —
+// materialOf (buildingSpec.ts) owns it — given the campus's vernacular —
+// because a building has a MATERIAL —
 // a wall and a roof — from which the angled map derives its shades at
 // runtime, and a stylesheet cannot do that arithmetic. What is
 // left is the kind class, which drives behaviour rules (the inspect dimming)
@@ -286,10 +287,15 @@ type SceneEntry = DepthBox & (
 // actually drawn is both correct and free — there are only ever a few dozen
 // buildings, so nothing here needs the arithmetic picking the ground uses.
 function PlacedBuilding({
-  t, p, onInspect, inspected, weeksLeft, justFinished, glyphs,
+  t, p, onInspect, inspected, weeksLeft, justFinished, glyphs, vernacular,
 }: {
   t: Buildable; p: Placement; onInspect: () => void; inspected: boolean;
   weeksLeft?: number; justFinished?: boolean;
+  // The architecture this campus was built in (state's self.vernacular).
+  // Both lookups below resolve to objects held on buildingSpec's own
+  // VERNACULARS table, so they are reference-stable across renders and
+  // BuildingMotif's memo comparator still short-circuits on them.
+  vernacular: Vernacular;
   // A chapter house's letters, looked up from the chapter that owns it
   // rather than stored on the Buildable — see BuildingMotif's own note.
   glyphs?: string;
@@ -321,7 +327,12 @@ function PlacedBuilding({
           />
         );
       })()}
-      <BuildingMotif t={t} p={d} material={materialOf(t)} developing={developing} glyphs={glyphs} />
+      <BuildingMotif
+        t={t} p={d}
+        material={materialOf(t, vernacular)}
+        stone={stoneFor(vernacular)}
+        developing={developing} glyphs={glyphs}
+      />
       {inspected && (
         // The footprint picked out on the ground, which is the one outline
         // that cannot be hidden by the building standing on it.
@@ -1272,6 +1283,7 @@ export default function CampusMap({
                 weeksLeft={s.developing[t.id]}
                 justFinished={justFinished.includes(t.id)}
                 glyphs={chapterGlyphs[t.id]}
+                vernacular={s.self.vernacular}
               />
             ))}
 
@@ -1297,6 +1309,7 @@ export default function CampusMap({
                     weeksLeft={s.developing[entry.id]}
                     justFinished={justFinished.includes(entry.id)}
                     glyphs={chapterGlyphs[entry.id]}
+                    vernacular={s.self.vernacular}
                   />
                 </g>
               );

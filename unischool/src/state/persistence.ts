@@ -9,6 +9,7 @@ import { initialTech } from '../data/techData';
 import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import { admitRate } from '../systems/admissions/admissionsSystem';
 import { initialFacilities } from '../data/facilitiesData';
+import { FOUNDING_VERNACULAR } from '../data/foundingData';
 import { initialDorms } from '../data/campusData';
 import { fellTrees, seedTrees } from '../data/treeData';
 import {
@@ -1015,7 +1016,22 @@ export const SAVE_KEY = 'unischool.save';
 // own note for why keeping it beats deleting it.
 //
 // See MIGRATIONS[43].
-export const SAVE_VERSION = 44;
+//
+// v44 -> v45: `self.vernacular` — which architecture the campus is built in
+// (Plan 07's PR D). Added as REQUIRED rather than optional, so it takes a
+// bump: the map reads it on every render to resolve its materials, and an
+// optional field would mean a null branch in the one place that can least
+// afford one.
+//
+// WHAT A RESUMED SAVE FEELS: nothing, and unusually this is provable rather
+// than merely argued. There is exactly one vernacular ('georgian'), its
+// palette is asserted equal to the constants the campus was drawn with
+// before the table existed (see test/building-spec.test.ts), and every
+// standing building was drawn in it. The migration writes down what the
+// save already looked like.
+//
+// See MIGRATIONS[44].
+export const SAVE_VERSION = 45;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1110,6 +1126,14 @@ interface LegacyGameState extends GameState {
 const KNOWN_SUFFIXES = ['College', 'University'];
 
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v44 -> v45: every campus gains a vernacular (see the SAVE_VERSION
+  // header note above). There is one, and every standing campus was drawn
+  // in it, so filling it in is not a guess — it is writing down what the
+  // save already looked like.
+  44: (state) => {
+    state.self.vernacular = FOUNDING_VERNACULAR;
+  },
+
   // v43 -> v44: the private/public fork is deleted (see the SAVE_VERSION
   // header note above). Nothing reads the field any more — PRs A and B
   // already took everything it decided — so this is the label coming off
