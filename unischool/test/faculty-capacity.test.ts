@@ -117,9 +117,32 @@ console.log('faculty capacity tests');
     assert(c.offered + c.available <= c.catalogue,
       `${c.field}: offered + available never exceeds the catalogue (${c.offered}+${c.available} <= ${c.catalogue})`);
     assert(c.supply <= c.grossSupply, `${c.field}: commitments only ever subtract supply`);
-    assert(c.supply <= cap.scale && c.catalogue <= cap.scale,
-      `${c.field}: the shared scale fits both its track and its rule`);
+    assert(c.catalogue <= cap.scale, `${c.field}: its catalogue fits the shared scale`);
   }
+  assert(cap.scale === Math.max(...cap.fields.map((c) => c.catalogue)),
+    'the shared scale is the longest catalogue on the board, not the largest roster');
+}
+
+// --- the school-wide gap is summed per department ----------------------
+{
+  // The one figure that cannot be computed from the school-wide totals.
+  // Slots do not transfer between departments, so hiring sixty physicists
+  // does not shorten the queue in Law — and `catalogue - supply` on the
+  // totals says it does.
+  const s = createInitialState('Ashcombe', 'private');
+  const before = facultyCapacity(s);
+
+  for (let i = 0; i < 60; i += 1) s.faculty.push(person(`glut${i}`, 10));
+  const after = facultyCapacity(s);
+  const physics = after.byField.get(FIELD)!;
+
+  assert(physics.supply > physics.catalogue, 'Physics is now hired well past its own catalogue');
+  assert(after.total.supply > after.total.catalogue, 'and the school-wide supply passes the school-wide catalogue');
+  assert(after.total.shortfall > 0,
+    `while every other department is still short (${after.total.shortfall} slots), which the naive subtraction would report as zero`);
+  assert(after.total.shortfall === before.total.shortfall - Math.max(0, before.byField.get(FIELD)!.catalogue - before.byField.get(FIELD)!.supply),
+    'and the gap that closed is exactly the one department that was hired into');
+  assert(hiresFor(after.total.shortfall) > 0, 'so the tab still asks for more appointments');
 }
 
 // --- it agrees with techSystem, field by field -------------------------

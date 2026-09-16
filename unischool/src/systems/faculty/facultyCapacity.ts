@@ -65,14 +65,32 @@ export interface FacultyCapacity {
   byField: Map<string, FieldCapacity>;
   /** Every department, in FACULTY_FIELDS (division) order. */
   fields: FieldCapacity[];
-  /** School-wide sums of the same four figures. */
-  total: { supply: number; grossSupply: number; offered: number; available: number; catalogue: number };
   /**
-   * The widest thing any one department has to draw, so every meter on the
-   * tab can share a scale and departments compare against each other rather
-   * than only against themselves. Usually the largest catalogue (Clinical
-   * Health's 24), but a department can out-hire its own catalogue, and a
-   * meter whose rule falls off the end of its track is a broken instrument.
+   * School-wide sums of the same four figures, plus the one that cannot be
+   * summed naively: `shortfall` is the PER-FIELD gap added up, not
+   * `catalogue - supply`. Slots do not transfer between departments, so a
+   * school with 450 slots all in Mathematics has not "already covered the
+   * catalogue" — it has covered Mathematics and nothing else, and the
+   * aggregate subtraction is the one arithmetic on this screen that can
+   * state a comfortable falsehood.
+   */
+  total: {
+    supply: number; grossSupply: number; offered: number; available: number;
+    catalogue: number; shortfall: number;
+  };
+  /**
+   * The length of the longest CATALOGUE on the board, which is what every
+   * meter's track is drawn to, so the same length means the same number of
+   * courses in every department and the eye can rank them.
+   *
+   * Deliberately not `max(catalogue, supply)`. Supply is unbounded — a
+   * department can be hired far past anything it will ever teach — and
+   * letting it set the scale squeezes all twenty-nine curricula into the
+   * left third of their tracks to make room for one over-staffed
+   * department's rule. A rule past the end of the track is a department
+   * that can already teach its whole catalogue, which is a state worth
+   * drawing as such (see CapacityMeter's `beyond`) rather than a reason to
+   * rescale everybody.
    */
   scale: number;
 }
@@ -130,7 +148,7 @@ export function facultyCapacity(s: GameState): FacultyCapacity {
 
   for (const cand of s.candidates) entry(cand.field).listed += 1;
 
-  const total = { supply: 0, grossSupply: 0, offered: 0, available: 0, catalogue: 0 };
+  const total = { supply: 0, grossSupply: 0, offered: 0, available: 0, catalogue: 0, shortfall: 0 };
   let scale = 1;
   // FACULTY_FIELDS order first, then anything an old save dragged in, so
   // the tab's row order is the taxonomy's and never the roster's.
@@ -142,7 +160,8 @@ export function facultyCapacity(s: GameState): FacultyCapacity {
     total.offered += c.offered;
     total.available += c.available;
     total.catalogue += c.catalogue;
-    scale = Math.max(scale, c.catalogue, c.supply);
+    total.shortfall += Math.max(0, c.catalogue - c.supply);
+    scale = Math.max(scale, c.catalogue);
   }
   for (const field of FACULTY_FIELDS) fields.push(byField.get(field)!);
   for (const [field, c] of byField) if (!FACULTY_FIELDS.includes(field)) fields.push(c);

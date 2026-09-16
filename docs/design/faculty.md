@@ -78,16 +78,51 @@ Two consequences fall straight out of the record existing:
 - **Committing somebody to research takes two of their course slots**, the same
   way and with the same bookkeeping (see [research.md](research.md)).
 
-**The Faculty tab is a roster BY FIELD** (`FacultyTab.tsx`): one section per
-department, in the `FACULTY_FIELDS` grouping, each carrying its own slot
-arithmetic, its people, and the candidates listed in that field underneath them.
-The header's tooltip names the courses that pull from the field, grouped by
-major — the answer to "why do I need a physicist". A field nobody has hired
-into, nobody is listed in, and no revealed course asks for is not rendered; a
-field with courses and nobody in it is, and reads as the vacancy it is.
+**The Faculty tab is a DEPARTMENT BOARD** (`FacultyTab.tsx`): one compact row
+per department — **all twenty-nine of them, always**, grouped into the eight
+divisions `FACULTY_FIELD_GROUPS` carries as data — over a card grid of the
+people in whichever departments are open. Clicking a row expands it in place:
+the courses that pull on the field (grouped by major — the answer to "why do I
+need a physicist"), its faculty, and the candidates listed in it underneath
+them. A view switch shows the roster alone, the market alone, or both.
 
-It is a place to LOOK AT your faculty, not a place to hire from. Hiring belongs
-where the shortage is felt — the Curriculum tab, where a course will not start —
+**Every department is rendered whether or not anybody is in it.** The previous
+version hid any field with nobody hired, nobody listed and no revealed course,
+on the reasoning that it was a string in a table rather than a department the
+university had. That has it backwards: knowing there is no Neuroscience
+department, and that twelve courses sit behind founding one, is exactly what a
+player cannot learn by looking at what *is* there.
+
+**Each row is a capacity meter, and every meter on the board is drawn to one
+scale** (the longest catalogue in the game), so departments compare against each
+other and not only against themselves. `facultyCapacity.ts` derives what it
+draws, in one pass, from state that already exists:
+
+| On the meter | Is | From |
+|---|---|---|
+| solid | slots the current courseload takes | `usedFacultySlots` — offered courses, staffed or not |
+| half-tone | courses revealed but not yet developed | `status === 'available'` |
+| dotted tail | the rest of the catalogue, still locked | every `requiresFaculty` course in `s.tech` |
+| the rule | what the roster supplies — the thing hiring moves | `totalFacultySlots`, commitment-adjusted |
+
+Where the rule sits *is* the department's state, which is what colours the row:
+past the ink there is room; inside the half-tone the department is at its
+ceiling and something revealed cannot start (**short** — the per-field reading of
+`neededFacultyFields`); inside the solid it is teaching more than it supplies and
+a course is unstaffed (**over**); past the end of the track it can already teach
+everything it will ever offer. A second, fainter rule marks where supply *would*
+be when a research commitment has taken slots — the answer to "my department went
+short and I did not hire or fire anybody".
+
+The school-wide line above the board sums the same figures, with one
+deliberate exception: the gap to a finished catalogue is added up **per
+department**, never as `catalogue - supply` on the totals. Slots do not transfer
+between departments, so the aggregate subtraction would tell a school with every
+slot in Mathematics that it has already covered the catalogue.
+
+It is a place to LOOK AT your faculty and to decide whether a department is
+worth growing — not a place to hire from. Hiring belongs where the shortage is
+felt — the Curriculum tab, where a course will not start —
 and the tab's old alert badge went with the loop it prompted for. The curriculum
 says whether waiting will help: a course blocked on capacity draws an **amber**
 dot when somebody in that field is on the market (one appointment away) and a
