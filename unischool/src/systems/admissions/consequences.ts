@@ -1,6 +1,7 @@
 import type { GameState } from '../../state/types';
 import { totalEnrolled } from '../../state/types';
 import { advanceClasses } from './admissionsSystem';
+import { baseShareCohortCounts } from './cohorts';
 import { financeBreakdown } from '../finance/financeSystem';
 import { attributeCoverage, satisfactionTarget } from '../satisfaction/satisfactionSystem';
 
@@ -88,11 +89,23 @@ export function projectConsequences(
   incoming: number,
   incomingPrice: number,
 ): AdmissionsConsequence {
-  const advanced = advanceClasses(s.students.classes, s.finance.tuitionByClass, incoming, incomingPrice);
+  // The cohort split does not affect anything this projection measures —
+  // money, satisfaction and coverage all read head counts — so the incoming
+  // mix is carried through as the neutral prior rather than re-deriving the
+  // funnel's own. Nothing downstream of here reads it; the REAL split is
+  // written by RESOLVE_ADMISSIONS from projectAdmissions's own figure.
+  const advanced = advanceClasses(
+    {
+      classes: s.students.classes,
+      tuitionByClass: s.finance.tuitionByClass,
+      cohortsByClass: s.students.cohortsByClass,
+    },
+    { count: incoming, price: incomingPrice, cohorts: baseShareCohortCounts(incoming) },
+  );
 
   const projected: GameState = {
     ...s,
-    students: { ...s.students, classes: advanced.classes },
+    students: { ...s.students, classes: advanced.classes, cohortsByClass: advanced.cohortsByClass },
     finance: { ...s.finance, tuitionByClass: advanced.tuitionByClass, listedTuition: incomingPrice },
   };
 

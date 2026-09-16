@@ -641,14 +641,23 @@ export function reducer(state: GameState, action: Action): GameState {
       // commit will do (see consequences.ts) — two copies of it is how a
       // projection starts promising a body the tick does not produce.
       const advanced = advanceClasses(
-        s.students.classes,
-        s.finance.tuitionByClass,
-        outcome.enrolled,
-        s.finance.listedTuition,
+        {
+          classes: s.students.classes,
+          tuitionByClass: s.finance.tuitionByClass,
+          cohortsByClass: s.students.cohortsByClass,
+        },
+        {
+          count: outcome.enrolled,
+          price: s.finance.listedTuition,
+          // Written once, here, and never recomputed: what the class that
+          // just enrolled is made of (see types.ts's ClassCohorts).
+          cohorts: outcome.enrolledCohorts,
+        },
       );
       const graduating = advanced.graduating;
       s.students.classes = advanced.classes;
       s.finance.tuitionByClass = advanced.tuitionByClass;
+      s.students.cohortsByClass = advanced.cohortsByClass;
       s.students.applicantPool = outcome.applicants;
       // Stored as the CHOSEN rate, not the realized one, because this is
       // what next summer's slider opens at (see admissionsSystem.ts's

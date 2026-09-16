@@ -1809,6 +1809,49 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .log .ts { color: var(--ink-muted); font-family: var(--mono); margin-right: 6px; }
 .log .good { color: var(--ok-on-light); } .log .bad { color: var(--bad-on-light); }
 
+/* The funnel panel reuses TreasuryTab's statement idiom wholesale (see
+   EnrollmentTab.tsx's FunnelLine) — these two screens do the same job of
+   explaining a model the player only ever sees the output of, so a second
+   visual idiom for it would be a second thing to learn. Two small
+   adjustments, and no second set of line styles:
+     - a plain single-column stack, where Treasury pairs two columns;
+     - the closing figure is Treasury's .statement-net box, which is serif
+       and bold at headline size; its explanatory note has to opt back out
+       of both or it reads as a second heading. */
+.funnel-lines { display: flex; flex-direction: column; }
+.funnel-net .statement-line-label { gap: 3px; }
+.funnel-net .statement-line-note { font-family: ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400; color: #6f5c2b; max-width: 62ch; }
+
+/* ---------- the standing body: four classes, seven cohorts ---------- */
+/* Stacked bars, one per class, sharing one legend (see EnrollmentTab.tsx).
+   The segment hues are NOT here: they are per-cohort data, so they live in
+   that file's COHORT_COLOR beside the cohort list they key off, the same
+   way chart geometry lives with the chart. Only layout is here. */
+.body-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0 0 16px;
+  font-size: var(--text-xs); color: var(--ink-muted); }
+.body-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.body-legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex: none;
+  border: 1px solid rgba(43, 36, 23, 0.25); }
+.body-legend-count { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 700; }
+
+.body-rows { display: flex; flex-direction: column; gap: 10px; }
+.body-row-head { display: flex; justify-content: space-between; align-items: baseline;
+  gap: 8px; margin-bottom: 4px; }
+.body-row-label { font-family: var(--serif); font-size: var(--text-base); color: var(--ink); font-weight: 700; }
+.body-row-mark { color: var(--ink-muted); font-weight: 400; margin-left: 3px; }
+.body-row-total { font-size: var(--text-sm); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+
+/* One bar is a flex row whose children grow in proportion to their counts,
+   so the segments are the apportionment itself rather than percentages
+   computed twice. A 1px gap keeps two adjacent segments of similar value
+   from reading as one band. */
+.body-bar { display: flex; gap: 1px; height: 18px; border-radius: 2px; overflow: hidden;
+  background: var(--parchment-line-lo); }
+.body-bar-seg { min-width: 2px; }
+.body-bar-empty { flex: 1; background: repeating-linear-gradient(45deg,
+  transparent, transparent 4px, var(--parchment-line) 4px, var(--parchment-line) 5px); }
+
 /* ---------- institutional history: the long arc ---------- */
 /* Plain SVG polylines (see HistoryTab.tsx) — no charting library. Chart
    geometry lives in that file as named constants; only presentation here. */

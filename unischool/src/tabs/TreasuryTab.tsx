@@ -23,7 +23,7 @@ import HelpHint from '../components/HelpHint';
 // footer is a x WEEKS_PER_YEAR convenience, not a second set of numbers.
 // ---------------------------------------------------------------------
 
-// Youngest first, the same order the Admissions tab lists the classes in
+// Youngest first, the same order the Enrollment tab stacks the classes in
 // and the same order reducer.ts advances them.
 const CLASS_ORDER: ReadonlyArray<[keyof ClassTuition, string]> = [
   ['freshman', 'Fr'], ['sophomore', 'So'], ['junior', 'Jr'], ['senior', 'Sr'],

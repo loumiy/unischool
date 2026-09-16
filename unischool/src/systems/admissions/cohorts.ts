@@ -1,4 +1,4 @@
-import type { GameState } from '../../state/types';
+import type { CohortCounts, CohortId, GameState } from '../../state/types';
 import { weeklyResearchPoints } from '../../data/researchData';
 import { teamQuality } from '../../data/studentLifeData';
 
@@ -27,9 +27,10 @@ import { teamQuality } from '../../data/studentLifeData';
 // interrupt's live preview, the reducer's actual resolve), never stored.
 // ---------------------------------------------------------------------
 
-export type CohortId =
-  | 'highAchievers' | 'preProfessional' | 'researchOriented'
-  | 'social' | 'artsFocused' | 'priceSensitive' | 'athletes';
+// CohortId itself now lives in state/types.ts, with the rest of the game's
+// concepts — state.students.cohortsByClass is typed by it, and types.ts
+// deliberately imports nothing. Everything a cohort *does* is still here.
+export type { CohortId };
 
 // baseShare is each cohort's rough weight in a "typical" applicant pool
 // (not a claim about the real world, just a relative sizing so no single
@@ -269,4 +270,47 @@ export function cohortBreakdown(
     pull: pulls[i],
     applicants: counts[i],
   }));
+}
+
+// The same seven counts as cohortBreakdown, keyed rather than listed and
+// without the per-cohort pull/label detail a panel needs. This is the shape
+// state.students.cohortsByClass stores, and `total` is whatever is being
+// decomposed: an applicant pool (the reveal) or an ENROLLED class (the
+// record written at admission).
+//
+// Apportioning the enrolled count with the pool's own weights is exact, not
+// an approximation, for the reason the module comment gives: quality band
+// and cohort are independent dimensions here — sticker shock scales bands,
+// never cohorts — so the mix is the same before and after the funnel's
+// attrition. Built on cohortBreakdown rather than beside it so there is one
+// apportionment in this file and the two can never disagree by a student.
+export function cohortCounts(
+  signals: CohortSignals,
+  tolerance: number,
+  tuition: number,
+  total: number,
+): CohortCounts {
+  const counts = {} as CohortCounts;
+  for (const d of cohortBreakdown(signals, tolerance, tuition, total)) counts[d.id] = d.applicants;
+  return counts;
+}
+
+// The mix of a class NOBODY CHOSE: base shares alone, no pull from anything
+// built, apportioned the same way so the seven are still whole students that
+// sum to `total`.
+//
+// Two callers, and they are the same situation seen twice. A founding school
+// opens with all four classes already on the books (see schoolTypeData.ts's
+// FOUNDING_CLASSES) admitted before the player had built a single thing for a
+// cohort to respond to; and a save written before cohortsByClass existed is in
+// that position for its up-to-four standing classes. Both get the model's own
+// statement of what a pool looks like absent any signal.
+//
+// This is a NEUTRAL PRIOR, not a reconstruction, and the Enrollment tab says
+// so rather than presenting it as a record of who those students were.
+export function baseShareCohortCounts(total: number): CohortCounts {
+  const counts = apportion(COHORTS.map((c) => c.baseShare), Math.max(0, Math.round(total)));
+  const out = {} as CohortCounts;
+  COHORTS.forEach((c, i) => { out[c.id] = counts[i]; });
+  return out;
 }

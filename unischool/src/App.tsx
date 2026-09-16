@@ -15,7 +15,7 @@ import FacultyTab from './tabs/FacultyTab';
 import CurriculumTab from './tabs/CurriculumTab';
 import ResearchTab from './tabs/ResearchTab';
 import TreasuryTab from './tabs/TreasuryTab';
-import AdmissionsTab from './tabs/AdmissionsTab';
+import EnrollmentTab from './tabs/EnrollmentTab';
 import StudentLifeTab from './tabs/StudentLifeTab';
 import HistoryTab from './tabs/HistoryTab';
 import AthleticsTab from './tabs/AthleticsTab';
@@ -38,7 +38,7 @@ import './styles.css';
 //
 // EVERY TAB IS A SCREEN. There is one overlay shape, not two. This module
 // used to name a FULL_BLEED_TABS subset and argue for the split: that
-// Treasury, Admissions and History are read-and-leave pages where a full
+// Treasury, Enrollment and History are read-and-leave pages where a full
 // screen would only make a short page look empty, and where keeping the map
 // visible around the edges reminds the player they are one Escape away from
 // it. That argument loses to the one the playtest notes make. A shell that
@@ -93,7 +93,7 @@ import './styles.css';
 // TAB_ORDER rather than one key per tab: these are the three a player dips
 // into and back out of constantly mid-run, and every extra letter claimed
 // here is one the map can never use. Treasury already has a permanent
-// on-screen figure that opens it, and Admissions/Athletics/History are
+// on-screen figure that opens it, and Enrollment/Athletics/History are
 // places you go once a year rather than mid-week. Each key TOGGLES, exactly
 // like clicking the same tab's toolbar icon twice.
 const TAB_HOTKEYS: Record<string, TabId> = {
@@ -340,7 +340,7 @@ export default function App() {
             )}
             {overlay.tab === 'research' && <ResearchTab s={s} act={act} />}
             {overlay.tab === 'treasury' && <TreasuryTab s={s} act={act} />}
-            {overlay.tab === 'admissions' && <AdmissionsTab s={s} />}
+            {overlay.tab === 'enrollment' && <EnrollmentTab s={s} />}
             {overlay.tab === 'studentlife' && <StudentLifeTab s={s} />}
             {overlay.tab === 'athletics' && <AthleticsTab s={s} act={act} />}
             {overlay.tab === 'history' && <HistoryTab s={s} />}

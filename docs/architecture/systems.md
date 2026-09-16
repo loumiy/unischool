@@ -37,7 +37,7 @@ annual boundaries that matter are the **summer admissions decision** (see
   in (`TabOverlay.tsx`), and the persistent header/status bar, interrupt modal,
   tab metadata, and startup screen
 - `src/tabs/` — one component per overlay view (Faculty, Curriculum, Research,
-  Treasury, Admissions, Student Life, History, Athletics); each reads the slice
+  Treasury, Enrollment, Student Life, History, Athletics); each reads the slice
   of `GameState` it needs and dispatches actions, and knows nothing about being
   rendered in an overlay
 - `src/App.tsx` — the shell: owns the game loop hook and which view (if any) is
