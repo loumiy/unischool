@@ -46,8 +46,8 @@ function fresh(): GameState {
   return createInitialState('Distress', 'private');
 }
 
-function emptyCohorts(s: GameState): void {
-  s.students.cohorts = { freshman: 0, sophomore: 0, junior: 0, senior: 0 };
+function emptyClasses(s: GameState): void {
+  s.students.classes = { freshman: 0, sophomore: 0, junior: 0, senior: 0 };
 }
 
 // ---- No purchase can drive cash negative ----
@@ -115,7 +115,7 @@ function emptyCohorts(s: GameState): void {
 // advancing straight past zero — no bankruptcy, no gameOver.
 {
   const s0 = fresh();
-  emptyCohorts(s0);
+  emptyClasses(s0);
   s0.finance.cash = 3000;
   assert(weeklyNet(s0) < 0, 'fixture: a school with no students runs a weekly deficit');
 
@@ -145,7 +145,7 @@ function emptyCohorts(s: GameState): void {
 // lever a stalled school always has and no Buildable can take away.
 {
   const s0 = fresh();
-  emptyCohorts(s0);
+  emptyClasses(s0);
   const before = weeklyNet(s0);
   const priciest = [...s0.faculty].sort((a, b) => b.salary - a.salary)[0];
   assert(priciest !== undefined, 'fixture: the founding roster has faculty to cut');

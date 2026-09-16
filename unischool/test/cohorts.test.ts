@@ -52,7 +52,7 @@ function withSignal(overrides: Partial<CohortSignals>): CohortSignals {
 // price priced exactly at tolerance gives a blended factor of exactly 1.0.
 // =====================================================================
 {
-  const factor = cohortDemandFactor(NEUTRAL_COHORT_SIGNALS, TOLERANCE, TOLERANCE, 0);
+  const factor = cohortDemandFactor(NEUTRAL_COHORT_SIGNALS, TOLERANCE, TOLERANCE);
   assert(Math.abs(factor - 1) < 1e-9, `cohortDemandFactor is exactly 1.0 at neutral signals + price-at-tolerance (got ${factor})`);
 }
 
@@ -86,15 +86,15 @@ function withSignal(overrides: Partial<CohortSignals>): CohortSignals {
 // structural signal at neutral throughout.
 // =====================================================================
 {
-  const cheap = cohortDemandFactor(NEUTRAL_COHORT_SIGNALS, TOLERANCE, TOLERANCE * 0.3, 0);
-  const fair = cohortDemandFactor(NEUTRAL_COHORT_SIGNALS, TOLERANCE, TOLERANCE, 0);
-  const pricey = cohortDemandFactor(NEUTRAL_COHORT_SIGNALS, TOLERANCE, TOLERANCE * 2, 0);
+  const cheap = cohortDemandFactor(NEUTRAL_COHORT_SIGNALS, TOLERANCE, TOLERANCE * 0.3);
+  const fair = cohortDemandFactor(NEUTRAL_COHORT_SIGNALS, TOLERANCE, TOLERANCE);
+  const pricey = cohortDemandFactor(NEUTRAL_COHORT_SIGNALS, TOLERANCE, TOLERANCE * 2);
   assert(cheap > fair, `pricing well under tolerance pulls price-sensitive families in (cheap ${cheap.toFixed(4)} > fair ${fair.toFixed(4)})`);
   assert(fair > pricey, `pricing well over tolerance pushes price-sensitive families away (fair ${fair.toFixed(4)} > pricey ${pricey.toFixed(4)})`);
-  // Scholarships lower NET price the same way a lower sticker does — the
-  // cohort reads net price, not the sticker in isolation.
-  const discounted = cohortDemandFactor(NEUTRAL_COHORT_SIGNALS, TOLERANCE, TOLERANCE * 2, 0.5);
-  assert(discounted > pricey, `scholarships pull net price back down for this cohort same as a lower sticker would (discounted ${discounted.toFixed(4)} > undiscounted ${pricey.toFixed(4)})`);
+  // There is one price to read now (Plan 05's PR B). The check that used
+  // to sit here — that a discount pulls this cohort back the same way a
+  // lower sticker does — cannot be written without two prices, and it was
+  // only ever asserting that the curve read NET rather than sticker.
 }
 
 // =====================================================================
@@ -126,14 +126,13 @@ function withSignal(overrides: Partial<CohortSignals>): CohortSignals {
 {
   const signals = withSignal({ distinguishedDepth: 5, professionalPrograms: 8, researchRate: 30, labCount: 3, socialOrgCount: 10, artsPrograms: 2, artsFacilities: 1, activeTeams: 2, athleticsQuality: 60 });
   const tuition = TOLERANCE * 1.2;
-  const scholarshipRate = 0.25;
-  const details = cohortBreakdown(signals, TOLERANCE, tuition, scholarshipRate);
+  const details = cohortBreakdown(signals, TOLERANCE, tuition, 5_000);
   assert(details.length === COHORTS.length, `cohortBreakdown returns exactly the ${COHORTS.length} cohorts (got ${details.length})`);
   const reconstructed = details.reduce((sum, d) => {
     const cohort = COHORTS.find((c) => c.id === d.id)!;
     return sum + cohort.baseShare * d.pull;
   }, 0);
-  const actual = cohortDemandFactor(signals, TOLERANCE, tuition, scholarshipRate);
+  const actual = cohortDemandFactor(signals, TOLERANCE, tuition);
   assert(Math.abs(reconstructed - actual) < 1e-9, `cohortBreakdown's per-cohort pulls reconstruct cohortDemandFactor's own total exactly (breakdown ${reconstructed.toFixed(6)}, direct ${actual.toFixed(6)})`);
 }
 
@@ -204,6 +203,41 @@ function withSignal(overrides: Partial<CohortSignals>): CohortSignals {
   assert(signals.socialOrgCount === 2, `one club + one chapter = 2 (got ${signals.socialOrgCount})`);
   assert(signals.activeTeams === 1, `one active team is counted (got ${signals.activeTeams})`);
   assert(signals.athleticsQuality > 0, `an active team with a real coach has non-zero athletics quality (got ${signals.athleticsQuality})`);
+}
+
+// =====================================================================
+// 8. THE HEAD COUNTS ADD UP — the breakdown is shown directly under the
+// applicant pool it decomposes (see InterruptModal.tsx's CohortRow), so a
+// player can add the seven rows and get the headline figure. Whole
+// applicants, never negative, summing EXACTLY to the pool at any size and
+// any mix — including the degenerate pools (0, 1) where a floor-then-
+// distribute apportionment is easiest to get wrong.
+// =====================================================================
+{
+  const mixes: Array<[string, CohortSignals]> = [
+    ['neutral', NEUTRAL_COHORT_SIGNALS],
+    ['all-in', withSignal({ distinguishedDepth: 9, professionalPrograms: 12, researchRate: 60, labCount: 5, socialOrgCount: 20, artsPrograms: 4, artsFacilities: 2, activeTeams: 6, athleticsQuality: 95 })],
+    ['one lever only', withSignal({ labCount: 4 })],
+  ];
+  for (const [mixLabel, signals] of mixes) {
+    for (const pool of [0, 1, 7, 350, 5_000, 48_137]) {
+      const details = cohortBreakdown(signals, TOLERANCE, TOLERANCE, pool);
+      const sum = details.reduce((a, d) => a + d.applicants, 0);
+      assert(sum === pool, `${mixLabel} @ pool ${pool}: the seven cohorts sum to the pool exactly (got ${sum})`);
+      assert(details.every((d) => Number.isInteger(d.applicants) && d.applicants >= 0),
+        `${mixLabel} @ pool ${pool}: every cohort is a whole, non-negative head count`);
+    }
+  }
+
+  // A cohort the player has actually courted is worth MORE PEOPLE than the
+  // same cohort at a school that built nothing — the whole point of showing
+  // a count rather than a multiplier is that this comparison is in students.
+  const built = cohortBreakdown(withSignal({ labCount: 5, researchRate: 50 }), TOLERANCE, TOLERANCE, 5_000);
+  const bare = cohortBreakdown(NEUTRAL_COHORT_SIGNALS, TOLERANCE, TOLERANCE, 5_000);
+  const researchBuilt = built.find((d) => d.id === 'researchOriented')!.applicants;
+  const researchBare = bare.find((d) => d.id === 'researchOriented')!.applicants;
+  assert(researchBuilt > researchBare,
+    `labs pull more research-oriented applicants out of the same pool (${researchBuilt} vs ${researchBare})`);
 }
 
 console.log('cohorts tests');

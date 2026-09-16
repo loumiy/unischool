@@ -10,8 +10,23 @@ export interface Finance {
   cash: number;          // liquid funds
   endowment: number;     // long-term reserve; earns a return and pays a fixed share of itself into income every year (see financeSystem.ts)
   endowmentCampaigns: number; // how many endowment campaigns have been run — each one costs more than the last (see financeSystem.ts's endowmentCampaign)
-  tuitionPerStudent: number;
-  tuitionCeiling: number;        // hard cap on tuitionPerStudent, set by school type at founding
+  // The school's standing LISTED price — what the summer slider opens at,
+  // what a prospective student is quoted, and the only tuition figure any
+  // projection of NEXT year's class reads. Setting it does not touch a
+  // student already enrolled; it becomes the freshman entry of
+  // tuitionByClass at the next admissions boundary, and nowhere else.
+  listedTuition: number;
+  // What each enrolled CLASS actually pays, locked at the price it was
+  // admitted under and carried to graduation (see reducer.ts's
+  // RESOLVE_ADMISSIONS, which advances these in lockstep with
+  // students.classes). Four prices rather than one scalar because one
+  // scalar meant a mid-stream raise repriced every student already on the
+  // books — a school could stay cheap while it grew and then bill four
+  // captive classes at the new price. Tuition revenue is the sum of four
+  // products now (financeSystem.ts's financeBreakdown), never
+  // enrolled x price.
+  tuitionByClass: ClassTuition;
+  tuitionCeiling: number;        // hard cap on listedTuition, set by school type at founding
   baselineFundingPerWeek: number; // FLAT non-tuition income (a public school's institutional appropriation), set by school type
   appropriationPerStudentPerYear: number; // per-enrolled-student non-tuition income, set by school type; 0 for private. Kept as a number on state rather than a schoolType branch in financeSystem.ts, so no system ever has to know which fork the player picked.
   weeklyOpEx: number;    // salaries + upkeep + instruction, recomputed each tick
@@ -35,13 +50,32 @@ export interface SatisfactionAttributes {
   housing: number;
 }
 
-// The student body is FOUR aggregate cohorts — never individuals (see
-// README's "Students: four aggregate cohorts"). Students attend four years:
+// The student body is FOUR aggregate CLASSES — never individuals (see
+// README's "Students: four aggregate classes"). Students attend four years:
 // each summer (reducer.ts's RESOLVE_ADMISSIONS) seniors graduate and leave,
-// every younger cohort advances a year, and the admissions funnel commits a
-// new freshman cohort. This is NOT individual-student simulation — each
-// cohort is a plain head count.
-export interface CohortCounts {
+// every younger class advances a year, and the admissions funnel commits a
+// new freshman class. This is NOT individual-student simulation — each class
+// is a plain head count.
+//
+// "Class" is the year group and ONLY the year group. The other grouping of
+// students this game models — research-oriented, price-sensitive, athletes —
+// is a COHORT (see systems/admissions/cohorts.ts), and the two words are
+// never swapped: a class is admitted in a given year, a cohort is a kind of
+// applicant. Neither has anything to do with a course, which is what a
+// student enrolls in (see techData.ts's Buildables).
+export interface ClassCounts {
+  freshman: number;
+  sophomore: number;
+  junior: number;
+  senior: number;
+}
+
+// The same four class keys as ClassCounts, carrying dollars instead of
+// people: what each class is charged per year. Deliberately its own
+// interface rather than a reuse of ClassCounts — the keys match but the
+// units do not, and a reader who finds one of these in `finance` should
+// not have to work out whether it is money or students.
+export interface ClassTuition {
   freshman: number;
   sophomore: number;
   junior: number;
@@ -49,9 +83,9 @@ export interface CohortCounts {
 }
 
 export interface StudentBody {
-  // The four class-year cohorts. Total enrolled is their sum — read it via
+  // The four classes. Total enrolled is their sum — read it via
   // totalEnrolled() rather than storing a separate total that could drift.
-  cohorts: CohortCounts;
+  classes: ClassCounts;
   // Total HOUSING (bed) capacity — dorms plus housed Greek chapter houses —
   // never an admissions ceiling. Enrollment is uncapped and driven purely by
   // the admissions funnel (see admissionsSystem.ts); most students are
@@ -545,17 +579,15 @@ export interface EventState {
   lastDemandWeek: number;
 }
 
-// The player's admissions policy, set once a year via the summer interrupt
-// (see README's "Admissions: an annual summer decision"). In the funnel
-// model there are exactly two player inputs: tuition and average scholarships.
-// Tuition itself lives on Finance (the single source of truth for the
-// actual price charged); the only policy that lives here is the scholarships rate.
-// Selectivity and enrollment are NOT inputs — they are emergent outcomes of
-// the funnel (see admissionsSystem.ts). scholarshipRate + tuition together
-// describe the price the student actually faces.
-export interface AdmissionsSettings {
-  scholarshipRate: number; // 0..1, average tuition discount across admits
-}
+// The player's admissions policy is set once a year via the summer
+// interrupt (see README's "Admissions: an annual summer decision").
+// NOTE: there is no AdmissionsSettings any more. Its only field was
+// scholarshipRate, retired with scholarships themselves (Plan 05's PR B),
+// and an interface with nothing in it is a slot the next reader has to
+// wonder about. Admissions policy is now exactly one number and it lives
+// where the price lives: finance.listedTuition. Selectivity and enrollment
+// are still NOT inputs — they are emergent outcomes of the funnel (see
+// admissionsSystem.ts).
 
 export interface Rival {
   id: string;
@@ -923,12 +955,12 @@ export function institutionName(u: University): string {
   return u.suffix ? `${u.name} ${u.suffix}` : u.name;
 }
 
-// Total enrolled across the four cohorts — the whole student body. Derived,
-// never stored, so it can never drift from the cohorts it sums. Every
+// Total enrolled across the four classes — the whole student body. Derived,
+// never stored, so it can never drift from the classes it sums. Every
 // per-student reading (tuition, instruction cost, appropriations, scale)
 // goes through this.
 export function totalEnrolled(s: StudentBody): number {
-  return s.cohorts.freshman + s.cohorts.sophomore + s.cohorts.junior + s.cohorts.senior;
+  return s.classes.freshman + s.classes.sophomore + s.classes.junior + s.classes.senior;
 }
 
 // One year's worth of the school's headline numbers, appended once a year
@@ -998,7 +1030,6 @@ export interface GameState {
   clock: GameClock;
   finance: Finance;
   students: StudentBody;
-  admissions: AdmissionsSettings;
   faculty: Faculty[];
   tech: Buildable[];
   developing: Record<string, number>; // course id -> weeks remaining

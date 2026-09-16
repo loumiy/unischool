@@ -55,7 +55,7 @@ export interface SchoolTypePreset {
 export const STARTING_TUITION = 13_000;
 export const STARTING_ENDOWMENT = 3_000_000; // pays out ~$120k/yr from day one (see financeSystem.ts's ENDOWMENT_PAYOUT_RATE)
 
-// --- Founding cohort mix (see actions.ts's createInitialState) ---------
+// --- Founding class mix (see actions.ts's createInitialState) ----------
 // A founded college opens with ALL FOUR class years present and BALANCED —
 // roughly equal freshman / sophomore / junior / senior counts — rather than
 // a freshman-only lump, so there is a graduating class from year one and the
@@ -71,26 +71,34 @@ export const STARTING_ENDOWMENT = 3_000_000; // pays out ~$120k/yr from day one 
 // naming coincidence (a real founding class is roughly the size of a real
 // first dorm), not because anything ties the two together.
 //
-// The remainder from dividing by four is loaded onto the younger cohorts,
+// The remainder from dividing by four is loaded onto the younger classes,
 // so the "ramp" is at most a one-student tilt toward the freshmen.
 export const FOUNDING_BODY = 350;
-const FOUNDING_PER_COHORT = Math.floor(FOUNDING_BODY / 4);
-const FOUNDING_REMAINDER = FOUNDING_BODY - FOUNDING_PER_COHORT * 4; // 0..3, spread over the younger cohorts
-export const FOUNDING_COHORTS = {
-  freshman: FOUNDING_PER_COHORT + (FOUNDING_REMAINDER > 0 ? 1 : 0),
-  sophomore: FOUNDING_PER_COHORT + (FOUNDING_REMAINDER > 1 ? 1 : 0),
-  junior: FOUNDING_PER_COHORT + (FOUNDING_REMAINDER > 2 ? 1 : 0),
-  senior: FOUNDING_PER_COHORT,
+const FOUNDING_PER_CLASS = Math.floor(FOUNDING_BODY / 4);
+const FOUNDING_REMAINDER = FOUNDING_BODY - FOUNDING_PER_CLASS * 4; // 0..3, spread over the younger classes
+export const FOUNDING_CLASSES = {
+  freshman: FOUNDING_PER_CLASS + (FOUNDING_REMAINDER > 0 ? 1 : 0),
+  sophomore: FOUNDING_PER_CLASS + (FOUNDING_REMAINDER > 1 ? 1 : 0),
+  junior: FOUNDING_PER_CLASS + (FOUNDING_REMAINDER > 2 ? 1 : 0),
+  senior: FOUNDING_PER_CLASS,
 } as const; // { freshman: 88, sophomore: 88, junior: 87, senior: 87 }, all commuters
 
 export const SCHOOL_TYPE_PRESETS: Record<SchoolType, SchoolTypePreset> = {
   private: {
     label: 'Private',
-    description: 'No state funding and a smaller applicant pool, but tuition is uncapped and you start with more prestige.',
+    description: 'No state funding and a smaller applicant pool, but you can charge what you like and start with more prestige.',
     startingCash: 1_400_000,
     prestigeBonus: 10,
     startingApplicantPool: 150,
-    tuitionCeiling: 60_000,
+    // Raised from 60,000 at Plan 05's PR E. The tuition decision is a
+    // blind gamble now — the slider says only whether you are in line with
+    // your standing — and the backlog's ask was "no stated cap; the cap is
+    // where the slider ends". So the number is not shown any more, which
+    // means it has to be somewhere a private school will never sensibly
+    // reach rather than somewhere it bumps into. Nothing in the balance sim
+    // gets near it: the highest-priced strategy closes a 40-year run around
+    // 38k, and the deficit surcharge tops out well under this.
+    tuitionCeiling: 100_000,
     baselineFundingPerWeek: 0,
     appropriationPerStudentPerYear: 0,
   },
@@ -100,6 +108,12 @@ export const SCHOOL_TYPE_PRESETS: Record<SchoolType, SchoolTypePreset> = {
     startingCash: 1_200_000,
     prestigeBonus: -5,
     startingApplicantPool: 400,
+    // NOT raised with the private ceiling at PR E. A public school's cap is
+    // most of what distinguishes it — it trades pricing power for a
+    // subsidy — and dropping public/private is its own backlog item, so
+    // this plan does not decide that question on the startup screen's
+    // behalf. It is still never stated on screen; it is simply where this
+    // school type's slider ends.
     tuitionCeiling: 22_000,
     baselineFundingPerWeek: 7_000,
     // Roughly a third of the capped tuition: a public school trades

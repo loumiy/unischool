@@ -26,6 +26,7 @@ import { createPreStartState } from '../src/state/actions';
 import type { GameState, Buildable, InitiativeReport, SchoolType } from '../src/state/types';
 import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudent } from '../src/systems/finance/financeSystem';
+import { admitRate, topBandShare } from '../src/systems/admissions/admissionsSystem';
 import {
   canStartDevelopment, hasFreeFacultySlot, eligibleInstructors, unstaffedCourses,
   isCommitted, effectiveCourseSlots, totalFacultySlots, usedFacultySlots,
@@ -75,8 +76,8 @@ const fakeStorage = new Map<string, string>();
 };
 
 // ---------------------------------------------------------------------
-// A strategy is a scripted player: a policy for the two annual levers
-// (tuition, scholarships) plus rules for what it commits cash to during the year.
+// A strategy is a scripted player: a policy for the one annual lever
+// (tuition) plus rules for what it commits cash to during the year.
 // These are deliberately crude — they are not meant to play well, they
 // are meant to be REPRODUCIBLE and to span the space of things a real
 // player does (build breadth first, build enrollment first, overreach,
@@ -86,7 +87,12 @@ export interface Strategy {
   name: string;
   schoolType: SchoolType;
   tuition(s: GameState): number;
-  scholarships(s: GameState): number;
+  // The share of the applicant pool to take. Optional: omitted means "take
+  // the slider's own opening position for this standing", which is what
+  // every archetype above does and what the harness measured before the
+  // rate was a decision at all. The probes below are the only strategies
+  // that set it, because they exist to ask what the lever does.
+  admitRate?(s: GameState): number;
   buffer(s: GameState): number;   // cash held back before any discretionary start
   // The flow gate: a player who watches the Treasury does not take on a
   // new recurring commitment while this week's net is thin. Expressed as a
@@ -150,7 +156,7 @@ function affordable(s: GameState, cost: number, strategy: Strategy): boolean {
 // exactly the binge-then-collapse pattern this field exists to prevent.
 function courseStaysSustainable(s: GameState, strategy: Strategy): boolean {
   if (!strategy.courseAffordabilityAware) return true;
-  const netTuitionPerStudentPerWeek = (strategy.tuition(s) * (1 - strategy.scholarships(s))) / WEEKS_PER_YEAR;
+  const netTuitionPerStudentPerWeek = strategy.tuition(s) / WEEKS_PER_YEAR;
   const developingCourses = s.tech.filter((t) => t.kind === 'course' && t.status === 'developing').length;
   const projectedInstructionCostPerStudent = instructionCostPerStudent(s) + developingCourses + 1;
   return netTuitionPerStudentPerWeek >= projectedInstructionCostPerStudent;
@@ -309,8 +315,7 @@ export function cutPayrollIfStalled(
 
   // Price first: a raise or a discount cut already decided but not yet
   // applied is cheaper than anybody's job.
-  if (strategy.tuition(s) > s.finance.tuitionPerStudent) return;
-  if (strategy.scholarships(s) < s.admissions.scholarshipRate) return;
+  if (strategy.tuition(s) > s.finance.listedTuition) return;
 
   const loads = facultyLoads(s);
   const byCost = s.faculty
@@ -529,7 +534,7 @@ function decide(
 export interface Row {
   year: number; cash: number; enrolled: number; capacity: number; prestige: number;
   opex: number; net: number; satisfaction: number; courses: number; majors: number;
-  faculty: number; tuition: number; scholarships: number; applicants: number; admitRate: number;
+  faculty: number; tuition: number; applicants: number; admitRate: number;
   endowment: number; weeksInTheRed: number; minCash: number;
   // The `social` and `academic` attributes alone, as the year closed (see
   // satisfactionSystem.ts's computeSatisfactionBreakdown) — the headline
@@ -581,8 +586,7 @@ function snapshot(s: GameState, weeksInTheRed: number, minCash: number): Row {
     courses: s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length,
     majors: Object.keys(s.milestones).filter((k) => k.startsWith('program-established:')).length,
     faculty: s.faculty.length,
-    tuition: s.finance.tuitionPerStudent,
-    scholarships: s.admissions.scholarshipRate,
+    tuition: s.finance.listedTuition,
     applicants: s.students.applicantPool,
     admitRate: s.students.admitRate,
     endowment: s.finance.endowment,
@@ -768,7 +772,17 @@ export function play(
         dispatch({
           type: 'RESOLVE_ADMISSIONS',
           tuition: strategy.tuition(s),
-          scholarshipRate: strategy.scholarships(s),
+          // Every strategy takes the slider's own opening position for its
+          // CURRENT standing — what a school like this would normally take
+          // (see admissionsSystem.ts's admitRate). Deliberately recomputed
+          // each summer rather than read back off s.students.admitRate:
+          // that field is sticky by design, so a scripted player echoing it
+          // would freeze on its founding rate and go on taking a founding
+          // school's share of the pool at top-50 prestige. No strategy here
+          // plays the lever deliberately, so the harness measures what the
+          // DEFAULT policy does — which is what it measured before PR C
+          // made the rate a decision at all.
+          admitRate: strategy.admitRate ? strategy.admitRate(s) : admitRate(s.self.reputation),
           approvedPetitionIds,
         });
         rows.push(snapshot(s, weeksInTheRed, minCash));
@@ -875,7 +889,7 @@ function fmt(n: number): string {
 function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venuesBuilt: string[] }, every: number): void {
   const { rows, tally } = run;
   console.log(`\n=== ${strategy.name} (${strategy.schoolType}) ===`);
-  console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | soc | aca | crs | maj | fac |  tuition | sch |  applic | admit% |  endow | rsch/wk | brk | orgs | grad');
+  console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | soc | aca | crs | maj | fac |  tuition |  applic | admit% |  endow | rsch/wk | brk | orgs | grad');
   const last = rows[rows.length - 1];
   for (const r of rows) {
     if (r.year > 6 && r.year % every !== 0 && r !== last) continue;
@@ -884,7 +898,7 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
       `${r.prestige.toFixed(1).padStart(5)} | ${fmt(r.opex).padStart(7)} | ${fmt(r.net).padStart(6)} | ${r.satisfaction.toFixed(0).padStart(4)} | ` +
       `${r.social.toFixed(0).padStart(3)} | ${r.academic.toFixed(0).padStart(3)} | ` +
       `${String(r.courses).padStart(3)} | ${String(r.majors).padStart(3)} | ${String(r.faculty).padStart(3)} | ${fmt(r.tuition).padStart(8)} | ` +
-      `${(r.scholarships * 100).toFixed(0).padStart(3)} | ${fmt(r.applicants).padStart(7)} | ${(r.admitRate * 100).toFixed(0).padStart(6)} | ${fmt(r.endowment).padStart(6)} | ` +
+      `${fmt(r.applicants).padStart(7)} | ${(r.admitRate * 100).toFixed(0).padStart(6)} | ${fmt(r.endowment).padStart(6)} | ` +
       `${r.researchRate.toFixed(1).padStart(7)} | ${String(r.breakthroughs).padStart(3)} | ` +
       // clubs/chapters live at the close of that year — the column that
       // says WHEN student life actually starts for a given strategy, which
@@ -1023,7 +1037,7 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
 //
 // The size of the surcharge is the whole question, and 15% is small on
 // purpose. Reaching straight for the ceiling was tried first and is an
-// exploit, not a recovery: enrolment is a four-cohort stock, so a school
+// exploit, not a recovery: enrolment is a four-class stock, so a school
 // can charge the cap for one year and collect from students who applied
 // under the old price long before the applicant pool reacts. In the
 // discount-volume run that single year printed +11.09M a week and an
@@ -1032,31 +1046,34 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
 // list price, repeated for as long as the deficit lasts, is the lever a
 // real administration actually has.
 const DEFICIT_SURCHARGE = 1.15;
-const rampTuition = (perPrestigePoint: number) => (s: GameState) => {
-  const ramped = Math.round((4_000 + s.self.reputation * perPrestigePoint) / 500) * 500;
+// `base` moved from a hardcoded 4,000 to a parameter when scholarships
+// were retired (Plan 05's PR B). Each strategy's identity was its NET
+// price — what it actually charged after its own discount — so converting
+// it to a single price means folding that discount into both halves of the
+// ramp, not just dropping the `scholarships` line and leaving the sticker
+// where it was. A strategy that charged 4,000 + 300/point at 25% off is
+// the same school as one charging 3,000 + 225/point at no discount, and
+// this is how that is written.
+const rampTuition = (perPrestigePoint: number, base = 4_000) => (s: GameState) => {
+  const ramped = Math.round((base + s.self.reputation * perPrestigePoint) / 500) * 500;
   const surcharged = s.finance.cash < 0 ? Math.round(ramped * DEFICIT_SURCHARGE / 500) * 500 : ramped;
   return Math.min(s.finance.tuitionCeiling, surcharged);
 };
 
-// A real administration trims its own discount before it starts firing
-// people (see cutPayrollIfStalled below, and financeSystem.ts's "stall,
-// don't die" note on raising net price / cutting scholarships being the
-// cheaper, non-destructive lever). `s.finance.cash` is read live off
-// GameState — this is exactly the number a strategy would see on its own
-// Treasury tab, not a harness-only signal — so a strategy whose margin is
-// thin enough to go negative sees its own aid taper back toward `floor`
-// for as long as it stays underwater, and back to `base` the moment it
-// recovers. Strategies whose margin never goes negative (market-rate
-// pricing) never see this fire at all.
-const trimAidWhenUnderwater = (base: number, floor: number) => (s: GameState) =>
-  s.finance.cash < 0 ? floor : base;
+// NOTE: `trimAidWhenUnderwater` used to live here — a strategy tapering
+// its own discount while underwater, the cheap non-destructive lever
+// financeSystem.ts's "stall, don't die" note points at. Scholarships are
+// gone (Plan 05's PR B) and the discount with them. The lever that
+// survives is the DEFICIT_SURCHARGE inside rampTuition above: a school in
+// the red raises its price before it touches anybody's job, which is the
+// same ordering expressed with the one dial that is left.
 
 export const STRATEGIES: Strategy[] = [
   {
     // The intended line of play: grow one thing at a time, never take on a
     // commitment the current cash flow can't carry.
     name: 'Balanced builder', schoolType: 'private',
-    tuition: rampTuition(300), scholarships: () => 0.25,
+    tuition: rampTuition(225, 3_000), // was rampTuition(300) at 25% off
     buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
     netMargin: 0.12,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
@@ -1066,27 +1083,43 @@ export const STRATEGIES: Strategy[] = [
     // Deliberate overreach: buys everything the moment cash allows,
     // ignoring the flow. Should stall hard, then claw back out — never die.
     name: 'Curriculum rush (overreach)', schoolType: 'private',
-    tuition: rampTuition(300), scholarships: () => 0.2,
+    tuition: rampTuition(240, 3_200), // was rampTuition(300) at 20% off
     buffer: () => 20_000,
     netMargin: 0,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
     dormFillThreshold: 0.98, facilityThreshold: 45, campaigns: false,
   },
   {
-    // The volume archetype: cheap, heavily discounted, beds first. Tests
+    // The volume archetype: the cheapest school here, beds first. Tests
     // that a big low-selectivity school is a viable, different shape.
+    //
+    // RE-BASELINED at Plan 05's PR B. It was rampTuition(150) at 50% off,
+    // tapering to 30% while underwater. The underwater taper is gone with
+    // scholarships, but the school is not left without a response:
+    // rampTuition's own DEFICIT_SURCHARGE raises its price 15% for as long
+    // as it is in the red, the same "price before people" ordering the
+    // taper existed to express.
+    //
+    // The price itself is NOT the old net price, and that is the honest
+    // part. Halving the ramp to 2,000 + 75/point preserves what students
+    // paid — but a sticker and a net price were doing two different jobs,
+    // and one number cannot do both. The old 4,000 + 150/point STICKER was
+    // also throttling this school's own pool, through sticker shock and
+    // qualityMix's tuition shift; drop the sticker to the net price and
+    // both throttles come off, and the school grew to 23k students it could
+    // not fund and ended the run insolvent. 3,000 + 110/point sits between
+    // the two prices it used to carry at once, which is the only place a
+    // single number can sit: still far and away the cheapest school here
+    // (~11k at the prestige it settles at, against ~35k for Balanced
+    // builder) and still the volume archetype at ~26k enrolled and a ~67%
+    // admit rate, but now carrying what it grows.
     name: 'Discount volume (beds first)', schoolType: 'private',
-    tuition: rampTuition(150),
-    // See trimAidWhenUnderwater above: 50% off is this strategy's whole
-    // identity, but it is not a suicide pact — a school that finds itself
-    // actually underwater trims back to 30% before anything more drastic,
-    // the same annual-decision lever financeSystem.ts's own note points to.
-    scholarships: trimAidWhenUnderwater(0.5, 0.3),
+    tuition: rampTuition(110, 3_000),
     buffer: (s) => Math.max(200_000, s.finance.weeklyOpEx * 8),
     netMargin: 0.08,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
     dormFillThreshold: 0.7, facilityThreshold: 80, campaigns: true,
-    // See Strategy.courseAffordabilityAware — its 50%-discounted net
+    // See Strategy.courseAffordabilityAware — its very low net
     // tuition does not clear instruction cost at a full catalogue, so
     // without this it eventually binges on years of saved-up cash and
     // collapses once the new courses' recurring cost lands.
@@ -1094,7 +1127,7 @@ export const STRATEGIES: Strategy[] = [
   },
   {
     name: 'Public flagship', schoolType: 'public',
-    tuition: rampTuition(300), scholarships: () => 0.2,
+    tuition: rampTuition(240, 3_200), // was rampTuition(300) at 20% off
     buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
     netMargin: 0.12,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
@@ -1115,7 +1148,7 @@ export const STRATEGIES: Strategy[] = [
     // to skip a facility", i.e. build every available one regardless —
     // the only strategy here that ever reaches 100% of the catalogue.
     name: 'Completionist (build everything)', schoolType: 'private',
-    tuition: rampTuition(300), scholarships: () => 0.25,
+    tuition: rampTuition(225, 3_000), // was rampTuition(300) at 25% off
     buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
     netMargin: 0.12,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
@@ -1141,8 +1174,38 @@ export const STRATEGIES: Strategy[] = [
     // student, an ever-growing empty-seat bill from building ahead of
     // demand every single year, and instruction cost that outgrows a
     // stagnant tuition line as the curriculum matures.
+    // RE-BASELINED at Plan 05's PR B, from 8,000. Nothing about the
+    // strategy's intent changed; what changed underneath it is that
+    // admissionsSystem.ts's YIELD_BASE absorbed the retired scholarship
+    // term, so this school — which never discounted, and so never got the
+    // old scholarship yield bonus — now enrolls far more students at the
+    // same price. At 8,000 it stopped being a stress case at all: it
+    // filled its own beds and never went into the red once across forty
+    // years, which is precisely the audit finding the comment above says
+    // this strategy was rewritten to fix. 5,500 restores the archetype at
+    // BOTH horizons the harness reads: a real trough (~-190k, 157 weeks in
+    // the red) inside the 20-year window, then a recovery that holds to
+    // year 40 with no further red weeks.
+    //
+    // Picked by sweeping, not derived, and the sweep is worth recording:
+    // the response is not monotone. This economy is a threshold system — a
+    // strategy builds when cash clears a buffer — so small changes move
+    // WHICH WEEK a dorm goes up and forty years compounds the difference.
+    // Read a single price here as one sample of a noisy function, never as
+    // a tuned optimum.
+    //
+    // KNOWN RESIDUAL, as of Plan 05's PR C: this holds at the 20-year
+    // horizon balance-regression.test.ts actually asserts, but the 40-year
+    // `npm run sim` display now ends deeply underwater where it used to end
+    // solvent. That is not a price that wants nudging — a sweep from 5,500
+    // to 11,000 finds no value that satisfies both horizons, because what
+    // changed is upstream of price. Deleting yield let a selective school
+    // keep the whole top band, so incoming quality (and through it,
+    // prestige, and through that, the applicant pool) runs higher for
+    // everyone; this strategy builds a dorm unconditionally, so a bigger
+    // pool is a bigger bill every single year. See PR C's own note.
     name: 'Overbuilder (beds ahead of demand)', schoolType: 'private',
-    tuition: () => 8_000, scholarships: () => 0,
+    tuition: () => 5_500,
     buffer: () => 0,
     netMargin: -1,
     buildsCourses: true, buildsDorms: true, buildsFacilities: false,
@@ -1152,7 +1215,7 @@ export const STRATEGIES: Strategy[] = [
     // The control: builds nothing, ever. Prestige and cash here are the
     // floor the whole loop has to beat, or growth is optional.
     name: 'Idle (builds nothing)', schoolType: 'private',
-    tuition: () => 12_000, scholarships: () => 0.2,
+    tuition: () => 9_600, // was 12,000 at 20% off
     buffer: () => Number.MAX_SAFE_INTEGER,
     netMargin: Number.MAX_SAFE_INTEGER,
     buildsCourses: false, buildsDorms: false, buildsFacilities: false,
@@ -1165,6 +1228,90 @@ export const STRATEGIES: Strategy[] = [
 // prints the CLI report, while test/balance-regression.test.ts can import
 // STRATEGIES/play/Strategy/Row above without also triggering a full,
 // unwanted 40-year print run as a side effect of the import.
+// ---------------------------------------------------------------------
+// ADMIT-RATE PROBES. Not archetypes — experiments. Every one of these is
+// "Balanced builder, with one thing changed": the same prices, buffers,
+// build rules and thresholds, differing ONLY in what share of the pool it
+// takes. Holding the rest constant is the whole point; a probe that also
+// priced differently would not answer the question.
+//
+// Deliberately NOT in STRATEGIES. balance-regression.test.ts sweeps that
+// array and asserts every member stalls rather than dies, which is a
+// promise the game makes about strategies a player might reasonably adopt.
+// These exist to find out whether the admit lever is broken, and a probe
+// that dies is a FINDING here rather than a failing build. If one of them
+// turns out to be a line of play worth supporting, promoting it into
+// STRATEGIES is how that gets said.
+//
+// WHAT THEY FOUND, on the 40-year run at the time they were written. Kept
+// here rather than in BACKLOG.md, which is for work that has not happened:
+// this is a record of a measurement, and here is where the next person to
+// re-run it will be standing.
+//
+//   broad then narrow   prestige 145.7   76k enrolled   794M cash
+//   default curve               140.2    65k            836M
+//   open door (100%)            106.3   273k            1.5B
+//   ivory tower (8%)            101.6    18k           22.6M
+//   band skimmer                 87.4    23k            6.1M
+//
+// 1. THE INTENDED ARC WINS, and beats simply accepting the slider's
+//    default — with MORE students, not fewer. The gap is an early-game
+//    one: broad-then-narrow has 218 courses by year 8 against the
+//    default's 117, because a bigger opening class pays for the buildout.
+//    That gap is the backlog's "admit-rate curve's early slope".
+//
+// 2. OPEN DOOR IS NOT AN EXPLOIT, and its ceiling is not where it looks.
+//    It ends rich and mediocre — a plausible big-state-school shape. What
+//    caps it is prestigeSystem.ts's libraryAdequacyScore, a seats-to-
+//    enrolled ratio floored at 0.4 that MULTIPLIES the 90-weight breadth
+//    term: at 273k students it sits on that floor, costing ~47 points of
+//    prestige target, against only ~9 from the incoming-quality term.
+//    Overcrowding capping academic prestige is exactly what that
+//    multiplier was built to do. Note what is NOT in that chain:
+//    satisfaction is not a prestige input at all (see computePrestigeTarget
+//    — breadth, teaching, quality, research, campus life, endowment, and
+//    nothing else). Satisfaction bites through word of mouth instead, and
+//    hard: open door's applicant POOL is 69k against broad-then-narrow's
+//    190k despite carrying four times the students.
+//
+// 3. PURE TOP-BAND SKIMMING IS A TRAP, NOT AN EXPLOIT, which is the
+//    opposite of what the arithmetic suggested before this was run. The
+//    quality dead zone is real — the skim runs best band first, so once
+//    the rate is under the top band's share, further selectivity buys no
+//    quality at all — but the top band is only ~5% of the pool at founding
+//    prestige, and skimming it starves the school of the tuition that buys
+//    the breadth that widens the band. The dead zone is only reachable by
+//    a school that already grew broad.
+// ---------------------------------------------------------------------
+const balancedBase = STRATEGIES.find((s) => s.name.startsWith('Balanced builder'))!;
+
+export const ADMIT_PROBES: Strategy[] = [
+  // The control: whatever the slider opens at. Identical to the archetype.
+  { ...balancedBase, name: 'Probe: default curve' },
+
+  // Take everyone, forever.
+  { ...balancedBase, name: 'Probe: open door (100%)', admitRate: () => 1 },
+
+  // Ivory tower from day one, well inside the top band at any prestige.
+  { ...balancedBase, name: 'Probe: ivory tower (8%)', admitRate: () => 0.08 },
+
+  // The intended arc: broad while small, narrowing as standing builds.
+  // 100% at founding prestige, ~20% by prestige 100, floored at 10%.
+  {
+    ...balancedBase,
+    name: 'Probe: broad then narrow',
+    admitRate: (s) => Math.max(0.1, Math.min(1, 1.5 - s.self.reputation / 80)),
+  },
+
+  // The suspected exploit: sit exactly where incoming quality saturates.
+  // Any less buys no quality and costs class size; any more starts diluting.
+  {
+    ...balancedBase,
+    name: 'Probe: band skimmer',
+    admitRate: (s) => topBandShare(s.self.reputation, s.finance.listedTuition),
+  },
+];
+
 const isCliEntry = process.argv[1]?.includes('balanceSim') ?? false;
 if (isCliEntry) {
   const years = Number(process.argv[2] ?? 40);

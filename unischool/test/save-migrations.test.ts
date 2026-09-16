@@ -22,6 +22,7 @@ import { athleticStrengthFor } from '../src/data/rivalData';
 import { researchSchools } from '../src/data/techData';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import { isUnstaffed, usedFacultySlots, facultyLoad } from '../src/systems/techtree/techSystem';
+import { annualTuitionBilled } from '../src/systems/finance/financeSystem';
 
 // In-memory localStorage so the persistence module works under Node. Assigned
 // before any loadGame/saveGame call (module imports run first, but nothing in
@@ -67,7 +68,7 @@ function makeV18Save(): void {
     'school-complete:Science': true,
     'grad-program-complete:MBAX': true,
   };
-  // Old student body: a single enrolled scalar, no cohorts, no satisfaction
+  // Old student body: a single enrolled scalar, no classes, no satisfaction
   // accumulator (pre-PR-D).
   state.students = {
     enrolled: 800,
@@ -105,16 +106,25 @@ function testForwardMigration(): void {
   assert(m['grad-program-complete:MBAX'] === true, 'grad-program-complete: kept as-is');
 
   const students = loaded.students;
-  const total = students.cohorts.freshman + students.cohorts.sophomore + students.cohorts.junior + students.cohorts.senior;
-  assert(total === 800, `enrolled 800 -> four cohorts summing to 800 (got ${total})`);
+  const total = students.classes.freshman + students.classes.sophomore + students.classes.junior + students.classes.senior;
+  assert(total === 800, `enrolled 800 -> four classes summing to 800 (got ${total})`);
+  // MIGRATIONS[19] writes the field under its v20 name and MIGRATIONS[34]
+  // renames it; a save coming all the way up from v19 must arrive with only
+  // the new name, never both.
+  assert((students as unknown as Loose).cohorts === undefined,
+    'students.cohorts renamed to students.classes on the way up');
   assert((students as unknown as Loose).enrolled === undefined, 'old students.enrolled scalar removed');
   assert(students.satisfactionYearWeeks === 0, 'satisfaction accumulator seeded (weeks 0)');
   assert(students.satisfactionYearSum === 0, 'satisfaction accumulator seeded (sum 0)');
   assert(students.priorYearAvgSatisfaction === 66, 'priorYearAvgSatisfaction seeded from current satisfaction');
 
-  const admissions = loaded.admissions as unknown as Loose;
-  assert(admissions.scholarshipRate === 0.3, 'financialAidRate 0.3 -> scholarshipRate 0.3');
-  assert(admissions.financialAidRate === undefined, 'old financialAidRate field removed');
+  // MIGRATIONS[20] renames financialAidRate -> scholarshipRate, and
+  // MIGRATIONS[36] then deletes the whole admissions slice with
+  // scholarships themselves. A v18 save coming all the way up must arrive
+  // with neither field and no slice — and, critically, must not have
+  // thrown on the way through the rename it still passes over.
+  assert((loaded as unknown as Loose).admissions === undefined,
+    'the admissions slice is gone by the current version');
 
   const row = loaded.history[0] as unknown as Loose;
   assert(row.programsEstablished === 2, 'history majorsComplete 2 -> programsEstablished 2');
@@ -461,6 +471,58 @@ function testAthleticsV2Migration(): void {
   assert(!!otherRival && typeof otherRival.athleticStrength === 'number', 'a rival that already had athleticStrength keeps a real number');
 }
 
+// ---- v35 -> v36: one tuition scalar becomes a listed price + four class prices ----
+// The claim this migration makes is that it is EXACT — every class really
+// was paying the one scalar, so a resumed school bills what it billed the
+// week before. That is a checkable claim, so check it: build a v35 save
+// with a known scalar and an uneven body, migrate, and compare the weekly
+// tuition line against the old model's own arithmetic.
+function testPerClassTuitionMigration(): void {
+  clearSave();
+  const base = createInitialState('Pricer', 'private');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+
+  const finance = state.finance as Loose;
+  delete finance.listedTuition;
+  delete finance.tuitionByClass;
+  finance.tuitionPerStudent = 19_000;
+
+  // Deliberately uneven, so a migration that quietly dropped a class or
+  // reused one class's count for another would show up in the total.
+  const students = state.students as Loose;
+  students.classes = { freshman: 300, sophomore: 250, junior: 200, senior: 150 };
+  // v35 predates the retirement of scholarships, so this save still HAS
+  // the slice — the current shape does not, so it is put back by hand
+  // here. It is what MIGRATIONS[36] removes on the way up.
+  (state as Loose).admissions = { scholarshipRate: 0.2 };
+
+  writeSave(35, state);
+  const loaded = loadGame();
+  assert(loaded !== null, 'v35 save loads');
+  if (!loaded) return;
+
+  assert((loaded.finance as unknown as Loose).tuitionPerStudent === undefined,
+    'the old tuitionPerStudent scalar is removed');
+  assert(loaded.finance.listedTuition === 19_000,
+    `the scalar becomes the listed price (got ${loaded.finance.listedTuition})`);
+  const byClass = loaded.finance.tuitionByClass;
+  assert(
+    byClass.freshman === 19_000 && byClass.sophomore === 19_000
+      && byClass.junior === 19_000 && byClass.senior === 19_000,
+    'every class carries forward at the price it was actually paying',
+  );
+
+  // The exactness claim, in money. NOTE the 0.8 that used to be here is
+  // gone: the v35 save's 20% scholarship rate is retired by MIGRATIONS[36]
+  // on the way up (Plan 05's PR B), so the resumed school charges its
+  // listed price in full. What this still pins is that the SPLIT across
+  // four classes is exact — every class at the one price it was paying.
+  const expected = (300 + 250 + 200 + 150) * 19_000;
+  const actual = annualTuitionBilled(loaded);
+  assert(Math.abs(actual - expected) < 1e-6,
+    `migrated tuition revenue is unchanged to the dollar (got ${actual}, expected ${expected})`);
+}
+
 // ---- Test: a current-version save round-trips unchanged ----
 function testRoundTrip(): void {
   clearSave();
@@ -472,10 +534,11 @@ function testRoundTrip(): void {
   assert(loaded.self.name === 'RoundTrip', 'name survives round trip');
   assert(loaded.self.schoolType === 'public', 'school type survives round trip');
   assert(
-    JSON.stringify(loaded.students.cohorts) === JSON.stringify(cur.students.cohorts),
-    'founding cohort mix survives round trip',
+    JSON.stringify(loaded.students.classes) === JSON.stringify(cur.students.classes),
+    'founding class mix survives round trip',
   );
-  assert(loaded.admissions.scholarshipRate === cur.admissions.scholarshipRate, 'scholarshipRate survives round trip');
+  assert((loaded as unknown as Loose).admissions === undefined, 'no admissions slice on a current-version save');
+  assert(loaded.finance.listedTuition === cur.finance.listedTuition, 'listed tuition survives round trip');
 }
 
 // ---- Test: v29's campus content pass (MIGRATIONS[29]) ----
@@ -848,6 +911,7 @@ testCourseFacultyMigration();
 testCourseFacultySanitizer();
 testChapterGlyphs();
 testScholarshipMigration();
+testPerClassTuitionMigration();
 testRoundTrip();
 testRejects();
 

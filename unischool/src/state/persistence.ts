@@ -6,6 +6,8 @@ import {
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR } from './types';
 import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES, ORIGIN_NATIONALITIES } from '../data/facultyData';
 import { initialTech } from '../data/techData';
+import { SCHOOL_TYPE_PRESETS } from '../data/schoolTypeData';
+import { admitRate } from '../systems/admissions/admissionsSystem';
 import { initialFacilities } from '../data/facilitiesData';
 import { initialDorms } from '../data/campusData';
 import { fellTrees, seedTrees } from '../data/treeData';
@@ -445,12 +447,13 @@ export const SAVE_KEY = 'unischool.save';
 // change to meaning, so breadth and prestige are untouched. grad-program-
 // complete: is deliberately left as-is. See MIGRATIONS[18].
 //
-// v19 -> v20: the four-cohort student model (see README's "Students: four
-// aggregate cohorts" and the alignment roadmap's PR D). A v19 save carries a
+// v19 -> v20: the four-class student model (see README's "Students: four
+// aggregate classes" and the alignment roadmap's PR D). A v19 save carries a
 // single students.enrolled number for the whole body; a mid-flight run has
 // all four class years, so it is split evenly across freshman/sophomore/
-// junior/senior (remainder to freshman). The trailing-year satisfaction
-// accumulator is seeded empty with priorYearAvgSatisfaction set to the
+// junior/senior (remainder to freshman). It writes the field under the name
+// it had at the time, `students.cohorts`; MIGRATIONS[34] renames it. The
+// trailing-year satisfaction accumulator is seeded empty with priorYearAvgSatisfaction set to the
 // current satisfaction, so the next funnel behaves as before until a real
 // year accumulates. See MIGRATIONS[19].
 //
@@ -824,7 +827,86 @@ export const SAVE_KEY = 'unischool.save';
 // have done.
 //
 // See MIGRATIONS[33].
-export const SAVE_VERSION = 34;
+//
+// v34 -> v35: classes and cohorts become two different words. The year
+// group a student belongs to is a CLASS (freshman/sophomore/junior/senior)
+// and `students.cohorts` is renamed `students.classes` to say so; "cohort"
+// is now reserved for the admissions cohorts in
+// systems/admissions/cohorts.ts (research-oriented, price-sensitive,
+// athletes, ...), which are a different cut of the same students and were
+// the reason one word doing both jobs had to stop. A straight rename with
+// no change in meaning — the same four head counts, summing to the same
+// body, read by the same totalEnrolled() — so nothing mechanical moves and
+// a resumed save plays exactly as it did. See MIGRATIONS[34].
+//
+// v35 -> v36: tuition follows the class that paid it. The single
+// `finance.tuitionPerStudent` scalar becomes `finance.listedTuition` (the
+// standing price the summer slider opens at, and the only figure a
+// projection of next year's class reads) plus `finance.tuitionByClass`
+// (what each enrolled class is actually charged, locked at admission and
+// carried to graduation). Revenue is four products now rather than
+// enrolled x price — see financeSystem.ts's annualTuitionBilled.
+//
+// This migration is EXACT, not a best guess, and it is worth saying why:
+// under the old model every class really was paying the one scalar, so
+// copying it into all four entries reproduces the save's own tuition
+// revenue to the dollar. A resumed school bills exactly what it billed the
+// week before, and only diverges once the player sets a NEW price — which
+// is the change working, not the migration losing anything. See
+// MIGRATIONS[35].
+//
+// v36 -> v37: scholarships are retired (Plan 05's PR B). The player sets
+// one price now, so `admissions.scholarshipRate` — the average discount —
+// and the AdmissionsSettings slice that held it are both gone, and the
+// funnel's yield no longer carries a scholarship term at all.
+//
+// WHAT A RESUMED SAVE FEELS, stated plainly: a school that was running a
+// discount stops running it, so what its students pay is its listed price
+// and its tuition revenue goes UP. Nothing is quietly taken in exchange —
+// admissionsSystem.ts's YIELD_BASE absorbed the retired scholarship term
+// at the rates the game was actually played at, so a school that priced
+// sensibly keeps enrolling about what it did, and satisfaction's
+// affordability bonus now reads price against prestige rather than the
+// discount (satisfactionSystem.ts). The school that will feel this is the
+// one that was deep-discounting an inflated sticker: it resumes charging
+// that sticker in full, to a smaller and better-off pool. That is the
+// change working, not the migration losing anything.
+//
+// See MIGRATIONS[36].
+//
+// v37 -> v38: the admit rate becomes the player's second decision (Plan
+// 05's PR C), and the yield step is deleted — what admissions skims is
+// what enrolls. `students.admitRate` stops being a record of what the
+// funnel computed and becomes the sticky policy the summer slider opens
+// at, so the number in a resumed save is in the OLD meaning and cannot be
+// carried across: it is a share of applicants ADMITTED, out of which only
+// about half used to arrive. Left alone, a resumed school would open its
+// next summer on a slider reading ~82% and commit a class roughly twice
+// the size it had been committing.
+//
+// So it is reset to admitRate(prestige) — the re-based curve's value for
+// that school, which is exactly what the slider would open at on a fresh
+// save of the same standing, and what the school was effectively enrolling
+// under the old two-step funnel. Nothing else is touched: the class sizes
+// already on the books are untouched, and the first summer after the load
+// is the player's own decision anyway.
+//
+// See MIGRATIONS[37].
+//
+// v38 -> v39: the tuition decision becomes a blind gamble (Plan 05's PR E)
+// and the cap stops being stated on screen, so a private school's ceiling
+// moved from 60,000 to 100,000 — somewhere it will never sensibly reach
+// rather than somewhere it bumps into. A save carries its own ceiling from
+// founding, so an existing private school would otherwise keep a cap a new
+// one does not have, for no reason the player could see. It is reset from
+// the school-type preset, which is exactly where a fresh game gets it.
+//
+// A public school's ceiling is unchanged and deliberately so: the cap is
+// most of what a public school IS. Resetting from the preset reasserts the
+// same 22,000 it already had, so this migration is a no-op for them.
+//
+// See MIGRATIONS[38].
+export const SAVE_VERSION = 39;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -886,6 +968,12 @@ interface LegacyGameState extends GameState {
   // market: Faculty `field` -> weeks remaining until that posting's
   // candidate arrived.
   openPostings?: Record<string, number>;
+
+  // Removed in v37, with scholarships themselves (Plan 05's PR B). Its only
+  // field was the average discount rate — first as `financialAidRate`, then
+  // renamed by MIGRATIONS[20] — so retiring scholarships emptied the slice
+  // and it went with them. MIGRATIONS[36] deletes it.
+  admissions?: { scholarshipRate?: number; financialAidRate?: number };
 }
 
 // The two institutional suffixes a saved name may already end in. A v6
@@ -894,6 +982,64 @@ interface LegacyGameState extends GameState {
 const KNOWN_SUFFIXES = ['College', 'University'];
 
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v38 -> v39: the private tuition ceiling moves out of reach (see the
+  // SAVE_VERSION header note above). Read from the preset rather than
+  // written as a literal, so this cannot drift from what founding does.
+  38: (state) => {
+    state.finance.tuitionCeiling = SCHOOL_TYPE_PRESETS[state.self.schoolType].tuitionCeiling;
+  },
+
+  // v37 -> v38: the admit rate becomes a decision, and the number stored
+  // under that name changes meaning with it (see the SAVE_VERSION header
+  // note above). Reset to what a school of this standing would normally
+  // take, which is what the old funnel was effectively enrolling.
+  37: (state) => {
+    state.students.admitRate = admitRate(state.self.reputation);
+  },
+
+  // v36 -> v37: scholarships are retired (see the SAVE_VERSION header note
+  // above). The whole admissions slice goes with the one rate it held.
+  36: (state) => {
+    delete state.admissions;
+  },
+
+  // v35 -> v36: one tuition scalar becomes a listed price plus four class
+  // prices (see the SAVE_VERSION header note above for why this is exact).
+  35: (state) => {
+    const finance = state.finance as unknown as {
+      tuitionPerStudent?: number;
+      listedTuition?: number;
+      tuitionByClass?: { freshman: number; sophomore: number; junior: number; senior: number };
+    };
+    const priceEveryoneWasPaying = Math.max(0, finance.tuitionPerStudent ?? 0);
+    finance.listedTuition ??= priceEveryoneWasPaying;
+    finance.tuitionByClass ??= {
+      freshman: priceEveryoneWasPaying,
+      sophomore: priceEveryoneWasPaying,
+      junior: priceEveryoneWasPaying,
+      senior: priceEveryoneWasPaying,
+    };
+    delete finance.tuitionPerStudent;
+  },
+
+  // v34 -> v35: `students.cohorts` becomes `students.classes` (see the
+  // SAVE_VERSION header note above). Purely a rename — the object moves
+  // across under its new name with its four counts untouched, so the body
+  // a save resumes with is the one it was saved with, to the student.
+  //
+  // MIGRATIONS[19] still writes the OLD name, deliberately: it is the
+  // migration that created this field back at v20, and a save coming up
+  // the chain from there passes through here anyway and gets renamed on
+  // the way. Nothing needs to be in two names at once.
+  34: (state) => {
+    const students = state.students as unknown as {
+      cohorts?: { freshman: number; sophomore: number; junior: number; senior: number };
+      classes?: { freshman: number; sophomore: number; junior: number; senior: number };
+    };
+    if (students.cohorts && !students.classes) students.classes = students.cohorts;
+    delete students.cohorts;
+  },
+
   // v33 -> v34: research ends with a report (see the SAVE_VERSION header
   // note above). Written at the top of the table rather than in numeric
   // order with the rest only because the newest migration is the one a
@@ -1472,10 +1618,11 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     }
   },
 
-  // v19 -> v20: the four-cohort student model (see the note above SAVE_VERSION
-  // and README's "Students: four aggregate cohorts"). Converts the single
-  // students.enrolled scalar into four class-year cohorts and seeds the
-  // trailing-year satisfaction accumulator. A mid-flight run genuinely has all
+  // v19 -> v20: the four-class student model (see the note above SAVE_VERSION
+  // and README's "Students: four aggregate classes"). Converts the single
+  // students.enrolled scalar into four class-year counts — under the name
+  // they had at v20, `cohorts`, which MIGRATIONS[34] renames to `classes` —
+  // and seeds the trailing-year satisfaction accumulator. A mid-flight run genuinely has all
   // four years, so the body is split evenly (any remainder to freshman); this
   // is a display/accounting reshape, not a change to how many students the
   // school has, so tuition/instruction/prestige read the same total the tick
@@ -1510,10 +1657,12 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   // with no change in meaning — it is the same 0..1 average tuition discount —
   // so a resumed run keeps its exact admissions policy.
   20: (state) => {
-    const admissions = state.admissions as unknown as {
-      financialAidRate?: number;
-      scholarshipRate?: number;
-    };
+    // Guarded because the slice itself is optional now: MIGRATIONS[36]
+    // removes it at v37, so LegacyGameState carries it as maybe-absent.
+    // Arriving here it is always present — v20 is long before that — but
+    // the type no longer promises it.
+    const admissions = state.admissions;
+    if (!admissions) return;
     if (admissions.scholarshipRate === undefined) {
       admissions.scholarshipRate = admissions.financialAidRate ?? 0;
     }

@@ -214,7 +214,7 @@ function discountMeanCash(from: number, to: number): number {
 
 // A school that is overdrawn AT THE SNAPSHOT but earning strongly, having
 // spent almost none of the run in the red, is mid-expansion rather than
-// spiraling — it has just committed to a building or a cohort of hires the
+// spiraling — it has just committed to a building or a round of hires the
 // week the camera happened to click. The spiral this section hunts looks
 // nothing like that: it is underwater for years and losing money while it is
 // there. So solvency is "positive, OR clearly climbing out of a dip it has
@@ -302,7 +302,7 @@ for (const strategy of STRATEGIES.filter((s) => !MISTAKE_CASES.includes(s.name))
 
   // Flat pricing, so the "price before people" gate never defers: this
   // block is about the floor, and the gate gets its own check below.
-  const flat = { tuition: () => 0, scholarships: () => 1 } as unknown as typeof STRATEGIES[number];
+  const flat = { tuition: () => 0 } as unknown as typeof STRATEGIES[number];
 
   function fire(s: GameState): string | null {
     let fired: string | null = null;
@@ -325,7 +325,7 @@ for (const strategy of STRATEGIES.filter((s) => !MISTAKE_CASES.includes(s.name))
 
   // Price before people: a strategy that would charge more than the school
   // currently charges has a raise pending, and nobody is cut this week.
-  const pending = { tuition: (s: GameState) => s.finance.tuitionPerStudent + 1, scholarships: () => 1 } as unknown as typeof STRATEGIES[number];
+  const pending = { tuition: (s: GameState) => s.finance.listedTuition + 1 } as unknown as typeof STRATEGIES[number];
   let cutUnderPendingRaise: string | null = null;
   cutPayrollIfStalled(() => stalled(0), STALL_WEEKS_BEFORE_CUTS, (a) => {
     if (a.type === 'FIRE_FACULTY') cutUnderPendingRaise = a.facultyId;

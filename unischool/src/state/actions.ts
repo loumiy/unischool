@@ -9,9 +9,10 @@ import { seedTrees } from '../data/treeData';
 import { initialFacilities } from '../data/facilitiesData';
 import { initialRivals } from '../data/rivalData';
 import { initialCandidatePool, facultySalary, grownStat, FOUNDING_TENURE_WEEKS } from '../data/facultyData';
+import { admitRate } from '../systems/admissions/admissionsSystem';
 import {
   SCHOOL_TYPE_PRESETS, BASE_STARTING_REPUTATION, STARTING_ENDOWMENT, STARTING_TUITION,
-  FOUNDING_COHORTS,
+  FOUNDING_CLASSES,
 } from '../data/schoolTypeData';
 
 // A founded university opens with a near-empty campus, with ONE exception:
@@ -141,7 +142,7 @@ export type Action =
   // advances the clock, same as every one of those).
   | { type: 'RESOLVE_INTERRUPT' }
   // Resolves the annual summer admissions interrupt: sets next year's two
-  // policy levers (tuition, scholarships), runs the admissions funnel to commit the
+  // policy levers (tuition and the admit rate), runs the funnel to commit the
   // enrolled class, and advances the clock into that year itself (see
   // reducer.ts). Tuition is set ONLY here, once a year — there is no other
   // action that changes it.
@@ -151,7 +152,7 @@ export type Action =
   // recognising. Every pending petition NOT listed is declined, and the
   // queue drains either way — so the digest can never accumulate across
   // years, and clubs never need a stop-the-clock modal of their own.
-  | { type: 'RESOLVE_ADMISSIONS'; tuition: number; scholarshipRate: number; approvedPetitionIds: string[] }
+  | { type: 'RESOLVE_ADMISSIONS'; tuition: number; admitRate: number; approvedPetitionIds: string[] }
   // Dismisses the "you've entered the rankings" reveal or an annual U.S.
   // News report interrupt. Advances the clock, like every other interrupt
   // raised mid-tick: it fires as a trailing step after that week's systems
@@ -196,7 +197,7 @@ export type Action =
   | { type: 'RESOLVE_DECISION_EVENT'; eventId: string; choiceId: string; ctx: DecisionEventContext }
   // Sets the one athletics-wide recruiting & scholarship budget lever (see
   // data/studentLifeData.ts's ATHLETICS_BUDGET_TIERS). Free and reversible
-  // at any time — unlike tuition/scholarships this is not an annual policy
+  // at any time — unlike tuition this is not an annual policy
   // decision, it's a standing dial the player can adjust as often as they
   // like, so there is nothing to refuse and no cost charged here.
   | { type: 'SET_ATHLETICS_BUDGET'; tier: AthleticsBudgetTier }
@@ -268,17 +269,17 @@ export function createPreStartState(): GameState {
   return {
     clock: { year: 1, week: 1 },
     finance: {
-      cash: 0, endowment: 0, endowmentCampaigns: 0, tuitionPerStudent: 0, tuitionCeiling: 0,
+      cash: 0, endowment: 0, endowmentCampaigns: 0, tuitionCeiling: 0,
+      listedTuition: 0, tuitionByClass: { freshman: 0, sophomore: 0, junior: 0, senior: 0 },
       baselineFundingPerWeek: 0, appropriationPerStudentPerYear: 0, weeklyOpEx: 0,
     },
     students: {
-      cohorts: { freshman: 0, sophomore: 0, junior: 0, senior: 0 },
+      classes: { freshman: 0, sophomore: 0, junior: 0, senior: 0 },
       capacity: 0, satisfaction: 0,
       satisfactionBreakdown: { academic: 0, social: 0, basicNeeds: 0, health: 0, housing: 0 },
       satisfactionYearSum: 0, satisfactionYearWeeks: 0, priorYearAvgSatisfaction: 0,
       applicantPool: 0, admitRate: 0, incomingQuality: 0,
     },
-    admissions: { scholarshipRate: 0 },
     faculty: [],
     tech: [],
     developing: {},
@@ -356,13 +357,30 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
     foundersHallFootprint,
   );
 
+  // Read in two places below — self.reputation and the admit rate seeded
+  // from it — so the opening slider position cannot drift from the standing
+  // it is supposed to describe.
+  const foundingReputation = BASE_STARTING_REPUTATION + preset.prestigeBonus + GENED_BUILDING_REPUTATION_BONUS;
+
+  // One founding price, read into five places below (the listed price and
+  // the four classes), so they cannot be seeded out of step with each other.
+  const foundingTuition = Math.min(STARTING_TUITION, preset.tuitionCeiling);
+
   const state: GameState = {
     clock: { year: 1, week: 1 },
     finance: {
       cash: preset.startingCash,
       endowment: STARTING_ENDOWMENT,
       endowmentCampaigns: 0,
-      tuitionPerStudent: Math.min(STARTING_TUITION, preset.tuitionCeiling),
+      // The founding body is all four classes at once (see FOUNDING_CLASSES),
+      // and they were all admitted under the same founding price — so the
+      // listed price and all four class prices open equal. They only diverge
+      // once the player actually moves the slider.
+      listedTuition: foundingTuition,
+      tuitionByClass: {
+        freshman: foundingTuition, sophomore: foundingTuition,
+        junior: foundingTuition, senior: foundingTuition,
+      },
       tuitionCeiling: preset.tuitionCeiling,
       baselineFundingPerWeek: preset.baselineFundingPerWeek,
       appropriationPerStudentPerYear: preset.appropriationPerStudentPerYear,
@@ -373,8 +391,8 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       // BALANCED (≈ FOUNDING_BODY / 4 each), not a freshman class only — so
       // there is a graduating class from year one and the body opens at the
       // steady-state structure the campus would otherwise take years of
-      // lumpy cycles to reach. See FOUNDING_COHORTS in schoolTypeData.ts.
-      cohorts: { ...FOUNDING_COHORTS },
+      // lumpy cycles to reach. See FOUNDING_CLASSES in schoolTypeData.ts.
+      classes: { ...FOUNDING_CLASSES },
       // No housing at founding: the whole body is commuters, and dorm beds
       // are built up from zero like every other facility (see
       // campusData.ts). Enrollment is never capacity-gated (see
@@ -395,17 +413,17 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       applicantPool: preset.startingApplicantPool,
       // Neutral placeholders until the first summer admissions cycle
       // resolves and sets these for real — see RESOLVE_ADMISSIONS.
-      admitRate: 0.5,
+      // Seeded from the curve rather than a round placeholder: this is the
+      // slider's sticky opening position now (see admissionsSystem.ts's
+      // admitRate), so a founding school opens at what a school of its
+      // standing would normally take.
+      admitRate: admitRate(foundingReputation),
       incomingQuality: 50,
     },
-    // Year 1 runs under this founding default (no scholarships) with the starting
-    // enrolled/applicant figures below — no school-type variation here,
-    // unlike tuitionCeiling/startingApplicantPool. The first real admissions
-    // interrupt, at the end of year 1, runs the funnel and sets year 2's
-    // enrolled class from the player's tuition and scholarships choices.
-    admissions: {
-      scholarshipRate: 0,
-    },
+    // Year 1 runs on the founding price with the starting enrolled/applicant
+    // figures below. The first real admissions interrupt, at the end of
+    // year 1, runs the funnel and sets year 2's enrolled class from the
+    // player's tuition choice.
     // Founding faculty are already-established hires, not brand-new
     // candidates, and THE WAY THAT IS EXPRESSED IS TENURE (see
     // facultyData.ts's FOUNDING_TENURE_WEEKS). Their teaching, research and
@@ -512,7 +530,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       name,
       suffix: STARTING_INSTITUTION_SUFFIX,
       universityCharterOffered: false,
-      reputation: BASE_STARTING_REPUTATION + preset.prestigeBonus + GENED_BUILDING_REPUTATION_BONUS,
+      reputation: foundingReputation,
       schoolType,
     },
     // Empty at founding: the first row lands at the end of year 1, when the
@@ -544,7 +562,7 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
       // A full, staggered coaching-staff market from week one — see
       // facultyData.ts's initialCandidatePool for why "starts full, not
       // empty" matters (a pool seeded flat would age out as one
-      // synchronized cohort instead of churning continuously).
+      // synchronized wave instead of churning continuously).
       coachCandidates: initialCoachCandidatePool(),
       pendingPetitions: [],
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,

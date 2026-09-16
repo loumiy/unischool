@@ -843,7 +843,7 @@ export function generateCandidate(field: string, existingNames: Iterable<string>
 //
 // weeksListed is STAGGERED across the listing window rather than starting
 // everyone at 0, which matters more than it looks: a pool seeded flat
-// would age out as one synchronized cohort every CANDIDATE_LISTING_WEEKS
+// would age out as one synchronized wave every CANDIDATE_LISTING_WEEKS
 // and the list would empty and refill in waves instead of churning.
 export function initialCandidatePool(): Faculty[] {
   const pool: Faculty[] = [];

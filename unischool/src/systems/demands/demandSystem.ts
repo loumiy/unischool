@@ -130,8 +130,7 @@ export function demandStakes(s: GameState): DemandStakes {
   const ifFailed = clamp(now - DEMAND_FAILED_SATISFACTION_PENALTY, 0, 100);
   const applicantsAt = (satisfaction: number): number => projectAdmissions(
     s.self.reputation,
-    s.finance.tuitionPerStudent,
-    s.admissions.scholarshipRate,
+    s.finance.listedTuition,
     s.students.capacity,
     satisfaction,
   ).applicants;

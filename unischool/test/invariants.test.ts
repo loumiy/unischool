@@ -79,8 +79,8 @@ function advanceUntil(s: GameState, predicate: (s: GameState) => boolean, maxTic
       if (type === 'admissions') {
         s = reducer(s, {
           type: 'RESOLVE_ADMISSIONS',
-          tuition: s.finance.tuitionPerStudent,
-          scholarshipRate: s.admissions.scholarshipRate,
+          tuition: s.finance.listedTuition,
+          admitRate: s.students.admitRate,
           approvedPetitionIds: [],
         });
       } else if (type === 'milestone') {
@@ -157,30 +157,36 @@ function relPath(f: string): string {
 }
 
 // =====================================================================
-// 2. INSTITUTION, NOT STUDENTS — exactly four aggregate cohorts, no list
+// 2. INSTITUTION, NOT STUDENTS — exactly four aggregate classes, no list
 // =====================================================================
 {
   const s = fresh();
-  const cohortKeys = Object.keys(s.students.cohorts).sort();
+  const classKeys = Object.keys(s.students.classes).sort();
   assert(
-    JSON.stringify(cohortKeys) === JSON.stringify(['freshman', 'junior', 'senior', 'sophomore']),
-    'students.cohorts has exactly the four class-year keys',
+    JSON.stringify(classKeys) === JSON.stringify(['freshman', 'junior', 'senior', 'sophomore']),
+    'students.classes has exactly the four class-year keys',
   );
-  for (const v of Object.values(s.students.cohorts)) {
-    assert(typeof v === 'number', 'every cohort is a plain count, not a list of individuals');
+  for (const v of Object.values(s.students.classes)) {
+    assert(typeof v === 'number', 'every class is a plain count, not a list of individuals');
   }
+  // The word is load-bearing now that admissions cohorts are a separate
+  // grouping of the same students (see systems/admissions/cohorts.ts): a
+  // `cohorts` key back on the student body would mean the two had been
+  // conflated again, which is exactly what the rename set out to stop.
+  assert(!('cohorts' in (s.students as unknown as Record<string, unknown>)),
+    'the student body has no `cohorts` key — a year group is a class');
   // A founded college opens with all four class years present and BALANCED
-  // (each cohort within one student of the others), sized to FOUNDING_BODY —
+  // (each class within one student of the others), sized to FOUNDING_BODY —
   // the steady state that de-lumps the early admissions cycles. See
-  // actions.ts's createInitialState / FOUNDING_COHORTS in schoolTypeData.ts.
-  const fc = s.students.cohorts;
+  // actions.ts's createInitialState / FOUNDING_CLASSES in schoolTypeData.ts.
+  const fc = s.students.classes;
   assert(fc.freshman > 0 && fc.sophomore > 0 && fc.junior > 0 && fc.senior > 0,
-    'founding body has all four cohorts populated, not freshmen only');
+    'founding body has all four classes populated, not freshmen only');
   const counts = [fc.freshman, fc.sophomore, fc.junior, fc.senior];
   assert(Math.max(...counts) - Math.min(...counts) <= 1,
-    'founding cohorts are balanced (within one student of each other)');
+    'founding classes are balanced (within one student of each other)');
   assert(totalEnrolled(s.students) === fc.freshman + fc.sophomore + fc.junior + fc.senior,
-    'founding total equals the sum of the four cohorts');
+    'founding total equals the sum of the four classes');
   // The founding body is entirely commuters — no dorm at founding (see
   // campusData.ts) — and enrollment is never capacity-gated (see
   // admissionsSystem.ts), so there is no dorm bed to speak of yet.
@@ -453,11 +459,11 @@ function relPath(f: string): string {
   };
   s.orgs.pendingPetitions = [petition];
   s.clock.week = 52; // the summer boundary
-  s.pendingInterrupt = { type: 'admissions', payload: { tuition: s.finance.tuitionPerStudent, scholarshipRate: 0 } };
+  s.pendingInterrupt = { type: 'admissions', payload: { tuition: s.finance.listedTuition, admitRate: s.students.admitRate } };
 
   // Decline it explicitly (approvedPetitionIds does not include it).
   const s1 = reducer(s, {
-    type: 'RESOLVE_ADMISSIONS', tuition: s.finance.tuitionPerStudent, scholarshipRate: 0, approvedPetitionIds: [],
+    type: 'RESOLVE_ADMISSIONS', tuition: s.finance.listedTuition, admitRate: s.students.admitRate, approvedPetitionIds: [],
   });
   assert(s1.orgs.pendingPetitions.length === 0, 'the petition queue is empty after resolving — nothing carries over');
   assert(!s1.orgs.clubs.some((c) => c.id === 'test-petition'), 'a declined petition never becomes a live club');

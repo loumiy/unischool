@@ -6,6 +6,7 @@ import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
 import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction, type PriceTier } from '../systems/admissions/admissionsSystem';
 import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
+import { projectConsequences } from '../systems/admissions/consequences';
 import { computePrestigeTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
 import { findDecisionEvent } from '../data/eventData';
 import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
@@ -28,11 +29,45 @@ function interruptBody(interrupt: PendingInterrupt): { title: string; body: stri
 
 interface AdmissionsDraft {
   tuition: number;
-  scholarshipRate: number;
+  admitRate: number;
 }
 
 function money(v: number): string {
   return `$${Math.round(v).toLocaleString()}`;
+}
+
+// The reveal ticks slower than any other number in the game, deliberately
+// (Plan 05's PR F): every other animated figure here is a consequence of a
+// slider the player is still holding, and wants to keep up with them. This
+// one is the payoff for a price they have already committed to and cannot
+// take back, so it is the one number worth waiting on. The pool and the
+// seven cohort rows share the duration so the panel fills as one reveal
+// rather than seven races.
+const REVEAL_MS = 2_600;
+
+const NEED_LABEL: Record<'housing' | 'basicNeeds', string> = {
+  housing: 'Beds',
+  basicNeeds: 'Dining & health',
+};
+
+// The capacity row's value. Coverage is served-over-needed clamped to 1,
+// so a school with room to spare reads a flat 100% however many students
+// it takes — which is a fact, not a decision. So a covered school gets the
+// word "adequate" and no delta, and the percentage only appears once the
+// class would actually leave the campus short.
+function CoverageValue({ now, next }: { now: number; next: number }) {
+  if (next >= 1) return <span className="coverage-adequate">adequate</span>;
+  const delta = Math.round(next * 100) - Math.round(now * 100);
+  return (
+    <>
+      <AnimatedNumber value={next * 100} format={(n) => `${Math.round(n)}% covered`} />
+      {delta !== 0 && (
+        <span className={`consequence-delta ${delta > 0 ? 'good' : 'bad'}`}>
+          {delta > 0 ? '+' : '−'}{Math.abs(delta)}
+        </span>
+      )}
+    </>
+  );
 }
 
 // ---------------------------------------------------------------------
@@ -104,44 +139,81 @@ function PriceTierTag({ tier }: { tier: PriceTier }) {
   return <span className={`price-tier-tag ${copy.className}`}>{copy.label}</span>;
 }
 
-// One cohort's row in the breakdown below — a signed percentage in the
-// same bright good/bad pair the log ticker uses on this same dark modal
-// background, so "this audience is up" reads the same way everywhere.
-function CohortRow({ label, driverLabel, pull }: { label: string; driverLabel: string; pull: number }) {
-  const pct = Math.round((pull - 1) * 100);
-  const toneClass = pct > 0 ? 'cohort-up' : pct < 0 ? 'cohort-down' : 'cohort-flat';
+// Steps measured against the card, not guessed: the mono figure runs about
+// 12px per character at the default 20px, so seven characters need ~17px,
+// nine need ~14px and ten need ~12px to stay inside a card's 78px of usable
+// width. The last step is past anything the game produces — a ten-character
+// cohort is twelve million applicants in one audience, against ~300k for
+// the whole pool at the top of a forty-year run — but a step costs a line
+// and reasoning about whether a number is reachable costs more.
+function SIZE_FOR_LENGTH(length: number): string {
+  if (length >= 10) return 'count-xxs';
+  if (length >= 9) return 'count-xs';
+  if (length >= 7) return 'count-sm';
+  return '';
+}
+
+// One cohort's card in the reveal below. A square: the audience's name
+// small at the top, the head count big in the middle, because the count is
+// what the beat is for and the name is only how you find the one you care
+// about. Seven of these read as a board at a glance, which seven labelled
+// rows did not.
+//
+// The driver — what the player actually built that pulls this audience —
+// is the explanation, not the reading, so it waits on hover rather than
+// sitting under every card. It is a plain `title` as well as a styled
+// tooltip: the styled one is what you see, the native one is what a
+// keyboard or touch device gets, and neither is the only copy of the text.
+//
+// The count keeps its tone colour: whether this audience is above or below
+// neutral is what says which of the player's choices is working, in the
+// same bright good/bad pair the log ticker uses on this dark background.
+function CohortCard({ label, driverLabel, pull, applicants, revealMs }: { label: string; driverLabel: string; pull: number; applicants: number; revealMs: number }) {
+  const toneClass = pull > 1 ? 'cohort-up' : pull < 1 ? 'cohort-down' : 'cohort-flat';
+  // A card is a fixed square, so the figure has to give way rather than the
+  // box: at the default size 78px of card holds six characters ("13,097")
+  // and a seventh spills. A big late-game school reaches six digits in a
+  // single cohort, so the size steps down by the FINAL value's own length —
+  // final rather than currently-displayed, so the reveal's climb from zero
+  // does not resize the text under the player as it counts up.
+  const sizeClass = SIZE_FOR_LENGTH(applicants.toLocaleString().length);
   return (
-    <div className="cohort-row">
-      <span className="cohort-row-label">
-        {label}
-        <span className="outcome-note">({driverLabel})</span>
+    <div className="cohort-card" title={driverLabel}>
+      <span className="cohort-card-label">{label}</span>
+      <span className={`cohort-card-count ${toneClass} ${sizeClass}`}>
+        <AnimatedNumber value={applicants} durationMs={revealMs} revealFrom={0} />
       </span>
-      <span className={`cohort-row-pct ${toneClass}`}>{pct > 0 ? '+' : ''}{pct}%</span>
+      <span className="cohort-card-tip" role="tooltip">{driverLabel}</span>
     </div>
   );
 }
 
 // The once-a-year summer admissions decision (see README's "Admissions: an
-// annual summer decision"). The player sets exactly two levers — tuition
-// and average scholarships — and the distribution funnel resolves the rest
-// (see admissionsSystem.ts), with current student satisfaction and cohort
-// demand (see cohorts.ts) feeding the applicant pool alongside prestige and
-// price. Selectivity and enrollment are NOT inputs: they are emergent
-// outcomes, previewed live below so the player can see the consequences of
-// the two settings before confirming. This is the only place tuition is
-// ever set; there is no live, adjustable tuition control.
+// annual summer decision"). The player sets exactly one lever — tuition —
+// and the distribution funnel resolves the rest (see admissionsSystem.ts),
+// with current student satisfaction and cohort demand (see cohorts.ts)
+// feeding the applicant pool alongside prestige and price. Selectivity and
+// enrollment are NOT inputs: they are emergent outcomes, previewed live
+// below so the player can see the consequences before confirming. This is
+// the only place tuition is ever set; there is no live, adjustable tuition
+// control.
 //
-// Staged in two steps rather than one flat form, matching which quantities
-// the model actually depends on: applicant volume (step 1) is a function
-// of tuition already (through net price and the raw sticker's own shock),
-// so it previews as soon as tuition moves; admit rate, yield, the enrolled
-// class, incoming quality and the cohort breakdown all also depend on
-// scholarships, so they stay behind a "Continue" until the player has
-// engaged with tuition first — a deliberate, small delay that makes each
-// lever's own consequence legible on its own beat instead of nine numbers
-// changing at once the moment the modal opens.
-function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, satisfaction, cohortSignals, petitions, onResolve }: {
+// ONE step, not two. The form used to stage tuition and scholarships
+// apart, holding the downstream numbers behind a "Continue" so each
+// lever's consequence read on its own beat. With scholarships retired
+// (Plan 05's PR B) there is one lever, and gating one slider behind a
+// button that reveals the rest of its own consequences is ceremony. The
+// staging returns in PR E for a different reason — the tuition decision
+// becomes blind and LOCKS, so the reveal has something to reveal.
+function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeiling, satisfaction, cohortSignals, petitions, onResolve }: {
   payload: AdmissionsDraft;
+  // The whole state, for the consequence projection alone (see
+  // consequences.ts): it advances a COPY of the classes and reads the real
+  // finance and satisfaction functions over it. The individual props above
+  // are kept as they are — this form reads them far more often than it
+  // reads `s`, and threading nine fields through one object would make the
+  // cheap reads look as expensive as the projection.
+  s: GameState;
   prestige: number;
   capacity: number;
   tuitionCeiling: number;
@@ -151,84 +223,127 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
   onResolve: (settings: AdmissionsDraft & { approvedPetitionIds: string[] }) => void;
 }) {
   const [tuition, setTuition] = useState(payload.tuition);
-  const [scholarshipRate, setScholarshipRate] = useState(payload.scholarshipRate);
-  const [scholarshipsRevealed, setScholarshipsRevealed] = useState(false);
+  const [admitRateChoice, setAdmitRateChoice] = useState(payload.admitRate);
+  // Beat 1 ends when the player commits the price. There is no way back:
+  // the pool is revealed next, and a slider you can return to after seeing
+  // what it bought is not a gamble, it is a lookup table.
+  const [tuitionLocked, setTuitionLocked] = useState(false);
   // Approved by default — see the note on StudentLifeDigest above.
   const [approved, setApproved] = useState<Set<string>>(() => new Set(petitions.map((p) => p.id)));
 
   // Live preview of the emergent outcomes, computed with the very function
   // the reducer commits with — so the numbers shown are the numbers applied.
-  const outcome = projectAdmissions(prestige, tuition, scholarshipRate, capacity, satisfaction, cohortSignals);
+  const outcome = projectAdmissions(prestige, tuition, capacity, satisfaction, cohortSignals, admitRateChoice);
+  // What committing THIS pair of decisions would do to the school: the
+  // money and the mood, at the body it would actually produce — the three
+  // classes still enrolled plus the incoming one. Same advance the reducer
+  // commits with, same readings the Treasury and Student Life show.
+  const consequence = projectConsequences(s, outcome.enrolled, tuition);
+  const netDelta = consequence.weeklyNet - consequence.weeklyNetNow;
+  const moodDelta = consequence.satisfactionTarget - consequence.satisfactionTargetNow;
   // What this school's prestige lets it charge before demand starts
   // falling away (see admissionsSystem.ts's price tolerance). Shown
   // because it is the single most consequential curve behind this
   // decision: without it, a player pricing above their standing just
   // watches the applicant pool shrink with no idea why.
   const tolerance = priceTolerance(prestige);
-  const stickerTier = priceTier(tuition, tolerance);
-  const netPrice = tuition * (1 - scholarshipRate);
-  const netTier = priceTier(netPrice, tolerance);
-  const cohorts = cohortBreakdown(cohortSignals, tolerance, tuition, scholarshipRate);
+  const priceTierNow = priceTier(tuition, tolerance);
+  const cohorts = cohortBreakdown(cohortSignals, tolerance, tuition, outcome.applicants);
 
   return (
     <>
       <h2>Summer Admissions</h2>
-      <p>Set next year's tuition and scholarships. Selectivity and enrollment follow from your applicant pool — see the projected outcomes below before you confirm.</p>
-
-      <label className="admissions-field">
-        <span>
-          Tuition <strong className={`price-tier-value ${PRICE_TIER_COPY[stickerTier].className}`}>${tuition.toLocaleString()}/yr</strong>
-          {' '}(cap ${tuitionCeiling.toLocaleString()})
-        </span>
-        <input type="range" min={0} max={tuitionCeiling} step={500} value={tuition}
-          onChange={(e) => setTuition(Number(e.target.value))} />
-        <PriceTierTag tier={stickerTier} />
-      </label>
-
-      {!scholarshipsRevealed && (
-        <>
-          <dl className="admissions-outcomes">
-            <div>
-              <dt>Applicant interest <span className="outcome-note">(at last year's scholarship rate — set next)</span></dt>
-              <dd><AnimatedNumber value={outcome.applicants} /></dd>
-            </div>
-            <div>
-              <dt>Sticker shock <span className="outcome-note">(a listed price above what your prestige supports scares off price-sensitive families, however much aid you back it with)</span></dt>
-              <dd>{outcome.stickerShockMultiplier >= 1 ? 'none' : `-${Math.round((1 - outcome.stickerShockMultiplier) * 100)}% applicants`}</dd>
-            </div>
-          </dl>
-          <button type="button" onClick={() => setScholarshipsRevealed(true)}>
-            Continue to Scholarships →
-          </button>
-        </>
+      {!tuitionLocked && (
+        <p className="admissions-prompt">
+          What will you charge next year? You will see who it drew once it is set.
+        </p>
       )}
 
-      {scholarshipsRevealed && (
-        <>
-          <label className="admissions-field">
-            <span>Scholarships <strong>{Math.round(scholarshipRate * 100)}%</strong> avg. discount</span>
-            <input type="range" min={0} max={1} step={0.01} value={scholarshipRate}
-              onChange={(e) => setScholarshipRate(Number(e.target.value))} />
-            <span className="admissions-net-price">
-              Net price <strong className={`price-tier-value ${PRICE_TIER_COPY[netTier].className}`}>${Math.round(netPrice).toLocaleString()}/yr</strong>
-              {' — '}
-              <PriceTierTag tier={netTier} />
-            </span>
-          </label>
+      {/* BEAT 1 — the price, set blind. The only feedback is the tier: are
+          you in line with your own standing, or not. No applicant count, no
+          sticker-shock line, no cap printed — the cap is simply where the
+          slider ends (see schoolTypeData.ts). */}
+      <label className="admissions-field">
+        <span>
+          Tuition <strong className={`price-tier-value ${PRICE_TIER_COPY[priceTierNow].className}`}>${tuition.toLocaleString()}/yr</strong>
+        </span>
+        <input type="range" min={0} max={tuitionCeiling} step={500} value={tuition}
+          disabled={tuitionLocked}
+          onChange={(e) => setTuition(Number(e.target.value))} />
+        <PriceTierTag tier={priceTierNow} />
+      </label>
 
+      {!tuitionLocked && (
+        <button type="button" className="admissions-lock" onClick={() => setTuitionLocked(true)}>
+          Set tuition for the year →
+        </button>
+      )}
+
+      {tuitionLocked && (
+        <>
+          {/* BEAT 2 — the reveal. What that price actually drew. */}
           <dl className="admissions-outcomes">
-            <div><dt>Applicant pool <span className="outcome-note">(final, at this scholarship rate)</span></dt><dd><AnimatedNumber value={outcome.applicants} /></dd></div>
-            <div><dt>Word of mouth <span className="outcome-note">(avg satisfaction last year {Math.round(satisfaction)})</span></dt><dd>{outcome.wordOfMouthMultiplier >= 1 ? '+' : ''}{Math.round((outcome.wordOfMouthMultiplier - 1) * 100)}% applicants</dd></div>
-            <div><dt>Admit rate <span className="outcome-note">(selectivity)</span></dt><dd>{Math.round(outcome.admitRate * 100)}%</dd></div>
-            <div><dt>Yield</dt><dd><AnimatedNumber value={outcome.yieldRate * 100} format={(n) => `${Math.round(n)}%`} /></dd></div>
-            <div><dt>Freshman class</dt><dd><AnimatedNumber value={outcome.enrolled} /></dd></div>
-            <div><dt>Incoming quality <span className="outcome-note">(feeds prestige)</span></dt><dd><AnimatedNumber value={outcome.avgIncomingQuality} format={(n) => `${Math.round(n)} / 100`} /></dd></div>
-            <div><dt>Net tuition / student</dt><dd>${outcome.netTuitionPerStudent.toLocaleString()}/yr</dd></div>
+            <div>
+              <dt>Applicant pool</dt>
+              <dd className="reveal-figure">
+                <AnimatedNumber value={outcome.applicants} durationMs={REVEAL_MS} revealFrom={0} />
+              </dd>
+            </div>
           </dl>
 
           <div className="cohort-breakdown">
-            <h3>Who this pulls in <span className="outcome-note">(vs. a school with nothing built)</span></h3>
-            {cohorts.map((c) => <CohortRow key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} />)}
+            <h3>Who this pulls in</h3>
+            <div className="cohort-cards">
+              {cohorts.map((c) => <CohortCard key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants} revealMs={REVEAL_MS} />)}
+            </div>
+          </div>
+
+          {/* BEAT 3 — the second decision, and the opposite posture: every
+              consequence visible before it is taken. */}
+          <label className="admissions-field">
+            <span>
+              Admit rate <strong>{Math.round(admitRateChoice * 100)}%</strong>
+            </span>
+            <input type="range" min={0.01} max={1} step={0.01} value={admitRateChoice}
+              onChange={(e) => setAdmitRateChoice(Number(e.target.value))} />
+          </label>
+
+          <dl className="admissions-outcomes">
+            <div><dt>Freshman class</dt><dd><AnimatedNumber value={outcome.enrolled} /></dd></div>
+            <div><dt>Incoming quality</dt><dd><AnimatedNumber value={outcome.avgIncomingQuality} format={(n) => `${Math.round(n)} / 100`} /></dd></div>
+          </dl>
+
+          {/* What committing does to the school, not just to the intake — the
+              decision's consequences, before it is taken (Plan 05's PR D).
+              Projected against the body this commit produces, which includes
+              the three older classes who are still here and still paying the
+              price they were admitted under. */}
+          <div className="consequence-panel">
+            <h3>Projections</h3>
+            <dl className="admissions-outcomes">
+              <div>
+                <dt>Weekly net</dt>
+                <dd>
+                  <AnimatedNumber value={consequence.weeklyNet} format={(n) => `${money(n)}/wk`} />
+                  <span className={`consequence-delta ${netDelta >= 0 ? 'good' : 'bad'}`}>
+                    {netDelta >= 0 ? '+' : '−'}{money(Math.abs(netDelta))}
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt>Satisfaction</dt>
+                <dd>
+                  <AnimatedNumber value={consequence.satisfactionTarget} format={(n) => `${Math.round(n)}`} />
+                  <span className={`consequence-delta ${moodDelta >= 0 ? 'good' : 'bad'}`}>
+                    {moodDelta >= 0 ? '+' : '−'}{Math.abs(moodDelta).toFixed(1)}
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt>{NEED_LABEL[consequence.tightestNeed]}</dt>
+                <dd><CoverageValue now={consequence.tightestCoverageNow} next={consequence.tightestCoverage} /></dd>
+              </div>
+            </dl>
           </div>
 
           <StudentLifeDigest
@@ -241,7 +356,7 @@ function AdmissionsInterruptForm({ payload, prestige, capacity, tuitionCeiling, 
             })}
           />
 
-          <button onClick={() => onResolve({ tuition, scholarshipRate, approvedPetitionIds: [...approved] })}>
+          <button onClick={() => onResolve({ tuition, admitRate: admitRateChoice, approvedPetitionIds: [...approved] })}>
             Confirm Policy
           </button>
         </>
@@ -745,7 +860,7 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
   // `universityCharterOffered`/`suffix` — so there is no neutral "continue"
   // for a key to stand for, and picking one silently would be picking for
   // the player. The admissions form is left out because its
-  // tuition/scholarship values live in AdmissionsInterruptForm's own local
+  // tuition value lives in AdmissionsInterruptForm's own local
   // state, not reachable from here without lifting that state up just for a
   // hotkey, so it stays click-to-confirm.
   //
@@ -790,6 +905,7 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
         {interrupt.type === 'admissions' ? (
           <AdmissionsInterruptForm
             payload={interrupt.payload as AdmissionsDraft}
+            s={s}
             prestige={s.self.reputation}
             capacity={s.students.capacity}
             tuitionCeiling={s.finance.tuitionCeiling}

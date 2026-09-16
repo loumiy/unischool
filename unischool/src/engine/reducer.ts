@@ -10,7 +10,7 @@ import {
 import { endInitiative } from '../systems/research/researchSystem';
 import { initiativeDepth, initiativeFundingCost } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
-import { tickAdmissions, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
+import { tickAdmissions, advanceClasses, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
 import { deriveCohortSignals } from '../systems/admissions/cohorts';
 import { tickRivals } from '../systems/rivals/rivalsSystem';
 import { appointFaculty, tickFaculty } from '../systems/faculty/facultySystem';
@@ -101,10 +101,6 @@ const SYSTEMS: Array<(s: GameState) => void> = [
 // still readable in the ticker weeks later instead of being pushed out by
 // the next few routine lines.
 const LOG_CAP = 200;
-
-function clamp01(v: number): number {
-  return Math.max(0, Math.min(1, v));
-}
 
 // ---------------------------------------------------------------------
 // saveGame (see state/persistence.ts) is the ONE thing in this reducer
@@ -601,8 +597,11 @@ export function reducer(state: GameState, action: Action): GameState {
     case 'RESOLVE_ADMISSIONS': {
       // Tuition is set ONLY here, once a year — see README's "Admissions:
       // an annual summer decision" and the removed live SET_TUITION control.
-      s.finance.tuitionPerStudent = Math.max(0, Math.min(action.tuition, s.finance.tuitionCeiling));
-      s.admissions = { scholarshipRate: clamp01(action.scholarshipRate) };
+      // This sets the LISTED price. It reaches a student only through the
+      // freshman entry of tuitionByClass, below, after the classes advance:
+      // the three classes already on the books keep the price they were
+      // admitted under (see types.ts's tuitionByClass).
+      s.finance.listedTuition = Math.max(0, Math.min(action.tuition, s.finance.tuitionCeiling));
 
       resolveStudentLifeDigest(s, action.approvedPetitionIds);
 
@@ -616,30 +615,46 @@ export function reducer(state: GameState, action: Action): GameState {
       s.students.satisfactionYearSum = 0;
       s.students.satisfactionYearWeeks = 0;
 
-      // Advance the cohorts a year: seniors graduate and leave, everyone
-      // else moves up. Full progression, no attrition, in this model.
-      const cohorts = s.students.cohorts;
-      const graduating = cohorts.senior;
-      cohorts.senior = cohorts.junior;
-      cohorts.junior = cohorts.sophomore;
-      cohorts.sophomore = cohorts.freshman;
-      cohorts.freshman = 0;
-
       // Run the distribution funnel with the committed policy: it sizes the
       // incoming FRESHMAN class from demand and policy alone — dorm capacity
       // only scales the applicant pool now (see admissionsSystem.ts's
       // module comment), never a ceiling to fill or be capped by.
+      // The admit rate is the player's second decision now (Plan 05's PR
+      // C): the funnel takes it rather than computing one. What comes back
+      // as outcome.admitRate is admits/applicants, which matches the choice
+      // unless a thin top/mid band ran out before the share was filled.
+      const chosenAdmitRate = Math.max(0, Math.min(1, action.admitRate));
       const outcome = projectAdmissions(
         s.self.reputation,
-        s.finance.tuitionPerStudent,
-        s.admissions.scholarshipRate,
+        s.finance.listedTuition,
         s.students.capacity,
         priorYearAvgSatisfaction,
         deriveCohortSignals(s),
+        chosenAdmitRate,
       );
-      cohorts.freshman = outcome.enrolled;
+
+      // Advance the classes a year: seniors graduate and leave, everyone
+      // else moves up, and the incoming class arrives at the price just
+      // set. Full progression, no attrition, in this model. The advance
+      // itself is a pure function in admissionsSystem.ts because the
+      // admissions panel runs the SAME one on a copy to project what this
+      // commit will do (see consequences.ts) — two copies of it is how a
+      // projection starts promising a body the tick does not produce.
+      const advanced = advanceClasses(
+        s.students.classes,
+        s.finance.tuitionByClass,
+        outcome.enrolled,
+        s.finance.listedTuition,
+      );
+      const graduating = advanced.graduating;
+      s.students.classes = advanced.classes;
+      s.finance.tuitionByClass = advanced.tuitionByClass;
       s.students.applicantPool = outcome.applicants;
-      s.students.admitRate = outcome.admitRate;
+      // Stored as the CHOSEN rate, not the realized one, because this is
+      // what next summer's slider opens at (see admissionsSystem.ts's
+      // payload) — a school whose thin top band clipped its intake should
+      // reopen on the policy it set, not on the clipped consequence.
+      s.students.admitRate = chosenAdmitRate;
       s.students.incomingQuality = outcome.avgIncomingQuality;
 
       // The one annual boundary in the game, so the one place the history
@@ -658,7 +673,7 @@ export function reducer(state: GameState, action: Action): GameState {
       s.log.unshift({
         year: s.clock.year,
         week: s.clock.week,
-        message: `Admissions: tuition $${s.finance.tuitionPerStudent.toLocaleString()}/yr, ${Math.round(s.admissions.scholarshipRate * 100)}% scholarships — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admit rate, ${outcome.enrolled.toLocaleString()} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
+        message: `Admissions: tuition $${s.finance.listedTuition.toLocaleString()}/yr — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admitted, ${outcome.enrolled.toLocaleString()} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
         kind: 'info',
       });
 

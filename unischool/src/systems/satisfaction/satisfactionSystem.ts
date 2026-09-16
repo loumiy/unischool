@@ -5,6 +5,8 @@ import {
 } from '../../data/studentLifeData';
 import { servingPopulation, totalEnrolled } from '../../state/types';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
+import { annualTuitionBilled } from '../finance/financeSystem';
+import { priceTolerance } from '../admissions/admissionsSystem';
 
 // ---------------------------------------------------------------------
 // Satisfaction stays ONE displayed number (s.students.satisfaction), but
@@ -28,7 +30,7 @@ import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
 // The headline number still drifts smoothly toward its target at the same
 // weekly rate the old single-formula version used — only the TARGET is now
 // a real weighted sum of attributes instead of an inline crowding/
-// reputation/scholarships formula. The breakdown itself is NOT smoothed — it always
+// reputation/price formula. The breakdown itself is NOT smoothed — it always
 // reflects what's true about the campus right now, so a newly finished
 // building is visible in the breakdown immediately even while the headline
 // number is still catching up to it.
@@ -122,22 +124,56 @@ const TARGET_RATIO: SatisfactionAttributes = {
 const BASIC_NEEDS_PENALTY_CURVATURE = 2.2;
 const SOCIAL_PENALTY_CURVATURE = 1.4;
 
-// Reputation and scholarships used to nudge the old single satisfaction
+// Reputation and affordability used to nudge the old single satisfaction
 // formula directly; they still do, just folded into the two attributes
-// they thematically belong to instead of a bespoke crowding/reputation/scholarships
-// blend: prestige as campus pride (social), scholarships as affordability (basic
-// needs). Both are small, capped nudges on top of the ratio-based score,
+// they thematically belong to instead of a bespoke crowding/reputation/
+// price blend: prestige as campus pride (social), affordability as basic
+// needs. Both are small, capped nudges on top of the ratio-based score,
 // not attributes in their own right.
 const REPUTATION_PRIDE_MAX_BONUS = 15;  // added to `social` at max prestige (PRESTIGE_MAX, see prestigeSystem.ts)
 const REPUTATION_PRIDE_PRESTIGE_MAX = 150;
-const SCHOLARSHIP_AFFORDABILITY_MAX_BONUS = 20; // added to `basicNeeds` at 100% average scholarships
+
+// AFFORDABILITY: a student body that is not stretched by what it pays has
+// one less thing going wrong in its life, and that lands on basic needs.
+//
+// This read the average SCHOLARSHIP RATE until scholarships were retired
+// (Plan 05's PR B). Rather than delete the input — basic needs is the
+// sharpest attribute in the model, and satisfaction drives word of mouth
+// drives next year's applicants — it is re-expressed against the lever that
+// still exists, the same substitution cohorts.ts's priceSensitivePull
+// makes: how the price the body ACTUALLY PAYS compares to what the
+// school's standing supports (priceTolerance). Priced free is the full
+// bonus, priced at or above tolerance is none.
+//
+// It reads the enrollment-weighted average of the four class prices, not
+// the listed one, because the students doing the feeling are the ones on
+// the books — a school that has just raised its price hard still has three
+// classes cushioned at the old one (see types.ts's tuitionByClass), and
+// their satisfaction should say so.
+const AFFORDABILITY_MAX_BONUS = 20; // added to `basicNeeds` at a price of zero
+
+// The enrollment-weighted average price the body is actually paying,
+// scored against what this school's standing supports. Read through
+// annualTuitionBilled so there is exactly one place the four class prices
+// are summed, and it is the same one the Treasury's income statement uses.
+// A school with nobody enrolled has no body to feel anything, so it scores
+// the neutral 0 rather than dividing by zero into a free full bonus.
+function affordabilityBonus(s: GameState): number {
+  const enrolled = totalEnrolled(s.students);
+  if (enrolled <= 0) return 0;
+  const averagePricePaid = annualTuitionBilled(s) / enrolled;
+  const tolerance = priceTolerance(s.self.reputation);
+  if (tolerance <= 0) return 0;
+  const ratio = Math.max(averagePricePaid, 0) / tolerance;
+  return clamp(1 - ratio, 0, 1) * AFFORDABILITY_MAX_BONUS;
+}
 
 // Faculty quality: a well-staffed, strongly-retained roster should read as
 // more academically satisfying than a thinly or weakly staffed one, on top
 // of (not instead of) whatever the library already provides — a great
 // library with no faculty, or a great faculty with no library, should each
 // land only partially satisfied. ADDITIVE and capped, the same pattern as
-// REPUTATION_PRIDE_MAX_BONUS/SCHOLARSHIP_AFFORDABILITY_MAX_BONUS above, so a
+// REPUTATION_PRIDE_MAX_BONUS/AFFORDABILITY_MAX_BONUS above, so a
 // library already scoring 100 cannot be pushed past it and a bare roster
 // cannot pull academic down below what the library alone earned.
 const FACULTY_QUALITY_MAX_BONUS = 15; // added to `academic` when every course offered is graded at the top of the scale (see teachingQualityScore)
@@ -269,7 +305,7 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
   );
 
   const basicNeedsRatio = ratioScore(servedPopulationFor(s, 'basicNeeds'), enrolled, TARGET_RATIO.basicNeeds, BASIC_NEEDS_PENALTY_CURVATURE);
-  const affordability = clamp(s.admissions.scholarshipRate, 0, 1) * SCHOLARSHIP_AFFORDABILITY_MAX_BONUS;
+  const affordability = affordabilityBonus(s);
   const basicNeeds = clamp(basicNeedsRatio + affordability, ATTRIBUTE_SCORE_FLOOR, 100);
 
   // Health is DORMANT — scores full — below the population threshold the
@@ -359,8 +395,8 @@ export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttri
     if (orgs > 0) bonuses.push({ label: 'Clubs, Greek life & athletics', value: orgs });
   }
   if (attribute === 'basicNeeds') {
-    const affordability = clamp(s.admissions.scholarshipRate, 0, 1) * SCHOLARSHIP_AFFORDABILITY_MAX_BONUS;
-    if (affordability > 0) bonuses.push({ label: 'Scholarship affordability', value: affordability });
+    const affordability = affordabilityBonus(s);
+    if (affordability > 0) bonuses.push({ label: 'Affordability (price vs. standing)', value: affordability });
   }
 
   return {

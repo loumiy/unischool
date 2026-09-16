@@ -5,10 +5,14 @@ turns it into an ordered sequence of PRs — each one small enough to land on it
 own, each one landing in the order that makes the next one cheaper. Writing one
 is how work gets started here.
 
-Everything in this folder is a **closed record**. A plan is not a to-do list and
-never was: by the time it is in here, the work is in `main`. Work that has *not*
-happened lives in `BACKLOG.md` at the repository root, and the game as it
-actually is lives in `README.md`. Three documents, three tenses.
+Almost everything in this folder is a **closed record**. A plan is not a to-do
+list and never was: by the time a plan reads `Landed`, the work is in `main`.
+The one exception is a plan still reading `Proposed` — the sequence has been
+written but no PR has landed — which lives here from the day it is written,
+because the sequencing IS the record of the thinking and it is no use filed
+anywhere else. Work that has not been sequenced at all lives in `BACKLOG.md` at
+the repository root, and the game as it actually is lives in `README.md`. Three
+documents, three tenses.
 
 ## The plans
 
@@ -18,6 +22,7 @@ actually is lives in `README.md`. Three documents, three tenses.
 | 02 | [The academic core](02-academic-core.md) | Curriculum, course quality, the faculty roster and research becoming one loop. PRs A–G. | Landed |
 | 03 | [Campus assets](03-campus-art.md) | One scale, one detail vocabulary, and a correct depth sort for the campus map. PRs A–G, plus F2 and G2. | Landed |
 | 04 | [The shell, research, the roster, and the site](04-shell-research-roster-site.md) | Four phases from a page of playtest notes: the shell, research end to end, the roster, campus art. 23 PRs. | Landed |
+| 05 | [Summer admissions](05-summer-admissions.md) | Reworking the annual admissions decision: per-class tuition, scholarships retired, admit rate promoted to a decision, and the reveal. PRs A–G. | Landed |
 
 ## Naming
 
