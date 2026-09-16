@@ -22,27 +22,31 @@ the infographic in a renamed Enrollment tab instead). Neither is here any
 more: what they changed is in `docs/design/admissions.md` now.*
 
 ### Startup screen
-Drop public/private. Note what that now costs: Plan 05's PR E left the **public
-tuition ceiling** ($22k) in force while raising the private one out of reach
-($100k), precisely so this plan would not decide the school-type question on the
-startup screen's behalf. A public school's cap is most of what it is, so
-dropping the distinction means deciding what replaces it — the subsidy alone, or
-nothing. Possible additions: a **motif set** chosen at founding
-(classical — stone and columns; brutalist — concrete; modern — glass), which is a
-large art commission and the reason this is deferred rather than hard; and
-picking the mascot here rather than burying it in Athletics (which pairs with
-Athletics V3's own mascot step, so these should land together or not at all).
-Open question worth settling first: should the building on the startup screen
-*be* Founders Hall? If yes, that is a change to one of the two. Plan 04's 4A has
-since narrowed Founders Hall to 7x5, so whichever is chosen, the two are
-already out of step and one of them has to move.
+**Sequenced into [Plan 07](docs/plans/07-startup-and-vernacular.md) (Proposed).**
+That plan drops public/private outright — both the public tuition ceiling and
+the state appropriation, rather than keeping the subsidy alone — and turns the
+"motif set" idea into a **vernacular** chosen at founding (the name `motif` is
+already taken by `buildingSpec.ts`'s building typology). It also settles that
+the current set is **Georgian**, not classical, and that the founding facade
+should be Founders Hall drawn as a flat elevation. Stays here until that plan
+lands.
+
+Two pieces of this entry did *not* go into Plan 07. The **mascot at founding**
+is deferred to Athletics V3 below, where the rest of its machinery will be —
+nothing named `mascot` exists in the codebase yet, and gating the startup
+screen on Athletics V3's schedule would be a real coupling cost for a dropdown.
+The **Founders Hall / facade mismatch** turned out not to be one: the facade's
+seven columns are the whole front and `PORTICO_COLUMNS`' four are the engaged
+centre bay, so neither has to move.
 
 ### Athletics V3
 Better layout; a bigger coach pool reusing faculty headshots and the old
 one-pool-tagged-by-need hiring UI (which is the right home for that pattern now
 that faculty no longer uses it). The tab appears on the first team, then an
 interrupt: hire an athletic director (three generated cards, salary the only real
-differentiator), name the mascot. Per-sport standings and playoff tournaments
+differentiator), name the mascot. **Picking the mascot at founding instead**
+was deferred here out of Plan 07's startup-screen work: it should land with
+this step or not at all. Per-sport standings and playoff tournaments
 (needs per-sport rival strength — see Rival schools below). A mechanic that gives
 the player a *reason* to build venues and hire coaches, e.g. periodic AD
 interrupts naming a team without a coach. Championship interrupts. More sports:
