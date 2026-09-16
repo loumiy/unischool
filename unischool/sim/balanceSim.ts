@@ -26,7 +26,7 @@ import { createPreStartState } from '../src/state/actions';
 import type { GameState, Buildable, InitiativeReport, SchoolType } from '../src/state/types';
 import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudent } from '../src/systems/finance/financeSystem';
-import { admitRate } from '../src/systems/admissions/admissionsSystem';
+import { admitRate, topBandShare } from '../src/systems/admissions/admissionsSystem';
 import {
   canStartDevelopment, hasFreeFacultySlot, eligibleInstructors, unstaffedCourses,
   isCommitted, effectiveCourseSlots, totalFacultySlots, usedFacultySlots,
@@ -87,6 +87,12 @@ export interface Strategy {
   name: string;
   schoolType: SchoolType;
   tuition(s: GameState): number;
+  // The share of the applicant pool to take. Optional: omitted means "take
+  // the slider's own opening position for this standing", which is what
+  // every archetype above does and what the harness measured before the
+  // rate was a decision at all. The probes below are the only strategies
+  // that set it, because they exist to ask what the lever does.
+  admitRate?(s: GameState): number;
   buffer(s: GameState): number;   // cash held back before any discretionary start
   // The flow gate: a player who watches the Treasury does not take on a
   // new recurring commitment while this week's net is thin. Expressed as a
@@ -776,7 +782,7 @@ export function play(
           // plays the lever deliberately, so the harness measures what the
           // DEFAULT policy does — which is what it measured before PR C
           // made the rate a decision at all.
-          admitRate: admitRate(s.self.reputation),
+          admitRate: strategy.admitRate ? strategy.admitRate(s) : admitRate(s.self.reputation),
           approvedPetitionIds,
         });
         rows.push(snapshot(s, weeksInTheRed, minCash));
@@ -1222,6 +1228,50 @@ export const STRATEGIES: Strategy[] = [
 // prints the CLI report, while test/balance-regression.test.ts can import
 // STRATEGIES/play/Strategy/Row above without also triggering a full,
 // unwanted 40-year print run as a side effect of the import.
+// ---------------------------------------------------------------------
+// ADMIT-RATE PROBES. Not archetypes — experiments. Every one of these is
+// "Balanced builder, with one thing changed": the same prices, buffers,
+// build rules and thresholds, differing ONLY in what share of the pool it
+// takes. Holding the rest constant is the whole point; a probe that also
+// priced differently would not answer the question.
+//
+// Deliberately NOT in STRATEGIES. balance-regression.test.ts sweeps that
+// array and asserts every member stalls rather than dies, which is a
+// promise the game makes about strategies a player might reasonably adopt.
+// These exist to find out whether the admit lever is broken, and a probe
+// that dies is a FINDING here rather than a failing build. If one of them
+// turns out to be a line of play worth supporting, promoting it into
+// STRATEGIES is how that gets said.
+// ---------------------------------------------------------------------
+const balancedBase = STRATEGIES.find((s) => s.name.startsWith('Balanced builder'))!;
+
+export const ADMIT_PROBES: Strategy[] = [
+  // The control: whatever the slider opens at. Identical to the archetype.
+  { ...balancedBase, name: 'Probe: default curve' },
+
+  // Take everyone, forever.
+  { ...balancedBase, name: 'Probe: open door (100%)', admitRate: () => 1 },
+
+  // Ivory tower from day one, well inside the top band at any prestige.
+  { ...balancedBase, name: 'Probe: ivory tower (8%)', admitRate: () => 0.08 },
+
+  // The intended arc: broad while small, narrowing as standing builds.
+  // 100% at founding prestige, ~20% by prestige 100, floored at 10%.
+  {
+    ...balancedBase,
+    name: 'Probe: broad then narrow',
+    admitRate: (s) => Math.max(0.1, Math.min(1, 1.5 - s.self.reputation / 80)),
+  },
+
+  // The suspected exploit: sit exactly where incoming quality saturates.
+  // Any less buys no quality and costs class size; any more starts diluting.
+  {
+    ...balancedBase,
+    name: 'Probe: band skimmer',
+    admitRate: (s) => topBandShare(s.self.reputation, s.finance.listedTuition),
+  },
+];
+
 const isCliEntry = process.argv[1]?.includes('balanceSim') ?? false;
 if (isCliEntry) {
   const years = Number(process.argv[2] ?? 40);

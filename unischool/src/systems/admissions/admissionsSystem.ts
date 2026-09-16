@@ -372,6 +372,14 @@ function qualityMix(prestige: number, tuition: number): Record<QualityBand, numb
   return { top: top / sum, mid: mid / sum, low: low / sum };
 }
 
+// The top band's share of the pool at this prestige and price. Exported
+// for the balance harness's admit-rate probes: the skim runs best band
+// first, so this is the exact rate at which incoming quality saturates —
+// admitting any less buys no quality at all and costs class size.
+export function topBandShare(prestige: number, tuition: number): number {
+  return qualityMix(prestige, tuition).top;
+}
+
 // Per-band self-selection away from an overreaching sticker price — see
 // STICKER_SHOCK_RATE above for why this exists and why it is band-specific.
 // 1.0 (no shock at all) whenever the sticker sits at or under what the
