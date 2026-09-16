@@ -2,43 +2,56 @@ import { useMemo, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Faculty, GameState } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
-import { facultyQualityTier, CANDIDATE_LISTING_WEEKS, FACULTY_FIELDS } from '../data/facultyData';
+import { facultyQualityTier, CANDIDATE_LISTING_WEEKS, FACULTY_FIELD_GROUPS } from '../data/facultyData';
 import { facultyResearchOutput, labEquippedFields } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
 import { discoverySchools, professionalSchools } from '../data/techData';
-import { usedFacultySlots, totalFacultySlots, neededFacultyFields } from '../systems/techtree/techSystem';
+import { effectiveCourseSlots, facultyLoad } from '../systems/techtree/techSystem';
+import { facultyCapacity, hiresFor, type FieldCapacity } from '../systems/faculty/facultyCapacity';
 import { coursesTaughtBy } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
 import FacultyPortrait from '../components/FacultyPortrait';
 
-// THE ROSTER, BY FIELD — a place you look at your faculty, not a place you
-// hire from.
+// THE DEPARTMENT BOARD — every department the university could have, what
+// each one can teach, and who is in it.
 //
-// It used to be two half-width columns, Roster and On the Market, plus a
-// research panel and a table of slot counts. That shape was built for a
-// loop that no longer exists: develop everything, appoint everyone the
-// game tagged "needed", repeat. Hiring moved to the Curriculum tab, where
-// the shortage is actually felt — you find out you need a kinesiologist
-// when a course will not start — and this screen was left as the place you
-// went to answer a prompt it should never have been giving.
+// The version before this one was a roster by field: one section per
+// department, people as full-width cards inside it, two columns of
+// sections down the page. Three things were wrong with it, and they were
+// all the same thing — the SECTION, not the person and not the
+// arithmetic, owned the width.
 //
-// So: ONE SECTION PER FIELD, in the FACULTY_FIELDS grouping the rest of the
-// game uses (humanities, social sciences, sciences, health, computing,
-// engineering, business, law) rather than alphabetically, because a
-// department sits next to its neighbours. Each section carries its own slot
-// arithmetic in the header, its people as cards, and the candidates in that
-// field underneath them — the market is not a separate place any more, it
-// is a row of people who could join this department.
+//   - A card was half the screen wide to carry a 44px portrait, a name and
+//     two 5px bars, so a roster of forty was a very long wall. Cards are a
+//     grid now (auto-fill, ~250px), five to a row instead of two.
+//   - A hire and a listing looked the same: same card, same paper, one
+//     small line of text apart. A listing is DASHED and cooler-toned now —
+//     not ours yet, carried by the paper rather than by a line you have to
+//     read — and the whole tab can be switched to roster-only or
+//     market-only when you are doing one job and not the other.
+//   - The department header printed `used / total slots` and stopped.
+//     That answers "am I over my ceiling", never "should I hire", because
+//     it says nothing about what the curriculum is going to ask for next.
 //
-// THE HEADER ANSWERS "WHY DO I NEED ONE OF THESE", which no version of this
-// tab ever did: its tooltip names the courses that pull from the field,
-// grouped by the major they belong to.
+// So the tab is a BOARD first and a roster second: one compact row per
+// department, all 29 of them, in the eight divisions FACULTY_FIELD_GROUPS
+// now carries as data. Every row draws the same meter on the SAME SCALE,
+// so departments compare against each other by eye and not just against
+// themselves — see CapacityMeter below for what the segments mean.
 //
-// WHAT IS NOT RENDERED. A field with nobody hired, nobody listed and no
-// course asking for it is not a department this university has — it is one
-// of twenty-nine strings in a table, and printing it would bury the eight
-// that are real. A field with courses but nobody in it IS rendered, and
-// reads as the vacancy it is.
+// EVERY FIELD IS RENDERED, always. The old tab hid any department with
+// nobody hired, nobody listed and no revealed course, on the reasoning
+// that it was a string in a table rather than a department the university
+// had. That reasoning had it backwards: knowing there is no Neuroscience
+// department — and that twelve courses are waiting behind one — is exactly
+// the kind of thing a player cannot discover by looking at what IS there.
+// An absence you can see is information; an absence you cannot is a
+// surprise later.
+//
+// Clicking a department expands it in place: the courses that pull on it
+// (by major — the answer to "why would I ever want a kinesiologist"), its
+// people, and the market underneath them. Departments with people start
+// open, empty ones closed, and either can be overridden per row or in bulk.
 //
 // Recruiting is a standing, churning market (see facultyData.ts's churn
 // block and facultySystem.ts's tickCandidatePool): there is no posting to
@@ -47,19 +60,11 @@ import FacultyPortrait from '../components/FacultyPortrait';
 // represented and thin-market specialists turn up only now and then.
 // Appointing is immediate; what costs is the salary they start drawing.
 //
-// Growth (teaching/research rising toward each hire's rolled potential,
-// salary rising with it, course slots growing on tenure milestones)
-// happens passively on the weekly tick — see facultySystem.ts.
-//
-// Each card shows a name, field-relevant stats and what the person is
-// working on; everything else (bio, nationality, salary detail, the course
-// list) is one click away behind an expand toggle, so a fifty-name roster
-// stays a roster rather than becoming fifty spreadsheets. Candidate cards
-// carry one extra always-visible line (how long the listing has left),
-// because spotting a good specialist before it withdraws is the whole
-// scanning job. The card carries no flag glyph: the emoji flags failed to
-// render in some browsers, so nationality lives in the expanded detail as
-// plain text only.
+// Hiring proper still belongs on the Curriculum tab, where the shortage is
+// actually felt — you find out you need a kinesiologist when a course will
+// not start. This screen is where you decide whether a department is worth
+// growing BEFORE that happens, which is what the forward-looking half of
+// the meter is for.
 
 // Teaching and research as a bar rather than a bare number, with the
 // headroom to this hire's POTENTIAL shown behind the filled part.
@@ -86,24 +91,32 @@ function StatBar({ label, value, potential }: { label: string; value: number; po
 //
 // The information is almost all what the row already carried; what changes
 // is that a hire reads as a PERSON — the procedural portrait
-// (FacultyPortrait.tsx) at a size you can actually see, their name and rank
-// given the weight of a heading, their two stats as bars. The rank badge is
-// facultyQualityTier, which was already the familiar academic ladder
-// (Adjunct through Distinguished) and was already on the row; it was just
-// rendered as one more small tag among several.
+// (FacultyPortrait.tsx), their name and rank given the weight of a
+// heading, their two stats as bars. The rank badge is facultyQualityTier,
+// the familiar academic ladder (Adjunct through Distinguished).
 //
-// Everything beyond that — bio, nationality, salary detail, what they are
-// actually teaching — still lives one click away behind the same expand
-// toggle, so a fifty-name roster stays a roster rather than becoming fifty
-// spreadsheets.
+// Everything beyond that — bio, nationality, salary detail, tenure, what
+// they are actually teaching — lives one click away behind the expand
+// toggle, so a forty-name roster stays a roster rather than becoming forty
+// spreadsheets. The card is sized to the GRID now rather than to the
+// column (see .faculty-list), which is what took it from two to the width
+// of a playing card, so what stays on its face had to earn the room:
+// salary, because it is the cost of the decision; how loaded they are,
+// because it is what decides whether they can take a course; and, for a
+// listing, how long it has left, because spotting a good specialist before
+// it withdraws is the whole scanning job.
+//
+// The card carries no flag glyph: the emoji flags failed to render in some
+// browsers, so nationality lives in the expanded detail as plain text only.
 function FacultyCard(
   { s, act, f, isCandidate, commitment }:
   {
     s: GameState; act: (a: Action) => void; f: Faculty; isCandidate: boolean;
-    // What this person is committed to, if anything (see the roster's
-    // commitment map below). The old research panel listed these
-    // separately, which meant a player scanning a thin department for who
-    // could cover a course had to read two lists and cross-reference them.
+    // What this person is committed to, if anything (see the commitment map
+    // below). A committed scholar is the single most useful thing this
+    // screen can tell you about a department — they are teaching two
+    // courses fewer for the next six months to five years — so it sits on
+    // the card rather than in a panel of its own further down the page.
     commitment?: Commitment;
   },
 ) {
@@ -115,11 +128,13 @@ function FacultyCard(
   const [confirmingDismiss, setConfirmingDismiss] = useState(false);
   const weeksLeft = Math.max(0, CANDIDATE_LISTING_WEEKS - f.weeksListed);
   const researches = !isCandidate && labEquippedFields(s).has(f.field);
+  const slots = isCandidate ? f.courseSlots : effectiveCourseSlots(s, f);
+  const load = isCandidate ? 0 : facultyLoad(s, f.id);
 
   return (
-    <li className={`faculty-card${commitment ? ' committed' : ''}`}>
+    <li className={`faculty-card${isCandidate ? ' listed' : ''}${commitment ? ' committed' : ''}`}>
       <div className="faculty-card-main">
-        <FacultyPortrait f={f} size={44} />
+        <FacultyPortrait f={f} size={36} />
         <div className="faculty-card-body">
           <div className="faculty-card-head">
             <span className="faculty-name">{f.name}</span>
@@ -133,24 +148,16 @@ function FacultyCard(
             <span className="faculty-card-spacer" />
             <span className="kind-tag">{facultyQualityTier(f)}</span>
           </div>
-          {/* WHAT THEY ARE WORKING ON. A committed scholar is the single
-              most useful thing this screen can tell you about a
-              department — they are teaching two courses fewer for the next
-              six months to five years (techSystem.ts's
-              RESEARCH_COMMITMENT_SLOTS) — so it sits on the card rather
-              than in a panel of its own further down the page. The field
-              itself is the section heading now, so the line that used to
-              repeat it carries this instead. */}
           <div className="faculty-card-field">
             {commitment ? (
               <span className="faculty-commitment" title={`${commitment.topic} · ${commitment.labName}`}>
                 On <strong>{commitment.topic}</strong>
                 <span className="faculty-commitment-left">
-                  {' '}· {commitment.weeksRemaining} of {commitment.weeksTotal} weeks left
+                  {' '}· {commitment.weeksRemaining}w left
                 </span>
               </span>
             ) : isCandidate ? (
-              <span className="faculty-card-listing">On the market</span>
+              <span className="faculty-card-listing">{f.courseSlots} slots if appointed</span>
             ) : taught.length > 0 ? (
               <span className="faculty-card-teaching">
                 Teaching {taught.length} {taught.length === 1 ? 'course' : 'courses'}
@@ -165,11 +172,16 @@ function FacultyCard(
           </div>
           <div className="faculty-card-foot">
             <span className="faculty-card-salary">${Math.round(f.salary / 1000)}k/yr</span>
-            {isCandidate && (
+            {isCandidate ? (
               <span className={weeksLeft <= 2 ? 'candidate-expiry soon' : 'candidate-expiry'}>{weeksLeft}w left</span>
+            ) : (
+              <span
+                className={load >= slots ? 'faculty-card-load full' : 'faculty-card-load'}
+                title={`Teaching ${load} of the ${slots} course slots they supply${commitment ? ' while committed to a project' : ''}`}
+              >
+                {load}/{slots} slots
+              </span>
             )}
-            {!isCandidate && <span className="faculty-card-tenure">{Math.floor(f.tenureWeeks / WEEKS_PER_YEAR)}y tenure</span>}
-            <span className="faculty-card-spacer" />
             <button
               type="button"
               className="faculty-expand-btn"
@@ -222,6 +234,7 @@ function FacultyCard(
             <dt>Research</dt><dd>{f.research} <span className="outcome-note">(→ {f.researchPotential})</span></dd>
             <dt>Salary</dt><dd>${f.salary.toLocaleString()}/yr</dd>
             <dt>Course slots</dt><dd>{f.courseSlots}</dd>
+            {!isCandidate && <><dt>Tenure</dt><dd>{Math.floor(f.tenureWeeks / WEEKS_PER_YEAR)} years</dd></>}
             {f.acclaim > 0 && <><dt>Prizes won</dt><dd>{f.acclaim}</dd></>}
             {/* Research output, shown for roster members only: a candidate
                 produces nothing until they are appointed, and how much
@@ -257,7 +270,7 @@ function FacultyCard(
 }
 
 // What somebody is committed to, flattened from the running initiatives so
-// a card can read it without walking every project (see the roster below).
+// a card can read it without walking every project.
 interface Commitment {
   topic: string;
   labName: string;
@@ -282,146 +295,289 @@ function commitmentsByFaculty(s: GameState): Map<string, Commitment> {
   return map;
 }
 
-// WHICH COURSES PULL FROM THIS FIELD, grouped by the major they belong to —
+// WHICH COURSES PULL ON EACH FIELD, grouped by the major they belong to —
 // the answer to "why do I need a kinesiologist", which no version of this
-// tab has ever given. Read off the same discovery metadata the Curriculum
-// tab groups by, so the grouping the player sees here is the grouping they
-// see there.
+// tab gave until the rebuild before this one put it in a tooltip. It is
+// not a tooltip any more: it is the first line inside an opened
+// department, because for an EMPTY department it is the only content there
+// is, and "twelve courses across two majors are waiting on this" is the
+// whole reason to found one.
 //
-// Only courses that EXIST as far as the player is concerned are counted:
-// a locked course is not yet a reason for anything.
-function courseDemandByMajor(s: GameState, field: string): Array<{ group: string; courses: string[] }> {
-  const wanted = new Map<string, string>();
-  for (const t of s.tech) {
-    if (t.requiresFaculty === field && t.status !== 'locked') wanted.set(t.id, t.name.split(' · ').pop() ?? t.name);
-  }
-  if (wanted.size === 0) return [];
+// Read off the same discovery metadata the Curriculum tab groups by, so
+// the grouping the player sees here is the grouping they see there. One
+// pass for all 29 fields rather than one walk of every school per field —
+// the board renders every department, so the per-field version was 29
+// walks of the whole curriculum per render.
+//
+// Only courses that EXIST as far as the player is concerned are counted: a
+// locked course is not yet a reason for anything.
+type DemandByMajor = Array<{ group: string; courses: string[] }>;
 
-  const groups: Array<{ group: string; courses: string[] }> = [];
+function courseDemandByField(s: GameState): Map<string, DemandByMajor> {
+  const wanted = new Map<string, { field: string; name: string }>();
+  for (const t of s.tech) {
+    if (t.requiresFaculty && t.status !== 'locked') {
+      wanted.set(t.id, { field: t.requiresFaculty, name: t.name.split(' · ').pop() ?? t.name });
+    }
+  }
+
+  const byField = new Map<string, DemandByMajor>();
   const take = (group: string, ids: readonly string[]) => {
-    const courses = ids.filter((id) => wanted.has(id)).map((id) => wanted.get(id)!);
-    if (courses.length > 0) {
-      groups.push({ group, courses });
-      for (const id of ids) wanted.delete(id);
+    const perField = new Map<string, string[]>();
+    for (const id of ids) {
+      const course = wanted.get(id);
+      if (!course) continue;
+      if (!perField.has(course.field)) perField.set(course.field, []);
+      perField.get(course.field)!.push(course.name);
+      wanted.delete(id);
+    }
+    for (const [field, courses] of perField) {
+      if (!byField.has(field)) byField.set(field, []);
+      byField.get(field)!.push({ group, courses });
     }
   };
 
   for (const school of discoverySchools()) {
     take(`${school.name} core`, school.coreIds);
-    for (const major of school.majors) {
-      take(major.name, [major.tier1Id, ...major.tier2Ids, ...major.tier3Ids]);
-    }
+    for (const major of school.majors) take(major.name, [major.tier1Id, ...major.tier2Ids, ...major.tier3Ids]);
     for (const program of school.graduate) take(program.name, program.courseIds);
   }
   for (const program of professionalSchools()) take(program.name, program.courseIds);
 
-  // Anything the discovery metadata does not place (there is nothing today,
-  // but a future course kind would land here rather than vanishing).
-  if (wanted.size > 0) groups.push({ group: 'Elsewhere', courses: [...wanted.values()] });
-  return groups;
+  // Anything the discovery metadata does not place (there is nothing
+  // today, but a future course kind would land here rather than vanishing).
+  take('Elsewhere', [...wanted.keys()]);
+  return byField;
 }
 
-// One department: its slot arithmetic, its people, and who could join it.
-function FieldSection(
-  { s, act, field, hired, candidates, commitments, short }:
-  {
-    s: GameState; act: (a: Action) => void; field: string;
-    hired: Faculty[]; candidates: Faculty[];
-    commitments: Map<string, Commitment>;
-    short: boolean;
-  },
-) {
-  const used = usedFacultySlots(s, field);
-  const total = totalFacultySlots(s, field);
-  const demand = useMemo(() => courseDemandByMajor(s, field), [s, field]);
+function demandSentence(field: string, demand: DemandByMajor | undefined, catalogue: number): string {
+  if (!demand || demand.length === 0) {
+    return catalogue > 0
+      ? `No ${field} course has been revealed yet — ${catalogue} in the catalogue are waiting behind buildings and prerequisites.`
+      : `Nothing in the catalogue asks for ${field}.`;
+  }
+  const count = demand.reduce((n, g) => n + g.courses.length, 0);
+  return `${count} revealed ${count === 1 ? 'course pulls' : 'courses pull'} on ${field}: `
+    + demand.map((g) => `${g.group} (${g.courses.join(', ')})`).join('; ')
+    + `. Each one occupies a slot in this department for as long as it is offered, whether or not somebody is teaching it.`;
+}
 
-  const demandCount = demand.reduce((n, g) => n + g.courses.length, 0);
-  const demandText = demand.length > 0
-    ? `${field} teaches ${demandCount} ${demandCount === 1 ? 'course' : 'courses'} the school has revealed: `
-      + demand.map((g) => `${g.group} (${g.courses.join(', ')})`).join('; ')
-      + '. Every one of those occupies a slot in this field for as long as it is offered, whether or not somebody is teaching it.'
-    : `No revealed course asks for ${field} yet. A hire in it can still join a research project, and will be ready when a course that needs them is revealed.`;
+// ---------------------------------------------------------------------
+// THE METER. One instrument per department, every one of them drawn to the
+// SAME SCALE, so the length of a bar means the same thing in Law as it
+// does in Clinical Health and the eye can rank departments without reading
+// a single number.
+//
+//   solid      slots the current courseload takes — every offered course,
+//              staffed or not (techSystem.ts's usedFacultySlots, and see
+//              its note on why an unstaffed course still counts).
+//   half-tone  courses revealed and not yet developed: what the next few
+//              clicks on the Curriculum tab would cost this department.
+//   dotted     the rest of the catalogue, still locked behind buildings
+//              and prerequisites. The long view, and deliberately the
+//              faintest thing on the row — it is real, but it is not
+//              something you can act on this week.
+//   the rule   what the roster actually supplies. THE THING HIRING MOVES.
+//
+// Where the rule sits is the department's whole state, without a word:
+// past the ink, there is room; inside the half-tone, the department is at
+// its ceiling and something revealed cannot start; inside the solid, it is
+// already teaching more than it supplies and somebody's course is
+// unstaffed. A second, fainter rule appears when a research commitment has
+// taken slots — it marks where supply WOULD be, which is the one question
+// "my department went short and I didn't hire or fire anyone" asks.
+// ---------------------------------------------------------------------
+function CapacityMeter({ c, scale }: { c: FieldCapacity; scale: number }) {
+  const pct = (n: number) => `${(Math.max(0, Math.min(scale, n)) / scale) * 100}%`;
+  const locked = Math.max(0, c.catalogue - c.offered - c.available);
+  const taken = c.grossSupply - c.supply;
+  // A department hired past everything it will ever teach. The rule pins to
+  // the end of the track and says so, rather than every other department's
+  // curriculum being squashed to make room for it.
+  const beyond = c.supply > c.catalogue;
+
+  const title = [
+    `${c.field}: ${c.supply} course ${c.supply === 1 ? 'slot' : 'slots'} supplied by ${c.hired} ${c.hired === 1 ? 'professor' : 'professors'}.`,
+    `${c.offered} taken by courses on offer now, ${c.available} more revealed and not yet developed, ${c.catalogue} in the catalogue all told.`,
+    taken > 0 ? `${taken} ${taken === 1 ? 'slot is' : 'slots are'} with a research project.` : '',
+    beyond ? 'The department can already teach its whole catalogue.' : '',
+  ].filter(Boolean).join(' ');
 
   return (
-    <section className="faculty-field">
-      <header className="faculty-field-head">
-        <span className="panel-head-title">
-          <h3>{field}</h3>
-          <HelpHint text={demandText} />
-        </span>
-        <span className={`stat${short ? ' faculty-field-short' : ''}`}>
-          {used} / {total} slots used{short ? ' · short' : ''}
-        </span>
-      </header>
-
-      {hired.length > 0 ? (
-        <ul className="faculty-list">
-          {hired.map((f) => (
-            <FacultyCard key={f.id} s={s} act={act} f={f} isCandidate={false} commitment={commitments.get(f.id)} />
-          ))}
-        </ul>
-      ) : (
-        <p className="empty-note">
-          Nobody in {field}.{total === 0 && used > 0
-            ? ` ${used} ${used === 1 ? 'course is' : 'courses are'} offered with no one to teach them.`
-            : ''}
-        </p>
-      )}
-
-      {candidates.length > 0 && (
-        <>
-          <div className="faculty-market-head">
-            <span>On the market</span>
-            <span className="outcome-note">
-              {candidates.length} listed · a listing withdraws after {CANDIDATE_LISTING_WEEKS} weeks
-            </span>
-          </div>
-          <ul className="faculty-list candidate-list">
-            {candidates.map((c) => (
-              <FacultyCard key={c.id} s={s} act={act} f={c} isCandidate={true} />
-            ))}
-          </ul>
-        </>
-      )}
-    </section>
+    <span className={`capacity-meter ${c.state}`} role="img" aria-label={title} title={title}>
+      <span className="capacity-track">
+        <span className="capacity-seg offered" style={{ width: pct(c.offered) }} />
+        <span className="capacity-seg available" style={{ width: pct(c.available) }} />
+        <span className="capacity-seg locked" style={{ width: pct(locked) }} />
+        {taken > 0 && !beyond && <span className="capacity-rule gross" style={{ left: pct(c.grossSupply) }} />}
+        <span
+          className={`capacity-rule${beyond ? ' beyond' : ''}${c.supply === 0 ? ' at-zero' : ''}`}
+          style={{ left: pct(c.supply) }}
+        />
+      </span>
+    </span>
   );
 }
 
+// The words the row's right-hand end carries, when it has something to
+// say. Deliberately only three states get one: a row that is fine says
+// nothing at all, because twenty-nine rows each asserting their own
+// health is the wall this tab was trying to stop being.
+function stateNote(c: FieldCapacity): { text: string; className: string } | undefined {
+  if (c.state === 'over') {
+    const over = c.offered - c.supply;
+    return { text: `over by ${over}`, className: 'dept-note over' };
+  }
+  if (c.state === 'short') return { text: 'short', className: 'dept-note short' };
+  if (c.state === 'empty') return { text: 'no department', className: 'dept-note empty' };
+  return undefined;
+}
+
+// One department: the row you scan, and everything it opens into.
+function DepartmentRow(
+  { s, act, c, scale, demand, open, onToggle, hired, listed, commitments, view }:
+  {
+    s: GameState; act: (a: Action) => void; c: FieldCapacity; scale: number;
+    demand: DemandByMajor | undefined;
+    open: boolean; onToggle: () => void;
+    hired: Faculty[]; listed: Faculty[];
+    commitments: Map<string, Commitment>;
+    view: View;
+  },
+) {
+  const note = stateNote(c);
+  const showRoster = view !== 'market';
+  const showMarket = view !== 'roster';
+
+  return (
+    <div className={`dept${open ? ' open' : ''}`}>
+      <button type="button" className={`dept-row ${c.state}`} onClick={onToggle} aria-expanded={open}>
+        <span className="dept-name">
+          <span className="dept-caret">{open ? '▾' : '▸'}</span>
+          {c.field}
+        </span>
+        <CapacityMeter c={c} scale={scale} />
+        <span className="dept-slots" title="Course slots taken by what is offered now, against what the roster supplies">
+          {c.offered}/{c.supply}
+        </span>
+        <span className="dept-catalogue" title={`${c.catalogue} courses in the catalogue ask for ${c.field}`}>
+          {c.catalogue}
+        </span>
+        <span className="dept-people">
+          {c.hired > 0 && <span className="dept-hired">{c.hired} hired</span>}
+          {c.listed > 0 && <span className="dept-listed">{c.listed} listed</span>}
+        </span>
+        {note ? <span className={note.className}>{note.text}</span> : <span className="dept-note" />}
+      </button>
+
+      {open && (
+        <div className="dept-body">
+          <p className="dept-demand">{demandSentence(c.field, demand, c.catalogue)}</p>
+
+          {showRoster && (hired.length > 0 ? (
+            <ul className="faculty-list">
+              {hired.map((f) => (
+                <FacultyCard key={f.id} s={s} act={act} f={f} isCandidate={false} commitment={commitments.get(f.id)} />
+              ))}
+            </ul>
+          ) : (
+            <p className="empty-note">
+              Nobody in {c.field}.{c.offered > 0
+                ? ` ${c.offered} ${c.offered === 1 ? 'course is' : 'courses are'} offered with no one to teach them.`
+                : ''}
+            </p>
+          ))}
+
+          {showMarket && (listed.length > 0 || c.state === 'over' || c.state === 'short') && (
+            <>
+              <div className="faculty-market-head">
+                <span>On the market</span>
+                <span className="outcome-note">
+                  {listed.length > 0
+                    ? `${listed.length} listed · a listing withdraws after ${CANDIDATE_LISTING_WEEKS} weeks`
+                    : 'nobody listed this week'}
+                </span>
+              </div>
+              {listed.length > 0 ? (
+                <ul className="faculty-list candidate-list">
+                  {listed.map((cand) => (
+                    <FacultyCard key={cand.id} s={s} act={act} f={cand} isCandidate={true} />
+                  ))}
+                </ul>
+              ) : (
+                <p className="empty-note">
+                  No {c.field} candidate is listed. The market turns over every week — check back.
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Roster-only, market-only, or both. The market is what churns and the
+// roster is what you own, and they are read for different reasons: one to
+// decide whether to spend, one to see what you have. Showing both at once
+// is the right default and the wrong thing to be stuck with.
+type View = 'both' | 'roster' | 'market';
+
+const VIEWS: Array<{ id: View; label: string }> = [
+  { id: 'both', label: 'Both' },
+  { id: 'roster', label: 'Roster' },
+  { id: 'market', label: 'Market' },
+];
+
 export default function FacultyTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
+  const cap = useMemo(() => facultyCapacity(s), [s.faculty, s.candidates, s.tech, s.research.initiatives]);
   const commitments = useMemo(() => commitmentsByFaculty(s), [s.research.initiatives, s.tech]);
-  const short = useMemo(() => neededFacultyFields(s), [s]);
+  const demand = useMemo(() => courseDemandByField(s), [s.tech]);
 
-  // Which fields are worth a section at all: anybody hired, anybody listed,
-  // or any revealed course that asks for them. A field nothing on campus
-  // has any relationship with is not a department, it is a string in a
-  // table.
-  const sections = useMemo(() => {
-    const hired = new Map<string, Faculty[]>();
+  // Strongest teacher first inside a department, which is the order a
+  // player reads it in when deciding who covers what; strongest listing
+  // first on the market, where the question is who is worth taking.
+  const hired = useMemo(() => {
+    const map = new Map<string, Faculty[]>();
     for (const f of s.faculty) {
-      if (!hired.has(f.field)) hired.set(f.field, []);
-      hired.get(f.field)!.push(f);
+      if (!map.has(f.field)) map.set(f.field, []);
+      map.get(f.field)!.push(f);
     }
-    const listed = new Map<string, Faculty[]>();
-    for (const c of s.candidates) {
-      if (!listed.has(c.field)) listed.set(c.field, []);
-      listed.get(c.field)!.push(c);
-    }
-    const wanted = new Set(
-      s.tech.filter((t) => t.requiresFaculty && t.status !== 'locked').map((t) => t.requiresFaculty!),
-    );
+    for (const list of map.values()) list.sort((a, b) => b.teaching - a.teaching || a.name.localeCompare(b.name));
+    return map;
+  }, [s.faculty]);
 
-    return FACULTY_FIELDS
-      .filter((field) => hired.has(field) || listed.has(field) || wanted.has(field))
-      .map((field) => ({
-        field,
-        // Strongest teacher first inside a department, which is the order a
-        // player reads it in when deciding who covers what.
-        hired: (hired.get(field) ?? []).sort((a, b) => b.teaching - a.teaching || a.name.localeCompare(b.name)),
-        candidates: (listed.get(field) ?? []).sort((a, b) => (b.teaching + b.research) - (a.teaching + a.research)),
-      }));
-  }, [s.faculty, s.candidates, s.tech]);
+  const listed = useMemo(() => {
+    const map = new Map<string, Faculty[]>();
+    for (const c of s.candidates) {
+      if (!map.has(c.field)) map.set(c.field, []);
+      map.get(c.field)!.push(c);
+    }
+    for (const list of map.values()) list.sort((a, b) => (b.teaching + b.research) - (a.teaching + a.research));
+    return map;
+  }, [s.candidates]);
+
+  const [view, setView] = useState<View>('both');
+  // Expansion is a set of OVERRIDES over a live default rather than a set
+  // of open rows, so "departments with people are open" keeps being true
+  // of a department founded after the tab was first rendered, while a row
+  // the player has explicitly opened or closed stays that way.
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+  const defaultOpen = (c: FieldCapacity) => (view === 'market' ? c.listed > 0 : c.hired > 0);
+  const isOpen = (c: FieldCapacity) => overrides[c.field] ?? defaultOpen(c);
+  const setAll = (open: boolean) => {
+    const next: Record<string, boolean> = {};
+    for (const c of cap.fields) next[c.field] = open;
+    setOverrides(next);
+  };
 
   const committedCount = commitments.size;
+  // The gap added up DEPARTMENT BY DEPARTMENT (see facultyCapacity.ts's
+  // total.shortfall). Subtracting the two school-wide totals instead would
+  // tell a school with every slot in Mathematics that it can teach the
+  // whole catalogue, which is the one comfortable falsehood this screen is
+  // in a position to tell.
+  const toFinish = cap.total.shortfall;
 
   return (
     <div className="tab-content">
@@ -429,31 +585,86 @@ export default function FacultyTab({ s, act }: { s: GameState; act: (a: Action) 
         <div className="panel-head">
           <span className="panel-head-title">
             <h2>Faculty</h2>
-            <HelpHint text="Everyone employed, by department, with whoever is on the market for that department underneath them. A field's slot count is what gates how many courses in it the school can offer at once: each offered course holds one slot whether or not somebody is teaching it, and each professor supplies slots that grow slowly with tenure. A scholar on a research project supplies two fewer for its duration. Appointing is immediate and costs nothing up front — what costs is the salary." />
+            <HelpHint text="Every department the university could have, whether or not anybody is in it. The meter on each row is drawn to one scale across the whole board: the solid part is the slots its courses take now, the half-tone the courses revealed but not yet developed, the dotted tail the rest of the catalogue — and the upright rule is what the roster actually supplies, which is the thing hiring moves. A course holds its slot for as long as it is offered, whether or not somebody is teaching it, and a scholar on a research project supplies two fewer. Appointing is immediate and costs nothing up front; what costs is the salary." />
           </span>
           <span className="stat">{s.faculty.length} on payroll</span>
           <span className="stat">{s.candidates.length} on the market</span>
           {committedCount > 0 && <span className="stat">{committedCount} on projects</span>}
         </div>
+        {/* The one school-wide sentence, and the only place the long view is
+            stated in people rather than in slots: every course in the game
+            is faculty-gated and holds its slot forever, so the catalogue's
+            cost is a number the player can actually aim at. */}
+        <p className="faculty-horizon">
+          <strong>{cap.total.supply}</strong> course slots supplied,
+          {' '}<strong>{cap.total.offered}</strong> taken by what is on offer,
+          {' '}<strong>{cap.total.available}</strong> more revealed and waiting.
+          {toFinish > 0
+            ? ` Teaching the whole catalogue takes ${cap.total.catalogue} slots in the departments that hold them — ${toFinish} short, about ${hiresFor(toFinish)} more appointments at the slots a new hire brings, fewer if you keep them long enough to grow.`
+            : ' Every department can already teach its whole catalogue.'}
+        </p>
       </section>
 
-      <div className="faculty-fields">
-        {sections.map(({ field, hired, candidates }) => (
-          <FieldSection
-            key={field}
-            s={s}
-            act={act}
-            field={field}
-            hired={hired}
-            candidates={candidates}
-            commitments={commitments}
-            short={short.has(field)}
-          />
+      <section className="panel dept-board">
+        <div className="panel-head">
+          <span className="panel-head-title"><h3>Departments</h3></span>
+          <span className="dept-views">
+            {VIEWS.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                className={view === v.id ? 'dept-view on' : 'dept-view'}
+                onClick={() => { setView(v.id); setOverrides({}); }}
+              >
+                {v.label}
+              </button>
+            ))}
+          </span>
+          <span className="dept-bulk">
+            <button type="button" onClick={() => setAll(true)}>Expand all</button>
+            <button type="button" onClick={() => setAll(false)}>Collapse all</button>
+          </span>
+        </div>
+
+        <div className="dept-head">
+          <span className="dept-name">Department</span>
+          <span className="capacity-legend">
+            <span className="capacity-key-pair"><span className="capacity-key offered" />offered</span>
+            <span className="capacity-key-pair"><span className="capacity-key available" />revealed</span>
+            <span className="capacity-key-pair"><span className="capacity-key locked" />catalogue</span>
+            <span className="capacity-key-pair"><span className="capacity-key rule" />slots supplied</span>
+          </span>
+          <span className="dept-slots">used/have</span>
+          <span className="dept-catalogue">all</span>
+          <span className="dept-people">people</span>
+          <span className="dept-note" />
+        </div>
+
+        {FACULTY_FIELD_GROUPS.map((group) => (
+          <section key={group.name} className="dept-group">
+            <h4>{group.name}</h4>
+            {group.fields.map((field) => {
+              const c = cap.byField.get(field)!;
+              return (
+                <DepartmentRow
+                  key={field}
+                  s={s}
+                  act={act}
+                  c={c}
+                  scale={cap.scale}
+                  demand={demand.get(field)}
+                  open={isOpen(c)}
+                  onToggle={() => setOverrides((o) => ({ ...o, [field]: !isOpen(c) }))}
+                  hired={hired.get(field) ?? []}
+                  listed={listed.get(field) ?? []}
+                  commitments={commitments}
+                  view={view}
+                />
+              );
+            })}
+          </section>
         ))}
-        {sections.length === 0 && (
-          <p className="empty-note">No faculty, no candidates and no courses that need either. Develop a course to start.</p>
-        )}
-      </div>
+      </section>
     </div>
   );
 }

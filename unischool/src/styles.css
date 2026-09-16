@@ -1566,7 +1566,12 @@ button.build-tile { font-family: inherit; }
    lose. */
 .faculty-dismiss-warning { margin: 0; background: var(--danger-bg); color: var(--danger-ink);
   border-top: 1px solid var(--danger-line); padding: 8px 12px; font-size: var(--text-sm); line-height: 1.4; }
-.faculty-card button.dismiss-confirm { border-color: var(--danger-line); background: var(--danger-bg);
+/* Armed, the confirm takes a line of its own. Its label is a sentence and
+   the card is now the width of a playing card, so sharing the footer row
+   with the salary and the load figure clipped it to "Confirm —" — a
+   truncated warning on the one button that must not be misread. */
+.faculty-card button.dismiss-confirm { flex: 1 0 100%; margin-top: 2px;
+  border-color: var(--danger-line); background: var(--danger-bg);
   color: var(--danger-ink); font-weight: 700; }
 
 /* ---------- sidebar panels ---------- */
@@ -1660,22 +1665,29 @@ button.build-tile { font-family: inherit; }
 ul, ol { list-style: none; margin: 0; padding: 0; }
 .outcome-note { color: var(--gold-dim); font-size: var(--text-xs); }
 
-/* ---------- faculty: collapsed-by-default expandable rows ---------- */
 /* ---------- faculty, as cards ----------
-   The roster used to be rows in what amounted to a table: a 22px portrait,
-   a name, a field, a tag, a button. Everything a card shows was already
-   there — what changes is that a hire reads as a PERSON rather than a
-   record, which is the whole point of having a procedural portrait
-   generator (FacultyPortrait.tsx) and then rendering it at 22px. */
-.faculty-list { max-height: 380px; overflow-y: auto; margin: 0; padding: 0;
-  display: flex; flex-direction: column; gap: 8px; }
+   A hire reads as a PERSON rather than as a record — the procedural
+   portrait (FacultyPortrait.tsx) at a size you can see, the name with the
+   weight of a heading, the stats as bars.
+
+   CARDS ARE SIZED TO A GRID, not to a column. They were one per row of a
+   half-width section: a ~700px card carrying a 36px portrait, a name and
+   two 5px bars, which is how a roster of forty became a wall. At 250px
+   five fit across the same space, and a department is read in one glance
+   instead of scrolled through. */
+.faculty-list { margin: 0; padding: 0; display: grid; align-items: start;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
 .faculty-card { background: #f6f1e0; border: 1px solid var(--parchment-line-lo);
-  border-radius: var(--radius-md); padding: 8px 10px; }
-/* A scholar on a research project gets a brass edge. The short-field
-   highlight this replaces was for the retired hiring loop — with the roster
-   grouped by field, a department's shortage is its own header's arithmetic,
-   while "this person is committed for the next three years" is a fact about
-   the PERSON and belongs on their card. */
+  border-radius: var(--radius-md); padding: 8px 10px; min-width: 0; }
+/* A LISTING IS NOT A HIRE, and the paper says so before any text does:
+   dashed and cooler, the way an unsigned document is drawn everywhere
+   else. The two used to be the same card one small line of text apart,
+   which is exactly the distinction that has to survive being scanned
+   rather than read. */
+.faculty-card.listed { background: #f0eee4; border-style: dashed; border-color: var(--parchment-line); }
+/* A scholar on a research project gets a brass edge. A department's
+   shortage is its own row's meter; "this person is committed for the next
+   three years" is a fact about the PERSON and belongs on their card. */
 .faculty-card.committed { border-color: var(--gold-dim); box-shadow: inset 2px 0 0 var(--gold-dim); }
 .faculty-card-main { display: flex; align-items: flex-start; gap: 10px; }
 .faculty-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
@@ -1692,7 +1704,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-commitment strong { color: var(--ink); font-weight: 700; }
 .faculty-commitment-left { color: var(--ink-muted); }
 .faculty-card-teaching.idle { color: var(--ink-lo); font-style: italic; }
-.faculty-card-listing { color: var(--ok-on-light); font-weight: 700; }
+.faculty-card-listing { color: var(--ink-muted); }
 
 /* Teaching and research. Two bars beat two numbers here because the job on
    this screen is COMPARING people, and the headroom behind the fill is the
@@ -1707,10 +1719,22 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-bar-value { font-family: var(--mono); font-size: var(--text-2xs); color: var(--ink-muted);
   min-width: 16px; text-align: right; }
 
-.faculty-card-foot { display: flex; align-items: center; gap: 8px; font-family: var(--mono);
-  font-size: var(--text-2xs); color: var(--ink-muted); }
+/* Five items in 224px of card: two figures, the disclosure and the one
+   action. It fits at the grid's usual width and wraps the action onto its
+   own line below that rather than clipping it — which is what the footer
+   did before it was allowed to wrap, taking the armed dismissal's warning
+   with it. The trailing pair is pushed right by a margin rather than by a
+   spacer element, because a spacer is one more thing on the line to fit. */
+.faculty-card-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: var(--text-2xs); color: var(--ink-muted); }
+.faculty-card-foot .faculty-expand-btn { margin-left: auto; }
 .faculty-card-salary { white-space: nowrap; }
-.faculty-card-tenure { white-space: nowrap; }
+/* How much of this person is already spent. Tenure used to hold this spot;
+   it is a fact about their history, and this is a fact about whether they
+   can take the course you are looking at — so tenure moved into the
+   expanded detail and this took the room. */
+.faculty-card-load { white-space: nowrap; }
+.faculty-card-load.full { color: var(--bad-on-light); font-weight: 700; }
 .faculty-card-foot button { background: var(--danger-bg); color: var(--danger-ink);
   border: 1px solid var(--danger-line); border-radius: var(--radius-sm);
   padding: 2px 9px; font-size: var(--text-2xs); white-space: nowrap; }
@@ -1751,65 +1775,143 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .commitment-left { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted); }
 .commitment-free { margin: 10px 0 0; }
 
-/* ---------- faculty: roster/market and research/slots, paired ----------
-   Two equal columns, auto-flowing two panels per row: Roster + Market
-   first (the candidate market churns weekly and is what the player comes
-   here to scan, so a roster that has grown to fifty names must never push
-   it below the fold), then Research + Course Slots below. Falls back to
-   one column on narrow surfaces (see the media query at the end of this
-   file).
+/* ---------- the department board ----------
+   One row per department, all twenty-nine of them, grouped into the eight
+   divisions FACULTY_FIELD_GROUPS carries. The row is a button: clicking it
+   expands the department in place, underneath itself, rather than
+   selecting it into a detail pane somewhere else — the page stays one
+   scroll, and two departments can be open side by side for comparison.
 
-   align-items is left at its grid default (stretch, not start) so Roster
-   and Market always render the same height, even though only Market
-   carries a field-filter bar above its list — .panel below is a flex
-   column so the shorter panel's list (flex: 1) grows to fill the leftover
-   height instead of leaving it a mismatched short card. Course Slots only
-   renders once a school has gated courses; when it's absent, Research
-   spans the row instead of leaving an empty gutter (see FacultyTab.tsx). */
-/* ---------- the roster, by field ----------
-   One section per department, flowing into as many columns as the width
-   allows. A department is a SHORT block — four or five cards at most — so
-   the list inside it is not independently scrollable the way the old
-   single roster panel had to be: scrolling a scroll box inside a scrolling
-   page is the worst of both, and with the tab full-bleed (see
-   TabOverlay.tsx) the page has the height to spend.
+   Every row is the same six-column grid, and the grid is declared on both
+   the header and the rows so the columns line up down the whole board
+   across group headings. Fixed widths rather than content-sized ones, for
+   the same reason: a column that sizes to its content is a column that
+   moves when a department hires somebody. */
+.dept-board .panel-head { flex-wrap: wrap; gap: 8px; }
+.dept-head, .dept-row {
+  display: grid; align-items: center; gap: 10px;
+  grid-template-columns: 186px minmax(160px, 520px) 70px 58px 118px minmax(88px, 1fr);
+}
+/* Every cell clips rather than spilling into its neighbour: the columns
+   are fixed so that they line up down the board, and a label that pushes
+   past its column takes the alignment with it. */
+.dept-head > *, .dept-row > * { overflow: hidden; }
+.dept-head { padding: 4px 8px 6px; border-bottom: 1px solid var(--parchment-line);
+  font-family: var(--mono); font-size: var(--text-2xs); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ink-muted); }
+.dept-group { margin-top: 10px; }
+.dept-group h4 { margin: 0 0 2px; padding: 0 8px; font-family: var(--serif);
+  font-size: var(--text-sm); font-weight: 400; font-style: italic; color: var(--ink-muted); }
 
-   The columns are masonry-ish rather than a grid of equal rows: `columns`
-   keeps a two-card department from being stretched to the height of an
-   eight-card one, and break-inside keeps a section from being split down
-   the middle of somebody's card. */
-.faculty-fields { columns: 2; column-gap: 16px; }
-.faculty-field { break-inside: avoid; display: inline-block; width: 100%;
-  margin: 0 0 16px; padding: 10px 12px;
-  background: var(--parchment); border: 1px solid var(--parchment-line);
-  border-radius: var(--radius-lg); }
-.faculty-field-head { display: flex; align-items: baseline; justify-content: space-between;
-  gap: 10px; margin-bottom: 8px; padding-bottom: 6px;
-  border-bottom: 1px solid var(--parchment-line-lo); }
-.faculty-field-head h3 { margin: 0; font-family: var(--serif); font-size: var(--text-md);
-  color: var(--ink); text-transform: uppercase; letter-spacing: 0.06em; }
-/* A field section is not a .panel, so it does not inherit .panel .stat —
-   the slot arithmetic is the second most important thing in the header and
-   must not read as a watermark. */
-.faculty-field .stat { font-family: var(--mono); color: var(--ink-muted); font-size: var(--text-sm);
-  white-space: nowrap; }
-/* A department that cannot start the course waiting on it. Same alarmed
-   register the funds figure uses, because it is the same kind of fact: a
-   thing the school wants to do and currently cannot. */
-.faculty-field-short { color: var(--danger-ink); font-weight: 700; }
-.faculty-field .faculty-list { max-height: none; overflow: visible; }
-/* The market, underneath the people who already work here, separated
-   rather than in a panel of its own. */
+.dept-row { width: 100%; padding: 3px 8px; border: none; background: none;
+  border-radius: var(--radius-sm); text-align: left; color: var(--ink); }
+.dept-row:hover { background: rgba(160, 140, 90, 0.12); }
+.dept.open > .dept-row { background: rgba(160, 140, 90, 0.16); }
+.dept-name { display: flex; align-items: center; gap: 5px; min-width: 0;
+  font-size: var(--text-sm); font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dept-caret { color: var(--gold-dim); font-size: var(--text-2xs); }
+/* A department that does not exist yet is still a row — that is the whole
+   point — but it is not competing for attention with the ones that do. */
+.dept-row.empty .dept-name { color: var(--ink-muted); font-weight: 400; }
+.dept-slots, .dept-catalogue { font-family: var(--mono); font-size: var(--text-xs);
+  color: var(--ink-muted); text-align: right; white-space: nowrap; }
+.dept-row .dept-slots { color: var(--ink); }
+.dept-people { display: flex; gap: 8px; font-family: var(--mono);
+  font-size: var(--text-2xs); color: var(--ink-muted); white-space: nowrap; }
+.dept-listed { color: var(--ok-on-light); }
+.dept-note { font-family: var(--mono); font-size: var(--text-2xs);
+  text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
+.dept-note.over { color: var(--danger-ink); font-weight: 700; }
+.dept-note.short { color: var(--warn-on-light); font-weight: 700; }
+.dept-note.empty { color: var(--ink-lo); }
+
+/* ---------- the capacity meter ----------
+   Four quantities on one track, drawn to a scale shared by every
+   department on the board (see facultyCapacity.ts's `scale`): the solid
+   ink is what the current courseload takes, the half-tone what is revealed
+   and not yet developed, the dotted tail the rest of the catalogue, and
+   the upright rule is what the roster supplies.
+
+   The rule is the only thing on the row that hiring moves, so it is the
+   only thing drawn as a hard edge — and it changes colour rather than
+   position when the department is in trouble, because "my ceiling is
+   below my courseload" and "my ceiling is where I put it" are the same
+   geometry read two different ways. */
+.capacity-meter { display: block; min-width: 0; }
+.capacity-track { position: relative; display: flex; height: 11px; border-radius: var(--radius-xs);
+  background: #e4dcc5; overflow: hidden; }
+.capacity-seg { display: block; height: 100%; }
+.capacity-seg.offered { background: var(--brass-deep); }
+.capacity-seg.available { background: #c9b177; }
+/* The long view, and deliberately the faintest thing on the row: real, but
+   not something that can be acted on this week. */
+.capacity-seg.locked { background: repeating-linear-gradient(90deg,
+  #d7cdb3 0 2px, transparent 2px 6px); }
+/* The hairline outline is what keeps the rule readable wherever it lands:
+   against the dark brass of a department teaching at its limit, against
+   the empty track of one teaching nothing, and against the dotted tail in
+   between. Without it, the single most important mark on the row
+   disappears exactly when the department is in the most trouble. */
+.capacity-rule { position: absolute; top: -1px; bottom: -1px; width: 2px;
+  margin-left: -1px; background: var(--ink); border-radius: 1px;
+  box-shadow: 0 0 0 1px rgba(236, 227, 208, 0.85); }
+/* Where supply WOULD be without a research commitment — the answer to "my
+   department went short and I did not hire or fire anybody". */
+/* A department supplying nothing at all. The rule belongs at the very
+   start of the track, and half of it would otherwise be clipped by the
+   track's own overflow — which would read as "no rule" rather than as
+   "no slots", the two things this instrument must never confuse. */
+.capacity-rule.at-zero { margin-left: 0; }
+.capacity-rule.gross { width: 1px; background: var(--ink-muted); opacity: 0.55; }
+/* Pinned at the end of the track: hired past the whole catalogue. Drawn as
+   a thicker edge riding the rail rather than as a line inside it. */
+.capacity-rule.beyond { width: 3px; margin-left: -3px; background: var(--ok-on-light); }
+.capacity-meter.over .capacity-rule { background: var(--danger-ink); }
+.capacity-meter.short .capacity-rule { background: var(--warn-on-light); }
+
+.capacity-legend { display: flex; align-items: center; gap: 10px; min-width: 0;
+  overflow: hidden; white-space: nowrap; }
+.capacity-key-pair { display: flex; align-items: center; gap: 4px; }
+.capacity-key { width: 10px; height: 8px; border-radius: 1px; flex: none; }
+.capacity-key.offered { background: var(--brass-deep); }
+.capacity-key.available { background: #c9b177; }
+.capacity-key.locked { background: repeating-linear-gradient(90deg, #cdc0a0 0 2px, transparent 2px 4px); }
+.capacity-key.rule { width: 2px; height: 11px; background: var(--ink); }
+
+/* ---------- an opened department ---------- */
+.dept-body { padding: 6px 8px 14px 24px; }
+.dept-demand { margin: 0 0 8px; font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.45; }
+.dept-body .empty-note { margin: 0 0 6px; }
 .faculty-market-head { display: flex; align-items: baseline; justify-content: space-between;
   gap: 8px; margin: 10px 0 6px; padding-top: 8px;
   border-top: 1px dashed var(--parchment-line-lo);
   font-family: var(--mono); font-size: var(--text-2xs); text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--ink-muted); }
+
+/* Roster / market / both, and the bulk expander beside it. Small chrome:
+   these switch what a long page is FOR, so they sit in the board's header
+   rather than floating above the page. */
+.dept-views, .dept-bulk { display: flex; gap: 4px; }
+.dept-view, .dept-bulk button { font-family: var(--mono); font-size: var(--text-2xs);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 3px 9px; border-radius: var(--radius-pill);
+  border: 1px solid var(--parchment-line); background: transparent; color: var(--ink-muted); }
+.dept-view.on { background: var(--brass-deep); border-color: var(--brass-deep); color: var(--ink-hi); }
+.dept-bulk { margin-left: auto; }
+
+/* The school-wide sentence above the board: the only place the long view
+   is stated in PEOPLE rather than in slots. */
+.faculty-horizon { margin: 8px 0 0; font-size: var(--text-sm); color: var(--ink-muted); line-height: 1.5; }
+.faculty-horizon strong { font-family: var(--mono); color: var(--ink); }
 .faculty-summary .panel-head { flex-wrap: wrap; }
 .faculty-summary .panel-head .stat + .stat { margin-left: 12px; }
 
+/* Narrow surfaces drop the two figure columns that the meter already says
+   in shape — the meter itself never goes, because it is the row. */
 @media (max-width: 1100px) {
-  .faculty-fields { columns: 1; }
+  .dept-head, .dept-row { grid-template-columns: 150px minmax(90px, 1fr) 72px 84px; }
+  .dept-catalogue, .dept-people { display: none; }
 }
 
 /* The always-visible second line on a candidate row: field, stats, price,

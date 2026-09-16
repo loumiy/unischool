@@ -58,13 +58,30 @@ export const SAVE_KEY = 'unischool.save';
 
 // Bump this whenever GameState's SHAPE changes in a way an older save
 // can't satisfy — a new required field, a renamed/retyped field, a changed
-// meaning for an existing one. An older save is then carried forward by a
-// MIGRATIONS entry (below) if the change is recoverable, and discarded so
-// the player starts fresh if it isn't: a silently half-loaded run is worse
-// than an obviously new one.
+// meaning for an existing one.
 //
 // Additive OPTIONAL fields don't need a bump — they read as absent, which
 // is what they'd be in a new game too.
+//
+// THE BUMP IS THE WHOLE OBLIGATION. A save no MIGRATIONS entry covers is
+// discarded and the player starts fresh, and that is the DEFAULT, not a
+// failure: the game is in development and is not deployed anywhere, so
+// the only saves that exist anywhere are in a developer's own browser. A
+// silently half-loaded run is worse than an obviously new one; a run
+// dropped between two builds of an unreleased game costs nothing worth
+// this much code.
+//
+// Write a MIGRATIONS entry only when there is a specific run worth
+// carrying — a playtest in progress that the change would otherwise
+// throw away. That is a deliberate exception, taken run by run, and it
+// is cheapest when the migration can be a few lines. What the chain must
+// never do is decide the DESIGN: if a field wants renaming, rename it and
+// let the save drop. See docs/architecture/game-state.md.
+//
+// The per-version log below is the record of the chain as it stands
+// (v3 -> v40), written under the earlier policy of migrating every shape
+// change. It is history, not a template — a new version does not owe it
+// an entry.
 // v2: the growth-loop tuning pass added two required Finance fields
 // (appropriationPerStudentPerYear, endowmentCampaigns) and rebalanced
 // every cost/revenue constant, so a v1 save would both crash on the
@@ -1125,6 +1142,16 @@ interface LegacyGameState extends GameState {
 // evidence available about which half is which.
 const KNOWN_SUFFIXES = ['College', 'University'];
 
+// The chain, keyed on the version each entry migrates FROM. Entries 3..39
+// were written when every shape change was migrated as a matter of course;
+// they are kept because they are already paid for and deleting them would
+// strand any save still sitting in a developer's browser.
+//
+// The table does NOT grow by default. A new SAVE_VERSION leaves the gap,
+// the load path returns null, and the player starts a new run — see the
+// policy note above SAVE_VERSION. Add an entry only for a specific run
+// worth carrying, and delete the whole chain freely once nothing is
+// resuming from it.
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   // v44 -> v45: every campus gains a vernacular (see the SAVE_VERSION
   // header note above). There is one, and every standing campus was drawn
