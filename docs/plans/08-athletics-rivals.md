@@ -1,4 +1,4 @@
-# Plan 07 — Athletics, and the field it plays in
+# Plan 08 — Athletics, and the field it plays in
 
 *Planning document only — no gameplay code is changed by this file. Its job is
 to take `BACKLOG.md`'s two entangled entries — **Athletics V3** and **Rival
@@ -98,7 +98,7 @@ add playoff brackets.
 
 **So this plan takes the other reading: two new numbers beside the existing one,
 never inside it.** `computePrestigeTarget` is not touched by any PR here. Its
-inputs, weights, baseline, drift rate and clamps are the same after Plan 07 as
+inputs, weights, baseline, drift rate and clamps are the same after Plan 08 as
 before it, and PR 1B's own verification is that `npm run sim` prints byte-
 identical prestige columns. Three consequences worth stating plainly:
 
