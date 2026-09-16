@@ -2248,8 +2248,12 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    from one side, not a stack of differently-tinted parts. All the depth
    comes from .facade-line's thin strokes (mouldings, flutes, the roof's
    inset trim), the same way the reference photo's shading does it. */
-.facade-stone { fill: #e3d3a3; stroke: var(--gold-dim); stroke-width: 1; stroke-linejoin: round; }
-.facade-line { fill: none; stroke: var(--gold-dim); stroke-width: 0.6; opacity: 0.55; }
+/* The facade's own sky. Everything ELSE in the drawing takes its colour
+   from the vernacular at runtime (see StartupScreen's SchoolFacade), because
+   the picture is a live preview of the set the campus will be built in and a
+   hand-tinted illustration would drift from the map the first time a palette
+   moved. This is the one surface that is not part of the building. */
+.facade-sky { fill: #dfe2d8; }
 .facade-banner-text { fill: #6b4423; font-family: var(--serif); font-weight: 700; letter-spacing: 0.05em; }
 
 .startup-begin-btn { width: 100%; background: var(--gold); color: #1a2035; border: none; border-radius: var(--radius-md);

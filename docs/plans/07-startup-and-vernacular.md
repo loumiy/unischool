@@ -687,6 +687,26 @@ the *whole front*, and the four are the *engaged centre bay*. Recording that
 here because "one of them has to move" was the wrong conclusion from the right
 observation.
 
+**As implemented:** the facade is Founders Hall and every colour and part in
+it is read from `VERNACULARS` at render time, so a set cannot be added to the
+game without this screen showing it, and this screen cannot drift from the
+map by being hand-tinted to match. Four crowns, four landmarks, four ground
+orders: pediment/cupola/colonnade, steep gable/spire/buttressed lancets,
+slab edge/stair core/piers-and-ribbon, tile overhang/campanile/round arcade.
+
+*It needed a sky.* The old drawing was gold-on-parchment and read against
+the card. A real palette does not: Georgian's trim is cream, the card is
+cream, and the first pass drew a pediment that simply was not there. One
+neutral panel behind the building fixes it and gives the crown something to
+be a silhouette against, which is most of how a roofline reads at all.
+
+Two defects the screenshots caught that the source looked fine for: the
+Gothic gable was built from a hand-written point list that was **not
+symmetric** — apex on centre, base from the left edge to 34px right of it —
+so it drew a wedge rather than a roof; and the spire sat entirely behind its
+own gable, invisible. Both were arithmetic, and neither is the kind of thing
+reading the code finds.
+
 ### PR K — Choose the vernacular at founding
 
 Four cards in the slot PR C vacated, and the facade above redraws live as the
