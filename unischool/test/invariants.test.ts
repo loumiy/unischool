@@ -48,7 +48,7 @@ function assert(cond: boolean, msg: string): void {
 }
 
 function fresh(): GameState {
-  return createInitialState('Invariants', 'private');
+  return createInitialState('Invariants');
 }
 
 // Directly staffs a field with a generously-slotted hire, bypassing the
@@ -178,7 +178,7 @@ function relPath(f: string): string {
   // A founded college opens with all four class years present and BALANCED
   // (each class within one student of the others), sized to FOUNDING_BODY —
   // the steady state that de-lumps the early admissions cycles. See
-  // actions.ts's createInitialState / FOUNDING_CLASSES in schoolTypeData.ts.
+  // actions.ts's createInitialState / FOUNDING_CLASSES in foundingData.ts.
   const fc = s.students.classes;
   assert(fc.freshman > 0 && fc.sophomore > 0 && fc.junior > 0 && fc.senior > 0,
     'founding body has all four classes populated, not freshmen only');

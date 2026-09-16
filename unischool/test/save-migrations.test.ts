@@ -33,7 +33,9 @@ import { RESEARCH_STANDING_BASELINE, SOCIAL_STANDING_BASELINE } from '../src/sys
 import { researchSchools } from '../src/data/techData';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import { isUnstaffed, usedFacultySlots, facultyLoad } from '../src/systems/techtree/techSystem';
-import { annualTuitionBilled } from '../src/systems/finance/financeSystem';
+import { annualTuitionBilled, financeBreakdown } from '../src/systems/finance/financeSystem';
+import { TUITION_SLIDER_MAX } from '../src/data/foundingData';
+import { reducer } from '../src/engine/reducer';
 
 // In-memory localStorage so the persistence module works under Node. Assigned
 // before any loadGame/saveGame call (module imports run first, but nothing in
@@ -69,7 +71,7 @@ function writeSave(version: number, state: unknown): void {
 // slice a sanitizer touches is valid) and DOWNGRADING the few fields the
 // v18->v21 migrations touch back to their old shape.
 function makeV18Save(): void {
-  const base = createInitialState('Migrator', 'private');
+  const base = createInitialState('Migrator');
   const state = JSON.parse(JSON.stringify(base)) as Loose;
 
   // Old milestone keys (pre-PR-C curriculum terminology).
@@ -149,7 +151,7 @@ function testForwardMigration(): void {
 // MIGRATIONS[21] (v21 -> v22) exists to re-point. See the long comment
 // above SAVE_VERSION and above MIGRATIONS[21] in persistence.ts.
 function makeV21ArtsSave(): void {
-  const base = createInitialState('ArtsMigrator', 'private');
+  const base = createInitialState('ArtsMigrator');
   const state = JSON.parse(JSON.stringify(base)) as Loose;
   const tech = state.tech as Array<Loose>;
   const node = (id: string): Loose => tech.find((n) => n.id === id) as Loose;
@@ -221,7 +223,7 @@ function testArtsCapstoneRepoint(): void {
 // look) with a mix of locked/available/done tech and a nonempty candidate
 // pool, so MIGRATIONS[22]'s seeding has something real to prove.
 function makeV22Save(): void {
-  const base = createInitialState('Seeder', 'private');
+  const base = createInitialState('Seeder');
   const state = JSON.parse(JSON.stringify(base)) as Loose;
   delete state.seen;
   writeSave(22, state);
@@ -264,7 +266,7 @@ function testSeenSeeded(): void {
 // "needed" at founding (every founding hire has a spare course slot beyond
 // their own gen-ed course), so there is nothing to pre-seed there.
 function testFoundingSeenExcludesStartingContent(): void {
-  const fresh = createInitialState('Fresh Start', 'private');
+  const fresh = createInitialState('Fresh Start');
 
   const visibleCourses = fresh.tech.filter((t) => t.kind === 'course' && t.status !== 'locked');
   assert(visibleCourses.length > 0, 'a founding school has at least one visible course (the gen-ed core)');
@@ -288,7 +290,7 @@ function testFoundingSeenExcludesStartingContent(): void {
 // re-point. See the long comment above SAVE_VERSION and above
 // MIGRATIONS[24] in persistence.ts.
 function makeV24GenderedSportsSave(): void {
-  const base = createInitialState('GenderMigrator', 'private');
+  const base = createInitialState('GenderMigrator');
   const state = JSON.parse(JSON.stringify(base)) as Loose;
 
   state.orgs = {
@@ -392,7 +394,7 @@ function testGenderedSportsMigration(): void {
 
 // ---- Test: v27's boolean varsityAsked converts to varsityLastAskedYear ----
 function testVarsityAskedMigration(): void {
-  const base = createInitialState('VarsityMigrator', 'private');
+  const base = createInitialState('VarsityMigrator');
   const state = JSON.parse(JSON.stringify(base)) as Loose;
   state.clock = { year: 9, week: 3 };
   state.orgs = {
@@ -431,7 +433,7 @@ function testVarsityAskedMigration(): void {
 // ---- Test: v28 -> v29 Athletics V2 (coachName -> headCoach, the budget
 // rename, and rivals gaining athleticStrength) ----
 function testAthleticsV2Migration(): void {
-  const base = createInitialState('AthleticsMigrator', 'private');
+  const base = createInitialState('AthleticsMigrator');
   const state = JSON.parse(JSON.stringify(base)) as Loose;
   state.clock = { year: 5, week: 10 };
   state.orgs = {
@@ -490,7 +492,7 @@ function testAthleticsV2Migration(): void {
 // tuition line against the old model's own arithmetic.
 function testPerClassTuitionMigration(): void {
   clearSave();
-  const base = createInitialState('Pricer', 'private');
+  const base = createInitialState('Pricer');
   const state = JSON.parse(JSON.stringify(base)) as Loose;
 
   const finance = state.finance as Loose;
@@ -534,16 +536,121 @@ function testPerClassTuitionMigration(): void {
     `migrated tuition revenue is unchanged to the dollar (got ${actual}, expected ${expected})`);
 }
 
+// ---- v41 -> v42: the tuition ceiling stops being a school-type fact ----
+// The claim is that this is a pure widening: the field goes, and nothing a
+// resumed school CHARGES moves. Worth checking on a PUBLIC save, because
+// that is the one whose cap was real — 22,000, and low enough to bind. A
+// migration that "helpfully" clamped or reset a price on the way through
+// would show up as a changed tuition line here, and would be exactly the
+// kind of silent repricing the SAVE_VERSION note promises does not happen.
+function testTuitionCeilingRemoval(): void {
+  clearSave();
+  const base = createInitialState('Capped State');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+
+  const finance = state.finance as Loose;
+  // A v41 public save: carrying its own ceiling, and priced AT it — the
+  // pinned case, which is the only one that could notice this migration.
+  finance.tuitionCeiling = 22_000;
+  finance.listedTuition = 22_000;
+  finance.tuitionByClass = {
+    freshman: 22_000, sophomore: 22_000, junior: 22_000, senior: 22_000,
+  };
+
+  writeSave(41, state);
+  const loaded = loadGame();
+  assert(loaded !== null, 'v41 save loads');
+  if (!loaded) return;
+
+  assert((loaded.finance as unknown as Loose).tuitionCeiling === undefined,
+    'the per-school-type ceiling is removed from state');
+  assert(loaded.finance.listedTuition === 22_000,
+    `the listed price is untouched (got ${loaded.finance.listedTuition})`);
+  const byClass = loaded.finance.tuitionByClass;
+  assert(
+    byClass.freshman === 22_000 && byClass.sophomore === 22_000
+      && byClass.junior === 22_000 && byClass.senior === 22_000,
+    'every class still pays exactly what it was admitted under',
+  );
+
+  // The widening itself: what the school may charge NEXT is the shared
+  // bound, not the cap this save was founded with. Asserted against the
+  // reducer rather than against the constant, because the reducer's clamp
+  // is what actually decides it.
+  const raised = reducer(loaded, {
+    type: 'RESOLVE_ADMISSIONS',
+    tuition: 38_000, admitRate: loaded.students.admitRate, approvedPetitionIds: [],
+  });
+  assert(raised.finance.listedTuition === 38_000,
+    `a resumed public school may now price above its old cap (got ${raised.finance.listedTuition})`);
+
+  // And the bound still bounds — this is a widening, not a removal.
+  const absurd = reducer(loaded, {
+    type: 'RESOLVE_ADMISSIONS',
+    tuition: TUITION_SLIDER_MAX + 50_000, admitRate: loaded.students.admitRate, approvedPetitionIds: [],
+  });
+  assert(absurd.finance.listedTuition === TUITION_SLIDER_MAX,
+    `the shared bound still clamps (got ${absurd.finance.listedTuition})`);
+}
+
+// ---- v42 -> v43: the state appropriation is retired ----
+// Unlike most migrations here this one deliberately COSTS a resumed school
+// money, so the check is that it costs exactly the right amount and nothing
+// else: both fields go, the weekly income drops by precisely what the two
+// halves were paying, and not a dollar of what the school HAS moves.
+function testAppropriationRemoval(): void {
+  clearSave();
+  const base = createInitialState('Land Grant');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+
+  const finance = state.finance as Loose;
+  finance.baselineFundingPerWeek = 7_000;
+  finance.appropriationPerStudentPerYear = 5_500;
+  const cashBefore = finance.cash as number;
+  const endowmentBefore = finance.endowment as number;
+
+  writeSave(42, state);
+  const loaded = loadGame();
+  assert(loaded !== null, 'v42 save loads');
+  if (!loaded) return;
+
+  const loose = loaded.finance as unknown as Loose;
+  assert(loose.baselineFundingPerWeek === undefined,
+    'the flat institutional grant is removed from state');
+  assert(loose.appropriationPerStudentPerYear === undefined,
+    'the per-student allocation is removed from state');
+
+  // What the school HAS is untouched — only the line topping up its weekly
+  // net is gone. A migration that also clawed back accumulated cash would
+  // be taking something the SAVE_VERSION note promises it does not.
+  assert(loaded.finance.cash === cashBefore, 'cash is untouched');
+  assert(loaded.finance.endowment === endowmentBefore, 'the endowment is untouched');
+  assert(loaded.finance.listedTuition === base.finance.listedTuition,
+    'the listed price is untouched');
+
+  // And the income statement has no appropriation line left to read them
+  // into. Three income lines, none of them a subsidy.
+  const flow = financeBreakdown(loaded);
+  assert((flow as unknown as Loose).baselineFunding === undefined,
+    'financeBreakdown no longer reports a baseline funding line');
+  assert(
+    Math.abs(flow.totalIncome - (flow.tuitionRevenue + flow.prestigeRevenue + flow.endowmentPayout)) < 1e-6,
+    'total income is exactly tuition + reputation dividend + endowment payout',
+  );
+}
+
 // ---- Test: a current-version save round-trips unchanged ----
 function testRoundTrip(): void {
   clearSave();
-  const cur = createInitialState('RoundTrip', 'public');
+  const cur = createInitialState('RoundTrip');
   assert(saveGame(cur), 'saveGame reports success');
   const loaded = loadGame();
   assert(loaded !== null, 'current-version save loads');
   if (!loaded) return;
   assert(loaded.self.name === 'RoundTrip', 'name survives round trip');
-  assert(loaded.self.schoolType === 'public', 'school type survives round trip');
+  assert((loaded.self as unknown as Loose).schoolType === undefined,
+    'no schoolType on a current-version save');
+  assert(loaded.self.reputation === cur.self.reputation, 'founding prestige survives round trip');
   assert(
     JSON.stringify(loaded.students.classes) === JSON.stringify(cur.students.classes),
     'founding class mix survives round trip',
@@ -559,7 +666,7 @@ function testRoundTrip(): void {
 // hall they have not is replaced by the seed. Plus the founding woodland,
 // which a resumed campus gets a real one of.
 function makeV29Save(): void {
-  const base = createInitialState('CampusMigrator', 'private');
+  const base = createInitialState('CampusMigrator');
   const state = JSON.parse(JSON.stringify(base)) as Loose;
   const tech = state.tech as Array<Loose>;
   const node = (id: string): Loose => tech.find((n) => n.id === id) as Loose;
@@ -653,7 +760,7 @@ function testCampusContentMigration(): void {
 // two consequences the header note calls out, an emptied department
 // resuming unstaffed and its slots coming back.
 function makeV30Save(): void {
-  const base = createInitialState('Assigner', 'private');
+  const base = createInitialState('Assigner');
   const state = JSON.parse(JSON.stringify(base)) as Loose;
 
   const tech = state.tech as Array<Record<string, unknown>>;
@@ -752,7 +859,7 @@ function testCourseFacultyMigration(): void {
 
 // ---- The sanitizer drops assignments that no longer name a real pairing ----
 function testCourseFacultySanitizer(): void {
-  const base = createInitialState('Sanitizer', 'private');
+  const base = createInitialState('Sanitizer');
   const state = JSON.parse(JSON.stringify(base)) as Loose;
   const tech = state.tech as Array<Record<string, unknown>>;
   tech.find((n) => n.id === 'GE110')!.status = 'done';
@@ -783,7 +890,7 @@ function testCourseFacultySanitizer(): void {
 // reads them straight off the chapter, and an undefined here is an empty
 // pediment on every chapter house the player has built.
 function testChapterGlyphs(): void {
-  const base = createInitialState('Hellenic', 'private');
+  const base = createInitialState('Hellenic');
   const state = JSON.parse(JSON.stringify(base)) as Loose;
   const orgs = state.orgs as Record<string, unknown>;
   orgs.chapters = [
@@ -833,7 +940,7 @@ function testChapterGlyphs(): void {
 // already started them (see MIGRATIONS[31], and MIGRATIONS[29]'s identical
 // built/unbuilt split).
 function makeV31Save(): void {
-  const base = createInitialState('Scholar', 'private');
+  const base = createInitialState('Scholar');
   const state = JSON.parse(JSON.stringify(base)) as Loose;
   const tech = state.tech as Array<Record<string, unknown>>;
   const node = (id: string) => tech.find((n) => n.id === id);
@@ -890,7 +997,7 @@ function testScholarshipMigration(): void {
   assert(node('HIST210')!.status === 'done', 'and stays done');
 }
 
-// ---- Test: v41 -> v42, the field grows to 100 and everybody gets a mascot ----
+// ---- Test: v45 -> v46, the field grows to 100 and everybody gets a mascot ----
 //
 // This entry is an exception under the current policy (see the SAVE_VERSION
 // header note in persistence.ts: it exists to keep the v3 -> v40 chain
@@ -906,7 +1013,7 @@ function testHundredSchoolFieldMigration(): void {
   const state = JSON.parse(JSON.stringify(base)) as Loose;
   state.clock = { year: 22, week: 30 };
 
-  // A v41 save: 55 rivals, none with a mascot, and no mascot on the school.
+  // A v45 save: 55 rivals, none with a mascot, and no mascot on the school.
   const rivals = (state.rivals as Loose[]).slice(0, 55);
   for (const r of rivals) delete r.mascot;
   // Two have drifted a long way from where they were authored — one up, one
@@ -916,10 +1023,10 @@ function testHundredSchoolFieldMigration(): void {
   rivals[4].reputation = 19.75;
   state.rivals = rivals;
   delete (state.self as Loose).mascot;
-  writeSave(41, state);
+  writeSave(45, state);
 
   const loaded = loadGame();
-  assert(loaded !== null, 'v41 save loads (does not fall back to null)');
+  assert(loaded !== null, 'v45 save loads (does not fall back to null)');
   if (!loaded) return;
 
   assert(loaded.rivals.length === 99, `the field grows to 99 rivals (got ${loaded.rivals.length})`);
@@ -965,7 +1072,7 @@ function testHundredSchoolFieldMigration(): void {
   );
 }
 
-// ---- Test: v42 -> v43, standing becomes three numbers ----
+// ---- Test: v46 -> v47, standing becomes three numbers ----
 //
 // The claim worth testing is the asymmetry between the two sides. A RIVAL's
 // two standings are derived from what the save already holds — and from its
@@ -979,7 +1086,7 @@ function testThreeStandingsMigration(): void {
   const state = JSON.parse(JSON.stringify(base)) as Loose;
   state.clock = { year: 22, week: 30 };
 
-  // A v42 save: mascots present (v42 added them), the three new numbers not.
+  // A v46 save: mascots present (v45 added them), the three new numbers not.
   (state.self as Loose).reputation = 118.25;
   delete (state.self as Loose).socialStanding;
   delete (state.self as Loose).researchStanding;
@@ -992,10 +1099,10 @@ function testThreeStandingsMigration(): void {
     delete r.socialMomentum;
     delete r.researchMomentum;
   }
-  writeSave(42, state);
+  writeSave(46, state);
 
   const loaded = loadGame();
-  assert(loaded !== null, 'v42 save loads (does not fall back to null)');
+  assert(loaded !== null, 'v46 save loads (does not fall back to null)');
   if (!loaded) return;
 
   // The player keeps the academic standing they earned, and starts the other
@@ -1037,7 +1144,7 @@ function testThreeStandingsMigration(): void {
     `nor are those two copies of each other (${agree(byResearch, bySocial)} of ${loaded.rivals.length} in the same place)`);
 }
 
-// ---- Test: v43 -> v44, athletic strength starts moving ----
+// ---- Test: v47 -> v48, athletic strength starts moving ----
 //
 // The small one. What is worth asserting is what it does NOT do: a saved
 // rival's athleticStrength has been sitting still because nothing moved it,
@@ -1051,10 +1158,10 @@ function testAthleticDriftMigration(): void {
   const rivals = state.rivals as Loose[];
   rivals[0].athleticStrength = 63;
   for (const r of rivals) delete r.athleticMomentum;
-  writeSave(43, state);
+  writeSave(47, state);
 
   const loaded = loadGame();
-  assert(loaded !== null, 'v43 save loads (does not fall back to null)');
+  assert(loaded !== null, 'v47 save loads (does not fall back to null)');
   if (!loaded) return;
 
   const missing = loaded.rivals.filter((r) => typeof r.athleticMomentum !== 'number');
@@ -1103,6 +1210,8 @@ testCourseFacultySanitizer();
 testChapterGlyphs();
 testScholarshipMigration();
 testPerClassTuitionMigration();
+testTuitionCeilingRemoval();
+testAppropriationRemoval();
 testHundredSchoolFieldMigration();
 testThreeStandingsMigration();
 testAthleticDriftMigration();

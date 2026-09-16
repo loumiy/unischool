@@ -98,7 +98,7 @@ function checkSums(s: GameState, when: string): void {
   }
 }
 {
-  let s = createInitialState('Summer', 'private');
+  let s = createInitialState('Summer');
   checkSums(s, 'at founding');
   for (let y = 0; y < 5; y += 1) s = playYearAt(s, 18_000);
   checkSums(s, 'after five years');
@@ -114,7 +114,7 @@ function checkSums(s: GameState, when: string): void {
 // this year's sophomore split, exactly.
 // =====================================================================
 {
-  let s = createInitialState('Advancer', 'private');
+  let s = createInitialState('Advancer');
   s = playYearAt(s, 17_000); // one year first, so the founding prior is not the thing being tested
   const before: ClassCohorts = s.students.cohortsByClass;
   const departing = before.senior;
@@ -140,7 +140,7 @@ function checkSums(s: GameState, when: string): void {
 // than a mix implying choices nobody made.
 // =====================================================================
 {
-  const s = createInitialState('Founder', 'private');
+  const s = createInitialState('Founder');
   for (const k of CLASS_KEYS) {
     const expected = baseShareCohortCounts(s.students.classes[k]);
     for (const c of COHORTS) {
@@ -158,7 +158,7 @@ function checkSums(s: GameState, when: string): void {
   // A v39 save is a current-shape state with cohortsByClass simply absent —
   // the field did not exist to be written. Seeded at v39 and run through the
   // real loadGame path, sanitizers and all.
-  const founded = createInitialState('Legacy', 'private');
+  const founded = createInitialState('Legacy');
   const legacy = JSON.parse(JSON.stringify(founded)) as Record<string, unknown>;
   delete (legacy.students as Record<string, unknown>).cohortsByClass;
   // The version is a LITERAL, not SAVE_VERSION - 1. This fixture describes
@@ -195,7 +195,7 @@ function checkSums(s: GameState, when: string): void {
 // students. If this fails, something has started deriving the split.
 // =====================================================================
 {
-  let s = createInitialState('Builder', 'private');
+  let s = createInitialState('Builder');
   s = playYearAt(s, 16_000);
   const admittedBefore = { ...s.students.cohortsByClass.freshman };
   const beforeSignalsCount = s.tech.filter((t) => t.status === 'done').length;
@@ -223,7 +223,7 @@ function checkSums(s: GameState, when: string): void {
 // the bars stop rendering entirely.
 // =====================================================================
 {
-  const founded = createInitialState('Postgrad', 'private');
+  const founded = createInitialState('Postgrad');
   const legacy = JSON.parse(JSON.stringify(founded)) as Record<string, unknown>;
   const byClass = (legacy.students as Record<string, Record<string, Record<string, number>>>).cohortsByClass;
   for (const k of CLASS_KEYS) delete byClass[k].gradBound; // what a v40 save actually holds

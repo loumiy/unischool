@@ -37,7 +37,9 @@
     "test:groundsite": "rolldown test/ground-site.test.ts -o node_modules/.tmp/ground-site.test.mjs -f esm -p node && node node_modules/.tmp/ground-site.test.mjs",
     "test:library": "rolldown test/library-renovation.test.ts -o node_modules/.tmp/library-renovation.test.mjs -f esm -p node && node node_modules/.tmp/library-renovation.test.mjs",
     "test:hotkeys": "rolldown test/hotkey-gates.test.ts -o node_modules/.tmp/hotkey-gates.test.mjs -f esm -p node && node node_modules/.tmp/hotkey-gates.test.mjs",
-    "test:standings": "rolldown test/sport-standings.test.ts -o node_modules/.tmp/sport-standings.test.mjs -f esm -p node && node node_modules/.tmp/sport-standings.test.mjs"
+    "test:standings": "rolldown test/sport-standings.test.ts -o node_modules/.tmp/sport-standings.test.mjs -f esm -p node && node node_modules/.tmp/sport-standings.test.mjs",
+    "shot:save": "rolldown tools/makeSave.ts -o node_modules/.tmp/makeSave.mjs -f esm -p node && node node_modules/.tmp/makeSave.mjs",
+    "shot": "node tools/shoot.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",
@@ -50,6 +52,7 @@
     "@vitejs/plugin-react": "^6.1.0",
     "oxlint": "^1.79.0",
     "typescript": "~6.0.2",
-    "vite": "^8.2.2"
+    "vite": "^8.2.2",
+    "playwright-core": "^1.56.0"
   }
 }

@@ -107,7 +107,7 @@ function runOne(strategyName: string, years: number): void {
   const result = play(strategy, years, onWeek);
   const last = result.rows[result.rows.length - 1];
 
-  console.log(`\n=== ${strategyName} (${strategy.schoolType}) — cutoff ${years} game-years ===`);
+  console.log(`\n=== ${strategyName} — cutoff ${years} game-years ===`);
   for (const [label, w] of Object.entries(hitWeek)) {
     if (w === null) {
       const m = MILESTONES.find((x) => x.label === label);

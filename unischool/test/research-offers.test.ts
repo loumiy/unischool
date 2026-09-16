@@ -46,7 +46,7 @@ function assert(cond: boolean, msg: string): void {
 // A campus with every research facility standing, which is the only state
 // in which every lab's pool can be asked about at once.
 function fullyEquipped(): GameState {
-  const s = createInitialState('Ashcombe', 'private');
+  const s = createInitialState('Ashcombe');
   for (const t of s.tech) {
     if (t.kind === 'facility' && t.facilityType === 'lab') t.status = 'done';
   }

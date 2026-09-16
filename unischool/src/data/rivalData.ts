@@ -11,13 +11,13 @@ import type { Rival } from '../state/types';
 // it).
 //
 // TWO BANDS, and the split is load-bearing rather than tidy. The first 55
-// (r1-r55) span 45 to 99 and none of them starts below ~45: the player
-// begins at 35-50 depending on school type (see schoolTypeData.ts), so
-// that whole band starts ranked above a fresh university, and cracking the
-// top 50 means passing the same handful of schools it has always meant.
-// The other 44 (r56-r99) are the TAIL, authored deliberately BELOW that
-// floor — see the block comment above them for why the field had to grow
-// downward and what the tail buys.
+// (r1-r55) span 45 to 99 and none of them starts below ~45: a founding
+// school opens at 50 (see foundingData.ts's FOUNDING_PRESET), so that whole
+// band starts at or above a fresh university, and cracking the top 50 means
+// passing the same handful of schools it has always meant. The other 44
+// (r56-r99) are the TAIL, authored deliberately BELOW that floor — see the
+// block comment above them for why the field had to grow downward and what
+// the tail buys.
 //
 // Every school also carries a MASCOT. Nothing mechanical reads it: it is
 // what lets a standings row read as a sports page rather than a
@@ -317,13 +317,18 @@ function baseRivals(): AuthoredRival[] {
     // entry threshold costs exactly the prestige it did before and not one
     // constant moves.
     //
-    // What they buy is the other half: a field the player is INSIDE from
-    // week one. A private school opens at 50 (schoolTypeData.ts's
-    // BASE_STARTING_REPUTATION 40 + 10) ranked above the whole tail; a
-    // public opens at 35 with a dozen of these directly above it to pass
-    // in its first decade. That is what makes an always-visible rank
-    // readout (see components/StatusHeader.tsx) a motivating number rather
-    // than a floor — "#56 of 56" is not a standing, it is the bottom.
+    // What they buy is the other half: a standing that MEANS something from
+    // week one. A founding school opens at 50 (foundingData.ts's
+    // FOUNDING_PRESET) — above the whole tail, and so ranked mid-table at
+    // about #55 of 100 rather than last of 56. That is what makes an
+    // always-visible rank readout (see components/StatusHeader.tsx) worth
+    // showing: "#56 of 56" is not a standing, it is the bottom, and a
+    // number that can only ever improve teaches nothing about the year it
+    // did not.
+    //
+    // It also gives the rank somewhere to FALL. A school that stalls, or
+    // spends a decade in the red, now slides into a field of real schools
+    // instead of sitting on a floor it cannot drop through.
     //
     // Small colleges, community colleges and technical institutes by name,
     // because that is what a field below a founding university is made of.

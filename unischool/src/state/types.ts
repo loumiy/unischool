@@ -26,9 +26,12 @@ export interface Finance {
   // products now (financeSystem.ts's financeBreakdown), never
   // enrolled x price.
   tuitionByClass: ClassTuition;
-  tuitionCeiling: number;        // hard cap on listedTuition, set by school type at founding
-  baselineFundingPerWeek: number; // FLAT non-tuition income (a public school's institutional appropriation), set by school type
-  appropriationPerStudentPerYear: number; // per-enrolled-student non-tuition income, set by school type; 0 for private. Kept as a number on state rather than a schoolType branch in financeSystem.ts, so no system ever has to know which fork the player picked.
+  // NO tuitionCeiling, and since Plan 07's PR B no baselineFundingPerWeek
+  // or appropriationPerStudentPerYear either. All three were set by school
+  // type at founding, which is the thing Plan 07 is retiring: the ceiling
+  // became one constant for everybody (foundingData.ts's
+  // TUITION_SLIDER_MAX), and the two appropriation halves became nothing at
+  // all. What is left here is what every school has.
   weeklyOpEx: number;    // salaries + upkeep + instruction, recomputed each tick
 }
 
@@ -1008,10 +1011,21 @@ export interface StudentOrgState {
   athleticsBudget: AthleticsBudgetTier;
 }
 
-// Private/public is the only starting fork (see
-// docs/design/progression.md's "Startup and school type") —
-// everything else about the school emerges from play.
-export type SchoolType = 'private' | 'public';
+// WHICH ARCHITECTURE THIS CAMPUS WAS BUILT IN. Chosen at founding and
+// permanent: a campus's architecture is what it was built as, so nothing
+// offers to change it later.
+//
+// Lives here rather than in components/buildingSpec.ts because it is a fact
+// about the school that gets saved, not a drawing detail — buildingSpec.ts
+// imports it, the same direction it already imports Buildable. The palette
+// behind each name is that module's (see its VERNACULARS table).
+//
+export type Vernacular = 'georgian' | 'gothic' | 'brutalist' | 'mission';
+
+// NO SchoolType. Private/public was the game's only starting fork and
+// Plan 07 retired it — see data/foundingData.ts for what it was and why it
+// went. Everything about a school emerges from play now, which is what
+// docs/design/progression.md always said should happen.
 
 export interface University {
   // The institution's name in two halves. The player writes only the
@@ -1041,7 +1055,7 @@ export interface University {
   // balance sim all still read `reputation` alone.
   socialStanding: number;
   researchStanding: number;
-  schoolType: SchoolType;
+  vernacular: Vernacular; // the architecture the campus is built in, fixed at founding
 }
 
 // The institution's full display name. The one place the two halves are

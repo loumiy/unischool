@@ -870,7 +870,11 @@ button.build-tile { font-family: inherit; }
 .campus-map-svg.path-draw .campus-building,
 .campus-map-svg.path-erase .campus-building { pointer-events: none; }
 
-.iso-window { fill: rgba(255, 253, 246, 0.5); }
+/* NO FILL. The glazing's colour is the vernacular's (buildingSpec's
+   StonePalette.glass) — a painted sash reads pale, a ribbon of curtain
+   glazing reads dark. A class rule here would silently beat the motif's own
+   attribute, which is exactly what `.iso-dome` did before PR G caught it. */
+.iso-window { /* fill supplied by the motif, from the vernacular's glass */ }
 /* The band at each floor line: stone against brick, and the horizontal that
    still reads once the panes themselves are a few pixels across. */
 .iso-course { fill: rgba(255, 253, 246, 0.22); }
@@ -899,6 +903,9 @@ button.build-tile { font-family: inherit; }
    grid now — see buildingMotifs' EntranceSteps.) */
 .iso-step-tread { fill: rgba(255, 253, 246, 0.34); }
 .iso-rooflight { fill: rgba(255, 253, 246, 0.42); }
+/* A belfry's louvred opening: dark, because you are looking INTO a bell
+   chamber rather than at glass. See buildingMotifs.tsx's Spire. */
+.iso-louvre { fill: rgba(30, 34, 42, 0.62); }
 /* The academic hall's stonework: a base course under the brick, a cornice
    over it, and the pediment capping the centre bay. All the same limestone,
    lighter than any wall tint, so the vocabulary reads as one material. */
@@ -909,8 +916,15 @@ button.build-tile { font-family: inherit; }
 .iso-end-pavilion { fill: rgba(120, 88, 40, 0.20); }
 .iso-pediment { fill: rgba(250, 246, 234, 0.62); }
 /* The clock tower's dome and finial: the campus's one gilded thing. */
-.iso-dome { fill: #d8b23c; }
-.iso-finial { stroke: #d8b23c; stroke-width: 2; vector-effect: non-scaling-stroke; }
+/* NO COLOUR ON THESE TWO. A class rule beats a presentation attribute, so
+   the `fill`/`stroke` the motifs pass from the campus's vernacular was being
+   silently overridden by a hardcoded Georgian gold — which nobody could see
+   while Georgian was the only set, and which painted a Gothic spire's stone
+   pinnacles gold the moment there were two. Colour for these comes from
+   buildingSpec's VERNACULARS now (see PR G); what is left here is the
+   geometry that does not vary. */
+.iso-dome { /* fill supplied by the motif, from the vernacular's stone */ }
+.iso-finial { stroke-width: 2; vector-effect: non-scaling-stroke; }
 .iso-clock-face { fill: rgba(252, 250, 242, 0.92); stroke: rgba(60, 48, 24, 0.45); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .iso-clock-hand { stroke: rgba(48, 38, 18, 0.85); stroke-width: 1.4; vector-effect: non-scaling-stroke; stroke-linecap: round; }
 .iso-ridge { stroke: rgba(42, 56, 28, 0.28); stroke-width: 1; vector-effect: non-scaling-stroke; }
@@ -2345,24 +2359,36 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    parchment UI, carrying the live "<Name> College" banner across its
    entablature. Purely decorative SVG shapes, styled here rather than
    inline so the whole thing reads as one coherent illustration. */
-.startup-facade { margin: 14px 0 20px; }
+/* The facade now sits directly above the button: the school-type picker
+   that used to separate them went with the fork (Plan 07's PR C), so the
+   bottom margin carries the gap that block used to provide. */
+.startup-facade { margin: 14px 0 28px; }
 .startup-facade-svg { display: block; width: 100%; height: auto; }
 /* One stone color for every solid shape — roof, entablature, capitals and
    shafts alike — so the building reads as a single carved structure lit
    from one side, not a stack of differently-tinted parts. All the depth
    comes from .facade-line's thin strokes (mouldings, flutes, the roof's
    inset trim), the same way the reference photo's shading does it. */
-.facade-stone { fill: #e3d3a3; stroke: var(--gold-dim); stroke-width: 1; stroke-linejoin: round; }
-.facade-line { fill: none; stroke: var(--gold-dim); stroke-width: 0.6; opacity: 0.55; }
+/* The facade's own sky. Everything ELSE in the drawing takes its colour
+   from the vernacular at runtime (see StartupScreen's SchoolFacade), because
+   the picture is a live preview of the set the campus will be built in and a
+   hand-tinted illustration would drift from the map the first time a palette
+   moved. This is the one surface that is not part of the building. */
+.facade-sky { fill: #dfe2d8; }
 .facade-banner-text { fill: #6b4423; font-family: var(--serif); font-weight: 700; letter-spacing: 0.05em; }
 
-.startup-types { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
-.startup-type-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left;
-  background: #f8f3e6; border: 1px solid var(--parchment-line); border-radius: var(--radius-lg); padding: 12px 14px; }
-.startup-type-btn strong { font-family: var(--serif); font-size: var(--text-lg); }
-.startup-type-btn span { font-size: var(--text-sm); color: var(--ink-muted); line-height: 1.4; }
-.startup-type-btn.active { border-color: var(--gold); background: #f5ecd2; }
-.startup-type-btn.active strong { color: var(--gold-dim); }
+/* The vernacular picker — a 2x2 of cards under the facade (see
+   StartupScreen). Two columns rather than a list of four, because the choice
+   is between PICTURES and the player is looking at the facade above while
+   they move through them; a tall list would push it off the card. */
+.startup-vernaculars { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+.startup-vern-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left;
+  background: #f8f3e6; border: 1px solid var(--parchment-line); border-radius: var(--radius-lg); padding: 9px 11px; }
+.startup-vern-btn strong { font-family: var(--serif); font-size: var(--text-base); }
+.startup-vern-btn span { font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.35; }
+.startup-vern-btn.active { border-color: var(--gold); background: #f5ecd2; }
+.startup-vern-btn.active strong { color: var(--gold-dim); }
+
 .startup-begin-btn { width: 100%; background: var(--gold); color: #1a2035; border: none; border-radius: var(--radius-md);
   padding: 11px; font-family: var(--serif); font-size: var(--text-lg); font-weight: 700; }
 .startup-begin-btn:disabled { opacity: 0.5; cursor: not-allowed; }

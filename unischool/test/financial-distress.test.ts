@@ -43,7 +43,7 @@ function assert(cond: boolean, msg: string): void {
 }
 
 function fresh(): GameState {
-  return createInitialState('Distress', 'private');
+  return createInitialState('Distress');
 }
 
 function emptyClasses(s: GameState): void {

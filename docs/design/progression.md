@@ -3,20 +3,70 @@
 How a school is founded, how standing accumulates, and how the outside world
 reports on it.
 
-## Startup and school type
+## Startup
 
-A **startup screen** lets the player **name the school** before play — the
-player's half of the name only; every school opens as a *College* (see
-"College, and University" below). The MVP also asks one structural question:
-**private vs. public**. That single choice
-sets starting conditions — starting cash, prestige bonuses, applicant-pool size,
-tuition ceiling, any baseline funding — expressed purely as tunable constants.
+A **startup screen** asks the player two things before play: the **name** of
+the school — their half of it only; every school opens as a *College* (see
+"College, and University" below) — and the **vernacular** its campus is built
+in.
+
+## The vernacular
+
+Which architecture the campus was founded in: **Georgian** (red brick, white
+trim, a gilded cupola), **Collegiate Gothic** (grey ashlar, steep slate, a
+spire), **Mission** (cream stucco, red tile, arcades and a campanile) or
+**Brutalist** (board-marked concrete in stacked slabs, and no ornament at
+all). Chosen at founding and **permanent** — a campus's architecture is what
+it was built as, so nothing ever offers to change it.
+
+It is deliberately the one thing on that screen with **no mechanical effect
+whatsoever**. Every founding condition is identical across the four, and no
+system reads `self.vernacular` except the map. That is what makes it a safe
+question to ask before the player knows anything: it cannot be the wrong
+answer. It is also why it does not contradict the rule below — you are
+choosing what your campus *looks* like, not what kind of school it becomes.
+
+**Six of the eleven building motifs do not vary**, and that is true of real
+campuses rather than a shortcut: a Gothic university's gym is still a
+clear-span shed, its teaching hospital is still a modern hospital, and its
+5,000-bed apartment tower still postdates the founding quad by eighty years.
+So the vernacular reads loudest on a young campus — where almost everything
+is a hall, a dorm or a dining room — and dilutes as labs, venues, towers and
+the hospital arrive, which is roughly what happens to a real campus's
+founding architecture. See `components/buildingSpec.ts`'s `VERNACULARS` for
+the sets and `VERNACULAR_INVARIANT_MOTIFS` for the six.
 
 **Archetypes emerge, they are not chosen.** The game should let different kinds
 of successful school (Harvard-like, ASU-like, Johns-Hopkins-like) arise from the
-player's choices over time, rather than being selected up front. Private/public
-is the only starting fork; everything else is emergent. (Later: save/load, color
-schemes, more customization.)
+player's choices over time, rather than being selected up front. Every founding
+condition is the same for every school and lives in one `FOUNDING_PRESET` (see
+`data/foundingData.ts`); everything that distinguishes one run from another
+happens in play. (Later: save/load, color schemes, more customization.)
+
+**There used to be a second question — private vs. public — and Plan 07
+retired it.** It is worth recording what it was, because it is the clearest
+case the project has of a decision that looked structural and was not:
+
+- A **tuition ceiling**, $22,000 public against $100,000 private. The low cap
+  was the real mechanic; the high one had already been raised out of reach.
+- A **state appropriation**, a flat $7,000/week grant plus $5,500 per enrolled
+  student per year. It existed to compensate for the cap.
+- Three **opening dials** — starting cash, starting prestige, applicant-pool
+  size.
+
+The first two were one mechanic wearing two hats: the subsidy's entire job was
+to offset the cap, so removing either left the other with nothing to do. What
+remained was the third bullet, which is not a different kind of school but the
+same school with its dials nudged — asked at the one moment a player knows
+least about what those dials do. The fork was the single place the game
+contradicted "archetypes emerge, they are not chosen", and it no longer does.
+
+A note on what the removal cost, since it was measured rather than assumed:
+the appropriation turned out to be an *early-game* mechanic. It was funding the
+first decade's curriculum build-out, which is the 90-weight prestige term, which
+then compounds — so the public arc in `sim/balanceSim.ts` ended year 20 some 30
+prestige points lower without it, while never becoming insolvent. Nothing
+replaced it.
 
 ## Prestige: a slow-moving stock
 
@@ -165,12 +215,15 @@ below into a late-game one. Authored downward, the 50th school by reputation is
 the same school it always was, so entering the top 50 costs exactly the prestige
 it did before.
 
-What the tail buys is the other half: **a field the player is inside from week
-one.** A private school opens at 50 ranked above the whole tail; a public opens
-at 35 with a dozen schools directly above it to pass in its first decade.
+What the tail buys is the other half: **a standing that means something from
+week one.** A founding school opens at 50 (`foundingData.ts`'s
+`FOUNDING_PRESET`) — above the whole tail, and so ranked mid-table at about
+#55 of 100 rather than last of 56. It also gives the rank somewhere to
+**fall**: a school that stalls, or spends a decade in the red, slides into a
+field of real schools instead of sitting on a floor it cannot drop through.
 
 **Standing is shown from the first week** — on the toolbar, and in the History
-table — because there is now somewhere to climb from. The **report** remains a
+table — because the number now says something in both directions. The **report** remains a
 mid-game reveal, and the two are not in tension: the U.S. News list publishes
 fifty names, so where a school stands is knowable from the start and *being
 published* is the event.

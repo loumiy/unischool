@@ -513,6 +513,24 @@ immediately, because PR 1B gives every rival two more axes to drift and PR 1C
 gives athletic strength its own. Without it each of those would reshuffle every
 faculty potential and candidate listing in the game again.
 
+**Zero, in the sense that it arrived from outside: the founding band collapsed
+while this was in flight.** Section 0's third finding argues the tail from a
+player who "begins at 35-50 depending on school type" — a private opening above
+the whole tail, a public opening *inside* it with a dozen schools directly
+above to pass. Plan 07 retired the private/public fork, so every school now
+opens at a single reputation of 50, above the entire tail.
+
+The finding survives, and the half that mattered is untouched: the tail is
+still what keeps the 50th school by reputation the same school, so the top-50
+threshold still costs the prestige it always did. What changes is the second
+half's wording. A founding school is no longer *inside* the field; it is
+mid-table at about #55 of 100 rather than last of 56, and the tail's real gift
+is that the rank now has somewhere to **fall** — a school that stalls slides
+into a field of real schools instead of resting on a floor it cannot drop
+through. `docs/design/progression.md` carries the corrected version; the
+argument above is left as written, because that is the world it reasoned
+against.
+
 **Two: `hashUnit` had no avalanche, and the athletic axis was a near-copy of the
 academic one.** `athleticStrengthFor`'s comment claims a "wide (0.6x-1.4x)"
 multiplier that makes athletic standing genuinely independent of reputation.

@@ -4,6 +4,7 @@ import type { GameState, InitiativeReport, PendingInterrupt } from '../state/typ
 import { institutionName, WEEKS_PER_YEAR } from '../state/types';
 import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
+import { TUITION_SLIDER_MAX } from '../data/foundingData';
 import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction, type PriceTier } from '../systems/admissions/admissionsSystem';
 import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
 import { projectConsequences } from '../systems/admissions/consequences';
@@ -205,7 +206,7 @@ function CohortCard({ label, driverLabel, pull, applicants, revealMs }: { label:
 // button that reveals the rest of its own consequences is ceremony. The
 // staging returns in PR E for a different reason — the tuition decision
 // becomes blind and LOCKS, so the reveal has something to reveal.
-function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeiling, satisfaction, cohortSignals, petitions, onResolve }: {
+function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction, cohortSignals, petitions, onResolve }: {
   payload: AdmissionsDraft;
   // The whole state, for the consequence projection alone (see
   // consequences.ts): it advances a COPY of the classes and reads the real
@@ -216,7 +217,6 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeilin
   s: GameState;
   prestige: number;
   capacity: number;
-  tuitionCeiling: number;
   satisfaction: number;
   cohortSignals: CohortSignals;
   petitions: OrgPetition[];
@@ -261,13 +261,15 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, tuitionCeilin
 
       {/* BEAT 1 — the price, set blind. The only feedback is the tier: are
           you in line with your own standing, or not. No applicant count, no
-          sticker-shock line, no cap printed — the cap is simply where the
-          slider ends (see schoolTypeData.ts). */}
+          sticker-shock line, no cap printed — and since Plan 07's PR A
+          there is no cap to print: the slider simply ends somewhere no
+          school sensibly reaches (see foundingData.ts's
+          TUITION_SLIDER_MAX). */}
       <label className="admissions-field">
         <span>
           Tuition <strong className={`price-tier-value ${PRICE_TIER_COPY[priceTierNow].className}`}>${tuition.toLocaleString()}/yr</strong>
         </span>
-        <input type="range" min={0} max={tuitionCeiling} step={500} value={tuition}
+        <input type="range" min={0} max={TUITION_SLIDER_MAX} step={500} value={tuition}
           disabled={tuitionLocked}
           onChange={(e) => setTuition(Number(e.target.value))} />
         <PriceTierTag tier={priceTierNow} />
@@ -932,7 +934,6 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
             s={s}
             prestige={s.self.reputation}
             capacity={s.students.capacity}
-            tuitionCeiling={s.finance.tuitionCeiling}
             satisfaction={trailingYearSatisfaction(s)}
             cohortSignals={deriveCohortSignals(s)}
             petitions={s.orgs.pendingPetitions}
