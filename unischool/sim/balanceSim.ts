@@ -562,13 +562,13 @@ export interface Row {
   // cumulative cash side — the figure that says whether grants are
   // trivialising the cash throttle.
   researchRate: number; breakthroughs: number; grantIncome: number;
-  // Graduate programs, as the year closed (see README's "Graduate
-  // programs"). These are the numbers the feature's whole balance claim
-  // rests on: WHEN a strategy reaches them, whether it can afford them
-  // without going into the red, and what they cost to run once founded.
-  // The harness needs no new decision rule to buy them — a graduate course
-  // is a `course` Buildable, so the curriculum block below already picks
-  // them up, sorted last because their ids end in 5xx/7xx.
+  // Graduate programs, as the year closed (see
+  // docs/design/graduate-programs.md). These are the numbers the feature's
+  // whole balance claim rests on: WHEN a strategy reaches them, whether it
+  // can afford them without going into the red, and what they cost to run
+  // once founded. The harness needs no new decision rule to buy them — a
+  // graduate course is a `course` Buildable, so the curriculum block below
+  // already picks them up, sorted last because their ids end in 5xx/7xx.
   gradCourses: number; gradPrograms: number; gradUpkeep: number;
 }
 

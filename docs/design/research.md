@@ -1,0 +1,214 @@
+# Research
+
+Research is **work the university commissions**, not a by-product of owning a
+building. The player picks a topic, a team and a depth, out of a specific
+facility; the dice then resolve *that*, rather than resolving everything. All
+the randomness the old model had is still here and still does the same job —
+what changed is which end the player touches.
+
+**What this replaced, and why.** Scholarship used to be a bank: every faculty
+member in a school with a finished lab trickled points into one campus-wide
+pool (`s.research.points`), and the pool occasionally bought an output. It
+produced research because the school OWNED A BUILDING, with no decision
+anywhere in it. The stock is now dead state — kept in the saved shape, written
+by nothing, marked not to be rewired, the way `Faculty.morale` was. **Idle
+capacity produces nothing**: the way to produce is to start something.
+
+### The facility is the slot
+
+Each research facility hosts **one initiative at a time**, and that is an
+invariant of the data shape rather than a rule anybody enforces:
+`s.research.initiatives` is keyed by the facility's Buildable id, so a second
+one cannot be started there without overwriting the first. It also scales
+itself — thirteen facilities exist across the catalogue, so a young school runs
+one project and a mature one runs a dozen, with no separate tuning.
+
+**Every school can now do research.** The nine lab-science and engineering
+facilities are joined by one apiece for the four schools that had none — an
+Experimental Economics Lab, a Computing Research Center, a Humanities Research
+Institute, a Media Production Studio (`techData.ts`'s
+`LAB_GATED_MAJOR_PREFIXES`, with `RESEARCH_FACILITY_NAMES` for the ones where
+"Labs" would be wrong: a history department has an institute with archives in
+it). They run on identical machinery — no second kind of research — and since
+one facility equips the whole school, every field that school teaches comes
+into production behind it. Only General Studies, which has no majors of its
+own, has no facility. What differs is **vocabulary**, not mechanics. A model
+that can only describe research as laboratory science is one that quietly
+tells four schools their work does not count, so `DISCIPLINE_VOCAB` authors
+**three** things per school, not one:
+
+- **The output nouns and the verb.** The humanities publish monographs and
+  landmark works of scholarship; business publishes case studies and influential
+  studies; the arts show exhibited works and acclaimed works, and are *shown*
+  rather than published, because a film that "has been published" is the same
+  mistake one word further along.
+- **The funders.** Each discipline draws from a shared neutral pool — trusts,
+  foundations, a federal research council — plus its own: the National Science
+  Foundation and a defense research agency for the lab sciences, the National
+  Endowment for the Humanities and a library fellowship for the humanities, an
+  arts council and a film fund for the arts.
+- **The prize names.** Same shape: four discipline-neutral names everybody can
+  win, plus one of the discipline's own. A history department does not win an
+  award for Scientific Achievement.
+
+**The vocabulary follows the facility the work is running in**, not the campus.
+That is the only reading that makes sense — an initiative *is* a topic, a team
+and a facility, and the facility is the half of it that has a school
+(`facilitySchool`). An earlier pass drew the school campus-wide, weighted across
+everyone producing research, which was right under the old model where
+production genuinely was the whole roster trickling into one pool; against
+initiatives it meant a project in the Humanities Research Institute logged "a
+new paper" whenever the campus also ran physics labs.
+
+### Topics, teams and depth
+
+**238 authored topics** (`researchTopics.ts`) — six per department, plus **62
+cross-disciplinary** ones that name more than one field and can only be staffed
+by drawing somebody from each. What is on offer at a vacant facility is
+**derived, never stored**: a deterministic function of the facility's id and a
+slowly-turning quarterly epoch, so the list is stable across renders and still
+turns over every few months. A topic is only offered when the university can
+actually staff it.
+
+**The pool belongs to the FACILITY, not to its school.** A topic is offerable
+where the facility's own field is among the fields the topic names (`labFields`,
+`initiativeOffers`), so a project always belongs to the place it is happening —
+the alternative, a school-wide pool, is what once offered "Acoustics of
+Performance Spaces" to an aerospace lab. A cross-disciplinary topic is offerable
+in each of the labs it names and in no others, and the two pairs of facilities
+that share a field (chemistry / chemical engineering, physics / aerospace) keep
+their halves apart through an optional per-topic facility list.
+
+Only **eleven** of the twenty-nine faculty fields have a facility, so only those
+eleven can LEAD work. That is not a department being locked out: the way a
+marketer, a violinist or a lawyer does research is the interdisciplinary tier,
+hosted by a facility whose field the topic names, with the rest of the team
+drawn from wherever the topic says. Every interdisciplinary topic names at least
+one field that has a facility; the departmental topics in the other eighteen
+fields are reserve content, ready the day the catalogue gives one of those
+fields a building.
+
+Four depths, and the money is the smaller half of what they cost:
+
+| Depth | Scholars | Duration | Up-front funding |
+| --- | --- | --- | --- |
+| Pilot Study | 1 | 6 months | 0.4 weeks of opex |
+| Funded Project | 2 | 18 months | 1.0 weeks |
+| Major Program | 3 | 3 years | 2.2 weeks |
+| Landmark Program | 4 | 5 years | 4.0 weeks |
+
+Funding is sized in **weeks of operating cost**, the same scaling device grants
+and the decision-event table use, so the figure stays sane across four orders
+of magnitude of budget. A **Landmark Program requires a cross-disciplinary
+topic**, which is the structural point of the tier: the most prestigious work
+in the game is out of reach for a single strong department however deep it
+goes.
+
+**Participants teach a reduced load for the duration.** `effectiveCourseSlots`
+subtracts `RESEARCH_COMMITMENT_SLOTS` (2) with a floor at zero, so a junior hire
+with two slots stops teaching entirely while a senior professor keeps most of
+their catalogue — which makes WHO you commit a real choice rather than a uniform
+tax. This is the one place the two loops compete for the same people.
+
+Only the **excess** moves. Each member sheds courses lowest tier first, so a
+professor on a five-year programme keeps the capstone and hands away the survey
+course, and each shed course is then offered to any colleague in the field with
+room — the same `eligibleInstructors` list the Curriculum tab's assignment panel
+uses, strongest teacher first, highest-tier course first. What nobody can cover
+goes unstaffed. `planCommitmentCoverage` works all of that out before anything
+changes, so the warning the Research tab shows before the click and the
+reassignment the reducer performs after are the same arithmetic.
+
+### What a run produces
+
+Weekly output is `Σ facultyResearchOutput × depth intensity ×
+interdisciplinary bonus × researchRateMultiplier` — every term something the
+player chose: who is on it, how deep they committed, what the campus has built.
+The **interdisciplinary bonus** (+18% per extra field on the team) is why
+breadth pays off twice: a team drawn from several departments produces
+meaningfully more than the same people would apart, which is what makes a wide
+university worth building rather than a deep one worth drilling.
+`researchRateMultiplier` is live-read off every finished Buildable carrying
+`effects.researchRateBonus` (each facility, plus the research library) — that
+field multiplies output, it never creates it.
+
+Against that output, a weekly chance — 0.5% at a standing start, rising to 3.4%
+for a team producing flat out — draws one of three **during-run** outputs:
+
+- **Publications** (weight 26) — the bottom rung, and the reason it exists: the
+  other outputs all cost enough that a young department's first decade was a
+  long silence. A cheap, frequent output gives a school something to show from
+  its first year, and gives the humanities an output that reads right.
+- **Grants** (weight 6) -> cash, sized at 0.4–1.2 weeks of opex and then
+  **scaled by team strength** — the most legible place stronger faculty produce
+  better outcomes. A grant is a welcome cheque, not a funding round: across the
+  sim's runs they settle at **0.6–3.5% of lifetime operating cost**. They must
+  never become a second economy.
+- **Breakthroughs** (weight 5) -> prestige, and **only through a capped input**.
+  A breakthrough increments a count that `prestigeSystem.ts`'s `researchScore`
+  reads as one clamped 0..1 input among six. It never writes
+  `s.self.reputation` — that would be exactly the completion-bonus flow the
+  prestige model exists to forbid.
+
+**Team strength** is the mean research *stat* (0..100) plus 0.08 per point of
+acclaim the team already carries, capped at 1.4. It is the research stat and
+NOT `facultyResearchOutput`, which is points per week on a completely different
+scale; confusing the two is silent, and did happen — see the note in
+`researchData.ts`'s `teamStrength`.
+
+### The award, at conclusion and nowhere else
+
+A prize is no longer a weighted draw against a bank. It is **what a finished
+piece of work is judged to have been**, rolled once when an initiative
+concludes:
+
+- **Gated on a breakthrough.** A run that banked none can never end in an award,
+  however distinguished its team. This is why the breakthrough weight cannot be
+  pushed too low: that would not make awards rare, it would make them
+  impossible.
+- **Then depth × team strength, with real noise.** Base odds run 1.5% for a
+  pilot study to 45% for a landmark program, multiplied by
+  `(0.15 + teamStrength)` — the team floor is small on purpose, so a strong team
+  roughly doubles a weak one's odds at the same depth rather than the tier
+  swamping the choice of who to commit.
+- **The winner is drawn from the team**, weighted by their own output, so it
+  usually but not always goes to the strongest person on it.
+
+So a prize arrives with a named topic, a named team and five years behind it,
+rather than out of a pool.
+
+**The completion is the event, and the award is one of its results.** A
+concluded project files a `research-complete` report — topic, facility, team,
+years, publications, breakthroughs, grant income, and the award if it won one —
+and that report is the modal. It used to be the other way round: a separate
+prize interrupt stopped the clock for the trophy while five years of work passed
+as a log line. Like a milestone the report is **queued**, not fired: the week a
+project ends may already belong to the summer admissions decision, and only one
+interrupt can be pending at a time. Everything in it has already happened —
+outputs counted, grant money banked, the winner's premium applied — so a delayed
+report never delays an effect.
+
+Two things deliberately do not report. A **cancelled** project: winding one up
+early is the player's own action and already logs, and a modal confirming what
+the player just did is noise. And a **quiet pilot study** — six months, no
+breakthrough, no award — because reporting every completion took the balance
+sim's texture count from 1.7 to 3.0 modals a year, nearly all of it the smallest
+tier of work interrupting most often. Anything at Funded Project depth or deeper
+always reports. A quiet pilot still logs, and still appears in the Research
+tab's history.
+
+Finishing a run is worth something **in itself**, separate from whatever it
+produced along the way: `INITIATIVE_COMPLETION_CREDIT` (0.3 / 1 / 2.5 / 6 by
+depth) counts into `researchScore` for every non-cancelled completion.
+
+The prize still needs the one extra `Faculty` field, **`acclaim`**. Teaching,
+research and salary are all recomputed from potential + tenure on *every* tick,
+so a permanent post-prize bump cannot hang on any of them — it would be erased
+the following week. Both the salary curve and the research-output formula read
+`acclaim` as an input instead.
+
+**One survival from the old model.** `weeklyResearchPoints` still exists, but
+as a reading of **capacity**, not a stock that accumulates: "how much research
+could this campus be doing", consumed by the admissions funnel's applicant
+appeal (`cohorts.ts`) and printed as the sim's `rsch/wk` column. Nothing banks
+it any more.

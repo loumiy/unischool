@@ -7,9 +7,9 @@ import { weeksOfOpEx } from './moneyScale';
 import { rollCoachName } from './facultyData';
 
 // ---------------------------------------------------------------------
-// STUDENT ORGANISATIONS, AS DATA (see README's "Student life: clubs and
-// Greek letters"). Two layers, gated on campus the player has already
-// built, and the second gated on a decision the player has already made:
+// STUDENT ORGANISATIONS, AS DATA (see docs/design/student-life.md). Two
+// layers, gated on campus the player has already built, and the second
+// gated on a decision the player has already made:
 //
 //   1. CLUBS. Once a student center stands, students occasionally form
 //      one. Deliberately the LIGHT beat: a club never stops the clock. A
@@ -79,12 +79,12 @@ export const ORG_FORMATION_COOLDOWN_WEEKS = 6;
 export const MAX_PETITIONS_PER_DIGEST = 4;
 
 // How many organisations a campus of a given size can sustain. This is the
-// "reveal on thresholds the loop already produces" rule (see README's
-// pacing model) rather than a second scarcity: a bigger school simply has
-// more student life in it, and a 350-student college supports one club, not
-// twenty. Read against total ENROLLED, not bed capacity — most students are
-// commuters, and a big commuter school is still a big school full of
-// people who might start a club.
+// "reveal on thresholds the loop already produces" rule (see
+// docs/design/economy.mdpacing model) rather than a second scarcity: a
+// bigger school simply has more student life in it, and a 350-student
+// college supports one club, not twenty. Read against total ENROLLED, not
+// bed capacity — most students are commuters, and a big commuter school is
+// still a big school full of people who might start a club.
 export const STUDENTS_PER_CLUB = 220;
 export const STUDENTS_PER_CHAPTER = 900;
 // Absolute caps on top, so a 40-year run ends with a list a player can

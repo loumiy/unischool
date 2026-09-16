@@ -51,11 +51,11 @@ export interface SatisfactionAttributes {
 }
 
 // The student body is FOUR aggregate CLASSES — never individuals (see
-// README's "Students: four aggregate classes"). Students attend four years:
-// each summer (reducer.ts's RESOLVE_ADMISSIONS) seniors graduate and leave,
-// every younger class advances a year, and the admissions funnel commits a
-// new freshman class. This is NOT individual-student simulation — each class
-// is a plain head count.
+// docs/design/admissions.md's "Students: four aggregate classes"). Students
+// attend four years: each summer (reducer.ts's RESOLVE_ADMISSIONS) seniors
+// graduate and leave, every younger class advances a year, and the
+// admissions funnel commits a new freshman class. This is NOT
+// individual-student simulation — each class is a plain head count.
 //
 // "Class" is the year group and ONLY the year group. The other grouping of
 // students this game models — research-oriented, price-sensitive, athletes —
@@ -168,12 +168,12 @@ export type BuildableStatus = 'locked' | 'available' | 'developing' | 'done';
 
 // courses, academic buildings, dorms, and campus-life facilities (and later
 // sports) are all the same kind of thing: a Buildable. They differ only in
-// their data, not their machinery — see README's "The central abstraction".
+// their data, not their machinery — see docs/architecture/buildables.md.
 //
 // GRADUATE COURSES DELIBERATELY ADD NO KIND. A graduate program is more
-// curriculum (see README's "Graduate programs"): its courses are `course`
-// Buildables like every other, so they are academic upkeep, they count
-// toward the instruction cost of the catalogue, they occupy faculty
+// curriculum (see docs/design/graduate-programs.md): its courses are
+// `course` Buildables like every other, so they are academic upkeep, they
+// count toward the instruction cost of the catalogue, they occupy faculty
 // course-slots, and they are unplaceable — all for free, because nothing
 // had to learn about them. What distinguishes them is one optional field,
 // `graduateProgram` below. A new kind (or a tier-above-tier-3 value) would
@@ -332,7 +332,8 @@ export function servingPopulation(t: Buildable): number {
 export interface BuildableEffects {
   capacityBonus: number;
   tuitionBonus: number;
-  applicantPoolBonus: number; // one-time bump to the applicant pool (see README's milestone chain)
+  // one-time bump to the applicant pool (see docs/design/curriculum.md)
+  applicantPoolBonus: number;
   unlockIds: string[];  // force these Buildable ids to 'available', regardless of their own prereqs
 
   // --- live-read, every tick, never mutated into state (see above) ---
@@ -345,17 +346,17 @@ export interface BuildableEffects {
 }
 
 // ---------------------------------------------------------------------
-// The campus map (see README's "Courses and buildings share one screen":
-// the map is its own layer reading the same state, with building/dorm/
-// facility Buildables gaining placement). Placement is a
-// PURELY VISUAL layer for now: where a finished building physically sits
-// on campus. It grants nothing and gates nothing — a building's effects
-// are applied when it finishes, never when (or whether) it is placed.
+// The campus map (see docs/architecture/campus-map.md: the map is its
+// own layer reading the same state, with building/dorm/facility
+// Buildables gaining placement). Placement is a PURELY VISUAL layer for
+// now: where a finished building physically sits on campus. It grants
+// nothing and gates nothing — a building's effects are applied when it
+// finishes, never when (or whether) it is placed.
 //
 // Deliberately NOT a field on Buildable: keeping coordinates in a separate
 // `placements` record on GameState leaves the single Buildable model
 // unforked, so `course` Buildables — which are never placeable — carry no
-// vestigial map fields (see README's "The central abstraction").
+// vestigial map fields (see docs/architecture/buildables.md).
 // ---------------------------------------------------------------------
 
 // The campus is a fixed grid of tiles. It started deliberately small (8x6)
@@ -476,27 +477,26 @@ export type Pathways = Record<string, true>;
 // Buildable gates on it, and felling a wood costs and grants nothing.
 export type Trees = Record<string, number>;
 
-// The generic pause-the-clock decision-event mechanism (see README's
-// "Interrupts: the decision-event system"). Any system enqueues one by
-// setting `pendingInterrupt` directly on state; while it is set, the game
-// loop halts ticking. The `type`
-// tag identifies which interrupt this is — admissions, the U.S. News
-// report, the tutorial, etc. — and `payload` carries whatever data that
-// interrupt needs. The UI switches on `type` to render the right modal and
-// dispatches an action that clears `pendingInterrupt` to let the clock
-// resume. Nothing besides the mechanism itself lives here: no admissions,
-// report, or tutorial content.
+// The generic pause-the-clock decision-event mechanism (see
+// docs/architecture/interrupts.md). Any system enqueues one by setting
+// `pendingInterrupt` directly on state; while it is set, the game loop
+// halts ticking. The `type` tag identifies which interrupt this is —
+// admissions, the U.S. News report, the tutorial, etc. — and `payload`
+// carries whatever data that interrupt needs. The UI switches on `type` to
+// render the right modal and dispatches an action that clears
+// `pendingInterrupt` to let the clock resume. Nothing besides the
+// mechanism itself lives here: no admissions, report, or tutorial content.
 export interface PendingInterrupt {
   type: string;
   payload?: unknown;
 }
 
 // ---------------------------------------------------------------------
-// A STUDENT DEMAND (see README's "Student demands: the inverse of clubs",
-// and systems/demands/demandSystem.ts). When satisfaction sits below
-// DEMAND_SATISFACTION_THRESHOLD the student body asks the institution for
-// one concrete, buildable thing, on a deadline. Exactly one may be open at
-// a time.
+// A STUDENT DEMAND (see docs/design/student-life.md's "Student demands:
+// the inverse of clubs", and systems/demands/demandSystem.ts). When
+// satisfaction sits below DEMAND_SATISFACTION_THRESHOLD the student body
+// asks the institution for one concrete, buildable thing, on a deadline.
+// Exactly one may be open at a time.
 //
 // The record carries the TARGET CONDITION and the clock, and nothing else:
 // the ask's prompt, headline and grievance text are looked up from
@@ -580,14 +580,13 @@ export interface EventState {
 }
 
 // The player's admissions policy is set once a year via the summer
-// interrupt (see README's "Admissions: an annual summer decision").
-// NOTE: there is no AdmissionsSettings any more. Its only field was
-// scholarshipRate, retired with scholarships themselves (Plan 05's PR B),
-// and an interface with nothing in it is a slot the next reader has to
-// wonder about. Admissions policy is now exactly one number and it lives
-// where the price lives: finance.listedTuition. Selectivity and enrollment
-// are still NOT inputs — they are emergent outcomes of the funnel (see
-// admissionsSystem.ts).
+// interrupt (see docs/design/admissions.md). NOTE: there is no
+// AdmissionsSettings any more. Its only field was scholarshipRate, retired
+// with scholarships themselves (Plan 05's PR B), and an interface with
+// nothing in it is a slot the next reader has to wonder about. Admissions
+// policy is now exactly one number and it lives where the price lives:
+// finance.listedTuition. Selectivity and enrollment are still NOT inputs —
+// they are emergent outcomes of the funnel (see admissionsSystem.ts).
 
 export interface Rival {
   id: string;
@@ -605,15 +604,15 @@ export interface Rival {
 }
 
 // ---------------------------------------------------------------------
-// RESEARCH (see README's "Research: work the player commissions").
-// Player-commissioned initiatives — one per research facility, keyed by the
-// facility's Buildable id so "one at a time" is a property of the shape
-// rather than a rule somebody has to enforce — plus the lifetime counters
-// each run adds to. Deliberately AGGREGATE where it counts: publications,
-// breakthroughs, prizes and grant income are one tally for the whole
-// institution rather than a per-school ledger, because nothing reads them
-// per school. Everything here is a plain number, a plain string or an
-// array of flat records — the same JSON-round-trippable shape rationale as
+// RESEARCH (see docs/design/research.md). Player-commissioned initiatives —
+// one per research facility, keyed by the facility's Buildable id so "one
+// at a time" is a property of the shape rather than a rule somebody has to
+// enforce — plus the lifetime counters each run adds to. Deliberately
+// AGGREGATE where it counts: publications, breakthroughs, prizes and grant
+// income are one tally for the whole institution rather than a per-school
+// ledger, because nothing reads them per school. Everything here is a plain
+// number, a plain string or an array of flat records — the same
+// JSON-round-trippable shape rationale as
 // `events` and `placements`.
 // ---------------------------------------------------------------------
 
@@ -733,10 +732,10 @@ export interface ResearchState {
 }
 
 // ---------------------------------------------------------------------
-// STUDENT ORGANISATIONS (see README's "Student life: clubs and Greek
-// letters"). Two layers, the second gated by the first: clubs, which form
-// once the campus has a student center, and — only if the player has
-// explicitly approved a Hellenic Council — Greek chapters on top of them.
+// STUDENT ORGANISATIONS (see docs/design/student-life.md). Two layers,
+// the second gated by the first: clubs, which form once the campus has a
+// student center, and — only if the player has explicitly approved a
+// Hellenic Council — Greek chapters on top of them.
 //
 // Everything here is plain JSON (numbers, strings, booleans, arrays of flat
 // records) for the same reason `events`, `placements` and `research` are:
@@ -876,10 +875,11 @@ export interface VarsityTeam extends StudentOrgBase {
 }
 
 // One organisation that has formed and is waiting on the player's answer at
-// the next summer admissions boundary (see README: clubs and new chapters
-// are a batched DIGEST folded into an interrupt that already exists, never
-// a modal of their own). Carries everything needed to turn it into a live
-// organisation on approval, so approving is a move rather than a re-roll.
+// the next summer admissions boundary (see docs/design/student-life.md:
+// clubs and new chapters are a batched DIGEST folded into an interrupt that
+// already exists, never a modal of their own). Carries everything needed to
+// turn it into a live organisation on approval, so approving is a move
+// rather than a re-roll.
 export interface OrgPetition {
   id: string;
   kind: 'club' | 'chapter';
@@ -928,8 +928,9 @@ export interface StudentOrgState {
   athleticsBudget: AthleticsBudgetTier;
 }
 
-// Private/public is the only starting fork (see README's "Startup and
-// school type") — everything else about the school emerges from play.
+// Private/public is the only starting fork (see
+// docs/design/progression.md's "Startup and school type") —
+// everything else about the school emerges from play.
 export type SchoolType = 'private' | 'public';
 
 export interface University {
@@ -966,8 +967,8 @@ export function totalEnrolled(s: StudentBody): number {
 // One year's worth of the school's headline numbers, appended once a year
 // at the admissions boundary (see reducer.ts's RESOLVE_ADMISSIONS — the
 // game's only annual boundary). This is the game's time series: the long
-// arc the README is about is otherwise invisible, because every stat on
-// screen is a "right now" reading with no memory.
+// arc the docs/design/gameplay.mdis about is otherwise invisible, because
+// every stat on screen is a "right now" reading with no memory.
 //
 // Deliberately NUMBERS ONLY — no functions, no Dates, no references into
 // `tech`/`rivals` — so the whole history survives a JSON round trip
@@ -993,13 +994,12 @@ export interface YearSnapshot {
 //
 // A SEPARATE RECORD, keyed by id, rather than a field on Buildable — for
 // exactly the reason `placements` is a separate record and not a field on
-// Buildable (see README's "Courses and buildings share one flow"). A
-// building's location and a course's instructor are the same SHAPE of
-// fact: something true of one KIND of Buildable, which must not fork the
-// single Buildable model that serves all four kinds. Courses are never
-// placed and so never carry a `placements` entry; buildings never have
-// instructors and so never carry one here. Same reasoning, same shape, in
-// both directions.
+// Buildable (see docs/architecture/buildables.md). A building's location
+// and a course's instructor are the same SHAPE of fact: something true of
+// one KIND of Buildable, which must not fork the single Buildable model
+// that serves all four kinds. Courses are never placed and so never carry
+// a `placements` entry; buildings never have instructors and so never
+// carry one here. Same reasoning, same shape, in both directions.
 //
 // WHY THIS IS REAL STATE AND NOT A PROJECTION. It used to be neither: the
 // engine tracked only per-field slot CAPACITY, and who taught what was a
@@ -1017,9 +1017,10 @@ export interface YearSnapshot {
 // roster. A course that is offered but has no live entry is UNSTAFFED —
 // see techSystem.ts's isUnstaffed. That is a real, visible state the
 // player has to fix, not an error: it is the "department left
-// understaffed, its courses on hold" chain the README's faculty section
-// describes. Unstaffed courses hold no slot, so dismissing someone frees
-// their field capacity at the same moment it orphans their courses.
+// understaffed, its courses on hold" chain the
+// docs/design/faculty.mdfaculty section describes. Unstaffed courses
+// hold no slot, so dismissing someone frees their field capacity at the
+// same moment it orphans their courses.
 //
 // A plain id -> id record, the same shape rationale as `milestones` and
 // `pathways`: no Map, no reference into `faculty` or `tech`, so it

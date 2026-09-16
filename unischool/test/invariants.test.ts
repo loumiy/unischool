@@ -365,10 +365,11 @@ function relPath(f: string): string {
 
   // Finish the T2 quartet and confirm T3 + the program-established milestone.
   // FINA140 carries an authored cross-major bridge prereq onto ECON110 —
-  // DONE, not just started (see README's "prereqs may cross majors and cross
-  // kinds" and techData.ts's cross-major bridge table: real curriculum
-  // texture, not a test wrinkle to route around) — so it needs its own
-  // completed-first stage before FINA140 is even available to start.
+  // DONE, not just started (see docs/architecture/buildables.md's "prereqs
+  // may cross majors and cross kinds" and techData.ts's cross-major bridge
+  // table: real curriculum texture, not a test wrinkle to route around) — so
+  // it needs its own completed-first stage before FINA140 is even available
+  // to start.
   for (const id of ['FINA110', 'FINA120', 'FINA130', 'ECON110']) {
     s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
   }

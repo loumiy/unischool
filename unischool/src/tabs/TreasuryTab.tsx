@@ -6,11 +6,11 @@ import HelpHint from '../components/HelpHint';
 
 // ---------------------------------------------------------------------
 // The Treasury is where the economy explains itself. Money is the game's
-// primary throttle (see README's "Pacing model: money is the throttle"),
-// but every line of it used to be invisible: financeSystem.ts computed
-// tuition revenue, the reputation dividend, baseline funding, salaries,
-// seat upkeep and facility upkeep every single week, and the player was
-// shown one lump "Weekly OpEx" and nothing at all on the income side.
+// primary throttle (see docs/design/economy.md), but every line of it
+// used to be invisible: financeSystem.ts computed tuition revenue, the
+// reputation dividend, baseline funding, salaries, seat upkeep and
+// facility upkeep every single week, and the player was shown one lump
+// "Weekly OpEx" and nothing at all on the income side.
 //
 // So this reads the same breakdown the tick actually charges (see
 // financeBreakdown — one formula, no second copy to drift) and lays it out

@@ -1,11 +1,11 @@
 // ---------------------------------------------------------------------
-// Save-migration test harness (see README's "Save / load" and the alignment
-// roadmap). The whole point of the migration chain is that a run started
-// under an old build survives forward untouched in meaning, so the thing
-// worth testing is exactly that: seed a payload at an OLD SAVE_VERSION in the
-// old shape, run the REAL loadGame path (parse -> looksLikeGameState ->
-// MIGRATIONS -> sanitizers), and assert the result is the current shape with
-// its meaning intact.
+// Save-migration test harness (see docs/architecture/game-state.md and the
+// alignment roadmap). The whole point of the migration chain is that a run
+// started under an old build survives forward untouched in meaning, so the
+// thing worth testing is exactly that: seed a payload at an OLD SAVE_VERSION
+// in the old shape, run the REAL loadGame path (parse -> looksLikeGameState
+// -> MIGRATIONS -> sanitizers), and assert the result is the current shape
+// with its meaning intact.
 //
 // Like sim/balanceSim.ts, this is NOT part of the game: nothing imports it,
 // it ships nothing into the bundle. It runs the actual persistence module

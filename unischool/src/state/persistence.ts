@@ -18,10 +18,10 @@ import { athleticStrengthFor } from '../data/rivalData';
 import { legacyRoundRobinAssignments } from '../systems/faculty/facultyAssignment';
 
 // ---------------------------------------------------------------------
-// Save / load (see README's "Save / load"). A run is measured in hours, so
-// a refresh must not destroy it. This is deliberately the smallest thing
-// that works: the WHOLE GameState, JSON-serialized under ONE versioned
-// localStorage key.
+// Save / load (see docs/architecture/game-state.md). A run is measured in
+// hours, so a refresh must not destroy it. This is deliberately the
+// smallest thing that works: the WHOLE GameState, JSON-serialized under
+// ONE versioned localStorage key.
 //
 // That is only viable because GameState is already plain data — no
 // functions, no Dates, no Maps/Sets, no object references between slices
@@ -161,12 +161,12 @@ export const SAVE_KEY = 'unischool.save';
 // the way v9 -> v10 spliced in the School of Science's new nodes, and
 // every node a v10 save already holds is left completely untouched.
 //
-// It needs a version bump anyway, and for the reason the README gives: an
-// un-migrated v10 save would hold a `tech` array with no MED/LAWS/MBAX/
-// PHD* entries at all, so the six programs would simply never exist in
-// that run — no gate would ever open them, because there would be nothing
-// to open. That is a silently half-loaded game, which is exactly what the
-// version field is for.
+// It needs a version bump anyway, and for the reason the
+// docs/design/graduate-programs.mdgives: an un-migrated v10 save would
+// hold a `tech` array with no MED/LAWS/MBAX/ PHD* entries at all, so the
+// six programs would simply never exist in that run — no gate would ever
+// open them, because there would be nothing to open. That is a silently
+// half-loaded game, which is exactly what the version field is for.
 //
 // Two things a resuming player should know, and neither is a loss of
 // progress. First, an old run resumes with the programs LOCKED and
@@ -447,32 +447,32 @@ export const SAVE_KEY = 'unischool.save';
 // change to meaning, so breadth and prestige are untouched. grad-program-
 // complete: is deliberately left as-is. See MIGRATIONS[18].
 //
-// v19 -> v20: the four-class student model (see README's "Students: four
-// aggregate classes" and the alignment roadmap's PR D). A v19 save carries a
-// single students.enrolled number for the whole body; a mid-flight run has
-// all four class years, so it is split evenly across freshman/sophomore/
-// junior/senior (remainder to freshman). It writes the field under the name
-// it had at the time, `students.cohorts`; MIGRATIONS[34] renames it. The
-// trailing-year satisfaction accumulator is seeded empty with priorYearAvgSatisfaction set to the
-// current satisfaction, so the next funnel behaves as before until a real
-// year accumulates. See MIGRATIONS[19].
+// v19 -> v20: the four-class student model (see docs/design/admissions.md's
+// "Students: four aggregate classes" and the alignment roadmap's PR D). A v19
+// save carries a single students.enrolled number for the whole body; a
+// mid-flight run has all four class years, so it is split evenly across
+// freshman/sophomore/junior/senior (remainder to freshman). It writes the
+// field under the name it had at the time, `students.cohorts`; MIGRATIONS[34]
+// renames it. The trailing-year satisfaction accumulator is seeded empty with
+// priorYearAvgSatisfaction set to the current satisfaction, so the next funnel
+// behaves as before until a real year accumulates. See MIGRATIONS[19].
 //
 // v20 -> v21: scholarships terminology. AdmissionsSettings.financialAidRate is
 // renamed to scholarshipRate — a straight field rename, meaning unchanged. See
 // MIGRATIONS[20].
 //
-// v21 -> v22: the Arts & Media capstone gate re-split (see README's "Arts
-// payoffs" and techData.ts's ARTS_CAPSTONE_GATE). The Performing Arts Center
-// and Art Gallery used to share one gate (both hidden until BLDG-ARTSMEDIA
-// stood) with the Performing Arts Center alone gating all three majors'
-// (Graphic Design, Music, Studio Art) tier-3 capstones. Now each facility
-// unlocks on its OWN major's tier-2 quartet and gates that SAME major's
-// tier-3 capstones only — Music <-> Performing Arts Center, Studio Art <->
-// Art Gallery — and Graphic Design drops the coupling entirely, its
-// capstones reverting to the plain tier-2 prereq every non-gated major's
-// capstones already use. A content-only re-point, the same shape as v9's
-// School of Science reorg, scoped down to only the ids this actually
-// touches. See MIGRATIONS[21].
+// v21 -> v22: the Arts & Media capstone gate re-split (see
+// docs/design/curriculum.md's "Arts payoffs" and techData.ts's
+// ARTS_CAPSTONE_GATE). The Performing Arts Center and Art Gallery used to
+// share one gate (both hidden until BLDG-ARTSMEDIA stood) with the
+// Performing Arts Center alone gating all three majors' (Graphic Design,
+// Music, Studio Art) tier-3 capstones. Now each facility unlocks on its OWN
+// major's tier-2 quartet and gates that SAME major's tier-3 capstones only —
+// Music <-> Performing Arts Center, Studio Art <-> Art Gallery — and Graphic
+// Design drops the coupling entirely, its capstones reverting to the plain
+// tier-2 prereq every non-gated major's capstones already use. A
+// content-only re-point, the same shape as v9's School of Science reorg,
+// scoped down to only the ids this actually touches. See MIGRATIONS[21].
 //
 // v22 -> v23: the curriculum/build/faculty alert badges (see types.ts's
 // SeenState). GameState gains a required `seen` slice — three id -> true
@@ -515,13 +515,13 @@ export const SAVE_KEY = 'unischool.save';
 // the player meant" to carry forward — the same reasoning v16 -> v17 used
 // to drop `placements` outright for the footprint rescale, rather than
 // re-solve a layout under a scheme that no longer applies. `pathways` is
-// simply reset to `{}`: purely decorative, read by no system, so a
-// resuming player loses some drawn walkways and nothing else. See
-// MIGRATIONS[23].
-// v24 -> v25: gendered sports (see README's varsity athletics note and
-// data/studentLifeData.ts's SPORT_PROFILES). A sport is now one of three
-// profiles — men-only, women-only, or fielding independent men's AND
-// women's lineages — and SPORTS grew from 9 bare ids to 14 gendered ones.
+// simply reset to `{}`: purely decorative, read by no system, so a resuming
+// player loses some drawn walkways and nothing else. See MIGRATIONS[23].
+// v24 -> v25: gendered sports (see docs/design/student-life.mdvarsity
+// athletics note and data/studentLifeData.ts's SPORT_PROFILES). A sport is
+// now one of three profiles — men-only, women-only, or fielding independent
+// men's AND women's lineages — and SPORTS grew from 9 bare ids to 14
+// gendered ones.
 //
 // STATE SHAPE: a men's and a women's program of the same sport are two
 // separate StudentClub/VarsityTeam records, distinguished by a GENDERED
@@ -612,7 +612,7 @@ export const SAVE_KEY = 'unischool.save';
 // the club is never instantly re-offered the moment an old save loads,
 // only after its own five-year cooldown from here. See MIGRATIONS[27].
 //
-// v28 -> v29: Athletics V2 (see README's "Student life" and
+// v28 -> v29: Athletics V2 (see docs/design/student-life.md and
 // data/studentLifeData.ts's coaching-staff block). Four shape changes:
 //
 //   - VarsityTeam.coachName/coachBaseSalary (a single auto-generated name
@@ -951,8 +951,8 @@ export function clearSave(): void {
 // is what v1 and v2 still are — those changes rewrote the economy, not
 // just a shape, so an old run wouldn't describe the same game).
 //
-// Keyed on the version being migrated FROM, per the README's note on where
-// a migration path belongs.
+// Keyed on the version being migrated FROM, per the
+// docs/architecture/game-state.mdnote on where a migration path belongs.
 //
 // A migration runs on a state in the OLD shape, which by definition is not
 // the current GameState — fields it still has may since have been removed.
@@ -1581,17 +1581,18 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     }
   },
 
-  // v18 -> v19: curriculum terminology (see README's milestone chain and the
-  // alignment roadmap's PR C). A straight rename of the milestone keys and
-  // the one history-snapshot field to the program-centric vocabulary, with NO
-  // change to meaning — every established/distinguished program and
-  // distinguished school a save earned is preserved under its new key, so
-  // curriculumBreadthScore() reads exactly the same breadth after the rename
-  // and prestige does not move. `grad-program-complete:` is deliberately left
-  // alone: it was never part of the "major completion/mastery" vocabulary
-  // this pass corrects. Runs after the older curriculum migrations (e.g.
-  // v9 -> v10's PMED/DENT cleanup), which operate on the old key names as
-  // they existed at their own version, so those literals must NOT be changed.
+  // v18 -> v19: curriculum terminology (see
+  // docs/design/curriculum.mdmilestone chain and the alignment roadmap's PR
+  // C). A straight rename of the milestone keys and the one history-snapshot
+  // field to the program-centric vocabulary, with NO change to meaning —
+  // every established/distinguished program and distinguished school a save
+  // earned is preserved under its new key, so curriculumBreadthScore() reads
+  // exactly the same breadth after the rename and prestige does not move.
+  // `grad-program-complete:` is deliberately left alone: it was never part of
+  // the "major completion/mastery" vocabulary this pass corrects. Runs after
+  // the older curriculum migrations (e.g. v9 -> v10's PMED/DENT cleanup),
+  // which operate on the old key names as they existed at their own version,
+  // so those literals must NOT be changed.
   18: (state) => {
     const milestones = state.milestones ?? {};
     const renames: Array<[string, string]> = [
@@ -1619,14 +1620,14 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
   },
 
   // v19 -> v20: the four-class student model (see the note above SAVE_VERSION
-  // and README's "Students: four aggregate classes"). Converts the single
-  // students.enrolled scalar into four class-year counts — under the name
-  // they had at v20, `cohorts`, which MIGRATIONS[34] renames to `classes` —
-  // and seeds the trailing-year satisfaction accumulator. A mid-flight run genuinely has all
-  // four years, so the body is split evenly (any remainder to freshman); this
-  // is a display/accounting reshape, not a change to how many students the
-  // school has, so tuition/instruction/prestige read the same total the tick
-  // after load.
+  // and docs/design/admissions.md's "Students: four aggregate classes").
+  // Converts the single students.enrolled scalar into four class-year counts —
+  // under the name they had at v20, `cohorts`, which MIGRATIONS[34] renames to
+  // `classes` — and seeds the trailing-year satisfaction accumulator. A
+  // mid-flight run genuinely has all four years, so the body is split evenly
+  // (any remainder to freshman); this is a display/accounting reshape, not a
+  // change to how many students the school has, so
+  // tuition/instruction/prestige read the same total the tick after load.
   19: (state) => {
     const students = state.students as unknown as {
       enrolled?: number;
@@ -1652,7 +1653,7 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
     students.priorYearAvgSatisfaction ??= students.satisfaction ?? 70;
   },
 
-  // v20 -> v21: scholarships terminology (see README's "Admissions"). A
+  // v20 -> v21: scholarships terminology (see docs/design/admissions.md). A
   // straight rename of AdmissionsSettings.financialAidRate to scholarshipRate
   // with no change in meaning — it is the same 0..1 average tuition discount —
   // so a resumed run keeps its exact admissions policy.

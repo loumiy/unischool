@@ -11,8 +11,8 @@ The one exception is a plan still reading `Proposed` — the sequence has been
 written but no PR has landed — which lives here from the day it is written,
 because the sequencing IS the record of the thinking and it is no use filed
 anywhere else. Work that has not been sequenced at all lives in `BACKLOG.md` at
-the repository root, and the game as it actually is lives in `README.md`. Three
-documents, three tenses.
+the repository root, and the game as it actually is lives in `docs/design/` and
+`docs/architecture/`. Three tenses, three homes.
 
 ## The plans
 
@@ -72,5 +72,5 @@ plan to match what was built. Plan 04 has eight of these, and they are the most
 useful thing in it: they are the record of what the planning got wrong.
 
 **Do not edit a landed plan to keep it current.** Its value is that it says what
-was believed at the time. If the world has moved, that belongs in `README.md`,
-in `BACKLOG.md`, or in the next plan.
+was believed at the time. If the world has moved, that belongs in the design
+and architecture docs, in `BACKLOG.md`, or in the next plan.

@@ -5,17 +5,17 @@ import { isCelebratedMilestone } from '../../data/eventData';
 import { tierOf, type CourseTier } from '../../data/courseQuality';
 
 // ---------------------------------------------------------------------
-// The milestone chain (see README's "The milestone chain"). Unlocking
-// itself (gen-ed -> tier-1 -> school building -> tier-2 -> tier-3) is pure
-// authored prereq data resolved generically by unlockAvailable() below —
-// nothing special needed for that. What's left for dedicated logic is the BONUS
-// side: "program established" and "further" bonuses aren't a single course's
-// own completion effect, they're a reward for an aggregate condition
-// (every tier-2, or every tier-3, in a major being done), plus a
-// school-wide capstone bonus once every program in a school is distinguished.
-// This is deliberately the one place technSystem.ts is course/curriculum-
-// aware rather than fully kind-agnostic — milestones are inherently a
-// school/major concept, which buildings/dorms/facilities don't have.
+// The milestone chain (see docs/design/curriculum.md's "The milestone chain").
+// Unlocking itself (gen-ed -> tier-1 -> school building -> tier-2 -> tier-3)
+// is pure authored prereq data resolved generically by unlockAvailable() below
+// — nothing special needed for that. What's left for dedicated logic is the
+// BONUS side: "program established" and "further" bonuses aren't a single
+// course's own completion effect, they're a reward for an aggregate condition
+// (every tier-2, or every tier-3, in a major being done), plus a school-wide
+// capstone bonus once every program in a school is distinguished. This is
+// deliberately the one place technSystem.ts is course/curriculum-aware rather
+// than fully kind-agnostic — milestones are inherently a school/major concept,
+// which buildings/dorms/facilities don't have.
 // ---------------------------------------------------------------------
 // Milestones no longer grant reputation directly — establishing or
 // distinguishing a program, or distinguishing a school, raises
@@ -349,12 +349,12 @@ export function neededFacultyFields(s: GameState): Set<string> {
 
 // The single definition of "what it takes to start" a Buildable, shared by
 // the reducer's START_DEVELOPMENT case and every UI screen that has to
-// decide whether to offer the affordance.
-// There is deliberately NO cap on how many Buildables can develop at once:
-// money is the sole pacing resource (see README's "Pacing model"), so cash
-// is the only throttle here. The rule is simply that you cannot commit to
-// what you cannot pay for — the cost is charged in full, up front, so the
-// school must actually have it.
+// decide whether to offer the affordance. There is deliberately NO cap on
+// how many Buildables can develop at once: money is the sole pacing
+// resource (see docs/design/economy.md), so cash is the only throttle
+// here. The rule is simply that you cannot commit to what you cannot pay
+// for — the cost is charged in full, up front, so the school must actually
+// have it.
 //
 // This used to be a cash>=0 check instead, which let a player buy anything
 // at all while solvent and land in the red, where EVERY start was then

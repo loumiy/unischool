@@ -7,7 +7,8 @@ import {
   Your real curriculum, expressed as seed data and expanded into Buildable[].
   42 majors across 7 schools (9 courses each) + a 6-course general-ed core =
   384 course Buildables, plus one 'building' Buildable per school (7) that
-  gates each school's tier-2 courses — see README's "The milestone chain".
+  gates each school's tier-2 courses — see docs/design/curriculum.md's
+  "The milestone chain".
   (Eight SchoolSeeds in all: the seven degree-granting schools plus General
   Studies, which has the gen-ed core and no majors.)
 
@@ -101,12 +102,12 @@ const TIER_DURATION_WEEKS: Record<number, number> = { 1: 4, 2: 12, 3: 24 };
 
 // Course development cost, scaled by tier so a tier-3 capstone is a
 // markedly bigger financial commitment than a tier-1 entry course — see
-// README's "Pacing model: money is the throttle". Buildings below are
-// bigger investments still. Tier 1 (which the gen-ed core shares) is
-// priced a bit above its old rate so the tier-1 build-out is still a real
-// squeeze on opex now that founding tuition starts higher — the pinch
-// moves from a week-1 cash scare to the T1 build-out visibly tightening
-// the surplus, rather than disappearing.
+// docs/design/economy.md. Buildings below are bigger investments still.
+// Tier 1 (which the gen-ed core shares) is priced a bit above its old
+// rate so the tier-1 build-out is still a real squeeze on opex now that
+// founding tuition starts higher — the pinch moves from a week-1 cash
+// scare to the T1 build-out visibly tightening the surplus, rather than
+// disappearing.
 const TIER_COURSE_COST: Record<number, number> = { 1: 55_000, 2: 110_000, 3: 240_000 };
 
 // What a finished course costs to RUN, every week, forever — the recurring
@@ -249,7 +250,7 @@ const SCHOOLS: SchoolSeed[] = [
     // gen-ed science course, Mathematics only as Data Science's field,
     // Psychology under Social Sciences — so there was no science school at
     // all, which is also why only two schools could ever hold a lab (see
-    // LAB_GATED_MAJOR_PREFIXES and README's "Research"). Biology and
+    // LAB_GATED_MAJOR_PREFIXES and docs/design/research.md). Biology and
     // Psychology MOVE here keeping their course ids, so a save that already
     // finished either keeps it finished.
     name: 'Science',
@@ -341,8 +342,9 @@ const GENED_FIELDS: Record<string, string> = {
 // systematic web/rule. See the PR notes for why: a rule like "every
 // course also requires one course from an adjacent major" would touch
 // all 384 nodes and turn the curriculum into a much harder puzzle than
-// README's climb describes; a dozen hand-placed bridges add texture
-// without changing the core one-major-at-a-time pacing.
+// docs/design/curriculum.mdclimb describes; a dozen hand-placed
+// bridges add texture without changing the core one-major-at-a-time
+// pacing.
 // ---------------------------------------------------------------------
 
 // Cross-major/cross-school prereq bridges: each entry adds ONE OR MORE
@@ -449,8 +451,8 @@ export const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
 // serves a major's students, not the whole campus).
 //
 // This list is also, in effect, WHICH SCHOOLS CAN DO RESEARCH: a lab is the
-// research gate (see below and README's "Research"), and a school with no
-// lab-gated major can never build one. It used to name majors in exactly
+// research gate (see below and docs/design/research.md), and a school with
+// no lab-gated major can never build one. It used to name majors in exactly
 // two schools — Engineering and Health Science — which is why a run
 // concentrated anywhere else produced no research, ever. The School of
 // Science is the fix: Chemistry, Biology and Physics are lab sciences and
@@ -473,11 +475,11 @@ export const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
 // University Clinic (see CLINICAL_PRACTICUM_GATE below), which is a real
 // building the campus has to site and pay for, rather than a lab that
 // existed only because the gate mechanism happened to be spelled "lab".
-// Health Science stays a research school on Neuroscience's lab, which is
-// a bench science and keeps its own.
-// Which majors carry a RESEARCH FACILITY: the building that gates their
-// capstone coursework and, campus-wide, is what lets a school do
-// research at all (see README's "Research" and labEquippedFields).
+// Health Science stays a research school on Neuroscience's lab, which is a
+// bench science and keeps its own. Which majors carry a RESEARCH FACILITY:
+// the building that gates their capstone coursework and, campus-wide, is
+// what lets a school do research at all (see docs/design/research.md and
+// labEquippedFields).
 //
 // FOUR SCHOOLS USED TO HAVE NONE, and under the initiative model that is
 // coming this stops being a gap and becomes an exclusion: a school with no
@@ -525,14 +527,14 @@ const LAB_COST = 700_000;
 const LAB_WEEKS = 16;
 const LAB_UPKEEP_PER_WEEK = 1_400; // ~$73k/yr — specialized equipment is expensive to keep running, and a lab serves one major's students rather than the whole campus
 // A lab is now the gate on RESEARCH as well as on tier-3 coursework (see
-// README's "Research"): a school with no finished lab produces no research
-// at all, and the first lab anywhere on campus is also what offers the
-// College -> University charter. On top of that gate, each lab adds this
-// much to the campus-wide multiplier on weekly research output — read live
-// off effects.researchRateBonus, the same contract upkeep follows, so the
-// contribution tracks what is actually standing rather than what was once
-// completed. Small per lab on purpose: the gate is the decision, the
-// multiplier is the reward for building several.
+// docs/design/research.md): a school with no finished lab produces no
+// research at all, and the first lab anywhere on campus is also what
+// offers the College -> University charter. On top of that gate, each lab
+// adds this much to the campus-wide multiplier on weekly research output —
+// read live off effects.researchRateBonus, the same contract upkeep
+// follows, so the contribution tracks what is actually standing rather
+// than what was once completed. Small per lab on purpose: the gate is the
+// decision, the multiplier is the reward for building several.
 const LAB_RESEARCH_RATE_BONUS = 0.12;
 function labId(prefix: string): string {
   return `LAB-${prefix}`;
@@ -594,12 +596,12 @@ const CLINICAL_PRACTICUM_GATE: Partial<Record<string, string>> = {
 };
 
 // ---------------------------------------------------------------------
-// GRADUATE PROGRAMS (see README's "Graduate programs"). More curriculum,
-// and deliberately nothing else: a graduate program is a small cluster of
-// high-tier `course` Buildables gated on an undergraduate parent, feeding
-// the same prestige stock through the same capped inputs, pulling the same
-// faculty through the existing `field` demand, and sized in the same
-// weeks-of-opex language as everything else the player buys.
+// GRADUATE PROGRAMS (see docs/design/graduate-programs.md). More
+// curriculum, and deliberately nothing else: a graduate program is a small
+// cluster of high-tier `course` Buildables gated on an undergraduate
+// parent, feeding the same prestige stock through the same capped inputs,
+// pulling the same faculty through the existing `field` demand, and sized
+// in the same weeks-of-opex language as everything else the player buys.
 //
 // TWO BOUNDARIES THAT HOLD ABSOLUTELY, and are the reason this is the
 // low-risk "one loop" version of the feature:
@@ -1118,11 +1120,11 @@ export function initialTech(): Buildable[] {
     // generic engine that resolves every other prereq.
     //
     // Founders Hall (General Studies' own building) is the one exception:
-    // per the README's milestone chain, a new university starts with "one
-    // academic building and the gen-ed courses available" — the building
-    // isn't an early reward, it's the founding condition the gen-ed courses
-    // are paired with. It's the one Buildable in the whole game seeded
-    // 'done' AND pre-placed at founding (see actions.ts's
+    // per the docs/design/curriculum.mdmilestone chain, a new university
+    // starts with "one academic building and the gen-ed courses available" —
+    // the building isn't an early reward, it's the founding condition the
+    // gen-ed courses are paired with. It's the one Buildable in the whole
+    // game seeded 'done' AND pre-placed at founding (see actions.ts's
     // createInitialState) — the university's literal founding hall, in the
     // sense the name implies, standing in for the pre-built dorm a founding
     // campus used to open with before commuters (see campusData.ts). It
@@ -1134,9 +1136,9 @@ export function initialTech(): Buildable[] {
     // every tick off whatever is 'done', so it is part of the founding
     // operating picture with no double-counting — the same contract the
     // founding dining hall follows in facilitiesData.ts, just already 'done'
-    // rather than merely 'available' on day one.
-    // Academic buildings carry no capacity effect at all — see the
-    // capacity comment above GENED_BUILDING_REPUTATION_BONUS.
+    // rather than merely 'available' on day one. Academic buildings carry no
+    // capacity effect at all — see the capacity comment above
+    // GENED_BUILDING_REPUTATION_BONUS.
     const isGenEd = school.core !== undefined;
     nodes.push({
       id: school.buildingId,
@@ -1304,7 +1306,7 @@ export function milestoneSchools(): MilestoneSchool[] {
 // LAB_GATED_MAJOR_PREFIXES and RESEARCH_FACILITY_NAMES above — so `labIds`
 // is empty only for General Studies, which has no majors of its own. What
 // differs between schools is vocabulary, not mechanics (researchData.ts's
-// DISCIPLINE_VOCAB); see README's "Research".
+// DISCIPLINE_VOCAB); see docs/design/research.md.
 export interface ResearchSchool {
   schoolName: string;
   labIds: string[];  // lab Buildable ids belonging to this school's majors; empty means this school can never produce research

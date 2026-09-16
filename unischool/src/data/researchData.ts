@@ -66,11 +66,11 @@ const RESEARCH_POINTS_PER_WEEK_AT_MAX = 1.0;
 
 // Seniority premium. "Senior faculty produce more" is the point of the
 // weighting, and tenure is the game's only measure of seniority (faculty
-// are ageless — see README's "Faculty"). Same exponential-approach shape
-// as every other tenure curve in the game, deliberately slower than the
-// stat curve: a professor's research OUTPUT keeps climbing on reputation,
-// students and standing collaborations long after their research STAT has
-// plateaued.
+// are ageless — see docs/design/faculty.md). Same exponential-approach
+// shape as every other tenure curve in the game, deliberately slower than
+// the stat curve: a professor's research OUTPUT keeps climbing on
+// reputation, students and standing collaborations long after their
+// research STAT has plateaued.
 const RESEARCH_SENIORITY_PREMIUM_MAX = 0.8;   // at full maturity, a senior produces 1.8x what the same stats produce on day one
 const RESEARCH_SENIORITY_PLATEAU_YEARS = 12;
 const RESEARCH_SENIORITY_PLATEAU_FRACTION = 0.95;
@@ -138,12 +138,12 @@ export function researchRateMultiplier(s: GameState): number {
 
 // The campus's research CAPACITY: what the equipped roster could be
 // producing, if it were all committed. Nothing banks this any more — the
-// stock it used to feed is gone (see README's "Research"), and what a run
-// actually produces is initiativeWeeklyOutput on the initiatives that are
-// actually running. This survives as a SIGNAL: the admissions funnel reads
-// it for applicant appeal (cohorts.ts), and the balance sim prints it as
-// its rsch/wk column. Keep it a pure read of the roster and the facilities,
-// not of what happens to be commissioned this week.
+// stock it used to feed is gone (see docs/design/research.md), and what a
+// run actually produces is initiativeWeeklyOutput on the initiatives that
+// are actually running. This survives as a SIGNAL: the admissions funnel
+// reads it for applicant appeal (cohorts.ts), and the balance sim prints it
+// as its rsch/wk column. Keep it a pure read of the roster and the
+// facilities, not of what happens to be commissioned this week.
 export function weeklyResearchPoints(s: GameState): number {
   const equipped = labEquippedFields(s);
   if (equipped.size === 0) return 0;
@@ -550,14 +550,14 @@ export function initiativeWeeklyOutput(
 // How likely an output lands this week. Rises with what the project is
 // actually producing, floored by the same global cooldown the decision
 // events use, so a deep well-staffed program is eventful and a lone pilot
-// study is quiet without either needing a schedule of its own.
-// TUNED AGAINST THE WHOLE CAMPUS, not one project. These read as modest
+// study is quiet without either needing a schedule of its own. TUNED
+// AGAINST THE WHOLE CAMPUS, not one project. These read as modest
 // per-initiative odds and they have to: a mature university runs a dozen
 // facilities at once for decades, so the campus-wide rate is this number
 // times thirteen times two thousand weeks. The first pass used a rate that
 // felt right for a single project and produced grant income worth a fifth
 // of the university's lifetime operating cost — a second economy, which is
-// exactly what README's "Research" says grants must never become.
+// exactly what docs/design/research.md says grants must never become.
 const INITIATIVE_OUTPUT_CHANCE_MIN = 0.005;
 const INITIATIVE_OUTPUT_CHANCE_MAX = 0.034;
 const INITIATIVE_OUTPUT_FULL_RATE = 40; // weekly output at which the chance tops out

@@ -6,7 +6,8 @@ import type { SchoolType } from '../state/types';
 // Shown once, before play begins: name the school and pick private vs.
 // public. That single choice sets starting conditions via
 // SCHOOL_TYPE_PRESETS (see data/schoolTypeData.ts) — no other customization
-// here, per README ("archetypes emerge, they are not chosen").
+// here, per docs/design/progression.md("archetypes emerge, they are not
+// chosen").
 //
 // The player writes only HALF the name. Every school opens as a College,
 // and the word after the name is fixed rather than typed, because it is

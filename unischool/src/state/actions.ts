@@ -319,7 +319,7 @@ export function createPreStartState(): GameState {
 // The real starting state, once the player has named the university and
 // picked private/public on the startup screen. Private/public sets
 // starting conditions purely through SCHOOL_TYPE_PRESETS — see
-// README's "Startup and school type".
+// docs/design/progression.md's "Startup and school type".
 export function createInitialState(name: string, schoolType: SchoolType): GameState {
   const preset = SCHOOL_TYPE_PRESETS[schoolType];
 
@@ -493,9 +493,9 @@ export function createInitialState(name: string, schoolType: SchoolType): GameSt
         bio: 'Earned a doctorate in Philosophy at Amberfield University; research centers on ethics and moral philosophy.',
       },
     ],
-    // The single central Buildable list (see README's "central abstraction")
-    // — courses, academic buildings, dorms, AND campus-life facilities all
-    // live here together.
+    // The single central Buildable list (see
+    // docs/architecture/buildables.md) — courses, academic buildings, dorms,
+    // AND campus-life facilities all live here together.
     tech,
     developing: {},
     // Nothing is offered at founding — every gen-ed course opens

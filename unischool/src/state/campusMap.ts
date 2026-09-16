@@ -42,8 +42,8 @@ export function isPlaceableKind(t: Buildable): boolean {
 // scale, effects.servesPopulation or `tier`; for dorms
 // effects.capacityBonus), NOT a new field on Buildable: the single
 // Buildable model stays unforked, and `course` Buildables — which are
-// never placeable — carry no vestigial map data (see README's "The
-// central abstraction").
+// never placeable — carry no vestigial map data (see
+// docs/architecture/buildables.md).
 //
 // Sizes are pinned to 9m per tile — the scale the map actually DRAWS at (see
 // components/campusScale.ts, which derives it from the projection). An earlier

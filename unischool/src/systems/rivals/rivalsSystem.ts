@@ -4,13 +4,14 @@ import { athleticProgramStrength } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
 // Rivals evolve so the ranking stays a live target across decades (see
-// README's "Rankings: the U.S. News report" — prestige "fluctuates
-// dynamically year to year rather than sitting static"). Once a year,
-// each rival's momentum can reroll (a new multi-year trend begins) and
-// every rival also takes an independent random shock on top, so the
-// leaderboard visibly reshuffles rather than drifting in a smooth,
-// predictable line. Reputation is clamped to a sane band so the numbers
-// stay legible after decades of compounding drift.
+// docs/design/progression.md's "Rankings: the U.S. News report" —
+// prestige "fluctuates dynamically year to year rather than sitting
+// static"). Once a year, each rival's momentum can reroll (a new
+// multi-year trend begins) and every rival also takes an independent
+// random shock on top, so the leaderboard visibly reshuffles rather
+// than drifting in a smooth, predictable line. Reputation is clamped to
+// a sane band so the numbers stay legible after decades of compounding
+// drift.
 // ---------------------------------------------------------------------
 const MOMENTUM_REROLL_CHANCE = 0.35; // per rival, per year
 const MOMENTUM_RANGE = 3.5;          // new momentum spans roughly [-1.6, +1.9]
@@ -19,13 +20,14 @@ const ANNUAL_SHOCK_RANGE = 5;        // independent +/- jitter applied every yea
 const RIVAL_REPUTATION_MIN = 5;
 const RIVAL_REPUTATION_MAX = 150;
 
-// The U.S. News report is a mid-game reveal (see README): the player is
-// unaware of it until prestige first cracks the top TOP_50_CUTOFF, which
-// fires a one-time reveal interrupt; thereafter an annual report fires at
-// REPORT_WEEK every year. REPORT_WEEK is deliberately not WEEKS_PER_YEAR
-// (that's admissions' summer boundary) so the two interrupts never
-// compete for the same tick — see reducer.ts's generic "hold the clock
-// while a system just enqueued an interrupt" handling.
+// The U.S. News report is a mid-game reveal (see
+// docs/design/progression.md): the player is unaware of it until prestige
+// first cracks the top TOP_50_CUTOFF, which fires a one-time reveal
+// interrupt; thereafter an annual report fires at REPORT_WEEK every year.
+// REPORT_WEEK is deliberately not WEEKS_PER_YEAR (that's admissions'
+// summer boundary) so the two interrupts never compete for the same tick
+// — see reducer.ts's generic "hold the clock while a system just enqueued
+// an interrupt" handling.
 const TOP_50_CUTOFF = 50;
 const REPORT_WEEK = Math.floor(WEEKS_PER_YEAR / 2);
 
@@ -117,13 +119,13 @@ export function athleticRank(s: GameState): number {
 }
 
 // ---------------------------------------------------------------------
-// The annual report's year-over-year movement (see README's "Rankings").
-// The standings alone are a list of names; what a player actually feels is
-// motion — that they climbed three places, that a rival is surging, that
-// they finally passed a school that had been ahead of them for a decade.
-// All of it is derived from data that already exists: the history record's
-// prior-year rank/prestige (see state/history.ts) and the rivals' own
-// momentum field.
+// The annual report's year-over-year movement (see
+// docs/design/progression.md's "Rankings"). The standings alone are a list
+// of names; what a player actually feels is motion — that they climbed
+// three places, that a rival is surging, that they finally passed a school
+// that had been ahead of them for a decade. All of it is derived from data
+// that already exists: the history record's prior-year rank/prestige (see
+// state/history.ts) and the rivals' own momentum field.
 //
 // ESTIMATE, and deliberately so: nothing stores last year's rival
 // reputations, so "where each rival stood a year ago" is reconstructed by

@@ -13,10 +13,10 @@ import { discoverySchools, graduateProgram, milestoneSchools } from './techData'
 // WEEK-TO-WEEK TEXTURE, AS AUTHORED DATA.
 //
 // Two things live here, and both ride entirely on the existing interrupt
-// system (see README's "Interrupts: the decision-event system"). Neither
-// is new core machinery: systems/events/eventSystem.ts is one ordinary
-// pure tick function that reads this table and sets s.pendingInterrupt,
-// exactly the way admissions and the U.S. News report already do.
+// system (see docs/architecture/interrupts.md). Neither is new core
+// machinery: systems/events/eventSystem.ts is one ordinary pure tick
+// function that reads this table and sets s.pendingInterrupt, exactly
+// the way admissions and the U.S. News report already do.
 //
 //  1. MILESTONE CELEBRATIONS — a stop-the-clock moment for the handful of
 //     genuinely special accomplishments (a program established, a program
@@ -92,7 +92,7 @@ export const MILESTONE_INTERRUPT_KINDS: readonly string[] = [
   'program-established',
   'program-distinguished',
   'school-distinguished',
-  // Founding a graduate program (see README's "Graduate programs"). It
+  // Founding a graduate program (see docs/design/graduate-programs.md). It
   // qualifies on the same test the other three do — an aggregate
   // accomplishment, never a single course — and there are only six of them
   // in a whole run, all of them late, so this adds a handful of
@@ -488,7 +488,8 @@ export const VARSITY_PETITION_WEEK = Math.floor((WEEKS_PER_YEAR * 3) / 4);
 // state-driven rather than calendar-driven: a donor shows up once the
 // school is worth donating to, a heating plant fails once there is a
 // campus big enough to have one. That is the same "reveal on thresholds
-// the loop already produces" rule the README applies to buildings.
+// the loop already produces" rule the docs/design/economy.mdapplies to
+// buildings.
 // =====================================================================
 export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
@@ -809,7 +810,8 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     title: 'A legislative capital match',
     weight: 7,
     // Public schools only — the one place an authored event reads the
-    // single starting fork (see README's "Startup and school type").
+    // single starting fork (see docs/design/progression.md's "Startup
+    // and school type").
     eligible: (s) => s.self.schoolType === 'public' && s.clock.year >= STATE_MATCH_FIRST_YEAR,
     rollContext: (s) => ({ amount: weeksOfOpEx(s, STATE_MATCH_COMMITMENT_WEEKS) }),
     prompt: (_s, ctx) =>

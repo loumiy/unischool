@@ -2,11 +2,12 @@ import type { Rival } from '../state/types';
 
 // ---------------------------------------------------------------------
 // ~55 fictionalized rival schools, so a top-50 ranking is a genuine
-// competitive field (see README's "Rankings: the U.S. News report") —
-// not just edging out four other names. Reputation is the ranking
-// metric; momentum is the hidden trend tickRivals uses to keep the
-// leaderboard alive over decades (see rivalsSystem.ts for the annual
-// reroll + shock that actually applies it).
+// competitive field (see docs/design/progression.md's "Rankings: the
+// U.S. News report") — not just edging out four other names.
+// Reputation is the ranking metric; momentum is the hidden trend
+// tickRivals uses to keep the leaderboard alive over decades (see
+// rivalsSystem.ts for the annual reroll + shock that actually applies
+// it).
 //
 // Deliberately no rival starts below ~45: the player begins at 35-50
 // depending on school type (see schoolTypeData.ts), so the whole field

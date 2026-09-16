@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------
-// Faculty semantics conformance (see README's "Faculty" and the alignment
+// Faculty semantics conformance (see docs/design/faculty.md and the alignment
 // roadmap's PR G). The design: faculty are NAMED INDIVIDUALS with LIGHTWEIGHT
 // attributes — no life/personality simulation — and retention (tenure) is the
 // lever: stats grow toward a rolled ceiling and salary rises with them. These

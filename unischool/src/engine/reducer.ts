@@ -123,7 +123,7 @@ const LOG_CAP = 200;
 // ---------------------------------------------------------------------
 
 // ---------------------------------------------------------------------
-// The student-life digest (see README's "Student life", and
+// The student-life digest (see docs/design/student-life.md, and
 // data/studentLifeData.ts). Clubs and Greek chapters form quietly during
 // the year and queue as petitions; this is where the whole year's worth is
 // answered, folded into the summer admissions interrupt rather than given
@@ -595,8 +595,8 @@ export function reducer(state: GameState, action: Action): GameState {
     }
 
     case 'RESOLVE_ADMISSIONS': {
-      // Tuition is set ONLY here, once a year — see README's "Admissions:
-      // an annual summer decision" and the removed live SET_TUITION control.
+      // Tuition is set ONLY here, once a year — see
+      // docs/design/admissions.md and the removed live SET_TUITION control.
       // This sets the LISTED price. It reaches a student only through the
       // freshman entry of tuitionByClass, below, after the classes advance:
       // the three classes already on the books keep the price they were

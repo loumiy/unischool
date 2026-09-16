@@ -92,9 +92,10 @@ function HistoryTable({ rows, showRank }: { rows: YearSnapshot[]; showRank: bool
             <tr key={h.year}>
               <td>{h.year}</td>
               <td>{Math.round(h.prestige)}</td>
-              {/* Standing is a mid-game reveal (see README's "Rankings"):
-                  the record keeps every year's rank, but the view withholds
-                  it until the reveal has fired, exactly like the header. */}
+              {/* Standing is a mid-game reveal (see
+                  docs/design/progression.md's "Rankings"): the record keeps
+                  every year's rank, but the view withholds it until the
+                  reveal has fired, exactly like the header. */}
               <td>{showRank ? `#${h.rank}` : '—'}</td>
               <td>{h.enrolled.toLocaleString()}</td>
               <td>{formatMoney(h.cash)}</td>

@@ -3,12 +3,11 @@ import type { Buildable } from '../state/types';
 // ---------------------------------------------------------------------
 // Housing capacity is tied exclusively to dormitories — a `dorm` Buildable
 // chain built on the exact same shared machinery as courses and academic
-// buildings (see README's "The central abstraction: Buildables" — do not
-// build a parallel subsystem here). techSystem.ts's applyEffects already
-// applies `capacityBonus` generically for any kind, so no engine change is
-// needed, only content: capacity no longer ticks up from curriculum
-// development (see techData.ts), it only grows when a dorm finishes
-// construction here.
+// buildings (see docs/architecture/buildables.md — do not build a parallel
+// subsystem here). techSystem.ts's applyEffects already applies
+// `capacityBonus` generically for any kind, so no engine change is needed,
+// only content: capacity no longer ticks up from curriculum development
+// (see techData.ts), it only grows when a dorm finishes construction here.
 //
 // The university starts with NO housing built: the founding hall
 // (STARTING_DORM_ID below) is seeded 'available', not 'done', so the player

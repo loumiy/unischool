@@ -65,7 +65,8 @@ export const ATTRIBUTE_WEIGHTS: SatisfactionAttributes = {
 };
 
 // No ratio-based attribute ever bottoms out at a literal 0 — "stall, don't
-// crater" is the same pacing idea README's finance model uses for cash.
+// crater" is the same pacing idea docs/design/economy.mdfinance model uses
+// for cash.
 const ATTRIBUTE_SCORE_FLOOR = 12;
 
 // How much servesPopulation is "needed" per unit of capacity for a ratio-

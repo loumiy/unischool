@@ -11,10 +11,11 @@ import { attributeCoverage, servedPopulationFor } from '../satisfaction/satisfac
 import { projectAdmissions } from '../admissions/admissionsSystem';
 
 // ---------------------------------------------------------------------
-// STUDENT DEMANDS — the inverse of clubs (see README's "Student demands").
-// One ordinary pure tick function. All of the content and every tunable
-// number is in data/demandData.ts; what is here is the target logic, the
-// cadence, and the two readings the views render.
+// STUDENT DEMANDS — the inverse of clubs (see
+// docs/design/student-life.md's "Student demands"). One ordinary pure tick
+// function. All of the content and every tunable number is in
+// data/demandData.ts; what is here is the target logic, the cadence, and
+// the two readings the views render.
 //
 // THE SHAPE. When satisfaction sits below DEMAND_SATISFACTION_THRESHOLD the
 // student body asks for one concrete, buildable thing — derived from the

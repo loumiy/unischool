@@ -9,9 +9,9 @@ import { researchTopic } from '../../data/researchTopics';
 import type { ResearchOutputDef, ResearchOutputKind } from '../../data/researchData';
 
 // ---------------------------------------------------------------------
-// One ordinary pure tick function (see README's "Research"). It walks the
-// running initiatives — one per research facility — and for each one, in
-// this order:
+// One ordinary pure tick function (see docs/design/research.md). It walks
+// the running initiatives — one per research facility — and for each one,
+// in this order:
 //
 //   1. PRODUCTION. The team's weekly output, from who is on it, how deep
 //      they committed and what the campus has built. All of the rules live
@@ -153,16 +153,16 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
     // NOR DOES A QUIET PILOT STUDY, which is a cadence decision rather than
     // a mechanical one. A modal is a thing the game spends the player's
     // attention on, and the budget is roughly one or two a year on top of
-    // the annual admissions decision (see README's cadence note). Reporting
-    // every completion took the balance sim's texture count from 1.7 to 3.0
-    // modals a year, almost all of it six-month pilot studies concluding
-    // with a couple of papers — the smallest tier of work, on the shortest
-    // clock, interrupting most often. So a pilot reports only when it did
-    // something a player would want stopping for: won an award, or produced
-    // a breakthrough. Everything at Funded Project depth or deeper always
-    // reports, because eighteen months of a team's teaching is a
-    // commitment worth an ending. A quiet pilot still logs, and still
-    // appears in the Research tab's history.
+    // the annual admissions decision (see docs/design/research.mdcadence
+    // note). Reporting every completion took the balance sim's texture
+    // count from 1.7 to 3.0 modals a year, almost all of it six-month pilot
+    // studies concluding with a couple of papers — the smallest tier of
+    // work, on the shortest clock, interrupting most often. So a pilot
+    // reports only when it did something a player would want stopping for:
+    // won an award, or produced a breakthrough. Everything at Funded
+    // Project depth or deeper always reports, because eighteen months of a
+    // team's teaching is a commitment worth an ending. A quiet pilot still
+    // logs, and still appears in the Research tab's history.
     const notable = award !== null || initiative.breakthroughs > 0 || initiative.depth !== 'pilot';
     if (notable) s.research.pendingCompletions.push({
       topicId: initiative.topicId,

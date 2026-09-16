@@ -17,10 +17,10 @@ export function trailingYearSatisfaction(s: GameState): number {
 
 // ---------------------------------------------------------------------
 // Admissions is a distribution-based funnel, resolved once a year in the
-// summer interrupt (see README's "Admissions: an annual summer decision").
-// The applicant pool is modeled purely as aggregate statistics — a total
-// applicant count plus a coarse quality distribution (top / mid / low
-// bands) — never as individual applicants.
+// summer interrupt (see docs/design/admissions.md). The applicant pool is
+// modeled purely as aggregate statistics — a total applicant count plus a
+// coarse quality distribution (top / mid / low bands) — never as
+// individual applicants.
 //
 // There is no ADMISSIONS CEILING anywhere in this file: nothing ever skims
 // TOWARD a capacity target, and enrollment is never capped by beds. Students
@@ -521,8 +521,8 @@ export function projectAdmissions(
 // in demand instead — see wordOfMouthFactor above, applied at the next
 // cycle's RESOLVE_ADMISSIONS.
 export function tickAdmissions(s: GameState): void {
-  // Summer: pause for the once-a-year admissions decision (see README's
-  // "Admissions: an annual summer decision"). The reducer's TICK case sees
+  // Summer: pause for the once-a-year admissions decision (see
+  // docs/design/admissions.md). The reducer's TICK case sees
   // pendingInterrupt getting set here and holds the clock at this week;
   // RESOLVE_ADMISSIONS (in reducer.ts) runs the funnel and advances into
   // the new year. The payload carries the sticky input so an unchanged
