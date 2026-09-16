@@ -34,6 +34,13 @@ time, against a run actually in progress. The migration text is kept at each PR
 because it records what the carry would have cost, and open question 8's
 rank-neutrality finding is worth reading whichever way that call goes.
 
+**The numbers themselves are as of `38a99bb` and are already out of date** —
+Plan 07's PR A has since taken 41 → 42 for the tuition ceiling. Read the five
+above as an ordered list of bumps this plan needs, not as the versions it will
+get; whatever `SAVE_VERSION` reads when a PR here starts is what it bumps from.
+That drift is the ordinary cost of two plans in flight at once and is not worth
+editing this document over each time it happens.
+
 One consequence is named here rather than left to be discovered: PR 1A lands
 `University.mascot` early on the stated grounds that it *"keeps the save-shape
 change in one migration with the other three."* That is a sequencing decision
