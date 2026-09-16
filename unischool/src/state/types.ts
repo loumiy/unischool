@@ -91,10 +91,11 @@ export interface ClassTuition {
 // base shares, and the pull curve behind each one.
 export type CohortId =
   | 'highAchievers' | 'preProfessional' | 'researchOriented'
-  | 'social' | 'artsFocused' | 'priceSensitive' | 'athletes';
+  | 'social' | 'artsFocused' | 'priceSensitive' | 'athletes'
+  | 'gradBound';
 
 // Whole students, one count per cohort. Used for both an applicant pool's
-// composition (the summer reveal) and an enrolled class's (below); the seven
+// composition (the summer reveal) and an enrolled class's (below); the eight
 // always sum to whatever total they decompose, apportioned by largest
 // remainder so they are people rather than rounded fractions.
 export type CohortCounts = Record<CohortId, number>;

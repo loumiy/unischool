@@ -21,7 +21,7 @@ import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { findDecisionEvent, type DecisionEventContext } from '../src/data/eventData';
 import { COHORTS, baseShareCohortCounts } from '../src/systems/admissions/cohorts';
-import { loadGame, SAVE_KEY, SAVE_VERSION } from '../src/state/persistence';
+import { loadGame, SAVE_KEY } from '../src/state/persistence';
 import type { ClassCohorts, CohortCounts, GameState } from '../src/state/types';
 import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 
@@ -161,10 +161,15 @@ function checkSums(s: GameState, when: string): void {
   const founded = createInitialState('Legacy', 'private');
   const legacy = JSON.parse(JSON.stringify(founded)) as Record<string, unknown>;
   delete (legacy.students as Record<string, unknown>).cohortsByClass;
-  store.set(SAVE_KEY, JSON.stringify({ version: SAVE_VERSION - 1, savedAt: Date.now(), state: legacy }));
+  // The version is a LITERAL, not SAVE_VERSION - 1. This fixture describes
+  // the v39 shape specifically, and pinning it to "one before current"
+  // silently re-labels it every time the version moves — which is how it
+  // briefly claimed to be a v40 save that had no cohortsByClass at all, a
+  // shape no v40 save could ever have had.
+  store.set(SAVE_KEY, JSON.stringify({ version: 39, savedAt: Date.now(), state: legacy }));
 
   const migrated = loadGame();
-  assert(migrated !== null, 'a v39 save migrates rather than being discarded');
+  assert(migrated !== null, 'a v39 save migrates forward through every later version rather than being discarded');
   if (migrated) {
     checkSums(migrated, 'after migration');
     for (const k of CLASS_KEYS) {
@@ -207,6 +212,33 @@ function checkSums(s: GameState, when: string): void {
   for (const c of COHORTS) {
     assert(s.students.cohortsByClass.sophomore[c.id] === admittedBefore[c.id],
       `${c.label}: the class keeps the split it was admitted under (${s.students.cohortsByClass.sophomore[c.id]} vs ${admittedBefore[c.id]})`);
+  }
+}
+
+// =====================================================================
+// 6. A v40 SAVE GAINS THE GRADUATE COHORT AT ZERO. The eighth cohort
+// arrived after cohortsByClass shipped, so a v40 split has seven keys
+// where every reader now expects eight — and a missing key here is not a
+// harmless absence: counts[id] reads undefined, every sum goes NaN, and
+// the bars stop rendering entirely.
+// =====================================================================
+{
+  const founded = createInitialState('Postgrad', 'private');
+  const legacy = JSON.parse(JSON.stringify(founded)) as Record<string, unknown>;
+  const byClass = (legacy.students as Record<string, Record<string, Record<string, number>>>).cohortsByClass;
+  for (const k of CLASS_KEYS) delete byClass[k].gradBound; // what a v40 save actually holds
+  store.set(SAVE_KEY, JSON.stringify({ version: 40, savedAt: Date.now(), state: legacy }));
+
+  const migrated = loadGame();
+  assert(migrated !== null, 'a v40 save migrates rather than being discarded');
+  if (migrated) {
+    for (const k of CLASS_KEYS) {
+      assert(migrated.students.cohortsByClass[k].gradBound === 0,
+        `migrated ${k} gains a graduate count of exactly 0`);
+    }
+    // The sums must survive the migration: nobody is redistributed to make
+    // room for the new cohort, so each class still sums to its head count.
+    checkSums(migrated, 'after the v40 -> v41 migration');
   }
 }
 

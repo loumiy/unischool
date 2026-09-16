@@ -1831,6 +1831,11 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .body-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0 0 16px;
   font-size: var(--text-xs); color: var(--ink-muted); }
 .body-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+/* A cohort the school draws none of still earns its legend entry — "Grad
+   students 0" tells a player the audience exists and they have not reached
+   it, which a missing row does not. Dimmed so eight entries at founding
+   read as one absent audience rather than as a broken legend. */
+.body-legend-item.is-absent { opacity: 0.45; }
 .body-legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex: none;
   border: 1px solid rgba(43, 36, 23, 0.25); }
 .body-legend-count { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 700; }
