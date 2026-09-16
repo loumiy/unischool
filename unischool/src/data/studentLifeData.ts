@@ -133,11 +133,12 @@ export const CHAPTER_HOUSE_CAPACITY_BONUS = 40;
 // headline satisfaction. Real, and nowhere near enough to substitute for
 // building the social facilities the attribute is mostly scored on.
 //
-// A full varsity athletics department (all fourteen SPORTS teams active —
-// up from nine before gendering split five sports into independent men's/
-// women's lineages — high investment) adds a further ~46.2 uncapped — so a
-// school running clubs, Greek life AND athletics at once now clears this
-// ceiling comfortably. The
+// A full varsity athletics department (all eighteen SPORTS teams active,
+// high investment) adds a further 18 x 2.2 x 1.5 = ~59.4 uncapped — twice
+// this whole ceiling on its own, and up from ~46.2 when there were fourteen
+// teams (itself up from nine before gendering split the two-gender sports
+// into independent men's and women's lineages). So a school running clubs,
+// Greek life AND athletics at once clears this ceiling several times over. The
 // cap is left UNCHANGED rather than raised to "make room" for athletics:
 // the point of a shared aggregate cap is exactly that a school cannot stack
 // every student-life lever to keep climbing past it, and athletics is
@@ -311,6 +312,33 @@ const SPORT_PROFILES: readonly SportProfile[] = [
   { key: 'softball', label: 'Softball', venueCategory: 'athleticsDiamond', genders: ['women'] },
   { key: 'swimming', label: 'Swim & Dive', venueCategory: 'athleticsNatatorium', genders: ['men', 'women'] },
   { key: 'football', label: 'Football', venueCategory: 'footballStadium', genders: ['men'] },
+  // --- added in Plan 08's PR 2A, both onto venues that already stand ---
+  //
+  // TRACK & FIELD runs on the multi-sport field, which already has a track
+  // drawn on it: components/groundMarkings.tsx renders a regulation eight-lane
+  // 400m stadium oval there, at real proportions, and has since Plan 04's 4C.
+  // The sport was waiting on nothing.
+  { key: 'track', label: 'Track & Field', venueCategory: 'athleticsField', genders: ['men', 'women'] },
+  // ICE HOCKEY shares the arena, and this is a NAMED CALL rather than an
+  // obvious one. A real arena converts between hardwood and ice, which is
+  // exactly the "shared among varsity teams in one category" model
+  // docs/design/student-life.md describes — and the alternative, an
+  // `athleticsIceRink` facility type, costs a Buildable, a footprint, a
+  // ground marking, a build-rail entry and a map asset for one sport.
+  //
+  // The cost of the call, stated so a playtest knows to look for it: the
+  // arena is now the venue for SIX programs (basketball and volleyball in
+  // both genders, plus hockey in both), which is a lot of load on one
+  // building. If that reads as thin, the fix is a rink, not a retreat from
+  // sharing.
+  { key: 'iceHockey', label: 'Ice Hockey', venueCategory: 'athleticsArena', genders: ['men', 'women'] },
+  //
+  // GOLF IS DECLINED and ROWING DEFERRED — see docs/design/student-life.md.
+  // A course is a footprint larger than the campus the game draws; a lake is
+  // TERRAIN, and the map has no terrain concept at all (campusData.ts is a
+  // tile grid of placements, and the only water in the game is drawn
+  // ornamentally inside two ground markings). Water on the map is a
+  // campus-map plan, not an athletics one.
 ];
 
 function sportId(profile: SportProfile, gender: SportGender): string {
@@ -350,7 +378,7 @@ export interface SportDefinition {
 }
 
 // GENERATED from SPORT_PROFILES, one entry per (sport, fielded gender) —
-// 4 one-gender sports + 5 two-gender sports x 2 lineages = 14 entries,
+// 4 one-gender sports + 7 two-gender sports x 2 lineages = 18 entries,
 // up from the pre-gendering 9. See the STATE SHAPE note above
 // promoteToVarsityTeam: a gendered SPORTS id, not a `gender` field on
 // StudentClub/VarsityTeam, is what keeps a men's and a women's program of
@@ -420,7 +448,7 @@ export const ATHLETICS_BUDGET_TIERS: Record<AthleticsBudgetTier, { socialMultipl
 // program to be proud of until it can actually compete), which is also why
 // this cannot be gamed by petitioning and stalling on the venue. Sized
 // between a club's and a chapter's: a varsity team is a bigger deal than a
-// chess club but a campus can have at most fourteen of them (one per SPORTS
+// chess club but a campus can have at most eighteen of them (one per SPORTS
 // entry — up from nine before gendering split five sports into independent
 // men's/women's lineages), against up to ten housed chapters, so per-team
 // it can afford to sit close to a chapter's own weight.
@@ -533,6 +561,22 @@ export function generateCoachCandidate(field: string): Coach {
 // exact same reasoning facultyData.ts's initialCandidatePool uses — a pool
 // seeded flat would empty and refill in synchronized waves instead of
 // churning smoothly.
+//
+// SIZED AGAINST THE NUMBER OF FIELDS, and worth reading as flow rather than
+// stock. rollCoachField draws uniformly across every SPORTS id plus
+// TRAINER_FIELD, so the pool spreads itself over 19 fields now rather than
+// 15 — but what a waiting vacancy actually experiences is the THROUGHPUT:
+// with listings living COACH_CANDIDATE_LISTING_WEEKS, a target of 18 turns
+// over ~1.5 listings a week, so a given field sees roughly four candidates a
+// year and a vacancy waits a season rather than forever.
+//
+// Left at 18 by PR 2A, deliberately. Raising it was planned here on the
+// grounds that four more sports forced it; measured, they do not — the gate
+// and the sim are clean at 18 with all eighteen sports. What a bigger pool
+// buys is the STOCK a player sees on screen at one moment (18 across 19
+// fields is usually nought or one for any particular role), which is a
+// question about the hiring screen, so it belongs with the PR that rebuilds
+// it rather than with the one that adds the sports.
 export const COACH_CANDIDATE_POOL_TARGET = 18;
 export const COACH_CANDIDATE_LISTING_WEEKS = 12;
 const COACH_CANDIDATE_ARRIVALS_PER_WEEK_MAX = 3;
@@ -592,7 +636,7 @@ export function teamQuality(team: VarsityTeam, s: GameState): number {
 // contributes nothing to athleticsSocialBonus. A department with more
 // active teams reads as a bigger deal than one carrying a single strong
 // team (the same "breadth matters" shape curriculum breadth's own score
-// uses), capped so fielding a handful of teams doesn't need all fourteen
+// uses), capped so fielding a handful of teams doesn't need all eighteen
 // SPORTS entries to be taken seriously.
 const ATHLETIC_BREADTH_FOR_FULL_CREDIT = 6;
 

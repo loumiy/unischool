@@ -103,15 +103,38 @@ A named share of new club formations (`SPORT_CLUB_SHARE`) roll as a **sport
 club** instead of an ordinary one — the same weekly club roll, no second
 formation stream — drawn from a fixed, **gendered** `SPORTS` list
 (`data/studentLifeData.ts`) that also maps each sport to the **venue
-category** it needs (field sports share a multi-sport field; basketball/
-volleyball share an arena; baseball and softball share a diamond; swimming
-needs a natatorium; football is alone, gated behind its own petition, and
-gets the pinnacle **football stadium** — the most expensive Buildable and
-largest map footprint in the game). Every sport is one of three profiles
-(`SPORT_PROFILES`): **men-only** (football, baseball), **women-only** (field
-hockey, softball), or **two-gender**, fielding independent men's and women's
-lineages (soccer, lacrosse, basketball, volleyball, swim & dive) — 14 gendered
-`SPORTS` entries in all. A men's and a women's program of the same sport are
+category** it needs (field sports and track share a multi-sport field;
+basketball, volleyball and ice hockey share an arena; baseball and softball
+share a diamond; swimming needs a natatorium; football is alone, gated behind
+its own petition, and gets the pinnacle **football stadium** — the most
+expensive Buildable and largest map footprint in the game). Every sport is one
+of three profiles (`SPORT_PROFILES`): **men-only** (football, baseball),
+**women-only** (field hockey, softball), or **two-gender**, fielding
+independent men's and women's lineages (soccer, lacrosse, basketball,
+volleyball, swim & dive, track & field, ice hockey) — 18 gendered `SPORTS`
+entries in all.
+
+**Track & field and ice hockey were added onto venues that already stood.**
+The multi-sport field has carried a regulation eight-lane 400m oval since the
+campus-art pass, so track was waiting on nothing. Ice hockey **shares the
+arena**, which is a named call rather than an obvious one: a real arena
+converts between hardwood and ice, which is exactly what "shared among varsity
+teams in one category" means here, and the alternative — an `athleticsIceRink`
+facility type — costs a Buildable, a footprint, a ground marking, a build-rail
+entry and a map asset for one sport. The cost of the call is that the arena is
+now the venue for **six** programs; if that reads as thin in play, the answer
+is a rink, not a retreat from sharing.
+
+**Golf is declined and rowing is deferred**, and neither for want of interest.
+A golf course is a footprint larger than the campus the game draws. A lake is
+**terrain**, and the campus map has no terrain concept at all — it is a tile
+grid of placements, and the only water in the game is drawn ornamentally inside
+two ground markings. Water on the map is a campus-map problem, not an athletics
+one. The other option for rowing, a sport with no venue, is worse than it
+sounds: every team carries a `venueCategory`, `promoteToVarsityTeam` and
+`sanitizeTeams` both key off it, and `'awaitingVenue'` is the whole shape of the
+varsity grant — so a venueless sport threads a special case through all of it
+for one program. A men's and a women's program of the same sport are
 two entirely separate club/team records (a gendered id, not a `gender` field
 alongside a shared one), so they form, petition and graduate on their own
 timelines, sharing only the venue category — the second lineage into a

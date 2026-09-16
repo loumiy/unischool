@@ -752,6 +752,36 @@ one that matters because it is the argument for where the cap sits.
 varsity petitions and more upkeep, and `athleticsUpkeep` as a share of opex is
 already a row the sim prints for exactly this reason.
 
+**As implemented:** the coach-pool raise is **deferred to PR 2B**, because the
+premise it was planned on turned out to be false.
+
+This PR argued the raise was *forced* by the sport count — 18 listings across 19
+fields would make "nobody on the market" the normal answer. Raising it to 44
+knocked two checks off `test/balance-regression.test.ts`, and the control
+separated the causes cleanly: **eighteen sports with the old pool passes the
+gate and the sim untouched**, so the sports are free and the whole movement came
+from the pool size shifting the seeded stream — 26 more candidates generated at
+founding, each consuming several draws, plus double the weekly arrivals.
+
+The measurement also corrected the argument. A waiting vacancy experiences
+*throughput*, not stock: at a 12-week listing window a target of 18 turns over
+~1.5 listings a week, so a field sees about four candidates a year and a vacancy
+waits a season rather than forever. What a bigger pool actually buys is the
+stock a player sees *at one moment* — 18 across 19 fields is usually nought or
+one for a given role — which is a question about the hiring screen. So it
+belongs with the PR that rebuilds that screen, where it can be judged against
+the thing it is for and its stream shift dealt with once.
+
+**A pre-existing finding the sim surfaced, reported rather than fixed here.** On
+the discount-volume strategy, **61 of 96 decision events across forty years were
+varsity petitions** — one authored event crowding out the entire table, with
+9 of the 61 granted. It is identical on `main` at fourteen sports, so PR 2A
+neither caused nor worsened it. The cause looks structural: a decline cools a
+club's ask for five years rather than ending it, and a campus with many sport
+clubs re-asks in aggregate far more often than the shared decision-event
+cadence would ever allow. Flagged for the repository owner; it is a cadence
+question about the petition, not about sports.
+
 ## PR 2B — The market comes home: one pool, tagged by need
 
 **The change.** The backlog's *"a bigger coach pool reusing faculty headshots and

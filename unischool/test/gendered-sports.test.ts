@@ -53,7 +53,7 @@ function makeSportClub(id: string, sportId: string): StudentClub {
 
 // ---- SPORTS catalogue shape ----
 function testCatalogueShape(): void {
-  assert(SPORTS.length === 14, `SPORTS has 14 gendered entries (got ${SPORTS.length})`);
+  assert(SPORTS.length === 18, `SPORTS has 18 gendered entries (got ${SPORTS.length})`);
 
   const oneGender = ['football', 'baseball', 'fieldHockey', 'softball'];
   for (const id of oneGender) {
@@ -69,7 +69,31 @@ function testCatalogueShape(): void {
     assert(sportById(id)?.gender === 'women', `${id} is women-only`);
   }
 
-  const twoGender = ['soccer', 'lacrosse', 'basketball', 'volleyball', 'swimming'];
+  // PR 2A's four new sports ride venues that ALREADY STOOD, which is the whole
+  // reason they cost no Buildable, no footprint and no map asset. Asserted
+  // rather than trusted: a later retune that gave either of them a venue of
+  // its own would be a real design change and should have to say so here.
+  for (const id of ['track-m', 'track-w']) {
+    assert(sportById(id)?.venueCategory === 'athleticsField',
+      `${id} runs on the multi-sport field, which already carries a track`);
+  }
+  for (const id of ['iceHockey-m', 'iceHockey-w']) {
+    assert(sportById(id)?.venueCategory === 'athleticsArena',
+      `${id} shares the arena — a named call, not a rink of its own`);
+  }
+  // And the arena now carries six programs, which is the cost of that call.
+  const arenaPrograms = SPORTS.filter((sp) => sp.venueCategory === 'athleticsArena');
+  assert(arenaPrograms.length === 6,
+    `the arena is the venue for six programs (got ${arenaPrograms.length}: ${arenaPrograms.map((sp) => sp.id).join(', ')})`);
+
+  // Neither golf nor rowing exists — declined and deferred respectively (see
+  // docs/design/student-life.md). Here so that adding either is a deliberate
+  // act rather than a quiet one.
+  for (const key of ['golf', 'rowing']) {
+    assert(!SPORTS.some((sp) => sp.id.startsWith(key)), `${key} is not a sport — it was declined or deferred, with reasons`);
+  }
+
+  const twoGender = ['soccer', 'lacrosse', 'basketball', 'volleyball', 'swimming', 'track', 'iceHockey'];
   for (const key of twoGender) {
     const m = sportById(`${key}-m`);
     const w = sportById(`${key}-w`);
