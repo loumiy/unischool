@@ -378,6 +378,57 @@ export function majorPrefixes(): string[] {
   return SCHOOLS.flatMap((school) => school.majors.map((major) => major.prefix));
 }
 
+// A PROGRAM, as the halls model sees it (Plan 14): the unit that takes a
+// slot. Forty-two majors, the gen-ed core, and the six graduate programs,
+// each read off the seed by the id `s.halls` and `s.programOffers` carry.
+// Deliberately a fourth independent read of SCHOOLS, for the reason
+// milestoneSchools() and researchSchools() each are: the engine has no
+// notion of "program", so the feature that needs one derives it here
+// rather than growing a field on Buildable.
+export type ProgramKind = 'core' | 'major' | 'graduate';
+export interface ProgramInfo {
+  id: string;            // the slot id: a major prefix, 'CORE', or a GRADUATE_PROGRAMS id
+  kind: ProgramKind;
+  name: string;
+  school: string;        // the SchoolSeed name; a graduate program's homeSchool
+  field: string | null;  // the Faculty field a major's every course requires; null for the core and graduate programs, which author it per course
+  entryCourseId: string; // the tier-1 (or first) course — founding a program starts this one
+  courseIds: string[];   // every course, in tier order
+}
+
+const CORE_PROGRAM_ID = 'CORE';
+
+export function programs(): ProgramInfo[] {
+  const out: ProgramInfo[] = [];
+  for (const school of SCHOOLS) {
+    if (school.core) {
+      out.push({
+        id: CORE_PROGRAM_ID, kind: 'core', name: 'General Education', school: school.name, field: null,
+        entryCourseId: GENED_CORE_IDS[0], courseIds: [...GENED_CORE_IDS],
+      });
+    }
+    for (const major of school.majors) {
+      const courseIds = NUMS.map((num) => nodeId(major.prefix, num));
+      out.push({
+        id: major.prefix, kind: 'major', name: major.name, school: school.name, field: major.field,
+        entryCourseId: courseIds[0], courseIds,
+      });
+    }
+  }
+  for (const program of GRADUATE_PROGRAMS) {
+    const courseIds = graduateCourseIds(program);
+    out.push({
+      id: program.id, kind: 'graduate', name: program.name, school: program.homeSchool, field: null,
+      entryCourseId: courseIds[0], courseIds,
+    });
+  }
+  return out;
+}
+
+export function programById(id: string): ProgramInfo | undefined {
+  return programs().find((p) => p.id === id);
+}
+
 // requiresFaculty gates for the six gen-ed core courses — same idea as each
 // major's own `field` above, just per-course instead of per-major since the
 // core isn't a single discipline. Every field used here already appears in

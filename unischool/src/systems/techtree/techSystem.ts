@@ -2,6 +2,7 @@ import type { GameState, Buildable, BuildableEffects, Faculty, HallSlot } from '
 import { totalEnrolled } from '../../state/types';
 import { graduateCourseIds, graduateGateMet, graduatePrograms, milestoneSchools } from '../../data/techData';
 import { isCelebratedMilestone } from '../../data/eventData';
+import { refillOffers } from './programOffers';
 import { tierOf, type CourseTier } from '../../data/courseQuality';
 
 // ---------------------------------------------------------------------
@@ -663,5 +664,10 @@ export function tickTech(s: GameState): void {
   unlockAvailable(s);
   if (finished.length > 0) {
     checkMilestones(s);
+    // The offer is seeded the week the gen-ed core completes: the last
+    // core course finishing is what reveals every tier-1 course above, and
+    // refillOffers is a no-op on any week that reveals nothing new (a
+    // founding tops the offer up itself — see the reducer's FOUND_PROGRAM).
+    refillOffers(s);
   }
 }

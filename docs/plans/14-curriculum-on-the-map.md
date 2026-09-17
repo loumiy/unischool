@@ -9,7 +9,7 @@ repeatable academic halls with six program slots, programs founded from a
 rolling offer of three, and a Curriculum tab that becomes forty-two rows — and
 turn them into an ordered sequence of PRs.*
 
-**Status: In progress.** PR A has landed. Depends on
+**Status: In progress.** PRs A and B have landed. Depends on
 [Plan 09](09-playtest-harness.md) for the scenarios and the scorecard this is
 measured with. Supersedes
 [Plan 11](11-academic-halls.md), whose rooms-and-continuous-development model
@@ -218,6 +218,24 @@ always three until fewer than three remain, never repeats a founded program,
 never offers a gated one, and — across three seeds — always includes an
 unstarted school while one exists. A second test asserts a player who only ever
 takes the same school's offers still sees every school eventually.
+
+**As implemented:** the draw does **not** ride the per-year RNG stream, and
+the reason is a measurement. The first cut took one `Math.random` draw per
+refill, the discipline `rivalsSystem.ts` keeps, and that single extra draw at
+core completion shifted every faculty potential and candidate listing after
+it enough to send the balance sim's overbuilder into a distress it never
+climbed out of — one check off `test/balance-regression.test.ts`. The offer
+is not what the bands measure, so it must not move them: the local PRNG is
+seeded from the state instead (the school's name, the week, how many
+programs are housed) and the global stream is untouched, which the test
+pins by counting draws. Two schools with different names draw differently; a
+reloaded save draws what it would have drawn. The refill is also called from
+`tickTech` on every finish rather than once at core completion by name: it
+is a no-op on any week that reveals nothing, and that is one call instead of
+a special case. The
+seed gains `programs()`, a fourth independent read of the school table — the
+unit that takes a slot, by the id `s.halls` carries — which the sanitizer, the
+sweep and every later PR read instead of re-deriving school membership.
 
 ## PR 14C — Founding a program
 

@@ -6,6 +6,7 @@ import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from './types';
 import { fellTrees } from '../data/treeData';
 import { glyphsFor, SPORTS } from '../data/studentLifeData';
 import { graduatePrograms, majorPrefixes } from '../data/techData';
+import { offerablePrograms, PROGRAM_OFFER_COUNT } from '../systems/techtree/programOffers';
 
 // ---------------------------------------------------------------------
 // Save / load (see docs/architecture/game-state.md). A run is measured in
@@ -406,6 +407,24 @@ function sanitizeHalls(state: GameState): void {
   state.halls = clean;
 }
 
+// Offer hygiene, run on EVERY load, after sanitizeHalls (it reads the
+// cleaned halls to know what is housed). An offer is a claim that a
+// program can be founded right now, so an entry that cannot be — housed,
+// gated, unknown, or a duplicate — is dropped. Never topped back up here:
+// a short offer is refilled by the next finish (techSystem.ts), and a
+// loader that drew dice would make loading a save change the game.
+function sanitizeProgramOffers(state: GameState): void {
+  const source = Array.isArray(state.programOffers) ? state.programOffers : [];
+  const offerable = new Set(offerablePrograms(state).map((program) => program.id));
+  const clean: string[] = [];
+  for (const id of source) {
+    if (typeof id !== 'string' || !offerable.has(id) || clean.includes(id)) continue;
+    if (clean.length >= PROGRAM_OFFER_COUNT) break;
+    clean.push(id);
+  }
+  state.programOffers = clean;
+}
+
 // A shallow structural check, not a full validation of GameState. The point
 // is to reject the things that actually happen — a truncated write, a key
 // collision, a payload from an older shape that shares the version number
@@ -422,6 +441,7 @@ function looksLikeGameState(value: unknown): value is GameState {
     typeof s.students === 'object' && s.students !== null &&
     Array.isArray(s.tech) &&
     typeof s.halls === 'object' && s.halls !== null &&
+    Array.isArray(s.programOffers) &&
     Array.isArray(s.faculty) &&
     Array.isArray(s.rivals) &&
     Array.isArray(s.history) &&
@@ -467,8 +487,10 @@ export function loadGame(): GameState | null {
   const state = payload.state;
   sanitizePlacements(state);
   // After sanitizePlacements: a hall's slots are only real while the hall
-  // itself stands on the map.
+  // itself stands on the map. And offers after halls: an offer is only
+  // real while its program is unhoused.
   sanitizeHalls(state);
+  sanitizeProgramOffers(state);
   sanitizePathways(state);
   // After sanitizePlacements, never before: it reads the CLEANED placements
   // to decide which trees are standing under a building.

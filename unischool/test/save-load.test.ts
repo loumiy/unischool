@@ -228,8 +228,26 @@ function testHallsSanitizer(): void {
   assert(hall[3].programId === null, 'a non-string program id becomes an empty slot');
   assert(hall.slice(4).every((slot) => slot.programId === null), 'the padded slots are empty');
 
-  // A missing record altogether comes back as Founders-Hall-less rather
-  // than crashing: the sanitizer rebuilds only what the save can prove.
+  // The offer beside it: an offer names a program that can be founded now,
+  // so a housed one, an unknown one, a duplicate, and a fourth are all
+  // dropped — and nothing is drawn to replace them at load.
+  (state.halls as Loose)['HALL-01'] = [{ programId: 'MECH' }, { programId: null }, { programId: null }, { programId: null }, { programId: null }, { programId: null }];
+  for (const t of tech) {
+    if ((t.id as string).endsWith('101') && (t.id as string).length === 7) t.status = 'available';
+  }
+  state.programOffers = ['MECH', 'FINA', 'NOT-A-PROGRAM', 'FINA', 'ACCT', 'ECON', 'MRKT'];
+  writeSave(SAVE_VERSION, state);
+  const withOffers = loadGame();
+  assert(withOffers !== null, 'a save with a bad offer still loads');
+  if (withOffers) {
+    assert(
+      JSON.stringify(withOffers.programOffers) === JSON.stringify(['FINA', 'ACCT', 'ECON']),
+      `the offer keeps only founding-ready, distinct programs, at most three (got ${withOffers.programOffers.join(', ')})`,
+    );
+  }
+
+  // A missing record altogether: the sanitizer rebuilds only what the save
+  // can prove, and a payload with no halls at all is not a GameState.
   delete state.halls;
   writeSave(SAVE_VERSION, state);
   assert(loadGame() === null, 'a save with no halls record at all is not a GameState and loads as null');

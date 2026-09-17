@@ -28,6 +28,7 @@ import type { GameState, OrgPetition } from '../src/state/types';
 import {
   usedFacultySlots, hasFreeFacultySlot, eligibleInstructors, facultyLoad, isUnstaffed, hasFreeSlot,
 } from '../src/systems/techtree/techSystem';
+import { isHoused, PROGRAM_OFFER_COUNT, startedSchools } from '../src/systems/techtree/programOffers';
 import {
   computePrestigeTarget, computeResearchTarget, computeSocialTarget,
   prestigeBreakdown, researchStandingBreakdown, socialStandingBreakdown,
@@ -537,6 +538,14 @@ function assertHallsInvariants(s: GameState, label: string): void {
       housed.set(slot.programId, hallId);
     }
   }
+  // The offer (Plan 14's PR B): at most three, distinct, real, and none of
+  // them housed — an offer is a claim the program can be founded now.
+  assert(s.programOffers.length <= PROGRAM_OFFER_COUNT, `${label}: at most ${PROGRAM_OFFER_COUNT} offers`);
+  assert(new Set(s.programOffers).size === s.programOffers.length, `${label}: offers are distinct`);
+  for (const id of s.programOffers) {
+    assert(programIds.has(id) && id !== 'CORE', `${label}: offer ${id} is a real program`);
+    assert(!isHoused(s, id), `${label}: offer ${id} is not already housed`);
+  }
 }
 {
   // A founding save: one hall, one slot, the core in it, nothing else.
@@ -546,6 +555,7 @@ function assertHallsInvariants(s: GameState, label: string): void {
     'a founding save has one hall with one slot');
   assert(s.halls[GENED_BUILDING_ID]?.[0]?.programId === 'CORE', 'and the core is in it');
   assert(s.tech.find((t) => t.id === GENED_BUILDING_ID)?.slots === 1, 'Founders Hall is seeded with one slot');
+  assert(s.programOffers.length === 0, 'nothing is offered at founding');
 
   // The chain: twelve halls of six, strictly sequential, the first waiting
   // on the gen-ed core.
@@ -568,6 +578,9 @@ function assertHallsInvariants(s: GameState, label: string): void {
   const first = halls[0].id;
   s = advanceUntil(s, (st) => st.tech.find((t) => t.id === first)?.status === 'available', 60);
   assert(s.tech.find((t) => t.id === first)?.status === 'available', 'the first hall opens once the gen-ed core is done');
+  assert(s.programOffers.length === PROGRAM_OFFER_COUNT, `three programs are on offer the week the core completes (got ${s.programOffers.length})`);
+  assert(startedSchools(s).size === 1, 'only General Studies counts as started — the core is housed, nothing else is');
+  assertHallsInvariants(s, 'core complete');
   assert(s.tech.find((t) => t.id === halls[1].id)?.status === 'locked', 'the second hall stays locked behind the first');
   s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: first, row: 40, col: 90, rotated: false });
   assert(s.tech.find((t) => t.id === first)?.status === 'developing', 'the first hall is under construction');
@@ -580,11 +593,11 @@ function assertHallsInvariants(s: GameState, label: string): void {
   assert(s.tech.find((t) => t.id === halls[1].id)?.status === 'available', 'the second hall is now offered');
   assertHallsInvariants(s, 'first hall standing');
 
-  // A tick does not touch a hall's slots: nothing reads or writes them yet
-  // beyond the two writes above.
-  const before = JSON.stringify(s.halls);
+  // A tick does not touch a hall's slots or the offer: nothing writes
+  // them beyond the writes above, and the three stand until one is taken.
+  const before = JSON.stringify([s.halls, s.programOffers]);
   s = advanceUntil(s, () => false, 20);
-  assert(JSON.stringify(s.halls) === before, 'ticking leaves the halls record alone');
+  assert(JSON.stringify([s.halls, s.programOffers]) === before, 'ticking leaves the halls record and the offer alone');
 }
 
 // =====================================================================

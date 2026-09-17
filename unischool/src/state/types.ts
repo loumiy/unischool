@@ -1194,6 +1194,15 @@ export interface YearSnapshot {
 // this record (six slots, one school) rather than by any flag written
 // beside it. See docs/design/curriculum.md.
 //
+// PROGRAMS ARRIVE THREE AT A TIME. After the gen-ed core the player is
+// never shown forty-two doors: `programOffers` holds the three programs
+// that can be founded right now, drawn from what remains, and founding
+// one draws a replacement (systems/techtree/programOffers.ts). The offer
+// is GLOBAL — the same three at any free slot on campus — and there is no
+// reroll and no decline: the three stand until one is taken. Empty until
+// the core is complete, and shorter than three only when fewer programs
+// remain to offer.
+//
 // A SEPARATE RECORD, keyed by id, for the same reason `placements` and
 // `courseFaculty` are: something true of one KIND of Buildable that must
 // not fork the single Buildable model. Unlike those two, this one IS read
@@ -1255,6 +1264,7 @@ export interface GameState {
   developing: Record<string, number>; // course id -> weeks remaining
   courseFaculty: CourseFaculty;       // course id -> the faculty member teaching it; the player's choice, made when development starts (see the CourseFaculty block above)
   halls: Record<string, HallSlot[]>;  // hall Buildable id -> its program slots, positional (see the HallSlot block above)
+  programOffers: string[];            // the programs on offer right now — three, or fewer only when fewer remain (see the HallSlot block above and systems/techtree/programOffers.ts)
   placements: Placements;            // Buildable id -> the campus tiles it covers; visual only (see the campus map block above)
   pathways: Pathways;                 // drawn walkway tiles; visual only, read by no system (see the Pathways block above)
   trees: Trees;                       // the founding woodland, tile -> render seed; felled by building, hidden by paving (see the Trees block above)

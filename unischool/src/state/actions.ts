@@ -341,6 +341,7 @@ export function createPreStartState(): GameState {
     tech: [],
     developing: {},
     halls: {},
+    programOffers: [],
     placements: {},
     pathways: {},
     trees: {},
@@ -583,6 +584,10 @@ export function createInitialState(name: string, vernacular: Vernacular = FOUNDI
     // slot empty — so a founding save has exactly one hall, one slot, the
     // core in it, and no way to found anything until a hall stands.
     halls: { [GENED_BUILDING_ID]: [{ programId: 'CORE' }] },
+    // Nothing is offered until the gen-ed core is complete — the first
+    // three are drawn the week it finishes (see techSystem.ts's tickTech
+    // and programOffers.ts's refillOffers).
+    programOffers: [],
     // Only Founders Hall is pre-placed: it opens 'done' (techData.ts), so
     // it needs a spot on the map from day one. It is centred on the grid
     // (foundersHallPlacement above) — the founding landmark the rest of the
