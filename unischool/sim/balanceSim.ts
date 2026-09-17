@@ -49,8 +49,10 @@ import {
 } from '../src/systems/techtree/techSystem';
 import { facultyLoads } from '../src/systems/faculty/facultyAssignment';
 import { initiativeDepth, initiativeFundingCost, initiativeOffers } from '../src/data/researchData';
-import { isAcademicHall, programById, researchSchools } from '../src/data/techData';
+import { isAcademicHall, programById, programs, researchSchools } from '../src/data/techData';
 import { canFoundProgram } from '../src/systems/techtree/techSystem';
+import { isHoused } from '../src/systems/techtree/programOffers';
+import { canPostSearch, searchCost } from '../src/systems/faculty/facultySearch';
 import { firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { HELLENIC_COUNCIL_MIN_CLUBS } from '../src/data/eventData';
 import { weeklyResearchPoints } from '../src/data/researchData';
@@ -150,6 +152,21 @@ export interface Strategy {
   // holding up a course it could afford to start this week (see decide()'s
   // hiring block). The completionist's own "fill every chair" policy.
   fillsEveryChair?: boolean;
+  // HOW THIS STRATEGY FOUNDS PROGRAMS (Plan 14's PR I — see foundPrograms):
+  //   'cheapest'      the default: the cheapest affordable offer it can
+  //                   staff, into a hall already holding that school if
+  //                   one has room, else anywhere free.
+  //   'school-first'  the earnest completionist: prefers offers from
+  //                   schools it has started, and keeps every hall PURE —
+  //                   founds only into an empty hall or one of the same
+  //                   school, siting a new hall rather than mixing.
+  //   'scatter'       the control: whatever is offered first, wherever it
+  //                   fits. Should visibly under-perform on schools founded.
+  founding?: 'cheapest' | 'school-first' | 'scatter';
+  // Whether this strategy posts a faculty SEARCH (Plan 14's PR H) when a
+  // course it could afford is blocked on a department with no free slot
+  // and nobody on the market. Off for the archetypes it predates.
+  postsSearches?: boolean;
 }
 
 // The course's tier, recovered from its id (101 / 1x0 / 2x0) purely so the
@@ -443,28 +460,35 @@ function staffTheDepartment(get: () => GameState, dispatch: (a: Action) => void,
 // FOUNDING (Plan 14). A program enters the curriculum by taking a slot in
 // a standing hall (FOUND_PROGRAM), which starts its entry course with an
 // instructor in the same step — there is no other way to start a tier-1
-// course. The scripted player takes the cheapest offer it can afford and
-// staff, into the first free slot it has: the same cheapest-first rule its
-// course loop already follows, applied to the one decision that precedes
-// it. Plan 14's PR I gives the earnest completionist a school-first rule
-// and a scatterer control; until then every strategy founds the same way.
+// course. Which offer, and which slot, is the strategy's founding policy
+// (see Strategy.founding): cheapest-first into a same-school hall where
+// one has room; school-first and pure for the earnest completionist,
+// whose whole game is dedicating halls; and scatter for the control that
+// founds anything anywhere and should visibly under-perform.
 function foundPrograms(get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy): void {
+  const policy = strategy.founding ?? 'cheapest';
   for (;;) {
     const s = get();
-    const slot = freeSlot(s);
-    if (!slot) return;
-    const offers = s.programOffers
+    if (!freeSlot(s)) return;
+    let offers = s.programOffers
       .map((id) => programById(id))
       .filter((p) => p !== undefined)
       .map((p) => ({ p, entry: s.tech.find((t) => t.id === p.entryCourseId) }))
-      .filter((o) => o.entry !== undefined)
-      .sort((a, b) => a.entry!.cost - b.entry!.cost);
+      .filter((o) => o.entry !== undefined);
+    if (policy === 'cheapest') offers = offers.sort((a, b) => a.entry!.cost - b.entry!.cost);
+    if (policy === 'school-first') {
+      // Most-housed school first, so a started school converges on six.
+      const housedIn = (school: string) => programs().filter((q) => q.school === school && isHoused(s, q.id)).length;
+      offers = offers.sort((a, b) => housedIn(b.p.school) - housedIn(a.p.school) || a.entry!.cost - b.entry!.cost);
+    }
     let founded = false;
     for (const { p, entry } of offers) {
       if (!hasHeadroom(s, strategy) || !affordable(s, entry!.cost, strategy)) continue;
       if (!courseStaysSustainable(s, strategy)) continue;
       const instructor = eligibleInstructors(s, entry!)[0];
       if (!instructor) continue;
+      const slot = slotFor(s, p.school, policy);
+      if (!slot) continue;
       const founding = { programId: p.id, hallId: slot.hallId, slot: slot.slot, facultyId: instructor.id };
       if (!canFoundProgram(s, founding)) continue;
       dispatch({ type: 'FOUND_PROGRAM', ...founding });
@@ -473,6 +497,35 @@ function foundPrograms(get: () => GameState, dispatch: (a: Action) => void, stra
     }
     if (!founded) return;
   }
+}
+
+// Where a program of this school goes, under a founding policy. The
+// school of a hall is whatever its housed programs belong to; a hall with
+// programs of more than one school is mixed.
+function hallSchools(s: GameState, hallId: string): Set<string> {
+  const schools = new Set<string>();
+  for (const slot of s.halls[hallId]) {
+    if (slot.programId === null) continue;
+    const program = programById(slot.programId);
+    if (program && program.kind !== 'core') schools.add(program.school);
+  }
+  return schools;
+}
+
+function slotFor(s: GameState, school: string, policy: NonNullable<Strategy['founding']>): { hallId: string; slot: number } | null {
+  const halls = Object.keys(s.halls).filter((hallId) => s.halls[hallId].some((x) => x.programId === null) && isAcademicHall(s.tech.find((t) => t.id === hallId)!));
+  const firstFree = (hallId: string) => ({ hallId, slot: s.halls[hallId].findIndex((x) => x.programId === null) });
+  if (policy === 'scatter') return halls.length > 0 ? firstFree(halls[0]) : null;
+  // A hall already holding this school, with room.
+  const sameSchool = halls.find((hallId) => { const sc = hallSchools(s, hallId); return sc.size === 1 && sc.has(school); });
+  if (sameSchool) return firstFree(sameSchool);
+  // An empty hall.
+  const empty = halls.find((hallId) => hallSchools(s, hallId).size === 0);
+  if (empty) return firstFree(empty);
+  // The completionist would rather wait for a hall than mix one; everyone
+  // else takes what is free.
+  if (policy === 'school-first') return null;
+  return halls.length > 0 ? firstFree(halls[0]) : null;
 }
 
 function freeSlot(s: GameState): { hallId: string; slot: number } | null {
@@ -501,7 +554,14 @@ function freeSlot(s: GameState): { hallId: string; slot: number } | null {
 function siteHallIfNeeded(get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy): void {
   const s = get();
   const eager = strategy.netMargin <= 0;
-  if (!eager && (s.programOffers.length === 0 || freeSlot(s))) return;
+  // "Nowhere to put them" is policy-shaped: the school-first player with
+  // only mixed halls free has nowhere PURE to put an offer, and sites the
+  // next hall rather than mixing one.
+  const nowhere = !freeSlot(s) || (
+    strategy.founding === 'school-first' &&
+    !s.programOffers.some((id) => { const p = programById(id); return p && slotFor(s, p.school, 'school-first') !== null; })
+  );
+  if (!eager && (s.programOffers.length === 0 || !nowhere)) return;
   if (s.tech.some((t) => isAcademicHall(t) && t.status === 'developing')) return;
   const next = s.tech.find((t) => isAcademicHall(t) && t.status === 'available');
   if (!next) return;
@@ -567,6 +627,28 @@ function decide(
     );
     if (needed && s.finance.cash > strategy.buffer(s) && hasHeadroom(s, strategy)) {
       dispatch({ type: 'HIRE_FACULTY', facultyId: c.id });
+    }
+  }
+
+  // A SEARCH, when a department is the wall (Plan 14's PR H): a course this
+  // strategy could afford — or a program on offer — needs a field with no
+  // free slot and nobody on the market, and no search is running there.
+  // The same affordability and flow gates the hiring loop uses.
+  if (strategy.postsSearches) {
+    const s = get();
+    const offeredEntryIds = new Set(s.programOffers.map((id) => programById(id)?.entryCourseId));
+    const blockedFields = new Set(
+      s.tech
+        .filter((t) => (t.status === 'available' || offeredEntryIds.has(t.id)) && t.requiresFaculty && affordable(s, t.cost, strategy))
+        .map((t) => t.requiresFaculty!)
+        .filter((field) => !hasFreeFacultySlot(s, field) && !s.candidates.some((c) => c.field === field)),
+    );
+    for (const field of blockedFields) {
+      const now = get();
+      if (!canPostSearch(now, field)) continue;
+      if (now.finance.cash - searchCost(now) > strategy.buffer(now) && hasHeadroom(now, strategy)) {
+        dispatch({ type: 'POST_SEARCH', field });
+      }
     }
   }
 
@@ -1595,6 +1677,24 @@ export const STRATEGIES: Strategy[] = [
     campaigns: true,
     playsCoachingMarket: true,
     fillsEveryChair: true,
+    founding: 'school-first',
+    postsSearches: true,
+  },
+  {
+    // THE SCATTERER: a control, not a player. The same school as the
+    // Balanced builder in every respect but one — it founds whatever is
+    // offered first, into whatever slot is free first, and never thinks
+    // about which building a program goes in. Plan 14's claim is that the
+    // slot is a decision; this is the run that does not make it, and it
+    // should visibly under-perform on schools founded (see
+    // test/balance-regression.test.ts's Plan 14 check).
+    name: 'Scatterer (founds anything anywhere)',
+    tuition: rampTuition(225, 3_000),
+    buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
+    netMargin: 0.12,
+    buildsCourses: true, buildsDorms: true, buildsFacilities: true,
+    dormFillThreshold: 0.85, facilityThreshold: 72, campaigns: true,
+    founding: 'scatter',
   },
   {
     // The control: builds nothing, ever. Prestige and cash here are the

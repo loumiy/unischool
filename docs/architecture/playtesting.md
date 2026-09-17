@@ -182,22 +182,26 @@ header names the PR where the flag flips.
 
 ### Reading a strategy's run
 
-Three columns say what the year contained for the *player* rather than for
+Four columns say what the year contained for the *player* rather than for
 the school: **actions** (discretionary dispatches that year), **idle weeks**
-(nothing startable at all) and **money-blocked weeks** (something startable,
-nothing affordable). Under the table, `modals answered` counts every
-interrupt by type, and `what a year contained` reports the averages against
-the last decade's — because the finding these exist to measure is about the
-*shape* of a run, not its mean.
+(nothing startable at all), **money-blocked weeks** (something startable,
+nothing affordable) and **faculty-blocked weeks** (`fblk`: nothing startable
+*only* because no department had a free slot for it — an available course or
+a program on offer whose field has nobody to teach it, which is what a search
+is for). Under the table, `modals answered` counts every interrupt by type,
+and `what a year contained` reports the averages against the last decade's —
+because the finding these exist to measure is about the *shape* of a run,
+not its mean.
 
-A note on what they show: **idle weeks are always zero**. With 421 courses
-there is always something startable, so a run with nothing worth doing shows
-up as money-blocked weeks and as a collapse in actions, never as an empty
-board.
+A note on what they show: idle weeks used to be always zero — with 421
+courses there was always something startable. Since Plan 14 a run can
+genuinely have nothing to do: three programs on offer and no slot to put
+them in is an idle week, and a department nobody can hire into is a
+faculty-blocked one.
 
 ### The strategies
 
-Six of the seven in `STRATEGIES` are **archetypes** — crude, reproducible
+All but one of the strategies in `STRATEGIES` are **archetypes** — crude, reproducible
 corners of the space (build everything, price low, overreach, sit still). The
 seventh, **Earnest completionist**, is a *player*: the September 2026 review's
 own policy, written down. It is the run the design plans are about, and at

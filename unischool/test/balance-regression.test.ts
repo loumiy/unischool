@@ -337,6 +337,31 @@ for (const strategy of STRATEGIES.filter((s) => !MISTAKE_CASES.includes(s.name))
 }
 
 // =====================================================================
+// 4a. THE SLOT IS A DECISION (Plan 14). The scatterer control founds
+// whatever is offered wherever it fits and never thinks about which
+// building a program goes in; the earnest completionist keeps every hall
+// pure. Plan 14's claim is that the second reaches its schools and the
+// first does not — judged on schools FOUNDED by year 20, across seeds,
+// since a founding is a discrete event that lands when it lands.
+// =====================================================================
+{
+  const completionist = find('Earnest completionist');
+  const scatterer = find('Scatterer (founds anything anywhere)');
+  const founded = (r: ReturnType<typeof play>) => Object.keys(r.state.milestones).filter((k) => k.startsWith('school-founded:')).length;
+  const purer = holds(
+    'Earnest completionist', YEARS,
+    (r) => founded(r) > founded(play(STRATEGIES.find((x) => x.name === 'Scatterer (founds anything anywhere)')!, YEARS)),
+    completionist.run,
+  );
+  assert(
+    purer.ok,
+    `the earnest completionist has founded more schools by year ${YEARS} than the scatterer ` +
+    `(${founded(completionist.run)} vs ${founded(scatterer.run)})${purer.note}`,
+  );
+  assert(founded(completionist.run) >= 1, `the earnest completionist has founded at least one school by year ${YEARS} (${founded(completionist.run)})`);
+}
+
+// =====================================================================
 // 4b. THE PAYROLL LEVER HAS A FLOOR — a stalled school sheds people it is
 // not using, and stops at the ones teaching.
 //

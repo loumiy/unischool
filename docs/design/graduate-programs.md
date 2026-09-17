@@ -54,17 +54,23 @@ editing every one of those just to put graduate courses back where they already
 were.
 
 **Six programs, thirty-seven courses**, each a handful rather than a second
-nine-course major (Medicine and Law are the two exceptions — see "Two of six
-get their own building" below):
+nine-course major (Medicine and Law are the two larger ones):
 
-| Program | Degree | Home school | Gate | Own building? |
-| --- | --- | --- | --- | --- |
-| School of Medicine | MD | Health Science | **Science AND Health Science** near-complete | **Yes — BLDG-MED** |
-| School of Law | JD | Social Sciences & Humanities | Social Sciences & Humanities near-complete | **Yes — BLDG-LAW** |
-| Graduate School of Business | MBA | Business | Business near-complete | No |
-| Doctoral Program in Engineering | PhD | Engineering | a finished lab in Engineering | No |
-| Doctoral Program in the Natural Sciences | PhD | Science | a finished lab in Science | No |
-| Doctoral Program in Health Science | PhD | Health Science | a finished lab in Health Science | No |
+| Program | Degree | Home school | Gate |
+| --- | --- | --- | --- |
+| School of Medicine | MD | Health Science | **Science AND Health Science** near-complete |
+| School of Law | JD | Social Sciences & Humanities | Social Sciences & Humanities near-complete |
+| Graduate School of Business | MBA | Business | Business near-complete |
+| Doctoral Program in Engineering | PhD | Engineering | a finished lab in Engineering |
+| Doctoral Program in the Natural Sciences | PhD | Science | a finished lab in Science |
+| Doctoral Program in Health Science | PhD | Health Science | a finished lab in Health Science |
+
+**A graduate program takes a hall slot like any program** (Plan 14). Its gate
+puts it on the offer; founding it into a slot is what puts it in the
+curriculum. It belongs to its home school for dedication, and since that
+school's six majors already fill a hall, a graduate program needs a **second**
+hall of its school — dedicated on its own terms, which is how "the School of
+Medicine" becomes a building. See [curriculum.md](curriculum.md).
 
 **One predicate, two readings** (`techData.ts`'s `graduateGateMet`), both taken
 off the seed helpers that already exist, so graduate gating can never drift from
@@ -136,9 +142,8 @@ opens.
 than an extension of the tier table, and aimed squarely at the late-game "nothing
 to buy when cash-rich" gap: a professional course is $6M / 40 weeks / $12k a week
 forever, a doctoral course $4M / 32 weeks / $7k. Two rungs because cost is one of
-the authored axes professional schools are differentiated on. All six programs,
-plus the two professional-school buildings below, are about **$203M of capital
-and $394k a week of upkeep** — real, and about 4% of a mature school's opex, but
+the authored axes professional schools are differentiated on. All six programs
+are about **$198M of capital and $384k a week of upkeep** — real, and about 4% of a mature school's opex, but
 see the balance notes: the endowment campaign remains the *unbounded* sink and
 graduate programs are a finite one.
 
@@ -154,45 +159,19 @@ is entirely graduate, so it carries the taxonomy's only above-1 market-supply
 multiplier — an oversupplied market with nowhere to teach until a school founds
 one.
 
-**The Curriculum UI** fits most programs into the view that already exists: a
-revealed program is one more labeled sub-group inside its parent school's
-section, marked as the higher tier it is, with its credential beside the name
-and one line naming the gate it cleared. That's still exactly how the MBA and
-all three PhD doctorates work — they build on the same subject matter as their
-parent school and correctly live there. Medicine and Law are the two
-exceptions (see below). That view has since become the three-level curriculum
-map (see [curriculum.md](curriculum.md)'s "The Curriculum map"); graduate
-programs kept their place inside
-it unchanged.
+**The Curriculum UI**: a housed graduate program is one more row in its home
+school's group (see [curriculum.md](curriculum.md)'s "forty-two rows"), marked
+as the higher tier it is, with its credential beside the name. It is revealed
+the same way a major is — once it has a home.
 
-**Two of six get their own building.** Medicine and Law are the only
-programs that award an external professional degree rather than extending
-their parent school's own subject matter, and each stands as its OWN
-top-level Curriculum section — own heading, own completion ring, its own
-`BLDG-MED`/`BLDG-LAW` building as the section key — never a sub-group inside
-Health Science or Social Sciences & Humanities. The MBA and the three PhD
-doctorates are unchanged.
-
-The gate chain reuses every existing mechanism, adding none:
-
-1. The building is a plain `building`-kind Buildable, seeded 'locked', shaped
-   exactly like an undergraduate school building — except its prereqs are
-   empty and its availability instead carries the SAME `graduateProgram`
-   field a graduate course does. `meetsUnlockGates` (techSystem.ts) already
-   routes that field through `graduateGateMet`, so the building reveals the
-   moment the program's ordinary academic gate reads true — no second gate.
-2. The program's first course adds the building as an extra prereq — a
-   cross-kind course-requires-building prereq, exactly like an undergraduate
-   tier-2 course requiring its school building.
-3. So the full chain is: academic gate met -> building revealed -> building
-   BUILT -> first course available -> the rest of the program follows its
-   ordinary internal prereqs, unchanged.
-
-The Curriculum tab reveals each section on the same boolean an undergraduate
-school section reveals on — `building.status === 'done'` — not merely on the
-academic gate, so there is no greyed-out School of Medicine sitting on screen
-years before the building exists (reveal, not scarcity, same as everywhere
-else in this feature).
+**The two professional-school buildings are gone.** Medicine and Law used to
+stand as their own `building` Buildables (`BLDG-MED`, `BLDG-LAW`), revealed
+by the academic gate and built before the program's first course could open,
+and each was its own top-level Curriculum section. Plan 14 retired them with
+the seven school buildings: a school is a hall the player dedicated, and
+Medicine's is a second Health Science hall. The one thing that read those
+buildings — the University Hospital, a teaching hospital that needs a school
+of medicine standing — reads the MD's entry course instead.
 
 Two judgment calls from this pass, flagged rather than resolved quietly:
 

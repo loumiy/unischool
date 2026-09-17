@@ -9,9 +9,13 @@ repeatable academic halls with six program slots, programs founded from a
 rolling offer of three, and a Curriculum tab that becomes forty-two rows — and
 turn them into an ordered sequence of PRs.*
 
-**Status: In progress.** PRs A through H have landed. Depends on
-[Plan 09](09-playtest-harness.md) for the scenarios and the scorecard this is
-measured with. Supersedes
+**Status: Landed.** All nine PRs shipped, in order, each with its departures
+recorded below. The largest: the housed gate covers tier 1 (14C), so the tier-1
+wall went in C rather than G; the offer draw is seeded from state rather than
+the global RNG stream (14B); the harness learned to found in C because it could
+not progress otherwise; and two regression checks were re-read rather than
+re-tuned (14C). Depends on [Plan 09](09-playtest-harness.md) for the scenarios
+and the scorecard this is measured with. Supersedes
 [Plan 11](11-academic-halls.md), whose rooms-and-continuous-development model
 this replaces.
 
@@ -504,6 +508,21 @@ yet; that is 14I's, with the rest of its founding policy.
   school buildings; `docs/architecture/campus-map.md` loses "read by no system"
   in the one place the hall panel now reads it; `game-state.md` records the
   save break and the deleted migration chain.
+
+**As implemented:** siting a hall when slots run out, founding
+cheapest-first, and the `fblk` column all landed earlier (14C, 14H) because
+the harness could not progress otherwise; this PR adds the *policies*. The
+earnest completionist founds school-first and keeps every hall **pure** — it
+founds only into an empty hall or one of the same school, and sites a new
+hall rather than mix one — and posts searches when a department is the wall.
+The scatterer is the Balanced builder with a founding policy of "first
+offer, first free slot", and the regression gate now asserts it founds fewer
+schools by year 20 than the completionist, across seeds. `sim/milestones.ts`
+gained its three hall milestones in 14E. The scatterer has no scorecard bands
+(the scorecard reports it as unmeasured, and passes); Plan 15's PR G records
+them with everyone else's. The `game-state.md` half landed in 14A;
+`graduate-programs.md`, `faculty.md` and `playtesting.md` are brought current
+here as well, since each described something this plan removed or added.
 
 ---
 

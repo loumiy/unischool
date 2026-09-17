@@ -35,6 +35,20 @@ per-field *market supply* multiplier for how thin that discipline's academic
 job market is. All of it lives in one labelled tuning block in
 `facultyData.ts`.
 
+**A search is the one thing the market sells** (Plan 14). Every course needs
+a deliberate instructor, and a thin field — Clinical Health, AI, Neuroscience
+— lists somebody every few months, which makes hiring, not cash, the thing a
+run stalls on. `POST_SEARCH { field }` spends money to raise the weekly chance
+the market lists a candidate in that field, for a fixed window
+(`facultySearch.ts`: twenty-six weeks, a one-in-four roll a week, on top of the
+ordinary churn, priced at two weeks of operating expense). It rides
+`tickCandidatePool` rather than being a second market — the listing is an
+ordinary candidate who withdraws on the ordinary clock — and it is offered
+where the shortage is felt: the instructor picker when nobody is eligible, the
+hall panel's course strip, and the Faculty board per short department. It is
+also the recurring money sink the mid-game needs: a cost that scales with the
+size of the school and produces people rather than a bigger number.
+
 That weighting is the point, and both halves are load-bearing. Demand alone
 cannot produce a common/rare split — after the field re-specialisation every
 field carries between 9 and 20 courses, so weighting by course count alone

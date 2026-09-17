@@ -10,7 +10,11 @@ Every Buildable has:
 
 - a **`kind`** — `course`, `building`, `dorm`, `facility`. Athletics venues are
   `facility`-kind, reveal-gated, like everything else in that list — there is
-  no separate `sports` kind.
+  no separate `sports` kind. The `building` kind is the **academic halls**:
+  Founders Hall and the twelve-hall chain, each carrying `slots` — the program
+  slots a hall holds (six; Founders Hall one, the gen-ed core). There is no
+  school building: a school is founded by filling a hall (see
+  [curriculum.md](../design/curriculum.md)).
 - a **`cost`** — money spent up front, at the moment development starts.
 - a **`duration`** — weeks of development.
 - **`prereqs`** — other Buildable ids that must be `done` first. Prereqs may
@@ -22,12 +26,19 @@ Every Buildable has:
   faculty member). This gates *starting*, not completion.
 - a **`status`** — `locked` → `available` → `developing` → `done`.
 - **`effects`** — applied once, on completion. Effects can grant capacity,
-  tuition headroom, satisfaction, applicant-pool bumps, and — crucially — can
-  **unlock other Buildables** (this is how the milestone chain works). Effects
-  do **not** grant reputation directly — prestige is a slow-moving stock
+  tuition headroom, satisfaction, applicant-pool bumps, and can **unlock
+  other Buildables**. Effects do **not** grant reputation directly — prestige is a slow-moving stock
   computed and drifted toward separately (see
   [progression.md](../design/progression.md)), not a sum of completion
   bonuses.
+
+Beside `prereqs`, a Buildable may carry **dynamic gates** re-checked every
+tick (`techSystem.ts`'s `meetsUnlockGates`): a population or prestige floor,
+a graduate program's academic gate, an athletics venue's reveal, a lab's
+`schoolGate` (the school founded), and — on every course of a major or
+graduate program — **the housed gate**: the program must hold a hall slot.
+That last one is what makes founding a program from a hall the only way its
+entry course ever starts.
 
 This means one develop/build flow, one prereq resolver, one completion-effects
 applier, serve all content types. **Do not build parallel subsystems for
@@ -43,8 +54,11 @@ prereqs, `canStartDevelopment` — regardless of `kind`. Where that affordance i
 placeable:
 
 - `course` Buildables live in the Curriculum overlay and start through the
-  `START_DEVELOPMENT` action: pick one, pay the cost, watch the countdown. No
-  location, ever — a course is not a place.
+  `START_DEVELOPMENT` action: pick one, pay the cost, choose who teaches it,
+  watch the countdown. No location, ever — a course is not a place. The one
+  exception is a program's **entry course**, which starts only through
+  `FOUND_PROGRAM` — a slot in a hall, the course, and its instructor in one
+  transaction — from the hall's own panel on the map.
 - Placeable kinds (`building`/`dorm`/`facility` — athletics venues included)
   live in the build menu beside the map, because the map is where they stand.
   **Placement IS how a placeable Buildable starts**, through the
@@ -74,7 +88,10 @@ Placement lives in a separate `placements` record on `GameState` (id ->
 `{ row, col, w, h }`: the top-left tile plus the footprint covered from it),
 never as a field on `Buildable`, so the single Buildable model stays unforked
 and `course` Buildables — which are never placeable, at any status — never
-carry a `placements` entry. How big a footprint a Buildable gets is a
+carry a `placements` entry. A hall's **slots** are the same shape of fact and
+live the same way, in `halls` (id -> its slots, positional), written the week
+the hall finishes; unlike `placements`, `halls` *is* read by systems — see
+[game-state.md](game-state.md). How big a footprint a Buildable gets is a
 **placement rule, not data on the Buildable** — it lives in `campusMap.ts`'s
 `footprintOf`, and is documented in [campus-map.md](campus-map.md).
 
