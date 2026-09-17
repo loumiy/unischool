@@ -38,7 +38,7 @@ import { legacyRoundRobinAssignments } from '../systems/faculty/facultyAssignmen
 // campusMap.ts and history.ts.
 //
 // Size: a newly founded university serializes to ~175 KiB (481 Buildables
-// with descriptions, 55 rivals, the founding roster, and the 30-listing
+// with descriptions, 99 rivals, the founding roster, and the 30-listing
 // candidate market — ~24 KiB of names and bios that is REPLACED rather
 // than accumulated, since the pool is held at CANDIDATE_POOL_TARGET
 // forever). A decades-long run

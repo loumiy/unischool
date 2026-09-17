@@ -6,15 +6,46 @@ schools** — and turn them into one ordered sequence of PRs, each small enough
 to land on its own and each landing in the order that makes the next one
 cheaper.*
 
-**Status: Proposed.** Ten PRs in two phases. Phase 1 rebuilds the field the
-school is measured against: a hundred schools instead of fifty-six, each with a
-mascot, standing decomposed into three independently ranked numbers, and a
-rival's athletic strength split per sport and finally allowed to move. Phase 2
-spends that on the department: four more sports, a coach market that fits them,
-an athletic director and a mascot of the player's own, a laid-out tab, an AD who
-asks for what the department lacks, and a year-end playoff whose championships
-are the first thing athletics has ever produced that changes a number outside
-itself.
+**Status: Landed.** Ten PRs in two phases. Phase 1 rebuilt the field the school
+is measured against: a hundred schools instead of fifty-six, each with a mascot,
+two more standings added **beside** the headline number rather than decomposed
+out of it, and a rival's athletic strength split per sport and finally allowed
+to move. Phase 2 spent that on the department: four more sports, the coach
+market brought onto one screen, an athletic director and a mascot of the
+player's own, a laid-out tab, an AD who asks for what the department lacks, and
+a year-end playoff whose championships are the first thing athletics has ever
+produced that changes a number outside itself.
+
+**Where it departed, in one place.** Every PR below carries its own
+`**As implemented:**` note — there are nine, and they are the most useful thing
+in this document. Four themes run through them:
+
+- **Three derivations looked right and collapsed under measurement**, one per
+  Phase 1 PR: `hashUnit` with no avalanche (the claimed 0.6x–1.4x athletic
+  spread was really 0.603–0.689), the new standings sharing `reputation`'s
+  generator (which moved the sim from year 10), and the athletic band
+  saturating its clamp (twelve rivals at exactly 100, so every sport's table
+  opened with a thirteen-way tie). Each was caught by asserting the property a
+  comment *claimed*, never by reading the arithmetic.
+- **A market's size must not decide how many times the game rolls a die.** PR
+  1A pinned the rival field's drift to one draw a year; 1B and 1C kept that as
+  axes were added. The coach pool never got the same treatment, which is why
+  its raise is still unshipped.
+- **The balance gate was the thing actually blocking the work.** Four separate
+  assertions tripped across four PRs, each sitting within about 1% of its
+  threshold, while `main` itself passed at only four seeds of eight. PR 2E
+  fixed the gate rather than tuning content around it — a judgement call about
+  the repository owner's own test, flagged twice first and easily reverted.
+- **Two defects were found by photographing the screen**, not by any test: a
+  modal whose candidate cards rendered gold-on-gold with the salary invisible,
+  and a card header that wrapped every team's name.
+
+**Two things did not ship.** The **coach pool raise** (18 → 44) is still parked
+behind the gate question above, twice deferred. And PR 2E's shortage ask went
+into the weighted lottery rather than the varsity petition's guaranteed slot,
+on PR 2A's own measurement — the petition already takes up to 61 of 96 decision
+events across forty years, which remains an open cadence question about that
+event rather than this one.
 
 **Written against `38a99bb`** (Plan 06 landed, plus the eighth cohort). Every
 documentation reference below names a file as it stands at that commit.
@@ -1134,6 +1165,38 @@ What is left once every PR has kept its own documents true.
 **Verification:** the design and architecture docs read end to end against the
 shipped department — the pass that catches what the individual PRs missed, which
 Plan 05's PR G and Plan 06's PR E both found things in.
+
+**As implemented:** the end-to-end pass found three claims that had quietly
+stopped being true, which is the same yield Plan 05's PR G and Plan 06's PR E
+reported and the reason this pass exists at all.
+
+- `student-life.md` still said flatly that athletics has "no match simulation
+  and no schedules" as though nothing had been added. Both halves are still
+  true and the sentence now says so *alongside* the bracket, with the line
+  between them drawn — a bracket resolved once a year from standings numbers is
+  not a season, and a season is still unbuilt.
+- `studentLifeData.ts` still told a reader that athletics reaches satisfaction
+  "never prestige directly (see the PR notes' flag on where athletics wants
+  prestige and can't have it yet)". The flag has been answered: athletics
+  reaches campus-life standing. What is still true — and is the part worth
+  stating — is that it does not touch the academic number.
+- `persistence.ts`'s save-size note still counted 55 rivals.
+
+Three edits to the **backlog**, beyond deleting the two entries:
+
+- **Startup screen** pointed its mascot deferral at "Athletics V3 below", an
+  entry this PR deletes. Re-pointed and closed: the mascot is settled, named at
+  the athletic-director interrupt, and the entry says which way it went.
+- **Athletics deferrals** rewritten rather than deleted. Per-sport standings
+  leave it; prestige coupling leaves it *settled* rather than deferred; rowing
+  joins it with the terrain reasoning; match simulation and the teamless-venue
+  question stay, the latter now likelier to be asked and no easier to answer.
+- **Direction, not plan** checked, and one line annotated rather than moved:
+  nothing there was delivered, but "school deans, a board of directors, a CFO"
+  is no longer hypothetical — the athletic director is one, and the shape it
+  used is the one the rest would follow. What an AD does *not* answer is the
+  interesting part: it runs one department, and a dean or a CFO reaches across
+  several.
 
 ---
 

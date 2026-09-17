@@ -15,11 +15,14 @@ going to happen but has not, it belongs here.
 
 *Each of these is a plan's worth of work on its own, and none of them blocks any
 other. Lifted from Plan 04, which is where they were first named. Turning one
-into an ordered sequence of PRs is what writing the next plan does — Summer
-admissions has been through that and shipped (Plan 05), and Admissions and
-History has too (Plan 06, which declined the tab merge it proposed and built
-the infographic in a renamed Enrollment tab instead). Neither is here any
-more: what they changed is in `docs/design/admissions.md` now.*
+into an ordered sequence of PRs is what writing the next plan does, and four
+have now been through it: Summer admissions (Plan 05), Admissions and History
+(Plan 06, which declined the tab merge it proposed and built the infographic in
+a renamed Enrollment tab instead), the startup screen (Plan 07), and **Athletics
+V3 together with Rival schools** (Plan 08, which found they were one feature —
+athletics wanted consequences it had nowhere to put, and the rivals entry was
+where the standing to put them lived). None of them is here any more: what they
+changed is in `docs/design/` now.*
 
 ### Startup screen
 **Done — [Plan 07](docs/plans/07-startup-and-vernacular.md) landed.** The
@@ -29,33 +32,16 @@ Mission or Brutalist — and the founding facade is Founders Hall, drawn in the
 set the player is choosing. What that changed is in
 `docs/design/progression.md` now.
 
-Two pieces of this entry did NOT go into Plan 07 and are still open. The
-**mascot at founding** is deferred to Athletics V3 below, where the rest of
-its machinery will be. The **admit-rate curve's early slope** is its own item
-below; Plan 07's PR C took the private applicant pool unchanged rather than
-re-fitting it, so the two want doing together.
+One piece of this entry did NOT go into Plan 07 and is still open: the
+**admit-rate curve's early slope**, its own item below. Plan 07's PR C took the
+private applicant pool unchanged rather than re-fitting it, so the two want
+doing together.
 
-### Athletics V3
-Better layout; a bigger coach pool reusing faculty headshots and the old
-one-pool-tagged-by-need hiring UI (which is the right home for that pattern now
-that faculty no longer uses it). The tab appears on the first team, then an
-interrupt: hire an athletic director (three generated cards, salary the only real
-differentiator), name the mascot. **Picking the mascot at founding instead**
-was deferred here out of Plan 07's startup-screen work: it should land with
-this step or not at all. Per-sport standings and playoff tournaments
-(needs per-sport rival strength — see Rival schools below). A mechanic that gives
-the player a *reason* to build venues and hire coaches, e.g. periodic AD
-interrupts naming a team without a coach. Championship interrupts. More sports:
-Track & Field (the multi-sport field already carries a track), Rowing (a lake and
-a boathouse, or no venue), Hockey (arena), Golf (probably too much ground).
-
-### Rival schools
-Prestige becomes more than one number — ranked separately by school, by social
-life, by research. Expand to 99 rivals (100 schools including the player's). Show
-rank outside the top 50 on the toolbar while keeping the U.S. News *interrupt* for
-top-50 entry only. Each school needs a mascot, which is what ties this to
-Athletics V3 — per-sport standings need per-sport rival strength, and that lives
-here.
+The **mascot at founding** is settled and closed. It was deferred to Athletics
+V3, and [Plan 08](docs/plans/08-athletics-rivals.md) took it the other way: the
+school names its teams when it hires its first athletic director, which is the
+first moment the question has an answer. The founding screen would have asked
+before a building stood and a decade before a varsity team existed.
 
 ---
 
@@ -97,10 +83,24 @@ work with a known shape; none has been turned into a sequence of PRs.*
   visual-only layer today and nothing mechanical reads it.
 - **More authored decision events**, including events that reach systems the
   first pass deliberately left alone, and campus-life depth behind them.
-- **Athletics deferrals.** Match simulation and schedules (standings are one
-  comparable strength number per school, not a simulated season), any prestige
-  coupling, and a considered answer for what happens to a shared venue once its
-  last team disbands.
+- **Athletics deferrals**, as [Plan 08](docs/plans/08-athletics-rivals.md)
+  leaves them. **Match simulation and schedules** are still deferred, and the
+  line is worth keeping sharp: Plan 08 added a year-end *bracket*, which is not
+  a season — no week contains a game and no team has a schedule. A real season
+  (fixtures, opponents, a record accumulating week to week) is still unbuilt.
+  **Rowing** joins this list: it wants a lake, a lake is *terrain*, and the
+  campus map has no terrain concept at all — the only water in the game is
+  drawn ornamentally inside two ground markings. That is a campus-map problem
+  before it is an athletics one. And **what happens to a shared venue once its
+  last team disbands** is still unanswered, because disbanding a team is still
+  unbuilt — Plan 08 made it likelier to be asked (eighteen sports instead of
+  fourteen) and no easier to answer.
+
+  Two things have left this list. **Per-sport standings** are built. **Prestige
+  coupling** is settled rather than deferred: athletics moves *campus-life
+  standing* and nothing else, which is the narrow shape
+  `docs/design/student-life.md` flagged it in — the academic number the whole
+  economy reads is still untouched by athletics.
 - **The tutorial**: a scripted interrupt sequence walking the Year-0 opening —
   develop the gen-ed core, hire faculty — and handing off to Summer Year 1.
 
@@ -119,4 +119,11 @@ in a way that forecloses them.*
 - Menu styling as physical objects — treasury as a ledger, athletics on a
   clipboard, curriculum on a chalkboard. (Plan 04's 1C made every tab a full
   screen, which is the canvas this needs — so the canvas exists.)
-- School deans, a board of directors, a CFO, other executive positions.
+- School deans, a board of directors, a CFO, other executive positions. **Not
+  delivered, but no longer hypothetical**: [Plan 08](docs/plans/08-athletics-rivals.md)
+  hired an *athletic director*, and the shape it used is the one the rest would
+  follow — a one-off interrupt offering three candidates who differ on a single
+  axis, a person stored as a `Coach` rather than a new type, a department-wide
+  effect, and a voice the department's own events speak in. An AD runs one
+  department; a dean or a CFO would reach across several, which is the part that
+  is still unanswered.

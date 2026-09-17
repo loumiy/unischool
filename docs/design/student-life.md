@@ -94,10 +94,13 @@ to the target stops, not the one-week dent.
 than adding a parallel sport simulation: a varsity team is mechanically
 close to a Greek chapter that needs a venue. Athletics V2 (below) added a
 real coaching-staff hiring pool, team quality, and standings against
-rivals' own athletic strength — but there is still **no match simulation
-and no schedules**: standings are read off one comparable strength number
-per school, the same shape `self.reputation` vs. `Rival.reputation`
-already uses for the academic ranking, not a simulated season.
+rivals' own athletic strength; Athletics V3 added per-sport standings, an
+athletic director and a year-end postseason. There is still **no match
+simulation and no schedules**: standings are read off one comparable strength
+number per school, the same shape `self.reputation` vs. `Rival.reputation`
+already uses for the academic ranking, and the postseason is a *bracket*
+resolved from those numbers once a year — no week contains a game, and no team
+has a schedule. A simulated season remains unbuilt (see "The postseason").
 
 A named share of new club formations (`SPORT_CLUB_SHARE`) roll as a **sport
 club** instead of an ordinary one — the same weekly club roll, no second

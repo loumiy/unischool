@@ -1135,9 +1135,13 @@ export function greekSocialBonus(s: GameState): number {
 
 // What satisfactionSystem.ts actually adds to the attribute: the three
 // sources above (clubs, Greek chapters, varsity athletics), capped in
-// aggregate — athletics reaches satisfaction only through this same capped
-// social contribution, never prestige directly (see the PR notes' flag on
-// where athletics wants prestige and can't have it yet).
+// aggregate.
+//
+// This is how athletics reaches SATISFACTION, and it is no longer the only
+// number athletics reaches: a program also feeds campus-life standing, and a
+// championship feeds it again (see systems/prestige/prestigeSystem.ts's
+// computeSocialTarget). What is still true, and is the part worth stating, is
+// that none of it touches the ACADEMIC standing the economy reads.
 export function studentLifeSocialBonus(s: GameState): number {
   return Math.min(
     clubSocialBonus(s) + greekSocialBonus(s) + athleticsSocialBonus(s),
