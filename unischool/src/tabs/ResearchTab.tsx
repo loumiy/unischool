@@ -10,7 +10,7 @@ import {
 import { researchTopic } from '../data/researchTopics';
 import { planCommitmentCoverage } from '../systems/techtree/techSystem';
 import { researchSchools } from '../data/techData';
-import FacultyPortrait from '../components/FacultyPortrait';
+import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import HelpHint from '../components/HelpHint';
 import { rankBy } from '../systems/rivals/rivalsSystem';
 
@@ -46,7 +46,7 @@ function ScholarRow(
 ) {
   return (
     <div className="scholar-row">
-      <FacultyPortrait f={f} size={32} />
+      <FacultyPortrait f={portraitOf(f)} size={32} />
       <span className="scholar-body">
         <span className="scholar-name">{f.name}</span>
         <span className="scholar-field">{f.field}</span>

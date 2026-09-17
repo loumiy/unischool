@@ -4,7 +4,7 @@ import {
   parsePathTileKey, pathTileKey, placementFor,
 } from './campusMap';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR } from './types';
-import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES, ORIGIN_NATIONALITIES } from '../data/facultyData';
+import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES, ORIGIN_NATIONALITIES, heritageForId } from '../data/facultyData';
 import { initialTech } from '../data/techData';
 import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import { admitRate } from '../systems/admissions/admissionsSystem';
@@ -1146,7 +1146,29 @@ export const SAVE_KEY = 'unischool.save';
 // gaining a byte.
 //
 // See MIGRATIONS[47].
-export const SAVE_VERSION = 48;
+//
+// v48 -> v49: coaches get faces. `Coach` gains `heritage`, added-as-required,
+// which is the field FacultyPortrait.tsx weights skin tone by and the one
+// thing a coach needed before it could be drawn the way a professor is.
+//
+// The same argued exception as the three before it (see the v45 -> v46 note):
+// the chain is only as reachable as its least-reachable link.
+//
+// A SAVED COACH'S HERITAGE IS NOT A RECOVERY, and the migration says so
+// rather than implying otherwise. `heritage` is the origin of the name pool a
+// person's name was drawn from, and for a coach that origin was rolled and
+// thrown away — the name is already written and cannot be un-rolled. So an
+// existing coach gets a heritage derived deterministically from their id
+// (facultyData.ts's heritageForId): stable across reloads, plausible, and
+// unrelated to the name they happen to carry. A coach hired in year 9 does
+// not change name, quality, salary or team — they acquire a face, and for the
+// ones who predate the field that face may not match their name.
+//
+// New coaches have no such problem: rollCoachName returns the origin now, so
+// from here on a coach's face and name come from the same roll.
+//
+// See MIGRATIONS[48].
+export const SAVE_VERSION = 49;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1250,7 +1272,32 @@ const KNOWN_SUFFIXES = ['College', 'University'];
 // policy note above SAVE_VERSION. Add an entry only for a specific run
 // worth carrying, and delete the whole chain freely once nothing is
 // resuming from it.
+
+// Every coach a save holds: the three staff roles on every team, plus the
+// standing candidate market. Used by the migration that gave coaches faces —
+// a candidate on the market needs one as much as a hire does, since the
+// hiring screen draws them.
+function allCoachesIn(state: GameState): Coach[] {
+  const out: Coach[] = [...(state.orgs?.coachCandidates ?? [])];
+  for (const team of state.orgs?.teams ?? []) {
+    if (team.headCoach) out.push(team.headCoach);
+    if (team.assistantCoach) out.push(team.assistantCoach);
+    if (team.trainer) out.push(team.trainer);
+  }
+  return out;
+}
+
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v48 -> v49: coaches get faces (see the SAVE_VERSION header note above,
+  // including why a saved coach's heritage is a plausible reading rather than
+  // a recovery).
+  48: (state) => {
+    for (const coach of allCoachesIn(state)) {
+      const legacy = coach as unknown as { heritage?: string };
+      if (typeof legacy.heritage !== 'string') legacy.heritage = heritageForId(coach.id);
+    }
+  },
+
   // v47 -> v48: athletic strength starts moving (see the SAVE_VERSION header
   // note above).
   47: (state) => {
@@ -2397,10 +2444,12 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
         if (typeof legacy.coachName === 'string') {
           const tenureWeeks = Math.max(0, Math.round((state.clock.year - team.foundedYear) * WEEKS_PER_YEAR));
           const quality = 40 + Math.round(Math.random() * 35); // 40..75 — no prior signal, the same "fresh roll" honesty MIGRATIONS[26] uses for gender
+          const id = crypto.randomUUID();
           legacy.headCoach = {
-            id: crypto.randomUUID(),
+            id,
             name: legacy.coachName,
             gender: Math.random() < 0.5 ? 'male' : 'female', // no signal to recover — a pre-v29 coach was never gendered
+            heritage: heritageForId(id), // ditto: the name is already written, so this is a plausible reading rather than a recovery
             field: team.sport,
             quality,
             qualityPotential: Math.min(100, quality + 15),

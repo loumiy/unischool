@@ -911,6 +911,12 @@ export interface Coach {
   id: string;
   name: string;
   gender: 'male' | 'female';
+  // The name pool's cultural origin, kept so the portrait can weight skin
+  // tone by it — the exact same field, from the exact same source, that
+  // Faculty.heritage carries (see components/FacultyPortrait.tsx). It used
+  // to be rolled and discarded, which meant a coach could only ever have
+  // been drawn with a face unrelated to their own name.
+  heritage: string;
   // A head/assistant coach candidate's field is the SPORTS id (see
   // data/studentLifeData.ts) they coach — 'soccer-m', 'lacrosse-w', etc. — so
   // only a candidate for THIS team's own sport is hireable into either of

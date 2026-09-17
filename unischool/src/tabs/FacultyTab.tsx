@@ -10,7 +10,7 @@ import { effectiveCourseSlots, facultyLoad } from '../systems/techtree/techSyste
 import { facultyCapacity, hiresFor, type FieldCapacity } from '../systems/faculty/facultyCapacity';
 import { coursesTaughtBy } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
-import FacultyPortrait from '../components/FacultyPortrait';
+import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 
 // THE DEPARTMENT BOARD — every department the university could have, what
 // each one can teach, and who is in it.
@@ -134,7 +134,7 @@ function FacultyCard(
   return (
     <li className={`faculty-card${isCandidate ? ' listed' : ''}${commitment ? ' committed' : ''}`}>
       <div className="faculty-card-main">
-        <FacultyPortrait f={f} size={36} />
+        <FacultyPortrait f={portraitOf(f)} size={36} />
         <div className="faculty-card-body">
           <div className="faculty-card-head">
             <span className="faculty-name">{f.name}</span>

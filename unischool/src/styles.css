@@ -2325,7 +2325,31 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   font-size: var(--text-2xs); color: var(--gold-dim); min-width: 92px; }
 .coach-name { font-weight: 600; }
 .coach-row-spacer { flex: 1; }
-.coach-candidates { width: 100%; margin-top: 4px; max-height: 160px; }
+
+/* ---------- the coaching market, on the Athletics tab -------------------
+   One list for the whole department rather than a slice per chair (see
+   AthleticsTab.tsx's TheMarket). A row is a person first — face, name,
+   discipline — then the two numbers that decide, then how long they are
+   listed for, then the answer. The tag on the right IS the hire button:
+   naming the team that wants somebody is what turns a list of strangers
+   into a list of answers.
+   ------------------------------------------------------------------- */
+.coach-market { max-height: 420px; }
+.coach-candidate { display: flex; align-items: center; gap: 10px; padding: 6px 0;
+  border-bottom: 1px solid var(--parchment-line-lo); font-size: var(--text-sm); }
+/* The ones somebody is waiting on get the parchment's own highlight rather
+   than a colour of their own: they are the normal case, and the rest of the
+   market is the exception shown behind a toggle. */
+.coach-candidate.wanted { background: var(--parchment-hi, rgba(0, 0, 0, 0.02)); }
+.coach-candidate-who { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.coach-candidate-field { font-size: var(--text-2xs); color: var(--ink-muted);
+  text-transform: uppercase; letter-spacing: 0.05em; }
+.coach-candidate-listed { font-family: var(--mono); font-size: var(--text-2xs);
+  color: var(--ink-muted); white-space: nowrap; }
+.coach-candidate-hire { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end;
+  max-width: 45%; }
+.coach-candidate-idle { font-size: var(--text-2xs); color: var(--ink-muted); }
+.coach-market-toggle { margin-top: 8px; }
 .coach-candidates-empty { width: 100%; margin: 4px 0 0; }
 
 /* ---------- the outstanding student demand, on the Student Life tab ----

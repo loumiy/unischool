@@ -29,6 +29,8 @@ import { createInitialState } from '../src/state/actions';
 import { loadGame, saveGame, clearSave, SAVE_KEY, SAVE_VERSION } from '../src/state/persistence';
 import { sportById } from '../src/data/studentLifeData';
 import { athleticStrengthFor, initialRivals, researchStandingFor, socialStandingFor } from '../src/data/rivalData';
+import { heritageForId } from '../src/data/facultyData';
+import { generateCoachCandidate } from '../src/data/studentLifeData';
 import { RESEARCH_STANDING_BASELINE, SOCIAL_STANDING_BASELINE } from '../src/systems/prestige/prestigeSystem';
 import { researchSchools } from '../src/data/techData';
 import { WEEKS_PER_YEAR } from '../src/state/types';
@@ -1177,6 +1179,74 @@ function testAthleticDriftMigration(): void {
   assert(perSport.length === 0, `no per-sport field is stored on a rival (found: ${perSport.join(', ')})`);
 }
 
+// ---- Test: v48 -> v49, coaches get faces ----
+//
+// Two claims, and the second is the honest one. Every coach a save holds —
+// hired staff AND the standing market, since the hiring screen draws
+// candidates too — comes back with a heritage. And a coach keeps everything
+// else about themselves: the field exists so they can be DRAWN, not so they
+// can be re-rolled.
+function testCoachHeritageMigration(): void {
+  const base = createInitialState('Coach Faces');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+  state.clock = { year: 9, week: 20 };
+
+  const orgs = state.orgs as Loose;
+  orgs.teams = [{
+    id: 'team-soccer', name: "Men's Soccer Team", foundedYear: 2, foundingMembers: 14, foundingEnrolled: 400,
+    upkeepPerWeek: 400, sport: 'soccer-m', venueCategory: 'athleticsField', status: 'awaitingVenue',
+    headCoach: {
+      id: 'coach-head', name: 'Rowan Hale', gender: 'male', field: 'soccer-m',
+      quality: 61, qualityPotential: 74, tenureWeeks: 300, weeksListed: 0, salary: 91_000,
+    },
+    assistantCoach: null,
+    trainer: {
+      id: 'coach-trainer', name: 'Mira Okonkwo', gender: 'female', field: 'strength-conditioning',
+      quality: 48, qualityPotential: 60, tenureWeeks: 120, weeksListed: 0, salary: 70_000,
+    },
+  }];
+  // A candidate still on the market needs one as much as a hire does.
+  (orgs.coachCandidates as Loose[]) = [{
+    id: 'cand-1', name: 'Bo Vasquez', gender: 'male', field: 'basketball-w',
+    quality: 52, qualityPotential: 70, tenureWeeks: 0, weeksListed: 3, salary: 78_000,
+  }];
+  writeSave(48, state);
+
+  const loaded = loadGame();
+  assert(loaded !== null, 'v48 save loads (does not fall back to null)');
+  if (!loaded) return;
+
+  const team = loaded.orgs.teams.find((t) => t.id === 'team-soccer');
+  assert(!!team, 'the team survives');
+  if (!team) return;
+
+  assert(typeof team.headCoach?.heritage === 'string' && team.headCoach.heritage.length > 0,
+    `a hired head coach gains a heritage (got '${team.headCoach?.heritage}')`);
+  assert(typeof team.trainer?.heritage === 'string' && team.trainer.heritage.length > 0,
+    `so does a trainer (got '${team.trainer?.heritage}')`);
+  assert(typeof loaded.orgs.coachCandidates[0]?.heritage === 'string' && loaded.orgs.coachCandidates[0].heritage.length > 0,
+    'and so does a candidate still on the market — the hiring screen draws them too');
+
+  // NOTHING ELSE MOVES. The field is there so a coach can be drawn, not so
+  // they can be re-rolled: a coach hired in year 2 keeps their name, their
+  // quality, their tenure and their salary.
+  assert(team.headCoach?.name === 'Rowan Hale', `the name is untouched (got '${team.headCoach?.name}')`);
+  assert(team.headCoach?.quality === 61, `quality is untouched (got ${team.headCoach?.quality})`);
+  assert(team.headCoach?.tenureWeeks === 300, `tenure is untouched (got ${team.headCoach?.tenureWeeks})`);
+  assert(team.headCoach?.salary === 91_000, `salary is untouched (got ${team.headCoach?.salary})`);
+
+  // Deterministic off the id, so a resumed run's coaches do not change face
+  // on every reload.
+  assert(team.headCoach?.heritage === heritageForId('coach-head'),
+    'the heritage is derived from the id, so it is stable across reloads');
+
+  // A coach minted AFTER this has a face that matches their own name,
+  // because rollCoachName keeps the origin now instead of discarding it.
+  const fresh = generateCoachCandidate('soccer-m');
+  assert(typeof fresh.heritage === 'string' && fresh.heritage.length > 0,
+    'a newly generated coach carries the origin their name was drawn from');
+}
+
 // ---- Test: unmigratable / malformed saves fall back to null, never throw ----
 function testRejects(): void {
   // A version with no migration path (v1) cannot be carried forward.
@@ -1215,6 +1285,7 @@ testAppropriationRemoval();
 testHundredSchoolFieldMigration();
 testThreeStandingsMigration();
 testAthleticDriftMigration();
+testCoachHeritageMigration();
 testRoundTrip();
 testRejects();
 

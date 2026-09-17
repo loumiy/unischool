@@ -544,10 +544,12 @@ export function generateCoachCandidate(field: string): Coach {
   const qualityPotential = COACH_POTENTIAL_MIN + Math.round(Math.random() * COACH_POTENTIAL_RANGE);
   const quality = grownCoachQuality(qualityPotential, 0);
   const gender = rollCoachGender(field);
+  const rolled = rollCoachName(gender);
   return {
     id: crypto.randomUUID(),
-    name: rollCoachName(gender),
+    name: rolled.name,
     gender,
+    heritage: rolled.origin,
     field,
     quality,
     qualityPotential,
@@ -570,13 +572,24 @@ export function generateCoachCandidate(field: string): Coach {
 // over ~1.5 listings a week, so a given field sees roughly four candidates a
 // year and a vacancy waits a season rather than forever.
 //
-// Left at 18 by PR 2A, deliberately. Raising it was planned here on the
-// grounds that four more sports forced it; measured, they do not — the gate
-// and the sim are clean at 18 with all eighteen sports. What a bigger pool
-// buys is the STOCK a player sees on screen at one moment (18 across 19
-// fields is usually nought or one for any particular role), which is a
-// question about the hiring screen, so it belongs with the PR that rebuilds
-// it rather than with the one that adds the sports.
+// STILL 18, and not for want of wanting it bigger. At 18 listings over 19
+// fields a given role's list is usually empty or a single name, and a market
+// of 44 would read far better on the one-pool screen this PR builds.
+//
+// What blocks it is not the number but what the number is wired to. The pool
+// is seeded and refilled straight off Math.random, so its SIZE decides how
+// many times the game rolls a die — and sim/balanceSim.ts seeds Math.random
+// to make a forty-year run reproducible. Raising 18 to 44 generates 26 more
+// candidates at founding and doubles the weekly arrivals, which moves the
+// whole stream and lands test/balance-regression.test.ts somewhere new.
+//
+// Measured, that movement is not a balance effect: across eight seeds the
+// raise trends the same way 7 times out of 8 either side, and the OLD size
+// fails worse at the seed it fails. The fix is to give the market a generator
+// of its own, the way rivalsSystem.ts's annual drift already has one, after
+// which this number is free to tune. That is a change to the balance harness's
+// relationship with the game and is flagged for the repository owner rather
+// than taken here — see the plan's PR 2B note.
 export const COACH_CANDIDATE_POOL_TARGET = 18;
 export const COACH_CANDIDATE_LISTING_WEEKS = 12;
 const COACH_CANDIDATE_ARRIVALS_PER_WEEK_MAX = 3;

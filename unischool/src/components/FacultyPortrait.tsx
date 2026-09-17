@@ -1,6 +1,37 @@
 import type { Faculty } from '../state/types';
 import { facultyQualityTier } from '../data/facultyData';
 
+// WHO THIS CAN DRAW. The portrait reads exactly four things off its subject,
+// so that is what it asks for — rather than a Faculty, which is most of a
+// person this file never looks at.
+//
+// Generalized when varsity coaches wanted faces too (see tabs/AthleticsTab.tsx).
+// The alternative was a second copy of the trait tables below, which would
+// have doubled a 250-line file to avoid a four-field interface, and would
+// have drifted the moment either copy gained a hairstyle.
+//
+// `seniority` is the one thing the two kinds of person compute differently:
+// a professor's comes from facultyQualityTier (teaching + research), a
+// coach's from their single `quality`. So the caller supplies it already
+// resolved — see portraitOf below — rather than this file learning about
+// either.
+export interface Portrayed {
+  id: string;         // every trait is a hash bucket off this, so the same person draws identically forever
+  gender: 'male' | 'female';
+  heritage: string;   // weights skin tone (see HERITAGE_SKIN_TONES)
+  seniority: number;  // 0..1 — how likely to have gone gray
+}
+
+// A professor, as the portrait sees them.
+export function portraitOf(f: Faculty): Portrayed {
+  return {
+    id: f.id,
+    gender: f.gender,
+    heritage: f.heritage,
+    seniority: GRAY_CHANCE_BY_TIER[facultyQualityTier(f)] ?? GRAY_CHANCE_BY_TIER.Adjunct,
+  };
+}
+
 // Procedural faculty headshots. Same house rule as icons.tsx and
 // CampusMap.tsx: no icon library, no external art, hand-rolled inline SVG —
 // but unlike icons.tsx's toolbar glyphs (which inherit `currentColor` on
@@ -78,7 +109,7 @@ const HERITAGE_SKIN_TONES: Record<string, number[]> = {
   'East African': [2, 3, 3, 4, 4],
 };
 
-function skinTone(f: Faculty): string {
+function skinTone(f: Portrayed): string {
   const weights = HERITAGE_SKIN_TONES[f.heritage] ?? SKIN_TONES.map((_, i) => i);
   return SKIN_TONES[weights[bucket(f.id, 'skin', weights.length)]];
 }
@@ -103,8 +134,8 @@ const GRAY_CHANCE_BY_TIER: Record<string, number> = {
   Adjunct: 0.08,
 };
 
-function hairColor(f: Faculty): string {
-  const grayChance = GRAY_CHANCE_BY_TIER[facultyQualityTier(f)] ?? 0.1;
+function hairColor(f: Portrayed): string {
+  const grayChance = f.seniority;
   const roll = bucket(f.id, 'hairGray', 100);
   if (roll < grayChance * 100) return GRAY_HAIR;
   return HAIR_COLORS[bucket(f.id, 'hairColor', HAIR_COLORS.length)];
@@ -187,7 +218,7 @@ function darken(hex: string, amount: number): string {
   return `rgb(${r},${g},${b})`;
 }
 
-export default function FacultyPortrait({ f, size = 24 }: { f: Faculty; size?: number }) {
+export default function FacultyPortrait({ f, size = 24 }: { f: Portrayed; size?: number }) {
   const skin = skinTone(f);
   const hair = hairColor(f);
   const bg = BACKGROUND_TINTS[bucket(f.id, 'bg', BACKGROUND_TINTS.length)];

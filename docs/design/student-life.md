@@ -190,6 +190,26 @@ as any team's trainer regardless of sport) — and candidates skew
 **disproportionately to the gender of the sport they'd coach**
 (`COACH_GENDER_MATCH_CHANCE`), a trainer's listing staying an even coin
 flip since strength & conditioning carries no sport gender to skew toward.
+Each carries a **`heritage`** — the origin of the name pool their name was
+drawn from, the same field `Faculty` has — so a coach can be drawn by the same
+procedural portrait a professor is, with a face that agrees with their name.
+
+**Hiring is one pool, tagged by need.** The Athletics tab shows the whole
+market in a single list rather than a slice per chair: candidates whose sport
+the school fields with a chair open are listed first and tagged with the team
+that wants them, and the tag *is* the hire button. The rest of the market sits
+behind a toggle. This is the shape the Faculty tab used to have and gave up —
+faculty hiring moved to Curriculum "where the shortage is actually felt" — and
+it comes back here because athletics has no second screen: the Athletics tab
+**is** where a coaching shortage is felt. A department with six teams has
+eighteen chairs, and a market you have to open role by role is a market you
+cannot see.
+
+The pool is sized for what a player sees at one moment rather than for
+throughput, and its size is **free of the economy's dice**: the market seeds
+and refills from a generator of its own, taking one draw on the global stream
+whatever the target is, so the number can be tuned for how the screen reads
+without moving a forty-year balance run.
 **Every team needs three separately hired roles** — head coach, assistant
 coach, trainer (`VarsityTeam.headCoach`/`assistantCoach`/`trainer`,
 `types.ts`) — each grown week over week once hired
