@@ -7,7 +7,7 @@ import { tickFinance, endowmentCampaign } from '../systems/finance/financeSystem
 import {
   tickTech, canStartDevelopment, startDevelopment, eligibleInstructors, isCommitted,
   planCommitmentCoverage, developAllPlan,
-  foundProgram,
+  foundProgram, relocateProgram,
 } from '../systems/techtree/techSystem';
 import { endInitiative } from '../systems/research/researchSystem';
 import { initiativeDepth, initiativeFundingCost } from '../data/researchData';
@@ -282,6 +282,11 @@ export function reducer(state: GameState, action: Action): GameState {
       // able to say whether a founding will go through before offering
       // the button, and one predicate serves both.
       foundProgram(s, { programId: action.programId, hallId: action.hallId, slot: action.slot, facultyId: action.facultyId });
+      return s;
+    }
+
+    case 'RELOCATE_PROGRAM': {
+      relocateProgram(s, { programId: action.programId, hallId: action.hallId, slot: action.slot });
       return s;
     }
 

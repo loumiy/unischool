@@ -64,6 +64,10 @@ export type Action =
   // curriculum — its tier-1 course is never started any other way. See
   // techSystem.ts's foundProgram for the gate.
   | { type: 'FOUND_PROGRAM'; programId: string; hallId: string; slot: number; facultyId: string }
+  // Moves a housed program to an empty slot in a standing hall (Plan 14).
+  // Free in money, expensive in time: the program goes dark for
+  // RELOCATION_WEEKS. See techSystem.ts's relocateProgram for the gate.
+  | { type: 'RELOCATE_PROGRAM'; programId: string; hallId: string; slot: number }
   | { type: 'REASSIGN_COURSE_FACULTY'; courseId: string; facultyId: string }
   // Commissions a research initiative in a vacant facility: a topic, a
   // team and a depth, paid for up front out of cash (see

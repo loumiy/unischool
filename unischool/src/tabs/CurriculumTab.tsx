@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
 import { discoverySchools, graduatePrograms, programById } from '../data/techData';
-import { hallOf, isHoused } from '../systems/techtree/programOffers';
+import { hallOf, isHoused, isInTransit } from '../systems/techtree/programOffers';
+import { programOfCourse } from '../data/techData';
 import { isSchoolFounded } from '../systems/techtree/schools';
 import { schoolMark } from '../data/schoolPalette';
 import {
@@ -459,11 +460,16 @@ function CourseCell({ s, t, selected, onSelect, loads }: { s: GameState; t: Buil
 
   const weeksLeft = s.developing[t.id] ?? 0;
   const elapsed = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
+  // Its program is between halls (Plan 14's PR F): not taught, not
+  // advancing, and marked so the player does not have to open the course
+  // to learn why its grade is gone.
+  const programId = programOfCourse(t.id);
+  const transit = programId !== undefined && isInTransit(s, programId);
 
   return (
     <button
       type="button"
-      className={`course-cell ${state}${t.graduateProgram ? ' graduate' : ''}${unstaffed ? ' unstaffed' : ''}${selected ? ' selected' : ''}`}
+      className={`course-cell ${state}${t.graduateProgram ? ' graduate' : ''}${unstaffed ? ' unstaffed' : ''}${transit ? ' transit' : ''}${selected ? ' selected' : ''}`}
       aria-pressed={selected}
       onClick={() => onSelect(t.id)}
     >
@@ -475,6 +481,7 @@ function CourseCell({ s, t, selected, onSelect, loads }: { s: GameState; t: Buil
       {quality && <GradeChip grade={quality.grade} title={`Quality ${Math.round(quality.score)} / 100`} />}
       {state === 'done' && !quality && !unstaffed && <span className="cell-stamp" aria-hidden="true">✓</span>}
       {unstaffed && <span className="cell-stamp unstaffed" title="No instructor">!</span>}
+      {transit && !unstaffed && <span className="cell-stamp transit" title="Its program is moving halls — dark until it settles">⇄</span>}
       {/* Two colours, two actions. Yellow: the department is full but
           somebody is listed, so this is one appointment away. Red: full and
           nobody to appoint, so only time fixes it. */}
@@ -847,6 +854,12 @@ function CourseDrawer(
         {state === 'locked' && (
           <p className="course-drawer-note quiet">Locked until its prerequisites are complete.</p>
         )}
+        {(() => {
+          const programId = programOfCourse(t.id);
+          return programId !== undefined && isInTransit(s, programId)
+            ? <p className="course-drawer-warning">Its program is moving halls: not taught, not advancing, and counting toward nothing until it settles.</p>
+            : null;
+        })()}
       </div>
     </aside>
   );

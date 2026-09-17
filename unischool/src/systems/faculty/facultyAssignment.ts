@@ -1,6 +1,8 @@
 import type { Buildable, Faculty, GameState } from '../../state/types';
 import { assignedInstructor } from '../techtree/techSystem';
 import { qualityOf, tierOf, type CourseQuality } from '../../data/courseQuality';
+import { programOfCourse } from '../../data/techData';
+import { isInTransit } from '../techtree/programOffers';
 
 // Who teaches what, in both directions. Both read ONE record —
 // s.courseFaculty, the instructor the player chose when they started the
@@ -82,6 +84,11 @@ export function facultyLoads(s: GameState): FacultyLoads {
 export function courseQuality(s: GameState, t: Buildable, loads?: FacultyLoads): CourseQuality | null {
   if (t.status !== 'developing' && t.status !== 'done') return null;
   if (!t.requiresFaculty) return null;
+  // A course of a program IN TRANSIT between halls (Plan 14's PR F) is not
+  // being taught this term: no grade, and — see aggregateScore — no
+  // contribution to any average, rather than an F. It keeps its
+  // instructor and resumes exactly as it left.
+  if (inTransit(s, t)) return null;
 
   // An UNSTAFFED course (its instructor was dismissed — see types.ts's
   // CourseFaculty) is also null, not zero. It is not a course being taught
@@ -125,10 +132,20 @@ export function courseQuality(s: GameState, t: Buildable, loads?: FacultyLoads):
 // questions: the card asks "how good is this course", which has no answer
 // without a teacher, while the aggregate asks "how good is the teaching
 // this school provides", which very much does.
+//   - In TRANSIT (its program is moving halls): contributes NOTHING, like
+//     an unopened course. The school is not failing to provide it, the
+//     term is dark by the player's own decision, and the cost of that
+//     decision is that the course counts toward nothing until it settles.
 function aggregateScore(s: GameState, t: Buildable, loads: FacultyLoads): number | null {
   if (t.status !== 'developing' && t.status !== 'done') return null;
   if (!t.requiresFaculty) return null;
+  if (inTransit(s, t)) return null;
   return courseQuality(s, t, loads)?.score ?? 0;
+}
+
+function inTransit(s: GameState, t: Buildable): boolean {
+  const programId = programOfCourse(t.id);
+  return programId !== undefined && isInTransit(s, programId);
 }
 
 // The mean across a set of course ids. null when none of them count at all

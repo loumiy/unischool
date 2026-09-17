@@ -75,6 +75,26 @@ export function isHoused(s: GameState, programId: string): boolean {
   return hallOf(s, programId) !== undefined;
 }
 
+// The slot a program occupies, wherever it is.
+export function slotOf(s: GameState, programId: string): { hallId: string; slot: number } | undefined {
+  for (const [hallId, slots] of Object.entries(s.halls)) {
+    const slot = slots.findIndex((x) => x.programId === programId);
+    if (slot >= 0) return { hallId, slot };
+  }
+  return undefined;
+}
+
+// Weeks a program has left in transit (see types.ts's HallSlot), or 0 when
+// it is settled — which is also what an unhoused program reads as.
+export function transitWeeks(s: GameState, programId: string): number {
+  const where = slotOf(s, programId);
+  return where ? (s.halls[where.hallId][where.slot].transitWeeks ?? 0) : 0;
+}
+
+export function isInTransit(s: GameState, programId: string): boolean {
+  return transitWeeks(s, programId) > 0;
+}
+
 // The schools with at least one program housed. The gen-ed core lives in
 // Founders Hall from founding, so General Studies always counts as started
 // — which is harmless, since it has no majors to offer.

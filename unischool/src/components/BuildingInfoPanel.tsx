@@ -8,8 +8,10 @@ import { averageCourseQuality, courseQuality, facultyLoads, instructorOf } from 
 import { gradeFor } from '../data/courseQuality';
 import { schoolMark } from '../data/schoolPalette';
 import {
-  canFoundProgram, canStartDevelopment, eligibleInstructors, facultyGate, isUnstaffed,
+  canFoundProgram, canRelocateProgram, canStartDevelopment, eligibleInstructors, facultyGate, isUnstaffed,
+  RELOCATION_WEEKS,
 } from '../systems/techtree/techSystem';
+import { transitWeeks } from '../systems/techtree/programOffers';
 import { ProgressRing } from './Progress';
 
 // A popover for a PLACED building — what clicking it (outside placement/
@@ -195,6 +197,7 @@ function ProgramTile({ program, s, act, open, onToggle }: {
   const done = courses.filter((t) => t.status === 'done').length;
   const loads = facultyLoads(s);
   const avg = averageCourseQuality(s, program.courseIds, loads);
+  const inTransit = transitWeeks(s, program.id);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pickedFaculty, setPickedFaculty] = useState<string | null>(null);
   useEffect(() => { setSelectedId(null); setPickedFaculty(null); }, [program.id, open]);
@@ -212,7 +215,9 @@ function ProgramTile({ program, s, act, open, onToggle }: {
         <span className="hall-slot-motif" style={{ color: mark.hue }} aria-hidden="true">{mark.motif}</span>
         <span className="hall-slot-name">{program.name}</span>
         <span className="program-tile-meta">
-          <span className="program-tile-progress">{done}/{courses.length}</span>
+          {inTransit > 0
+            ? <span className="program-tile-transit" title={`In transit — ${inTransit} weeks until it is teaching again`}>moving · {inTransit}w</span>
+            : <span className="program-tile-progress">{done}/{courses.length}</span>}
           {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${Math.round(avg)} / 100 across its developed courses`} />}
         </span>
       </button>
@@ -228,7 +233,7 @@ function ProgramTile({ program, s, act, open, onToggle }: {
               <button
                 key={t.id}
                 type="button"
-                className={`program-strip-cell ${state}${selectedId === t.id ? ' selected' : ''}${unstaffed ? ' unstaffed' : ''}`}
+                className={`program-strip-cell ${state}${selectedId === t.id ? ' selected' : ''}${unstaffed ? ' unstaffed' : ''}${inTransit > 0 ? ' transit' : ''}`}
                 onClick={() => { setSelectedId(selectedId === t.id ? null : t.id); setPickedFaculty(null); }}
                 aria-pressed={selectedId === t.id}
                 title={`${t.name} — ${state}`}
@@ -248,6 +253,56 @@ function ProgramTile({ program, s, act, open, onToggle }: {
       {open && selected && (
         <StripCourse t={selected} s={s} act={act} picked={pickedFaculty} onPick={setPickedFaculty} onStarted={() => { setSelectedId(null); setPickedFaculty(null); }} />
       )}
+      {open && <RelocateControls program={program} s={s} act={act} />}
+    </div>
+  );
+}
+
+// RELOCATION (PR F). Every free slot in every standing hall, offered as a
+// destination — and what the move costs, said up front: the program goes
+// dark for RELOCATION_WEEKS. A program already in transit cannot be moved
+// again until it settles.
+function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameState; act?: (a: Action) => void }) {
+  const inTransit = transitWeeks(s, program.id);
+  const destinations = Object.entries(s.halls)
+    .map(([hallId, slots]) => ({
+      hallId,
+      hall: s.tech.find((t) => t.id === hallId),
+      free: slots.map((slot, i) => (slot.programId === null ? i : -1)).filter((i) => i >= 0),
+    }))
+    .filter((d) => d.hall && d.free.length > 0 && canRelocateProgram(s, { programId: program.id, hallId: d.hallId, slot: d.free[0] }));
+  if (inTransit > 0) {
+    return (
+      <p className="building-info-line building-info-construction relocate-note">
+        In transit — {inTransit} week{inTransit === 1 ? '' : 's'} until its courses count again. Nothing in it can be started or advanced until then.
+      </p>
+    );
+  }
+  if (destinations.length === 0) {
+    return <p className="building-info-line relocate-note">No free slot anywhere to move this program to.</p>;
+  }
+  return (
+    <div className="relocate">
+      <p className="building-info-line relocate-note">
+        Move it — free, but the program goes dark for {RELOCATION_WEEKS} weeks: no teaching, no progress, and it counts toward no school until it settles.
+      </p>
+      {destinations.map((d) => (
+        <p key={d.hallId} className="relocate-row">
+          <span className="relocate-hall">{hallDisplayName(s, d.hall!)}</span>
+          {d.free.map((slot) => (
+            <button
+              key={slot}
+              type="button"
+              className="relocate-slot"
+              disabled={!act}
+              title={`Move ${program.name} to ${hallDisplayName(s, d.hall!)}, slot ${slot + 1}`}
+              onClick={() => act?.({ type: 'RELOCATE_PROGRAM', programId: program.id, hallId: d.hallId, slot })}
+            >
+              {slot + 1}
+            </button>
+          ))}
+        </p>
+      ))}
     </div>
   );
 }

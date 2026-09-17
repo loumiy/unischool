@@ -859,6 +859,19 @@ button.build-tile { font-family: inherit; }
 .strip-course { padding: 6px 8px 8px; border-top: 1px solid var(--parchment-line); text-align: left; }
 .strip-course-head { margin: 0 0 4px; font-size: var(--text-sm); font-weight: 600; color: var(--ink); }
 .strip-course .instructor-options { margin-bottom: 6px; }
+/* RELOCATION (PR F): a program in transit reads as dimmed and struck
+   through wherever its courses are drawn, and the move controls are a row
+   per hall with its free slots as small numbered buttons. */
+.program-tile-transit { color: #7a5c12; font-weight: 600; }
+.program-strip-cell.transit, .course-cell.transit { opacity: 0.55; }
+.cell-stamp.transit { color: #7a5c12; }
+.relocate { padding: 6px 8px 8px; border-top: 1px solid var(--parchment-line); text-align: left; }
+.relocate-note { padding: 6px 8px 0; text-align: left; }
+.relocate-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin: 4px 0; font-size: var(--text-xs); }
+.relocate-hall { flex: 1 1 100%; color: var(--ink-muted); }
+.relocate-slot { min-width: 24px; height: 22px; padding: 0 4px; border-radius: var(--radius-sm);
+  border: 1px solid var(--gold-dim); background: #fffdf6; color: var(--ink); font-family: var(--mono); font-size: var(--text-xs); cursor: pointer; }
+.relocate-slot:hover:not(:disabled) { background: var(--gold-dim); color: #fff8e8; }
 
 /* MainMenu: the hamburger overlay in the map's top-right corner (see
    MainMenu.tsx) carrying what the old topbar's control bar used to —

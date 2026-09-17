@@ -28,6 +28,10 @@ export function dedicatedSchool(s: GameState, hallId: string): string | null {
   let school: string | null = null;
   for (const slot of slots) {
     if (slot.programId === null) return null;
+    // A program still in transit has not arrived: six programs of one
+    // school found it the week the sixth is teaching there, not the week
+    // the move was ordered (see types.ts's HallSlot.transitWeeks).
+    if ((slot.transitWeeks ?? 0) > 0) return null;
     const program = programById(slot.programId);
     if (!program || program.kind === 'core') return null;
     if (school === null) school = program.school;

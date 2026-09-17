@@ -9,7 +9,7 @@ repeatable academic halls with six program slots, programs founded from a
 rolling offer of three, and a Curriculum tab that becomes forty-two rows — and
 turn them into an ordered sequence of PRs.*
 
-**Status: In progress.** PRs A through E have landed. Depends on
+**Status: In progress.** PRs A through F have landed. Depends on
 [Plan 09](09-playtest-harness.md) for the scenarios and the scorecard this is
 measured with. Supersedes
 [Plan 11](11-academic-halls.md), whose rooms-and-continuous-development model
@@ -394,6 +394,18 @@ it too, since a save carries its own `tech`.
 resumes with its courses and instructors intact. A run that founds greedily and
 reorganises later reaches its schools later than one that sited carefully — the
 scorecard in 15G should be able to see the difference.
+
+**As implemented:** the transit lives on the destination *slot*
+(`HallSlot.transitWeeks`), not in a record of its own: the program is housed
+at its new home from the moment the move is ordered — its slot is claimed,
+its courses stay gated to it — and only the countdown says it has not
+arrived. "Counts toward no seats" waits on Plan 15's PR E, since seats are
+not a ceiling yet; what a program in transit contributes to *now* is
+nothing: no grade, no aggregate, no dedication (the sixth program founds a
+school the week it settles, not the week it is ordered), no starts, no
+progress. A move within the same hall costs the same twelve weeks — one
+rule. The harness does not relocate yet; the greedy-then-reorganise control
+the scorecard should see is 14I's.
 
 ## PR 14G — Forty-two rows
 

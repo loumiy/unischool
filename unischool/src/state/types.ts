@@ -1222,6 +1222,13 @@ export interface YearSnapshot {
 // references into `tech`, so it survives a JSON round trip untouched.
 export interface HallSlot {
   programId: string | null;
+  // Set while the program is IN TRANSIT to this slot (Plan 14's PR F): the
+  // weeks left before it is teaching again. Relocation is free in money
+  // and expensive in time — a program in transit contributes no teaching
+  // quality, its courses cannot be started or advanced, and it does not
+  // count toward its hall's dedication until it arrives. Ticked down by
+  // techSystem.ts and deleted at zero; absent means settled.
+  transitWeeks?: number;
 }
 
 // ---------------------------------------------------------------------

@@ -384,6 +384,7 @@ function sanitizeCourseFaculty(state: GameState): void {
 //   - a slot's program is a real program id — a major prefix, 'CORE', or
 //     a graduate program — housed nowhere else. A duplicate or an unknown
 //     id becomes an empty slot rather than a claim nothing can honour.
+//   - a transit countdown is a positive whole number of weeks, or gone.
 // A dropped or emptied slot costs the player only what a stale
 // courseFaculty entry costs: a state that has to be re-made visibly rather
 // than one that quietly asserts something false.
@@ -402,7 +403,10 @@ function sanitizeHalls(state: GameState): void {
       const programId = entry && typeof entry.programId === 'string' ? entry.programId : null;
       if (programId !== null && programIds.has(programId) && !housed.has(programId)) {
         housed.add(programId);
-        slots.push({ programId });
+        // A transit countdown survives only as a positive whole number of
+        // weeks; anything else reads as settled.
+        const weeks = entry?.transitWeeks;
+        slots.push(Number.isInteger(weeks) && (weeks as number) > 0 ? { programId, transitWeeks: weeks as number } : { programId });
       } else {
         slots.push({ programId: null });
       }

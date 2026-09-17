@@ -4,7 +4,7 @@ import {
   graduateCourseIds, graduateGateMet, graduatePrograms, milestoneSchools, programById, programOfCourse,
 } from '../../data/techData';
 import { isCelebratedMilestone } from '../../data/eventData';
-import { hallOf, isHoused, refillOffers } from './programOffers';
+import { hallOf, isHoused, isInTransit, refillOffers, slotOf } from './programOffers';
 import { dedicatedHalls, schoolFoundedKey } from './schools';
 import { tierOf, type CourseTier } from '../../data/courseQuality';
 
@@ -436,6 +436,12 @@ export function developAllPlan(s: GameState): { ids: string[]; cost: number } {
 }
 
 export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: string): boolean {
+  // A course of a program in transit (Plan 14's PR F) cannot be started:
+  // its program is between buildings.
+  if (node.kind === 'course') {
+    const programId = programOfCourse(node.id);
+    if (programId !== undefined && isInTransit(s, programId)) return false;
+  }
   const facultyOk = !node.requiresFaculty
     || (facultyId === undefined
       ? hasFreeFacultySlot(s, node.requiresFaculty)
@@ -641,6 +647,80 @@ export function foundProgram(s: GameState, f: Founding): void {
   });
 }
 
+// ---------------------------------------------------------------------
+// RELOCATION (Plan 14's PR F). A housed program moves to any empty slot
+// in any standing hall — free in money, expensive in time. The program
+// goes dark for RELOCATION_WEEKS: its courses contribute no teaching
+// quality (facultyAssignment.ts reads isInTransit), cannot be started
+// (canStartDevelopment) and do not advance (tickTech), and it does not
+// count toward its new hall's dedication until it arrives (schools.ts).
+// Its courses and their instructors are untouched throughout, so it
+// resumes exactly as it left.
+//
+// The natural brake is structural — you can only move INTO a free slot,
+// so reorganising six programs into one hall needs the spare capacity to
+// shuffle through — and the dark term is what stops a free, instant,
+// end-of-run tidy-up from defusing every slot decision the player made
+// along the way. Provisional, like every number in Plan 14.
+// ---------------------------------------------------------------------
+export const RELOCATION_WEEKS = 12;
+
+export interface Relocation {
+  programId: string;
+  hallId: string;
+  slot: number;
+}
+
+export function canRelocateProgram(s: GameState, r: Relocation): boolean {
+  // The core is Founders Hall, and Founders Hall is the core: it never
+  // moves, and its one slot never empties for anything else.
+  if (programById(r.programId)?.kind !== 'major' && programById(r.programId)?.kind !== 'graduate') return false;
+  const from = slotOf(s, r.programId);
+  if (!from || isInTransit(s, r.programId)) return false;
+  const slots = s.halls[r.hallId];
+  if (!slots || r.slot < 0 || r.slot >= slots.length) return false;
+  if (from.hallId === r.hallId && from.slot === r.slot) return false;
+  if (slots[r.slot].programId !== null) return false;
+  if (s.tech.find((t) => t.id === r.hallId)?.status !== 'done') return false;
+  return true;
+}
+
+export function relocateProgram(s: GameState, r: Relocation): void {
+  if (!canRelocateProgram(s, r)) return;
+  const from = slotOf(s, r.programId)!;
+  s.halls[from.hallId][from.slot] = { programId: null };
+  s.halls[r.hallId][r.slot] = { programId: r.programId, transitWeeks: RELOCATION_WEEKS };
+  const program = programById(r.programId);
+  const hall = s.tech.find((t) => t.id === r.hallId);
+  s.log.unshift({
+    year: s.clock.year, week: s.clock.week,
+    message: `${program?.name ?? r.programId} is moving to ${hall?.name ?? 'another hall'} — dark for ${RELOCATION_WEEKS} weeks.`,
+    kind: 'info',
+  });
+}
+
+// One week of every transit, and the arrivals it produces. A hall whose
+// last program has just arrived may now be dedicated, which the
+// milestone pass after this call picks up.
+function tickTransit(s: GameState): void {
+  for (const slots of Object.values(s.halls)) {
+    for (const slot of slots) {
+      if (slot.transitWeeks === undefined) continue;
+      if (slot.transitWeeks <= 1) {
+        delete slot.transitWeeks;
+        const program = slot.programId ? programById(slot.programId) : undefined;
+        s.log.unshift({
+          year: s.clock.year, week: s.clock.week,
+          message: `${program?.name ?? slot.programId} has settled in and is teaching again.`,
+          kind: 'good',
+        });
+      } else {
+        slot.transitWeeks -= 1;
+      }
+    }
+  }
+}
+
 // The hall a course's program lives in, for anything that wants to say
 // "taught in North Academic Hall" — undefined for the core's building
 // only if Founders Hall somehow lacks its entry, and for a course of an
@@ -742,8 +822,16 @@ function checkMilestones(s: GameState): void {
 
 export function tickTech(s: GameState): void {
   const finished: Buildable[] = [];
+  // Arrivals first, so a program that settles this week develops this
+  // week — a twelve-week move costs twelve weeks, not thirteen.
+  const arrived = Object.values(s.halls).some((slots) => slots.some((slot) => slot.transitWeeks !== undefined && slot.transitWeeks <= 1));
+  tickTransit(s);
 
   for (const id of Object.keys(s.developing)) {
+    // A course of a program in transit does not advance (see RELOCATION
+    // above): the countdown holds where it is until the program settles.
+    const programId = programOfCourse(id);
+    if (programId !== undefined && isInTransit(s, programId)) continue;
     const weeksLeft = s.developing[id] - 1;
     if (weeksLeft <= 0) {
       delete s.developing[id];
@@ -775,7 +863,7 @@ export function tickTech(s: GameState): void {
   // (population, prestige — see meetsUnlockGates) can cross their threshold
   // on any week even with nothing currently developing.
   unlockAvailable(s);
-  if (finished.length > 0) {
+  if (finished.length > 0 || arrived) {
     checkMilestones(s);
     // The offer is seeded the week the gen-ed core completes: the last
     // core course finishing is what reveals every tier-1 course above, and
