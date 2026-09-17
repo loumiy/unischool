@@ -1281,6 +1281,7 @@ export interface GameState {
   courseFaculty: CourseFaculty;       // course id -> the faculty member teaching it; the player's choice, made when development starts (see the CourseFaculty block above)
   halls: Record<string, HallSlot[]>;  // hall Buildable id -> its program slots, positional (see the HallSlot block above)
   programOffers: string[];            // the programs on offer right now — three, or fewer only when fewer remain (see the HallSlot block above and systems/techtree/programOffers.ts)
+  searches: Record<string, number>;   // faculty field -> weeks left on a posted search for a candidate in it (see systems/faculty/facultySearch.ts)
   placements: Placements;            // Buildable id -> the campus tiles it covers; visual only (see the campus map block above)
   pathways: Pathways;                 // drawn walkway tiles; visual only, read by no system (see the Pathways block above)
   trees: Trees;                       // the founding woodland, tile -> render seed; felled by building, hidden by paving (see the Trees block above)

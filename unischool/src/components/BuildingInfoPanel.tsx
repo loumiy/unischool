@@ -3,7 +3,7 @@ import type { Action } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { discoverySchools, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
 import { dedicatedSchool, hallDisplayName } from '../systems/techtree/schools';
-import { GradeChip, InstructorOption, completion, discoverySections } from '../tabs/CurriculumTab';
+import { GradeChip, InstructorOption, SearchOffer, completion, discoverySections } from '../tabs/CurriculumTab';
 import { averageCourseQuality, courseQuality, facultyLoads, instructorOf } from '../systems/faculty/facultyAssignment';
 import { gradeFor } from '../data/courseQuality';
 import { schoolMark } from '../data/schoolPalette';
@@ -355,11 +355,14 @@ function StripCourse({ t, s, act, picked, onPick, onStarted }: {
               ))}
             </div>
           ) : t.requiresFaculty ? (
-            <p className="building-info-line building-info-construction">
-              {gate === 'hireable'
-                ? `No ${t.requiresFaculty} professor has a free course slot — a candidate is on the market. Appoint them from the Faculty board.`
-                : `No ${t.requiresFaculty} professor has a free course slot, and nobody is on the market. Wait for the market to turn, or move a course.`}
-            </p>
+            <>
+              <p className="building-info-line building-info-construction">
+                {gate === 'hireable'
+                  ? `No ${t.requiresFaculty} professor has a free course slot — a candidate is on the market. Appoint them from the Faculty board.`
+                  : `No ${t.requiresFaculty} professor has a free course slot, and nobody is on the market.`}
+              </p>
+              {gate !== 'hireable' && act && <SearchOffer s={s} act={act} field={t.requiresFaculty} />}
+            </>
           ) : null}
           {shortfall > 0 && (
             <p className="building-info-line building-info-construction">${Math.ceil(shortfall).toLocaleString()} short of the development cost.</p>
@@ -517,9 +520,14 @@ function HallSlots({ t, s, act }: { t: Buildable; s: GameState; act?: (a: Action
                   ))}
                 </div>
               ) : (
-                <p className="building-info-line">
-                  No {entry.requiresFaculty} professor has a free course slot. Appoint one from the Faculty board to found this program.
-                </p>
+                <>
+                  <p className="building-info-line">
+                    No {entry.requiresFaculty} professor has a free course slot. Appoint one from the Faculty board to found this program.
+                  </p>
+                  {entry.requiresFaculty && act && !s.candidates.some((c) => c.field === entry.requiresFaculty) && (
+                    <SearchOffer s={s} act={act} field={entry.requiresFaculty} />
+                  )}
+                </>
               )}
               {s.finance.cash < entry.cost && (
                 <p className="building-info-line building-info-construction">

@@ -6,6 +6,7 @@ import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from './types';
 import { fellTrees } from '../data/treeData';
 import { glyphsFor, SPORTS } from '../data/studentLifeData';
 import { graduatePrograms, majorPrefixes } from '../data/techData';
+import { FACULTY_FIELDS } from '../data/facultyData';
 import { offerablePrograms, PROGRAM_OFFER_COUNT } from '../systems/techtree/programOffers';
 
 // ---------------------------------------------------------------------
@@ -82,7 +83,9 @@ export const SAVE_KEY = 'unischool.save';
 // and `s.programOffers` is added as required. (PR C should have bumped on
 // its own; a save carries its own `tech`, so one written under v52 would
 // have loaded with buildings the game no longer knows.)
-export const SAVE_VERSION = 53;
+// v54: Plan 14 PR H. `s.searches` (a posted faculty search per field,
+// added as required).
+export const SAVE_VERSION = 54;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -434,6 +437,18 @@ function sanitizeProgramOffers(state: GameState): void {
   state.programOffers = clean;
 }
 
+// Search hygiene, run on EVERY load: a running search is a positive
+// whole number of weeks in a field that exists; anything else is dropped.
+function sanitizeSearches(state: GameState): void {
+  const source = (typeof state.searches === 'object' && state.searches !== null) ? state.searches : {};
+  const clean: GameState['searches'] = {};
+  for (const [field, weeks] of Object.entries(source)) {
+    if (!FACULTY_FIELDS.includes(field) || !Number.isInteger(weeks) || (weeks as number) <= 0) continue;
+    clean[field] = weeks as number;
+  }
+  state.searches = clean;
+}
+
 // A shallow structural check, not a full validation of GameState. The point
 // is to reject the things that actually happen — a truncated write, a key
 // collision, a payload from an older shape that shares the version number
@@ -451,6 +466,7 @@ function looksLikeGameState(value: unknown): value is GameState {
     Array.isArray(s.tech) &&
     typeof s.halls === 'object' && s.halls !== null &&
     Array.isArray(s.programOffers) &&
+    typeof s.searches === 'object' && s.searches !== null &&
     Array.isArray(s.faculty) &&
     Array.isArray(s.rivals) &&
     Array.isArray(s.history) &&
@@ -500,6 +516,7 @@ export function loadGame(): GameState | null {
   // real while its program is unhoused.
   sanitizeHalls(state);
   sanitizeProgramOffers(state);
+  sanitizeSearches(state);
   sanitizePathways(state);
   // After sanitizePlacements, never before: it reads the CLEANED placements
   // to decide which trees are standing under a building.

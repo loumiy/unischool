@@ -8,6 +8,7 @@ import {
   tickTech, canStartDevelopment, startDevelopment, eligibleInstructors, isCommitted,
   planCommitmentCoverage, foundProgram, relocateProgram, swapInstructors,
 } from '../systems/techtree/techSystem';
+import { postSearch } from '../systems/faculty/facultySearch';
 import { endInitiative } from '../systems/research/researchSystem';
 import { initiativeDepth, initiativeFundingCost } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
@@ -1011,6 +1012,11 @@ export function reducer(state: GameState, action: Action): GameState {
     // exactly as they would clicking by hand: a course started earlier in
     // the loop can spend the cash or fill the faculty slot a later one
     // needed.
+    case 'POST_SEARCH': {
+      postSearch(s, action.field);
+      return s;
+    }
+
     case 'SWAP_COURSE_FACULTY': {
       swapInstructors(s, action.courseA, action.courseB);
       return s;

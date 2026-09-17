@@ -303,6 +303,10 @@ export type Action =
   // no-op — nothing is ever displaced to unassigned behind the player's
   // back. See techSystem.ts's swapInstructors for the gate.
   | { type: 'SWAP_COURSE_FACULTY'; courseA: string; courseB: string }
+  // Posts a search for a candidate in a faculty field (Plan 14's PR H):
+  // spends money to raise the weekly chance the market lists somebody in
+  // it, for a fixed window. See systems/faculty/facultySearch.ts.
+  | { type: 'POST_SEARCH'; field: string }
   // Renovates the tier-1 library in place for more capacity (see
   // facilitiesData.ts's nextLibraryFloor) — puts that SAME already-placed
   // Buildable back into 'developing' at its existing spot rather than
@@ -347,6 +351,7 @@ export function createPreStartState(): GameState {
     developing: {},
     halls: {},
     programOffers: [],
+    searches: {},
     placements: {},
     pathways: {},
     trees: {},
@@ -593,6 +598,8 @@ export function createInitialState(name: string, vernacular: Vernacular = FOUNDI
     // three are drawn the week it finishes (see techSystem.ts's tickTech
     // and programOffers.ts's refillOffers).
     programOffers: [],
+    // No search running: a founding school's five hires cover the core.
+    searches: {},
     // Only Founders Hall is pre-placed: it opens 'done' (techData.ts), so
     // it needs a spot on the map from day one. It is centred on the grid
     // (foundersHallPlacement above) — the founding landmark the rest of the

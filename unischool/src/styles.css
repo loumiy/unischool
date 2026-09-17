@@ -1362,6 +1362,13 @@ button.build-tile { font-family: inherit; }
 .swap-preview.up { color: #3f6b2a; }
 .swap-preview.down { color: var(--danger-line); }
 
+/* THE SEARCH (PR H): the one paid action a dead end offers. It wears the
+   drawer's own action register; a running search is a quiet note. */
+.search-post { margin-bottom: 8px; }
+.search-running { color: #7a5c12; }
+.dept-searching { font-family: var(--mono); font-size: var(--text-2xs); color: #7a5c12; }
+.dept-body .search-post { margin-top: 6px; }
+
 /* The worklist a filter produces: the same cells, flat, each saying where
    it lives so the answer includes how to get there. */
 .worklist { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 9px; }

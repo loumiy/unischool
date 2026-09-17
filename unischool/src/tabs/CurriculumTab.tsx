@@ -6,6 +6,7 @@ import { hallOf, isHoused, isInTransit } from '../systems/techtree/programOffers
 import { programOfCourse } from '../data/techData';
 import { isSchoolFounded } from '../systems/techtree/schools';
 import { schoolMark } from '../data/schoolPalette';
+import { canPostSearch, searchCost, searchWeeksLeft } from '../systems/faculty/facultySearch';
 import {
   canStartDevelopment, facultyGate, eligibleInstructors, assignedInstructor,
   isUnstaffed, facultyLoad, hallOfCourse, canSwapInstructors,
@@ -675,6 +676,35 @@ export function InstructorOption(
   );
 }
 
+// THE SEARCH, offered where the shortage is felt (Plan 14's PR H): when
+// nobody in a department can take a course, the picker offers to pay for
+// a search rather than a dead end — see systems/faculty/facultySearch.ts.
+// Exported for the hall panel's course strip and the Faculty board, which
+// offer the same thing in the same words.
+export function SearchOffer({ s, act, field }: { s: GameState; act: (a: Action) => void; field: string }) {
+  const left = searchWeeksLeft(s, field);
+  if (left > 0) {
+    return (
+      <p className="course-drawer-note search-running">
+        A {field} search is running — {left} week{left === 1 ? '' : 's'} left. Every week it may turn somebody up.
+      </p>
+    );
+  }
+  const cost = searchCost(s);
+  return (
+    <button
+      type="button"
+      className="course-drawer-action search-post"
+      disabled={!canPostSearch(s, field)}
+      onClick={() => act({ type: 'POST_SEARCH', field })}
+      title={`Advertise, headhunt and visit conferences for ${SEARCH_WEEKS_LABEL}: a much better chance every week that a ${field} candidate is listed.`}
+    >
+      Post a search in {field} · ${cost.toLocaleString()}
+    </button>
+  );
+}
+const SEARCH_WEEKS_LABEL = 'half a year';
+
 function CourseDrawer(
   { s, act, t, lookup, onClose, loads, onGoToCourse }:
   {
@@ -881,6 +911,7 @@ function CourseDrawer(
 
             {eligible.length === 0 && (
               <div className="course-drawer-hire">
+                <SearchOffer s={s} act={act} field={t.requiresFaculty} />
                 <h5>On the market in {t.requiresFaculty}</h5>
                 {marketInField.length === 0 ? (
                   <p className="course-drawer-note quiet">

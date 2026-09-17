@@ -9,7 +9,7 @@ repeatable academic halls with six program slots, programs founded from a
 rolling offer of three, and a Curriculum tab that becomes forty-two rows — and
 turn them into an ordered sequence of PRs.*
 
-**Status: In progress.** PRs A through G have landed. Depends on
+**Status: In progress.** PRs A through H have landed. Depends on
 [Plan 09](09-playtest-harness.md) for the scenarios and the scorecard this is
 measured with. Supersedes
 [Plan 11](11-academic-halls.md), whose rooms-and-continuous-development model
@@ -476,6 +476,19 @@ pressure the review asked for, and a wall if the player can only wait it out.
 **Verify.** A run blocked on Clinical Health can spend its way to a candidate in
 a measurable fraction of the wait. The sim's blocked-week column (Plan 09's PR E)
 distinguishes money-blocked from faculty-blocked.
+
+**As implemented:** a search is a fixed window (twenty-six weeks) with a
+flat weekly chance (one in four) of listing a candidate in its field, on top
+of the market's own churn — not a multiplier on the field's ordinary weight,
+which for a thin field is a multiplier on nearly nothing. Its price is two
+weeks of operating expense, floored like every event, so it scales with the
+size of the school. `s.searches` is a field-to-weeks record and one more
+required slice (`SAVE_VERSION` 54). The picker's dead end, the hall panel's
+course strip and the Faculty board's short departments all offer the same
+`SearchOffer`. The sim's activity row gains a `fblk` column — weeks when
+nothing was startable *only* for want of a department with a free slot, an
+offered program's field counted — but the harness does not post searches
+yet; that is 14I's, with the rest of its founding policy.
 
 ## PR 14I — The harness, and docs
 

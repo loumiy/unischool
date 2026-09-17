@@ -10,6 +10,8 @@ import { effectiveCourseSlots, facultyLoad } from '../systems/techtree/techSyste
 import { facultyCapacity, hiresFor, type FieldCapacity } from '../systems/faculty/facultyCapacity';
 import { coursesTaughtBy } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
+import { SearchOffer } from './CurriculumTab';
+import { searchWeeksLeft } from '../systems/faculty/facultySearch';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 
 // THE DEPARTMENT BOARD — every department the university could have, what
@@ -465,6 +467,7 @@ function DepartmentRow(
         <span className="dept-people">
           {c.hired > 0 && <span className="dept-hired">{c.hired} hired</span>}
           {c.listed > 0 && <span className="dept-listed">{c.listed} listed</span>}
+          {searchWeeksLeft(s, c.field) > 0 && <span className="dept-searching" title="A search is running in this department">searching · {searchWeeksLeft(s, c.field)}w</span>}
         </span>
         {note ? <span className={note.className}>{note.text}</span> : <span className="dept-note" />}
       </button>
@@ -505,9 +508,13 @@ function DepartmentRow(
                 </ul>
               ) : (
                 <p className="empty-note">
-                  No {c.field} candidate is listed. The market turns over every week — check back.
+                  No {c.field} candidate is listed. The market turns over every week — or pay for a search.
                 </p>
               )}
+              {/* A search, per short department (Plan 14's PR H): the same
+                  offer the instructor picker makes when nobody can take a
+                  course, made here where the shortage is a row. */}
+              {(c.state === 'over' || c.state === 'short') && <SearchOffer s={s} act={act} field={c.field} />}
             </>
           )}
         </div>

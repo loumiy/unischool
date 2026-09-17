@@ -752,6 +752,13 @@ export interface Row {
   //                 A week with nothing to decide even in principle.
   //   blockedWeeks  weeks when something was startable and nothing was
   //                 affordable — the cash throttle actually throttling.
+  //   facultyBlockedWeeks
+  //                 weeks when nothing was startable ONLY because no
+  //                 department had a free slot for it — an available
+  //                 course, or a program on offer, whose field has nobody
+  //                 to teach it (Plan 14's PR H: the market as a gate). The
+  //                 column that says whether a run stalls on money or on
+  //                 people, which is what a search is for.
   //
   // The two week counts read AFFORDABILITY against raw cash rather than
   // against the strategy's own buffer, deliberately: "the game offered me
@@ -759,7 +766,7 @@ export interface Row {
   // cleared my eight-week reserve" is a fact about the policy, and the Idle
   // control (buffer: MAX_SAFE_INTEGER) would otherwise report every week of
   // forty years as money-blocked.
-  actions: number; idleWeeks: number; blockedWeeks: number;
+  actions: number; idleWeeks: number; blockedWeeks: number; facultyBlockedWeeks: number;
 }
 
 // What the WEEK offered, regardless of what the strategy did about it (see
@@ -767,16 +774,24 @@ export interface Row {
 // gates a Buildable cannot buy its way past — status, and a free faculty
 // slot for a course. `affordable` then asks whether the school could pay
 // for any of them out of raw cash.
-function weekOffered(s: GameState): { startable: boolean; affordable: boolean } {
+function weekOffered(s: GameState): { startable: boolean; affordable: boolean; facultyBlocked: boolean } {
   let startable = false;
   let affordable = false;
+  let facultyBlocked = false;
+  const offeredEntryIds = new Set(s.programOffers.map((id) => programById(id)?.entryCourseId));
   for (const node of s.tech) {
-    if (node.status !== 'available') continue;
-    if (node.requiresFaculty && !hasFreeFacultySlot(s, node.requiresFaculty)) continue;
+    // A program on offer is something the week offered too: its entry
+    // course is 'locked' until it is founded, and founding needs a free
+    // slot in its field exactly as starting a course does.
+    if (node.status !== 'available' && !offeredEntryIds.has(node.id)) continue;
+    if (node.requiresFaculty && !hasFreeFacultySlot(s, node.requiresFaculty)) { facultyBlocked = true; continue; }
     startable = true;
     if (s.finance.cash >= node.cost) { affordable = true; break; }
   }
-  return { startable, affordable };
+  // Blocked on people only when nothing at all was startable for any
+  // other reason: a week with a startable, affordable course is not a
+  // stall, whatever else it could not staff.
+  return { startable, affordable, facultyBlocked: facultyBlocked && !startable };
 }
 
 function snapshot(
@@ -822,13 +837,14 @@ function snapshot(
     actions: year.actions,
     idleWeeks: year.idleWeeks,
     blockedWeeks: year.blockedWeeks,
+    facultyBlockedWeeks: year.facultyBlockedWeeks,
   };
 }
 
 // The three player-facing counts, accumulated across a year and reset at
 // each snapshot — they describe one year, not the run to date.
-interface YearActivity { actions: number; idleWeeks: number; blockedWeeks: number }
-function newYear(): YearActivity { return { actions: 0, idleWeeks: 0, blockedWeeks: 0 }; }
+interface YearActivity { actions: number; idleWeeks: number; blockedWeeks: number; facultyBlockedWeeks: number }
+function newYear(): YearActivity { return { actions: 0, idleWeeks: 0, blockedWeeks: 0, facultyBlockedWeeks: 0 }; }
 
 // What the authored decision events (see src/data/eventData.ts) did over a
 // run. Reported under the table so a balance pass can see at a glance
@@ -1095,7 +1111,8 @@ export function play(
     // question about the week the player woke up to rather than about what
     // is left once they have done it.
     const offered = weekOffered(s);
-    if (!offered.startable) year.idleWeeks += 1;
+    if (offered.facultyBlocked) year.facultyBlockedWeeks += 1;
+    else if (!offered.startable) year.idleWeeks += 1;
     else if (!offered.affordable) year.blockedWeeks += 1;
     decide(() => s, strategy, weeksInTheRed, dispatchCounted);
     // A demand resolves inside a TICK, silently and with no interrupt (see
@@ -1147,7 +1164,7 @@ function fmt(n: number): string {
 function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venuesBuilt: string[] }, every: number): void {
   const { rows, tally } = run;
   console.log(`\n=== ${strategy.name} ===`);
-  console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | soc | aca | crs | maj | fac |  tuition |  applic | admit% |  endow | rsch/wk | brk | orgs | grad | act | idle | blkd');
+  console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | soc | aca | crs | maj | fac |  tuition |  applic | admit% |  endow | rsch/wk | brk | orgs | grad | act | idle | blkd | fblk');
   const last = rows[rows.length - 1];
   for (const r of rows) {
     if (r.year > 6 && r.year % every !== 0 && r !== last) continue;
@@ -1169,7 +1186,7 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
       // What the YEAR contained for the player: how many discretionary
       // things they did, how many weeks offered nothing startable at all,
       // and how many offered something they could not pay for.
-      `${String(r.actions).padStart(3)} | ${String(r.idleWeeks).padStart(4)} | ${String(r.blockedWeeks).padStart(4)}`,
+      `${String(r.actions).padStart(3)} | ${String(r.idleWeeks).padStart(4)} | ${String(r.blockedWeeks).padStart(4)} | ${String(r.facultyBlockedWeeks).padStart(4)}`,
     );
   }
   console.log(`   weeks in the red: ${last.weeksInTheRed} of ${rows.length * 52}, min cash: ${fmt(last.minCash)}`);
@@ -1219,7 +1236,9 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
     `${mean(rows, (r) => r.idleWeeks).toFixed(1)} idle weeks/yr ` +
     `(last decade ${mean(decade, (r) => r.idleWeeks).toFixed(1)}), ` +
     `${mean(rows, (r) => r.blockedWeeks).toFixed(1)} money-blocked weeks/yr ` +
-    `(last decade ${mean(decade, (r) => r.blockedWeeks).toFixed(1)})`,
+    `(last decade ${mean(decade, (r) => r.blockedWeeks).toFixed(1)}), ` +
+    `${mean(rows, (r) => r.facultyBlockedWeeks).toFixed(1)} faculty-blocked weeks/yr ` +
+    `(last decade ${mean(decade, (r) => r.facultyBlockedWeeks).toFixed(1)})`,
   );
   // Grant income is compared against the run's total operating cost rather
   // than reported bare: "$40M of grants" means nothing on its own, "1.4% of
