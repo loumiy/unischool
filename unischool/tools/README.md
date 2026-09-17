@@ -69,7 +69,10 @@ build; anything the plan does not name (an event's chapter house) goes in an
 overflow block. `--ascii` prints the plan as a tile map, which is how it was
 drawn. That is what `docs/images/campus.png` is — run through `pngquant`
 afterwards, which takes a flat-colour render like this one down to a third of
-its size with nothing to see for it.
+its size with nothing to see for it. The same campus in the other three sets
+is beside it — `campus-gothic.png`, `campus-brutalist.png` and
+`campus-mission.png` — which is the honest comparison the vernaculars want:
+one layout, one save, only the architecture changing.
 
 **It does not download a browser.** The dependency is `playwright-core`, the
 browserless package, so installing this repo does not pull several hundred MB
