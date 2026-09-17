@@ -242,6 +242,17 @@ other is money — and sized well under it, so a brilliant director cannot carry
 teams with nobody coaching them. And they are the **voice**: the shortage
 interrupts and the championship reports are written as the AD speaking.
 
+**The director asks for what the department lacks.** An authored decision
+event (`eventData.ts`'s `ad-shortage`) in the shared weighted lottery — not on
+a cadence of its own, so it changes the *mix* of what stops the clock rather
+than how often it stops. The director names a program running without a coach
+and offers to bring somebody in: paying seats a coach rolled best-of-three,
+better than the open market usually turns up, and declining leaves the chair to
+the market at the cost of team quality meanwhile. It is eligible only when
+there is a director to raise it and a chair worth raising — and **never for a
+team still awaiting its venue**, because a program that cannot take the field
+gains nothing from a better coach, and its actual gap is the building.
+
 **Declining never closes the position.** Unlike the charter or the Hellenic
 Council, which close a question for the run on purpose, a school that cannot
 afford a director in year 12 must not lose the office — so the offer returns

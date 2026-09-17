@@ -780,6 +780,62 @@ export function athleticProgramStrength(s: GameState): number {
   return Math.round(avgQuality * (0.7 + 0.3 * breadth));
 }
 
+// EVERY EMPTY CHAIR ON A TEAM THAT CAN ACTUALLY COMPETE, as {team, role}
+// pairs — what the athletic director's own shortage event reads (see
+// eventData.ts's 'ad-shortage').
+//
+// 'awaitingVenue' TEAMS ARE EXCLUDED, and that is a judgement about the
+// director rather than a filter of convenience. A program with no venue
+// cannot play, so its coaching quality changes nothing until the building
+// finishes: a director who came to you asking to fill a chair on a team that
+// cannot take the field would be a director worth replacing. The gap on such
+// a team is the VENUE, and that is a build-rail decision the player is
+// already looking at.
+//
+// It also removes something perverse the first version produced. A school
+// that never builds athletics venues accumulates teams stuck awaiting them —
+// nine of them, in one of sim/balanceSim.ts's strategies — and the event was
+// happily selling it coaches for programs that would never play a match.
+export interface VacantChair {
+  team: VarsityTeam;
+  role: 'head' | 'assistant' | 'trainer';
+}
+
+export function vacantChairs(s: GameState): VacantChair[] {
+  const out: VacantChair[] = [];
+  for (const team of s.orgs.teams) {
+    if (team.status !== 'active') continue;
+    if (!team.headCoach) out.push({ team, role: 'head' });
+    if (!team.assistantCoach) out.push({ team, role: 'assistant' });
+    if (!team.trainer) out.push({ team, role: 'trainer' });
+  }
+  return out;
+}
+
+// The field a chair hires from: the team's own sport for the two coaching
+// roles, strength & conditioning for a trainer. One place, so the shortage
+// event and the hiring screen can never disagree about who is eligible.
+export function fieldForChair(chair: VacantChair): string {
+  return chair.role === 'trainer' ? TRAINER_FIELD : chair.team.sport;
+}
+
+export const CHAIR_LABEL: Record<VacantChair['role'], string> = {
+  head: 'head coach',
+  assistant: 'assistant coach',
+  trainer: 'trainer',
+};
+
+// Put a coach straight into a chair. Used by the shortage event, which
+// appoints outright rather than adding to the market — the money is already
+// spent at that point, so "now go find them on the list" would be an errand
+// rather than a choice (the same reasoning eventData.ts's 'visiting-scholar'
+// gives for appointing its scholar directly).
+export function seatCoach(team: VarsityTeam, role: VacantChair['role'], coach: Coach): void {
+  if (role === 'head') team.headCoach = coach;
+  else if (role === 'assistant') team.assistantCoach = coach;
+  else team.trainer = coach;
+}
+
 // The pipeline's whole cadence, per item's explicit ask: a sport club
 // petitions for varsity status on its own five-year mark, not whenever a
 // shared random lottery happens to land on it (see eventData.ts's

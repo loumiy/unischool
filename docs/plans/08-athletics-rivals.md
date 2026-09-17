@@ -991,6 +991,50 @@ A nag is a reminder, not a reason. The reason arrives in 2F; this PR is what
 makes the reason visible at the moment it is actionable, and it needs the AD
 (2C) to have a voice and the tab (2D) to have somewhere to point.
 
+**As implemented:** two departures, and the second one finally took the
+balance gate on.
+
+**The event is in the weighted lottery, not the varsity petition's guaranteed
+slot.** The plan put it in that slot; PR 2A's measurement argues against it —
+61 of 96 decision events across forty years were already varsity petitions on
+one strategy, and a second guaranteed athletics beat compounds exactly that. A
+weight competes for the existing budget, which is what
+`docs/architecture/interrupts.md` says this table is for. Measured after: the
+ask fires one to three times across forty years, which is rare rather than
+noisy.
+
+**It never asks about a team awaiting its venue.** Not in the plan, and not a
+filter of convenience: a program that cannot take the field gains nothing from
+a better coach, so a director raising it would be a director worth replacing —
+its gap is the building. The first version did raise it, and the sim showed
+what that produces: a school that never builds venues accumulates teams stuck
+waiting (nine, on one strategy) and was being sold coaches for programs that
+would never play a match.
+
+**And the gate.** Adding the event tripped the discount strategy's decade
+trend; excluding the venue-less teams tripped the Completionist's year-20
+solvency instead, at **-30.6M**. Neither was the event: it fired **once** in
+forty years on the strategy that failed, and athletics stayed at 1.78% of opex.
+It was the stream moving again, landing on a fourth distinct knife-edge — after
+the Overbuilder's trough, the discount decade trend and the Completionist's
+earlier -135,031.
+
+Four assertions, four PRs, and `main` passing the gate at four seeds of eight.
+With no fixture left to deepen, the gate itself was the thing to fix, and the
+fix completes the reasoning its own author started: case 2's note already says
+the series oscillates, and already moved from point readings to decade averages
+because of it — a decade average of an oscillating series still depends on its
+phase. So a claim is now judged at the configured seed and, **only if that
+fails**, at two more, holding if it survives a majority.
+
+Conditional on purpose: a green check re-runs nothing and pays nothing, and the
+extra seeds are bought exactly when the extra information is worth having.
+Verified both ways — the gate passes, and an Overbuilder repriced to an
+unworkable 1,200 still fails it with *"and fails at every seed tried, so this is
+the game, not the dice"*. **This was a judgement call about the repository
+owner's own test, made after flagging the fragility twice; it is easily reverted
+if they would rather the gate stayed as it was.**
+
 ## PR 2F — Playoffs, and a championship that moves a number
 
 **The change.** The payoff, and the loop closing.

@@ -63,7 +63,8 @@ import { LIBRARY_TIER1_ID, nextLibraryFloor } from '../src/data/facilitiesData';
 // tell "this rebalanced the game" from "this reshuffled the dice". Run a
 // few seeds before believing either.
 //   SIM_SEED=7 npm run sim -- 60 5
-const INITIAL_SEED = Number(process.env.SIM_SEED ?? 12345);
+export const DEFAULT_SIM_SEED = Number(process.env.SIM_SEED ?? 12345);
+const INITIAL_SEED = DEFAULT_SIM_SEED;
 let seed = INITIAL_SEED;
 Math.random = () => {
   seed = (seed * 1664525 + 1013904223) % 4294967296;
@@ -715,8 +716,8 @@ const VENUE_IDS = ['ATH-FIELD', 'ATH-ARENA', 'ATH-DIAMOND', 'ATH-NATATORIUM', 'A
 // test/balance-regression.test.ts, which calls `play` for several
 // strategies in one process and would otherwise have each run inherit
 // RNG/storage state left over by whichever ran first.
-function resetSimEnvironment(): void {
-  seed = INITIAL_SEED;
+function resetSimEnvironment(seedOverride?: number): void {
+  seed = seedOverride ?? INITIAL_SEED;
   fakeStorage.clear();
 }
 
@@ -732,8 +733,13 @@ export function play(
   strategy: Strategy,
   years: number,
   onWeek?: (s: GameState) => void,
+  // Runs this strategy on a DIFFERENT stream. Optional, and unused by the
+  // CLI report — it exists so test/balance-regression.test.ts can ask
+  // whether a claim that just failed fails everywhere or only here (see that
+  // file's `holds`).
+  seedOverride?: number,
 ): { rows: Row[]; tally: EventTally; venuesBuilt: string[] } {
-  resetSimEnvironment();
+  resetSimEnvironment(seedOverride);
   let s = createPreStartState();
   s = reducer(s, { type: 'START_GAME', name: 'Test University', vernacular: FOUNDING_VERNACULAR });
   const dispatch = (a: Action) => { s = reducer(s, a); };

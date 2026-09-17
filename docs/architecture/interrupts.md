@@ -44,7 +44,14 @@ Everything that needs to stop time rides on this one mechanism:
   [student-life.md](../design/student-life.md)). These are
   entries in the decision-event table above rather than a stream of their
   own, so they change the MIX of what stops the clock, never how often it
-  stops. Clubs and new chapters never stop it at all: they queue as
+  stops.
+- **The athletic director's shortage ask** — the director naming a program
+  that has been running without a coach, and offering to go and get somebody.
+  An entry in the same table, for the same reason: athletics already has a
+  beat with a guaranteed cadence (the varsity petition), and measured over
+  forty years that one can take **61 of 96** of a run's decision events on a
+  school with many sport clubs. A second guaranteed athletics beat would
+  compound that; a weight competes for the budget instead. Clubs and new chapters never stop it at all: they queue as
   petitions and are answered in a digest folded into the summer admissions
   interrupt.
 - **A student demand** — the one stop-the-clock beat student life gets of its
