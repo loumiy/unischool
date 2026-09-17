@@ -1,0 +1,264 @@
+# Plan 09 — The playtest harness
+
+*Planning document only — no gameplay code is changed by this file. Its job is
+to take the first item of the roadmap in
+[`docs/reviews/2026-09-design-review.md`](../reviews/2026-09-design-review.md)
+— the instrumentation and shortcuts every later plan will be measured with —
+and turn it into an ordered sequence of PRs, each small enough to land on its
+own and each landing in the order that makes the next one cheaper.*
+
+**Status: Proposed.** Nothing has landed.
+
+---
+
+## 0. Why this comes before the design changes
+
+Plans 10 through 13 change the economy, the prestige model, the curriculum's
+shape and the arc of a run. Every one of them is a claim about a trajectory,
+and today a trajectory can be checked three ways: by reading `npm run sim`'s
+table by eye, by naming a school "test" and fast-forwarding through a run from
+week one, or by writing a one-off script the way the September review did. None
+of those tells the next PR whether it made the game better.
+
+Three things are missing, and they are cheap next to what they enable:
+
+1. **A way to stand the game up at any point in a run**, in the browser, in
+   seconds — year 8 with a balanced school, year 30 with a rich one, the week a
+   championship modal is pending — without playing there. The review dumped
+   these saves by hand from a script; the game should be able to make them.
+2. **A way to see and change the simulation's state while looking at it.** The
+   "test" name gates a sandbox speed and a cash grant. A tuning pass needs to
+   set prestige, set satisfaction, force an event, jump five years, and above
+   all *see the prestige inputs* — which no screen shows today, to a player or
+   to the developer.
+3. **A scorecard the sim can be held to.** `test/balance-regression.test.ts`
+   pins no numbers; every assertion is a sign or an inequality. The review
+   found the Balanced builder — the intended line of play — ending year 20
+   overdrawn on the default seed, and enrollment of 70,000 on 9,000 beds, and
+   nothing in the suite objected to either. Plan 10 is a rebalance; it needs
+   reference bands to rebalance *toward*.
+
+The prestige breakdown (PR C) is the one piece of this plan that is a player
+feature rather than a developer one. It is here because the developer needs it
+first and because the review's recommendation C5 says the player needs it
+anyway; building it once, read off the same function the tick uses, serves
+both.
+
+### The map
+
+| PR | Delivers | Depends on |
+|---|---|---|
+| 09A | Scenarios: `npm run scenario` builds a save at any year under any strategy, optionally with a named modal pending; a scenario index of the dozen states a playtest keeps returning to | — |
+| 09B | The debug panel: gated by a flag rather than the school's name; set cash / prestige / satisfaction, jump years, force an event or an interrupt, load a scenario file | A (for the load) |
+| 09C | The prestige breakdown, as a pure reading and as a panel on the History tab | — |
+| 09D | The sim scorecard: reference bands per strategy per year, an in-band / out-of-band report, and run-to-run comparison | — |
+| 09E | The "earnest completionist" strategy, and the review's per-year action / idle / modal counts as sim columns | D |
+| 09F | `docs/architecture/playtesting.md`, and the README's "Development" section pointing at it | A–E |
+
+A, C and D are independent and can land in any order. B needs A's file format
+for its load button; E needs D's columns to have somewhere to go.
+
+---
+
+## Open questions, settled before the first PR
+
+**How is playtest mode gated?** Today: the school is named "test"
+(`StatusHeader.tsx`'s `isTestUniversity`). That works, and it has a real
+drawback — a scenario save carries a name, so every scenario has to be renamed
+to "test" to be usable, which the review's scripts did by hand. The gate
+becomes **a flag, checked in one place**: `?debug=1` on the URL, or the
+`unischool.debug` key in `localStorage`, read once at boot into a module-level
+`playtestEnabled()` that `StatusHeader.tsx`, the new panel and the sandbox
+speed all consult. Naming a school "test" keeps working as a third way to set
+the same flag, so nothing a developer does today stops working.
+
+**Do playtest actions go through the reducer?** Yes, the way the cash grant
+already does (`reducer.ts` line 855). The reducer stays the one interpreter of
+every action; the panel is UI that dispatches. What changes is that they are
+grouped into one `DEBUG_*` block with one comment, and none is reachable from
+any non-playtest surface. `sim/balanceSim.ts` never dispatches one.
+
+**Is the scorecard a test?** Not a failing one, yet. Reference bands are a
+statement of intent about a game whose economy Plan 10 is about to change, so
+a hard assertion would be red from the day it lands until Plan 10 finishes.
+PR D prints the scorecard from `npm run sim` and adds a test that **reports**
+out-of-band figures without failing. Plan 10's last PR turns it into a real
+gate, once the bands describe the game that exists.
+
+**Where do scenarios live?** `tools/scenarios/` as generated JSON is the wrong
+answer — a 300 KiB save per scenario, regenerated whenever the save shape
+changes. Scenarios are **recipes**, not files: a strategy, a year, an optional
+modal to arrive at, and an optional list of overrides, in
+`tools/scenarios.ts`. `npm run scenario -- <name>` builds the save on demand
+through the reducer, exactly as `tools/makeSave.ts` does today.
+
+---
+
+## PR 09A — Scenarios
+
+**What.** Generalise `tools/makeSave.ts` into `tools/scenario.ts`:
+
+```
+npm run scenario -- <name> [out.json]
+npm run scenario -- --strategy "Balanced builder" --year 12 [--modal milestone] [--vernacular gothic] [--seed 7]
+npm run scenario -- --list
+```
+
+- `play()` in `sim/balanceSim.ts` grows one optional argument, a `stopWhen(s)`
+  predicate; when it returns true the run halts *with the pending interrupt
+  intact* and hands the state back. That is how a scenario arrives at "the
+  week a championship modal is pending" rather than at a year boundary.
+  Today's callers pass nothing and are unaffected.
+- The scenario index in `tools/scenarios.ts` names the states a playtest
+  keeps returning to. The first dozen: `founding`, `year-3-first-hall`,
+  `year-8-balanced`, `year-8-discount`, `year-15-completionist`,
+  `year-25-rich`, `year-40-done`, `first-milestone`, `rankings-entry`,
+  `annual-report`, `championship`, `athletic-director`, `research-report`,
+  `demand`. Each is a strategy, a year, and an optional `stopWhen`.
+- The written save is a real save (`SAVE_VERSION`, `persistence.ts`'s shape)
+  with `self.name` left as the strategy's, not renamed — PR B's flag is what
+  makes it playable with the shortcuts on.
+
+**Why first.** Every later PR in this plan and every PR in Plan 10 is checked
+by standing the game up somewhere specific and looking. This is the thing
+that stands it up.
+
+**Verify.** `npm run scenario -- --list` prints the index; `npm run scenario
+-- championship` writes a save whose `pendingInterrupt.type` is
+`championship`; `npm run shot` still works on its output.
+
+## PR 09B — The debug panel
+
+**What.** A floating panel, below the main-menu hamburger, present only when
+`playtestEnabled()`:
+
+- **Read:** the clock, cash, net, enrolled/beds, prestige today and the
+  target, the five satisfaction attributes, the count of pending petitions and
+  queued milestones, and which interrupt (if any) is pending. One column of
+  monospace pairs; it is a developer's panel and does not need the parchment.
+- **Set:** cash, prestige, satisfaction, listed tuition — each a number field
+  and an Apply. `DEBUG_SET_CASH`, `DEBUG_SET_PRESTIGE`,
+  `DEBUG_SET_SATISFACTION`, `DEBUG_SET_TUITION` — the existing grant action
+  is folded into the first.
+- **Jump:** advance N weeks or N years. This is TICKs dispatched in a loop
+  from the panel, with interrupts **auto-resolved with the sim's default
+  answers** (`balanceSim.ts`'s interrupt branch, extracted into a shared
+  `resolveWithDefaults(s)` so the panel and the harness answer a modal the
+  same way). A checkbox turns auto-resolve off, so a jump stops at the first
+  modal instead.
+- **Force:** a decision event by id (a `<select>` over `DECISION_EVENTS`,
+  bypassing eligibility and cooldown — the payload is rolled as it would be
+  at fire time), a student demand for a chosen attribute, the next milestone
+  in the queue, the annual report.
+- **Load:** a file input that reads a save written by 09A into
+  `localStorage` and reloads. The one thing that stops a playtest needing
+  devtools.
+
+The "+$1B" button and the sandbox speed move behind the same flag and out of
+`StatusHeader.tsx`'s conditional; the name-based gate becomes one of three
+ways to set the flag (see the open question above).
+
+**Verify.** With `?debug=1` the panel appears on a school named anything;
+without it, nothing in the DOM mentions debug, the speed row has three
+buttons, and `npm run build` contains no `DEBUG_` string in the served
+bundle's visible UI. Force each of the fifteen events in turn and resolve
+each; jump 20 years on `founding` with auto-resolve and compare the toolbar to
+the sim's Balanced row for year 20.
+
+## PR 09C — The prestige breakdown
+
+**What.** Two halves, and the first is the one that matters.
+
+*The reading.* `prestigeSystem.ts` gains `prestigeBreakdown(s)`: an object
+with one entry per input — its raw score (0..1), its weight, its contribution,
+and for the two multiplied inputs the multiplier and what it is worth — plus
+the baseline, the target, today's stock and the drift rate. **`computePrestigeTarget`
+becomes a sum over that object**, so the panel cannot disagree with the tick;
+that is the same discipline `attributeDetail` and the satisfaction dials
+follow. `test/invariants.test.ts` gets one line: the sum of the breakdown's
+contributions equals the target for the sim's year-20 states.
+
+*The panel.* A **Standing** section at the top of the History tab: six rows,
+one per input, each a bar of contribution against the weight it could reach,
+the two multipliers named on the rows they touch ("× 0.62 library adequacy —
+3,700 seats for 40,000 students"), the target against today, and the
+research and campus-life standings beside it with *their* inputs, read the
+same way from `computeResearchTarget` and `computeSocialTarget`.
+
+Plan 10 will change the inputs and how the stock moves. The panel is written
+so that it renders whatever the breakdown contains — rows are data — and the
+review's C5 is satisfied by the reading, not by the row set.
+
+**Verify.** The History tab on `year-15-completionist` shows a breadth row
+worth roughly three-quarters of its 90 and a campus-life row worth under 2 of
+its 12, which is what the review measured by hand.
+
+## PR 09D — The sim scorecard
+
+**What.**
+
+- `sim/reference.ts`: for each strategy the harness runs, bands for cash,
+  enrolled, prestige, net-margin-as-share-of-opex and weeks-in-the-red at years
+  5, 10, 20, 30 and 40. The first version of every band is **the current run
+  ±25%**, generated by a `--write-reference` flag and committed — a statement
+  of where the game *is*, so that Plan 10 can see what it moved. The bands
+  become a statement of where the game *should be* when Plan 10 edits them,
+  and that edit is the plan's design decision recorded as data.
+- `npm run sim` prints, after each strategy's table, one line per out-of-band
+  figure: `year 20 enrolled 42,000 (band 8,000–14,000) HIGH`.
+- `npm run sim -- --compare last.json` diffs against a saved run's rows and
+  prints what moved by more than 5%, so a PR summary can quote "what the sim
+  said" as a diff rather than as a table pasted twice.
+- `test/balance-scorecard.test.ts`: runs the default seed, prints the
+  out-of-band list, **passes regardless**. The comment says which plan turns
+  it into a gate.
+
+**Verify.** `--write-reference` then `npm run sim` reports nothing out of
+band; edit one band and it reports that one.
+
+## PR 09E — The earnest completionist, and what a year contains
+
+**What.**
+
+- A seventh strategy in `STRATEGIES`: the review's policy. Price at 90% of
+  tolerance; admit `clamp(1.35 − prestige/100, 0.08, 0.65)`; develop
+  cheapest-tier-first with a four-week-opex buffer; every facility rung when
+  its attribute is under 80; beds at 35% of enrolled; deepest affordable
+  research in every idle lab without gutting a department; every petition
+  granted, every chair filled, budget high once flush; campaigns with
+  surplus. It is the first strategy that plays the admit slider and the
+  coaching market, and it is the one a human completionist most resembles.
+- Three columns on `Row` and the printed table: **actions** (discretionary
+  dispatches that year), **idle weeks** (weeks with nothing startable at
+  all), **money-blocked weeks** (something startable, nothing affordable), and
+  a modal count by type in the tally. These are the review's "what did the
+  player have to do" measurements, and Plans 12 and 13 are checked against
+  them: the review's run averaged 25 actions a year and fell to 4–14 after
+  year 22.
+- `sim/milestones.ts` grows the review's firsts list (first hall, first lab,
+  rankings entry, first varsity team, first title, all courses, everything
+  built) so a pacing change reads as "rank #1 moved from year 18 to year 31".
+
+**Verify.** The new strategy reproduces the review's Appendix A within seed
+noise: rank #1 before year 25, all 421 courses before year 25, 0 weeks in the
+red. Those numbers are the *problem*; PR D's bands record them so Plan 10 can
+move them.
+
+## PR 09F — Documentation
+
+`docs/architecture/playtesting.md`: the flag, the panel, the scenarios, the
+scorecard, and the rule that playtest actions live in one reducer block and
+are dispatched from one component. `README.md`'s "Development" section gains
+a line pointing at it, and `docs/architecture/README.md`'s table a row.
+
+---
+
+## What this plan does not do
+
+- It does not change a single constant the economy reads. Plan 10 does.
+- It does not decide what the reference bands *should* be. It records what
+  they are.
+- It does not add a "skip to next event" or a 4× speed for players. Those are
+  Plan 12; the sandbox speed stays a playtest control.
+- It does not touch the save-migration chain. A scenario is built through the
+  reducer at the current `SAVE_VERSION`, so it never needs migrating.

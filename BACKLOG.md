@@ -13,6 +13,14 @@ going to happen but has not, it belongs here.
 
 ## Sequenced enough to start
 
+*The [September 2026 design review](docs/reviews/2026-09-design-review.md) set the
+order for what comes next. Plans 09 (the playtest harness), 10 (growth has
+a cost), 11 (academic halls), 12 (the year) and 13 (the endpoint) are written
+and `Proposed`, in that order of dependency. What comes after them — the
+faculty lifecycle, research that reaches the world, student-life asks,
+athletics' reach, pedestrians — is in the review's roadmap and not yet
+planned.*
+
 *Each of these is a plan's worth of work on its own, and none of them blocks any
 other. Lifted from Plan 04, which is where they were first named. Turning one
 into an ordered sequence of PRs is what writing the next plan does, and four
