@@ -14,10 +14,10 @@
 // are not a design target and do not claim to be — several of them describe
 // figures the review called broken.
 //
-// WHAT THEY BECOME: a statement of where the game SHOULD be. Plan 10 is a
+// WHAT THEY BECOME: a statement of where the game SHOULD be. Plan 15 is a
 // rebalance; when it edits a band here, that edit is the design decision,
 // recorded as data, and the run that then falls inside it is the evidence.
-// Plan 10's last PR is what turns the scorecard into a failing gate — see
+// Plan 15's PR G is what turns the scorecard into a failing gate — see
 // test/balance-scorecard.test.ts, which reports and passes until then.
 //
 // Not part of the game: nothing in src/ imports this.
@@ -27,7 +27,9 @@ import type { Row } from './balanceSim';
 
 // The years a trajectory is read at. Five samples over forty years: the
 // early pinch, the build-out, the review's own horizon, and the two late
-// decades whose emptiness is what Plans 12 and 13 are about.
+// decades whose emptiness is what Plans 16 and 17 are about. Plan 15's PR G
+// re-cuts them to [5, 10, 20, 35, 50]: build-out ends around 35 and the
+// semicentennial is the endpoint.
 export const REFERENCE_YEARS = [5, 10, 20, 30, 40] as const;
 
 // How far either side of the recorded figure still counts as "the same
@@ -44,7 +46,7 @@ export const REFERENCE_YEARS = [5, 10, 20, 30, 40] as const;
 // band of ±13 points at year 5, wide enough to pass trajectories a tuning
 // pass would call different. That is the honest state of a first version
 // generated rather than chosen — per-metric tolerances are a decision about
-// what "the same run" means for each figure, and Plan 10, the plan that has
+// what "the same run" means for each figure, and Plan 15, the plan that has
 // to answer that, is where the decision belongs.
 export const TOLERANCE = 0.25;
 

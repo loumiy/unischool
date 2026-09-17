@@ -10,7 +10,10 @@ list and never was: by the time a plan reads `Landed`, the work is in `main`.
 The one exception is a plan still reading `Proposed` — the sequence has been
 written but no PR has landed — which lives here from the day it is written,
 because the sequencing IS the record of the thinking and it is no use filed
-anywhere else. Work that has not been sequenced at all lives in `BACKLOG.md` at
+anywhere else. A plan that is `Superseded` stays too, unedited below its status
+line, for the same reason: Plans 10–13 are the thinking that Plans 14–17 came
+out of, and what each one got wrong is recorded in the status line of the plan
+that replaced it. Work that has not been sequenced at all lives in `BACKLOG.md` at
 the repository root, and the game as it actually is lives in `docs/design/` and
 `docs/architecture/`. Three tenses, three homes.
 
@@ -27,10 +30,14 @@ the repository root, and the game as it actually is lives in `docs/design/` and
 | 07 | [The startup screen, and the campus vernacular](07-startup-and-vernacular.md) | Retiring the private/public fork, giving the campus a chosen architectural vernacular, and making the founding facade Founders Hall. PRs A–K. | Landed |
 | 08 | [Athletics, and the field it plays in](08-athletics-rivals.md) | Athletics V3 and Rival schools as one sequence: a hundred-school field, standing split into three ranked axes, per-sport strength, four more sports, an athletic director, and a playoff whose titles are the first thing athletics moves. Two phases, PRs 1A–1C and 2A–2G. | Landed |
 | 09 | [The playtest harness](09-playtest-harness.md) | Scenarios, a debug panel behind a flag, the prestige breakdown, and a sim scorecard with reference bands — the instrumentation the design changes are measured with. PRs A–F. | Landed |
-| 10 | [Growth has a cost](10-growth-has-a-cost.md) | Prestige as an asymmetric stock with a summer report card, instruction cost per section, an interim intake ceiling, attrition — the answer to the September review's two critical findings. Design outline; PRs A–G sketched. | Proposed |
-| 11 | [Academic halls](11-academic-halls.md) | Repeatable halls with rooms, programs founded in rooms and developed continuously from a room's roster, schools that emerge from a dedicated hall, seats as the ceiling, and the map's first two readers. PRs A–H. | Proposed |
-| 12 | [The year](12-the-year.md) | The summer as four beats (review, standing, admissions, students), year-over-year on the reveal, 4× and advance-to-next, three modal widths, a scripted first year, toasts. PRs A–H. | Proposed |
-| 13 | [The endpoint](13-the-endpoint.md) | A fifty-year run: ambitions, a six-axis legacy, the semicentennial report, an elite band that closes on the leader, and a balance target where completionism is one good run among several. PRs A–G. | Proposed |
+| 10 | [Growth has a cost](10-growth-has-a-cost.md) | Prestige as an asymmetric stock, instruction cost per section, an interim intake ceiling, attrition. | Superseded by Plan 15 |
+| 11 | [Academic halls](11-academic-halls.md) | Halls with one room per program, developed continuously from the room's roster. | Superseded by Plan 14 |
+| 12 | [The year](12-the-year.md) | The summer as four beats, year-over-year on the reveal, modal widths, a scripted first year, toasts. | Superseded by Plan 16 |
+| 13 | [The endpoint](13-the-endpoint.md) | A fifty-year run with ambitions, a legacy and an elite band that closes. | Superseded by Plan 17 |
+| 14 | [The curriculum on the map](14-curriculum-on-the-map.md) | Repeatable halls with six program slots, one hall to a school; programs offered three at a time instead of forty-two at once; every course keeps its instructor choice and `Develop N` retires; the Curriculum tab becomes forty-two colour-coded rows with drag-and-drop faculty. PRs A–I. | Proposed |
+| 15 | [Growth has a cost](15-growth-has-a-cost.md) | Prestige as an asymmetric stock with a summer report card and a concentration term, instruction per section, seats from housed courses as the ceiling, attrition, research that produces something — and one re-fit against the scorecard. PRs A–H. | Proposed |
+| 16 | [The year](16-the-year.md) | The summer as four beats (review, standing, admissions, students), year-over-year on the reveal, a fourth gear and no skip, three modal widths, a scripted first year, toasts. PRs A–H. | Proposed |
+| 17 | [The endpoint](17-the-endpoint.md) | A fifty-year run in three eras — found, build, defend — with ambitions, a six-axis legacy, the semicentennial report, an elite band that closes on the leader, and a balance target where completionism is one good run among four. PRs A–G. | Proposed |
 
 ## Naming
 

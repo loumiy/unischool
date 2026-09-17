@@ -17,12 +17,25 @@ going to happen but has not, it belongs here.
 order for what comes next. Plan 09 (the playtest harness) has **landed** — the
 scenarios, the debug flag and panel, the prestige breakdown and the sim
 scorecard the rest of them are measured with, all in
-[`docs/architecture/playtesting.md`](docs/architecture/playtesting.md). Plans 10
-(growth has a cost), 11 (academic halls), 12 (the year) and 13 (the endpoint)
-are written and `Proposed`, in that order of dependency. What comes after them — the
-faculty lifecycle, research that reaches the world, student-life asks,
-athletics' reach, pedestrians — is in the review's roadmap and not yet
-planned.*
+[`docs/architecture/playtesting.md`](docs/architecture/playtesting.md).
+
+The four plans it was built to measure have since been rewritten around a
+playtest finding the review did not reach: that developing every course is
+tedious *and* that the `Develop N` button relieving the tedium is worse than the
+tedium. Plans 10–13 are `Superseded`; the sequence is now **14 (the curriculum
+on the map), 15 (growth has a cost), 16 (the year) and 17 (the endpoint)**, in
+that order of dependency — with most of Plan 16 landable alongside 14, since it
+depends on neither.*
+
+*The order is deliberate, and it is the one thing to preserve if the sequence
+gets re-cut: **halls before the economy**. Plan 14 moves the trajectory more than
+anything else in the sequence, so fitting the constants first would mean fitting
+them twice. Plan 15's PR G is the single re-fit, and it is against the game as it
+will actually be played. The cost is that the game is badly balanced between the
+two plans, knowingly.*
+
+*What comes after them is below, and the **faculty lifecycle is the next plan to
+write**.*
 
 *Each of these is a plan's worth of work on its own, and none of them blocks any
 other. Lifted from Plan 04, which is where they were first named. Turning one
@@ -84,7 +97,13 @@ work with a known shape; none has been turned into a sequence of PRs.*
   player did not choose, and money spent to prevent it. The downstream chain (a
   department left understaffed, its courses without an instructor) already
   exists, reached through the player's own dismissals and research commitments.
-  Aging and retirement remain optional.
+  Aging and retirement remain optional. **This is the next plan to write.**
+  Everything it needs is either built or sequenced: Plan 14 makes a professor a
+  named person in a room in a building, so losing one is a visible hole rather
+  than a row in a table; Plan 14's paid faculty search is the shape a retention
+  negotiation would reuse; Plan 15 makes salaries scale with standing, so a poach
+  has a price; Plan 17's closing elite band gives a poacher a motive. It was
+  deferred out of Plans 14–17 by decision, not by accident.
 - **A richer demand-curve finance model**, where prestige shifts the frontier
   between tuition and enrollment volume, with prestige/scale archetypes. The
   finances are structured so this can replace the simple version without
@@ -114,6 +133,56 @@ work with a known shape; none has been turned into a sequence of PRs.*
   economy reads is still untouched by athletics.
 - **The tutorial**: a scripted interrupt sequence walking the Year-0 opening —
   develop the gen-ed core, hire faculty — and handing off to Summer Year 1.
+
+## From the September review, not taken into Plans 14–17
+
+*Each of these was named in the review's roadmap and each was consciously left
+out of the current sequence. They are listed here so the next plan does not have
+to re-derive them from a 658-line document.*
+
+- **Curriculum texture (the review's H2, content half).** Plan 14 removes the
+  wall; it does not touch the sameness behind it. All 421 courses still differ
+  only by tier, field and one of eight templated sentences, and there are still
+  no authored per-major effects — a cohort pull, a grant rate, a two-field
+  prerequisite. Content work, landable in any order, and it is what would make
+  the catalogue worth *reading* rather than merely worth building.
+- **Athletics' reach into the economy, and student life with teeth.** The review
+  found athletics the best-built system in the game and the least connected: a
+  venue that sells no tickets, a title that moves a standing nothing reads, a
+  social bonus capped low enough that clubs stop counting by mid-game. Plan 15
+  cuts campus life's prestige weight from 12 to 8 **with a named condition** — it
+  returns to 12 when these systems reach something — and Plan 17 leaves campus
+  life out of the legacy's six axes for the same reason. That condition is this
+  item, and it is the largest single thing the sequence walks past.
+- **The event table (the review's H4).** Five of fifteen events have a dominant
+  choice; two more are decision-free at scale. Plan 15 re-scales the *capital*
+  events to the building's own cost because it is moving the money scale under
+  them, and does nothing else. Fixing the dominant choices, letting events touch
+  prestige inputs through durable state (a scandal that costs a program its
+  distinguished status for a year), and adding ten that read state the way
+  `ad-shortage` does are all still open.
+- **The campus map reading the simulation.** Pedestrians whose density is
+  enrollment, a full-dorm glyph, a construction crane rather than a bar, night
+  and season. Plan 14 gives the map its first mechanical *surface* — the hall
+  panel — and no new visual reading at all, so a failing campus and a thriving
+  one are still the same picture. Adjacency effects sit behind this deliberately:
+  the review's argument was that the map should say something before it starts
+  being read, and that argument still holds.
+- **The review's cut list, minus what Plans 14–17 take.** *Taken*: the
+  research-report-of-nothing (Plan 15's PR C demotes it to a toast), the seven
+  school-hall Buildables (Plan 14), and the save-migration chain (Plan 14 breaks
+  saves and deletes it). *Not taken*: the charter interrupt as a log line and a
+  rename button; the duplicate dorm rungs; the dead `prize` row of
+  `RESEARCH_OUTPUTS`; the three unauthored `BuildableEffects` fields
+  (`tuitionBonus`, `applicantPoolBonus`, `unlockIds`) — author them or delete
+  them; collapsing research and campus-life standing into inputs rather than
+  separately-ranked axes; and simplifying athletics (one staff slot, one
+  athletics event, the varsity petition as a tab action rather than a
+  deterministic interrupt).
+- **Faculty board usability (M5), and a person page.** Sort, filter, a "short"
+  filter, and a page that narrates a career. The person page is half of what
+  makes the faculty lifecycle worth having; it did not fit in Plan 14, whose
+  faculty work is the drag-and-drop chips and the paid search.
 
 ## Direction, not plan
 

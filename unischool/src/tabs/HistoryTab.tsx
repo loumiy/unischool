@@ -84,7 +84,7 @@ function HistoryChart({ label, years, values, format, note }: {
 //
 // Every figure here is read off prestigeSystem.ts's own breakdown, which is
 // the object its target function sums — so this panel cannot disagree with
-// the tick that produced the number, and Plan 10 changing the inputs
+// the tick that produced the number, and Plan 15 changing the inputs
 // changes that file alone. Nothing below names a row: the rows are data,
 // and this renders whatever the breakdown contains.
 //

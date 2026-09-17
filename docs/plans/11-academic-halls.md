@@ -7,10 +7,14 @@ it — repeatable academic halls with rooms, programs housed in rooms, schools
 that emerge from a filled hall, and a hall popup on the map as the place the
 curriculum is actually built — and turn it into an ordered sequence of PRs.*
 
-**Status: Proposed.** Depends on [Plan 10](10-growth-has-a-cost.md): the
-instruction-capacity ceiling it introduces is what this plan replaces with
-classrooms, and the section-cost model it introduces is what makes a room
-worth something.
+**Status: Superseded by [Plan 14](14-curriculum-on-the-map.md).** The halls
+survive; the room model does not. This plan housed one program per room and had
+a founded room advance its own course queue with auto-assigned faculty — which
+relieved the chore by deleting the instructor choice, the best micro-decision in
+the game. Plan 14 keeps that choice on all 421 courses and removes the *wall*
+instead: six program slots to a hall, one hall to a school, and programs offered
+three at a time rather than forty-two at once. It also reverses the dependency —
+halls land before the economy, not after, so the re-fit happens once.
 
 ---
 

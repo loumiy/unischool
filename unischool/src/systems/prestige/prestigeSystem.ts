@@ -409,7 +409,7 @@ function endowmentScore(s: GameState): number {
 // release, quietly, and the only reader who would notice is the one the
 // panel exists for.
 //
-// Rows are DATA. Plan 10 changes these inputs; the panel that renders them
+// Rows are DATA. Plan 15 changes these inputs; the panel that renders them
 // (see tabs/HistoryTab.tsx's Standing section) reads whatever the
 // breakdown contains and never names a row, so a weight that moves or an
 // input that is retired changes one file.
@@ -625,7 +625,8 @@ export function researchStandingBreakdown(s: GameState): StandingBreakdown {
   // schools, so the term has been pinned at its full 40 since the third or
   // fourth lab went up. Whether the denominator should be fields or the
   // score should be per-school is a design decision, and it belongs to
-  // whichever plan next touches the research model. The line below states
+  // Plan 15's PR C, which is the plan that next opens the research model and
+  // which names this line. The line below states
   // both numbers rather than printing "29 of 8", which would read as a bug
   // in the panel instead of the finding it is.
   const equipped = labEquippedFields(s).size;

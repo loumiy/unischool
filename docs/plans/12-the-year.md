@@ -8,9 +8,12 @@ year over year, one modal width serves every interrupt, and a real player has
 no way to skip a quiet stretch — and turn them into an ordered sequence of
 PRs around the shape of one in-game year.*
 
-**Status: Proposed.** Independent of Plans 10 and 11 in mechanism; PR B
-shows Plan 10's report card if it has landed and a plain year-in-review if it
-has not.
+**Status: Superseded by [Plan 16](16-the-year.md).** Carried over almost
+whole — the four-beat summer, the year in review, year-over-year on the reveal,
+three modal widths, the scripted first year, toasts. One thing is cut by
+decision: the advance-to-next-event button. Waiting to afford something is
+load-bearing in this genre, and the answer to empty waiting is to put something
+in the year rather than to skip past it.
 
 ---
 

@@ -5,14 +5,14 @@
 // like, at ±25%, generated from the run rather than chosen. Those bands
 // describe a game the September 2026 review found broken in two specific
 // ways (the intended line of play ending year 20 overdrawn; 70,000 students
-// on 9,000 beds), and Plan 10 is the rebalance that moves them. A hard
-// assertion here would therefore be RED from the day it lands until Plan 10
+// on 9,000 beds), and Plan 15 is the rebalance that moves them. A hard
+// assertion here would therefore be RED from the day it lands until Plan 15
 // finishes, which is a gate nobody reads and everybody learns to skip.
 //
 // So this suite REPORTS. It plays every strategy on the default seed, prints
 // every figure outside its band, and passes regardless.
 //
-// *** PLAN 10'S LAST PR IS WHAT TURNS THIS INTO A GATE. *** By then the
+// *** PLAN 15'S PR G IS WHAT TURNS THIS INTO A GATE. *** By then the
 // bands will have been edited to describe the game that plan intends, and an
 // out-of-band figure will mean a regression rather than a known problem.
 // Flip `REPORT_ONLY` to false there, and delete this paragraph.
