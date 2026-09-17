@@ -327,13 +327,16 @@ same reason it contributes no social bonus: it cannot compete yet.
 tagged, until it graduates — only VARSITY status moves out) and Greek
 chapters with founding year and current membership, the petitions waiting on
 the next digest, and an empty state that reads sensibly through the founding
-years before any student center exists. **Athletics has its own tab**: once a
-sport club goes varsity it moves there — active and awaiting-venue teams,
-each with its own hire/release controls for its three staff roles, plus the
-one budget lever and the standings readout — a plain relocation out of
-Student Life once
-athletics grew gendered lineages of its own, not a change to how any of it
-works. Student Life still has to make the satisfaction
+years before any student center exists. **Athletics has its own tab**: once a sport club goes varsity it moves there.
+The screen is four sections, in the order the questions arrive in — **the
+department** (the director, the name the teams play under, the athletic and
+campus-life standings, and the one budget lever), **the programs** as a grid of
+team cards, **by sport** (each fielded sport's own rank, with the schools
+immediately above and below named), and **the market** last, because you notice
+an empty chair on a team and then go looking for somebody to fill it.
+
+It used to open on the budget lever, which is a knob rather than a subject: it
+told a player what they could change before telling them what they had. Student Life still has to make the satisfaction
 effect **legible**, which is what stops the system feeling arbitrary, and it
 does so by *reading the model rather than inventing a display number*:
 `satisfactionSystem.ts`'s `studentLifeSatisfaction` runs the very computation

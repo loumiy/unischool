@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Coach, GameState, VarsityTeam } from '../state/types';
-import { WEEKS_PER_YEAR } from '../state/types';
+import { WEEKS_PER_YEAR, institutionName } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import {
   ATHLETICS_BUDGET_ORDER, COACH_CANDIDATE_LISTING_WEEKS, TRAINER_FIELD,
   sportById, teamQuality, venueForCategory,
 } from '../data/studentLifeData';
 import FacultyPortrait from '../components/FacultyPortrait';
-import { athleticRank } from '../systems/rivals/rivalsSystem';
+import { athleticRank, rankBy, sportRank, sportRankedList } from '../systems/rivals/rivalsSystem';
 
 function money(v: number): string {
   return `$${Math.round(v).toLocaleString()}`;
@@ -212,10 +212,148 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
   );
 }
 
+// ---------------------------------------------------------------------
+// THE DEPARTMENT — who runs it, what it is called, what it spends, and where
+// it stands.
+//
+// The tab used to open on the budget lever, which is a knob rather than a
+// subject: it told a player what they could change before telling them what
+// they had. This is the header the screen was missing — the director, the
+// name the teams play under, the two standings athletics actually moves, and
+// only then the one dial.
+// ---------------------------------------------------------------------
+function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
+  const active = s.orgs.teams.filter((t) => t.status === 'active');
+  const ad = s.orgs.athleticDirector;
+
+  return (
+    <section className="panel department">
+      <div className="panel-head">
+        <h2>{s.self.mascot ? `${institutionName(s.self)} ${s.self.mascot}` : 'Varsity Athletics'}</h2>
+        <HelpHint
+          text="A sport club (see Student Life) can petition to go varsity: a program budget and a shared competition venue for its sport's category. Coaching staff is hired separately, from the one market below — every team wants a head coach, an assistant and a trainer, and a vacant chair is a real gap rather than a hard block. The recruiting &amp; scholarship budget is the department's one dial: it scales every active team's social contribution and the whole department's running cost together, and adds a flat bonus to every team's quality. The athletic director adds a second, smaller lift to every team at once — the difference between the two is that one is money and the other is a person. Campus-life standing is one of the three the school is ranked on, and varsity athletics is the only thing on this screen that moves it."
+        />
+      </div>
+
+      <div className="department-grid">
+        {/* The director first: they are the answer to "who runs this", and
+            an empty chair here says the offer is still coming. */}
+        <div className="department-ad">
+          {ad ? (
+            <>
+              <FacultyPortrait f={coachPortrait(ad)} size={44} />
+              <span className="department-ad-who">
+                <span className="department-ad-name">{ad.name}</span>
+                <span className="department-ad-role">Athletic Director</span>
+              </span>
+              <span className="department-ad-numbers">
+                <span className="stat">quality {ad.quality}</span>
+                <span className="stat">{money(ad.salary)}/yr</span>
+              </span>
+            </>
+          ) : (
+            <p className="empty-note department-ad-empty">
+              No athletic director. The trustees will put candidates forward before long.
+            </p>
+          )}
+        </div>
+
+        {/* The two standings, side by side, because they answer different
+            questions: how good is the department, and how much does the
+            school's campus life amount to. Athletics is the only thing on
+            this screen that moves the second. */}
+        <dl className="department-standings">
+          <div>
+            <dt>Athletic standing</dt>
+            <dd>{active.length > 0 ? <><strong>#{athleticRank(s)}</strong> of {s.rivals.length + 1}</> : <span className="stat">no program yet</span>}</dd>
+          </div>
+          <div>
+            <dt>Campus life</dt>
+            <dd><strong>#{rankBy(s, 'socialStanding')}</strong> of {s.rivals.length + 1}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div className="athletics-budget">
+        <span className="stat">Recruiting &amp; Scholarship Budget: {s.orgs.athleticsBudget}</span>
+        <div className="athletics-budget-tiers">
+          {ATHLETICS_BUDGET_ORDER.map((tier) => (
+            <button
+              key={tier}
+              type="button"
+              className={tier === s.orgs.athleticsBudget ? 'active' : ''}
+              aria-pressed={tier === s.orgs.athleticsBudget}
+              onClick={() => act({ type: 'SET_ATHLETICS_BUDGET', tier })}
+            >
+              {tier}
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------
+// THE STANDINGS — one row per sport the school actually fields, showing where
+// it sits in THAT sport rather than in athletics generally.
+//
+// This is what PR 1C's per-sport strength was built for, and the first screen
+// in the game where the field is something other than one ordered list of a
+// hundred names. The department-wide rank above says whether the school runs a
+// good athletics program; this says whether it is any good at lacrosse, which
+// is the question a particular coach hire is an answer to.
+//
+// Each row shows the schools immediately above and below, by name and mascot,
+// because a rank with nothing around it is a number and a rank between two
+// named rivals is a position.
+// ---------------------------------------------------------------------
+function SportStandings({ s }: { s: GameState }) {
+  const fielded = s.orgs.teams.filter((t) => t.status === 'active');
+  if (fielded.length === 0) return null;
+
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <h2>By sport</h2>
+        <HelpHint
+          text="Every school in the country is stronger at some sports than others, and reliably so — a school that is good at hockey stays good at hockey. Your own strength in a sport is that team's quality, which is its coaching staff, the recruiting budget and the athletic director together, so hiring a coach moves your place on this table rather than some separate figure. Teams still waiting on a venue are not ranked: they cannot compete yet."
+        />
+      </div>
+      <ul className="sport-standings">
+        {fielded.map((team) => {
+          const list = sportRankedList(s, team.sport);
+          const place = sportRank(s, team.sport);
+          if (place === null) return null;
+          const above = list[place - 2];
+          const below = list[place];
+          return (
+            <li key={team.id} className="sport-standing">
+              <span className="sport-standing-sport">{sportById(team.sport)?.teamName ?? team.sport}</span>
+              <span className="sport-standing-place">
+                <strong>#{place}</strong>
+                <span className="sport-standing-of">of {list.length}</span>
+              </span>
+              <span className="sport-standing-neighbours">
+                {above
+                  ? <span className="sport-standing-above">↑ {above.name} {above.mascot}</span>
+                  : <span className="sport-standing-above best">nobody in the country is ahead</span>}
+                {below && <span className="sport-standing-below">↓ {below.name} {below.mascot}</span>}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 function TeamCard({ s, act, team }: { s: GameState; act: (a: Action) => void; team: VarsityTeam }) {
   const quality = teamQuality(team, s);
   const staffAnnual = (team.headCoach?.salary ?? 0) + (team.assistantCoach?.salary ?? 0) + (team.trainer?.salary ?? 0);
   const weeklyCost = team.upkeepPerWeek + staffAnnual / WEEKS_PER_YEAR;
+  const venue = venueForCategory(s, team.venueCategory);
+
   return (
     <li className="panel team-card">
       <div className="team-card-head">
@@ -224,7 +362,9 @@ function TeamCard({ s, act, team }: { s: GameState; act: (a: Action) => void; te
           <span className="org-tag">{team.status === 'active' ? 'varsity' : 'awaiting venue'}</span>
         </span>
         <span className="org-meta">
-          quality {quality} · {team.status === 'active' ? venueForCategory(s, team.venueCategory)?.name ?? 'venue' : `waiting on ${venueForCategory(s, team.venueCategory)?.name ?? 'venue'}`} · {money(weeklyCost)}/wk
+          quality {quality} · {team.status === 'active'
+            ? venue?.name ?? 'venue'
+            : `waiting on ${venue?.name ?? 'venue'}`} · {money(weeklyCost)}/wk
         </span>
       </div>
       {ROLE_ORDER.map((role) => <StaffRow key={role} act={act} team={team} role={role} />)}
@@ -236,49 +376,38 @@ export default function AthleticsTab({ s, act }: { s: GameState; act: (a: Action
   const teams = s.orgs.teams;
   const active = teams.filter((t) => t.status === 'active');
   const awaiting = teams.filter((t) => t.status === 'awaitingVenue');
-  const rank = active.length > 0 ? athleticRank(s) : null;
 
   return (
     <div className="tab-content">
+      {/* THE ORDER IS THE ORDER THE QUESTIONS ARRIVE IN. What is this
+          department and where does it stand; what does it field; how is it
+          doing in each sport; and who is available to fix what is missing.
+          The tab used to open on the budget lever — a knob before a
+          subject. */}
+      <Department s={s} act={act} />
+
       <section className="panel">
         <div className="panel-head">
-          <h2>Varsity Athletics</h2>
-          <HelpHint
-            text="A sport club (see Student Life) can petition to go varsity: a program budget and a shared competition venue for its sport's category — the coaching staff is hired separately, right here, from a standing candidate pool (mirroring how Faculty hiring works). Every team needs a head coach, an assistant coach, and a trainer; a trainer's field is strength & conditioning, so the same trainer candidates are hireable by any team regardless of sport, while a head/assistant coach candidate is scoped to one specific sport. A vacant role still functions, just at a lower team quality — there's no hard block on an understaffed program. The recruiting & scholarship budget below is the one department-wide knob: it scales every active team's social contribution and the whole program's upkeep together, and now also adds a flat bonus to every team's quality. Standings compare your program's overall quality against rival schools' own athletic strength — a second, independent ranking axis from the academic one."
-          />
+          <h2>{teams.length === 1 ? 'One program' : `${teams.length} programs`}</h2>
         </div>
-        <div className="athletics-budget">
-          <span className="stat">Recruiting & Scholarship Budget: {s.orgs.athleticsBudget}</span>
-          <div className="athletics-budget-tiers">
-            {ATHLETICS_BUDGET_ORDER.map((tier) => (
-              <button
-                key={tier}
-                type="button"
-                className={tier === s.orgs.athleticsBudget ? 'active' : ''}
-                aria-pressed={tier === s.orgs.athleticsBudget}
-                onClick={() => act({ type: 'SET_ATHLETICS_BUDGET', tier })}
-              >
-                {tier}
-              </button>
-            ))}
-          </div>
-        </div>
-        {rank !== null && (
-          <p className="athletics-rank">Athletic standing: <strong>#{rank}</strong> of {s.rivals.length + 1}</p>
-        )}
         {teams.length === 0 ? (
           <p className="empty-note">No sport club has gone varsity yet.</p>
         ) : (
           <ul className="team-card-list">
+            {/* Active first, then the ones waiting on a building: a team that
+                cannot compete yet is a construction item, not a program, and
+                sorting it down says so without a second heading. */}
             {active.map((team) => <TeamCard key={team.id} s={s} act={act} team={team} />)}
             {awaiting.map((team) => <TeamCard key={team.id} s={s} act={act} team={team} />)}
           </ul>
         )}
       </section>
 
-      {/* The market sits BELOW the teams, because that is the order the
-          questions arrive in: you notice a chair is empty on the team, then
-          you go looking for somebody to fill it. */}
+      <SportStandings s={s} />
+
+      {/* The market sits LAST, because that is the order the questions arrive
+          in: you notice a chair is empty on a team, then you go looking for
+          somebody to fill it. */}
       {teams.length > 0 && <TheMarket s={s} act={act} />}
     </div>
   );

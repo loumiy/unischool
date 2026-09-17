@@ -938,6 +938,37 @@ department-wide standings readout, and says standings have *"no annual report,
 movers list, or reveal interrupt of its own"* — still true of the reveal, no
 longer true of the shape.
 
+**As implemented:** the layout is as planned, and three defects in it were
+found by **photographing the screen** — none of which any test in the suite
+could have caught. `tools/README.md` already argues for this ("art has to be
+looked at"), and it earns its place again here.
+
+**One: every team's name wrapped.** A "3 chairs open" count in the card header
+put three things on one line, and at a 280px card that broke the title on
+nearly every card. Making the count non-breaking only moved the break into the
+name. The count is now gone: three chairs are listed directly beneath it
+saying the same thing, so it was redundant as well as expensive. What replaced
+it is better — a vacant chair was styled *muted*, quieter than a filled one,
+which is backwards. A settled chair is the boring case; an empty one is the
+whole reason the market exists. Vacancies now read as gaps.
+
+**Two, and the worst: the athletic-director modal rendered gold on gold.**
+`.modal button` sets a solid gold pill at specificity (0,1,1), which beats a
+single class — so the three candidate cards came out as gold blocks with the
+quality line invisible and **the salary, which is the entire decision the three
+cards exist to pose, unreadable**. This is precisely the defect Plan 07's PR G
+found in `.iso-dome`: a class rule quietly beating what the component thought
+it was setting. Fixed the way `.event-choice` already handles it.
+
+**Three: the salaries did not line up.** One candidate's name wrapped to two
+lines and pushed that card's figures down, so the three numbers being compared
+sat at three different heights. The name box is now two lines tall whether it
+needs them or not.
+
+All three are the same lesson in different clothes: a layout PR is not done
+when it compiles and the suite is green. It is done when somebody has looked
+at it.
+
 ## PR 2E — The AD asks for what the department lacks
 
 **The change.** The backlog's *"a mechanic that gives the player a reason to
