@@ -3,12 +3,12 @@ import type { Action } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { discoverySchools, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
 import { dedicatedSchool, hallDisplayName } from '../systems/techtree/schools';
-import { GradeChip, InstructorOption, MarketInField, completion, discoverySections } from '../tabs/CurriculumTab';
+import { CourseCell, GradeChip, InstructorOption, MarketInField, completion, discoverySections } from '../tabs/CurriculumTab';
 import { averageCourseQuality, courseQuality, facultyLoads, instructorOf } from '../systems/faculty/facultyAssignment';
 import { gradeFor } from '../data/courseQuality';
 import { schoolMark } from '../data/schoolPalette';
 import {
-  canFoundProgram, canRelocateProgram, canStartDevelopment, eligibleInstructors, facultyGate, isUnstaffed,
+  canFoundProgram, canRelocateProgram, canStartDevelopment, eligibleInstructors, facultyGate,
   RELOCATION_WEEKS,
 } from '../systems/techtree/techSystem';
 import { transitWeeks } from '../systems/techtree/programOffers';
@@ -222,31 +222,25 @@ function ProgramTile({ program, s, act, open, onToggle }: {
         </span>
       </button>
       {open && (
-        <div className="program-strip" role="group" aria-label={`${program.name} courses`}>
-          {courses.map((t) => {
-            const state = stripState(s, t);
-            const quality = courseQuality(s, t, loads);
-            const [code] = t.name.split(' · ');
-            const num = code.replace(/^[A-Z]+\s*/, '');
-            const unstaffed = isUnstaffed(s, t);
-            return (
-              <button
+        // THE FULL TILES, not a strip of numbers: the same CourseCell the
+        // Curriculum tab's rows draw — code, title, instructor chip, grade,
+        // gate dot — in the same nine-across layout with the tier rules as
+        // tracks, so a program reads identically on the map and in the tab.
+        // The panel is wide enough for it (see .building-info-panel.hall).
+        <div className={`program-row-cells${program.kind === 'graduate' ? ' graduate' : ''}`} role="group" aria-label={`${program.name} courses`} style={program.kind === 'graduate' ? { gridTemplateColumns: `repeat(${courses.length}, minmax(0, 1fr))` } : undefined}>
+          {courses.map((t, i) => {
+            const rule = program.kind !== 'graduate' && (i === 1 || i === 5) ? <span key={`rule-${i}`} className="tier-rule" aria-hidden="true" /> : null;
+            const cell = (
+              <CourseCell
                 key={t.id}
-                type="button"
-                className={`program-strip-cell ${state}${selectedId === t.id ? ' selected' : ''}${unstaffed ? ' unstaffed' : ''}${inTransit > 0 ? ' transit' : ''}`}
-                onClick={() => { setSelectedId(selectedId === t.id ? null : t.id); setPickedFaculty(null); }}
-                aria-pressed={selectedId === t.id}
-                title={`${t.name} — ${state}`}
-              >
-                <span className="program-strip-num">{num}</span>
-                {quality
-                  ? <span className={`program-strip-grade grade-${quality.grade.toLowerCase()}`}>{quality.grade}</span>
-                  : state === 'available' ? <span className="program-strip-plus" aria-hidden="true">+</span>
-                  : state === 'done' ? <span aria-hidden="true">✓</span>
-                  : state === 'developing' ? <span aria-hidden="true">…</span>
-                  : null}
-              </button>
+                s={s}
+                t={t}
+                selected={selectedId === t.id}
+                onSelect={(id) => { setSelectedId(selectedId === id ? null : id); setPickedFaculty(null); }}
+                loads={loads}
+              />
             );
+            return rule ? [rule, cell] : cell;
           })}
         </div>
       )}

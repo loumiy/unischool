@@ -819,7 +819,7 @@ button.build-tile { font-family: inherit; }
 /* A hall's panel is wider than an ordinary building's: six tiles across
    three columns, and a strip of nine courses under an open one, need the
    room. */
-.building-info-panel.hall { width: 340px; }
+.building-info-panel.hall { width: 680px; max-width: calc(100vw - 32px); }
 /* "Dedicated to the School of Engineering": the one line on a hall's panel
    that carries the school's colour (see schoolPalette.ts). */
 .building-info-dedication { font-weight: 600; }
@@ -832,23 +832,10 @@ button.build-tile { font-family: inherit; }
   font-size: var(--text-xs); line-height: 1.2; text-align: center; }
 .program-tile:hover { background: #f3ead2; }
 .program-tile-meta { display: inline-flex; align-items: center; gap: 4px; font-family: var(--mono); color: var(--ink-muted); }
+.hall-slot.housed.open .program-row-cells { padding: 4px 6px 6px; border-top: 1px solid var(--parchment-line); }
 .hall-slot.housed.open .program-tile { flex-direction: row; justify-content: flex-start; gap: 8px; text-align: left; padding: 6px 8px; }
-.program-strip { display: grid; grid-template-columns: repeat(9, 1fr); gap: 3px; padding: 4px 6px 6px;
-  border-top: 1px solid var(--parchment-line); }
-.program-strip-cell { min-width: 0; height: 34px; border-radius: var(--radius-sm); border: 1px solid var(--parchment-line);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-  padding: 0; font-family: var(--mono); font-size: var(--text-2xs); line-height: 1; cursor: pointer; background: #fbf6e9; color: var(--ink-muted); }
-.program-strip-cell.locked { opacity: 0.5; }
-.program-strip-cell.blocked { border-style: solid; border-color: #c4b591; background: #e4dcc5; color: #8d8261; }
-.program-strip-cell.available { border-color: var(--gold-dim); background: #fffdf6; color: var(--ink); }
-.program-strip-cell.available:hover { background: #f3ead2; }
-.program-strip-cell.developing { border-color: var(--gold); color: #4a3c14; }
-.program-strip-cell.done { border-color: #6d5610; background: var(--brass-deep); color: #f7ecc6; }
-.program-strip-cell.unstaffed { border-color: var(--danger-line); box-shadow: inset 0 0 0 1px var(--danger-line); }
-.program-strip-cell.selected { outline: 2px solid var(--gold); outline-offset: 1px; }
-.program-strip-num { font-weight: 700; }
-.program-strip-plus { font-size: var(--text-sm); font-weight: 700; }
-.program-strip-grade { font-weight: 700; }
+/* An open tile's courses are the Curriculum tab's own full cells (see
+   .program-row-cells above); the opened course sits under them. */
 .strip-course { padding: 6px 8px 8px; border-top: 1px solid var(--parchment-line); text-align: left; }
 .strip-course-head { margin: 0 0 4px; font-size: var(--text-sm); font-weight: 600; color: var(--ink); }
 .strip-course .instructor-options { margin-bottom: 6px; }
@@ -856,7 +843,7 @@ button.build-tile { font-family: inherit; }
    through wherever its courses are drawn, and the move controls are a row
    per hall with its free slots as small numbered buttons. */
 .program-tile-transit { color: #7a5c12; font-weight: 600; }
-.program-strip-cell.transit, .course-cell.transit { opacity: 0.55; }
+.course-cell.transit { opacity: 0.55; }
 .cell-stamp.transit { color: #7a5c12; }
 .relocate { padding: 6px 8px 8px; border-top: 1px solid var(--parchment-line); text-align: left; }
 .relocate-note { padding: 6px 8px 0; text-align: left; }
@@ -1352,10 +1339,10 @@ button.build-tile { font-family: inherit; }
 /* THE SCHOOL'S SHADE ON THE TILES THEMSELVES: every cell in a school's
    group is tinted with the group's hue — lightly on an open cell, more on
    a developed one — so the colour does the grouping, not only the rule. */
-.school-group .course-cell.available { background: color-mix(in srgb, var(--school-hue, #fffdf6) 9%, #fffdf6); }
-.school-group .course-cell.locked, .school-group .course-cell.blocked { background: color-mix(in srgb, var(--school-hue, #e4dcc5) 7%, #ece6d2); }
-.school-group .course-cell.developing { background: color-mix(in srgb, var(--school-hue, #fffdf6) 16%, #fffdf6); }
-.school-group .course-cell.done { background: color-mix(in srgb, var(--school-hue, #6d5610) 55%, #4a3c14); border-color: color-mix(in srgb, var(--school-hue, #6d5610) 70%, #2f2610); }
+:is(.school-group, .hall-slot) .course-cell.available { background: color-mix(in srgb, var(--school-hue, #fffdf6) 9%, #fffdf6); }
+:is(.school-group, .hall-slot) .course-cell.locked, :is(.school-group, .hall-slot) .course-cell.blocked { background: color-mix(in srgb, var(--school-hue, #e4dcc5) 7%, #ece6d2); }
+:is(.school-group, .hall-slot) .course-cell.developing { background: color-mix(in srgb, var(--school-hue, #fffdf6) 16%, #fffdf6); }
+:is(.school-group, .hall-slot) .course-cell.done { background: color-mix(in srgb, var(--school-hue, #6d5610) 55%, #4a3c14); border-color: color-mix(in srgb, var(--school-hue, #6d5610) 70%, #2f2610); }
 .school-group .course-cell.placeholder { border-color: color-mix(in srgb, var(--school-hue, #e4dcc5) 35%, var(--parchment-line)); }
 /* The counts on a row and a group ("6 / 9"): small, quiet, and in the
    body face rather than the mono the lane heads used to wear. */

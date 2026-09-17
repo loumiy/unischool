@@ -464,7 +464,7 @@ function InstructorChip({ f, grade, draggable, onDragStart, onDragEnd }: {
   );
 }
 
-function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
+export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
   s: GameState; t: Buildable; selected: boolean; onSelect: (id: string) => void; loads: FacultyLoads;
   // Present only inside the rows, where a chip can be dragged and a cell
   // can be dropped on; the worklist's cells carry none.
