@@ -124,14 +124,19 @@ export const SCENARIOS: Scenario[] = [
     // this screen is the one with a prior year to be read against.
     stopWhen: (s) => s.pendingInterrupt?.type === 'admissions' && s.clock.year >= 6,
   },
-  // NOT HERE YET: `championship`, the week a national title is won. No
-  // strategy in STRATEGIES ever wins one — measured across all six over
-  // forty years, zero titles, including the Completionist, which finishes
-  // every venue and fields all ten teams. None of them hires a COACH, and
-  // teamQuality is what seeds a bracket (see systems/athletics/playoffs.ts),
-  // so none of them ever reaches its sport's strongest eight. The recipe
-  // arrives with the strategy that plays the coaching market — Plan 09's
-  // PR E — rather than as an index entry that cannot be built.
+  {
+    name: 'championship',
+    what: 'the week a national title is won',
+    // THE ONLY STRATEGY THAT CAN REACH THIS, and the reason is the finding
+    // Plan 09's PR A recorded: none of the other six ever hires a coach, and
+    // teamQuality is what seeds a bracket (see systems/athletics/playoffs.ts),
+    // so none of them has ever won a title in forty years. The earnest
+    // completionist plays the coaching market, and wins its first around
+    // year 24.
+    strategy: 'Earnest completionist',
+    year: 40,
+    stopWhen: atModal('championship'),
+  },
   {
     name: 'athletic-director',
     what: 'the three AD candidates, nobody hired yet',

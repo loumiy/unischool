@@ -224,6 +224,13 @@ export const REFERENCE: Reference = {
     { year: 30, cash: { lo: 9977992.8501, hi: 16629988.0835 }, enrolled: { lo: 11321.25, hi: 18868.75 }, prestige: { lo: 55.2839, hi: 92.1398 }, netMargin: { lo: -0.0103, hi: 0.0897 }, weeksInTheRed: { lo: 65.25, hi: 108.75 } },
     { year: 40, cash: { lo: -46263001.4319, hi: -27757800.8591 }, enrolled: { lo: 14566.5, hi: 24277.5 }, prestige: { lo: 55.0248, hi: 91.7079 }, netMargin: { lo: -0.0935, hi: 0.0065 }, weeksInTheRed: { lo: 369.75, hi: 616.25 } },
   ],
+  "Earnest completionist": [
+    { year: 5, cash: { lo: 3047388.2582, hi: 5078980.4303 }, enrolled: { lo: 3483.75, hi: 5806.25 }, prestige: { lo: 40.4618, hi: 67.4364 }, netMargin: { lo: 0.2545, hi: 0.4242 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 10, cash: { lo: 9872090.0483, hi: 16453483.4139 }, enrolled: { lo: 12015, hi: 20025 }, prestige: { lo: 52.1784, hi: 86.964 }, netMargin: { lo: 0.1168, hi: 0.2168 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 20, cash: { lo: 51886645.7667, hi: 86477742.9444 }, enrolled: { lo: 29659.5, hi: 49432.5 }, prestige: { lo: 63.6725, hi: 106.1208 }, netMargin: { lo: 0.02, hi: 0.12 }, weeksInTheRed: { lo: 108, hi: 180 } },
+    { year: 30, cash: { lo: 221230971.1252, hi: 368718285.2087 }, enrolled: { lo: 69433.5, hi: 115722.5 }, prestige: { lo: 89.2321, hi: 148.7201 }, netMargin: { lo: 0.0899, hi: 0.1899 }, weeksInTheRed: { lo: 108, hi: 180 } },
+    { year: 40, cash: { lo: 851290831.5803, hi: 1418818052.6338 }, enrolled: { lo: 53966.25, hi: 89943.75 }, prestige: { lo: 106.1691, hi: 176.9484 }, netMargin: { lo: 0.2637, hi: 0.4395 }, weeksInTheRed: { lo: 108, hi: 180 } },
+  ],
   "Idle (builds nothing)": [
     { year: 5, cash: { lo: 25318439.3726, hi: 42197398.9543 }, enrolled: { lo: 803.25, hi: 1338.75 }, prestige: { lo: 33.4815, hi: 55.8024 }, netMargin: { lo: 2.0178, hi: 3.363 }, weeksInTheRed: { lo: 0, hi: 10 } },
     { year: 10, cash: { lo: 49782225.2791, hi: 82970375.4651 }, enrolled: { lo: 575.25, hi: 958.75 }, prestige: { lo: 30.819, hi: 51.3649 }, netMargin: { lo: 1.7572, hi: 2.9287 }, weeksInTheRed: { lo: 0, hi: 10 } },

@@ -7,7 +7,7 @@ to take the first item of the roadmap in
 and turn it into an ordered sequence of PRs, each small enough to land on its
 own and each landing in the order that makes the next one cheaper.*
 
-**Status: In progress.** PRs A, B, C and D have landed.
+**Status: In progress.** PRs A through E have landed.
 
 ---
 
@@ -136,7 +136,9 @@ and fields all ten teams. None of them hires a coach, and `teamQuality` is
 what seeds a bracket (`systems/athletics/playoffs.ts`), so none of them ever
 reaches its sport's strongest eight. The recipe arrives with PR E's earnest
 completionist, the first strategy that plays the coaching market. The
-verification above is therefore PR E's, not PR A's.
+verification above is therefore PR E's, not PR A's — and it passes there:
+`npm run scenario -- championship` writes a save whose `pendingInterrupt.type`
+is `championship`, and it opens in the browser on the real modal.
 
 `tools/makeSave.ts` is *replaced* rather than generalised beside: it was this
 tool with the strategy, the school's name and the modal-clearing all
@@ -365,6 +367,49 @@ PR as the place its `REPORT_ONLY` flag flips.
 noise: rank #1 before year 25, all 421 courses before year 25, 0 weeks in the
 red. Those numbers are the *problem*; PR D's bands record them so Plan 10 can
 move them.
+
+**As implemented:** it reproduces Appendix A, and the honest way to say so is
+to name the seed. **At seed 4242, the review's own**, the run lands on top of
+it: rank #1 at year 21.2, all 421 courses at 24.2, **0 weeks in the red** with
+a minimum cash of $230k against the review's $325k, and at year 40 73,000
+enrolled (review 72,908), prestige 146.9 (148) and tuition $37,000 ($37.0k).
+The firsts line up too — rankings entry 7.75 (7.5), varsity team 8.77 (8.8),
+the AD 8.79 (8.8), prestige 100 at 17.1 (16.6), the first campaign 25.5
+(24.7).
+
+**At the default seed 12345 it is a rougher run**: 144 weeks in the red,
+a trough of -$5.4M, and the catalogue finishing in the last decade rather
+than the third. That is the non-monotonicity `balanceSim.ts` has warned about
+since Plan 08 — a threshold economy where a few weeks' difference in when a
+dorm goes up compounds over forty years — and it is worth leaving visible
+rather than tuning away: "the earnest player never has a bad week" is a claim
+about a seed, and one seed away it is already false.
+
+**The coaching market is the strategy's real discovery.** PR A recorded that
+no strategy had ever won a national title; this one wins 15 at the default
+seed and 36 at 4242, because it is the first to hire a coach. `championship`
+joins the scenario index on the back of it, and the postseason, the
+championship modal and the titles term in campus-life standing are in a
+measured trajectory for the first time.
+
+Two deviations of scope. The three columns are `actions`, `idleWeeks` and
+`blockedWeeks` — the review's "actions / idle / money-blocked" — and the
+modal count went into the tally as a **count by type** plus a printed
+`modals answered` line, beside a `what a year contained` line that reports
+actions per year against the LAST DECADE's average, because the review's
+finding was about the shape (25 a year, falling to 4–14) rather than the
+mean. The earnest completionist reads 23.1 actions a year over twenty, 8.3 in
+the last ten: the same shape, measured rather than remembered. **Idle weeks
+are always zero**, for every strategy — with 421 courses there is always
+something startable — so what the review experienced as "nothing to do" shows
+up here as money-blocked weeks and as the collapse in actions, never as an
+empty board. That is worth knowing before Plan 12 tries to fix idleness.
+
+`sim/milestones.ts` grew the firsts list as specified (twenty of them,
+printed in the order they happen rather than the order they were declared),
+with one correction: "first school hall" counts the first hall BUILT, since
+General Studies stands on the founding campus and counting it would report
+week 1 for every strategy.
 
 ## PR 09F — Documentation
 
