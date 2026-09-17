@@ -397,10 +397,9 @@ export function canSiteRetroactively(s: GameState, t: Buildable): boolean {
 // PLACE_BUILDABLE always names the row/col the player chose. It exists for
 // the handful of places a Buildable needs a location nobody was ever asked
 // to pick: the founding Buildables that start already 'done' (see
-// actions.ts's createInitialState), a save migrated from the old two-step
-// shape (see persistence.ts's v17 -> v18), and an authored event that
-// manufactures a finished Buildable on the spot (eventData.ts's chapter
-// house). The full catalogue covers under a third of the grid (see
+// actions.ts's createInitialState), the headless balance sim (which has no
+// player to click a tile), and an authored event that manufactures a
+// finished Buildable on the spot (eventData.ts's chapter house). The full catalogue covers under a third of the grid (see
 // types.ts's CAMPUS_GRID_WIDTH/HEIGHT comment), so in every case this is
 // actually used for today, room is always found; callers still handle a
 // null result rather than assuming it.

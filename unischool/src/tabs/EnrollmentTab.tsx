@@ -57,13 +57,12 @@ const COHORT_COLOR: Record<CohortId, string> = {
 // exactly the base shares, apportioned to its own head count.
 //
 // Derived rather than flagged in state, and the label is written to be true
-// of every case that produces it rather than guessing between them. Three
+// of every case that produces it rather than guessing between them. Two
 // do: the founding body (four classes that arrived before the player had
-// built anything), a save written before this record existed (filled in with
-// the same prior — see persistence.ts's MIGRATIONS[39]), and a class genuinely
-// admitted while the school had built nothing and priced at what its standing
-// supported. All three mean the same thing about the bar, which is why the
-// note says "no cohort signal" rather than claiming to know which it was.
+// built anything) and a class genuinely admitted while the school had built
+// nothing and priced at what its standing supported. Both mean the same
+// thing about the bar, which is why the note says "no cohort signal" rather
+// than claiming to know which it was.
 function hasNoCohortSignal(counts: CohortCounts, total: number): boolean {
   const prior = baseShareCohortCounts(total);
   return COHORTS.every((c) => counts[c.id] === prior[c.id]);

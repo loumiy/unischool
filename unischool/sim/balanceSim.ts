@@ -49,7 +49,7 @@ import {
 } from '../src/systems/techtree/techSystem';
 import { facultyLoads } from '../src/systems/faculty/facultyAssignment';
 import { initiativeDepth, initiativeFundingCost, initiativeOffers } from '../src/data/researchData';
-import { researchSchools } from '../src/data/techData';
+import { isAcademicHall, researchSchools } from '../src/data/techData';
 import { firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { HELLENIC_COUNCIL_MIN_CLUBS } from '../src/data/eventData';
 import { weeklyResearchPoints } from '../src/data/researchData';
@@ -550,7 +550,12 @@ function decide(
       if (!courseStaysSustainable(s, strategy)) continue;
       if (canStartDevelopment(s, c)) dispatch({ type: 'START_DEVELOPMENT', nodeId: id });
     }
-    for (const id of get().tech.filter((t) => t.kind === 'building' && t.status === 'available').map((t) => t.id)) {
+    // Academic halls (techData.ts's chain, Plan 14) are skipped until
+    // Plan 14's PR I teaches the harness to site one when it runs out of
+    // slots: until programs are founded from slots, a hall is a bill with
+    // nothing behind it, and buying it would move every strategy's
+    // trajectory for no decision the player could make.
+    for (const id of get().tech.filter((t) => t.kind === 'building' && !isAcademicHall(t) && t.status === 'available').map((t) => t.id)) {
       const s = get();
       const b = s.tech.find((t) => t.id === id);
       if (b && b.status === 'available' && canCommitCapital(s, strategy) && affordable(s, b.cost, strategy)) {

@@ -1,4 +1,4 @@
-import type { GameState, Buildable, BuildableEffects, Faculty } from '../../state/types';
+import type { GameState, Buildable, BuildableEffects, Faculty, HallSlot } from '../../state/types';
 import { totalEnrolled } from '../../state/types';
 import { graduateCourseIds, graduateGateMet, graduatePrograms, milestoneSchools } from '../../data/techData';
 import { isCelebratedMilestone } from '../../data/eventData';
@@ -485,6 +485,18 @@ function applyEffects(s: GameState, e?: Partial<BuildableEffects>): void {
   }
 }
 
+// A hall that has just finished gets its slots, all empty — the entry in
+// s.halls that every later read of "what is in this building" is over
+// (see types.ts's HallSlot). Written here, at completion, and nowhere
+// else: a hall under construction has no room to house anything, and a
+// hall that already has an entry (Founders Hall, seeded at founding with
+// the core in it) keeps it. Not an `effects` field, deliberately — a slot
+// is not a bonus applied once, it is the building's floor plan.
+function openHall(s: GameState, node: Buildable): void {
+  if (node.slots === undefined || s.halls[node.id] !== undefined) return;
+  s.halls[node.id] = Array.from({ length: node.slots }, (): HallSlot => ({ programId: null }));
+}
+
 // Beyond prereqs, some Buildables also gate on the school's current state
 // rather than another Buildable's status — a population size (the health
 // center: only large campuses need one; read against total ENROLLED
@@ -635,6 +647,7 @@ export function tickTech(s: GameState): void {
     // nothing left to describe (see types.ts's servingPopulation).
     delete node.renovatingFrom;
     applyEffects(s, node.effects);
+    openHall(s, node);
     s.log.unshift({
       year: s.clock.year,
       week: s.clock.week,

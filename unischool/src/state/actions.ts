@@ -340,6 +340,7 @@ export function createPreStartState(): GameState {
     faculty: [],
     tech: [],
     developing: {},
+    halls: {},
     placements: {},
     pathways: {},
     trees: {},
@@ -395,10 +396,8 @@ export function createInitialState(name: string, vernacular: Vernacular = FOUNDI
   // seeded-'available' facility chains) are unlocked from the moment the
   // university opens — the player was never shown a moment when they
   // WEREN'T there to be revealed, so they are not "new" and must not carry
-  // a badge on day one. Seeded here the same way MIGRATIONS[22] in
-  // persistence.ts seeds a resumed save's `seen` from its OWN current
-  // visibility, for the same reason: an empty `seen` would tell the
-  // brand-new player that every one of these is news.
+  // a badge on day one: an empty `seen` would tell the brand-new player
+  // that every one of these is news.
   const foundingCourseIds: Record<string, true> = {};
   const foundingBuildableIds: Record<string, true> = {};
   for (const node of tech) {
@@ -577,6 +576,13 @@ export function createInitialState(name: string, vernacular: Vernacular = FOUNDI
     // The first entry is written the moment the player starts their first
     // course and picks who teaches it.
     courseFaculty: {},
+    // Founders Hall's one slot, filled before the player sees the game: the
+    // gen-ed core occupies the building (see techData.ts's `slots: 1` on
+    // it, and types.ts's HallSlot). Every other hall's entry is written the
+    // week that hall finishes construction (techSystem.ts), with every
+    // slot empty — so a founding save has exactly one hall, one slot, the
+    // core in it, and no way to found anything until a hall stands.
+    halls: { [GENED_BUILDING_ID]: [{ programId: 'CORE' }] },
     // Only Founders Hall is pre-placed: it opens 'done' (techData.ts), so
     // it needs a spot on the map from day one. It is centred on the grid
     // (foundersHallPlacement above) — the founding landmark the rest of the

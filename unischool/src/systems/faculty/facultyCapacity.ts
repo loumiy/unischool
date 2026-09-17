@@ -120,10 +120,10 @@ export function facultyCapacity(s: GameState): FacultyCapacity {
   for (const field of FACULTY_FIELDS) byField.set(field, blank(field));
 
   // A field a save carries that the taxonomy no longer has would otherwise
-  // drop its people silently. It cannot happen today (persistence.ts's
-  // migrations run every saved hire through LEGACY_FIELD_RENAMES), but a
-  // roster that adds up to less than s.faculty.length is a bug that should
-  // be visible rather than one that quietly subtracts a professor.
+  // drop its people silently. It cannot happen today (a save from before a
+  // taxonomy change is dropped at load, not carried — see persistence.ts),
+  // but a roster that adds up to less than s.faculty.length is a bug that
+  // should be visible rather than one that quietly subtracts a professor.
   const entry = (field: string): FieldCapacity => {
     let c = byField.get(field);
     if (!c) { c = blank(field); byField.set(field, c); }

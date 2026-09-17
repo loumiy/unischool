@@ -78,9 +78,9 @@ export function gradeFraction(score: number): number {
 //
 // The penalty scales with how close the instructor is to their OWN
 // ceiling, not with whether they have passed it — passing it is
-// impossible through play (canStartDevelopment refuses it; only a
-// pre-assignment save migrated forward can be over, see MIGRATIONS[30]).
-// A rule that only fired on an impossible state would be no rule at all.
+// impossible through play (canStartDevelopment refuses it, and a hire
+// never sheds a slot). A rule that only fired on an impossible state would
+// be no rule at all.
 //
 // So: somebody teaching one course teaches it at full strength, and every
 // further course they take on costs all of their courses a little. That is

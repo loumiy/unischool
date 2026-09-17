@@ -6,6 +6,7 @@ import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/tec
 import { canSiteRetroactively, RETROACTIVE_SITING_COST } from '../state/campusMap';
 import { FACILITY_CATEGORY_OF, type FacilityCategory, LIBRARY_TIER1_ID, nextLibraryFloor } from '../data/facilitiesData';
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
+import { isAcademicHall } from '../data/techData';
 import HelpHint from './HelpHint';
 import { ProgressBar } from './Progress';
 import ToolbarPopup from './ToolbarPopup';
@@ -159,6 +160,12 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; ma
   { key: 'athleticsDiamond', label: FACILITY_LABELS.athleticsDiamond, repeatable: false, match: (t) => t.facilityType === 'athleticsDiamond' },
   { key: 'athleticsNatatorium', label: FACILITY_LABELS.athleticsNatatorium, repeatable: false, match: (t) => t.facilityType === 'athleticsNatatorium' },
   { key: 'footballStadium', label: FACILITY_LABELS.footballStadium, repeatable: false, match: (t) => t.facilityType === 'footballStadium' },
+  // The academic hall chain (techData.ts's ACADEMIC_HALL_SLOTS block): a
+  // strictly sequential, distinctly-named chain exactly like housing, so
+  // it is `repeatable` — one next hall at a time, "#N" markers, and the
+  // built ones collapse. Listed BEFORE the school buildings so it matches
+  // first; Founders Hall (one slot, never a decision) stays with them.
+  { key: 'hall', label: 'Academic Halls', repeatable: true, match: (t) => isAcademicHall(t) },
   { key: 'academicBuilding', label: 'Academic Buildings', repeatable: false, match: (t) => t.kind === 'building' },
 ];
 
@@ -297,6 +304,7 @@ function iconForBuildable(t: Buildable): () => React.JSX.Element {
 function builtDetail(t: Buildable): string | undefined {
   if (t.facilityType === 'lab') return 'gates capstone coursework';
   if (t.kind === 'dorm') return `${(t.effects?.capacityBonus ?? 0).toLocaleString()} beds`;
+  if (isAcademicHall(t)) return `${t.slots} program slots`;
   // Carries no `effects` of its own (see types.ts's Buildable.chapterHouse)
   // — its beds are a fixed constant applied directly to s.students.capacity
   // when the petition was approved, not something to read off this tile.
@@ -314,6 +322,10 @@ function builtGroupDetail(kind: string, built: Buildable[]): string | undefined 
   if (kind === 'dorm') {
     const beds = built.reduce((sum, t) => sum + (t.effects?.capacityBonus ?? 0), 0);
     return `${beds.toLocaleString()} beds`;
+  }
+  if (kind === 'hall') {
+    const slots = built.reduce((sum, t) => sum + (t.slots ?? 0), 0);
+    return `${slots} program slots`;
   }
   const serves = built.reduce((sum, t) => sum + (t.effects?.servesPopulation ?? 0), 0);
   return serves > 0 ? `serves ${serves.toLocaleString()}` : undefined;

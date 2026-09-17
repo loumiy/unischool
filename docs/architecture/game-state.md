@@ -3,10 +3,13 @@
 `GameState` (`src/state/types.ts`) is the single source of truth. Every system
 reads and writes it; nothing else holds simulation state.
 
-Three records sit beside the central `tech` list rather than as fields on a
-Buildable, all keyed by id and all read by **no** system: `placements` (where a
-building stands), `pathways` (paved tiles) and `trees`. Keeping them separate
-is what lets the single Buildable model stay unforked — see
+Four records sit beside the central `tech` list rather than as fields on a
+Buildable, all keyed by id. Three are read by **no** system: `placements`
+(where a building stands), `pathways` (paved tiles) and `trees`. The fourth,
+`halls` (a hall's program slots — see [curriculum.md](../design/curriculum.md)),
+**is** read by systems from Plan 14 on, and is the one side record the loader
+treats as simulation state rather than decoration. Keeping them all separate is
+what lets the single Buildable model stay unforked — see
 [buildables.md](buildables.md) and [campus-map.md](campus-map.md).
 
 ## Save / load
@@ -36,120 +39,56 @@ hundreds of KiB.
 field is added-as-required, renamed, retyped, or given a new meaning. Additive
 *optional* fields don't need a bump.
 
-An older save is then either **migrated** forward or **discarded**, never
-half-loaded. Migrations live in `persistence.ts`'s `MIGRATIONS` table, keyed on
-the version they migrate *from*, and the load path walks them one version at a
-time; a version with no entry is discarded and the player starts fresh.
+An older save is **discarded**, never half-loaded: `loadGame` returns `null`
+for any version but the current one and the player gets an obviously new game,
+not a run quietly missing a slice. That is one branch in the load path, it is
+covered by `testRejects` in `test/save-load.test.ts`, and it is what makes
+discarding safe enough to be the rule.
 
-### Discarding is the default
+### Discarding is the rule
 
-**The bump is the whole obligation.** A shape change does not owe the chain a
+**The bump is the whole obligation.** A shape change does not owe anything a
 migration. The game is in development and is not deployed anywhere: there is no
 build anyone else is playing, and every save that exists is sitting in a
 developer's own browser, so a discarded one costs a single in-progress test run
-and nothing else.
+and nothing else. `sim/balanceSim.ts` reproduces forty-year runs headlessly and
+`npm run scenario` stands the game up at any named state, which is what most
+"but I'd lose the run" instincts actually want.
 
-Write a migration only when there is a **specific run worth carrying** — a
-playtest in the middle of answering something, a long run a balance question
-depends on — and write it as the small thing it usually is. Otherwise bump the
-version, let the save drop, and start fresh. `sim/balanceSim.ts` reproduces
-forty-year runs headlessly, which is what most "but I'd lose the run" instincts
-actually want.
+If a specific run is ever worth carrying across a bump — a playtest in the
+middle of answering something — write the few lines that carry it as a one-off
+in that PR and delete them in the next. Never a table.
 
-The policy this replaces cost more than the code it saved. Under it, every
-shape change was migrated as a matter of course, and migration cost started
-reaching back into the design: Plan 01 weighed two names for a milestone key
-"with the migration cost in mind", and `MIGRATIONS[19]` still writes a field
-name nothing else in the codebase uses, because a later entry renames it.
-**Save compatibility does not get a vote on what the game is called or how it
-is shaped.** Rename the field and drop the save.
+### The chain that was deleted (v3 -> v51)
 
-What stays non-negotiable is the *other* half: never half-load. An unmigrated
-version returns `null` from `loadGame` and the player gets an obviously new
-game, not a run quietly missing a slice. That is one branch in the load path,
-it is covered by `testRejects` in `test/save-migrations.test.ts`, and it is
-what makes discarding safe enough to be the default.
+There used to be a `MIGRATIONS` table in `persistence.ts`, one entry per
+version from v3 to v51, written under an earlier policy of migrating every
+shape change as a matter of course: 2,870 lines carrying saves forward through
+a curriculum reorg, a hundred-school field, three standings and a postseason,
+plus a 1,330-line test file of fixtures, for a game nobody was playing yet.
+The policy cost more than the code it saved — migration cost started reaching
+back into the design (Plan 01 weighed two names for a milestone key "with the
+migration cost in mind"), and the September review named the chain the
+clearest overdevelopment in the repository.
 
-### The chain as it stands (v3 -> v40)
+Plan 14's first PR broke the save shape — halls and their slots — and took
+that as the moment to freeze the chain and delete it, along with the three
+helpers that existed only to feed it (the frozen faculty round-robin, the
+legacy field renames, the pre-gendering sport id map). **Save compatibility
+does not get a vote on what the game is called or how it is shaped**, and now
+there is no machinery left to offer it one. What the chain's history is still
+good for — the *shapes* a migration can take, from filling in a new required
+slice to re-pointing a curriculum by id — is in the git log, at the commits
+that wrote each entry.
 
-Every version from v3 on has an entry, written under the old policy. They are
-kept rather than deleted: they are already paid for, and a save still sitting
-in a browser may need them. What follows is a walk through the *shapes* a
-migration took — history, not a standard to meet. Migrating made sense when
-the old data still described the same game (v3 -> v4 filled in the campus
-map's new placement footprints, which were all 1x1 before footprints existed;
-v4 -> v5 re-pointed every course's `requiresFaculty` and every hire's `field`
-at the re-specialised faculty-field taxonomy, which renamed and split the
-departments a run is staffed against without changing the run itself; v5 -> v6
-dropped the job-posting state and gave every hire the candidate market's
-`weeksListed` clock, changing how faculty are acquired but not the roster,
-the economy or the curriculum; v6 -> v7 added the `research` slice, gave
-every hire the `acclaim` count the salary curve now multiplies by, and split
-the institution's name into the player's half plus a fixed suffix — none of
-which changes the school a resumed run describes, so it carries forward and
-simply starts producing research the moment it has a lab; v7 -> v8 added the
-`orgs` slice — the clubs and Greek chapters the campus has grown, the
-petitions waiting on the next summer digest, and the Hellenic Council flags
-— empty, and deliberately not reconstructed: a v7 run genuinely had no
-student life, so a resumed school starts forming clubs the moment it has a
-student center, exactly as a new one does; v8 -> v9 added the student-demand
-slice of `events` — the demand queued for the next quiet week, the demand
-currently outstanding with its target and expiry, and the week the last one
-resolved — filled in empty with the cooldown clear, so an old save resumes
-with no demand outstanding and its students free to ask for something the
-moment they are unhappy enough; v9 -> v10 reorganised the CURRICULUM itself —
-a School of Science, six majors sitting in a different school than they did,
-two retired, four added, and the labs moved with them — so every saved course
-is re-pointed at the new structure by id off the seed, keeping only its
-`status`, which is what lets a decades-in save keep every finished course and
-every milestone through a reorg that is not one-to-one. The two retired majors,
-Pre-Med and Dentistry, are dropped outright rather than mapped onto a
-replacement: marking a major complete whose nine courses the player has never
-developed would be a milestone that lies, so a clean retirement is the honest
-answer and the small prestige-target dip settles over a couple of years of
-drift); v10 -> v11 added the GRADUATE PROGRAMS — six clusters of
-higher-tier course Buildables (see
-[graduate-programs.md](../design/graduate-programs.md)), spliced in
-BY ID off the seed, which is the simplest curriculum migration there is
-because nothing existing moved, was renamed or was retired: every node a
-v10 save already holds is left completely untouched, and the
-twenty-eight new ones arrive locked, revealing the moment their
-parent-school gate reads true — which for a decades-in save may be the
-very first tick, since the gate is a reading of milestones it already
-earned. What does move is the prestige TARGET: graduate work is now the
-last 0.15 of curriculum breadth, so a school that had finished the whole
-undergraduate catalogue scores 0.85 on that input until it founds some
-programs. Prestige itself does not lurch — it is a stock drifting
-slowly, week by week — so that reads as a ceiling that moved up rather than
-standing taken away); v11 -> v12 added the two PROFESSIONAL-SCHOOL BUILDINGS
-(BLDG-MED, BLDG-LAW) and expanded Medicine (6 -> 12) and Law (5 -> 8) —
-see [graduate-programs.md](../design/graduate-programs.md)'s "Two of six get
-their own building". The same id-splice shape
-as v10 -> v11: every seed node the save doesn't already have (the two
-buildings, plus nine new courses) is appended locked, and every node it
-already holds — including the eleven pre-existing Medicine/Law courses,
-whatever their status — is left completely untouched, nothing re-pointed.
-The one real edge case: a save that had already FOUNDED Medicine or Law
-keeps every one of those courses done, but its new building still arrives
-locked and, since the gate it waits on is a milestone reading that save
-already satisfies, flips buildable on the very first tick — a real,
-honestly-flagged construction bill for a hall the school apparently never
-had, not a bug;
-and discarding when it didn't (v1 and v2 predate an economy rebalance, so those
-runs would be describing a different game).
-
-**The narrative above stops at v12; `SAVE_VERSION` is well past it.** Each
-later migration documents itself at its own entry in the `MIGRATIONS` table,
-which is the canonical record — this prose is a walk through the *shapes* a
-migration can take, not an index, and it is not extended by default. The three
-from the academic-core arc are worth naming here because they are the ones a
-reader of the design docs will look for: **v30 -> v31** materialises the old
-display-only round-robin into real `courseFaculty` assignments, so a resumed
-run keeps the instructors it appeared to have rather than waking up with four
-hundred orphans; **v31 -> v32** splices in the four new research facilities and
-re-points the unbuilt capstones that gate on them; **v32 -> v33** adds the
-initiative slices, empty. Each keeps what a resumed run earned, and each is
-covered in `test/save-migrations.test.ts`.
+Loading also runs **hall hygiene**: an entry in `halls` that does not name a
+standing, placed hall is dropped, one with the wrong number of slots is padded
+or trimmed, and a slot naming a program that does not exist or is already
+housed elsewhere is emptied. Unlike the map records below this is simulation
+state — a program the game believes is housed somewhere it is not would gate
+courses on a lie — so the loader corrects it rather than merely dropping it,
+and `test/invariants.test.ts` asserts the same three rules of every state the
+reducer can reach.
 
 Loading also runs **placement hygiene** on the campus map every time: orphaned
 ids (or ones that aren't currently `done`/`developing` — see

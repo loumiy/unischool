@@ -14,7 +14,7 @@
 
 import { createInitialState } from '../src/state/actions';
 import {
-  LEGACY_TWO_GENDER_SPORT_MIGRATION, SPORTS, promoteToVarsityTeam,
+  SPORTS, promoteToVarsityTeam,
   rollClubPetition, sportById, sportClubsAwaitingVarsity, venueForCategory,
 } from '../src/data/studentLifeData';
 import type { GameState, StudentClub } from '../src/state/types';
@@ -188,23 +188,12 @@ function testIndependentLineages(): void {
     'both soccer-m and soccer-w teams exist side by side');
 }
 
-// ---- Migration map sanity ----
-function testLegacyMigrationMap(): void {
-  const twoGenderKeys = ['soccer', 'lacrosse', 'basketball', 'volleyball', 'swimming'];
-  for (const key of twoGenderKeys) {
-    assert(LEGACY_TWO_GENDER_SPORT_MIGRATION[key] === `${key}-m`, `${key} migrates to its men's id by default`);
-  }
-  for (const key of ['football', 'baseball', 'fieldHockey', 'softball']) {
-    assert(LEGACY_TWO_GENDER_SPORT_MIGRATION[key] === undefined, `${key} (one-gender) has no migration entry — its id never moved`);
-  }
-}
 
 console.log('gendered-sports tests');
 testCatalogueShape();
 testNaming();
 testFormationNeverCrossesGender();
 testIndependentLineages();
-testLegacyMigrationMap();
 
 if (failures === 0) {
   console.log(`  ✓ all ${checks} checks passed`);

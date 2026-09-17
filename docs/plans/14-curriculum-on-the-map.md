@@ -9,8 +9,9 @@ repeatable academic halls with six program slots, programs founded from a
 rolling offer of three, and a Curriculum tab that becomes forty-two rows — and
 turn them into an ordered sequence of PRs.*
 
-**Status: Proposed.** Depends on [Plan 09](09-playtest-harness.md) for the
-scenarios and the scorecard this is measured with. Supersedes
+**Status: In progress.** PR A has landed. Depends on
+[Plan 09](09-playtest-harness.md) for the scenarios and the scorecard this is
+measured with. Supersedes
 [Plan 11](11-academic-halls.md), whose rooms-and-continuous-development model
 this replaces.
 
@@ -176,6 +177,23 @@ at a real program, that no program is housed twice, and that every hall in
 
 **Verify.** A founding save has one hall, one slot, the core in it, and no way
 to found anything.
+
+**As implemented:** the hall is a *chain*, not one Buildable cloned. Every
+Buildable in `s.tech` has a unique id, and the dorm chain is already the
+repository's shape for "several of one thing": twelve halls (`HALL-01` to
+`HALL-12`) in `techData.ts`'s `initialTech()` — beside the school buildings
+they replace rather than in `campusData.ts` — each unlocked by the one before
+it, the first by the gen-ed core. Twelve because that is the completionist
+ceiling: seven schools plus a second Business, Engineering, Science, Social
+Sciences and Health Science hall for the six graduate programs. A hall's
+`s.halls` entry is written the week it *finishes*, not when it is placed: a
+building site has no room in it, and "a slot exists" then means "a hall
+stands", which is the gate 14C needs. The sim skips the chain until 14I
+teaches it to site a hall on purpose, so the balance regression is untouched
+by a bill with nothing behind it. The save break is taken in full: the
+`MIGRATIONS` table, its three feeder helpers and the migration test fixtures
+are deleted, `loadGame` accepts exactly the current version, and
+`test/save-migrations.test.ts` becomes `test/save-load.test.ts`.
 
 ## PR 14B — The offer queue
 

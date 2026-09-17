@@ -157,6 +157,69 @@ export const GENED_BUILDING_REPUTATION_BONUS = 1.5;
 const SCHOOL_BUILDING_COST = 1_400_000;
 const SCHOOL_BUILDING_WEEKS = 28;
 
+// ---------------------------------------------------------------------
+// THE ACADEMIC HALL (Plan 14). A repeatable, placeable 'building' Buildable
+// with SIX program slots — see types.ts's HallSlot. Six is not arbitrary:
+// every school in the game has exactly six majors, so one hall is exactly
+// one school, and that is a rule a player learns in one sentence and plans
+// a decade around. No tiers, no floors, no upgrade chain: a 4/8/16-room
+// ladder would destroy the one rule this is built on.
+//
+// "Repeatable" here means what it means for dorms (campusData.ts): a
+// strictly sequential chain of distinctly-named Buildables, each unlocked
+// by the one before it, so there is always exactly one next hall to build
+// and its cost is visible. The first opens the tick the gen-ed core is
+// done — the new year-one beat: three programs waiting and nowhere to put
+// them — and is DELIBERATELY CHEAP, a fraction of the old school building,
+// so a founding school builds it without thinking. Each rung after it
+// costs a fixed ratio more, so the fifth is a multi-year commitment.
+//
+// Twelve rungs because twelve is the completionist ceiling: seven schools
+// of six majors, plus a second Business, Engineering, Science, Social
+// Sciences and Health Science hall for the six graduate programs, which
+// belong to those schools but do not fit in a hall their six majors
+// already fill. A hall the player never needs is never offered — the
+// chain stops here.
+//
+// EVERY NUMBER HERE IS PROVISIONAL, and loudly so. They are fitted by feel
+// against an economy the September review found broken and Plan 15 is
+// about to replace; Plan 15's PR G is where they are fitted once, properly,
+// against the scorecard. The opening shape: first hall cheap, then ×1.35
+// a rung, so a balanced run affords roughly eight by year 35 and a
+// completionist ten or eleven. Cumulative: ~$14M for eight, ~$37M for
+// eleven — a fraction of the dorm chain over the same span.
+export const ACADEMIC_HALL_SLOTS = 6;
+const ACADEMIC_HALL_FIRST_COST = 500_000;
+const ACADEMIC_HALL_COST_RATIO = 1.35;
+const ACADEMIC_HALL_FIRST_WEEKS = 16;
+const ACADEMIC_HALL_WEEKS = 24;
+// Upkeep matches the school building it replaces: a hall is the same
+// lecture rooms and offices whatever is housed in it.
+const ACADEMIC_HALL_UPKEEP_PER_WEEK = SCHOOL_BUILDING_UPKEEP_PER_WEEK;
+// Named for the campus rather than for a school — a hall is not "the
+// School of Engineering" until six Engineering programs sit in it (Plan
+// 14's PR E gives a dedicated hall its school's name on the map). The
+// cardinal four first, then the founding woodland (see treeData.ts) the
+// campus was cut out of.
+const ACADEMIC_HALL_NAMES = [
+  'North Academic Hall', 'South Academic Hall', 'East Academic Hall', 'West Academic Hall',
+  'Elm Hall', 'Oak Hall', 'Linden Hall', 'Maple Hall',
+  'Chestnut Hall', 'Sycamore Hall', 'Cedar Hall', 'Birch Hall',
+];
+export const ACADEMIC_HALL_COUNT = ACADEMIC_HALL_NAMES.length;
+export const ACADEMIC_HALL_ID_PREFIX = 'HALL-';
+function academicHallId(index: number): string {
+  return `${ACADEMIC_HALL_ID_PREFIX}${String(index + 1).padStart(2, '0')}`;
+}
+
+// One of the repeatable chain above — six slots, built by the player — as
+// opposed to Founders Hall, which carries a slot (the core's) but is the
+// founding condition rather than a decision. The build menu groups the
+// chain as one repeatable type on this read.
+export function isAcademicHall(t: Buildable): boolean {
+  return t.kind === 'building' && t.slots !== undefined && t.id !== GENED_BUILDING_ID;
+}
+
 interface MajorSeed {
   prefix: string;   // course code prefix, e.g. "FINA"
   name: string;     // major name
@@ -305,7 +368,15 @@ const SCHOOLS: SchoolSeed[] = [
 // tier-1 entry course requires the whole 6-course core, not just its own
 // school's building. Derived from SCHOOLS rather than re-listed so it can
 // never drift from the General Studies core defined above.
-const GENED_CORE_IDS: string[] = SCHOOLS.find((school) => school.core)!.core!.map(([code]) => code.replace(/\s/g, ''));
+export const GENED_CORE_IDS: string[] = SCHOOLS.find((school) => school.core)!.core!.map(([code]) => code.replace(/\s/g, ''));
+
+// Every undergraduate major's course-code prefix — which is also its
+// PROGRAM ID in `s.halls` (see types.ts's HallSlot). Read by the loader's
+// hall sanitizer and the invariant sweep, so "is this a real program" is
+// answered off the seed rather than a list kept in step with it.
+export function majorPrefixes(): string[] {
+  return SCHOOLS.flatMap((school) => school.majors.map((major) => major.prefix));
+}
 
 // requiresFaculty gates for the six gen-ed core courses — same idea as each
 // major's own `field` above, just per-course instead of per-major since the
@@ -1149,11 +1220,37 @@ export function initialTech(): Buildable[] {
       duration: isGenEd ? GENED_BUILDING_WEEKS : SCHOOL_BUILDING_WEEKS,
       prereqs: tier1IdsInSchool,
       status: isGenEd ? 'done' : 'locked',
+      // Founders Hall holds the gen-ed core and NOTHING ELSE: one slot,
+      // filled at founding (see actions.ts's createInitialState), so the
+      // core occupies the building rather than one slot of six. The
+      // alternative — core plus five free slots — strands the player's
+      // first five programs in a building that can never found a school,
+      // a trap laid in the first ten minutes. See types.ts's HallSlot.
+      ...(isGenEd ? { slots: 1 } : {}),
       effects: {
         upkeepPerWeek: isGenEd ? GENED_BUILDING_UPKEEP_PER_WEEK : SCHOOL_BUILDING_UPKEEP_PER_WEEK,
       },
     });
   }
+
+  // The academic hall chain (see ACADEMIC_HALL_SLOTS above). The first
+  // waits on the gen-ed core, exactly as every tier-1 course does; each
+  // rung after it waits on the rung before, the dorm chain's shape.
+  ACADEMIC_HALL_NAMES.forEach((name, i) => {
+    const cost = Math.round(ACADEMIC_HALL_FIRST_COST * ACADEMIC_HALL_COST_RATIO ** i / 1_000) * 1_000;
+    nodes.push({
+      id: academicHallId(i),
+      kind: 'building',
+      name,
+      description: `An academic hall with ${ACADEMIC_HALL_SLOTS} program slots. Six programs of one school, housed together, found that school.`,
+      cost,
+      duration: i === 0 ? ACADEMIC_HALL_FIRST_WEEKS : ACADEMIC_HALL_WEEKS,
+      prereqs: i === 0 ? [...GENED_CORE_IDS] : [academicHallId(i - 1)],
+      status: 'locked',
+      slots: ACADEMIC_HALL_SLOTS,
+      effects: { upkeepPerWeek: ACADEMIC_HALL_UPKEEP_PER_WEEK },
+    });
+  });
 
   // Graduate programs, appended after the undergraduate catalogue (see the
   // GRADUATE PROGRAMS block above). Every one of these is a plain `course`

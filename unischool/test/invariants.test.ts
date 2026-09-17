@@ -18,11 +18,12 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { reducer } from '../src/engine/reducer';
 import { createInitialState } from '../src/state/actions';
-import { initialTech } from '../src/data/techData';
+import { initialTech, majorPrefixes, graduatePrograms, ACADEMIC_HALL_COUNT, ACADEMIC_HALL_SLOTS, isAcademicHall } from '../src/data/techData';
 import { weeklyResearchPoints, facilitySchool, disciplineVocab, rollGrantFunder, rollPrizeName } from '../src/data/researchData';
 import { researchSchools } from '../src/data/techData';
 import { findDecisionEvent, type DecisionEventContext } from '../src/data/eventData';
 import { totalEnrolled } from '../src/state/types';
+import { GENED_BUILDING_ID } from '../src/data/techData';
 import type { GameState, OrgPetition } from '../src/state/types';
 import {
   usedFacultySlots, hasFreeFacultySlot, eligibleInstructors, facultyLoad, isUnstaffed, hasFreeSlot,
@@ -264,12 +265,11 @@ function relPath(f: string): string {
   // directly would be the same flow-not-stock mistake the rule above exists
   // to forbid — just in a place nobody was watching yet.
   //
-  // The allowed set gains one file over reputation's: a MIGRATION seeding a
-  // newly-added stock for a run already underway is the same act as founding
-  // init, just arriving late (see persistence.ts's MIGRATIONS[42]).
-  // Deliberately allowed by name here rather than dodged by renaming a local
-  // in that file — an invariant you can slip past by choosing a different
-  // variable name is not an invariant.
+  // The allowed set gains one file over reputation's: persistence.ts, which
+  // once seeded a newly-added stock for a run already underway (the same
+  // act as founding init, arriving late) and is kept on the list by name
+  // rather than dodged by renaming a local — an invariant you can slip past
+  // by choosing a different variable name is not an invariant.
   const ALLOWED_STANDING_WRITERS = new Set([...ALLOWED_REPUTATION_WRITERS, 'state/persistence.ts']);
   for (const field of ['socialStanding', 'researchStanding'] as const) {
     const found: string[] = [];
@@ -511,6 +511,80 @@ function relPath(f: string): string {
   });
   assert(s1.orgs.pendingPetitions.length === 0, 'the petition queue is empty after resolving — nothing carries over');
   assert(!s1.orgs.clubs.some((c) => c.id === 'test-petition'), 'a declined petition never becomes a live club');
+}
+
+// =====================================================================
+// 9b. HALLS AND SLOTS (Plan 14's PR A). `s.halls` is the one side record
+// systems read (see types.ts's HallSlot), so it is held to three rules in
+// every state the game can reach: every non-null slot names a real
+// program; no program is housed twice; and every hall in the record is a
+// placed, standing Buildable with exactly its `slots` entries. The same
+// three rules persistence.ts's sanitizeHalls enforces on load.
+// =====================================================================
+function assertHallsInvariants(s: GameState, label: string): void {
+  const programIds = new Set<string>(['CORE', ...majorPrefixes(), ...graduatePrograms().map((p) => p.id)]);
+  const housed = new Map<string, string>();
+  for (const [hallId, slots] of Object.entries(s.halls)) {
+    const hall = s.tech.find((t) => t.id === hallId);
+    assert(!!hall && hall.slots !== undefined, `${label}: hall ${hallId} is a Buildable with slots`);
+    assert(hall?.status === 'done', `${label}: hall ${hallId} is standing`);
+    assert(hallId in s.placements, `${label}: hall ${hallId} is placed`);
+    assert(slots.length === hall?.slots, `${label}: hall ${hallId} has exactly ${hall?.slots} slots (got ${slots.length})`);
+    for (const slot of slots) {
+      if (slot.programId === null) continue;
+      assert(programIds.has(slot.programId), `${label}: slot in ${hallId} names a real program (${slot.programId})`);
+      assert(!housed.has(slot.programId), `${label}: ${slot.programId} is housed once (also in ${housed.get(slot.programId)})`);
+      housed.set(slot.programId, hallId);
+    }
+  }
+}
+{
+  // A founding save: one hall, one slot, the core in it, nothing else.
+  let s = fresh();
+  assertHallsInvariants(s, 'founding');
+  assert(Object.keys(s.halls).length === 1 && s.halls[GENED_BUILDING_ID]?.length === 1,
+    'a founding save has one hall with one slot');
+  assert(s.halls[GENED_BUILDING_ID]?.[0]?.programId === 'CORE', 'and the core is in it');
+  assert(s.tech.find((t) => t.id === GENED_BUILDING_ID)?.slots === 1, 'Founders Hall is seeded with one slot');
+
+  // The chain: twelve halls of six, strictly sequential, the first waiting
+  // on the gen-ed core.
+  const halls = s.tech.filter(isAcademicHall);
+  assert(halls.length === ACADEMIC_HALL_COUNT, `the seed holds ${ACADEMIC_HALL_COUNT} academic halls (got ${halls.length})`);
+  assert(halls.every((h) => h.slots === ACADEMIC_HALL_SLOTS), 'every academic hall has six slots');
+  assert(halls.every((h) => h.status === 'locked'), 'no academic hall is buildable at founding');
+  assert(halls[0].prereqs.length === 6 && halls[0].prereqs.every((p) => p.startsWith('GE1')),
+    'the first hall requires the entire gen-ed core');
+  assert(halls.slice(1).every((h, i) => h.prereqs.length === 1 && h.prereqs[0] === halls[i].id),
+    'each later hall requires exactly the hall before it');
+  assert(halls.every((h, i) => i === 0 || h.cost > halls[i - 1].cost), 'each hall costs more than the one before');
+
+  // Drive it: finish the core, build the first hall, and its slots open
+  // empty the week it finishes — not before.
+  s.finance.cash = 500_000_000;
+  for (const id of ['GE110', 'GE120', 'GE130', 'GE140', 'GE150', 'GE160']) {
+    s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
+  }
+  const first = halls[0].id;
+  s = advanceUntil(s, (st) => st.tech.find((t) => t.id === first)?.status === 'available', 60);
+  assert(s.tech.find((t) => t.id === first)?.status === 'available', 'the first hall opens once the gen-ed core is done');
+  assert(s.tech.find((t) => t.id === halls[1].id)?.status === 'locked', 'the second hall stays locked behind the first');
+  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: first, row: 40, col: 90, rotated: false });
+  assert(s.tech.find((t) => t.id === first)?.status === 'developing', 'the first hall is under construction');
+  assert(s.halls[first] === undefined, 'a hall under construction has no slots yet');
+  assertHallsInvariants(s, 'hall under construction');
+  s = advanceUntil(s, (st) => st.tech.find((t) => t.id === first)?.status === 'done', 260);
+  assert(s.tech.find((t) => t.id === first)?.status === 'done', 'the first hall finishes');
+  assert(s.halls[first]?.length === ACADEMIC_HALL_SLOTS, 'and opens with six slots');
+  assert(s.halls[first]?.every((slot) => slot.programId === null), 'all of them empty');
+  assert(s.tech.find((t) => t.id === halls[1].id)?.status === 'available', 'the second hall is now offered');
+  assertHallsInvariants(s, 'first hall standing');
+
+  // A tick does not touch a hall's slots: nothing reads or writes them yet
+  // beyond the two writes above.
+  const before = JSON.stringify(s.halls);
+  s = advanceUntil(s, () => false, 20);
+  assert(JSON.stringify(s.halls) === before, 'ticking leaves the halls record alone');
 }
 
 // =====================================================================
