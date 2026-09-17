@@ -14,9 +14,12 @@ going to happen but has not, it belongs here.
 ## Sequenced enough to start
 
 *The [September 2026 design review](docs/reviews/2026-09-design-review.md) set the
-order for what comes next. Plans 09 (the playtest harness), 10 (growth has
-a cost), 11 (academic halls), 12 (the year) and 13 (the endpoint) are written
-and `Proposed`, in that order of dependency. What comes after them — the
+order for what comes next. Plan 09 (the playtest harness) has **landed** — the
+scenarios, the debug flag and panel, the prestige breakdown and the sim
+scorecard the rest of them are measured with, all in
+[`docs/architecture/playtesting.md`](docs/architecture/playtesting.md). Plans 10
+(growth has a cost), 11 (academic halls), 12 (the year) and 13 (the endpoint)
+are written and `Proposed`, in that order of dependency. What comes after them — the
 faculty lifecycle, research that reaches the world, student-life asks,
 athletics' reach, pedestrians — is in the review's roadmap and not yet
 planned.*

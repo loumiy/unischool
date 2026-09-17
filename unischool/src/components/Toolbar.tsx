@@ -178,7 +178,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
       </nav>
 
       <div className="toolbar-right">
-        <SchoolAndClock s={s} speed={speed} setSpeed={setSpeed} weekProgress={weekProgress} act={act} />
+        <SchoolAndClock s={s} speed={speed} setSpeed={setSpeed} weekProgress={weekProgress} />
       </div>
 
       {buildOpen && (

@@ -83,3 +83,18 @@ Everything that needs to stop time rides on this one mechanism:
 
 Build this once, generically. Do not bolt the report, admissions, or tutorial on
 as one-off pauses.
+
+## A new interrupt needs a default answer
+
+Two things fast-forward through a run with no player: the balance harness
+(`sim/balanceSim.ts`) and the debug panel's Jump. Both answer whatever stops
+the clock by asking `src/engine/defaultAnswers.ts` for an action, so that both
+answer the same modal the same way.
+
+**Adding an interrupt type means adding its case there.** An unrecognised type
+falls into the `default` branch and is dismissed unread — which is not
+hypothetical: the athletic director's offer spent a release being dismissed
+that way by a harness that did not know it existed, so the feature never ran
+in a single measured trajectory while the balance figures were being fitted
+against those runs. See
+[playtesting.md](playtesting.md).

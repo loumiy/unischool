@@ -18,15 +18,30 @@
 //   npm run sim            # 40 years, every 2nd year, all strategies
 //   npm run sim -- 60 5    # 60 years, every 5th year
 //   npm run sim -- 40 2 public   # only strategies matching "public"
+//
+// Every table is followed by its SCORECARD: the figures that have left the
+// bands sim/reference.ts records for that strategy (see there for what a
+// band is and is not). Two more flags go with it:
+//
+//   npm run sim -- --write-reference      # re-record the bands from this run
+//   npm run sim -- --save last.json       # keep this run's sampled rows
+//   npm run sim -- --compare last.json    # print what moved against them
 // ---------------------------------------------------------------------
 
+import { readFileSync, writeFileSync } from 'node:fs';
 import { reducer } from '../src/engine/reducer';
+import { defaultAnswer } from '../src/engine/defaultAnswers';
+import {
+  REFERENCE, METRICS, TOLERANCE,
+  bandsFrom, describeFinding, findingsFor, metricOf, serialiseReference,
+  type Metric, type Reference,
+} from './reference';
 import type { Action } from '../src/state/actions';
 import { createPreStartState } from '../src/state/actions';
-import type { GameState, Buildable, Coach, InitiativeReport } from '../src/state/types';
+import type { AthleticsBudgetTier, GameState, Buildable, InitiativeReport } from '../src/state/types';
 import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudent } from '../src/systems/finance/financeSystem';
-import { admitRate, topBandShare } from '../src/systems/admissions/admissionsSystem';
+import { admitRate, priceTolerance, topBandShare } from '../src/systems/admissions/admissionsSystem';
 import { TUITION_SLIDER_MAX, FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import {
   canStartDevelopment, hasFreeFacultySlot, eligibleInstructors, unstaffedCourses,
@@ -36,14 +51,13 @@ import { facultyLoads } from '../src/systems/faculty/facultyAssignment';
 import { initiativeDepth, initiativeFundingCost, initiativeOffers } from '../src/data/researchData';
 import { researchSchools } from '../src/data/techData';
 import { firstFreeSpot, footprintOf } from '../src/state/campusMap';
-import { findDecisionEvent, HELLENIC_COUNCIL_MIN_CLUBS } from '../src/data/eventData';
+import { HELLENIC_COUNCIL_MIN_CLUBS } from '../src/data/eventData';
 import { weeklyResearchPoints } from '../src/data/researchData';
 import { studentLifeSatisfaction } from '../src/systems/satisfaction/satisfactionSystem';
 import { demandProgress } from '../src/systems/demands/demandSystem';
 import { demandSubject } from '../src/data/demandData';
-import type { DecisionEventContext } from '../src/data/eventData';
 import { discoverySchools } from '../src/data/techData';
-import { hasStudentCenter, varsityTeamUpkeep } from '../src/data/studentLifeData';
+import { TRAINER_FIELD, hasStudentCenter, varsityTeamUpkeep } from '../src/data/studentLifeData';
 import { LIBRARY_TIER1_ID, nextLibraryFloor } from '../src/data/facilitiesData';
 
 // ---------------------------------------------------------------------
@@ -122,6 +136,19 @@ export interface Strategy {
   // watching their own margin would not make that mistake twice; this is
   // that same ordinary caution, not a game-balance change.
   courseAffordabilityAware?: boolean;
+  // Whether this strategy staffs its varsity department: hires a head
+  // coach, an assistant and a trainer for every active team off the
+  // standing coach market, and raises the athletics budget once it is
+  // comfortably flush. Optional and off for every archetype that predates
+  // it, which is why they have never won a national title between them —
+  // teamQuality is what seeds a bracket (see systems/athletics/playoffs.ts)
+  // and an unstaffed team never reaches its sport's strongest eight.
+  playsCoachingMarket?: boolean;
+  // Whether this strategy keeps every faculty CHAIR filled — hires into any
+  // field with a course it cannot currently staff, rather than only into one
+  // holding up a course it could afford to start this week (see decide()'s
+  // hiring block). The completionist's own "fill every chair" policy.
+  fillsEveryChair?: boolean;
 }
 
 // The course's tier, recovered from its id (101 / 1x0 / 2x0) purely so the
@@ -354,6 +381,56 @@ function dispatchPlaceable(get: () => GameState, dispatch: (a: Action) => void, 
   dispatch({ type: 'PLACE_BUILDABLE', buildableId: nodeId, row: spot.row, col: spot.col, rotated: false });
 }
 
+// THE COACHING MARKET, for the one strategy that plays it (see
+// Strategy.playsCoachingMarket). Three roles per active team, hired off the
+// same standing pool the Athletics tab lists, plus the budget dial once the
+// school is comfortably flush.
+//
+// This exists because of a finding rather than for completeness: across all
+// six archetypes over forty years, the harness had never won a single
+// national title — not even the Completionist, which finishes every venue
+// and fields all ten teams. Nobody hired a coach, and teamQuality is what
+// seeds a bracket (see systems/athletics/playoffs.ts), so no scripted school
+// ever reached its sport's strongest eight. A whole authored feature — the
+// postseason, the championship modal, the titles term in campus-life
+// standing — was invisible to every measured trajectory.
+//
+// A coach's salary is a recurring line, not an up-front cost (see the
+// reducer's HIRE_COACH), so the gate is the same flow gate a faculty hire
+// answers to: headroom on the week's net, and cash above the buffer.
+function staffTheDepartment(get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy): void {
+  if (!strategy.playsCoachingMarket) return;
+
+  // The budget dial is free and reversible, so the only question is whether
+  // the school can carry the upkeep multiplier it applies. Raised once the
+  // school is running well clear of its own buffer, which is the "budget
+  // high once flush" half of the review's policy.
+  const s0 = get();
+  const flush = s0.finance.cash > strategy.buffer(s0) * 3 && weeklyNet(s0) > 0;
+  const wanted: AthleticsBudgetTier = flush ? 'high' : 'medium';
+  if (s0.orgs.athleticsBudget !== wanted) dispatch({ type: 'SET_ATHLETICS_BUDGET', tier: wanted });
+
+  for (const teamId of get().orgs.teams.filter((t) => t.status === 'active').map((t) => t.id)) {
+    for (const role of ['head', 'assistant', 'trainer'] as const) {
+      const s = get();
+      const team = s.orgs.teams.find((t) => t.id === teamId);
+      if (!team) continue;
+      const slot = role === 'head' ? 'headCoach' : role === 'assistant' ? 'assistantCoach' : 'trainer';
+      if (team[slot] !== null) continue;
+      if (s.finance.cash <= strategy.buffer(s) || !hasHeadroom(s, strategy)) continue;
+      const field = role === 'trainer' ? TRAINER_FIELD : team.sport;
+      // The best of whoever is listed in the field this role needs — a
+      // program that hires the strongest available coach is what "plays the
+      // coaching market" means, and it is what a player does.
+      const candidate = [...s.orgs.coachCandidates]
+        .filter((c) => c.field === field)
+        .sort((a, b) => b.quality - a.quality)[0];
+      if (!candidate) continue;
+      dispatch({ type: 'HIRE_COACH', candidateId: candidate.id, teamId, role });
+    }
+  }
+}
+
 // One week of player decisions, dispatched through exactly the actions the
 // UI dispatches.
 //
@@ -371,6 +448,7 @@ function decide(
   commissionScholarship(get, dispatch, strategy);
   restaffOrphans(get, dispatch, strategy);
   cutPayrollIfStalled(get, weeksInTheRed, dispatch, strategy);
+  staffTheDepartment(get, dispatch, strategy);
 
   // Faculty: appoint straight off the standing candidate market when a
   // field is blocking a course this strategy could actually start today.
@@ -402,9 +480,16 @@ function decide(
     const s = get();
     const c = s.candidates.find((x) => x.id === candidate);
     if (!c) continue;
+    // `fillsEveryChair` drops the affordability half of this test: the
+    // earnest completionist hires into any field that has a course it
+    // cannot currently staff, whether or not it could start that course
+    // this week, which is what "fill every chair" means and what a player
+    // aiming at the whole catalogue actually does. The cash buffer and the
+    // flow gate below still apply, so it is a wider rule, not a free one.
     const needed = s.tech.some(
       (t) => t.requiresFaculty === c.field && t.status === 'available' &&
-        !hasFreeFacultySlot(s, c.field) && affordable(s, t.cost, strategy),
+        !hasFreeFacultySlot(s, c.field) &&
+        (strategy.fillsEveryChair || affordable(s, t.cost, strategy)),
     );
     if (needed && s.finance.cash > strategy.buffer(s) && hasHeadroom(s, strategy)) {
       dispatch({ type: 'HIRE_FACULTY', facultyId: c.id });
@@ -571,9 +656,53 @@ export interface Row {
   // graduate course is a `course` Buildable, so the curriculum block below
   // already picks them up, sorted last because their ids end in 5xx/7xx.
   gradCourses: number; gradPrograms: number; gradUpkeep: number;
+  // WHAT A YEAR ACTUALLY CONTAINED, for the player rather than the school.
+  // Every other column here describes the institution; these three describe
+  // the person playing it, and they are the measurements Plans 12 and 13
+  // are checked against — the September review's run averaged 25 actions a
+  // year and fell to between 4 and 14 after year 22, which is the finding
+  // "half the playtime is dead" is made of.
+  //
+  //   actions       discretionary dispatches that year: every start, hire,
+  //                 placement, commission and campaign the scripted player
+  //                 made. NOT modal answers — those are counted by type in
+  //                 the tally, since being asked something is not the same
+  //                 as finding something to do.
+  //   idleWeeks     weeks when the game offered NOTHING startable: no
+  //                 available Buildable whose non-cash gates were met.
+  //                 A week with nothing to decide even in principle.
+  //   blockedWeeks  weeks when something was startable and nothing was
+  //                 affordable — the cash throttle actually throttling.
+  //
+  // The two week counts read AFFORDABILITY against raw cash rather than
+  // against the strategy's own buffer, deliberately: "the game offered me
+  // nothing I could buy" is a fact about the game, where "nothing that
+  // cleared my eight-week reserve" is a fact about the policy, and the Idle
+  // control (buffer: MAX_SAFE_INTEGER) would otherwise report every week of
+  // forty years as money-blocked.
+  actions: number; idleWeeks: number; blockedWeeks: number;
 }
 
-function snapshot(s: GameState, weeksInTheRed: number, minCash: number): Row {
+// What the WEEK offered, regardless of what the strategy did about it (see
+// Row's idleWeeks/blockedWeeks). `startable` ignores cash and reads only the
+// gates a Buildable cannot buy its way past — status, and a free faculty
+// slot for a course. `affordable` then asks whether the school could pay
+// for any of them out of raw cash.
+function weekOffered(s: GameState): { startable: boolean; affordable: boolean } {
+  let startable = false;
+  let affordable = false;
+  for (const node of s.tech) {
+    if (node.status !== 'available') continue;
+    if (node.requiresFaculty && !hasFreeFacultySlot(s, node.requiresFaculty)) continue;
+    startable = true;
+    if (s.finance.cash >= node.cost) { affordable = true; break; }
+  }
+  return { startable, affordable };
+}
+
+function snapshot(
+  s: GameState, weeksInTheRed: number, minCash: number, year: YearActivity,
+): Row {
   const flow = financeBreakdown(s);
   return {
     year: s.clock.year - 1,
@@ -611,8 +740,16 @@ function snapshot(s: GameState, weeksInTheRed: number, minCash: number): Row {
     varsityActive: s.orgs.teams.filter((t) => t.status === 'active').length,
     varsityAwaiting: s.orgs.teams.filter((t) => t.status === 'awaitingVenue').length,
     athleticsUpkeep: varsityTeamUpkeep(s),
+    actions: year.actions,
+    idleWeeks: year.idleWeeks,
+    blockedWeeks: year.blockedWeeks,
   };
 }
+
+// The three player-facing counts, accumulated across a year and reset at
+// each snapshot — they describe one year, not the run to date.
+interface YearActivity { actions: number; idleWeeks: number; blockedWeeks: number }
+function newYear(): YearActivity { return { actions: 0, idleWeeks: 0, blockedWeeks: 0 }; }
 
 // What the authored decision events (see src/data/eventData.ts) did over a
 // run. Reported under the table so a balance pass can see at a glance
@@ -680,29 +817,23 @@ interface EventTally {
   varsityPetitions: number;
   varsityGranted: number;
   titles: number; // championships won over the run (see systems/athletics/playoffs.ts)
+  // Every interrupt the run answered, by type. The review counted these by
+  // hand — 223 modals over forty years, 61 of them research reports — and
+  // "which modal is the player actually seeing" is a different question from
+  // "how much texture is there", which the texture line below answers.
+  modals: Record<string, number>;
 }
 
-// The scripted player's event policy: take the FIRST affordable choice —
-// which in every entry in the table is the "deal with it properly, and
-// pay" option — and fall back to a free one when the money isn't there.
-// That is the most expensive reasonable policy, so the tally below is an
-// upper bound on what events cost a run.
+// The scripted player's event policy — take the first affordable choice,
+// fall back to a free one — moved to src/engine/defaultAnswers.ts when the
+// debug panel's Jump needed to answer a modal the same way this does. The
+// tally below is still an upper bound on what events cost a run, because
+// that policy is still the most expensive reasonable one.
 // The Greek-life entries of the shared decision-event table (see
 // src/data/eventData.ts). Named here only so the report can say how much of
 // the run's FIXED event budget student life took — they do not get a budget
 // of their own, which is the whole point of authoring them into that table.
 const GREEK_EVENT_IDS = ['hellenic-council', 'greek-scandal', 'greek-housing'];
-
-function chooseEventOption(s: GameState): { eventId: string; choiceId: string; ctx: DecisionEventContext } | null {
-  const payload = s.pendingInterrupt?.payload as { eventId: string; ctx: DecisionEventContext } | undefined;
-  if (!payload) return null;
-  const event = findDecisionEvent(payload.eventId);
-  if (!event) return null;
-  const affordable = event.choices.find((c) => c.cost(s, payload.ctx) <= s.finance.cash);
-  const choice = affordable ?? event.choices.find((c) => c.cost(s, payload.ctx) <= 0);
-  if (!choice) return null;
-  return { eventId: event.id, choiceId: choice.id, ctx: payload.ctx };
-}
 
 // The five athletics venue ids (facilitiesData.ts), named here rather than
 // imported — the same self-contained-defensive-check spirit persistence.ts's
@@ -739,11 +870,26 @@ export function play(
   // whether a claim that just failed fails everywhere or only here (see that
   // file's `holds`).
   seedOverride?: number,
-): { rows: Row[]; tally: EventTally; venuesBuilt: string[] } {
+  // Halts the run early, at the TOP of a week and BEFORE any pending
+  // interrupt is answered — so a run stopped this way hands back a state
+  // with its modal still on screen. That is the whole point: a scenario
+  // (see tools/scenarios.ts) wants "the week a championship modal is
+  // pending", which is a state that only exists between a system raising
+  // the interrupt and the scripted player dismissing it, and no year
+  // boundary will ever land on it. Optional; today's callers pass nothing
+  // and run to `years` exactly as they did.
+  stopWhen?: (s: GameState) => boolean,
+): { rows: Row[]; tally: EventTally; venuesBuilt: string[]; state: GameState } {
   resetSimEnvironment(seedOverride);
   let s = createPreStartState();
   s = reducer(s, { type: 'START_GAME', name: 'Test University', vernacular: FOUNDING_VERNACULAR });
   const dispatch = (a: Action) => { s = reducer(s, a); };
+  // The same dispatch, counted. Handed to decide() alone, so what it
+  // measures is DISCRETIONARY play — the starts, hires, placements,
+  // commissions and campaigns a player would have clicked — and never the
+  // modal answers, which are counted by type in the tally instead.
+  const dispatchCounted = (a: Action) => { year.actions += 1; dispatch(a); };
+  let year = newYear();
   const rows: Row[] = [];
   let weeksInTheRed = 0;
   let minCash = s.finance.cash;
@@ -757,56 +903,64 @@ export function play(
     schoolsNamed: 0, chaptersFormed: 0, chaptersAskedForHousing: 0,
     hellenicCouncilYear: null, hellenicCouncilEligibleYear: null, studentCenterYear: null,
     eventFireCounts: {}, varsityPetitions: 0, varsityGranted: 0, titles: 0,
+    modals: {},
   };
 
   while (s.clock.year <= years) {
+    if (stopWhen?.(s)) break;
     if (tally.studentCenterYear === null && hasStudentCenter(s)) tally.studentCenterYear = s.clock.year;
     if (tally.hellenicCouncilEligibleYear === null && s.orgs.clubs.length >= HELLENIC_COUNCIL_MIN_CLUBS) {
       tally.hellenicCouncilEligibleYear = s.clock.year;
     }
     if (s.pendingInterrupt) {
-      if (s.pendingInterrupt.type === 'admissions') {
+      // ANSWERED BY THE SHARED DEFAULTS (see src/engine/defaultAnswers.ts),
+      // never by a policy of this file's own. The debug panel's Jump
+      // fast-forwards through the same modals, and two fast-forwards that
+      // answered a championship differently would be two different games —
+      // so the answer lives in one module and both ask it for one.
+      //
+      // What stays here is the BOOKKEEPING, which is this harness's own
+      // business: the tallies below are read off the interrupt (and off the
+      // action that answers it) before the dispatch clears either.
+      const type = s.pendingInterrupt.type;
+      tally.modals[type] = (tally.modals[type] ?? 0) + 1;
+      const answer = defaultAnswer(s, {
+        tuition: strategy.tuition(s),
+        // Every strategy takes the slider's own opening position for its
+        // CURRENT standing — what a school like this would normally take
+        // (see admissionsSystem.ts's admitRate). Deliberately recomputed
+        // each summer rather than read back off s.students.admitRate:
+        // that field is sticky by design, so a scripted player echoing it
+        // would freeze on its founding rate and go on taking a founding
+        // school's share of the pool at top-50 prestige. No strategy here
+        // plays the lever deliberately, so the harness measures what the
+        // DEFAULT policy does — which is what it measured before PR C
+        // made the rate a decision at all.
+        admitRate: strategy.admitRate ? strategy.admitRate(s) : admitRate(s.self.reputation),
+      });
+
+      if (type === 'admissions') {
         // The student-life digest rides on this interrupt (see the
-        // reducer's RESOLVE_ADMISSIONS). The scripted player recognises
+        // reducer's RESOLVE_ADMISSIONS). The default answer recognises
         // EVERY petition, which is the most expensive answer available —
         // it is the only one that takes on recurring cost — so the opex
         // and satisfaction figures these runs print are the upper bound on
         // what student life does to a trajectory, exactly as the event
-        // policy below is an upper bound on what events cost.
-        const approvedPetitionIds = s.orgs.pendingPetitions.map((p) => p.id);
-        tally.petitionsApproved += approvedPetitionIds.length;
+        // policy is an upper bound on what events cost.
+        tally.petitionsApproved += s.orgs.pendingPetitions.length;
         tally.chaptersFormed += s.orgs.pendingPetitions.filter((p) => p.kind === 'chapter').length;
-        dispatch({
-          type: 'RESOLVE_ADMISSIONS',
-          tuition: strategy.tuition(s),
-          // Every strategy takes the slider's own opening position for its
-          // CURRENT standing — what a school like this would normally take
-          // (see admissionsSystem.ts's admitRate). Deliberately recomputed
-          // each summer rather than read back off s.students.admitRate:
-          // that field is sticky by design, so a scripted player echoing it
-          // would freeze on its founding rate and go on taking a founding
-          // school's share of the pool at top-50 prestige. No strategy here
-          // plays the lever deliberately, so the harness measures what the
-          // DEFAULT policy does — which is what it measured before PR C
-          // made the rate a decision at all.
-          admitRate: strategy.admitRate ? strategy.admitRate(s) : admitRate(s.self.reputation),
-          approvedPetitionIds,
-        });
-        rows.push(snapshot(s, weeksInTheRed, minCash));
-      } else if (s.pendingInterrupt.type === 'milestone') {
+      } else if (type === 'milestone') {
         tally.milestones += 1;
-        dispatch({ type: 'RESOLVE_MILESTONE' });
-      } else if (s.pendingInterrupt.type === 'research-complete') {
-        // The completion report, which carries the award if the work won
-        // one — so the prize tally is read off the payload now rather than
-        // off an interrupt of its own (see researchSystem.ts).
+      } else if (type === 'research-complete') {
+        // The completion report carries the award if the work won one — so
+        // the prize tally is read off the payload rather than off an
+        // interrupt of its own (see researchSystem.ts).
         const { report } = s.pendingInterrupt.payload as { report: InitiativeReport };
         tally.reports += 1;
         if (report.award) tally.prizes += 1;
-        dispatch({ type: 'RESOLVE_RESEARCH_REPORT' });
-      } else if (s.pendingInterrupt.type === 'demand') {
+      } else if (type === 'demand') {
         // A student demand (see src/systems/demands/demandSystem.ts). The
-        // scripted player acknowledges it and does nothing else — there is
+        // default answer acknowledges it and does nothing else — there is
         // nothing else to do: a demand is answered by BUILDING the thing
         // before the deadline, which every strategy's ordinary
         // facility/dorm rules either will or won't do on their own. That
@@ -820,40 +974,23 @@ export function play(
           const subject = demandSubject(demand);
           tally.demandSubjects[subject] = (tally.demandSubjects[subject] ?? 0) + 1;
         }
-        dispatch({ type: 'RESOLVE_DEMAND' });
-      } else if (s.pendingInterrupt.type === 'charter') {
-        // The scripted player always takes the charter. It costs nothing
-        // and changes nothing mechanical (it renames the school), so
-        // there is no trajectory to compare the other answer against.
-        dispatch({ type: 'RESOLVE_CHARTER', accept: true });
-      } else if (s.pendingInterrupt.type === 'championship') {
-        // Read and leave, like the U.S. News report. Answered by name rather
-        // than left to the fallback so the tally below can count titles — and
-        // so a new interrupt type can never again be silently dismissed by a
-        // harness that does not know it exists (see the athletic-director
-        // branch below for what that cost last time).
+      } else if (type === 'championship') {
         tally.titles += 1;
-        dispatch({ type: 'RESOLVE_CHAMPIONSHIP' });
-      } else if (s.pendingInterrupt.type === 'athletic-director') {
-        // The scripted player takes the MIDDLE candidate: the three differ
-        // only in how much of the department's budget goes to the person
-        // running it (see data/studentLifeData.ts's AD_TIERS), so picking the
-        // middle is the neutral reading — a strategy that always took the
-        // cheapest would be a thriftier player than any of these are, and one
-        // that always took the dearest would be a more extravagant one.
-        //
-        // Answered deliberately rather than left to the fallback below. An
-        // unrecognised interrupt falls through to RESOLVE_REPORT, which clears
-        // it without hiring or declining — and since the offer only cools down
-        // once it has been PUT, that would have the harness dismissing a modal
-        // it never read while the feature it is meant to be measuring never
-        // runs at all.
-        const payload = s.pendingInterrupt.payload as { candidates: Coach[] };
-        const middle = payload.candidates[Math.floor(payload.candidates.length / 2)] ?? null;
-        dispatch({ type: 'RESOLVE_ATHLETIC_DIRECTOR', candidate: middle, mascot: 'Sim Owls' });
-      } else if (s.pendingInterrupt.type === 'decision-event') {
-        const taken = chooseEventOption(s);
-        const before = s.finance.cash;
+      }
+
+      const before = s.finance.cash;
+      if (answer) dispatch(answer);
+
+      if (type === 'admissions') {
+        rows.push(snapshot(s, weeksInTheRed, minCash, year));
+        year = newYear();
+      }
+      if (type === 'decision-event') {
+        // Which event, and which way it went, read off the answer the
+        // shared defaults produced rather than re-derived here.
+        const taken = answer?.type === 'RESOLVE_DECISION_EVENT' && answer.eventId !== ''
+          ? { eventId: answer.eventId, choiceId: answer.choiceId }
+          : null;
         if (taken) {
           tally.decisions += 1;
           if (GREEK_EVENT_IDS.includes(taken.eventId)) tally.greekEventsSeen += 1;
@@ -865,19 +1002,23 @@ export function play(
             if (taken.choiceId === 'establish') tally.varsityGranted += 1;
           }
           if (taken.eventId === 'hellenic-council' && tally.hellenicCouncilYear === null) {
+            // s.clock.year is the post-dispatch year; a decision event never
+            // falls on the week the clock turns over, so this is the year it
+            // fired in.
             tally.hellenicCouncilYear = s.clock.year;
           }
-          dispatch({ type: 'RESOLVE_DECISION_EVENT', ...taken });
-        } else {
-          dispatch({ type: 'RESOLVE_DECISION_EVENT', eventId: '', choiceId: '', ctx: {} });
         }
         tally.cash += s.finance.cash - before;
-      } else {
-        dispatch({ type: 'RESOLVE_REPORT' });
       }
       continue;
     }
-    decide(() => s, strategy, weeksInTheRed, dispatch);
+    // Read BEFORE the week's decisions, so "was there anything to do" is a
+    // question about the week the player woke up to rather than about what
+    // is left once they have done it.
+    const offered = weekOffered(s);
+    if (!offered.startable) year.idleWeeks += 1;
+    else if (!offered.affordable) year.blockedWeeks += 1;
+    decide(() => s, strategy, weeksInTheRed, dispatchCounted);
     // A demand resolves inside a TICK, silently and with no interrupt (see
     // demandSystem.ts) — meeting one is finishing a building, not clicking
     // anything — so which way it went is read from the transition rather
@@ -906,7 +1047,13 @@ export function play(
     onWeek?.(s);
   }
   const venuesBuilt = VENUE_IDS.filter((id) => s.tech.find((t) => t.id === id)?.status === 'done');
-  return { rows, tally, venuesBuilt };
+  // The final state rides along with the tables. tools/makeSave.ts used to
+  // capture it through `onWeek` — the only hook there was — which a run
+  // halted by `stopWhen` cannot use: it stops BETWEEN weeks, so the last
+  // post-TICK state `onWeek` saw is a week older than the one the scenario
+  // is about. Returning it costs nothing (it is the same object the loop
+  // just finished with) and is what tools/scenario.ts writes out.
+  return { rows, tally, venuesBuilt, state: s };
 }
 
 function fmt(n: number): string {
@@ -921,7 +1068,7 @@ function fmt(n: number): string {
 function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venuesBuilt: string[] }, every: number): void {
   const { rows, tally } = run;
   console.log(`\n=== ${strategy.name} ===`);
-  console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | soc | aca | crs | maj | fac |  tuition |  applic | admit% |  endow | rsch/wk | brk | orgs | grad');
+  console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | soc | aca | crs | maj | fac |  tuition |  applic | admit% |  endow | rsch/wk | brk | orgs | grad | act | idle | blkd');
   const last = rows[rows.length - 1];
   for (const r of rows) {
     if (r.year > 6 && r.year % every !== 0 && r !== last) continue;
@@ -939,7 +1086,11 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
       // graduate courses developed / programs founded, at the close of
       // that year — the column that answers "when does a strategy reach
       // the graduate tier, and does it finish anything".
-      `${String(r.gradCourses).padStart(2)}/${r.gradPrograms}`,
+      `${String(r.gradCourses).padStart(2)}/${r.gradPrograms} | ` +
+      // What the YEAR contained for the player: how many discretionary
+      // things they did, how many weeks offered nothing startable at all,
+      // and how many offered something they could not pay for.
+      `${String(r.actions).padStart(3)} | ${String(r.idleWeeks).padStart(4)} | ${String(r.blockedWeeks).padStart(4)}`,
     );
   }
   console.log(`   weeks in the red: ${last.weeksInTheRed} of ${rows.length * 52}, min cash: ${fmt(last.minCash)}`);
@@ -963,6 +1114,33 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
   console.log(
     `   texture modals (milestones + events + research reports + demands): ${texture} over ${years} years ` +
     `= ${(texture / Math.max(years, 1)).toFixed(2)}/yr, on top of the ${years} annual admissions decisions`,
+  );
+  // Every modal by type, and the total — the review's own count (223 over
+  // forty years, 5.6 a year, 61 of them research reports) restated as
+  // something the harness prints rather than something a person tallies.
+  const modalTotal = Object.values(tally.modals).reduce((sum, n) => sum + n, 0);
+  const modalMix = Object.entries(tally.modals)
+    .sort((a, b) => b[1] - a[1])
+    .map(([type, n]) => `${type} ${n}`)
+    .join(' · ');
+  console.log(
+    `   modals answered: ${modalTotal} over ${years} years = ${(modalTotal / Math.max(years, 1)).toFixed(1)}/yr — ${modalMix}`,
+  );
+  // And what the PLAYER had to do, which is the other half of the same
+  // question: a year of five modals and four actions is a quiet year; a
+  // year of five modals and forty actions is a busy one. Reported as an
+  // average and as the last decade's average, because the review's finding
+  // was about the SHAPE — 25 actions a year, falling to 4-14 after year 22.
+  const decade = rows.slice(-10);
+  const mean = (list: Row[], pick: (r: Row) => number) =>
+    list.reduce((sum, r) => sum + pick(r), 0) / Math.max(list.length, 1);
+  console.log(
+    `   what a year contained: ${mean(rows, (r) => r.actions).toFixed(1)} actions/yr ` +
+    `(last decade ${mean(decade, (r) => r.actions).toFixed(1)}), ` +
+    `${mean(rows, (r) => r.idleWeeks).toFixed(1)} idle weeks/yr ` +
+    `(last decade ${mean(decade, (r) => r.idleWeeks).toFixed(1)}), ` +
+    `${mean(rows, (r) => r.blockedWeeks).toFixed(1)} money-blocked weeks/yr ` +
+    `(last decade ${mean(decade, (r) => r.blockedWeeks).toFixed(1)})`,
   );
   // Grant income is compared against the run's total operating cost rather
   // than reported bare: "$40M of grants" means nothing on its own, "1.4% of
@@ -1275,6 +1453,52 @@ export const STRATEGIES: Strategy[] = [
     dormFillThreshold: 0, facilityThreshold: 0, campaigns: false,
   },
   {
+    // THE EARNEST COMPLETIONIST: the September 2026 review's own policy,
+    // written down (see docs/reviews/2026-09-design-review.md, Appendix A).
+    // Every other strategy here is an ARCHETYPE — a crude, reproducible
+    // corner of the space a player might occupy. This one is a PLAYER: a
+    // genre-literate person who intends to develop every course, build every
+    // asset, keep the school solvent and see everything the game has.
+    //
+    // That makes it the most important row in the table for Plans 10 through
+    // 13, because it is the run those plans are about. The review's finding
+    // was not that some corner of the strategy space is degenerate; it was
+    // that playing well, earnestly, for forty years produces rank #1 by year
+    // 18, a finished catalogue by year 22, zero weeks in the red, and two
+    // decades of nothing left to decide.
+    //
+    // The policy, item by item:
+    //   price      90% of what the school's prestige makes tolerable, which
+    //              is what a careful player converges on — it is the highest
+    //              price that does not start driving the pool away
+    //   admit      clamp(1.35 - prestige/100, 0.08, 0.65): broad while
+    //              small, narrowing hard as standing builds
+    //   build      cheapest tier first, on a four-week-opex buffer
+    //   facilities every rung whose attribute is under 80
+    //   beds       35% of the enrolled body (the dorm rule reads
+    //              enrolled/capacity, so 1/0.35 is the same statement)
+    //   research   deepest affordable in every idle lab, without gutting a
+    //              department (decide()'s own commission rule)
+    //   people     every chair filled, and the varsity department staffed —
+    //              the first strategy here to hire a coach at all
+    //   money      campaigns with the surplus, athletics budget high once
+    //              flush
+    name: 'Earnest completionist',
+    tuition: (s) => Math.min(TUITION_SLIDER_MAX, Math.round(priceTolerance(s.self.reputation) * 0.9 / 500) * 500),
+    admitRate: (s) => Math.max(0.08, Math.min(0.65, 1.35 - s.self.reputation / 100)),
+    buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
+    netMargin: 0.1,
+    buildsCourses: true, buildsDorms: true, buildsFacilities: true,
+    // Beds at 35% of enrolled, expressed in the units decide()'s dorm rule
+    // reads: it builds once enrolled/capacity passes this, and capacity
+    // being 35% of enrolled is enrolled/capacity ≈ 2.86.
+    dormFillThreshold: 1 / 0.35,
+    facilityThreshold: 80,
+    campaigns: true,
+    playsCoachingMarket: true,
+    fillsEveryChair: true,
+  },
+  {
     // The control: builds nothing, ever. Prestige and cash here are the
     // floor the whole loop has to beat, or growth is optional.
     name: 'Idle (builds nothing)',
@@ -1375,15 +1599,155 @@ export const ADMIT_PROBES: Strategy[] = [
   },
 ];
 
+// ---------------------------------------------------------------------
+// THE SCORECARD (see sim/reference.ts). Printed under each strategy's
+// table: one line per figure that has left the band the last committed
+// measurement recorded for it. Silence means the trajectory is the one the
+// reference describes — which is not the same as the one it SHOULD be, and
+// reference.ts's own header is careful about the difference.
+// ---------------------------------------------------------------------
+function reportScorecard(strategy: Strategy, rows: Row[]): void {
+  if (!REFERENCE[strategy.name]) {
+    console.log(`   scorecard: no reference bands for "${strategy.name}" — run \`npm run sim -- --write-reference\``);
+    return;
+  }
+  const findings = findingsFor(strategy.name, rows);
+  if (findings.length === 0) {
+    console.log('   scorecard: every sampled figure inside its band');
+    return;
+  }
+  console.log(`   scorecard: ${findings.length} figure${findings.length === 1 ? '' : 's'} out of band`);
+  for (const finding of findings) console.log(`     ${describeFinding(finding)}`);
+}
+
+// ---------------------------------------------------------------------
+// RUN-TO-RUN COMPARISON. `--save last.json` writes every sampled row;
+// `--compare last.json` prints what moved by more than COMPARE_THRESHOLD
+// against it. The point is that a PR summary can quote what the sim said
+// as a DIFF — "year 20 cash -14.8M -> -2.1M" — rather than as the same
+// eighty-line table pasted twice and left to the reader to subtract.
+// ---------------------------------------------------------------------
+const COMPARE_THRESHOLD = 0.05;
+
+interface SavedRun { seed: number; years: number; strategies: Record<string, Row[]> }
+
+function reportComparison(previous: SavedRun, current: Record<string, Row[]>): void {
+  console.log(`\n=== compared against a run of ${previous.years} years at seed ${previous.seed} ===`);
+  let moved = 0;
+  for (const [name, rows] of Object.entries(current)) {
+    const before = previous.strategies[name];
+    if (!before) {
+      console.log(`   ${name}: not in the saved run`);
+      continue;
+    }
+    for (const row of rows) {
+      const was = before.find((r) => r.year === row.year);
+      if (!was) continue;
+      for (const metric of METRICS) {
+        const then = metricOf(was, metric);
+        const now = metricOf(row, metric);
+        // Against the LARGER magnitude, so a figure moving away from zero
+        // (0 weeks in the red to 40) reads as the change it is rather than
+        // as a division by nothing.
+        const scale = Math.max(Math.abs(then), Math.abs(now));
+        if (scale === 0) continue;
+        if (Math.abs(now - then) / scale <= COMPARE_THRESHOLD) continue;
+        moved += 1;
+        console.log(`   ${name} · year ${row.year} ${metric}: ${fmtMetric(then, metric)} -> ${fmtMetric(now, metric)}`);
+      }
+    }
+  }
+  if (moved === 0) console.log(`   nothing moved by more than ${(COMPARE_THRESHOLD * 100).toFixed(0)}%`);
+}
+
+function fmtMetric(value: number, metric: Metric): string {
+  if (metric === 'netMargin') return `${(value * 100).toFixed(1)}%`;
+  if (metric === 'weeksInTheRed') return value.toFixed(0);
+  if (metric === 'prestige') return value.toFixed(1);
+  // Enrolment prints in full rather than through fmt's k/M shortening: a
+  // diff line reading "5k -> 5k" is worse than no line at all, and the
+  // whole point of a diff is that both sides are legible.
+  if (metric === 'enrolled') return Math.round(value).toLocaleString();
+  return fmt(value);
+}
+
+// Rewrites the generated block of sim/reference.ts in place, leaving every
+// hand-written line above it alone. Relative to the working directory,
+// which is the package root under `npm run sim`.
+const REFERENCE_PATH = 'sim/reference.ts';
+// The comment lines the generated block sits between. They live here, in
+// the writer, rather than as constants in the file being written: a
+// constant declaring the marker contains the marker, so the writer would
+// find its own declaration and eat it.
+const GENERATED_START = '// --- GENERATED by `npm run sim -- --write-reference`. Do not hand-edit lightly. ---';
+const GENERATED_END = '// --- END GENERATED ---';
+
+function writeReference(runs: Record<string, Row[]>): void {
+  const reference: Reference = {};
+  for (const [name, rows] of Object.entries(runs)) reference[name] = bandsFrom(rows);
+
+  const source = readFileSync(REFERENCE_PATH, 'utf8');
+  const start = source.indexOf(GENERATED_START);
+  const end = source.indexOf(GENERATED_END);
+  if (start === -1 || end === -1) throw new Error(`${REFERENCE_PATH}: generated markers not found`);
+  const rewritten = source.slice(0, start)
+    + GENERATED_START + '\n' + serialiseReference(reference) + '\n'
+    + source.slice(end);
+  writeFileSync(REFERENCE_PATH, rewritten);
+  const years = Object.values(reference)[0]?.map((r) => r.year).join(', ') ?? 'none';
+  console.log(
+    `\nwrote ${REFERENCE_PATH}: ${Object.keys(reference).length} strategies at years ${years}, `
+    + `each band the current run ±${(TOLERANCE * 100).toFixed(0)}%`,
+  );
+}
+
 const isCliEntry = process.argv[1]?.includes('balanceSim') ?? false;
 if (isCliEntry) {
-  const years = Number(process.argv[2] ?? 40);
-  const every = Number(process.argv[3] ?? 2);
-  const filter = process.argv[4];
+  const argv = process.argv.slice(2);
+  const flag = (name: string) => argv.includes(`--${name}`);
+  const flagValue = (name: string) => {
+    const at = argv.indexOf(`--${name}`);
+    return at === -1 ? undefined : argv[at + 1];
+  };
+  // Positionals are whatever is left once the flags and their values are
+  // taken out, so `npm run sim -- 40 2 --compare last.json` still means
+  // forty years every second year.
+  const consumed = new Set<string>();
+  for (const name of ['compare', 'save']) {
+    const value = flagValue(name);
+    if (value) consumed.add(value);
+  }
+  const positional = argv.filter((a) => !a.startsWith('--') && !consumed.has(a));
+
+  const writingReference = flag('write-reference');
+  // The reference describes the full horizon, so writing it ignores a
+  // shorter one rather than recording bands for years it never reached.
+  const years = writingReference ? 40 : Number(positional[0] ?? 40);
+  const every = Number(positional[1] ?? 2);
+  const filter = writingReference ? undefined : positional[2];
+
+  const runs: Record<string, Row[]> = {};
   for (const strategy of STRATEGIES) {
     if (filter && !strategy.name.toLowerCase().includes(filter.toLowerCase())) continue;
     // play() resets seed/fakeStorage itself (see resetSimEnvironment) — no
     // reset needed here.
-    report(strategy, play(strategy, years), every);
+    const run = play(strategy, years);
+    runs[strategy.name] = run.rows;
+    report(strategy, run, every);
+    if (!writingReference) reportScorecard(strategy, run.rows);
+  }
+
+  if (writingReference) writeReference(runs);
+
+  const comparePath = flagValue('compare');
+  if (comparePath) {
+    reportComparison(JSON.parse(readFileSync(comparePath, 'utf8')) as SavedRun, runs);
+  }
+
+  const savePath = flagValue('save');
+  if (savePath) {
+    const saved: SavedRun = { seed: DEFAULT_SIM_SEED, years, strategies: runs };
+    writeFileSync(savePath, JSON.stringify(saved));
+    console.log(`\nwrote ${savePath}: ${Object.keys(runs).length} strategies, ${years} years at seed ${DEFAULT_SIM_SEED}`);
   }
 }

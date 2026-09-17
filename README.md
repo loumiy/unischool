@@ -159,6 +159,13 @@ Before opening a PR, run `npm run build`, `npm run lint` and `npm test` — and
 [docs/architecture/README.md](docs/architecture/README.md) for the working
 conventions.
 
+To look at a change rather than read about it: `npm run scenario -- --list`
+builds a save at any point in a run — year 8 of a balanced school, year 40 of
+a finished one, the week a championship modal is pending — and `?debug=1` on
+the URL opens a panel that loads it, reads the simulation, sets cash or
+prestige, jumps years and forces events. See
+[docs/architecture/playtesting.md](docs/architecture/playtesting.md).
+
 See [BACKLOG.md](BACKLOG.md) for planned work.
 
 ## Documentation
@@ -169,6 +176,7 @@ See [BACKLOG.md](BACKLOG.md) for planned work.
 | [`BACKLOG.md`](BACKLOG.md) | Work that is going to happen but has not |
 | [`docs/design/`](docs/design/) | How each game system works today |
 | [`docs/architecture/`](docs/architecture/) | Technical documentation for the codebase |
+| [`docs/architecture/playtesting.md`](docs/architecture/playtesting.md) | How to stand the game up somewhere and measure a change |
 | [`docs/plans/`](docs/plans/) | Closed records of how work was sequenced and shipped |
 
 Three tenses, three homes: the docs describe the game as it **is**, the backlog

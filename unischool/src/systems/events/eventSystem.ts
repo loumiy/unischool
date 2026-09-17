@@ -60,7 +60,10 @@ import { rollAthleticDirectorCandidates, rollMascotSuggestion } from '../../data
 // completions to a single modal.
 // ---------------------------------------------------------------------
 
-function fireMilestoneCelebration(s: GameState): boolean {
+// Exported for the playtest panel's "celebrate the queue now" (see
+// reducer.ts's DEBUG_FORCE_MILESTONE), which stands the frequency floor
+// below down before calling it. Nothing else outside this file calls it.
+export function fireMilestoneCelebration(s: GameState): boolean {
   if (s.events.pendingMilestones.length === 0) return false;
 
   const week = absoluteWeek(s);

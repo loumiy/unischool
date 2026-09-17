@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import type { Action } from '../state/actions';
 import type { GameState } from '../state/types';
 import { WEEKS_PER_YEAR, institutionName, totalEnrolled } from '../state/types';
 import { weeklyNet } from '../systems/finance/financeSystem';
@@ -8,12 +7,7 @@ import { SPEEDS, SANDBOX_SPEEDS, type Speed } from '../engine/useGame';
 import DayTicker from './DayTicker';
 import AnimatedNumber from './AnimatedNumber';
 import { isActivationTarget, useHotkeys } from './hotkeys';
-
-// The playtest grant (see the "+$1B" button below): a round, memorable
-// figure — not tuned to any particular shortfall — since its only job is
-// to remove money as a constraint while iterating, not to model a real
-// cash event.
-const PLAYTEST_GRANT_AMOUNT = 1_000_000_000;
+import { playtestEnabled } from './playtest';
 
 // Keys 1/2/3 set the speed directly to real/double/fast, and Space toggles
 // between paused and playing, without having to click the control-bar
@@ -64,19 +58,6 @@ const SATISFACTION_WARN = 55;
 
 function termName(week: number): string {
   return week <= WEEKS_PER_YEAR / 2 ? 'Fall Term' : 'Spring Term';
-}
-
-// Playtesting controls (the sandbox speed, the +$1B grant, the fast-speed
-// hotkey below, CurriculumTab.tsx's "Develop All" button) are only useful
-// during development, not normal play — they stay reachable by naming the
-// university "test" rather than being removed outright, so they're still
-// there for anyone iterating on the game. Checked against the
-// player-written half of the name only (see types.ts's University), so it
-// keeps working whether the school is Test College or Test University.
-// Exported so every playtest-only control shares this one gate rather than
-// each re-deriving its own copy.
-export function isTestUniversity(name: string): boolean {
-  return name.trim().toLowerCase() === 'test';
 }
 
 // ---------------------------------------------------------------------
@@ -164,14 +145,18 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
 // identity and clock — prominent per the design ask, in place of the old
 // masthead's h1 and "Office of the President" eyebrow (dropped; it named a
 // role, not the school).
-export function SchoolAndClock({ s, speed, setSpeed, weekProgress, act }: {
+export function SchoolAndClock({ s, speed, setSpeed, weekProgress }: {
   s: GameState; speed: Speed; setSpeed: (speed: Speed) => void;
   // The live fraction of the current week, for the day squares under the
   // clock (see useGame.ts's accumulator and DayTicker.tsx).
   weekProgress: () => number;
-  act: (a: Action) => void;
 }) {
-  const showPlaytestControls = isTestUniversity(s.self.name);
+  // The sandbox speed is the only playtest control left in this file. The
+  // "+$1B" grant moved into the debug panel (see DebugPanel.tsx) as a cash
+  // field you can set rather than a round number you can add, and the gate
+  // moved to components/playtest.ts — a flag, of which naming the school
+  // "test" is one of three ways to set it.
+  const showPlaytestControls = playtestEnabled(s);
   const visibleSpeeds = (Object.keys(SPEEDS) as Speed[]).filter(
     (sp) => showPlaytestControls || !SANDBOX_SPEEDS.includes(sp),
   );
@@ -181,15 +166,6 @@ export function SchoolAndClock({ s, speed, setSpeed, weekProgress, act }: {
   return (
     <>
       <div className="toolbar-speed">
-        {showPlaytestControls && (
-          <button
-            className="grant-funds-btn"
-            onClick={() => act({ type: 'GRANT_FUNDS', amount: PLAYTEST_GRANT_AMOUNT })}
-            title="Playtest only — grants $1,000,000,000 to operating funds directly, no event behind it."
-          >
-            +$1B
-          </button>
-        )}
         <div className="speeds">
           {visibleSpeeds.map((sp) => (
             <button

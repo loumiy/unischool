@@ -16,10 +16,11 @@
 // ---------------------------------------------------------------------
 
 import { play, STRATEGIES } from './balanceSim';
-import { initialTech } from '../src/data/techData';
+import { GENED_BUILDING_ID, initialTech } from '../src/data/techData';
 import { initialFacilities } from '../src/data/facilitiesData';
 import { initialDorms } from '../src/data/campusData';
 import { SPEEDS } from '../src/engine/useGame';
+import { playerRank } from '../src/systems/rivals/rivalsSystem';
 import type { GameState } from '../src/state/types';
 
 const WEEKS_PER_YEAR = 52;
@@ -60,6 +61,43 @@ function doneIds(s: GameState): Set<string> {
   return new Set(s.tech.filter((t) => t.status === 'done').map((t) => t.id));
 }
 
+// THE FIRSTS: the other half of the pacing question, and the half the
+// September 2026 review actually measured by hand (Appendix A's "Firsts",
+// from dorm at 1.0 to the last placeable at 28.8). The milestones above ask
+// "when is everything finished"; these ask "when does each thing in the game
+// happen for the first time", which is what a pacing change actually moves.
+// A line here reads as "rank #1 moved from year 18 to year 31".
+//
+// Each is a predicate over the live state rather than a set of ids, because
+// most of them are not Buildables at all — a rank, a charter, a banner. They
+// are checked every week and latched on the first one that returns true.
+const FIRSTS: Array<{ label: string; reached: (s: GameState) => boolean }> = [
+  { label: 'First dorm', reached: (s) => s.tech.some((t) => t.kind === 'dorm' && t.status === 'done') },
+  // The first hall the school BUILDS. The founding campus already has one —
+  // General Studies stands on day one (see data/actions.ts's founding
+  // state) — so counting it would report week 1 for every strategy and say
+  // nothing about pacing.
+  { label: 'First school hall built', reached: (s) => s.tech.some((t) => t.kind === 'building' && t.id !== GENED_BUILDING_ID && t.status === 'done') },
+  { label: 'First club', reached: (s) => s.orgs.clubs.length > 0 },
+  { label: 'First program established', reached: (s) => Object.keys(s.milestones).some((k) => k.startsWith('program-established:')) },
+  { label: 'First lab', reached: (s) => s.tech.some((t) => t.facilityType === 'lab' && t.status === 'done') },
+  { label: 'First program distinguished', reached: (s) => Object.keys(s.milestones).some((k) => k.startsWith('program-distinguished:')) },
+  { label: 'University charter taken', reached: (s) => s.self.suffix === 'University' },
+  { label: 'First research initiative', reached: (s) => Object.keys(s.research.initiatives).length > 0 || s.research.completedInitiatives.length > 0 },
+  { label: 'Entered the rankings (top 50)', reached: (s) => s.hasEnteredRankings },
+  { label: 'First varsity team formed', reached: (s) => s.orgs.teams.length > 0 },
+  { label: 'First varsity team active', reached: (s) => s.orgs.teams.some((t) => t.status === 'active') },
+  { label: 'Athletic director hired', reached: (s) => s.orgs.athleticDirector !== null },
+  { label: 'First school distinguished', reached: (s) => Object.keys(s.milestones).some((k) => k.startsWith('school-distinguished:')) },
+  { label: 'First graduate course', reached: (s) => s.tech.some((t) => t.graduateProgram !== undefined && t.status === 'done') },
+  { label: 'First national title', reached: (s) => s.orgs.titles.length > 0 },
+  { label: 'Prestige 100', reached: (s) => s.self.reputation >= 100 },
+  { label: 'First graduate program founded', reached: (s) => Object.keys(s.milestones).some((k) => k.startsWith('grad-program-complete:')) },
+  { label: 'First research prize', reached: (s) => s.research.prizes > 0 },
+  { label: 'First endowment campaign', reached: (s) => s.finance.endowmentCampaigns > 0 },
+  { label: 'Rank #1', reached: (s) => playerRank(s) === 1 },
+];
+
 function formatDuration(weeks: number, msPerWeek: number): string {
   const totalSeconds = Math.round((weeks * msPerWeek) / 1000);
   const h = Math.floor(totalSeconds / 3600);
@@ -82,9 +120,11 @@ function stuckReport(s: GameState, ids: string[]): string {
 function runOne(strategyName: string, years: number): void {
   const strategy = STRATEGIES.find((s) => s.name === strategyName)!;
   const hitWeek: Record<string, number | null> = {};
+  // Firsts first, then the completion milestones: a report that reads in
+  // the order things happen is a timeline, and one that reads in the order
+  // the arrays were declared is a list.
+  for (const f of FIRSTS) hitWeek[f.label] = null;
   for (const m of MILESTONES) hitWeek[m.label] = null;
-  hitWeek['First varsity team formed (petition granted)'] = null;
-  hitWeek['First varsity team active (venue built)'] = null;
 
   let week = 0;
   let finalState: GameState | null = null;
@@ -96,11 +136,8 @@ function runOne(strategyName: string, years: number): void {
       const done = doneIds(s);
       if (m.ids.every((id) => done.has(id))) hitWeek[m.label] = week;
     }
-    if (hitWeek['First varsity team formed (petition granted)'] === null && s.orgs.teams.length > 0) {
-      hitWeek['First varsity team formed (petition granted)'] = week;
-    }
-    if (hitWeek['First varsity team active (venue built)'] === null && s.orgs.teams.some((t) => t.status === 'active')) {
-      hitWeek['First varsity team active (venue built)'] = week;
+    for (const f of FIRSTS) {
+      if (hitWeek[f.label] === null && f.reached(s)) hitWeek[f.label] = week;
     }
   };
 
@@ -108,7 +145,8 @@ function runOne(strategyName: string, years: number): void {
   const last = result.rows[result.rows.length - 1];
 
   console.log(`\n=== ${strategyName} — cutoff ${years} game-years ===`);
-  for (const [label, w] of Object.entries(hitWeek)) {
+  const inOrder = Object.entries(hitWeek).sort((a, b) => (a[1] ?? Infinity) - (b[1] ?? Infinity));
+  for (const [label, w] of inOrder) {
     if (w === null) {
       const m = MILESTONES.find((x) => x.label === label);
       const reason = m && finalState ? stuckReport(finalState, m.ids) : '';

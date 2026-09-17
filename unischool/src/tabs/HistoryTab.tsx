@@ -1,6 +1,10 @@
 import type { GameState, YearSnapshot } from '../state/types';
 import { linePoints, MIN_SERIES_POINTS } from '../components/Sparkline';
 import HelpHint from '../components/HelpHint';
+import {
+  prestigeBreakdown, researchStandingBreakdown, socialStandingBreakdown,
+  type StandingBreakdown, type StandingInput,
+} from '../systems/prestige/prestigeSystem';
 
 // ---------------------------------------------------------------------
 // Institutional History: the long arc, made visible. Every other screen in
@@ -75,6 +79,105 @@ function HistoryChart({ label, years, values, format, note }: {
   );
 }
 
+// ---------------------------------------------------------------------
+// STANDING: the headline number, explained.
+//
+// Every figure here is read off prestigeSystem.ts's own breakdown, which is
+// the object its target function sums — so this panel cannot disagree with
+// the tick that produced the number, and Plan 10 changing the inputs
+// changes that file alone. Nothing below names a row: the rows are data,
+// and this renders whatever the breakdown contains.
+//
+// THE BAR IS TWO LAYERS, and that is the whole reason a bar is here rather
+// than a number. The pale layer is what the input's own score reaches —
+// weight × score — and the solid one is what it is actually WORTH after its
+// multiplier. The gap between them is what a short library or a small
+// student body is costing the school, which is the single most-asked
+// question about this model and the one no screen could answer.
+// ---------------------------------------------------------------------
+
+function StandingRow({ input, max }: { input: StandingInput; max: number }) {
+  const reach = input.weight * input.score;
+  const pct = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
+  return (
+    <li className="standing-row">
+      <div className="standing-row-head">
+        <span className="standing-row-label">{input.label}</span>
+        <span className="standing-row-figure">
+          +{input.contribution.toFixed(1)}<span className="standing-row-of"> of {input.weight}</span>
+        </span>
+      </div>
+      <div className="standing-bar" aria-hidden="true">
+        <div className="standing-bar-reach" style={{ width: pct(reach) }} />
+        <div className="standing-bar-fill" style={{ width: pct(input.contribution) }} />
+      </div>
+      <p className="standing-detail">
+        {input.detail}
+        {input.multiplier && (
+          <>
+            {' '}
+            <span className="standing-multiplier">
+              × {input.multiplier.value.toFixed(2)} {input.multiplier.label} — {input.multiplier.detail}
+            </span>
+          </>
+        )}
+      </p>
+    </li>
+  );
+}
+
+function Standing({ breakdown }: { breakdown: StandingBreakdown }) {
+  // Every bar is drawn against the SAME scale — the largest weight in this
+  // standing — so a 90-weight term and a 12-weight one are comparable at a
+  // glance instead of each filling its own box.
+  const max = Math.max(...breakdown.inputs.map((i) => i.weight));
+  const gap = breakdown.target - breakdown.current;
+  return (
+    <div className="standing">
+      <div className="standing-head">
+        <h3>{breakdown.label}</h3>
+        <span className="standing-figure">
+          {breakdown.current.toFixed(1)}
+          <span className="standing-arrow"> → </span>
+          {breakdown.target.toFixed(1)}
+        </span>
+      </div>
+      <p className="standing-note">
+        {Math.abs(gap) < 0.05
+          ? 'Sitting at its target.'
+          : `Drifting ${gap > 0 ? 'up' : 'down'} toward ${breakdown.target.toFixed(1)}, by `
+            + `${(Math.abs(gap) * breakdown.driftRate).toFixed(3)} a week — about `
+            + `${(Math.abs(gap) * breakdown.driftRate * 52).toFixed(1)} over a year if nothing changes.`}
+        {' '}Everything starts from a baseline of {breakdown.baseline}.
+      </p>
+      <ul className="standing-rows">
+        {breakdown.inputs.map((input) => (
+          <StandingRow key={input.key} input={input} max={max} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function StandingPanel({ s }: { s: GameState }) {
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <h2>Standing</h2>
+        <HelpHint
+          align="end"
+          text="Each standing is a stock that drifts each week toward a target computed from these inputs. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier."
+        />
+      </div>
+      <div className="standings">
+        <Standing breakdown={prestigeBreakdown(s)} />
+        <Standing breakdown={researchStandingBreakdown(s)} />
+        <Standing breakdown={socialStandingBreakdown(s)} />
+      </div>
+    </section>
+  );
+}
+
 function HistoryTable({ rows }: { rows: YearSnapshot[] }) {
   return (
     <div className="history-table-scroll" style={{ maxHeight: `${TABLE_VISIBLE_ROWS * 24 + 28}px` }}>
@@ -119,6 +222,10 @@ export default function HistoryTab({ s }: { s: GameState }) {
   if (history.length < MIN_SERIES_POINTS) {
     return (
       <div className="tab-content">
+        {/* Standing needs no history at all — it is a reading of right now —
+            so it is here as well as below, and a school in its first year
+            has something on this tab besides an apology. */}
+        <StandingPanel s={s} />
         <section className="panel">
           <div className="panel-head">
             <h2>Institutional History</h2>
@@ -140,6 +247,7 @@ export default function HistoryTab({ s }: { s: GameState }) {
 
   return (
     <div className="tab-content">
+      <StandingPanel s={s} />
       <section className="panel">
         <div className="panel-head">
           <h2>Institutional History</h2>

@@ -27,6 +27,10 @@ import type { GameState, OrgPetition } from '../src/state/types';
 import {
   usedFacultySlots, hasFreeFacultySlot, eligibleInstructors, facultyLoad, isUnstaffed, hasFreeSlot,
 } from '../src/systems/techtree/techSystem';
+import {
+  computePrestigeTarget, computeResearchTarget, computeSocialTarget,
+  prestigeBreakdown, researchStandingBreakdown, socialStandingBreakdown,
+} from '../src/systems/prestige/prestigeSystem';
 
 let seed = 12345;
 Math.random = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
@@ -687,6 +691,71 @@ function relPath(f: string): string {
         restaffed.courseFaculty[theirCourse.id] === replacement.id,
         'an orphaned course can still be given to someone with room',
       );
+    }
+  }
+}
+
+// =====================================================================
+// 13. A STANDING'S BREAKDOWN IS THE SUM ITS TARGET IS COMPUTED FROM
+//
+// prestigeBreakdown / researchStandingBreakdown / socialStandingBreakdown
+// are what the History tab's Standing panel renders, and each target
+// function is a sum over its own breakdown (see prestigeSystem.ts). This
+// asserts the identity that makes that safe: baseline plus every
+// contribution IS the target, so a panel reading the breakdown can never
+// print a set of rows that disagrees with the number beside them.
+//
+// Checked on three states, because the interesting terms are the clamped
+// ones: a founding school (several inputs at zero, one multiplier on its
+// floor), the same school given an endowment and a full research record
+// (inputs at their caps, and a target that clamps), and the same school
+// with nothing but a vast student body (the scale multiplier at 1, the
+// library multiplier on its floor). test/balance-scorecard's own year-20
+// states are covered by the sim harness; this is the cheap structural half.
+// =====================================================================
+{
+  const founding = fresh();
+
+  const rich = fresh();
+  rich.finance.endowment = 50_000_000_000;
+  rich.research.publications = 400;
+  rich.research.breakthroughs = 90;
+  rich.research.prizes = 20;
+  rich.orgs.titles = Array.from({ length: 30 }, (_, i) => ({
+    year: i + 1, sport: 'basketball-m', champion: 'Invariants', championMascot: 'Owls',
+  }));
+  for (const key of Object.keys(rich.milestones)) rich.milestones[key] = true;
+
+  const crowded = fresh();
+  crowded.students.classes = { freshman: 90_000, sophomore: 80_000, junior: 70_000, senior: 60_000 };
+
+  for (const [label, state] of [['founding', founding], ['saturated', rich], ['crowded', crowded]] as const) {
+    for (const [name, made, target] of [
+      ['academic', prestigeBreakdown(state), computePrestigeTarget(state)],
+      ['research', researchStandingBreakdown(state), computeResearchTarget(state)],
+      ['campus life', socialStandingBreakdown(state), computeSocialTarget(state)],
+    ] as const) {
+      const summed = made.inputs.reduce((total, input) => total + input.contribution, made.baseline);
+      // The target CLAMPS, and the saturated state is there precisely to
+      // reach the clamp — so the identity is "the sum, clamped", not "the
+      // sum". Both halves are asserted: every contribution is also its own
+      // weight x score x multiplier, so a row cannot quietly report a
+      // contribution it did not make.
+      const clamped = Math.max(made.min, Math.min(made.max, summed));
+      assert(
+        Math.abs(clamped - target) < 1e-9,
+        `${name} breakdown sums to its own target on a ${label} school (${clamped.toFixed(4)} vs ${target.toFixed(4)})`,
+      );
+      assert(
+        Math.abs(made.target - target) < 1e-9,
+        `${name} breakdown's own target matches the target function on a ${label} school`,
+      );
+      const rowsHonest = made.inputs.every(
+        (input) => Math.abs(input.contribution - input.weight * input.score * (input.multiplier?.value ?? 1)) < 1e-9,
+      );
+      assert(rowsHonest, `${name} breakdown's rows each contribute weight x score x multiplier on a ${label} school`);
+      const clampedScores = made.inputs.every((input) => input.score >= 0 && input.score <= 1);
+      assert(clampedScores, `${name} breakdown's inputs are all normalised to 0..1 on a ${label} school`);
     }
   }
 }

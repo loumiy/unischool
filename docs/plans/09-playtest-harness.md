@@ -7,7 +7,7 @@ to take the first item of the roadmap in
 and turn it into an ordered sequence of PRs, each small enough to land on its
 own and each landing in the order that makes the next one cheaper.*
 
-**Status: Proposed.** Nothing has landed.
+**Status: Landed.** All six PRs shipped. Where the implementation departed from the plan — the championship scenario moving from PR A to PR E, the jump looping inside the reducer, the scorecard's band floors, the seed the earnest completionist reproduces the review at — it is recorded in an **As implemented** note on the PR it belongs to.
 
 ---
 
@@ -127,6 +127,28 @@ that stands it up.
 -- championship` writes a save whose `pendingInterrupt.type` is
 `championship`; `npm run shot` still works on its output.
 
+**As implemented:** the index ships fifteen names — the fourteen above, less
+`championship`, plus `admissions` (a summer that has a prior year to be read
+against) and `decision-event`. `championship` could not be built. **No strategy in
+`STRATEGIES` has ever won a national title** — measured across all six over
+forty years, zero, including the Completionist, which finishes every venue
+and fields all ten teams. None of them hires a coach, and `teamQuality` is
+what seeds a bracket (`systems/athletics/playoffs.ts`), so none of them ever
+reaches its sport's strongest eight. The recipe arrives with PR E's earnest
+completionist, the first strategy that plays the coaching market. The
+verification above is therefore PR E's, not PR A's — and it passes there:
+`npm run scenario -- championship` writes a save whose `pendingInterrupt.type`
+is `championship`, and it opens in the browser on the real modal.
+
+`tools/makeSave.ts` is *replaced* rather than generalised beside: it was this
+tool with the strategy, the school's name and the modal-clearing all
+hardcoded, so it became three flags (`--strategy`, `--name`, `--clear-modal`)
+and the `shot:save` script went with it. `tools/README.md` carries the new
+command. `play()` also returns its final `state` now — `makeSave` used to
+recover it through `onWeek`, which a run halted by `stopWhen` cannot do,
+since it stops *between* weeks. And `tsconfig.sim.json` now includes `tools`,
+so the scripts in it are typechecked by `npm run build` the way `sim/` is.
+
 ## PR 09B — The debug panel
 
 **What.** A floating panel, below the main-menu hamburger, present only when
@@ -165,6 +187,50 @@ bundle's visible UI. Force each of the fifteen events in turn and resolve
 each; jump 20 years on `founding` with auto-resolve and compare the toolbar to
 the sim's Balanced row for year 20.
 
+**As implemented:** verified in a headless browser — the panel is absent
+without the flag and present with it, all fifteen scenario saves load
+through the file input, and fourteen of the fifteen authored events fire and
+resolve from the Force row. The fifteenth, `varsity-petition`, is *refused*,
+correctly: its own `rollContext` returns null when no sport club is left to
+petition, and forcing bypasses eligibility, not possibility.
+
+Three departures.
+
+**The jump loops inside the reducer**, as a `DEBUG_JUMP` action, rather than
+being TICKs dispatched from the panel. The panel cannot see the state
+between two of its own dispatches, so it cannot notice a modal came up on
+week 37 and answer it — auto-resolve is impossible from outside the
+reducer. This is the shape `DEVELOP_ALL_AVAILABLE_COURSES` already has: a
+loop over ordinary primitives, inside the reducer, taking no shortcut the
+single step does not take. It also costs one render instead of a thousand.
+A twenty-year jump takes about half a minute, and the UI is frozen for it.
+
+**The plan's year-20 comparison does not hold, and should not.** A jump has
+no *player*: nobody develops a course, sites a dorm or hires anybody, so
+twenty years from `founding` ends at 455 students and prestige 38 — the idle
+trajectory, not the Balanced builder's 33,000 and 87. The panel and the
+harness answer *modals* identically because they call the same
+`defaultAnswer` (that is what the shared module is for); they differ in
+everything a strategy does, which is everything else. Reaching year 20 of a
+school somebody played is what `npm run scenario` is for.
+
+**The panel sits top LEFT**, not under the hamburger: that corner already
+stacks the main menu over the map's zoom/'?' pill, and a third thing in it
+pushes the map controls off a short viewport. It also renders on the
+*startup screen*, with Load as its only section — a browser with no save is
+exactly where somebody opening a scenario file starts from, and requiring
+them to found a throwaway school first would be the devtools detour this
+button exists to remove.
+
+Two things came along because the block needed them: the balance harness's
+own interrupt answers moved into `src/engine/defaultAnswers.ts` (`npm run
+sim` prints an identical table across the move), and `DEBUG_SET_PRESTIGE`
+writes through a new `setPrestigeForPlaytest` in `prestigeSystem.ts` rather
+than touching `s.self.reputation` in the reducer — `invariants.test.ts`
+section 5 confines every writer of that field to three files, and that
+invariant is worth more than handling the write where the action is
+handled.
+
 ## PR 09C — The prestige breakdown
 
 **What.** Two halves, and the first is the one that matters.
@@ -193,6 +259,35 @@ review's C5 is satisfied by the reading, not by the row set.
 worth roughly three-quarters of its 90 and a campus-life row worth under 2 of
 its 12, which is what the review measured by hand.
 
+**As implemented:** built as specified, and the measurement is half right.
+On `year-15-completionist` (seed 12345) campus life reads **+0.6 of 12**, as
+predicted. Breadth reads **+35.9 of 90**, not three-quarters — the review's
+figure came off its own seed-4242 earnest run, which had far more programs
+distinguished by year 15 than the scripted Completionist does. The panel is
+right; the expectation was measured on a different school.
+
+All three standings get a breakdown, not just the academic one, and the
+three target functions are now sums over them. `test/invariants.test.ts`
+asserts the identity structurally on three hand-built states (founding,
+saturated, crowded — the interesting cases are the clamped ones);
+`test/balance-regression.test.ts` asserts it on the real year-20 state of
+every strategy, which is the "sim's year-20 states" the plan asked for and
+which invariants cannot reach without importing the harness.
+
+**A finding, flagged not fixed.** Writing the breakdown surfaced a unit
+mismatch in `researchBreadthScore`: it divides equipped **fields** by the
+count of research **schools**, and a school teaches several fields. At year
+15 a completionist campus reads 29 equipped fields against 8 schools, so
+that 40-weight term has been pinned at its maximum since about the fourth
+lab. Plan 09 changes no constant the model reads, so this is recorded in
+`prestigeSystem.ts` beside the code and left for whichever plan next opens
+the research model. The panel states both numbers rather than printing
+"29 of 8", which would read as a panel bug rather than the finding it is.
+
+`docs/design/progression.md` gains the panel, and its direct-mutation audit
+now names PR B's `setPrestigeForPlaytest` — which was PR B's omission,
+corrected here.
+
 ## PR 09D — The sim scorecard
 
 **What.**
@@ -215,6 +310,35 @@ its 12, which is what the review measured by hand.
 
 **Verify.** `--write-reference` then `npm run sim` reports nothing out of
 band; edit one band and it reports that one.
+
+**As implemented:** verified exactly — after `--write-reference` every
+strategy reads "every sampled figure inside its band", and narrowing the
+Balanced builder's year-20 enrolment band by hand produces the one line the
+plan wrote: `year 20 enrolled 33k (band 8k–14k) HIGH`.
+
+`--compare` needs something to compare against, so `--save last.json` came
+with it: the sim writes its sampled rows, and a later run diffs against
+them. (Run at a different seed, the diff is the non-monotonicity
+`balanceSim.ts` has always warned about, printed line by line.)
+
+Two things the plan did not settle, decided here and written into
+`reference.ts` beside the code:
+
+- **Bands need a floor as well as a percentage.** ±25% of "0 weeks in the
+  red" is `[0, 0]`, which would report every run that has one bad week. Each
+  metric gets a minimum half-width — a million dollars, a hundred students,
+  two prestige points, five points of margin, ten weeks — and the two
+  metrics that cannot go negative have their low end held at zero.
+- **One tolerance suits some metrics better than others.** Cash and
+  enrolment span orders of magnitude over a run, so ±25% is tight on them;
+  prestige lives on a bounded 5..150 scale, so the same 25% is ±13 points at
+  year 5 — wide enough to pass a trajectory a tuning pass would call
+  different. Per-metric tolerances are a decision about what "the same run"
+  means for each figure, and it belongs to Plan 10, which is the plan that
+  has to answer it.
+
+`test/balance-scorecard.test.ts` is in `npm test` and names Plan 10's last
+PR as the place its `REPORT_ONLY` flag flips.
 
 ## PR 09E — The earnest completionist, and what a year contains
 
@@ -243,6 +367,49 @@ band; edit one band and it reports that one.
 noise: rank #1 before year 25, all 421 courses before year 25, 0 weeks in the
 red. Those numbers are the *problem*; PR D's bands record them so Plan 10 can
 move them.
+
+**As implemented:** it reproduces Appendix A, and the honest way to say so is
+to name the seed. **At seed 4242, the review's own**, the run lands on top of
+it: rank #1 at year 21.2, all 421 courses at 24.2, **0 weeks in the red** with
+a minimum cash of $230k against the review's $325k, and at year 40 73,000
+enrolled (review 72,908), prestige 146.9 (148) and tuition $37,000 ($37.0k).
+The firsts line up too — rankings entry 7.75 (7.5), varsity team 8.77 (8.8),
+the AD 8.79 (8.8), prestige 100 at 17.1 (16.6), the first campaign 25.5
+(24.7).
+
+**At the default seed 12345 it is a rougher run**: 144 weeks in the red,
+a trough of -$5.4M, and the catalogue finishing in the last decade rather
+than the third. That is the non-monotonicity `balanceSim.ts` has warned about
+since Plan 08 — a threshold economy where a few weeks' difference in when a
+dorm goes up compounds over forty years — and it is worth leaving visible
+rather than tuning away: "the earnest player never has a bad week" is a claim
+about a seed, and one seed away it is already false.
+
+**The coaching market is the strategy's real discovery.** PR A recorded that
+no strategy had ever won a national title; this one wins 15 at the default
+seed and 36 at 4242, because it is the first to hire a coach. `championship`
+joins the scenario index on the back of it, and the postseason, the
+championship modal and the titles term in campus-life standing are in a
+measured trajectory for the first time.
+
+Two deviations of scope. The three columns are `actions`, `idleWeeks` and
+`blockedWeeks` — the review's "actions / idle / money-blocked" — and the
+modal count went into the tally as a **count by type** plus a printed
+`modals answered` line, beside a `what a year contained` line that reports
+actions per year against the LAST DECADE's average, because the review's
+finding was about the shape (25 a year, falling to 4–14) rather than the
+mean. The earnest completionist reads 23.1 actions a year over twenty, 8.3 in
+the last ten: the same shape, measured rather than remembered. **Idle weeks
+are always zero**, for every strategy — with 421 courses there is always
+something startable — so what the review experienced as "nothing to do" shows
+up here as money-blocked weeks and as the collapse in actions, never as an
+empty board. That is worth knowing before Plan 12 tries to fix idleness.
+
+`sim/milestones.ts` grew the firsts list as specified (twenty of them,
+printed in the order they happen rather than the order they were declared),
+with one correction: "first school hall" counts the first hall BUILT, since
+General Studies stands on the founding campus and counting it would report
+week 1 for every strategy.
 
 ## PR 09F — Documentation
 
