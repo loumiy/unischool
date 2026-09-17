@@ -1168,7 +1168,21 @@ export const SAVE_KEY = 'unischool.save';
 // from here on a coach's face and name come from the same roll.
 //
 // See MIGRATIONS[48].
-export const SAVE_VERSION = 49;
+//
+// v49 -> v50: the department gets a director. `StudentOrgState` gains
+// `athleticDirector` and `athleticDirectorAskedWeek`, both
+// added-as-required.
+//
+// The same argued exception as the four before it (see the v45 -> v46 note).
+// Trivial, too: both fields are the state of not having asked yet, so a
+// resumed run simply gets the offer on its next quiet week — which is the
+// right answer rather than a convenient one. A school twenty years in with
+// six varsity programs and nobody running them is exactly the school the
+// offer exists for, and it arrives as an overdue appointment rather than a
+// retrofit.
+//
+// See MIGRATIONS[49].
+export const SAVE_VERSION = 50;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1279,6 +1293,7 @@ const KNOWN_SUFFIXES = ['College', 'University'];
 // hiring screen draws them.
 function allCoachesIn(state: GameState): Coach[] {
   const out: Coach[] = [...(state.orgs?.coachCandidates ?? [])];
+  if (state.orgs?.athleticDirector) out.push(state.orgs.athleticDirector);
   for (const team of state.orgs?.teams ?? []) {
     if (team.headCoach) out.push(team.headCoach);
     if (team.assistantCoach) out.push(team.assistantCoach);
@@ -1288,6 +1303,17 @@ function allCoachesIn(state: GameState): Coach[] {
 }
 
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v49 -> v50: the department gets a director (see the SAVE_VERSION header
+  // note above). Both fields are "nobody has been asked yet", so a resumed
+  // run with teams standing gets the offer on its next quiet week.
+  49: (state) => {
+    const orgs = state.orgs as unknown as {
+      athleticDirector?: Coach | null; athleticDirectorAskedWeek?: number;
+    };
+    if (orgs.athleticDirector === undefined) orgs.athleticDirector = null;
+    if (typeof orgs.athleticDirectorAskedWeek !== 'number') orgs.athleticDirectorAskedWeek = 0;
+  },
+
   // v48 -> v49: coaches get faces (see the SAVE_VERSION header note above,
   // including why a saved coach's heritage is a plausible reading rather than
   // a recovery).
@@ -1714,6 +1740,8 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
       // for v15 -> v16 to find missing; it simply runs as a no-op on a save
       // that came through here first.
       athleticsBudget: 'medium',
+      athleticDirector: null,
+      athleticDirectorAskedWeek: 0,
     };
   },
 

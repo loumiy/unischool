@@ -1247,6 +1247,37 @@ function testCoachHeritageMigration(): void {
     'a newly generated coach carries the origin their name was drawn from');
 }
 
+// ---- Test: v49 -> v50, the department gets a director ----
+//
+// Trivial by design: both fields are the state of not having asked yet. The
+// claim worth asserting is that a resumed run with teams standing is then
+// ELIGIBLE for the offer rather than quietly excluded from it — a school
+// twenty years in with programs and nobody running them is exactly who the
+// offer exists for.
+function testAthleticDirectorMigration(): void {
+  const base = createInitialState('Director Migrator');
+  const state = JSON.parse(JSON.stringify(base)) as Loose;
+  state.clock = { year: 20, week: 12 };
+  const orgs = state.orgs as Loose;
+  orgs.teams = [{
+    id: 'team-x', name: "Men's Soccer Team", foundedYear: 4, foundingMembers: 14, foundingEnrolled: 400,
+    upkeepPerWeek: 400, sport: 'soccer-m', venueCategory: 'athleticsField', status: 'active',
+    headCoach: null, assistantCoach: null, trainer: null,
+  }];
+  delete orgs.athleticDirector;
+  delete orgs.athleticDirectorAskedWeek;
+  writeSave(49, state);
+
+  const loaded = loadGame();
+  assert(loaded !== null, 'v49 save loads (does not fall back to null)');
+  if (!loaded) return;
+
+  assert(loaded.orgs.athleticDirector === null, 'a resumed run has no director, which is true rather than convenient');
+  assert(loaded.orgs.athleticDirectorAskedWeek === 0,
+    `and has never been asked, so the offer is due (got ${loaded.orgs.athleticDirectorAskedWeek})`);
+  assert(loaded.orgs.teams.length === 1, 'its standing team is untouched');
+}
+
 // ---- Test: unmigratable / malformed saves fall back to null, never throw ----
 function testRejects(): void {
   // A version with no migration path (v1) cannot be carried forward.
@@ -1286,6 +1317,7 @@ testHundredSchoolFieldMigration();
 testThreeStandingsMigration();
 testAthleticDriftMigration();
 testCoachHeritageMigration();
+testAthleticDirectorMigration();
 testRoundTrip();
 testRejects();
 

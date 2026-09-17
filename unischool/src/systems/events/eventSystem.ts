@@ -1,4 +1,5 @@
 import type { GameState } from '../../state/types';
+import { WEEKS_PER_YEAR } from '../../state/types';
 import type { DecisionEvent, DecisionEventContext, MilestoneEntry, MilestonePayload } from '../../data/eventData';
 import {
   DECISION_EVENTS, DECISION_EVENT_COOLDOWN_WEEKS, DECISION_EVENT_FIRST_YEAR,
@@ -7,6 +8,7 @@ import {
   absoluteWeek, describeMilestone, findDecisionEvent, hasFreeChoice,
 } from '../../data/eventData';
 import { labEquippedFields } from '../../data/researchData';
+import { rollAthleticDirectorCandidates, rollMascotSuggestion } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
 // The week-to-week texture system. One ordinary pure tick function, last
@@ -145,6 +147,44 @@ function fireCharterOffer(s: GameState): boolean {
 // waiting club — the same self-healing shape fireCharterOffer uses, so a
 // week lost to a milestone or another interrupt just means the next quiet
 // week asks instead, never a lost petition.
+// The athletic director's one-time offer. Fires the first quiet week after
+// the school fields a varsity team — the same self-healing shape
+// fireCharterOffer uses above, and for the same reason: "a team exists" is a
+// durable condition, so a busy week means the offer waits rather than being
+// dropped.
+//
+// DECLINING IS NOT A ONE-SHOT, unlike the charter or the Hellenic Council.
+// Those close a question for the run on purpose; this one must not, because a
+// school that cannot afford a director in year 12 would otherwise lose the
+// position — and with it the mascot, the shortage interrupts and the
+// championship reports — for the rest of the game. A decline records the week
+// and the offer comes back after AD_OFFER_COOLDOWN_WEEKS, phrased as the
+// search continuing.
+//
+// The candidates are rolled HERE rather than in the reducer, and carried in
+// the payload: the three people the modal describes must be the three people
+// it can hire (see data/studentLifeData.ts's rollAthleticDirectorCandidates).
+const AD_OFFER_COOLDOWN_WEEKS = 3 * WEEKS_PER_YEAR;
+
+function fireAthleticDirectorOffer(s: GameState): boolean {
+  if (s.orgs.athleticDirector) return false;
+  if (s.orgs.teams.length === 0) return false;
+  const asked = s.orgs.athleticDirectorAskedWeek;
+  if (asked > 0 && absoluteWeek(s) - asked < AD_OFFER_COOLDOWN_WEEKS) return false;
+
+  // Stamped HERE, not on the answer — see types.ts's athleticDirectorAskedWeek
+  // for the loop this closes.
+  s.orgs.athleticDirectorAskedWeek = absoluteWeek(s);
+  s.pendingInterrupt = {
+    type: 'athletic-director',
+    payload: {
+      candidates: rollAthleticDirectorCandidates(),
+      mascotSuggestion: rollMascotSuggestion(),
+    },
+  };
+  return true;
+}
+
 function fireVarsityPetition(s: GameState): boolean {
   if (s.clock.week < VARSITY_PETITION_WEEK) return false;
 
@@ -237,6 +277,7 @@ export function tickEvents(s: GameState): void {
   if (fireMilestoneCelebration(s)) return;
   if (fireCharterOffer(s)) return;
   if (fireResearchReport(s)) return;
+  if (fireAthleticDirectorOffer(s)) return;
   if (fireVarsityPetition(s)) return;
 
   rollDecisionEvent(s);

@@ -889,6 +889,31 @@ on the next quiet week after a cooldown, phrased as the search continuing.
 **Verification.** `npm run sim` — the AD is a new recurring salary and this is
 the PR where athletics' share of opex moves.
 
+**As implemented:** the offer's cooldown is stamped when it is **put**, not
+when it is declined — and the difference is a bug this PR shipped, measured and
+then fixed rather than one it reasoned its way past.
+
+Written as planned, the decline recorded the week. That leaves a gap for
+anything that clears the interrupt WITHOUT going through the decline, and
+`sim/balanceSim.ts` is exactly such a caller: its fallback for an interrupt it
+does not recognise is `RESOLVE_REPORT`, which clears the modal without hiring
+or declining. With no record, the offer re-fired the next quiet week, and the
+next, forever — and because it shares that slot with milestones, research
+reports and the whole authored decision-event table, it starved them.
+**Decision events over forty years fell from 52 to 8.** Every suite was still
+green: nothing asserts that the game keeps having events.
+
+Two fixes, and the second is the durable one. The harness now answers the offer
+deliberately (taking the middle candidate, the neutral reading of three cards
+that differ only in price) — needed anyway, or the sim never exercises the
+feature it is meant to be measuring. And the week is stamped at fire time, so
+*no* path can loop: declining, dismissing and ignoring all cool down the same
+way. `test/athletic-director.test.ts` holds that as a regression.
+
+The general shape is worth keeping: an interrupt that can come back needs its
+cooldown recorded where the interrupt is RAISED, because that is the only place
+every path goes through.
+
 ## PR 2D — The department, laid out
 
 **The change.** `AthleticsTab.tsx` is 166 lines and one panel: a budget row, a

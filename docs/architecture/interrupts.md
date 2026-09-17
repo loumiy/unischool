@@ -57,6 +57,14 @@ Everything that needs to stop time rides on this one mechanism:
 - **The university charter** — a single question, asked once, the first quiet
   week after any lab finishes: keep the "College" the school opened as, or
   become a "University". Cosmetic in full.
+- **The athletic director's offer** — the one interrupt athletics raises of its
+  own, the first quiet week after the school fields a varsity team: three
+  candidates rolled into the payload, and the mascot named in the same modal
+  (see [student-life.md](../design/student-life.md)). Unlike the charter it is
+  **not** a one-shot — declining returns it after a cooldown — so it records the
+  week it was **put** rather than the week it was answered. That is what keeps a
+  cleared-but-unanswered modal from re-firing on the next quiet week and
+  starving every other event that shares the slot.
 - **Later:** the tutorial sequence.
 
 Build this once, generically. Do not bolt the report, admissions, or tutorial on

@@ -28,6 +28,7 @@ import { fellTrees } from '../data/treeData';
 import {
   CHAPTER_APPROVAL_SATISFACTION_NUDGE, CHAPTER_DECLINE_SATISFACTION_HIT,
   CLUB_APPROVAL_SATISFACTION_NUDGE, CLUB_DECLINE_SATISFACTION_HIT, activatePetition, TRAINER_FIELD,
+  MASCOT_MAX_LENGTH,
 } from '../data/studentLifeData';
 import {
   canPlace, canSiteRetroactively, footprintOf, isInBounds, isPlaceableKind,
@@ -741,6 +742,39 @@ export function reducer(state: GameState, action: Action): GameState {
     // half of the institution's name, and nothing in the game reads that
     // string except the views that display it. The flag is set either way,
     // so declining is final and the question never returns.
+    case 'RESOLVE_ATHLETIC_DIRECTOR': {
+      if (action.candidate) {
+        s.orgs.athleticDirector = action.candidate;
+        // The mascot is trimmed and capped here rather than trusted from the
+        // form: it goes into standings rows and championship banners beside a
+        // school's own name, and an empty one is a real state the rest of the
+        // game already handles (see types.ts's University.mascot).
+        const mascot = action.mascot.trim().slice(0, MASCOT_MAX_LENGTH);
+        if (mascot) s.self.mascot = mascot;
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: mascot
+            ? `${action.candidate.name} is the new athletic director. The teams will play as the ${mascot}.`
+            : `${action.candidate.name} is the new athletic director.`,
+          kind: 'good',
+        });
+      } else {
+        // Nothing to record: the week the offer went out was stamped when it
+        // FIRED (see eventSystem.ts), precisely so that declining and never
+        // answering cool down the same way.
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: 'None of the candidates for athletic director were appointed; the search goes on.',
+          kind: 'info',
+        });
+      }
+      s.pendingInterrupt = null;
+      advanceClock(s);
+      return s;
+    }
+
     case 'RESOLVE_CHARTER': {
       s.self.universityCharterOffered = true;
       if (action.accept) {

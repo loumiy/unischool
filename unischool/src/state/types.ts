@@ -1015,6 +1015,36 @@ export interface StudentOrgState {
   hellenicCouncilOffered: boolean;
   lastFormationWeek: number; // absolute week a club or chapter last formed; 0 = never
   athleticsBudget: AthleticsBudgetTier;
+  // THE ATHLETIC DIRECTOR, hired once the first team exists (see
+  // systems/events/eventSystem.ts's fireAthleticDirectorOffer). A `Coach`
+  // rather than a fourth kind of person, because that is exactly what they
+  // are: somebody with a quality, a salary and a field — theirs being
+  // AD_FIELD, which marks a role the way TRAINER_FIELD marks a discipline.
+  //
+  // They do two things, and both are real or the hire would be another pure
+  // cost. Their quality is a DEPARTMENT-WIDE addend to every team's
+  // teamQuality, beside the budget tier's own bonus — a different lever from
+  // the budget, since one is people and the other is money. And they are the
+  // voice: the shortage interrupts and the championship reports are written
+  // as the AD speaking, which is what makes a periodic "your wrestling
+  // program has no head coach" read as somebody doing their job rather than
+  // the UI nagging.
+  athleticDirector: Coach | null;
+  // The absolute week the AD offer was last PUT, set when the interrupt
+  // fires rather than when it is answered. 0 = never asked.
+  //
+  // At fire time, deliberately. Declining is not a one-shot the way the
+  // Hellenic Council is — a school that cannot afford a director in year 12
+  // must not lose the position for the rest of the run — so the offer has to
+  // come back, and something has to say when it last went out. Stamping it on
+  // the DECLINE would leave a gap: anything that clears the interrupt without
+  // going through the decline (the generic resolve path, a harness dismissing
+  // an interrupt it does not recognise) leaves no record, and the offer
+  // re-fires the very next quiet week, forever, starving every other event
+  // that shares that slot. That is not hypothetical — it is what happened the
+  // first time this was written, and sim/balanceSim.ts's decision-event count
+  // fell from 52 over forty years to 8.
+  athleticDirectorAskedWeek: number;
 }
 
 // WHICH ARCHITECTURE THIS CAMPUS WAS BUILT IN. Chosen at founding and

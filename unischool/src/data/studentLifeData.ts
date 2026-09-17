@@ -466,6 +466,13 @@ export const TEAM_SOCIAL_BONUS = 2.2;
 
 export const TRAINER_FIELD = 'strength-conditioning';
 
+// The athletic director's own `field`. Marks a ROLE rather than a sport, the
+// same way TRAINER_FIELD marks a discipline — and deliberately NOT one of
+// allCoachFields() below, so the standing market never lists a director. An
+// AD is not hired off the board; they are offered, once, in an interrupt of
+// their own (see systems/events/eventSystem.ts).
+export const AD_FIELD = 'athletic-director';
+
 // Coach candidate fields: one per SPORTS entry (a head/assistant coach
 // candidate) plus TRAINER_FIELD (a strength & conditioning candidate,
 // hireable as any team's trainer regardless of sport). Computed once and
@@ -559,6 +566,102 @@ export function generateCoachCandidate(field: string): Coach {
   };
 }
 
+// =====================================================================
+// THE ATHLETIC DIRECTOR'S OFFER (see systems/events/eventSystem.ts's
+// fireAthleticDirectorOffer). Three candidates, rolled once at fire time and
+// carried in the interrupt's payload — the pattern eventData.ts's
+// 'visiting-scholar' already uses and explains: rolled once so the person
+// described is exactly the person hired, because "two rolls would be two
+// different people, one of them fictional".
+//
+// "SALARY THE ONLY REAL DIFFERENTIATOR" is the design ask, and reading it
+// correctly is what makes the choice a choice. A faculty hire trades teaching
+// against research; an AD has ONE stat, so the only question three cards can
+// pose is how much of the department's budget goes to the person running it.
+// So the three are a cheap one, a middling one and an expensive one, with
+// salary tracking quality closely — and the modal says so in a line rather
+// than implying a tradeoff that is not there.
+//
+// The bands overlap slightly at the edges so the cheap card is not *always*
+// the worst: a thrifty director who is genuinely good turns up often enough
+// that reading the numbers beats reading the position.
+// =====================================================================
+const AD_TIERS: ReadonlyArray<{ min: number; range: number }> = [
+  { min: 48, range: 14 }, // 48..62 — the bargain
+  { min: 58, range: 16 }, // 58..74 — the safe hire
+  { min: 70, range: 20 }, // 70..90 — the expensive one
+];
+
+// An AD's salary curve is the coaching one with a premium on top: they run
+// the department rather than a team, and the whole point of the three cards
+// is that the difference between them is money.
+const AD_SALARY_PREMIUM = 1.6;
+
+export function adSalaryFor(quality: number): number {
+  return Math.round(coachSalaryFor(quality, 0) * AD_SALARY_PREMIUM);
+}
+
+// The three, cheapest first — which is also the order the modal shows them,
+// so the money reads left to right.
+export function rollAthleticDirectorCandidates(): Coach[] {
+  return AD_TIERS.map((tier) => {
+    const quality = tier.min + Math.round(Math.random() * tier.range);
+    const gender = Math.random() < 0.5 ? 'male' : 'female';
+    const rolled = rollCoachName(gender);
+    return {
+      id: crypto.randomUUID(),
+      name: rolled.name,
+      gender,
+      heritage: rolled.origin,
+      field: AD_FIELD,
+      quality,
+      // An AD arrives finished. Unlike a coach they have no growth curve in
+      // this model — there is one of them, they are hired once, and a second
+      // appreciating-asset arc would be machinery nothing reads.
+      qualityPotential: quality,
+      tenureWeeks: 0,
+      weeksListed: 0,
+      salary: adSalaryFor(quality),
+    };
+  });
+}
+
+// =====================================================================
+// MASCOTS. The player names theirs in the same modal that hires the athletic
+// director — the first moment the question has an answer, since there is now
+// something that wears the name.
+//
+// NOT AT FOUNDING, and that is a decision this plan took from the startup
+// screen's own backlog entry rather than an accident of sequencing: the
+// founding screen would ask before the player has any reason to care, before
+// a single building stands, and typically a decade before a varsity team
+// exists.
+//
+// The list is a starting point, not a constraint — the modal offers a roll
+// and a free text field, because a mascot somebody typed is worth more than
+// one they accepted. Drawn to sit beside rivalData.ts's own ninety-nine
+// without reusing them.
+// =====================================================================
+const MASCOT_SUGGESTIONS: readonly string[] = [
+  'Badgers', 'Bobcats', 'Bulldogs', 'Cardinals', 'Cougars', 'Coyotes',
+  'Eagles', 'Falcons', 'Foxes', 'Grizzlies', 'Hawks', 'Herons',
+  'Ibises', 'Jackals', 'Kestrels', 'Lynx', 'Magpies', 'Mustangs',
+  'Ospreys', 'Otters', 'Owls', 'Panthers', 'Pumas', 'Ravens',
+  'Stags', 'Storks', 'Terriers', 'Thunderbirds', 'Timberwolves', 'Wolverines',
+  'Anchors', 'Anvils', 'Argonauts', 'Blacksmiths', 'Cartographers', 'Chancellors',
+  'Comets', 'Explorers', 'Founders', 'Lamplighters', 'Mariners', 'Miners',
+  'Pioneers', 'Prospectors', 'Quarriers', 'Scholars', 'Sentinels', 'Surveyors',
+  'Tempest', 'Wardens',
+];
+
+// A cap, because the name goes in standings rows and championship banners and
+// has to fit beside a school's own name.
+export const MASCOT_MAX_LENGTH = 24;
+
+export function rollMascotSuggestion(): string {
+  return MASCOT_SUGGESTIONS[Math.floor(Math.random() * MASCOT_SUGGESTIONS.length)];
+}
+
 // Coach candidates arrive already staggered across the listing window, the
 // exact same reasoning facultyData.ts's initialCandidatePool uses — a pool
 // seeded flat would empty and refill in synchronized waves instead of
@@ -633,13 +736,29 @@ const HEAD_COACH_WEIGHT = 0.5;
 const ASSISTANT_COACH_WEIGHT = 0.25;
 const TRAINER_WEIGHT = 0.25;
 
+// What the athletic director is worth to every team at once. A SECOND
+// department-wide lever beside the budget tier's qualityBonus, and a
+// different kind of one: the budget is money, the director is a person, and a
+// school can be good at one and bad at the other.
+//
+// Scaled well under the budget's own top bonus (18) so the AD is a real
+// contribution rather than the whole department — a brilliant director cannot
+// carry teams with nobody coaching them, which is the thing PR 2E's shortage
+// interrupts exist to keep visible.
+const AD_QUALITY_SHARE = 0.12; // a 90-quality director is worth ~11 to every team
+
+export function athleticDirectorBonus(s: GameState): number {
+  const ad = s.orgs.athleticDirector;
+  return ad ? ad.quality * AD_QUALITY_SHARE : 0;
+}
+
 export function teamQuality(team: VarsityTeam, s: GameState): number {
   const weighted =
     (team.headCoach?.quality ?? COACH_VACANCY_QUALITY) * HEAD_COACH_WEIGHT
     + (team.assistantCoach?.quality ?? COACH_VACANCY_QUALITY) * ASSISTANT_COACH_WEIGHT
     + (team.trainer?.quality ?? COACH_VACANCY_QUALITY) * TRAINER_WEIGHT;
   const budgetBonus = ATHLETICS_BUDGET_TIERS[s.orgs.athleticsBudget].qualityBonus;
-  return Math.max(0, Math.min(100, Math.round(weighted + budgetBonus)));
+  return Math.max(0, Math.min(100, Math.round(weighted + budgetBonus + athleticDirectorBonus(s))));
 }
 
 // The whole athletic department's standing (item 4's "scores & standings"),
@@ -924,10 +1043,14 @@ export function studentOrgUpkeep(s: GameState): number {
 // what disbanding is chosen to do to its venue.
 export function varsityTeamUpkeep(s: GameState): number {
   const tier = ATHLETICS_BUDGET_TIERS[s.orgs.athleticsBudget];
+  // The athletic director is department overhead, not a team's cost, so they
+  // are added once outside the per-team sum — but they ARE scaled by the same
+  // budget multiplier, because the lever is the whole department's.
+  const directorWeekly = (s.orgs.athleticDirector?.salary ?? 0) / WEEKS_PER_YEAR;
   return s.orgs.teams.reduce((sum, t) => {
     const staffAnnualSalary = (t.headCoach?.salary ?? 0) + (t.assistantCoach?.salary ?? 0) + (t.trainer?.salary ?? 0);
     return sum + (t.upkeepPerWeek + staffAnnualSalary / WEEKS_PER_YEAR) * tier.upkeepMultiplier;
-  }, 0);
+  }, directorWeekly * tier.upkeepMultiplier);
 }
 
 // The flat contribution live ACTIVE varsity teams make to the `social`

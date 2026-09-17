@@ -220,6 +220,41 @@ vacant role is not a hard block — the team still competes — just a real,
 felt gap: `teamQuality` (`studentLifeData.ts`) scores an empty slot at a
 fixed low floor rather than zero.
 
+**The athletic director** is hired once, the first quiet week after the school
+fields a varsity team, through an interrupt of athletics' own
+(`eventSystem.ts`'s `fireAthleticDirectorOffer`). They are a `Coach` rather
+than a fourth kind of person — somebody with a quality, a salary and a field,
+theirs being `AD_FIELD`, which marks a role the way `TRAINER_FIELD` marks a
+discipline — and they are never listed on the standing market: an AD is
+offered, not shopped for.
+
+Three candidates are rolled at fire time and carried in the interrupt's
+payload, so the people the modal describes are exactly the people it can hire.
+**Salary is the only axis they differ on**, and the modal says so rather than
+implying a second: a faculty hire trades teaching against research, but a
+director has one stat, so the only question three cards can pose is how much of
+the department's budget goes to the person running it.
+
+They do two things, and both are real or the hire would be a pure cost. Their
+quality is a **department-wide addend to every team's `teamQuality`**, beside
+the budget tier's own bonus — a different lever, since one is people and the
+other is money — and sized well under it, so a brilliant director cannot carry
+teams with nobody coaching them. And they are the **voice**: the shortage
+interrupts and the championship reports are written as the AD speaking.
+
+**Declining never closes the position.** Unlike the charter or the Hellenic
+Council, which close a question for the run on purpose, a school that cannot
+afford a director in year 12 must not lose the office — so the offer returns
+after a cooldown. The week is recorded when the offer is **put**, not when it
+is answered, which is what stops anything that clears the interrupt without
+answering from re-firing it the next quiet week forever.
+
+**The mascot is named in that same modal** — the first moment the question has
+an answer, since there is now something that wears the name. Deliberately not
+at founding: the startup screen would ask before a single building stands and
+typically a decade before a varsity team exists. A suggestion is offered and
+can be re-rolled or typed over.
+
 A live team's own upkeep (a fixed program fee plus its three coaches'
 live, tenure-appreciating salaries) and its flat, capped contribution to
 the `social` satisfaction attribute both run through **one recruiting &

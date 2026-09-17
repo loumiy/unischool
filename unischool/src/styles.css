@@ -2326,6 +2326,38 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .coach-name { font-weight: 600; }
 .coach-row-spacer { flex: 1; }
 
+/* ---------- the athletic director's offer (InterruptModal.tsx) ---------
+   Three people side by side, because the choice between them is a
+   comparison: the eye should be able to run across the row and read the
+   one axis the cards actually differ on, which is the money. Cards rather
+   than the event-choice rows every other interrupt uses — those are a
+   column of sentences, and three sentences would bury the numbers.
+   ------------------------------------------------------------------- */
+.ad-candidates { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0; }
+.ad-candidate { display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 12px 8px; background: transparent; border: 1px solid var(--navy-line);
+  border-radius: var(--radius-sm); color: inherit; cursor: pointer; text-align: center; }
+.ad-candidate:hover, .ad-candidate:focus-visible { border-color: var(--gold); }
+.ad-candidate-name { font-family: var(--serif); font-size: var(--text-base); font-weight: 600; }
+.ad-candidate-quality { font-size: var(--text-xs); color: var(--ink-lo); }
+/* The salary is the decision, so it is the figure set largest and in the
+   accent — the card's own statement of what it is asking for. */
+.ad-candidate-salary { font-family: var(--mono); font-size: var(--text-base); color: var(--gold); }
+.ad-candidate-tag { font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--ink-lo); }
+
+.ad-mascot { display: flex; align-items: center; gap: 8px; margin: 4px 0 14px;
+  font-size: var(--text-base); flex-wrap: wrap; }
+.ad-mascot-label { color: var(--ink-lo); }
+.ad-mascot-input { flex: 1; min-width: 140px; font-family: var(--serif);
+  font-size: var(--text-base); padding: 6px 8px; background: transparent;
+  border: 1px solid var(--navy-line); border-radius: var(--radius-sm); color: inherit; }
+.ad-mascot-input:focus-visible { border-color: var(--gold); outline: none; }
+.ad-mascot-roll { font-size: var(--text-xs); }
+/* Declining is a full-width, quiet row rather than a fourth card: it is not
+   a candidate, and it must not look like one. */
+.ad-decline { width: 100%; font-size: var(--text-xs); color: var(--ink-lo); }
+
 /* ---------- the coaching market, on the Athletics tab -------------------
    One list for the whole department rather than a slice per chair (see
    AthleticsTab.tsx's TheMarket). A row is a person first — face, name,

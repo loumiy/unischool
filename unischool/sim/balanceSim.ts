@@ -23,7 +23,7 @@
 import { reducer } from '../src/engine/reducer';
 import type { Action } from '../src/state/actions';
 import { createPreStartState } from '../src/state/actions';
-import type { GameState, Buildable, InitiativeReport } from '../src/state/types';
+import type { GameState, Buildable, Coach, InitiativeReport } from '../src/state/types';
 import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudent } from '../src/systems/finance/financeSystem';
 import { admitRate, topBandShare } from '../src/systems/admissions/admissionsSystem';
@@ -819,6 +819,23 @@ export function play(
         // and changes nothing mechanical (it renames the school), so
         // there is no trajectory to compare the other answer against.
         dispatch({ type: 'RESOLVE_CHARTER', accept: true });
+      } else if (s.pendingInterrupt.type === 'athletic-director') {
+        // The scripted player takes the MIDDLE candidate: the three differ
+        // only in how much of the department's budget goes to the person
+        // running it (see data/studentLifeData.ts's AD_TIERS), so picking the
+        // middle is the neutral reading — a strategy that always took the
+        // cheapest would be a thriftier player than any of these are, and one
+        // that always took the dearest would be a more extravagant one.
+        //
+        // Answered deliberately rather than left to the fallback below. An
+        // unrecognised interrupt falls through to RESOLVE_REPORT, which clears
+        // it without hiring or declining — and since the offer only cools down
+        // once it has been PUT, that would have the harness dismissing a modal
+        // it never read while the feature it is meant to be measuring never
+        // runs at all.
+        const payload = s.pendingInterrupt.payload as { candidates: Coach[] };
+        const middle = payload.candidates[Math.floor(payload.candidates.length / 2)] ?? null;
+        dispatch({ type: 'RESOLVE_ATHLETIC_DIRECTOR', candidate: middle, mascot: 'Sim Owls' });
       } else if (s.pendingInterrupt.type === 'decision-event') {
         const taken = chooseEventOption(s);
         const before = s.finance.cash;
