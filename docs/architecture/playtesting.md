@@ -72,7 +72,9 @@ nothing**, rather than quietly handing back year 40.
 
 Load a scenario with the debug panel's **Load** button (it is offered on the
 startup screen too, which is where a browser with no save starts), or hand it
-to `npm run shot` for a screenshot.
+to `npm run shot` for a screenshot — through `npm run layout` first if the
+picture is the point, since the scripted player sites every building along
+one edge of the grid (see `tools/README.md`).
 
 ## The debug panel
 

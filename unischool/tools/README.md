@@ -37,7 +37,39 @@ clearing all hardcoded; see "Standing the game up somewhere" below.
 
 `shot` loads that save into a headless Chromium through `localStorage`, drives
 the map's own zoom and pan buttons, and writes a PNG. Flags: `--zoom=N` (positive
-in, negative out), `--pan=DX,DY` (a drag, in screen pixels), `--clip=x,y,w,h`.
+in, negative out), `--pan=DX,DY` (a drag, in screen pixels), `--clip=x,y,w,h`,
+`--size=W,H` (the viewport, default 1600 by 1000) and `--scale=N` (device pixels
+per CSS pixel — 2 for a print-sharp image at the same framing).
+
+### A campus laid out like a campus
+
+The scripted player sites every building at `firstFreeSpot`, a top-left scan,
+so a scenario's campus is a strip along one edge of the grid — fine for a
+trajectory, useless for a picture. `layout.ts` re-sites a scenario's buildings
+onto a hand-drawn precinct plan, draws the walks, regrows the woodland round the
+result and plants the grounds, and writes the save back out:
+
+```sh
+npm run scenario -- --strategy Completionist --year 31 --clear-modal \
+  --name Blackmoor node_modules/.tmp/in.json
+npm run layout -- node_modules/.tmp/in.json node_modules/.tmp/out.json --ascii
+npm run shot -- node_modules/.tmp/out.json docs/images/campus.png --zoom=-1 --scale=2
+```
+
+Placement is visual-only (see `campusMap.ts`), so moving the buildings changes
+nothing the simulation computed: the school in the file is still the one the
+run produced. The plan is a list of anchors and the walks a list of straight
+runs, and the rules are checked rather than trusted — every footprint on clear
+tiles by the reducer's own `footprintIsClear`; both doors the camera can see
+(south face, east face) clear of other buildings and on a path; walks one tile
+wide and one connected network; no dead end that is not a doorstep. A doorstep
+pass adds the shortest run from any unserved door to the nearest path and a
+join pass ties up islands, so the checks hold whatever the run happened to
+build; anything the plan does not name (an event's chapter house) goes in an
+overflow block. `--ascii` prints the plan as a tile map, which is how it was
+drawn. That is what `docs/images/campus.png` is — run through `pngquant`
+afterwards, which takes a flat-colour render like this one down to a third of
+its size with nothing to see for it.
 
 **It does not download a browser.** The dependency is `playwright-core`, the
 browserless package, so installing this repo does not pull several hundred MB
