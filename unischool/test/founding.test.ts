@@ -12,7 +12,7 @@
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { programById } from '../src/data/techData';
-import { canFoundProgram } from '../src/systems/techtree/techSystem';
+import { canFoundProgram, canStartDevelopment, facultyGate } from '../src/systems/techtree/techSystem';
 import { isHoused } from '../src/systems/techtree/programOffers';
 import type { GameState } from '../src/state/types';
 
@@ -179,6 +179,32 @@ console.log('founding tests');
   assert(new Set(founded).size === 6, 'with six different programs');
   assert(s.programOffers.length === 3 && s.programOffers.every((id) => !founded.includes(id)), 'and three more are on offer');
   assert(s.tech.find((t) => t.id === 'HALL-02')?.status === 'available', 'the second hall is offered by then');
+}
+
+// ---- courses from the map (PR D): the same start, the same rules ----
+{
+  let s = ready();
+  const program = programById(s.programOffers[0])!;
+  const entry = s.tech.find((t) => t.id === program.entryCourseId)!;
+  const field = entry.requiresFaculty!;
+  s = reducer(s, { type: 'FOUND_PROGRAM', programId: program.id, hallId: 'HALL-01', slot: 0, facultyId: `test-${field}` });
+  s = advance(s, entry.duration + 1);
+  const t2 = s.tech.find((t) => t.id === program.courseIds[1])!;
+  assert(t2.status === 'available', 'a tier-2 course of the housed program is available once the entry course is done');
+  // The hall panel dispatches the ordinary START_DEVELOPMENT with the
+  // chosen instructor — and the ordinary gate refuses someone ineligible.
+  const wrong = s.faculty.find((f) => f.field !== field)!;
+  const refused = reducer(JSON.parse(JSON.stringify(s)) as GameState, { type: 'START_DEVELOPMENT', nodeId: t2.id, facultyId: wrong.id });
+  assert(refused.tech.find((t) => t.id === t2.id)?.status === 'available', 'an instructor from another field is refused from the map too');
+  s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: t2.id, facultyId: `test-${field}` });
+  assert(s.tech.find((t) => t.id === t2.id)?.status === 'developing', 'the chosen instructor starts it');
+  assert(s.courseFaculty[t2.id] === `test-${field}`, 'and is recorded as teaching it');
+  // A department with no free slot: the reason is readable, not silent.
+  const full = JSON.parse(JSON.stringify(s)) as GameState;
+  for (const f of full.faculty) if (f.field === field) f.courseSlots = 0;
+  const t3 = full.tech.find((t) => t.id === program.courseIds[2])!;
+  assert(t3.status === 'available' && !canStartDevelopment(full, t3), 'a course whose department is full cannot start');
+  assert(facultyGate(full, field) !== 'open', `and facultyGate says why (${facultyGate(full, field)})`);
 }
 
 if (failures === 0) {

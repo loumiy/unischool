@@ -9,7 +9,7 @@ repeatable academic halls with six program slots, programs founded from a
 rolling offer of three, and a Curriculum tab that becomes forty-two rows — and
 turn them into an ordered sequence of PRs.*
 
-**Status: In progress.** PRs A, B and C have landed. Depends on
+**Status: In progress.** PRs A through D have landed. Depends on
 [Plan 09](09-playtest-harness.md) for the scenarios and the scorecard this is
 measured with. Supersedes
 [Plan 11](11-academic-halls.md), whose rooms-and-continuous-development model
@@ -315,6 +315,18 @@ is now judged across seeds like its sibling, per the test's own policy.
 **Verify.** Every course in a housed program can be started from its hall panel,
 with the same grade preview and the same faculty eligibility rules the drawer
 applies. A course whose field has no free faculty slot shows why.
+
+**As implemented:** the strip is nine small cells (course number, and a
+grade, a +, a tick or an ellipsis) rather than nine course cards, because
+the panel is a 340-pixel column and a card per course was a second
+Curriculum tab. Selecting a cell opens the course under the strip: who
+teaches it and its grade, or the picker and a Develop button, or exactly why
+it cannot start — a prerequisite to finish, cash short, or a department with
+no free slot and whether the market can fix that today (`facultyGate`). One
+tile is open at a time; an open tile spans the grid so its strip fits. The
+tile reads `averageCourseQuality` and `courseQuality` — the same functions
+the Curriculum tab's headings and cells use — so a B on a tile and a B on a
+cell mean the same thing.
 
 ## PR 14E — Schools are founded
 
