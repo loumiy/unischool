@@ -131,12 +131,27 @@ past that ceiling toward the very top of the rankings requires the curriculum-
 breadth term too — i.e. sustained, decades-long buildout, not an early
 course-development sprint.
 
+**The player can see all of this.** The History tab opens with a **Standing**
+section — one panel per standing, one row per input, each row a bar of what that
+input is *worth* against the weight it could reach, the two multipliers named on
+the rows they touch, and today's stock against the target it is drifting toward.
+It is read off `prestigeSystem.ts`'s `prestigeBreakdown` /
+`researchStandingBreakdown` / `socialStandingBreakdown`, and **each target
+function is a sum over its own breakdown**, so the panel cannot disagree with the
+tick that produced the number. The rows are data: an input that is added, retired
+or reweighted changes that one file and the panel follows.
+
 **Direct-mutation audit.** `self.reputation` is written in exactly three places,
 and all three are intentional. (1) **Founding** sets the opening value
 (`BASE_STARTING_REPUTATION + preset.prestigeBonus + GENED_BUILDING_REPUTATION_BONUS`
 in `actions.ts`) — a one-time initialization, not a gameplay bump. (2) The
 **drift** in `prestigeSystem.ts` moves reputation toward the computed target on
-its regular cadence. (3) **Rivals** write their *own* `reputation`
+its regular cadence — as does that same file's `setPrestigeForPlaytest`, the
+debug panel's "set prestige" (see
+[`../architecture/playtesting.md`](../architecture/playtesting.md)), which lives
+there rather than in the reducer precisely so this audit stays a *file*-level
+one, and which clamps to the same band the drift does. (3) **Rivals** write their
+*own* `reputation`
 (`rivalsSystem.ts`), never the player's. Nothing else touches it: research,
 student life, decision events, satisfaction and rankings all read prestige and
 never write it. In particular, **being ranked does not raise prestige** —

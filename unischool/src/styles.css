@@ -2033,6 +2033,32 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .history-chart-note { margin: 6px 0 0; font-size: var(--text-xs); font-style: italic;
   color: var(--ink-muted); line-height: 1.45; }
 
+/* ---------- standing: the prestige breakdown (HistoryTab.tsx) ----------
+   Three standings side by side where there is room, stacked where there is
+   not. Each row is a label, a two-layer bar and a line of prose: the pale
+   layer is what the input reaches on its own, the solid one what it is
+   worth after its multiplier, and the gap between them is what a short
+   library is costing the school. */
+.standings { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px 26px; }
+.standing-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  border-bottom: 1px solid var(--parchment-line); padding-bottom: 4px; }
+.standing-head h3 { margin: 0; font-family: var(--serif); font-size: var(--text-base); color: var(--ink); }
+.standing-figure { font-family: var(--mono); font-size: var(--text-base); color: var(--gold-dim); font-weight: 700; }
+.standing-arrow { color: var(--ink-lo); font-weight: 400; }
+.standing-note { margin: 6px 0 10px; font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.5; }
+.standing-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.standing-row-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.standing-row-label { font-size: var(--text-sm); color: var(--ink); }
+.standing-row-figure { font-family: var(--mono); font-size: var(--text-sm); color: var(--ink); }
+.standing-row-of { color: var(--ink-lo); }
+.standing-bar { position: relative; height: 7px; margin: 3px 0 3px; background: #ded2b2;
+  border-radius: var(--radius-sm); overflow: hidden; }
+.standing-bar-reach, .standing-bar-fill { position: absolute; inset: 0 auto 0 0; border-radius: var(--radius-sm); }
+.standing-bar-reach { background: var(--parchment-line); }
+.standing-bar-fill { background: var(--gold-dim); }
+.standing-detail { margin: 0; font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.45; }
+.standing-multiplier { font-style: italic; }
+
 .history-table-scroll { overflow-y: auto; }
 .history-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
 .history-table th { position: sticky; top: 0; background: var(--parchment); text-align: right;

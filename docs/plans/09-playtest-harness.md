@@ -7,7 +7,7 @@ to take the first item of the roadmap in
 and turn it into an ordered sequence of PRs, each small enough to land on its
 own and each landing in the order that makes the next one cheaper.*
 
-**Status: In progress.** PRs A and B have landed.
+**Status: In progress.** PRs A, B and C have landed.
 
 ---
 
@@ -256,6 +256,35 @@ review's C5 is satisfied by the reading, not by the row set.
 **Verify.** The History tab on `year-15-completionist` shows a breadth row
 worth roughly three-quarters of its 90 and a campus-life row worth under 2 of
 its 12, which is what the review measured by hand.
+
+**As implemented:** built as specified, and the measurement is half right.
+On `year-15-completionist` (seed 12345) campus life reads **+0.6 of 12**, as
+predicted. Breadth reads **+35.9 of 90**, not three-quarters — the review's
+figure came off its own seed-4242 earnest run, which had far more programs
+distinguished by year 15 than the scripted Completionist does. The panel is
+right; the expectation was measured on a different school.
+
+All three standings get a breakdown, not just the academic one, and the
+three target functions are now sums over them. `test/invariants.test.ts`
+asserts the identity structurally on three hand-built states (founding,
+saturated, crowded — the interesting cases are the clamped ones);
+`test/balance-regression.test.ts` asserts it on the real year-20 state of
+every strategy, which is the "sim's year-20 states" the plan asked for and
+which invariants cannot reach without importing the harness.
+
+**A finding, flagged not fixed.** Writing the breakdown surfaced a unit
+mismatch in `researchBreadthScore`: it divides equipped **fields** by the
+count of research **schools**, and a school teaches several fields. At year
+15 a completionist campus reads 29 equipped fields against 8 schools, so
+that 40-weight term has been pinned at its maximum since about the fourth
+lab. Plan 09 changes no constant the model reads, so this is recorded in
+`prestigeSystem.ts` beside the code and left for whichever plan next opens
+the research model. The panel states both numbers rather than printing
+"29 of 8", which would read as a panel bug rather than the finding it is.
+
+`docs/design/progression.md` gains the panel, and its direct-mutation audit
+now names PR B's `setPrestigeForPlaytest` — which was PR B's omission,
+corrected here.
 
 ## PR 09D — The sim scorecard
 

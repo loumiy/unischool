@@ -24,6 +24,7 @@
 
 import { play, STRATEGIES, cutPayrollIfStalled, STALL_WEEKS_BEFORE_CUTS, DEFAULT_SIM_SEED } from '../sim/balanceSim';
 import { createInitialState } from '../src/state/actions';
+import { computePrestigeTarget, prestigeBreakdown } from '../src/systems/prestige/prestigeSystem';
 import type { GameState, Faculty } from '../src/state/types';
 
 let checks = 0;
@@ -481,6 +482,28 @@ for (const strategy of STRATEGIES) {
     + `(cash ${discountLast.cash.toLocaleString()}, last decade averaged ${Math.round(recent).toLocaleString()} `
     + `against ${Math.round(earlier).toLocaleString()} the decade before)${healthy.note}`,
   );
+}
+
+// =====================================================================
+// THE STANDING BREAKDOWN AGREES WITH THE TICK, ON REAL YEAR-20 STATES.
+//
+// test/invariants.test.ts asserts the same identity structurally, on
+// hand-built states. This is the other half, and the half Plan 09's PR C
+// actually asked for: the states here are the ones the harness just played
+// to, with every input somewhere in the middle of its range rather than at
+// a bound, and the panel on the History tab renders exactly this object.
+// One line per strategy, off runs that already exist.
+// =====================================================================
+{
+  for (const strategy of STRATEGIES) {
+    const { state } = play(strategy, YEARS);
+    const made = prestigeBreakdown(state);
+    const summed = made.inputs.reduce((total, input) => total + input.contribution, made.baseline);
+    assert(
+      Math.abs(Math.max(made.min, Math.min(made.max, summed)) - computePrestigeTarget(state)) < 1e-9,
+      `the prestige breakdown sums to the prestige target at year ${YEARS} under "${strategy.name}"`,
+    );
+  }
 }
 
 console.log('balance-regression tests');

@@ -392,16 +392,143 @@ function endowmentScore(s: GameState): number {
   return clamp01(s.finance.endowment / (enrolled * ENDOWMENT_PER_SEAT_FOR_FULL_SCORE));
 }
 
+// =====================================================================
+// THE BREAKDOWN: the same sum, written down.
+//
+// A standing is a weighted sum of clamped inputs, and until this existed
+// the sum was only ever evaluated — the number came out, and neither the
+// player nor the developer could see which term produced it. The September
+// 2026 review's C5 asks for the player half; a tuning pass needs the same
+// thing first, and so does anybody asking why prestige rose five points in
+// a year with no milestones.
+//
+// THE TARGET FUNCTIONS ARE SUMS OVER THIS, not a second copy of the
+// formula beside it. That is the whole discipline of the thing, and the
+// same one satisfactionSystem.ts's attributeDetail follows: a panel that
+// computed its own version of the arithmetic would be wrong within a
+// release, quietly, and the only reader who would notice is the one the
+// panel exists for.
+//
+// Rows are DATA. Plan 10 changes these inputs; the panel that renders them
+// (see tabs/HistoryTab.tsx's Standing section) reads whatever the
+// breakdown contains and never names a row, so a weight that moves or an
+// input that is retired changes one file.
+// =====================================================================
+
+// A multiplier on an input rather than an input of its own: library
+// adequacy on curriculum breadth, admissions scale on student quality.
+// Both express the same idea — this term is only worth its full weight to
+// a school that can actually serve the students it has — and both are
+// floored, so they throttle an upside and never punish.
+export interface StandingMultiplier {
+  label: string;
+  value: number;   // 0..1
+  detail: string;  // what the ratio is, in the units a reader recognises
+}
+
+export interface StandingInput {
+  key: string;
+  label: string;
+  score: number;         // the raw 0..1 reading, before weighting
+  weight: number;        // the most this input can ever be worth
+  contribution: number;  // weight * score * (multiplier ?? 1) — what it IS worth
+  multiplier?: StandingMultiplier;
+  detail: string;        // one line about what the score actually read
+}
+
+export interface StandingBreakdown {
+  label: string;
+  baseline: number;         // what a school with nothing scores
+  inputs: StandingInput[];
+  target: number;           // baseline + every contribution, clamped to the band
+  current: number;          // the stock today — what the target is pulling on
+  driftRate: number;        // the share of the gap that closes each week
+  min: number;
+  max: number;
+}
+
+function weigh(
+  key: string, label: string, weight: number, score: number, detail: string,
+  multiplier?: StandingMultiplier,
+): StandingInput {
+  return {
+    key, label, weight, score, detail, multiplier,
+    contribution: weight * score * (multiplier?.value ?? 1),
+  };
+}
+
+// Assembles a breakdown and computes its own target, so no caller can
+// disagree with the sum.
+function breakdown(
+  label: string, baseline: number, current: number, inputs: StandingInput[],
+): StandingBreakdown {
+  const total = inputs.reduce((sum, input) => sum + input.contribution, baseline);
+  return {
+    label, baseline, inputs, current,
+    target: clamp(total, PRESTIGE_MIN, PRESTIGE_MAX),
+    driftRate: PRESTIGE_DRIFT_RATE,
+    min: PRESTIGE_MIN,
+    max: PRESTIGE_MAX,
+  };
+}
+
+function libraryMultiplier(s: GameState): StandingMultiplier {
+  const enrolled = totalEnrolled(s.students);
+  const seats = s.tech
+    .filter((t) => t.status === 'done' && t.facilityType === 'library')
+    .reduce((sum, t) => sum + (t.effects?.servesPopulation ?? 0), 0);
+  return {
+    label: 'library adequacy',
+    value: libraryAdequacyScore(s),
+    detail: `${seats.toLocaleString()} seats for ${enrolled.toLocaleString()} students`,
+  };
+}
+
+function scaleMultiplier(s: GameState): StandingMultiplier {
+  const enrolled = totalEnrolled(s.students);
+  return {
+    label: 'scale',
+    value: admissionsScaleScore(s),
+    detail: `${enrolled.toLocaleString()} enrolled of the ${ADMISSIONS_SCALE_FOR_FULL_CREDIT.toLocaleString()} a national reading counts in full`,
+  };
+}
+
+export function prestigeBreakdown(s: GameState): StandingBreakdown {
+  const avgQuality = campusAverageCourseQuality(s);
+  return breakdown('Academic standing', PRESTIGE_BASELINE, s.self.reputation, [
+    weigh(
+      'breadth', 'Curriculum breadth', CURRICULUM_BREADTH_WEIGHT, curriculumBreadthScore(s),
+      'Programs established and distinguished, schools distinguished, graduate programs founded.',
+      libraryMultiplier(s),
+    ),
+    weigh(
+      'teaching', 'Teaching quality', TEACHING_QUALITY_WEIGHT, teachingScore(s),
+      avgQuality === null
+        ? 'No course is being taught, so there is no teaching to be good at.'
+        : `The campus average course grade, ${avgQuality.toFixed(0)} of 100.`,
+    ),
+    weigh(
+      'students', 'Student quality', STUDENT_QUALITY_WEIGHT, studentQualityScore(s),
+      `The class that enrolled last summer averaged ${s.students.incomingQuality.toFixed(0)} of 100.`,
+      scaleMultiplier(s),
+    ),
+    weigh(
+      'research', 'Research output', RESEARCH_WEIGHT, researchScore(s),
+      `${researchCredits(s).toFixed(1)} credits of ${RESEARCH_CREDITS_FOR_FULL_SCORE} — publications, finished projects, breakthroughs, prizes and doctorates.`,
+    ),
+    weigh(
+      'campus', 'Campus life', CAMPUS_LIFE_WEIGHT, campusLifeScore(s),
+      'What the recreation and athletics facilities contribute on their own.',
+    ),
+    weigh(
+      'endowment', 'Endowment', ENDOWMENT_WEIGHT, endowmentScore(s),
+      `$${Math.round(s.finance.endowment).toLocaleString()} against a student body of ${totalEnrolled(s.students).toLocaleString()}.`,
+    ),
+  ]);
+}
+
 export function computePrestigeTarget(s: GameState): number {
-  const target =
-    PRESTIGE_BASELINE +
-    CURRICULUM_BREADTH_WEIGHT * curriculumBreadthScore(s) * libraryAdequacyScore(s) +
-    TEACHING_QUALITY_WEIGHT * teachingScore(s) +
-    STUDENT_QUALITY_WEIGHT * studentQualityScore(s) * admissionsScaleScore(s) +
-    RESEARCH_WEIGHT * researchScore(s) +
-    CAMPUS_LIFE_WEIGHT * campusLifeScore(s) +
-    ENDOWMENT_WEIGHT * endowmentScore(s);
-  return clamp(target, PRESTIGE_MIN, PRESTIGE_MAX);
+  return prestigeBreakdown(s).target;
 }
 
 // What the prestige target WOULD be if the given milestones had never
@@ -489,12 +616,35 @@ function researchBreadthScore(s: GameState): number {
   return clamp01(labEquippedFields(s).size / schools.length);
 }
 
+export function researchStandingBreakdown(s: GameState): StandingBreakdown {
+  // A UNIT MISMATCH, found by writing this breakdown and FLAGGED RATHER THAN
+  // FIXED (Plan 09 changes no constant the model reads — see its "what this
+  // plan does not do"). researchBreadthScore above divides equipped FIELDS
+  // by the count of research SCHOOLS, and a school teaches several fields:
+  // at year 15 a completionist campus reads 29 equipped fields against 8
+  // schools, so the term has been pinned at its full 40 since the third or
+  // fourth lab went up. Whether the denominator should be fields or the
+  // score should be per-school is a design decision, and it belongs to
+  // whichever plan next touches the research model. The line below states
+  // both numbers rather than printing "29 of 8", which would read as a bug
+  // in the panel instead of the finding it is.
+  const equipped = labEquippedFields(s).size;
+  const schools = researchSchools().filter((school) => school.fields.length > 0).length;
+  return breakdown('Research standing', RESEARCH_STANDING_BASELINE, s.self.researchStanding, [
+    weigh(
+      'output', 'What the labs have produced', RESEARCH_OUTPUT_WEIGHT,
+      clamp01(researchCredits(s) / RESEARCH_STANDING_CREDITS_FOR_FULL),
+      `${researchCredits(s).toFixed(1)} credits of ${RESEARCH_STANDING_CREDITS_FOR_FULL} — the same tally the academic standing reads, against a national denominator.`,
+    ),
+    weigh(
+      'breadth', 'Fields it can research in', RESEARCH_BREADTH_WEIGHT, researchBreadthScore(s),
+      `${equipped} field${equipped === 1 ? '' : 's'} equipped, counted against the ${schools} schools that can hold a lab.`,
+    ),
+  ]);
+}
+
 export function computeResearchTarget(s: GameState): number {
-  const target =
-    RESEARCH_STANDING_BASELINE +
-    RESEARCH_OUTPUT_WEIGHT * clamp01(researchCredits(s) / RESEARCH_STANDING_CREDITS_FOR_FULL) +
-    RESEARCH_BREADTH_WEIGHT * researchBreadthScore(s);
-  return clamp(target, PRESTIGE_MIN, PRESTIGE_MAX);
+  return researchStandingBreakdown(s).target;
 }
 
 // Social standing's four inputs. Between them they are the closest thing the
@@ -539,15 +689,36 @@ function socialOrganisationsScore(s: GameState): number {
   return clamp01(studentLifeSocialBonus(s) / STUDENT_LIFE_SOCIAL_BONUS_CAP);
 }
 
+export function socialStandingBreakdown(s: GameState): StandingBreakdown {
+  const titles = s.orgs.titles.length;
+  const teams = s.orgs.teams.filter((t) => t.status === 'active').length;
+  return breakdown('Campus life standing', SOCIAL_STANDING_BASELINE, s.self.socialStanding, [
+    weigh(
+      'facilities', 'Places built for it', SOCIAL_FACILITIES_WEIGHT, campusLifeScore(s),
+      'The recreation chain, read off the same contribution the academic standing reads.',
+    ),
+    weigh(
+      'organisations', 'Clubs and chapters', SOCIAL_ORGANISATIONS_WEIGHT, socialOrganisationsScore(s),
+      `${s.orgs.clubs.length} club${s.orgs.clubs.length === 1 ? '' : 's'} and ${s.orgs.chapters.length} chapter${s.orgs.chapters.length === 1 ? '' : 's'}.`,
+    ),
+    weigh(
+      'athletics', 'Varsity athletics', SOCIAL_ATHLETICS_WEIGHT, clamp01(athleticProgramStrength(s) / 100),
+      `${teams} team${teams === 1 ? '' : 's'} fielding, at program strength ${athleticProgramStrength(s).toFixed(0)}.`,
+    ),
+    weigh(
+      'satisfaction', 'What students report', SOCIAL_SATISFACTION_WEIGHT,
+      clamp01(s.students.satisfactionBreakdown.social / 100),
+      `The social attribute of student satisfaction, at ${s.students.satisfactionBreakdown.social.toFixed(0)} of 100.`,
+    ),
+    weigh(
+      'titles', 'Championships', SOCIAL_TITLES_WEIGHT, titlesScore(s),
+      `${titles} national title${titles === 1 ? '' : 's'} of the ${TITLES_FOR_FULL_SCORE} a dynasty is.`,
+    ),
+  ]);
+}
+
 export function computeSocialTarget(s: GameState): number {
-  const target =
-    SOCIAL_STANDING_BASELINE +
-    SOCIAL_FACILITIES_WEIGHT * campusLifeScore(s) +
-    SOCIAL_ORGANISATIONS_WEIGHT * socialOrganisationsScore(s) +
-    SOCIAL_ATHLETICS_WEIGHT * clamp01(athleticProgramStrength(s) / 100) +
-    SOCIAL_SATISFACTION_WEIGHT * clamp01(s.students.satisfactionBreakdown.social / 100) +
-    SOCIAL_TITLES_WEIGHT * titlesScore(s);
-  return clamp(target, PRESTIGE_MIN, PRESTIGE_MAX);
+  return socialStandingBreakdown(s).target;
 }
 
 // All three stocks drift together, at the same rate, toward their own
