@@ -814,6 +814,47 @@ start"*. Athletics has no second screen where a coaching shortage surfaces; the
 Athletics tab **is** where it is felt. The pattern was not wrong, it was in the
 wrong building.
 
+**As implemented:** the screen shipped; **the pool raise did not**, for the
+second time and now with a reason worth acting on.
+
+PR 2A deferred the raise to here, on the grounds that the stock a player sees at
+one moment is a question about the hiring screen. It is — and 18 listings over
+19 fields does read thin on a list that shows the whole market at once. Raising
+it to 44 tripped `test/balance-regression.test.ts` again. So did the
+*principled* fix: giving the market its own generator, seeded from one draw the
+way `rivalsSystem.ts`'s annual drift is, moved the stream once more and landed
+on a **third distinct knife-edge** — the Completionist ending year 20 at
+-135,031 against an $11.4M opex, with one red week in 1,040.
+
+At that point the sweep stopped being about this PR. Run across eight seeds:
+
+| | passes | fails at |
+|---|---|---|
+| this branch, raised and decoupled | **5 of 8** | 12345, 99, 31337 |
+| `main` | **4 of 8** | 7, 31337, 555, 1 |
+
+**`main` fails half the seeds on its own.** The gate is not a single-seed gate;
+it is eight coin flips wearing one, and the branch was marginally *better* than
+the baseline it was being measured against. Three different assertions have now
+tripped across this plan — the Overbuilder's trough, the discount strategy's
+decade trend, the Completionist's solvency — each sitting within about 1% of its
+own threshold.
+
+So this PR ships the part that touches no dice, and it is the substance:
+`heritage` on `Coach` (the origin `rollCoachName` already rolled and threw
+away, so the draw count is unchanged), the portrait generalised onto a
+four-field shape, and the one-pool-tagged-by-need list. `npm run sim` is
+byte-identical to PR 2A's across all seven strategies.
+
+What is left is one decision, and it is about the harness rather than about
+athletics: **a market whose size is a tunable constant should not decide how
+many times the game rolls a die.** The fix is the same one PR 1A applied to the
+rival field and 1C extended, and it is four lines — but it moves the stream
+once on the way in, and on current evidence that is a coin flip on whether
+`npm test` is green afterwards, for reasons having nothing to do with the
+change. Flagged for the repository owner alongside the gate's own fragility,
+which is the thing actually blocking it.
+
 ## PR 2C — An athletic director, and a name to play under
 
 **The change.** The first varsity team already opens the Athletics tab
