@@ -636,16 +636,6 @@ function decide(
       if (!courseStaysSustainable(s, strategy)) continue;
       if (canStartDevelopment(s, c)) dispatch({ type: 'START_DEVELOPMENT', nodeId: id });
     }
-    // Academic halls are sited by siteHallIfNeeded above, when there is
-    // something to put in one; this loop is the professional-school
-    // buildings (Medicine, Law) until Plan 14's PR E retires those too.
-    for (const id of get().tech.filter((t) => t.kind === 'building' && !isAcademicHall(t) && t.status === 'available').map((t) => t.id)) {
-      const s = get();
-      const b = s.tech.find((t) => t.id === id);
-      if (b && b.status === 'available' && canCommitCapital(s, strategy) && affordable(s, b.cost, strategy)) {
-        dispatchPlaceable(get, dispatch, id);
-      }
-    }
     for (const id of get().tech.filter((t) => t.facilityType === 'lab' && t.status === 'available').map((t) => t.id)) {
       const s = get();
       const l = s.tech.find((t) => t.id === id);

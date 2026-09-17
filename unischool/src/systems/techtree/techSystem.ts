@@ -5,6 +5,7 @@ import {
 } from '../../data/techData';
 import { isCelebratedMilestone } from '../../data/eventData';
 import { hallOf, isHoused, refillOffers } from './programOffers';
+import { dedicatedHalls, schoolFoundedKey } from './schools';
 import { tierOf, type CourseTier } from '../../data/courseQuality';
 
 // ---------------------------------------------------------------------
@@ -35,6 +36,11 @@ const PROGRAM_ESTABLISHED_APPLICANT_BONUS = 30;
 // a nudge to prestige — that stays a stock, and a graduate program's real
 // payoff is the capped breadth input it lifts (see prestigeSystem.ts).
 const GRAD_PROGRAM_COMPLETE_APPLICANT_BONUS = 60;
+// Founding a school (Plan 14): the applicant bump of an established
+// program, doubled — a named school is the first thing a prospective
+// student can point at. Provisional, like every number in Plan 14; fitted
+// in Plan 15's PR G.
+const SCHOOL_FOUNDED_APPLICANT_BONUS = 60;
 
 // Is this Buildable currently OFFERED — i.e. does it hold a faculty course
 // slot? Development is the commitment, not completion: a course never
@@ -541,6 +547,10 @@ function meetsUnlockGates(s: GameState, t: Buildable): boolean {
     const programId = programOfCourse(t.id);
     if (programId !== undefined && programId !== 'CORE' && !isHoused(s, programId)) return false;
   }
+  // THE SCHOOL GATE (Plan 14's PR E): a lab waits on its school having
+  // been founded — the milestone, not the live reading, since a school
+  // that was founded stays founded (see schools.ts).
+  if (t.schoolGate !== undefined && !s.milestones[schoolFoundedKey(t.schoolGate)]) return false;
   if (t.minCapacityToUnlock !== undefined && totalEnrolled(s.students) < t.minCapacityToUnlock) return false;
   if (t.minPrestigeToUnlock !== undefined && s.self.reputation < t.minPrestigeToUnlock) return false;
   if (t.graduateProgram !== undefined && !graduateGateMet(s, t.graduateProgram)) return false;
@@ -618,6 +628,11 @@ export function foundProgram(s: GameState, f: Founding): void {
   if (canStartDevelopment(s, entry, f.facultyId)) startDevelopment(s, entry, f.facultyId);
   s.programOffers = s.programOffers.filter((id) => id !== f.programId);
   refillOffers(s);
+  // The sixth program of a school in one hall founds the school, and a
+  // lab whose school has just been founded opens — both readings change
+  // here and not on a tick, so they are resolved here.
+  checkMilestones(s);
+  unlockAvailable(s);
   const hall = s.tech.find((t) => t.id === f.hallId);
   s.log.unshift({
     year: s.clock.year, week: s.clock.week,
@@ -656,6 +671,20 @@ function awardMilestone(s: GameState, key: string, applicantBonus: number, messa
 }
 
 function checkMilestones(s: GameState): void {
+  // SCHOOLS ARE FOUNDED (Plan 14's PR E): a hall with all six slots housed
+  // by one school's programs dedicates, and the first dedication founds
+  // the school — awarded once, celebrated, never revoked (see
+  // schools.ts). The celebration is the naming: until now the Curriculum
+  // tab showed the school's programs in its colour with no label.
+  for (const { school } of dedicatedHalls(s)) {
+    awardMilestone(
+      s,
+      schoolFoundedKey(school),
+      SCHOOL_FOUNDED_APPLICANT_BONUS,
+      `Six programs, one building. This is the School of ${school}.`,
+    );
+  }
+
   for (const school of milestoneSchools()) {
     let allProgramsDistinguished = school.majors.length > 0;
 

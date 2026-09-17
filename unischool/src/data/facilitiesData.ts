@@ -561,11 +561,14 @@ export const HEALTH_CENTER_TIER2_ID = 'HLTH-T2';
 const HEALTH_CENTER_TIER2_SERVES = 6_000;
 const HEALTH_CENTER_TIER2_COST = 2_400_000; // 400/seat
 const HEALTH_CENTER_TIER2_WEEKS = 26;
-// The medical school's own building, named as a raw id rather than
-// imported: techData.ts already imports FROM this file (for the arts and
-// clinical gates), so importing back would make the two data modules
-// circular — the same reason MUSIC_TIER2_IDS above is written out.
-const MEDICAL_SCHOOL_BUILDING_ID = 'BLDG-MED';
+// The MD's entry course, named as a raw id rather than imported:
+// techData.ts already imports FROM this file (for the arts and clinical
+// gates), so importing back would make the two data modules circular —
+// the same reason MUSIC_TIER2_IDS above is written out. The School of
+// Medicine has no building of its own any more (Plan 14's PR E: it takes
+// a hall slot like any program), so "a school of medicine that stands" is
+// its founding course being done.
+const MEDICAL_SCHOOL_ENTRY_ID = 'MED501';
 export const HEALTH_CENTER_TIER3_POPULATION_GATE = 20_000;
 export const HEALTH_CENTER_TIER3_ID = 'HLTH-T3';
 const HEALTH_CENTER_TIER3_SERVES = 30_000;
@@ -949,15 +952,17 @@ export function initialFacilities(): Buildable[] {
       facilityType: 'healthCenter',
       tier: 3,
       name: 'University Hospital',
-      description: `A teaching hospital caring for ${HEALTH_CENTER_TIER3_SERVES.toLocaleString()} more students, and where the MD's clerkship year is spent. Needs the School of Medicine standing, and a campus past ${HEALTH_CENTER_TIER3_POPULATION_GATE.toLocaleString()} students enrolled.`,
+      description: `A teaching hospital caring for ${HEALTH_CENTER_TIER3_SERVES.toLocaleString()} more students, and where the MD's clerkship year is spent. Needs the School of Medicine founded, and a campus past ${HEALTH_CENTER_TIER3_POPULATION_GATE.toLocaleString()} students enrolled.`,
       cost: HEALTH_CENTER_TIER3_COST,
       duration: HEALTH_CENTER_TIER3_WEEKS,
-      // The medical school's BUILDING, not merely its academic gate: a
+      // The medical school FOUNDED, not merely its academic gate: a
       // teaching hospital belongs to a school of medicine that actually
-      // stands. Never circular with the MD capstone this in turn gates
-      // (techData.ts) — that is a course inside the program, several rungs
-      // past the building.
-      prereqs: [HEALTH_CENTER_TIER2_ID, MEDICAL_SCHOOL_BUILDING_ID],
+      // exists, and the MD's entry course done is what that means now
+      // that the school has no building (see MEDICAL_SCHOOL_ENTRY_ID).
+      // Never circular with the MD capstone this in turn gates
+      // (techData.ts) — that is the last course of the program, and the
+      // entry course requires nothing of the hospital.
+      prereqs: [HEALTH_CENTER_TIER2_ID, MEDICAL_SCHOOL_ENTRY_ID],
       minCapacityToUnlock: HEALTH_CENTER_TIER3_POPULATION_GATE,
       status: 'locked',
       effects: {

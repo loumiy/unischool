@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
-import { discoverySchools, isAcademicHall, professionalSchools, programById, type ProgramInfo } from '../data/techData';
+import { discoverySchools, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
+import { dedicatedSchool, hallDisplayName } from '../systems/techtree/schools';
 import { GradeChip, InstructorOption, completion, discoverySections } from '../tabs/CurriculumTab';
 import { averageCourseQuality, courseQuality, facultyLoads, instructorOf } from '../systems/faculty/facultyAssignment';
 import { gradeFor } from '../data/courseQuality';
@@ -367,9 +368,15 @@ function HallSlots({ t, s, act }: { t: Buildable; s: GameState; act?: (a: Action
     : null;
   const canFound = founding !== null && canFoundProgram(s, founding);
   const free = slots.filter((slot) => slot.programId === null).length;
+  const school = dedicatedSchool(s, t.id);
 
   return (
     <>
+      {school && (
+        <p className="building-info-line building-info-dedication" style={{ color: schoolMark(school).hue }}>
+          {schoolMark(school).motif} Dedicated to the School of {school}.
+        </p>
+      )}
       <p className="building-info-line">
         {free === 0
           ? 'Every slot is taken.'
@@ -485,11 +492,10 @@ function HallSlots({ t, s, act }: { t: Buildable; s: GameState; act?: (a: Action
   );
 }
 
-// An academic hall's info: either one of the seven undergraduate schools
-// (discoverySchools()) or Medicine/Law, which are their own top-level
-// curriculum sections rather than a school (professionalSchools()) — the
-// same two mappings CurriculumTab.tsx itself reads, imported rather than
-// duplicated so this panel's majors list can never disagree with that tab.
+// A building's info: an academic hall (its slots), or Founders Hall (the
+// core) — discoverySchools() is the mapping CurriculumTab.tsx itself
+// reads, imported rather than duplicated so this panel can never disagree
+// with that tab.
 function BuildingHallInfo({ t, s, act, onOpenCurriculum }: {
   t: Buildable; s: GameState; act?: (a: Action) => void; onOpenCurriculum?: (id: string) => void;
 }) {
@@ -515,22 +521,9 @@ function BuildingHallInfo({ t, s, act, onOpenCurriculum }: {
     );
   }
 
-  const prof = professionalSchools().find((p) => p.buildingId === t.id);
-  if (prof) {
-    const section = discoverySections(s).find((sec) => sec.key === t.id);
-    return (
-      <>
-        <p className="building-info-line">{prof.degree}</p>
-        <CourseCompletion s={s} courseIds={section ? section.schoolCourseIds : prof.courseIds} />
-        <OpenInCurriculum id={t.id} onOpenCurriculum={onOpenCurriculum} />
-      </>
-    );
-  }
-
-  // Unreachable for real seed data (every 'building' Buildable is a hall,
-  // Founders Hall, or a professional school above) — a plain fallback
-  // rather than a thrown error, since this is an info panel, not a place
-  // worth crashing the map over.
+  // Unreachable for real seed data (every 'building' Buildable is a hall
+  // or Founders Hall) — a plain fallback rather than a thrown error, since
+  // this is an info panel, not a place worth crashing the map over.
   return <p className="building-info-line">{t.description}</p>;
 }
 
@@ -565,7 +558,7 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
   return (
     <div className={`building-info-panel${isAcademicHall(t) ? ' hall' : ''}`} role="dialog" aria-label={`${t.name} info`}>
       <div className="building-info-head">
-        <h3>{t.name}</h3>
+        <h3>{hallDisplayName(s, t)}</h3>
         <button type="button" className="building-info-close" onClick={onClose} aria-label="Close">✕</button>
       </div>
       {t.status === 'developing' && weeksLeft !== undefined && (

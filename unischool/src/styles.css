@@ -827,6 +827,9 @@ button.build-tile { font-family: inherit; }
    three columns, and a strip of nine courses under an open one, need the
    room. */
 .building-info-panel.hall { width: 340px; }
+/* "Dedicated to the School of Engineering": the one line on a hall's panel
+   that carries the school's colour (see schoolPalette.ts). */
+.building-info-dedication { font-weight: 600; }
 /* THE PROGRAM TILE (PR D): the housed slot itself is the button; an open
    tile spans the grid's full width so its strip of nine fits. */
 .hall-slot.housed { padding: 0; overflow: hidden; }

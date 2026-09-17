@@ -5,7 +5,7 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import { facultyQualityTier, CANDIDATE_LISTING_WEEKS, FACULTY_FIELD_GROUPS } from '../data/facultyData';
 import { facultyResearchOutput, labEquippedFields } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
-import { discoverySchools, professionalSchools } from '../data/techData';
+import { discoverySchools } from '../data/techData';
 import { effectiveCourseSlots, facultyLoad } from '../systems/techtree/techSystem';
 import { facultyCapacity, hiresFor, type FieldCapacity } from '../systems/faculty/facultyCapacity';
 import { coursesTaughtBy } from '../systems/faculty/facultyAssignment';
@@ -342,7 +342,6 @@ function courseDemandByField(s: GameState): Map<string, DemandByMajor> {
     for (const major of school.majors) take(major.name, [major.tier1Id, ...major.tier2Ids, ...major.tier3Ids]);
     for (const program of school.graduate) take(program.name, program.courseIds);
   }
-  for (const program of professionalSchools()) take(program.name, program.courseIds);
 
   // Anything the discovery metadata does not place (there is nothing
   // today, but a future course kind would land here rather than vanishing).

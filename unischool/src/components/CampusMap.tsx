@@ -11,6 +11,7 @@ import { chapterHouseId } from '../data/eventData';
 import { isTypingTarget, useHotkeys } from './hotkeys';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
+import { hallDisplayName } from '../systems/techtree/schools';
 import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf } from './buildingMotifs';
 import { materialOf, motifOf } from './buildingSpec';
 import { groundProps } from './groundMarkings';
@@ -254,13 +255,13 @@ function drawnFootprint(p: Placement) {
 // the plate, not a text baseline — the plate used to hang off the baseline,
 // which put its visual middle a quarter of a line above the point it was
 // nominally placed at and compounded the float.
-function labelLayout(t: Buildable, p: Placement, v: Vernacular) {
+function labelLayout(label: string, t: Buildable, p: Placement, v: Vernacular) {
   const size = Math.max(
     LABEL_MIN_FONT_SIZE,
     Math.min(LABEL_MAX_FONT_SIZE, (p.w + p.h) * LABEL_SIZE_PER_TILE),
   );
   const centre = lift(project(p.col + p.w / 2, p.row + p.h / 2), labelHeightOf(t, v));
-  const textWidth = t.name.length * size * LABEL_CHAR_WIDTH_RATIO;
+  const textWidth = label.length * size * LABEL_CHAR_WIDTH_RATIO;
   return { size, centre, textWidth };
 }
 
@@ -287,9 +288,14 @@ type SceneEntry = DepthBox & (
 // actually drawn is both correct and free — there are only ever a few dozen
 // buildings, so nothing here needs the arithmetic picking the ground uses.
 function PlacedBuilding({
-  t, p, onInspect, inspected, weeksLeft, justFinished, glyphs, vernacular,
+  t, p, label, onInspect, inspected, weeksLeft, justFinished, glyphs, vernacular,
 }: {
   t: Buildable; p: Placement; onInspect: () => void; inspected: boolean;
+  // What the map calls it — a dedicated hall is "<School> Hall" while it
+  // is pure (systems/techtree/schools.ts's hallDisplayName), which is a
+  // live reading the parent makes; the Buildable's own `name` stays the
+  // seeded one unless a donor bought it.
+  label: string;
   weeksLeft?: number; justFinished?: boolean;
   // The architecture this campus was built in (state's self.vernacular).
   // Both lookups below resolve to objects held on buildingSpec's own
@@ -307,7 +313,7 @@ function PlacedBuilding({
   return (
     <g
       className={`campus-building ${kindClasses(t)} ${inspected ? 'inspected' : ''} ${developing ? 'under-construction' : ''}`}
-      aria-label={t.name}
+      aria-label={label}
       role="button"
       onClick={onInspect}
     >
@@ -360,7 +366,7 @@ function PlacedBuilding({
           />
         </>
       )}
-      <title>{developing ? `${t.name} · under construction · ${weeksLeft}w left` : `${t.name} · ${p.w}×${p.h}`}</title>
+      <title>{developing ? `${label} · under construction · ${weeksLeft}w left` : `${label} · ${p.w}×${p.h}`}</title>
     </g>
   );
 }
@@ -379,10 +385,10 @@ function PlacedBuilding({
 //
 // The measure runs in a LAYOUT effect, so the corrected plate is in place
 // before the browser paints and no frame shows the estimate.
-function BuildingLabel({ t, p, pinned, vernacular }: {
-  t: Buildable; p: Placement; pinned: boolean; vernacular: Vernacular;
+function BuildingLabel({ t, p, label, pinned, vernacular }: {
+  t: Buildable; p: Placement; label: string; pinned: boolean; vernacular: Vernacular;
 }) {
-  const { size, centre, textWidth } = labelLayout(t, p, vernacular);
+  const { size, centre, textWidth } = labelLayout(label, t, p, vernacular);
   const textRef = useRef<SVGTextElement>(null);
   const [box, setBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
 
@@ -394,7 +400,7 @@ function BuildingLabel({ t, p, pinned, vernacular }: {
       && prev.w === b.width && prev.h === b.height
       ? prev
       : { x: b.x, y: b.y, w: b.width, h: b.height }));
-  }, [t.name, size, centre.x, centre.y]);
+  }, [label, size, centre.x, centre.y]);
 
   // Until the first measure lands, fall back to the estimate so there is
   // never a nameplate-less label.
@@ -432,7 +438,7 @@ function BuildingLabel({ t, p, pinned, vernacular }: {
           stylesheet. Adding a manual half-cap-height on top of that was
           double-correcting, and dropped the text below its own plate. */}
       <text ref={textRef} className="campus-label-text" x={centre.x} y={centre.y} fontSize={size}>
-        {t.name}
+        {label}
       </text>
     </g>
   );
@@ -1280,6 +1286,7 @@ export default function CampusMap({
                 key={t.id}
                 t={t}
                 p={p}
+                label={hallDisplayName(s, t)}
                 onInspect={() => inspectBuilding(t.id)}
                 inspected={t.id === inspectedId}
                 weeksLeft={s.developing[t.id]}
@@ -1306,6 +1313,7 @@ export default function CampusMap({
                   <PlacedBuilding
                     t={t}
                     p={p}
+                    label={hallDisplayName(s, t)}
                     onInspect={() => inspectBuilding(entry.id)}
                     inspected={entry.id === inspectedId}
                     weeksLeft={s.developing[entry.id]}
@@ -1356,7 +1364,7 @@ export default function CampusMap({
 
             <g ref={labelLayerRef}>
               {placed.map(({ t, p }) => (
-                <BuildingLabel key={`label-${t.id}`} t={t} p={p} pinned={t.id === inspectedId} vernacular={s.self.vernacular} />
+                <BuildingLabel key={`label-${t.id}`} t={t} p={p} label={hallDisplayName(s, t)} pinned={t.id === inspectedId} vernacular={s.self.vernacular} />
               ))}
             </g>
           </g>

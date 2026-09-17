@@ -9,7 +9,7 @@ repeatable academic halls with six program slots, programs founded from a
 rolling offer of three, and a Curriculum tab that becomes forty-two rows — and
 turn them into an ordered sequence of PRs.*
 
-**Status: In progress.** PRs A through D have landed. Depends on
+**Status: In progress.** PRs A through E have landed. Depends on
 [Plan 09](09-playtest-harness.md) for the scenarios and the scorecard this is
 measured with. Supersedes
 [Plan 11](11-academic-halls.md), whose rooms-and-continuous-development model
@@ -357,6 +357,22 @@ cell mean the same thing.
 names it; five plus one Engineering program founds nothing. A second hall of
 Health Science programs plus the MD dedicates separately. Moving a program out
 of a dedicated hall keeps the milestone.
+
+**As implemented:** the hall's name on the map is a *live* reading
+(`hallDisplayName`): "<School> Hall" while the hall is pure, the seeded name
+otherwise, and the donor's text permanently once naming rights are sold —
+the milestone is the only thing written. A lab's school gate is a field on
+the Buildable (`schoolGate`) read beside the other dynamic gates, since a
+milestone is a reading of state rather than a Buildable's status. The
+University Hospital, which gated on `BLDG-MED`, now gates on the MD's entry
+course being done — "a school of medicine that exists" is its founding
+course, since it has no building. A graduate program is revealed in the
+Curriculum tab once it is *housed*, the same rule a major follows, so
+`professionalSchools()` and the Medicine/Law sections go with the
+buildings. Dedication is checked in `FOUND_PROGRAM` itself (and a newly
+opened lab resolved there), because it is a founding that changes the
+reading, not a tick. `SAVE_VERSION` moves to 53 — and 14C should have moved
+it too, since a save carries its own `tech`.
 
 ## PR 14F — Relocation
 

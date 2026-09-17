@@ -16,19 +16,17 @@ import {
   courses and gating its tier-2 courses. A school is now something the
   player FOUNDS by housing six of its programs in one academic hall, and a
   program is founded by taking a slot (see types.ts's HallSlot and
-  systems/techtree/programOffers.ts). Medicine and Law still carry their
-  own building (BLDG-MED, BLDG-LAW) until PR E gives graduate programs
-  ordinary slots.
+  systems/techtree/programOffers.ts). Medicine and Law lost their own
+  buildings (BLDG-MED, BLDG-LAW) in PR E and take ordinary slots like
+  everything else — a graduate program belongs to its homeSchool, and
+  since that school's six majors already fill a hall, an MD or a
+  doctorate needs a second hall of its school, dedicated on its own terms.
 
   On top of that undergraduate catalogue, GRADUATE PROGRAMS (further below)
-  add 37 more course Buildables across six programs, two of which — the
+  add 37 more course Buildables across six programs. Two of them — the
   School of Medicine and the School of Law, the only two that award an
-  EXTERNAL professional degree rather than building on a parent school's
-  own subject matter — carry their own 'building' Buildable too (BLDG-MED,
-  BLDG-LAW), the same kind an undergraduate school gets. That makes nine
-  school-shaped buildings in total, not seven; see the GRADUATE PROGRAMS
-  block's `buildingId` note for why only these two, and not the MBA or the
-  three PhD doctorates, get one.
+  EXTERNAL professional degree — used to carry their own 'building'
+  Buildable; see the module note above for where they live now.
 
   Prerequisite rule (a clean four-stage climb per major, gen-ed included),
   now AUTHORED as plain ids rather than derived purely from tier:
@@ -780,18 +778,6 @@ const DOCTORAL_COURSE_COST = 4_000_000;
 const DOCTORAL_COURSE_WEEKS = 32;
 const DOCTORAL_COURSE_UPKEEP_PER_WEEK = 7_000;
 
-// The two PROFESSIONAL schools that award an external degree — Medicine and
-// Law, see GraduateProgramSeed's `buildingId` below — get their own campus
-// building rather than living inside their parent school's. It is the same
-// 'building'-kind Buildable an undergraduate school gets, sized a rung above
-// SCHOOL_BUILDING_COST/WEEKS/UPKEEP: these are the two most prestigious
-// halls on campus, a bigger institutional commitment than any single
-// undergraduate school and in the same weeks-of-opex language as the
-// professional course rung above sits over TIER_COURSE_COST.
-const PROFESSIONAL_SCHOOL_BUILDING_COST = 2_600_000;
-const PROFESSIONAL_SCHOOL_BUILDING_WEEKS = 36;
-const PROFESSIONAL_SCHOOL_BUILDING_UPKEEP_PER_WEEK = 5_000;
-
 export type GraduateProgramType = 'professional' | 'doctoral';
 
 interface GraduateCourseSeed {
@@ -805,11 +791,11 @@ export interface GraduateProgramSeed {
   name: string;
   degree: string;          // the credential, for display only
   type: GraduateProgramType;
-  // The school section this program is DISPLAYED under when it has no
-  // building of its own (see discoverySchools) — its academic home. Always
-  // one of gateSchools. Still read for MED/LAWS too (researchSchools()
-  // folds their course fields into this school's staffing reads), even
-  // though they no longer display inside it — see `buildingId` below.
+  // The school this program BELONGS to — its academic home, always one of
+  // gateSchools. It is the section the program is displayed under, the
+  // school whose staffing reads fold its course fields in
+  // (researchSchools()), and the school it counts as when housed in a
+  // hall (systems/techtree/schools.ts's dedicatedSchool).
   homeSchool: string;
   // The school(s) whose state the gate reads. One entry for every program
   // but medicine, which reads two.
@@ -831,34 +817,11 @@ export interface GraduateProgramSeed {
   prestigeWeight: number;
   blurb: string;           // one line, used to build every course description
   courses: GraduateCourseSeed[];
-  // Set only for the two PROFESSIONAL schools that award an external
-  // degree and stand as their own campus building rather than living
-  // inside their parent school's — Medicine and Law. Unset (the MBA and
-  // all three PhD doctorates) means this program stays exactly what it
-  // always was: a graduate sub-group inside homeSchool's Curriculum
-  // section, gated purely on graduateGateMet, no building of its own —
-  // they build on the same subject matter as their parent school and
-  // correctly live there.
-  //
-  // The gate itself does not change for a program that HAS a buildingId —
-  // graduateGateMet is still the one predicate, reused rather than
-  // duplicated (see initialTech() below). What changes is what the gate
-  // being met now reveals FIRST: the building, via the exact same
-  // `graduateProgram` field/meetsUnlockGates mechanism a graduate course
-  // uses, rather than the program's courses directly. The program's entry
-  // course then adds the building as an extra prereq — a cross-kind
-  // course-requires-building prereq, exactly like an undergraduate tier-2
-  // course requiring its school building — so the full chain reads:
-  // academic gate met -> building revealed -> building built -> entry
-  // course available -> rest of the program follows its ordinary prereqs.
-  buildingId?: string;
 }
 
-// Six programs, 37 courses (up from 28: Medicine 6 -> 12, Law 5 -> 8, both
-// now founding a top-level school rather than a sub-group — see
-// `buildingId` above). Deliberately small sets per program — each is
-// "a handful of high-tier courses that complete into a milestone", not a
-// second nine-course major.
+// Six programs, 37 courses (up from 28: Medicine 6 -> 12, Law 5 -> 8).
+// Deliberately small sets per program — each is "a handful of high-tier
+// courses that complete into a milestone", not a second nine-course major.
 const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   {
     // The two-school gate, and the reason the gate predicate takes a LIST
@@ -872,7 +835,6 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
     prestigeWeight: 2.0,
     gateMajorsRequired: 5,
     blurb: 'the medical school',
-    buildingId: 'BLDG-MED',
     courses: [
       { num: 501, title: 'Foundations of Human Medicine', field: 'Clinical Health' },
       { num: 510, title: 'Gross Anatomy & Histology', field: 'Biology' },
@@ -894,7 +856,6 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
     prestigeWeight: 1.6,
     gateMajorsRequired: 5,
     blurb: 'the law school',
-    buildingId: 'BLDG-LAW',
     courses: [
       { num: 501, title: 'Foundations of American Law', field: 'Law' },
       { num: 510, title: 'Contracts & Torts', field: 'Law' },
@@ -1113,20 +1074,6 @@ const BUILDING_DESCRIPTIONS: Record<string, string> = {
   'BLDG-GENSTUDIES': 'The starter hall housing the general-education core — standing since the university\'s founding.',
 };
 
-// Names and descriptions for the two professional-school buildings, keyed
-// by GRADUATE_PROGRAMS id rather than by buildingId — the seed already has
-// the program handy at the point these are read (see initialTech below),
-// and it's the program's identity, not the building's, that these are
-// really about.
-const PROFESSIONAL_BUILDING_NAMES: Record<string, string> = {
-  MED: 'Medical School Hall',
-  LAWS: 'Law School Hall',
-};
-const PROFESSIONAL_BUILDING_DESCRIPTIONS: Record<string, string> = {
-  MED: 'Teaching clinics, anatomy labs, and lecture halls for the School of Medicine.',
-  LAWS: 'Moot courtrooms, a law library, and seminar rooms for the School of Law.',
-};
-
 function nodeId(prefix: string, num: number): string {
   return `${prefix}${num}`;
 }
@@ -1174,12 +1121,16 @@ export function initialTech(): Buildable[] {
           description: `${RESEARCH_FACILITY_BLURBS[major.prefix] ?? 'Specialized lab space'} — gates ${major.name}'s capstone (tier-3) coursework, and lets the school produce research.`,
           cost: LAB_COST,
           duration: LAB_WEEKS,
-          // Buildable once the major's entry course is done. It used to
-          // need the school building too, so a lab could not be an
-          // expensive, useless purchase a decade before anything needed
-          // it; Plan 14's PR E re-points that half at the school-founded
-          // milestone, which is the reading the building stood for.
+          // Buildable once the major's entry course is done AND its
+          // school has been founded (schoolGate — see types.ts). A
+          // thematic gate, not a new one: the school building used to
+          // stand here, and the school-founded milestone is the reading
+          // it stood for. What it still does is stop a lab from being an
+          // expensive, useless purchase a decade before anything needs it,
+          // which is exactly the trap an early-game player with cash
+          // burning a hole falls into.
           prereqs: [t1Id],
+          schoolGate: school.name,
           status: 'locked',
           effects: {
             upkeepPerWeek: LAB_UPKEEP_PER_WEEK,
@@ -1305,12 +1256,11 @@ export function initialTech(): Buildable[] {
   // Curriculum tab knows where to draw it.
   //
   // Inside a program the climb is ordinary authored prereqs: the entry
-  // course has none at all beyond its program's own building where one
-  // exists (see `buildingId` above — a cross-kind course-requires-building
-  // prereq, exactly like an undergraduate tier-2 course requiring its
-  // school building), the middle courses require the entry course, and the
-  // final course requires every course before it — a capstone in the same
-  // sense a tier-3 course is.
+  // course has none at all (the program's gate — graduateGateMet — and its
+  // home — a hall slot, see the housed gate in techSystem.ts — are both
+  // dynamic), the middle courses require the entry course, and the final
+  // course requires every course before it — a capstone in the same sense
+  // a tier-3 course is.
   for (const program of GRADUATE_PROGRAMS) {
     const professional = program.type === 'professional';
     const ids = graduateCourseIds(program);
@@ -1325,9 +1275,7 @@ export function initialTech(): Buildable[] {
       // rather than special-cased here, so "which coursework needs a
       // clinical facility" stays authored in exactly one place.
       const prereqs = [
-        ...(i === 0
-          ? (program.buildingId ? [program.buildingId] : [])
-          : last ? ids.slice(0, i) : [entryId]),
+        ...(i === 0 ? [] : last ? ids.slice(0, i) : [entryId]),
         ...(CLINICAL_PRACTICUM_GATE[id] ? [CLINICAL_PRACTICUM_GATE[id]!] : []),
       ];
 
@@ -1337,9 +1285,7 @@ export function initialTech(): Buildable[] {
         graduateProgram: program.id,
         name: `${program.id} ${course.num} · ${course.title}`,
         description: i === 0
-          ? program.buildingId
-            ? `Founds ${program.blurb} (${program.degree}). Opens once ${PROFESSIONAL_BUILDING_NAMES[program.id] ?? program.name} is built.`
-            : `Founds ${program.blurb} (${program.degree}). Opens once ${graduateGateDescription(program)}.`
+          ? `Founds ${program.blurb} (${program.degree}). Offered once ${graduateGateDescription(program)}; takes a hall slot like any program.`
           : `${program.degree} coursework in ${course.title}, taught inside ${program.name}.`,
         cost: professional ? PROFESSIONAL_COURSE_COST : DOCTORAL_COURSE_COST,
         duration: professional ? PROFESSIONAL_COURSE_WEEKS : DOCTORAL_COURSE_WEEKS,
@@ -1352,34 +1298,6 @@ export function initialTech(): Buildable[] {
             : DOCTORAL_COURSE_UPKEEP_PER_WEEK,
         },
       });
-    });
-  }
-
-  // The two professional-school buildings (Medicine, Law — see
-  // GraduateProgramSeed's `buildingId`). Gated the exact same dynamic way a
-  // graduate course is: `graduateProgram` routes it through
-  // techSystem.ts's meetsUnlockGates -> graduateGateMet, so it reveals
-  // (locked -> available) the moment the program's own academic gate reads
-  // true — the SAME predicate the courses always used, reused rather than
-  // duplicated. It carries no prereqs of its own (nothing must be 'done'
-  // first, only the dynamic gate has to clear); the program's entry course
-  // above is what carries the building as ITS prereq, which is what makes
-  // the building a genuine construction step rather than a formality: the
-  // gate reveals it, but the player still has to build it before the
-  // program's first course opens.
-  for (const program of GRADUATE_PROGRAMS) {
-    if (!program.buildingId) continue;
-    nodes.push({
-      id: program.buildingId,
-      kind: 'building',
-      graduateProgram: program.id,
-      name: PROFESSIONAL_BUILDING_NAMES[program.id] ?? `${program.name} Hall`,
-      description: `${PROFESSIONAL_BUILDING_DESCRIPTIONS[program.id] ?? `${program.name}'s own campus building.`} Buildable once ${graduateGateDescription(program)}.`,
-      cost: PROFESSIONAL_SCHOOL_BUILDING_COST,
-      duration: PROFESSIONAL_SCHOOL_BUILDING_WEEKS,
-      prereqs: [],
-      status: 'locked',
-      effects: { upkeepPerWeek: PROFESSIONAL_SCHOOL_BUILDING_UPKEEP_PER_WEEK },
     });
   }
 
@@ -1550,13 +1468,9 @@ export interface DiscoverySchool {
   buildingId?: string;
   coreIds: string[]; // gen-ed core course ids; non-empty only for General Studies
   majors: DiscoveryMajor[];
-  // The graduate programs whose HOME school this is AND that display
-  // inside it — i.e. every program without a `buildingId` (the MBA, and
-  // all three PhD doctorates). Empty for most schools. Medicine and Law no
-  // longer appear here even though Health Science/Social Sciences &
-  // Humanities is still their `homeSchool` for every other read (faculty
-  // staffing, research) — see professionalSchools() below for how they
-  // display instead.
+  // The graduate programs whose HOME school this is — Medicine and Law
+  // included, since PR E: a program is housed in a hall of its school,
+  // and displays inside it.
   graduate: DiscoveryGraduateProgram[];
 }
 
@@ -1573,7 +1487,7 @@ export function discoverySchools(): DiscoverySchool[] {
       tier3Ids: [5, 6, 7, 8].map((i) => nodeId(major.prefix, NUMS[i])),
     })),
     graduate: GRADUATE_PROGRAMS
-      .filter((program) => program.homeSchool === school.name && !program.buildingId)
+      .filter((program) => program.homeSchool === school.name)
       .map((program) => ({
         id: program.id,
         name: program.name,
@@ -1585,26 +1499,3 @@ export function discoverySchools(): DiscoverySchool[] {
   }));
 }
 
-// A professional school with its own campus building (Medicine, Law) as
-// the Curriculum tab needs it: structurally parallel to DiscoverySchool
-// above (a heading, a buildingId keying its own section and completion
-// ring, its course ids), but never a sub-group of any other school.
-export interface DiscoveryProfessionalSchool {
-  id: string;         // the GraduateProgramSeed id (MED, LAWS)
-  name: string;        // "School of Medicine" / "School of Law" — the section heading
-  degree: string;
-  buildingId: string;
-  courseIds: string[];
-}
-
-export function professionalSchools(): DiscoveryProfessionalSchool[] {
-  return GRADUATE_PROGRAMS
-    .filter((program): program is GraduateProgramSeed & { buildingId: string } => !!program.buildingId)
-    .map((program) => ({
-      id: program.id,
-      name: program.name,
-      degree: program.degree,
-      buildingId: program.buildingId,
-      courseIds: graduateCourseIds(program),
-    }));
-}

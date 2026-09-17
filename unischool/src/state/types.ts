@@ -323,6 +323,15 @@ export interface Buildable {
   // hall was built with, which is what lets the loader check an entry has
   // exactly as many as it should.
   slots?: number;
+  // A SCHOOL gate (Plan 14's PR E): this Buildable stays locked until the
+  // named school has been founded — six of its programs housed in one
+  // hall, the `school-founded:<School>` milestone. Set on each lab-gated
+  // major's lab (techData.ts), which used to name the school's building
+  // as a prereq; the milestone is the reading that building stood for.
+  // Checked in techSystem.ts's meetsUnlockGates beside the other dynamic
+  // gates, since a milestone is a reading of state rather than a
+  // Buildable's status.
+  schoolGate?: string;
   status: BuildableStatus;
   effects?: Partial<BuildableEffects>; // read by the systems below; see each field's own comment for exactly when
   // Set only once this school's naming rights are sold (see eventData.ts's

@@ -169,12 +169,10 @@ export function floorsUnderConstruction(t: Buildable): number {
   return t.renovatingFrom !== undefined ? 1 : 0;
 }
 
-// The two professional schools (Medicine, Law) stand a storey taller than an
-// undergraduate school building, the same way they cost a rung more and cover
-// a rung more ground — identified by `graduateProgram`, which is set on
-// exactly those two buildings and on nothing else of kind 'building'.
+// Every academic hall stands four storeys: Founders Hall and the twelve of
+// the chain alike (the two professional-school buildings that stood a
+// storey taller left with Plan 14's PR E).
 const ACADEMIC_HALL_STOREYS = 4;
-const PROFESSIONAL_SCHOOL_STOREYS = 5;
 
 // A residential tower is a shaft on a retail podium, and the two are counted
 // separately because they are drawn separately (see buildingMotifs' 'tower').
@@ -222,7 +220,7 @@ export function storeysOf(t: Buildable): number {
   if (motif === 'grounds' || motif === 'hangar' || motif === 'bowl') return 0;
   if (motif === 'tower') return dormStoreys(t.effects?.capacityBonus ?? 0);
   if (t.kind === 'building') {
-    return (t.graduateProgram ? PROFESSIONAL_SCHOOL_STOREYS : ACADEMIC_HALL_STOREYS) + addedFloors(t);
+    return ACADEMIC_HALL_STOREYS + addedFloors(t);
   }
   if (t.kind === 'dorm') return dormStoreys(t.effects?.capacityBonus ?? 0) + addedFloors(t);
   if (t.kind === 'facility') return facilityStoreys(t) + addedFloors(t);

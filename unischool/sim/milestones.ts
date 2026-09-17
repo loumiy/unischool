@@ -36,9 +36,6 @@ const dorms = initialDorms();
 // completionist's own campus. Plan 14's PR I adds the school-founding
 // milestones beside it.
 const HALL_IDS = tech.filter(isAcademicHall).map((t) => t.id);
-const GRAD_BUILDING_IDS = tech
-  .filter((t) => t.kind === 'building' && t.graduateProgram !== undefined)
-  .map((t) => t.id);
 const LAB_IDS = tech
   .filter((t) => t.kind === 'facility' && t.facilityType === 'lab')
   .map((t) => t.id);
@@ -51,7 +48,6 @@ const ALL_ASSET_IDS = [...tech.map((t) => t.id), ...facilities.map((f) => f.id),
 // directly instead (see MILESTONES below), since a team is not a Buildable.
 const MILESTONES: Array<{ label: string; ids: string[] }> = [
   { label: 'All academic halls built', ids: HALL_IDS },
-  { label: 'Grad schools built', ids: GRAD_BUILDING_IDS },
   { label: 'Labs completed', ids: LAB_IDS },
   { label: 'All courses developed', ids: ALL_COURSE_IDS },
   { label: 'All dorms built', ids: DORM_IDS },
@@ -79,6 +75,9 @@ const FIRSTS: Array<{ label: string; reached: (s: GameState) => boolean }> = [
   // state) — so counting it would report week 1 for every strategy and say
   // nothing about pacing.
   { label: 'First academic hall built', reached: (s) => s.tech.some((t) => isAcademicHall(t) && t.status === 'done') },
+  // Schools are FOUNDED (Plan 14): six programs of one school in one hall.
+  { label: 'First school founded', reached: (s) => Object.keys(s.milestones).some((k) => k.startsWith('school-founded:')) },
+  { label: 'Every school founded', reached: (s) => Object.keys(s.milestones).filter((k) => k.startsWith('school-founded:')).length >= 7 },
   { label: 'First club', reached: (s) => s.orgs.clubs.length > 0 },
   { label: 'First program established', reached: (s) => Object.keys(s.milestones).some((k) => k.startsWith('program-established:')) },
   { label: 'First lab', reached: (s) => s.tech.some((t) => t.facilityType === 'lab' && t.status === 'done') },

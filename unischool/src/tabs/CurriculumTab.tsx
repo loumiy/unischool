@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
-import { discoverySchools, graduateGateMet, graduatePrograms, professionalSchools, programById } from '../data/techData';
+import { discoverySchools, graduatePrograms, programById } from '../data/techData';
+import { hallOf, isHoused } from '../systems/techtree/programOffers';
+import { isSchoolFounded } from '../systems/techtree/schools';
+import { schoolMark } from '../data/schoolPalette';
 import {
   canStartDevelopment, facultyGate, eligibleInstructors, assignedInstructor,
   isUnstaffed, facultyLoad, developAllPlan, hallOfCourse,
 } from '../systems/techtree/techSystem';
-import { isHoused } from '../systems/techtree/programOffers';
 import { facultyQualityTier } from '../data/facultyData';
 import { gradeFor, qualityOf, tierOf, type Grade } from '../data/courseQuality';
 import {
@@ -104,26 +106,15 @@ function isGenEdComplete(s: GameState): boolean {
 }
 
 // Which graduate programs are currently revealed — the one reading the
-// whole graduate half of this view runs on. Two readings, matching how
-// each program is gated in the engine (see techSystem.ts's
-// meetsUnlockGates):
-//   - a program with no building of its own (the MBA, each PhD doctorate)
-//     reveals the moment techData.ts's graduateGateMet is true — the same
-//     predicate that unlocks its courses, so the tab can never show one the
-//     engine has not opened, or hide one it has.
-//   - a program WITH a building (Medicine, Law) reveals only once that
-//     building is 'done' — graduateGateMet being true only makes the
-//     building itself buildable (see meetsUnlockGates), the same
-//     distinction an undergraduate school section already draws between
-//     "tier-1s done" and "school built".
+// whole graduate half of this view runs on. A program is revealed once it
+// is HOUSED (Plan 14): its gate (techData.ts's graduateGateMet) is what
+// puts it on offer, and taking a hall slot is what puts it in the
+// curriculum — the same rule an undergraduate major follows, so the tab
+// can never show a program the engine has not opened, or hide one it has.
 function revealedGraduatePrograms(s: GameState): Set<string> {
   const revealed = new Set<string>();
   for (const program of graduatePrograms()) {
-    if (program.buildingId) {
-      if (s.tech.find((t) => t.id === program.buildingId)?.status === 'done') revealed.add(program.id);
-    } else if (graduateGateMet(s, program.id)) {
-      revealed.add(program.id);
-    }
+    if (isHoused(s, program.id)) revealed.add(program.id);
   }
   return revealed;
 }
@@ -176,12 +167,27 @@ function buildSections(s: GameState, genEdComplete: boolean, revealedGrad: Set<s
       });
     }
 
+    // COLOUR, NOT LABEL (Plan 14's PR E). A school's NAME is revealed on
+    // founding — six of its programs housed in one hall — and until then
+    // its programs sit under its colour and mark with no name, so "three
+    // of this colour already, and a hall with three slots free" is a
+    // conclusion the player reaches by looking. Once founded, the heading
+    // is the school's name, or the donor's full display text verbatim if
+    // its dedicated hall's naming rights were sold (see eventData.ts's
+    // 'naming-rights' — a `donorSurname` on the hall is what marks its
+    // `name` as donor text rather than the seeded catalogue name).
+    const founded = isSchoolFounded(s, school.name);
+    const mark = schoolMark(school.name);
+    const namedHall = founded
+      ? housedMajors
+        .map((major) => hallOf(s, major.prefix))
+        .map((hallId) => (hallId ? s.tech.find((t) => t.id === hallId) : undefined))
+        .find((hall) => hall?.donorSurname)
+      : undefined;
     sections.push({
       key: school.name,
-      label: school.name,
-      // "School of X" until Plan 14's PR E, where a school is NAMED by
-      // dedicating a hall to it, and a donor can put a name on that.
-      heading: `School of ${school.name}`,
+      label: founded ? school.name : `${mark.motif} unfounded school`,
+      heading: namedHall ? namedHall.name : founded ? `School of ${school.name}` : `${mark.motif} An unfounded school`,
       courseIds: sharedIds,
       subgroups,
       // A school's completion ring counts its graduate programs only once
@@ -201,28 +207,6 @@ function buildSections(s: GameState, genEdComplete: boolean, revealedGrad: Set<s
   // they have a home.
   const poolIds = [...coreIds];
 
-  // Medicine and Law, each its own top-level section — structurally
-  // parallel to an undergraduate school section above (own heading, own
-  // ring, its own building as the section key), never a sub-group of
-  // Health Science or Social Sciences & Humanities. Appended last, after
-  // every undergraduate school, the same place graduate sub-groups sit
-  // inside a school section. Gated on revealedGrad, which for these two
-  // (see revealedGraduatePrograms above) means their OWN building is
-  // 'done' — not merely that the academic gate making it buildable is
-  // met, so there is no section on screen at all until the building
-  // stands.
-  for (const program of professionalSchools()) {
-    if (!revealedGrad.has(program.id)) continue;
-    sections.push({
-      key: program.buildingId,
-      label: program.name,
-      heading: program.name,
-      courseIds: program.courseIds,
-      subgroups: [],
-      schoolCourseIds: program.courseIds,
-    });
-  }
-
   return [{ key: 'pool', label: null, heading: '', courseIds: poolIds, subgroups: [], schoolCourseIds: [] }, ...sections];
 }
 
@@ -230,9 +214,8 @@ function buildSections(s: GameState, genEdComplete: boolean, revealedGrad: Set<s
 // exposed for anything else that needs a school/professional-school's
 // completion without re-deriving genEdComplete/revealedGrad itself — the
 // campus map's building info popover, in particular (see CampusMap.tsx).
-// Each section's `key` is the school's name (or MED/LAW's building id), so
-// a caller holding a program's school can find its section with a plain
-// lookup. General Studies has no section of its own (see buildSections
+// Each section's `key` is the school's name, so a caller holding a
+// program's school can find its section with a plain lookup. General Studies has no section of its own (see buildSections
 // above — it has no majors), so a caller needing its completion falls back
 // to discoverySchools()'s own coreIds directly.
 export function discoverySections(s: GameState): DiscoverySection[] {
@@ -293,7 +276,7 @@ interface MajorLane {
 }
 
 interface SchoolView {
-  key: string;         // the school's name, or a professional school's building id
+  key: string;         // the school's name
   heading: string;
   label: string;
   schoolCourseIds: string[];
@@ -310,7 +293,6 @@ function schoolViews(s: GameState, sections: DiscoverySection[]): SchoolView[] {
   const revealed = new Set(visibleCourseIds(s));
   const keep = (ids: string[]) => ids.filter((id) => revealed.has(id));
   const schools = new Map(discoverySchools().map((school) => [school.name, school]));
-  const professional = new Map(professionalSchools().map((program) => [program.buildingId, program]));
 
   const views: SchoolView[] = [];
   for (const section of sections) {
@@ -343,27 +325,6 @@ function schoolViews(s: GameState, sections: DiscoverySection[]): SchoolView[] {
         });
       }
       views.push({ key: section.key, heading: section.heading, label: section.label, schoolCourseIds: section.schoolCourseIds, lanes });
-      continue;
-    }
-
-    // Medicine and Law: their own top-level school, one lane.
-    const program = professional.get(section.key);
-    if (program) {
-      const ids = keep(program.courseIds);
-      views.push({
-        key: section.key,
-        heading: section.heading,
-        label: section.label,
-        schoolCourseIds: section.schoolCourseIds,
-        lanes: ids.length === 0 ? [] : [{
-          key: program.id,
-          name: program.name,
-          tier1: [],
-          tier2: ids,
-          tier3: [],
-          graduate: { degree: program.degree, gate: 'its own building' },
-        }],
-      });
     }
   }
   return views;
@@ -385,10 +346,6 @@ function courseSchools(): Map<string, { key: string; school: string }> {
     for (const program of school.graduate) {
       for (const id of program.courseIds) map.set(id, entry);
     }
-  }
-  for (const program of professionalSchools()) {
-    const entry = { key: program.buildingId, school: program.name };
-    for (const id of program.courseIds) map.set(id, entry);
   }
   courseSchoolMap = map;
   return map;

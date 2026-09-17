@@ -77,7 +77,12 @@ export const SAVE_KEY = 'unischool.save';
 //
 // v52: Plan 14 PR A. `s.halls` (a hall Buildable's program slots, added as
 // required), `Buildable.slots`, and a twelve-hall chain in the seed.
-export const SAVE_VERSION = 52;
+// v53: Plan 14 PRs C and E. The seven school buildings and then Medicine's
+// and Law's leave the seed, tier-2 and lab prerequisites are re-pointed,
+// and `s.programOffers` is added as required. (PR C should have bumped on
+// its own; a save carries its own `tech`, so one written under v52 would
+// have loaded with buildings the game no longer knows.)
+export const SAVE_VERSION = 53;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
