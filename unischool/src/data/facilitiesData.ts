@@ -490,15 +490,22 @@ const FOOTBALL_STADIUM_WEEKS = 40;
 // outright. Every other FacilityType (library, dorm-adjacent facilities,
 // etc.) is absent here on purpose: it already has its own natural grouping
 // and doesn't need a second one.
-export type FacilityCategory = 'athletics' | 'recreation';
+// 'social' is the student center and everything recreational and cultural
+// beside it — the buildings students go to for each other rather than for a
+// class; 'academic' is the halls, the library and the labs (the build menu
+// assigns those by kind and type, since a hall is not a FacilityType).
+export type FacilityCategory = 'athletics' | 'social' | 'academic';
 
 export const FACILITY_CATEGORY_OF: Partial<Record<FacilityType, FacilityCategory>> = {
-  recCenter: 'recreation',
-  gym: 'recreation',
-  tennisCourts: 'recreation',
-  pool: 'recreation',
-  performingArtsCenter: 'recreation',
-  artGallery: 'recreation',
+  library: 'academic',
+  lab: 'academic',
+  studentCenter: 'social',
+  recCenter: 'social',
+  gym: 'social',
+  tennisCourts: 'social',
+  pool: 'social',
+  performingArtsCenter: 'social',
+  artGallery: 'social',
   athleticsField: 'athletics',
   athleticsArena: 'athletics',
   athleticsDiamond: 'athletics',
@@ -584,6 +591,14 @@ const QUAD_TIER1_FLAT_BONUS = 8;
 const QUAD_TIER1_COST = 60_000;
 const QUAD_TIER1_WEEKS = 4;
 const QUAD_TIER1_UPKEEP = 400;
+// A SECOND SMALL QUAD, the first one's footprint and shape, for a campus
+// with more than one open middle. Not a tier: it is another quad, not a
+// bigger one, so it carries no `tier` and the build tray gives it no chip.
+const QUAD_SECOND_ID = 'QUAD-S2';
+const QUAD_SECOND_FLAT_BONUS = 5;
+const QUAD_SECOND_COST = 90_000;
+const QUAD_SECOND_WEEKS = 4;
+const QUAD_SECOND_UPKEEP = 400;
 const QUAD_TIER2_ID = 'QUAD-T2';
 const QUAD_TIER2_FLAT_BONUS = 12;
 const QUAD_TIER2_COST = 190_000;
@@ -988,6 +1003,22 @@ export function initialFacilities(): Buildable[] {
         satisfactionAttribute: 'social',
         flatSatisfactionBonus: QUAD_TIER1_FLAT_BONUS,
         upkeepPerWeek: QUAD_TIER1_UPKEEP,
+      },
+    },
+    {
+      id: QUAD_SECOND_ID,
+      kind: 'facility',
+      facilityType: 'quad',
+      name: 'Second Quad',
+      description: 'A second green, the size of the first — a campus with two open middles. The same flat, non-scaling social bonus, a little smaller.',
+      cost: QUAD_SECOND_COST,
+      duration: QUAD_SECOND_WEEKS,
+      prereqs: [QUAD_TIER1_ID],
+      status: 'locked',
+      effects: {
+        satisfactionAttribute: 'social',
+        flatSatisfactionBonus: QUAD_SECOND_FLAT_BONUS,
+        upkeepPerWeek: QUAD_SECOND_UPKEEP,
       },
     },
     {

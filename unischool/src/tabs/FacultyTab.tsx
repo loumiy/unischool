@@ -569,7 +569,11 @@ export default function FacultyTab({ s, act }: { s: GameState; act: (a: Action) 
   // of a department founded after the tab was first rendered, while a row
   // the player has explicitly opened or closed stays that way.
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
-  const defaultOpen = (c: FieldCapacity) => (view === 'market' ? c.listed > 0 : c.hired > 0);
+  // Every row starts COLLAPSED: with forty-two programs founded one at a
+  // time, a board that opened every staffed department was a wall. The
+  // row itself says everything the scan needs (meter, slots, listed); a
+  // department is opened on purpose, and "Expand all" is one click away.
+  const defaultOpen = (_c: FieldCapacity) => false;
   const isOpen = (c: FieldCapacity) => overrides[c.field] ?? defaultOpen(c);
   const setAll = (open: boolean) => {
     const next: Record<string, boolean> = {};

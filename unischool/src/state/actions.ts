@@ -38,6 +38,8 @@ export const STARTING_INSTITUTION_SUFFIX = 'College';
 
 // All the ways a player can change the world. The engine's reducer is the
 // only thing that interprets these. UI dispatches them; systems never do.
+export type CampusTool = 'draw' | 'erase' | 'plant' | 'fell';
+
 export type Action =
   | { type: 'TICK' }                                   // advance one week
   | { type: 'START_GAME'; name: string; vernacular: Vernacular } // leaves the startup screen, founds the university
@@ -141,6 +143,15 @@ export type Action =
   // load.
   | { type: 'ADD_PATH_TILE'; tile: TileCoord }
   | { type: 'REMOVE_PATH_TILE'; tile: TileCoord }
+  // Plants or fells one tree on a tile (see types.ts's Trees). The same
+  // family as the path tools — free, decorative, granting nothing — with
+  // one rule the reducer keeps: nothing is planted under a building or a
+  // path, since neither would ever be seen.
+  | { type: 'PLANT_TREE'; tile: TileCoord }
+  | { type: 'FELL_TREE'; tile: TileCoord }
+  // Every campus tool the map can hold: the two path tools and the two
+  // tree tools. Left paints with the armed one, right with its opposite.
+
   // Runs an endowment campaign (see financeSystem.ts's endowmentCampaign):
   // converts a large lump of cash into endowment at a prestige-scaled
   // donor match. Repeatable forever, each one costing more than the last —

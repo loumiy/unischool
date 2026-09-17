@@ -3,7 +3,7 @@ import type { Action } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { discoverySchools, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
 import { dedicatedSchool, hallDisplayName } from '../systems/techtree/schools';
-import { GradeChip, InstructorOption, SearchOffer, completion, discoverySections } from '../tabs/CurriculumTab';
+import { GradeChip, InstructorOption, MarketInField, completion, discoverySections } from '../tabs/CurriculumTab';
 import { averageCourseQuality, courseQuality, facultyLoads, instructorOf } from '../systems/faculty/facultyAssignment';
 import { gradeFor } from '../data/courseQuality';
 import { schoolMark } from '../data/schoolPalette';
@@ -204,7 +204,7 @@ function ProgramTile({ program, s, act, open, onToggle }: {
   const selected = selectedId ? courses.find((t) => t.id === selectedId) : undefined;
 
   return (
-    <div className={`hall-slot housed${open ? ' open' : ''}`} style={{ borderColor: mark.hue }}>
+    <div className={`hall-slot housed${open ? ' open' : ''}`} style={{ borderColor: mark.hue, ['--school-hue' as string]: mark.hue }}>
       <button
         type="button"
         className="program-tile"
@@ -349,19 +349,25 @@ function StripCourse({ t, s, act, picked, onPick, onStarted }: {
         <>
           <p className="building-info-line">${t.cost.toLocaleString()} · {t.duration} weeks · {t.requiresFaculty ?? 'no department'}</p>
           {eligible.length > 0 ? (
-            <div className="instructor-options">
-              {eligible.map((f) => (
-                <InstructorOption key={f.id} s={s} f={f} selected={chosen === f.id} projectedFor={t} onPick={() => onPick(f.id)} />
-              ))}
-            </div>
+            <>
+              <div className="instructor-options">
+                {eligible.map((f) => (
+                  <InstructorOption key={f.id} s={s} f={f} selected={chosen === f.id} projectedFor={t} onPick={() => onPick(f.id)} />
+                ))}
+              </div>
+              {t.requiresFaculty && act && (
+                <details className="course-drawer-more">
+                  <summary>Appoint someone new in {t.requiresFaculty}</summary>
+                  <MarketInField s={s} act={act} field={t.requiresFaculty} projectedFor={t} />
+                </details>
+              )}
+            </>
           ) : t.requiresFaculty ? (
             <>
               <p className="building-info-line building-info-construction">
-                {gate === 'hireable'
-                  ? `No ${t.requiresFaculty} professor has a free course slot — a candidate is on the market. Appoint them from the Faculty board.`
-                  : `No ${t.requiresFaculty} professor has a free course slot, and nobody is on the market.`}
+                No {t.requiresFaculty} professor has a free course slot{gate === 'hireable' ? ' — appoint somebody below.' : '.'}
               </p>
-              {gate !== 'hireable' && act && <SearchOffer s={s} act={act} field={t.requiresFaculty} />}
+              {act && <MarketInField s={s} act={act} field={t.requiresFaculty} projectedFor={t} />}
             </>
           ) : null}
           {shortfall > 0 && (
@@ -489,7 +495,7 @@ function HallSlots({ t, s, act }: { t: Buildable; s: GameState; act?: (a: Action
                   key={program.id}
                   type="button"
                   className={`hall-offer-tile${selected ? ' selected' : ''}`}
-                  style={{ borderColor: mark.hue }}
+                  style={{ borderColor: mark.hue, ['--school-hue' as string]: mark.hue }}
                   onClick={() => { setPickedProgram(selected ? null : program.id); setPickedFaculty(null); }}
                   aria-pressed={selected}
                 >
@@ -522,11 +528,9 @@ function HallSlots({ t, s, act }: { t: Buildable; s: GameState; act?: (a: Action
               ) : (
                 <>
                   <p className="building-info-line">
-                    No {entry.requiresFaculty} professor has a free course slot. Appoint one from the Faculty board to found this program.
+                    No {entry.requiresFaculty} professor has a free course slot. Appoint one to found this program.
                   </p>
-                  {entry.requiresFaculty && act && !s.candidates.some((c) => c.field === entry.requiresFaculty) && (
-                    <SearchOffer s={s} act={act} field={entry.requiresFaculty} />
-                  )}
+                  {entry.requiresFaculty && act && <MarketInField s={s} act={act} field={entry.requiresFaculty} projectedFor={entry} />}
                 </>
               )}
               {s.finance.cash < entry.cost && (

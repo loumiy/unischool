@@ -705,6 +705,44 @@ export function SearchOffer({ s, act, field }: { s: GameState; act: (a: Action) 
 }
 const SEARCH_WEEKS_LABEL = 'half a year';
 
+// THE MARKET, WHERE THE COURSE IS. Every candidate listed in a field, each
+// with an Appoint button, and the search offered beside them — so a player
+// who needs more faculty for THIS course hires from this course, and sees
+// what a posted search has turned up without going to the Faculty board.
+// Shared by the drawer and the hall panel's course strip and founding
+// picker, so all three say the same thing.
+export function MarketInField({ s, act, field, projectedFor }: {
+  s: GameState; act: (a: Action) => void; field: string; projectedFor?: Buildable;
+}) {
+  const listed = s.candidates.filter((c) => c.field === field).sort((a, b) => b.teaching - a.teaching);
+  return (
+    <div className="course-drawer-hire">
+      <h5>On the market in {field}</h5>
+      {listed.length === 0 ? (
+        <p className="course-drawer-note quiet">
+          No {field} candidates are listed this week. The market turns over constantly — or pay for a search.
+        </p>
+      ) : (
+        listed.map((c) => (
+          <div key={c.id} className="course-drawer-candidate">
+            <InstructorOption s={s} f={c} selected={false} projectedFor={projectedFor} />
+            <button
+              type="button"
+              className="course-drawer-appoint"
+              disabled={s.finance.cash < 0}
+              onClick={() => act({ type: 'HIRE_FACULTY', facultyId: c.id })}
+              title={`Appoint ${c.name} to the ${field} department`}
+            >
+              Appoint · ${Math.round(c.salary).toLocaleString()}/yr
+            </button>
+          </div>
+        ))
+      )}
+      <SearchOffer s={s} act={act} field={field} />
+    </div>
+  );
+}
+
 function CourseDrawer(
   { s, act, t, lookup, onClose, loads, onGoToCourse }:
   {
@@ -725,7 +763,6 @@ function CourseDrawer(
   // already teach.
   const eligible = eligibleInstructors(s, t, offered ? t.id : undefined);
   const inField = t.requiresFaculty ? s.faculty.filter((f) => f.field === t.requiresFaculty) : [];
-  const marketInField = t.requiresFaculty ? s.candidates.filter((c) => c.field === t.requiresFaculty) : [];
 
   // The pick resets whenever the course changes, and defaults to the
   // current instructor for an offered course or the strongest eligible
@@ -909,31 +946,18 @@ function CourseDrawer(
               </p>
             )}
 
-            {eligible.length === 0 && (
-              <div className="course-drawer-hire">
-                <SearchOffer s={s} act={act} field={t.requiresFaculty} />
-                <h5>On the market in {t.requiresFaculty}</h5>
-                {marketInField.length === 0 ? (
-                  <p className="course-drawer-note quiet">
-                    No {t.requiresFaculty} candidates are listed this week. The market turns over
-                    constantly — check back.
-                  </p>
-                ) : (
-                  marketInField.map((c) => (
-                    <div key={c.id} className="course-drawer-candidate">
-                      <InstructorOption s={s} f={c} selected={false} projectedFor={t} />
-                      <button
-                        type="button"
-                        className="course-drawer-appoint"
-                        onClick={() => act({ type: 'HIRE_FACULTY', facultyId: c.id })}
-                      >
-                        Appoint · ${Math.round(c.salary).toLocaleString()}/yr
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
+            {/* HIRING FROM THE COURSE. When nobody can take it the market is
+                the whole answer; when somebody can, it is one click away
+                behind "appoint someone new" — the player who needs more
+                faculty for this course hires from this course. */}
+            {eligible.length === 0
+              ? <MarketInField s={s} act={act} field={t.requiresFaculty} projectedFor={t} />
+              : (
+                <details className="course-drawer-more">
+                  <summary>Appoint someone new in {t.requiresFaculty}</summary>
+                  <MarketInField s={s} act={act} field={t.requiresFaculty} projectedFor={t} />
+                </details>
+              )}
           </section>
         )}
 
@@ -991,12 +1015,16 @@ function ProgramRowView(
         <span className="lane-count">{done.done} / {done.total}</span>
       </header>
       <div className={`program-row-cells${graduate ? ' graduate' : ''}`} style={graduate ? { gridTemplateColumns: `repeat(${program.courseIds.length}, minmax(0, 1fr))` } : undefined}>
-        {program.courseIds.map((id) => {
+        {program.courseIds.map((id, i) => {
           const t = lookup.get(id);
-          if (!t || !row.revealed.has(id)) {
-            return <span key={id} className="course-cell placeholder" aria-hidden="true" />;
-          }
-          return <CourseCell key={id} s={s} t={t} selected={selectedId === id} onSelect={onSelect} loads={loads} dnd={dnd} />;
+          // The rules between the tier bands are their own grid tracks (see
+          // .program-row-cells), so every one of the nine cells is exactly
+          // the same width — a margin inside a cell would have narrowed it.
+          const rule = !graduate && (i === 1 || i === 5) ? <span key={`rule-${i}`} className="tier-rule" aria-hidden="true" /> : null;
+          const cell = !t || !row.revealed.has(id)
+            ? <span key={id} className="course-cell placeholder" aria-hidden="true" />
+            : <CourseCell key={id} s={s} t={t} selected={selectedId === id} onSelect={onSelect} loads={loads} dnd={dnd} />;
+          return rule ? [rule, cell] : cell;
         })}
       </div>
     </section>

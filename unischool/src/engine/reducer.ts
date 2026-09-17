@@ -26,7 +26,7 @@ import { tickAthletics } from '../systems/athletics/athleticsSystem';
 import { raiseDemand, shortfallDemandFor, tickDemands } from '../systems/demands/demandSystem';
 import { absoluteWeek, findDecisionEvent } from '../data/eventData';
 import { LIBRARY_TIER1_ID, nextLibraryFloor, servedUpkeep } from '../data/facilitiesData';
-import { fellTrees } from '../data/treeData';
+import { fellTrees, TREE_SEED_RANGE } from '../data/treeData';
 import {
   CHAPTER_APPROVAL_SATISFACTION_NUDGE, CHAPTER_DECLINE_SATISFACTION_HIT,
   CLUB_APPROVAL_SATISFACTION_NUDGE, CLUB_DECLINE_SATISFACTION_HIT, activatePetition, TRAINER_FIELD,
@@ -35,6 +35,7 @@ import {
 import {
   canPlace, canSiteRetroactively, footprintOf, isInBounds, isPlaceableKind,
   orientedFootprint, pathTileKey, placementFor, RETROACTIVE_SITING_COST,
+  occupantAt,
 } from '../state/campusMap';
 import { captureYearSnapshot } from '../state/history';
 import { saveGame, clearSave } from '../state/persistence';
@@ -528,6 +529,23 @@ export function reducer(state: GameState, action: Action): GameState {
 
     case 'REMOVE_PATH_TILE': {
       delete s.pathways[pathTileKey(action.tile)];
+      return s;
+    }
+
+    case 'PLANT_TREE': {
+      // Only on open ground: a tree under a building is felled by
+      // definition, and one under a path is hidden until the path lifts
+      // (see types.ts's Trees) — neither is something worth planting.
+      const { row, col } = action.tile;
+      if (!isInBounds(row, col)) return s;
+      const key = pathTileKey(action.tile);
+      if (key in s.pathways || occupantAt(s.placements, row, col) !== undefined) return s;
+      if (!(key in s.trees)) s.trees[key] = Math.floor(Math.random() * TREE_SEED_RANGE);
+      return s;
+    }
+
+    case 'FELL_TREE': {
+      delete s.trees[pathTileKey(action.tile)];
       return s;
     }
 

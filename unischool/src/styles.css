@@ -750,7 +750,8 @@ button.build-tile { font-family: inherit; }
 .campus-map-svg { display: block; width: 100%; height: 100%; background: var(--grass-deep);
   cursor: grab; touch-action: none; }
 .campus-map-svg.panning { cursor: grabbing; }
-.campus-map-svg.path-draw, .campus-map-svg.path-erase { cursor: crosshair; }
+.campus-map-svg.path-draw, .campus-map-svg.path-erase,
+.campus-map-svg.path-plant, .campus-map-svg.path-fell { cursor: crosshair; }
 
 /* The clicked-building info panel: a fixed card in the map's otherwise-
    empty top-left corner (see the comment on BuildingInfoPanel's usage in
@@ -798,7 +799,8 @@ button.build-tile { font-family: inherit; }
 .hall-slot.empty { background: #fbf6e9; color: var(--ink-muted); font-size: var(--text-md); cursor: pointer; }
 .hall-slot.empty:hover:not(:disabled), .hall-slot.empty.open { border-color: var(--gold-dim); background: #f3ead2; color: var(--ink); }
 .hall-slot.empty:disabled { cursor: default; opacity: 0.6; }
-.hall-slot.housed { border-width: 2px; background: #fffdf6; color: var(--ink); }
+.hall-slot.housed { border-width: 2px; background: color-mix(in srgb, var(--school-hue, #fffdf6) 12%, #fffdf6); color: var(--ink); }
+.hall-offer-tile { background: color-mix(in srgb, var(--school-hue, #fffdf6) 10%, #fffdf6); }
 .hall-slot-motif { font-size: var(--text-sm); line-height: 1; }
 .hall-slot-name { font-weight: 600; }
 .hall-offer { border-top: 1px solid var(--parchment-line); padding-top: 8px; margin-top: 4px; }
@@ -931,7 +933,9 @@ button.build-tile { font-family: inherit; }
 .campus-grid { stroke: var(--grass-line-idle); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
 .campus-map-svg.placing .campus-grid,
 .campus-map-svg.path-draw .campus-grid,
-.campus-map-svg.path-erase .campus-grid { stroke: var(--grass-line); }
+.campus-map-svg.path-erase .campus-grid,
+.campus-map-svg.path-plant .campus-grid,
+.campus-map-svg.path-fell .campus-grid { stroke: var(--grass-line); }
 
 /* The footprint ghost: where the picked-up building would land, and whether
    it fits. non-scaling-stroke so "does this fit" stays legible at MIN_ZOOM,
@@ -949,6 +953,8 @@ button.build-tile { font-family: inherit; }
 .campus-path-ghost { pointer-events: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .campus-path-ghost.draw { stroke: var(--gold); fill: rgba(201, 162, 39, 0.28); }
 .campus-path-ghost.erase { stroke: #b4544a; fill: rgba(180, 84, 74, 0.22); stroke-dasharray: 4 3; }
+.campus-path-ghost.plant { stroke: #3f6b2a; fill: rgba(63, 107, 42, 0.28); }
+.campus-path-ghost.fell { stroke: #b4544a; fill: rgba(180, 84, 74, 0.22); stroke-dasharray: 4 3; }
 
 .campus-rotate-btn { cursor: pointer; }
 .campus-rotate-btn circle { fill: var(--parchment); stroke: var(--gold-dim); stroke-width: 1.5; }
@@ -977,7 +983,9 @@ button.build-tile { font-family: inherit; }
    flat map's separate per-tile hit-target layer entirely. */
 .campus-map-svg.placing .campus-building,
 .campus-map-svg.path-draw .campus-building,
-.campus-map-svg.path-erase .campus-building { pointer-events: none; }
+.campus-map-svg.path-erase .campus-building,
+.campus-map-svg.path-plant .campus-building,
+.campus-map-svg.path-fell .campus-building { pointer-events: none; }
 
 /* NO FILL. The glazing's colour is the vernacular's (buildingSpec's
    StonePalette.glass) — a painted sash reads pale, a ribbon of curtain
@@ -1332,17 +1340,27 @@ button.build-tile { font-family: inherit; }
 .program-row-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 5px; }
 .program-row-head h4 { margin: 0; font-family: var(--serif); font-size: var(--text-sm); color: var(--ink); }
 .program-row-hall { font-size: var(--text-2xs); color: var(--ink-muted); }
-.program-row-cells { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px; align-items: stretch; }
-/* The rules between the tier bands: before the second cell (tier 2 begins)
-   and before the sixth (tier 3 begins). */
-.program-row-cells:not(.graduate):not(.core) > :nth-child(2),
-.program-row-cells:not(.graduate):not(.core) > :nth-child(6) { margin-left: 6px; position: relative; }
-.program-row-cells:not(.graduate):not(.core) > :nth-child(2)::before,
-.program-row-cells:not(.graduate):not(.core) > :nth-child(6)::before {
-  content: ''; position: absolute; left: -6px; top: 4px; bottom: 4px; border-left: 1px solid var(--gold-dim); }
+/* Nine equal cells, with the two tier rules as tracks of their own between
+   them (1 | 4 | 4), so a rule never narrows the cell beside it. */
+.program-row-cells { display: grid; gap: 4px; align-items: stretch;
+  grid-template-columns: minmax(0, 1fr) 1px repeat(4, minmax(0, 1fr)) 1px repeat(4, minmax(0, 1fr)); }
+.program-row-cells.graduate, .program-row-cells.core { grid-template-columns: repeat(9, minmax(0, 1fr)); }
+.tier-rule { align-self: stretch; margin: 4px 0; border-left: 1px solid var(--gold-dim); }
 .program-row-cells .course-cell { min-height: 54px; padding: 5px 6px; }
 .program-row-cells .cell-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .course-cell.placeholder { border: 1px dashed var(--parchment-line); border-radius: var(--radius-md); background: transparent; min-height: 54px; }
+/* THE SCHOOL'S SHADE ON THE TILES THEMSELVES: every cell in a school's
+   group is tinted with the group's hue — lightly on an open cell, more on
+   a developed one — so the colour does the grouping, not only the rule. */
+.school-group .course-cell.available { background: color-mix(in srgb, var(--school-hue, #fffdf6) 9%, #fffdf6); }
+.school-group .course-cell.locked, .school-group .course-cell.blocked { background: color-mix(in srgb, var(--school-hue, #e4dcc5) 7%, #ece6d2); }
+.school-group .course-cell.developing { background: color-mix(in srgb, var(--school-hue, #fffdf6) 16%, #fffdf6); }
+.school-group .course-cell.done { background: color-mix(in srgb, var(--school-hue, #6d5610) 55%, #4a3c14); border-color: color-mix(in srgb, var(--school-hue, #6d5610) 70%, #2f2610); }
+.school-group .course-cell.placeholder { border-color: color-mix(in srgb, var(--school-hue, #e4dcc5) 35%, var(--parchment-line)); }
+/* The counts on a row and a group ("6 / 9"): small, quiet, and in the
+   body face rather than the mono the lane heads used to wear. */
+.lane-count { margin-left: auto; font-family: inherit; font-size: var(--text-2xs); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.school-group-head .lane-count { font-size: var(--text-xs); }
 
 /* THE FACULTY CHIP: portrait, surname, grade. Draggable where it sits in
    a row; the cell it can be dropped on lifts while a chip is in the air,
@@ -1365,6 +1383,9 @@ button.build-tile { font-family: inherit; }
 /* THE SEARCH (PR H): the one paid action a dead end offers. It wears the
    drawer's own action register; a running search is a quiet note. */
 .search-post { margin-bottom: 8px; }
+.course-drawer-more { margin-top: 8px; }
+.course-drawer-more > summary { cursor: pointer; font-size: var(--text-xs); color: var(--ink-muted); }
+.course-drawer-more > summary:hover { color: var(--ink); }
 .search-running { color: #7a5c12; }
 .dept-searching { font-family: var(--mono); font-size: var(--text-2xs); color: #7a5c12; }
 .dept-body .search-post { margin-top: 6px; }

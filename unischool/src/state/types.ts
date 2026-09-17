@@ -540,7 +540,9 @@ export type Pathways = Record<string, true>;
 // uses — which is also what makes the path lookup above a plain key test.
 //
 // Visual only, like `placements` and `pathways`: no system reads it, no
-// Buildable gates on it, and felling a wood costs and grants nothing.
+// Buildable gates on it, and felling a wood — or planting one, with the
+// campus tools' tree tool (PLANT_TREE / FELL_TREE) — costs and grants
+// nothing.
 export type Trees = Record<string, number>;
 
 // The generic pause-the-clock decision-event mechanism (see

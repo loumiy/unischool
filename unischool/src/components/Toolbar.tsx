@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import type { Action } from '../state/actions';
+import type { Action, CampusTool } from '../state/actions';
 import type { GameState } from '../state/types';
 import { TAB_LABELS, TAB_ORDER, tabAvailable, type TabId } from './TabNav';
 import BuildPopup, { visibleBuildableIds } from './BuildPopup';
@@ -97,8 +97,8 @@ const Toolbar = forwardRef<HTMLDivElement, {
   // path-tool is ever live" rule this enforces.
   placingId: string | null;
   onArmPlacement: (id: string | null) => void;
-  pathTool: 'draw' | 'erase' | null;
-  onSetPathTool: (mode: 'draw' | 'erase') => void;
+  pathTool: CampusTool | null;
+  onSetPathTool: (mode: CampusTool) => void;
 }>(({ s, act, active, onChangeTab, buildOpen, onSetBuildOpen, speed, setSpeed, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool }, ref) => {
 
   return (
