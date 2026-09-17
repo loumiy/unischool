@@ -739,7 +739,16 @@ export function play(
   // whether a claim that just failed fails everywhere or only here (see that
   // file's `holds`).
   seedOverride?: number,
-): { rows: Row[]; tally: EventTally; venuesBuilt: string[] } {
+  // Halts the run early, at the TOP of a week and BEFORE any pending
+  // interrupt is answered — so a run stopped this way hands back a state
+  // with its modal still on screen. That is the whole point: a scenario
+  // (see tools/scenarios.ts) wants "the week a championship modal is
+  // pending", which is a state that only exists between a system raising
+  // the interrupt and the scripted player dismissing it, and no year
+  // boundary will ever land on it. Optional; today's callers pass nothing
+  // and run to `years` exactly as they did.
+  stopWhen?: (s: GameState) => boolean,
+): { rows: Row[]; tally: EventTally; venuesBuilt: string[]; state: GameState } {
   resetSimEnvironment(seedOverride);
   let s = createPreStartState();
   s = reducer(s, { type: 'START_GAME', name: 'Test University', vernacular: FOUNDING_VERNACULAR });
@@ -760,6 +769,7 @@ export function play(
   };
 
   while (s.clock.year <= years) {
+    if (stopWhen?.(s)) break;
     if (tally.studentCenterYear === null && hasStudentCenter(s)) tally.studentCenterYear = s.clock.year;
     if (tally.hellenicCouncilEligibleYear === null && s.orgs.clubs.length >= HELLENIC_COUNCIL_MIN_CLUBS) {
       tally.hellenicCouncilEligibleYear = s.clock.year;
@@ -906,7 +916,13 @@ export function play(
     onWeek?.(s);
   }
   const venuesBuilt = VENUE_IDS.filter((id) => s.tech.find((t) => t.id === id)?.status === 'done');
-  return { rows, tally, venuesBuilt };
+  // The final state rides along with the tables. tools/makeSave.ts used to
+  // capture it through `onWeek` — the only hook there was — which a run
+  // halted by `stopWhen` cannot use: it stops BETWEEN weeks, so the last
+  // post-TICK state `onWeek` saw is a week older than the one the scenario
+  // is about. Returning it costs nothing (it is the same object the loop
+  // just finished with) and is what tools/scenario.ts writes out.
+  return { rows, tally, venuesBuilt, state: s };
 }
 
 function fmt(n: number): string {

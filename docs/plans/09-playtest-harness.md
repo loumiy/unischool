@@ -7,7 +7,7 @@ to take the first item of the roadmap in
 and turn it into an ordered sequence of PRs, each small enough to land on its
 own and each landing in the order that makes the next one cheaper.*
 
-**Status: Proposed.** Nothing has landed.
+**Status: In progress.** PR A has landed.
 
 ---
 
@@ -126,6 +126,26 @@ that stands it up.
 **Verify.** `npm run scenario -- --list` prints the index; `npm run scenario
 -- championship` writes a save whose `pendingInterrupt.type` is
 `championship`; `npm run shot` still works on its output.
+
+**As implemented:** the index ships fifteen names — the fourteen above, less
+`championship`, plus `admissions` (a summer that has a prior year to be read
+against) and `decision-event`. `championship` could not be built. **No strategy in
+`STRATEGIES` has ever won a national title** — measured across all six over
+forty years, zero, including the Completionist, which finishes every venue
+and fields all ten teams. None of them hires a coach, and `teamQuality` is
+what seeds a bracket (`systems/athletics/playoffs.ts`), so none of them ever
+reaches its sport's strongest eight. The recipe arrives with PR E's earnest
+completionist, the first strategy that plays the coaching market. The
+verification above is therefore PR E's, not PR A's.
+
+`tools/makeSave.ts` is *replaced* rather than generalised beside: it was this
+tool with the strategy, the school's name and the modal-clearing all
+hardcoded, so it became three flags (`--strategy`, `--name`, `--clear-modal`)
+and the `shot:save` script went with it. `tools/README.md` carries the new
+command. `play()` also returns its final `state` now — `makeSave` used to
+recover it through `onWeek`, which a run halted by `stopWhen` cannot do,
+since it stops *between* weeks. And `tsconfig.sim.json` now includes `tools`,
+so the scripts in it are typechecked by `npm run build` the way `sim/` is.
 
 ## PR 09B — The debug panel
 

@@ -38,7 +38,7 @@
     "test:library": "rolldown test/library-renovation.test.ts -o node_modules/.tmp/library-renovation.test.mjs -f esm -p node && node node_modules/.tmp/library-renovation.test.mjs",
     "test:hotkeys": "rolldown test/hotkey-gates.test.ts -o node_modules/.tmp/hotkey-gates.test.mjs -f esm -p node && node node_modules/.tmp/hotkey-gates.test.mjs",
     "test:standings": "rolldown test/sport-standings.test.ts -o node_modules/.tmp/sport-standings.test.mjs -f esm -p node && node node_modules/.tmp/sport-standings.test.mjs",
-    "shot:save": "rolldown tools/makeSave.ts -o node_modules/.tmp/makeSave.mjs -f esm -p node && node node_modules/.tmp/makeSave.mjs",
+    "scenario": "rolldown tools/scenario.ts -o node_modules/.tmp/scenario.mjs -f esm -p node && node node_modules/.tmp/scenario.mjs",
     "shot": "node tools/shoot.mjs",
     "test:director": "rolldown test/athletic-director.test.ts -o node_modules/.tmp/athletic-director.test.mjs -f esm -p node && node node_modules/.tmp/athletic-director.test.mjs",
     "test:playoffs": "rolldown test/playoffs.test.ts -o node_modules/.tmp/playoffs.test.mjs -f esm -p node && node node_modules/.tmp/playoffs.test.mjs"
