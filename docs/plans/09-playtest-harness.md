@@ -7,7 +7,7 @@ to take the first item of the roadmap in
 and turn it into an ordered sequence of PRs, each small enough to land on its
 own and each landing in the order that makes the next one cheaper.*
 
-**Status: In progress.** PRs A through E have landed.
+**Status: Landed.** All six PRs shipped. Where the implementation departed from the plan — the championship scenario moving from PR A to PR E, the jump looping inside the reducer, the scorecard's band floors, the seed the earnest completionist reproduces the review at — it is recorded in an **As implemented** note on the PR it belongs to.
 
 ---
 
