@@ -7,8 +7,16 @@ answers them into an ordered sequence of PRs. This is a design outline: the
 model is argued here, the open questions are named, and the PR sequence is a
 sketch to be firmed up after Plan 09 has landed and the scorecard exists.*
 
-**Status: Proposed.** Depends on [Plan 09](09-playtest-harness.md) for the
-breakdown reading, the scenarios and the scorecard it is measured with.
+**Status: Superseded by [Plan 15](15-growth-has-a-cost.md).** The model this
+outline argued for — an asymmetric prestige stock with a summer report card,
+instruction cost per section, a capacity ceiling, attrition — is the model Plan
+15 sequences. What changed is the order and the source of the ceiling: this plan
+put an interim capacity formula (courses × sections) ahead of the halls that
+would replace it, which meant fitting the economy twice. Plan 15 lands after
+[Plan 14](14-curriculum-on-the-map.md) instead and fits it once, and it absorbs
+two things this outline left out — a concentration term in prestige, which Plan
+14's founded schools make possible, and the research model, which Plan 09's
+breakdown found a unit mismatch in.
 
 ---
 

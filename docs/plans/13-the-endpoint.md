@@ -7,10 +7,14 @@ then two decades of endowment campaigns — and the decision that followed it: a
 fifty-year run with a scorecard, an ending that legitimises more than one way
 to play, and a top of the table that has to be held.*
 
-**Status: Proposed.** Depends on [Plan 10](10-growth-has-a-cost.md) for a
-prestige that can fall and an economy that makes the fiftieth year cost
-something; on [Plan 12](12-the-year.md) for the summer sequence the final
-report rides in. PR A and PR D can start before either.
+**Status: Superseded by [Plan 17](17-the-endpoint.md).** The semicentennial,
+the ambitions, the six-axis legacy and the closing elite band all carry over.
+What changed is the arc underneath them: build-out now ends around year 35
+rather than 50, so years 35–50 become an explicit *defend* era rather than a
+taper, and the legacy's axes swap campus life — which cannot be earned until
+athletics reaches something — for concentration, which Plan 14's founded schools
+and Plan 15's prestige term make into a real measure of what kind of university
+was built.
 
 ---
 
