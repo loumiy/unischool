@@ -7,7 +7,7 @@ to take the first item of the roadmap in
 and turn it into an ordered sequence of PRs, each small enough to land on its
 own and each landing in the order that makes the next one cheaper.*
 
-**Status: In progress.** PRs A, B and C have landed.
+**Status: In progress.** PRs A, B, C and D have landed.
 
 ---
 
@@ -308,6 +308,35 @@ corrected here.
 
 **Verify.** `--write-reference` then `npm run sim` reports nothing out of
 band; edit one band and it reports that one.
+
+**As implemented:** verified exactly — after `--write-reference` every
+strategy reads "every sampled figure inside its band", and narrowing the
+Balanced builder's year-20 enrolment band by hand produces the one line the
+plan wrote: `year 20 enrolled 33k (band 8k–14k) HIGH`.
+
+`--compare` needs something to compare against, so `--save last.json` came
+with it: the sim writes its sampled rows, and a later run diffs against
+them. (Run at a different seed, the diff is the non-monotonicity
+`balanceSim.ts` has always warned about, printed line by line.)
+
+Two things the plan did not settle, decided here and written into
+`reference.ts` beside the code:
+
+- **Bands need a floor as well as a percentage.** ±25% of "0 weeks in the
+  red" is `[0, 0]`, which would report every run that has one bad week. Each
+  metric gets a minimum half-width — a million dollars, a hundred students,
+  two prestige points, five points of margin, ten weeks — and the two
+  metrics that cannot go negative have their low end held at zero.
+- **One tolerance suits some metrics better than others.** Cash and
+  enrolment span orders of magnitude over a run, so ±25% is tight on them;
+  prestige lives on a bounded 5..150 scale, so the same 25% is ±13 points at
+  year 5 — wide enough to pass a trajectory a tuning pass would call
+  different. Per-metric tolerances are a decision about what "the same run"
+  means for each figure, and it belongs to Plan 10, which is the plan that
+  has to answer it.
+
+`test/balance-scorecard.test.ts` is in `npm test` and names Plan 10's last
+PR as the place its `REPORT_ONLY` flag flips.
 
 ## PR 09E — The earnest completionist, and what a year contains
 

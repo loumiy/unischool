@@ -18,10 +18,24 @@
 //   npm run sim            # 40 years, every 2nd year, all strategies
 //   npm run sim -- 60 5    # 60 years, every 5th year
 //   npm run sim -- 40 2 public   # only strategies matching "public"
+//
+// Every table is followed by its SCORECARD: the figures that have left the
+// bands sim/reference.ts records for that strategy (see there for what a
+// band is and is not). Two more flags go with it:
+//
+//   npm run sim -- --write-reference      # re-record the bands from this run
+//   npm run sim -- --save last.json       # keep this run's sampled rows
+//   npm run sim -- --compare last.json    # print what moved against them
 // ---------------------------------------------------------------------
 
+import { readFileSync, writeFileSync } from 'node:fs';
 import { reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
+import {
+  REFERENCE, METRICS, TOLERANCE,
+  bandsFrom, describeFinding, findingsFor, metricOf, serialiseReference,
+  type Metric, type Reference,
+} from './reference';
 import type { Action } from '../src/state/actions';
 import { createPreStartState } from '../src/state/actions';
 import type { GameState, Buildable, InitiativeReport } from '../src/state/types';
@@ -1363,15 +1377,155 @@ export const ADMIT_PROBES: Strategy[] = [
   },
 ];
 
+// ---------------------------------------------------------------------
+// THE SCORECARD (see sim/reference.ts). Printed under each strategy's
+// table: one line per figure that has left the band the last committed
+// measurement recorded for it. Silence means the trajectory is the one the
+// reference describes — which is not the same as the one it SHOULD be, and
+// reference.ts's own header is careful about the difference.
+// ---------------------------------------------------------------------
+function reportScorecard(strategy: Strategy, rows: Row[]): void {
+  if (!REFERENCE[strategy.name]) {
+    console.log(`   scorecard: no reference bands for "${strategy.name}" — run \`npm run sim -- --write-reference\``);
+    return;
+  }
+  const findings = findingsFor(strategy.name, rows);
+  if (findings.length === 0) {
+    console.log('   scorecard: every sampled figure inside its band');
+    return;
+  }
+  console.log(`   scorecard: ${findings.length} figure${findings.length === 1 ? '' : 's'} out of band`);
+  for (const finding of findings) console.log(`     ${describeFinding(finding)}`);
+}
+
+// ---------------------------------------------------------------------
+// RUN-TO-RUN COMPARISON. `--save last.json` writes every sampled row;
+// `--compare last.json` prints what moved by more than COMPARE_THRESHOLD
+// against it. The point is that a PR summary can quote what the sim said
+// as a DIFF — "year 20 cash -14.8M -> -2.1M" — rather than as the same
+// eighty-line table pasted twice and left to the reader to subtract.
+// ---------------------------------------------------------------------
+const COMPARE_THRESHOLD = 0.05;
+
+interface SavedRun { seed: number; years: number; strategies: Record<string, Row[]> }
+
+function reportComparison(previous: SavedRun, current: Record<string, Row[]>): void {
+  console.log(`\n=== compared against a run of ${previous.years} years at seed ${previous.seed} ===`);
+  let moved = 0;
+  for (const [name, rows] of Object.entries(current)) {
+    const before = previous.strategies[name];
+    if (!before) {
+      console.log(`   ${name}: not in the saved run`);
+      continue;
+    }
+    for (const row of rows) {
+      const was = before.find((r) => r.year === row.year);
+      if (!was) continue;
+      for (const metric of METRICS) {
+        const then = metricOf(was, metric);
+        const now = metricOf(row, metric);
+        // Against the LARGER magnitude, so a figure moving away from zero
+        // (0 weeks in the red to 40) reads as the change it is rather than
+        // as a division by nothing.
+        const scale = Math.max(Math.abs(then), Math.abs(now));
+        if (scale === 0) continue;
+        if (Math.abs(now - then) / scale <= COMPARE_THRESHOLD) continue;
+        moved += 1;
+        console.log(`   ${name} · year ${row.year} ${metric}: ${fmtMetric(then, metric)} -> ${fmtMetric(now, metric)}`);
+      }
+    }
+  }
+  if (moved === 0) console.log(`   nothing moved by more than ${(COMPARE_THRESHOLD * 100).toFixed(0)}%`);
+}
+
+function fmtMetric(value: number, metric: Metric): string {
+  if (metric === 'netMargin') return `${(value * 100).toFixed(1)}%`;
+  if (metric === 'weeksInTheRed') return value.toFixed(0);
+  if (metric === 'prestige') return value.toFixed(1);
+  // Enrolment prints in full rather than through fmt's k/M shortening: a
+  // diff line reading "5k -> 5k" is worse than no line at all, and the
+  // whole point of a diff is that both sides are legible.
+  if (metric === 'enrolled') return Math.round(value).toLocaleString();
+  return fmt(value);
+}
+
+// Rewrites the generated block of sim/reference.ts in place, leaving every
+// hand-written line above it alone. Relative to the working directory,
+// which is the package root under `npm run sim`.
+const REFERENCE_PATH = 'sim/reference.ts';
+// The comment lines the generated block sits between. They live here, in
+// the writer, rather than as constants in the file being written: a
+// constant declaring the marker contains the marker, so the writer would
+// find its own declaration and eat it.
+const GENERATED_START = '// --- GENERATED by `npm run sim -- --write-reference`. Do not hand-edit lightly. ---';
+const GENERATED_END = '// --- END GENERATED ---';
+
+function writeReference(runs: Record<string, Row[]>): void {
+  const reference: Reference = {};
+  for (const [name, rows] of Object.entries(runs)) reference[name] = bandsFrom(rows);
+
+  const source = readFileSync(REFERENCE_PATH, 'utf8');
+  const start = source.indexOf(GENERATED_START);
+  const end = source.indexOf(GENERATED_END);
+  if (start === -1 || end === -1) throw new Error(`${REFERENCE_PATH}: generated markers not found`);
+  const rewritten = source.slice(0, start)
+    + GENERATED_START + '\n' + serialiseReference(reference) + '\n'
+    + source.slice(end);
+  writeFileSync(REFERENCE_PATH, rewritten);
+  const years = Object.values(reference)[0]?.map((r) => r.year).join(', ') ?? 'none';
+  console.log(
+    `\nwrote ${REFERENCE_PATH}: ${Object.keys(reference).length} strategies at years ${years}, `
+    + `each band the current run ±${(TOLERANCE * 100).toFixed(0)}%`,
+  );
+}
+
 const isCliEntry = process.argv[1]?.includes('balanceSim') ?? false;
 if (isCliEntry) {
-  const years = Number(process.argv[2] ?? 40);
-  const every = Number(process.argv[3] ?? 2);
-  const filter = process.argv[4];
+  const argv = process.argv.slice(2);
+  const flag = (name: string) => argv.includes(`--${name}`);
+  const flagValue = (name: string) => {
+    const at = argv.indexOf(`--${name}`);
+    return at === -1 ? undefined : argv[at + 1];
+  };
+  // Positionals are whatever is left once the flags and their values are
+  // taken out, so `npm run sim -- 40 2 --compare last.json` still means
+  // forty years every second year.
+  const consumed = new Set<string>();
+  for (const name of ['compare', 'save']) {
+    const value = flagValue(name);
+    if (value) consumed.add(value);
+  }
+  const positional = argv.filter((a) => !a.startsWith('--') && !consumed.has(a));
+
+  const writingReference = flag('write-reference');
+  // The reference describes the full horizon, so writing it ignores a
+  // shorter one rather than recording bands for years it never reached.
+  const years = writingReference ? 40 : Number(positional[0] ?? 40);
+  const every = Number(positional[1] ?? 2);
+  const filter = writingReference ? undefined : positional[2];
+
+  const runs: Record<string, Row[]> = {};
   for (const strategy of STRATEGIES) {
     if (filter && !strategy.name.toLowerCase().includes(filter.toLowerCase())) continue;
     // play() resets seed/fakeStorage itself (see resetSimEnvironment) — no
     // reset needed here.
-    report(strategy, play(strategy, years), every);
+    const run = play(strategy, years);
+    runs[strategy.name] = run.rows;
+    report(strategy, run, every);
+    if (!writingReference) reportScorecard(strategy, run.rows);
+  }
+
+  if (writingReference) writeReference(runs);
+
+  const comparePath = flagValue('compare');
+  if (comparePath) {
+    reportComparison(JSON.parse(readFileSync(comparePath, 'utf8')) as SavedRun, runs);
+  }
+
+  const savePath = flagValue('save');
+  if (savePath) {
+    const saved: SavedRun = { seed: DEFAULT_SIM_SEED, years, strategies: runs };
+    writeFileSync(savePath, JSON.stringify(saved));
+    console.log(`\nwrote ${savePath}: ${Object.keys(runs).length} strategies, ${years} years at seed ${DEFAULT_SIM_SEED}`);
   }
 }
