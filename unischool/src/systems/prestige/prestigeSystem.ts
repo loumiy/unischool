@@ -505,6 +505,27 @@ const SOCIAL_FACILITIES_WEIGHT = 30;   // the rec-centre chain's own prestigeCon
 const SOCIAL_ORGANISATIONS_WEIGHT = 35; // clubs, chapters and housed chapters, through their own capped bonus
 const SOCIAL_ATHLETICS_WEIGHT = 30;     // athleticProgramStrength — and THIS is athletics' first reach into any standing at all
 const SOCIAL_SATISFACTION_WEIGHT = 25;  // what the student body actually reports about its social life
+const SOCIAL_TITLES_WEIGHT = 20;        // championships won (see systems/athletics/playoffs.ts)
+
+// WHAT A CHAMPIONSHIP IS WORTH, and it is the term that closes the loop this
+// whole plan was written around: hire a coach, the team's quality rises, it
+// seeds higher in its sport, it qualifies and sometimes wins, and a title
+// moves a standing the player can see a rank for. Every arrow in that chain
+// exists once this term does.
+//
+// A MONOTONE STOCK, like curriculum breadth and research credits and for the
+// same reason: standing earned by a banner does not evaporate during a quiet
+// decade. A school that won four titles in the eighties is still a school
+// that won four titles.
+//
+// Sized so it takes a genuine dynasty to max — twelve championships is
+// decades of sustained investment in a department the game does not require
+// anybody to build at all.
+const TITLES_FOR_FULL_SCORE = 12;
+
+function titlesScore(s: GameState): number {
+  return clamp01(s.orgs.titles.length / TITLES_FOR_FULL_SCORE);
+}
 
 // ATHLETICS FINALLY TOUCHES A STANDING, and it is worth being precise about
 // which one. docs/design/student-life.md says athletics reaches satisfaction
@@ -524,7 +545,8 @@ export function computeSocialTarget(s: GameState): number {
     SOCIAL_FACILITIES_WEIGHT * campusLifeScore(s) +
     SOCIAL_ORGANISATIONS_WEIGHT * socialOrganisationsScore(s) +
     SOCIAL_ATHLETICS_WEIGHT * clamp01(athleticProgramStrength(s) / 100) +
-    SOCIAL_SATISFACTION_WEIGHT * clamp01(s.students.satisfactionBreakdown.social / 100);
+    SOCIAL_SATISFACTION_WEIGHT * clamp01(s.students.satisfactionBreakdown.social / 100) +
+    SOCIAL_TITLES_WEIGHT * titlesScore(s);
   return clamp(target, PRESTIGE_MIN, PRESTIGE_MAX);
 }
 

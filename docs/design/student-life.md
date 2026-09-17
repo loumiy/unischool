@@ -94,24 +94,50 @@ to the target stops, not the one-week dent.
 than adding a parallel sport simulation: a varsity team is mechanically
 close to a Greek chapter that needs a venue. Athletics V2 (below) added a
 real coaching-staff hiring pool, team quality, and standings against
-rivals' own athletic strength — but there is still **no match simulation
-and no schedules**: standings are read off one comparable strength number
-per school, the same shape `self.reputation` vs. `Rival.reputation`
-already uses for the academic ranking, not a simulated season.
+rivals' own athletic strength; Athletics V3 added per-sport standings, an
+athletic director and a year-end postseason. There is still **no match
+simulation and no schedules**: standings are read off one comparable strength
+number per school, the same shape `self.reputation` vs. `Rival.reputation`
+already uses for the academic ranking, and the postseason is a *bracket*
+resolved from those numbers once a year — no week contains a game, and no team
+has a schedule. A simulated season remains unbuilt (see "The postseason").
 
 A named share of new club formations (`SPORT_CLUB_SHARE`) roll as a **sport
 club** instead of an ordinary one — the same weekly club roll, no second
 formation stream — drawn from a fixed, **gendered** `SPORTS` list
 (`data/studentLifeData.ts`) that also maps each sport to the **venue
-category** it needs (field sports share a multi-sport field; basketball/
-volleyball share an arena; baseball and softball share a diamond; swimming
-needs a natatorium; football is alone, gated behind its own petition, and
-gets the pinnacle **football stadium** — the most expensive Buildable and
-largest map footprint in the game). Every sport is one of three profiles
-(`SPORT_PROFILES`): **men-only** (football, baseball), **women-only** (field
-hockey, softball), or **two-gender**, fielding independent men's and women's
-lineages (soccer, lacrosse, basketball, volleyball, swim & dive) — 14 gendered
-`SPORTS` entries in all. A men's and a women's program of the same sport are
+category** it needs (field sports and track share a multi-sport field;
+basketball, volleyball and ice hockey share an arena; baseball and softball
+share a diamond; swimming needs a natatorium; football is alone, gated behind
+its own petition, and gets the pinnacle **football stadium** — the most
+expensive Buildable and largest map footprint in the game). Every sport is one
+of three profiles (`SPORT_PROFILES`): **men-only** (football, baseball),
+**women-only** (field hockey, softball), or **two-gender**, fielding
+independent men's and women's lineages (soccer, lacrosse, basketball,
+volleyball, swim & dive, track & field, ice hockey) — 18 gendered `SPORTS`
+entries in all.
+
+**Track & field and ice hockey were added onto venues that already stood.**
+The multi-sport field has carried a regulation eight-lane 400m oval since the
+campus-art pass, so track was waiting on nothing. Ice hockey **shares the
+arena**, which is a named call rather than an obvious one: a real arena
+converts between hardwood and ice, which is exactly what "shared among varsity
+teams in one category" means here, and the alternative — an `athleticsIceRink`
+facility type — costs a Buildable, a footprint, a ground marking, a build-rail
+entry and a map asset for one sport. The cost of the call is that the arena is
+now the venue for **six** programs; if that reads as thin in play, the answer
+is a rink, not a retreat from sharing.
+
+**Golf is declined and rowing is deferred**, and neither for want of interest.
+A golf course is a footprint larger than the campus the game draws. A lake is
+**terrain**, and the campus map has no terrain concept at all — it is a tile
+grid of placements, and the only water in the game is drawn ornamentally inside
+two ground markings. Water on the map is a campus-map problem, not an athletics
+one. The other option for rowing, a sport with no venue, is worse than it
+sounds: every team carries a `venueCategory`, `promoteToVarsityTeam` and
+`sanitizeTeams` both key off it, and `'awaitingVenue'` is the whole shape of the
+varsity grant — so a venueless sport threads a special case through all of it
+for one program. A men's and a women's program of the same sport are
 two entirely separate club/team records (a gendered id, not a `gender` field
 alongside a shared one), so they form, petition and graduate on their own
 timelines, sharing only the venue category — the second lineage into a
@@ -167,6 +193,26 @@ as any team's trainer regardless of sport) — and candidates skew
 **disproportionately to the gender of the sport they'd coach**
 (`COACH_GENDER_MATCH_CHANCE`), a trainer's listing staying an even coin
 flip since strength & conditioning carries no sport gender to skew toward.
+Each carries a **`heritage`** — the origin of the name pool their name was
+drawn from, the same field `Faculty` has — so a coach can be drawn by the same
+procedural portrait a professor is, with a face that agrees with their name.
+
+**Hiring is one pool, tagged by need.** The Athletics tab shows the whole
+market in a single list rather than a slice per chair: candidates whose sport
+the school fields with a chair open are listed first and tagged with the team
+that wants them, and the tag *is* the hire button. The rest of the market sits
+behind a toggle. This is the shape the Faculty tab used to have and gave up —
+faculty hiring moved to Curriculum "where the shortage is actually felt" — and
+it comes back here because athletics has no second screen: the Athletics tab
+**is** where a coaching shortage is felt. A department with six teams has
+eighteen chairs, and a market you have to open role by role is a market you
+cannot see.
+
+The pool is sized for what a player sees at one moment rather than for
+throughput, and its size is **free of the economy's dice**: the market seeds
+and refills from a generator of its own, taking one draw on the global stream
+whatever the target is, so the number can be tuned for how the screen reads
+without moving a forty-year balance run.
 **Every team needs three separately hired roles** — head coach, assistant
 coach, trainer (`VarsityTeam.headCoach`/`assistantCoach`/`trainer`,
 `types.ts`) — each grown week over week once hired
@@ -176,6 +222,52 @@ ceiling, salary rises with it plus a tenure premium, the same shape
 vacant role is not a hard block — the team still competes — just a real,
 felt gap: `teamQuality` (`studentLifeData.ts`) scores an empty slot at a
 fixed low floor rather than zero.
+
+**The athletic director** is hired once, the first quiet week after the school
+fields a varsity team, through an interrupt of athletics' own
+(`eventSystem.ts`'s `fireAthleticDirectorOffer`). They are a `Coach` rather
+than a fourth kind of person — somebody with a quality, a salary and a field,
+theirs being `AD_FIELD`, which marks a role the way `TRAINER_FIELD` marks a
+discipline — and they are never listed on the standing market: an AD is
+offered, not shopped for.
+
+Three candidates are rolled at fire time and carried in the interrupt's
+payload, so the people the modal describes are exactly the people it can hire.
+**Salary is the only axis they differ on**, and the modal says so rather than
+implying a second: a faculty hire trades teaching against research, but a
+director has one stat, so the only question three cards can pose is how much of
+the department's budget goes to the person running it.
+
+They do two things, and both are real or the hire would be a pure cost. Their
+quality is a **department-wide addend to every team's `teamQuality`**, beside
+the budget tier's own bonus — a different lever, since one is people and the
+other is money — and sized well under it, so a brilliant director cannot carry
+teams with nobody coaching them. And they are the **voice**: the shortage
+interrupts and the championship reports are written as the AD speaking.
+
+**The director asks for what the department lacks.** An authored decision
+event (`eventData.ts`'s `ad-shortage`) in the shared weighted lottery — not on
+a cadence of its own, so it changes the *mix* of what stops the clock rather
+than how often it stops. The director names a program running without a coach
+and offers to bring somebody in: paying seats a coach rolled best-of-three,
+better than the open market usually turns up, and declining leaves the chair to
+the market at the cost of team quality meanwhile. It is eligible only when
+there is a director to raise it and a chair worth raising — and **never for a
+team still awaiting its venue**, because a program that cannot take the field
+gains nothing from a better coach, and its actual gap is the building.
+
+**Declining never closes the position.** Unlike the charter or the Hellenic
+Council, which close a question for the run on purpose, a school that cannot
+afford a director in year 12 must not lose the office — so the offer returns
+after a cooldown. The week is recorded when the offer is **put**, not when it
+is answered, which is what stops anything that clears the interrupt without
+answering from re-firing it the next quiet week forever.
+
+**The mascot is named in that same modal** — the first moment the question has
+an answer, since there is now something that wears the name. Deliberately not
+at founding: the startup screen would ask before a single building stands and
+typically a decade before a varsity team exists. A suggestion is offered and
+can be re-rolled or typed over.
 
 A live team's own upkeep (a fixed program fee plus its three coaches'
 live, tenure-appreciating salaries) and its flat, capped contribution to
@@ -214,6 +306,45 @@ department with five solid teams outranks one with a single elite team)
 instead of `reputation`. No annual report, movers list, or reveal
 interrupt of its own — just a live rank readout on the Athletics tab.
 
+## The postseason
+
+Once a year, late in the calendar, every sport the school **actively fields**
+plays a bracket: the strongest eight schools in that sport (by the per-sport
+strength the standings table already sorts on) are seeded, and three rounds are
+resolved as weighted comparisons of those numbers.
+
+**A bracket is not a season**, and the distinction is the whole reason this is
+a small feature. What
+[BACKLOG.md](../../BACKLOG.md)'s athletics deferrals hold back is a *season* —
+weeks, fixtures, opponents, results accumulating into a record — and none of
+that exists here. No week contains a game. No team has a schedule. The bracket
+reads the same input the rank readout reads and produces one more number: a
+champion.
+
+**Not qualifying is a result**, recorded and shown, not an absence. A program
+outside its sport's strongest eight does not enter, and the standings row says
+so — which is the sentence that makes a coach's salary a decision. The bar is
+real: with every chair empty a team scores about 31 against a field-of-eight cut
+around 72, a mid-staffed one lands just short, and only a genuinely well-staffed
+department with a good director and a high recruiting budget seeds near the top.
+
+**This is the loop the whole athletics feature was built for**, and every arrow
+in it now exists: hire a coach → team quality rises → the team seeds higher in
+its sport → it qualifies, and sometimes wins → a title lifts **campus-life
+standing**, which is a number with a national rank the player can watch. Titles
+are a monotone stock, like curriculum breadth and research credits: a school
+that won four championships in the eighties is still a school that won four
+championships.
+
+A championship **queues** an interrupt rather than firing on the spot, exactly
+as a milestone does — the playoff week may already belong to something else —
+and the report is the athletic director's, naming the bracket path and what the
+title did to the school's standing by running the model without it.
+
+Storage is bounded by construction: `lastSeason` is keyed by sport and
+overwritten every year, and only the player's own `titles` accumulate. No
+bracket is stored; a bracket is a thing that happened for one modal's duration.
+
 **A rival's athletic strength moves.** It was static for years — a deferred
 deepening rather than an oversight — and now drifts annually on its own
 momentum like every other axis, because a field that never changes is a field
@@ -249,13 +380,16 @@ same reason it contributes no social bonus: it cannot compete yet.
 tagged, until it graduates — only VARSITY status moves out) and Greek
 chapters with founding year and current membership, the petitions waiting on
 the next digest, and an empty state that reads sensibly through the founding
-years before any student center exists. **Athletics has its own tab**: once a
-sport club goes varsity it moves there — active and awaiting-venue teams,
-each with its own hire/release controls for its three staff roles, plus the
-one budget lever and the standings readout — a plain relocation out of
-Student Life once
-athletics grew gendered lineages of its own, not a change to how any of it
-works. Student Life still has to make the satisfaction
+years before any student center exists. **Athletics has its own tab**: once a sport club goes varsity it moves there.
+The screen is four sections, in the order the questions arrive in — **the
+department** (the director, the name the teams play under, the athletic and
+campus-life standings, and the one budget lever), **the programs** as a grid of
+team cards, **by sport** (each fielded sport's own rank, with the schools
+immediately above and below named), and **the market** last, because you notice
+an empty chair on a team and then go looking for somebody to fill it.
+
+It used to open on the budget lever, which is a knob rather than a subject: it
+told a player what they could change before telling them what they had. Student Life still has to make the satisfaction
 effect **legible**, which is what stops the system feeling arbitrary, and it
 does so by *reading the model rather than inventing a display number*:
 `satisfactionSystem.ts`'s `studentLifeSatisfaction` runs the very computation

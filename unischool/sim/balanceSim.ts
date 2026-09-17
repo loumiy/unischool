@@ -23,7 +23,7 @@
 import { reducer } from '../src/engine/reducer';
 import type { Action } from '../src/state/actions';
 import { createPreStartState } from '../src/state/actions';
-import type { GameState, Buildable, InitiativeReport } from '../src/state/types';
+import type { GameState, Buildable, Coach, InitiativeReport } from '../src/state/types';
 import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudent } from '../src/systems/finance/financeSystem';
 import { admitRate, topBandShare } from '../src/systems/admissions/admissionsSystem';
@@ -63,7 +63,8 @@ import { LIBRARY_TIER1_ID, nextLibraryFloor } from '../src/data/facilitiesData';
 // tell "this rebalanced the game" from "this reshuffled the dice". Run a
 // few seeds before believing either.
 //   SIM_SEED=7 npm run sim -- 60 5
-const INITIAL_SEED = Number(process.env.SIM_SEED ?? 12345);
+export const DEFAULT_SIM_SEED = Number(process.env.SIM_SEED ?? 12345);
+const INITIAL_SEED = DEFAULT_SIM_SEED;
 let seed = INITIAL_SEED;
 Math.random = () => {
   seed = (seed * 1664525 + 1013904223) % 4294967296;
@@ -678,6 +679,7 @@ interface EventTally {
   // for a slot the way `greekEventsSeen` does.
   varsityPetitions: number;
   varsityGranted: number;
+  titles: number; // championships won over the run (see systems/athletics/playoffs.ts)
 }
 
 // The scripted player's event policy: take the FIRST affordable choice —
@@ -715,8 +717,8 @@ const VENUE_IDS = ['ATH-FIELD', 'ATH-ARENA', 'ATH-DIAMOND', 'ATH-NATATORIUM', 'A
 // test/balance-regression.test.ts, which calls `play` for several
 // strategies in one process and would otherwise have each run inherit
 // RNG/storage state left over by whichever ran first.
-function resetSimEnvironment(): void {
-  seed = INITIAL_SEED;
+function resetSimEnvironment(seedOverride?: number): void {
+  seed = seedOverride ?? INITIAL_SEED;
   fakeStorage.clear();
 }
 
@@ -732,8 +734,13 @@ export function play(
   strategy: Strategy,
   years: number,
   onWeek?: (s: GameState) => void,
+  // Runs this strategy on a DIFFERENT stream. Optional, and unused by the
+  // CLI report — it exists so test/balance-regression.test.ts can ask
+  // whether a claim that just failed fails everywhere or only here (see that
+  // file's `holds`).
+  seedOverride?: number,
 ): { rows: Row[]; tally: EventTally; venuesBuilt: string[] } {
-  resetSimEnvironment();
+  resetSimEnvironment(seedOverride);
   let s = createPreStartState();
   s = reducer(s, { type: 'START_GAME', name: 'Test University', vernacular: FOUNDING_VERNACULAR });
   const dispatch = (a: Action) => { s = reducer(s, a); };
@@ -749,7 +756,7 @@ export function play(
     demandsRaised: 0, demandsMet: 0, demandsFailed: 0, demandSubjects: {},
     schoolsNamed: 0, chaptersFormed: 0, chaptersAskedForHousing: 0,
     hellenicCouncilYear: null, hellenicCouncilEligibleYear: null, studentCenterYear: null,
-    eventFireCounts: {}, varsityPetitions: 0, varsityGranted: 0,
+    eventFireCounts: {}, varsityPetitions: 0, varsityGranted: 0, titles: 0,
   };
 
   while (s.clock.year <= years) {
@@ -819,6 +826,31 @@ export function play(
         // and changes nothing mechanical (it renames the school), so
         // there is no trajectory to compare the other answer against.
         dispatch({ type: 'RESOLVE_CHARTER', accept: true });
+      } else if (s.pendingInterrupt.type === 'championship') {
+        // Read and leave, like the U.S. News report. Answered by name rather
+        // than left to the fallback so the tally below can count titles — and
+        // so a new interrupt type can never again be silently dismissed by a
+        // harness that does not know it exists (see the athletic-director
+        // branch below for what that cost last time).
+        tally.titles += 1;
+        dispatch({ type: 'RESOLVE_CHAMPIONSHIP' });
+      } else if (s.pendingInterrupt.type === 'athletic-director') {
+        // The scripted player takes the MIDDLE candidate: the three differ
+        // only in how much of the department's budget goes to the person
+        // running it (see data/studentLifeData.ts's AD_TIERS), so picking the
+        // middle is the neutral reading — a strategy that always took the
+        // cheapest would be a thriftier player than any of these are, and one
+        // that always took the dearest would be a more extravagant one.
+        //
+        // Answered deliberately rather than left to the fallback below. An
+        // unrecognised interrupt falls through to RESOLVE_REPORT, which clears
+        // it without hiring or declining — and since the offer only cools down
+        // once it has been PUT, that would have the harness dismissing a modal
+        // it never read while the feature it is meant to be measuring never
+        // runs at all.
+        const payload = s.pendingInterrupt.payload as { candidates: Coach[] };
+        const middle = payload.candidates[Math.floor(payload.candidates.length / 2)] ?? null;
+        dispatch({ type: 'RESOLVE_ATHLETIC_DIRECTOR', candidate: middle, mascot: 'Sim Owls' });
       } else if (s.pendingInterrupt.type === 'decision-event') {
         const taken = chooseEventOption(s);
         const before = s.finance.cash;
@@ -987,6 +1019,7 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
     `   varsity athletics: ${last.sportClubs} sport clubs, ${last.varsityActive} active teams, ` +
     `${last.varsityAwaiting} awaiting venue at close; ${tally.varsityGranted}/${tally.varsityPetitions} petitions granted; ` +
     `${fmt(last.athleticsUpkeep)}/wk upkeep (${athleticsShare.toFixed(2)}% of opex); ` +
+    `${run.tally.titles} national title${run.tally.titles === 1 ? '' : 's'}; ` +
     `${tally.varsityPetitions} of ${tally.decisions} decision events were varsity petitions; ` +
     `venues built: ${run.venuesBuilt.length > 0 ? run.venuesBuilt.join(', ') : 'none'}`,
   );

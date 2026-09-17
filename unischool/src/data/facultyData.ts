@@ -333,18 +333,37 @@ export function rollSurname(): string {
 // LIGHT faculty-model this feature asks for: auto-generated the week a team
 // goes varsity, not drawn from or checked against the standing candidate
 // market — that full recruiting loop is a deferred deepening, not v1-shallow
-// scope. A run mints at most fourteen of these (one per SPORTS entry, up
-// from nine before gendering split five sports into independent men's/
-// women's lineages), so the
+// scope. A run mints at most eighteen of these (one per SPORTS entry), so the
 // name-pool collision risk that justifies rollFullName's dedupe loop for
 // faculty/candidates never meaningfully arises here. Takes the TEAM's own
 // gender (its sport is already men's or women's — see
 // studentLifeData.ts's SportGender) rather than rolling one fresh: a men's
 // team's coach reads oddly with a name from the women's pool and vice versa.
-export function rollCoachName(gender: 'male' | 'female'): string {
+// Returns the ORIGIN alongside the name, which it used to throw away. That
+// origin is what Faculty stores as `heritage` and what FacultyPortrait.tsx
+// weights skin tone by — so discarding it meant a coach could be drawn with a
+// face that had nothing to do with the name beside it, which
+// facultyData.ts's own note calls "the actually illogical version of this".
+// Coaches have portraits now (see tabs/AthleticsTab.tsx), so the origin is
+// kept, exactly as rollFullName has always kept it for faculty.
+export function rollCoachName(gender: 'male' | 'female'): RolledName {
   const firstPool = pickPool();
   const lastPool = Math.random() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pickPool();
-  return `${pick(firstNamesFor(firstPool, gender))} ${pick(lastPool.last)}`;
+  return {
+    name: `${pick(firstNamesFor(firstPool, gender))} ${pick(lastPool.last)}`,
+    origin: firstPool.origin,
+  };
+}
+
+// A heritage for a coach saved before the field existed. Deterministic off
+// the id rather than rolled, so a resumed run's coaches do not change face on
+// every reload — and honest about what it is: the name is already written and
+// cannot be un-rolled, so this is a plausible reading of a person the game
+// has forgotten the origin of, not a recovery of one.
+export function heritageForId(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 1_000_003;
+  return NAME_POOLS[h % NAME_POOLS.length].origin;
 }
 
 interface RolledName {

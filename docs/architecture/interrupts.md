@@ -39,12 +39,26 @@ Everything that needs to stop time rides on this one mechanism:
   clock, awarded when an initiative concludes (see
   [research.md](../design/research.md)).
   Publications, grants and breakthroughs never do.
+- **A championship** — the one athletics output momentous enough to stop the
+  clock (see [student-life.md](../design/student-life.md)'s "The postseason").
+  The bracket itself resolves silently inside the weekly tick; only a title
+  raises anything, and it **queues** (`orgs.pendingTitles`) rather than firing
+  on the spot, for the same reason a milestone does — the playoff week may
+  already belong to something else. Drained one at a time: two titles in one
+  year are two different teams and do not read as one modal.
 - **Greek-life decisions** — the Hellenic Council opt-in, chapter scandals
   and chapter-housing petitions (see
   [student-life.md](../design/student-life.md)). These are
   entries in the decision-event table above rather than a stream of their
   own, so they change the MIX of what stops the clock, never how often it
-  stops. Clubs and new chapters never stop it at all: they queue as
+  stops.
+- **The athletic director's shortage ask** — the director naming a program
+  that has been running without a coach, and offering to go and get somebody.
+  An entry in the same table, for the same reason: athletics already has a
+  beat with a guaranteed cadence (the varsity petition), and measured over
+  forty years that one can take **61 of 96** of a run's decision events on a
+  school with many sport clubs. A second guaranteed athletics beat would
+  compound that; a weight competes for the budget instead. Clubs and new chapters never stop it at all: they queue as
   petitions and are answered in a digest folded into the summer admissions
   interrupt.
 - **A student demand** — the one stop-the-clock beat student life gets of its
@@ -57,6 +71,14 @@ Everything that needs to stop time rides on this one mechanism:
 - **The university charter** — a single question, asked once, the first quiet
   week after any lab finishes: keep the "College" the school opened as, or
   become a "University". Cosmetic in full.
+- **The athletic director's offer** — the one interrupt athletics raises of its
+  own, the first quiet week after the school fields a varsity team: three
+  candidates rolled into the payload, and the mascot named in the same modal
+  (see [student-life.md](../design/student-life.md)). Unlike the charter it is
+  **not** a one-shot — declining returns it after a cooldown — so it records the
+  week it was **put** rather than the week it was answered. That is what keeps a
+  cleared-but-unanswered modal from re-firing on the next quiet week and
+  starving every other event that shares the slot.
 - **Later:** the tutorial sequence.
 
 Build this once, generically. Do not bolt the report, admissions, or tutorial on

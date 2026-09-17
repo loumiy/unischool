@@ -6,15 +6,46 @@ schools** — and turn them into one ordered sequence of PRs, each small enough
 to land on its own and each landing in the order that makes the next one
 cheaper.*
 
-**Status: Proposed.** Ten PRs in two phases. Phase 1 rebuilds the field the
-school is measured against: a hundred schools instead of fifty-six, each with a
-mascot, standing decomposed into three independently ranked numbers, and a
-rival's athletic strength split per sport and finally allowed to move. Phase 2
-spends that on the department: four more sports, a coach market that fits them,
-an athletic director and a mascot of the player's own, a laid-out tab, an AD who
-asks for what the department lacks, and a year-end playoff whose championships
-are the first thing athletics has ever produced that changes a number outside
-itself.
+**Status: Landed.** Ten PRs in two phases. Phase 1 rebuilt the field the school
+is measured against: a hundred schools instead of fifty-six, each with a mascot,
+two more standings added **beside** the headline number rather than decomposed
+out of it, and a rival's athletic strength split per sport and finally allowed
+to move. Phase 2 spent that on the department: four more sports, the coach
+market brought onto one screen, an athletic director and a mascot of the
+player's own, a laid-out tab, an AD who asks for what the department lacks, and
+a year-end playoff whose championships are the first thing athletics has ever
+produced that changes a number outside itself.
+
+**Where it departed, in one place.** Every PR below carries its own
+`**As implemented:**` note — there are nine, and they are the most useful thing
+in this document. Four themes run through them:
+
+- **Three derivations looked right and collapsed under measurement**, one per
+  Phase 1 PR: `hashUnit` with no avalanche (the claimed 0.6x–1.4x athletic
+  spread was really 0.603–0.689), the new standings sharing `reputation`'s
+  generator (which moved the sim from year 10), and the athletic band
+  saturating its clamp (twelve rivals at exactly 100, so every sport's table
+  opened with a thirteen-way tie). Each was caught by asserting the property a
+  comment *claimed*, never by reading the arithmetic.
+- **A market's size must not decide how many times the game rolls a die.** PR
+  1A pinned the rival field's drift to one draw a year; 1B and 1C kept that as
+  axes were added. The coach pool never got the same treatment, which is why
+  its raise is still unshipped.
+- **The balance gate was the thing actually blocking the work.** Four separate
+  assertions tripped across four PRs, each sitting within about 1% of its
+  threshold, while `main` itself passed at only four seeds of eight. PR 2E
+  fixed the gate rather than tuning content around it — a judgement call about
+  the repository owner's own test, flagged twice first and easily reverted.
+- **Two defects were found by photographing the screen**, not by any test: a
+  modal whose candidate cards rendered gold-on-gold with the salary invisible,
+  and a card header that wrapped every team's name.
+
+**Two things did not ship.** The **coach pool raise** (18 → 44) is still parked
+behind the gate question above, twice deferred. And PR 2E's shortage ask went
+into the weighted lottery rather than the varsity petition's guaranteed slot,
+on PR 2A's own measurement — the petition already takes up to 61 of 96 decision
+events across forty years, which remains an open cadence question about that
+event rather than this one.
 
 **Written against `38a99bb`** (Plan 06 landed, plus the eighth cohort). Every
 documentation reference below names a file as it stands at that commit.
@@ -752,6 +783,36 @@ one that matters because it is the argument for where the cap sits.
 varsity petitions and more upkeep, and `athleticsUpkeep` as a share of opex is
 already a row the sim prints for exactly this reason.
 
+**As implemented:** the coach-pool raise is **deferred to PR 2B**, because the
+premise it was planned on turned out to be false.
+
+This PR argued the raise was *forced* by the sport count — 18 listings across 19
+fields would make "nobody on the market" the normal answer. Raising it to 44
+knocked two checks off `test/balance-regression.test.ts`, and the control
+separated the causes cleanly: **eighteen sports with the old pool passes the
+gate and the sim untouched**, so the sports are free and the whole movement came
+from the pool size shifting the seeded stream — 26 more candidates generated at
+founding, each consuming several draws, plus double the weekly arrivals.
+
+The measurement also corrected the argument. A waiting vacancy experiences
+*throughput*, not stock: at a 12-week listing window a target of 18 turns over
+~1.5 listings a week, so a field sees about four candidates a year and a vacancy
+waits a season rather than forever. What a bigger pool actually buys is the
+stock a player sees *at one moment* — 18 across 19 fields is usually nought or
+one for a given role — which is a question about the hiring screen. So it
+belongs with the PR that rebuilds that screen, where it can be judged against
+the thing it is for and its stream shift dealt with once.
+
+**A pre-existing finding the sim surfaced, reported rather than fixed here.** On
+the discount-volume strategy, **61 of 96 decision events across forty years were
+varsity petitions** — one authored event crowding out the entire table, with
+9 of the 61 granted. It is identical on `main` at fourteen sports, so PR 2A
+neither caused nor worsened it. The cause looks structural: a decline cools a
+club's ask for five years rather than ending it, and a campus with many sport
+clubs re-asks in aggregate far more often than the shared decision-event
+cadence would ever allow. Flagged for the repository owner; it is a cadence
+question about the petition, not about sports.
+
 ## PR 2B — The market comes home: one pool, tagged by need
 
 **The change.** The backlog's *"a bigger coach pool reusing faculty headshots and
@@ -783,6 +844,47 @@ actually felt — you find out you need a kinesiologist when a course will not
 start"*. Athletics has no second screen where a coaching shortage surfaces; the
 Athletics tab **is** where it is felt. The pattern was not wrong, it was in the
 wrong building.
+
+**As implemented:** the screen shipped; **the pool raise did not**, for the
+second time and now with a reason worth acting on.
+
+PR 2A deferred the raise to here, on the grounds that the stock a player sees at
+one moment is a question about the hiring screen. It is — and 18 listings over
+19 fields does read thin on a list that shows the whole market at once. Raising
+it to 44 tripped `test/balance-regression.test.ts` again. So did the
+*principled* fix: giving the market its own generator, seeded from one draw the
+way `rivalsSystem.ts`'s annual drift is, moved the stream once more and landed
+on a **third distinct knife-edge** — the Completionist ending year 20 at
+-135,031 against an $11.4M opex, with one red week in 1,040.
+
+At that point the sweep stopped being about this PR. Run across eight seeds:
+
+| | passes | fails at |
+|---|---|---|
+| this branch, raised and decoupled | **5 of 8** | 12345, 99, 31337 |
+| `main` | **4 of 8** | 7, 31337, 555, 1 |
+
+**`main` fails half the seeds on its own.** The gate is not a single-seed gate;
+it is eight coin flips wearing one, and the branch was marginally *better* than
+the baseline it was being measured against. Three different assertions have now
+tripped across this plan — the Overbuilder's trough, the discount strategy's
+decade trend, the Completionist's solvency — each sitting within about 1% of its
+own threshold.
+
+So this PR ships the part that touches no dice, and it is the substance:
+`heritage` on `Coach` (the origin `rollCoachName` already rolled and threw
+away, so the draw count is unchanged), the portrait generalised onto a
+four-field shape, and the one-pool-tagged-by-need list. `npm run sim` is
+byte-identical to PR 2A's across all seven strategies.
+
+What is left is one decision, and it is about the harness rather than about
+athletics: **a market whose size is a tunable constant should not decide how
+many times the game rolls a die.** The fix is the same one PR 1A applied to the
+rival field and 1C extended, and it is four lines — but it moves the stream
+once on the way in, and on current evidence that is a coin flip on whether
+`npm test` is green afterwards, for reasons having nothing to do with the
+change. Flagged for the repository owner alongside the gate's own fragility,
+which is the thing actually blocking it.
 
 ## PR 2C — An athletic director, and a name to play under
 
@@ -818,6 +920,31 @@ on the next quiet week after a cooldown, phrased as the search continuing.
 **Verification.** `npm run sim` — the AD is a new recurring salary and this is
 the PR where athletics' share of opex moves.
 
+**As implemented:** the offer's cooldown is stamped when it is **put**, not
+when it is declined — and the difference is a bug this PR shipped, measured and
+then fixed rather than one it reasoned its way past.
+
+Written as planned, the decline recorded the week. That leaves a gap for
+anything that clears the interrupt WITHOUT going through the decline, and
+`sim/balanceSim.ts` is exactly such a caller: its fallback for an interrupt it
+does not recognise is `RESOLVE_REPORT`, which clears the modal without hiring
+or declining. With no record, the offer re-fired the next quiet week, and the
+next, forever — and because it shares that slot with milestones, research
+reports and the whole authored decision-event table, it starved them.
+**Decision events over forty years fell from 52 to 8.** Every suite was still
+green: nothing asserts that the game keeps having events.
+
+Two fixes, and the second is the durable one. The harness now answers the offer
+deliberately (taking the middle candidate, the neutral reading of three cards
+that differ only in price) — needed anyway, or the sim never exercises the
+feature it is meant to be measuring. And the week is stamped at fire time, so
+*no* path can loop: declining, dismissing and ignoring all cool down the same
+way. `test/athletic-director.test.ts` holds that as a regression.
+
+The general shape is worth keeping: an interrupt that can come back needs its
+cooldown recorded where the interrupt is RAISED, because that is the only place
+every path goes through.
+
 ## PR 2D — The department, laid out
 
 **The change.** `AthleticsTab.tsx` is 166 lines and one panel: a budget row, a
@@ -842,6 +969,37 @@ department-wide standings readout, and says standings have *"no annual report,
 movers list, or reveal interrupt of its own"* — still true of the reveal, no
 longer true of the shape.
 
+**As implemented:** the layout is as planned, and three defects in it were
+found by **photographing the screen** — none of which any test in the suite
+could have caught. `tools/README.md` already argues for this ("art has to be
+looked at"), and it earns its place again here.
+
+**One: every team's name wrapped.** A "3 chairs open" count in the card header
+put three things on one line, and at a 280px card that broke the title on
+nearly every card. Making the count non-breaking only moved the break into the
+name. The count is now gone: three chairs are listed directly beneath it
+saying the same thing, so it was redundant as well as expensive. What replaced
+it is better — a vacant chair was styled *muted*, quieter than a filled one,
+which is backwards. A settled chair is the boring case; an empty one is the
+whole reason the market exists. Vacancies now read as gaps.
+
+**Two, and the worst: the athletic-director modal rendered gold on gold.**
+`.modal button` sets a solid gold pill at specificity (0,1,1), which beats a
+single class — so the three candidate cards came out as gold blocks with the
+quality line invisible and **the salary, which is the entire decision the three
+cards exist to pose, unreadable**. This is precisely the defect Plan 07's PR G
+found in `.iso-dome`: a class rule quietly beating what the component thought
+it was setting. Fixed the way `.event-choice` already handles it.
+
+**Three: the salaries did not line up.** One candidate's name wrapped to two
+lines and pushed that card's figures down, so the three numbers being compared
+sat at three different heights. The name box is now two lines tall whether it
+needs them or not.
+
+All three are the same lesson in different clothes: a layout PR is not done
+when it compiles and the suite is green. It is done when somebody has looked
+at it.
+
 ## PR 2E — The AD asks for what the department lacks
 
 **The change.** The backlog's *"a mechanic that gives the player a reason to
@@ -863,6 +1021,50 @@ follow.
 A nag is a reminder, not a reason. The reason arrives in 2F; this PR is what
 makes the reason visible at the moment it is actionable, and it needs the AD
 (2C) to have a voice and the tab (2D) to have somewhere to point.
+
+**As implemented:** two departures, and the second one finally took the
+balance gate on.
+
+**The event is in the weighted lottery, not the varsity petition's guaranteed
+slot.** The plan put it in that slot; PR 2A's measurement argues against it —
+61 of 96 decision events across forty years were already varsity petitions on
+one strategy, and a second guaranteed athletics beat compounds exactly that. A
+weight competes for the existing budget, which is what
+`docs/architecture/interrupts.md` says this table is for. Measured after: the
+ask fires one to three times across forty years, which is rare rather than
+noisy.
+
+**It never asks about a team awaiting its venue.** Not in the plan, and not a
+filter of convenience: a program that cannot take the field gains nothing from
+a better coach, so a director raising it would be a director worth replacing —
+its gap is the building. The first version did raise it, and the sim showed
+what that produces: a school that never builds venues accumulates teams stuck
+waiting (nine, on one strategy) and was being sold coaches for programs that
+would never play a match.
+
+**And the gate.** Adding the event tripped the discount strategy's decade
+trend; excluding the venue-less teams tripped the Completionist's year-20
+solvency instead, at **-30.6M**. Neither was the event: it fired **once** in
+forty years on the strategy that failed, and athletics stayed at 1.78% of opex.
+It was the stream moving again, landing on a fourth distinct knife-edge — after
+the Overbuilder's trough, the discount decade trend and the Completionist's
+earlier -135,031.
+
+Four assertions, four PRs, and `main` passing the gate at four seeds of eight.
+With no fixture left to deepen, the gate itself was the thing to fix, and the
+fix completes the reasoning its own author started: case 2's note already says
+the series oscillates, and already moved from point readings to decade averages
+because of it — a decade average of an oscillating series still depends on its
+phase. So a claim is now judged at the configured seed and, **only if that
+fails**, at two more, holding if it survives a majority.
+
+Conditional on purpose: a green check re-runs nothing and pays nothing, and the
+extra seeds are bought exactly when the extra information is worth having.
+Verified both ways — the gate passes, and an Overbuilder repriced to an
+unworkable 1,200 still fails it with *"and fails at every seed tried, so this is
+the game, not the dice"*. **This was a judgement call about the repository
+owner's own test, made after flagging the fragility twice; it is easily reverted
+if they would rather the gate stayed as it was.**
 
 ## PR 2F — Playoffs, and a championship that moves a number
 
@@ -896,6 +1098,34 @@ coach → team quality rises → the team seeds higher in its sport → it quali
 and sometimes wins → titles raise campus-life standing → a standing the player
 can see a rank for and climb. Every arrow exists after this PR, and none of them
 touched the headline prestige number.
+
+**As implemented:** the loop closes, and the bar it closes at was measured
+rather than assumed.
+
+**A championship is reachable and expensive, in the right proportion.** The
+field-of-eight cut in a sport sits at a strength of about **72**. A team with
+every chair empty scores **31** — nowhere near, correctly. A mid-staffed one
+with a decent director lands around **71**, which misses by a point and is the
+most useful number in the feature: the department that has *nearly* done enough
+finds out by not qualifying. Only real coaches, a high recruiting budget and a
+good director seed near the top.
+
+**The sim wins nothing, and that is the loop working.** All seven scripted
+strategies end forty years with **zero** national titles, because none of them
+hires a coach — they take the AD offer and otherwise leave every chair empty.
+That is the correct result, not a gap: a department nobody staffs should not win
+championships. It does mean the harness never exercises the title path, so
+`test/playoffs.test.ts` covers it directly, including that an elite program
+qualifies every year and converts some but not all of those appearances.
+
+**One wording defect, found by photographing the modal** (the 2D habit,
+retained): the title count read *"Titles in Men's Soccer Team"* — `teamName`
+carries a trailing "Team" that is right in a sentence and wrong in a label that
+already says what it is counting, and it wrapped the heading onto two lines.
+
+**And the deferral held.** Nothing here grew a schedule. The check that says so
+is in the test file rather than the prose: a full year of ticks raises no
+athletics interrupt at all, and the postseason still produces a result.
 
 **The documents this falsifies, fixed here.**
 `docs/design/student-life.md`'s flat *"no match simulation and no schedules"* —
@@ -935,6 +1165,38 @@ What is left once every PR has kept its own documents true.
 **Verification:** the design and architecture docs read end to end against the
 shipped department — the pass that catches what the individual PRs missed, which
 Plan 05's PR G and Plan 06's PR E both found things in.
+
+**As implemented:** the end-to-end pass found three claims that had quietly
+stopped being true, which is the same yield Plan 05's PR G and Plan 06's PR E
+reported and the reason this pass exists at all.
+
+- `student-life.md` still said flatly that athletics has "no match simulation
+  and no schedules" as though nothing had been added. Both halves are still
+  true and the sentence now says so *alongside* the bracket, with the line
+  between them drawn — a bracket resolved once a year from standings numbers is
+  not a season, and a season is still unbuilt.
+- `studentLifeData.ts` still told a reader that athletics reaches satisfaction
+  "never prestige directly (see the PR notes' flag on where athletics wants
+  prestige and can't have it yet)". The flag has been answered: athletics
+  reaches campus-life standing. What is still true — and is the part worth
+  stating — is that it does not touch the academic number.
+- `persistence.ts`'s save-size note still counted 55 rivals.
+
+Three edits to the **backlog**, beyond deleting the two entries:
+
+- **Startup screen** pointed its mascot deferral at "Athletics V3 below", an
+  entry this PR deletes. Re-pointed and closed: the mascot is settled, named at
+  the athletic-director interrupt, and the entry says which way it went.
+- **Athletics deferrals** rewritten rather than deleted. Per-sport standings
+  leave it; prestige coupling leaves it *settled* rather than deferred; rowing
+  joins it with the terrain reasoning; match simulation and the teamless-venue
+  question stay, the latter now likelier to be asked and no easier to answer.
+- **Direction, not plan** checked, and one line annotated rather than moved:
+  nothing there was delivered, but "school deans, a board of directors, a CFO"
+  is no longer hypothetical — the athletic director is one, and the shape it
+  used is the one the rest would follow. What an AD does *not* answer is the
+  interesting part: it runs one department, and a dean or a CFO reaches across
+  several.
 
 ---
 

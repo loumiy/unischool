@@ -1,4 +1,4 @@
-import type { AthleticsBudgetTier, GameState, InitiativeDepth, TileCoord, Vernacular } from './types';
+import type { AthleticsBudgetTier, Coach, GameState, InitiativeDepth, TileCoord, Vernacular } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
 import { WEEKS_PER_YEAR, CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT } from './types';
@@ -189,6 +189,15 @@ export type Action =
   // institution's name; either answer marks the offer made, so it is
   // asked exactly once per run. Cosmetic — no system reads the name.
   | { type: 'RESOLVE_CHARTER'; accept: boolean }
+  // The athletic director's offer. `candidate` is the whole person rather
+  // than an id: they were rolled into the interrupt's payload and live
+  // nowhere else, so there is no pool for the reducer to look them up in —
+  // the same shape the visiting-scholar event's own appointment uses.
+  // `candidate: null` is the decline, which records a week rather than a flag
+  // (see types.ts's athleticDirectorAskedWeek).
+  | { type: 'RESOLVE_ATHLETIC_DIRECTOR'; candidate: Coach | null; mascot: string }
+  // A championship report: read and leave, like the U.S. News report.
+  | { type: 'RESOLVE_CHAMPIONSHIP' }
   // Commits one choice from an authored decision event (see
   // data/eventData.ts's DECISION_EVENTS). `ctx` is the context the event
   // rolled for itself when it fired, carried back verbatim from the
@@ -307,6 +316,11 @@ export function createPreStartState(): GameState {
       clubs: [], chapters: [], teams: [], coachCandidates: [], pendingPetitions: [],
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
       athleticsBudget: DEFAULT_ATHLETICS_BUDGET,
+      athleticDirector: null,
+      lastSeason: {},
+      titles: [],
+      pendingTitles: [],
+      athleticDirectorAskedWeek: 0,
     },
     research: {
       points: 0, lifetimePoints: 0, publications: 0, grants: 0, grantIncome: 0,
@@ -602,6 +616,11 @@ export function createInitialState(name: string, vernacular: Vernacular = FOUNDI
       pendingPetitions: [],
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
       athleticsBudget: DEFAULT_ATHLETICS_BUDGET,
+      athleticDirector: null,
+      lastSeason: {},
+      titles: [],
+      pendingTitles: [],
+      athleticDirectorAskedWeek: 0,
     },
     // No labs at founding, so nothing produces research and no output can
     // fire — the whole slice sits at zero until the first lab finishes

@@ -133,11 +133,12 @@ export const CHAPTER_HOUSE_CAPACITY_BONUS = 40;
 // headline satisfaction. Real, and nowhere near enough to substitute for
 // building the social facilities the attribute is mostly scored on.
 //
-// A full varsity athletics department (all fourteen SPORTS teams active —
-// up from nine before gendering split five sports into independent men's/
-// women's lineages — high investment) adds a further ~46.2 uncapped — so a
-// school running clubs, Greek life AND athletics at once now clears this
-// ceiling comfortably. The
+// A full varsity athletics department (all eighteen SPORTS teams active,
+// high investment) adds a further 18 x 2.2 x 1.5 = ~59.4 uncapped — twice
+// this whole ceiling on its own, and up from ~46.2 when there were fourteen
+// teams (itself up from nine before gendering split the two-gender sports
+// into independent men's and women's lineages). So a school running clubs,
+// Greek life AND athletics at once clears this ceiling several times over. The
 // cap is left UNCHANGED rather than raised to "make room" for athletics:
 // the point of a shared aggregate cap is exactly that a school cannot stack
 // every student-life lever to keep climbing past it, and athletics is
@@ -311,6 +312,33 @@ const SPORT_PROFILES: readonly SportProfile[] = [
   { key: 'softball', label: 'Softball', venueCategory: 'athleticsDiamond', genders: ['women'] },
   { key: 'swimming', label: 'Swim & Dive', venueCategory: 'athleticsNatatorium', genders: ['men', 'women'] },
   { key: 'football', label: 'Football', venueCategory: 'footballStadium', genders: ['men'] },
+  // --- added in Plan 08's PR 2A, both onto venues that already stand ---
+  //
+  // TRACK & FIELD runs on the multi-sport field, which already has a track
+  // drawn on it: components/groundMarkings.tsx renders a regulation eight-lane
+  // 400m stadium oval there, at real proportions, and has since Plan 04's 4C.
+  // The sport was waiting on nothing.
+  { key: 'track', label: 'Track & Field', venueCategory: 'athleticsField', genders: ['men', 'women'] },
+  // ICE HOCKEY shares the arena, and this is a NAMED CALL rather than an
+  // obvious one. A real arena converts between hardwood and ice, which is
+  // exactly the "shared among varsity teams in one category" model
+  // docs/design/student-life.md describes — and the alternative, an
+  // `athleticsIceRink` facility type, costs a Buildable, a footprint, a
+  // ground marking, a build-rail entry and a map asset for one sport.
+  //
+  // The cost of the call, stated so a playtest knows to look for it: the
+  // arena is now the venue for SIX programs (basketball and volleyball in
+  // both genders, plus hockey in both), which is a lot of load on one
+  // building. If that reads as thin, the fix is a rink, not a retreat from
+  // sharing.
+  { key: 'iceHockey', label: 'Ice Hockey', venueCategory: 'athleticsArena', genders: ['men', 'women'] },
+  //
+  // GOLF IS DECLINED and ROWING DEFERRED — see docs/design/student-life.md.
+  // A course is a footprint larger than the campus the game draws; a lake is
+  // TERRAIN, and the map has no terrain concept at all (campusData.ts is a
+  // tile grid of placements, and the only water in the game is drawn
+  // ornamentally inside two ground markings). Water on the map is a
+  // campus-map plan, not an athletics one.
 ];
 
 function sportId(profile: SportProfile, gender: SportGender): string {
@@ -350,7 +378,7 @@ export interface SportDefinition {
 }
 
 // GENERATED from SPORT_PROFILES, one entry per (sport, fielded gender) —
-// 4 one-gender sports + 5 two-gender sports x 2 lineages = 14 entries,
+// 4 one-gender sports + 7 two-gender sports x 2 lineages = 18 entries,
 // up from the pre-gendering 9. See the STATE SHAPE note above
 // promoteToVarsityTeam: a gendered SPORTS id, not a `gender` field on
 // StudentClub/VarsityTeam, is what keeps a men's and a women's program of
@@ -420,7 +448,7 @@ export const ATHLETICS_BUDGET_TIERS: Record<AthleticsBudgetTier, { socialMultipl
 // program to be proud of until it can actually compete), which is also why
 // this cannot be gamed by petitioning and stalling on the venue. Sized
 // between a club's and a chapter's: a varsity team is a bigger deal than a
-// chess club but a campus can have at most fourteen of them (one per SPORTS
+// chess club but a campus can have at most eighteen of them (one per SPORTS
 // entry — up from nine before gendering split five sports into independent
 // men's/women's lineages), against up to ten housed chapters, so per-team
 // it can afford to sit close to a chapter's own weight.
@@ -437,6 +465,13 @@ export const TEAM_SOCIAL_BONUS = 2.2;
 // =====================================================================
 
 export const TRAINER_FIELD = 'strength-conditioning';
+
+// The athletic director's own `field`. Marks a ROLE rather than a sport, the
+// same way TRAINER_FIELD marks a discipline — and deliberately NOT one of
+// allCoachFields() below, so the standing market never lists a director. An
+// AD is not hired off the board; they are offered, once, in an interrupt of
+// their own (see systems/events/eventSystem.ts).
+export const AD_FIELD = 'athletic-director';
 
 // Coach candidate fields: one per SPORTS entry (a head/assistant coach
 // candidate) plus TRAINER_FIELD (a strength & conditioning candidate,
@@ -516,10 +551,12 @@ export function generateCoachCandidate(field: string): Coach {
   const qualityPotential = COACH_POTENTIAL_MIN + Math.round(Math.random() * COACH_POTENTIAL_RANGE);
   const quality = grownCoachQuality(qualityPotential, 0);
   const gender = rollCoachGender(field);
+  const rolled = rollCoachName(gender);
   return {
     id: crypto.randomUUID(),
-    name: rollCoachName(gender),
+    name: rolled.name,
     gender,
+    heritage: rolled.origin,
     field,
     quality,
     qualityPotential,
@@ -529,10 +566,133 @@ export function generateCoachCandidate(field: string): Coach {
   };
 }
 
+// =====================================================================
+// THE ATHLETIC DIRECTOR'S OFFER (see systems/events/eventSystem.ts's
+// fireAthleticDirectorOffer). Three candidates, rolled once at fire time and
+// carried in the interrupt's payload — the pattern eventData.ts's
+// 'visiting-scholar' already uses and explains: rolled once so the person
+// described is exactly the person hired, because "two rolls would be two
+// different people, one of them fictional".
+//
+// "SALARY THE ONLY REAL DIFFERENTIATOR" is the design ask, and reading it
+// correctly is what makes the choice a choice. A faculty hire trades teaching
+// against research; an AD has ONE stat, so the only question three cards can
+// pose is how much of the department's budget goes to the person running it.
+// So the three are a cheap one, a middling one and an expensive one, with
+// salary tracking quality closely — and the modal says so in a line rather
+// than implying a tradeoff that is not there.
+//
+// The bands overlap slightly at the edges so the cheap card is not *always*
+// the worst: a thrifty director who is genuinely good turns up often enough
+// that reading the numbers beats reading the position.
+// =====================================================================
+const AD_TIERS: ReadonlyArray<{ min: number; range: number }> = [
+  { min: 48, range: 14 }, // 48..62 — the bargain
+  { min: 58, range: 16 }, // 58..74 — the safe hire
+  { min: 70, range: 20 }, // 70..90 — the expensive one
+];
+
+// An AD's salary curve is the coaching one with a premium on top: they run
+// the department rather than a team, and the whole point of the three cards
+// is that the difference between them is money.
+const AD_SALARY_PREMIUM = 1.6;
+
+export function adSalaryFor(quality: number): number {
+  return Math.round(coachSalaryFor(quality, 0) * AD_SALARY_PREMIUM);
+}
+
+// The three, cheapest first — which is also the order the modal shows them,
+// so the money reads left to right.
+export function rollAthleticDirectorCandidates(): Coach[] {
+  return AD_TIERS.map((tier) => {
+    const quality = tier.min + Math.round(Math.random() * tier.range);
+    const gender = Math.random() < 0.5 ? 'male' : 'female';
+    const rolled = rollCoachName(gender);
+    return {
+      id: crypto.randomUUID(),
+      name: rolled.name,
+      gender,
+      heritage: rolled.origin,
+      field: AD_FIELD,
+      quality,
+      // An AD arrives finished. Unlike a coach they have no growth curve in
+      // this model — there is one of them, they are hired once, and a second
+      // appreciating-asset arc would be machinery nothing reads.
+      qualityPotential: quality,
+      tenureWeeks: 0,
+      weeksListed: 0,
+      salary: adSalaryFor(quality),
+    };
+  });
+}
+
+// =====================================================================
+// MASCOTS. The player names theirs in the same modal that hires the athletic
+// director — the first moment the question has an answer, since there is now
+// something that wears the name.
+//
+// NOT AT FOUNDING, and that is a decision this plan took from the startup
+// screen's own backlog entry rather than an accident of sequencing: the
+// founding screen would ask before the player has any reason to care, before
+// a single building stands, and typically a decade before a varsity team
+// exists.
+//
+// The list is a starting point, not a constraint — the modal offers a roll
+// and a free text field, because a mascot somebody typed is worth more than
+// one they accepted. Drawn to sit beside rivalData.ts's own ninety-nine
+// without reusing them.
+// =====================================================================
+const MASCOT_SUGGESTIONS: readonly string[] = [
+  'Badgers', 'Bobcats', 'Bulldogs', 'Cardinals', 'Cougars', 'Coyotes',
+  'Eagles', 'Falcons', 'Foxes', 'Grizzlies', 'Hawks', 'Herons',
+  'Ibises', 'Jackals', 'Kestrels', 'Lynx', 'Magpies', 'Mustangs',
+  'Ospreys', 'Otters', 'Owls', 'Panthers', 'Pumas', 'Ravens',
+  'Stags', 'Storks', 'Terriers', 'Thunderbirds', 'Timberwolves', 'Wolverines',
+  'Anchors', 'Anvils', 'Argonauts', 'Blacksmiths', 'Cartographers', 'Chancellors',
+  'Comets', 'Explorers', 'Founders', 'Lamplighters', 'Mariners', 'Miners',
+  'Pioneers', 'Prospectors', 'Quarriers', 'Scholars', 'Sentinels', 'Surveyors',
+  'Tempest', 'Wardens',
+];
+
+// A cap, because the name goes in standings rows and championship banners and
+// has to fit beside a school's own name.
+export const MASCOT_MAX_LENGTH = 24;
+
+export function rollMascotSuggestion(): string {
+  return MASCOT_SUGGESTIONS[Math.floor(Math.random() * MASCOT_SUGGESTIONS.length)];
+}
+
 // Coach candidates arrive already staggered across the listing window, the
 // exact same reasoning facultyData.ts's initialCandidatePool uses — a pool
 // seeded flat would empty and refill in synchronized waves instead of
 // churning smoothly.
+//
+// SIZED AGAINST THE NUMBER OF FIELDS, and worth reading as flow rather than
+// stock. rollCoachField draws uniformly across every SPORTS id plus
+// TRAINER_FIELD, so the pool spreads itself over 19 fields now rather than
+// 15 — but what a waiting vacancy actually experiences is the THROUGHPUT:
+// with listings living COACH_CANDIDATE_LISTING_WEEKS, a target of 18 turns
+// over ~1.5 listings a week, so a given field sees roughly four candidates a
+// year and a vacancy waits a season rather than forever.
+//
+// STILL 18, and not for want of wanting it bigger. At 18 listings over 19
+// fields a given role's list is usually empty or a single name, and a market
+// of 44 would read far better on the one-pool screen this PR builds.
+//
+// What blocks it is not the number but what the number is wired to. The pool
+// is seeded and refilled straight off Math.random, so its SIZE decides how
+// many times the game rolls a die — and sim/balanceSim.ts seeds Math.random
+// to make a forty-year run reproducible. Raising 18 to 44 generates 26 more
+// candidates at founding and doubles the weekly arrivals, which moves the
+// whole stream and lands test/balance-regression.test.ts somewhere new.
+//
+// Measured, that movement is not a balance effect: across eight seeds the
+// raise trends the same way 7 times out of 8 either side, and the OLD size
+// fails worse at the seed it fails. The fix is to give the market a generator
+// of its own, the way rivalsSystem.ts's annual drift already has one, after
+// which this number is free to tune. That is a change to the balance harness's
+// relationship with the game and is flagged for the repository owner rather
+// than taken here — see the plan's PR 2B note.
 export const COACH_CANDIDATE_POOL_TARGET = 18;
 export const COACH_CANDIDATE_LISTING_WEEKS = 12;
 const COACH_CANDIDATE_ARRIVALS_PER_WEEK_MAX = 3;
@@ -576,13 +736,29 @@ const HEAD_COACH_WEIGHT = 0.5;
 const ASSISTANT_COACH_WEIGHT = 0.25;
 const TRAINER_WEIGHT = 0.25;
 
+// What the athletic director is worth to every team at once. A SECOND
+// department-wide lever beside the budget tier's qualityBonus, and a
+// different kind of one: the budget is money, the director is a person, and a
+// school can be good at one and bad at the other.
+//
+// Scaled well under the budget's own top bonus (18) so the AD is a real
+// contribution rather than the whole department — a brilliant director cannot
+// carry teams with nobody coaching them, which is the thing PR 2E's shortage
+// interrupts exist to keep visible.
+const AD_QUALITY_SHARE = 0.12; // a 90-quality director is worth ~11 to every team
+
+export function athleticDirectorBonus(s: GameState): number {
+  const ad = s.orgs.athleticDirector;
+  return ad ? ad.quality * AD_QUALITY_SHARE : 0;
+}
+
 export function teamQuality(team: VarsityTeam, s: GameState): number {
   const weighted =
     (team.headCoach?.quality ?? COACH_VACANCY_QUALITY) * HEAD_COACH_WEIGHT
     + (team.assistantCoach?.quality ?? COACH_VACANCY_QUALITY) * ASSISTANT_COACH_WEIGHT
     + (team.trainer?.quality ?? COACH_VACANCY_QUALITY) * TRAINER_WEIGHT;
   const budgetBonus = ATHLETICS_BUDGET_TIERS[s.orgs.athleticsBudget].qualityBonus;
-  return Math.max(0, Math.min(100, Math.round(weighted + budgetBonus)));
+  return Math.max(0, Math.min(100, Math.round(weighted + budgetBonus + athleticDirectorBonus(s))));
 }
 
 // The whole athletic department's standing (item 4's "scores & standings"),
@@ -592,7 +768,7 @@ export function teamQuality(team: VarsityTeam, s: GameState): number {
 // contributes nothing to athleticsSocialBonus. A department with more
 // active teams reads as a bigger deal than one carrying a single strong
 // team (the same "breadth matters" shape curriculum breadth's own score
-// uses), capped so fielding a handful of teams doesn't need all fourteen
+// uses), capped so fielding a handful of teams doesn't need all eighteen
 // SPORTS entries to be taken seriously.
 const ATHLETIC_BREADTH_FOR_FULL_CREDIT = 6;
 
@@ -602,6 +778,62 @@ export function athleticProgramStrength(s: GameState): number {
   const avgQuality = active.reduce((sum, t) => sum + teamQuality(t, s), 0) / active.length;
   const breadth = Math.min(1, active.length / ATHLETIC_BREADTH_FOR_FULL_CREDIT);
   return Math.round(avgQuality * (0.7 + 0.3 * breadth));
+}
+
+// EVERY EMPTY CHAIR ON A TEAM THAT CAN ACTUALLY COMPETE, as {team, role}
+// pairs — what the athletic director's own shortage event reads (see
+// eventData.ts's 'ad-shortage').
+//
+// 'awaitingVenue' TEAMS ARE EXCLUDED, and that is a judgement about the
+// director rather than a filter of convenience. A program with no venue
+// cannot play, so its coaching quality changes nothing until the building
+// finishes: a director who came to you asking to fill a chair on a team that
+// cannot take the field would be a director worth replacing. The gap on such
+// a team is the VENUE, and that is a build-rail decision the player is
+// already looking at.
+//
+// It also removes something perverse the first version produced. A school
+// that never builds athletics venues accumulates teams stuck awaiting them —
+// nine of them, in one of sim/balanceSim.ts's strategies — and the event was
+// happily selling it coaches for programs that would never play a match.
+export interface VacantChair {
+  team: VarsityTeam;
+  role: 'head' | 'assistant' | 'trainer';
+}
+
+export function vacantChairs(s: GameState): VacantChair[] {
+  const out: VacantChair[] = [];
+  for (const team of s.orgs.teams) {
+    if (team.status !== 'active') continue;
+    if (!team.headCoach) out.push({ team, role: 'head' });
+    if (!team.assistantCoach) out.push({ team, role: 'assistant' });
+    if (!team.trainer) out.push({ team, role: 'trainer' });
+  }
+  return out;
+}
+
+// The field a chair hires from: the team's own sport for the two coaching
+// roles, strength & conditioning for a trainer. One place, so the shortage
+// event and the hiring screen can never disagree about who is eligible.
+export function fieldForChair(chair: VacantChair): string {
+  return chair.role === 'trainer' ? TRAINER_FIELD : chair.team.sport;
+}
+
+export const CHAIR_LABEL: Record<VacantChair['role'], string> = {
+  head: 'head coach',
+  assistant: 'assistant coach',
+  trainer: 'trainer',
+};
+
+// Put a coach straight into a chair. Used by the shortage event, which
+// appoints outright rather than adding to the market — the money is already
+// spent at that point, so "now go find them on the list" would be an errand
+// rather than a choice (the same reasoning eventData.ts's 'visiting-scholar'
+// gives for appointing its scholar directly).
+export function seatCoach(team: VarsityTeam, role: VacantChair['role'], coach: Coach): void {
+  if (role === 'head') team.headCoach = coach;
+  else if (role === 'assistant') team.assistantCoach = coach;
+  else team.trainer = coach;
 }
 
 // The pipeline's whole cadence, per item's explicit ask: a sport club
@@ -867,10 +1099,14 @@ export function studentOrgUpkeep(s: GameState): number {
 // what disbanding is chosen to do to its venue.
 export function varsityTeamUpkeep(s: GameState): number {
   const tier = ATHLETICS_BUDGET_TIERS[s.orgs.athleticsBudget];
+  // The athletic director is department overhead, not a team's cost, so they
+  // are added once outside the per-team sum — but they ARE scaled by the same
+  // budget multiplier, because the lever is the whole department's.
+  const directorWeekly = (s.orgs.athleticDirector?.salary ?? 0) / WEEKS_PER_YEAR;
   return s.orgs.teams.reduce((sum, t) => {
     const staffAnnualSalary = (t.headCoach?.salary ?? 0) + (t.assistantCoach?.salary ?? 0) + (t.trainer?.salary ?? 0);
     return sum + (t.upkeepPerWeek + staffAnnualSalary / WEEKS_PER_YEAR) * tier.upkeepMultiplier;
-  }, 0);
+  }, directorWeekly * tier.upkeepMultiplier);
 }
 
 // The flat contribution live ACTIVE varsity teams make to the `social`
@@ -899,9 +1135,13 @@ export function greekSocialBonus(s: GameState): number {
 
 // What satisfactionSystem.ts actually adds to the attribute: the three
 // sources above (clubs, Greek chapters, varsity athletics), capped in
-// aggregate — athletics reaches satisfaction only through this same capped
-// social contribution, never prestige directly (see the PR notes' flag on
-// where athletics wants prestige and can't have it yet).
+// aggregate.
+//
+// This is how athletics reaches SATISFACTION, and it is no longer the only
+// number athletics reaches: a program also feeds campus-life standing, and a
+// championship feeds it again (see systems/prestige/prestigeSystem.ts's
+// computeSocialTarget). What is still true, and is the part worth stating, is
+// that none of it touches the ACADEMIC standing the economy reads.
 export function studentLifeSocialBonus(s: GameState): number {
   return Math.min(
     clubSocialBonus(s) + greekSocialBonus(s) + athleticsSocialBonus(s),

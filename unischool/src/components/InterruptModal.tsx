@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Action } from '../state/actions';
-import type { GameState, InitiativeReport, PendingInterrupt } from '../state/types';
+import type { Coach, GameState, InitiativeReport, PendingInterrupt, SeasonResult } from '../state/types';
 import { institutionName, WEEKS_PER_YEAR } from '../state/types';
 import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
@@ -8,8 +8,10 @@ import { TUITION_SLIDER_MAX } from '../data/foundingData';
 import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction, type PriceTier } from '../systems/admissions/admissionsSystem';
 import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
 import { projectConsequences } from '../systems/admissions/consequences';
-import { computePrestigeTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
+import { computePrestigeTarget, computeSocialTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
 import { findDecisionEvent } from '../data/eventData';
+import { MASCOT_MAX_LENGTH, rollMascotSuggestion, sportById } from '../data/studentLifeData';
+import FacultyPortrait from './FacultyPortrait';
 import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import type { DecisionEventContext, MilestonePayload } from '../data/eventData';
@@ -748,6 +750,162 @@ function DemandView({ s, onDismiss }: { s: GameState; onDismiss: () => void }) {
 // thing a player might want, and because the moment is worth marking.
 // Either answer closes the question for good.
 // ---------------------------------------------------------------------
+// ---------------------------------------------------------------------
+// THE ATHLETIC DIRECTOR'S OFFER — the one interrupt athletics raises of its
+// own, fired the first quiet week after the school fields a varsity team.
+//
+// Two decisions in one modal, and they belong together: the department gets
+// somebody to run it, and the teams get a name to play under. The mascot is
+// asked HERE rather than at founding because this is the first moment the
+// question has an answer — there is now something that wears the name.
+//
+// THE CARDS ARE HONEST ABOUT WHAT THEY OFFER. A faculty hire trades teaching
+// against research; an athletic director has one stat, so the only question
+// three cards can pose is how much of the department's budget goes to the
+// person running it. The modal says that in a line rather than implying a
+// second axis — an interface that hints at a tradeoff it does not have is
+// worse than one that admits the choice is about money.
+// ---------------------------------------------------------------------
+interface AthleticDirectorPayload {
+  candidates: Coach[];
+  mascotSuggestion: string;
+}
+
+// ---------------------------------------------------------------------
+// A CHAMPIONSHIP. The one thing athletics has ever produced that stops the
+// clock, and the payoff the whole plan was written around.
+//
+// It reads the model rather than inventing a display number: what the title
+// did to campus-life standing is computed by running the target WITHOUT this
+// title and reporting the difference — the same honesty the milestone modal
+// uses for prestige, and the same the Student Life panel uses when it reports
+// that the clubs are adding nothing because nothing is what they add.
+// ---------------------------------------------------------------------
+function ChampionshipView({ s, result, onDismiss }: {
+  s: GameState; result: SeasonResult; onDismiss: () => void;
+}) {
+  const sport = sportById(result.sport)?.teamName ?? result.sport;
+  // The bare sport, for the label below. `teamName` carries a trailing
+  // "Team" — right in a sentence ("the Men's Soccer Team finished"), wrong in
+  // a label that already says what it is counting ("Titles in Men's Soccer
+  // Team"), where it also pushed the heading onto two lines.
+  const sportShort = sport.replace(/ Team$/, '');
+  const ad = s.orgs.athleticDirector;
+  const titlesInSport = s.orgs.titles.filter((t) => t.sport === result.sport).length;
+
+  // What this one was worth, by asking the model what the target would be
+  // with one fewer title on the board.
+  const now = computeSocialTarget(s);
+  const without = computeSocialTarget({
+    ...s,
+    orgs: { ...s.orgs, titles: s.orgs.titles.slice(0, -1) },
+  });
+  const worth = now - without;
+
+  return (
+    <>
+      <h2>{s.self.mascot ? `The ${s.self.mascot} are national champions` : 'National champions'}</h2>
+      <p>
+        {ad ? `${ad.name} has been on the telephone since the final whistle. ` : ''}
+        The {sport} finished the season as champions
+        {result.seed !== null && result.seed > 2 ? ` — from the ${ordinal(result.seed)} seed` : ''}.
+      </p>
+
+      {result.beaten.length > 0 && (
+        <ol className="championship-path">
+          {result.beaten.map((opponent, i) => (
+            <li key={opponent}>
+              <span className="championship-round">{['Quarterfinal', 'Semifinal', 'Final'][i] ?? 'Round'}</span>
+              <span className="championship-opponent">beat {opponent}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      <dl className="championship-worth">
+        <div>
+          <dt>Titles in {sportShort}</dt>
+          <dd>{titlesInSport}</dd>
+        </div>
+        <div>
+          <dt>Titles in all</dt>
+          <dd>{s.orgs.titles.length}</dd>
+        </div>
+        <div>
+          <dt>Campus-life standing</dt>
+          {/* A banner is a slow gift: standing is a stock that drifts toward
+              its target, so this says what the TARGET moved by, not what the
+              school's rank did this week. */}
+          <dd>{worth >= 0.05 ? `+${worth.toFixed(1)} to the target` : 'already at its ceiling'}</dd>
+        </div>
+      </dl>
+
+      <button onClick={onDismiss}>Dismiss</button>
+    </>
+  );
+}
+
+function ordinal(n: number): string {
+  const suffix = n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th';
+  return `${n}${suffix}`;
+}
+
+function AthleticDirectorView({ s, payload, onResolve }: {
+  s: GameState;
+  payload: AthleticDirectorPayload;
+  onResolve: (candidate: Coach | null, mascot: string) => void;
+}) {
+  const [mascot, setMascot] = useState(payload.mascotSuggestion);
+  const cheapest = payload.candidates.reduce((lo, c) => (c.salary < lo.salary ? c : lo), payload.candidates[0]);
+
+  return (
+    <>
+      <h2>An athletic director</h2>
+      <p>
+        {s.orgs.teams.length === 1
+          ? 'The school fields a varsity program now, and nobody is running it.'
+          : `The school fields ${s.orgs.teams.length} varsity programs now, and nobody is running them.`}
+        {' '}Three candidates have applied. A director lifts every team the school fields —
+        and unlike a coach, there is only one of them, so the question is simply how much of
+        the department's budget goes to the person in charge.
+      </p>
+
+      <div className="ad-candidates">
+        {payload.candidates.map((c) => (
+          <button key={c.id} className="ad-candidate" onClick={() => onResolve(c, mascot)}>
+            <FacultyPortrait
+              f={{ id: c.id, gender: c.gender, heritage: c.heritage, seniority: Math.min(0.65, c.quality / 130) }}
+              size={40}
+            />
+            <span className="ad-candidate-name">{c.name}</span>
+            <span className="ad-candidate-quality">quality {c.quality}</span>
+            <span className="ad-candidate-salary">{money(c.salary)}/yr</span>
+            {c.id === cheapest.id && <span className="ad-candidate-tag">least expensive</span>}
+          </button>
+        ))}
+      </div>
+
+      <label className="ad-mascot">
+        <span className="ad-mascot-label">The teams will play as the</span>
+        <input
+          className="ad-mascot-input"
+          value={mascot}
+          maxLength={MASCOT_MAX_LENGTH}
+          onChange={(e) => setMascot(e.target.value)}
+          aria-label="Mascot"
+        />
+        <button type="button" className="ad-mascot-roll" onClick={() => setMascot(rollMascotSuggestion())}>
+          another
+        </button>
+      </label>
+
+      <button className="ad-decline" onClick={() => onResolve(null, mascot)}>
+        Appoint nobody for now — the search goes on, and the position will come back around.
+      </button>
+    </>
+  );
+}
+
 function CharterOfferView({ s, onResolve }: { s: GameState; onResolve: (accept: boolean) => void }) {
   return (
     <>
@@ -881,14 +1039,19 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
   // generic action itself, but keeping them separate is what makes that stay
   // correct if one of them ever grows real work of its own to do on resolve.
   //
-  // Two types are deliberately left out, for two different reasons. Charter
+  // Three types are deliberately left out, for three reasons. Charter
   // is a real either/or — accepting or declining sets
   // `universityCharterOffered`/`suffix` — so there is no neutral "continue"
   // for a key to stand for, and picking one silently would be picking for
   // the player. The admissions form is left out because its
   // tuition value lives in AdmissionsInterruptForm's own local
   // state, not reachable from here without lifting that state up just for a
-  // hotkey, so it stays click-to-confirm.
+  // hotkey, so it stays click-to-confirm. The athletic director's offer is
+  // left out for BOTH reasons at once: it is a choice among three people with
+  // no neutral answer, and the mascot the player is typing lives in that
+  // view's own state — and it is the one interrupt with a real text field, so
+  // the focused-input guard below is what stops Enter doing anything at all
+  // while they are still naming the teams.
   //
   // Guarded against a focused button/input so a Tab-focused decision-event
   // choice (or, if a future interrupt ever grows a text field) keeps
@@ -911,6 +1074,9 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
       case 'research-complete':
         act({ type: 'RESOLVE_RESEARCH_REPORT' });
         break;
+      case 'championship':
+        act({ type: 'RESOLVE_CHAMPIONSHIP' });
+        break;
       case 'demand':
         act({ type: 'RESOLVE_DEMAND' });
         break;
@@ -919,7 +1085,8 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
           act({ type: 'RESOLVE_DECISION_EVENT', eventId: decision.eventId, choiceId: '', ctx: decision.ctx });
         }
         break;
-      // admissions, charter, and anything unrecognised: no-op — see above.
+      // admissions, charter, the athletic director, and anything
+      // unrecognised: no-op — see above.
     }
   }, interrupt !== null);
 
@@ -953,6 +1120,18 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
           />
         ) : interrupt.type === 'demand' ? (
           <DemandView s={s} onDismiss={() => act({ type: 'RESOLVE_DEMAND' })} />
+        ) : interrupt.type === 'championship' ? (
+          <ChampionshipView
+            s={s}
+            result={(interrupt.payload as { result: SeasonResult }).result}
+            onDismiss={() => act({ type: 'RESOLVE_CHAMPIONSHIP' })}
+          />
+        ) : interrupt.type === 'athletic-director' ? (
+          <AthleticDirectorView
+            s={s}
+            payload={interrupt.payload as AthleticDirectorPayload}
+            onResolve={(candidate, mascot) => act({ type: 'RESOLVE_ATHLETIC_DIRECTOR', candidate, mascot })}
+          />
         ) : interrupt.type === 'charter' ? (
           <CharterOfferView s={s} onResolve={(accept) => act({ type: 'RESOLVE_CHARTER', accept })} />
         ) : decision ? (

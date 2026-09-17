@@ -12,7 +12,7 @@ import {
   averageCourseQuality, courseQuality, facultyLoads, type FacultyLoads,
 } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
-import FacultyPortrait from '../components/FacultyPortrait';
+import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import { ProgressRing } from '../components/Progress';
 import type { Faculty } from '../state/types';
 
@@ -627,7 +627,7 @@ function InstructorOption(
       aria-pressed={selected}
       onClick={onPick}
     >
-      <FacultyPortrait f={f} size={34} />
+      <FacultyPortrait f={portraitOf(f)} size={34} />
       <span className="instructor-option-body">
         <span className="instructor-option-name">{f.name}</span>
         <span className="instructor-option-meta">

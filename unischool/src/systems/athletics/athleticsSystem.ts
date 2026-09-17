@@ -3,6 +3,7 @@ import {
   coachCandidateArrivalsThisWeek, COACH_CANDIDATE_LISTING_WEEKS, coachSalaryFor,
   generateCoachCandidate, grownCoachQuality, rollCoachField,
 } from '../../data/studentLifeData';
+import { PLAYOFF_WEEK, runPlayoffs } from './playoffs';
 
 // ---------------------------------------------------------------------
 // The coaching-staff system for Athletics V2 (see data/studentLifeData.ts's
@@ -46,6 +47,10 @@ function growCoach(c: Coach): void {
 
 export function tickAthletics(s: GameState): void {
   tickCoachCandidatePool(s);
+  // The postseason, once a year. Silent — it writes results and queues any
+  // titles; the report that stops the clock is drained on a quiet week by
+  // eventSystem.ts, exactly as a milestone is (see playoffs.ts).
+  if (s.clock.week === PLAYOFF_WEEK) runPlayoffs(s);
   for (const t of s.orgs.teams) {
     if (t.headCoach) growCoach(t.headCoach);
     if (t.assistantCoach) growCoach(t.assistantCoach);

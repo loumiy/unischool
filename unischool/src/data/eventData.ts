@@ -1,4 +1,4 @@
-import type { Buildable, Faculty, GameState, GreekChapter, LogEntry } from '../state/types';
+import type { Buildable, Coach, Faculty, GameState, GreekChapter, LogEntry } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { FACULTY_FIELDS, generateCandidate, rollSurname } from './facultyData';
 import { appointFaculty } from '../systems/faculty/facultySystem';
@@ -6,6 +6,7 @@ import { money, rollAmount, weeksOfOpEx } from './moneyScale';
 import {
   CHAPTER_HOUSE_CAPACITY_BONUS, CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
   promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, VARSITY_PETITION_MIN_TENURE_YEARS, venueForCategory,
+  CHAIR_LABEL, fieldForChair, generateCoachCandidate, seatCoach, vacantChairs,
 } from './studentLifeData';
 import { discoverySchools, graduateProgram, milestoneSchools } from './techData';
 
@@ -242,6 +243,11 @@ export interface DecisionEventContext {
   // is exactly the person appointed — two rolls would be two different
   // people, one of them fictional.
   candidate?: Faculty;
+  // A whole COACH, rolled at fire time for the same reason `candidate` is
+  // (see 'ad-shortage'): the modal quotes their name, quality and salary,
+  // and the only way that quote is honest is if the person described is the
+  // person seated.
+  coach?: Coach;
 }
 
 export interface DecisionChoice {
@@ -389,6 +395,12 @@ const VISITING_SCHOLAR_PRESTIGE_GATE = 55;
 // — is part of the price, and the up-front gift is the smaller half of a
 // commitment rather than the whole of it.
 const VISITING_SCHOLAR_COST_WEEKS = 1.5;
+// The AD's own shortage ask (see 'ad-shortage'). Cheaper than a visiting
+// scholar and a shallower roll: a coach is a smaller commitment than a
+// chaired professor, and the event should read as the director doing their
+// job rather than as a once-a-decade coup.
+const AD_SHORTAGE_COST_WEEKS = 0.8;
+const AD_SHORTAGE_COACH_ROLLS = 3;
 const VISITING_SCHOLAR_CANDIDATE_ROLLS = 4; // best of N rolls — a genuinely strong hire, not just a free one
 
 const ROOF_REPAIR_COST_WEEKS = 1.5;
@@ -1160,6 +1172,86 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   // 'decision-event' interrupt shape, so nothing downstream (the modal,
   // the reducer, save/load) needs to know the trigger differs.
   // ---------------------------------------------------------------------
+  {
+    id: 'ad-shortage',
+    title: 'The director wants a chair filled',
+    // IN THE LOTTERY, not on a cadence of its own — deliberately, and against
+    // the plan, which put it in the varsity petition's guaranteed slot.
+    //
+    // PR 2A measured what that slot already does: on one strategy, 61 of 96
+    // decision events across forty years were varsity petitions. A second
+    // athletics beat with its own guarantee would compound exactly that, and
+    // docs/architecture/interrupts.md states the rule this table lives
+    // under — a decision event changes the MIX of what stops the clock, never
+    // how often it stops. A weight does that; a cadence does not.
+    weight: 7,
+    // The director is the voice, so there has to be one. A department with
+    // nobody running it has nobody to raise the shortage — which is also the
+    // honest reading: the AD offer is the thing to answer first.
+    eligible: (s) => s.orgs.athleticDirector !== null && vacantChairs(s).length > 0,
+    rollContext: (s) => {
+      const chairs = vacantChairs(s);
+      if (chairs.length === 0) return null;
+      // A head coach first when one is open: teamQuality weights that chair
+      // heaviest, and it is the one a director would actually raise.
+      const chair = chairs.find((c) => c.role === 'head') ?? pick(chairs);
+      const field = fieldForChair(chair);
+
+      // Best of N, exactly as 'visiting-scholar' rolls its scholar and for
+      // the same reason: what the money buys is QUALITY. Anyone can hire off
+      // the market any week, so access is worth nothing — a better coach than
+      // the market usually turns up is the whole proposition.
+      let best = generateCoachCandidate(field);
+      for (let i = 1; i < AD_SHORTAGE_COACH_ROLLS; i += 1) {
+        const next = generateCoachCandidate(field);
+        if (next.qualityPotential > best.qualityPotential) best = next;
+      }
+      return {
+        subjectId: chair.team.id,
+        subjectName: chair.team.name,
+        subjectField: chair.role, // a plain string slot, as 'varsity-petition' also uses it
+        amount: weeksOfOpEx(s, AD_SHORTAGE_COST_WEEKS),
+        coach: best,
+      };
+    },
+    prompt: (s, ctx) => {
+      const ad = s.orgs.athleticDirector;
+      const role = CHAIR_LABEL[(ctx.subjectField ?? 'head') as 'head' | 'assistant' | 'trainer'];
+      return `${ad?.name ?? 'The athletic director'} has been on at you about ${ctx.subjectName}: it has been running without a ${role}, `
+        + `and they have somebody in mind who will not be on the open market for long.`;
+    },
+    choices: [
+      {
+        id: 'appoint',
+        label: 'Let them make the hire',
+        describe: (_s, ctx) => {
+          const c = ctx.coach;
+          const role = CHAIR_LABEL[(ctx.subjectField ?? 'head') as 'head' | 'assistant' | 'trainer'];
+          return `${money(ctx.amount ?? 0)} to get it done, and ${c ? `$${c.salary.toLocaleString()}/yr` : 'a salary'} thereafter. `
+            + `${c ? `${c.name} takes the ${role}'s chair at quality ${c.quality}` : `The chair is filled`} — better than the market usually turns up.`;
+        },
+        cost: (_s, ctx) => ctx.amount ?? 0,
+        apply: (s, ctx) => {
+          const team = s.orgs.teams.find((t) => t.id === ctx.subjectId);
+          const role = (ctx.subjectField ?? 'head') as 'head' | 'assistant' | 'trainer';
+          if (!team) return entry(s, 'The appointment could not be made.', 'info');
+          // The fallback roll is for a save written before the coach was part
+          // of the context: an interrupt frozen mid-flight must still resolve
+          // into somebody. Same guard 'visiting-scholar' carries.
+          const coach = ctx.coach ?? generateCoachCandidate(fieldForChair({ team, role }));
+          seatCoach(team, role, coach);
+          return entry(s, `${coach.name} joins ${team.name} as ${role === 'head' ? 'head coach' : CHAIR_LABEL[role]} at $${coach.salary.toLocaleString()}/yr.`, 'good');
+        },
+      },
+      {
+        id: 'wait',
+        label: 'Leave it to the open market',
+        describe: () => 'Nothing is spent. The chair stays empty until somebody on the market is hired into it — which costs the team quality for as long as it takes.',
+        cost: () => 0,
+        apply: (s, ctx) => entry(s, `${ctx.subjectName} will go on without the appointment for now.`, 'info'),
+      },
+    ],
+  },
   {
     id: 'varsity-petition',
     title: 'A petition to go varsity',

@@ -4,7 +4,7 @@ import {
   parsePathTileKey, pathTileKey, placementFor,
 } from './campusMap';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR } from './types';
-import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES, ORIGIN_NATIONALITIES } from '../data/facultyData';
+import { CANDIDATE_LISTING_WEEKS, LEGACY_FIELD_RENAMES, ORIGIN_NATIONALITIES, heritageForId } from '../data/facultyData';
 import { initialTech } from '../data/techData';
 import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import { admitRate } from '../systems/admissions/admissionsSystem';
@@ -38,7 +38,7 @@ import { legacyRoundRobinAssignments } from '../systems/faculty/facultyAssignmen
 // campusMap.ts and history.ts.
 //
 // Size: a newly founded university serializes to ~175 KiB (481 Buildables
-// with descriptions, 55 rivals, the founding roster, and the 30-listing
+// with descriptions, 99 rivals, the founding roster, and the 30-listing
 // candidate market — ~24 KiB of names and bios that is REPLACED rather
 // than accumulated, since the pool is held at CANDIDATE_POOL_TARGET
 // forever). A decades-long run
@@ -1146,7 +1146,59 @@ export const SAVE_KEY = 'unischool.save';
 // gaining a byte.
 //
 // See MIGRATIONS[47].
-export const SAVE_VERSION = 48;
+//
+// v48 -> v49: coaches get faces. `Coach` gains `heritage`, added-as-required,
+// which is the field FacultyPortrait.tsx weights skin tone by and the one
+// thing a coach needed before it could be drawn the way a professor is.
+//
+// The same argued exception as the three before it (see the v45 -> v46 note):
+// the chain is only as reachable as its least-reachable link.
+//
+// A SAVED COACH'S HERITAGE IS NOT A RECOVERY, and the migration says so
+// rather than implying otherwise. `heritage` is the origin of the name pool a
+// person's name was drawn from, and for a coach that origin was rolled and
+// thrown away — the name is already written and cannot be un-rolled. So an
+// existing coach gets a heritage derived deterministically from their id
+// (facultyData.ts's heritageForId): stable across reloads, plausible, and
+// unrelated to the name they happen to carry. A coach hired in year 9 does
+// not change name, quality, salary or team — they acquire a face, and for the
+// ones who predate the field that face may not match their name.
+//
+// New coaches have no such problem: rollCoachName returns the origin now, so
+// from here on a coach's face and name come from the same roll.
+//
+// See MIGRATIONS[48].
+//
+// v49 -> v50: the department gets a director. `StudentOrgState` gains
+// `athleticDirector` and `athleticDirectorAskedWeek`, both
+// added-as-required.
+//
+// The same argued exception as the four before it (see the v45 -> v46 note).
+// Trivial, too: both fields are the state of not having asked yet, so a
+// resumed run simply gets the offer on its next quiet week — which is the
+// right answer rather than a convenient one. A school twenty years in with
+// six varsity programs and nobody running them is exactly the school the
+// offer exists for, and it arrives as an overdue appointment rather than a
+// retrofit.
+//
+// See MIGRATIONS[49].
+//
+// v50 -> v51: the postseason. `StudentOrgState` gains `lastSeason`, `titles`
+// and `pendingTitles`, all added-as-required.
+//
+// The same argued exception as the five before it (see the v45 -> v46 note),
+// and the same trivial carry: all three are "no postseason has been played
+// yet", which is exactly true of a save written before there were playoffs.
+// A resumed run's first postseason is the one at the next PLAYOFF_WEEK, and
+// its teams enter it seeded on the quality they already have.
+//
+// Nothing is reconstructed. A school twenty years in has no championships
+// recorded because it won none — there were none to win — and inventing a
+// banner for a season that never happened is the one thing a record is kept
+// to avoid.
+//
+// See MIGRATIONS[50].
+export const SAVE_VERSION = 51;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1250,7 +1302,56 @@ const KNOWN_SUFFIXES = ['College', 'University'];
 // policy note above SAVE_VERSION. Add an entry only for a specific run
 // worth carrying, and delete the whole chain freely once nothing is
 // resuming from it.
+
+// Every coach a save holds: the three staff roles on every team, plus the
+// standing candidate market. Used by the migration that gave coaches faces —
+// a candidate on the market needs one as much as a hire does, since the
+// hiring screen draws them.
+function allCoachesIn(state: GameState): Coach[] {
+  const out: Coach[] = [...(state.orgs?.coachCandidates ?? [])];
+  if (state.orgs?.athleticDirector) out.push(state.orgs.athleticDirector);
+  for (const team of state.orgs?.teams ?? []) {
+    if (team.headCoach) out.push(team.headCoach);
+    if (team.assistantCoach) out.push(team.assistantCoach);
+    if (team.trainer) out.push(team.trainer);
+  }
+  return out;
+}
+
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v50 -> v51: the postseason (see the SAVE_VERSION header note above).
+  // All three fields are "no season has been played", which is true rather
+  // than convenient.
+  50: (state) => {
+    const orgs = state.orgs as unknown as {
+      lastSeason?: Record<string, unknown>; titles?: unknown[]; pendingTitles?: string[];
+    };
+    if (typeof orgs.lastSeason !== 'object' || orgs.lastSeason === null) orgs.lastSeason = {};
+    if (!Array.isArray(orgs.titles)) orgs.titles = [];
+    if (!Array.isArray(orgs.pendingTitles)) orgs.pendingTitles = [];
+  },
+
+  // v49 -> v50: the department gets a director (see the SAVE_VERSION header
+  // note above). Both fields are "nobody has been asked yet", so a resumed
+  // run with teams standing gets the offer on its next quiet week.
+  49: (state) => {
+    const orgs = state.orgs as unknown as {
+      athleticDirector?: Coach | null; athleticDirectorAskedWeek?: number;
+    };
+    if (orgs.athleticDirector === undefined) orgs.athleticDirector = null;
+    if (typeof orgs.athleticDirectorAskedWeek !== 'number') orgs.athleticDirectorAskedWeek = 0;
+  },
+
+  // v48 -> v49: coaches get faces (see the SAVE_VERSION header note above,
+  // including why a saved coach's heritage is a plausible reading rather than
+  // a recovery).
+  48: (state) => {
+    for (const coach of allCoachesIn(state)) {
+      const legacy = coach as unknown as { heritage?: string };
+      if (typeof legacy.heritage !== 'string') legacy.heritage = heritageForId(coach.id);
+    }
+  },
+
   // v47 -> v48: athletic strength starts moving (see the SAVE_VERSION header
   // note above).
   47: (state) => {
@@ -1667,6 +1768,11 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
       // for v15 -> v16 to find missing; it simply runs as a no-op on a save
       // that came through here first.
       athleticsBudget: 'medium',
+      athleticDirector: null,
+      lastSeason: {},
+      titles: [],
+      pendingTitles: [],
+      athleticDirectorAskedWeek: 0,
     };
   },
 
@@ -2397,10 +2503,12 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
         if (typeof legacy.coachName === 'string') {
           const tenureWeeks = Math.max(0, Math.round((state.clock.year - team.foundedYear) * WEEKS_PER_YEAR));
           const quality = 40 + Math.round(Math.random() * 35); // 40..75 — no prior signal, the same "fresh roll" honesty MIGRATIONS[26] uses for gender
+          const id = crypto.randomUUID();
           legacy.headCoach = {
-            id: crypto.randomUUID(),
+            id,
             name: legacy.coachName,
             gender: Math.random() < 0.5 ? 'male' : 'female', // no signal to recover — a pre-v29 coach was never gendered
+            heritage: heritageForId(id), // ditto: the name is already written, so this is a plausible reading rather than a recovery
             field: team.sport,
             quality,
             qualityPotential: Math.min(100, quality + 15),
