@@ -16,7 +16,7 @@
 // ---------------------------------------------------------------------
 
 import { play, STRATEGIES } from './balanceSim';
-import { GENED_BUILDING_ID, initialTech, isAcademicHall } from '../src/data/techData';
+import { initialTech, isAcademicHall } from '../src/data/techData';
 import { initialFacilities } from '../src/data/facilitiesData';
 import { initialDorms } from '../src/data/campusData';
 import { SPEEDS } from '../src/engine/useGame';
@@ -32,12 +32,10 @@ const tech = initialTech();
 const facilities = initialFacilities();
 const dorms = initialDorms();
 
-// The seven school buildings — not the academic hall chain (Plan 14),
-// which the harness does not build yet (see balanceSim.ts's decide) and
-// which Plan 14's PR I gives milestones of its own.
-const UNDERGRAD_BUILDING_IDS = tech
-  .filter((t) => t.kind === 'building' && t.graduateProgram === undefined && !isAcademicHall(t))
-  .map((t) => t.id);
+// The academic hall chain (Plan 14): "every hall built" is the
+// completionist's own campus. Plan 14's PR I adds the school-founding
+// milestones beside it.
+const HALL_IDS = tech.filter(isAcademicHall).map((t) => t.id);
 const GRAD_BUILDING_IDS = tech
   .filter((t) => t.kind === 'building' && t.graduateProgram !== undefined)
   .map((t) => t.id);
@@ -46,17 +44,13 @@ const LAB_IDS = tech
   .map((t) => t.id);
 const ALL_COURSE_IDS = tech.filter((t) => t.kind === 'course').map((t) => t.id);
 const DORM_IDS = dorms.map((d) => d.id);
-const ALL_ASSET_IDS = [
-  ...tech.filter((t) => !isAcademicHall(t)).map((t) => t.id),
-  ...facilities.map((f) => f.id),
-  ...dorms.map((d) => d.id),
-];
+const ALL_ASSET_IDS = [...tech.map((t) => t.id), ...facilities.map((f) => f.id), ...dorms.map((d) => d.id)];
 
 // One-time "reached or not" milestones, in report order. Each `ids` set is
 // checked with allDone(); the two varsity checks are read off `s.orgs.teams`
 // directly instead (see MILESTONES below), since a team is not a Buildable.
 const MILESTONES: Array<{ label: string; ids: string[] }> = [
-  { label: 'All undergrad schools built', ids: UNDERGRAD_BUILDING_IDS },
+  { label: 'All academic halls built', ids: HALL_IDS },
   { label: 'Grad schools built', ids: GRAD_BUILDING_IDS },
   { label: 'Labs completed', ids: LAB_IDS },
   { label: 'All courses developed', ids: ALL_COURSE_IDS },
@@ -84,7 +78,7 @@ const FIRSTS: Array<{ label: string; reached: (s: GameState) => boolean }> = [
   // General Studies stands on day one (see data/actions.ts's founding
   // state) — so counting it would report week 1 for every strategy and say
   // nothing about pacing.
-  { label: 'First school hall built', reached: (s) => s.tech.some((t) => t.kind === 'building' && t.id !== GENED_BUILDING_ID && !isAcademicHall(t) && t.status === 'done') },
+  { label: 'First academic hall built', reached: (s) => s.tech.some((t) => isAcademicHall(t) && t.status === 'done') },
   { label: 'First club', reached: (s) => s.orgs.clubs.length > 0 },
   { label: 'First program established', reached: (s) => Object.keys(s.milestones).some((k) => k.startsWith('program-established:')) },
   { label: 'First lab', reached: (s) => s.tech.some((t) => t.facilityType === 'lab' && t.status === 'done') },

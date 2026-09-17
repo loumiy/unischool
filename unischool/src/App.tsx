@@ -313,7 +313,7 @@ export default function App() {
         onSetPathTool={setPathTool}
         backOutEnabled={mapBackOutEnabled}
         controlsEnabled={mapControlsEnabled}
-        onOpenCurriculum={(buildingId) => openTab('curriculum', buildingId)}
+        onOpenCurriculum={(sectionKey) => openTab('curriculum', sectionKey)}
       />
       <MainMenu act={act} />
       {/* Present only behind the playtest flag, and it decides that for

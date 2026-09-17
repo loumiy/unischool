@@ -232,8 +232,11 @@ function testHallsSanitizer(): void {
   // so a housed one, an unknown one, a duplicate, and a fourth are all
   // dropped — and nothing is drawn to replace them at load.
   (state.halls as Loose)['HALL-01'] = [{ programId: 'MECH' }, { programId: null }, { programId: null }, { programId: null }, { programId: null }, { programId: null }];
+  // Revealed means the core is done (see programOffers.ts's isRevealed):
+  // an entry course's own status stays 'locked' until its program is
+  // housed, so the fixture finishes the core rather than touching tier 1.
   for (const t of tech) {
-    if ((t.id as string).endsWith('101') && (t.id as string).length === 7) t.status = 'available';
+    if ((t.id as string).startsWith('GE1')) t.status = 'done';
   }
   state.programOffers = ['MECH', 'FINA', 'NOT-A-PROGRAM', 'FINA', 'ACCT', 'ECON', 'MRKT'];
   writeSave(SAVE_VERSION, state);

@@ -1,18 +1,27 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import type { Action } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
-import { discoverySchools, professionalSchools } from '../data/techData';
-import { GradeChip, completion, discoverySections } from '../tabs/CurriculumTab';
+import { discoverySchools, isAcademicHall, professionalSchools, programById } from '../data/techData';
+import { GradeChip, InstructorOption, completion, discoverySections } from '../tabs/CurriculumTab';
 import { averageCourseQuality } from '../systems/faculty/facultyAssignment';
 import { gradeFor } from '../data/courseQuality';
+import { schoolMark } from '../data/schoolPalette';
+import { canFoundProgram, eligibleInstructors } from '../systems/techtree/techSystem';
 import { ProgressRing } from './Progress';
 
-// A read-only popover for a PLACED building — what clicking it (outside
-// placement/path-draw mode; see CampusMap.tsx's inspectBuilding) shows.
-// Pure projection: every figure here already lives on the Buildable itself
-// or in the curriculum data CurriculumTab.tsx reads, nothing is computed
-// fresh for this panel and nothing it reads is written back — see the PR
-// notes on why this stays a read, never a second source of truth for the
-// school/majors mapping or a school's course-completion count.
+// A popover for a PLACED building — what clicking it (outside placement/
+// path-draw mode; see CampusMap.tsx's inspectBuilding) shows. For every
+// kind but one it is a pure projection: every figure already lives on the
+// Buildable itself or in the curriculum data CurriculumTab.tsx reads,
+// nothing is computed fresh and nothing it reads is written back.
+//
+// THE ONE EXCEPTION IS THE HALL VIEW (Plan 14). An academic hall's panel
+// is the map's first mechanical surface: its six program slots are where
+// a program is FOUNDED — the tier-1 course that opens a major starts from
+// here and nowhere else, because the decision is "what goes in this
+// building" and it needs the building on screen. The panel dispatches
+// FOUND_PROGRAM; the gate it reads (canFoundProgram) is the reducer's own,
+// so the button can never offer what the action would refuse.
 
 const INFO_RING_SIZE = 30;
 
@@ -155,14 +164,172 @@ function OpenInCurriculum({ id, onOpenCurriculum }: { id: string; onOpenCurricul
   );
 }
 
+// ---------------------------------------------------------------------
+// THE HALL VIEW. A 2x3 grid of slots. An empty slot is a pale parchment
+// tile with a +; clicking it fans out the three programs on offer as
+// course tiles — the entry course's code, its name, its cost, its field,
+// and the school's colour and mark (schoolPalette.ts). Picking one opens
+// the same instructor picker the course drawer uses, and "Found" is the
+// one button on the map that starts a course. A filled slot shows its
+// program; PR D grows it into the program tile.
+// ---------------------------------------------------------------------
+function HallSlots({ t, s, act }: { t: Buildable; s: GameState; act?: (a: Action) => void }) {
+  const slots = s.halls[t.id];
+  // Which empty slot is open (fanned out), and which offer is picked in it.
+  const [openSlot, setOpenSlot] = useState<number | null>(null);
+  const [pickedProgram, setPickedProgram] = useState<string | null>(null);
+  const [pickedFaculty, setPickedFaculty] = useState<string | null>(null);
+  useEffect(() => { setOpenSlot(null); setPickedProgram(null); setPickedFaculty(null); }, [t.id]);
+
+  if (!slots) {
+    // Under construction, or an entry the loader dropped: the slots exist
+    // as a count on the Buildable but nothing can go in them yet.
+    return (
+      <>
+        <p className="building-info-line">{t.slots} program slots, once it opens.</p>
+        <div className="hall-slots">
+          {Array.from({ length: t.slots ?? 0 }, (_, i) => (
+            <div key={i} className="hall-slot pending" aria-hidden="true" />
+          ))}
+        </div>
+      </>
+    );
+  }
+
+  const offers = s.programOffers.map((id) => programById(id)).filter((p) => p !== undefined);
+  const picked = pickedProgram ? programById(pickedProgram) : undefined;
+  const entry = picked ? s.tech.find((x) => x.id === picked.entryCourseId) : undefined;
+  const eligible = entry ? eligibleInstructors(s, entry) : [];
+  const chosen = pickedFaculty ?? eligible[0]?.id ?? null;
+  const founding = picked && openSlot !== null && chosen
+    ? { programId: picked.id, hallId: t.id, slot: openSlot, facultyId: chosen }
+    : null;
+  const canFound = founding !== null && canFoundProgram(s, founding);
+  const free = slots.filter((slot) => slot.programId === null).length;
+
+  return (
+    <>
+      <p className="building-info-line">
+        {free === 0
+          ? 'Every slot is taken.'
+          : `${free} of ${slots.length} slots free${offers.length > 0 ? ` — ${offers.length} program${offers.length === 1 ? '' : 's'} on offer.` : '.'}`}
+      </p>
+      <div className="hall-slots">
+        {slots.map((slot, i) => {
+          if (slot.programId !== null) {
+            const program = programById(slot.programId);
+            const mark = schoolMark(program?.school ?? '');
+            return (
+              <div key={i} className="hall-slot housed" style={{ borderColor: mark.hue }} title={program ? `${program.name} (${program.school})` : slot.programId}>
+                <span className="hall-slot-motif" style={{ color: mark.hue }} aria-hidden="true">{mark.motif}</span>
+                <span className="hall-slot-name">{program?.name ?? slot.programId}</span>
+              </div>
+            );
+          }
+          const open = openSlot === i;
+          return (
+            <button
+              key={i}
+              type="button"
+              className={`hall-slot empty${open ? ' open' : ''}`}
+              onClick={() => { setOpenSlot(open ? null : i); setPickedProgram(null); setPickedFaculty(null); }}
+              aria-pressed={open}
+              disabled={offers.length === 0}
+              title={offers.length === 0 ? 'Nothing is on offer to found here.' : 'Found a program in this slot'}
+            >
+              +
+            </button>
+          );
+        })}
+      </div>
+
+      {openSlot !== null && offers.length > 0 && (
+        <div className="hall-offer">
+          <h4 className="hall-offer-head">On offer for slot {openSlot + 1}</h4>
+          <div className="hall-offer-tiles">
+            {offers.map((program) => {
+              const course = s.tech.find((x) => x.id === program.entryCourseId);
+              const mark = schoolMark(program.school);
+              const [code] = (course?.name ?? program.entryCourseId).split(' · ');
+              const selected = pickedProgram === program.id;
+              return (
+                <button
+                  key={program.id}
+                  type="button"
+                  className={`hall-offer-tile${selected ? ' selected' : ''}`}
+                  style={{ borderColor: mark.hue }}
+                  onClick={() => { setPickedProgram(selected ? null : program.id); setPickedFaculty(null); }}
+                  aria-pressed={selected}
+                >
+                  <span className="hall-offer-code" style={{ color: mark.hue }}>{mark.motif} {code}</span>
+                  <span className="hall-offer-name">{program.name}</span>
+                  <span className="hall-offer-meta">
+                    ${(course?.cost ?? 0).toLocaleString()} · {course?.requiresFaculty ?? '—'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {picked && entry && (
+            <div className="hall-offer-picker">
+              <h4 className="hall-offer-head">Who teaches {entry.name.split(' · ')[1] ?? entry.name}?</h4>
+              {eligible.length > 0 ? (
+                <div className="instructor-options">
+                  {eligible.map((f) => (
+                    <InstructorOption
+                      key={f.id}
+                      s={s}
+                      f={f}
+                      selected={chosen === f.id}
+                      projectedFor={entry}
+                      onPick={() => setPickedFaculty(f.id)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="building-info-line">
+                  No {entry.requiresFaculty} professor has a free course slot. Appoint one from the Faculty board to found this program.
+                </p>
+              )}
+              {s.finance.cash < entry.cost && (
+                <p className="building-info-line building-info-construction">
+                  ${Math.ceil(entry.cost - s.finance.cash).toLocaleString()} short of the entry course's cost.
+                </p>
+              )}
+              <button
+                type="button"
+                className="building-info-jump"
+                disabled={!canFound || !act}
+                onClick={() => {
+                  if (founding && act) act({ type: 'FOUND_PROGRAM', ...founding });
+                  setOpenSlot(null); setPickedProgram(null); setPickedFaculty(null);
+                }}
+              >
+                {chosen
+                  ? `Found ${picked.name} · $${entry.cost.toLocaleString()}`
+                  : `Found ${picked.name}`}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
 // An academic hall's info: either one of the seven undergraduate schools
 // (discoverySchools()) or Medicine/Law, which are their own top-level
 // curriculum sections rather than a school (professionalSchools()) — the
 // same two mappings CurriculumTab.tsx itself reads, imported rather than
 // duplicated so this panel's majors list can never disagree with that tab.
-function BuildingHallInfo({ t, s, onOpenCurriculum }: {
-  t: Buildable; s: GameState; onOpenCurriculum?: (id: string) => void;
+function BuildingHallInfo({ t, s, act, onOpenCurriculum }: {
+  t: Buildable; s: GameState; act?: (a: Action) => void; onOpenCurriculum?: (id: string) => void;
 }) {
+  // An academic hall (the repeatable chain): its slots are the whole of
+  // what it is.
+  if (isAcademicHall(t)) return <HallSlots t={t} s={s} act={act} />;
+
   const school = discoverySchools().find((sc) => sc.buildingId === t.id);
   if (school) {
     const section = discoverySections(s).find((sec) => sec.key === t.id);
@@ -176,7 +343,7 @@ function BuildingHallInfo({ t, s, onOpenCurriculum }: {
           <p className="building-info-line">The shared general-education core — no majors of its own.</p>
         )}
         <CourseCompletion s={s} courseIds={section ? section.schoolCourseIds : school.coreIds} />
-        <OpenInCurriculum id={t.id} onOpenCurriculum={onOpenCurriculum} />
+        <OpenInCurriculum id={school.name} onOpenCurriculum={onOpenCurriculum} />
       </>
     );
   }
@@ -193,18 +360,22 @@ function BuildingHallInfo({ t, s, onOpenCurriculum }: {
     );
   }
 
-  // Unreachable for real seed data (every 'building' Buildable is either a
-  // school or a professional school above) — a plain fallback rather than
-  // a thrown error, since this is a read-only info panel, not a place
+  // Unreachable for real seed data (every 'building' Buildable is a hall,
+  // Founders Hall, or a professional school above) — a plain fallback
+  // rather than a thrown error, since this is an info panel, not a place
   // worth crashing the map over.
   return <p className="building-info-line">{t.description}</p>;
 }
 
-export default function BuildingInfoPanel({ t, s, onClose, onOpenCurriculum }: {
+export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum }: {
   t: Buildable; s: GameState; onClose: () => void;
-  // Optional so the panel stays renderable on its own terms; the map
-  // always passes it (see CampusMap.tsx).
-  onOpenCurriculum?: (buildingId: string) => void;
+  // The one thing this panel dispatches: FOUND_PROGRAM from a hall's slot
+  // (see HallSlots). Optional, like onOpenCurriculum, so the panel stays
+  // renderable on its own terms; the map always passes both.
+  act?: (a: Action) => void;
+  // Opens the Curriculum tab at a school (by name) or a professional
+  // school (by its building id) — the section keys CurriculumTab.tsx uses.
+  onOpenCurriculum?: (sectionKey: string) => void;
 }) {
   // Escape closes the panel, same as TabOverlay's own dismiss — this only
   // binds while the panel is actually mounted (see CampusMap.tsx, which
@@ -244,7 +415,7 @@ export default function BuildingInfoPanel({ t, s, onClose, onOpenCurriculum }: {
         </p>
       )}
       {t.kind === 'facility' && <FacilityInfo t={t} s={s} />}
-      {t.kind === 'building' && <BuildingHallInfo t={t} s={s} onOpenCurriculum={onOpenCurriculum} />}
+      {t.kind === 'building' && <BuildingHallInfo t={t} s={s} act={act} onOpenCurriculum={onOpenCurriculum} />}
     </div>
   );
 }

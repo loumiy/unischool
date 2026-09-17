@@ -793,6 +793,37 @@ button.build-tile { font-family: inherit; }
   border-radius: var(--radius-sm); font-family: var(--mono); font-size: var(--text-xs); }
 .building-info-jump:hover { background: var(--gold-dim); color: #fff8e8; }
 
+/* THE HALL VIEW (Plan 14, see BuildingInfoPanel.tsx's HallSlots): a 2x3
+   grid of program slots. An empty slot is a pale parchment tile with a +;
+   a housed one carries its program's name under its school's colour and
+   mark (schoolPalette.ts); a pending one (hall under construction) is a
+   dashed outline. The offer fans out below the grid as three course tiles,
+   and the instructor picker reuses the drawer's own .instructor-options. */
+.hall-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 6px 0 8px; }
+.hall-slot { min-height: 46px; border-radius: var(--radius-sm); border: 1px solid var(--parchment-line);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  padding: 4px; font-size: var(--text-xs); line-height: 1.2; text-align: center; }
+.hall-slot.pending { border-style: dashed; background: transparent; }
+.hall-slot.empty { background: #fbf6e9; color: var(--ink-muted); font-size: var(--text-md); cursor: pointer; }
+.hall-slot.empty:hover:not(:disabled), .hall-slot.empty.open { border-color: var(--gold-dim); background: #f3ead2; color: var(--ink); }
+.hall-slot.empty:disabled { cursor: default; opacity: 0.6; }
+.hall-slot.housed { border-width: 2px; background: #fffdf6; color: var(--ink); }
+.hall-slot-motif { font-size: var(--text-sm); line-height: 1; }
+.hall-slot-name { font-weight: 600; }
+.hall-offer { border-top: 1px solid var(--parchment-line); padding-top: 8px; margin-top: 4px; }
+.hall-offer-head { font-family: var(--serif); font-size: var(--text-sm); margin: 0 0 6px; color: var(--ink); }
+.hall-offer-tiles { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.hall-offer-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left;
+  padding: 6px 8px; border-radius: var(--radius-sm); border: 2px solid var(--parchment-line);
+  background: #fffdf6; color: var(--ink); cursor: pointer; font-size: var(--text-xs); }
+.hall-offer-tile:hover, .hall-offer-tile.selected { background: #f3ead2; }
+.hall-offer-tile.selected { outline: 2px solid var(--gold); outline-offset: 1px; }
+.hall-offer-code { font-family: var(--mono); font-weight: 600; }
+.hall-offer-name { font-weight: 600; font-size: var(--text-sm); }
+.hall-offer-meta { color: var(--ink-muted); font-family: var(--mono); }
+.hall-offer-picker .instructor-options { margin-bottom: 6px; }
+.building-info-jump:disabled { opacity: 0.5; cursor: default; }
+
 /* MainMenu: the hamburger overlay in the map's top-right corner (see
    MainMenu.tsx) carrying what the old topbar's control bar used to —
    Save, New Game, Credits — now that those no longer sit inline in the

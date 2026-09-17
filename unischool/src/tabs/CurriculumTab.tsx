@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
-import { discoverySchools, graduateGateMet, graduatePrograms, professionalSchools } from '../data/techData';
+import { discoverySchools, graduateGateMet, graduatePrograms, professionalSchools, programById } from '../data/techData';
 import {
   canStartDevelopment, facultyGate, eligibleInstructors, assignedInstructor,
-  isUnstaffed, facultyLoad, developAllPlan,
+  isUnstaffed, facultyLoad, developAllPlan, hallOfCourse,
 } from '../systems/techtree/techSystem';
+import { isHoused } from '../systems/techtree/programOffers';
 import { facultyQualityTier } from '../data/facultyData';
 import { gradeFor, qualityOf, tierOf, type Grade } from '../data/courseQuality';
 import {
@@ -25,11 +26,12 @@ import type { Faculty } from '../state/types';
 //     tier-1 requires the whole core, not just its own school). It stays
 //     in the pool for good; General Studies has no majors, so it has
 //     nothing further of its own to reveal.
-//   - Once the gen-ed core is complete, every major's tier-1 joins the
-//     ungrouped POOL. A major's tier-1 then sits there until its school
-//     is built (all that school's tier-1s done).
-//   - Once a school is built, its courses leave the pool and form a
-//     labeled section: completed tier-1s + newly-visible tier-2s, shared
+//   - Once the gen-ed core is complete, programs are FOUNDED from an
+//     academic hall on the campus map, three on offer at a time (Plan 14
+//     — see systems/techtree/programOffers.ts and BuildingInfoPanel.tsx).
+//     Nothing about that happens here: the tab shows what has a home.
+//   - Once one of a school's programs is housed, the school forms a
+//     labeled section: its housed majors' tier-1s + tier-2s, shared
 //     across majors that haven't completed their tier-2 quartet yet.
 //   - Once a major's tier-2 quartet is complete (the existing
 //     `program-established:<prefix>` milestone), that major splits into its
@@ -127,9 +129,7 @@ function revealedGraduatePrograms(s: GameState): Set<string> {
 }
 
 function buildSections(s: GameState, genEdComplete: boolean, revealedGrad: Set<string>): DiscoverySection[] {
-  const findBuilding = (id: string) => s.tech.find((t) => t.id === id);
   const coreIds: string[] = [];
-  const looseTier1Ids: string[] = [];
   const sections: DiscoverySection[] = [];
 
   for (const school of discoverySchools()) {
@@ -138,16 +138,19 @@ function buildSections(s: GameState, genEdComplete: boolean, revealedGrad: Set<s
     if (school.majors.length === 0) continue; // nothing further to discover (General Studies has no majors)
     if (!genEdComplete) continue; // every major's tier-1 waits on the shared gen-ed core
 
-    const building = findBuilding(school.buildingId);
-    const schoolBuilt = building?.status === 'done';
-    if (!schoolBuilt) {
-      for (const major of school.majors) looseTier1Ids.push(major.tier1Id);
-      continue;
-    }
+    // A SCHOOL APPEARS ONCE ONE OF ITS PROGRAMS IS HOUSED (Plan 14). There
+    // is no school building any more: a program is founded by taking a
+    // slot in an academic hall on the map, and a school is what the player
+    // makes by housing six of its programs together. A major that has not
+    // been founded is simply not here yet — its entry course is 'locked'
+    // behind the housed gate (techSystem.ts's meetsUnlockGates) and the
+    // hall panel is where it is founded from, not this tab.
+    const housedMajors = school.majors.filter((major) => isHoused(s, major.prefix));
+    if (housedMajors.length === 0) continue;
 
     const sharedIds: string[] = [];
     const subgroups: DiscoverySubgroup[] = [];
-    for (const major of school.majors) {
+    for (const major of housedMajors) {
       const programEstablished = !!s.milestones[`program-established:${major.prefix}`];
       if (programEstablished) {
         subgroups.push({
@@ -173,17 +176,12 @@ function buildSections(s: GameState, genEdComplete: boolean, revealedGrad: Set<s
       });
     }
 
-    // A donor's `name` overwrite is only ever applied alongside
-    // `donorSurname` (see eventData.ts's 'naming-rights' event), so its
-    // presence is what distinguishes "the seeded building name changed" from
-    // "the school was renamed" — read it straight through rather than
-    // re-wrapping it as "School of X".
-    const heading = building?.donorSurname ? building.name : `School of ${school.name}`;
-
     sections.push({
-      key: school.buildingId,
+      key: school.name,
       label: school.name,
-      heading,
+      // "School of X" until Plan 14's PR E, where a school is NAMED by
+      // dedicating a hall to it, and a donor can put a name on that.
+      heading: `School of ${school.name}`,
       courseIds: sharedIds,
       subgroups,
       // A school's completion ring counts its graduate programs only once
@@ -195,14 +193,13 @@ function buildSections(s: GameState, genEdComplete: boolean, revealedGrad: Set<s
     });
   }
 
-  // The pool is deliberately ordered core-first, then the loose tier-1s
-  // SORTED BY COURSE CODE rather than left in seed order. Seed order walks
-  // school by school, which quietly clustered each school's six entry
-  // courses into adjacent cells — a structural hint the progressive-
-  // discovery design does not intend to give away this early. Sorting by
-  // the code the player can already read on the face of the cell scatters
-  // those neighbours and adds nothing that wasn't already on screen.
-  const poolIds = [...coreIds, ...looseTier1Ids.sort((a, b) => a.localeCompare(b))];
+  // The pool is the gen-ed core and nothing else now. It used to hold
+  // every major's tier-1 course once the core was done — forty-two
+  // alphabetical cards, "not yet organised by school", which is the wall
+  // Plan 14 exists to take down. Those courses are founded from a hall
+  // slot on the map (three on offer at a time), and appear here only once
+  // they have a home.
+  const poolIds = [...coreIds];
 
   // Medicine and Law, each its own top-level section — structurally
   // parallel to an undergraduate school section above (own heading, own
@@ -213,10 +210,7 @@ function buildSections(s: GameState, genEdComplete: boolean, revealedGrad: Set<s
   // (see revealedGraduatePrograms above) means their OWN building is
   // 'done' — not merely that the academic gate making it buildable is
   // met, so there is no section on screen at all until the building
-  // stands. No naming-rights read here: unlike an undergraduate school
-  // building, BLDG-MED/BLDG-LAW are deliberately excluded from the
-  // naming-rights event's donor pool (see eventData.ts), so `heading` is
-  // always the seeded program name.
+  // stands.
   for (const program of professionalSchools()) {
     if (!revealedGrad.has(program.id)) continue;
     sections.push({
@@ -236,12 +230,11 @@ function buildSections(s: GameState, genEdComplete: boolean, revealedGrad: Set<s
 // exposed for anything else that needs a school/professional-school's
 // completion without re-deriving genEdComplete/revealedGrad itself — the
 // campus map's building info popover, in particular (see CampusMap.tsx).
-// Each section's `key` is the Buildable id of the building it belongs to
-// (a school's buildingId, or MED/LAW's), so a caller with only a placed
-// building's id can find its section with a plain lookup. General Studies
-// has no section of its own (see buildSections above — it has no majors),
-// so a caller needing its completion falls back to discoverySchools()'s
-// own coreIds directly.
+// Each section's `key` is the school's name (or MED/LAW's building id), so
+// a caller holding a program's school can find its section with a plain
+// lookup. General Studies has no section of its own (see buildSections
+// above — it has no majors), so a caller needing its completion falls back
+// to discoverySchools()'s own coreIds directly.
 export function discoverySections(s: GameState): DiscoverySection[] {
   const genEdComplete = isGenEdComplete(s);
   const revealedGrad = revealedGraduatePrograms(s);
@@ -300,7 +293,7 @@ interface MajorLane {
 }
 
 interface SchoolView {
-  key: string;         // the school building's Buildable id
+  key: string;         // the school's name, or a professional school's building id
   heading: string;
   label: string;
   schoolCourseIds: string[];
@@ -316,7 +309,7 @@ interface SchoolView {
 function schoolViews(s: GameState, sections: DiscoverySection[]): SchoolView[] {
   const revealed = new Set(visibleCourseIds(s));
   const keep = (ids: string[]) => ids.filter((id) => revealed.has(id));
-  const schools = new Map(discoverySchools().map((school) => [school.buildingId, school]));
+  const schools = new Map(discoverySchools().map((school) => [school.name, school]));
   const professional = new Map(professionalSchools().map((program) => [program.buildingId, program]));
 
   const views: SchoolView[] = [];
@@ -379,12 +372,12 @@ function schoolViews(s: GameState, sections: DiscoverySection[]): SchoolView[] {
 // Which school a course belongs to, so search results and a bridge badge
 // can say where a course lives and navigate straight to it. Derived from
 // the seed, memoized — the catalogue is static.
-let courseSchoolMap: Map<string, { buildingId: string; school: string }> | null = null;
-function courseSchools(): Map<string, { buildingId: string; school: string }> {
+let courseSchoolMap: Map<string, { key: string; school: string }> | null = null;
+function courseSchools(): Map<string, { key: string; school: string }> {
   if (courseSchoolMap) return courseSchoolMap;
-  const map = new Map<string, { buildingId: string; school: string }>();
+  const map = new Map<string, { key: string; school: string }>();
   for (const school of discoverySchools()) {
-    const entry = { buildingId: school.buildingId, school: school.name };
+    const entry = { key: school.name, school: school.name };
     for (const id of school.coreIds) map.set(id, entry);
     for (const major of school.majors) {
       for (const id of [major.tier1Id, ...major.tier2Ids, ...major.tier3Ids]) map.set(id, entry);
@@ -394,7 +387,7 @@ function courseSchools(): Map<string, { buildingId: string; school: string }> {
     }
   }
   for (const program of professionalSchools()) {
-    const entry = { buildingId: program.buildingId, school: program.name };
+    const entry = { key: program.buildingId, school: program.name };
     for (const id of program.courseIds) map.set(id, entry);
   }
   courseSchoolMap = map;
@@ -594,7 +587,7 @@ function CellGrid({ s, ids, lookup, selectedId, onSelect, loads }: { s: GameStat
 // reads as the same professor in both places, plus the two things that
 // matter HERE and nowhere else: how good a teacher they are, and how
 // loaded they already are.
-function InstructorOption(
+export function InstructorOption(
   { s, f, selected, disabled = false, projectedFor, onPick }:
   { s: GameState; f: Faculty; selected: boolean; disabled?: boolean; projectedFor?: Buildable; onPick?: () => void },
 ) {
@@ -719,6 +712,11 @@ function CourseDrawer(
           <div><dt>Cost</dt><dd>${t.cost.toLocaleString()}</dd></div>
           <div><dt>Duration</dt><dd>{t.duration} weeks</dd></div>
           <div><dt>Department</dt><dd>{t.requiresFaculty ?? '—'}</dd></div>
+          {(() => {
+            const hallId = hallOfCourse(s, t.id);
+            const hall = hallId ? lookup.get(hallId) : undefined;
+            return hall ? <div><dt>Housed in</dt><dd>{hall.name}</dd></div> : null;
+          })()}
           {state === 'developing' && <div><dt>Remaining</dt><dd>{weeksLeft} weeks</dd></div>}
         </dl>
 
@@ -1122,10 +1120,11 @@ export default function CurriculumTab(
   { s, act, target, onTargetConsumed }:
   {
     s: GameState; act: (a: Action) => void;
-    // A school building id to open on arrival, when the tab was opened
-    // FROM something — today the hall's own info panel on the map (see
-    // BuildingInfoPanel.tsx). Consumed on arrival and cleared by the
-    // caller, so clicking the same hall twice arrives twice.
+    // A section key (a school's name, or a professional school's building
+    // id) to open on arrival, when the tab was opened FROM something —
+    // today Founders Hall's or a professional school's info panel on the
+    // map (see BuildingInfoPanel.tsx). Consumed on arrival and cleared by
+    // the caller, so clicking the same hall twice arrives twice.
     target?: string;
     onTargetConsumed?: () => void;
   },
@@ -1182,7 +1181,7 @@ export default function CurriculumTab(
     const home = courseSchools().get(id);
     const revealed = new Set(visibleCourseIds(s));
     // A course still in the ungrouped pool has no school to open yet.
-    setOpenSchool(home && revealed.has(id) && !pool.courseIds.includes(id) ? home.buildingId : null);
+    setOpenSchool(home && revealed.has(id) && !pool.courseIds.includes(id) ? home.key : null);
     setSelectedId(id);
     setFilters(NO_FILTERS);
   }, [s, pool.courseIds]);
@@ -1289,8 +1288,8 @@ export default function CurriculumTab(
             <HelpHint
               align="end"
               text={genEdComplete
-                ? 'Open a school to see its programs. Every course shows the grade its instructor earns it.'
-                : 'The general-education core — every major waits on it. Complete it to unlock every major\'s entry course.'}
+                ? 'Programs are founded from an academic hall on the campus map: build a hall, open it, and take one of the three programs on offer into an empty slot. A school appears here once one of its programs has a home. Every course shows the grade its instructor earns it.'
+                : 'The general-education core — every program waits on it. Complete it to open the first academic hall and the first three programs on offer.'}
             />
           </span>
         </div>
@@ -1339,7 +1338,9 @@ export default function CurriculumTab(
                       not met. */}
                   <p className="pool-caption">
                     {genEdComplete
-                      ? 'Entry courses, not yet organised by school — complete a school\'s entry courses to raise its building.'
+                      ? (s.programOffers.length > 0
+                        ? `The general-education core. Programs are founded from an academic hall on the map — on offer now: ${s.programOffers.map((id) => programById(id)?.name ?? id).join(', ')}.`
+                        : 'The general-education core. Every program has been founded.')
                       : 'The general-education core. Every major waits on it.'}
                   </p>
                   <CellGrid s={s} ids={pool.courseIds} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} />

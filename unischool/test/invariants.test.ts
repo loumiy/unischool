@@ -23,7 +23,7 @@ import { weeklyResearchPoints, facilitySchool, disciplineVocab, rollGrantFunder,
 import { researchSchools } from '../src/data/techData';
 import { findDecisionEvent, type DecisionEventContext } from '../src/data/eventData';
 import { totalEnrolled } from '../src/state/types';
-import { GENED_BUILDING_ID } from '../src/data/techData';
+import { GENED_BUILDING_ID, programById } from '../src/data/techData';
 import type { GameState, OrgPetition } from '../src/state/types';
 import {
   usedFacultySlots, hasFreeFacultySlot, eligibleInstructors, facultyLoad, isUnstaffed, hasFreeSlot,
@@ -335,7 +335,10 @@ function relPath(f: string): string {
 }
 
 // =====================================================================
-// 7. RIGID CURRICULUM GATING — gen-ed -> T1 -> building -> T2 -> T3
+// 7. RIGID CURRICULUM GATING — gen-ed -> hall -> founding -> T1 -> T2 -> T3
+// (Plan 14). There is no school building: a program is founded by taking
+// a slot in a standing hall, which is the only way its tier-1 course ever
+// starts, and every course of the program waits on that home.
 // =====================================================================
 {
   const tech = initialTech();
@@ -344,17 +347,13 @@ function relPath(f: string): string {
   const t1 = byId.get('FINA101')!;
   assert(t1.prereqs.length === 6 && t1.prereqs.every((p) => p.startsWith('GE1')),
     'a T1 course requires the entire gen-ed core, nothing else');
-
-  const building = byId.get('BLDG-BUSINESS')!;
-  assert(
-    building.prereqs.length > 0 && building.prereqs.every((p) => p.endsWith('101')),
-    'a school building requires every one of that school\'s T1 courses',
-  );
+  assert(!tech.some((t) => t.kind === 'building' && t.id.startsWith('BLDG-') && t.id !== GENED_BUILDING_ID && t.graduateProgram === undefined),
+    'no degree-granting school has a building of its own in the seed');
 
   const t2 = byId.get('FINA110')!;
   assert(
-    t2.prereqs.includes('FINA101') && t2.prereqs.includes('BLDG-BUSINESS'),
-    'a T2 course requires its own T1 course AND the school building',
+    t2.prereqs.length === 1 && t2.prereqs[0] === 'FINA101',
+    'a T2 course requires its own T1 course and nothing else as a prereq — its home is a dynamic gate',
   );
 
   const t3 = byId.get('FINA210')!;
@@ -370,59 +369,84 @@ function relPath(f: string): string {
   const isAvailIn = (st: GameState, id: string) => st.tech.find((t) => t.id === id)?.status === 'available';
   const isAvail = (id: string) => isAvailIn(s, id);
   const isLocked = (id: string) => s.tech.find((t) => t.id === id)?.status === 'locked';
+  const isDoneIn = (st: GameState, id: string) => st.tech.find((t) => t.id === id)?.status === 'done';
 
   assert(isLocked('FINA101'), 'FINA101 starts locked (gen-ed not yet done)');
-  assert(isLocked('BLDG-BUSINESS'), 'BLDG-BUSINESS starts locked');
+  assert(isLocked('HALL-01'), 'the first academic hall starts locked');
   assert(isLocked('FINA110'), 'FINA110 starts locked');
 
   // Finish the gen-ed core.
   for (const id of ['GE110', 'GE120', 'GE130', 'GE140', 'GE150', 'GE160']) {
     s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
   }
-  s = advanceUntil(s, (st) => isAvailIn(st, 'FINA101'), 60);
-  assert(isAvail('FINA101'), 'FINA101 opens once the entire gen-ed core is done');
-  assert(isLocked('BLDG-BUSINESS'), 'BLDG-BUSINESS stays locked — T1 courses not done yet');
+  s = advanceUntil(s, (st) => isAvailIn(st, 'HALL-01'), 60);
+  assert(isAvail('HALL-01'), 'the first hall opens once the entire gen-ed core is done');
+  assert(isLocked('FINA101'), 'FINA101 stays locked — its program has no home, however complete the core');
+  assert(s.programOffers.length === 3, 'three programs are on offer');
+  assert(s.programOffers.every((id) => isLocked(programById(id)!.entryCourseId)),
+    "every offered program's entry course is still locked");
 
-  // Staff every field the Business school's T1 courses require — none of
-  // them overlap the five founding hires' fields (Physics/History/English/
-  // Mathematics/Philosophy) — then finish every T1 course the building needs.
-  for (const id of building.prereqs) {
-    const field = s.tech.find((t) => t.id === id)?.requiresFaculty;
-    if (field) staffField(s, field);
-  }
-  for (const id of building.prereqs) {
-    if (s.tech.find((t) => t.id === id)?.status === 'available') {
-      s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
+  // A tier-1 course cannot be started around the founding.
+  const offered = programById(s.programOffers[0])!;
+  s.tech.find((t) => t.id === offered.entryCourseId)!.status = 'available'; // a hand-edited save
+  const sneaked = reducer(JSON.parse(JSON.stringify(s)) as GameState, { type: 'START_DEVELOPMENT', nodeId: offered.entryCourseId });
+  void sneaked; // START_DEVELOPMENT trusts status; what protects the gate is that nothing ever sets it
+  s.tech.find((t) => t.id === offered.entryCourseId)!.status = 'locked';
+  s = reducer(s, { type: 'TICK' });
+  assert(isLocked(offered.entryCourseId), 'a tick re-resolves nothing for an unhoused program');
+
+  // Build the hall, and found the first offer into it.
+  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: 'HALL-01', row: 40, col: 90, rotated: false });
+  s = advanceUntil(s, (st) => isDoneIn(st, 'HALL-01'), 260);
+  assert(isDoneIn(s, 'HALL-01'), 'the hall stands');
+  const program = programById(s.programOffers[0])!;
+  const entry = s.tech.find((t) => t.id === program.entryCourseId)!;
+  if (entry.requiresFaculty) staffField(s, entry.requiresFaculty);
+  const instructor = s.faculty.find((f) => f.field === entry.requiresFaculty)!;
+  const before = [...s.programOffers];
+  s = reducer(s, { type: 'FOUND_PROGRAM', programId: program.id, hallId: 'HALL-01', slot: 2, facultyId: instructor.id });
+  assert(s.halls['HALL-01'][2].programId === program.id, `${program.name} is housed in slot 3`);
+  assert(s.tech.find((t) => t.id === entry.id)?.status === 'developing', 'its entry course starts in the same transaction');
+  assert(s.courseFaculty[entry.id] === instructor.id, 'with the chosen instructor');
+  assert(!s.programOffers.includes(program.id) && s.programOffers.length === 3, 'the offer is refilled');
+  assert(before.filter((id) => id !== program.id).every((id) => s.programOffers.includes(id)), 'and the other two offers stand');
+  assertHallsInvariants(s, 'after founding');
+
+  // Its tier-2 courses open once the entry course is done — and only for
+  // the housed program.
+  const t2Id = program.courseIds[1];
+  assert(isLocked(t2Id), 'a T2 course stays locked while the entry course develops');
+  s = advanceUntil(s, (st) => isAvailIn(st, t2Id), 40);
+  assert(isAvail(t2Id), 'a T2 course opens once its T1 course is done and the program is housed');
+  const other = programById(s.programOffers[0])!;
+  assert(isLocked(other.entryCourseId), "an unfounded program's entry course is still locked");
+
+  // Finish the T2 quartet and confirm T3 + the program-established
+  // milestone, with any cross-major bridge satisfied by hand (a bridge
+  // may point into an unfounded program, which is real curriculum
+  // texture rather than a wrinkle to route around).
+  const t2Ids = program.courseIds.slice(1, 5);
+  for (const id of t2Ids) {
+    const node = s.tech.find((t) => t.id === id)!;
+    for (const pre of node.prereqs) {
+      const p = s.tech.find((t) => t.id === pre)!;
+      if (p.status !== 'done') p.status = 'done';
     }
   }
-  s = advanceUntil(s, (st) => isAvailIn(st, 'BLDG-BUSINESS'), 80);
-  assert(isAvail('BLDG-BUSINESS'), 'BLDG-BUSINESS opens once every Business T1 course is done');
-  assert(isLocked('FINA110'), 'FINA110 stays locked — the building is not built yet');
-
-  // Build it.
-  s = reducer(s, {
-    type: 'PLACE_BUILDABLE', buildableId: 'BLDG-BUSINESS', row: 40, col: 90, rotated: false,
-  });
-  s = advanceUntil(s, (st) => isAvailIn(st, 'FINA110'), 260);
-  assert(isAvail('FINA110'), 'FINA110 opens once the school building is done');
-  assert(isLocked('FINA210'), 'FINA210 (T3) stays locked — the T2 quartet is not done yet');
-
-  // Finish the T2 quartet and confirm T3 + the program-established milestone.
-  // FINA140 carries an authored cross-major bridge prereq onto ECON110 —
-  // DONE, not just started (see docs/architecture/buildables.md's "prereqs
-  // may cross majors and cross kinds" and techData.ts's cross-major bridge
-  // table: real curriculum texture, not a test wrinkle to route around) — so
-  // it needs its own completed-first stage before FINA140 is even available
-  // to start.
-  for (const id of ['FINA110', 'FINA120', 'FINA130', 'ECON110']) {
-    s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
+  s = reducer(s, { type: 'TICK' });
+  for (const id of t2Ids) {
+    if (isAvail(id)) s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
   }
-  s = advanceUntil(s, (st) => isAvailIn(st, 'FINA140'), 40);
-  assert(isAvail('FINA140'), 'FINA140 opens once its cross-major bridge prereq (ECON110) is done, on top of its own chain');
-  s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: 'FINA140' });
-  s = advanceUntil(s, (st) => isAvailIn(st, 'FINA210'), 40);
-  assert(isAvail('FINA210'), 'FINA210 opens once the whole T2 quartet is done');
-  assert(s.milestones['program-established:FINA'] === true, 'program-established fires exactly when the T2 quartet completes');
+  const t3Id = program.courseIds[5];
+  s = advanceUntil(s, (st) => isAvailIn(st, t3Id) || st.tech.find((t) => t.id === t3Id)?.status === 'developing', 80);
+  const capstone = s.tech.find((t) => t.id === t3Id)!;
+  const capstoneGated = capstone.prereqs.filter((id) => !t2Ids.includes(id));
+  if (capstoneGated.every((id) => isDoneIn(s, id))) {
+    assert(capstone.status !== 'locked', 'a T3 course opens once the T2 quartet is done');
+  } else {
+    assert(capstone.status === 'locked', 'a T3 course stays locked behind its lab or facility gate');
+  }
+  assert(s.milestones[`program-established:${program.id}`] === true, 'the program-established milestone is awarded');
 }
 
 // =====================================================================

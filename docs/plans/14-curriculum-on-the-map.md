@@ -9,7 +9,7 @@ repeatable academic halls with six program slots, programs founded from a
 rolling offer of three, and a Curriculum tab that becomes forty-two rows — and
 turn them into an ordered sequence of PRs.*
 
-**Status: In progress.** PRs A and B have landed. Depends on
+**Status: In progress.** PRs A, B and C have landed. Depends on
 [Plan 09](09-playtest-harness.md) for the scenarios and the scorecard this is
 measured with. Supersedes
 [Plan 11](11-academic-halls.md), whose rooms-and-continuous-development model
@@ -266,6 +266,36 @@ sweep and every later PR read instead of re-deriving school membership.
 **Verify.** On a fresh game: core completes, one hall is offered cheaply, three
 programs wait, and nothing can be founded until the hall stands. Founding one
 replaces it in the offer. A tier-2 course of an unhoused program stays locked.
+
+**As implemented:** the housed gate covers **every** course of a program,
+tier 1 included, not tier 2 alone: with tier-1 courses merely `available`
+after the core, the Curriculum tab's drawer could have started one and
+bypassed the founding. So a tier-1 course stays `locked` until
+`FOUND_PROGRAM` writes the slot, resolves unlocks and starts it in one
+transaction — and the tab's forty-two-card tier-1 pool, which 14G was to
+delete, goes now, because a wall of locked cards that says "found this from
+a hall" is worse than no wall. The pool is the core, captioned with the
+three programs on offer. Sections are keyed by school **name**, not by a
+building that no longer exists. The naming-rights event stands down (its
+donor pool reads empty) until 14E points it at a dedicated hall. A lab's
+prerequisite drops the school building and keeps only the entry course,
+again until 14E re-points it at `school-founded`. Medicine and Law keep
+their buildings until 14E, and are not offered until those stand. And
+because the balance sim cannot progress past the core without founding, it
+learned to site a hall and found the cheapest affordable offer *here*
+rather than in 14I — cheapest-first for every strategy; the completionist's
+school-first rule and the scatterer control are still 14I's. Two regression
+checks needed an honest answer rather than a re-tune. The Overbuilder's
+twenty-year distress turned out to be an artefact of the wall: forty-two
+`available` tier-1 courses made it hire forty professors it could not pay,
+and with three programs on offer it hired three. Its character is building
+capital ahead of demand, so the two spend-to-the-wire archetypes now site the
+next hall whenever it is affordable rather than when a slot is needed, and do
+so even while "saving" for a dorm they cannot afford — which is what a player
+with no buffer does — and the distress-and-recovery is back. And the discount
+strategy's decade-over-decade cash trend tripped on phase alone (its tower
+purchase moved from the late twenties into the early thirties), so that claim
+is now judged across seeds like its sibling, per the test's own policy.
 
 ## PR 14D — The program tile, and courses from the map
 

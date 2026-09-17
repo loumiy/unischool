@@ -1,8 +1,10 @@
 import type { GameState, Buildable, BuildableEffects, Faculty, HallSlot } from '../../state/types';
 import { totalEnrolled } from '../../state/types';
-import { graduateCourseIds, graduateGateMet, graduatePrograms, milestoneSchools } from '../../data/techData';
+import {
+  graduateCourseIds, graduateGateMet, graduatePrograms, milestoneSchools, programById, programOfCourse,
+} from '../../data/techData';
 import { isCelebratedMilestone } from '../../data/eventData';
-import { refillOffers } from './programOffers';
+import { hallOf, isHoused, refillOffers } from './programOffers';
 import { tierOf, type CourseTier } from '../../data/courseQuality';
 
 // ---------------------------------------------------------------------
@@ -339,10 +341,16 @@ export function facultyGate(s: GameState, field: string): FacultyGate {
 // candidates and sorts them to the top) and the faculty alert badge (which
 // fires the moment a needed candidate the player hasn't seen enters the
 // pool — see types.ts's SeenState).
+//
+// A program ON OFFER counts too: its entry course is still 'locked' (it
+// opens the moment the program is founded — see foundProgram), but the
+// field it needs is exactly as short as one holding up an available
+// course, and the founding is what the player is being asked to make.
 export function neededFacultyFields(s: GameState): Set<string> {
+  const offeredEntryIds = new Set(s.programOffers.map((id) => programById(id)?.entryCourseId));
   return new Set(
     s.tech
-      .filter((t) => t.status === 'available' && t.requiresFaculty)
+      .filter((t) => (t.status === 'available' || offeredEntryIds.has(t.id)) && t.requiresFaculty)
       .map((t) => t.requiresFaculty!)
       .filter((field) => usedFacultySlots(s, field) >= totalFacultySlots(s, field)),
   );
@@ -522,6 +530,17 @@ function openHall(s: GameState, node: Buildable): void {
 // and its own prereqs are both satisfied. graduateGateMet is the single
 // predicate (see techData.ts) — this only asks it.
 function meetsUnlockGates(s: GameState, t: Buildable): boolean {
+  // THE HOUSED GATE (Plan 14). Every course of a major or a graduate
+  // program waits on its program having a home — a slot in a standing
+  // hall (see types.ts's HallSlot). Tier 1 included: founding a program
+  // from a hall panel is what writes the slot, and the entry course opens
+  // in the same transaction (see foundProgram), so there is no other way
+  // in. The gen-ed core is housed in Founders Hall from founding and is
+  // never gated here.
+  if (t.kind === 'course') {
+    const programId = programOfCourse(t.id);
+    if (programId !== undefined && programId !== 'CORE' && !isHoused(s, programId)) return false;
+  }
   if (t.minCapacityToUnlock !== undefined && totalEnrolled(s.students) < t.minCapacityToUnlock) return false;
   if (t.minPrestigeToUnlock !== undefined && s.self.reputation < t.minPrestigeToUnlock) return false;
   if (t.graduateProgram !== undefined && !graduateGateMet(s, t.graduateProgram)) return false;
@@ -535,7 +554,7 @@ function meetsUnlockGates(s: GameState, t: Buildable): boolean {
   return true;
 }
 
-function unlockAvailable(s: GameState): void {
+export function unlockAvailable(s: GameState): void {
   for (const t of s.tech) {
     if (
       t.status === 'locked' &&
@@ -549,6 +568,71 @@ function unlockAvailable(s: GameState): void {
 
 function isDone(s: GameState, id: string): boolean {
   return s.tech.find((t) => t.id === id)?.status === 'done';
+}
+
+// ---------------------------------------------------------------------
+// FOUNDING A PROGRAM (Plan 14). The one way a major or a graduate program
+// enters the curriculum: it takes an empty slot in a standing hall, and
+// its entry course starts in the same transaction with the instructor the
+// player chose. Everything after that — tier 2, tier 3 — is an ordinary
+// START_DEVELOPMENT from the hall panel or the Curriculum tab, because
+// the decision "what goes in this building" has been made.
+//
+// The gate is the sum of what each half already asks: the program must be
+// on offer (s.programOffers — no founding off the table), the slot must
+// exist and be empty, the entry course's own prereqs must be done, the
+// cash must be there, and the chosen instructor must be eligible for the
+// entry course — the same eligibleInstructors the drawer's picker reads,
+// so the person who is checked is the person who is recorded.
+// ---------------------------------------------------------------------
+export interface Founding {
+  programId: string;
+  hallId: string;
+  slot: number;
+  facultyId: string;
+}
+
+export function canFoundProgram(s: GameState, f: Founding): boolean {
+  const program = programById(f.programId);
+  if (!program || program.kind === 'core') return false;
+  if (!s.programOffers.includes(f.programId) || isHoused(s, f.programId)) return false;
+  const slots = s.halls[f.hallId];
+  if (!slots || f.slot < 0 || f.slot >= slots.length || slots[f.slot].programId !== null) return false;
+  const entry = s.tech.find((t) => t.id === program.entryCourseId);
+  if (!entry || entry.status !== 'locked') return false;
+  if (!entry.prereqs.every((id) => isDone(s, id))) return false;
+  if (s.finance.cash < entry.cost) return false;
+  if (entry.requiresFaculty && !eligibleInstructors(s, entry).some((x) => x.id === f.facultyId)) return false;
+  return true;
+}
+
+export function foundProgram(s: GameState, f: Founding): void {
+  if (!canFoundProgram(s, f)) return;
+  const program = programById(f.programId)!;
+  s.halls[f.hallId][f.slot] = { programId: f.programId };
+  // The slot is what the entry course was waiting on (meetsUnlockGates);
+  // resolving unlocks now is what turns 'locked' into 'available' so the
+  // ordinary start can run, with the ordinary gate, in this same step.
+  unlockAvailable(s);
+  const entry = s.tech.find((t) => t.id === program.entryCourseId)!;
+  if (canStartDevelopment(s, entry, f.facultyId)) startDevelopment(s, entry, f.facultyId);
+  s.programOffers = s.programOffers.filter((id) => id !== f.programId);
+  refillOffers(s);
+  const hall = s.tech.find((t) => t.id === f.hallId);
+  s.log.unshift({
+    year: s.clock.year, week: s.clock.week,
+    message: `Founded ${program.name} in ${hall?.name ?? 'an academic hall'}.`,
+    kind: 'good',
+  });
+}
+
+// The hall a course's program lives in, for anything that wants to say
+// "taught in North Academic Hall" — undefined for the core's building
+// only if Founders Hall somehow lacks its entry, and for a course of an
+// unhoused program.
+export function hallOfCourse(s: GameState, courseId: string): string | undefined {
+  const programId = programOfCourse(courseId);
+  return programId === undefined ? undefined : hallOf(s, programId);
 }
 
 // Awards a milestone bonus exactly once, guarded by s.milestones. Setting

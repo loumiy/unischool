@@ -49,7 +49,8 @@ import {
 } from '../src/systems/techtree/techSystem';
 import { facultyLoads } from '../src/systems/faculty/facultyAssignment';
 import { initiativeDepth, initiativeFundingCost, initiativeOffers } from '../src/data/researchData';
-import { isAcademicHall, researchSchools } from '../src/data/techData';
+import { isAcademicHall, programById, researchSchools } from '../src/data/techData';
+import { canFoundProgram } from '../src/systems/techtree/techSystem';
 import { firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { HELLENIC_COUNCIL_MIN_CLUBS } from '../src/data/eventData';
 import { weeklyResearchPoints } from '../src/data/researchData';
@@ -439,6 +440,74 @@ function staffTheDepartment(get: () => GameState, dispatch: (a: Action) => void,
 // so a stale local would let the scripted player spend the same cash
 // twice in a week — the harness would then be measuring an economy the
 // game doesn't have.
+// FOUNDING (Plan 14). A program enters the curriculum by taking a slot in
+// a standing hall (FOUND_PROGRAM), which starts its entry course with an
+// instructor in the same step — there is no other way to start a tier-1
+// course. The scripted player takes the cheapest offer it can afford and
+// staff, into the first free slot it has: the same cheapest-first rule its
+// course loop already follows, applied to the one decision that precedes
+// it. Plan 14's PR I gives the earnest completionist a school-first rule
+// and a scatterer control; until then every strategy founds the same way.
+function foundPrograms(get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy): void {
+  for (;;) {
+    const s = get();
+    const slot = freeSlot(s);
+    if (!slot) return;
+    const offers = s.programOffers
+      .map((id) => programById(id))
+      .filter((p) => p !== undefined)
+      .map((p) => ({ p, entry: s.tech.find((t) => t.id === p.entryCourseId) }))
+      .filter((o) => o.entry !== undefined)
+      .sort((a, b) => a.entry!.cost - b.entry!.cost);
+    let founded = false;
+    for (const { p, entry } of offers) {
+      if (!hasHeadroom(s, strategy) || !affordable(s, entry!.cost, strategy)) continue;
+      if (!courseStaysSustainable(s, strategy)) continue;
+      const instructor = eligibleInstructors(s, entry!)[0];
+      if (!instructor) continue;
+      const founding = { programId: p.id, hallId: slot.hallId, slot: slot.slot, facultyId: instructor.id };
+      if (!canFoundProgram(s, founding)) continue;
+      dispatch({ type: 'FOUND_PROGRAM', ...founding });
+      founded = true;
+      break;
+    }
+    if (!founded) return;
+  }
+}
+
+function freeSlot(s: GameState): { hallId: string; slot: number } | null {
+  for (const [hallId, slots] of Object.entries(s.halls)) {
+    const slot = slots.findIndex((x) => x.programId === null);
+    if (slot >= 0) return { hallId, slot };
+  }
+  return null;
+}
+
+// A hall is sited when programs are on offer and there is nowhere to put
+// them: no free slot standing and no hall already going up. The next rung
+// of the chain is the only one ever 'available' (techData.ts), so this is
+// one capital decision with the same gate the dorm block uses.
+//
+// THE TWO SPEND-TO-THE-WIRE ARCHETYPES SITE HALLS AHEAD OF NEED. A
+// strategy with no margin to keep (netMargin <= 0: the Overbuilder, who
+// builds beds ahead of demand, and the Curriculum rush, who builds
+// everything affordable every week) does not wait for its slots to fill
+// before buying the next building — that is the whole of what those two
+// archetypes are. Without this, the offer's own pacing (three programs at
+// a time, six to a hall) would quietly make the Overbuilder prudent about
+// the one capital line it is supposed to overreach on, and the
+// "stall, don't die" checks in test/balance-regression.test.ts would be
+// measuring a player who no longer exists.
+function siteHallIfNeeded(get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy): void {
+  const s = get();
+  const eager = strategy.netMargin <= 0;
+  if (!eager && (s.programOffers.length === 0 || freeSlot(s))) return;
+  if (s.tech.some((t) => isAcademicHall(t) && t.status === 'developing')) return;
+  const next = s.tech.find((t) => isAcademicHall(t) && t.status === 'available');
+  if (!next) return;
+  if (canCommitCapital(s, strategy) && affordable(s, next.cost, strategy)) dispatchPlaceable(get, dispatch, next.id);
+}
+
 function decide(
   get: () => GameState,
   strategy: Strategy,
@@ -486,8 +555,13 @@ function decide(
     // this week, which is what "fill every chair" means and what a player
     // aiming at the whole catalogue actually does. The cash buffer and the
     // flow gate below still apply, so it is a wider rule, not a free one.
+    // A program ON OFFER counts as a course this strategy could start:
+    // its entry course is 'locked' until it is founded (Plan 14), but the
+    // founding needs an instructor in its field, and a school that never
+    // hires for an offered program never founds anything.
+    const offeredEntryIds = new Set(s.programOffers.map((id) => programById(id)?.entryCourseId));
     const needed = s.tech.some(
-      (t) => t.requiresFaculty === c.field && t.status === 'available' &&
+      (t) => t.requiresFaculty === c.field && (t.status === 'available' || offeredEntryIds.has(t.id)) &&
         !hasFreeFacultySlot(s, c.field) &&
         (strategy.fillsEveryChair || affordable(s, t.cost, strategy)),
     );
@@ -536,6 +610,18 @@ function decide(
   const savingForDorm = strategy.buildsDorms && wantsDorm &&
     !affordable(beforeCurriculum, nextDorm!.cost, strategy);
 
+  // Founding and halls (Plan 14) come before the rest of the curriculum,
+  // since every course after the core sits behind a founding. The two
+  // spend-to-the-wire archetypes (see siteHallIfNeeded) do this even while
+  // "saving" for a dorm: a player with no buffer and no margin to keep is
+  // not saving for anything, and gating their halls on a dorm they cannot
+  // afford would make the one capital line they are meant to overreach on
+  // the one they are prudent about.
+  if (strategy.buildsCourses && (!savingForDorm || strategy.netMargin <= 0)) {
+    foundPrograms(get, dispatch, strategy);
+    siteHallIfNeeded(get, dispatch, strategy);
+  }
+
   // Curriculum: cheapest tier first, plus the buildings/labs that gate it.
   if (strategy.buildsCourses && !savingForDorm) {
     const courseIds = beforeCurriculum.tech
@@ -550,11 +636,9 @@ function decide(
       if (!courseStaysSustainable(s, strategy)) continue;
       if (canStartDevelopment(s, c)) dispatch({ type: 'START_DEVELOPMENT', nodeId: id });
     }
-    // Academic halls (techData.ts's chain, Plan 14) are skipped until
-    // Plan 14's PR I teaches the harness to site one when it runs out of
-    // slots: until programs are founded from slots, a hall is a bill with
-    // nothing behind it, and buying it would move every strategy's
-    // trajectory for no decision the player could make.
+    // Academic halls are sited by siteHallIfNeeded above, when there is
+    // something to put in one; this loop is the professional-school
+    // buildings (Medicine, Law) until Plan 14's PR E retires those too.
     for (const id of get().tech.filter((t) => t.kind === 'building' && !isAcademicHall(t) && t.status === 'available').map((t) => t.id)) {
       const s = get();
       const b = s.tech.find((t) => t.id === id);

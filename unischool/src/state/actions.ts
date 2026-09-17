@@ -58,6 +58,12 @@ export type Action =
   // DEVELOP_ALL_AVAILABLE_COURSES button and the headless balance sim, both
   // of which let the engine take the strongest eligible teacher instead.
   | { type: 'START_DEVELOPMENT'; nodeId: string; facultyId?: string }
+  // Founds a program (Plan 14): takes an empty slot in a standing hall and
+  // starts the program's entry course with the chosen instructor, in one
+  // transaction. The only way a major or graduate program enters the
+  // curriculum — its tier-1 course is never started any other way. See
+  // techSystem.ts's foundProgram for the gate.
+  | { type: 'FOUND_PROGRAM'; programId: string; hallId: string; slot: number; facultyId: string }
   | { type: 'REASSIGN_COURSE_FACULTY'; courseId: string; facultyId: string }
   // Commissions a research initiative in a vacant facility: a topic, a
   // team and a depth, paid for up front out of cash (see

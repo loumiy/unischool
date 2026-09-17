@@ -7,6 +7,7 @@ import { tickFinance, endowmentCampaign } from '../systems/finance/financeSystem
 import {
   tickTech, canStartDevelopment, startDevelopment, eligibleInstructors, isCommitted,
   planCommitmentCoverage, developAllPlan,
+  foundProgram,
 } from '../systems/techtree/techSystem';
 import { endInitiative } from '../systems/research/researchSystem';
 import { initiativeDepth, initiativeFundingCost } from '../data/researchData';
@@ -271,6 +272,16 @@ export function reducer(state: GameState, action: Action): GameState {
       if (node && !isPlaceableKind(node) && canStartDevelopment(s, node, action.facultyId)) {
         startDevelopment(s, node, action.facultyId);
       }
+      return s;
+    }
+
+    case 'FOUND_PROGRAM': {
+      // The whole gate and the whole mutation live in techSystem.ts's
+      // foundProgram, for the reason START_DEVELOPMENT's do in
+      // canStartDevelopment/startDevelopment: the hall panel has to be
+      // able to say whether a founding will go through before offering
+      // the button, and one predicate serves both.
+      foundProgram(s, { programId: action.programId, hallId: action.hallId, slot: action.slot, facultyId: action.facultyId });
       return s;
     }
 

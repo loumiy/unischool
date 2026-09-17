@@ -8,7 +8,7 @@ import {
   promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, VARSITY_PETITION_MIN_TENURE_YEARS, venueForCategory,
   CHAIR_LABEL, fieldForChair, generateCoachCandidate, seatCoach, vacantChairs,
 } from './studentLifeData';
-import { discoverySchools, graduateProgram, milestoneSchools } from './techData';
+import { graduateProgram, milestoneSchools } from './techData';
 
 // ---------------------------------------------------------------------
 // WEEK-TO-WEEK TEXTURE, AS AUTHORED DATA.
@@ -298,28 +298,17 @@ function doneBuildings(s: GameState) {
   return s.tech.filter((t) => t.kind === 'building' && t.status === 'done');
 }
 
-// School buildings whose naming rights haven't been sold yet — a school is
-// only ever renamed once (see the 'naming-rights' event's apply()), so the
-// donor pool this event draws from excludes any building already carrying
-// a `donorSurname`.
-//
-// Also excludes the two professional-school buildings (BLDG-MED, BLDG-LAW
-// — see techData.ts's GraduateProgramSeed.buildingId), which is a
-// deliberate scope decision rather than an oversight: rollContext below
-// looks up the building's school through discoverySchools(), which only
-// ever covers the seven undergraduate schools, so an un-excluded
-// professional building would occasionally get drawn as the target and
-// then fail that lookup, silently wasting the week's roll instead of
-// firing an event. A "Johnson School of Law" naming-rights offer is a
-// thematically obvious follow-up, but wiring it in for real needs more
-// than a filter change here — discoverySchools()-shaped lookup for a
-// professional school, and a heading path in CurriculumTab.tsx's
-// buildSections that reads a professional section's donorSurname the way
-// an undergraduate one already does — so it's flagged as follow-up scope
-// rather than attempted alongside the buildings themselves.
-function unnamedSchoolBuildings(s: GameState) {
-  const eligibleIds = new Set(discoverySchools().map((school) => school.buildingId));
-  return doneBuildings(s).filter((b) => !b.donorSurname && eligibleIds.has(b.id));
+// The buildings a naming-rights offer may be made on. NONE, for the
+// moment: the seven school buildings the offer used to name are gone
+// (Plan 14's PR C — a school is founded by filling a hall, not built),
+// and the offer is re-pointed at a DEDICATED hall in PR E, where "the
+// Halvorsen School of Engineering" becomes something a donor can buy
+// again. Until then eligible() reads an empty pool and the event never
+// fires — the same way it already stood down once every school was named.
+// Founders Hall is never for sale: it holds the core, not a school.
+function unnamedSchoolBuildings(s: GameState): Buildable[] {
+  void s;
+  return [];
 }
 
 function doneDiningHalls(s: GameState) {
@@ -559,14 +548,12 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       const buildings = unnamedSchoolBuildings(s);
       if (buildings.length === 0) return null;
       const target = pick(buildings);
-      const school = discoverySchools().find((sc) => sc.buildingId === target.id);
-      if (!school) return null;
       const donor = rollSurname();
       return {
         subjectId: target.id,
-        subjectName: school.name, // the school's own name, e.g. "Science" — not its building's name
+        subjectName: target.name,
         donorName: donor,
-        newName: `${donor} School of ${school.name}`,
+        newName: `${donor} ${target.name}`,
         amount: rollAmount(s, NAMING_RIGHTS_MIN_WEEKS, NAMING_RIGHTS_MAX_WEEKS),
       };
     },

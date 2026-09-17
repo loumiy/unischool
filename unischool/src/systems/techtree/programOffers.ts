@@ -88,8 +88,21 @@ export function startedSchools(s: GameState): Set<string> {
 
 function isRevealed(s: GameState, program: ProgramInfo): boolean {
   if (program.kind === 'core') return false;
-  if (program.kind === 'graduate') return graduateGateMet(s, program.id);
-  return s.tech.find((t) => t.id === program.entryCourseId)?.status !== 'locked';
+  const entry = s.tech.find((t) => t.id === program.entryCourseId);
+  if (!entry) return false;
+  if (program.kind === 'graduate') {
+    // Its own gate, unchanged — plus, until Plan 14's PR E retires them,
+    // Medicine's and Law's own buildings: the entry course names its
+    // building as a prereq, so a program whose hall is not yet built
+    // cannot be founded and must not be offered.
+    return graduateGateMet(s, program.id) && entry.prereqs.every((id) => s.tech.find((t) => t.id === id)?.status === 'done');
+  }
+  // A major is revealed the moment the gen-ed core completes: its entry
+  // course's every prereq is a core course. (The course's own status stays
+  // 'locked' until the program is housed — see techSystem.ts's
+  // meetsUnlockGates — which is exactly why this reads the prereqs and not
+  // the status.)
+  return entry.prereqs.every((id) => s.tech.find((t) => t.id === id)?.status === 'done');
 }
 
 // Everything that could be offered right now, offered or not: revealed

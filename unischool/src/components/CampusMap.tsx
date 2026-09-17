@@ -476,7 +476,7 @@ export default function CampusMap({
   // Opens the Curriculum tab at a given school, for the academic hall's own
   // info panel (see BuildingInfoPanel.tsx). The map does not know what a
   // tab is — it hands the id up to App, which owns what is open.
-  onOpenCurriculum: (buildingId: string) => void;
+  onOpenCurriculum: (sectionKey: string) => void;
 }) {
   // Whether the currently-selected building has been turned 90 degrees
   // before siting (see campusMap.ts's orientedFootprint). Transient UI
@@ -1378,8 +1378,9 @@ export default function CampusMap({
           <BuildingInfoPanel
             t={inspected.t}
             s={s}
+            act={act}
             onClose={() => setInspectedId(null)}
-            onOpenCurriculum={(buildingId) => { setInspectedId(null); onOpenCurriculum(buildingId); }}
+            onOpenCurriculum={(key) => { setInspectedId(null); onOpenCurriculum(key); }}
           />
         )}
 
