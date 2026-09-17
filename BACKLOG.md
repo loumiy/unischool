@@ -14,11 +14,12 @@ going to happen but has not, it belongs here.
 ## Sequenced enough to start
 
 *The [September 2026 design review](docs/reviews/2026-09-design-review.md) set the
-order for what comes next. Plans 09 (the playtest harness) and 10 (growth has
-a cost) are written and `Proposed`; Plans 11 (academic halls with classrooms,
-schools that emerge from filled halls), 12 (the summer sequence, year-over-year
-deltas, 4× speed, the scripted first year) and 13 (a year-50 endpoint and
-scorecard) are named in the review's roadmap and not yet written.*
+order for what comes next. Plans 09 (the playtest harness), 10 (growth has
+a cost), 11 (academic halls), 12 (the year) and 13 (the endpoint) are written
+and `Proposed`, in that order of dependency. What comes after them — the
+faculty lifecycle, research that reaches the world, student-life asks,
+athletics' reach, pedestrians — is in the review's roadmap and not yet
+planned.*
 
 *Each of these is a plan's worth of work on its own, and none of them blocks any
 other. Lifted from Plan 04, which is where they were first named. Turning one

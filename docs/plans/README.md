@@ -28,6 +28,9 @@ the repository root, and the game as it actually is lives in `docs/design/` and
 | 08 | [Athletics, and the field it plays in](08-athletics-rivals.md) | Athletics V3 and Rival schools as one sequence: a hundred-school field, standing split into three ranked axes, per-sport strength, four more sports, an athletic director, and a playoff whose titles are the first thing athletics moves. Two phases, PRs 1A–1C and 2A–2G. | Landed |
 | 09 | [The playtest harness](09-playtest-harness.md) | Scenarios, a debug panel behind a flag, the prestige breakdown, and a sim scorecard with reference bands — the instrumentation the design changes are measured with. PRs A–F. | Proposed |
 | 10 | [Growth has a cost](10-growth-has-a-cost.md) | Prestige as an asymmetric stock with a summer report card, instruction cost per section, an interim intake ceiling, attrition — the answer to the September review's two critical findings. Design outline; PRs A–G sketched. | Proposed |
+| 11 | [Academic halls](11-academic-halls.md) | Repeatable halls with rooms, programs founded in rooms and developed continuously from a room's roster, schools that emerge from a dedicated hall, seats as the ceiling, and the map's first two readers. PRs A–H. | Proposed |
+| 12 | [The year](12-the-year.md) | The summer as four beats (review, standing, admissions, students), year-over-year on the reveal, 4× and advance-to-next, three modal widths, a scripted first year, toasts. PRs A–H. | Proposed |
+| 13 | [The endpoint](13-the-endpoint.md) | A fifty-year run: ambitions, a six-axis legacy, the semicentennial report, an elite band that closes on the leader, and a balance target where completionism is one good run among several. PRs A–G. | Proposed |
 
 ## Naming
 
