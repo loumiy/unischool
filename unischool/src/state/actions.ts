@@ -1,4 +1,6 @@
-import type { AthleticsBudgetTier, Coach, GameState, InitiativeDepth, TileCoord, Vernacular } from './types';
+import type {
+  AthleticsBudgetTier, Coach, GameState, InitiativeDepth, SatisfactionAttributes, TileCoord, Vernacular,
+} from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
 import { WEEKS_PER_YEAR, CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT } from './types';
@@ -243,18 +245,58 @@ export type Action =
   // the gates it finds ALREADY open on its first render, since a save that
   // resumes with three labs standing has nothing to announce.
   | { type: 'NOTE_TAB_AVAILABLE'; id: string; label: string; announce: boolean }
-  // Grants operating funds directly, with no event or interrupt behind it
-  // (see StatusHeader.tsx's "+$1B" button). Playtest-only: gated behind
-  // naming the university "test", the same as the sandbox Fast speed and
-  // the removed debug-interrupt trigger — never reachable in normal play.
-  | { type: 'GRANT_FUNDS'; amount: number }
+  // ---------------------------------------------------------------------
+  // THE PLAYTEST BLOCK. Every action below is dispatched by exactly one
+  // component — components/DebugPanel.tsx — which only renders behind the
+  // playtest flag (see components/playtest.ts). None is reachable from any
+  // ordinary surface, none is dispatched by a system, and the balance
+  // harness never dispatches one either: a trajectory the sim measures has
+  // to be one a player could actually have produced.
+  //
+  // They go through the reducer rather than round it because that is the
+  // rule the whole architecture rests on — the reducer is the one
+  // interpreter of every action — and because a shortcut that wrote state
+  // from a component would be the one place the invariants tests cannot
+  // see. What makes them playtest-only is the GATE, not a back door.
+  //
+  // `DEBUG_SET_CASH` replaces the old GRANT_FUNDS "+$1B" button: setting
+  // the figure says what it does, where adding a round billion to it made
+  // "how much money does this school have" a question with no answer.
+  // ---------------------------------------------------------------------
+  | { type: 'DEBUG_SET_CASH'; amount: number }
+  | { type: 'DEBUG_SET_PRESTIGE'; value: number }
+  // Sets the satisfaction STOCK. It will drift back toward its own computed
+  // target over the following weeks, which is the point: this is how you
+  // look at what a satisfaction of 30 does, not how you pin it there.
+  | { type: 'DEBUG_SET_SATISFACTION'; value: number }
+  | { type: 'DEBUG_SET_TUITION'; value: number }
+  // Fast-forwards N weeks, answering whatever stops the clock with the
+  // shared default answers (see engine/defaultAnswers.ts) when
+  // `autoResolve` is set, and stopping at the first modal when it is not.
+  | { type: 'DEBUG_JUMP'; weeks: number; autoResolve: boolean }
+  // Fires one authored decision event by id, bypassing its eligibility and
+  // both cooldowns. The payload is ROLLED as it would be at fire time, so
+  // the modal is the real modal rather than a preview of one.
+  | { type: 'DEBUG_FORCE_EVENT'; eventId: string }
+  // Raises a student demand for one named shortfall, bypassing the
+  // satisfaction threshold and the cooldown. The ask itself is whatever the
+  // demand system would have asked for (see demandSystem.ts's
+  // shortfallDemandFor), so a forced demand is a real demand.
+  | { type: 'DEBUG_FORCE_DEMAND'; subject: keyof SatisfactionAttributes | 'housing' }
+  // Celebrates the queued milestones now, rather than on the next week the
+  // frequency floor allows.
+  | { type: 'DEBUG_FORCE_MILESTONE' }
+  // Publishes the U.S. News report now, off this week's standings.
+  | { type: 'DEBUG_FORCE_REPORT' }
   // Starts development on every currently 'available' course in one shot
   // (see CurriculumTab.tsx's "Develop All" button) — a shortcut for
   // clicking each one individually, not a new capability: it goes through
   // the exact same canStartDevelopment/startDevelopment pair START_DEVELOPMENT
   // uses, course by course, so cash and faculty-slot limits still apply
-  // exactly as they would one click at a time. Playtest-only, gated the same
-  // way as GRANT_FUNDS.
+  // exactly as they would one click at a time. NOT playtest-only, despite
+  // where it started: it charges normally and reveals nothing, so it works
+  // inside the game's constraints rather than breaking them (see the
+  // button's own note in CurriculumTab.tsx, and .develop-all-btn).
   | { type: 'DEVELOP_ALL_AVAILABLE_COURSES' }
   // Renovates the tier-1 library in place for more capacity (see
   // facilitiesData.ts's nextLibraryFloor) — puts that SAME already-placed

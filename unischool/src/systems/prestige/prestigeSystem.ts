@@ -563,3 +563,17 @@ export function tickPrestige(s: GameState): void {
 function drift(current: number, target: number): number {
   return clamp(current + (target - current) * PRESTIGE_DRIFT_RATE, PRESTIGE_MIN, PRESTIGE_MAX);
 }
+
+// The playtest panel's "set prestige" (see reducer.ts's DEBUG block), and
+// it lives HERE rather than in the reducer for one reason:
+// test/invariants.test.ts section 5 confines every writer of
+// s.self.reputation to three files, and that invariant is worth more than
+// the convenience of writing the field where the action is handled. A
+// shortcut may put the school at a standing it has not earned; it may not
+// put it outside the band the drift itself can reach, so the same clamp
+// applies, and from the next tick onward prestige drifts back toward its
+// real target — which is exactly what makes this worth having.
+export function setPrestigeForPlaytest(s: GameState, value: number): number {
+  s.self.reputation = clamp(value, PRESTIGE_MIN, PRESTIGE_MAX);
+  return s.self.reputation;
+}

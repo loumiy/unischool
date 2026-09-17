@@ -4,6 +4,7 @@ import { mapBackOutLive, mapControlsLive, useHotkeys, type ShellOverlays } from 
 import type { GameState } from './state/types';
 import StartupScreen from './components/StartupScreen';
 import MainMenu from './components/MainMenu';
+import DebugPanel from './components/DebugPanel';
 import InterruptModal from './components/InterruptModal';
 import { GATED_TABS, TAB_LABELS, tabAvailable, type TabId } from './components/TabNav';
 import CampusMap from './components/CampusMap';
@@ -290,7 +291,15 @@ export default function App() {
   }, s.started);
 
   if (!s.started) {
-    return <StartupScreen onStart={(name, vernacular) => act({ type: 'START_GAME', name, vernacular })} />;
+    // The debug panel comes along, and on this screen it offers Load alone
+    // (see DebugPanel.tsx): a browser with no save is exactly where somebody
+    // opening a scenario file starts from.
+    return (
+      <>
+        <StartupScreen onStart={(name, vernacular) => act({ type: 'START_GAME', name, vernacular })} />
+        <DebugPanel s={s} act={act} />
+      </>
+    );
   }
 
   return (
@@ -307,6 +316,12 @@ export default function App() {
         onOpenCurriculum={(buildingId) => openTab('curriculum', buildingId)}
       />
       <MainMenu act={act} />
+      {/* Present only behind the playtest flag, and it decides that for
+          itself (see DebugPanel.tsx / playtest.ts). Rendered here, beside
+          MainMenu, because it is chrome over the map rather than anything
+          the shell's one-slot rule applies to — it is the one panel that
+          is meant to stay open while you look at something else. */}
+      <DebugPanel s={s} act={act} />
 
       <div className="app">
         <LogTicker s={s} open={logOpen} onSetOpen={setLogOpen} />

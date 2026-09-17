@@ -21,9 +21,10 @@
 // ---------------------------------------------------------------------
 
 import { reducer } from '../src/engine/reducer';
+import { defaultAnswer } from '../src/engine/defaultAnswers';
 import type { Action } from '../src/state/actions';
 import { createPreStartState } from '../src/state/actions';
-import type { GameState, Buildable, Coach, InitiativeReport } from '../src/state/types';
+import type { GameState, Buildable, InitiativeReport } from '../src/state/types';
 import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudent } from '../src/systems/finance/financeSystem';
 import { admitRate, topBandShare } from '../src/systems/admissions/admissionsSystem';
@@ -36,12 +37,11 @@ import { facultyLoads } from '../src/systems/faculty/facultyAssignment';
 import { initiativeDepth, initiativeFundingCost, initiativeOffers } from '../src/data/researchData';
 import { researchSchools } from '../src/data/techData';
 import { firstFreeSpot, footprintOf } from '../src/state/campusMap';
-import { findDecisionEvent, HELLENIC_COUNCIL_MIN_CLUBS } from '../src/data/eventData';
+import { HELLENIC_COUNCIL_MIN_CLUBS } from '../src/data/eventData';
 import { weeklyResearchPoints } from '../src/data/researchData';
 import { studentLifeSatisfaction } from '../src/systems/satisfaction/satisfactionSystem';
 import { demandProgress } from '../src/systems/demands/demandSystem';
 import { demandSubject } from '../src/data/demandData';
-import type { DecisionEventContext } from '../src/data/eventData';
 import { discoverySchools } from '../src/data/techData';
 import { hasStudentCenter, varsityTeamUpkeep } from '../src/data/studentLifeData';
 import { LIBRARY_TIER1_ID, nextLibraryFloor } from '../src/data/facilitiesData';
@@ -682,27 +682,16 @@ interface EventTally {
   titles: number; // championships won over the run (see systems/athletics/playoffs.ts)
 }
 
-// The scripted player's event policy: take the FIRST affordable choice —
-// which in every entry in the table is the "deal with it properly, and
-// pay" option — and fall back to a free one when the money isn't there.
-// That is the most expensive reasonable policy, so the tally below is an
-// upper bound on what events cost a run.
+// The scripted player's event policy — take the first affordable choice,
+// fall back to a free one — moved to src/engine/defaultAnswers.ts when the
+// debug panel's Jump needed to answer a modal the same way this does. The
+// tally below is still an upper bound on what events cost a run, because
+// that policy is still the most expensive reasonable one.
 // The Greek-life entries of the shared decision-event table (see
 // src/data/eventData.ts). Named here only so the report can say how much of
 // the run's FIXED event budget student life took — they do not get a budget
 // of their own, which is the whole point of authoring them into that table.
 const GREEK_EVENT_IDS = ['hellenic-council', 'greek-scandal', 'greek-housing'];
-
-function chooseEventOption(s: GameState): { eventId: string; choiceId: string; ctx: DecisionEventContext } | null {
-  const payload = s.pendingInterrupt?.payload as { eventId: string; ctx: DecisionEventContext } | undefined;
-  if (!payload) return null;
-  const event = findDecisionEvent(payload.eventId);
-  if (!event) return null;
-  const affordable = event.choices.find((c) => c.cost(s, payload.ctx) <= s.finance.cash);
-  const choice = affordable ?? event.choices.find((c) => c.cost(s, payload.ctx) <= 0);
-  if (!choice) return null;
-  return { eventId: event.id, choiceId: choice.id, ctx: payload.ctx };
-}
 
 // The five athletics venue ids (facilitiesData.ts), named here rather than
 // imported — the same self-contained-defensive-check spirit persistence.ts's
@@ -775,48 +764,53 @@ export function play(
       tally.hellenicCouncilEligibleYear = s.clock.year;
     }
     if (s.pendingInterrupt) {
-      if (s.pendingInterrupt.type === 'admissions') {
+      // ANSWERED BY THE SHARED DEFAULTS (see src/engine/defaultAnswers.ts),
+      // never by a policy of this file's own. The debug panel's Jump
+      // fast-forwards through the same modals, and two fast-forwards that
+      // answered a championship differently would be two different games —
+      // so the answer lives in one module and both ask it for one.
+      //
+      // What stays here is the BOOKKEEPING, which is this harness's own
+      // business: the tallies below are read off the interrupt (and off the
+      // action that answers it) before the dispatch clears either.
+      const type = s.pendingInterrupt.type;
+      const answer = defaultAnswer(s, {
+        tuition: strategy.tuition(s),
+        // Every strategy takes the slider's own opening position for its
+        // CURRENT standing — what a school like this would normally take
+        // (see admissionsSystem.ts's admitRate). Deliberately recomputed
+        // each summer rather than read back off s.students.admitRate:
+        // that field is sticky by design, so a scripted player echoing it
+        // would freeze on its founding rate and go on taking a founding
+        // school's share of the pool at top-50 prestige. No strategy here
+        // plays the lever deliberately, so the harness measures what the
+        // DEFAULT policy does — which is what it measured before PR C
+        // made the rate a decision at all.
+        admitRate: strategy.admitRate ? strategy.admitRate(s) : admitRate(s.self.reputation),
+      });
+
+      if (type === 'admissions') {
         // The student-life digest rides on this interrupt (see the
-        // reducer's RESOLVE_ADMISSIONS). The scripted player recognises
+        // reducer's RESOLVE_ADMISSIONS). The default answer recognises
         // EVERY petition, which is the most expensive answer available —
         // it is the only one that takes on recurring cost — so the opex
         // and satisfaction figures these runs print are the upper bound on
         // what student life does to a trajectory, exactly as the event
-        // policy below is an upper bound on what events cost.
-        const approvedPetitionIds = s.orgs.pendingPetitions.map((p) => p.id);
-        tally.petitionsApproved += approvedPetitionIds.length;
+        // policy is an upper bound on what events cost.
+        tally.petitionsApproved += s.orgs.pendingPetitions.length;
         tally.chaptersFormed += s.orgs.pendingPetitions.filter((p) => p.kind === 'chapter').length;
-        dispatch({
-          type: 'RESOLVE_ADMISSIONS',
-          tuition: strategy.tuition(s),
-          // Every strategy takes the slider's own opening position for its
-          // CURRENT standing — what a school like this would normally take
-          // (see admissionsSystem.ts's admitRate). Deliberately recomputed
-          // each summer rather than read back off s.students.admitRate:
-          // that field is sticky by design, so a scripted player echoing it
-          // would freeze on its founding rate and go on taking a founding
-          // school's share of the pool at top-50 prestige. No strategy here
-          // plays the lever deliberately, so the harness measures what the
-          // DEFAULT policy does — which is what it measured before PR C
-          // made the rate a decision at all.
-          admitRate: strategy.admitRate ? strategy.admitRate(s) : admitRate(s.self.reputation),
-          approvedPetitionIds,
-        });
-        rows.push(snapshot(s, weeksInTheRed, minCash));
-      } else if (s.pendingInterrupt.type === 'milestone') {
+      } else if (type === 'milestone') {
         tally.milestones += 1;
-        dispatch({ type: 'RESOLVE_MILESTONE' });
-      } else if (s.pendingInterrupt.type === 'research-complete') {
-        // The completion report, which carries the award if the work won
-        // one — so the prize tally is read off the payload now rather than
-        // off an interrupt of its own (see researchSystem.ts).
+      } else if (type === 'research-complete') {
+        // The completion report carries the award if the work won one — so
+        // the prize tally is read off the payload rather than off an
+        // interrupt of its own (see researchSystem.ts).
         const { report } = s.pendingInterrupt.payload as { report: InitiativeReport };
         tally.reports += 1;
         if (report.award) tally.prizes += 1;
-        dispatch({ type: 'RESOLVE_RESEARCH_REPORT' });
-      } else if (s.pendingInterrupt.type === 'demand') {
+      } else if (type === 'demand') {
         // A student demand (see src/systems/demands/demandSystem.ts). The
-        // scripted player acknowledges it and does nothing else — there is
+        // default answer acknowledges it and does nothing else — there is
         // nothing else to do: a demand is answered by BUILDING the thing
         // before the deadline, which every strategy's ordinary
         // facility/dorm rules either will or won't do on their own. That
@@ -830,40 +824,20 @@ export function play(
           const subject = demandSubject(demand);
           tally.demandSubjects[subject] = (tally.demandSubjects[subject] ?? 0) + 1;
         }
-        dispatch({ type: 'RESOLVE_DEMAND' });
-      } else if (s.pendingInterrupt.type === 'charter') {
-        // The scripted player always takes the charter. It costs nothing
-        // and changes nothing mechanical (it renames the school), so
-        // there is no trajectory to compare the other answer against.
-        dispatch({ type: 'RESOLVE_CHARTER', accept: true });
-      } else if (s.pendingInterrupt.type === 'championship') {
-        // Read and leave, like the U.S. News report. Answered by name rather
-        // than left to the fallback so the tally below can count titles — and
-        // so a new interrupt type can never again be silently dismissed by a
-        // harness that does not know it exists (see the athletic-director
-        // branch below for what that cost last time).
+      } else if (type === 'championship') {
         tally.titles += 1;
-        dispatch({ type: 'RESOLVE_CHAMPIONSHIP' });
-      } else if (s.pendingInterrupt.type === 'athletic-director') {
-        // The scripted player takes the MIDDLE candidate: the three differ
-        // only in how much of the department's budget goes to the person
-        // running it (see data/studentLifeData.ts's AD_TIERS), so picking the
-        // middle is the neutral reading — a strategy that always took the
-        // cheapest would be a thriftier player than any of these are, and one
-        // that always took the dearest would be a more extravagant one.
-        //
-        // Answered deliberately rather than left to the fallback below. An
-        // unrecognised interrupt falls through to RESOLVE_REPORT, which clears
-        // it without hiring or declining — and since the offer only cools down
-        // once it has been PUT, that would have the harness dismissing a modal
-        // it never read while the feature it is meant to be measuring never
-        // runs at all.
-        const payload = s.pendingInterrupt.payload as { candidates: Coach[] };
-        const middle = payload.candidates[Math.floor(payload.candidates.length / 2)] ?? null;
-        dispatch({ type: 'RESOLVE_ATHLETIC_DIRECTOR', candidate: middle, mascot: 'Sim Owls' });
-      } else if (s.pendingInterrupt.type === 'decision-event') {
-        const taken = chooseEventOption(s);
-        const before = s.finance.cash;
+      }
+
+      const before = s.finance.cash;
+      if (answer) dispatch(answer);
+
+      if (type === 'admissions') rows.push(snapshot(s, weeksInTheRed, minCash));
+      if (type === 'decision-event') {
+        // Which event, and which way it went, read off the answer the
+        // shared defaults produced rather than re-derived here.
+        const taken = answer?.type === 'RESOLVE_DECISION_EVENT' && answer.eventId !== ''
+          ? { eventId: answer.eventId, choiceId: answer.choiceId }
+          : null;
         if (taken) {
           tally.decisions += 1;
           if (GREEK_EVENT_IDS.includes(taken.eventId)) tally.greekEventsSeen += 1;
@@ -875,15 +849,13 @@ export function play(
             if (taken.choiceId === 'establish') tally.varsityGranted += 1;
           }
           if (taken.eventId === 'hellenic-council' && tally.hellenicCouncilYear === null) {
+            // s.clock.year is the post-dispatch year; a decision event never
+            // falls on the week the clock turns over, so this is the year it
+            // fired in.
             tally.hellenicCouncilYear = s.clock.year;
           }
-          dispatch({ type: 'RESOLVE_DECISION_EVENT', ...taken });
-        } else {
-          dispatch({ type: 'RESOLVE_DECISION_EVENT', eventId: '', choiceId: '', ctx: {} });
         }
         tally.cash += s.finance.cash - before;
-      } else {
-        dispatch({ type: 'RESOLVE_REPORT' });
       }
       continue;
     }

@@ -234,6 +234,19 @@ function housingCandidate(s: GameState): Candidate | null {
   };
 }
 
+// One named shortfall's demand, if there is anything left to build for it.
+// The roll below picks the worst of these; the playtest panel's "force a
+// demand" asks for a specific one (see reducer.ts's DEBUG_FORCE_DEMAND).
+// Same candidates either way — a forced demand is a real demand, with the
+// real ask and the real target, not a mock-up of one.
+export function shortfallDemandFor(
+  s: GameState,
+  subject: keyof SatisfactionAttributes | 'housing',
+): StudentDemand | null {
+  const candidate = subject === 'housing' ? housingCandidate(s) : candidateFor(s, subject);
+  return candidate?.demand ?? null;
+}
+
 // The whole content decision, and the reason a demand reads as a real
 // grievance: score every candidate shortfall against the model's own
 // coverage reading and ask for the WORST one. No weighted draw, no random
@@ -341,6 +354,17 @@ function announceDemand(s: GameState): void {
     return;
   }
 
+  raiseDemand(s, demand);
+}
+
+// Announces one demand: stamps its deadline, puts it on the interrupt
+// mechanism, spends the cadence budget and says so in the log. The tail of
+// announceDemand above, lifted out so the playtest panel's "force a demand"
+// raises one exactly the way the system does (see reducer.ts's
+// DEBUG_FORCE_DEMAND) rather than assembling a lookalike beside it — a
+// forced demand has a real deadline and ends the real way.
+export function raiseDemand(s: GameState, demand: StudentDemand): void {
+  const week = absoluteWeek(s);
   demand.raisedWeek = week;
   demand.deadlineWeek = week + DEMAND_DEADLINE_WEEKS;
   s.events.activeDemand = demand;

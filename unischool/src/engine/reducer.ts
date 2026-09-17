@@ -1,6 +1,7 @@
 import type { Faculty, GameState, LogEntry } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import type { Action } from '../state/actions';
+import { defaultAnswer } from './defaultAnswers';
 import { createInitialState, createPreStartState } from '../state/actions';
 import { tickFinance, endowmentCampaign } from '../systems/finance/financeSystem';
 import {
@@ -13,16 +14,16 @@ import { researchTopic } from '../data/researchTopics';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
 import { tickAdmissions, advanceClasses, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
 import { deriveCohortSignals } from '../systems/admissions/cohorts';
-import { tickRivals } from '../systems/rivals/rivalsSystem';
+import { buildReportPayload, tickRivals } from '../systems/rivals/rivalsSystem';
 import { appointFaculty, tickFaculty } from '../systems/faculty/facultySystem';
 import { tickResearch } from '../systems/research/researchSystem';
-import { tickPrestige } from '../systems/prestige/prestigeSystem';
+import { setPrestigeForPlaytest, tickPrestige } from '../systems/prestige/prestigeSystem';
 import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
-import { tickEvents } from '../systems/events/eventSystem';
+import { fireMilestoneCelebration, tickEvents } from '../systems/events/eventSystem';
 import { tickStudentLife } from '../systems/studentlife/studentLifeSystem';
 import { tickAthletics } from '../systems/athletics/athleticsSystem';
-import { tickDemands } from '../systems/demands/demandSystem';
-import { findDecisionEvent } from '../data/eventData';
+import { raiseDemand, shortfallDemandFor, tickDemands } from '../systems/demands/demandSystem';
+import { absoluteWeek, findDecisionEvent } from '../data/eventData';
 import { LIBRARY_TIER1_ID, nextLibraryFloor, servedUpkeep } from '../data/facilitiesData';
 import { fellTrees } from '../data/treeData';
 import {
@@ -179,6 +180,38 @@ function resolveStudentLifeDigest(s: GameState, approvedIds: string[]): void {
     message: `Student life: ${recognised} organisation${recognised === 1 ? '' : 's'} recognised, ${declined} declined.`,
     kind: declined > recognised ? 'bad' : 'good',
   });
+}
+
+// The four "set this number" playtest actions, together: each one writes
+// the field a panel control names and hands back a line saying what it
+// did, so the reducer's own case is four lines rather than four cases.
+// Clamped where the game clamps the same field anywhere else — a playtest
+// shortcut may skip the WORK of reaching a state, never produce one the
+// simulation could not.
+function debugSet(
+  s: GameState,
+  action: Extract<Action, { type: 'DEBUG_SET_CASH' | 'DEBUG_SET_PRESTIGE' | 'DEBUG_SET_SATISFACTION' | 'DEBUG_SET_TUITION' }>,
+): string {
+  switch (action.type) {
+    case 'DEBUG_SET_CASH':
+      s.finance.cash = action.amount;
+      return `operating funds set to $${Math.round(action.amount).toLocaleString()}`;
+    case 'DEBUG_SET_PRESTIGE':
+      // Written through prestigeSystem.ts, which owns the field and clamps
+      // it to the band its own drift uses — see setPrestigeForPlaytest, and
+      // invariants.test.ts section 5 for why the write is not here.
+      return `prestige set to ${setPrestigeForPlaytest(s, action.value).toFixed(1)}`;
+    case 'DEBUG_SET_SATISFACTION': {
+      const value = Math.max(0, Math.min(100, action.value));
+      s.students.satisfaction = value;
+      return `satisfaction set to ${value.toFixed(0)}`;
+    }
+    case 'DEBUG_SET_TUITION': {
+      const value = Math.max(0, Math.min(TUITION_SLIDER_MAX, Math.round(action.value)));
+      s.finance.listedTuition = value;
+      return `listed tuition set to $${value.toLocaleString()}`;
+    }
+  }
 }
 
 function advanceClock(s: GameState): void {
@@ -852,19 +885,105 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
-    // A direct playtest grant (see StatusHeader.tsx's "+$1B" button) —
-    // deliberately not an event or interrupt, since it isn't something the
-    // simulation ever produces on its own. Logged like every other cash
-    // movement so it's visible (and auditable) in the ticker rather than a
-    // silent jump in the header figure.
-    case 'GRANT_FUNDS': {
-      s.finance.cash += action.amount;
-      s.log.unshift({
-        year: s.clock.year,
-        week: s.clock.week,
-        message: `Playtest grant: $${action.amount.toLocaleString()} added to operating funds.`,
-        kind: 'good',
+    // =====================================================================
+    // THE PLAYTEST BLOCK (see actions.ts's own DEBUG_ block, and
+    // components/DebugPanel.tsx, the single component that dispatches any
+    // of these). One place, one comment, so what a developer can reach for
+    // is a list rather than a habit — and so it is obvious at a glance that
+    // nothing here is reachable in ordinary play or from any system.
+    //
+    // Each one is LOGGED, for the same reason the old "+$1B" grant was:
+    // a number that changed because somebody typed it into a panel should
+    // be distinguishable, weeks later, from one the simulation produced.
+    // =====================================================================
+    case 'DEBUG_SET_CASH':
+    case 'DEBUG_SET_PRESTIGE':
+    case 'DEBUG_SET_SATISFACTION':
+    case 'DEBUG_SET_TUITION': {
+      const what = debugSet(s, action);
+      s.log.unshift({ year: s.clock.year, week: s.clock.week, message: `Playtest: ${what}`, kind: 'info' });
+      return s;
+    }
+
+    // Fast-forward. The loop runs HERE rather than as a burst of TICKs
+    // dispatched from the panel, and the reason is the auto-resolve: a
+    // component dispatching a hundred actions in one handler cannot see
+    // the state between any two of them, so it cannot know a modal came up
+    // on week 37 and answer it. This is the same shape
+    // DEVELOP_ALL_AVAILABLE_COURSES already has — a loop over the ordinary
+    // primitives, inside the reducer, taking no shortcut the single-step
+    // version does not take — and it costs one render rather than N.
+    case 'DEBUG_JUMP': {
+      let jumped = s;
+      let weeks = 0;
+      while (weeks < action.weeks) {
+        if (jumped.pendingInterrupt) {
+          if (!action.autoResolve) break;
+          const answer = defaultAnswer(jumped);
+          if (!answer) break;
+          jumped = reducer(jumped, answer);
+          continue; // answering turns the calendar page itself; that IS the week
+        }
+        jumped = reducer(jumped, { type: 'TICK' });
+        weeks += 1;
+      }
+      jumped.log.unshift({
+        year: jumped.clock.year,
+        week: jumped.clock.week,
+        message: `Playtest: jumped ${weeks} week${weeks === 1 ? '' : 's'}`
+          + `${jumped.pendingInterrupt ? `, stopped by a ${jumped.pendingInterrupt.type} decision` : ''}.`,
+        kind: 'info',
       });
+      if (jumped.log.length > LOG_CAP) jumped.log.length = LOG_CAP;
+      return jumped;
+    }
+
+    // Fire one authored decision event by id, bypassing eligibility and
+    // both cooldowns — the payload is rolled exactly as eventSystem.ts
+    // would roll it, so what comes up is the real modal and the choice
+    // applies for real. An event whose context cannot be rolled against
+    // this state (no faculty to poach, no building to break) is refused
+    // rather than shown empty.
+    case 'DEBUG_FORCE_EVENT': {
+      if (s.pendingInterrupt) return state;
+      const event = findDecisionEvent(action.eventId);
+      if (!event) return state;
+      const ctx = event.rollContext ? event.rollContext(s) : {};
+      if (ctx === null) return state;
+      s.events.decisionHistory[event.id] = {
+        fires: (s.events.decisionHistory[event.id]?.fires ?? 0) + 1,
+        lastWeek: absoluteWeek(s),
+      };
+      s.pendingInterrupt = { type: 'decision-event', payload: { eventId: event.id, ctx } };
+      return s;
+    }
+
+    // Raise a demand for one named shortfall now, past the satisfaction
+    // threshold and the cooldown that ordinarily gate it. The ask is the
+    // one the demand system itself would make for that need, and it is
+    // raised through the system's own raiseDemand — so a forced demand has
+    // a real deadline, a real target, and resolves the real way.
+    case 'DEBUG_FORCE_DEMAND': {
+      if (s.pendingInterrupt || s.events.activeDemand) return state;
+      const demand = shortfallDemandFor(s, action.subject);
+      if (!demand) return state;
+      raiseDemand(s, demand);
+      return s;
+    }
+
+    // Celebrate whatever is queued now, rather than on the next week the
+    // frequency floor allows. Nothing is invented: an empty queue stays
+    // empty and nothing happens.
+    case 'DEBUG_FORCE_MILESTONE': {
+      if (s.pendingInterrupt) return state;
+      s.events.lastMilestoneWeek = 0; // stand the frequency floor down for this one
+      return fireMilestoneCelebration(s) ? s : state;
+    }
+
+    // Publish the U.S. News report now, off this week's standings.
+    case 'DEBUG_FORCE_REPORT': {
+      if (s.pendingInterrupt) return state;
+      s.pendingInterrupt = { type: 'annual-report', payload: buildReportPayload(s) };
       return s;
     }
 

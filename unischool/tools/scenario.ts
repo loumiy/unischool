@@ -36,8 +36,8 @@ import { SCENARIOS, findScenario, atModal, type Scenario } from './scenarios';
 
 // ---------------------------------------------------------------------
 // Arguments. `--k v` and `--k=v` both work, and anything that isn't a flag
-// or a flag's value is positional: the first is the scenario name, the
-// second the output path.
+// or a flag's value is positional: the scenario name, and the output path
+// (told apart by the `.json`, see below).
 // ---------------------------------------------------------------------
 const VALUE_FLAGS = ['strategy', 'year', 'modal', 'seed', 'vernacular', 'name', 'out'];
 const BOOL_FLAGS = ['list', 'clear-modal', 'help'];
@@ -60,6 +60,14 @@ function parseArgs(argv: string[]): { flags: Record<string, string>; positional:
 
 const { flags, positional } = parseArgs(process.argv.slice(2));
 
+// A positional ending in `.json` is the OUTPUT PATH, wherever it sits, and
+// anything else is the scenario name. Positional order alone is not enough:
+// `--strategy Balanced --year 20 out.json` has no name in it at all, and
+// reading that path as a scenario name would quietly write the file
+// somewhere else.
+const pathArg = positional.find((arg) => arg.endsWith('.json'));
+const nameArg = positional.find((arg) => !arg.endsWith('.json'));
+
 function printList(): void {
   console.log('scenarios (npm run scenario -- <name> [out.json]):\n');
   const width = Math.max(...SCENARIOS.map((sc) => sc.name.length));
@@ -71,7 +79,7 @@ function printList(): void {
   console.log('  npm run scenario -- --strategy "Balanced builder" --year 12 [--modal milestone] [--seed 7]');
 }
 
-if (flags.help || (flags.list && positional.length === 0)) {
+if (flags.help || flags.list) {
   printList();
   process.exit(0);
 }
@@ -81,9 +89,9 @@ if (flags.help || (flags.list && positional.length === 0)) {
 // Flags override a named scenario's own fields, so `year-8-balanced
 // --year 12` is a legal thing to ask for.
 // ---------------------------------------------------------------------
-const named = positional[0] ? findScenario(positional[0]) : undefined;
-if (positional[0] && !named && !flags.strategy) {
-  console.error(`no scenario named "${positional[0]}". Try --list.`);
+const named = nameArg ? findScenario(nameArg) : undefined;
+if (nameArg && !named) {
+  console.error(`no scenario named "${nameArg}". Try --list.`);
   process.exit(2);
 }
 
@@ -114,7 +122,7 @@ function resolveStrategy(name: string): Strategy {
 
 const strategy = resolveStrategy(recipe.strategy);
 const seed = flags.seed ? Number(flags.seed) : DEFAULT_SIM_SEED;
-const outPath = positional[1] ?? flags.out ?? `node_modules/.tmp/${recipe.name}.json`;
+const outPath = pathArg ?? flags.out ?? `node_modules/.tmp/${recipe.name}.json`;
 
 // ---------------------------------------------------------------------
 // Play it.

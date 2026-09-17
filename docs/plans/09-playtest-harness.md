@@ -7,7 +7,7 @@ to take the first item of the roadmap in
 and turn it into an ordered sequence of PRs, each small enough to land on its
 own and each landing in the order that makes the next one cheaper.*
 
-**Status: In progress.** PR A has landed.
+**Status: In progress.** PRs A and B have landed.
 
 ---
 
@@ -184,6 +184,50 @@ buttons, and `npm run build` contains no `DEBUG_` string in the served
 bundle's visible UI. Force each of the fifteen events in turn and resolve
 each; jump 20 years on `founding` with auto-resolve and compare the toolbar to
 the sim's Balanced row for year 20.
+
+**As implemented:** verified in a headless browser — the panel is absent
+without the flag and present with it, all fifteen scenario saves load
+through the file input, and fourteen of the fifteen authored events fire and
+resolve from the Force row. The fifteenth, `varsity-petition`, is *refused*,
+correctly: its own `rollContext` returns null when no sport club is left to
+petition, and forcing bypasses eligibility, not possibility.
+
+Three departures.
+
+**The jump loops inside the reducer**, as a `DEBUG_JUMP` action, rather than
+being TICKs dispatched from the panel. The panel cannot see the state
+between two of its own dispatches, so it cannot notice a modal came up on
+week 37 and answer it — auto-resolve is impossible from outside the
+reducer. This is the shape `DEVELOP_ALL_AVAILABLE_COURSES` already has: a
+loop over ordinary primitives, inside the reducer, taking no shortcut the
+single step does not take. It also costs one render instead of a thousand.
+A twenty-year jump takes about half a minute, and the UI is frozen for it.
+
+**The plan's year-20 comparison does not hold, and should not.** A jump has
+no *player*: nobody develops a course, sites a dorm or hires anybody, so
+twenty years from `founding` ends at 455 students and prestige 38 — the idle
+trajectory, not the Balanced builder's 33,000 and 87. The panel and the
+harness answer *modals* identically because they call the same
+`defaultAnswer` (that is what the shared module is for); they differ in
+everything a strategy does, which is everything else. Reaching year 20 of a
+school somebody played is what `npm run scenario` is for.
+
+**The panel sits top LEFT**, not under the hamburger: that corner already
+stacks the main menu over the map's zoom/'?' pill, and a third thing in it
+pushes the map controls off a short viewport. It also renders on the
+*startup screen*, with Load as its only section — a browser with no save is
+exactly where somebody opening a scenario file starts from, and requiring
+them to found a throwaway school first would be the devtools detour this
+button exists to remove.
+
+Two things came along because the block needed them: the balance harness's
+own interrupt answers moved into `src/engine/defaultAnswers.ts` (`npm run
+sim` prints an identical table across the move), and `DEBUG_SET_PRESTIGE`
+writes through a new `setPrestigeForPlaytest` in `prestigeSystem.ts` rather
+than touching `s.self.reputation` in the reducer — `invariants.test.ts`
+section 5 confines every writer of that field to three files, and that
+invariant is worth more than handling the write where the action is
+handled.
 
 ## PR 09C — The prestige breakdown
 
