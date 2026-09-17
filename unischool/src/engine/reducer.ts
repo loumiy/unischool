@@ -742,6 +742,12 @@ export function reducer(state: GameState, action: Action): GameState {
     // half of the institution's name, and nothing in the game reads that
     // string except the views that display it. The flag is set either way,
     // so declining is final and the question never returns.
+    case 'RESOLVE_CHAMPIONSHIP': {
+      s.pendingInterrupt = null;
+      advanceClock(s);
+      return s;
+    }
+
     case 'RESOLVE_ATHLETIC_DIRECTOR': {
       if (action.candidate) {
         s.orgs.athleticDirector = action.candidate;

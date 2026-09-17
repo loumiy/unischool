@@ -166,6 +166,26 @@ function fireCharterOffer(s: GameState): boolean {
 // it can hire (see data/studentLifeData.ts's rollAthleticDirectorCandidates).
 const AD_OFFER_COOLDOWN_WEEKS = 3 * WEEKS_PER_YEAR;
 
+// A CHAMPIONSHIP. Queued rather than fired on the spot, for the same reason
+// a milestone is: the playoff week may already belong to something else, and
+// only one interrupt can be pending at a time. The queue drains one at a
+// time — two titles in one year are two different teams and do not read as
+// one modal.
+function fireChampionshipReport(s: GameState): boolean {
+  const sport = s.orgs.pendingTitles[0];
+  if (!sport) return false;
+  const result = s.orgs.lastSeason[sport];
+  if (!result) {
+    // Defensive: a queued sport with no result cannot be reported on, and
+    // leaving it queued would block every title behind it forever.
+    s.orgs.pendingTitles.shift();
+    return false;
+  }
+  s.orgs.pendingTitles.shift();
+  s.pendingInterrupt = { type: 'championship', payload: { result } };
+  return true;
+}
+
 function fireAthleticDirectorOffer(s: GameState): boolean {
   if (s.orgs.athleticDirector) return false;
   if (s.orgs.teams.length === 0) return false;
@@ -277,6 +297,7 @@ export function tickEvents(s: GameState): void {
   if (fireMilestoneCelebration(s)) return;
   if (fireCharterOffer(s)) return;
   if (fireResearchReport(s)) return;
+  if (fireChampionshipReport(s)) return;
   if (fireAthleticDirectorOffer(s)) return;
   if (fireVarsityPetition(s)) return;
 

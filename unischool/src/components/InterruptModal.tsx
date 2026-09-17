@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Action } from '../state/actions';
-import type { Coach, GameState, InitiativeReport, PendingInterrupt } from '../state/types';
+import type { Coach, GameState, InitiativeReport, PendingInterrupt, SeasonResult } from '../state/types';
 import { institutionName, WEEKS_PER_YEAR } from '../state/types';
 import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
@@ -8,9 +8,9 @@ import { TUITION_SLIDER_MAX } from '../data/foundingData';
 import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction, type PriceTier } from '../systems/admissions/admissionsSystem';
 import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
 import { projectConsequences } from '../systems/admissions/consequences';
-import { computePrestigeTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
+import { computePrestigeTarget, computeSocialTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
 import { findDecisionEvent } from '../data/eventData';
-import { MASCOT_MAX_LENGTH, rollMascotSuggestion } from '../data/studentLifeData';
+import { MASCOT_MAX_LENGTH, rollMascotSuggestion, sportById } from '../data/studentLifeData';
 import FacultyPortrait from './FacultyPortrait';
 import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
@@ -771,6 +771,85 @@ interface AthleticDirectorPayload {
   mascotSuggestion: string;
 }
 
+// ---------------------------------------------------------------------
+// A CHAMPIONSHIP. The one thing athletics has ever produced that stops the
+// clock, and the payoff the whole plan was written around.
+//
+// It reads the model rather than inventing a display number: what the title
+// did to campus-life standing is computed by running the target WITHOUT this
+// title and reporting the difference — the same honesty the milestone modal
+// uses for prestige, and the same the Student Life panel uses when it reports
+// that the clubs are adding nothing because nothing is what they add.
+// ---------------------------------------------------------------------
+function ChampionshipView({ s, result, onDismiss }: {
+  s: GameState; result: SeasonResult; onDismiss: () => void;
+}) {
+  const sport = sportById(result.sport)?.teamName ?? result.sport;
+  // The bare sport, for the label below. `teamName` carries a trailing
+  // "Team" — right in a sentence ("the Men's Soccer Team finished"), wrong in
+  // a label that already says what it is counting ("Titles in Men's Soccer
+  // Team"), where it also pushed the heading onto two lines.
+  const sportShort = sport.replace(/ Team$/, '');
+  const ad = s.orgs.athleticDirector;
+  const titlesInSport = s.orgs.titles.filter((t) => t.sport === result.sport).length;
+
+  // What this one was worth, by asking the model what the target would be
+  // with one fewer title on the board.
+  const now = computeSocialTarget(s);
+  const without = computeSocialTarget({
+    ...s,
+    orgs: { ...s.orgs, titles: s.orgs.titles.slice(0, -1) },
+  });
+  const worth = now - without;
+
+  return (
+    <>
+      <h2>{s.self.mascot ? `The ${s.self.mascot} are national champions` : 'National champions'}</h2>
+      <p>
+        {ad ? `${ad.name} has been on the telephone since the final whistle. ` : ''}
+        The {sport} finished the season as champions
+        {result.seed !== null && result.seed > 2 ? ` — from the ${ordinal(result.seed)} seed` : ''}.
+      </p>
+
+      {result.beaten.length > 0 && (
+        <ol className="championship-path">
+          {result.beaten.map((opponent, i) => (
+            <li key={opponent}>
+              <span className="championship-round">{['Quarterfinal', 'Semifinal', 'Final'][i] ?? 'Round'}</span>
+              <span className="championship-opponent">beat {opponent}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      <dl className="championship-worth">
+        <div>
+          <dt>Titles in {sportShort}</dt>
+          <dd>{titlesInSport}</dd>
+        </div>
+        <div>
+          <dt>Titles in all</dt>
+          <dd>{s.orgs.titles.length}</dd>
+        </div>
+        <div>
+          <dt>Campus-life standing</dt>
+          {/* A banner is a slow gift: standing is a stock that drifts toward
+              its target, so this says what the TARGET moved by, not what the
+              school's rank did this week. */}
+          <dd>{worth >= 0.05 ? `+${worth.toFixed(1)} to the target` : 'already at its ceiling'}</dd>
+        </div>
+      </dl>
+
+      <button onClick={onDismiss}>Dismiss</button>
+    </>
+  );
+}
+
+function ordinal(n: number): string {
+  const suffix = n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th';
+  return `${n}${suffix}`;
+}
+
 function AthleticDirectorView({ s, payload, onResolve }: {
   s: GameState;
   payload: AthleticDirectorPayload;
@@ -995,6 +1074,9 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
       case 'research-complete':
         act({ type: 'RESOLVE_RESEARCH_REPORT' });
         break;
+      case 'championship':
+        act({ type: 'RESOLVE_CHAMPIONSHIP' });
+        break;
       case 'demand':
         act({ type: 'RESOLVE_DEMAND' });
         break;
@@ -1038,6 +1120,12 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
           />
         ) : interrupt.type === 'demand' ? (
           <DemandView s={s} onDismiss={() => act({ type: 'RESOLVE_DEMAND' })} />
+        ) : interrupt.type === 'championship' ? (
+          <ChampionshipView
+            s={s}
+            result={(interrupt.payload as { result: SeasonResult }).result}
+            onDismiss={() => act({ type: 'RESOLVE_CHAMPIONSHIP' })}
+          />
         ) : interrupt.type === 'athletic-director' ? (
           <AthleticDirectorView
             s={s}

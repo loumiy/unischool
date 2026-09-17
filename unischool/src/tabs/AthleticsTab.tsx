@@ -9,6 +9,19 @@ import {
 } from '../data/studentLifeData';
 import FacultyPortrait from '../components/FacultyPortrait';
 import { athleticRank, rankBy, sportRank, sportRankedList } from '../systems/rivals/rivalsSystem';
+import type { SeasonResult } from '../state/types';
+
+// Last season, in a few words. Short on purpose: it sits in a table row
+// beside a rank, not in a report.
+function seasonLabel(r: SeasonResult): string {
+  switch (r.finish) {
+    case 'champion': return 'champions';
+    case 'final': return 'lost the final';
+    case 'semifinal': return 'lost the semi';
+    case 'quarterfinal': return 'lost the quarter';
+    default: return 'did not qualify';
+  }
+}
 
 function money(v: number): string {
   return `$${Math.round(v).toLocaleString()}`;
@@ -271,6 +284,15 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
             <dt>Campus life</dt>
             <dd><strong>#{rankBy(s, 'socialStanding')}</strong> of {s.rivals.length + 1}</dd>
           </div>
+          {/* Only once there is one. A nought here would be the screen telling
+              a young department it has failed at something it has not had
+              time to attempt. */}
+          {s.orgs.titles.length > 0 && (
+            <div>
+              <dt>Championships</dt>
+              <dd><strong>{s.orgs.titles.length}</strong></dd>
+            </div>
+          )}
         </dl>
       </div>
 
@@ -325,6 +347,7 @@ function SportStandings({ s }: { s: GameState }) {
           const list = sportRankedList(s, team.sport);
           const place = sportRank(s, team.sport);
           if (place === null) return null;
+          const last = s.orgs.lastSeason[team.sport];
           const above = list[place - 2];
           const below = list[place];
           return (
@@ -333,6 +356,13 @@ function SportStandings({ s }: { s: GameState }) {
               <span className="sport-standing-place">
                 <strong>#{place}</strong>
                 <span className="sport-standing-of">of {list.length}</span>
+              </span>
+              {/* Last season, beside the rank: a table of ranks says where you
+                  stand, and this says what happened. "Did not qualify" is a
+                  result the row states plainly — it is the sentence that makes
+                  a coach's salary a decision. */}
+              <span className="sport-standing-season">
+                {last ? <span className={`season-finish ${last.finish}`}>{seasonLabel(last)}</span> : <span className="season-finish none">first season</span>}
               </span>
               <span className="sport-standing-neighbours">
                 {above

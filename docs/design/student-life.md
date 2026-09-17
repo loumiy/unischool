@@ -303,6 +303,45 @@ department with five solid teams outranks one with a single elite team)
 instead of `reputation`. No annual report, movers list, or reveal
 interrupt of its own — just a live rank readout on the Athletics tab.
 
+## The postseason
+
+Once a year, late in the calendar, every sport the school **actively fields**
+plays a bracket: the strongest eight schools in that sport (by the per-sport
+strength the standings table already sorts on) are seeded, and three rounds are
+resolved as weighted comparisons of those numbers.
+
+**A bracket is not a season**, and the distinction is the whole reason this is
+a small feature. What
+[BACKLOG.md](../../BACKLOG.md)'s athletics deferrals hold back is a *season* —
+weeks, fixtures, opponents, results accumulating into a record — and none of
+that exists here. No week contains a game. No team has a schedule. The bracket
+reads the same input the rank readout reads and produces one more number: a
+champion.
+
+**Not qualifying is a result**, recorded and shown, not an absence. A program
+outside its sport's strongest eight does not enter, and the standings row says
+so — which is the sentence that makes a coach's salary a decision. The bar is
+real: with every chair empty a team scores about 31 against a field-of-eight cut
+around 72, a mid-staffed one lands just short, and only a genuinely well-staffed
+department with a good director and a high recruiting budget seeds near the top.
+
+**This is the loop the whole athletics feature was built for**, and every arrow
+in it now exists: hire a coach → team quality rises → the team seeds higher in
+its sport → it qualifies, and sometimes wins → a title lifts **campus-life
+standing**, which is a number with a national rank the player can watch. Titles
+are a monotone stock, like curriculum breadth and research credits: a school
+that won four championships in the eighties is still a school that won four
+championships.
+
+A championship **queues** an interrupt rather than firing on the spot, exactly
+as a milestone does — the playoff week may already belong to something else —
+and the report is the athletic director's, naming the bracket path and what the
+title did to the school's standing by running the model without it.
+
+Storage is bounded by construction: `lastSeason` is keyed by sport and
+overwritten every year, and only the player's own `titles` accumulate. No
+bracket is stored; a bracket is a thing that happened for one modal's duration.
+
 **A rival's athletic strength moves.** It was static for years — a deferred
 deepening rather than an oversight — and now drifts annually on its own
 momentum like every other axis, because a field that never changes is a field

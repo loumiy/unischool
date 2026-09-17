@@ -196,6 +196,8 @@ export type Action =
   // `candidate: null` is the decline, which records a week rather than a flag
   // (see types.ts's athleticDirectorAskedWeek).
   | { type: 'RESOLVE_ATHLETIC_DIRECTOR'; candidate: Coach | null; mascot: string }
+  // A championship report: read and leave, like the U.S. News report.
+  | { type: 'RESOLVE_CHAMPIONSHIP' }
   // Commits one choice from an authored decision event (see
   // data/eventData.ts's DECISION_EVENTS). `ctx` is the context the event
   // rolled for itself when it fired, carried back verbatim from the
@@ -315,6 +317,9 @@ export function createPreStartState(): GameState {
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
       athleticsBudget: DEFAULT_ATHLETICS_BUDGET,
       athleticDirector: null,
+      lastSeason: {},
+      titles: [],
+      pendingTitles: [],
       athleticDirectorAskedWeek: 0,
     },
     research: {
@@ -612,6 +617,9 @@ export function createInitialState(name: string, vernacular: Vernacular = FOUNDI
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
       athleticsBudget: DEFAULT_ATHLETICS_BUDGET,
       athleticDirector: null,
+      lastSeason: {},
+      titles: [],
+      pendingTitles: [],
       athleticDirectorAskedWeek: 0,
     },
     // No labs at founding, so nothing produces research and no output can

@@ -1182,7 +1182,23 @@ export const SAVE_KEY = 'unischool.save';
 // retrofit.
 //
 // See MIGRATIONS[49].
-export const SAVE_VERSION = 50;
+//
+// v50 -> v51: the postseason. `StudentOrgState` gains `lastSeason`, `titles`
+// and `pendingTitles`, all added-as-required.
+//
+// The same argued exception as the five before it (see the v45 -> v46 note),
+// and the same trivial carry: all three are "no postseason has been played
+// yet", which is exactly true of a save written before there were playoffs.
+// A resumed run's first postseason is the one at the next PLAYOFF_WEEK, and
+// its teams enter it seeded on the quality they already have.
+//
+// Nothing is reconstructed. A school twenty years in has no championships
+// recorded because it won none — there were none to win — and inventing a
+// banner for a season that never happened is the one thing a record is kept
+// to avoid.
+//
+// See MIGRATIONS[50].
+export const SAVE_VERSION = 51;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -1303,6 +1319,18 @@ function allCoachesIn(state: GameState): Coach[] {
 }
 
 const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
+  // v50 -> v51: the postseason (see the SAVE_VERSION header note above).
+  // All three fields are "no season has been played", which is true rather
+  // than convenient.
+  50: (state) => {
+    const orgs = state.orgs as unknown as {
+      lastSeason?: Record<string, unknown>; titles?: unknown[]; pendingTitles?: string[];
+    };
+    if (typeof orgs.lastSeason !== 'object' || orgs.lastSeason === null) orgs.lastSeason = {};
+    if (!Array.isArray(orgs.titles)) orgs.titles = [];
+    if (!Array.isArray(orgs.pendingTitles)) orgs.pendingTitles = [];
+  },
+
   // v49 -> v50: the department gets a director (see the SAVE_VERSION header
   // note above). Both fields are "nobody has been asked yet", so a resumed
   // run with teams standing gets the offer on its next quiet week.
@@ -1741,6 +1769,9 @@ const MIGRATIONS: Record<number, (state: LegacyGameState) => void> = {
       // that came through here first.
       athleticsBudget: 'medium',
       athleticDirector: null,
+      lastSeason: {},
+      titles: [],
+      pendingTitles: [],
       athleticDirectorAskedWeek: 0,
     };
   },

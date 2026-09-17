@@ -995,6 +995,22 @@ export interface OrgPetition {
 // not just a bigger program.
 export type AthleticsBudgetTier = 'low' | 'medium' | 'high';
 
+// One sport's postseason, from the only point of view that exists here: the
+// player's. A school that does not field the sport has no result, and a
+// program outside its sport's strongest eight has `finish: 'missed'` — which
+// is a RESULT rather than an absence, and the one that makes a coach's salary
+// a decision.
+export interface SeasonResult {
+  year: number;
+  sport: string;
+  seed: number | null;      // the player's seed in the bracket; null = did not qualify
+  finish: 'champion' | 'final' | 'semifinal' | 'quarterfinal' | 'missed';
+  beaten: string[];         // schools the player beat, in order, by name and mascot
+  lostTo: string | null;
+  champion: string;         // who took the title — may be the player
+  championMascot: string;
+}
+
 export interface StudentOrgState {
   clubs: StudentClub[];
   chapters: GreekChapter[];
@@ -1030,6 +1046,22 @@ export interface StudentOrgState {
   // program has no head coach" read as somebody doing their job rather than
   // the UI nagging.
   athleticDirector: Coach | null;
+  // THE POSTSEASON (see systems/athletics/playoffs.ts).
+  //
+  // `lastSeason` is keyed by sport id and OVERWRITTEN every year, so it can
+  // never grow: forty years times eighteen sports of stored brackets is an
+  // archive nobody reads inside a save that has to stay JSON-plain. A bracket
+  // is a thing that happened for one modal's duration; what survives it is a
+  // result and, sometimes, a title.
+  //
+  // `titles` is the monotone half — the school's own championships, and the
+  // only part of the postseason any system reads back (campus-life standing,
+  // see prestigeSystem.ts). `pendingTitles` is the queue of sports won this
+  // year but not yet reported, drained on a quiet week exactly as a milestone
+  // is: the playoff week may already belong to something else.
+  lastSeason: Record<string, SeasonResult>;
+  titles: Array<{ sport: string; year: number }>;
+  pendingTitles: string[];
   // The absolute week the AD offer was last PUT, set when the interrupt
   // fires rather than when it is answered. 0 = never asked.
   //

@@ -1068,6 +1068,34 @@ and sometimes wins → titles raise campus-life standing → a standing the play
 can see a rank for and climb. Every arrow exists after this PR, and none of them
 touched the headline prestige number.
 
+**As implemented:** the loop closes, and the bar it closes at was measured
+rather than assumed.
+
+**A championship is reachable and expensive, in the right proportion.** The
+field-of-eight cut in a sport sits at a strength of about **72**. A team with
+every chair empty scores **31** — nowhere near, correctly. A mid-staffed one
+with a decent director lands around **71**, which misses by a point and is the
+most useful number in the feature: the department that has *nearly* done enough
+finds out by not qualifying. Only real coaches, a high recruiting budget and a
+good director seed near the top.
+
+**The sim wins nothing, and that is the loop working.** All seven scripted
+strategies end forty years with **zero** national titles, because none of them
+hires a coach — they take the AD offer and otherwise leave every chair empty.
+That is the correct result, not a gap: a department nobody staffs should not win
+championships. It does mean the harness never exercises the title path, so
+`test/playoffs.test.ts` covers it directly, including that an elite program
+qualifies every year and converts some but not all of those appearances.
+
+**One wording defect, found by photographing the modal** (the 2D habit,
+retained): the title count read *"Titles in Men's Soccer Team"* — `teamName`
+carries a trailing "Team" that is right in a sentence and wrong in a label that
+already says what it is counting, and it wrapped the heading onto two lines.
+
+**And the deferral held.** Nothing here grew a schedule. The check that says so
+is in the test file rather than the prose: a full year of ticks raises no
+athletics interrupt at all, and the postseason still produces a result.
+
 **The documents this falsifies, fixed here.**
 `docs/design/student-life.md`'s flat *"no match simulation and no schedules"* —
 which stays true of schedules and needs a sentence about what a bracket is and

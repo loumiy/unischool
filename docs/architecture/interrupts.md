@@ -39,6 +39,13 @@ Everything that needs to stop time rides on this one mechanism:
   clock, awarded when an initiative concludes (see
   [research.md](../design/research.md)).
   Publications, grants and breakthroughs never do.
+- **A championship** — the one athletics output momentous enough to stop the
+  clock (see [student-life.md](../design/student-life.md)'s "The postseason").
+  The bracket itself resolves silently inside the weekly tick; only a title
+  raises anything, and it **queues** (`orgs.pendingTitles`) rather than firing
+  on the spot, for the same reason a milestone does — the playoff week may
+  already belong to something else. Drained one at a time: two titles in one
+  year are two different teams and do not read as one modal.
 - **Greek-life decisions** — the Hellenic Council opt-in, chapter scandals
   and chapter-housing petitions (see
   [student-life.md](../design/student-life.md)). These are

@@ -679,6 +679,7 @@ interface EventTally {
   // for a slot the way `greekEventsSeen` does.
   varsityPetitions: number;
   varsityGranted: number;
+  titles: number; // championships won over the run (see systems/athletics/playoffs.ts)
 }
 
 // The scripted player's event policy: take the FIRST affordable choice —
@@ -755,7 +756,7 @@ export function play(
     demandsRaised: 0, demandsMet: 0, demandsFailed: 0, demandSubjects: {},
     schoolsNamed: 0, chaptersFormed: 0, chaptersAskedForHousing: 0,
     hellenicCouncilYear: null, hellenicCouncilEligibleYear: null, studentCenterYear: null,
-    eventFireCounts: {}, varsityPetitions: 0, varsityGranted: 0,
+    eventFireCounts: {}, varsityPetitions: 0, varsityGranted: 0, titles: 0,
   };
 
   while (s.clock.year <= years) {
@@ -825,6 +826,14 @@ export function play(
         // and changes nothing mechanical (it renames the school), so
         // there is no trajectory to compare the other answer against.
         dispatch({ type: 'RESOLVE_CHARTER', accept: true });
+      } else if (s.pendingInterrupt.type === 'championship') {
+        // Read and leave, like the U.S. News report. Answered by name rather
+        // than left to the fallback so the tally below can count titles — and
+        // so a new interrupt type can never again be silently dismissed by a
+        // harness that does not know it exists (see the athletic-director
+        // branch below for what that cost last time).
+        tally.titles += 1;
+        dispatch({ type: 'RESOLVE_CHAMPIONSHIP' });
       } else if (s.pendingInterrupt.type === 'athletic-director') {
         // The scripted player takes the MIDDLE candidate: the three differ
         // only in how much of the department's budget goes to the person
@@ -1010,6 +1019,7 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
     `   varsity athletics: ${last.sportClubs} sport clubs, ${last.varsityActive} active teams, ` +
     `${last.varsityAwaiting} awaiting venue at close; ${tally.varsityGranted}/${tally.varsityPetitions} petitions granted; ` +
     `${fmt(last.athleticsUpkeep)}/wk upkeep (${athleticsShare.toFixed(2)}% of opex); ` +
+    `${run.tally.titles} national title${run.tally.titles === 1 ? '' : 's'}; ` +
     `${tally.varsityPetitions} of ${tally.decisions} decision events were varsity petitions; ` +
     `venues built: ${run.venuesBuilt.length > 0 ? run.venuesBuilt.join(', ') : 'none'}`,
   );
