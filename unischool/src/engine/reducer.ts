@@ -6,8 +6,7 @@ import { createInitialState, createPreStartState } from '../state/actions';
 import { tickFinance, endowmentCampaign } from '../systems/finance/financeSystem';
 import {
   tickTech, canStartDevelopment, startDevelopment, eligibleInstructors, isCommitted,
-  planCommitmentCoverage, developAllPlan,
-  foundProgram, relocateProgram,
+  planCommitmentCoverage, foundProgram, relocateProgram, swapInstructors,
 } from '../systems/techtree/techSystem';
 import { endInitiative } from '../systems/research/researchSystem';
 import { initiativeDepth, initiativeFundingCost } from '../data/researchData';
@@ -925,8 +924,7 @@ export function reducer(state: GameState, action: Action): GameState {
     // dispatched from the panel, and the reason is the auto-resolve: a
     // component dispatching a hundred actions in one handler cannot see
     // the state between any two of them, so it cannot know a modal came up
-    // on week 37 and answer it. This is the same shape
-    // DEVELOP_ALL_AVAILABLE_COURSES already has — a loop over the ordinary
+    // on week 37 and answer it. So it is a loop over the ordinary
     // primitives, inside the reducer, taking no shortcut the single-step
     // version does not take — and it costs one render rather than N.
     case 'DEBUG_JUMP': {
@@ -1013,16 +1011,8 @@ export function reducer(state: GameState, action: Action): GameState {
     // exactly as they would clicking by hand: a course started earlier in
     // the loop can spend the cash or fill the faculty slot a later one
     // needed.
-    case 'DEVELOP_ALL_AVAILABLE_COURSES': {
-      // Driven by the same plan the button quotes (see techSystem.ts's
-      // developAllPlan), so what the player was told it would cost is what
-      // it costs. Each start is still re-checked against the live state as
-      // the cash and the slots go: the plan decides WHICH, and
-      // canStartDevelopment remains the authority on whether.
-      for (const id of developAllPlan(s).ids) {
-        const node = s.tech.find((t) => t.id === id);
-        if (node && canStartDevelopment(s, node)) startDevelopment(s, node);
-      }
+    case 'SWAP_COURSE_FACULTY': {
+      swapInstructors(s, action.courseA, action.courseB);
       return s;
     }
 

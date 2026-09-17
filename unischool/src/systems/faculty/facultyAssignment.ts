@@ -107,6 +107,21 @@ export function courseQuality(s: GameState, t: Buildable, loads?: FacultyLoads):
   });
 }
 
+// What a course WOULD be graded with this person teaching it — the number
+// behind the instructor picker's chips and the swap preview while a chip
+// is dragged. The load passed is what theirs would become: their current
+// count plus this course, unless they already teach it.
+export function projectedQuality(s: GameState, t: Buildable, f: Faculty, loads?: FacultyLoads): CourseQuality {
+  const load = (loads ?? facultyLoads(s)).get(f.id) ?? 0;
+  return qualityOf({
+    teaching: f.teaching,
+    acclaim: f.acclaim,
+    load: s.courseFaculty[t.id] === f.id ? load : load + 1,
+    slots: f.courseSlots,
+    tier: tierOf(t.id),
+  });
+}
+
 // What one course contributes to an AGGREGATE (a major's grade, a
 // school's, the campus mean), which is not the same question as what
 // grade its own card shows.

@@ -398,43 +398,6 @@ export function neededFacultyFields(s: GameState): Set<string> {
 // placeable Buildable's PLACE_BUILDABLE still asks (a building is not
 // taught by anyone) and what the UI asks when it only needs to know
 // whether a course is startable AT ALL before offering the picker.
-// WHAT "DEVELOP ALL" WOULD ACTUALLY DO, worked out before it does it.
-//
-// Two callers need the same answer: the reducer, which starts the courses,
-// and the Curriculum tab's button, which has to say how many and at what
-// total cost BEFORE the click — at a large catalogue that is a substantial
-// sum, and it used to be invisible until it had been spent.
-//
-// It cannot be "every course that passes canStartDevelopment right now",
-// because each start spends cash and takes a faculty slot, so the later
-// courses in the sweep are checked against a poorer, fuller school than
-// the earlier ones. This walks s.tech in the same order the reducer does,
-// carrying the running cash and per-field slot usage with it, which is what
-// makes the figure on the button the figure the player is charged.
-//
-// Deliberately no clone of the state: the tab recomputes this whenever the
-// state changes, and a structuredClone of the whole GameState per render is
-// a real cost for a button label.
-export function developAllPlan(s: GameState): { ids: string[]; cost: number } {
-  let cash = s.finance.cash;
-  const takenSlots = new Map<string, number>();
-  const ids: string[] = [];
-
-  for (const node of s.tech) {
-    if (node.kind !== 'course' || node.status !== 'available') continue;
-    if (node.cost > cash) continue;
-    if (node.requiresFaculty) {
-      const field = node.requiresFaculty;
-      const taken = takenSlots.get(field) ?? 0;
-      if (usedFacultySlots(s, field) + taken >= totalFacultySlots(s, field)) continue;
-      takenSlots.set(field, taken + 1);
-    }
-    cash -= node.cost;
-    ids.push(node.id);
-  }
-  return { ids, cost: s.finance.cash - cash };
-}
-
 export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: string): boolean {
   // A course of a program in transit (Plan 14's PR F) cannot be started:
   // its program is between buildings.
@@ -467,10 +430,10 @@ export function startDevelopment(s: GameState, node: Buildable, facultyId?: stri
   // An omitted facultyId auto-picks the strongest eligible teacher rather
   // than leaving the course unstaffed. That path is deliberately NOT the
   // player's: the UI always passes an explicit choice, because the choice
-  // is the feature. It exists for the two callers that are not a player
-  // making one — the playtest-only "Develop All" button and the headless
-  // balance sim — where a forced pick would be noise, and for a course
-  // with no faculty field at all, which simply records nothing.
+  // is the feature. It exists for the one caller that is not a player
+  // making one — the headless balance sim — where a forced pick would be
+  // noise, and for a course with no faculty field at all, which simply
+  // records nothing.
   if (node.requiresFaculty) {
     const chosen = facultyId ?? eligibleInstructors(s, node)[0]?.id;
     if (chosen) s.courseFaculty[node.id] = chosen;
@@ -719,6 +682,43 @@ function tickTransit(s: GameState): void {
       }
     }
   }
+}
+
+// ---------------------------------------------------------------------
+// SWAPPING INSTRUCTORS (Plan 14's PR G). The Curriculum tab's faculty
+// chips drag between courses; a drop swaps who teaches what. A swap is
+// legal when both courses are offered and staffed by different people in
+// the same department, each of whom could teach the other's course
+// (eligibleInstructors, with their own course excepted — a swap changes
+// nobody's load), and neither program is in transit. Anything else is a
+// no-op and both professors stay where they were: nothing is ever
+// displaced to unassigned behind the player's back.
+// ---------------------------------------------------------------------
+export function canSwapInstructors(s: GameState, courseA: string, courseB: string): boolean {
+  if (courseA === courseB) return false;
+  const a = s.tech.find((t) => t.id === courseA);
+  const b = s.tech.find((t) => t.id === courseB);
+  if (!a || !b || !isOffered(a) || !isOffered(b)) return false;
+  if (!a.requiresFaculty || a.requiresFaculty !== b.requiresFaculty) return false;
+  const fa = s.courseFaculty[courseA];
+  const fb = s.courseFaculty[courseB];
+  if (!fa || !fb || fa === fb) return false;
+  for (const id of [courseA, courseB]) {
+    const programId = programOfCourse(id);
+    if (programId !== undefined && isInTransit(s, programId)) return false;
+  }
+  // Each professor keeps the slot their own course holds — a swap changes
+  // nobody's load — so each is judged for the other's course with their
+  // own course excepted (see eligibleInstructors's `except`).
+  return eligibleInstructors(s, b, courseA).some((f) => f.id === fa)
+    && eligibleInstructors(s, a, courseB).some((f) => f.id === fb);
+}
+
+export function swapInstructors(s: GameState, courseA: string, courseB: string): void {
+  if (!canSwapInstructors(s, courseA, courseB)) return;
+  const fa = s.courseFaculty[courseA];
+  s.courseFaculty[courseA] = s.courseFaculty[courseB];
+  s.courseFaculty[courseB] = fa;
 }
 
 // The hall a course's program lives in, for anything that wants to say

@@ -112,7 +112,6 @@ Two consequences worth knowing:
 - `DEBUG_JUMP` loops **inside** the reducer rather than dispatching TICKs from
   the panel. A component cannot see the state between two of its own
   dispatches, so it cannot notice a modal came up on week 37 and answer it.
-  This is the shape `DEVELOP_ALL_AVAILABLE_COURSES` already has.
 - `DEBUG_SET_PRESTIGE` writes through `setPrestigeForPlaytest` in
   `prestigeSystem.ts`, not in the reducer: `test/invariants.test.ts` section 5
   confines every writer of `s.self.reputation` to three files, and that

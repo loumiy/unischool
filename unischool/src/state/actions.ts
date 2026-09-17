@@ -53,9 +53,8 @@ export type Action =
   // tab ALWAYS supplies one — choosing who teaches a course is the point of
   // the interaction, and the assignment is written in the same transaction
   // as the start (see techSystem.ts's startDevelopment), so a developing
-  // course is never without a teacher. It is optional only for the two
-  // callers that are not a player making a choice: the playtest-only
-  // DEVELOP_ALL_AVAILABLE_COURSES button and the headless balance sim, both
+  // course is never without a teacher. It is optional only for the one
+  // caller that is not a player making a choice: the headless balance sim,
   // of which let the engine take the strongest eligible teacher instead.
   | { type: 'START_DEVELOPMENT'; nodeId: string; facultyId?: string }
   // Founds a program (Plan 14): takes an empty slot in a standing hall and
@@ -298,16 +297,12 @@ export type Action =
   | { type: 'DEBUG_FORCE_MILESTONE' }
   // Publishes the U.S. News report now, off this week's standings.
   | { type: 'DEBUG_FORCE_REPORT' }
-  // Starts development on every currently 'available' course in one shot
-  // (see CurriculumTab.tsx's "Develop All" button) — a shortcut for
-  // clicking each one individually, not a new capability: it goes through
-  // the exact same canStartDevelopment/startDevelopment pair START_DEVELOPMENT
-  // uses, course by course, so cash and faculty-slot limits still apply
-  // exactly as they would one click at a time. NOT playtest-only, despite
-  // where it started: it charges normally and reveals nothing, so it works
-  // inside the game's constraints rather than breaking them (see the
-  // button's own note in CurriculumTab.tsx, and .develop-all-btn).
-  | { type: 'DEVELOP_ALL_AVAILABLE_COURSES' }
+  // Swaps the instructors of two offered courses in the same department
+  // (Plan 14's PR G — the Curriculum tab's drag-and-drop chips). Atomic:
+  // both change or neither does, and a drop that is not a legal swap is a
+  // no-op — nothing is ever displaced to unassigned behind the player's
+  // back. See techSystem.ts's swapInstructors for the gate.
+  | { type: 'SWAP_COURSE_FACULTY'; courseA: string; courseB: string }
   // Renovates the tier-1 library in place for more capacity (see
   // facilitiesData.ts's nextLibraryFloor) — puts that SAME already-placed
   // Buildable back into 'developing' at its existing spot rather than

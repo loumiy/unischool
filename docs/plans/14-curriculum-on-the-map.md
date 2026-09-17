@@ -9,7 +9,7 @@ repeatable academic halls with six program slots, programs founded from a
 rolling offer of three, and a Curriculum tab that becomes forty-two rows — and
 turn them into an ordered sequence of PRs.*
 
-**Status: In progress.** PRs A through F have landed. Depends on
+**Status: In progress.** PRs A through G have landed. Depends on
 [Plan 09](09-playtest-harness.md) for the scenarios and the scorecard this is
 measured with. Supersedes
 [Plan 11](11-academic-halls.md), whose rooms-and-continuous-development model
@@ -441,6 +441,20 @@ program**, which is the view the progression actually has now.
 **Verify.** A year-15 scenario shows forty-two rows sorted into colour blocks,
 three of them unnamed; dragging a distinguished professor from a survey to a
 capstone previews both grades and applies both.
+
+**As implemented:** the tier-1 pool went in 14C, so this PR deletes only the
+button, its plan function, its action and its test. The rows are grouped
+under their school with the general-education core as the first group; an
+unfounded school's heading is its mark and "3 programs of a school not yet
+founded", never its name. Drops are HTML5 drag-and-drop with the whole of
+the state (which chip, which cell) in the tab, and the swap is its own
+action, `SWAP_COURSE_FACULTY`, gated in one place so an illegal drop never
+reaches the reducer and a legal one changes both courses or neither. The
+preview reads `projectedQuality`, the same arithmetic the instructor picker
+shows. The two-level view (school cards, then lanes) goes entirely; "open
+the tab at a school" from the map scrolls to the school's group instead. The
+year-15 scenario is 14I's, once the harness founds programs the way a
+player does.
 
 ## PR 14H — The market as a gate, and a search worth paying for
 

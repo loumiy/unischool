@@ -200,15 +200,6 @@ button { cursor: pointer; font-family: inherit; }
 .speeds button.sandbox.active { background: #a67c1c; color: #14161a; border-color: #a67c1c; }
 /* The playtest-only "+$1B" grant button — same sandbox palette as the
    Fast speed button, so both read as the same "not normal play" register. */
-/* Develop All (CurriculumTab.tsx). An ordinary control now rather than a
-   playtest one, so it wears the panel's own register rather than the
-   dashed sandbox outline the +$1B grant keeps: it works inside the game's
-   constraints instead of breaking them. It carries a price, so it reads
-   like the other things in the game that do. */
-.develop-all-btn { background: #f0e8d1; color: var(--ink); border: 1px solid var(--gold-dim);
-  border-radius: var(--radius-sm); padding: 3px 10px; font-family: var(--mono);
-  font-size: var(--text-xs); white-space: nowrap; }
-.develop-all-btn:hover { background: var(--gold-dim); color: #fff8e8; }
 
 /* ---------------------------------------------------------------------
    THE PLAYTEST PANEL (DebugPanel.tsx). Deliberately NOT parchment: this is
@@ -1319,65 +1310,57 @@ button.build-tile { font-family: inherit; }
 .curriculum-crumbs .crumb-sep { color: var(--ink-muted); }
 .curriculum-crumbs .crumb-current { color: var(--ink); }
 
-/* LEVEL 1 — one card per school. Breadth as a ring, quality as a grade,
-   side by side, so a school can visibly be one without the other. */
-.school-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(258px, 1fr)); gap: 12px; }
-.school-card { display: flex; flex-direction: column; gap: 10px; width: 100%; text-align: left;
-  padding: 14px 16px; background: #fffdf6; border: 1px solid var(--gold-dim);
-  border-radius: var(--radius-lg); cursor: pointer; }
-.school-card:hover { border-color: var(--gold); background: #fff5da; transform: translateY(-1px);
-  box-shadow: var(--shadow-1); }
-.school-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-.school-card-name { font-family: var(--serif); font-size: var(--text-md); font-weight: 700;
-  line-height: 1.2; color: var(--ink); }
-.school-card-body { display: flex; align-items: center; gap: 12px; }
-.school-card-stats { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.school-card-count { font-family: var(--mono); font-size: var(--text-base); font-weight: 700; color: var(--ink); }
-.school-card-sub { font-size: var(--text-xs); color: var(--ink-muted); }
-
+/* THE ROWS (Plan 14's PR G). One row per program, grouped under its
+   school. A school's group carries its colour as --school-hue (see
+   data/schoolPalette.ts) on a left rule and its mark; its name appears in
+   the heading only once the school is founded. A row is nine cells in tier
+   order with a rule between the bands (after the entry course, and after
+   the tier-2 quartet); cells COMPRESS to fit — titles truncate — and the
+   container scrolls sideways only as a narrow-viewport fallback. */
 .pool-caption { margin: 0 0 8px; font-size: var(--text-sm); color: var(--ink-muted); font-style: italic; }
+.school-group { margin-bottom: 18px; padding-left: 12px; border-left: 4px solid var(--school-hue, var(--gold-dim)); }
+.school-group.core { border-left-color: var(--gold-dim); }
+.school-group-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.school-group-head h3 { margin: 0; font-family: var(--serif); font-size: var(--text-md); color: var(--ink); }
+.school-group-mark { color: var(--school-hue, var(--ink)); font-size: var(--text-md); line-height: 1; }
+.school-group-unnamed { font-style: italic; font-weight: 400; color: var(--ink-muted); }
+.program-rows { display: flex; flex-direction: column; gap: 8px; overflow-x: auto; }
+.program-row { border: 1px solid var(--gold-dim); border-left: 3px solid var(--school-hue, var(--gold-dim));
+  border-radius: var(--radius-md); background: #fffdf6; padding: 6px 9px 8px; min-width: 480px; }
+.program-row.graduate { border-style: dashed; border-left-style: solid; }
+.program-row.core { border-left-color: var(--gold-dim); }
+.program-row-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 5px; }
+.program-row-head h4 { margin: 0; font-family: var(--serif); font-size: var(--text-sm); color: var(--ink); }
+.program-row-hall { font-size: var(--text-2xs); color: var(--ink-muted); }
+.program-row-cells { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px; align-items: stretch; }
+/* The rules between the tier bands: before the second cell (tier 2 begins)
+   and before the sixth (tier 3 begins). */
+.program-row-cells:not(.graduate):not(.core) > :nth-child(2),
+.program-row-cells:not(.graduate):not(.core) > :nth-child(6) { margin-left: 6px; position: relative; }
+.program-row-cells:not(.graduate):not(.core) > :nth-child(2)::before,
+.program-row-cells:not(.graduate):not(.core) > :nth-child(6)::before {
+  content: ''; position: absolute; left: -6px; top: 4px; bottom: 4px; border-left: 1px solid var(--gold-dim); }
+.program-row-cells .course-cell { min-height: 54px; padding: 5px 6px; }
+.program-row-cells .cell-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.course-cell.placeholder { border: 1px dashed var(--parchment-line); border-radius: var(--radius-md); background: transparent; min-height: 54px; }
 
-/* LEVEL 2 — a school's majors as lanes. T1 leads at full width because it
-   is the gateway; the chevrons between bands replace sixteen prereq lines
-   per major. An empty band is DRAWN rather than omitted, so a lane keeps
-   its shape as it fills and majors stay comparable down the column. */
-.school-lanes { display: flex; flex-direction: column; gap: 14px; }
-.lane { border: 1px solid var(--gold-dim); border-radius: var(--radius-lg); background: #fffdf6;
-  padding: 11px 13px 13px; }
-.lane.graduate { border-style: dashed; }
-.lane-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 9px; }
-.lane-head h4 { margin: 0; font-family: var(--serif); font-size: var(--text-base); color: var(--ink); }
-.lane-count { margin-left: auto; font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-muted); }
-/* align-items: start, not stretch. A band holds one row of cards and must
-   size to them: stretching made a major's single entry course grow to the
-   height of whatever the widest band happened to wrap to, which drew a
-   tall empty box around two lines of text. */
-.lane-bands { display: grid; grid-template-columns: minmax(140px, 1fr) auto minmax(0, 2fr) auto minmax(0, 2fr);
-  gap: 8px; align-items: start; }
-.lane-bands.graduate { grid-template-columns: minmax(0, 1fr); }
-.lane-chevron { align-self: center; color: var(--gold-dim); font-size: 20px; line-height: 1; padding-top: 20px; }
-.tier-band { display: grid; gap: 7px; }
-.tier-band.tier1 { grid-template-columns: minmax(0, 1fr); }
-/* EXACTLY FOUR, never auto-fill. A major's tier-2 and tier-3 are authored
-   as quartets (techData.ts's 1/4/4 shape), so the band is four columns by
-   definition — and auto-fill with a min width wraps them to 3+1 the moment
-   the column is a few pixels short, which turns "one band" into two rows
-   and destroys the thing the layout exists to show. Cards narrow instead. */
-.tier-band.tier2, .tier-band.tier3 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-/* A graduate programme has no quartet — its courses are however many they
-   are, so that one band does auto-fill. */
-.lane-bands.graduate .tier-band { grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); }
-.tier-band.empty { display: flex; align-items: center; justify-content: center; min-height: 58px;
-  border: 1px dashed var(--gold-dim); border-radius: var(--radius-md); padding: 8px 10px;
-  color: var(--ink-muted); font-size: var(--text-xs); font-style: italic; text-align: center; }
-/* Tier carries visual weight: the entry course is the one the player acts
-   on first and the capstones are the ones that distinguish a program, so
-   they read differently from the four courses in between. */
-.tier-band.tier1 .course-cell { min-height: 72px; }
-.tier-band.tier3 .course-cell { border-left-width: 3px; }
-/* Four across is tight, so the band's cards drop a little padding and let
-   long titles wrap rather than being clipped. */
-.tier-band.tier2 .course-cell, .tier-band.tier3 .course-cell { padding-left: 7px; padding-right: 7px; }
+/* THE FACULTY CHIP: portrait, surname, grade. Draggable where it sits in
+   a row; the cell it can be dropped on lifts while a chip is in the air,
+   and both cells show what their grade would become. */
+.instructor-chip { display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; max-width: 100%;
+  padding: 1px 5px 1px 2px; border-radius: 999px; background: #f3ead2; border: 1px solid var(--parchment-line);
+  font-size: var(--text-2xs); color: var(--ink); line-height: 1; }
+.instructor-chip.draggable { cursor: grab; }
+.instructor-chip.draggable:active { cursor: grabbing; }
+.instructor-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.instructor-chip-grade { font-weight: 700; }
+.course-cell.done .instructor-chip { background: rgba(255, 253, 246, 0.85); }
+.course-cell.drag-source { outline: 2px dashed var(--gold); outline-offset: 1px; }
+.course-cell.drop-target { box-shadow: inset 0 0 0 2px var(--gold-dim); }
+.course-cell.drop-over { box-shadow: inset 0 0 0 2px var(--gold); background: #fff5da; }
+.swap-preview { display: block; margin-top: 2px; font-family: var(--mono); font-size: var(--text-2xs); font-weight: 700; color: var(--ink-muted); }
+.swap-preview.up { color: #3f6b2a; }
+.swap-preview.down { color: var(--danger-line); }
 
 /* The worklist a filter produces: the same cells, flat, each saying where
    it lives so the answer includes how to get there. */

@@ -1,0 +1,118 @@
+// ---------------------------------------------------------------------
+// Swapping instructors (Plan 14's PR G — see techSystem.ts's
+// swapInstructors and the reducer's SWAP_COURSE_FACULTY). The Curriculum
+// tab's faculty chips drag between courses; a drop swaps who teaches what.
+// A legal swap changes both courses; an illegal one — wrong department,
+// somebody full, a program in transit, an unstaffed course — changes
+// neither, and nothing is ever displaced to unassigned.
+//
+// Not part of the game: nothing imports it. Run with `npm test`.
+// ---------------------------------------------------------------------
+
+import { createInitialState } from '../src/state/actions';
+import { reducer } from '../src/engine/reducer';
+import { canSwapInstructors } from '../src/systems/techtree/techSystem';
+import { projectedQuality } from '../src/systems/faculty/facultyAssignment';
+import type { Faculty, GameState } from '../src/state/types';
+
+let seed = 909;
+Math.random = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+const store = new Map<string, string>();
+(globalThis as unknown as { localStorage: unknown }).localStorage = {
+  getItem: (k: string) => (store.has(k) ? store.get(k)! : null),
+  setItem: (k: string, v: string) => { store.set(k, String(v)); },
+  removeItem: (k: string) => { store.delete(k); },
+};
+
+let checks = 0;
+let failures = 0;
+function assert(cond: boolean, msg: string): void {
+  checks += 1;
+  if (!cond) {
+    failures += 1;
+    console.error(`  ✗ ${msg}`);
+  }
+}
+
+function hire(s: GameState, id: string, field: string, teaching: number, courseSlots = 3): Faculty {
+  const f: Faculty = {
+    id, name: `Dr. ${id}`, field,
+    teaching, research: 50, teachingPotential: teaching, researchPotential: 50,
+    tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: 0, courseSlots,
+    nationality: 'United States', flag: '🇺🇸', bio: 'A test fixture, not a character.', gender: 'female', heritage: 'Anglo/Western European',
+  };
+  s.faculty.push(f);
+  return f;
+}
+
+// Two English professors on the two English gen-ed courses — the pairing
+// that exists at founding, but with the weaker one on the harder course.
+function staffed(): GameState {
+  const s = createInitialState('Swappers');
+  s.faculty = s.faculty.filter((f) => f.field !== 'English');
+  hire(s, 'strong', 'English', 90);
+  hire(s, 'weak', 'English', 40);
+  for (const [id, who] of [['GE110', 'weak'], ['GE160', 'strong']] as const) {
+    s.tech.find((t) => t.id === id)!.status = 'done';
+    s.courseFaculty[id] = who;
+  }
+  return s;
+}
+
+console.log('instructor swap tests');
+
+// ---- a legal swap changes both ----
+{
+  let s = staffed();
+  assert(canSwapInstructors(s, 'GE110', 'GE160'), 'two staffed courses in one department can swap');
+  const a = s.tech.find((t) => t.id === 'GE110')!;
+  const strong = s.faculty.find((f) => f.id === 'strong')!;
+  const previewA = projectedQuality(s, a, strong);
+  s = reducer(s, { type: 'SWAP_COURSE_FACULTY', courseA: 'GE110', courseB: 'GE160' });
+  assert(s.courseFaculty['GE110'] === 'strong' && s.courseFaculty['GE160'] === 'weak', 'the two instructors trade courses');
+  assert(previewA.grade !== undefined, 'the preview computed a grade for the incoming professor');
+  // Symmetric: swapping back restores it.
+  s = reducer(s, { type: 'SWAP_COURSE_FACULTY', courseA: 'GE160', courseB: 'GE110' });
+  assert(s.courseFaculty['GE110'] === 'weak' && s.courseFaculty['GE160'] === 'strong', 'and the swap is symmetric');
+}
+
+// ---- illegal drops change nothing ----
+{
+  const s = staffed();
+  const before = JSON.stringify(s.courseFaculty);
+  // Wrong department.
+  s.tech.find((t) => t.id === 'GE120')!.status = 'done';
+  s.courseFaculty['GE120'] = 'f4'; // Mathematics
+  assert(!canSwapInstructors(s, 'GE110', 'GE120'), 'a course in another department is not a legal target');
+  // The same course, or the same person.
+  assert(!canSwapInstructors(s, 'GE110', 'GE110'), 'a course cannot swap with itself');
+  s.courseFaculty['GE160'] = 'weak';
+  assert(!canSwapInstructors(s, 'GE110', 'GE160'), 'two courses taught by the same person have nothing to swap');
+  s.courseFaculty['GE160'] = 'strong';
+  // An unstaffed course.
+  delete s.courseFaculty['GE160'];
+  assert(!canSwapInstructors(s, 'GE110', 'GE160'), 'an unstaffed course is not a swap — nobody is displaced to unassigned');
+  s.courseFaculty['GE160'] = 'strong';
+  // An undeveloped course.
+  assert(!canSwapInstructors(s, 'GE110', 'GE130'), 'a course not yet offered is not a target');
+  // The reducer refuses all of it silently.
+  const after = reducer(JSON.parse(JSON.stringify(s)) as GameState, { type: 'SWAP_COURSE_FACULTY', courseA: 'GE110', courseB: 'GE130' });
+  assert(JSON.stringify(after.courseFaculty) === JSON.stringify(s.courseFaculty), 'a refused swap writes nothing');
+  assert(JSON.stringify({ ...s.courseFaculty, GE120: undefined }).includes('weak') && before.length > 0, 'fixture intact');
+}
+
+// ---- a swap never needs a slot, so a full professor can still trade ----
+{
+  const s = staffed();
+  s.faculty.find((f) => f.id === 'strong')!.courseSlots = 1;
+  s.faculty.find((f) => f.id === 'weak')!.courseSlots = 1;
+  assert(canSwapInstructors(s, 'GE110', 'GE160'), 'two professors each at their one-course ceiling can still swap — nobody gains a course');
+}
+
+if (failures === 0) {
+  console.log(`  ✓ all ${checks} checks passed`);
+  process.exit(0);
+} else {
+  console.error(`\n${failures} of ${checks} checks FAILED`);
+  process.exit(1);
+}
