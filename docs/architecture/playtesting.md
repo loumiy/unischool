@@ -50,8 +50,13 @@ npm run scenario -- --strategy Completionist --year 22 --vernacular gothic \
   --name Blackmoor --clear-modal /tmp/gothic.json   # a campus to photograph
 ```
 
-A scenario is a **recipe, never a file**: a strategy, a year, and an optional
-stopping point, in `tools/scenarios.ts`. `npm run scenario` plays the real
+A scenario is a **recipe, never a file**: a strategy, a year, an optional
+stopping point and, since Plan 15's PR G, an optional `mutate` step that
+breaks the school after the run (the `crisis` scenario stands a balanced
+school up at year 15 and puts it in the hole — satisfaction 35, a body half
+again too big, cash gone — the state `test/balance-regression.test.ts` hands
+back to the Balanced builder to prove recovery is possible), in
+`tools/scenarios.ts`. `npm run scenario` plays the real
 reducer forward and writes a real save (`persistence.ts`'s `SavePayload` at
 the current `SAVE_VERSION`), so nothing generated is committed and nothing
 needs migrating. A committed save would be a few hundred KiB and stale the
@@ -186,22 +191,27 @@ npm run sim -- --compare last.json       # print what moved against them
 npm run milestones -- 40 earnest         # when each thing happened for the first time
 ```
 
-`sim/reference.ts` records what each strategy's trajectory currently looks
-like — cash, enrolment, prestige, net margin as a share of opex, weeks in the
-red, at years 5, 10, 20, 30 and 40, each band the recorded run ±25% with an
-absolute floor. Every table printed by `npm run sim` is followed by its
-scorecard: one line per figure outside its band.
+`sim/reference.ts` holds two kinds of band, read at years 5, 10, 20, 35 and
+50 — the early pinch, the build-out, the review's horizon, the end of
+build-out, the endpoint — for cash, enrolment, prestige, rank, net margin as
+a share of opex, and weeks in the red. **`TARGETS`** are hand-written: Plan
+15 §6's table for the Balanced builder and the plan's own sentences for the
+two controls (the Idle school falls; the Overbuilder is underwater by year 5),
+the design decision recorded as data, with the fitted game's deviations noted
+above them. **`REFERENCE`** is generated: where every other strategy *is*, as
+the envelope of three seeds (the default plus `REFERENCE_EXTRA_SEEDS`) at ±25%
+with an absolute floor, written by `npm run sim -- --write-reference` — a
+band fitted to one seed is a claim about that seed. Every table printed by
+`npm run sim` is followed by its scorecard: one line per figure outside its
+band.
 
-**These bands are a statement of where the game IS, not where it should be.**
-They were generated, not chosen, and several of them describe figures the
-September review called broken. When a rebalance edits a band, *that edit is
-the design decision*, recorded as data, and the run that then falls inside it
-is the evidence.
-
-`test/balance-scorecard.test.ts` runs the default seed, prints the
-out-of-band list and **passes regardless**. A hard gate would be red from the
-day it landed until the rebalance finished, which is a gate nobody reads. Its
-header names the PR where the flag flips.
+`test/balance-scorecard.test.ts` plays every strategy on the default seed at
+the full fifty-year horizon and **fails** on any figure outside its band
+(Plan 15's PR G flipped it; Plan 09 wrote it to report). A failure is a
+regression, or a re-fit that has not re-recorded the reference. When a
+change moves a trajectory on purpose, re-run `--write-reference` and commit
+the envelope — and if it moves a target, edit the target and say why in the
+comment above it.
 
 ### Reading a strategy's run
 
@@ -231,6 +241,17 @@ own policy, written down. It is the run the design plans are about, and at
 the review's own seed (4242) it reproduces that appendix closely. It is also
 the only strategy that hires a coach, and therefore the only one that has
 ever won a national title.
+
+Since Plan 15 the harness knows two things about the game it did not need
+to before. **Seats before beds:** the freshman class is capped by the
+catalogue's seats, so a prudent strategy founds programs and sites halls
+while seats are the binding constraint, and saves for those rather than for
+a dorm; the two spend-to-the-wire archetypes keep overreaching on beds. And
+**halls stay pure** for every policy but the scatterer, because a hall of
+one school is what founds it and concentration is thirty points of standing
+— which means a hall is sited whenever none of the three offers fits the
+slots there are. `play()` also takes a `from` state, so a run can continue
+where another left off; the recovery assertion is built on it.
 
 ## When you add something
 

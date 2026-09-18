@@ -104,8 +104,8 @@ const PRESTIGE_DRIFT_RATE = 0.0025;
 // roughly unchanged by the new model; fall is more than three times it.
 // Both are shares of the gap between prestige and the year score. PR G of
 // Plan 15 fits them against the scorecard.
-export const PRESTIGE_RISE_RATE = 0.12;
-export const PRESTIGE_FALL_RATE = 0.40;
+export const PRESTIGE_RISE_RATE = 0.20;
+export const PRESTIGE_FALL_RATE = 0.30;
 
 // The weekly tremor between summers: a tenth of the old weekly rate. If it
 // reads as noise in playtest, drop it; the summer step is the beat.
@@ -720,7 +720,7 @@ export function concentrationScore(s: GameState): number {
 // the same rule computeSatisfactionBreakdown and the demand system both
 // apply: students cannot be crowded out of a building the campus is too
 // small to have a use for.
-const CROWDING_GRACE = 0.9;
+const CROWDING_GRACE = 0.85;
 
 const COVERAGE_LABELS: Record<keyof SatisfactionAttributes, string> = {
   academic: 'library',

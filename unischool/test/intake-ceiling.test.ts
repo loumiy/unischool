@@ -14,7 +14,7 @@ import { reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { projectAdmissions } from '../src/systems/admissions/admissionsSystem';
 import { intakeCeiling, instructionCapacity, SEATS_PER_COURSE } from '../src/systems/techtree/instructionCapacity';
-import { servicesMultiplier, SERVICES_CROWDING_AT_FULL, financeBreakdown } from '../src/systems/finance/financeSystem';
+import { servicesMultiplier, SERVICES_CROWDING_AT_FULL, SERVICES_PER_STUDENT_PER_WEEK, financeBreakdown } from '../src/systems/finance/financeSystem';
 import { GENED_CORE_IDS, programs } from '../src/data/techData';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../src/state/types';
 import type { GameState } from '../src/state/types';
@@ -121,8 +121,9 @@ console.log('intake ceiling tests');
   empty.halls = {}; // the core unhoused: nothing seats anybody
   assert(instructionCapacity(empty) === 0 && servicesMultiplier(empty) === 2, 'a campus with no seats at all reads the cap');
   s.students.classes = { freshman: capacity, sophomore: 0, junior: 0, senior: 0 };
-  const flow = financeBreakdown(s);
-  assert(near(flow.servicesCost, capacity * 60 * (1 + SERVICES_CROWDING_AT_FULL)), 'and the statement charges the multiplied line');
+  // (the multiplied statement line is asserted below)
+  s.self.reputation = 50; // market rate 1, so the line reads its base
+  assert(near(financeBreakdown(s).servicesCost, capacity * SERVICES_PER_STUDENT_PER_WEEK * (1 + SERVICES_CROWDING_AT_FULL)), 'and the statement charges the multiplied line');
 }
 
 // ---- the summer, through the reducer: the class is held to the room ----

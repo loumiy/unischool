@@ -7,7 +7,7 @@ redesign that answers them, the specialisation term that Plan 14's founded
 schools finally make possible, and the research model the review found inert,
 into an ordered sequence of PRs ending in a single re-fit.*
 
-**Status: In progress.** PRs A through F have landed. Depends on
+**Status: In progress.** PRs A through G have landed. Depends on
 [Plan 14](14-curriculum-on-the-map.md) for halls, slots and founded schools —
 the seats this plan turns into a ceiling and the concentration this plan turns
 into prestige both come from there. Supersedes
@@ -162,6 +162,42 @@ core is seated from founding — and is met when one more course's seats
 exist. Failing a demand still dents satisfaction, which welfare now grades,
 which prestige now reads, so the chain runs by construction. Word of mouth
 is ±0.60.
+
+**As implemented (15G):** the fit found one structural fault first: PR D's
+section cap read *students* per course where the seats read *course
+enrollments*, so a school at its ceiling was already four times over its
+sections; a course now runs up to `SEATS_PER_COURSE × COURSES_PER_STUDENT /
+SECTION_SIZE` sections and is exactly full at the ceiling. Then the one lever
+that makes the found era viable *and* the late game tight: the section and
+services lines carry the same market-rate multiplier the payroll does, so a
+founding school pays the base and a school at prestige 130 pays 3.4× per
+student, which tuition does not match. Fitted values: sections $800 a week,
+services $45 a student, market rate 1.0 at 50 → 3.4 at 130 (cap 4.0), seats
+80 a course (60 strangled the founding body), rise 0.20 and fall 0.30 (the
+plan's 0.12/0.40 left a well-built school in the fifties at year ten and
+turned the found era's dips into collapses), crowding grace 85%, the hall
+chain $750k × 1.3, courses $80k/$180k/$400k by tier. The harness learned
+seats-before-beds and pure halls (see `playtesting.md`), and the Overbuilder
+is priced a third under the balanced ramp instead of at $5,250 — under the
+new cost model a school charging less than a student costs to teach cannot
+exist, and an archetype that dies of its price is not testing beds. Against
+the table: the Balanced builder is inside the enrolment bands from year 20
+and the prestige and rank bands from 35, but its found era is slower (about
+2,000 at year 10) and dips while it builds, its net margin is 25–40% in the
+found and build eras (the surplus is what halls and programs are bought
+with) and 5–15% only from 35, and by 35 it has finished the catalogue and
+sits at the top of the scale — Plan 17's endpoint is where that closes. The
+Idle school falls to the bottom of the field rather than "into the 30s".
+The Overbuilder is underwater by year 5 and *stalls* rather than recovering
+by 15: it hovers at break-even for the rest of the run. The recovery
+scenario is a balanced school broken at year 15 (`intoCrisis` in
+`tools/scenarios.ts`, since no scripted archetype digs a hole that deep any
+more), and the Balanced builder has it above 60 satisfaction within a year
+and climbing in prestige through 25. The bands are three-seed envelopes for
+the generated strategies and hand-written targets for the Balanced builder
+and the two controls, with the deviations recorded above them in
+`sim/reference.ts`; both the scorecard and the regression suite's economy
+claims are hard gates again.
 
 ---
 

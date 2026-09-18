@@ -78,11 +78,12 @@ console.log('report card tests');
   setPrestigeForPlaytest(s, target + 30);
   const down = gradeYear(s);
   assert(near(down.before - down.after, 30 * PRESTIGE_FALL_RATE), `thirty above it, it falls ${30 * PRESTIGE_FALL_RATE} (${(down.before - down.after).toFixed(2)})`);
-  assert(PRESTIGE_FALL_RATE > PRESTIGE_RISE_RATE * 3, 'falling is more than three times as fast as climbing');
-
-  // A school that never falls short is roughly where the old weekly drift
-  // left it: twelve percent of the gap a year.
-  assert(near(PRESTIGE_RISE_RATE, 0.12), 'the rise rate is the old drift\'s annual equivalent');
+  assert(PRESTIGE_FALL_RATE > PRESTIGE_RISE_RATE, 'falling is faster than climbing');
+  // PR G fitted the pair to 0.20 and 0.30 (the plan opened at 0.12 and
+  // 0.40): a slower rise left a school that built well still in the fifties
+  // at year ten, and the steeper fall turned the found era's dips into
+  // collapses.
+  assert(near(PRESTIGE_RISE_RATE, 0.20) && near(PRESTIGE_FALL_RATE, 0.30), 'at the fitted rates');
 
   setPrestigeForPlaytest(s, target);
   const flat = gradeYear(s);

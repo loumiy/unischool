@@ -96,24 +96,34 @@ const UPKEEP_EMPTY_SEAT_MULTIPLIER = 0.5;
 // every student takes COURSES_PER_STUDENT at once, spread evenly across
 // the catalogue — with no per-student state. A course that is offered
 // runs at least one section, however few take it; and it runs at most
-// the sections its seats hold (SEATS_PER_COURSE / SECTION_SIZE — see
-// instructionCapacity.ts), so a small catalogue at a big school runs
-// enormous sections cheaply — and crowds its students, which is what the
-// crowding penalty and Plan 15's intake ceiling are for — while a big
-// catalogue at a small school runs empty sections dearly. The RIGHT
-// catalogue size for a given enrollment becomes a real question whose
-// answer changes as the school grows. Every value here is provisional
-// and PR G fits it.
+// the sections its seats hold — SEATS_PER_COURSE students each taking
+// COURSES_PER_STUDENT courses, in sections of SECTION_SIZE (see
+// instructionCapacity.ts; at the ceiling every section is exactly full)
+// — so a small catalogue at a big school runs enormous sections cheaply
+// — and crowds its students, which is what the crowding penalty and
+// Plan 15's intake ceiling are for — while a big catalogue at a small
+// school runs empty sections dearly. The RIGHT catalogue size for a given
+// enrollment becomes a real question whose answer changes as the school
+// grows. Fitted by PR G against the scorecard.
+//
+// AT MARKET RATE, LIKE SALARIES. A section at a top-20 school is taught,
+// equipped and housed at what top-20 schools pay for those things, so the
+// section cost and the services line carry the same prestige multiplier
+// the payroll does (facultyData.ts's marketRateMultiplier). That is the
+// one lever that makes the founding years viable AND the late game tight:
+// a founding school at prestige 50 pays the base, a school at 130 pays
+// two and a half times it per student, and tuition does not rise that
+// fast. Fitted by PR G.
 export const SECTION_SIZE = 40;               // students a section holds
-export const SECTION_COST = 1_200;            // a week, a section
+export const SECTION_COST = 800;              // a week, a section, at prestige 50
 export const COURSES_PER_STUDENT = 4;         // taken at once
-const MAX_SECTIONS_PER_COURSE = SEATS_PER_COURSE / SECTION_SIZE;
+const MAX_SECTIONS_PER_COURSE = (SEATS_PER_COURSE * COURSES_PER_STUDENT) / SECTION_SIZE;
 
 // SERVICES, PER STUDENT: advising, the registrar, IT, grounds. A flat
 // weekly cost every enrolled student carries, the line that makes the
 // marginal student's profit thin — and, from PR E, the line crowding
 // raises (see servicesMultiplier).
-export const SERVICES_PER_STUDENT_PER_WEEK = 60;
+export const SERVICES_PER_STUDENT_PER_WEEK = 45; // at prestige 50
 
 export interface InstructionDetail {
   courses: number;        // offered ('done')
@@ -146,7 +156,7 @@ export function instructionDetail(s: GameState): InstructionDetail {
     sections,
     fill: Math.min(1, demand / seated),
     overflow: Math.max(0, Math.round((demand - seated) / COURSES_PER_STUDENT)),
-    cost: sections * SECTION_COST,
+    cost: sections * SECTION_COST * marketRateMultiplier(s.self.reputation),
   };
 }
 
@@ -315,7 +325,7 @@ export function instructionCostPerStudentWith(s: GameState, extra: number): numb
   if (courses <= 0) return 0;
   const perCourse = (enrolled * COURSES_PER_STUDENT) / courses;
   const sectionsPerCourse = Math.max(1, Math.min(MAX_SECTIONS_PER_COURSE, Math.ceil(perCourse / SECTION_SIZE)));
-  return (courses * sectionsPerCourse * SECTION_COST) / enrolled;
+  return (courses * sectionsPerCourse * SECTION_COST * marketRateMultiplier(s.self.reputation)) / enrolled;
 }
 
 // What crowding does to the services line (Plan 15's PR E): nothing up to
@@ -389,7 +399,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   const emptySeats = Math.max(s.students.capacity - filledSeats, 0);
   const seatUpkeep = (filledSeats + emptySeats * UPKEEP_EMPTY_SEAT_MULTIPLIER) * UPKEEP_PER_SEAT_PER_WEEK;
   const instructionCost = instructionDetail(s).cost;
-  const servicesCost = enrolled * SERVICES_PER_STUDENT_PER_WEEK * servicesMultiplier(s);
+  const servicesCost = enrolled * SERVICES_PER_STUDENT_PER_WEEK * marketRateMultiplier(s.self.reputation) * servicesMultiplier(s);
   const academicUpkeep = upkeepFor(s, true);
   const facilityUpkeep = upkeepFor(s, false);
   const studentLifeUpkeep = studentOrgUpkeep(s);

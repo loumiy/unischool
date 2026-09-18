@@ -41,8 +41,12 @@ function assert(cond: boolean, msg: string): void {
 }
 const near = (a: number, b: number, eps = 1e-6) => Math.abs(a - b) < eps;
 
+// At prestige 50 exactly, so the market rate is 1 and the section and
+// services lines read their base values.
 function fresh(): GameState {
-  return createInitialState('Costs');
+  const s = createInitialState('Costs');
+  s.self.reputation = 50;
+  return s;
 }
 function withCourses(s: GameState, n: number): void {
   const courses = s.tech.filter((t) => t.kind === 'course');
@@ -64,10 +68,11 @@ console.log('cost model tests');
   const d = instructionDetail(s);
   assert(d.courses === 6, 'six courses offered');
   assert(near(d.perCourse, (350 * COURSES_PER_STUDENT) / 6), 'each carries the body times courses-per-student, spread evenly');
-  const maxSections = SEATS_PER_COURSE / SECTION_SIZE;
-  assert(d.sectionsPerCourse === maxSections, `the founding body overflows six courses, which run their ${maxSections} sections each`);
-  assert(d.sections === 6 * maxSections && d.cost === d.sections * SECTION_COST, 'cost is sections times the section cost');
-  assert(d.overflow > 0 && d.fill === 1, 'and the sections are full with students in overflow');
+  const maxSections = (SEATS_PER_COURSE * COURSES_PER_STUDENT) / SECTION_SIZE;
+  assert(d.sectionsPerCourse === Math.ceil(d.perCourse / SECTION_SIZE), 'each course runs the sections its enrollment needs');
+  assert(d.sectionsPerCourse < maxSections, 'short of the cap for the founding body');
+  assert(d.sections === 6 * d.sectionsPerCourse && d.cost === d.sections * SECTION_COST, 'cost is sections times the section cost');
+  assert(d.overflow === 0 && d.fill > 0.9, 'and the sections run nearly full with nobody in overflow');
   assert(near(financeBreakdown(s).instructionCost, d.cost), 'the statement charges the same line');
 
   // A big catalogue at a small school runs empty sections dearly.
@@ -86,8 +91,12 @@ console.log('cost model tests');
   enrol(crowded, 20_000);
   const c = instructionDetail(crowded);
   assert(c.sectionsPerCourse === maxSections, 'sections cap at what the seats hold');
-  assert(c.cost === d.cost, 'so the bill is the same as for 350 students');
+  assert(c.cost === 6 * maxSections * SECTION_COST, 'so the bill stops growing at the ceiling');
   assert(c.overflow > 19_000, `and the overflow says who is not being taught (${c.overflow.toLocaleString()})`);
+  // At exactly the ceiling every section is full and nobody is over.
+  enrol(crowded, 6 * SEATS_PER_COURSE);
+  const full = instructionDetail(crowded);
+  assert(full.sectionsPerCourse === maxSections && full.fill === 1 && full.overflow === 0, 'at the ceiling the catalogue is exactly full');
 
   // The projection with more courses is the same model.
   assert(near(instructionCostPerStudentWith(s, 0), instructionCostPerStudent(s)), 'zero extra courses is today\'s figure');
@@ -111,15 +120,15 @@ console.log('cost model tests');
 // ---- salaries at market rate ----
 {
   assert(near(marketRateMultiplier(50), 1), 'prestige 50 pays the base');
-  assert(near(marketRateMultiplier(130), 2.2), 'prestige 130 pays 2.2x');
-  assert(near(marketRateMultiplier(90), 1.6), 'linear between');
+  assert(near(marketRateMultiplier(130), 3.4), 'prestige 130 pays 3.4x');
+  assert(near(marketRateMultiplier(90), 2.2), 'linear between');
   assert(near(marketRateMultiplier(20), 1), 'floored below 50');
-  assert(marketRateMultiplier(150) <= 2.5 && marketRateMultiplier(150) > 2.2, 'capped a little above the band');
+  assert(marketRateMultiplier(150) <= 4 && marketRateMultiplier(150) > 3.4, 'capped a little above the band');
   const s = fresh();
   s.self.reputation = 130;
   const base = s.faculty.reduce((sum, f) => sum + f.salary, 0);
-  assert(near(financeBreakdown(s).weeklySalaries, (base * 2.2) / WEEKS_PER_YEAR), 'the payroll is the roster at the market rate');
-  assert(near(facultyPay(s, 100_000), 220_000), 'and a hire\'s pay reads the same rate');
+  assert(near(financeBreakdown(s).weeklySalaries, (base * 3.4) / WEEKS_PER_YEAR), 'the payroll is the roster at the market rate');
+  assert(near(facultyPay(s, 100_000), 340_000), 'and a hire\'s pay reads the same rate');
   assert(s.faculty.every((f) => f.salary === f.salary), 'the salary on the roster is untouched — the rate applies at the payroll');
 }
 

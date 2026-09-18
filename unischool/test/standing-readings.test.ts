@@ -199,7 +199,8 @@ console.log('standing readings tests');
     { id: 'TEST-SOCIAL', kind: 'facility', facilityType: 'studentCenter', name: 'Test Centre', description: '', cost: 0, duration: 0, prereqs: [], status: 'done', effects: { satisfactionAttribute: 'social', servesPopulation: 1_000_000 } },
     { id: 'TEST-HEALTH', kind: 'facility', facilityType: 'healthCenter', name: 'Test Clinic', description: '', cost: 0, duration: 0, prereqs: [], status: 'done', effects: { satisfactionAttribute: 'health', servesPopulation: 1_000_000 } },
   );
-  for (const [ratio, expected] of [[1, 0], [0.9, 0], [0.55, (0.9 - 0.55) / 0.9], [0.45, 0.5], [0.1, (0.9 - 0.1) / 0.9]] as const) {
+  // The grace is 0.85 since PR G fitted it (the plan opened at 0.9).
+  for (const [ratio, expected] of [[1, 0], [0.85, 0], [0.55, (0.85 - 0.55) / 0.85], [0.425, 0.5], [0.1, (0.85 - 0.1) / 0.85]] as const) {
     const enrolled = Math.round(seats / ratio);
     t.students.classes = { freshman: enrolled, sophomore: 0, junior: 0, senior: 0 };
     const worst = crowdingCoverages(t)[0];
@@ -210,7 +211,7 @@ console.log('standing readings tests');
   }
   t.students.classes = { freshman: Math.round(seats / 0.55), sophomore: 0, junior: 0, senior: 0 };
   const crowding = prestigeBreakdown(t).inputs.find((i) => i.key === 'crowding')!;
-  assert(crowding.contribution < -9 && crowding.contribution > -11, `feeding 55% costs around ten of ${crowding.weight} (${crowding.contribution.toFixed(1)})`);
+  assert(crowding.contribution < -8 && crowding.contribution > -10, `feeding 55% costs around nine of ${crowding.weight} (${crowding.contribution.toFixed(1)})`);
 }
 
 // ---- concentration: the deepest school, founded and distinguished ----

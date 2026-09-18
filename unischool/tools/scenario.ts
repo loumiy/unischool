@@ -129,6 +129,8 @@ const outPath = pathArg ?? flags.out ?? `node_modules/.tmp/${recipe.name}.json`;
 // ---------------------------------------------------------------------
 const run = play(strategy, recipe.year, undefined, seed, recipe.stopWhen);
 const state: GameState = run.state;
+// A recipe that breaks the school after the run (see Scenario.mutate).
+named?.mutate?.(state);
 
 // A scenario that asked to stop somewhere and never got there is a
 // FAILURE, not a save with a caveat: the whole value of `championship` is

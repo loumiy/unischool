@@ -613,8 +613,8 @@ export const ACCLAIM_SALARY_PREMIUM = 0.35;
 // into `salary`, so the figure on a listing is the person's price and the
 // figure in the Treasury is what this school pays for them.
 const MARKET_RATE_AT_PRESTIGE_50 = 1.0;
-const MARKET_RATE_AT_PRESTIGE_130 = 2.2;
-const MARKET_RATE_CAP = 2.5;
+const MARKET_RATE_AT_PRESTIGE_130 = 3.4;
+const MARKET_RATE_CAP = 4.0;
 export function marketRateMultiplier(prestige: number): number {
   const slope = (MARKET_RATE_AT_PRESTIGE_130 - MARKET_RATE_AT_PRESTIGE_50) / (130 - 50);
   return Math.max(MARKET_RATE_AT_PRESTIGE_50, Math.min(MARKET_RATE_CAP, MARKET_RATE_AT_PRESTIGE_50 + (prestige - 50) * slope));
