@@ -224,12 +224,22 @@ function ProgramTile({ program, s, act, open, onToggle }: {
       {open && (
         // THE FULL TILES, not a strip of numbers: the same CourseCell the
         // Curriculum tab's rows draw — code, title, instructor chip, grade,
-        // gate dot — in the same nine-across layout with the tier rules as
-        // tracks, so a program reads identically on the map and in the tab.
-        // The panel is wide enough for it (see .building-info-panel.hall).
-        <div className={`program-row-cells${program.kind === 'graduate' ? ' graduate' : ''}`} role="group" aria-label={`${program.name} courses`} style={program.kind === 'graduate' ? { gridTemplateColumns: `repeat(${courses.length}, minmax(0, 1fr))` } : undefined}>
+        // gate dot. The tab lays a major's nine across one row; the panel,
+        // narrower, STACKS them: tier 1 stands two rows tall on the left
+        // of a rule, tier 2's four run along the top, tier 3's four along
+        // the bottom (see .hall-slot .program-row-cells.stacked). Five
+        // tracks instead of nine is what lets a title and a surname read
+        // in full. The core and a graduate program have no tiers to stack
+        // and keep one row of however many courses they have.
+        <div
+          className={`program-row-cells${program.kind === 'major' ? ' stacked' : ' flat'}`}
+          role="group"
+          aria-label={`${program.name} courses`}
+          style={program.kind === 'major' ? undefined : { gridTemplateColumns: `repeat(${courses.length}, minmax(0, 1fr))` }}
+        >
           {courses.map((t, i) => {
-            const rule = program.kind !== 'graduate' && (i === 1 || i === 5) ? <span key={`rule-${i}`} className="tier-rule" aria-hidden="true" /> : null;
+            const stacked = program.kind === 'major';
+            const rule = stacked && i === 1 ? <span key="rule" className="tier-rule tall" aria-hidden="true" /> : null;
             const cell = (
               <CourseCell
                 key={t.id}
@@ -240,7 +250,8 @@ function ProgramTile({ program, s, act, open, onToggle }: {
                 loads={loads}
               />
             );
-            return rule ? [rule, cell] : cell;
+            const placed = stacked && i === 0 ? <div key={t.id} className="tier-one-cell">{cell}</div> : cell;
+            return rule ? [rule, placed] : placed;
           })}
         </div>
       )}

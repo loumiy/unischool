@@ -92,7 +92,12 @@ const GROUNDS_GROUP_KEYS: ReadonlySet<string> = new Set(['quad']);
 interface TypeGroup {
   key: string;
   label: string;
+  // Built instances collapse behind one "Built ×N" tile (see
+  // COLLAPSE_BUILT_FROM). Every repeatable group is a strictly sequential
+  // chain and numbers its tiles "#N" — except one that says
+  // `sequential: false` (the labs), which collapses without the numbers.
   repeatable: boolean;
+  sequential?: false;
   // Set for the facility types FACILITY_CATEGORY_OF (facilitiesData.ts)
   // names (the single source for "which types are athletics vs
   // recreation") plus dorm/chapterHouse (see HOUSING_GROUP_KEYS below).
@@ -120,7 +125,7 @@ interface TypeGroup {
 // building are independent multi-instance types (one per lab-gated major /
 // one per school) — several can be visible at once, but each is its own
 // decision, so they stay listed.
-const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; match: (t: Buildable) => boolean }> = [
+const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; sequential?: false; match: (t: Buildable) => boolean }> = [
   // THE ACADEMIC RUN. The hall chain (techData.ts's ACADEMIC_HALL_SLOTS
   // block) is a strictly sequential, distinctly-named chain exactly like
   // housing, so it is `repeatable` — one next hall at a time, "#N" markers,
@@ -129,9 +134,15 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; ma
   // same tab: four groups, one "Academic" category (see ACADEMIC_GROUP_KEYS
   // and FACILITY_CATEGORY_OF).
   { key: 'hall', label: 'Academic Halls', repeatable: true, match: (t) => isAcademicHall(t) },
-  { key: 'academicBuilding', label: 'Founders Hall', repeatable: false, match: (t) => t.kind === 'building' },
+  // A hall IS a 'building' too, so the Founders Hall group has to say "and
+  // not a hall" — without it every hall drew twice, once collapsed under
+  // the halls' Built tile and once again here as itself.
+  { key: 'academicBuilding', label: 'Founders Hall', repeatable: false, match: (t) => t.kind === 'building' && !isAcademicHall(t) },
   { key: 'library', label: FACILITY_LABELS.library, repeatable: false, match: (t) => t.facilityType === 'library' },
-  { key: 'lab', label: FACILITY_LABELS.lab, repeatable: false, match: (t) => t.facilityType === 'lab' },
+  // Labs collapse like the halls do once a few are standing (repeatable),
+  // but they are independent — one per lab-gated major, built in any order
+  // — so they carry no "#N" chain position (sequential: false).
+  { key: 'lab', label: FACILITY_LABELS.lab, repeatable: true, sequential: false, match: (t) => t.facilityType === 'lab' },
   // THE SOCIAL RUN: the student center, the recreation/fitness chain, and
   // the two arts facilities — one "Social" category (FACILITY_CATEGORY_OF).
   { key: 'studentCenter', label: FACILITY_LABELS.studentCenter, repeatable: false, match: (t) => t.facilityType === 'studentCenter' },
@@ -197,10 +208,11 @@ const HOUSING_GROUP_KEYS: ReadonlySet<string> = new Set(['dorm', 'chapterHouse']
 
 function buildGroups(s: GameState): TypeGroup[] {
   return TYPE_MATCHERS
-    .map(({ key, label, repeatable, match }) => ({
+    .map(({ key, label, repeatable, sequential, match }) => ({
       key,
       label,
       repeatable,
+      sequential,
       // Most TYPE_MATCHERS keys ARE the FacilityType they match (gym,
       // athleticsField, ...) — the lookup below is a no-op for the ones
       // that aren't (academicBuilding, lab, ...), which simply have no
@@ -355,7 +367,7 @@ function builtGroupDetail(kind: string, built: Buildable[]): string | undefined 
 // nothing for the one-of-a-kind types whose name already says which it is.
 function rowMarker(t: Buildable, group: TypeGroup, index: number): string | undefined {
   if (t.tier !== undefined) return `Tier ${t.tier}`;
-  if (group.repeatable) return `#${index + 1}`;
+  if (group.repeatable && group.sequential !== false) return `#${index + 1}`;
   return undefined;
 }
 
@@ -700,10 +712,10 @@ export default function BuildPopup({
   // building in a tab the player hasn't switched to stays unseen (and the
   // build button's badge stays lit) even while this popup is open on
   // another tab. Re-fires on any change to the exact unseen set, the same
-  // pattern the Curriculum/Faculty tabs use.
-  const activeUnseenIds = active.kind === 'build'
-    ? active.groups.flatMap((g) => g.items.filter((t) => !s.seen.buildableIds[t.id]).map((t) => t.id))
-    : [];
+  // pattern the Curriculum/Faculty tabs use. The tools tab counts too: its
+  // quads are visible tiles like any other, and skipping them here is what
+  // left the Build button's dot lit for good once the second quad unlocked.
+  const activeUnseenIds = active.groups.flatMap((g) => g.items.filter((t) => !s.seen.buildableIds[t.id]).map((t) => t.id));
   const activeUnseenKey = activeUnseenIds.join('|');
   useEffect(() => {
     if (activeUnseenIds.length > 0) act({ type: 'MARK_SEEN', kind: 'buildable', ids: activeUnseenIds });
@@ -736,7 +748,7 @@ export default function BuildPopup({
             // activeUnseenIds above) — computed independently per tab, not
             // just read off activeUnseenIds, since every OTHER tab's unseen
             // items still need their own dot while one tab is active.
-            const hasUnseen = sec.kind === 'build' && sec.groups.some(
+            const hasUnseen = sec.groups.some(
               (g) => g.items.some((t) => !s.seen.buildableIds[t.id]),
             );
             return (

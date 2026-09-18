@@ -371,7 +371,12 @@ function PlacedBuilding({
           />
         </>
       )}
-      <title>{developing ? `${label} · under construction · ${weeksLeft}w left` : `${label} · ${p.w}×${p.h}`}</title>
+      {/* A quad says what it is by being one — no tooltip, and no label in
+          the layer below; either was clutter over the emptiest ground on
+          the map. */}
+      {t.facilityType !== 'quad' && (
+        <title>{developing ? `${label} · under construction · ${weeksLeft}w left` : `${label} · ${p.w}×${p.h}`}</title>
+      )}
     </g>
   );
 }
@@ -1373,7 +1378,7 @@ export default function CampusMap({
             )}
 
             <g ref={labelLayerRef}>
-              {placed.map(({ t, p }) => (
+              {placed.filter(({ t }) => t.facilityType !== 'quad').map(({ t, p }) => (
                 <BuildingLabel key={`label-${t.id}`} t={t} p={p} label={hallDisplayName(s, t)} pinned={t.id === inspectedId} vernacular={s.self.vernacular} />
               ))}
             </g>
