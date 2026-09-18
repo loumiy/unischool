@@ -957,6 +957,12 @@ button.build-tile { font-family: inherit; }
 .campus-path-ghost.plant { stroke: #3f6b2a; fill: rgba(63, 107, 42, 0.28); }
 .campus-path-ghost.fell { stroke: #b4544a; fill: rgba(180, 84, 74, 0.22); stroke-dasharray: 4 3; }
 
+/* The ghost layer: a second SVG over the map (see CampusMap.tsx's render).
+   It fills the same canvas and is transparent to the pointer, so every click,
+   drag and wheel still reaches the map underneath — except the rotate
+   control, the one thing in it a player actually clicks. */
+.campus-map-ghost { position: absolute; inset: 0; display: block; width: 100%; height: 100%; pointer-events: none; }
+.campus-map-ghost .campus-rotate-btn { pointer-events: auto; }
 .campus-rotate-btn { cursor: pointer; }
 .campus-rotate-btn circle { fill: var(--parchment); stroke: var(--gold-dim); stroke-width: 1.5; }
 .campus-rotate-btn:hover circle { fill: #efe1b8; }

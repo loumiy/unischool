@@ -414,8 +414,13 @@ export function programs(): ProgramInfo[] {
   return out;
 }
 
+// Indexed once, like programOfCourse below: the catalogue is static, and
+// the map's hall pips ask this for every filled slot on every render, so
+// rebuilding the whole table per call was measurable on every mouse move.
+let programIndex: Map<string, ProgramInfo> | null = null;
 export function programById(id: string): ProgramInfo | undefined {
-  return programs().find((p) => p.id === id);
+  if (!programIndex) programIndex = new Map(programs().map((p) => [p.id, p]));
+  return programIndex.get(id);
 }
 
 // Which program a course belongs to — the id `s.halls` would house it
