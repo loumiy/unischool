@@ -7,10 +7,18 @@ redesign that answers them, the specialisation term that Plan 14's founded
 schools finally make possible, and the research model the review found inert,
 into an ordered sequence of PRs ending in a single re-fit.*
 
-**Status: In progress.** PRs A through G have landed. Depends on
+**Status: Landed.** All eight PRs shipped, each with an *as implemented* note
+below its row in the map. The largest departures: the report card's grading
+happens before the funnel and its step after it; the research cut went past
+"the report of nothing" to every papers-only run; the general-education core
+is seated from founding; the section and services lines carry the market
+rate, not only salaries; and the re-fit moved the rise and fall rates to 0.20
+and 0.30, priced the two mistake archetypes so they die of their policy and
+not their price, and recorded where the Balanced builder lands beside the
+table rather than pretending the table was hit. Depended on
 [Plan 14](14-curriculum-on-the-map.md) for halls, slots and founded schools —
-the seats this plan turns into a ceiling and the concentration this plan turns
-into prestige both come from there. Supersedes
+the seats this plan turned into a ceiling and the concentration this plan
+turned into prestige both came from there. Supersedes
 [Plan 10](10-growth-has-a-cost.md).
 
 ---
@@ -198,6 +206,17 @@ the generated strategies and hand-written targets for the Balanced builder
 and the two controls, with the deviations recorded above them in
 `sim/reference.ts`; both the scorecard and the regression suite's economy
 claims are hard gates again.
+
+**As implemented (15H):** `economy.md` describes the three cost lines, the
+market rate on all of them, the building-scaled capital events, the ceiling
+and the three eras; `progression.md` the report card, the fitted rates and
+the weight budget with the penalty; `admissions.md` the seats ceiling, the
+room on the reveal and attrition; `research.md` the banked papers, the annual
+roll, the odds on the offer, the papers-only cut and the fields denominator.
+The correction the review found — `satisfactionSystem.ts` scores four of five
+attributes against *enrolled* while its own source comment and `economy.md`
+said capacity — is made in both places. `README.md`, `curriculum.md` and
+`student-life.md` no longer say prestige drifts.
 
 ---
 

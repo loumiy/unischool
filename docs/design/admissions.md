@@ -30,7 +30,13 @@ purpose about how much the player is allowed to know:
    one reveal rather than seven races. A reader who has asked for reduced motion
    gets the settled figures immediately — the same numbers either way.
 3. **Admit rate, fully projected.** The opposite posture: every consequence
-   visible before it is taken (see "Tuition follows the class that paid it").
+   visible before it is taken (see "Tuition follows the class that paid it") —
+   including the **room**: the seats the housed catalogue has left after the
+   seniors graduate, shown beside the pool, with what next summer will hold.
+   The slider ends where the class fills the room, and a class held to it is
+   said so. It also says who will **not return**: below 50 satisfaction a
+   share of each class leaves at the summer, and the two worst-covered needs
+   are named beside the number.
 
 What the tuition slider sets is the **listed** price
 (`finance.listedTuition`), which reaches a student only as the price their class
@@ -44,7 +50,8 @@ modeled as aggregate applicant *statistics*, never individual applicants:
 - **Applications** are driven by **price**, **current prestige**, and the
   **average student satisfaction over the preceding year** (word of mouth).
   Higher prestige and a lower price grow the pool; a happy student body grows
-  it further. Word of mouth reads the **average satisfaction over the preceding year** —
+  it further (±60% at the extremes of satisfaction, wide enough to notice
+  across two summers). Word of mouth reads the **average satisfaction over the preceding year** —
   accumulated weekly and averaged at the summer boundary
   (`admissionsSystem.ts`'s `trailingYearSatisfaction`), not the current week's
   reading. Dorm capacity scales the pool toward its full size as housing
@@ -227,34 +234,43 @@ introduce individual-student simulation.**
 
 The settled v1 rules:
 
-- **Full progression, no attrition.** Every student who enrolls advances each
-  year and graduates after four; there is no inter-year dropout. (Retention as a
-  satisfaction consequence is a plausible future hook, deliberately not built.)
-- **Capacity is a demand floor, never an enrollment ceiling.** Housing and
-  enrollment are decoupled (see "Commuters" below): the funnel sizes the
-  incoming freshman class purely from the admissions model above, with no
-  reference to open seats. Bed capacity still matters, just earlier in the
-  pipeline — it scales the applicant *pool* toward its full size
-  (`admissionsSystem.ts`'s `capacityFactor`), so a school with no dorms at all
-  still draws a real pool (the floor), while one that invests in housing draws
-  a bigger one, up to a reference scale beyond which more beds buy nothing
-  further. An older design capped the incoming class at open seats and damped
-  growth with an `INTAKE_SURGE_MULTIPLIER`; both were deliberately removed
-  (commit "Introduce commuters: decouple enrollment from dorm capacity") once
-  a build-nothing school was found growing to five figures of enrollment with
-  no throttle at all — `docs/plans/01-design-alignment.md`'s class-smoothing follow-up note
-  predates that removal and is superseded on this point.
+- **Attrition, at the year boundary.** Every student who enrolls advances each
+  year and graduates after four — less the share a bad year cost. Below
+  `ATTRITION_SATISFACTION_LINE` (50) each of the three staying classes loses
+  up to 8% a year at satisfaction 30, scaling linearly, read off the year's
+  average satisfaction (the same figure word of mouth reads); a class's price
+  does not change and its cohort mix shrinks with it. It is a parameter of
+  `advanceClasses`, so the reducer and the summer panel's projection apply the
+  same share, and it gets its own line — in the projections before the
+  decision, in the log after — because a silently smaller number is the
+  likeliest source of "I don't understand what happened to my school".
+- **Seats are the one ceiling; beds are a demand floor.** The freshman class
+  cannot exceed the seats the housed catalogue has left after graduation
+  (`instructionCapacity.ts`'s `intakeCeiling`: `SEATS_PER_COURSE` for every
+  developed course in a housed program, the core seated from founding, less
+  the three classes that stay on). The funnel clips the class to it from the
+  bottom band up — a school that must turn people away turns away its weakest
+  admits — and caps *enrollment*, never the pool. Housing is decoupled (see
+  "Commuters" below): bed capacity scales the applicant *pool* toward its
+  full size (`admissionsSystem.ts`'s `capacityFactor`), so a school with no
+  dorms at all still draws a real pool, while one that invests in housing
+  draws a bigger one. Beds, dining and health stay soft — crowding, which
+  costs standing and services, never a cap — so "I over-admitted and paid for
+  it" is still a story the game can tell. An older design capped the class at
+  open *beds*; that was removed once a build-nothing school was found growing
+  to five figures with no throttle, and Plan 15 put the ceiling where the
+  teaching is.
 - **Founding mix.** A new college opens **fully commuter** — capacity 0, no
   dorm built yet (see "Commuters" below) — with **all four class years
   present** and **balanced**: each class ≈ FOUNDING_BODY / 4
   (`FOUNDING_CLASSES`, `88 / 88 / 87 / 87`, summing to 350). This puts a
   graduating class on the books from year one, without needing a founding dorm
   to justify it.
-- **Commuters.** Enrollment is never capacity-gated: `students.capacity` is
-  bed count, tracked separately from `totalEnrolled()`, and a large commuter
+- **Commuters.** Enrollment is never bed-gated: `students.capacity` is bed
+  count, tracked separately from `totalEnrolled()`, and a large commuter
   school with few dorms is still a large school for every other purpose
-  (instruction cost, satisfaction's non-housing attributes, prestige). Housing
-  is one input to the admissions applicant-pool factor and its own
+  (sections, services, satisfaction's non-housing attributes, prestige).
+  Housing is one input to the admissions applicant-pool factor and its own
   satisfaction attribute — never a ceiling.
 
 Implemented in the four-class model (`students.classes`), with a save

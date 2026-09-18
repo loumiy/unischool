@@ -42,7 +42,7 @@ built out and the rankings are topped.
 ```
         Develop programs & facilities
                     ↓
-            Prestige drifts up
+        Prestige is graded each summer
                     ↓
         Attract more / better students
                     ↓
@@ -52,13 +52,17 @@ built out and the rankings are topped.
                     ↺
 ```
 
-Growth is slow on purpose: prestige is a stock that drifts toward a computed
-target rather than a tally that jumps when something finishes, so standing is
-earned over decades and does not evaporate when growth stalls.
+Growth is slow on purpose: prestige is a stock graded once a year, stepping
+toward what the school earned that year — slowly up, faster down — rather
+than a tally that jumps when something finishes, so standing is earned over
+decades and can be lost. The freshman class cannot exceed the seats the
+catalogue has room to teach; everything else — beds, dining, health — is
+crowding, which costs standing and students rather than capping them.
 
 Money is the pacing mechanism, and cost leads revenue — every commitment is
 charged up front while every payoff waits for the next summer admissions
-boundary. A cash shortfall stalls expansion; it never ends the run.
+boundary, and what a section, a service and a salary cost rises with the
+school's standing. A cash shortfall stalls expansion; it never ends the run.
 
 <p align="center">
   <img src="docs/images/summer-admissions.png" alt="The summer admissions decision" width="420">

@@ -72,39 +72,55 @@ replaced it.
 
 `self.reputation` ("prestige") is a **stock**, not a flow: it is never
 incremented directly by completing a course, a building, or a milestone — there
-is no snappy "finish a course, get a prestige bump." Instead, **once a week**,
-prestige drifts a small fraction of the way toward a target computed from durable
-inputs — see `src/systems/prestige/prestigeSystem.ts`. It never jumps to the
-target: a long-established school's prestige is sticky and does not evaporate the
-moment growth stalls, but it can move gently week to week rather than sitting
-frozen all year between summers. The drift runs **weekly**, in the `SYSTEMS`
-array (`prestigeSystem.ts`'s `tickPrestige`), at a rate sized to preserve the
-old ~12%-per-year stickiness; the admissions-derived input below changes
-only at the summer boundary, while every other input can move any week. The
-inputs:
+is no snappy "finish a course, get a prestige bump." Instead it is **graded
+once a year**: at the summer admissions boundary the inputs below are scored
+for the year just ended and summed into a year score on the same 5..150
+scale, and prestige steps toward that score by a share of the gap —
+`PRESTIGE_RISE_RATE` (0.20) above it, `PRESTIGE_FALL_RATE` (0.30) below (see
+`src/systems/prestige/prestigeSystem.ts`'s `gradeYear`). It never jumps to
+the score: a long-established school's prestige is sticky, and a school that
+falls short falls faster than it climbs. Between summers a weekly tremor, a
+tenth of the old drift, keeps the toolbar number alive. Welfare and crowding
+are graded on the year's *average*, because those are the two a player could
+game by timing a dorm's completion in week 50; everything else on state at
+the summer. The inputs, with their weights:
 
-- **curriculum breadth** — majors/schools completed *right now* (a stock read
-  off the milestone booleans — see [curriculum.md](curriculum.md)) plus the
-  **graduate programs** founded on
-  top of them, not courses added this year. The four shares inside this one
-  input sum to 1, so finishing everything scores exactly 1 and graduate work
-  raises no ceiling — it occupies the last 0.15 of the one that already
-  existed (see [graduate-programs.md](graduate-programs.md)).
-- **teaching quality** — the campus average course grade (see
+- **curriculum breadth** (50) — majors/schools completed *right now* (a stock
+  read off the milestone booleans — see [curriculum.md](curriculum.md)) plus
+  the **graduate programs** founded on top of them, not courses added this
+  year. The four shares inside this one input sum to 1, so finishing
+  everything scores exactly 1 and graduate work raises no ceiling — it
+  occupies the last 0.15 of the one that already existed (see
+  [graduate-programs.md](graduate-programs.md)). Multiplied by library
+  adequacy.
+- **concentration** (30) — the "known for" term, breadth's other half: how
+  deep the school's *deepest* school is — founded (six of its programs housed
+  in one hall, 0.4) and distinguished (every one of its programs complete,
+  0.6). Only the best school counts; a second founded school is breadth, and
+  breadth already pays for it. This is what lets a small elite college and a
+  broad state university both be real.
+- **teaching quality** (30) — the campus average course grade (see
   [faculty.md](faculty.md)'s "Course quality"). Its own input, not a multiplier
   on anything: a school teaching twenty courses beautifully in its first decade
   is credited for them, years before any milestone gate opens.
-- **incoming student quality** — the average quality of the class that actually
-  enrolled that cycle.
-- **research standing** — what the university's research has actually
+- **incoming student quality** (24) — the average quality of the class that
+  actually enrolled that cycle, scaled by how big the school is.
+- **research standing** (22) — what the university's research has actually
   produced: publications, breakthroughs, prizes, doctorates, and a credit for
   every initiative carried to completion (see [research.md](research.md)). A
-  monotone
-  count of the same shape as curriculum breadth, weighted small and clamped like
-  every other input.
-- **campus life** and **financial resources per student** (endowment measured
-  against capacity) — two smaller inputs; the second is what the late-game
-  endowment campaigns buy.
+  monotone count of the same shape as curriculum breadth, weighted small and
+  clamped like every other input.
+- **welfare** (20) — the year's average satisfaction, scored `(sat − 40)/40`:
+  below 40 it earns nothing, at 80 it pays in full. What lets a happy small
+  college hold a standing a crowded large one cannot.
+- **campus life** (8) and **financial resources per student** (8, endowment
+  against the enrolled body) — two smaller inputs; the second is what the
+  late-game endowment campaigns buy. Campus life is cut from 12 with a named
+  condition: it returns when athletics and student life reach it.
+- **crowding** — a *penalty* of up to 25, not an input: the worst of the five
+  coverage ratios and the instruction-capacity ratio, averaged over the year
+  as a shortfall below 85% coverage. A subtraction rather than a weighted
+  input, so it can take a school *below* what its curriculum earned.
 
 **Faculty quality is no longer an input of its own.** It used to average every
 hire's teaching and research straight off the roster, which was the right
@@ -141,37 +157,31 @@ function is a sum over its own breakdown**, so the panel cannot disagree with th
 tick that produced the number. The rows are data: an input that is added, retired
 or reweighted changes that one file and the panel follows.
 
-**The summer report card (Plan 15's PR B).** Academic standing no longer
-drifts weekly toward its target. At the admissions boundary the inputs are
-graded for the year just ended and summed into a **year score**; prestige then
-steps toward that score by a share of the gap — `PRESTIGE_RISE_RATE` (0.12)
-above it, `PRESTIGE_FALL_RATE` (0.40) below. A school whose grade drops thirty
-points loses twelve the first summer and seven the next; climbing back takes
-the better part of a decade, and the climb is unblocked. Between summers a
-weekly tremor, a tenth of the old drift, keeps the toolbar number alive. Three
-terms joined the budget: **concentration** (30, out of breadth's 90 — how deep
-the deepest school is, founded and distinguished), **welfare** (20 — the year's
-average satisfaction, scored from 40 to 80) and **crowding**, a *penalty* of up
-to 25 — the worst of the five coverage ratios and the instruction-capacity
-ratio, averaged over the year as a shortfall below 90%, which can take a school
-below what its curriculum earned. Campus life and endowment fell to 8 each.
-The Standing panel shows last summer's grade beside each input, and the one
-remaining **reading** under them — **instruction capacity**, the seats the
-housed catalogue can teach (developed courses in housed programs at
-`SEATS_PER_COURSE` each) — is the ceiling Plan 15's PR E turns into a cap. See
+**The report card is shown.** The Standing panel carries the summer model in
+its note — what the year is grading toward, what the step would move — and
+each row shows last summer's grade beside what it is worth now; the crowding
+row is drawn as the subtraction it is. Under the inputs sits one **reading**
+that counts for nothing: **instruction capacity**, the seats the housed
+catalogue can teach, which is the ceiling on enrollment (see
+[admissions.md](admissions.md)). A school whose grade drops thirty points
+loses nine the first summer and six the next; climbing back takes years, and
+the climb is *unblocked* — nothing about a low grade makes an input harder to
+raise, which `test/report-card.test.ts` asserts and the sim's recovery
+scenario proves on a broken school. Plan 15 is the record of how this model
+replaced the weekly drift and what it was fitted to:
 [`../plans/15-growth-has-a-cost.md`](../plans/15-growth-has-a-cost.md).
 
 **Direct-mutation audit.** `self.reputation` is written in exactly three places,
 and all three are intentional. (1) **Founding** sets the opening value
 (`BASE_STARTING_REPUTATION + preset.prestigeBonus + GENED_BUILDING_REPUTATION_BONUS`
-in `actions.ts`) — a one-time initialization, not a gameplay bump. (2) The
-**drift** in `prestigeSystem.ts` moves reputation toward the computed target on
-its regular cadence — as does that same file's `setPrestigeForPlaytest`, the
-debug panel's "set prestige" (see
-[`../architecture/playtesting.md`](../architecture/playtesting.md)), which lives
-there rather than in the reducer precisely so this audit stays a *file*-level
-one, and which clamps to the same band the drift does. (3) **Rivals** write their
-*own* `reputation`
+in `actions.ts`) — a one-time initialization, not a gameplay bump. (2)
+**`prestigeSystem.ts`**: the summer step (`applyReportCard`, called from the
+reducer's `RESOLVE_ADMISSIONS`), the weekly tremor (`tickPrestige`), and that
+same file's `setPrestigeForPlaytest`, the debug panel's "set prestige" (see
+[`../architecture/playtesting.md`](../architecture/playtesting.md)), which
+lives there rather than in the reducer precisely so this audit stays a
+*file*-level one, and which clamps to the same band the step does. (3)
+**Rivals** write their *own* `reputation`
 (`rivalsSystem.ts`), never the player's. Nothing else touches it: research,
 student life, decision events, satisfaction and rankings all read prestige and
 never write it. In particular, **being ranked does not raise prestige** —

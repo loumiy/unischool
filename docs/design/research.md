@@ -132,23 +132,40 @@ university worth building rather than a deep one worth drilling.
 `effects.researchRateBonus` (each facility, plus the research library) — that
 field multiplies output, it never creates it.
 
-Against that output, a weekly chance — 0.5% at a standing start, rising to 3.4%
-for a team producing flat out — draws one of three **during-run** outputs:
+**Output is guaranteed** (Plan 15's PR C). The weekly lottery that used to
+draw an output at 0.5–3.4% a week is gone; three legible rules replace it:
 
-- **Publications** (weight 26) — the bottom rung, and the reason it exists: the
-  other outputs all cost enough that a young department's first decade was a
-  long silence. A cheap, frequent output gives a school something to show from
-  its first year, and gives the humanities an output that reads right.
-- **Grants** (weight 6) -> cash, sized at 0.4–1.2 weeks of opex and then
-  **scaled by team strength** — the most legible place stronger faculty produce
-  better outcomes. A grant is a welcome cheque, not a funding round: across the
-  sim's runs they settle at **0.6–3.5% of lifetime operating cost**. They must
-  never become a second economy.
-- **Breakthroughs** (weight 5) -> prestige, and **only through a capped input**.
-  A breakthrough increments a count that `prestigeSystem.ts`'s `researchScore`
-  reads as one clamped 0..1 input among six. It never writes
-  `s.self.reputation` — that would be exactly the completion-bonus flow the
-  prestige model exists to forbid.
+- **Publications are banked.** Every week's output goes toward the next paper,
+  and every `PUBLICATION_POINTS` of it publishes one — so a run's expected
+  papers are a plain product of its output and its length, which is what the
+  offer shows before the commitment. A Funded Project or deeper always
+  publishes at least once, the concluding paper; a pilot publishes what it
+  earned. A cheap, frequent output gives a school something to show from its
+  first year, and gives the humanities an output that reads right.
+- **A breakthrough is rolled once a year**, at each anniversary of the start
+  and once more at the end, at `annualBreakthroughChance` — depth times team
+  strength, capped — so a three-year program gets three real chances.
+  Breakthroughs reach prestige **only through a capped input**: a count that
+  `prestigeSystem.ts`'s `researchScore` reads as one clamped 0..1 input. It
+  never writes `s.self.reputation` — that would be exactly the
+  completion-bonus flow the prestige model exists to forbid.
+- **Grants ride on publications.** Each paper has a one-in-five chance of
+  bringing a grant with it -> cash, sized at 0.4–1.2 weeks of opex and
+  **scaled by team strength**, so a grant is a thing the work did rather than
+  a thing that happened. A grant is a welcome cheque, not a funding round; it
+  must never become a second economy.
+
+**The odds are shown before the commitment.** Every offer carries
+`initiativeOdds` — expected publications, the at-least-one-breakthrough chance
+over the run's rolls, the award chance — computed off the same functions the
+tick applies, so the card cannot promise a bet the run does not give. A player
+committing three professors for three years is entitled to know it.
+
+**Output reaches somewhere.** A breakthrough, and every fourth paper out of
+one project, puts a scholar in the team's field on the candidate market with
+a log line — a physicist saw your paper — and the applicant funnel's
+research-oriented cohort reads what the labs have produced (publications at a
+tenth, breakthroughs, prizes at three) beside the labs themselves.
 
 **Team strength** is the mean research *stat* (0..100) plus 0.08 per point of
 acclaim the team already carries, capped at 1.4. It is the research stat and
@@ -190,12 +207,12 @@ report never delays an effect.
 
 Two things deliberately do not report. A **cancelled** project: winding one up
 early is the player's own action and already logs, and a modal confirming what
-the player just did is noise. And a **quiet pilot study** — six months, no
-breakthrough, no award — because reporting every completion took the balance
-sim's texture count from 1.7 to 3.0 modals a year, nearly all of it the smallest
-tier of work interrupting most often. Anything at Funded Project depth or deeper
-always reports. A quiet pilot still logs, and still appears in the Research
-tab's history.
+the player just did is noise. And **a run that produced papers alone**, at any
+depth: the most frequent interrupt in the game was a project concluding with
+nothing to say — a quarter of every modal in a forty-year run — and a
+one-paper report is still one. Only a breakthrough or an award stops the
+clock. A papers-only run logs what it produced, and still appears in the
+Research tab's history.
 
 Finishing a run is worth something **in itself**, separate from whatever it
 produced along the way: `INITIATIVE_COMPLETION_CREDIT` (0.3 / 1 / 2.5 / 6 by
@@ -212,3 +229,9 @@ as a reading of **capacity**, not a stock that accumulates: "how much research
 could this campus be doing", consumed by the admissions funnel's applicant
 appeal (`cohorts.ts`) and printed as the sim's `rsch/wk` column. Nothing banks
 it any more.
+
+**Research standing's breadth term** divides the fields with a lab by *every
+field the university could research in* (`researchableFields`), not by the
+count of schools — Plan 09 found it pinned at its maximum from the fourth lab
+because a school teaches several fields, and Plan 15's PR C fixed the
+denominator to what the sentence beside it always claimed.
