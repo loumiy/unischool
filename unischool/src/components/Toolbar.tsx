@@ -6,6 +6,7 @@ import BuildPopup, { visibleBuildableIds } from './BuildPopup';
 import { FundsAndStats, SchoolAndClock } from './StatusHeader';
 import type { Speed } from '../engine/useGame';
 import { visibleCourseIds } from '../tabs/CurriculumTab';
+import { nextStep } from '../systems/guidance/nextStep';
 import {
   FacultyIcon, CurriculumIcon, EnrollmentIcon,
   StudentLifeIcon, HistoryIcon, AthleticsIcon, BuildIcon,
@@ -101,8 +102,31 @@ const Toolbar = forwardRef<HTMLDivElement, {
   onSetPathTool: (mode: CampusTool) => void;
 }>(({ s, act, active, onChangeTab, buildOpen, onSetBuildOpen, speed, setSpeed, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool }, ref) => {
 
+  // The next-step line (Plan 16's PR F — see systems/guidance/nextStep.ts):
+  // a reading of the highest-value thing on offer, or nothing. Rendered
+  // first and full-width so the three zones below keep their shape; a
+  // button when it names somewhere to go. Suppressed while an interrupt is
+  // up — the modal is the one thing to do then.
+  const step = s.pendingInterrupt ? null : nextStep(s);
+
   return (
     <div className="toolbar" ref={ref}>
+      {step && (
+        <div className="toolbar-next">
+          <span className="toolbar-next-label">Next</span>
+          {step.go ? (
+            <button
+              type="button"
+              className="toolbar-next-text"
+              onClick={() => { const go = step.go; if (go === 'build') onSetBuildOpen(true); else if (go) onChangeTab(go); }}
+            >
+              {step.text}
+            </button>
+          ) : (
+            <span className="toolbar-next-text">{step.text}</span>
+          )}
+        </div>
+      )}
       <div className="toolbar-left">
         <FundsAndStats
           s={s}

@@ -1,4 +1,5 @@
-import { lift, polyPoints, project, projectedCircle, type Pt } from './isoProjection';
+import { memo } from 'react';
+import { lift, polyPoints, project, projectedCircle, type Camera, type Pt } from './isoProjection';
 import { shadowOffset, sunScreenDir } from './light';
 
 // Trees on the campus map. Geometry here, colour in styles.css — the same
@@ -211,7 +212,16 @@ export function TreeAt({ col, row, species, scale, shadow = true }: {
 // A WOODLAND tree, on tile (row, col): TreeAt with everything about it —
 // species, size, and where in its own tile it stands — rolled off the one
 // integer that tile's entry in `trees` stores.
-export default function Tree({ row, col, seed }: { row: number; col: number; seed: number }) {
+//
+// MEMOISED, for the same reason BuildingMotif is: a tree is a pure function
+// of its three props, and a campus carries several hundred of them. Without
+// this every render of the map rebuilt every crown, trunk and shadow —
+// which was most of the JavaScript the map ran while a building was being
+// sited (see CampusMap.tsx's CampusScene for the other half of that story).
+// The camera is a prop for the memo's sake only — the geometry reads it from
+// the projection — so a tree redraws when the view turns.
+function Tree({ row, col, seed }: { row: number; col: number; seed: number; camera: Camera }) {
   const { species, u, v, scale } = treeShape(seed);
   return <TreeAt col={col + u} row={row + v} species={species} scale={scale} shadow={false} />;
 }
+export default memo(Tree);

@@ -1,5 +1,5 @@
-import type { Faculty, GameState, LogEntry } from '../state/types';
-import { WEEKS_PER_YEAR } from '../state/types';
+import type { Faculty, GameState, LogEntry, SummerBeat, SummerPayload } from '../state/types';
+import { LOG_CAP, SUMMER_LAST_BEAT, WEEKS_PER_YEAR } from '../state/types';
 import type { Action } from '../state/actions';
 import { defaultAnswer } from './defaultAnswers';
 import { createInitialState, createPreStartState } from '../state/actions';
@@ -13,10 +13,10 @@ import { endInitiative } from '../systems/research/researchSystem';
 import { initiativeDepth, initiativeFundingCost } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
-import { tickAdmissions, advanceClasses, attritionRate, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
+import { tickAdmissions, advanceClasses, attritionRate, priceTolerance, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
 import { attritionReasons } from '../systems/admissions/consequences';
 import { intakeCeiling } from '../systems/techtree/instructionCapacity';
-import { deriveCohortSignals } from '../systems/admissions/cohorts';
+import { cohortCounts, deriveCohortSignals } from '../systems/admissions/cohorts';
 import { buildReportPayload, tickRivals } from '../systems/rivals/rivalsSystem';
 import { appointFaculty, tickFaculty } from '../systems/faculty/facultySystem';
 import { tickResearch } from '../systems/research/researchSystem';
@@ -102,13 +102,6 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   tickDemands,
 ];
 
-// How many log entries are kept. Weekly attrition spam is gone, so what
-// remains is milestones, completions, admissions cycles and postings — a
-// deep enough cap that a completed major or a finished school building is
-// still readable in the ticker weeks later instead of being pushed out by
-// the next few routine lines.
-const LOG_CAP = 200;
-
 // ---------------------------------------------------------------------
 // saveGame (see state/persistence.ts) is the ONE thing in this reducer
 // that reaches outside itself. It doesn't change the reducer's purity with
@@ -183,6 +176,7 @@ function resolveStudentLifeDigest(s: GameState, approvedIds: string[]): void {
     week: s.clock.week,
     message: `Student life: ${recognised} organisation${recognised === 1 ? '' : 's'} recognised, ${declined} declined.`,
     kind: declined > recognised ? 'bad' : 'good',
+    topic: 'organisations',
   });
 }
 
@@ -300,6 +294,17 @@ export function reducer(state: GameState, action: Action): GameState {
         // The one appointment path, shared with the visiting-chair event
         // (see facultySystem.ts's appointFaculty).
         appointFaculty(s, hired);
+        // Logged (Plan 16's PR B) so the year in review can list the
+        // year's appointments — the roster growing is obvious the week it
+        // happens and invisible by the summer.
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: `Appointed ${hired.name} to the faculty in ${hired.field}, at $${Math.round(hired.salary).toLocaleString()}/yr.`,
+          kind: 'info',
+          topic: 'appointment',
+          subject: hired.id,
+        });
       }
       return s;
     }
@@ -330,14 +335,19 @@ export function reducer(state: GameState, action: Action): GameState {
       for (const course of orphaned) delete s.courseFaculty[course.id];
       s.faculty = s.faculty.filter((f) => f.id !== action.facultyId);
 
-      if (orphaned.length > 0) {
-        s.log.unshift({
-          year: s.clock.year,
-          week: s.clock.week,
-          message: `${leaving.name} has left the university. ${orphaned.length} ${orphaned.length === 1 ? 'course is' : 'courses are'} without an instructor until ${leaving.field} is staffed again.`,
-          kind: 'bad',
-        });
-      }
+      // Logged either way now (Plan 16's PR B), so the year in review can
+      // list the year's departures; the orphaned courses are the half that
+      // is bad news rather than a record.
+      s.log.unshift({
+        year: s.clock.year,
+        week: s.clock.week,
+        message: orphaned.length > 0
+          ? `${leaving.name} has left the university. ${orphaned.length} ${orphaned.length === 1 ? 'course is' : 'courses are'} without an instructor until ${leaving.field} is staffed again.`
+          : `${leaving.name} (${leaving.field}) has left the university.`,
+        kind: orphaned.length > 0 ? 'bad' : 'info',
+        topic: 'departure',
+        subject: leaving.id,
+      });
       return s;
     }
 
@@ -433,6 +443,8 @@ export function reducer(state: GameState, action: Action): GameState {
         week: s.clock.week,
         message: `“${topic.name}” has begun at ${lab.name}.${consequence}`,
         kind: orphaned.length > 0 ? 'info' : 'good',
+        topic: 'research-started',
+        subject: lab.id,
       });
       return s;
     }
@@ -449,6 +461,8 @@ export function reducer(state: GameState, action: Action): GameState {
         week: s.clock.week,
         message: `“${topic?.name ?? 'A project'}” has been wound up early. Its funding is not recovered.`,
         kind: 'bad',
+        topic: 'research-concluded',
+        subject: action.labId,
       });
       return s;
     }
@@ -569,6 +583,7 @@ export function reducer(state: GameState, action: Action): GameState {
           week: s.clock.week,
           message: `Endowment campaign #${campaign.number} closed: $${campaign.cost.toLocaleString()} committed, $${campaign.endowmentGain.toLocaleString()} raised at a ${Math.round(campaign.match * 100)}% donor match.`,
           kind: 'good',
+          topic: 'money',
         });
       }
       return s;
@@ -666,6 +681,27 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
+    // One beat forward through the summer (see types.ts's SummerPayload).
+    // Nothing here touches the calendar or the school: it is bookkeeping
+    // about where in the sequence the player is, written into the
+    // interrupt's own payload so a save taken between beats resumes on the
+    // right one. The decision the Admissions beat produced rides along the
+    // same way, so the last beat commits it rather than a re-read slider.
+    case 'RESOLVE_SUMMER_BEAT': {
+      if (s.pendingInterrupt?.type !== 'summer') return state;
+      const payload = s.pendingInterrupt.payload as SummerPayload;
+      if (payload.beat >= SUMMER_LAST_BEAT) return state;
+      payload.beat = (payload.beat + 1) as SummerBeat;
+      if (action.decision) {
+        payload.decision = {
+          tuition: Math.max(0, Math.min(action.decision.tuition, TUITION_SLIDER_MAX)),
+          admitRate: Math.max(0, Math.min(1, action.decision.admitRate)),
+        };
+      }
+      return s;
+    }
+
+    // THE LAST BEAT OF THE SUMMER, and the one that turns the calendar page.
     case 'RESOLVE_ADMISSIONS': {
       // Tuition is set ONLY here, once a year — see
       // docs/design/admissions.md and the removed live SET_TUITION control.
@@ -757,6 +793,17 @@ export function reducer(state: GameState, action: Action): GameState {
       // reopen on the policy it set, not on the clipped consequence.
       s.students.admitRate = chosenAdmitRate;
       s.students.incomingQuality = outcome.avgIncomingQuality;
+      // What this funnel read, for next summer's reveal to be measured
+      // against (Plan 16's PR C — see types.ts's FunnelRecord). The pool's
+      // cohort split is apportioned by the same function the reveal's cards
+      // use, off the same signals, so next year's "last year" is exactly
+      // what this year's cards showed.
+      s.students.lastFunnel = {
+        year: s.clock.year,
+        applicants: outcome.applicants,
+        factors: outcome.factors,
+        cohorts: cohortCounts(deriveCohortSignals(s), priceTolerance(s.self.reputation), s.finance.listedTuition, outcome.applicants),
+      };
 
       // The summer step: prestige moves toward the year score — a small
       // share of the gap upward, a large one downward. This is the one
@@ -767,8 +814,13 @@ export function reducer(state: GameState, action: Action): GameState {
       // record grows (see state/history.ts). Appended AFTER the funnel and
       // the step above, so the row is the class and the standing the school
       // actually carries into the next year, and BEFORE advanceClock, so it
-      // is filed under the year that just closed.
-      s.history.push(captureYearSnapshot(s));
+      // is filed under the year that just closed. The year's own figures
+      // that only this boundary knows — who left, what the year averaged —
+      // are handed in rather than re-derived.
+      s.history.push(captureYearSnapshot(s, {
+        attrition: advanced.notReturning,
+        satisfactionAverage: priorYearAvgSatisfaction,
+      }));
 
       s.pendingInterrupt = null;
       advanceClock(s); // resolving is what turns the calendar page into the new year
@@ -777,6 +829,7 @@ export function reducer(state: GameState, action: Action): GameState {
         week: s.clock.week,
         message: `Admissions: tuition $${s.finance.listedTuition.toLocaleString()}/yr — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admitted, ${outcome.enrolled.toLocaleString()} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
         kind: 'info',
+        topic: 'admissions',
       });
       // ATTRITION GETS ITS OWN LINE. A silently smaller number is the
       // single most likely source of "I don't understand what happened to
@@ -787,6 +840,7 @@ export function reducer(state: GameState, action: Action): GameState {
           week: s.clock.week,
           message: `${advanced.notReturning.toLocaleString()} students did not return — ${reasons.length > 0 ? reasons.join(', ') : 'a year averaging ' + priorYearAvgSatisfaction.toFixed(0) + ' satisfaction'}.`,
           kind: 'bad',
+          topic: 'attrition',
         });
       }
       if (outcome.capped) {
@@ -802,6 +856,7 @@ export function reducer(state: GameState, action: Action): GameState {
         week: s.clock.week,
         message: `Report card for year ${reportCard.year}: graded ${reportCard.score.toFixed(0)}. Prestige ${reportCard.before.toFixed(1)} → ${reportCard.after.toFixed(1)}.`,
         kind: reportCard.after >= reportCard.before ? 'good' : 'bad',
+        topic: 'report-card',
       });
 
       // The autosave (see state/persistence.ts). This annual boundary is
@@ -968,6 +1023,18 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
+    // Puts down one of the first year's letters (see eventSystem.ts's
+    // fireOpeningLetter). The letter was marked read when it fired; all
+    // this records is the one thing a letter can change — the player
+    // declining the rest of the script. Advances the clock like every
+    // other trailing interrupt.
+    case 'RESOLVE_LETTER': {
+      if (action.skipAll) s.events.opening.skipped = true;
+      s.pendingInterrupt = null;
+      advanceClock(s);
+      return s;
+    }
+
     // =====================================================================
     // THE PLAYTEST BLOCK (see actions.ts's own DEBUG_ block, and
     // components/DebugPanel.tsx, the single component that dispatches any
@@ -1062,7 +1129,10 @@ export function reducer(state: GameState, action: Action): GameState {
       return fireMilestoneCelebration(s) ? s : state;
     }
 
-    // Publish the U.S. News report now, off this week's standings.
+    // Publish the U.S. News report now, off this week's standings — as its
+    // own modal, the way it used to fire every year at week 26 before it
+    // became the summer's Standing beat. The playtest panel's way of
+    // looking at the table without waiting for a summer.
     case 'DEBUG_FORCE_REPORT': {
       if (s.pendingInterrupt) return state;
       s.pendingInterrupt = { type: 'annual-report', payload: buildReportPayload(s) };

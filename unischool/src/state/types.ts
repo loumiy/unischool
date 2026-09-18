@@ -162,6 +162,37 @@ export interface StudentBody {
   applicantPool: number; // most recent cycle's total applicants (set by the annual funnel)
   admitRate: number;     // most recent cycle's admit rate — the emergent selectivity signal prestige reacts to (see prestigeSystem.ts)
   incomingQuality: number; // most recent cycle's average quality score (0..100) of the entering freshman class — prestige's other admissions-derived input
+  // WHAT LAST SUMMER'S FUNNEL READ (Plan 16's PR C): the pool it drew, the
+  // six factors it multiplied to get there, and the pool's cohort split.
+  // Written once at RESOLVE_ADMISSIONS and read by the next summer's
+  // reveal, which puts this year's factors against last year's and says
+  // WHY the pool moved — "prestige +8%, price −3%, word of mouth +21%".
+  // Stored rather than recomputed because the funnel's inputs a year ago
+  // (prestige before the step, that year's average satisfaction, the
+  // signals as they stood) are not recoverable from today's state. Null
+  // until the first summer, which has no year to compare against.
+  lastFunnel: FunnelRecord | null;
+}
+
+// The six multipliers the applicant funnel is the product of (see
+// admissionsSystem.ts's projectAdmissions): applicants = prestigePool ×
+// priceFactor × capacityFactor × wordOfMouth × cohortDemand × stickerShock,
+// before rounding. Each is a plain number, so the year-over-year line can
+// divide this year's by last year's and read each one's share of the move.
+export interface FunnelFactors {
+  prestigePool: number;   // the pool prestige alone would draw, in applicants
+  priceFactor: number;    // 0..1, the price discount against tolerance
+  capacityFactor: number; // the beds floor-to-one scale
+  wordOfMouth: number;    // satisfaction's multiplier, 1 at neutral
+  cohortDemand: number;   // the blended cohort pull, 1 at neutral
+  stickerShock: number;   // 0..1, the band-specific self-selection
+}
+
+export interface FunnelRecord {
+  year: number;            // the year whose summer drew it
+  applicants: number;      // the realized pool
+  factors: FunnelFactors;
+  cohorts: CohortCounts;   // the pool's split, summing to `applicants`
 }
 
 // Faculty ARE individuals with attributes. teaching/research/salary are
@@ -566,6 +597,39 @@ export interface PendingInterrupt {
   payload?: unknown;
 }
 
+// THE SUMMER (Plan 16's PR A): one interrupt, four beats. The year has one
+// fixed stop, and everything the year produced is read at it — what the
+// year built, where the school now stands, what to charge and whom to
+// admit, and what the students are asking for. One `summer` interrupt with
+// a `beat` index rather than four interrupts in a row, so a save written
+// between beats resumes on the right beat with the clock still halted, and
+// nothing can slip in between them.
+//
+// The beats, in order (SUMMER_BEATS below): review and standing are
+// read-and-continue; the admissions decision and the student digest are
+// not. RESOLVE_SUMMER_BEAT advances `beat`, carrying the tuition/admit
+// decision into `decision` when it leaves the admissions beat, so the last
+// beat commits exactly the figures the player set two beats earlier;
+// RESOLVE_ADMISSIONS is the last beat's action and the only one that moves
+// the calendar (see reducer.ts). `tuition`/`admitRate` are the sticky
+// opening positions the sliders start at, exactly what the old
+// `admissions` interrupt's payload carried.
+export type SummerBeat = 0 | 1 | 2 | 3;
+export const SUMMER_BEATS = ['Review', 'Standing', 'Admissions', 'Students'] as const;
+export const SUMMER_LAST_BEAT: SummerBeat = 3;
+
+export interface SummerDecision {
+  tuition: number;
+  admitRate: number;
+}
+
+export interface SummerPayload {
+  beat: SummerBeat;
+  tuition: number;    // where the tuition slider opens: last year's listed price
+  admitRate: number;  // where the admit slider opens: last year's chosen rate
+  decision?: SummerDecision; // set once the admissions beat has been left; what the last beat commits
+}
+
 // ---------------------------------------------------------------------
 // A STUDENT DEMAND (see docs/design/student-life.md's "Student demands:
 // the inverse of clubs", and systems/demands/demandSystem.ts). When
@@ -653,6 +717,14 @@ export interface EventState {
   // never. The cooldown half of the cadence, and the reason a failed
   // demand cannot be followed straight away by a second unmeetable one.
   lastDemandWeek: number;
+  // THE FIRST YEAR'S SCRIPT (Plan 16's PR F — see data/eventData.ts's
+  // OPENING_LETTERS). Four letters from the board's chair, each with one
+  // thing to do, fired through the ordinary interrupt system on the first
+  // quiet week at or after its week of year one. `read` is the ids already
+  // delivered, so a letter fires once; `skipped` is the player's "I know
+  // the way" on the first letter, which stands the rest of the script down
+  // for the run. Plain JSON like the rest of this slice.
+  opening: { read: string[]; skipped: boolean };
 }
 
 // The player's admissions policy is set once a year via the summer
@@ -1212,6 +1284,17 @@ export interface YearSnapshot {
   coursesDone: number;    // 'done' course Buildables — the catalogue's progress
   programsEstablished: number; // program-established milestones awarded so far
   satisfaction: number;   // 0..100
+  // THE YEAR'S OWN FIGURES (Plan 16's PR B), as distinct from the stocks
+  // above, which are readings of the moment: what the year did, so the
+  // review beat and the History table can carry it without re-deriving it
+  // from a log that is capped.
+  net: number;                 // cash now less cash a year ago — the year's net, campaigns and grants included
+  applicants: number;          // the pool this summer's funnel drew
+  admitRate: number;           // the share of it the school chose to take (0..1)
+  incomingQuality: number;     // the average quality of the class that enrolled (0..100)
+  satisfactionAverage: number; // the year's average satisfaction — what word of mouth and welfare read
+  coursesFinished: number;     // courses that finished developing during the year
+  attrition: number;           // students who did not return at this summer
 }
 
 // ---------------------------------------------------------------------
@@ -1381,11 +1464,55 @@ export interface SeenState {
   tabIds: Record<string, true>;
 }
 
+// WHAT KIND OF THING A LOG LINE REPORTS (Plan 16's PR B). Optional, and
+// set only on the lines two readers group by: the year in review
+// (state/yearInReview.ts), which sorts the closing year's log into the
+// sections of the summer's first beat, and the toasts (Plan 16's PR G),
+// which surface the handful of kinds that never stop the clock. A line
+// with no topic is texture — it is in the ticker and the log, and nothing
+// else reads it. Tagging at the WRITE rather than parsing the message is
+// what keeps both readers honest when a sentence is reworded.
+export type LogTopic =
+  | 'course'              // a course finished developing
+  | 'building'            // a hall, dorm or facility finished
+  | 'program'             // a program founded in a hall
+  | 'milestone'           // a milestone awarded (established, distinguished, a school founded)
+  | 'appointment'         // somebody joined the faculty
+  | 'departure'           // somebody left it
+  | 'prize'               // a research prize
+  | 'research-started'    // an initiative commissioned
+  | 'research-concluded'  // an initiative ended with nothing worth a modal (papers, or nothing)
+  | 'research-reported'   // an initiative ended and a report is queued
+  | 'publication'
+  | 'breakthrough'
+  | 'grant'
+  | 'demand-raised' | 'demand-met' | 'demand-failed'
+  | 'petition'            // a club or chapter petitioned for recognition
+  | 'organisations'       // the summer digest's answer
+  | 'candidate'           // somebody worth noticing listed on the market
+  | 'team'                // a varsity team's venue finished
+  | 'admissions' | 'attrition' | 'report-card' | 'money';
+
 export interface LogEntry {
   year: number;
   week: number;
   message: string;
   kind: 'info' | 'good' | 'bad';
+  topic?: LogTopic;
+  // The id of the thing the line is about — a Buildable, a program, a
+  // faculty member — when there is one. What lets a reader group "Developed:
+  // Data Structures." under its school without parsing the sentence, and a
+  // toast open the right place.
+  subject?: string;
 }
+
+// How many log entries are kept. Weekly attrition spam is gone, so what
+// remains is milestones, completions, admissions cycles and postings — a
+// deep enough cap that a completed major or a finished school building is
+// still readable in the ticker weeks later instead of being pushed out by
+// the next few routine lines. Lives here rather than in the reducer because
+// the year in review reads it too: a year whose lines have started falling
+// off the end has to say so.
+export const LOG_CAP = 200;
 
 export const WEEKS_PER_YEAR = 52; // the one place the game's year length lives — every system (clock, annual interrupts, finance annualization) reads from this

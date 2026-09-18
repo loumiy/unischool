@@ -250,7 +250,8 @@ function HistoryTable({ rows }: { rows: YearSnapshot[] }) {
         <thead>
           <tr>
             <th>Year</th><th>Prestige</th><th>Rank</th><th>Enrolled</th>
-            <th>Cash</th><th>Courses</th><th>Programs</th><th>Satisf.</th>
+            <th>Cash</th><th>Net</th><th>Applicants</th><th>Admit</th>
+            <th>Courses</th><th>Programs</th><th>Satisf.</th><th>Left</th>
           </tr>
         </thead>
         <tbody>
@@ -269,9 +270,17 @@ function HistoryTable({ rows }: { rows: YearSnapshot[] }) {
               <td>#{h.rank}</td>
               <td>{h.enrolled.toLocaleString()}</td>
               <td>{formatMoney(h.cash)}</td>
-              <td>{h.coursesDone}</td>
+              {/* The year's own figures (Plan 16's PR B): the net, the
+                  pool, the share taken, and who did not return — the same
+                  numbers the summer's review beat reads off, kept so the
+                  table can say what a year DID and not only what it was. */}
+              <td className={h.net < 0 ? 'bad' : ''}>{h.net >= 0 ? '+' : ''}{formatMoney(h.net)}</td>
+              <td>{h.applicants.toLocaleString()}</td>
+              <td>{Math.round(h.admitRate * 100)}%</td>
+              <td>{h.coursesDone}<span className="history-delta"> +{h.coursesFinished}</span></td>
               <td>{h.programsEstablished}</td>
-              <td>{Math.round(h.satisfaction)}</td>
+              <td>{Math.round(h.satisfaction)}<span className="history-delta"> avg {Math.round(h.satisfactionAverage)}</span></td>
+              <td className={h.attrition > 0 ? 'bad' : ''}>{h.attrition > 0 ? h.attrition.toLocaleString() : '—'}</td>
             </tr>
           ))}
         </tbody>

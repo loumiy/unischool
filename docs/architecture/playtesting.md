@@ -45,6 +45,7 @@ which is exactly what the September 2026 review's scripts were doing.
 npm run scenario -- --list                    # the index
 npm run scenario -- year-8-balanced           # build one by name
 npm run scenario -- championship              # …including one that only exists for a week
+npm run scenario -- summer                    # the four-beat summer, stopped on its first beat
 npm run scenario -- --strategy "Balanced builder" --year 12 --modal milestone
 npm run scenario -- --strategy Completionist --year 22 --vernacular gothic \
   --name Blackmoor --clear-modal /tmp/gothic.json   # a campus to photograph
@@ -97,8 +98,10 @@ one edge of the grid (see `tools/README.md`).
   twenty-year jump takes about half a minute and the UI is frozen for it.
 - **Force** — any authored decision event (its payload rolled exactly as at
   fire time), a student demand for a named shortfall, the queued milestones,
-  the annual report. An event whose context cannot be rolled against this
-  state is refused rather than shown empty.
+  the U.S. News report as a modal of its own (in play it is the summer's
+  Standing beat; this is the way to look at the table without waiting for a
+  summer). An event whose context cannot be rolled against this state is
+  refused rather than shown empty.
 - **Load** — a save from `npm run scenario`.
 
 ### The two rules

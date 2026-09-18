@@ -3,15 +3,48 @@
 The once-a-year decision that sets the school's price and its selectivity, and
 the four aggregate classes it commits.
 
-## Admissions: an annual summer decision
+## The summer: one stop a year, four beats
 
-Admissions is **a once-a-year task, in the summer**, delivered as an interrupt.
-When it fires, the clock stops and the player sets exactly **two** levers for
-the coming year: **tuition** and the **admit rate**. There is no scholarship
-rate and no discount — what a family is quoted is what they pay.
-**Both are set once a year here — there is no live, continuously adjustable
-tuition control**, and they are taken as **three beats**, which disagree on
-purpose about how much the player is allowed to know:
+The year has **one fixed stop**, at week 52, and it stops once. The `summer`
+interrupt (`types.ts`'s `SummerPayload`) is one modal with a four-step header —
+**Review · Standing · Admissions · Students** — and a `beat` index in its
+payload, so a save written between beats resumes on the right beat with the
+clock still halted, and nothing can slip in between them. One action per beat
+moves on (`RESOLVE_SUMMER_BEAT`); only the last beat's `RESOLVE_ADMISSIONS`
+turns the calendar page. Review and Standing are read-and-continue (Enter
+continues them); the decision and the digest are not.
+
+1. **Review** — the year the school just lived through, generated from the
+   year's log and the state against last summer's row
+   (`state/yearInReview.ts`): what was built, who came and went, what research
+   did, the students (the year's average satisfaction against last year's,
+   demands raised and met, who is petitioning, and **attrition on its own
+   line**), the money, and the report card — each input's grade and the step
+   prestige is about to take. Nothing is authored or stored; the two
+   forward-looking lines are the same pure functions the last beat commits.
+2. **Standing** — the U.S. News report, at the boundary rather than at week 26
+   (see [progression.md](progression.md)): the school's rank against last
+   summer's, who it passed and was passed by, the big movers, the other two
+   standings, and — once the school is on the published list — the top 50 as a
+   table with a column for last year's place.
+3. **Admissions** — the two levers, below.
+4. **Students** — the student-life digest (see
+   [student-life.md](student-life.md)): a whole year's club and chapter
+   petitions answered together, and the summer's last word — what is about to
+   be committed — before the year turns over.
+
+Plan 16 is the record of how the summer came to be one stop rather than an
+admissions modal and a mid-year report:
+[`../plans/16-the-year.md`](../plans/16-the-year.md).
+
+## Admissions: the summer's third beat
+
+Admissions is **a once-a-year decision, in the summer**. The player sets
+exactly **two** levers for the coming year: **tuition** and the **admit rate**.
+There is no scholarship rate and no discount — what a family is quoted is what
+they pay. **Both are set once a year here — there is no live, continuously
+adjustable tuition control**, and they are taken as **three steps** inside the
+beat, which disagree on purpose about how much the player is allowed to know:
 
 1. **Tuition, set blind.** The slider's only feedback is whether the price is in
    line with what the school's standing supports (`priceTier`). No applicant
@@ -29,6 +62,17 @@ purpose about how much the player is allowed to know:
    The pool and the eight cohort rows share the duration, so the panel fills as
    one reveal rather than seven races. A reader who has asked for reduced motion
    gets the settled figures immediately — the same numbers either way.
+
+   **Year over year, under the pool.** From the second summer, one line says
+   what moved the pool and by how much — *"1,760 applicants (+22%) — beds +12%,
+   prestige +5%, word of mouth +3%, price +1%"*. The funnel is a product of six
+   factors (`types.ts`'s `FunnelFactors`: the prestige pool, price, beds, word
+   of mouth, the cohort pulls, sticker shock), last summer's six are recorded
+   at the boundary (`students.lastFunnel`), and the line is this year's divided
+   by last year's, biggest move first, a factor that did not move left off
+   (`systems/admissions/yearOverYear.ts`). The decomposition is exact: the six
+   ratios compose to the pool's own ratio before rounding. Each cohort card
+   shows last summer's count small beneath this year's.
 3. **Admit rate, fully projected.** The opposite posture: every consequence
    visible before it is taken (see "Tuition follows the class that paid it") —
    including the **room**: the seats the housed catalogue has left after the
@@ -58,21 +102,22 @@ modeled as aggregate applicant *statistics*, never individual applicants:
   investment grows, but is a floor rather than a wall — even a pure commuter
   school with zero beds draws a real, meaningful pool.
 
-  **Word of mouth is deliberately not shown.** It is one of the strongest
-  forces on the pool, and a player who is told "+12% applicants" reads a number
-  instead of learning the rule. Left unlabelled it is something to notice
-  across a few years — the pool grew and the only thing that changed was that
-  the students got happier — which is the understanding worth having. It is
-  the same reasoning sticker shock gets: real, and not its own readout.
+  **Word of mouth is shown, as a named part of the year-over-year line.** It
+  used to be deliberately hidden, on the theory that a player told "+12%
+  applicants" reads a number instead of learning the rule, and would learn it
+  instead by noticing the pool grow the year after the students got happier.
+  The September 2026 review found the rule was never learned; a player who
+  reads "word of mouth +21%" the year after building a dining hall has learned
+  it. Sticker shock is named the same way when it moves.
 - **Sticker shock** is the *band-specific* half of the price response, and it
   is what ties price to **who** applies rather than only how many. A price that
   overreaches what the school's prestige has earned (`priceTolerance`) scares
   off applicants hardest in the lower/mid quality bands and barely at all in
   the top band (the real-world "undermatching" effect), so an overreaching
   school gets a smaller pool that is also relatively richer in the applicants
-  least sensitive to price. It is **not shown as its own reading** — beat 1 is
-  blind, and by beat 2 it is already priced into the pool the player is
-  looking at. See `admissionsSystem.ts`'s `STICKER_SHOCK_RATE`,
+  least sensitive to price. It has **no reading of its own at the price step**
+  — that step is blind — and appears afterwards only as its share of the
+  year-over-year move. See `admissionsSystem.ts`'s `STICKER_SHOCK_RATE`,
   whose rates were sized to close an exploit that no longer exists — with one
   price, the "inflate the sticker and match it with aid" construction cannot be
   written — and which are kept for the effect itself.

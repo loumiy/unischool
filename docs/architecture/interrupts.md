@@ -9,11 +9,23 @@ the clock resume.
 
 Everything that needs to stop time rides on this one mechanism:
 
-- **Annual admissions** (see [admissions.md](../design/admissions.md)) — a
-  summer interrupt.
-- **The U.S. News report** — the "you've entered the rankings" alert and the
-  annual standings update.
-- **The tutorial** — a scripted sequence of interrupts (see below).
+- **The summer** (see [admissions.md](../design/admissions.md)'s "The
+  summer") — the year's one fixed stop: **one** `summer` interrupt with a
+  `beat` index in its payload (Review · Standing · Admissions · Students),
+  advanced one beat per `RESOLVE_SUMMER_BEAT` with the clock still halted and
+  the admissions decision carried along in the payload, and closed by the last
+  beat's `RESOLVE_ADMISSIONS`, the only action that turns the page. A save
+  written between beats resumes on the same beat. The annual U.S. News report
+  is its Standing beat and the student-life digest its fourth; neither is an
+  interrupt of its own any more.
+- **The rankings entry** — the one-time "you've entered the top 50" reveal,
+  which keeps its own moment because entering is the event.
+- **The first year's letters** — four letters from the board's chair, data in
+  `src/data/eventData.ts` (`OPENING_LETTERS`), fired on the first quiet week at
+  or after each one's week of year one, once each, and skippable from the
+  first ("I know the way"). They yield to everything the player earned and
+  outrank only the decision roll. The toolbar carries a letter's ask as its
+  next-step line until it is done (`src/systems/guidance/nextStep.ts`).
 - **Milestone celebrations** — a stop-the-clock moment for the handful of
   genuinely special accomplishments (a program established, a program
   distinguished, a school distinguished), showing what was unlocked and what it
@@ -79,10 +91,32 @@ Everything that needs to stop time rides on this one mechanism:
   week it was **put** rather than the week it was answered. That is what keeps a
   cleared-but-unanswered modal from re-firing on the next quiet week and
   starving every other event that shares the slot.
-- **Later:** the tutorial sequence.
+Build this once, generically. Do not bolt the report, admissions, or the
+letters on as one-off pauses.
 
-Build this once, generically. Do not bolt the report, admissions, or tutorial on
-as one-off pauses.
+## What does not stop the clock
+
+The other half of the same design decision. A course or building finishing, a
+program founded, a petition filed, a paper published, a candidate listed in a
+field the school is short in, and a research project that concluded with
+nothing worth a modal are **toasts** (`src/components/Toasts.tsx`): three
+seconds each above the log ticker, five at most, a click opening the tab they
+are about. They are driven by the log's own `topic` tags — a system tags the
+line it writes (`types.ts`'s `LogTopic`), the toast stack and the summer's
+review beat both read the tag — so what toasts is what a system said it did,
+never a parse of the sentence. Everything an interrupt announces stays out of
+the stack.
+
+## Widths
+
+An interrupt is one of three widths, chosen by what it is
+(`src/components/modalLayout.ts`): **narrow** for a question with a short
+answer (a decision event, the charter, a demand, a research report, a single
+milestone), **wide** for a decision with a panel beside it (the summer's review,
+admissions and students beats, the athletic director's cards, a championship, a
+burst of milestones as cards), **page** for a table to read (the summer's
+Standing beat and the rankings entry). The summer changes width between beats
+without the component knowing why.
 
 ## A new interrupt needs a default answer
 
@@ -98,3 +132,17 @@ that way by a harness that did not know it existed, so the feature never ran
 in a single measured trajectory while the balance figures were being fitted
 against those runs. See
 [playtesting.md](playtesting.md).
+
+The summer is the one interrupt the defaults answer in **four calls**, one
+beat each, so a fast-forward takes the same steps a player does — including the
+payload carrying the decision from the third beat to the fourth. The harness
+counts a summer once, on its opening beat, and reads its row on the last.
+
+**A quiet week is a die roll.** The decision-event roll draws the seeded
+random stream on every quiet week from year three on, so an interrupt that
+stops firing on some week (the week-26 report, when it became the Standing
+beat) re-phases every trajectory after the first week it would have claimed.
+That is a harness property, not a balance change — measured week by week the
+runs are identical up to that week and divergent from it — and the answer is
+the reference envelope re-recorded (`npm run sim -- --write-reference`), never
+a constant moved to chase the dice.

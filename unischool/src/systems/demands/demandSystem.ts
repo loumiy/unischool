@@ -1,4 +1,4 @@
-import type { Buildable, GameState, SatisfactionAttributes, StudentDemand } from '../../state/types';
+import type { Buildable, GameState, LogTopic, SatisfactionAttributes, StudentDemand } from '../../state/types';
 import { totalEnrolled } from '../../state/types';
 import { absoluteWeek, DECISION_EVENT_COOLDOWN_WEEKS } from '../../data/eventData';
 import {
@@ -317,8 +317,8 @@ export function rollShortfallDemand(s: GameState): StudentDemand | null {
 // THE TICK
 // =====================================================================
 
-function log(s: GameState, message: string, kind: 'info' | 'good' | 'bad'): void {
-  s.log.unshift({ year: s.clock.year, week: s.clock.week, message, kind });
+function log(s: GameState, message: string, kind: 'info' | 'good' | 'bad', topic?: LogTopic): void {
+  s.log.unshift({ year: s.clock.year, week: s.clock.week, message, kind, topic });
 }
 
 function nudgeSatisfaction(s: GameState, points: number): void {
@@ -348,14 +348,14 @@ function resolveActiveDemand(s: GameState): void {
   if (progress.met) {
     nudgeSatisfaction(s, DEMAND_MET_SATISFACTION_REWARD);
     closeDemand(s, week);
-    log(s, `The student body's demand has been met: ${demand.askName} is open, and the campus knows who asked for it.`, 'good');
+    log(s, `The student body's demand has been met: ${demand.askName} is open, and the campus knows who asked for it.`, 'good', 'demand-met');
     return;
   }
 
   if (week >= demand.deadlineWeek) {
     nudgeSatisfaction(s, -DEMAND_FAILED_SATISFACTION_PENALTY);
     closeDemand(s, week);
-    log(s, `The deadline on the student body's demand for ${demand.askName} has passed with nothing built. Word of it will follow the school into next year's admissions.`, 'bad');
+    log(s, `The deadline on the student body's demand for ${demand.askName} has passed with nothing built. Word of it will follow the school into next year's admissions.`, 'bad', 'demand-failed');
   }
 }
 
@@ -417,7 +417,7 @@ export function raiseDemand(s: GameState, demand: StudentDemand): void {
   // and the Student Life tab both read, so a run saved with the modal open
   // resumes showing the same demand rather than a stale copy of it.
   s.pendingInterrupt = { type: 'demand' };
-  log(s, `The student body has raised a formal demand: ${demandCopy(demand).ask(demand.askName)}, within ${DEMAND_DEADLINE_WEEKS} weeks.`, 'bad');
+  log(s, `The student body has raised a formal demand: ${demandCopy(demand).ask(demand.askName)}, within ${DEMAND_DEADLINE_WEEKS} weeks.`, 'bad', 'demand-raised');
 }
 
 export function tickDemands(s: GameState): void {

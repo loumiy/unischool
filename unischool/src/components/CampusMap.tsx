@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
 import type { Buildable, GameState, Placement, TileCoord, Vernacular } from '../state/types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
@@ -573,6 +573,228 @@ function HallMarks({ t, p, slots, offerWaiting, blocked, vernacular, onInspect }
   );
 }
 
+// EVERYTHING THAT STANDS ON THE GROUND, as one memoised component.
+//
+// The map's render path runs on every mouse move while a building is being
+// sited or a path is being drawn: `hover` is React state, and it has to be —
+// the ghost is drawn from it. But the ground, the walks, the buildings, the
+// trees, the labels and the hall pips depend on none of that. Rendering them
+// from the same function as the ghost meant every hovered tile re-ran every
+// one of them (several hundred trees, every building wrapper, every label),
+// which was most of a frame on a built-out campus and read as the game
+// freezing the moment a build tile was clicked.
+//
+// So the scene takes only what it actually draws from — the game state, the
+// inspected id, the just-finished set and a STABLE inspect callback — and
+// memo skips it entirely when none of those changed. A hover renders the
+// ghost and nothing else. A tick still renders the whole scene, as it must:
+// the reducer hands back a new state every action.
+const CampusScene = memo(function CampusScene({ s, inspectedId, justFinished, onInspect, labelLayerRef, camera }: {
+  s: GameState;
+  inspectedId: string | null;
+  justFinished: readonly string[];
+  onInspect: (id: string) => void;
+  // The camera the scene is drawn at (see the CAMERA block above). The
+  // geometry reads it from the projection itself; it is a prop so this memo
+  // — and the memoised motifs and trees below — redraw when it changes.
+  camera: Camera;
+  // The label layer's node, for the parent's cursor-distance pass — that
+  // pass writes opacity straight onto the DOM on every mouse move, which is
+  // the whole reason it needs a ref rather than a prop (see paintLabels).
+  labelLayerRef: React.RefObject<SVGGElement | null>;
+}) {
+  // Placements resolved against `tech` once per render, rather than per
+  // tile: 60 placeables against 15,876 cells is not worth re-scanning.
+  const placed = useMemo(() => Object.entries(s.placements)
+    .map(([id, p]) => ({ p, t: s.tech.find((x) => x.id === id) }))
+    .filter((entry): entry is { p: Placement; t: Buildable } => entry.t !== undefined), [s.placements, s.tech]);
+
+  // FLAT GROUND VS EVERYTHING THAT STANDS ON IT. An open-ground facility —
+  // a quad, a pitch, a ball field, the courts, the pool deck — is paint on
+  // the ground with no height at all, so it can never legitimately occlude
+  // anything and is drawn in a pass of its own UNDER every mass (see
+  // groundMarkings.tsx's own note on why a single depth key cannot express
+  // a large flat footprint: a 9x9 quad sorted on its far corner painted
+  // over trees standing in front of its near one).
+  //
+  // What genuinely stands on one of those plots — planting, hedges, a
+  // fountain, a monument, a stand, an outfield fence — comes back from
+  // groundProps and joins the ordinary sorted pass below, each prop over the
+  // ground it actually covers.
+  const groundPlaced = placed.filter(({ t }) => motifOf(t) === 'grounds');
+
+  // A chapter house's letters, by Buildable id. Derived from the roster of
+  // chapters every render rather than copied onto the house when it is
+  // built: a scandal can disband a chapter (and take its house with it), so
+  // the letters have to come from the thing that owns them.
+  const chapterGlyphs = useMemo(() => {
+    const byId: Record<string, string> = {};
+    for (const c of s.orgs.chapters) byId[chapterHouseId(c.id)] = c.glyphs;
+    return byId;
+  }, [s.orgs.chapters]);
+
+  // THE SORTED SCENE — every mass, every tree and every raised prop, in the
+  // order they have to be painted in (see depthSort.ts for why that is a
+  // topological sort over an occlusion relation rather than a sort key).
+  //
+  // Memoised on the state it reads, and that is not an optimisation detail,
+  // it is what makes the sort affordable at all. `hover` is React state that
+  // changes on every mouse move, so the render path runs constantly; the
+  // scene only changes when something is built, felled or paved. A built-out
+  // campus sorts in a few milliseconds, which is nothing once a week and
+  // everything on every pointer event.
+  //
+  // What comes out is DESCRIPTORS, not elements: the order depends only on
+  // geometry, while a building's element also depends on what is inspected,
+  // what just finished and how many weeks are left — all of which change
+  // without moving anything. Keeping the elements outside the memo means
+  // those never invalidate the sort.
+  const scene = useMemo(() => {
+    const entries: SceneEntry[] = [];
+    for (const [id, p] of Object.entries(s.placements)) {
+      const t = s.tech.find((x) => x.id === id);
+      if (!t) continue;
+      if (motifOf(t) === 'grounds') {
+        // The raised half of a flat plate. Each prop enters the sort on the
+        // ground IT covers, so a quad's own trees interleave with the
+        // woodland around them instead of arriving as one block at the
+        // plate's depth.
+        const d = drawnFootprint(p);
+        // A site has no props yet — same test PlacedBuilding uses for the
+        // plate itself, so the paint and the things standing on it can never
+        // disagree about whether the ground is finished.
+        const siteDeveloping = t.status === 'developing' && s.developing[id] !== undefined;
+        for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, siteDeveloping)) {
+          entries.push({
+            kind: 'prop', key: `g-${id}-${prop.key}`, node: prop.node,
+            col: prop.col, row: prop.row, w: prop.w, h: prop.h,
+          });
+        }
+      } else {
+        entries.push({ kind: 'mass', key: `b-${id}`, id, col: p.col, row: p.row, w: p.w, h: p.h });
+      }
+    }
+    // A tree whose tile has been paved is hidden, not deleted (see
+    // state/types.ts's Trees block) — which is the whole implementation of
+    // "lifting the path brings it back".
+    for (const [key, seed] of Object.entries(s.trees)) {
+      if (key in s.pathways) continue;
+      const tile = parsePathTileKey(key);
+      if (!tile) continue;
+      entries.push({ kind: 'tree', key: `t-${key}`, seed, col: tile.col, row: tile.row, w: 1, h: 1 });
+    }
+    return depthOrder(entries);
+    // The camera is a dependency of the ORDER — what is in front of what
+    // changes as the view turns — and of the props' elements, whose geometry
+    // is drawn at it.
+  }, [s.placements, s.tech, s.trees, s.pathways, s.developing, camera]);
+
+  const ground = useMemo(groundGeometry, [camera]);
+
+  return (
+    <>
+      {/* Ground, then drawn pathways, then buildings back-to-front,
+          then labels on top of everything (the footprint ghost is in
+          its own layer over this whole SVG — see the render below).
+          The flat map's two per-tile layers — 15,876 ground rects and,
+          in path mode, 15,876 more hit targets — are both gone: the
+          ground is one plate plus one <path> of grid lines, and every
+          tile question is answered by tileFromEvent's arithmetic. */}
+      <polygon className="campus-ground" points={ground.plate} />
+      <path className="campus-grid" d={ground.grid} />
+
+      <PathwayLayer pathways={s.pathways} camera={camera} />
+
+      {/* Every cast shadow, on the ground under everything that stands
+          (see the shadow note above CastShadows). */}
+      <CastShadows placed={placed} scene={scene} developing={s.developing} vernacular={s.self.vernacular} camera={camera} />
+
+      {/* Back to front. On an angled map this ordering IS the
+          occlusion: a building nearer the camera must paint over one
+          behind it. Sorting on the footprint's FAR corner (row + h,
+          col + w) rather than its origin is what keeps a large
+          building from being drawn behind a small one it actually
+          stands in front of. */}
+      {/* Buildings AND trees in ONE sorted pass, not two layers.
+          A tree standing in front of a hall has to paint over it and
+          one behind it has to be hidden by it — which a separate tree
+          layer could never do, since it would put every tree either
+          in front of or behind every building. Both sort on the same
+          thing: the far corner of the tiles the thing occupies, which
+          for a tree is simply its own single tile. */}
+      {/* The flat ground plates, before every mass. They have no
+          height, so nothing can stand behind one — and sorting them
+          against masses at all is what made a quad paint over a tree
+          in front of it. */}
+      {groundPlaced.map(({ t, p }) => (
+        <PlacedBuilding
+          key={t.id}
+          t={t}
+          p={p}
+          label={hallDisplayName(s, t)}
+          onInspect={() => onInspect(t.id)}
+          inspected={t.id === inspectedId}
+          weeksLeft={s.developing[t.id]}
+          justFinished={justFinished.includes(t.id)}
+          glyphs={chapterGlyphs[t.id]}
+          vernacular={s.self.vernacular}
+          camera={camera}
+        />
+      ))}
+
+      {scene.map((entry) => {
+        if (entry.kind === 'tree') return <Tree key={entry.key} row={entry.row} col={entry.col} seed={entry.seed} camera={camera} />;
+        if (entry.kind === 'prop') return <g key={entry.key}>{entry.node}</g>;
+        const t = s.tech.find((x) => x.id === entry.id);
+        const p = s.placements[entry.id];
+        if (!t || !p) return null;
+        return (
+          <g key={entry.key}>
+            <PlacedBuilding
+              t={t}
+              p={p}
+              label={hallDisplayName(s, t)}
+              onInspect={() => onInspect(entry.id)}
+              inspected={entry.id === inspectedId}
+              weeksLeft={s.developing[entry.id]}
+              justFinished={justFinished.includes(entry.id)}
+              glyphs={chapterGlyphs[entry.id]}
+              vernacular={s.self.vernacular}
+              camera={camera}
+            />
+          </g>
+        );
+      })}
+
+      <g ref={labelLayerRef}>
+        {placed.filter(({ t }) => t.facilityType !== 'quad').map(({ t, p }) => (
+          <BuildingLabel key={`label-${t.id}`} t={t} p={p} label={hallDisplayName(s, t)} pinned={t.id === inspectedId} vernacular={s.self.vernacular} />
+        ))}
+      </g>
+
+      {/* WHAT IS IN EACH HALL, readable without opening anything:
+          six pips over the roof, one per slot, each in the colour of
+          the school whose program holds it — so a pure hall reads as
+          one colour and a mixed one as several — and a flag when a
+          slot is free and a program is on offer for it. Always on,
+          unlike the labels, because "where is there room" is the
+          question a player brings to the map. */}
+      {placed.filter(({ t }) => isAcademicHall(t) && s.halls[t.id]).map(({ t, p }) => (
+        <HallMarks
+          key={`marks-${t.id}`}
+          t={t}
+          p={p}
+          slots={s.halls[t.id]}
+          offerWaiting={s.programOffers.length > 0}
+          blocked={s.halls[t.id].map((slot) => !!slot.programId && programBlocked(s, slot.programId))}
+          vernacular={s.self.vernacular}
+          onInspect={() => onInspect(t.id)}
+        />
+      ))}
+    </>
+  );
+});
+
 export default function CampusMap({
   s, act, selectedId, onSelect, pathTool, onSetPathTool, backOutEnabled, controlsEnabled,
   onOpenCurriculum, inspectTarget, onInspectTargetConsumed,
@@ -645,7 +867,6 @@ export default function CampusMap({
   // the player happens to be looking from, not a fact about the school.
   const [camera, setCameraState] = useState<Camera>(DEFAULT_CAMERA);
   setCamera(camera);
-  const ground = useMemo(groundGeometry, [camera]);
   // Which of the four views and three pitches the camera stands at (see the
   // CAMERA block above): the camera is derived from these, never the other
   // way round, so it can only ever rest on a crisp one.
@@ -714,6 +935,10 @@ export default function CampusMap({
   // ref-driven rather than React state) ---
   const svgRef = useRef<SVGSVGElement>(null);
   const worldRef = useRef<SVGGElement>(null);
+  // The ghost layer (see the render below): a second SVG over the first,
+  // whose own world group has to carry the identical transform.
+  const ghostSvgRef = useRef<SVGSVGElement>(null);
+  const ghostWorldRef = useRef<SVGGElement>(null);
   const viewRef = useRef({ x: 0, y: 0, zoom: 1 });
   // The label layer, and the last place the cursor was in WORLD coordinates.
   // Both refs, and the pass below writes opacity straight onto the DOM: it
@@ -812,7 +1037,9 @@ export default function CampusMap({
   function applyView(next: { x: number; y: number; zoom: number }) {
     const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next.zoom));
     viewRef.current = { x: next.x, y: next.y, zoom };
-    worldRef.current?.setAttribute('transform', `translate(${next.x} ${next.y}) scale(${zoom})`);
+    const transform = `translate(${next.x} ${next.y}) scale(${zoom})`;
+    worldRef.current?.setAttribute('transform', transform);
+    ghostWorldRef.current?.setAttribute('transform', transform);
     paintLabels(cursorRef.current);
   }
 
@@ -1071,6 +1298,13 @@ export default function CampusMap({
     }
   }
 
+  // The cursor has left the map: no ghost, no lit labels.
+  function leaveMap() {
+    setHover(null);
+    cursorRef.current = null;
+    paintLabels(null);
+  }
+
   function onMapClick(e: React.MouseEvent<SVGSVGElement>) {
     const tile = tileFromEvent(e);
     if (!tile) return;
@@ -1303,6 +1537,12 @@ export default function CampusMap({
     if (selected || pathTool) return;
     setInspectedId((cur) => (cur === id ? null : id));
   };
+  // The version the scene is handed: one identity for the life of the
+  // component, reading the current inspectBuilding through a ref. A fresh
+  // closure per render is exactly what would defeat CampusScene's memo.
+  const inspectRef = useRef(inspectBuilding);
+  inspectRef.current = inspectBuilding;
+  const onInspect = useCallback((id: string) => inspectRef.current(id), []);
 
 
   // One end of a path click-drag: acts on the tile immediately (so a plain
@@ -1318,97 +1558,13 @@ export default function CampusMap({
     );
   };
 
-  // Placements resolved against `tech` once per render, rather than per
-  // tile: 60 placeables against 15,876 cells is not worth re-scanning.
-  const placed = useMemo(() => Object.entries(s.placements)
-    .map(([id, p]) => ({ p, t: s.tech.find((x) => x.id === id) }))
-    .filter((entry): entry is { p: Placement; t: Buildable } => entry.t !== undefined), [s.placements, s.tech]);
-
-  // FLAT GROUND VS EVERYTHING THAT STANDS ON IT. An open-ground facility —
-  // a quad, a pitch, a ball field, the courts, the pool deck — is paint on
-  // the ground with no height at all, so it can never legitimately occlude
-  // anything and is drawn in a pass of its own UNDER every mass (see
-  // groundMarkings.tsx's own note on why a single depth key cannot express
-  // a large flat footprint: a 9x9 quad sorted on its far corner painted
-  // over trees standing in front of its near one).
-  //
-  // What genuinely stands on one of those plots — planting, hedges, a
-  // fountain, a monument, a stand, an outfield fence — comes back from
-  // groundProps and joins the ordinary sorted pass below, each prop over the
-  // ground it actually covers.
-  const groundPlaced = placed.filter(({ t }) => motifOf(t) === 'grounds');
-
-  // A chapter house's letters, by Buildable id. Derived from the roster of
-  // chapters every render rather than copied onto the house when it is
-  // built: a scandal can disband a chapter (and take its house with it), so
-  // the letters have to come from the thing that owns them.
-  const chapterGlyphs = useMemo(() => {
-    const byId: Record<string, string> = {};
-    for (const c of s.orgs.chapters) byId[chapterHouseId(c.id)] = c.glyphs;
-    return byId;
-  }, [s.orgs.chapters]);
-
-  // THE SORTED SCENE — every mass, every tree and every raised prop, in the
-  // order they have to be painted in (see depthSort.ts for why that is a
-  // topological sort over an occlusion relation rather than a sort key).
-  //
-  // Memoised on the state it reads, and that is not an optimisation detail,
-  // it is what makes the sort affordable at all. `hover` is React state that
-  // changes on every mouse move, so the render path runs constantly; the
-  // scene only changes when something is built, felled or paved. A built-out
-  // campus sorts in a few milliseconds, which is nothing once a week and
-  // everything on every pointer event.
-  //
-  // What comes out is DESCRIPTORS, not elements: the order depends only on
-  // geometry, while a building's element also depends on what is inspected,
-  // what just finished and how many weeks are left — all of which change
-  // without moving anything. Keeping the elements outside the memo means
-  // those never invalidate the sort.
-  const scene = useMemo(() => {
-    const entries: SceneEntry[] = [];
-    for (const [id, p] of Object.entries(s.placements)) {
-      const t = s.tech.find((x) => x.id === id);
-      if (!t) continue;
-      if (motifOf(t) === 'grounds') {
-        // The raised half of a flat plate. Each prop enters the sort on the
-        // ground IT covers, so a quad's own trees interleave with the
-        // woodland around them instead of arriving as one block at the
-        // plate's depth.
-        const d = drawnFootprint(p);
-        // A site has no props yet — same test PlacedBuilding uses for the
-        // plate itself, so the paint and the things standing on it can never
-        // disagree about whether the ground is finished.
-        const siteDeveloping = t.status === 'developing' && s.developing[id] !== undefined;
-        for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, siteDeveloping)) {
-          entries.push({
-            kind: 'prop', key: `g-${id}-${prop.key}`, node: prop.node,
-            col: prop.col, row: prop.row, w: prop.w, h: prop.h,
-          });
-        }
-      } else {
-        entries.push({ kind: 'mass', key: `b-${id}`, id, col: p.col, row: p.row, w: p.w, h: p.h });
-      }
-    }
-    // A tree whose tile has been paved is hidden, not deleted (see
-    // state/types.ts's Trees block) — which is the whole implementation of
-    // "lifting the path brings it back".
-    for (const [key, seed] of Object.entries(s.trees)) {
-      if (key in s.pathways) continue;
-      const tile = parsePathTileKey(key);
-      if (!tile) continue;
-      entries.push({ kind: 'tree', key: `t-${key}`, seed, col: tile.col, row: tile.row, w: 1, h: 1 });
-    }
-    return depthOrder(entries);
-    // The camera is a dependency of the ORDER — what is in front of what
-    // changes as the view turns — and of the props' elements, whose geometry
-    // is drawn at it.
-  }, [s.placements, s.tech, s.trees, s.pathways, s.developing, camera]);
-
   // The inspected building, if any, re-resolved against `placed` on every
   // render rather than trusted from state — same reasoning as `selected`
   // above: a placement can vanish (see eventData.ts's demolition event),
   // so a stale id must not go on pointing at a building no longer there.
-  const inspected = placed.find(({ t }) => t.id === inspectedId) ?? null;
+  const inspectedPlacement = inspectedId ? s.placements[inspectedId] : undefined;
+  const inspectedBuildable = inspectedPlacement ? s.tech.find((x) => x.id === inspectedId) : undefined;
+  const inspected = inspectedPlacement && inspectedBuildable ? { t: inspectedBuildable, p: inspectedPlacement } : null;
 
   // The footprint ghost under the cursor, and whether it would actually fit
   // — at the CURRENT rotation, so a rotated shape that no longer clears the
@@ -1450,7 +1606,14 @@ export default function CampusMap({
           height="100%"
           role="group"
           aria-label="Campus map"
-          onMouseLeave={() => { setHover(null); cursorRef.current = null; paintLabels(null); }}
+          onMouseLeave={(e) => {
+            // The rotate control lives in the ghost layer, a sibling SVG, so
+            // moving onto it is a "leave" of this one. It isn't a leave of
+            // the map: the ghost must stay put under the control the player
+            // is about to click.
+            if (e.relatedTarget instanceof Node && ghostSvgRef.current?.contains(e.relatedTarget)) return;
+            leaveMap();
+          }}
           onMouseMove={onMapMouseMove}
           onMouseDown={onMapMouseDown}
           onClick={onMapClick}
@@ -1463,7 +1626,7 @@ export default function CampusMap({
             if (!selected) return;
             e.preventDefault();
             const tile = tileFromEvent(e);
-            if (tile) setHover(tile);
+            if (tile) setHover((cur) => (cur && cur.row === tile.row && cur.col === tile.col ? cur : tile));
           }}
           onDrop={(e) => {
             e.preventDefault();
@@ -1473,140 +1636,75 @@ export default function CampusMap({
         >
           <defs><ScaffoldPattern /></defs>
           <g ref={worldRef}>
-            {/* Ground, then drawn pathways, then buildings back-to-front,
-                then the footprint ghost, then labels on top of everything.
-                The flat map's two per-tile layers — 15,876 ground rects and,
-                in path mode, 15,876 more hit targets — are both gone: the
-                ground is one plate plus one <path> of grid lines, and every
-                tile question is answered by tileFromEvent's arithmetic. */}
-            <polygon className="campus-ground" points={ground.plate} />
-            <path className="campus-grid" d={ground.grid} />
+            <CampusScene
+              s={s}
+              inspectedId={inspectedId}
+              justFinished={justFinished}
+              onInspect={onInspect}
+              labelLayerRef={labelLayerRef}
+              camera={camera}
+            />
+          </g>
+        </svg>
 
-            <PathwayLayer pathways={s.pathways} camera={camera} />
-
-            {/* Every cast shadow, on the ground under everything that stands
-                (see the shadow note above CastShadows). */}
-            <CastShadows placed={placed} scene={scene} developing={s.developing} vernacular={s.self.vernacular} camera={camera} />
-
-            {/* Back to front. On an angled map this ordering IS the
-                occlusion: a building nearer the camera must paint over one
-                behind it. Sorting on the footprint's FAR corner (row + h,
-                col + w) rather than its origin is what keeps a large
-                building from being drawn behind a small one it actually
-                stands in front of. */}
-            {/* Buildings AND trees in ONE sorted pass, not two layers.
-                A tree standing in front of a hall has to paint over it and
-                one behind it has to be hidden by it — which a separate tree
-                layer could never do, since it would put every tree either
-                in front of or behind every building. Both sort on the same
-                thing: the far corner of the tiles the thing occupies, which
-                for a tree is simply its own single tile. */}
-            {/* The flat ground plates, before every mass. They have no
-                height, so nothing can stand behind one — and sorting them
-                against masses at all is what made a quad paint over a tree
-                in front of it. */}
-            {groundPlaced.map(({ t, p }) => (
-              <PlacedBuilding
-                key={t.id}
-                t={t}
-                p={p}
-                label={hallDisplayName(s, t)}
-                onInspect={() => inspectBuilding(t.id)}
-                inspected={t.id === inspectedId}
-                weeksLeft={s.developing[t.id]}
-                justFinished={justFinished.includes(t.id)}
-                glyphs={chapterGlyphs[t.id]}
-                vernacular={s.self.vernacular}
-                camera={camera}
-              />
-            ))}
-
-            {scene.map((entry) => {
-              if (entry.kind === 'tree') return <Tree key={entry.key} row={entry.row} col={entry.col} seed={entry.seed} />;
-              if (entry.kind === 'prop') return <g key={entry.key}>{entry.node}</g>;
-              const t = s.tech.find((x) => x.id === entry.id);
-              const p = s.placements[entry.id];
-              if (!t || !p) return null;
-              return (
-                <g key={entry.key}>
-                  <PlacedBuilding
-                    t={t}
-                    p={p}
-                    label={hallDisplayName(s, t)}
-                    onInspect={() => inspectBuilding(entry.id)}
-                    inspected={entry.id === inspectedId}
-                    weeksLeft={s.developing[entry.id]}
-                    justFinished={justFinished.includes(entry.id)}
-                    glyphs={chapterGlyphs[entry.id]}
-                    vernacular={s.self.vernacular}
-                    camera={camera}
+        {/* THE GHOST'S OWN LAYER. The footprint preview (and the path
+            tool's one-tile ghost) used to be drawn inside the map's SVG,
+            after the buildings. Moving it there on every mouse move made
+            the browser repaint the scene under it — a few thousand
+            polygons — for every tile the cursor crossed, which was most of
+            the cost of siting a building even after the React side stopped
+            re-rendering (see CampusScene). A second <svg> stacked over the
+            first is its own paint layer: the ghost moves, and nothing under
+            it is touched. It carries the same pan/zoom transform (applyView
+            writes both), takes no pointer events so every click and move
+            still lands on the map beneath — except the rotate control,
+            which opts back in (see styles.css). */}
+        <svg ref={ghostSvgRef} className="campus-map-ghost" width="100%" height="100%" aria-hidden="true">
+          <g ref={ghostWorldRef}>
+              {preview && (
+                <>
+                  <polygon
+                    className={`campus-preview ${preview.ok ? 'ok' : 'blocked'}`}
+                    points={polyPoints(boxFaces(preview.col, preview.row, preview.w, preview.h, 0, 0).top)}
                   />
-                </g>
-              );
-            })}
+                  {/* The rotate control, pinned to the ghost's right corner.
+                      It lives inside the panned/zoomed world <g>, so it tracks
+                      the ghost for free rather than needing screen-space
+                      positioning of its own. */}
+                  {canRotateSelected && (() => {
+                    const at = project(preview.col + preview.w, preview.row);
+                    return (
+                      <g
+                        className="campus-rotate-btn"
+                        transform={`translate(${at.x.toFixed(1)}, ${at.y.toFixed(1)})`}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => { e.stopPropagation(); setRotated((r) => !r); }}
+                        // The other half of the map's own onMouseLeave: going from
+                        // the control back onto the map is not a leave, going from
+                        // it to anywhere else is.
+                        onMouseLeave={(e) => {
+                          if (e.relatedTarget instanceof Node && svgRef.current?.contains(e.relatedTarget)) return;
+                          leaveMap();
+                        }}
+                        role="button"
+                        aria-label="Rotate building 90 degrees"
+                      >
+                        <circle r={13} />
+                        <text textAnchor="middle" dominantBaseline="central">⟳</text>
+                        <title>Rotate (R)</title>
+                      </g>
+                    );
+                  })()}
+                </>
+              )}
 
-            {preview && (
-              <>
+              {pathGhost && (
                 <polygon
-                  className={`campus-preview ${preview.ok ? 'ok' : 'blocked'}`}
-                  points={polyPoints(boxFaces(preview.col, preview.row, preview.w, preview.h, 0, 0).top)}
+                  className={`campus-path-ghost ${pathGhost.tool}`}
+                  points={polyPoints(boxFaces(pathGhost.col, pathGhost.row, 1, 1, 0, 0).top)}
                 />
-                {/* The rotate control, pinned to the ghost's right corner.
-                    It lives inside the panned/zoomed world <g>, so it tracks
-                    the ghost for free rather than needing screen-space
-                    positioning of its own. */}
-                {canRotateSelected && (() => {
-                  const at = project(preview.col + preview.w, preview.row);
-                  return (
-                    <g
-                      className="campus-rotate-btn"
-                      transform={`translate(${at.x.toFixed(1)}, ${at.y.toFixed(1)})`}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onClick={(e) => { e.stopPropagation(); setRotated((r) => !r); }}
-                      role="button"
-                      aria-label="Rotate building 90 degrees"
-                    >
-                      <circle r={13} />
-                      <text textAnchor="middle" dominantBaseline="central">⟳</text>
-                      <title>Rotate (R)</title>
-                    </g>
-                  );
-                })()}
-              </>
-            )}
+              )}
 
-            {pathGhost && (
-              <polygon
-                className={`campus-path-ghost ${pathGhost.tool}`}
-                points={polyPoints(boxFaces(pathGhost.col, pathGhost.row, 1, 1, 0, 0).top)}
-              />
-            )}
-
-            <g ref={labelLayerRef}>
-              {placed.filter(({ t }) => t.facilityType !== 'quad').map(({ t, p }) => (
-                <BuildingLabel key={`label-${t.id}`} t={t} p={p} label={hallDisplayName(s, t)} pinned={t.id === inspectedId} vernacular={s.self.vernacular} />
-              ))}
-            </g>
-
-            {/* WHAT IS IN EACH HALL, readable without opening anything:
-                six pips over the roof, one per slot, each in the colour of
-                the school whose program holds it — so a pure hall reads as
-                one colour and a mixed one as several — and a flag when a
-                slot is free and a program is on offer for it. Always on,
-                unlike the labels, because "where is there room" is the
-                question a player brings to the map. */}
-            {placed.filter(({ t }) => isAcademicHall(t) && s.halls[t.id]).map(({ t, p }) => (
-              <HallMarks
-                key={`marks-${t.id}`}
-                t={t}
-                p={p}
-                slots={s.halls[t.id]}
-                offerWaiting={s.programOffers.length > 0}
-                blocked={s.halls[t.id].map((slot) => !!slot.programId && programBlocked(s, slot.programId))}
-                vernacular={s.self.vernacular}
-                onInspect={() => inspectBuilding(t.id)}
-              />
-            ))}
           </g>
         </svg>
 

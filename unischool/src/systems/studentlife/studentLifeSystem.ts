@@ -58,6 +58,8 @@ function raise(s: GameState, petition: OrgPetition): void {
       ? `Students have organised the ${petition.name} and are petitioning for recognition — you will decide at summer admissions.`
       : `A ${petition.greekKind ?? 'fraternity'} calling itself ${petition.name} has petitioned the Hellenic Council for a charter — you will decide at summer admissions.`,
     kind: 'info',
+    topic: 'petition',
+    subject: petition.id,
   });
 }
 
@@ -79,6 +81,8 @@ function tickVarsityVenues(s: GameState): void {
       week: s.clock.week,
       message: `${venue.name} is complete — ${team.name} is now varsity-active.`,
       kind: 'good',
+      topic: 'team',
+      subject: team.id,
     });
   }
 }

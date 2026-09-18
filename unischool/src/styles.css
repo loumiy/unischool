@@ -957,6 +957,12 @@ button.build-tile { font-family: inherit; }
 .campus-path-ghost.plant { stroke: #3f6b2a; fill: rgba(63, 107, 42, 0.28); }
 .campus-path-ghost.fell { stroke: #b4544a; fill: rgba(180, 84, 74, 0.22); stroke-dasharray: 4 3; }
 
+/* The ghost layer: a second SVG over the map (see CampusMap.tsx's render).
+   It fills the same canvas and is transparent to the pointer, so every click,
+   drag and wheel still reaches the map underneath — except the rotate
+   control, the one thing in it a player actually clicks. */
+.campus-map-ghost { position: absolute; inset: 0; display: block; width: 100%; height: 100%; pointer-events: none; }
+.campus-map-ghost .campus-rotate-btn { pointer-events: auto; }
 .campus-rotate-btn { cursor: pointer; }
 .campus-rotate-btn circle { fill: var(--parchment); stroke: var(--gold-dim); stroke-width: 1.5; }
 .campus-rotate-btn:hover circle { fill: #efe1b8; }
@@ -2919,3 +2925,143 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   .lane-chevron { justify-self: center; transform: rotate(90deg); }
   .curriculum-layout.with-drawer .course-drawer { order: -1; position: static; max-height: none; }
 }
+
+/* ---------- the summer sequence (see InterruptModal.tsx's SummerView) ----
+   Four steps in a row at the head of the modal, the current one lit in the
+   gold every other heading in this modal uses, the ones behind it dimmed
+   and struck through by a rule. One line, so the player always knows which
+   of the four beats they are on without the beat having to say so. */
+.summer-steps { display: flex; gap: 0; list-style: none; margin: -4px 0 16px; padding: 0;
+  counter-reset: beat; }
+.summer-steps li { counter-increment: beat; flex: 1; position: relative; padding: 0 0 8px;
+  font-family: var(--serif); font-size: var(--text-xs); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ink-lo); border-bottom: 2px solid var(--navy-line);
+  text-align: center; white-space: nowrap; }
+.summer-steps li::before { content: counter(beat) " · "; font-family: var(--mono); letter-spacing: 0; }
+.summer-steps li.done { color: var(--ink-lo); border-bottom-color: var(--gold-dim); }
+.summer-steps li.current { color: var(--gold); border-bottom-color: var(--gold); font-weight: 700; }
+
+/* ---------- the year in review (see InterruptModal.tsx's ReviewBeat) ----
+   Six short sections in a two-column grid: what the year built, who came
+   and went, what research did, the students, the money, the standing. Each
+   is a heading and a handful of one-line facts in the same navy panel the
+   admissions outcomes use, with the log ticker's good/bad pair on the lines
+   that carry a tone. Two columns because six stacked sections is a scroll,
+   and the beat is meant to be read at a glance and continued. */
+.review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 16px; }
+.review-section { margin: 0; padding: 10px 12px; background: #1a2338;
+  border: 1px solid var(--navy-line); border-radius: var(--radius-md); min-width: 0; }
+.review-section h3 { font-family: var(--serif); font-size: var(--text-sm); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--gold); margin: 0 0 6px; }
+.review-section ul { list-style: none; margin: 0; padding: 0; }
+.review-section li { font-size: var(--text-sm); line-height: 1.4; padding: 2px 0; color: #cbd0d8;
+  border-top: 1px solid var(--navy-line); }
+.review-section li:first-child { border-top: none; }
+.review-section li.good { color: var(--ok-on-dark); }
+.review-section li.bad { color: var(--bad-on-dark); }
+.review-empty { font-size: var(--text-sm); font-style: italic; color: var(--ink-lo); margin: 0 !important; }
+@media (max-width: 560px) { .review-grid { grid-template-columns: 1fr; } }
+/* The small second figure in a History cell — courses finished this year
+   beside the catalogue's total, the year's average beside the summer's
+   satisfaction — set quiet so the column still reads as one number. */
+.history-table .history-delta { color: var(--ink-muted); font-size: var(--text-2xs); }
+.history-table td.bad { color: var(--bad-on-light); }
+
+/* ---------- year over year on the reveal (Plan 16's PR C) ----------
+   One line under the pool: last summer's figure, and each funnel factor's
+   share of the move, in the log ticker's good/bad pair. The parts wrap as
+   a row of short phrases rather than a list, because they are one
+   sentence's worth of reasons. */
+.admissions-outcomes .pool-change { flex-direction: column; align-items: flex-start; gap: 3px; }
+.admissions-outcomes .pool-change dt { font-size: var(--text-xs); color: var(--gold-dim); }
+.pool-change-parts { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: var(--text-sm) !important; }
+.pool-change-parts .good { color: var(--ok-on-dark); }
+.pool-change-parts .bad { color: var(--bad-on-dark); }
+/* Last summer's count for the audience, small under this year's. */
+.cohort-card-last { font-family: var(--mono); font-size: 9px; color: var(--ink-lo); white-space: nowrap; }
+
+/* ---------- three modal widths (Plan 16's PR E — see modalLayout.ts) ----
+   narrow is the 440px every interrupt used to get, sized for a decision
+   event's three choices; wide is a decision with a panel beside it; page is
+   a table to read. All three still cap at the viewport and scroll inside. */
+.modal.modal-narrow { max-width: 440px; }
+.modal.modal-wide { max-width: 720px; }
+.modal.modal-page { max-width: 960px; width: min(960px, 94vw); }
+
+/* The top 50 as a table (the page-width report). Same row rhythm as the
+   old list, plus the column that makes it a report: where each school stood
+   a year ago, with the move beside it in the rank-move colours. */
+.report-table { width: 100%; border-collapse: collapse; font-size: var(--text-base); margin: 0 0 16px; }
+.report-table th { text-align: left; font-family: var(--serif); font-size: var(--text-xs); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ink-lo); font-weight: 400; padding: 4px 8px; border-bottom: 1px solid var(--navy-line);
+  position: sticky; top: 0; background: var(--navy); }
+.report-table td { padding: 4px 8px; border-bottom: 1px solid var(--navy-line); }
+.report-table tr.me td { color: var(--ok-on-dark); font-weight: 700; }
+.report-table-rank, .report-table-score, .report-table-last { font-family: var(--mono); white-space: nowrap; }
+.report-table th:nth-child(3), .report-table th:nth-child(4), .report-table-score, .report-table-last { text-align: right; }
+.report-table .rank-move { font-size: var(--text-xs); }
+
+/* A burst of milestones as cards in a wrapping grid, each with its unlocks
+   folded behind a count. auto-fill with a min track: two cards read as a
+   pair, ten read as a board. */
+.milestone-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 0 0 14px; }
+.milestone-card { padding: 10px 12px; background: #1a2338; border: 1px solid var(--navy-line); border-radius: var(--radius-md); min-width: 0; }
+.milestone-card h3 { font-family: var(--serif); font-size: var(--text-base); margin: 0 0 4px; color: var(--ink-hi); }
+.milestone-card .milestone-detail { font-size: var(--text-sm); color: #cbd0d8; margin: 0 0 6px !important; }
+.milestone-unlocks-fold summary { cursor: pointer; font-family: var(--serif); font-size: var(--text-xs);
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--gold); }
+.milestone-unlocks-fold[open] summary { margin-bottom: 4px; }
+
+/* ---------- a letter from the board (Plan 16's PR F; InterruptModal.tsx) --
+   Set as a letter rather than a form: an eyebrow saying who it is from,
+   the body in the modal's ordinary prose, and the one thing to do as a
+   labelled line the toolbar will carry until it is done. The skip is a
+   quiet second button, the way the athletic director's decline is. */
+.letter-eyebrow { font-family: var(--serif); font-size: var(--text-xs); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--gold-dim); margin: 0 0 4px !important; }
+.letter-body { line-height: 1.55; }
+.letter-ask { display: flex; align-items: baseline; gap: 10px; padding: 9px 12px; margin: 0 0 14px !important;
+  background: #1a2338; border: 1px solid var(--navy-line); border-radius: var(--radius-md); color: var(--ink-hi); }
+.letter-ask-label { flex: none; font-family: var(--mono); font-size: var(--text-2xs); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--gold); }
+.letter-skip { margin-left: 10px; font-size: var(--text-xs) !important; padding: 6px 12px !important;
+  background: transparent !important; color: var(--ink-lo) !important;
+  border: 1px solid var(--navy-line) !important; font-weight: 400 !important; }
+.letter-skip:hover { border-color: var(--gold) !important; color: var(--ink-hi) !important; }
+
+/* The next-step line (systems/guidance/nextStep.ts): one reading across the
+   top of the toolbar, in the eyebrow style, gold-labelled. A button when it
+   names a place to go, plain text when it is only something to know. Full
+   width and first in the wrap, so the three zones below keep their shape. */
+.toolbar-next { flex: 1 0 100%; order: -1; display: flex; align-items: baseline; gap: 8px;
+  margin: -2px 0 -4px; font-size: var(--text-xs); color: var(--ink-lo); min-width: 0; }
+.toolbar-next-label { flex: none; font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em;
+  font-size: var(--text-2xs); color: var(--gold); }
+.toolbar-next-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toolbar-next button.toolbar-next-text { background: transparent; border: none; padding: 0; color: var(--ink-hi);
+  font: inherit; cursor: pointer; text-align: left; text-decoration: underline dotted var(--navy-line); }
+.toolbar-next button.toolbar-next-text:hover { color: var(--gold); }
+
+/* ---------- toasts (Plan 16's PR G — see Toasts.tsx and toasts.ts) --------
+   A small stack directly above the log ticker for the things that never
+   stop the clock: a course or building finished, a program founded, a
+   petition, a paper, a candidate in a short field, a project that ended
+   with nothing to report. Three seconds each, five at most, newest at the
+   bottom nearest the ticker, and every one a button that opens the tab it
+   is about. The same navy-line strip family as the ticker, so the stack
+   reads as the ticker's own overflow rather than as alerts from elsewhere.
+   z-index between the ticker (5) and the toolbar's popups (20): under a
+   build menu that is open, over the map. */
+.toasts { position: fixed; z-index: 8; right: 12px; bottom: calc(var(--toolbar-height) + var(--log-ticker-height) + 8px);
+  display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: none; }
+.toast { pointer-events: auto; max-width: 420px; display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 10px; background: var(--navy); color: var(--ink-hi); border: 1px solid var(--navy-line);
+  border-left: 3px solid var(--gold); border-radius: var(--radius-md); font: inherit; font-size: var(--text-sm);
+  text-align: left; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  animation: toast-in 160ms ease-out; }
+.toast:hover { border-color: var(--gold); }
+.toast .ts { flex: none; color: var(--ink-lo); font-family: var(--mono); font-size: var(--text-2xs); }
+.toast.good { border-left-color: var(--ok-on-dark); }
+.toast.bad { border-left-color: var(--bad-on-dark); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }

@@ -44,9 +44,15 @@ function staffField(s: GameState, field: string, id = `test-${field}`): void {
   });
 }
 
+// Counts TICKS, not loop passes: an interrupt on the way (the first year's
+// letters, a milestone) is put down without a week going by, so `weeks` is
+// always the number of weeks that actually elapsed.
 function advance(s: GameState, weeks: number): GameState {
-  for (let i = 0; i < weeks; i += 1) {
-    s = s.pendingInterrupt ? reducer(s, { type: 'RESOLVE_REPORT' }) : reducer(s, { type: 'TICK' });
+  let ticked = 0;
+  while (ticked < weeks) {
+    if (s.pendingInterrupt) { s = reducer(s, { type: 'RESOLVE_REPORT' }); continue; }
+    s = reducer(s, { type: 'TICK' });
+    ticked += 1;
   }
   return s;
 }

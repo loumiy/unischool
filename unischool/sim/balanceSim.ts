@@ -34,8 +34,8 @@ import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { METRICS, TOLERANCE, describeFinding, findingsFor, metricOf, serialiseReference, type Metric, type Reference, bandsAcross, REFERENCE_HORIZON, REFERENCE_EXTRA_SEEDS, bandsFor } from './reference';
 import type { Action } from '../src/state/actions';
 import { createPreStartState } from '../src/state/actions';
-import type { AthleticsBudgetTier, GameState, Buildable, InitiativeReport } from '../src/state/types';
-import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
+import type { AthleticsBudgetTier, GameState, Buildable, InitiativeReport, SummerPayload } from '../src/state/types';
+import { SUMMER_LAST_BEAT, totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { playerRank } from '../src/systems/rivals/rivalsSystem';
 import { intakeCeiling } from '../src/systems/techtree/instructionCapacity';
 import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudentWith, SERVICES_PER_STUDENT_PER_WEEK } from '../src/systems/finance/financeSystem';
@@ -1148,7 +1148,13 @@ export function play(
       // business: the tallies below are read off the interrupt (and off the
       // action that answers it) before the dispatch clears either.
       const type = s.pendingInterrupt.type;
-      tally.modals[type] = (tally.modals[type] ?? 0) + 1;
+      // THE SUMMER IS FOUR BEATS OF ONE MODAL (Plan 16's PR A — see
+      // types.ts's SummerPayload), answered one beat per pass through this
+      // loop. It counts as ONE modal, on its opening beat; the digest and
+      // the row are read on the last, where the year actually turns over.
+      const summerBeat = type === 'summer' ? (s.pendingInterrupt.payload as SummerPayload).beat : null;
+      const summerCloses = summerBeat === SUMMER_LAST_BEAT;
+      if (summerBeat === null || summerBeat === 0) tally.modals[type] = (tally.modals[type] ?? 0) + 1;
       const answer = defaultAnswer(s, {
         tuition: strategy.tuition(s),
         // Every strategy takes the slider's own opening position for its
@@ -1164,8 +1170,8 @@ export function play(
         admitRate: strategy.admitRate ? strategy.admitRate(s) : admitRate(s.self.reputation),
       });
 
-      if (type === 'admissions') {
-        // The student-life digest rides on this interrupt (see the
+      if (summerCloses) {
+        // The student-life digest is the summer's last beat (see the
         // reducer's RESOLVE_ADMISSIONS). The default answer recognises
         // EVERY petition, which is the most expensive answer available —
         // it is the only one that takes on recurring cost — so the opex
@@ -1206,7 +1212,7 @@ export function play(
       const before = s.finance.cash;
       if (answer) dispatch(answer);
 
-      if (type === 'admissions') {
+      if (summerCloses) {
         rows.push(snapshot(s, weeksInTheRed, minCash, year));
         year = newYear();
       }
@@ -1322,8 +1328,8 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
   console.log(`   weeks in the red: ${last.weeksInTheRed} of ${rows.length * 52}, min cash: ${fmt(last.minCash)}`);
   console.log(`   milestone celebrations: ${tally.milestones}, decision events: ${tally.decisions}, net event cash: ${fmt(tally.cash)}`);
   // The cadence question, answered directly: how often is the clock
-  // stopped by something that is NOT one of the two fixed annual
-  // interrupts (summer admissions, the U.S. News report). Demands are in
+  // stopped by something that is NOT the one fixed annual
+  // interrupt (the summer — the U.S. News report is a beat of it now). Demands are in
   // this total rather than beside it because they spend the same cooldown
   // the decision events do — the point of the line is that adding them
   // moves it very little.
@@ -1339,7 +1345,7 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
   );
   console.log(
     `   texture modals (milestones + events + research reports + demands): ${texture} over ${years} years ` +
-    `= ${(texture / Math.max(years, 1)).toFixed(2)}/yr, on top of the ${years} annual admissions decisions`,
+    `= ${(texture / Math.max(years, 1)).toFixed(2)}/yr, on top of the ${years} summers`,
   );
   // Every modal by type, and the total — the review's own count (223 over
   // forty years, 5.6 a year, 61 of them research reports) restated as
