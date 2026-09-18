@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import type { Action } from '../state/actions';
-import type { GameState, SatisfactionAttributes } from '../state/types';
+import type { GameState } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import { weeklyNet } from '../systems/finance/financeSystem';
 import { computePrestigeTarget } from '../systems/prestige/prestigeSystem';
 import { DECISION_EVENTS } from '../data/eventData';
+import type { DemandSubject } from '../data/demandData';
 import { SAVE_KEY } from '../state/persistence';
 import { playtestEnabled } from './playtest';
 
@@ -35,8 +36,8 @@ import { playtestEnabled } from './playtest';
 //          the one thing that stops a playtest needing devtools
 // ---------------------------------------------------------------------
 
-const DEMAND_SUBJECTS: Array<keyof SatisfactionAttributes | 'housing'> = [
-  'academic', 'social', 'basicNeeds', 'health', 'housing',
+const DEMAND_SUBJECTS: DemandSubject[] = [
+  'academic', 'social', 'basicNeeds', 'health', 'housing', 'instruction',
 ];
 
 function money(n: number): string {
@@ -94,7 +95,7 @@ export default function DebugPanel({ s, act }: { s: GameState; act: (a: Action) 
   const [autoResolve, setAutoResolve] = useState(true);
   const [jump, setJump] = useState('1');
   const [eventId, setEventId] = useState(DECISION_EVENTS[0]?.id ?? '');
-  const [demandSubject, setDemandSubject] = useState<keyof SatisfactionAttributes | 'housing'>('housing');
+  const [demandSubject, setDemandSubject] = useState<DemandSubject>('housing');
   const [loadError, setLoadError] = useState<string | null>(null);
 
   if (!playtestEnabled(s)) return null;
@@ -231,7 +232,7 @@ export default function DebugPanel({ s, act }: { s: GameState; act: (a: Action) 
                 className="debug-input"
                 aria-label="demand subject"
                 value={demandSubject}
-                onChange={(e) => setDemandSubject(e.target.value as keyof SatisfactionAttributes | 'housing')}
+                onChange={(e) => setDemandSubject(e.target.value as DemandSubject)}
               >
                 {DEMAND_SUBJECTS.map((subject) => (
                   <option key={subject} value={subject}>{subject}</option>

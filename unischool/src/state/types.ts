@@ -590,8 +590,9 @@ export interface PendingInterrupt {
 // Plain JSON (strings, numbers, a nullable string), like every other slice.
 export interface StudentDemand {
   id: string;
-  // Which existing reading the target is measured against.
-  metric: 'served' | 'capacity';
+  // Which existing reading the target is measured against: a served
+  // population, bed capacity, or (Plan 15's PR F) the catalogue's seats.
+  metric: 'served' | 'capacity' | 'seats';
   // The satisfaction attribute whose served population is being demanded;
   // null for metric 'capacity' (a demand for more housing), which is
   // measured against s.students.capacity instead.

@@ -376,6 +376,12 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
                 <dt>{NEED_LABEL[consequence.tightestNeed]}</dt>
                 <dd><CoverageValue now={consequence.tightestCoverageNow} next={consequence.tightestCoverage} /></dd>
               </div>
+              {consequence.notReturning > 0 && (
+                <div>
+                  <dt>Not returning <span className="outcome-note">({consequence.attritionReasons.length > 0 ? consequence.attritionReasons.join(', ') : 'a bad year'})</span></dt>
+                  <dd className="bad"><AnimatedNumber value={consequence.notReturning} /></dd>
+                </div>
+              )}
             </dl>
           </div>
 

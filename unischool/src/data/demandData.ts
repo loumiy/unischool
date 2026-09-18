@@ -64,7 +64,10 @@ export const DEMAND_FIRST_YEAR = 3;
 // of 70 (which is also WORD_OF_MOUTH_NEUTRAL, the satisfaction that neither
 // helps nor hurts demand) so a school that is merely imperfect never sees a
 // demand at all, and only one that is genuinely being neglected does.
-export const DEMAND_SATISFACTION_THRESHOLD = 45;
+// Raised from 45 by Plan 15's PR F: demands come earlier, and failing one
+// dents welfare, which dents prestige — the chain the docs have always
+// described and the code has never run.
+export const DEMAND_SATISFACTION_THRESHOLD = 60;
 
 // How long the school has, once the demand is announced. A year and a half:
 // long enough to save for and build any single rung of the facility chains
@@ -112,7 +115,7 @@ export const DEMAND_FAILED_SATISFACTION_PENALTY = 8;
 // same rule describeMilestone follows, so a demand that waited three weeks
 // for a quiet slot still says exactly what it would have said on the day.
 // =====================================================================
-export type DemandSubject = keyof SatisfactionAttributes | 'housing';
+export type DemandSubject = keyof SatisfactionAttributes | 'housing' | 'instruction';
 
 export interface DemandCopy {
   headline: string;   // the modal's title
@@ -160,13 +163,25 @@ export const DEMAND_COPY: Record<DemandSubject, DemandCopy> = {
     ask: (ask) => `Build ${ask}`,
     unit: 'beds of campus housing',
   },
+  // The instruction shortfall (Plan 15's PR F): classes are full. Measured
+  // against the catalogue's seats (instructionCapacity.ts), and the ask is
+  // a course — the thing that adds them.
+  instruction: {
+    headline: 'Students demand a seat in class',
+    grievance: (ask) =>
+      `Every section is over its room and students are following lectures from the corridor. The registrar has forwarded a petition with one demand on it: open ${ask}, and stop admitting people there is no seat for.`,
+    ask: (ask) => `Develop ${ask}`,
+    unit: 'seats across the catalogue',
+  },
 };
 
 // Which entry of the table above a demand reads from. The one place the
 // metric/attribute pair is turned back into a subject, so no caller has to
 // know that 'capacity' means housing.
 export function demandSubject(demand: StudentDemand): DemandSubject {
-  return demand.metric === 'capacity' ? 'housing' : (demand.attribute ?? 'social');
+  if (demand.metric === 'capacity') return 'housing';
+  if (demand.metric === 'seats') return 'instruction';
+  return demand.attribute ?? 'social';
 }
 
 export function demandCopy(demand: StudentDemand): DemandCopy {

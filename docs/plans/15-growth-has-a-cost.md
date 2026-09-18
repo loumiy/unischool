@@ -7,7 +7,7 @@ redesign that answers them, the specialisation term that Plan 14's founded
 schools finally make possible, and the research model the review found inert,
 into an ordered sequence of PRs ending in a single re-fit.*
 
-**Status: In progress.** PRs A through E have landed. Depends on
+**Status: In progress.** PRs A through F have landed. Depends on
 [Plan 14](14-curriculum-on-the-map.md) for halls, slots and founded schools —
 the seats this plan turns into a ceiling and the concentration this plan turns
 into prestige both come from there. Supersedes
@@ -145,6 +145,23 @@ development has finished — Founders Hall holds it and the founding faculty
 teach it from day one — because otherwise a college would open with no room
 for anybody and its first summer would admit nobody. Every other course
 seats students only once it is done.
+
+**As implemented (15F):** attrition is a third parameter on
+`advanceClasses`, so the reducer and the admissions panel's projection
+apply the same share; it takes the three staying classes before they move
+up (the seniors are leaving anyway, and the incoming class has not had a
+year to leave over), shrinks each class's cohort mix proportionally and
+leaves its price alone. The rate is read off the year's average
+satisfaction, the same figure word of mouth reads. Plan 16's year in review
+does not exist yet, so the line lands in two places that do: the summer
+modal's projections ("Not returning: 340 — housing, dining") before the
+decision, and the log after it. The instruction shortfall is a demand with
+metric `seats`, measured against the catalogue's capacity, whose ask is the
+next available course in a housed program — never a core course, since the
+core is seated from founding — and is met when one more course's seats
+exist. Failing a demand still dents satisfaction, which welfare now grades,
+which prestige now reads, so the chain runs by construction. Word of mouth
+is ±0.60.
 
 ---
 

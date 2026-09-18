@@ -1,5 +1,6 @@
+import type { DemandSubject } from '../data/demandData';
 import type {
-  AthleticsBudgetTier, Coach, GameState, InitiativeDepth, SatisfactionAttributes, TileCoord, Vernacular,
+  AthleticsBudgetTier, Coach, GameState, InitiativeDepth, TileCoord, Vernacular,
 } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
@@ -302,7 +303,7 @@ export type Action =
   // satisfaction threshold and the cooldown. The ask itself is whatever the
   // demand system would have asked for (see demandSystem.ts's
   // shortfallDemandFor), so a forced demand is a real demand.
-  | { type: 'DEBUG_FORCE_DEMAND'; subject: keyof SatisfactionAttributes | 'housing' }
+  | { type: 'DEBUG_FORCE_DEMAND'; subject: DemandSubject }
   // Celebrates the queued milestones now, rather than on the next week the
   // frequency floor allows.
   | { type: 'DEBUG_FORCE_MILESTONE' }

@@ -1,6 +1,7 @@
 import type { GameState } from '../../state/types';
 import { totalEnrolled } from '../../state/types';
-import { advanceClasses } from './admissionsSystem';
+import { advanceClasses, attritionRate, trailingYearSatisfaction } from './admissionsSystem';
+import { instructionCoverage } from '../techtree/instructionCapacity';
 import { baseShareCohortCounts } from './cohorts';
 import { financeBreakdown } from '../finance/financeSystem';
 import { attributeCoverage, satisfactionTarget } from '../satisfaction/satisfactionSystem';
@@ -67,6 +68,38 @@ export interface AdmissionsConsequence {
   tightestNeed: 'housing' | 'basicNeeds';
   tightestCoverage: number;
   tightestCoverageNow: number;
+
+  // ATTRITION (Plan 15's PR F): who will not return this summer, and the
+  // two shortfalls most to blame — named, so the reveal can say "340
+  // students did not return — housing, dining" rather than a smaller
+  // number arriving in silence.
+  notReturning: number;
+  attritionReasons: string[];
+}
+
+const COVERAGE_LABELS: Array<[string, (s: GameState) => number]> = [
+  ['housing', (s) => attributeCoverage(s, 'housing')],
+  ['dining', (s) => attributeCoverage(s, 'basicNeeds')],
+  ['study space', (s) => attributeCoverage(s, 'academic')],
+  ['social space', (s) => attributeCoverage(s, 'social')],
+  ['classes', (s) => instructionCoverage(s)],
+];
+
+// The two worst-covered needs under 90%, worst first — what a student who
+// left would have named.
+export function attritionReasons(s: GameState): string[] {
+  return COVERAGE_LABELS
+    .map(([label, read]) => ({ label, coverage: read(s) }))
+    .filter((c) => c.coverage < 0.9)
+    .sort((a, b) => a.coverage - b.coverage)
+    .slice(0, 2)
+    .map((c) => c.label);
+}
+
+// The attrition this summer applies, off the same year's average the
+// reducer reads at RESOLVE_ADMISSIONS.
+export function summerAttrition(s: GameState): number {
+  return attritionRate(trailingYearSatisfaction(s));
 }
 
 // Whichever of the two capacity needs the projected body leaves shortest.
@@ -102,6 +135,7 @@ export function projectConsequences(
       cohortsByClass: s.students.cohortsByClass,
     },
     { count: incoming, price: incomingPrice, cohorts: baseShareCohortCounts(incoming) },
+    summerAttrition(s),
   );
 
   // The summer also STEPS PRESTIGE (Plan 15's PR B — reducer.ts applies
@@ -127,5 +161,7 @@ export function projectConsequences(
     satisfactionTarget: satisfactionTarget(projected),
     satisfactionTargetNow: satisfactionTarget(s),
     ...tightest(s, projected),
+    notReturning: advanced.notReturning,
+    attritionReasons: attritionReasons(s),
   };
 }

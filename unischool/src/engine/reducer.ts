@@ -13,7 +13,8 @@ import { endInitiative } from '../systems/research/researchSystem';
 import { initiativeDepth, initiativeFundingCost } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
-import { tickAdmissions, advanceClasses, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
+import { tickAdmissions, advanceClasses, attritionRate, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
+import { attritionReasons } from '../systems/admissions/consequences';
 import { intakeCeiling } from '../systems/techtree/instructionCapacity';
 import { deriveCohortSignals } from '../systems/admissions/cohorts';
 import { buildReportPayload, tickRivals } from '../systems/rivals/rivalsSystem';
@@ -720,12 +721,16 @@ export function reducer(state: GameState, action: Action): GameState {
       );
 
       // Advance the classes a year: seniors graduate and leave, everyone
-      // else moves up, and the incoming class arrives at the price just
-      // set. Full progression, no attrition, in this model. The advance
-      // itself is a pure function in admissionsSystem.ts because the
-      // admissions panel runs the SAME one on a copy to project what this
-      // commit will do (see consequences.ts) — two copies of it is how a
-      // projection starts promising a body the tick does not produce.
+      // else moves up — less the share a bad year cost (Plan 15's PR F,
+      // admissionsSystem.ts's attritionRate, off the same year's average
+      // word of mouth reads) — and the incoming class arrives at the price
+      // just set. The advance itself is a pure function in
+      // admissionsSystem.ts because the admissions panel runs the SAME one
+      // on a copy to project what this commit will do (see
+      // consequences.ts) — two copies of it is how a projection starts
+      // promising a body the tick does not produce.
+      const attrition = attritionRate(priorYearAvgSatisfaction);
+      const reasons = attritionReasons(s);
       const advanced = advanceClasses(
         {
           classes: s.students.classes,
@@ -739,6 +744,7 @@ export function reducer(state: GameState, action: Action): GameState {
           // just enrolled is made of (see types.ts's ClassCohorts).
           cohorts: outcome.enrolledCohorts,
         },
+        attrition,
       );
       const graduating = advanced.graduating;
       s.students.classes = advanced.classes;
@@ -772,6 +778,17 @@ export function reducer(state: GameState, action: Action): GameState {
         message: `Admissions: tuition $${s.finance.listedTuition.toLocaleString()}/yr — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admitted, ${outcome.enrolled.toLocaleString()} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
         kind: 'info',
       });
+      // ATTRITION GETS ITS OWN LINE. A silently smaller number is the
+      // single most likely source of "I don't understand what happened to
+      // my school", and this plan added enough hidden machinery already.
+      if (advanced.notReturning > 0) {
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: `${advanced.notReturning.toLocaleString()} students did not return — ${reasons.length > 0 ? reasons.join(', ') : 'a year averaging ' + priorYearAvgSatisfaction.toFixed(0) + ' satisfaction'}.`,
+          kind: 'bad',
+        });
+      }
       if (outcome.capped) {
         s.log.unshift({
           year: s.clock.year,
