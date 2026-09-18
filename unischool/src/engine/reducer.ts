@@ -1023,6 +1023,18 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
+    // Puts down one of the first year's letters (see eventSystem.ts's
+    // fireOpeningLetter). The letter was marked read when it fired; all
+    // this records is the one thing a letter can change — the player
+    // declining the rest of the script. Advances the clock like every
+    // other trailing interrupt.
+    case 'RESOLVE_LETTER': {
+      if (action.skipAll) s.events.opening.skipped = true;
+      s.pendingInterrupt = null;
+      advanceClock(s);
+      return s;
+    }
+
     // =====================================================================
     // THE PLAYTEST BLOCK (see actions.ts's own DEBUG_ block, and
     // components/DebugPanel.tsx, the single component that dispatches any

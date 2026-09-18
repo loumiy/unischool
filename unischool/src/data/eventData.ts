@@ -8,7 +8,7 @@ import {
   promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, VARSITY_PETITION_MIN_TENURE_YEARS, venueForCategory,
   CHAIR_LABEL, fieldForChair, generateCoachCandidate, seatCoach, vacantChairs,
 } from './studentLifeData';
-import { graduateProgram, milestoneSchools } from './techData';
+import { GENED_CORE_IDS, graduateProgram, isAcademicHall, milestoneSchools } from './techData';
 import { dedicatedHalls, dedicatedSchool } from '../systems/techtree/schools';
 
 // ---------------------------------------------------------------------
@@ -1357,4 +1357,83 @@ export function findDecisionEvent(id: string): DecisionEvent | undefined {
 // an event with no zero-cost way out never reaches the player.
 export function hasFreeChoice(s: GameState, event: DecisionEvent, ctx: DecisionEventContext): boolean {
   return event.choices.some((c) => c.cost(s, ctx) <= 0);
+}
+
+// =====================================================================
+// THE FIRST YEAR (Plan 16's PR F) — a scripted opening, as letters from
+// the board's chair.
+//
+// The September review found the first year was one click and a wait: a
+// new player develops the core, then has nothing to do and no idea what
+// comes next, and the first year is the one that decides whether anyone
+// sees the tenth. So the opening is scripted — four letters, each with ONE
+// thing to do and a "Done" that reads state — and the toolbar carries the
+// letter's ask as a next-step line until it is done (see
+// systems/guidance/nextStep.ts).
+//
+// Data, not mechanism: each letter fires through the ordinary interrupt
+// system (eventSystem.ts's fireOpeningLetter) on the first quiet week at or
+// after its week of year one, exactly as a milestone or a charter does, and
+// is skippable from the first letter ("I know the way") for the second
+// run. Nothing here grants anything or gates anything: the letters point at
+// things the game already offers, and `done` is a reading of the same state
+// the build menu and the Curriculum tab read.
+// =====================================================================
+
+export interface OpeningLetter {
+  id: string;
+  week: number;                 // of year one; fires on the first quiet week at or after it
+  title: string;
+  body: (s: GameState) => string;
+  ask: string;                  // the one thing to do, as the toolbar's next-step line carries it
+  done: (s: GameState) => boolean;
+}
+
+// A placeable Buildable that has been sited — under construction or
+// standing — which is what "site a hall" asks for. Read off placements
+// rather than status, since placement is how a placeable starts.
+function sited(s: GameState, test: (t: Buildable) => boolean): boolean {
+  return s.tech.some((t) => test(t) && t.id in s.placements);
+}
+
+export const OPENING_LETTERS: readonly OpeningLetter[] = [
+  {
+    id: 'doors-open',
+    week: 1,
+    title: 'The doors open',
+    body: (s) => `The ${s.self.name} board wishes you well. Three hundred and fifty students are on the books, five professors are on the payroll, and Founders Hall is the only building we own. Every degree this college will ever grant rests on the same six general-education courses, and none of them is being taught yet. Develop all six — the Curriculum will show you who can teach each — and the first programs will follow.`,
+    ask: 'Develop the six general-education courses (Curriculum)',
+    done: (s) => GENED_CORE_IDS.every((id) => {
+      const status = s.tech.find((t) => t.id === id)?.status;
+      return status === 'developing' || status === 'done';
+    }),
+  },
+  {
+    id: 'a-building',
+    week: 5,
+    title: 'A building of your own',
+    body: () => 'The core is finishing, and once it does three programs will be offered to us at a time — but a program has to live somewhere, and Founders Hall has one room and the core is in it. Site the first academic hall from the build menu; it holds six programs, and six programs of one school in one hall is what founds a school. Where you put it matters only to the eye. That it exists matters to everything.',
+    ask: 'Site the first academic hall (Build)',
+    done: (s) => sited(s, (t) => isAcademicHall(t)),
+  },
+  {
+    id: 'somewhere-to-sleep',
+    week: 9,
+    title: 'Somewhere to sleep, somewhere to eat',
+    body: (s) => `Satisfaction is ${s.students.satisfaction.toFixed(0)} and falling, and the students are right: every one of the ${s.students.classes.freshman + s.students.classes.sophomore + s.students.classes.junior + s.students.classes.senior} commutes, there is nowhere on campus to eat, and there is no library. Housing is not a cap on how many we admit — this college can grow with no bed at all — but a school with nowhere to sleep and nowhere to eat talks itself down, and next summer's applicants hear it. Site a residence hall and a dining hall.`,
+    ask: 'Site a residence hall and a dining hall (Build)',
+    done: (s) => sited(s, (t) => t.kind === 'dorm') && sited(s, (t) => t.facilityType === 'diningHall'),
+  },
+  {
+    id: 'summer-is-coming',
+    week: 48,
+    title: 'Summer is coming',
+    body: () => 'At week 52 the clock stops for the summer, and it stops once. Four beats: the year in review, where the school stands, admissions, and the students. Admissions asks two things — the price, and how much of the pool to take. Understand one thing before you set the price: it is set blind, it locks, and the class that pays it pays it for four years. What a family is quoted is what they pay, and a school nobody has heard of cannot charge what a famous one does.',
+    ask: 'Summer at week 52: the price locks for four years',
+    done: () => true,
+  },
+];
+
+export function findOpeningLetter(id: string): OpeningLetter | undefined {
+  return OPENING_LETTERS.find((letter) => letter.id === id);
 }

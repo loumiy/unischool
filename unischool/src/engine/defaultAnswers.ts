@@ -33,6 +33,7 @@ import type { DecisionEventContext } from '../data/eventData';
 //   - athletic dir.   the middle candidate, the neutral reading of three
 //                     that differ only in salary
 //   - charter         accept; it costs nothing and renames the school
+//   - letter          read it and carry on; never "I know the way"
 //   - everything else read and dismiss
 //
 // A NEW INTERRUPT TYPE lands in the `default` branch, which dismisses it
@@ -100,6 +101,11 @@ export function defaultAnswer(s: GameState, admissions?: AdmissionsPolicy): Acti
 
     case 'championship':
       return { type: 'RESOLVE_CHAMPIONSHIP' };
+
+    case 'letter':
+      // Read and put down, never skipped: a fast-forward should see the
+      // opening the way a first-time player does, four letters and all.
+      return { type: 'RESOLVE_LETTER', skipAll: false };
 
     case 'athletic-director': {
       const payload = pending.payload as { candidates?: Coach[]; mascotSuggestion?: string } | undefined;

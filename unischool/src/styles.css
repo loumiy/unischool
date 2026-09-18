@@ -3005,3 +3005,33 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .milestone-unlocks-fold summary { cursor: pointer; font-family: var(--serif); font-size: var(--text-xs);
   text-transform: uppercase; letter-spacing: 0.08em; color: var(--gold); }
 .milestone-unlocks-fold[open] summary { margin-bottom: 4px; }
+
+/* ---------- a letter from the board (Plan 16's PR F; InterruptModal.tsx) --
+   Set as a letter rather than a form: an eyebrow saying who it is from,
+   the body in the modal's ordinary prose, and the one thing to do as a
+   labelled line the toolbar will carry until it is done. The skip is a
+   quiet second button, the way the athletic director's decline is. */
+.letter-eyebrow { font-family: var(--serif); font-size: var(--text-xs); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--gold-dim); margin: 0 0 4px !important; }
+.letter-body { line-height: 1.55; }
+.letter-ask { display: flex; align-items: baseline; gap: 10px; padding: 9px 12px; margin: 0 0 14px !important;
+  background: #1a2338; border: 1px solid var(--navy-line); border-radius: var(--radius-md); color: var(--ink-hi); }
+.letter-ask-label { flex: none; font-family: var(--mono); font-size: var(--text-2xs); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--gold); }
+.letter-skip { margin-left: 10px; font-size: var(--text-xs) !important; padding: 6px 12px !important;
+  background: transparent !important; color: var(--ink-lo) !important;
+  border: 1px solid var(--navy-line) !important; font-weight: 400 !important; }
+.letter-skip:hover { border-color: var(--gold) !important; color: var(--ink-hi) !important; }
+
+/* The next-step line (systems/guidance/nextStep.ts): one reading across the
+   top of the toolbar, in the eyebrow style, gold-labelled. A button when it
+   names a place to go, plain text when it is only something to know. Full
+   width and first in the wrap, so the three zones below keep their shape. */
+.toolbar-next { flex: 1 0 100%; order: -1; display: flex; align-items: baseline; gap: 8px;
+  margin: -2px 0 -4px; font-size: var(--text-xs); color: var(--ink-lo); min-width: 0; }
+.toolbar-next-label { flex: none; font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em;
+  font-size: var(--text-2xs); color: var(--gold); }
+.toolbar-next-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toolbar-next button.toolbar-next-text { background: transparent; border: none; padding: 0; color: var(--ink-hi);
+  font: inherit; cursor: pointer; text-align: left; text-decoration: underline dotted var(--navy-line); }
+.toolbar-next button.toolbar-next-text:hover { color: var(--gold); }

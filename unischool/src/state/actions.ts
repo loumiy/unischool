@@ -193,6 +193,12 @@ export type Action =
   // fires as a trailing step after that week's systems already ran, so
   // dismissing means moving on to the next week, not replaying this one.
   | { type: 'RESOLVE_REPORT' }
+  // Puts down one of the first year's letters (Plan 16's PR F — see
+  // data/eventData.ts's OPENING_LETTERS). `skipAll` is the first letter's
+  // "I know the way": it marks the whole script declined for this run, so
+  // a second playthrough is not walked through the opening again. Advances
+  // the clock, like every other trailing interrupt.
+  | { type: 'RESOLVE_LETTER'; skipAll: boolean }
   // Dismisses a milestone celebration — the stop-the-clock moment for a
   // established/distinguished program or a distinguished school (see
   // data/eventData.ts's MILESTONE_INTERRUPT_KINDS). Grants nothing: the milestone's real
@@ -388,6 +394,9 @@ export function createPreStartState(): GameState {
       // No demand raised and none outstanding; week 0 reads as "never" for
       // the cooldown too (see data/demandData.ts's DEMAND_COOLDOWN_WEEKS).
       pendingDemand: null, activeDemand: null, lastDemandWeek: 0,
+      // No letter delivered and the script not declined (see types.ts's
+      // EventState.opening).
+      opening: { read: [], skipped: false },
     },
     orgs: {
       clubs: [], chapters: [], teams: [], coachCandidates: [], pendingPetitions: [],
@@ -691,6 +700,9 @@ export function createInitialState(name: string, vernacular: Vernacular = FOUNDI
       // No demand raised and none outstanding; week 0 reads as "never" for
       // the cooldown too (see data/demandData.ts's DEMAND_COOLDOWN_WEEKS).
       pendingDemand: null, activeDemand: null, lastDemandWeek: 0,
+      // No letter delivered and the script not declined (see types.ts's
+      // EventState.opening).
+      opening: { read: [], skipped: false },
     },
     // No student organisations at founding, and none can form until the
     // campus has a student center to form them in (see

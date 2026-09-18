@@ -4,7 +4,7 @@ import type { DecisionEvent, DecisionEventContext, MilestoneEntry, MilestonePayl
 import {
   DECISION_EVENTS, DECISION_EVENT_COOLDOWN_WEEKS, DECISION_EVENT_FIRST_YEAR,
   DECISION_EVENT_REPEAT_COOLDOWN_WEEKS, DECISION_EVENT_WEEKLY_CHANCE,
-  MILESTONE_INTERRUPT_MIN_WEEKS_BETWEEN, VARSITY_PETITION_WEEK,
+  MILESTONE_INTERRUPT_MIN_WEEKS_BETWEEN, OPENING_LETTERS, VARSITY_PETITION_WEEK,
   absoluteWeek, describeMilestone, findDecisionEvent, hasFreeChoice,
 } from '../../data/eventData';
 import { labEquippedFields } from '../../data/researchData';
@@ -288,9 +288,30 @@ function weightedPick(
   return null;
 }
 
+// THE FIRST YEAR'S LETTERS (Plan 16's PR F — see data/eventData.ts's
+// OPENING_LETTERS). In year one only: the first unread letter whose week
+// has come fires, on the first quiet week at or after it, and is marked
+// read at fire time so a generic dismissal can never re-fire it. Ahead of
+// everything else in tickEvents, because the letter about the doors
+// opening is the first thing a new player should see and nothing else can
+// fire in week one anyway. A run that declined the script on the first
+// letter never sees another; a letter still unread when year two begins is
+// simply not sent — the script is the first year, and a player who reached
+// summer two has the loop.
+export function fireOpeningLetter(s: GameState): boolean {
+  if (s.clock.year !== 1 || s.events.opening.skipped) return false;
+  const letter = OPENING_LETTERS.find((l) => l.week <= s.clock.week && !s.events.opening.read.includes(l.id));
+  if (!letter) return false;
+  s.events.opening.read.push(letter.id);
+  s.pendingInterrupt = { type: 'letter', payload: { id: letter.id } };
+  return true;
+}
+
 export function tickEvents(s: GameState): void {
   // Another system already claimed this week — stand down entirely.
   if (s.pendingInterrupt) return;
+
+  if (fireOpeningLetter(s)) return;
 
   // Celebrations take priority over authored events: a queued milestone or
   // a concluded research project is something the player earned, an event

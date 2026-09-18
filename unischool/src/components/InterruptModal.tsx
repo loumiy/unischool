@@ -14,7 +14,7 @@ import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../sys
 import { projectConsequences } from '../systems/admissions/consequences';
 import { pct, poolChange } from '../systems/admissions/yearOverYear';
 import { computePrestigeTarget, computeSocialTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
-import { findDecisionEvent } from '../data/eventData';
+import { findDecisionEvent, findOpeningLetter, OPENING_LETTERS } from '../data/eventData';
 import { MASCOT_MAX_LENGTH, rollMascotSuggestion, sportById } from '../data/studentLifeData';
 import FacultyPortrait from './FacultyPortrait';
 import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
@@ -1153,6 +1153,45 @@ function AthleticDirectorView({ s, payload, onResolve }: {
   );
 }
 
+// ---------------------------------------------------------------------
+// A LETTER FROM THE BOARD (Plan 16's PR F — see data/eventData.ts's
+// OPENING_LETTERS): the first year's script, one thing to do per letter,
+// with the ask carried to the toolbar's next-step line until it is done.
+// The first letter alone offers "I know the way", which stands the rest of
+// the script down for the run. A letter whose id is no longer in the table
+// (a save from before a rewrite) is put down with nothing said.
+// ---------------------------------------------------------------------
+function LetterView({ s, id, onResolve }: { s: GameState; id: string; onResolve: (skipAll: boolean) => void }) {
+  const letter = findOpeningLetter(id);
+  if (!letter) {
+    return (
+      <>
+        <h2>A letter has been mislaid</h2>
+        <p>Nothing has changed.</p>
+        <button onClick={() => onResolve(false)}>Continue</button>
+      </>
+    );
+  }
+  const first = OPENING_LETTERS[0].id === letter.id;
+  return (
+    <>
+      <p className="letter-eyebrow">From the chair of the board · Week {letter.week}</p>
+      <h2>{letter.title}</h2>
+      <p className="letter-body">{letter.body(s)}</p>
+      <p className="letter-ask">
+        <span className="letter-ask-label">{letter.done(s) ? 'Done' : 'To do'}</span>
+        {letter.ask}
+      </p>
+      <button onClick={() => onResolve(false)}>Understood</button>
+      {first && (
+        <button type="button" className="letter-skip" onClick={() => onResolve(true)}>
+          I know the way — no more letters this run
+        </button>
+      )}
+    </>
+  );
+}
+
 function CharterOfferView({ s, onResolve }: { s: GameState; onResolve: (accept: boolean) => void }) {
   return (
     <>
@@ -1334,6 +1373,9 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
       case 'championship':
         act({ type: 'RESOLVE_CHAMPIONSHIP' });
         break;
+      case 'letter':
+        act({ type: 'RESOLVE_LETTER', skipAll: false });
+        break;
       case 'demand':
         act({ type: 'RESOLVE_DEMAND' });
         break;
@@ -1382,6 +1424,12 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
           />
         ) : interrupt.type === 'charter' ? (
           <CharterOfferView s={s} onResolve={(accept) => act({ type: 'RESOLVE_CHARTER', accept })} />
+        ) : interrupt.type === 'letter' ? (
+          <LetterView
+            s={s}
+            id={(interrupt.payload as { id: string }).id}
+            onResolve={(skipAll) => act({ type: 'RESOLVE_LETTER', skipAll })}
+          />
         ) : decision ? (
           <DecisionEventView
             s={s}

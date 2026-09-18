@@ -717,6 +717,14 @@ export interface EventState {
   // never. The cooldown half of the cadence, and the reason a failed
   // demand cannot be followed straight away by a second unmeetable one.
   lastDemandWeek: number;
+  // THE FIRST YEAR'S SCRIPT (Plan 16's PR F — see data/eventData.ts's
+  // OPENING_LETTERS). Four letters from the board's chair, each with one
+  // thing to do, fired through the ordinary interrupt system on the first
+  // quiet week at or after its week of year one. `read` is the ids already
+  // delivered, so a letter fires once; `skipped` is the player's "I know
+  // the way" on the first letter, which stands the rest of the script down
+  // for the run. Plain JSON like the rest of this slice.
+  opening: { read: string[]; skipped: boolean };
 }
 
 // The player's admissions policy is set once a year via the summer

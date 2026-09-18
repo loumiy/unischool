@@ -98,7 +98,9 @@ export const SAVE_KEY = 'unischool.save';
 // courses finished, attrition), all added as required.
 // v59: Plan 16 PR C. `s.students.lastFunnel` (what last summer's funnel
 // read, nullable, added as required).
-export const SAVE_VERSION = 59;
+// v60: Plan 16 PR F. `s.events.opening` (the first year's script — which
+// letters have been read, and whether it was skipped — added as required).
+export const SAVE_VERSION = 60;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
