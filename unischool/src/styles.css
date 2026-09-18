@@ -817,9 +817,9 @@ button.build-tile { font-family: inherit; }
 .hall-offer-picker .instructor-options { margin-bottom: 6px; }
 .building-info-jump:disabled { opacity: 0.5; cursor: default; }
 /* A hall's panel is wider than an ordinary building's: six tiles across
-   three columns, and a strip of nine courses under an open one, need the
-   room. */
-.building-info-panel.hall { width: 680px; max-width: calc(100vw - 32px); }
+   three columns, and an open program's courses stacked under it (see
+   .program-row-cells.stacked below), need the room. */
+.building-info-panel.hall { width: 760px; max-width: calc(100vw - 32px); }
 /* "Dedicated to the School of Engineering": the one line on a hall's panel
    that carries the school's colour (see schoolPalette.ts). */
 .building-info-dedication { font-weight: 600; }
@@ -835,7 +835,20 @@ button.build-tile { font-family: inherit; }
 .hall-slot.housed.open .program-row-cells { padding: 4px 6px 6px; border-top: 1px solid var(--parchment-line); }
 .hall-slot.housed.open .program-tile { flex-direction: row; justify-content: flex-start; gap: 8px; text-align: left; padding: 6px 8px; }
 /* An open tile's courses are the Curriculum tab's own full cells (see
-   .program-row-cells above); the opened course sits under them. */
+   .program-row-cells above), but STACKED: five tracks — tier 1, a rule,
+   then four — with tier 2 on the top row and tier 3 on the bottom, the
+   tier-1 cell and the rule standing both rows tall. At the panel's width
+   each cell is about 140px, the Curriculum tab's own card width, so the
+   title wraps instead of clipping and the instructor's surname shows in
+   full. The opened course sits under them. */
+.hall-slot .program-row-cells.stacked { grid-template-columns: minmax(0, 1fr) 1px repeat(4, minmax(0, 1fr)); gap: 6px; }
+.hall-slot .program-row-cells.stacked .tier-one-cell { grid-row: 1 / span 2; display: flex; }
+.hall-slot .program-row-cells.stacked .tier-rule.tall { grid-row: 1 / span 2; }
+.hall-slot .program-row-cells.flat { gap: 6px; }
+.hall-slot .program-row-cells .course-cell { min-height: 74px; padding: 6px 8px 8px; }
+.hall-slot .program-row-cells .cell-title { white-space: normal; text-overflow: clip;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
+.hall-slot .program-row-cells .instructor-chip-name { max-width: none; }
 .strip-course { padding: 6px 8px 8px; border-top: 1px solid var(--parchment-line); text-align: left; }
 .strip-course-head { margin: 0 0 4px; font-size: var(--text-sm); font-weight: 600; color: var(--ink); }
 .strip-course .instructor-options { margin-bottom: 6px; }
