@@ -2960,3 +2960,16 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    satisfaction — set quiet so the column still reads as one number. */
 .history-table .history-delta { color: var(--ink-muted); font-size: var(--text-2xs); }
 .history-table td.bad { color: var(--bad-on-light); }
+
+/* ---------- year over year on the reveal (Plan 16's PR C) ----------
+   One line under the pool: last summer's figure, and each funnel factor's
+   share of the move, in the log ticker's good/bad pair. The parts wrap as
+   a row of short phrases rather than a list, because they are one
+   sentence's worth of reasons. */
+.admissions-outcomes .pool-change { flex-direction: column; align-items: flex-start; gap: 3px; }
+.admissions-outcomes .pool-change dt { font-size: var(--text-xs); color: var(--gold-dim); }
+.pool-change-parts { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: var(--text-sm) !important; }
+.pool-change-parts .good { color: var(--ok-on-dark); }
+.pool-change-parts .bad { color: var(--bad-on-dark); }
+/* Last summer's count for the audience, small under this year's. */
+.cohort-card-last { font-family: var(--mono); font-size: 9px; color: var(--ink-lo); white-space: nowrap; }

@@ -96,7 +96,9 @@ export const SAVE_KEY = 'unischool.save';
 // v58: Plan 16 PR B. YearSnapshot grows the year's own figures (net,
 // applicants, admit rate, incoming quality, the satisfaction average,
 // courses finished, attrition), all added as required.
-export const SAVE_VERSION = 58;
+// v59: Plan 16 PR C. `s.students.lastFunnel` (what last summer's funnel
+// read, nullable, added as required).
+export const SAVE_VERSION = 59;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch

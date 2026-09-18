@@ -13,10 +13,10 @@ import { endInitiative } from '../systems/research/researchSystem';
 import { initiativeDepth, initiativeFundingCost } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
-import { tickAdmissions, advanceClasses, attritionRate, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
+import { tickAdmissions, advanceClasses, attritionRate, priceTolerance, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
 import { attritionReasons } from '../systems/admissions/consequences';
 import { intakeCeiling } from '../systems/techtree/instructionCapacity';
-import { deriveCohortSignals } from '../systems/admissions/cohorts';
+import { cohortCounts, deriveCohortSignals } from '../systems/admissions/cohorts';
 import { buildReportPayload, tickRivals } from '../systems/rivals/rivalsSystem';
 import { appointFaculty, tickFaculty } from '../systems/faculty/facultySystem';
 import { tickResearch } from '../systems/research/researchSystem';
@@ -793,6 +793,17 @@ export function reducer(state: GameState, action: Action): GameState {
       // reopen on the policy it set, not on the clipped consequence.
       s.students.admitRate = chosenAdmitRate;
       s.students.incomingQuality = outcome.avgIncomingQuality;
+      // What this funnel read, for next summer's reveal to be measured
+      // against (Plan 16's PR C — see types.ts's FunnelRecord). The pool's
+      // cohort split is apportioned by the same function the reveal's cards
+      // use, off the same signals, so next year's "last year" is exactly
+      // what this year's cards showed.
+      s.students.lastFunnel = {
+        year: s.clock.year,
+        applicants: outcome.applicants,
+        factors: outcome.factors,
+        cohorts: cohortCounts(deriveCohortSignals(s), priceTolerance(s.self.reputation), s.finance.listedTuition, outcome.applicants),
+      };
 
       // The summer step: prestige moves toward the year score — a small
       // share of the gap upward, a large one downward. This is the one

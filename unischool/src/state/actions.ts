@@ -367,6 +367,7 @@ export function createPreStartState(): GameState {
       satisfactionYearSum: 0, satisfactionYearWeeks: 0, priorYearAvgSatisfaction: 0,
       crowdingYearSum: 0, crowdingYearWeeks: 0,
       applicantPool: 0, admitRate: 0, incomingQuality: 0,
+      lastFunnel: null,
     },
     faculty: [],
     tech: [],
@@ -526,6 +527,9 @@ export function createInitialState(name: string, vernacular: Vernacular = FOUNDI
       // standing would normally take.
       admitRate: admitRate(foundingReputation),
       incomingQuality: 50,
+      // No summer has run yet, so the first reveal has no year to be read
+      // against (see types.ts's FunnelRecord).
+      lastFunnel: null,
     },
     // Year 1 runs on the founding price with the starting enrolled/applicant
     // figures below. The first real admissions interrupt, at the end of

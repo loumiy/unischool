@@ -162,6 +162,37 @@ export interface StudentBody {
   applicantPool: number; // most recent cycle's total applicants (set by the annual funnel)
   admitRate: number;     // most recent cycle's admit rate — the emergent selectivity signal prestige reacts to (see prestigeSystem.ts)
   incomingQuality: number; // most recent cycle's average quality score (0..100) of the entering freshman class — prestige's other admissions-derived input
+  // WHAT LAST SUMMER'S FUNNEL READ (Plan 16's PR C): the pool it drew, the
+  // six factors it multiplied to get there, and the pool's cohort split.
+  // Written once at RESOLVE_ADMISSIONS and read by the next summer's
+  // reveal, which puts this year's factors against last year's and says
+  // WHY the pool moved — "prestige +8%, price −3%, word of mouth +21%".
+  // Stored rather than recomputed because the funnel's inputs a year ago
+  // (prestige before the step, that year's average satisfaction, the
+  // signals as they stood) are not recoverable from today's state. Null
+  // until the first summer, which has no year to compare against.
+  lastFunnel: FunnelRecord | null;
+}
+
+// The six multipliers the applicant funnel is the product of (see
+// admissionsSystem.ts's projectAdmissions): applicants = prestigePool ×
+// priceFactor × capacityFactor × wordOfMouth × cohortDemand × stickerShock,
+// before rounding. Each is a plain number, so the year-over-year line can
+// divide this year's by last year's and read each one's share of the move.
+export interface FunnelFactors {
+  prestigePool: number;   // the pool prestige alone would draw, in applicants
+  priceFactor: number;    // 0..1, the price discount against tolerance
+  capacityFactor: number; // the beds floor-to-one scale
+  wordOfMouth: number;    // satisfaction's multiplier, 1 at neutral
+  cohortDemand: number;   // the blended cohort pull, 1 at neutral
+  stickerShock: number;   // 0..1, the band-specific self-selection
+}
+
+export interface FunnelRecord {
+  year: number;            // the year whose summer drew it
+  applicants: number;      // the realized pool
+  factors: FunnelFactors;
+  cohorts: CohortCounts;   // the pool's split, summing to `applicants`
 }
 
 // Faculty ARE individuals with attributes. teaching/research/salary are

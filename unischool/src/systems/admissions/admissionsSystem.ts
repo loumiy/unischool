@@ -1,4 +1,4 @@
-import type { ClassCohorts, ClassCounts, ClassTuition, CohortCounts, GameState, SummerPayload } from '../../state/types';
+import type { ClassCohorts, ClassCounts, ClassTuition, CohortCounts, FunnelFactors, GameState, SummerPayload } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
 import { cohortCounts, cohortDemandFactor, NEUTRAL_COHORT_SIGNALS, type CohortSignals } from './cohorts';
 
@@ -320,6 +320,12 @@ export interface AdmissionsProjection {
   // decomposes the ENROLLED class, not `applicants`: the reveal shows the
   // pool's mix, this is the mix that actually turned up.
   enrolledCohorts: CohortCounts;
+  // THE SIX FACTORS the pool is the product of (Plan 16's PR C — see
+  // types.ts's FunnelFactors). Returned so the reveal can put this year's
+  // against last year's, recorded at RESOLVE_ADMISSIONS, and say which
+  // one moved the pool and by how much. The three multipliers above are
+  // repeated inside it, so a reader has the whole product in one place.
+  factors: FunnelFactors;
 }
 
 function clamp(v: number, lo: number, hi: number): number {
@@ -357,13 +363,15 @@ export function priceTier(price: number, tolerance: number): PriceTier {
 }
 
 // Total applicant count as a function of prestige, price, and dorm
-// capacity. See the constants above for the shape and the numbers this is
-// tuned against.
-function applicantVolume(prestige: number, price: number, capacity: number): number {
+// capacity, as its three parts. See the constants above for the shape and
+// the numbers this is tuned against. The parts are kept apart rather than
+// multiplied here because the reveal reports each one's year-over-year
+// move (Plan 16's PR C); the product is what the funnel reads.
+function applicantVolumeParts(prestige: number, price: number, capacity: number): Pick<FunnelFactors, 'prestigePool' | 'priceFactor' | 'capacityFactor'> {
   const prestigePool = APPLICANT_VOLUME_CEILING /
     (1 + Math.exp(-APPLICANT_VOLUME_STEEPNESS * (prestige - APPLICANT_VOLUME_MIDPOINT)));
   const priceFactor = Math.exp(-PRICE_SENSITIVITY * Math.max(price, 0) / priceTolerance(prestige));
-  return prestigePool * priceFactor * capacityFactor(capacity);
+  return { prestigePool, priceFactor, capacityFactor: capacityFactor(capacity) };
 }
 
 // Word-of-mouth multiplier on the applicant pool, from current student
@@ -547,7 +555,8 @@ export function projectAdmissions(
   const cohortDemand = cohortDemandFactor(cohortSignals, tolerance, tuition);
   // One price now: what a family is quoted is what they pay, so the volume
   // response and the band-specific shock below read the same number.
-  const rawApplicants = applicantVolume(prestige, Math.max(tuition, 0), capacity) * wordOfMouth * cohortDemand;
+  const volume = applicantVolumeParts(prestige, Math.max(tuition, 0), capacity);
+  const rawApplicants = volume.prestigePool * volume.priceFactor * volume.capacityFactor * wordOfMouth * cohortDemand;
   const mix = qualityMix(prestige, tuition);
 
   const bands: QualityBand[] = ['top', 'mid', 'low'];
@@ -623,6 +632,7 @@ export function projectAdmissions(
     // how a projection starts promising a body the tick does not produce —
     // the hazard advanceClasses was extracted to avoid, in this same block.
     enrolledCohorts: cohortCounts(cohortSignals, tolerance, tuition, enrolled),
+    factors: { ...volume, wordOfMouth, cohortDemand, stickerShock: stickerShockMultiplier },
   };
 }
 

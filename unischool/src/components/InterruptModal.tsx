@@ -12,6 +12,7 @@ import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction,
 import { intakeCeiling } from '../systems/techtree/instructionCapacity';
 import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
 import { projectConsequences } from '../systems/admissions/consequences';
+import { pct, poolChange } from '../systems/admissions/yearOverYear';
 import { computePrestigeTarget, computeSocialTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
 import { findDecisionEvent } from '../data/eventData';
 import { MASCOT_MAX_LENGTH, rollMascotSuggestion, sportById } from '../data/studentLifeData';
@@ -174,7 +175,14 @@ function SIZE_FOR_LENGTH(length: number): string {
 // The count keeps its tone colour: whether this audience is above or below
 // neutral is what says which of the player's choices is working, in the
 // same bright good/bad pair the log ticker uses on this dark background.
-function CohortCard({ label, driverLabel, pull, applicants, revealMs }: { label: string; driverLabel: string; pull: number; applicants: number; revealMs: number }) {
+function CohortCard({ label, driverLabel, pull, applicants, lastYear, revealMs }: {
+  label: string; driverLabel: string; pull: number; applicants: number;
+  // Last summer's count for this audience (students.lastFunnel), shown small
+  // beneath this year's (Plan 16's PR C) so the board reads as a change and
+  // not only as a reading. Null at the first summer.
+  lastYear: number | null;
+  revealMs: number;
+}) {
   const toneClass = pull > 1 ? 'cohort-up' : pull < 1 ? 'cohort-down' : 'cohort-flat';
   // A card is a fixed square, so the figure has to give way rather than the
   // box: at the default size 78px of card holds six characters ("13,097")
@@ -189,6 +197,9 @@ function CohortCard({ label, driverLabel, pull, applicants, revealMs }: { label:
       <span className={`cohort-card-count ${toneClass} ${sizeClass}`}>
         <AnimatedNumber value={applicants} durationMs={revealMs} revealFrom={0} />
       </span>
+      {lastYear !== null && (
+        <span className="cohort-card-last" title="Last summer">{lastYear.toLocaleString()} last year</span>
+      )}
       <span className="cohort-card-tip" role="tooltip">{driverLabel}</span>
     </div>
   );
@@ -269,6 +280,10 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
   const tolerance = priceTolerance(prestige);
   const priceTierNow = priceTier(tuition, tolerance);
   const cohorts = cohortBreakdown(cohortSignals, tolerance, tuition, outcome.applicants);
+  // Why the pool moved (Plan 16's PR C): this year's six factors against
+  // the six last summer recorded, each one's share of the change. Null at
+  // the first summer, which has nothing to be read against.
+  const change = poolChange(outcome, s.students.lastFunnel);
 
   return (
     <>
@@ -309,8 +324,23 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
               <dt>Applicant pool</dt>
               <dd className="reveal-figure">
                 <AnimatedNumber value={outcome.applicants} durationMs={REVEAL_MS} revealFrom={0} />
+                {change && (
+                  <span className={`consequence-delta ${change.change >= 0 ? 'good' : 'bad'}`}>{pct(change.change)}</span>
+                )}
               </dd>
             </div>
+            {change && (
+              <div className="pool-change">
+                <dt>Against last summer&rsquo;s {change.lastApplicants.toLocaleString()}</dt>
+                <dd className="pool-change-parts">
+                  {change.parts.length === 0
+                    ? 'nothing moved'
+                    : change.parts.map((p) => (
+                      <span key={p.key} className={p.change >= 0 ? 'good' : 'bad'}>{p.label} {pct(p.change)}</span>
+                    ))}
+                </dd>
+              </div>
+            )}
             <div>
               <dt>Room for <span className="outcome-note">(the catalogue&rsquo;s seats, less who stays on)</span></dt>
               <dd className="reveal-figure">
@@ -328,7 +358,13 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
           <div className="cohort-breakdown">
             <h3>Who this pulls in</h3>
             <div className="cohort-cards">
-              {cohorts.map((c) => <CohortCard key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants} revealMs={REVEAL_MS} />)}
+              {cohorts.map((c) => (
+                <CohortCard
+                  key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants}
+                  lastYear={s.students.lastFunnel ? s.students.lastFunnel.cohorts[c.id] ?? 0 : null}
+                  revealMs={REVEAL_MS}
+                />
+              ))}
             </div>
           </div>
 
