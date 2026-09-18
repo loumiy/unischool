@@ -29,6 +29,7 @@ import { groundProps } from '../src/components/groundMarkings';
 import { motifOf } from '../src/components/buildingSpec';
 import { boxFaces, polyPoints, project } from '../src/components/isoProjection';
 import { depthOrder } from '../src/components/depthSort';
+import { castShadow } from '../src/components/light';
 import { initialTech } from '../src/data/techData';
 import { initialDorms } from '../src/data/campusData';
 import { initialFacilities } from '../src/data/facilitiesData';
@@ -154,7 +155,7 @@ function cell(sample: Sample, v: Vernacular) {
       <polygon className="campus-ground" points={polyPoints(plate)} />
       <path className="campus-grid" d={grid.join('')} style={{ stroke: 'rgba(42,56,28,0.12)' }} />
       {!grounds && lift > 0 && (
-        <polygon className="campus-building-shadow" points={polyPoints(boxFaces(d.col, d.row, d.w, d.h, 0, 0).top.map((q) => ({ x: q.x + lift * 0.22, y: q.y + lift * 0.11 })))} />
+        <polygon className="campus-building-shadow" points={polyPoints(castShadow(d.col, d.row, d.w, d.h, lift))} />
       )}
       <BuildingMotif t={t} p={d} material={materialOf(t, v)} vernacular={v} developing={developing} glyphs={sample.glyphs} />
       {props.map((pr) => <g key={pr.key}>{pr.node}</g>)}

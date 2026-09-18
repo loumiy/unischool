@@ -1,8 +1,9 @@
 import { memo } from 'react';
 import type { Buildable, Vernacular } from '../state/types';
-import { TILE_W, boxFaces, facePoint, lift, polyPoints, project, projectedCircle, visibleWalls, wallOf, type BoxFaces, type Camera, type FaceDir, type Pt } from './isoProjection';
+import { TILE_W, boxFaces, facePoint, lift, polyPoints, project, projectedCircle, heightScale, visibleWalls, wallOf, type BoxFaces, type Camera, type FaceDir, type Pt } from './isoProjection';
 import { depthOrder } from './depthSort';
 import { isDraft } from './renderDetail';
+import { WALL_LIGHT, faceTone, shadowOffset } from './light';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
 import {
   BASE_COURSE, BAY_METRES, BLOCK_SPLIT_MIN_TILES, CANOPY_DEPTH, CROSS_ARM_METRES,
@@ -115,18 +116,17 @@ export interface Palette {
 }
 
 // How bright a sloped face is, by the grid direction its outward normal
-// points. The map is lit from the UPPER LEFT — the direction the flat map's
-// own drop shadows already fell — and on this projection decreasing col runs
-// up-left on screen, decreasing row up-right, increasing row down-left and
-// increasing col down-right. So:
+// points. The sun is fixed to the WORLD (see light.ts): it comes from -col
+// mostly and a little from -row, which at the default camera is the upper
+// left — the direction the flat map's own drop shadows already fell. So:
 //
-//        -col  up-left    faces the light head-on   brightest
-//        -row  up-right   glancing                  bright
-//        +row  down-left  glancing, away            dim
-//        +col  down-right faces away head-on        darkest
+//        -col   faces the light head-on   brightest
+//        -row   glancing                  bright
+//        +row   glancing, away            dim
+//        +col   faces away head-on        darkest
 //
-// Ordering these WRONG is not a subtle mis-tint: a roof whose up-left face is
-// darker than its up-right one looks exactly like something is casting a
+// Ordering these WRONG is not a subtle mis-tint: a roof whose -col face is
+// darker than its -row one looks exactly like something is casting a
 // shadow across it, and there is nothing there to cast one.
 function SLOPE(roof: string) {
   return {
@@ -137,14 +137,9 @@ function SLOPE(roof: string) {
   };
 }
 
-// The same for WALLS, by the direction they face, from the same sun: the
-// -col wall faces it and is brightest, the +col wall faces away and is
-// darkest, and the two row walls fall between with -row the lighter, exactly
-// as the slopes do. The two visible at the default camera (+row and +col)
-// keep the tones they have always had; the two that camera never saw are
-// set where the sun puts them. Four tones for one sun, so that turning the
-// camera never changes which side of a building is lit.
-const WALL_LIGHT: Record<FaceDir, number> = { negCol: 1.14, negRow: 1.02, posRow: 0.98, posCol: 0.78 };
+// The same for WALLS, by the direction they face, from the same sun (the
+// table is light.ts's WALL_LIGHT). Four tones for one sun, so that turning
+// the camera never changes which side of a building is lit.
 function WALLS(wall: string): Record<FaceDir, string> {
   return {
     negCol: shade(wall, WALL_LIGHT.negCol),
@@ -160,6 +155,20 @@ function WALLS(wall: string): Record<FaceDir, string> {
 // read as a single mass. Deriving each family's shades from its own base still
 // keeps one source of truth per surface and guarantees every face on the map
 // is lit from the same direction.
+// The two visible walls of a small box — a chimney, a buttress, a coping, a
+// roof unit — in tones authored for the +row and +col faces, the pair the
+// default camera sees. `faceTone` (light.ts) gives the other two faces their
+// place in the same sun, so when the camera turns and a different pair is
+// visible, the box is still lit from the same side as everything else.
+function sideFaces(f: BoxFaces, posRowTone: string, posColTone: string) {
+  return (
+    <>
+      <polygon points={polyPoints(f.left)} fill={faceTone(f.dir.CD, posRowTone, posColTone)} />
+      <polygon points={polyPoints(f.right)} fill={faceTone(f.dir.BC, posRowTone, posColTone)} />
+    </>
+  );
+}
+
 export function paletteFrom(m: Material, shadeFactor = 1): Palette {
   const wall = shadeFactor === 1 ? m.wall : shade(m.wall, shadeFactor);
   const walls = WALLS(wall);
@@ -544,8 +553,7 @@ function EntranceSteps({ d, centreCol, centreRow, outCol, outRow, span, stone }:
     const f = boxFaces(col, row, w, h, 0, (i + 1) * rise);
     out.push(
       <g key={i}>
-        <polygon points={polyPoints(f.left)} fill={shade(stepStone, 0.82)} />
-        <polygon points={polyPoints(f.right)} fill={shade(stepStone, 0.68)} />
+        {sideFaces(f, shade(stepStone, 0.82), shade(stepStone, 0.68))}
         <polygon className="iso-step-tread" points={polyPoints(f.top)} />
       </g>,
     );
@@ -561,8 +569,7 @@ function RoofBox({ col, row, w, h, base, height, tint }: {
   const f = boxFaces(col, row, w, h, base, height);
   return (
     <>
-      <polygon points={polyPoints(f.left)} fill={shade(tint, 0.66)} />
-      <polygon points={polyPoints(f.right)} fill={shade(tint, 0.56)} />
+      {sideFaces(f, shade(tint, 0.66), shade(tint, 0.56))}
       <polygon points={polyPoints(f.top)} fill={shade(tint, 0.8)} />
     </>
   );
@@ -694,8 +701,7 @@ function EndPavilion({ col, row, w, h, base, pal, stone }: {
     <>
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
-      <polygon points={polyPoints(cap.left)} fill={shade(stone.trim, 0.78)} />
-      <polygon points={polyPoints(cap.right)} fill={shade(stone.trim, 0.66)} />
+      {sideFaces(cap, shade(stone.trim, 0.78), shade(stone.trim, 0.66))}
       <polygon points={polyPoints(cap.top)} fill={shade(stone.trim, 0.9)} />
     </>
   );
@@ -738,8 +744,8 @@ function CentrePavilion({ col, row, w, h, wallHeight, outward, pal, door, sills,
   const side = outward === 'row' ? { poly: f.right, fill: pal.wallRight } : { poly: f.left, fill: pal.wallLeft };
   const frontFill = outward === 'row' ? pal.wallLeft : pal.wallRight;
   const apex = lift(
-    { x: (front.o.x + front.a.x) / 2, y: (front.o.y + front.a.y) / 2 - top },
-    PEDIMENT_RISE,
+    { x: (front.o.x + front.a.x) / 2, y: (front.o.y + front.a.y) / 2 },
+    top + PEDIMENT_RISE,
   );
   const frontTopL = lift(front.o, top);
   const frontTopR = lift(front.a, top);
@@ -797,14 +803,12 @@ function Portico({ centreCol, centreRow, width, outward, stone, columns = PORTIC
           const f = boxFaces(c.col, c.row, c.w, c.h, 0, height);
           return (
             <g key={i}>
-              <polygon points={polyPoints(f.left)} fill={shade(stone.towerStone, 0.96)} />
-              <polygon points={polyPoints(f.right)} fill={shade(stone.towerStone, 0.78)} />
+              {sideFaces(f, shade(stone.towerStone, 0.96), shade(stone.towerStone, 0.78))}
               <polygon points={polyPoints(f.top)} fill={stone.towerStone} />
             </g>
           );
         })}
-      <polygon points={polyPoints(ent.left)} fill={shade(stone.towerStone, 0.92)} />
-      <polygon points={polyPoints(ent.right)} fill={shade(stone.towerStone, 0.74)} />
+      {sideFaces(ent, shade(stone.towerStone, 0.92), shade(stone.towerStone, 0.74))}
       <polygon points={polyPoints(ent.top)} fill={shade(stone.towerStone, 1.02)} />
       {pediment && (() => {
         // The gable in the plane of the entablature's front, with the
@@ -867,8 +871,8 @@ function Porch({ col, row, w, h, wallHeight, outward, pal, stone }: {
   // The gable: steep, and rising off the bay's own head rather than off a
   // cornice, because there is no cornice to rise off in this vernacular.
   const apex = lift(
-    { x: (front.o.x + front.a.x) / 2, y: (front.o.y + front.a.y) / 2 - top },
-    PORCH_GABLE_RISE,
+    { x: (front.o.x + front.a.x) / 2, y: (front.o.y + front.a.y) / 2 },
+    top + PORCH_GABLE_RISE,
   );
 
   // A buttress at each front corner of the bay, flush with its sides. Two
@@ -1077,8 +1081,7 @@ function Arcade({ col, row, w, h, outward, pal, stone, height = ARCADE_HEIGHT }:
         const f = boxFaces(p.col, p.row, p.w, p.h, 0, height);
         return (
           <g key={i}>
-            <polygon points={polyPoints(f.left)} fill={shade(stone.trim, 0.94)} />
-            <polygon points={polyPoints(f.right)} fill={shade(stone.trim, 0.76)} />
+            {sideFaces(f, shade(stone.trim, 0.94), shade(stone.trim, 0.76))}
           </g>
         );
       })}
@@ -1127,10 +1130,8 @@ function Campanile({ col, row, w, h, base, stone, pal, gilded }: {
 
   return (
     <>
-      <polygon points={polyPoints(shaft.left)} fill={shade(stone.towerStone, 0.97)} />
-      <polygon points={polyPoints(shaft.right)} fill={shade(stone.towerStone, 0.8)} />
-      <polygon points={polyPoints(belfry.left)} fill={shade(stone.towerStone, 0.93)} />
-      <polygon points={polyPoints(belfry.right)} fill={shade(stone.towerStone, 0.77)} />
+      {sideFaces(shaft, shade(stone.towerStone, 0.97), shade(stone.towerStone, 0.8))}
+      {sideFaces(belfry, shade(stone.towerStone, 0.93), shade(stone.towerStone, 0.77))}
       {/* Two arches a face, on a shared centre pier: the arcaded belfry of
           the reference towers rather than a single hole. */}
       {([[belfry.D, belfry.C, 'cl'] as const, [belfry.C, belfry.B, 'cr'] as const]).map(([bo, ba, k]) => (
@@ -1256,8 +1257,8 @@ function BellGable({ origin, along, inward, wallHeight, span, centreU, sideAt, p
       {/* The bell: a small trapezoid of bronze hanging in the opening. */}
       <polygon points={polyPoints([at(centreU - bellU * 0.5, V(2.0)), at(centreU + bellU * 0.5, V(2.0)), at(centreU + bellU * 0.22, V(3.7)), at(centreU - bellU * 0.22, V(3.7))])} fill={stone.gilt} />
       {/* A small bronze finial at the peak, the same one the campanile wears. */}
-      <line x1={finial.x} y1={finial.y} x2={finial.x} y2={finial.y - finialRise} stroke={stone.gilt} strokeWidth={1.2} />
-      <circle cx={finial.x} cy={finial.y - finialRise} r={1.6} fill={stone.gilt} />
+      <line x1={finial.x} y1={finial.y} x2={finial.x} y2={lift(finial, finialRise).y} stroke={stone.gilt} strokeWidth={1.2} />
+      <circle cx={finial.x} cy={lift(finial, finialRise).y} r={1.6} fill={stone.gilt} />
     </>
   );
 }
@@ -1399,11 +1400,11 @@ function Dome({ col, row, w, h, base, stone }: {
     const pts: string[] = [];
     for (let i = 0; i <= 24; i++) {
       const a = Math.PI + (i / 24) * Math.PI;
-      pts.push(`${(top.x + dx + Math.cos(a) * rx * scale).toFixed(2)},${(top.y + Math.sin(a) * RISE * scale).toFixed(2)}`);
+      pts.push(`${(top.x + dx + Math.cos(a) * rx * scale).toFixed(2)},${(top.y + Math.sin(a) * RISE * scale * heightScale()).toFixed(2)}`);
     }
     return pts.join(' ');
   };
-  const lanternFoot = { x: top.x, y: top.y - RISE };
+  const lanternFoot = lift(top, RISE);
   return (
     <>
       <polygon points={wall(lit)} fill={shade(stone.towerStone, 0.97)} />
@@ -1497,8 +1498,7 @@ function Recess({ col, row, w, h, wallHeight, outward, pal }: {
       <polygon className="iso-undercroft" points={polyPoints(cut.left)} />
       <polygon className="iso-undercroft" points={polyPoints(cut.right)} />
       <polygon className="iso-undercroft" points={polyPoints(cut.top)} />
-      <polygon points={polyPoints(slab.left)} fill={shade(pal.wallLeft, 0.92)} />
-      <polygon points={polyPoints(slab.right)} fill={shade(pal.wallRight, 0.92)} />
+      {sideFaces(slab, shade(pal.wallLeft, 0.92), shade(pal.wallRight, 0.92))}
       <polygon points={polyPoints(slab.top)} fill={shade(pal.wallLeft, 1.04)} />
     </>
   );
@@ -1521,11 +1521,9 @@ function StairCore({ col, row, w, h, base, stone }: {
   const cap = boxFaces(cc - capPlan / 2, cr - capPlan / 2, capPlan, capPlan, base + CORE_RISE, CORE_CAP_RISE);
   return (
     <>
-      <polygon points={polyPoints(shaft.left)} fill={shade(stone.towerStone, 0.97)} />
-      <polygon points={polyPoints(shaft.right)} fill={shade(stone.towerStone, 0.79)} />
+      {sideFaces(shaft, shade(stone.towerStone, 0.97), shade(stone.towerStone, 0.79))}
       <polygon points={polyPoints(shaft.top)} fill={shade(stone.towerStone, 0.9)} />
-      <polygon points={polyPoints(cap.left)} fill={shade(stone.towerStone, 0.9)} />
-      <polygon points={polyPoints(cap.right)} fill={shade(stone.towerStone, 0.74)} />
+      {sideFaces(cap, shade(stone.towerStone, 0.9), shade(stone.towerStone, 0.74))}
       <polygon points={polyPoints(cap.top)} fill={shade(stone.towerStone, 0.86)} />
     </>
   );
@@ -1605,9 +1603,11 @@ function Canopy({ d, centreCol, centreRow, outward, wallHeight, stone, hood = fa
     const pr = outward === 'row' ? centreRow + CANOPY_DEPTH - CANOPY_POST : centreRow + along;
     return boxFaces(pc, pr, CANOPY_POST, CANOPY_POST, 0, top);
   };
-  // The shadow the plate throws, offset the way every shadow on the map is.
-  const shadow = boxFaces(slabCol, slabRow, slabW, slabH, 0, 0).top
-    .map((q) => ({ x: q.x + top * 0.22, y: q.y + top * 0.11 }));
+  // The shadow the plate throws, away from the sun like every shadow on the
+  // map (see light.ts). Drawn here rather than in the map's shadow pass
+  // because it is the canopy's own, on the ground it hangs over.
+  const shadowAt = shadowOffset(top);
+  const shadow = boxFaces(slabCol + shadowAt.dcol, slabRow + shadowAt.drow, slabW, slabH, 0, 0).top;
 
   const gable = hood && roof ? (() => {
     // A little pitched roof: ridge running out from the wall, two slopes,
@@ -1642,13 +1642,11 @@ function Canopy({ d, centreCol, centreRow, outward, wallHeight, stone, hood = fa
         const f = postAt(sign);
         return (
           <g key={sign}>
-            <polygon points={polyPoints(f.left)} fill={shade(canopyStone, 0.62)} />
-            <polygon points={polyPoints(f.right)} fill={shade(canopyStone, 0.5)} />
+            {sideFaces(f, shade(canopyStone, 0.62), shade(canopyStone, 0.5))}
           </g>
         );
       })}
-      <polygon points={polyPoints(slab.left)} fill={shade(canopyStone, 0.66)} />
-      <polygon points={polyPoints(slab.right)} fill={shade(canopyStone, 0.56)} />
+      {sideFaces(slab, shade(canopyStone, 0.66), shade(canopyStone, 0.56))}
       <polygon points={polyPoints(slab.top)} fill={shade(canopyStone, 0.9)} />
       {gable}
     </>
@@ -1803,14 +1801,13 @@ function ClockTower({ col, row, w, h, base, stone, apex, gilded }: {
   const dome: string[] = [];
   for (let i = 0; i <= 18; i++) {
     const a = Math.PI + (i / 18) * Math.PI;          // a half circle, flat side down
-    dome.push(`${(domeCentre.x + Math.cos(a) * domeR).toFixed(2)},${(domeCentre.y + Math.sin(a) * TOWER_DOME_RISE).toFixed(2)}`);
+    dome.push(`${(domeCentre.x + Math.cos(a) * domeR).toFixed(2)},${(domeCentre.y + Math.sin(a) * TOWER_DOME_RISE * heightScale()).toFixed(2)}`);
   }
-  const finialFoot = { x: domeCentre.x, y: domeCentre.y - TOWER_DOME_RISE };
+  const finialFoot = lift(domeCentre, TOWER_DOME_RISE);
 
   return (
     <>
-      <polygon points={polyPoints(shaft.left)} fill={shade(stone.towerStone, 0.98)} />
-      <polygon points={polyPoints(shaft.right)} fill={shade(stone.towerStone, 0.82)} />
+      {sideFaces(shaft, shade(stone.towerStone, 0.98), shade(stone.towerStone, 0.82))}
       <WallBand origin={shaft.D} along={shaft.C} wallHeight={TOWER_BASE_RISE} from={TOWER_BASE_RISE - CORNICE} to={TOWER_BASE_RISE} className="iso-cornice" />
       <WallBand origin={shaft.C} along={shaft.B} wallHeight={TOWER_BASE_RISE} from={TOWER_BASE_RISE - CORNICE} to={TOWER_BASE_RISE} className="iso-cornice" />
       {clock(shaft.D, shaft.C, 'cl')}
@@ -1823,8 +1820,7 @@ function ClockTower({ col, row, w, h, base, stone, apex, gilded }: {
               on — and actually colonnaded: a shaft at each visible corner
               and one in the middle of each visible face, standing proud of
               the drum, is what makes it a cupola rather than a hat box. */}
-          <polygon points={polyPoints(drum.left)} fill={shade(stone.towerStone, 0.9)} />
-          <polygon points={polyPoints(drum.right)} fill={shade(stone.towerStone, 0.76)} />
+          {sideFaces(drum, shade(stone.towerStone, 0.9), shade(stone.towerStone, 0.76))}
           {(() => {
             const cp = drumPlan * 0.16;
             const dc = cc - drumPlan / 2; const dr = cr - drumPlan / 2;
@@ -1836,8 +1832,7 @@ function ClockTower({ col, row, w, h, base, stone, apex, gilded }: {
               const sf = boxFaces(c.col, c.row, c.w, c.h, drumBase, TOWER_DRUM_RISE);
               return (
                 <g key={`dc${i}`}>
-                  <polygon points={polyPoints(sf.left)} fill={shade(stone.towerStone, 1.02)} />
-                  <polygon points={polyPoints(sf.right)} fill={shade(stone.towerStone, 0.88)} />
+                  {sideFaces(sf, shade(stone.towerStone, 1.02), shade(stone.towerStone, 0.88))}
                 </g>
               );
             });
@@ -1850,10 +1845,10 @@ function ClockTower({ col, row, w, h, base, stone, apex, gilded }: {
               <line
                 className="iso-finial"
                 x1={finialFoot.x} y1={finialFoot.y}
-                x2={finialFoot.x} y2={finialFoot.y - TOWER_FINIAL_RISE}
+                x2={finialFoot.x} y2={lift(finialFoot, TOWER_FINIAL_RISE).y}
                 stroke={stone.gilt}
               />
-              <circle className="iso-dome" cx={finialFoot.x} cy={finialFoot.y - TOWER_FINIAL_RISE} r={2.2} fill={stone.gilt} />
+              <circle className="iso-dome" cx={finialFoot.x} cy={lift(finialFoot, TOWER_FINIAL_RISE).y} r={2.2} fill={stone.gilt} />
             </>
           )}
         </>
@@ -1902,8 +1897,7 @@ function Spire({ cc, cr, base, stone, gilded }: {
   return (
     <>
       {/* The belfry, with a tall louvred opening on each visible face. */}
-      <polygon points={polyPoints(belfry.left)} fill={shade(stone.towerStone, 0.94)} />
-      <polygon points={polyPoints(belfry.right)} fill={shade(stone.towerStone, 0.8)} />
+      {sideFaces(belfry, shade(stone.towerStone, 0.94), shade(stone.towerStone, 0.8))}
       {([[belfry.D, belfry.C, 'bl'] as const, [belfry.C, belfry.B, 'br'] as const]).map(([o, a, k]) => (
         <polygon
           key={k}
@@ -1929,8 +1923,7 @@ function Spire({ cc, cr, base, stone, gilded }: {
         const capTip = lift(project(c.col + c.w / 2, c.row + c.h / 2), springs + TOWER_PINNACLE_RISE * 1.6);
         return (
           <g key={i}>
-            <polygon points={polyPoints(f.left)} fill={shade(stone.towerStone, 0.92)} />
-            <polygon points={polyPoints(f.right)} fill={shade(stone.towerStone, 0.76)} />
+            {sideFaces(f, shade(stone.towerStone, 0.92), shade(stone.towerStone, 0.76))}
             <line
               className="iso-finial"
               x1={capFoot.x} y1={capFoot.y} x2={capTip.x} y2={capTip.y}
@@ -1950,10 +1943,10 @@ function Spire({ cc, cr, base, stone, gilded }: {
         <>
           <line
             className="iso-finial"
-            x1={tip.x} y1={tip.y} x2={tip.x} y2={tip.y - TOWER_FINIAL_RISE}
+            x1={tip.x} y1={tip.y} x2={tip.x} y2={lift(tip, TOWER_FINIAL_RISE).y}
             stroke={stone.gilt}
           />
-          <circle className="iso-dome" cx={tip.x} cy={tip.y - TOWER_FINIAL_RISE} r={1.8} fill={stone.gilt} />
+          <circle className="iso-dome" cx={tip.x} cy={lift(tip, TOWER_FINIAL_RISE).y} r={1.8} fill={stone.gilt} />
         </>
       )}
     </>
@@ -1974,8 +1967,7 @@ function Chimney({ cc, cr, base, top, pal, stone }: {
     <>
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
-      <polygon points={polyPoints(cap.left)} fill={shade(stone.trim, 0.78)} />
-      <polygon points={polyPoints(cap.right)} fill={shade(stone.trim, 0.66)} />
+      {sideFaces(cap, shade(stone.trim, 0.78), shade(stone.trim, 0.66))}
       <polygon points={polyPoints(cap.top)} fill={shade(stone.trim, 0.86)} />
     </>
   );
@@ -2036,7 +2028,7 @@ function Dormers({ col, row, w, h, base, rise, pal, stone, glass }: {
       const f = boxFaces(bc, br, bw, bh, z, dh);
       const front = outward === 'row' ? { o: f.D, a: f.C } : { o: f.C, a: f.B };
       const frontTopL = lift(front.o, dh); const frontTopR = lift(front.a, dh);
-      const apex = lift({ x: (front.o.x + front.a.x) / 2, y: (front.o.y + front.a.y) / 2 - dh }, up(1.1));
+      const apex = lift({ x: (front.o.x + front.a.x) / 2, y: (front.o.y + front.a.y) / 2 }, dh + up(1.1));
       out.push(
         <g key={`${outward}${i}`}>
           <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
@@ -2538,8 +2530,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
       <>
         {/* Podium: glazed at street level, so its "windows" are one tall
             rank of shopfront rather than the shaft's ranks of flats. */}
-        <polygon points={polyPoints(pod.left)} fill={shade(tint, 0.88)} />
-        <polygon points={polyPoints(pod.right)} fill={shade(tint, 0.70)} />
+        {sideFaces(pod, shade(tint, 0.88), shade(tint, 0.70))}
         {windows(pod.D, pod.C, PODIUM_H, w, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pl', paneShape, stone.glass, doorBay(podiumDoor, w, PODIUM_H))}
         {windows(pod.C, pod.B, PODIUM_H, h, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pr', paneShape, stone.glass, doorBay(podiumDoor, h, PODIUM_H))}
         <Door d={podiumDoor} origin={pod.D} along={pod.C} wallHeight={PODIUM_H} span={w} />
@@ -2632,8 +2623,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         ])} />
         <RakedStand outer={[T(lowerBack, iRow), T(lowerBack, iRow + iH)]} inner={[T(iCol, iRow), T(iCol, iRow + iH)]}
           bottomH={bottom} topH={lowerTop} rows={6} aisles={3} {...fills(1.0)} />
-        <polygon points={polyPoints(pressBox.left)} fill={shade(stone.trim, 0.82)} />
-        <polygon points={polyPoints(pressBox.right)} fill={shade(stone.trim, 0.7)} />
+        {sideFaces(pressBox, shade(stone.trim, 0.82), shade(stone.trim, 0.7))}
         <WallBand origin={pressBox.C} along={pressBox.B} wallHeight={up(3.2)} from={up(0.9)} to={up(2.6)} className="iso-undercroft" />
         <polygon points={polyPoints(pressBox.top)} fill={shade(stone.trim, 0.95)} />
       </>
@@ -3128,8 +3118,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
       );
       return (
         <>
-          <polygon points={polyPoints(box.left)} fill={shade(pal.roof, 0.9)} />
-          <polygon points={polyPoints(box.right)} fill={shade(pal.roof, 0.76)} />
+          {sideFaces(box, shade(pal.roof, 0.9), shade(pal.roof, 0.76))}
           <polygon points={polyPoints(box.top)} fill={pal.roofDeck} />
           <polygon className="iso-rooflight" points={polyPoints(light.top)} />
         </>
@@ -3217,8 +3206,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           {doors}
           {gable.map(gableEnd)}
           <polygon points={polyPoints(roof)} fill={roofFill} />
-          <polygon points={polyPoints(flue.left)} fill={shade(roofTint, 0.8)} />
-          <polygon points={polyPoints(flue.right)} fill={shade(roofTint, 0.66)} />
+          {sideFaces(flue, shade(roofTint, 0.8), shade(roofTint, 0.66))}
           <polygon points={polyPoints(flue.top)} fill={shade(roofTint, 0.5)} />
         </>
       );
@@ -3525,8 +3513,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
             const st = boxFaces(col + w * 0.88 - sp, row + h * 0.08, sp, sp, H, up(6));
             return (
               <>
-                <polygon points={polyPoints(st.left)} fill={shade(roofTint, 0.82)} />
-                <polygon points={polyPoints(st.right)} fill={shade(roofTint, 0.68)} />
+                {sideFaces(st, shade(roofTint, 0.82), shade(roofTint, 0.68))}
                 <polygon points={polyPoints(st.top)} fill={shade(roofTint, 0.45)} />
               </>
             );

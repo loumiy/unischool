@@ -20,7 +20,8 @@ import { groundProps } from './groundMarkings';
 import { depthOrder, type DepthBox } from './depthSort';
 import { setDraft } from './renderDetail';
 import PathwayLayer from './pathways';
-import Tree from './trees';
+import Tree, { woodlandShadow } from './trees';
+import { castShadow } from './light';
 import {
   DEFAULT_CAMERA, TILE_H, WORLD, boxFaces, getCamera, lift, polyPoints, project, setCamera, tileAt, unproject,
   type Camera,
@@ -118,23 +119,22 @@ const LABEL_PLATE_PAD_Y = 3;
 // can stand on top of it, rather than across the building's face.
 const PROGRESS_BAR_DEPTH = 0.22;   // in tiles
 
-// The cast shadow. The flat map had drop shadows and the angled rewrite lost
+// The cast shadows. The flat map had drop shadows and the angled rewrite lost
 // them, which left every mass floating on the lawn with no contact — the
 // --building-shadow token survived as an orphan with nothing referencing it,
 // which is how the gap came to light.
 //
-// A shadow here is simply the footprint TRANSLATED toward the light's
-// opposite: down and to the right, matching the upper-left key that
-// paletteFrom already shades every wall from. It does not need to be the
-// swept hull of base and offset — the overlapping half is hidden under the
-// building itself, since the shadow is drawn first — so a plain translated
-// rhombus reads exactly right for a fraction of the geometry.
-//
-// Scaled by the mass's real height, so a nine-storey hall throws a longer
-// shadow than a lab, and a site under construction throws almost none until
-// it rises.
-const SHADOW_PER_HEIGHT_X = 0.22;
-const SHADOW_PER_HEIGHT_Y = 0.11;
+// A shadow is the footprint translated away from the sun (light.ts), scaled
+// by the mass's real height, so a nine-storey hall throws a longer shadow
+// than a lab and a site under construction throws almost none until it
+// rises. ALL of them are drawn in ONE pass, after the paths and before any
+// mass (see CastShadows). They used to be drawn each just before its own
+// building, which was safe only because every shadow fell toward the camera
+// onto ground nothing nearer had been painted on yet; with a sun fixed to
+// the world and a camera that turns, a shadow can fall AWAY from the camera,
+// across a building already painted, so they all go down first. A shadow
+// that reaches a neighbour then disappears under it rather than climbing
+// its wall, which is the same stylisation as before.
 
 // LABELS FADE WITH THE CURSOR. A name over every building at once is a wall of
 // text on a built-out campus, and none of it is what the player is looking at.
@@ -359,22 +359,6 @@ function PlacedBuilding({
       role="button"
       onClick={onInspect}
     >
-      {(() => {
-        // Drawn BEFORE the mass, so the half of the shadow that falls under
-        // the building is simply covered by it. It falls toward the camera,
-        // onto ground and paths — and onto nothing else, because anything it
-        // would reach is nearer the camera and therefore painted after it.
-        const lift = drawnHeightOf(t, developing, vernacular);
-        if (lift <= 0) return null;
-        const dx = lift * SHADOW_PER_HEIGHT_X;
-        const dy = lift * SHADOW_PER_HEIGHT_Y;
-        return (
-          <polygon
-            className="campus-building-shadow"
-            points={polyPoints(boxFaces(d.col, d.row, d.w, d.h, 0, 0).top.map((q) => ({ x: q.x + dx, y: q.y + dy })))}
-          />
-        );
-      })()}
       <BuildingMotif
         t={t} p={d}
         material={materialOf(t, vernacular)}
@@ -415,6 +399,45 @@ function PlacedBuilding({
       {t.facilityType !== 'quad' && (
         <title>{developing ? `${label} · under construction · ${weeksLeft}w left` : `${label} · ${p.w}×${p.h}`}</title>
       )}
+    </g>
+  );
+}
+
+// Every cast shadow on the map, in one pass (see the shadow note above):
+// each standing building's, from the height it is drawn at right now, and
+// each woodland tree's. Two <path>s — one per fill — rather than a polygon
+// per shadow: a shadow is a flat translucent shape, and a single path of
+// subpaths draws where two overlap as one shadow rather than a darker one,
+// which is also what two shadows on real ground do. Memoised on what it
+// reads, like the scene: it changes when the campus does or the camera moves.
+function CastShadows({ placed, scene, developing, vernacular, camera }: {
+  placed: ReadonlyArray<{ t: Buildable; p: Placement }>;
+  scene: readonly SceneEntry[];
+  developing: GameState['developing'];
+  vernacular: Vernacular;
+  camera: Camera;
+}) {
+  const d = useMemo(() => {
+    const sub = (pts: { x: number; y: number }[]) => `M${polyPoints(pts).replace(/ /g, 'L')}Z`;
+    const buildings: string[] = [];
+    for (const { t, p } of placed) {
+      const isDeveloping = t.status === 'developing' && developing[t.id] !== undefined;
+      const height = drawnHeightOf(t, isDeveloping, vernacular);
+      if (height <= 0) continue;
+      const f = drawnFootprint(p);
+      buildings.push(sub(castShadow(f.col, f.row, f.w, f.h, height)));
+    }
+    const trees: string[] = [];
+    for (const e of scene) if (e.kind === 'tree') trees.push(sub(woodlandShadow(e.row, e.col, e.seed)));
+    return { buildings: buildings.join(''), trees: trees.join('') };
+    // `camera` is read by the projection, not here, and is what moves every
+    // shadow when the view turns.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [placed, scene, developing, vernacular, camera]);
+  return (
+    <g className="campus-shadows" aria-hidden="true">
+      {d.buildings && <path className="campus-building-shadow" d={d.buildings} />}
+      {d.trees && <path className="campus-tree-shadow" d={d.trees} />}
     </g>
   );
 }
@@ -1377,9 +1400,9 @@ export default function CampusMap({
 
   // Placements resolved against `tech` once per render, rather than per
   // tile: 60 placeables against 15,876 cells is not worth re-scanning.
-  const placed = Object.entries(s.placements)
+  const placed = useMemo(() => Object.entries(s.placements)
     .map(([id, p]) => ({ p, t: s.tech.find((x) => x.id === id) }))
-    .filter((entry): entry is { p: Placement; t: Buildable } => entry.t !== undefined);
+    .filter((entry): entry is { p: Placement; t: Buildable } => entry.t !== undefined), [s.placements, s.tech]);
 
   // FLAT GROUND VS EVERYTHING THAT STANDS ON IT. An open-ground facility —
   // a quad, a pitch, a ball field, the courts, the pool deck — is paint on
@@ -1540,6 +1563,10 @@ export default function CampusMap({
             <path className="campus-grid" d={ground.grid} />
 
             <PathwayLayer pathways={s.pathways} camera={camera} />
+
+            {/* Every cast shadow, on the ground under everything that stands
+                (see the shadow note above CastShadows). */}
+            <CastShadows placed={placed} scene={scene} developing={s.developing} vernacular={s.self.vernacular} camera={camera} />
 
             {/* Back to front. On an angled map this ordering IS the
                 occlusion: a building nearer the camera must paint over one
