@@ -7,7 +7,7 @@ redesign that answers them, the specialisation term that Plan 14's founded
 schools finally make possible, and the research model the review found inert,
 into an ordered sequence of PRs ending in a single re-fit.*
 
-**Status: In progress.** PRs A through D have landed. Depends on
+**Status: In progress.** PRs A through E have landed. Depends on
 [Plan 14](14-curriculum-on-the-map.md) for halls, slots and founded schools —
 the seats this plan turns into a ceiling and the concentration this plan turns
 into prestige both come from there. Supersedes
@@ -128,6 +128,23 @@ quarter of its building, a kitchen 30% of the dining hall, the boiler 12% of
 the standing dorms, a storm 3% of everything standing — floored at $60k.
 `instructionCostPerStudent` survives as a reading for the sim's affordability
 check, which now counts the services line too.
+
+**As implemented (15E):** the cap is a `seatsLeft` parameter on
+`projectAdmissions` (infinite by default, so the pricing tests and the
+demand what-if are untouched), clipped from the *bottom* band up so a school
+that must turn people away turns away its weakest admits, and the realised
+admit rate falls below the chosen one. `intakeCeiling` reads capacity, who
+stays on after graduation, the room, and next summer's seats (courses in
+development in housed programs finishing within the year). The reveal shows
+"Room for N" beside the pool, the slider ends where the class fills the
+room, and the log says when a class was held. Services rise linearly from
+nothing at 85% of capacity to +50% at the ceiling, capped at ×2, and a
+campus with no seats at all reads the cap. One thing the plan did not say:
+the general-education core is *seated from founding*, whether or not its
+development has finished — Founders Hall holds it and the founding faculty
+teach it from day one — because otherwise a college would open with no room
+for anybody and its first summer would admit nobody. Every other course
+seats students only once it is done.
 
 ---
 

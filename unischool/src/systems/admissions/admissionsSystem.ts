@@ -22,8 +22,12 @@ export function trailingYearSatisfaction(s: GameState): number {
 // coarse quality distribution (top / mid / low bands) — never as
 // individual applicants.
 //
-// There is no ADMISSIONS CEILING anywhere in this file: nothing ever skims
-// TOWARD a capacity target, and enrollment is never capped by beds. Students
+// There is ONE admissions ceiling, and it is not beds (Plan 15's PR E):
+// the freshman class cannot exceed the seats the housed catalogue has left
+// after graduation (instructionCapacity.ts's intakeCeiling, passed in as
+// projectAdmissions's `seatsLeft`). Nothing ever skims TOWARD it — it
+// clips the class from the bottom band up once the chosen share overruns
+// it — and it caps enrollment, never the pool. Students
 // are commuters unless the school has built them a dorm bed (see
 // campusData.ts and satisfactionSystem.ts's Housing attribute) — housing is
 // an amenity that feeds satisfaction, never an admissions gate. Dorm space
@@ -298,8 +302,14 @@ export interface AdmissionsProjection {
   // sticker priced at or under earned tolerance, no families self-selected
   // away). See STICKER_SHOCK_RATE above.
   stickerShockMultiplier: number;
-  admits: number;              // admitted: applicants x admitRate(prestige), skimmed top band first
-  admitRate: number;           // admits / applicants — matches the chosen rate unless a thin top/mid band ran out to skim
+  admits: number;              // admitted: applicants x admitRate(prestige), skimmed top band first — and clipped to the seats left (see `capped`)
+  admitRate: number;           // admits / applicants — matches the chosen rate unless a thin top/mid band ran out to skim, or the ceiling clipped it
+  // THE CEILING (Plan 15's PR E). `seatsLeft` is the intake cap the funnel
+  // was given (instructionCapacity.ts's intakeCeiling); `capped` is true
+  // when the chosen share would have enrolled more than fit, and the class
+  // was clipped to it from the bottom band up. The pool is never capped.
+  seatsLeft: number;
+  capped: boolean;
   enrolled: number;            // the incoming class, which IS the admits — no yield step, no ceiling of any kind
   avgIncomingQuality: number;  // 0..100 weighted-average quality of the enrolled class — an input to prestige
   // What that enrolled class is MADE OF — the eight counts that sum to
@@ -479,6 +489,10 @@ export function projectAdmissions(
   // what-if, the pricing tests — still reads "what a school of this
   // standing would normally take", which is what they already meant.
   chosenAdmitRate: number = admitRate(prestige),
+  // The seats the class may not exceed (Plan 15's PR E). Infinite by
+  // default, for the same reason the admit rate defaults: the pricing tests
+  // and the demand system's what-if read the funnel, not the ceiling.
+  seatsLeft: number = Infinity,
 ): AdmissionsProjection {
   const tolerance = priceTolerance(prestige);
   const wordOfMouth = wordOfMouthFactor(satisfaction);
@@ -517,6 +531,18 @@ export function projectAdmissions(
     admitsByBand[band] = take;
     remainingAdmits -= take;
   }
+  // THE CEILING. Intake cannot exceed the seats the housed catalogue has
+  // left after graduation — a hard cap on ENROLLMENT, not on applicants.
+  // Clipped from the bottom band up, since a school that must turn people
+  // away turns away its weakest admits.
+  let over = Math.max(0, admitsByBand.top + admitsByBand.mid + admitsByBand.low - Math.max(0, seatsLeft));
+  const capped = over > 0;
+  for (const band of [...bands].reverse()) {
+    if (over <= 0) break;
+    const cut = Math.min(admitsByBand[band], over);
+    admitsByBand[band] -= cut;
+    over -= cut;
+  }
   const admits = admitsByBand.top + admitsByBand.mid + admitsByBand.low;
 
   // Admitted IS enrolled — there is no yield step (see the note above the
@@ -539,6 +565,8 @@ export function projectAdmissions(
     stickerShockMultiplier,
     admits: Math.round(admits),
     admitRate: applicants > 0 ? admits / applicants : 0,
+    seatsLeft,
+    capped,
     enrolled,
     avgIncomingQuality,
     // Computed HERE rather than by the reducer, although the reducer has

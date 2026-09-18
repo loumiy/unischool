@@ -25,6 +25,7 @@ import { annualTuitionBilled, tuitionByClassBilled, weeklyNet } from '../src/sys
 import { projectAdmissions, trailingYearSatisfaction } from '../src/systems/admissions/admissionsSystem';
 import { deriveCohortSignals } from '../src/systems/admissions/cohorts';
 import { projectConsequences } from '../src/systems/admissions/consequences';
+import { intakeCeiling } from '../src/systems/techtree/instructionCapacity';
 import { satisfactionTarget } from '../src/systems/satisfaction/satisfactionSystem';
 import type { GameState } from '../src/state/types';
 import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
@@ -233,6 +234,8 @@ function playYearAt(start: GameState, tuition: number): GameState {
   s = tickTo(s, 'admissions');
 
   // What the panel would be showing, at the policy that is about to be set.
+  // With the ceiling the reducer clips to (Plan 15's PR E) — what the
+  // panel passes, off the same function.
   const outcome = projectAdmissions(
     s.self.reputation,
     PRICE,
@@ -240,6 +243,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
     trailingYearSatisfaction(s),
     deriveCohortSignals(s),
     s.students.admitRate,
+    intakeCeiling(s).seatsLeft,
   );
   const projected = projectConsequences(s, outcome.enrolled, PRICE);
 

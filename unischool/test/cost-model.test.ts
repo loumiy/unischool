@@ -97,8 +97,8 @@ console.log('cost model tests');
 // ---- services per student ----
 {
   const s = fresh();
-  enrol(s, 1_000);
-  assert(near(financeBreakdown(s).servicesCost, 1_000 * SERVICES_PER_STUDENT_PER_WEEK), 'services is a flat weekly cost per enrolled student');
+  enrol(s, 300); // under 85% of the founding seats, so no crowding multiplier applies
+  assert(near(financeBreakdown(s).servicesCost, 300 * SERVICES_PER_STUDENT_PER_WEEK), 'services is a flat weekly cost per enrolled student');
   enrol(s, 0);
   assert(financeBreakdown(s).servicesCost === 0, 'and nothing for nobody');
   const flow = financeBreakdown(fresh());

@@ -6,6 +6,7 @@ import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
 import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction, type PriceTier } from '../systems/admissions/admissionsSystem';
+import { intakeCeiling } from '../systems/techtree/instructionCapacity';
 import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
 import { projectConsequences } from '../systems/admissions/consequences';
 import { computePrestigeTarget, computeSocialTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
@@ -233,9 +234,18 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
   // Approved by default — see the note on StudentLifeDigest above.
   const [approved, setApproved] = useState<Set<string>>(() => new Set(petitions.map((p) => p.id)));
 
+  // THE CEILING (Plan 15's PR E): the seats the catalogue has left after
+  // graduation, read off the same function the reducer clips with. The
+  // slider's range shrinks to what fits, and the reveal says so.
+  const ceiling = intakeCeiling(s);
   // Live preview of the emergent outcomes, computed with the very function
   // the reducer commits with — so the numbers shown are the numbers applied.
-  const outcome = projectAdmissions(prestige, tuition, capacity, satisfaction, cohortSignals, admitRateChoice);
+  const outcome = projectAdmissions(prestige, tuition, capacity, satisfaction, cohortSignals, admitRateChoice, ceiling.seatsLeft);
+  // The rate at which the class fills the room: past it the slider buys
+  // nothing, so it ends there.
+  const maxAdmitRate = outcome.applicants > 0
+    ? Math.max(0.01, Math.min(1, ceiling.seatsLeft / outcome.applicants))
+    : 1;
   // What committing THIS pair of decisions would do to the school: the
   // money and the mood, at the body it would actually produce — the three
   // classes still enrolled plus the incoming one. Same advance the reducer
@@ -293,7 +303,19 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
                 <AnimatedNumber value={outcome.applicants} durationMs={REVEAL_MS} revealFrom={0} />
               </dd>
             </div>
+            <div>
+              <dt>Room for <span className="outcome-note">(the catalogue&rsquo;s seats, less who stays on)</span></dt>
+              <dd className="reveal-figure">
+                <AnimatedNumber value={ceiling.seatsLeft} durationMs={REVEAL_MS} revealFrom={0} />
+              </dd>
+            </div>
           </dl>
+          <p className="admissions-ceiling-note">
+            {ceiling.capacity.toLocaleString()} seats across the housed catalogue; {ceiling.stayingOn.toLocaleString()} stay on after graduation.
+            {ceiling.nextSummer > ceiling.capacity
+              ? ` Next summer the catalogue will hold ${ceiling.nextSummer.toLocaleString()}, counting the courses now in development.`
+              : ' Nothing in development will add seats by next summer.'}
+          </p>
 
           <div className="cohort-breakdown">
             <h3>Who this pulls in</h3>
@@ -308,8 +330,15 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             <span>
               Admit rate <strong>{Math.round(admitRateChoice * 100)}%</strong>
             </span>
-            <input type="range" min={0.01} max={1} step={0.01} value={admitRateChoice}
+            <input type="range" min={0.01} max={Math.max(0.01, Math.round(maxAdmitRate * 100) / 100)} step={0.01} value={Math.min(admitRateChoice, maxAdmitRate)}
               onChange={(e) => setAdmitRateChoice(Number(e.target.value))} />
+            {maxAdmitRate < 1 && (
+              <span className="outcome-note">
+                {outcome.capped
+                  ? `Held to the room: ${ceiling.seatsLeft.toLocaleString()} fit of the ${Math.round(outcome.applicants * Math.min(admitRateChoice, 1)).toLocaleString()} this share would admit.`
+                  : `The slider ends at ${Math.round(maxAdmitRate * 100)}%, where the class fills the room.`}
+              </span>
+            )}
           </label>
 
           <dl className="admissions-outcomes">
@@ -360,7 +389,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             })}
           />
 
-          <button onClick={() => onResolve({ tuition, admitRate: admitRateChoice, approvedPetitionIds: [...approved] })}>
+          <button onClick={() => onResolve({ tuition, admitRate: Math.min(admitRateChoice, maxAdmitRate), approvedPetitionIds: [...approved] })}>
             Confirm Policy
           </button>
         </>

@@ -110,12 +110,12 @@ console.log('standing readings tests');
 // ---- instruction capacity: developed courses in housed, settled programs ----
 {
   const s = fresh();
-  assert(instructionCapacity(s) === 0, 'a founding campus has developed nothing, so it can teach nobody yet');
-  assert(near(instructionCoverage(s), 0), 'and covers none of its founding body');
+  assert(instructionCapacity(s) === GENED_CORE_IDS.length * SEATS_PER_COURSE, 'the core is seated from founding — Founders Hall teaches it from day one');
+  assert(near(instructionCoverage(s), 1), 'and it holds the founding body');
 
   finish(s, GENED_CORE_IDS);
   const core = instructionCapacityDetail(s);
-  assert(core.courses === GENED_CORE_IDS.length, 'the finished core counts every core course — Founders Hall houses it from founding');
+  assert(core.courses === GENED_CORE_IDS.length, 'finishing the core changes nothing: it was already counted');
   assert(core.seats === GENED_CORE_IDS.length * SEATS_PER_COURSE, 'at SEATS_PER_COURSE each');
   assert(core.seats >= totalEnrolled(s.students), 'which holds the founding body');
   assert(near(instructionCoverage(s), 1), 'so instruction coverage reads full');

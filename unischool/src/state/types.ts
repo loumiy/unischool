@@ -134,11 +134,11 @@ export interface StudentBody {
   // them; the graduating seniors take theirs with them.
   cohortsByClass: ClassCohorts;
   // Total HOUSING (bed) capacity — dorms plus housed Greek chapter houses —
-  // never an admissions ceiling. Enrollment is uncapped and driven purely by
-  // the admissions funnel (see admissionsSystem.ts); most students are
-  // commuters, and this is only what's needed to keep the physical plant
-  // upkeep (financeSystem.ts) and the Housing satisfaction attribute
-  // (satisfactionSystem.ts) honest.
+  // never an admissions ceiling. The one ceiling on enrollment is the
+  // catalogue's seats (instructionCapacity.ts's intakeCeiling, Plan 15's
+  // PR E); most students are commuters, and this is only what's needed to
+  // keep the physical plant upkeep (financeSystem.ts) and the Housing
+  // satisfaction attribute (satisfactionSystem.ts) honest.
   capacity: number;
   satisfaction: number;  // 0..100 — the weighted sum of satisfactionBreakdown, drifted toward smoothly (see satisfactionSystem.ts)
   satisfactionBreakdown: SatisfactionAttributes; // this week's per-attribute scores that satisfaction's target is computed from — the expandable UI reads this directly

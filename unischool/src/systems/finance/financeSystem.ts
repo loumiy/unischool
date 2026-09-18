@@ -2,7 +2,7 @@ import type { ClassTuition, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
 import { studentOrgUpkeep } from '../../data/studentLifeData';
 import { marketRateMultiplier } from '../../data/facultyData';
-import { SEATS_PER_COURSE } from '../techtree/instructionCapacity';
+import { SEATS_PER_COURSE, instructionCapacity } from '../techtree/instructionCapacity';
 
 // ---------------------------------------------------------------------
 // This file is the game's primary throttle (see
@@ -318,10 +318,22 @@ export function instructionCostPerStudentWith(s: GameState, extra: number): numb
   return (courses * sectionsPerCourse * SECTION_COST) / enrolled;
 }
 
-// What crowding does to the services line: 1 until Plan 15's PR E, which
-// raises it past 85% of instruction capacity.
-export function servicesMultiplier(_s: GameState): number {
-  return 1;
+// What crowding does to the services line (Plan 15's PR E): nothing up to
+// SERVICES_CROWDING_FROM of instruction capacity, then rising linearly to
+// 1 + SERVICES_CROWDING_AT_FULL at the ceiling and on past it, capped. A
+// school at its ceiling is paying for it before it is over it. A campus
+// with no seats at all reads the cap.
+export const SERVICES_CROWDING_FROM = 0.85;
+export const SERVICES_CROWDING_AT_FULL = 0.5;
+const SERVICES_CROWDING_CAP = 2.0;
+export function servicesMultiplier(s: GameState): number {
+  const enrolled = totalEnrolled(s.students);
+  if (enrolled <= 0) return 1;
+  const capacity = instructionCapacity(s);
+  if (capacity <= 0) return SERVICES_CROWDING_CAP;
+  const used = enrolled / capacity;
+  const past = Math.max(0, (used - SERVICES_CROWDING_FROM) / (1 - SERVICES_CROWDING_FROM));
+  return Math.min(SERVICES_CROWDING_CAP, 1 + SERVICES_CROWDING_AT_FULL * past);
 }
 
 // A hire's pay THIS WEEK: the salary on the roster times the market rate

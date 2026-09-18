@@ -14,6 +14,7 @@ import { initiativeDepth, initiativeFundingCost } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
 import { tickAdmissions, advanceClasses, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
+import { intakeCeiling } from '../systems/techtree/instructionCapacity';
 import { deriveCohortSignals } from '../systems/admissions/cohorts';
 import { buildReportPayload, tickRivals } from '../systems/rivals/rivalsSystem';
 import { appointFaculty, tickFaculty } from '../systems/faculty/facultySystem';
@@ -704,6 +705,10 @@ export function reducer(state: GameState, action: Action): GameState {
       // as outcome.admitRate is admits/applicants, which matches the choice
       // unless a thin top/mid band ran out before the share was filled.
       const chosenAdmitRate = Math.max(0, Math.min(1, action.admitRate));
+      // THE CEILING (Plan 15's PR E): the class is clipped to the seats the
+      // housed catalogue has left after graduation — read here, at the one
+      // boundary, off the same function the reveal shows.
+      const ceiling = intakeCeiling(s);
       const outcome = projectAdmissions(
         s.self.reputation,
         s.finance.listedTuition,
@@ -711,6 +716,7 @@ export function reducer(state: GameState, action: Action): GameState {
         priorYearAvgSatisfaction,
         deriveCohortSignals(s),
         chosenAdmitRate,
+        ceiling.seatsLeft,
       );
 
       // Advance the classes a year: seniors graduate and leave, everyone
@@ -766,6 +772,14 @@ export function reducer(state: GameState, action: Action): GameState {
         message: `Admissions: tuition $${s.finance.listedTuition.toLocaleString()}/yr — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admitted, ${outcome.enrolled.toLocaleString()} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
         kind: 'info',
       });
+      if (outcome.capped) {
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: `The catalogue had room for ${ceiling.seatsLeft.toLocaleString()} more; the class was held to it.`,
+          kind: 'info',
+        });
+      }
       s.log.unshift({
         year: s.clock.year,
         week: s.clock.week,
