@@ -1,6 +1,6 @@
 # UniSchool
 
-![The campus map in year 2 of a new college](docs/images/campus.png)
+![The campus map in year 32 of a university: the Grand Quad and its halls, the science court, the union and residential quad, the medical campus and the venues](docs/images/campus.png)
 
 A university management simulation about building an institution from a small
 college into a major university.

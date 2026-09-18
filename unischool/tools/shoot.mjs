@@ -12,14 +12,16 @@
 //   npm run shot:save -- /tmp/gothic.json 22 gothic
 //   npm run shot -- /tmp/gothic.json /tmp/gothic.png --zoom=-2 --pan=-430,320
 //
-// Flags: --zoom=N (+ in, - out), --pan=DX,DY (screen px, drag), --clip=x,y,w,h
+// Flags: --zoom=N (+ in, - out), --pan=DX,DY (screen px, drag), --clip=x,y,w,h,
+//        --size=W,H (viewport, default 1600,1000), --scale=N (device pixels per
+//        CSS pixel: 2 for a print-sharp PNG at the same framing)
 // ---------------------------------------------------------------------
 import { readFileSync, existsSync } from 'node:fs';
 import { chromium } from 'playwright-core';
 
 const [savePath, outPath, ...flags] = process.argv.slice(2);
 if (!savePath || !outPath) {
-  console.error('usage: shoot <save.json> <out.png> [--zoom=N] [--pan=DX,DY] [--clip=x,y,w,h]');
+  console.error('usage: shoot <save.json> <out.png> [--zoom=N] [--pan=DX,DY] [--clip=x,y,w,h] [--size=W,H] [--scale=N]');
   process.exit(2);
 }
 const flag = (name, fallback) => {
@@ -43,7 +45,11 @@ if (!executablePath) {
 
 const save = readFileSync(savePath, 'utf8');
 const browser = await chromium.launch({ executablePath, args: ['--no-sandbox'] });
-const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+const size = nums(flag('size', null)) ?? [1600, 1000];
+const page = await browser.newPage({
+  viewport: { width: size[0], height: size[1] },
+  deviceScaleFactor: Number(flag('scale', 1)),
+});
 
 // Two loads on purpose: the first is only there to give localStorage an
 // origin to write the save into, the second is the one that reads it.
@@ -61,9 +67,9 @@ for (let i = 0; i < Math.abs(zoom); i++) {
 
 const pan = nums(flag('pan', null));
 if (pan) {
-  await page.mouse.move(800, 500);
+  await page.mouse.move(size[0] / 2, size[1] / 2);
   await page.mouse.down();
-  await page.mouse.move(800 + pan[0], 500 + pan[1], { steps: 20 });
+  await page.mouse.move(size[0] / 2 + pan[0], size[1] / 2 + pan[1], { steps: 20 });
   await page.mouse.up();
   await page.waitForTimeout(600);
 }
