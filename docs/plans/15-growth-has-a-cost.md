@@ -7,9 +7,10 @@ redesign that answers them, the specialisation term that Plan 14's founded
 schools finally make possible, and the research model the review found inert,
 into an ordered sequence of PRs ending in a single re-fit.*
 
-**Status: Proposed.** Depends on [Plan 14](14-curriculum-on-the-map.md) for
-halls, slots and founded schools — the seats this plan turns into a ceiling and
-the concentration this plan turns into prestige both come from there. Supersedes
+**Status: In progress.** PR A has landed. Depends on
+[Plan 14](14-curriculum-on-the-map.md) for halls, slots and founded schools —
+the seats this plan turns into a ceiling and the concentration this plan turns
+into prestige both come from there. Supersedes
 [Plan 10](10-growth-has-a-cost.md).
 
 ---
@@ -56,6 +57,24 @@ plans. That is real and it is accepted.
 | 15F | Consequences: attrition at the year boundary, demands from 60, wider word of mouth |
 | 15G | The re-fit: every constant tuned against the scorecard across three seeds, and the bands rewritten as targets |
 | 15H | Docs |
+
+**As implemented (15A):** the four readings live in `prestigeSystem.ts` as a
+`readings` list on the academic breakdown — its own list, not zero-weight
+rows, so the target stays a sum over `inputs` and the invariant sweep can
+assert that no reading is also an input. Each carries the weight §1 proposes
+so the panel can say what it would be worth today. Instruction capacity is
+its own module (`systems/techtree/instructionCapacity.ts`), since PR D and
+PR E read it from finance and admissions, and it carries no weight: it is
+the ceiling, shown as a ratio. Three decisions the plan left open were made
+here and are PR G's to revisit: `SEATS_PER_COURSE` opens at 80, sized so the
+whole catalogue holds about 34,000 (the top of the year-50 band) and a
+year-20 completionist 12,000–18,000; crowding's shortfall is linear from
+nothing at 90% coverage to full at 0%, with health below its population gate
+read as covered, the rule the satisfaction and demand systems already share;
+and concentration reads only the *deepest* school — founded 0.4,
+distinguished 0.6 — because a second founded school is breadth, and breadth
+already pays for it. A program in transit contributes no seats, matching
+the no-teaching-quality rule relocation already has.
 
 ---
 

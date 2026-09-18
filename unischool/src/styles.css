@@ -2136,6 +2136,11 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .standing-bar-fill { background: var(--gold-dim); }
 .standing-detail { margin: 0; font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.45; }
 .standing-multiplier { font-style: italic; }
+/* Readings (Plan 15's PR A): the rows that do not count yet. A rule above
+   them and muted labels, so a glance separates what the target is made of
+   from what it will be made of. */
+.standing-readings-note { margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--parchment-line); font-style: italic; }
+.standing-reading .standing-row-label, .standing-reading .standing-row-figure { color: var(--ink-muted); }
 
 .history-table-scroll { overflow-y: auto; }
 .history-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }

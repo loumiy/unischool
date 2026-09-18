@@ -1,10 +1,15 @@
-import type { GameState } from '../../state/types';
+import type { GameState, SatisfactionAttributes } from '../../state/types';
 import { totalEnrolled } from '../../state/types';
 import { graduatePrograms, milestoneSchools, researchSchools } from '../../data/techData';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
 import { teachingQualityScore } from '../../data/courseQuality';
 import { INITIATIVE_COMPLETION_CREDIT, labEquippedFields } from '../../data/researchData';
 import { athleticProgramStrength, studentLifeSocialBonus, STUDENT_LIFE_SOCIAL_BONUS_CAP } from '../../data/studentLifeData';
+import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../../data/facilitiesData';
+import { attributeCoverage } from '../satisfaction/satisfactionSystem';
+import { trailingYearSatisfaction } from '../admissions/admissionsSystem';
+import { isSchoolFounded } from '../techtree/schools';
+import { instructionCapacityDetail, instructionCoverage, SEATS_PER_COURSE } from '../techtree/instructionCapacity';
 
 // ---------------------------------------------------------------------
 // Prestige (s.self.reputation) is a slow-moving STOCK, not a flow. It used
@@ -413,6 +418,12 @@ function endowmentScore(s: GameState): number {
 // (see tabs/HistoryTab.tsx's Standing section) reads whatever the
 // breakdown contains and never names a row, so a weight that moves or an
 // input that is retired changes one file.
+//
+// A breakdown also carries READINGS (see the block below the inputs): terms
+// the model measures and shows but does not yet count. They are the same
+// shape as an input minus the contribution, and they are kept in their own
+// list rather than as zero-weight rows so the identity above stays exact —
+// the target is a sum over `inputs`, and nothing in `readings` is in it.
 // =====================================================================
 
 // A multiplier on an input rather than an input of its own: library
@@ -436,10 +447,27 @@ export interface StandingInput {
   detail: string;        // one line about what the score actually read
 }
 
+// A term that is measured and shown but contributes NOTHING — yet. `weight`
+// is what the plan that introduced it proposes it will be worth once it
+// counts, and `reach` is weight × score, the figure it WOULD add (or, for a
+// penalty, subtract); the panel draws that as the pale layer with no solid
+// one over it. A reading with no weight is a ceiling or a ratio rather than
+// a future input, and is shown as the plain figure it is.
+export interface StandingReading {
+  key: string;
+  label: string;
+  score: number;         // 0..1
+  weight?: number;       // the proposed weight, once it counts; absent for a reading that is never an input
+  reach: number;         // (weight ?? 0) * score — what it would be worth, and is not
+  penalty?: boolean;     // true when the reach would be subtracted rather than added
+  detail: string;        // one line about what the score actually read
+}
+
 export interface StandingBreakdown {
   label: string;
   baseline: number;         // what a school with nothing scores
   inputs: StandingInput[];
+  readings: StandingReading[]; // measured and shown, counted by nothing — see StandingReading
   target: number;           // baseline + every contribution, clamped to the band
   current: number;          // the stock today — what the target is pulling on
   driftRate: number;        // the share of the gap that closes each week
@@ -461,10 +489,11 @@ function weigh(
 // disagree with the sum.
 function breakdown(
   label: string, baseline: number, current: number, inputs: StandingInput[],
+  readings: StandingReading[] = [],
 ): StandingBreakdown {
   const total = inputs.reduce((sum, input) => sum + input.contribution, baseline);
   return {
-    label, baseline, inputs, current,
+    label, baseline, inputs, readings, current,
     target: clamp(total, PRESTIGE_MIN, PRESTIGE_MAX),
     driftRate: PRESTIGE_DRIFT_RATE,
     min: PRESTIGE_MIN,
@@ -524,7 +553,180 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
       'endowment', 'Endowment', ENDOWMENT_WEIGHT, endowmentScore(s),
       `$${Math.round(s.finance.endowment).toLocaleString()} against a student body of ${totalEnrolled(s.students).toLocaleString()}.`,
     ),
-  ]);
+  ], prestigeReadings(s));
+}
+
+// =====================================================================
+// THE READINGS: measured, shown, counted by nothing (Plan 15's PR A).
+//
+// Plan 15 redesigns this standing — a summer report card, asymmetric
+// movement, two new inputs and a penalty — and every constant in it has to
+// be fitted against the game as it will actually be played. These four are
+// the terms that plan adds, written as pure functions and put on the panel
+// FIRST, so that by the time PR B makes them count there is a year of
+// trajectories to read them off. None of them is in `inputs`; the target
+// is exactly what it was before this block existed, and
+// test/invariants.test.ts section 13 asserts as much.
+//
+// The weights on them are the plan's PROPOSED weights (its §1 budget), so
+// the panel can say what each would be worth today. They are carried here
+// rather than beside the inputs so that PR B moving one moves one line.
+// =====================================================================
+
+// Welfare: the trailing-year average satisfaction, scored (sat − 40) / 40
+// and clamped. Below 40 it earns nothing; at 80 it pays in full. Read as
+// the YEAR'S AVERAGE rather than today's number, because this is one of the
+// two terms a player could otherwise game by timing a dorm's completion in
+// week 50 — and it is the term that lets a happy small college hold a
+// standing a crowded large one cannot.
+const WELFARE_FLOOR_SATISFACTION = 40;
+const WELFARE_FULL_SATISFACTION = 80;
+const WELFARE_PROPOSED_WEIGHT = 20;
+
+export function welfareScore(s: GameState): number {
+  const average = trailingYearSatisfaction(s);
+  return clamp01((average - WELFARE_FLOOR_SATISFACTION) / (WELFARE_FULL_SATISFACTION - WELFARE_FLOOR_SATISFACTION));
+}
+
+// Concentration: the "known for" term, and the one Plan 14's founded
+// schools make possible. Breadth counts how MANY programs stand finished;
+// this reads how DEEP the school's deepest school is — founded (six of its
+// programs housed as a unit in one hall, schools.ts) and distinguished
+// (every one of its programs complete, techSystem.ts's checkMilestones) —
+// so a player who fills a hall with one school and finishes it outranks a
+// player with the same course count spread across seven. Only the best
+// school counts, deliberately: a second and a third founded school are
+// breadth, and breadth already pays for them. This is what lets a small
+// elite college and a broad state university both be real.
+//
+// Both milestones are durable — awarded once, never revoked — which is why
+// this reads them rather than the live dedication: a school that existed
+// existed, and a program moved out for a term does not un-found it.
+const CONCENTRATION_FOUNDED_SHARE = 0.4;
+const CONCENTRATION_DISTINGUISHED_SHARE = 0.6;
+const CONCENTRATION_PROPOSED_WEIGHT = 30;
+
+interface SchoolDepth {
+  school: string;
+  founded: boolean;
+  distinguished: boolean;
+  depth: number; // 0..1
+}
+
+function deepestSchool(s: GameState): SchoolDepth | null {
+  let best: SchoolDepth | null = null;
+  for (const school of milestoneSchools()) {
+    if (school.majors.length === 0) continue;
+    const founded = isSchoolFounded(s, school.schoolName);
+    const distinguished = !!s.milestones[`school-distinguished:${school.schoolName}`];
+    const depth =
+      (founded ? CONCENTRATION_FOUNDED_SHARE : 0) +
+      (distinguished ? CONCENTRATION_DISTINGUISHED_SHARE : 0);
+    if (depth > 0 && (best === null || depth > best.depth)) {
+      best = { school: school.schoolName, founded, distinguished, depth };
+    }
+  }
+  return best;
+}
+
+export function concentrationScore(s: GameState): number {
+  return clamp01(deepestSchool(s)?.depth ?? 0);
+}
+
+// Crowding: the worst of the five coverage ratios satisfactionSystem.ts
+// already scores and the instruction-capacity ratio, read as a SHORTFALL
+// below CROWDING_GRACE. A campus covering 90% or better of every need
+// loses nothing; one feeding 55% of its students reads about 0.39, which
+// at the proposed weight is a little under ten points. It is a PENALTY
+// rather than a weighted input, so once it counts it can take a school
+// below what its curriculum earned — which is the point.
+//
+// Health below its population gate is fully covered rather than short,
+// the same rule computeSatisfactionBreakdown and the demand system both
+// apply: students cannot be crowded out of a building the campus is too
+// small to have a use for.
+const CROWDING_GRACE = 0.9;
+const CROWDING_PROPOSED_WEIGHT = 25;
+
+const COVERAGE_LABELS: Record<keyof SatisfactionAttributes, string> = {
+  academic: 'library',
+  social: 'social space',
+  basicNeeds: 'dining',
+  health: 'health',
+  housing: 'housing',
+};
+
+interface CoverageReading {
+  label: string;
+  coverage: number; // 0..1
+}
+
+// Every ratio the crowding reading considers, worst first.
+export function crowdingCoverages(s: GameState): CoverageReading[] {
+  const enrolled = totalEnrolled(s.students);
+  const out: CoverageReading[] = [];
+  for (const attribute of Object.keys(COVERAGE_LABELS) as Array<keyof SatisfactionAttributes>) {
+    const dormant = attribute === 'health' && enrolled < HEALTH_CENTER_TIER1_POPULATION_GATE;
+    out.push({ label: COVERAGE_LABELS[attribute], coverage: dormant ? 1 : attributeCoverage(s, attribute) });
+  }
+  out.push({ label: 'instruction', coverage: instructionCoverage(s) });
+  return out.sort((a, b) => a.coverage - b.coverage);
+}
+
+export function crowdingScore(s: GameState): number {
+  const worst = crowdingCoverages(s)[0].coverage;
+  return clamp01((CROWDING_GRACE - worst) / CROWDING_GRACE);
+}
+
+function reading(
+  key: string, label: string, score: number, detail: string,
+  weight?: number, penalty?: boolean,
+): StandingReading {
+  return { key, label, score, weight, reach: (weight ?? 0) * score, penalty, detail };
+}
+
+function pct(v: number): string {
+  return `${Math.round(v * 100)}%`;
+}
+
+function concentrationDetail(s: GameState): string {
+  const best = deepestSchool(s);
+  if (!best) {
+    return 'No school founded yet — six programs of one school in one hall found it, and finishing every one of them distinguishes it.';
+  }
+  if (best.founded && best.distinguished) return `The School of ${best.school}: founded and distinguished.`;
+  if (best.founded) return `The School of ${best.school}: founded, not yet distinguished — every one of its programs complete would finish it.`;
+  return `${best.school}: distinguished but never founded — its programs were finished without ever sharing one hall.`;
+}
+
+export function prestigeReadings(s: GameState): StandingReading[] {
+  const average = trailingYearSatisfaction(s);
+  const coverages = crowdingCoverages(s);
+  const worst = coverages[0];
+  const capacity = instructionCapacityDetail(s);
+  const enrolled = totalEnrolled(s.students);
+  return [
+    reading(
+      'welfare', 'Welfare', welfareScore(s),
+      `Students have averaged ${average.toFixed(0)} of 100 this year; ${WELFARE_FLOOR_SATISFACTION} earns nothing and ${WELFARE_FULL_SATISFACTION} pays in full.`,
+      WELFARE_PROPOSED_WEIGHT,
+    ),
+    reading(
+      'concentration', 'Concentration', concentrationScore(s), concentrationDetail(s),
+      CONCENTRATION_PROPOSED_WEIGHT,
+    ),
+    reading(
+      'crowding', 'Crowding', crowdingScore(s),
+      worst.coverage >= CROWDING_GRACE
+        ? `Nothing short of ${pct(CROWDING_GRACE)} — the tightest is ${worst.label} at ${pct(worst.coverage)}.`
+        : `Worst is ${worst.label} at ${pct(worst.coverage)} (${coverages.slice(1).map((c) => `${c.label} ${pct(c.coverage)}`).join(', ')}); nothing is lost at ${pct(CROWDING_GRACE)} or better.`,
+      CROWDING_PROPOSED_WEIGHT, true,
+    ),
+    reading(
+      'capacity', 'Instruction capacity', instructionCoverage(s),
+      `${capacity.courses.toLocaleString()} developed course${capacity.courses === 1 ? '' : 's'} in housed programs × ${SEATS_PER_COURSE} seats = room for ${capacity.seats.toLocaleString()}, against ${enrolled.toLocaleString()} enrolled.`,
+    ),
+  ];
 }
 
 export function computePrestigeTarget(s: GameState): number {

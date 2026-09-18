@@ -3,7 +3,7 @@ import { linePoints, MIN_SERIES_POINTS } from '../components/Sparkline';
 import HelpHint from '../components/HelpHint';
 import {
   prestigeBreakdown, researchStandingBreakdown, socialStandingBreakdown,
-  type StandingBreakdown, type StandingInput,
+  type StandingBreakdown, type StandingInput, type StandingReading,
 } from '../systems/prestige/prestigeSystem';
 
 // ---------------------------------------------------------------------
@@ -126,6 +126,35 @@ function StandingRow({ input, max }: { input: StandingInput; max: number }) {
   );
 }
 
+// A READING is an input that does not count yet (see prestigeSystem.ts's
+// StandingReading): the same label, bar and line of prose, with only the
+// pale layer drawn — what it would reach at its proposed weight — and no
+// solid one, because it is worth nothing today. Plan 15's PR A puts four of
+// these on the academic standing so the year of play before PR B counts
+// them is a year of reading them. A reading with no weight is a ratio, not
+// a future input, and is shown as the figure it is.
+function ReadingRow({ item, max }: { item: StandingReading; max: number }) {
+  const pct = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
+  return (
+    <li className="standing-row standing-reading">
+      <div className="standing-row-head">
+        <span className="standing-row-label">{item.label}</span>
+        <span className="standing-row-figure">
+          {item.weight === undefined
+            ? `${Math.round(item.score * 100)}%`
+            : <>{item.penalty ? '−' : '+'}{item.reach.toFixed(1)}<span className="standing-row-of"> of {item.weight}, not yet counted</span></>}
+        </span>
+      </div>
+      {item.weight !== undefined && (
+        <div className="standing-bar" aria-hidden="true">
+          <div className="standing-bar-reach" style={{ width: pct(item.reach) }} />
+        </div>
+      )}
+      <p className="standing-detail">{item.detail}</p>
+    </li>
+  );
+}
+
 function Standing({ breakdown }: { breakdown: StandingBreakdown }) {
   // Every bar is drawn against the SAME scale — the largest weight in this
   // standing — so a 90-weight term and a 12-weight one are comparable at a
@@ -155,6 +184,18 @@ function Standing({ breakdown }: { breakdown: StandingBreakdown }) {
           <StandingRow key={input.key} input={input} max={max} />
         ))}
       </ul>
+      {breakdown.readings.length > 0 && (
+        <>
+          <p className="standing-note standing-readings-note">
+            Read, not yet counted. What each would be worth at the weight Plan 15 proposes.
+          </p>
+          <ul className="standing-rows">
+            {breakdown.readings.map((item) => (
+              <ReadingRow key={item.key} item={item} max={max} />
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }

@@ -141,6 +141,18 @@ function is a sum over its own breakdown**, so the panel cannot disagree with th
 tick that produced the number. The rows are data: an input that is added, retired
 or reweighted changes that one file and the panel follows.
 
+Under the academic standing's inputs the panel lists its **readings** — terms
+that are measured and shown but not yet summed. Plan 15's PR A added four:
+**welfare** (the trailing-year average satisfaction, scored from 40 to 80),
+**concentration** (how deep the school's deepest school is — founded, and
+distinguished), **crowding** (the worst of the five coverage ratios and the
+instruction-capacity ratio, as a shortfall below 90%) and **instruction
+capacity** itself (the seats the housed catalogue can teach: developed courses
+in housed programs, at `SEATS_PER_COURSE` each). Each shows what it would be
+worth at the weight Plan 15 proposes, and each contributes zero until that
+plan's PR B makes it count. See
+[`../plans/15-growth-has-a-cost.md`](../plans/15-growth-has-a-cost.md).
+
 **Direct-mutation audit.** `self.reputation` is written in exactly three places,
 and all three are intentional. (1) **Founding** sets the opening value
 (`BASE_STARTING_REPUTATION + preset.prestigeBonus + GENED_BUILDING_REPUTATION_BONUS`

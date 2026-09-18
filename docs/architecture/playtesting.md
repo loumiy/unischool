@@ -152,6 +152,20 @@ saturated, crowded — the interesting cases are where the clamps bite);
 `test/balance-regression.test.ts` asserts it on the real year-20 state of
 every strategy.
 
+**Readings.** Below the academic standing's inputs sits a second list, *read,
+not yet counted*: terms the model measures and shows but does not sum. Plan
+15's PR A put four there — welfare, concentration, crowding and the
+instruction capacity crowding reads — so that the year of play before PR B
+makes them count is a year of reading them. A reading is the same row minus
+the solid layer: the pale bar is what it would reach at the weight the plan
+proposes, and nothing is drawn over it because it is worth nothing today.
+Instruction capacity (`systems/techtree/instructionCapacity.ts`) carries no
+weight at all — it is the ceiling PR E turns into a cap, shown as the ratio
+it is. `readings` is its own list on the breakdown rather than a set of
+zero-weight rows, so the identity above stays a sum over `inputs` alone, and
+the invariant sweep asserts that no reading's key is also an input's.
+`test/standing-readings.test.ts` pins each reading's arithmetic.
+
 ## The sim, and the scorecard
 
 ```sh
@@ -220,5 +234,9 @@ ever won a national title.
   scorecard will report it as unmeasured.
 - **A new prestige input** → it appears in the Standing panel by itself. Give
   it a `detail` line that says what the score actually read.
+- **A term that should be measured before it counts** → a `StandingReading`
+  in `prestigeReadings`, with the weight the plan proposes for it, so the
+  panel can say what it would be worth. Promote it to an input in the PR
+  that makes it count, and drop the reading in the same PR.
 - **A new playtest shortcut** → a `DEBUG_*` action in the one block, and a
   control in the one panel.

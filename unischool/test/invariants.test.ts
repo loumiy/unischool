@@ -867,6 +867,18 @@ function assertHallsInvariants(s: GameState, label: string): void {
       assert(rowsHonest, `${name} breakdown's rows each contribute weight x score x multiplier on a ${label} school`);
       const clampedScores = made.inputs.every((input) => input.score >= 0 && input.score <= 1);
       assert(clampedScores, `${name} breakdown's inputs are all normalised to 0..1 on a ${label} school`);
+      // READINGS COUNT FOR NOTHING (Plan 15's PR A): the sum above is over
+      // `inputs` alone, and a reading's key is never also an input's, so a
+      // term cannot be counted under one name and shown under another.
+      const inputKeys = new Set(made.inputs.map((input) => input.key));
+      assert(
+        made.readings.every((item) => !inputKeys.has(item.key)),
+        `${name} breakdown's readings are not also inputs on a ${label} school`,
+      );
+      assert(
+        made.readings.every((item) => item.score >= 0 && item.score <= 1 && Math.abs(item.reach - (item.weight ?? 0) * item.score) < 1e-9),
+        `${name} breakdown's readings are normalised to 0..1 and reach weight x score on a ${label} school`,
+      );
     }
   }
 }
