@@ -862,9 +862,9 @@ function assertHallsInvariants(s: GameState, label: string): void {
         `${name} breakdown's own target matches the target function on a ${label} school`,
       );
       const rowsHonest = made.inputs.every(
-        (input) => Math.abs(input.contribution - input.weight * input.score * (input.multiplier?.value ?? 1)) < 1e-9,
+        (input) => Math.abs(input.contribution - (input.penalty ? -1 : 1) * input.weight * input.score * (input.multiplier?.value ?? 1)) < 1e-9,
       );
-      assert(rowsHonest, `${name} breakdown's rows each contribute weight x score x multiplier on a ${label} school`);
+      assert(rowsHonest, `${name} breakdown's rows each contribute weight x score x multiplier (negated for a penalty) on a ${label} school`);
       const clampedScores = made.inputs.every((input) => input.score >= 0 && input.score <= 1);
       assert(clampedScores, `${name} breakdown's inputs are all normalised to 0..1 on a ${label} school`);
       // READINGS COUNT FOR NOTHING (Plan 15's PR A): the sum above is over

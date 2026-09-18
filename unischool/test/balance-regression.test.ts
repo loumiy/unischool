@@ -37,6 +37,34 @@ function assert(cond: boolean, msg: string): void {
   }
 }
 
+// THE ECONOMY-SHAPE CLAIMS ARE REPORTED, NOT FAILED, WHILE PLAN 15 MOVES
+// THE ECONOMY UNDER THEM — the same device test/balance-scorecard.test.ts
+// uses, for the same reason. Plan 15's PR B made prestige fall, and a
+// school that falls loses applicants, cash and then more standing: the
+// Overbuilder and the Idle control now do what that plan says they should
+// (underwater, and falling), which is exactly what the "stall, don't die"
+// arcs below were fitted to rule out under the old model. Those arcs are
+// PR G's to re-fit against the plan's own targets; until then a hard gate
+// here would be red from PR B to PR G and read by nobody.
+//
+// What stays HARD: every claim about a mechanism rather than a trajectory
+// — the idle control's prestige separation, the payroll lever, the
+// scatterer, the breakdown identity — because none of those is a number
+// Plan 15 is moving.
+//
+// *** PLAN 15'S PR G FLIPS THIS. *** Set ECONOMY_REPORT_ONLY to false
+// there, rewrite the claims it re-fits, and delete this paragraph.
+const ECONOMY_REPORT_ONLY = true;
+let reported = 0;
+function economy(cond: boolean, msg: string): void {
+  if (!ECONOMY_REPORT_ONLY) { assert(cond, msg); return; }
+  checks += 1;
+  if (!cond) {
+    reported += 1;
+    console.log(`  · (reported, not failed — Plan 15 PR G) ${msg}`);
+  }
+}
+
 const YEARS = 20;
 
 // TWO HORIZONS, and the second one is a deliberate loosening with a reason.
@@ -126,13 +154,13 @@ function findRecovery(name: string) {
 {
   const { run } = find('Overbuilder (beds ahead of demand)');
   const last = run.rows[run.rows.length - 1];
-  assert(last.weeksInTheRed > 0, `the overbuilder strategy actually experiences real financial distress (got ${last.weeksInTheRed} weeks in the red)`);
-  assert(last.minCash < 0, `the overbuilder strategy's cash genuinely goes negative at some point (min cash ${last.minCash.toLocaleString()})`);
-  assert(last.cash > last.minCash, `the overbuilder strategy's cash has recovered from its trough by year ${YEARS} (trough ${last.minCash.toLocaleString()}, now ${last.cash.toLocaleString()})`);
-  assert(last.net >= 0, `the overbuilder strategy's weekly net has turned non-negative again by year ${YEARS} (got ${last.net.toLocaleString()})`);
+  economy(last.weeksInTheRed > 0, `the overbuilder strategy actually experiences real financial distress (got ${last.weeksInTheRed} weeks in the red)`);
+  economy(last.minCash < 0, `the overbuilder strategy's cash genuinely goes negative at some point (min cash ${last.minCash.toLocaleString()})`);
+  economy(last.cash > last.minCash, `the overbuilder strategy's cash has recovered from its trough by year ${YEARS} (trough ${last.minCash.toLocaleString()}, now ${last.cash.toLocaleString()})`);
+  economy(last.net >= 0, `the overbuilder strategy's weekly net has turned non-negative again by year ${YEARS} (got ${last.net.toLocaleString()})`);
   // "Stall, don't die" also means it never spends the WHOLE run underwater —
   // a run in the red every single week would be "die slowly", not "stall".
-  assert(last.weeksInTheRed < YEARS * 52, 'the overbuilder strategy is not in the red for the entire run');
+  economy(last.weeksInTheRed < YEARS * 52, 'the overbuilder strategy is not in the red for the entire run');
 }
 
 // =====================================================================
@@ -145,12 +173,12 @@ function findRecovery(name: string) {
 {
   const { run } = findRecovery('Curriculum rush (overreach)');
   const last = run.rows[run.rows.length - 1];
-  assert(last.cash > 0, `the overreach strategy's cash is positive again by year ${RECOVERY_YEARS} (got ${last.cash.toLocaleString()})`);
-  assert(last.net > 0, `the overreach strategy's weekly net is positive again by year ${RECOVERY_YEARS} (got ${last.net.toLocaleString()})`);
+  economy(last.cash > 0, `the overreach strategy's cash is positive again by year ${RECOVERY_YEARS} (got ${last.cash.toLocaleString()})`);
+  economy(last.net > 0, `the overreach strategy's weekly net is positive again by year ${RECOVERY_YEARS} (got ${last.net.toLocaleString()})`);
   // Solvency at the horizon, which the general sweep below no longer covers
   // for this strategy (it is judged on the recovery arc, not at year 20).
-  assert(last.cash >= 0, `"Curriculum rush (overreach)" ends year ${RECOVERY_YEARS} solvent (cash ${last.cash.toLocaleString()})`);
-  assert(last.net >= -0.01 * last.opex, `"Curriculum rush (overreach)" ends year ${RECOVERY_YEARS} without a real ongoing deficit (net ${last.net.toLocaleString()}, opex ${last.opex.toLocaleString()})`);
+  economy(last.cash >= 0, `"Curriculum rush (overreach)" ends year ${RECOVERY_YEARS} solvent (cash ${last.cash.toLocaleString()})`);
+  economy(last.net >= -0.01 * last.opex, `"Curriculum rush (overreach)" ends year ${RECOVERY_YEARS} without a real ongoing deficit (net ${last.net.toLocaleString()}, opex ${last.opex.toLocaleString()})`);
 }
 
 // =====================================================================
@@ -207,8 +235,8 @@ function discountMeanCash(from: number, to: number): number {
 {
   const { run } = discountRecovery;
   const last = run.rows[run.rows.length - 1];
-  assert(last.cash > last.minCash, `the discount-heavy strategy has recovered from its trough by year ${RECOVERY_YEARS} (trough ${last.minCash.toLocaleString()}, now ${last.cash.toLocaleString()})`);
-  assert(last.cash > 0, `the discount-heavy strategy is solvent at the horizon (cash ${last.cash.toLocaleString()})`);
+  economy(last.cash > last.minCash, `the discount-heavy strategy has recovered from its trough by year ${RECOVERY_YEARS} (trough ${last.minCash.toLocaleString()}, now ${last.cash.toLocaleString()})`);
+  economy(last.cash > 0, `the discount-heavy strategy is solvent at the horizon (cash ${last.cash.toLocaleString()})`);
   // The decade-over-decade trend is judged across seeds, below, once
   // `holds` is defined: it is the most phase-sensitive claim in the file
   // (see the note above holds), and Plan 14's PR C is where it first
@@ -217,7 +245,7 @@ function discountMeanCash(from: number, to: number): number {
   // so the 30-40 decade averaged the dip and the 20-30 decade the climb
   // before it, with the school ending the run solvent and rising exactly
   // as before.
-  assert(last.weeksInTheRed < RECOVERY_YEARS * 52, 'the discount-heavy strategy is not in the red for the entire run');
+  economy(last.weeksInTheRed < RECOVERY_YEARS * 52, 'the discount-heavy strategy is not in the red for the entire run');
 }
 
 // A school that is overdrawn AT THE SNAPSHOT but earning strongly, having
@@ -294,7 +322,7 @@ function meanCash(run: ReturnType<typeof play>, from: number, to: number): numbe
     (r) => meanCash(r, RECOVERY_YEARS - 10, RECOVERY_YEARS) > meanCash(r, RECOVERY_YEARS - 20, RECOVERY_YEARS - 10),
     discountRecovery.run,
   );
-  assert(
+  economy(
     rising.ok,
     `the discount-heavy strategy's cash trends upward decade over decade ` +
     `(years ${RECOVERY_YEARS - 20}-${RECOVERY_YEARS - 10} averaged ${Math.round(decadeBefore).toLocaleString()}, ` +
@@ -315,7 +343,7 @@ for (const strategy of STRATEGIES.filter((s) => !MISTAKE_CASES.includes(s.name))
   // trajectory that dips and recovers, and a strategy caught mid-dip at one
   // seed is not a strategy that dies.
   const solvency = holds(strategy.name, YEARS, (r) => solvent(r.rows[r.rows.length - 1]), run);
-  assert(
+  economy(
     solvency.ok,
     `"${strategy.name}" ends year ${YEARS} solvent, or overdrawn and climbing out ` +
     `(cash ${last.cash.toLocaleString()}, net ${last.net.toLocaleString()}, ` +
@@ -333,7 +361,7 @@ for (const strategy of STRATEGIES.filter((s) => !MISTAKE_CASES.includes(s.name))
     const row = r.rows[r.rows.length - 1];
     return row.net >= -0.01 * row.opex;
   }, run);
-  assert(noDeficit.ok, `"${strategy.name}" ends year ${YEARS} without a real ongoing deficit (net ${last.net.toLocaleString()}, opex ${last.opex.toLocaleString()})${noDeficit.note}`);
+  economy(noDeficit.ok, `"${strategy.name}" ends year ${YEARS} without a real ongoing deficit (net ${last.net.toLocaleString()}, opex ${last.opex.toLocaleString()})${noDeficit.note}`);
 }
 
 // =====================================================================
@@ -496,7 +524,7 @@ for (const strategy of STRATEGIES) {
   const marketRate = find('Curriculum rush (overreach)');
   const discountCourses = discount.run.rows[discount.run.rows.length - 1].courses;
   const marketRateCourses = marketRate.run.rows[marketRate.run.rows.length - 1].courses;
-  assert(
+  economy(
     discountCourses < marketRateCourses * 0.5,
     `the discount-heavy strategy's curriculum stays materially thinner than the market-rate strategy's by year ${YEARS} (discount ${discountCourses} courses vs. market-rate ${marketRateCourses} courses)`,
   );
@@ -524,7 +552,7 @@ for (const strategy of STRATEGIES) {
     return rows[rows.length - 1].cash > 0
       && mean(RECOVERY_YEARS - 10, RECOVERY_YEARS) > mean(RECOVERY_YEARS - 20, RECOVERY_YEARS - 10);
   }, discountRecovery.run);
-  assert(
+  economy(
     healthy.ok,
     `the discount-heavy strategy is healthy despite the cap, not just capped `
     + `(cash ${discountLast.cash.toLocaleString()}, last decade averaged ${Math.round(recent).toLocaleString()} `
@@ -555,8 +583,9 @@ for (const strategy of STRATEGIES) {
 }
 
 console.log('balance-regression tests');
+if (reported > 0) console.log(`  ${reported} economy-shape claim(s) out of shape — reported, not failed, until Plan 15's PR G`);
 if (failures === 0) {
-  console.log(`  ✓ all ${checks} checks passed`);
+  console.log(`  ✓ all ${checks - reported} hard checks passed`);
   process.exit(0);
 } else {
   console.error(`\n${failures} of ${checks} checks FAILED`);

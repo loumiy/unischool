@@ -1,4 +1,4 @@
-import type { GameState, SatisfactionAttributes } from '../../state/types';
+import type { GameState, ReportCard, SatisfactionAttributes } from '../../state/types';
 import { totalEnrolled } from '../../state/types';
 import { graduatePrograms, milestoneSchools, researchSchools } from '../../data/techData';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
@@ -19,17 +19,32 @@ import { instructionCapacityDetail, instructionCoverage, SEATS_PER_COURSE } from
 // and sag once the curriculum was done, since it tracked *build activity*
 // rather than the school's actual standing.
 //
-// Instead, EVERY WEEK (see tickPrestige below, registered in reducer.ts's
-// SYSTEMS array) this module computes a prestige TARGET from durable,
-// slow-changing inputs — things that describe what the school *is*, not what
-// it did this week — and reputation drifts toward that target by a small
-// fraction of the gap. It never jumps to it, and the weekly fraction is tiny
-// (see PRESTIGE_DRIFT_RATE): a long-established school's prestige is sticky —
-// it does not evaporate the moment growth stalls, does not snap to a new high
-// the moment a milestone completes, and moves only gently from one week to
-// the next. Weekly rather than annual so standing responds smoothly to
-// mid-year changes — a lab finishing, a star hire maturing, a breakthrough
-// published — rather than sitting frozen between summers.
+// Instead, this module computes a prestige TARGET from durable, slow-
+// changing inputs — things that describe what the school *is*, not what it
+// did this week — and reputation moves toward it in two ways (Plan 15's
+// PR B, which replaced a single weekly drift):
+//
+//   - A SUMMER REPORT CARD. At the admissions boundary (reducer.ts's
+//     RESOLVE_ADMISSIONS calls gradeYear below) the inputs are graded for
+//     the year just ended and summed into a YEAR SCORE on the same 5..150
+//     scale. Prestige then steps toward that score by a fraction of the gap,
+//     and the fraction is ASYMMETRIC: PRESTIGE_RISE_RATE above, PRESTIGE_
+//     FALL_RATE below. A school whose grade drops thirty points loses twelve
+//     the first summer and seven the next; climbing back at the rise rate
+//     takes the better part of a decade. That asymmetry is the whole point —
+//     the September 2026 review's finding was that a number which cannot
+//     fall is not a reputation — and the climb is slow but UNBLOCKED:
+//     nothing about a low grade makes an input harder to raise, which
+//     test/report-card.test.ts asserts.
+//   - A WEEKLY TREMOR. Between summers (tickPrestige, in reducer.ts's
+//     SYSTEMS array) prestige still moves toward the live target, at a
+//     tenth of the old weekly rate — enough that the toolbar number is
+//     alive, not enough to pre-empt the summer step.
+//
+// Welfare and crowding are graded on the YEAR'S AVERAGE (their accumulators
+// live on s.students), because those two are the ones a player could game
+// by timing a dorm's completion in week 50. Everything else is graded on
+// state at the summer, because what you see is what is graded.
 //
 // The inputs, each normalized to 0..1 before weighting:
 //   - curriculum breadth: a STOCK — how many majors/schools stand fully
@@ -78,13 +93,23 @@ import { instructionCapacityDetail, instructionCoverage, SEATS_PER_COURSE } from
 // it earns its way up.
 const PRESTIGE_BASELINE = 32;
 
-// How much of the gap between current prestige and its target closes each
-// WEEK — see tickPrestige. Deliberately tiny: prestige is sticky, so a single
-// good week barely moves it and a long-idle school keeps most of what it
-// already had. Sized to preserve the old ~12%-per-year stickiness now that
-// the drift runs weekly: 1 - (1 - 0.12)^(1/52) ≈ 0.00246, so 52 weekly closes
-// still total ~12% of the gap over a year.
+// How much of the gap between a standing and its target closes each WEEK
+// for the two standings that still drift weekly (research and campus life —
+// see tickPrestige). Deliberately tiny: sized so 52 weekly closes total
+// ~12% of the gap over a year: 1 - (1 - 0.12)^(1/52) ≈ 0.00246.
 const PRESTIGE_DRIFT_RATE = 0.0025;
+
+// THE SUMMER STEP (see the module note). Rise is the old weekly drift's
+// annual equivalent, so a run that never falls short of its grade is
+// roughly unchanged by the new model; fall is more than three times it.
+// Both are shares of the gap between prestige and the year score. PR G of
+// Plan 15 fits them against the scorecard.
+export const PRESTIGE_RISE_RATE = 0.12;
+export const PRESTIGE_FALL_RATE = 0.40;
+
+// The weekly tremor between summers: a tenth of the old weekly rate. If it
+// reads as noise in playtest, drop it; the summer step is the beat.
+const PRESTIGE_TREMOR_RATE = PRESTIGE_DRIFT_RATE / 10;
 
 // Weight applied to each 0..1 input score. Their sum plus PRESTIGE_BASELINE
 // would exceed PRESTIGE_MAX if every input maxed out at once (it's clamped
@@ -114,12 +139,30 @@ const PRESTIGE_DRIFT_RATE = 0.0025;
 // takes a smaller one — still far below breadth, which is the invariant
 // researchScore's own note exists to protect: research supplements a
 // university's standing, it never substitutes for being one.
-const CURRICULUM_BREADTH_WEIGHT = 90; // majors/schools completed — the stock only sustained buildout grows
+//
+// PLAN 15's PR B REBUDGETED THESE (its §1). Breadth gave up forty of its
+// ninety: thirty to CONCENTRATION — the "known for" term, breadth's other
+// half, which Plan 14's founded schools made possible — so that a school
+// concentrated in one hall and finished is worth more than the same course
+// count scattered. WELFARE is new at twenty, which is what lets a happy
+// small college hold a standing a crowded large one cannot. And CROWDING
+// is a PENALTY, not an input: a subtraction of up to twenty-five, so it
+// can take a school below what its curriculum earned.
+const CURRICULUM_BREADTH_WEIGHT = 50; // majors/schools completed — still the largest single term, no longer the whole game
+const CONCENTRATION_WEIGHT = 30;      // how deep the deepest school is — founded and distinguished (see concentrationScore below)
 const TEACHING_QUALITY_WEIGHT = 30;   // how good the courses actually are, as its own input (see teachingScore below)
 const STUDENT_QUALITY_WEIGHT = 24;    // emergent avg incoming quality — grows with a low-tuition, selective posture
 const RESEARCH_WEIGHT = 22;           // what the university's research has actually produced (see researchScore below)
-const CAMPUS_LIFE_WEIGHT = 12;        // rec center / athletics complex — a small, capped draw on its own (see campusLifeScore below)
-const ENDOWMENT_WEIGHT = 18;          // financial resources per student — what the late-game endowment campaigns buy (see endowmentScore below)
+const WELFARE_WEIGHT = 20;            // the year's average satisfaction, scored from 40 to 80 (see welfareScore below)
+// Campus life is UNDER-EARNED: two rec-centre rungs are its only sources,
+// worth +1.8 ever, so it is cut from 12 with a condition rather than a
+// shrug. IT RETURNS TO 12 when athletics and student life reach it — the
+// faculty lifecycle, athletics' reach into the economy and student life
+// with teeth are all on the backlog — and the next plan to reach those
+// systems restores it here.
+const CAMPUS_LIFE_WEIGHT = 8;
+const ENDOWMENT_WEIGHT = 8;           // financial resources per student — cut from 18: at $400k a student it is a term nobody could earn, and a term nobody can earn is not a term
+const CROWDING_PENALTY = 25;          // the most crowding can SUBTRACT (see crowdingScore below)
 
 // Same band as rivalsSystem.ts's RIVAL_REPUTATION_MIN/MAX, so the player's
 // prestige and rivals' reputation stay on one comparable scale.
@@ -441,10 +484,19 @@ export interface StandingInput {
   key: string;
   label: string;
   score: number;         // the raw 0..1 reading, before weighting
-  weight: number;        // the most this input can ever be worth
-  contribution: number;  // weight * score * (multiplier ?? 1) — what it IS worth
+  weight: number;        // the most this input can ever be worth (or, for a penalty, cost)
+  contribution: number;  // weight * score * (multiplier ?? 1) — what it IS worth; negative for a penalty
   multiplier?: StandingMultiplier;
+  penalty?: boolean;     // a subtraction rather than an input: the contribution is -weight * score
   detail: string;        // one line about what the score actually read
+}
+
+// The summer model, carried on the standing that has one so the panel can
+// describe it without naming it: the two step rates and last summer's card.
+export interface SummerModel {
+  riseRate: number;
+  fallRate: number;
+  reportCard: ReportCard | null;
 }
 
 // A term that is measured and shown but contributes NOTHING — yet. `weight`
@@ -470,7 +522,8 @@ export interface StandingBreakdown {
   readings: StandingReading[]; // measured and shown, counted by nothing — see StandingReading
   target: number;           // baseline + every contribution, clamped to the band
   current: number;          // the stock today — what the target is pulling on
-  driftRate: number;        // the share of the gap that closes each week
+  driftRate: number;        // the share of the gap that closes each week between summers
+  summer?: SummerModel;     // set on the standing that steps at the summer (academic)
   min: number;
   max: number;
 }
@@ -485,17 +538,21 @@ function weigh(
   };
 }
 
+function penalise(key: string, label: string, weight: number, score: number, detail: string): StandingInput {
+  return { key, label, weight, score, detail, penalty: true, contribution: -weight * score };
+}
+
 // Assembles a breakdown and computes its own target, so no caller can
 // disagree with the sum.
 function breakdown(
   label: string, baseline: number, current: number, inputs: StandingInput[],
-  readings: StandingReading[] = [],
+  readings: StandingReading[] = [], summer?: SummerModel,
 ): StandingBreakdown {
   const total = inputs.reduce((sum, input) => sum + input.contribution, baseline);
   return {
-    label, baseline, inputs, readings, current,
+    label, baseline, inputs, readings, current, summer,
     target: clamp(total, PRESTIGE_MIN, PRESTIGE_MAX),
-    driftRate: PRESTIGE_DRIFT_RATE,
+    driftRate: summer ? PRESTIGE_TREMOR_RATE : PRESTIGE_DRIFT_RATE,
     min: PRESTIGE_MIN,
     max: PRESTIGE_MAX,
   };
@@ -524,11 +581,17 @@ function scaleMultiplier(s: GameState): StandingMultiplier {
 
 export function prestigeBreakdown(s: GameState): StandingBreakdown {
   const avgQuality = campusAverageCourseQuality(s);
+  const average = trailingYearSatisfaction(s);
+  const coverages = crowdingCoverages(s);
+  const worst = coverages[0];
   return breakdown('Academic standing', PRESTIGE_BASELINE, s.self.reputation, [
     weigh(
       'breadth', 'Curriculum breadth', CURRICULUM_BREADTH_WEIGHT, curriculumBreadthScore(s),
       'Programs established and distinguished, schools distinguished, graduate programs founded.',
       libraryMultiplier(s),
+    ),
+    weigh(
+      'concentration', 'Concentration', CONCENTRATION_WEIGHT, concentrationScore(s), concentrationDetail(s),
     ),
     weigh(
       'teaching', 'Teaching quality', TEACHING_QUALITY_WEIGHT, teachingScore(s),
@@ -550,27 +613,36 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
       'What the recreation and athletics facilities contribute on their own.',
     ),
     weigh(
+      'welfare', 'Welfare', WELFARE_WEIGHT, welfareScore(s),
+      `Students have averaged ${average.toFixed(0)} of 100 this year; ${WELFARE_FLOOR_SATISFACTION} earns nothing and ${WELFARE_FULL_SATISFACTION} pays in full.`,
+    ),
+    weigh(
       'endowment', 'Endowment', ENDOWMENT_WEIGHT, endowmentScore(s),
       `$${Math.round(s.finance.endowment).toLocaleString()} against a student body of ${totalEnrolled(s.students).toLocaleString()}.`,
     ),
-  ], prestigeReadings(s));
+    penalise(
+      'crowding', 'Crowding', CROWDING_PENALTY, crowdingScore(s),
+      `Averaged over the year. Today the worst is ${worst.label} at ${pct(worst.coverage)}`
+        + (worst.coverage >= CROWDING_GRACE
+          ? `; nothing is lost at ${pct(CROWDING_GRACE)} or better.`
+          : ` (${coverages.slice(1).map((c) => `${c.label} ${pct(c.coverage)}`).join(', ')}); nothing is lost at ${pct(CROWDING_GRACE)} or better.`),
+    ),
+  ], prestigeReadings(s), {
+    riseRate: PRESTIGE_RISE_RATE,
+    fallRate: PRESTIGE_FALL_RATE,
+    reportCard: s.self.reportCard,
+  });
 }
 
 // =====================================================================
-// THE READINGS: measured, shown, counted by nothing (Plan 15's PR A).
+// PLAN 15's TERMS: welfare, concentration, crowding — and the seats.
 //
-// Plan 15 redesigns this standing — a summer report card, asymmetric
-// movement, two new inputs and a penalty — and every constant in it has to
-// be fitted against the game as it will actually be played. These four are
-// the terms that plan adds, written as pure functions and put on the panel
-// FIRST, so that by the time PR B makes them count there is a year of
-// trajectories to read them off. None of them is in `inputs`; the target
-// is exactly what it was before this block existed, and
-// test/invariants.test.ts section 13 asserts as much.
-//
-// The weights on them are the plan's PROPOSED weights (its §1 budget), so
-// the panel can say what each would be worth today. They are carried here
-// rather than beside the inputs so that PR B moving one moves one line.
+// Plan 15's PR A wrote these as READINGS: pure functions shown on the
+// panel and counted by nothing, so there was a year of trajectories to
+// read them off before PR B made them count. PR B promoted the first three
+// to inputs (concentration and welfare) and a penalty (crowding), at the
+// weights above. Instruction capacity stays a reading: it is the ceiling
+// PR E turns into a cap, not an input, and it is shown as the ratio it is.
 // =====================================================================
 
 // Welfare: the trailing-year average satisfaction, scored (sat − 40) / 40
@@ -581,7 +653,6 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
 // standing a crowded large one cannot.
 const WELFARE_FLOOR_SATISFACTION = 40;
 const WELFARE_FULL_SATISFACTION = 80;
-const WELFARE_PROPOSED_WEIGHT = 20;
 
 export function welfareScore(s: GameState): number {
   const average = trailingYearSatisfaction(s);
@@ -604,7 +675,6 @@ export function welfareScore(s: GameState): number {
 // existed, and a program moved out for a term does not un-found it.
 const CONCENTRATION_FOUNDED_SHARE = 0.4;
 const CONCENTRATION_DISTINGUISHED_SHARE = 0.6;
-const CONCENTRATION_PROPOSED_WEIGHT = 30;
 
 interface SchoolDepth {
   school: string;
@@ -637,16 +707,20 @@ export function concentrationScore(s: GameState): number {
 // already scores and the instruction-capacity ratio, read as a SHORTFALL
 // below CROWDING_GRACE. A campus covering 90% or better of every need
 // loses nothing; one feeding 55% of its students reads about 0.39, which
-// at the proposed weight is a little under ten points. It is a PENALTY
-// rather than a weighted input, so once it counts it can take a school
-// below what its curriculum earned — which is the point.
+// at CROWDING_PENALTY is a little under ten points. It is a PENALTY rather
+// than a weighted input, so it can take a school below what its
+// curriculum earned — which is the point.
+//
+// Graded on the YEAR'S AVERAGE: tickPrestige accumulates the live
+// shortfall every week, and crowdingScore reads the average of the year
+// so far (the live reading before any week has accumulated). The summer
+// card therefore grades the year the students actually had.
 //
 // Health below its population gate is fully covered rather than short,
 // the same rule computeSatisfactionBreakdown and the demand system both
 // apply: students cannot be crowded out of a building the campus is too
 // small to have a use for.
 const CROWDING_GRACE = 0.9;
-const CROWDING_PROPOSED_WEIGHT = 25;
 
 const COVERAGE_LABELS: Record<keyof SatisfactionAttributes, string> = {
   academic: 'library',
@@ -673,9 +747,17 @@ export function crowdingCoverages(s: GameState): CoverageReading[] {
   return out.sort((a, b) => a.coverage - b.coverage);
 }
 
-export function crowdingScore(s: GameState): number {
+// This week's shortfall — what tickPrestige accumulates.
+export function crowdingShortfallNow(s: GameState): number {
   const worst = crowdingCoverages(s)[0].coverage;
   return clamp01((CROWDING_GRACE - worst) / CROWDING_GRACE);
+}
+
+// The year's average shortfall so far, which is what the input reads.
+export function crowdingScore(s: GameState): number {
+  return s.students.crowdingYearWeeks > 0
+    ? clamp01(s.students.crowdingYearSum / s.students.crowdingYearWeeks)
+    : crowdingShortfallNow(s);
 }
 
 function reading(
@@ -700,33 +782,48 @@ function concentrationDetail(s: GameState): string {
 }
 
 export function prestigeReadings(s: GameState): StandingReading[] {
-  const average = trailingYearSatisfaction(s);
-  const coverages = crowdingCoverages(s);
-  const worst = coverages[0];
   const capacity = instructionCapacityDetail(s);
   const enrolled = totalEnrolled(s.students);
   return [
-    reading(
-      'welfare', 'Welfare', welfareScore(s),
-      `Students have averaged ${average.toFixed(0)} of 100 this year; ${WELFARE_FLOOR_SATISFACTION} earns nothing and ${WELFARE_FULL_SATISFACTION} pays in full.`,
-      WELFARE_PROPOSED_WEIGHT,
-    ),
-    reading(
-      'concentration', 'Concentration', concentrationScore(s), concentrationDetail(s),
-      CONCENTRATION_PROPOSED_WEIGHT,
-    ),
-    reading(
-      'crowding', 'Crowding', crowdingScore(s),
-      worst.coverage >= CROWDING_GRACE
-        ? `Nothing short of ${pct(CROWDING_GRACE)} — the tightest is ${worst.label} at ${pct(worst.coverage)}.`
-        : `Worst is ${worst.label} at ${pct(worst.coverage)} (${coverages.slice(1).map((c) => `${c.label} ${pct(c.coverage)}`).join(', ')}); nothing is lost at ${pct(CROWDING_GRACE)} or better.`,
-      CROWDING_PROPOSED_WEIGHT, true,
-    ),
     reading(
       'capacity', 'Instruction capacity', instructionCoverage(s),
       `${capacity.courses.toLocaleString()} developed course${capacity.courses === 1 ? '' : 's'} in housed programs × ${SEATS_PER_COURSE} seats = room for ${capacity.seats.toLocaleString()}, against ${enrolled.toLocaleString()} enrolled.`,
     ),
   ];
+}
+
+// =====================================================================
+// THE SUMMER REPORT CARD, and the step it drives.
+//
+// gradeYear is called ONCE a year, from reducer.ts's RESOLVE_ADMISSIONS,
+// BEFORE the accumulators reset and BEFORE the funnel runs — so the card
+// grades the year that just ended, with the class that spent it — and the
+// step is applied by applyReportCard AFTER the funnel, so the admissions
+// panel's projection (which read prestige as it stood) is honoured by the
+// class that actually enrolls. Two calls rather than one so those two
+// orderings can both hold.
+//
+// The card's grades are the breakdown's own contributions, keyed by input,
+// so the panel puts "this year's grade" beside each row without naming one.
+// =====================================================================
+export function gradeYear(s: GameState): ReportCard {
+  const made = prestigeBreakdown(s);
+  const grades: Record<string, number> = {};
+  for (const input of made.inputs) grades[input.key] = input.contribution;
+  const before = s.self.reputation;
+  const gap = made.target - before;
+  const rate = gap >= 0 ? PRESTIGE_RISE_RATE : PRESTIGE_FALL_RATE;
+  const after = clamp(before + gap * rate, PRESTIGE_MIN, PRESTIGE_MAX);
+  return { year: s.clock.year, score: made.target, grades, before, after };
+}
+
+// The step itself: prestige moves to the card's `after`. Lives here, and
+// only here, so test/invariants.test.ts section 5 keeps every writer of
+// s.self.reputation in one file. Recorded on s.self so the panel can show
+// the card until next summer replaces it.
+export function applyReportCard(s: GameState, card: ReportCard): void {
+  s.self.reputation = card.after;
+  s.self.reportCard = card;
 }
 
 export function computePrestigeTarget(s: GameState): number {
@@ -924,18 +1021,26 @@ export function computeSocialTarget(s: GameState): number {
   return socialStandingBreakdown(s).target;
 }
 
-// All three stocks drift together, at the same rate, toward their own
-// targets. One function rather than three registered systems: they are the
-// same mechanism three times, and keeping them here is what lets
-// invariants.test.ts confine every writer of all three to one file.
+// The weekly tick. Academic standing TREMBLES toward its live target (the
+// summer step is the beat — see gradeYear); the other two stocks drift at
+// the old weekly rate, since neither is graded at a summer and nothing
+// reads either back. One function rather than three registered systems:
+// keeping them here is what lets invariants.test.ts confine every writer
+// of all three to one file.
+//
+// This is also where the crowding accumulator is fed (see
+// s.students.crowdingYearWeeks): this week's shortfall, so that the summer
+// card grades the year's average rather than the week the dorm opened.
 export function tickPrestige(s: GameState): void {
-  s.self.reputation = drift(s.self.reputation, computePrestigeTarget(s));
-  s.self.researchStanding = drift(s.self.researchStanding, computeResearchTarget(s));
-  s.self.socialStanding = drift(s.self.socialStanding, computeSocialTarget(s));
+  s.students.crowdingYearSum += crowdingShortfallNow(s);
+  s.students.crowdingYearWeeks += 1;
+  s.self.reputation = drift(s.self.reputation, computePrestigeTarget(s), PRESTIGE_TREMOR_RATE);
+  s.self.researchStanding = drift(s.self.researchStanding, computeResearchTarget(s), PRESTIGE_DRIFT_RATE);
+  s.self.socialStanding = drift(s.self.socialStanding, computeSocialTarget(s), PRESTIGE_DRIFT_RATE);
 }
 
-function drift(current: number, target: number): number {
-  return clamp(current + (target - current) * PRESTIGE_DRIFT_RATE, PRESTIGE_MIN, PRESTIGE_MAX);
+function drift(current: number, target: number, rate: number): number {
+  return clamp(current + (target - current) * rate, PRESTIGE_MIN, PRESTIGE_MAX);
 }
 
 // The playtest panel's "set prestige" (see reducer.ts's DEBUG block), and

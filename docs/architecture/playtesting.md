@@ -153,18 +153,25 @@ saturated, crowded — the interesting cases are where the clamps bite);
 every strategy.
 
 **Readings.** Below the academic standing's inputs sits a second list, *read,
-not yet counted*: terms the model measures and shows but does not sum. Plan
-15's PR A put four there — welfare, concentration, crowding and the
-instruction capacity crowding reads — so that the year of play before PR B
-makes them count is a year of reading them. A reading is the same row minus
-the solid layer: the pale bar is what it would reach at the weight the plan
-proposes, and nothing is drawn over it because it is worth nothing today.
-Instruction capacity (`systems/techtree/instructionCapacity.ts`) carries no
-weight at all — it is the ceiling PR E turns into a cap, shown as the ratio
-it is. `readings` is its own list on the breakdown rather than a set of
-zero-weight rows, so the identity above stays a sum over `inputs` alone, and
-the invariant sweep asserts that no reading's key is also an input's.
-`test/standing-readings.test.ts` pins each reading's arithmetic.
+not counted*: terms the model measures and shows but does not sum. Plan 15's
+PR A put four there — welfare, concentration, crowding and the instruction
+capacity crowding reads — so that the year of play before PR B made them
+count was a year of reading them; PR B promoted the first three, and
+instruction capacity (`systems/techtree/instructionCapacity.ts`) remains,
+carrying no weight — it is the ceiling PR E turns into a cap, shown as the
+ratio it is. A reading with a weight is drawn as the pale bar alone, what it
+would reach, with nothing over it. `readings` is its own list on the
+breakdown rather than a set of zero-weight rows, so the identity above stays
+a sum over `inputs` alone, and the invariant sweep asserts that no reading's
+key is also an input's. `test/standing-readings.test.ts` pins each term's
+arithmetic; `test/report-card.test.ts` pins the summer step that grades them.
+
+**Grades.** Since Plan 15's PR B the academic standing carries a *summer
+model*: the panel's note says what the year is grading toward and what the
+summer step would move, and each row shows last summer's grade beside what it
+is worth now. A penalty row (crowding) is drawn in the bad colour and reads as
+a subtraction. Both are data on the breakdown (`summer`, `penalty`), so the
+view still names no row.
 
 ## The sim, and the scorecard
 

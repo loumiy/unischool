@@ -85,7 +85,9 @@ export const SAVE_KEY = 'unischool.save';
 // have loaded with buildings the game no longer knows.)
 // v54: Plan 14 PR H. `s.searches` (a posted faculty search per field,
 // added as required).
-export const SAVE_VERSION = 54;
+// v55: Plan 15 PR B. `s.self.reportCard` (last summer's grade, nullable)
+// and the crowding accumulator on `s.students`, both added as required.
+export const SAVE_VERSION = 55;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch

@@ -2140,6 +2140,11 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    them and muted labels, so a glance separates what the target is made of
    from what it will be made of. */
 .standing-readings-note { margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--parchment-line); font-style: italic; }
+/* A penalty (crowding, Plan 15's PR B) is drawn in the bad colour, and the
+   grade beside a figure is what the row was worth at last summer's report. */
+.standing-penalty .standing-bar-fill { background: var(--bad-on-light); }
+.standing-penalty .standing-row-figure { color: var(--bad-on-light); }
+.standing-row-grade { color: var(--ink-lo); font-weight: 400; }
 .standing-reading .standing-row-label, .standing-reading .standing-row-figure { color: var(--ink-muted); }
 
 .history-table-scroll { overflow-y: auto; }

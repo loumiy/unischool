@@ -18,7 +18,7 @@ import { deriveCohortSignals } from '../systems/admissions/cohorts';
 import { buildReportPayload, tickRivals } from '../systems/rivals/rivalsSystem';
 import { appointFaculty, tickFaculty } from '../systems/faculty/facultySystem';
 import { tickResearch } from '../systems/research/researchSystem';
-import { setPrestigeForPlaytest, tickPrestige } from '../systems/prestige/prestigeSystem';
+import { setPrestigeForPlaytest, tickPrestige, gradeYear, applyReportCard } from '../systems/prestige/prestigeSystem';
 import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { fireMilestoneCelebration, tickEvents } from '../systems/events/eventSystem';
 import { tickStudentLife } from '../systems/studentlife/studentLifeSystem';
@@ -674,15 +674,25 @@ export function reducer(state: GameState, action: Action): GameState {
 
       resolveStudentLifeDigest(s, action.approvedPetitionIds);
 
+      // THE REPORT CARD (Plan 15's PR B, see prestigeSystem.ts's gradeYear):
+      // the year that just ended, graded — on the accumulators as they
+      // stand and the class that spent the year — BEFORE anything below
+      // resets or replaces either. The step itself is applied after the
+      // funnel, so the class that enrolls is the one the panel projected.
+      const reportCard = gradeYear(s);
+
       // Word of mouth: the trailing-year AVERAGE satisfaction (accumulated
       // weekly since last summer) scales next year's applicant pool — the
       // design's "current experience -> satisfaction -> next year's
       // applications". Read it, record it as this year's figure, then reset
-      // the accumulator for the year now beginning.
+      // the accumulator for the year now beginning — and the crowding
+      // accumulator the report card just read, alongside it.
       const priorYearAvgSatisfaction = trailingYearSatisfaction(s);
       s.students.priorYearAvgSatisfaction = priorYearAvgSatisfaction;
       s.students.satisfactionYearSum = 0;
       s.students.satisfactionYearWeeks = 0;
+      s.students.crowdingYearSum = 0;
+      s.students.crowdingYearWeeks = 0;
 
       // Run the distribution funnel with the committed policy: it sizes the
       // incoming FRESHMAN class from demand and policy alone — dorm capacity
@@ -735,15 +745,16 @@ export function reducer(state: GameState, action: Action): GameState {
       s.students.admitRate = chosenAdmitRate;
       s.students.incomingQuality = outcome.avgIncomingQuality;
 
+      // The summer step: prestige moves toward the year score — a small
+      // share of the gap upward, a large one downward. This is the one
+      // moment in the year prestige moves by more than a tremor.
+      applyReportCard(s, reportCard);
+
       // The one annual boundary in the game, so the one place the history
-      // record grows (see state/history.ts). Appended AFTER the funnel above,
-      // so the row is the class the school actually carries into the next
-      // year, and BEFORE advanceClock, so it is filed under the year that just
-      // closed. Prestige is NOT drifted here any more — it drifts weekly in
-      // the SYSTEMS array (see prestigeSystem.ts's tickPrestige), so this
-      // captures reputation as of the last weekly tick; the cycle's
-      // freshly-resolved selectivity and quality feed prestige over the
-      // following weeks rather than in a jump here.
+      // record grows (see state/history.ts). Appended AFTER the funnel and
+      // the step above, so the row is the class and the standing the school
+      // actually carries into the next year, and BEFORE advanceClock, so it
+      // is filed under the year that just closed.
       s.history.push(captureYearSnapshot(s));
 
       s.pendingInterrupt = null;
@@ -753,6 +764,12 @@ export function reducer(state: GameState, action: Action): GameState {
         week: s.clock.week,
         message: `Admissions: tuition $${s.finance.listedTuition.toLocaleString()}/yr — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admitted, ${outcome.enrolled.toLocaleString()} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
         kind: 'info',
+      });
+      s.log.unshift({
+        year: s.clock.year,
+        week: s.clock.week,
+        message: `Report card for year ${reportCard.year}: graded ${reportCard.score.toFixed(0)}. Prestige ${reportCard.before.toFixed(1)} → ${reportCard.after.toFixed(1)}.`,
+        kind: reportCard.after >= reportCard.before ? 'good' : 'bad',
       });
 
       // The autosave (see state/persistence.ts). This annual boundary is

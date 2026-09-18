@@ -1,11 +1,11 @@
 // ---------------------------------------------------------------------
-// The readings (Plan 15's PR A — see prestigeSystem.ts's "THE READINGS"
-// block and systems/techtree/instructionCapacity.ts). Four terms the plan
-// will make count — welfare, concentration, crowding, and the instruction
-// capacity crowding reads — computed as pure functions and shown on the
-// Standing panel, contributing zero. This pins each one's arithmetic and
-// the one rule they all share: nothing in `readings` is in `inputs`, so
-// the target is exactly what it was before they existed.
+// Plan 15's terms (see prestigeSystem.ts's "PLAN 15's TERMS" block and
+// systems/techtree/instructionCapacity.ts): welfare, concentration and
+// crowding — written as readings in PR A and promoted to inputs and a
+// penalty in PR B — and the instruction capacity crowding reads, which
+// stays a reading. This pins each one's arithmetic, and the rule readings
+// keep: nothing in `readings` is in `inputs`. The summer model that
+// grades them is test/report-card.test.ts's.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
@@ -14,7 +14,7 @@ import { createInitialState } from '../src/state/actions';
 import { GENED_CORE_IDS, programs } from '../src/data/techData';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../src/data/facilitiesData';
 import {
-  computePrestigeTarget, concentrationScore, crowdingCoverages, crowdingScore,
+  computePrestigeTarget, concentrationScore, crowdingCoverages, crowdingScore, crowdingShortfallNow,
   prestigeBreakdown, prestigeReadings, researchStandingBreakdown, socialStandingBreakdown, welfareScore,
 } from '../src/systems/prestige/prestigeSystem';
 import {
@@ -69,25 +69,24 @@ const majorsOf = (school: string) => programs().filter((p) => p.kind === 'major'
 
 console.log('standing readings tests');
 
-// ---- the readings are on the academic standing, and count for nothing ----
+// ---- three inputs, one penalty, one reading ----
 {
   const s = fresh();
   const made = prestigeBreakdown(s);
-  assert(
-    made.readings.map((r) => r.key).join(',') === 'welfare,concentration,crowding,capacity',
-    'the academic standing carries the four readings, in the plan\'s order',
-  );
-  const inputKeys = new Set(made.inputs.map((i) => i.key));
+  const keys = made.inputs.map((i) => i.key);
+  assert(keys.includes('concentration') && keys.includes('welfare'), 'concentration and welfare are inputs');
+  const crowding = made.inputs.find((i) => i.key === 'crowding')!;
+  assert(crowding.penalty === true, 'crowding is the penalty');
+  assert(crowding.contribution <= 0, 'and subtracts');
+  assert(made.inputs.filter((i) => i.key !== 'crowding').every((i) => !i.penalty), 'nothing else does');
+  assert(made.readings.map((r) => r.key).join(',') === 'capacity', 'instruction capacity is the one reading left');
+  const inputKeys = new Set(keys);
   assert(made.readings.every((r) => !inputKeys.has(r.key)), 'no reading is also an input');
   const summed = made.inputs.reduce((sum, input) => sum + input.contribution, made.baseline);
   assert(near(Math.max(made.min, Math.min(made.max, summed)), computePrestigeTarget(s)), 'the target is the inputs alone');
-  assert(made.readings.every((r) => r.detail.length > 0), 'every reading says what it read');
-  assert(made.readings.every((r) => near(r.reach, (r.weight ?? 0) * r.score)), 'a reading reaches weight x score');
-  const capacity = made.readings.find((r) => r.key === 'capacity')!;
+  const capacity = made.readings[0];
   assert(capacity.weight === undefined, 'instruction capacity is a ceiling, not a future input — it carries no weight');
-  const crowding = made.readings.find((r) => r.key === 'crowding')!;
-  assert(crowding.penalty === true, 'crowding is marked as the penalty it will be');
-  assert(made.readings.filter((r) => r.key !== 'crowding').every((r) => !r.penalty), 'and nothing else is');
+  assert(capacity.detail.length > 0, 'and says what it read');
 }
 
 // ---- welfare: (sat − 40) / 40, on the year's average ----
@@ -174,12 +173,19 @@ console.log('standing readings tests');
   assert(coverages[0].coverage <= coverages[coverages.length - 1].coverage, 'sorted worst first');
   assert(totalEnrolled(s.students) < HEALTH_CENTER_TIER1_POPULATION_GATE, 'the founding body is below the health gate');
   assert(coverages.find((c) => c.label === 'health')!.coverage === 1, 'health below its gate reads covered, not short');
-  assert(near(crowdingScore(s), 1), 'a campus with nothing built is as crowded as it gets');
+  assert(near(crowdingShortfallNow(s), 1), 'a campus with nothing built is as crowded as it gets');
 
   // Nobody enrolled: every ratio reads full, and nothing is short.
   const empty = fresh();
   empty.students.classes = { freshman: 0, sophomore: 0, junior: 0, senior: 0 };
-  assert(near(crowdingScore(empty), 0), 'nobody to crowd reads no shortfall');
+  assert(near(crowdingShortfallNow(empty), 0), 'nobody to crowd reads no shortfall');
+
+  // The INPUT reads the year's average, not the week: before any week has
+  // accumulated it is the live reading, and after it is the mean.
+  assert(near(crowdingScore(empty), 0), 'with nothing accumulated the input is the live reading');
+  empty.students.crowdingYearSum = 0.5 * 10;
+  empty.students.crowdingYearWeeks = 10;
+  assert(near(crowdingScore(empty), 0.5), 'and once weeks have accumulated it is their average');
 
   // The formula, driven through the one ratio this test controls exactly:
   // give the campus enough of everything else that instruction is the worst.
@@ -200,12 +206,11 @@ console.log('standing readings tests');
     // At a full ratio every reading ties at 1, so only the value is pinned there.
     if (ratio < 1) assert(worst.label === 'instruction', `at ${ratio} instruction is the worst ratio (${worst.label})`);
     assert(near(worst.coverage, ratio, 1e-3), `and it reads ${ratio}`);
-    assert(near(crowdingScore(t), expected, 1e-3), `instruction covering ${ratio} reads a shortfall of ${expected.toFixed(3)} (${crowdingScore(t).toFixed(3)})`);
+    assert(near(crowdingShortfallNow(t), expected, 1e-3), `instruction covering ${ratio} reads a shortfall of ${expected.toFixed(3)} (${crowdingShortfallNow(t).toFixed(3)})`);
   }
-  const at55 = prestigeReadings(t).find((r) => r.key === 'crowding')!;
   t.students.classes = { freshman: Math.round(seats / 0.55), sophomore: 0, junior: 0, senior: 0 };
-  const reach = prestigeReadings(t).find((r) => r.key === 'crowding')!.reach;
-  assert(reach > 9 && reach < 11, `feeding 55% would cost around ten of ${at55.weight} (${reach.toFixed(1)})`);
+  const crowding = prestigeBreakdown(t).inputs.find((i) => i.key === 'crowding')!;
+  assert(crowding.contribution < -9 && crowding.contribution > -11, `feeding 55% costs around ten of ${crowding.weight} (${crowding.contribution.toFixed(1)})`);
 }
 
 // ---- concentration: the deepest school, founded and distinguished ----
@@ -213,15 +218,15 @@ console.log('standing readings tests');
   const s = fresh();
   assert(concentrationScore(s) === 0, 'no school founded reads nothing');
   assert(
-    prestigeReadings(s).find((r) => r.key === 'concentration')!.detail.startsWith('No school founded'),
+    prestigeBreakdown(s).inputs.find((r) => r.key === 'concentration')!.detail.startsWith('No school founded'),
     'and says how one is',
   );
 
   s.milestones[schoolFoundedKey('Business')] = true;
   assert(near(concentrationScore(s), 0.4), 'a founded school is 0.4');
   assert(
-    prestigeReadings(s).find((r) => r.key === 'concentration')!.detail.includes('Business'),
-    'the reading names the school',
+    prestigeBreakdown(s).inputs.find((r) => r.key === 'concentration')!.detail.includes('Business'),
+    'the row names the school',
   );
 
   s.milestones[schoolFoundedKey('Engineering')] = true;
@@ -234,8 +239,8 @@ console.log('standing readings tests');
   d.milestones['school-distinguished:Science'] = true;
   assert(near(concentrationScore(d), 0.6), 'distinguished without ever sharing a hall is 0.6');
   assert(
-    prestigeReadings(d).find((r) => r.key === 'concentration')!.detail.includes('never founded'),
-    'and the reading says which half is missing',
+    prestigeBreakdown(d).inputs.find((r) => r.key === 'concentration')!.detail.includes('never founded'),
+    'and the row says which half is missing',
   );
 
   // Reads the durable milestones, not the live dedication: a hall that
@@ -249,7 +254,7 @@ console.log('standing readings tests');
 // ---- the other two standings carry no readings ----
 {
   const s = fresh();
-  assert(prestigeBreakdown(s).readings.length === 4, 'four on the academic standing');
+  assert(prestigeReadings(s).length === 1, 'one on the academic standing');
   assert(researchStandingBreakdown(s).readings.length === 0, 'none on research standing');
   assert(socialStandingBreakdown(s).readings.length === 0, 'none on campus life standing');
 }

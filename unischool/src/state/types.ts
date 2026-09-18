@@ -152,6 +152,13 @@ export interface StudentBody {
   satisfactionYearSum: number;
   satisfactionYearWeeks: number;
   priorYearAvgSatisfaction: number; // last completed year's average — the value the funnel actually uses
+  // The crowding shortfall, accumulated the same way (see prestigeSystem.ts's
+  // tickPrestige) and for the same reason: crowding is graded on the YEAR'S
+  // AVERAGE at the summer report card, so a dorm finished in week 50 earns
+  // two weeks of relief, not a year's. Reset with the satisfaction
+  // accumulator at RESOLVE_ADMISSIONS.
+  crowdingYearSum: number;
+  crowdingYearWeeks: number;
   applicantPool: number; // most recent cycle's total applicants (set by the annual funnel)
   admitRate: number;     // most recent cycle's admit rate — the emergent selectivity signal prestige reacts to (see prestigeSystem.ts)
   incomingQuality: number; // most recent cycle's average quality score (0..100) of the entering freshman class — prestige's other admissions-derived input
@@ -1136,6 +1143,11 @@ export interface University {
   // pretending otherwise.
   mascot: string;
   reputation: number;   // player's own rank metric — the ACADEMIC axis, and the one the whole economy reads (see systems/prestige/prestigeSystem.ts)
+  // Last summer's report card (Plan 15's PR B): the year score prestige
+  // stepped toward, and what each input was graded. Null until the first
+  // summer. Written only by prestigeSystem.ts's gradeYear; read by the
+  // History tab's Standing panel, which shows the grade beside each input.
+  reportCard: ReportCard | null;
   // The other two standings, added beside `reputation` and never inside it
   // (see docs/design/progression.md's "Three standings"). Both are stocks of
   // exactly the same shape — a target computed weekly from durable inputs,
@@ -1145,6 +1157,21 @@ export interface University {
   socialStanding: number;
   researchStanding: number;
   vernacular: Vernacular; // the architecture the campus is built in, fixed at founding
+}
+
+// THE SUMMER REPORT CARD. At the admissions boundary the standing's inputs
+// are graded for the year just ended and summed into a year score on the
+// same 5..150 scale prestige lives on; prestige then steps toward that
+// score by a fraction of the gap — a small one upward, a large one downward
+// (see prestigeSystem.ts's gradeYear). `grades` is keyed by the breakdown's
+// input keys, one contribution each, so the panel can put "this year's
+// grade" beside every row without naming one.
+export interface ReportCard {
+  year: number;                    // the year that was graded
+  score: number;                   // the year score, clamped to the band
+  grades: Record<string, number>;  // input key -> the contribution it was graded
+  before: number;                  // prestige the morning of the report
+  after: number;                   // prestige after the step
 }
 
 // The institution's full display name. The one place the two halves are

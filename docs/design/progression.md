@@ -141,16 +141,24 @@ function is a sum over its own breakdown**, so the panel cannot disagree with th
 tick that produced the number. The rows are data: an input that is added, retired
 or reweighted changes that one file and the panel follows.
 
-Under the academic standing's inputs the panel lists its **readings** — terms
-that are measured and shown but not yet summed. Plan 15's PR A added four:
-**welfare** (the trailing-year average satisfaction, scored from 40 to 80),
-**concentration** (how deep the school's deepest school is — founded, and
-distinguished), **crowding** (the worst of the five coverage ratios and the
-instruction-capacity ratio, as a shortfall below 90%) and **instruction
-capacity** itself (the seats the housed catalogue can teach: developed courses
-in housed programs, at `SEATS_PER_COURSE` each). Each shows what it would be
-worth at the weight Plan 15 proposes, and each contributes zero until that
-plan's PR B makes it count. See
+**The summer report card (Plan 15's PR B).** Academic standing no longer
+drifts weekly toward its target. At the admissions boundary the inputs are
+graded for the year just ended and summed into a **year score**; prestige then
+steps toward that score by a share of the gap — `PRESTIGE_RISE_RATE` (0.12)
+above it, `PRESTIGE_FALL_RATE` (0.40) below. A school whose grade drops thirty
+points loses twelve the first summer and seven the next; climbing back takes
+the better part of a decade, and the climb is unblocked. Between summers a
+weekly tremor, a tenth of the old drift, keeps the toolbar number alive. Three
+terms joined the budget: **concentration** (30, out of breadth's 90 — how deep
+the deepest school is, founded and distinguished), **welfare** (20 — the year's
+average satisfaction, scored from 40 to 80) and **crowding**, a *penalty* of up
+to 25 — the worst of the five coverage ratios and the instruction-capacity
+ratio, averaged over the year as a shortfall below 90%, which can take a school
+below what its curriculum earned. Campus life and endowment fell to 8 each.
+The Standing panel shows last summer's grade beside each input, and the one
+remaining **reading** under them — **instruction capacity**, the seats the
+housed catalogue can teach (developed courses in housed programs at
+`SEATS_PER_COURSE` each) — is the ceiling Plan 15's PR E turns into a cap. See
 [`../plans/15-growth-has-a-cost.md`](../plans/15-growth-has-a-cost.md).
 
 **Direct-mutation audit.** `self.reputation` is written in exactly three places,

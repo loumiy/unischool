@@ -4,6 +4,7 @@ import { advanceClasses } from './admissionsSystem';
 import { baseShareCohortCounts } from './cohorts';
 import { financeBreakdown } from '../finance/financeSystem';
 import { attributeCoverage, satisfactionTarget } from '../satisfaction/satisfactionSystem';
+import { gradeYear } from '../prestige/prestigeSystem';
 
 // ---------------------------------------------------------------------
 // WHAT COMMITTING WOULD DO (Plan 05's PR D). The summer panel's second
@@ -103,8 +104,15 @@ export function projectConsequences(
     { count: incoming, price: incomingPrice, cohorts: baseShareCohortCounts(incoming) },
   );
 
+  // The summer also STEPS PRESTIGE (Plan 15's PR B — reducer.ts applies
+  // prestigeSystem.ts's report card right after the funnel), and the
+  // prestige dividend and the pride term of satisfaction both read it, so
+  // the projection carries the same step on its copy. The card grades the
+  // state before the funnel, which is exactly the state this holds.
+  const stepped = gradeYear(s).after;
   const projected: GameState = {
     ...s,
+    self: { ...s.self, reputation: stepped },
     students: { ...s.students, classes: advanced.classes, cohortsByClass: advanced.cohortsByClass },
     finance: { ...s.finance, tuitionByClass: advanced.tuitionByClass, listedTuition: incomingPrice },
   };

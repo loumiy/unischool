@@ -7,7 +7,7 @@ redesign that answers them, the specialisation term that Plan 14's founded
 schools finally make possible, and the research model the review found inert,
 into an ordered sequence of PRs ending in a single re-fit.*
 
-**Status: In progress.** PR A has landed. Depends on
+**Status: In progress.** PRs A and B have landed. Depends on
 [Plan 14](14-curriculum-on-the-map.md) for halls, slots and founded schools —
 the seats this plan turns into a ceiling and the concentration this plan turns
 into prestige both come from there. Supersedes
@@ -75,6 +75,26 @@ and concentration reads only the *deepest* school — founded 0.4,
 distinguished 0.6 — because a second founded school is breadth, and breadth
 already pays for it. A program in transit contributes no seats, matching
 the no-teaching-quality rule relocation already has.
+
+**As implemented (15B):** the card is graded at the top of
+`RESOLVE_ADMISSIONS`, before the accumulators reset and before the funnel
+runs, and the step is applied after the funnel — two calls, `gradeYear` and
+`applyReportCard`, so the card grades the year that ended and the class the
+admissions panel projected is the class that enrolls; the panel's own
+projection (`consequences.ts`) carries the same step on its copy. The card
+lives on `s.self.reportCard` (save version 55), keyed by input, and the
+Standing panel shows each input's grade beside what it is worth now, with
+the summer model in the note. Crowding's accumulator sits beside
+satisfaction's on `s.students` and is fed by `tickPrestige`. Only the
+academic standing steps at the summer: research and campus-life standings
+keep the weekly drift, since neither is graded and nothing reads them back.
+The penalty is a row with `penalty: true` and a negative contribution, so
+the breakdown identity holds with a sign. The cost the plan said it would
+accept arrived on schedule: with prestige able to fall, the Overbuilder and
+the Idle control sink, and `test/balance-regression.test.ts`'s economy-shape
+claims (the stall-and-recover arcs, solvency at the horizon) are *reported,
+not failed* behind an `ECONOMY_REPORT_ONLY` flag — the scorecard's own
+device — until PR G re-fits them; every claim about a mechanism stays hard.
 
 ---
 
