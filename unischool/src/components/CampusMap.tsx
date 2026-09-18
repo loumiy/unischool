@@ -6,12 +6,14 @@ import {
   canPlace, canRotate, canSiteRetroactively, footprintIsClear, footprintOf,
   isPlaceableKind, orientedFootprint, parsePathTileKey,
 } from '../state/campusMap';
-import { canStartDevelopment } from '../systems/techtree/techSystem';
+import { canStartDevelopment, facultyGate } from '../systems/techtree/techSystem';
 import { chapterHouseId } from '../data/eventData';
 import { isTypingTarget, useHotkeys } from './hotkeys';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
 import { hallDisplayName } from '../systems/techtree/schools';
+import { isAcademicHall, programById } from '../data/techData';
+import { schoolMark } from '../data/schoolPalette';
 import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf } from './buildingMotifs';
 import { materialOf, motifOf } from './buildingSpec';
 import { groundProps } from './groundMarkings';
@@ -454,9 +456,69 @@ function BuildingLabel({ t, p, label, pinned, vernacular }: {
   );
 }
 
+// The slot pips over a standing hall (see the layer's note in the render
+// below). Sits just above where the label would sit, so the two never
+// overlap when the label lights up.
+const HALL_PIP_R = 6.5;
+const HALL_PIP_GAP = 17;
+const HALL_MARK_LIFT = 28;
+
+// Is a program in this hall stuck for want of a department? Its next
+// startable course's field has no free slot. The pip gets a red ring; the
+// panel says which department and whether a candidate is listed.
+function programBlocked(s: GameState, programId: string): boolean {
+  const program = programById(programId);
+  if (!program) return false;
+  const next = program.courseIds.map((id) => s.tech.find((x) => x.id === id)).find((c) => c?.status === 'available');
+  return !!next?.requiresFaculty && facultyGate(s, next.requiresFaculty) !== 'open';
+}
+
+function HallMarks({ t, p, slots, offerWaiting, blocked, vernacular, onInspect }: {
+  t: Buildable; p: Placement; slots: ReadonlyArray<{ programId: string | null }>;
+  offerWaiting: boolean; blocked: ReadonlyArray<boolean>; vernacular: Vernacular; onInspect: () => void;
+}) {
+  // Only the label's size and centre are wanted, and neither depends on
+  // the text — the name is passed for the width the plate would need.
+  const { size, centre } = labelLayout(t.name, t, p, vernacular);
+  const y = centre.y - size * 0.6 - HALL_MARK_LIFT;
+  const free = slots.filter((slot) => slot.programId === null).length;
+  const flag = free > 0 && offerWaiting;
+  const total = slots.length + (flag ? 1 : 0);
+  const x0 = centre.x - ((total - 1) * HALL_PIP_GAP) / 2;
+  const hues = slots.map((slot) => {
+    const program = slot.programId ? programById(slot.programId) : undefined;
+    return program ? schoolMark(program.school).hue : null;
+  });
+  return (
+    <g className="campus-hall-marks" role="button" onClick={onInspect} aria-label={`${t.name}: ${slots.length - free} of ${slots.length} slots filled${flag ? ', a program on offer' : ''}`}>
+      <title>{`${slots.length - free} of ${slots.length} slots filled${flag ? ' · room for a program on offer' : ''}${blocked.some(Boolean) ? ' · a program is waiting on a department' : ''}`}</title>
+      <rect
+        className="campus-hall-marks-plate"
+        x={x0 - HALL_PIP_R - 4} y={y - HALL_PIP_R - 3}
+        width={(total - 1) * HALL_PIP_GAP + HALL_PIP_R * 2 + 8} height={HALL_PIP_R * 2 + 6}
+        rx={HALL_PIP_R + 3}
+      />
+      {hues.map((hue, i) => (
+        <circle
+          key={i}
+          className={`campus-hall-pip${hue ? ' filled' : ''}${blocked[i] ? ' blocked' : ''}`}
+          cx={x0 + i * HALL_PIP_GAP} cy={y} r={HALL_PIP_R}
+          style={hue ? { fill: hue } : undefined}
+        />
+      ))}
+      {flag && (
+        <g className="campus-hall-flag" transform={`translate(${x0 + slots.length * HALL_PIP_GAP} ${y})`}>
+          <circle r={HALL_PIP_R + 1} />
+          <path d={`M ${-HALL_PIP_R * 0.55} 0 H ${HALL_PIP_R * 0.55} M 0 ${-HALL_PIP_R * 0.55} V ${HALL_PIP_R * 0.55}`} />
+        </g>
+      )}
+    </g>
+  );
+}
+
 export default function CampusMap({
   s, act, selectedId, onSelect, pathTool, onSetPathTool, backOutEnabled, controlsEnabled,
-  onOpenCurriculum,
+  onOpenCurriculum, inspectTarget, onInspectTargetConsumed,
 }: {
   s: GameState;
   act: (a: Action) => void;
@@ -493,6 +555,11 @@ export default function CampusMap({
   // info panel (see BuildingInfoPanel.tsx). The map does not know what a
   // tab is — it hands the id up to App, which owns what is open.
   onOpenCurriculum: (sectionKey: string) => void;
+  // A hall to open the panel on, handed down from the Curriculum tab's
+  // "Found in <hall>" (see App.tsx's inspectHall). Consumed on arrival and
+  // cleared through the callback, so the same door works twice.
+  inspectTarget?: string | null;
+  onInspectTargetConsumed?: () => void;
 }) {
   // Whether the currently-selected building has been turned 90 degrees
   // before siting (see campusMap.ts's orientedFootprint). Transient UI
@@ -643,6 +710,25 @@ export default function CampusMap({
       el.style.opacity = String(Math.max(0, Math.min(1, 1 - t)));
     }
   }
+
+  // Arriving from the tab with a hall to look at: open its panel, and pan
+  // so the building itself is in the middle of the canvas (the panel sits
+  // in the top-left corner, so "in the middle" leaves it uncovered). Done
+  // through applyView, the one path every pan and zoom already takes.
+  useEffect(() => {
+    if (!inspectTarget) return;
+    const p = s.placements[inspectTarget];
+    const svg = svgRef.current;
+    if (p && svg) {
+      const zoom = viewRef.current.zoom;
+      const rect = svg.getBoundingClientRect();
+      const c = project(p.col + p.w / 2, p.row + p.h / 2);
+      applyView({ x: rect.width / 2 - c.x * zoom, y: rect.height / 2 - c.y * zoom, zoom });
+      setInspectedId(inspectTarget);
+    }
+    onInspectTargetConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inspectTarget]);
 
   // Re-light after every render, because React rebuilds the label nodes when
   // the campus changes and a fresh node carries no opacity of its own — so a
@@ -1382,6 +1468,26 @@ export default function CampusMap({
                 <BuildingLabel key={`label-${t.id}`} t={t} p={p} label={hallDisplayName(s, t)} pinned={t.id === inspectedId} vernacular={s.self.vernacular} />
               ))}
             </g>
+
+            {/* WHAT IS IN EACH HALL, readable without opening anything:
+                six pips over the roof, one per slot, each in the colour of
+                the school whose program holds it — so a pure hall reads as
+                one colour and a mixed one as several — and a flag when a
+                slot is free and a program is on offer for it. Always on,
+                unlike the labels, because "where is there room" is the
+                question a player brings to the map. */}
+            {placed.filter(({ t }) => isAcademicHall(t) && s.halls[t.id]).map(({ t, p }) => (
+              <HallMarks
+                key={`marks-${t.id}`}
+                t={t}
+                p={p}
+                slots={s.halls[t.id]}
+                offerWaiting={s.programOffers.length > 0}
+                blocked={s.halls[t.id].map((slot) => !!slot.programId && programBlocked(s, slot.programId))}
+                vernacular={s.self.vernacular}
+                onInspect={() => inspectBuilding(t.id)}
+              />
+            ))}
           </g>
         </svg>
 

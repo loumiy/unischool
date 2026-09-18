@@ -9,8 +9,11 @@ import { schoolMark } from '../data/schoolPalette';
 import { canPostSearch, searchCost, searchWeeksLeft } from '../systems/faculty/facultySearch';
 import {
   canStartDevelopment, facultyGate, eligibleInstructors, assignedInstructor,
-  isUnstaffed, facultyLoad, hallOfCourse, canSwapInstructors,
+  isUnstaffed, facultyLoad, hallOfCourse, canSwapInstructors, effectiveCourseSlots, neededFacultyFields,
 } from '../systems/techtree/techSystem';
+import { hallDisplayName } from '../systems/techtree/schools';
+import { milestoneLine, programProgress, tierBands, unmetPrereqNames, type ProgramProgress } from '../systems/techtree/programProgress';
+import { SEATS_PER_COURSE } from '../systems/techtree/instructionCapacity';
 import { facultyQualityTier } from '../data/facultyData';
 import { gradeFor, qualityOf, tierOf, type Grade } from '../data/courseQuality';
 import {
@@ -440,6 +443,13 @@ export interface DragHandlers {
   onDrop: (courseId: string) => void;
 }
 
+// Money at the grain a scan needs: "$180k", "$4.0M". The drawer keeps the
+// full figure; a cell and a row button have room for four characters.
+export function moneyShort(n: number): string {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
+  return `$${Math.round(n / 1000)}k`;
+}
+
 function surnameOf(name: string): string {
   const parts = name.replace(/^(Dr|Prof|Professor)\.?\s+/, '').split(' ');
   return parts[parts.length - 1];
@@ -494,6 +504,14 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
 
   const weeksLeft = s.developing[t.id] ?? 0;
   const elapsed = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
+  // WHAT STARTING IT WOULD MEAN, on the cell itself: its cost and the
+  // strongest teacher free to take it with the grade they would earn — or
+  // why nobody can. The two facts a scan across a row needs before
+  // choosing which course to open, and the two the drawer used to be the
+  // only way to learn. Only on a course still ahead of the player.
+  const ahead = state === 'available' || state === 'blocked';
+  const best = ahead && t.requiresFaculty ? eligibleInstructors(s, t)[0] : undefined;
+  const bestGrade = best ? projectedQuality(s, t, best, loads).grade : null;
   // Its program is between halls (Plan 14's PR F): not taught, not
   // advancing, and marked so the player does not have to open the course
   // to learn why its grade is gone.
@@ -531,6 +549,14 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
     >
       <span className="cell-code">{code}</span>
       <span className="cell-title">{title}</span>
+      {ahead && (
+        <span className="cell-next">
+          {moneyShort(t.cost)}
+          {best
+            ? <> · {surnameOf(best.name)} <span className={`instructor-chip-grade grade-${bestGrade!.toLowerCase()}`}>{bestGrade}</span></>
+            : t.requiresFaculty ? ' · no free slot' : ''}
+        </span>
+      )}
       {/* The chip replaces the done-tick: a staffed course is self-evidently
           developed, and two marks in one corner competing for the same
           glance is one mark too many. */}
@@ -744,10 +770,11 @@ export function MarketInField({ s, act, field, projectedFor }: {
 }
 
 function CourseDrawer(
-  { s, act, t, lookup, onClose, loads, onGoToCourse }:
+  { s, act, t, lookup, onClose, loads, onGoToCourse, onOpenFaculty }:
   {
     s: GameState; act: (a: Action) => void; t: Buildable; lookup: Map<string, Buildable>;
     onClose: () => void; loads: FacultyLoads; onGoToCourse: (id: string) => void;
+    onOpenFaculty?: (field: string) => void;
   },
 ) {
   const state = cellState(s, t);
@@ -951,7 +978,16 @@ function CourseDrawer(
                 behind "appoint someone new" — the player who needs more
                 faculty for this course hires from this course. */}
             {eligible.length === 0
-              ? <MarketInField s={s} act={act} field={t.requiresFaculty} projectedFor={t} />
+              ? (
+                <>
+                  <MarketInField s={s} act={act} field={t.requiresFaculty} projectedFor={t} />
+                  {onOpenFaculty && (
+                    <button type="button" className="course-drawer-door" onClick={() => onOpenFaculty(t.requiresFaculty!)}>
+                      Open the {t.requiresFaculty} department →
+                    </button>
+                  )}
+                </>
+              )
               : (
                 <details className="course-drawer-more">
                   <summary>Appoint someone new in {t.requiresFaculty}</summary>
@@ -990,16 +1026,137 @@ function CourseDrawer(
 // programs down the column. Rows compress to fit; the container scrolls
 // sideways only as a narrow-viewport fallback.
 // =====================================================================
+// =====================================================================
+// THE ROW'S OWN ACTION. Every course used to cost the same three clicks
+// through the same form whether or not there was anything to decide, and
+// in play the strongest free teacher took the whole quartet four times
+// over. So the row leads with what its next start would be — the course,
+// the strongest eligible teacher, the grade they would earn, the cost and
+// the weeks — and a Develop button that does exactly that. "choose…" opens
+// the drawer for the case where the default is wrong. Beside it, what the
+// start is worth: how many courses to the next milestone, and the seats
+// it adds. Meaning comes from visible consequence, not from the form.
+//
+// AND THE QUARTET. When the next course's tier band has several courses
+// ready and the same teacher has the slots for them, one more button
+// starts the lot with them — with the grades previewed as their load
+// climbs, which is where "one person on all four" stops being obviously
+// right and the interesting choice surfaces on its own. Each start is its
+// own START_DEVELOPMENT through the reducer's own gate, applied in
+// sequence, so a start that stops being legal part way is refused rather
+// than forced.
+// =====================================================================
+function RowAction({ s, act, program, progress, lookup, loads, onSelect }: {
+  s: GameState; act: (a: Action) => void; program: ProgramInfo; progress: ProgramProgress;
+  lookup: Map<string, Buildable>; loads: FacultyLoads; onSelect: (id: string) => void;
+}) {
+  const next = progress.next;
+  const worth = (
+    <span className="row-action-worth">
+      {milestoneLine(progress)}
+      {progress.toMilestone > 0 && <> · +{SEATS_PER_COURSE} seats</>}
+    </span>
+  );
+
+  if (progress.inTransit) {
+    return <p className="row-action"><span className="row-action-note">Moving halls — nothing can start until it settles.</span></p>;
+  }
+  if (!next) {
+    const developing = program.courseIds.map((id) => lookup.get(id)).filter((t) => t?.status === 'developing') as Buildable[];
+    const soonest = developing.length > 0 ? Math.min(...developing.map((t) => s.developing[t.id] ?? 0)) : null;
+    const needs = progress.waiting ? unmetPrereqNames(s, progress.waiting, lookup) : [];
+    return (
+      <p className="row-action">
+        <span className="row-action-note">
+          {soonest !== null && `${developing.length} in development · next finishes in ${soonest} wk. `}
+          {progress.waiting
+            ? <><span className="cell-code">{progress.waiting.name.split(' · ')[0]}</span> needs {needs.length > 0 ? needs.join(', ') : 'its prerequisites'}.</>
+            : soonest === null ? 'Every course is developed.' : null}
+        </span>
+        {worth}
+      </p>
+    );
+  }
+
+  const [code, titleFromName] = next.name.split(' · ');
+  const eligible = eligibleInstructors(s, next);
+  const best = eligible[0];
+  const shortfall = next.cost - s.finance.cash;
+
+  if (!best) {
+    const gate = next.requiresFaculty ? facultyGate(s, next.requiresFaculty) : 'open';
+    return (
+      <p className="row-action">
+        <span className="row-action-note">
+          Next <span className="cell-code">{code}</span> {titleFromName ?? code} — no free {next.requiresFaculty} slot
+          {gate === 'hireable' ? ', and a candidate is listed.' : ', and nobody is on the market.'}
+        </span>
+        <button type="button" className="row-action-secondary" onClick={() => onSelect(next.id)}>
+          {gate === 'hireable' ? 'Appoint…' : 'Open…'}
+        </button>
+        {worth}
+      </p>
+    );
+  }
+
+  const projected = projectedQuality(s, next, best, loads);
+  const canStart = canStartDevelopment(s, next, best.id);
+
+  // The quartet: the other ready courses in the same tier band, in order,
+  // as many as this teacher has slots for and the school has cash for.
+  const bands = tierBands(program);
+  const band = bands ? [bands.tier2, bands.tier3].find((ids) => ids.includes(next.id)) : undefined;
+  const ready = (band ?? []).map((id) => lookup.get(id)).filter((t): t is Buildable => !!t && t.status === 'available');
+  const free = Math.max(0, effectiveCourseSlots(s, best) - (loads.get(best.id) ?? 0));
+  const batch = ready.slice(0, free);
+  const batchCost = batch.reduce((sum, t) => sum + t.cost, 0);
+  const batchOk = batch.length >= 2 && batchCost <= s.finance.cash;
+  const batchGrades = batch.map((t, i) => qualityOf({
+    teaching: best.teaching, acclaim: best.acclaim,
+    load: (loads.get(best.id) ?? 0) + i + 1, slots: best.courseSlots, tier: tierOf(t.id),
+  }).grade);
+
+  return (
+    <p className="row-action">
+      <button
+        type="button"
+        className="row-action-develop"
+        disabled={!canStart}
+        title={canStart
+          ? `Start ${next.name} with ${best.name}: ${next.duration} weeks, $${next.cost.toLocaleString()}`
+          : shortfall > 0 ? `$${Math.ceil(shortfall).toLocaleString()} short of the development cost` : 'Cannot start this course right now'}
+        onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: next.id, facultyId: best.id })}
+      >
+        Develop <span className="cell-code">{code}</span> with {surnameOf(best.name)}
+        <GradeChip grade={projected.grade} title={`${next.name} would be graded ${projected.grade} with ${best.name}`} />
+      </button>
+      <span className="row-action-cost">{moneyShort(next.cost)} · {next.duration} wk{shortfall > 0 ? ` · ${moneyShort(shortfall)} short` : ''}</span>
+      <button type="button" className="row-action-secondary" onClick={() => onSelect(next.id)} title="Choose a different instructor, or read the course">choose…</button>
+      {batchOk && (
+        <button
+          type="button"
+          className="row-action-secondary batch"
+          title={`Start all ${batch.length} with ${best.name}: $${batchCost.toLocaleString()} — grades ${batchGrades.join(' ')} as their load climbs`}
+          onClick={() => { for (const t of batch) act({ type: 'START_DEVELOPMENT', nodeId: t.id, facultyId: best.id }); }}
+        >
+          all {batch.length} with {surnameOf(best.name)} → {batchGrades.join(' ')}
+        </button>
+      )}
+      {worth}
+    </p>
+  );
+}
+
 function ProgramRowView(
-  { s, row, lookup, selectedId, onSelect, loads, dnd }:
+  { s, act, row, lookup, selectedId, onSelect, loads, dnd }:
   {
-    s: GameState; row: ProgramRow; lookup: Map<string, Buildable>;
+    s: GameState; act: (a: Action) => void; row: ProgramRow; lookup: Map<string, Buildable>;
     selectedId: string | null; onSelect: (id: string) => void; loads: FacultyLoads; dnd: DragHandlers;
   },
 ) {
   const { program } = row;
   const avg = averageCourseQuality(s, program.courseIds, loads);
-  const done = completion(s, program.courseIds);
+  const progress = programProgress(s, program, lookup);
   const graduate = program.kind === 'graduate';
   const grad = graduate ? graduatePrograms().find((g) => g.id === program.id) : undefined;
   const hallId = hallOfCourse(s, program.entryCourseId);
@@ -1011,9 +1168,10 @@ function ProgramRowView(
         <h4>{program.name}</h4>
         {grad && <span className="subgroup-degree">{grad.degree}</span>}
         {avg !== null && <GradeChip grade={gradeFor(avg)} title={`${program.name} averages ${Math.round(avg)} / 100`} />}
-        {hall && <span className="program-row-hall" title="Where it is housed">{hall.name}</span>}
-        <span className="lane-count">{done.done} / {done.total}</span>
+        {hall && <span className="program-row-hall" title="Where it is housed">{hallDisplayName(s, hall)}</span>}
+        <span className="lane-count">{progress.done} / {progress.total}</span>
       </header>
+      <RowAction s={s} act={act} program={program} progress={progress} lookup={lookup} loads={loads} onSelect={onSelect} />
       <div className={`program-row-cells${graduate ? ' graduate' : ''}`} style={graduate ? { gridTemplateColumns: `repeat(${program.courseIds.length}, minmax(0, 1fr))` } : undefined}>
         {program.courseIds.map((id, i) => {
           const t = lookup.get(id);
@@ -1036,9 +1194,9 @@ function ProgramRowView(
 // the parchment/navy/brass register (see data/schoolPalette.ts) — its
 // grade, and its rows.
 function SchoolGroupView(
-  { s, group, lookup, selectedId, onSelect, loads, dnd }:
+  { s, act, group, lookup, selectedId, onSelect, loads, dnd }:
   {
-    s: GameState; group: SchoolGroup; lookup: Map<string, Buildable>;
+    s: GameState; act: (a: Action) => void; group: SchoolGroup; lookup: Map<string, Buildable>;
     selectedId: string | null; onSelect: (id: string) => void; loads: FacultyLoads; dnd: DragHandlers;
   },
 ) {
@@ -1059,7 +1217,7 @@ function SchoolGroupView(
       </header>
       <div className="program-rows">
         {group.rows.map((row) => (
-          <ProgramRowView key={row.program.id} s={s} row={row} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} dnd={dnd} />
+          <ProgramRowView key={row.program.id} s={s} act={act} row={row} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} dnd={dnd} />
         ))}
       </div>
     </section>
@@ -1091,17 +1249,23 @@ interface Filters {
   query: string;
   status: StatusFilter;
   grade: GradeFilter;
+  // A department, set from the strip's "wall" item: every revealed course
+  // still ahead of the player that asks for this field — the courses a
+  // short department is holding up.
+  field: string | null;
 }
 
-const NO_FILTERS: Filters = { query: '', status: 'all', grade: 'all' };
+const NO_FILTERS: Filters = { query: '', status: 'all', grade: 'all', field: null };
 
 function filtersActive(f: Filters): boolean {
-  return f.query.trim() !== '' || f.status !== 'all' || f.grade !== 'all';
+  return f.query.trim() !== '' || f.status !== 'all' || f.grade !== 'all' || f.field !== null;
 }
 
 function matchesFilters(s: GameState, t: Buildable, f: Filters, loads: FacultyLoads): boolean {
   const query = f.query.trim().toLowerCase();
   if (query !== '' && !t.name.toLowerCase().includes(query)) return false;
+
+  if (f.field !== null && (t.requiresFaculty !== f.field || t.status !== 'available')) return false;
 
   if (f.status !== 'all') {
     if (f.status === 'unstaffed') {
@@ -1156,6 +1320,16 @@ function FilterBar(
       >
         Needs attention
       </button>
+      {filters.field !== null && (
+        <button
+          type="button"
+          className="curriculum-chip on"
+          onClick={() => onChange({ ...filters, field: null })}
+          title="Courses waiting on this department — click to clear"
+        >
+          waiting on {filters.field} ×
+        </button>
+      )}
       {resultCount !== null && (
         <span className="curriculum-result-count">
           {resultCount} {resultCount === 1 ? 'course' : 'courses'}
@@ -1165,6 +1339,145 @@ function FilterBar(
         <button type="button" className="curriculum-chip clear" onClick={() => onChange(NO_FILTERS)}>
           Clear
         </button>
+      )}
+    </div>
+  );
+}
+
+// =====================================================================
+// NEXT UP. The strip at the head of the tab that answers "what should I
+// do now, and why" — the one question forty-two rows of state cannot.
+// Four readings, each a door: the programs on offer and where a slot is
+// free for them; the programs one or two courses from a milestone; how
+// many courses are ready and affordable this week; and the department
+// that is the wall. Nothing here is new state — every item is read off
+// the same functions the rows and the hall panel use — and an empty
+// reading is left out rather than shown empty, so in year one the strip
+// says nothing at all.
+// =====================================================================
+const NEAR_MILESTONE = 2;
+
+function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onOpenFaculty }: {
+  s: GameState; groups: SchoolGroup[]; lookup: Map<string, Buildable>;
+  onGoToProgram: (id: string) => void;
+  onFilter: (f: Partial<Filters>) => void;
+  onInspectHall?: (hallId: string) => void;
+  onOpenFaculty?: (field: string) => void;
+}) {
+  // THE OFFER. Global — the same three at any free slot — so it is stated
+  // once, with every hall that has room. "Found in…" hands the hall to the
+  // map, whose panel is where the founding happens (the decision is what
+  // goes in that building, and it needs the building on screen).
+  const offers = s.programOffers.map((id) => programById(id)).filter((p): p is ProgramInfo => p !== undefined);
+  const hallsWithRoom = Object.entries(s.halls)
+    .map(([hallId, slots]) => ({ hall: lookup.get(hallId), free: slots.filter((slot) => slot.programId === null).length }))
+    .filter((h): h is { hall: Buildable; free: number } => !!h.hall && h.free > 0);
+
+  // NEAR A MILESTONE. Programs a course or two from Established or
+  // Distinguished, nearest first — the starts worth making before any other.
+  const near = groups
+    .flatMap((g) => g.rows.map((row) => ({ row, progress: programProgress(s, row.program, lookup) })))
+    .filter(({ progress }) => progress.toMilestone > 0 && progress.toMilestone <= NEAR_MILESTONE && !progress.inTransit && (progress.next || progress.developing > 0))
+    .sort((a, b) => a.progress.toMilestone - b.progress.toMilestone);
+
+  // READY NOW. Every revealed course that could start this week — cash and
+  // a free slot both in hand — and what it would cost to start them all.
+  const revealed = visibleCourseIds(s).map((id) => lookup.get(id)).filter((t): t is Buildable => !!t && t.status === 'available');
+  const ready = revealed.filter((t) => canStartDevelopment(s, t));
+  const readyCost = ready.reduce((sum, t) => sum + t.cost, 0);
+
+  // THE WALL. Departments with a course revealed and no slot to start it
+  // in, by how many courses each one is holding up.
+  const wallCounts = new Map<string, number>();
+  for (const field of neededFacultyFields(s)) {
+    wallCounts.set(field, revealed.filter((t) => t.requiresFaculty === field).length);
+  }
+  const wall = [...wallCounts.entries()].filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+
+  if (offers.length === 0 && near.length === 0 && ready.length === 0 && wall.length === 0) return null;
+
+  return (
+    <div className="next-up" aria-label="What next">
+      {offers.length > 0 && (
+        <div className="next-up-item offers">
+          <span className="next-up-label">On offer</span>
+          <span className="next-up-body">
+            {offers.map((p, i) => {
+              const mark = schoolMark(p.school);
+              const entry = lookup.get(p.entryCourseId);
+              return (
+                <span key={p.id} className="next-up-offer" style={{ ['--school-hue' as string]: mark.hue }} title={`${p.name} — ${entry ? `$${entry.cost.toLocaleString()} · ${entry.requiresFaculty ?? ''}` : ''}`}>
+                  {i > 0 && <span className="next-up-sep"> · </span>}
+                  <span className="next-up-mark" aria-hidden="true">{mark.motif}</span> {p.name}
+                </span>
+              );
+            })}
+          </span>
+          <span className="next-up-doors">
+            {hallsWithRoom.length === 0
+              ? <span className="next-up-note">no free slot — site an academic hall</span>
+              : hallsWithRoom.map(({ hall, free }) => (
+                <button
+                  key={hall.id}
+                  type="button"
+                  className="next-up-door"
+                  disabled={!onInspectHall}
+                  onClick={() => onInspectHall?.(hall.id)}
+                  title={`Open ${hallDisplayName(s, hall)} on the map and found a program in one of its ${free} free slot${free === 1 ? '' : 's'}`}
+                >
+                  Found in {hallDisplayName(s, hall)} · {free} free
+                </button>
+              ))}
+          </span>
+        </div>
+      )}
+      {near.length > 0 && (
+        <div className="next-up-item">
+          <span className="next-up-label">Near a milestone</span>
+          <span className="next-up-doors">
+            {near.slice(0, 5).map(({ row, progress }) => (
+              <button key={row.program.id} type="button" className="next-up-door" onClick={() => onGoToProgram(row.program.id)} style={{ ['--school-hue' as string]: schoolMark(row.program.school).hue }}>
+                <span className="next-up-mark" aria-hidden="true">{schoolMark(row.program.school).motif}</span> {row.program.name} · {milestoneLine(progress)}
+              </button>
+            ))}
+            {near.length > 5 && <span className="next-up-note">+{near.length - 5} more</span>}
+          </span>
+        </div>
+      )}
+      {ready.length > 0 && (
+        <div className="next-up-item">
+          <span className="next-up-label">Ready now</span>
+          <span className="next-up-doors">
+            <button type="button" className="next-up-door" onClick={() => onFilter({ status: 'available', field: null })} title="Every course that could start this week: a free slot and the cash for it">
+              {ready.length} {ready.length === 1 ? 'course' : 'courses'} · {moneyShort(readyCost)} to start them all
+            </button>
+            {revealed.length > ready.length && (
+              <span className="next-up-note">{revealed.length - ready.length} more revealed, short of cash or a slot</span>
+            )}
+          </span>
+        </div>
+      )}
+      {wall.length > 0 && (
+        <div className="next-up-item wall">
+          <span className="next-up-label">The wall</span>
+          <span className="next-up-doors">
+            {wall.slice(0, 3).map(([field, n]) => {
+              const gate = facultyGate(s, field);
+              return (
+                <span key={field} className="next-up-pair">
+                  <button type="button" className="next-up-door" onClick={() => onFilter({ field, status: 'all' })} title={`${n} revealed ${n === 1 ? 'course is' : 'courses are'} waiting on a free ${field} slot${gate === 'hireable' ? ' — a candidate is listed' : ' — nobody on the market'}`}>
+                    {field} short · {n} waiting{gate === 'hireable' ? ' · candidate listed' : ''}
+                  </button>
+                  {onOpenFaculty && (
+                    <button type="button" className="next-up-door quiet" onClick={() => onOpenFaculty(field)} title={`Open the Faculty board on ${field}: its people, the market, a search`}>
+                      {gate === 'hireable' ? 'Appoint →' : 'Department →'}
+                    </button>
+                  )}
+                </span>
+              );
+            })}
+          </span>
+        </div>
       )}
     </div>
   );
@@ -1181,16 +1494,22 @@ export function completion(s: GameState, ids: string[]): { done: number; total: 
 }
 
 export default function CurriculumTab(
-  { s, act, target, onTargetConsumed }:
+  { s, act, target, onTargetConsumed, onInspectHall, onOpenFaculty }:
   {
     s: GameState; act: (a: Action) => void;
-    // A section key (a school's name, or a professional school's building
-    // id) to open on arrival, when the tab was opened FROM something —
-    // today Founders Hall's or a professional school's info panel on the
-    // map (see BuildingInfoPanel.tsx). Consumed on arrival and cleared by
-    // the caller, so clicking the same hall twice arrives twice.
+    // Somewhere to be on arrival, when the tab was opened FROM something:
+    // a school's name (Founders Hall's panel on the map), or "program:<id>"
+    // for one program's row (a hall panel's program tile — see
+    // BuildingInfoPanel.tsx). Consumed on arrival and cleared by the
+    // caller, so clicking the same hall twice arrives twice.
     target?: string;
     onTargetConsumed?: () => void;
+    // The way back to the map: closes this tab and opens a hall's panel,
+    // which is where a program on offer is founded (see NextUp).
+    onInspectHall?: (hallId: string) => void;
+    // The way to a department: the Faculty board opened on it, for the
+    // wall's items and a drawer's dead end.
+    onOpenFaculty?: (field: string) => void;
   },
 ) {
   const revealedGrad = revealedGraduatePrograms(s);
@@ -1258,14 +1577,30 @@ export default function CurriculumTab(
     window.setTimeout(() => document.getElementById(`course-${id}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 0);
   }, []);
 
-  // Arriving with somewhere to be: a school's group scrolled into view, no
-  // course selected, no filters left over from last time — the same act of
-  // navigation goToCourse performs, one level up.
-  useEffect(() => {
-    if (!target) return;
+  // Arriving with somewhere to be: a school's group or a program's row
+  // scrolled into view, no course selected, no filters left over from last
+  // time — the same act of navigation goToCourse performs, one level up.
+  const goToProgram = useCallback((id: string) => {
     setSelectedId(null);
     setFilters(NO_FILTERS);
-    window.setTimeout(() => document.querySelector(`[data-school="${CSS.escape(target)}"]`)?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 0);
+    window.setTimeout(() => document.querySelector(`[data-program="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 0);
+  }, []);
+  useEffect(() => {
+    if (!target) return;
+    if (target.startsWith('program:')) {
+      goToProgram(target.slice('program:'.length));
+    } else if (target.startsWith('field:')) {
+      // From the Faculty board: the courses waiting on one department.
+      setSelectedId(null);
+      setFilters({ ...NO_FILTERS, field: target.slice('field:'.length) });
+    } else if (target === 'unstaffed') {
+      setSelectedId(null);
+      setFilters({ ...NO_FILTERS, status: 'unstaffed' });
+    } else {
+      setSelectedId(null);
+      setFilters(NO_FILTERS);
+      window.setTimeout(() => document.querySelector(`[data-school="${CSS.escape(target)}"]`)?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 0);
+    }
     onTargetConsumed?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target]);
@@ -1317,11 +1652,23 @@ export default function CurriculumTab(
             <HelpHint
               align="end"
               text={genEdComplete
-                ? 'One row per program, grouped by school — a school is named once six of its programs share a hall. Programs are founded from an academic hall on the campus map: build one, open it, and take one of the three on offer into an empty slot. Every developed course carries its instructor; drag a professor onto another course in the same department to swap them, and both grades preview while you hold.'
+                ? 'One row per program, grouped by school — a school is named once six of its programs share a hall. Each row leads with its next start: the course, the strongest free teacher and the grade they would earn; Develop takes it, "choose…" opens the course to pick somebody else. Programs are founded from an academic hall on the map — the strip above says which halls have room. Drag a professor onto another course in the same department to swap them, and both grades preview while you hold.'
                 : 'The general-education core — every program waits on it. Complete it to open the first academic hall and the first three programs on offer.'}
             />
           </span>
         </div>
+
+        {!filtering && (
+          <NextUp
+            s={s}
+            groups={groups}
+            lookup={lookup}
+            onGoToProgram={goToProgram}
+            onFilter={(f) => setFilters({ ...NO_FILTERS, ...f })}
+            onInspectHall={onInspectHall}
+            onOpenFaculty={onOpenFaculty}
+          />
+        )}
 
         <FilterBar filters={filters} onChange={setFilters} resultCount={filtering ? matches.length : null} />
 
@@ -1357,9 +1704,7 @@ export default function CurriculumTab(
                 </header>
                 <p className="pool-caption">
                   {genEdComplete
-                    ? (s.programOffers.length > 0
-                      ? `Programs are founded from an academic hall on the map — on offer now: ${s.programOffers.map((id) => programById(id)?.name ?? id).join(', ')}.`
-                      : 'Every program has been founded.')
+                    ? 'The general-education core, complete. Every program builds on it.'
                     : 'The general-education core. Every program waits on it.'}
                 </p>
                 <div className="program-rows">
@@ -1374,7 +1719,7 @@ export default function CurriculumTab(
                 </div>
               </section>
               {groups.map((group) => (
-                <SchoolGroupView key={group.key} s={s} group={group} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} dnd={dnd} />
+                <SchoolGroupView key={group.key} s={s} act={act} group={group} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} dnd={dnd} />
               ))}
             </>
           )}
@@ -1389,6 +1734,7 @@ export default function CurriculumTab(
           onClose={() => setSelectedId(null)}
           loads={loads}
           onGoToCourse={goToCourse}
+          onOpenFaculty={onOpenFaculty}
         />
       )}
     </div>

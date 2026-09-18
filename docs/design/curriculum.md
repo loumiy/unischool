@@ -49,12 +49,22 @@ instructor in one transaction), because the decision is "what goes in this
 building" and it needs the building on screen. Every course of a program —
 tier 1 included — waits on the program being **housed** (`techSystem.ts`'s
 `meetsUnlockGates` reads `s.halls`), so there is no way around it. Every
-course after the entry course can be started from the hall panel's program
-tile or from the Curriculum tab's row, with the same instructor picker either
-way: the map is where a program is founded; the tab is where it is filled in
-and tuned. **Every one of the 421 courses keeps its instructor choice.** There
-is no auto-assignment anywhere, and the `Develop N` button that used to make
-the choice for you is gone with the forty-two-card wall it existed to sweep.
+course after the entry course is started from the Curriculum tab, and only
+there: **the map is where a program is founded; the tab is where it is
+filled in and tuned.** The two surfaces answer two different questions at two
+different grains. The hall panel answers the *building* question — what is in
+this hall, what could go in it, how full and how pure it is — at the grain of
+a program: a housed slot is a tile with its name, progress and grade, and an
+open tile is a summary (its standing, the seats it teaches, what its next
+course is or what it is waiting on) with one door, "Open in Curriculum", that
+lands on the program's own row. Relocation sits behind a disclosure. The tab
+answers the *program* question at the grain of a course. (For a while the
+panel drew the tab's course cells, picker and market inside every open tile;
+the two became the same screen, one of them squeezed into a floating card,
+and neither read as the place. The division is deliberate.) **Every one of
+the 421 courses keeps its instructor choice.** There is no auto-assignment
+anywhere, and the `Develop N` button that used to make the choice for you is
+gone with the forty-two-card wall it existed to sweep.
 
 **Relocation** (`RELOCATE_PROGRAM`) moves a housed program to any empty slot in
 any standing hall. Free in money, expensive in time: the program goes dark for
@@ -102,6 +112,37 @@ which is the ceiling on its freshman class (see
 The Curriculum tab, like every tab, is **full-bleed**: it owns the viewport and
 the dock is laid over it (see [ui-shell.md](../architecture/ui-shell.md)).
 
+**It leads with what to do.** A strip at the head of the tab, "next up",
+answers the one question forty-two rows of state cannot: the three programs
+**on offer** and every hall with a free slot for them ("Found in Linden Hall ·
+5 free" closes the tab and opens that hall's panel on the map, the offer's
+one home); the programs **near a milestone**, a course or two from
+Established or Distinguished, nearest first; how many courses are **ready
+now** — a free slot and the cash both in hand — and what starting them all
+would cost; and **the wall**, the departments holding revealed courses up for
+want of a slot, each a filter to the courses waiting on it. Every item is a
+reading off the same functions the rows use (`programProgress`,
+`neededFacultyFields`, `canStartDevelopment`), and an empty reading is left
+out, so in year one the strip is silent.
+
+**Each row leads with its own next action.** The row's header names its next
+startable course, the strongest free teacher in its department and the grade
+they would earn, the cost and the weeks — and a Develop button that starts
+exactly that. "choose…" opens the course drawer for the case where the
+default is wrong; when nobody in the department is free the row says so and
+whether a candidate is listed. At the right, what the start is worth: "3 to
+Established · +80 seats". When the next course's tier band has several
+courses ready and the same teacher has the slots for them, one more button
+starts the lot with them, its grades previewed as their load climbs — where
+"one person on all four" stops being obviously right and the interesting
+choice surfaces on its own. Each start is its own `START_DEVELOPMENT`
+through the reducer's gate, in sequence. A course start with an obvious
+default is one click; the form appears only when there is something to
+decide. (Every course used to cost the same three clicks through the same
+form whether or not there was anything to decide, and in play the strongest
+free teacher took the whole quartet four times over. Tedium comes from
+undifferentiated interactions, not from many.)
+
 It is **one row per program**, which is the view the progression actually has.
 A row is nine cells in tier order — the entry course, the tier-2 quartet, the
 tier-3 quartet — with a rule between the bands standing in for sixteen prereq
@@ -109,6 +150,11 @@ lines; a course the tab has not revealed is drawn as an **empty cell** rather
 than omitted, so every row is the same width and position carries tier. Rows
 compress to fit rather than scrolling; horizontal scroll is a narrow-viewport
 fallback only.
+
+A cell still ahead of the player carries its cost and the strongest free
+teacher with their grade ("$180k · Iyer B"), or "no free slot"; a developed
+cell is drawn quietly, so what the eye lands on across a row is what can
+still happen in it.
 
 **Colour, not label.** Rows group under their school, so clusters form on
 their own: each group carries its school's hue and mark

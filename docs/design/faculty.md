@@ -134,6 +134,40 @@ department**, never as `catalogue - supply` on the totals. Slots do not transfer
 between departments, so the aggregate subtraction would tell a school with every
 slot in Mathematics that it has already covered the catalogue.
 
+**It leads with what to do.** A strip at the head of the board
+(`FacultyTab.tsx`'s `FacultyNextUp`, read off `systems/faculty/hiringNext.ts`)
+turns the market back into what the churn model was built to be, a stream of
+events with a deadline and a price: **worth taking** — every listing in a
+department that is short, soonest to withdraw first, with the grade they
+would earn on the first course waiting, their salary at this school's market
+rate, and an Appoint button whose title says which courses the appointment
+opens; **nobody listed** — the short departments only a search or time can
+help, each a Post-a-search button with its cost, or the weeks left on one
+already running; **over** — the departments teaching more than they supply,
+as a door to the Curriculum's unstaffed courses; and **payroll** — salaries a
+week, their share of expenses, and what the appointments above would add.
+An empty reading is left out, and a board with nothing to do shows no strip.
+
+**Each department row carries its one action**, in the column the state word
+used to occupy (`deptAction`): "Appoint Horvat B · $140k · 3w" for a short
+department with a listing, "Post a search · $x" for one with nobody listed,
+"searching · 12w" while one runs, "2 unstaffed →" for a department that is
+over. A row with nothing to do says nothing. A listing's card shows the two
+facts that decide it on its face — the grade on the waiting course and the
+market-rate salary — and "withdraws in 2w" with the weight a deadline has.
+
+**Doors both ways.** An opened department's demand sentence ends in "4
+waiting on a slot →", which opens the Curriculum tab filtered to the courses
+that department is holding up (target `field:<name>`; `unstaffed` for the
+over case). The Curriculum tab's own strip sends the player here: its wall
+item and a drawer's dead end carry "Appoint →" or "Department →", which opens
+this board with that department expanded and scrolled into view (the tab's
+`target`). On the campus map, a program whose next course has no free slot in
+its department wears a red ring on its hall's pip, and the hall panel's
+program summary names the department and whether a candidate is listed. No
+hiring happens from the map: it is the glance, and this board and the drawer
+are the work.
+
 It is a place to LOOK AT your faculty and to decide whether a department is
 worth growing — not a place to hire from. Hiring belongs where the shortage is
 felt — the Curriculum tab, where a course will not start —
