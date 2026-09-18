@@ -209,6 +209,13 @@ function VacantPanel(
                 {offer.topic.fields.length > 1 && ` · ${offer.topic.fields.join(' + ')}`}
               </span>
               <span className="offer-blurb">{offer.blockedReason ?? offer.depth.blurb}</span>
+              {!offer.blockedReason && (
+                <span className="offer-odds">
+                  ~{offer.odds.publications < 10 ? offer.odds.publications.toFixed(1) : Math.round(offer.odds.publications)} publications
+                  {' · '}breakthrough {Math.round(offer.odds.breakthroughChance * 100)}%
+                  {' · '}award {Math.round(offer.odds.awardChance * 100)}%
+                </span>
+              )}
             </button>
           ))}
         </div>

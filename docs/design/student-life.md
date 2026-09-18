@@ -80,8 +80,9 @@ makes clubs low-stakes.
 
 **Prestige is untouched.** Student life moves satisfaction and cash and
 nothing else, the same discipline the decision events hold: `self.reputation`
-is a stock that drifts toward a computed target once a week, and student
-life is not one of that target's inputs.
+is a stock graded once a year against a computed target, and student life
+reaches that target only through welfare — the year's average satisfaction —
+never as an input of its own.
 
 **Satisfaction effects are transient by construction**, exactly like the
 decision events': the stock drifts back toward its facilities-derived target

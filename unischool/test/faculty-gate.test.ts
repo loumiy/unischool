@@ -133,7 +133,7 @@ console.log('faculty gate tests');
   const lab = s.tech.find((t) => t.kind === 'facility' && t.facilityType === 'lab')!;
   s.research.initiatives[lab.id] = {
     labId: lab.id, topicId: 'X01', depth: 'pilot', participantIds: ['prof'],
-    weeksTotal: 26, weeksRemaining: 26, publications: 0, breakthroughs: 0, grantIncome: 0,
+    weeksTotal: 26, weeksRemaining: 26, publications: 0, breakthroughs: 0, grantIncome: 0, banked: 0,
   };
   assert(facultyGate(s, FIELD) === 'blocked', 'committing them to a project closes it');
 }

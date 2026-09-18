@@ -1,12 +1,12 @@
 import type { Faculty, GameState, Initiative, PrizeAward } from '../../state/types';
 import { INITIATIVE_HISTORY_LIMIT, WEEKS_PER_YEAR } from '../../state/types';
 import {
-  RESEARCH_OUTPUTS, article, awardChance, disciplineVocab, facilitySchool, facultyResearchOutput,
-  initiativeDepth, initiativeOutputChance, initiativeWeeklyOutput, rollGrantAmount,
-  rollGrantFunder, rollPrizeName, teamStrength,
+  GRANT_PER_PUBLICATION_CHANCE, PUBLICATION_POINTS, annualBreakthroughChance, article, awardChance,
+  disciplineVocab, facilitySchool, facultyResearchOutput, initiativeDepth, initiativeWeeklyOutput,
+  isBreakthroughRollWeek, rollGrantAmount, rollGrantFunder, rollPrizeName, teamStrength,
 } from '../../data/researchData';
 import { researchTopic } from '../../data/researchTopics';
-import type { ResearchOutputDef, ResearchOutputKind } from '../../data/researchData';
+import { generateCandidate } from '../../data/facultyData';
 
 // ---------------------------------------------------------------------
 // One ordinary pure tick function (see docs/design/research.md). It walks
@@ -20,23 +20,34 @@ import type { ResearchOutputDef, ResearchOutputKind } from '../../data/researchD
 //      nobody; one that lost SOME of its people carries on short-handed,
 //      which shows in what it produces.
 //
-//   2. OUTPUTS. A weighted draw across publications, grants and
-//      breakthroughs, behind the same weekly-chance gate the authored
-//      decision events use. All three are SILENT — they write a log line
-//      and land in a system that already exists, and the clock never stops.
+//   2. OUTPUTS (Plan 15's PR C — see researchData.ts's guaranteed-output
+//      block). Publications are BANKED: the week's output goes toward the
+//      next paper, and every PUBLICATION_POINTS of it publishes one, with
+//      a grant riding on one paper in five. A breakthrough is ROLLED once
+//      a year, at each anniversary and at the end, at a stated chance. All
+//      three are SILENT — a log line, landing in a system that already
+//      exists — and the clock never stops for them.
 //
-//   3. CONCLUSION, when the weeks run out. The completion itself is worth
-//      a credit in researchScore, and then the award is rolled — the one
-//      thing that can only happen here, gated on the run having actually
-//      banked a breakthrough. That queues a celebration.
+//   3. CONCLUSION, when the weeks run out. A Funded Project or deeper that
+//      somehow banked nothing publishes its concluding paper; the
+//      completion itself is worth a credit in researchScore; and then the
+//      award is rolled — the one thing that can only happen here, gated on
+//      the run having actually banked a breakthrough. A run that produced
+//      a breakthrough or an award queues a report; a run that produced
+//      papers alone LOGS, and never stops the clock — the review's cut.
+//
+//   4. OUTPUT REACHES SOMEWHERE. A breakthrough, and every fourth paper,
+//      brings a scholar in the field onto the candidate market — "a
+//      physicist saw your paper" — and the applicant funnel's research-
+//      oriented cohort reads the same tally (cohorts.ts). Small, and the
+//      difference between research being a system and being a number.
 //
 // WHY THIS IS NOT AN EVENT. The decision-event table is for things the
 // player RESOLVES: every entry is a prompt with choices and a cash cost.
 // A grant and a breakthrough have no decision in them at all, and giving
 // them one would turn research into the approve/deny stream the design
-// deliberately refuses. What is reused is the CADENCE MACHINERY — the
-// weekly chance, the global cooldown, the weighted draw, absoluteWeek —
-// not the interrupt.
+// deliberately refuses. Nothing here is an interrupt but the report, and
+// the report only for a run that produced a breakthrough or an award.
 //
 // WHY THE PRIZE IS QUEUED RATHER THAN FIRED. Exactly the reason
 // techSystem.ts queues milestones: the week a prize lands may already
@@ -68,44 +79,72 @@ function log(s: GameState, message: string, kind: 'info' | 'good' | 'bad'): void
 // nothing (decision 7): the way to produce is to start something.
 // =====================================================================
 
-const OUTPUT_KINDS_DURING_RUN: readonly ResearchOutputKind[] = ['publication', 'grant', 'breakthrough'];
+// Every fourth paper out of one project brings a candidate in its field
+// onto the market; every breakthrough brings one at once.
+const PUBLICATIONS_PER_CANDIDATE_PULL = 4;
 
-// The during-run draw: the same weighted table the old bank used, minus
-// the prize, which is now judged at conclusion instead (see concludeInitiative).
-function rollDuringRunOutput(s: GameState, initiative: Initiative, participants: Faculty[]): void {
-  const depth = initiativeDepth(initiative.depth);
-  const output = initiativeWeeklyOutput(s, participants, depth);
-  if (Math.random() >= initiativeOutputChance(output)) return;
+// Somebody in the field saw the work. Lands in the standing market the
+// same way facultySystem.ts's weekly arrivals do — a listing to appoint or
+// let lapse — so a school whose labs are producing has a market that
+// notices. The field is one of the team's, drawn from whoever is on it.
+function pullCandidate(s: GameState, participants: Faculty[], why: string): void {
+  const who = pickFrom(participants);
+  if (!who) return;
+  const candidate = generateCandidate(who.field, [...s.faculty, ...s.candidates].map((f) => f.name));
+  s.candidates.unshift(candidate);
+  log(s, `${candidate.name} (${candidate.field}) saw ${why} and is on the market.`, 'info');
+}
 
-  const eligible = RESEARCH_OUTPUTS.filter((o) => OUTPUT_KINDS_DURING_RUN.includes(o.kind));
-  const chosen = weightedPick(eligible);
-  if (!chosen) return;
-
-  // The vocabulary of the school whose facility this work is running in —
-  // not of whoever on campus happens to publish most (see
-  // researchData.ts's facilitySchool for what that got wrong).
+function publish(s: GameState, initiative: Initiative, participants: Faculty[]): void {
   const vocab = disciplineVocab(facilitySchool(initiative.labId));
   const topic = researchTopic(initiative.topicId);
   const where = topic ? `“${topic.name}”` : 'the project';
 
-  if (chosen.kind === 'publication') {
-    initiative.publications += 1;
-    s.research.publications += 1;
-    log(s, `${article(vocab.publication)} new ${vocab.publication} out of ${where}.`, 'info');
-  } else if (chosen.kind === 'grant') {
+  initiative.publications += 1;
+  s.research.publications += 1;
+  log(s, `${article(vocab.publication)} new ${vocab.publication} out of ${where}.`, 'info');
+
+  // A grant rides on the paper: a strong team pulls more money in — the
+  // brief's "faculty research strength improves outcomes", applied where
+  // it is most legible.
+  if (Math.random() < GRANT_PER_PUBLICATION_CHANCE) {
     const amount = rollGrantAmount(s);
-    // A strong team pulls more money in — the brief's "faculty research
-    // strength improves outcomes", applied where it is most legible.
     const scaled = Math.round(amount * (0.7 + teamStrength(participants)));
     s.finance.cash += scaled;
     s.research.grants += 1;
     s.research.grantIncome += scaled;
     initiative.grantIncome += scaled;
     log(s, `${rollGrantFunder(vocab)} has awarded $${scaled.toLocaleString()} to ${where}.`, 'good');
-  } else {
-    initiative.breakthroughs += 1;
-    s.research.breakthroughs += 1;
-    log(s, `${article(vocab.breakthrough)} ${vocab.breakthrough} out of ${where} has been ${vocab.breakthroughTail}.`, 'good');
+  }
+
+  if (initiative.publications % PUBLICATIONS_PER_CANDIDATE_PULL === 0) {
+    pullCandidate(s, participants, `the ${vocab.publication}s out of ${where}`);
+  }
+}
+
+function rollBreakthrough(s: GameState, initiative: Initiative, participants: Faculty[]): void {
+  if (Math.random() >= annualBreakthroughChance(initiative.depth, teamStrength(participants))) return;
+  const vocab = disciplineVocab(facilitySchool(initiative.labId));
+  const topic = researchTopic(initiative.topicId);
+  const where = topic ? `“${topic.name}”` : 'the project';
+  initiative.breakthroughs += 1;
+  s.research.breakthroughs += 1;
+  log(s, `${article(vocab.breakthrough)} ${vocab.breakthrough} out of ${where} has been ${vocab.breakthroughTail}.`, 'good');
+  pullCandidate(s, participants, `the ${vocab.breakthrough} out of ${where}`);
+}
+
+// The week's production: banked toward the next paper, and every
+// PUBLICATION_POINTS publishes one. Deterministic in the output, so the
+// offer's "expected N publications" is a promise the run keeps.
+function produce(s: GameState, initiative: Initiative, participants: Faculty[]): void {
+  const depth = initiativeDepth(initiative.depth);
+  const output = initiativeWeeklyOutput(s, participants, depth);
+  // Tracked for display only (the Faculty tab's long arc).
+  s.research.lifetimePoints += output;
+  initiative.banked += output;
+  while (initiative.banked >= PUBLICATION_POINTS) {
+    initiative.banked -= PUBLICATION_POINTS;
+    publish(s, initiative, participants);
   }
 }
 
@@ -120,6 +159,11 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
   let award: PrizeAward | null = null;
 
   if (!cancelled) {
+    // A FUNDED PROJECT OR DEEPER ALWAYS PUBLISHES SOMETHING: eighteen
+    // months of two scholars produces a paper however thin the team, and
+    // the concluding paper is it. A pilot publishes what it earned.
+    if (initiative.depth !== 'pilot' && initiative.publications === 0) publish(s, initiative, participants);
+
     const strength = teamStrength(participants);
     if (Math.random() < awardChance(initiative.depth, strength, initiative.breakthroughs)) {
       // Drawn from the team that did the work, weighted by their own
@@ -137,7 +181,14 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
         log(s, `${winner.name} has been awarded ${prizeName} for “${name}”.`, 'good');
       }
     }
-    log(s, `“${name}” has concluded after ${Math.round(initiative.weeksTotal / WEEKS_PER_YEAR * 10) / 10} years.`, 'good');
+    const papers = initiative.publications;
+    log(
+      s,
+      `“${name}” has concluded after ${Math.round(initiative.weeksTotal / WEEKS_PER_YEAR * 10) / 10} years: `
+        + `${papers} ${papers === 1 ? 'publication' : 'publications'}, `
+        + `${initiative.breakthroughs} ${initiative.breakthroughs === 1 ? 'breakthrough' : 'breakthroughs'}.`,
+      'good',
+    );
 
     // THE COMPLETION IS THE EVENT, and the award is one of its results.
     // Queued rather than raised here for the same reason a prize used to
@@ -150,20 +201,15 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
     // player's own action and already logs; a modal confirming what they
     // just did is noise.
     //
-    // NOR DOES A QUIET PILOT STUDY, which is a cadence decision rather than
-    // a mechanical one. A modal is a thing the game spends the player's
-    // attention on, and the budget is roughly one or two a year on top of
-    // the annual admissions decision (see docs/design/research.mdcadence
-    // note). Reporting every completion took the balance sim's texture
-    // count from 1.7 to 3.0 modals a year, almost all of it six-month pilot
-    // studies concluding with a couple of papers — the smallest tier of
-    // work, on the shortest clock, interrupting most often. So a pilot
-    // reports only when it did something a player would want stopping for:
-    // won an award, or produced a breakthrough. Everything at Funded
-    // Project depth or deeper always reports, because eighteen months of a
-    // team's teaching is a commitment worth an ending. A quiet pilot still
-    // logs, and still appears in the Research tab's history.
-    const notable = award !== null || initiative.breakthroughs > 0 || initiative.depth !== 'pilot';
+    // NOR DOES A RUN THAT PRODUCED PAPERS ALONE (Plan 15's PR C, the
+    // September 2026 review's cut-list item). The most frequent interrupt
+    // in the game was a project concluding with nothing to say — a quarter
+    // of every modal in a forty-year run. A modal is a thing the game
+    // spends the player's attention on, so a run reports only when it did
+    // something worth stopping for: a breakthrough, or an award. Papers
+    // are logged (above) and appear in the Research tab's history, and
+    // Plan 16's toasts will surface the line when they exist.
+    const notable = award !== null || initiative.breakthroughs > 0;
     if (notable) s.research.pendingCompletions.push({
       topicId: initiative.topicId,
       topicName: name,
@@ -213,18 +259,6 @@ function pickFrom(participants: Faculty[]): Faculty | null {
   return participants[participants.length - 1];
 }
 
-function weightedPick(outputs: readonly ResearchOutputDef[]): ResearchOutputDef | null {
-  const total = outputs.reduce((sum, o) => sum + o.weight, 0);
-  if (total <= 0) return null;
-
-  let roll = Math.random() * total;
-  for (const output of outputs) {
-    roll -= output.weight;
-    if (roll <= 0) return output;
-  }
-  return outputs[outputs.length - 1];
-}
-
 export function tickResearch(s: GameState): void {
   // A facility whose initiative has lost its whole team — every
   // participant dismissed — cannot continue, and is ended rather than left
@@ -239,13 +273,13 @@ export function tickResearch(s: GameState): void {
       continue;
     }
 
-    // Production is tracked for display only; what the run actually
-    // produces is the draw below (see researchData.ts's initiative block).
-    s.research.lifetimePoints += initiativeWeeklyOutput(s, participants, initiativeDepth(initiative.depth));
-
-    rollDuringRunOutput(s, initiative, participants);
+    produce(s, initiative, participants);
 
     initiative.weeksRemaining -= 1;
+    // One breakthrough roll a year: at each anniversary, and at the end.
+    if (isBreakthroughRollWeek(initiative.weeksTotal, initiative.weeksRemaining)) {
+      rollBreakthrough(s, initiative, participants);
+    }
     if (initiative.weeksRemaining <= 0) concludeInitiative(s, initiative, false);
   }
 }

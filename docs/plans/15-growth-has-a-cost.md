@@ -7,9 +7,18 @@ redesign that answers them, the specialisation term that Plan 14's founded
 schools finally make possible, and the research model the review found inert,
 into an ordered sequence of PRs ending in a single re-fit.*
 
-**Status: Proposed.** Depends on [Plan 14](14-curriculum-on-the-map.md) for
-halls, slots and founded schools — the seats this plan turns into a ceiling and
-the concentration this plan turns into prestige both come from there. Supersedes
+**Status: Landed.** All eight PRs shipped, each with an *as implemented* note
+below its row in the map. The largest departures: the report card's grading
+happens before the funnel and its step after it; the research cut went past
+"the report of nothing" to every papers-only run; the general-education core
+is seated from founding; the section and services lines carry the market
+rate, not only salaries; and the re-fit moved the rise and fall rates to 0.20
+and 0.30, priced the two mistake archetypes so they die of their policy and
+not their price, and recorded where the Balanced builder lands beside the
+table rather than pretending the table was hit. Depended on
+[Plan 14](14-curriculum-on-the-map.md) for halls, slots and founded schools —
+the seats this plan turned into a ceiling and the concentration this plan
+turned into prestige both came from there. Supersedes
 [Plan 10](10-growth-has-a-cost.md).
 
 ---
@@ -56,6 +65,158 @@ plans. That is real and it is accepted.
 | 15F | Consequences: attrition at the year boundary, demands from 60, wider word of mouth |
 | 15G | The re-fit: every constant tuned against the scorecard across three seeds, and the bands rewritten as targets |
 | 15H | Docs |
+
+**As implemented (15A):** the four readings live in `prestigeSystem.ts` as a
+`readings` list on the academic breakdown — its own list, not zero-weight
+rows, so the target stays a sum over `inputs` and the invariant sweep can
+assert that no reading is also an input. Each carries the weight §1 proposes
+so the panel can say what it would be worth today. Instruction capacity is
+its own module (`systems/techtree/instructionCapacity.ts`), since PR D and
+PR E read it from finance and admissions, and it carries no weight: it is
+the ceiling, shown as a ratio. Three decisions the plan left open were made
+here and are PR G's to revisit: `SEATS_PER_COURSE` opens at 80, sized so the
+whole catalogue holds about 34,000 (the top of the year-50 band) and a
+year-20 completionist 12,000–18,000; crowding's shortfall is linear from
+nothing at 90% coverage to full at 0%, with health below its population gate
+read as covered, the rule the satisfaction and demand systems already share;
+and concentration reads only the *deepest* school — founded 0.4,
+distinguished 0.6 — because a second founded school is breadth, and breadth
+already pays for it. A program in transit contributes no seats, matching
+the no-teaching-quality rule relocation already has.
+
+**As implemented (15B):** the card is graded at the top of
+`RESOLVE_ADMISSIONS`, before the accumulators reset and before the funnel
+runs, and the step is applied after the funnel — two calls, `gradeYear` and
+`applyReportCard`, so the card grades the year that ended and the class the
+admissions panel projected is the class that enrolls; the panel's own
+projection (`consequences.ts`) carries the same step on its copy. The card
+lives on `s.self.reportCard` (save version 55), keyed by input, and the
+Standing panel shows each input's grade beside what it is worth now, with
+the summer model in the note. Crowding's accumulator sits beside
+satisfaction's on `s.students` and is fed by `tickPrestige`. Only the
+academic standing steps at the summer: research and campus-life standings
+keep the weekly drift, since neither is graded and nothing reads them back.
+The penalty is a row with `penalty: true` and a negative contribution, so
+the breakdown identity holds with a sign. The cost the plan said it would
+accept arrived on schedule: with prestige able to fall, the Overbuilder and
+the Idle control sink, and `test/balance-regression.test.ts`'s economy-shape
+claims (the stall-and-recover arcs, solvency at the horizon) are *reported,
+not failed* behind an `ECONOMY_REPORT_ONLY` flag — the scorecard's own
+device — until PR G re-fits them; every claim about a mechanism stays hard.
+
+**As implemented (15C):** the breadth denominator is the union of every
+researchable field (`researchableFields()`), not the school count. The
+silent weekly lottery is replaced by three rules: publications are *banked*
+off weekly output (one per `PUBLICATION_POINTS`), a breakthrough is *rolled
+once a year* — at each anniversary of the start and at the end — at a chance
+set by depth and team strength, and a grant rides on one paper in five. The
+offer states the bet off the same functions (`initiativeOdds`): expected
+papers, at-least-one-breakthrough chance over the run, award chance. A Funded
+Project or deeper that banked nothing publishes its concluding paper. The cut
+went further than "the report of nothing": a run that produced *papers alone*
+logs and never stops the clock at any depth, since the review's finding was
+about interrupts and a one-paper report is still one; only a breakthrough or
+an award reports. Output reaches two places: a breakthrough, and every fourth
+paper, puts a scholar in the team's field on the candidate market with a
+log line, and the research-oriented cohort reads a `researchOutput` signal
+(publications at a tenth, breakthroughs, prizes at three) beside labs. Save
+version 56 for `Initiative.banked`.
+
+**As implemented (15D):** per-course enrollment is the body times
+`COURSES_PER_STUDENT` (4) spread evenly over the offered catalogue; a course
+runs at least one section and at most the sections its seats hold
+(`SEATS_PER_COURSE / SECTION_SIZE`, two), so the "enormous sections cheaply"
+case is exactly the overflow the crowding penalty and PR E's ceiling read.
+Services is a flat line with a `servicesMultiplier` hook PR E fills. The
+market rate is applied at the payroll (`facultyPay`), never written into a
+hire's `salary`, so a listing shows the person's price and the Treasury what
+this school pays: 1.0 at prestige 50, 2.2 at 130, floored at 1 and capped at
+2.5. Capital events scale to a share of the building's own cost — a roof a
+quarter of its building, a kitchen 30% of the dining hall, the boiler 12% of
+the standing dorms, a storm 3% of everything standing — floored at $60k.
+`instructionCostPerStudent` survives as a reading for the sim's affordability
+check, which now counts the services line too.
+
+**As implemented (15E):** the cap is a `seatsLeft` parameter on
+`projectAdmissions` (infinite by default, so the pricing tests and the
+demand what-if are untouched), clipped from the *bottom* band up so a school
+that must turn people away turns away its weakest admits, and the realised
+admit rate falls below the chosen one. `intakeCeiling` reads capacity, who
+stays on after graduation, the room, and next summer's seats (courses in
+development in housed programs finishing within the year). The reveal shows
+"Room for N" beside the pool, the slider ends where the class fills the
+room, and the log says when a class was held. Services rise linearly from
+nothing at 85% of capacity to +50% at the ceiling, capped at ×2, and a
+campus with no seats at all reads the cap. One thing the plan did not say:
+the general-education core is *seated from founding*, whether or not its
+development has finished — Founders Hall holds it and the founding faculty
+teach it from day one — because otherwise a college would open with no room
+for anybody and its first summer would admit nobody. Every other course
+seats students only once it is done.
+
+**As implemented (15F):** attrition is a third parameter on
+`advanceClasses`, so the reducer and the admissions panel's projection
+apply the same share; it takes the three staying classes before they move
+up (the seniors are leaving anyway, and the incoming class has not had a
+year to leave over), shrinks each class's cohort mix proportionally and
+leaves its price alone. The rate is read off the year's average
+satisfaction, the same figure word of mouth reads. Plan 16's year in review
+does not exist yet, so the line lands in two places that do: the summer
+modal's projections ("Not returning: 340 — housing, dining") before the
+decision, and the log after it. The instruction shortfall is a demand with
+metric `seats`, measured against the catalogue's capacity, whose ask is the
+next available course in a housed program — never a core course, since the
+core is seated from founding — and is met when one more course's seats
+exist. Failing a demand still dents satisfaction, which welfare now grades,
+which prestige now reads, so the chain runs by construction. Word of mouth
+is ±0.60.
+
+**As implemented (15G):** the fit found one structural fault first: PR D's
+section cap read *students* per course where the seats read *course
+enrollments*, so a school at its ceiling was already four times over its
+sections; a course now runs up to `SEATS_PER_COURSE × COURSES_PER_STUDENT /
+SECTION_SIZE` sections and is exactly full at the ceiling. Then the one lever
+that makes the found era viable *and* the late game tight: the section and
+services lines carry the same market-rate multiplier the payroll does, so a
+founding school pays the base and a school at prestige 130 pays 3.4× per
+student, which tuition does not match. Fitted values: sections $800 a week,
+services $45 a student, market rate 1.0 at 50 → 3.4 at 130 (cap 4.0), seats
+80 a course (60 strangled the founding body), rise 0.20 and fall 0.30 (the
+plan's 0.12/0.40 left a well-built school in the fifties at year ten and
+turned the found era's dips into collapses), crowding grace 85%, the hall
+chain $750k × 1.3, courses $80k/$180k/$400k by tier. The harness learned
+seats-before-beds and pure halls (see `playtesting.md`), and the Overbuilder
+is priced a third under the balanced ramp instead of at $5,250 — under the
+new cost model a school charging less than a student costs to teach cannot
+exist, and an archetype that dies of its price is not testing beds. Against
+the table: the Balanced builder is inside the enrolment bands from year 20
+and the prestige and rank bands from 35, but its found era is slower (about
+2,000 at year 10) and dips while it builds, its net margin is 25–40% in the
+found and build eras (the surplus is what halls and programs are bought
+with) and 5–15% only from 35, and by 35 it has finished the catalogue and
+sits at the top of the scale — Plan 17's endpoint is where that closes. The
+Idle school falls to the bottom of the field rather than "into the 30s".
+The Overbuilder is underwater by year 5 and *stalls* rather than recovering
+by 15: it hovers at break-even for the rest of the run. The recovery
+scenario is a balanced school broken at year 15 (`intoCrisis` in
+`tools/scenarios.ts`, since no scripted archetype digs a hole that deep any
+more), and the Balanced builder has it above 60 satisfaction within a year
+and climbing in prestige through 25. The bands are three-seed envelopes for
+the generated strategies and hand-written targets for the Balanced builder
+and the two controls, with the deviations recorded above them in
+`sim/reference.ts`; both the scorecard and the regression suite's economy
+claims are hard gates again.
+
+**As implemented (15H):** `economy.md` describes the three cost lines, the
+market rate on all of them, the building-scaled capital events, the ceiling
+and the three eras; `progression.md` the report card, the fitted rates and
+the weight budget with the penalty; `admissions.md` the seats ceiling, the
+room on the reveal and attrition; `research.md` the banked papers, the annual
+roll, the odds on the offer, the papers-only cut and the fields denominator.
+The correction the review found — `satisfactionSystem.ts` scores four of five
+attributes against *enrolled* while its own source comment and `economy.md`
+said capacity — is made in both places. `README.md`, `curriculum.md` and
+`student-life.md` no longer say prestige drifts.
 
 ---
 

@@ -91,8 +91,11 @@ builds the programs they graduate from. The tier labels stay **T1 / T2 / T3**.
 Milestones are dedicated logic in `techSystem.ts` — a first-class part of the
 model, not an afterthought — and none of them grants reputation directly:
 they are the durable "curriculum breadth" stock that feeds the prestige
-target (see [progression.md](progression.md)), raising the ceiling prestige
-can drift toward rather than bumping it.
+target (see [progression.md](progression.md)), raising the grade prestige
+steps toward each summer rather than bumping it. Every developed course in a
+housed program also adds `SEATS_PER_COURSE` to what the school can teach,
+which is the ceiling on its freshman class (see
+[admissions.md](admissions.md)).
 
 ## The Curriculum tab: forty-two rows over one revealed set
 

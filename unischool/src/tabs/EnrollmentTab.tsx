@@ -223,7 +223,7 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
           />
           <FunnelLine
             label="Enrolled"
-            note="The four classes summed. Set once a year at the summer decision and held: full progression, no attrition, and no capacity ceiling of any kind."
+            note="The four classes summed. Set once a year at the summer decision and held: full progression, held. The one ceiling is the catalogue's seats: the freshman class cannot exceed what the housed courses have room to teach."
             value={enrolled.toLocaleString()}
             net
           />

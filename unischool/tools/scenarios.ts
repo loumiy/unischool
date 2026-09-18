@@ -34,6 +34,27 @@ export interface Scenario {
   // player answers anything, so a run stopped here hands back a state with
   // its modal still pending.
   stopWhen?: (s: GameState) => boolean;
+  // Break the state after the run, before it is written (Plan 15's PR G):
+  // the crisis scenario stands a healthy school up and then puts it in
+  // the hole, because no scripted strategy digs one deep enough on its
+  // own now that a school in trouble shrinks rather than growing.
+  mutate?: (s: GameState) => void;
+}
+
+// A school in crisis: satisfaction in the thirties, a body half again
+// too big for what it has built, and the year's accumulators saying so —
+// the state the recovery assertion in test/balance-regression.test.ts
+// starts from. Exported so the scenario and the test break the same
+// school the same way.
+export function intoCrisis(s: GameState): void {
+  s.students.satisfaction = 35;
+  s.students.satisfactionYearSum = 35 * s.students.satisfactionYearWeeks;
+  s.students.crowdingYearSum = 0.6 * s.students.crowdingYearWeeks;
+  for (const key of ['freshman', 'sophomore', 'junior', 'senior'] as const) {
+    s.students.classes[key] = Math.round(s.students.classes[key] * 1.5);
+  }
+  s.finance.cash = Math.min(s.finance.cash, 0) - 2_000_000;
+  s.self.reputation = Math.max(5, s.self.reputation - 15);
 }
 
 // Stops the week a modal of this type is on screen. The one predicate
@@ -157,6 +178,20 @@ export const SCENARIOS: Scenario[] = [
     strategy: 'Balanced builder',
     year: 15,
     stopWhen: atModal('decision-event'),
+  },
+  {
+    // Plan 15's PR G: the recovery scenario. A balanced school's fifteenth
+    // year, broken (see intoCrisis above) — the state
+    // test/balance-regression.test.ts hands back to the Balanced builder
+    // and asks whether correct play gets it out (satisfaction back above 60
+    // and prestige climbing by year 25). The review's failure mode was that
+    // nothing pushes back; the opposite failure is a run that is over at
+    // year 12 and does not end.
+    name: 'crisis',
+    what: 'year 15 in the hole — satisfaction in the thirties, a body it cannot serve, cash gone, standing falling',
+    strategy: 'Balanced builder',
+    year: 15,
+    mutate: intoCrisis,
   },
   {
     name: 'demand',

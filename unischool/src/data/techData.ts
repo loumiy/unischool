@@ -114,7 +114,7 @@ const TIER_DURATION_WEEKS: Record<number, number> = { 1: 4, 2: 12, 3: 24 };
 // founding tuition starts higher — the pinch moves from a week-1 cash
 // scare to the T1 build-out visibly tightening the surplus, rather than
 // disappearing.
-const TIER_COURSE_COST: Record<number, number> = { 1: 55_000, 2: 110_000, 3: 240_000 };
+const TIER_COURSE_COST: Record<number, number> = { 1: 80_000, 2: 180_000, 3: 400_000 };
 
 // What a finished course costs to RUN, every week, forever — the recurring
 // half of a curriculum decision and one of the growth loop's main teeth
@@ -189,8 +189,8 @@ export const GENED_BUILDING_REPUTATION_BONUS = 1.5;
 // completionist ten or eleven. Cumulative: ~$14M for eight, ~$37M for
 // eleven — a fraction of the dorm chain over the same span.
 export const ACADEMIC_HALL_SLOTS = 6;
-const ACADEMIC_HALL_FIRST_COST = 500_000;
-const ACADEMIC_HALL_COST_RATIO = 1.35;
+const ACADEMIC_HALL_FIRST_COST = 750_000;
+const ACADEMIC_HALL_COST_RATIO = 1.3;
 const ACADEMIC_HALL_FIRST_WEEKS = 16;
 const ACADEMIC_HALL_WEEKS = 24;
 // Upkeep matches the school building it replaced ($3,000 a week): a hall

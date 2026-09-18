@@ -8,6 +8,10 @@ import {
 } from '../../data/demandData';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../../data/facilitiesData';
 import { attributeCoverage, servedPopulationFor } from '../satisfaction/satisfactionSystem';
+import { instructionCapacity, instructionCoverage, SEATS_PER_COURSE } from '../techtree/instructionCapacity';
+import { programOfCourse } from '../../data/techData';
+import { isHoused } from '../techtree/programOffers';
+import type { DemandSubject } from '../../data/demandData';
 import { projectAdmissions } from '../admissions/admissionsSystem';
 
 // ---------------------------------------------------------------------
@@ -93,7 +97,9 @@ export interface DemandProgress {
 export function demandProgress(s: GameState, demand: StudentDemand): DemandProgress {
   const current = demand.metric === 'capacity'
     ? s.students.capacity
-    : servedPopulationFor(s, demand.attribute ?? 'social');
+    : demand.metric === 'seats'
+      ? instructionCapacity(s)
+      : servedPopulationFor(s, demand.attribute ?? 'social');
   return {
     current,
     target: demand.target,
@@ -234,6 +240,36 @@ function housingCandidate(s: GameState): Candidate | null {
   };
 }
 
+// THE INSTRUCTION SHORTFALL (Plan 15's PR F): classes are full. Scored off
+// instructionCapacity.ts's coverage exactly as the five above are scored
+// off theirs, and the ask is the next course the school could start in a
+// housed program — the thing that adds seats. Met when the catalogue's
+// seats reach one more course's worth.
+function instructionCandidate(s: GameState): Candidate | null {
+  const ask = s.tech.find((t) => {
+    if (t.kind !== 'course' || t.status !== 'available') return false;
+    const programId = programOfCourse(t.id);
+    // Never a core course: the core is seated from founding, so finishing
+    // one adds no seat and could never meet the ask.
+    return programId !== undefined && programId !== 'CORE' && isHoused(s, programId);
+  });
+  if (!ask) return null;
+  const coverage = instructionCoverage(s);
+  return {
+    severity: 1 - coverage,
+    demand: {
+      id: crypto.randomUUID(),
+      metric: 'seats',
+      attribute: null,
+      askId: ask.id,
+      askName: ask.name,
+      target: instructionCapacity(s) + SEATS_PER_COURSE,
+      raisedWeek: 0,
+      deadlineWeek: 0,
+    },
+  };
+}
+
 // One named shortfall's demand, if there is anything left to build for it.
 // The roll below picks the worst of these; the playtest panel's "force a
 // demand" asks for a specific one (see reducer.ts's DEBUG_FORCE_DEMAND).
@@ -241,9 +277,13 @@ function housingCandidate(s: GameState): Candidate | null {
 // real ask and the real target, not a mock-up of one.
 export function shortfallDemandFor(
   s: GameState,
-  subject: keyof SatisfactionAttributes | 'housing',
+  subject: DemandSubject,
 ): StudentDemand | null {
-  const candidate = subject === 'housing' ? housingCandidate(s) : candidateFor(s, subject);
+  const candidate = subject === 'housing'
+    ? housingCandidate(s)
+    : subject === 'instruction'
+      ? instructionCandidate(s)
+      : candidateFor(s, subject);
   return candidate?.demand ?? null;
 }
 
@@ -260,6 +300,8 @@ export function rollShortfallDemand(s: GameState): StudentDemand | null {
   }
   const housing = housingCandidate(s);
   if (housing) candidates.push(housing);
+  const instruction = instructionCandidate(s);
+  if (instruction) candidates.push(instruction);
 
   let best: Candidate | null = null;
   for (const candidate of candidates) {

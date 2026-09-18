@@ -13,12 +13,14 @@ import { endInitiative } from '../systems/research/researchSystem';
 import { initiativeDepth, initiativeFundingCost } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
-import { tickAdmissions, advanceClasses, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
+import { tickAdmissions, advanceClasses, attritionRate, projectAdmissions, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
+import { attritionReasons } from '../systems/admissions/consequences';
+import { intakeCeiling } from '../systems/techtree/instructionCapacity';
 import { deriveCohortSignals } from '../systems/admissions/cohorts';
 import { buildReportPayload, tickRivals } from '../systems/rivals/rivalsSystem';
 import { appointFaculty, tickFaculty } from '../systems/faculty/facultySystem';
 import { tickResearch } from '../systems/research/researchSystem';
-import { setPrestigeForPlaytest, tickPrestige } from '../systems/prestige/prestigeSystem';
+import { setPrestigeForPlaytest, tickPrestige, gradeYear, applyReportCard } from '../systems/prestige/prestigeSystem';
 import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { fireMilestoneCelebration, tickEvents } from '../systems/events/eventSystem';
 import { tickStudentLife } from '../systems/studentlife/studentLifeSystem';
@@ -394,6 +396,7 @@ export function reducer(state: GameState, action: Action): GameState {
         publications: 0,
         breakthroughs: 0,
         grantIncome: 0,
+        banked: 0,
       };
 
       // Only the EXCESS teaching moves. A commitment costs two course
@@ -674,15 +677,25 @@ export function reducer(state: GameState, action: Action): GameState {
 
       resolveStudentLifeDigest(s, action.approvedPetitionIds);
 
+      // THE REPORT CARD (Plan 15's PR B, see prestigeSystem.ts's gradeYear):
+      // the year that just ended, graded — on the accumulators as they
+      // stand and the class that spent the year — BEFORE anything below
+      // resets or replaces either. The step itself is applied after the
+      // funnel, so the class that enrolls is the one the panel projected.
+      const reportCard = gradeYear(s);
+
       // Word of mouth: the trailing-year AVERAGE satisfaction (accumulated
       // weekly since last summer) scales next year's applicant pool — the
       // design's "current experience -> satisfaction -> next year's
       // applications". Read it, record it as this year's figure, then reset
-      // the accumulator for the year now beginning.
+      // the accumulator for the year now beginning — and the crowding
+      // accumulator the report card just read, alongside it.
       const priorYearAvgSatisfaction = trailingYearSatisfaction(s);
       s.students.priorYearAvgSatisfaction = priorYearAvgSatisfaction;
       s.students.satisfactionYearSum = 0;
       s.students.satisfactionYearWeeks = 0;
+      s.students.crowdingYearSum = 0;
+      s.students.crowdingYearWeeks = 0;
 
       // Run the distribution funnel with the committed policy: it sizes the
       // incoming FRESHMAN class from demand and policy alone — dorm capacity
@@ -693,6 +706,10 @@ export function reducer(state: GameState, action: Action): GameState {
       // as outcome.admitRate is admits/applicants, which matches the choice
       // unless a thin top/mid band ran out before the share was filled.
       const chosenAdmitRate = Math.max(0, Math.min(1, action.admitRate));
+      // THE CEILING (Plan 15's PR E): the class is clipped to the seats the
+      // housed catalogue has left after graduation — read here, at the one
+      // boundary, off the same function the reveal shows.
+      const ceiling = intakeCeiling(s);
       const outcome = projectAdmissions(
         s.self.reputation,
         s.finance.listedTuition,
@@ -700,15 +717,20 @@ export function reducer(state: GameState, action: Action): GameState {
         priorYearAvgSatisfaction,
         deriveCohortSignals(s),
         chosenAdmitRate,
+        ceiling.seatsLeft,
       );
 
       // Advance the classes a year: seniors graduate and leave, everyone
-      // else moves up, and the incoming class arrives at the price just
-      // set. Full progression, no attrition, in this model. The advance
-      // itself is a pure function in admissionsSystem.ts because the
-      // admissions panel runs the SAME one on a copy to project what this
-      // commit will do (see consequences.ts) — two copies of it is how a
-      // projection starts promising a body the tick does not produce.
+      // else moves up — less the share a bad year cost (Plan 15's PR F,
+      // admissionsSystem.ts's attritionRate, off the same year's average
+      // word of mouth reads) — and the incoming class arrives at the price
+      // just set. The advance itself is a pure function in
+      // admissionsSystem.ts because the admissions panel runs the SAME one
+      // on a copy to project what this commit will do (see
+      // consequences.ts) — two copies of it is how a projection starts
+      // promising a body the tick does not produce.
+      const attrition = attritionRate(priorYearAvgSatisfaction);
+      const reasons = attritionReasons(s);
       const advanced = advanceClasses(
         {
           classes: s.students.classes,
@@ -722,6 +744,7 @@ export function reducer(state: GameState, action: Action): GameState {
           // just enrolled is made of (see types.ts's ClassCohorts).
           cohorts: outcome.enrolledCohorts,
         },
+        attrition,
       );
       const graduating = advanced.graduating;
       s.students.classes = advanced.classes;
@@ -735,15 +758,16 @@ export function reducer(state: GameState, action: Action): GameState {
       s.students.admitRate = chosenAdmitRate;
       s.students.incomingQuality = outcome.avgIncomingQuality;
 
+      // The summer step: prestige moves toward the year score — a small
+      // share of the gap upward, a large one downward. This is the one
+      // moment in the year prestige moves by more than a tremor.
+      applyReportCard(s, reportCard);
+
       // The one annual boundary in the game, so the one place the history
-      // record grows (see state/history.ts). Appended AFTER the funnel above,
-      // so the row is the class the school actually carries into the next
-      // year, and BEFORE advanceClock, so it is filed under the year that just
-      // closed. Prestige is NOT drifted here any more — it drifts weekly in
-      // the SYSTEMS array (see prestigeSystem.ts's tickPrestige), so this
-      // captures reputation as of the last weekly tick; the cycle's
-      // freshly-resolved selectivity and quality feed prestige over the
-      // following weeks rather than in a jump here.
+      // record grows (see state/history.ts). Appended AFTER the funnel and
+      // the step above, so the row is the class and the standing the school
+      // actually carries into the next year, and BEFORE advanceClock, so it
+      // is filed under the year that just closed.
       s.history.push(captureYearSnapshot(s));
 
       s.pendingInterrupt = null;
@@ -753,6 +777,31 @@ export function reducer(state: GameState, action: Action): GameState {
         week: s.clock.week,
         message: `Admissions: tuition $${s.finance.listedTuition.toLocaleString()}/yr — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admitted, ${outcome.enrolled.toLocaleString()} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
         kind: 'info',
+      });
+      // ATTRITION GETS ITS OWN LINE. A silently smaller number is the
+      // single most likely source of "I don't understand what happened to
+      // my school", and this plan added enough hidden machinery already.
+      if (advanced.notReturning > 0) {
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: `${advanced.notReturning.toLocaleString()} students did not return — ${reasons.length > 0 ? reasons.join(', ') : 'a year averaging ' + priorYearAvgSatisfaction.toFixed(0) + ' satisfaction'}.`,
+          kind: 'bad',
+        });
+      }
+      if (outcome.capped) {
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: `The catalogue had room for ${ceiling.seatsLeft.toLocaleString()} more; the class was held to it.`,
+          kind: 'info',
+        });
+      }
+      s.log.unshift({
+        year: s.clock.year,
+        week: s.clock.week,
+        message: `Report card for year ${reportCard.year}: graded ${reportCard.score.toFixed(0)}. Prestige ${reportCard.before.toFixed(1)} → ${reportCard.after.toFixed(1)}.`,
+        kind: reportCard.after >= reportCard.before ? 'good' : 'bad',
       });
 
       // The autosave (see state/persistence.ts). This annual boundary is

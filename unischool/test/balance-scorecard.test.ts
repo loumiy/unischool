@@ -1,34 +1,32 @@
 // ---------------------------------------------------------------------
-// THE SCORECARD, AS A TEST — and deliberately not a failing one yet.
+// THE SCORECARD, AS A GATE (Plan 15's PR G).
 //
-// sim/reference.ts records what each strategy's trajectory currently looks
-// like, at ±25%, generated from the run rather than chosen. Those bands
-// describe a game the September 2026 review found broken in two specific
-// ways (the intended line of play ending year 20 overdrawn; 70,000 students
-// on 9,000 beds), and Plan 15 is the rebalance that moves them. A hard
-// assertion here would therefore be RED from the day it lands until Plan 15
-// finishes, which is a gate nobody reads and everybody learns to skip.
+// sim/reference.ts holds two kinds of band. TARGETS are hand-written —
+// Plan 15 §6's table for the Balanced builder, and the plan's own
+// sentences for the two controls — and they are the design decision
+// recorded as data. REFERENCE is generated: the envelope of three seeds
+// at ±25%, written by `npm run sim -- --write-reference`, a statement of
+// where every other strategy IS so a change that moves one is noticed.
 //
-// So this suite REPORTS. It plays every strategy on the default seed, prints
-// every figure outside its band, and passes regardless.
-//
-// *** PLAN 15'S PR G IS WHAT TURNS THIS INTO A GATE. *** By then the
-// bands will have been edited to describe the game that plan intends, and an
-// out-of-band figure will mean a regression rather than a known problem.
-// Flip `REPORT_ONLY` to false there, and delete this paragraph.
+// This suite plays every strategy on the default seed at the full
+// fifty-year horizon and FAILS on any figure outside its band. A failure
+// is a regression, or a re-fit that has not re-recorded the reference;
+// it is never "a known problem", because the known problems are what
+// this plan fixed. Plan 09 wrote it to report and pass, with a header
+// saying this PR would flip it; this is that PR.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
 import { play, STRATEGIES, DEFAULT_SIM_SEED } from '../sim/balanceSim';
-import { REFERENCE, describeFinding, findingsFor } from '../sim/reference';
+import { bandsFor, describeFinding, findingsFor } from '../sim/reference';
 
-const REPORT_ONLY = true;
+const REPORT_ONLY = false;
 
 // The reference is written at forty years, so this reads the same horizon:
 // a shorter run would silently skip the year-30 and year-40 bands, which
 // are the two the late-game plans are about.
-const YEARS = 40;
+const YEARS = 50;
 
 let findings = 0;
 let strategiesWithoutBands = 0;
@@ -38,7 +36,7 @@ console.log(`  ${STRATEGIES.length} strategies, ${YEARS} years, seed ${DEFAULT_S
 
 for (const strategy of STRATEGIES) {
   const { rows } = play(strategy, YEARS);
-  if (!REFERENCE[strategy.name]) {
+  if (!bandsFor(strategy.name)) {
     strategiesWithoutBands += 1;
     console.log(`  · ${strategy.name}: no bands recorded — run \`npm run sim -- --write-reference\``);
     continue;

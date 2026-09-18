@@ -1,5 +1,6 @@
+import type { DemandSubject } from '../data/demandData';
 import type {
-  AthleticsBudgetTier, Coach, GameState, InitiativeDepth, SatisfactionAttributes, TileCoord, Vernacular,
+  AthleticsBudgetTier, Coach, GameState, InitiativeDepth, TileCoord, Vernacular,
 } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
@@ -302,7 +303,7 @@ export type Action =
   // satisfaction threshold and the cooldown. The ask itself is whatever the
   // demand system would have asked for (see demandSystem.ts's
   // shortfallDemandFor), so a forced demand is a real demand.
-  | { type: 'DEBUG_FORCE_DEMAND'; subject: keyof SatisfactionAttributes | 'housing' }
+  | { type: 'DEBUG_FORCE_DEMAND'; subject: DemandSubject }
   // Celebrates the queued milestones now, rather than on the next week the
   // frequency floor allows.
   | { type: 'DEBUG_FORCE_MILESTONE' }
@@ -355,6 +356,7 @@ export function createPreStartState(): GameState {
       capacity: 0, satisfaction: 0,
       satisfactionBreakdown: { academic: 0, social: 0, basicNeeds: 0, health: 0, housing: 0 },
       satisfactionYearSum: 0, satisfactionYearWeeks: 0, priorYearAvgSatisfaction: 0,
+      crowdingYearSum: 0, crowdingYearWeeks: 0,
       applicantPool: 0, admitRate: 0, incomingQuality: 0,
     },
     faculty: [],
@@ -367,7 +369,7 @@ export function createPreStartState(): GameState {
     pathways: {},
     trees: {},
     rivals: [],
-    self: { name: '', suffix: '', universityCharterOffered: false, mascot: '', reputation: 0, socialStanding: 0, researchStanding: 0, vernacular: FOUNDING_VERNACULAR },
+    self: { name: '', suffix: '', universityCharterOffered: false, mascot: '', reputation: 0, reportCard: null, socialStanding: 0, researchStanding: 0, vernacular: FOUNDING_VERNACULAR },
     history: [],
     log: [],
     pendingInterrupt: null,
@@ -505,6 +507,7 @@ export function createInitialState(name: string, vernacular: Vernacular = FOUNDI
       // admissionsSystem.ts), so year 1's funnel gets no word-of-mouth swing
       // until a real year of satisfaction has accumulated.
       satisfactionYearSum: 0, satisfactionYearWeeks: 0, priorYearAvgSatisfaction: 70,
+      crowdingYearSum: 0, crowdingYearWeeks: 0,
       applicantPool: preset.startingApplicantPool,
       // Neutral placeholders until the first summer admissions cycle
       // resolves and sets these for real — see RESOLVE_ADMISSIONS.
@@ -645,6 +648,7 @@ export function createInitialState(name: string, vernacular: Vernacular = FOUNDI
       // has an answer (see types.ts's University.mascot).
       mascot: '',
       reputation: foundingReputation,
+      reportCard: null,
       // The other two standings open at their own baselines rather than at
       // the academic one (see prestigeSystem.ts's RESEARCH_STANDING_BASELINE
       // and SOCIAL_STANDING_BASELINE). A founding school is not a research

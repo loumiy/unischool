@@ -22,8 +22,12 @@ export function trailingYearSatisfaction(s: GameState): number {
 // coarse quality distribution (top / mid / low bands) — never as
 // individual applicants.
 //
-// There is no ADMISSIONS CEILING anywhere in this file: nothing ever skims
-// TOWARD a capacity target, and enrollment is never capped by beds. Students
+// There is ONE admissions ceiling, and it is not beds (Plan 15's PR E):
+// the freshman class cannot exceed the seats the housed catalogue has left
+// after graduation (instructionCapacity.ts's intakeCeiling, passed in as
+// projectAdmissions's `seatsLeft`). Nothing ever skims TOWARD it — it
+// clips the class from the bottom band up once the chosen share overruns
+// it — and it caps enrollment, never the pool. Students
 // are commuters unless the school has built them a dorm bed (see
 // campusData.ts and satisfactionSystem.ts's Housing attribute) — housing is
 // an amenity that feeds satisfaction, never an admissions gate. Dorm space
@@ -213,7 +217,9 @@ const STICKER_SHOCK_RATE: Record<QualityBand, number> = { top: 0.05, mid: 0.35, 
 // by ATTRIBUTE_SCORE_FLOOR, so the multiplier bottoms out around 0.63x
 // rather than at zero, and building one cheap facility moves it back.
 const WORD_OF_MOUTH_NEUTRAL = 70;    // satisfaction score with no effect on demand — matches the founding value
-const WORD_OF_MOUTH_STRENGTH = 0.45; // max fractional change to the pool: +45% at satisfaction 100, -45% at 0
+// Widened from ±0.45 by Plan 15's PR F, so satisfaction moves the pool
+// enough to notice across two summers.
+const WORD_OF_MOUTH_STRENGTH = 0.60; // max fractional change to the pool: +60% at satisfaction 100, -60% at 0
 
 // --- Admit rate: A PLAYER DECISION as of Plan 05's PR C. This curve is no
 // longer what the funnel answers — it is what the slider OPENS at: what a
@@ -298,8 +304,14 @@ export interface AdmissionsProjection {
   // sticker priced at or under earned tolerance, no families self-selected
   // away). See STICKER_SHOCK_RATE above.
   stickerShockMultiplier: number;
-  admits: number;              // admitted: applicants x admitRate(prestige), skimmed top band first
-  admitRate: number;           // admits / applicants — matches the chosen rate unless a thin top/mid band ran out to skim
+  admits: number;              // admitted: applicants x admitRate(prestige), skimmed top band first — and clipped to the seats left (see `capped`)
+  admitRate: number;           // admits / applicants — matches the chosen rate unless a thin top/mid band ran out to skim, or the ceiling clipped it
+  // THE CEILING (Plan 15's PR E). `seatsLeft` is the intake cap the funnel
+  // was given (instructionCapacity.ts's intakeCeiling); `capped` is true
+  // when the chosen share would have enrolled more than fit, and the class
+  // was clipped to it from the bottom band up. The pool is never capped.
+  seatsLeft: number;
+  capped: boolean;
   enrolled: number;            // the incoming class, which IS the admits — no yield step, no ceiling of any kind
   avgIncomingQuality: number;  // 0..100 weighted-average quality of the enrolled class — an input to prestige
   // What that enrolled class is MADE OF — the eight counts that sum to
@@ -427,17 +439,63 @@ export interface AdvancedBody {
   classes: ClassCounts;
   tuitionByClass: ClassTuition;
   cohortsByClass: ClassCohorts;
-  graduating: number;   // the seniors who just left
+  graduating: number;
+  notReturning: number; // students the three staying classes lost to attrition (see attritionRate)   // the seniors who just left
 }
 
-export function advanceClasses(body: EnrolledBody, incoming: IncomingClass): AdvancedBody {
+// ATTRITION (Plan 15's PR F). Below ATTRITION_SATISFACTION_LINE each class
+// loses a share of its students at the summer boundary — up to
+// ATTRITION_MAX_RATE a year at ATTRITION_FLOOR_SATISFACTION, scaling
+// linearly between. Read off the year's average satisfaction, the same
+// figure word of mouth reads, so the students who leave are the ones who
+// had the year. A class's price does not change; its cohort mix shrinks
+// proportionally. This gets its own line at the summer, because attrition
+// that arrives as a silently smaller number is the single most likely
+// source of "I don't understand what happened to my school".
+export const ATTRITION_SATISFACTION_LINE = 50;
+export const ATTRITION_FLOOR_SATISFACTION = 30;
+export const ATTRITION_MAX_RATE = 0.08;
+
+export function attritionRate(satisfaction: number): number {
+  if (satisfaction >= ATTRITION_SATISFACTION_LINE) return 0;
+  const depth = (ATTRITION_SATISFACTION_LINE - satisfaction) / (ATTRITION_SATISFACTION_LINE - ATTRITION_FLOOR_SATISFACTION);
+  return ATTRITION_MAX_RATE * clamp(depth, 0, 1);
+}
+
+// A class's mix, shrunk to exactly `total` — largest remainders, so the
+// seven counts still sum to the head count they describe (the identity
+// test/enrolled-cohorts.test.ts holds every class to).
+function shrinkCohorts(counts: CohortCounts, total: number): CohortCounts {
+  const keys = Object.keys(counts) as Array<keyof CohortCounts>;
+  const before = keys.reduce((sum, key) => sum + counts[key], 0);
+  if (before <= 0 || total >= before) return { ...counts };
+  const scaled = keys.map((key) => ({ key, exact: (counts[key] * total) / before }));
+  const out = { ...counts };
+  let placed = 0;
+  for (const { key, exact } of scaled) { out[key] = Math.floor(exact); placed += out[key]; }
+  scaled
+    .sort((a, b) => (b.exact - Math.floor(b.exact)) - (a.exact - Math.floor(a.exact)))
+    .slice(0, total - placed)
+    .forEach(({ key }) => { out[key] += 1; });
+  return out;
+}
+
+export function advanceClasses(body: EnrolledBody, incoming: IncomingClass, attrition = 0): AdvancedBody {
   const { classes, tuitionByClass, cohortsByClass } = body;
+  // The three classes that stay on lose their share before they move up;
+  // the seniors are leaving anyway, and the incoming class has not had a
+  // year to leave over.
+  const keep = 1 - clamp(attrition, 0, 1);
+  const stayFreshman = Math.round(classes.freshman * keep);
+  const staySophomore = Math.round(classes.sophomore * keep);
+  const stayJunior = Math.round(classes.junior * keep);
   return {
     graduating: classes.senior,
+    notReturning: (classes.freshman - stayFreshman) + (classes.sophomore - staySophomore) + (classes.junior - stayJunior),
     classes: {
-      senior: classes.junior,
-      junior: classes.sophomore,
-      sophomore: classes.freshman,
+      senior: stayJunior,
+      junior: staySophomore,
+      sophomore: stayFreshman,
       freshman: incoming.count,
     },
     tuitionByClass: {
@@ -448,11 +506,11 @@ export function advanceClasses(body: EnrolledBody, incoming: IncomingClass): Adv
     },
     // The mix moves in the same statements as the head count it describes,
     // and the graduating seniors' mix is simply not carried forward — it
-    // left with them.
+    // left with them. A class that shrank shrinks its mix with it.
     cohortsByClass: {
-      senior: cohortsByClass.junior,
-      junior: cohortsByClass.sophomore,
-      sophomore: cohortsByClass.freshman,
+      senior: shrinkCohorts(cohortsByClass.junior, stayJunior),
+      junior: shrinkCohorts(cohortsByClass.sophomore, staySophomore),
+      sophomore: shrinkCohorts(cohortsByClass.freshman, stayFreshman),
       freshman: incoming.cohorts,
     },
   };
@@ -479,6 +537,10 @@ export function projectAdmissions(
   // what-if, the pricing tests — still reads "what a school of this
   // standing would normally take", which is what they already meant.
   chosenAdmitRate: number = admitRate(prestige),
+  // The seats the class may not exceed (Plan 15's PR E). Infinite by
+  // default, for the same reason the admit rate defaults: the pricing tests
+  // and the demand system's what-if read the funnel, not the ceiling.
+  seatsLeft: number = Infinity,
 ): AdmissionsProjection {
   const tolerance = priceTolerance(prestige);
   const wordOfMouth = wordOfMouthFactor(satisfaction);
@@ -517,6 +579,18 @@ export function projectAdmissions(
     admitsByBand[band] = take;
     remainingAdmits -= take;
   }
+  // THE CEILING. Intake cannot exceed the seats the housed catalogue has
+  // left after graduation — a hard cap on ENROLLMENT, not on applicants.
+  // Clipped from the bottom band up, since a school that must turn people
+  // away turns away its weakest admits.
+  let over = Math.max(0, admitsByBand.top + admitsByBand.mid + admitsByBand.low - Math.max(0, seatsLeft));
+  const capped = over > 0;
+  for (const band of [...bands].reverse()) {
+    if (over <= 0) break;
+    const cut = Math.min(admitsByBand[band], over);
+    admitsByBand[band] -= cut;
+    over -= cut;
+  }
   const admits = admitsByBand.top + admitsByBand.mid + admitsByBand.low;
 
   // Admitted IS enrolled — there is no yield step (see the note above the
@@ -539,6 +613,8 @@ export function projectAdmissions(
     stickerShockMultiplier,
     admits: Math.round(admits),
     admitRate: applicants > 0 ? admits / applicants : 0,
+    seatsLeft,
+    capped,
     enrolled,
     avgIncomingQuality,
     // Computed HERE rather than by the reducer, although the reducer has

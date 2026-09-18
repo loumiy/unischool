@@ -50,8 +50,13 @@ npm run scenario -- --strategy Completionist --year 22 --vernacular gothic \
   --name Blackmoor --clear-modal /tmp/gothic.json   # a campus to photograph
 ```
 
-A scenario is a **recipe, never a file**: a strategy, a year, and an optional
-stopping point, in `tools/scenarios.ts`. `npm run scenario` plays the real
+A scenario is a **recipe, never a file**: a strategy, a year, an optional
+stopping point and, since Plan 15's PR G, an optional `mutate` step that
+breaks the school after the run (the `crisis` scenario stands a balanced
+school up at year 15 and puts it in the hole — satisfaction 35, a body half
+again too big, cash gone — the state `test/balance-regression.test.ts` hands
+back to the Balanced builder to prove recovery is possible), in
+`tools/scenarios.ts`. `npm run scenario` plays the real
 reducer forward and writes a real save (`persistence.ts`'s `SavePayload` at
 the current `SAVE_VERSION`), so nothing generated is committed and nothing
 needs migrating. A committed save would be a few hundred KiB and stale the
@@ -152,6 +157,27 @@ saturated, crowded — the interesting cases are where the clamps bite);
 `test/balance-regression.test.ts` asserts it on the real year-20 state of
 every strategy.
 
+**Readings.** Below the academic standing's inputs sits a second list, *read,
+not counted*: terms the model measures and shows but does not sum. Plan 15's
+PR A put four there — welfare, concentration, crowding and the instruction
+capacity crowding reads — so that the year of play before PR B made them
+count was a year of reading them; PR B promoted the first three, and
+instruction capacity (`systems/techtree/instructionCapacity.ts`) remains,
+carrying no weight — it is the ceiling PR E turns into a cap, shown as the
+ratio it is. A reading with a weight is drawn as the pale bar alone, what it
+would reach, with nothing over it. `readings` is its own list on the
+breakdown rather than a set of zero-weight rows, so the identity above stays
+a sum over `inputs` alone, and the invariant sweep asserts that no reading's
+key is also an input's. `test/standing-readings.test.ts` pins each term's
+arithmetic; `test/report-card.test.ts` pins the summer step that grades them.
+
+**Grades.** Since Plan 15's PR B the academic standing carries a *summer
+model*: the panel's note says what the year is grading toward and what the
+summer step would move, and each row shows last summer's grade beside what it
+is worth now. A penalty row (crowding) is drawn in the bad colour and reads as
+a subtraction. Both are data on the breakdown (`summer`, `penalty`), so the
+view still names no row.
+
 ## The sim, and the scorecard
 
 ```sh
@@ -165,22 +191,27 @@ npm run sim -- --compare last.json       # print what moved against them
 npm run milestones -- 40 earnest         # when each thing happened for the first time
 ```
 
-`sim/reference.ts` records what each strategy's trajectory currently looks
-like — cash, enrolment, prestige, net margin as a share of opex, weeks in the
-red, at years 5, 10, 20, 30 and 40, each band the recorded run ±25% with an
-absolute floor. Every table printed by `npm run sim` is followed by its
-scorecard: one line per figure outside its band.
+`sim/reference.ts` holds two kinds of band, read at years 5, 10, 20, 35 and
+50 — the early pinch, the build-out, the review's horizon, the end of
+build-out, the endpoint — for cash, enrolment, prestige, rank, net margin as
+a share of opex, and weeks in the red. **`TARGETS`** are hand-written: Plan
+15 §6's table for the Balanced builder and the plan's own sentences for the
+two controls (the Idle school falls; the Overbuilder is underwater by year 5),
+the design decision recorded as data, with the fitted game's deviations noted
+above them. **`REFERENCE`** is generated: where every other strategy *is*, as
+the envelope of three seeds (the default plus `REFERENCE_EXTRA_SEEDS`) at ±25%
+with an absolute floor, written by `npm run sim -- --write-reference` — a
+band fitted to one seed is a claim about that seed. Every table printed by
+`npm run sim` is followed by its scorecard: one line per figure outside its
+band.
 
-**These bands are a statement of where the game IS, not where it should be.**
-They were generated, not chosen, and several of them describe figures the
-September review called broken. When a rebalance edits a band, *that edit is
-the design decision*, recorded as data, and the run that then falls inside it
-is the evidence.
-
-`test/balance-scorecard.test.ts` runs the default seed, prints the
-out-of-band list and **passes regardless**. A hard gate would be red from the
-day it landed until the rebalance finished, which is a gate nobody reads. Its
-header names the PR where the flag flips.
+`test/balance-scorecard.test.ts` plays every strategy on the default seed at
+the full fifty-year horizon and **fails** on any figure outside its band
+(Plan 15's PR G flipped it; Plan 09 wrote it to report). A failure is a
+regression, or a re-fit that has not re-recorded the reference. When a
+change moves a trajectory on purpose, re-run `--write-reference` and commit
+the envelope — and if it moves a target, edit the target and say why in the
+comment above it.
 
 ### Reading a strategy's run
 
@@ -211,6 +242,17 @@ the review's own seed (4242) it reproduces that appendix closely. It is also
 the only strategy that hires a coach, and therefore the only one that has
 ever won a national title.
 
+Since Plan 15 the harness knows two things about the game it did not need
+to before. **Seats before beds:** the freshman class is capped by the
+catalogue's seats, so a prudent strategy founds programs and sites halls
+while seats are the binding constraint, and saves for those rather than for
+a dorm; the two spend-to-the-wire archetypes keep overreaching on beds. And
+**halls stay pure** for every policy but the scatterer, because a hall of
+one school is what founds it and concentration is thirty points of standing
+— which means a hall is sited whenever none of the three offers fits the
+slots there are. `play()` also takes a `from` state, so a run can continue
+where another left off; the recovery assertion is built on it.
+
 ## When you add something
 
 - **A new interrupt** → add its case to `defaultAnswers.ts`, or every
@@ -220,5 +262,9 @@ ever won a national title.
   scorecard will report it as unmeasured.
 - **A new prestige input** → it appears in the Standing panel by itself. Give
   it a `detail` line that says what the score actually read.
+- **A term that should be measured before it counts** → a `StandingReading`
+  in `prestigeReadings`, with the weight the plan proposes for it, so the
+  panel can say what it would be worth. Promote it to an input in the PR
+  that makes it count, and drop the reading in the same PR.
 - **A new playtest shortcut** → a `DEBUG_*` action in the one block, and a
   control in the one panel.

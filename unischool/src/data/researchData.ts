@@ -614,6 +614,104 @@ export const INITIATIVE_COMPLETION_CREDIT: Record<InitiativeDepth, number> = {
 };
 
 // =====================================================================
+// GUARANTEED OUTPUT (Plan 15's PR C) — research that produces something.
+//
+// The September 2026 review counted the most frequent interrupt in the
+// game: a project concluding with "the work produced nothing publishable",
+// 61-74 of ~223 modals in a forty-year run, while forty years of
+// continuous research at a top-ranked school produced nine breakthroughs.
+// The during-run draw was a 0.5-3.4%-a-week silent lottery. It is gone,
+// and three legible rules replace it (see researchSystem.ts):
+//
+//   - PUBLICATIONS ARE BANKED, not rolled. Every week the team's output is
+//     banked toward the next paper, and every PUBLICATION_POINTS of it
+//     publishes one. A run's expected publications are therefore a plain
+//     product of its weekly output and its length, which is what the offer
+//     shows before the commitment. A Funded Project or deeper always
+//     publishes at least once — the concluding paper — however thin the
+//     team; a pilot publishes what it earned.
+//   - A BREAKTHROUGH ROLL ONCE A YEAR, at a stated probability. Every
+//     initiative rolls at each anniversary of its start and once more at
+//     its conclusion, at annualBreakthroughChance — depth times team
+//     strength. A three-year program at a strong school has three real
+//     chances, and the offer names the odds over the whole run.
+//   - GRANTS RIDE ON PUBLICATIONS. Each paper has GRANT_PER_PUBLICATION_
+//     CHANCE of bringing a grant with it, so a grant is a thing the work
+//     did rather than a thing that happened, and a strong team pulls in
+//     more money because it publishes more.
+//
+// The award at conclusion is unchanged (awardChance above) — still gated
+// on a breakthrough — and is now shown on the offer at the run's odds.
+// =====================================================================
+export const PUBLICATION_POINTS = 90;            // banked output per paper — the old publication pointCost
+export const GRANT_PER_PUBLICATION_CHANCE = 0.2; // a grant rides on roughly one paper in five
+
+// Per-roll breakthrough chance by depth, before team strength. Sized so a
+// Funded Project with an ordinary team lands one roughly every other run,
+// a Major Program most runs, and a pilot study rarely. PR G fits these.
+const BREAKTHROUGH_BASE_BY_DEPTH: Record<InitiativeDepth, number> = {
+  pilot: 0.04, project: 0.14, program: 0.26, landmark: 0.36,
+};
+const BREAKTHROUGH_TEAM_FLOOR = 0.5;
+const BREAKTHROUGH_CHANCE_CAP = 0.85;
+
+export function annualBreakthroughChance(depth: InitiativeDepth, strength: number): number {
+  return Math.min(BREAKTHROUGH_CHANCE_CAP, BREAKTHROUGH_BASE_BY_DEPTH[depth] * (BREAKTHROUGH_TEAM_FLOOR + strength));
+}
+
+// How many rolls a run of this length gets: one per started year.
+export function breakthroughRolls(weeks: number): number {
+  return Math.max(1, Math.ceil(weeks / WEEKS_PER_YEAR));
+}
+
+// Whether this week is a roll: an anniversary of the start, or the end.
+export function isBreakthroughRollWeek(weeksTotal: number, weeksRemaining: number): boolean {
+  const elapsed = weeksTotal - weeksRemaining;
+  return weeksRemaining <= 0 || (elapsed > 0 && elapsed % WEEKS_PER_YEAR === 0);
+}
+
+// The bet, stated: what this team at this depth should expect. Pure, off
+// the same functions the tick applies, so the offer cannot promise odds
+// the run does not give.
+export interface InitiativeOdds {
+  publications: number;        // expected papers over the run
+  annualBreakthroughChance: number;
+  rolls: number;               // breakthrough rolls over the run
+  breakthroughChance: number;  // at least one breakthrough, over the run
+  awardChance: number;         // an award at conclusion, over the run
+}
+
+export function initiativeOdds(
+  s: GameState, depth: InitiativeDepthDef, participants: readonly Faculty[],
+): InitiativeOdds {
+  const weekly = initiativeWeeklyOutput(s, participants, depth);
+  const strength = teamStrength(participants);
+  const annual = annualBreakthroughChance(depth.key, strength);
+  const rolls = breakthroughRolls(depth.weeks);
+  const atLeastOne = 1 - (1 - annual) ** rolls;
+  const banked = (weekly * depth.weeks) / PUBLICATION_POINTS;
+  return {
+    publications: depth.key === 'pilot' ? banked : Math.max(1, banked),
+    annualBreakthroughChance: annual,
+    rolls,
+    breakthroughChance: atLeastOne,
+    // Priced at one breakthrough: the common case, and an honest floor for
+    // a run that lands more.
+    awardChance: atLeastOne * awardChance(depth.key, strength, 1),
+  };
+}
+
+// Every field the university could ever research in — the union across
+// the schools that can hold a lab. The denominator research standing's
+// breadth term reads (prestigeSystem.ts): equipped fields over THIS, which
+// is what the sentence beside it always claimed it measured.
+export function researchableFields(): string[] {
+  const fields = new Set<string>();
+  for (const school of researchSchools()) for (const field of school.fields) fields.add(field);
+  return [...fields];
+}
+
+// =====================================================================
 // WHAT IS ON OFFER AT A VACANT FACILITY.
 //
 // Derived, never stored. Offers are a deterministic function of the
@@ -647,6 +745,8 @@ export interface InitiativeOffer {
    *  what the picker pre-fills, and what a one-click start commits. */
   suggested: Faculty[];
   fundingCost: number;
+  /** The bet at the suggested team's strength (see initiativeOdds). */
+  odds: InitiativeOdds;
   /** Why this option cannot be taken, if it cannot. */
   blockedReason?: string;
 }
@@ -711,6 +811,7 @@ export function initiativeOffers(s: GameState, labId: string): InitiativeOffer[]
         topic: { id: 'none', name: '—', fields: [] },
         suggested: [],
         fundingCost: initiativeFundingCost(s, depth),
+        odds: initiativeOdds(s, depth, []),
         blockedReason: depth.requiresCrossDisciplinary
           ? 'No interdisciplinary topic this facility can lead'
           : 'No topic available for this facility',
@@ -749,6 +850,9 @@ export function initiativeOffers(s: GameState, labId: string): InitiativeOffer[]
 
     // Unused, but kept in signature order for the caller's convenience.
     void depthIndex;
-    return { depth, topic, suggested, fundingCost: initiativeFundingCost(s, depth), blockedReason } satisfies InitiativeOffer;
+    return {
+      depth, topic, suggested, fundingCost: initiativeFundingCost(s, depth),
+      odds: initiativeOdds(s, depth, suggested.slice(0, depth.participants)), blockedReason,
+    } satisfies InitiativeOffer;
   });
 }

@@ -3,7 +3,7 @@ import { linePoints, MIN_SERIES_POINTS } from '../components/Sparkline';
 import HelpHint from '../components/HelpHint';
 import {
   prestigeBreakdown, researchStandingBreakdown, socialStandingBreakdown,
-  type StandingBreakdown, type StandingInput,
+  type StandingBreakdown, type StandingInput, type StandingReading,
 } from '../systems/prestige/prestigeSystem';
 
 // ---------------------------------------------------------------------
@@ -96,20 +96,29 @@ function HistoryChart({ label, years, values, format, note }: {
 // question about this model and the one no screen could answer.
 // ---------------------------------------------------------------------
 
-function StandingRow({ input, max }: { input: StandingInput; max: number }) {
+// A PENALTY row (crowding) draws the same bar in the penalty colour and
+// reads as a subtraction; a row's GRADE, when the standing has a report
+// card, is what this input was worth the morning of last summer's report
+// (see prestigeSystem.ts's gradeYear), shown beside what it is worth now.
+function StandingRow({ input, max, grade }: { input: StandingInput; max: number; grade?: number }) {
   const reach = input.weight * input.score;
+  const worth = Math.abs(input.contribution);
+  const sign = input.penalty ? '−' : '+';
   const pct = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
   return (
-    <li className="standing-row">
+    <li className={`standing-row${input.penalty ? ' standing-penalty' : ''}`}>
       <div className="standing-row-head">
         <span className="standing-row-label">{input.label}</span>
         <span className="standing-row-figure">
-          +{input.contribution.toFixed(1)}<span className="standing-row-of"> of {input.weight}</span>
+          {grade !== undefined && (
+            <span className="standing-row-grade" title="Graded last summer">{sign}{Math.abs(grade).toFixed(1)} → </span>
+          )}
+          {sign}{worth.toFixed(1)}<span className="standing-row-of"> of {input.weight}</span>
         </span>
       </div>
       <div className="standing-bar" aria-hidden="true">
         <div className="standing-bar-reach" style={{ width: pct(reach) }} />
-        <div className="standing-bar-fill" style={{ width: pct(input.contribution) }} />
+        <div className="standing-bar-fill" style={{ width: pct(worth) }} />
       </div>
       <p className="standing-detail">
         {input.detail}
@@ -124,6 +133,48 @@ function StandingRow({ input, max }: { input: StandingInput; max: number }) {
       </p>
     </li>
   );
+}
+
+// A READING is an input that does not count yet (see prestigeSystem.ts's
+// StandingReading): the same label, bar and line of prose, with only the
+// pale layer drawn — what it would reach at its proposed weight — and no
+// solid one, because it is worth nothing today. Plan 15's PR A puts four of
+// these on the academic standing so the year of play before PR B counts
+// them is a year of reading them. A reading with no weight is a ratio, not
+// a future input, and is shown as the figure it is.
+function ReadingRow({ item, max }: { item: StandingReading; max: number }) {
+  const pct = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
+  return (
+    <li className="standing-row standing-reading">
+      <div className="standing-row-head">
+        <span className="standing-row-label">{item.label}</span>
+        <span className="standing-row-figure">
+          {item.weight === undefined
+            ? `${Math.round(item.score * 100)}%`
+            : <>{item.penalty ? '−' : '+'}{item.reach.toFixed(1)}<span className="standing-row-of"> of {item.weight}, not yet counted</span></>}
+        </span>
+      </div>
+      {item.weight !== undefined && (
+        <div className="standing-bar" aria-hidden="true">
+          <div className="standing-bar-reach" style={{ width: pct(item.reach) }} />
+        </div>
+      )}
+      <p className="standing-detail">{item.detail}</p>
+    </li>
+  );
+}
+
+// The summer model, in a sentence: what the year is grading toward, how
+// the step works, and last summer's card if there is one.
+function summerNote(breakdown: StandingBreakdown, gap: number): string {
+  const { riseRate, fallRate, reportCard } = breakdown.summer!;
+  const grading = `This year is grading ${breakdown.target.toFixed(1)}; at the summer prestige closes `
+    + `${Math.round(riseRate * 100)}% of a gap upward and ${Math.round(fallRate * 100)}% downward`
+    + (Math.abs(gap) < 0.05 ? '.' : ` — ${gap > 0 ? '+' : '−'}${(Math.abs(gap) * (gap > 0 ? riseRate : fallRate)).toFixed(1)} if nothing changes.`);
+  const last = reportCard
+    ? ` Last summer graded ${reportCard.score.toFixed(0)} for year ${reportCard.year}: ${reportCard.before.toFixed(1)} → ${reportCard.after.toFixed(1)}.`
+    : ' No summer has graded it yet.';
+  return grading + last;
 }
 
 function Standing({ breakdown }: { breakdown: StandingBreakdown }) {
@@ -143,18 +194,32 @@ function Standing({ breakdown }: { breakdown: StandingBreakdown }) {
         </span>
       </div>
       <p className="standing-note">
-        {Math.abs(gap) < 0.05
-          ? 'Sitting at its target.'
-          : `Drifting ${gap > 0 ? 'up' : 'down'} toward ${breakdown.target.toFixed(1)}, by `
-            + `${(Math.abs(gap) * breakdown.driftRate).toFixed(3)} a week — about `
-            + `${(Math.abs(gap) * breakdown.driftRate * 52).toFixed(1)} over a year if nothing changes.`}
+        {breakdown.summer
+          ? summerNote(breakdown, gap)
+          : Math.abs(gap) < 0.05
+            ? 'Sitting at its target.'
+            : `Drifting ${gap > 0 ? 'up' : 'down'} toward ${breakdown.target.toFixed(1)}, by `
+              + `${(Math.abs(gap) * breakdown.driftRate).toFixed(3)} a week — about `
+              + `${(Math.abs(gap) * breakdown.driftRate * 52).toFixed(1)} over a year if nothing changes.`}
         {' '}Everything starts from a baseline of {breakdown.baseline}.
       </p>
       <ul className="standing-rows">
         {breakdown.inputs.map((input) => (
-          <StandingRow key={input.key} input={input} max={max} />
+          <StandingRow key={input.key} input={input} max={max} grade={breakdown.summer?.reportCard?.grades[input.key]} />
         ))}
       </ul>
+      {breakdown.readings.length > 0 && (
+        <>
+          <p className="standing-note standing-readings-note">
+            Read, not counted.
+          </p>
+          <ul className="standing-rows">
+            {breakdown.readings.map((item) => (
+              <ReadingRow key={item.key} item={item} max={max} />
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
@@ -166,7 +231,7 @@ function StandingPanel({ s }: { s: GameState }) {
         <h2>Standing</h2>
         <HelpHint
           align="end"
-          text="Each standing is a stock that drifts each week toward a target computed from these inputs. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier."
+          text="Each standing is a stock. Academic standing is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers; the other two drift weekly. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A red bar is a penalty."
         />
       </div>
       <div className="standings">

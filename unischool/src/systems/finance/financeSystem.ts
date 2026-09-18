@@ -1,6 +1,8 @@
 import type { ClassTuition, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
 import { studentOrgUpkeep } from '../../data/studentLifeData';
+import { marketRateMultiplier } from '../../data/facultyData';
+import { SEATS_PER_COURSE, instructionCapacity } from '../techtree/instructionCapacity';
 
 // ---------------------------------------------------------------------
 // This file is the game's primary throttle (see
@@ -83,40 +85,80 @@ import { studentOrgUpkeep } from '../../data/studentLifeData';
 const UPKEEP_PER_SEAT_PER_WEEK = 24;
 const UPKEEP_EMPTY_SEAT_MULTIPLIER = 0.5;
 
-// Instruction: charged on ENROLLED students, and rising with the size of
-// the catalogue being taught. A big curriculum is not free to run at
-// scale — every extra course is another set of sections, and a school
-// that has built out 200 courses spends far more per student than one
-// running 40. This is what stops "more students" from being pure profit
-// and what makes a tier-3 build-out felt on the very next tick, long
-// before the prestige it earns has drifted anywhere.
+// INSTRUCTION, PER SECTION (Plan 15's PR D, its §3). It used to be
+// `38 + 1.00 x coursesOffered` a week per enrolled student: every course a
+// permanent tax on every student, so a 421-course school paid $459 a week
+// a student in instruction and $2.70 in salaries, and instruction was 95%
+// of expense. Three lines replace that one; this is the first.
 //
-// Per-student weekly cost = BASE + PER_COURSE_OFFERED x (courses done).
-// At the founding catalogue (6 gen-ed courses) that is ~$44/wk (~$2.3k a
-// year, against a founding net tuition around $15k); at a fully built
-// 330-course catalogue it is ~$368/wk (~$19k a year, against a top-50
-// school's net tuition around $45k). That is the taper made concrete: at
-// MARKET-RATE pricing the margin per student stays positive at every
-// stage — an extra student is never a loss there — but it narrows as the
-// catalogue grows, so the late game's enormous tuition line does not
-// simply become free money.
+// A course costs SECTION_COST a week for every SECTION_SIZE students
+// enrolled in it. Per-course enrollment is read off the aggregate body —
+// every student takes COURSES_PER_STUDENT at once, spread evenly across
+// the catalogue — with no per-student state. A course that is offered
+// runs at least one section, however few take it; and it runs at most
+// the sections its seats hold — SEATS_PER_COURSE students each taking
+// COURSES_PER_STUDENT courses, in sections of SECTION_SIZE (see
+// instructionCapacity.ts; at the ceiling every section is exactly full)
+// — so a small catalogue at a big school runs enormous sections cheaply
+// — and crowds its students, which is what the crowding penalty and
+// Plan 15's intake ceiling are for — while a big catalogue at a small
+// school runs empty sections dearly. The RIGHT catalogue size for a given
+// enrollment becomes a real question whose answer changes as the school
+// grows. Fitted by PR G against the scorecard.
 //
-// That margin is NOT a law of the formula, though — it is one number a
-// player sets (the listed tuition) racing one the
-// catalogue sets (coursesOffered), and a school that discounts heavily
-// while building out a full curriculum can push its own net tuition per
-// student below this line, same as a real college whose list of majors
-// outgrew what its net price actually recovers per student. Deliberate,
-// not a bug: a big catalogue is a market-rate or a large-scale-enrollment
-// proposition, not a discount one — see admissionsSystem.ts's sticker
-// shock (why simply raising the sticker price to compensate doesn't work
-// for a school that also wants to look affordable) and sim/balanceSim.ts's
-// Strategy.courseAffordabilityAware (a heavily-discounted strategy that
-// tracks this and throttles its own curriculum build-out rather than
-// walking into the deficit). See the "stall, don't die" note further down
-// this file for why a school that walks into it anyway is not stuck there.
-const INSTRUCTION_PER_STUDENT_PER_WEEK = 38;
-const INSTRUCTION_PER_STUDENT_PER_COURSE_OFFERED = 1.00;
+// AT MARKET RATE, LIKE SALARIES. A section at a top-20 school is taught,
+// equipped and housed at what top-20 schools pay for those things, so the
+// section cost and the services line carry the same prestige multiplier
+// the payroll does (facultyData.ts's marketRateMultiplier). That is the
+// one lever that makes the founding years viable AND the late game tight:
+// a founding school at prestige 50 pays the base, a school at 130 pays
+// two and a half times it per student, and tuition does not rise that
+// fast. Fitted by PR G.
+export const SECTION_SIZE = 40;               // students a section holds
+export const SECTION_COST = 800;              // a week, a section, at prestige 50
+export const COURSES_PER_STUDENT = 4;         // taken at once
+const MAX_SECTIONS_PER_COURSE = (SEATS_PER_COURSE * COURSES_PER_STUDENT) / SECTION_SIZE;
+
+// SERVICES, PER STUDENT: advising, the registrar, IT, grounds. A flat
+// weekly cost every enrolled student carries, the line that makes the
+// marginal student's profit thin — and, from PR E, the line crowding
+// raises (see servicesMultiplier).
+export const SERVICES_PER_STUDENT_PER_WEEK = 45; // at prestige 50
+
+export interface InstructionDetail {
+  courses: number;        // offered ('done')
+  perCourse: number;      // students enrolled in each, off the aggregate body
+  sectionsPerCourse: number;
+  sections: number;       // courses x sectionsPerCourse
+  fill: number;           // how full the sections run, 0..1 (1 = every seat taken)
+  overflow: number;       // students beyond what the catalogue's sections seat — the crowding case
+  cost: number;           // sections x SECTION_COST, a week
+}
+
+// The one computation of the instruction line, so the Treasury can say
+// "421 courses in 842 sections of 40" off the same arithmetic the tick
+// charges. Pure.
+export function instructionDetail(s: GameState): InstructionDetail {
+  const enrolled = totalEnrolled(s.students);
+  const courses = s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
+  if (courses === 0) {
+    return { courses: 0, perCourse: 0, sectionsPerCourse: 0, sections: 0, fill: 0, overflow: enrolled, cost: 0 };
+  }
+  const perCourse = (enrolled * COURSES_PER_STUDENT) / courses;
+  const sectionsPerCourse = Math.max(1, Math.min(MAX_SECTIONS_PER_COURSE, Math.ceil(perCourse / SECTION_SIZE)));
+  const sections = courses * sectionsPerCourse;
+  const seated = sections * SECTION_SIZE;
+  const demand = enrolled * COURSES_PER_STUDENT;
+  return {
+    courses,
+    perCourse,
+    sectionsPerCourse,
+    sections,
+    fill: Math.min(1, demand / seated),
+    overflow: Math.max(0, Math.round((demand - seated) / COURSES_PER_STUDENT)),
+    cost: sections * SECTION_COST * marketRateMultiplier(s.self.reputation),
+  };
+}
 
 // Faculty salaries and per-Buildable upkeep are not constants here: they
 // are summed live off the roster (see facultyData.ts's facultySalary —
@@ -243,9 +285,10 @@ export interface FinanceBreakdown {
   endowmentPayout: number;     // the endowment's annual spend rate, sliced into weeks
   totalIncome: number;
   // expenses
-  weeklySalaries: number;      // the faculty payroll, annualized salaries sliced into weeks
+  weeklySalaries: number;      // the faculty payroll at market rate (see facultyData.ts's marketRateMultiplier), annualized salaries sliced into weeks
   seatUpkeep: number;          // capacity x UPKEEP_PER_SEAT_PER_WEEK — the physical plant, sized by beds not bodies
-  instructionCost: number;     // enrolled x (base + per-course-offered) — teaching the catalogue you have built
+  instructionCost: number;     // sections x SECTION_COST — teaching the catalogue you have built, section by section (see instructionDetail)
+  servicesCost: number;        // enrolled x SERVICES_PER_STUDENT_PER_WEEK x servicesMultiplier — advising, registrar, IT, grounds
   academicUpkeep: number;      // running the courses, academic buildings and labs that are done
   facilityUpkeep: number;      // running the dorms and campus-life facilities that are done
   studentLifeUpkeep: number;   // running the clubs and Greek chapters the player has recognised (see data/studentLifeData.ts)
@@ -266,11 +309,48 @@ function upkeepFor(s: GameState, academic: boolean): number {
 }
 
 // The per-student weekly cost of instruction at the current catalogue
-// size. Exported so the Treasury can explain the line rather than just
-// reporting it — one formula, no second copy to drift.
+// size — a reading of the section model above, for the sim's affordability
+// check and the Treasury's note. Zero for an empty campus.
 export function instructionCostPerStudent(s: GameState): number {
-  const coursesOffered = s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
-  return INSTRUCTION_PER_STUDENT_PER_WEEK + INSTRUCTION_PER_STUDENT_PER_COURSE_OFFERED * coursesOffered;
+  const enrolled = totalEnrolled(s.students);
+  return enrolled <= 0 ? 0 : instructionDetail(s).cost / enrolled;
+}
+
+// The same reading with `extra` more courses offered, for a strategy asking
+// whether the next course still pays (sim/balanceSim.ts).
+export function instructionCostPerStudentWith(s: GameState, extra: number): number {
+  const enrolled = totalEnrolled(s.students);
+  if (enrolled <= 0) return 0;
+  const courses = s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length + extra;
+  if (courses <= 0) return 0;
+  const perCourse = (enrolled * COURSES_PER_STUDENT) / courses;
+  const sectionsPerCourse = Math.max(1, Math.min(MAX_SECTIONS_PER_COURSE, Math.ceil(perCourse / SECTION_SIZE)));
+  return (courses * sectionsPerCourse * SECTION_COST * marketRateMultiplier(s.self.reputation)) / enrolled;
+}
+
+// What crowding does to the services line (Plan 15's PR E): nothing up to
+// SERVICES_CROWDING_FROM of instruction capacity, then rising linearly to
+// 1 + SERVICES_CROWDING_AT_FULL at the ceiling and on past it, capped. A
+// school at its ceiling is paying for it before it is over it. A campus
+// with no seats at all reads the cap.
+export const SERVICES_CROWDING_FROM = 0.85;
+export const SERVICES_CROWDING_AT_FULL = 0.5;
+const SERVICES_CROWDING_CAP = 2.0;
+export function servicesMultiplier(s: GameState): number {
+  const enrolled = totalEnrolled(s.students);
+  if (enrolled <= 0) return 1;
+  const capacity = instructionCapacity(s);
+  if (capacity <= 0) return SERVICES_CROWDING_CAP;
+  const used = enrolled / capacity;
+  const past = Math.max(0, (used - SERVICES_CROWDING_FROM) / (1 - SERVICES_CROWDING_FROM));
+  return Math.min(SERVICES_CROWDING_CAP, 1 + SERVICES_CROWDING_AT_FULL * past);
+}
+
+// A hire's pay THIS WEEK: the salary on the roster times the market rate
+// the school's standing commands. Exported so the Faculty tab and the
+// payroll lever read what the tick charges.
+export function facultyPay(s: GameState, salary: number): number {
+  return salary * marketRateMultiplier(s.self.reputation);
 }
 
 // What the school bills in tuition across a whole year: every class's own
@@ -309,11 +389,17 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   const tuitionRevenue = annualTuitionBilled(s) / WEEKS_PER_YEAR;
   const prestigeRevenue = (s.self.reputation * REPUTATION_DIVIDEND_PER_POINT_PER_YEAR) / WEEKS_PER_YEAR;
   const endowmentPayout = (s.finance.endowment * ENDOWMENT_PAYOUT_RATE) / WEEKS_PER_YEAR;
-  const weeklySalaries = s.faculty.reduce((sum, f) => sum + f.salary, 0) / WEEKS_PER_YEAR;
+  // SALARIES AT MARKET RATE (Plan 15's PR D): a top-20 school pays what
+  // top-20 schools pay. The roster's salaries are the base; the school's
+  // prestige tier multiplies them (facultyData.ts's marketRateMultiplier),
+  // so payroll goes from under 1% of opex to a fifth of it, and "can I
+  // afford this hire" is a question again after year five.
+  const weeklySalaries = s.faculty.reduce((sum, f) => sum + facultyPay(s, f.salary), 0) / WEEKS_PER_YEAR;
   const filledSeats = Math.min(enrolled, s.students.capacity);
   const emptySeats = Math.max(s.students.capacity - filledSeats, 0);
   const seatUpkeep = (filledSeats + emptySeats * UPKEEP_EMPTY_SEAT_MULTIPLIER) * UPKEEP_PER_SEAT_PER_WEEK;
-  const instructionCost = enrolled * instructionCostPerStudent(s);
+  const instructionCost = instructionDetail(s).cost;
+  const servicesCost = enrolled * SERVICES_PER_STUDENT_PER_WEEK * marketRateMultiplier(s.self.reputation) * servicesMultiplier(s);
   const academicUpkeep = upkeepFor(s, true);
   const facilityUpkeep = upkeepFor(s, false);
   const studentLifeUpkeep = studentOrgUpkeep(s);
@@ -324,7 +410,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   // founding fork. Every school now lives on what it charges, what its
   // standing attracts and what its endowment pays out.
   const totalIncome = tuitionRevenue + prestigeRevenue + endowmentPayout;
-  const totalExpenses = weeklySalaries + seatUpkeep + instructionCost + academicUpkeep +
+  const totalExpenses = weeklySalaries + seatUpkeep + instructionCost + servicesCost + academicUpkeep +
     facilityUpkeep + studentLifeUpkeep;
 
   return {
@@ -335,6 +421,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
     weeklySalaries,
     seatUpkeep,
     instructionCost,
+    servicesCost,
     academicUpkeep,
     facilityUpkeep,
     studentLifeUpkeep,
@@ -378,20 +465,15 @@ export function tickFinance(s: GameState): void {
 //  1. Empty capacity self-mothballs (UPKEEP_EMPTY_SEAT_MULTIPLIER above),
 //     so the cost of over-building is bounded and falls as the school
 //     shrinks back toward the enrollment it can actually draw.
-//  2. Instruction is charged per ENROLLED student, never per bed, so it
-//     tapers with enrollment automatically the same way seat upkeep does
-//     — it is never a fixed bill a shrinking school is stuck under. At
-//     market-rate pricing it also stays below net tuition per student at
-//     every catalogue size (see instructionCostPerStudent's own note
-//     above), so an extra student there is never a loss. A school that
-//     discounts far enough while building out its curriculum CAN invert
-//     that margin — deliberately, the intended tension between curriculum
-//     breadth and a low net price — and unlike an empty bed it will not
-//     self-correct by enrollment growth alone: a per-student loss gets
-//     wider, not narrower, the more students walk into it. What still
-//     makes it recoverable is lever 4 below (move the price) plus firing
-//     faculty, both unconditional; no combination of tuition and catalogue
-//     size can put the margin somewhere neither one reaches.
+//  2. Instruction is charged per SECTION, and sections follow enrollment:
+//     a shrinking school runs fewer of them, down to the one section a
+//     course always runs. That floor — a catalogue's worth of single
+//     sections — is the one fixed bill here, and it is the felt cost of a
+//     catalogue bigger than the school (the "empty sections" case in
+//     instructionDetail's note). What makes it recoverable is lever 4
+//     below (move the price) plus firing faculty, both unconditional;
+//     Plan 15's PR G fits the constants so the floor stalls and never
+//     sinks.
 //  3. Demand cannot collapse to zero: satisfaction is floored by
 //     satisfactionSystem.ts's ATTRIBUTE_SCORE_FLOOR (so word of mouth
 //     bottoms out around 0.63x, not 0), and prestige's biggest input,

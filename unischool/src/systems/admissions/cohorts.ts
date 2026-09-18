@@ -43,7 +43,7 @@ export type { CohortId };
 export const COHORTS: Array<{ id: CohortId; label: string; baseShare: number; driverLabel: string }> = [
   { id: 'highAchievers', label: 'High achievers', baseShare: 0.20, driverLabel: 'distinguished & graduate programs' },
   { id: 'preProfessional', label: 'Pre-professional', baseShare: 0.22, driverLabel: 'established career-track majors' },
-  { id: 'researchOriented', label: 'Research-oriented', baseShare: 0.10, driverLabel: 'research output & labs' },
+  { id: 'researchOriented', label: 'Research-oriented', baseShare: 0.10, driverLabel: 'publications, breakthroughs, prizes & labs' },
   { id: 'social', label: 'Social', baseShare: 0.15, driverLabel: 'clubs & Greek chapters' },
   { id: 'artsFocused', label: 'Arts-focused', baseShare: 0.08, driverLabel: 'arts programs & venues' },
   { id: 'priceSensitive', label: 'Price-sensitive', baseShare: 0.15, driverLabel: 'your price vs. what your prestige supports' },
@@ -115,6 +115,7 @@ export interface CohortSignals {
   distinguishedDepth: number;   // program-distinguished + 2x grad-program-complete
   professionalPrograms: number; // established PRE_PROFESSIONAL_PREFIXES majors, 0..24
   researchRate: number;         // weeklyResearchPoints(s)
+  researchOutput: number;       // what the labs have PRODUCED — publications at a tenth, breakthroughs, prizes at three (Plan 15's PR C: output reaches the applicant pool, labelled)
   labCount: number;             // 'facilityType' === 'lab' Buildables done
   socialOrgCount: number;       // clubs + chapters
   artsPrograms: number;         // established ARTS_PREFIXES majors, 0..6
@@ -130,6 +131,7 @@ export function deriveCohortSignals(s: GameState): CohortSignals {
     distinguishedDepth: milestoneCountWithPrefix(s, 'program-distinguished:') + 2 * milestoneCountWithPrefix(s, 'grad-program-complete:'),
     professionalPrograms: establishedPrefixCount(s, PRE_PROFESSIONAL_PREFIXES),
     researchRate: weeklyResearchPoints(s),
+    researchOutput: 0.1 * s.research.publications + s.research.breakthroughs + 3 * s.research.prizes,
     labCount: s.tech.filter((t) => t.status === 'done' && t.facilityType === 'lab').length,
     socialOrgCount: s.orgs.clubs.length + s.orgs.chapters.length,
     artsPrograms: establishedPrefixCount(s, ARTS_PREFIXES),
@@ -154,7 +156,7 @@ export function deriveCohortSignals(s: GameState): CohortSignals {
 // centered on, so cohortDemandFactor(NEUTRAL_SIGNALS, ...) at a net price
 // exactly at priceTolerance is exactly 1.0 (no effect either way).
 export const NEUTRAL_COHORT_SIGNALS: CohortSignals = {
-  distinguishedDepth: 0, professionalPrograms: 0, researchRate: 0, labCount: 0,
+  distinguishedDepth: 0, professionalPrograms: 0, researchRate: 0, researchOutput: 0, labCount: 0,
   socialOrgCount: 0, artsPrograms: 0, artsFacilities: 0, activeTeams: 0, athleticsQuality: 0,
   gradCourseDepth: 0,
 };
@@ -220,7 +222,10 @@ function pullFor(id: CohortId, signals: CohortSignals, tolerance: number, tuitio
   switch (id) {
     case 'highAchievers': return boundedPull(HIGH_ACHIEVER_STRENGTH, HIGH_ACHIEVER_DECAY, signals.distinguishedDepth);
     case 'preProfessional': return boundedPull(PRE_PROFESSIONAL_STRENGTH, PRE_PROFESSIONAL_DECAY, signals.professionalPrograms);
-    case 'researchOriented': return boundedPull(RESEARCH_STRENGTH, RESEARCH_DECAY, signals.researchRate / 10 + signals.labCount);
+    // Capacity AND output: the labs and who staffs them, plus what they have
+    // actually produced. A breakthrough is worth a lab to the cohort that
+    // chooses a university for its research.
+    case 'researchOriented': return boundedPull(RESEARCH_STRENGTH, RESEARCH_DECAY, signals.researchRate / 10 + signals.labCount + signals.researchOutput);
     case 'social': return boundedPull(SOCIAL_STRENGTH, SOCIAL_DECAY, signals.socialOrgCount);
     case 'artsFocused': return boundedPull(ARTS_STRENGTH, ARTS_DECAY, signals.artsPrograms * 1.5 + signals.artsFacilities * 2);
     case 'priceSensitive': return priceSensitivePull(tolerance, tuition);

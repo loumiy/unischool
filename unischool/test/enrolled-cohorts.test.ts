@@ -63,6 +63,11 @@ function playYearAt(start: GameState, tuition: number): GameState {
   for (let i = 0; i < WEEKS_PER_YEAR * 2; i += 1) {
     const pending = s.pendingInterrupt;
     if (pending?.type === 'admissions') {
+      // Held at a content year: this file pins the ADVANCE, and a school
+      // played with nothing built would otherwise lose students to
+      // attrition at every summer (Plan 15's PR F, pinned by
+      // test/consequences.test.ts), which is a different fact.
+      s.students.satisfactionYearSum = 70 * s.students.satisfactionYearWeeks;
       return reducer(s, {
         type: 'RESOLVE_ADMISSIONS', tuition, admitRate: s.students.admitRate, approvedPetitionIds: [],
       });
@@ -118,8 +123,14 @@ function checkSums(s: GameState, when: string): void {
     assert(after.senior[c.id] === before.junior[c.id],
       `${c.label}: juniors advance to senior`);
   }
-  assert(JSON.stringify(Object.values(after)).indexOf(JSON.stringify(departing)) === -1 || sum(departing) === 0,
-    'the graduating seniors’ split is not carried forward anywhere');
+  // Compared against the three ADVANCED classes only: a freshman class of
+  // exactly the departing seniors' size (which the intake ceiling can
+  // produce — Plan 15's PR E) has the same neutral split by construction,
+  // and that is a coincidence, not a carry-forward.
+  assert(
+    JSON.stringify([after.sophomore, after.junior, after.senior]).indexOf(JSON.stringify(departing)) === -1 || sum(departing) === 0,
+    'the graduating seniors’ split is not carried forward anywhere',
+  );
 }
 
 // =====================================================================

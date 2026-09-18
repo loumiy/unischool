@@ -1,7 +1,11 @@
 import type { ClassTuition, GameState } from '../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../state/types';
 import type { Action } from '../state/actions';
-import { financeBreakdown, instructionCostPerStudent, endowmentCampaign } from '../systems/finance/financeSystem';
+import {
+  financeBreakdown, instructionDetail, endowmentCampaign, SECTION_SIZE, SECTION_COST,
+  SERVICES_PER_STUDENT_PER_WEEK, servicesMultiplier,
+} from '../systems/finance/financeSystem';
+import { marketRateMultiplier } from '../data/facultyData';
 import HelpHint from '../components/HelpHint';
 
 // ---------------------------------------------------------------------
@@ -52,6 +56,18 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
   const annualNet = flow.net * WEEKS_PER_YEAR;
   const coursesDone = s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
   const campaign = endowmentCampaign(s);
+  const teaching = instructionDetail(s);
+  const marketRate = marketRateMultiplier(s.self.reputation);
+  const services = servicesMultiplier(s);
+  // A cost model the player cannot read is the same problem as a prestige
+  // formula they cannot read: the line says how the sections are running.
+  const sectionsNote = teaching.courses === 0
+    ? 'no course is offered yet'
+    : teaching.overflow > 0
+      ? `every section is full and ${teaching.overflow.toLocaleString()} students are in overflow — the catalogue is smaller than the school`
+      : teaching.fill >= 0.85
+        ? `sections are running ${Math.round(teaching.fill * 100)}% full`
+        : `sections are running ${Math.round(teaching.fill * 100)}% full — the catalogue is bigger than the school`;
 
   return (
     <div className="tab-content">
@@ -89,7 +105,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
             <h3>Expenses</h3>
             <StatementLine
               label="Faculty salaries"
-              note={`${s.faculty.length} on the roster; salaries rise with tenure`}
+              note={`${s.faculty.length} on the roster at ×${marketRate.toFixed(2)} market rate for prestige ${Math.round(s.self.reputation)}; salaries rise with tenure`}
               amount={flow.weeklySalaries}
             />
             <StatementLine
@@ -99,8 +115,13 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
             />
             <StatementLine
               label="Instruction"
-              note={`${totalEnrolled(s.students).toLocaleString()} enrolled × ${money(instructionCostPerStudent(s))}/wk — rises with every course you offer (${coursesDone})`}
+              note={`${teaching.courses.toLocaleString()} courses in ${teaching.sections.toLocaleString()} sections of ${SECTION_SIZE}, at ${money(SECTION_COST)} a section; ${sectionsNote}`}
               amount={flow.instructionCost}
+            />
+            <StatementLine
+              label="Services"
+              note={`${totalEnrolled(s.students).toLocaleString()} enrolled × ${money(SERVICES_PER_STUDENT_PER_WEEK)}/wk — advising, registrar, IT, grounds${services > 1 ? ` — ×${services.toFixed(2)} for crowding` : ''}`}
+              amount={flow.servicesCost}
             />
             <StatementLine
               label="Academic upkeep"

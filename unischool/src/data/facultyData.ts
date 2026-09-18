@@ -605,6 +605,21 @@ export const ACCLAIM_SALARY_PREMIUM = 0.35;
 // figure written once would be overwritten the following tick, so the
 // award has to be an input to the curve instead. Defaults to 0, which is
 // what a candidate on the market and a newly generated hire both have.
+// SALARIES AT MARKET RATE (Plan 15's PR D). What a school pays is the
+// roster's salary times the rate its standing commands: 1.0 at prestige 50
+// and 2.2 at 130, linear between, floored at 1 and capped a little above
+// the top of the band — a top-20 school pays what top-20 schools pay.
+// Applied at the payroll (financeSystem.ts's facultyPay), never written
+// into `salary`, so the figure on a listing is the person's price and the
+// figure in the Treasury is what this school pays for them.
+const MARKET_RATE_AT_PRESTIGE_50 = 1.0;
+const MARKET_RATE_AT_PRESTIGE_130 = 3.4;
+const MARKET_RATE_CAP = 4.0;
+export function marketRateMultiplier(prestige: number): number {
+  const slope = (MARKET_RATE_AT_PRESTIGE_130 - MARKET_RATE_AT_PRESTIGE_50) / (130 - 50);
+  return Math.max(MARKET_RATE_AT_PRESTIGE_50, Math.min(MARKET_RATE_CAP, MARKET_RATE_AT_PRESTIGE_50 + (prestige - 50) * slope));
+}
+
 export function facultySalary(teaching: number, research: number, tenureWeeks: number, acclaim = 0): number {
   const skillBase = SALARY_BASE + (teaching + research) * SALARY_PER_SKILL_POINT;
   const tenurePremium = 1 - (1 - SALARY_GROWTH_RATE_PER_WEEK) ** tenureWeeks;

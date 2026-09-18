@@ -185,16 +185,19 @@ const FACULTY_QUALITY_MAX_BONUS = 15; // added to `academic` when every course o
 // weekly attrition trickle, so nothing here writes to enrollment — this
 // module only computes the number and the breakdown behind it.
 //
-// That one consequence is now load-bearing for the growth loop, and it is
-// why the ratio attributes above are scored against CAPACITY rather than
-// enrollment. Finishing a dorm dilutes every ratio the same week the beds
-// appear, months before the students who fill them are even admitted; the
-// dip in satisfaction shrinks the pool at the next summer funnel, which
-// shrinks the class that was supposed to pay for the dorm. Growth
-// therefore has to be paid for TWICE and in advance — once in the dorm's
-// own cost and upkeep, once in the dining hall/health capacity that keeps
-// the dilution from throttling demand. That is the whole point: capacity
-// is not free enrollment.
+// That one consequence is load-bearing for the growth loop. Four of the
+// five ratio attributes are scored against the ENROLLED body (housing is
+// the exception: beds over enrolled — see TARGET_RATIO), so a class that
+// arrives ahead of the dining hall built for it dilutes every ratio the
+// summer it enrolls; the dip in satisfaction shrinks the pool at the next
+// funnel, which shrinks the class that was supposed to pay for the campus.
+// Growth therefore has to be paid for in advance — in the dining hall and
+// health capacity that keeps the dilution from throttling demand, and
+// since Plan 15 in the crowding penalty on standing and the students a bad
+// year costs. (This note used to say the ratios were scored against
+// CAPACITY, and docs/design/economy.md repeated it; the September 2026
+// review found the code had read enrolled for years. Plan 15's PR H
+// corrected both.)
 //
 // ATTRIBUTE_SCORE_FLOOR is what keeps that from becoming a death spiral:
 // no attribute reaches zero, so satisfaction bottoms out well above it,

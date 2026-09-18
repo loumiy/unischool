@@ -107,7 +107,7 @@ console.log('research commitment tests');
   s.research.initiatives[labId] = {
     labId, topicId: 'X01', depth: 'pilot',
     participantIds: [five.id, two.id, one.id],
-    weeksTotal: 26, weeksRemaining: 26, publications: 0, breakthroughs: 0, grantIncome: 0,
+    weeksTotal: 26, weeksRemaining: 26, publications: 0, breakthroughs: 0, grantIncome: 0, banked: 0,
   };
 
   assert(isCommitted(s, five.id), 'and a committed one is committed');

@@ -31,16 +31,14 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
-import {
-  REFERENCE, METRICS, TOLERANCE,
-  bandsFrom, describeFinding, findingsFor, metricOf, serialiseReference,
-  type Metric, type Reference,
-} from './reference';
+import { METRICS, TOLERANCE, describeFinding, findingsFor, metricOf, serialiseReference, type Metric, type Reference, bandsAcross, REFERENCE_HORIZON, REFERENCE_EXTRA_SEEDS, bandsFor } from './reference';
 import type { Action } from '../src/state/actions';
 import { createPreStartState } from '../src/state/actions';
 import type { AthleticsBudgetTier, GameState, Buildable, InitiativeReport } from '../src/state/types';
 import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
-import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudent } from '../src/systems/finance/financeSystem';
+import { playerRank } from '../src/systems/rivals/rivalsSystem';
+import { intakeCeiling } from '../src/systems/techtree/instructionCapacity';
+import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudentWith, SERVICES_PER_STUDENT_PER_WEEK } from '../src/systems/finance/financeSystem';
 import { admitRate, priceTolerance, topBandShare } from '../src/systems/admissions/admissionsSystem';
 import { TUITION_SLIDER_MAX, FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import {
@@ -204,8 +202,11 @@ function courseStaysSustainable(s: GameState, strategy: Strategy): boolean {
   if (!strategy.courseAffordabilityAware) return true;
   const netTuitionPerStudentPerWeek = strategy.tuition(s) / WEEKS_PER_YEAR;
   const developingCourses = s.tech.filter((t) => t.kind === 'course' && t.status === 'developing').length;
-  const projectedInstructionCostPerStudent = instructionCostPerStudent(s) + developingCourses + 1;
-  return netTuitionPerStudentPerWeek >= projectedInstructionCostPerStudent;
+  // Instruction is charged per SECTION since Plan 15's PR D, so "one more
+  // course" is read off the same model with the developing ones counted
+  // in — and the services line every student carries sits beside it.
+  const projectedPerStudent = instructionCostPerStudentWith(s, developingCourses + 1) + SERVICES_PER_STUDENT_PER_WEEK;
+  return netTuitionPerStudentPerWeek >= projectedPerStudent;
 }
 
 // Whether this week's cash flow leaves room to take on a new RECURRING
@@ -522,10 +523,12 @@ function slotFor(s: GameState, school: string, policy: NonNullable<Strategy['fou
   // An empty hall.
   const empty = halls.find((hallId) => hallSchools(s, hallId).size === 0);
   if (empty) return firstFree(empty);
-  // The completionist would rather wait for a hall than mix one; everyone
-  // else takes what is free.
-  if (policy === 'school-first') return null;
-  return halls.length > 0 ? firstFree(halls[0]) : null;
+  // Nobody prudent mixes a hall (Plan 15's PR G): a hall of one school is
+  // what founds it, and concentration is thirty points of standing, so
+  // the cheapest-first and school-first policies both wait for a hall
+  // rather than fill a slot with a stranger. Only the scatterer control
+  // mixes, which is what it is for.
+  return null;
 }
 
 function freeSlot(s: GameState): { hallId: string; slot: number } | null {
@@ -551,17 +554,42 @@ function freeSlot(s: GameState): { hallId: string; slot: number } | null {
 // the one capital line it is supposed to overreach on, and the
 // "stall, don't die" checks in test/balance-regression.test.ts would be
 // measuring a player who no longer exists.
+// Whether the catalogue's seats, not beds, are what stops the school
+// growing: little room left for next summer's class, and something a
+// strategy could do about it — a program on offer with a slot to take, or
+// a hall to site.
+function seatsAreTheConstraint(s: GameState): boolean {
+  // Tight means the catalogue holds little more than the body it has: in
+  // steady state the room left each summer is exactly the class that just
+  // graduated, so the test is seats against the whole body, not the room.
+  const enrolled = totalEnrolled(s.students);
+  const tight = intakeCeiling(s).capacity - enrolled < Math.max(60, 0.15 * enrolled);
+  if (!tight) return false;
+  const canFound = s.programOffers.length > 0 && freeSlot(s) !== null;
+  const canSite = s.tech.some((t) => isAcademicHall(t) && (t.status === 'available' || t.status === 'developing'));
+  return canFound || canSite;
+}
+
 function siteHallIfNeeded(get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy): void {
   const s = get();
   const eager = strategy.netMargin <= 0;
   // "Nowhere to put them" is policy-shaped: the school-first player with
   // only mixed halls free has nowhere PURE to put an offer, and sites the
   // next hall rather than mixing one.
+  // Nowhere to found: no free slot at all, or — for the two policies that
+  // keep halls pure — none of the three offers may take the slots there
+  // are, since the offer stands until one is taken and a pure hall with
+  // room only for one school is a deadlock without a second hall.
+  const policy = strategy.founding ?? 'cheapest';
   const nowhere = !freeSlot(s) || (
-    strategy.founding === 'school-first' &&
-    !s.programOffers.some((id) => { const p = programById(id); return p && slotFor(s, p.school, 'school-first') !== null; })
+    policy !== 'scatter' &&
+    !s.programOffers.some((id) => { const p = programById(id); return p && slotFor(s, p.school, policy) !== null; })
   );
-  if (!eager && (s.programOffers.length === 0 || !nowhere)) return;
+  // A prudent strategy also sites a hall when its seats are the constraint
+  // and every slot it has is taken (Plan 15's PR G) — that is what "seats
+  // before beds" means for the one capital line that adds seats.
+  const seatsShort = strategy.netMargin > 0 && seatsAreTheConstraint(s) && !freeSlot(s);
+  if (!eager && !seatsShort && (s.programOffers.length === 0 || !nowhere)) return;
   if (s.tech.some((t) => isAcademicHall(t) && t.status === 'developing')) return;
   const next = s.tech.find((t) => isAcademicHall(t) && t.status === 'available');
   if (!next) return;
@@ -657,7 +685,15 @@ function decide(
   // the only thing that turns demand into revenue. Ordering matters in
   // this harness for the same reason it matters in play — whatever comes
   // first in the week gets the cash.
-  if (strategy.buildsDorms) {
+  // SEATS BEFORE BEDS (Plan 15's PR G). Since PR E the freshman class is
+  // capped by the catalogue's seats, so a dorm bought while the catalogue
+  // is the binding constraint houses students the school cannot admit.
+  // A prudent strategy founds programs and sites halls first, and saves
+  // for those rather than for the dorm; the spend-to-the-wire archetypes
+  // (netMargin <= 0) keep overreaching on beds, which is what they are.
+  const seatsBound = strategy.netMargin > 0 && seatsAreTheConstraint(get());
+
+  if (strategy.buildsDorms && !seatsBound) {
     const s = get();
     const next = s.tech.find((t) => t.kind === 'dorm' && t.status === 'available');
     // The founding campus now opens with NO beds (see state/actions.ts), so
@@ -682,7 +718,7 @@ function decide(
   // play too, just not the one these runs are meant to measure.
   const beforeCurriculum = get();
   const nextDorm = beforeCurriculum.tech.find((t) => t.kind === 'dorm' && t.status === 'available');
-  const wantsDorm = nextDorm !== undefined && (
+  const wantsDorm = !seatsBound && nextDorm !== undefined && (
     // No beds yet but students to house — the founding hall (see the dorm
     // block above), or a full campus past the fill threshold.
     (beforeCurriculum.students.capacity === 0 && totalEnrolled(beforeCurriculum.students) > 0) ||
@@ -780,6 +816,7 @@ function decide(
 // ---------------------------------------------------------------------
 export interface Row {
   year: number; cash: number; enrolled: number; capacity: number; prestige: number;
+  rank: number; // national rank at the boundary (rivalsSystem.ts's playerRank) — Plan 15's PR G reads it on the scorecard
   opex: number; net: number; satisfaction: number; courses: number; majors: number;
   faculty: number; tuition: number; applicants: number; admitRate: number;
   endowment: number; weeksInTheRed: number; minCash: number;
@@ -886,6 +923,7 @@ function snapshot(
     enrolled: totalEnrolled(s.students),
     capacity: s.students.capacity,
     prestige: s.self.reputation,
+    rank: playerRank(s),
     opex: flow.totalExpenses,
     net: flow.net,
     satisfaction: s.students.satisfaction,
@@ -1056,10 +1094,20 @@ export function play(
   // boundary will ever land on it. Optional; today's callers pass nothing
   // and run to `years` exactly as they did.
   stopWhen?: (s: GameState) => boolean,
+  // Continue from a state another run left off at, instead of founding
+  // (Plan 15's PR G): the recovery scenario stands a school up in crisis
+  // under one strategy and asks whether another gets it out. Deep-cloned,
+  // so the run it came from is untouched.
+  from?: GameState,
 ): { rows: Row[]; tally: EventTally; venuesBuilt: string[]; state: GameState } {
   resetSimEnvironment(seedOverride);
-  let s = createPreStartState();
-  s = reducer(s, { type: 'START_GAME', name: 'Test University', vernacular: FOUNDING_VERNACULAR });
+  let s: GameState;
+  if (from) {
+    s = structuredClone(from);
+  } else {
+    s = createPreStartState();
+    s = reducer(s, { type: 'START_GAME', name: 'Test University', vernacular: FOUNDING_VERNACULAR });
+  }
   const dispatch = (a: Action) => { s = reducer(s, a); };
   // The same dispatch, counted. Handed to decide() alone, so what it
   // measures is DISCRETIONARY play — the starts, hires, placements,
@@ -1512,7 +1560,12 @@ export const STRATEGIES: Strategy[] = [
     // builder) and still the volume archetype at ~26k enrolled and a ~67%
     // admit rate, but now carrying what it grows.
     name: 'Discount volume (beds first)',
-    tuition: rampTuition(110, 3_000),
+    // A discount, not a giveaway (Plan 15's PR G): a sixth to a fifth under
+    // the balanced ramp. At the old ramp — $9k at founding, $15k at prestige
+    // 85 — a school whose per-student costs rise with its standing lost
+    // money on every student forever, and an archetype that dies of its
+    // price is not testing volume bought with aid.
+    tuition: rampTuition(180, 2_500),
     buffer: (s) => Math.max(200_000, s.finance.weeklyOpEx * 8),
     netMargin: 0.08,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
@@ -1626,11 +1679,19 @@ export const STRATEGIES: Strategy[] = [
     // old stream — the same archetype, restated at a price that does not
     // depend on the dice.
     name: 'Overbuilder (beds ahead of demand)',
-    tuition: () => 5_250,
+    // Priced a fifth under the balanced ramp rather than at a flat $5,250
+    // (Plan 15's PR G): under the section-and-services cost model a school
+    // charging less than it costs to teach a student cannot exist, and an
+    // archetype that dies of its price is not testing beds ahead of demand.
+    tuition: rampTuition(150, 2_000),
     buffer: () => 0,
     netMargin: -1,
-    buildsCourses: true, buildsDorms: true, buildsFacilities: false,
-    dormFillThreshold: 0, facilityThreshold: 0, campaigns: false,
+    // It builds the barest facilities — only when an attribute is dire —
+    // rather than none (Plan 15's PR G): with welfare and attrition in the
+    // model a campus that never feeds its students cannot recover from
+    // anything, and "stall, don't die" is a claim about beds, not hunger.
+    buildsCourses: true, buildsDorms: true, buildsFacilities: true,
+    dormFillThreshold: 0, facilityThreshold: 40, campaigns: false,
   },
   {
     // THE EARNEST COMPLETIONIST: the September 2026 review's own policy,
@@ -1805,7 +1866,7 @@ export const ADMIT_PROBES: Strategy[] = [
 // reference.ts's own header is careful about the difference.
 // ---------------------------------------------------------------------
 function reportScorecard(strategy: Strategy, rows: Row[]): void {
-  if (!REFERENCE[strategy.name]) {
+  if (!bandsFor(strategy.name)) {
     console.log(`   scorecard: no reference bands for "${strategy.name}" — run \`npm run sim -- --write-reference\``);
     return;
   }
@@ -1880,9 +1941,9 @@ const REFERENCE_PATH = 'sim/reference.ts';
 const GENERATED_START = '// --- GENERATED by `npm run sim -- --write-reference`. Do not hand-edit lightly. ---';
 const GENERATED_END = '// --- END GENERATED ---';
 
-function writeReference(runs: Record<string, Row[]>): void {
+function writeReference(runs: Record<string, Row[][]>): void {
   const reference: Reference = {};
-  for (const [name, rows] of Object.entries(runs)) reference[name] = bandsFrom(rows);
+  for (const [name, seeds] of Object.entries(runs)) reference[name] = bandsAcross(seeds);
 
   const source = readFileSync(REFERENCE_PATH, 'utf8');
   const start = source.indexOf(GENERATED_START);
@@ -1895,7 +1956,7 @@ function writeReference(runs: Record<string, Row[]>): void {
   const years = Object.values(reference)[0]?.map((r) => r.year).join(', ') ?? 'none';
   console.log(
     `\nwrote ${REFERENCE_PATH}: ${Object.keys(reference).length} strategies at years ${years}, `
-    + `each band the current run ±${(TOLERANCE * 100).toFixed(0)}%`,
+    + `each band the envelope of ${1 + REFERENCE_EXTRA_SEEDS.length} seeds at ±${(TOLERANCE * 100).toFixed(0)}%`,
   );
 }
 
@@ -1920,11 +1981,12 @@ if (isCliEntry) {
   const writingReference = flag('write-reference');
   // The reference describes the full horizon, so writing it ignores a
   // shorter one rather than recording bands for years it never reached.
-  const years = writingReference ? 40 : Number(positional[0] ?? 40);
+  const years = writingReference ? REFERENCE_HORIZON : Number(positional[0] ?? 40);
   const every = Number(positional[1] ?? 2);
   const filter = writingReference ? undefined : positional[2];
 
   const runs: Record<string, Row[]> = {};
+  const seedRuns: Record<string, Row[][]> = {};
   for (const strategy of STRATEGIES) {
     if (filter && !strategy.name.toLowerCase().includes(filter.toLowerCase())) continue;
     // play() resets seed/fakeStorage itself (see resetSimEnvironment) — no
@@ -1933,9 +1995,17 @@ if (isCliEntry) {
     runs[strategy.name] = run.rows;
     report(strategy, run, every);
     if (!writingReference) reportScorecard(strategy, run.rows);
+    // THREE-SEED BANDS (Plan 15's PR G). A band fitted to one seed is a
+    // claim about that seed: Plan 09's PR E found the earnest completionist
+    // reproducing the review exactly at seed 4242 and running 144 weeks in
+    // the red at seed 12345. So the reference is written from three
+    // streams, and each band is the envelope of the three.
+    if (writingReference) {
+      seedRuns[strategy.name] = [run.rows, ...REFERENCE_EXTRA_SEEDS.map((seed) => play(strategy, years, undefined, seed).rows)];
+    }
   }
 
-  if (writingReference) writeReference(runs);
+  if (writingReference) writeReference(seedRuns);
 
   const comparePath = flagValue('compare');
   if (comparePath) {
