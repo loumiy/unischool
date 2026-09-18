@@ -2116,7 +2116,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
     // and that asymmetry is most of its silhouette. Floodlight masts at the
     // corners are the tallest things on any campus and are what make it
     // recognisable at the zoom the game opens at.
-    const d = Math.min(w, h) * 0.17;          // stand depth, in tiles
+    const d = Math.min(w, h) * 0.2;           // stand depth, in tiles
     const iCol = col + d; const iRow = row + d;
     const iW = w - d * 2; const iH = h - d * 2;
     const bottom = H * 0.18;

@@ -148,7 +148,7 @@ const PLAN: Site[] = [
 
   // --- North campus: the venues. ---
   { id: 'ATH-STADIUM', row: 28, col: 23 },
-  { id: 'ATH-FIELD', row: 24, col: 49 },
+  { id: 'ATH-FIELD', row: 23, col: 47 },                   // 22x13 since the assets review
   { id: 'ATH-ARENA', row: 36, col: 47 },
   { id: 'ATH-DIAMOND', row: 24, col: 70 },
 ];

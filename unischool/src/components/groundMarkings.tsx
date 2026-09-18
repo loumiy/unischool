@@ -300,15 +300,14 @@ function Post({ at: t, from = 0, to, className }: { at: TilePt; from?: number; t
 // is just a green rectangle. Drawn along the footprint's longer axis, so a
 // rotated stadium still has its yard lines running the right way.
 // ---------------------------------------------------------------------
-function Gridiron({ col, row, w, h, inset = 0, posts = false }: GroundProps & { inset?: number; posts?: boolean }) {
+function Gridiron({ col, row, w, h, inset = 0, insetAcross = inset, posts = false }: GroundProps & {
+  inset?: number; insetAcross?: number; posts?: boolean;
+}) {
   const landscape = w >= h;
   // Work in (along, across) and map to (u, v) at the end, so the same
   // numbers describe the field whichever way round the footprint sits.
   const A = (a: number, c: number): [number, number] => (landscape ? [a, c] : [c, a]);
-  const lo = inset;
-  const hi = 1 - inset;
-  const span = hi - lo;
-  const at = (a: number, c: number): [number, number] => A(lo + a * span, lo + c * span);
+  const at = (a: number, c: number): [number, number] => A(inset + a * (1 - inset * 2), insetAcross + c * (1 - insetAcross * 2));
 
   const END_ZONE = 0.12;          // each end zone as a fraction of the field's length
   const HASH_IN = 0.36;           // how far in from each sideline the hash rows sit
@@ -378,12 +377,9 @@ function Gridiron({ col, row, w, h, inset = 0, posts = false }: GroundProps & { 
 // ---------------------------------------------------------------------
 function Diamond({ col, row, w, h }: GroundProps) {
   // Home plate sits well back from the footprint's front corner, because the
-  // SEATING needs that room: a ballpark's stands wrap around the plate and
-  // run down both foul lines, and at 0.82 across the plot there was only
-  // 1.35 tiles of arc radius to fit them in. At 0.70 there is 2.25, which is
-  // the difference between a small box behind the backstop and seating that
-  // reads as part of the complex. The outfield shrinks to match so the arc
-  // still finishes inside the plot.
+  // SEATING needs that room: a ballpark's grandstand wraps the plate and
+  // runs down both foul lines to the bases, and that horseshoe is a third
+  // of the plot.
   const g = diamondGeometry(col, row, w, h);
   const { hc, hr, R, TRACK, DIRT, BASE, from, to, bisect, short } = g;
   const home = project(hc, hr);
@@ -455,6 +451,15 @@ function Diamond({ col, row, w, h }: GroundProps) {
         const end = polar(R, a);
         return <line key={i} className="ground-line" x1={home.x} y1={home.y} x2={end.x} y2={end.y} />;
       })}
+      {/* Bullpens: a strip of dirt with a mound at each end, in foul
+          territory down each line past the grandstand. */}
+      {[from, to].map((a, i) => {
+        const r0 = short * 0.42; const r1 = short * 0.54; const off = 0.5; const wide = 0.32;
+        const pts: [number, number][] = a === from
+          ? [[hc - r1, hr + off], [hc - r0, hr + off], [hc - r0, hr + off + wide], [hc - r1, hr + off + wide]]
+          : [[hc + off, hr - r1], [hc + off + wide, hr - r1], [hc + off + wide, hr - r0], [hc + off, hr - r0]];
+        return <polygon key={`bp${i}`} className="ground-dirt-pale" points={polyPoints(pts.map(([c, r]) => project(c, r)))} />;
+      })}
     </>
   );
 }
@@ -465,8 +470,8 @@ function diamondGeometry(col: number, row: number, w: number, h: number) {
   const short = Math.min(w, h);
   return {
     short,
-    hc: col + w * 0.70,
-    hr: row + h * 0.70,
+    hc: col + w * 0.66,
+    hr: row + h * 0.66,
     R: short * 0.66,                 // outfield boundary
     TRACK: short * 0.66 * 0.87,      // inner edge of the warning track
     DIRT: short * 0.30,              // the infield skin
@@ -483,117 +488,128 @@ function diamondGeometry(col: number, row: number, w: number, h: number) {
 // groundProps at the bottom of this file.
 function diamondProps(col: number, row: number, w: number, h: number): GroundProp[] {
   const { hc, hr, R, from, to, bisect, short } = diamondGeometry(col, row, w, h);
-  const behind = bisect + Math.PI;
   const polar = (r: number, a: number): TilePt => [hc + r * Math.cos(a), hr + r * Math.sin(a)];
 
   const FENCE_H = up(2.4);
   const arcPts = projectedArc(hc, hr, R, from, to, 36);
 
   // --- the seating -----------------------------------------------------
-  // Five straight banks around home plate, not one continuous curve. The
-  // first version wrapped 172 degrees of unbroken arc, and what it read as
-  // was an amphitheatre — a shell behind the plate with concentric rings on
-  // it, which is what an arc with no breaks in it looks like from above
-  // whatever its section says. Every ballpark worth the name is built the
-  // other way: separate banks, set at an angle to each other, with an aisle
-  // between each pair.
+  // ONE HORSESHOE, in three straight pieces: a grandstand behind the plate
+  // set square to the bisector, and a wing down each foul line as far as
+  // the bases — all one depth, one height and one back wall, on a low
+  // field wall, with the covered press box over the middle. That is what a
+  // college ballpark is (Holman Stadium, the reference for this), and it is
+  // what neither of the two earlier drawings was: an unbroken arc read as
+  // an amphitheatre, and five fanned banks read as five crates on the lawn.
   //
-  // What the second version got wrong was the opposite: the banks shared
-  // nothing — different depths, gaps wide enough to walk a truck through,
-  // each with its own heavy back wall — and read as five concrete crates
-  // fanned out on the lawn. They now share one back radius and one front
-  // radius, so the backs run as one line; the gap between them is a real
-  // gangway rather than a hole; and the centre bank carries the covered
-  // press box a college ballpark has behind the plate. Still five props,
-  // because the depth sort needs them separate (see depth-sort.test.ts).
-  const SECTIONS = 5;
-  const SWEEP = 2.5;        // radians of seating in all, a little over 140 degrees
-  const AISLE = 0.055;      // radians of gangway between neighbouring banks
-  const rIn = short * 0.1;
-  const rOut = short * 0.27;
-  const slice = SWEEP / SECTIONS;
-  const bottomH = up(0.9);
+  // Three props rather than one because the depth sort needs them apart —
+  // a tree beside the third-base line passes in front of that wing and
+  // behind the plate stand (see depth-sort.test.ts). The foul lines run
+  // along the grid axes, so the wings are axis-aligned and draw cleanly.
+  const gap = 0.35;                     // the walkway between the line and the front row
+  const depth = short * 0.13;           // how deep the seating is
+  const s0 = 0.55;                      // where the wings start, out from the plate
+  const L = short * 0.30;               // and how far down the lines they run
+  const bottomH = up(1.0);
+  const topH = up(6.2);
+  const at = (t: TilePt, z: number) => lift(project(t[0], t[1]), z);
 
-  const stands: GroundProp[] = Array.from({ length: SECTIONS }, (_, k) => {
-    const a0 = behind - SWEEP / 2 + k * slice + AISLE / 2;
-    const a1 = a0 + slice - AISLE;
-    // The bank behind the plate is the grandstand; the ones down the lines
-    // are bleachers, and a ballpark's bleachers are lower.
-    const centre = k === Math.floor(SECTIONS / 2);
-    const deep = 1 - Math.abs(k - (SECTIONS - 1) / 2) * 0.14;
-    const topH = up(2.2) + up(3.4) * deep;
-    const corners: TilePt[] = [polar(rIn, a0), polar(rIn, a1), polar(rOut, a0), polar(rOut, a1)];
-    const cols = corners.map((c) => c[0]);
-    const rows = corners.map((c) => c[1]);
-    // The cover over the centre bank: a slab on four posts over the back
-    // half of the seating, with the press box's dark glazing band along its
-    // front edge.
-    const roof = (() => {
-      if (!centre) return null;
-      const mid = 0.5;
-      const f0: TilePt = polar(rIn + (rOut - rIn) * mid, a0); const f1: TilePt = polar(rIn + (rOut - rIn) * mid, a1);
-      const b0: TilePt = polar(rOut, a0); const b1: TilePt = polar(rOut, a1);
-      const at = (t: TilePt, z: number) => lift(project(t[0], t[1]), z);
-      const slabZ = topH + up(3.0);
-      const seatZ = bottomH + (topH - bottomH) * mid;
-      const slab = up(0.35);
+  // The wing down the -row line (first base): its inside face is toward -col.
+  const wingA = {
+    inner: [[hc + gap, hr - L], [hc + gap, hr - s0]] as [TilePt, TilePt],
+    outer: [[hc + gap + depth, hr - L], [hc + gap + depth, hr - s0]] as [TilePt, TilePt],
+  };
+  // The wing down the -col line (third base): its inside face is toward -row.
+  const wingB = {
+    inner: [[hc - s0, hr + gap], [hc - L, hr + gap]] as [TilePt, TilePt],
+    outer: [[hc - s0, hr + gap + depth], [hc - L, hr + gap + depth]] as [TilePt, TilePt],
+  };
+  // The grandstand behind the plate joins the two wings' near ends, square
+  // to the bisector, with its outer edge running corner to corner.
+  const plate = {
+    inner: [[hc + gap, hr - s0], [hc - s0, hr + gap]] as [TilePt, TilePt],
+    outer: [[hc + gap + depth, hr - s0], [hc - s0, hr + gap + depth]] as [TilePt, TilePt],
+  };
+  const boxOf = (pts: TilePt[]) => {
+    const cols = pts.map((c) => c[0]); const rows = pts.map((c) => c[1]);
+    return { col: Math.min(...cols), row: Math.min(...rows), w: Math.max(...cols) - Math.min(...cols), h: Math.max(...rows) - Math.min(...rows) };
+  };
+  const bank = (key: string, g: { inner: [TilePt, TilePt]; outer: [TilePt, TilePt] }, aisles: number, extra?: React.JSX.Element) => ({
+    key,
+    ...boxOf([...g.inner, ...g.outer]),
+    node: (
+      <>
+        <RakedStand outer={g.outer} inner={g.inner} bottomH={bottomH} topH={topH}
+          rakeFill={CONCRETE.rake} wallFill={CONCRETE.wall} seatStroke={CONCRETE.seat}
+          rows={7} aisles={aisles} wall endFaces />
+        {extra}
+      </>
+    ),
+  });
+
+  // The cover and press box over the plate stand: a slab on four posts over
+  // the back half of the seating, with the box's dark glazing band under it.
+  const cover = (() => {
+    const mid = 0.5;
+    const f0: TilePt = [plate.inner[0][0] + (plate.outer[0][0] - plate.inner[0][0]) * mid, plate.inner[0][1] + (plate.outer[0][1] - plate.inner[0][1]) * mid];
+    const f1: TilePt = [plate.inner[1][0] + (plate.outer[1][0] - plate.inner[1][0]) * mid, plate.inner[1][1] + (plate.outer[1][1] - plate.inner[1][1]) * mid];
+    const [b0, b1] = plate.outer;
+    const slabZ = topH + up(3.0); const slab = up(0.35);
+    const seatZ = bottomH + (topH - bottomH) * mid;
+    return (
+      <>
+        <Post at={b0} from={topH} to={slabZ} className="ground-post" />
+        <Post at={b1} from={topH} to={slabZ} className="ground-post" />
+        <Post at={f0} from={seatZ} to={slabZ} className="ground-post" />
+        <Post at={f1} from={seatZ} to={slabZ} className="ground-post" />
+        <polygon points={polyPoints([at(b0, topH), at(b1, topH), at(b1, slabZ), at(b0, slabZ)])} fill={CONCRETE.wall} />
+        <polygon className="ground-glazing" points={polyPoints([at(b0, topH + up(1.0)), at(b1, topH + up(1.0)), at(b1, slabZ - up(0.5)), at(b0, slabZ - up(0.5))])} />
+        <polygon points={polyPoints([at(f0, slabZ), at(f1, slabZ), at(b1, slabZ), at(b0, slabZ)])} fill={shade(CONCRETE.rake, 1.04)} />
+        <polygon points={polyPoints([at(f0, slabZ), at(f1, slabZ), at(f1, slabZ + slab), at(f0, slabZ + slab)])} fill={shade(CONCRETE.wall, 0.9)} />
+        <polygon points={polyPoints([at(f0, slabZ + slab), at(f1, slabZ + slab), at(b1, slabZ + slab), at(b0, slabZ + slab)])} fill={shade(CONCRETE.rake, 1.08)} />
+      </>
+    );
+  })();
+
+  const stands: GroundProp[] = [
+    bank('stand-0', wingA, 2),
+    bank('stand-1', plate, 1, cover),
+    bank('stand-2', wingB, 2),
+  ];
+
+  // Light towers: two behind the plate stand's corners, one at the end of
+  // each wing, two at the outfield fence.
+  const towers: GroundProp[] = ([
+    [hc + gap + depth + 0.5, hr - s0 - 0.3], [hc - s0 - 0.3, hr + gap + depth + 0.5],
+    [hc + gap + depth + 0.4, hr - L - 0.4], [hc - L - 0.4, hr + gap + depth + 0.4],
+    polar(R + 0.3, from + 0.32), polar(R + 0.3, to - 0.32),
+  ] as TilePt[]).map((t, i) => ({
+    key: `tower-${i}`,
+    ...aroundPoint(t[0], t[1], 0.2),
+    node: (() => {
+      const foot = project(t[0], t[1]); const top = lift(foot, up(16));
       return (
         <>
-          <Post at={b0} from={topH} to={slabZ} className="ground-post" />
-          <Post at={b1} from={topH} to={slabZ} className="ground-post" />
-          <Post at={f0} from={seatZ} to={slabZ} className="ground-post" />
-          <Post at={f1} from={seatZ} to={slabZ} className="ground-post" />
-          {/* The box under the slab at the back: the press box. */}
-          <polygon points={polyPoints([at(b0, topH), at(b1, topH), at(b1, slabZ), at(b0, slabZ)])} fill={CONCRETE.wall} />
-          <polygon className="ground-glazing" points={polyPoints([at(b0, topH + up(1.0)), at(b1, topH + up(1.0)), at(b1, slabZ - up(0.5)), at(b0, slabZ - up(0.5))])} />
-          <polygon points={polyPoints([at(f0, slabZ), at(f1, slabZ), at(b1, slabZ), at(b0, slabZ)])} fill={shade(CONCRETE.rake, 1.04)} />
-          <polygon points={polyPoints([at(f0, slabZ), at(f1, slabZ), at(f1, slabZ + slab), at(f0, slabZ + slab)])} fill={shade(CONCRETE.wall, 0.9)} />
-          <polygon points={polyPoints([at(f0, slabZ + slab), at(f1, slabZ + slab), at(b1, slabZ + slab), at(b0, slabZ + slab)])} fill={shade(CONCRETE.rake, 1.08)} />
+          <line className="ground-mast" x1={foot.x} y1={foot.y} x2={top.x} y2={top.y} />
+          <polygon className="ground-mast-head" points={polyPoints([
+            { x: top.x - 7, y: top.y + 1 }, { x: top.x + 7, y: top.y + 1 }, { x: top.x + 7, y: top.y - 4 }, { x: top.x - 7, y: top.y - 4 },
+          ])} />
         </>
       );
-    })();
-    return {
-      key: `stand-${k}`,
-      // Each bank sorts on the ground IT covers rather than on the plate's
-      // depth or on one shared box, which is what lets a tree or a path
-      // beside the third-base line pass in front of the bank nearest it and
-      // behind the one further round.
-      col: Math.min(...cols), row: Math.min(...rows),
-      w: Math.max(...cols) - Math.min(...cols), h: Math.max(...rows) - Math.min(...rows),
-      node: (
-        <>
-          <RakedStand
-            outer={[corners[2], corners[3]]}
-            inner={[corners[0], corners[1]]}
-            bottomH={bottomH}
-            topH={topH}
-            rakeFill={CONCRETE.rake}
-            wallFill={CONCRETE.wall}
-            seatStroke={CONCRETE.seat}
-            rows={centre ? 6 : 4}
-            // Every bank in this sweep has its back toward the camera: the
-            // outer edge of each is nearer than its inner one for the whole
-            // of a sweep centred on `behind`, which is the direction the
-            // camera looks from.
-            wall
-          />
-          {roof}
-        </>
-      ),
-    };
-  });
+    })(),
+  }));
 
   // --- the dugouts -----------------------------------------------------
   // Two low covered benches just outside the foul lines, a third of the way
   // to the fence. The one thing besides the diamond itself that says
   // "baseball" at map zoom.
   const dugout = (a: number, k: number): GroundProp => {
-    const r = short * 0.30;
+    const r = L + 0.3;
     const along = 1.4; const deep = 0.55;
-    // Outside the line: toward +row off the -col line, toward +col off the
-    // -row line.
-    const cx = hc + r * Math.cos(a) + (a === to ? 0.45 : -along / 2);
-    const cy = hr + r * Math.sin(a) + (a === from ? 0.45 : -along / 2);
+    // Just past the end of each wing, tucked outside the line: toward +row
+    // off the -col line, toward +col off the -row line.
+    const cx = a === from ? hc - r - along : hc + gap;
+    const cy = a === from ? hr + gap : hr - r - along;
     const bw = a === from ? along : deep;
     const bh = a === from ? deep : along;
     return {
@@ -652,34 +668,18 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
     centreField,
     {
       key: 'backstop',
-      // What tells you the banks behind it are facing a BALL FIELD: the
-      // screen between the plate and the front row. Without it the seating
-      // could be looking at anything, and the few feet of gap it stands in
-      // read as the stands having been set back for no reason.
-      ...aroundPoint(hc, hr, rIn),
-      node: (() => {
-        // Only behind the plate. Carried the full width of the seating it
-        // read as a wall around the stands rather than as the screen a
-        // foul ball comes off.
-        const BACKSTOP = 1.3;
-        const pts = projectedArc(hc, hr, rIn * 0.86, behind - BACKSTOP / 2, behind + BACKSTOP / 2, 24);
-        const HEIGHT = up(4.2);
-        return (
-          <>
-            <polygon
-              className="ground-backstop"
-              points={polyPoints([...pts, ...[...pts].reverse().map((q) => lift(q, HEIGHT))])}
-            />
-            {[-0.5, 0, 0.5].map((f, i) => (
-              <Post key={i} at={polar(rIn * 0.86, behind + f * BACKSTOP)} to={HEIGHT} className="ground-fence-post" />
-            ))}
-            <polyline className="ground-fence-rail" fill="none" points={polyPoints(pts.map((q) => lift(q, HEIGHT)))} />
-          </>
-        );
-      })(),
+      // The screen between the plate and the front row of the grandstand:
+      // a mesh along the plate stand's inner edge, a storey and a half high.
+      ...boxOf([...plate.inner]),
+      node: (
+        <>
+          <FenceRun a={plate.inner[0]} b={plate.inner[1]} height={up(5.0)} postEvery={1.2} />
+        </>
+      ),
     },
     dugout(from, 0),
     dugout(to, 1),
+    ...towers,
     ...stands,
   ];
 }
@@ -690,25 +690,31 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
 // track looks like from above — the concentric lines ARE the read.
 const TRACK_LANES = 8;
 
+// Where the oval's centre sits across the plot: pushed toward the near side
+// so the stand has a margin down the far straight. A fraction of the plot's
+// short side, shared with pitchProps so the stand sits on the track's edge.
+const TRACK_CENTRE_ACROSS = 0.54;
+
 function pitchGeometry(col: number, row: number, w: number, h: number) {
   const landscape = w >= h;
-  const cc = col + w * 0.5;
-  const cr = row + h * 0.5;
   const along = landscape ? w : h;    // the footprint side the track's long axis runs down
   const across = landscape ? h : w;
+  const cc = landscape ? col + w * 0.5 : col + w * TRACK_CENTRE_ACROSS;
+  const cr = landscape ? row + h * TRACK_CENTRE_ACROSS : row + h * 0.5;
   // A track is a STADIUM, not an ellipse: two dead-straight sides joined by
-  // semicircular ends. Proportions are the real ones: a 400m track is about
-  // 176m long by 92m across, so the outer oval stays near 1.95:1 whatever
-  // the footprint. The margin left over is what the stand sits in.
-  const outerLen = along * 0.43;
-  const outerWid = across * 0.375;
-  const trackWidth = Math.min(w, h) * 0.13;    // all eight lanes together
+  // semicircular ends. It FILLS the plot now — the footprint was widened to
+  // 22 by 13 so it could — because at three-quarters of the plot the pitch
+  // inside it came out 70 m long, and a pitch is the size it is: 105 by 68.
+  const outerLen = along * 0.445;
+  const outerWid = across * 0.39;
+  const trackWidth = Math.min(across * 0.1, 8 * 1.22 / METRES_PER_TILE);   // eight 1.22 m lanes
   const innerLen = outerLen - trackWidth;
   const innerWid = outerWid - trackWidth;
-  // The pitch inside, sized from the shape a pitch actually IS: 105m by 68m.
-  const PITCH_RATIO = 105 / 68;
-  const pitchWid = innerWid * 0.93;
-  const pitchLen = Math.min(pitchWid * PITCH_RATIO, innerLen * 0.96);
+  // The pitch inside, at its real size where the infield allows it, and
+  // never wider than the infield.
+  const PITCH_RATIO = 110 / 68;                                         // a long pitch, within the laws
+  const pitchWid = Math.min(innerWid * 0.96, (68 / METRES_PER_TILE) / 2);
+  const pitchLen = Math.min(pitchWid * PITCH_RATIO, innerLen * 0.97);
   // (along, across) offsets from the centre onto the grid.
   const tp = (a: number, c: number): Pt => (landscape ? project(cc + a, cr + c) : project(cc + c, cr + a));
   const tile = (a: number, c: number): TilePt => (landscape ? [cc + a, cr + c] : [cc + c, cr + a]);
@@ -838,11 +844,11 @@ function Pitch({ col, row, w, h }: GroundProps) {
 function pitchProps(col: number, row: number, w: number, h: number): GroundProp[] {
   const landscape = w >= h;
   const across = landscape ? h : w;
-  const outerWid = across * 0.375;
+  const { outerWid } = pitchGeometry(col, row, w, h);
   const tp = (a: number, c: number): TilePt => (landscape
     ? [col + w * a, row + h * c]
     : [col + w * c, row + h * a]);
-  const trackEdge = 0.5 - outerWid / across;   // the oval's far side, as a footprint fraction
+  const trackEdge = TRACK_CENTRE_ACROSS - outerWid / across;   // the oval's far side, as a footprint fraction
   const back = tp(0.32, 0.02);
   const front = tp(0.68, trackEdge);
   const bottomH = up(0.9);
@@ -1495,7 +1501,17 @@ export function StadiumField({ col, row, w, h }: GroundProps) {
           this used to be read as a second track next to the real one on the
           multi-sport field. */}
       <polygon className="ground-apron" points={polyPoints(boxFaces(col, row, w, h, 0, 0).top)} />
-      <Gridiron col={col} row={row} w={w} h={h} inset={0.10} posts />
+      {/* A gridiron is 120 by 53 yards, a shape and a SIZE, not a fraction
+          of the bowl: it is drawn at that length (the multi-sport field's
+          pitch is drawn near its real 110 m, so the two read as the same
+          kind of object at map scale), the width follows from the shape,
+          and the apron takes what is left all round. */}
+      {(() => {
+        const along = Math.max(w, h); const across = Math.min(w, h);
+        const fieldLen = Math.min(along * (1 - 0.06 * 2), (120 * 0.9144 * 1.15) / METRES_PER_TILE);
+        const fieldWid = Math.min(fieldLen / 2.24, across * 0.88);
+        return <Gridiron col={col} row={row} w={w} h={h} inset={(along - fieldLen) / 2 / along} insetAcross={(across - fieldWid) / 2 / across} posts />;
+      })()}
     </>
   );
 }
