@@ -153,7 +153,11 @@ console.log('report card tests');
   assert(atSummer.students.satisfactionYearWeeks === atSummer.students.crowdingYearWeeks, 'ticked in step with the satisfaction accumulator');
   const expected = gradeYear(atSummer);
   const before = atSummer.self.reputation;
-  const s = reducer(atSummer, defaultAnswer(atSummer)!);
+  // The summer is four beats (Plan 16's PR A), answered one per call by the
+  // shared defaults; the card is written by the last.
+  let s = atSummer;
+  for (let i = 0; i < 6 && s.pendingInterrupt?.type === 'summer'; i += 1) s = reducer(s, defaultAnswer(s)!);
+  assert(s.pendingInterrupt === null, 'the defaults walk the whole summer');
   assert(s.self.reportCard !== null, 'the summer writes the card');
   assert(near(s.self.reportCard!.score, expected.score), 'graded on the state before the funnel ran');
   assert(near(s.self.reportCard!.before, before), 'from the prestige the summer opened at');
