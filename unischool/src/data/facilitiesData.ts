@@ -747,7 +747,7 @@ export function initialFacilities(): Buildable[] {
       kind: 'facility',
       facilityType: 'pool',
       name: 'Swimming Pool',
-      description: `An indoor pool for ${POOL_SERVES.toLocaleString()} students.`,
+      description: `An outdoor 50 m pool and its deck, for ${POOL_SERVES.toLocaleString()} students.`,
       cost: POOL_COST,
       duration: POOL_WEEKS,
       prereqs: [GYM_ID],

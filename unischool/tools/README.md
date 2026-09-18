@@ -50,7 +50,7 @@ onto a hand-drawn precinct plan, draws the walks, regrows the woodland round the
 result and plants the grounds, and writes the save back out:
 
 ```sh
-npm run scenario -- --strategy Completionist --year 31 --clear-modal \
+npm run scenario -- --strategy Completionist --year 50 --clear-modal \
   --name Blackmoor node_modules/.tmp/in.json
 npm run layout -- node_modules/.tmp/in.json node_modules/.tmp/out.json --ascii
 npm run shot -- node_modules/.tmp/out.json docs/images/campus.png --zoom=-1 --scale=2
@@ -73,6 +73,29 @@ its size with nothing to see for it. The same campus in the other three sets
 is beside it — `campus-gothic.png`, `campus-brutalist.png` and
 `campus-mission.png` — which is the honest comparison the vernaculars want:
 one layout, one save, only the architecture changing.
+
+### Every motif on one page
+
+The campus renders show the assets together; they cannot show every motif, and
+they cannot show the same building in all four sets side by side. `sheet.tsx`
+renders every placeable Buildable on its own — through the game's own
+`BuildingMotif`, `GroundMarking` and `groundProps`, via `react-dom/server`, so
+what it draws is what the map draws — in one or more vernaculars, and writes a
+labelled contact sheet per set. It needs no dev server and no save.
+
+```sh
+npm run sheet                                        # all four sets, node_modules/.tmp/sheets/
+npm run sheet -- --vernacular gothic --scale 2       # one set, closer
+npm run sheet -- --only 'hangar|bowl|grounds'        # a regex on the cell labels
+npm run sheet:shot -- node_modules/.tmp/sheets/sheet-gothic.html /tmp/gothic --cells
+```
+
+`sheet:shot` photographs the page, and with `--cells` writes one PNG per
+building named by its cell id, which is the form the 2026 map-assets review
+(`docs/reviews/2026-09-map-assets-visual-review.md`) was done in: 41 cells per
+vernacular, each looked at, each defect tied back to the code that draws it.
+Cells include the states worth checking as well as the buildings — a rotated
+footprint, a site, a chapter house wearing its letters.
 
 **It does not download a browser.** The dependency is `playwright-core`, the
 browserless package, so installing this repo does not pull several hundred MB

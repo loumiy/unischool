@@ -1,6 +1,7 @@
 import type { FacilityType } from '../state/types';
 import { boxFaces, lift, polyPoints, project, projectedArc, projectedCircle, projectedStadium, type Pt } from './isoProjection';
 import { METRES_PER_TILE, up } from './campusScale';
+import { shade } from './tint';
 import { TreeAt, type Species } from './trees';
 
 // Open ground: the Buildables you walk across rather than into — the quad,
@@ -98,7 +99,10 @@ function aroundPoint(cc: number, cr: number, radius: number): { col: number; row
 // the small bleachers beside a pitch are plain concrete. One geometry, two
 // palettes.
 // ---------------------------------------------------------------------
-export function RakedStand({ outer, inner, bottomH, topH, rakeFill, wallFill, seatStroke, rows = 4, wall = false, frontWall = false }: {
+export function RakedStand({
+  outer, inner, bottomH, topH, rakeFill, wallFill, seatStroke, rows = 4, wall = false, frontWall = false,
+  endFaces = true, aisles = 0, rail = true,
+}: {
   outer: [TilePt, TilePt];   // the back edge, furthest from the field and highest
   inner: [TilePt, TilePt];   // the front edge, at the field and lowest
   bottomH: number; topH: number;
@@ -112,30 +116,116 @@ export function RakedStand({ outer, inner, bottomH, topH, rakeFill, wallFill, se
   // small bleachers looked like.
   wall?: boolean;
   frontWall?: boolean;
+  // The two side profiles of the wedge. These are what say "raked seating"
+  // from any angle — a stand without them is a plane — and are drawn unless
+  // the caller knows both ends are buried in a neighbouring bank.
+  endFaces?: boolean;
+  // Gangways cut down the rake, as dark slots. Zero for a bleacher.
+  aisles?: number;
+  // The rail along the back of the top row.
+  rail?: boolean;
 }) {
   const [o0, o1] = outer;
   const [i0, i1] = inner;
   const at = (t: TilePt, up: number) => lift(project(t[0], t[1]), up);
   const between = (a: TilePt, b: TilePt, f: number): TilePt => [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
 
+  // Which edge is nearer the camera. A stand whose FRONT edge is nearer
+  // climbs away from the viewer, so its risers face the camera and the
+  // seating reads as steps; one whose back edge is nearer shows its back
+  // wall and the tops of its treads only, which is what you see looking
+  // over a near stand into a bowl.
+  const midO = project((o0[0] + o1[0]) / 2, (o0[1] + o1[1]) / 2);
+  const midI = project((i0[0] + i1[0]) / 2, (i0[1] + i1[1]) / 2);
+  const climbsAway = midI.y > midO.y;
+
+  const tiers = Math.max(1, rows);
+  const step = (topH - bottomH) / tiers;
+  const tierTop = (k: number) => bottomH + step * (k + 1);
+  const riserFill = shade(rakeFill, 0.72);
+  const endFill = shade(wallFill, 0.9);
+
+  // The side profile of the wedge: stepped when the steps face the camera,
+  // a plain trapezoid when they do not (the steps would be hidden behind
+  // the back wall anyway).
+  const profile = (i: TilePt, o: TilePt): Pt[] => {
+    const pts: Pt[] = [at(i, 0), at(i, bottomH)];
+    if (climbsAway) {
+      for (let k = 0; k < tiers; k++) {
+        pts.push(at(between(i, o, k / tiers), tierTop(k)));
+        pts.push(at(between(i, o, (k + 1) / tiers), tierTop(k)));
+      }
+    } else {
+      pts.push(at(o, topH));
+    }
+    pts.push(at(o, 0));
+    return pts;
+  };
+
+  const treads: React.JSX.Element[] = [];
+  if (climbsAway) {
+    // Back to front: the top tier first, each lower one painting over the
+    // foot of the riser behind it. Tread k sits between the k/tiers and
+    // (k+1)/tiers lines, at its own height; its riser stands on the front
+    // line from the tread below up to it.
+    for (let k = tiers - 1; k >= 0; k--) {
+      const f0 = k / tiers; const f1 = (k + 1) / tiers;
+      const z = tierTop(k); const zPrev = k === 0 ? bottomH : tierTop(k - 1);
+      const a0 = between(i0, o0, f0); const a1 = between(i1, o1, f0);
+      const b0 = between(i0, o0, f1); const b1 = between(i1, o1, f1);
+      treads.push(
+        <g key={k}>
+          <polygon points={polyPoints([at(a0, zPrev), at(a1, zPrev), at(a1, z), at(a0, z)])} fill={riserFill} />
+          <polygon points={polyPoints([at(a0, z), at(a1, z), at(b1, z), at(b0, z)])} fill={rakeFill} />
+        </g>,
+      );
+    }
+  } else {
+    // Seen from behind: the rake as one surface, with the tier edges as
+    // bands of riser tone across it, which is what terraces look like
+    // from the back of the top row.
+    treads.push(
+      <polygon key="rake" points={polyPoints([at(o0, topH), at(o1, topH), at(i1, bottomH), at(i0, bottomH)])} fill={rakeFill} />,
+    );
+    for (let k = 1; k < tiers; k++) {
+      const f = k / tiers;
+      const z = tierTop(k - 1);
+      const a0 = between(i0, o0, f); const a1 = between(i1, o1, f);
+      const c0 = between(i0, o0, f + 0.22 / tiers); const c1 = between(i1, o1, f + 0.22 / tiers);
+      treads.push(
+        <polygon key={k} points={polyPoints([at(a0, z), at(a1, z), at(c1, z + step * 0.22), at(c0, z + step * 0.22)])} fill={riserFill} />,
+      );
+    }
+  }
+
+  // Gangways: dark slots down the rake, from the front row to the back.
+  const slots: React.JSX.Element[] = [];
+  for (let j = 0; j < aisles; j++) {
+    const u = (j + 1) / (aisles + 1);
+    const half = 0.018;
+    const fa = between(i0, i1, u - half); const fb = between(i0, i1, u + half);
+    const ba = between(o0, o1, u - half); const bb = between(o0, o1, u + half);
+    slots.push(
+      <polygon key={j} className="stand-aisle" points={polyPoints([at(fa, bottomH), at(fb, bottomH), at(bb, topH), at(ba, topH)])} />,
+    );
+  }
+
   return (
     <>
+      {endFaces && <polygon points={polyPoints(profile(i0, o0))} fill={endFill} />}
+      {endFaces && <polygon points={polyPoints(profile(i1, o1))} fill={endFill} />}
       {wall && (
         <polygon points={polyPoints([at(o0, 0), at(o1, 0), at(o1, topH), at(o0, topH)])} fill={wallFill} />
       )}
       {frontWall && (
         <polygon points={polyPoints([at(i0, 0), at(i1, 0), at(i1, bottomH), at(i0, bottomH)])} fill={wallFill} />
       )}
-      <polygon points={polyPoints([at(o0, topH), at(o1, topH), at(i1, bottomH), at(i0, bottomH)])} fill={rakeFill} />
-      {/* Seat rows: lines stepping down the rake. Cheap, and they are what
-          actually say "seating" rather than "ramp". */}
-      {Array.from({ length: rows - 1 }, (_, k) => {
-        const f = (k + 1) / rows;
-        const up = topH + (bottomH - topH) * f;
-        const a = at(between(o0, i0, f), up);
-        const b = at(between(o1, i1, f), up);
-        return <line key={k} className="stand-seat" x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={seatStroke} />;
-      })}
+      {treads}
+      {slots}
+      {rail && (
+        <line className="stand-rail" x1={at(o0, topH).x} y1={at(o0, topH).y} x2={at(o1, topH).x} y2={at(o1, topH).y} />
+      )}
+      {void seatStroke}
     </>
   );
 }
@@ -144,12 +234,73 @@ export function RakedStand({ outer, inner, bottomH, topH, rakeFill, wallFill, se
 const CONCRETE = { rake: '#cfc7b4', wall: '#b3ab99', seat: 'rgba(60, 54, 42, 0.35)' };
 
 // ---------------------------------------------------------------------
+// A MESH FENCE around a plot — tennis courts, a pool deck, the ballpark's
+// backstop. A translucent band standing on the ground with a post every
+// couple of tiles and a rail along the top: the one vertical thing open
+// ground has, and what stops a slab of court reading as paint.
+// ---------------------------------------------------------------------
+function FenceRun({ a, b, height, postEvery = 2 }: { a: TilePt; b: TilePt; height: number; postEvery?: number }) {
+  const at = (t: TilePt, up: number) => lift(project(t[0], t[1]), up);
+  const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const posts = Math.max(1, Math.round(len / postEvery));
+  return (
+    <>
+      <polygon className="ground-fence-mesh" points={polyPoints([at(a, 0), at(b, 0), at(b, height), at(a, height)])} />
+      {Array.from({ length: posts + 1 }, (_, i) => {
+        const f = i / posts;
+        const t: TilePt = [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+        return <line key={i} className="ground-fence-post" x1={at(t, 0).x} y1={at(t, 0).y} x2={at(t, height).x} y2={at(t, height).y} />;
+      })}
+      <line className="ground-fence-rail" x1={at(a, height).x} y1={at(a, height).y} x2={at(b, height).x} y2={at(b, height).y} />
+    </>
+  );
+}
+
+// The whole perimeter of a rectangle of ground, far sides first so the
+// near sides paint over them.
+function FenceAround({ col, row, w, h, height }: GroundProps & { height: number }) {
+  const A: TilePt = [col, row]; const B: TilePt = [col + w, row];
+  const C: TilePt = [col + w, row + h]; const D: TilePt = [col, row + h];
+  return (
+    <>
+      <FenceRun a={A} b={B} height={height} />
+      <FenceRun a={A} b={D} height={height} />
+      <FenceRun a={D} b={C} height={height} />
+      <FenceRun a={B} b={C} height={height} />
+    </>
+  );
+}
+
+// A plain box standing on open ground, in the concrete tones: a dugout, a
+// pool house, a scoreboard's housing.
+function GroundBox({ col, row, w, h, base = 0, height, side, front, top }: GroundProps & {
+  base?: number; height: number; side: string; front: string; top: string;
+}) {
+  const f = boxFaces(col, row, w, h, base, height);
+  return (
+    <>
+      <polygon points={polyPoints(f.left)} fill={front} />
+      <polygon points={polyPoints(f.right)} fill={side} />
+      <polygon points={polyPoints(f.top)} fill={top} />
+    </>
+  );
+}
+
+// A post standing on the ground: a floodlight mast, a foul pole, a canopy
+// column. Screen-space line, like a tree's trunk.
+function Post({ at: t, from = 0, to, className }: { at: TilePt; from?: number; to: number; className: string }) {
+  const foot = lift(project(t[0], t[1]), from);
+  const head = lift(project(t[0], t[1]), to);
+  return <line className={className} x1={foot.x} y1={foot.y} x2={head.x} y2={head.y} />;
+}
+
+// ---------------------------------------------------------------------
 // Gridiron. The markings ARE the recognition: without cross-field yard
 // lines and the two rows of hash marks down the middle, a green rectangle
 // is just a green rectangle. Drawn along the footprint's longer axis, so a
 // rotated stadium still has its yard lines running the right way.
 // ---------------------------------------------------------------------
-function Gridiron({ col, row, w, h, inset = 0 }: GroundProps & { inset?: number }) {
+function Gridiron({ col, row, w, h, inset = 0, posts = false }: GroundProps & { inset?: number; posts?: boolean }) {
   const landscape = w >= h;
   // Work in (along, across) and map to (u, v) at the end, so the same
   // numbers describe the field whichever way round the footprint sits.
@@ -189,6 +340,32 @@ function Gridiron({ col, row, w, h, inset = 0 }: GroundProps & { inset?: number 
         const l = uvLine(col, row, w, h, p[0], p[1], q[0], q[1]);
         return <line key={`g${i}`} className="ground-line-heavy" {...l} />;
       })}
+      {/* The midfield roundel: a darker disc where a real field carries its
+          crest. */}
+      {(() => {
+        const c = at(0.5, 0.5);
+        return (
+          <polygon
+            className="ground-endzone"
+            points={polyPoints(projectedCircle(col + w * c[0], row + h * c[1], Math.min(w, h) * 0.05, 24))}
+          />
+        );
+      })()}
+      {/* Goalposts on both goal lines: a stem, a crossbar and two uprights,
+          in screen space like anything else that stands up. */}
+      {posts && [END_ZONE * 0.5, 1 - END_ZONE * 0.5].map((a, i) => {
+        const g = (c: number) => { const p = at(a, c); return project(col + w * p[0], row + h * p[1]); };
+        const bar = up(3.0); const top = up(9.0); const half = 0.045;
+        const c0 = g(0.5); const l = g(0.5 - half); const r = g(0.5 + half);
+        return (
+          <g key={`gp${i}`}>
+            <line className="ground-goal" x1={c0.x} y1={c0.y} x2={c0.x} y2={c0.y - bar} />
+            <line className="ground-goal" x1={l.x} y1={l.y - bar} x2={r.x} y2={r.y - bar} />
+            <line className="ground-goal" x1={l.x} y1={l.y - bar} x2={l.x} y2={l.y - top} />
+            <line className="ground-goal" x1={r.x} y1={r.y - bar} x2={r.x} y2={r.y - top} />
+          </g>
+        );
+      })}
     </>
   );
 }
@@ -207,15 +384,8 @@ function Diamond({ col, row, w, h }: GroundProps) {
   // the difference between a small box behind the backstop and seating that
   // reads as part of the complex. The outfield shrinks to match so the arc
   // still finishes inside the plot.
-  const hc = col + w * 0.70;
-  const hr = row + h * 0.70;
-  const R = Math.min(w, h) * 0.66;      // outfield boundary
-  const TRACK = R * 0.87;               // inner edge of the warning track
-  const DIRT = Math.min(w, h) * 0.30;   // the infield skin
-  const BASE = Math.min(w, h) * 0.19;   // home-to-base
-  const from = Math.PI;                 // foul line toward -col
-  const to = Math.PI * 1.5;             // foul line toward -row
-  const bisect = Math.PI * 1.25;        // toward the outfield's centre
+  const g = diamondGeometry(col, row, w, h);
+  const { hc, hr, R, TRACK, DIRT, BASE, from, to, bisect, short } = g;
   const home = project(hc, hr);
   const polar = (r: number, a: number) => project(hc + r * Math.cos(a), hr + r * Math.sin(a));
 
@@ -226,10 +396,29 @@ function Diamond({ col, row, w, h }: GroundProps) {
   const infieldGrass = [
     polar(BASE * 0.34, bisect), polar(BASE * 0.72, from), polar(BASE * 1.06, bisect), polar(BASE * 0.72, to),
   ];
+  // A base is a small square on the ground; home plate a slightly larger one.
+  const pad = (r: number, a: number, size: number) => {
+    const c = hc + r * Math.cos(a); const rr = hr + r * Math.sin(a);
+    return polyPoints(boxFaces(c - size / 2, rr - size / 2, size, size, 0, 0).top);
+  };
+  const base = short * 0.035;
 
   return (
     <>
       <polygon className="ground-turf" points={polyPoints([home, ...projectedArc(hc, hr, R, from, to), home])} />
+      {/* Mowing arcs across the outfield, the way the quad's lawn is
+          striped — kept grass rather than one flat green. */}
+      {[0, 1, 2].map((i) => {
+        const r0 = DIRT * 1.25 + (TRACK - DIRT * 1.25) * ((2 * i + 1) / 6);
+        const r1 = DIRT * 1.25 + (TRACK - DIRT * 1.25) * ((2 * i + 2) / 6);
+        return (
+          <polygon
+            key={i}
+            className="ground-mow"
+            points={polyPoints([...projectedArc(hc, hr, r1, from, to, 36), ...projectedArc(hc, hr, r0, to, from, 36)])}
+          />
+        );
+      })}
       {/* The warning track: a band of dirt inside the fence, so a fielder
           knows the wall is coming. The ring between the boundary arc and one
           just inside it. */}
@@ -243,9 +432,25 @@ function Diamond({ col, row, w, h }: GroundProps) {
       <polygon className="ground-dirt" points={polyPoints([home, ...projectedArc(hc, hr, DIRT, from, to), home])} />
       <polygon className="ground-turf" points={polyPoints(infieldGrass)} />
       <polygon className="ground-line" fill="none" points={polyPoints(basePath)} />
+      {/* The mound: a real one is about 5.5 m across, which on a 125 m field
+          is small. It was drawn at half again that and read as a pale blob. */}
       <polygon className="ground-dirt-pale" points={polyPoints(projectedCircle(
-        hc + BASE * 0.62 * Math.cos(bisect), hr + BASE * 0.62 * Math.sin(bisect), Math.min(w, h) * 0.045, 20,
+        hc + BASE * 0.62 * Math.cos(bisect), hr + BASE * 0.62 * Math.sin(bisect), short * 0.028, 20,
       ))} />
+      {/* Three bases and the plate. */}
+      <polygon className="ground-base" points={pad(BASE, from, base)} />
+      <polygon className="ground-base" points={pad(BASE, to, base)} />
+      <polygon className="ground-base" points={pad(BASE * Math.SQRT2, bisect, base)} />
+      <polygon className="ground-base" points={pad(0, 0, base * 1.2)} />
+      {/* Batter's boxes either side of the plate. */}
+      {[from, to].map((a, i) => (
+        <polygon
+          key={`bb${i}`}
+          className="ground-line-fine"
+          fill="none"
+          points={pad(base * 1.6, a, base * 1.3)}
+        />
+      ))}
       {[from, to].map((a, i) => {
         const end = polar(R, a);
         return <line key={i} className="ground-line" x1={home.x} y1={home.y} x2={end.x} y2={end.y} />;
@@ -254,25 +459,34 @@ function Diamond({ col, row, w, h }: GroundProps) {
   );
 }
 
+// The geometry Diamond and diamondProps share, so the paint and the things
+// standing on it cannot drift apart.
+function diamondGeometry(col: number, row: number, w: number, h: number) {
+  const short = Math.min(w, h);
+  return {
+    short,
+    hc: col + w * 0.70,
+    hr: row + h * 0.70,
+    R: short * 0.66,                 // outfield boundary
+    TRACK: short * 0.66 * 0.87,      // inner edge of the warning track
+    DIRT: short * 0.30,              // the infield skin
+    BASE: short * 0.19,              // home-to-base
+    from: Math.PI,                   // foul line toward -col
+    to: Math.PI * 1.5,               // foul line toward -row
+    bisect: Math.PI * 1.25,          // toward the outfield's centre
+  };
+}
+
 // The diamond's raised props: the outfield fence, and the seating wrapping
 // home plate. Both stand ON the field, so both sort against their
 // surroundings individually rather than riding the plate's own depth — see
 // groundProps at the bottom of this file.
 function diamondProps(col: number, row: number, w: number, h: number): GroundProp[] {
-  // The same geometry Diamond above is drawn from. Kept as one small block
-  // rather than threaded through props, since every line of it is derived
-  // from the footprint and nothing else.
-  const hc = col + w * 0.70;
-  const hr = row + h * 0.70;
-  const R = Math.min(w, h) * 0.66;
-  const from = Math.PI;
-  const to = Math.PI * 1.5;
-  const bisect = Math.PI * 1.25;
+  const { hc, hr, R, from, to, bisect, short } = diamondGeometry(col, row, w, h);
   const behind = bisect + Math.PI;
-  const short = Math.min(w, h);
   const polar = (r: number, a: number): TilePt => [hc + r * Math.cos(a), hr + r * Math.sin(a)];
 
-  const FENCE_H = 5;
+  const FENCE_H = up(2.4);
   const arcPts = projectedArc(hc, hr, R, from, to, 36);
 
   // --- the seating -----------------------------------------------------
@@ -282,32 +496,62 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
   // it, which is what an arc with no breaks in it looks like from above
   // whatever its section says. Every ballpark worth the name is built the
   // other way: separate banks, set at an angle to each other, with an aisle
-  // between each pair. The gaps are the whole read.
+  // between each pair.
   //
-  // Straight banks also let each one use RakedStand, which is the same
-  // wedge the stadium and the pitch bleachers are made of — so the seating
-  // on this plot is now built out of the campus's one piece of seating
-  // rather than a shape of its own.
+  // What the second version got wrong was the opposite: the banks shared
+  // nothing — different depths, gaps wide enough to walk a truck through,
+  // each with its own heavy back wall — and read as five concrete crates
+  // fanned out on the lawn. They now share one back radius and one front
+  // radius, so the backs run as one line; the gap between them is a real
+  // gangway rather than a hole; and the centre bank carries the covered
+  // press box a college ballpark has behind the plate. Still five props,
+  // because the depth sort needs them separate (see depth-sort.test.ts).
   const SECTIONS = 5;
   const SWEEP = 2.5;        // radians of seating in all, a little over 140 degrees
-  const AISLE = 0.14;       // radians of gangway between neighbouring banks
+  const AISLE = 0.055;      // radians of gangway between neighbouring banks
   const rIn = short * 0.1;
-  const rOut = short * 0.28;
+  const rOut = short * 0.27;
   const slice = SWEEP / SECTIONS;
+  const bottomH = up(0.9);
 
   const stands: GroundProp[] = Array.from({ length: SECTIONS }, (_, k) => {
     const a0 = behind - SWEEP / 2 + k * slice + AISLE / 2;
     const a1 = a0 + slice - AISLE;
     // The bank behind the plate is the grandstand; the ones down the lines
-    // are bleachers, and a ballpark's bleachers are both shallower and
-    // lower. Uniform banks read as a fan of identical petals, which is the
-    // arc's fault repeated five times rather than fixed.
-    const deep = 1 - Math.abs(k - (SECTIONS - 1) / 2) * 0.16;
-    const back = rIn + (rOut - rIn) * deep;
-    const topH = 4 + 12 * deep;
-    const corners: TilePt[] = [polar(rIn, a0), polar(rIn, a1), polar(back, a0), polar(back, a1)];
+    // are bleachers, and a ballpark's bleachers are lower.
+    const centre = k === Math.floor(SECTIONS / 2);
+    const deep = 1 - Math.abs(k - (SECTIONS - 1) / 2) * 0.14;
+    const topH = up(2.2) + up(3.4) * deep;
+    const corners: TilePt[] = [polar(rIn, a0), polar(rIn, a1), polar(rOut, a0), polar(rOut, a1)];
     const cols = corners.map((c) => c[0]);
     const rows = corners.map((c) => c[1]);
+    // The cover over the centre bank: a slab on four posts over the back
+    // half of the seating, with the press box's dark glazing band along its
+    // front edge.
+    const roof = (() => {
+      if (!centre) return null;
+      const mid = 0.5;
+      const f0: TilePt = polar(rIn + (rOut - rIn) * mid, a0); const f1: TilePt = polar(rIn + (rOut - rIn) * mid, a1);
+      const b0: TilePt = polar(rOut, a0); const b1: TilePt = polar(rOut, a1);
+      const at = (t: TilePt, z: number) => lift(project(t[0], t[1]), z);
+      const slabZ = topH + up(3.0);
+      const seatZ = bottomH + (topH - bottomH) * mid;
+      const slab = up(0.35);
+      return (
+        <>
+          <Post at={b0} from={topH} to={slabZ} className="ground-post" />
+          <Post at={b1} from={topH} to={slabZ} className="ground-post" />
+          <Post at={f0} from={seatZ} to={slabZ} className="ground-post" />
+          <Post at={f1} from={seatZ} to={slabZ} className="ground-post" />
+          {/* The box under the slab at the back: the press box. */}
+          <polygon points={polyPoints([at(b0, topH), at(b1, topH), at(b1, slabZ), at(b0, slabZ)])} fill={CONCRETE.wall} />
+          <polygon className="ground-glazing" points={polyPoints([at(b0, topH + up(1.0)), at(b1, topH + up(1.0)), at(b1, slabZ - up(0.5)), at(b0, slabZ - up(0.5))])} />
+          <polygon points={polyPoints([at(f0, slabZ), at(f1, slabZ), at(b1, slabZ), at(b0, slabZ)])} fill={shade(CONCRETE.rake, 1.04)} />
+          <polygon points={polyPoints([at(f0, slabZ), at(f1, slabZ), at(f1, slabZ + slab), at(f0, slabZ + slab)])} fill={shade(CONCRETE.wall, 0.9)} />
+          <polygon points={polyPoints([at(f0, slabZ + slab), at(f1, slabZ + slab), at(b1, slabZ + slab), at(b0, slabZ + slab)])} fill={shade(CONCRETE.rake, 1.08)} />
+        </>
+      );
+    })();
     return {
       key: `stand-${k}`,
       // Each bank sorts on the ground IT covers rather than on the plate's
@@ -317,25 +561,76 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
       col: Math.min(...cols), row: Math.min(...rows),
       w: Math.max(...cols) - Math.min(...cols), h: Math.max(...rows) - Math.min(...rows),
       node: (
-        <RakedStand
-          outer={[corners[2], corners[3]]}
-          inner={[corners[0], corners[1]]}
-          bottomH={4}
-          topH={topH}
-          rakeFill={CONCRETE.rake}
-          wallFill={CONCRETE.wall}
-          seatStroke={CONCRETE.seat}
-          rows={4}
-          // Every bank in this sweep has its back toward the camera: the
-          // outer edge of each is nearer than its inner one for the whole
-          // of a sweep centred on `behind`, which is the direction the
-          // camera looks from. Draw the other face instead and the bank
-          // reads as a striped ramp lying in the grass.
-          wall
-        />
+        <>
+          <RakedStand
+            outer={[corners[2], corners[3]]}
+            inner={[corners[0], corners[1]]}
+            bottomH={bottomH}
+            topH={topH}
+            rakeFill={CONCRETE.rake}
+            wallFill={CONCRETE.wall}
+            seatStroke={CONCRETE.seat}
+            rows={centre ? 6 : 4}
+            // Every bank in this sweep has its back toward the camera: the
+            // outer edge of each is nearer than its inner one for the whole
+            // of a sweep centred on `behind`, which is the direction the
+            // camera looks from.
+            wall
+          />
+          {roof}
+        </>
       ),
     };
   });
+
+  // --- the dugouts -----------------------------------------------------
+  // Two low covered benches just outside the foul lines, a third of the way
+  // to the fence. The one thing besides the diamond itself that says
+  // "baseball" at map zoom.
+  const dugout = (a: number, k: number): GroundProp => {
+    const r = short * 0.30;
+    const along = 1.4; const deep = 0.55;
+    // Outside the line: toward +row off the -col line, toward +col off the
+    // -row line.
+    const cx = hc + r * Math.cos(a) + (a === to ? 0.45 : -along / 2);
+    const cy = hr + r * Math.sin(a) + (a === from ? 0.45 : -along / 2);
+    const bw = a === from ? along : deep;
+    const bh = a === from ? deep : along;
+    return {
+      key: `dugout-${k}`,
+      col: cx, row: cy, w: bw, h: bh,
+      node: <GroundBox col={cx} row={cy} w={bw} h={bh} height={up(2.4)} side={shade(CONCRETE.wall, 0.86)} front={CONCRETE.wall} top={shade(CONCRETE.rake, 0.92)} />,
+    };
+  };
+
+  // --- centre field ----------------------------------------------------
+  // The batter's eye — a dark panel on the fence at dead centre — and the
+  // scoreboard standing over it.
+  const centreField = (() => {
+    const c = polar(R * 0.99, bisect);
+    const eyeW = 1.7; const eyeD = 0.45;
+    const ec = c[0] - eyeW / 2; const er = c[1] - eyeD / 2;
+    const boardW = 1.2; const boardD = 0.3;
+    const bc = c[0] - boardW / 2; const br = c[1] - boardD / 2 - 0.05;
+    const boardBase = up(3.2); const boardH = up(2.6);
+    const at = (t: TilePt, z: number) => lift(project(t[0], t[1]), z);
+    return {
+      key: 'centrefield',
+      ...aroundPoint(c[0], c[1], 1.1),
+      node: (
+        <>
+          <Post at={[bc + 0.1, br + boardD / 2]} to={boardBase} className="ground-post" />
+          <Post at={[bc + boardW - 0.1, br + boardD / 2]} to={boardBase} className="ground-post" />
+          <GroundBox col={bc} row={br} w={boardW} h={boardD} base={boardBase} height={boardH} side="#2d2f31" front="#3a3d40" top="#4a4d50" />
+          <polygon className="ground-scoreboard-face" points={polyPoints([
+            at([bc, br + boardD], boardBase + boardH * 0.2), at([bc + boardW, br + boardD], boardBase + boardH * 0.2),
+            at([bc + boardW, br + boardD], boardBase + boardH * 0.8), at([bc, br + boardD], boardBase + boardH * 0.8),
+          ])} />
+          <GroundBox col={ec} row={er} w={eyeW} h={eyeD} height={up(3.2)} side="#2b3f2a" front="#345034" top="#3d5c3b" />
+        </>
+      ),
+    };
+  })();
 
   return [
     {
@@ -347,9 +642,14 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
         <>
           <polygon className="ground-fence" points={polyPoints([...arcPts, ...[...arcPts].reverse().map((q) => lift(q, FENCE_H))])} />
           <polyline className="ground-fence-rail" fill="none" points={polyPoints(arcPts.map((q) => lift(q, FENCE_H)))} />
+          {/* Foul poles, at the two ends of the fence — the one yellow on the
+              campus, because that is what colour they are. */}
+          <Post at={polar(R, from)} to={up(7)} className="ground-foul-pole" />
+          <Post at={polar(R, to)} to={up(7)} className="ground-foul-pole" />
         </>
       ),
     },
+    centreField,
     {
       key: 'backstop',
       // What tells you the banks behind it are facing a BALL FIELD: the
@@ -363,18 +663,23 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
         // foul ball comes off.
         const BACKSTOP = 1.3;
         const pts = projectedArc(hc, hr, rIn * 0.86, behind - BACKSTOP / 2, behind + BACKSTOP / 2, 24);
-        const HEIGHT = 11;
+        const HEIGHT = up(4.2);
         return (
           <>
             <polygon
               className="ground-backstop"
               points={polyPoints([...pts, ...[...pts].reverse().map((q) => lift(q, HEIGHT))])}
             />
+            {[-0.5, 0, 0.5].map((f, i) => (
+              <Post key={i} at={polar(rIn * 0.86, behind + f * BACKSTOP)} to={HEIGHT} className="ground-fence-post" />
+            ))}
             <polyline className="ground-fence-rail" fill="none" points={polyPoints(pts.map((q) => lift(q, HEIGHT)))} />
           </>
         );
       })(),
     },
+    dugout(from, 0),
+    dugout(to, 1),
     ...stands,
   ];
 }
@@ -385,25 +690,34 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
 // track looks like from above — the concentric lines ARE the read.
 const TRACK_LANES = 8;
 
-function Pitch({ col, row, w, h }: GroundProps) {
+function pitchGeometry(col: number, row: number, w: number, h: number) {
   const landscape = w >= h;
   const cc = col + w * 0.5;
   const cr = row + h * 0.5;
   const along = landscape ? w : h;    // the footprint side the track's long axis runs down
   const across = landscape ? h : w;
-
   // A track is a STADIUM, not an ellipse: two dead-straight sides joined by
-  // semicircular ends. An ellipse bows where the straights should be, which
-  // is the first thing that reads as wrong about one.
-  // Proportions are the real ones: a 400m track is about 176m long by 92m
-  // across, so the outer oval stays near 1.95:1 whatever the footprint. The
-  // margin left over is what the stand sits in, which is why these are not
-  // simply as large as they fit.
+  // semicircular ends. Proportions are the real ones: a 400m track is about
+  // 176m long by 92m across, so the outer oval stays near 1.95:1 whatever
+  // the footprint. The margin left over is what the stand sits in.
   const outerLen = along * 0.43;
   const outerWid = across * 0.375;
   const trackWidth = Math.min(w, h) * 0.13;    // all eight lanes together
   const innerLen = outerLen - trackWidth;
   const innerWid = outerWid - trackWidth;
+  // The pitch inside, sized from the shape a pitch actually IS: 105m by 68m.
+  const PITCH_RATIO = 105 / 68;
+  const pitchWid = innerWid * 0.93;
+  const pitchLen = Math.min(pitchWid * PITCH_RATIO, innerLen * 0.96);
+  // (along, across) offsets from the centre onto the grid.
+  const tp = (a: number, c: number): Pt => (landscape ? project(cc + a, cr + c) : project(cc + c, cr + a));
+  const tile = (a: number, c: number): TilePt => (landscape ? [cc + a, cr + c] : [cc + c, cr + a]);
+  return { landscape, cc, cr, along, across, outerLen, outerWid, trackWidth, innerLen, innerWid, pitchWid, pitchLen, tp, tile };
+}
+
+function Pitch({ col, row, w, h }: GroundProps) {
+  const g = pitchGeometry(col, row, w, h);
+  const { landscape, cc, cr, outerLen, outerWid, trackWidth, innerLen, innerWid, pitchWid, pitchLen, tp } = g;
 
   const stadium = (fraction: number) => projectedStadium(
     cc, cr,
@@ -412,36 +726,34 @@ function Pitch({ col, row, w, h }: GroundProps) {
     landscape,
   );
 
-  // The pitch inside, sized from the shape a pitch actually IS rather than
-  // from two independent fractions of the infield: 105m by 68m, so the width
-  // comes off the infield and the length follows from the ratio. Doing it the
-  // other way round gave a pitch half again too long for its width, which
-  // read as a stretched rectangle no amount of correct marking could fix.
-  // What is left over at each end is the D-zone, exactly as on a real track.
-  const PITCH_RATIO = 105 / 68;
-  const pitchWid = innerWid * 0.93;
-  const pitchLen = Math.min(pitchWid * PITCH_RATIO, innerLen * 0.96);
-
   // Markings are laid out in the pitch's own (along, across) frame, so a
   // rotated field keeps its halfway line across the short way.
-  const pp = (a: number, c: number): Pt => (landscape
-    ? project(cc + a * pitchLen, cr + c * pitchWid)
-    : project(cc + c * pitchWid, cr + a * pitchLen));
+  const pp = (a: number, c: number): Pt => tp(a * pitchLen, c * pitchWid);
   const rect = (a0: number, a1: number, c0: number, c1: number) =>
     polyPoints([pp(a0, c0), pp(a1, c0), pp(a1, c1), pp(a0, c1)]);
   const seg = (a0: number, c0: number, a1: number, c1: number) => {
     const p0 = pp(a0, c0); const p1 = pp(a1, c1);
     return { x1: p0.x, y1: p0.y, x2: p1.x, y2: p1.y };
   };
+  const tseg = (a0: number, c0: number, a1: number, c1: number) => {
+    const p0 = tp(a0, c0); const p1 = tp(a1, c1);
+    return { x1: p0.x, y1: p0.y, x2: p1.x, y2: p1.y };
+  };
 
   const STRIPES = 10;
+  const straight = outerLen - outerWid;      // half the length of a straight
+  const lane = trackWidth / TRACK_LANES;
 
   return (
     <>
-      {/* The running surface, then the lane lines over it. The area inside
-          the innermost lane stays track-coloured at both ends, which is what
-          the D-zones either side of a pitch actually are. */}
+      {/* The running surface in two tones — the outer four lanes a shade
+          darker than the inner four, which is how a laid track reads from
+          above — then the lane lines over it. The infield inside the
+          innermost lane is a paler surface: the D-zones either side of the
+          pitch and the strips beside it. */}
       <polygon className="ground-track" points={polyPoints(stadium(1))} />
+      <polygon className="ground-track-inner" points={polyPoints(stadium(0.5))} />
+      <polygon className="ground-dzone" points={polyPoints(stadium(0))} />
       {Array.from({ length: TRACK_LANES + 1 }, (_, i) => (
         <polygon
           key={i}
@@ -450,6 +762,33 @@ function Pitch({ col, row, w, h }: GroundProps) {
           points={polyPoints(stadium(i / TRACK_LANES))}
         />
       ))}
+      {/* The finish line across all eight lanes at the end of the home
+          straight, and the staggered start marks stepping back round the
+          bend behind it. At map zoom the finish line alone is what says
+          "track" rather than "red oval". */}
+      <line className="ground-line-heavy" {...tseg(straight * 0.62, innerWid, straight * 0.62, outerWid)} />
+      {Array.from({ length: TRACK_LANES }, (_, i) => {
+        const c = innerWid + lane * (i + 0.5);
+        const a = -straight * 0.45 + i * lane * 0.9;
+        return <line key={`st${i}`} className="ground-line-fine" {...tseg(a, c - lane * 0.4, a, c + lane * 0.4)} />;
+      })}
+      {/* A long-jump runway and its pit in one D-zone. */}
+      {(() => {
+        const rc = innerWid * 0.5;           // off the centre line, clear of the goal
+        const a0 = -innerLen * 0.9; const a1 = -pitchLen * 1.04;
+        return (
+          <>
+            <polygon
+              className="ground-runway"
+              points={polyPoints([tp(a0, rc - lane * 0.45), tp(a1, rc - lane * 0.45), tp(a1, rc + lane * 0.45), tp(a0, rc + lane * 0.45)])}
+            />
+            <polygon
+              className="ground-dirt-pale"
+              points={polyPoints([tp(a0, rc - lane * 0.9), tp(a0 - lane * 2.4, rc - lane * 0.9), tp(a0 - lane * 2.4, rc + lane * 0.9), tp(a0, rc + lane * 0.9)])}
+            />
+          </>
+        );
+      })()}
 
       {/* The pitch, with mowing stripes — the bands are most of what makes a
           pitch read as cut grass rather than as a green rectangle. */}
@@ -473,7 +812,17 @@ function Pitch({ col, row, w, h }: GroundProps) {
         fill="none"
         points={polyPoints(projectedCircle(cc, cr, Math.min(w, h) * 0.09))}
       />
-
+      {/* Goals: two posts and a crossbar at each end, standing up. */}
+      {[-1, 1].map((end) => {
+        const l = pp(end, -0.108); const r = pp(end, 0.108); const bar = up(2.4);
+        return (
+          <g key={`goal${end}`}>
+            <line className="ground-goal" x1={l.x} y1={l.y} x2={l.x} y2={l.y - bar} />
+            <line className="ground-goal" x1={r.x} y1={r.y} x2={r.x} y2={r.y - bar} />
+            <line className="ground-goal" x1={l.x} y1={l.y - bar} x2={r.x} y2={r.y - bar} />
+          </g>
+        );
+      })}
     </>
   );
 }
@@ -482,20 +831,29 @@ function Pitch({ col, row, w, h }: GroundProps) {
 // Spanning the middle only, where the track's straight runs — and seated ON
 // the track's edge rather than at a guessed offset, so shrinking or
 // widening the oval cannot leave it floating in the margin.
+//
+// A real college track stand: raked seating on a low plinth, with a cover
+// over the back rows on four posts. The first version was the rake alone,
+// four units off the grass, and read as a plank.
 function pitchProps(col: number, row: number, w: number, h: number): GroundProp[] {
   const landscape = w >= h;
   const across = landscape ? h : w;
-  // The same half-width the oval above is drawn at, so the two cannot drift
-  // apart — see Pitch's own `outerWid`.
   const outerWid = across * 0.375;
   const tp = (a: number, c: number): TilePt => (landscape
     ? [col + w * a, row + h * c]
     : [col + w * c, row + h * a]);
   const trackEdge = 0.5 - outerWid / across;   // the oval's far side, as a footprint fraction
-  // The ground the stand covers: between its outer and inner edges, across
-  // the middle third of the plot's long side.
   const back = tp(0.32, 0.02);
   const front = tp(0.68, trackEdge);
+  const bottomH = up(0.9);
+  const topH = up(4.6);
+  const at = (t: TilePt, z: number) => lift(project(t[0], t[1]), z);
+  // The cover: over the back 55% of the seating.
+  const mid = 0.02 + (trackEdge - 0.02) * 0.45;
+  const f0 = tp(0.34, mid); const f1 = tp(0.66, mid);
+  const b0 = tp(0.34, 0.02); const b1 = tp(0.66, 0.02);
+  const slabZ = topH + up(3.2); const slab = up(0.35);
+  const seatZ = bottomH + (topH - bottomH) * 0.55;
   return [{
     key: 'stand',
     col: Math.min(back[0], front[0]),
@@ -503,17 +861,26 @@ function pitchProps(col: number, row: number, w: number, h: number): GroundProp[
     w: Math.abs(front[0] - back[0]),
     h: Math.abs(front[1] - back[1]),
     node: (
-      <RakedStand
-        outer={[tp(0.32, 0.02), tp(0.68, 0.02)]}
-        inner={[tp(0.32, trackEdge), tp(0.68, trackEdge)]}
-        bottomH={4}
-        topH={16}
-        rakeFill={CONCRETE.rake}
-        wallFill={CONCRETE.wall}
-        seatStroke={CONCRETE.seat}
-        rows={5}
-        frontWall
-      />
+      <>
+        <RakedStand
+          outer={[tp(0.32, 0.02), tp(0.68, 0.02)]}
+          inner={[tp(0.32, trackEdge), tp(0.68, trackEdge)]}
+          bottomH={bottomH}
+          topH={topH}
+          rakeFill={CONCRETE.rake}
+          wallFill={CONCRETE.wall}
+          seatStroke={CONCRETE.seat}
+          rows={6}
+          aisles={2}
+          frontWall
+        />
+        <Post at={b0} from={topH} to={slabZ} className="ground-post" />
+        <Post at={b1} from={topH} to={slabZ} className="ground-post" />
+        <Post at={f0} from={seatZ} to={slabZ} className="ground-post" />
+        <Post at={f1} from={seatZ} to={slabZ} className="ground-post" />
+        <polygon points={polyPoints([at(f0, slabZ), at(f1, slabZ), at(f1, slabZ + slab), at(f0, slabZ + slab)])} fill={shade(CONCRETE.wall, 0.9)} />
+        <polygon points={polyPoints([at(f0, slabZ + slab), at(f1, slabZ + slab), at(b1, slabZ + slab), at(b0, slabZ + slab)])} fill={shade(CONCRETE.rake, 1.08)} />
+      </>
     ),
   }];
 }
@@ -537,19 +904,23 @@ const COURT_LENGTH_METRES = 23.77;// baseline to baseline
 const SINGLES_INSET = (10.97 - 8.23) / 2 / 10.97;  // the doubles alley, as a share of the court's width
 const SERVICE_LINE = 6.4 / (23.77 / 2);            // service line, as a share of a half court
 
-function Courts({ col, row, w, h }: GroundProps) {
+function courtsLayout(w: number, h: number) {
   const landscape = w >= h;
   // u runs ALONG the row of courts, v across one court's length, whichever
   // way the plot was placed.
   const A = (a: number, c: number): [number, number] => (landscape ? [a, c] : [c, a]);
   const alongM = (landscape ? w : h) * METRES_PER_TILE;
   const deepM = (landscape ? h : w) * METRES_PER_TILE;
-
   const courts = Math.max(1, Math.round(alongM / COURT_BAY_METRES));
   const cw = Math.min(COURT_WIDTH_METRES / alongM, 1 / courts);  // one court's width, in plot u
   const cl = Math.min(COURT_LENGTH_METRES / deepM, 1);           // its length, in plot v
   const v0 = (1 - cl) / 2;
   const v1 = v0 + cl;
+  return { A, courts, cw, cl, v0, v1 };
+}
+
+function Courts({ col, row, w, h }: GroundProps) {
+  const { A, courts, cw, cl, v0, v1 } = courtsLayout(w, h);
 
   const line = (a0: number, c0: number, a1: number, c1: number, cls = 'ground-line') => (
     <line className={cls} {...uvLine(col, row, w, h, ...A(a0, c0), ...A(a1, c1))} />
@@ -558,7 +929,9 @@ function Courts({ col, row, w, h }: GroundProps) {
   return (
     <>
       {/* One surface under all of them. A six-court block is laid as a single
-          slab and fenced as one, not as six islands in the grass. */}
+          slab and fenced as one, not as six islands in the grass. Green
+          run-off, blue inside the lines: the hard-court scheme, and the two
+          tones are what say "tennis" once the line work is below a pixel. */}
       <polygon className="ground-court" points={uvPoly(col, row, w, h, [
         A(0, 0), A(1, 0), A(1, 1), A(0, 1),
       ])} />
@@ -570,6 +943,10 @@ function Courts({ col, row, w, h }: GroundProps) {
         const service = v0 + cl * 0.5 * (1 - SERVICE_LINE);
         return (
           <g key={k}>
+            <polygon
+              className="ground-court-play"
+              points={uvPoly(col, row, w, h, [A(u0, v0), A(u1, v0), A(u1, v1), A(u0, v1)])}
+            />
             {/* Baselines and doubles sidelines: the court itself. */}
             <polygon
               className="ground-line"
@@ -581,9 +958,8 @@ function Courts({ col, row, w, h }: GroundProps) {
                 "a rectangle with a net across it". */}
             {line(u0 + alley, v0, u0 + alley, v1, 'ground-line-fine')}
             {line(u1 - alley, v0, u1 - alley, v1, 'ground-line-fine')}
-            {/* The net, across the middle, and the service court behind it
-                on each side. */}
-            {line(u0, (v0 + v1) / 2, u1, (v0 + v1) / 2, 'ground-line-heavy')}
+            {/* The service courts behind the net on each side. The net
+                itself stands up, and comes from courtsProps. */}
             {line(u0 + alley, service, u1 - alley, service)}
             {line(u0 + alley, v1 - (service - v0), u1 - alley, v1 - (service - v0))}
             {line(centre, service, centre, v1 - (service - v0))}
@@ -592,6 +968,39 @@ function Courts({ col, row, w, h }: GroundProps) {
       })}
     </>
   );
+}
+
+// What stands on a court block: the fence around it, and a net across each
+// court.
+function courtsProps(col: number, row: number, w: number, h: number): GroundProp[] {
+  const { A, courts, cw, v0, v1 } = courtsLayout(w, h);
+  const at = (u: number, v: number, z: number) => { const [a, c] = A(u, v); return lift(project(col + w * a, row + h * c), z); };
+  const NET = up(1.07);
+  return [
+    {
+      key: 'fence',
+      col, row, w, h,
+      node: <FenceAround col={col} row={row} w={w} h={h} height={up(3.2)} />,
+    },
+    {
+      key: 'nets',
+      col, row, w, h,
+      node: (
+        <>
+          {Array.from({ length: courts }, (_, k) => {
+            const centre = (k + 0.5) / courts;
+            const u0 = centre - cw / 2; const u1 = centre + cw / 2; const v = (v0 + v1) / 2;
+            return (
+              <g key={k}>
+                <polygon className="ground-net" points={polyPoints([at(u0, v, 0), at(u1, v, 0), at(u1, v, NET), at(u0, v, NET)])} />
+                <line className="ground-net-tape" x1={at(u0, v, NET).x} y1={at(u0, v, NET).y} x2={at(u1, v, NET).x} y2={at(u1, v, NET).y} />
+              </g>
+            );
+          })}
+        </>
+      ),
+    },
+  ];
 }
 
 const QUAD_WALK = 0.075;
@@ -856,18 +1265,60 @@ function quadProps(col: number, row: number, w: number, h: number, tier: number)
   ];
 }
 
-// The open-air pool: deck with the water sunk into it, plus lane lines.
+// The open-air pool: deck with the water sunk into it, coping round the
+// edge, eight lanes, a deep end, and starting blocks at the shallow end.
+const POOL_LANES = 8;
+const POOL_WATER = { u0: 0.18, u1: 0.82, v0: 0.24, v1: 0.76 };
+
 function PoolDeck({ col, row, w, h }: GroundProps) {
-  const water: [number, number][] = [[0.18, 0.24], [0.82, 0.24], [0.82, 0.76], [0.18, 0.76]];
+  const { u0, u1, v0, v1 } = POOL_WATER;
+  const rect = (a: number, b: number, c: number, d: number): [number, number][] => [[a, c], [b, c], [b, d], [a, d]];
+  const cop = 0.02;
   return (
     <>
-      <polygon className="ground-deck" points={uvPoly(col, row, w, h, [[0, 0], [1, 0], [1, 1], [0, 1]])} />
-      <polygon className="ground-water" points={uvPoly(col, row, w, h, water)} />
-      {[0.38, 0.5, 0.62].map((v, i) => (
-        <line key={i} className="ground-lane" {...uvLine(col, row, w, h, 0.2, v, 0.8, v)} />
-      ))}
+      <polygon className="ground-deck" points={uvPoly(col, row, w, h, rect(0, 0, 1, 1))} />
+      <polygon className="ground-coping" points={uvPoly(col, row, w, h, rect(u0 - cop, u1 + cop, v0 - cop * 2, v1 + cop * 2))} />
+      <polygon className="ground-water" points={uvPoly(col, row, w, h, rect(u0, u1, v0, v1))} />
+      {/* The deep end. */}
+      <polygon className="ground-water-deep" points={uvPoly(col, row, w, h, rect(u0 + (u1 - u0) * 0.58, u1, v0, v1))} />
+      {Array.from({ length: POOL_LANES - 1 }, (_, i) => {
+        const v = v0 + ((i + 1) / POOL_LANES) * (v1 - v0);
+        return <line key={i} className="ground-lane" {...uvLine(col, row, w, h, u0, v, u1, v)} />;
+      })}
+      {/* Starting blocks on the deck at the shallow end, one per lane. */}
+      {Array.from({ length: POOL_LANES }, (_, i) => {
+        const v = v0 + ((i + 0.5) / POOL_LANES) * (v1 - v0);
+        const s = 0.012;
+        return (
+          <polygon
+            key={`b${i}`}
+            className="ground-block"
+            points={uvPoly(col, row, w, h, rect(u0 - cop - s * 2.4, u0 - cop - s * 0.6, v - s, v + s))}
+          />
+        );
+      })}
     </>
   );
+}
+
+// What stands on a pool deck: a fence round the deck, and a pool house in
+// the corner behind the deep end.
+function poolProps(col: number, row: number, w: number, h: number): GroundProp[] {
+  const inset = 0.03;
+  const hc = col + w * 0.86; const hr = row + h * 0.06;
+  const hw = w * 0.11; const hh = h * 0.16;
+  return [
+    {
+      key: 'fence',
+      col, row, w, h,
+      node: <FenceAround col={col + w * inset} row={row + h * inset} w={w * (1 - inset * 2)} h={h * (1 - inset * 2)} height={up(2.0)} />,
+    },
+    {
+      key: 'poolhouse',
+      col: hc, row: hr, w: hw, h: hh,
+      node: <GroundBox col={hc} row={hr} w={hw} h={hh} height={up(3.0)} side={shade(CONCRETE.wall, 0.86)} front={CONCRETE.wall} top={shade(CONCRETE.rake, 0.94)} />,
+    },
+  ];
 }
 
 // ---------------------------------------------------------------------
@@ -1007,8 +1458,9 @@ export default function GroundMarking({ facilityType, col, row, w, h, tier, deve
 // each with the point it stands on. Mirrors GroundMarking above exactly —
 // same switch, same argument list, same `developing` shortcut ahead of it —
 // so a facility can never have its paint drawn without its props, or vice
-// versa. An empty list is the normal answer: a tennis court and a pool deck
-// are paint all the way down.
+// versa. An empty list is still a normal answer — nothing stands on a
+// quad's lawn beyond what quadProps lists — but a tennis block is fenced
+// and netted and a pool deck is fenced, and those stand up.
 export function groundProps(
   facilityType: FacilityType | undefined,
   col: number, row: number, w: number, h: number, tier?: number, developing?: boolean,
@@ -1023,6 +1475,8 @@ export function groundProps(
   switch (facilityType) {
     case 'athleticsField': return pitchProps(col, row, w, h);
     case 'athleticsDiamond': return diamondProps(col, row, w, h);
+    case 'tennisCourts': return courtsProps(col, row, w, h);
+    case 'pool': return poolProps(col, row, w, h);
     case 'quad': return quadProps(col, row, w, h, tier ?? 1);
     default: return [];
   }
@@ -1036,9 +1490,12 @@ export function StadiumField({ col, row, w, h }: GroundProps) {
   return (
     <>
       {/* The full interior, so nothing behind the stands is ever visible
-          through the opening. Drawn before the gridiron sitting on it. */}
-      <polygon className="ground-track" points={polyPoints(boxFaces(col, row, w, h, 0, 0).top)} />
-      <Gridiron col={col} row={row} w={w} h={h} inset={0.10} />
+          through the opening. A concourse in concrete, not a running track:
+          a football stadium's field is ringed by a walkway, and the red band
+          this used to be read as a second track next to the real one on the
+          multi-sport field. */}
+      <polygon className="ground-apron" points={polyPoints(boxFaces(col, row, w, h, 0, 0).top)} />
+      <Gridiron col={col} row={row} w={w} h={h} inset={0.10} posts />
     </>
   );
 }
