@@ -770,10 +770,11 @@ export function MarketInField({ s, act, field, projectedFor }: {
 }
 
 function CourseDrawer(
-  { s, act, t, lookup, onClose, loads, onGoToCourse }:
+  { s, act, t, lookup, onClose, loads, onGoToCourse, onOpenFaculty }:
   {
     s: GameState; act: (a: Action) => void; t: Buildable; lookup: Map<string, Buildable>;
     onClose: () => void; loads: FacultyLoads; onGoToCourse: (id: string) => void;
+    onOpenFaculty?: (field: string) => void;
   },
 ) {
   const state = cellState(s, t);
@@ -977,7 +978,16 @@ function CourseDrawer(
                 behind "appoint someone new" — the player who needs more
                 faculty for this course hires from this course. */}
             {eligible.length === 0
-              ? <MarketInField s={s} act={act} field={t.requiresFaculty} projectedFor={t} />
+              ? (
+                <>
+                  <MarketInField s={s} act={act} field={t.requiresFaculty} projectedFor={t} />
+                  {onOpenFaculty && (
+                    <button type="button" className="course-drawer-door" onClick={() => onOpenFaculty(t.requiresFaculty!)}>
+                      Open the {t.requiresFaculty} department →
+                    </button>
+                  )}
+                </>
+              )
               : (
                 <details className="course-drawer-more">
                   <summary>Appoint someone new in {t.requiresFaculty}</summary>
@@ -1347,11 +1357,12 @@ function FilterBar(
 // =====================================================================
 const NEAR_MILESTONE = 2;
 
-function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall }: {
+function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onOpenFaculty }: {
   s: GameState; groups: SchoolGroup[]; lookup: Map<string, Buildable>;
   onGoToProgram: (id: string) => void;
   onFilter: (f: Partial<Filters>) => void;
   onInspectHall?: (hallId: string) => void;
+  onOpenFaculty?: (field: string) => void;
 }) {
   // THE OFFER. Global — the same three at any free slot — so it is stated
   // once, with every hall that has room. "Found in…" hands the hall to the
@@ -1453,9 +1464,16 @@ function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall }: {
             {wall.slice(0, 3).map(([field, n]) => {
               const gate = facultyGate(s, field);
               return (
-                <button key={field} type="button" className="next-up-door" onClick={() => onFilter({ field, status: 'all' })} title={`${n} revealed ${n === 1 ? 'course is' : 'courses are'} waiting on a free ${field} slot${gate === 'hireable' ? ' — a candidate is listed' : ' — nobody on the market'}`}>
-                  {field} short · {n} waiting{gate === 'hireable' ? ' · candidate listed' : ''}
-                </button>
+                <span key={field} className="next-up-pair">
+                  <button type="button" className="next-up-door" onClick={() => onFilter({ field, status: 'all' })} title={`${n} revealed ${n === 1 ? 'course is' : 'courses are'} waiting on a free ${field} slot${gate === 'hireable' ? ' — a candidate is listed' : ' — nobody on the market'}`}>
+                    {field} short · {n} waiting{gate === 'hireable' ? ' · candidate listed' : ''}
+                  </button>
+                  {onOpenFaculty && (
+                    <button type="button" className="next-up-door quiet" onClick={() => onOpenFaculty(field)} title={`Open the Faculty board on ${field}: its people, the market, a search`}>
+                      {gate === 'hireable' ? 'Appoint →' : 'Department →'}
+                    </button>
+                  )}
+                </span>
               );
             })}
           </span>
@@ -1476,7 +1494,7 @@ export function completion(s: GameState, ids: string[]): { done: number; total: 
 }
 
 export default function CurriculumTab(
-  { s, act, target, onTargetConsumed, onInspectHall }:
+  { s, act, target, onTargetConsumed, onInspectHall, onOpenFaculty }:
   {
     s: GameState; act: (a: Action) => void;
     // Somewhere to be on arrival, when the tab was opened FROM something:
@@ -1489,6 +1507,9 @@ export default function CurriculumTab(
     // The way back to the map: closes this tab and opens a hall's panel,
     // which is where a program on offer is founded (see NextUp).
     onInspectHall?: (hallId: string) => void;
+    // The way to a department: the Faculty board opened on it, for the
+    // wall's items and a drawer's dead end.
+    onOpenFaculty?: (field: string) => void;
   },
 ) {
   const revealedGrad = revealedGraduatePrograms(s);
@@ -1568,6 +1589,13 @@ export default function CurriculumTab(
     if (!target) return;
     if (target.startsWith('program:')) {
       goToProgram(target.slice('program:'.length));
+    } else if (target.startsWith('field:')) {
+      // From the Faculty board: the courses waiting on one department.
+      setSelectedId(null);
+      setFilters({ ...NO_FILTERS, field: target.slice('field:'.length) });
+    } else if (target === 'unstaffed') {
+      setSelectedId(null);
+      setFilters({ ...NO_FILTERS, status: 'unstaffed' });
     } else {
       setSelectedId(null);
       setFilters(NO_FILTERS);
@@ -1638,6 +1666,7 @@ export default function CurriculumTab(
             onGoToProgram={goToProgram}
             onFilter={(f) => setFilters({ ...NO_FILTERS, ...f })}
             onInspectHall={onInspectHall}
+            onOpenFaculty={onOpenFaculty}
           />
         )}
 
@@ -1705,6 +1734,7 @@ export default function CurriculumTab(
           onClose={() => setSelectedId(null)}
           loads={loads}
           onGoToCourse={goToCourse}
+          onOpenFaculty={onOpenFaculty}
         />
       )}
     </div>

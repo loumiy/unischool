@@ -357,7 +357,15 @@ export default function App() {
 
         {overlay && (
           <TabOverlay title={TAB_LABELS[overlay.tab]} onClose={() => openTab(null)}>
-            {overlay.tab === 'faculty' && <FacultyTab s={s} act={act} />}
+            {overlay.tab === 'faculty' && (
+              <FacultyTab
+                s={s}
+                act={act}
+                target={overlay.target}
+                onTargetConsumed={() => setOverlay((cur) => (cur ? { tab: cur.tab } : cur))}
+                onOpenCurriculum={(target) => openTab('curriculum', target)}
+              />
+            )}
             {overlay.tab === 'curriculum' && (
               <CurriculumTab
                 s={s}
@@ -365,6 +373,7 @@ export default function App() {
                 target={overlay.target}
                 onTargetConsumed={() => setOverlay((cur) => (cur ? { tab: cur.tab } : cur))}
                 onInspectHall={inspectHall}
+                onOpenFaculty={(field) => openTab('faculty', field)}
               />
             )}
             {overlay.tab === 'research' && <ResearchTab s={s} act={act} />}

@@ -6,7 +6,7 @@ import {
   canPlace, canRotate, canSiteRetroactively, footprintIsClear, footprintOf,
   isPlaceableKind, orientedFootprint, parsePathTileKey,
 } from '../state/campusMap';
-import { canStartDevelopment } from '../systems/techtree/techSystem';
+import { canStartDevelopment, facultyGate } from '../systems/techtree/techSystem';
 import { chapterHouseId } from '../data/eventData';
 import { isTypingTarget, useHotkeys } from './hotkeys';
 import HelpHint from './HelpHint';
@@ -463,9 +463,19 @@ const HALL_PIP_R = 6.5;
 const HALL_PIP_GAP = 17;
 const HALL_MARK_LIFT = 28;
 
-function HallMarks({ t, p, slots, offerWaiting, vernacular, onInspect }: {
+// Is a program in this hall stuck for want of a department? Its next
+// startable course's field has no free slot. The pip gets a red ring; the
+// panel says which department and whether a candidate is listed.
+function programBlocked(s: GameState, programId: string): boolean {
+  const program = programById(programId);
+  if (!program) return false;
+  const next = program.courseIds.map((id) => s.tech.find((x) => x.id === id)).find((c) => c?.status === 'available');
+  return !!next?.requiresFaculty && facultyGate(s, next.requiresFaculty) !== 'open';
+}
+
+function HallMarks({ t, p, slots, offerWaiting, blocked, vernacular, onInspect }: {
   t: Buildable; p: Placement; slots: ReadonlyArray<{ programId: string | null }>;
-  offerWaiting: boolean; vernacular: Vernacular; onInspect: () => void;
+  offerWaiting: boolean; blocked: ReadonlyArray<boolean>; vernacular: Vernacular; onInspect: () => void;
 }) {
   // Only the label's size and centre are wanted, and neither depends on
   // the text — the name is passed for the width the plate would need.
@@ -481,7 +491,7 @@ function HallMarks({ t, p, slots, offerWaiting, vernacular, onInspect }: {
   });
   return (
     <g className="campus-hall-marks" role="button" onClick={onInspect} aria-label={`${t.name}: ${slots.length - free} of ${slots.length} slots filled${flag ? ', a program on offer' : ''}`}>
-      <title>{`${slots.length - free} of ${slots.length} slots filled${flag ? ' · room for a program on offer' : ''}`}</title>
+      <title>{`${slots.length - free} of ${slots.length} slots filled${flag ? ' · room for a program on offer' : ''}${blocked.some(Boolean) ? ' · a program is waiting on a department' : ''}`}</title>
       <rect
         className="campus-hall-marks-plate"
         x={x0 - HALL_PIP_R - 4} y={y - HALL_PIP_R - 3}
@@ -491,7 +501,7 @@ function HallMarks({ t, p, slots, offerWaiting, vernacular, onInspect }: {
       {hues.map((hue, i) => (
         <circle
           key={i}
-          className={`campus-hall-pip${hue ? ' filled' : ''}`}
+          className={`campus-hall-pip${hue ? ' filled' : ''}${blocked[i] ? ' blocked' : ''}`}
           cx={x0 + i * HALL_PIP_GAP} cy={y} r={HALL_PIP_R}
           style={hue ? { fill: hue } : undefined}
         />
@@ -1473,6 +1483,7 @@ export default function CampusMap({
                 p={p}
                 slots={s.halls[t.id]}
                 offerWaiting={s.programOffers.length > 0}
+                blocked={s.halls[t.id].map((slot) => !!slot.programId && programBlocked(s, slot.programId))}
                 vernacular={s.self.vernacular}
                 onInspect={() => inspectBuilding(t.id)}
               />

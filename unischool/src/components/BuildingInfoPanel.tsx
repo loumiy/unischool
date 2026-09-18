@@ -8,7 +8,7 @@ import { averageCourseQuality, facultyLoads } from '../systems/faculty/facultyAs
 import { gradeFor } from '../data/courseQuality';
 import { schoolMark } from '../data/schoolPalette';
 import {
-  canFoundProgram, canRelocateProgram, eligibleInstructors,
+  canFoundProgram, canRelocateProgram, eligibleInstructors, facultyGate,
   RELOCATION_WEEKS,
 } from '../systems/techtree/techSystem';
 import { transitWeeks } from '../systems/techtree/programOffers';
@@ -231,7 +231,18 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
             {inTransit > 0
               ? `In transit — ${inTransit} week${inTransit === 1 ? '' : 's'} until its courses count again.`
               : progress.next
-                ? <>Next: <span className="hall-offer-code">{courseCode(progress.next)}</span> {courseTitle(progress.next)} · ${progress.next.cost.toLocaleString()} · {progress.next.duration} wk</>
+                ? (() => {
+                  const field = progress.next.requiresFaculty;
+                  const gate = field ? facultyGate(s, field) : 'open';
+                  return (
+                    <>
+                      Next: <span className="hall-offer-code">{courseCode(progress.next)}</span> {courseTitle(progress.next)} · ${progress.next.cost.toLocaleString()} · {progress.next.duration} wk
+                      {gate !== 'open' && (
+                        <span className="program-summary-blocked"> — no free {field} slot{gate === 'hireable' ? ', a candidate is listed' : ', nobody on the market'}.</span>
+                      )}
+                    </>
+                  );
+                })()
                 : progress.waiting
                   ? <>Waiting on <span className="hall-offer-code">{courseCode(progress.waiting)}</span> {courseTitle(progress.waiting)} — needs {unmetPrereqNames(s, progress.waiting).join(', ') || 'its prerequisites'}.</>
                   : progress.developing > 0
