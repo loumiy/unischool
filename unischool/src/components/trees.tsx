@@ -1,4 +1,5 @@
 import { lift, polyPoints, project, projectedCircle } from './isoProjection';
+import { isDraft } from './renderDetail';
 
 // Trees on the campus map. Geometry here, colour in styles.css — the same
 // house rule buildingMotifs.tsx and groundMarkings.tsx follow, and the same
@@ -115,6 +116,13 @@ export function TreeAt({ col, row, species, scale }: {
   // once. PROJECTED, unlike the crown above it — a shadow really does lie
   // on the ground, which is the whole distinction this file turns on.
   const shadowR = (crownR / 64) * (species === 'conifer' ? 0.7 : 1);
+
+  // The camera is moving (see renderDetail.ts): one node per tree, a blob
+  // of the crown's size where the crown is, so the wood keeps its shape and
+  // its place in the depth order and costs a tenth of what it does at rest.
+  if (isDraft()) {
+    return <circle className={`campus-tree ${species} campus-tree-crown`} cx={trunkTop.x} cy={trunkTop.y - crownR * 0.7} r={crownR} />;
+  }
 
   return (
     <g className={`campus-tree ${species}`} aria-hidden="true">

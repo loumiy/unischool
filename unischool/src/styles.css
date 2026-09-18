@@ -756,6 +756,7 @@ button.build-tile { font-family: inherit; }
 .campus-map-svg { display: block; width: 100%; height: 100%; background: var(--grass-deep);
   cursor: grab; touch-action: none; }
 .campus-map-svg.panning { cursor: grabbing; }
+.campus-map-svg.turning { cursor: move; }
 .campus-map-svg.path-draw, .campus-map-svg.path-erase,
 .campus-map-svg.path-plant, .campus-map-svg.path-fell { cursor: crosshair; }
 
