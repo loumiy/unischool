@@ -187,6 +187,10 @@ function windows(
   sills: number[], windowWidthTiles: number, key: string,
   shape: WindowShape, glass: string,
   reserved?: FaceRect,
+  // Two lights to the bay instead of one — the Gothic grouping. The BAY is
+  // unchanged (the door's reserved bay and the sill bounds are computed on
+  // it); only what is drawn inside it changes.
+  lights: 1 | 2 = 1,
 ) {
   const out: React.JSX.Element[] = [];
   if (wallHeight <= 0 || spanTiles <= 0) return out;
@@ -205,20 +209,26 @@ function windows(
       const centre = (b + 0.5) / bays;
       const u0 = centre - halfU; const u1 = centre + halfU;
       if (reserved && overlaps({ u0, u1, v0, v1 }, reserved)) continue;
-      out.push(
+      // One light across the bay, or two narrower ones either side of a
+      // mullion — each a little wider than half, so the pair reads as one
+      // grouped window rather than two small ones.
+      const spans: Array<[number, number]> = lights === 2
+        ? [[centre - halfU * 1.08, centre - halfU * 0.12], [centre + halfU * 0.12, centre + halfU * 1.08]]
+        : [[u0, u1]];
+      spans.forEach(([a, c], i) => out.push(
         <polygon
-          key={`${key}${r}-${b}`}
+          key={`${key}${r}-${b}-${i}`}
           className="iso-window"
           fill={glass}
           // The BAY is still the same rectangle whatever the vernacular —
           // reserved-bay collision above, and the sill/eaves bounds, are
           // computed on it — and only the outline drawn inside it changes.
           points={polyPoints(
-            windowOutline(shape, u0, u1, v0, v1)
+            windowOutline(shape, a, c, v0, v1)
               .map(([u, v]) => facePoint(origin, along, wallHeight, u, v)),
           )}
         />,
-      );
+      ));
     }
   }
   return out;
@@ -1171,6 +1181,125 @@ function BellGable({ origin, along, inward, wallHeight, span, centreU, sideAt, p
   );
 }
 
+// BUTTRESSES down a wall: a stepped pier at every bay line, clear of the
+// entrance bay and of a corner a tower already holds. Two set-offs, as the
+// porch's have, shallower above than below. They are what makes a stone
+// wall read as Gothic construction rather than a Georgian wall painted
+// grey: the structure is on the outside.
+function Buttresses({ col, row, w, h, height, outward, pal, stone, reserve, skipNear = 0 }: {
+  col: number; row: number; w: number; h: number; height: number; outward: 'row' | 'col';
+  pal: Palette; stone: StonePalette;
+  // The stretch of this wall, in u, that its entrance takes.
+  reserve?: [number, number];
+  // How much of the wall's near end, in tiles, a corner tower occupies.
+  skipNear?: number;
+}) {
+  const span = outward === 'row' ? w : h;
+  const bays = baysAcross(span);
+  if (bays < 2) return null;
+  const depth = across(0.85);
+  const shrink = depth * 0.42;
+  const lowH = height * 0.5; const midH = height * 0.82;
+  const out: React.JSX.Element[] = [];
+  for (let b = 1; b < bays; b++) {
+    const u = b / bays;
+    if (reserve && u > reserve[0] - 0.03 && u < reserve[1] + 0.03) continue;
+    const along = u * span;
+    if (skipNear > 0 && along > span - skipNear - BUTTRESS_PLAN) continue;
+    const bc = outward === 'row' ? col + along - BUTTRESS_PLAN / 2 : col + w;
+    const br = outward === 'row' ? row + h : row + along - BUTTRESS_PLAN / 2;
+    const bw = outward === 'row' ? BUTTRESS_PLAN : depth;
+    const bh = outward === 'row' ? depth : BUTTRESS_PLAN;
+    const lower = boxFaces(bc, br, bw, bh, 0, lowH);
+    const upper = outward === 'row'
+      ? boxFaces(bc, br, bw, bh - shrink, lowH, midH - lowH)
+      : boxFaces(bc, br, bw - shrink, bh, lowH, midH - lowH);
+    out.push(
+      <g key={`${outward}${b}`}>
+        <polygon points={polyPoints(lower.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(lower.right)} fill={pal.wallRight} />
+        <polygon points={polyPoints(lower.top)} fill={shade(stone.trim, 0.88)} />
+        <polygon points={polyPoints(upper.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(upper.right)} fill={pal.wallRight} />
+        <polygon points={polyPoints(upper.top)} fill={shade(stone.trim, 0.94)} />
+      </g>,
+    );
+  }
+  return <>{out}</>;
+}
+
+// MERLONS along the head of a wall: a crenellated parapet, as real blocks
+// standing on the wall top rather than a zigzag painted on its face, so
+// they catch the light the way the wall does.
+function Merlons({ col, row, w, h, base, outward, pal }: {
+  col: number; row: number; w: number; h: number; base: number; outward: 'row' | 'col'; pal: Palette;
+}) {
+  const span = outward === 'row' ? w : h;
+  const m = across(1.1); const g = across(0.9); const depth = across(0.5); const rise = up(1.0);
+  const n = Math.max(1, Math.floor((span - g) / (m + g)));
+  const start = (span - (n * m + (n - 1) * g)) / 2;
+  return (
+    <>
+      {Array.from({ length: n }, (_, i) => {
+        const along = start + i * (m + g);
+        const f = outward === 'row'
+          ? boxFaces(col + along, row + h - depth, m, depth, base, rise)
+          : boxFaces(col + w - depth, row + along, depth, m, base, rise);
+        return (
+          <g key={i}>
+            <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+            <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+            <polygon points={polyPoints(f.top)} fill={shade(pal.wallLeft, 1.08)} />
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
+// A TOWER at the near corner of a building: square, in the wall's own
+// stone, standing a little proud of both walls and rising past the eaves,
+// lancets up its faces, and a slate pyramid on top — inside a crenellated
+// head on the halls, plain on the residence halls. The corner tower is
+// what says "collegiate Gothic" from across the map: Duke's and Chicago's
+// quads are all corners like this, and it is the piece the set was missing
+// when it read as Georgian in grey.
+//
+// At the NEAR corner deliberately. Its two drawn faces lie a hand's breadth
+// in front of the building's own two visible walls, so nothing of it is
+// ever painted where the building should show through; a tower at either
+// far corner would have a face inside the mass behind it.
+function CornerTower({ col, row, plan, height, pal, glass, sills, paneW, crenels, capRise }: {
+  col: number; row: number; plan: number; height: number;
+  pal: Palette; glass: string; sills: number[]; paneW: number;
+  crenels: boolean; capRise: number;
+}) {
+  const f = boxFaces(col, row, plan, plan, 0, height);
+  // A crenellated tower is flat-topped — the leads behind the parapet —
+  // and a plain one carries a slate pyramid. A pyramid inside a parapet
+  // read as nothing at all against the hall's own slate behind it.
+  const At = lift(project(col, row), height);
+  const Bt = lift(project(col + plan, row), height);
+  const Ct = lift(project(col + plan, row + plan), height);
+  const Dt = lift(project(col, row + plan), height);
+  const tip = lift(project(col + plan / 2, row + plan / 2), height + capRise);
+  const faces: Array<[Pt, Pt, number]> = [[At, Dt, 1.10], [At, Bt, 1.00], [Dt, Ct, 0.84], [Bt, Ct, 0.70]];
+  return (
+    <>
+      <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+      {windows(f.D, f.C, height, plan, sills, paneW * 0.6, 'tl', 'lancet', glass)}
+      {windows(f.C, f.B, height, plan, sills, paneW * 0.6, 'tr', 'lancet', glass)}
+      <WallBand origin={f.D} along={f.C} wallHeight={height} from={height - CORNICE} to={height} className="iso-cornice" />
+      <WallBand origin={f.C} along={f.B} wallHeight={height} from={height - CORNICE} to={height} className="iso-cornice" />
+      <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />
+      {!crenels && faces.map(([a, b, k], i) => <polygon key={i} points={polyPoints([a, b, tip])} fill={shade(pal.roof, k)} />)}
+      {crenels && <Merlons col={col} row={row} w={plan} h={plan} base={height} outward="row" pal={pal} />}
+      {crenels && <Merlons col={col} row={row} w={plan} h={plan} base={height} outward="col" pal={pal} />}
+    </>
+  );
+}
+
 // THE RECESS. The Brutalist way in: the ground floor cut away across the
 // middle of the front, with the mass above left oversailing it on a slab.
 //
@@ -2053,6 +2182,12 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
   const chimneys = partsFor(vernacular).chimneys === true;
   const dormers = partsFor(vernacular).dormers === true;
   const bellGable = partsFor(vernacular).bellGable === true;
+  const buttresses = partsFor(vernacular).buttresses === true;
+  const turrets = partsFor(vernacular).turrets === true;
+  const crenellations = partsFor(vernacular).crenellations === true;
+  const lights: 1 | 2 = partsFor(vernacular).pairedLights === true ? 2 : 1;
+  // How far a corner tower stands proud of the walls it rises from.
+  const TOWER_PROUD = across(0.45);
   // What a wall too short for an arcade gets instead: the same small porch
   // the vernacular puts on its residence halls if it has one, else a
   // canopy. Mission's one-storey dining hall wore a Georgian slab on posts.
@@ -2529,6 +2664,8 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
     const flights = entrance !== 'arcade';
     const hf = boxFaces(col, row, w, h, 0, WH);
     const endPlan = Math.min(END_PAVILION_PLAN, Math.min(w, h) * 0.28);
+    // The corner tower's plan, a real size capped by the hall's own.
+    const towerPlan = Math.min(across(7.5), Math.min(w, h) * 0.26);
     // The roof is set BACK behind the parapet, which is what a parapet is
     // for — so a vernacular with NO parapet gets no setback either. Leaving
     // it in drew a pale ring of roof deck all the way round a Gothic hall,
@@ -2560,8 +2697,18 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         {/* The door's bay is reserved on the main wall even though the door
             itself goes on the pavilion in front of it — otherwise a rank of
             windows sits behind the entrance. */}
-        {windows(hf.D, hf.C, WH, w, sills, paneW, 'l', paneShape, stone.glass, door ? doorBay(door, w, WH) : undefined)}
-        {windows(hf.C, hf.B, WH, h, sills, paneW, 'r', paneShape, stone.glass, door ? doorBay(door, h, WH) : undefined)}
+        {windows(hf.D, hf.C, WH, w, sills, paneW, 'l', paneShape, stone.glass, door ? doorBay(door, w, WH) : undefined, lights)}
+        {windows(hf.C, hf.B, WH, h, sills, paneW, 'r', paneShape, stone.glass, door ? doorBay(door, h, WH) : undefined, lights)}
+        {/* Buttresses at the bay lines, clear of the entrance bay and of
+            the corner the tower holds. */}
+        {buttresses && (
+          <>
+            <Buttresses pal={pal} stone={stone} col={col} row={row} w={w} h={h} height={H} outward="row"
+              reserve={[0.5 - pavilionWidth(w) / w / 2, 0.5 + pavilionWidth(w) / w / 2]} skipNear={turrets ? towerPlan : 0} />
+            <Buttresses pal={pal} stone={stone} col={col} row={row} w={w} h={h} height={H} outward="col"
+              reserve={[0.5 - pavilionWidth(h) / h / 2, 0.5 + pavilionWidth(h) / h / 2]} skipNear={turrets ? towerPlan : 0} />
+          </>
+        )}
 
         {/* The flat between the parapet and the eaves. Without it the roof's
             inset leaves a ring of nothing at the head of the wall, and the
@@ -2597,6 +2744,16 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           <EndPavilion stone={stone} key={`e${i}`} col={ec} row={er} w={ew} h={eh} base={WH} pal={pal} />
         ))}
 
+        {/* The corner tower, after the roof it rises past and before the
+            porch, which stands further forward still. Nearly two storeys
+            above the eaves, crenellated and flat-topped, with two ranks of
+            lancets more than the hall. */}
+        {turrets && (
+          <CornerTower pal={pal} glass={stone.glass} paneW={paneW}
+            col={col + w - towerPlan + TOWER_PROUD} row={row + h - towerPlan + TOWER_PROUD} plan={towerPlan}
+            height={WH + STOREY * 1.9} sills={rankSills(ranks + 2)} crenels={crenellations} capRise={up(5.0)}
+          />
+        )}
         {/* The bell-gable over the centre of the front, on every hall but
             the one that carries the campanile. */}
         {bellGable && !hasClockTower(t) && (
@@ -2902,6 +3059,12 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
 
   const gabled = ridge > 0;
   const alongW = w >= h;
+  // The stair turret at a residence hall's near corner: smaller than a
+  // hall's tower, plain-capped, and only where there is a wall long enough
+  // to hold one beside the door.
+  const turretPlan = turrets && motif === 'residential' && Math.min(w, h) >= 2.8 && gabled
+    ? Math.min(across(4.8), Math.min(w, h) * 0.2)
+    : 0;
   // Whether this door is reached through an archway's porch (its own, or
   // the one a too-short arcade falls back to), which is where its flight lands.
   const porched = entrance === 'archway' || (entrance === 'arcade' && !arcadeFits(H) && shortArcadeFallback === 'archway');
@@ -2936,8 +3099,20 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           point: the same window then goes in both, instead of one wall's
           windows coming out wider than the other's by the ratio of the two
           spans. */}
-      {!site && windows(f.D, f.C, H, w, sills, paneW, 'l', paneShape, stone.glass, door ? doorBay(door, w, H) : undefined)}
-      {!site && windows(f.C, f.B, H, h, sills, paneW, 'r', paneShape, stone.glass, door ? doorBay(door, h, H) : undefined)}
+      {!site && windows(f.D, f.C, H, w, sills, paneW, 'l', paneShape, stone.glass, door ? doorBay(door, w, H) : undefined, lights)}
+      {!site && windows(f.C, f.B, H, h, sills, paneW, 'r', paneShape, stone.glass, door ? doorBay(door, h, H) : undefined, lights)}
+      {/* Buttresses down the walls of the pitched-roof buildings — the
+          residence halls and pavilions — clear of the door and its canopy,
+          and of the corner the turret holds. The flat-roofed civic set
+          gets a crenellated head instead, below. */}
+      {!site && buttresses && gabled && door && (
+        <>
+          <Buttresses pal={pal} stone={stone} col={col} row={row} w={w} h={h} height={H} outward="row"
+            reserve={[0.5 - door.widthTiles * 0.95 / w, 0.5 + door.widthTiles * 0.95 / w]} skipNear={turretPlan} />
+          <Buttresses pal={pal} stone={stone} col={col} row={row} w={w} h={h} height={H} outward="col"
+            reserve={[0.5 - door.widthTiles * 0.95 / h, 0.5 + door.widthTiles * 0.95 / h]} skipNear={turretPlan} />
+        </>
+      )}
       {/* A grocery's front is a shopfront: continuous glazing at street
           level on both faces, over the punched windows the rank would
           otherwise put there. */}
@@ -3148,6 +3323,21 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
               />
             ))
           )}
+        </>
+      )}
+      {/* The residence hall's corner turret, after the roof it rises past. */}
+      {!site && turretPlan > 0 && (
+        <CornerTower pal={pal} glass={stone.glass} paneW={paneW}
+          col={col + w - turretPlan + TOWER_PROUD} row={row + h - turretPlan + TOWER_PROUD} plan={turretPlan}
+          height={H + STOREY * 0.8} sills={rankSills(ranks + 1)} crenels={false} capRise={up(4.2)}
+        />
+      )}
+      {/* The crenellated head of the flat-roofed civic set: merlons along
+          both visible walls, standing on the roof's edge. */}
+      {!site && crenellations && !gabled && motif === 'portico' && (
+        <>
+          <Merlons col={col} row={row} w={w} h={h} base={H} outward="row" pal={pal} />
+          <Merlons col={col} row={row} w={w} h={h} base={H} outward="col" pal={pal} />
         </>
       )}
       {/* The bell-gable over a pavilion's door: the one-storey dining hall,

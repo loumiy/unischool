@@ -917,6 +917,17 @@ export interface VernacularParts {
   // of a hall's and a pavilion's front. The Mission signature after the
   // arcade, and the piece that tells a Mission front from a Tuscan one.
   bellGable?: boolean;
+  // THE CASTLE PARTS, which are what collegiate Gothic is recognised by
+  // and what the set was missing when it read as Georgian in grey.
+  // Stepped buttresses at every bay line down the long walls.
+  buttresses?: boolean;
+  // A square tower at the near corner of every hall and residence hall,
+  // rising past the eaves under a slate pyramid.
+  turrets?: boolean;
+  // A crenellated head on the towers and on the flat-roofed civic set.
+  crenellations?: boolean;
+  // Two lights to a bay under one head, instead of one window.
+  pairedLights?: boolean;
 }
 
 // HOW A BUILDING IS MASSED, which is the one axis that is not ornament.
@@ -1102,6 +1113,15 @@ const GOTHIC: VernacularSpec = {
     hood: true,
     chimneys: true,
     dormers: true,
+    // The castle: towers at the corners, buttresses down the walls, a
+    // crenellated head where the roof is flat, and the windows grouped in
+    // pairs. Same palette as before — the blue slate and grey ashlar were
+    // right for Duke, Chicago and Yale; it was the massing that was
+    // Georgian.
+    buttresses: true,
+    turrets: true,
+    crenellations: true,
+    pairedLights: true,
   },
   massing: 'solid',
 };
