@@ -23,6 +23,34 @@ team exists, History in year 2. Each gate is the same condition the system
 behind it already hangs off, and the first time one opens the activity log says
 so.
 
+## Time
+
+Four gears: **Play** (a 5,000 ms week — a decision should feel like a
+commitment), **2×**, **4×**, and a sandbox **Fast** behind the playtest flag
+(`src/engine/useGame.ts`'s `SPEEDS`). A gear is a speed, not a skip: the player
+still watches the clock and can still intervene, and there is deliberately no
+advance-to-next-event. Waiting to afford something is load-bearing in this
+genre; the answer to *empty* waiting is to put something in the year, which is
+what the curriculum on the map does, not a button that teleports past it.
+Speed is purely how often the week-tick fires — the reducer advances exactly
+one week per tick at every setting.
+
+## The dock: ticker, toasts, the next step
+
+The **log ticker** is one line, the newest log entry, directly above the
+toolbar. Above it a **toast stack** shows the things that never stop the clock
+— a course or building finished, a program founded, a petition, a paper, a
+candidate in a short field, a project concluded without a report — three
+seconds each, five at most, each a button that opens the tab it is about (see
+[interrupts.md](interrupts.md)'s "What does not stop the clock"). And across
+the top of the toolbar runs the **next step**: during the scripted first year
+the latest letter's ask until it is done; afterwards the highest-value thing on
+offer — a hall with a free slot while programs are offered, a program one course
+from established, a satisfaction attribute under 50, an idle lab — recomputed
+from state on every render (`src/systems/guidance/nextStep.ts`). A reading,
+never a queue: nothing is ticked off, and the line goes quiet when nothing is
+on offer.
+
 ## Keyboard
 
 The map is the screen the player spends the most time on and the one where the
@@ -36,11 +64,11 @@ it.
 | Middle mouse drag | Pan too, in every mode — including mid-stroke under a path tool, where the left button is busy painting. |
 | Scroll / pinch, `+` `−` | Zoom. |
 | `Space` | Pause, or resume at whatever speed was last running. |
-| `1` `2` | Play, play at 2×. (`3` is sandbox fast — see `isTestUniversity`.) |
+| `1` `2` `3` | Play, 2×, 4×. (`4` is sandbox fast — see `playtestEnabled`.) |
 | `P` | Arm the path tool. Left button draws, right button erases; a ghost tile marks the square under the cursor. |
 | `R` | Rotate the picked-up building 90°, same as the ⟳ on its footprint ghost. |
 | `Esc` | One ladder, top down: the activity-log popup, then the build menu, then the open view; on the map, back out of the path tool, then a picked-up building, then an open info panel. |
-| `Enter` | Dismiss the interrupt on screen (every type with a plain "continue" — not the admissions form or the charter offer, which are real choices). |
+| `Enter` | Dismiss the interrupt on screen (every type with a plain "continue", the summer's Review and Standing beats and a letter included — not its Admissions or Students beats or the charter offer, which are real choices). |
 | `C` `F` `L` | Open (or close) Curriculum, Faculty, Student Life. |
 
 The plumbing is one module, `src/components/hotkeys.ts`: it owns the window
