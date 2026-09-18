@@ -1110,8 +1110,9 @@ function Archway({ d, centreCol, centreRow, outward, wallHeight, pal, stone }: {
 
 // THE ESPADAÑA. The Mission bell-gable: the front wall carried up past the
 // eaves at its centre, a cove shoulder each side of a bell in a round-headed
-// opening, a small gable and a cross on top. The chapels of every reference
-// campus wear one, and without it a Mission front is a Tuscan one.
+// opening, and a small gable on top. The reference campuses all wear one,
+// and without it a Mission front is a Tuscan one. No cross: the bell is the
+// campus's, not a chapel's.
 //
 // Drawn in the wall's own plane above v = 1 and AFTER the roof, so it
 // stands in front of the slope behind it; `inward` is the same face set
@@ -1152,8 +1153,8 @@ function BellGable({ origin, along, inward, wallHeight, span, centreU, sideAt, p
   const ret = sideAt === 'u1' ? pal.wallRight : pal.wallLeft;
   const bellU = hw * 0.3;
   const opening = windowOutline('arched', centreU - bellU, centreU + bellU, V(0.9), V(5.5));
-  const cross = { x: at(centreU, peak).x, y: at(centreU, peak).y };
-  const arm = wallHeight * (V(0.6) - 1);
+  const finial = { x: at(centreU, peak).x, y: at(centreU, peak).y };
+  const finialRise = wallHeight * (V(0.7) - 1);
   return (
     <>
       {/* The returns first: the outer edge below the shoulder, and the neck. */}
@@ -1163,8 +1164,9 @@ function BellGable({ origin, along, inward, wallHeight, span, centreU, sideAt, p
       <polygon className="iso-undercroft" points={polyPoints(opening.map(([u, v]) => at(u, v)))} />
       {/* The bell: a small trapezoid of bronze hanging in the opening. */}
       <polygon points={polyPoints([at(centreU - bellU * 0.5, V(2.0)), at(centreU + bellU * 0.5, V(2.0)), at(centreU + bellU * 0.22, V(3.7)), at(centreU - bellU * 0.22, V(3.7))])} fill={stone.gilt} />
-      <line x1={cross.x} y1={cross.y} x2={cross.x} y2={cross.y - arm * 2.4} stroke={stone.gilt} strokeWidth={1.2} />
-      <line x1={cross.x - arm * 0.7} y1={cross.y - arm * 1.7} x2={cross.x + arm * 0.7} y2={cross.y - arm * 1.7} stroke={stone.gilt} strokeWidth={1.2} />
+      {/* A small bronze finial at the peak, the same one the campanile wears. */}
+      <line x1={finial.x} y1={finial.y} x2={finial.x} y2={finial.y - finialRise} stroke={stone.gilt} strokeWidth={1.2} />
+      <circle cx={finial.x} cy={finial.y - finialRise} r={1.6} fill={stone.gilt} />
     </>
   );
 }
