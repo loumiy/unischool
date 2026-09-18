@@ -1,5 +1,6 @@
 import { tickSearches } from './facultySearch';
 import type { Faculty, GameState } from '../../state/types';
+import { neededFacultyFields } from '../techtree/techSystem';
 
 // THE ONE WAY SOMEBODY JOINS THE ROSTER. Two callers reach it: the
 // reducer's HIRE_FACULTY, which appoints off the candidate market, and the
@@ -64,24 +65,38 @@ function growFaculty(f: Faculty): void {
 // makes a common field feel abundant and a thin-market specialist feel
 // like a find.
 //
-// None of that churn is logged: at ~2.5 arrivals and ~2.5 withdrawals a
-// week, narrating any of it would bury every other line in the ticker and
-// train the player to ignore it — including a listing in a field the
-// school has nobody in, which reads as real news exactly once (a founding
-// school starts unstaffed in most of the ~30 fields, so this alone would
-// fire on nearly every early arrival) and then as noise every time after.
-// The alert badge on the Faculty tab (see Toolbar.tsx's TAB_ALERT, which
-// already flags an unseen candidate in a field the curriculum needs) is
-// where this actually belongs — a glance at the tab a player is going to
-// open anyway, not a line competing for space in the log.
+// Almost none of that churn is logged: at ~2.5 arrivals and ~2.5
+// withdrawals a week, narrating it would bury every other line in the
+// ticker and train the player to ignore it. The ONE arrival that is logged
+// (Plan 16's PR G) is a listing in a field the school is SHORT in — a field
+// with an available course, or an offered program's entry course, and no
+// free slot to teach it (techSystem.ts's neededFacultyFields). That is not
+// "a field the school has nobody in" (a founding school has nobody in most
+// of the ~30, and that would fire on nearly every early arrival); it is a
+// field in which something the player can see is waiting on a hire, which
+// is news exactly as often as it happens. Tagged `candidate`, so the toast
+// stack surfaces it and a click opens the Faculty tab.
 function tickCandidatePool(s: GameState): void {
   for (const c of s.candidates) c.weeksListed += 1;
   s.candidates = s.candidates.filter((c) => c.weeksListed < CANDIDATE_LISTING_WEEKS);
 
   const arrivals = candidateArrivalsThisWeek(s.candidates.length);
+  // Read once for the week, before any arrival: the fields short THIS week.
+  const short = arrivals > 0 ? neededFacultyFields(s) : null;
   for (let i = 0; i < arrivals; i += 1) {
     const existingNames = [...s.faculty, ...s.candidates].map((f) => f.name);
-    s.candidates.push(generateCandidate(rollCandidateField(), existingNames));
+    const candidate = generateCandidate(rollCandidateField(), existingNames);
+    s.candidates.push(candidate);
+    if (short?.has(candidate.field)) {
+      s.log.unshift({
+        year: s.clock.year,
+        week: s.clock.week,
+        message: `${candidate.name} (${candidate.field}) is on the market — a field with courses waiting on a hire.`,
+        kind: 'info',
+        topic: 'candidate',
+        subject: candidate.id,
+      });
+    }
   }
   // A posted search's listing lands on top of the ordinary churn (Plan
   // 14's PR H — see facultySearch.ts).

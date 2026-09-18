@@ -11,6 +11,7 @@ import { GATED_TABS, TAB_LABELS, tabAvailable, type TabId } from './components/T
 import CampusMap from './components/CampusMap';
 import Toolbar from './components/Toolbar';
 import LogTicker from './components/LogTicker';
+import Toasts from './components/Toasts';
 import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
 import FacultyTab from './tabs/FacultyTab';
@@ -337,6 +338,12 @@ export default function App() {
       <DebugPanel s={s} act={act} />
 
       <div className="app">
+        {/* The toast stack (Plan 16's PR G): the things that never stop the
+            clock, three seconds each above the ticker, a click opening the
+            tab they are about. Rendered beside the ticker rather than in it
+            because the ticker is one line that stays and a toast is a card
+            that goes. */}
+        <Toasts s={s} onOpenTab={(tab) => openTab(tab)} />
         <LogTicker s={s} open={logOpen} onSetOpen={setLogOpen} />
         <Toolbar
           ref={toolbarRef}

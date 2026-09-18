@@ -3035,3 +3035,27 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .toolbar-next button.toolbar-next-text { background: transparent; border: none; padding: 0; color: var(--ink-hi);
   font: inherit; cursor: pointer; text-align: left; text-decoration: underline dotted var(--navy-line); }
 .toolbar-next button.toolbar-next-text:hover { color: var(--gold); }
+
+/* ---------- toasts (Plan 16's PR G — see Toasts.tsx and toasts.ts) --------
+   A small stack directly above the log ticker for the things that never
+   stop the clock: a course or building finished, a program founded, a
+   petition, a paper, a candidate in a short field, a project that ended
+   with nothing to report. Three seconds each, five at most, newest at the
+   bottom nearest the ticker, and every one a button that opens the tab it
+   is about. The same navy-line strip family as the ticker, so the stack
+   reads as the ticker's own overflow rather than as alerts from elsewhere.
+   z-index between the ticker (5) and the toolbar's popups (20): under a
+   build menu that is open, over the map. */
+.toasts { position: fixed; z-index: 8; right: 12px; bottom: calc(var(--toolbar-height) + var(--log-ticker-height) + 8px);
+  display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: none; }
+.toast { pointer-events: auto; max-width: 420px; display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 10px; background: var(--navy); color: var(--ink-hi); border: 1px solid var(--navy-line);
+  border-left: 3px solid var(--gold); border-radius: var(--radius-md); font: inherit; font-size: var(--text-sm);
+  text-align: left; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  animation: toast-in 160ms ease-out; }
+.toast:hover { border-color: var(--gold); }
+.toast .ts { flex: none; color: var(--ink-lo); font-family: var(--mono); font-size: var(--text-2xs); }
+.toast.good { border-left-color: var(--ok-on-dark); }
+.toast.bad { border-left-color: var(--bad-on-dark); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
