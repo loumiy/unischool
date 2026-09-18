@@ -409,22 +409,36 @@ const AD_SHORTAGE_COST_WEEKS = 0.8;
 const AD_SHORTAGE_COACH_ROLLS = 3;
 const VISITING_SCHOLAR_CANDIDATE_ROLLS = 4; // best of N rolls — a genuinely strong hire, not just a free one
 
-const ROOF_REPAIR_COST_WEEKS = 1.5;
+// CAPITAL EVENTS SCALE TO WHAT BROKE (Plan 15's PR D), not to opex. The
+// September 2026 review found the late-game boiler costing $10M against
+// $21M a week of income because these four amounts were sized in weeks of
+// operating cost; a roof is a share of the building under it, a kitchen a
+// share of the dining hall, the boiler a share of the residence halls on
+// its loop, a storm a share of everything standing. Floored at the small
+// end so a founding campus's first roof is still a bill.
+const ROOF_REPAIR_SHARE = 0.25;             // of the building's own cost
 const ROOF_DEFERRAL_SATISFACTION_HIT = 5;
 
-const DINING_REMEDIATION_COST_WEEKS = 1.2;
+const DINING_REMEDIATION_SHARE = 0.3;       // of the dining hall's own cost
 const DINING_DEFERRAL_SATISFACTION_HIT = 8; // basic needs is the heaviest satisfaction attribute — this one bites
 
-const HEATING_PLANT_COST_WEEKS = 2.5;
+const HEATING_PLANT_SHARE = 0.12;           // of the standing dorms' combined cost
 const HEATING_PLANT_CAPACITY_GATE = 800;
 const HEATING_DEFERRAL_SATISFACTION_HIT = 6;
+const CAPITAL_EVENT_FLOOR = 60_000;         // no repair is cheaper than this
+
+// A share of what stands: the sum of every finished Buildable's own cost
+// that matches, floored.
+function shareOfCost(items: ReadonlyArray<{ cost: number }>, share: number): number {
+  return Math.max(CAPITAL_EVENT_FLOOR, Math.round(items.reduce((sum, t) => sum + t.cost, 0) * share));
+}
 
 const STATE_MATCH_FIRST_YEAR = 5;
 const STATE_MATCH_COMMITMENT_WEEKS = 3;
 const STATE_MATCH_MULTIPLIER = 2.5;       // the legislature's match on the school's own commitment
 
 const STORM_CAPACITY_GATE = 500;
-const STORM_FULL_REPAIR_WEEKS = 2.2;
+const STORM_FULL_REPAIR_SHARE = 0.03;       // of every standing building's cost
 const STORM_PARTIAL_SHARE = 0.45;         // share of the full bill a patch job costs
 const STORM_PARTIAL_SATISFACTION_HIT = 3;
 const STORM_DEFERRAL_SATISFACTION_HIT = 9;
@@ -733,7 +747,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       const buildings = doneBuildings(s);
       if (buildings.length === 0) return null;
       const target = pick(buildings);
-      return { subjectId: target.id, subjectName: target.name, amount: weeksOfOpEx(s, ROOF_REPAIR_COST_WEEKS) };
+      return { subjectId: target.id, subjectName: target.name, amount: shareOfCost([target], ROOF_REPAIR_SHARE) };
     },
     prompt: (_s, ctx) =>
       `Two decades of deferred maintenance have caught up with ${ctx.subjectName}: the roof is failing over the east wing. Facilities wants ${money(ctx.amount ?? 0)} to do it properly this term.`,
@@ -768,7 +782,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       const halls = doneDiningHalls(s);
       if (halls.length === 0) return null;
       const target = pick(halls);
-      return { subjectId: target.id, subjectName: target.name, amount: weeksOfOpEx(s, DINING_REMEDIATION_COST_WEEKS) };
+      return { subjectId: target.id, subjectName: target.name, amount: shareOfCost([target], DINING_REMEDIATION_SHARE) };
     },
     prompt: (_s, ctx) =>
       `The county has cited ${ctx.subjectName} — refrigeration, mostly, and a ventilation hood nobody has looked at in years. Full remediation runs ${money(ctx.amount ?? 0)}; the alternative is a limited menu until further notice.`,
@@ -799,7 +813,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     title: 'The heating plant fails',
     weight: 8,
     eligible: (s) => s.students.capacity >= HEATING_PLANT_CAPACITY_GATE,
-    rollContext: (s) => ({ amount: weeksOfOpEx(s, HEATING_PLANT_COST_WEEKS) }),
+    rollContext: (s) => ({ amount: shareOfCost(s.tech.filter((t) => t.kind === 'dorm' && t.status === 'done'), HEATING_PLANT_SHARE) }),
     prompt: (_s, ctx) =>
       `The central plant's oldest boiler has cracked, three weeks into the cold. Replacing it costs ${money(ctx.amount ?? 0)}. The residence halls are on the same loop.`,
     choices: [
@@ -868,7 +882,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     title: 'A storm crosses the campus',
     weight: 7,
     eligible: (s) => s.students.capacity >= STORM_CAPACITY_GATE,
-    rollContext: (s) => ({ amount: weeksOfOpEx(s, STORM_FULL_REPAIR_WEEKS) }),
+    rollContext: (s) => ({ amount: shareOfCost(s.tech.filter((t) => t.status === 'done' && t.kind !== 'course'), STORM_FULL_REPAIR_SHARE) }),
     prompt: (_s, ctx) =>
       `An overnight storm has taken out glazing, two transformers and most of the campus's trees. A full restoration is ${money(ctx.amount ?? 0)}; facilities can also do the safety-critical half and leave the rest until summer.`,
     choices: [

@@ -8,6 +8,7 @@ import { researchTopic } from '../data/researchTopics';
 import { discoverySchools } from '../data/techData';
 import { effectiveCourseSlots, facultyLoad } from '../systems/techtree/techSystem';
 import { facultyCapacity, hiresFor, type FieldCapacity } from '../systems/faculty/facultyCapacity';
+import { facultyPay } from '../systems/finance/financeSystem';
 import { coursesTaughtBy } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
 import { SearchOffer } from './CurriculumTab';
@@ -234,7 +235,7 @@ function FacultyCard(
             <dt>Nationality</dt><dd>{f.nationality}</dd>
             <dt>Teaching</dt><dd>{f.teaching} <span className="outcome-note">(→ {f.teachingPotential})</span></dd>
             <dt>Research</dt><dd>{f.research} <span className="outcome-note">(→ {f.researchPotential})</span></dd>
-            <dt>Salary</dt><dd>${f.salary.toLocaleString()}/yr</dd>
+            <dt>Salary</dt><dd>${f.salary.toLocaleString()}/yr <span className="outcome-note">(${Math.round(facultyPay(s, f.salary)).toLocaleString()} paid, at this school&rsquo;s market rate)</span></dd>
             <dt>Course slots</dt><dd>{f.courseSlots}</dd>
             {!isCandidate && <><dt>Tenure</dt><dd>{Math.floor(f.tenureWeeks / WEEKS_PER_YEAR)} years</dd></>}
             {f.acclaim > 0 && <><dt>Prizes won</dt><dd>{f.acclaim}</dd></>}

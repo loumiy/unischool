@@ -40,7 +40,7 @@ import type { Action } from '../src/state/actions';
 import { createPreStartState } from '../src/state/actions';
 import type { AthleticsBudgetTier, GameState, Buildable, InitiativeReport } from '../src/state/types';
 import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
-import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudent } from '../src/systems/finance/financeSystem';
+import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudentWith, SERVICES_PER_STUDENT_PER_WEEK } from '../src/systems/finance/financeSystem';
 import { admitRate, priceTolerance, topBandShare } from '../src/systems/admissions/admissionsSystem';
 import { TUITION_SLIDER_MAX, FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import {
@@ -204,8 +204,11 @@ function courseStaysSustainable(s: GameState, strategy: Strategy): boolean {
   if (!strategy.courseAffordabilityAware) return true;
   const netTuitionPerStudentPerWeek = strategy.tuition(s) / WEEKS_PER_YEAR;
   const developingCourses = s.tech.filter((t) => t.kind === 'course' && t.status === 'developing').length;
-  const projectedInstructionCostPerStudent = instructionCostPerStudent(s) + developingCourses + 1;
-  return netTuitionPerStudentPerWeek >= projectedInstructionCostPerStudent;
+  // Instruction is charged per SECTION since Plan 15's PR D, so "one more
+  // course" is read off the same model with the developing ones counted
+  // in — and the services line every student carries sits beside it.
+  const projectedPerStudent = instructionCostPerStudentWith(s, developingCourses + 1) + SERVICES_PER_STUDENT_PER_WEEK;
+  return netTuitionPerStudentPerWeek >= projectedPerStudent;
 }
 
 // Whether this week's cash flow leaves room to take on a new RECURRING

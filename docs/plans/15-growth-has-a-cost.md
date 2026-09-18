@@ -7,7 +7,7 @@ redesign that answers them, the specialisation term that Plan 14's founded
 schools finally make possible, and the research model the review found inert,
 into an ordered sequence of PRs ending in a single re-fit.*
 
-**Status: In progress.** PRs A, B and C have landed. Depends on
+**Status: In progress.** PRs A through D have landed. Depends on
 [Plan 14](14-curriculum-on-the-map.md) for halls, slots and founded schools —
 the seats this plan turns into a ceiling and the concentration this plan turns
 into prestige both come from there. Supersedes
@@ -113,6 +113,21 @@ paper, puts a scholar in the team's field on the candidate market with a
 log line, and the research-oriented cohort reads a `researchOutput` signal
 (publications at a tenth, breakthroughs, prizes at three) beside labs. Save
 version 56 for `Initiative.banked`.
+
+**As implemented (15D):** per-course enrollment is the body times
+`COURSES_PER_STUDENT` (4) spread evenly over the offered catalogue; a course
+runs at least one section and at most the sections its seats hold
+(`SEATS_PER_COURSE / SECTION_SIZE`, two), so the "enormous sections cheaply"
+case is exactly the overflow the crowding penalty and PR E's ceiling read.
+Services is a flat line with a `servicesMultiplier` hook PR E fills. The
+market rate is applied at the payroll (`facultyPay`), never written into a
+hire's `salary`, so a listing shows the person's price and the Treasury what
+this school pays: 1.0 at prestige 50, 2.2 at 130, floored at 1 and capped at
+2.5. Capital events scale to a share of the building's own cost — a roof a
+quarter of its building, a kitchen 30% of the dining hall, the boiler 12% of
+the standing dorms, a storm 3% of everything standing — floored at $60k.
+`instructionCostPerStudent` survives as a reading for the sim's affordability
+check, which now counts the services line too.
 
 ---
 
