@@ -51,10 +51,11 @@ export const METRES_PER_TILE = 9;
 // constant here: the scale is exact, and the storey height it produces lands
 // on a textbook floor-to-floor by itself.
 //
-// It is also what a TILTING camera needs. Tilt IS TILE_H: drop it to 26 and
-// the camera rises to a 24-degree pitch, and because everything below is
-// derived rather than authored, every storey, sill, window head and door on
-// the campus re-foreshortens correctly with no table touched.
+// It is also what the TILTING camera needs. Heights are authored in these
+// units at the DEFAULT pitch, and isoProjection's `lift` foreshortens them
+// by cos(pitch) / cos(DEFAULT_PITCH) at whatever pitch the camera stands at
+// now — so every storey, sill, window head and door on the campus
+// re-foreshortens correctly with no table touched.
 export const PITCH = Math.asin(TILE_H / TILE_W);
 export const UNITS_PER_TILE_UP = (TILE_W / Math.SQRT2) * Math.cos(PITCH);
 const UNITS_PER_METRE = UNITS_PER_TILE_UP / METRES_PER_TILE;

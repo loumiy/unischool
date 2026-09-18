@@ -19,6 +19,7 @@
 // ---------------------------------------------------------------------
 
 import { depthOrder, occludes, type DepthBox } from '../src/components/depthSort';
+import { DEFAULT_CAMERA, setCamera } from '../src/components/isoProjection';
 import { footprintOf, isPlaceableKind } from '../src/state/campusMap';
 import { groundProps } from '../src/components/groundMarkings';
 import { motifOf } from '../src/components/buildingSpec';
@@ -164,6 +165,39 @@ console.log('campus map painter\'s order');
     ordered.every((b, i) => b === byKey[i]),
     'with no occlusion to satisfy, the order falls back to the old scalar key',
   );
+}
+
+// --- 3b. Every azimuth ----------------------------------------------------
+{
+  // The camera turns continuously, so the relation has to be right — and
+  // acyclic — at every azimuth, not just the four the grid lines up with. Same
+  // brute-force check as the sweep, at 48 azimuths including the cardinals
+  // (where one grid axis runs straight across the screen and says nothing
+  // about depth) and the 45-degree diagonals either side of them.
+  let total = 0;
+  let asym = 0;
+  let items = 0;
+  const steps = 48;
+  for (let k = 0; k < steps; k++) {
+    const azimuth = (k / steps) * Math.PI * 2;
+    setCamera({ azimuth, pitch: DEFAULT_CAMERA.pitch });
+    const scene = layout(50, 400, 60);
+    items += scene.length;
+    const ordered = depthOrder(scene);
+    assert(ordered.length === scene.length, `azimuth ${k}/${steps}: every item comes back out of the sort`);
+    total += violations(ordered);
+    // The relation must be antisymmetric at every camera, or the sort is
+    // being asked to satisfy a contradiction.
+    for (let i = 0; i < scene.length; i += 7) {
+      for (let j = i + 1; j < scene.length; j += 5) {
+        if (occludes(scene[i], scene[j]) !== -occludes(scene[j], scene[i])) asym += 1;
+      }
+    }
+  }
+  setCamera(DEFAULT_CAMERA);
+  assert(total === 0, `${steps} azimuths, ${items} items: expected 0 occlusion violations, got ${total}`);
+  assert(asym === 0, `the relation is antisymmetric at every azimuth (${asym} pairs were not)`);
+  console.log(`  · azimuths: ${items} items over ${steps} cameras — ${total} violations`);
 }
 
 // --- 4. Determinism -------------------------------------------------------

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { Pathways } from '../state/types';
 import { parsePathTileKey } from '../state/campusMap';
-import { boxFaces, polyPoints, project, type Pt } from './isoProjection';
+import { boxFaces, polyPoints, project, type Camera, type Pt } from './isoProjection';
 
 // Drawn walkways, autotiled.
 //
@@ -110,11 +110,12 @@ export function buildPathGeometry(pathways: Pathways): Geometry {
   return { fill: fill.join(''), kerb: kerb.join(''), joints: joints.join('') };
 }
 
-export default function PathwayLayer({ pathways }: { pathways: Pathways }) {
+export default function PathwayLayer({ pathways, camera }: { pathways: Pathways; camera: Camera }) {
   // Rebuilt only when the pathways record itself changes identity, which the
-  // reducer does exactly when a tile is drawn or erased — not on every pan
-  // frame, and not on every unrelated tick.
-  const { fill, kerb, joints } = useMemo(() => buildPathGeometry(pathways), [pathways]);
+  // reducer does exactly when a tile is drawn or erased — or when the camera
+  // moves, since the geometry is drawn at it — not on every pan frame, and
+  // not on every unrelated tick.
+  const { fill, kerb, joints } = useMemo(() => buildPathGeometry(pathways), [pathways, camera]);
   if (!fill) return null;
   return (
     <g className="campus-paths" aria-hidden="true">

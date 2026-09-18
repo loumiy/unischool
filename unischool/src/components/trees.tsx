@@ -1,5 +1,6 @@
 import { memo } from 'react';
-import { lift, polyPoints, project, projectedCircle } from './isoProjection';
+import { lift, polyPoints, project, projectedCircle, type Camera, type Pt } from './isoProjection';
+import { shadowOffset, sunScreenDir } from './light';
 
 // Trees on the campus map. Geometry here, colour in styles.css — the same
 // house rule buildingMotifs.tsx and groundMarkings.tsx follow, and the same
@@ -96,33 +97,57 @@ const CANOPY_BLOBS: Blob[] = [
 //
 // `col`/`row` are grid CORNER coordinates, fractional — exactly what
 // isoProjection's project() takes.
-export function TreeAt({ col, row, species, scale }: {
+// Trunk height and crown radius in SCREEN units (as authored at the default
+// pitch — lift foreshortens the trunk with the camera). A tile is TILE_H
+// (32) deep and a lecture hall stands 114 units to its ridge, so a canopy
+// tree at ~60 to the top of its crown is about half the height of a hall —
+// which is what a mature tree beside a teaching building is.
+function treeMetrics(species: Species, scale: number) {
+  return {
+    trunkH: (species === 'conifer' ? 12 : species === 'ornamental' ? 11 : 22) * scale,
+    crownR: (species === 'conifer' ? 13 : species === 'ornamental' ? 10 : 19) * scale,
+    trunkW: (species === 'ornamental' ? 1.7 : species === 'conifer' ? 2.0 : 3.0) * scale,
+  };
+}
+
+// The shadow a tree throws: a ground ellipse the crown's size, offset away
+// from the sun by the height of the crown's middle (see light.ts), so a
+// tree's shadow and a building's fall the same way and nothing on the map
+// is lit from two directions at once. PROJECTED, unlike the crown — a
+// shadow really does lie on the ground, which is the whole distinction this
+// file turns on.
+export function treeShadow(col: number, row: number, species: Species, scale: number): Pt[] {
+  const { trunkH, crownR } = treeMetrics(species, scale);
+  const shadowR = (crownR / 64) * (species === 'conifer' ? 0.7 : 1);
+  const { dcol, drow } = shadowOffset(trunkH + crownR * 0.7);
+  return projectedCircle(col + dcol, row + drow, shadowR, 12);
+}
+
+// A woodland tree's shadow, by the tile's stored seed — what CampusMap's
+// shadow pass draws for every tree of the wood.
+export function woodlandShadow(row: number, col: number, seed: number): Pt[] {
+  const { species, u, v, scale } = treeShape(seed);
+  return treeShadow(col + u, row + v, species, scale);
+}
+
+export function TreeAt({ col, row, species, scale, shadow = true }: {
   col: number; row: number; species: Species; scale: number;
+  // Whether to draw the shadow here, under the tree. The woodland's trees
+  // pass false: their shadows are drawn in one pass under every mass (see
+  // CampusMap), so a shadow can never land on top of a building behind the
+  // tree. A quad's own planting keeps its shadow inline, on the quad.
+  shadow?: boolean;
 }) {
   const foot = project(col, row);
-
-  // Trunk height and crown radius in SCREEN units. A tile is TILE_H (32)
-  // deep and a lecture hall stands 114 units to its ridge, so a canopy tree
-  // at ~60 to the top of its crown is about half the height of a hall —
-  // which is what a mature tree beside a teaching building is.
-  const trunkH = (species === 'conifer' ? 12 : species === 'ornamental' ? 11 : 22) * scale;
-  const crownR = (species === 'conifer' ? 13 : species === 'ornamental' ? 10 : 19) * scale;
-  const trunkW = (species === 'ornamental' ? 1.7 : species === 'conifer' ? 2.0 : 3.0) * scale;
+  const { trunkH, crownR, trunkW } = treeMetrics(species, scale);
   const trunkTop = lift(foot, trunkH);
-
-  // The shadow: a ground ellipse offset down and to the right, the same
-  // direction the buildings' own cast shadows fall (see CampusMap's
-  // SHADOW_PER_HEIGHT_X/Y), so nothing on the map is lit from two ways at
-  // once. PROJECTED, unlike the crown above it — a shadow really does lie
-  // on the ground, which is the whole distinction this file turns on.
-  const shadowR = (crownR / 64) * (species === 'conifer' ? 0.7 : 1);
+  // The lit side of a crown follows the sun across the screen and is always
+  // toward the top — the sun is above whichever way the camera stands.
+  const sun = sunScreenDir();
 
   return (
     <g className={`campus-tree ${species}`} aria-hidden="true">
-      <polygon
-        className="campus-tree-shadow"
-        points={polyPoints(projectedCircle(col + shadowR * 0.9, row + shadowR * 0.9, shadowR, 12))}
-      />
+      {shadow && <polygon className="campus-tree-shadow" points={polyPoints(treeShadow(col, row, species, scale))} />}
       <polygon
         className="campus-tree-trunk"
         points={polyPoints([
@@ -155,7 +180,7 @@ export function TreeAt({ col, row, species, scale }: {
           <circle className="campus-tree-crown" cx={trunkTop.x} cy={trunkTop.y - crownR * 0.55} r={crownR} />
           <circle
             className="campus-tree-crown-top"
-            cx={trunkTop.x - crownR * 0.3} cy={trunkTop.y - crownR * 0.95}
+            cx={trunkTop.x + sun.x * crownR * 0.42} cy={trunkTop.y - crownR * 0.95}
             r={crownR * 0.52}
           />
         </>
@@ -170,12 +195,11 @@ export function TreeAt({ col, row, species, scale }: {
               r={b.r * crownR}
             />
           ))}
-          {/* The lit cap, up and to the left — the direction the whole map
-              is lit from. Without it a crown is one flat colour and has no
-              top. */}
+          {/* The lit cap, toward the sun — see light.ts. Without it a crown
+              is one flat colour and has no top. */}
           <circle
             className="campus-tree-crown-top"
-            cx={trunkTop.x - crownR * 0.26}
+            cx={trunkTop.x + sun.x * crownR * 0.36}
             cy={trunkTop.y - crownR * 1.10}
             r={crownR * 0.60}
           />
@@ -194,8 +218,10 @@ export function TreeAt({ col, row, species, scale }: {
 // this every render of the map rebuilt every crown, trunk and shadow —
 // which was most of the JavaScript the map ran while a building was being
 // sited (see CampusMap.tsx's CampusScene for the other half of that story).
-function Tree({ row, col, seed }: { row: number; col: number; seed: number }) {
+// The camera is a prop for the memo's sake only — the geometry reads it from
+// the projection — so a tree redraws when the view turns.
+function Tree({ row, col, seed }: { row: number; col: number; seed: number; camera: Camera }) {
   const { species, u, v, scale } = treeShape(seed);
-  return <TreeAt col={col + u} row={row + v} species={species} scale={scale} />;
+  return <TreeAt col={col + u} row={row + v} species={species} scale={scale} shadow={false} />;
 }
 export default memo(Tree);

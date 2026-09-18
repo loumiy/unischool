@@ -25,11 +25,15 @@
 // It is also what camera rotation needs. `row + h + col + w` hard-codes the
 // camera — it assumes increasing col runs down-right and increasing row
 // down-left. Turn the camera 90 degrees and that key is not 15% wrong, it is
-// inverted. `occludes` below names the assumption in one place instead of
-// baking it into an arithmetic expression, which is the difference between a
-// rotating camera being a transform and being a rewrite.
+// inverted. `occludes` below takes the camera's axes as an input instead of
+// baking them into an arithmetic expression, which is the difference between
+// a rotating camera being a transform and being a rewrite.
 //
 // Pure geometry: no React, no game state, no colour, same as isoProjection.ts.
+// The camera enters as two numbers (which way each grid axis runs on screen),
+// defaulting to the projection's current camera so the map need not pass it.
+
+import { cameraAxes } from './isoProjection';
 
 // The tiles a thing stands on. Whole tiles for a placed Buildable, a single
 // tile for a tree, a fraction of one for a hedge or a fountain — the relation
@@ -38,10 +42,12 @@ export interface DepthBox {
   col: number; row: number; w: number; h: number;
 }
 
-// Could the CAMERA see these two overlap at all? On this projection the screen
-// axes are (col + row) running down and (col - row) running across, so this
-// asks whether two footprints overlap on both — four comparisons, no
-// projection and no allocation.
+// Could the CAMERA see these two overlap at all? The screen axes are a
+// rotation of the grid axes by the camera's azimuth (see isoProjection's
+// cameraAxes: across-screen is col * cosA - row * sinA, down-screen is
+// col * sinA + row * cosA), so this asks whether the two footprints' extents
+// overlap on both — a handful of multiplications, no allocation. At the
+// default 45-degree camera those two axes are (col - row) and (col + row).
 //
 // CONSERVATIVE ON PURPOSE. The image of a grid rectangle is a rhombus, so
 // testing its extent on those two axes tests its BOUNDING box, not the
@@ -50,14 +56,16 @@ export interface DepthBox {
 // admitted only costs an ordering constraint that was already true; a pair
 // wrongly rejected would leave a real occlusion unordered.
 //
-// What the gate must never admit is a pair separated on BOTH grid axes — one
-// up-left of the other, one down-right. Those get two contradictory answers
-// out of the test below, and they are allowed to, because they sit on opposite
-// diagonal sides of the screen and never touch. It cannot admit them: if
-// `a.col1 <= b.col0` and `a.row0 >= b.row1` then `a.col1 - a.row0 <=
-// b.col0 - b.row1`, so their extents on the across-screen axis cannot strictly
-// overlap and the gate rejects. Consistency comes from that, and it is why the
-// topological sort below never finds a cycle.
+// What the gate must never admit is a pair separated on BOTH grid axes with
+// the two axes disagreeing about which is nearer (at the default camera: one
+// up-left of the other, one down-right). Those get two contradictory answers
+// out of `occludes`, and they are allowed to, because they sit on opposite
+// sides of the screen's across axis and never touch. It cannot admit them:
+// the two separations push their across-screen extents apart in the same
+// direction, so those extents cannot strictly overlap and the gate rejects.
+// Consistency comes from that, and it is why the topological sort below never
+// finds a cycle at any azimuth — the standard result that axis-parallel boxes
+// always admit a painter's order under any orthographic view.
 //
 // This gate is about GROUND rhombuses, and a building is taller than its
 // ground. That is safe too, and worth stating because it looks like it
@@ -66,14 +74,23 @@ export interface DepthBox {
 // together, because height only moves a mass UP — so no order is needed.
 // Separated DOWN the screen, height genuinely can carry the nearer mass over
 // the farther one's base — but then the nearer footprint's whole extent lies
-// beyond the farther one's far corner, so `farCorner` below already orders the
+// beyond the farther one's far corner, so `nearest` below already orders the
 // two correctly and the tie-break is not a guess. Either way the answer comes
 // out right without the gate having to know how tall anything is.
-function overlapsOnScreen(a: DepthBox, b: DepthBox): boolean {
-  const aFar = a.col + a.w; const aNear = a.row + a.h;
-  const bFar = b.col + b.w; const bNear = b.row + b.h;
-  return (a.col + a.row) < (bFar + bNear) && (b.col + b.row) < (aFar + aNear)
-    && (a.col - aNear) < (bFar - b.row) && (b.col - bNear) < (aFar - a.row);
+interface Axes { cosA: number; sinA: number; }
+function overlapsOnScreen(a: DepthBox, b: DepthBox, ax: Axes): boolean {
+  const { cosA, sinA } = ax;
+  // Extents of a's rhombus on the across axis (X) and the down axis (Y).
+  const aX = a.col * cosA - a.row * sinA; const aY = a.col * sinA + a.row * cosA;
+  const bX = b.col * cosA - b.row * sinA; const bY = b.col * sinA + b.row * cosA;
+  const awx = a.w * cosA; const ahx = -a.h * sinA; const awy = a.w * sinA; const ahy = a.h * cosA;
+  const bwx = b.w * cosA; const bhx = -b.h * sinA; const bwy = b.w * sinA; const bhy = b.h * cosA;
+  const aX0 = aX + Math.min(0, awx) + Math.min(0, ahx); const aX1 = aX + Math.max(0, awx) + Math.max(0, ahx);
+  const bX0 = bX + Math.min(0, bwx) + Math.min(0, bhx); const bX1 = bX + Math.max(0, bwx) + Math.max(0, bhx);
+  if (!(aX0 < bX1 && bX0 < aX1)) return false;
+  const aY0 = aY + Math.min(0, awy) + Math.min(0, ahy); const aY1 = aY + Math.max(0, awy) + Math.max(0, ahy);
+  const bY0 = bY + Math.min(0, bwy) + Math.min(0, bhy); const bY1 = bY + Math.max(0, bwy) + Math.max(0, bhy);
+  return aY0 < bY1 && bY0 < aY1;
 }
 
 // Which of two footprints is nearer the camera: 1 if `a` is (so `a` is painted
@@ -81,10 +98,15 @@ function overlapsOnScreen(a: DepthBox, b: DepthBox): boolean {
 //
 // THE SEPARATING AXIS IS THE WHOLE ANSWER. Two disjoint axis-aligned
 // rectangles are always separated along at least one axis — that is just the
-// separating-axis theorem for boxes — and this projection makes both axes run
-// toward the camera: greater col is down-right on screen, greater row is
-// down-left. So whichever box sits further along the axis that separates them
-// is the nearer one, and that is the entire test.
+// separating-axis theorem for boxes — and the camera says which way each grid
+// axis runs toward it: increasing col is nearer when sinA > 0, increasing row
+// when cosA > 0 (at the default camera both are, so greater col is down-right
+// and greater row down-left). So whichever box sits further along the axis
+// that separates them, in the direction that axis runs toward the camera, is
+// the nearer one, and that is the entire test. At an exact cardinal azimuth
+// one axis runs straight across the screen and says nothing about depth; two
+// boxes separated on it are then side by side and the gate has already
+// rejected them.
 //
 // Footprints of placed Buildables are disjoint by construction (see
 // campusMap.ts's footprintIsClear), and a tree is only ever on an unbuilt
@@ -92,19 +114,45 @@ function overlapsOnScreen(a: DepthBox, b: DepthBox): boolean {
 // assumed here. Two boxes that genuinely overlap fall through to 0 and keep
 // whatever order the tie-break gives them, which is the only sane answer for
 // two things occupying the same ground.
-export function occludes(a: DepthBox, b: DepthBox): -1 | 0 | 1 {
-  if (!overlapsOnScreen(a, b)) return 0;
-  if (a.col >= b.col + b.w) return 1;
-  if (b.col >= a.col + a.w) return -1;
-  if (a.row >= b.row + b.h) return 1;
-  if (b.row >= a.row + a.h) return -1;
+export function occludes(a: DepthBox, b: DepthBox, ax: Axes = cameraAxes()): -1 | 0 | 1 {
+  if (!overlapsOnScreen(a, b, ax)) return 0;
+  const colNear = Math.sign(ax.sinA) as -1 | 0 | 1;
+  const rowNear = Math.sign(ax.cosA) as -1 | 0 | 1;
+  if (a.col >= b.col + b.w) return colNear;
+  if (b.col >= a.col + a.w) return -colNear as -1 | 0 | 1;
+  if (a.row >= b.row + b.h) return rowNear;
+  if (b.row >= a.row + a.h) return -rowNear as -1 | 0 | 1;
   return 0;
 }
 
 // The old scalar key, demoted to a TIE-BREAK. Everywhere the occlusion
 // relation is indifferent, the scene keeps drawing in the order it always did.
-function farCorner(b: DepthBox): number {
-  return b.row + b.h + b.col + b.w;
+//
+// It is the down-screen coordinate of the footprint's NEAREST corner, up to a
+// positive rescaling: the row and col ends nearest the camera, weighted by
+// how steeply each axis runs toward it. At the default camera the two weights
+// are equal and this is `row + h + col + w` — in that exact arithmetic, so two
+// boxes that shared the ground and tied on the old key still tie here and
+// keep the order they had.
+function nearest(b: DepthBox, ax: Axes): number {
+  const { cosA, sinA } = ax;
+  const rowEnd = cosA >= 0 ? b.row + b.h : b.row;
+  const colEnd = sinA >= 0 ? b.col + b.w : b.col;
+  if (Math.abs(cosA) >= Math.abs(sinA)) {
+    const t = ratio(sinA, cosA);
+    if (t === 1 && sinA > 0) return (rowEnd + b.col) + b.w;   // the old key, to the bit
+    return Math.sign(cosA) * (rowEnd + colEnd * t);
+  }
+  const t = ratio(cosA, sinA);
+  return Math.sign(sinA) * (colEnd + rowEnd * t);
+}
+// a / b, snapped to an integer where floating point put it within an ulp or
+// two of one — sin and cos of the same 45-degree angle differ in their last
+// digit, and the tie-break above wants their ratio to be exactly 1 there.
+function ratio(a: number, b: number): number {
+  const v = a / b;
+  const r = Math.round(v);
+  return Math.abs(v - r) < 1e-9 ? r : v;
 }
 
 // Anything this size or smaller is treated as standing on a point rather than
@@ -119,7 +167,10 @@ function isSmall(b: DepthBox): boolean {
 }
 // How far the neighbourhood scan reaches, in tiles. Two, not one: the boxes
 // are placed at fractional coordinates, so two that are within a tile of each
-// other can still land in buckets two apart.
+// other can still land in buckets two apart. The bound holds at every
+// azimuth: the screen bounding box of a one-tile footprint is at most sqrt2
+// tiles a side, so two that overlap on screen have origins under two tiles
+// apart on each grid axis.
 const NEIGHBOURHOOD = 2;
 
 // A binary heap of item indices ordered by the tie-break key, so Kahn's
@@ -172,7 +223,7 @@ function keyHeap(keyOf: (i: number) => number) {
 // them on screen. A full scene (about seventy buildings and eight hundred
 // trees) costs a few milliseconds, and the caller memoises it on the state it
 // reads, so it runs when the campus changes rather than when the mouse moves.
-export function depthOrder<T extends DepthBox>(items: readonly T[]): T[] {
+export function depthOrder<T extends DepthBox>(items: readonly T[], ax: Axes = cameraAxes()): T[] {
   const n = items.length;
   if (n < 2) return items.slice();
 
@@ -184,7 +235,7 @@ export function depthOrder<T extends DepthBox>(items: readonly T[]): T[] {
     indegree[second] += 1;
   };
   const relate = (i: number, j: number) => {
-    const v = occludes(items[i], items[j]);
+    const v = occludes(items[i], items[j], ax);
     if (v === 1) link(j, i);
     else if (v === -1) link(i, j);
   };
@@ -219,7 +270,7 @@ export function depthOrder<T extends DepthBox>(items: readonly T[]): T[] {
     }
   }
 
-  const ready = keyHeap((i) => farCorner(items[i]));
+  const ready = keyHeap((i) => nearest(items[i], ax));
   for (let i = 0; i < n; i++) if (indegree[i] === 0) ready.push(i);
 
   const out: T[] = [];
@@ -235,7 +286,7 @@ export function depthOrder<T extends DepthBox>(items: readonly T[]): T[] {
       let fallback = -1;
       for (let i = 0; i < n; i++) {
         if (drawn[i]) continue;
-        if (fallback < 0 || farCorner(items[i]) < farCorner(items[fallback])) fallback = i;
+        if (fallback < 0 || nearest(items[i], ax) < nearest(items[fallback], ax)) fallback = i;
       }
       if (fallback < 0) break;
       indegree[fallback] = 0;

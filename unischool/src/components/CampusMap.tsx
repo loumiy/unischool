@@ -19,8 +19,12 @@ import { materialOf, motifOf } from './buildingSpec';
 import { groundProps } from './groundMarkings';
 import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
-import Tree from './trees';
-import { TILE_H, TILE_W, WORLD, boxFaces, lift, polyPoints, project, tileAt, unproject } from './isoProjection';
+import Tree, { woodlandShadow } from './trees';
+import { castShadow } from './light';
+import {
+  DEFAULT_CAMERA, PITCHES, TILE_H, VIEWS, WORLD, boxFaces, lift, polyPoints, project, setCamera, tileAt, unproject,
+  type Camera,
+} from './isoProjection';
 
 // The campus map: the game's base layer, always on screen under everything
 // else (see App.tsx), and a placement + rendering layer over the SAME
@@ -55,9 +59,10 @@ import { TILE_H, TILE_W, WORLD, boxFaces, lift, polyPoints, project, tileAt, unp
 // Plain SVG on purpose: no canvas, no game library, no new deps. The map is
 // drawn at an angle (2:1 dimetric — see isoProjection.ts), so the ground is
 // one plate plus a path of grid lines, and a placed building is a mass with
-// a roof and two walls (buildingMotifs.tsx). Camera rotation is the piece
-// that is still missing, and the one the angle argues for: a tall building
-// can hide a shorter one behind it.
+// a roof and two walls (buildingMotifs.tsx). The camera turns a quarter
+// turn at a time and tilts (see the camera block below): a tall building
+// can hide a shorter one behind it, and turning the view is how the player
+// looks behind it.
 
 // --- layout ---
 // The map is drawn in 2:1 dimetric projection (see isoProjection.ts, which
@@ -114,23 +119,22 @@ const LABEL_PLATE_PAD_Y = 3;
 // can stand on top of it, rather than across the building's face.
 const PROGRESS_BAR_DEPTH = 0.22;   // in tiles
 
-// The cast shadow. The flat map had drop shadows and the angled rewrite lost
+// The cast shadows. The flat map had drop shadows and the angled rewrite lost
 // them, which left every mass floating on the lawn with no contact — the
 // --building-shadow token survived as an orphan with nothing referencing it,
 // which is how the gap came to light.
 //
-// A shadow here is simply the footprint TRANSLATED toward the light's
-// opposite: down and to the right, matching the upper-left key that
-// paletteFrom already shades every wall from. It does not need to be the
-// swept hull of base and offset — the overlapping half is hidden under the
-// building itself, since the shadow is drawn first — so a plain translated
-// rhombus reads exactly right for a fraction of the geometry.
-//
-// Scaled by the mass's real height, so a nine-storey hall throws a longer
-// shadow than a lab, and a site under construction throws almost none until
-// it rises.
-const SHADOW_PER_HEIGHT_X = 0.22;
-const SHADOW_PER_HEIGHT_Y = 0.11;
+// A shadow is the footprint translated away from the sun (light.ts), scaled
+// by the mass's real height, so a nine-storey hall throws a longer shadow
+// than a lab and a site under construction throws almost none until it
+// rises. ALL of them are drawn in ONE pass, after the paths and before any
+// mass (see CastShadows). They used to be drawn each just before its own
+// building, which was safe only because every shadow fell toward the camera
+// onto ground nothing nearer had been painted on yet; with a sun fixed to
+// the world and a camera that turns, a shadow can fall AWAY from the camera,
+// across a building already painted, so they all go down first. A shadow
+// that reaches a neighbour then disappears under it rather than climbing
+// its wall, which is the same stylisation as before.
 
 // LABELS FADE WITH THE CURSOR. A name over every building at once is a wall of
 // text on a built-out campus, and none of it is what the player is looking at.
@@ -196,6 +200,21 @@ const KEY_PAN_SPEED = 1100;
 // camera the moment the player comes back.
 const MAX_PAN_FRAME_S = 0.1;
 
+// --- the camera ---
+// The view stands at one of four corners of the campus (isoProjection's
+// VIEWS) and at one of three pitches (PITCHES), and moves between them in
+// one step: Q/E turn a quarter turn, Z/X tilt, and the buttons beside the
+// zoom controls do the same. No animation between views, on purpose — the
+// motifs are drawn for the pixel grid of those views, and the angles in
+// between are not worth the frames (see isoProjection.ts).
+//
+// A turn or tilt is ONE camera (isoProjection.ts's Camera), not a
+// pan/zoom-style transform: it changes every polygon on the map, so a camera
+// change is a React re-render where a pan is a setAttribute. Whatever moves
+// it, the ground at the canvas centre stays put on screen: the camera turns
+// ABOUT that point rather than about the world origin off in a corner of the
+// grid (see applyCamera).
+
 // The world's drawn extent. Unlike the flat map's, this is NOT anchored at
 // the origin: the grid projects to a diamond whose left corner sits at
 // negative x, so defaultView below has to centre on the real bounds rather
@@ -204,10 +223,11 @@ const MAX_PAN_FRAME_S = 0.1;
 const WORLD_TOP_HEADROOM = 140;
 
 // The ground: one plate polygon and one <path> holding both families of
-// grid lines. Built once at module scope — the grid never changes shape, so
-// there is no reason to rebuild ~250 line segments on every render.
-const GROUND_PLATE = boxFaces(0, 0, CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT, 0, 0).top;
-const GRID_LINES = (() => {
+// grid lines. Rebuilt only when the camera moves (see the useMemo in the
+// component) — the grid never changes shape, so there is no reason to
+// rebuild ~250 line segments on every render.
+function groundGeometry(): { plate: string; grid: string } {
+  const plate = polyPoints(boxFaces(0, 0, CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT, 0, 0).top);
   const seg: string[] = [];
   for (let r = 0; r <= CAMPUS_GRID_HEIGHT; r++) {
     const a = project(0, r); const b = project(CAMPUS_GRID_WIDTH, r);
@@ -217,8 +237,8 @@ const GRID_LINES = (() => {
     const a = project(c, 0); const b = project(c, CAMPUS_GRID_HEIGHT);
     seg.push(`M${a.x.toFixed(1)},${a.y.toFixed(1)}L${b.x.toFixed(1)},${b.y.toFixed(1)}`);
   }
-  return seg.join('');
-})();
+  return { plate, grid: seg.join('') };
+}
 const MAP_HEIGHT = WORLD.maxY - WORLD.minY + MAP_PADDING * 2 + WORLD_TOP_HEADROOM;
 
 // The path tool the SECONDARY mouse button paints with, given the armed
@@ -295,9 +315,12 @@ type SceneEntry = DepthBox & (
 // actually drawn is both correct and free — there are only ever a few dozen
 // buildings, so nothing here needs the arithmetic picking the ground uses.
 function PlacedBuilding({
-  t, p, label, onInspect, inspected, weeksLeft, justFinished, glyphs, vernacular,
+  t, p, label, onInspect, inspected, weeksLeft, justFinished, glyphs, vernacular, camera,
 }: {
   t: Buildable; p: Placement; onInspect: () => void; inspected: boolean;
+  // The camera this is drawn at. The geometry reads it from the projection
+  // itself; it is passed so the memoised motif below knows to redraw.
+  camera: Camera;
   // What the map calls it — a dedicated hall is "<School> Hall" while it
   // is pure (systems/techtree/schools.ts's hallDisplayName), which is a
   // live reading the parent makes; the Buildable's own `name` stays the
@@ -324,27 +347,12 @@ function PlacedBuilding({
       role="button"
       onClick={onInspect}
     >
-      {(() => {
-        // Drawn BEFORE the mass, so the half of the shadow that falls under
-        // the building is simply covered by it. It falls toward the camera,
-        // onto ground and paths — and onto nothing else, because anything it
-        // would reach is nearer the camera and therefore painted after it.
-        const lift = drawnHeightOf(t, developing, vernacular);
-        if (lift <= 0) return null;
-        const dx = lift * SHADOW_PER_HEIGHT_X;
-        const dy = lift * SHADOW_PER_HEIGHT_Y;
-        return (
-          <polygon
-            className="campus-building-shadow"
-            points={polyPoints(boxFaces(d.col, d.row, d.w, d.h, 0, 0).top.map((q) => ({ x: q.x + dx, y: q.y + dy })))}
-          />
-        );
-      })()}
       <BuildingMotif
         t={t} p={d}
         material={materialOf(t, vernacular)}
         vernacular={vernacular}
         developing={developing} glyphs={glyphs}
+        camera={camera}
       />
       {inspected && (
         // The footprint picked out on the ground, which is the one outline
@@ -383,6 +391,45 @@ function PlacedBuilding({
   );
 }
 
+// Every cast shadow on the map, in one pass (see the shadow note above):
+// each standing building's, from the height it is drawn at right now, and
+// each woodland tree's. Two <path>s — one per fill — rather than a polygon
+// per shadow: a shadow is a flat translucent shape, and a single path of
+// subpaths draws where two overlap as one shadow rather than a darker one,
+// which is also what two shadows on real ground do. Memoised on what it
+// reads, like the scene: it changes when the campus does or the camera moves.
+function CastShadows({ placed, scene, developing, vernacular, camera }: {
+  placed: ReadonlyArray<{ t: Buildable; p: Placement }>;
+  scene: readonly SceneEntry[];
+  developing: GameState['developing'];
+  vernacular: Vernacular;
+  camera: Camera;
+}) {
+  const d = useMemo(() => {
+    const sub = (pts: { x: number; y: number }[]) => `M${polyPoints(pts).replace(/ /g, 'L')}Z`;
+    const buildings: string[] = [];
+    for (const { t, p } of placed) {
+      const isDeveloping = t.status === 'developing' && developing[t.id] !== undefined;
+      const height = drawnHeightOf(t, isDeveloping, vernacular);
+      if (height <= 0) continue;
+      const f = drawnFootprint(p);
+      buildings.push(sub(castShadow(f.col, f.row, f.w, f.h, height)));
+    }
+    const trees: string[] = [];
+    for (const e of scene) if (e.kind === 'tree') trees.push(sub(woodlandShadow(e.row, e.col, e.seed)));
+    return { buildings: buildings.join(''), trees: trees.join('') };
+    // `camera` is read by the projection, not here, and is what moves every
+    // shadow when the view turns.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [placed, scene, developing, vernacular, camera]);
+  return (
+    <g className="campus-shadows" aria-hidden="true">
+      {d.buildings && <path className="campus-building-shadow" d={d.buildings} />}
+      {d.trees && <path className="campus-tree-shadow" d={d.trees} />}
+    </g>
+  );
+}
+
 // The label layer. Rendered after every building so a name is never
 // occluded by whatever stands in front of the thing it names, and on a
 // plate so it stays readable over any roof tint, wall or pitch.
@@ -402,26 +449,36 @@ function BuildingLabel({ t, p, label, pinned, vernacular }: {
 }) {
   const { size, centre, textWidth } = labelLayout(label, t, p, vernacular);
   const textRef = useRef<SVGTextElement>(null);
-  const [box, setBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  // The measured box, RELATIVE to the text's anchor point. The text's own
+  // extent depends only on the name and the size, not on where the label
+  // sits — so it is measured when those change and simply re-anchored when
+  // the centre moves, which it does on every camera change. Measuring on
+  // every move (getBBox forces a layout) was most of the cost of turning
+  // the camera on a campus with seventy labels.
+  const [box, setBox] = useState<{ dx: number; dy: number; w: number; h: number } | null>(null);
 
   useLayoutEffect(() => {
     const el = textRef.current;
     if (!el) return;
     const b = el.getBBox();
-    setBox((prev) => (prev && prev.x === b.x && prev.y === b.y
-      && prev.w === b.width && prev.h === b.height
+    const cx = Number(el.getAttribute('x')); const cy = Number(el.getAttribute('y'));
+    const next = { dx: b.x - cx, dy: b.y - cy, w: b.width, h: b.height };
+    setBox((prev) => (prev && prev.dx === next.dx && prev.dy === next.dy
+      && prev.w === next.w && prev.h === next.h
       ? prev
-      : { x: b.x, y: b.y, w: b.width, h: b.height }));
-  }, [label, size, centre.x, centre.y]);
+      : next));
+  }, [label, size]);
 
   // Until the first measure lands, fall back to the estimate so there is
   // never a nameplate-less label.
-  const plate = box ?? {
-    x: centre.x - textWidth / 2,
-    y: centre.y - size * 0.475,
-    w: textWidth,
-    h: size * 0.95,
-  };
+  const plate = box
+    ? { x: centre.x + box.dx, y: centre.y + box.dy, w: box.w, h: box.h }
+    : {
+      x: centre.x - textWidth / 2,
+      y: centre.y - size * 0.475,
+      w: textWidth,
+      h: size * 0.95,
+    };
 
   return (
     <g
@@ -532,11 +589,15 @@ function HallMarks({ t, p, slots, offerWaiting, blocked, vernacular, onInspect }
 // memo skips it entirely when none of those changed. A hover renders the
 // ghost and nothing else. A tick still renders the whole scene, as it must:
 // the reducer hands back a new state every action.
-const CampusScene = memo(function CampusScene({ s, inspectedId, justFinished, onInspect, labelLayerRef }: {
+const CampusScene = memo(function CampusScene({ s, inspectedId, justFinished, onInspect, labelLayerRef, camera }: {
   s: GameState;
   inspectedId: string | null;
   justFinished: readonly string[];
   onInspect: (id: string) => void;
+  // The camera the scene is drawn at (see the CAMERA block above). The
+  // geometry reads it from the projection itself; it is a prop so this memo
+  // — and the memoised motifs and trees below — redraw when it changes.
+  camera: Camera;
   // The label layer's node, for the parent's cursor-distance pass — that
   // pass writes opacity straight onto the DOM on every mouse move, which is
   // the whole reason it needs a ref rather than a prop (see paintLabels).
@@ -623,7 +684,12 @@ const CampusScene = memo(function CampusScene({ s, inspectedId, justFinished, on
       entries.push({ kind: 'tree', key: `t-${key}`, seed, col: tile.col, row: tile.row, w: 1, h: 1 });
     }
     return depthOrder(entries);
-  }, [s.placements, s.tech, s.trees, s.pathways, s.developing]);
+    // The camera is a dependency of the ORDER — what is in front of what
+    // changes as the view turns — and of the props' elements, whose geometry
+    // is drawn at it.
+  }, [s.placements, s.tech, s.trees, s.pathways, s.developing, camera]);
+
+  const ground = useMemo(groundGeometry, [camera]);
 
   return (
     <>
@@ -634,10 +700,14 @@ const CampusScene = memo(function CampusScene({ s, inspectedId, justFinished, on
           in path mode, 15,876 more hit targets — are both gone: the
           ground is one plate plus one <path> of grid lines, and every
           tile question is answered by tileFromEvent's arithmetic. */}
-      <polygon className="campus-ground" points={polyPoints(GROUND_PLATE)} />
-      <path className="campus-grid" d={GRID_LINES} />
+      <polygon className="campus-ground" points={ground.plate} />
+      <path className="campus-grid" d={ground.grid} />
 
-      <PathwayLayer pathways={s.pathways} />
+      <PathwayLayer pathways={s.pathways} camera={camera} />
+
+      {/* Every cast shadow, on the ground under everything that stands
+          (see the shadow note above CastShadows). */}
+      <CastShadows placed={placed} scene={scene} developing={s.developing} vernacular={s.self.vernacular} camera={camera} />
 
       {/* Back to front. On an angled map this ordering IS the
           occlusion: a building nearer the camera must paint over one
@@ -668,17 +738,12 @@ const CampusScene = memo(function CampusScene({ s, inspectedId, justFinished, on
           justFinished={justFinished.includes(t.id)}
           glyphs={chapterGlyphs[t.id]}
           vernacular={s.self.vernacular}
+          camera={camera}
         />
       ))}
 
       {scene.map((entry) => {
-        if (entry.kind === 'tree') {
-          return (
-            <g key={entry.key}>
-              <Tree row={entry.row} col={entry.col} seed={entry.seed} />
-            </g>
-          );
-        }
+        if (entry.kind === 'tree') return <Tree key={entry.key} row={entry.row} col={entry.col} seed={entry.seed} camera={camera} />;
         if (entry.kind === 'prop') return <g key={entry.key}>{entry.node}</g>;
         const t = s.tech.find((x) => x.id === entry.id);
         const p = s.placements[entry.id];
@@ -695,6 +760,7 @@ const CampusScene = memo(function CampusScene({ s, inspectedId, justFinished, on
               justFinished={justFinished.includes(entry.id)}
               glyphs={chapterGlyphs[entry.id]}
               vernacular={s.self.vernacular}
+              camera={camera}
             />
           </g>
         );
@@ -792,6 +858,19 @@ export default function CampusMap({
   // about to land can be previewed. Multi-tile buildings need this: where a
   // 2x2 hall goes is no longer obvious from the tile you clicked.
   const [hover, setHover] = useState<{ row: number; col: number } | null>(null);
+  // The camera (see the CAMERA block above). React state, unlike pan and
+  // zoom, because there is no transform that expresses a turn: the render IS
+  // the frame. Pointed at the projection HERE, at the top of the render, so
+  // every polygon below — this component's, the motifs', the ground
+  // markings' — is drawn at this camera; the memoised children take it as a
+  // prop so they redraw when it changes. Not persisted: a camera is where
+  // the player happens to be looking from, not a fact about the school.
+  const [camera, setCameraState] = useState<Camera>(DEFAULT_CAMERA);
+  setCamera(camera);
+  // Which of the four views and three pitches the camera stands at (see the
+  // CAMERA block above): the camera is derived from these, never the other
+  // way round, so it can only ever rest on a crisp one.
+  const stanceRef = useRef({ view: 0, pitch: 0 });
   // Buildings that finished within the last COMPLETION_PULSE_MS, so the
   // moment a thing you paid for and waited on becomes real gets a beat of
   // its own. DERIVED, not stored: the previous set of developing ids is kept
@@ -922,7 +1001,8 @@ export default function CampusMap({
       // whenever the cursor is over the building itself.
       const dc = at.col < c0 ? c0 - at.col : at.col > c1 ? at.col - c1 : 0;
       const dr = at.row < r0 ? r0 - at.row : at.row > r1 ? at.row - r1 : 0;
-      const px = Math.hypot((dc - dr) * (TILE_W / 2), (dc + dr) * (TILE_H / 2)) * zoom;
+      const d = project(dc, dr);   // the projection is linear, so a difference projects to a difference
+      const px = Math.hypot(d.x, d.y) * zoom;
       const t = (px - LABEL_FULL_PX) / (LABEL_FADE_PX - LABEL_FULL_PX);
       el.style.opacity = String(Math.max(0, Math.min(1, 1 - t)));
     }
@@ -961,6 +1041,45 @@ export default function CampusMap({
     worldRef.current?.setAttribute('transform', transform);
     ghostWorldRef.current?.setAttribute('transform', transform);
     paintLabels(cursorRef.current);
+  }
+
+  // Move the camera, keeping the ground at the centre of the canvas exactly
+  // where it is on screen. The grid point there is read with the OLD camera,
+  // the camera is changed, and the view's translate is re-solved so that
+  // grid point projects back to the same place — the same "point stays
+  // under the pointer" formula the wheel zoom uses, with the projection
+  // changing instead of the scale. The projection itself is updated
+  // synchronously, so the label pass and any hit-test that runs before
+  // React re-renders already see the new camera; the state update is what
+  // redraws the map.
+  function applyCamera(next: Camera) {
+    const rect = svgRef.current?.getBoundingClientRect();
+    const px = rect ? rect.width / 2 : 0;
+    const py = rect ? rect.height / 2 : 0;
+    const v = viewRef.current;
+    const g = unproject((px - v.x) / v.zoom, (py - v.y) / v.zoom);
+    const applied = setCamera(next);
+    const w = project(g.col, g.row);
+    applyView({ x: px - w.x * v.zoom, y: py - w.y * v.zoom, zoom: v.zoom });
+    setCameraState(applied);
+  }
+  // A quarter turn either way round the campus, a step steeper or flatter,
+  // or back to the opening view (see the CAMERA block above).
+  function turnBy(steps: number) {
+    const st = stanceRef.current;
+    st.view = ((st.view + steps) % VIEWS.length + VIEWS.length) % VIEWS.length;
+    applyCamera({ azimuth: VIEWS[st.view], pitch: PITCHES[st.pitch] });
+  }
+  function tiltBy(steps: number) {
+    const st = stanceRef.current;
+    const next = Math.min(PITCHES.length - 1, Math.max(0, st.pitch + steps));
+    if (next === st.pitch) return;
+    st.pitch = next;
+    applyCamera({ azimuth: VIEWS[st.view], pitch: PITCHES[st.pitch] });
+  }
+  function resetCamera() {
+    stanceRef.current = { view: 0, pitch: 0 };
+    applyCamera(DEFAULT_CAMERA);
   }
 
   // The starting/recentered view: centered on DEFAULT_ZOOM, but never so far
@@ -1341,6 +1460,11 @@ export default function CampusMap({
     const key = e.key.toLowerCase();
     if (key === 'r' && canRotateSelected) setRotated((r) => !r);
     if (key === 'p') onSetPathTool('draw');
+    // The camera (see the CAMERA block above): a quarter turn, a tilt step.
+    if (key === 'q') turnBy(1);
+    if (key === 'e') turnBy(-1);
+    if (key === 'z') tiltBy(-1);
+    if (key === 'x') tiltBy(1);
   }, controlsEnabled);
 
   // Escape on its own gate, because App.tsx's ladder hands off to it.
@@ -1518,6 +1642,7 @@ export default function CampusMap({
               justFinished={justFinished}
               onInspect={onInspect}
               labelLayerRef={labelLayerRef}
+              camera={camera}
             />
           </g>
         </svg>
@@ -1627,10 +1752,18 @@ export default function CampusMap({
         <div className="campus-map-zoom-controls">
           <HelpHint
             align="end"
-            text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. Press P (or use the build popup's Draw path tile) to lay walkways — free, purely decorative, and unrelated to building: drag with the left button to pave, the right button to lift, and the ghost tile shows which square you're on. Every other view — Curriculum, Faculty, Research and the rest — opens as a full screen over this one; the home button at the left of the toolbar's icon row, that view's own close button, or Escape brings you back here. Keys: W/A/S/D or the arrows pan, Space pauses and resumes wherever you are, R rotates, P draws, Escape backs out one layer at a time, C/F/L open Curriculum, Faculty and Student Life. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll/pinch to zoom."
+            text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. Press P (or use the build popup's Draw path tile) to lay walkways — free, purely decorative, and unrelated to building: drag with the left button to pave, the right button to lift, and the ghost tile shows which square you're on. Every other view — Curriculum, Faculty, Research and the rest — opens as a full screen over this one; the home button at the left of the toolbar's icon row, that view's own close button, or Escape brings you back here. Keys: W/A/S/D or the arrows pan, Space pauses and resumes wherever you are, R rotates, P draws, Escape backs out one layer at a time, C/F/L open Curriculum, Faculty and Student Life. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll/pinch to zoom. Q/E turn the view a quarter turn round the campus, Z/X tilt it flatter or steeper, and the ⌖ button brings back the opening view."
           />
           <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
           <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>
+          {/* The camera: a quarter turn either way, a step steeper or
+              flatter, and back to the view the game opens on (see the
+              CAMERA block above). */}
+          <button type="button" onClick={() => turnBy(1)} aria-label="Turn the view left" title="Turn left (Q)">⟲</button>
+          <button type="button" onClick={() => turnBy(-1)} aria-label="Turn the view right" title="Turn right (E)">⟳</button>
+          <button type="button" onClick={() => tiltBy(1)} aria-label="Tilt the view steeper" title="Look down more steeply (X)">⤒</button>
+          <button type="button" onClick={() => tiltBy(-1)} aria-label="Tilt the view flatter" title="Look more from the side (Z)">⤓</button>
+          <button type="button" onClick={resetCamera} aria-label="Reset the view" title="Back to the opening view">⌖</button>
         </div>
       </div>
     </section>

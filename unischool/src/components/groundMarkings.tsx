@@ -1,5 +1,6 @@
 import type { FacilityType } from '../state/types';
 import { boxFaces, lift, polyPoints, project, projectedArc, projectedCircle, projectedStadium, type Pt } from './isoProjection';
+import { faceTone } from './light';
 import { METRES_PER_TILE, up } from './campusScale';
 import { shade } from './tint';
 import { TreeAt, type Species } from './trees';
@@ -277,10 +278,13 @@ function GroundBox({ col, row, w, h, base = 0, height, side, front, top }: Groun
   base?: number; height: number; side: string; front: string; top: string;
 }) {
   const f = boxFaces(col, row, w, h, base, height);
+  // `front` is the +row face's tone and `side` the +col face's — the pair
+  // the default camera sees; the other two take their place in the same sun
+  // (light.ts's faceTone) when the camera turns them into view.
   return (
     <>
-      <polygon points={polyPoints(f.left)} fill={front} />
-      <polygon points={polyPoints(f.right)} fill={side} />
+      <polygon points={polyPoints(f.left)} fill={faceTone(f.dir.CD, front, side)} />
+      <polygon points={polyPoints(f.right)} fill={faceTone(f.dir.BC, front, side)} />
       <polygon points={polyPoints(f.top)} fill={top} />
     </>
   );
@@ -358,10 +362,10 @@ function Gridiron({ col, row, w, h, inset = 0, insetAcross = inset, posts = fals
         const c0 = g(0.5); const l = g(0.5 - half); const r = g(0.5 + half);
         return (
           <g key={`gp${i}`}>
-            <line className="ground-goal" x1={c0.x} y1={c0.y} x2={c0.x} y2={c0.y - bar} />
-            <line className="ground-goal" x1={l.x} y1={l.y - bar} x2={r.x} y2={r.y - bar} />
-            <line className="ground-goal" x1={l.x} y1={l.y - bar} x2={l.x} y2={l.y - top} />
-            <line className="ground-goal" x1={r.x} y1={r.y - bar} x2={r.x} y2={r.y - top} />
+            <line className="ground-goal" x1={c0.x} y1={c0.y} x2={c0.x} y2={lift(c0, bar).y} />
+            <line className="ground-goal" x1={l.x} y1={lift(l, bar).y} x2={r.x} y2={lift(r, bar).y} />
+            <line className="ground-goal" x1={l.x} y1={lift(l, bar).y} x2={l.x} y2={lift(l, top).y} />
+            <line className="ground-goal" x1={r.x} y1={lift(r, bar).y} x2={r.x} y2={lift(r, top).y} />
           </g>
         );
       })}
@@ -823,9 +827,9 @@ function Pitch({ col, row, w, h }: GroundProps) {
         const l = pp(end, -0.108); const r = pp(end, 0.108); const bar = up(2.4);
         return (
           <g key={`goal${end}`}>
-            <line className="ground-goal" x1={l.x} y1={l.y} x2={l.x} y2={l.y - bar} />
-            <line className="ground-goal" x1={r.x} y1={r.y} x2={r.x} y2={r.y - bar} />
-            <line className="ground-goal" x1={l.x} y1={l.y - bar} x2={r.x} y2={r.y - bar} />
+            <line className="ground-goal" x1={l.x} y1={l.y} x2={l.x} y2={lift(l, bar).y} />
+            <line className="ground-goal" x1={r.x} y1={r.y} x2={r.x} y2={lift(r, bar).y} />
+            <line className="ground-goal" x1={l.x} y1={lift(l, bar).y} x2={r.x} y2={lift(r, bar).y} />
           </g>
         );
       })}
@@ -1136,10 +1140,10 @@ function Fountain({ col, row, w, h }: GroundProps) {
       <polygon
         className="ground-fountain-jet"
         points={polyPoints([
-          { x: centre.x - 3.4, y: centre.y - 9 },
-          { x: centre.x + 3.4, y: centre.y - 9 },
-          { x: centre.x + 1.1, y: centre.y - 44 },
-          { x: centre.x - 1.1, y: centre.y - 44 },
+          { x: centre.x - 3.4, y: lift(centre, 9).y },
+          { x: centre.x + 3.4, y: lift(centre, 9).y },
+          { x: centre.x + 1.1, y: lift(centre, 44).y },
+          { x: centre.x - 1.1, y: lift(centre, 44).y },
         ])}
       />
       <polygon
@@ -1168,18 +1172,18 @@ function Monument({ col, row, w, h }: GroundProps) {
       <polygon
         className="ground-monument"
         points={polyPoints([
-          { x: centre.x - 4.5, y: centre.y - 5 },
-          { x: centre.x + 4.5, y: centre.y - 5 },
-          { x: centre.x + 3.0, y: centre.y - 34 },
-          { x: centre.x - 3.0, y: centre.y - 34 },
+          { x: centre.x - 4.5, y: lift(centre, 5).y },
+          { x: centre.x + 4.5, y: lift(centre, 5).y },
+          { x: centre.x + 3.0, y: lift(centre, 34).y },
+          { x: centre.x - 3.0, y: lift(centre, 34).y },
         ])}
       />
       <polygon
         className="ground-monument-cap"
         points={polyPoints([
-          { x: centre.x - 5.0, y: centre.y - 33 },
-          { x: centre.x + 5.0, y: centre.y - 33 },
-          { x: centre.x, y: centre.y - 43 },
+          { x: centre.x - 5.0, y: lift(centre, 33).y },
+          { x: centre.x + 5.0, y: lift(centre, 33).y },
+          { x: centre.x, y: lift(centre, 43).y },
         ])}
       />
     </>
@@ -1420,7 +1424,7 @@ export function GroundSite({ col, row, w, h }: GroundProps) {
                 <line
                   key={j}
                   className="site-hoarding-post"
-                  x1={foot.x} y1={foot.y} x2={foot.x} y2={foot.y - HOARDING_H}
+                  x1={foot.x} y1={foot.y} x2={foot.x} y2={lift(foot, HOARDING_H).y}
                 />
               );
             })}
