@@ -117,6 +117,12 @@ export default function App() {
   // by the tab and cleared (see onTargetConsumed below), so clicking the
   // same hall twice arrives twice rather than once.
   const [overlay, setOverlay] = useState<{ tab: TabId; target?: string } | null>(null);
+  // THE WAY BACK TO A HALL. The Curriculum tab's "Found in <hall>" closes
+  // the tab and opens that hall's panel on the map — the panel is where a
+  // program is founded, and the tab is where a player learns there is
+  // room. The same one-way channel the overlay target is: set here,
+  // consumed by the map and cleared, so the same door works twice.
+  const [inspectTarget, setInspectTarget] = useState<string | null>(null);
   // Which placeable Buildable (building/dorm/facility) is currently picked
   // up for siting, if any, and which path-drawing tool (if any) is active —
   // the two pieces of CampusMap's transient UI state that have to live here
@@ -257,6 +263,10 @@ export default function App() {
       setPlacingIdState(null);
     }
   }
+  function inspectHall(hallId: string) {
+    openTab(null);
+    setInspectTarget(hallId);
+  }
   function setBuildOpen(open: boolean) {
     if (!open) {
       closeBuild();
@@ -315,6 +325,8 @@ export default function App() {
         backOutEnabled={mapBackOutEnabled}
         controlsEnabled={mapControlsEnabled}
         onOpenCurriculum={(sectionKey) => openTab('curriculum', sectionKey)}
+        inspectTarget={inspectTarget}
+        onInspectTargetConsumed={() => setInspectTarget(null)}
       />
       <MainMenu act={act} />
       {/* Present only behind the playtest flag, and it decides that for
@@ -352,6 +364,7 @@ export default function App() {
                 act={act}
                 target={overlay.target}
                 onTargetConsumed={() => setOverlay((cur) => (cur ? { tab: cur.tab } : cur))}
+                onInspectHall={inspectHall}
               />
             )}
             {overlay.tab === 'research' && <ResearchTab s={s} act={act} />}
