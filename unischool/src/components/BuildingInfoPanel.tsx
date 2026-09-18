@@ -3,15 +3,16 @@ import type { Action } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { discoverySchools, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
 import { dedicatedSchool, hallDisplayName } from '../systems/techtree/schools';
-import { CourseCell, GradeChip, InstructorOption, MarketInField, completion, discoverySections } from '../tabs/CurriculumTab';
-import { averageCourseQuality, courseQuality, facultyLoads, instructorOf } from '../systems/faculty/facultyAssignment';
+import { GradeChip, InstructorOption, MarketInField, completion, discoverySections } from '../tabs/CurriculumTab';
+import { averageCourseQuality, facultyLoads } from '../systems/faculty/facultyAssignment';
 import { gradeFor } from '../data/courseQuality';
 import { schoolMark } from '../data/schoolPalette';
 import {
-  canFoundProgram, canRelocateProgram, canStartDevelopment, eligibleInstructors, facultyGate,
+  canFoundProgram, canRelocateProgram, eligibleInstructors,
   RELOCATION_WEEKS,
 } from '../systems/techtree/techSystem';
 import { transitWeeks } from '../systems/techtree/programOffers';
+import { milestoneLine, programProgress, unmetPrereqNames } from '../systems/techtree/programProgress';
 import { ProgressRing } from './Progress';
 
 // A popover for a PLACED building — what clicking it (outside placement/
@@ -27,6 +28,16 @@ import { ProgressRing } from './Progress';
 // building" and it needs the building on screen. The panel dispatches
 // FOUND_PROGRAM; the gate it reads (canFoundProgram) is the reducer's own,
 // so the button can never offer what the action would refuse.
+//
+// AND THAT IS THE WHOLE OF WHAT IT DOES. The panel answers the BUILDING
+// question — what is in this hall, what could go in it, how full and how
+// pure it is — at the grain of a PROGRAM. It does not develop courses. It
+// did for a while: a playtest follow-up drew the Curriculum tab's course
+// cells, its instructor picker and its market inside every open program
+// tile, and the two surfaces became the same screen, one of them squeezed
+// into a floating card. Plan 14's division is restored here: the map is
+// where a program is founded, the tab is where it is filled in and tuned,
+// and a program tile is a summary with one door to its row in the tab.
 
 const INFO_RING_SIZE = 30;
 
@@ -170,38 +181,26 @@ function OpenInCurriculum({ id, onOpenCurriculum }: { id: string; onOpenCurricul
 }
 
 // ---------------------------------------------------------------------
-// THE PROGRAM TILE (Plan 14's PR D). A filled slot: the program's name in
-// its school's colour, its progress (courses done of nine) and its
-// aggregate grade. Clicking it expands the tile in place to a strip of
-// its courses in tier order — each done course showing its grade and
-// instructor, each available course a + — and clicking a + opens the same
-// instructor picker the course drawer uses and starts that course. One
-// course, one deliberate choice of who teaches it, 421 times: there is no
-// auto-assignment anywhere here. START_DEVELOPMENT is unchanged and still
-// serves the Curriculum tab's drawer; this is a second caller, not a
-// second mechanism.
+// THE PROGRAM TILE. A filled slot: the program's name in its school's
+// colour, its progress (courses done of nine) and its aggregate grade.
+// Clicking it opens the tile in place to the program's SUMMARY — what it
+// is one course away from, what it teaches, what is next — and one door,
+// "Open in Curriculum", which lands on the program's own row in the tab
+// with every course, chip and picker the tab already draws. Relocation is
+// behind a "Move…" disclosure: it happens a few times a run and used to
+// take as much room as the courses did.
 // ---------------------------------------------------------------------
-type StripState = 'locked' | 'blocked' | 'available' | 'developing' | 'done';
-function stripState(s: GameState, t: Buildable): StripState {
-  if (t.status === 'done') return 'done';
-  if (t.status === 'developing') return 'developing';
-  if (t.status === 'locked') return 'locked';
-  return canStartDevelopment(s, t) ? 'available' : 'blocked';
-}
-
-function ProgramTile({ program, s, act, open, onToggle }: {
+function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
   program: ProgramInfo; s: GameState; act?: (a: Action) => void; open: boolean; onToggle: () => void;
+  onOpenCurriculum?: (sectionKey: string) => void;
 }) {
   const mark = schoolMark(program.school);
-  const courses = program.courseIds.map((id) => s.tech.find((t) => t.id === id)).filter((t) => t !== undefined);
-  const done = courses.filter((t) => t.status === 'done').length;
   const loads = facultyLoads(s);
   const avg = averageCourseQuality(s, program.courseIds, loads);
+  const progress = programProgress(s, program);
   const inTransit = transitWeeks(s, program.id);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [pickedFaculty, setPickedFaculty] = useState<string | null>(null);
-  useEffect(() => { setSelectedId(null); setPickedFaculty(null); }, [program.id, open]);
-  const selected = selectedId ? courses.find((t) => t.id === selectedId) : undefined;
+  const courseTitle = (t: Buildable) => t.name.split(' · ')[1] ?? t.name;
+  const courseCode = (t: Buildable) => t.name.split(' · ')[0];
 
   return (
     <div className={`hall-slot housed${open ? ' open' : ''}`} style={{ borderColor: mark.hue, ['--school-hue' as string]: mark.hue }}>
@@ -210,55 +209,44 @@ function ProgramTile({ program, s, act, open, onToggle }: {
         className="program-tile"
         onClick={onToggle}
         aria-expanded={open}
-        title={`${program.name} (${program.school}) — ${done} of ${courses.length} courses developed`}
+        title={`${program.name} (${program.school}) — ${progress.done} of ${progress.total} courses developed`}
       >
         <span className="hall-slot-motif" style={{ color: mark.hue }} aria-hidden="true">{mark.motif}</span>
         <span className="hall-slot-name">{program.name}</span>
         <span className="program-tile-meta">
           {inTransit > 0
             ? <span className="program-tile-transit" title={`In transit — ${inTransit} weeks until it is teaching again`}>moving · {inTransit}w</span>
-            : <span className="program-tile-progress">{done}/{courses.length}</span>}
+            : <span className="program-tile-progress">{progress.done}/{progress.total}</span>}
           {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${Math.round(avg)} / 100 across its developed courses`} />}
         </span>
       </button>
       {open && (
-        // THE FULL TILES, not a strip of numbers: the same CourseCell the
-        // Curriculum tab's rows draw — code, title, instructor chip, grade,
-        // gate dot. The tab lays a major's nine across one row; the panel,
-        // narrower, STACKS them: tier 1 stands two rows tall on the left
-        // of a rule, tier 2's four run along the top, tier 3's four along
-        // the bottom (see .hall-slot .program-row-cells.stacked). Five
-        // tracks instead of nine is what lets a title and a surname read
-        // in full. The core and a graduate program have no tiers to stack
-        // and keep one row of however many courses they have.
-        <div
-          className={`program-row-cells${program.kind === 'major' ? ' stacked' : ' flat'}`}
-          role="group"
-          aria-label={`${program.name} courses`}
-          style={program.kind === 'major' ? undefined : { gridTemplateColumns: `repeat(${courses.length}, minmax(0, 1fr))` }}
-        >
-          {courses.map((t, i) => {
-            const stacked = program.kind === 'major';
-            const rule = stacked && i === 1 ? <span key="rule" className="tier-rule tall" aria-hidden="true" /> : null;
-            const cell = (
-              <CourseCell
-                key={t.id}
-                s={s}
-                t={t}
-                selected={selectedId === t.id}
-                onSelect={(id) => { setSelectedId(selectedId === id ? null : id); setPickedFaculty(null); }}
-                loads={loads}
-              />
-            );
-            const placed = stacked && i === 0 ? <div key={t.id} className="tier-one-cell">{cell}</div> : cell;
-            return rule ? [rule, placed] : placed;
-          })}
+        <div className="program-summary">
+          <dl className="program-summary-facts">
+            <div><dt>Standing</dt><dd>{milestoneLine(progress)}</dd></div>
+            <div><dt>Teaching</dt><dd>{progress.seats.toLocaleString()} seats</dd></div>
+            {progress.developing > 0 && <div><dt>In development</dt><dd>{progress.developing}</dd></div>}
+          </dl>
+          <p className="building-info-line program-summary-next">
+            {inTransit > 0
+              ? `In transit — ${inTransit} week${inTransit === 1 ? '' : 's'} until its courses count again.`
+              : progress.next
+                ? <>Next: <span className="hall-offer-code">{courseCode(progress.next)}</span> {courseTitle(progress.next)} · ${progress.next.cost.toLocaleString()} · {progress.next.duration} wk</>
+                : progress.waiting
+                  ? <>Waiting on <span className="hall-offer-code">{courseCode(progress.waiting)}</span> {courseTitle(progress.waiting)} — needs {unmetPrereqNames(s, progress.waiting).join(', ') || 'its prerequisites'}.</>
+                  : progress.developing > 0
+                    ? 'Every remaining course is in development.'
+                    : 'Every course is developed.'}
+          </p>
+          <OpenInCurriculum id={`program:${program.id}`} onOpenCurriculum={onOpenCurriculum} />
+          {act && (
+            <details className="relocate-details">
+              <summary>Move to another hall…</summary>
+              <RelocateControls program={program} s={s} act={act} />
+            </details>
+          )}
         </div>
       )}
-      {open && selected && (
-        <StripCourse t={selected} s={s} act={act} picked={pickedFaculty} onPick={setPickedFaculty} onStarted={() => { setSelectedId(null); setPickedFaculty(null); }} />
-      )}
-      {open && <RelocateControls program={program} s={s} act={act} />}
     </div>
   );
 }
@@ -289,7 +277,7 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
   return (
     <div className="relocate">
       <p className="building-info-line relocate-note">
-        Move it — free, but the program goes dark for {RELOCATION_WEEKS} weeks: no teaching, no progress, and it counts toward no school until it settles.
+        Free, but the program goes dark for {RELOCATION_WEEKS} weeks: no teaching, no progress, and it counts toward no school until it settles.
       </p>
       {destinations.map((d) => (
         <p key={d.hallId} className="relocate-row">
@@ -312,86 +300,6 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
   );
 }
 
-// What one cell of the strip says when opened: who teaches a done course
-// and how it is graded; who to choose for an available one, and the
-// button that starts it; and for a course that cannot start, exactly why
-// — a lab to build, cash short, or a department with no free slot and
-// whether the market can fix that today (facultyGate).
-function StripCourse({ t, s, act, picked, onPick, onStarted }: {
-  t: Buildable; s: GameState; act?: (a: Action) => void;
-  picked: string | null; onPick: (id: string) => void; onStarted: () => void;
-}) {
-  const state = stripState(s, t);
-  const [code, titleFromName] = t.name.split(' · ');
-  const title = titleFromName ?? code;
-  const instructor = instructorOf(s, t);
-  const quality = courseQuality(s, t);
-  const eligible = state === 'available' || state === 'blocked' ? eligibleInstructors(s, t) : [];
-  const chosen = picked ?? eligible[0]?.id ?? null;
-  const gate = t.requiresFaculty ? facultyGate(s, t.requiresFaculty) : 'open';
-  const shortfall = t.cost - s.finance.cash;
-  const unmet = t.prereqs.filter((id) => s.tech.find((x) => x.id === id)?.status !== 'done');
-
-  return (
-    <div className="strip-course">
-      <p className="strip-course-head">
-        <span className="hall-offer-code">{code}</span> {title}
-      </p>
-      {(state === 'done' || state === 'developing') && (
-        <p className="building-info-line">
-          {state === 'developing' ? `In development — ${s.developing[t.id] ?? 0} of ${t.duration} weeks left. ` : ''}
-          {instructor
-            ? <>Taught by {instructor.name}{quality ? <> — <GradeChip grade={quality.grade} title={`Quality ${Math.round(quality.score)} / 100`} /></> : null}</>
-            : 'No instructor — assign one from the Curriculum tab.'}
-        </p>
-      )}
-      {state === 'locked' && (
-        <p className="building-info-line">
-          Opens once {unmet.map((id) => s.tech.find((x) => x.id === id)?.name.split(' · ')[0] ?? id).join(', ') || 'its prerequisites are'} done.
-        </p>
-      )}
-      {(state === 'available' || state === 'blocked') && (
-        <>
-          <p className="building-info-line">${t.cost.toLocaleString()} · {t.duration} weeks · {t.requiresFaculty ?? 'no department'}</p>
-          {eligible.length > 0 ? (
-            <>
-              <div className="instructor-options">
-                {eligible.map((f) => (
-                  <InstructorOption key={f.id} s={s} f={f} selected={chosen === f.id} projectedFor={t} onPick={() => onPick(f.id)} />
-                ))}
-              </div>
-              {t.requiresFaculty && act && (
-                <details className="course-drawer-more">
-                  <summary>Appoint someone new in {t.requiresFaculty}</summary>
-                  <MarketInField s={s} act={act} field={t.requiresFaculty} projectedFor={t} />
-                </details>
-              )}
-            </>
-          ) : t.requiresFaculty ? (
-            <>
-              <p className="building-info-line building-info-construction">
-                No {t.requiresFaculty} professor has a free course slot{gate === 'hireable' ? ' — appoint somebody below.' : '.'}
-              </p>
-              {act && <MarketInField s={s} act={act} field={t.requiresFaculty} projectedFor={t} />}
-            </>
-          ) : null}
-          {shortfall > 0 && (
-            <p className="building-info-line building-info-construction">${Math.ceil(shortfall).toLocaleString()} short of the development cost.</p>
-          )}
-          <button
-            type="button"
-            className="building-info-jump"
-            disabled={!act || !chosen || !canStartDevelopment(s, t, chosen)}
-            onClick={() => { if (act && chosen) { act({ type: 'START_DEVELOPMENT', nodeId: t.id, facultyId: chosen }); onStarted(); } }}
-          >
-            {chosen ? `Develop with ${eligible.find((f) => f.id === chosen)?.name ?? 'selected faculty'}` : 'Develop'}
-          </button>
-        </>
-      )}
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------------
 // THE HALL VIEW. A 2x3 grid of slots. An empty slot is a pale parchment
 // tile with a +; clicking it fans out the three programs on offer as
@@ -399,16 +307,18 @@ function StripCourse({ t, s, act, picked, onPick, onStarted }: {
 // and the school's colour and mark (schoolPalette.ts). Picking one opens
 // the same instructor picker the course drawer uses, and "Found" is the
 // one button on the map that starts a course. A filled slot shows its
-// program; PR D grows it into the program tile.
+// program as a tile (ProgramTile above).
 // ---------------------------------------------------------------------
-function HallSlots({ t, s, act }: { t: Buildable; s: GameState; act?: (a: Action) => void }) {
+function HallSlots({ t, s, act, onOpenCurriculum }: {
+  t: Buildable; s: GameState; act?: (a: Action) => void; onOpenCurriculum?: (sectionKey: string) => void;
+}) {
   const slots = s.halls[t.id];
   // Which empty slot is open (fanned out), and which offer is picked in it.
   const [openSlot, setOpenSlot] = useState<number | null>(null);
   const [pickedProgram, setPickedProgram] = useState<string | null>(null);
   const [pickedFaculty, setPickedFaculty] = useState<string | null>(null);
-  // Which housed program's tile is expanded (PR D). One at a time: the
-  // panel is a column, and two strips of nine open at once is a wall.
+  // Which housed program's tile is expanded. One at a time: the panel is
+  // a column, and two summaries open at once is a wall.
   const [openTile, setOpenTile] = useState<string | null>(null);
   useEffect(() => { setOpenSlot(null); setPickedProgram(null); setPickedFaculty(null); setOpenTile(null); }, [t.id]);
 
@@ -466,6 +376,7 @@ function HallSlots({ t, s, act }: { t: Buildable; s: GameState; act?: (a: Action
                 act={act}
                 open={openTile === program.id}
                 onToggle={() => { setOpenTile(openTile === program.id ? null : program.id); setOpenSlot(null); }}
+                onOpenCurriculum={onOpenCurriculum}
               />
             );
           }
@@ -573,7 +484,7 @@ function BuildingHallInfo({ t, s, act, onOpenCurriculum }: {
 }) {
   // An academic hall (the repeatable chain): its slots are the whole of
   // what it is.
-  if (isAcademicHall(t)) return <HallSlots t={t} s={s} act={act} />;
+  if (isAcademicHall(t)) return <HallSlots t={t} s={s} act={act} onOpenCurriculum={onOpenCurriculum} />;
 
   const school = discoverySchools().find((sc) => sc.buildingId === t.id);
   if (school) {
@@ -605,8 +516,8 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
   // (see HallSlots). Optional, like onOpenCurriculum, so the panel stays
   // renderable on its own terms; the map always passes both.
   act?: (a: Action) => void;
-  // Opens the Curriculum tab at a school (by name) or a professional
-  // school (by its building id) — the section keys CurriculumTab.tsx uses.
+  // Opens the Curriculum tab at a school (by name) or at one program's row
+  // ("program:<id>") — the targets CurriculumTab.tsx accepts.
   onOpenCurriculum?: (sectionKey: string) => void;
 }) {
   // Escape closes the panel, same as TabOverlay's own dismiss — this only

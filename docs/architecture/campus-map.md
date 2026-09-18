@@ -10,6 +10,18 @@ slots, and its slots (`halls`, not `placements`) are simulation state — see
 [curriculum.md](../design/curriculum.md). *Where* the hall stands still means
 nothing; *what is in it* is the whole curriculum.
 
+The map also *shows* that one reading, so "where is there room" is a
+question it answers without anything being opened: over every standing hall
+sits a row of six pips, one per slot, each in the hue of the school whose
+program holds it (`schoolPalette.ts`) — a pure hall reads as one colour, a
+mixed one as several, a free slot as an empty ring — and a gold `+` beside
+them when a slot is free and a program is on offer for it (`HallMarks` in
+`CampusMap.tsx`). Unlike the labels, the marks are always on. The Curriculum
+tab's "Found in <hall>" door comes back the other way: `App.tsx` closes the
+tab and hands the hall's id to the map (`inspectTarget`), which pans to the
+building and opens its panel — the same one-way, consumed-on-arrival channel
+the tab's own target uses.
+
 Buildings are modeled as data first and placed on a tile grid second. The grid
 is drawn at an angle (2:1 dimetric — `src/components/isoProjection.ts`), and
 each kind carries an architectural form
