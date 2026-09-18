@@ -573,7 +573,7 @@ export const PORTICO_COLUMN_PLAN = across(1.4);  // a column is round; this is i
 export const ARCADE_HEIGHT = up(7.2);
 export const ARCADE_DEPTH = across(2.6);
 export const ARCADE_PIER = across(0.75);
-export const ARCADE_BAY_METRES = 5.0;
+export const ARCADE_BAY_METRES = 6.0;   // wider than a window bay: an arch, not a pier with a gap
 export const ARCADE_MAX = 10;
 // THE CAMPANILE: a square bell tower with an open belfry and a shallow
 // pyramid of tile. Taller and plainer than a cupola, which is what a bell
@@ -881,6 +881,7 @@ export type EntrancePart =
   | 'canopy'     // a slab on two posts
   | 'porch'      // buttressed, pointed-arched — the Gothic way in
   | 'arcade'     // round-arched, walked under — Mission
+  | 'archway'    // a small masonry porch with one round-headed opening — the Mission door
   | 'recess'     // an opening set back under an overhang — Brutalist
   | 'none';
 
@@ -912,6 +913,10 @@ export interface VernacularParts {
   chimneys?: boolean;
   // Dormers in the long slopes of a hall's roof.
   dormers?: boolean;
+  // A bell-gable — the espadaña — carried up past the eaves at the centre
+  // of a hall's and a pavilion's front. The Mission signature after the
+  // arcade, and the piece that tells a Mission front from a Tuscan one.
+  bellGable?: boolean;
 }
 
 // HOW A BUILDING IS MASSED, which is the one axis that is not ornament.
@@ -1281,11 +1286,15 @@ const MISSION: VernacularSpec = {
       hall: 'arcade',
       portico: 'arcade',
       pavilion: 'arcade',
-      residential: 'canopy',
+      // A residence hall is entered through a small stuccoed porch with one
+      // round-headed opening, not under a slab on posts — the slab was the
+      // one Georgian part a Mission dormitory still wore.
+      residential: 'archway',
       village: 'none',
     },
     rooflineEnd: 'none',
     apex: 'campanile',
+    bellGable: true,
   },
   massing: 'solid',
 };
@@ -1423,7 +1432,7 @@ export function apexPartOf(v: Vernacular): ApexPart {
 // test/building-spec.test.ts asserts every part named by a vernacular in
 // VERNACULARS is on them, so PR G adding `apex: 'spire'` fails loudly until
 // PR G also draws a spire.
-export const IMPLEMENTED_ENTRANCE_PARTS: EntrancePart[] = ['portico', 'colonnade', 'canopy', 'porch', 'recess', 'arcade', 'none'];
+export const IMPLEMENTED_ENTRANCE_PARTS: EntrancePart[] = ['portico', 'colonnade', 'canopy', 'porch', 'recess', 'arcade', 'archway', 'none'];
 export const IMPLEMENTED_ROOFLINE_END_PARTS: RooflineEndPart[] = ['pavilion', 'none'];
 export const IMPLEMENTED_APEX_PARTS: ApexPart[] = ['cupola', 'spire', 'core', 'campanile', 'none'];
 
