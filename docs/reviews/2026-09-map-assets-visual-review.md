@@ -4,7 +4,7 @@
 
 **How this review was done.** Every placeable Buildable in the catalogue was rendered on its own, at 1.4 screen pixels per world unit (roughly three and a half times the zoom the game opens at), through the game's own `BuildingMotif`, `GroundMarking` and `groundProps` components via `react-dom/server`, in all four vernaculars — 41 cells per vernacular, 164 in all, including rotated footprints, a chapter house with letters, and open-ground and building sites under construction. The four committed campus renders (`docs/images/campus*.png`, the same year-31 Completionist campus in each vernacular) were cropped at native resolution to see how the assets sit together with trees, paths, shadows and each other. `buildingMotifs.tsx`, `buildingSpec.ts`, `groundMarkings.tsx`, `trees.tsx`, `pathways.tsx` and the map's render pass in `CampusMap.tsx` were read against the renders, so every defect below is tied to the code that draws it.
 
-The npm registry was unreachable for the whole session, so the contact sheets were produced without the dev server; nothing here depends on that, but it is why no new screenshot is committed with this review.
+**Status: implemented.** Everything in sections 1 to 5 landed in the commit after this review, with three exceptions noted in section 6. The contact-sheet renderer the review was done with is `tools/sheet.tsx` (`npm run sheet`), and the four campus renders in `docs/images` were re-photographed afterwards.
 
 ---
 
@@ -246,4 +246,6 @@ Each row is one PR-sized piece of work; the first three are the ones that change
 
 Every item keeps the existing palette discipline (`test/building-spec.test.ts`'s distance and spread checks) — nothing above adds a wall colour, and the only new hues are the diamond's yellow foul poles and the courts' hard-court surface, both ground paint rather than materials.
 
-**Verifying it.** Art has to be looked at, as `tools/README.md` says. The contact-sheet approach used for this review — every Buildable rendered alone in every vernacular through `react-dom/server`, then screenshotted per cell — is worth adding beside `shoot.mjs` as a tool, because it is the only way to see every motif at once without playing a campus that contains them all, and it needs no dev server.
+**Verifying it.** Art has to be looked at, as `tools/README.md` says. The contact-sheet approach used for this review — every Buildable rendered alone in every vernacular through `react-dom/server`, then screenshotted per cell — is now `tools/sheet.tsx` beside `shoot.mjs`, because it is the only way to see every motif at once without playing a campus that contains them all, and it needs no dev server.
+
+**What was not done, and why.** Three items from the lists above were left out on purpose: the window reveals (section 3), which are invisible at the game's own zoom and would cost two lines per pane; the library lantern and the barrel-vaulted research library (section 4, `portico`), because the fly tower already separates the two large civic buildings and the library rungs differ in size; and the stadium's raised earthworks late in construction (1.2), which would need the site to know how far along it is. Everything else, including the Gothic hood, the tower-drum columns and the village re-layout, is in.

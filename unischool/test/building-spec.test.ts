@@ -639,15 +639,24 @@ console.log('campus scale and building spec');
 {
   const V = FOUNDING_VERNACULAR;
 
-  // The ridge table, exactly as it read before it was keyed by vernacular.
+  // The ridge table, exactly as it read before it was keyed by vernacular —
+  // plus the ONE deliberate change since: the pavilions are pitched (the
+  // 2026 map-assets review, docs/reviews/2026-09-map-assets-visual-review.md),
+  // because a Georgian refectory under a flat slab read as a warehouse. The
+  // two original entries are still pinned; the third is pinned too, so it
+  // cannot drift either.
   const roof = roofFor('georgian');
   assert(roof.ridgeMetres.hall === 2.2, `georgian's hall ridge is unchanged (got ${roof.ridgeMetres.hall})`);
   assert(roof.ridgeMetres.village === 3.0, `georgian's village ridge is unchanged (got ${roof.ridgeMetres.village})`);
-  assert(Object.keys(roof.ridgeMetres).length === 2,
+  assert(roof.ridgeMetres.pavilion === 2.0, `georgian's pavilions carry a shallow hip (got ${roof.ridgeMetres.pavilion})`);
+  assert(Object.keys(roof.ridgeMetres).length === 3,
     `and nothing else is pitched (got ${Object.keys(roof.ridgeMetres).join(', ')})`);
 
-  // The residence-hall ladder: a house, an institutional hall, a flat block.
-  for (const [storeys, metres] of [[3, 4.2], [4, 2.4], [5, 2.4], [6, 0], [9, 0]] as const) {
+  // The residence-hall ladder: a house, an institutional hall, and — since
+  // the same review — a block that keeps the institutional hip rather than
+  // going flat, because a six-storey hall on a brick-and-slate campus is
+  // still roofed.
+  for (const [storeys, metres] of [[3, 4.2], [4, 2.4], [5, 2.4], [6, 2.2], [9, 2.2]] as const) {
     assert(roof.residentialRidgeMetres(storeys) === metres,
       `a ${storeys}-storey residence hall's ridge is unchanged (got ${roof.residentialRidgeMetres(storeys)}, was ${metres})`);
   }

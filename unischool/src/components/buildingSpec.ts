@@ -266,6 +266,10 @@ const GEORGIAN_RIDGE_METRES: Partial<Record<Motif, number>> = {
   // sheds with windows.
   hall: 2.2,
   village: 3.0,
+  // A refectory, a union and a clinic are halls with roofs. They were flat
+  // — the one motif in a brick-and-slate campus with a slab lid — and a
+  // Georgian dining hall under a flat deck read as a warehouse.
+  pavilion: 2.0,
 };
 
 // A residence hall's roof, by how big the hall IS — the one motif whose ridge
@@ -281,12 +285,15 @@ const GEORGIAN_RIDGE_METRES: Partial<Record<Motif, number>> = {
 // The ladder now genuinely changes shape as it climbs: a three-storey hall is
 // a HOUSE and keeps a real domestic pitch; four and five storeys are an
 // institutional hall and get the same shallow hip the academic halls wear; six
-// and up is a block, and a block is flat behind its own parapet, which is what
-// buildings that size are actually built as.
+// and up is a block, and keeps that hip — see the note in the function.
 function georgianResidentialRidgeMetres(storeys: number): number {
   if (storeys <= 3) return 4.2;
   if (storeys <= 5) return 2.4;
-  return 0;
+  // A six-storey hall is still roofed in a pitched vernacular: the same
+  // shallow hip the academic halls wear. Flat was the postwar answer, and
+  // it made the biggest residence halls on a Georgian campus read as
+  // parking structures.
+  return 2.2;
 }
 
 // Both tables above are GEORGIAN's answers, and since Plan 07's PR E they
@@ -835,6 +842,10 @@ export interface VernacularRoof {
   // straight from its eaves, and giving it a parapet would be drawing a
   // Georgian building with a steeper hat.
   parapet: number;
+  // How far a pitched roof oversails its walls, in METRES. Absent means the
+  // roof stops at the wall. Mission's deep tile eaves, and the shadow they
+  // throw on the wall, are the set's other signature.
+  eavesMetres?: number;
 }
 
 // The shape of a single opening. One branch inside windows(), and the
@@ -893,6 +904,14 @@ export interface VernacularParts {
   entrance: Partial<Record<Motif, EntrancePart>>;
   rooflineEnd: RooflineEndPart;
   apex: ApexPart;
+  // A pitched hood over a canopied door instead of a flat slab — the Gothic
+  // way of sheltering a doorway. Absent means a slab.
+  hood?: boolean;
+  // Chimney stacks on the pitched roofs, which the brick-and-slate sets
+  // have and the concrete and tile ones do not.
+  chimneys?: boolean;
+  // Dormers in the long slopes of a hall's roof.
+  dormers?: boolean;
 }
 
 // HOW A BUILDING IS MASSED, which is the one axis that is not ornament.
@@ -940,6 +959,7 @@ const GEORGIAN: VernacularSpec = {
     },
     rooflineEnd: 'pavilion',
     apex: 'cupola',
+    chimneys: true,
   },
   massing: 'solid',
 };
@@ -1040,14 +1060,15 @@ const GOTHIC: VernacularSpec = {
       // rendered campus rather than from the number.
       hall: 13.0,
       village: 6.0,
+      // The support buildings pitched too: a flat slate roof is a
+      // contradiction, and it is what these wore.
+      pavilion: 5.0,
     },
-    // A steeper version of the same ladder: a house keeps a real pitch, an
-    // institutional hall gets the hall's own roof, and a six-storey block is
-    // still flat because a block that size is flat in any century.
+    // A steeper version of the same ladder: a house keeps a real pitch, and
+    // an institutional hall of any height gets the hall's own roof.
     residentialRidgeMetres: (storeys: number) => {
       if (storeys <= 3) return 7.5;
-      if (storeys <= 5) return 6.5;
-      return 0;
+      return 6.5;
     },
     // NO PARAPET, and this is the half of the silhouette the ridge does not
     // do. A Georgian roof hides behind its wall; a Gothic roof springs
@@ -1073,6 +1094,9 @@ const GOTHIC: VernacularSpec = {
     // parapet-roof device and have nothing to cap here.
     rooflineEnd: 'none',
     apex: 'spire',
+    hood: true,
+    chimneys: true,
+    dormers: true,
   },
   massing: 'solid',
 };
@@ -1237,15 +1261,15 @@ const MISSION: VernacularSpec = {
     // Shallower than Georgian's and much shallower than Gothic's — a tile
     // roof cannot be steep, because the tiles slide off. The pitch is low
     // and the EAVES are deep, which is the opposite trade from Gothic.
-    ridgeMetres: { hall: 3.4, village: 3.6 },
+    ridgeMetres: { hall: 3.4, village: 3.6, pavilion: 3.0 },
     residentialRidgeMetres: (storeys: number) => {
       if (storeys <= 3) return 3.6;
-      if (storeys <= 5) return 3.0;
-      return 0;
+      return 3.0;
     },
     // No parapet: a tile roof oversails its walls rather than hiding behind
     // them, and the shadow under that overhang is the set's other signature.
     parapet: 0,
+    eavesMetres: 0.9,
   },
   windowShape: 'arched',
   parts: {
@@ -1420,6 +1444,11 @@ export function hasRoofForm(v: Vernacular): boolean {
 
 export function parapetOf(v: Vernacular): number {
   return VERNACULARS[v].roof.parapet;
+}
+
+// How far a pitched roof oversails the wall, in tiles.
+export function eavesOf(v: Vernacular): number {
+  return across(VERNACULARS[v].roof.eavesMetres ?? 0);
 }
 
 // ---------------------------------------------------------------------

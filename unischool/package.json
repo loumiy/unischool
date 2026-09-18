@@ -53,6 +53,8 @@
     "scenario": "rolldown tools/scenario.ts -o node_modules/.tmp/scenario.mjs -f esm -p node && node node_modules/.tmp/scenario.mjs",
     "shot": "node tools/shoot.mjs",
     "layout": "rolldown tools/layout.ts -o node_modules/.tmp/layout.mjs -f esm -p node && node node_modules/.tmp/layout.mjs",
+    "sheet": "rolldown tools/sheet.tsx -o node_modules/.tmp/sheet.mjs -f esm -p node && node node_modules/.tmp/sheet.mjs",
+    "sheet:shot": "node tools/shoot-sheet.mjs",
     "test:director": "rolldown test/athletic-director.test.ts -o node_modules/.tmp/athletic-director.test.mjs -f esm -p node && node node_modules/.tmp/athletic-director.test.mjs",
     "test:playoffs": "rolldown test/playoffs.test.ts -o node_modules/.tmp/playoffs.test.mjs -f esm -p node && node node_modules/.tmp/playoffs.test.mjs"
   },
