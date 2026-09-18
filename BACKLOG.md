@@ -52,8 +52,9 @@ changed is in `docs/design/` now.*
 **Done — [Plan 07](docs/plans/07-startup-and-vernacular.md) landed.** The
 private/public fork is gone (ceiling, appropriation and school type), the
 campus has a **vernacular** chosen at founding — Georgian, Collegiate Gothic,
-Mission or Brutalist — and the founding facade is Founders Hall, drawn in the
-set the player is choosing. What that changed is in
+Classical, Mission or Modern (Brutalist was replaced by Modern, and Classical
+added, in the 2026-09 map-assets pass) — and the founding facade is Founders
+Hall, drawn in the set the player is choosing. What that changed is in
 `docs/design/progression.md` now.
 
 One piece of this entry did NOT go into Plan 07 and is still open: the

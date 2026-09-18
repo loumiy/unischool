@@ -43,7 +43,7 @@ const flag = (name: string, fallback: string): string => {
   const eq = args[i].indexOf('=');
   return eq >= 0 ? args[i].slice(eq + 1) : (args[i + 1] ?? fallback);
 };
-const VERNS = flag('vernacular', 'georgian,gothic,brutalist,mission').split(',') as Vernacular[];
+const VERNS = flag('vernacular', 'georgian,gothic,classical,mission,modern').split(',') as Vernacular[];
 const SCALE = Number(flag('scale', '1.4'));
 const ONLY = flag('only', '') ? new RegExp(flag('only', '')) : null;
 const OUT = flag('out', 'node_modules/.tmp/sheets');

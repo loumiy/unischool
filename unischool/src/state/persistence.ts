@@ -89,7 +89,10 @@ export const SAVE_KEY = 'unischool.save';
 // and the crowding accumulator on `s.students`, both added as required.
 // v56: Plan 15 PR C. `Initiative.banked` (output toward the next paper,
 // added as required).
-export const SAVE_VERSION = 56;
+// v57: The campus vernaculars change: 'brutalist' is gone, 'modern' and
+//      'classical' arrive, and `s.self.vernacular` on an old save could name
+//      a set that no longer exists.
+export const SAVE_VERSION = 57;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch

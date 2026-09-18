@@ -13,14 +13,16 @@ in.
 ## The vernacular
 
 Which architecture the campus was founded in: **Georgian** (red brick, white
-trim, a gilded cupola), **Collegiate Gothic** (grey ashlar, steep slate, a
-spire), **Mission** (cream stucco, red tile, arcades and a campanile) or
-**Brutalist** (board-marked concrete in stacked slabs, and no ornament at
-all). Chosen at founding and **permanent** — a campus's architecture is what
-it was built as, so nothing ever offers to change it.
+trim, a gilded cupola), **Collegiate Gothic** (grey ashlar and steep slate,
+with corner towers, buttresses and a spire), **Classical** (limestone and
+columns under copper roofs, with a stone dome), **Mission** (cream stucco,
+red tile, arcades, bell-gables and a campanile) or **Modern** (white panel,
+glass and burnt-orange brick under flat roofs). Chosen at founding and
+**permanent** — a campus's architecture is what it was built as, so nothing
+ever offers to change it.
 
 It is deliberately the one thing on that screen with **no mechanical effect
-whatsoever**. Every founding condition is identical across the four, and no
+whatsoever**. Every founding condition is identical across the five, and no
 system reads `self.vernacular` except the map. That is what makes it a safe
 question to ask before the player knows anything: it cannot be the wrong
 answer. It is also why it does not contradict the rule below — you are

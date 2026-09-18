@@ -120,9 +120,9 @@ function SchoolFacade({ name, vernacular }: { name: string; vernacular: Vernacul
   const spec = VERNACULARS[vernacular];
   const wall = spec.materials.brickRed.wall;
   const roof = spec.materials.brickRed.roof;
-  // A vernacular with no trim (Brutalism) has nothing to cut a band from, so
-  // the band becomes the wall a shade lighter — the concrete's own shutter
-  // line rather than a stone course.
+  // A vernacular with no trim (Modern) has nothing to cut a band from, so
+  // the band becomes the wall a shade lighter — a panel joint rather than a
+  // stone course.
   const trim = spec.stone.trim === 'none' ? tint(wall, 1.1) : spec.stone.trim;
   const glass = spec.stone.glass;
   const gilt = spec.stone.gilt === 'none' ? null : spec.stone.gilt;
@@ -143,8 +143,8 @@ function SchoolFacade({ name, vernacular }: { name: string; vernacular: Vernacul
   // --- THE CROWN: what the building does above its own name band. --------
   const crown = () => {
     if (apex === 'core') {
-      // Brutalism: a slab edge, stepped back once. No pediment, no gable,
-      // nothing applied — the top of the building is the top of the pour.
+      // Modern: a slab edge, stepped back once. No pediment, no gable,
+      // nothing applied — the top of the building is its flat roof.
       return (
         <>
           <rect fill={tint(roof, 1.0)} x={FACADE_BAND_LEFT} y="70" width={FACADE_BAND_WIDTH} height="12" />
@@ -211,7 +211,18 @@ function SchoolFacade({ name, vernacular }: { name: string; vernacular: Vernacul
         </>
       );
     }
-    // Brutalism: a blind stair core, and deliberately not a landmark.
+    if (apex === 'dome') {
+      // Classical: a broad stone dome on a low drum, with a small lantern.
+      return (
+        <>
+          <rect fill={trim} stroke={tint(trim, 0.8)} strokeWidth="0.8" x={cx - 58} y="50" width="116" height="16" />
+          <path fill={tint(trim, 0.94)} stroke={tint(trim, 0.78)} strokeWidth="0.8" d={`M ${cx - 58} 50 A 58 34 0 0 1 ${cx + 58} 50 Z`} />
+          <rect fill={trim} x={cx - 5} y="8" width="10" height="10" />
+          <line stroke={gilt ?? trim} strokeWidth="2" x1={cx} y1="0" x2={cx} y2="8" />
+        </>
+      );
+    }
+    // Modern: a blind stair core, and deliberately not a landmark.
     return <rect fill={tint(wall, 1.02)} x={x - 2} y="16" width={w + 4} height="56" />;
   };
 
@@ -234,9 +245,23 @@ function SchoolFacade({ name, vernacular }: { name: string; vernacular: Vernacul
         );
       });
     }
+    if (entrance === 'canopy') {
+      // Modern: a glazed ground storey between slim posts, and the thin
+      // slab of the canopy over the middle bays.
+      return (
+        <>
+          <rect fill={glass} x={FACADE_BAND_LEFT} y={baseY + 10} width={FACADE_BAND_WIDTH} height={FACADE_VIEW_HEIGHT - baseY - 10} />
+          {bayXs.map((x, i) => (
+            <rect key={i} fill={trim} x={x - 3} y={baseY + 10} width="6" height={FACADE_VIEW_HEIGHT - baseY - 10} />
+          ))}
+          <rect fill={trim} x={cx - 70} y={baseY} width="140" height="5" />
+          <rect fill={tint(wall, 0.6)} x={cx - 70} y={baseY + 5} width="140" height="3" />
+        </>
+      );
+    }
     if (entrance === 'recess') {
-      // Brutalism: piers, a ribbon of glazing above them, and the undercut
-      // between — the whole entrance move of the set.
+      // A recessed entrance: piers, a ribbon of glazing above them, and the
+      // undercut between.
       return (
         <>
           <rect fill={glass} x={FACADE_BAND_LEFT} y={baseY} width={FACADE_BAND_WIDTH} height="13" />
