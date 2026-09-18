@@ -29,15 +29,20 @@ the opening camera), and each kind carries an architectural form
 
 ## The camera
 
-The view **turns and tilts, continuously**: Q/E and Z/X, a right-button
-drag, or the buttons beside the zoom controls. `isoProjection.ts` owns one
-`Camera` (azimuth and pitch) and derives every projection coefficient from
-it, so the two hundred call sites that draw a wall or a roof never know a
-camera exists. The opening camera reproduces the old 2:1 integer
-coefficients exactly. The camera is `CampusMap.tsx` state — unlike pan and
-zoom, which are a transform on a `<g>`, a turn changes every polygon, so
-the render *is* the frame — and it is never saved: it is where the player
-is looking from, not a fact about the school.
+The view stands at one of **four corners of the campus** (a quarter turn
+apart) and one of **three pitches**, and steps between them instantly: Q/E
+turn, Z/X tilt, or the buttons beside the zoom controls. `isoProjection.ts`
+owns one `Camera` (azimuth and pitch) and derives every projection
+coefficient from it, so the two hundred call sites that draw a wall or a
+roof never know a camera exists; it accepts any camera, but the map only
+rests on `VIEWS` and `PITCHES`, every one of which keeps a tile edge on a
+clean pixel slope (sin pitch of 1/2, 2/3 or 3/4). A continuous camera was
+tried first and looked worse than it sounded: the motifs were drawn for
+that pixel grid, and at an in-between angle they shimmer and foreshorten
+into shapes nobody drew. The camera is `CampusMap.tsx` state — unlike pan
+and zoom, which are a transform on a `<g>`, a turn changes every polygon —
+and it is never saved: it is where the player is looking from, not a fact
+about the school.
 
 Three consequences, each in its own place:
 
@@ -60,11 +65,6 @@ Three consequences, each in its own place:
   building presents its entrances from every side, and nothing is drawn
   against a wall that has turned away. Composite masses (a hospital's slab
   and wing, a corner tower) order their parts by the camera.
-
-A full frame of a built-out campus is more work than one screen refresh, so
-while the camera is *moving* the map draws a **draft** (`renderDetail.ts`):
-masses and roofs without windows, doors, trim or labels, one node per tree.
-The frame the motion ends on is drawn in full.
 
 ## Footprints
 

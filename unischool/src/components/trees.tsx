@@ -1,5 +1,4 @@
 import { lift, polyPoints, project, projectedCircle, type Pt } from './isoProjection';
-import { isDraft } from './renderDetail';
 import { shadowOffset, sunScreenDir } from './light';
 
 // Trees on the campus map. Geometry here, colour in styles.css — the same
@@ -144,13 +143,6 @@ export function TreeAt({ col, row, species, scale, shadow = true }: {
   // The lit side of a crown follows the sun across the screen and is always
   // toward the top — the sun is above whichever way the camera stands.
   const sun = sunScreenDir();
-
-  // The camera is moving (see renderDetail.ts): one node per tree, a blob
-  // of the crown's size where the crown is, so the wood keeps its shape and
-  // its place in the depth order and costs a tenth of what it does at rest.
-  if (isDraft()) {
-    return <circle className={`campus-tree ${species} campus-tree-crown`} cx={trunkTop.x} cy={trunkTop.y - crownR * 0.7} r={crownR} />;
-  }
 
   return (
     <g className={`campus-tree ${species}`} aria-hidden="true">

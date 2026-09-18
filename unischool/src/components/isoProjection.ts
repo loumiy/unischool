@@ -11,9 +11,12 @@ import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 // "isometric": azimuth 45 degrees, pitch 30 degrees. At that camera a
 // tile's diagonals run exactly one pixel down for every two across, so grid
 // lines and footprint edges land on clean pixel slopes, and it is the ratio
-// every sprite-based management sim uses. Turn the camera and the slopes
-// stop being clean — that is the accepted cost of a camera that turns
-// continuously rather than in 90-degree jumps.
+// every sprite-based management sim uses. The projection accepts ANY
+// camera, but the map only ever rests on the four azimuths and three
+// pitches in VIEWS and PITCHES below, every one of which keeps the tile
+// edges on a clean pixel slope: the motifs were drawn for that grid, and
+// at an in-between angle they shimmer and foreshorten into shapes nobody
+// drew. A continuous camera was tried and looked worse than it sounded.
 //
 // IMPORTANT: this is a RENDERING projection only. Tile coordinates
 // (row/col), footprints, occupancy, canPlace and the stored Placement are
@@ -58,6 +61,16 @@ export const MIN_PITCH = (20 * Math.PI) / 180;
 export const MAX_PITCH = (55 * Math.PI) / 180;
 
 export const DEFAULT_CAMERA: Camera = { azimuth: DEFAULT_AZIMUTH, pitch: DEFAULT_PITCH };
+
+// THE VIEWS THE MAP RESTS ON. Four azimuths, a quarter turn apart — the
+// four corners of the campus, each with the tile diagonals at the same 2:1
+// — and three pitches. The pitches are the ones where sin(pitch) is a small
+// fraction: at 1/2, 2/3 and 3/4 a tile edge climbs one pixel every 2, 3 or
+// 4 across, and stays crisp; anything else shimmers. A steeper view sees
+// more of the ground and less of the walls, and is what a player pulls
+// back to when siting.
+export const VIEWS: readonly number[] = [0, 1, 2, 3].map((k) => DEFAULT_AZIMUTH + (k * Math.PI) / 2);
+export const PITCHES: readonly number[] = [1 / 2, 2 / 3, 3 / 4].map((s) => Math.asin(s));
 
 // World units per tile, measured along the ground, whatever the camera. At
 // the default camera a tile's diagonal is TILE_W across: TILE_W / sqrt2.

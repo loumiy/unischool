@@ -18,12 +18,11 @@ import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf } from './
 import { materialOf, motifOf } from './buildingSpec';
 import { groundProps } from './groundMarkings';
 import { depthOrder, type DepthBox } from './depthSort';
-import { setDraft } from './renderDetail';
 import PathwayLayer from './pathways';
 import Tree, { woodlandShadow } from './trees';
 import { castShadow } from './light';
 import {
-  DEFAULT_CAMERA, TILE_H, WORLD, boxFaces, getCamera, lift, polyPoints, project, setCamera, tileAt, unproject,
+  DEFAULT_CAMERA, PITCHES, TILE_H, VIEWS, WORLD, boxFaces, lift, polyPoints, project, setCamera, tileAt, unproject,
   type Camera,
 } from './isoProjection';
 
@@ -60,9 +59,10 @@ import {
 // Plain SVG on purpose: no canvas, no game library, no new deps. The map is
 // drawn at an angle (2:1 dimetric — see isoProjection.ts), so the ground is
 // one plate plus a path of grid lines, and a placed building is a mass with
-// a roof and two walls (buildingMotifs.tsx). The camera turns and tilts
-// (see the camera block below): a tall building can hide a shorter one
-// behind it, and turning the view is how the player looks behind it.
+// a roof and two walls (buildingMotifs.tsx). The camera turns a quarter
+// turn at a time and tilts (see the camera block below): a tall building
+// can hide a shorter one behind it, and turning the view is how the player
+// looks behind it.
 
 // --- layout ---
 // The map is drawn in 2:1 dimetric projection (see isoProjection.ts, which
@@ -201,29 +201,19 @@ const KEY_PAN_SPEED = 1100;
 const MAX_PAN_FRAME_S = 0.1;
 
 // --- the camera ---
-// The view turns round the campus and tilts, continuously — no 90-degree
-// jumps — and the two are ONE camera (see isoProjection.ts's Camera), not a
-// pan/zoom-style transform: turning it changes every polygon on the map, so
-// a camera change is a React re-render where a pan is a setAttribute. Held
-// keys drive it through the same animation-frame loop as panning; a drag
-// with the RIGHT button turns it (horizontal) and tilts it (vertical);
-// the buttons beside the zoom controls glide it by a step.
+// The view stands at one of four corners of the campus (isoProjection's
+// VIEWS) and at one of three pitches (PITCHES), and moves between them in
+// one step: Q/E turn a quarter turn, Z/X tilt, and the buttons beside the
+// zoom controls do the same. No animation between views, on purpose — the
+// motifs are drawn for the pixel grid of those views, and the angles in
+// between are not worth the frames (see isoProjection.ts).
 //
-// Whatever moves it, the point under the pivot — the cursor for a drag, the
-// canvas centre for keys and buttons — stays put on screen: the camera
-// turns ABOUT that point rather than about the world origin off in a corner
-// of the grid (see applyCamera).
-const CAMERA_KEYS: Record<string, { azimuth: number; pitch: number }> = {
-  q: { azimuth: 1, pitch: 0 }, e: { azimuth: -1, pitch: 0 },
-  z: { azimuth: 0, pitch: -1 }, x: { azimuth: 0, pitch: 1 },
-};
-const KEY_ROTATE_SPEED = 1.5;          // radians per second held: a full turn in about four seconds
-const KEY_TILT_SPEED = 0.5;            // radians per second held
-const DRAG_ROTATE_PER_PX = 0.008;      // radians per screen pixel of horizontal right-drag
-const DRAG_TILT_PER_PX = 0.004;        // radians per screen pixel of vertical right-drag
-const BUTTON_ROTATE_STEP = Math.PI / 8;
-const BUTTON_TILT_STEP = (6 * Math.PI) / 180;
-const CAMERA_GLIDE_MS = 240;
+// A turn or tilt is ONE camera (isoProjection.ts's Camera), not a
+// pan/zoom-style transform: it changes every polygon on the map, so a camera
+// change is a React re-render where a pan is a setAttribute. Whatever moves
+// it, the ground at the canvas centre stays put on screen: the camera turns
+// ABOUT that point rather than about the world origin off in a corner of the
+// grid (see applyCamera).
 
 // The world's drawn extent. Unlike the flat map's, this is NOT anchored at
 // the origin: the grid projects to a diamond whose left corner sits at
@@ -325,14 +315,12 @@ type SceneEntry = DepthBox & (
 // actually drawn is both correct and free — there are only ever a few dozen
 // buildings, so nothing here needs the arithmetic picking the ground uses.
 function PlacedBuilding({
-  t, p, label, onInspect, inspected, weeksLeft, justFinished, glyphs, vernacular, camera, draft,
+  t, p, label, onInspect, inspected, weeksLeft, justFinished, glyphs, vernacular, camera,
 }: {
   t: Buildable; p: Placement; onInspect: () => void; inspected: boolean;
-  // The camera this is drawn at, and whether this is a draft frame. The
-  // geometry reads both from their modules; they are passed so the memoised
-  // motif below knows to redraw.
+  // The camera this is drawn at. The geometry reads it from the projection
+  // itself; it is passed so the memoised motif below knows to redraw.
   camera: Camera;
-  draft: boolean;
   // What the map calls it — a dedicated hall is "<School> Hall" while it
   // is pure (systems/techtree/schools.ts's hallDisplayName), which is a
   // live reading the parent makes; the Buildable's own `name` stays the
@@ -364,7 +352,7 @@ function PlacedBuilding({
         material={materialOf(t, vernacular)}
         vernacular={vernacular}
         developing={developing} glyphs={glyphs}
-        camera={camera} draft={draft}
+        camera={camera}
       />
       {inspected && (
         // The footprint picked out on the ground, which is the one outline
@@ -658,14 +646,10 @@ export default function CampusMap({
   const [camera, setCameraState] = useState<Camera>(DEFAULT_CAMERA);
   setCamera(camera);
   const ground = useMemo(groundGeometry, [camera]);
-  // Whether the camera is in motion right now, in which case the scene is
-  // drawn as a draft — masses and roofs, no windows, doors or trim — because
-  // a full frame of a built-out campus takes longer than the screen refresh
-  // (see renderDetail.ts). Set by whatever moves the camera (the drag, the
-  // held keys, a glide) and cleared when it stops, which draws the last
-  // frame in full. Applied to the motifs the same way the camera is.
-  const [draft, setDraftState] = useState(false);
-  setDraft(draft);
+  // Which of the four views and three pitches the camera stands at (see the
+  // CAMERA block above): the camera is derived from these, never the other
+  // way round, so it can only ever rest on a crisp one.
+  const stanceRef = useRef({ view: 0, pitch: 0 });
   // Buildings that finished within the last COMPLETION_PULSE_MS, so the
   // moment a thing you paid for and waited on becomes real gets a beat of
   // its own. DERIVED, not stored: the previous set of developing ids is kept
@@ -748,12 +732,7 @@ export default function CampusMap({
   // left mouseup regardless of how far the pointer travelled, but a middle
   // mouseup fires `auxclick` instead, so a middle-button pan that also set
   // the flag would leave it armed to swallow the player's next real click.
-  const dragRef = useRef<{
-    button: number; startX: number; startY: number; startView: { x: number; y: number }; moved: boolean;
-    // A right-button drag turns the camera instead of panning (see the
-    // CAMERA block above): it starts from this camera, about this point.
-    camera?: { start: Camera; pivot: { x: number; y: number } };
-  } | null>(null);
+  const dragRef = useRef<{ button: number; startX: number; startY: number; startView: { x: number; y: number }; moved: boolean } | null>(null);
   // Set the instant a drag is recognised as a pan, so the click the browser
   // fires right after mouseup doesn't ALSO place a building — consumed by
   // the very next place() call, or by the next mousedown if that click
@@ -837,71 +816,44 @@ export default function CampusMap({
     paintLabels(cursorRef.current);
   }
 
-  // Move the camera, keeping the ground under `pivot` (a point on the
-  // canvas; its centre when none is given) exactly where it is on screen.
-  // The grid point under the pivot is read with the OLD camera, the camera
-  // is changed, and the view's translate is re-solved so that grid point
-  // projects back under the pivot — the same "point stays under the
-  // pointer" formula the wheel zoom uses, with the projection changing
-  // instead of the scale. The projection itself is updated synchronously,
-  // so the label pass and any hit-test that runs before React re-renders
-  // already see the new camera; the state update is what redraws the map.
-  function applyCamera(next: Camera, pivot?: { x: number; y: number }) {
-    const px = pivot?.x ?? canvasSizeRef.current.width / 2;
-    const py = pivot?.y ?? canvasSizeRef.current.height / 2;
+  // Move the camera, keeping the ground at the centre of the canvas exactly
+  // where it is on screen. The grid point there is read with the OLD camera,
+  // the camera is changed, and the view's translate is re-solved so that
+  // grid point projects back to the same place — the same "point stays
+  // under the pointer" formula the wheel zoom uses, with the projection
+  // changing instead of the scale. The projection itself is updated
+  // synchronously, so the label pass and any hit-test that runs before
+  // React re-renders already see the new camera; the state update is what
+  // redraws the map.
+  function applyCamera(next: Camera) {
+    const rect = svgRef.current?.getBoundingClientRect();
+    const px = rect ? rect.width / 2 : 0;
+    const py = rect ? rect.height / 2 : 0;
     const v = viewRef.current;
     const g = unproject((px - v.x) / v.zoom, (py - v.y) / v.zoom);
-    const before = getCamera();
     const applied = setCamera(next);
-    if (applied === before) return;
     const w = project(g.col, g.row);
     applyView({ x: px - w.x * v.zoom, y: py - w.y * v.zoom, zoom: v.zoom });
     setCameraState(applied);
   }
-  // Every way of moving the camera brackets its motion with these, so the
-  // frames in between are drafts and the one it ends on is full.
-  function cameraMoving(on: boolean) {
-    setDraft(on);
-    setDraftState(on);
+  // A quarter turn either way round the campus, a step steeper or flatter,
+  // or back to the opening view (see the CAMERA block above).
+  function turnBy(steps: number) {
+    const st = stanceRef.current;
+    st.view = ((st.view + steps) % VIEWS.length + VIEWS.length) % VIEWS.length;
+    applyCamera({ azimuth: VIEWS[st.view], pitch: PITCHES[st.pitch] });
   }
-
-  // The canvas's size, kept rather than measured: a camera move runs once a
-  // frame, and getBoundingClientRect on a dirty SVG forces a layout of the
-  // whole map before React has even committed the frame.
-  const canvasSizeRef = useRef({ width: 0, height: 0 });
-  useEffect(() => {
-    const measure = () => {
-      const r = svgRef.current?.getBoundingClientRect();
-      if (r) canvasSizeRef.current = { width: r.width, height: r.height };
-    };
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, []);
-
-  // Ease the camera to a target over a short glide, for the buttons: a click
-  // that snapped the view round by a step would read as a jump, and the
-  // whole point of this camera is that it never jumps.
-  const glideRef = useRef<number | null>(null);
-  function glideCamera(target: Camera) {
-    if (glideRef.current !== null) cancelAnimationFrame(glideRef.current);
-    const from = getCamera();
-    const TAU = Math.PI * 2;
-    // The short way round.
-    const dAz = ((((target.azimuth - from.azimuth) + Math.PI) % TAU) + TAU) % TAU - Math.PI;
-    const dPitch = target.pitch - from.pitch;
-    const t0 = performance.now();
-    cameraMoving(true);
-    const step = (now: number) => {
-      const k = Math.min(1, (now - t0) / CAMERA_GLIDE_MS);
-      const ease = 1 - (1 - k) * (1 - k);
-      if (k >= 1) cameraMoving(false);
-      applyCamera({ azimuth: from.azimuth + dAz * ease, pitch: from.pitch + dPitch * ease });
-      glideRef.current = k < 1 ? requestAnimationFrame(step) : null;
-    };
-    glideRef.current = requestAnimationFrame(step);
+  function tiltBy(steps: number) {
+    const st = stanceRef.current;
+    const next = Math.min(PITCHES.length - 1, Math.max(0, st.pitch + steps));
+    if (next === st.pitch) return;
+    st.pitch = next;
+    applyCamera({ azimuth: VIEWS[st.view], pitch: PITCHES[st.pitch] });
   }
-  useEffect(() => () => { if (glideRef.current !== null) cancelAnimationFrame(glideRef.current); }, []);
+  function resetCamera() {
+    stanceRef.current = { view: 0, pitch: 0 };
+    applyCamera(DEFAULT_CAMERA);
+  }
 
   // The starting/recentered view: centered on DEFAULT_ZOOM, but never so far
   // out that the grid stops running off EVERY edge of the canvas — MIN_COVERAGE
@@ -945,28 +897,16 @@ export default function CampusMap({
       const dy = e.clientY - d.startY;
       if (!d.moved && Math.hypot(dx, dy) > PAN_CLICK_THRESHOLD) {
         d.moved = true;
-        svgRef.current?.classList.add(d.camera ? 'turning' : 'panning');
-        if (d.camera) cameraMoving(true);
+        svgRef.current?.classList.add('panning');
       }
-      if (!d.moved) return;
-      if (d.camera) {
-        // Right-drag: horizontal turns, vertical tilts, about where the
-        // drag began (see the CAMERA block above).
-        applyCamera({
-          azimuth: d.camera.start.azimuth - dx * DRAG_ROTATE_PER_PX,
-          pitch: d.camera.start.pitch + dy * DRAG_TILT_PER_PX,
-        }, d.camera.pivot);
-        return;
-      }
-      applyView({ x: d.startView.x + dx, y: d.startView.y + dy, zoom: viewRef.current.zoom });
+      if (d.moved) applyView({ x: d.startView.x + dx, y: d.startView.y + dy, zoom: viewRef.current.zoom });
     }
     function onUp() {
       const d = dragRef.current;
       dragRef.current = null;
       if (d?.moved) {
         if (d.button === 0) justPannedRef.current = true;
-        svgRef.current?.classList.remove('panning', 'turning');
-        if (d.camera) cameraMoving(false);
+        svgRef.current?.classList.remove('panning');
       }
       // Ends a path click-drag exactly like a pan drag: wherever the mouse
       // comes up, painting stops.
@@ -981,8 +921,7 @@ export default function CampusMap({
     };
   }, []);
 
-  // W/A/S/D and the arrow keys pan the camera (see PAN_KEYS above); Q/E
-  // turn it and Z/X tilt it (CAMERA_KEYS), through the same loop.
+  // W/A/S/D and the arrow keys pan the camera (see PAN_KEYS above).
   //
   // Held keys drive an animation frame loop rather than one jump per
   // keydown, so the camera GLIDES for as long as the key is down instead of
@@ -1003,7 +942,6 @@ export default function CampusMap({
     let frame: number | null = null;
     let prevTs = 0;
 
-    const cameraHeld = () => [...held].some((k) => k in CAMERA_KEYS);
     function step(ts: number) {
       if (held.size === 0) { frame = null; return; }
       // First frame of a stretch has no previous timestamp to measure
@@ -1012,13 +950,10 @@ export default function CampusMap({
       prevTs = ts;
       let dx = 0;
       let dy = 0;
-      let turn = 0;
-      let tilt = 0;
       for (const key of held) {
-        const pan = PAN_KEYS[key];
-        if (pan) { dx += pan[0]; dy += pan[1]; }
-        const cam = CAMERA_KEYS[key];
-        if (cam) { turn += cam.azimuth; tilt += cam.pitch; }
+        const [kx, ky] = PAN_KEYS[key];
+        dx += kx;
+        dy += ky;
       }
       // Opposite keys held together (A and D) cancel to zero, which is the
       // right answer and also the one that must not be normalised.
@@ -1031,13 +966,6 @@ export default function CampusMap({
           zoom: view.zoom,
         });
       }
-      if ((turn !== 0 || tilt !== 0) && dt > 0) {
-        const cam = getCamera();
-        applyCamera({
-          azimuth: cam.azimuth + turn * KEY_ROTATE_SPEED * dt,
-          pitch: cam.pitch + tilt * KEY_TILT_SPEED * dt,
-        });
-      }
       frame = requestAnimationFrame(step);
     }
 
@@ -1045,23 +973,20 @@ export default function CampusMap({
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (isTypingTarget(e.target)) return;
       const key = e.key.toLowerCase();
-      if (!(key in PAN_KEYS) && !(key in CAMERA_KEYS)) return;
+      if (!(key in PAN_KEYS)) return;
       // The arrows would otherwise scroll the page under the map.
       e.preventDefault();
       if (held.has(key)) return;   // OS key-repeat, not a second press
       held.add(key);
-      if (key in CAMERA_KEYS) cameraMoving(true);
       if (frame === null) { prevTs = 0; frame = requestAnimationFrame(step); }
     }
     function onKeyUp(e: KeyboardEvent) {
       held.delete(e.key.toLowerCase());
-      if (!cameraHeld()) cameraMoving(false);
     }
     // A key held while the window loses focus never delivers its keyup, and
     // the camera would otherwise drift on forever once focus came back.
     function onBlur() {
       held.clear();
-      cameraMoving(false);
     }
 
     window.addEventListener('keydown', onKeyDown);
@@ -1073,9 +998,8 @@ export default function CampusMap({
       window.removeEventListener('blur', onBlur);
       if (frame !== null) cancelAnimationFrame(frame);
     };
-    // applyView and applyCamera read and write refs (and the projection's own
-    // camera) only, so the stretch-long closure here is never stale in any
-    // way that matters.
+    // applyView reads and writes refs only, so the stretch-long closure here
+    // is never stale in any way that matters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [controlsEnabled]);
 
@@ -1185,35 +1109,25 @@ export default function CampusMap({
         return;
       }
     }
-    // The RIGHT button, on a map no path tool owns, turns the camera: drag
-    // sideways to turn, up and down to tilt (see the CAMERA block above).
-    if (e.button === 2) {
-      e.preventDefault();
-      const rect = e.currentTarget.getBoundingClientRect();
-      startPanDrag(e, { start: getCamera(), pivot: { x: e.clientX - rect.left, y: e.clientY - rect.top } });
-      return;
-    }
     if (e.button !== 0) return;
     justPannedRef.current = false;
     startPanDrag(e);
   }
 
-  function startPanDrag(e: React.MouseEvent<SVGSVGElement>, camera?: { start: Camera; pivot: { x: number; y: number } }) {
+  function startPanDrag(e: React.MouseEvent<SVGSVGElement>) {
     dragRef.current = {
       button: e.button,
       startX: e.clientX,
       startY: e.clientY,
       startView: { x: viewRef.current.x, y: viewRef.current.y },
       moved: false,
-      camera,
     };
   }
 
-  // The right button is always the map's own: a path tool's SECONDARY stroke
-  // while one is armed, and the camera drag otherwise (see onMapMouseDown),
-  // so the browser's context menu has to stay out of the way of both. On
-  // some platforms it opens on mousedown, before any drag can be told from
-  // a click, so it is suppressed outright rather than only after a drag.
+  // While a path tool is armed the right button is the tool's SECONDARY
+  // stroke (see onMapMouseDown), so the browser's context menu has to stay
+  // out of the way of it. Only then: an ordinary right-click on an idle map
+  // is left entirely alone.
   //
   // Right-click used to back out of the tool instead. Erasing is the more
   // useful thing for that button to do by a wide margin — undoing a stroke
@@ -1222,6 +1136,7 @@ export default function CampusMap({
   // hotkeys below), and so do the build popup's own tile and closing that
   // popup.
   function onMapContextMenu(e: React.MouseEvent<SVGSVGElement>) {
+    if (!pathTool) return;
     e.preventDefault();
   }
 
@@ -1311,6 +1226,11 @@ export default function CampusMap({
     const key = e.key.toLowerCase();
     if (key === 'r' && canRotateSelected) setRotated((r) => !r);
     if (key === 'p') onSetPathTool('draw');
+    // The camera (see the CAMERA block above): a quarter turn, a tilt step.
+    if (key === 'q') turnBy(1);
+    if (key === 'e') turnBy(-1);
+    if (key === 'z') tiltBy(-1);
+    if (key === 'x') tiltBy(1);
   }, controlsEnabled);
 
   // Escape on its own gate, because App.tsx's ladder hands off to it.
@@ -1597,7 +1517,7 @@ export default function CampusMap({
                 justFinished={justFinished.includes(t.id)}
                 glyphs={chapterGlyphs[t.id]}
                 vernacular={s.self.vernacular}
-                camera={camera} draft={draft}
+                camera={camera}
               />
             ))}
 
@@ -1619,7 +1539,7 @@ export default function CampusMap({
                     justFinished={justFinished.includes(entry.id)}
                     glyphs={chapterGlyphs[entry.id]}
                     vernacular={s.self.vernacular}
-                    camera={camera} draft={draft}
+                    camera={camera}
                   />
                 </g>
               );
@@ -1663,7 +1583,7 @@ export default function CampusMap({
             )}
 
             <g ref={labelLayerRef}>
-              {!draft && placed.filter(({ t }) => t.facilityType !== 'quad').map(({ t, p }) => (
+              {placed.filter(({ t }) => t.facilityType !== 'quad').map(({ t, p }) => (
                 <BuildingLabel key={`label-${t.id}`} t={t} p={p} label={hallDisplayName(s, t)} pinned={t.id === inspectedId} vernacular={s.self.vernacular} />
               ))}
             </g>
@@ -1675,7 +1595,7 @@ export default function CampusMap({
                 slot is free and a program is on offer for it. Always on,
                 unlike the labels, because "where is there room" is the
                 question a player brings to the map. */}
-            {!draft && placed.filter(({ t }) => isAcademicHall(t) && s.halls[t.id]).map(({ t, p }) => (
+            {placed.filter(({ t }) => isAcademicHall(t) && s.halls[t.id]).map(({ t, p }) => (
               <HallMarks
                 key={`marks-${t.id}`}
                 t={t}
@@ -1734,20 +1654,18 @@ export default function CampusMap({
         <div className="campus-map-zoom-controls">
           <HelpHint
             align="end"
-            text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. Press P (or use the build popup's Draw path tile) to lay walkways — free, purely decorative, and unrelated to building: drag with the left button to pave, the right button to lift, and the ghost tile shows which square you're on. Every other view — Curriculum, Faculty, Research and the rest — opens as a full screen over this one; the home button at the left of the toolbar's icon row, that view's own close button, or Escape brings you back here. Keys: W/A/S/D or the arrows pan, Space pauses and resumes wherever you are, R rotates, P draws, Escape backs out one layer at a time, C/F/L open Curriculum, Faculty and Student Life. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll/pinch to zoom. Drag with the right button to turn the view round the campus and tilt it — or hold Q/E to turn and Z/X to tilt — and use the ⌖ button to come back to the opening view."
+            text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. Press P (or use the build popup's Draw path tile) to lay walkways — free, purely decorative, and unrelated to building: drag with the left button to pave, the right button to lift, and the ghost tile shows which square you're on. Every other view — Curriculum, Faculty, Research and the rest — opens as a full screen over this one; the home button at the left of the toolbar's icon row, that view's own close button, or Escape brings you back here. Keys: W/A/S/D or the arrows pan, Space pauses and resumes wherever you are, R rotates, P draws, Escape backs out one layer at a time, C/F/L open Curriculum, Faculty and Student Life. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll/pinch to zoom. Q/E turn the view a quarter turn round the campus, Z/X tilt it flatter or steeper, and the ⌖ button brings back the opening view."
           />
           <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
           <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>
-          {/* The camera: turn either way, tilt steeper or flatter, and back
-              to the view the game opens on. Glides, never snaps — see
-              glideCamera — and pivots on the canvas centre like the zoom
-              buttons do, for the same reason: a button has no cursor
-              position to anchor to. */}
-          <button type="button" onClick={() => { const c = getCamera(); glideCamera({ ...c, azimuth: c.azimuth + BUTTON_ROTATE_STEP }); }} aria-label="Turn the view left" title="Turn left (Q, or drag with the right button)">⟲</button>
-          <button type="button" onClick={() => { const c = getCamera(); glideCamera({ ...c, azimuth: c.azimuth - BUTTON_ROTATE_STEP }); }} aria-label="Turn the view right" title="Turn right (E, or drag with the right button)">⟳</button>
-          <button type="button" onClick={() => { const c = getCamera(); glideCamera({ ...c, pitch: c.pitch + BUTTON_TILT_STEP }); }} aria-label="Tilt the view steeper" title="Look down more steeply (X)">⤒</button>
-          <button type="button" onClick={() => { const c = getCamera(); glideCamera({ ...c, pitch: c.pitch - BUTTON_TILT_STEP }); }} aria-label="Tilt the view flatter" title="Look more from the side (Z)">⤓</button>
-          <button type="button" onClick={() => glideCamera(DEFAULT_CAMERA)} aria-label="Reset the view" title="Back to the opening view">⌖</button>
+          {/* The camera: a quarter turn either way, a step steeper or
+              flatter, and back to the view the game opens on (see the
+              CAMERA block above). */}
+          <button type="button" onClick={() => turnBy(1)} aria-label="Turn the view left" title="Turn left (Q)">⟲</button>
+          <button type="button" onClick={() => turnBy(-1)} aria-label="Turn the view right" title="Turn right (E)">⟳</button>
+          <button type="button" onClick={() => tiltBy(1)} aria-label="Tilt the view steeper" title="Look down more steeply (X)">⤒</button>
+          <button type="button" onClick={() => tiltBy(-1)} aria-label="Tilt the view flatter" title="Look more from the side (Z)">⤓</button>
+          <button type="button" onClick={resetCamera} aria-label="Reset the view" title="Back to the opening view">⌖</button>
         </div>
       </div>
     </section>

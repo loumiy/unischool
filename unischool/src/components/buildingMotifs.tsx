@@ -2,7 +2,6 @@ import { memo } from 'react';
 import type { Buildable, Vernacular } from '../state/types';
 import { TILE_W, boxFaces, facePoint, lift, polyPoints, project, projectedCircle, heightScale, visibleWalls, wallOf, type BoxFaces, type Camera, type FaceDir, type Pt } from './isoProjection';
 import { depthOrder, occludes, type DepthBox } from './depthSort';
-import { isDraft } from './renderDetail';
 import { WALL_LIGHT, faceTone, shadowOffset } from './light';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
 import {
@@ -319,7 +318,6 @@ function windows(
   lights: 1 | 2 = 1,
 ) {
   const out: React.JSX.Element[] = [];
-  if (isDraft()) return out;   // the camera is moving: mass and roof only (see renderDetail.ts)
   if (wallHeight <= 0 || spanTiles <= 0) return out;
   const bays = baysAcross(spanTiles);
   // ONE <path> for the whole rank, not a <polygon> per pane. Every pane on a
@@ -374,7 +372,6 @@ function windows(
 function floorCourses(
   origin: Pt, along: Pt, wallHeight: number, lines: number[], key: string,
 ) {
-  if (isDraft()) return [];   // the camera is moving: mass and roof only (see renderDetail.ts)
   if (wallHeight <= 0) return [];
   return lines.map((at, i) => {
     const v0 = (at - FLOOR_COURSE / 2) / wallHeight;
@@ -435,7 +432,6 @@ function Scaffolding({ col, row, w, h, height, base = 0 }: {
   // a building being extended a storey (see BuildingMotif's `extending`).
   base?: number;
 }) {
-  if (isDraft()) return null;   // the camera is moving: mass and roof only (see renderDetail.ts)
   const posts: [number, number][] = [
     [col + w * 0.06, row + h * 0.06], [col + w * 0.94, row + h * 0.06],
     [col + w * 0.94, row + h * 0.94], [col + w * 0.06, row + h * 0.94],
@@ -467,7 +463,6 @@ function Scaffolding({ col, row, w, h, height, base = 0 }: {
 // poles — it is the one thing that says "building" from any distance, and a
 // site is on the map for months.
 function Crane({ col, row, w, h, height }: { col: number; row: number; w: number; h: number; height: number }) {
-  if (isDraft()) return null;   // the camera is moving: mass and roof only (see renderDetail.ts)
   const foot = project(col + w * 0.18, row + h * 0.82);
   const mastH = Math.max(height * 2.2, 70) + 40;
   const top = lift(foot, mastH);
@@ -541,7 +536,6 @@ function Door({ d, origin, along, wallHeight, span, shape = 'rect' }: {
   // square lintel was the one rectangle on an arched front.
   shape?: 'rect' | 'arched';
 }) {
-  if (isDraft()) return null;   // the camera is moving: mass and roof only (see renderDetail.ts)
   const dw = doorFraction(d, span);
   if (dw <= 0 || wallHeight <= 0) return null;
   // The opening in this wall's v: a real height, converted once.
@@ -625,7 +619,6 @@ function EntranceSteps({ d, centreCol, centreRow, outCol, outRow, span, stone }:
   outCol: number; outRow: number;
   span: number; stone: StonePalette;
 }) {
-  if (isDraft()) return null;   // the camera is moving: mass and roof only (see renderDetail.ts)
   if (d.treads <= 0 || d.threshold <= 0) return null;
   const stepStone = stone.trim === 'none' ? stone.towerStone : stone.trim;
   const halfW = Math.min(d.widthTiles, span * 0.6) / 2 + STEP_OVERHANG;
@@ -695,7 +688,6 @@ function WallBand({ origin, along, wallHeight, from, to, className, u0 = 0, u1 =
   // carried higher, not a block sitting on the roof.
   u0?: number; u1?: number;
 }) {
-  if (isDraft()) return null;   // the camera is moving: mass and roof only (see renderDetail.ts)
   if (wallHeight <= 0) return null;
   const v0 = Math.max(0, from) / wallHeight;
   const v1 = Math.min(wallHeight, to) / wallHeight;
@@ -868,7 +860,6 @@ function Portico({ centreCol, centreRow, width, outward, stone, columns = PORTIC
   // A pediment over the entablature: the Classical temple front.
   pediment?: boolean;
 }) {
-  if (isDraft()) return null;   // the camera is moving: mass and roof only (see renderDetail.ts)
   if (columns < 2 || width <= 0) return null;
   const gap = (width - PORTICO_COLUMN_PLAN) / (columns - 1);
   const half = width / 2;
@@ -1341,7 +1332,6 @@ function Buttresses({ col, row, w, h, height, outward, pal, stone, reserve, skip
   // How much of the wall's near end, in tiles, a corner tower occupies.
   skipNear?: number;
 }) {
-  if (isDraft()) return null;   // the camera is moving: mass and roof only (see renderDetail.ts)
   const span = wallSpan(w, h, outward);
   const bays = baysAcross(span);
   if (bays < 2) return null;
@@ -1387,7 +1377,6 @@ function Merlons({ col, row, w, h, base, outward, pal, block = across(1.1), gap 
   fill?: string;
   rail?: boolean;
 }) {
-  if (isDraft()) return null;   // the camera is moving: mass and roof only (see renderDetail.ts)
   const span = wallSpan(w, h, outward);
   const m = block; const g = gap;
   const n = Math.max(1, Math.floor((span - g) / (m + g)));
@@ -1430,7 +1419,6 @@ function Balustrade({ col, row, w, h, base, outward, pal, stone }: {
   col: number; row: number; w: number; h: number; base: number; outward: FaceDir;
   pal: Palette; stone: StonePalette;
 }) {
-  if (isDraft()) return null;   // the camera is moving: mass and roof only (see renderDetail.ts)
   return (
     <Merlons col={col} row={row} w={w} h={h} base={base} outward={outward} pal={pal}
       block={across(0.32)} gap={across(0.5)} rise={up(0.95)} depth={across(0.32)} fill={stone.trim} rail />
@@ -1596,7 +1584,6 @@ function Piers({ col, row, w, h, height, outward, pal, stone }: {
   col: number; row: number; w: number; h: number; height: number;
   outward: FaceDir; pal: Palette; stone: StonePalette;
 }) {
-  if (isDraft()) return null;   // the camera is moving: mass and roof only (see renderDetail.ts)
   const span = wallSpan(w, h, outward);
   const count = Math.max(2, Math.round((span * METRES_PER_TILE) / (BAY_METRES * 2)));
   const plan = across(PIER_WIDTH_METRES);
@@ -1723,7 +1710,6 @@ function CurtainWall({ origin, along, wallHeight, spanTiles, from, to, floors, i
   // whole face by default; an entrance bay is a few bays around the door.
   u0?: number; u1?: number;
 }) {
-  if (isDraft()) return null;   // the camera is moving: mass and roof only (see renderDetail.ts)
   if (wallHeight <= 0 || spanTiles <= 0 || u1 <= u0) return null;
   const v0 = from / wallHeight;
   const v1 = Math.min(1, (to ?? wallHeight) / wallHeight);
@@ -2008,7 +1994,6 @@ function Spire({ cc, cr, base, stone, gilded }: {
 function Chimney({ cc, cr, base, top, pal, stone }: {
   cc: number; cr: number; base: number; top: number; pal: Palette; stone: StonePalette;
 }) {
-  if (isDraft()) return null;   // the camera is moving: mass and roof only (see renderDetail.ts)
   const plan = across(1.3);
   const f = boxFaces(cc - plan / 2, cr - plan / 2, plan, plan, base, top - base);
   const cap = boxFaces(cc - plan / 2 - 0.03, cr - plan / 2 - 0.03, plan + 0.06, plan + 0.06, top, up(0.3));
@@ -2033,7 +2018,6 @@ function ridgeChimneys({ col, row, w, h, base, rise, at, ends = false, pal, ston
   // (a clock tower) stands at the ridge's middle.
   at: number[]; ends?: boolean; pal: Palette; stone: StonePalette;
 }) {
-  if (isDraft()) return null;   // the camera is moving: mass and roof only (see renderDetail.ts)
   const alongW = w >= h;
   const inset = Math.min(w, h) / 2;
   const plan = across(1.3);
@@ -2057,7 +2041,6 @@ function Dormers({ col, row, w, h, base, rise, pal, stone, glass }: {
   col: number; row: number; w: number; h: number; base: number; rise: number;
   pal: Palette; stone: StonePalette; glass: string;
 }) {
-  if (isDraft()) return null;   // the camera is moving: mass and roof only (see renderDetail.ts)
   const alongW = w >= h;
   const T = 0.34;                    // how far up the slope, eaves to ridge
   const dw = across(2.0); const dd = across(1.6); const dh = up(2.4);
@@ -2123,7 +2106,6 @@ function VillageHouse({ col, row, w, h, height, ridge, pal, stone, glass, paneSh
   const pane = (o: Pt, a: Pt, span: number, key: string, skipMiddle: boolean) => {
     const bays = Math.max(1, Math.round(span * METRES_PER_TILE / 3.2));
     const out: React.JSX.Element[] = [];
-    if (isDraft()) return out;
     for (let r = 0; r < sills.length; r++) {
       for (let bIdx = 0; bIdx < bays; bIdx++) {
         if (skipMiddle && r === 0 && bIdx === Math.floor(bays / 2)) continue;
@@ -2352,9 +2334,6 @@ function BuildingMotif({ t, p, material, vernacular, developing, glyphs }: {
   // the projection itself — but compared by the memo below, so a motif that
   // is otherwise unchanged still redraws when the view turns.
   camera?: Camera;
-  // Whether this is a draft frame (see renderDetail.ts). Likewise only
-  // compared, so a motif redraws when the detail level changes.
-  draft?: boolean;
 }) {
   const extending = developing && floorsUnderConstruction(t) > 0 && motifOf(t) !== 'grounds';
   if (!extending) return <BuildingMass t={t} p={p} material={material} vernacular={vernacular} developing={developing} glyphs={glyphs} />;
@@ -3707,7 +3686,6 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
 export default memo(BuildingMotif, (a, b) => (
   a.t === b.t
   && a.camera === b.camera
-  && a.draft === b.draft
   && a.material === b.material
   && a.vernacular === b.vernacular
   && a.developing === b.developing
