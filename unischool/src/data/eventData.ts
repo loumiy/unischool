@@ -1,4 +1,4 @@
-import type { Buildable, Coach, Faculty, GameState, GreekChapter, LogEntry } from '../state/types';
+import type { Buildable, Coach, Faculty, GameState, GreekChapter, LogEntry, LogTopic } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { FACULTY_FIELDS, generateCandidate, rollSurname } from './facultyData';
 import { appointFaculty } from '../systems/faculty/facultySystem';
@@ -299,8 +299,8 @@ export interface DecisionEvent {
   choices: DecisionChoice[];
 }
 
-function entry(s: GameState, message: string, kind: LogEntry['kind']): LogEntry {
-  return { year: s.clock.year, week: s.clock.week, message, kind };
+function entry(s: GameState, message: string, kind: LogEntry['kind'], topic?: LogTopic, subject?: string): LogEntry {
+  return { year: s.clock.year, week: s.clock.week, message, kind, topic, subject };
 }
 
 // Satisfaction is a drifting stock, so a hit here is a morale dent that
@@ -664,7 +664,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         cost: () => 0,
         apply: (s, ctx) => {
           removeFaculty(s, ctx.subjectId);
-          return entry(s, `${ctx.subjectName} has left for another university.`, 'bad');
+          return entry(s, `${ctx.subjectName} has left for another university.`, 'bad', 'departure', ctx.subjectId);
         },
       },
     ],
@@ -725,7 +725,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           const person = ctx.candidate
             ?? generateCandidate(field, [...s.faculty, ...s.candidates].map((f) => f.name));
           appointFaculty(s, person);
-          return entry(s, `${person.name} (${field}) has accepted a visiting chair and joined the faculty at $${person.salary.toLocaleString()}/yr.`, 'good');
+          return entry(s, `${person.name} (${field}) has accepted a visiting chair and joined the faculty at $${person.salary.toLocaleString()}/yr.`, 'good', 'appointment', person.id);
         },
       },
       {
@@ -956,7 +956,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         apply: (s, ctx) => {
           removeFaculty(s, ctx.subjectId);
           s.students.satisfaction = clamp(s.students.satisfaction + SCANDAL_DISMISSAL_SATISFACTION_GAIN, 0, 100);
-          return entry(s, `${ctx.subjectName} has been dismissed.`, 'bad');
+          return entry(s, `${ctx.subjectName} has been dismissed.`, 'bad', 'departure', ctx.subjectId);
         },
       },
     ],

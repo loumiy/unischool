@@ -1245,6 +1245,17 @@ export interface YearSnapshot {
   coursesDone: number;    // 'done' course Buildables — the catalogue's progress
   programsEstablished: number; // program-established milestones awarded so far
   satisfaction: number;   // 0..100
+  // THE YEAR'S OWN FIGURES (Plan 16's PR B), as distinct from the stocks
+  // above, which are readings of the moment: what the year did, so the
+  // review beat and the History table can carry it without re-deriving it
+  // from a log that is capped.
+  net: number;                 // cash now less cash a year ago — the year's net, campaigns and grants included
+  applicants: number;          // the pool this summer's funnel drew
+  admitRate: number;           // the share of it the school chose to take (0..1)
+  incomingQuality: number;     // the average quality of the class that enrolled (0..100)
+  satisfactionAverage: number; // the year's average satisfaction — what word of mouth and welfare read
+  coursesFinished: number;     // courses that finished developing during the year
+  attrition: number;           // students who did not return at this summer
 }
 
 // ---------------------------------------------------------------------
@@ -1414,11 +1425,55 @@ export interface SeenState {
   tabIds: Record<string, true>;
 }
 
+// WHAT KIND OF THING A LOG LINE REPORTS (Plan 16's PR B). Optional, and
+// set only on the lines two readers group by: the year in review
+// (state/yearInReview.ts), which sorts the closing year's log into the
+// sections of the summer's first beat, and the toasts (Plan 16's PR G),
+// which surface the handful of kinds that never stop the clock. A line
+// with no topic is texture — it is in the ticker and the log, and nothing
+// else reads it. Tagging at the WRITE rather than parsing the message is
+// what keeps both readers honest when a sentence is reworded.
+export type LogTopic =
+  | 'course'              // a course finished developing
+  | 'building'            // a hall, dorm or facility finished
+  | 'program'             // a program founded in a hall
+  | 'milestone'           // a milestone awarded (established, distinguished, a school founded)
+  | 'appointment'         // somebody joined the faculty
+  | 'departure'           // somebody left it
+  | 'prize'               // a research prize
+  | 'research-started'    // an initiative commissioned
+  | 'research-concluded'  // an initiative ended with nothing worth a modal (papers, or nothing)
+  | 'research-reported'   // an initiative ended and a report is queued
+  | 'publication'
+  | 'breakthrough'
+  | 'grant'
+  | 'demand-raised' | 'demand-met' | 'demand-failed'
+  | 'petition'            // a club or chapter petitioned for recognition
+  | 'organisations'       // the summer digest's answer
+  | 'candidate'           // somebody worth noticing listed on the market
+  | 'team'                // a varsity team's venue finished
+  | 'admissions' | 'attrition' | 'report-card' | 'money';
+
 export interface LogEntry {
   year: number;
   week: number;
   message: string;
   kind: 'info' | 'good' | 'bad';
+  topic?: LogTopic;
+  // The id of the thing the line is about — a Buildable, a program, a
+  // faculty member — when there is one. What lets a reader group "Developed:
+  // Data Structures." under its school without parsing the sentence, and a
+  // toast open the right place.
+  subject?: string;
 }
+
+// How many log entries are kept. Weekly attrition spam is gone, so what
+// remains is milestones, completions, admissions cycles and postings — a
+// deep enough cap that a completed major or a finished school building is
+// still readable in the ticker weeks later instead of being pushed out by
+// the next few routine lines. Lives here rather than in the reducer because
+// the year in review reads it too: a year whose lines have started falling
+// off the end has to say so.
+export const LOG_CAP = 200;
 
 export const WEEKS_PER_YEAR = 52; // the one place the game's year length lives — every system (clock, annual interrupts, finance annualization) reads from this

@@ -1,5 +1,5 @@
 import type { Faculty, GameState, LogEntry, SummerBeat, SummerPayload } from '../state/types';
-import { SUMMER_LAST_BEAT, WEEKS_PER_YEAR } from '../state/types';
+import { LOG_CAP, SUMMER_LAST_BEAT, WEEKS_PER_YEAR } from '../state/types';
 import type { Action } from '../state/actions';
 import { defaultAnswer } from './defaultAnswers';
 import { createInitialState, createPreStartState } from '../state/actions';
@@ -102,13 +102,6 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   tickDemands,
 ];
 
-// How many log entries are kept. Weekly attrition spam is gone, so what
-// remains is milestones, completions, admissions cycles and postings — a
-// deep enough cap that a completed major or a finished school building is
-// still readable in the ticker weeks later instead of being pushed out by
-// the next few routine lines.
-const LOG_CAP = 200;
-
 // ---------------------------------------------------------------------
 // saveGame (see state/persistence.ts) is the ONE thing in this reducer
 // that reaches outside itself. It doesn't change the reducer's purity with
@@ -183,6 +176,7 @@ function resolveStudentLifeDigest(s: GameState, approvedIds: string[]): void {
     week: s.clock.week,
     message: `Student life: ${recognised} organisation${recognised === 1 ? '' : 's'} recognised, ${declined} declined.`,
     kind: declined > recognised ? 'bad' : 'good',
+    topic: 'organisations',
   });
 }
 
@@ -300,6 +294,17 @@ export function reducer(state: GameState, action: Action): GameState {
         // The one appointment path, shared with the visiting-chair event
         // (see facultySystem.ts's appointFaculty).
         appointFaculty(s, hired);
+        // Logged (Plan 16's PR B) so the year in review can list the
+        // year's appointments — the roster growing is obvious the week it
+        // happens and invisible by the summer.
+        s.log.unshift({
+          year: s.clock.year,
+          week: s.clock.week,
+          message: `Appointed ${hired.name} to the faculty in ${hired.field}, at $${Math.round(hired.salary).toLocaleString()}/yr.`,
+          kind: 'info',
+          topic: 'appointment',
+          subject: hired.id,
+        });
       }
       return s;
     }
@@ -330,14 +335,19 @@ export function reducer(state: GameState, action: Action): GameState {
       for (const course of orphaned) delete s.courseFaculty[course.id];
       s.faculty = s.faculty.filter((f) => f.id !== action.facultyId);
 
-      if (orphaned.length > 0) {
-        s.log.unshift({
-          year: s.clock.year,
-          week: s.clock.week,
-          message: `${leaving.name} has left the university. ${orphaned.length} ${orphaned.length === 1 ? 'course is' : 'courses are'} without an instructor until ${leaving.field} is staffed again.`,
-          kind: 'bad',
-        });
-      }
+      // Logged either way now (Plan 16's PR B), so the year in review can
+      // list the year's departures; the orphaned courses are the half that
+      // is bad news rather than a record.
+      s.log.unshift({
+        year: s.clock.year,
+        week: s.clock.week,
+        message: orphaned.length > 0
+          ? `${leaving.name} has left the university. ${orphaned.length} ${orphaned.length === 1 ? 'course is' : 'courses are'} without an instructor until ${leaving.field} is staffed again.`
+          : `${leaving.name} (${leaving.field}) has left the university.`,
+        kind: orphaned.length > 0 ? 'bad' : 'info',
+        topic: 'departure',
+        subject: leaving.id,
+      });
       return s;
     }
 
@@ -433,6 +443,8 @@ export function reducer(state: GameState, action: Action): GameState {
         week: s.clock.week,
         message: `“${topic.name}” has begun at ${lab.name}.${consequence}`,
         kind: orphaned.length > 0 ? 'info' : 'good',
+        topic: 'research-started',
+        subject: lab.id,
       });
       return s;
     }
@@ -449,6 +461,8 @@ export function reducer(state: GameState, action: Action): GameState {
         week: s.clock.week,
         message: `“${topic?.name ?? 'A project'}” has been wound up early. Its funding is not recovered.`,
         kind: 'bad',
+        topic: 'research-concluded',
+        subject: action.labId,
       });
       return s;
     }
@@ -569,6 +583,7 @@ export function reducer(state: GameState, action: Action): GameState {
           week: s.clock.week,
           message: `Endowment campaign #${campaign.number} closed: $${campaign.cost.toLocaleString()} committed, $${campaign.endowmentGain.toLocaleString()} raised at a ${Math.round(campaign.match * 100)}% donor match.`,
           kind: 'good',
+          topic: 'money',
         });
       }
       return s;
@@ -788,8 +803,13 @@ export function reducer(state: GameState, action: Action): GameState {
       // record grows (see state/history.ts). Appended AFTER the funnel and
       // the step above, so the row is the class and the standing the school
       // actually carries into the next year, and BEFORE advanceClock, so it
-      // is filed under the year that just closed.
-      s.history.push(captureYearSnapshot(s));
+      // is filed under the year that just closed. The year's own figures
+      // that only this boundary knows — who left, what the year averaged —
+      // are handed in rather than re-derived.
+      s.history.push(captureYearSnapshot(s, {
+        attrition: advanced.notReturning,
+        satisfactionAverage: priorYearAvgSatisfaction,
+      }));
 
       s.pendingInterrupt = null;
       advanceClock(s); // resolving is what turns the calendar page into the new year
@@ -798,6 +818,7 @@ export function reducer(state: GameState, action: Action): GameState {
         week: s.clock.week,
         message: `Admissions: tuition $${s.finance.listedTuition.toLocaleString()}/yr — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admitted, ${outcome.enrolled.toLocaleString()} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
         kind: 'info',
+        topic: 'admissions',
       });
       // ATTRITION GETS ITS OWN LINE. A silently smaller number is the
       // single most likely source of "I don't understand what happened to
@@ -808,6 +829,7 @@ export function reducer(state: GameState, action: Action): GameState {
           week: s.clock.week,
           message: `${advanced.notReturning.toLocaleString()} students did not return — ${reasons.length > 0 ? reasons.join(', ') : 'a year averaging ' + priorYearAvgSatisfaction.toFixed(0) + ' satisfaction'}.`,
           kind: 'bad',
+          topic: 'attrition',
         });
       }
       if (outcome.capped) {
@@ -823,6 +845,7 @@ export function reducer(state: GameState, action: Action): GameState {
         week: s.clock.week,
         message: `Report card for year ${reportCard.year}: graded ${reportCard.score.toFixed(0)}. Prestige ${reportCard.before.toFixed(1)} → ${reportCard.after.toFixed(1)}.`,
         kind: reportCard.after >= reportCard.before ? 'good' : 'bad',
+        topic: 'report-card',
       });
 
       // The autosave (see state/persistence.ts). This annual boundary is

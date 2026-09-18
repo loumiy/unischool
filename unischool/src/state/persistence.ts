@@ -93,7 +93,10 @@ export const SAVE_KEY = 'unischool.save';
 // beat index in its payload (see types.ts's SummerPayload). A save written
 // with the old modal open would resume on a modal nothing renders and
 // clear it without running the year's funnel — a skipped year, silently.
-export const SAVE_VERSION = 57;
+// v58: Plan 16 PR B. YearSnapshot grows the year's own figures (net,
+// applicants, admit rate, incoming quality, the satisfaction average,
+// courses finished, attrition), all added as required.
+export const SAVE_VERSION = 58;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch

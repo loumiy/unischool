@@ -3,7 +3,8 @@ import type { Action } from '../state/actions';
 import type {
   Coach, GameState, InitiativeReport, PendingInterrupt, SeasonResult, SummerBeat, SummerDecision, SummerPayload,
 } from '../state/types';
-import { institutionName, SUMMER_BEATS, totalEnrolled, WEEKS_PER_YEAR } from '../state/types';
+import { institutionName, SUMMER_BEATS, WEEKS_PER_YEAR } from '../state/types';
+import { buildYearInReview } from '../state/yearInReview';
 import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
@@ -425,32 +426,37 @@ function SummerSteps({ beat }: { beat: SummerBeat }) {
   );
 }
 
-// Beat one. The year the school just lived through, in facts — see
-// yearInReview.ts. Read-and-continue: nothing here is a question.
+// Beat one. The year the school just lived through, in facts — generated
+// from the year's log and the state against last summer's row (see
+// state/yearInReview.ts). Read-and-continue: nothing here is a question,
+// and everything here already happened; the two forward-looking lines
+// (who will not return, what the year graded) are the same pure readings
+// the last beat commits.
 function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: () => void }) {
-  const lastYear = s.history.length > 0 ? s.history[s.history.length - 1] : null;
-  const enrolled = totalEnrolled(s.students);
+  const review = buildYearInReview(s);
   return (
     <>
-      <h2>Year {s.clock.year} in review</h2>
+      <h2>Year {review.year} in review</h2>
       <p>
-        The year is over. Before the summer&rsquo;s decisions, what it produced: where the school
-        stands going into the summer, against where it stood a year ago.
+        The year is over. Before the summer&rsquo;s decisions, what it produced.
+        {review.truncated && ' The record of its earliest weeks has scrolled off the log.'}
       </p>
-      <dl className="admissions-outcomes">
-        <div>
-          <dt>Prestige</dt>
-          <dd>{lastYear ? `${lastYear.prestige.toFixed(1)} → ` : ''}{s.self.reputation.toFixed(1)}</dd>
-        </div>
-        <div>
-          <dt>Enrolled</dt>
-          <dd>{lastYear ? `${lastYear.enrolled.toLocaleString()} → ` : ''}{enrolled.toLocaleString()}</dd>
-        </div>
-        <div>
-          <dt>Operating funds</dt>
-          <dd>{lastYear ? `${money(lastYear.cash)} → ` : ''}{money(s.finance.cash)}</dd>
-        </div>
-      </dl>
+      <div className="review-grid">
+        {review.sections.map((section) => (
+          <section key={section.key} className="review-section">
+            <h3>{section.title}</h3>
+            {section.lines.length === 0 ? (
+              <p className="review-empty">{section.empty}</p>
+            ) : (
+              <ul>
+                {section.lines.map((line, i) => (
+                  <li key={i} className={line.tone ?? ''}>{line.text}</li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ))}
+      </div>
       <button onClick={onContinue}>Continue →</button>
     </>
   );

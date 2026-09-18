@@ -2934,3 +2934,29 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .summer-steps li::before { content: counter(beat) " · "; font-family: var(--mono); letter-spacing: 0; }
 .summer-steps li.done { color: var(--ink-lo); border-bottom-color: var(--gold-dim); }
 .summer-steps li.current { color: var(--gold); border-bottom-color: var(--gold); font-weight: 700; }
+
+/* ---------- the year in review (see InterruptModal.tsx's ReviewBeat) ----
+   Six short sections in a two-column grid: what the year built, who came
+   and went, what research did, the students, the money, the standing. Each
+   is a heading and a handful of one-line facts in the same navy panel the
+   admissions outcomes use, with the log ticker's good/bad pair on the lines
+   that carry a tone. Two columns because six stacked sections is a scroll,
+   and the beat is meant to be read at a glance and continued. */
+.review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 16px; }
+.review-section { margin: 0; padding: 10px 12px; background: #1a2338;
+  border: 1px solid var(--navy-line); border-radius: var(--radius-md); min-width: 0; }
+.review-section h3 { font-family: var(--serif); font-size: var(--text-sm); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--gold); margin: 0 0 6px; }
+.review-section ul { list-style: none; margin: 0; padding: 0; }
+.review-section li { font-size: var(--text-sm); line-height: 1.4; padding: 2px 0; color: #cbd0d8;
+  border-top: 1px solid var(--navy-line); }
+.review-section li:first-child { border-top: none; }
+.review-section li.good { color: var(--ok-on-dark); }
+.review-section li.bad { color: var(--bad-on-dark); }
+.review-empty { font-size: var(--text-sm); font-style: italic; color: var(--ink-lo); margin: 0 !important; }
+@media (max-width: 560px) { .review-grid { grid-template-columns: 1fr; } }
+/* The small second figure in a History cell — courses finished this year
+   beside the catalogue's total, the year's average beside the summer's
+   satisfaction — set quiet so the column still reads as one number. */
+.history-table .history-delta { color: var(--ink-muted); font-size: var(--text-2xs); }
+.history-table td.bad { color: var(--bad-on-light); }
