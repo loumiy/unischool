@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import type { Buildable, Vernacular } from '../state/types';
-import { TILE_W, boxFaces, facePoint, lift, polyPoints, project, projectedCircle, type Pt } from './isoProjection';
+import { TILE_W, boxFaces, facePoint, lift, polyPoints, project, projectedCircle, visibleWalls, wallOf, type BoxFaces, type FaceDir, type Pt } from './isoProjection';
 import { depthOrder } from './depthSort';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
 import {
@@ -103,6 +103,13 @@ export function drawnHeightOf(t: Buildable, developing: boolean, v: Vernacular):
 export interface Palette {
   roof: string; roofDeck: string;
   negCol: string; negRow: string; posRow: string; posCol: string;
+  // The wall tone by the GRID direction the wall faces — the camera-proof
+  // form, for anything that knows which wall it is drawing.
+  wall: Record<FaceDir, string>;
+  // The same two tones, resolved for the two walls the CURRENT camera can
+  // see: `wallLeft` is the visible left wall's, `wallRight` the right's.
+  // What a motif that just draws `f.left` and `f.right` wants, and correct
+  // at every azimuth because paletteFrom runs per render.
   wallLeft: string; wallRight: string;
 }
 
@@ -129,6 +136,23 @@ function SLOPE(roof: string) {
   };
 }
 
+// The same for WALLS, by the direction they face, from the same sun: the
+// -col wall faces it and is brightest, the +col wall faces away and is
+// darkest, and the two row walls fall between with -row the lighter, exactly
+// as the slopes do. The two visible at the default camera (+row and +col)
+// keep the tones they have always had; the two that camera never saw are
+// set where the sun puts them. Four tones for one sun, so that turning the
+// camera never changes which side of a building is lit.
+const WALL_LIGHT: Record<FaceDir, number> = { negCol: 1.14, negRow: 1.02, posRow: 0.98, posCol: 0.78 };
+function WALLS(wall: string): Record<FaceDir, string> {
+  return {
+    negCol: shade(wall, WALL_LIGHT.negCol),
+    negRow: shade(wall, WALL_LIGHT.negRow),
+    posRow: shade(wall, WALL_LIGHT.posRow),
+    posCol: shade(wall, WALL_LIGHT.posCol),
+  };
+}
+
 // Tones from one MATERIAL — a wall colour and a roof colour, not one tint for
 // both. That split is the whole of PR F on screen: roof tones used to be
 // derived from the wall, so a gold hall stood under a gold roof and the two
@@ -137,14 +161,17 @@ function SLOPE(roof: string) {
 // is lit from the same direction.
 export function paletteFrom(m: Material, shadeFactor = 1): Palette {
   const wall = shadeFactor === 1 ? m.wall : shade(m.wall, shadeFactor);
+  const walls = WALLS(wall);
+  const seen = visibleWalls();
   return {
     roof: m.roof,
     // A raised flat deck (the hangar's clear-span roof), which faces straight
     // up and so takes no slope tone at all.
     roofDeck: shade(m.roof, 1.06),
     ...SLOPE(m.roof),
-    wallLeft: shade(wall, 0.98),
-    wallRight: shade(wall, 0.78),
+    wall: walls,
+    wallLeft: walls[seen.left],
+    wallRight: walls[seen.right],
   };
 }
 
@@ -578,6 +605,25 @@ function WallBand({ origin, along, wallHeight, from, to, className, u0 = 0, u1 =
       ])}
     />
   );
+}
+
+// The gable ends of a ridged roof: vertical triangles from the eaves up to
+// each end of the ridge, in the WALL's tone because a gable is the wall
+// carried on up. Only the ends the camera can see are drawn — the far one is
+// geometrically inside the far slope — and which those are is the camera's
+// business, not the motif's: `wallOf` says whether the +col end (the ridge
+// runs along col, `alongW`) or the +row end is facing us, and at the default
+// camera exactly one of each pair is, the same one that was always drawn.
+function gableEnds(f: BoxFaces, alongW: boolean, rs: Pt, re: Pt, pal: Palette) {
+  // The ridge runs from rs to re, low-coordinate end first (see the callers).
+  const ends: Array<[FaceDir, Pt[]]> = alongW
+    ? [['negCol', [f.NWt, f.SWt, rs]], ['posCol', [f.NEt, f.SEt, re]]]
+    : [['negRow', [f.NWt, f.NEt, rs]], ['posRow', [f.SWt, f.SEt, re]]];
+  return ends.map(([dir, pts]) => (
+    wallOf(f, dir).visible
+      ? <polygon key={dir} points={polyPoints(pts)} fill={pal.wall[dir]} />
+      : null
+  ));
 }
 
 // A HIPPED roof: four slopes meeting at a ridge that stops short of both ends,
@@ -2047,17 +2093,14 @@ function VillageHouse({ col, row, w, h, height, ridge, pal, stone, glass, paneSh
       {ridge > 0 ? (
         <>
           <polygon
-            points={polyPoints(alongW ? [f.At, f.Bt, re, rs] : [f.At, f.Dt, re, rs])}
+            points={polyPoints(alongW ? [f.NWt, f.NEt, re, rs] : [f.NWt, f.SWt, re, rs])}
             fill={alongW ? pal.negRow : pal.negCol}
           />
           <polygon
-            points={polyPoints(alongW ? [f.Dt, f.Ct, re, rs] : [f.Bt, f.Ct, re, rs])}
+            points={polyPoints(alongW ? [f.SWt, f.SEt, re, rs] : [f.NEt, f.SEt, re, rs])}
             fill={alongW ? pal.posRow : pal.posCol}
           />
-          <polygon
-            points={polyPoints(alongW ? [f.Bt, f.Ct, re] : [f.Dt, f.Ct, re])}
-            fill={alongW ? pal.wallRight : pal.wallLeft}
-          />
+          {gableEnds(f, alongW, rs, re, pal)}
           <line className="iso-ridge" x1={rs.x} y1={rs.y} x2={re.x} y2={re.y} />
           {chimney && (
             <Chimney cc={stackAt.cc} cr={stackAt.cr} base={height + ridge * (1 - plan / Math.min(w, h))} top={height + ridge + up(1.6)} pal={pal} stone={stone} />
@@ -3115,15 +3158,24 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
       // as a blue band low in it; the roof is a single pitch falling toward
       // that glass, and a flue stands at the back corner.
       const RISE = up(3.0);
-      const A = lift(f.A, H); const B = lift(f.B, H); const C = lift(f.C, H); const D = lift(f.D, H);
+      // Grid-fixed corners: the roof is high along the -row (or -col) edge
+      // whichever way the camera happens to be looking at it.
+      const NW = f.NWt; const NE = f.NEt; const SE = f.SEt; const SW = f.SWt;
       const roof = alongW
-        ? [lift(A, RISE), lift(B, RISE), C, D]          // high along the far (-row) edge
-        : [lift(A, RISE), B, C, lift(D, RISE)];         // high along the far (-col) edge
-      // The short wall becomes a trapezoid: the extra triangle above the eaves.
-      const gableFill = alongW ? pal.wallRight : pal.wallLeft;
-      const gable = alongW
-        ? [C, B, lift(B, RISE)]
-        : [D, C, lift(D, RISE)];
+        ? [lift(NW, RISE), lift(NE, RISE), SE, SW]      // high along the -row edge
+        : [lift(NW, RISE), NE, SE, lift(SW, RISE)];     // high along the -col edge
+      // The short wall becomes a trapezoid: the extra triangle above the
+      // eaves. There is one at each end; only a visible one is drawn, and at
+      // an azimuth where the wall is edge-on it has no width anyway.
+      const gableEnd = (dir: FaceDir) => {
+        if (!wallOf(f, dir).visible) return null;
+        const pts = dir === 'posCol' ? [SE, NE, lift(NE, RISE)]
+          : dir === 'negCol' ? [SW, NW, lift(NW, RISE)]
+            : dir === 'posRow' ? [SW, SE, lift(SW, RISE)]
+              : [NE, NW, lift(NW, RISE)];
+        return <polygon key={dir} points={polyPoints(pts)} fill={pal.wall[dir]} />;
+      };
+      const gable = alongW ? ['posCol', 'negCol'] as const : ['posRow', 'negRow'] as const;
       const flue = boxFaces(col + 0.25, row + 0.25, 0.45, 0.45, H + RISE * 0.9, up(4.5));
       const roofFill = alongW ? pal.negRow : pal.negCol;
       return (
@@ -3136,7 +3188,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           <WallBand origin={longFace.o} along={longFace.a} wallHeight={H} from={up(1.1)} to={up(2.4)} className="iso-pool-glimpse" u0={0.06} u1={0.94} />
           {clerestory(shortFace, 'ns')}
           {doors}
-          <polygon points={polyPoints(gable)} fill={gableFill} />
+          {gable.map(gableEnd)}
           <polygon points={polyPoints(roof)} fill={roofFill} />
           <polygon points={polyPoints(flue.left)} fill={shade(roofTint, 0.8)} />
           <polygon points={polyPoints(flue.right)} fill={shade(roofTint, 0.66)} />
@@ -3377,11 +3429,11 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
               -col and +col. Same polygons as before, tones now chosen by
               which way each one actually points. */}
           <polygon
-            points={polyPoints(alongW ? [rf.At, rf.Bt, re, rs] : [rf.At, rf.Dt, re, rs])}
+            points={polyPoints(alongW ? [rf.NWt, rf.NEt, re, rs] : [rf.NWt, rf.SWt, re, rs])}
             fill={alongW ? pal.negRow : pal.negCol}
           />
           <polygon
-            points={polyPoints(alongW ? [rf.Dt, rf.Ct, re, rs] : [rf.Bt, rf.Ct, re, rs])}
+            points={polyPoints(alongW ? [rf.SWt, rf.SEt, re, rs] : [rf.NEt, rf.SEt, re, rs])}
             fill={alongW ? pal.posRow : pal.posCol}
           />
           {/* ONE gable end — the near one. These are vertical triangles
@@ -3390,11 +3442,9 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
               being drawn anyway, and drawn LAST, so painter's order put an
               occluded face over the roof and the roof read as transparent.
               Its tone is the wall's, not a slope's, because a gable end is
-              the wall below it carried on up — same plane, same light. */}
-          <polygon
-            points={polyPoints(alongW ? [rf.Bt, rf.Ct, re] : [rf.Dt, rf.Ct, re])}
-            fill={alongW ? pal.wallRight : pal.wallLeft}
-          />
+              the wall below it carried on up — same plane, same light. Which
+              end is the near one is the camera's to say (see gableEnds). */}
+          {gableEnds(rf, alongW, rs, re, pal)}
           <line className="iso-ridge" x1={rs.x} y1={rs.y} x2={re.x} y2={re.y} />
           {chimneys && [0.22, 0.78].map((u, i) => {
             const cc = alongW ? rc + rw * u : rc + rw / 2;
