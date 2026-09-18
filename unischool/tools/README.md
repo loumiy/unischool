@@ -69,22 +69,22 @@ build; anything the plan does not name (an event's chapter house) goes in an
 overflow block. `--ascii` prints the plan as a tile map, which is how it was
 drawn. That is what `docs/images/campus.png` is — run through `pngquant`
 afterwards, which takes a flat-colour render like this one down to a third of
-its size with nothing to see for it. The same campus in the other three sets
-is beside it — `campus-gothic.png`, `campus-brutalist.png` and
-`campus-mission.png` — which is the honest comparison the vernaculars want:
-one layout, one save, only the architecture changing.
+its size with nothing to see for it. The same campus in the other four sets
+is beside it — `campus-gothic.png`, `campus-classical.png`,
+`campus-mission.png` and `campus-modern.png` — which is the honest comparison
+the vernaculars want: one layout, one save, only the architecture changing.
 
 ### Every motif on one page
 
 The campus renders show the assets together; they cannot show every motif, and
-they cannot show the same building in all four sets side by side. `sheet.tsx`
+they cannot show the same building in all five sets side by side. `sheet.tsx`
 renders every placeable Buildable on its own — through the game's own
 `BuildingMotif`, `GroundMarking` and `groundProps`, via `react-dom/server`, so
 what it draws is what the map draws — in one or more vernaculars, and writes a
 labelled contact sheet per set. It needs no dev server and no save.
 
 ```sh
-npm run sheet                                        # all four sets, node_modules/.tmp/sheets/
+npm run sheet                                        # all five sets, node_modules/.tmp/sheets/
 npm run sheet -- --vernacular gothic --scale 2       # one set, closer
 npm run sheet -- --only 'hangar|bowl|grounds'        # a regex on the cell labels
 npm run sheet:shot -- node_modules/.tmp/sheets/sheet-gothic.html /tmp/gothic --cells
