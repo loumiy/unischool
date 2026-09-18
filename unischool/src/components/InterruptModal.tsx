@@ -587,7 +587,6 @@ function ResearchReportView({ s, report, onDismiss }: {
   onDismiss: () => void;
 }) {
   const depth = initiativeDepth(report.depth);
-  const nothingToShow = report.publications === 0 && report.breakthroughs === 0 && report.grantIncome === 0;
 
   return (
     <>
@@ -634,13 +633,6 @@ function ResearchReportView({ s, report, onDismiss }: {
           </>
         )}
       </dl>
-
-      {nothingToShow && (
-        <p className="empty-note">
-          The work produced nothing publishable. The team returns to teaching, and the facility is free for
-          whatever comes next.
-        </p>
-      )}
 
       <button onClick={onDismiss}>Continue</button>
     </>

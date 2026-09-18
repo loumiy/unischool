@@ -1,9 +1,9 @@
 import type { GameState, ReportCard, SatisfactionAttributes } from '../../state/types';
 import { totalEnrolled } from '../../state/types';
-import { graduatePrograms, milestoneSchools, researchSchools } from '../../data/techData';
+import { graduatePrograms, milestoneSchools } from '../../data/techData';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
 import { teachingQualityScore } from '../../data/courseQuality';
-import { INITIATIVE_COMPLETION_CREDIT, labEquippedFields } from '../../data/researchData';
+import { INITIATIVE_COMPLETION_CREDIT, labEquippedFields, researchableFields } from '../../data/researchData';
 import { athleticProgramStrength, studentLifeSocialBonus, STUDENT_LIFE_SOCIAL_BONUS_CAP } from '../../data/studentLifeData';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../../data/facilitiesData';
 import { attributeCoverage } from '../satisfaction/satisfactionSystem';
@@ -905,31 +905,29 @@ const RESEARCH_STANDING_CREDITS_FOR_FULL = 60;
 const RESEARCH_OUTPUT_WEIGHT = 80;  // what the labs have actually produced
 const RESEARCH_BREADTH_WEIGHT = 40; // how many fields the school can research in at all
 
-// Lab breadth: equipped research fields against the schools that can have
-// one. Read through researchData.ts's own labEquippedFields, which is the
-// gate research itself runs on, so "a school researches in N fields" can
-// never drift from "research is possible in N fields".
+// Lab breadth: equipped research fields against EVERY field the university
+// could research in. Read through researchData.ts's own labEquippedFields,
+// which is the gate research itself runs on, so "a school researches in N
+// fields" can never drift from "research is possible in N fields".
+//
+// THE UNIT MISMATCH, FIXED (Plan 15's PR C). Plan 09's breakdown found this
+// dividing equipped fields by the count of research SCHOOLS, and a school
+// teaches several fields: at year 15 a completionist campus read 29
+// equipped fields against 8 schools, so a 40-weight term had been pinned
+// at its maximum since roughly the fourth lab. The denominator is now the
+// fields themselves (researchableFields), which is what the sentence
+// beside it always claimed it measured, and the term is something a
+// research school earns lab by lab rather than something the third lab
+// finishes.
 function researchBreadthScore(s: GameState): number {
-  const schools = researchSchools().filter((school) => school.fields.length > 0);
-  if (schools.length === 0) return 0;
-  return clamp01(labEquippedFields(s).size / schools.length);
+  const fields = researchableFields().length;
+  if (fields === 0) return 0;
+  return clamp01(labEquippedFields(s).size / fields);
 }
 
 export function researchStandingBreakdown(s: GameState): StandingBreakdown {
-  // A UNIT MISMATCH, found by writing this breakdown and FLAGGED RATHER THAN
-  // FIXED (Plan 09 changes no constant the model reads — see its "what this
-  // plan does not do"). researchBreadthScore above divides equipped FIELDS
-  // by the count of research SCHOOLS, and a school teaches several fields:
-  // at year 15 a completionist campus reads 29 equipped fields against 8
-  // schools, so the term has been pinned at its full 40 since the third or
-  // fourth lab went up. Whether the denominator should be fields or the
-  // score should be per-school is a design decision, and it belongs to
-  // Plan 15's PR C, which is the plan that next opens the research model and
-  // which names this line. The line below states
-  // both numbers rather than printing "29 of 8", which would read as a bug
-  // in the panel instead of the finding it is.
   const equipped = labEquippedFields(s).size;
-  const schools = researchSchools().filter((school) => school.fields.length > 0).length;
+  const fields = researchableFields().length;
   return breakdown('Research standing', RESEARCH_STANDING_BASELINE, s.self.researchStanding, [
     weigh(
       'output', 'What the labs have produced', RESEARCH_OUTPUT_WEIGHT,
@@ -938,7 +936,7 @@ export function researchStandingBreakdown(s: GameState): StandingBreakdown {
     ),
     weigh(
       'breadth', 'Fields it can research in', RESEARCH_BREADTH_WEIGHT, researchBreadthScore(s),
-      `${equipped} field${equipped === 1 ? '' : 's'} equipped, counted against the ${schools} schools that can hold a lab.`,
+      `${equipped} of the ${fields} fields the university could research in ${equipped === 1 ? 'has' : 'have'} a lab.`,
     ),
   ]);
 }

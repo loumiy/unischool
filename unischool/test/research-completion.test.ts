@@ -79,6 +79,7 @@ function aboutToFinish(opts: { breakthroughs?: number } = {}): {
     publications: 3,
     breakthroughs: opts.breakthroughs ?? 1,
     grantIncome: 4_200_000,
+    banked: 0,
   };
   return { s, labId: lab.id, labName: lab.name, team, topicName: topic.name };
 }

@@ -1486,6 +1486,9 @@ button.build-tile { font-family: inherit; }
 .offer-topic { font-family: var(--serif); font-size: var(--text-base); color: var(--ink); line-height: 1.25; }
 .offer-meta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-muted); }
 .offer-blurb { font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.35; }
+/* The bet, stated (Plan 15's PR C): what this team at this depth should
+   expect, off the same odds the run applies. */
+.offer-odds { font-family: var(--mono); font-size: 10.5px; color: var(--ink); }
 
 .offer-commit { margin-top: 12px; border-top: 1px solid var(--parchment-line-lo); padding-top: 10px;
   display: flex; flex-direction: column; gap: 7px; }

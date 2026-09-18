@@ -394,6 +394,7 @@ export function reducer(state: GameState, action: Action): GameState {
         publications: 0,
         breakthroughs: 0,
         grantIncome: 0,
+        banked: 0,
       };
 
       // Only the EXCESS teaching moves. A commitment costs two course

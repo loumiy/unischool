@@ -7,7 +7,7 @@ redesign that answers them, the specialisation term that Plan 14's founded
 schools finally make possible, and the research model the review found inert,
 into an ordered sequence of PRs ending in a single re-fit.*
 
-**Status: In progress.** PRs A and B have landed. Depends on
+**Status: In progress.** PRs A, B and C have landed. Depends on
 [Plan 14](14-curriculum-on-the-map.md) for halls, slots and founded schools —
 the seats this plan turns into a ceiling and the concentration this plan turns
 into prestige both come from there. Supersedes
@@ -95,6 +95,24 @@ the Idle control sink, and `test/balance-regression.test.ts`'s economy-shape
 claims (the stall-and-recover arcs, solvency at the horizon) are *reported,
 not failed* behind an `ECONOMY_REPORT_ONLY` flag — the scorecard's own
 device — until PR G re-fits them; every claim about a mechanism stays hard.
+
+**As implemented (15C):** the breadth denominator is the union of every
+researchable field (`researchableFields()`), not the school count. The
+silent weekly lottery is replaced by three rules: publications are *banked*
+off weekly output (one per `PUBLICATION_POINTS`), a breakthrough is *rolled
+once a year* — at each anniversary of the start and at the end — at a chance
+set by depth and team strength, and a grant rides on one paper in five. The
+offer states the bet off the same functions (`initiativeOdds`): expected
+papers, at-least-one-breakthrough chance over the run, award chance. A Funded
+Project or deeper that banked nothing publishes its concluding paper. The cut
+went further than "the report of nothing": a run that produced *papers alone*
+logs and never stops the clock at any depth, since the review's finding was
+about interrupts and a one-paper report is still one; only a breakthrough or
+an award reports. Output reaches two places: a breakthrough, and every fourth
+paper, puts a scholar in the team's field on the candidate market with a
+log line, and the research-oriented cohort reads a `researchOutput` signal
+(publications at a tenth, breakthroughs, prizes at three) beside labs. Save
+version 56 for `Initiative.banked`.
 
 ---
 

@@ -87,7 +87,9 @@ export const SAVE_KEY = 'unischool.save';
 // added as required).
 // v55: Plan 15 PR B. `s.self.reportCard` (last summer's grade, nullable)
 // and the crowding accumulator on `s.students`, both added as required.
-export const SAVE_VERSION = 55;
+// v56: Plan 15 PR C. `Initiative.banked` (output toward the next paper,
+// added as required).
+export const SAVE_VERSION = 56;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch

@@ -795,6 +795,7 @@ export interface Initiative {
   publications: number;
   breakthroughs: number;
   grantIncome: number;
+  banked: number;           // output banked toward the next publication (see researchData.ts's PUBLICATION_POINTS)
 }
 
 // What an initiative leaves behind once it ends — the university's own
