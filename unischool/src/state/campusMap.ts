@@ -227,7 +227,12 @@ const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
   // A 400m track is 176m down each straight with 36m radius bends, so its
   // envelope is about 176 by 92 — which is what this is, and what 12 by 7
   // could not have been at any scale.
-  athleticsField: { w: 20, h: 11 },
+  // 22 by 13 rather than 20 by 11: a 400 m track is 176 by 92 m and its
+  // stand needs a margin down one straight, and at 20 by 11 the oval was
+  // drawn at three-quarters of the plot to make room, which shrank the
+  // pitch inside it to 70 m. On 22 by 13 the oval fills the plot's width
+  // and the pitch inside it is a real 105 by 68.
+  athleticsField: { w: 22, h: 13 },
   athleticsArena: { w: 11, h: 9 },        // ~100m by 80m, the footprint of a real arena bowl
   athleticsDiamond: { w: 14, h: 14 },     // ~125m, a real outfield being ~120m to the fence
   athleticsNatatorium: { w: 7, h: 5 },    // a 50m competition pool, its deck and its stand

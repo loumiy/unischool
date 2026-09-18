@@ -563,7 +563,7 @@ export const PORTICO_COLUMN_PLAN = across(1.4);  // a column is round; this is i
 // windows and a pediment; this face carries one door and nothing else, so at
 // full height it came out as a grey cliff with a small hole at the bottom.
 // Two thirds leaves the main wall's own lancets showing above the gable.
-// THE RECESS, the Brutalist entrance: no bay pushed forward and nothing
+// THE RECESS, an entrance cut into the mass: no bay pushed forward and nothing
 // applied, just a piece of the ground floor cut away and a slab left
 // oversailing it. The way in is a shadow under an overhang, which is the
 // only entrance move this architecture makes.
@@ -573,7 +573,7 @@ export const PORTICO_COLUMN_PLAN = across(1.4);  // a column is round; this is i
 export const ARCADE_HEIGHT = up(7.2);
 export const ARCADE_DEPTH = across(2.6);
 export const ARCADE_PIER = across(0.75);
-export const ARCADE_BAY_METRES = 5.0;
+export const ARCADE_BAY_METRES = 6.0;   // wider than a window bay: an arch, not a pier with a gap
 export const ARCADE_MAX = 10;
 // THE CAMPANILE: a square bell tower with an open belfry and a shallow
 // pyramid of tile. Taller and plainer than a cupola, which is what a bell
@@ -586,7 +586,7 @@ export const CAMPANILE_CAP_RISE = up(4.4);
 export const RECESS_WIDTH = 0.44;      // share of the wall it occupies
 export const RECESS_DEPTH = across(2.0);
 export const RECESS_OVERHANG = across(1.1);
-// THE STAIR CORE, the Brutalist apex: a blind concrete shaft with the lift
+// THE STAIR CORE, the Modern apex: a blind concrete shaft with the lift
 // overrun on top. It is the only thing on such a building that rises above
 // the parapet, and it is deliberately not a landmark.
 export const CORE_PLAN = across(6.0);
@@ -881,7 +881,8 @@ export type EntrancePart =
   | 'canopy'     // a slab on two posts
   | 'porch'      // buttressed, pointed-arched — the Gothic way in
   | 'arcade'     // round-arched, walked under — Mission
-  | 'recess'     // an opening set back under an overhang — Brutalist
+  | 'archway'    // a small masonry porch with one round-headed opening — the Mission door
+  | 'recess'     // an opening set back under an overhang
   | 'none';
 
 // What closes the ends of a pitched roofline. Georgian raises the wall into
@@ -894,7 +895,8 @@ export type ApexPart =
   | 'cupola'     // drum, dome and finial — the gilded thing
   | 'spire'      // Gothic
   | 'campanile'  // Mission
-  | 'core'       // a blank concrete stair core — Brutalist
+  | 'dome'       // a broad stone dome on a drum — Classical
+  | 'core'       // a blank stair core — Modern
   | 'none';
 
 export interface VernacularParts {
@@ -912,6 +914,29 @@ export interface VernacularParts {
   chimneys?: boolean;
   // Dormers in the long slopes of a hall's roof.
   dormers?: boolean;
+  // A bell-gable — the espadaña — carried up past the eaves at the centre
+  // of a hall's and a pavilion's front. The Mission signature after the
+  // arcade, and the piece that tells a Mission front from a Tuscan one.
+  bellGable?: boolean;
+  // THE CASTLE PARTS, which are what collegiate Gothic is recognised by
+  // and what the set was missing when it read as Georgian in grey.
+  // Stepped buttresses at every bay line down the long walls.
+  buttresses?: boolean;
+  // A square tower at the near corner of every hall and residence hall,
+  // rising past the eaves under a slate pyramid.
+  turrets?: boolean;
+  // A crenellated head on the towers and on the flat-roofed civic set.
+  crenellations?: boolean;
+  // Two lights to a bay under one head, instead of one window.
+  pairedLights?: boolean;
+  // THE CLASSICAL PARTS. A hall's portico runs the full height of the
+  // wall on six columns under a pediment, instead of Georgian's two-storey
+  // four; and a balustrade runs along every parapet.
+  grandPortico?: boolean;
+  balustrade?: boolean;
+  // THE MODERN PART. The civic set — library, gallery, concert hall — is a
+  // glass box: its walls are curtain wall from plinth to eaves.
+  glazedCivic?: boolean;
 }
 
 // HOW A BUILDING IS MASSED, which is the one axis that is not ornament.
@@ -1097,124 +1122,174 @@ const GOTHIC: VernacularSpec = {
     hood: true,
     chimneys: true,
     dormers: true,
+    // The castle: towers at the corners, buttresses down the walls, a
+    // crenellated head where the roof is flat, and the windows grouped in
+    // pairs. Same palette as before — the blue slate and grey ashlar were
+    // right for Duke, Chicago and Yale; it was the massing that was
+    // Georgian.
+    buttresses: true,
+    turrets: true,
+    crenellations: true,
+    pairedLights: true,
   },
   massing: 'solid',
 };
 
 // ---------------------------------------------------------------------
-// BRUTALIST. The postwar concrete campus — UC in the sixties and seventies,
-// SUNY Albany, Scarborough, a hundred state schools that doubled in size in
-// one decade and built the extra half in board-marked concrete.
+// MODERN. The postwar campus done in light rather than in concrete —
+// Harvey Mudd, Cal Poly, the half of MIT that is not the dome, and the
+// science and engineering quarters of a hundred others. It replaces the
+// Brutalist set, which turned out to describe one campus in twenty and
+// was liked the least of the four.
 //
-// THE SET THAT SUBTRACTS. Gothic swapped one ornament for another; this one
-// removes the slot. There is no pitched roof anywhere, no parapet band, no
-// applied trim, and no gilding — the trim classes take a `none` and the
-// landmark's gold is simply absent rather than repainted grey, because a
-// campus whose one gilded thing is missing is making a statement and a
-// campus with a grey dome is making a mistake.
+// THE SET THAT SUBTRACTS, still. There is no pitched roof anywhere, no
+// applied stone trim, and no gilding: the trim classes take a `none` and
+// the landmark's gold is absent rather than repainted. What it adds back
+// is a THIN PARAPET, so the flat roofs read as roofs, glass — ribbon
+// glazing on every varying motif and a fully glazed civic set — and a flat
+// slab canopy over every door, which is the one entrance move of the
+// period. Massing is solid: a Modern hall is a clean box, and the stacked
+// slabs went with the concrete.
 //
-// It is also the set that proves concrete is not a palette. The obvious
-// version — seven shades of grey — fails the palette check outright: every
-// concrete grey sits within 15-30 of every other one AND of `render`, which
-// is pinned to Georgian's value by the labs. Real Brutalist campuses are not
-// monochrome either; they pair board-marked concrete with dark engineering
-// brick and a lot of glass, and that is what makes this legible.
+// It is also the set that proves white is not a palette. The obvious
+// version — seven whites and greys — fails the palette check outright:
+// they all sit within 30 of each other and of `render`, which is pinned to
+// Georgian's value by the labs. Real Modern campuses are not monochrome
+// either; Cal Poly is burnt-orange brick against white panel, and that is
+// what makes this legible.
 // ---------------------------------------------------------------------
 
-// THERE IS NO ROOF ON THESE BUILDINGS, and a near-black deck was the single
-// wrongest thing about the first pass: it put a heavy dark lid on a set
-// whose whole argument is that the building is one poured mass. What you
-// look down onto is the TOP OF THE CONCRETE.
-//
-// It still has to clear the palette check's 60 from its own walls, and it
-// does comfortably — a weathered slab top is genuinely darker than a wall
-// that has been rained on rather than stood in the rain. Mid-grey concrete,
-// not a roof.
-const CONCRETE_DECK = '#9c9484';
+// A lead-grey deck, and deliberately Georgian's own: three of the seven
+// materials are pinned to it by the invariant motifs, and a fourth roof
+// tone is past what the palette discipline allows.
+const MODERN_DECK = '#7c8377';
 
-const BRUTALIST_MATERIALS = {
-  // The academic halls: pale warm board-marked concrete, the sandy beige
-  // these buildings actually weather to. PALE on purpose — it is the top of
-  // the range because `render` sits in the middle of the beiges and is
-  // pinned there by the labs, so the halls have to clear it from above.
-  brickRed: { wall: '#d2c8b2', roof: CONCRETE_DECK },
-  // The support buildings in warm brown brick, which is what the period
-  // infilled its concrete frames with.
-  brickBuff: { wall: '#8a6a4e', roof: CONCRETE_DECK },
-  // The civic set in deeper board-marked concrete: in this architecture the
-  // library and the arts centre are the MOST monumental things on the
-  // campus, not the palest — the value order of the other sets inverts.
-  limestone: { wall: '#9d8869', roof: CONCRETE_DECK },
+const MODERN_MATERIALS = {
+  // The academic halls: white render, the palest wall on any campus here,
+  // and far enough above `clinical` (the hospital's panel) to stay a
+  // different white.
+  brickRed: { wall: '#dcd9cf', roof: MODERN_DECK },
+  // The support buildings in burnt-orange brick — Cal Poly's colour, and
+  // the warm note a white campus needs.
+  brickBuff: { wall: '#b5623f', roof: MODERN_DECK },
+  // The civic set in slate-blue panel behind its glass; the hospital's
+  // paler deck over it, since a blue-grey roof on a blue-grey wall is one
+  // mass with a line across it.
+  limestone: { wall: '#5f7d8c', roof: '#c2ccd1' },
   // INVARIANT — the labs, gyms, stadium, natatorium, tower and hospital.
   render: { wall: '#b0a992', roof: '#7c8377' },
   curtain: { wall: '#93a9b4', roof: '#7c8377' },
   clinical: { wall: '#eef1f2', roof: '#c2ccd1' },
-  // The residence halls: charcoal concrete, and still the one DARK wall.
-  // Its roof is the PALE deck, not the concrete one — dark under dark is a
-  // single mass with a line across it, which is the failure the wall/roof
-  // split exists to prevent (see Georgian's own note on brickDark).
-  brickDark: { wall: '#5f584c', roof: '#7c8377' },
+  // The residence halls: charcoal panel, and still the one DARK wall.
+  brickDark: { wall: '#4d4f52', roof: '#7c8377' },
 } as const satisfies MaterialSet;
 
-const BRUTALIST: VernacularSpec = {
-  materials: BRUTALIST_MATERIALS,
+const MODERN: VernacularSpec = {
+  materials: MODERN_MATERIALS,
   stone: {
-    // NO TRIM. Not a pale band, not a grey one — nothing. A plinth, a
-    // cornice and a floor course are all devices for breaking a wall into
-    // storeys, and this architecture's whole argument is that the wall is
-    // one thing. The motifs read this as 'none' and skip the bands.
+    // NO TRIM. A plinth, a cornice and a floor course are devices for
+    // breaking a wall into storeys, and a Modern wall is one plane with
+    // glass in it. The motifs read this as 'none' and skip the bands; the
+    // canopy and the steps fall back to towerStone.
     trim: 'none',
-    // NO GILDING either, and for the same reason: the campus's one gilded
-    // thing is absent rather than recoloured.
     gilt: 'none',
-    // The stair core's own concrete, a shade off the walls so it reads as a
-    // separate pour.
-    towerStone: '#c2b79f',
-    // Dark. The whole point of a ribbon is that it reads as a slot of shadow
-    // between two slabs of concrete.
-    glass: 'rgba(38, 44, 46, 0.78)',
+    // White concrete: the stair core, the canopies and the flights.
+    towerStone: '#e8e6df',
+    // Dark blue-green glass, the tint the period's glazing actually has.
+    glass: 'rgba(40, 60, 75, 0.7)',
   },
   roof: {
-    // EMPTY, and that is the whole entry: nothing on this campus is pitched.
+    // Nothing on this campus is pitched.
     ridgeMetres: {},
     residentialRidgeMetres: () => 0,
-    // No parapet band either — the slab edge is the top of the building.
-    parapet: 0,
+    // A THIN parapet: the roof is flat and still reads as one, which the
+    // Brutalist set's bare slab edge never quite did.
+    parapet: up(0.6),
   },
-  // RIBBONS, not slots. The reference for this set is stacked slabs with
-  // continuous horizontal glazing between them; vertical slots read as a
-  // punched-window building, which is the previous era.
   windowShape: 'ribbon',
   parts: {
     entrance: {
-      hall: 'recess',
-      portico: 'recess',
-      pavilion: 'recess',
-      residential: 'recess',
+      // A flat slab on two slim posts over every door, the whole entrance
+      // move of the period.
+      hall: 'canopy',
+      portico: 'canopy',
+      pavilion: 'canopy',
+      residential: 'canopy',
       village: 'none',
     },
     rooflineEnd: 'none',
     apex: 'core',
+    glazedCivic: true,
   },
-  massing: 'stacked',
+  massing: 'solid',
 };
 
 // ---------------------------------------------------------------------
-// MISSION. Spanish Colonial Revival — Stanford, USC, UC Santa Barbara,
-// Santa Clara. Cream stucco, red clay tile, round arches, a bell tower.
-//
-// THE LOUDEST SET AT SMALL SIZE, and the reason it is worth having after
-// three sets that are all some shade of stone: its signal is the ROOF.
-// Every other vernacular here says what it is through its walls and its
-// ornament, and both of those are a few pixels across at the zoom the game
-// opens at. A red tile roof is the largest surface on a building and the
-// only one that carries a hue, so a Mission campus is recognisable from
-// further away than any of the others.
-//
-// It is also pure content, which is what PR I was always meant to be: one
-// table row, one new entrance part, one new apex. Nothing in the renderer
-// needed a new capability for it — the three sets before it had already
-// asked for everything.
+// CLASSICAL. Columbia, Jefferson's Virginia, MIT's limestone half, the
+// Beaux-Arts campuses — stone and columns. Georgian's grander cousin: the
+// same parapet-and-hip discipline, but the walls are limestone rather
+// than brick, the portico is the full height of the hall on six columns
+// under a pediment, a balustrade runs along every parapet, and the
+// landmark is a broad stone dome rather than a gilded cupola.
+// ---------------------------------------------------------------------
+
+// Weathered copper, the roof of every reference campus's halls.
+const COPPER_GREEN = '#5f7a63';
+const CLASSICAL_DECK = '#7c8377';
+
+const CLASSICAL_MATERIALS = {
+  // The academic halls in pale limestone — the set's carrying colour, and
+  // the reason the civic set below is a warmer stone rather than a paler one.
+  brickRed: { wall: '#d6cfbb', roof: COPPER_GREEN },
+  // The support buildings in red brick with stone dressings, as Virginia
+  // and Columbia both do behind their limestone fronts.
+  brickBuff: { wall: '#9e5a48', roof: COPPER_GREEN },
+  // The civic set in warm sandstone under a lead deck.
+  limestone: { wall: '#c9a86a', roof: CLASSICAL_DECK },
+  // INVARIANT — see Gothic's note.
+  render: { wall: '#b0a992', roof: '#7c8377' },
+  curtain: { wall: '#93a9b4', roof: '#7c8377' },
+  clinical: { wall: '#eef1f2', roof: '#c2ccd1' },
+  // The residence halls in dark brick, the one DARK wall.
+  brickDark: { wall: '#6e3f36', roof: CLASSICAL_DECK },
+} as const satisfies MaterialSet;
+
+const CLASSICAL: VernacularSpec = {
+  materials: CLASSICAL_MATERIALS,
+  stone: {
+    // Cut limestone, a shade whiter than the halls' walls so the courses
+    // and the balustrade read against them.
+    trim: '#f3eee1',
+    gilt: GEORGIAN_GILT,
+    towerStone: '#e9e2d0',
+    glass: PAINTED_SASH,
+  },
+  roof: {
+    // Georgian's own discipline: a low hip set back behind a parapet.
+    ridgeMetres: { hall: 2.4, village: 3.0, pavilion: 2.0 },
+    residentialRidgeMetres: (storeys: number) => (storeys <= 3 ? 4.2 : 2.4),
+    parapet: up(0.85),
+  },
+  windowShape: 'rect',
+  parts: {
+    entrance: {
+      hall: 'portico',
+      portico: 'colonnade',
+      // Even the pavilions and residence halls are entered between
+      // columns: Jefferson's Lawn is ten porticoed pavilions.
+      pavilion: 'portico',
+      residential: 'portico',
+      village: 'none',
+    },
+    // A balustrade closes the roofline; raised end pavilions are Georgian's.
+    rooflineEnd: 'none',
+    apex: 'dome',
+    grandPortico: true,
+    balustrade: true,
+  },
+  massing: 'solid',
+};
+
 // ---------------------------------------------------------------------
 
 // Red clay tile: the whole point of the set. Its facet spread — how far
@@ -1281,11 +1356,15 @@ const MISSION: VernacularSpec = {
       hall: 'arcade',
       portico: 'arcade',
       pavilion: 'arcade',
-      residential: 'canopy',
+      // A residence hall is entered through a small stuccoed porch with one
+      // round-headed opening, not under a slab on posts — the slab was the
+      // one Georgian part a Mission dormitory still wore.
+      residential: 'archway',
       village: 'none',
     },
     rooflineEnd: 'none',
     apex: 'campanile',
+    bellGable: true,
   },
   massing: 'solid',
 };
@@ -1293,8 +1372,9 @@ const MISSION: VernacularSpec = {
 export const VERNACULARS: Record<Vernacular, VernacularSpec> = {
   georgian: GEORGIAN,
   gothic: GOTHIC,
-  brutalist: BRUTALIST,
+  classical: CLASSICAL,
   mission: MISSION,
+  modern: MODERN,
 };
 
 // A vernacular that has no trim says so with this, rather than with a colour
@@ -1382,8 +1462,9 @@ export interface VernacularChoice {
 export const VERNACULAR_CHOICES: VernacularChoice[] = [
   { id: 'georgian', label: 'Georgian', blurb: 'Red brick and white trim, under a gilded cupola.' },
   { id: 'gothic', label: 'Collegiate Gothic', blurb: 'Grey ashlar and steep slate, under a spire.' },
+  { id: 'classical', label: 'Classical', blurb: 'Limestone and columns under copper roofs, and a stone dome.' },
   { id: 'mission', label: 'Mission', blurb: 'Cream stucco and red tile, around a shaded arcade.' },
-  { id: 'brutalist', label: 'Brutalist', blurb: 'Board-marked concrete in stacked slabs, and no ornament at all.' },
+  { id: 'modern', label: 'Modern', blurb: 'White panel, glass and burnt-orange brick, under flat roofs.' },
 ];
 
 export function partsFor(v: Vernacular): VernacularParts {
@@ -1423,9 +1504,9 @@ export function apexPartOf(v: Vernacular): ApexPart {
 // test/building-spec.test.ts asserts every part named by a vernacular in
 // VERNACULARS is on them, so PR G adding `apex: 'spire'` fails loudly until
 // PR G also draws a spire.
-export const IMPLEMENTED_ENTRANCE_PARTS: EntrancePart[] = ['portico', 'colonnade', 'canopy', 'porch', 'recess', 'arcade', 'none'];
+export const IMPLEMENTED_ENTRANCE_PARTS: EntrancePart[] = ['portico', 'colonnade', 'canopy', 'porch', 'recess', 'arcade', 'archway', 'none'];
 export const IMPLEMENTED_ROOFLINE_END_PARTS: RooflineEndPart[] = ['pavilion', 'none'];
-export const IMPLEMENTED_APEX_PARTS: ApexPart[] = ['cupola', 'spire', 'core', 'campanile', 'none'];
+export const IMPLEMENTED_APEX_PARTS: ApexPart[] = ['cupola', 'spire', 'core', 'campanile', 'dome', 'none'];
 
 // How far the wall carries above the cornice. Zero is a real answer.
 // DOES THIS VERNACULAR HAVE A ROOF AT ALL, as distinct from a top?

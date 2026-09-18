@@ -1,6 +1,6 @@
 # UniSchool
 
-![The campus map in year 51 of a university: the Grand Quad and its halls, the science court, the union and residential quad, the medical campus and the venues](docs/images/campus.png)
+![The campus map in year 51 of a university: the Grand Quad and the South Quad with their halls, the science court and Greek Row, the union and the residential quarter, the medical campus, and the venues along the north edge under the stadium](docs/images/campus.png)
 
 A university management simulation about building an institution from a small
 college into a major university.

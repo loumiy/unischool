@@ -18,9 +18,12 @@
 //   npm run shot -- /tmp/out.json /tmp/campus.png --zoom=-2
 //
 // The plan below is a PRECINCT plan, the way a real campus is read: an
-// academic core round the Grand Quad, a research court to its west, the
-// union to its east with the residential quad beyond, a medical campus to
-// the south, and the venues along the north edge.
+// academic core round the Grand Quad with a second academic court, the
+// South Quad, on the same axis below it; a science court to the west with
+// Greek Row on the lane past it; the union to the east with the
+// residential quarter beyond; a second residential court and the medical
+// campus to the south-west; and the venues along the north edge, the
+// stadium anchoring the north-west corner.
 //
 // THE RULES, checked rather than trusted:
 //   - every placement lands on clear tiles (campusMap.ts's own
@@ -60,8 +63,8 @@ interface Site { id: string; row: number; col: number; rotated?: boolean }
 // ---------------------------------------------------------------------
 const PLAN: Site[] = [
   // --- The academic core: the Grand Quad and the halls around it. The
-  // academic halls are the chain in techData.ts (HALL-01 .. HALL-12), placed
-  // in build order round the quad, then down the west and south walks. ---
+  // academic halls are the chain in techData.ts (HALL-01 .. HALL-12): the
+  // first six round the Grand Quad, the last six round the South Quad. ---
   { id: 'QUAD-T2', row: 57, col: 57 },                     // 13x13, the heart of the place
   { id: 'BLDG-GENSTUDIES', row: 50, col: 60 },             // Founders Hall, at the head of the quad
   { id: 'HALL-01', row: 50, col: 51 },
@@ -77,15 +80,15 @@ const PLAN: Site[] = [
   // Behind the north row: the arts, the first dining hall, and the concert
   // hall closing the axis behind Founders Hall.
   { id: 'ARTS-PAC', row: 38, col: 60 },
-  { id: 'LAB-ECON', row: 45, col: 47 },
+  { id: 'LAB-ECON', row: 45, col: 36 },                  // west end of the row, clear of the arena's door
   { id: 'LAB-HIST', row: 45, col: 54 },
   { id: 'DINING-01', row: 45, col: 61 },
   { id: 'ART-GALLERY', row: 45, col: 66 },
   { id: 'LAB-FILM', row: 45, col: 72 },
 
-  // --- West: each hall's labs behind it on a small grid of lanes, the
-  // founding dorm and the early dining hall on the north walk, and a
-  // residential corner past the labs. ---
+  // --- West: the science court — each hall's labs behind it on a small
+  // grid of lanes — with the founding dorm and the early dining hall on the
+  // north walk. ---
   { id: 'LAB-BIOL', row: 56, col: 44 },
   { id: 'LAB-CHMY', row: 60, col: 44 },
   { id: 'LAB-MECH', row: 64, col: 44 },
@@ -96,40 +99,40 @@ const PLAN: Site[] = [
   { id: 'LAB-CHEM', row: 68, col: 37 },
   { id: 'DORM-01', row: 50, col: 43 },
   { id: 'DININGHALL-02', row: 50, col: 37 },
+
+  // --- South-west: the second residential court — two columns of halls
+  // with their dining commons — and the medical campus below it. ---
   { id: 'DORM-02', row: 74, col: 30 },
   { id: 'DININGHALL-06', row: 80, col: 30 },
-  { id: 'DININGHALL-03', row: 80, col: 41 },
-  { id: 'HALL-07', row: 81, col: 49 },
-  { id: 'DORM-04', row: 87, col: 31 },
-  { id: 'DORM-05', row: 87, col: 41 },
-  { id: 'LAB-COMP', row: 87, col: 51 },
-  // The last three halls of the chain and the second quad: a south-west
-  // court off the west walk, below the residential corner.
-  { id: 'HALL-10', row: 93, col: 47 },
-  { id: 'HALL-11', row: 100, col: 47 },
-  { id: 'HALL-12', row: 93, col: 38 },
-  { id: 'QUAD-S2', row: 100, col: 30 },
+  { id: 'DININGHALL-03', row: 80, col: 40 },
+  { id: 'DORM-04', row: 87, col: 30 },
+  { id: 'DORM-05', row: 87, col: 40 },
+  { id: 'HLTH-T3', row: 93, col: 30 },                     // the hospital, 11x11
+  { id: 'LAB-NEUR', row: 93, col: 42 },
+  { id: 'HLTH-T2', row: 99, col: 42 },                     // the clinic, beside the hospital
 
-  // --- South: the old library and the medical campus, with a tower and a
-  // market hall at its foot. ---
-  { id: 'LIB-T1', row: 81, col: 58 },
-  { id: 'HALL-08', row: 81, col: 71 },
-  { id: 'HLTH-T3', row: 89, col: 59 },                     // the hospital, 11x11
-  { id: 'HALL-09', row: 89, col: 71 },
-  { id: 'LAB-NEUR', row: 95, col: 71 },
-  { id: 'DININGHALL-07', row: 101, col: 59 },
-  { id: 'DORM-12', row: 101, col: 71 },
+  // --- South: the South Quad on the Grand Quad's own axis, ringed by the
+  // last six halls and closed by the old library, with the computing
+  // centre behind it and the market hall as the terminus of the axis. ---
+  { id: 'QUAD-S2', row: 83, col: 59 },                     // 9x9, below the research library
+  { id: 'HALL-07', row: 83, col: 52, rotated: true },      // west side, fronting the quad
+  { id: 'HALL-08', row: 83, col: 70, rotated: true },      // east side
+  { id: 'HALL-09', row: 94, col: 51 },
+  { id: 'LIB-T1', row: 93, col: 59 },                      // closes the south side
+  { id: 'HALL-10', row: 94, col: 70 },
+  { id: 'HALL-11', row: 101, col: 51 },
+  { id: 'LAB-COMP', row: 102, col: 60 },
+  { id: 'HALL-12', row: 101, col: 70 },
 
-  // --- East: the athletics complex and natatorium by the venues; the
-  // grocery, clinic, gym and rec centre on the lanes behind the union; the
-  // Campus Quad with a dining hall on it; villages and a court of towers. ---
+  // --- East: the recreation chain on the first lane behind the union, the
+  // grocery and the market hall on the second — the campus's town centre —
+  // then the Campus Quad with a dining hall on it, villages, and a court of
+  // four towers. ---
   { id: 'REC-T2', row: 39, col: 82 },
-  { id: 'ATH-NATATORIUM', row: 39, col: 90 },
-  { id: 'TENNIS-COURTS', row: 39, col: 99 },
+  { id: 'GYM', row: 39, col: 90 },
+  { id: 'REC-T1', row: 39, col: 96 },
   { id: 'GROCERY-01', row: 45, col: 82 },
-  { id: 'HLTH-T2', row: 45, col: 88 },
-  { id: 'GYM', row: 45, col: 94 },
-  { id: 'REC-T1', row: 45, col: 100 },
+  { id: 'DININGHALL-07', row: 45, col: 88 },               // the market hall, 11x7
   { id: 'QUAD-T1', row: 60, col: 88 },
   { id: 'DORM-06', row: 59, col: 82, rotated: true },
   { id: 'DORM-08', row: 54, col: 88 },
@@ -139,29 +142,45 @@ const PLAN: Site[] = [
   { id: 'DORM-10', row: 70, col: 100 },
   { id: 'DININGHALL-04', row: 81, col: 82 },
   { id: 'DORM-03', row: 81, col: 90 },
-  { id: 'POOL', row: 81, col: 100 },
   { id: 'DORM-13', row: 88, col: 82 },
   { id: 'DORM-14', row: 88, col: 90 },
   { id: 'DORM-15', row: 88, col: 98 },
+  { id: 'DORM-12', row: 88, col: 106 },
   { id: 'DININGHALL-08', row: 96, col: 82 },
   { id: 'DORM-11', row: 96, col: 94 },
 
-  // --- North campus: the venues. ---
-  { id: 'ATH-STADIUM', row: 28, col: 23 },
-  { id: 'ATH-FIELD', row: 24, col: 49 },
-  { id: 'ATH-ARENA', row: 36, col: 47 },
-  { id: 'ATH-DIAMOND', row: 24, col: 70 },
+  // --- North campus: the venues, largest to the west. The stadium is the
+  // biggest thing on the map and anchors the north-west corner; the field
+  // and the diamond run east of it along the same edge, and the arena
+  // sits between the field and the arts. ---
+  { id: 'ATH-STADIUM', row: 21, col: 18 },                 // 24x20
+  { id: 'ATH-FIELD', row: 21, col: 45 },                   // 22x13
+  { id: 'ATH-DIAMOND', row: 21, col: 69 },                 // 14x14
+  { id: 'ATH-ARENA', row: 36, col: 45 },                   // 11x9
+  // The aquatic centre and the courts, in the north-east corner past the
+  // diamond: the natatorium and the outdoor pool side by side, the tennis
+  // courts along the lane below them.
+  { id: 'ATH-NATATORIUM', row: 23, col: 86 },
+  { id: 'POOL', row: 23, col: 94 },
+  { id: 'TENNIS-COURTS', row: 29, col: 86 },
 ];
 
-// Where anything the plan does not name goes — a chapter house granted by
-// an event carries an id minted at fire time (see eventData.ts's
-// chapterHouseId), so no plan can list it. Greek Row: north of the
-// residence halls, scanned row by row for the first clear spot.
+// GREEK ROW. A chapter house granted by an event carries an id minted at
+// fire time (see eventData.ts's chapterHouseId), so no plan can list one by
+// name; instead the houses take these slots in order — a row of small
+// houses down the west lane, between the science court and the campus's
+// edge, each on its own lot. More houses than slots go to the overflow.
+const GREEK_ROW: Array<{ row: number; col: number }> = [
+  { row: 50, col: 31 }, { row: 54, col: 31 }, { row: 58, col: 31 }, { row: 62, col: 31 }, { row: 66, col: 31 },
+];
+
+// Where anything else the plan does not name goes: a strip past the east
+// walk, scanned row by row for the first clear spot.
 // How much of the open ground inside the campus gets a tree (see the
 // planting pass at the end). Sparse: a lawn with trees on it, not a wood.
 const INTERIOR_TREE_DENSITY = 0.07;
 
-const OVERFLOW = { row: 84, col: 108, h: 24, w: 10 };
+const OVERFLOW = { row: 38, col: 115, h: 70, w: 8 };
 
 // ---------------------------------------------------------------------
 // THE WALKS. Straight runs between two tiles, inclusive; one tile wide.
@@ -183,43 +202,57 @@ const WALKS: TileCoord[] = [
   // The Grand Quad's ring; the north walk along the halls' fronts; the back
   // lane behind them, with connectors through the gaps.
   ...ring(56, 56, 70, 70),
-  ...run(55, 36, 55, 80),
-  ...run(48, 36, 48, 80),
+  ...run(55, 29, 55, 80),
+  ...run(48, 29, 48, 80),
   ...run(49, 50, 54, 50), ...run(49, 59, 54, 59), ...run(49, 68, 54, 68), ...run(46, 77, 55, 77),
-  // The west walk, the south walk, the east walk.
-  ...run(56, 56, 108, 56),
+  // The west walk down to the South Quad, the south walk, the east walk.
+  ...run(56, 56, 79, 56),
   ...run(79, 29, 79, 80),
-  ...run(38, 80, 108, 80),
-  // West: the science court's grid of lanes, and the residential corner.
-  ...run(48, 36, 71, 36), ...run(48, 42, 71, 42), ...run(55, 49, 79, 49),
+  ...run(38, 80, 106, 80),
+  // West: the science court's grid of lanes.
+  ...run(48, 36, 71, 36), ...run(48, 42, 71, 42), ...run(55, 49, 99, 49),
   ...run(59, 36, 59, 49), ...run(63, 36, 63, 55), ...run(67, 36, 67, 49), ...run(71, 36, 71, 55),
-  ...run(71, 39, 86, 39), ...run(79, 29, 91, 29), ...run(86, 29, 86, 56), ...run(91, 29, 91, 56),
-  ...run(79, 46, 86, 46), ...run(86, 40, 91, 40), ...run(86, 50, 91, 50),
+  // South-west: the west edge lane, the residential court's lanes, and the
+  // medical campus below.
+  ...run(48, 29, 106, 29),
+  ...run(86, 29, 86, 49), ...run(91, 29, 91, 49), ...run(79, 39, 91, 39),
+  ...run(104, 29, 104, 49), ...run(97, 41, 97, 49),
   // The union's lanes, and the lane between the two libraries' successors.
   ...run(62, 71, 62, 80), ...run(62, 77, 79, 77), ...run(67, 71, 67, 77), ...run(71, 71, 71, 77),
   ...run(71, 68, 79, 68),
-  // South: the medical spine and its cross lanes.
-  ...run(80, 70, 108, 70), ...run(88, 57, 88, 79), ...run(100, 57, 100, 80), ...run(108, 57, 108, 80),
-  ...run(80, 67, 88, 67), ...run(88, 78, 94, 78), ...run(94, 71, 94, 80), ...run(94, 76, 100, 76),
-  ...run(100, 78, 108, 78),
+  // South: the axis from the research library to the South Quad, the
+  // quad's ring, the cross lanes between its rows of halls, and the lanes
+  // down to the market hall.
+  ...run(79, 63, 82, 63),
+  ...ring(82, 58, 92, 68),
+  ...run(90, 49, 90, 58), ...run(90, 68, 90, 79),
+  ...run(92, 49, 92, 79), ...run(99, 49, 99, 79), ...run(106, 29, 106, 79),
+  ...run(92, 58, 106, 58), ...run(92, 68, 106, 68), ...run(79, 77, 106, 77), ...run(99, 49, 106, 49),
   // East: the Campus Quad's ring, and the lanes that tie the blocks into
   // loops off the east walk.
   ...ring(59, 87, 69, 97),
-  ...run(44, 81, 44, 111), ...run(50, 81, 50, 111),
-  ...run(44, 87, 59, 87), ...run(44, 93, 50, 93), ...run(44, 99, 50, 99), ...run(44, 105, 50, 105),
-  ...run(38, 89, 44, 89), ...run(38, 97, 44, 97),
-  ...run(50, 99, 59, 99), ...run(59, 97, 59, 99),
-  ...run(65, 105, 65, 111), ...run(68, 98, 68, 111),
+  ...run(44, 81, 44, 113), ...run(52, 81, 52, 113),
+  ...run(44, 87, 59, 87), ...run(44, 105, 52, 105),
+  ...run(38, 89, 44, 89), ...run(38, 95, 44, 95), ...run(38, 101, 44, 101),
+  ...run(52, 99, 59, 99), ...run(59, 97, 59, 99),
+  ...run(65, 105, 65, 113), ...run(68, 98, 68, 113),
   ...run(69, 87, 80, 87), ...run(70, 81, 70, 87), ...run(69, 98, 69, 99), ...run(69, 99, 80, 99),
   ...run(75, 87, 75, 99),
-  ...run(80, 81, 80, 111), ...run(85, 89, 85, 111), ...run(87, 81, 87, 111), ...run(95, 81, 95, 111),
-  ...run(106, 81, 106, 111),
+  ...run(80, 81, 80, 113), ...run(85, 89, 85, 113), ...run(87, 81, 87, 113), ...run(95, 81, 95, 113),
+  ...run(106, 81, 106, 113),
   ...run(80, 89, 95, 89), ...run(80, 99, 87, 99), ...run(80, 107, 87, 107),
   ...run(87, 97, 95, 97), ...run(87, 105, 95, 105), ...run(95, 93, 106, 93),
-  ...run(38, 111, 106, 111),
-  // North campus: between the venues, tied back to the back lane.
-  ...run(35, 49, 35, 69), ...run(35, 59, 48, 59), ...run(35, 69, 48, 69),
-  ...run(38, 70, 38, 111),
+  ...run(38, 113, 106, 113),
+  // North campus: the lane between the stadium and the field, the lane
+  // between the field and the diamond, and the walk along the venues' feet
+  // tied back to the back lane.
+  ...run(20, 43, 47, 43), ...run(20, 68, 35, 68),
+  ...run(35, 43, 35, 84), ...run(35, 59, 48, 59), ...run(35, 69, 48, 69),
+  ...run(38, 70, 38, 113),
+  // The north-east corner: the lane past the diamond, and the lanes round
+  // the aquatic centre and the courts.
+  ...run(22, 84, 38, 84), ...run(28, 84, 28, 113), ...run(34, 84, 34, 113), ...run(22, 93, 28, 93), ...run(22, 101, 28, 101),
+  ...run(22, 113, 38, 113),
 ];
 
 // ---------------------------------------------------------------------
@@ -229,9 +262,10 @@ const WALKS: TileCoord[] = [
 // centred on the grid, which is where the map opens centred: the plan was
 // drawn with Founders Hall at the grid's centre, but the campus that grew
 // round it leans east and south of there.
-const OFFSET = { row: -1, col: -7 };
+const OFFSET = { row: 1, col: 0 };
 for (const site_ of PLAN) { site_.row += OFFSET.row; site_.col += OFFSET.col; }
 for (const t of WALKS) { t.row += OFFSET.row; t.col += OFFSET.col; }
+for (const g of GREEK_ROW) { g.row += OFFSET.row; g.col += OFFSET.col; }
 
 const [inPath, outPath, ...flags] = process.argv.slice(2);
 if (!inPath || !outPath) {
@@ -266,13 +300,23 @@ for (const site_ of PLAN) {
   if (!wasPlaced.has(site_.id)) continue; // not built in this run; nothing to site
   site(site_.id, site_.row, site_.col, site_.rotated ?? false);
 }
-// Anything the run built that the plan never named.
+// Anything the run built that the plan never named: chapter houses take
+// Greek Row's slots in order, and anything else goes to the overflow block.
 const planned = new Set(PLAN.map((p) => p.id));
-for (const id of wasPlaced) {
+let greekSlot = 0;
+for (const id of [...wasPlaced].sort()) {
   if (planned.has(id)) continue;
   const node = byId.get(id)!;
   const fp = footprintOf(node);
   let found = false;
+  if (node.chapterHouse && greekSlot < GREEK_ROW.length) {
+    const slot = GREEK_ROW[greekSlot++];
+    if (footprintIsClear(placements, slot.row, slot.col, fp)) {
+      placements[id] = placementFor(slot.row, slot.col, fp);
+      console.log(`${node.name} on Greek Row at ${slot.row},${slot.col}`);
+      continue;
+    }
+  }
   for (let r = OVERFLOW.row; r + fp.h <= OVERFLOW.row + OVERFLOW.h && !found; r++) {
     for (let c = OVERFLOW.col; c + fp.w <= OVERFLOW.col + OVERFLOW.w; c++) {
       if (footprintIsClear(placements, r, c, fp)) { placements[id] = placementFor(r, c, fp); found = true; break; }

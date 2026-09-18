@@ -249,3 +249,46 @@ Every item keeps the existing palette discipline (`test/building-spec.test.ts`'s
 **Verifying it.** Art has to be looked at, as `tools/README.md` says. The contact-sheet approach used for this review — every Buildable rendered alone in every vernacular through `react-dom/server`, then screenshotted per cell — is now `tools/sheet.tsx` beside `shoot.mjs`, because it is the only way to see every motif at once without playing a campus that contains them all, and it needs no dev server.
 
 **What was not done, and why.** Three items from the lists above were left out on purpose: the window reveals (section 3), which are invisible at the game's own zoom and would cost two lines per pane; the library lantern and the barrel-vaulted research library (section 4, `portico`), because the fly tower already separates the two large civic buildings and the library rungs differ in size; and the stadium's raised earthworks late in construction (1.2), which would need the site to know how far along it is. Everything else, including the Gothic hood, the tower-drum columns and the village re-layout, is in.
+
+## 7. Second round, from the campus renders
+
+Looking at the year-50 renders after the pass above turned up six more items,
+all now in.
+
+- **The multi-sport field was small.** The track kept to 86 by 75 percent of
+  its plot to leave room for the stand and the pitch was sized off that
+  infield, so it came out around 70 by 45 metres. The plot is now 22 by 13
+  tiles, the track fills it with the stand on the lawn beside the straight,
+  and the pitch is drawn at 110 by 68 metres. The stadium's gridiron, which
+  had taken nearly all of the bowl, is pinned near its real 120-yard length
+  with the bowl's stands a little deeper, so the two fields read as the same
+  kind of object at map scale.
+- **The diamond's seating was five fanned blocks** that never lined up with
+  the foul lines. It is one horseshoe now, in the manner of Holman Stadium: a
+  straight grandstand behind the plate and a wing down each baseline as far
+  as the bases, with a press box, six light towers, bullpens, dugouts past
+  the wing ends and a backstop.
+- **Stairs that led nowhere.** Arcade halls drew their flight a pavilion's
+  depth out on the lawn, recess halls the same in front of a doorway cut into
+  the wall, arcade pavilions inside the walk. Every flight now lands where
+  the entrance is, and an arcade, walked into at grade, gets none.
+- **Gothic read as Georgian in grey**, because its massing was Georgian's.
+  It keeps the palette and gets the castle: a crenellated corner tower on
+  every hall, a stair turret on the residence halls, stepped buttresses at
+  the bay lines, merlons on the flat-roofed civic set, and two lancets to a
+  bay.
+- **Mission wanted more arches.** Round-headed doors, wider and taller arcade
+  arches on fewer piers, a stuccoed archway in place of the slab canopy on
+  residence halls and one-storey pavilions, a bell-gable over every hall and
+  pavilion front (a finial on top, not a cross), and an arcaded belfry.
+- **Brutalist is gone.** A survey of the reference campuses found it once,
+  as half of one; Modern appeared four times. The set is now **Modern**
+  (white panel, glass and burnt-orange brick under flat roofs with thin
+  parapets, a slab canopy over every door, a glazed civic set) and a fifth,
+  **Classical**, is added (limestone and columns under copper roofs, a
+  full-height six-column portico with a pediment on the halls, porticoed
+  pavilions and residence halls, a balustrade along every parapet, a stone
+  dome on the landmark). `SAVE_VERSION` is 57 for the rename.
+
+`docs/images/campus-classical.png` and `campus-modern.png` join the set;
+`campus-brutalist.png` is gone.

@@ -59,32 +59,41 @@ npm run shot -- node_modules/.tmp/out.json docs/images/campus.png --zoom=-1 --sc
 Placement is visual-only (see `campusMap.ts`), so moving the buildings changes
 nothing the simulation computed: the school in the file is still the one the
 run produced. The plan is a list of anchors and the walks a list of straight
-runs, and the rules are checked rather than trusted — every footprint on clear
+runs — precincts, the way a real campus is read: the Grand Quad and the
+South Quad on one axis, the science court and Greek Row to the west, the
+union and the residential quarter to the east, a second residential court
+and the medical campus to the south-west, and the venues along the north
+edge with the stadium anchoring the corner — and the rules are checked
+rather than trusted — every footprint on clear
 tiles by the reducer's own `footprintIsClear`; both doors the camera can see
 (south face, east face) clear of other buildings and on a path; walks one tile
 wide and one connected network; no dead end that is not a doorstep. A doorstep
 pass adds the shortest run from any unserved door to the nearest path and a
 join pass ties up islands, so the checks hold whatever the run happened to
-build; anything the plan does not name (an event's chapter house) goes in an
-overflow block. `--ascii` prints the plan as a tile map, which is how it was
-drawn. That is what `docs/images/campus.png` is — run through `pngquant`
-afterwards, which takes a flat-colour render like this one down to a third of
-its size with nothing to see for it. The same campus in the other three sets
-is beside it — `campus-gothic.png`, `campus-brutalist.png` and
-`campus-mission.png` — which is the honest comparison the vernaculars want:
-one layout, one save, only the architecture changing.
+build; a chapter house, whose id an event mints, takes the next lot on Greek Row,
+and anything else the plan does not name goes in an overflow block. `--ascii` prints the plan as a tile map, which is how it was
+drawn. That is what `docs/images/campus.png` is — a year-50 Completionist run
+with `--build-all`, so every placeable asset stands (the football stadium
+never unlocks under a scripted strategy, because no club of its ever
+petitions for varsity football, and the chapter houses an event grants are
+never sited; the flag stands them anyway, and says so, since a campus to
+photograph wants everything on it) — run through `pngquant` afterwards, which takes a flat-colour render like this one down to a third of
+its size with nothing to see for it. The same campus in the other four sets
+is beside it — `campus-gothic.png`, `campus-classical.png`,
+`campus-mission.png` and `campus-modern.png` — which is the honest comparison
+the vernaculars want: one layout, one save, only the architecture changing.
 
 ### Every motif on one page
 
 The campus renders show the assets together; they cannot show every motif, and
-they cannot show the same building in all four sets side by side. `sheet.tsx`
+they cannot show the same building in all five sets side by side. `sheet.tsx`
 renders every placeable Buildable on its own — through the game's own
 `BuildingMotif`, `GroundMarking` and `groundProps`, via `react-dom/server`, so
 what it draws is what the map draws — in one or more vernaculars, and writes a
 labelled contact sheet per set. It needs no dev server and no save.
 
 ```sh
-npm run sheet                                        # all four sets, node_modules/.tmp/sheets/
+npm run sheet                                        # all five sets, node_modules/.tmp/sheets/
 npm run sheet -- --vernacular gothic --scale 2       # one set, closer
 npm run sheet -- --only 'hangar|bowl|grounds'        # a regex on the cell labels
 npm run sheet:shot -- node_modules/.tmp/sheets/sheet-gothic.html /tmp/gothic --cells
