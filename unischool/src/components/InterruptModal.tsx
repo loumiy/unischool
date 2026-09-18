@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import type { Action } from '../state/actions';
-import type { Coach, GameState, InitiativeReport, PendingInterrupt, SeasonResult } from '../state/types';
-import { institutionName, WEEKS_PER_YEAR } from '../state/types';
+import type {
+  Coach, GameState, InitiativeReport, PendingInterrupt, SeasonResult, SummerBeat, SummerDecision, SummerPayload,
+} from '../state/types';
+import { institutionName, SUMMER_BEATS, totalEnrolled, WEEKS_PER_YEAR } from '../state/types';
 import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
@@ -17,12 +19,12 @@ import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import type { DecisionEventContext, MilestonePayload } from '../data/eventData';
 import type { OrgPetition } from '../state/types';
-import type { ReportPayload } from '../systems/rivals/rivalsSystem';
+import { buildReportPayload, type ReportPayload } from '../systems/rivals/rivalsSystem';
 import AnimatedNumber from './AnimatedNumber';
 import { isActivationTarget, useHotkeys } from './hotkeys';
 
 // Placeholder modal content for an interrupt type with no dedicated view
-// (see AdmissionsInterruptForm below for 'admissions', and every other
+// (see SummerView below for 'summer', and every other
 // named branch in the component below it). Only reachable if a system ever
 // sets pendingInterrupt to a type nothing here recognises — content drift
 // between an authored table and this switch, never a path the game takes
@@ -77,11 +79,10 @@ function CoverageValue({ now, next }: { now: number; next: number }) {
 // ---------------------------------------------------------------------
 // THE STUDENT-LIFE DIGEST (see data/studentLifeData.ts). Clubs and new
 // Greek chapters form quietly during the year and queue as petitions;
-// this is where a whole year's worth is answered, as a SECTION of the
-// summer admissions interrupt rather than a modal of its own. That is the
-// point of the shape: student life is the lightest beat in the game and
-// must not stop the clock, and the summer decision is a stop the player is
-// already making.
+// this is where a whole year's worth is answered, as the fourth BEAT of
+// the summer sequence rather than a modal of its own. That is the point of
+// the shape: student life is the lightest beat in the game and must not
+// stop the clock, and the summer is a stop the player is already making.
 //
 // Every petition defaults to approved — recognising a society is the
 // ordinary answer, and a player who confirms without reading has done the
@@ -209,7 +210,11 @@ function CohortCard({ label, driverLabel, pull, applicants, revealMs }: { label:
 // button that reveals the rest of its own consequences is ceremony. The
 // staging returns in PR E for a different reason — the tuition decision
 // becomes blind and LOCKS, so the reveal has something to reveal.
-function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction, cohortSignals, petitions, onResolve }: {
+//
+// Since Plan 16's PR A this is the summer's THIRD beat (see SummerView
+// below), not the whole summer: the review and the standing come before
+// it, and the student digest after.
+function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction, cohortSignals, onCommit }: {
   payload: AdmissionsDraft;
   // The whole state, for the consequence projection alone (see
   // consequences.ts): it advances a COPY of the classes and reads the real
@@ -222,17 +227,19 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
   capacity: number;
   satisfaction: number;
   cohortSignals: CohortSignals;
-  petitions: OrgPetition[];
-  onResolve: (settings: AdmissionsDraft & { approvedPetitionIds: string[] }) => void;
+  // The two levers, set. This is the summer's third beat (see types.ts's
+  // SummerPayload): committing here carries the decision into the payload
+  // and moves on to the Students beat, which is where the year actually
+  // turns over. The digest used to ride inside this form; it is its own
+  // beat now.
+  onCommit: (decision: SummerDecision) => void;
 }) {
   const [tuition, setTuition] = useState(payload.tuition);
   const [admitRateChoice, setAdmitRateChoice] = useState(payload.admitRate);
-  // Beat 1 ends when the player commits the price. There is no way back:
-  // the pool is revealed next, and a slider you can return to after seeing
-  // what it bought is not a gamble, it is a lookup table.
+  // The price is set blind and then LOCKED. There is no way back: the pool
+  // is revealed next, and a slider you can return to after seeing what it
+  // bought is not a gamble, it is a lookup table.
   const [tuitionLocked, setTuitionLocked] = useState(false);
-  // Approved by default — see the note on StudentLifeDigest above.
-  const [approved, setApproved] = useState<Set<string>>(() => new Set(petitions.map((p) => p.id)));
 
   // THE CEILING (Plan 15's PR E): the seats the catalogue has left after
   // graduation, read off the same function the reducer clips with. The
@@ -264,14 +271,14 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
 
   return (
     <>
-      <h2>Summer Admissions</h2>
+      <h2>Admissions</h2>
       {!tuitionLocked && (
         <p className="admissions-prompt">
           What will you charge next year? You will see who it drew once it is set.
         </p>
       )}
 
-      {/* BEAT 1 — the price, set blind. The only feedback is the tier: are
+      {/* THE PRICE, set blind. The only feedback is the tier: are
           you in line with your own standing, or not. No applicant count, no
           sticker-shock line, no cap printed — and since Plan 07's PR A
           there is no cap to print: the slider simply ends somewhere no
@@ -295,7 +302,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
 
       {tuitionLocked && (
         <>
-          {/* BEAT 2 — the reveal. What that price actually drew. */}
+          {/* THE REVEAL. What that price actually drew. */}
           <dl className="admissions-outcomes">
             <div>
               <dt>Applicant pool</dt>
@@ -324,7 +331,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             </div>
           </div>
 
-          {/* BEAT 3 — the second decision, and the opposite posture: every
+          {/* THE SECOND DECISION, and the opposite posture: every
               consequence visible before it is taken. */}
           <label className="admissions-field">
             <span>
@@ -385,20 +392,143 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             </dl>
           </div>
 
-          <StudentLifeDigest
-            petitions={petitions}
-            approved={approved}
-            onToggle={(id) => setApproved((prev) => {
-              const next = new Set(prev);
-              if (next.has(id)) next.delete(id); else next.add(id);
-              return next;
-            })}
-          />
-
-          <button onClick={() => onResolve({ tuition, admitRate: Math.min(admitRateChoice, maxAdmitRate), approvedPetitionIds: [...approved] })}>
-            Confirm Policy
+          <button onClick={() => onCommit({ tuition, admitRate: Math.min(admitRateChoice, maxAdmitRate) })}>
+            Set the policy →
           </button>
         </>
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------
+// THE SUMMER (Plan 16's PR A): one modal, four beats, one stop a year. The
+// header carries the four steps with the current one lit, so the player
+// always knows where in the summer they are; each beat is one of the views
+// below, and one action per beat moves on (see types.ts's SummerPayload
+// and reducer.ts's RESOLVE_SUMMER_BEAT). Only the last beat turns the
+// calendar page.
+// ---------------------------------------------------------------------
+function SummerSteps({ beat }: { beat: SummerBeat }) {
+  return (
+    <ol className="summer-steps" aria-label="Summer">
+      {SUMMER_BEATS.map((label, i) => (
+        <li
+          key={label}
+          className={i === beat ? 'current' : i < beat ? 'done' : ''}
+          aria-current={i === beat ? 'step' : undefined}
+        >
+          {label}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+// Beat one. The year the school just lived through, in facts — see
+// yearInReview.ts. Read-and-continue: nothing here is a question.
+function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: () => void }) {
+  const lastYear = s.history.length > 0 ? s.history[s.history.length - 1] : null;
+  const enrolled = totalEnrolled(s.students);
+  return (
+    <>
+      <h2>Year {s.clock.year} in review</h2>
+      <p>
+        The year is over. Before the summer&rsquo;s decisions, what it produced: where the school
+        stands going into the summer, against where it stood a year ago.
+      </p>
+      <dl className="admissions-outcomes">
+        <div>
+          <dt>Prestige</dt>
+          <dd>{lastYear ? `${lastYear.prestige.toFixed(1)} → ` : ''}{s.self.reputation.toFixed(1)}</dd>
+        </div>
+        <div>
+          <dt>Enrolled</dt>
+          <dd>{lastYear ? `${lastYear.enrolled.toLocaleString()} → ` : ''}{enrolled.toLocaleString()}</dd>
+        </div>
+        <div>
+          <dt>Operating funds</dt>
+          <dd>{lastYear ? `${money(lastYear.cash)} → ` : ''}{money(s.finance.cash)}</dd>
+        </div>
+      </dl>
+      <button onClick={onContinue}>Continue →</button>
+    </>
+  );
+}
+
+// Beat four. The student-life digest — a whole year's petitions, answered
+// together — and the summer's last word: what the school is about to
+// commit, then the year turns over. Every petition defaults to approved
+// (see StudentLifeDigest above).
+function StudentsBeat({ s, decision, petitions, onResolve }: {
+  s: GameState;
+  decision: SummerDecision;
+  petitions: OrgPetition[];
+  onResolve: (approvedPetitionIds: string[]) => void;
+}) {
+  const [approved, setApproved] = useState<Set<string>>(() => new Set(petitions.map((p) => p.id)));
+  return (
+    <>
+      <h2>Students</h2>
+      {petitions.length === 0 ? (
+        <p>
+          No new student organisation petitioned this year
+          {s.orgs.clubs.length === 0 && s.orgs.chapters.length === 0
+            ? ' — clubs form once the campus has a student center for them to meet in.'
+            : '.'}
+        </p>
+      ) : (
+        <p>What the students organised this year, and are asking the school to recognise.</p>
+      )}
+      <StudentLifeDigest
+        petitions={petitions}
+        approved={approved}
+        onToggle={(id) => setApproved((prev) => {
+          const next = new Set(prev);
+          if (next.has(id)) next.delete(id); else next.add(id);
+          return next;
+        })}
+      />
+      <dl className="admissions-outcomes">
+        <div><dt>Tuition for the incoming class <span className="outcome-note">(locked for four years)</span></dt><dd>{money(decision.tuition)}/yr</dd></div>
+        <div><dt>Admit rate</dt><dd>{Math.round(decision.admitRate * 100)}%</dd></div>
+      </dl>
+      <button onClick={() => onResolve([...approved])}>Open year {s.clock.year + 1}</button>
+    </>
+  );
+}
+
+function SummerView({ s, payload, act }: { s: GameState; payload: SummerPayload; act: (a: Action) => void }) {
+  const decision = payload.decision ?? { tuition: payload.tuition, admitRate: payload.admitRate };
+  return (
+    <>
+      <SummerSteps beat={payload.beat} />
+      {payload.beat === 0 ? (
+        <ReviewBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} />
+      ) : payload.beat === 1 ? (
+        <RankingsReportView
+          payload={buildReportPayload(s)}
+          isFirstReveal={false}
+          published={s.hasEnteredRankings}
+          onDismiss={() => act({ type: 'RESOLVE_SUMMER_BEAT' })}
+        />
+      ) : payload.beat === 2 ? (
+        <AdmissionsInterruptForm
+          payload={{ tuition: payload.tuition, admitRate: payload.admitRate }}
+          s={s}
+          prestige={s.self.reputation}
+          capacity={s.students.capacity}
+          satisfaction={trailingYearSatisfaction(s)}
+          cohortSignals={deriveCohortSignals(s)}
+          onCommit={(d) => act({ type: 'RESOLVE_SUMMER_BEAT', decision: d })}
+        />
+      ) : (
+        <StudentsBeat
+          s={s}
+          decision={decision}
+          petitions={s.orgs.pendingPetitions}
+          onResolve={(approvedPetitionIds) => act({ type: 'RESOLVE_ADMISSIONS', ...decision, approvedPetitionIds })}
+        />
       )}
     </>
   );
@@ -431,9 +561,14 @@ function RankMovement({ delta }: { delta: number }) {
 // and renders the movement section only when there is a prior year to
 // compare against (never on the first reveal, and never in the first two
 // years of a run).
-function RankingsReportView({ payload, isFirstReveal, onDismiss }: {
+function RankingsReportView({ payload, isFirstReveal, published = true, onDismiss }: {
   payload: ReportPayload;
   isFirstReveal: boolean;
+  // Whether the U.S. News list carries the school yet (s.hasEnteredRankings).
+  // The summer's Standing beat renders this for every school from year one
+  // — the rank is knowable from the first week (see StatusHeader.tsx) — but
+  // the published top-50 table is only shown once being on it is a fact.
+  published?: boolean;
   onDismiss: () => void;
 }) {
   const { rank, previousRank, movers, passed, passedBy, standings, others } = payload;
@@ -441,11 +576,13 @@ function RankingsReportView({ payload, isFirstReveal, onDismiss }: {
 
   return (
     <>
-      <h2>{isFirstReveal ? "You've Entered the Rankings" : 'Annual U.S. News Report'}</h2>
+      <h2>{isFirstReveal ? "You've Entered the Rankings" : published ? 'Standing — the U.S. News report' : 'Standing'}</h2>
       <p>
         {isFirstReveal
-          ? `Your university has cracked the top 50, landing at #${rank}. The annual report will keep you posted from here on.`
-          : `This year's standings are in — you're ranked #${rank}.`}
+          ? `Your university has cracked the top 50, landing at #${rank}. The report will keep you posted every summer from here on.`
+          : published
+            ? `This year's standings are in — you're ranked #${rank}.`
+            : `You are ranked #${rank} of ${payload.field} this summer. The U.S. News list publishes fifty names; the school is not on it yet.`}
       </p>
 
       {delta !== null && (
@@ -507,18 +644,22 @@ function RankingsReportView({ payload, isFirstReveal, onDismiss }: {
         </ul>
       )}
 
-      <h3 className="report-standings-head">Top {standings.length}</h3>
-      <ol className="report-standings">
-        {standings.map((r, i) => (
-          // Keyed by identity, not by name: the player may name their school
-          // anything, including something a rival is already called.
-          <li key={r.key} className={r.isPlayer ? 'me' : ''}>
-            <span>{i + 1}. {r.name}</span>
-            <span className="stat">{Math.round(r.value)}</span>
-          </li>
-        ))}
-      </ol>
-      <button onClick={onDismiss}>Dismiss</button>
+      {published && (
+        <>
+          <h3 className="report-standings-head">Top {standings.length}</h3>
+          <ol className="report-standings">
+            {standings.map((r, i) => (
+              // Keyed by identity, not by name: the player may name their school
+              // anything, including something a rival is already called.
+              <li key={r.key} className={r.isPlayer ? 'me' : ''}>
+                <span>{i + 1}. {r.name}</span>
+                <span className="stat">{Math.round(r.value)}</span>
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
+      <button onClick={onDismiss}>{isFirstReveal ? 'Dismiss' : 'Continue →'}</button>
     </>
   );
 }
@@ -1070,10 +1211,11 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
   // is a real either/or — accepting or declining sets
   // `universityCharterOffered`/`suffix` — so there is no neutral "continue"
   // for a key to stand for, and picking one silently would be picking for
-  // the player. The admissions form is left out because its
+  // the player. The summer's two decision beats are left out because the
   // tuition value lives in AdmissionsInterruptForm's own local
   // state, not reachable from here without lifting that state up just for a
-  // hotkey, so it stays click-to-confirm. The athletic director's offer is
+  // hotkey, so they stay click-to-confirm (its two read-and-continue beats
+  // do answer Enter). The athletic director's offer is
   // left out for BOTH reasons at once: it is a choice among three people with
   // no neutral answer, and the mascot the player is typing lives in that
   // view's own state — and it is the one interrupt with a real text field, so
@@ -1095,6 +1237,15 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
       case 'annual-report':
         act({ type: 'RESOLVE_REPORT' });
         break;
+      case 'summer': {
+        // The two read-and-continue beats answer Enter; the decision and
+        // the digest do not (see types.ts's SUMMER_BEATS) — a key that
+        // committed a price, or declined a year's petitions, would be
+        // choosing for the player.
+        const beat = (interrupt.payload as SummerPayload).beat;
+        if (beat < 2) act({ type: 'RESOLVE_SUMMER_BEAT' });
+        break;
+      }
       case 'milestone':
         act({ type: 'RESOLVE_MILESTONE' });
         break;
@@ -1112,8 +1263,8 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
           act({ type: 'RESOLVE_DECISION_EVENT', eventId: decision.eventId, choiceId: '', ctx: decision.ctx });
         }
         break;
-      // admissions, charter, the athletic director, and anything
-      // unrecognised: no-op — see above.
+      // the summer's decision beats, charter, the athletic director, and
+      // anything unrecognised: no-op — see above.
     }
   }, interrupt !== null);
 
@@ -1122,17 +1273,8 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
   return (
     <div className="modal-backdrop">
       <div className="modal">
-        {interrupt.type === 'admissions' ? (
-          <AdmissionsInterruptForm
-            payload={interrupt.payload as AdmissionsDraft}
-            s={s}
-            prestige={s.self.reputation}
-            capacity={s.students.capacity}
-            satisfaction={trailingYearSatisfaction(s)}
-            cohortSignals={deriveCohortSignals(s)}
-            petitions={s.orgs.pendingPetitions}
-            onResolve={(settings) => act({ type: 'RESOLVE_ADMISSIONS', ...settings })}
-          />
+        {interrupt.type === 'summer' ? (
+          <SummerView s={s} payload={interrupt.payload as SummerPayload} act={act} />
         ) : interrupt.type === 'milestone' ? (
           <MilestoneCelebrationView
             s={s}

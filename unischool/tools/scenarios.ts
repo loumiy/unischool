@@ -60,9 +60,9 @@ export function intoCrisis(s: GameState): void {
 // Stops the week a modal of this type is on screen. The one predicate
 // nearly every scenario below wants, and the one `--modal <type>` builds.
 // The interrupt types are the ones the systems raise (see
-// docs/architecture/interrupts.md): admissions, annual-report, milestone,
-// rankings-entry, research-complete, decision-event, demand, charter,
-// championship, athletic-director.
+// docs/architecture/interrupts.md): summer, milestone, rankings-entry,
+// research-complete, decision-event, demand, charter, championship,
+// athletic-director.
 export function atModal(type: string): (s: GameState) => boolean {
   return (s) => s.pendingInterrupt?.type === type;
 }
@@ -130,20 +130,16 @@ export const SCENARIOS: Scenario[] = [
     stopWhen: atModal('rankings-entry'),
   },
   {
-    name: 'annual-report',
-    what: 'the U.S. News report, with a year of movement in it',
-    strategy: 'Balanced builder',
-    year: 15,
-    stopWhen: atModal('annual-report'),
-  },
-  {
-    name: 'admissions',
-    what: 'the summer decision, blind price and admit slider waiting',
+    // Plan 16's PR A folded the annual U.S. News report into the summer as
+    // its Standing beat, so the summer scenario is the report scenario too:
+    // stopped on the review, the report is one Continue away.
+    name: 'summer',
+    what: 'the summer sequence — review, standing (the U.S. News report), the blind price, the digest',
     strategy: 'Balanced builder',
     year: 12,
     // Any summer will do, but not the FIRST one: the interesting version of
     // this screen is the one with a prior year to be read against.
-    stopWhen: (s) => s.pendingInterrupt?.type === 'admissions' && s.clock.year >= 6,
+    stopWhen: (s) => s.pendingInterrupt?.type === 'summer' && s.clock.year >= 6,
   },
   {
     name: 'championship',

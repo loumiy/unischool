@@ -1,6 +1,6 @@
 import type { DemandSubject } from '../data/demandData';
 import type {
-  AthleticsBudgetTier, Coach, GameState, InitiativeDepth, TileCoord, Vernacular,
+  AthleticsBudgetTier, Coach, GameState, InitiativeDepth, SummerDecision, TileCoord, Vernacular,
 } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
@@ -166,23 +166,32 @@ export type Action =
   // instead (see reducer.ts's own comment on this case for why it still
   // advances the clock, same as every one of those).
   | { type: 'RESOLVE_INTERRUPT' }
-  // Resolves the annual summer admissions interrupt: sets next year's two
-  // policy levers (tuition and the admit rate), runs the funnel to commit the
-  // enrolled class, and advances the clock into that year itself (see
-  // reducer.ts). Tuition is set ONLY here, once a year — there is no other
-  // action that changes it.
-  // `approvedPetitionIds` is the student-life digest folded into this same
-  // interrupt (see data/studentLifeData.ts and the reducer): the ids of the
+  // Advances the summer sequence by one beat (Plan 16's PR A — see
+  // types.ts's SummerPayload). Review and Standing are read-and-continue;
+  // leaving the Admissions beat carries the two levers along as
+  // `decision`, so the last beat commits exactly what the player set. The
+  // clock does not move: only the last beat's RESOLVE_ADMISSIONS turns the
+  // page. A no-op if no summer is pending or it is already on its last beat.
+  | { type: 'RESOLVE_SUMMER_BEAT'; decision?: SummerDecision }
+  // Resolves the summer — its last beat: sets next year's two policy levers
+  // (tuition and the admit rate), runs the funnel to commit the enrolled
+  // class, and advances the clock into that year itself (see reducer.ts).
+  // Tuition is set ONLY here, once a year — there is no other action that
+  // changes it. Accepted at ANY beat, not only the last: the UI offers it
+  // on the Students beat alone, but a harness that answers the whole summer
+  // in one action (the tests, a scenario) is answering the same question.
+  // `approvedPetitionIds` is the student-life digest, the summer's fourth
+  // beat (see data/studentLifeData.ts and the reducer): the ids of the
   // club/chapter petitions raised since last summer that the player is
   // recognising. Every pending petition NOT listed is declined, and the
   // queue drains either way — so the digest can never accumulate across
   // years, and clubs never need a stop-the-clock modal of their own.
   | { type: 'RESOLVE_ADMISSIONS'; tuition: number; admitRate: number; approvedPetitionIds: string[] }
-  // Dismisses the "you've entered the rankings" reveal or an annual U.S.
-  // News report interrupt. Advances the clock, like every other interrupt
-  // raised mid-tick: it fires as a trailing step after that week's systems
-  // already ran, so dismissing means moving on to the next week, not
-  // replaying this one.
+  // Dismisses the "you've entered the rankings" reveal (or a playtest-forced
+  // U.S. News report — the annual one is the summer's Standing beat now).
+  // Advances the clock, like every other interrupt raised mid-tick: it
+  // fires as a trailing step after that week's systems already ran, so
+  // dismissing means moving on to the next week, not replaying this one.
   | { type: 'RESOLVE_REPORT' }
   // Dismisses a milestone celebration — the stop-the-clock moment for a
   // established/distinguished program or a distinguished school (see

@@ -1,4 +1,4 @@
-import type { ClassCohorts, ClassCounts, ClassTuition, CohortCounts, GameState } from '../../state/types';
+import type { ClassCohorts, ClassCounts, ClassTuition, CohortCounts, GameState, SummerPayload } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
 import { cohortCounts, cohortDemandFactor, NEUTRAL_COHORT_SIGNALS, type CohortSignals } from './cohorts';
 
@@ -632,22 +632,22 @@ export function projectAdmissions(
 // in demand instead — see wordOfMouthFactor above, applied at the next
 // cycle's RESOLVE_ADMISSIONS.
 export function tickAdmissions(s: GameState): void {
-  // Summer: pause for the once-a-year admissions decision (see
-  // docs/design/admissions.md). The reducer's TICK case sees
-  // pendingInterrupt getting set here and holds the clock at this week;
-  // RESOLVE_ADMISSIONS (in reducer.ts) runs the funnel and advances into
-  // the new year. The payload carries the sticky input so an unchanged
-  // strategy is a one-click continue.
+  // Summer: pause for the year's one fixed stop (see
+  // docs/design/admissions.md and types.ts's SummerPayload). The reducer's
+  // TICK case sees pendingInterrupt getting set here and holds the clock at
+  // this week; the sequence opens on the year in review, and it is the
+  // LAST beat's RESOLVE_ADMISSIONS (in reducer.ts) that runs the funnel and
+  // advances into the new year. The payload carries the sticky inputs so an
+  // unchanged strategy is a click-through.
   if (s.clock.week === WEEKS_PER_YEAR && !s.pendingInterrupt) {
-    s.pendingInterrupt = {
-      type: 'admissions',
-      payload: {
-        tuition: s.finance.listedTuition,
-        // Sticky, like tuition: last year's committed rate, so an unchanged
-        // strategy stays a one-click continue. A founding save seeds this
-        // from the curve (see actions.ts), and a migrated one is set to it.
-        admitRate: s.students.admitRate,
-      },
+    const payload: SummerPayload = {
+      beat: 0,
+      tuition: s.finance.listedTuition,
+      // Sticky, like tuition: last year's committed rate, so an unchanged
+      // strategy stays a click-through. A founding save seeds this from
+      // the curve (see actions.ts).
+      admitRate: s.students.admitRate,
     };
+    s.pendingInterrupt = { type: 'summer', payload };
   }
 }

@@ -46,11 +46,11 @@ const near = (a: number, b: number, eps = 1e-9) => Math.abs(a - b) < eps;
 function toSummer(start: GameState): GameState {
   let s = start;
   for (let i = 0; i < WEEKS_PER_YEAR * 2; i += 1) {
-    if (s.pendingInterrupt?.type === 'admissions') return s;
+    if (s.pendingInterrupt?.type === 'summer') return s;
     const answer = defaultAnswer(s);
     s = answer ? reducer(s, answer) : reducer(s, { type: 'TICK' });
   }
-  throw new Error('no admissions interrupt inside two years');
+  throw new Error('no summer interrupt inside two years');
 }
 function withYearAverage(s: GameState, average: number): void {
   s.students.satisfactionYearSum = average * 40;

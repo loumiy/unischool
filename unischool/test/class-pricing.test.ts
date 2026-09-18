@@ -86,7 +86,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
   let s = start;
   for (let i = 0; i < WEEKS_PER_YEAR * 2; i += 1) {
     const pending = s.pendingInterrupt;
-    if (pending?.type === 'admissions') {
+    if (pending?.type === 'summer') {
       return reducer(s, {
         type: 'RESOLVE_ADMISSIONS',
         tuition,
@@ -100,7 +100,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
     }
     s = reducer(s, { type: 'TICK' });
   }
-  throw new Error('no admissions interrupt inside two years');
+  throw new Error('no summer interrupt inside two years');
 }
 
 // =====================================================================
@@ -231,7 +231,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
 
   let s = createInitialState('Projector');
   s = playYearAt(s, 16_000); // one ordinary year first, so the classes differ
-  s = tickTo(s, 'admissions');
+  s = tickTo(s, 'summer');
 
   // What the panel would be showing, at the policy that is about to be set.
   // With the ceiling the reducer clips to (Plan 15's PR E) — what the
@@ -272,7 +272,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
   // the game from a panel that only ever claimed to look.
   const before = createInitialState('Projector');
   const untouched = playYearAt(before, 16_000);
-  const snapshot = JSON.stringify(tickTo(untouched, 'admissions').students.classes);
+  const snapshot = JSON.stringify(tickTo(untouched, 'summer').students.classes);
   assert(
     JSON.stringify(s.students.classes) === snapshot,
     'projecting leaves the live classes exactly as they were',

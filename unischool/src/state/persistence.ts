@@ -89,7 +89,11 @@ export const SAVE_KEY = 'unischool.save';
 // and the crowding accumulator on `s.students`, both added as required.
 // v56: Plan 15 PR C. `Initiative.banked` (output toward the next paper,
 // added as required).
-export const SAVE_VERSION = 56;
+// v57: Plan 16 PR A. The `admissions` interrupt becomes `summer`, with a
+// beat index in its payload (see types.ts's SummerPayload). A save written
+// with the old modal open would resume on a modal nothing renders and
+// clear it without running the year's funnel — a skipped year, silently.
+export const SAVE_VERSION = 57;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch

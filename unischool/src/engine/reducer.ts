@@ -1,5 +1,5 @@
-import type { Faculty, GameState, LogEntry } from '../state/types';
-import { WEEKS_PER_YEAR } from '../state/types';
+import type { Faculty, GameState, LogEntry, SummerBeat, SummerPayload } from '../state/types';
+import { SUMMER_LAST_BEAT, WEEKS_PER_YEAR } from '../state/types';
 import type { Action } from '../state/actions';
 import { defaultAnswer } from './defaultAnswers';
 import { createInitialState, createPreStartState } from '../state/actions';
@@ -666,6 +666,27 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
+    // One beat forward through the summer (see types.ts's SummerPayload).
+    // Nothing here touches the calendar or the school: it is bookkeeping
+    // about where in the sequence the player is, written into the
+    // interrupt's own payload so a save taken between beats resumes on the
+    // right one. The decision the Admissions beat produced rides along the
+    // same way, so the last beat commits it rather than a re-read slider.
+    case 'RESOLVE_SUMMER_BEAT': {
+      if (s.pendingInterrupt?.type !== 'summer') return state;
+      const payload = s.pendingInterrupt.payload as SummerPayload;
+      if (payload.beat >= SUMMER_LAST_BEAT) return state;
+      payload.beat = (payload.beat + 1) as SummerBeat;
+      if (action.decision) {
+        payload.decision = {
+          tuition: Math.max(0, Math.min(action.decision.tuition, TUITION_SLIDER_MAX)),
+          admitRate: Math.max(0, Math.min(1, action.decision.admitRate)),
+        };
+      }
+      return s;
+    }
+
+    // THE LAST BEAT OF THE SUMMER, and the one that turns the calendar page.
     case 'RESOLVE_ADMISSIONS': {
       // Tuition is set ONLY here, once a year — see
       // docs/design/admissions.md and the removed live SET_TUITION control.
@@ -1062,7 +1083,10 @@ export function reducer(state: GameState, action: Action): GameState {
       return fireMilestoneCelebration(s) ? s : state;
     }
 
-    // Publish the U.S. News report now, off this week's standings.
+    // Publish the U.S. News report now, off this week's standings — as its
+    // own modal, the way it used to fire every year at week 26 before it
+    // became the summer's Standing beat. The playtest panel's way of
+    // looking at the table without waiting for a summer.
     case 'DEBUG_FORCE_REPORT': {
       if (s.pendingInterrupt) return state;
       s.pendingInterrupt = { type: 'annual-report', payload: buildReportPayload(s) };

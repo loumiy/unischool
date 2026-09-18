@@ -566,6 +566,39 @@ export interface PendingInterrupt {
   payload?: unknown;
 }
 
+// THE SUMMER (Plan 16's PR A): one interrupt, four beats. The year has one
+// fixed stop, and everything the year produced is read at it — what the
+// year built, where the school now stands, what to charge and whom to
+// admit, and what the students are asking for. One `summer` interrupt with
+// a `beat` index rather than four interrupts in a row, so a save written
+// between beats resumes on the right beat with the clock still halted, and
+// nothing can slip in between them.
+//
+// The beats, in order (SUMMER_BEATS below): review and standing are
+// read-and-continue; the admissions decision and the student digest are
+// not. RESOLVE_SUMMER_BEAT advances `beat`, carrying the tuition/admit
+// decision into `decision` when it leaves the admissions beat, so the last
+// beat commits exactly the figures the player set two beats earlier;
+// RESOLVE_ADMISSIONS is the last beat's action and the only one that moves
+// the calendar (see reducer.ts). `tuition`/`admitRate` are the sticky
+// opening positions the sliders start at, exactly what the old
+// `admissions` interrupt's payload carried.
+export type SummerBeat = 0 | 1 | 2 | 3;
+export const SUMMER_BEATS = ['Review', 'Standing', 'Admissions', 'Students'] as const;
+export const SUMMER_LAST_BEAT: SummerBeat = 3;
+
+export interface SummerDecision {
+  tuition: number;
+  admitRate: number;
+}
+
+export interface SummerPayload {
+  beat: SummerBeat;
+  tuition: number;    // where the tuition slider opens: last year's listed price
+  admitRate: number;  // where the admit slider opens: last year's chosen rate
+  decision?: SummerDecision; // set once the admissions beat has been left; what the last beat commits
+}
+
 // ---------------------------------------------------------------------
 // A STUDENT DEMAND (see docs/design/student-life.md's "Student demands:
 // the inverse of clubs", and systems/demands/demandSystem.ts). When

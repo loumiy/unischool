@@ -2919,3 +2919,18 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   .lane-chevron { justify-self: center; transform: rotate(90deg); }
   .curriculum-layout.with-drawer .course-drawer { order: -1; position: static; max-height: none; }
 }
+
+/* ---------- the summer sequence (see InterruptModal.tsx's SummerView) ----
+   Four steps in a row at the head of the modal, the current one lit in the
+   gold every other heading in this modal uses, the ones behind it dimmed
+   and struck through by a rule. One line, so the player always knows which
+   of the four beats they are on without the beat having to say so. */
+.summer-steps { display: flex; gap: 0; list-style: none; margin: -4px 0 16px; padding: 0;
+  counter-reset: beat; }
+.summer-steps li { counter-increment: beat; flex: 1; position: relative; padding: 0 0 8px;
+  font-family: var(--serif); font-size: var(--text-xs); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ink-lo); border-bottom: 2px solid var(--navy-line);
+  text-align: center; white-space: nowrap; }
+.summer-steps li::before { content: counter(beat) " · "; font-family: var(--mono); letter-spacing: 0; }
+.summer-steps li.done { color: var(--ink-lo); border-bottom-color: var(--gold-dim); }
+.summer-steps li.current { color: var(--gold); border-bottom-color: var(--gold); font-weight: 700; }

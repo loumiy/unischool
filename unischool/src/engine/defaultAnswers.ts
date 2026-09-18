@@ -1,5 +1,6 @@
 import type { Action } from '../state/actions';
-import type { Coach, GameState } from '../state/types';
+import type { Coach, GameState, SummerPayload } from '../state/types';
+import { SUMMER_LAST_BEAT } from '../state/types';
 import { findDecisionEvent } from '../data/eventData';
 import type { DecisionEventContext } from '../data/eventData';
 
@@ -21,9 +22,11 @@ import type { DecisionEventContext } from '../data/eventData';
 //
 // The policy, and every entry is deliberate:
 //
-//   - admissions      keep last year's price and admit rate, recognise
-//                     every petition — the most expensive answer available,
-//                     which makes the harness's opex figures an upper bound
+//   - summer          read the review and the standing, keep last year's
+//                     price and admit rate, recognise every petition — the
+//                     most expensive answer available, which makes the
+//                     harness's opex figures an upper bound. One beat per
+//                     call, four calls a summer.
 //   - decision-event  the first AFFORDABLE choice, which in every authored
 //                     entry is the "deal with it properly, and pay" option;
 //                     a free one if the money isn't there
@@ -54,12 +57,28 @@ export function defaultAnswer(s: GameState, admissions?: AdmissionsPolicy): Acti
   if (!pending) return null;
 
   switch (pending.type) {
-    case 'admissions': {
-      const payload = pending.payload as Partial<AdmissionsPolicy> | undefined;
+    // THE SUMMER, beat by beat (see types.ts's SummerPayload). Review and
+    // Standing are read and continued; the Admissions beat is left with the
+    // policy as its decision; the Students beat commits the policy and
+    // recognises every petition. Walked one beat per call rather than
+    // answered in one action, so a fast-forward exercises the same four
+    // steps a player takes — including the payload carrying the decision
+    // from the third beat to the fourth.
+    case 'summer': {
+      const payload = pending.payload as Partial<SummerPayload> | undefined;
+      const beat = payload?.beat ?? 0;
+      const policy: AdmissionsPolicy = {
+        tuition: admissions?.tuition ?? payload?.decision?.tuition ?? payload?.tuition ?? s.finance.listedTuition,
+        admitRate: admissions?.admitRate ?? payload?.decision?.admitRate ?? payload?.admitRate ?? s.students.admitRate,
+      };
+      if (beat < SUMMER_LAST_BEAT) {
+        return beat === SUMMER_LAST_BEAT - 1
+          ? { type: 'RESOLVE_SUMMER_BEAT', decision: policy }
+          : { type: 'RESOLVE_SUMMER_BEAT' };
+      }
       return {
         type: 'RESOLVE_ADMISSIONS',
-        tuition: admissions?.tuition ?? payload?.tuition ?? s.finance.listedTuition,
-        admitRate: admissions?.admitRate ?? payload?.admitRate ?? s.students.admitRate,
+        ...policy,
         approvedPetitionIds: s.orgs.pendingPetitions.map((p) => p.id),
       };
     }
