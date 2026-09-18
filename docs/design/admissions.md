@@ -279,15 +279,13 @@ the Enrollment tab draws — bar length for the size of each class, segments for
 its mix, so a class that was admitted by a different university from the one
 below it visibly is one.
 
-Two kinds of class carry **no cohort signal**: they read the model's base
-shares exactly, because nothing the school had built was pulling any audience
-in particular. The founding body is four of them — it arrives before the
-player has built anything — and a save written before this record existed is
-filled in the same way (`persistence.ts`'s `MIGRATIONS[39]`), since a mix that
-was never recorded cannot be recovered without inventing it. The tab marks
-those classes rather than presenting a prior as a record. Both cases clear
-themselves within four years, as each unsignalled class graduates out and is
-replaced by one the player actually admitted.
+A class can carry **no cohort signal**: it reads the model's base shares
+exactly, because nothing the school had built was pulling any audience in
+particular. The founding body is four of them — it arrives before the player
+has built anything. The tab marks those classes rather than presenting a
+prior as a record, and they clear themselves within four years, as each
+unsignalled class graduates out and is replaced by one the player actually
+admitted.
 
 ### Class, cohort, course
 

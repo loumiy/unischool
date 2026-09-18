@@ -170,8 +170,8 @@ to re-derive them from a 658-line document.*
   being read, and that argument still holds.
 - **The review's cut list, minus what Plans 14–17 take.** *Taken*: the
   research-report-of-nothing (Plan 15's PR C demotes it to a toast), the seven
-  school-hall Buildables (Plan 14), and the save-migration chain (Plan 14 breaks
-  saves and deletes it). *Not taken*: the charter interrupt as a log line and a
+  school-hall Buildables and the save-migration chain (both gone — Plan 14
+  landed). *Not taken*: the charter interrupt as a log line and a
   rename button; the duplicate dorm rungs; the dead `prize` row of
   `RESEARCH_OUTPUTS`; the three unauthored `BuildableEffects` fields
   (`tuitionBonus`, `applicantPoolBonus`, `unlockIds`) — author them or delete

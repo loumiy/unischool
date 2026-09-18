@@ -18,15 +18,17 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { reducer } from '../src/engine/reducer';
 import { createInitialState } from '../src/state/actions';
-import { initialTech } from '../src/data/techData';
+import { initialTech, majorPrefixes, graduatePrograms, ACADEMIC_HALL_COUNT, ACADEMIC_HALL_SLOTS, isAcademicHall } from '../src/data/techData';
 import { weeklyResearchPoints, facilitySchool, disciplineVocab, rollGrantFunder, rollPrizeName } from '../src/data/researchData';
 import { researchSchools } from '../src/data/techData';
 import { findDecisionEvent, type DecisionEventContext } from '../src/data/eventData';
 import { totalEnrolled } from '../src/state/types';
+import { GENED_BUILDING_ID, programById } from '../src/data/techData';
 import type { GameState, OrgPetition } from '../src/state/types';
 import {
   usedFacultySlots, hasFreeFacultySlot, eligibleInstructors, facultyLoad, isUnstaffed, hasFreeSlot,
 } from '../src/systems/techtree/techSystem';
+import { isHoused, PROGRAM_OFFER_COUNT, startedSchools } from '../src/systems/techtree/programOffers';
 import {
   computePrestigeTarget, computeResearchTarget, computeSocialTarget,
   prestigeBreakdown, researchStandingBreakdown, socialStandingBreakdown,
@@ -264,12 +266,11 @@ function relPath(f: string): string {
   // directly would be the same flow-not-stock mistake the rule above exists
   // to forbid — just in a place nobody was watching yet.
   //
-  // The allowed set gains one file over reputation's: a MIGRATION seeding a
-  // newly-added stock for a run already underway is the same act as founding
-  // init, just arriving late (see persistence.ts's MIGRATIONS[42]).
-  // Deliberately allowed by name here rather than dodged by renaming a local
-  // in that file — an invariant you can slip past by choosing a different
-  // variable name is not an invariant.
+  // The allowed set gains one file over reputation's: persistence.ts, which
+  // once seeded a newly-added stock for a run already underway (the same
+  // act as founding init, arriving late) and is kept on the list by name
+  // rather than dodged by renaming a local — an invariant you can slip past
+  // by choosing a different variable name is not an invariant.
   const ALLOWED_STANDING_WRITERS = new Set([...ALLOWED_REPUTATION_WRITERS, 'state/persistence.ts']);
   for (const field of ['socialStanding', 'researchStanding'] as const) {
     const found: string[] = [];
@@ -334,7 +335,10 @@ function relPath(f: string): string {
 }
 
 // =====================================================================
-// 7. RIGID CURRICULUM GATING — gen-ed -> T1 -> building -> T2 -> T3
+// 7. RIGID CURRICULUM GATING — gen-ed -> hall -> founding -> T1 -> T2 -> T3
+// (Plan 14). There is no school building: a program is founded by taking
+// a slot in a standing hall, which is the only way its tier-1 course ever
+// starts, and every course of the program waits on that home.
 // =====================================================================
 {
   const tech = initialTech();
@@ -343,17 +347,13 @@ function relPath(f: string): string {
   const t1 = byId.get('FINA101')!;
   assert(t1.prereqs.length === 6 && t1.prereqs.every((p) => p.startsWith('GE1')),
     'a T1 course requires the entire gen-ed core, nothing else');
-
-  const building = byId.get('BLDG-BUSINESS')!;
-  assert(
-    building.prereqs.length > 0 && building.prereqs.every((p) => p.endsWith('101')),
-    'a school building requires every one of that school\'s T1 courses',
-  );
+  assert(!tech.some((t) => t.kind === 'building' && t.id.startsWith('BLDG-') && t.id !== GENED_BUILDING_ID && t.graduateProgram === undefined),
+    'no degree-granting school has a building of its own in the seed');
 
   const t2 = byId.get('FINA110')!;
   assert(
-    t2.prereqs.includes('FINA101') && t2.prereqs.includes('BLDG-BUSINESS'),
-    'a T2 course requires its own T1 course AND the school building',
+    t2.prereqs.length === 1 && t2.prereqs[0] === 'FINA101',
+    'a T2 course requires its own T1 course and nothing else as a prereq — its home is a dynamic gate',
   );
 
   const t3 = byId.get('FINA210')!;
@@ -369,59 +369,84 @@ function relPath(f: string): string {
   const isAvailIn = (st: GameState, id: string) => st.tech.find((t) => t.id === id)?.status === 'available';
   const isAvail = (id: string) => isAvailIn(s, id);
   const isLocked = (id: string) => s.tech.find((t) => t.id === id)?.status === 'locked';
+  const isDoneIn = (st: GameState, id: string) => st.tech.find((t) => t.id === id)?.status === 'done';
 
   assert(isLocked('FINA101'), 'FINA101 starts locked (gen-ed not yet done)');
-  assert(isLocked('BLDG-BUSINESS'), 'BLDG-BUSINESS starts locked');
+  assert(isLocked('HALL-01'), 'the first academic hall starts locked');
   assert(isLocked('FINA110'), 'FINA110 starts locked');
 
   // Finish the gen-ed core.
   for (const id of ['GE110', 'GE120', 'GE130', 'GE140', 'GE150', 'GE160']) {
     s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
   }
-  s = advanceUntil(s, (st) => isAvailIn(st, 'FINA101'), 60);
-  assert(isAvail('FINA101'), 'FINA101 opens once the entire gen-ed core is done');
-  assert(isLocked('BLDG-BUSINESS'), 'BLDG-BUSINESS stays locked — T1 courses not done yet');
+  s = advanceUntil(s, (st) => isAvailIn(st, 'HALL-01'), 60);
+  assert(isAvail('HALL-01'), 'the first hall opens once the entire gen-ed core is done');
+  assert(isLocked('FINA101'), 'FINA101 stays locked — its program has no home, however complete the core');
+  assert(s.programOffers.length === 3, 'three programs are on offer');
+  assert(s.programOffers.every((id) => isLocked(programById(id)!.entryCourseId)),
+    "every offered program's entry course is still locked");
 
-  // Staff every field the Business school's T1 courses require — none of
-  // them overlap the five founding hires' fields (Physics/History/English/
-  // Mathematics/Philosophy) — then finish every T1 course the building needs.
-  for (const id of building.prereqs) {
-    const field = s.tech.find((t) => t.id === id)?.requiresFaculty;
-    if (field) staffField(s, field);
-  }
-  for (const id of building.prereqs) {
-    if (s.tech.find((t) => t.id === id)?.status === 'available') {
-      s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
+  // A tier-1 course cannot be started around the founding.
+  const offered = programById(s.programOffers[0])!;
+  s.tech.find((t) => t.id === offered.entryCourseId)!.status = 'available'; // a hand-edited save
+  const sneaked = reducer(JSON.parse(JSON.stringify(s)) as GameState, { type: 'START_DEVELOPMENT', nodeId: offered.entryCourseId });
+  void sneaked; // START_DEVELOPMENT trusts status; what protects the gate is that nothing ever sets it
+  s.tech.find((t) => t.id === offered.entryCourseId)!.status = 'locked';
+  s = reducer(s, { type: 'TICK' });
+  assert(isLocked(offered.entryCourseId), 'a tick re-resolves nothing for an unhoused program');
+
+  // Build the hall, and found the first offer into it.
+  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: 'HALL-01', row: 40, col: 90, rotated: false });
+  s = advanceUntil(s, (st) => isDoneIn(st, 'HALL-01'), 260);
+  assert(isDoneIn(s, 'HALL-01'), 'the hall stands');
+  const program = programById(s.programOffers[0])!;
+  const entry = s.tech.find((t) => t.id === program.entryCourseId)!;
+  if (entry.requiresFaculty) staffField(s, entry.requiresFaculty);
+  const instructor = s.faculty.find((f) => f.field === entry.requiresFaculty)!;
+  const before = [...s.programOffers];
+  s = reducer(s, { type: 'FOUND_PROGRAM', programId: program.id, hallId: 'HALL-01', slot: 2, facultyId: instructor.id });
+  assert(s.halls['HALL-01'][2].programId === program.id, `${program.name} is housed in slot 3`);
+  assert(s.tech.find((t) => t.id === entry.id)?.status === 'developing', 'its entry course starts in the same transaction');
+  assert(s.courseFaculty[entry.id] === instructor.id, 'with the chosen instructor');
+  assert(!s.programOffers.includes(program.id) && s.programOffers.length === 3, 'the offer is refilled');
+  assert(before.filter((id) => id !== program.id).every((id) => s.programOffers.includes(id)), 'and the other two offers stand');
+  assertHallsInvariants(s, 'after founding');
+
+  // Its tier-2 courses open once the entry course is done — and only for
+  // the housed program.
+  const t2Id = program.courseIds[1];
+  assert(isLocked(t2Id), 'a T2 course stays locked while the entry course develops');
+  s = advanceUntil(s, (st) => isAvailIn(st, t2Id), 40);
+  assert(isAvail(t2Id), 'a T2 course opens once its T1 course is done and the program is housed');
+  const other = programById(s.programOffers[0])!;
+  assert(isLocked(other.entryCourseId), "an unfounded program's entry course is still locked");
+
+  // Finish the T2 quartet and confirm T3 + the program-established
+  // milestone, with any cross-major bridge satisfied by hand (a bridge
+  // may point into an unfounded program, which is real curriculum
+  // texture rather than a wrinkle to route around).
+  const t2Ids = program.courseIds.slice(1, 5);
+  for (const id of t2Ids) {
+    const node = s.tech.find((t) => t.id === id)!;
+    for (const pre of node.prereqs) {
+      const p = s.tech.find((t) => t.id === pre)!;
+      if (p.status !== 'done') p.status = 'done';
     }
   }
-  s = advanceUntil(s, (st) => isAvailIn(st, 'BLDG-BUSINESS'), 80);
-  assert(isAvail('BLDG-BUSINESS'), 'BLDG-BUSINESS opens once every Business T1 course is done');
-  assert(isLocked('FINA110'), 'FINA110 stays locked — the building is not built yet');
-
-  // Build it.
-  s = reducer(s, {
-    type: 'PLACE_BUILDABLE', buildableId: 'BLDG-BUSINESS', row: 40, col: 90, rotated: false,
-  });
-  s = advanceUntil(s, (st) => isAvailIn(st, 'FINA110'), 260);
-  assert(isAvail('FINA110'), 'FINA110 opens once the school building is done');
-  assert(isLocked('FINA210'), 'FINA210 (T3) stays locked — the T2 quartet is not done yet');
-
-  // Finish the T2 quartet and confirm T3 + the program-established milestone.
-  // FINA140 carries an authored cross-major bridge prereq onto ECON110 —
-  // DONE, not just started (see docs/architecture/buildables.md's "prereqs
-  // may cross majors and cross kinds" and techData.ts's cross-major bridge
-  // table: real curriculum texture, not a test wrinkle to route around) — so
-  // it needs its own completed-first stage before FINA140 is even available
-  // to start.
-  for (const id of ['FINA110', 'FINA120', 'FINA130', 'ECON110']) {
-    s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
+  s = reducer(s, { type: 'TICK' });
+  for (const id of t2Ids) {
+    if (isAvail(id)) s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
   }
-  s = advanceUntil(s, (st) => isAvailIn(st, 'FINA140'), 40);
-  assert(isAvail('FINA140'), 'FINA140 opens once its cross-major bridge prereq (ECON110) is done, on top of its own chain');
-  s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: 'FINA140' });
-  s = advanceUntil(s, (st) => isAvailIn(st, 'FINA210'), 40);
-  assert(isAvail('FINA210'), 'FINA210 opens once the whole T2 quartet is done');
-  assert(s.milestones['program-established:FINA'] === true, 'program-established fires exactly when the T2 quartet completes');
+  const t3Id = program.courseIds[5];
+  s = advanceUntil(s, (st) => isAvailIn(st, t3Id) || st.tech.find((t) => t.id === t3Id)?.status === 'developing', 80);
+  const capstone = s.tech.find((t) => t.id === t3Id)!;
+  const capstoneGated = capstone.prereqs.filter((id) => !t2Ids.includes(id));
+  if (capstoneGated.every((id) => isDoneIn(s, id))) {
+    assert(capstone.status !== 'locked', 'a T3 course opens once the T2 quartet is done');
+  } else {
+    assert(capstone.status === 'locked', 'a T3 course stays locked behind its lab or facility gate');
+  }
+  assert(s.milestones[`program-established:${program.id}`] === true, 'the program-established milestone is awarded');
 }
 
 // =====================================================================
@@ -511,6 +536,92 @@ function relPath(f: string): string {
   });
   assert(s1.orgs.pendingPetitions.length === 0, 'the petition queue is empty after resolving — nothing carries over');
   assert(!s1.orgs.clubs.some((c) => c.id === 'test-petition'), 'a declined petition never becomes a live club');
+}
+
+// =====================================================================
+// 9b. HALLS AND SLOTS (Plan 14's PR A). `s.halls` is the one side record
+// systems read (see types.ts's HallSlot), so it is held to three rules in
+// every state the game can reach: every non-null slot names a real
+// program; no program is housed twice; and every hall in the record is a
+// placed, standing Buildable with exactly its `slots` entries. The same
+// three rules persistence.ts's sanitizeHalls enforces on load.
+// =====================================================================
+function assertHallsInvariants(s: GameState, label: string): void {
+  const programIds = new Set<string>(['CORE', ...majorPrefixes(), ...graduatePrograms().map((p) => p.id)]);
+  const housed = new Map<string, string>();
+  for (const [hallId, slots] of Object.entries(s.halls)) {
+    const hall = s.tech.find((t) => t.id === hallId);
+    assert(!!hall && hall.slots !== undefined, `${label}: hall ${hallId} is a Buildable with slots`);
+    assert(hall?.status === 'done', `${label}: hall ${hallId} is standing`);
+    assert(hallId in s.placements, `${label}: hall ${hallId} is placed`);
+    assert(slots.length === hall?.slots, `${label}: hall ${hallId} has exactly ${hall?.slots} slots (got ${slots.length})`);
+    for (const slot of slots) {
+      if (slot.programId === null) continue;
+      assert(programIds.has(slot.programId), `${label}: slot in ${hallId} names a real program (${slot.programId})`);
+      assert(!housed.has(slot.programId), `${label}: ${slot.programId} is housed once (also in ${housed.get(slot.programId)})`);
+      housed.set(slot.programId, hallId);
+    }
+  }
+  // The offer (Plan 14's PR B): at most three, distinct, real, and none of
+  // them housed — an offer is a claim the program can be founded now.
+  assert(s.programOffers.length <= PROGRAM_OFFER_COUNT, `${label}: at most ${PROGRAM_OFFER_COUNT} offers`);
+  assert(new Set(s.programOffers).size === s.programOffers.length, `${label}: offers are distinct`);
+  for (const id of s.programOffers) {
+    assert(programIds.has(id) && id !== 'CORE', `${label}: offer ${id} is a real program`);
+    assert(!isHoused(s, id), `${label}: offer ${id} is not already housed`);
+  }
+}
+{
+  // A founding save: one hall, one slot, the core in it, nothing else.
+  let s = fresh();
+  assertHallsInvariants(s, 'founding');
+  assert(Object.keys(s.halls).length === 1 && s.halls[GENED_BUILDING_ID]?.length === 1,
+    'a founding save has one hall with one slot');
+  assert(s.halls[GENED_BUILDING_ID]?.[0]?.programId === 'CORE', 'and the core is in it');
+  assert(s.tech.find((t) => t.id === GENED_BUILDING_ID)?.slots === 1, 'Founders Hall is seeded with one slot');
+  assert(s.programOffers.length === 0, 'nothing is offered at founding');
+
+  // The chain: twelve halls of six, strictly sequential, the first waiting
+  // on the gen-ed core.
+  const halls = s.tech.filter(isAcademicHall);
+  assert(halls.length === ACADEMIC_HALL_COUNT, `the seed holds ${ACADEMIC_HALL_COUNT} academic halls (got ${halls.length})`);
+  assert(halls.every((h) => h.slots === ACADEMIC_HALL_SLOTS), 'every academic hall has six slots');
+  assert(halls.every((h) => h.status === 'locked'), 'no academic hall is buildable at founding');
+  assert(halls[0].prereqs.length === 6 && halls[0].prereqs.every((p) => p.startsWith('GE1')),
+    'the first hall requires the entire gen-ed core');
+  assert(halls.slice(1).every((h, i) => h.prereqs.length === 1 && h.prereqs[0] === halls[i].id),
+    'each later hall requires exactly the hall before it');
+  assert(halls.every((h, i) => i === 0 || h.cost > halls[i - 1].cost), 'each hall costs more than the one before');
+
+  // Drive it: finish the core, build the first hall, and its slots open
+  // empty the week it finishes — not before.
+  s.finance.cash = 500_000_000;
+  for (const id of ['GE110', 'GE120', 'GE130', 'GE140', 'GE150', 'GE160']) {
+    s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
+  }
+  const first = halls[0].id;
+  s = advanceUntil(s, (st) => st.tech.find((t) => t.id === first)?.status === 'available', 60);
+  assert(s.tech.find((t) => t.id === first)?.status === 'available', 'the first hall opens once the gen-ed core is done');
+  assert(s.programOffers.length === PROGRAM_OFFER_COUNT, `three programs are on offer the week the core completes (got ${s.programOffers.length})`);
+  assert(startedSchools(s).size === 1, 'only General Studies counts as started — the core is housed, nothing else is');
+  assertHallsInvariants(s, 'core complete');
+  assert(s.tech.find((t) => t.id === halls[1].id)?.status === 'locked', 'the second hall stays locked behind the first');
+  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: first, row: 40, col: 90, rotated: false });
+  assert(s.tech.find((t) => t.id === first)?.status === 'developing', 'the first hall is under construction');
+  assert(s.halls[first] === undefined, 'a hall under construction has no slots yet');
+  assertHallsInvariants(s, 'hall under construction');
+  s = advanceUntil(s, (st) => st.tech.find((t) => t.id === first)?.status === 'done', 260);
+  assert(s.tech.find((t) => t.id === first)?.status === 'done', 'the first hall finishes');
+  assert(s.halls[first]?.length === ACADEMIC_HALL_SLOTS, 'and opens with six slots');
+  assert(s.halls[first]?.every((slot) => slot.programId === null), 'all of them empty');
+  assert(s.tech.find((t) => t.id === halls[1].id)?.status === 'available', 'the second hall is now offered');
+  assertHallsInvariants(s, 'first hall standing');
+
+  // A tick does not touch a hall's slots or the offer: nothing writes
+  // them beyond the writes above, and the three stand until one is taken.
+  const before = JSON.stringify([s.halls, s.programOffers]);
+  s = advanceUntil(s, () => false, 20);
+  assert(JSON.stringify([s.halls, s.programOffers]) === before, 'ticking leaves the halls record and the offer alone');
 }
 
 // =====================================================================

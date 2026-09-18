@@ -1,9 +1,14 @@
 # The campus map
 
-The map is the central interface and a **visual-only layer**: placement grants
-nothing, gates nothing, and no system reads `placements`, `pathways` or
-`trees`. The invariant sweep enforces it. Adjacency effects and any
-economic or prestige feedback from the layout are deliberately deferred.
+The map is the central interface and, but for one surface, a **visual-only
+layer**: placement grants nothing, gates nothing, and no system reads
+`placements`, `pathways` or `trees`. The invariant sweep enforces it.
+Adjacency effects and any economic or prestige feedback from the layout are
+deliberately deferred. The one surface is the **hall panel** (Plan 14): an
+academic hall's info panel is where a program is founded into one of its
+slots, and its slots (`halls`, not `placements`) are simulation state — see
+[curriculum.md](../design/curriculum.md). *Where* the hall stands still means
+nothing; *what is in it* is the whole curriculum.
 
 Buildings are modeled as data first and placed on a tile grid second. The grid
 is drawn at an angle (2:1 dimetric — `src/components/isoProjection.ts`), and

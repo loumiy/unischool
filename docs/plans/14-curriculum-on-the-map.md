@@ -9,8 +9,13 @@ repeatable academic halls with six program slots, programs founded from a
 rolling offer of three, and a Curriculum tab that becomes forty-two rows — and
 turn them into an ordered sequence of PRs.*
 
-**Status: Proposed.** Depends on [Plan 09](09-playtest-harness.md) for the
-scenarios and the scorecard this is measured with. Supersedes
+**Status: Landed.** All nine PRs shipped, in order, each with its departures
+recorded below. The largest: the housed gate covers tier 1 (14C), so the tier-1
+wall went in C rather than G; the offer draw is seeded from state rather than
+the global RNG stream (14B); the harness learned to found in C because it could
+not progress otherwise; and two regression checks were re-read rather than
+re-tuned (14C). Depends on [Plan 09](09-playtest-harness.md) for the scenarios
+and the scorecard this is measured with. Supersedes
 [Plan 11](11-academic-halls.md), whose rooms-and-continuous-development model
 this replaces.
 
@@ -177,6 +182,23 @@ at a real program, that no program is housed twice, and that every hall in
 **Verify.** A founding save has one hall, one slot, the core in it, and no way
 to found anything.
 
+**As implemented:** the hall is a *chain*, not one Buildable cloned. Every
+Buildable in `s.tech` has a unique id, and the dorm chain is already the
+repository's shape for "several of one thing": twelve halls (`HALL-01` to
+`HALL-12`) in `techData.ts`'s `initialTech()` — beside the school buildings
+they replace rather than in `campusData.ts` — each unlocked by the one before
+it, the first by the gen-ed core. Twelve because that is the completionist
+ceiling: seven schools plus a second Business, Engineering, Science, Social
+Sciences and Health Science hall for the six graduate programs. A hall's
+`s.halls` entry is written the week it *finishes*, not when it is placed: a
+building site has no room in it, and "a slot exists" then means "a hall
+stands", which is the gate 14C needs. The sim skips the chain until 14I
+teaches it to site a hall on purpose, so the balance regression is untouched
+by a bill with nothing behind it. The save break is taken in full: the
+`MIGRATIONS` table, its three feeder helpers and the migration test fixtures
+are deleted, `loadGame` accepts exactly the current version, and
+`test/save-migrations.test.ts` becomes `test/save-load.test.ts`.
+
 ## PR 14B — The offer queue
 
 **What.**
@@ -200,6 +222,24 @@ always three until fewer than three remain, never repeats a founded program,
 never offers a gated one, and — across three seeds — always includes an
 unstarted school while one exists. A second test asserts a player who only ever
 takes the same school's offers still sees every school eventually.
+
+**As implemented:** the draw does **not** ride the per-year RNG stream, and
+the reason is a measurement. The first cut took one `Math.random` draw per
+refill, the discipline `rivalsSystem.ts` keeps, and that single extra draw at
+core completion shifted every faculty potential and candidate listing after
+it enough to send the balance sim's overbuilder into a distress it never
+climbed out of — one check off `test/balance-regression.test.ts`. The offer
+is not what the bands measure, so it must not move them: the local PRNG is
+seeded from the state instead (the school's name, the week, how many
+programs are housed) and the global stream is untouched, which the test
+pins by counting draws. Two schools with different names draw differently; a
+reloaded save draws what it would have drawn. The refill is also called from
+`tickTech` on every finish rather than once at core completion by name: it
+is a no-op on any week that reveals nothing, and that is one call instead of
+a special case. The
+seed gains `programs()`, a fourth independent read of the school table — the
+unit that takes a slot, by the id `s.halls` carries — which the sanitizer, the
+sweep and every later PR read instead of re-deriving school membership.
 
 ## PR 14C — Founding a program
 
@@ -231,6 +271,36 @@ takes the same school's offers still sees every school eventually.
 programs wait, and nothing can be founded until the hall stands. Founding one
 replaces it in the offer. A tier-2 course of an unhoused program stays locked.
 
+**As implemented:** the housed gate covers **every** course of a program,
+tier 1 included, not tier 2 alone: with tier-1 courses merely `available`
+after the core, the Curriculum tab's drawer could have started one and
+bypassed the founding. So a tier-1 course stays `locked` until
+`FOUND_PROGRAM` writes the slot, resolves unlocks and starts it in one
+transaction — and the tab's forty-two-card tier-1 pool, which 14G was to
+delete, goes now, because a wall of locked cards that says "found this from
+a hall" is worse than no wall. The pool is the core, captioned with the
+three programs on offer. Sections are keyed by school **name**, not by a
+building that no longer exists. The naming-rights event stands down (its
+donor pool reads empty) until 14E points it at a dedicated hall. A lab's
+prerequisite drops the school building and keeps only the entry course,
+again until 14E re-points it at `school-founded`. Medicine and Law keep
+their buildings until 14E, and are not offered until those stand. And
+because the balance sim cannot progress past the core without founding, it
+learned to site a hall and found the cheapest affordable offer *here*
+rather than in 14I — cheapest-first for every strategy; the completionist's
+school-first rule and the scatterer control are still 14I's. Two regression
+checks needed an honest answer rather than a re-tune. The Overbuilder's
+twenty-year distress turned out to be an artefact of the wall: forty-two
+`available` tier-1 courses made it hire forty professors it could not pay,
+and with three programs on offer it hired three. Its character is building
+capital ahead of demand, so the two spend-to-the-wire archetypes now site the
+next hall whenever it is affordable rather than when a slot is needed, and do
+so even while "saving" for a dorm they cannot afford — which is what a player
+with no buffer does — and the distress-and-recovery is back. And the discount
+strategy's decade-over-decade cash trend tripped on phase alone (its tower
+purchase moved from the late twenties into the early thirties), so that claim
+is now judged across seeds like its sibling, per the test's own policy.
+
 ## PR 14D — The program tile, and courses from the map
 
 **What.**
@@ -249,6 +319,18 @@ replaces it in the offer. A tier-2 course of an unhoused program stays locked.
 **Verify.** Every course in a housed program can be started from its hall panel,
 with the same grade preview and the same faculty eligibility rules the drawer
 applies. A course whose field has no free faculty slot shows why.
+
+**As implemented:** the strip is nine small cells (course number, and a
+grade, a +, a tick or an ellipsis) rather than nine course cards, because
+the panel is a 340-pixel column and a card per course was a second
+Curriculum tab. Selecting a cell opens the course under the strip: who
+teaches it and its grade, or the picker and a Develop button, or exactly why
+it cannot start — a prerequisite to finish, cash short, or a department with
+no free slot and whether the market can fix that today (`facultyGate`). One
+tile is open at a time; an open tile spans the grid so its strip fits. The
+tile reads `averageCourseQuality` and `courseQuality` — the same functions
+the Curriculum tab's headings and cells use — so a B on a tile and a B on a
+cell mean the same thing.
 
 ## PR 14E — Schools are founded
 
@@ -280,6 +362,22 @@ names it; five plus one Engineering program founds nothing. A second hall of
 Health Science programs plus the MD dedicates separately. Moving a program out
 of a dedicated hall keeps the milestone.
 
+**As implemented:** the hall's name on the map is a *live* reading
+(`hallDisplayName`): "<School> Hall" while the hall is pure, the seeded name
+otherwise, and the donor's text permanently once naming rights are sold —
+the milestone is the only thing written. A lab's school gate is a field on
+the Buildable (`schoolGate`) read beside the other dynamic gates, since a
+milestone is a reading of state rather than a Buildable's status. The
+University Hospital, which gated on `BLDG-MED`, now gates on the MD's entry
+course being done — "a school of medicine that exists" is its founding
+course, since it has no building. A graduate program is revealed in the
+Curriculum tab once it is *housed*, the same rule a major follows, so
+`professionalSchools()` and the Medicine/Law sections go with the
+buildings. Dedication is checked in `FOUND_PROGRAM` itself (and a newly
+opened lab resolved there), because it is a founding that changes the
+reading, not a tick. `SAVE_VERSION` moves to 53 — and 14C should have moved
+it too, since a save carries its own `tech`.
+
 ## PR 14F — Relocation
 
 **What.**
@@ -300,6 +398,18 @@ of a dedicated hall keeps the milestone.
 resumes with its courses and instructors intact. A run that founds greedily and
 reorganises later reaches its schools later than one that sited carefully — the
 scorecard in 15G should be able to see the difference.
+
+**As implemented:** the transit lives on the destination *slot*
+(`HallSlot.transitWeeks`), not in a record of its own: the program is housed
+at its new home from the moment the move is ordered — its slot is claimed,
+its courses stay gated to it — and only the countdown says it has not
+arrived. "Counts toward no seats" waits on Plan 15's PR E, since seats are
+not a ceiling yet; what a program in transit contributes to *now* is
+nothing: no grade, no aggregate, no dedication (the sixth program founds a
+school the week it settles, not the week it is ordered), no starts, no
+progress. A move within the same hall costs the same twelve weeks — one
+rule. The harness does not relocate yet; the greedy-then-reorganise control
+the scorecard should see is 14I's.
 
 ## PR 14G — Forty-two rows
 
@@ -336,6 +446,20 @@ program**, which is the view the progression actually has now.
 three of them unnamed; dragging a distinguished professor from a survey to a
 capstone previews both grades and applies both.
 
+**As implemented:** the tier-1 pool went in 14C, so this PR deletes only the
+button, its plan function, its action and its test. The rows are grouped
+under their school with the general-education core as the first group; an
+unfounded school's heading is its mark and "3 programs of a school not yet
+founded", never its name. Drops are HTML5 drag-and-drop with the whole of
+the state (which chip, which cell) in the tab, and the swap is its own
+action, `SWAP_COURSE_FACULTY`, gated in one place so an illegal drop never
+reaches the reducer and a legal one changes both courses or neither. The
+preview reads `projectedQuality`, the same arithmetic the instructor picker
+shows. The two-level view (school cards, then lanes) goes entirely; "open
+the tab at a school" from the map scrolls to the school's group instead. The
+year-15 scenario is 14I's, once the harness founds programs the way a
+player does.
+
 ## PR 14H — The market as a gate, and a search worth paying for
 
 Every course now needs a deliberate instructor, and the candidate market lists
@@ -357,6 +481,19 @@ pressure the review asked for, and a wall if the player can only wait it out.
 a measurable fraction of the wait. The sim's blocked-week column (Plan 09's PR E)
 distinguishes money-blocked from faculty-blocked.
 
+**As implemented:** a search is a fixed window (twenty-six weeks) with a
+flat weekly chance (one in four) of listing a candidate in its field, on top
+of the market's own churn — not a multiplier on the field's ordinary weight,
+which for a thin field is a multiplier on nearly nothing. Its price is two
+weeks of operating expense, floored like every event, so it scales with the
+size of the school. `s.searches` is a field-to-weeks record and one more
+required slice (`SAVE_VERSION` 54). The picker's dead end, the hall panel's
+course strip and the Faculty board's short departments all offer the same
+`SearchOffer`. The sim's activity row gains a `fblk` column — weeks when
+nothing was startable *only* for want of a department with a free slot, an
+offered program's field counted — but the harness does not post searches
+yet; that is 14I's, with the rest of its founding policy.
+
 ## PR 14I — The harness, and docs
 
 - `sim/balanceSim.ts`'s `decide()` sites halls when slots run out, founds from
@@ -371,6 +508,21 @@ distinguishes money-blocked from faculty-blocked.
   school buildings; `docs/architecture/campus-map.md` loses "read by no system"
   in the one place the hall panel now reads it; `game-state.md` records the
   save break and the deleted migration chain.
+
+**As implemented:** siting a hall when slots run out, founding
+cheapest-first, and the `fblk` column all landed earlier (14C, 14H) because
+the harness could not progress otherwise; this PR adds the *policies*. The
+earnest completionist founds school-first and keeps every hall **pure** — it
+founds only into an empty hall or one of the same school, and sites a new
+hall rather than mix one — and posts searches when a department is the wall.
+The scatterer is the Balanced builder with a founding policy of "first
+offer, first free slot", and the regression gate now asserts it founds fewer
+schools by year 20 than the completionist, across seeds. `sim/milestones.ts`
+gained its three hall milestones in 14E. The scatterer has no scorecard bands
+(the scorecard reports it as unmeasured, and passes); Plan 15's PR G records
+them with everyone else's. The `game-state.md` half landed in 14A;
+`graduate-programs.md`, `faculty.md` and `playtesting.md` are brought current
+here as well, since each described something this plan removed or added.
 
 ---
 

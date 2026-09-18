@@ -8,7 +8,8 @@ import {
   promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, VARSITY_PETITION_MIN_TENURE_YEARS, venueForCategory,
   CHAIR_LABEL, fieldForChair, generateCoachCandidate, seatCoach, vacantChairs,
 } from './studentLifeData';
-import { discoverySchools, graduateProgram, milestoneSchools } from './techData';
+import { graduateProgram, milestoneSchools } from './techData';
+import { dedicatedHalls, dedicatedSchool } from '../systems/techtree/schools';
 
 // ---------------------------------------------------------------------
 // WEEK-TO-WEEK TEXTURE, AS AUTHORED DATA.
@@ -90,6 +91,10 @@ function clamp(v: number, lo: number, hi: number): number {
 // (leaving only 'school-distinguished' fires roughly seven times in a full
 // 330-course run); dial it up by adding kinds as they are invented.
 export const MILESTONE_INTERRUPT_KINDS: readonly string[] = [
+  // Founding a school (Plan 14): six programs of one school in one hall.
+  // Seven in a run at most, each the naming of a school — the celebration
+  // IS the reveal of the name.
+  'school-founded',
   'program-established',
   'program-distinguished',
   'school-distinguished',
@@ -153,6 +158,17 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
         ? `Every course in the ${program.degree} program is finished. A professional school counts toward curriculum breadth — the largest input to the prestige target — and is weighted there above its course count, though still inside that input's cap.`
         : `Every course in the ${program.degree} program is finished. A research doctorate counts toward curriculum breadth AND toward the school's research standing, both as capped inputs to the prestige target.`,
       unlocks: [],
+    };
+  }
+
+  if (kind === 'school-founded') {
+    return {
+      key,
+      headline: `This is the School of ${subject}`,
+      detail: `Six programs, one building. Until now these were ${subject}'s programs in a colour with no name; housed together, they are a school, and the hall they share is ${subject} Hall. The name is permanent, and a donor may now put a family name on it.`,
+      unlocks: s.tech
+        .filter((t) => t.schoolGate === subject && t.status !== 'locked')
+        .map((t) => t.name),
     };
   }
 
@@ -298,28 +314,18 @@ function doneBuildings(s: GameState) {
   return s.tech.filter((t) => t.kind === 'building' && t.status === 'done');
 }
 
-// School buildings whose naming rights haven't been sold yet — a school is
-// only ever renamed once (see the 'naming-rights' event's apply()), so the
-// donor pool this event draws from excludes any building already carrying
-// a `donorSurname`.
-//
-// Also excludes the two professional-school buildings (BLDG-MED, BLDG-LAW
-// — see techData.ts's GraduateProgramSeed.buildingId), which is a
-// deliberate scope decision rather than an oversight: rollContext below
-// looks up the building's school through discoverySchools(), which only
-// ever covers the seven undergraduate schools, so an un-excluded
-// professional building would occasionally get drawn as the target and
-// then fail that lookup, silently wasting the week's roll instead of
-// firing an event. A "Johnson School of Law" naming-rights offer is a
-// thematically obvious follow-up, but wiring it in for real needs more
-// than a filter change here — discoverySchools()-shaped lookup for a
-// professional school, and a heading path in CurriculumTab.tsx's
-// buildSections that reads a professional section's donorSurname the way
-// an undergraduate one already does — so it's flagged as follow-up scope
-// rather than attempted alongside the buildings themselves.
-function unnamedSchoolBuildings(s: GameState) {
-  const eligibleIds = new Set(discoverySchools().map((school) => school.buildingId));
-  return doneBuildings(s).filter((b) => !b.donorSurname && eligibleIds.has(b.id));
+// The buildings a naming-rights offer may be made on: a DEDICATED hall —
+// six programs of one school (see systems/techtree/schools.ts) — whose
+// rights have not been sold. A school is only ever named once, so a hall
+// already carrying a `donorSurname` leaves the pool; the pool empties the
+// same way once every founded school is named. Founders Hall is never for
+// sale: it holds the core, not a school. Read live, so a hall that has
+// lost its purity is not on offer this week — a donor names a school, and
+// there has to be one standing in the building.
+function unnamedSchoolBuildings(s: GameState): Buildable[] {
+  return dedicatedHalls(s)
+    .map(({ hallId }) => s.tech.find((t) => t.id === hallId))
+    .filter((t): t is Buildable => t !== undefined && !t.donorSurname && t.status === 'done');
 }
 
 function doneDiningHalls(s: GameState) {
@@ -559,14 +565,14 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       const buildings = unnamedSchoolBuildings(s);
       if (buildings.length === 0) return null;
       const target = pick(buildings);
-      const school = discoverySchools().find((sc) => sc.buildingId === target.id);
+      const school = dedicatedSchool(s, target.id);
       if (!school) return null;
       const donor = rollSurname();
       return {
         subjectId: target.id,
-        subjectName: school.name, // the school's own name, e.g. "Science" — not its building's name
+        subjectName: school, // the school's own name, e.g. "Science" — not its hall's name
         donorName: donor,
-        newName: `${donor} School of ${school.name}`,
+        newName: `${donor} School of ${school}`,
         amount: rollAmount(s, NAMING_RIGHTS_MIN_WEEKS, NAMING_RIGHTS_MAX_WEEKS),
       };
     },

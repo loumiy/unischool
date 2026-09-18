@@ -490,15 +490,22 @@ const FOOTBALL_STADIUM_WEEKS = 40;
 // outright. Every other FacilityType (library, dorm-adjacent facilities,
 // etc.) is absent here on purpose: it already has its own natural grouping
 // and doesn't need a second one.
-export type FacilityCategory = 'athletics' | 'recreation';
+// 'social' is the student center and everything recreational and cultural
+// beside it — the buildings students go to for each other rather than for a
+// class; 'academic' is the halls, the library and the labs (the build menu
+// assigns those by kind and type, since a hall is not a FacilityType).
+export type FacilityCategory = 'athletics' | 'social' | 'academic';
 
 export const FACILITY_CATEGORY_OF: Partial<Record<FacilityType, FacilityCategory>> = {
-  recCenter: 'recreation',
-  gym: 'recreation',
-  tennisCourts: 'recreation',
-  pool: 'recreation',
-  performingArtsCenter: 'recreation',
-  artGallery: 'recreation',
+  library: 'academic',
+  lab: 'academic',
+  studentCenter: 'social',
+  recCenter: 'social',
+  gym: 'social',
+  tennisCourts: 'social',
+  pool: 'social',
+  performingArtsCenter: 'social',
+  artGallery: 'social',
   athleticsField: 'athletics',
   athleticsArena: 'athletics',
   athleticsDiamond: 'athletics',
@@ -561,11 +568,14 @@ export const HEALTH_CENTER_TIER2_ID = 'HLTH-T2';
 const HEALTH_CENTER_TIER2_SERVES = 6_000;
 const HEALTH_CENTER_TIER2_COST = 2_400_000; // 400/seat
 const HEALTH_CENTER_TIER2_WEEKS = 26;
-// The medical school's own building, named as a raw id rather than
-// imported: techData.ts already imports FROM this file (for the arts and
-// clinical gates), so importing back would make the two data modules
-// circular — the same reason MUSIC_TIER2_IDS above is written out.
-const MEDICAL_SCHOOL_BUILDING_ID = 'BLDG-MED';
+// The MD's entry course, named as a raw id rather than imported:
+// techData.ts already imports FROM this file (for the arts and clinical
+// gates), so importing back would make the two data modules circular —
+// the same reason MUSIC_TIER2_IDS above is written out. The School of
+// Medicine has no building of its own any more (Plan 14's PR E: it takes
+// a hall slot like any program), so "a school of medicine that stands" is
+// its founding course being done.
+const MEDICAL_SCHOOL_ENTRY_ID = 'MED501';
 export const HEALTH_CENTER_TIER3_POPULATION_GATE = 20_000;
 export const HEALTH_CENTER_TIER3_ID = 'HLTH-T3';
 const HEALTH_CENTER_TIER3_SERVES = 30_000;
@@ -581,6 +591,14 @@ const QUAD_TIER1_FLAT_BONUS = 8;
 const QUAD_TIER1_COST = 60_000;
 const QUAD_TIER1_WEEKS = 4;
 const QUAD_TIER1_UPKEEP = 400;
+// A SECOND SMALL QUAD, the first one's footprint and shape, for a campus
+// with more than one open middle. Not a tier: it is another quad, not a
+// bigger one, so it carries no `tier` and the build tray gives it no chip.
+const QUAD_SECOND_ID = 'QUAD-S2';
+const QUAD_SECOND_FLAT_BONUS = 5;
+const QUAD_SECOND_COST = 90_000;
+const QUAD_SECOND_WEEKS = 4;
+const QUAD_SECOND_UPKEEP = 400;
 const QUAD_TIER2_ID = 'QUAD-T2';
 const QUAD_TIER2_FLAT_BONUS = 12;
 const QUAD_TIER2_COST = 190_000;
@@ -949,15 +967,17 @@ export function initialFacilities(): Buildable[] {
       facilityType: 'healthCenter',
       tier: 3,
       name: 'University Hospital',
-      description: `A teaching hospital caring for ${HEALTH_CENTER_TIER3_SERVES.toLocaleString()} more students, and where the MD's clerkship year is spent. Needs the School of Medicine standing, and a campus past ${HEALTH_CENTER_TIER3_POPULATION_GATE.toLocaleString()} students enrolled.`,
+      description: `A teaching hospital caring for ${HEALTH_CENTER_TIER3_SERVES.toLocaleString()} more students, and where the MD's clerkship year is spent. Needs the School of Medicine founded, and a campus past ${HEALTH_CENTER_TIER3_POPULATION_GATE.toLocaleString()} students enrolled.`,
       cost: HEALTH_CENTER_TIER3_COST,
       duration: HEALTH_CENTER_TIER3_WEEKS,
-      // The medical school's BUILDING, not merely its academic gate: a
+      // The medical school FOUNDED, not merely its academic gate: a
       // teaching hospital belongs to a school of medicine that actually
-      // stands. Never circular with the MD capstone this in turn gates
-      // (techData.ts) — that is a course inside the program, several rungs
-      // past the building.
-      prereqs: [HEALTH_CENTER_TIER2_ID, MEDICAL_SCHOOL_BUILDING_ID],
+      // exists, and the MD's entry course done is what that means now
+      // that the school has no building (see MEDICAL_SCHOOL_ENTRY_ID).
+      // Never circular with the MD capstone this in turn gates
+      // (techData.ts) — that is the last course of the program, and the
+      // entry course requires nothing of the hospital.
+      prereqs: [HEALTH_CENTER_TIER2_ID, MEDICAL_SCHOOL_ENTRY_ID],
       minCapacityToUnlock: HEALTH_CENTER_TIER3_POPULATION_GATE,
       status: 'locked',
       effects: {
@@ -983,6 +1003,22 @@ export function initialFacilities(): Buildable[] {
         satisfactionAttribute: 'social',
         flatSatisfactionBonus: QUAD_TIER1_FLAT_BONUS,
         upkeepPerWeek: QUAD_TIER1_UPKEEP,
+      },
+    },
+    {
+      id: QUAD_SECOND_ID,
+      kind: 'facility',
+      facilityType: 'quad',
+      name: 'Second Quad',
+      description: 'A second green, the size of the first — a campus with two open middles. The same flat, non-scaling social bonus, a little smaller.',
+      cost: QUAD_SECOND_COST,
+      duration: QUAD_SECOND_WEEKS,
+      prereqs: [QUAD_TIER1_ID],
+      status: 'locked',
+      effects: {
+        satisfactionAttribute: 'social',
+        flatSatisfactionBonus: QUAD_SECOND_FLAT_BONUS,
+        upkeepPerWeek: QUAD_SECOND_UPKEEP,
       },
     },
     {

@@ -313,6 +313,25 @@ export interface Buildable {
   // interleaved with, the sequential dorm chain) and gives its tile a beds
   // figure despite the missing `effects`.
   chapterHouse?: true;
+  // How many PROGRAM SLOTS this building holds — set only on hall-kind
+  // 'building' Buildables (techData.ts's academic hall chain, six each, and
+  // Founders Hall, one) and on nothing else. A slot is where a program
+  // lives: founding a program takes an empty slot in a standing hall, and
+  // six programs of one school in one hall is what founds that school (see
+  // the HallSlot block below and docs/design/curriculum.md). The slots
+  // themselves are state in `s.halls`, not here; this is the count the
+  // hall was built with, which is what lets the loader check an entry has
+  // exactly as many as it should.
+  slots?: number;
+  // A SCHOOL gate (Plan 14's PR E): this Buildable stays locked until the
+  // named school has been founded — six of its programs housed in one
+  // hall, the `school-founded:<School>` milestone. Set on each lab-gated
+  // major's lab (techData.ts), which used to name the school's building
+  // as a prereq; the milestone is the reading that building stood for.
+  // Checked in techSystem.ts's meetsUnlockGates beside the other dynamic
+  // gates, since a milestone is a reading of state rather than a
+  // Buildable's status.
+  schoolGate?: string;
   status: BuildableStatus;
   effects?: Partial<BuildableEffects>; // read by the systems below; see each field's own comment for exactly when
   // Set only once this school's naming rights are sold (see eventData.ts's
@@ -521,7 +540,9 @@ export type Pathways = Record<string, true>;
 // uses — which is also what makes the path lookup above a plain key test.
 //
 // Visual only, like `placements` and `pathways`: no system reads it, no
-// Buildable gates on it, and felling a wood costs and grants nothing.
+// Buildable gates on it, and felling a wood — or planting one, with the
+// campus tools' tree tool (PLANT_TREE / FELL_TREE) — costs and grants
+// nothing.
 export type Trees = Record<string, number>;
 
 // The generic pause-the-clock decision-event mechanism (see
@@ -1165,6 +1186,54 @@ export interface YearSnapshot {
 }
 
 // ---------------------------------------------------------------------
+// WHERE EVERY PROGRAM LIVES. A hall Buildable's id -> its program slots,
+// positional: slot 3 is slot 3 forever, so the hall panel can draw a 2x3
+// grid whose tiles never shuffle under the player.
+//
+// A PROGRAM ID is the major's course-code prefix ('FINA', 'MECH' — the
+// same prefix milestoneSchools() keys a major by), 'CORE' for the gen-ed
+// core, or a graduate program's id ('MED', 'PHDE'). Nothing here is a
+// Buildable id: a program is the nine (or however many) courses that share
+// a prefix, and it is housed as a unit.
+//
+// A hall's entry is written the week the hall FINISHES (techSystem.ts),
+// with every slot empty — a hall under construction has no room to put
+// anything in yet — and Founders Hall's is seeded at founding with the
+// core already in its one slot (actions.ts). From then on the entry is the
+// whole answer to "what is in this building": founding a program fills a
+// slot, relocating one moves it, and a school is founded by a READING over
+// this record (six slots, one school) rather than by any flag written
+// beside it. See docs/design/curriculum.md.
+//
+// PROGRAMS ARRIVE THREE AT A TIME. After the gen-ed core the player is
+// never shown forty-two doors: `programOffers` holds the three programs
+// that can be founded right now, drawn from what remains, and founding
+// one draws a replacement (systems/techtree/programOffers.ts). The offer
+// is GLOBAL — the same three at any free slot on campus — and there is no
+// reroll and no decline: the three stand until one is taken. Empty until
+// the core is complete, and shorter than three only when fewer programs
+// remain to offer.
+//
+// A SEPARATE RECORD, keyed by id, for the same reason `placements` and
+// `courseFaculty` are: something true of one KIND of Buildable that must
+// not fork the single Buildable model. Unlike those two, this one IS read
+// by systems — the tier-2 gate asks whether a course's program is housed,
+// dedication asks what a hall holds — so it is not visual-only, and the
+// loader's sanitizeHalls treats a bad entry as a lie to correct rather
+// than a glitch to drop. Plain data: an array of one-field objects, no
+// references into `tech`, so it survives a JSON round trip untouched.
+export interface HallSlot {
+  programId: string | null;
+  // Set while the program is IN TRANSIT to this slot (Plan 14's PR F): the
+  // weeks left before it is teaching again. Relocation is free in money
+  // and expensive in time — a program in transit contributes no teaching
+  // quality, its courses cannot be started or advanced, and it does not
+  // count toward its hall's dedication until it arrives. Ticked down by
+  // techSystem.ts and deleted at zero; absent means settled.
+  transitWeeks?: number;
+}
+
+// ---------------------------------------------------------------------
 // WHO TEACHES WHAT. Course id -> the id of the Faculty member the player
 // chose to teach it, written when development starts and editable
 // afterwards (REASSIGN_COURSE_FACULTY).
@@ -1212,6 +1281,9 @@ export interface GameState {
   tech: Buildable[];
   developing: Record<string, number>; // course id -> weeks remaining
   courseFaculty: CourseFaculty;       // course id -> the faculty member teaching it; the player's choice, made when development starts (see the CourseFaculty block above)
+  halls: Record<string, HallSlot[]>;  // hall Buildable id -> its program slots, positional (see the HallSlot block above)
+  programOffers: string[];            // the programs on offer right now — three, or fewer only when fewer remain (see the HallSlot block above and systems/techtree/programOffers.ts)
+  searches: Record<string, number>;   // faculty field -> weeks left on a posted search for a candidate in it (see systems/faculty/facultySearch.ts)
   placements: Placements;            // Buildable id -> the campus tiles it covers; visual only (see the campus map block above)
   pathways: Pathways;                 // drawn walkway tiles; visual only, read by no system (see the Pathways block above)
   trees: Trees;                       // the founding woodland, tile -> render seed; felled by building, hidden by paving (see the Trees block above)

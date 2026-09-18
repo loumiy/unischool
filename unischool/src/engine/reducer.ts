@@ -6,8 +6,9 @@ import { createInitialState, createPreStartState } from '../state/actions';
 import { tickFinance, endowmentCampaign } from '../systems/finance/financeSystem';
 import {
   tickTech, canStartDevelopment, startDevelopment, eligibleInstructors, isCommitted,
-  planCommitmentCoverage, developAllPlan,
+  planCommitmentCoverage, foundProgram, relocateProgram, swapInstructors,
 } from '../systems/techtree/techSystem';
+import { postSearch } from '../systems/faculty/facultySearch';
 import { endInitiative } from '../systems/research/researchSystem';
 import { initiativeDepth, initiativeFundingCost } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
@@ -25,7 +26,7 @@ import { tickAthletics } from '../systems/athletics/athleticsSystem';
 import { raiseDemand, shortfallDemandFor, tickDemands } from '../systems/demands/demandSystem';
 import { absoluteWeek, findDecisionEvent } from '../data/eventData';
 import { LIBRARY_TIER1_ID, nextLibraryFloor, servedUpkeep } from '../data/facilitiesData';
-import { fellTrees } from '../data/treeData';
+import { fellTrees, TREE_SEED_RANGE } from '../data/treeData';
 import {
   CHAPTER_APPROVAL_SATISFACTION_NUDGE, CHAPTER_DECLINE_SATISFACTION_HIT,
   CLUB_APPROVAL_SATISFACTION_NUDGE, CLUB_DECLINE_SATISFACTION_HIT, activatePetition, TRAINER_FIELD,
@@ -34,6 +35,7 @@ import {
 import {
   canPlace, canSiteRetroactively, footprintOf, isInBounds, isPlaceableKind,
   orientedFootprint, pathTileKey, placementFor, RETROACTIVE_SITING_COST,
+  occupantAt,
 } from '../state/campusMap';
 import { captureYearSnapshot } from '../state/history';
 import { saveGame, clearSave } from '../state/persistence';
@@ -271,6 +273,21 @@ export function reducer(state: GameState, action: Action): GameState {
       if (node && !isPlaceableKind(node) && canStartDevelopment(s, node, action.facultyId)) {
         startDevelopment(s, node, action.facultyId);
       }
+      return s;
+    }
+
+    case 'FOUND_PROGRAM': {
+      // The whole gate and the whole mutation live in techSystem.ts's
+      // foundProgram, for the reason START_DEVELOPMENT's do in
+      // canStartDevelopment/startDevelopment: the hall panel has to be
+      // able to say whether a founding will go through before offering
+      // the button, and one predicate serves both.
+      foundProgram(s, { programId: action.programId, hallId: action.hallId, slot: action.slot, facultyId: action.facultyId });
+      return s;
+    }
+
+    case 'RELOCATE_PROGRAM': {
+      relocateProgram(s, { programId: action.programId, hallId: action.hallId, slot: action.slot });
       return s;
     }
 
@@ -512,6 +529,23 @@ export function reducer(state: GameState, action: Action): GameState {
 
     case 'REMOVE_PATH_TILE': {
       delete s.pathways[pathTileKey(action.tile)];
+      return s;
+    }
+
+    case 'PLANT_TREE': {
+      // Only on open ground: a tree under a building is felled by
+      // definition, and one under a path is hidden until the path lifts
+      // (see types.ts's Trees) — neither is something worth planting.
+      const { row, col } = action.tile;
+      if (!isInBounds(row, col)) return s;
+      const key = pathTileKey(action.tile);
+      if (key in s.pathways || occupantAt(s.placements, row, col) !== undefined) return s;
+      if (!(key in s.trees)) s.trees[key] = Math.floor(Math.random() * TREE_SEED_RANGE);
+      return s;
+    }
+
+    case 'FELL_TREE': {
+      delete s.trees[pathTileKey(action.tile)];
       return s;
     }
 
@@ -909,8 +943,7 @@ export function reducer(state: GameState, action: Action): GameState {
     // dispatched from the panel, and the reason is the auto-resolve: a
     // component dispatching a hundred actions in one handler cannot see
     // the state between any two of them, so it cannot know a modal came up
-    // on week 37 and answer it. This is the same shape
-    // DEVELOP_ALL_AVAILABLE_COURSES already has — a loop over the ordinary
+    // on week 37 and answer it. So it is a loop over the ordinary
     // primitives, inside the reducer, taking no shortcut the single-step
     // version does not take — and it costs one render rather than N.
     case 'DEBUG_JUMP': {
@@ -997,16 +1030,13 @@ export function reducer(state: GameState, action: Action): GameState {
     // exactly as they would clicking by hand: a course started earlier in
     // the loop can spend the cash or fill the faculty slot a later one
     // needed.
-    case 'DEVELOP_ALL_AVAILABLE_COURSES': {
-      // Driven by the same plan the button quotes (see techSystem.ts's
-      // developAllPlan), so what the player was told it would cost is what
-      // it costs. Each start is still re-checked against the live state as
-      // the cash and the slots go: the plan decides WHICH, and
-      // canStartDevelopment remains the authority on whether.
-      for (const id of developAllPlan(s).ids) {
-        const node = s.tech.find((t) => t.id === id);
-        if (node && canStartDevelopment(s, node)) startDevelopment(s, node);
-      }
+    case 'POST_SEARCH': {
+      postSearch(s, action.field);
+      return s;
+    }
+
+    case 'SWAP_COURSE_FACULTY': {
+      swapInstructors(s, action.courseA, action.courseB);
       return s;
     }
 

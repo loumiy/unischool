@@ -74,7 +74,9 @@ function hashUnit(id: string): number {
 
 // A small local PRNG, seeded once and then run independently of
 // Math.random — see systems/rivals/rivalsSystem.ts's annual drift for the
-// one caller and the reason it exists.
+// first caller and the reason it exists: one draw on the global stream per
+// event, however many numbers the event then needs. The program offer
+// draw (systems/techtree/programOffers.ts) rides it for the same reason.
 export function makeRivalRng(seed: number): () => number {
   let state = seed >>> 0;
   return () => {

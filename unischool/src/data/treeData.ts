@@ -45,10 +45,12 @@ const CLEARING_RADIUS = 18;
 // The seed each tree carries. One integer, from which the renderer derives
 // species, size and the offset within the tile — see Trees in types.ts for
 // why a seed rather than a record of fields.
-const SEED_RANGE = 1 << 20;
+// Exported for the reducer's PLANT_TREE, which rolls a seed the same way
+// the founding woodland's are rolled.
+export const TREE_SEED_RANGE = 1 << 20;
 
 function randomSeed(): number {
-  return Math.floor(Math.random() * SEED_RANGE);
+  return Math.floor(Math.random() * TREE_SEED_RANGE);
 }
 
 // Every tile any already-placed Buildable stands on. A founding campus has

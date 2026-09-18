@@ -247,6 +247,15 @@ export function QuadIcon() {
   );
 }
 
+export function TreeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M12 3 L6 12 H9 L5 18 H19 L15 12 H18 Z" />
+      <line x1="12" y1="18" x2="12" y2="21" />
+    </svg>
+  );
+}
+
 export function FitnessIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>

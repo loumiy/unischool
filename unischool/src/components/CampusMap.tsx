@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { Action } from '../state/actions';
+import type { Action, CampusTool } from '../state/actions';
 import type { Buildable, GameState, Placement, TileCoord, Vernacular } from '../state/types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import {
@@ -11,6 +11,7 @@ import { chapterHouseId } from '../data/eventData';
 import { isTypingTarget, useHotkeys } from './hotkeys';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
+import { hallDisplayName } from '../systems/techtree/schools';
 import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf } from './buildingMotifs';
 import { materialOf, motifOf } from './buildingSpec';
 import { groundProps } from './groundMarkings';
@@ -222,8 +223,13 @@ const MAP_HEIGHT = WORLD.maxY - WORLD.minY + MAP_PADDING * 2 + WORLD_TOP_HEADROO
 // one. Draw and erase are exact opposites, so the pair needs no table — it
 // just needs a name, so that "the other one" is a thing the mousedown
 // handler says rather than a ternary the reader has to decode.
-function otherPathTool(tool: 'draw' | 'erase'): 'draw' | 'erase' {
-  return tool === 'draw' ? 'erase' : 'draw';
+function otherPathTool(tool: CampusTool): CampusTool {
+  switch (tool) {
+    case 'draw': return 'erase';
+    case 'erase': return 'draw';
+    case 'plant': return 'fell';
+    case 'fell': return 'plant';
+  }
 }
 
 // The CSS hook for a placed building. Colour is no longer decided here —
@@ -254,13 +260,13 @@ function drawnFootprint(p: Placement) {
 // the plate, not a text baseline — the plate used to hang off the baseline,
 // which put its visual middle a quarter of a line above the point it was
 // nominally placed at and compounded the float.
-function labelLayout(t: Buildable, p: Placement, v: Vernacular) {
+function labelLayout(label: string, t: Buildable, p: Placement, v: Vernacular) {
   const size = Math.max(
     LABEL_MIN_FONT_SIZE,
     Math.min(LABEL_MAX_FONT_SIZE, (p.w + p.h) * LABEL_SIZE_PER_TILE),
   );
   const centre = lift(project(p.col + p.w / 2, p.row + p.h / 2), labelHeightOf(t, v));
-  const textWidth = t.name.length * size * LABEL_CHAR_WIDTH_RATIO;
+  const textWidth = label.length * size * LABEL_CHAR_WIDTH_RATIO;
   return { size, centre, textWidth };
 }
 
@@ -287,9 +293,14 @@ type SceneEntry = DepthBox & (
 // actually drawn is both correct and free — there are only ever a few dozen
 // buildings, so nothing here needs the arithmetic picking the ground uses.
 function PlacedBuilding({
-  t, p, onInspect, inspected, weeksLeft, justFinished, glyphs, vernacular,
+  t, p, label, onInspect, inspected, weeksLeft, justFinished, glyphs, vernacular,
 }: {
   t: Buildable; p: Placement; onInspect: () => void; inspected: boolean;
+  // What the map calls it — a dedicated hall is "<School> Hall" while it
+  // is pure (systems/techtree/schools.ts's hallDisplayName), which is a
+  // live reading the parent makes; the Buildable's own `name` stays the
+  // seeded one unless a donor bought it.
+  label: string;
   weeksLeft?: number; justFinished?: boolean;
   // The architecture this campus was built in (state's self.vernacular).
   // Both lookups below resolve to objects held on buildingSpec's own
@@ -307,7 +318,7 @@ function PlacedBuilding({
   return (
     <g
       className={`campus-building ${kindClasses(t)} ${inspected ? 'inspected' : ''} ${developing ? 'under-construction' : ''}`}
-      aria-label={t.name}
+      aria-label={label}
       role="button"
       onClick={onInspect}
     >
@@ -360,7 +371,7 @@ function PlacedBuilding({
           />
         </>
       )}
-      <title>{developing ? `${t.name} · under construction · ${weeksLeft}w left` : `${t.name} · ${p.w}×${p.h}`}</title>
+      <title>{developing ? `${label} · under construction · ${weeksLeft}w left` : `${label} · ${p.w}×${p.h}`}</title>
     </g>
   );
 }
@@ -379,10 +390,10 @@ function PlacedBuilding({
 //
 // The measure runs in a LAYOUT effect, so the corrected plate is in place
 // before the browser paints and no frame shows the estimate.
-function BuildingLabel({ t, p, pinned, vernacular }: {
-  t: Buildable; p: Placement; pinned: boolean; vernacular: Vernacular;
+function BuildingLabel({ t, p, label, pinned, vernacular }: {
+  t: Buildable; p: Placement; label: string; pinned: boolean; vernacular: Vernacular;
 }) {
-  const { size, centre, textWidth } = labelLayout(t, p, vernacular);
+  const { size, centre, textWidth } = labelLayout(label, t, p, vernacular);
   const textRef = useRef<SVGTextElement>(null);
   const [box, setBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
 
@@ -394,7 +405,7 @@ function BuildingLabel({ t, p, pinned, vernacular }: {
       && prev.w === b.width && prev.h === b.height
       ? prev
       : { x: b.x, y: b.y, w: b.width, h: b.height }));
-  }, [t.name, size, centre.x, centre.y]);
+  }, [label, size, centre.x, centre.y]);
 
   // Until the first measure lands, fall back to the estimate so there is
   // never a nameplate-less label.
@@ -432,7 +443,7 @@ function BuildingLabel({ t, p, pinned, vernacular }: {
           stylesheet. Adding a manual half-cap-height on top of that was
           double-correcting, and dropped the text below its own plate. */}
       <text ref={textRef} className="campus-label-text" x={centre.x} y={centre.y} fontSize={size}>
-        {t.name}
+        {label}
       </text>
     </g>
   );
@@ -455,13 +466,13 @@ export default function CampusMap({
   // map itself, so this component only ever READS it here; App.tsx is what
   // enforces "picking up a building and drawing/erasing a path are two
   // different jobs for the same click, so exactly one is ever live".
-  pathTool: 'draw' | 'erase' | null;
+  pathTool: CampusTool | null;
   // The same toggle the build popup's tool tiles drive (App.tsx's
   // setPathTool: calling it again with the CURRENTLY active mode turns it
   // off). The 'P' hotkey and Escape both reuse that exact toggle (see the
   // useHotkeys block below) rather than inventing a separate arm/cancel
   // path of their own.
-  onSetPathTool: (mode: 'draw' | 'erase') => void;
+  onSetPathTool: (mode: CampusTool) => void;
   // Whether the map currently owns the keyboard — false while a tab overlay
   // or an interrupt modal is on top of it (App.tsx decides). Everything this
   // component binds a key for is a thing you do while LOOKING at the map, so
@@ -476,7 +487,7 @@ export default function CampusMap({
   // Opens the Curriculum tab at a given school, for the academic hall's own
   // info panel (see BuildingInfoPanel.tsx). The map does not know what a
   // tab is — it hands the id up to App, which owns what is open.
-  onOpenCurriculum: (buildingId: string) => void;
+  onOpenCurriculum: (sectionKey: string) => void;
 }) {
   // Whether the currently-selected building has been turned 90 degrees
   // before siting (see campusMap.ts's orientedFootprint). Transient UI
@@ -590,7 +601,7 @@ export default function CampusMap({
   // own "held across a gesture" shape, one level down). Set on a tile's own
   // mousedown, read on every tile's mouseenter while still set, cleared on
   // the same global mouseup dragRef already listens for.
-  const pathDragRef = useRef<'draw' | 'erase' | null>(null);
+  const pathDragRef = useRef<CampusTool | null>(null);
   // The last world point a path stroke painted at. The flat map painted from
   // each tile's own mouseenter, which physically cannot skip a tile; this one
   // samples mousemove instead, which can — a quick drag jumps several tiles
@@ -839,7 +850,7 @@ export default function CampusMap({
   // Paint every tile between the last sampled point and this one, so a fast
   // drag draws a continuous walkway rather than a dotted one. Steps at half a
   // tile, which cannot step over a whole tile however the stroke is angled.
-  function paintStroke(e: { clientX: number; clientY: number }, tool: 'draw' | 'erase') {
+  function paintStroke(e: { clientX: number; clientY: number }, tool: CampusTool) {
     const here = worldFromEvent(e);
     if (!here) return;
     const from = pathLastRef.current ?? here;
@@ -1091,8 +1102,13 @@ export default function CampusMap({
   // click without any movement still draws/erases one square) and arms
   // pathDragRef so every tile the pointer subsequently enters, while the
   // button stays down, gets the same treatment.
-  const paintTile = (tile: TileCoord, tool: 'draw' | 'erase') => {
-    act(tool === 'draw' ? { type: 'ADD_PATH_TILE', tile } : { type: 'REMOVE_PATH_TILE', tile });
+  const paintTile = (tile: TileCoord, tool: CampusTool) => {
+    act(
+      tool === 'draw' ? { type: 'ADD_PATH_TILE', tile }
+        : tool === 'erase' ? { type: 'REMOVE_PATH_TILE', tile }
+          : tool === 'plant' ? { type: 'PLANT_TREE', tile }
+            : { type: 'FELL_TREE', tile },
+    );
   };
 
   // Placements resolved against `tech` once per render, rather than per
@@ -1280,6 +1296,7 @@ export default function CampusMap({
                 key={t.id}
                 t={t}
                 p={p}
+                label={hallDisplayName(s, t)}
                 onInspect={() => inspectBuilding(t.id)}
                 inspected={t.id === inspectedId}
                 weeksLeft={s.developing[t.id]}
@@ -1306,6 +1323,7 @@ export default function CampusMap({
                   <PlacedBuilding
                     t={t}
                     p={p}
+                    label={hallDisplayName(s, t)}
                     onInspect={() => inspectBuilding(entry.id)}
                     inspected={entry.id === inspectedId}
                     weeksLeft={s.developing[entry.id]}
@@ -1356,7 +1374,7 @@ export default function CampusMap({
 
             <g ref={labelLayerRef}>
               {placed.map(({ t, p }) => (
-                <BuildingLabel key={`label-${t.id}`} t={t} p={p} pinned={t.id === inspectedId} vernacular={s.self.vernacular} />
+                <BuildingLabel key={`label-${t.id}`} t={t} p={p} label={hallDisplayName(s, t)} pinned={t.id === inspectedId} vernacular={s.self.vernacular} />
               ))}
             </g>
           </g>
@@ -1378,8 +1396,9 @@ export default function CampusMap({
           <BuildingInfoPanel
             t={inspected.t}
             s={s}
+            act={act}
             onClose={() => setInspectedId(null)}
-            onOpenCurriculum={(buildingId) => { setInspectedId(null); onOpenCurriculum(buildingId); }}
+            onOpenCurriculum={(key) => { setInspectedId(null); onOpenCurriculum(key); }}
           />
         )}
 

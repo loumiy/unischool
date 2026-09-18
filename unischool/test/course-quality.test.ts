@@ -56,7 +56,8 @@ console.log('course quality tests');
   assert(full === 7, `a full load costs 7 points (got ${full})`);
   assert(full < 16, 'which is less than the narrowest grade band, so a full load is a cost rather than an automatic demotion');
 
-  // Over-ceiling loads only exist in a migrated save (MIGRATIONS[30]), and
+  // Over-ceiling loads cannot arise in play (a hire never sheds a slot),
+  // but the curve is defined past the ceiling and should
   // still read worse than a merely full one.
   assert(loadPenalty(5, 3) > full, 'an over-stretched instructor reads worse than a full one');
   assert(loadPenalty(9, 3) === loadPenalty(5, 3), 'but the overrun is capped rather than unbounded');

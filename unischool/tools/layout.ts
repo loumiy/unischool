@@ -59,16 +59,18 @@ interface Site { id: string; row: number; col: number; rotated?: boolean }
 // centred on an even face sits on the seam between two tiles.
 // ---------------------------------------------------------------------
 const PLAN: Site[] = [
-  // --- The academic core: the Grand Quad and the halls around it. ---
+  // --- The academic core: the Grand Quad and the halls around it. The
+  // academic halls are the chain in techData.ts (HALL-01 .. HALL-12), placed
+  // in build order round the quad, then down the west and south walks. ---
   { id: 'QUAD-T2', row: 57, col: 57 },                     // 13x13, the heart of the place
   { id: 'BLDG-GENSTUDIES', row: 50, col: 60 },             // Founders Hall, at the head of the quad
-  { id: 'BLDG-SOCSCI', row: 50, col: 51 },
-  { id: 'BLDG-ARTSMEDIA', row: 50, col: 70 },
-  { id: 'BLDG-SCIENCE', row: 56, col: 50, rotated: true },  // west side, fronting the quad
-  { id: 'BLDG-ENGINEERING', row: 64, col: 50, rotated: true },
+  { id: 'HALL-01', row: 50, col: 51 },
+  { id: 'HALL-02', row: 50, col: 70 },
+  { id: 'HALL-03', row: 56, col: 50, rotated: true },      // west side, fronting the quad
+  { id: 'HALL-04', row: 64, col: 50, rotated: true },
   { id: 'LIB-T2', row: 71, col: 59 },                      // the research library closes the south side
-  { id: 'BLDG-LAW', row: 72, col: 47 },                    // 9x7, on the west walk
-  { id: 'BLDG-BUSINESS', row: 72, col: 70 },
+  { id: 'HALL-05', row: 72, col: 47 },                     // on the west walk
+  { id: 'HALL-06', row: 72, col: 70 },
   { id: 'SCTR-T2', row: 57, col: 72 },                     // the union, on the east side
   { id: 'SCTR-T1', row: 63, col: 72 },
   { id: 'HLTH-T1', row: 68, col: 74 },
@@ -97,17 +99,23 @@ const PLAN: Site[] = [
   { id: 'DORM-02', row: 74, col: 30 },
   { id: 'DININGHALL-06', row: 80, col: 30 },
   { id: 'DININGHALL-03', row: 80, col: 41 },
-  { id: 'BLDG-COMPSCI', row: 81, col: 49 },
+  { id: 'HALL-07', row: 81, col: 49 },
   { id: 'DORM-04', row: 87, col: 31 },
   { id: 'DORM-05', row: 87, col: 41 },
   { id: 'LAB-COMP', row: 87, col: 51 },
+  // The last three halls of the chain and the second quad: a south-west
+  // court off the west walk, below the residential corner.
+  { id: 'HALL-10', row: 93, col: 47 },
+  { id: 'HALL-11', row: 100, col: 47 },
+  { id: 'HALL-12', row: 93, col: 38 },
+  { id: 'QUAD-S2', row: 100, col: 30 },
 
   // --- South: the old library and the medical campus, with a tower and a
   // market hall at its foot. ---
   { id: 'LIB-T1', row: 81, col: 58 },
-  { id: 'BLDG-MED', row: 81, col: 71 },
+  { id: 'HALL-08', row: 81, col: 71 },
   { id: 'HLTH-T3', row: 89, col: 59 },                     // the hospital, 11x11
-  { id: 'BLDG-HEALTHSCI', row: 89, col: 71 },
+  { id: 'HALL-09', row: 89, col: 71 },
   { id: 'LAB-NEUR', row: 95, col: 71 },
   { id: 'DININGHALL-07', row: 101, col: 59 },
   { id: 'DORM-12', row: 101, col: 71 },

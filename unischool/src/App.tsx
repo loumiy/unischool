@@ -1,3 +1,4 @@
+import type { CampusTool } from './state/actions';
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from './engine/useGame';
 import { mapBackOutLive, mapControlsLive, useHotkeys, type ShellOverlays } from './components/hotkeys';
@@ -127,7 +128,7 @@ export default function App() {
   // This is the nearest shared ancestor of every component that needs
   // either one.
   const [placingId, setPlacingIdState] = useState<string | null>(null);
-  const [pathTool, setPathToolState] = useState<'draw' | 'erase' | null>(null);
+  const [pathTool, setPathToolState] = useState<CampusTool | null>(null);
   // Whether the build popup is open. It lives here rather than in Toolbar,
   // where it used to, because it is not the toolbar's private business: it
   // and `overlay` are two states of ONE slot (see the module comment), and
@@ -224,7 +225,7 @@ export default function App() {
     setPlacingIdState(id);
     if (id !== null) setPathToolState(null);
   }
-  function setPathTool(mode: 'draw' | 'erase') {
+  function setPathTool(mode: CampusTool) {
     setPathToolState((cur) => (cur === mode ? null : mode));
     setPlacingIdState(null);
   }
@@ -313,7 +314,7 @@ export default function App() {
         onSetPathTool={setPathTool}
         backOutEnabled={mapBackOutEnabled}
         controlsEnabled={mapControlsEnabled}
-        onOpenCurriculum={(buildingId) => openTab('curriculum', buildingId)}
+        onOpenCurriculum={(sectionKey) => openTab('curriculum', sectionKey)}
       />
       <MainMenu act={act} />
       {/* Present only behind the playtest flag, and it decides that for

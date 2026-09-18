@@ -20,19 +20,17 @@ the task doesn't specify, **flag it in the PR summary rather than silently
 choosing** — surfacing tradeoffs is more useful than smoothing them over.
 
 After making changes, run `npm run build` (compiles), `npm run lint`, and
-`npm test`. `npm test` chains its suites with `&&` — invariants, save
-migrations, faculty, the curriculum graph, cohorts, admissions pricing,
+`npm test`. `npm test` chains its suites with `&&` — invariants, save/load,
+faculty, the curriculum graph, cohorts, admissions pricing,
 financial distress, gendered sports, the balance regression gate and the rest —
 so **a failure in an early suite silently skips the later ones**; read the tail
 of the output, not just the exit line.
 
 - A change that alters save shape bumps `SAVE_VERSION` and stops there: the old
   save is discarded and the player starts fresh, which is the intended outcome
-  for a game nobody is playing yet. Write a `MIGRATIONS` entry only when a
-  specific run is worth carrying, and extend `test/save-migrations.test.ts`
-  when you do — see
-  [game-state.md](game-state.md#discarding-is-the-default). Never let save
-  compatibility decide a name or a shape.
+  for a game nobody is playing yet. There is no migration chain any more (Plan
+  14 deleted it) — see [game-state.md](game-state.md#discarding-is-the-rule).
+  Never let save compatibility decide a name or a shape.
 - A change that moves a number the economy depends on should be checked against
   `npm run sim` (40 years × seven scripted strategies) as well, and its result
   quoted in the PR summary. Every table is followed by its **scorecard** — the

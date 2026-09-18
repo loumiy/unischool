@@ -1,6 +1,8 @@
 import type { Buildable, Faculty, GameState } from '../../state/types';
 import { assignedInstructor } from '../techtree/techSystem';
 import { qualityOf, tierOf, type CourseQuality } from '../../data/courseQuality';
+import { programOfCourse } from '../../data/techData';
+import { isInTransit } from '../techtree/programOffers';
 
 // Who teaches what, in both directions. Both read ONE record —
 // s.courseFaculty, the instructor the player chose when they started the
@@ -15,8 +17,7 @@ import { qualityOf, tierOf, type CourseQuality } from '../../data/courseQuality'
 // ever a caption under a cell. It is not enough now — a course quality
 // grade hangs off who teaches it, and a round-robin re-deals every course
 // in a department the moment one more person is hired into it. The
-// round-robin survives in exactly one place, and only as history: see
-// legacyRoundRobinAssignments below.
+// round-robin is gone with the migration chain that was its last caller.
 
 // Every offered course this person is currently assigned to, in s.tech
 // order. An empty list for someone who has been hired but not yet given
@@ -33,38 +34,6 @@ export function coursesTaughtBy(s: GameState, f: Faculty): Buildable[] {
 // side of the projection don't need to know that.
 export function instructorOf(s: GameState, t: Buildable): Faculty | undefined {
   return assignedInstructor(s, t);
-}
-
-// ---------------------------------------------------------------------
-// FROZEN. The old round-robin, kept for exactly one caller: the save
-// migration that turns a pre-assignment save into an assigned one (see
-// persistence.ts's MIGRATIONS[30]).
-//
-// It is the right seeding rule precisely because it is what the old build
-// DREW. A player resuming a save has been looking at these pairings under
-// their course cells and on their faculty cards for the whole run;
-// materializing them means the game they reopen says exactly what the game
-// they closed said, and the feature arrives as "you can now change this"
-// rather than as "everyone has been reshuffled".
-//
-// Do not call this from live code, and do not "improve" it — a better
-// pairing rule would silently rewrite resumed saves. It is history, and
-// its only job is to reproduce history exactly.
-export function legacyRoundRobinAssignments(s: GameState): Record<string, string> {
-  const assignments: Record<string, string> = {};
-  const fields = new Set(s.tech.map((t) => t.requiresFaculty).filter((f): f is string => !!f));
-
-  for (const field of fields) {
-    const faculty = s.faculty.filter((x) => x.field === field).sort((a, b) => a.id.localeCompare(b.id));
-    if (faculty.length === 0) continue;
-    const courses = s.tech
-      .filter((t) => t.requiresFaculty === field && (t.status === 'developing' || t.status === 'done'))
-      .sort((a, b) => a.id.localeCompare(b.id));
-    courses.forEach((course, i) => {
-      assignments[course.id] = faculty[i % faculty.length].id;
-    });
-  }
-  return assignments;
 }
 
 // ---------------------------------------------------------------------
@@ -115,6 +84,11 @@ export function facultyLoads(s: GameState): FacultyLoads {
 export function courseQuality(s: GameState, t: Buildable, loads?: FacultyLoads): CourseQuality | null {
   if (t.status !== 'developing' && t.status !== 'done') return null;
   if (!t.requiresFaculty) return null;
+  // A course of a program IN TRANSIT between halls (Plan 14's PR F) is not
+  // being taught this term: no grade, and — see aggregateScore — no
+  // contribution to any average, rather than an F. It keeps its
+  // instructor and resumes exactly as it left.
+  if (inTransit(s, t)) return null;
 
   // An UNSTAFFED course (its instructor was dismissed — see types.ts's
   // CourseFaculty) is also null, not zero. It is not a course being taught
@@ -129,6 +103,21 @@ export function courseQuality(s: GameState, t: Buildable, loads?: FacultyLoads):
     acclaim: instructor.acclaim,
     load: (loads ?? facultyLoads(s)).get(instructor.id) ?? 0,
     slots: instructor.courseSlots,
+    tier: tierOf(t.id),
+  });
+}
+
+// What a course WOULD be graded with this person teaching it — the number
+// behind the instructor picker's chips and the swap preview while a chip
+// is dragged. The load passed is what theirs would become: their current
+// count plus this course, unless they already teach it.
+export function projectedQuality(s: GameState, t: Buildable, f: Faculty, loads?: FacultyLoads): CourseQuality {
+  const load = (loads ?? facultyLoads(s)).get(f.id) ?? 0;
+  return qualityOf({
+    teaching: f.teaching,
+    acclaim: f.acclaim,
+    load: s.courseFaculty[t.id] === f.id ? load : load + 1,
+    slots: f.courseSlots,
     tier: tierOf(t.id),
   });
 }
@@ -158,10 +147,20 @@ export function courseQuality(s: GameState, t: Buildable, loads?: FacultyLoads):
 // questions: the card asks "how good is this course", which has no answer
 // without a teacher, while the aggregate asks "how good is the teaching
 // this school provides", which very much does.
+//   - In TRANSIT (its program is moving halls): contributes NOTHING, like
+//     an unopened course. The school is not failing to provide it, the
+//     term is dark by the player's own decision, and the cost of that
+//     decision is that the course counts toward nothing until it settles.
 function aggregateScore(s: GameState, t: Buildable, loads: FacultyLoads): number | null {
   if (t.status !== 'developing' && t.status !== 'done') return null;
   if (!t.requiresFaculty) return null;
+  if (inTransit(s, t)) return null;
   return courseQuality(s, t, loads)?.score ?? 0;
+}
+
+function inTransit(s: GameState, t: Buildable): boolean {
+  const programId = programOfCourse(t.id);
+  return programId !== undefined && isInTransit(s, programId);
 }
 
 // The mean across a set of course ids. null when none of them count at all

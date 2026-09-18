@@ -38,6 +38,8 @@ export const STARTING_INSTITUTION_SUFFIX = 'College';
 
 // All the ways a player can change the world. The engine's reducer is the
 // only thing that interprets these. UI dispatches them; systems never do.
+export type CampusTool = 'draw' | 'erase' | 'plant' | 'fell';
+
 export type Action =
   | { type: 'TICK' }                                   // advance one week
   | { type: 'START_GAME'; name: string; vernacular: Vernacular } // leaves the startup screen, founds the university
@@ -53,11 +55,20 @@ export type Action =
   // tab ALWAYS supplies one — choosing who teaches a course is the point of
   // the interaction, and the assignment is written in the same transaction
   // as the start (see techSystem.ts's startDevelopment), so a developing
-  // course is never without a teacher. It is optional only for the two
-  // callers that are not a player making a choice: the playtest-only
-  // DEVELOP_ALL_AVAILABLE_COURSES button and the headless balance sim, both
+  // course is never without a teacher. It is optional only for the one
+  // caller that is not a player making a choice: the headless balance sim,
   // of which let the engine take the strongest eligible teacher instead.
   | { type: 'START_DEVELOPMENT'; nodeId: string; facultyId?: string }
+  // Founds a program (Plan 14): takes an empty slot in a standing hall and
+  // starts the program's entry course with the chosen instructor, in one
+  // transaction. The only way a major or graduate program enters the
+  // curriculum — its tier-1 course is never started any other way. See
+  // techSystem.ts's foundProgram for the gate.
+  | { type: 'FOUND_PROGRAM'; programId: string; hallId: string; slot: number; facultyId: string }
+  // Moves a housed program to an empty slot in a standing hall (Plan 14).
+  // Free in money, expensive in time: the program goes dark for
+  // RELOCATION_WEEKS. See techSystem.ts's relocateProgram for the gate.
+  | { type: 'RELOCATE_PROGRAM'; programId: string; hallId: string; slot: number }
   | { type: 'REASSIGN_COURSE_FACULTY'; courseId: string; facultyId: string }
   // Commissions a research initiative in a vacant facility: a topic, a
   // team and a depth, paid for up front out of cash (see
@@ -132,6 +143,15 @@ export type Action =
   // load.
   | { type: 'ADD_PATH_TILE'; tile: TileCoord }
   | { type: 'REMOVE_PATH_TILE'; tile: TileCoord }
+  // Plants or fells one tree on a tile (see types.ts's Trees). The same
+  // family as the path tools — free, decorative, granting nothing — with
+  // one rule the reducer keeps: nothing is planted under a building or a
+  // path, since neither would ever be seen.
+  | { type: 'PLANT_TREE'; tile: TileCoord }
+  | { type: 'FELL_TREE'; tile: TileCoord }
+  // Every campus tool the map can hold: the two path tools and the two
+  // tree tools. Left paints with the armed one, right with its opposite.
+
   // Runs an endowment campaign (see financeSystem.ts's endowmentCampaign):
   // converts a large lump of cash into endowment at a prestige-scaled
   // donor match. Repeatable forever, each one costing more than the last —
@@ -288,16 +308,16 @@ export type Action =
   | { type: 'DEBUG_FORCE_MILESTONE' }
   // Publishes the U.S. News report now, off this week's standings.
   | { type: 'DEBUG_FORCE_REPORT' }
-  // Starts development on every currently 'available' course in one shot
-  // (see CurriculumTab.tsx's "Develop All" button) — a shortcut for
-  // clicking each one individually, not a new capability: it goes through
-  // the exact same canStartDevelopment/startDevelopment pair START_DEVELOPMENT
-  // uses, course by course, so cash and faculty-slot limits still apply
-  // exactly as they would one click at a time. NOT playtest-only, despite
-  // where it started: it charges normally and reveals nothing, so it works
-  // inside the game's constraints rather than breaking them (see the
-  // button's own note in CurriculumTab.tsx, and .develop-all-btn).
-  | { type: 'DEVELOP_ALL_AVAILABLE_COURSES' }
+  // Swaps the instructors of two offered courses in the same department
+  // (Plan 14's PR G — the Curriculum tab's drag-and-drop chips). Atomic:
+  // both change or neither does, and a drop that is not a legal swap is a
+  // no-op — nothing is ever displaced to unassigned behind the player's
+  // back. See techSystem.ts's swapInstructors for the gate.
+  | { type: 'SWAP_COURSE_FACULTY'; courseA: string; courseB: string }
+  // Posts a search for a candidate in a faculty field (Plan 14's PR H):
+  // spends money to raise the weekly chance the market lists somebody in
+  // it, for a fixed window. See systems/faculty/facultySearch.ts.
+  | { type: 'POST_SEARCH'; field: string }
   // Renovates the tier-1 library in place for more capacity (see
   // facilitiesData.ts's nextLibraryFloor) — puts that SAME already-placed
   // Buildable back into 'developing' at its existing spot rather than
@@ -340,6 +360,9 @@ export function createPreStartState(): GameState {
     faculty: [],
     tech: [],
     developing: {},
+    halls: {},
+    programOffers: [],
+    searches: {},
     placements: {},
     pathways: {},
     trees: {},
@@ -395,10 +418,8 @@ export function createInitialState(name: string, vernacular: Vernacular = FOUNDI
   // seeded-'available' facility chains) are unlocked from the moment the
   // university opens — the player was never shown a moment when they
   // WEREN'T there to be revealed, so they are not "new" and must not carry
-  // a badge on day one. Seeded here the same way MIGRATIONS[22] in
-  // persistence.ts seeds a resumed save's `seen` from its OWN current
-  // visibility, for the same reason: an empty `seen` would tell the
-  // brand-new player that every one of these is news.
+  // a badge on day one: an empty `seen` would tell the brand-new player
+  // that every one of these is news.
   const foundingCourseIds: Record<string, true> = {};
   const foundingBuildableIds: Record<string, true> = {};
   for (const node of tech) {
@@ -577,6 +598,19 @@ export function createInitialState(name: string, vernacular: Vernacular = FOUNDI
     // The first entry is written the moment the player starts their first
     // course and picks who teaches it.
     courseFaculty: {},
+    // Founders Hall's one slot, filled before the player sees the game: the
+    // gen-ed core occupies the building (see techData.ts's `slots: 1` on
+    // it, and types.ts's HallSlot). Every other hall's entry is written the
+    // week that hall finishes construction (techSystem.ts), with every
+    // slot empty — so a founding save has exactly one hall, one slot, the
+    // core in it, and no way to found anything until a hall stands.
+    halls: { [GENED_BUILDING_ID]: [{ programId: 'CORE' }] },
+    // Nothing is offered until the gen-ed core is complete — the first
+    // three are drawn the week it finishes (see techSystem.ts's tickTech
+    // and programOffers.ts's refillOffers).
+    programOffers: [],
+    // No search running: a founding school's five hires cover the core.
+    searches: {},
     // Only Founders Hall is pre-placed: it opens 'done' (techData.ts), so
     // it needs a spot on the map from day one. It is centred on the grid
     // (foundersHallPlacement above) — the founding landmark the rest of the

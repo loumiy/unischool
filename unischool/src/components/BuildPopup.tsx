@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
-import type { Action } from '../state/actions';
+import type { Action, CampusTool } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import { canSiteRetroactively, RETROACTIVE_SITING_COST } from '../state/campusMap';
 import { FACILITY_CATEGORY_OF, type FacilityCategory, LIBRARY_TIER1_ID, nextLibraryFloor } from '../data/facilitiesData';
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
+import { isAcademicHall } from '../data/techData';
 import HelpHint from './HelpHint';
 import { ProgressBar } from './Progress';
 import ToolbarPopup from './ToolbarPopup';
 import {
   DrawPathIcon, EraseIcon, BuildIcon, HousingIcon, DiningIcon, LibraryIcon,
-  LabIcon, HealthIcon, QuadIcon, FitnessIcon, ArtsIcon, AcademicIcon,
+  LabIcon, HealthIcon, QuadIcon, FitnessIcon, ArtsIcon, AcademicIcon, TreeIcon,
   AthleticsIcon, StudentLifeIcon, ToolsIcon,
 } from './icons';
 
@@ -82,6 +83,12 @@ const COLLAPSE_BUILT_FROM = 2;
 // on FacilityCategory itself.
 type BuildCategory = FacilityCategory | 'housing';
 
+// The two 'building'-kind groups carry the 'academic' category alongside
+// the library and labs, which FACILITY_CATEGORY_OF already assigns by type.
+const ACADEMIC_GROUP_KEYS: ReadonlySet<string> = new Set(['hall', 'academicBuilding']);
+// Grounds ride in the Campus Tools tab rather than a tab of their own.
+const GROUNDS_GROUP_KEYS: ReadonlySet<string> = new Set(['quad']);
+
 interface TypeGroup {
   key: string;
   label: string;
@@ -114,6 +121,28 @@ interface TypeGroup {
 // one per school) — several can be visible at once, but each is its own
 // decision, so they stay listed.
 const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; match: (t: Buildable) => boolean }> = [
+  // THE ACADEMIC RUN. The hall chain (techData.ts's ACADEMIC_HALL_SLOTS
+  // block) is a strictly sequential, distinctly-named chain exactly like
+  // housing, so it is `repeatable` — one next hall at a time, "#N" markers,
+  // and the built ones collapse. Founders Hall (one slot, never a decision)
+  // is the one 'building' that is not a hall. Library and labs sit in the
+  // same tab: four groups, one "Academic" category (see ACADEMIC_GROUP_KEYS
+  // and FACILITY_CATEGORY_OF).
+  { key: 'hall', label: 'Academic Halls', repeatable: true, match: (t) => isAcademicHall(t) },
+  { key: 'academicBuilding', label: 'Founders Hall', repeatable: false, match: (t) => t.kind === 'building' },
+  { key: 'library', label: FACILITY_LABELS.library, repeatable: false, match: (t) => t.facilityType === 'library' },
+  { key: 'lab', label: FACILITY_LABELS.lab, repeatable: false, match: (t) => t.facilityType === 'lab' },
+  // THE SOCIAL RUN: the student center, the recreation/fitness chain, and
+  // the two arts facilities — one "Social" category (FACILITY_CATEGORY_OF).
+  { key: 'studentCenter', label: FACILITY_LABELS.studentCenter, repeatable: false, match: (t) => t.facilityType === 'studentCenter' },
+  {
+    key: 'recCenter',
+    label: 'Fitness',
+    repeatable: true,
+    match: (t) => t.facilityType === 'recCenter' || t.facilityType === 'gym' || t.facilityType === 'tennisCourts' || t.facilityType === 'pool',
+  },
+  { key: 'performingArtsCenter', label: FACILITY_LABELS.performingArtsCenter, repeatable: false, match: (t) => t.facilityType === 'performingArtsCenter' },
+  { key: 'artGallery', label: FACILITY_LABELS.artGallery, repeatable: false, match: (t) => t.facilityType === 'artGallery' },
   { key: 'dorm', label: 'Housing', repeatable: true, match: (t) => t.kind === 'dorm' },
   // Greek chapter houses (see types.ts's Buildable.chapterHouse and
   // eventData.ts's 'greek-housing'): merged into the same Housing tab as
@@ -124,8 +153,6 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; ma
   // `repeatable: false` and never picks up a dorm-style "#N" marker or
   // collapses into a "Built xN" tile.
   { key: 'chapterHouse', label: 'Chapter Houses', repeatable: false, match: (t) => !!t.chapterHouse },
-  { key: 'library', label: FACILITY_LABELS.library, repeatable: false, match: (t) => t.facilityType === 'library' },
-  { key: 'studentCenter', label: FACILITY_LABELS.studentCenter, repeatable: false, match: (t) => t.facilityType === 'studentCenter' },
   // The grocery store folds into the same "Dining" tab as the dining
   // chain (see facilitiesData.ts's note above GROCERY_ID) — one more
   // basicNeeds option, not a category of its own.
@@ -136,20 +163,6 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; ma
   // its own tier chips — but the tab heading can no longer be one of their
   // names. "Health" is the need; the rungs name themselves.
   { key: 'healthCenter', label: FACILITY_LABELS.healthCenter, repeatable: false, match: (t) => t.facilityType === 'healthCenter' },
-  { key: 'quad', label: FACILITY_LABELS.quad, repeatable: false, match: (t) => t.facilityType === 'quad' },
-  { key: 'lab', label: FACILITY_LABELS.lab, repeatable: false, match: (t) => t.facilityType === 'lab' },
-  // The recreation/fitness chain — see the module note above. Positioned
-  // right before performingArtsCenter/artGallery so all three share one
-  // contiguous run in TYPE_MATCHERS, which is what makes blocksFor wrap
-  // them in a single "Recreation" category (see FACILITY_CATEGORY_OF).
-  {
-    key: 'recCenter',
-    label: 'Fitness',
-    repeatable: true,
-    match: (t) => t.facilityType === 'recCenter' || t.facilityType === 'gym' || t.facilityType === 'tennisCourts' || t.facilityType === 'pool',
-  },
-  { key: 'performingArtsCenter', label: FACILITY_LABELS.performingArtsCenter, repeatable: false, match: (t) => t.facilityType === 'performingArtsCenter' },
-  { key: 'artGallery', label: FACILITY_LABELS.artGallery, repeatable: false, match: (t) => t.facilityType === 'artGallery' },
   // Varsity athletics venues: locked (and so invisible, per the rule above)
   // until a team needing the category is granted — see
   // facilitiesData.ts's athleticsVenueReveal and eventData.ts's
@@ -159,7 +172,10 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; ma
   { key: 'athleticsDiamond', label: FACILITY_LABELS.athleticsDiamond, repeatable: false, match: (t) => t.facilityType === 'athleticsDiamond' },
   { key: 'athleticsNatatorium', label: FACILITY_LABELS.athleticsNatatorium, repeatable: false, match: (t) => t.facilityType === 'athleticsNatatorium' },
   { key: 'footballStadium', label: FACILITY_LABELS.footballStadium, repeatable: false, match: (t) => t.facilityType === 'footballStadium' },
-  { key: 'academicBuilding', label: 'Academic Buildings', repeatable: false, match: (t) => t.kind === 'building' },
+  // The quads are GROUNDS, not a building the campus lacks: they live in
+  // the Campus Tools tab beside the path and tree tools (see
+  // GROUNDS_GROUP_KEYS and CampusToolsTiles), never a tab of their own.
+  { key: 'quad', label: FACILITY_LABELS.quad, repeatable: false, match: (t) => t.facilityType === 'quad' },
 ];
 
 // Every placeable Buildable id currently rendered as a tile in the build
@@ -189,7 +205,9 @@ function buildGroups(s: GameState): TypeGroup[] {
       // athleticsField, ...) — the lookup below is a no-op for the ones
       // that aren't (academicBuilding, lab, ...), which simply have no
       // entry in FACILITY_CATEGORY_OF and so no category.
-      category: (HOUSING_GROUP_KEYS.has(key) ? 'housing' : FACILITY_CATEGORY_OF[key as FacilityType]) as BuildCategory | undefined,
+      category: (HOUSING_GROUP_KEYS.has(key) ? 'housing'
+        : ACADEMIC_GROUP_KEYS.has(key) ? 'academic'
+          : FACILITY_CATEGORY_OF[key as FacilityType]) as BuildCategory | undefined,
       items: s.tech.filter((t) => match(t) && t.status !== 'locked'),
     }))
     .filter((g) => g.items.length > 0);
@@ -215,8 +233,9 @@ function blocksFor(groups: TypeGroup[]): RenderBlock[] {
 }
 
 const CATEGORY_LABELS: Record<BuildCategory, string> = {
+  academic: 'Academic',
+  social: 'Social',
   athletics: 'Athletics',
-  recreation: 'Recreation',
   housing: 'Housing',
 };
 
@@ -226,19 +245,25 @@ const CATEGORY_LABELS: Record<BuildCategory, string> = {
 // category name or its single group's key, which is also the key SECTION_ICON
 // and the initial-tab logic look up.
 type BuildSection =
-  | { id: string; label: string; kind: 'tools' }
+  // The tools tab carries the grounds groups (the quads) as tiles beside
+  // the path and tree tools.
+  | { id: string; label: string; kind: 'tools'; groups: TypeGroup[] }
   | { id: string; label: string; kind: 'build'; groups: TypeGroup[] };
 
 const TOOLS_SECTION_ID = 'campus-tools';
 
 function buildSections(s: GameState): BuildSection[] {
-  const blocks = blocksFor(buildGroups(s));
+  const groups = buildGroups(s);
+  const blocks = blocksFor(groups.filter((g) => !GROUNDS_GROUP_KEYS.has(g.key)));
   const built: BuildSection[] = blocks.map((b) => b.category
     ? { id: b.category, label: CATEGORY_LABELS[b.category], kind: 'build', groups: b.groups }
     // A non-category block is always exactly one group (blocksFor only
     // merges same-category runs), so its lone group names the tab.
     : { id: b.groups[0].key, label: b.groups[0].label, kind: 'build', groups: b.groups });
-  return [{ id: TOOLS_SECTION_ID, label: 'Campus Tools', kind: 'tools' }, ...built];
+  return [
+    { id: TOOLS_SECTION_ID, label: 'Campus Tools', kind: 'tools', groups: groups.filter((g) => GROUNDS_GROUP_KEYS.has(g.key)) },
+    ...built,
+  ];
 }
 
 // One "menu icon" per category tab, keyed by the section id (a category name
@@ -259,8 +284,9 @@ const SECTION_ICON: Record<string, () => React.JSX.Element> = {
   performingArtsCenter: ArtsIcon,
   artGallery: ArtsIcon,
   academicBuilding: AcademicIcon,
+  academic: AcademicIcon,
   athletics: AthleticsIcon,
-  recreation: FitnessIcon,
+  social: StudentLifeIcon,
 };
 
 // The glyph shown on an individual building tile, by the Buildable's own
@@ -297,6 +323,7 @@ function iconForBuildable(t: Buildable): () => React.JSX.Element {
 function builtDetail(t: Buildable): string | undefined {
   if (t.facilityType === 'lab') return 'gates capstone coursework';
   if (t.kind === 'dorm') return `${(t.effects?.capacityBonus ?? 0).toLocaleString()} beds`;
+  if (isAcademicHall(t)) return `${t.slots} program slots`;
   // Carries no `effects` of its own (see types.ts's Buildable.chapterHouse)
   // — its beds are a fixed constant applied directly to s.students.capacity
   // when the petition was approved, not something to read off this tile.
@@ -314,6 +341,10 @@ function builtGroupDetail(kind: string, built: Buildable[]): string | undefined 
   if (kind === 'dorm') {
     const beds = built.reduce((sum, t) => sum + (t.effects?.capacityBonus ?? 0), 0);
     return `${beds.toLocaleString()} beds`;
+  }
+  if (kind === 'hall') {
+    const slots = built.reduce((sum, t) => sum + (t.slots ?? 0), 0);
+    return `${slots} program slots`;
   }
   const serves = built.reduce((sum, t) => sum + (t.effects?.servesPopulation ?? 0), 0);
   return serves > 0 ? `serves ${serves.toLocaleString()}` : undefined;
@@ -565,9 +596,13 @@ function BuildGroupTiles({ s, group, placingId, onArmPlacement, act }: {
 // a building, so they get their own category tab, laid out as tiles like
 // everything else. `pathTool` is lifted to App.tsx (this popup and the map
 // both read/drive it — see App.tsx's module comment).
-function CampusToolsTiles({ pathTool, onSetPathTool }: {
-  pathTool: 'draw' | 'erase' | null;
-  onSetPathTool: (mode: 'draw' | 'erase') => void;
+function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArmPlacement, act }: {
+  s: GameState;
+  pathTool: CampusTool | null;
+  onSetPathTool: (mode: CampusTool) => void;
+  // The grounds groups (the quads), laid out as tiles after the tools.
+  groups: TypeGroup[];
+  placingId: string | null; onArmPlacement: (id: string | null) => void; act: (a: Action) => void;
 }) {
   return (
     <div className="build-tile-row">
@@ -593,6 +628,34 @@ function CampusToolsTiles({ pathTool, onSetPathTool }: {
         <span className="build-tile-name">Erase path</span>
         <span className="build-tile-foot">remove a path</span>
       </button>
+      {/* Trees: planted and felled by tile, the same stroke the path tools
+          paint with, and the same right-button opposite. Free, like a
+          path — the woodland is ground cover, not a building. */}
+      <button
+        type="button"
+        className={`build-tile tool ${pathTool === 'plant' ? 'placing' : ''}`}
+        aria-pressed={pathTool === 'plant'}
+        onClick={() => onSetPathTool('plant')}
+        title="Plant trees by filling in tiles — the right mouse button fells while either tree tool is armed. Nothing is planted under a building or a path."
+      >
+        <span className="build-tile-icon"><TreeIcon /></span>
+        <span className="build-tile-name">Plant trees</span>
+        <span className="build-tile-foot">fills in tiles</span>
+      </button>
+      <button
+        type="button"
+        className={`build-tile tool ${pathTool === 'fell' ? 'placing' : ''}`}
+        aria-pressed={pathTool === 'fell'}
+        onClick={() => onSetPathTool('fell')}
+        title="Fell trees — with either tree tool armed the right mouse button fells too, so this is for clearing a wood rather than a correction"
+      >
+        <span className="build-tile-icon"><EraseIcon /></span>
+        <span className="build-tile-name">Fell trees</span>
+        <span className="build-tile-foot">clear a wood</span>
+      </button>
+      {groups.map((group) => (
+        <BuildGroupTiles key={group.key} s={s} group={group} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
+      ))}
     </div>
   );
 }
@@ -615,8 +678,8 @@ export default function BuildPopup({
   // click inside this popup — so the popup stays open across that click.
   placingId: string | null;
   onArmPlacement: (id: string | null) => void;
-  pathTool: 'draw' | 'erase' | null;
-  onSetPathTool: (mode: 'draw' | 'erase') => void;
+  pathTool: CampusTool | null;
+  onSetPathTool: (mode: CampusTool) => void;
   onClose: () => void;
 }) {
   const sections = buildSections(s);
@@ -695,7 +758,7 @@ export default function BuildPopup({
 
         <div className="build-mode-tray">
           {active.kind === 'tools'
-            ? <CampusToolsTiles pathTool={pathTool} onSetPathTool={onSetPathTool} />
+            ? <CampusToolsTiles s={s} pathTool={pathTool} onSetPathTool={onSetPathTool} groups={active.groups} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
             : (
               <div className="build-tile-row">
                 {active.groups.map((group) => (

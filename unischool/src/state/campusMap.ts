@@ -197,11 +197,6 @@ const QUAD_FOOTPRINTS: SizeRung[] = [
 // its formal door on the seam between two tiles, so no walkway could arrive
 // at it and it could not line up with the quad it faces.
 const SCHOOL_BUILDING_FOOTPRINT: Footprint = { w: 7, h: 5 };
-// The two professional schools (Medicine, Law) get a rung more ground, the
-// same way they cost a rung more than an undergraduate school building —
-// identified by `graduateProgram`, which is set on exactly those two
-// buildings and on nothing else of kind 'building' (see techData.ts).
-const PROFESSIONAL_SCHOOL_FOOTPRINT: Footprint = { w: 9, h: 7 };
 
 // Per facility type, for everything that ISN'T on a ladder above. Sized
 // against a rough 15m to a tile, which is what the football stadium (a real
@@ -240,9 +235,7 @@ const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
 };
 
 export function footprintOf(t: Buildable): Footprint {
-  if (t.kind === 'building') {
-    return t.graduateProgram ? PROFESSIONAL_SCHOOL_FOOTPRINT : SCHOOL_BUILDING_FOOTPRINT;
-  }
+  if (t.kind === 'building') return SCHOOL_BUILDING_FOOTPRINT;
   if (t.kind === 'dorm') return rungFootprint(DORM_FOOTPRINTS, t.effects?.capacityBonus ?? 0);
   if (t.kind === 'facility' && t.facilityType) {
     if (t.facilityType === 'quad') return rungFootprint(QUAD_FOOTPRINTS, t.tier ?? 1);
@@ -397,10 +390,9 @@ export function canSiteRetroactively(s: GameState, t: Buildable): boolean {
 // PLACE_BUILDABLE always names the row/col the player chose. It exists for
 // the handful of places a Buildable needs a location nobody was ever asked
 // to pick: the founding Buildables that start already 'done' (see
-// actions.ts's createInitialState), a save migrated from the old two-step
-// shape (see persistence.ts's v17 -> v18), and an authored event that
-// manufactures a finished Buildable on the spot (eventData.ts's chapter
-// house). The full catalogue covers under a third of the grid (see
+// actions.ts's createInitialState), the headless balance sim (which has no
+// player to click a tile), and an authored event that manufactures a
+// finished Buildable on the spot (eventData.ts's chapter house). The full catalogue covers under a third of the grid (see
 // types.ts's CAMPUS_GRID_WIDTH/HEIGHT comment), so in every case this is
 // actually used for today, room is always found; callers still handle a
 // null result rather than assuming it.

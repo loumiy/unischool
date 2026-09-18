@@ -49,7 +49,10 @@ import {
 } from '../src/systems/techtree/techSystem';
 import { facultyLoads } from '../src/systems/faculty/facultyAssignment';
 import { initiativeDepth, initiativeFundingCost, initiativeOffers } from '../src/data/researchData';
-import { researchSchools } from '../src/data/techData';
+import { isAcademicHall, programById, programs, researchSchools } from '../src/data/techData';
+import { canFoundProgram } from '../src/systems/techtree/techSystem';
+import { isHoused } from '../src/systems/techtree/programOffers';
+import { canPostSearch, searchCost } from '../src/systems/faculty/facultySearch';
 import { firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { HELLENIC_COUNCIL_MIN_CLUBS } from '../src/data/eventData';
 import { weeklyResearchPoints } from '../src/data/researchData';
@@ -149,6 +152,21 @@ export interface Strategy {
   // holding up a course it could afford to start this week (see decide()'s
   // hiring block). The completionist's own "fill every chair" policy.
   fillsEveryChair?: boolean;
+  // HOW THIS STRATEGY FOUNDS PROGRAMS (Plan 14's PR I — see foundPrograms):
+  //   'cheapest'      the default: the cheapest affordable offer it can
+  //                   staff, into a hall already holding that school if
+  //                   one has room, else anywhere free.
+  //   'school-first'  the earnest completionist: prefers offers from
+  //                   schools it has started, and keeps every hall PURE —
+  //                   founds only into an empty hall or one of the same
+  //                   school, siting a new hall rather than mixing.
+  //   'scatter'       the control: whatever is offered first, wherever it
+  //                   fits. Should visibly under-perform on schools founded.
+  founding?: 'cheapest' | 'school-first' | 'scatter';
+  // Whether this strategy posts a faculty SEARCH (Plan 14's PR H) when a
+  // course it could afford is blocked on a department with no free slot
+  // and nobody on the market. Off for the archetypes it predates.
+  postsSearches?: boolean;
 }
 
 // The course's tier, recovered from its id (101 / 1x0 / 2x0) purely so the
@@ -439,6 +457,117 @@ function staffTheDepartment(get: () => GameState, dispatch: (a: Action) => void,
 // so a stale local would let the scripted player spend the same cash
 // twice in a week — the harness would then be measuring an economy the
 // game doesn't have.
+// FOUNDING (Plan 14). A program enters the curriculum by taking a slot in
+// a standing hall (FOUND_PROGRAM), which starts its entry course with an
+// instructor in the same step — there is no other way to start a tier-1
+// course. Which offer, and which slot, is the strategy's founding policy
+// (see Strategy.founding): cheapest-first into a same-school hall where
+// one has room; school-first and pure for the earnest completionist,
+// whose whole game is dedicating halls; and scatter for the control that
+// founds anything anywhere and should visibly under-perform.
+function foundPrograms(get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy): void {
+  const policy = strategy.founding ?? 'cheapest';
+  for (;;) {
+    const s = get();
+    if (!freeSlot(s)) return;
+    let offers = s.programOffers
+      .map((id) => programById(id))
+      .filter((p) => p !== undefined)
+      .map((p) => ({ p, entry: s.tech.find((t) => t.id === p.entryCourseId) }))
+      .filter((o) => o.entry !== undefined);
+    if (policy === 'cheapest') offers = offers.sort((a, b) => a.entry!.cost - b.entry!.cost);
+    if (policy === 'school-first') {
+      // Most-housed school first, so a started school converges on six.
+      const housedIn = (school: string) => programs().filter((q) => q.school === school && isHoused(s, q.id)).length;
+      offers = offers.sort((a, b) => housedIn(b.p.school) - housedIn(a.p.school) || a.entry!.cost - b.entry!.cost);
+    }
+    let founded = false;
+    for (const { p, entry } of offers) {
+      if (!hasHeadroom(s, strategy) || !affordable(s, entry!.cost, strategy)) continue;
+      if (!courseStaysSustainable(s, strategy)) continue;
+      const instructor = eligibleInstructors(s, entry!)[0];
+      if (!instructor) continue;
+      const slot = slotFor(s, p.school, policy);
+      if (!slot) continue;
+      const founding = { programId: p.id, hallId: slot.hallId, slot: slot.slot, facultyId: instructor.id };
+      if (!canFoundProgram(s, founding)) continue;
+      dispatch({ type: 'FOUND_PROGRAM', ...founding });
+      founded = true;
+      break;
+    }
+    if (!founded) return;
+  }
+}
+
+// Where a program of this school goes, under a founding policy. The
+// school of a hall is whatever its housed programs belong to; a hall with
+// programs of more than one school is mixed.
+function hallSchools(s: GameState, hallId: string): Set<string> {
+  const schools = new Set<string>();
+  for (const slot of s.halls[hallId]) {
+    if (slot.programId === null) continue;
+    const program = programById(slot.programId);
+    if (program && program.kind !== 'core') schools.add(program.school);
+  }
+  return schools;
+}
+
+function slotFor(s: GameState, school: string, policy: NonNullable<Strategy['founding']>): { hallId: string; slot: number } | null {
+  const halls = Object.keys(s.halls).filter((hallId) => s.halls[hallId].some((x) => x.programId === null) && isAcademicHall(s.tech.find((t) => t.id === hallId)!));
+  const firstFree = (hallId: string) => ({ hallId, slot: s.halls[hallId].findIndex((x) => x.programId === null) });
+  if (policy === 'scatter') return halls.length > 0 ? firstFree(halls[0]) : null;
+  // A hall already holding this school, with room.
+  const sameSchool = halls.find((hallId) => { const sc = hallSchools(s, hallId); return sc.size === 1 && sc.has(school); });
+  if (sameSchool) return firstFree(sameSchool);
+  // An empty hall.
+  const empty = halls.find((hallId) => hallSchools(s, hallId).size === 0);
+  if (empty) return firstFree(empty);
+  // The completionist would rather wait for a hall than mix one; everyone
+  // else takes what is free.
+  if (policy === 'school-first') return null;
+  return halls.length > 0 ? firstFree(halls[0]) : null;
+}
+
+function freeSlot(s: GameState): { hallId: string; slot: number } | null {
+  for (const [hallId, slots] of Object.entries(s.halls)) {
+    const slot = slots.findIndex((x) => x.programId === null);
+    if (slot >= 0) return { hallId, slot };
+  }
+  return null;
+}
+
+// A hall is sited when programs are on offer and there is nowhere to put
+// them: no free slot standing and no hall already going up. The next rung
+// of the chain is the only one ever 'available' (techData.ts), so this is
+// one capital decision with the same gate the dorm block uses.
+//
+// THE TWO SPEND-TO-THE-WIRE ARCHETYPES SITE HALLS AHEAD OF NEED. A
+// strategy with no margin to keep (netMargin <= 0: the Overbuilder, who
+// builds beds ahead of demand, and the Curriculum rush, who builds
+// everything affordable every week) does not wait for its slots to fill
+// before buying the next building — that is the whole of what those two
+// archetypes are. Without this, the offer's own pacing (three programs at
+// a time, six to a hall) would quietly make the Overbuilder prudent about
+// the one capital line it is supposed to overreach on, and the
+// "stall, don't die" checks in test/balance-regression.test.ts would be
+// measuring a player who no longer exists.
+function siteHallIfNeeded(get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy): void {
+  const s = get();
+  const eager = strategy.netMargin <= 0;
+  // "Nowhere to put them" is policy-shaped: the school-first player with
+  // only mixed halls free has nowhere PURE to put an offer, and sites the
+  // next hall rather than mixing one.
+  const nowhere = !freeSlot(s) || (
+    strategy.founding === 'school-first' &&
+    !s.programOffers.some((id) => { const p = programById(id); return p && slotFor(s, p.school, 'school-first') !== null; })
+  );
+  if (!eager && (s.programOffers.length === 0 || !nowhere)) return;
+  if (s.tech.some((t) => isAcademicHall(t) && t.status === 'developing')) return;
+  const next = s.tech.find((t) => isAcademicHall(t) && t.status === 'available');
+  if (!next) return;
+  if (canCommitCapital(s, strategy) && affordable(s, next.cost, strategy)) dispatchPlaceable(get, dispatch, next.id);
+}
+
 function decide(
   get: () => GameState,
   strategy: Strategy,
@@ -486,13 +615,40 @@ function decide(
     // this week, which is what "fill every chair" means and what a player
     // aiming at the whole catalogue actually does. The cash buffer and the
     // flow gate below still apply, so it is a wider rule, not a free one.
+    // A program ON OFFER counts as a course this strategy could start:
+    // its entry course is 'locked' until it is founded (Plan 14), but the
+    // founding needs an instructor in its field, and a school that never
+    // hires for an offered program never founds anything.
+    const offeredEntryIds = new Set(s.programOffers.map((id) => programById(id)?.entryCourseId));
     const needed = s.tech.some(
-      (t) => t.requiresFaculty === c.field && t.status === 'available' &&
+      (t) => t.requiresFaculty === c.field && (t.status === 'available' || offeredEntryIds.has(t.id)) &&
         !hasFreeFacultySlot(s, c.field) &&
         (strategy.fillsEveryChair || affordable(s, t.cost, strategy)),
     );
     if (needed && s.finance.cash > strategy.buffer(s) && hasHeadroom(s, strategy)) {
       dispatch({ type: 'HIRE_FACULTY', facultyId: c.id });
+    }
+  }
+
+  // A SEARCH, when a department is the wall (Plan 14's PR H): a course this
+  // strategy could afford — or a program on offer — needs a field with no
+  // free slot and nobody on the market, and no search is running there.
+  // The same affordability and flow gates the hiring loop uses.
+  if (strategy.postsSearches) {
+    const s = get();
+    const offeredEntryIds = new Set(s.programOffers.map((id) => programById(id)?.entryCourseId));
+    const blockedFields = new Set(
+      s.tech
+        .filter((t) => (t.status === 'available' || offeredEntryIds.has(t.id)) && t.requiresFaculty && affordable(s, t.cost, strategy))
+        .map((t) => t.requiresFaculty!)
+        .filter((field) => !hasFreeFacultySlot(s, field) && !s.candidates.some((c) => c.field === field)),
+    );
+    for (const field of blockedFields) {
+      const now = get();
+      if (!canPostSearch(now, field)) continue;
+      if (now.finance.cash - searchCost(now) > strategy.buffer(now) && hasHeadroom(now, strategy)) {
+        dispatch({ type: 'POST_SEARCH', field });
+      }
     }
   }
 
@@ -536,6 +692,18 @@ function decide(
   const savingForDorm = strategy.buildsDorms && wantsDorm &&
     !affordable(beforeCurriculum, nextDorm!.cost, strategy);
 
+  // Founding and halls (Plan 14) come before the rest of the curriculum,
+  // since every course after the core sits behind a founding. The two
+  // spend-to-the-wire archetypes (see siteHallIfNeeded) do this even while
+  // "saving" for a dorm: a player with no buffer and no margin to keep is
+  // not saving for anything, and gating their halls on a dorm they cannot
+  // afford would make the one capital line they are meant to overreach on
+  // the one they are prudent about.
+  if (strategy.buildsCourses && (!savingForDorm || strategy.netMargin <= 0)) {
+    foundPrograms(get, dispatch, strategy);
+    siteHallIfNeeded(get, dispatch, strategy);
+  }
+
   // Curriculum: cheapest tier first, plus the buildings/labs that gate it.
   if (strategy.buildsCourses && !savingForDorm) {
     const courseIds = beforeCurriculum.tech
@@ -549,13 +717,6 @@ function decide(
       if (!hasHeadroom(s, strategy) || !affordable(s, c.cost, strategy)) continue;
       if (!courseStaysSustainable(s, strategy)) continue;
       if (canStartDevelopment(s, c)) dispatch({ type: 'START_DEVELOPMENT', nodeId: id });
-    }
-    for (const id of get().tech.filter((t) => t.kind === 'building' && t.status === 'available').map((t) => t.id)) {
-      const s = get();
-      const b = s.tech.find((t) => t.id === id);
-      if (b && b.status === 'available' && canCommitCapital(s, strategy) && affordable(s, b.cost, strategy)) {
-        dispatchPlaceable(get, dispatch, id);
-      }
     }
     for (const id of get().tech.filter((t) => t.facilityType === 'lab' && t.status === 'available').map((t) => t.id)) {
       const s = get();
@@ -673,6 +834,13 @@ export interface Row {
   //                 A week with nothing to decide even in principle.
   //   blockedWeeks  weeks when something was startable and nothing was
   //                 affordable — the cash throttle actually throttling.
+  //   facultyBlockedWeeks
+  //                 weeks when nothing was startable ONLY because no
+  //                 department had a free slot for it — an available
+  //                 course, or a program on offer, whose field has nobody
+  //                 to teach it (Plan 14's PR H: the market as a gate). The
+  //                 column that says whether a run stalls on money or on
+  //                 people, which is what a search is for.
   //
   // The two week counts read AFFORDABILITY against raw cash rather than
   // against the strategy's own buffer, deliberately: "the game offered me
@@ -680,7 +848,7 @@ export interface Row {
   // cleared my eight-week reserve" is a fact about the policy, and the Idle
   // control (buffer: MAX_SAFE_INTEGER) would otherwise report every week of
   // forty years as money-blocked.
-  actions: number; idleWeeks: number; blockedWeeks: number;
+  actions: number; idleWeeks: number; blockedWeeks: number; facultyBlockedWeeks: number;
 }
 
 // What the WEEK offered, regardless of what the strategy did about it (see
@@ -688,16 +856,24 @@ export interface Row {
 // gates a Buildable cannot buy its way past — status, and a free faculty
 // slot for a course. `affordable` then asks whether the school could pay
 // for any of them out of raw cash.
-function weekOffered(s: GameState): { startable: boolean; affordable: boolean } {
+function weekOffered(s: GameState): { startable: boolean; affordable: boolean; facultyBlocked: boolean } {
   let startable = false;
   let affordable = false;
+  let facultyBlocked = false;
+  const offeredEntryIds = new Set(s.programOffers.map((id) => programById(id)?.entryCourseId));
   for (const node of s.tech) {
-    if (node.status !== 'available') continue;
-    if (node.requiresFaculty && !hasFreeFacultySlot(s, node.requiresFaculty)) continue;
+    // A program on offer is something the week offered too: its entry
+    // course is 'locked' until it is founded, and founding needs a free
+    // slot in its field exactly as starting a course does.
+    if (node.status !== 'available' && !offeredEntryIds.has(node.id)) continue;
+    if (node.requiresFaculty && !hasFreeFacultySlot(s, node.requiresFaculty)) { facultyBlocked = true; continue; }
     startable = true;
     if (s.finance.cash >= node.cost) { affordable = true; break; }
   }
-  return { startable, affordable };
+  // Blocked on people only when nothing at all was startable for any
+  // other reason: a week with a startable, affordable course is not a
+  // stall, whatever else it could not staff.
+  return { startable, affordable, facultyBlocked: facultyBlocked && !startable };
 }
 
 function snapshot(
@@ -743,13 +919,14 @@ function snapshot(
     actions: year.actions,
     idleWeeks: year.idleWeeks,
     blockedWeeks: year.blockedWeeks,
+    facultyBlockedWeeks: year.facultyBlockedWeeks,
   };
 }
 
 // The three player-facing counts, accumulated across a year and reset at
 // each snapshot — they describe one year, not the run to date.
-interface YearActivity { actions: number; idleWeeks: number; blockedWeeks: number }
-function newYear(): YearActivity { return { actions: 0, idleWeeks: 0, blockedWeeks: 0 }; }
+interface YearActivity { actions: number; idleWeeks: number; blockedWeeks: number; facultyBlockedWeeks: number }
+function newYear(): YearActivity { return { actions: 0, idleWeeks: 0, blockedWeeks: 0, facultyBlockedWeeks: 0 }; }
 
 // What the authored decision events (see src/data/eventData.ts) did over a
 // run. Reported under the table so a balance pass can see at a glance
@@ -1016,7 +1193,8 @@ export function play(
     // question about the week the player woke up to rather than about what
     // is left once they have done it.
     const offered = weekOffered(s);
-    if (!offered.startable) year.idleWeeks += 1;
+    if (offered.facultyBlocked) year.facultyBlockedWeeks += 1;
+    else if (!offered.startable) year.idleWeeks += 1;
     else if (!offered.affordable) year.blockedWeeks += 1;
     decide(() => s, strategy, weeksInTheRed, dispatchCounted);
     // A demand resolves inside a TICK, silently and with no interrupt (see
@@ -1068,7 +1246,7 @@ function fmt(n: number): string {
 function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venuesBuilt: string[] }, every: number): void {
   const { rows, tally } = run;
   console.log(`\n=== ${strategy.name} ===`);
-  console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | soc | aca | crs | maj | fac |  tuition |  applic | admit% |  endow | rsch/wk | brk | orgs | grad | act | idle | blkd');
+  console.log('yr |     cash |   enr/cap   | prest | opex/wk | net/wk |  sat | soc | aca | crs | maj | fac |  tuition |  applic | admit% |  endow | rsch/wk | brk | orgs | grad | act | idle | blkd | fblk');
   const last = rows[rows.length - 1];
   for (const r of rows) {
     if (r.year > 6 && r.year % every !== 0 && r !== last) continue;
@@ -1090,7 +1268,7 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
       // What the YEAR contained for the player: how many discretionary
       // things they did, how many weeks offered nothing startable at all,
       // and how many offered something they could not pay for.
-      `${String(r.actions).padStart(3)} | ${String(r.idleWeeks).padStart(4)} | ${String(r.blockedWeeks).padStart(4)}`,
+      `${String(r.actions).padStart(3)} | ${String(r.idleWeeks).padStart(4)} | ${String(r.blockedWeeks).padStart(4)} | ${String(r.facultyBlockedWeeks).padStart(4)}`,
     );
   }
   console.log(`   weeks in the red: ${last.weeksInTheRed} of ${rows.length * 52}, min cash: ${fmt(last.minCash)}`);
@@ -1140,7 +1318,9 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
     `${mean(rows, (r) => r.idleWeeks).toFixed(1)} idle weeks/yr ` +
     `(last decade ${mean(decade, (r) => r.idleWeeks).toFixed(1)}), ` +
     `${mean(rows, (r) => r.blockedWeeks).toFixed(1)} money-blocked weeks/yr ` +
-    `(last decade ${mean(decade, (r) => r.blockedWeeks).toFixed(1)})`,
+    `(last decade ${mean(decade, (r) => r.blockedWeeks).toFixed(1)}), ` +
+    `${mean(rows, (r) => r.facultyBlockedWeeks).toFixed(1)} faculty-blocked weeks/yr ` +
+    `(last decade ${mean(decade, (r) => r.facultyBlockedWeeks).toFixed(1)})`,
   );
   // Grant income is compared against the run's total operating cost rather
   // than reported bare: "$40M of grants" means nothing on its own, "1.4% of
@@ -1497,6 +1677,24 @@ export const STRATEGIES: Strategy[] = [
     campaigns: true,
     playsCoachingMarket: true,
     fillsEveryChair: true,
+    founding: 'school-first',
+    postsSearches: true,
+  },
+  {
+    // THE SCATTERER: a control, not a player. The same school as the
+    // Balanced builder in every respect but one — it founds whatever is
+    // offered first, into whatever slot is free first, and never thinks
+    // about which building a program goes in. Plan 14's claim is that the
+    // slot is a decision; this is the run that does not make it, and it
+    // should visibly under-perform on schools founded (see
+    // test/balance-regression.test.ts's Plan 14 check).
+    name: 'Scatterer (founds anything anywhere)',
+    tuition: rampTuition(225, 3_000),
+    buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
+    netMargin: 0.12,
+    buildsCourses: true, buildsDorms: true, buildsFacilities: true,
+    dormFillThreshold: 0.85, facilityThreshold: 72, campaigns: true,
+    founding: 'scatter',
   },
   {
     // The control: builds nothing, ever. Prestige and cash here are the

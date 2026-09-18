@@ -6,21 +6,27 @@ import {
 /*
   Your real curriculum, expressed as seed data and expanded into Buildable[].
   42 majors across 7 schools (9 courses each) + a 6-course general-ed core =
-  384 course Buildables, plus one 'building' Buildable per school (7) that
-  gates each school's tier-2 courses — see docs/design/curriculum.md's
-  "The milestone chain".
+  384 course Buildables, plus Founders Hall and the academic hall chain
+  (ACADEMIC_HALL_SLOTS below) — see docs/design/curriculum.md.
   (Eight SchoolSeeds in all: the seven degree-granting schools plus General
   Studies, which has the gen-ed core and no majors.)
 
+  THERE IS NO SCHOOL BUILDING ANY MORE (Plan 14's PR C). A school used to be
+  one 'building' Buildable per SchoolSeed, unlocked by its six tier-1
+  courses and gating its tier-2 courses. A school is now something the
+  player FOUNDS by housing six of its programs in one academic hall, and a
+  program is founded by taking a slot (see types.ts's HallSlot and
+  systems/techtree/programOffers.ts). Medicine and Law lost their own
+  buildings (BLDG-MED, BLDG-LAW) in PR E and take ordinary slots like
+  everything else — a graduate program belongs to its homeSchool, and
+  since that school's six majors already fill a hall, an MD or a
+  doctorate needs a second hall of its school, dedicated on its own terms.
+
   On top of that undergraduate catalogue, GRADUATE PROGRAMS (further below)
-  add 37 more course Buildables across six programs, two of which — the
+  add 37 more course Buildables across six programs. Two of them — the
   School of Medicine and the School of Law, the only two that award an
-  EXTERNAL professional degree rather than building on a parent school's
-  own subject matter — carry their own 'building' Buildable too (BLDG-MED,
-  BLDG-LAW), the same kind an undergraduate school gets. That makes nine
-  school-shaped buildings in total, not seven; see the GRADUATE PROGRAMS
-  block's `buildingId` note for why only these two, and not the MBA or the
-  three PhD doctorates, get one.
+  EXTERNAL professional degree — used to carry their own 'building'
+  Buildable; see the module note above for where they live now.
 
   Prerequisite rule (a clean four-stage climb per major, gen-ed included),
   now AUTHORED as plain ids rather than derived purely from tier:
@@ -29,10 +35,10 @@ import {
     - tier 1 (the 101 course): requires the entire gen-ed core — every
       major's entry course waits on the same shared foundation, not just
       its own school
-    - tier 2 (110/120/130/140): requires the major's tier-1 course AND that
-      school's building (a genuine cross-kind prereq — see the milestone
-      chain: "completing all tier-1 in a school unlocks building that
-      school; the school building unlocks the school's tier-2 courses")
+    - tier 2 (110/120/130/140): requires the major's tier-1 course — and,
+      like every course of a major, the dynamic gate "this program is
+      housed" (techSystem.ts's meetsUnlockGates reads s.halls), which is
+      what founding a program from a hall slot satisfies
     - tier 3 (210/220/230/240): requires ALL FOUR of the major's tier-2
       courses
 
@@ -41,11 +47,11 @@ import {
   systematic web (see the PR notes on why a curated set was chosen over
   building out cross-major prereqs for all 384 courses). The set is larger
   than it was (about forty edges, up from twenty), and four of them now
-  make a major's ESTABLISHMENT depend on another school standing:
-  Econometrics and Epidemiology both need Probability & Statistics, so
-  Economics and Public Health wait on the Science Center; Public Policy
-  Analysis needs Macroeconomics, so Political Science waits on Business
-  Hall. That is the intended weight of a cross-discipline prereq rather
+  make a major's ESTABLISHMENT depend on another school having been
+  started: Econometrics and Epidemiology both need Probability & Statistics,
+  so Economics and Public Health wait on Mathematics being founded; Public
+  Policy Analysis needs Macroeconomics, so Political Science waits on
+  Economics. That is the intended weight of a cross-discipline prereq rather
   than an oversight — but it is why no bridge may point UP a tier (see
   CROSS_MAJOR_BRIDGES's own rules), which is what keeps the coupling to one
   extra school rather than to another school's endgame.
@@ -125,22 +131,19 @@ const TIER_COURSE_COST: Record<number, number> = { 1: 55_000, 2: 110_000, 3: 240
 // campus-life facilities.
 const COURSE_UPKEEP_PER_WEEK: Record<number, number> = { 1: 130, 2: 380, 3: 800 };
 
-// A school building is a real construction project: a meaningful cost and
-// a longer duration than any single course, reflecting "unlocks an entire
-// school's tier-2 curriculum" being a much bigger milestone than any one
-// course. General Studies has no majors (just the gen-ed core), so its
-// "building" is smaller and cheaper — more of a starter hall than a full
-// academic building.
+// Founders Hall: General Studies has no majors (just the gen-ed core), so
+// its building is a starter hall rather than a full academic building —
+// and it is seeded 'done' and pre-placed, so its cost is a figure for the
+// build tray to show rather than one anybody pays.
 const GENED_BUILDING_COST = 400_000;
 const GENED_BUILDING_WEEKS = 20;
-// Academic buildings carry a real recurring cost too — a school building
-// is the single biggest running bill in the curriculum half of the
-// budget, and (unlike a course) it arrives all at once. Founders Hall's is
-// charged from week one: it is seeded 'done' at founding, and upkeepPerWeek
-// is live-read rather than applied once, so it is part of the founding
+// Academic buildings carry a real recurring cost too — a hall is the
+// single biggest running bill in the curriculum half of the budget, and
+// (unlike a course) it arrives all at once. Founders Hall's is charged
+// from week one: it is seeded 'done' at founding, and upkeepPerWeek is
+// live-read rather than applied once, so it is part of the founding
 // operating picture with no double-counting.
 const GENED_BUILDING_UPKEEP_PER_WEEK = 900;
-const SCHOOL_BUILDING_UPKEEP_PER_WEEK = 3_000;
 // A small gen-ed reputation baseline the founding institution opens with —
 // folded into the starting reputation by createInitialState rather than
 // granted as a Buildable effect. There is no apply-once reputation effect in
@@ -154,8 +157,68 @@ const SCHOOL_BUILDING_UPKEEP_PER_WEEK = 3_000;
 // courses/majors, not beds.
 export const GENED_BUILDING_REPUTATION_BONUS = 1.5;
 
-const SCHOOL_BUILDING_COST = 1_400_000;
-const SCHOOL_BUILDING_WEEKS = 28;
+// ---------------------------------------------------------------------
+// THE ACADEMIC HALL (Plan 14). A repeatable, placeable 'building' Buildable
+// with SIX program slots — see types.ts's HallSlot. Six is not arbitrary:
+// every school in the game has exactly six majors, so one hall is exactly
+// one school, and that is a rule a player learns in one sentence and plans
+// a decade around. No tiers, no floors, no upgrade chain: a 4/8/16-room
+// ladder would destroy the one rule this is built on.
+//
+// "Repeatable" here means what it means for dorms (campusData.ts): a
+// strictly sequential chain of distinctly-named Buildables, each unlocked
+// by the one before it, so there is always exactly one next hall to build
+// and its cost is visible. The first opens the tick the gen-ed core is
+// done — the new year-one beat: three programs waiting and nowhere to put
+// them — and is DELIBERATELY CHEAP, a fraction of the old school building,
+// so a founding school builds it without thinking. Each rung after it
+// costs a fixed ratio more, so the fifth is a multi-year commitment.
+//
+// Twelve rungs because twelve is the completionist ceiling: seven schools
+// of six majors, plus a second Business, Engineering, Science, Social
+// Sciences and Health Science hall for the six graduate programs, which
+// belong to those schools but do not fit in a hall their six majors
+// already fill. A hall the player never needs is never offered — the
+// chain stops here.
+//
+// EVERY NUMBER HERE IS PROVISIONAL, and loudly so. They are fitted by feel
+// against an economy the September review found broken and Plan 15 is
+// about to replace; Plan 15's PR G is where they are fitted once, properly,
+// against the scorecard. The opening shape: first hall cheap, then ×1.35
+// a rung, so a balanced run affords roughly eight by year 35 and a
+// completionist ten or eleven. Cumulative: ~$14M for eight, ~$37M for
+// eleven — a fraction of the dorm chain over the same span.
+export const ACADEMIC_HALL_SLOTS = 6;
+const ACADEMIC_HALL_FIRST_COST = 500_000;
+const ACADEMIC_HALL_COST_RATIO = 1.35;
+const ACADEMIC_HALL_FIRST_WEEKS = 16;
+const ACADEMIC_HALL_WEEKS = 24;
+// Upkeep matches the school building it replaced ($3,000 a week): a hall
+// is the same lecture rooms and offices whatever is housed in it.
+const ACADEMIC_HALL_UPKEEP_PER_WEEK = 3_000;
+// Named for the campus rather than for a school — a hall is not "the
+// School of Engineering" until six Engineering programs sit in it (Plan
+// 14's PR E gives a dedicated hall its school's name on the map). The
+// cardinal four first, then the founding woodland (see treeData.ts) the
+// campus was cut out of.
+const ACADEMIC_HALL_NAMES = [
+  'North Academic Hall', 'South Academic Hall', 'East Academic Hall', 'West Academic Hall',
+  'Elm Hall', 'Oak Hall', 'Linden Hall', 'Maple Hall',
+  'Chestnut Hall', 'Sycamore Hall', 'Cedar Hall', 'Birch Hall',
+];
+export const ACADEMIC_HALL_COUNT = ACADEMIC_HALL_NAMES.length;
+export const ACADEMIC_HALL_ID_PREFIX = 'HALL-';
+function academicHallId(index: number): string {
+  return `${ACADEMIC_HALL_ID_PREFIX}${String(index + 1).padStart(2, '0')}`;
+}
+
+// One of the repeatable chain above — six slots, built by the player — as
+// opposed to Founders Hall, which carries a slot (the core's) but is the
+// founding condition rather than a decision. The build menu groups the
+// chain as one repeatable type on this read.
+export function isAcademicHall(t: Buildable): boolean {
+  return t.kind === 'building' && t.slots !== undefined && t.id !== GENED_BUILDING_ID;
+}
 
 interface MajorSeed {
   prefix: string;   // course code prefix, e.g. "FINA"
@@ -165,8 +228,11 @@ interface MajorSeed {
 }
 interface SchoolSeed {
   name: string;
-  buildingId: string;
-  buildingName: string;
+  // Set only for General Studies: Founders Hall, the founding condition the
+  // gen-ed core is paired with. No degree-granting school has a building
+  // of its own any more — see the module note above.
+  buildingId?: string;
+  buildingName?: string;
   core?: Array<[string, string]>; // [code, title] for gen-ed only
   majors: MajorSeed[];
 }
@@ -193,8 +259,6 @@ const SCHOOLS: SchoolSeed[] = [
   },
   {
     name: 'Business',
-    buildingId: 'BLDG-BUSINESS',
-    buildingName: 'Business Hall',
     majors: [
       { prefix: 'FINA', name: 'Finance', field: 'Accounting & Finance', courses: ['Principles of Finance', 'Corporate Finance', 'Investment Analysis', 'Financial Modeling', 'International Finance', 'Real Estate Finance', 'Fintech & Blockchain', 'Risk Management', 'Behavioral Finance'] },
       { prefix: 'ACCT', name: 'Accounting', field: 'Accounting & Finance', courses: ['Introduction to Accounting', 'Financial Accounting', 'Managerial Accounting', 'Tax Fundamentals', 'Auditing Principles', 'Forensic Accounting', 'Governmental & Non-Profit Accounting', 'Advanced Cost Accounting', 'Accounting Information Systems'] },
@@ -206,8 +270,6 @@ const SCHOOLS: SchoolSeed[] = [
   },
   {
     name: 'Engineering',
-    buildingId: 'BLDG-ENGINEERING',
-    buildingName: 'Engineering Hall',
     majors: [
       { prefix: 'MECH', name: 'Mechanical Engineering', field: 'Mechanical Engineering', courses: ['Introduction to Mechanical Design', 'Statics & Dynamics', 'Thermodynamics', 'Fluid Mechanics', 'Materials Science', 'Robotics', 'HVAC Systems', 'Internal Combustion Engines', 'Finite Element Analysis'] },
       { prefix: 'ELEC', name: 'Electrical Engineering', field: 'Electrical Engineering', courses: ['Circuits', 'Digital Logic Design', 'Signals & Systems', 'Electromagnetics', 'Microelectronics', 'Power Systems Analysis', 'Wireless Communications', 'Control Systems', 'VLSI Design'] },
@@ -219,8 +281,6 @@ const SCHOOLS: SchoolSeed[] = [
   },
   {
     name: 'Arts & Media',
-    buildingId: 'BLDG-ARTSMEDIA',
-    buildingName: 'Arts & Media Center',
     majors: [
       { prefix: 'MDIA', name: 'Media Studies', field: 'Communication', courses: ['Mass Communication', 'Media Theory', 'Global Media Systems', 'Digital Culture', 'Media Ethics', 'Film Industry', 'Social Media Analytics', 'Photojournalism', 'Public Relations'] },
       { prefix: 'GRDS', name: 'Graphic Design', field: 'Art & Design', courses: ['Visual Communication', 'Typography', 'Digital Imaging', 'Layout Design', 'Branding & Identity', 'Web Design', 'Motion Graphics', 'Illustration', 'Publication Design'] },
@@ -232,8 +292,6 @@ const SCHOOLS: SchoolSeed[] = [
   },
   {
     name: 'Social Sciences & Humanities',
-    buildingId: 'BLDG-SOCSCI',
-    buildingName: 'Social Sciences & Humanities Hall',
     majors: [
       { prefix: 'ENGL', name: 'English', field: 'English', courses: ['Introduction to Literary Studies', 'British Literature Survey', 'American Literature Survey', 'Critical Theory', 'Advanced Composition', 'Shakespeare', 'Restoration & 18th Century Literature', 'Postcolonial Literature', 'Technical Writing'] },
       { prefix: 'SOCY', name: 'Sociology', field: 'Sociology', courses: ['Introduction to Sociology', 'Social Stratification', 'Sociological Theory', 'Race & Ethnicity', 'Qualitative Research Methods', 'Criminology', 'Sociology of the Family', 'Urban Sociology', 'Sex & Gender'] },
@@ -254,8 +312,6 @@ const SCHOOLS: SchoolSeed[] = [
     // Psychology MOVE here keeping their course ids, so a save that already
     // finished either keeps it finished.
     name: 'Science',
-    buildingId: 'BLDG-SCIENCE',
-    buildingName: 'Science Center',
     majors: [
       { prefix: 'MATH', name: 'Mathematics', field: 'Mathematics', courses: ['Calculus II', 'Linear Algebra', 'Probability & Statistics', 'Discrete Mathematics', 'Differential Equations', 'Real Analysis', 'Abstract Algebra', 'Topology', 'Numerical Methods'] },
       { prefix: 'BIOL', name: 'Biology', field: 'Biology', courses: ['Biology I', 'Cell Biology', 'Genetics', 'Ecology', 'Evolution', 'Microbiology', 'Marine Biology', 'Plant Physiology', 'Immunology'] },
@@ -275,8 +331,6 @@ const SCHOOLS: SchoolSeed[] = [
     // deliberately, gives the school back a research identity it would
     // otherwise have lost with Biology (see LAB_GATED_MAJOR_PREFIXES).
     name: 'Health Science',
-    buildingId: 'BLDG-HEALTHSCI',
-    buildingName: 'Health Sciences Building',
     majors: [
       { prefix: 'PHLT', name: 'Public Health', field: 'Public Health', courses: ['Introduction to Public Health', 'Epidemiology', 'Biostatistics', 'Health Policy & Management', 'Environmental Health', 'Global Health', 'Health Promotion', 'Community Health Assessment', 'Maternal & Child Health'] },
       { prefix: 'NURS', name: 'Nursing', field: 'Clinical Health', courses: ['Introduction to Professional Nursing', 'Anatomy & Physiology', 'Pharmacology', 'Health Assessment', 'Clinical Practicum I', 'Critical Care Nursing', 'Pediatric Nursing', 'Gerontology', 'Clinical Practicum II'] },
@@ -288,8 +342,6 @@ const SCHOOLS: SchoolSeed[] = [
   },
   {
     name: 'Computer Science',
-    buildingId: 'BLDG-COMPSCI',
-    buildingName: 'Computer Science Building',
     majors: [
       { prefix: 'COMP', name: 'Computer Science', field: 'Computer Science', courses: ['Introduction to Programming', 'Data Structures', 'Algorithms', 'Operating Systems', 'Computer Architecture', 'Compiler Design', 'Game Development', 'Parallel Computing', 'Web Development'] },
       { prefix: 'DATA', name: 'Data Science', field: 'Mathematics', courses: ['Fundamentals of Data Science', 'Statistical Modeling', 'Machine Learning', 'Data Visualization', 'Data Mining', 'Big Data Systems', 'Time Series Analysis', 'Natural Language Processing', 'Bayesian Statistics'] },
@@ -305,7 +357,81 @@ const SCHOOLS: SchoolSeed[] = [
 // tier-1 entry course requires the whole 6-course core, not just its own
 // school's building. Derived from SCHOOLS rather than re-listed so it can
 // never drift from the General Studies core defined above.
-const GENED_CORE_IDS: string[] = SCHOOLS.find((school) => school.core)!.core!.map(([code]) => code.replace(/\s/g, ''));
+export const GENED_CORE_IDS: string[] = SCHOOLS.find((school) => school.core)!.core!.map(([code]) => code.replace(/\s/g, ''));
+
+// Every undergraduate major's course-code prefix — which is also its
+// PROGRAM ID in `s.halls` (see types.ts's HallSlot). Read by the loader's
+// hall sanitizer and the invariant sweep, so "is this a real program" is
+// answered off the seed rather than a list kept in step with it.
+export function majorPrefixes(): string[] {
+  return SCHOOLS.flatMap((school) => school.majors.map((major) => major.prefix));
+}
+
+// A PROGRAM, as the halls model sees it (Plan 14): the unit that takes a
+// slot. Forty-two majors, the gen-ed core, and the six graduate programs,
+// each read off the seed by the id `s.halls` and `s.programOffers` carry.
+// Deliberately a fourth independent read of SCHOOLS, for the reason
+// milestoneSchools() and researchSchools() each are: the engine has no
+// notion of "program", so the feature that needs one derives it here
+// rather than growing a field on Buildable.
+export type ProgramKind = 'core' | 'major' | 'graduate';
+export interface ProgramInfo {
+  id: string;            // the slot id: a major prefix, 'CORE', or a GRADUATE_PROGRAMS id
+  kind: ProgramKind;
+  name: string;
+  school: string;        // the SchoolSeed name; a graduate program's homeSchool
+  field: string | null;  // the Faculty field a major's every course requires; null for the core and graduate programs, which author it per course
+  entryCourseId: string; // the tier-1 (or first) course — founding a program starts this one
+  courseIds: string[];   // every course, in tier order
+}
+
+const CORE_PROGRAM_ID = 'CORE';
+
+export function programs(): ProgramInfo[] {
+  const out: ProgramInfo[] = [];
+  for (const school of SCHOOLS) {
+    if (school.core) {
+      out.push({
+        id: CORE_PROGRAM_ID, kind: 'core', name: 'General Education', school: school.name, field: null,
+        entryCourseId: GENED_CORE_IDS[0], courseIds: [...GENED_CORE_IDS],
+      });
+    }
+    for (const major of school.majors) {
+      const courseIds = NUMS.map((num) => nodeId(major.prefix, num));
+      out.push({
+        id: major.prefix, kind: 'major', name: major.name, school: school.name, field: major.field,
+        entryCourseId: courseIds[0], courseIds,
+      });
+    }
+  }
+  for (const program of GRADUATE_PROGRAMS) {
+    const courseIds = graduateCourseIds(program);
+    out.push({
+      id: program.id, kind: 'graduate', name: program.name, school: program.homeSchool, field: null,
+      entryCourseId: courseIds[0], courseIds,
+    });
+  }
+  return out;
+}
+
+export function programById(id: string): ProgramInfo | undefined {
+  return programs().find((p) => p.id === id);
+}
+
+// Which program a course belongs to — the id `s.halls` would house it
+// under — or undefined for a Buildable that is not a course of any program.
+// Memoised: the catalogue is static, and meetsUnlockGates asks this for
+// every locked course on every tick.
+let courseProgramMap: Map<string, string> | null = null;
+export function programOfCourse(courseId: string): string | undefined {
+  if (!courseProgramMap) {
+    courseProgramMap = new Map();
+    for (const program of programs()) {
+      for (const id of program.courseIds) courseProgramMap.set(id, program.id);
+    }
+  }
+  return courseProgramMap.get(courseId);
+}
 
 // requiresFaculty gates for the six gen-ed core courses — same idea as each
 // major's own `field` above, just per-course instead of per-major since the
@@ -652,18 +778,6 @@ const DOCTORAL_COURSE_COST = 4_000_000;
 const DOCTORAL_COURSE_WEEKS = 32;
 const DOCTORAL_COURSE_UPKEEP_PER_WEEK = 7_000;
 
-// The two PROFESSIONAL schools that award an external degree — Medicine and
-// Law, see GraduateProgramSeed's `buildingId` below — get their own campus
-// building rather than living inside their parent school's. It is the same
-// 'building'-kind Buildable an undergraduate school gets, sized a rung above
-// SCHOOL_BUILDING_COST/WEEKS/UPKEEP: these are the two most prestigious
-// halls on campus, a bigger institutional commitment than any single
-// undergraduate school and in the same weeks-of-opex language as the
-// professional course rung above sits over TIER_COURSE_COST.
-const PROFESSIONAL_SCHOOL_BUILDING_COST = 2_600_000;
-const PROFESSIONAL_SCHOOL_BUILDING_WEEKS = 36;
-const PROFESSIONAL_SCHOOL_BUILDING_UPKEEP_PER_WEEK = 5_000;
-
 export type GraduateProgramType = 'professional' | 'doctoral';
 
 interface GraduateCourseSeed {
@@ -677,11 +791,11 @@ export interface GraduateProgramSeed {
   name: string;
   degree: string;          // the credential, for display only
   type: GraduateProgramType;
-  // The school section this program is DISPLAYED under when it has no
-  // building of its own (see discoverySchools) — its academic home. Always
-  // one of gateSchools. Still read for MED/LAWS too (researchSchools()
-  // folds their course fields into this school's staffing reads), even
-  // though they no longer display inside it — see `buildingId` below.
+  // The school this program BELONGS to — its academic home, always one of
+  // gateSchools. It is the section the program is displayed under, the
+  // school whose staffing reads fold its course fields in
+  // (researchSchools()), and the school it counts as when housed in a
+  // hall (systems/techtree/schools.ts's dedicatedSchool).
   homeSchool: string;
   // The school(s) whose state the gate reads. One entry for every program
   // but medicine, which reads two.
@@ -703,34 +817,11 @@ export interface GraduateProgramSeed {
   prestigeWeight: number;
   blurb: string;           // one line, used to build every course description
   courses: GraduateCourseSeed[];
-  // Set only for the two PROFESSIONAL schools that award an external
-  // degree and stand as their own campus building rather than living
-  // inside their parent school's — Medicine and Law. Unset (the MBA and
-  // all three PhD doctorates) means this program stays exactly what it
-  // always was: a graduate sub-group inside homeSchool's Curriculum
-  // section, gated purely on graduateGateMet, no building of its own —
-  // they build on the same subject matter as their parent school and
-  // correctly live there.
-  //
-  // The gate itself does not change for a program that HAS a buildingId —
-  // graduateGateMet is still the one predicate, reused rather than
-  // duplicated (see initialTech() below). What changes is what the gate
-  // being met now reveals FIRST: the building, via the exact same
-  // `graduateProgram` field/meetsUnlockGates mechanism a graduate course
-  // uses, rather than the program's courses directly. The program's entry
-  // course then adds the building as an extra prereq — a cross-kind
-  // course-requires-building prereq, exactly like an undergraduate tier-2
-  // course requiring its school building — so the full chain reads:
-  // academic gate met -> building revealed -> building built -> entry
-  // course available -> rest of the program follows its ordinary prereqs.
-  buildingId?: string;
 }
 
-// Six programs, 37 courses (up from 28: Medicine 6 -> 12, Law 5 -> 8, both
-// now founding a top-level school rather than a sub-group — see
-// `buildingId` above). Deliberately small sets per program — each is
-// "a handful of high-tier courses that complete into a milestone", not a
-// second nine-course major.
+// Six programs, 37 courses (up from 28: Medicine 6 -> 12, Law 5 -> 8).
+// Deliberately small sets per program — each is "a handful of high-tier
+// courses that complete into a milestone", not a second nine-course major.
 const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   {
     // The two-school gate, and the reason the gate predicate takes a LIST
@@ -744,7 +835,6 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
     prestigeWeight: 2.0,
     gateMajorsRequired: 5,
     blurb: 'the medical school',
-    buildingId: 'BLDG-MED',
     courses: [
       { num: 501, title: 'Foundations of Human Medicine', field: 'Clinical Health' },
       { num: 510, title: 'Gross Anatomy & Histology', field: 'Biology' },
@@ -766,7 +856,6 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
     prestigeWeight: 1.6,
     gateMajorsRequired: 5,
     blurb: 'the law school',
-    buildingId: 'BLDG-LAW',
     courses: [
       { num: 501, title: 'Foundations of American Law', field: 'Law' },
       { num: 510, title: 'Contracts & Torts', field: 'Law' },
@@ -983,27 +1072,6 @@ const TIER3_TEMPLATES: Array<(title: string, major: string) => string> = [
 
 const BUILDING_DESCRIPTIONS: Record<string, string> = {
   'BLDG-GENSTUDIES': 'The starter hall housing the general-education core — standing since the university\'s founding.',
-  'BLDG-BUSINESS': "The Business school's home: lecture halls, case-study rooms, and faculty offices for every business major.",
-  'BLDG-ENGINEERING': 'Labs, workshops, and studios for the Engineering school’s six majors.',
-  'BLDG-ARTSMEDIA': 'Studios, editing bays, and performance space for the Arts & Media school.',
-  'BLDG-SOCSCI': 'Seminar rooms and research space for the Social Sciences & Humanities school.',
-  'BLDG-SCIENCE': 'Lecture theatres, teaching benches, and prep rooms for the Science school’s six majors.',
-  'BLDG-HEALTHSCI': 'Clinical labs and classrooms for the Health Science school’s six majors.',
-  'BLDG-COMPSCI': 'Labs and classrooms for the Computer Science school’s six majors.',
-};
-
-// Names and descriptions for the two professional-school buildings, keyed
-// by GRADUATE_PROGRAMS id rather than by buildingId — the seed already has
-// the program handy at the point these are read (see initialTech below),
-// and it's the program's identity, not the building's, that these are
-// really about.
-const PROFESSIONAL_BUILDING_NAMES: Record<string, string> = {
-  MED: 'Medical School Hall',
-  LAWS: 'Law School Hall',
-};
-const PROFESSIONAL_BUILDING_DESCRIPTIONS: Record<string, string> = {
-  MED: 'Teaching clinics, anatomy labs, and lecture halls for the School of Medicine.',
-  LAWS: 'Moot courtrooms, a law library, and seminar rooms for the School of Law.',
 };
 
 function nodeId(prefix: string, num: number): string {
@@ -1053,14 +1121,16 @@ export function initialTech(): Buildable[] {
           description: `${RESEARCH_FACILITY_BLURBS[major.prefix] ?? 'Specialized lab space'} — gates ${major.name}'s capstone (tier-3) coursework, and lets the school produce research.`,
           cost: LAB_COST,
           duration: LAB_WEEKS,
-          // Buildable once the major's entry course AND its school building
-          // are done — a thematic prereq (a teaching lab belongs to a
-          // school), not a new gate: the school building is already on the
-          // path to tier-2, and tier-3 is what the lab actually gates, so
-          // this only stops a lab from being an expensive, useless purchase
-          // a decade before anything needs it — which is exactly the trap
-          // an early-game player with cash burning a hole falls into.
-          prereqs: [t1Id, school.buildingId],
+          // Buildable once the major's entry course is done AND its
+          // school has been founded (schoolGate — see types.ts). A
+          // thematic gate, not a new one: the school building used to
+          // stand here, and the school-founded milestone is the reading
+          // it stood for. What it still does is stop a lab from being an
+          // expensive, useless purchase a decade before anything needs it,
+          // which is exactly the trap an early-game player with cash
+          // burning a hole falls into.
+          prereqs: [t1Id],
+          schoolGate: school.name,
           status: 'locked',
           effects: {
             upkeepPerWeek: LAB_UPKEEP_PER_WEEK,
@@ -1076,7 +1146,12 @@ export function initialTech(): Buildable[] {
 
         let prereqs: string[] = [];
         if (tier === 1) prereqs = [...GENED_CORE_IDS];
-        else if (tier === 2) prereqs = [t1Id, school.buildingId];
+        // Tier 2 used to name the school building here as well. The gate
+        // it stood for — "this program has a home" — is dynamic now: every
+        // course of a major waits on the program being housed in a hall
+        // slot (techSystem.ts's meetsUnlockGates), tier 1 included, which
+        // is what makes founding the only way in.
+        else if (tier === 2) prereqs = [t1Id];
         else if (tier === 3) {
           const artsGate = ARTS_CAPSTONE_GATE[major.prefix];
           prereqs = [
@@ -1113,47 +1188,65 @@ export function initialTech(): Buildable[] {
       });
     }
 
-    // The school building: unlocked once every tier-1 course in the school
-    // is done (core courses for General Studies, one per major otherwise).
-    // Its own completion unlocks the school's tier-2 courses — authored as
-    // a plain prereq on each of those courses above, resolved by the same
-    // generic engine that resolves every other prereq.
+    // Founders Hall (General Studies' own building) — the one building a
+    // SchoolSeed still carries. Per docs/design/curriculum.md, a new
+    // university starts with "one academic building and the gen-ed courses
+    // available": the building isn't an early reward, it's the founding
+    // condition the gen-ed courses are paired with. It's the one Buildable
+    // in the whole game seeded 'done' AND pre-placed at founding (see
+    // actions.ts's createInitialState) — the university's literal founding
+    // hall, standing in for the pre-built dorm a founding campus used to
+    // open with before commuters (see campusData.ts). It carries no
+    // APPLY-ONCE reputation effect: a gen-ed reputation baseline is folded
+    // into the founding institution's standing instead (see
+    // GENED_BUILDING_REPUTATION_BONUS and actions.ts). Its upkeepPerWeek is
+    // LIVE-READ every tick off whatever is 'done', so it is part of the
+    // founding operating picture with no double-counting — the same
+    // contract the founding dining hall follows in facilitiesData.ts, just
+    // already 'done' rather than merely 'available' on day one. Academic
+    // buildings carry no capacity effect at all — see the capacity comment
+    // above GENED_BUILDING_REPUTATION_BONUS.
     //
-    // Founders Hall (General Studies' own building) is the one exception:
-    // per the docs/design/curriculum.mdmilestone chain, a new university
-    // starts with "one academic building and the gen-ed courses available" —
-    // the building isn't an early reward, it's the founding condition the
-    // gen-ed courses are paired with. It's the one Buildable in the whole
-    // game seeded 'done' AND pre-placed at founding (see actions.ts's
-    // createInitialState) — the university's literal founding hall, in the
-    // sense the name implies, standing in for the pre-built dorm a founding
-    // campus used to open with before commuters (see campusData.ts). It
-    // carries no APPLY-ONCE reputation effect: a gen-ed reputation baseline
-    // is folded into the founding institution's standing instead (see
-    // GENED_BUILDING_REPUTATION_BONUS and actions.ts), the same way every
-    // other academic building grants prestige through curriculum breadth
-    // rather than a direct bonus of its own. Its upkeepPerWeek is LIVE-READ
-    // every tick off whatever is 'done', so it is part of the founding
-    // operating picture with no double-counting — the same contract the
-    // founding dining hall follows in facilitiesData.ts, just already 'done'
-    // rather than merely 'available' on day one. Academic buildings carry no
-    // capacity effect at all — see the capacity comment above
-    // GENED_BUILDING_REPUTATION_BONUS.
-    const isGenEd = school.core !== undefined;
-    nodes.push({
-      id: school.buildingId,
-      kind: 'building',
-      name: school.buildingName,
-      description: BUILDING_DESCRIPTIONS[school.buildingId] ?? `${school.name}'s academic building.`,
-      cost: isGenEd ? GENED_BUILDING_COST : SCHOOL_BUILDING_COST,
-      duration: isGenEd ? GENED_BUILDING_WEEKS : SCHOOL_BUILDING_WEEKS,
-      prereqs: tier1IdsInSchool,
-      status: isGenEd ? 'done' : 'locked',
-      effects: {
-        upkeepPerWeek: isGenEd ? GENED_BUILDING_UPKEEP_PER_WEEK : SCHOOL_BUILDING_UPKEEP_PER_WEEK,
-      },
-    });
+    // It holds the gen-ed core and NOTHING ELSE: one slot, filled at
+    // founding (see actions.ts's createInitialState), so the core occupies
+    // the building rather than one slot of six. The alternative — core
+    // plus five free slots — strands the player's first five programs in
+    // a building that can never found a school, a trap laid in the first
+    // ten minutes. See types.ts's HallSlot.
+    if (school.buildingId && school.buildingName) {
+      nodes.push({
+        id: school.buildingId,
+        kind: 'building',
+        name: school.buildingName,
+        description: BUILDING_DESCRIPTIONS[school.buildingId] ?? `${school.name}'s academic building.`,
+        cost: GENED_BUILDING_COST,
+        duration: GENED_BUILDING_WEEKS,
+        prereqs: tier1IdsInSchool,
+        status: 'done',
+        slots: 1,
+        effects: { upkeepPerWeek: GENED_BUILDING_UPKEEP_PER_WEEK },
+      });
+    }
   }
+
+  // The academic hall chain (see ACADEMIC_HALL_SLOTS above). The first
+  // waits on the gen-ed core, exactly as every tier-1 course does; each
+  // rung after it waits on the rung before, the dorm chain's shape.
+  ACADEMIC_HALL_NAMES.forEach((name, i) => {
+    const cost = Math.round(ACADEMIC_HALL_FIRST_COST * ACADEMIC_HALL_COST_RATIO ** i / 1_000) * 1_000;
+    nodes.push({
+      id: academicHallId(i),
+      kind: 'building',
+      name,
+      description: `An academic hall with ${ACADEMIC_HALL_SLOTS} program slots. Six programs of one school, housed together, found that school.`,
+      cost,
+      duration: i === 0 ? ACADEMIC_HALL_FIRST_WEEKS : ACADEMIC_HALL_WEEKS,
+      prereqs: i === 0 ? [...GENED_CORE_IDS] : [academicHallId(i - 1)],
+      status: 'locked',
+      slots: ACADEMIC_HALL_SLOTS,
+      effects: { upkeepPerWeek: ACADEMIC_HALL_UPKEEP_PER_WEEK },
+    });
+  });
 
   // Graduate programs, appended after the undergraduate catalogue (see the
   // GRADUATE PROGRAMS block above). Every one of these is a plain `course`
@@ -1163,12 +1256,11 @@ export function initialTech(): Buildable[] {
   // Curriculum tab knows where to draw it.
   //
   // Inside a program the climb is ordinary authored prereqs: the entry
-  // course has none at all beyond its program's own building where one
-  // exists (see `buildingId` above — a cross-kind course-requires-building
-  // prereq, exactly like an undergraduate tier-2 course requiring its
-  // school building), the middle courses require the entry course, and the
-  // final course requires every course before it — a capstone in the same
-  // sense a tier-3 course is.
+  // course has none at all (the program's gate — graduateGateMet — and its
+  // home — a hall slot, see the housed gate in techSystem.ts — are both
+  // dynamic), the middle courses require the entry course, and the final
+  // course requires every course before it — a capstone in the same sense
+  // a tier-3 course is.
   for (const program of GRADUATE_PROGRAMS) {
     const professional = program.type === 'professional';
     const ids = graduateCourseIds(program);
@@ -1183,9 +1275,7 @@ export function initialTech(): Buildable[] {
       // rather than special-cased here, so "which coursework needs a
       // clinical facility" stays authored in exactly one place.
       const prereqs = [
-        ...(i === 0
-          ? (program.buildingId ? [program.buildingId] : [])
-          : last ? ids.slice(0, i) : [entryId]),
+        ...(i === 0 ? [] : last ? ids.slice(0, i) : [entryId]),
         ...(CLINICAL_PRACTICUM_GATE[id] ? [CLINICAL_PRACTICUM_GATE[id]!] : []),
       ];
 
@@ -1195,9 +1285,7 @@ export function initialTech(): Buildable[] {
         graduateProgram: program.id,
         name: `${program.id} ${course.num} · ${course.title}`,
         description: i === 0
-          ? program.buildingId
-            ? `Founds ${program.blurb} (${program.degree}). Opens once ${PROFESSIONAL_BUILDING_NAMES[program.id] ?? program.name} is built.`
-            : `Founds ${program.blurb} (${program.degree}). Opens once ${graduateGateDescription(program)}.`
+          ? `Founds ${program.blurb} (${program.degree}). Offered once ${graduateGateDescription(program)}; takes a hall slot like any program.`
           : `${program.degree} coursework in ${course.title}, taught inside ${program.name}.`,
         cost: professional ? PROFESSIONAL_COURSE_COST : DOCTORAL_COURSE_COST,
         duration: professional ? PROFESSIONAL_COURSE_WEEKS : DOCTORAL_COURSE_WEEKS,
@@ -1213,39 +1301,11 @@ export function initialTech(): Buildable[] {
     });
   }
 
-  // The two professional-school buildings (Medicine, Law — see
-  // GraduateProgramSeed's `buildingId`). Gated the exact same dynamic way a
-  // graduate course is: `graduateProgram` routes it through
-  // techSystem.ts's meetsUnlockGates -> graduateGateMet, so it reveals
-  // (locked -> available) the moment the program's own academic gate reads
-  // true — the SAME predicate the courses always used, reused rather than
-  // duplicated. It carries no prereqs of its own (nothing must be 'done'
-  // first, only the dynamic gate has to clear); the program's entry course
-  // above is what carries the building as ITS prereq, which is what makes
-  // the building a genuine construction step rather than a formality: the
-  // gate reveals it, but the player still has to build it before the
-  // program's first course opens.
-  for (const program of GRADUATE_PROGRAMS) {
-    if (!program.buildingId) continue;
-    nodes.push({
-      id: program.buildingId,
-      kind: 'building',
-      graduateProgram: program.id,
-      name: PROFESSIONAL_BUILDING_NAMES[program.id] ?? `${program.name} Hall`,
-      description: `${PROFESSIONAL_BUILDING_DESCRIPTIONS[program.id] ?? `${program.name}'s own campus building.`} Buildable once ${graduateGateDescription(program)}.`,
-      cost: PROFESSIONAL_SCHOOL_BUILDING_COST,
-      duration: PROFESSIONAL_SCHOOL_BUILDING_WEEKS,
-      prereqs: [],
-      status: 'locked',
-      effects: { upkeepPerWeek: PROFESSIONAL_SCHOOL_BUILDING_UPKEEP_PER_WEEK },
-    });
-  }
-
   return nodes;
 }
 
-// Milestone-checking metadata (school -> building id -> each major's tier-2
-// and tier-3 ids), consumed by techSystem.ts's checkMilestones(). Deliberately
+// Milestone-checking metadata (school -> each major's tier-2 and tier-3
+// ids), consumed by techSystem.ts's checkMilestones(). Deliberately
 // NOT part of the Buildable model itself — the engine reads it for the one
 // course-domain feature (the milestone chain) that genuinely needs to know
 // school/major structure.
@@ -1257,14 +1317,12 @@ export interface MilestoneMajor {
 }
 export interface MilestoneSchool {
   schoolName: string;
-  buildingId: string;
   majors: MilestoneMajor[];
 }
 
 export function milestoneSchools(): MilestoneSchool[] {
   return SCHOOLS.map((school) => ({
     schoolName: school.name,
-    buildingId: school.buildingId,
     majors: school.majors.map((major) => ({
       name: major.name,
       prefix: major.prefix,
@@ -1378,7 +1436,7 @@ export function researchSchools(): ResearchSchool[] {
 // (see CurriculumTab.tsx). A second independent UI-only view alongside
 // milestoneSchools() above — same reasoning: the engine never needs this
 // shape, only the tab that derives what's revealed from existing
-// unlock/milestone state (school building done, program-established) does.
+// halls/milestone state (a program housed, program-established) does.
 // tier1Id is included (milestoneSchools() only has tier2/tier3)
 // because the discovery view needs a major's full climb, not just the
 // milestone-relevant tiers.
@@ -1403,16 +1461,16 @@ export interface DiscoveryGraduateProgram {
 }
 export interface DiscoverySchool {
   name: string;
-  buildingId: string;
+  // The school's building, where it has one: only General Studies (Founders
+  // Hall) does. A degree-granting school is a set of programs housed in
+  // academic halls, not a building — the Curriculum tab keys its sections
+  // by `name`, and the campus map's info panel finds Founders Hall by this.
+  buildingId?: string;
   coreIds: string[]; // gen-ed core course ids; non-empty only for General Studies
   majors: DiscoveryMajor[];
-  // The graduate programs whose HOME school this is AND that display
-  // inside it — i.e. every program without a `buildingId` (the MBA, and
-  // all three PhD doctorates). Empty for most schools. Medicine and Law no
-  // longer appear here even though Health Science/Social Sciences &
-  // Humanities is still their `homeSchool` for every other read (faculty
-  // staffing, research) — see professionalSchools() below for how they
-  // display instead.
+  // The graduate programs whose HOME school this is — Medicine and Law
+  // included, since PR E: a program is housed in a hall of its school,
+  // and displays inside it.
   graduate: DiscoveryGraduateProgram[];
 }
 
@@ -1429,7 +1487,7 @@ export function discoverySchools(): DiscoverySchool[] {
       tier3Ids: [5, 6, 7, 8].map((i) => nodeId(major.prefix, NUMS[i])),
     })),
     graduate: GRADUATE_PROGRAMS
-      .filter((program) => program.homeSchool === school.name && !program.buildingId)
+      .filter((program) => program.homeSchool === school.name)
       .map((program) => ({
         id: program.id,
         name: program.name,
@@ -1441,26 +1499,3 @@ export function discoverySchools(): DiscoverySchool[] {
   }));
 }
 
-// A professional school with its own campus building (Medicine, Law) as
-// the Curriculum tab needs it: structurally parallel to DiscoverySchool
-// above (a heading, a buildingId keying its own section and completion
-// ring, its course ids), but never a sub-group of any other school.
-export interface DiscoveryProfessionalSchool {
-  id: string;         // the GraduateProgramSeed id (MED, LAWS)
-  name: string;        // "School of Medicine" / "School of Law" — the section heading
-  degree: string;
-  buildingId: string;
-  courseIds: string[];
-}
-
-export function professionalSchools(): DiscoveryProfessionalSchool[] {
-  return GRADUATE_PROGRAMS
-    .filter((program): program is GraduateProgramSeed & { buildingId: string } => !!program.buildingId)
-    .map((program) => ({
-      id: program.id,
-      name: program.name,
-      degree: program.degree,
-      buildingId: program.buildingId,
-      courseIds: graduateCourseIds(program),
-    }));
-}

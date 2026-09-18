@@ -221,8 +221,8 @@ const MAX_NAME_ROLL_ATTEMPTS = 30;
 //
 // Adding/renaming an entry here is a save-compatibility event: a saved
 // faculty member stores their field as a plain string, so a field that
-// stops existing strands that hire. See LEGACY_FIELD_RENAMES below and
-// persistence.ts's v4 -> v5 migration.
+// stops existing strands that hire. Bump SAVE_VERSION (persistence.ts)
+// and let the save drop.
 // ---------------------------------------------------------------------
 // The eight divisions, as DATA rather than as comments between rows of a
 // flat array. They were comments until the Faculty tab started rendering
@@ -270,32 +270,6 @@ export const FACULTY_FIELD_GROUPS: FacultyFieldGroup[] = [
 // two cannot drift: a department added to a division is in the taxonomy,
 // and a department in the taxonomy is in exactly one division.
 export const FACULTY_FIELDS = FACULTY_FIELD_GROUPS.flatMap((group) => group.fields);
-// Old field names -> the field that inherits them, for saves written
-// before the taxonomy was re-specialised (see persistence.ts's v4 -> v5
-// migration, and v9 -> v10, which runs every saved hire back through this
-// table too). Only the three fields that stopped existing need an entry;
-// the other ten old names are still live fields and carry forward as-is.
-// A merged-away field maps to the closest surviving department, so a
-// player never loses a hire they paid for — 'Business' split four ways, so
-// its faculty land in 'Management', the most general of the four.
-//
-// The School of Science reorg added NO entry here, and that is a finding
-// rather than an oversight: it added two departments and retired none. The
-// two majors it removed, Pre-Med and Dentistry, never had fields of their
-// own — Pre-Med was staffed by Chemistry (which now staffs the Chemistry
-// major) and Dentistry by Clinical Health (which now staffs Pharmacy) —
-// so every one of the 26 old field strings is still a live department and
-// every saved hire lands on a field that still teaches at least nine
-// courses. A Dentistry professor is not lost; they are a Clinical Health
-// professor whose department now runs the pharmacy sequence. What DOES
-// need the rename table is any save older than v5, which is why v9 -> v10
-// runs it defensively rather than trusting that a v9 save already went
-// through v4 -> v5.
-export const LEGACY_FIELD_RENAMES: Record<string, string> = {
-  CompSci: 'Computer Science',
-  Business: 'Management',
-  Arts: 'Art & Design',
-};
 
 function pick<T>(pool: T[]): T {
   return pool[Math.floor(Math.random() * pool.length)];

@@ -396,22 +396,6 @@ export const SPORTS: readonly SportDefinition[] = SPORT_PROFILES.flatMap((profil
   }),
 );
 
-// Every pre-gendering (bare) SPORTS id that MOVED when its sport split into
-// two lineages, mapped to the id an existing club/team on it migrates to.
-// Derived from SPORT_PROFILES rather than authored a second time, so it can
-// never drift from SPORTS itself. A one-gender sport's id didn't move (it
-// was already a single lineage), so it has no entry here — see
-// persistence.ts's v24 -> v25 migration, the only reader.
-//
-// The default gender an existing program migrates to is MEN'S: see that
-// migration's own comment for why (the honest reading of an existing
-// "Soccer" program is that it was implicitly one squad, and this preserves
-// it rather than inventing a second one) and for the visible rename this
-// causes.
-export const LEGACY_TWO_GENDER_SPORT_MIGRATION: Readonly<Record<string, string>> = Object.fromEntries(
-  SPORT_PROFILES.filter((p) => p.genders.length > 1).map((p) => [p.key, sportId(p, 'men')]),
-);
-
 export function sportById(id: string | null | undefined): SportDefinition | undefined {
   return SPORTS.find((sp) => sp.id === id);
 }

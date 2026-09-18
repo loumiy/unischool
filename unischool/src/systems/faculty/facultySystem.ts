@@ -1,3 +1,4 @@
+import { tickSearches } from './facultySearch';
 import type { Faculty, GameState } from '../../state/types';
 
 // THE ONE WAY SOMEBODY JOINS THE ROSTER. Two callers reach it: the
@@ -82,6 +83,9 @@ function tickCandidatePool(s: GameState): void {
     const existingNames = [...s.faculty, ...s.candidates].map((f) => f.name);
     s.candidates.push(generateCandidate(rollCandidateField(), existingNames));
   }
+  // A posted search's listing lands on top of the ordinary churn (Plan
+  // 14's PR H — see facultySearch.ts).
+  tickSearches(s);
 }
 
 export function tickFaculty(s: GameState): void {
