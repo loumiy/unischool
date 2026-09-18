@@ -1,4 +1,4 @@
-import type { Faculty, GameState, Initiative, PrizeAward } from '../../state/types';
+import type { Faculty, GameState, Initiative, LogTopic, PrizeAward } from '../../state/types';
 import { INITIATIVE_HISTORY_LIMIT, WEEKS_PER_YEAR } from '../../state/types';
 import {
   GRANT_PER_PUBLICATION_CHANCE, PUBLICATION_POINTS, annualBreakthroughChance, article, awardChance,
@@ -60,8 +60,8 @@ import { generateCandidate } from '../../data/facultyData';
 // delayed modal never delays the effect.
 // ---------------------------------------------------------------------
 
-function log(s: GameState, message: string, kind: 'info' | 'good' | 'bad'): void {
-  s.log.unshift({ year: s.clock.year, week: s.clock.week, message, kind });
+function log(s: GameState, message: string, kind: 'info' | 'good' | 'bad', topic?: LogTopic, subject?: string): void {
+  s.log.unshift({ year: s.clock.year, week: s.clock.week, message, kind, topic, subject });
 }
 
 // =====================================================================
@@ -92,7 +92,7 @@ function pullCandidate(s: GameState, participants: Faculty[], why: string): void
   if (!who) return;
   const candidate = generateCandidate(who.field, [...s.faculty, ...s.candidates].map((f) => f.name));
   s.candidates.unshift(candidate);
-  log(s, `${candidate.name} (${candidate.field}) saw ${why} and is on the market.`, 'info');
+  log(s, `${candidate.name} (${candidate.field}) saw ${why} and is on the market.`, 'info', 'candidate', candidate.id);
 }
 
 function publish(s: GameState, initiative: Initiative, participants: Faculty[]): void {
@@ -102,7 +102,7 @@ function publish(s: GameState, initiative: Initiative, participants: Faculty[]):
 
   initiative.publications += 1;
   s.research.publications += 1;
-  log(s, `${article(vocab.publication)} new ${vocab.publication} out of ${where}.`, 'info');
+  log(s, `${article(vocab.publication)} new ${vocab.publication} out of ${where}.`, 'info', 'publication', initiative.labId);
 
   // A grant rides on the paper: a strong team pulls more money in — the
   // brief's "faculty research strength improves outcomes", applied where
@@ -114,7 +114,7 @@ function publish(s: GameState, initiative: Initiative, participants: Faculty[]):
     s.research.grants += 1;
     s.research.grantIncome += scaled;
     initiative.grantIncome += scaled;
-    log(s, `${rollGrantFunder(vocab)} has awarded $${scaled.toLocaleString()} to ${where}.`, 'good');
+    log(s, `${rollGrantFunder(vocab)} has awarded $${scaled.toLocaleString()} to ${where}.`, 'good', 'grant', initiative.labId);
   }
 
   if (initiative.publications % PUBLICATIONS_PER_CANDIDATE_PULL === 0) {
@@ -129,7 +129,7 @@ function rollBreakthrough(s: GameState, initiative: Initiative, participants: Fa
   const where = topic ? `“${topic.name}”` : 'the project';
   initiative.breakthroughs += 1;
   s.research.breakthroughs += 1;
-  log(s, `${article(vocab.breakthrough)} ${vocab.breakthrough} out of ${where} has been ${vocab.breakthroughTail}.`, 'good');
+  log(s, `${article(vocab.breakthrough)} ${vocab.breakthrough} out of ${where} has been ${vocab.breakthroughTail}.`, 'good', 'breakthrough', initiative.labId);
   pullCandidate(s, participants, `the ${vocab.breakthrough} out of ${where}`);
 }
 
@@ -178,16 +178,23 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
         // the wrong trophy for a five-year work of history.
         const prizeName = rollPrizeName(disciplineVocab(facilitySchool(initiative.labId)));
         award = { facultyId: winner.id, facultyName: winner.name, field: winner.field, prizeName };
-        log(s, `${winner.name} has been awarded ${prizeName} for “${name}”.`, 'good');
+        log(s, `${winner.name} has been awarded ${prizeName} for “${name}”.`, 'good', 'prize', winner.id);
       }
     }
     const papers = initiative.publications;
+    // Tagged by whether a report will follow (see `notable` below): a run
+    // that produced papers alone is the line the toasts surface (Plan
+    // 16's PR G), since nothing else will; a run about to get its modal is
+    // not toasted on top of it.
+    const notable = award !== null || initiative.breakthroughs > 0;
     log(
       s,
       `“${name}” has concluded after ${Math.round(initiative.weeksTotal / WEEKS_PER_YEAR * 10) / 10} years: `
         + `${papers} ${papers === 1 ? 'publication' : 'publications'}, `
         + `${initiative.breakthroughs} ${initiative.breakthroughs === 1 ? 'breakthrough' : 'breakthroughs'}.`,
       'good',
+      notable ? 'research-reported' : 'research-concluded',
+      initiative.labId,
     );
 
     // THE COMPLETION IS THE EVENT, and the award is one of its results.
@@ -209,7 +216,6 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
     // something worth stopping for: a breakthrough, or an award. Papers
     // are logged (above) and appear in the Research tab's history, and
     // Plan 16's toasts will surface the line when they exist.
-    const notable = award !== null || initiative.breakthroughs > 0;
     if (notable) s.research.pendingCompletions.push({
       topicId: initiative.topicId,
       topicName: name,
@@ -268,7 +274,7 @@ export function tickResearch(s: GameState): void {
     const participants = s.faculty.filter((f) => initiative.participantIds.includes(f.id));
     if (participants.length === 0) {
       const topic = researchTopic(initiative.topicId);
-      log(s, `“${topic?.name ?? 'A project'}” has been abandoned — nobody is left on it.`, 'bad');
+      log(s, `“${topic?.name ?? 'A project'}” has been abandoned — nobody is left on it.`, 'bad', 'research-concluded', initiative.labId);
       concludeInitiative(s, initiative, true);
       continue;
     }

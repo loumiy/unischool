@@ -21,7 +21,7 @@
 // ---------------------------------------------------------------------
 
 import { advanceWeekProgress, MAX_SAMPLE_MS } from '../src/engine/weekClock';
-import { SPEEDS, type Speed } from '../src/engine/useGame';
+import { SANDBOX_SPEEDS, SPEEDS, type Speed } from '../src/engine/useGame';
 
 let checks = 0;
 let failures = 0;
@@ -140,6 +140,16 @@ console.log('week clock tests');
   );
 }
 
+// --- the gears (Plan 16's PR D): 2x and 4x are the real clock, divided ---
+{
+  assert(SPEEDS.double === SPEEDS.real / 2, '2x is exactly half a real week');
+  assert(SPEEDS.quad === SPEEDS.real / 4, '4x is exactly a quarter of one — a speed, not a different clock');
+  assert(SPEEDS.quad > SPEEDS.fast, 'and the sandbox speed is still faster than any gear a player is offered');
+  const quarter = advanceWeekProgress(0, SPEEDS.real, SPEEDS.quad);
+  assert(quarter.ticks === 4 && close(quarter.progress, 0), 'one real-speed week of wall time is four weeks at 4x');
+  assert(SANDBOX_SPEEDS.includes('fast') && !SANDBOX_SPEEDS.includes('quad'), '4x is offered to every player; only fast is gated');
+}
+
 // --- conservation, over a long ragged sequence ------------------------
 {
   // Deliberately irregular: timers do not fire on a grid, and the speed
@@ -149,7 +159,7 @@ console.log('week clock tests');
     seed = (seed * 1664525 + 1013904223) % 4294967296;
     return seed / 4294967296;
   };
-  const order: Speed[] = ['real', 'double', 'paused', 'fast', 'real', 'paused', 'double'];
+  const order: Speed[] = ['real', 'double', 'paused', 'fast', 'real', 'quad', 'paused', 'double'];
 
   const steps: [number, Speed][] = [];
   for (let i = 0; i < 5000; i++) {

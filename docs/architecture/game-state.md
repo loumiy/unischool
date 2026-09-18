@@ -14,8 +14,8 @@ what lets the single Buildable model stay unforked — see
 
 ## Save / load
 
-The game is measured in hours; the annual report and annual admissions make a
-full run long, so **a refresh must not destroy a run**. The whole `GameState`
+The game is measured in hours; a year is four minutes at the real speed and
+fifty of them make a run, so **a refresh must not destroy a run**. The whole `GameState`
 is JSON-serialized into a single versioned `localStorage` key (see
 `src/state/persistence.ts`). It is written at the **annual admissions
 boundary** — the one point where a meaningful chunk of progress has just been

@@ -62,7 +62,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
   let s = start;
   for (let i = 0; i < WEEKS_PER_YEAR * 2; i += 1) {
     const pending = s.pendingInterrupt;
-    if (pending?.type === 'admissions') {
+    if (pending?.type === 'summer') {
       // Held at a content year: this file pins the ADVANCE, and a school
       // played with nothing built would otherwise lose students to
       // attrition at every summer (Plan 15's PR F, pinned by
@@ -75,7 +75,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
     if (pending) { s = dismiss(s, pending.type); continue; }
     s = reducer(s, { type: 'TICK' });
   }
-  throw new Error('no admissions interrupt inside two years');
+  throw new Error('no summer interrupt inside two years');
 }
 
 // =====================================================================

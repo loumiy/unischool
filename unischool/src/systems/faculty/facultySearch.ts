@@ -69,6 +69,8 @@ export function tickSearches(s: GameState): void {
       s.log.unshift({
         year: s.clock.year, week: s.clock.week,
         message: `The ${field} search has turned up ${found.name} — listed on the market now.`,
+        topic: 'candidate',
+        subject: found.id,
         kind: 'good',
       });
     }

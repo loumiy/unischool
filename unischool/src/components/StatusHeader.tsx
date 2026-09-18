@@ -9,14 +9,15 @@ import AnimatedNumber from './AnimatedNumber';
 import { isActivationTarget, useHotkeys } from './hotkeys';
 import { playtestEnabled } from './playtest';
 
-// Keys 1/2/3 set the speed directly to real/double/fast, and Space toggles
+// Keys 1/2/3 set the speed directly to real/double/quad, and Space toggles
 // between paused and playing, without having to click the control-bar
-// buttons — real and double are ordinary gameplay speeds so both hotkeys
-// are live for every player, but '3' only does anything for a test
-// university, matching the Fast button's own gating just below. The typing
-// guard (so typing "3" into the startup screen's school-name field doesn't
-// yank the clock into fast-forward) lives in useHotkeys now — see
-// hotkeys.ts.
+// buttons — the three are ordinary gameplay speeds so all three hotkeys
+// are live for every player, while '4' only does anything under the
+// playtest flag, matching the Fast button's own gating just below (Plan
+// 16's PR D moved the sandbox speed from 3 to 4 when 4x became a real
+// gear). The typing guard (so typing "3" into the startup screen's
+// school-name field doesn't yank the clock into fast-forward) lives in
+// useHotkeys now — see hotkeys.ts.
 //
 // Space is a toggle rather than a set, so it needs to know what to go BACK
 // to: it returns to whatever speed was last actually running rather than
@@ -33,7 +34,8 @@ function useSpeedHotkeys(speed: Speed, setSpeed: (speed: Speed) => void, sandbox
   useHotkeys((e) => {
     if (e.key === '1') setSpeed('real');
     else if (e.key === '2') setSpeed('double');
-    else if (e.key === '3' && sandboxAllowed) setSpeed('fast');
+    else if (e.key === '3') setSpeed('quad');
+    else if (e.key === '4' && sandboxAllowed) setSpeed('fast');
     else if (e.key === ' ') {
       // A Tab-focused button answers Space by clicking itself; that native
       // behaviour wins, rather than the press both clicking a button and
@@ -46,7 +48,9 @@ function useSpeedHotkeys(speed: Speed, setSpeed: (speed: Speed) => void, sandbox
   });
 }
 
-const SPEED_LABELS: Record<Speed, string> = { paused: 'Paused', real: 'Play', double: 'Play 2×', fast: 'Fast (sandbox)' };
+// Play · 2× · 4×: the row reads as one control with three gears rather than
+// three verbs, now that there are three.
+const SPEED_LABELS: Record<Speed, string> = { paused: 'Paused', real: 'Play', double: '2×', quad: '4×', fast: 'Fast (sandbox)' };
 
 // Below this, satisfaction is reported in the same alarmed red the funds
 // figure already uses for negative cash. It is a DISPLAY threshold only —
@@ -177,7 +181,7 @@ export function SchoolAndClock({ s, speed, setSpeed, weekProgress }: {
               onClick={() => setSpeed(sp)}
               title={SANDBOX_SPEEDS.includes(sp)
                 ? 'Playtesting only — not intended for normal play'
-                : 'Space pauses and resumes; 1 and 2 set the speed directly'}
+                : 'Space pauses and resumes; 1, 2 and 3 set the speed directly'}
             >
               {SPEED_LABELS[sp]}
             </button>

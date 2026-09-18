@@ -146,9 +146,9 @@ function testTitleQueues(): void {
   s.orgs.pendingTitles.push('soccer-m');
 
   // The playoff week is busy: something else already holds the interrupt.
-  s.pendingInterrupt = { type: 'admissions' };
+  s.pendingInterrupt = { type: 'summer' };
   tickEvents(s);
-  assert(s.pendingInterrupt.type === 'admissions', 'a busy week is left alone');
+  assert(s.pendingInterrupt.type === 'summer', 'a busy week is left alone');
   assert(s.orgs.pendingTitles.length === 1, 'and the title stays queued rather than being dropped');
 
   s.pendingInterrupt = null;

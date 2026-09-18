@@ -122,7 +122,11 @@ function emptyClasses(s: GameState): void {
   let s = s0;
   const startWeek = s.clock.week;
   let ticks = 0;
-  for (let i = 0; i < 6 && !s.pendingInterrupt; i += 1) {
+  for (let i = 0; i < 6; i += 1) {
+    // The first year's opening letter (Plan 16's PR F) holds week one open
+    // like any other interrupt; it is read and put down so the clock's own
+    // behaviour under a deficit is what this measures.
+    if (s.pendingInterrupt) { s = reducer(s, { type: 'RESOLVE_LETTER', skipAll: true }); continue; }
     s = reducer(s, { type: 'TICK' });
     ticks += 1;
   }

@@ -607,6 +607,8 @@ export function foundProgram(s: GameState, f: Founding): void {
     year: s.clock.year, week: s.clock.week,
     message: `Founded ${program.name} in ${hall?.name ?? 'an academic hall'}.`,
     kind: 'good',
+    topic: 'program',
+    subject: f.programId,
   });
 }
 
@@ -738,7 +740,7 @@ function awardMilestone(s: GameState, key: string, applicantBonus: number, messa
   if (s.milestones[key]) return;
   s.milestones[key] = true;
   s.students.applicantPool += applicantBonus;
-  s.log.unshift({ year: s.clock.year, week: s.clock.week, message, kind: 'good' });
+  s.log.unshift({ year: s.clock.year, week: s.clock.week, message, kind: 'good', topic: 'milestone', subject: key });
   // The handful of milestones special enough to stop the clock get queued
   // for a celebration (see data/eventData.ts's MILESTONE_INTERRUPT_KINDS
   // for which, and systems/events/eventSystem.ts for when it fires). This
@@ -855,6 +857,10 @@ export function tickTech(s: GameState): void {
       week: s.clock.week,
       message: `Developed: ${node.name}.`,
       kind: 'good',
+      // Tagged by kind so the year in review can file a course under its
+      // school and a building under what was built (see types.ts's LogTopic).
+      topic: node.kind === 'course' ? 'course' : 'building',
+      subject: node.id,
     });
   }
 

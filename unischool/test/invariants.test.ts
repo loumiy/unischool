@@ -82,7 +82,7 @@ function advanceUntil(s: GameState, predicate: (s: GameState) => boolean, maxTic
   for (let i = 0; i < maxTicks && !predicate(s); i += 1) {
     if (s.pendingInterrupt) {
       const type = s.pendingInterrupt.type;
-      if (type === 'admissions') {
+      if (type === 'summer') {
         s = reducer(s, {
           type: 'RESOLVE_ADMISSIONS',
           tuition: s.finance.listedTuition,
@@ -528,7 +528,7 @@ function relPath(f: string): string {
   };
   s.orgs.pendingPetitions = [petition];
   s.clock.week = 52; // the summer boundary
-  s.pendingInterrupt = { type: 'admissions', payload: { tuition: s.finance.listedTuition, admitRate: s.students.admitRate } };
+  s.pendingInterrupt = { type: 'summer', payload: { beat: 0, tuition: s.finance.listedTuition, admitRate: s.students.admitRate } };
 
   // Decline it explicitly (approvedPetitionIds does not include it).
   const s1 = reducer(s, {

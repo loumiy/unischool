@@ -277,15 +277,24 @@ published* is the event.
 
 - The player starts **unaware of the report**, though not of their own rank.
 - Reaching enough prestige to crack the **top 50** (which should take some time)
-  fires a one-time **"you've entered the rankings"** interrupt.
-- Thereafter the player gets an **annual report** (top 50 standings) once per year.
+  fires a one-time **"you've entered the rankings"** interrupt — entering is the
+  event, and it keeps its own moment.
+- Thereafter the report is the **Standing beat of every summer** (see
+  [admissions.md](admissions.md)'s "The summer"), rather than an interrupt of
+  its own at week 26. The September 2026 review found the mid-year report a
+  good beat in the wrong place; at the boundary the field has just drifted and
+  the year's grade is being read anyway. The beat is shown from the first
+  summer for every school — the rank is knowable from week one — with the
+  published top-50 table appearing only once the school is on it.
 
-The report's subject is the academic table, with the other two standings as a
-line each beneath the headline rank — the school's place, and who leads that
-axis. Deliberately not two more tables: the report is a modal, and a full list
-belongs where its subject does (research standing reads on the Research tab).
-Neither line carries a year-over-year move, because `YearSnapshot` records only
-the academic rank and a move needs a stored prior; naming the leader is the
+The report's subject is the academic table — as a real table now, with a
+column for where each school stood a year ago (the player's exact, a rival's
+the same momentum-step estimate the movers list uses) — with the other two
+standings as a line each beneath the headline rank: the school's place, and
+who leads that axis. Deliberately not two more tables: a full list belongs
+where its subject does (research standing reads on the Research tab). Neither
+line carries a year-over-year move, because `YearSnapshot` records only the
+academic rank and a move needs a stored prior; naming the leader is the
 context a bare ordinal was missing.
 
 Every school also carries a **mascot** — the player's own is named at the

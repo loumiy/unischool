@@ -33,13 +33,18 @@ const ATHLETIC_STRENGTH_MAX = 85;
 // The U.S. News report is a mid-game reveal (see
 // docs/design/progression.md): the player is unaware of it until prestige
 // first cracks the top TOP_50_CUTOFF, which fires a one-time reveal
-// interrupt; thereafter an annual report fires at REPORT_WEEK every year.
-// REPORT_WEEK is deliberately not WEEKS_PER_YEAR (that's admissions'
-// summer boundary) so the two interrupts never compete for the same tick
-// — see reducer.ts's generic "hold the clock while a system just enqueued
-// an interrupt" handling.
-const TOP_50_CUTOFF = 50;
-const REPORT_WEEK = Math.floor(WEEKS_PER_YEAR / 2);
+// interrupt — entering is the event, and it keeps its own moment.
+//
+// THE ANNUAL REPORT NO LONGER FIRES HERE (Plan 16's PR A). It used to be
+// its own interrupt at week 26, chosen so it never competed with the
+// summer for a tick; the September review found it a good beat in the
+// wrong place — a mid-year stop the player waves through. It is the
+// Standing beat of the summer sequence now (see types.ts's SUMMER_BEATS
+// and InterruptModal.tsx), rendered off buildReportPayload below at the
+// boundary, where the field has just drifted and the year's grade is being
+// read anyway. Nothing about the field's drift moved: it still runs at
+// week WEEKS_PER_YEAR, so the table the Standing beat shows is this year's.
+export const TOP_50_CUTOFF = 50;
 
 // --- the report's year-over-year movement section ---
 // A rival has to move MORE than this many places to be worth naming: one
@@ -151,27 +156,20 @@ export function tickRivals(s: GameState): void {
     }
   }
 
-  if (!s.pendingInterrupt) {
-    if (!s.hasEnteredRankings) {
-      const rank = playerRank(s);
-      if (rank <= TOP_50_CUTOFF) {
-        s.hasEnteredRankings = true;
-        // The one-time reveal carries no movement section: the player had
-        // no standing to move from, and buildReportPayload's year-over-year
-        // comparison would be meaningless on the week they first appear.
-        s.pendingInterrupt = {
-          type: 'rankings-entry',
-          payload: {
-            rank, previousRank: null, movers: [], passed: [], passedBy: [],
-            standings: rankedList(s).slice(0, TOP_50_CUTOFF),
-            others: otherStandings(s),
-          },
-        };
-      }
-    } else if (s.clock.week === REPORT_WEEK) {
+  if (!s.pendingInterrupt && !s.hasEnteredRankings) {
+    const rank = playerRank(s);
+    if (rank <= TOP_50_CUTOFF) {
+      s.hasEnteredRankings = true;
+      // The one-time reveal carries no movement section: the player had
+      // no standing to move from, and buildReportPayload's year-over-year
+      // comparison would be meaningless on the week they first appear.
       s.pendingInterrupt = {
-        type: 'annual-report',
-        payload: buildReportPayload(s),
+        type: 'rankings-entry',
+        payload: {
+          rank, field: s.rivals.length + 1, previousRank: null, movers: [], passed: [], passedBy: [],
+          standings: rankedList(s).slice(0, TOP_50_CUTOFF).map((e) => ({ ...e, previousRank: null })),
+          others: otherStandings(s),
+        },
       };
     }
   }
@@ -365,13 +363,23 @@ export interface RankMove {
   delta: number;
 }
 
+// One row of the published table: the school, its number, and where it
+// stood a year ago — null on the first reveal, and for a school outside
+// last year's reconstructed table (see previousEntries). The player's own
+// prior is exact; a rival's is the same momentum-step estimate the movers
+// list uses.
+export interface StandingRow extends RankedEntry {
+  previousRank: number | null;
+}
+
 export interface ReportPayload {
   rank: number;
+  field: number;               // how many schools are ranked at all — the player and every rival
   previousRank: number | null; // null when there is no prior year to compare against
   movers: RankMove[];
   passed: string[];            // schools that were ahead a year ago and are behind now
   passedBy: string[];          // schools that were behind a year ago and are ahead now
-  standings: RankedEntry[]; // the top TOP_50_CUTOFF on the ACADEMIC axis — the list the report is about
+  standings: StandingRow[]; // the top TOP_50_CUTOFF on the ACADEMIC axis — the list the report is about, each with last year's place (Plan 16's PR E)
   // The other two standings, as one line each under the headline rank (see
   // prestigeSystem.ts). Deliberately NOT two more tables: the report is a
   // modal, and the full lists belong where their subject does.
@@ -419,18 +427,20 @@ function otherStandings(s: GameState): OtherStanding[] {
 }
 
 export function buildReportPayload(s: GameState): ReportPayload {
-  const standings = rankedList(s).slice(0, TOP_50_CUTOFF);
+  const top = rankedList(s).slice(0, TOP_50_CUTOFF);
   const rank = playerRank(s);
 
-  // The history row from a year ago. The most recent row (at -1) is the
-  // standing the school ENTERED this year with — and since rivals only move
-  // at week WEEKS_PER_YEAR and prestige only drifts at the admissions
-  // boundary, nothing has changed between then and REPORT_WEEK, so it is
-  // simply today's standing. The row before it (at -2) is therefore what
-  // "a year ago" means for this report.
-  const priorYear = s.history.length >= 2 ? s.history[s.history.length - 2] : null;
+  // The history row from a year ago. The report is read at the SUMMER now
+  // (Plan 16's PR A), before RESOLVE_ADMISSIONS files this year's row, so
+  // the most recent row (at -1) is last summer's standing — the rank the
+  // school carried into the year that is closing — and that is exactly
+  // what "a year ago" means for this report. (It used to read the row at
+  // -2, because the report fired mid-year, after this year's row existed.)
+  const priorYear = s.history.length >= 1 ? s.history[s.history.length - 1] : null;
+  const field = s.rivals.length + 1;
   if (!priorYear) {
-    return { rank, previousRank: null, movers: [], passed: [], passedBy: [], standings, others: otherStandings(s) };
+    const standings = top.map((e) => ({ ...e, previousRank: null }));
+    return { rank, field, previousRank: null, movers: [], passed: [], passedBy: [], standings, others: otherStandings(s) };
   }
 
   const current = currentEntries(s);
@@ -466,11 +476,14 @@ export function buildReportPayload(s: GameState): ReportPayload {
 
   return {
     rank,
+    field,
     previousRank: priorYear.rank,
     movers: movers.slice(0, MAX_MOVERS_SHOWN),
     passed: passed.slice(0, MAX_PASSED_SHOWN),
     passedBy: passedBy.slice(0, MAX_PASSED_SHOWN),
-    standings,
+    // The player's prior place is the recorded rank, exact; a rival's is
+    // read off the same reconstructed table the movers were.
+    standings: top.map((e) => ({ ...e, previousRank: e.isPlayer ? priorYear.rank : thenPlace.get(e.key) ?? null })),
     others: otherStandings(s),
   };
 }

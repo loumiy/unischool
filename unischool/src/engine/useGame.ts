@@ -11,17 +11,24 @@ import { advanceWeekProgress, MAX_SAMPLE_MS } from './weekClock';
 // playthrough (2,600 weeks) takes several hours of active, unpaused play
 // (~3.6h at 5000ms/week) rather than under an hour — a development choice
 // should feel like a real commitment, not a blip you tick past. `double`
-// is that same clock at 2x: a real gameplay speed for the long stretches
-// between decisions (a 50-year run in ~1.8h), offered to every player
-// alongside `real` rather than hidden. `fast` is a sandbox-only speed for
-// playtesting, not meant for normal play (and is hidden from the controls
-// entirely outside a university named "test" — see StatusHeader.tsx).
+// and `quad` are that same clock at 2x and 4x: real gameplay speeds for
+// the long stretches between decisions (a 50-year run in ~1.8h, or ~54
+// minutes), offered to every player alongside `real` rather than hidden.
+// The fourth gear is Plan 16's PR D, for the mid-game the September
+// review found running at a speed a real player had no way to raise. It
+// is a SPEED and not a skip: the player still watches the clock and can
+// still intervene, and there is deliberately no advance-to-next-event —
+// waiting to afford something is load-bearing in this genre, and the
+// answer to empty waiting is to put something in the year, not to
+// teleport past it. `fast` is a sandbox-only speed for playtesting, not
+// meant for normal play (and is hidden from the controls entirely outside
+// the playtest flag — see StatusHeader.tsx and playtest.ts).
 //
 // Speed is purely how often the week-tick fires: nothing downstream reads
 // it, and the reducer advances exactly one week per TICK at every setting,
 // so a faster speed runs the identical sim, just sooner. That is what
-// keeps 2x a presentation choice rather than a second timing path.
-export const SPEEDS = { paused: 0, real: 5000, double: 2500, fast: 150 } as const;
+// keeps 2x and 4x presentation choices rather than second timing paths.
+export const SPEEDS = { paused: 0, real: 5000, double: 2500, quad: 1250, fast: 150 } as const;
 export type Speed = keyof typeof SPEEDS;
 export const SANDBOX_SPEEDS: readonly Speed[] = ['fast'];
 

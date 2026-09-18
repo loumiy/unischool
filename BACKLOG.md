@@ -132,8 +132,12 @@ work with a known shape; none has been turned into a sequence of PRs.*
   standing* and nothing else, which is the narrow shape
   `docs/design/student-life.md` flagged it in — the academic number the whole
   economy reads is still untouched by athletics.
-- **The tutorial**: a scripted interrupt sequence walking the Year-0 opening —
-  develop the gen-ed core, hire faculty — and handing off to Summer Year 1.
+- **The tutorial** — **done, as [Plan 16](docs/plans/16-the-year.md)'s PR F**:
+  four letters from the board's chair across the first year (develop the core,
+  site the first hall, site a residence and a dining hall, what the summer will
+  ask), each with one thing to do, skippable from the first for a second run,
+  and a next-step line on the toolbar that carries the ask until it is done.
+  Nothing beyond the first year: a player who reaches summer two has the loop.
 
 ## From the September review, not taken into Plans 14–17
 
