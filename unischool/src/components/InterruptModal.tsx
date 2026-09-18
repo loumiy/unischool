@@ -24,6 +24,7 @@ import type { OrgPetition } from '../state/types';
 import { buildReportPayload, type ReportPayload } from '../systems/rivals/rivalsSystem';
 import AnimatedNumber from './AnimatedNumber';
 import { isActivationTarget, useHotkeys } from './hotkeys';
+import { modalWidth } from './modalLayout';
 
 // Placeholder modal content for an interrupt type with no dedicated view
 // (see SummerView below for 'summer', and every other
@@ -689,16 +690,34 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
       {published && (
         <>
           <h3 className="report-standings-head">Top {standings.length}</h3>
-          <ol className="report-standings">
-            {standings.map((r, i) => (
-              // Keyed by identity, not by name: the player may name their school
-              // anything, including something a rival is already called.
-              <li key={r.key} className={r.isPlayer ? 'me' : ''}>
-                <span>{i + 1}. {r.name}</span>
-                <span className="stat">{Math.round(r.value)}</span>
-              </li>
-            ))}
-          </ol>
+          {/* A real table (Plan 16's PR E), with a column for where each
+              school stood a year ago, because the report is a page now and
+              a page can afford the column that makes a list of names read
+              as motion. */}
+          <table className="report-table">
+            <thead>
+              <tr><th>#</th><th>School</th><th>Score</th><th>Last year</th></tr>
+            </thead>
+            <tbody>
+              {standings.map((r, i) => {
+                // Keyed by identity, not by name: the player may name their
+                // school anything, including something a rival is already called.
+                const move = r.previousRank === null ? null : r.previousRank - (i + 1);
+                return (
+                  <tr key={r.key} className={r.isPlayer ? 'me' : ''}>
+                    <td className="report-table-rank">{i + 1}</td>
+                    <td className="report-table-name">{r.name}</td>
+                    <td className="report-table-score">{Math.round(r.value)}</td>
+                    <td className="report-table-last">
+                      {r.previousRank === null
+                        ? '—'
+                        : <>#{r.previousRank}{move !== 0 && <span className={`rank-move ${move! > 0 ? 'up' : 'down'}`}> {move! > 0 ? '▲' : '▼'}{Math.abs(move!)}</span>}</>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </>
       )}
       <button onClick={onDismiss}>{isFirstReveal ? 'Dismiss' : 'Continue →'}</button>
@@ -741,20 +760,38 @@ function MilestoneCelebrationView({ s, payload, onDismiss }: {
         <p>The catalogue has crossed several milestones at once.</p>
       )}
 
-      {payload.entries.map((e) => (
-        <div key={e.key} className="milestone-entry">
-          {!single && <h3>{e.headline}</h3>}
-          {!single && <p className="milestone-detail">{e.detail}</p>}
-          {e.unlocks.length > 0 && (
-            <>
-              <h3 className="milestone-unlocks-head">Now open</h3>
-              <ul className="milestone-unlocks">
-                {e.unlocks.map((name) => <li key={name}>{name}</li>)}
-              </ul>
-            </>
-          )}
+      {/* ONE MILESTONE reads as a paragraph with its unlocks listed. A BURST
+          — the review's year-12 modal carried ten — reads as cards in a
+          wrapping grid (Plan 16's PR E), each with its "now open" list
+          collapsed behind a count, instead of a scroll of identical
+          paragraphs. */}
+      {single ? (
+        single.unlocks.length > 0 && (
+          <div className="milestone-entry">
+            <h3 className="milestone-unlocks-head">Now open</h3>
+            <ul className="milestone-unlocks">
+              {single.unlocks.map((name) => <li key={name}>{name}</li>)}
+            </ul>
+          </div>
+        )
+      ) : (
+        <div className="milestone-cards">
+          {payload.entries.map((e) => (
+            <div key={e.key} className="milestone-card">
+              <h3>{e.headline}</h3>
+              <p className="milestone-detail">{e.detail}</p>
+              {e.unlocks.length > 0 && (
+                <details className="milestone-unlocks-fold">
+                  <summary>{e.unlocks.length} now open</summary>
+                  <ul className="milestone-unlocks">
+                    {e.unlocks.map((name) => <li key={name}>{name}</li>)}
+                  </ul>
+                </details>
+              )}
+            </div>
+          ))}
         </div>
-      ))}
+      )}
 
       <dl className="admissions-outcomes">
         <div>
@@ -1314,7 +1351,7 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
 
   return (
     <div className="modal-backdrop">
-      <div className="modal">
+      <div className={`modal modal-${modalWidth(interrupt)}`}>
         {interrupt.type === 'summer' ? (
           <SummerView s={s} payload={interrupt.payload as SummerPayload} act={act} />
         ) : interrupt.type === 'milestone' ? (

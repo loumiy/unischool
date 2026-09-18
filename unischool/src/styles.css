@@ -2973,3 +2973,35 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .pool-change-parts .bad { color: var(--bad-on-dark); }
 /* Last summer's count for the audience, small under this year's. */
 .cohort-card-last { font-family: var(--mono); font-size: 9px; color: var(--ink-lo); white-space: nowrap; }
+
+/* ---------- three modal widths (Plan 16's PR E — see modalLayout.ts) ----
+   narrow is the 440px every interrupt used to get, sized for a decision
+   event's three choices; wide is a decision with a panel beside it; page is
+   a table to read. All three still cap at the viewport and scroll inside. */
+.modal.modal-narrow { max-width: 440px; }
+.modal.modal-wide { max-width: 720px; }
+.modal.modal-page { max-width: 960px; width: min(960px, 94vw); }
+
+/* The top 50 as a table (the page-width report). Same row rhythm as the
+   old list, plus the column that makes it a report: where each school stood
+   a year ago, with the move beside it in the rank-move colours. */
+.report-table { width: 100%; border-collapse: collapse; font-size: var(--text-base); margin: 0 0 16px; }
+.report-table th { text-align: left; font-family: var(--serif); font-size: var(--text-xs); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ink-lo); font-weight: 400; padding: 4px 8px; border-bottom: 1px solid var(--navy-line);
+  position: sticky; top: 0; background: var(--navy); }
+.report-table td { padding: 4px 8px; border-bottom: 1px solid var(--navy-line); }
+.report-table tr.me td { color: var(--ok-on-dark); font-weight: 700; }
+.report-table-rank, .report-table-score, .report-table-last { font-family: var(--mono); white-space: nowrap; }
+.report-table th:nth-child(3), .report-table th:nth-child(4), .report-table-score, .report-table-last { text-align: right; }
+.report-table .rank-move { font-size: var(--text-xs); }
+
+/* A burst of milestones as cards in a wrapping grid, each with its unlocks
+   folded behind a count. auto-fill with a min track: two cards read as a
+   pair, ten read as a board. */
+.milestone-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 0 0 14px; }
+.milestone-card { padding: 10px 12px; background: #1a2338; border: 1px solid var(--navy-line); border-radius: var(--radius-md); min-width: 0; }
+.milestone-card h3 { font-family: var(--serif); font-size: var(--text-base); margin: 0 0 4px; color: var(--ink-hi); }
+.milestone-card .milestone-detail { font-size: var(--text-sm); color: #cbd0d8; margin: 0 0 6px !important; }
+.milestone-unlocks-fold summary { cursor: pointer; font-family: var(--serif); font-size: var(--text-xs);
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--gold); }
+.milestone-unlocks-fold[open] summary { margin-bottom: 4px; }

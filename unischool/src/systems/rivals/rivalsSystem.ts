@@ -167,7 +167,7 @@ export function tickRivals(s: GameState): void {
         type: 'rankings-entry',
         payload: {
           rank, field: s.rivals.length + 1, previousRank: null, movers: [], passed: [], passedBy: [],
-          standings: rankedList(s).slice(0, TOP_50_CUTOFF),
+          standings: rankedList(s).slice(0, TOP_50_CUTOFF).map((e) => ({ ...e, previousRank: null })),
           others: otherStandings(s),
         },
       };
@@ -363,6 +363,15 @@ export interface RankMove {
   delta: number;
 }
 
+// One row of the published table: the school, its number, and where it
+// stood a year ago — null on the first reveal, and for a school outside
+// last year's reconstructed table (see previousEntries). The player's own
+// prior is exact; a rival's is the same momentum-step estimate the movers
+// list uses.
+export interface StandingRow extends RankedEntry {
+  previousRank: number | null;
+}
+
 export interface ReportPayload {
   rank: number;
   field: number;               // how many schools are ranked at all — the player and every rival
@@ -370,7 +379,7 @@ export interface ReportPayload {
   movers: RankMove[];
   passed: string[];            // schools that were ahead a year ago and are behind now
   passedBy: string[];          // schools that were behind a year ago and are ahead now
-  standings: RankedEntry[]; // the top TOP_50_CUTOFF on the ACADEMIC axis — the list the report is about
+  standings: StandingRow[]; // the top TOP_50_CUTOFF on the ACADEMIC axis — the list the report is about, each with last year's place (Plan 16's PR E)
   // The other two standings, as one line each under the headline rank (see
   // prestigeSystem.ts). Deliberately NOT two more tables: the report is a
   // modal, and the full lists belong where their subject does.
@@ -418,7 +427,7 @@ function otherStandings(s: GameState): OtherStanding[] {
 }
 
 export function buildReportPayload(s: GameState): ReportPayload {
-  const standings = rankedList(s).slice(0, TOP_50_CUTOFF);
+  const top = rankedList(s).slice(0, TOP_50_CUTOFF);
   const rank = playerRank(s);
 
   // The history row from a year ago. The report is read at the SUMMER now
@@ -430,6 +439,7 @@ export function buildReportPayload(s: GameState): ReportPayload {
   const priorYear = s.history.length >= 1 ? s.history[s.history.length - 1] : null;
   const field = s.rivals.length + 1;
   if (!priorYear) {
+    const standings = top.map((e) => ({ ...e, previousRank: null }));
     return { rank, field, previousRank: null, movers: [], passed: [], passedBy: [], standings, others: otherStandings(s) };
   }
 
@@ -471,7 +481,9 @@ export function buildReportPayload(s: GameState): ReportPayload {
     movers: movers.slice(0, MAX_MOVERS_SHOWN),
     passed: passed.slice(0, MAX_PASSED_SHOWN),
     passedBy: passedBy.slice(0, MAX_PASSED_SHOWN),
-    standings,
+    // The player's prior place is the recorded rank, exact; a rival's is
+    // read off the same reconstructed table the movers were.
+    standings: top.map((e) => ({ ...e, previousRank: e.isPlayer ? priorYear.rank : thenPlace.get(e.key) ?? null })),
     others: otherStandings(s),
   };
 }
