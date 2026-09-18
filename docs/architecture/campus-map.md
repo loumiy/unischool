@@ -23,9 +23,48 @@ building and opens its panel — the same one-way, consumed-on-arrival channel
 the tab's own target uses.
 
 Buildings are modeled as data first and placed on a tile grid second. The grid
-is drawn at an angle (2:1 dimetric — `src/components/isoProjection.ts`), and
-each kind carries an architectural form
+is drawn at an angle (`src/components/isoProjection.ts` — a 2:1 dimetric at
+the opening camera), and each kind carries an architectural form
 (`src/components/buildingMotifs.tsx`) — still only rendering.
+
+## The camera
+
+The view **turns and tilts, continuously**: Q/E and Z/X, a right-button
+drag, or the buttons beside the zoom controls. `isoProjection.ts` owns one
+`Camera` (azimuth and pitch) and derives every projection coefficient from
+it, so the two hundred call sites that draw a wall or a roof never know a
+camera exists. The opening camera reproduces the old 2:1 integer
+coefficients exactly. The camera is `CampusMap.tsx` state — unlike pan and
+zoom, which are a transform on a `<g>`, a turn changes every polygon, so
+the render *is* the frame — and it is never saved: it is where the player
+is looking from, not a fact about the school.
+
+Three consequences, each in its own place:
+
+- **What is in front of what** is the camera's to say. `depthSort.ts`'s
+  occlusion relation takes the camera's axes, and the test sweeps 48
+  azimuths. `boxFaces` labels a box's corners by SCREEN position (back,
+  right, front, left) so a motif that hangs windows on `left` is right at
+  any azimuth, and carries grid-fixed corners (`NW`…`SW`) and each face's
+  grid direction for the things — roof slopes, wings — that are facts about
+  the building rather than about the view.
+- **The sun is fixed to the world** (`light.ts`): one direction across the
+  grid, from which every wall tone, roof tone and cast shadow is derived. A
+  building's south wall is the lit one from every side, and its shadow lies
+  on the same lawn however the view turns. Every cast shadow — buildings
+  and woodland — is drawn in one pass under every mass, because a shadow
+  can now fall *away* from the camera, across a building already painted.
+- **Attachments go on the walls the camera can see.** A pavilion, portico,
+  arcade, canopy or flight of steps takes its wall by grid direction, and a
+  mass draws them on `visibleWalls()`, as its doors always did — so a
+  building presents its entrances from every side, and nothing is drawn
+  against a wall that has turned away. Composite masses (a hospital's slab
+  and wing, a corner tower) order their parts by the camera.
+
+A full frame of a built-out campus is more work than one screen refresh, so
+while the camera is *moving* the map draws a **draft** (`renderDetail.ts`):
+masses and roofs without windows, doors, trim or labels, one node per tree.
+The frame the motion ends on is drawn in full.
 
 ## Footprints
 

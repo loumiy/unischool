@@ -9,6 +9,7 @@
 //   npm run sheet                                   # all four vernaculars
 //   npm run sheet -- --vernacular gothic --scale 2  # one set, closer
 //   npm run sheet -- --only 'hangar|bowl|grounds'   # a regex on the labels
+//   npm run sheet -- --azimuth 225 --pitch 30       # from another camera
 //   npm run sheet:shot -- node_modules/.tmp/sheets/sheet-gothic.html out/ --cells
 //
 // Cells are drawn at `--scale` screen pixels per world unit (default 1.4,
@@ -27,7 +28,7 @@ import { fileURLToPath } from 'node:url';
 import BuildingMotif, { ScaffoldPattern, drawnHeightOf, materialOf } from '../src/components/buildingMotifs';
 import { groundProps } from '../src/components/groundMarkings';
 import { motifOf } from '../src/components/buildingSpec';
-import { boxFaces, polyPoints, project } from '../src/components/isoProjection';
+import { boxFaces, polyPoints, project, setCamera } from '../src/components/isoProjection';
 import { depthOrder } from '../src/components/depthSort';
 import { castShadow } from '../src/components/light';
 import { initialTech } from '../src/data/techData';
@@ -48,6 +49,10 @@ const VERNS = flag('vernacular', 'georgian,gothic,classical,mission,modern').spl
 const SCALE = Number(flag('scale', '1.4'));
 const ONLY = flag('only', '') ? new RegExp(flag('only', '')) : null;
 const OUT = flag('out', 'node_modules/.tmp/sheets');
+// The camera to draw at, in degrees: the map's opening view is 45 and 30.
+// `--azimuth 225` is the same campus seen from behind, which is where a
+// motif that was drawn for one camera shows it.
+setCamera({ azimuth: (Number(flag('azimuth', '45')) * Math.PI) / 180, pitch: (Number(flag('pitch', '30')) * Math.PI) / 180 });
 // CampusMap's own inset (see BUILDING_INSET there), so a cell shows the
 // building at the size the map draws it inside its footprint.
 const INSET = 0.06;

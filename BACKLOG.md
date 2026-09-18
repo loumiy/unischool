@@ -190,8 +190,10 @@ to re-derive them from a 658-line document.*
 *Not sequenced, not estimated, and listed only so the work above is not designed
 in a way that forecloses them.*
 
-- Camera rotation and tilt — worth noting that `isoProjection.ts` derives
-  everything from one projection, so this is less far-fetched than it sounds.
+- ~~Camera rotation and tilt~~ — **delivered**: the view turns and tilts
+  continuously (see [campus-map.md](docs/architecture/campus-map.md)'s "The
+  camera"). What is left is polish: a canvas-drawn draft for smoother turns
+  on the largest campuses, and a look at the stands from behind.
 - Moving pedestrians.
 - More README screenshots as the presentation work lands: the curriculum
   map, the faculty roster, a research run, and a late-game campus. The two

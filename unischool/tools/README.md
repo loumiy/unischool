@@ -87,6 +87,7 @@ labelled contact sheet per set. It needs no dev server and no save.
 npm run sheet                                        # all five sets, node_modules/.tmp/sheets/
 npm run sheet -- --vernacular gothic --scale 2       # one set, closer
 npm run sheet -- --only 'hangar|bowl|grounds'        # a regex on the cell labels
+npm run sheet -- --azimuth 225 --pitch 30            # the same set from behind
 npm run sheet:shot -- node_modules/.tmp/sheets/sheet-gothic.html /tmp/gothic --cells
 ```
 

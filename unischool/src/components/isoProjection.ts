@@ -257,6 +257,11 @@ export interface BoxFaces {
   // What grid direction each face points: AB and DA are the two walls the
   // camera cannot see, CD is `left` and BC is `right`.
   dir: { AB: FaceDir; BC: FaceDir; CD: FaceDir; DA: FaceDir };
+  // How long the visible left and right walls are, in tiles — w for a wall
+  // that runs along col, h for one along row. Anything set out along a wall
+  // in bays (windows, doors, courses) needs the span of the wall it is
+  // actually on, which is no longer always w on the left and h on the right.
+  spanLeft: number; spanRight: number;
 }
 export function boxFaces(
   col: number, row: number, w: number, h: number, base: number, height: number,
@@ -277,6 +282,9 @@ export function boxFaces(
     NW, NE, SE, SW, NWt, NEt, SEt, SWt,
     top: [At, Bt, Ct, Dt], left: [D, C, Ct, Dt], right: [C, B, Bt, Ct],
     dir: { AB: EDGE_DIR[k], BC: EDGE_DIR[(k + 1) % 4], CD: EDGE_DIR[(k + 2) % 4], DA: EDGE_DIR[(k + 3) % 4] },
+    // Edges 0 and 2 (NW-NE, SE-SW) run along col; CD is edge k + 2, BC is k + 1.
+    spanLeft: (k % 2 === 0) ? w : h,
+    spanRight: (k % 2 === 0) ? h : w,
   };
 }
 
