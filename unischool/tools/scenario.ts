@@ -15,9 +15,11 @@
 //   npm run scenario -- --strategy "Balanced builder" --year 12 --modal milestone
 //   npm run scenario -- --strategy Completionist --year 22 --vernacular gothic \
 //     --name Blackmoor --clear-modal /tmp/gothic.json    # a campus to photograph
+//   npm run scenario -- --strategy Completionist --year 50 --build-all \
+//     --clear-modal /tmp/all.json           # every placeable asset standing
 //
 // Flags: --strategy <name> --year N --modal <interrupt type> --seed N
-//        --vernacular <v> --name <school> --clear-modal --list
+//        --vernacular <v> --name <school> --clear-modal --build-all --list
 //
 // The written file is a real save (persistence.ts's SavePayload at the
 // current SAVE_VERSION), built through the reducer rather than assembled
@@ -32,6 +34,7 @@ import { play, STRATEGIES, DEFAULT_SIM_SEED, type Strategy } from '../sim/balanc
 import { SAVE_VERSION } from '../src/state/persistence';
 import { totalEnrolled } from '../src/state/types';
 import type { GameState, Vernacular } from '../src/state/types';
+import { firstFreeSpot, footprintOf, isPlaceableKind, placementFor } from '../src/state/campusMap';
 import { SCENARIOS, findScenario, atModal, type Scenario } from './scenarios';
 
 // ---------------------------------------------------------------------
@@ -40,7 +43,7 @@ import { SCENARIOS, findScenario, atModal, type Scenario } from './scenarios';
 // (told apart by the `.json`, see below).
 // ---------------------------------------------------------------------
 const VALUE_FLAGS = ['strategy', 'year', 'modal', 'seed', 'vernacular', 'name', 'out'];
-const BOOL_FLAGS = ['list', 'clear-modal', 'help'];
+const BOOL_FLAGS = ['list', 'clear-modal', 'build-all', 'help'];
 
 function parseArgs(argv: string[]): { flags: Record<string, string>; positional: string[] } {
   const flags: Record<string, string> = {};
@@ -171,6 +174,27 @@ if (flags['clear-modal']) {
   state.events.activeDemand = null;
 }
 
+// THE ONE OVERRIDE THAT IS NOT COSMETIC, and flagged as such: --build-all
+// stands every placeable Buildable in the catalogue that the run did not
+// build — the football stadium, which no scripted strategy ever unlocks
+// because no club of its petitions for varsity football; the chapter
+// houses an event granted and the strategy never sited; whatever the run
+// had not reached. Each is marked done and dropped on the first clear
+// tiles (tools/layout.ts re-sites everything anyway). The result is a
+// campus with every asset on it to photograph, and NOT a state the game
+// produced: nothing about it is a measurement.
+let stood = 0;
+if (flags['build-all']) {
+  for (const node of state.tech) {
+    if (!isPlaceableKind(node) || node.status === 'done' || node.status === 'developing') continue;
+    const spot = firstFreeSpot(state.placements, footprintOf(node));
+    if (!spot) { console.error(`--build-all: no room for ${node.id}`); continue; }
+    node.status = 'done';
+    state.placements[node.id] = placementFor(spot.row, spot.col, footprintOf(node));
+    stood += 1;
+  }
+}
+
 writeFileSync(outPath, JSON.stringify({ version: SAVE_VERSION, savedAt: Date.now(), state }));
 
 const placed = Object.keys(state.placements ?? {}).length;
@@ -179,6 +203,6 @@ console.log(
   `  ${recipe.name}: ${strategy.name}, seed ${seed}\n` +
   `  year ${state.clock.year} week ${state.clock.week}, prestige ${state.self.reputation.toFixed(0)}, ` +
   `${totalEnrolled(state.students).toLocaleString()} enrolled, $${Math.round(state.finance.cash).toLocaleString()} cash\n` +
-  `  ${placed} placed buildings, vernacular ${state.self.vernacular}, ` +
+  `  ${placed} placed buildings${stood ? ` (${stood} stood by --build-all)` : ''}, vernacular ${state.self.vernacular}, ` +
   `modal ${state.pendingInterrupt?.type ?? 'none'}`,
 );
