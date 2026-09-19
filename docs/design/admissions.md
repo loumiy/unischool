@@ -20,8 +20,13 @@ continues them); the decision and the digest are not.
    did, the students (the year's average satisfaction against last year's,
    demands raised and met, who is petitioning, and **attrition on its own
    line**), the money, and the report card — each input's grade and the step
-   prestige is about to take. Nothing is authored or stored; the two
+   prestige is about to take, and, in the defend era, who passed the school
+   this year. Nothing is authored or stored; the two
    forward-looking lines are the same pure functions the last beat commits.
+   **On the fiftieth summer this beat is the final report** instead (see
+   [progression.md](progression.md)'s "The fifty years"): the legacy, the
+   ambitions, the founder's numbers and the fifty-year curves, sealed by the
+   last beat and never written again.
 2. **Standing** — the U.S. News report, at the boundary rather than at week 26
    (see [progression.md](progression.md)): the school's rank against last
    summer's, who it passed and was passed by, the big movers, the other two

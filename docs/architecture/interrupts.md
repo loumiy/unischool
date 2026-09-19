@@ -17,7 +17,11 @@ Everything that needs to stop time rides on this one mechanism:
   beat's `RESOLVE_ADMISSIONS`, the only action that turns the page. A save
   written between beats resumes on the same beat. The annual U.S. News report
   is its Standing beat and the student-life digest its fourth; neither is an
-  interrupt of its own any more.
+  interrupt of its own any more. On the **fiftieth summer** the first beat is
+  the **final report** in place of the year in review (the payload carries a
+  `final` flag, and the beat is a page): the legacy, the ambitions, the
+  founder's numbers and the fifty-year curves, read exactly as the last beat's
+  `RESOLVE_ADMISSIONS` then seals them onto `self.legacy`. Play continues.
 - **The rankings entry** — the one-time "you've entered the top 50" reveal,
   which keeps its own moment because entering is the event.
 - **The first year's letters** — four letters from the board's chair, data in
@@ -64,6 +68,13 @@ Everything that needs to stop time rides on this one mechanism:
   entries in the decision-event table above rather than a stream of their
   own, so they change the MIX of what stops the clock, never how often it
   stops.
+- **The board's response** — the year a rival passes the school, and only in
+  the defend era (above the prestige gate the elite band's closing term uses),
+  a trustee proposes a response at a real cost: an endowed chair, a campaign
+  into the endowment, or hold the course. An entry in the decision-event table
+  fired directly, once per rival, on the first quiet week the shared cooldown
+  allows — it spends the ordinary budget rather than adding to it. See
+  [progression.md](../design/progression.md)'s "The top has to be held".
 - **The athletic director's shortage ask** — the director naming a program
   that has been running without a coach, and offering to go and get somebody.
   An entry in the same table, for the same reason: athletics already has a

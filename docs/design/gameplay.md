@@ -1,13 +1,19 @@
 # Gameplay
 
 A turn-based university management sim. The player advances week by week over a
-long playthrough (target 20–50 in-game years), building an institution from a
-small college into a major university.
+**fifty-year run**, building an institution from a small college into a major
+university.
 
-There is **no win condition**. It is an indefinite sandbox that naturally tapers
-once the curriculum is fully built out and the rankings are topped. The core
-feeling is the **builder's long arc**: investing time, watching something grow,
-and seeing the scale of progress over decades.
+There is **no score, and there is an ending**. The fiftieth summer files a
+**final report** — six graded axes and a name for what the school became, the
+ambitions it reached and the year each landed, the numbers a founder would want
+— and seals it as the run's record. The clock does not stop: the game goes on as
+a sandbox for anyone who wants to see the hospital finished, and nothing after
+year fifty changes the record. The core feeling is the **builder's long arc**:
+investing time, watching something grow, and seeing the scale of progress over
+decades — and, in the last fifteen years, holding what was built against a
+field that closes on the leader. See [progression.md](progression.md)'s "The
+fifty years".
 
 ## What the player does
 
@@ -26,6 +32,10 @@ and seeing the scale of progress over decades.
   facilities they need.
 - **Answers interrupts** — donor offers, faculty departures, facility failures,
   chapter scandals, student demands — which give the quiet weeks their texture.
+- **Reaches ambitions** — twenty named achievements, from the first hall to
+  first in the nation, recorded with the year each landed. They gate nothing
+  and grant nothing; they are the objectives, and the legacy is the
+  consequence.
 
 ## The core loop
 

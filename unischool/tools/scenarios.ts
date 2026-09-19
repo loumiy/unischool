@@ -142,6 +142,19 @@ export const SCENARIOS: Scenario[] = [
     stopWhen: (s) => s.pendingInterrupt?.type === 'summer' && s.clock.year >= 6,
   },
   {
+    // THE FINAL REPORT (Plan 17's PR C): the fiftieth summer, stopped on its
+    // first beat, which is the report in place of the review — the legacy,
+    // the ambitions, the founder's numbers, the fifty-year curves. Fifty
+    // years is the run's whole length, so this is the slowest scenario here
+    // (about half a minute); the completionist because its report has the
+    // most on it.
+    name: 'final-report',
+    what: 'the fiftieth summer — the final report as its first beat, the record about to be sealed',
+    strategy: 'Earnest completionist',
+    year: 50,
+    stopWhen: (s) => s.pendingInterrupt?.type === 'summer' && s.clock.year >= 50,
+  },
+  {
     name: 'championship',
     what: 'the week a national title is won',
     // THE ONLY STRATEGY THAT CAN REACH THIS, and the reason is the finding

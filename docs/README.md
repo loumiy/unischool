@@ -20,7 +20,7 @@ as the record of what was believed at the time.
 | [gameplay.md](design/gameplay.md) | What the player does, and the loop it feeds |
 | [curriculum.md](design/curriculum.md) | The milestone chain, the curriculum map, and the facilities that gate capstones |
 | [graduate-programs.md](design/graduate-programs.md) | The six programs that grow on top of a finished school |
-| [progression.md](design/progression.md) | Founding, prestige, rankings, and College → University |
+| [progression.md](design/progression.md) | Founding, prestige, rankings, the fifty years and the legacy, and College → University |
 | [economy.md](design/economy.md) | Money as the throttle, and the growth loop that makes it bite |
 | [admissions.md](design/admissions.md) | The summer decision, tuition by class, cohorts, and the student body |
 | [faculty.md](design/faculty.md) | Hiring, assignment, and the grade every course carries |
