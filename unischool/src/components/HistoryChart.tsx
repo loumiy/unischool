@@ -24,14 +24,24 @@ export function formatMoney(v: number): string {
 // One series over the years. `format` renders the y-axis end labels and the
 // current-value caption, so each chart reports its own units (dollars,
 // students, points) rather than the view guessing.
-export function HistoryChart({ label, years, values, format, note }: {
+export function HistoryChart({ label, years, values, format, note, span }: {
   label: string;
   years: number[];
   values: number[];
   format: (v: number) => string;
   note?: string;
+  // The last year the x-axis reaches (Plan 17's PR F). Given, the axis is
+  // fixed from year 1 to this year whatever the series holds — the History
+  // tab passes the fiftieth, so the curves have somewhere to go — and a run
+  // that has played past it extends the axis to its own last year. Omitted,
+  // the series spans the full width as it always did.
+  span?: number;
 }) {
-  const points = linePoints(values, CHART_WIDTH, CHART_HEIGHT, CHART_PAD_Y);
+  const last = years[years.length - 1];
+  const end = span === undefined ? last : Math.max(span, last);
+  const points = span === undefined
+    ? linePoints(values, CHART_WIDTH, CHART_HEIGHT, CHART_PAD_Y)
+    : linePoints(values, CHART_WIDTH, CHART_HEIGHT, CHART_PAD_Y, (i) => (years[i] - 1) / Math.max(1, end - 1));
   const min = Math.min(...values);
   const max = Math.max(...values);
   const latest = values[values.length - 1];
@@ -54,10 +64,10 @@ export function HistoryChart({ label, years, values, format, note }: {
         <polyline className="history-chart-line" points={points} />
       </svg>
       <div className="history-chart-axis">
-        <span>Y{years[0]}</span>
+        <span>Y{span === undefined ? years[0] : 1}</span>
         {/* A series that never moved reports one value, not "x – x". */}
         <span className="history-chart-range">{min === max ? format(min) : `${format(min)} – ${format(max)}`}</span>
-        <span>Y{years[years.length - 1]}</span>
+        <span>Y{end}</span>
       </div>
       {note && <p className="history-chart-note">{note}</p>}
     </figure>

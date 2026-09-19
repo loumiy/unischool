@@ -8,7 +8,7 @@ ordered sequence of PRs: a fifty-year run with a sealed record, an ending that
 legitimises more than one way to play, and a top of the table that has to be
 held.*
 
-**Status: In progress.** PRs A, B, C and D have landed. Depends on [Plan 15](15-growth-has-a-cost.md) for a
+**Status: In progress.** PRs A, B, C, D and F have landed; E is being fitted. Depends on [Plan 15](15-growth-has-a-cost.md) for a
 prestige that can fall and an economy that makes the fiftieth year cost
 something, and on [Plan 16](16-the-year.md) for the summer sequence the final
 report rides in. PRs A and D can start before either. Supersedes
@@ -227,8 +227,13 @@ campaign into the endowment at a match the ordinary campaign never reaches;
 "a facility" was dropped, because a building has to be sited and an event
 cannot site one. Once per rival for the run, stamped at fire time on
 `events.passedResponses`, so a dismissed modal never comes back for the same
-school. It fires for **any** rival that passes, elite or not, as written. Save
-version 65.
+school. It fires for any rival that passes, elite or not — but **only above
+the same prestige gate the closing term uses**, which the plan did not say
+and the first measurement insisted on: a mid-table school is passed by
+somebody most years in a hundred-school field, so ungated the board asked
+every year from year three, took the whole decision budget, and (through the
+chair's candidate roll) moved the sim's dice for every strategy from year
+five. Save version 65.
 
 ## PR 17E — The balance target
 
@@ -264,6 +269,13 @@ that makes "build everything" one good run among several rather than the answer.
 - The History tab's header counts down as well as up ("Year 23 of 50"), and its
   charts fix their x-axis at fifty so the curves have somewhere to go.
 - The toolbar's clock is unchanged.
+
+**As implemented:** as written, plus the header's count turns into "Year 53 ·
+the record sealed in year 50" once the run has played past fifty. The
+fixed axis is a `span` on the shared `HistoryChart` (and an `xAt` placement
+on `linePoints`), so the final report's curves and the tab's are the same
+drawing; a run past fifty extends the axis to its own last year rather than
+clipping. The eyebrow reads *Fifty years to build a university.*
 
 ## PR 17G — Docs
 

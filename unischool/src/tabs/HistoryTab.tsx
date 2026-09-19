@@ -262,6 +262,14 @@ function LegacyPanel({ s }: { s: GameState }) {
   );
 }
 
+// The header's count, up and down at once (Plan 17's PR F): "Year 23 of
+// 50" while the run is inside its fifty years, and the sealed year once it
+// has played past them — the clock keeps running, the record does not.
+function yearOfFifty(s: GameState): string {
+  if (s.clock.year <= SEMICENTENNIAL_YEAR) return `Year ${s.clock.year} of ${SEMICENTENNIAL_YEAR}`;
+  return `Year ${s.clock.year} · the record sealed in year ${s.self.legacy?.year ?? SEMICENTENNIAL_YEAR}`;
+}
+
 function HistoryTable({ rows }: { rows: YearSnapshot[] }) {
   return (
     <div className="history-table-scroll" style={{ maxHeight: `${TABLE_VISIBLE_ROWS * 24 + 28}px` }}>
@@ -323,7 +331,10 @@ export default function HistoryTab({ s }: { s: GameState }) {
         <AmbitionsPanel s={s} />
         <section className="panel">
           <div className="panel-head">
-            <h2>Institutional History</h2>
+            <div className="panel-head-title">
+              <h2>Institutional History</h2>
+              <span className="panel-count">{yearOfFifty(s)}</span>
+            </div>
             <HelpHint align="end" text="One entry is filed each year, when the summer admissions decision resolves. Two years are needed before a trend can be drawn." />
           </div>
           <p className="empty-note">
@@ -347,8 +358,11 @@ export default function HistoryTab({ s }: { s: GameState }) {
       <AmbitionsPanel s={s} />
       <section className="panel">
         <div className="panel-head">
-          <h2>Institutional History</h2>
-          <HelpHint align="end" text="One entry is filed each year, at the summer admissions decision. Everything here is the record of what the school actually was at each of those moments." />
+          <div className="panel-head-title">
+            <h2>Institutional History</h2>
+            <span className="panel-count">{yearOfFifty(s)}</span>
+          </div>
+          <HelpHint align="end" text="One entry is filed each year, at the summer admissions decision. Everything here is the record of what the school actually was at each of those moments. The charts run to the fiftieth year, when the record is sealed." />
         </div>
         <p className="history-summary">
           {history.length} years on the books, Year {first.year} to Year {latest.year}: prestige{' '}
@@ -360,6 +374,7 @@ export default function HistoryTab({ s }: { s: GameState }) {
         <div className="history-charts">
           <HistoryChart
             label="Prestige"
+            span={SEMICENTENNIAL_YEAR}
             years={years}
             values={history.map((h) => h.prestige)}
             format={(v) => `${Math.round(v)}`}
@@ -367,6 +382,7 @@ export default function HistoryTab({ s }: { s: GameState }) {
           />
           <HistoryChart
             label="Enrollment"
+            span={SEMICENTENNIAL_YEAR}
             years={years}
             values={history.map((h) => h.enrolled)}
             format={(v) => Math.round(v).toLocaleString()}
@@ -374,6 +390,7 @@ export default function HistoryTab({ s }: { s: GameState }) {
           />
           <HistoryChart
             label="Operating funds"
+            span={SEMICENTENNIAL_YEAR}
             years={years}
             values={history.map((h) => h.cash)}
             format={formatMoney}
@@ -381,6 +398,7 @@ export default function HistoryTab({ s }: { s: GameState }) {
           />
           <HistoryChart
             label="Catalogue"
+            span={SEMICENTENNIAL_YEAR}
             years={years}
             values={history.map((h) => h.coursesDone)}
             format={(v) => `${Math.round(v)} / ${totalCourses}`}

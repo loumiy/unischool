@@ -105,7 +105,17 @@ console.log('closing field tests');
   const standing = buildYearInReview(s).sections.find((x) => x.key === 'standing')!;
   assert(standing.lines.some((l) => l.text.includes(`Passed this year by ${rival.name}`) && l.tone === 'bad'), 'and so does the year in review');
 
-  // The trustees respond on the first quiet week.
+  // Below the gate the board says nothing, however the table moves: being
+  // passed at #55 is the field breathing, not news.
+  const midTable: GameState = structuredClone(s);
+  midTable.self.reputation = ELITE_CLOSE_ABOVE_PRESTIGE;
+  midTable.history[0].rank = 1; // still "passed" by the reconstruction
+  tickEvents(midTable);
+  assert(midTable.pendingInterrupt?.type !== 'decision-event' || (midTable.pendingInterrupt.payload as { eventId: string }).eventId !== 'rival-passed',
+    'the board does not respond at or below the prestige gate');
+  assert(midTable.events.passedResponses.length === 0, 'and stamps nothing');
+
+  // Above it, the trustees respond on the first quiet week.
   assert(s.clock.year >= DECISION_EVENT_FIRST_YEAR, 'past the founding ramp');
   tickEvents(s);
   assert(s.pendingInterrupt?.type === 'decision-event', 'a decision event fires');

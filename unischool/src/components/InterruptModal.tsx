@@ -555,10 +555,10 @@ function FinalReportBeat({ s, onContinue }: { s: GameState; onContinue: () => vo
       </section>
       {years.length >= 2 && (
         <div className="history-charts final-report-charts">
-          <HistoryChart label="Prestige" years={years} values={s.history.map((h) => h.prestige)} format={(v) => `${Math.round(v)}`} />
-          <HistoryChart label="Enrollment" years={years} values={s.history.map((h) => h.enrolled)} format={(v) => Math.round(v).toLocaleString()} />
-          <HistoryChart label="Operating funds" years={years} values={s.history.map((h) => h.cash)} format={formatMoney} />
-          <HistoryChart label="Rank" years={years} values={s.history.map((h) => -h.rank)} format={(v) => `#${Math.round(-v)}`} />
+          <HistoryChart label="Prestige" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => h.prestige)} format={(v) => `${Math.round(v)}`} />
+          <HistoryChart label="Enrollment" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => h.enrolled)} format={(v) => Math.round(v).toLocaleString()} />
+          <HistoryChart label="Operating funds" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => h.cash)} format={formatMoney} />
+          <HistoryChart label="Rank" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => -h.rank)} format={(v) => `#${Math.round(-v)}`} />
         </div>
       )}
       <button onClick={onContinue}>Continue →</button>
