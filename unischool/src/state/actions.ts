@@ -375,7 +375,7 @@ export function createPreStartState(): GameState {
   return {
     clock: { year: 1, week: 1 },
     finance: {
-      cash: 0, endowment: 0, endowmentCampaigns: 0,
+      cash: 0, endowment: 0, endowmentCampaigns: 0, weeksInTheRed: 0,
       listedTuition: 0, tuitionByClass: { freshman: 0, sophomore: 0, junior: 0, senior: 0 },
       weeklyOpEx: 0,
     },
@@ -402,7 +402,7 @@ export function createPreStartState(): GameState {
     pathways: {},
     trees: {},
     rivals: [],
-    self: { name: '', suffix: '', universityCharterOffered: false, mascot: '', reputation: 0, reportCard: null, socialStanding: 0, researchStanding: 0, vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS) },
+    self: { name: '', suffix: '', universityCharterOffered: false, mascot: '', reputation: 0, reportCard: null, socialStanding: 0, researchStanding: 0, vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), legacy: null, facultyServed: 0 },
     history: [],
     log: [],
     pendingInterrupt: null,
@@ -414,6 +414,7 @@ export function createPreStartState(): GameState {
       // No letter delivered and the script not declined (see types.ts's
       // EventState.opening).
       opening: { read: [], skipped: false, stage: 'play' },
+      passedResponses: [],
     },
     orgs: {
       clubs: [], chapters: [], teams: [], coachCandidates: [], pendingPetitions: [],
@@ -434,6 +435,7 @@ export function createPreStartState(): GameState {
     started: false,
     hasEnteredRankings: false,
     milestones: {},
+    ambitions: {},
     courseFaculty: {},
     seen: { courseIds: {}, buildableIds: {}, candidateIds: {}, tabIds: {} },
   };
@@ -514,6 +516,7 @@ export function createInitialState(
         junior: foundingTuition, senior: foundingTuition,
       },
       weeklyOpEx: 0,
+      weeksInTheRed: 0,
     },
     students: {
       // Founding mix: a college opens with ALL FOUR class years present and
@@ -712,6 +715,10 @@ export function createInitialState(
       vernacular,
       // Picked beside it and fixed the same way (see types.ts's SchoolColors).
       colors: { ...colors },
+      // No record yet: the fiftieth summer writes it (see types.ts's
+      // University.legacy). The founding five have served from day one.
+      legacy: null,
+      facultyServed: 5,
     },
     // Empty at founding: the first row lands at the end of year 1, when the
     // summer admissions interrupt resolves (see reducer.ts's
@@ -738,6 +745,7 @@ export function createInitialState(
       opening: guided
         ? { read: [OPENING_LETTERS[0].id], skipped: false, stage: 'welcome' }
         : { read: [], skipped: false, stage: 'play' },
+      passedResponses: [],
     },
     // No student organisations at founding, and none can form until the
     // campus has a student center to form them in (see
@@ -774,6 +782,7 @@ export function createInitialState(
     started: true,
     hasEnteredRankings: false,
     milestones: {},
+    ambitions: {},
     // Every course and buildable the school starts with unlocked is
     // pre-marked seen (see foundingCourseIds/foundingBuildableIds above) —
     // the gen-ed core and the founding buildables were never "revealed" to

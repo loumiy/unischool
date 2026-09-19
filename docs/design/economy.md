@@ -113,14 +113,16 @@ The loop turns roughly once per course tier, escalating each time:
   section, service and salary costs, and completing every school is *barely*
   possible by 35.
 - **Defend (35–50)** — little is left to build and the surplus reappears; the
-  field closing on the leader is [Plan 17](../plans/17-the-endpoint.md)'s to
-  make interesting, and it only works because prestige can now fall.
+  elite of the field close on the leader (see
+  [progression.md](progression.md)'s "The top has to be held"), and holding
+  the top only means anything because prestige can now fall.
 
 Consequences that the code must honor:
 
 - **No hard insolvency game-over.** A cash shortfall should *stall expansion*,
   not end the run. "Stall, don't die" is the bottleneck expressed mechanically,
-  and it fits the no-win-condition sandbox. There is no bankruptcy state and no
+  and it fits a run that is graded rather than won — a school in the red at
+  fifty is *a school that grew too fast*, not a game over. There is no bankruptcy state and no
   `gameOver` flag: the run continues indefinitely even when cash is deep in the
   red and the player is effectively unable to act — an accepted state for now.
   (The vestigial `gameOver` scaffolding is dead — nothing sets it — and is

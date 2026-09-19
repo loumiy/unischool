@@ -9,9 +9,11 @@ Develop academic programs, hire faculty, expand your campus, attract students,
 conduct research, and shape your institution over decades. UniSchool is
 inspired by the long-term building and management loops of Cities: Skylines,
 RollerCoaster Tycoon, Civilization and Football Manager, with a particular
-focus on the feeling of watching an institution grow. There is no win
-condition — it is an indefinite sandbox that tapers once the curriculum is
-built out and the rankings are topped.
+focus on the feeling of watching an institution grow. A run is **fifty
+years**: the fiftieth summer files a final report — six graded axes and a name
+for what the school became — and seals it as the record, and the game goes on
+as a sandbox after it. There is no score; there is a legacy, and more than one
+way to earn a good one.
 
 **Status:** in active development ·
 **Stack:** React + TypeScript + Vite ·
@@ -33,7 +35,11 @@ built out and the rankings are topped.
 - 🏛️ **Develop student life** through clubs, Greek life, varsity athletics and
   the facilities they need.
 - 📈 **Build prestige** over decades through academic breadth, teaching
-  quality, student quality, research, campus life and financial resources.
+  quality, student quality, research, campus life and financial resources —
+  and hold it, once the elite of the field start closing on the leader.
+- 🏛️ **Leave a legacy**: twenty ambitions to reach along the way, and at fifty
+  years a final report that grades the run on six axes and names what the
+  school became.
 - ⚖️ **Deal with the unexpected** — donor offers, faculty departures, facility
   failures, chapter scandals and student demands.
 

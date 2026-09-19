@@ -34,7 +34,7 @@ import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { METRICS, TOLERANCE, describeFinding, findingsFor, metricOf, serialiseReference, type Metric, type Reference, bandsAcross, REFERENCE_HORIZON, REFERENCE_EXTRA_SEEDS, bandsFor } from './reference';
 import type { Action } from '../src/state/actions';
 import { createPreStartState } from '../src/state/actions';
-import type { AthleticsBudgetTier, GameState, Buildable, InitiativeReport, SummerPayload } from '../src/state/types';
+import type { AthleticsBudgetTier, GameState, Buildable, InitiativeReport, Legacy, SummerPayload } from '../src/state/types';
 import { SUMMER_LAST_BEAT, totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { playerRank } from '../src/systems/rivals/rivalsSystem';
 import { intakeCeiling } from '../src/systems/techtree/instructionCapacity';
@@ -46,9 +46,9 @@ import {
   canStartDevelopment, hasFreeFacultySlot, eligibleInstructors, unstaffedCourses,
   isCommitted, effectiveCourseSlots, totalFacultySlots, usedFacultySlots,
 } from '../src/systems/techtree/techSystem';
-import { facultyLoads } from '../src/systems/faculty/facultyAssignment';
+import { facultyLoads, projectedQuality } from '../src/systems/faculty/facultyAssignment';
 import { initiativeDepth, initiativeFundingCost, initiativeOffers } from '../src/data/researchData';
-import { isAcademicHall, programById, programs, researchSchools } from '../src/data/techData';
+import { isAcademicHall, programById, programOfCourse, programs, researchSchools } from '../src/data/techData';
 import { canFoundProgram } from '../src/systems/techtree/techSystem';
 import { isHoused } from '../src/systems/techtree/programOffers';
 import { canPostSearch, searchCost } from '../src/systems/faculty/facultySearch';
@@ -166,6 +166,31 @@ export interface Strategy {
   // course it could afford is blocked on a department with no free slot
   // and nobody on the market. Off for the archetypes it predates.
   postsSearches?: boolean;
+  // HOW DEEP THIS STRATEGY GOES IN A LAB (Plan 17's PR E). 'deep' — the
+  // default, and what every strategy above does — commits the deepest
+  // affordable initiative in every idle lab; 'shallow' commits only the
+  // cheapest depth, a school that keeps its labs ticking over and no more;
+  // 'none' never commissions anything, and its labs stand for the courses
+  // they gate. The regional engine is 'shallow': broad, big, cheap, and
+  // not a research university.
+  research?: 'deep' | 'shallow' | 'none';
+  // AT MOST THIS MANY SCHOOLS (Plan 17's PR E — see foundPrograms): once
+  // this many schools have a program housed, an offer from another school
+  // is taken only when every offer on the table is from another school —
+  // the three stand until one is taken, so a player who wants depth takes
+  // a stray only when forced, and into a hall of its own. The selective
+  // college founds two or three schools and finishes them rather than
+  // seven. Off (unlimited) for everybody else.
+  maxSchools?: number;
+  // Whether this strategy PLAYS TEACHING (Plan 17's PR E): every few weeks
+  // it moves each course to the eligible instructor who would grade it
+  // best, where that beats the current grade by REBALANCE_MIN_GAIN — the
+  // drag-and-drop the Curriculum tab offers, done by a player who watches
+  // the grades. Off for every archetype that predates it, which is why
+  // their campus averages sit in the low sixties whatever they build: the
+  // first eligible instructor is who teaches a course forever. The
+  // selective college is the school that cares.
+  balancesTeaching?: boolean;
 }
 
 // The course's tier, recovered from its id (101 / 1x0 / 2x0) purely so the
@@ -264,6 +289,7 @@ function commissionScholarship(
   get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy,
 ): void {
   if (!strategy.buildsCourses) return;
+  if (strategy.research === 'none') return;
   const schools = researchSchools();
 
   for (const school of schools) {
@@ -277,8 +303,10 @@ function commissionScholarship(
       // spare the people commits them. Committing DOES orphan whatever
       // they teach — that is decision 2's cost, and restaffOrphans below
       // is the other half of modelling it, exactly as a player would
-      // reassign or hire to cover the hole.
-      for (const offer of [...offers].reverse()) {
+      // reassign or hire to cover the hole. A 'shallow' strategy (see
+      // Strategy.research) looks only at the cheapest depth on offer.
+      const considered = strategy.research === 'shallow' ? offers.slice(0, 1) : [...offers].reverse();
+      for (const offer of considered) {
         if (offer.blockedReason) continue;
         if (offer.suggested.length !== offer.depth.participants) continue;
         if (!affordable(s, offer.fundingCost, strategy)) continue;
@@ -299,6 +327,67 @@ function commissionScholarship(
         });
         break;
       }
+    }
+  }
+}
+
+// PLAYING TEACHING (see Strategy.balancesTeaching): every REBALANCE_EVERY_WEEKS
+// weeks, each staffed course goes to the eligible instructor who would grade
+// it best, where the gain clears REBALANCE_MIN_GAIN — the Curriculum tab's
+// drag-and-drop, done by a player who watches the grades. Reads the same
+// projectedQuality the tab's chips show, and dispatches the same action.
+const REBALANCE_EVERY_WEEKS = 1;
+const REBALANCE_MIN_GAIN = 1;
+// And SMALL CLASSES: the same strategy hires the best teacher on the market
+// into any field whose people carry more than this share of their slots,
+// so no course is taught by somebody at a full load. What a selective
+// college's money is for.
+const LIGHT_LOAD_SHARE = 0.6;
+// A teaching hire is a luxury: made only with twice the reserve in hand, so
+// a school that plays teaching does not spend itself into the red doing it
+// (measured at half-loads and one reserve: 1,800 weeks in the red).
+const LIGHT_LOAD_RESERVE_MULTIPLE = 2;
+
+function balanceTeaching(get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy): void {
+  if (!strategy.balancesTeaching) return;
+  const s0 = get();
+  if (s0.clock.week % REBALANCE_EVERY_WEEKS !== 0) return;
+  const courses = s0.tech.filter((t) => t.requiresFaculty && (t.status === 'done' || t.status === 'developing') && s0.courseFaculty[t.id]);
+  for (const course of courses) {
+    const s = get();
+    const loads = facultyLoads(s);
+    const current = s.faculty.find((f) => f.id === s.courseFaculty[course.id]);
+    if (!current) continue;
+    const now = projectedQuality(s, course, current, loads).score;
+    let best: { id: string; score: number } | null = null;
+    // Walked in ROSTER order, not eligibleInstructors' own: that list breaks
+    // a tie on teaching by id, and faculty ids are random UUIDs, so two
+    // equal professors would be picked between by the dice — measured as a
+    // run that came out differently every time it was played. Roster order
+    // is hire order, which is deterministic.
+    const eligible = new Set(eligibleInstructors(s, course, course.id).map((f) => f.id));
+    for (const f of s.faculty) {
+      if (!eligible.has(f.id) || f.id === current.id) continue;
+      const score = projectedQuality(s, course, f, loads).score;
+      if (score - now >= REBALANCE_MIN_GAIN && (best === null || score > best.score)) best = { id: f.id, score };
+    }
+    if (best) dispatch({ type: 'REASSIGN_COURSE_FACULTY', courseId: course.id, facultyId: best.id });
+  }
+  // Small classes: a field whose roster is more than half loaded gets the
+  // best teacher on the market, cash and flow permitting.
+  const s1 = get();
+  const loads = facultyLoads(s1);
+  const fields = new Set(s1.faculty.map((f) => f.field));
+  for (const field of fields) {
+    const s = get();
+    const people = s.faculty.filter((f) => f.field === field);
+    const load = people.reduce((sum, f) => sum + (loads.get(f.id) ?? 0), 0);
+    const slots = people.reduce((sum, f) => sum + f.courseSlots, 0);
+    if (slots === 0 || load / slots <= LIGHT_LOAD_SHARE) continue;
+    const candidate = [...s.candidates].filter((c) => c.field === field).sort((a, b) => b.teachingPotential - a.teachingPotential)[0];
+    if (!candidate) continue;
+    if (s.finance.cash > strategy.buffer(s) * LIGHT_LOAD_RESERVE_MULTIPLE && hasHeadroom(s, strategy)) {
+      dispatch({ type: 'HIRE_FACULTY', facultyId: candidate.id });
     }
   }
 }
@@ -467,12 +556,74 @@ function staffTheDepartment(get: () => GameState, dispatch: (a: Action) => void,
 // one has room; school-first and pure for the earnest completionist,
 // whose whole game is dedicating halls; and scatter for the control that
 // founds anything anywhere and should visibly under-perform.
+// THE CHOSEN SCHOOLS (see Strategy.maxSchools): the N schools this strategy
+// is building, read off the halls as the N with the most programs housed —
+// once N schools have any program housed, the quota is met. Null for a
+// strategy with no quota. A program of any other school is a STRAY.
+// THE CHOSEN SCHOOLS (see Strategy.maxSchools): the first N schools to get
+// a hall, read off the halls in the order they were built — halls are a
+// chain, so the lowest hall id holding a school's program is the year it
+// arrived. Stable, which counting housed programs was not: strays arrive
+// one at a time and a count tied at one flipped the set every few years,
+// scattering every school across two halls and founding none. Null for a
+// strategy with no quota, and while fewer than N schools have a hall.
+function chosenSchools(s: GameState, strategy: Strategy): Set<string> | null {
+  if (strategy.maxSchools === undefined) return null;
+  const firstHall = new Map<string, string>();
+  for (const [hallId, slots] of Object.entries(s.halls)) {
+    for (const slot of slots) {
+      if (slot.programId === null) continue;
+      const q = programById(slot.programId);
+      if (!q || q.kind === 'core') continue;
+      const seen = firstHall.get(q.school);
+      if (seen === undefined || hallId < seen) firstHall.set(q.school, hallId);
+    }
+  }
+  if (firstHall.size < strategy.maxSchools) return null; // still choosing
+  return new Set([...firstHall.entries()].sort((a, b) => a[1].localeCompare(b[1]) || a[0].localeCompare(b[0])).slice(0, strategy.maxSchools).map(([school]) => school));
+}
+
+// The offers this strategy will take: every offer while it is still
+// choosing its schools; inside the chosen ones once it has; and, when every
+// offer on the table is a stray, all of them — the three stand until one is
+// taken (Plan 14: no reroll, no decline), so a player who wants depth is
+// FORCED to take a stray now and then to see their own schools' programs
+// come round. The stray goes into a hall of strays (see slotForProgram) and
+// its courses are never developed past the one founding started (see the
+// curriculum block), so it costs a slot and nothing else.
+function allowedOffers(s: GameState, strategy: Strategy): string[] {
+  const chosen = chosenSchools(s, strategy);
+  if (chosen === null) return s.programOffers;
+  const inside = s.programOffers.filter((id) => { const p = programById(id); return p !== undefined && chosen.has(p.school); });
+  return inside.length > 0 ? inside : s.programOffers;
+}
+
+function isStray(s: GameState, strategy: Strategy, school: string): boolean {
+  const chosen = chosenSchools(s, strategy);
+  return chosen !== null && !chosen.has(school);
+}
+
+// Where a program of this school goes: a stray into a hall holding only
+// strays with room, else an empty hall, else nowhere; anything else by the
+// strategy's founding policy (slotFor).
+function slotForProgram(s: GameState, strategy: Strategy, school: string): { hallId: string; slot: number } | null {
+  const policy = strategy.founding ?? 'cheapest';
+  if (!isStray(s, strategy, school)) return slotFor(s, school, policy);
+  const chosen = chosenSchools(s, strategy)!;
+  const halls = Object.keys(s.halls).filter((hallId) => s.halls[hallId].some((x) => x.programId === null) && isAcademicHall(s.tech.find((t) => t.id === hallId)!));
+  const firstFree = (hallId: string) => ({ hallId, slot: s.halls[hallId].findIndex((x) => x.programId === null) });
+  const strays = halls.find((hallId) => { const sc = hallSchools(s, hallId); return sc.size > 0 && [...sc].every((x) => !chosen.has(x)); });
+  if (strays) return firstFree(strays);
+  const empty = halls.find((hallId) => hallSchools(s, hallId).size === 0);
+  return empty ? firstFree(empty) : null;
+}
+
 function foundPrograms(get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy): void {
   const policy = strategy.founding ?? 'cheapest';
   for (;;) {
     const s = get();
     if (!freeSlot(s)) return;
-    let offers = s.programOffers
+    let offers = allowedOffers(s, strategy)
       .map((id) => programById(id))
       .filter((p) => p !== undefined)
       .map((p) => ({ p, entry: s.tech.find((t) => t.id === p.entryCourseId) }))
@@ -489,7 +640,7 @@ function foundPrograms(get: () => GameState, dispatch: (a: Action) => void, stra
       if (!courseStaysSustainable(s, strategy)) continue;
       const instructor = eligibleInstructors(s, entry!)[0];
       if (!instructor) continue;
-      const slot = slotFor(s, p.school, policy);
+      const slot = slotForProgram(s, strategy, p.school);
       if (!slot) continue;
       const founding = { programId: p.id, hallId: slot.hallId, slot: slot.slot, facultyId: instructor.id };
       if (!canFoundProgram(s, founding)) continue;
@@ -582,15 +733,16 @@ function siteHallIfNeeded(get: () => GameState, dispatch: (a: Action) => void, s
   // are, since the offer stands until one is taken and a pure hall with
   // room only for one school is a deadlock without a second hall.
   const policy = strategy.founding ?? 'cheapest';
+  const offers = allowedOffers(s, strategy);
   const nowhere = !freeSlot(s) || (
     policy !== 'scatter' &&
-    !s.programOffers.some((id) => { const p = programById(id); return p && slotFor(s, p.school, policy) !== null; })
+    !offers.some((id) => { const p = programById(id); return p && slotForProgram(s, strategy, p.school) !== null; })
   );
   // A prudent strategy also sites a hall when its seats are the constraint
   // and every slot it has is taken (Plan 15's PR G) — that is what "seats
   // before beds" means for the one capital line that adds seats.
   const seatsShort = strategy.netMargin > 0 && seatsAreTheConstraint(s) && !freeSlot(s);
-  if (!eager && !seatsShort && (s.programOffers.length === 0 || !nowhere)) return;
+  if (!eager && !seatsShort && (offers.length === 0 || !nowhere)) return;
   if (s.tech.some((t) => isAcademicHall(t) && t.status === 'developing')) return;
   const next = s.tech.find((t) => isAcademicHall(t) && t.status === 'available');
   if (!next) return;
@@ -605,6 +757,7 @@ function decide(
 ): void {
   commissionScholarship(get, dispatch, strategy);
   restaffOrphans(get, dispatch, strategy);
+  balanceTeaching(get, dispatch, strategy);
   cutPayrollIfStalled(get, weeksInTheRed, dispatch, strategy);
   staffTheDepartment(get, dispatch, strategy);
 
@@ -751,6 +904,10 @@ function decide(
       const s = get();
       const c = s.tech.find((t) => t.id === id);
       if (!c || c.status !== 'available') continue;
+      // A stray's courses stay where founding left them (see allowedOffers).
+      const programId = programOfCourse(id);
+      const school = programId ? programById(programId)?.school : undefined;
+      if (school !== undefined && isStray(s, strategy, school)) continue;
       if (!hasHeadroom(s, strategy) || !affordable(s, c.cost, strategy)) continue;
       if (!courseStaysSustainable(s, strategy)) continue;
       if (canStartDevelopment(s, c)) dispatch({ type: 'START_DEVELOPMENT', nodeId: id });
@@ -1033,6 +1190,12 @@ interface EventTally {
   varsityPetitions: number;
   varsityGranted: number;
   titles: number; // championships won over the run (see systems/athletics/playoffs.ts)
+  // THE SEALED RECORD (Plan 17's PR C): what the fiftieth summer wrote onto
+  // s.self.legacy, or null on a run that never got there. The thing PR E's
+  // four assertions are about — a legacy is the run's whole shape as six
+  // grades and a name, and "four archetypes finish differently" is a claim
+  // about these.
+  legacy: Legacy | null;
   // Every interrupt the run answered, by type. The review counted these by
   // hand — 223 modals over forty years, 61 of them research reports — and
   // "which modal is the player actually seeing" is a different question from
@@ -1129,6 +1292,7 @@ export function play(
     schoolsNamed: 0, chaptersFormed: 0, chaptersAskedForHousing: 0,
     hellenicCouncilYear: null, hellenicCouncilEligibleYear: null, studentCenterYear: null,
     eventFireCounts: {}, varsityPetitions: 0, varsityGranted: 0, titles: 0,
+    legacy: null,
     modals: {},
   };
 
@@ -1216,6 +1380,10 @@ export function play(
       if (summerCloses) {
         rows.push(snapshot(s, weeksInTheRed, minCash, year));
         year = newYear();
+        // The record, the summer it is sealed (see the reducer's
+        // RESOLVE_ADMISSIONS). Read off the state rather than recomputed,
+        // so the harness asserts against exactly what a player was shown.
+        if (tally.legacy === null && s.self.legacy) tally.legacy = s.self.legacy;
       }
       if (type === 'decision-event') {
         // Which event, and which way it went, read off the answer the
@@ -1454,6 +1622,15 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
     `greek housing ${tally.chaptersAskedForHousing}/${tally.chaptersFormed} chapters asked (${housingFraction.toFixed(0)}%); ` +
     `hellenic council ${councilLine}`,
   );
+  // The sealed record (Plan 17's PR C), when the run reached the fiftieth
+  // summer: the name and the six grades, which is what "how did this run
+  // finish" means now.
+  if (tally.legacy) {
+    console.log(
+      `   legacy (sealed year ${tally.legacy.year}): ${tally.legacy.name} — `
+      + tally.legacy.axes.map((a) => `${a.label} ${a.grade}`).join(', '),
+    );
+  }
   const eventBreakdown = Object.entries(tally.eventFireCounts)
     .sort((a, b) => b[1] - a[1])
     .map(([id, n]) => `${id} x${n}`)
@@ -1520,6 +1697,15 @@ const rampTuition = (perPrestigePoint: number, base = 4_000) => (s: GameState) =
 // survives is the DEFICIT_SURCHARGE inside rampTuition above: a school in
 // the red raises its price before it touches anybody's job, which is the
 // same ordering expressed with the one dial that is left.
+
+// The selective college's policy (Plan 17's PR E): the body it holds
+// itself to, and the band its admit rate lives in.
+const SELECTIVE_COLLEGE_BODY = 4_000;
+const SELECTIVE_COLLEGE_ADMIT_CEILING = 0.15;
+const SELECTIVE_COLLEGE_ADMIT_FLOOR = 0.005; // a pool of a quarter million against a class of a thousand
+const SELECTIVE_COLLEGE_PRICE_OVER_TOLERANCE = 1.15;
+// The regional engine's: take most of what applies.
+const REGIONAL_ENGINE_ADMIT_RATE = 0.6; // three quarters was measured to crowd the campus faster than it could build for it
 
 export const STRATEGIES: Strategy[] = [
   {
@@ -1763,6 +1949,105 @@ export const STRATEGIES: Strategy[] = [
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
     dormFillThreshold: 0.85, facilityThreshold: 72, campaigns: true,
     founding: 'scatter',
+  },
+  {
+    // THE SELECTIVE COLLEGE (Plan 17's PR E): the run that is not the
+    // completionist's and should still finish with something to be proud
+    // of. Small on purpose — the admit rate never passes 15% and is pulled
+    // down further to hold the body near SELECTIVE_COLLEGE_BODY — priced at
+    // what its standing tolerates, deep in two or three schools rather than
+    // wide across seven, every facility built, every idle lab running the
+    // deepest project it can afford. The assertion that matters in Plan
+    // 17's balance target is this one: an A in teaching, concentration and
+    // selectivity, and a prestige within reach of the completionist's,
+    // which is the claim that Plan 15's concentration term is pulling its
+    // weight. If this cannot be met by tuning, the finding belongs in the
+    // prestige model, not here.
+    name: 'Selective college',
+    // A notch above what its standing tolerates: the one school here that
+    // can, since it takes one applicant in a hundred and the pool is what
+    // the price thins. At tolerance exactly it ran break-even from year 25
+    // on a four-thousand-student line and could not fund the teaching
+    // hires it exists to make.
+    tuition: (s) => Math.min(TUITION_SLIDER_MAX, Math.round(priceTolerance(s.self.reputation) * SELECTIVE_COLLEGE_PRICE_OVER_TOLERANCE / 500) * 500),
+    // The body is held by the class: a school of four classes holds near
+    // SELECTIVE_COLLEGE_BODY when each summer's class is a quarter of it,
+    // and the pool it is taken from is last summer's, the best estimate
+    // the policy has before the funnel runs.
+    admitRate: (s) => Math.max(
+      SELECTIVE_COLLEGE_ADMIT_FLOOR,
+      Math.min(SELECTIVE_COLLEGE_ADMIT_CEILING, (SELECTIVE_COLLEGE_BODY / 4) / Math.max(1, s.students.applicantPool)),
+    ),
+    buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
+    netMargin: 0.1,
+    buildsCourses: true, buildsDorms: true, buildsFacilities: true,
+    dormFillThreshold: 1 / 0.5, // beds for half the body — a residential college
+    // Every facility its students want, not every facility in the game: at
+    // Infinity (the completionist's "build everything") a four-thousand-
+    // student tuition line was carrying five venues and a hospital and
+    // could not finish its own three schools' capstones — break-even from
+    // year 25, the last six programs never distinguished. 85 is every
+    // rung whose attribute is short of excellent.
+    facilityThreshold: 85,
+    campaigns: true,
+    // No coaching market and no fill-every-chair: both are the
+    // completionist's, and on a four-thousand-student tuition line they
+    // were measured to put the school in the red for thirty years. The
+    // teaching hire (balancesTeaching) is where its people money goes.
+    founding: 'school-first',
+    maxSchools: 3,
+    postsSearches: true,
+    balancesTeaching: true,
+  },
+  {
+    // THE REGIONAL ENGINE (Plan 17's PR E): cheap, broad, big, and not a
+    // research university. Priced well under the balanced ramp, admitting
+    // most of what applies, founding whatever is offered into pure halls,
+    // building for the students it has, and keeping its labs ticking over
+    // on the cheapest project rather than the deepest. Plan 17's target for
+    // it is an A in reach, a C in research, solvency, and a legacy of its
+    // own — the state university that is a good school without being the
+    // completionist's.
+    name: 'Regional engine',
+    // Cheap LATER, not at founding: the founding price with a flatter ramp
+    // than anybody's, so the school opens at what the founding body can
+    // carry and is a quarter under the balanced builder by the time
+    // standing is in the hundreds. Priced under the founding line — the
+    // discount archetype's 2,500 + 180/point, or 3,000 + 170 — the
+    // founding body of 480 cannot carry the core, the net goes negative in
+    // year two, the first hall is never sited, and the school sits at 480
+    // students for fifty years; measured, twice.
+    // ...and not much cheaper than that. Plan 15 prices every section,
+    // service and salary at the market rate for the school's STANDING, and a
+    // big school's breadth carries its standing to the top of the scale
+    // whatever it charges — so at a quarter under the balanced ramp this
+    // school's costs outran a four-year price lock by 60% between years 20
+    // and 25 and it never climbed out (−846M at fifty). A tenth under is
+    // what "cheap" can mean for a school this size in this economy.
+    tuition: rampTuition(200, 5_500),
+    admitRate: () => REGIONAL_ENGINE_ADMIT_RATE,
+    // The balanced builder's own reserve and flow gate: a big cheap school
+    // is not a careless one.
+    buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
+    netMargin: 0.08,
+    buildsCourses: true, buildsDorms: true, buildsFacilities: true,
+    // Builds for its students sooner than the balanced builder does: a big
+    // school's whole standing is its welfare and its crowding.
+    dormFillThreshold: 0.7, facilityThreshold: 80, campaigns: true,
+    // Hires only for a course it can afford to start, like the archetypes:
+    // filling every chair on a founding budget was measured to kill it in
+    // year two — eight salaries against a 480-student tuition line, the
+    // net negative before the first hall, and a school that never sites
+    // its first hall never grows.
+    //
+    // NO RESEARCH, as the plan says — not 'shallow': a big school's labs
+    // ticking over on pilot projects publish enough over thirty years to
+    // read as an A in research (measured: 246 points a week, ten
+    // breakthroughs), which is not a school that does no research.
+    research: 'none',
+    // Its thin margin does not hold "an extra student is never a loss" at a
+    // full catalogue any more than the discount archetype's does.
+    courseAffordabilityAware: true,
   },
   {
     // The control: builds nothing, ever. Prestige and cash here are the

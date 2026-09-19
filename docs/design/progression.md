@@ -327,6 +327,98 @@ the balance gate unable to distinguish a rebalance from a reshuffle. Pinned at
 one draw, the rival table can grow, or gain axes of its own, without moving the
 economy's dice at all.
 
+## The fifty years
+
+A run is **fifty years**, and the fifty have three eras. The **found** era
+(years 1–12) is the core, the first halls, the first schools — money tight,
+faculty scarce, every slot a commitment. The **build** era (12–35) is where the
+catalogue and the campus get made; completing every school is *barely*
+possible in the window. The **defend** era (35–50) has little left to build,
+and the field closes on the leader (below). The eras are a design target
+([economy.md](economy.md)'s pacing table is fitted to them), not a rule: the
+game never says which era it is in.
+
+The fiftieth summer files the **final report** in place of the year in review
+(see [admissions.md](admissions.md)'s "The summer"): the legacy, the ambitions
+reached and their years, the four numbers a founder would want — students
+taught, faculty who served, prizes, titles — and the fifty-year curves. Then
+the record is **sealed**: `self.legacy` is written once, at that summer's
+boundary, and never again. **The clock does not stop.** The fifty-first year
+opens as any other, the sixtieth summer files an ordinary year in review, and a
+player who wants to see the hospital finished can; the History tab shows the
+legacy as *the record, sealed in the fiftieth year*. The startup screen says
+what the game is — *Fifty years to build a university.* — and the History tab
+counts down as well as up ("Year 23 of 50"), its charts fixed at fifty so the
+curves have somewhere to go. Plan 17 is the record of the decision and its
+fitting: [`../plans/17-the-endpoint.md`](../plans/17-the-endpoint.md).
+
+### Ambitions
+
+Twenty named achievements with the year each was reached
+(`data/ambitionsData.ts`): *A hall of your own*, *A school founded*, *Every
+school founded*, *In the top fifty*, *In the top ten*, *First in the nation*,
+*A distinguished program*, *A distinguished school*, *A university*, *A
+laboratory*, *A landmark program concluded*, *A prize*, *A professional school*,
+*A national title*, *A title in every sport fielded*, *Ten thousand students*,
+*Never in the red*, *A billion in the endowment*, *The whole catalogue*, *Fifty
+years*. Every one is a **reading** of state the game already keeps, detected
+weekly (`systems/ambitions/ambitionsSystem.ts`), written once into
+`s.ambitions` and never revoked. **They gate nothing and grant nothing**: no
+prestige, no cash, no applicants, no stop of the clock — the log names each as
+it lands, and the History tab's Ambitions panel lists them greyed until reached.
+They are the objectives; the legacy is the consequence.
+
+### The legacy
+
+**Six grades and a name, not a score.** A single number ranks runs and a ranking
+has one right answer, which is what had turned the game into a checklist. Six
+axes, each graded A–F from readings the game already keeps
+(`state/legacy.ts`):
+
+| Axis | Read from |
+|---|---|
+| Academic breadth | `curriculumBreadthScore` — the standing's own input, graduate share included |
+| Concentration | `concentrationScore` — the standing's own "known for" term |
+| Teaching | half the campus average course grade, half the share of courses taught to an A or B |
+| Research | `researchScore` — the standing's own credits |
+| Selectivity and reach | the **greater** of how selective the school is (class quality, admit rate) and how far past its standing it draws (the realised pool against the pool prestige alone would draw) — a selective college and a regional engine earn the same axis two different ways |
+| Stewardship | thirds: the share of the run's weeks solvent, endowment per student, the students' average satisfaction over every year on the books |
+
+The bands are one table (A at 0.85, B 0.65, C 0.45, D 0.25) and are what
+Plan 17's balance target fitted. The **name** comes from an authored table of
+twenty-one sentences in three families — *great*, *sound*, *troubled* — tested
+in that order on the pattern of grades: *the university everything is measured
+against*, *a great research university*, *the finest college in the country*,
+*an engine of the region*, *a place students never leave*, *a sound
+university*, *a school that grew too fast*, *a college still finding itself*
+and the rest. Every pattern finds a name; the troubled entries are tested
+first, so a broad school in the red is *a school that grew too fast* before it
+is anything else. Campus life is deliberately not an axis: it cannot yet be
+earned, and an axis every run grades the same is not a record of anything.
+
+Before year fifty the History tab shows the same reading taken live — *today
+the school would be called…* — the way the Standing panel shows what the year
+is grading toward.
+
+### The top has to be held
+
+The ten schools authored at 87–99 (`rivalData.ts`'s `ELITE_RIVAL_IDS`) gain a
+term in their annual drift: a pull toward the player's own standing less four,
+at a rate that closes a ten-point gap in about five years
+(`rivalsSystem.ts`'s `eliteClosingStep`). Applied only while the player is
+above prestige 100, so the found and build eras meet the field they always did;
+deterministic and only ever upward on the rival, so the field's one draw a year
+is untouched. The player can still be first — the field arrives. With
+prestige able to fall (above), a school that coasts in the defend era now loses
+*rank* for it, which is the whole mechanism of the era and needs no new system.
+
+A rival that passes the school says so — on the Standing beat, and in the year
+in review's Standing section — and, once per rival and only in the defend era,
+the board proposes a response at a real cost (see
+[`../architecture/interrupts.md`](../architecture/interrupts.md)'s "The board's
+response"). No poaching: that is the faculty-lifecycle plan's, and it will read
+this drift when it comes.
+
 ## College, and University
 
 A school opens as **"<Name> College"**. The player writes only the first half at

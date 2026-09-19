@@ -1,6 +1,11 @@
 import type { GameState, YearSnapshot } from '../state/types';
-import { linePoints, MIN_SERIES_POINTS } from '../components/Sparkline';
+import { MIN_SERIES_POINTS } from '../components/Sparkline';
 import HelpHint from '../components/HelpHint';
+import { HistoryChart, formatMoney } from '../components/HistoryChart';
+import { ambitionEntries } from '../data/ambitionsData';
+import { legacy } from '../state/legacy';
+import { SEMICENTENNIAL_YEAR } from '../state/types';
+import { LegacyAxes } from '../components/LegacyAxes';
 import {
   prestigeBreakdown, researchStandingBreakdown, socialStandingBreakdown,
   type StandingBreakdown, type StandingInput, type StandingReading,
@@ -19,65 +24,9 @@ import {
 // more would be a different game's UI.
 // ---------------------------------------------------------------------
 
-// Chart geometry. The SVG scales to the width of its column while keeping
-// this aspect ratio, so these are proportions, not pixels.
-const CHART_WIDTH = 320;
-const CHART_HEIGHT = 96;
-const CHART_PAD_Y = 4; // vertical breathing room so peaks aren't clipped
-
 // How many rows of the year-by-year table to show at once before it
 // scrolls. A 50-year run would otherwise push the charts off the screen.
 const TABLE_VISIBLE_ROWS = 12;
-
-function formatMoney(v: number): string {
-  const abs = Math.abs(v);
-  if (abs >= 1_000_000) return `${v < 0 ? '-' : ''}$${(abs / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${v < 0 ? '-' : ''}$${Math.round(abs / 1_000)}k`;
-  return `${v < 0 ? '-' : ''}$${Math.round(abs)}`;
-}
-
-// One series over the years. `format` renders the y-axis end labels and the
-// current-value caption, so each chart reports its own units (dollars,
-// students, points) rather than the view guessing.
-function HistoryChart({ label, years, values, format, note }: {
-  label: string;
-  years: number[];
-  values: number[];
-  format: (v: number) => string;
-  note?: string;
-}) {
-  const points = linePoints(values, CHART_WIDTH, CHART_HEIGHT, CHART_PAD_Y);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const latest = values[values.length - 1];
-
-  return (
-    <figure className="history-chart">
-      <figcaption>
-        <span className="history-chart-label">{label}</span>
-        <span className="history-chart-latest">{format(latest)}</span>
-      </figcaption>
-      <svg
-        className="history-chart-svg"
-        viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
-        role="img"
-        aria-label={`${label}: ${format(min)} to ${format(max)} across years ${years[0]} to ${years[years.length - 1]}`}
-      >
-        {/* Baseline and ceiling rules, so a line has something to sit against. */}
-        <line className="history-chart-rule" x1={0} y1={CHART_HEIGHT} x2={CHART_WIDTH} y2={CHART_HEIGHT} />
-        <line className="history-chart-rule faint" x1={0} y1={0} x2={CHART_WIDTH} y2={0} />
-        <polyline className="history-chart-line" points={points} />
-      </svg>
-      <div className="history-chart-axis">
-        <span>Y{years[0]}</span>
-        {/* A series that never moved reports one value, not "x – x". */}
-        <span className="history-chart-range">{min === max ? format(min) : `${format(min)} – ${format(max)}`}</span>
-        <span>Y{years[years.length - 1]}</span>
-      </div>
-      {note && <p className="history-chart-note">{note}</p>}
-    </figure>
-  );
-}
 
 // ---------------------------------------------------------------------
 // STANDING: the headline number, explained.
@@ -243,6 +192,84 @@ function StandingPanel({ s }: { s: GameState }) {
   );
 }
 
+// ---------------------------------------------------------------------
+// AMBITIONS (Plan 17's PR A): the named achievements, greyed until
+// reached, with the year each landed. A checklist and nothing more — the
+// record gates nothing and is read off s.ambitions, which
+// systems/ambitions/ambitionsSystem.ts writes once per entry. The list is
+// data (data/ambitionsData.ts); nothing here names one.
+// ---------------------------------------------------------------------
+function AmbitionsPanel({ s }: { s: GameState }) {
+  const entries = ambitionEntries(s);
+  const reached = entries.filter((a) => a.year !== null).length;
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <div className="panel-head-title">
+          <h2>Ambitions</h2>
+          <span className="panel-count">{reached} of {entries.length}</span>
+        </div>
+        <HelpHint
+          align="end"
+          text="What a founder might set out to do, and the year each was done. An ambition is a record, not a reward: it changes nothing and is never taken back. The final report in the fiftieth summer lists the ones reached."
+        />
+      </div>
+      <ul className="ambitions">
+        {entries.map((a) => (
+          <li key={a.id} className={`ambition${a.year === null ? ' unreached' : ''}`}>
+            <span className="ambition-mark" aria-hidden="true">{a.year === null ? '○' : '●'}</span>
+            <span className="ambition-body">
+              <span className="ambition-name">{a.name}</span>
+              <span className="ambition-line">{a.line}</span>
+            </span>
+            <span className="ambition-year">{a.year === null ? '—' : `Year ${a.year}`}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------
+// THE LEGACY (Plan 17's PRs B and C): six graded axes and a name. Sealed
+// — read once at the fiftieth summer onto s.self.legacy and never written
+// again — once the run has reached it; until then the same reading taken
+// live, labelled as what the run would be called today, the way the
+// Standing panel shows what the year is grading toward.
+// ---------------------------------------------------------------------
+function LegacyPanel({ s }: { s: GameState }) {
+  const sealed = s.self.legacy;
+  const record = sealed ?? legacy(s);
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <div className="panel-head-title">
+          <h2>Legacy</h2>
+          <span className="panel-count">{sealed ? `sealed in year ${sealed.year}` : `as it stands in year ${s.clock.year}`}</span>
+        </div>
+        <HelpHint
+          align="end"
+          text={`Six axes graded A to F from what the school has actually done, and a name from the pattern of grades. The record is sealed at the fiftieth summer's final report and nothing after it changes it; before then this is the reading as it stands today. Fifty years is the run; play continues past it.`}
+        />
+      </div>
+      <p className="legacy-name">
+        {sealed
+          ? <>The record, sealed in the fiftieth year: <strong>{record.name}</strong>.</>
+          : <>Today the school would be called <strong>{record.name}</strong>. {SEMICENTENNIAL_YEAR - s.clock.year > 0 ? `${SEMICENTENNIAL_YEAR - s.clock.year} year${SEMICENTENNIAL_YEAR - s.clock.year === 1 ? '' : 's'} to the final report.` : 'The final report is filed this summer.'}</>}
+      </p>
+      <LegacyAxes axes={record.axes} />
+    </section>
+  );
+}
+
+// The header's count, up and down at once (Plan 17's PR F): "Year 23 of
+// 50" while the run is inside its fifty years, and the sealed year once it
+// has played past them — the clock keeps running, the record does not.
+function yearOfFifty(s: GameState): string {
+  if (s.clock.year <= SEMICENTENNIAL_YEAR) return `Year ${s.clock.year} of ${SEMICENTENNIAL_YEAR}`;
+  return `Year ${s.clock.year} · the record sealed in year ${s.self.legacy?.year ?? SEMICENTENNIAL_YEAR}`;
+}
+
 function HistoryTable({ rows }: { rows: YearSnapshot[] }) {
   return (
     <div className="history-table-scroll" style={{ maxHeight: `${TABLE_VISIBLE_ROWS * 24 + 28}px` }}>
@@ -300,9 +327,14 @@ export default function HistoryTab({ s }: { s: GameState }) {
             so it is here as well as below, and a school in its first year
             has something on this tab besides an apology. */}
         <StandingPanel s={s} />
+        <LegacyPanel s={s} />
+        <AmbitionsPanel s={s} />
         <section className="panel">
           <div className="panel-head">
-            <h2>Institutional History</h2>
+            <div className="panel-head-title">
+              <h2>Institutional History</h2>
+              <span className="panel-count">{yearOfFifty(s)}</span>
+            </div>
             <HelpHint align="end" text="One entry is filed each year, when the summer admissions decision resolves. Two years are needed before a trend can be drawn." />
           </div>
           <p className="empty-note">
@@ -322,10 +354,15 @@ export default function HistoryTab({ s }: { s: GameState }) {
   return (
     <div className="tab-content">
       <StandingPanel s={s} />
+      <LegacyPanel s={s} />
+      <AmbitionsPanel s={s} />
       <section className="panel">
         <div className="panel-head">
-          <h2>Institutional History</h2>
-          <HelpHint align="end" text="One entry is filed each year, at the summer admissions decision. Everything here is the record of what the school actually was at each of those moments." />
+          <div className="panel-head-title">
+            <h2>Institutional History</h2>
+            <span className="panel-count">{yearOfFifty(s)}</span>
+          </div>
+          <HelpHint align="end" text="One entry is filed each year, at the summer admissions decision. Everything here is the record of what the school actually was at each of those moments. The charts run to the fiftieth year, when the record is sealed." />
         </div>
         <p className="history-summary">
           {history.length} years on the books, Year {first.year} to Year {latest.year}: prestige{' '}
@@ -337,6 +374,7 @@ export default function HistoryTab({ s }: { s: GameState }) {
         <div className="history-charts">
           <HistoryChart
             label="Prestige"
+            span={SEMICENTENNIAL_YEAR}
             years={years}
             values={history.map((h) => h.prestige)}
             format={(v) => `${Math.round(v)}`}
@@ -344,6 +382,7 @@ export default function HistoryTab({ s }: { s: GameState }) {
           />
           <HistoryChart
             label="Enrollment"
+            span={SEMICENTENNIAL_YEAR}
             years={years}
             values={history.map((h) => h.enrolled)}
             format={(v) => Math.round(v).toLocaleString()}
@@ -351,6 +390,7 @@ export default function HistoryTab({ s }: { s: GameState }) {
           />
           <HistoryChart
             label="Operating funds"
+            span={SEMICENTENNIAL_YEAR}
             years={years}
             values={history.map((h) => h.cash)}
             format={formatMoney}
@@ -358,6 +398,7 @@ export default function HistoryTab({ s }: { s: GameState }) {
           />
           <HistoryChart
             label="Catalogue"
+            span={SEMICENTENNIAL_YEAR}
             years={years}
             values={history.map((h) => h.coursesDone)}
             format={(v) => `${Math.round(v)} / ${totalCourses}`}

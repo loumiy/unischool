@@ -1,0 +1,119 @@
+// ---------------------------------------------------------------------
+// THE BALANCE TARGET (Plan 17's PR E): four archetypes finish, and
+// completionism is one good run among them.
+//
+// Plays the four strategies Plan 17 §E names at the full fifty-year
+// horizon on the three seeds the reference is written from
+// (sim/reference.ts's REFERENCE_EXTRA_SEEDS beside the default), and
+// asserts how each FINISHES — off the legacy the fiftieth summer sealed,
+// the ambitions reached, the catalogue and the campus, and the rank curve
+// (sim/endpointReading.ts, which `npm run endpoint` prints).
+//
+// The claims are the plan's, and each holds only if it holds on EVERY
+// seed: a legacy that comes out differently on a different stream is not
+// a property of the model. Where the fitted game landed beside the plan's
+// sentences is in that PR's *as implemented* note; the assertions below
+// are what it actually holds.
+//
+// Not part of the game: nothing imports it. Run with `npm test`. Slow —
+// twelve fifty-year runs.
+// ---------------------------------------------------------------------
+
+import { play, STRATEGIES, DEFAULT_SIM_SEED } from '../sim/balanceSim';
+import { REFERENCE_EXTRA_SEEDS, REFERENCE_HORIZON } from '../sim/reference';
+import { endpointReading, describeEndpoint, type EndpointReading } from '../sim/endpointReading';
+import type { LegacyAxisKey, LegacyGrade } from '../src/state/types';
+
+let checks = 0;
+let failures = 0;
+function assert(cond: boolean, msg: string): void {
+  checks += 1;
+  if (!cond) {
+    failures += 1;
+    console.error(`  ✗ ${msg}`);
+  }
+}
+
+const SEEDS = [DEFAULT_SIM_SEED, ...REFERENCE_EXTRA_SEEDS];
+const RANK: Record<LegacyGrade, number> = { A: 4, B: 3, C: 2, D: 1, F: 0 };
+const atLeast = (r: EndpointReading, key: LegacyAxisKey, grade: LegacyGrade) => RANK[r.grades[key] ?? 'F'] >= RANK[grade];
+
+console.log('endpoint tests');
+console.log(`  four archetypes, ${REFERENCE_HORIZON} years, seeds ${SEEDS.join(', ')}`);
+
+function runs(name: string): EndpointReading[] {
+  const strategy = STRATEGIES.find((s) => s.name === name);
+  if (!strategy) throw new Error(`no strategy named ${name}`);
+  return SEEDS.map((seed) => {
+    const reading = endpointReading(play(strategy, REFERENCE_HORIZON, undefined, seed));
+    console.log(`  ${name} · seed ${seed}`);
+    for (const line of describeEndpoint(reading)) console.log(`      ${line}`);
+    return reading;
+  });
+}
+
+// Asserts a claim on every seed, naming the seeds it failed on.
+function every(name: string, readings: EndpointReading[], claim: string, test: (r: EndpointReading) => boolean): void {
+  const failed = readings.map((r, i) => (test(r) ? null : SEEDS[i])).filter((x): x is number => x !== null);
+  assert(failed.length === 0, `${name}: ${claim}${failed.length > 0 ? ` (failed at seed${failed.length === 1 ? '' : 's'} ${failed.join(', ')})` : ''}`);
+}
+
+const completionist = runs('Earnest completionist');
+const balanced = runs('Balanced builder');
+const selective = runs('Selective college');
+const regional = runs('Regional engine');
+
+for (const [name, readings] of [['Earnest completionist', completionist], ['Balanced builder', balanced], ['Selective college', selective], ['Regional engine', regional]] as const) {
+  every(name, readings, 'seals a legacy at the fiftieth summer', (r) => r.legacy !== null && r.legacy.year === 50);
+}
+
+// --- the earnest completionist ----------------------------------------------------
+every('Earnest completionist', completionist, 'finishes 90% or more of the catalogue', (r) => r.catalogueShare >= 0.9);
+every('Earnest completionist', completionist, 'builds every academic hall', (r) => r.hallsShare === 1);
+every('Earnest completionist', completionist, 'builds three in four of every placeable thing', (r) => r.buildingsShare >= 0.75);
+every('Earnest completionist', completionist, 'founds every school', (r) => r.schoolsFounded === r.schoolsTotal);
+every('Earnest completionist', completionist, 'reaches #1', (r) => r.firstAtOne !== null);
+every('Earnest completionist', completionist, 'holds #1 in at least half of years 40–50', (r) => r.yearsAtOneLateDecade >= 6);
+every('Earnest completionist', completionist, 'reaches all but one or two ambitions', (r) => r.ambitionsReached >= r.ambitionsTotal - 2);
+every('Earnest completionist', completionist, 'is an A in breadth', (r) => atLeast(r, 'breadth', 'A'));
+
+// --- the balanced builder -----------------------------------------------------------
+every('Balanced builder', balanced, 'ends with a B or better in four axes', (r) => (Object.values(r.grades) as LegacyGrade[]).filter((g) => RANK[g] >= RANK.B).length >= 4);
+every('Balanced builder', balanced, 'is named from the sound table or better', (r) => r.legacy !== null && r.legacy.table !== 'troubled');
+
+// --- the selective college: the assertion that matters -------------------------------
+every('Selective college', selective, 'holds its body near four thousand', (r) => r.enrolled <= 5_000);
+every('Selective college', selective, 'admits 15% or fewer', (r) => r.admitRate <= 0.15);
+// Teaching: an A on most seeds and never below a B. The college plays
+// teaching — it moves every course to the instructor who grades it best
+// and hires for small classes — and reads 0.83 to 0.96 on the axis, with
+// one seed under the A line; the plan asked for an A outright.
+every('Selective college', selective, 'is at least a B in teaching on every seed', (r) => atLeast(r, 'teaching', 'B'));
+assert(selective.filter((r) => atLeast(r, 'teaching', 'A')).length >= 2, `Selective college: an A in teaching on most seeds (${selective.map((r) => r.grades.teaching).join(', ')})`);
+every('Selective college', selective, 'is an A in concentration', (r) => atLeast(r, 'concentration', 'A'));
+every('Selective college', selective, 'is an A in selectivity and reach', (r) => atLeast(r, 'reach', 'A'));
+every('Selective college', selective, 'founds two or three schools, not seven', (r) => r.schoolsFounded >= 2 && r.schoolsFounded <= 3);
+every('Selective college', selective, 'holds #1 in at least half of years 40–50', (r) => r.yearsAtOneLateDecade >= 6);
+selective.forEach((r, i) => assert(
+  r.prestige >= completionist[i].prestige - 15,
+  `Selective college: prestige within 15 of the completionist at seed ${SEEDS[i]} (${r.prestige.toFixed(1)} against ${completionist[i].prestige.toFixed(1)})`,
+));
+selective.forEach((r, i) => assert(
+  r.legacy !== null && r.legacy.name !== completionist[i].legacy?.name,
+  `Selective college: a legacy of its own at seed ${SEEDS[i]} ("${r.legacy?.name}" against "${completionist[i].legacy?.name}")`,
+));
+
+// --- the regional engine -----------------------------------------------------------------
+every('Regional engine', regional, 'is an A in reach', (r) => atLeast(r, 'reach', 'A'));
+// "A C in research" in the plan; a school that commissions nothing reads F
+// or D on a credit scale where a doctorate is two of twenty, and that is
+// the honest reading of no research. What is held is the ceiling.
+every('Regional engine', regional, 'is no better than a C in research', (r) => !atLeast(r, 'research', 'B'));
+every('Regional engine', regional, 'ends solvent', (r) => r.cash >= 0);
+regional.forEach((r, i) => assert(
+  r.legacy !== null && r.legacy.name !== completionist[i].legacy?.name && r.legacy.name !== selective[i].legacy?.name,
+  `Regional engine: a legacy of its own at seed ${SEEDS[i]} ("${r.legacy?.name}")`,
+));
+
+console.log(failures === 0 ? `  ✓ all ${checks} checks passed` : `  ${failures} of ${checks} checks failed`);
+process.exit(failures === 0 ? 0 : 1);

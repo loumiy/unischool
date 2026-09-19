@@ -108,10 +108,18 @@ export const SAVE_KEY = 'unischool.save';
 // only — but a save without them would theme the game off two undefined
 // custom properties, which is every chrome surface drawn in the browser's
 // idea of nothing.
-// v63: the opening walkthrough. `s.events.opening.stage` (added as
-// required — see state/opening.ts). A save without it would
-// resume with the clock held by a stage nothing renders.
-export const SAVE_VERSION = 63;
+// v63: Plan 17 PR A. `s.ambitions` (ambition id -> the year reached) and
+// `s.finance.weeksInTheRed` (the run's own solvency count), both added as
+// required.
+// v64: Plan 17 PR C. `s.self.legacy` (the sealed record, nullable),
+// `s.self.facultyServed` and `YearSnapshot.graduated`, all added as
+// required.
+// v65: Plan 17 PR D. `s.events.passedResponses` (the rivals whose passing
+// the trustees have already answered), added as required.
+// v66: the opening walkthrough. `s.events.opening.stage` (added as
+// required — see state/opening.ts). A save without it would resume with
+// the clock held by a stage nothing renders.
+export const SAVE_VERSION = 66;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch

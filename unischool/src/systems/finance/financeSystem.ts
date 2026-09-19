@@ -444,6 +444,10 @@ export function tickFinance(s: GameState): void {
   const flow = financeBreakdown(s);
   s.finance.weeklyOpEx = flow.totalExpenses;
   s.finance.cash += flow.net;
+  // The run's own solvency record (see types.ts's Finance.weeksInTheRed):
+  // a week that closes below zero is counted here, where cash settles,
+  // and nowhere else.
+  if (s.finance.cash < 0) s.finance.weeksInTheRed += 1;
 
   // The endowment compounds at its return rate net of the payout that was
   // just collected as income above. Cash is allowed to go negative HERE —

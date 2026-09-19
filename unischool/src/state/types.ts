@@ -33,6 +33,14 @@ export interface Finance {
   // TUITION_SLIDER_MAX), and the two appropriation halves became nothing at
   // all. What is left here is what every school has.
   weeklyOpEx: number;    // salaries + upkeep + instruction, recomputed each tick
+  // How many weeks the operating account has ever closed below zero
+  // (Plan 17's PR A). Counted by tickFinance the moment cash settles, so
+  // it is the run's own record of solvency rather than one a reader has
+  // to reconstruct from fifty summer snapshots — a school that dipped red
+  // in week 30 and was back by the summer was still in the red. Read by
+  // the *Never in the red* ambition and the legacy's stewardship axis;
+  // written by nothing else. Monotone, like every other lifetime count.
+  weeksInTheRed: number;
 }
 
 // The named needs satisfaction is broken into (see satisfactionSystem.ts).
@@ -625,6 +633,12 @@ export interface SummerDecision {
 
 export interface SummerPayload {
   beat: SummerBeat;
+  // THE SEMICENTENNIAL (Plan 17's PR C): set on the fiftieth summer, whose
+  // first beat is the final report in place of the year in review. Stamped
+  // when the interrupt is raised so a save taken between beats still knows,
+  // and so the modal's width rule (modalLayout.ts) can read it off the
+  // payload alone.
+  final?: boolean;
   tuition: number;    // where the tuition slider opens: last year's listed price
   admitRate: number;  // where the admit slider opens: last year's chosen rate
   decision?: SummerDecision; // set once the admissions beat has been left; what the last beat commits
@@ -731,6 +745,12 @@ export interface EventState {
   // clock until they are done. State rather than shell memory, so a refresh
   // mid-walk resumes on the same step. A headless founding opens at 'play'.
   opening: { read: string[]; skipped: boolean; stage: OpeningStage };
+  // THE TRUSTEES' RESPONSE (Plan 17's PR D — see data/eventData.ts's
+  // 'rival-passed'). The ids of every rival whose passing the player has
+  // already been asked about, stamped when the event fires rather than
+  // when it is answered, so a dismissed modal never comes back for the
+  // same school. Once per rival for the run; a plain list of ids.
+  passedResponses: string[];
 }
 
 // See state/opening.ts, which owns the order and the meaning.
@@ -1258,6 +1278,18 @@ export interface University {
   researchStanding: number;
   vernacular: Vernacular; // the architecture the campus is built in, fixed at founding
   colors: SchoolColors;   // the pair the school wears, picked beside the vernacular and fixed the same way (see SchoolColors)
+  // THE SEALED RECORD (Plan 17's PR C). Null until the fiftieth summer,
+  // when the reducer's RESOLVE_ADMISSIONS writes state/legacy.ts's reading
+  // once — before anything about that summer changes the school, so it is
+  // exactly what the final report showed — and never again. Play goes on
+  // afterwards and nothing that happens changes this; the History tab
+  // shows it as the record, sealed in the fiftieth year.
+  legacy: Legacy | null;
+  // Everyone who has ever held a chair here: the founding five plus every
+  // appointment since (facultySystem.ts's appointFaculty is the one door).
+  // Monotone; dismissals do not subtract. The final report's "faculty who
+  // served", which no roster count can give.
+  facultyServed: number;
 }
 
 // THE SUMMER REPORT CARD. At the admissions boundary the standing's inputs
@@ -1273,6 +1305,33 @@ export interface ReportCard {
   grades: Record<string, number>;  // input key -> the contribution it was graded
   before: number;                  // prestige the morning of the report
   after: number;                   // prestige after the step
+}
+
+// THE LEGACY (Plan 17's PR B): six graded axes and a name, read off state
+// at any moment by state/legacy.ts's legacy(s), and written ONCE — onto
+// University.legacy, at the fiftieth summer (PR C) — as the record the run
+// is remembered by. Six grades rather than a score, on purpose: a single
+// number invites optimising one thing; six let a run be an A in research
+// and a C in teaching and be *called* something for it. The name is
+// flavour, chosen from an authored table by the pattern of grades; the six
+// grades are the record. Plain JSON — strings and numbers — so a sealed
+// legacy survives a save untouched.
+export type LegacyGrade = 'A' | 'B' | 'C' | 'D' | 'F';
+export type LegacyAxisKey = 'breadth' | 'concentration' | 'teaching' | 'research' | 'reach' | 'stewardship';
+
+export interface LegacyAxis {
+  key: LegacyAxisKey;
+  label: string;
+  score: number;      // 0..1, before banding
+  grade: LegacyGrade;
+  detail: string;     // one line about what the reading actually read
+}
+
+export interface Legacy {
+  year: number;               // the year the reading was taken (the fiftieth, when sealed)
+  axes: LegacyAxis[];         // six, in a fixed order (see state/legacy.ts's AXES)
+  name: string;               // "a great research university" — the sentence the run is called
+  table: 'great' | 'sound' | 'troubled'; // which authored table the name came from (see state/legacy.ts)
 }
 
 // The institution's full display name. The one place the two halves are
@@ -1322,6 +1381,7 @@ export interface YearSnapshot {
   satisfactionAverage: number; // the year's average satisfaction — what word of mouth and welfare read
   coursesFinished: number;     // courses that finished developing during the year
   attrition: number;           // students who did not return at this summer
+  graduated: number;           // the seniors who left at this summer (Plan 17's PR C) — summed over a run, the students the school taught
 }
 
 // ---------------------------------------------------------------------
@@ -1438,6 +1498,16 @@ export interface GameState {
   started: boolean;              // false only during the pre-game startup screen (name + school type)
   hasEnteredRankings: boolean;   // true once the one-time "you've entered the top 50" reveal has fired
   milestones: Record<string, boolean>; // milestone key -> awarded, so each curriculum milestone bonus fires once
+  // AMBITIONS (Plan 17's PR A): ambition id -> the year it was reached.
+  // A record of named achievements — the first hall, a school founded,
+  // first in the nation, a prize, fifty years — written once each and
+  // never revoked, the same durable shape as `milestones` with a year in
+  // place of the boolean. Detected weekly by systems/ambitions/
+  // ambitionsSystem.ts off readings that already exist; authored in
+  // data/ambitionsData.ts. Ambitions GATE NOTHING and grant nothing: they
+  // are the objectives, and the legacy (PR B) is the consequence. Plain
+  // id -> number, so it survives a JSON round trip untouched.
+  ambitions: Record<string, number>;
   seen: SeenState;               // what the player has already been shown, for the curriculum/build/faculty alert badges (see SeenState above)
 }
 
@@ -1504,6 +1574,7 @@ export type LogTopic =
   | 'building'            // a hall, dorm or facility finished
   | 'program'             // a program founded in a hall
   | 'milestone'           // a milestone awarded (established, distinguished, a school founded)
+  | 'ambition'            // an ambition reached (Plan 17's PR A) — a record, never a stop
   | 'appointment'         // somebody joined the faculty
   | 'departure'           // somebody left it
   | 'prize'               // a research prize
@@ -1543,3 +1614,13 @@ export interface LogEntry {
 export const LOG_CAP = 200;
 
 export const WEEKS_PER_YEAR = 52; // the one place the game's year length lives — every system (clock, annual interrupts, finance annualization) reads from this
+
+// THE RUN'S LENGTH (Plan 17). A university's arc is a human lifetime — a
+// founder's career, the first class back for its fiftieth reunion — and
+// the fiftieth summer files the final report and seals the record (see
+// state/legacy.ts). The clock does not stop: the game goes on as a
+// sandbox for anyone who wants it to, and nothing after this year changes
+// the legacy. Every reader of "how long is a run" — the History tab's
+// countdown, the two year-fifty ambitions, the semicentennial beat, the
+// sim's horizon — reads this one constant.
+export const SEMICENTENNIAL_YEAR = 50;

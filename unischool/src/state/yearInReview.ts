@@ -5,6 +5,7 @@ import { advanceClasses, trailingYearSatisfaction } from '../systems/admissions/
 import { attritionReasons, summerAttrition } from '../systems/admissions/consequences';
 import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import { gradeYear, prestigeBreakdown } from '../systems/prestige/prestigeSystem';
+import { buildReportPayload } from '../systems/rivals/rivalsSystem';
 import { previousYear } from './history';
 
 // ---------------------------------------------------------------------
@@ -213,6 +214,13 @@ function standing(s: GameState): ReviewSection {
   ];
   const last = s.history.length > 0 ? s.history[s.history.length - 1] : null;
   if (last) lines.push({ text: `A year ago prestige stood at ${last.prestige.toFixed(1)}` });
+  // A rival that passed the school this year says so here as well as on
+  // the Standing beat (Plan 17's PR D) — the same crossing the report
+  // reads, off the same reconstruction, so the two beats agree.
+  const passedBy = last ? buildReportPayload(s).passedBy : [];
+  if (passedBy.length > 0) {
+    lines.push({ text: `Passed this year by ${passedBy.join(', ')}`, tone: 'bad' });
+  }
   for (const input of breakdown.inputs) {
     const grade = card.grades[input.key];
     if (grade === undefined) continue;
