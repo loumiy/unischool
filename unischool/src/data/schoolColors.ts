@@ -12,8 +12,14 @@ import type { SchoolColors } from '../state/types';
 // screen offers "Maroon and gold", "Navy and orange", "Black and gold" —
 // real collegiate pairings a player recognises as identities — rather than
 // a hex value, because the question is "what school is this" and not "what
-// colour do you like". Ten, which is enough to pick from and few enough to
-// pick between.
+// colour do you like". Eight, which is enough to pick from and few enough
+// to pick between, and EIGHT EXACTLY because the startup screen lays them
+// out as one even row (see .startup-colors): a row that wraps unevenly
+// reads as a row with a chip missing. The table once held ten; "Teal and
+// gold" sat next to "Forest and gold" and "Scarlet and grey" next to
+// "Crimson and silver", and a pick between two chips that read as the same
+// pair is not a pick. Navy and royal blue stay: side by side they are
+// plainly two blues.
 //
 // EVERY PAIR PASSES A CONTRAST RULE, and test/school-colors.test.ts pins it:
 // cream text on the primary at 4.5:1 or better, and the primary as text on
@@ -42,8 +48,6 @@ export const SCHOOL_COLOR_PAIRS: SchoolColorChoice[] = [
   { id: 'purple-gold', name: 'Purple and gold', primary: '#4a2a6a', secondary: '#e6b84a' },
   { id: 'black-gold', name: 'Black and gold', primary: '#1f1b17', secondary: '#e6b84a' },
   { id: 'royal-gold', name: 'Royal blue and gold', primary: '#1d3f86', secondary: '#e6b84a' },
-  { id: 'teal-gold', name: 'Teal and gold', primary: '#1d5c5c', secondary: '#f2c14e' },
-  { id: 'scarlet-grey', name: 'Scarlet and grey', primary: '#a3232b', secondary: '#d5d2cb' },
 ];
 
 // The pair the game wears before anyone has picked one — the startup

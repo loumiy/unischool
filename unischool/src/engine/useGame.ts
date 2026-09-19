@@ -5,6 +5,7 @@ import { createPreStartState } from '../state/actions';
 import type { Action } from '../state/actions';
 import { loadGame, saveGame } from '../state/persistence';
 import { advanceWeekProgress, MAX_SAMPLE_MS } from './weekClock';
+import { openingHoldsClock } from '../state/opening';
 
 // Speed presets in milliseconds per week-tick. 0 = paused.
 // `real` is the baseline play speed: slow enough that a 50-year
@@ -61,7 +62,12 @@ export function useGame() {
   const stateRef = useRef(state);
   stateRef.current = state;
 
+  // The clock is HELD by a pending interrupt, and by the opening walkthrough
+  // until its last step is done (see state/opening.ts) — the
+  // same hold, for the same reason: the player has something to answer
+  // before the week can turn.
   const interrupted = state.pendingInterrupt !== null;
+  const held = interrupted || openingHoldsClock(state);
 
   // How far through the current week we are, 0..1 — a ref rather than
   // state on purpose: the day squares beside the clock (DayTicker.tsx) are
@@ -77,7 +83,7 @@ export function useGame() {
   // or halted because an interrupt is pending (that last one is the same
   // gate the old interval used, kept exactly as it was).
   const msPerWeekRef = useRef(0);
-  msPerWeekRef.current = state.started && !interrupted ? SPEEDS[speed] : 0;
+  msPerWeekRef.current = state.started && !held ? SPEEDS[speed] : 0;
 
   // ONE sampler, mounted once and never torn down, because tearing it down
   // is precisely the bug: every rebuild used to discard the part-week in
@@ -106,8 +112,8 @@ export function useGame() {
   // crossing a boundary, so it is the one place the accumulator has to be
   // told; otherwise the new year would open on day 4 and be a short week.
   useEffect(() => {
-    if (!interrupted) weekProgressRef.current = 0;
-  }, [interrupted]);
+    if (!held) weekProgressRef.current = 0;
+  }, [held]);
 
   // The clock already halts the instant an interrupt is pending (above),
   // but that only stops ticking — it leaves `fast` as the SELECTED speed,

@@ -1697,7 +1697,10 @@ export default function CurriculumTab(
             )
           ) : (
             <>
-              <section className="school-group core" data-school="General Studies">
+              {/* Ringed while the opening walkthrough's last step is to
+                  develop a course from this row (see state/opening.ts
+                  and styles.css's .opening-target). */}
+              <section className={`school-group core ${s.events.opening.stage === 'first-course' ? 'opening-target' : ''}`} data-school="General Studies">
                 <header className="school-group-head">
                   <h3>General Education</h3>
                   <span className="lane-count">{completion(s, pool.courseIds).done} / {pool.courseIds.length}</span>

@@ -736,9 +736,15 @@ export interface EventState {
   // thing to do, fired through the ordinary interrupt system on the first
   // quiet week at or after its week of year one. `read` is the ids already
   // delivered, so a letter fires once; `skipped` is the player's "I know
-  // the way" on the first letter, which stands the rest of the script down
-  // for the run. Plain JSON like the rest of this slice.
-  opening: { read: string[]; skipped: boolean };
+  // the way" — on the first letter, or on the walkthrough's welcome — which
+  // stands the rest of the script down for the run. Plain JSON like the
+  // rest of this slice.
+  //
+  // `stage` is THE OPENING WALKTHROUGH (see state/opening.ts):
+  // the forced first three clicks of a guided founding, which hold the
+  // clock until they are done. State rather than shell memory, so a refresh
+  // mid-walk resumes on the same step. A headless founding opens at 'play'.
+  opening: { read: string[]; skipped: boolean; stage: OpeningStage };
   // THE TRUSTEES' RESPONSE (Plan 17's PR D — see data/eventData.ts's
   // 'rival-passed'). The ids of every rival whose passing the player has
   // already been asked about, stamped when the event fires rather than
@@ -746,6 +752,9 @@ export interface EventState {
   // same school. Once per rival for the run; a plain list of ids.
   passedResponses: string[];
 }
+
+// See state/opening.ts, which owns the order and the meaning.
+export type OpeningStage = 'welcome' | 'site-hall' | 'classes' | 'first-course' | 'play';
 
 // The player's admissions policy is set once a year via the summer
 // interrupt (see docs/design/admissions.md). NOTE: there is no

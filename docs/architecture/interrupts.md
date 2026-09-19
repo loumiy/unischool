@@ -30,6 +30,28 @@ Everything that needs to stop time rides on this one mechanism:
   first ("I know the way"). They yield to everything the player earned and
   outrank only the decision roll. The toolbar carries a letter's ask as its
   next-step line until it is done (`src/systems/guidance/nextStep.ts`).
+- **The opening walkthrough** — not an interrupt, but the same hold on the
+  clock, so it is listed here. A founding from the startup screen
+  (`START_GAME` with `guided`) opens on `s.events.opening.stage = 'welcome'`
+  with Founders Hall unsited, and the reducer's `TICK` is a no-op until the
+  stage is `'play'` (`src/state/opening.ts`, `openingHoldsClock`).
+  Five stages: the board's welcome (Next, or "I know the way", which places
+  the hall where a headless founding would and stands the letters down);
+  site Founders Hall (the shell opens the build menu and rings the hall's
+  tile; siting it is free — `campusMap.ts`'s `sitingFeeOf`; done when the
+  hall stands); "a college needs classes" (Next opens the Curriculum);
+  develop a course (the General Education row is ringed; done when any
+  course is developing — which is also where hiring is taught, since the
+  course drawer is where a professor is picked or appointed); then `'play'`,
+  where `App.tsx` starts the clock. The two "done" steps are settled by
+  `settleOpening` from the action that did them (`PLACE_BUILDABLE`,
+  `START_DEVELOPMENT`), never by the UI. The welcome IS the first letter's
+  content, so a guided founding counts that letter read and its ask becomes
+  the next-step line the moment the walk ends; the other three letters
+  arrive on their weeks as before. A headless founding (tests, the sim, a
+  scenario file) opens at `'play'` with the hall pre-placed, unchanged.
+  The copy is `src/data/openingData.ts` and the card is
+  `src/components/OpeningCoach.tsx`.
 - **Milestone celebrations** — a stop-the-clock moment for the handful of
   genuinely special accomplishments (a program established, a program
   distinguished, a school distinguished), showing what was unlocked and what it

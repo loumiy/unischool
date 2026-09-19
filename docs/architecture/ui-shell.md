@@ -115,6 +115,7 @@ it.
 | `Space` | Pause, or resume at whatever speed was last running. |
 | `1` `2` `3` | Play, 2×, 4×. (`4` is sandbox fast — see `playtestEnabled`.) |
 | `P` | Arm the path tool. Left button draws, right button erases; a ghost tile marks the square under the cursor. |
+| `Q` `E` | Turn the campus view a quarter turn; `Z` `X` tilt it flatter or steeper; `Home` returns to the opening view. Keys only — the map's corner pill has zoom buttons and nothing for the camera. |
 | `R` | Rotate the picked-up building 90°, same as the ⟳ on its footprint ghost. |
 | `Esc` | One ladder, top down: the activity-log popup, then the build menu, then the open view; on the map, back out of the path tool, then a picked-up building, then an open info panel. |
 | `Enter` | Dismiss the interrupt on screen (every type with a plain "continue", the summer's Review and Standing beats and a letter included — not its Admissions or Students beats or the charter offer, which are real choices). |
@@ -130,6 +131,17 @@ tabbed to one — but a button that was *clicked* is focused too, which is how
 by the interaction that chose the device (a pointer press, or `Tab`) rather
 than by the key being arbitrated, because `:focus-visible` alone flips true on
 that very keypress.
+
+**The opening walkthrough drives the shell for the first minute.** A founding
+from the startup screen opens with `s.events.opening.stage` at `'welcome'` and
+the clock held (see [interrupts.md](interrupts.md)); `App.tsx` acts once on
+each transition into a stage — opens the build menu for the hall, closes it
+and drops the pickup when the hall stands, opens the Curriculum for the first
+course, starts the clock when the walk ends — through the same `setBuildOpen`
+and `openTab` every other caller uses, so the one-slot rule holds. The card is
+`OpeningCoach.tsx`, pinned top-centre with no backdrop so the screen under it
+stays workable; the control each step needs carries `.opening-target` (the
+Build button, the hall's tile, the Curriculum tab, the General Education row).
 
 What each key MEANS stays with the component that owns the thing it does —
 speed on `StatusHeader.tsx`, pan/draw/rotate on `CampusMap.tsx`, the tab

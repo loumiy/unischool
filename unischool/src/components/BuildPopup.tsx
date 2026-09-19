@@ -3,10 +3,10 @@ import type { Action, CampusTool } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
-import { canSiteRetroactively, RETROACTIVE_SITING_COST } from '../state/campusMap';
+import { canSiteRetroactively, sitingFeeOf } from '../state/campusMap';
 import { FACILITY_CATEGORY_OF, type FacilityCategory, LIBRARY_TIER1_ID, nextLibraryFloor } from '../data/facilitiesData';
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
-import { isAcademicHall } from '../data/techData';
+import { GENED_BUILDING_ID, isAcademicHall } from '../data/techData';
 import HelpHint from './HelpHint';
 import { ProgressBar } from './Progress';
 import ToolbarPopup from './ToolbarPopup';
@@ -438,15 +438,22 @@ function BuildTile({
     const detail = builtDetail(t);
     const armed = placingId === t.id;
     const sitable = canSiteRetroactively(s, t);
-    const shortfall = RETROACTIVE_SITING_COST - s.finance.cash;
+    // Founders Hall sites for nothing (see campusMap.ts's sitingFeeOf):
+    // it is the opening walkthrough's first step, and the step rings this
+    // tile until the hall is picked up (see state/opening.ts).
+    const fee = sitingFeeOf(t);
+    const shortfall = fee - s.finance.cash;
+    const ringed = t.id === GENED_BUILDING_ID && s.events.opening.stage === 'site-hall' && !armed;
     return (
       <button
         type="button"
-        className={`build-tile available ${armed ? 'placing' : ''}`}
+        className={`build-tile available ${armed ? 'placing' : ''} ${ringed ? 'opening-target' : ''}`}
         disabled={!sitable}
         title={armed
           ? 'Click an empty tile on the map to site here, or click this again to cancel.'
-          : (shortfall > 0 ? `$${Math.ceil(shortfall).toLocaleString()} short.` : `Already built — $${RETROACTIVE_SITING_COST.toLocaleString()} to mark a spot on campus`)}
+          : shortfall > 0 ? `$${Math.ceil(shortfall).toLocaleString()} short.`
+            : fee > 0 ? `Already built — $${fee.toLocaleString()} to mark a spot on campus`
+              : 'The founding hall — pick it up, then click where it stands. No charge.'}
         draggable={sitable}
         onDragStart={(e) => {
           onArmPlacement(t.id);
@@ -459,7 +466,7 @@ function BuildTile({
         <span className="build-tile-icon"><Icon /></span>
         <span className="build-tile-name">{t.name}</span>
         {detail && <span className="build-tile-sub">{detail}</span>}
-        <span className="build-tile-foot">{armed ? 'placing…' : `site · $${RETROACTIVE_SITING_COST.toLocaleString()}`}</span>
+        <span className="build-tile-foot">{armed ? 'placing…' : fee > 0 ? `site · $${fee.toLocaleString()}` : 'site · no charge'}</span>
       </button>
     );
   }

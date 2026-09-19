@@ -16,6 +16,8 @@ import Toasts from './components/Toasts';
 import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
 import { applySchoolColors } from './components/theme';
+import OpeningCoach from './components/OpeningCoach';
+import type { OpeningStage } from './state/types';
 import FacultyTab from './tabs/FacultyTab';
 import CurriculumTab from './tabs/CurriculumTab';
 import ResearchTab from './tabs/ResearchTab';
@@ -288,6 +290,33 @@ export default function App() {
     setOverlay(null);
   }
 
+  // THE OPENING WALKTHROUGH DRIVES THE SHELL (see state/opening.ts). The
+  // stage is state; what the shell does about it lives here, because this
+  // is the one place that can open the build menu, open a tab and start
+  // the clock. Each transition INTO a stage acts once:
+  // siting the hall opens the build menu, the hall standing closes it and
+  // drops whatever was picked up, the Curriculum opens for the first
+  // course, and the walk ending starts the clock — the game opens paused
+  // and the walk holds it, so 'play' is the first moment a week can turn.
+  //
+  // On MOUNT (a save resumed mid-walk) the two door-opening stages act
+  // too, so the resumed player is looking at the right screen; 'play' does
+  // not, because a loaded run that finished its walk long ago opens paused
+  // like any other save. The ref holds the last stage acted on rather than
+  // a first-render flag, so StrictMode's double effect cannot act twice.
+  const stage: OpeningStage = s.events.opening.stage;
+  const actedStage = useRef<OpeningStage | null>(null);
+  useEffect(() => {
+    if (!s.started) return;
+    const prev = actedStage.current;
+    if (prev === stage) return;
+    actedStage.current = stage;
+    if (stage === 'site-hall') setBuildOpen(true);
+    else if (stage === 'classes') { closeBuild(); setPlacingIdState(null); }
+    else if (stage === 'first-course') openTab('curriculum');
+    else if (stage === 'play' && prev !== null) setSpeed('real');
+  }, [s.started, stage]);
+
   // ONE ESCAPE LADDER, top down, for the whole shell.
   //
   // Escape used to be bound in three places — TabOverlay, ToolbarPopup and
@@ -319,7 +348,7 @@ export default function App() {
     // opening a scenario file starts from.
     return (
       <>
-        <StartupScreen onStart={(name, vernacular, colors) => act({ type: 'START_GAME', name, vernacular, colors })} />
+        <StartupScreen onStart={(name, vernacular, colors) => act({ type: 'START_GAME', name, vernacular, colors, guided: true })} />
         <DebugPanel s={s} act={act} />
       </>
     );
@@ -413,6 +442,19 @@ export default function App() {
         )}
 
         <InterruptModal s={s} act={act} />
+        {/* The walkthrough's card (see OpeningCoach.tsx): nothing while the
+            stage is 'play', which is every render after the first minute.
+            It reads which doors are open so a closed one can be reopened
+            from the card; opening them goes through the same two setters
+            every other caller uses, so the one-slot rule holds. */}
+        <OpeningCoach
+          s={s}
+          act={act}
+          buildOpen={buildOpen}
+          curriculumOpen={overlay?.tab === 'curriculum'}
+          onOpenBuild={() => setBuildOpen(true)}
+          onOpenCurriculum={() => openTab('curriculum')}
+        />
       </div>
     </>
   );

@@ -160,6 +160,11 @@ function SchoolFacade({ name, vernacular, colors }: { name: string; vernacular: 
 
   const cx = FACADE_VIEW_WIDTH / 2;
   const bandY = 92;          // head of the engraved band
+  // Every crown below is drawn DOWN TO bandY, not to its own idea of where
+  // the roof ends: the pediment's base, the gable's foot, the slab's edge
+  // and the eaves' shadow all sit on the band. The first pass stopped each
+  // of them a few units short, which read as a strip of sky between roof
+  // and wall in all four sets — a building with its lid lifted.
   const bandH = 32;
   const wallTop = bandY + bandH;
   const baseY = 152;         // where the ground-storey order begins
@@ -176,8 +181,8 @@ function SchoolFacade({ name, vernacular, colors }: { name: string; vernacular: 
       // nothing applied — the top of the building is its flat roof.
       return (
         <>
-          <rect fill={tint(roof, 1.0)} x={FACADE_BAND_LEFT} y="70" width={FACADE_BAND_WIDTH} height="12" />
-          <rect fill={tint(wall, 1.04)} x={FACADE_BAND_LEFT + 46} y="56" width={FACADE_BAND_WIDTH - 92} height="14" />
+          <rect fill={tint(roof, 1.0)} x={FACADE_BAND_LEFT} y="78" width={FACADE_BAND_WIDTH} height={bandY - 78} />
+          <rect fill={tint(wall, 1.04)} x={FACADE_BAND_LEFT + 46} y="64" width={FACADE_BAND_WIDTH - 92} height="14" />
         </>
       );
     }
@@ -185,8 +190,8 @@ function SchoolFacade({ name, vernacular, colors }: { name: string; vernacular: 
       // Gothic: a steep gable, rising well past the band.
       return (
         <>
-          <polygon fill={roof} points={`${cx},18 ${FACADE_BAND_LEFT + FACADE_BAND_WIDTH - 4},82 ${FACADE_BAND_LEFT + 4},82`} />
-          <polygon fill={tint(roof, 1.12)} points={`${cx},18 ${cx},82 ${FACADE_BAND_LEFT + 4},82`} />
+          <polygon fill={roof} points={`${cx},22 ${FACADE_BAND_LEFT + FACADE_BAND_WIDTH - 4},${bandY} ${FACADE_BAND_LEFT + 4},${bandY}`} />
+          <polygon fill={tint(roof, 1.12)} points={`${cx},22 ${cx},${bandY} ${FACADE_BAND_LEFT + 4},${bandY}`} />
         </>
       );
     }
@@ -195,8 +200,8 @@ function SchoolFacade({ name, vernacular, colors }: { name: string; vernacular: 
       // shadow under it that the set is half made of.
       return (
         <>
-          <polygon fill={roof} points={`${cx},50 ${FACADE_BAND_LEFT + FACADE_BAND_WIDTH + 8},82 ${FACADE_BAND_LEFT - 8},82`} />
-          <rect fill={tint(roof, 0.72)} x={FACADE_BAND_LEFT - 8} y="82" width={FACADE_BAND_WIDTH + 16} height="6" />
+          <polygon fill={roof} points={`${cx},54 ${FACADE_BAND_LEFT + FACADE_BAND_WIDTH + 8},86 ${FACADE_BAND_LEFT - 8},86`} />
+          <rect fill={tint(roof, 0.72)} x={FACADE_BAND_LEFT - 8} y="86" width={FACADE_BAND_WIDTH + 16} height={bandY - 86} />
         </>
       );
     }
@@ -204,8 +209,8 @@ function SchoolFacade({ name, vernacular, colors }: { name: string; vernacular: 
     // reads as from a distance.
     return (
       <>
-        <polygon fill={trim} stroke={tint(trim, 0.72)} strokeWidth="1.2" strokeLinejoin="round" points={`24,84 ${cx},32 416,84`} />
-        <polyline fill="none" stroke={tint(trim, 0.78)} strokeWidth="0.8" points={`37,78 ${cx},46 403,78`} />
+        <polygon fill={trim} stroke={tint(trim, 0.72)} strokeWidth="1.2" strokeLinejoin="round" points={`24,${bandY} ${cx},36 416,${bandY}`} />
+        <polyline fill="none" stroke={tint(trim, 0.78)} strokeWidth="0.8" points={`37,84 ${cx},52 403,84`} />
       </>
     );
   };
@@ -424,32 +429,40 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
         <div className="startup-facade">
           <SchoolFacade name={name} vernacular={vernacular} colors={colors} />
         </div>
-        {/* The second and last question. The facade above redraws as the
-            player moves between them, which is what PR J was for: this
-            screen already had a preview surface, it just was not previewing
+        {/* The second question. The facade above redraws as the player
+            moves between them, which is what PR J was for: this screen
+            already had a preview surface, it just was not previewing
             anything yet.
+
+            ONE ROW OF FIVE, names only. The blurbs were cut from the button
+            (they survive as its tooltip): the facade IS the description,
+            drawn live, and five cards of prose in a 2x2 grid left a fifth
+            card alone on its own row — which reads as a sixth one missing
+            rather than as five on offer.
 
             PERMANENT, and not said in so many words because the drawing says
             it — a campus's architecture is what it was built as, so nothing
             offers to change it later. */}
-        <div className="startup-vernaculars">
+        <div className="startup-vernaculars" role="radiogroup" aria-label="Architecture">
           {VERNACULAR_CHOICES.map((choice) => (
             <button
               key={choice.id}
               type="button"
+              role="radio"
               className={`startup-vern-btn ${vernacular === choice.id ? 'active' : ''}`}
               onClick={() => setVernacular(choice.id)}
-              aria-pressed={vernacular === choice.id}
+              aria-checked={vernacular === choice.id}
+              title={choice.blurb}
             >
-              <strong>{choice.label}</strong>
-              <span>{choice.blurb}</span>
+              {choice.label}
             </button>
           ))}
         </div>
         {/* The colours, beside the vernacular and permanent the same way.
-            A row of two-tone chips with the pair's name under the active
-            one; the facade's banners and the card's own chrome redraw as
-            the player moves between them, which is the preview. */}
+            One even row of two-tone chips (eight — see schoolColors.ts for
+            why that number) with the pair's name under the active one; the
+            facade's banners and the card's own chrome redraw as the player
+            moves between them, which is the preview. */}
         <div className="startup-colors" role="radiogroup" aria-label="School colours">
           {SCHOOL_COLOR_PAIRS.map((pair) => (
             <button

@@ -1,11 +1,11 @@
 import type { DemandSubject } from '../data/demandData';
 import type {
-  AthleticsBudgetTier, Coach, GameState, InitiativeDepth, SchoolColors, SummerDecision, TileCoord, Vernacular,
+  AthleticsBudgetTier, Coach, GameState, InitiativeDepth, Placements, SchoolColors, SummerDecision, TileCoord, Vernacular,
 } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
-import { WEEKS_PER_YEAR, CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT } from './types';
-import { footprintOf, isPlaceableKind, placementFor } from './campusMap';
+import { WEEKS_PER_YEAR } from './types';
+import { centredPlacement, footprintOf, isPlaceableKind } from './campusMap';
 import { initialTech, GENED_BUILDING_REPUTATION_BONUS, GENED_BUILDING_ID } from '../data/techData';
 import { initialDorms } from '../data/campusData';
 import { seedTrees } from '../data/treeData';
@@ -20,13 +20,18 @@ import {
   FOUNDING_CLASSES,
 } from '../data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../data/schoolColors';
+import { OPENING_LETTERS } from '../data/eventData';
 
 // A founded university opens with a near-empty campus, with ONE exception:
 // Founders Hall (techData.ts's General Studies building), pre-built ('done')
-// and pre-placed at the centre of the map — the university's literal
-// founding hall. Every other founding buildable (the starting dorm, dining
-// hall, and the rest of the seeded-'available' facility chains) is seeded
-// 'available', so the player builds and sites each from scratch; the
+// and — in a headless founding — pre-placed at the centre of the map, the
+// university's literal founding hall. A GUIDED founding (the startup
+// screen's, see START_GAME's `guided`) leaves it unsited: placing it is the
+// opening walkthrough's first step (state/opening.ts), and the
+// walk sites it for free. Every other founding buildable (the starting
+// dorm, dining hall, and the rest of the seeded-'available' facility
+// chains) is seeded 'available', so the player builds and sites each from
+// scratch; the
 // founding student body is entirely commuters, with no dorm at all (see
 // campusData.ts and admissionsSystem.ts — enrollment is never capacity-
 // gated). `capacity` accordingly starts at 0 below: there is no bed count to
@@ -44,7 +49,18 @@ export type CampusTool = 'draw' | 'erase' | 'plant' | 'fell';
 
 export type Action =
   | { type: 'TICK' }                                   // advance one week
-  | { type: 'START_GAME'; name: string; vernacular: Vernacular; colors: SchoolColors } // leaves the startup screen, founds the university
+  // Leaves the startup screen and founds the university. `guided` is what
+  // a human founding passes (App.tsx): the opening walkthrough holds the
+  // clock and Founders Hall waits to be sited (see state/opening.ts). Omitted by the sim, the tests and the scenario tool,
+  // which open at 'play' with the hall pre-placed, as every founding did
+  // before the walk existed.
+  | { type: 'START_GAME'; name: string; vernacular: Vernacular; colors: SchoolColors; guided?: boolean }
+  // The opening walkthrough's two Next buttons (welcome -> site the hall;
+  // classes -> the first course), and its one decline. Declining places
+  // Founders Hall where a headless founding would have and stands the
+  // letters down too — see state/opening.ts's skipOpening.
+  | { type: 'ADVANCE_OPENING' }
+  | { type: 'SKIP_OPENING' }
   // Courses only (see the reducer's guard). Charges the cost up front, sets
   // status 'developing', and starts the countdown in s.developing — see
   // techSystem.ts's canStartDevelopment/startDevelopment, the single gate
@@ -397,7 +413,7 @@ export function createPreStartState(): GameState {
       pendingDemand: null, activeDemand: null, lastDemandWeek: 0,
       // No letter delivered and the script not declined (see types.ts's
       // EventState.opening).
-      opening: { read: [], skipped: false },
+      opening: { read: [], skipped: false, stage: 'play' },
       passedResponses: [],
     },
     orgs: {
@@ -436,6 +452,10 @@ export function createInitialState(
   // vernacular and for the same reason: the tests and the sim are not
   // about the picture.
   colors: SchoolColors = schoolColorsOf(FOUNDING_COLORS),
+  // Whether this founding gets the opening walkthrough (see START_GAME):
+  // the clock held at 'welcome' and Founders Hall left for the player to
+  // site. Off by default, so every headless caller opens at 'play'.
+  guided = false,
 ): GameState {
   const preset = FOUNDING_PRESET;
 
@@ -463,13 +483,10 @@ export function createInitialState(
   // below). Math.floor keeps the anchor on a whole tile; the footprint is odd
   // vs. even against the grid dimensions, so this lands as close to dead
   // centre as the tile grid allows.
+  // In a guided founding there is no placement at all yet: the walkthrough's
+  // first step is the player choosing where the hall stands.
   const foundersHall = tech.find((t) => t.id === GENED_BUILDING_ID)!;
-  const foundersHallFootprint = footprintOf(foundersHall);
-  const foundersHallPlacement = placementFor(
-    Math.floor((CAMPUS_GRID_HEIGHT - foundersHallFootprint.h) / 2),
-    Math.floor((CAMPUS_GRID_WIDTH - foundersHallFootprint.w) / 2),
-    foundersHallFootprint,
-  );
+  const foundingPlacements: Placements = guided ? {} : { [GENED_BUILDING_ID]: centredPlacement(footprintOf(foundersHall)) };
 
   // Read in two places below — self.reputation and the admit rate seeded
   // from it — so the opening slider position cannot drift from the standing
@@ -653,13 +670,15 @@ export function createInitialState(
     // campus grows out around — rather than tucked in a corner like the
     // player's later top-left auto-sited builds. Everything else, dorms
     // included, is placed by the player as it is built.
-    placements: { [GENED_BUILDING_ID]: foundersHallPlacement },
+    placements: foundingPlacements,
     pathways: {},
     // The ground the university is founded on (see data/treeData.ts). Seeded
     // AGAINST the placements above, so no tree is generated under Founders
     // Hall — the only building that exists at founding — rather than planted
-    // and then felled.
-    trees: seedTrees({ [GENED_BUILDING_ID]: foundersHallPlacement }),
+    // and then felled. (A guided founding seeds against nothing; the trees
+    // under wherever the player puts the hall are felled when it lands,
+    // exactly as under any later building.)
+    trees: seedTrees(foundingPlacements),
     rivals: initialRivals(),
     // +GENED_BUILDING_REPUTATION_BONUS: a small gen-ed academic-standing
     // baseline the founding institution opens with (see techData.ts — it is
@@ -718,8 +737,14 @@ export function createInitialState(
       // the cooldown too (see data/demandData.ts's DEMAND_COOLDOWN_WEEKS).
       pendingDemand: null, activeDemand: null, lastDemandWeek: 0,
       // No letter delivered and the script not declined (see types.ts's
-      // EventState.opening).
-      opening: { read: [], skipped: false },
+      // EventState.opening). A guided founding opens on the walkthrough's
+      // welcome with the first letter already counted read — the welcome IS
+      // that letter's content — so its ask becomes the next-step line the
+      // moment the walk ends, and the letters proper carry on from the
+      // second (see state/opening.ts).
+      opening: guided
+        ? { read: [OPENING_LETTERS[0].id], skipped: false, stage: 'welcome' }
+        : { read: [], skipped: false, stage: 'play' },
       passedResponses: [],
     },
     // No student organisations at founding, and none can form until the
