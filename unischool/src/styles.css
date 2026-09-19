@@ -3166,6 +3166,22 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .review-section li.bad { color: var(--bad-on-light); font-weight: 600; }
 .review-empty { font-size: var(--text-sm); font-style: italic; color: var(--ink-muted); margin: 0 !important; }
 @media (max-width: 560px) { .review-grid { grid-template-columns: 1fr; } }
+/* ---------- ambitions (Plan 17's PR A, see HistoryTab.tsx's AmbitionsPanel)
+   Twenty rows in two columns: a mark, the name over its line, the year on
+   the right. Unreached rows sit in muted ink with a hollow mark, so the
+   panel reads as a checklist whose filled marks are the run's story. */
+.ambitions { list-style: none; margin: 0; padding: 0; display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 4px 22px; }
+.ambition { display: grid; grid-template-columns: auto 1fr auto; gap: 0 10px; align-items: baseline;
+  padding: 6px 0; border-top: 1px solid var(--parchment-line); }
+.ambition-mark { font-size: var(--text-sm); color: var(--school-primary); }
+.ambition-body { display: flex; flex-direction: column; min-width: 0; }
+.ambition-name { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); color: var(--ink); }
+.ambition-line { font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.4; }
+.ambition-year { font-family: var(--display); font-weight: 800; font-size: var(--text-xs); color: var(--school-primary); white-space: nowrap; }
+.ambition.unreached .ambition-mark, .ambition.unreached .ambition-name, .ambition.unreached .ambition-year { color: var(--ink-muted); }
+.ambition.unreached .ambition-name { font-weight: 600; }
+
 /* The small second figure in a History cell — courses finished this year
    beside the catalogue's total, the year's average beside the summer's
    satisfaction — set quiet so the column still reads as one number. */

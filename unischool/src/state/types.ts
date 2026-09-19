@@ -33,6 +33,14 @@ export interface Finance {
   // TUITION_SLIDER_MAX), and the two appropriation halves became nothing at
   // all. What is left here is what every school has.
   weeklyOpEx: number;    // salaries + upkeep + instruction, recomputed each tick
+  // How many weeks the operating account has ever closed below zero
+  // (Plan 17's PR A). Counted by tickFinance the moment cash settles, so
+  // it is the run's own record of solvency rather than one a reader has
+  // to reconstruct from fifty summer snapshots — a school that dipped red
+  // in week 30 and was back by the summer was still in the red. Read by
+  // the *Never in the red* ambition and the legacy's stewardship axis;
+  // written by nothing else. Monotone, like every other lifetime count.
+  weeksInTheRed: number;
 }
 
 // The named needs satisfaction is broken into (see satisfactionSystem.ts).
@@ -1429,6 +1437,16 @@ export interface GameState {
   started: boolean;              // false only during the pre-game startup screen (name + school type)
   hasEnteredRankings: boolean;   // true once the one-time "you've entered the top 50" reveal has fired
   milestones: Record<string, boolean>; // milestone key -> awarded, so each curriculum milestone bonus fires once
+  // AMBITIONS (Plan 17's PR A): ambition id -> the year it was reached.
+  // A record of named achievements — the first hall, a school founded,
+  // first in the nation, a prize, fifty years — written once each and
+  // never revoked, the same durable shape as `milestones` with a year in
+  // place of the boolean. Detected weekly by systems/ambitions/
+  // ambitionsSystem.ts off readings that already exist; authored in
+  // data/ambitionsData.ts. Ambitions GATE NOTHING and grant nothing: they
+  // are the objectives, and the legacy (PR B) is the consequence. Plain
+  // id -> number, so it survives a JSON round trip untouched.
+  ambitions: Record<string, number>;
   seen: SeenState;               // what the player has already been shown, for the curriculum/build/faculty alert badges (see SeenState above)
 }
 
@@ -1495,6 +1513,7 @@ export type LogTopic =
   | 'building'            // a hall, dorm or facility finished
   | 'program'             // a program founded in a hall
   | 'milestone'           // a milestone awarded (established, distinguished, a school founded)
+  | 'ambition'            // an ambition reached (Plan 17's PR A) — a record, never a stop
   | 'appointment'         // somebody joined the faculty
   | 'departure'           // somebody left it
   | 'prize'               // a research prize
@@ -1534,3 +1553,13 @@ export interface LogEntry {
 export const LOG_CAP = 200;
 
 export const WEEKS_PER_YEAR = 52; // the one place the game's year length lives — every system (clock, annual interrupts, finance annualization) reads from this
+
+// THE RUN'S LENGTH (Plan 17). A university's arc is a human lifetime — a
+// founder's career, the first class back for its fiftieth reunion — and
+// the fiftieth summer files the final report and seals the record (see
+// state/legacy.ts). The clock does not stop: the game goes on as a
+// sandbox for anyone who wants it to, and nothing after this year changes
+// the legacy. Every reader of "how long is a run" — the History tab's
+// countdown, the two year-fifty ambitions, the semicentennial beat, the
+// sim's horizon — reads this one constant.
+export const SEMICENTENNIAL_YEAR = 50;

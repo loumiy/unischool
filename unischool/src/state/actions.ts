@@ -359,7 +359,7 @@ export function createPreStartState(): GameState {
   return {
     clock: { year: 1, week: 1 },
     finance: {
-      cash: 0, endowment: 0, endowmentCampaigns: 0,
+      cash: 0, endowment: 0, endowmentCampaigns: 0, weeksInTheRed: 0,
       listedTuition: 0, tuitionByClass: { freshman: 0, sophomore: 0, junior: 0, senior: 0 },
       weeklyOpEx: 0,
     },
@@ -418,6 +418,7 @@ export function createPreStartState(): GameState {
     started: false,
     hasEnteredRankings: false,
     milestones: {},
+    ambitions: {},
     courseFaculty: {},
     seen: { courseIds: {}, buildableIds: {}, candidateIds: {}, tabIds: {} },
   };
@@ -497,6 +498,7 @@ export function createInitialState(
         junior: foundingTuition, senior: foundingTuition,
       },
       weeklyOpEx: 0,
+      weeksInTheRed: 0,
     },
     students: {
       // Founding mix: a college opens with ALL FOUR class years present and
@@ -749,6 +751,7 @@ export function createInitialState(
     started: true,
     hasEnteredRankings: false,
     milestones: {},
+    ambitions: {},
     // Every course and buildable the school starts with unlocked is
     // pre-marked seen (see foundingCourseIds/foundingBuildableIds above) —
     // the gen-ed core and the founding buildables were never "revealed" to

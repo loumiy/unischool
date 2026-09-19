@@ -1,6 +1,7 @@
 import type { GameState, YearSnapshot } from '../state/types';
 import { linePoints, MIN_SERIES_POINTS } from '../components/Sparkline';
 import HelpHint from '../components/HelpHint';
+import { ambitionEntries } from '../data/ambitionsData';
 import {
   prestigeBreakdown, researchStandingBreakdown, socialStandingBreakdown,
   type StandingBreakdown, type StandingInput, type StandingReading,
@@ -243,6 +244,44 @@ function StandingPanel({ s }: { s: GameState }) {
   );
 }
 
+// ---------------------------------------------------------------------
+// AMBITIONS (Plan 17's PR A): the named achievements, greyed until
+// reached, with the year each landed. A checklist and nothing more — the
+// record gates nothing and is read off s.ambitions, which
+// systems/ambitions/ambitionsSystem.ts writes once per entry. The list is
+// data (data/ambitionsData.ts); nothing here names one.
+// ---------------------------------------------------------------------
+function AmbitionsPanel({ s }: { s: GameState }) {
+  const entries = ambitionEntries(s);
+  const reached = entries.filter((a) => a.year !== null).length;
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <div className="panel-head-title">
+          <h2>Ambitions</h2>
+          <span className="panel-count">{reached} of {entries.length}</span>
+        </div>
+        <HelpHint
+          align="end"
+          text="What a founder might set out to do, and the year each was done. An ambition is a record, not a reward: it changes nothing and is never taken back. The final report in the fiftieth summer lists the ones reached."
+        />
+      </div>
+      <ul className="ambitions">
+        {entries.map((a) => (
+          <li key={a.id} className={`ambition${a.year === null ? ' unreached' : ''}`}>
+            <span className="ambition-mark" aria-hidden="true">{a.year === null ? '○' : '●'}</span>
+            <span className="ambition-body">
+              <span className="ambition-name">{a.name}</span>
+              <span className="ambition-line">{a.line}</span>
+            </span>
+            <span className="ambition-year">{a.year === null ? '—' : `Year ${a.year}`}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function HistoryTable({ rows }: { rows: YearSnapshot[] }) {
   return (
     <div className="history-table-scroll" style={{ maxHeight: `${TABLE_VISIBLE_ROWS * 24 + 28}px` }}>
@@ -300,6 +339,7 @@ export default function HistoryTab({ s }: { s: GameState }) {
             so it is here as well as below, and a school in its first year
             has something on this tab besides an apology. */}
         <StandingPanel s={s} />
+        <AmbitionsPanel s={s} />
         <section className="panel">
           <div className="panel-head">
             <h2>Institutional History</h2>
@@ -322,6 +362,7 @@ export default function HistoryTab({ s }: { s: GameState }) {
   return (
     <div className="tab-content">
       <StandingPanel s={s} />
+      <AmbitionsPanel s={s} />
       <section className="panel">
         <div className="panel-head">
           <h2>Institutional History</h2>

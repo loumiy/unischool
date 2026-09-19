@@ -18,6 +18,7 @@ import { attritionReasons } from '../systems/admissions/consequences';
 import { intakeCeiling } from '../systems/techtree/instructionCapacity';
 import { cohortCounts, deriveCohortSignals } from '../systems/admissions/cohorts';
 import { buildReportPayload, tickRivals } from '../systems/rivals/rivalsSystem';
+import { tickAmbitions } from '../systems/ambitions/ambitionsSystem';
 import { appointFaculty, tickFaculty } from '../systems/faculty/facultySystem';
 import { tickResearch } from '../systems/research/researchSystem';
 import { setPrestigeForPlaytest, tickPrestige, gradeYear, applyReportCard } from '../systems/prestige/prestigeSystem';
@@ -83,6 +84,11 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   tickSatisfaction,
   tickAdmissions,
   tickRivals,
+  // After tickRivals, so an ambition about rank reads the table as it
+  // stands this week, and before tickEvents, so the line lands before any
+  // interrupt claims the week. Reads everything and writes only
+  // s.ambitions and the log (see systems/ambitions/ambitionsSystem.ts).
+  tickAmbitions,
   // Last, deliberately: the summer admissions decision and the U.S. News
   // report own their weeks, and only one interrupt can be pending at a
   // time. Running the texture system afterwards means it sees their claim

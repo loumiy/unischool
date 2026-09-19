@@ -8,7 +8,7 @@ ordered sequence of PRs: a fifty-year run with a sealed record, an ending that
 legitimises more than one way to play, and a top of the table that has to be
 held.*
 
-**Status: Proposed.** Depends on [Plan 15](15-growth-has-a-cost.md) for a
+**Status: In progress.** PR A has landed. Depends on [Plan 15](15-growth-has-a-cost.md) for a
 prestige that can fall and an economy that makes the fiftieth year cost
 something, and on [Plan 16](16-the-year.md) for the summer sequence the final
 report rides in. PRs A and D can start before either. Supersedes
@@ -100,6 +100,18 @@ here.
 - The History tab gains an **Ambitions** panel: the list, greyed until reached,
   with the year. The log names each as it lands; none stops the clock — the
   milestone celebrations already cover the ones worth stopping for.
+
+**As implemented:** detection is a weekly system (`tickAmbitions`, registered
+after `tickRivals` so a rank is this week's) rather than a hook in the
+milestone pass plus one at the summer boundary — half the list is about rank,
+money, prizes and enrolment, which no milestone pass ever sees, and twenty
+predicates over state the game already keeps cost nothing a week. The two
+year-fifty ambitions read true on the one week the summer holds the clock on
+year fifty, which is the week the final report renders. *Never in the red*
+needed a record the game did not keep: `finance.weeksInTheRed`, counted by
+`tickFinance` where cash settles, rather than a reading off fifty summer
+snapshots that would miss a mid-year dip. The list is the plan's twenty;
+"A landmark program concluded" excludes a cancelled one. Save version 63.
 
 ## PR 17B — The legacy
 
