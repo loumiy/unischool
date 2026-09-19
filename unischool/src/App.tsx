@@ -5,6 +5,7 @@ import { mapBackOutLive, mapControlsLive, useHotkeys, type ShellOverlays } from 
 import type { GameState } from './state/types';
 import StartupScreen from './components/StartupScreen';
 import MainMenu from './components/MainMenu';
+import Pennant from './components/Pennant';
 import DebugPanel from './components/DebugPanel';
 import InterruptModal from './components/InterruptModal';
 import { GATED_TABS, TAB_LABELS, tabAvailable, type TabId } from './components/TabNav';
@@ -340,6 +341,10 @@ export default function App() {
         onInspectTargetConsumed={() => setInspectTarget(null)}
       />
       <MainMenu act={act} />
+      {/* The school's name, hung in the map's top-left corner in its own
+          colours (see Pennant.tsx). Withheld while a tab is open: the tab's
+          own title takes that corner. */}
+      {!overlay && <Pennant s={s} />}
       {/* Present only behind the playtest flag, and it decides that for
           itself (see DebugPanel.tsx / playtest.ts). Rendered here, beside
           MainMenu, because it is chrome over the map rather than anything
@@ -354,7 +359,12 @@ export default function App() {
             because the ticker is one line that stays and a toast is a card
             that goes. */}
         <Toasts s={s} onOpenTab={(tab) => openTab(tab)} />
-        <LogTicker s={s} open={logOpen} onSetOpen={setLogOpen} />
+        <LogTicker
+          s={s}
+          open={logOpen}
+          onSetOpen={setLogOpen}
+          onGo={(go) => { if (go === 'build') setBuildOpen(true); else openTab(go); }}
+        />
         <Toolbar
           ref={toolbarRef}
           s={s}

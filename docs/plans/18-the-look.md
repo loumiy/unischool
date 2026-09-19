@@ -136,6 +136,21 @@ has to replace.
 gold as defaults so the game has a look before PR B exists; PR B replaces the
 defaults with the founding pick rather than adding new tokens.
 
+**As implemented, second pass:** the dock as first landed was three rows
+tall at 1600px — the next-step line across the top, the funds and the four
+scoreboard tiles, then the tabs — because the mockup had been drawn with
+short tab labels and a rounded money figure and the game has neither. The
+band is one row now, by moving things out of it rather than shrinking them:
+the school's name hangs as the mockup's **pennant** in the map's top-left
+corner (`Pennant.tsx`, withheld while a tab is open), and the next step
+rides at the right end of the log ticker, which was already one line of
+guidance-shaped text. Inside the band the four stats are chips with a glyph
+and a figure (the word in the tooltip and as hidden text), the gears are four
+round glyphs, and the tab labels sit *under* the glyphs at 10px, the tab-bar
+shape, which is what lets eight labelled tabs fit at 1600px; below that the
+glyphs go alone, and below 1440px the funds figure steps down and sheds its
+net so the row holds at 1280.
+
 ## 2. PR B — School colours
 
 `University` gains `colors: { primary: string; secondary: string }`, picked on

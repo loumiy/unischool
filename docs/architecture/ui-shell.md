@@ -42,14 +42,23 @@ toolbar. Above it a **toast stack** shows the things that never stop the clock
 — a course or building finished, a program founded, a petition, a paper, a
 candidate in a short field, a project concluded without a report — three
 seconds each, five at most, each a button that opens the tab it is about (see
-[interrupts.md](interrupts.md)'s "What does not stop the clock"). And across
-the top of the toolbar runs the **next step**: during the scripted first year
-the latest letter's ask until it is done; afterwards the highest-value thing on
-offer — a hall with a free slot while programs are offered, a program one course
-from established, a satisfaction attribute under 50, an idle lab — recomputed
-from state on every render (`src/systems/guidance/nextStep.ts`). A reading,
-never a queue: nothing is ticked off, and the line goes quiet when nothing is
-on offer.
+[interrupts.md](interrupts.md)'s "What does not stop the clock"). And at the
+right end of the ticker line runs the **next step**: during the scripted first
+year the latest letter's ask until it is done; afterwards the highest-value
+thing on offer — a hall with a free slot while programs are offered, a program
+one course from established, a satisfaction attribute under 50, an idle lab —
+recomputed from state on every render (`src/systems/guidance/nextStep.ts`). A
+reading, never a queue: nothing is ticked off, and the line goes quiet when
+nothing is on offer. The log on the left says what just happened; the step on
+the right says what to do about it.
+
+The **toolbar** itself is one row: the funds figure with its weekly net, four
+stat chips (rank, enrolled, prestige, satisfaction — a glyph and a figure each,
+the word in the tooltip), the tab row with its labels under the glyphs at
+1600px and up, Build, four round gears (pause, play, 2×, 4×) and the clock.
+The school's name is not in it: it hangs as a **pennant** in the map's
+top-left corner in the school's colours (`Pennant.tsx`), withheld while a tab
+is open because the tab's own title takes that corner.
 
 ## Keyboard
 

@@ -228,13 +228,14 @@ button { cursor: pointer; font-family: inherit; }
    weight, so the single most important number on screen carried no more
    emphasis than a rank of four characters. The secondary stats step down;
    cash steps up. */
-/* Plan 18: the four stats are SCOREBOARD TILES — cream, the figure over its
-   label, the label in the school primary — and the funds figure is the
-   display face at 800, a size up again. */
-.stat-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: var(--text-2xs); font-weight: 800; color: var(--school-primary); }
-.stat-value { font-family: var(--display); font-size: var(--text-lg); font-weight: 800; color: var(--ink); line-height: 1; }
-.toolbar-funds-btn .stat-label { color: var(--school-secondary); }
-.toolbar-funds-btn .stat-value { font-size: 26px; letter-spacing: -0.02em; color: var(--ink-hi); }
+/* Plan 18: the four stats are cream CHIPS, a glyph in the school primary
+   and a figure — the word survives as the chip's title and as this
+   visually-hidden label (see StatusHeader.tsx) — and the funds figure is
+   the display face at 800, its weekly net beside it rather than beneath,
+   so the whole band is one row (see .toolbar). */
+.stat-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.stat-value { font-family: var(--display); font-size: var(--text-md); font-weight: 800; color: var(--ink); line-height: 1; }
+.toolbar-funds-btn .stat-value { font-size: 24px; letter-spacing: -0.02em; color: var(--ink-hi); }
 .stat-value.money { color: var(--ink-hi); }
 .stat-value.money-negative { color: var(--bad-on-dark); }
 .stat-value.gold { color: var(--ink); }
@@ -245,10 +246,16 @@ button { cursor: pointer; font-family: inherit; }
    control; the band's own navy separates them perfectly well. A border is
    now reserved for state — active, or the dashed sandbox marking — which is
    the only thing it was ever telling you. */
+/* Four round gears, a glyph each (see StatusHeader.tsx's SPEED_ICONS); the
+   sandbox gear is the one that still wears a word, dashed, so it reads as
+   the odd one out it is. */
 .speeds { display: flex; gap: 4px; }
-.speeds button { height: 36px; padding: 0 12px; background: transparent; color: var(--ink-hi);
-  border: 2px solid rgba(255, 255, 255, 0.35); border-radius: var(--radius-pill); font-family: var(--display);
+.speeds button { width: 34px; height: 34px; padding: 0; display: flex; align-items: center; justify-content: center;
+  background: transparent; color: var(--ink-hi);
+  border: 2px solid rgba(255, 255, 255, 0.35); border-radius: 50%; font-family: var(--display);
   font-size: var(--text-sm); font-weight: 700; letter-spacing: 0.02em; }
+.speeds button svg { width: 14px; height: 14px; display: block; }
+.speeds button.sandbox { width: auto; padding: 0 10px; border-radius: var(--radius-pill); }
 .speeds button:hover { border-color: var(--ink-hi); }
 .speeds button.active { background: var(--school-secondary); color: var(--school-on-secondary); border-color: var(--school-secondary); font-weight: 800; }
 .speeds button.sandbox { border-style: dashed; border-color: var(--warn-on-dark); color: var(--warn-on-dark); }
@@ -269,7 +276,8 @@ button { cursor: pointer; font-family: inherit; }
    pill — see --corner-menu-height), and a third thing in it would push the
    map controls off a short viewport. Nothing else claims the top-left.
    --------------------------------------------------------------------- */
-.debug-panel { position: fixed; z-index: 11; top: 16px; left: 16px; font-family: var(--mono); }
+/* Below the pennant (see .pennant), which hangs in the same corner. */
+.debug-panel { position: fixed; z-index: 11; top: 110px; left: 16px; font-family: var(--mono); }
 .debug-toggle { background: #3a2f1c; color: var(--warn-on-dark); border: 1px dashed #a67c1c;
   border-radius: var(--radius-sm); padding: 5px 10px; font-family: var(--mono);
   font-size: var(--text-xs); font-weight: 700; }
@@ -337,10 +345,16 @@ button { cursor: pointer; font-family: inherit; }
    exactly the case no breakpoint was chosen for. The band's real height is
    measured, not assumed (see useCssHeightVar), so a second line just insets
    the map further and every tile stays reachable. */
+/* ONE ROW (Plan 18). The band still wraps if it must — see the note above
+   — but it is sized not to at 1440px and up: the school's name moved out to
+   the pennant, the next-step line moved out to the ticker, the stats are
+   chips and the gears are glyphs, and everything in it is 34 to 42px tall.
+   Below 1440px a second rule (further down) trims the funds figure and the
+   chips so it holds to 1280. */
 .toolbar { position: fixed; z-index: 10; left: 0; right: 0; bottom: 0;
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px;
   background: var(--school-primary); color: var(--ink-hi); border-top: 4px solid var(--school-secondary);
-  padding: 8px 16px; }
+  padding: 6px 16px; }
 
 /* The log ticker: one line, the newest s.log entry, in the strip directly
    above the toolbar — the same strip that used to just show the campus
@@ -394,8 +408,8 @@ button { cursor: pointer; font-family: inherit; }
    register the old masthead used, now also the entry point into Treasury
    (see Toolbar.tsx) — there is no separate Treasury icon in the middle
    row any more. */
-.toolbar-funds-btn { flex: none; display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-  background: transparent; border: 2px solid transparent; border-radius: var(--radius-lg); padding: 4px 10px; color: var(--ink-hi); }
+.toolbar-funds-btn { flex: none; display: flex; flex-direction: row; align-items: baseline; gap: 8px;
+  background: transparent; border: 2px solid transparent; border-radius: var(--radius-lg); padding: 4px 8px; color: var(--ink-hi); }
 .toolbar-funds-btn:hover { border-color: rgba(255, 255, 255, 0.35); }
 .toolbar-funds-btn.active { border-color: var(--school-secondary); }
 .toolbar-funds-net { font-size: var(--text-xs); font-weight: 700; color: var(--school-secondary); }
@@ -404,15 +418,17 @@ button { cursor: pointer; font-family: inherit; }
    figures, no "of N" suffix (see StatusHeader.tsx): each is read against
    context available elsewhere (the Admissions/Student Life tabs), not
    reconstructed here. */
-.toolbar-stats { display: flex; gap: 6px; flex-wrap: wrap; }
-.toolbar-stat { display: flex; flex-direction: column-reverse; align-items: center; justify-content: center; gap: 2px;
-  min-width: 66px; height: 50px; padding: 0 8px; background: var(--cream); color: var(--ink); border-radius: var(--radius-md); }
+.toolbar-stats { display: flex; gap: 5px; }
+.toolbar-stat { position: relative; display: flex; align-items: center; gap: 5px; height: 34px; padding: 0 10px 0 8px;
+  background: var(--cream); color: var(--ink); border-radius: var(--radius-pill); white-space: nowrap; }
+.toolbar-stat svg { width: 16px; height: 16px; display: block; color: var(--school-primary); flex: none; }
 
 /* The school identity + clock, now the bottom-right's own prominent
    cluster (see StatusHeader.tsx) — replacing the old masthead's h1. */
+/* The clock and its day squares, right-aligned; the school's name is the
+   pennant now (see .pennant). */
 .toolbar-school { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-.toolbar-school-name { font-family: var(--display); font-weight: 800; font-size: var(--text-xl); letter-spacing: -0.01em; color: var(--ink-hi); white-space: nowrap; }
-.toolbar-clock { font-size: var(--text-xs); font-weight: 700; color: var(--school-secondary); white-space: nowrap; }
+.toolbar-clock { font-family: var(--display); font-size: var(--text-sm); font-weight: 800; color: var(--ink-hi); white-space: nowrap; }
 .day-ticker { display: flex; gap: 3px; margin-top: 3px; }
 .day-ticker-cell { width: 14px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.3); }
 .day-ticker-cell.lit { background: var(--school-secondary); }
@@ -435,20 +451,31 @@ button { cursor: pointer; font-family: inherit; }
    the labelled row does not fit beside the funds tiles and the clock
    without wrapping the band to two lines, so the threshold sits where the
    band stays one line and the icons carry it alone below that. */
-.toolbar-icon-btn { position: relative; flex: none; height: 40px; padding: 0 12px; display: flex; align-items: center; justify-content: center; gap: 7px;
-  background: transparent; border: 2px solid transparent; border-radius: var(--radius-pill); color: var(--ink-hi);
-  font-family: var(--display); font-weight: 700; font-size: var(--text-base); white-space: nowrap; }
-.toolbar-icon-btn svg { width: 20px; height: 20px; display: block; }
+.toolbar-icon-btn { position: relative; flex: none; height: 42px; min-width: 44px; padding: 0 10px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: transparent; border: 2px solid transparent; border-radius: var(--radius-lg); color: var(--ink-hi);
+  font-family: var(--display); font-weight: 700; white-space: nowrap; }
+.toolbar-icon-btn svg { width: 18px; height: 18px; display: block; }
 .toolbar-icon-btn:hover { border-color: rgba(255, 255, 255, 0.35); }
 .toolbar-icon-btn.active { color: var(--school-on-secondary); background: var(--school-secondary); border-color: var(--school-secondary); }
-.toolbar-tab-label { display: none; }
-@media (min-width: 1400px) { .toolbar-tab-label { display: inline; } }
+/* The word UNDER the glyph, at ten pixels: the mobile tab-bar shape, which
+   is what lets eight labelled tabs fit in one row at all. They fit beside
+   the funds, the chips, the gears and the clock from 1700px up — at 1600
+   the row is a dozen pixels short and wraps — so below that the icons go
+   alone, with the title carrying the word. */
+.toolbar-tab-label { display: none; font-size: var(--text-2xs); font-weight: 700; letter-spacing: 0.02em; line-height: 1; }
+@media (min-width: 1700px) {
+  .toolbar-tab-label { display: inline; }
+  .toolbar-icon-btn { padding: 0 7px; }
+  .toolbar-tabs { gap: 2px; }
+}
 
 /* The build button: the one cream control in the band — every other button
    here opens a view; this one starts placing something — with the
-   secondary as its outline so it reads as the band's primary action. */
-.toolbar-build-btn { flex: none; width: auto; height: 44px; margin-left: 6px; padding: 0 18px; gap: 8px;
-  background: var(--cream); color: var(--school-primary); border: 3px solid var(--school-secondary); font-weight: 800; }
+   secondary as its outline so it reads as the band's primary action. Stays
+   a horizontal pill (glyph beside word) at every width. */
+.toolbar-build-btn { flex: none; flex-direction: row; width: auto; height: 42px; margin-left: 6px; padding: 0 16px; gap: 8px;
+  background: var(--cream); color: var(--school-primary); border: 3px solid var(--school-secondary); border-radius: var(--radius-pill); font-weight: 800; }
 .toolbar-build-btn:hover { border-color: var(--cream); }
 .toolbar-build-btn.active { background: var(--school-secondary); color: var(--school-on-secondary); border-color: var(--school-secondary); }
 .toolbar-build-label { font-family: var(--display); font-size: var(--text-md); }
@@ -2996,11 +3023,18 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    Genuinely phone-narrow widths are a lighter touch here — the campus grid
    wants real width to read, and playing it that small is out of scope for
    this pass. */
-@media (max-width: 1400px) {
-  .toolbar { gap: 12px; }
+@media (max-width: 1439px) {
+  .toolbar { gap: 10px; }
   .toolbar-build-label { display: none; }
-  .toolbar-icon-btn { width: 36px; height: 36px; }
-  .toolbar-build-btn { width: auto; padding: 0 12px; }
+  .toolbar-build-btn { padding: 0 12px; }
+  .toolbar-icon-btn { min-width: 40px; padding: 0 8px; }
+  /* The funds figure steps down and sheds its weekly net (which Treasury,
+     one click away, still shows), and the chips tighten, so the band holds
+     one row at 1280. */
+  .toolbar-funds-btn .stat-value { font-size: 20px; }
+  .toolbar-funds-net { display: none; }
+  .toolbar-stat { padding: 0 8px 0 7px; gap: 4px; }
+  .stat-value { font-size: var(--text-base); }
 }
 
 @media (max-width: 1150px) {
@@ -3132,14 +3166,30 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    top of the toolbar, in the eyebrow style, gold-labelled. A button when it
    names a place to go, plain text when it is only something to know. Full
    width and first in the wrap, so the three zones below keep their shape. */
-.toolbar-next { flex: 1 0 100%; order: -1; display: flex; align-items: baseline; gap: 8px;
-  margin: -2px 0 -4px; font-size: var(--text-xs); color: var(--ink-lo); min-width: 0; }
-.toolbar-next-label { flex: none; font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
-  font-size: var(--text-2xs); color: var(--school-secondary); }
-.toolbar-next-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar-next button.toolbar-next-text { background: transparent; border: none; padding: 0; color: var(--ink-hi);
-  font: inherit; cursor: pointer; text-align: left; text-decoration: underline dotted rgba(255, 255, 255, 0.5); }
-.toolbar-next button.toolbar-next-text:hover { color: var(--school-secondary); }
+/* The next step, at the right end of the log ticker (see LogTicker.tsx —
+   it used to be the toolbar's own full-width top line, .toolbar-next):
+   a chip in the school primary and the reading beside it, a dotted
+   underline when it is a button. Takes at most half the strip, so the
+   newest log line on the left keeps its half. */
+.log-ticker-next { margin-left: auto; flex: 0 1 auto; max-width: 52%; min-width: 0; display: flex; align-items: center; gap: 7px; }
+.log-ticker-next-label { flex: none; font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+  font-size: var(--text-2xs); color: var(--school-on-primary); background: var(--school-primary); border-radius: var(--radius-pill); padding: 2px 7px; }
+.log-ticker-next-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.log-ticker-next button.log-ticker-next-text { background: transparent; border: none; padding: 0; color: var(--ink);
+  font: inherit; cursor: pointer; text-align: left; text-decoration: underline dotted var(--school-primary); }
+.log-ticker-next button.log-ticker-next-text:hover { color: var(--school-primary); }
+
+/* ---------- the pennant (Plan 18 — see Pennant.tsx) ----------
+   The school's name, hung from the top edge in the school's colours: a
+   block in the primary with a swallowtail, the name in the display face,
+   the fixed half of it ("College" / "University") in the secondary
+   beneath. Inert — pointer-events off, so a click on it reaches the map. */
+.pennant { position: fixed; z-index: 11; top: 0; left: 24px; display: flex; flex-direction: column; align-items: stretch;
+  max-width: 300px; pointer-events: none; filter: drop-shadow(2px 2px 0 rgba(27, 42, 74, 0.35)); }
+.pennant-body { display: flex; flex-direction: column; gap: 3px; padding: 16px 20px 10px; background: var(--school-primary); color: var(--school-on-primary); }
+.pennant-name { font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.pennant-suffix { font-family: var(--display); font-weight: 700; font-size: var(--text-xs); letter-spacing: 0.14em; text-transform: uppercase; color: var(--school-secondary); }
+.pennant-tail { height: 22px; background: var(--school-primary); clip-path: polygon(0 0, 100% 0, 50% 100%); }
 
 /* ---------- toasts (Plan 16's PR G — see Toasts.tsx and toasts.ts) --------
    A small stack directly above the log ticker for the things that never
