@@ -1,28 +1,62 @@
 * { box-sizing: border-box; }:root {
-  --navy: #10182a;
-  --navy-line: #2a3350;
-  --ink-lo: #8a92a6;
-  --ink-hi: #f2ede0;
-  --gold: #c9a227;
-  --gold-dim: #9c7a2e;
-  /* The finished-work brass: deliberately darker and more saturated than
-     --gold, which the developing pulse plays in. A done cell is the only
-     dark-on-light cell in the curriculum grid, so 'finished' is legible
-     across a whole screen of cells without reading a single label. */
-  --brass-deep: #8a6d14;
-  --parchment: #ece3d0;
-  --parchment-line: #d3c6a2;
-  --parchment-line-lo: #e3d9bd;
-  --ink: #2b2417;
-  --ink-muted: #8a7c55;
+  /* ---------- THE REGISTER (Plan 18, PR A) ----------
+     The school's own colours are the theme. --school-primary and
+     --school-secondary are the pair the university wears — the mockup's
+     maroon and gold as defaults here, written from the founding pick by
+     Plan 18's PR B — and every other colour below is fixed: a cream
+     ground, a navy outline ink, a quiet tint for secondary chips, one red
+     for trouble. --school-on-primary is what text on the primary is (cream,
+     for every authored pair) and --school-on-secondary what text on the
+     secondary is (the primary itself). */
+  --school-primary: #7b1e2b;
+  --school-secondary: #f2c14e;
+  --school-on-primary: #f7f2e8;
+  --school-on-secondary: #7b1e2b;
+  --cream: #f7f2e8;
+  --cream-hi: #fffdf8;
+  --cream-lo: #e4ddd0;
+  --outline: #1b2a4a;
+
+  /* THE OLD NAMES RESOLVE TO THE NEW REGISTER. The stylesheet grew up
+     navy / parchment / brass and cites those names some six hundred times;
+     re-pointing them here is what shifts the whole game in one PR, and the
+     screen-by-screen PRs that follow replace SHAPES, not colours. The
+     mapping is deliberate, not a find-and-replace:
+       --navy        the dark chrome (dock, modal, overlay) -> the school primary
+       --navy-line   its hairline                            -> the primary, lightened
+       --ink-lo      its quieter text                        -> cream, dimmed toward the primary
+       --ink-hi      its text                                -> cream
+       --gold        the active/alive accent                 -> the school secondary
+       --gold-dim    labels and eyebrows on paper            -> the school primary
+       --brass-deep  the finished cell                       -> the school primary
+       --parchment*  paper and its rules                     -> cream and its tints
+       --ink         text on paper                           -> the outline ink
+     color-mix() keeps the two derived chrome tones tied to whatever the
+     primary is, so a green school's dock gets a green hairline without PR B
+     having to know hairlines exist. */
+  --navy: var(--school-primary);
+  --navy-line: color-mix(in srgb, var(--school-primary) 78%, white);
+  --ink-lo: color-mix(in srgb, var(--school-on-primary) 72%, var(--school-primary));
+  --ink-hi: var(--school-on-primary);
+  --gold: var(--school-secondary);
+  --gold-dim: var(--school-primary);
+  --brass-deep: var(--school-primary);
+  --parchment: var(--cream);
+  --parchment-line: #c9c1b2;
+  --parchment-line-lo: var(--cream-lo);
+  --ink: var(--outline);
+  --ink-muted: #5a5f6b;
   --green: #1f6b3a;
   /* The campus grounds (see .campus-tile below): one continuous lawn, not
      a field of separate paving stones, so the palette here is deliberately
      narrow — a base, a slightly deeper shade for the surrounding field and
      covered ground, and a warmed highlight for "you can build here". The
      grid itself is a hairline, not a border — see --grass-line. */
-  --grass: #7d9c60;
-  --grass-deep: #6d8c52;
+  /* A step brighter and more saturated than the parchment-era lawn
+     (#7d9c60 / #6d8c52), so the ground sits with the chrome's register
+     rather than under it — the one change Plan 18 makes to the map. */
+  --grass: #82a561;
+  --grass-deep: #729452;
   /* The grid hairline has TWO strengths, not one, because the grid is only
      ever a working aid: it answers "where exactly will this land", which is
      a question the player only asks while placing a building or drawing a
@@ -69,35 +103,49 @@
   --text-xl: 17px;
   --text-2xl: 24px;
 
-  /* Corners. */
-  --radius-xs: 3px;
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 10px;
+  /* Corners. Rounder than they were: chips and tiles, not index cards. */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
   --radius-pill: 999px;
 
-  /* Elevation. One three-step scale, replacing nine one-off shadows. */
-  --shadow-1: 0 2px 6px rgba(8, 10, 16, 0.22);
-  --shadow-2: 0 8px 22px rgba(8, 10, 16, 0.34);
-  --shadow-3: 0 18px 48px rgba(8, 10, 16, 0.45);
+  /* Elevation. Three HARD offsets in the outline ink, replacing the three
+     blurred drops: nothing in this register blurs. A thing you can press
+     sits a few pixels off the page; a thing you cannot sits flat on it. */
+  --shadow-1: 2px 2px 0 var(--outline);
+  --shadow-2: 4px 4px 0 var(--outline);
+  --shadow-3: 6px 6px 0 var(--outline);
 
   /* Semantic colour, in PAIRS. The duplication this removes was not
      sloppiness: a green tuned for the navy chrome reads muddy on parchment,
      so the file genuinely carried two of each. It just never named them,
      so #7dd3a0 appeared 11 times and #e58a8a 9 times as literals. */
-  --ok-on-dark: #7dd3a0;
+  /* On the dark chrome "good" is the school secondary — money in the
+     school's own gold — and "bad" a light red that clears a maroon or a
+     navy alike. On paper the pair is a plain green and a plain red. */
+  --ok-on-dark: var(--school-secondary);
   --ok-on-light: #1f6b3a;
-  --bad-on-dark: #e58a8a;
+  --bad-on-dark: #ffb0a6;
   --bad-on-light: #a13a3a;
-  --warn-on-dark: #e0b04a;
-  --warn-on-light: #9c7a2e;
-  --danger-ink: #8a2f2f;
-  --danger-bg: #f4dede;
+  --warn-on-dark: #ffd98a;
+  --warn-on-light: #9c6a1e;
+  --danger-ink: #a13a3a;
+  --danger-bg: #fbe3e3;
   --danger-line: #d9a8a8;
 
-  --serif: Georgia, 'Times New Roman', serif;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Two faces, self-hosted (see main.tsx's fontsource imports): Bricolage
+     Grotesque for display — names, headings, every headline figure, at
+     weight 700 to 800 — and Archivo for text at 500 to 700. --serif and
+     --mono survive as names because the stylesheet cites them a hundred
+     and fifty times; both resolve to the display face now. The monospace
+     was there for figures that line up, and a grotesque with tabular
+     numerals (set on the body below) lines them up just as well. */
+  --display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque', 'Archivo', system-ui, sans-serif;
+  --sans: 'Archivo', system-ui, sans-serif;
+  --serif: var(--display);
+  --mono: var(--display);
   /* --toolbar-height is kept in sync with the toolbar's REAL rendered
      height (App.tsx's useCssHeightVar) — it isn't a constant, since the
      band wraps at narrower widths. This default is only what's used for
@@ -125,7 +173,8 @@
    every other piece of chrome floats over it, so nothing here pushes the
    map off the page. */
 html, body, #root { height: 100%; }
-body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: var(--navy); color: var(--ink-hi); }
+body { margin: 0; font-family: var(--sans); font-weight: 500; font-variant-numeric: tabular-nums;
+  background: var(--cream); color: var(--ink); }
 button { cursor: pointer; font-family: inherit; }
 
 /* A visible keyboard focus ring, everywhere. There was exactly one
@@ -134,7 +183,7 @@ button { cursor: pointer; font-family: inherit; }
    focus was effectively invisible across the game. Brass, because that is
    already the language every other "this one is active" cue speaks. */
 :focus-visible {
-  outline: 2px solid var(--gold);
+  outline: 3px solid var(--school-secondary);
   outline-offset: 2px;
   border-radius: var(--radius-xs);
 }
@@ -179,12 +228,16 @@ button { cursor: pointer; font-family: inherit; }
    weight, so the single most important number on screen carried no more
    emphasis than a rank of four characters. The secondary stats step down;
    cash steps up. */
-.stat-label { text-transform: uppercase; letter-spacing: 0.1em; font-size: var(--text-2xs); color: var(--gold-dim); }
-.stat-value { font-family: var(--mono); font-size: var(--text-base); font-weight: 700; color: var(--ink-hi); }
-.toolbar-funds-btn .stat-value { font-size: var(--text-xl); letter-spacing: -0.01em; }
-.stat-value.money { color: var(--ok-on-dark); }
+/* Plan 18: the four stats are SCOREBOARD TILES — cream, the figure over its
+   label, the label in the school primary — and the funds figure is the
+   display face at 800, a size up again. */
+.stat-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: var(--text-2xs); font-weight: 800; color: var(--school-primary); }
+.stat-value { font-family: var(--display); font-size: var(--text-lg); font-weight: 800; color: var(--ink); line-height: 1; }
+.toolbar-funds-btn .stat-label { color: var(--school-secondary); }
+.toolbar-funds-btn .stat-value { font-size: 26px; letter-spacing: -0.02em; color: var(--ink-hi); }
+.stat-value.money { color: var(--ink-hi); }
 .stat-value.money-negative { color: var(--bad-on-dark); }
-.stat-value.gold { color: var(--gold); }
+.stat-value.gold { color: var(--ink); }
 
 /* ---------- speed / save controls, now living in the bottom toolbar ---- */
 /* Quiet until they matter. Every speed button used to carry its own visible
@@ -192,12 +245,14 @@ button { cursor: pointer; font-family: inherit; }
    control; the band's own navy separates them perfectly well. A border is
    now reserved for state — active, or the dashed sandbox marking — which is
    the only thing it was ever telling you. */
-.speeds button { margin: 0 2px; padding: 5px 14px; background: transparent; color: #c7cee0;
-  border: 1px solid transparent; border-radius: var(--radius-sm); font-size: var(--text-sm); letter-spacing: 0.02em; }
-.speeds button:hover { background: rgba(255, 255, 255, 0.06); }
-.speeds button.active { background: var(--gold); color: #1a2035; border-color: var(--gold); font-weight: 700; }
-.speeds button.sandbox { border-style: dashed; border-color: #a67c1c; color: var(--warn-on-dark); }
-.speeds button.sandbox.active { background: #a67c1c; color: #14161a; border-color: #a67c1c; }
+.speeds { display: flex; gap: 4px; }
+.speeds button { height: 36px; padding: 0 12px; background: transparent; color: var(--ink-hi);
+  border: 2px solid rgba(255, 255, 255, 0.35); border-radius: var(--radius-pill); font-family: var(--display);
+  font-size: var(--text-sm); font-weight: 700; letter-spacing: 0.02em; }
+.speeds button:hover { border-color: var(--ink-hi); }
+.speeds button.active { background: var(--school-secondary); color: var(--school-on-secondary); border-color: var(--school-secondary); font-weight: 800; }
+.speeds button.sandbox { border-style: dashed; border-color: var(--warn-on-dark); color: var(--warn-on-dark); }
+.speeds button.sandbox.active { background: var(--warn-on-dark); color: var(--outline); border-color: var(--warn-on-dark); }
 /* The playtest-only "+$1B" grant button — same sandbox palette as the
    Fast speed button, so both read as the same "not normal play" register. */
 
@@ -284,7 +339,7 @@ button { cursor: pointer; font-family: inherit; }
    the map further and every tile stays reachable. */
 .toolbar { position: fixed; z-index: 10; left: 0; right: 0; bottom: 0;
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px;
-  background: var(--navy); border-top: 1px solid var(--navy-line);
+  background: var(--school-primary); color: var(--ink-hi); border-top: 4px solid var(--school-secondary);
   padding: 8px 16px; }
 
 /* The log ticker: one line, the newest s.log entry, in the strip directly
@@ -302,24 +357,25 @@ button { cursor: pointer; font-family: inherit; }
    text itself is inert content, the same as the toolbar's own funds/stats
    readouts, not a giant click target the whole strip's width invites a
    mis-click on. */
+/* Plan 18: a cream strip with the outline ink as its top rule — the dock's
+   quieter line, in the register's light half rather than its dark one, so
+   the band below it is the one block of school colour on screen. */
 .log-ticker { position: fixed; z-index: 5; left: 0; right: 0; bottom: var(--toolbar-height);
   height: var(--log-ticker-height); display: flex; align-items: center; gap: 8px;
-  padding: 0 12px; background: var(--navy-line); color: var(--ink-hi); font-size: var(--text-sm);
+  padding: 0 12px; background: var(--cream); color: var(--ink); border-top: 2px solid var(--outline);
+  box-sizing: border-box; font-size: var(--text-sm); font-weight: 600;
   white-space: nowrap; overflow: hidden; }
 .log-ticker-toggle { flex: none; display: flex; align-items: center; justify-content: center;
   width: 20px; height: 20px; padding: 0; background: transparent; border: none;
-  border-radius: var(--radius-sm); color: var(--ink-lo); cursor: pointer; }
+  border-radius: var(--radius-sm); color: var(--ink-muted); cursor: pointer; }
 .log-ticker-toggle svg { width: 14px; height: 14px; display: block; }
-.log-ticker-toggle:hover, .log-ticker-toggle[aria-expanded="true"] { color: var(--ink-hi); background: var(--navy); }
+.log-ticker-toggle:hover, .log-ticker-toggle[aria-expanded="true"] { color: var(--ink); background: var(--cream-lo); }
 .log-ticker > span { overflow: hidden; text-overflow: ellipsis; }
-.log-ticker .ts { color: var(--ink-lo); font-family: var(--mono); margin-right: 6px; }
-/* The bright, dark-background pair StatusHeader.tsx already uses for
-   cash/satisfaction (money / money-negative) — not --green/#a13a3a, which
-   are tuned for the light parchment tab panels and read as muddy, low-
-   contrast text against this strip's dark --navy-line. */
-.log-ticker .good { color: var(--ok-on-dark); }
-.log-ticker .bad { color: var(--bad-on-dark); }
-.log-ticker-empty { color: var(--ink-lo); font-style: italic; }
+.log-ticker .ts { color: var(--school-primary); font-family: var(--display); font-weight: 800; margin-right: 6px; }
+/* The strip is light now, so it takes the on-light pair. */
+.log-ticker .good { color: var(--ok-on-light); }
+.log-ticker .bad { color: var(--bad-on-light); }
+.log-ticker-empty { color: var(--ink-muted); font-style: italic; }
 
 /* NOT flex: 1 1 0 (equal-halves growth) — with a fixed-width middle nav
    between them, forcing both side zones to the exact same box width means
@@ -338,27 +394,28 @@ button { cursor: pointer; font-family: inherit; }
    register the old masthead used, now also the entry point into Treasury
    (see Toolbar.tsx) — there is no separate Treasury icon in the middle
    row any more. */
-.toolbar-funds-btn { flex: none; display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
-  background: transparent; border: 1px solid transparent; border-radius: var(--radius-lg); padding: 4px 10px; }
-.toolbar-funds-btn:hover { border-color: var(--navy-line); }
-.toolbar-funds-btn.active { border-color: var(--gold); background: rgba(201, 162, 39, 0.12); }
-.toolbar-funds-net { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-lo); }
+.toolbar-funds-btn { flex: none; display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  background: transparent; border: 2px solid transparent; border-radius: var(--radius-lg); padding: 4px 10px; color: var(--ink-hi); }
+.toolbar-funds-btn:hover { border-color: rgba(255, 255, 255, 0.35); }
+.toolbar-funds-btn.active { border-color: var(--school-secondary); }
+.toolbar-funds-net { font-size: var(--text-xs); font-weight: 700; color: var(--school-secondary); }
 
 /* The headline stats (rank/enrolled/prestige/satisfaction) — plain
    figures, no "of N" suffix (see StatusHeader.tsx): each is read against
    context available elsewhere (the Admissions/Student Life tabs), not
    reconstructed here. */
-.toolbar-stats { display: flex; gap: 16px; flex-wrap: wrap; }
-.toolbar-stat { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+.toolbar-stats { display: flex; gap: 6px; flex-wrap: wrap; }
+.toolbar-stat { display: flex; flex-direction: column-reverse; align-items: center; justify-content: center; gap: 2px;
+  min-width: 66px; height: 50px; padding: 0 8px; background: var(--cream); color: var(--ink); border-radius: var(--radius-md); }
 
 /* The school identity + clock, now the bottom-right's own prominent
    cluster (see StatusHeader.tsx) — replacing the old masthead's h1. */
 .toolbar-school { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-.toolbar-school-name { font-family: var(--serif); font-size: var(--text-xl); color: var(--ink-hi); white-space: nowrap; }
-.toolbar-clock { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-lo); white-space: nowrap; }
+.toolbar-school-name { font-family: var(--display); font-weight: 800; font-size: var(--text-xl); letter-spacing: -0.01em; color: var(--ink-hi); white-space: nowrap; }
+.toolbar-clock { font-size: var(--text-xs); font-weight: 700; color: var(--school-secondary); white-space: nowrap; }
 .day-ticker { display: flex; gap: 3px; margin-top: 3px; }
-.day-ticker-cell { width: 7px; height: 7px; border-radius: var(--radius-xs); background: var(--navy-line); }
-.day-ticker-cell.lit { background: var(--gold); }
+.day-ticker-cell { width: 14px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.3); }
+.day-ticker-cell.lit { background: var(--school-secondary); }
 
 .toolbar-speed { flex: none; display: flex; align-items: center; gap: 6px; }
 
@@ -370,19 +427,31 @@ button { cursor: pointer; font-family: inherit; }
    glyph), quiet until hovered or active, gold on active exactly like the
    old text tabs' underline used to be, just as a filled chip instead since
    there's no text baseline left to underline. */
-.toolbar-icon-btn { position: relative; flex: none; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
-  background: transparent; border: 1px solid transparent; border-radius: 50%; color: var(--ink-lo); }
+/* Plan 18: LABELLED. The review's complaint was that three of these icons
+   look alike at 24px and none says what it opens; each button now carries
+   its word beside its glyph (see Toolbar.tsx), as a pill rather than a
+   circle, the active one filled in the school secondary. The label hides
+   under 1400px — the review asked for labels at 1280 and up, but at 1280
+   the labelled row does not fit beside the funds tiles and the clock
+   without wrapping the band to two lines, so the threshold sits where the
+   band stays one line and the icons carry it alone below that. */
+.toolbar-icon-btn { position: relative; flex: none; height: 40px; padding: 0 12px; display: flex; align-items: center; justify-content: center; gap: 7px;
+  background: transparent; border: 2px solid transparent; border-radius: var(--radius-pill); color: var(--ink-hi);
+  font-family: var(--display); font-weight: 700; font-size: var(--text-base); white-space: nowrap; }
 .toolbar-icon-btn svg { width: 20px; height: 20px; display: block; }
-.toolbar-icon-btn:hover { color: var(--ink-hi); border-color: var(--navy-line); }
-.toolbar-icon-btn.active { color: var(--gold); background: rgba(201, 162, 39, 0.16); border-color: var(--gold); }
+.toolbar-icon-btn:hover { border-color: rgba(255, 255, 255, 0.35); }
+.toolbar-icon-btn.active { color: var(--school-on-secondary); background: var(--school-secondary); border-color: var(--school-secondary); }
+.toolbar-tab-label { display: none; }
+@media (min-width: 1400px) { .toolbar-tab-label { display: inline; } }
 
-/* The build button: same round-icon family, but wide enough to carry its
-   own text label too (a pill rather than a circle) — it's the one primary
-   action in the band (every other button here opens a view; this one
-   starts placing something), so it earns a little more visual weight than
-   a bare icon. */
-.toolbar-build-btn { flex: none; width: auto; height: 40px; border-radius: var(--radius-pill); gap: 7px; padding: 0 16px; border-color: var(--gold-dim); }
-.toolbar-build-label { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.06em; font-size: var(--text-sm); }
+/* The build button: the one cream control in the band — every other button
+   here opens a view; this one starts placing something — with the
+   secondary as its outline so it reads as the band's primary action. */
+.toolbar-build-btn { flex: none; width: auto; height: 44px; margin-left: 6px; padding: 0 18px; gap: 8px;
+  background: var(--cream); color: var(--school-primary); border: 3px solid var(--school-secondary); font-weight: 800; }
+.toolbar-build-btn:hover { border-color: var(--cream); }
+.toolbar-build-btn.active { background: var(--school-secondary); color: var(--school-on-secondary); border-color: var(--school-secondary); }
+.toolbar-build-label { font-family: var(--display); font-size: var(--text-md); }
 
 /* The "new content" alert badge (see types.ts's SeenState): a small red
    circle with a white "!", pinned to the top-right corner of whatever it's
@@ -393,8 +462,8 @@ button { cursor: pointer; font-family: inherit; }
    at the toolbar's compact icon scale without swamping the glyph beneath
    it. */
 .alert-badge { position: absolute; top: -3px; right: -3px; width: 15px; height: 15px; border-radius: 50%;
-  background: #c23b3b; color: #fff; border: 1.5px solid var(--parchment);
-  font-family: var(--serif); font-size: var(--text-2xs); font-weight: 800; line-height: 1;
+  background: #c23b3b; color: #fff; border: 2px solid var(--cream);
+  font-family: var(--display); font-size: var(--text-2xs); font-weight: 800; line-height: 1;
   display: flex; align-items: center; justify-content: center; pointer-events: none; }
 
 /* ---------- tab content ---------- */
@@ -402,10 +471,13 @@ button { cursor: pointer; font-family: inherit; }
    body — the overlay owns the scrolling, so no bottom margin here. */
 .tab-content { display: flex; flex-direction: column; gap: 16px; }
 
-.panel { background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: var(--radius-lg);
+/* Plan 18: a panel is a cream-white card with a 2px outline and no shadow —
+   it is not pressable, so it sits flat on the page. Its heading is the
+   display face at 800, tracked, in the school primary. */
+.panel { background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-lg);
   padding: 16px 18px; color: var(--ink); }
-.panel h2 { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em; font-size: var(--text-base);
-  color: var(--gold-dim); margin: 0 0 10px; }
+.panel h2 { font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; font-size: var(--text-base);
+  color: var(--school-primary); margin: 0 0 10px; }
 .panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
   border-bottom: 1px solid var(--parchment-line); padding-bottom: 8px; margin-bottom: 12px; }
 .panel-head h2 { margin: 0; }
@@ -428,7 +500,7 @@ button { cursor: pointer; font-family: inherit; }
    `--side-panel-width` — a real, live-measured height rather than a guess,
    since the toolbar's own log ticker can wrap. */
 .toolbar-popup { position: fixed; z-index: 20; bottom: calc(var(--toolbar-height) + 12px);
-  display: flex; flex-direction: column; background: var(--parchment); border: 1px solid var(--parchment-line);
+  display: flex; flex-direction: column; background: var(--cream); border: 3px solid var(--outline);
   border-radius: var(--radius-xl); box-shadow: var(--shadow-2); color: var(--ink);
   animation: popup-rise 150ms cubic-bezier(0.2, 0.8, 0.3, 1); }
 /* Rises from the band it belongs to, which is directly below it. */
@@ -438,11 +510,11 @@ button { cursor: pointer; font-family: inherit; }
 }
 .toolbar-popup-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
   border-bottom: 1px solid var(--parchment-line); padding: 10px 14px 8px; flex: none; }
-.toolbar-popup-head h2 { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em;
-  font-size: var(--text-base); color: var(--gold-dim); margin: 0; }
-.toolbar-popup-close { background: transparent; border: 1px solid var(--parchment-line); color: var(--ink-muted);
-  border-radius: var(--radius-sm); width: 22px; height: 22px; line-height: 1; padding: 0; font-size: var(--text-sm); flex: none; }
-.toolbar-popup-close:hover { border-color: var(--gold-dim); color: var(--ink); }
+.toolbar-popup-head h2 { font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+  font-size: var(--text-base); color: var(--school-primary); margin: 0; }
+.toolbar-popup-close { background: transparent; border: 2px solid var(--outline); color: var(--ink);
+  border-radius: 50%; width: 26px; height: 26px; line-height: 1; padding: 0; font-size: var(--text-sm); font-weight: 800; flex: none; }
+.toolbar-popup-close:hover { background: var(--outline); color: var(--cream); }
 .toolbar-popup-body { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 14px 14px; }
 .toolbar-popup-body::-webkit-scrollbar { width: 8px; }
 .toolbar-popup-body::-webkit-scrollbar-thumb { background: var(--parchment-line); border-radius: var(--radius-sm); }
@@ -473,9 +545,9 @@ button { cursor: pointer; font-family: inherit; }
   background: transparent; border: 1px solid var(--gold-dim); color: var(--gold-dim); font-size: var(--text-2xs); font-weight: 700; }
 .help-hint-btn:hover { background: var(--gold-dim); color: #fff8e8; }
 .help-hint-text { position: absolute; z-index: 15; top: 22px; left: 0; width: 240px;
-  background: var(--navy); color: #cbd0d8; border: 1px solid var(--navy-line); border-radius: var(--radius-md);
-  padding: 8px 10px; font-size: var(--text-sm); font-style: italic; line-height: 1.4; margin: 0;
-  box-shadow: var(--shadow-2); }
+  background: var(--cream-hi); color: var(--ink); border: 2px solid var(--outline); border-radius: var(--radius-md);
+  padding: 8px 10px; font-size: var(--text-sm); line-height: 1.4; margin: 0;
+  box-shadow: var(--shadow-1); }
 .help-hint-text.align-end { left: auto; right: 0; }
 
 .badge { display: inline-block; background: var(--navy); color: var(--ink-hi); font-family: var(--mono);
@@ -877,12 +949,12 @@ button.build-tile { font-family: inherit; }
 .main-menu { position: fixed; z-index: 11; top: 16px; right: 16px; }
 .main-menu-btn { width: var(--corner-menu-height); height: var(--corner-menu-height);
   display: flex; align-items: center; justify-content: center;
-  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: var(--radius-lg); color: var(--ink); }
+  background: var(--cream); border: 3px solid var(--outline); border-radius: 50%; color: var(--ink); box-shadow: var(--shadow-1); }
 .main-menu-btn svg { width: 20px; height: 20px; display: block; }
-.main-menu-btn:hover, .main-menu-btn.active { border-color: var(--gold-dim); background: #efe1b8; }
+.main-menu-btn:hover, .main-menu-btn.active { background: var(--outline); color: var(--cream); }
 .main-menu-popup { position: absolute; top: calc(var(--corner-menu-height) + 8px); right: 0; width: 220px;
   display: flex; flex-direction: column; gap: 6px;
-  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: var(--radius-lg);
+  background: var(--cream); border: 3px solid var(--outline); border-radius: var(--radius-lg);
   box-shadow: var(--shadow-2); padding: 10px; }
 .main-menu-credits { font-size: var(--text-sm); line-height: 1.5; color: var(--ink-muted); padding: 7px 10px 2px; border-top: 1px solid var(--parchment-line); margin-top: 2px; }
 .main-menu-credits strong { color: var(--ink); }
@@ -905,17 +977,17 @@ button.build-tile { font-family: inherit; }
    them.) */
 .campus-map-zoom-controls { position: fixed; z-index: 10; top: calc(var(--corner-menu-height) + 24px); right: 16px;
   display: flex; flex-direction: column; align-items: center; gap: 4px;
-  background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: var(--radius-lg); padding: 4px; }
+  background: var(--cream); border: 3px solid var(--outline); border-radius: var(--radius-pill); padding: 4px; box-shadow: var(--shadow-1); }
 .campus-map-zoom-controls button { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
-  background: #f5efdd; border: 1px solid var(--parchment-line); border-radius: var(--radius-sm); color: var(--ink);
-  font-size: var(--text-lg); line-height: 1; padding: 0; }
-.campus-map-zoom-controls button:hover { border-color: var(--gold-dim); background: #efe1b8; }
+  background: transparent; border: 2px solid transparent; border-radius: 50%; color: var(--ink);
+  font-family: var(--display); font-weight: 800; font-size: var(--text-lg); line-height: 1; padding: 0; }
+.campus-map-zoom-controls button:hover { background: var(--outline); color: var(--cream); }
 /* The '?' sits at the same 30x30 scale as the zoom buttons beneath it
    (its default size — see .help-hint-btn — is sized for sitting inline
    next to a panel heading, not for anchoring its own pill). */
-.campus-map-zoom-controls .help-hint-btn { width: 30px; height: 30px; border-radius: var(--radius-sm);
-  background: #f5efdd; border: 1px solid var(--parchment-line); color: var(--ink); font-size: var(--text-md); }
-.campus-map-zoom-controls .help-hint-btn:hover { border-color: var(--gold-dim); background: #efe1b8; color: var(--ink); }
+.campus-map-zoom-controls .help-hint-btn { width: 30px; height: 30px; border-radius: 50%;
+  background: transparent; border: 2px solid transparent; color: var(--ink); font-size: var(--text-md); }
+.campus-map-zoom-controls .help-hint-btn:hover { background: var(--outline); color: var(--cream); }
 .campus-map-zoom-controls .help-hint-text { top: 0; right: 34px; left: auto; }
 
 /* ---------- the campus, drawn at an angle ----------
@@ -1313,23 +1385,27 @@ button.build-tile { font-family: inherit; }
    staying inside `.app`, which is itself above the map. Hence 3: above
    nothing else in the chrome layer, and that is exactly right. */
 .tab-overlay { position: fixed; inset: 0; z-index: 3; display: flex; flex-direction: column;
-  background: var(--navy);
+  background: var(--cream); color: var(--ink);
   animation: overlay-fade 140ms ease-out; }
 
 @keyframes overlay-fade { from { opacity: 0; } to { opacity: 1; } }
 .tab-overlay-head { display: flex; justify-content: space-between; align-items: center; gap: 12px;
-  padding: 11px 18px; border-bottom: 2px solid var(--gold); flex: none;
+  padding: 14px 18px 10px; border-bottom: 3px solid var(--outline); flex: none;
   /* The bottom dock is not the only chrome laid over this panel: the
      main-menu hamburger floats in the top-right corner at z-index 11 (see
      .main-menu below), which is over this panel's 3 and therefore over the
      close button. Reserve the space rather than draw under it: 40px button
      + 16px inset + a 12px breath. */
   padding-right: 68px; }
-.tab-overlay-head h2 { margin: 0; font-family: var(--serif); text-transform: uppercase;
-  letter-spacing: 0.1em; font-size: var(--text-md); color: var(--gold); }
-.tab-overlay-close { background: transparent; border: 1px solid var(--navy-line); color: #c7cee0;
-  border-radius: var(--radius-sm); padding: 4px 12px; font-size: var(--text-xs); font-family: var(--mono); }
-.tab-overlay-close:hover { border-color: var(--gold); color: var(--gold); }
+/* The screen's title at a size that reads as a title — the review asked
+   for display sizes of 32 and up "so moments read as moments" — in the
+   display face, with the school's secondary as an underscore slab. */
+.tab-overlay-head h2 { margin: 0; font-family: var(--display); font-weight: 800; letter-spacing: -0.02em;
+  font-size: 32px; line-height: 1; color: var(--ink); }
+.tab-overlay-close { background: var(--cream); border: 2px solid var(--outline); color: var(--ink);
+  border-radius: var(--radius-pill); padding: 6px 14px; font-size: var(--text-sm); font-family: var(--display); font-weight: 700;
+  box-shadow: var(--shadow-1); }
+.tab-overlay-close:hover { background: var(--outline); color: var(--cream); }
 /* The dock is opaque and always on screen, so the last row of a tab drawn
    behind it would be visible-but-unreachable — the same trap
    .campus-map-canvas insets away from, answered with the same two figures.
@@ -1340,8 +1416,8 @@ button.build-tile { font-family: inherit; }
 .tab-overlay-body { overflow-y: auto; padding: 14px 18px;
   padding-bottom: calc(var(--toolbar-height) + var(--log-ticker-height) + 40px); }
 .tab-overlay-body::-webkit-scrollbar { width: 8px; }
-.tab-overlay-body::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: var(--radius-sm); }
-.tab-overlay-body { scrollbar-width: thin; scrollbar-color: var(--navy-line) transparent; }
+.tab-overlay-body::-webkit-scrollbar-thumb { background: var(--parchment-line); border-radius: var(--radius-sm); }
+.tab-overlay-body { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
 
 /* ---------- the curriculum map ----------
    Three levels over the SAME revealed set progressive discovery already
@@ -2348,10 +2424,17 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .treasury-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
 
 /* ---------- overlays ---------- */
-.modal-backdrop { position: fixed; inset: 0; background: rgba(10, 11, 14, 0.7);
+.modal-backdrop { position: fixed; inset: 0; background: rgba(27, 42, 74, 0.45);
   display: flex; align-items: center; justify-content: center; z-index: 100; }
-.modal { background: var(--navy); color: var(--ink-hi); border-radius: var(--radius-xl); padding: 20px 24px; max-width: 440px; width: 100%;
-  border: 1px solid var(--navy-line); max-height: 90vh; overflow-y: auto; }
+/* Plan 18: the modal is a cream card with the 3px outline and the hard
+   offset — the one shell that IS standing in front of the screen, so it
+   is the one that casts the shadow. Still the dark-chrome token names
+   inside it (--ink-hi, --ink-lo) until PR E redraws its contents, so its
+   text tokens are re-pointed here to the light pair for now. */
+.modal { background: var(--cream); color: var(--ink); border-radius: var(--radius-xl); padding: 20px 24px; max-width: 440px; width: 100%;
+  border: 3px solid var(--outline); box-shadow: var(--shadow-3); max-height: 90vh; overflow-y: auto;
+  --ink-hi: var(--outline); --ink-lo: var(--ink-muted); --navy-line: var(--parchment-line); --navy: var(--cream-lo);
+  --ok-on-dark: var(--ok-on-light); --bad-on-dark: var(--bad-on-light); --warn-on-dark: var(--warn-on-light); }
 /* An interrupt halts the clock until it is resolved, so its resolve button
    must always be reachable: the modal scrolls internally rather than
    growing past the viewport on a short screen (the annual report is the
@@ -2359,11 +2442,12 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .modal::-webkit-scrollbar { width: 8px; }
 .modal::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: var(--radius-sm); }
 .modal { scrollbar-width: thin; scrollbar-color: var(--navy-line) transparent; }
-.modal h2 { margin: 0 0 10px; font-size: var(--text-xl); font-family: var(--serif); }
-.modal p { margin: 0 0 16px; color: #cbd0d8; font-size: var(--text-md); }
-/* Same gold-on-navy treatment as .startup-begin-btn. */
-.modal button { background: var(--gold); color: #1a2035; border: none; border-radius: var(--radius-md);
-  padding: 6px 16px; font-family: var(--serif); font-size: var(--text-md); font-weight: 700; }
+.modal h2 { margin: 0 0 10px; font-size: 26px; font-family: var(--display); font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
+.modal p { margin: 0 0 16px; color: var(--ink); font-size: var(--text-md); line-height: 1.45; }
+/* The primary button of the register: the school secondary, outlined and
+   offset (the same treatment as .startup-begin-btn). */
+.modal button { background: var(--school-secondary); color: var(--school-on-secondary); border: 2px solid var(--outline); border-radius: var(--radius-pill);
+  padding: 8px 18px; font-family: var(--display); font-size: var(--text-md); font-weight: 800; box-shadow: var(--shadow-1); }
 .modal button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Year-over-year movement in the annual report (see InterruptModal.tsx). */
@@ -2817,10 +2901,10 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 
 /* ---------- startup screen ---------- */
 .startup { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
-.startup-card { background: var(--parchment); border: 1px solid var(--parchment-line); border-radius: var(--radius-xl);
-  padding: 32px 36px; max-width: 480px; width: 100%; color: var(--ink); }
-.startup-card .eyebrow { color: var(--gold-dim); }
-.startup-card h1 { font-family: var(--serif); font-size: var(--text-2xl); margin: 6px 0 20px; }
+.startup-card { background: var(--cream-hi); border: 3px solid var(--outline); border-radius: var(--radius-xl);
+  padding: 32px 36px; max-width: 480px; width: 100%; color: var(--ink); box-shadow: var(--shadow-3); }
+.startup-card .eyebrow { color: var(--school-primary); font-weight: 800; }
+.startup-card h1 { font-family: var(--display); font-weight: 800; letter-spacing: -0.02em; font-size: 32px; margin: 6px 0 20px; }
 /* The name field: just what the player types. The fixed institutional
    half is no longer shown here at all — it's carved into the facade
    below instead (see .startup-facade), so the input can be an ordinary
@@ -3035,12 +3119,12 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    width and first in the wrap, so the three zones below keep their shape. */
 .toolbar-next { flex: 1 0 100%; order: -1; display: flex; align-items: baseline; gap: 8px;
   margin: -2px 0 -4px; font-size: var(--text-xs); color: var(--ink-lo); min-width: 0; }
-.toolbar-next-label { flex: none; font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.08em;
-  font-size: var(--text-2xs); color: var(--gold); }
+.toolbar-next-label { flex: none; font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+  font-size: var(--text-2xs); color: var(--school-secondary); }
 .toolbar-next-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .toolbar-next button.toolbar-next-text { background: transparent; border: none; padding: 0; color: var(--ink-hi);
-  font: inherit; cursor: pointer; text-align: left; text-decoration: underline dotted var(--navy-line); }
-.toolbar-next button.toolbar-next-text:hover { color: var(--gold); }
+  font: inherit; cursor: pointer; text-align: left; text-decoration: underline dotted rgba(255, 255, 255, 0.5); }
+.toolbar-next button.toolbar-next-text:hover { color: var(--school-secondary); }
 
 /* ---------- toasts (Plan 16's PR G — see Toasts.tsx and toasts.ts) --------
    A small stack directly above the log ticker for the things that never
@@ -3054,14 +3138,18 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    build menu that is open, over the map. */
 .toasts { position: fixed; z-index: 8; right: 12px; bottom: calc(var(--toolbar-height) + var(--log-ticker-height) + 8px);
   display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: none; }
-.toast { pointer-events: auto; max-width: 420px; display: flex; align-items: baseline; gap: 8px;
-  padding: 6px 10px; background: var(--navy); color: var(--ink-hi); border: 1px solid var(--navy-line);
-  border-left: 3px solid var(--gold); border-radius: var(--radius-md); font: inherit; font-size: var(--text-sm);
-  text-align: left; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+/* Plan 18: a cream pill with the outline and the hard offset — a toast is
+   pressable, so it sits off the page — its "when" a chip in the school
+   primary at the left end. */
+.toast { pointer-events: auto; max-width: 420px; display: flex; align-items: center; gap: 8px;
+  padding: 5px 12px 5px 5px; background: var(--cream); color: var(--ink); border: 2px solid var(--outline);
+  border-radius: var(--radius-pill); font: inherit; font-size: var(--text-sm); font-weight: 600;
+  text-align: left; cursor: pointer; box-shadow: var(--shadow-1);
   animation: toast-in 160ms ease-out; }
-.toast:hover { border-color: var(--gold); }
-.toast .ts { flex: none; color: var(--ink-lo); font-family: var(--mono); font-size: var(--text-2xs); }
-.toast.good { border-left-color: var(--ok-on-dark); }
-.toast.bad { border-left-color: var(--bad-on-dark); }
+.toast:hover { background: var(--cream-hi); }
+.toast .ts { flex: none; color: var(--school-on-primary); background: var(--school-primary); border-radius: var(--radius-pill);
+  padding: 3px 8px; font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); }
+.toast.good { border-color: var(--ok-on-light); }
+.toast.bad { border-color: var(--bad-on-light); }
 @keyframes toast-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }

@@ -153,6 +153,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
           onClick={() => { onChangeTab(null); onSetBuildOpen(false); }}
         >
           <HomeIcon />
+          <span className="toolbar-tab-label">Campus</span>
         </button>
 
         {ICON_TAB_ORDER.filter((id) => tabAvailable(s, id)).map((id) => {
@@ -176,6 +177,12 @@ const Toolbar = forwardRef<HTMLDivElement, {
               onClick={() => onChangeTab(isActive ? null : id)}
             >
               <Icon />
+              {/* The word beside the glyph (Plan 18's PR A): shown at wide
+                  viewports and hidden by .toolbar-tab-label below 1400px,
+                  where the aria-label/title above carries it alone — the
+                  review's finding was that three of these icons look alike
+                  at 24px and none says what it opens. */}
+              <span className="toolbar-tab-label">{TAB_LABELS[id]}</span>
               {hasAlert && <span className="alert-badge" aria-hidden="true">!</span>}
             </button>
           );
