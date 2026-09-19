@@ -8,8 +8,9 @@ that every tab is "a stack of parchment panels with a definition list in each"
 an ordered sequence of PRs that restyle the game without touching a single
 rule of it.*
 
-**Status: In progress.** PR A has landed. Nothing here reads or writes
-`GameState` except PR B, which adds one field. No PR in this plan moves a
+**Status: In progress.** PRs A and B have landed. Nothing here reads or
+writes `GameState` except PR B, which adds one field to the university and
+one to each rival. No PR in this plan moves a
 number the economy depends on, so `npm run sim` is not part of its gate.
 
 ---
@@ -154,6 +155,18 @@ draws the bracket in both schools' colours.
 The authored pairs must pass the contrast check the mockups were built to:
 cream text on the primary at 4.5:1, primary text on the secondary at 4.5:1.
 A pair that fails is not offered.
+
+**As implemented:** ten pairs, and the rule is pinned by
+`test/school-colors.test.ts` rather than checked by hand ("Burnt orange and
+cream" and "Slate and copper" failed it and were dropped). Rivals' pairs are
+not authored: they are dealt off the rival's id by `rivalColorsFor`, the way
+the rival table already derives its athletic strength and two standings —
+ninety-nine hand-picked pairs would have been a table of arithmetic nobody
+keeps consistent. The facade previews the pair as two banners hung from the
+band at either end of the wall rather than by recolouring the banner text,
+which is engraved stone and stays stone; and the startup screen applies the
+pick to the stylesheet's root as the player moves between pairs, so the
+card's own chrome previews the theme too.
 
 ## 3. PR C — The Curriculum tab
 

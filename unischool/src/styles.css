@@ -2940,17 +2940,32 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    StartupScreen). Two columns rather than a list of four, because the choice
    is between PICTURES and the player is looking at the facade above while
    they move through them; a tall list would push it off the card. */
-.startup-vernaculars { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+.startup-vernaculars { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
 .startup-vern-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left;
-  background: #f8f3e6; border: 1px solid var(--parchment-line); border-radius: var(--radius-lg); padding: 9px 11px; }
-.startup-vern-btn strong { font-family: var(--serif); font-size: var(--text-base); }
+  background: var(--cream); border: 2px solid var(--parchment-line); border-radius: var(--radius-md); padding: 9px 11px; color: var(--ink); }
+.startup-vern-btn strong { font-family: var(--display); font-weight: 800; font-size: var(--text-base); }
 .startup-vern-btn span { font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.35; }
-.startup-vern-btn.active { border-color: var(--gold); background: #f5ecd2; }
-.startup-vern-btn.active strong { color: var(--gold-dim); }
+.startup-vern-btn.active { border-color: var(--outline); background: var(--cream-hi); box-shadow: var(--shadow-1); }
+.startup-vern-btn.active strong { color: var(--school-primary); }
 
-.startup-begin-btn { width: 100%; background: var(--gold); color: #1a2035; border: none; border-radius: var(--radius-md);
-  padding: 11px; font-family: var(--serif); font-size: var(--text-lg); font-weight: 700; }
-.startup-begin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+/* The colour pairs (Plan 18's PR B — see StartupScreen.tsx): a row of
+   two-tone chips, the active one ringed in the outline ink and lifted, its
+   name on the line beneath. The swatch is the pair itself — primary above,
+   secondary below — so the row reads as ten identities, not ten buttons. */
+.startup-colors { display: flex; flex-wrap: wrap; gap: 8px; }
+.startup-color-btn { width: 44px; height: 44px; padding: 3px; background: var(--cream); border: 2px solid var(--parchment-line);
+  border-radius: var(--radius-md); display: flex; }
+.startup-color-btn:hover { border-color: var(--outline); }
+.startup-color-btn.active { border: 3px solid var(--outline); padding: 2px; box-shadow: var(--shadow-1); }
+.startup-color-swatch { flex: 1; display: flex; flex-direction: column; border-radius: var(--radius-xs); overflow: hidden; }
+.startup-color-swatch > span { flex: 1; display: block; }
+.startup-color-swatch > span:last-child { flex: 0 0 38%; }
+.startup-color-name { margin: 8px 0 20px; font-family: var(--display); font-weight: 800; font-size: var(--text-md); color: var(--school-primary); }
+
+/* The primary button of the register (the same treatment as .modal button). */
+.startup-begin-btn { width: 100%; background: var(--school-secondary); color: var(--school-on-secondary); border: 3px solid var(--outline);
+  border-radius: var(--radius-pill); padding: 12px; font-family: var(--display); font-size: var(--text-lg); font-weight: 800; box-shadow: var(--shadow-2); }
+.startup-begin-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 
 /* thin scrollbars inside parchment panels */
 .available-list::-webkit-scrollbar, .log::-webkit-scrollbar { width: 8px; }

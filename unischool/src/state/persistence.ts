@@ -103,7 +103,12 @@ export const SAVE_KEY = 'unischool.save';
 // read, nullable, added as required).
 // v61: Plan 16 PR F. `s.events.opening` (the first year's script — which
 // letters have been read, and whether it was skipped — added as required).
-export const SAVE_VERSION = 61;
+// v62: Plan 18 PR B. `s.self.colors` (the pair picked at founding) and
+// `Rival.colors` (dealt off the id), both added as required. Presentation
+// only — but a save without them would theme the game off two undefined
+// custom properties, which is every chrome surface drawn in the browser's
+// idea of nothing.
+export const SAVE_VERSION = 62;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch

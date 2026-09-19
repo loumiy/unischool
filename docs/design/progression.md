@@ -5,10 +5,25 @@ reports on it.
 
 ## Startup
 
-A **startup screen** asks the player two things before play: the **name** of
+A **startup screen** asks the player three things before play: the **name** of
 the school — their half of it only; every school opens as a *College* (see
-"College, and University" below) — and the **vernacular** its campus is built
-in.
+"College, and University" below) — the **vernacular** its campus is built
+in, and the **colours** it wears.
+
+## The colours
+
+A pair, picked from ten named collegiate pairings — *Maroon and gold*, *Navy
+and orange*, *Black and gold* and so on (`data/schoolColors.ts`) — and worn as
+the game's theme: the dock, the active tab, the primary button and the focus
+ring all take the pair, so a navy-and-orange school plays in a navy-and-orange
+game. Permanent, like the vernacular, and like it read by **no system at
+all**: `self.colors` reaches the stylesheet (`components/theme.ts`) and
+nothing else. Every rival is dealt a pair off its id from the same table,
+unread until the playoff bracket and the annual report draw it.
+
+Every offered pair passes one rule, pinned by `test/school-colors.test.ts`:
+cream text on the primary and the primary as text on the secondary both read
+at 4.5:1 or better, because those are the two pairings every screen draws.
 
 ## The vernacular
 
