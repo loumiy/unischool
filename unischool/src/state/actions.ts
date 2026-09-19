@@ -386,7 +386,7 @@ export function createPreStartState(): GameState {
     pathways: {},
     trees: {},
     rivals: [],
-    self: { name: '', suffix: '', universityCharterOffered: false, mascot: '', reputation: 0, reportCard: null, socialStanding: 0, researchStanding: 0, vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS) },
+    self: { name: '', suffix: '', universityCharterOffered: false, mascot: '', reputation: 0, reportCard: null, socialStanding: 0, researchStanding: 0, vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), legacy: null, facultyServed: 0 },
     history: [],
     log: [],
     pendingInterrupt: null,
@@ -695,6 +695,10 @@ export function createInitialState(
       vernacular,
       // Picked beside it and fixed the same way (see types.ts's SchoolColors).
       colors: { ...colors },
+      // No record yet: the fiftieth summer writes it (see types.ts's
+      // University.legacy). The founding five have served from day one.
+      legacy: null,
+      facultyServed: 5,
     },
     // Empty at founding: the first row lands at the end of year 1, when the
     // summer admissions interrupt resolves (see reducer.ts's

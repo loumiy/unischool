@@ -633,6 +633,12 @@ export interface SummerDecision {
 
 export interface SummerPayload {
   beat: SummerBeat;
+  // THE SEMICENTENNIAL (Plan 17's PR C): set on the fiftieth summer, whose
+  // first beat is the final report in place of the year in review. Stamped
+  // when the interrupt is raised so a save taken between beats still knows,
+  // and so the modal's width rule (modalLayout.ts) can read it off the
+  // payload alone.
+  final?: boolean;
   tuition: number;    // where the tuition slider opens: last year's listed price
   admitRate: number;  // where the admit slider opens: last year's chosen rate
   decision?: SummerDecision; // set once the admissions beat has been left; what the last beat commits
@@ -1257,6 +1263,18 @@ export interface University {
   researchStanding: number;
   vernacular: Vernacular; // the architecture the campus is built in, fixed at founding
   colors: SchoolColors;   // the pair the school wears, picked beside the vernacular and fixed the same way (see SchoolColors)
+  // THE SEALED RECORD (Plan 17's PR C). Null until the fiftieth summer,
+  // when the reducer's RESOLVE_ADMISSIONS writes state/legacy.ts's reading
+  // once — before anything about that summer changes the school, so it is
+  // exactly what the final report showed — and never again. Play goes on
+  // afterwards and nothing that happens changes this; the History tab
+  // shows it as the record, sealed in the fiftieth year.
+  legacy: Legacy | null;
+  // Everyone who has ever held a chair here: the founding five plus every
+  // appointment since (facultySystem.ts's appointFaculty is the one door).
+  // Monotone; dismissals do not subtract. The final report's "faculty who
+  // served", which no roster count can give.
+  facultyServed: number;
 }
 
 // THE SUMMER REPORT CARD. At the admissions boundary the standing's inputs
@@ -1348,6 +1366,7 @@ export interface YearSnapshot {
   satisfactionAverage: number; // the year's average satisfaction — what word of mouth and welfare read
   coursesFinished: number;     // courses that finished developing during the year
   attrition: number;           // students who did not return at this summer
+  graduated: number;           // the seniors who left at this summer (Plan 17's PR C) — summed over a run, the students the school taught
 }
 
 // ---------------------------------------------------------------------

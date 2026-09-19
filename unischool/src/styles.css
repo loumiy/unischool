@@ -3182,6 +3182,34 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .ambition.unreached .ambition-mark, .ambition.unreached .ambition-name, .ambition.unreached .ambition-year { color: var(--ink-muted); }
 .ambition.unreached .ambition-name { font-weight: 600; }
 
+/* ---------- the legacy (Plan 17's PRs B and C: LegacyAxes.tsx, the
+   History tab's Legacy panel and the final report) ----
+   Six cards, each a grade chip beside the axis's name and its one line —
+   the course grade's own chip and colours, so an A here reads as an A
+   anywhere else in the game. */
+.legacy-name { margin: 0 0 12px; font-size: var(--text-base); color: var(--ink); line-height: 1.5; }
+.legacy-name strong { font-family: var(--display); font-weight: 800; color: var(--school-primary); }
+.legacy-axes { list-style: none; margin: 0 0 14px; padding: 0; display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.legacy-axis { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start;
+  padding: 10px 12px; background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-lg); min-width: 0; }
+.legacy-axis-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.legacy-axis-label { font-family: var(--display); font-weight: 800; font-size: var(--text-md); color: var(--ink); }
+.legacy-axis-detail { font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.45; }
+/* The final report itself: an eyebrow over the sentence, the four figures
+   in the outcomes list, the ambitions in the History tab's own rows, and
+   the fifty-year curves in the History tab's own grid. */
+.final-report-eyebrow { color: var(--school-primary); font-weight: 800; margin-bottom: 6px; }
+.final-report-figures { grid-template-columns: 1fr 1fr; gap: 2px 24px; }
+.final-report-figures > div { padding: 4px 0; }
+.final-report-ambitions { margin: 0 0 16px; }
+.final-report-ambitions h3 { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--school-primary); margin: 0 0 6px; }
+.final-report-ambitions .ambitions { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 22px; }
+.final-report-unreached { margin: 8px 0 0 !important; font-size: var(--text-xs) !important; color: var(--ink-muted) !important; font-style: italic; }
+.final-report-charts { margin: 0 0 16px; }
+@media (max-width: 560px) { .final-report-figures { grid-template-columns: 1fr; } }
+
 /* The small second figure in a History cell — courses finished this year
    beside the catalogue's total, the year's average beside the summer's
    satisfaction — set quiet so the column still reads as one number. */

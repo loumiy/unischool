@@ -8,7 +8,7 @@ ordered sequence of PRs: a fifty-year run with a sealed record, an ending that
 legitimises more than one way to play, and a top of the table that has to be
 held.*
 
-**Status: In progress.** PRs A and B have landed. Depends on [Plan 15](15-growth-has-a-cost.md) for a
+**Status: In progress.** PRs A, B and C have landed. Depends on [Plan 15](15-growth-has-a-cost.md) for a
 prestige that can fall and an economy that makes the fiftieth year cost
 something, and on [Plan 16](16-the-year.md) for the summer sequence the final
 report rides in. PRs A and D can start before either. Supersedes
@@ -171,6 +171,25 @@ records which family it came from, which is what PR E asserts against.
 - `s.self.legacy` is written once, here. The History tab shows it sealed. Play
   continues; the sixtieth summer files an ordinary year in review.
 - The sim's tally records the legacy so PR E can assert against it.
+
+**As implemented:** the summer interrupt raised on year fifty carries a
+`final` flag in its payload, so the modal and its width rule
+(`modalLayout.ts`: the final report is a page) read it off the payload and a
+save taken between beats still knows. The record is sealed at the top of
+`RESOLVE_ADMISSIONS`, before the digest, the report card or the funnel touch
+the school, so it is byte-for-byte the reading the beat displayed; the test
+pins that identity. Two of the founder's four numbers needed a record the
+game did not keep: `YearSnapshot.graduated` (the seniors each summer sends
+out, so *students taught* is every class that left plus the body still here)
+and `University.facultyServed` (counted at `appointFaculty`, the one door
+onto the roster, seeded at the founding five). The History tab gains a
+**Legacy** panel that shows the sealed record after year fifty and the same
+reading taken live before it, labelled as what the school would be called
+today, with a countdown to the report. `HistoryChart` was lifted out of the
+tab into `components/HistoryChart.tsx` so the report draws the same curves.
+The final report's fourth curve is rank rather than the catalogue: at fifty
+the catalogue is a flat line for most runs and the rank is the story. Save
+version 64.
 
 ## PR 17D — The top has to be held
 

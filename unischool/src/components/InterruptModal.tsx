@@ -3,8 +3,13 @@ import type { Action } from '../state/actions';
 import type {
   Coach, GameState, InitiativeReport, PendingInterrupt, SeasonResult, SummerBeat, SummerDecision, SummerPayload,
 } from '../state/types';
-import { institutionName, SUMMER_BEATS, WEEKS_PER_YEAR } from '../state/types';
+import { institutionName, SEMICENTENNIAL_YEAR, SUMMER_BEATS, WEEKS_PER_YEAR } from '../state/types';
 import { buildYearInReview } from '../state/yearInReview';
+import { legacy } from '../state/legacy';
+import { founderFigures } from '../state/finalReport';
+import { ambitionEntries } from '../data/ambitionsData';
+import { HistoryChart, formatMoney } from './HistoryChart';
+import { LegacyAxes } from './LegacyAxes';
 import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
@@ -499,6 +504,68 @@ function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: () => void })
   );
 }
 
+// THE FINAL REPORT (Plan 17's PR C): the fiftieth summer's first beat, in
+// place of the year in review. Everything on it is a pure reading — the
+// legacy (state/legacy.ts), the ambitions with their years, the founder's
+// four numbers (state/finalReport.ts) and the fifty-year curves off the
+// history record — read here exactly as the last beat's RESOLVE_ADMISSIONS
+// will seal it, so the report cannot show a record the boundary does not
+// write. Read-and-continue: the run goes on into its fifty-first year.
+function FinalReportBeat({ s, onContinue }: { s: GameState; onContinue: () => void }) {
+  const record = legacy(s);
+  const figures = founderFigures(s);
+  const reached = ambitionEntries(s).filter((a) => a.year !== null).sort((a, b) => (a.year ?? 0) - (b.year ?? 0));
+  const unreached = ambitionEntries(s).filter((a) => a.year === null);
+  const years = s.history.map((h) => h.year);
+  return (
+    <>
+      <div className="eyebrow final-report-eyebrow">The final report · year {SEMICENTENNIAL_YEAR}</div>
+      <h2>{institutionName(s.self)} is {record.name}.</h2>
+      <p>
+        Fifty years, and this is what they add up to. The record is sealed when this summer closes;
+        the clock keeps running for as long as you want to keep building.
+      </p>
+      <LegacyAxes axes={record.axes} />
+      <dl className="admissions-outcomes final-report-figures">
+        <div><dt>Students taught</dt><dd>{figures.studentsTaught.toLocaleString()}</dd></div>
+        <div><dt>Faculty who served</dt><dd>{figures.facultyServed.toLocaleString()}</dd></div>
+        <div><dt>Prizes</dt><dd>{figures.prizes.toLocaleString()}</dd></div>
+        <div><dt>National titles</dt><dd>{figures.titles.toLocaleString()}</dd></div>
+      </dl>
+      <section className="final-report-ambitions">
+        <h3>Ambitions</h3>
+        {reached.length === 0 ? (
+          <p className="review-empty">None reached.</p>
+        ) : (
+          <ul className="ambitions">
+            {reached.map((a) => (
+              <li key={a.id} className="ambition">
+                <span className="ambition-mark" aria-hidden="true">●</span>
+                <span className="ambition-body"><span className="ambition-name">{a.name}</span></span>
+                <span className="ambition-year">Year {a.year}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {unreached.length > 0 && (
+          <p className="final-report-unreached">
+            Not reached: {unreached.map((a) => a.name).join(' · ')}.
+          </p>
+        )}
+      </section>
+      {years.length >= 2 && (
+        <div className="history-charts final-report-charts">
+          <HistoryChart label="Prestige" years={years} values={s.history.map((h) => h.prestige)} format={(v) => `${Math.round(v)}`} />
+          <HistoryChart label="Enrollment" years={years} values={s.history.map((h) => h.enrolled)} format={(v) => Math.round(v).toLocaleString()} />
+          <HistoryChart label="Operating funds" years={years} values={s.history.map((h) => h.cash)} format={formatMoney} />
+          <HistoryChart label="Rank" years={years} values={s.history.map((h) => -h.rank)} format={(v) => `#${Math.round(-v)}`} />
+        </div>
+      )}
+      <button onClick={onContinue}>Continue →</button>
+    </>
+  );
+}
+
 // Beat four. The student-life digest — a whole year's petitions, answered
 // together — and the summer's last word: what the school is about to
 // commit, then the year turns over. Every petition defaults to approved
@@ -546,7 +613,9 @@ function SummerView({ s, payload, act }: { s: GameState; payload: SummerPayload;
   return (
     <>
       <SummerSteps beat={payload.beat} />
-      {payload.beat === 0 ? (
+      {payload.beat === 0 && payload.final ? (
+        <FinalReportBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} />
+      ) : payload.beat === 0 ? (
         <ReviewBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} />
       ) : payload.beat === 1 ? (
         <RankingsReportView

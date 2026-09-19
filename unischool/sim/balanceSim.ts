@@ -34,7 +34,7 @@ import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { METRICS, TOLERANCE, describeFinding, findingsFor, metricOf, serialiseReference, type Metric, type Reference, bandsAcross, REFERENCE_HORIZON, REFERENCE_EXTRA_SEEDS, bandsFor } from './reference';
 import type { Action } from '../src/state/actions';
 import { createPreStartState } from '../src/state/actions';
-import type { AthleticsBudgetTier, GameState, Buildable, InitiativeReport, SummerPayload } from '../src/state/types';
+import type { AthleticsBudgetTier, GameState, Buildable, InitiativeReport, Legacy, SummerPayload } from '../src/state/types';
 import { SUMMER_LAST_BEAT, totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { playerRank } from '../src/systems/rivals/rivalsSystem';
 import { intakeCeiling } from '../src/systems/techtree/instructionCapacity';
@@ -1033,6 +1033,12 @@ interface EventTally {
   varsityPetitions: number;
   varsityGranted: number;
   titles: number; // championships won over the run (see systems/athletics/playoffs.ts)
+  // THE SEALED RECORD (Plan 17's PR C): what the fiftieth summer wrote onto
+  // s.self.legacy, or null on a run that never got there. The thing PR E's
+  // four assertions are about — a legacy is the run's whole shape as six
+  // grades and a name, and "four archetypes finish differently" is a claim
+  // about these.
+  legacy: Legacy | null;
   // Every interrupt the run answered, by type. The review counted these by
   // hand — 223 modals over forty years, 61 of them research reports — and
   // "which modal is the player actually seeing" is a different question from
@@ -1129,6 +1135,7 @@ export function play(
     schoolsNamed: 0, chaptersFormed: 0, chaptersAskedForHousing: 0,
     hellenicCouncilYear: null, hellenicCouncilEligibleYear: null, studentCenterYear: null,
     eventFireCounts: {}, varsityPetitions: 0, varsityGranted: 0, titles: 0,
+    legacy: null,
     modals: {},
   };
 
@@ -1216,6 +1223,10 @@ export function play(
       if (summerCloses) {
         rows.push(snapshot(s, weeksInTheRed, minCash, year));
         year = newYear();
+        // The record, the summer it is sealed (see the reducer's
+        // RESOLVE_ADMISSIONS). Read off the state rather than recomputed,
+        // so the harness asserts against exactly what a player was shown.
+        if (tally.legacy === null && s.self.legacy) tally.legacy = s.self.legacy;
       }
       if (type === 'decision-event') {
         // Which event, and which way it went, read off the answer the
@@ -1454,6 +1465,15 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
     `greek housing ${tally.chaptersAskedForHousing}/${tally.chaptersFormed} chapters asked (${housingFraction.toFixed(0)}%); ` +
     `hellenic council ${councilLine}`,
   );
+  // The sealed record (Plan 17's PR C), when the run reached the fiftieth
+  // summer: the name and the six grades, which is what "how did this run
+  // finish" means now.
+  if (tally.legacy) {
+    console.log(
+      `   legacy (sealed year ${tally.legacy.year}): ${tally.legacy.name} — `
+      + tally.legacy.axes.map((a) => `${a.label} ${a.grade}`).join(', '),
+    );
+  }
   const eventBreakdown = Object.entries(tally.eventFireCounts)
     .sort((a, b) => b[1] - a[1])
     .map(([id, n]) => `${id} x${n}`)
