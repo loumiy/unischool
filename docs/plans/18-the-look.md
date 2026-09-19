@@ -265,6 +265,20 @@ The build popup's category tabs become chips and its tiles take the outline.
 The startup screen's card follows the panel and gains PR B's picker. The
 main menu popup follows the panel.
 
+**As implemented:** one CSS pass over Research, Student Life, Athletics,
+Enrollment, History and Treasury, the build popup, the building panel and
+hall slots, the main menu's rows, the help hint, the badge and the shared
+progress bar and ring — every remaining literal hex in those sections is a
+token now, every meter is the school primary on `--cream-lo`, every eyebrow
+the display face in the primary, every pressable the outline with the
+offset and the picked one the secondary fill. Two bare buttons (launch a
+campaign, hire a coach) gained a `panel-action` class so they could take
+the register; nothing else in a component changed. The startup screen and
+the main menu card had already followed the panel in PRs A and B. One
+collision found by photographing the map: the building panel and the
+pennant share the top-left corner, so the pennant yields to an open panel
+(`body:has(.building-info-panel)`), the same rule an open tab applies.
+
 ## 7. PR G — Docs
 
 `ui-shell.md` gains a short section, *The register*, saying what the tokens
