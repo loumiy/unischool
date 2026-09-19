@@ -197,6 +197,17 @@ blocked, dashed when locked, and the secondary fill on the chip that says
 why. The drawer follows the panel. The `Develop N` button is the secondary
 fill with the outline and offset, the one primary action on the screen.
 
+**As implemented:** the tab is not seven school cards any more — Plan 14
+made it forty-two program rows grouped under their schools — so the colour
+block is the *group's header*: a band in the school's hue carrying its mark,
+its name, its grade and its count, with the rows as outlined cards beneath it
+and the hue as their thick left rule. A developed cell fills in its school's
+hue (the parchment-era tiles carried it as a faint tint), so a finished
+catalogue is a wall of colour blocks grouped by school; a ready cell is the
+one with the outline and the offset. The "what next" strip's readings lead
+with a chip in the school primary, and an offer's door is the secondary.
+Nothing in `CurriculumTab.tsx` changed: the stylesheet carried all of it.
+
 ## 4. PR D — The Faculty tab
 
 The "what next" strip becomes a row of pills, each led by a chip naming the
