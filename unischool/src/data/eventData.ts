@@ -1,5 +1,5 @@
 import type { Buildable, Coach, Faculty, GameState, GreekChapter, LogEntry, LogTopic } from '../state/types';
-import { WEEKS_PER_YEAR } from '../state/types';
+import { WEEKS_PER_YEAR, institutionName } from '../state/types';
 import { FACULTY_FIELDS, generateCandidate, rollSurname } from './facultyData';
 import { appointFaculty } from '../systems/faculty/facultySystem';
 import { money, rollAmount, weeksOfOpEx } from './moneyScale';
@@ -10,6 +10,7 @@ import {
 } from './studentLifeData';
 import { GENED_CORE_IDS, graduateProgram, isAcademicHall, milestoneSchools } from './techData';
 import { dedicatedHalls, dedicatedSchool } from '../systems/techtree/schools';
+import { buildReportPayload } from '../systems/rivals/rivalsSystem';
 
 // ---------------------------------------------------------------------
 // WEEK-TO-WEEK TEXTURE, AS AUTHORED DATA.
@@ -392,6 +393,18 @@ const NAMING_RIGHTS_PRESTIGE_GATE = 40;   // nobody buys naming rights at a scho
 const NAMING_RIGHTS_SATISFACTION_HIT = 5;
 
 const RETENTION_PACKAGE_SALARY_SHARE = 0.6; // a lump sum, as a share of the hire's current annual salary
+
+// THE TRUSTEES' RESPONSE (Plan 17's PR D, 'rival-passed'): what a board
+// offers the year a rival passes the school. Both paid choices are priced
+// as a serious commitment — several weeks of operating cost — because a
+// response that cost nothing would not be one. The chair is the visiting
+// scholar's own best-of-N roll, in a field the school already teaches; the
+// campaign converts cash into endowment at a match the ordinary campaign
+// never reaches, which is what a board rallying behind a school can do
+// once. Nothing here writes prestige (see the module note).
+const TRUSTEE_RESPONSE_COST_WEEKS = 3;
+const TRUSTEE_CHAIR_CANDIDATE_ROLLS = 5;
+const TRUSTEE_CAMPAIGN_MULTIPLIER = 2.2;
 
 const VISITING_SCHOLAR_PRESTIGE_GATE = 55;
 // Down from 3 weeks of opex, because what the choice costs changed. Funding
@@ -1269,6 +1282,91 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         describe: () => 'Nothing is spent. The chair stays empty until somebody on the market is hired into it — which costs the team quality for as long as it takes.',
         cost: () => 0,
         apply: (s, ctx) => entry(s, `${ctx.subjectName} will go on without the appointment for now.`, 'info'),
+      },
+    ],
+  },
+  {
+    // THE TOP HAS TO BE HELD (Plan 17's PR D). A rival that passes the
+    // school fires this once, for that rival, on the first quiet week the
+    // shared cadence allows (eventSystem.ts's fireTrusteeResponse): a
+    // trustee proposes a response at a real cost. Fired directly rather
+    // than drawn, like the varsity petition, because being passed is a
+    // moment and not a mood — but it spends the same decision-event
+    // budget, so the defend era's years are not busier than the build
+    // era's, only about something else.
+    id: 'rival-passed',
+    title: 'The board wants a response',
+    weight: 0, // never drawn by the weighted lottery — fired by eventSystem.ts's fireTrusteeResponse
+    eligible: () => false,
+    rollContext: (s) => {
+      if (s.history.length === 0) return null;
+      const passedBy = buildReportPayload(s).passedBy;
+      const name = passedBy.find((n) => {
+        const rival = s.rivals.find((r) => r.name === n);
+        return rival !== undefined && !s.events.passedResponses.includes(rival.id);
+      });
+      const rival = name ? s.rivals.find((r) => r.name === name) : undefined;
+      if (!rival) return null;
+      // A chair in a field the school already teaches — a department to
+      // deepen rather than a new one to open — rolled best of N exactly as
+      // the visiting scholar is.
+      const fields = [...new Set(s.faculty.map((f) => f.field))];
+      const field = fields.length > 0 ? pick(fields) : pick(FACULTY_FIELDS);
+      const existing = [...s.faculty, ...s.candidates].map((f) => f.name);
+      let best = generateCandidate(field, existing);
+      for (let i = 1; i < TRUSTEE_CHAIR_CANDIDATE_ROLLS; i += 1) {
+        const next = generateCandidate(field, [...existing, best.name]);
+        if (next.teachingPotential + next.researchPotential > best.teachingPotential + best.researchPotential) best = next;
+      }
+      return {
+        subjectId: rival.id,
+        subjectName: rival.name,
+        subjectField: field,
+        amount: weeksOfOpEx(s, TRUSTEE_RESPONSE_COST_WEEKS),
+        candidate: best,
+      };
+    },
+    prompt: (s, ctx) =>
+      `${ctx.subjectName} has passed ${institutionName(s.self)} in this year's table, and the board has noticed. `
+      + `A trustee is proposing a response, and either would cost ${money(ctx.amount ?? 0)}: an endowed chair in ${ctx.subjectField}, `
+      + `or a campaign the board would put its own name to.`,
+    choices: [
+      {
+        id: 'chair',
+        label: `Endow the chair`,
+        describe: (_s, ctx) => {
+          const c = ctx.candidate;
+          return `${money(ctx.amount ?? 0)} up front, and ${c ? `$${c.salary.toLocaleString()}/yr` : 'a salary'} thereafter. `
+            + `${c ? `${c.name} takes the chair in ${ctx.subjectField}, teaching ${c.teaching} · researching ${c.research}` : 'A scholar takes the chair'} — the best the board could find.`;
+        },
+        cost: (_s, ctx) => ctx.amount ?? 0,
+        apply: (s, ctx) => {
+          const field = ctx.subjectField ?? pick(FACULTY_FIELDS);
+          const person = ctx.candidate
+            ?? generateCandidate(field, [...s.faculty, ...s.candidates].map((f) => f.name));
+          appointFaculty(s, person);
+          return entry(s, `${person.name} (${field}) takes the trustees' chair, endowed in answer to ${ctx.subjectName}, at $${person.salary.toLocaleString()}/yr.`, 'good', 'appointment', person.id);
+        },
+      },
+      {
+        id: 'campaign',
+        label: "Run the board's campaign",
+        describe: (_s, ctx) =>
+          `${money(ctx.amount ?? 0)} committed; ${money((ctx.amount ?? 0) * TRUSTEE_CAMPAIGN_MULTIPLIER)} into the endowment at the board's own match. `
+          + 'It pays out every year from now on, and feeds the financial-resources input to prestige.',
+        cost: (_s, ctx) => ctx.amount ?? 0,
+        apply: (s, ctx) => {
+          const raised = Math.round((ctx.amount ?? 0) * TRUSTEE_CAMPAIGN_MULTIPLIER);
+          s.finance.endowment += raised;
+          return entry(s, `The board's campaign, in answer to ${ctx.subjectName}: ${money(raised)} raised into the endowment.`, 'good', 'money');
+        },
+      },
+      {
+        id: 'hold',
+        label: 'Hold the course',
+        describe: () => 'Nothing is spent. The school answers on the field, or does not.',
+        cost: () => 0,
+        apply: (s, ctx) => entry(s, `The board's response to ${ctx.subjectName} is to hold the course.`, 'info'),
       },
     ],
   },

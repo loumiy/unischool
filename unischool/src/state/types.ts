@@ -739,6 +739,12 @@ export interface EventState {
   // the way" on the first letter, which stands the rest of the script down
   // for the run. Plain JSON like the rest of this slice.
   opening: { read: string[]; skipped: boolean };
+  // THE TRUSTEES' RESPONSE (Plan 17's PR D — see data/eventData.ts's
+  // 'rival-passed'). The ids of every rival whose passing the player has
+  // already been asked about, stamped when the event fires rather than
+  // when it is answered, so a dismissed modal never comes back for the
+  // same school. Once per rival for the run; a plain list of ids.
+  passedResponses: string[];
 }
 
 // The player's admissions policy is set once a year via the summer

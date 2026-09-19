@@ -114,7 +114,9 @@ export const SAVE_KEY = 'unischool.save';
 // v64: Plan 17 PR C. `s.self.legacy` (the sealed record, nullable),
 // `s.self.facultyServed` and `YearSnapshot.graduated`, all added as
 // required.
-export const SAVE_VERSION = 64;
+// v65: Plan 17 PR D. `s.events.passedResponses` (the rivals whose passing
+// the trustees have already answered), added as required.
+export const SAVE_VERSION = 65;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch

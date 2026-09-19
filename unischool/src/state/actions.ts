@@ -398,6 +398,7 @@ export function createPreStartState(): GameState {
       // No letter delivered and the script not declined (see types.ts's
       // EventState.opening).
       opening: { read: [], skipped: false },
+      passedResponses: [],
     },
     orgs: {
       clubs: [], chapters: [], teams: [], coachCandidates: [], pendingPetitions: [],
@@ -719,6 +720,7 @@ export function createInitialState(
       // No letter delivered and the script not declined (see types.ts's
       // EventState.opening).
       opening: { read: [], skipped: false },
+      passedResponses: [],
     },
     // No student organisations at founding, and none can form until the
     // campus has a student center to form them in (see

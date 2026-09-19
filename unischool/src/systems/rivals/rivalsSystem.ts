@@ -1,7 +1,7 @@
 import type { GameState, Rival, VarsityTeam } from '../../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../../state/types';
 import { athleticProgramStrength, teamQuality } from '../../data/studentLifeData';
-import { makeRivalRng, sportStrengthFor } from '../../data/rivalData';
+import { ELITE_RIVAL_IDS, makeRivalRng, sportStrengthFor } from '../../data/rivalData';
 
 // ---------------------------------------------------------------------
 // Rivals evolve so the ranking stays a live target across decades (see
@@ -29,6 +29,33 @@ const RIVAL_REPUTATION_MAX = 150;
 // same wall it started under.
 const ATHLETIC_STRENGTH_MIN = 5;
 const ATHLETIC_STRENGTH_MAX = 85;
+
+// THE TOP HAS TO BE HELD (Plan 17's PR D). The elite band (rivalData.ts's
+// ELITE_RIVAL_IDS) gains a term in its annual drift: a pull toward the
+// player's own standing less ELITE_CLOSE_GAP, at a rate that closes a
+// ten-point gap in about five years. The player can still be first; the
+// field arrives. Applied only while the player is above
+// ELITE_CLOSE_ABOVE_PRESTIGE, so the found and build eras are untouched —
+// a school climbing through the 80s meets the same field it always did.
+//
+// Deterministic, and only ever UPWARD on the rival: a rival already above
+// the target keeps its own number and its ordinary drift. With Plan 15's
+// asymmetric prestige a school that coasts falls, and a field closing at
+// this rate is what makes falling cost rank — the whole mechanism of the
+// defend era, and it needs no new system. No draw on any random stream.
+export const ELITE_CLOSE_ABOVE_PRESTIGE = 100;
+export const ELITE_CLOSE_GAP = 4;
+export const ELITE_CLOSE_RATE = 0.35; // 0.65^5 ≈ 0.12: a ten-point gap is a little over one point after five years
+
+// How far an elite rival's reputation moves this year toward the leader.
+// Zero below the prestige gate, zero for a rival already at or above the
+// target, and never a draw on any stream.
+export function eliteClosingStep(rivalReputation: number, playerReputation: number): number {
+  if (playerReputation <= ELITE_CLOSE_ABOVE_PRESTIGE) return 0;
+  const target = playerReputation - ELITE_CLOSE_GAP;
+  if (rivalReputation >= target) return 0;
+  return (target - rivalReputation) * ELITE_CLOSE_RATE;
+}
 
 // The U.S. News report is a mid-game reveal (see
 // docs/design/progression.md): the player is unaware of it until prestige
@@ -115,7 +142,10 @@ export function tickRivals(s: GameState): void {
         r.momentum = (roll() - MOMENTUM_UPWARD_BIAS) * MOMENTUM_RANGE;
       }
       const shock = (roll() - 0.5) * ANNUAL_SHOCK_RANGE;
-      r.reputation = clamp(r.reputation + r.momentum + shock, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
+      // The elite band closes on the leader (see eliteClosingStep above):
+      // the same momentum and shock as everybody, plus the pull.
+      const closing = ELITE_RIVAL_IDS.has(r.id) ? eliteClosingStep(r.reputation, s.self.reputation) : 0;
+      r.reputation = clamp(r.reputation + r.momentum + shock + closing, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
 
       // The other two standings drift the same way, each on its OWN
       // momentum — which is what keeps the three tables from moving as one

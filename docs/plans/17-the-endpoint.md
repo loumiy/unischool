@@ -8,7 +8,7 @@ ordered sequence of PRs: a fifty-year run with a sealed record, an ending that
 legitimises more than one way to play, and a top of the table that has to be
 held.*
 
-**Status: In progress.** PRs A, B and C have landed. Depends on [Plan 15](15-growth-has-a-cost.md) for a
+**Status: In progress.** PRs A, B, C and D have landed. Depends on [Plan 15](15-growth-has-a-cost.md) for a
 prestige that can fall and an economy that makes the fiftieth year cost
 something, and on [Plan 16](16-the-year.md) for the summer sequence the final
 report rides in. PRs A and D can start before either. Supersedes
@@ -209,6 +209,26 @@ This is the PR that makes the defend era an era.
   the whole mechanism of the defend era, and it needs no new system.
 - Deliberately no poaching here. That is the faculty-lifecycle plan, and it will
   read this drift when it comes.
+
+**As implemented:** the term is `eliteClosingStep` in `rivalsSystem.ts` — a
+pull of 0.35 of the distance to `player − 4` a year, applied to the ten
+authored ids (`rivalData.ts`'s `ELITE_RIVAL_IDS`, r6–r15) on top of their
+ordinary momentum and shock, only while the player is above 100, and only
+ever upward on the rival — deterministic, so the field's one draw a year is
+untouched. The "passed" line rides in the review's Standing section off the
+same `passedBy` the Standing beat reads, so the two beats agree. The trustee's
+response is a decision event (`'rival-passed'`) fired **directly** on the
+first quiet week the shared cooldown allows, like the varsity petition, rather
+than drawn — being passed is a moment — but it stamps `lastDecisionWeek`, so
+it spends the ordinary budget rather than adding to it. Two paid responses
+rather than the plan's three: an endowed chair (the visiting scholar's own
+best-of-five roll, in a field the school already teaches) and a board
+campaign into the endowment at a match the ordinary campaign never reaches;
+"a facility" was dropped, because a building has to be sited and an event
+cannot site one. Once per rival for the run, stamped at fire time on
+`events.passedResponses`, so a dismissed modal never comes back for the same
+school. It fires for **any** rival that passes, elite or not, as written. Save
+version 65.
 
 ## PR 17E — The balance target
 
