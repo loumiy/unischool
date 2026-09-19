@@ -1274,6 +1274,33 @@ export interface ReportCard {
   after: number;                   // prestige after the step
 }
 
+// THE LEGACY (Plan 17's PR B): six graded axes and a name, read off state
+// at any moment by state/legacy.ts's legacy(s), and written ONCE — onto
+// University.legacy, at the fiftieth summer (PR C) — as the record the run
+// is remembered by. Six grades rather than a score, on purpose: a single
+// number invites optimising one thing; six let a run be an A in research
+// and a C in teaching and be *called* something for it. The name is
+// flavour, chosen from an authored table by the pattern of grades; the six
+// grades are the record. Plain JSON — strings and numbers — so a sealed
+// legacy survives a save untouched.
+export type LegacyGrade = 'A' | 'B' | 'C' | 'D' | 'F';
+export type LegacyAxisKey = 'breadth' | 'concentration' | 'teaching' | 'research' | 'reach' | 'stewardship';
+
+export interface LegacyAxis {
+  key: LegacyAxisKey;
+  label: string;
+  score: number;      // 0..1, before banding
+  grade: LegacyGrade;
+  detail: string;     // one line about what the reading actually read
+}
+
+export interface Legacy {
+  year: number;               // the year the reading was taken (the fiftieth, when sealed)
+  axes: LegacyAxis[];         // six, in a fixed order (see state/legacy.ts's AXES)
+  name: string;               // "a great research university" — the sentence the run is called
+  table: 'great' | 'sound' | 'troubled'; // which authored table the name came from (see state/legacy.ts)
+}
+
 // The institution's full display name. The one place the two halves are
 // joined, so a school resumed from a pre-split save (empty suffix) reads
 // exactly as it always did rather than picking up a stray space.

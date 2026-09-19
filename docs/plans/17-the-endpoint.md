@@ -8,7 +8,7 @@ ordered sequence of PRs: a fifty-year run with a sealed record, an ending that
 legitimises more than one way to play, and a top of the table that has to be
 held.*
 
-**Status: In progress.** PR A has landed. Depends on [Plan 15](15-growth-has-a-cost.md) for a
+**Status: In progress.** PRs A and B have landed. Depends on [Plan 15](15-growth-has-a-cost.md) for a
 prestige that can fall and an economy that makes the fiftieth year cost
 something, and on [Plan 16](16-the-year.md) for the summer sequence the final
 report rides in. PRs A and D can start before either. Supersedes
@@ -139,6 +139,27 @@ and the weakest — *a great research university*, *the finest college in the
 country*, *a place students never leave*, *an engine of the region*, *a school
 that grew too fast* — and a dozen more. The name is flavour; the six grades are
 the record.
+
+**As implemented:** `state/legacy.ts`, a pure reading in the shape of
+`yearInReview.ts`; the `Legacy` type lives in `types.ts` so PR C can store it.
+Breadth, concentration and research read the standing's own functions
+exactly (`curriculumBreadthScore`, `concentrationScore`, `researchScore`, the
+last two newly exported), so the legacy cannot disagree with the prestige
+model. Teaching is half the campus average on `courseQuality.ts`'s own floor
+and ceiling, half the share of courses graded A or B. *Selectivity and reach*
+is the **greater** of two readings rather than a blend — how selective the
+school is (class quality and admit rate) or how far past its standing it
+draws (the realised pool against the pool prestige alone would draw, off
+`lastFunnel`) — because a selective college and a regional engine earn the
+same axis two different ways. Stewardship is thirds: the share of weeks
+solvent (PR A's counter), endowment per student against a reference a well-run
+school reaches, and the students' average over every year on the books. The
+bands are one table (`LEGACY_GRADE_BANDS`: A at 0.85, B 0.65, C 0.45, D 0.25)
+and are what PR E fits. Twenty-one names in three tables — *great*, *sound*,
+*troubled* — tested in that order with the troubled entries first, so a broad
+school in the red is *a school that grew too fast* before it is anything
+else; every one of the 5⁶ grade patterns finds a name, and `Legacy.table`
+records which family it came from, which is what PR E asserts against.
 
 ## PR 17C — The semicentennial
 
