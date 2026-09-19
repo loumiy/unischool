@@ -243,6 +243,19 @@ The milestone modal becomes the pennant moment the mockup promised: the
 school's two colours, big type, one line. The annual report's table is a
 table.
 
+**As implemented:** the title is a block in the school primary with the
+secondary as a 4 px rule beneath it, inset to the card's padding rather
+than bled to its edge (the card's own 3 px outline and rounded corners
+stay whole). The milestone, championship and rankings-entry titles invert
+the pair — the secondary as the block, the primary as its rule and ink —
+at 34 px, which is the pennant moment. The one attribute added to a
+component is `data-interrupt` on the modal root, so the stylesheet can
+tell those three apart. The summer's beats are outlined tiles on cream,
+the review's sections outlined cards, the standing lines the display face
+in the primary, the slider the primary at 10 px, the letter's eyebrow the
+display face over the block. Every dark-chrome rule inside the modal was
+rewritten to the light names rather than left to the re-pointing net.
+
 ## 6. PR F — Everything else
 
 Research, Student Life, Athletics, Enrollment, History and Treasury each get

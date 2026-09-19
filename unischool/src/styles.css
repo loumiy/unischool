@@ -2479,15 +2479,29 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* ---------- overlays ---------- */
 .modal-backdrop { position: fixed; inset: 0; background: rgba(27, 42, 74, 0.45);
   display: flex; align-items: center; justify-content: center; z-index: 100; }
-/* Plan 18: the modal is a cream card with the 3px outline and the hard
-   offset — the one shell that IS standing in front of the screen, so it
-   is the one that casts the shadow. Still the dark-chrome token names
-   inside it (--ink-hi, --ink-lo) until PR E redraws its contents, so its
-   text tokens are re-pointed here to the light pair for now. */
-.modal { background: var(--cream); color: var(--ink); border-radius: var(--radius-xl); padding: 20px 24px; max-width: 440px; width: 100%;
+/* Plan 18 (PRs A and E): the modal is a cream card with the 3px outline
+   and the hard offset — the one shell that IS standing in front of the
+   screen, so it is the one that casts the shadow — and its title is a
+   BAND in the school's colours across the top (see `.modal > h2` below).
+   The dark-chrome token names are re-pointed to the light pair inside it,
+   so any view that still says --ink-hi reads on cream; PR E rewrote the
+   views' own rules to the light names, and this stays as the net. */
+.modal { background: var(--cream); color: var(--ink); border-radius: var(--radius-xl); padding: 0 24px 20px; max-width: 440px; width: 100%;
   border: 3px solid var(--outline); box-shadow: var(--shadow-3); max-height: 90vh; overflow-y: auto;
   --ink-hi: var(--outline); --ink-lo: var(--ink-muted); --navy-line: var(--parchment-line); --navy: var(--cream-lo);
   --ok-on-dark: var(--ok-on-light); --bad-on-dark: var(--bad-on-light); --warn-on-dark: var(--warn-on-light); }
+/* The band: the school primary with the secondary as its rule, pulled out
+   to the card's edges by the negative margins, the title in the display
+   face. A view that opens with something above its title (the summer's
+   step row) keeps the band below that row. The three MOMENTS — a
+   milestone, a championship, entering the rankings — invert it: the
+   secondary as the cloth, the primary as the type, a size up: the pennant
+   moment the mockup promised (see InterruptModal.tsx's data-interrupt). */
+.modal > h2 { margin: 0 -24px 16px; padding: 18px 24px 14px; background: var(--school-primary); color: var(--school-on-primary);
+  border-bottom: 4px solid var(--school-secondary); }
+.modal[data-interrupt="milestone"] > h2, .modal[data-interrupt="championship"] > h2, .modal[data-interrupt="rankings-entry"] > h2 {
+  background: var(--school-secondary); color: var(--school-on-secondary); border-bottom-color: var(--school-primary);
+  font-size: 34px; padding: 22px 24px 16px; }
 /* An interrupt halts the clock until it is resolved, so its resolve button
    must always be reachable: the modal scrolls internally rather than
    growing past the viewport on a short screen (the annual report is the
@@ -2501,27 +2515,31 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    offset (the same treatment as .startup-begin-btn). */
 .modal button { background: var(--school-secondary); color: var(--school-on-secondary); border: 2px solid var(--outline); border-radius: var(--radius-pill);
   padding: 8px 18px; font-family: var(--display); font-size: var(--text-md); font-weight: 800; box-shadow: var(--shadow-1); }
-.modal button:disabled { opacity: 0.5; cursor: not-allowed; }
+.modal button:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+/* Inside the modal, a boxed reading is a cream-white card with the 2px
+   outline (the register's panel), and a small heading over it is the
+   display face in the school primary. Every block below uses these two. */
+.modal-card { background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-lg); }
 
 /* Year-over-year movement in the annual report (see InterruptModal.tsx). */
 .report-headline { display: flex; align-items: baseline; gap: 10px; margin: 0 0 14px !important;
-  padding: 9px 12px; background: #1a2338; border: 1px solid var(--navy-line); border-radius: var(--radius-md); }
-.report-headline-detail { font-family: var(--mono); font-size: var(--text-base); color: #cbd0d8; }
-.rank-move { font-family: var(--mono); font-size: var(--text-lg); font-weight: 700; }
-.rank-move.up { color: var(--ok-on-dark); }
-.rank-move.down { color: var(--bad-on-dark); }
-.rank-move.flat { color: var(--ink-lo); font-size: var(--text-base); }
-.report-crossing { font-size: var(--text-base); margin: 0 0 8px !important; line-height: 1.45; }
-.report-crossing.passed { color: var(--ok-on-dark); }
-.report-crossing.passed-by { color: var(--bad-on-dark); }
+  padding: 10px 14px; background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-lg); }
+.report-headline-detail { font-size: var(--text-base); font-weight: 600; color: var(--ink-muted); }
+.rank-move { font-family: var(--display); font-size: 22px; font-weight: 800; }
+.rank-move.up { color: var(--ok-on-light); }
+.rank-move.down { color: var(--bad-on-light); }
+.rank-move.flat { color: var(--ink-muted); font-size: var(--text-base); }
+.report-crossing { font-size: var(--text-base); margin: 0 0 8px !important; line-height: 1.45; font-weight: 600; }
+.report-crossing.passed { color: var(--ok-on-light); }
+.report-crossing.passed-by { color: var(--bad-on-light); }
 .report-movers { margin: 14px 0; }
-.report-movers h3, .report-standings-head { font-family: var(--serif); font-size: var(--text-sm);
-  text-transform: uppercase; letter-spacing: 0.08em; color: var(--gold); margin: 0 0 6px; }
+.report-movers h3, .report-standings-head { font-family: var(--display); font-weight: 800; font-size: var(--text-sm);
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--school-primary); margin: 0 0 6px; }
 .report-movers ul { list-style: none; margin: 0; padding: 0; }
 .report-movers li { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
-  padding: 3px 0; font-size: var(--text-base); border-bottom: 1px solid var(--navy-line); }
+  padding: 4px 0; font-size: var(--text-base); border-bottom: 1px solid var(--parchment-line); }
 .report-mover-move { display: inline-flex; align-items: baseline; gap: 8px; white-space: nowrap; }
-.report-mover-places { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-lo); }
+.report-mover-places { font-size: var(--text-xs); font-weight: 700; color: var(--ink-muted); }
 
 /* The two secondary standings (research, campus life), one line each above
    the academic table. Sized to read as a footnote to the report rather than
@@ -2529,64 +2547,67 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    rank set in the gold the headline uses so the eye finds it first. */
 /* A thin separator inside a .stat that carries two readings (see
    ResearchTab.tsx's header, which shows standing and facilities in use). */
-.stat-sep { color: var(--navy-line); }
+.stat-sep { color: var(--parchment-line); }
 
 .report-others { list-style: none; margin: 14px 0; padding: 0;
-  border-top: 1px solid var(--navy-line); border-bottom: 1px solid var(--navy-line); }
-.report-others li { display: flex; align-items: baseline; gap: 10px; padding: 5px 0;
+  border-top: 2px solid var(--outline); border-bottom: 2px solid var(--outline); }
+.report-others li { display: flex; align-items: baseline; gap: 10px; padding: 6px 0;
   font-size: var(--text-base); }
-.report-others li + li { border-top: 1px solid var(--navy-line); }
-.report-other-label { font-family: var(--serif); text-transform: uppercase;
-  letter-spacing: 0.08em; font-size: var(--text-xs); color: var(--ink-lo); min-width: 96px; }
-.report-other-rank { font-family: var(--mono); color: var(--gold); font-weight: 700; }
-.report-other-note { color: var(--ink-lo); font-size: var(--text-xs); margin-left: auto;
+.report-others li + li { border-top: 1px solid var(--parchment-line); }
+.report-other-label { font-family: var(--display); font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.08em; font-size: var(--text-xs); color: var(--ink-muted); min-width: 96px; }
+.report-other-rank { font-family: var(--display); color: var(--school-primary); font-weight: 800; font-size: var(--text-lg); }
+.report-other-note { color: var(--ink-muted); font-size: var(--text-xs); margin-left: auto;
   text-align: right; }
 
 .report-standings { max-height: 320px; overflow-y: auto; margin: 0 0 16px; padding-right: 6px; }
-.report-standings li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--navy-line); font-size: var(--text-base); }
-.report-standings li.me { color: var(--ok-on-dark); font-weight: 700; }
+.report-standings li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--parchment-line); font-size: var(--text-base); }
+.report-standings li.me { color: var(--school-primary); font-weight: 800; }
 .report-standings::-webkit-scrollbar { width: 8px; }
-.report-standings::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: var(--radius-sm); }
-.report-standings { scrollbar-width: thin; scrollbar-color: var(--navy-line) transparent; }
+.report-standings::-webkit-scrollbar-thumb { background: var(--parchment-line); border-radius: var(--radius-sm); }
+.report-standings { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
 
-/* Milestone celebrations (see InterruptModal.tsx). Deliberately the same
-   dark-navy modal as every other interrupt, with a single gold accent —
-   a stop-the-clock moment for a finished major should feel like the
-   report does, not like a different game. */
+/* Milestone celebrations (see InterruptModal.tsx): the pennant band above
+   (see `.modal[data-interrupt="milestone"] > h2`), then each milestone as
+   a heading in the display face with its unlocks under a small primary
+   heading. */
 .milestone-entry { margin: 0 0 12px; }
-.milestone-entry h3 { font-family: var(--serif); font-size: var(--text-base); margin: 0 0 4px; color: var(--ink-hi); }
+.milestone-entry h3 { font-family: var(--display); font-weight: 800; font-size: var(--text-xl); letter-spacing: -0.01em; margin: 0 0 4px; color: var(--ink); }
 .milestone-detail { font-size: var(--text-base); margin: 0 0 8px !important; }
-.milestone-unlocks-head { font-family: var(--serif); font-size: var(--text-sm); text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--gold); margin: 0 0 6px; }
+.milestone-unlocks-head { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--school-primary); margin: 0 0 6px; }
 .milestone-unlocks { list-style: none; margin: 0 0 4px; padding: 0; }
-.milestone-unlocks li { font-size: var(--text-base); padding: 3px 0; border-bottom: 1px solid var(--navy-line); color: #cbd0d8; }
-.milestone-gain { color: var(--ok-on-dark); }
+.milestone-unlocks li { font-size: var(--text-base); padding: 4px 0; border-bottom: 1px solid var(--parchment-line); color: var(--ink); font-weight: 600; }
+.milestone-gain { color: var(--ok-on-light); }
 
 /* Authored decision events (see data/eventData.ts). Each choice is a
    full-width button carrying its own consequence text, so the tradeoff is
    readable without hovering anything; an unaffordable one is shown
    disabled rather than hidden. */
+/* A choice is an outlined cream-white card that lifts on hover: the
+   !importants are what beat `.modal button`'s secondary pill, which is the
+   Confirm and never a choice among several. */
 .event-choices { display: grid; gap: 8px; }
-.event-choice { display: block; width: 100%; text-align: left; background: #1a2338 !important;
-  color: var(--ink-hi) !important; border: 1px solid var(--navy-line) !important; border-radius: var(--radius-md);
-  padding: 10px 12px !important; font-weight: 400 !important; }
-.event-choice:not(:disabled):hover { border-color: var(--gold) !important; }
+.event-choice { display: block; width: 100%; text-align: left; background: var(--cream-hi) !important;
+  color: var(--ink) !important; border: 2px solid var(--outline) !important; border-radius: var(--radius-lg);
+  padding: 10px 14px !important; font-weight: 500 !important; font-family: var(--sans) !important; box-shadow: none !important; }
+.event-choice:not(:disabled):hover { box-shadow: var(--shadow-1) !important; transform: translate(-1px, -1px); }
 .event-choice-label { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
-  font-family: var(--serif); font-weight: 700; font-size: var(--text-md); }
-.event-choice-cost { font-family: var(--mono); font-size: var(--text-sm); color: var(--gold); white-space: nowrap; }
-.event-choice-detail { display: block; margin-top: 5px; font-size: var(--text-sm); line-height: 1.45; color: #cbd0d8; }
+  font-family: var(--display); font-weight: 800; font-size: var(--text-lg); }
+.event-choice-cost { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); color: var(--school-primary); white-space: nowrap; }
+.event-choice-detail { display: block; margin-top: 5px; font-size: var(--text-sm); line-height: 1.45; color: var(--ink-muted); }
 
 .admissions-field { display: block; margin-bottom: 16px; }
-.admissions-field span { display: block; font-size: var(--text-base); color: #cbd0d8; margin-bottom: 6px; }
-.admissions-field span strong { color: var(--ink-hi); font-family: var(--mono); }
-.admissions-field input[type="range"] { width: 100%; accent-color: var(--gold); }
+.admissions-field span { display: block; font-size: var(--text-base); color: var(--ink); margin-bottom: 6px; font-weight: 600; }
+.admissions-field span strong { color: var(--ink); font-family: var(--display); font-weight: 800; font-size: var(--text-xl); }
+.admissions-field input[type="range"] { width: 100%; height: 28px; accent-color: var(--school-primary); }
 /* Emergent funnel outcomes previewed live in the admissions interrupt. */
 .admissions-outcomes { display: grid; gap: 2px; margin: 4px 0 18px; padding: 12px 14px;
-  background: #1a2338; border: 1px solid var(--navy-line); border-radius: var(--radius-md); }
+  background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-lg); }
 .admissions-outcomes > div { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 0; }
-.admissions-outcomes dt { font-size: var(--text-base); color: #cbd0d8; margin: 0; }
-.admissions-outcomes dt .outcome-note { color: var(--gold-dim); font-size: var(--text-xs); }
-.admissions-outcomes dd { margin: 0; color: var(--ink-hi); font-family: var(--mono); font-size: var(--text-md); }
+.admissions-outcomes dt { font-size: var(--text-base); color: var(--ink); margin: 0; font-weight: 600; }
+.admissions-outcomes dt .outcome-note { color: var(--school-primary); font-size: var(--text-xs); }
+.admissions-outcomes dd { margin: 0; color: var(--ink); font-family: var(--display); font-weight: 800; font-size: var(--text-lg); }
 
 /* Price-tier feedback (see admissionsSystem.ts's priceTier): the same
    bright-on-dark pair the log ticker/StatusHeader already use for good/bad
@@ -2600,16 +2621,16 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    the value is rendered as a <strong> inside .admissions-field's own
    `span strong { color: var(--ink-hi) }` rule, which a single-class
    selector can't outrank on specificity alone. */
-.price-tier-value.price-tier-bargain { color: var(--ok-on-dark); }
-.price-tier-value.price-tier-fair { color: var(--gold); }
-.price-tier-value.price-tier-expensive { color: #e0a860; }
-.price-tier-value.price-tier-reckless { color: var(--bad-on-dark); }
-.price-tier-tag.price-tier-bargain { color: var(--ok-on-dark); }
-.price-tier-tag.price-tier-fair { color: var(--gold); }
-.price-tier-tag.price-tier-expensive { color: #e0a860; }
-.price-tier-tag.price-tier-reckless { color: var(--bad-on-dark); }
-.price-tier-tag { display: block; font-size: var(--text-xs); font-style: italic; margin-top: 4px; }
-.admissions-net-price { display: flex; align-items: baseline; gap: 8px; margin-top: 8px; font-size: var(--text-base); color: #cbd0d8; }
+.price-tier-value.price-tier-bargain { color: var(--ok-on-light); }
+.price-tier-value.price-tier-fair { color: var(--school-primary); }
+.price-tier-value.price-tier-expensive { color: var(--warn-on-light); }
+.price-tier-value.price-tier-reckless { color: var(--bad-on-light); }
+.price-tier-tag.price-tier-bargain { color: var(--ok-on-light); }
+.price-tier-tag.price-tier-fair { color: var(--school-primary); }
+.price-tier-tag.price-tier-expensive { color: var(--warn-on-light); }
+.price-tier-tag.price-tier-reckless { color: var(--bad-on-light); }
+.price-tier-tag { display: block; font-size: var(--text-xs); font-weight: 700; margin-top: 4px; }
+.admissions-net-price { display: flex; align-items: baseline; gap: 8px; margin-top: 8px; font-size: var(--text-base); color: var(--ink); font-weight: 600; }
 .admissions-net-price .price-tier-tag { display: inline; margin: 0; }
 
 /* What committing the admissions decision would do (see
@@ -2618,15 +2639,15 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    does to us". The delta beside each figure is the point of the panel:
    the absolute number answers "what will it be", the delta answers "is
    this decision better or worse than standing still". */
-.consequence-panel { margin: 4px 0 18px; padding: 10px 14px; background: #1a2338;
-  border: 1px solid var(--navy-line); border-radius: var(--radius-md); }
-.consequence-panel h3 { margin: 0 0 6px; font-family: var(--serif); text-transform: uppercase;
-  letter-spacing: 0.06em; font-size: var(--text-sm); color: var(--gold-dim); }
-.consequence-panel .admissions-outcomes { margin: 0; }
-.consequence-delta { margin-left: 8px; font-family: var(--mono); font-size: var(--text-sm); }
-.consequence-delta.good { color: var(--ok-on-dark); }
-.consequence-delta.bad { color: var(--bad-on-dark); }
-.coverage-adequate { color: var(--ink-lo); }
+.consequence-panel { margin: 4px 0 18px; padding: 10px 14px; background: var(--cream-hi);
+  border: 2px solid var(--outline); border-radius: var(--radius-lg); }
+.consequence-panel h3 { margin: 0 0 6px; font-family: var(--display); font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.06em; font-size: var(--text-sm); color: var(--school-primary); }
+.consequence-panel .admissions-outcomes { margin: 0; padding: 0; border: 0; background: transparent; }
+.consequence-delta { margin-left: 8px; font-size: var(--text-sm); font-weight: 700; }
+.consequence-delta.good { color: var(--ok-on-light); }
+.consequence-delta.bad { color: var(--bad-on-light); }
+.coverage-adequate { color: var(--ink-muted); }
 
 /* Beat 1's commit button (see InterruptModal.tsx). Deliberately quieter
    than the Confirm button that ends the whole decision — this one closes a
@@ -2637,7 +2658,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* The reveal figure (see InterruptModal.tsx REVEAL_MS) — the one number on
    this screen the player is meant to watch rather than read, so it is
    given the size to be worth watching. */
-.reveal-figure { font-size: var(--text-lg); }
+.reveal-figure { font-size: 28px !important; }
 
 /* One line per beat, not a standing paragraph (see InterruptModal.tsx).
    The screen changes what it is asking between beats, so the prompt does
@@ -2650,10 +2671,10 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    glance, which is what a reveal is for. The count is the card's content,
    so it gets the middle and the weight; the name is only how you find the
    audience you care about, so it is small and out of the way at the top. */
-.cohort-breakdown { margin: 4px 0 18px; padding: 10px 14px; background: #1a2338;
-  border: 1px solid var(--navy-line); border-radius: var(--radius-md); }
-.cohort-breakdown h3 { margin: 0 0 10px; font-family: var(--serif); text-transform: uppercase;
-  letter-spacing: 0.06em; font-size: var(--text-sm); color: var(--gold-dim); }
+.cohort-breakdown { margin: 4px 0 18px; padding: 10px 14px; background: var(--cream-hi);
+  border: 2px solid var(--outline); border-radius: var(--radius-lg); }
+.cohort-breakdown h3 { margin: 0 0 10px; font-family: var(--display); font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.06em; font-size: var(--text-sm); color: var(--school-primary); }
 
 .cohort-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 /* min-width: 0 is load-bearing. A grid item defaults to min-width: auto,
@@ -2665,20 +2686,20 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .cohort-card { position: relative; min-width: 0; aspect-ratio: 1;
   display: flex; flex-direction: column;
   align-items: center; justify-content: flex-start; gap: 2px; padding: 8px 3px;
-  background: #141b2c; border: 1px solid var(--navy-line); border-radius: var(--radius-sm); }
+  background: var(--cream); border: 2px solid var(--parchment-line); border-radius: var(--radius-md); }
 /* Two lines' worth of space whether the name needs one or two. Without it
    a one-line name ("Social") leaves a taller gap than a two-line one
    ("High achievers"), and centring the figure in what is left puts the
    numbers at different heights across a row — which is exactly the
    at-a-glance reading the cards exist for. */
-.cohort-card-label { min-height: 2.3em; width: 100%; font-size: 9px; line-height: 1.15;
-  text-align: center; overflow-wrap: anywhere; color: #cbd0d8;
+.cohort-card-label { min-height: 2.3em; width: 100%; font-size: 9px; line-height: 1.15; font-weight: 800;
+  text-align: center; overflow-wrap: anywhere; color: var(--ink-muted);
   text-transform: uppercase; letter-spacing: 0.02em; }
 .cohort-card-count { flex: 1; display: flex; align-items: center;
-  font-family: var(--mono); font-size: 20px; font-weight: 700; }
-.cohort-card-count.cohort-up { color: var(--ok-on-dark); }
-.cohort-card-count.cohort-down { color: var(--bad-on-dark); }
-.cohort-card-count.cohort-flat { color: var(--ink-lo); }
+  font-family: var(--display); font-size: 22px; font-weight: 800; }
+.cohort-card-count.cohort-up { color: var(--ok-on-light); }
+.cohort-card-count.cohort-down { color: var(--bad-on-light); }
+.cohort-card-count.cohort-flat { color: var(--ink); }
 .cohort-card-count.count-sm { font-size: 17px; }
 .cohort-card-count.count-xs { font-size: 14px; }
 .cohort-card-count.count-xxs { font-size: 12px; }
@@ -2691,9 +2712,9 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    bottom-row tooltip to sit over instead. */
 .cohort-card-tip { position: absolute; z-index: 20; top: calc(100% + 6px); left: 50%;
   transform: translateX(-50%); width: 124px; padding: 6px 8px;
-  background: var(--navy); border: 1px solid var(--navy-line);
-  border-radius: var(--radius-sm); font-size: var(--text-sm); line-height: 1.3;
-  color: #cbd0d8; text-align: center; text-transform: none; letter-spacing: 0;
+  background: var(--outline); border: 2px solid var(--outline);
+  border-radius: var(--radius-md); font-size: var(--text-sm); line-height: 1.3; font-weight: 500;
+  color: var(--cream); text-align: center; text-transform: none; letter-spacing: 0;
   opacity: 0; pointer-events: none; transition: opacity 120ms ease; }
 .cohort-card:hover .cohort-card-tip { opacity: 1; }
 /* The end columns pin to their own edge instead of centring, or a tooltip
@@ -2708,19 +2729,19 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    section of the summer admissions decision. Styled to sit inside the same
    dark-navy modal as everything else, and read as a checklist rather than
    as another form. */
-.digest { margin: 4px 0 18px; padding: 12px 14px; background: #1a2338;
-  border: 1px solid var(--navy-line); border-radius: var(--radius-md); }
-.digest-head { font-family: var(--serif); font-size: var(--text-sm); text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--gold); margin: 0 0 6px; }
-.digest-note { font-size: var(--text-sm); line-height: 1.45; color: #cbd0d8; margin: 0 0 10px !important; }
+.digest { margin: 4px 0 18px; padding: 12px 14px; background: var(--cream-hi);
+  border: 2px solid var(--outline); border-radius: var(--radius-lg); }
+.digest-head { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--school-primary); margin: 0 0 6px; }
+.digest-note { font-size: var(--text-sm); line-height: 1.45; color: var(--ink-muted); margin: 0 0 10px !important; }
 .digest-row { display: flex; align-items: baseline; gap: 8px; padding: 5px 0;
-  border-top: 1px solid var(--navy-line); font-size: var(--text-base); cursor: pointer; }
-.digest-row input { accent-color: var(--gold); }
+  border-top: 1px solid var(--parchment-line); font-size: var(--text-base); cursor: pointer; }
+.digest-row input { accent-color: var(--school-primary); }
 .digest-row.declined { opacity: 0.5; }
-.digest-row-name { flex: 1; min-width: 0; color: var(--ink-hi); }
-.digest-row-kind { margin-left: 8px; font-family: var(--mono); font-size: var(--text-2xs);
-  text-transform: uppercase; letter-spacing: 0.06em; color: var(--gold-dim); }
-.digest-row-cost { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink-lo); white-space: nowrap; }
+.digest-row-name { flex: 1; min-width: 0; color: var(--ink); font-weight: 600; }
+.digest-row-kind { margin-left: 8px; font-family: var(--display); font-weight: 800; font-size: var(--text-2xs);
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--school-primary); }
+.digest-row-cost { font-size: var(--text-xs); font-weight: 700; color: var(--ink-muted); white-space: nowrap; }
 
 /* ---------- Student Life tab ----------
    One row per organisation: name, what it is, and the three facts worth
@@ -2802,44 +2823,44 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    exist to pose, is invisible. Caught by photographing the modal, not by a
    test; it is the same defect Plan 07's PR G found in .iso-dome. */
 .ad-candidate { display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 12px 8px !important; background: #1a2338 !important; color: var(--ink-hi) !important;
-  border: 1px solid var(--navy-line) !important; border-radius: var(--radius-md);
-  cursor: pointer; text-align: center; font-weight: 400 !important; }
-.ad-candidate:hover, .ad-candidate:focus-visible { border-color: var(--gold) !important; }
+  padding: 12px 8px !important; background: var(--cream-hi) !important; color: var(--ink) !important;
+  border: 2px solid var(--outline) !important; border-radius: var(--radius-lg);
+  cursor: pointer; text-align: center; font-weight: 500 !important; font-family: var(--sans) !important; box-shadow: none !important; }
+.ad-candidate:hover, .ad-candidate:focus-visible { box-shadow: var(--shadow-1) !important; transform: translate(-1px, -1px); }
 /* Two lines' worth whether the name needs them or not, so the three salaries
    sit on one horizontal line. They are the figures being compared, and a
    comparison the eye has to hunt for across three heights is a worse
    comparison — "Priya Ramanathan" wrapping was enough to break it. */
-.ad-candidate-name { font-family: var(--serif); font-size: var(--text-base); font-weight: 700;
+.ad-candidate-name { font-family: var(--display); font-size: var(--text-md); font-weight: 800;
   min-height: 2.6em; display: flex; align-items: center; }
-.ad-candidate-quality { font-size: var(--text-xs); color: var(--ink-lo); }
+.ad-candidate-quality { font-size: var(--text-xs); color: var(--ink-muted); font-weight: 600; }
 /* The salary is the decision, so it is the figure set largest and in the
    accent — the card's own statement of what it is asking for. */
-.ad-candidate-salary { font-family: var(--mono); font-size: var(--text-md); color: var(--gold); }
-.ad-candidate-tag { font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--ink-lo); }
+.ad-candidate-salary { font-family: var(--display); font-weight: 800; font-size: var(--text-xl); color: var(--school-primary); }
+.ad-candidate-tag { font-size: var(--text-2xs); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--ink-muted); }
 
 .ad-mascot { display: flex; align-items: center; gap: 8px; margin: 4px 0 14px;
   font-size: var(--text-base); flex-wrap: wrap; }
-.ad-mascot-label { color: var(--ink-lo); }
-.ad-mascot-input { flex: 1; min-width: 140px; font-family: var(--serif);
-  font-size: var(--text-base); padding: 6px 8px; background: transparent;
-  border: 1px solid var(--navy-line); border-radius: var(--radius-sm); color: inherit; }
-.ad-mascot-input:focus-visible { border-color: var(--gold); outline: none; }
+.ad-mascot-label { color: var(--ink-muted); font-weight: 600; }
+.ad-mascot-input { flex: 1; min-width: 140px; font-family: var(--display); font-weight: 800;
+  font-size: var(--text-lg); padding: 6px 10px; background: var(--cream-hi);
+  border: 2px solid var(--outline); border-radius: var(--radius-md); color: inherit; }
+.ad-mascot-input:focus-visible { outline: 3px solid var(--school-secondary); outline-offset: 1px; }
 /* Both of these are secondary to the three cards, so neither gets the gold
    pill `.modal button` would otherwise hand them — a re-roll and a decline
    competing with the actual decision for attention is the modal telling the
    player the wrong thing. */
-.ad-mascot-roll { font-size: var(--text-xs) !important; padding: 5px 10px !important;
-  background: transparent !important; color: var(--ink-lo) !important;
-  border: 1px solid var(--navy-line) !important; font-weight: 400 !important; }
-.ad-mascot-roll:hover { border-color: var(--gold) !important; color: var(--ink-hi) !important; }
+.ad-mascot-roll { font-size: var(--text-xs) !important; padding: 5px 12px !important;
+  background: transparent !important; color: var(--ink) !important; box-shadow: none !important;
+  border: 2px solid var(--outline) !important; font-weight: 700 !important; }
+.ad-mascot-roll:hover { background: var(--outline) !important; color: var(--cream) !important; }
 /* Declining is a full-width, quiet row rather than a fourth card: it is not
    a candidate, and it must not look like one. */
 .ad-decline { width: 100%; font-size: var(--text-xs) !important; padding: 8px 12px !important;
-  background: transparent !important; color: var(--ink-lo) !important;
-  border: 1px solid var(--navy-line) !important; font-weight: 400 !important; }
-.ad-decline:hover { border-color: var(--gold) !important; color: var(--ink-hi) !important; }
+  background: transparent !important; color: var(--ink-muted) !important; box-shadow: none !important;
+  border: 2px dashed var(--parchment-line) !important; font-weight: 700 !important; }
+.ad-decline:hover { border-color: var(--outline) !important; color: var(--ink) !important; }
 
 /* ---------- the department header, on the Athletics tab ----------------
    Who runs it, what it is called, where it stands, and only then the one
@@ -2903,16 +2924,16 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* The championship report (InterruptModal.tsx). The bracket path as a short
    ordered list — three lines, because three rounds. */
 .championship-path { list-style: none; margin: 14px 0; padding: 0;
-  border-top: 1px solid var(--navy-line); border-bottom: 1px solid var(--navy-line); }
-.championship-path li { display: flex; gap: 12px; padding: 5px 0; font-size: var(--text-base); }
-.championship-path li + li { border-top: 1px solid var(--navy-line); }
-.championship-round { font-family: var(--serif); text-transform: uppercase; letter-spacing: 0.06em;
-  font-size: var(--text-2xs); color: var(--gold-dim); min-width: 96px; }
+  border-top: 2px solid var(--outline); border-bottom: 2px solid var(--outline); }
+.championship-path li { display: flex; gap: 12px; padding: 6px 0; font-size: var(--text-base); font-weight: 600; }
+.championship-path li + li { border-top: 1px solid var(--parchment-line); }
+.championship-round { font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+  font-size: var(--text-2xs); color: var(--school-primary); min-width: 96px; }
 .championship-worth { display: flex; gap: 22px; margin: 0 0 16px; }
 .championship-worth div { display: flex; flex-direction: column; gap: 2px; }
-.championship-worth dt { font-size: var(--text-2xs); text-transform: uppercase;
+.championship-worth dt { font-size: var(--text-2xs); font-weight: 800; text-transform: uppercase;
   letter-spacing: 0.06em; color: var(--ink-muted); }
-.championship-worth dd { margin: 0; font-family: var(--mono); font-size: var(--text-base); color: var(--gold); }
+.championship-worth dd { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-xl); color: var(--school-primary); }
 
 /* ---------- the coaching market, on the Athletics tab -------------------
    One list for the whole department rather than a slice per chair (see
@@ -3086,15 +3107,15 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    gold every other heading in this modal uses, the ones behind it dimmed
    and struck through by a rule. One line, so the player always knows which
    of the four beats they are on without the beat having to say so. */
-.summer-steps { display: flex; gap: 0; list-style: none; margin: -4px 0 16px; padding: 0;
+.summer-steps { display: flex; gap: 0; list-style: none; margin: 16px 0 14px; padding: 0;
   counter-reset: beat; }
 .summer-steps li { counter-increment: beat; flex: 1; position: relative; padding: 0 0 8px;
-  font-family: var(--serif); font-size: var(--text-xs); text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--ink-lo); border-bottom: 2px solid var(--navy-line);
+  font-family: var(--display); font-weight: 700; font-size: var(--text-xs); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ink-muted); border-bottom: 3px solid var(--parchment-line);
   text-align: center; white-space: nowrap; }
-.summer-steps li::before { content: counter(beat) " · "; font-family: var(--mono); letter-spacing: 0; }
-.summer-steps li.done { color: var(--ink-lo); border-bottom-color: var(--gold-dim); }
-.summer-steps li.current { color: var(--gold); border-bottom-color: var(--gold); font-weight: 700; }
+.summer-steps li::before { content: counter(beat) " · "; letter-spacing: 0; }
+.summer-steps li.done { color: var(--ink-muted); border-bottom-color: var(--school-primary); }
+.summer-steps li.current { color: var(--school-primary); border-bottom-color: var(--school-secondary); font-weight: 800; }
 
 /* ---------- the year in review (see InterruptModal.tsx's ReviewBeat) ----
    Six short sections in a two-column grid: what the year built, who came
@@ -3104,17 +3125,17 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    that carry a tone. Two columns because six stacked sections is a scroll,
    and the beat is meant to be read at a glance and continued. */
 .review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 16px; }
-.review-section { margin: 0; padding: 10px 12px; background: #1a2338;
-  border: 1px solid var(--navy-line); border-radius: var(--radius-md); min-width: 0; }
-.review-section h3 { font-family: var(--serif); font-size: var(--text-sm); text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--gold); margin: 0 0 6px; }
+.review-section { margin: 0; padding: 10px 12px; background: var(--cream-hi);
+  border: 2px solid var(--outline); border-radius: var(--radius-lg); min-width: 0; }
+.review-section h3 { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--school-primary); margin: 0 0 6px; }
 .review-section ul { list-style: none; margin: 0; padding: 0; }
-.review-section li { font-size: var(--text-sm); line-height: 1.4; padding: 2px 0; color: #cbd0d8;
-  border-top: 1px solid var(--navy-line); }
+.review-section li { font-size: var(--text-sm); line-height: 1.4; padding: 3px 0; color: var(--ink); font-weight: 500;
+  border-top: 1px solid var(--parchment-line); }
 .review-section li:first-child { border-top: none; }
-.review-section li.good { color: var(--ok-on-dark); }
-.review-section li.bad { color: var(--bad-on-dark); }
-.review-empty { font-size: var(--text-sm); font-style: italic; color: var(--ink-lo); margin: 0 !important; }
+.review-section li.good { color: var(--ok-on-light); font-weight: 600; }
+.review-section li.bad { color: var(--bad-on-light); font-weight: 600; }
+.review-empty { font-size: var(--text-sm); font-style: italic; color: var(--ink-muted); margin: 0 !important; }
 @media (max-width: 560px) { .review-grid { grid-template-columns: 1fr; } }
 /* The small second figure in a History cell — courses finished this year
    beside the catalogue's total, the year's average beside the summer's
@@ -3128,12 +3149,12 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    a row of short phrases rather than a list, because they are one
    sentence's worth of reasons. */
 .admissions-outcomes .pool-change { flex-direction: column; align-items: flex-start; gap: 3px; }
-.admissions-outcomes .pool-change dt { font-size: var(--text-xs); color: var(--gold-dim); }
-.pool-change-parts { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: var(--text-sm) !important; }
-.pool-change-parts .good { color: var(--ok-on-dark); }
-.pool-change-parts .bad { color: var(--bad-on-dark); }
+.admissions-outcomes .pool-change dt { font-size: var(--text-xs); color: var(--school-primary); }
+.pool-change-parts { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: var(--text-sm) !important; font-weight: 700; }
+.pool-change-parts .good { color: var(--ok-on-light); }
+.pool-change-parts .bad { color: var(--bad-on-light); }
 /* Last summer's count for the audience, small under this year's. */
-.cohort-card-last { font-family: var(--mono); font-size: 9px; color: var(--ink-lo); white-space: nowrap; }
+.cohort-card-last { font-size: 9px; font-weight: 700; color: var(--ink-muted); white-space: nowrap; }
 
 /* ---------- three modal widths (Plan 16's PR E — see modalLayout.ts) ----
    narrow is the 440px every interrupt used to get, sized for a decision
@@ -3147,12 +3168,12 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    old list, plus the column that makes it a report: where each school stood
    a year ago, with the move beside it in the rank-move colours. */
 .report-table { width: 100%; border-collapse: collapse; font-size: var(--text-base); margin: 0 0 16px; }
-.report-table th { text-align: left; font-family: var(--serif); font-size: var(--text-xs); text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--ink-lo); font-weight: 400; padding: 4px 8px; border-bottom: 1px solid var(--navy-line);
-  position: sticky; top: 0; background: var(--navy); }
-.report-table td { padding: 4px 8px; border-bottom: 1px solid var(--navy-line); }
-.report-table tr.me td { color: var(--ok-on-dark); font-weight: 700; }
-.report-table-rank, .report-table-score, .report-table-last { font-family: var(--mono); white-space: nowrap; }
+.report-table th { text-align: left; font-family: var(--display); font-size: var(--text-xs); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ink-muted); font-weight: 800; padding: 6px 8px; border-bottom: 2px solid var(--outline);
+  position: sticky; top: 0; background: var(--cream); }
+.report-table td { padding: 4px 8px; border-bottom: 1px solid var(--parchment-line); }
+.report-table tr.me td { color: var(--school-primary); font-weight: 800; }
+.report-table-rank, .report-table-score, .report-table-last { font-weight: 700; white-space: nowrap; }
 .report-table th:nth-child(3), .report-table th:nth-child(4), .report-table-score, .report-table-last { text-align: right; }
 .report-table .rank-move { font-size: var(--text-xs); }
 
@@ -3160,11 +3181,11 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    folded behind a count. auto-fill with a min track: two cards read as a
    pair, ten read as a board. */
 .milestone-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 0 0 14px; }
-.milestone-card { padding: 10px 12px; background: #1a2338; border: 1px solid var(--navy-line); border-radius: var(--radius-md); min-width: 0; }
-.milestone-card h3 { font-family: var(--serif); font-size: var(--text-base); margin: 0 0 4px; color: var(--ink-hi); }
-.milestone-card .milestone-detail { font-size: var(--text-sm); color: #cbd0d8; margin: 0 0 6px !important; }
-.milestone-unlocks-fold summary { cursor: pointer; font-family: var(--serif); font-size: var(--text-xs);
-  text-transform: uppercase; letter-spacing: 0.08em; color: var(--gold); }
+.milestone-card { padding: 10px 12px; background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-lg); min-width: 0; }
+.milestone-card h3 { font-family: var(--display); font-weight: 800; font-size: var(--text-md); margin: 0 0 4px; color: var(--ink); }
+.milestone-card .milestone-detail { font-size: var(--text-sm); color: var(--ink-muted); margin: 0 0 6px !important; }
+.milestone-unlocks-fold summary { cursor: pointer; font-family: var(--display); font-weight: 800; font-size: var(--text-xs);
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--school-primary); }
 .milestone-unlocks-fold[open] summary { margin-bottom: 4px; }
 
 /* ---------- a letter from the board (Plan 16's PR F; InterruptModal.tsx) --
@@ -3172,17 +3193,17 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    the body in the modal's ordinary prose, and the one thing to do as a
    labelled line the toolbar will carry until it is done. The skip is a
    quiet second button, the way the athletic director's decline is. */
-.letter-eyebrow { font-family: var(--serif); font-size: var(--text-xs); text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--gold-dim); margin: 0 0 4px !important; }
+.letter-eyebrow { font-family: var(--display); font-weight: 800; font-size: var(--text-xs); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--school-primary); margin: 0 0 4px !important; }
 .letter-body { line-height: 1.55; }
-.letter-ask { display: flex; align-items: baseline; gap: 10px; padding: 9px 12px; margin: 0 0 14px !important;
-  background: #1a2338; border: 1px solid var(--navy-line); border-radius: var(--radius-md); color: var(--ink-hi); }
-.letter-ask-label { flex: none; font-family: var(--mono); font-size: var(--text-2xs); text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--gold); }
+.letter-ask { display: flex; align-items: baseline; gap: 10px; padding: 10px 14px; margin: 0 0 14px !important;
+  background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-lg); color: var(--ink); font-weight: 600; }
+.letter-ask-label { flex: none; font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--school-on-primary); background: var(--school-primary); border-radius: var(--radius-pill); padding: 2px 7px; }
 .letter-skip { margin-left: 10px; font-size: var(--text-xs) !important; padding: 6px 12px !important;
-  background: transparent !important; color: var(--ink-lo) !important;
-  border: 1px solid var(--navy-line) !important; font-weight: 400 !important; }
-.letter-skip:hover { border-color: var(--gold) !important; color: var(--ink-hi) !important; }
+  background: transparent !important; color: var(--ink-muted) !important; box-shadow: none !important;
+  border: 2px dashed var(--parchment-line) !important; font-weight: 700 !important; }
+.letter-skip:hover { border-color: var(--outline) !important; color: var(--ink) !important; }
 
 /* The next-step line (systems/guidance/nextStep.ts): one reading across the
    top of the toolbar, in the eyebrow style, gold-labelled. A button when it

@@ -1393,7 +1393,7 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
 
   return (
     <div className="modal-backdrop">
-      <div className={`modal modal-${modalWidth(interrupt)}`}>
+      <div className={`modal modal-${modalWidth(interrupt)}`} data-interrupt={interrupt.type}>
         {interrupt.type === 'summer' ? (
           <SummerView s={s} payload={interrupt.payload as SummerPayload} act={act} />
         ) : interrupt.type === 'milestone' ? (
