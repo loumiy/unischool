@@ -14,6 +14,7 @@ breakdown, which is a player feature the developer happens to need first.
 | To know why prestige is what it is | the History tab's **Standing** section |
 | To know whether a change moved a trajectory | `npm run sim`'s scorecard |
 | To know when things happen for the first time | `npm run milestones` |
+| To know how a run finishes — its legacy, its ambitions, its rank curve | `npm run endpoint` |
 
 ## The flag
 
@@ -46,6 +47,7 @@ npm run scenario -- --list                    # the index
 npm run scenario -- year-8-balanced           # build one by name
 npm run scenario -- championship              # …including one that only exists for a week
 npm run scenario -- summer                    # the four-beat summer, stopped on its first beat
+npm run scenario -- final-report              # the fiftieth summer, stopped on the final report
 npm run scenario -- --strategy "Balanced builder" --year 12 --modal milestone
 npm run scenario -- --strategy Completionist --year 22 --vernacular gothic \
   --name Blackmoor --clear-modal /tmp/gothic.json   # a campus to photograph
@@ -192,6 +194,7 @@ npm run sim -- --write-reference         # re-record the bands from this run
 npm run sim -- --save last.json          # keep this run's sampled rows
 npm run sim -- --compare last.json       # print what moved against them
 npm run milestones -- 40 earnest         # when each thing happened for the first time
+npm run endpoint -- selective            # how a run finishes at fifty, on the reference's three seeds
 ```
 
 `sim/reference.ts` holds two kinds of band, read at years 5, 10, 20, 35 and
@@ -237,13 +240,32 @@ faculty-blocked one.
 
 ### The strategies
 
-All but one of the strategies in `STRATEGIES` are **archetypes** — crude, reproducible
-corners of the space (build everything, price low, overreach, sit still). The
-seventh, **Earnest completionist**, is a *player*: the September 2026 review's
+Most of the strategies in `STRATEGIES` are **archetypes** — crude, reproducible
+corners of the space (build everything, price low, overreach, sit still).
+**Earnest completionist** is a *player*: the September 2026 review's
 own policy, written down. It is the run the design plans are about, and at
-the review's own seed (4242) it reproduces that appendix closely. It is also
-the only strategy that hires a coach, and therefore the only one that has
-ever won a national title.
+the review's own seed (4242) it reproduces that appendix closely. Since Plan
+17 it has two companions that are players too, written so that "build
+everything" is one good run among several rather than the answer: the
+**Selective college** — the admit rate never past 15% and pulled down to hold
+the body near four thousand, priced at what its standing tolerates, two or
+three schools founded and finished rather than seven (`Strategy.maxSchools`),
+every facility, every idle lab running the deepest project it can afford —
+and the **Regional engine** — cheap, admitting three quarters of what applies,
+founding whatever is offered, its labs ticking over on the cheapest project
+only (`Strategy.research: 'shallow'`). The two, the earnest completionist and
+the balanced builder are the four archetypes Plan 17's balance target names.
+
+### The endpoint
+
+`test/endpoint.test.ts` plays those four at the full fifty years on the
+reference's three seeds and asserts how each **finishes** — the sealed legacy
+(`tally.legacy`, exactly what the fiftieth summer's final report showed), the
+ambitions reached, the catalogue and the campus, the rank curve. The
+assertions are Plan 17 §E's; where the fitted game landed beside them is in
+that PR's *as implemented* note. `npm run endpoint` prints the same readings
+(`sim/endpointReading.ts` is shared by both) without judging them, which is
+where a tuning pass starts.
 
 Since Plan 15 the harness knows two things about the game it did not need
 to before. **Seats before beds:** the freshman class is capped by the

@@ -53,6 +53,7 @@ export function previousYear(s: GameState): Pick<YearSnapshot, 'cash' | 'courses
 export interface YearFigures {
   attrition: number;           // students who did not return at this summer's advance
   satisfactionAverage: number; // the year's average satisfaction, as the funnel just read it
+  graduated: number;           // the seniors the advance just sent out (Plan 17's PR C)
 }
 
 // Snapshots the school's headline numbers for the year that is closing.
@@ -82,5 +83,6 @@ export function captureYearSnapshot(s: GameState, figures: YearFigures): YearSna
     satisfactionAverage: figures.satisfactionAverage,
     coursesFinished: Math.max(0, done - before.coursesDone),
     attrition: figures.attrition,
+    graduated: figures.graduated,
   };
 }

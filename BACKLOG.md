@@ -22,10 +22,11 @@ scorecard the rest of them are measured with, all in
 The four plans it was built to measure have since been rewritten around a
 playtest finding the review did not reach: that developing every course is
 tedious *and* that the `Develop N` button relieving the tedium is worse than the
-tedium. Plans 10–13 are `Superseded`; the sequence is now **14 (the curriculum
+tedium. Plans 10–13 are `Superseded`; the sequence was **14 (the curriculum
 on the map), 15 (growth has a cost), 16 (the year) and 17 (the endpoint)**, in
-that order of dependency — with most of Plan 16 landable alongside 14, since it
-depends on neither.*
+that order of dependency — and all four have now **landed**. What they changed
+is in `docs/design/` (the fifty-year run, the legacy and the ambitions are in
+`progression.md`'s "The fifty years").*
 
 *The order is deliberate, and it is the one thing to preserve if the sequence
 gets re-cut: **halls before the economy**. Plan 14 moves the trajectory more than

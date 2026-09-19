@@ -16,6 +16,10 @@ import { neededFacultyFields } from '../techtree/techSystem';
 export function appointFaculty(s: GameState, person: Faculty): void {
   person.weeksListed = 0;
   s.faculty.push(person);
+  // The lifetime count the final report reads (see types.ts's
+  // University.facultyServed): everyone who ever joined, counted at the
+  // one door they all come through.
+  s.self.facultyServed += 1;
 }
 import {
   generateCandidate, grownStat, facultySalary, rollCandidateField, candidateArrivalsThisWeek,

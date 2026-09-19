@@ -407,7 +407,11 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
   return (
     <div className="startup">
       <div className="startup-card">
-        <div className="eyebrow">Found a University</div>
+        {/* What the game is, in one line (Plan 17's PR F): a run has a length
+            now — the fiftieth summer files the final report and seals the
+            record — and the founding screen is where a player should first
+            hear it. */}
+        <div className="eyebrow">Fifty years to build a university.</div>
         <h1>Name your school</h1>
         <input
           className="startup-name"

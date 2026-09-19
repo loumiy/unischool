@@ -11,7 +11,7 @@ Technical documentation for the codebase. What the game *is* lives in
 | [campus-map.md](campus-map.md) | Footprints, the tile grid, trees, and the depth-sorted draw |
 | [interrupts.md](interrupts.md) | The one pause-the-clock-and-resolve mechanism |
 | [ui-shell.md](ui-shell.md) | The shell, full-bleed tabs, tab gates, and keyboard arbitration |
-| [playtesting.md](playtesting.md) | Scenarios, the debug flag and panel, the prestige breakdown, and the sim scorecard |
+| [playtesting.md](playtesting.md) | Scenarios, the debug flag and panel, the prestige breakdown, the sim scorecard, and the endpoint gate |
 
 ## Working on this codebase
 

@@ -1,5 +1,5 @@
 import type { Faculty, GameState, LogEntry, SummerBeat, SummerPayload } from '../state/types';
-import { LOG_CAP, SUMMER_LAST_BEAT, WEEKS_PER_YEAR } from '../state/types';
+import { LOG_CAP, SEMICENTENNIAL_YEAR, SUMMER_LAST_BEAT, WEEKS_PER_YEAR, institutionName } from '../state/types';
 import type { Action } from '../state/actions';
 import { defaultAnswer } from './defaultAnswers';
 import { createInitialState, createPreStartState } from '../state/actions';
@@ -18,6 +18,7 @@ import { attritionReasons } from '../systems/admissions/consequences';
 import { intakeCeiling } from '../systems/techtree/instructionCapacity';
 import { cohortCounts, deriveCohortSignals } from '../systems/admissions/cohorts';
 import { buildReportPayload, tickRivals } from '../systems/rivals/rivalsSystem';
+import { tickAmbitions } from '../systems/ambitions/ambitionsSystem';
 import { appointFaculty, tickFaculty } from '../systems/faculty/facultySystem';
 import { tickResearch } from '../systems/research/researchSystem';
 import { setPrestigeForPlaytest, tickPrestige, gradeYear, applyReportCard } from '../systems/prestige/prestigeSystem';
@@ -40,6 +41,7 @@ import {
   occupantAt,
 } from '../state/campusMap';
 import { captureYearSnapshot } from '../state/history';
+import { legacy } from '../state/legacy';
 import { saveGame, clearSave } from '../state/persistence';
 
 // The systems run in a fixed order each week. Order matters: research and
@@ -83,6 +85,11 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   tickSatisfaction,
   tickAdmissions,
   tickRivals,
+  // After tickRivals, so an ambition about rank reads the table as it
+  // stands this week, and before tickEvents, so the line lands before any
+  // interrupt claims the week. Reads everything and writes only
+  // s.ambitions and the log (see systems/ambitions/ambitionsSystem.ts).
+  tickAmbitions,
   // Last, deliberately: the summer admissions decision and the U.S. News
   // report own their weeks, and only one interrupt can be pending at a
   // time. Running the texture system afterwards means it sees their claim
@@ -703,6 +710,22 @@ export function reducer(state: GameState, action: Action): GameState {
 
     // THE LAST BEAT OF THE SUMMER, and the one that turns the calendar page.
     case 'RESOLVE_ADMISSIONS': {
+      // THE SEMICENTENNIAL (Plan 17's PR C). The fiftieth summer seals the
+      // record: the legacy is read ONCE, here, before anything about this
+      // summer changes the school — so it is exactly the reading the final
+      // report (the summer's first beat) showed — and written to s.self,
+      // where nothing ever writes it again. The clock does not stop: the
+      // rest of this case runs as it does every year, and the sixtieth
+      // summer files an ordinary year in review.
+      if (s.clock.year === SEMICENTENNIAL_YEAR && s.self.legacy === null) {
+        s.self.legacy = legacy(s);
+        s.log.unshift({
+          year: s.clock.year, week: s.clock.week,
+          message: `The fiftieth year closes. The record is sealed: ${institutionName(s.self)} is ${s.self.legacy.name}.`,
+          kind: 'good',
+        });
+      }
+
       // Tuition is set ONLY here, once a year — see
       // docs/design/admissions.md and the removed live SET_TUITION control.
       // This sets the LISTED price. It reaches a student only through the
@@ -820,6 +843,7 @@ export function reducer(state: GameState, action: Action): GameState {
       s.history.push(captureYearSnapshot(s, {
         attrition: advanced.notReturning,
         satisfactionAverage: priorYearAvgSatisfaction,
+        graduated: graduating,
       }));
 
       s.pendingInterrupt = null;

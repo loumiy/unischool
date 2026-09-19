@@ -8,6 +8,7 @@ import {
   absoluteWeek, describeMilestone, findDecisionEvent, hasFreeChoice,
 } from '../../data/eventData';
 import { labEquippedFields } from '../../data/researchData';
+import { ELITE_CLOSE_ABOVE_PRESTIGE } from '../rivals/rivalsSystem';
 import { rollAthleticDirectorCandidates, rollMascotSuggestion } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
@@ -221,6 +222,43 @@ function fireVarsityPetition(s: GameState): boolean {
   return true;
 }
 
+// THE TRUSTEES' RESPONSE (Plan 17's PR D — see eventData.ts's
+// 'rival-passed'). A rival that passed the school this year, read off the
+// same crossing the Standing beat and the year in review report, is
+// answered once: the first quiet week the shared cooldown allows, the
+// board proposes a response. GUARANTEED rather than drawn, because being
+// passed is a moment; but it spends the same budget as the lottery
+// (lastDecisionWeek is stamped), so the defend era's years stop the clock
+// no more often than the build era's. Stamped per rival at FIRE time, so a
+// dismissed modal never comes back for the same school.
+//
+// ONLY IN THE DEFEND ERA — above the same prestige gate the elite band's
+// closing term uses. Measured without the gate, a mid-table school is
+// passed by somebody most years (a hundred schools reshuffle), so the board
+// asked every year from year three, spent the whole decision budget on it,
+// and — through the candidate the chair rolls — moved the sim's dice for
+// every strategy from year five. At the top of the table being passed is
+// news; at #55 it is the field breathing.
+function fireTrusteeResponse(s: GameState): boolean {
+  if (s.clock.year < DECISION_EVENT_FIRST_YEAR) return false;
+  if (s.self.reputation <= ELITE_CLOSE_ABOVE_PRESTIGE) return false;
+  const week = absoluteWeek(s);
+  if (s.events.lastDecisionWeek > 0 && week - s.events.lastDecisionWeek < DECISION_EVENT_COOLDOWN_WEEKS) return false;
+
+  const event = findDecisionEvent('rival-passed');
+  if (!event?.rollContext) return false;
+  const ctx = event.rollContext(s);
+  if (ctx === null || !ctx.subjectId) return false;
+  if (!hasFreeChoice(s, event, ctx)) return false;
+
+  s.events.passedResponses.push(ctx.subjectId);
+  s.events.lastDecisionWeek = week;
+  const history = s.events.decisionHistory[event.id] ?? { fires: 0, lastWeek: 0 };
+  s.events.decisionHistory[event.id] = { fires: history.fires + 1, lastWeek: week };
+  s.pendingInterrupt = { type: 'decision-event', payload: { eventId: event.id, ctx } };
+  return true;
+}
+
 // The trigger model: a weekly probability, floored by a global cooldown,
 // then a WEIGHTED draw across everything the current game state makes
 // eligible. Purely random in its timing; entirely state-driven in its
@@ -326,6 +364,7 @@ export function tickEvents(s: GameState): void {
   if (fireChampionshipReport(s)) return;
   if (fireAthleticDirectorOffer(s)) return;
   if (fireVarsityPetition(s)) return;
+  if (fireTrusteeResponse(s)) return;
   if (fireOpeningLetter(s)) return;
 
   rollDecisionEvent(s);

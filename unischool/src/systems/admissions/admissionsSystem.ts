@@ -1,5 +1,5 @@
 import type { ClassCohorts, ClassCounts, ClassTuition, CohortCounts, FunnelFactors, GameState, SummerPayload } from '../../state/types';
-import { WEEKS_PER_YEAR } from '../../state/types';
+import { SEMICENTENNIAL_YEAR, WEEKS_PER_YEAR } from '../../state/types';
 import { cohortCounts, cohortDemandFactor, NEUTRAL_COHORT_SIGNALS, type CohortSignals } from './cohorts';
 
 // The trailing-year satisfaction that drives word of mouth: the average of
@@ -658,6 +658,11 @@ export function tickAdmissions(s: GameState): void {
       // the curve (see actions.ts).
       admitRate: s.students.admitRate,
     };
+    // The fiftieth summer's first beat is the final report (Plan 17's PR
+    // C) — stamped here so the modal and its width rule read it off the
+    // payload, and only while the record is still unsealed, so a save
+    // resumed on a later year fifty week is not told twice.
+    if (s.clock.year === SEMICENTENNIAL_YEAR && s.self.legacy === null) payload.final = true;
     s.pendingInterrupt = { type: 'summer', payload };
   }
 }

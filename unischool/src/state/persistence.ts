@@ -108,7 +108,15 @@ export const SAVE_KEY = 'unischool.save';
 // only — but a save without them would theme the game off two undefined
 // custom properties, which is every chrome surface drawn in the browser's
 // idea of nothing.
-export const SAVE_VERSION = 62;
+// v63: Plan 17 PR A. `s.ambitions` (ambition id -> the year reached) and
+// `s.finance.weeksInTheRed` (the run's own solvency count), both added as
+// required.
+// v64: Plan 17 PR C. `s.self.legacy` (the sealed record, nullable),
+// `s.self.facultyServed` and `YearSnapshot.graduated`, all added as
+// required.
+// v65: Plan 17 PR D. `s.events.passedResponses` (the rivals whose passing
+// the trustees have already answered), added as required.
+export const SAVE_VERSION = 65;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch

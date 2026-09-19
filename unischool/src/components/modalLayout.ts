@@ -28,7 +28,12 @@ export type ModalWidth = 'narrow' | 'wide' | 'page';
 export function modalWidth(interrupt: PendingInterrupt): ModalWidth {
   switch (interrupt.type) {
     case 'summer': {
-      const beat = (interrupt.payload as SummerPayload | undefined)?.beat ?? 0;
+      const payload = interrupt.payload as SummerPayload | undefined;
+      const beat = payload?.beat ?? 0;
+      // The fiftieth summer's first beat is the final report (Plan 17's
+      // PR C): six graded axes, the ambitions, the founder's numbers and
+      // the fifty-year curves — a page to read, like the Standing beat.
+      if (beat === 0 && payload?.final) return 'page';
       return beat === 1 ? 'page' : 'wide';
     }
     case 'rankings-entry':

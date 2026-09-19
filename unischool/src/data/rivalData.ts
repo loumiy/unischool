@@ -243,6 +243,16 @@ export function initialRivals(): Rival[] {
 type AuthoredRival = Omit<Rival,
   'colors' | 'athleticStrength' | 'athleticMomentum' | 'socialStanding' | 'researchStanding' | 'socialMomentum' | 'researchMomentum'>;
 
+// THE ELITE BAND (Plan 17's PR D): the ten schools authored at 87-99, the
+// top of the table a founding school is climbing toward. Once the player
+// is above ELITE_CLOSE_ABOVE_PRESTIGE these ten stop drifting like the rest
+// of the field and CLOSE on the leader (rivalsSystem.ts's
+// eliteClosingStep) — which is what makes the defend era an era. Named as
+// a set of ids rather than read off reputation, so a rival that has
+// drifted below 87 is still one of the ten and one that has drifted above
+// is not; the test pins the set to the authored table.
+export const ELITE_RIVAL_IDS: ReadonlySet<string> = new Set(['r6', 'r7', 'r8', 'r9', 'r10', 'r11', 'r12', 'r13', 'r14', 'r15']);
+
 function baseRivals(): AuthoredRival[] {
   return [
     // --- original five ---
