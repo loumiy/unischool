@@ -135,11 +135,12 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
         </span>
         <span className="toolbar-funds-net">{netWeekly >= 0 ? '+' : '-'}${Math.round(Math.abs(netWeekly)).toLocaleString()}/wk</span>
       </button>
-      {/* Four chips, a glyph and a figure each (Plan 18): the word is the
-          chip's title and its visually-hidden label, so a hover or a screen
-          reader still gets "Prestige" while the band gets its room back.
-          The figures disambiguate the glyphs more than the glyphs do — a
-          "#" before the first is what says rank. */}
+      {/* Four chips, a glyph and a figure each (Plan 18), on their own row
+          under the funds figure (see styles.css's .toolbar-left): the word
+          is the chip's title and its visually-hidden label, so a hover or a
+          screen reader still gets "Prestige" while the band gets its room
+          back. The figures disambiguate the glyphs more than the glyphs do
+          — a "#" before the first is what says rank. */}
       <div className="toolbar-stats">
         <div className="toolbar-stat" title="Rank, of 100 schools">
           <RankIcon />
@@ -190,8 +191,17 @@ export function SchoolAndClock({ s, speed, setSpeed, weekProgress }: {
 
   useSpeedHotkeys(speed, setSpeed, showPlaytestControls);
 
+  // Two rows, the clock above the gears (see styles.css's .toolbar-right):
+  // the right zone stacks so the labelled tab row in the middle has the
+  // width it needs, the same way the left zone stacks funds over stats.
   return (
     <>
+      {/* The clock alone here now. The school's name hangs as the pennant in
+          the map's top-left corner instead (see Pennant.tsx). */}
+      <div className="toolbar-school">
+        <span className="toolbar-clock">Year {s.clock.year} · {termName(s.clock.week)} · Week {s.clock.week}</span>
+        <DayTicker s={s} speed={speed} weekProgress={weekProgress} />
+      </div>
       <div className="toolbar-speed">
         <div className="speeds">
           {visibleSpeeds.map((sp) => {
@@ -213,13 +223,6 @@ export function SchoolAndClock({ s, speed, setSpeed, weekProgress }: {
             );
           })}
         </div>
-      </div>
-      {/* The clock alone here now. The school's name hangs as the pennant in
-          the map's top-left corner instead (see Pennant.tsx), which is what
-          lets this band be one row. */}
-      <div className="toolbar-school">
-        <span className="toolbar-clock">Year {s.clock.year} · {termName(s.clock.week)} · Week {s.clock.week}</span>
-        <DayTicker s={s} speed={speed} weekProgress={weekProgress} />
       </div>
     </>
   );

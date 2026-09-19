@@ -145,11 +145,13 @@ the school's name hangs as the mockup's **pennant** in the map's top-left
 corner (`Pennant.tsx`, withheld while a tab is open), and the next step
 rides at the right end of the log ticker, which was already one line of
 guidance-shaped text. Inside the band the four stats are chips with a glyph
-and a figure (the word in the tooltip and as hidden text), the gears are four
-round glyphs, and the tab labels sit *under* the glyphs at 10px, the tab-bar
-shape, which is what lets eight labelled tabs fit at 1600px; below that the
-glyphs go alone, and below 1440px the funds figure steps down and sheds its
-net so the row holds at 1280.
+and a figure (the word in the tooltip and as hidden text) and the gears are
+four round glyphs. The tab labels were first shown only on wide monitors;
+the third pass keeps them at every width by stacking the two *side* zones
+instead — funds over the stat chips on the left, the clock over the gears on
+the right — so the middle row of eight labelled tabs (the word under the
+glyph) plus Build has its room from 1280px up. The pennant is one name in
+one face, not a name with "University" captioned beneath it.
 
 ## 2. PR B — School colours
 

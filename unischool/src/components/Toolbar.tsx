@@ -159,11 +159,10 @@ const Toolbar = forwardRef<HTMLDivElement, {
               onClick={() => onChangeTab(isActive ? null : id)}
             >
               <Icon />
-              {/* The word under the glyph (Plan 18's PR A): shown at wide
-                  viewports and hidden by .toolbar-tab-label below 1600px,
-                  where the aria-label/title above carries it alone — the
-                  review's finding was that three of these icons look alike
-                  at 24px and none says what it opens. */}
+              {/* The word under the glyph (Plan 18's PR A), at every width
+                  — the review's finding was that three of these icons look
+                  alike at 24px and none says what it opens. The two side
+                  zones stack to two rows so this row has the room. */}
               <span className="toolbar-tab-label">{TAB_LABELS[id]}</span>
               {hasAlert && <span className="alert-badge" aria-hidden="true">!</span>}
             </button>

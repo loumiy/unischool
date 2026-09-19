@@ -52,13 +52,16 @@ reading, never a queue: nothing is ticked off, and the line goes quiet when
 nothing is on offer. The log on the left says what just happened; the step on
 the right says what to do about it.
 
-The **toolbar** itself is one row: the funds figure with its weekly net, four
-stat chips (rank, enrolled, prestige, satisfaction — a glyph and a figure each,
-the word in the tooltip), the tab row with its labels under the glyphs at
-1600px and up, Build, four round gears (pause, play, 2×, 4×) and the clock.
-The school's name is not in it: it hangs as a **pennant** in the map's
-top-left corner in the school's colours (`Pennant.tsx`), withheld while a tab
-is open because the tab's own title takes that corner.
+The **toolbar** itself is three zones in one band. The left zone stacks the
+funds figure with its weekly net over four stat chips (rank, enrolled,
+prestige, satisfaction — a glyph and a figure each, the word in the tooltip);
+the right zone stacks the clock over four round gears (pause, play, 2×, 4×);
+and between them, in one row at every width, the labelled tab row — the word
+under each glyph — and Build. The two side zones stack precisely so that row
+always fits. The school's name is not in the band: it hangs as a **pennant**
+in the map's top-left corner in the school's colours (`Pennant.tsx`), one
+name in one face, withheld while a tab is open because the tab's own title
+takes that corner.
 
 ## Keyboard
 
