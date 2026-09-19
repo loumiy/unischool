@@ -44,7 +44,25 @@ const ATHLETIC_STRENGTH_MAX = 85;
 // this rate is what makes falling cost rank — the whole mechanism of the
 // defend era, and it needs no new system. No draw on any random stream.
 export const ELITE_CLOSE_ABOVE_PRESTIGE = 100;
-export const ELITE_CLOSE_GAP = 4;
+// Eight rather than the plan's four: prestige is capped at 150 and the
+// closing term only ever pulls upward, so the band random-walks up from
+// its target on its own momentum and shocks for the rest of the run. At
+// four, a school holding the cap was tied at the cap by two or three elite
+// schools inside a decade and ranked behind them (the sort favours nobody,
+// so a tie is a loss). At eight the walk seldom reaches the cap in fifteen
+// years, and a school that COASTS off it still finds the field waiting
+// four or five points below — which is the whole point.
+export const ELITE_CLOSE_GAP = 8;
+// THE BAND DOES NOT LEAPFROG. Its own momentum and shocks can carry a
+// rival from the target up past the leader by luck alone, and at the top
+// of the scale that is decisive: prestige is capped at 150, so a school
+// holding the cap and a rival that wandered up to it are tied, and a tie
+// is a loss. So while the closing applies, an elite rival BELOW the leader
+// rises no closer than this in a year — it chases, it does not overtake.
+// A rival passes the leader in one way only: the leader falls into the
+// band. That is "coasting has to be losable", and nothing else is.
+// A rival already above the leader keeps its own drift.
+export const ELITE_NO_LEAPFROG_GAP = 1;
 export const ELITE_CLOSE_RATE = 0.35; // 0.65^5 ≈ 0.12: a ten-point gap is a little over one point after five years
 
 // How far an elite rival's reputation moves this year toward the leader.
@@ -144,8 +162,14 @@ export function tickRivals(s: GameState): void {
       const shock = (roll() - 0.5) * ANNUAL_SHOCK_RANGE;
       // The elite band closes on the leader (see eliteClosingStep above):
       // the same momentum and shock as everybody, plus the pull.
-      const closing = ELITE_RIVAL_IDS.has(r.id) ? eliteClosingStep(r.reputation, s.self.reputation) : 0;
-      r.reputation = clamp(r.reputation + r.momentum + shock + closing, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
+      const elite = ELITE_RIVAL_IDS.has(r.id) && s.self.reputation > ELITE_CLOSE_ABOVE_PRESTIGE;
+      const closing = elite ? eliteClosingStep(r.reputation, s.self.reputation) : 0;
+      let next = r.reputation + r.momentum + shock + closing;
+      // No leapfrogging (see ELITE_NO_LEAPFROG_GAP): a chasing rival stops
+      // short of the leader; only a leader who falls is passed.
+      const ceiling = s.self.reputation - ELITE_NO_LEAPFROG_GAP;
+      if (elite && r.reputation <= ceiling) next = Math.min(next, ceiling);
+      r.reputation = clamp(next, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
 
       // The other two standings drift the same way, each on its OWN
       // momentum — which is what keeps the three tables from moving as one

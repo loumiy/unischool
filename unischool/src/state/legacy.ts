@@ -1,7 +1,7 @@
 import type { GameState, Legacy, LegacyAxis, LegacyAxisKey, LegacyGrade } from './types';
 import { WEEKS_PER_YEAR, totalEnrolled } from './types';
 import { graduatePrograms, milestoneSchools } from '../data/techData';
-import { gradeFor, teachingQualityScore } from '../data/courseQuality';
+import { GRADE_A, GRADE_C, gradeFor } from '../data/courseQuality';
 import { courseQuality, facultyLoads } from '../systems/faculty/facultyAssignment';
 import {
   RESEARCH_CREDITS_FOR_FULL_SCORE, concentrationScore, curriculumBreadthScore, researchCredits, researchScore,
@@ -63,11 +63,19 @@ function clamp01(v: number): number {
 }
 
 // --- teaching -----------------------------------------------------------
-// Half the campus average grade, scored on courseQuality.ts's own floor
-// and ceiling; half the share of graded courses at A or B. The second
-// half is what tells a school that teaches everything adequately from one
-// that teaches most things well: two campuses can average 62 with very
-// different rosters.
+// Half the campus average grade, read on the COURSE GRADE'S OWN SCALE — an
+// average at the A line (courseQuality.ts's GRADE_A) scores the whole half,
+// one at the C line scores nothing, so "an A campus" means what a player
+// reading the Curriculum tab's chips would expect: the average course is an
+// A. Half the share of graded courses at A or B. The second half is what
+// tells a school that teaches everything adequately from one that teaches
+// most things well: two campuses can average 62 with very different
+// rosters.
+//
+// Not the prestige term's own teachingQualityScore, which maps 35..85: that
+// floor is where prestige starts paying for teaching at all, and on it every
+// big school in the harness reads the same mid-C whatever it does about its
+// grades. The legacy grades what the player did about them.
 const TEACHING_AVERAGE_SHARE = 0.5;
 
 function teachingReading(s: GameState): { score: number; detail: string } {
@@ -86,7 +94,8 @@ function teachingReading(s: GameState): { score: number; detail: string } {
   if (n === 0) return { score: 0, detail: 'No course is being taught.' };
   const average = sum / n;
   const share = good / n;
-  const score = TEACHING_AVERAGE_SHARE * teachingQualityScore(average) + (1 - TEACHING_AVERAGE_SHARE) * share;
+  const onGradeScale = clamp01((average - GRADE_C) / (GRADE_A - GRADE_C));
+  const score = TEACHING_AVERAGE_SHARE * onGradeScale + (1 - TEACHING_AVERAGE_SHARE) * share;
   return {
     score: clamp01(score),
     detail: `The campus average course grade is ${average.toFixed(0)} of 100; ${Math.round(share * 100)}% of ${n.toLocaleString()} courses are taught to an A or a B.`,
@@ -102,13 +111,16 @@ function teachingReading(s: GameState): { score: number; detail: string } {
 //
 // Selectivity: half the class's average quality, half how far below
 // REACH_ADMIT_OPEN the admit rate sits (REACH_ADMIT_SELECTIVE or under
-// scores the whole half). Reach: the realised pool against the pool
-// prestige alone would draw (lastFunnel.factors.prestigePool), so a cheap,
-// well-regarded school drawing most of what its standing could ever draw
-// reads high and an expensive one reads low. Null before the first summer.
+// scores the whole half). Reach: the greater of the realised pool against
+// the pool prestige alone would draw (lastFunnel.factors.prestigePool — a
+// cheap, well-regarded school drawing most of what its standing could ever
+// draw reads high, an expensive one low) and the body the school actually
+// serves against REACH_BODY_FOR_FULL — an engine of the region is one that
+// teaches tens of thousands. Null before the first summer.
 const REACH_ADMIT_SELECTIVE = 0.10;
 const REACH_ADMIT_OPEN = 0.50;
 const REACH_POOL_RATIO_FOR_FULL = 0.8;
+const REACH_BODY_FOR_FULL = 25_000;
 
 function reachReading(s: GameState): { score: number; detail: string } {
   const funnel = s.students.lastFunnel;
@@ -117,12 +129,13 @@ function reachReading(s: GameState): { score: number; detail: string } {
   const admit = s.students.admitRate;
   const selectivity = 0.5 * quality + 0.5 * clamp01((REACH_ADMIT_OPEN - admit) / (REACH_ADMIT_OPEN - REACH_ADMIT_SELECTIVE));
   const ratio = funnel.factors.prestigePool > 0 ? funnel.applicants / funnel.factors.prestigePool : 0;
-  const reach = clamp01(ratio / REACH_POOL_RATIO_FOR_FULL);
+  const enrolled = totalEnrolled(s.students);
+  const reach = Math.max(clamp01(ratio / REACH_POOL_RATIO_FOR_FULL), clamp01(enrolled / REACH_BODY_FOR_FULL));
   const score = Math.max(selectivity, reach);
   return {
     score,
     detail: `${funnel.applicants.toLocaleString()} applied last summer, ${Math.round(ratio * 100)}% of what prestige alone would draw; `
-      + `${Math.round(admit * 100)}% were admitted at an average quality of ${s.students.incomingQuality.toFixed(0)}.`,
+      + `${Math.round(admit * 100)}% were admitted at an average quality of ${s.students.incomingQuality.toFixed(0)}; ${enrolled.toLocaleString()} enrolled.`,
   };
 }
 

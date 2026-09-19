@@ -54,9 +54,9 @@ export type Grade = 'A' | 'B' | 'C' | 'D' | 'F';
 // The upshot to preserve through any retune: D on a NEW department's
 // course is the system working, D on a VETERAN's course means the player
 // overloaded them. Those must stay distinguishable.
-const GRADE_A = 78;
-const GRADE_B = 62;
-const GRADE_C = 44;
+export const GRADE_A = 78;
+export const GRADE_B = 62;
+export const GRADE_C = 44;
 const GRADE_D = 30;
 
 export function gradeFor(score: number): Grade {

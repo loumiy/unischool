@@ -263,10 +263,17 @@ export function hasFreeSlot(s: GameState, f: Faculty): boolean {
 // whenever they are otherwise full.
 export function eligibleInstructors(s: GameState, node: Buildable, except?: string): Faculty[] {
   if (!node.requiresFaculty) return [];
+  // Best teacher first; a tie goes to whoever joined the roster first.
+  // Faculty ids are random UUIDs, so a tie broken on id was broken by the
+  // dice — invisible in play, but a fast-forward that picks the first
+  // eligible instructor for every course (the sim's default, the reducer's
+  // START_DEVELOPMENT without a choice) came out differently every time it
+  // was run once a department had two equal professors in it. Roster
+  // order is hire order, and a sort over a filtered copy keeps it.
   return s.faculty
     .filter((f) => f.field === node.requiresFaculty)
     .filter((f) => hasFreeSlot(s, f) || (except !== undefined && s.courseFaculty[except] === f.id))
-    .sort((a, b) => b.teaching - a.teaching || a.id.localeCompare(b.id));
+    .sort((a, b) => b.teaching - a.teaching);
 }
 
 // How many faculty course-slots in `field` are spoken for: every OFFERED

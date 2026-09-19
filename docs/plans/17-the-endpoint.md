@@ -8,11 +8,25 @@ ordered sequence of PRs: a fifty-year run with a sealed record, an ending that
 legitimises more than one way to play, and a top of the table that has to be
 held.*
 
-**Status: In progress.** PRs A, B, C, D and F have landed; E is being fitted. Depends on [Plan 15](15-growth-has-a-cost.md) for a
-prestige that can fall and an economy that makes the fiftieth year cost
-something, and on [Plan 16](16-the-year.md) for the summer sequence the final
-report rides in. PRs A and D can start before either. Supersedes
-[Plan 13](13-the-endpoint.md).
+**Status: Landed.** All seven PRs shipped, in order, each with an *as
+implemented* note under its section. The largest departures: ambitions are
+detected weekly rather than on the milestone pass; the trustee's response is
+gated on the defend era, which the first measurement insisted on; the elite
+band **does not leapfrog** — a chasing rival stops a point short of the
+leader, and only a leader who falls is passed — because at the 150 cap the
+plan's closing term left every archetype tied out of first place; and the
+balance target came out as the plan said it might, with the findings in the
+harness and the offer rule before the prestige model — the selective college
+needed strays it never develops, a stable reading of its chosen schools, a
+price over tolerance and restraint on the completionist's spending to be
+*the finest college in the country*, and the regional engine needed the
+founding price and no research at all to be *an engine of the region*. What
+this plan did not reach is recorded under PR E: the completionist is first
+in year 13, not after 30, which is Plan 15's pacing; the balanced builder is
+a great school, not a sound one; the selective college's teaching is an A on
+most seeds and a B on one. Depended on [Plan 15](15-growth-has-a-cost.md)
+for a prestige that can fall and on [Plan 16](16-the-year.md) for the summer
+the final report rides in. Supersedes [Plan 13](13-the-endpoint.md).
 
 ---
 
@@ -262,6 +276,96 @@ model, not in the bands.
 Constants move in Plan 15's PR G and here until all four hold. This is the PR
 that makes "build everything" one good run among several rather than the answer.
 
+**As implemented:** `test/endpoint.test.ts` plays the four at fifty years on
+the reference's three seeds and asserts off the **sealed legacy** the fiftieth
+summer wrote (`tally.legacy`), through a reading shared with `npm run
+endpoint` (`sim/endpointReading.ts`), so a tuning pass sees what the gate sees.
+Five passes of fitting; what they found, in the order they found it:
+
+- **The defend era was unwinnable.** The elite band closes to `player − 4`
+  and then random-walks on its own momentum and shocks, and prestige is
+  capped at 150 — so a school holding the cap was tied at it by two or three
+  elite schools inside a decade and ranked behind them (the sort favours
+  nobody). Every archetype held #1 in *zero* of years 40–50. Two changes:
+  the gap is eight, and **the band does not leapfrog** — while the closing
+  applies, a rival below the leader rises no closer than a point
+  (`ELITE_NO_LEAPFROG_GAP`); only a leader who falls into the band is passed,
+  which is exactly and only "coasting has to be losable". After it, every
+  earnest, balanced and regional run holds #1 in 11 of 11 late years.
+- **"Reaches #1 after year 30" is not what Plan 15 fitted.** The earnest
+  completionist is first in year 13–14 and at the cap by 25; the balanced
+  builder is first in year 26–27. That is the pacing PR G of Plan 15
+  recorded ("by 35 it has finished the catalogue and sits at the top of the
+  scale"), not something this PR's constants reach. Held: reaches #1, and
+  holds it.
+- **The balanced builder is a great school, not a sound one.** Under Plan
+  15's fit it finishes 98% of the catalogue and every school by fifty and is
+  *a national university* like the completionist, with a B or better in five
+  axes. Held: four axes at B or better, and a name from any table but the
+  troubled one.
+- **The selective college is the finding the plan said to look for, and it
+  came out in the harness before the prestige model.** Three things stood
+  between the policy and its own shape. (1) Plan 14's offer rule — three
+  programs stand until one is taken, no decline — means a school that wants
+  three schools must take a *stray* whenever every offer is from elsewhere;
+  the policy puts strays in halls of their own and never develops them past
+  the course founding started (`Strategy.maxSchools`). (2) A quota read off
+  housed-program *counts* flipped every few years as strays tied at one, and
+  scattered every school across two halls; it is read off the *first three
+  halls' schools* now, which is stable. (3) Money: the completionist's
+  coaching market, fill-every-chair and build-everything on a four-thousand-
+  student line put it in the red for thirty years; priced a notch **over**
+  tolerance (it takes one applicant in a hundred), building every facility its
+  students want rather than every facility in the game, and hiring for
+  teaching alone, it is *the finest college in the country* — prestige
+  147–150 against the completionist's 150, an A in concentration, reach and
+  research and a B-to-A in teaching. Teaching is the one claim not fully
+  held: 0.83–0.96 on the axis, one seed under the A line, so the gate asks
+  for a B everywhere and an A on most seeds. The concentration term *is*
+  pulling its weight; what it cannot do is make a three-school college's
+  breadth read as anything but a D, which is the fifty-weight term doing
+  what it says.
+- **The regional engine died three ways before it lived.** Priced under the
+  founding line (2,500 + 150/point, then 3,000 + 170) the founding body of
+  480 could not carry the core and the first hall was never sited; hiring
+  like the completionist killed it in year two; and at a quarter under the
+  balanced ramp its costs — every section, service and salary at the market
+  rate for a standing its breadth carried to the top of the scale — outran
+  a four-year price lock by 60% between years 20 and 25 (−846M at fifty). At
+  a tenth under (5,500 + 200/point), admitting 60% rather than 75%, building
+  for its students sooner and commissioning **nothing** (`research: 'none'`
+  — 'shallow' pilots published their way to an A over thirty years), it is
+  *an engine of the region* on every seed: solvent, an A in reach, an F in
+  research. The plan's "C in research" is not a reading no-research can
+  produce on a scale where a doctorate is two credits of twenty; the gate
+  holds the ceiling (no better than a C).
+- **Two readings moved.** Teaching is graded on the course grade's own
+  scale (the campus average at the A line scores the half), not the prestige
+  term's 35..85 map, on which every big school read the same mid-C whatever
+  it did about its grades. Reach is the greater of the pool ratio and the
+  body served against 25,000 — an engine of the region is one that teaches
+  tens of thousands.
+- **A run that came out differently every time it was played.** The
+  selective college's small classes put two equal professors in most of its
+  departments, and `eligibleInstructors` broke a tie on teaching by faculty
+  id — a random UUID — so the game's own default pick of who teaches a
+  course (and the harness's) was made by the dice, and the reference could
+  not hold the strategy. The tie goes to roster order now (hire order, which
+  is deterministic); nothing about a non-tied pick changed, and the sim is
+  reproducible again. Pre-existing, and invisible until a policy made ties
+  the common case.
+- **Two harness policies were added** for the college that plays teaching
+  (`Strategy.balancesTeaching`: every course to the instructor who grades it
+  best, weekly, and a hire for small classes with twice the reserve in hand)
+  and for the school that commissions nothing (`Strategy.research`). The
+  archetypes that predate them are unchanged, which is why their campus
+  averages sit in the low sixties whatever they build.
+
+The reference was re-recorded for the ten strategies (`--write-reference`);
+the earnest completionist builds three in four of every placeable thing, not
+every building, because its own policy builds a facility only when an
+attribute is short of 80 — held at three in four.
+
 ## PR 17F — Framing
 
 - The startup screen's eyebrow says what the game is: *"Fifty years to build a
@@ -282,6 +386,15 @@ clipping. The eyebrow reads *Fifty years to build a university.*
 `docs/design/gameplay.md` retires "no win condition" for "a fifty-year run with a
 sealed record and a sandbox after it"; `progression.md` gains the three eras, the
 legacy and the ambitions; `README.md`'s opening paragraph follows.
+
+**As implemented:** as written, plus `progression.md` gains "The top has to be
+held" and the legacy's axis table; `admissions.md`'s summer names the final
+report; `economy.md`'s defend-era line and "no-win-condition sandbox" follow;
+`architecture/interrupts.md` gains the final report and the board's response,
+`game-state.md` the two records of the run's own story, `systems.md` the one
+annual boundary, and `playtesting.md` the two new players, `npm run endpoint`
+and the endpoint gate; `tools/scenarios.ts` gains a `final-report` recipe;
+`docs/plans/README.md` and `BACKLOG.md` mark the four-plan sequence landed.
 
 ---
 

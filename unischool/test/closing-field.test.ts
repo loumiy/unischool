@@ -17,7 +17,7 @@
 
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
-import { tickRivals, ELITE_CLOSE_ABOVE_PRESTIGE, ELITE_CLOSE_GAP, eliteClosingStep, buildReportPayload, playerRank } from '../src/systems/rivals/rivalsSystem';
+import { tickRivals, ELITE_CLOSE_ABOVE_PRESTIGE, ELITE_CLOSE_GAP, ELITE_NO_LEAPFROG_GAP, eliteClosingStep, buildReportPayload, playerRank } from '../src/systems/rivals/rivalsSystem';
 import { ELITE_RIVAL_IDS, initialRivals } from '../src/data/rivalData';
 import { tickEvents } from '../src/systems/events/eventSystem';
 import { DECISION_EVENT_COOLDOWN_WEEKS, DECISION_EVENT_FIRST_YEAR, findDecisionEvent } from '../src/data/eventData';
@@ -25,6 +25,15 @@ import { buildYearInReview } from '../src/state/yearInReview';
 import { captureYearSnapshot } from '../src/state/history';
 import type { GameState } from '../src/state/types';
 import { WEEKS_PER_YEAR } from '../src/state/types';
+
+// The field's drift rolls dice; pinned to one stream (the sim's own LCG,
+// sim/balanceSim.ts) so the claims below are about the model and not the
+// weather. A claim that only holds on some streams is not pinned here.
+let seed = 12345;
+Math.random = () => {
+  seed = (seed * 1664525 + 1013904223) % 4294967296;
+  return seed / 4294967296;
+};
 
 let checks = 0;
 let failures = 0;
@@ -67,8 +76,23 @@ console.log('closing field tests');
   for (let y = 0; y < 8; y += 1) tickRivals(s);
   const elite = s.rivals.filter((r) => ELITE_RIVAL_IDS.has(r.id));
   assert(elite.every((r) => r.reputation > 110), `every elite school has closed to within reach after eight years (${elite.map((r) => r.reputation.toFixed(0)).join(', ')})`);
+  assert(elite.every((r) => r.reputation <= 125 - ELITE_NO_LEAPFROG_GAP), 'and none has leapfrogged a leader who held');
+  assert(playerRank(s) === 1, 'so the leader who held is still first');
   const rest = s.rivals.filter((r) => !ELITE_RIVAL_IDS.has(r.id));
   assert(rest.every((r) => r.reputation < 110), 'and the rest of the field drifted as it always did');
+
+  // A leader who coasts falls into the band and is passed: the field does
+  // not follow them down.
+  const coasting = createInitialState('Coasting');
+  coasting.self.reputation = 150;
+  coasting.clock.week = WEEKS_PER_YEAR;
+  for (let y = 0; y < 12; y += 1) tickRivals(coasting);
+  assert(playerRank(coasting) === 1, 'a school holding the cap for twelve years is first');
+  coasting.self.reputation = 138;
+  tickRivals(coasting);
+  assert(playerRank(coasting) > 1, `and one that falls twelve points is passed (rank #${playerRank(coasting)})`);
+  const above = coasting.rivals.filter((r) => ELITE_RIVAL_IDS.has(r.id) && r.reputation > 138).length;
+  assert(above >= 1, `by rivals the band left standing above it (${above})`);
 
   // A leader below the gate meets the field it always did: no elite
   // school is pulled, whatever else the dice do.
