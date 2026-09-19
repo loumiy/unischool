@@ -203,8 +203,9 @@ const MAX_PAN_FRAME_S = 0.1;
 // --- the camera ---
 // The view stands at one of four corners of the campus (isoProjection's
 // VIEWS) and at one of three pitches (PITCHES), and moves between them in
-// one step: Q/E turn a quarter turn, Z/X tilt, and the buttons beside the
-// zoom controls do the same. No animation between views, on purpose — the
+// one step: Q/E turn a quarter turn, Z/X tilt, Home comes back to the
+// opening view. Keys only — there is no button for any of the three (see
+// the corner pill's own note). No animation between views, on purpose — the
 // motifs are drawn for the pixel grid of those views, and the angles in
 // between are not worth the frames (see isoProjection.ts).
 //
@@ -1460,11 +1461,14 @@ export default function CampusMap({
     const key = e.key.toLowerCase();
     if (key === 'r' && canRotateSelected) setRotated((r) => !r);
     if (key === 'p') onSetPathTool('draw');
-    // The camera (see the CAMERA block above): a quarter turn, a tilt step.
+    // The camera (see the CAMERA block above): a quarter turn, a tilt step,
+    // and Home for the opening view — the one key on the map that is not a
+    // letter, because it is the one whose name already says what it does.
     if (key === 'q') turnBy(1);
     if (key === 'e') turnBy(-1);
     if (key === 'z') tiltBy(-1);
     if (key === 'x') tiltBy(1);
+    if (key === 'home') resetCamera();
   }, controlsEnabled);
 
   // Escape on its own gate, because App.tsx's ladder hands off to it.
@@ -1752,18 +1756,16 @@ export default function CampusMap({
         <div className="campus-map-zoom-controls">
           <HelpHint
             align="end"
-            text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. Press P (or use the build popup's Draw path tile) to lay walkways — free, purely decorative, and unrelated to building: drag with the left button to pave, the right button to lift, and the ghost tile shows which square you're on. Every other view — Curriculum, Faculty, Research and the rest — opens as a full screen over this one; the home button at the left of the toolbar's icon row, that view's own close button, or Escape brings you back here. Keys: W/A/S/D or the arrows pan, Space pauses and resumes wherever you are, R rotates, P draws, Escape backs out one layer at a time, C/F/L open Curriculum, Faculty and Student Life. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll/pinch to zoom. Q/E turn the view a quarter turn round the campus, Z/X tilt it flatter or steeper, and the ⌖ button brings back the opening view."
+            text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. Press P (or use the build popup's Draw path tile) to lay walkways — free, purely decorative, and unrelated to building: drag with the left button to pave, the right button to lift, and the ghost tile shows which square you're on. Every other view — Curriculum, Faculty, Research and the rest — opens as a full screen over this one; the home button at the left of the toolbar's icon row, that view's own close button, or Escape brings you back here. Keys: W/A/S/D or the arrows pan, Space pauses and resumes wherever you are, R rotates, P draws, Escape backs out one layer at a time, C/F/L open Curriculum, Faculty and Student Life. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll/pinch to zoom. Q/E turn the view a quarter turn round the campus, Z/X tilt it flatter or steeper, and Home brings back the opening view."
           />
           <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
           <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>
-          {/* The camera: a quarter turn either way, a step steeper or
-              flatter, and back to the view the game opens on (see the
-              CAMERA block above). */}
-          <button type="button" onClick={() => turnBy(1)} aria-label="Turn the view left" title="Turn left (Q)">⟲</button>
-          <button type="button" onClick={() => turnBy(-1)} aria-label="Turn the view right" title="Turn right (E)">⟳</button>
-          <button type="button" onClick={() => tiltBy(1)} aria-label="Tilt the view steeper" title="Look down more steeply (X)">⤒</button>
-          <button type="button" onClick={() => tiltBy(-1)} aria-label="Tilt the view flatter" title="Look more from the side (Z)">⤓</button>
-          <button type="button" onClick={resetCamera} aria-label="Reset the view" title="Back to the opening view">⌖</button>
+          {/* The camera — a quarter turn either way, a step steeper or
+              flatter, and back to the opening view — is KEYS ONLY (Q/E,
+              Z/X, Home; see the hotkey handler above). Five more buttons
+              here made the corner pill a control panel; zoom keeps its
+              buttons because a map that no longer fits the screen must be
+              zoomable without a wheel, and turning the view is not that. */}
         </div>
       </div>
     </section>

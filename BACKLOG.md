@@ -132,12 +132,18 @@ work with a known shape; none has been turned into a sequence of PRs.*
   standing* and nothing else, which is the narrow shape
   `docs/design/student-life.md` flagged it in — the academic number the whole
   economy reads is still untouched by athletics.
-- **The tutorial** — **done, as [Plan 16](docs/plans/16-the-year.md)'s PR F**:
-  four letters from the board's chair across the first year (develop the core,
-  site the first hall, site a residence and a dining hall, what the summer will
-  ask), each with one thing to do, skippable from the first for a second run,
-  and a next-step line on the toolbar that carries the ask until it is done.
-  Nothing beyond the first year: a player who reaches summer two has the loop.
+- **The tutorial** — **done**, in two layers. The forced first minute is the
+  opening walkthrough (`src/state/opening.ts`): a new school opens
+  with the clock held and no building standing, and the shell walks the
+  player through siting Founders Hall from the build menu and developing a
+  course from the Curriculum — which is where a professor is picked or
+  appointed — before the clock runs. The rest is
+  [Plan 16](docs/plans/16-the-year.md)'s PR F: three more letters from the
+  board's chair across the first year (site the first hall, site a residence
+  and a dining hall, what the summer will ask), each with one thing to do and
+  none forced, with a next-step line on the toolbar that carries the ask until
+  it is done. Nothing beyond the first year: a player who reaches summer two
+  has the loop.
 
 ## From the September review, not taken into Plans 14–17
 

@@ -31,7 +31,8 @@ the opening camera), and each kind carries an architectural form
 
 The view stands at one of **four corners of the campus** (a quarter turn
 apart) and one of **three pitches**, and steps between them instantly: Q/E
-turn, Z/X tilt, or the buttons beside the zoom controls. `isoProjection.ts`
+turn, Z/X tilt, Home returns to the opening view — keys only; the corner pill
+beside the zoom buttons carries no camera controls. `isoProjection.ts`
 owns one `Camera` (azimuth and pitch) and derives every projection
 coefficient from it, so the two hundred call sites that draw a wall or a
 roof never know a camera exists; it accepts any camera, but the map only
@@ -95,8 +96,10 @@ costs nothing extra.
 A new university does not open on a bare plate. `data/treeData.ts` seeds a
 **founding woodland** at `createInitialState` — groves rather than an even
 scatter, with a deliberate clearing around the middle where Founders Hall
-already stands, so the map has *places* on it and siting a building is a
-choice about ground. `GameState.trees` is one entry per wooded tile,
+stands in a headless founding (a guided one leaves the hall for the player to
+site, as the opening walkthrough's first step, and the clearing is where they
+will most likely put it), so the map has *places* on it and siting a building
+is a choice about ground. `GameState.trees` is one entry per wooded tile,
 keyed by the same `pathTileKey()` `pathways` uses, and its value is a single
 integer SEED: `components/trees.tsx` derives species, size and the tree's
 offset within its own tile from it, so a wood is varied without storing

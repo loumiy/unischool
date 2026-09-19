@@ -2,6 +2,7 @@ import type {
   Buildable, FacilityType, Footprint, GameState, Placement, Placements, TileCoord,
 } from './types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, PLACEABLE_KINDS } from './types';
+import { GENED_BUILDING_ID } from '../data/techData';
 
 // Pure helpers for the campus map's placement rules, shared by the
 // reducer's PLACE_BUILDABLE case, the save loader's placement hygiene, and
@@ -385,8 +386,31 @@ export function needsSiting(s: GameState, t: Buildable): boolean {
 // siting reads as a real decision rather than a freebie.
 export const RETROACTIVE_SITING_COST = 2_000;
 
+// What siting THIS 'done' Buildable charges. Founders Hall is the one
+// exception to the flat fee: a guided founding leaves it unsited so that
+// placing it is the walkthrough's first step (see state/
+// opening.ts), and the founding hall's ground came with the charter — a
+// first click that costs money would be a walkthrough that starts with a
+// bill. Everything else that reaches needsSiting pays the fee.
+export function sitingFeeOf(t: Buildable): number {
+  return t.id === GENED_BUILDING_ID ? 0 : RETROACTIVE_SITING_COST;
+}
+
 export function canSiteRetroactively(s: GameState, t: Buildable): boolean {
-  return needsSiting(s, t) && s.finance.cash >= RETROACTIVE_SITING_COST;
+  return needsSiting(s, t) && s.finance.cash >= sitingFeeOf(t);
+}
+
+// The middle of the grid, for a footprint: where createInitialState puts
+// Founders Hall in a headless founding and where skipOpening puts it for a
+// player who declined the walk. Math.floor keeps the anchor on a whole
+// tile; the footprint is odd or even against the grid dimensions, so this
+// lands as close to dead centre as the tile grid allows.
+export function centredPlacement(fp: Footprint): Placement {
+  return placementFor(
+    Math.floor((CAMPUS_GRID_HEIGHT - fp.h) / 2),
+    Math.floor((CAMPUS_GRID_WIDTH - fp.w) / 2),
+    fp,
+  );
 }
 
 // A deterministic "first empty spot" scan: top-left to bottom-right, the

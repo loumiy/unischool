@@ -3,6 +3,7 @@ import { OPENING_LETTERS } from '../../data/eventData';
 import { GENED_BUILDING_ID, milestoneSchools, programById } from '../../data/techData';
 import { isHoused } from '../techtree/programOffers';
 import type { TabId } from '../../components/TabNav';
+import { openingHoldsClock } from '../../state/opening';
 
 // ---------------------------------------------------------------------
 // THE NEXT STEP (Plan 16's PR F): one line the toolbar carries, saying
@@ -123,6 +124,9 @@ function idleLab(s: GameState): NextStep | null {
 // order, with the reason. A run that declined the script gets the readings
 // from the start.
 export function nextStep(s: GameState): NextStep | null {
+  // While the opening walkthrough holds the clock the coach card is the
+  // one voice (see opening.ts); the line would only repeat it.
+  if (openingHoldsClock(s)) return null;
   if (s.clock.year === 1 && !s.events.opening.skipped) return letterAsk(s);
   return freeSlot(s) ?? nearlyEstablished(s) ?? shortfall(s) ?? idleLab(s);
 }

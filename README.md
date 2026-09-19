@@ -92,8 +92,10 @@ npm install
 npm run dev
 ```
 
-Open the printed localhost URL. Name your school, pick private or public, and
-start the clock.
+Open the printed localhost URL. Name your school, pick its architecture and
+its colours, and a short walkthrough takes you through the first three clicks
+— raise Founders Hall, open the Curriculum, develop a course — before the
+clock starts.
 
 ## Controls
 
@@ -105,6 +107,9 @@ start the clock.
 | `Space` | Pause / resume |
 | `1` `2` | Game speed |
 | `P` | Path tool |
+| `Q` `E` | Turn the view a quarter turn |
+| `Z` `X` | Tilt the view flatter / steeper |
+| `Home` | Back to the opening view |
 | `R` | Rotate the picked-up building |
 | `Esc` | Back / close |
 | `Enter` | Dismiss the interrupt on screen |

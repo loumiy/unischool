@@ -107,6 +107,15 @@ const Toolbar = forwardRef<HTMLDivElement, {
   // It lives at the right end of the log ticker now (see LogTicker.tsx),
   // the strip that was already one line of guidance-shaped text.
 
+  // The opening walkthrough rings the one control its current step needs
+  // while that control is the thing to click (see state/opening.ts
+  // and styles.css's .opening-target): the Build button until
+  // the menu is open, the Curriculum tab until it is. Once the door is
+  // open the ring moves inside it — to the hall's tile, to the core's row.
+  const stage = s.events.opening.stage;
+  const ringBuild = stage === 'site-hall' && !buildOpen;
+  const ringCurriculum = stage === 'first-course' && active !== 'curriculum';
+
   return (
     <div className="toolbar" ref={ref}>
       <div className="toolbar-left">
@@ -152,7 +161,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
             <button
               key={id}
               type="button"
-              className={`toolbar-icon-btn ${isActive ? 'active' : ''}`}
+              className={`toolbar-icon-btn ${isActive ? 'active' : ''} ${ringCurriculum && id === 'curriculum' ? 'opening-target' : ''}`}
               aria-expanded={isActive}
               aria-label={TAB_LABELS[id]}
               title={TAB_LABELS[id]}
@@ -171,7 +180,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
 
         <button
           type="button"
-          className={`toolbar-icon-btn toolbar-build-btn ${buildOpen ? 'active' : ''}`}
+          className={`toolbar-icon-btn toolbar-build-btn ${buildOpen ? 'active' : ''} ${ringBuild ? 'opening-target' : ''}`}
           aria-expanded={buildOpen}
           aria-label={buildOpen ? 'Close build menu' : 'Open build menu'}
           title="Build"

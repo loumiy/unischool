@@ -11,16 +11,38 @@
 // latest letter's ask until it is done, and afterwards a reading of the
 // campus that goes quiet when nothing is on offer.
 //
+// AND THE WALKTHROUGH (state/opening.ts): a guided founding
+// opens with the clock held and Founders Hall unsited; the hall sites for
+// nothing and its standing moves the walk on; Next moves the two click
+// steps on; the first course started frees the clock; the first letter is
+// counted read so its ask is the next-step line the moment the walk ends
+// and the letters carry on from the second; declining places the hall and
+// stands the letters down; and a headless founding is untouched by all of
+// it. The hold survives a save, and so does the core's hall entry.
+//
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { createInitialState } from '../src/state/actions';
+import { createInitialState, createPreStartState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { OPENING_LETTERS } from '../src/data/eventData';
-import { GENED_CORE_IDS } from '../src/data/techData';
+import { GENED_BUILDING_ID, GENED_CORE_IDS } from '../src/data/techData';
 import { nextStep } from '../src/systems/guidance/nextStep';
+import { openingHoldsClock } from '../src/state/opening';
+import { centredPlacement, footprintOf, RETROACTIVE_SITING_COST, sitingFeeOf } from '../src/state/campusMap';
+import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
+import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
+import { loadGame, saveGame } from '../src/state/persistence';
 import type { GameState } from '../src/state/types';
+
+// In-memory localStorage, for the save round trip below.
+const store = new Map<string, string>();
+(globalThis as unknown as { localStorage: unknown }).localStorage = {
+  getItem: (k: string) => (store.has(k) ? store.get(k)! : null),
+  setItem: (k: string, v: string) => { store.set(k, String(v)); },
+  removeItem: (k: string) => { store.delete(k); },
+};
 
 let checks = 0;
 let failures = 0;
@@ -131,6 +153,97 @@ console.log('opening script tests');
   s.programOffers = ['COMP'];
   const step = nextStep(s);
   assert(step?.go === 'curriculum' && step.text.includes(hall.name) && step.text.includes('Computer Science'), `a free slot with a program on offer is the line (${step?.text})`);
+}
+
+// --- the walkthrough: a guided founding --------------------------------
+{
+  const found = (guided: boolean) => reducer(createPreStartState(), {
+    type: 'START_GAME', name: 'Walk', vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), guided,
+  });
+
+  // Headless: exactly what every founding was before the walk existed.
+  const headless = found(false);
+  assert(headless.events.opening.stage === 'play' && !openingHoldsClock(headless), 'a headless founding opens at play');
+  assert(GENED_BUILDING_ID in headless.placements, 'with Founders Hall pre-placed');
+  assert(headless.events.opening.read.length === 0, 'and no letter read');
+  assert(createInitialState('Plain').events.opening.stage === 'play', 'createInitialState defaults to a headless founding');
+
+  // Guided: held, and the hall waits to be sited.
+  let s = found(true);
+  assert(s.events.opening.stage === 'welcome' && openingHoldsClock(s), 'a guided founding opens on the welcome with the clock held');
+  assert(!(GENED_BUILDING_ID in s.placements), 'Founders Hall is not placed');
+  assert(s.halls[GENED_BUILDING_ID]?.[0]?.programId === 'CORE', 'but its slot holds the core all the same');
+  assert(s.events.opening.read.includes(OPENING_LETTERS[0].id) && !s.events.opening.skipped, 'the first letter is counted read — the welcome is its content');
+  assert(nextStep(s) === null, 'the next-step line is silent while the walk holds the clock');
+  const week = s.clock.week;
+  s = reducer(s, { type: 'TICK' });
+  assert(s.clock.week === week && s.pendingInterrupt === null, 'TICK is a no-op while the walk holds the clock — no letter, no week');
+
+  // The founding save carries the hold, and the core's hall entry.
+  assert(saveGame(s), 'a mid-walk save is written');
+  const resumed = loadGame();
+  assert(resumed?.events.opening.stage === 'welcome', 'and resumes on the same step');
+  assert(resumed?.halls[GENED_BUILDING_ID]?.[0]?.programId === 'CORE', "the loader keeps Founders Hall's slot though the hall is unsited");
+
+  // Next -> site the hall. Only the hall standing moves this step on.
+  s = reducer(s, { type: 'ADVANCE_OPENING' });
+  assert(s.events.opening.stage === 'site-hall', 'Next on the welcome asks for the hall');
+  s = reducer(s, { type: 'ADVANCE_OPENING' });
+  assert(s.events.opening.stage === 'site-hall', 'Next does nothing on a step that ends on something done');
+  const hall = s.tech.find((t) => t.id === GENED_BUILDING_ID)!;
+  assert(sitingFeeOf(hall) === 0, 'Founders Hall sites for nothing');
+  assert(sitingFeeOf(s.tech.find((t) => t.id === 'DORM-T1' || t.kind === 'dorm')!) === RETROACTIVE_SITING_COST, 'everything else pays the flat fee');
+  const cash = s.finance.cash;
+  const spot = centredPlacement(footprintOf(hall));
+  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: GENED_BUILDING_ID, row: spot.row, col: spot.col, rotated: false });
+  assert(GENED_BUILDING_ID in s.placements, 'the hall is sited');
+  assert(s.finance.cash === cash, 'and nothing was charged for it');
+  assert(s.events.opening.stage === 'classes', 'the hall standing moves the walk on');
+  assert(openingHoldsClock(s), 'the clock is still held');
+
+  // Next -> the first course. Starting one frees the clock.
+  s = reducer(s, { type: 'ADVANCE_OPENING' });
+  assert(s.events.opening.stage === 'first-course', 'Next on "classes" opens the first course');
+  s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: GENED_CORE_IDS[0] });
+  assert(s.tech.find((t) => t.id === GENED_CORE_IDS[0])?.status === 'developing', 'the course starts');
+  assert(s.events.opening.stage === 'play' && !openingHoldsClock(s), 'and the walk is over');
+  assert(nextStep(s)?.text === OPENING_LETTERS[0].ask, `the first letter's ask is the next-step line the moment the walk ends (${nextStep(s)?.text})`);
+
+  // The letters carry on from the second, on their weeks.
+  const { letters, s: after } = playYear(s);
+  assert(!letters.some((l) => l.id === OPENING_LETTERS[0].id), 'the first letter is never sent — the welcome was it');
+  assert(letters.map((l) => l.id).join(',') === OPENING_LETTERS.slice(1).map((l) => l.id).join(','), `the rest arrive in order (${letters.map((l) => l.id).join(',')})`);
+  assert(after.clock.year === 2, 'and the year turns over');
+}
+
+// --- the walkthrough: a course started early ends it too -------------------
+{
+  let s = reducer(createPreStartState(), {
+    type: 'START_GAME', name: 'Early', vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), guided: true,
+  });
+  s = reducer(s, { type: 'ADVANCE_OPENING' });
+  const hall = s.tech.find((t) => t.id === GENED_BUILDING_ID)!;
+  const spot = centredPlacement(footprintOf(hall));
+  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: GENED_BUILDING_ID, row: spot.row, col: spot.col, rotated: false });
+  assert(s.events.opening.stage === 'classes', 'on "classes"');
+  s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: GENED_CORE_IDS[1] });
+  assert(s.events.opening.stage === 'play', 'a course started before pressing Next has done the step');
+}
+
+// --- the walkthrough: "I know the way" -------------------------------------
+{
+  let s = reducer(createPreStartState(), {
+    type: 'START_GAME', name: 'Skip', vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), guided: true,
+  });
+  s = reducer(s, { type: 'SKIP_OPENING' });
+  assert(s.events.opening.stage === 'play' && !openingHoldsClock(s), 'declining frees the clock');
+  assert(s.events.opening.skipped, 'and stands the letters down');
+  const hall = s.tech.find((t) => t.id === GENED_BUILDING_ID)!;
+  const spot = centredPlacement(footprintOf(hall));
+  const placed = s.placements[GENED_BUILDING_ID];
+  assert(placed !== undefined && placed.row === spot.row && placed.col === spot.col, 'and Founders Hall stands where a headless founding puts it');
+  const { letters } = playYear(s);
+  assert(letters.length === 0, 'no letter is sent this run');
 }
 
 if (failures === 0) {

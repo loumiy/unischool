@@ -5,7 +5,7 @@ import {
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from './types';
 import { fellTrees } from '../data/treeData';
 import { glyphsFor, SPORTS } from '../data/studentLifeData';
-import { graduatePrograms, majorPrefixes } from '../data/techData';
+import { GENED_BUILDING_ID, graduatePrograms, majorPrefixes } from '../data/techData';
 import { FACULTY_FIELDS } from '../data/facultyData';
 import { offerablePrograms, PROGRAM_OFFER_COUNT } from '../systems/techtree/programOffers';
 
@@ -108,7 +108,10 @@ export const SAVE_KEY = 'unischool.save';
 // only — but a save without them would theme the game off two undefined
 // custom properties, which is every chrome surface drawn in the browser's
 // idea of nothing.
-export const SAVE_VERSION = 62;
+// v63: the opening walkthrough. `s.events.opening.stage` (added as
+// required — see state/opening.ts). A save without it would
+// resume with the clock held by a stage nothing renders.
+export const SAVE_VERSION = 63;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -422,7 +425,13 @@ function sanitizeHalls(state: GameState): void {
   const clean: GameState['halls'] = {};
   for (const [hallId, raw] of Object.entries(source)) {
     const hall = state.tech.find((t) => t.id === hallId);
-    if (!hall || hall.slots === undefined || hall.status !== 'done' || !(hallId in state.placements)) continue;
+    if (!hall || hall.slots === undefined || hall.status !== 'done') continue;
+    // A hall stands on the map — except Founders Hall, which stands before
+    // it is sited: a guided founding leaves it for the player to place as
+    // the walkthrough's first step (state/opening.ts), and the
+    // founding save is written before that click. The core's slot is a
+    // fact of the school, not of the map.
+    if (!(hallId in state.placements) && hallId !== GENED_BUILDING_ID) continue;
     const slots: HallSlot[] = [];
     for (let i = 0; i < hall.slots; i += 1) {
       const entry = Array.isArray(raw) ? (raw[i] as Partial<HallSlot> | undefined) : undefined;

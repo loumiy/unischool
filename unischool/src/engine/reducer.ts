@@ -29,6 +29,7 @@ import { raiseDemand, shortfallDemandFor, tickDemands } from '../systems/demands
 import { absoluteWeek, findDecisionEvent } from '../data/eventData';
 import { LIBRARY_TIER1_ID, nextLibraryFloor, servedUpkeep } from '../data/facilitiesData';
 import { fellTrees, TREE_SEED_RANGE } from '../data/treeData';
+import { advanceOpening, openingHoldsClock, settleOpening, skipOpening } from '../state/opening';
 import {
   CHAPTER_APPROVAL_SATISFACTION_NUDGE, CHAPTER_DECLINE_SATISFACTION_HIT,
   CLUB_APPROVAL_SATISFACTION_NUDGE, CLUB_DECLINE_SATISFACTION_HIT, activatePetition, TRAINER_FIELD,
@@ -36,7 +37,7 @@ import {
 } from '../data/studentLifeData';
 import {
   canPlace, canSiteRetroactively, footprintOf, isInBounds, isPlaceableKind,
-  orientedFootprint, pathTileKey, placementFor, RETROACTIVE_SITING_COST,
+  orientedFootprint, pathTileKey, placementFor, sitingFeeOf,
   occupantAt,
 } from '../state/campusMap';
 import { captureYearSnapshot } from '../state/history';
@@ -226,7 +227,9 @@ export function reducer(state: GameState, action: Action): GameState {
 
   switch (action.type) {
     case 'TICK': {
-      if (!s.started || s.pendingInterrupt) return state; // the clock halts while an interrupt is pending
+      // The clock halts while an interrupt is pending, and while the opening
+      // walkthrough is holding it (see state/opening.ts).
+      if (!s.started || s.pendingInterrupt || openingHoldsClock(s)) return state;
       for (const system of SYSTEMS) system(s);
       // A system may have just enqueued an interrupt (e.g. the summer
       // admissions decision) — hold the clock at this week rather than
@@ -244,7 +247,20 @@ export function reducer(state: GameState, action: Action): GameState {
       // universities and a write from inside the reducer could persist the
       // one React discards. The founding save is taken in useGame.ts
       // instead, from the state actually committed — see the note above.
-      return createInitialState(action.name, action.vernacular, action.colors);
+      return createInitialState(action.name, action.vernacular, action.colors, action.guided ?? false);
+
+    // The opening walkthrough's two Next buttons and its decline (see
+    // state/opening.ts). The steps that end on something DONE
+    // (the hall sited, a course started) are settled by settleOpening from
+    // the action that did it, never from here.
+    case 'ADVANCE_OPENING': {
+      advanceOpening(s);
+      return s;
+    }
+    case 'SKIP_OPENING': {
+      skipOpening(s);
+      return s;
+    }
 
     case 'START_DEVELOPMENT': {
       // Courses only now. A placeable Buildable (building/dorm/facility)
@@ -268,6 +284,7 @@ export function reducer(state: GameState, action: Action): GameState {
       const node = s.tech.find((t) => t.id === action.nodeId);
       if (node && !isPlaceableKind(node) && canStartDevelopment(s, node, action.facultyId)) {
         startDevelopment(s, node, action.facultyId);
+        settleOpening(s); // the walkthrough's last step ends on the first course started
       }
       return s;
     }
@@ -497,8 +514,9 @@ export function reducer(state: GameState, action: Action): GameState {
       //   - 'done': a founding Buildable (or an event-granted one — see
       //     needsSiting's own comment) that never got a home. There is no
       //     development to start — its effects already applied — so this
-      //     only charges the flat RETROACTIVE_SITING_COST and records where
-      //     it stands; canSiteRetroactively is the whole gate, no
+      //     only charges the flat siting fee (campusMap.ts's sitingFeeOf —
+      //     RETROACTIVE_SITING_COST, or nothing for Founders Hall) and
+      //     records where it stands; canSiteRetroactively is the whole gate, no
       //     canStartDevelopment involved (that function requires status
       //     'available' and would always refuse a 'done' node).
       //
@@ -527,13 +545,14 @@ export function reducer(state: GameState, action: Action): GameState {
             if (canSiteRetroactively(s, node)) {
               s.placements[node.id] = placement;
               fellTrees(s.trees, placement);
-              s.finance.cash -= RETROACTIVE_SITING_COST;
+              s.finance.cash -= sitingFeeOf(node); // nothing for Founders Hall — see sitingFeeOf
             }
           } else if (canStartDevelopment(s, node)) {
             s.placements[node.id] = placement;
             fellTrees(s.trees, placement);
             startDevelopment(s, node);
           }
+          settleOpening(s); // the walkthrough's first step ends on Founders Hall standing
         }
       }
       return s;
