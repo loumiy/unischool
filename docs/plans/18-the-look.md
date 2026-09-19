@@ -219,6 +219,18 @@ with the portrait in a ring of the school primary, the rank as a chip, two
 chunky bars, and salary and load as pills. A listing is the same card with
 a dashed outline and a secondary chip that says "on the market".
 
+**As implemented:** the division names are chips in the outline ink rather
+than in a hue of their own — the board sits under one school at a time and
+a second colour per row fought the state chips. The meter is the school
+primary, its "available" band the primary at 42% on cream, the catalogue's
+dashed remainder in the line colour, and the supplied-slots marker a 3 px
+rule of the outline. Over / short / no-department are filled chips (red,
+amber, dashed). The card is cream-white with the 2 px outline; a listing is
+the same card dashed on plain cream; a committed scholar carries the primary
+as a 6 px left rule; the portrait sits in a ring of the primary; Appoint is
+the secondary fill with the offset, Dismiss the red outline. Nothing in
+`FacultyTab.tsx` changed.
+
 ## 5. PR E — Interrupts
 
 The modal keeps Plan 16's three widths and takes the cream card with a

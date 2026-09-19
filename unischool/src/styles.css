@@ -2042,30 +2042,34 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    instead of scrolled through. */
 .faculty-list { margin: 0; padding: 0; display: grid; align-items: start;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
-.faculty-card { background: #f6f1e0; border: 1px solid var(--parchment-line-lo);
-  border-radius: var(--radius-md); padding: 8px 10px; min-width: 0; }
+/* Plan 18 (PR D): a card is cream-white with the 2px outline; a listing
+   is the same card dashed on plain cream; a committed scholar carries the
+   school primary as a thick left rule. */
+.faculty-card { background: var(--cream-hi); border: 2px solid var(--outline);
+  border-radius: var(--radius-lg); padding: 10px 12px; min-width: 0; }
 /* A LISTING IS NOT A HIRE, and the paper says so before any text does:
    dashed and cooler, the way an unsigned document is drawn everywhere
    else. The two used to be the same card one small line of text apart,
    which is exactly the distinction that has to survive being scanned
    rather than read. */
-.faculty-card.listed { background: #f0eee4; border-style: dashed; border-color: var(--parchment-line); }
+.faculty-card.listed { background: var(--cream); border-style: dashed; }
 /* A scholar on a research project gets a brass edge. A department's
    shortage is its own row's meter; "this person is committed for the next
    three years" is a fact about the PERSON and belongs on their card. */
-.faculty-card.committed { border-color: var(--gold-dim); box-shadow: inset 2px 0 0 var(--gold-dim); }
+.faculty-card.committed { border-left: 6px solid var(--school-primary); }
 .faculty-card-main { display: flex; align-items: flex-start; gap: 10px; }
 .faculty-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .faculty-card-head { display: flex; align-items: baseline; gap: 6px; }
 .faculty-card-spacer { flex: 1; }
-.faculty-name { font-weight: 700; font-size: var(--text-base); color: var(--ink);
+.faculty-name { font-family: var(--display); font-weight: 800; font-size: var(--text-lg); letter-spacing: -0.01em; color: var(--ink);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The award badge on a concluded project's card: permanent, and the only mark on a card that
    isn't derived from stats (see types.ts's Faculty.acclaim). */
-.faculty-acclaim { color: var(--gold); font-size: var(--text-sm); letter-spacing: 1px; flex: none; }
+.faculty-acclaim { color: var(--school-on-secondary); background: var(--school-secondary); border: 1.5px solid var(--outline);
+  border-radius: var(--radius-pill); padding: 1px 6px; font-size: var(--text-2xs); letter-spacing: 1px; flex: none; line-height: 1.3; }
 .faculty-card-field { font-size: var(--text-xs); color: var(--ink-muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.faculty-commitment { color: var(--gold-dim); }
+.faculty-commitment { color: var(--school-primary); font-weight: 600; }
 .faculty-commitment strong { color: var(--ink); font-weight: 700; }
 .faculty-commitment-left { color: var(--ink-muted); }
 .faculty-card-teaching.idle { color: var(--ink-lo); font-style: italic; }
@@ -2076,13 +2080,13 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    thing that decides whether a cheap 40 is a bargain or a dead end. */
 .faculty-bars { display: flex; gap: 10px; margin: 1px 0 2px; }
 .faculty-bar { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; }
-.faculty-bar-label { font-family: var(--mono); font-size: var(--text-2xs); color: var(--ink-muted); }
-.faculty-bar-track { position: relative; flex: 1; min-width: 0; height: 5px;
-  border-radius: var(--radius-xs); background: #e4dcc5; overflow: hidden; }
-.faculty-bar-headroom { position: absolute; inset: 0 auto 0 0; background: #d8c893; }
-.faculty-bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--gold-dim); }
-.faculty-bar-value { font-family: var(--mono); font-size: var(--text-2xs); color: var(--ink-muted);
-  min-width: 16px; text-align: right; }
+.faculty-bar-label { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); color: var(--ink-muted); }
+.faculty-bar-track { position: relative; flex: 1; min-width: 0; height: 8px;
+  border-radius: 4px; background: var(--cream-lo); overflow: hidden; }
+.faculty-bar-headroom { position: absolute; inset: 0 auto 0 0; background: var(--parchment-line); }
+.faculty-bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--school-primary); border-radius: 4px; }
+.faculty-bar-value { font-family: var(--display); font-weight: 800; font-size: var(--text-xs); color: var(--ink);
+  min-width: 18px; text-align: right; }
 
 /* Five items in 224px of card: two figures, the disclosure and the one
    action. It fits at the grid's usual width and wraps the action onto its
@@ -2091,7 +2095,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    with it. The trailing pair is pushed right by a margin rather than by a
    spacer element, because a spacer is one more thing on the line to fit. */
 .faculty-card-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
-  font-family: var(--mono); font-size: var(--text-2xs); color: var(--ink-muted); }
+  font-size: var(--text-xs); font-weight: 700; color: var(--ink-muted); }
 .faculty-card-foot .faculty-expand-btn { margin-left: auto; }
 .faculty-card-salary { white-space: nowrap; }
 /* How much of this person is already spent. Tenure used to hold this spot;
@@ -2099,26 +2103,28 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    can take the course you are looking at — so tenure moved into the
    expanded detail and this took the room. */
 .faculty-card-load { white-space: nowrap; }
-.faculty-card-load.full { color: var(--bad-on-light); font-weight: 700; }
-.faculty-card-foot button { background: var(--danger-bg); color: var(--danger-ink);
-  border: 1px solid var(--danger-line); border-radius: var(--radius-sm);
-  padding: 2px 9px; font-size: var(--text-2xs); white-space: nowrap; }
-.faculty-card-foot button.appoint { background: #dcefe0; color: var(--ok-on-light); border-color: #9fd3af; }
+.faculty-card-load { background: var(--cream-lo); color: var(--ink); border-radius: var(--radius-pill); padding: 2px 8px; }
+.faculty-card-load.full { background: var(--danger-bg); color: var(--bad-on-light); font-weight: 800; }
+.faculty-card-foot button { background: transparent; color: var(--danger-ink);
+  border: 2px solid var(--bad-on-light); border-radius: var(--radius-pill); font-family: var(--display); font-weight: 800;
+  padding: 3px 10px; font-size: var(--text-2xs); white-space: nowrap; }
+.faculty-card-foot button.appoint { background: var(--school-secondary); color: var(--school-on-secondary); border-color: var(--outline); box-shadow: var(--shadow-1); }
 /* The disclosure toggle is a <button> too, but it is not an action like
    Appoint/Dismiss — this two-class selector outranks the rule above so it
    stays a plain brass glyph rather than picking up their chrome. */
-.faculty-card-foot .faculty-expand-btn { background: none; border: none; color: var(--gold-dim);
-  padding: 0 2px; width: auto; font-family: var(--mono); font-size: var(--text-2xs); }
+.faculty-card-foot .faculty-expand-btn { background: none; border: none; color: var(--school-primary); box-shadow: none;
+  padding: 0 2px; width: auto; font-family: var(--display); font-size: var(--text-xs); }
 
 .faculty-card-detail { margin-top: 8px; padding-top: 8px;
-  border-top: 1px dashed var(--parchment-line-lo); font-size: var(--text-sm); }
+  border-top: 2px dashed var(--parchment-line); font-size: var(--text-sm); }
 .faculty-bio { margin: 0 0 8px; font-style: italic; color: var(--ink-muted); }
 /* Procedural headshots (FacultyPortrait.tsx) — a fixed circular chip that
    never shrinks in a tight flex row. */
-.faculty-portrait { flex-shrink: 0; border-radius: 50%; }
-.faculty-courses { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--parchment-line-lo); }
+.faculty-portrait { flex-shrink: 0; border-radius: 50%; box-shadow: 0 0 0 2.5px var(--school-primary); }
+.faculty-card.listed .faculty-portrait { box-shadow: 0 0 0 2px var(--parchment-line); }
+.faculty-courses { margin-top: 8px; padding-top: 6px; border-top: 2px dashed var(--parchment-line); }
 .faculty-courses-list { margin: 4px 0 0; padding: 0; list-style: none; }
-.faculty-courses-list li { font-family: var(--mono); font-size: var(--text-xs); padding: 1px 0; }
+.faculty-courses-list li { font-size: var(--text-xs); font-weight: 600; padding: 1px 0; }
 
 /* ---------- research: the lab gate, school by school ----------
    Research is mostly silent, so this small table is where the rule
@@ -2161,58 +2167,64 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    are fixed so that they line up down the board, and a label that pushes
    past its column takes the alignment with it. */
 .dept-head > *, .dept-row > * { overflow: hidden; }
-.dept-head { padding: 4px 8px 6px; border-bottom: 1px solid var(--parchment-line);
-  font-family: var(--mono); font-size: var(--text-2xs); text-transform: uppercase;
+.dept-head { padding: 4px 8px 6px; border-bottom: 2px solid var(--outline);
+  font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--ink-muted); }
-.dept-group { margin-top: 10px; }
-.dept-group h4 { margin: 0 0 2px; padding: 0 8px; font-family: var(--serif);
-  font-size: var(--text-sm); font-weight: 400; font-style: italic; color: var(--ink-muted); }
+/* Plan 18 (PR D): a division's name is a chip in the outline ink above its
+   rows; a row is an outlined rounded row when open, a plain line otherwise. */
+.dept-group { margin-top: 12px; }
+.dept-group h4 { display: inline-block; margin: 0 0 4px 8px; padding: 3px 10px; font-family: var(--display);
+  font-size: var(--text-2xs); font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--cream); background: var(--outline); border-radius: var(--radius-pill); }
 
-.dept-row { width: 100%; padding: 3px 8px; border: none; background: none;
-  border-radius: var(--radius-sm); text-align: left; color: var(--ink); }
-.dept-row:hover { background: rgba(160, 140, 90, 0.12); }
-.dept.open > .dept-row { background: rgba(160, 140, 90, 0.16); }
+.dept-row { width: 100%; padding: 4px 8px; border: 2px solid transparent; background: none;
+  border-radius: var(--radius-md); text-align: left; color: var(--ink); }
+.dept-row:hover { background: var(--cream-hi); border-color: var(--parchment-line); }
+.dept.open > .dept-row { background: var(--cream-hi); border-color: var(--outline); }
 .dept-name { display: flex; align-items: center; gap: 5px; min-width: 0;
-  font-size: var(--text-sm); font-weight: 600;
+  font-size: var(--text-sm); font-weight: 700;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dept-caret { color: var(--gold-dim); font-size: var(--text-2xs); }
+.dept-caret { color: var(--school-primary); font-size: var(--text-2xs); }
 /* A department that does not exist yet is still a row — that is the whole
    point — but it is not competing for attention with the ones that do. */
 .dept-row.empty .dept-name { color: var(--ink-muted); font-weight: 400; }
-.dept-slots, .dept-catalogue { font-family: var(--mono); font-size: var(--text-xs);
+.dept-slots, .dept-catalogue { font-family: var(--display); font-weight: 800; font-size: var(--text-xs);
   color: var(--ink-muted); text-align: right; white-space: nowrap; }
-.dept-row .dept-slots { color: var(--ink); }
-.dept-people { display: flex; gap: 8px; font-family: var(--mono);
-  font-size: var(--text-2xs); color: var(--ink-muted); white-space: nowrap; }
+.dept-row .dept-slots { color: var(--ink); font-size: var(--text-sm); }
+.dept-people { display: flex; gap: 5px; align-items: center;
+  font-size: var(--text-2xs); font-weight: 700; color: var(--ink-muted); white-space: nowrap; }
+.dept-hired, .dept-listed { background: var(--cream-lo); border-radius: var(--radius-pill); padding: 2px 7px; color: var(--ink); }
 .dept-listed { color: var(--ok-on-light); }
-.dept-note { font-family: var(--mono); font-size: var(--text-2xs);
-  text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
-.dept-note.over { color: var(--danger-ink); font-weight: 700; }
-.dept-note.short { color: var(--warn-on-light); font-weight: 700; }
-.dept-note.empty { color: var(--ink-lo); }
+/* The state, as a filled chip: red for over, amber for short, a dashed
+   outline for a department that does not exist. */
+.dept-note { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs);
+  text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; border-radius: var(--radius-pill); padding: 2px 7px; }
+.dept-note.over { color: var(--cream); background: var(--bad-on-light); }
+.dept-note.short { color: var(--outline); background: var(--warn-on-dark); }
+.dept-note.empty { color: var(--ink-muted); border: 1.5px dashed var(--parchment-line); }
 /* THE ROW'S ACTION (FacultyTab.tsx's DeptActionCell), in the last column:
    the appointment worth making with its grade, price and deadline; a
    search to post; or the way to the unstaffed courses. */
 .dept-action-cell { display: flex; justify-content: flex-start; min-width: 0; }
-.dept-action { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; padding: 2px 8px;
-  border: 1px solid var(--gold-dim); border-radius: var(--radius-sm); background: #fffdf6; color: var(--ink);
-  font-size: var(--text-xs); font-family: inherit; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dept-action:hover:not(:disabled) { background: #f3ead2; border-color: var(--gold); }
+.dept-action { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; padding: 3px 10px;
+  border: 2px solid var(--outline); border-radius: var(--radius-pill); background: var(--cream-hi); color: var(--ink);
+  font-size: var(--text-xs); font-weight: 800; font-family: var(--display); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dept-action:hover:not(:disabled) { box-shadow: var(--shadow-1); }
 .dept-action:disabled { opacity: 0.55; cursor: default; }
-.dept-action.appoint { background: #dcefe0; border-color: #9fd3af; color: var(--ok-on-light); font-weight: 600; }
-.dept-action.appoint:hover { background: #cfe8d5; }
-.dept-action.reassign { border-color: var(--danger-line); color: var(--danger-ink); }
-.dept-action-meta { font-family: var(--mono); font-size: var(--text-2xs); color: var(--ink-muted); font-weight: 400; }
+.dept-action.appoint { background: var(--school-secondary); color: var(--school-on-secondary); }
+.dept-action.reassign { border-color: var(--bad-on-light); color: var(--danger-ink); }
+.dept-action-meta { font-family: var(--sans); font-size: var(--text-2xs); color: var(--ink-muted); font-weight: 600; }
+.dept-action.appoint .dept-action-meta { color: var(--school-on-secondary); opacity: 0.8; }
 .dept-row { cursor: pointer; }
-.dept-row:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
-.dept-demand-door { background: none; border: none; padding: 0; font: inherit; color: var(--gold-dim); cursor: pointer;
+.dept-row:focus-visible { outline: 3px solid var(--school-secondary); outline-offset: -3px; }
+.dept-demand-door { background: none; border: none; padding: 0; font: inherit; font-weight: 700; color: var(--school-primary); cursor: pointer;
   text-decoration: underline; text-underline-offset: 3px; }
 .dept-demand-door:hover { color: var(--ink); }
 /* The strip on the faculty board wears the curriculum's, with a deadline
    colour on a listing about to withdraw. */
 .faculty-next { margin: 10px 0 0; }
-.next-up-meta { font-family: var(--mono); font-size: var(--text-2xs); color: var(--ink-muted); }
-.next-up-item.listings .next-up-door { border-left-color: #9fd3af; background: #f1f8f2; font-weight: 600; }
+.next-up-meta { font-size: var(--text-2xs); font-weight: 600; color: var(--ink-muted); }
+.next-up-item.listings .next-up-door { border-left-color: var(--ok-on-light); }
 .next-up-item.listings .next-up-door.soon { border-left-color: var(--bad-on-light); }
 .next-up-item.searches .next-up-door { border-left-color: var(--warn-on-light); }
 .next-up-door .grade-chip { margin: 0 2px; }
@@ -2230,23 +2242,23 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    below my courseload" and "my ceiling is where I put it" are the same
    geometry read two different ways. */
 .capacity-meter { display: block; min-width: 0; }
-.capacity-track { position: relative; display: flex; height: 11px; border-radius: var(--radius-xs);
-  background: #e4dcc5; overflow: hidden; }
+.capacity-track { position: relative; display: flex; height: 14px; border-radius: 7px;
+  background: var(--cream-lo); overflow: hidden; }
 .capacity-seg { display: block; height: 100%; }
-.capacity-seg.offered { background: var(--brass-deep); }
-.capacity-seg.available { background: #c9b177; }
+.capacity-seg.offered { background: var(--school-primary); }
+.capacity-seg.available { background: color-mix(in srgb, var(--school-primary) 42%, var(--cream)); }
 /* The long view, and deliberately the faintest thing on the row: real, but
    not something that can be acted on this week. */
 .capacity-seg.locked { background: repeating-linear-gradient(90deg,
-  #d7cdb3 0 2px, transparent 2px 6px); }
+  var(--parchment-line) 0 3px, transparent 3px 7px); }
 /* The hairline outline is what keeps the rule readable wherever it lands:
    against the dark brass of a department teaching at its limit, against
    the empty track of one teaching nothing, and against the dotted tail in
    between. Without it, the single most important mark on the row
    disappears exactly when the department is in the most trouble. */
-.capacity-rule { position: absolute; top: -1px; bottom: -1px; width: 2px;
-  margin-left: -1px; background: var(--ink); border-radius: 1px;
-  box-shadow: 0 0 0 1px rgba(236, 227, 208, 0.85); }
+.capacity-rule { position: absolute; top: -1px; bottom: -1px; width: 3px;
+  margin-left: -1px; background: var(--outline); border-radius: 2px;
+  box-shadow: 0 0 0 2px var(--cream-hi); }
 /* Where supply WOULD be without a research commitment — the answer to "my
    department went short and I did not hire or fire anybody". */
 /* A department supplying nothing at all. The rule belongs at the very
@@ -2257,7 +2269,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .capacity-rule.gross { width: 1px; background: var(--ink-muted); opacity: 0.55; }
 /* Pinned at the end of the track: hired past the whole catalogue. Drawn as
    a thicker edge riding the rail rather than as a line inside it. */
-.capacity-rule.beyond { width: 3px; margin-left: -3px; background: var(--ok-on-light); }
+.capacity-rule.beyond { width: 4px; margin-left: -4px; background: var(--ok-on-light); }
 .capacity-meter.over .capacity-rule { background: var(--danger-ink); }
 .capacity-meter.short .capacity-rule { background: var(--warn-on-light); }
 
@@ -2265,36 +2277,36 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   overflow: hidden; white-space: nowrap; }
 .capacity-key-pair { display: flex; align-items: center; gap: 4px; }
 .capacity-key { width: 10px; height: 8px; border-radius: 1px; flex: none; }
-.capacity-key.offered { background: var(--brass-deep); }
-.capacity-key.available { background: #c9b177; }
-.capacity-key.locked { background: repeating-linear-gradient(90deg, #cdc0a0 0 2px, transparent 2px 4px); }
-.capacity-key.rule { width: 2px; height: 11px; background: var(--ink); }
+.capacity-key.offered { background: var(--school-primary); }
+.capacity-key.available { background: color-mix(in srgb, var(--school-primary) 42%, var(--cream)); }
+.capacity-key.locked { background: repeating-linear-gradient(90deg, var(--parchment-line) 0 2px, transparent 2px 4px); }
+.capacity-key.rule { width: 3px; height: 11px; background: var(--outline); border-radius: 2px; }
 
 /* ---------- an opened department ---------- */
 .dept-body { padding: 6px 8px 14px 24px; }
-.dept-demand { margin: 0 0 8px; font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.45; }
+.dept-demand { margin: 0 0 8px; font-size: var(--text-sm); color: var(--ink-muted); line-height: 1.45; }
 .dept-body .empty-note { margin: 0 0 6px; }
 .faculty-market-head { display: flex; align-items: baseline; justify-content: space-between;
   gap: 8px; margin: 10px 0 6px; padding-top: 8px;
-  border-top: 1px dashed var(--parchment-line-lo);
-  font-family: var(--mono); font-size: var(--text-2xs); text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--ink-muted); }
+  border-top: 2px dashed var(--parchment-line);
+  font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--school-primary); }
 
 /* Roster / market / both, and the bulk expander beside it. Small chrome:
    these switch what a long page is FOR, so they sit in the board's header
    rather than floating above the page. */
 .dept-views, .dept-bulk { display: flex; gap: 4px; }
-.dept-view, .dept-bulk button { font-family: var(--mono); font-size: var(--text-2xs);
+.dept-view, .dept-bulk button { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs);
   text-transform: uppercase; letter-spacing: 0.06em;
-  padding: 3px 9px; border-radius: var(--radius-pill);
-  border: 1px solid var(--parchment-line); background: transparent; color: var(--ink-muted); }
-.dept-view.on { background: var(--brass-deep); border-color: var(--brass-deep); color: var(--ink-hi); }
+  padding: 4px 10px; border-radius: var(--radius-pill);
+  border: 2px solid var(--outline); background: transparent; color: var(--ink); }
+.dept-view.on { background: var(--outline); color: var(--cream); }
 .dept-bulk { margin-left: auto; }
 
 /* The school-wide sentence above the board: the only place the long view
    is stated in PEOPLE rather than in slots. */
 .faculty-horizon { margin: 8px 0 0; font-size: var(--text-sm); color: var(--ink-muted); line-height: 1.5; }
-.faculty-horizon strong { font-family: var(--mono); color: var(--ink); }
+.faculty-horizon strong { font-family: var(--display); font-weight: 800; color: var(--ink); }
 .faculty-summary .panel-head { flex-wrap: wrap; }
 .faculty-summary .panel-head .stat + .stat { margin-left: 12px; }
 
@@ -2308,12 +2320,12 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* The always-visible second line on a candidate row: field, stats, price,
    and how long the listing has left. Deliberately mono and small — it is
    read by scanning down a column, not by reading sentences. */
-.candidate-expiry { white-space: nowrap; color: var(--gold-dim); }
-.candidate-expiry.soon { color: var(--bad-on-light); font-weight: 700; }
+.candidate-expiry { white-space: nowrap; color: var(--school-primary); }
+.candidate-expiry.soon { color: var(--bad-on-light); font-weight: 800; }
 
 .log { max-height: 190px; overflow-y: auto; font-size: var(--text-sm); }
-.log li { padding: 3px 0; border-bottom: 1px solid var(--parchment-line-lo); }
-.log .ts { color: var(--ink-muted); font-family: var(--mono); margin-right: 6px; }
+.log li { padding: 3px 0; border-bottom: 1px solid var(--parchment-line); }
+.log .ts { color: var(--school-primary); font-family: var(--display); font-weight: 800; margin-right: 6px; }
 .log .good { color: var(--ok-on-light); } .log .bad { color: var(--bad-on-light); }
 
 /* The funnel panel reuses TreasuryTab's statement idiom wholesale (see
@@ -2327,8 +2339,8 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
        of both or it reads as a second heading. */
 .funnel-lines { display: flex; flex-direction: column; }
 .funnel-net .statement-line-label { gap: 3px; }
-.funnel-net .statement-line-note { font-family: ui-sans-serif, system-ui, sans-serif;
-  font-weight: 400; color: #6f5c2b; max-width: 62ch; }
+.funnel-net .statement-line-note { font-family: var(--sans);
+  font-weight: 500; color: var(--ink-muted); max-width: 62ch; }
 
 /* ---------- the standing body: four classes, seven cohorts ---------- */
 /* Stacked bars, one per class, sharing one legend (see EnrollmentTab.tsx).
