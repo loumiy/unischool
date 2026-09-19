@@ -1,4 +1,5 @@
 import type { Rival } from '../state/types';
+import { rivalColorsFor } from './schoolColors';
 
 // ---------------------------------------------------------------------
 // 99 fictionalized rival schools, so the player's own institution makes a
@@ -221,6 +222,9 @@ export function initialRivals(): Rival[] {
     const athleticStrength = athleticStrengthFor(r.reputation, r.id);
     return {
       ...r,
+      // The pair the school wears, dealt off its id like the three axes
+      // below it (see schoolColors.ts's rivalColorsFor).
+      colors: rivalColorsFor(r.id),
       athleticStrength,
       athleticMomentum: standingMomentumFor(r.id, 'athletic'),
       socialStanding: socialStandingFor(r.reputation, athleticStrength, r.id),
@@ -231,12 +235,13 @@ export function initialRivals(): Rival[] {
   });
 }
 
-// What is AUTHORED, as opposed to derived. The four omitted fields are all
-// computed in initialRivals above — three from the school's own id, and the
-// momenta from it too — so the table below stays a table of decisions rather
-// than of arithmetic somebody has to keep consistent by hand.
+// What is AUTHORED, as opposed to derived. The omitted fields are all
+// computed in initialRivals above — the colours and three axes from the
+// school's own id, and the momenta from it too — so the table below stays a
+// table of decisions rather than of arithmetic somebody has to keep
+// consistent by hand.
 type AuthoredRival = Omit<Rival,
-  'athleticStrength' | 'athleticMomentum' | 'socialStanding' | 'researchStanding' | 'socialMomentum' | 'researchMomentum'>;
+  'colors' | 'athleticStrength' | 'athleticMomentum' | 'socialStanding' | 'researchStanding' | 'socialMomentum' | 'researchMomentum'>;
 
 function baseRivals(): AuthoredRival[] {
   return [

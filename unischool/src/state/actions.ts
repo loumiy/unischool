@@ -1,6 +1,6 @@
 import type { DemandSubject } from '../data/demandData';
 import type {
-  AthleticsBudgetTier, Coach, GameState, InitiativeDepth, SummerDecision, TileCoord, Vernacular,
+  AthleticsBudgetTier, Coach, GameState, InitiativeDepth, SchoolColors, SummerDecision, TileCoord, Vernacular,
 } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
@@ -19,6 +19,7 @@ import {
   FOUNDING_PRESET, FOUNDING_VERNACULAR, STARTING_ENDOWMENT, STARTING_TUITION,
   FOUNDING_CLASSES,
 } from '../data/foundingData';
+import { FOUNDING_COLORS, schoolColorsOf } from '../data/schoolColors';
 
 // A founded university opens with a near-empty campus, with ONE exception:
 // Founders Hall (techData.ts's General Studies building), pre-built ('done')
@@ -43,7 +44,7 @@ export type CampusTool = 'draw' | 'erase' | 'plant' | 'fell';
 
 export type Action =
   | { type: 'TICK' }                                   // advance one week
-  | { type: 'START_GAME'; name: string; vernacular: Vernacular } // leaves the startup screen, founds the university
+  | { type: 'START_GAME'; name: string; vernacular: Vernacular; colors: SchoolColors } // leaves the startup screen, founds the university
   // Courses only (see the reducer's guard). Charges the cost up front, sets
   // status 'developing', and starts the countdown in s.developing — see
   // techSystem.ts's canStartDevelopment/startDevelopment, the single gate
@@ -385,7 +386,7 @@ export function createPreStartState(): GameState {
     pathways: {},
     trees: {},
     rivals: [],
-    self: { name: '', suffix: '', universityCharterOffered: false, mascot: '', reputation: 0, reportCard: null, socialStanding: 0, researchStanding: 0, vernacular: FOUNDING_VERNACULAR },
+    self: { name: '', suffix: '', universityCharterOffered: false, mascot: '', reputation: 0, reportCard: null, socialStanding: 0, researchStanding: 0, vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS) },
     history: [],
     log: [],
     pendingInterrupt: null,
@@ -426,7 +427,14 @@ export function createPreStartState(): GameState {
 // name is the WHOLE of what the startup screen asks for since Plan 07's
 // PR C — every other founding condition comes from FOUNDING_PRESET, which
 // is the same for every school (see data/foundingData.ts).
-export function createInitialState(name: string, vernacular: Vernacular = FOUNDING_VERNACULAR): GameState {
+export function createInitialState(
+  name: string,
+  vernacular: Vernacular = FOUNDING_VERNACULAR,
+  // The school's colour pair (Plan 18's PR B), defaulted like the
+  // vernacular and for the same reason: the tests and the sim are not
+  // about the picture.
+  colors: SchoolColors = schoolColorsOf(FOUNDING_COLORS),
+): GameState {
   const preset = FOUNDING_PRESET;
 
   // The central Buildable list, built up front so Founders Hall can be
@@ -683,6 +691,8 @@ export function createInitialState(name: string, vernacular: Vernacular = FOUNDI
       // change it. Defaulted rather than required so the tests and the sim,
       // which are not about the picture, do not all have to say 'georgian'.
       vernacular,
+      // Picked beside it and fixed the same way (see types.ts's SchoolColors).
+      colors: { ...colors },
     },
     // Empty at founding: the first row lands at the end of year 1, when the
     // summer admissions interrupt resolves (see reducer.ts's

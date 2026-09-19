@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { STARTING_INSTITUTION_SUFFIX } from '../state/actions';
 import { VERNACULARS, VERNACULAR_CHOICES } from './buildingSpec';
 import { FOUNDING_VERNACULAR } from '../data/foundingData';
-import type { Vernacular } from '../state/types';
+import { FOUNDING_COLORS, SCHOOL_COLOR_PAIRS, schoolColorsOf, type SchoolColorChoice } from '../data/schoolColors';
+import { applySchoolColors } from './theme';
+import type { SchoolColors, Vernacular } from '../state/types';
 
 // Shown once, before play begins: name the school. That is the whole of
 // it — every founding condition comes from FOUNDING_PRESET and is the same
@@ -107,7 +109,34 @@ function tint(hex: string, factor: number): string {
   return `#${ch.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
 }
 
-function SchoolFacade({ name, vernacular }: { name: string; vernacular: Vernacular }) {
+// The two banners that hang from the band, one at each end of the wall,
+// in the school's colours (Plan 18's PR B): the primary as the cloth, the
+// secondary as its stripe, a swallowtail at the foot. Outside the
+// colonnade's span and clear of the first and last windows, so they read
+// as hung on the building rather than as part of it — which is also why
+// they are the one thing on the facade that is not read from the
+// vernacular: cloth is not architecture.
+const BANNER_WIDTH = 18;
+const BANNER_HEIGHT = 58;
+const BANNER_INSET = 4; // from the band's edge
+
+function HungBanner({ x, y, colors }: { x: number; y: number; colors: SchoolColors }) {
+  const tail = 8;
+  const w = BANNER_WIDTH;
+  const h = BANNER_HEIGHT;
+  return (
+    <g>
+      <polygon
+        fill={colors.primary}
+        points={`${x},${y} ${x + w},${y} ${x + w},${y + h} ${x + w / 2},${y + h - tail} ${x},${y + h}`}
+      />
+      <rect fill={colors.secondary} x={x} y={y + 10} width={w} height="6" />
+      <rect fill={tint(colors.primary, 0.75)} x={x} y={y} width={w} height="2" />
+    </g>
+  );
+}
+
+function SchoolFacade({ name, vernacular, colors }: { name: string; vernacular: Vernacular; colors: SchoolColors }) {
   const bannerText = name.trim()
     ? `${name.trim().toUpperCase()} ${STARTING_INSTITUTION_SUFFIX.toUpperCase()}`
     : STARTING_INSTITUTION_SUFFIX.toUpperCase();
@@ -350,14 +379,30 @@ function SchoolFacade({ name, vernacular }: { name: string; vernacular: Vernacul
         <rect key={i} fill={glass} x={x - 9} y={wallTop + 8} width="18" height="18" />
       ))}
 
+      {/* The school's colours, hung from the band at either end. */}
+      <HungBanner x={FACADE_BAND_LEFT + BANNER_INSET} y={wallTop} colors={colors} />
+      <HungBanner x={FACADE_BAND_LEFT + FACADE_BAND_WIDTH - BANNER_INSET - BANNER_WIDTH} y={wallTop} colors={colors} />
+
       {order()}
     </svg>
   );
 }
 
-export default function StartupScreen({ onStart }: { onStart: (name: string, vernacular: Vernacular) => void }) {
+export default function StartupScreen({ onStart }: { onStart: (name: string, vernacular: Vernacular, colors: SchoolColors) => void }) {
   const [name, setName] = useState('');
   const [vernacular, setVernacular] = useState<Vernacular>(FOUNDING_VERNACULAR);
+  // The third and last question (Plan 18's PR B): which pair the school
+  // wears. Held as the table's choice so the picker can show its name; the
+  // save takes only the two colours (see schoolColorsOf).
+  const [choice, setChoice] = useState<SchoolColorChoice>(FOUNDING_COLORS);
+  const colors = schoolColorsOf(choice);
+
+  // The card previews the theme it is choosing: the pick is written to the
+  // stylesheet's root properties as it changes, so the begin button, the
+  // active picker chip and the banners on the facade all take the pair
+  // before it is confirmed. App.tsx writes the same pair again once the
+  // run exists, which is a no-op after this.
+  useEffect(() => { applySchoolColors(colors); }, [colors.primary, colors.secondary]);
 
   return (
     <div className="startup">
@@ -373,7 +418,7 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
           maxLength={60}
         />
         <div className="startup-facade">
-          <SchoolFacade name={name} vernacular={vernacular} />
+          <SchoolFacade name={name} vernacular={vernacular} colors={colors} />
         </div>
         {/* The second and last question. The facade above redraws as the
             player moves between them, which is what PR J was for: this
@@ -397,10 +442,34 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
             </button>
           ))}
         </div>
+        {/* The colours, beside the vernacular and permanent the same way.
+            A row of two-tone chips with the pair's name under the active
+            one; the facade's banners and the card's own chrome redraw as
+            the player moves between them, which is the preview. */}
+        <div className="startup-colors" role="radiogroup" aria-label="School colours">
+          {SCHOOL_COLOR_PAIRS.map((pair) => (
+            <button
+              key={pair.id}
+              type="button"
+              role="radio"
+              className={`startup-color-btn ${choice.id === pair.id ? 'active' : ''}`}
+              aria-checked={choice.id === pair.id}
+              aria-label={pair.name}
+              title={pair.name}
+              onClick={() => setChoice(pair)}
+            >
+              <span className="startup-color-swatch" aria-hidden="true">
+                <span style={{ background: pair.primary }} />
+                <span style={{ background: pair.secondary }} />
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className="startup-color-name">{choice.name}</div>
         <button
           className="startup-begin-btn"
           disabled={name.trim().length === 0}
-          onClick={() => onStart(name.trim(), vernacular)}
+          onClick={() => onStart(name.trim(), vernacular, colors)}
         >
           Open the Doors
         </button>

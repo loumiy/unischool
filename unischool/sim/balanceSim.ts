@@ -41,6 +41,7 @@ import { intakeCeiling } from '../src/systems/techtree/instructionCapacity';
 import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudentWith, SERVICES_PER_STUDENT_PER_WEEK } from '../src/systems/finance/financeSystem';
 import { admitRate, priceTolerance, topBandShare } from '../src/systems/admissions/admissionsSystem';
 import { TUITION_SLIDER_MAX, FOUNDING_VERNACULAR } from '../src/data/foundingData';
+import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
 import {
   canStartDevelopment, hasFreeFacultySlot, eligibleInstructors, unstaffedCourses,
   isCommitted, effectiveCourseSlots, totalFacultySlots, usedFacultySlots,
@@ -1106,7 +1107,7 @@ export function play(
     s = structuredClone(from);
   } else {
     s = createPreStartState();
-    s = reducer(s, { type: 'START_GAME', name: 'Test University', vernacular: FOUNDING_VERNACULAR });
+    s = reducer(s, { type: 'START_GAME', name: 'Test University', vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS) });
   }
   const dispatch = (a: Action) => { s = reducer(s, a); };
   // The same dispatch, counted. Handed to decide() alone, so what it

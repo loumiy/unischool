@@ -198,6 +198,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
                       <button
                         key={`${team.id}:${role}`}
                         type="button"
+                        className="panel-action"
                         title={`${team.name} — ${ROLE_LABEL[role]}`}
                         onClick={() => act({ type: 'HIRE_COACH', candidateId: c.id, teamId: team.id, role })}
                       >

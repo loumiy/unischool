@@ -169,6 +169,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
                 <dt>Adds to income</dt><dd>{money(campaign.annualPayout)}/yr, permanently</dd>
               </dl>
               <button
+                className="panel-action"
                 disabled={!campaign.affordable}
                 onClick={() => act({ type: 'LAUNCH_ENDOWMENT_CAMPAIGN' })}
               >

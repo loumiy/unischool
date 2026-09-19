@@ -5,6 +5,7 @@ import { mapBackOutLive, mapControlsLive, useHotkeys, type ShellOverlays } from 
 import type { GameState } from './state/types';
 import StartupScreen from './components/StartupScreen';
 import MainMenu from './components/MainMenu';
+import Pennant from './components/Pennant';
 import DebugPanel from './components/DebugPanel';
 import InterruptModal from './components/InterruptModal';
 import { GATED_TABS, TAB_LABELS, tabAvailable, type TabId } from './components/TabNav';
@@ -14,6 +15,7 @@ import LogTicker from './components/LogTicker';
 import Toasts from './components/Toasts';
 import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
+import { applySchoolColors } from './components/theme';
 import FacultyTab from './tabs/FacultyTab';
 import CurriculumTab from './tabs/CurriculumTab';
 import ResearchTab from './tabs/ResearchTab';
@@ -197,6 +199,15 @@ export default function App() {
     if (overlay && !tabAvailable(s, overlay.tab)) setOverlay(null);
   }, [overlay, s]);
 
+  // The school's colours are the theme (Plan 18's PR B — see theme.ts):
+  // written to the stylesheet's root properties once the run exists, which
+  // covers a fresh founding and a loaded save alike. The startup screen
+  // applies its own live pick before this runs, so there is never a frame
+  // of the wrong pair between "Open the Doors" and the first render.
+  useEffect(() => {
+    if (s.started) applySchoolColors(s.self.colors);
+  }, [s.started, s.self.colors]);
+
   // The map's own keys (W/A/S/D and the arrows to pan, P for the path tool,
   // R to rotate, Escape to back out) answer only while the player is
   // actually looking at the map. With a tab open over it or an interrupt
@@ -308,7 +319,7 @@ export default function App() {
     // opening a scenario file starts from.
     return (
       <>
-        <StartupScreen onStart={(name, vernacular) => act({ type: 'START_GAME', name, vernacular })} />
+        <StartupScreen onStart={(name, vernacular, colors) => act({ type: 'START_GAME', name, vernacular, colors })} />
         <DebugPanel s={s} act={act} />
       </>
     );
@@ -330,6 +341,10 @@ export default function App() {
         onInspectTargetConsumed={() => setInspectTarget(null)}
       />
       <MainMenu act={act} />
+      {/* The school's name, hung in the map's top-left corner in its own
+          colours (see Pennant.tsx). Withheld while a tab is open: the tab's
+          own title takes that corner. */}
+      {!overlay && <Pennant s={s} />}
       {/* Present only behind the playtest flag, and it decides that for
           itself (see DebugPanel.tsx / playtest.ts). Rendered here, beside
           MainMenu, because it is chrome over the map rather than anything
@@ -344,7 +359,12 @@ export default function App() {
             because the ticker is one line that stays and a toast is a card
             that goes. */}
         <Toasts s={s} onOpenTab={(tab) => openTab(tab)} />
-        <LogTicker s={s} open={logOpen} onSetOpen={setLogOpen} />
+        <LogTicker
+          s={s}
+          open={logOpen}
+          onSetOpen={setLogOpen}
+          onGo={(go) => { if (go === 'build') setBuildOpen(true); else openTab(go); }}
+        />
         <Toolbar
           ref={toolbarRef}
           s={s}

@@ -1,6 +1,10 @@
 import { useEffect, useRef } from 'react';
 import type { GameState } from '../state/types';
-import { WEEKS_PER_YEAR, institutionName, totalEnrolled } from '../state/types';
+import { WEEKS_PER_YEAR, totalEnrolled } from '../state/types';
+import {
+  RankIcon, StudentsIcon, PrestigeIcon, SatisfactionIcon,
+  PauseIcon, PlayIcon, DoubleSpeedIcon, QuadSpeedIcon,
+} from './icons';
 import { weeklyNet } from '../systems/finance/financeSystem';
 import { playerRank } from '../systems/rivals/rivalsSystem';
 import { SPEEDS, SANDBOX_SPEEDS, type Speed } from '../engine/useGame';
@@ -49,8 +53,18 @@ function useSpeedHotkeys(speed: Speed, setSpeed: (speed: Speed) => void, sandbox
 }
 
 // Play · 2× · 4×: the row reads as one control with three gears rather than
-// three verbs, now that there are three.
+// three verbs, now that there are three. The four ordinary gears are glyphs
+// (Plan 18 — see icons.tsx); the word is each button's label and title,
+// with its hotkey. The sandbox gear keeps its word: it is the odd one out
+// and should look it.
 const SPEED_LABELS: Record<Speed, string> = { paused: 'Paused', real: 'Play', double: '2×', quad: '4×', fast: 'Fast (sandbox)' };
+const SPEED_ICONS: Partial<Record<Speed, () => React.JSX.Element>> = {
+  paused: PauseIcon, real: PlayIcon, double: DoubleSpeedIcon, quad: QuadSpeedIcon,
+};
+const SPEED_HINTS: Record<Speed, string> = {
+  paused: 'Pause (Space)', real: 'Play (1)', double: 'Double speed (2)', quad: 'Quadruple speed (3)',
+  fast: 'Playtesting only — not intended for normal play (4)',
+};
 
 // Below this, satisfaction is reported in the same alarmed red the funds
 // figure already uses for negative cash. It is a DISPLAY threshold only —
@@ -121,20 +135,30 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
         </span>
         <span className="toolbar-funds-net">{netWeekly >= 0 ? '+' : '-'}${Math.round(Math.abs(netWeekly)).toLocaleString()}/wk</span>
       </button>
+      {/* Four chips, a glyph and a figure each (Plan 18), on their own row
+          under the funds figure (see styles.css's .toolbar-left): the word
+          is the chip's title and its visually-hidden label, so a hover or a
+          screen reader still gets "Prestige" while the band gets its room
+          back. The figures disambiguate the glyphs more than the glyphs do
+          — a "#" before the first is what says rank. */}
       <div className="toolbar-stats">
-        <div className="toolbar-stat">
+        <div className="toolbar-stat" title="Rank, of 100 schools">
+          <RankIcon />
           <span className="stat-label">Rank</span>
           <span className="stat-value">#{rank}</span>
         </div>
-        <div className="toolbar-stat">
+        <div className="toolbar-stat" title="Enrolled">
+          <StudentsIcon />
           <span className="stat-label">Enrolled</span>
           <span className="stat-value"><AnimatedNumber value={totalEnrolled(s.students)} /></span>
         </div>
-        <div className="toolbar-stat">
+        <div className="toolbar-stat" title="Prestige">
+          <PrestigeIcon />
           <span className="stat-label">Prestige</span>
           <span className="stat-value gold"><AnimatedNumber value={s.self.reputation} /></span>
         </div>
-        <div className="toolbar-stat">
+        <div className="toolbar-stat" title="Satisfaction">
+          <SatisfactionIcon />
           <span className="stat-label">Satisfaction</span>
           <span className={`stat-value ${s.students.satisfaction < SATISFACTION_WARN ? 'money-negative' : ''}`}>
             <AnimatedNumber value={s.students.satisfaction} />
@@ -167,31 +191,38 @@ export function SchoolAndClock({ s, speed, setSpeed, weekProgress }: {
 
   useSpeedHotkeys(speed, setSpeed, showPlaytestControls);
 
+  // Two rows, the clock above the gears (see styles.css's .toolbar-right):
+  // the right zone stacks so the labelled tab row in the middle has the
+  // width it needs, the same way the left zone stacks funds over stats.
   return (
     <>
-      <div className="toolbar-speed">
-        <div className="speeds">
-          {visibleSpeeds.map((sp) => (
-            <button
-              key={sp}
-              className={[
-                speed === sp ? 'active' : '',
-                SANDBOX_SPEEDS.includes(sp) ? 'sandbox' : '',
-              ].join(' ').trim()}
-              onClick={() => setSpeed(sp)}
-              title={SANDBOX_SPEEDS.includes(sp)
-                ? 'Playtesting only — not intended for normal play'
-                : 'Space pauses and resumes; 1, 2 and 3 set the speed directly'}
-            >
-              {SPEED_LABELS[sp]}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* The clock alone here now. The school's name hangs as the pennant in
+          the map's top-left corner instead (see Pennant.tsx). */}
       <div className="toolbar-school">
-        <span className="toolbar-school-name">{institutionName(s.self)}</span>
         <span className="toolbar-clock">Year {s.clock.year} · {termName(s.clock.week)} · Week {s.clock.week}</span>
         <DayTicker s={s} speed={speed} weekProgress={weekProgress} />
+      </div>
+      <div className="toolbar-speed">
+        <div className="speeds">
+          {visibleSpeeds.map((sp) => {
+            const Icon = SPEED_ICONS[sp];
+            return (
+              <button
+                key={sp}
+                className={[
+                  speed === sp ? 'active' : '',
+                  SANDBOX_SPEEDS.includes(sp) ? 'sandbox' : '',
+                ].join(' ').trim()}
+                aria-pressed={speed === sp}
+                aria-label={SPEED_LABELS[sp]}
+                onClick={() => setSpeed(sp)}
+                title={SPEED_HINTS[sp]}
+              >
+                {Icon ? <Icon /> : SPEED_LABELS[sp]}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </>
   );

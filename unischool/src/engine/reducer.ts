@@ -244,7 +244,7 @@ export function reducer(state: GameState, action: Action): GameState {
       // universities and a write from inside the reducer could persist the
       // one React discards. The founding save is taken in useGame.ts
       // instead, from the state actually committed — see the note above.
-      return createInitialState(action.name, action.vernacular);
+      return createInitialState(action.name, action.vernacular, action.colors);
 
     case 'START_DEVELOPMENT': {
       // Courses only now. A placeable Buildable (building/dorm/facility)

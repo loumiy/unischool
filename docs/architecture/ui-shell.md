@@ -42,14 +42,63 @@ toolbar. Above it a **toast stack** shows the things that never stop the clock
 — a course or building finished, a program founded, a petition, a paper, a
 candidate in a short field, a project concluded without a report — three
 seconds each, five at most, each a button that opens the tab it is about (see
-[interrupts.md](interrupts.md)'s "What does not stop the clock"). And across
-the top of the toolbar runs the **next step**: during the scripted first year
-the latest letter's ask until it is done; afterwards the highest-value thing on
-offer — a hall with a free slot while programs are offered, a program one course
-from established, a satisfaction attribute under 50, an idle lab — recomputed
-from state on every render (`src/systems/guidance/nextStep.ts`). A reading,
-never a queue: nothing is ticked off, and the line goes quiet when nothing is
-on offer.
+[interrupts.md](interrupts.md)'s "What does not stop the clock"). And at the
+right end of the ticker line runs the **next step**: during the scripted first
+year the latest letter's ask until it is done; afterwards the highest-value
+thing on offer — a hall with a free slot while programs are offered, a program
+one course from established, a satisfaction attribute under 50, an idle lab —
+recomputed from state on every render (`src/systems/guidance/nextStep.ts`). A
+reading, never a queue: nothing is ticked off, and the line goes quiet when
+nothing is on offer. The log on the left says what just happened; the step on
+the right says what to do about it.
+
+The **toolbar** itself is three zones in one band. The left zone stacks the
+funds figure with its weekly net over four stat chips (rank, enrolled,
+prestige, satisfaction — a glyph and a figure each, the word in the tooltip);
+the right zone stacks the clock over four round gears (pause, play, 2×, 4×);
+and between them, in one row at every width, the labelled tab row — the word
+under each glyph — and Build. The two side zones stack precisely so that row
+always fits. The school's name is not in the band: it hangs as a **pennant**
+in the map's top-left corner in the school's colours (`Pennant.tsx`), one
+name in one face, withheld while a tab is open because the tab's own title
+takes that corner.
+
+## The register
+
+Every screen is drawn from one small vocabulary (Plan 18, the *Varsity*
+direction), held as custom properties at the top of `src/styles.css`:
+
+- **The school's two colours are the theme.** `--school-primary` and
+  `--school-secondary` (with `--school-on-primary` and `--school-on-secondary`
+  for what reads on each) are written to the root by `components/theme.ts`
+  from the pair the player picked at founding (`data/schoolColors.ts`), so
+  the dock, the pennant, the modal bands, the meters and the primary buttons
+  all change with the school. Everything else is fixed: a cream ground
+  (`--cream`, `--cream-hi`, `--cream-lo`), one outline ink (`--outline`), one
+  red for trouble.
+- **Two faces.** `--display` (Bricolage Grotesque at 800) for titles, figures,
+  chips and buttons; `--sans` (Archivo) for prose. Both are self-hosted
+  through `@fontsource` imports in `main.tsx`. The old `--serif` and `--mono`
+  names resolve to the display face.
+- **Hard offsets, not blurs.** `--shadow-1/2/3` are the outline ink offset
+  by 2, 4 and 6 px. Nothing in the register blurs.
+- The parchment-era names (`--navy`, `--gold`, `--gold-dim`, `--parchment*`,
+  `--ink*`) still exist and resolve into the register, so a rule that cites
+  one is not wrong, only old; new rules cite the new names.
+
+Two rules hold across every screen, and they are the ones a new panel should
+be checked against:
+
+1. **Outline and offset on anything pressable.** A button, a tile you can
+   pick, a card that opens: 2 px of the outline ink and `--shadow-1`. A thing
+   you cannot press sits flat — a panel is the outline with no shadow, a
+   reading is a line. The secondary fill is reserved for the one primary
+   action on a screen (Develop, Appoint, Commit, Continue).
+2. **State is a chip, never a coloured card.** Over, short, listed, done,
+   champion, full: a filled pill with a word in it, on a card that stays
+   cream. The card's own colour is only ever the school's (a group header on
+   the Curriculum tab, a committed scholar's left rule) — a red card would say
+   the whole thing is wrong when one word is.
 
 ## Keyboard
 

@@ -307,3 +307,98 @@ export function ToolsIcon() {
     </svg>
   );
 }
+
+// ---------------------------------------------------------------------
+// THE DOCK'S FIGURES AND GEARS (Plan 18's PR A follow-up). The four
+// headline stats wear a glyph instead of a word — the word survives as the
+// chip's title and as visually-hidden text (see StatusHeader.tsx) — and the
+// speed control is four glyphs instead of four words. Same 24x24 stroke
+// convention as everything above; a stat glyph is drawn at 16px, so nothing
+// here is finer than a 1.6 stroke can carry at that size.
+// ---------------------------------------------------------------------
+
+// Rank: a rosette — a medal's disc with two ribbon tails.
+export function RankIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <circle cx="12" cy="9" r="5.5" />
+      <path d="M8.8 13.6 7 21l5-2.6L17 21l-1.8-7.4" />
+    </svg>
+  );
+}
+
+// Enrolled: two heads and shoulders, the student body.
+export function StudentsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <circle cx="9" cy="8.5" r="3.2" />
+      <path d="M3.5 19.5c0-3.3 2.5-5.5 5.5-5.5s5.5 2.2 5.5 5.5" />
+      <circle cx="16.5" cy="9.5" r="2.5" />
+      <path d="M16.5 14.5c2.6 0 4.5 1.9 4.5 4.5" />
+    </svg>
+  );
+}
+
+// Prestige: a star.
+export function PrestigeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 16.9l-5.3 2.8 1.1-5.9-4.3-4.1 5.9-.8Z" />
+    </svg>
+  );
+}
+
+// Satisfaction: a face, smiling. The mouth is the one thing that could
+// change with the figure and deliberately does not — the number beside it
+// is the reading, the glyph only says which number this is.
+export function SatisfactionIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M8.5 14.2c.9 1.3 2.1 2 3.5 2s2.6-.7 3.5-2" />
+      <path d="M9.2 9.6h.01M14.8 9.6h.01" strokeWidth="2.2" />
+    </svg>
+  );
+}
+
+// The gears. Filled rather than stroked: a play triangle drawn as an
+// outline at 14px reads as a warning sign.
+const FILLED = { fill: 'currentColor', stroke: 'none' };
+
+export function PauseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...FILLED}>
+      <rect x="6" y="5" width="4.2" height="14" rx="1" />
+      <rect x="13.8" y="5" width="4.2" height="14" rx="1" />
+    </svg>
+  );
+}
+
+export function PlayIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...FILLED}>
+      <path d="M7 5.2v13.6a.8.8 0 0 0 1.2.7l10.6-6.8a.8.8 0 0 0 0-1.4L8.2 4.5A.8.8 0 0 0 7 5.2Z" />
+    </svg>
+  );
+}
+
+// 2x: two triangles. 4x: two triangles with a bar, the way a tape deck
+// marked "fast" — three or four triangles at 14px are a smudge.
+export function DoubleSpeedIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...FILLED}>
+      <path d="M3 5.6v12.8a.7.7 0 0 0 1.1.6L12 12.6a.7.7 0 0 0 0-1.2L4.1 5a.7.7 0 0 0-1.1.6Z" />
+      <path d="M12.5 5.6v12.8a.7.7 0 0 0 1.1.6l7.9-6.4a.7.7 0 0 0 0-1.2L13.6 5a.7.7 0 0 0-1.1.6Z" />
+    </svg>
+  );
+}
+
+export function QuadSpeedIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...FILLED}>
+      <path d="M2 5.6v12.8a.7.7 0 0 0 1.1.6L11 12.6a.7.7 0 0 0 0-1.2L3.1 5A.7.7 0 0 0 2 5.6Z" />
+      <path d="M10.5 5.6v12.8a.7.7 0 0 0 1.1.6l7.9-6.4a.7.7 0 0 0 0-1.2L11.6 5a.7.7 0 0 0-1.1.6Z" />
+      <rect x="20" y="5" width="2.4" height="14" rx="0.8" />
+    </svg>
+  );
+}

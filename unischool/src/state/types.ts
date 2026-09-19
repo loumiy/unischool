@@ -745,6 +745,11 @@ export interface Rival {
   // The player's own is University.mascot below, named at the
   // athletic-director interrupt rather than at founding.
   mascot: string;
+  // The pair the school wears (see SchoolColors above), dealt off its id at
+  // founding by data/schoolColors.ts's rivalColorsFor the way its derived
+  // standings are, and read by nothing mechanical: Plan 18's PR E draws the
+  // playoff bracket in both schools' colours.
+  colors: SchoolColors;
   reputation: number;   // the metric the ranking sorts on
   momentum: number;     // hidden trend, makes rivals dynamic over decades
   // A second, independent ranking axis for athletics' standings (see
@@ -1192,6 +1197,18 @@ export interface StudentOrgState {
 //
 export type Vernacular = 'georgian' | 'gothic' | 'classical' | 'mission' | 'modern';
 
+// The colours a school wears (Plan 18's PR B): the pair the player picked
+// at founding, or the pair a rival was dealt. Two CSS colours and nothing
+// else — the pair's name and id belong to the startup screen's table
+// (data/schoolColors.ts), not to the save. Presentation only: no system
+// reads either field. The player's pair is the game's theme (see
+// components/theme.ts); a rival's is unread until the playoff bracket and
+// the annual report draw it.
+export interface SchoolColors {
+  primary: string;   // the dominant colour — the dock, the primary button's outline, eyebrows
+  secondary: string; // the accent — the active tab, the primary button's fill, the focus ring
+}
+
 // NO SchoolType. Private/public was the game's only starting fork and
 // Plan 07 retired it — see data/foundingData.ts for what it was and why it
 // went. Everything about a school emerges from play now, which is what
@@ -1231,6 +1248,7 @@ export interface University {
   socialStanding: number;
   researchStanding: number;
   vernacular: Vernacular; // the architecture the campus is built in, fixed at founding
+  colors: SchoolColors;   // the pair the school wears, picked beside the vernacular and fixed the same way (see SchoolColors)
 }
 
 // THE SUMMER REPORT CARD. At the admissions boundary the standing's inputs

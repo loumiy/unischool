@@ -2,6 +2,7 @@ import type { GameState } from '../state/types';
 import ToolbarPopup from './ToolbarPopup';
 import LogStrip from './LogStrip';
 import { LogIcon } from './icons';
+import { nextStep, type NextStep } from '../systems/guidance/nextStep';
 
 // One line, always on screen, directly above the toolbar (see styles.css's
 // .log-ticker): the single newest entry in s.log (newest first — see
@@ -22,10 +23,22 @@ import { LogIcon } from './icons';
 // The popup's open/closed state is App's, not this component's: it is the
 // innermost rung of the shell's one Escape ladder, and the ladder can only
 // be one handler if the handler can see every rung (see App.tsx).
-export default function LogTicker({ s, open, onSetOpen }: {
+//
+// THE NEXT STEP RIDES HERE TOO (Plan 16's PR F — see systems/guidance/
+// nextStep.ts), at the strip's right end: a reading of the highest-value
+// thing on offer, or nothing, a button when it names somewhere to go. It
+// used to run across the top of the toolbar as a fourth, full-width zone,
+// which made the dock two rows tall whenever it had something to say; this
+// strip was already one line of the same shape of text, and the two share
+// it — the log on the left says what just happened, the step on the right
+// says what to do about it. Suppressed while an interrupt is up: the modal
+// is the one thing to do then.
+export default function LogTicker({ s, open, onSetOpen, onGo }: {
   s: GameState; open: boolean; onSetOpen: (open: boolean) => void;
+  onGo: (go: NonNullable<NextStep['go']>) => void;
 }) {
   const latest = s.log[0];
+  const step = s.pendingInterrupt ? null : nextStep(s);
 
   return (
     <>
@@ -46,6 +59,18 @@ export default function LogTicker({ s, open, onSetOpen }: {
           </span>
         ) : (
           <span className="log-ticker-empty">No activity yet.</span>
+        )}
+        {step && (
+          <span className="log-ticker-next">
+            <span className="log-ticker-next-label">Next</span>
+            {step.go ? (
+              <button type="button" className="log-ticker-next-text" onClick={() => { if (step.go) onGo(step.go); }}>
+                {step.text}
+              </button>
+            ) : (
+              <span className="log-ticker-next-text">{step.text}</span>
+            )}
+          </span>
         )}
       </div>
       {open && (
