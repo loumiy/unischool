@@ -8,7 +8,7 @@ that every tab is "a stack of parchment panels with a definition list in each"
 an ordered sequence of PRs that restyle the game without touching a single
 rule of it.*
 
-**Status: In progress.** PRs A and B have landed. Nothing here reads or
+**Status: Landed.** PRs A through G are in. Nothing here reads or
 writes `GameState` except PR B, which adds one field to the university and
 one to each rival. No PR in this plan moves a
 number the economy depends on, so `npm run sim` is not part of its gate.
@@ -287,3 +287,11 @@ anything pressable; state as a chip, never a coloured card). The review's
 §6 is left as it was written — it is a record — and `BACKLOG.md`'s
 "Art and presentation" line is rewritten to say what is still open after
 this plan, which is the map reading the simulation and nothing about chrome.
+
+**As implemented:** `ui-shell.md` gained *The register* (the four school
+tokens, the fixed cream and outline, the two faces, the three offsets, and
+the two rules). The backlog line rewritten was the "menu styling as
+physical objects" bullet under *Direction, not plan* — there was no line
+literally titled "Art and presentation" in `BACKLOG.md`; that phrase is
+the README's sixth priority, which still stands — and it now says the
+chrome is settled and names what is still open.

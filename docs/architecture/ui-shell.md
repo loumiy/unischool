@@ -63,6 +63,43 @@ in the map's top-left corner in the school's colours (`Pennant.tsx`), one
 name in one face, withheld while a tab is open because the tab's own title
 takes that corner.
 
+## The register
+
+Every screen is drawn from one small vocabulary (Plan 18, the *Varsity*
+direction), held as custom properties at the top of `src/styles.css`:
+
+- **The school's two colours are the theme.** `--school-primary` and
+  `--school-secondary` (with `--school-on-primary` and `--school-on-secondary`
+  for what reads on each) are written to the root by `components/theme.ts`
+  from the pair the player picked at founding (`data/schoolColors.ts`), so
+  the dock, the pennant, the modal bands, the meters and the primary buttons
+  all change with the school. Everything else is fixed: a cream ground
+  (`--cream`, `--cream-hi`, `--cream-lo`), one outline ink (`--outline`), one
+  red for trouble.
+- **Two faces.** `--display` (Bricolage Grotesque at 800) for titles, figures,
+  chips and buttons; `--sans` (Archivo) for prose. Both are self-hosted
+  through `@fontsource` imports in `main.tsx`. The old `--serif` and `--mono`
+  names resolve to the display face.
+- **Hard offsets, not blurs.** `--shadow-1/2/3` are the outline ink offset
+  by 2, 4 and 6 px. Nothing in the register blurs.
+- The parchment-era names (`--navy`, `--gold`, `--gold-dim`, `--parchment*`,
+  `--ink*`) still exist and resolve into the register, so a rule that cites
+  one is not wrong, only old; new rules cite the new names.
+
+Two rules hold across every screen, and they are the ones a new panel should
+be checked against:
+
+1. **Outline and offset on anything pressable.** A button, a tile you can
+   pick, a card that opens: 2 px of the outline ink and `--shadow-1`. A thing
+   you cannot press sits flat — a panel is the outline with no shadow, a
+   reading is a line. The secondary fill is reserved for the one primary
+   action on a screen (Develop, Appoint, Commit, Continue).
+2. **State is a chip, never a coloured card.** Over, short, listed, done,
+   champion, full: a filled pill with a word in it, on a card that stays
+   cream. The card's own colour is only ever the school's (a group header on
+   the Curriculum tab, a committed scholar's left rule) — a red card would say
+   the whole thing is wrong when one word is.
+
 ## Keyboard
 
 The map is the screen the player spends the most time on and the one where the

@@ -38,7 +38,7 @@ the repository root, and the game as it actually is lives in `docs/design/` and
 | 15 | [Growth has a cost](15-growth-has-a-cost.md) | Prestige as an asymmetric stock with a summer report card and a concentration term, instruction per section, seats from housed courses as the ceiling, attrition, research that produces something — and one re-fit against the scorecard. PRs A–H. | Landed |
 | 16 | [The year](16-the-year.md) | The summer as four beats (review, standing, admissions, students), year-over-year on the reveal, a fourth gear and no skip, three modal widths, a scripted first year, toasts. PRs A–H. | Landed |
 | 17 | [The endpoint](17-the-endpoint.md) | A fifty-year run in three eras — found, build, defend — with ambitions, a six-axis legacy, the semicentennial report, an elite band that closes on the leader, and a balance target where completionism is one good run among four. PRs A–G. | Proposed |
-| 18 | [The look](18-the-look.md) | The Varsity register: the school's own colours as the theme, cream and outline ink around them, two self-hosted typefaces, chips and hard offsets, a labelled tab bar — one token layer, then one screen per PR. PRs A–G. | In progress |
+| 18 | [The look](18-the-look.md) | The Varsity register: the school's own colours as the theme, cream and outline ink around them, two self-hosted typefaces, chips and hard offsets, a labelled tab bar — one token layer, then one screen per PR. PRs A–G. | Landed |
 
 ## Naming
 

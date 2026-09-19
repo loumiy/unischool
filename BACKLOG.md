@@ -201,9 +201,14 @@ in a way that forecloses them.*
   map, the faculty roster, a research run, and a late-game campus. The two
   in `docs/images/` are a founding campus and the summer decision.
 - Sound and music.
-- Menu styling as physical objects — treasury as a ledger, athletics on a
-  clipboard, curriculum on a chalkboard. (Plan 04's 1C made every tab a full
-  screen, which is the canvas this needs — so the canvas exists.)
+- Art and presentation, after [Plan 18](docs/plans/18-the-look.md). The
+  chrome is settled: one register (the school's own colours on cream, one
+  outline ink, two faces, hard offsets — see `ui-shell.md`'s *The register*),
+  applied to every tab, the dock, the interrupts and the startup screen.
+  What is still open is not chrome: it is the campus map reading the
+  simulation (the item above), and the physical-object idea for the tabs —
+  treasury as a ledger, athletics on a clipboard — which the register neither
+  rules out nor needs.
 - School deans, a board of directors, a CFO, other executive positions. **Not
   delivered, but no longer hypothetical**: [Plan 08](docs/plans/08-athletics-rivals.md)
   hired an *athletic director*, and the shape it used is the one the rest would
