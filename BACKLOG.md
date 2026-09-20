@@ -128,6 +128,11 @@ work with a known shape; none has been turned into a sequence of PRs.*
   standing* and nothing else, which is the narrow shape
   `docs/design/student-life.md` flagged it in — the academic number the whole
   economy reads is still untouched by athletics.
+
+  **What to do with the department as a whole is now sequenced**, in
+  [Plan 21](docs/plans/21-the-season.md): its outputs are connected before
+  anything is deepened, and the season question above is answered at four
+  dated occasions rather than a fixture list.
 - **The tutorial** — **done**, in two layers. The forced first minute is the
   opening walkthrough (`src/state/opening.ts`): a new school opens
   with the clock held and no building standing, and the shell walks the
