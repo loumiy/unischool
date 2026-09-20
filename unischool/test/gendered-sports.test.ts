@@ -53,7 +53,7 @@ function makeSportClub(id: string, sportId: string): StudentClub {
 
 // ---- SPORTS catalogue shape ----
 function testCatalogueShape(): void {
-  assert(SPORTS.length === 18, `SPORTS has 18 gendered entries (got ${SPORTS.length})`);
+  assert(SPORTS.length === 20, `SPORTS has 20 gendered entries — water polo joined the natatorium at Plan 21's PR Q (got ${SPORTS.length})`);
 
   const oneGender = ['football', 'baseball', 'fieldHockey', 'softball'];
   for (const id of oneGender) {

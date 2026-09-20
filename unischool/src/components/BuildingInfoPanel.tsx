@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
+import { venueSeatsOf } from '../data/facilitiesData';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { FOUNDERS_HALL_ID, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
 import { dedicatedSchool, hallDisplayName } from '../systems/techtree/schools';
@@ -84,6 +85,9 @@ function AthleticsVenueInfo({ t, s }: { t: Buildable; s: GameState }) {
           ? `${t.effects.servesPopulation.toLocaleString()} social capacity — a shared competition venue, not a rec facility.`
           : t.description}
       </p>
+      {(t.expansions ?? 0) > 0 && (
+        <p className="building-info-line">Expanded {t.expansions === 1 ? 'once' : `${t.expansions} times`}: {venueSeatsOf(t).toLocaleString()} seats at the gate.</p>
+      )}
       {teams.length === 0 ? (
         <p className="building-info-line">No varsity team calls this home yet.</p>
       ) : (

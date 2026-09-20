@@ -302,7 +302,8 @@ export type FacilityType =
   // design fork). Hidden from the build rail until a team that needs the
   // category is granted varsity status (see Buildable.athleticsVenueReveal
   // and techSystem.ts's meetsUnlockGates).
-  | 'athleticsField' | 'athleticsArena' | 'athleticsDiamond' | 'athleticsNatatorium' | 'footballStadium';
+  | 'athleticsField' | 'athleticsArena' | 'athleticsDiamond' | 'athleticsNatatorium' | 'footballStadium'
+  | 'fieldHouse'; // a non-competition athletics facility that lifts every program (Plan 21's PR Q)
 
 export interface Buildable {
   id: string;
@@ -354,6 +355,14 @@ export interface Buildable {
   // The Medicine/Law reveal-on-gate pattern, with team formation as the
   // gate instead of a milestone count.
   athleticsVenueReveal?: true;
+  // Revealed once the school fields ANY varsity team (Plan 21's PR Q's
+  // field house): a department facility rather than a sport's venue.
+  athleticsDepartmentReveal?: true;
+  // VENUE RUNGS (Plan 21's PR Q): how many times this venue has been
+  // expanded in place — the same shape as floorsAdded, and the same
+  // renovation idiom (the reducer's EXPAND_VENUE). Read by
+  // systems/athletics/gate.ts for the seats.
+  expansions?: number;
   // Set only on a Greek chapter's own house (see eventData.ts's
   // 'greek-housing'), one per chapter, id'd deterministically off the
   // chapter's own id rather than drawn from any static seed catalogue —
@@ -1121,6 +1130,11 @@ export interface VarsityTeam extends StudentOrgBase {
   // the shared venue Buildable it is waiting on finishes (see
   // systems/studentlife/studentLifeSystem.ts's tick).
   status: 'awaitingVenue' | 'active';
+  // A POSTSEASON BAN (Plan 21's PR P): the last year the program may not
+  // enter the bracket. Set by the recruiting scandal, read by playoffs.ts;
+  // absent or past = eligible. A cash penalty is ignorable by year twenty;
+  // losing a season is not.
+  postseasonBanThroughYear?: number;
 }
 
 // One organisation that has formed and is waiting on the player's answer at
@@ -1165,6 +1179,7 @@ export interface SeasonResult {
   sport: string;
   seed: number | null;      // the player's seed in the bracket; null = did not qualify
   finish: 'champion' | 'final' | 'semifinal' | 'quarterfinal' | 'missed';
+  banned?: boolean;         // 'missed' because the program was serving a postseason ban (Plan 21's PR P)
   beaten: string[];         // schools the player beat, in order, by name and mascot
   lostTo: string | null;
   champion: string;         // who took the title — may be the player

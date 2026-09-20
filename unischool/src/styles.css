@@ -3414,3 +3414,6 @@ body:has(.building-info-panel) .pennant { display: none; }
 
 /* The record and the rival on a standings row (Plan 21's PRs M and N). */
 .sport-standing-rivalry { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+
+/* A postseason ban on a program card (Plan 21's PR P). */
+.org-tag.banned { color: var(--bad, #b3261e); }

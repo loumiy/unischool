@@ -52,6 +52,7 @@ const FACILITY_MOTIFS: Record<FacilityType, Motif> = {
   athleticsDiamond: 'grounds',
   athleticsNatatorium: 'hangar',
   footballStadium: 'bowl',
+  fieldHouse: 'hangar',
   grocery: 'pavilion',
 };
 
@@ -1641,6 +1642,7 @@ export function materialOf(t: Buildable, v: Vernacular): Material {
     case 'gym':
     case 'recCenter':
     case 'athleticsArena':
+    case 'fieldHouse':
       return MATERIALS.render;
     // Open ground and the venues drawn as markings take a wall colour only so
     // their props (a stand, a fence, a fountain kerb) have something to shade

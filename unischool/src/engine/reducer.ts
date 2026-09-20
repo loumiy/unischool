@@ -28,7 +28,7 @@ import { tickStudentLife } from '../systems/studentlife/studentLifeSystem';
 import { tickAthletics } from '../systems/athletics/athleticsSystem';
 import { raiseDemand, shortfallDemandFor, tickDemands } from '../systems/demands/demandSystem';
 import { absoluteWeek, findDecisionEvent, offeredChoices } from '../data/eventData';
-import { LIBRARY_TIER1_ID, nextLibraryFloor, servedUpkeep } from '../data/facilitiesData';
+import { LIBRARY_TIER1_ID, nextLibraryFloor, servedUpkeep, nextVenueExpansion} from '../data/facilitiesData';
 import { fellTrees, TREE_SEED_RANGE } from '../data/treeData';
 import { advanceOpening, openingHoldsClock, settleOpening, skipOpening } from '../state/opening';
 import {
@@ -1269,6 +1269,31 @@ export function reducer(state: GameState, action: Action): GameState {
           ...node.effects,
           servesPopulation,
           upkeepPerWeek: servedUpkeep('library', servesPopulation),
+        };
+      }
+      return s;
+    }
+
+    // Expands a venue in place (Plan 21's PR Q), on the library's renovation
+    // idiom above: the same node goes back to 'developing' at its spot, its
+    // effects are raised at the start with renovatingFrom standing in for
+    // the crowd it already serves, and its expansions count is what the
+    // gate reads the seats off (facilitiesData.ts's venueSeatsOf).
+    case 'EXPAND_VENUE': {
+      const node = s.tech.find((t) => t.id === action.venueId);
+      const plan = node ? nextVenueExpansion(node) : null;
+      if (node && plan && node.status === 'done' && s.finance.cash >= plan.cost) {
+        const servesPopulation = (node.effects?.servesPopulation ?? 0) + plan.servesGain;
+        node.renovatingFrom = node.effects?.servesPopulation ?? 0;
+        node.status = 'developing';
+        s.developing[node.id] = plan.weeks;
+        s.finance.cash -= plan.cost;
+        node.expansions = (node.expansions ?? 0) + 1;
+        node.effects = {
+          ...node.effects,
+          servesPopulation,
+          prestigeContribution: (node.effects?.prestigeContribution ?? 0) + plan.prestigeGain,
+          upkeepPerWeek: node.facilityType ? servedUpkeep(node.facilityType, servesPopulation) : node.effects?.upkeepPerWeek,
         };
       }
       return s;

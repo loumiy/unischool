@@ -1,6 +1,6 @@
 import type { GameState, VarsityTeam } from '../../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
-import { VENUE_SEATS } from '../../data/facilitiesData';
+import { venueSeatsOf } from '../../data/facilitiesData';
 import { coachingQuality, registerGateReader, sportEconomics } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
@@ -52,7 +52,7 @@ export function venueSeats(s: GameState, team: VarsityTeam): number {
   let seats = 0;
   for (const t of s.tech) {
     if (t.status !== 'done' || t.facilityType !== team.venueCategory) continue;
-    seats = Math.max(seats, VENUE_SEATS[t.id] ?? 0);
+    seats = Math.max(seats, venueSeatsOf(t));
   }
   return seats;
 }

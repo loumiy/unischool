@@ -302,6 +302,7 @@ export type Action =
   // like, so there is nothing to refuse and no cost charged here.
   | { type: 'SET_ATHLETICS_BUDGET'; tier: AthleticsBudgetTier }
   | { type: 'SET_TEAM_ORDER'; order: string[] } // the priority list, dragged (Plan 21's PR G)
+  | { type: 'EXPAND_VENUE'; venueId: string } // a venue rung, in place (Plan 21's PR Q)
   // Hires a coach candidate into one of a team's three staff roles (see
   // types.ts's VarsityTeam/Coach). Refused (no-op) if the candidate isn't
   // listed, the team doesn't exist, the candidate's field doesn't match

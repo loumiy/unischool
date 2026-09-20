@@ -4,7 +4,7 @@ import type { Buildable, FacilityType, GameState } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import { canSiteRetroactively, sitingFeeOf } from '../state/campusMap';
-import { FACILITY_CATEGORY_OF, type FacilityCategory, LIBRARY_TIER1_ID, nextLibraryFloor } from '../data/facilitiesData';
+import { FACILITY_CATEGORY_OF, type FacilityCategory, LIBRARY_TIER1_ID, nextLibraryFloor, nextVenueExpansion } from '../data/facilitiesData';
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
 import HelpHint from './HelpHint';
@@ -69,6 +69,7 @@ const FACILITY_LABELS: Record<FacilityType, string> = {
   athleticsDiamond: 'Diamond',
   athleticsNatatorium: 'Natatorium',
   footballStadium: 'Football Stadium',
+  fieldHouse: 'Field House',
 };
 
 // How many finished instances a repeatable group must have before its
@@ -181,6 +182,7 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; se
   { key: 'athleticsDiamond', label: FACILITY_LABELS.athleticsDiamond, repeatable: false, match: (t) => t.facilityType === 'athleticsDiamond' },
   { key: 'athleticsNatatorium', label: FACILITY_LABELS.athleticsNatatorium, repeatable: false, match: (t) => t.facilityType === 'athleticsNatatorium' },
   { key: 'footballStadium', label: FACILITY_LABELS.footballStadium, repeatable: false, match: (t) => t.facilityType === 'footballStadium' },
+  { key: 'fieldHouse', label: FACILITY_LABELS.fieldHouse, repeatable: false, match: (t) => t.facilityType === 'fieldHouse' },
   // The quads are GROUNDS, not a building the campus lacks: they live in
   // the Campus Tools tab beside the path and tree tools (see
   // GROUNDS_GROUP_KEYS and CampusToolsTiles), never a tab of their own.
@@ -322,7 +324,8 @@ function iconForBuildable(t: Buildable): () => React.JSX.Element {
     case 'athleticsArena':
     case 'athleticsDiamond':
     case 'athleticsNatatorium':
-    case 'footballStadium': return AthleticsIcon;
+    case 'footballStadium':
+    case 'fieldHouse': return AthleticsIcon;
     default: return BuildIcon;
   }
 }
@@ -397,6 +400,29 @@ function BuildTile({
   if (t.status === 'done' && t.id in s.placements) {
     const detail = builtDetail(t);
     const floorPlan = t.id === LIBRARY_TIER1_ID ? nextLibraryFloor(t) : null;
+    // A venue rung (Plan 21's PR Q): the same in-place offer for a done
+    // venue, up to its expansions cap.
+    const rung = t.athleticsVenueReveal ? nextVenueExpansion(t) : null;
+    if (rung) {
+      const shortfall = rung.cost - s.finance.cash;
+      return (
+        <button
+          type="button"
+          className="build-tile available"
+          disabled={shortfall > 0}
+          title={shortfall > 0
+            ? `$${Math.ceil(shortfall).toLocaleString()} short.`
+            : `Expands the ${t.name} in place — no new building. Adds ${rung.seatsGain.toLocaleString()} seats for the gate and ${rung.servesGain.toLocaleString()} of social capacity over ${rung.weeks} weeks; the teams keep playing while the work is underway.`}
+          onClick={() => act({ type: 'EXPAND_VENUE', venueId: t.id })}
+        >
+          {marker && <span className="kind-tag">{marker}</span>}
+          <span className="build-tile-icon"><Icon /></span>
+          <span className="build-tile-name">{t.name}</span>
+          {detail && <span className="build-tile-sub">{detail}</span>}
+          <span className="build-tile-foot">expand · ${rung.cost.toLocaleString()} · {rung.weeks}w</span>
+        </button>
+      );
+    }
     if (floorPlan) {
       const shortfall = floorPlan.cost - s.finance.cash;
       return (

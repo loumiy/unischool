@@ -1,17 +1,17 @@
 import type { Buildable, Coach, FacilityType, Faculty, GameState, GreekChapter, LogEntry, LogTopic, VarsityTeam } from '../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../state/types';
+import { PLAYOFF_WEEK } from '../systems/athletics/playoffs';
 import { FACULTY_FIELDS, generateCandidate, rollSurname } from './facultyData';
 import { appointFaculty } from '../systems/faculty/facultySystem';
 import { money, rollAmount, weeksOfOpEx } from './moneyScale';
 import {
   CHAPTER_HOUSE_CAPACITY_BONUS, CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
   promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, VARSITY_PETITION_MIN_TENURE_YEARS, venueForCategory,
-  CHAIR_LABEL, coachNamesInUse, fieldForChair, generateCoachCandidate, inTitleYear, seatCoach, vacantChairs,
-} from './studentLifeData';
+  CHAIR_LABEL, coachNamesInUse, fieldForChair, generateCoachCandidate, inTitleYear, seatCoach, vacantChairs, departmentPot, sportEconomics} from './studentLifeData';
 import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, milestoneSchools, programById, programs } from './techData';
 import { FOUNDING_PROGRAMS } from './foundingData';
 import { dedicatedHalls, dedicatedSchool } from '../systems/techtree/schools';
-import { buildReportPayload } from '../systems/rivals/rivalsSystem';
+import { buildReportPayload, rankBy } from '../systems/rivals/rivalsSystem';
 
 // ---------------------------------------------------------------------
 // WEEK-TO-WEEK TEXTURE, AS AUTHORED DATA.
@@ -417,6 +417,7 @@ const VENUE_NAMING: Partial<Record<FacilityType, string>> = {
   athleticsDiamond: 'Park',
   athleticsNatatorium: 'Aquatic Center',
   footballStadium: 'Stadium',
+  fieldHouse: 'Field House',
 };
 
 function unnamedVenues(s: GameState): Buildable[] {
@@ -432,6 +433,23 @@ function unbuiltVenues(s: GameState): Buildable[] {
     .sort((a, b) => b.cost - a.cost);
 }
 const STATE_MATCH_VENUE_SHARE_CAP = 0.6; // the state will not pay for more than this share of a building
+
+// How exposed the department is (Plan 21's PR P): a multiplier on the
+// scandal's weight that rises with the pot (a million dollars of pot is a
+// point), with every program above the funded line, and with how far the
+// department's standing has outrun the school's — a football power at an
+// unranked college is the one the papers watch.
+const SCANDAL_LEGAL_COST_WEEKS = 2;
+const SCANDAL_SATISFACTION_HIT = 3;
+const SCANDAL_FOUGHT_SATISFACTION_HIT = 5;
+const SCANDAL_FIGHT_SUCCESS = 0.5;
+
+function scandalExposure(s: GameState): number {
+  const pot = departmentPot(s);
+  const flagships = pot.programs.filter((p) => p.band === 'flagship').length;
+  const outrun = Math.max(0, rankBy(s, 'reputation') - rankBy(s, 'athleticStrength')) / 25;
+  return Math.min(6, 0.5 + pot.pot / 3_000_000 + 0.4 * flagships + outrun);
+}
 
 // Who a bigger program would come for (Plan 21's PR L): a head coach at
 // COACH_POACH_QUALITY or better with COACH_POACH_MIN_TENURE_YEARS behind
@@ -1411,6 +1429,68 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       },
     ],
   },
+  {
+    // THE SCANDAL (Plan 21's PR P). "Nothing can go wrong that the player
+    // can't ignore" was the review's finding about the whole game, and
+    // athletics is the right place to answer it first, because the exposure
+    // is something the player CHOSE: the probability rises with the pot,
+    // with how many programs sit above the funded line, and with how far
+    // athletics has outrun the academic school. The penalty is a postseason
+    // ban for a season or two, not a cash cost. Authored into the shared
+    // table, taking weight from the existing budget rather than adding a
+    // stream.
+    id: 'recruiting-scandal',
+    title: 'A recruiting scandal',
+    weight: 4,
+    boost: (s) => scandalExposure(s),
+    eligible: (s) => s.orgs.athleticDirector !== null && departmentPot(s).programs.some((p) => p.band === 'flagship'),
+    rollContext: (s) => {
+      const flagships = departmentPot(s).programs.filter((p) => p.band === 'flagship');
+      if (flagships.length === 0) return null;
+      // Revenue programs first: that is where the boosters are.
+      const revenue = flagships.filter((p) => sportEconomics(p.team.sport).scale === 'revenue');
+      const program = pick(revenue.length > 0 ? revenue : flagships);
+      return {
+        subjectId: program.team.id,
+        subjectName: program.team.name,
+        amount: weeksOfOpEx(s, SCANDAL_LEGAL_COST_WEEKS),
+      };
+    },
+    prompt: (s, ctx) =>
+      `A booster's payments to recruits for ${ctx.subjectName} have reached the papers, and the association has opened an inquiry. ${s.orgs.athleticDirector?.name ?? 'The athletic director'} says the program can self-report and take the season's ban, or the school can fight it — ${money(ctx.amount ?? 0)} in lawyers, and no promise.`,
+    choices: [
+      {
+        id: 'cooperate',
+        label: 'Self-report and take the ban',
+        describe: (s, ctx) => `Nothing spent. ${ctx.subjectName} sits out this season's postseason${s.clock.week >= PLAYOFF_WEEK ? "'s and next" : ''}; a ${SCANDAL_SATISFACTION_HIT}-point dent in satisfaction that heals.`,
+        cost: () => 0,
+        apply: (s, ctx) => {
+          const team = s.orgs.teams.find((t) => t.id === ctx.subjectId);
+          const through = s.clock.week >= PLAYOFF_WEEK ? s.clock.year + 1 : s.clock.year;
+          if (team) team.postseasonBanThroughYear = through;
+          dentSatisfaction(s, SCANDAL_SATISFACTION_HIT);
+          return entry(s, `${ctx.subjectName} self-reported and is barred from the postseason through ${through}.`, 'bad');
+        },
+      },
+      {
+        id: 'fight',
+        label: 'Fight it',
+        describe: (_s, ctx) => `${money(ctx.amount ?? 0)} to the lawyers now. Half the time the inquiry finds nothing and no ban follows; the other half it finds more, and the ban is two seasons with a ${SCANDAL_FOUGHT_SATISFACTION_HIT}-point dent.`,
+        cost: (_s, ctx) => ctx.amount ?? 0,
+        apply: (s, ctx) => {
+          const team = s.orgs.teams.find((t) => t.id === ctx.subjectId);
+          if (Math.random() < SCANDAL_FIGHT_SUCCESS) {
+            return entry(s, `The inquiry into ${ctx.subjectName} found nothing it could act on. No ban.`, 'good');
+          }
+          const through = (s.clock.week >= PLAYOFF_WEEK ? s.clock.year + 1 : s.clock.year) + 1;
+          if (team) team.postseasonBanThroughYear = through;
+          dentSatisfaction(s, SCANDAL_FOUGHT_SATISFACTION_HIT);
+          return entry(s, `The inquiry into ${ctx.subjectName} found more than the papers had: barred from the postseason through ${through}.`, 'bad');
+        },
+      },
+    ],
+  },
+
   {
     // A COACH WHO SUCCEEDS GETS POACHED (Plan 21's PR L) — the leak in the
     // loop the market's reputation gate opens, on the shape

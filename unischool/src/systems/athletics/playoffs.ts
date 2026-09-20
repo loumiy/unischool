@@ -118,6 +118,17 @@ export function runPlayoffs(s: GameState): void {
 
   for (const team of s.orgs.teams) {
     if (team.status !== 'active') continue;
+    // A program serving a postseason ban (PR P) does not enter. The result
+    // says so, so the tab and the record can read it as a ban rather than
+    // a bad season.
+    if (team.postseasonBanThroughYear !== undefined && s.clock.year <= team.postseasonBanThroughYear) {
+      const field = sportRankedList(s, team.sport).slice(0, PLAYOFF_FIELD);
+      s.orgs.lastSeason[team.sport] = {
+        year: s.clock.year, sport: team.sport, seed: null, finish: 'missed', banned: true,
+        beaten: [], lostTo: null, champion: field[0].name, championMascot: field[0].mascot,
+      };
+      continue;
+    }
     const result = resolveSport(s, team.sport, roll);
     s.orgs.lastSeason[team.sport] = result;
     if (result.finish === 'champion') {
@@ -136,7 +147,7 @@ export function describeFinish(result: SeasonResult): string {
     case 'final': return `${sport} — lost the final to ${result.lostTo}`;
     case 'semifinal': return `${sport} — lost the semifinal to ${result.lostTo}`;
     case 'quarterfinal': return `${sport} — lost the quarterfinal to ${result.lostTo}`;
-    default: return `${sport} — did not qualify`;
+    default: return result.banned ? `${sport} — barred from the postseason` : `${sport} — did not qualify`;
   }
 }
 

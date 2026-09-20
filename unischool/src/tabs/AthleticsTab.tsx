@@ -23,7 +23,7 @@ function seasonLabel(r: SeasonResult): string {
     case 'final': return 'lost the final';
     case 'semifinal': return 'lost the semi';
     case 'quarterfinal': return 'lost the quarter';
-    default: return 'did not qualify';
+    default: return r.banned ? 'postseason ban' : 'did not qualify';
   }
 }
 
@@ -470,6 +470,9 @@ function TeamCard({ s, act, team, funding }: { s: GameState; act: (a: Action) =>
           <span className={`org-tag${funding ? ` band-${funding.band}` : ''}`}>
             {team.status !== 'active' ? 'awaiting venue' : funding ? BAND_LABEL[funding.band] : 'varsity'}
           </span>
+          {team.postseasonBanThroughYear !== undefined && s.clock.year <= team.postseasonBanThroughYear && (
+            <span className="org-tag banned">postseason ban through {team.postseasonBanThroughYear}</span>
+          )}
         </span>
         <span className="org-meta">
           quality {quality} · {team.status === 'active'

@@ -372,6 +372,15 @@ const SPORT_PROFILES: readonly SportProfile[] = [
   // building. If that reads as thin, the fix is a rink, not a retreat from
   // sharing.
   { key: 'iceHockey', label: 'Ice Hockey', venueCategory: 'athleticsArena', genders: ['men', 'women'], economics: OLYMPIC_SPORT },
+  // WATER POLO (Plan 21's PR Q), on the natatorium: the worst-value building
+  // in the department — $950k for two programs, $475k a program against the
+  // field's $93k — goes from two programs to four. Zero footprint, zero new
+  // venue type. Wrestling and gymnastics stay out (they would take the arena
+  // to eight and ten programs against a comment that already calls six a
+  // lot), cross country homes on the field on a fig leaf, tennis is a
+  // rec-versus-varsity question rather than a sport one, and golf and
+  // rowing stay declined for the reasons above.
+  { key: 'waterPolo', label: 'Water Polo', venueCategory: 'athleticsNatatorium', genders: ['men', 'women'], economics: OLYMPIC_SPORT },
   //
   // GOLF IS DECLINED and ROWING DEFERRED — see docs/design/student-life.md.
   // A course is a footprint larger than the campus the game draws; a lake is
@@ -970,12 +979,24 @@ export function athleticDirectorBonus(s: GameState): number {
 // all the way up, and a dynasty is a thing that has to be held.
 const COACHING_SHARE = 0.92;
 
+// THE FIELD HOUSE (Plan 21's PR Q): a non-competition facility that lifts
+// every program a little. Team quality was only ever people and a pot; a
+// BUILDING as a quality lever gives the build rail a reason to exist in
+// athletics after the venues are up, and it is a natural place for a
+// donor's name.
+export const FIELD_HOUSE_ID = 'ATH-FIELDHOUSE';
+const FIELD_HOUSE_QUALITY_LIFT = 3;
+
+export function fieldHouseLift(s: GameState): number {
+  return s.tech.some((t) => t.id === FIELD_HOUSE_ID && t.status === 'done') ? FIELD_HOUSE_QUALITY_LIFT : 0;
+}
+
 export function coachingQuality(team: VarsityTeam, s: GameState): number {
   const weighted =
     (team.headCoach?.quality ?? COACH_VACANCY_QUALITY) * HEAD_COACH_WEIGHT
     + (team.assistantCoach?.quality ?? COACH_VACANCY_QUALITY) * ASSISTANT_COACH_WEIGHT
     + (team.trainer?.quality ?? COACH_VACANCY_QUALITY) * TRAINER_WEIGHT;
-  return Math.max(0, Math.min(100, weighted * COACHING_SHARE + athleticDirectorBonus(s)));
+  return Math.max(0, Math.min(100, weighted * COACHING_SHARE + athleticDirectorBonus(s) + fieldHouseLift(s)));
 }
 
 // WHAT A PROGRAM'S SHARE OF THE POT BUYS IT (Plan 21's PR G). A fully
