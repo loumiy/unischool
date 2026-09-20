@@ -5,7 +5,7 @@ import { WEEKS_PER_YEAR, institutionName } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import {
   ATHLETICS_BUDGET_ORDER, ATHLETICS_BUDGET_TIERS, BAND_LABEL, COACH_CANDIDATE_LISTING_WEEKS, TRAINER_FIELD,
-  departmentPot, orderedTeams, sportById, teamQuality, venueForCategory,
+  ceilingResolved, coachProfile, departmentPot, orderedTeams, sportById, teamQuality, venueForCategory,
 } from '../data/studentLifeData';
 import type { ProgramFunding } from '../data/studentLifeData';
 import FacultyPortrait from '../components/FacultyPortrait';
@@ -27,6 +27,16 @@ function seasonLabel(r: SeasonResult): string {
 
 function money(v: number): string {
   return `$${Math.round(v).toLocaleString()}`;
+}
+
+// What a coach's ceiling reads as (Plan 21's PR K): a scouted range for a
+// candidate and for a hire whose tenure has not yet resolved it, the number
+// once it has. Beside it, the age — which is the veteran-or-prospect
+// question in one figure.
+function ceilingLabel(c: Coach): string {
+  const p = coachProfile(c);
+  if (ceilingResolved(c)) return `ceiling ${c.qualityPotential}`;
+  return p.scouted[0] === p.scouted[1] ? `ceiling ${p.scouted[0]}` : `ceiling ${p.scouted[0]}–${p.scouted[1]}`;
 }
 
 // ---------------------------------------------------------------------
@@ -86,6 +96,8 @@ function StaffRow({ act, team, role }: { act: (a: Action) => void; team: Varsity
       <span className="coach-role">{ROLE_LABEL[role]}</span>
       <span className="coach-name">{coach.name}</span>
       <span className="stat">quality {coach.quality}</span>
+      <span className="stat">{ceilingLabel(coach)}</span>
+      <span className="stat">{coachProfile(coach).age}</span>
       <span className="stat">{money(coach.salary)}/yr</span>
       <span className="coach-row-spacer" />
       <button type="button" onClick={() => act({ type: 'FIRE_COACH', teamId: team.id, role })}>Release</button>
@@ -166,7 +178,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
       <div className="panel-head">
         <h2>On the market</h2>
         <HelpHint
-          text="One pool for the whole department, not a separate list per chair. A head or assistant coach is qualified for exactly one sport, so their listing can only answer that sport's team; a trainer's discipline is strength &amp; conditioning, so one trainer can answer any team's vacancy. Candidates whose sport you field with a chair open are listed first and tagged with the team that wants them — the rest are on the market too, and are shown by the toggle. Listings withdraw after a few months whether or not you hire, so a strong candidate in a sport you are about to field is worth taking when they appear."
+          text="One pool for the whole department, not a separate list per chair. A head or assistant coach is qualified for exactly one sport, so their listing can only answer that sport's team; a trainer's discipline is strength &amp; conditioning, so one trainer can answer any team's vacancy. Candidates whose sport you field with a chair open are listed first and tagged with the team that wants them — the rest are on the market too, and are shown by the toggle. Every open chair always has somebody listed, but the good ones are rare. A card shows a ceiling as a range, not a number: a prospect is cheap and low now with a ceiling you cannot quite see, a veteran is good now and expensive with little left to grow and a retirement coming; a better athletic director scouts a narrower range. Listings withdraw after a few months whether or not you hire."
         />
       </div>
 
@@ -189,6 +201,9 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
                   <span className="coach-candidate-field">{fieldLabel(c.field)}</span>
                 </span>
                 <span className="stat">quality {c.quality}</span>
+                <span className="stat" title={coachProfile(c).veteran ? 'A veteran: high now, little growth left, a short horizon' : 'A prospect: low now, a ceiling you cannot quite see'}>
+                  {ceilingLabel(c)} · {coachProfile(c).age}
+                </span>
                 <span className="stat">{money(c.salary)}/yr</span>
                 <span className="coach-candidate-listed">
                   {Math.max(0, COACH_CANDIDATE_LISTING_WEEKS - c.weeksListed)}w left

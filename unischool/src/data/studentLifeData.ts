@@ -589,11 +589,81 @@ export function rollCoachPotential(roll: () => number, band: CoachBand = rollCoa
 const COACH_STARTING_POTENTIAL_FRACTION = 0.55;
 const COACH_GROWTH_PLATEAU_YEARS = 6;
 
-export function grownCoachQuality(potential: number, tenureWeeks: number): number {
-  const start = potential * COACH_STARTING_POTENTIAL_FRACTION;
+// NOW, OR LATER (Plan 21's PR K). The prospect-versus-veteran trade used to
+// be fake: potential was printed on the card, everybody started at 55% of
+// it and closed the gap on the same six-year schedule, so "hire the highest
+// potential" was strictly dominant and tenure was free money. Two kinds of
+// person now, and an uncertain ceiling:
+//
+//   A PROSPECT is young, cheap, low now, and has a ceiling you cannot quite
+//   see — starts at COACH_STARTING_POTENTIAL_FRACTION of it and takes
+//   COACH_GROWTH_PLATEAU_YEARS to get there.
+//   A VETERAN is high now, expensive (salary tracks current quality), with
+//   little growth left and a short horizon — starts at
+//   VETERAN_STARTING_FRACTION and plateaus in VETERAN_PLATEAU_YEARS, and
+//   ages out at COACH_RETIREMENT_AGE (athleticsSystem.ts's growCoach), so
+//   tenure stops being free money.
+//
+// The card prints a RANGE (`scouted`), not the number: SCOUT_RANGE_WIDTH
+// wide, centred off the truth by up to half its width, and a good
+// athletic director narrows it — SCOUT_RANGE_PER_AD_POINT a point — which
+// gives the director a second job beyond a flat addend and makes the
+// expensive card worth reading. Uncertainty is what makes it a bet.
+const VETERAN_SHARE = 0.35;
+const PROSPECT_AGE_MIN = 28;
+const PROSPECT_AGE_RANGE = 10;   // 28..38
+const VETERAN_AGE_MIN = 45;
+const VETERAN_AGE_RANGE = 13;    // 45..58
+const VETERAN_STARTING_FRACTION = 0.9;
+const VETERAN_PLATEAU_YEARS = 2;
+export const COACH_RETIREMENT_AGE = 65;
+const SCOUT_RANGE_WIDTH = 24;
+const SCOUT_RANGE_PER_AD_POINT = 0.2; // a 90 director scouts to within 6 points
+const SCOUT_RANGE_MIN = 4;
+
+export interface CoachProfile {
+  age: number;
+  startQuality: number;
+  plateauYears: number;
+  scouted: [number, number];
+  veteran: boolean;
+}
+
+// A coach's profile with the defaults for one written before PR K: a
+// prospect of forty whose ceiling is known exactly.
+export function coachProfile(c: Coach): CoachProfile {
+  const plateauYears = c.plateauYears ?? COACH_GROWTH_PLATEAU_YEARS;
+  return {
+    age: c.age ?? 40,
+    startQuality: c.startQuality ?? c.qualityPotential * COACH_STARTING_POTENTIAL_FRACTION,
+    plateauYears,
+    scouted: c.scouted ?? [c.qualityPotential, c.qualityPotential],
+    veteran: plateauYears <= VETERAN_PLATEAU_YEARS,
+  };
+}
+
+// How wide the range on a card is, for a department with this director.
+export function scoutRangeWidth(adQuality: number): number {
+  return Math.max(SCOUT_RANGE_MIN, SCOUT_RANGE_WIDTH - SCOUT_RANGE_PER_AD_POINT * adQuality);
+}
+
+// Whether a hired coach's ceiling has been RESOLVED by tenure: half the
+// plateau in, the card stops printing the range and prints the number.
+export function ceilingResolved(c: Coach): boolean {
+  return c.tenureWeeks >= (coachProfile(c).plateauYears * WEEKS_PER_YEAR) / 2;
+}
+
+export function grownCoachQuality(potential: number, tenureWeeks: number, startQuality?: number, plateauYears: number = COACH_GROWTH_PLATEAU_YEARS): number {
+  const start = startQuality ?? potential * COACH_STARTING_POTENTIAL_FRACTION;
   const tenureYears = tenureWeeks / WEEKS_PER_YEAR;
-  const grownFraction = Math.min(1, tenureYears / COACH_GROWTH_PLATEAU_YEARS);
+  const grownFraction = Math.min(1, tenureYears / plateauYears);
   return Math.round(start + (potential - start) * grownFraction);
+}
+
+// The same climb, read off the coach's own profile.
+export function grownQualityOf(c: Coach): number {
+  const p = coachProfile(c);
+  return grownCoachQuality(c.qualityPotential, c.tenureWeeks, p.startQuality, p.plateauYears);
 }
 
 // A flat-dollar curve, mirroring facultyData.ts's facultySalary shape
@@ -649,9 +719,21 @@ export function generateCoachCandidate(
   existingNames: ReadonlySet<string> = NO_NAMES,
   roll: () => number = Math.random,
   band?: CoachBand,
+  // The director's quality, for how well the ceiling is scouted (PR K); 0
+  // for a department with none.
+  adQuality: number = 0,
 ): Coach {
   const qualityPotential = rollCoachPotential(roll, band);
-  const quality = grownCoachQuality(qualityPotential, 0);
+  const veteran = roll() < VETERAN_SHARE;
+  const age = veteran
+    ? VETERAN_AGE_MIN + Math.floor(roll() * (VETERAN_AGE_RANGE + 1))
+    : PROSPECT_AGE_MIN + Math.floor(roll() * (PROSPECT_AGE_RANGE + 1));
+  const startQuality = Math.round(qualityPotential * (veteran ? VETERAN_STARTING_FRACTION : COACH_STARTING_POTENTIAL_FRACTION));
+  const plateauYears = veteran ? VETERAN_PLATEAU_YEARS : COACH_GROWTH_PLATEAU_YEARS;
+  const width = scoutRangeWidth(adQuality);
+  const centre = qualityPotential + (roll() - 0.5) * width;
+  const scouted: [number, number] = [Math.max(1, Math.round(centre - width / 2)), Math.min(100, Math.round(centre + width / 2))];
+  const quality = grownCoachQuality(qualityPotential, 0, startQuality, plateauYears);
   const gender = rollCoachGender(field, roll);
   const rolled = rollCoachName(gender, existingNames, roll);
   return {
@@ -662,6 +744,10 @@ export function generateCoachCandidate(
     field,
     quality,
     qualityPotential,
+    age,
+    startQuality,
+    plateauYears,
+    scouted,
     tenureWeeks: 0,
     weeksListed: 0,
     salary: coachSalaryFor(quality, 0, field),
@@ -726,6 +812,10 @@ export function rollAthleticDirectorCandidates(existingNames: ReadonlySet<string
       // this model — there is one of them, they are hired once, and a second
       // appreciating-asset arc would be machinery nothing reads.
       qualityPotential: quality,
+      age: 45 + Math.floor(Math.random() * 14),
+      startQuality: quality,
+      plateauYears: VETERAN_PLATEAU_YEARS,
+      scouted: [quality, quality],
       tenureWeeks: 0,
       weeksListed: 0,
       salary: adSalaryFor(quality),

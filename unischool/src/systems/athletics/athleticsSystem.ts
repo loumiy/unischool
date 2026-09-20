@@ -1,8 +1,9 @@
 import type { Coach, GameState } from '../../state/types';
 import {
-  coachCandidateArrivalsThisWeek, COACH_CANDIDATE_LISTING_WEEKS, coachNamesInUse, coachSalaryFor,
-  generateCoachCandidate, grownCoachQuality, marketRng, rollCoachField, uncoveredChairFields,
+  COACH_RETIREMENT_AGE, coachCandidateArrivalsThisWeek, COACH_CANDIDATE_LISTING_WEEKS, coachNamesInUse, coachSalaryFor,
+  generateCoachCandidate, grownQualityOf, marketRng, rollCoachField, uncoveredChairFields,
 } from '../../data/studentLifeData';
+import { WEEKS_PER_YEAR } from '../../state/types';
 import { PLAYOFF_WEEK, runPlayoffs } from './playoffs';
 
 // ---------------------------------------------------------------------
@@ -36,13 +37,14 @@ function tickCoachCandidatePool(s: GameState): void {
   const roll = marketRng();
   const arrivals = coachCandidateArrivalsThisWeek(s.orgs.coachCandidates.length);
   const used = coachNamesInUse(s);
+  const adQuality = s.orgs.athleticDirector?.quality ?? 0;
   for (let i = 0; i < arrivals; i += 1) {
-    const candidate = generateCoachCandidate(rollCoachField(roll), used, roll);
+    const candidate = generateCoachCandidate(rollCoachField(roll), used, roll, undefined, adQuality);
     used.add(candidate.name);
     s.orgs.coachCandidates.push(candidate);
   }
   for (const field of uncoveredChairFields(s)) {
-    const candidate = generateCoachCandidate(field, used, roll, 'journeyman');
+    const candidate = generateCoachCandidate(field, used, roll, 'journeyman', adQuality);
     used.add(candidate.name);
     s.orgs.coachCandidates.push(candidate);
   }
@@ -56,8 +58,31 @@ function tickCoachCandidatePool(s: GameState): void {
 // time counts" rule facultySystem.ts's growFaculty uses.
 function growCoach(c: Coach): void {
   c.tenureWeeks += 1;
-  c.quality = grownCoachQuality(c.qualityPotential, c.tenureWeeks);
+  // A year older every year of tenure (PR K); a coach who was listed at 34
+  // is 40 six years in, and a veteran hired at 58 reaches the retirement
+  // age in seven.
+  if (c.tenureWeeks % WEEKS_PER_YEAR === 0 && c.age !== undefined) c.age += 1;
+  c.quality = grownQualityOf(c);
   c.salary = coachSalaryFor(c.quality, c.tenureWeeks, c.field);
+}
+
+// COACHES AGE OUT (PR K): at COACH_RETIREMENT_AGE a coach retires, the chair
+// is vacated, and the log says so — the market's floor lists a journeyman
+// for it the next week. This is what stops tenure being free money.
+const CHAIRS = ['headCoach', 'assistantCoach', 'trainer'] as const;
+function retireCoaches(s: GameState): void {
+  for (const t of s.orgs.teams) {
+    for (const chair of CHAIRS) {
+      const c = t[chair];
+      if (!c || c.age === undefined || c.age < COACH_RETIREMENT_AGE) continue;
+      t[chair] = null;
+      s.log.unshift({
+        year: s.clock.year, week: s.clock.week,
+        message: `${c.name} has retired from ${t.name} at ${c.age}, after ${Math.floor(c.tenureWeeks / WEEKS_PER_YEAR)} years.`,
+        kind: 'info', topic: 'team', subject: t.id,
+      });
+    }
+  }
 }
 
 export function tickAthletics(s: GameState): void {
@@ -71,4 +96,5 @@ export function tickAthletics(s: GameState): void {
     if (t.assistantCoach) growCoach(t.assistantCoach);
     if (t.trainer) growCoach(t.trainer);
   }
+  retireCoaches(s);
 }

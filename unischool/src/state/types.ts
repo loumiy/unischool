@@ -1071,7 +1071,21 @@ export interface Coach {
   // a sport, so one trainer pool serves every team regardless of sport.
   field: string;
   quality: number;          // current, 0..100 — grown toward qualityPotential over tenureWeeks, like Faculty.teaching/research
-  qualityPotential: number; // ceiling, rolled once at generation
+  qualityPotential: number; // ceiling, rolled once at generation — and since Plan 21's PR K, NOT what the card prints (see `scouted`)
+  // NOW, OR LATER (Plan 21's PR K). A candidate is a prospect or a veteran:
+  // `age` in years; `startQuality` is what they were worth the week they
+  // were listed and what growth climbs from (a veteran starts near their
+  // ceiling, a prospect far under it); `plateauYears` is how long the climb
+  // takes (short for a veteran, long for a prospect). `scouted` is the
+  // RANGE the card prints — the ceiling is uncertain until tenure resolves
+  // it, and a better athletic director scouts a narrower range. All four
+  // are optional so a coach written before them reads as a prospect of 40
+  // whose ceiling is known; the readers default them (studentLifeData.ts's
+  // coachProfile).
+  age?: number;
+  startQuality?: number;
+  plateauYears?: number;
+  scouted?: [number, number];
   tenureWeeks: number;      // weeks assigned to a team's roster; 0 for a candidate still on the market
   weeksListed: number;      // weeks on the market; stops mattering once hired, exactly like Faculty.weeksListed
   salary: number;           // current annual salary, recomputed live from quality + tenureWeeks (see coachSalaryFor)

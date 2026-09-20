@@ -147,8 +147,6 @@ function testPot(): void {
   const pot2 = departmentPot(after);
   assert(pot2.programs[0].team.sport === 'soccer-m' && pot2.programs[0].band === 'flagship', 'dragged to the top, soccer is the flagship');
   assert(pot2.programs[1].team.sport === 'football' && pot2.programs[1].funded < 1, 'and football below it no longer draws in full');
-  const footballTeam = after.orgs.teams.find((t) => t.sport === 'football')!;
-  assert(footballTeam.headCoach === null || footballTeam.headCoach !== null, 'demotion may cost the head coach (a coin flip on the reorder)');
 
   // A high tier and a surplus: the school gets money back.
   after.orgs.athleticsBudget = 'high';

@@ -1342,9 +1342,10 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       // the market any week, so access is worth nothing — a better coach than
       // the market usually turns up is the whole proposition.
       const used = coachNamesInUse(s);
-      let best = generateCoachCandidate(field, used);
+      const adQuality = s.orgs.athleticDirector?.quality ?? 0;
+      let best = generateCoachCandidate(field, used, Math.random, undefined, adQuality);
       for (let i = 1; i < AD_SHORTAGE_COACH_ROLLS; i += 1) {
-        const next = generateCoachCandidate(field, used);
+        const next = generateCoachCandidate(field, used, Math.random, undefined, adQuality);
         if (next.qualityPotential > best.qualityPotential) best = next;
       }
       return {
