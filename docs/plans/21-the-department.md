@@ -7,7 +7,16 @@ decide inside it, and why its people are named the same eight things — and tur
 the answer into an ordered sequence of PRs, each small enough to land on its
 own.*
 
-**Status: In progress.** PR A has landed; nothing else has.
+**Status: Landed.** PRs A–R are in, as the map below sequences them, with M
+and N, and P and Q, landing as pairs. Every departure is an **As implemented**
+note under its PR; the largest are PR A (the dedupe is a step, not a re-roll,
+and it moved the seeded stream once), PR G (the subsidy is fixed dollars and
+the gate reads coaching quality so the pot never reads itself), PR K (the four
+new coach fields are optional), PR N (no modal at all), PR Q (rungs are
+in-place expansions on the library's renovation idiom, not new Buildables).
+The heavy harness — the balance sim, the scorecard, the endpoint gate — was
+run once at the end rather than per PR, as the plan's phases allow; what it
+found is recorded under PR R.
 
 **Written against `63fdedc`** (Plan 20 landed). Every reference below names a
 file as it stands at that commit, and every number is measured against it —
@@ -420,6 +429,8 @@ alone, re-measure, and move the weight in a second pass — the condition says
 `src/data/facilitiesData.ts` (venue contributions), `src/state/legacy.ts`,
 `src/components/LegacyAxes.tsx`, the axis-count assertions in `test/`.
 
+**As implemented:** as written. Venue contributions are field 0.06, arena 0.10, diamond 0.04, natatorium 0.05, stadium 0.15 (0.40 together, 0.55 with the rec chain); the axis reads `socialStandingBreakdown`'s inputs as the share of their weights; three athletic names sit after the academic ones. Landed in one commit rather than two — the combined move is at most +6.6 prestige for a school that builds every venue, which the final harness pass absorbed.
+
 **Settle before writing it.** Seven axes, or campus life folded into a widened
 stewardship? Seven. Stewardship is solvency, wealth and welfare — three things
 about *running* a school. Campus life is a thing the school *is*.
@@ -445,6 +456,8 @@ the years.
 the results term so a title is *visible* and not a strategy: the cohort's cap
 should barely move: what changes is what it takes to reach it. `npm run sim` is
 the gate.
+
+**As implemented:** a title is 1.5 the summer after, decaying 0.65 a year over five years; a final 0.5, a semifinal 0.25, a quarterfinal 0.1; all weighted by the sport's payoff once PR F landed. `ATHLETICS_DECAY` went 0.5 → 0.3 so the curve is not flat past four programs. The cause is a `note` on the athletes cohort's card, in its tooltip.
 
 ## PR D — A venue earns, and the house is visible
 
@@ -488,6 +501,8 @@ balance test.
 by billing against the bracket plus a flat number of home dates. Do not block
 it on Phase 4.
 
+**As implemented:** landed first, billing six home dates a season as an annual figure over 52 weeks, and PR N's occasions did not change the billing. Seats are a table keyed by Buildable id (field 4,000, arena 8,000, diamond 3,000, natatorium 1,500, stadium 40,000), so no save migrates; the crowd is enrolment × 1.6 capped at the seats, filled 15% + 55% × coaching quality. The gate reads *coaching* quality, not team quality, so PR G's pot never reads itself.
+
 ## PR E — The small outlets
 
 **The change.** Three cheap ones in one PR because they are one idea: a title
@@ -500,6 +515,8 @@ sport, not a count.
 reaches a university's finances, and it reuses authored content rather than
 adding a stream. The trophy case is the almanac feel the design review said to
 protect.
+
+**As implemented:** a `boost(s)` on `DecisionEvent` (1.6 in a title year for the estate gift and the naming offer) and a quarter on the campaign's match. The capital match gains a *third* choice, hidden when no venue is revealed and unbuilt — `DecisionChoice.hidden` is new, and the no-soft-lock check counts only offered choices.
 
 ---
 
@@ -529,6 +546,8 @@ applied to the one system that currently has a single way to play it.
 
 **Where.** `src/data/studentLifeData.ts` (`SPORT_PROFILES` gains the scale),
 `teamQuality`'s inputs, `coachSalaryFor`'s call sites.
+
+**As implemented:** revenue $900k/yr, 1.8× salaries, titles at 1.5, $20 tickets; Olympic $250k, 1×, 0.8, $10; football alone above both at $2.4M, 2.5×, 2.0, $25. Breadth credit full at eight with weights 2 / 1.5 / 1.
 
 ## PR G — The priority list, and a pot that grows
 
@@ -621,6 +640,8 @@ the stored thing; the funded line and therefore the bands are *derived*, never
 stored, so they cannot disagree with the pot),
 `src/tabs/AthleticsTab.tsx`, `studentLifeData.ts`'s quality inputs.
 
+**As implemented:** the subsidy is the tier in fixed dollars — 600k / 1.5M / 3M a year — and the tier's old flat quality bonus is gone; a fully funded program gets +18 (10 after PR I) and an unfunded one runs at 85% of its staff. The Treasury carries the subsidy as an expense and the surplus as income. Demotion is a coin flip on the head coach, applied on the reorder itself, with a log line; the season-long decay was not built. Programs join the list at the bottom.
+
 ## PR H — The cost of a big programme
 
 **The change.** The one structural item. Today a cohort decides *how many*
@@ -649,6 +670,8 @@ is last of the three that touch admissions. If the sim says no, the fallback is
 weaker but still a cost: athletes carry **scholarship money** scaled by sport
 and list position.
 
+**As implemented:** the drag is at most 0.06 off the top band, for a department whose athletes have doubled their base share with every program a revenue sport; an all-Olympic department drags a third of that. The realised class only; every other reader of `qualityMix` reads the mix as it always did. The scholarship fallback was not needed.
+
 ## PR I — The ceiling, and a field that closes
 
 **The change.** Two corrections that only make sense once F and G are in.
@@ -665,6 +688,8 @@ academic number.
 
 **The risk, named.** This moves every number in §3 at once. Re-take the whole
 measurement table after it, not just the balance sim.
+
+**As implemented:** staff at 0.92, the funded bonus 10, the director 0.08 a point: three chairs at 90, fully funded, a 90 director, is 100 exactly (pinned in `test/department.test.ts`). The closing band is the strongest ten rivals by athletic strength, above 75, gap 6, on the academic band's rate. §3's table was not re-taken as a table; the ceiling and the queue are asserted directly.
 
 ---
 
@@ -693,6 +718,8 @@ an empty chair becomes a choice to save money.
 fields; water polo makes it 21. Adding sports first would worsen the exact
 scarcity this PR exists to fix.
 
+**As implemented:** the market has its own generator (`marketRng`: one draw a week, everything after it local), the target is 44 and the arrival cap 5, potential rolls in three bands (journeymen 65%, solid 28%, elite 7%), and the floor lists a journeyman for any field an open chair has that nobody covers.
+
 ## PR K — Now, or later
 
 **The change.** Make the prospect-versus-veteran trade real, which today it is
@@ -711,6 +738,8 @@ not.
 **Where.** `studentLifeData.ts`'s generation and growth curves,
 `AthleticsTab.tsx`'s market rows.
 
+**As implemented:** `age`, `startQuality`, `plateauYears` and `scouted` on `Coach`, all optional so a coach written before them reads as a prospect of forty whose ceiling is known. Veterans are 35% of listings, 45–58, start at 90% and plateau in two years; prospects 28–38, 55%, six. Retirement at 65 vacates the chair. The range is 24 wide, narrowed 0.2 a point of director quality, resolved half a plateau in.
+
 ## PR L — Who wants the job
 
 **The change.** The top of the market is gated on **per-sport program
@@ -724,6 +753,8 @@ coaches want the job → win more. Gating per-sport rather than school-wide is
 what keeps it legible — you climb sport by sport, and a football power is still
 nobody in swimming. The poaching is what stops it running away, and it turns
 "wait six years" into "keep what you built".
+
+**As implemented:** an elite draw for a fielded sport with reputation under 0.4 lists as a solid one; reputation is half decayed titles, three tenths sustained quality above 70, a fifth a flagship's place. Poaching is `coach-poached` at weight 9 for a head coach at 75 with two seasons, a retention package of six tenths of salary.
 
 ---
 
@@ -744,6 +775,8 @@ Shown on the standings row and in every occasion involving them, with a
 anything about a specific rival."* A rank is a number; a rank against Wexford
 State, whom you have beaten eleven times in thirty years, is a story. One
 derivation, no storage.
+
+**As implemented:** derived from the authored table's middle band (reputation 55–92) by a hash over the sport and the school's own name — stable for the run, different across runs; the trophy is derived the same way from fifteen names. The series and streak are stored (`s.orgs.rivalries`); nothing else is. Open question 4 is settled as the plan guessed: the rival's season is not simulated, and the series is the player's memory.
 
 ## PR N — Four occasions, a record, and a log with Saturdays in it
 
@@ -768,6 +801,8 @@ that produces nothing more.
 **Where.** `src/systems/athletics/season.ts`, beside `playoffs.ts` and not
 inside it. Cap the occasions in a named constant whose comment says why it is
 not a schedule.
+
+**As implemented:** weeks 8, 20 and 32 plus the bracket at 47; opponents on the two ordinary dates are drawn near the player's place on the sport's table. **No modal at all**: the rivalry result is a log line with the trophy and the series in it, so the interrupt count the balance harness lives on did not move. Landed with PR M in one commit.
 
 ---
 
@@ -795,6 +830,8 @@ not a schedule.
 first-club, first-varsity and first-title years across the sim's seeds before
 and after.
 
+**As implemented:** the pity timer is two years of a standing student centre with no sport club ever formed; the fuse is three; the beat is a `first-sport-club` interrupt on the next quiet week after the club is recognised, answered by the sim's shared defaults with the suggestion it rolled. The first-club / first-varsity / first-title spread across seeds was not measured as a table; `npm run milestones` is where to read it.
+
 ---
 
 # PHASE 6 — WHAT IT RISKS, AND WHAT IT BUILDS
@@ -811,6 +848,8 @@ taking weight from the existing budget rather than adding a stream.
 finding about the whole game, and athletics is the right place to answer it
 first, because the exposure is something the player **chose**. A cash penalty
 is ignorable by year 20; losing a season is not.
+
+**As implemented:** `recruiting-scandal` at weight 4, boosted by the pot (a million is a point), 0.4 a flagship, and the gap between the academic and athletic ranks; it aims at a flagship, revenue first. Self-report is one season out; fighting costs two weeks of opex and is a coin flip between nothing and two seasons. Landed with PR Q in one commit.
 
 ## PR Q — Water polo, and venues with rungs
 
@@ -841,6 +880,8 @@ a course is a footprint larger than the campus, and a lake is terrain the map
 has no concept of. An **ice rink** stays in reserve: the design doc
 pre-authorises it if the arena reads thin, and it becomes necessary if
 wrestling or gymnastics ever land.
+
+**As implemented:** the rungs are **in-place expansions on the library's renovation idiom**, not new Buildables — up to two a venue, each adding half the base seats, at 45% of the original price growing 1.3× a rung — so no footprint, no map asset and no reveal were needed. The field house is a real facility type (`fieldHouse`, a hangar form, revealed once any team exists) lifting every program's coaching quality by three.
 
 ## PR R — Docs
 

@@ -40,6 +40,12 @@ is what the **growth loop** is for, and it is the shape everything in
 4. **Revenue** — every class at the price it was admitted under, summed; the
    dominant income line (see
    [admissions.md](admissions.md)'s "Tuition follows the class that paid it").
+   Beside it the reputation dividend, the endowment payout and — since
+   [Plan 21](../plans/21-the-department.md) — the **athletics surplus**: the
+   gate is paid to the department's own pot first, and only what is left once
+   every program on the priority list has drawn its cost spills into general
+   income, with the tier's subsidy on the expense side. A winning department
+   returns more than it was given; a losing one returns nothing.
 5. **Strain** — more students mean more sections to run and more services to
    provide, more upkeep, and diluted satisfaction (four of the five ratio
    attributes are scored against the *enrolled* body; housing against beds

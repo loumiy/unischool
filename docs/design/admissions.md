@@ -207,6 +207,25 @@ schools pull the grad-school bound. This is what gives several different
 strategies each their own reason for enrollment to grow, instead of only
 prestige and price.
 
+**Athletes read results as well as capacity** ([Plan 21](../plans/21-the-department.md)'s
+PR C), exactly as the research-oriented read output beside labs: each
+national title is worth a term the summer after and decays over a few years,
+last season's deep runs count a little, and the summer modal names the cause
+— *the 2031 title in Men's Basketball is worth 4,100 of these*. Sized so a
+title is visible and not a strategy: the cohort's cap barely moves; what
+changes is what it takes to reach it.
+
+**Cohort reaches band in exactly one place** (Plan 21's PR H). Cohort and
+quality band were deliberately independent dimensions — a cohort decides how
+many, the band decides how good — and the one coupling is this: the realised
+class's band mix shifts slightly with the athlete share of the pool, weighted
+by how much of the department is revenue sport (`athleteBandDrag`, read by
+`qualityMix` for the realised class only). A football school admits a class
+that is larger and academically a shade weaker; a swimming school barely
+notices. Athletics still never touches the academic number directly; it
+touches the class the school admits, which has always been allowed to move
+prestige.
+
 **Every cohort here is a kind of undergraduate applicant.** That is what a
 cohort IS in this model: someone the one summer funnel admits into a freshman
 class, who graduates four years later. The grad-school bound are undergraduates

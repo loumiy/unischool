@@ -96,12 +96,15 @@ than adding a parallel sport simulation: a varsity team is mechanically
 close to a Greek chapter that needs a venue. Athletics V2 (below) added a
 real coaching-staff hiring pool, team quality, and standings against
 rivals' own athletic strength; Athletics V3 added per-sport standings, an
-athletic director and a year-end postseason. There is still **no match
-simulation and no schedules**: standings are read off one comparable strength
-number per school, the same shape `self.reputation` vs. `Rival.reputation`
-already uses for the academic ranking, and the postseason is a *bracket*
-resolved from those numbers once a year — no week contains a game, and no team
-has a schedule. A simulated season remains unbuilt (see "The postseason").
+athletic director and a year-end postseason; [Plan 21](../plans/21-the-department.md)
+re-aimed the whole department — connected its outputs, gave it something to
+decide, made the market scarce in the right thing, and gave it a season of
+four dated occasions (see "The season"). There is still **no match simulation
+and no schedule**: standings are read off one comparable strength number per
+school, the same shape `self.reputation` vs. `Rival.reputation` already uses
+for the academic ranking, and every result — the four occasions and the
+bracket — is one weighted comparison of those numbers. What Plan 21 crossed,
+deliberately, is that a *record* now accumulates week to week.
 
 A named share of new club formations (`SPORT_CLUB_SHARE`) roll as a **sport
 club** instead of an ordinary one — the same weekly club roll, no second
@@ -115,8 +118,23 @@ expensive Buildable and largest map footprint in the game). Every sport is one
 of three profiles (`SPORT_PROFILES`): **men-only** (football, baseball),
 **women-only** (field hockey, softball), or **two-gender**, fielding
 independent men's and women's lineages (soccer, lacrosse, basketball,
-volleyball, swim & dive, track & field, ice hockey) — 18 gendered `SPORTS`
-entries in all.
+volleyball, swim & dive, track & field, ice hockey, water polo) — 20 gendered
+`SPORTS` entries in all.
+
+**Sports are not equal** (Plan 21's PR F). Every profile carries a *scale*
+(`SportEconomics`): a cost to compete, a coach-salary multiplier, a payoff
+multiplier on what a title is worth, a ticket price and a breadth weight.
+Football and basketball are **revenue** sports — expensive to staff, a large
+share of the department's pot to stay competitive, a title that moves the
+national needle; everything else is an **Olympic** sport, cheap to staff and
+house, with a modest ceiling on payoff and the breadth credit. That is what
+lets a state-school football power and a liberal-arts college with eleven
+banners in swimming be two coherent identities rather than one way to play.
+Water polo joined the natatorium at Plan 21's PR Q, taking the department's
+worst-value building from two programs to four; wrestling, gymnastics and
+cross country stay out because the arena and the field already carry six and
+seven, tennis is a rec-versus-varsity question rather than a sport one, and
+an ice rink stays in reserve.
 
 **Track & field and ice hockey were added onto venues that already stood.**
 The multi-sport field has carried a regulation eight-lane 400m oval since the
@@ -178,7 +196,20 @@ the rec Swimming Pool, a stadium is not a rec field. "Shared" means shared
 named design fork; see `facilitiesData.ts`'s note above `GYM_ID` for the
 rejected alternative and why.
 
-**Coaching staff (Athletics V2)** is a standing hiring pool
+**A venue earns, and it has rungs** (Plan 21's PRs D and Q). Every active
+program plays a fixed number of home dates a year, each draws a crowd — the
+venue's seats (`VENUE_SEATS`, keyed by Buildable id), the program's coaching
+quality and the body the school could draw — and the crowd pays the sport's
+ticket (`systems/athletics/gate.ts`). **The gate saturates**: a venue holds
+what it holds, and the only way the ceiling rises is a rung — a done venue can
+be expanded in place up to twice (`EXPAND_VENUE`, on the library's renovation
+idiom, no new footprint), each rung adding half the base seats. Every venue
+also carries a **campus-life contribution** (`prestigeContribution`), which is
+what made campus life earnable (PR B). A **field house** — a non-competition
+facility revealed once the school fields any team — lifts every program's
+coaching quality a little: a building as a quality lever.
+
+**Coaching staff (Athletics V2, re-aimed at Plan 21's Phase 3)** is a standing hiring pool
 (`s.orgs.coachCandidates`) that deliberately **mirrors Faculty's own
 market** (`facultyData.ts`'s `generateCandidate`/`grownStat`/
 `facultySalary`/`candidateArrivalsThisWeek`) rather than inventing a
@@ -211,9 +242,32 @@ cannot see.
 
 The pool is sized for what a player sees at one moment rather than for
 throughput, and its size is **free of the economy's dice**: the market seeds
-and refills from a generator of its own, taking one draw on the global stream
-whatever the target is, so the number can be tuned for how the screen reads
-without moving a forty-year balance run.
+and refills from a generator of its own (`marketRng`), taking one draw on the
+global stream a week whatever the target is, so the number can be tuned for
+how the screen reads without moving a forty-year balance run. That is what
+let the target rise from 18 to 44 (PR J).
+
+**Scarcity is in the quality of candidates, not their existence** (PR J).
+Potential rolls in three bands — journeymen (45–62, most listings), solid
+(60–78) and elite (75–90, rare) — and **every open chair on an active team
+always has at least one listing** in its field: the tick lists a journeyman
+for any field nobody covers, so an empty chair is a choice to save money,
+never something the market does to you. **The top of the market wants a
+program with a reputation** (PR L): an elite draw for a fielded sport whose
+program has none (`programReputation` — title history in *that* sport,
+decaying; sustained quality above 70; a flagship's place on the list) lists as
+a solid one instead. Sport by sport, so a football power is still nobody in
+swimming.
+
+**Now, or later** (PR K). A candidate is a *prospect* — young, cheap, low now,
+six years to a ceiling — or a *veteran*: high now, expensive because salary
+tracks current quality, two years of growth left, and a retirement at 65 that
+vacates the chair. The card prints the ceiling as a **range**, not a number,
+centred off the truth and narrowed by the athletic director's quality; tenure
+resolves it. And **a coach who succeeds gets poached** (PR L's
+`coach-poached`, on the outside-offer shape): a head coach at 75 with two
+seasons behind them draws an offer, and a retention package keeps them or the
+chair opens. "Wait six years" became "keep what you built".
 **Every team needs three separately hired roles** — head coach, assistant
 coach, trainer (`VarsityTeam.headCoach`/`assistantCoach`/`trainer`,
 `types.ts`) — each grown week over week once hired
@@ -239,12 +293,16 @@ implying a second: a faculty hire trades teaching against research, but a
 director has one stat, so the only question three cards can pose is how much of
 the department's budget goes to the person running it.
 
-They do two things, and both are real or the hire would be a pure cost. Their
-quality is a **department-wide addend to every team's `teamQuality`**, beside
-the budget tier's own bonus — a different lever, since one is people and the
-other is money — and sized well under it, so a brilliant director cannot carry
-teams with nobody coaching them. And they are the **voice**: the shortage
-interrupts and the championship reports are written as the AD speaking.
+They do three things, and all are real or the hire would be a pure cost.
+Their quality is a **department-wide addend to every team's `teamQuality`**
+(0.08 a point since PR I lowered the department's ceiling to exactly 100 for a
+maxed staff), beside what a program's share of the pot buys it — a different
+lever, since one is people and the other is money — and sized well under it,
+so a brilliant director cannot carry teams with nobody coaching them. They
+**scout**: the range a candidate's card prints narrows with the director's
+quality (PR K), which is what makes the expensive card worth reading. And they
+are the **voice**: the shortage interrupts, the scandal and the championship
+reports are written as the AD speaking.
 
 **The director asks for what the department lacks.** An authored decision
 event (`eventData.ts`'s `ad-shortage`) in the shared weighted lottery — not on
@@ -264,33 +322,61 @@ after a cooldown. The week is recorded when the offer is **put**, not when it
 is answered, which is what stops anything that clears the interrupt without
 answering from re-firing it the next quiet week forever.
 
-**The mascot is named in that same modal** — the first moment the question has
-an answer, since there is now something that wears the name. Deliberately not
-at founding: the startup screen would ask before a single building stands and
-typically a decade before a varsity team exists. A suggestion is offered and
-can be re-rolled or typed over.
+**The mascot is named at the first sport club** (Plan 21's PR O), not in the
+director's modal: the summer the first sport club is recognised, a small beat
+fires on the next quiet week and the school names its teams — the identity
+arrives two decades before the department, which is what turns a decade of
+silence into a decade of anticipation. The director's modal asks only if
+nothing has answered. Deliberately not at founding, still: the startup screen
+would ask before a single building stands. The arrival is tightened the same
+way: a **pity timer** makes the next club formation a sport club once a
+student centre has stood two years with none, the varsity fuse is three years
+rather than five, a sport club's row on Student Life says when it may
+petition, and the Athletics tab opens with the first sport club, empty and
+showing the path.
 
-A live team's own upkeep (a fixed program fee plus its three coaches'
-live, tenure-appreciating salaries) and its flat, capped contribution to
-the `social` satisfaction attribute both run through **one recruiting &
-scholarship budget lever** (`ATHLETICS_BUDGET_TIERS`, replacing the old
-"investment" tier of the same shape) — low/medium/high, scaling the whole
-department's upkeep and social contribution together rather than
-budgeting per team, and now ALSO adding a flat quality bonus
-(`qualityBonus`) on top of whatever the coaching staff itself is worth —
-the "recruiting" a shallow model with no individual athlete roster can
-actually represent. Athletics reaches satisfaction through this same capped
-social contribution, same as clubs and Greek life.
+**The pot and the list** (Plan 21's PR G) are what the department decides.
+Its programs sit in one **ordered list** (`s.orgs.teamOrder` — the order is
+the only stored thing), dragged on the Athletics tab. Funding is a **queue,
+not a weighting**: each active program draws its sport's cost to compete off
+the pot in list order until the pot is exhausted, and the screen draws the
+line where the money runs out. The bands — *flagship*, *competitive*,
+*developmental* — are descriptive names for which side of the line a program
+sits on, never compartments, so the ratio of flagships is dynamic for free.
 
-**It now also reaches a standing — and exactly one.** The flag this paragraph
-used to carry ("never prestige directly; if athletics should eventually touch
-prestige, that is a separate prestige-model decision, flagged rather than
-wired") has been answered in the narrow shape it asked for. A varsity program
-feeds **campus-life standing**, one of the three the school is ranked on (see
-[progression.md](progression.md)'s "Three standings") — a number no system
-reads back into a decision. The **academic** number, which is the one the whole
-economy reads, is still untouched by athletics and by everything else in this
-document.
+> pot = institutional subsidy + what athletics earned
+
+The subsidy is the one dial (`ATHLETICS_BUDGET_TIERS.subsidyPerYear`, fixed
+in dollars — never a share of opex, or a huge school would fund eighteen
+flagships without deciding anything); what athletics earned is the gate. A
+fully funded program recruits at full strength (`FUNDED_QUALITY_BONUS`); one
+below the line is **underfunded, not unfunded** — a proportional discount with
+a floor, the same shape a vacant chair takes. The gate is paid to the
+department first and only the **surplus** spills into general income (the
+Treasury carries the subsidy as an expense and the surplus as income), so a
+winning department returns more than it was given and stops being a cost
+centre. Demotion costs something: a program dragged below the line it was
+above may lose its head coach on the reorder. `'awaitingVenue'` teams sit out
+of the queue. The tier still scales the department's social contribution and
+staff upkeep, as it always did.
+
+**Where athletics reaches now.** Satisfaction, through the same capped social
+contribution clubs and Greek life use. **Campus-life standing**, one of the
+three the school is ranked on (see [progression.md](progression.md)'s "Three
+standings"), through the venues, the programs and the titles — and through
+it the **seventh legacy axis** and the campus-life prestige input, restored to
+its weight of 12 once the venues made it earnable (PR B). **The applicant
+pool**: the athletes cohort reads results beside capacity — titles and deep
+postseason runs on a decaying window — and the summer modal names the cause
+(PR C). **The class the school admits**: the realised band mix shifts
+slightly with the athlete share of the pool, weighted by how much of the
+department is revenue sport (PR H) — the one narrow place cohort reaches
+band, and the acceptable shape, because the class has always been allowed to
+move prestige. **The donors**: a title year lifts the estate gift's and the
+naming offer's draw and the endowment campaign's match, the naming offer aims
+at venues too, and the state capital match can be put toward a revealed venue
+(PR E). The **academic** number is still never touched directly by athletics.
+
 Disbanding a team is not built in this pass either; when it is, what
 happens to a now-teamless venue is a call worth making explicitly rather
 than silently.
@@ -305,22 +391,49 @@ shape `playerRank` already uses for the U.S. News report, just sorted on
 `teamQuality`, averaged and scaled up with how many are fielded — a
 department with five solid teams outranks one with a single elite team)
 instead of `reputation`. No annual report, movers list, or reveal
-interrupt of its own — just a live rank readout on the Athletics tab.
+interrupt of its own — just a live rank readout on the Athletics tab. Breadth
+is weighted by scale (a football program counts double a swim team) and the
+credit is full at eight. **The athletic field closes on the player** (PR I):
+the strongest ten rivals by athletic strength drift toward the player's own
+program strength once it is above 75, on the rate the academic elite band
+closes at — a dynasty is a thing that has to be held.
 
-## The postseason
+## The season
 
-Once a year, late in the calendar, every sport the school **actively fields**
-plays a bracket: the strongest eight schools in that sport (by the per-sport
-strength the standings table already sorts on) are seeded, and three rounds are
-resolved as weighted comparisons of those numbers.
+Each active team plays **four dated occasions a year** (`systems/athletics/
+season.ts`, Plan 21's PR N): an opener at week 8, the rivalry game at week 20,
+a homecoming date at week 32, and the postseason bracket at week 47. Each
+resolves the week it happens — one draw on the global stream for every team,
+the weighted comparison the bracket uses — writes a log line, and adds to a
+**season record** (`s.orgs.season`, overwritten yearly). An **upset** — a
+result against the grain across a spread's gap — is called out. Nothing but a
+title raises a modal.
 
-**A bracket is not a season**, and the distinction is the whole reason this is
-a small feature. What
-[BACKLOG.md](../../BACKLOG.md)'s athletics deferrals hold back is a *season* —
-weeks, fixtures, opponents, results accumulating into a record — and none of
-that exists here. No week contains a game. No team has a schedule. The bracket
-reads the same input the rank readout reads and produces one more number: a
-champion.
+**Four dates is not a schedule.** What [BACKLOG.md](../../BACKLOG.md)'s
+athletics deferrals hold back is a *season* — fixtures, an opponent pool, a
+table, travel — and none of that exists: `OCCASIONS` is a named constant of
+three, and the opponents on the two ordinary dates are drawn from the sport's
+own table near the player's place. But a record accumulates week to week,
+which is a season in the one sense that matters to a player, and the line is
+argued at the head of `season.ts` rather than slipped in.
+
+**A rival with a name, per sport** (PR M). Each fielded sport has a designated
+rival — one named school, *derived and never stored* from the same
+deterministic hash `sportStrengthFor` uses, over the sport and the school's own
+name, so it is stable for the run and of comparable standing — with a named
+trophy and an all-time series with a streak (`s.orgs.rivalries`). Shown on the
+standings row: a rank is a number; a rank against a school you have beaten
+eleven times in thirty years is a story. A rival's own season is not
+simulated; the series is the player's memory, not the world's.
+
+**The postseason.** Once a year, late in the calendar, every sport the school
+**actively fields** plays a bracket: the strongest eight schools in that sport
+(by the per-sport strength the standings table already sorts on) are seeded,
+and three rounds are resolved as weighted comparisons of those numbers. A
+program serving a **postseason ban** (PR P's recruiting scandal — its
+likelihood rises with the pot, the flagships and how far athletics has outrun
+the school; the penalty is a season or two out of the bracket, not cash) does
+not enter, and the result says so.
 
 **Not qualifying is a result**, recorded and shown, not an absence. A program
 outside its sport's strongest eight does not enter, and the standings row says
@@ -330,12 +443,14 @@ around 72, a mid-staffed one lands just short, and only a genuinely well-staffed
 department with a good director and a high recruiting budget seeds near the top.
 
 **This is the loop the whole athletics feature was built for**, and every arrow
-in it now exists: hire a coach → team quality rises → the team seeds higher in
-its sport → it qualifies, and sometimes wins → a title lifts **campus-life
-standing**, which is a number with a national rank the player can watch. Titles
-are a monotone stock, like curriculum breadth and research credits: a school
-that won four championships in the eighties is still a school that won four
-championships.
+in it now exists: fund a program → hire a coach → team quality rises → the
+team seeds higher in its sport → it qualifies, and sometimes wins → a title
+lifts **campus-life standing** and the legacy's seventh axis, swells the next
+summer's applicant pool, opens the donors for a year, and makes better coaches
+want the job. Titles are a monotone stock, like curriculum breadth and research
+credits — weighted by the sport's scale, so a football title is most of a
+banner and a swimming one a little less — and the trophy case on the Athletics
+tab lists every one by year and sport.
 
 A championship **queues** an interrupt rather than firing on the spot, exactly
 as a milestone does — the playoff week may already belong to something else —
@@ -356,7 +471,7 @@ runs a good athletics program; `sportStrengthFor` (`rivalData.ts`) says whether
 it is any good at *lacrosse*, which is the question a particular coach hire is
 an answer to. A rival's per-sport strength is **derived, never stored** — a
 deterministic hash of (school id, sport id) swinging its department number by
-up to 28 points — so 100 schools across 18 sports is 1,800 readings that cost
+up to 28 points — so 100 schools across 20 sports is 2,000 readings that cost
 nothing to save and never change. A school is therefore reliably strong at some
 sports and weak at others for the whole run, which is what makes a rivalry
 legible over forty years.
