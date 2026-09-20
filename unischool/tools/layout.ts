@@ -63,9 +63,10 @@ interface Site { id: string; row: number; col: number; rotated?: boolean }
 // ---------------------------------------------------------------------
 const PLAN: Site[] = [
   // --- The academic core: the Grand Quad and the halls around it. The
-  // academic halls are the chain in techData.ts (HALL-01 .. HALL-11): the
-  // first six round the Grand Quad, the last five round the South Quad
-  // with the computing lab closing the corner. ---
+  // academic halls are the chain in techData.ts (HALL-01 .. HALL-13): the
+  // first six round the Grand Quad, the next five round the South Quad
+  // with the computing lab closing the corner, and the last two (Plan
+  // 20's PR H) a row below it, either side of the lab. ---
   { id: 'QUAD-T2', row: 57, col: 57 },                     // 13x13, the heart of the place
   { id: 'BLDG-GENSTUDIES', row: 50, col: 60 },             // Founders Hall, at the head of the quad
   { id: 'HALL-01', row: 50, col: 51 },
@@ -123,6 +124,8 @@ const PLAN: Site[] = [
   { id: 'HALL-10', row: 94, col: 70 },
   { id: 'HALL-11', row: 101, col: 51 },
   { id: 'LAB-COMP', row: 102, col: 60 },
+  { id: 'HALL-12', row: 101, col: 70 },
+  { id: 'HALL-13', row: 108, col: 51 },
 
   // --- East: the recreation chain on the first lane behind the union, the
   // grocery and the market hall on the second — the campus's town centre —

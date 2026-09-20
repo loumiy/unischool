@@ -31,9 +31,11 @@ import { COURSE_DESCRIPTIONS } from './courseDescriptions';
   everything else — a graduate program belongs to its homeSchool, and
   since that school's six majors already fill a hall, an MD or a
   doctorate needs a second hall of its school, dedicated on its own terms.
+  Every school has a graduate program now (Plan 20's PR H), so every
+  school can justify a second hall.
 
   On top of that undergraduate catalogue, GRADUATE PROGRAMS (further below)
-  add 37 more course Buildables across six programs. Two of them — the
+  add 49 more course Buildables across nine programs. Two of them — the
   School of Medicine and the School of Law, the only two that award an
   EXTERNAL professional degree — used to carry their own 'building'
   Buildable; see the module note above for where they live now.
@@ -187,13 +189,17 @@ export const FOUNDERS_HALL_REPUTATION_BONUS = 1.5;
 // building. Each rung after it costs a fixed ratio more, so the fifth is a
 // multi-year commitment.
 //
-// Eleven rungs because twelve halls is the completionist ceiling — seven
-// schools of six majors, plus a second Business, Engineering, Science,
-// Social Sciences and Health Science hall for the six graduate programs,
-// which belong to those schools but do not fit in a hall their six majors
-// already fill — and Founders Hall is the first of the twelve (Plan 19:
-// six slots, an ordinary hall). A hall the player never needs is never
-// offered — the chain stops here.
+// Thirteen rungs because fourteen halls is the completionist ceiling —
+// seven schools of six majors, plus a second hall for each of the seven
+// schools for the nine graduate programs, which belong to those schools
+// but do not fit in a hall their six majors already fill — and Founders
+// Hall is the first of the fourteen (Plan 19: six slots, an ordinary
+// hall). It was twelve until Plan 20's PR H: Computer Science and Arts &
+// Media held no graduate program, so neither justified a second hall;
+// the computing doctorate and the MFA are two rungs, and the humanities
+// doctorate is none, because it sits beside the law school in the second
+// hall Social Sciences & Humanities already had. A hall the player never
+// needs is never offered — the chain stops here.
 //
 // EVERY NUMBER HERE IS PROVISIONAL, and loudly so. They are fitted by feel
 // against an economy the September review found broken and Plan 15 is
@@ -201,7 +207,8 @@ export const FOUNDERS_HALL_REPUTATION_BONUS = 1.5;
 // against the scorecard. The opening shape: first hall cheap, then ×1.35
 // a rung, so a balanced run affords roughly eight by year 35 and a
 // completionist ten or eleven. Cumulative: ~$14M for eight, ~$37M for
-// eleven — a fraction of the dorm chain over the same span.
+// eleven, ~$68M for all thirteen — a fraction of the dorm chain over the
+// same span.
 export const ACADEMIC_HALL_SLOTS = 6;
 // What the first purchased hall waits on (Plan 19's PR B): the six courses
 // the college opens with, plus two the player chose. See
@@ -225,6 +232,7 @@ const ACADEMIC_HALL_NAMES = [
   'Elm Hall', 'Oak Hall', 'Linden Hall', 'Maple Hall',
   'Chestnut Hall', 'Sycamore Hall', 'Cedar Hall', 'Birch Hall',
   'Hawthorn Hall', 'Beech Hall', 'Willow Hall',
+  'Alder Hall', 'Hazel Hall',
 ];
 export const ACADEMIC_HALL_COUNT = ACADEMIC_HALL_NAMES.length;
 export const ACADEMIC_HALL_ID_PREFIX = 'HALL-';
@@ -232,7 +240,7 @@ function academicHallId(index: number): string {
   return `${ACADEMIC_HALL_ID_PREFIX}${String(index + 1).padStart(2, '0')}`;
 }
 
-// A hall with program slots: Founders Hall and the eleven of the chain
+// A hall with program slots: Founders Hall and the thirteen of the chain
 // above. Founders Hall used to be excluded here (one slot, the core's,
 // never a decision); since Plan 19's PR A it is an ordinary six-slot hall
 // that happens to stand at founding, and every reader of this predicate
@@ -389,7 +397,7 @@ export function majorPrefixes(): string[] {
 }
 
 // A PROGRAM, as the halls model sees it (Plan 14): the unit that takes a
-// slot. Forty-two majors and the six graduate programs, each read off the
+// slot. Forty-two majors and the nine graduate programs, each read off the
 // seed by the id `s.halls` and `s.programOffers` carry. Deliberately a
 // fourth independent read of SCHOOLS, for the reason milestoneSchools()
 // and researchSchools() each are: the engine has no notion of "program",
@@ -817,7 +825,8 @@ export interface GraduateProgramSeed {
   courses: GraduateCourseSeed[];
 }
 
-// Six programs, 37 courses (up from 28: Medicine 6 -> 12, Law 5 -> 8).
+// Nine programs, 49 courses (six and 37 until Plan 20's PR H; 28 before
+// Medicine went 6 -> 12 and Law 5 -> 8).
 // Deliberately small sets per program — each is "a handful of high-tier
 // courses that complete into a milestone", not a second nine-course major.
 const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
@@ -915,6 +924,60 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
       { num: 730, title: 'Dissertation Research in Health Science', field: 'Kinesiology' },
     ],
   },
+  // The three that four schools did not have (Plan 20's PR H). The three
+  // doctorates above were authored when three schools bore labs; every
+  // school with majors has a research facility now, and the doctoral gate
+  // is a finished facility in the parent school, so Computer Science, the
+  // humanities and Arts & Media get the terminal degree their facility
+  // already justifies. Authored exactly like the three above, on the same
+  // rung, with no mechanism anywhere.
+  {
+    id: 'PHDC', name: 'Doctoral Program in Computing', degree: 'PhD', type: 'doctoral',
+    homeSchool: 'Computer Science', gateSchools: ['Computer Science'],
+    prestigeWeight: 1.0,
+    blurb: 'the computing doctorate',
+    courses: [
+      { num: 701, title: 'Doctoral Research Methods in Computing', field: 'Computer Science' },
+      { num: 710, title: 'Advanced Seminar in Learning Theory', field: 'Artificial Intelligence' },
+      { num: 720, title: 'Foundations of Computation', field: 'Mathematics' },
+      { num: 730, title: 'Dissertation Research in Computing', field: 'Information Systems' },
+    ],
+  },
+  {
+    id: 'PHDL', name: 'Doctoral Program in the Humanities', degree: 'PhD', type: 'doctoral',
+    homeSchool: 'Social Sciences & Humanities', gateSchools: ['Social Sciences & Humanities'],
+    prestigeWeight: 1.0,
+    blurb: 'the humanities doctorate',
+    courses: [
+      { num: 701, title: 'Doctoral Research Methods in the Humanities', field: 'History' },
+      { num: 710, title: 'Advanced Seminar in Literary Theory', field: 'English' },
+      { num: 720, title: 'Doctoral Seminar in Social Theory', field: 'Sociology' },
+      { num: 730, title: 'Dissertation Research in the Humanities', field: 'Philosophy' },
+    ],
+  },
+  {
+    // The MFA is the terminal degree of the studio arts, and it takes the
+    // DOCTORAL rung rather than the professional one, deliberately: the
+    // type is what selects the gate (a finished facility in the parent
+    // school — the Media Production Studio — rather than a count of
+    // established majors), the cost (a program bolted onto a school that
+    // already has the studio and the faculty, not a medical school), and
+    // the research credit, which reads right because the studio already
+    // counts exhibited work as research (researchData.ts's
+    // DISCIPLINE_VOCAB). A professional-tier program with a lab gate
+    // would have been a third gate reading, and the whole graduate model
+    // is built on there being two.
+    id: 'MFAX', name: 'Master of Fine Arts', degree: 'MFA', type: 'doctoral',
+    homeSchool: 'Arts & Media', gateSchools: ['Arts & Media'],
+    prestigeWeight: 1.0,
+    blurb: 'the MFA program',
+    courses: [
+      { num: 701, title: 'Graduate Studio Practice', field: 'Art & Design' },
+      { num: 710, title: 'Advanced Fiction & Poetry Workshop', field: 'English' },
+      { num: 720, title: 'Graduate Composition Seminar', field: 'Music' },
+      { num: 730, title: 'Thesis Exhibition & Production', field: 'Communication' },
+    ],
+  },
 ];
 
 // How much of a parent school has to stand before a professional school may
@@ -985,7 +1048,35 @@ export function graduateGateDescription(program: GraduateProgramSeed): string {
     });
     return parts.join(' and ');
   }
-  return `a finished lab in ${program.gateSchools.join(' and ')}`;
+  // A school with one research facility gets it by name — "the Media
+  // Production Studio finished" rather than "a finished lab in Arts &
+  // Media", which names a building the school does not have (Plan 20's
+  // PR H). The lab sciences and engineering, with several, keep the
+  // general form.
+  const schools = researchSchools();
+  const parts = program.gateSchools.map((name) => {
+    const school = schools.find((x) => x.schoolName === name);
+    if (school && school.labIds.length === 1) {
+      const facility = researchFacilityName(school.labIds[0]);
+      if (facility) return `the ${facility} finished`;
+    }
+    return `a finished lab in ${name}`;
+  });
+  return parts.join(' and ');
+}
+
+// The display name of a research facility, by its Buildable id — the same
+// rule initialTech() uses to name it, so the gate sentence and the build
+// tray cannot disagree. Undefined for an id that names no facility.
+function researchFacilityName(facilityId: string): string | undefined {
+  for (const school of SCHOOLS) {
+    for (const major of school.majors) {
+      if (LAB_GATED_MAJOR_PREFIXES.includes(major.prefix) && labId(major.prefix) === facilityId) {
+        return RESEARCH_FACILITY_NAMES[major.prefix] ?? `${major.name} Labs`;
+      }
+    }
+  }
+  return undefined;
 }
 
 // ---------------------------------------------------------------------
@@ -1021,7 +1112,7 @@ export function initialTech(): Buildable[] {
           id: labId(major.prefix),
           kind: 'facility',
           facilityType: 'lab',
-          name: RESEARCH_FACILITY_NAMES[major.prefix] ?? `${major.name} Labs`,
+          name: researchFacilityName(labId(major.prefix))!,
           description: `${RESEARCH_FACILITY_BLURBS[major.prefix] ?? 'Specialized lab space'} — gates ${major.name}'s capstone (tier-3) coursework, and lets the school produce research.`,
           cost: LAB_COST,
           duration: LAB_WEEKS,
@@ -1349,11 +1440,10 @@ export function researchSchools(): ResearchSchool[] {
     // Graduate programs teach in their home school too, and are staffed
     // per-course rather than per-major. Folded in here rather than left out
     // so "every field that teaches in this school" stays literally true as
-    // the catalogue grows. It changes nothing today — every graduate field
-    // except Law already teaches undergraduate courses in its program's
-    // home school, and Law's home (Social Sciences & Humanities) bears no
-    // lab — but a law professor at a school that later gets one should not
-    // be invisible to research because nobody remembered to add them.
+    // the catalogue grows. It is what puts Law — the one field whose
+    // demand is entirely graduate — among the Humanities Research
+    // Institute's hosted fields (hostableFields below), so a law professor
+    // is not invisible to research because nobody remembered to add them.
     for (const program of GRADUATE_PROGRAMS) {
       if (program.homeSchool !== school.name) continue;
       for (const course of program.courses) fields.add(course.field);
