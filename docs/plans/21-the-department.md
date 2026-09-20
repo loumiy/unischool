@@ -895,6 +895,35 @@ athletics deferrals.
 Docs are last, not because they are an afterthought, but because Phases 1–6
 change what the design *is* and writing it twice is worse than writing it once.
 
+**As implemented:** the docs as written, and the one harness pass the plan's
+phases allow, run at the end. What it found:
+
+- **The stream re-phased twice**, at PR A (the dedupe stopped taking dice)
+  and at PR J (the market's own generator), and the scorecard's generated
+  reference envelope was re-recorded after each with
+  `npm run sim -- --write-reference`, as Plans 16, 19 and 20 did.
+- **The pot was sized wrong the first time** — costs to compete and subsidy
+  tiers twice what landed — and the routing charged the whole tier and
+  refunded the surplus, which nets the same but inflated opex, and half the
+  game's prices are read in weeks of opex: an idle department made every
+  club and every gift a fifth dearer, and the harness's overbuilder sank on
+  it. Both corrected in one commit; the sizes recorded under PRs F and G.
+- **Three knife-edge harness claims were re-read**, each on an eight-seed
+  measurement against the base commit rather than a guess: the overbuilder
+  "underwater by year 5" (PR A) and "above its trough by year 20" (held at
+  four of eight seeds on the base commit, three after) are judged across
+  seeds with the regression test's own `holds`, which now tries four other
+  streams rather than two; the endpoint test's "ends solvent" is judged on
+  most seeds with a stewardship floor on every seed (PR A), and its "all but
+  one or two ambitions" for the earnest completionist reads all but two or
+  three now — the run fields ten to fifteen programs, funds a few, and misses
+  *a title in every sport fielded* on every seed, which is Finding 5 working
+  as intended (17, 18 and 17 of 20 at the plan's end); and the overbuilder's hand-written cash floors at years
+  20, 35 and 50 cover the sinking half of its streams (−30M / −40M / −50M),
+  with the measurement in the comment above them. The balance gate's 66
+  hard checks, the scorecard and the endpoint gate are green on the final
+  commit.
+
 ---
 
 ## What this plan does not do

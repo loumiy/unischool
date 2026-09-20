@@ -74,15 +74,19 @@ every('Earnest completionist', completionist, 'builds three in four of every pla
 every('Earnest completionist', completionist, 'founds every school', (r) => r.schoolsFounded === r.schoolsTotal);
 every('Earnest completionist', completionist, 'reaches #1', (r) => r.firstAtOne !== null);
 every('Earnest completionist', completionist, 'holds #1 in at least half of years 40–50', (r) => r.yearsAtOneLateDecade >= 6);
-// Ambitions: all but one or two on most seeds, and never fewer than all but
-// three. Re-read at Plan 21's PR A, which widened the name pools and so
-// moved the seeded stream once: measured across eight seeds the run reaches
-// 17 to 19 of 20 both before and after, with one seed at 17 either time
-// (12346 before, the default after). The twentieth and nineteenth are the
-// year-fifty ones the run has to be holding on the one week the summer
-// stops the clock, and which of them it holds is the dice, not the model.
+// Ambitions: all but two or three on every seed, and all but two on at
+// least one. Plan 17's sentence was "all but one or two", and the run held
+// it at 18 of 20 on most seeds until Plan 21 — whose whole point was that a
+// department can no longer max every sport by waiting (its Finding 5). The
+// earnest completionist fields ten to fifteen programs and funds a few of
+// them, so "a title in every sport fielded" is a specialist's ambition now
+// and the run misses it on every seed; "the catalogue" it has always
+// missed; and on one seed it misses a first title too, having spread its
+// pot across eleven programs. Measured at the plan's end: 17, 18 and 17 of
+// 20 on the three seeds. The two or three it misses are the ones the plan
+// meant it to have to choose between.
 every('Earnest completionist', completionist, 'reaches all but three ambitions on every seed', (r) => r.ambitionsReached >= r.ambitionsTotal - 3);
-assert(completionist.filter((r) => r.ambitionsReached >= r.ambitionsTotal - 2).length >= 2, `Earnest completionist: all but one or two ambitions on most seeds (${completionist.map((r) => `${r.ambitionsReached}/${r.ambitionsTotal}`).join(', ')})`);
+assert(completionist.some((r) => r.ambitionsReached >= r.ambitionsTotal - 2), `Earnest completionist: all but two ambitions on at least one seed (${completionist.map((r) => `${r.ambitionsReached}/${r.ambitionsTotal}`).join(', ')})`);
 every('Earnest completionist', completionist, 'is an A in breadth', (r) => atLeast(r, 'breadth', 'A'));
 
 // --- the balanced builder -----------------------------------------------------------
