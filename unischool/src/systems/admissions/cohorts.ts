@@ -122,6 +122,7 @@ export interface CohortSignals {
   artsFacilities: number;       // ARTS_FACILITY_IDS done, 0..2
   activeTeams: number;          // varsity teams with status 'active'
   athleticsQuality: number;     // avg teamQuality() across active teams, 0 if none
+  revenueShare: number;         // the share of the department's cost to compete that its revenue sports carry, 0..1 — how "big-programme" the department is (Plan 21's PR H)
   athleticResults: number;      // what the programs have WON — titles and deep postseason runs on a decaying window (Plan 21's PR C: results reach the pool, as research output already does)
   athleticResultsLabel: string; // the cause, named for the summer modal: "the 2031 title in Men's Basketball"; '' when there is nothing recent
   gradCourseDepth: number;      // 'done' graduate/professional course Buildables, 0..37
@@ -184,6 +185,7 @@ export function deriveCohortSignals(s: GameState): CohortSignals {
     athleticsQuality: activeTeams.length > 0
       ? activeTeams.reduce((sum, t) => sum + teamQuality(t, s), 0) / activeTeams.length
       : 0,
+    revenueShare: revenueShareOf(activeTeams.map((t) => t.sport)),
     athleticResults: athletic.results,
     athleticResultsLabel: athletic.label,
     // Counted off DEVELOPED COURSES rather than off the
@@ -204,9 +206,49 @@ export function deriveCohortSignals(s: GameState): CohortSignals {
 export const NEUTRAL_COHORT_SIGNALS: CohortSignals = {
   distinguishedDepth: 0, professionalPrograms: 0, researchRate: 0, researchOutput: 0, labCount: 0,
   socialOrgCount: 0, artsPrograms: 0, artsFacilities: 0, activeTeams: 0, athleticsQuality: 0,
-  athleticResults: 0, athleticResultsLabel: '',
+  revenueShare: 0, athleticResults: 0, athleticResultsLabel: '',
   gradCourseDepth: 0,
 };
+
+// How much of the department is revenue sport, by cost to compete: a
+// football school reads near 1, a swimming school 0.
+export function revenueShareOf(sportIds: readonly string[]): number {
+  let total = 0;
+  let revenue = 0;
+  for (const id of sportIds) {
+    const economics = sportEconomics(id);
+    total += economics.costToCompete;
+    if (economics.scale === 'revenue') revenue += economics.costToCompete;
+  }
+  return total > 0 ? revenue / total : 0;
+}
+
+// THE COST OF A BIG PROGRAMME (Plan 21's PR H). Cohort and quality band
+// were deliberately independent dimensions — a cohort decides how many
+// applicants, the band decides how good — and this couples them in one
+// narrow place: the realised class's band mix shifts slightly with the
+// athlete share of the pool, weighted by how much of the department is
+// revenue sport. A football school admits a class that is larger and
+// academically a shade weaker; a swimming school barely notices. Athletics
+// still never touches the academic number directly; it touches the class
+// the school admits, and the class has always been allowed to move
+// prestige. Returned as the shift admissionsSystem.ts's qualityMix takes
+// off the top band and adds to the low one — at most ATHLETE_BAND_DRAG,
+// for a department whose athletes have doubled their base share and whose
+// programs are all revenue sports.
+const ATHLETE_BAND_DRAG = 0.06;
+const ATHLETE_DRAG_REVENUE_FLOOR = 0.3; // an all-Olympic department still drags a little
+
+export function athleteBandDrag(signals: CohortSignals, tolerance: number, tuition: number): number {
+  const weights = cohortWeights(signals, tolerance, tuition);
+  const total = weights.reduce((sum, w) => sum + w, 0);
+  const athletes = COHORTS.findIndex((c) => c.id === 'athletes');
+  if (total <= 0 || athletes === -1) return 0;
+  const base = COHORTS[athletes].baseShare;
+  const excess = Math.max(0, weights[athletes] / total - base) / base; // 0 at base share, 1 at double
+  const scale = ATHLETE_DRAG_REVENUE_FLOOR + (1 - ATHLETE_DRAG_REVENUE_FLOOR) * signals.revenueShare;
+  return ATHLETE_BAND_DRAG * Math.min(1, excess) * scale;
+}
 
 // Every growth-driven cohort (everything but priceSensitive) uses the same
 // bounded, diminishing-returns shape wordOfMouthFactor/capacityFactor
