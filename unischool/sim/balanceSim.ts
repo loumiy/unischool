@@ -49,6 +49,7 @@ import {
 import { facultyLoads, projectedQuality } from '../src/systems/faculty/facultyAssignment';
 import { initiativeDepth, initiativeFundingCost, initiativeOffers } from '../src/data/researchData';
 import { isAcademicHall, programById, programOfCourse, programs, researchSchools } from '../src/data/techData';
+import { ATTRIBUTE_SHORTFALL } from '../src/systems/guidance/nextStep';
 import { canFoundProgram } from '../src/systems/techtree/techSystem';
 import { isHoused } from '../src/systems/techtree/programOffers';
 import { canPostSearch, searchCost } from '../src/systems/faculty/facultySearch';
@@ -237,8 +238,22 @@ function courseStaysSustainable(s: GameState, strategy: Strategy): boolean {
 
 // Whether this week's cash flow leaves room to take on a new RECURRING
 // commitment — a hire, or a course that will need running forever.
+//
+// READ AGAINST THE FIRST MILLION A WEEK OF OPERATING COST (Plan 19's PR
+// F). The margin is a share of opex, and a commitment is not: a course's
+// upkeep and a salary are the same few thousand a week whether the school
+// spends a hundred thousand a week or twenty million. Read as a pure share
+// the rule froze every mature school — at the top of the scale costs
+// follow standing and the net compresses to a few percent of a very large
+// opex, so a balanced builder netting three hundred thousand a week with
+// seventy million in the bank refused a single course for thirty years,
+// at one seed with a third of the catalogue never built. Capping the opex
+// the margin is read against keeps the rule exactly as it was for a school
+// under a million a week and turns it into "nets a hundred-odd thousand a
+// week" past that, which is what "room for one more course" means there.
+const HEADROOM_OPEX_CAP = 1_000_000;
 function hasHeadroom(s: GameState, strategy: Strategy): boolean {
-  return weeklyNet(s) >= strategy.netMargin * s.finance.weeklyOpEx;
+  return weeklyNet(s) >= strategy.netMargin * Math.min(s.finance.weeklyOpEx, HEADROOM_OPEX_CAP);
 }
 
 // Capital projects (dorms, school buildings, facilities) are judged more
@@ -893,15 +908,25 @@ function decide(
   // ("site a residence hall and a dining hall") the way this now does:
   // the facility the students are shortest of comes before the next
   // course, and a prudent strategy SAVES for it the way it saves for a
-  // dorm. The spend-to-the-wire archetypes buy it the week they can, in
-  // this order, and save for nothing — which is what they are.
-  const shortFacility = strategy.buildsFacilities
-    ? beforeCurriculum.tech.find((t) => {
-      if (t.kind !== 'facility' || t.status !== 'available' || t.facilityType === 'lab') return false;
+  // dorm — for the facility the toolbar's next-step line would name, an
+  // attribute under ATTRIBUTE_SHORTFALL, and not for every rung its own
+  // threshold would eventually buy: a strategy that builds everything
+  // (facilityThreshold Infinity) was measured saving for a $5M dining hall
+  // it did not need at a hundred thousand a week of opex, and growing
+  // nothing for a decade. The spend-to-the-wire archetypes buy it the week
+  // they can, in this order, and save for nothing — which is what they
+  // are.
+  let shortFacility: Buildable | undefined;
+  if (strategy.buildsFacilities) {
+    let worst = ATTRIBUTE_SHORTFALL;
+    for (const t of beforeCurriculum.tech) {
+      if (t.kind !== 'facility' || t.status !== 'available' || t.facilityType === 'lab') continue;
       const attr = t.effects?.satisfactionAttribute;
-      return !!attr && beforeCurriculum.students.satisfactionBreakdown[attr] < strategy.facilityThreshold;
-    })
-    : undefined;
+      if (!attr) continue;
+      const score = beforeCurriculum.students.satisfactionBreakdown[attr];
+      if (score < worst) { worst = score; shortFacility = t; }
+    }
+  }
   const savingForFacility = strategy.netMargin > 0 && shortFacility !== undefined &&
     !affordable(beforeCurriculum, shortFacility.cost, strategy);
   const saving = savingForDorm || savingForFacility;
@@ -916,7 +941,19 @@ function decide(
       const f = s.tech.find((t) => t.id === id);
       const attr = f?.effects?.satisfactionAttribute;
       if (!f || f.status !== 'available' || !attr) continue;
-      if (s.students.satisfactionBreakdown[attr] >= strategy.facilityThreshold) continue;
+      // A VENUE IS WANTED BY THE TEAM WAITING FOR IT, not by the social
+      // attribute it also carries (Plan 19's PR F). A venue is revealed
+      // only once a varsity petition was granted (facilitiesData.ts's
+      // athleticsVenueReveal), so a team is awaiting it by construction;
+      // read as a social facility it was built only while social was
+      // under the threshold, which the campus-life-first ordering above
+      // now keeps at a hundred — and the earnest completionist, which
+      // "finishes every venue", was measured with fourteen teams awaiting
+      // one at the fiftieth summer and no title ever won.
+      const wanted = f.athleticsVenueReveal
+        ? s.orgs.teams.some((team) => team.status === 'awaitingVenue' && team.venueCategory === f.facilityType)
+        : s.students.satisfactionBreakdown[attr] < strategy.facilityThreshold;
+      if (!wanted) continue;
       if (canCommitCapital(s, strategy) && affordable(s, f.cost, strategy)) {
         dispatchPlaceable(get, dispatch, id);
       }

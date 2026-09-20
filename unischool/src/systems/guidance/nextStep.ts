@@ -42,8 +42,10 @@ const ATTRIBUTE_LABEL: Record<keyof SatisfactionAttributes, string> = {
 };
 
 // Below this an attribute is a shortfall worth naming, on the 0..100 scale
-// each one is scored on (satisfactionSystem.ts).
-const ATTRIBUTE_SHORTFALL = 50;
+// each one is scored on (satisfactionSystem.ts). Exported for the balance
+// harness, whose prudent strategies save for the facility this line would
+// name (sim/balanceSim.ts).
+export const ATTRIBUTE_SHORTFALL = 50;
 
 function letterAsk(s: GameState): NextStep | null {
   if (s.clock.year !== 1 || s.events.opening.skipped) return null;

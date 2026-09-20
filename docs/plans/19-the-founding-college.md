@@ -49,7 +49,9 @@ findings that are *not* about the core are sequenced as
   standing follows — top fifty at year five, the undergraduate catalogue
   finished around year fourteen at two seeds in three, rank #1 by year
   twenty. `sim/reference.ts`'s Balanced builder targets for years 5, 10 and
-  20 are re-read to that, with the reasoning beside them; the idle control
+  20 are re-read to that, with the reasoning beside them (and its year-50
+  net-margin floor to zero, for a builder that now keeps building to the
+  horizon); the idle control
   is re-read for a college that opens teaching (it falls below its founding
   standing and never regains it, and never fills more than the founding
   seats); the Overbuilder's targets hold unchanged. This is the pace the
@@ -57,11 +59,20 @@ findings that are *not* about the core are sequenced as
   questions already record — a four-slot Founders Hall (question 1), or
   Reyes back in Physics with an opening-school offer guaranteed instead
   (question 7) — and they were not pulled here.
-- *A pre-existing harness deadlock is now visible in the reference.* At one
-  seed in three the balanced builder parks at eight thousand students from
-  year ten with fifty million in the bank: its own 12% headroom rule reads
-  a net the seat ceiling caps, and the courses that would lift the ceiling
-  are what the rule refuses. Not this plan's, and not fixed here.
+- *Two harness rules broke at the pace the founding college sets, and both
+  were re-read* (PR F). The headroom rule read its margin as a share of
+  opex, and at the top of the scale — where costs follow standing and the
+  net compresses to a few percent of a very large opex — it froze every
+  mature school: the balanced builder was measured netting three hundred
+  thousand a week with seventy million in the bank and refusing a single
+  course for thirty years, a third of the catalogue never built. The margin
+  is now read against the first million a week of operating cost. And a
+  venue, revealed only once a varsity petition is granted, was wanted by
+  the harness only while the social attribute it also carries was under
+  threshold — which the campus-life-first ordering now keeps at a hundred,
+  so the earnest completionist, which "finishes every venue", stood fourteen
+  teams awaiting one at the fiftieth summer. A venue is now wanted by the
+  team waiting for it.
 - *The walk now does letter one's ask* (PR C), so the next-step line is
   quiet from the walk's end until letter two, rather than repeating an ask
   already met.
