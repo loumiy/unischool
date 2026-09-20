@@ -7,6 +7,7 @@ import {
 } from '../systems/finance/financeSystem';
 import { marketRateMultiplier } from '../data/facultyData';
 import HelpHint from '../components/HelpHint';
+import { HOME_DATES_PER_SEASON } from '../systems/athletics/gate';
 
 // ---------------------------------------------------------------------
 // The Treasury is where the economy explains itself. Money is the game's
@@ -95,6 +96,13 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               note={`the endowment's annual spend rate on ${money(s.finance.endowment)}`}
               amount={flow.endowmentPayout}
             />
+            {flow.gateRevenue > 0 && (
+              <StatementLine
+                label="Gate revenue"
+                note={`what the varsity programs take at the gate over ${HOME_DATES_PER_SEASON} home dates a season`}
+                amount={flow.gateRevenue}
+              />
+            )}
             <div className="statement-total">
               <span>Total income</span>
               <span className="statement-line-amount">{money(flow.totalIncome)}</span>

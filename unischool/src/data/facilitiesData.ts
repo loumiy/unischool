@@ -480,6 +480,22 @@ const FOOTBALL_STADIUM_WEEKS = 40;
 // reach 0.55 of the term, so a school that builds every venue earns about
 // two thirds of what campus life can be worth, and the rest is the
 // organisations, the programs and the titles that fill them.
+// WHAT A VENUE HOLDS (Plan 21's PR D) — seats, for the gate. Keyed by the
+// venue's Buildable id rather than carried in its effects, so a save's
+// venues need no migration and a later rung (a larger arena, an expanded
+// stadium) is one more row here. Sized like the real things a college of
+// this scale builds: a stadium is a different order of building from a
+// field, which is what "gate revenue saturates — a venue holds what it
+// holds" needs to be true of. The stadium is deliberately far larger than
+// any school's early crowd, so filling it is a decades-long story.
+export const VENUE_SEATS: Readonly<Record<string, number>> = {
+  'ATH-FIELD': 4_000,
+  'ATH-ARENA': 8_000,
+  'ATH-DIAMOND': 3_000,
+  'ATH-NATATORIUM': 1_500,
+  'ATH-STADIUM': 40_000,
+};
+
 const ATHLETICS_FIELD_PRESTIGE = 0.06;
 const ATHLETICS_ARENA_PRESTIGE = 0.10;
 const ATHLETICS_DIAMOND_PRESTIGE = 0.04;

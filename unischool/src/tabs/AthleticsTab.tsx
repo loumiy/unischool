@@ -9,6 +9,7 @@ import {
 } from '../data/studentLifeData';
 import FacultyPortrait from '../components/FacultyPortrait';
 import { athleticRank, rankBy, sportRank, sportRankedList } from '../systems/rivals/rivalsSystem';
+import { annualGateFor, attendanceFor } from '../systems/athletics/gate';
 import type { SeasonResult } from '../state/types';
 
 // Last season, in a few words. Short on purpose: it sits in a table row
@@ -384,6 +385,11 @@ function TeamCard({ s, act, team }: { s: GameState; act: (a: Action) => void; te
   const staffAnnual = (team.headCoach?.salary ?? 0) + (team.assistantCoach?.salary ?? 0) + (team.trainer?.salary ?? 0);
   const weeklyCost = team.upkeepPerWeek + staffAnnual / WEEKS_PER_YEAR;
   const venue = venueForCategory(s, team.venueCategory);
+  // The house (Plan 21's PR D): 1,200 in the rain in year twelve and a full
+  // house in year thirty-four is the growth fantasy in one number, and what
+  // it earns beside it is the knife-edge the budget lever never posed.
+  const attendance = attendanceFor(s, team);
+  const gate = annualGateFor(s, team);
 
   return (
     <li className="panel team-card">
@@ -396,6 +402,9 @@ function TeamCard({ s, act, team }: { s: GameState; act: (a: Action) => void; te
           quality {quality} · {team.status === 'active'
             ? venue?.name ?? 'venue'
             : `waiting on ${venue?.name ?? 'venue'}`} · {money(weeklyCost)}/wk
+          {team.status === 'active' && attendance > 0 && (
+            <> · {attendance.toLocaleString()} a game, {money(gate)}/yr at the gate</>
+          )}
         </span>
       </div>
       {ROLE_ORDER.map((role) => <StaffRow key={role} act={act} team={team} role={role} />)}

@@ -1,6 +1,7 @@
 import type { ClassTuition, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
 import { studentOrgUpkeep } from '../../data/studentLifeData';
+import { weeklyGateRevenue } from '../athletics/gate';
 import { marketRateMultiplier } from '../../data/facultyData';
 import { SEATS_PER_COURSE, instructionCapacity } from '../techtree/instructionCapacity';
 
@@ -283,6 +284,7 @@ export interface FinanceBreakdown {
   tuitionRevenue: number;      // every class at its own admission-year price (see annualTuitionBilled)
   prestigeRevenue: number;     // the reputation dividend: donors/grants/brand, independent of enrollment
   endowmentPayout: number;     // the endowment's annual spend rate, sliced into weeks
+  gateRevenue: number;         // what the athletics department's home dates take at the gate (see systems/athletics/gate.ts) — Plan 21's PR D
   totalIncome: number;
   // expenses
   weeklySalaries: number;      // the faculty payroll at market rate (see facultyData.ts's marketRateMultiplier), annualized salaries sliced into weeks
@@ -389,6 +391,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   const tuitionRevenue = annualTuitionBilled(s) / WEEKS_PER_YEAR;
   const prestigeRevenue = (s.self.reputation * REPUTATION_DIVIDEND_PER_POINT_PER_YEAR) / WEEKS_PER_YEAR;
   const endowmentPayout = (s.finance.endowment * ENDOWMENT_PAYOUT_RATE) / WEEKS_PER_YEAR;
+  const gateRevenue = weeklyGateRevenue(s);
   // SALARIES AT MARKET RATE (Plan 15's PR D): a top-20 school pays what
   // top-20 schools pay. The roster's salaries are the base; the school's
   // prestige tier multiplies them (facultyData.ts's marketRateMultiplier),
@@ -404,12 +407,13 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   const facilityUpkeep = upkeepFor(s, false);
   const studentLifeUpkeep = studentOrgUpkeep(s);
 
-  // THREE income lines, and none of them is an appropriation. A public
-  // school used to add a fourth — a flat state grant plus a per-student
+  // FOUR income lines, and none of them is an appropriation. A public
+  // school used to add one — a flat state grant plus a per-student
   // allocation — which Plan 07's PR B retired along with the rest of the
-  // founding fork. Every school now lives on what it charges, what its
-  // standing attracts and what its endowment pays out.
-  const totalIncome = tuitionRevenue + prestigeRevenue + endowmentPayout;
+  // founding fork. Every school lives on what it charges, what its
+  // standing attracts, what its endowment pays out and, since Plan 21's PR
+  // D, what its teams take at the gate.
+  const totalIncome = tuitionRevenue + prestigeRevenue + endowmentPayout + gateRevenue;
   const totalExpenses = weeklySalaries + seatUpkeep + instructionCost + servicesCost + academicUpkeep +
     facilityUpkeep + studentLifeUpkeep;
 
@@ -417,6 +421,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
     tuitionRevenue,
     prestigeRevenue,
     endowmentPayout,
+    gateRevenue,
     totalIncome,
     weeklySalaries,
     seatUpkeep,
