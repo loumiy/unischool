@@ -190,8 +190,8 @@ const MAX_NAME_ROLL_ATTEMPTS = 30;
 // whole recruiting side hangs off: a hire belongs to exactly one field, a
 // job posting is opened for exactly one field, and a course's
 // requiresFaculty names exactly one field (techData.ts gives every major
-// one `field`, shared by all nine of its courses, plus GENED_FIELDS for
-// the six gen-ed courses).
+// one `field`, shared by all nine of its courses; a graduate course names
+// its own).
 //
 // The set below is deliberately shaped like a real course catalog's
 // department list rather than like a list of broad subject areas, and it
@@ -804,9 +804,11 @@ function candidateListingWeights(): Array<{ field: string; weight: number }> {
         weight: (courseCounts.get(field) ?? 0) * (FIELD_MARKET_SUPPLY[field] ?? DEFAULT_MARKET_SUPPLY),
       }))
       // A field no course asks for has nothing to hire it FOR, so it is
-      // never listed. Can't happen with the current curriculum (every
-      // field carries at least nine courses) — this is the guard that
-      // keeps that true if one is ever added ahead of its courses.
+      // never listed. Can't happen with the current curriculum — every
+      // field carries at least eight courses; Law's eight are all in the
+      // law school, every other field has a major's nine or more — this is
+      // the guard that keeps that true if one is ever added ahead of its
+      // courses.
       .filter((entry) => entry.weight > 0);
     listingWeightTotal = listingWeights.reduce((sum, entry) => sum + entry.weight, 0);
   }

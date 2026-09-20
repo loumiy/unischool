@@ -330,7 +330,7 @@ economy's dice at all.
 ## The fifty years
 
 A run is **fifty years**, and the fifty have three eras. The **found** era
-(years 1–12) is the core, the first halls, the first schools — money tight,
+(years 1–12) is the founding college, the first halls, the first schools — money tight,
 faculty scarce, every slot a commitment. The **build** era (12–35) is where the
 catalogue and the campus get made; completing every school is *barely*
 possible in the window. The **defend** era (35–50) has little left to build,

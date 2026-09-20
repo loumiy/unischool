@@ -297,7 +297,7 @@ The settled v1 rules:
 - **Seats are the one ceiling; beds are a demand floor.** The freshman class
   cannot exceed the seats the housed catalogue has left after graduation
   (`instructionCapacity.ts`'s `intakeCeiling`: `SEATS_PER_COURSE` for every
-  developed course in a housed program, the core seated from founding, less
+  developed course in a housed program, the founding college's six included, less
   the three classes that stay on). The funnel clips the class to it from the
   bottom band up — a school that must turn people away turns away its weakest
   admits — and caps *enrollment*, never the pool. Housing is decoupled (see

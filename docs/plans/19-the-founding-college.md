@@ -7,7 +7,9 @@ and that finishing it leaves a year with nothing in it — and turn the fix into
 an ordered sequence of PRs, each small enough to land on its own and each one
 leaving the game playable.*
 
-**Status: Proposed.** Nothing has landed. Revised once before starting, after
+**Status: Landed.** PRs A–G are in, as the map below sequences them, with
+PR D's Curriculum tab work and PR C's letters folded into PR A because the
+source does not compile without them. Revised once before starting, after
 a review of the authored curriculum, research and faculty data read this plan
 against the content it moves: open question 3 grew from one rename into a
 catalogue-wide test for orphaned titles, open question 6 learned that a field
@@ -16,6 +18,53 @@ making Social Sciences and Humanities the opening school, and neither is
 visible until you ask who is on the founding payroll. The same review's
 findings that are *not* about the core are sequenced as
 [Plan 20](20-the-catalogue.md).
+
+**What landing found, in the order the PRs found it.**
+
+- *The hall chain lost its twelfth rung.* With Founders Hall an ordinary
+  six-slot hall, the completionist ceiling of twelve halls is Founders plus
+  eleven, and the chain's own rule is that a hall the player never needs is
+  never offered; the endpoint test was reading 12 of 13 halls built. Birch
+  Hall goes, and the layout tool's south quad closes on the computing lab.
+- *The first hall is not a week-one purchase* (PR B), so neither its price
+  nor the founding cash moved. The balanced builder's first purchased hall
+  lands at week 120 rather than 68, for the reason open question 7 named as
+  the cost of moving Reyes: it dedicates first and buys second, founding
+  into Founders Hall's three free rooms before it has nowhere to put an
+  offer. The first program is established at week 12 rather than year 2.5.
+- *The harness was written for the old opening* (PR E). Read against a
+  college with nine $180,000 courses ready from week one, it took the
+  curriculum first and never accumulated the dining hall; the balanced
+  builder was measured two years in with basic needs at 17. It now buys the
+  facility the students are shortest of before the next course and saves for
+  it as it saves for a dorm, which is the week-nine letter's advice. The
+  selective college's price over tolerance moved from 1.15 to 1.20, a
+  harness constant: at the faster opening it reaches the top of the scale
+  six years sooner and its costs at the cap outran its price lock.
+- *The found era moved by about a decade* (PR F), and no game constant was
+  moved for it. The three programs that dedicate the opening school fit in
+  the building the college already owns, so the balanced builder founds its
+  first school in year six where it used to in year fifteen; Plan 15's
+  concentration term then pays a decade early and everything downstream of
+  standing follows — top fifty at year five, the undergraduate catalogue
+  finished around year fourteen at two seeds in three, rank #1 by year
+  twenty. `sim/reference.ts`'s Balanced builder targets for years 5, 10 and
+  20 are re-read to that, with the reasoning beside them; the idle control
+  is re-read for a college that opens teaching (it falls below its founding
+  standing and never regains it, and never fills more than the founding
+  seats); the Overbuilder's targets hold unchanged. This is the pace the
+  opening asked for. If it is too fast, the levers are the ones the open
+  questions already record — a four-slot Founders Hall (question 1), or
+  Reyes back in Physics with an opening-school offer guaranteed instead
+  (question 7) — and they were not pulled here.
+- *A pre-existing harness deadlock is now visible in the reference.* At one
+  seed in three the balanced builder parks at eight thousand students from
+  year ten with fifty million in the bank: its own 12% headroom rule reads
+  a net the seat ceiling caps, and the courses that would lift the ceiling
+  are what the rule refuses. Not this plan's, and not fixed here.
+- *The walk now does letter one's ask* (PR C), so the next-step line is
+  quiet from the walk's end until letter two, rather than repeating an ask
+  already met.
 
 ---
 

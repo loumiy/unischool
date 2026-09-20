@@ -1,14 +1,15 @@
 # Curriculum
 
-The 421-course catalogue: how it unlocks, how it is presented, and the
+The 415-course catalogue: how it unlocks, how it is presented, and the
 facilities that gate its capstones. Graduate work sits on top of it and has
 [its own document](graduate-programs.md).
 
 ## Halls, slots and the offer (how the curriculum gets its shape)
 
-The 421-course curriculum is not a flat list, and it is not unlocked school
+The 415-course curriculum is not a flat list, and it is not unlocked school
 by school either. It is **founded**, one program at a time, into buildings on
-the campus map. Three moves (Plan 14) give it its shape:
+the campus map, and the college opens already teaching (Plan 19). Three moves
+(Plan 14) give it its shape:
 
 1. **A hall holds six programs.** An academic hall is a repeatable, placeable
    `building` Buildable with **six program slots** (`Buildable.slots`; the
@@ -16,18 +17,27 @@ the campus map. Three moves (Plan 14) give it its shape:
    is slot 3 forever). Six is not arbitrary: every school in the game has
    exactly six majors, so **one hall is exactly one school**, and that is a
    rule a player learns in one sentence and plans a decade around. Twelve
-   halls in the seed, a strictly sequential chain like housing: the first
-   opens the week the gen-ed core completes and is deliberately cheap; each
-   rung costs a fixed ratio more. Founders Hall holds the gen-ed core and
-   **nothing else** — one slot, filled at founding — so the core occupies the
-   building rather than one slot of six, and the player's first programs are
-   never stranded in a building that can never found a school.
-2. **Programs arrive three at a time.** After the core, the player is never
+   halls in all: **Founders Hall**, which stands at founding, and a strictly
+   sequential chain of eleven like housing. Founders Hall is an ordinary hall
+   in every mechanical respect (Plan 19): six slots, three of them holding the
+   founding programs — English, History and Philosophy, with their first two
+   courses developed and taught by the founding roster — and three rooms
+   free, so the three programs that would dedicate the School of Social
+   Sciences & Humanities fit in the building the college already owns. The
+   first purchased hall opens once the college teaches **eight developed
+   courses** (`Buildable.minCoursesToUnlock`: the six it opens with and two
+   the player chose) and is deliberately cheap; each rung after it costs a
+   fixed ratio more.
+2. **Programs arrive three at a time.** From week one, the player is never
    shown forty-two doors. They are shown **three** (`s.programOffers`), drawn
    from what remains; founding one draws a replacement. The draw is weighted
    toward schools the player has already started, so a school converges once
    begun, and **at least one of the three is always from a school not yet
-   started**, so discovery never dries up. There is no reroll and no decline;
+   started**, so discovery never dries up. The founding draw is rigged once:
+   at least one of the first three is a program the founding roster can
+   staff — Sociology, the opening school's own depth path, or Mathematics,
+   the breadth path into a school the college is not in — so the first
+   founding decision never needs a hire. There is no reroll and no decline;
    the three stand until one is taken, and the offer is global — the same
    three at any free slot on campus. A graduate program joins the pool the
    week its own gate opens (see [graduate-programs.md](graduate-programs.md)).
@@ -62,7 +72,7 @@ answers the *program* question at the grain of a course. (For a while the
 panel drew the tab's course cells, picker and market inside every open tile;
 the two became the same screen, one of them squeezed into a floating card,
 and neither read as the place. The division is deliberate.) **Every one of
-the 421 courses keeps its instructor choice.** There is no auto-assignment
+the 415 courses keeps its instructor choice.** There is no auto-assignment
 anywhere, and the `Develop N` button that used to make the choice for you is
 gone with the forty-two-card wall it existed to sweep.
 
@@ -79,7 +89,11 @@ along the way.
 
 The climb inside a program is what it was:
 
-- **Tier 1** (the entry course) is founded from a hall slot.
+- **Tier 1** (the entry course) is founded from a hall slot. It has no
+  prerequisite of its own: the general-education core that every entry
+  course used to wait on was retired by Plan 19 — six tier-1 courses in a
+  costume, the same price and the same four weeks — and the housed gate is
+  what keeps an entry course locked until its program has a home.
 - **Tier 2** (four courses) requires the entry course. Completing all four
   **establishes the program** — an applicant-pool bonus, and the tier-3
   catalogue opens.

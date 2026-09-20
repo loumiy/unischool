@@ -71,7 +71,7 @@ read in the Treasury off the same arithmetic the tick charges
   sections its seats hold, so that at the ceiling every section is exactly
   full. A big catalogue at a small school runs empty sections dearly; a small
   catalogue at a big school runs enormous sections cheaply and crowds its
-  students. The Treasury says "421 courses in 1,850 sections of 40" and
+  students. The Treasury says "415 courses in 1,830 sections of 40" and
   whether they are running full, empty or over.
 - **Services, per student.** A flat `SERVICES_PER_STUDENT_PER_WEEK` — advising,
   the registrar, IT, grounds — the line that makes the marginal student's
@@ -95,15 +95,15 @@ its building, a kitchen 30% of its dining hall, the boiler 12% of the standing
 residence halls, a storm 3% of everything standing, floored at $60k.
 
 **The ceiling.** Instruction capacity — `SEATS_PER_COURSE` (80) for every
-developed course in a housed, settled program, with the general-education
-core seated from founding — is the one hard cap in the game, on enrollment
+developed course in a housed, settled program, the founding college's six
+courses included — is the one hard cap in the game, on enrollment
 and nothing else: the freshman class cannot exceed the seats left after the
 seniors graduate (`instructionCapacity.ts`'s `intakeCeiling`). Beds, dining
 and health stay soft — crowding, never caps. See [admissions.md](admissions.md).
 
 The loop turns roughly once per course tier, escalating each time:
 
-- **Found (years 1–12)** — the core, the first halls, the first schools. A
+- **Found (years 1–12)** — the founding college, the first halls, the first schools. A
   founding school nets a quarter to a third of its opex, and that surplus is
   what the first hall ($750k, then ×1.3 a rung) and its programs are bought
   with; a school that spends it on beds houses students it cannot admit.

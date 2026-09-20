@@ -223,13 +223,13 @@ it now reads as one.
 | --- | --- |
 | Instructor's teaching stat | the base, 0..100 |
 | Teaching load | up to −7, scaling with how full their slots are |
-| Course tier | 0 for core and tier-1, −2 tier-2, −5 tier-3, −8 graduate |
+| Course tier | 0 for tier-1, −2 tier-2, −5 tier-3, −8 graduate |
 | Prize-winning instructor | +3 per prize, capped at +6 |
 
 Bands at 78 / 62 / 44 / 30. The **tier penalty is the load-bearing one**: it
 turns assignment from a RANKING problem ("who is best") into a MATCHING one
 ("who is right for this"), and it gives a senior hire a natural home. Put your
-star on the tier-3 seminar, not the gen-ed survey, because that is where their
+star on the tier-3 seminar, not the entry survey, because that is where their
 strength shows up in the grade.
 
 **Overload is a cost, not a cliff.** The load penalty was 12, against bands

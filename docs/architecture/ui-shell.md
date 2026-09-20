@@ -136,12 +136,14 @@ that very keypress.
 from the startup screen opens with `s.events.opening.stage` at `'welcome'` and
 the clock held (see [interrupts.md](interrupts.md)); `App.tsx` acts once on
 each transition into a stage — opens the build menu for the hall, closes it
-and drops the pickup when the hall stands, opens the Curriculum for the first
-course, starts the clock when the walk ends — through the same `setBuildOpen`
-and `openTab` every other caller uses, so the one-slot rule holds. The card is
+and drops the pickup when the hall stands, opens the Curriculum when the
+player asks to see what the college teaches, starts the clock when the walk
+ends — through the same `setBuildOpen`, `openTab` and `inspectHall` every
+other caller uses, so the one-slot rule holds. The card is
 `OpeningCoach.tsx`, pinned top-centre with no backdrop so the screen under it
 stays workable; the control each step needs carries `.opening-target` (the
-Build button, the hall's tile, the Curriculum tab, the General Education row).
+Build button, the hall's tile, and Founders Hall's first free room in its
+panel on the map, which the card itself opens as the last step's door).
 
 What each key MEANS stays with the component that owns the thing it does —
 speed on `StatusHeader.tsx`, pan/draw/rotate on `CampusMap.tsx`, the tab

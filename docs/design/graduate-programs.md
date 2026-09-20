@@ -100,7 +100,7 @@ the school structure the rest of the game reads:
 **Reveal, not scarcity.** A program is invisible until its gate opens, the way
 tier-3 courses are invisible until their major completes. There is no wall of
 greyed-out professional schools from year one, and the Curriculum tab's headline
-completion ring counts revealed graduate work only, so a `0 / 421` never
+completion ring counts revealed graduate work only, so a `0 / 415` never
 announces courses the player has no way to see.
 
 **Prestige: capped inputs only, and no new weight.** Founding a program never
@@ -147,8 +147,8 @@ are about **$198M of capital and $384k a week of upkeep** — real, and about 4%
 see the balance notes: the endowment campaign remains the *unbounded* sink and
 graduate programs are a finite one.
 
-**Faculty come from the existing `field` demand**, authored **per course** the way
-the gen-ed core is rather than per program, which is what lets medicine lean on
+**Faculty come from the existing `field` demand**, authored **per course**
+rather than per program, which is what lets medicine lean on
 Clinical Health, Biology, Neuroscience and Public Health at once and the MBA on
 all four business departments. One new field was needed and only one: **`Law`**.
 Every other graduate course is taught by a department that already exists, but

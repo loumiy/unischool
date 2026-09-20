@@ -11,8 +11,9 @@ Every Buildable has:
 - a **`kind`** — `course`, `building`, `dorm`, `facility`. Athletics venues are
   `facility`-kind, reveal-gated, like everything else in that list — there is
   no separate `sports` kind. The `building` kind is the **academic halls**:
-  Founders Hall and the twelve-hall chain, each carrying `slots` — the program
-  slots a hall holds (six; Founders Hall one, the gen-ed core). There is no
+  Founders Hall and the eleven-hall chain, each carrying `slots` — the six
+  program slots a hall holds (Founders Hall's first three hold the founding
+  programs from day one — see `data/foundingData.ts`). There is no
   school building: a school is founded by filling a hall (see
   [curriculum.md](../design/curriculum.md)).
 - a **`cost`** — money spent up front, at the moment development starts.
@@ -73,7 +74,7 @@ placeable:
   else can be sited on top of it until it finishes.
 
   One narrow exception: a Buildable that starts already `'done'` at founding
-  (the starting dorm, the founding dining hall, General Studies Hall — see
+  (the starting dorm, the founding dining hall, Founders Hall — see
   `actions.ts`'s `placeFoundingBuildables`) is auto-sited the moment a new
   game is created, via a plain top-left `firstFreeSpot` scan — there is no
   player choice to preserve at that instant, so there's nothing to ask about.
