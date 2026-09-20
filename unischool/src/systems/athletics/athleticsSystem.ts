@@ -1,7 +1,7 @@
 import type { Coach, GameState } from '../../state/types';
 import {
   COACH_RETIREMENT_AGE, coachCandidateArrivalsThisWeek, COACH_CANDIDATE_LISTING_WEEKS, coachNamesInUse, coachSalaryFor,
-  generateCoachCandidate, grownQualityOf, marketRng, rollCoachField, uncoveredChairFields,
+  eliteWouldList, generateCoachCandidate, grownQualityOf, marketRng, rollCoachBand, rollCoachField, uncoveredChairFields,
 } from '../../data/studentLifeData';
 import { WEEKS_PER_YEAR } from '../../state/types';
 import { PLAYOFF_WEEK, runPlayoffs } from './playoffs';
@@ -39,7 +39,13 @@ function tickCoachCandidatePool(s: GameState): void {
   const used = coachNamesInUse(s);
   const adQuality = s.orgs.athleticDirector?.quality ?? 0;
   for (let i = 0; i < arrivals; i += 1) {
-    const candidate = generateCoachCandidate(rollCoachField(roll), used, roll, undefined, adQuality);
+    const field = rollCoachField(roll);
+    // The top of the market wants a program with a reputation (PR L): an
+    // elite draw for a fielded sport nobody has heard of lists as a solid
+    // one instead.
+    let band = rollCoachBand(roll);
+    if (band === 'elite' && !eliteWouldList(s, field)) band = 'solid';
+    const candidate = generateCoachCandidate(field, used, roll, band, adQuality);
     used.add(candidate.name);
     s.orgs.coachCandidates.push(candidate);
   }

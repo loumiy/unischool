@@ -1,4 +1,4 @@
-import type { Buildable, Coach, FacilityType, Faculty, GameState, GreekChapter, LogEntry, LogTopic } from '../state/types';
+import type { Buildable, Coach, FacilityType, Faculty, GameState, GreekChapter, LogEntry, LogTopic, VarsityTeam } from '../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../state/types';
 import { FACULTY_FIELDS, generateCandidate, rollSurname } from './facultyData';
 import { appointFaculty } from '../systems/faculty/facultySystem';
@@ -432,6 +432,23 @@ function unbuiltVenues(s: GameState): Buildable[] {
     .sort((a, b) => b.cost - a.cost);
 }
 const STATE_MATCH_VENUE_SHARE_CAP = 0.6; // the state will not pay for more than this share of a building
+
+// Who a bigger program would come for (Plan 21's PR L): a head coach at
+// COACH_POACH_QUALITY or better with COACH_POACH_MIN_TENURE_YEARS behind
+// them. Head coaches only — an assistant's departure is a Tuesday.
+const COACH_POACH_QUALITY = 75;
+const COACH_POACH_MIN_TENURE_YEARS = 2;
+const COACH_RETENTION_PACKAGE_SALARY_SHARE = 0.6;
+
+function coachesAtRisk(s: GameState): Array<{ team: VarsityTeam; coach: Coach }> {
+  const out: Array<{ team: VarsityTeam; coach: Coach }> = [];
+  for (const team of s.orgs.teams) {
+    const coach = team.headCoach;
+    if (team.status !== 'active' || !coach) continue;
+    if (coach.quality >= COACH_POACH_QUALITY && coach.tenureWeeks >= COACH_POACH_MIN_TENURE_YEARS * WEEKS_PER_YEAR) out.push({ team, coach });
+  }
+  return out;
+}
 
 // What a commitment takes off a venue's price: the school's own money plus
 // the state's match, capped at STATE_MATCH_VENUE_SHARE_CAP of the building
@@ -1394,6 +1411,52 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       },
     ],
   },
+  {
+    // A COACH WHO SUCCEEDS GETS POACHED (Plan 21's PR L) — the leak in the
+    // loop the market's reputation gate opens, on the shape
+    // 'faculty-outside-offer' already uses. A head coach at the top of the
+    // market with a couple of seasons behind them gets an offer; match it
+    // with a retention package or let them go and hire again. This is what
+    // turns "wait six years" into "keep what you built".
+    id: 'coach-poached',
+    title: 'A coach with an offer',
+    weight: 9,
+    eligible: (s) => coachesAtRisk(s).length > 0,
+    rollContext: (s) => {
+      const at = coachesAtRisk(s);
+      if (at.length === 0) return null;
+      const { team, coach } = pick(at);
+      return {
+        subjectId: team.id,
+        subjectName: coach.name,
+        subjectField: team.name,
+        amount: Math.round(coach.salary * COACH_RETENTION_PACKAGE_SALARY_SHARE),
+      };
+    },
+    prompt: (_s, ctx) =>
+      `${ctx.subjectName} has been offered the head job at a bigger program, and has been honest enough to say so. ${ctx.subjectField} is what it is because of them. A retention package of ${money(ctx.amount ?? 0)} would keep them.`,
+    choices: [
+      {
+        id: 'keep',
+        label: 'Match the offer',
+        describe: (_s, ctx) => `${money(ctx.amount ?? 0)} now, and ${ctx.subjectName} stays with ${ctx.subjectField}.`,
+        cost: (_s, ctx) => ctx.amount ?? 0,
+        apply: (s, ctx) => entry(s, `${ctx.subjectName} turned the offer down and stays with ${ctx.subjectField}.`, 'good'),
+      },
+      {
+        id: 'release',
+        label: 'Wish them well',
+        describe: (_s, ctx) => `Nothing spent. ${ctx.subjectName} leaves, and ${ctx.subjectField} has a head coach's chair to fill — the market will list somebody for it next week.`,
+        cost: () => 0,
+        apply: (s, ctx) => {
+          const team = s.orgs.teams.find((t) => t.id === ctx.subjectId);
+          if (team && team.headCoach?.name === ctx.subjectName) team.headCoach = null;
+          return entry(s, `${ctx.subjectName} has left ${ctx.subjectField} for a bigger program.`, 'bad');
+        },
+      },
+    ],
+  },
+
   {
     // THE TOP HAS TO BE HELD (Plan 17's PR D). A rival that passes the
     // school fires this once, for that rival, on the first quiet week the

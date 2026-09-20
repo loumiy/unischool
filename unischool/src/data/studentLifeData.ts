@@ -574,7 +574,7 @@ const COACH_BANDS: ReadonlyArray<{ band: CoachBand; min: number; range: number; 
   { band: 'solid', min: 60, range: 18, share: 0.28 },      // 60..78
   { band: 'elite', min: 75, range: 15, share: 0.07 },      // 75..90
 ];
-function rollCoachBand(roll: () => number): CoachBand {
+export function rollCoachBand(roll: () => number): CoachBand {
   let r = roll();
   for (const b of COACH_BANDS) {
     r -= b.share;
@@ -1110,6 +1110,43 @@ export function departmentPot(s: GameState): DepartmentPot {
 export function fundedFractionFor(s: GameState, team: VarsityTeam): number {
   if (team.status !== 'active') return 0;
   return departmentPot(s).programs.find((p) => p.team.id === team.id)?.funded ?? 0;
+}
+
+// WHO WANTS THE JOB (Plan 21's PR L). The top of the market is gated on
+// PER-SPORT program reputation — title history and sustained quality in
+// THAT sport, decaying — and on the program's band in the priority list: a
+// program above the line attracts the top of the market, one below gets
+// journeymen. Gating sport by sport is what keeps it legible — you climb
+// one program at a time, and a football power is still nobody in swimming.
+// This is the first feedback loop athletics owns: win, and better coaches
+// want the job, and win more; PR L's poaching (eventData.ts's
+// 'coach-poached') is what stops it running away.
+const REPUTATION_TITLE_DECAY = 0.75;
+const REPUTATION_TITLE_WINDOW_YEARS = 10;
+const REPUTATION_QUALITY_FLOOR = 70; // sustained quality counts from here up
+export const ELITE_MARKET_REPUTATION = 0.4; // an elite candidate lists for a fielded sport only above this
+
+export function programReputation(s: GameState, sportId: string): number {
+  let titles = 0;
+  for (const t of s.orgs.titles) {
+    const age = s.clock.year - t.year;
+    if (t.sport !== sportId || age < 0 || age >= REPUTATION_TITLE_WINDOW_YEARS) continue;
+    titles += REPUTATION_TITLE_DECAY ** age;
+  }
+  const team = s.orgs.teams.find((t) => t.sport === sportId && t.status === 'active');
+  const quality = team ? Math.max(0, teamQuality(team, s) - REPUTATION_QUALITY_FLOOR) / (100 - REPUTATION_QUALITY_FLOOR) : 0;
+  const flagship = team && fundedFractionFor(s, team) >= 0.999 ? 1 : 0;
+  return Math.max(0, Math.min(1, 0.5 * Math.min(1, titles) + 0.3 * quality + 0.2 * flagship));
+}
+
+// Whether an elite candidate would list for this field at this school: a
+// trainer's or a sport the school does not field, always (nobody is
+// hiring, and the listing is flavour); a fielded sport, only once its
+// program has a reputation.
+export function eliteWouldList(s: GameState, field: string): boolean {
+  if (!sportById(field)) return true;
+  if (!s.orgs.teams.some((t) => t.sport === field && t.status === 'active')) return true;
+  return programReputation(s, field) >= ELITE_MARKET_REPUTATION;
 }
 
 // DEMOTION COSTS SOMETHING. A program dragged below the line it was above
