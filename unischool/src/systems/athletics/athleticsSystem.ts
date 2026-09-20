@@ -1,6 +1,6 @@
 import type { Coach, GameState } from '../../state/types';
 import {
-  coachCandidateArrivalsThisWeek, COACH_CANDIDATE_LISTING_WEEKS, coachSalaryFor,
+  coachCandidateArrivalsThisWeek, COACH_CANDIDATE_LISTING_WEEKS, coachNamesInUse, coachSalaryFor,
   generateCoachCandidate, grownCoachQuality, rollCoachField,
 } from '../../data/studentLifeData';
 import { PLAYOFF_WEEK, runPlayoffs } from './playoffs';
@@ -28,8 +28,11 @@ function tickCoachCandidatePool(s: GameState): void {
   s.orgs.coachCandidates = s.orgs.coachCandidates.filter((c) => c.weeksListed < COACH_CANDIDATE_LISTING_WEEKS);
 
   const arrivals = coachCandidateArrivalsThisWeek(s.orgs.coachCandidates.length);
+  const used = coachNamesInUse(s);
   for (let i = 0; i < arrivals; i += 1) {
-    s.orgs.coachCandidates.push(generateCoachCandidate(rollCoachField()));
+    const candidate = generateCoachCandidate(rollCoachField(), used);
+    used.add(candidate.name);
+    s.orgs.coachCandidates.push(candidate);
   }
 }
 

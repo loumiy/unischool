@@ -7,7 +7,7 @@ decide inside it, and why its people are named the same eight things — and tur
 the answer into an ordered sequence of PRs, each small enough to land on its
 own.*
 
-**Status: Proposed.** Nothing has landed.
+**Status: In progress.** PR A has landed; nothing else has.
 
 **Written against `63fdedc`** (Plan 20 landed). Every reference below names a
 file as it stands at that commit, and every number is measured against it —
@@ -341,6 +341,46 @@ system, and it is the only item here a player feels the first week.*
 **The risk.** None to balance — no number this plan measures moves. The only
 care needed is that a bigger pool does not change how many draws the generator
 takes per candidate, or the sim's forty-year trajectories shift for no reason.
+
+**As implemented:** the dedupe is a step, not a re-roll, and it went to
+faculty too. `rollFullName`'s loop re-rolled on a collision, which costs draws
+a collision-free roll does not take — so how often a pair was taken, and
+therefore how many names the pools held, decided how many dice the game rolled,
+and widening the pools moved the seeded balance stream from year one. Both
+rollers now share `stepToFree`: on a taken pair they walk to the next surname
+in the same pool, then the next first name, on no dice at all. The stream
+moved **once**, for this PR, and cannot move again from this direction: a
+pool can be widened from here without a forty-year run landing somewhere new.
+The one thing the move flipped was `balance-regression.test.ts`'s "overbuilder
+underwater by year 5", a claim that sits within a few hundred thousand dollars
+of zero against a ~$12M/yr opex and held at five of eight seeds before and
+four after — a coin flip on the dice, and the default seed landed on the other
+side of it. It is now judged across seeds with the file's own `holds`, as
+section 3's claims already are. Two more harness rules were re-read the same
+way, on the same measurement: `test/endpoint.test.ts`'s "all but one or two
+ambitions" (the earnest completionist reaches 17–19 of 20 across eight seeds
+before and after, one seed at 17 either time) is now all-but-three on every
+seed and all-but-two on most, and its "ends solvent" for the regional engine
+(15M–198M at year fifty across eight seeds before, −3M to 267M after, the one
+dip under one percent of a year's opex) is now a B in stewardship — the
+legacy's own fifty-year reading of solvency — on every seed and a positive
+last week on most. And the scorecard's generated reference envelope was
+re-recorded with `npm run sim -- --write-reference`, as Plans 16, 19 and 20
+each did when a change re-phased the stream. Of the hand-written targets, one
+row moved: the Overbuilder's year-5 cash ceiling and red-weeks floor now read
+"or within a million of it", for the same coin flip, with the sentence held at
+year 10 and in the regression test; every other target is untouched, and the
+Balanced builder sits inside its targets on the new stream (on the old one, at
+`6441664`, its year-fifty net margin read 33% against a 0–30% target, so
+`npm test` was already stopping at the scorecard before this PR). Sizes: eighty first names a gender and a hundred surnames in
+the Anglo/Western European pool, twenty-five to forty-four and twenty-five to
+sixty in the others; the coach weighting is 70% Anglo/Western European against
+faculty's untouched 50%, and `COACH_GENDER_MATCH_CHANCE` is 0.95. The
+`existingNames` set is `coachNamesInUse` — chairs, market and director — and
+the founding market, the director's three cards and the shortage hire all
+draw against it. `test/coach-names.test.ts` pins the pool shape, the dedupe,
+the no-extra-dice property for both rollers, the two weightings and the
+gender skew.
 
 ---
 

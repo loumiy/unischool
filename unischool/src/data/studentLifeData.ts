@@ -483,8 +483,11 @@ export function rollCoachField(): string {
 // (item 1's explicit ask) — COACH_GENDER_MATCH_CHANCE of a men's-sport
 // listing rolls male, and the mirror for women's; a strength &
 // conditioning trainer's field carries no sport gender to skew toward, so
-// it stays a flat coin flip.
-const COACH_GENDER_MATCH_CHANCE = 0.82;
+// it stays a flat coin flip. Raised from 0.82 by Plan 21's PR A: at 0.82
+// nearly one coach in five was cross-gender for their sport, which is not
+// what a college department looks like — the real figure is well under
+// one in ten, and it reads as the exception it is only when it is one.
+const COACH_GENDER_MATCH_CHANCE = 0.95;
 
 function rollCoachGender(field: string): 'male' | 'female' {
   const sportGender = sportById(field)?.gender;
@@ -528,14 +531,32 @@ export function coachSalaryFor(quality: number, tenureWeeks: number): number {
   return Math.round(skillBase * (1 + COACH_SALARY_TENURE_PREMIUM_MAX * tenurePremium));
 }
 
+// Every name the department is already using — each coach in a chair,
+// everyone on the standing market, and the director — as the set a fresh
+// coach's name is checked against (facultyData.ts's rollCoachName). The
+// coach-side mirror of the `[...s.faculty, ...s.candidates]` list
+// facultySystem.ts hands generateCandidate. A fresh Set each call, so a
+// caller minting several people in one week can add each name as it goes.
+export function coachNamesInUse(s: GameState): Set<string> {
+  const used = new Set<string>();
+  for (const c of assignedCoaches(s)) used.add(c.name);
+  for (const c of s.orgs.coachCandidates) used.add(c.name);
+  if (s.orgs.athleticDirector) used.add(s.orgs.athleticDirector.name);
+  return used;
+}
+
+const NO_NAMES: ReadonlySet<string> = new Set();
+
 // One freshly-rolled hireable coach candidate, fresh (tenureWeeks 0,
 // weeksListed 0) — the coaching-staff mirror of facultyData.ts's own
-// generateCandidate.
-export function generateCoachCandidate(field: string): Coach {
+// generateCandidate, down to the `existingNames` its name is kept clear of
+// (coachNamesInUse above; defaults to none for a caller with no state, as a
+// test fixture is).
+export function generateCoachCandidate(field: string, existingNames: ReadonlySet<string> = NO_NAMES): Coach {
   const qualityPotential = COACH_POTENTIAL_MIN + Math.round(Math.random() * COACH_POTENTIAL_RANGE);
   const quality = grownCoachQuality(qualityPotential, 0);
   const gender = rollCoachGender(field);
-  const rolled = rollCoachName(gender);
+  const rolled = rollCoachName(gender, existingNames);
   return {
     id: crypto.randomUUID(),
     name: rolled.name,
@@ -586,12 +607,17 @@ export function adSalaryFor(quality: number): number {
 }
 
 // The three, cheapest first — which is also the order the modal shows them,
-// so the money reads left to right.
-export function rollAthleticDirectorCandidates(): Coach[] {
+// so the money reads left to right. Named clear of `existingNames` (the
+// department's, via coachNamesInUse) and of each other: three cards with
+// two names between them would read as a bug in the one modal that is all
+// about telling the three apart.
+export function rollAthleticDirectorCandidates(existingNames: ReadonlySet<string> = NO_NAMES): Coach[] {
+  const used = new Set(existingNames);
   return AD_TIERS.map((tier) => {
     const quality = tier.min + Math.round(Math.random() * tier.range);
     const gender = Math.random() < 0.5 ? 'male' : 'female';
-    const rolled = rollCoachName(gender);
+    const rolled = rollCoachName(gender, used);
+    used.add(rolled.name);
     return {
       id: crypto.randomUUID(),
       name: rolled.name,
@@ -683,8 +709,10 @@ const COACH_CANDIDATE_ARRIVALS_PER_WEEK_MAX = 3;
 
 export function initialCoachCandidatePool(): Coach[] {
   const pool: Coach[] = [];
+  const used = new Set<string>(); // no department yet — the pool is only kept clear of itself
   for (let i = 0; i < COACH_CANDIDATE_POOL_TARGET; i += 1) {
-    const candidate = generateCoachCandidate(rollCoachField());
+    const candidate = generateCoachCandidate(rollCoachField(), used);
+    used.add(candidate.name);
     candidate.weeksListed = Math.floor(Math.random() * COACH_CANDIDATE_LISTING_WEEKS);
     pool.push(candidate);
   }

@@ -6,7 +6,7 @@ import { money, rollAmount, weeksOfOpEx } from './moneyScale';
 import {
   CHAPTER_HOUSE_CAPACITY_BONUS, CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
   promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, VARSITY_PETITION_MIN_TENURE_YEARS, venueForCategory,
-  CHAIR_LABEL, fieldForChair, generateCoachCandidate, seatCoach, vacantChairs,
+  CHAIR_LABEL, coachNamesInUse, fieldForChair, generateCoachCandidate, seatCoach, vacantChairs,
 } from './studentLifeData';
 import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, milestoneSchools, programById, programs } from './techData';
 import { FOUNDING_PROGRAMS } from './foundingData';
@@ -1235,9 +1235,10 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       // the same reason: what the money buys is QUALITY. Anyone can hire off
       // the market any week, so access is worth nothing — a better coach than
       // the market usually turns up is the whole proposition.
-      let best = generateCoachCandidate(field);
+      const used = coachNamesInUse(s);
+      let best = generateCoachCandidate(field, used);
       for (let i = 1; i < AD_SHORTAGE_COACH_ROLLS; i += 1) {
-        const next = generateCoachCandidate(field);
+        const next = generateCoachCandidate(field, used);
         if (next.qualityPotential > best.qualityPotential) best = next;
       }
       return {
@@ -1272,7 +1273,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           // The fallback roll is for a save written before the coach was part
           // of the context: an interrupt frozen mid-flight must still resolve
           // into somebody. Same guard 'visiting-scholar' carries.
-          const coach = ctx.coach ?? generateCoachCandidate(fieldForChair({ team, role }));
+          const coach = ctx.coach ?? generateCoachCandidate(fieldForChair({ team, role }), coachNamesInUse(s));
           seatCoach(team, role, coach);
           return entry(s, `${coach.name} joins ${team.name} as ${role === 'head' ? 'head coach' : CHAIR_LABEL[role]} at $${coach.salary.toLocaleString()}/yr.`, 'good');
         },

@@ -9,7 +9,7 @@ import {
 } from '../../data/eventData';
 import { labEquippedFields } from '../../data/researchData';
 import { ELITE_CLOSE_ABOVE_PRESTIGE } from '../rivals/rivalsSystem';
-import { rollAthleticDirectorCandidates, rollMascotSuggestion } from '../../data/studentLifeData';
+import { coachNamesInUse, rollAthleticDirectorCandidates, rollMascotSuggestion } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
 // The week-to-week texture system. One ordinary pure tick function, last
@@ -202,7 +202,7 @@ function fireAthleticDirectorOffer(s: GameState): boolean {
   s.pendingInterrupt = {
     type: 'athletic-director',
     payload: {
-      candidates: rollAthleticDirectorCandidates(),
+      candidates: rollAthleticDirectorCandidates(coachNamesInUse(s)),
       mascotSuggestion: rollMascotSuggestion(),
     },
   };
