@@ -6,7 +6,7 @@ import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/tec
 import { canSiteRetroactively, sitingFeeOf } from '../state/campusMap';
 import { FACILITY_CATEGORY_OF, type FacilityCategory, LIBRARY_TIER1_ID, nextLibraryFloor } from '../data/facilitiesData';
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
-import { GENED_BUILDING_ID, isAcademicHall } from '../data/techData';
+import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
 import HelpHint from './HelpHint';
 import { ProgressBar } from './Progress';
 import ToolbarPopup from './ToolbarPopup';
@@ -83,9 +83,9 @@ const COLLAPSE_BUILT_FROM = 2;
 // on FacilityCategory itself.
 type BuildCategory = FacilityCategory | 'housing';
 
-// The two 'building'-kind groups carry the 'academic' category alongside
+// The 'building'-kind group carries the 'academic' category alongside
 // the library and labs, which FACILITY_CATEGORY_OF already assigns by type.
-const ACADEMIC_GROUP_KEYS: ReadonlySet<string> = new Set(['hall', 'academicBuilding']);
+const ACADEMIC_GROUP_KEYS: ReadonlySet<string> = new Set(['hall']);
 // Grounds ride in the Campus Tools tab rather than a tab of their own.
 const GROUNDS_GROUP_KEYS: ReadonlySet<string> = new Set(['quad']);
 
@@ -126,18 +126,16 @@ interface TypeGroup {
 // one per school) — several can be visible at once, but each is its own
 // decision, so they stay listed.
 const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; sequential?: false; match: (t: Buildable) => boolean }> = [
-  // THE ACADEMIC RUN. The hall chain (techData.ts's ACADEMIC_HALL_SLOTS
-  // block) is a strictly sequential, distinctly-named chain exactly like
-  // housing, so it is `repeatable` — one next hall at a time, "#N" markers,
-  // and the built ones collapse. Founders Hall (one slot, never a decision)
-  // is the one 'building' that is not a hall. Library and labs sit in the
-  // same tab: four groups, one "Academic" category (see ACADEMIC_GROUP_KEYS
-  // and FACILITY_CATEGORY_OF).
+  // THE ACADEMIC RUN. The halls — Founders Hall, standing at founding,
+  // then the chain (techData.ts's ACADEMIC_HALL_SLOTS block), a strictly
+  // sequential, distinctly-named chain exactly like housing — are one
+  // `repeatable` group: one next hall at a time, "#N" markers, and the
+  // built ones collapse. Founders Hall is #1, an ordinary hall since Plan
+  // 19; in a guided founding it is 'done' but unsited, which keeps it out
+  // of the collapse (see BuildGroupTiles) and ringed for the walkthrough's
+  // first step. Library and labs sit in the same tab: three groups, one
+  // "Academic" category (see ACADEMIC_GROUP_KEYS and FACILITY_CATEGORY_OF).
   { key: 'hall', label: 'Academic Halls', repeatable: true, match: (t) => isAcademicHall(t) },
-  // A hall IS a 'building' too, so the Founders Hall group has to say "and
-  // not a hall" — without it every hall drew twice, once collapsed under
-  // the halls' Built tile and once again here as itself.
-  { key: 'academicBuilding', label: 'Founders Hall', repeatable: false, match: (t) => t.kind === 'building' && !isAcademicHall(t) },
   { key: 'library', label: FACILITY_LABELS.library, repeatable: false, match: (t) => t.facilityType === 'library' },
   // Labs collapse like the halls do once a few are standing (repeatable),
   // but they are independent — one per lab-gated major, built in any order
@@ -215,7 +213,7 @@ function buildGroups(s: GameState): TypeGroup[] {
       sequential,
       // Most TYPE_MATCHERS keys ARE the FacilityType they match (gym,
       // athleticsField, ...) — the lookup below is a no-op for the ones
-      // that aren't (academicBuilding, lab, ...), which simply have no
+      // that aren't (hall, lab, ...), which simply have no
       // entry in FACILITY_CATEGORY_OF and so no category.
       category: (HOUSING_GROUP_KEYS.has(key) ? 'housing'
         : ACADEMIC_GROUP_KEYS.has(key) ? 'academic'
@@ -295,7 +293,6 @@ const SECTION_ICON: Record<string, () => React.JSX.Element> = {
   lab: LabIcon,
   performingArtsCenter: ArtsIcon,
   artGallery: ArtsIcon,
-  academicBuilding: AcademicIcon,
   academic: AcademicIcon,
   athletics: AthleticsIcon,
   social: StudentLifeIcon,
@@ -443,7 +440,7 @@ function BuildTile({
     // tile until the hall is picked up (see state/opening.ts).
     const fee = sitingFeeOf(t);
     const shortfall = fee - s.finance.cash;
-    const ringed = t.id === GENED_BUILDING_ID && s.events.opening.stage === 'site-hall' && !armed;
+    const ringed = t.id === FOUNDERS_HALL_ID && s.events.opening.stage === 'site-hall' && !armed;
     return (
       <button
         type="button"

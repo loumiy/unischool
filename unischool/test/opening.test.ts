@@ -27,7 +27,8 @@ import { createInitialState, createPreStartState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { OPENING_LETTERS } from '../src/data/eventData';
-import { GENED_BUILDING_ID, GENED_CORE_IDS } from '../src/data/techData';
+import { FOUNDERS_HALL_ID, programById } from '../src/data/techData';
+import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
 import { nextStep } from '../src/systems/guidance/nextStep';
 import { openingHoldsClock } from '../src/state/opening';
 import { centredPlacement, footprintOf, RETROACTIVE_SITING_COST, sitingFeeOf } from '../src/state/campusMap';
@@ -125,8 +126,12 @@ console.log('opening script tests');
   s = reducer(s, { type: 'RESOLVE_LETTER', skipAll: false });
   assert(nextStep(s)?.text === OPENING_LETTERS[0].ask, `after the first letter the line is its ask (${nextStep(s)?.text})`);
   assert(nextStep(s)?.go === 'curriculum', 'and it points at the Curriculum');
-  for (const id of GENED_CORE_IDS) s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
-  assert(OPENING_LETTERS[0].done(s), 'starting all six core courses does the first ask');
+  // Found a fourth program into one of Founders Hall's free rooms — the
+  // founding draw guarantees one the roster can staff.
+  const staffable = s.programOffers.find((id) => s.faculty.some((f) => f.field === programById(id)!.field))!;
+  const instructor = s.faculty.find((f) => f.field === programById(staffable)!.field)!;
+  s = reducer(s, { type: 'FOUND_PROGRAM', programId: staffable, hallId: FOUNDERS_HALL_ID, slot: FOUNDING_PROGRAMS.length, facultyId: instructor.id });
+  assert(OPENING_LETTERS[0].done(s), 'founding a fourth program does the first ask');
   assert(nextStep(s) === null, 'and the line goes quiet until the next letter');
 
   // The second letter's ask, and the reading it hands to the build menu.
@@ -139,13 +144,22 @@ console.log('opening script tests');
   const s = createInitialState('Reading');
   s.clock.year = 2;
   s.students.satisfactionBreakdown = { academic: 70, social: 70, basicNeeds: 70, health: 70, housing: 70 };
+  const offers = s.programOffers;
+  s.programOffers = [];
   assert(nextStep(s) === null, 'a quiet campus with nothing on offer has no next step — the line is a reading, not a queue');
 
   s.students.satisfactionBreakdown.basicNeeds = 32;
   assert(nextStep(s)?.text.startsWith('Basic needs is at 32') && nextStep(s)?.go === 'build', `a shortfall under 50 is named with its figure (${nextStep(s)?.text})`);
 
   // A standing hall with a free slot outranks a shortfall: founding is the
-  // most valuable click there is.
+  // most valuable click there is — and at founding that hall is Founders
+  // Hall, with its three free rooms (Plan 19).
+  s.programOffers = offers;
+  const founders = nextStep(s);
+  assert(founders?.go === 'curriculum' && founders.text.includes('Founders Hall'), `Founders Hall's free rooms are the line while programs are on offer (${founders?.text})`);
+  for (const slot of s.halls[FOUNDERS_HALL_ID]) if (slot.programId === null) slot.programId = 'FINA';
+  s.halls[FOUNDERS_HALL_ID][4] = { programId: 'ACCT' };
+  s.halls[FOUNDERS_HALL_ID][5] = { programId: 'ECON' };
   const hall = s.tech.find((t) => t.id === 'HALL-01')!;
   hall.status = 'done';
   s.placements[hall.id] = { row: 0, col: 0, w: 1, h: 1 };
@@ -164,15 +178,15 @@ console.log('opening script tests');
   // Headless: exactly what every founding was before the walk existed.
   const headless = found(false);
   assert(headless.events.opening.stage === 'play' && !openingHoldsClock(headless), 'a headless founding opens at play');
-  assert(GENED_BUILDING_ID in headless.placements, 'with Founders Hall pre-placed');
+  assert(FOUNDERS_HALL_ID in headless.placements, 'with Founders Hall pre-placed');
   assert(headless.events.opening.read.length === 0, 'and no letter read');
   assert(createInitialState('Plain').events.opening.stage === 'play', 'createInitialState defaults to a headless founding');
 
   // Guided: held, and the hall waits to be sited.
   let s = found(true);
   assert(s.events.opening.stage === 'welcome' && openingHoldsClock(s), 'a guided founding opens on the welcome with the clock held');
-  assert(!(GENED_BUILDING_ID in s.placements), 'Founders Hall is not placed');
-  assert(s.halls[GENED_BUILDING_ID]?.[0]?.programId === 'CORE', 'but its slot holds the core all the same');
+  assert(!(FOUNDERS_HALL_ID in s.placements), 'Founders Hall is not placed');
+  assert(FOUNDING_PROGRAMS.every((id, i) => s.halls[FOUNDERS_HALL_ID]?.[i]?.programId === id), 'but its slots hold the founding programs all the same');
   assert(s.events.opening.read.includes(OPENING_LETTERS[0].id) && !s.events.opening.skipped, 'the first letter is counted read — the welcome is its content');
   assert(nextStep(s) === null, 'the next-step line is silent while the walk holds the clock');
   const week = s.clock.week;
@@ -183,20 +197,20 @@ console.log('opening script tests');
   assert(saveGame(s), 'a mid-walk save is written');
   const resumed = loadGame();
   assert(resumed?.events.opening.stage === 'welcome', 'and resumes on the same step');
-  assert(resumed?.halls[GENED_BUILDING_ID]?.[0]?.programId === 'CORE', "the loader keeps Founders Hall's slot though the hall is unsited");
+  assert(resumed?.halls[FOUNDERS_HALL_ID]?.[0]?.programId === FOUNDING_PROGRAMS[0], "the loader keeps Founders Hall's slots though the hall is unsited");
 
   // Next -> site the hall. Only the hall standing moves this step on.
   s = reducer(s, { type: 'ADVANCE_OPENING' });
   assert(s.events.opening.stage === 'site-hall', 'Next on the welcome asks for the hall');
   s = reducer(s, { type: 'ADVANCE_OPENING' });
   assert(s.events.opening.stage === 'site-hall', 'Next does nothing on a step that ends on something done');
-  const hall = s.tech.find((t) => t.id === GENED_BUILDING_ID)!;
+  const hall = s.tech.find((t) => t.id === FOUNDERS_HALL_ID)!;
   assert(sitingFeeOf(hall) === 0, 'Founders Hall sites for nothing');
   assert(sitingFeeOf(s.tech.find((t) => t.id === 'DORM-T1' || t.kind === 'dorm')!) === RETROACTIVE_SITING_COST, 'everything else pays the flat fee');
   const cash = s.finance.cash;
   const spot = centredPlacement(footprintOf(hall));
-  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: GENED_BUILDING_ID, row: spot.row, col: spot.col, rotated: false });
-  assert(GENED_BUILDING_ID in s.placements, 'the hall is sited');
+  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: FOUNDERS_HALL_ID, row: spot.row, col: spot.col, rotated: false });
+  assert(FOUNDERS_HALL_ID in s.placements, 'the hall is sited');
   assert(s.finance.cash === cash, 'and nothing was charged for it');
   assert(s.events.opening.stage === 'classes', 'the hall standing moves the walk on');
   assert(openingHoldsClock(s), 'the clock is still held');
@@ -204,8 +218,8 @@ console.log('opening script tests');
   // Next -> the first course. Starting one frees the clock.
   s = reducer(s, { type: 'ADVANCE_OPENING' });
   assert(s.events.opening.stage === 'first-course', 'Next on "classes" opens the first course');
-  s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: GENED_CORE_IDS[0] });
-  assert(s.tech.find((t) => t.id === GENED_CORE_IDS[0])?.status === 'developing', 'the course starts');
+  s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: 'ENGL120' });
+  assert(s.tech.find((t) => t.id === 'ENGL120')?.status === 'developing', 'the course starts');
   assert(s.events.opening.stage === 'play' && !openingHoldsClock(s), 'and the walk is over');
   assert(nextStep(s)?.text === OPENING_LETTERS[0].ask, `the first letter's ask is the next-step line the moment the walk ends (${nextStep(s)?.text})`);
 
@@ -222,11 +236,11 @@ console.log('opening script tests');
     type: 'START_GAME', name: 'Early', vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), guided: true,
   });
   s = reducer(s, { type: 'ADVANCE_OPENING' });
-  const hall = s.tech.find((t) => t.id === GENED_BUILDING_ID)!;
+  const hall = s.tech.find((t) => t.id === FOUNDERS_HALL_ID)!;
   const spot = centredPlacement(footprintOf(hall));
-  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: GENED_BUILDING_ID, row: spot.row, col: spot.col, rotated: false });
+  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: FOUNDERS_HALL_ID, row: spot.row, col: spot.col, rotated: false });
   assert(s.events.opening.stage === 'classes', 'on "classes"');
-  s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: GENED_CORE_IDS[1] });
+  s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: 'ENGL120' });
   assert(s.events.opening.stage === 'play', 'a course started before pressing Next has done the step');
 }
 
@@ -238,9 +252,9 @@ console.log('opening script tests');
   s = reducer(s, { type: 'SKIP_OPENING' });
   assert(s.events.opening.stage === 'play' && !openingHoldsClock(s), 'declining frees the clock');
   assert(s.events.opening.skipped, 'and stands the letters down');
-  const hall = s.tech.find((t) => t.id === GENED_BUILDING_ID)!;
+  const hall = s.tech.find((t) => t.id === FOUNDERS_HALL_ID)!;
   const spot = centredPlacement(footprintOf(hall));
-  const placed = s.placements[GENED_BUILDING_ID];
+  const placed = s.placements[FOUNDERS_HALL_ID];
   assert(placed !== undefined && placed.row === spot.row && placed.col === spot.col, 'and Founders Hall stands where a headless founding puts it');
   const { letters } = playYear(s);
   assert(letters.length === 0, 'no letter is sent this run');

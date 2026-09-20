@@ -21,8 +21,9 @@
 // ---------------------------------------------------------------------
 
 import { createInitialState } from '../src/state/actions';
-import { reducer } from '../src/engine/reducer';
 import { graduatePrograms, majorPrefixes, programById, programs } from '../src/data/techData';
+import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
+import { FOUNDING_OFFER_GUARANTEE } from '../src/state/actions';
 import {
   isHoused, offerablePrograms, PROGRAM_OFFER_COUNT, refillOffers, startedSchools,
 } from '../src/systems/techtree/programOffers';
@@ -53,20 +54,15 @@ function assert(cond: boolean, msg: string): void {
 
 const MAJOR_COUNT = majorPrefixes().length;
 
-// A school with the gen-ed core just finished: every tier-1 course
-// revealed, the first three programs on offer. Driven through the real
-// reducer so the refill fires where it fires in play.
-function coreComplete(name = 'Offers'): GameState {
-  let s = createInitialState(name);
+// A school as founded (Plan 19): three programs housed in Founders Hall,
+// every other major revealed, the first three programs on offer — drawn
+// by createInitialState itself, with the founding guarantee.
+function foundedState(name = 'Offers'): GameState {
+  const s = createInitialState(name);
   s.finance.cash = 500_000_000;
-  for (const id of ['GE110', 'GE120', 'GE130', 'GE140', 'GE150', 'GE160']) {
-    s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
-  }
-  for (let i = 0; i < 12 && s.programOffers.length === 0; i += 1) {
-    s = s.pendingInterrupt ? reducer(s, { type: 'RESOLVE_REPORT' }) : reducer(s, { type: 'TICK' });
-  }
   return s;
 }
+const UNHOUSED_MAJOR_COUNT = MAJOR_COUNT - FOUNDING_PROGRAMS.length;
 
 // House a program somewhere — a fresh six-slot hall per six programs — and
 // draw its replacement. The halls here are fixtures, not built ones; what
@@ -88,10 +84,34 @@ function schoolOf(programId: string): string {
   return programById(programId)!.school;
 }
 
+// ---- 0. The founding draw: three on offer, one of them staffable ----
+for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood', 'Dunmore', 'Eastwick', 'Fairhaven', 'Greymoor', 'Hollowell']) {
+  const s = foundedState(rngSeed);
+  assert(s.programOffers.length === PROGRAM_OFFER_COUNT, `seed ${rngSeed}: three on offer at founding`);
+  assert(s.programOffers.some((id) => FOUNDING_OFFER_GUARANTEE.includes(id)), `seed ${rngSeed}: one of them is guaranteed staffable (${s.programOffers.join(', ')})`);
+  assert(s.programOffers.every((id) => !FOUNDING_PROGRAMS.includes(id)), `seed ${rngSeed}: none of them is a founding program`);
+  assert(s.programOffers.some((id) => !startedSchools(s).has(schoolOf(id))), `seed ${rngSeed}: and one is from a school not yet started`);
+  // The guarantee is spent with the founding draw: a refill after it is an
+  // ordinary draw, so taking the guaranteed program does not summon the
+  // other one.
+  const guaranteed = s.programOffers.find((id) => FOUNDING_OFFER_GUARANTEE.includes(id))!;
+  const other = FOUNDING_OFFER_GUARANTEE.find((id) => id !== guaranteed)!;
+  if (!s.programOffers.includes(other)) {
+    let summoned = 0;
+    for (let week = 1; week <= 20; week += 1) {
+      const t = JSON.parse(JSON.stringify(s)) as GameState;
+      t.clock.week = week;
+      take(t, guaranteed);
+      if (t.programOffers.includes(other)) summoned += 1;
+    }
+    assert(summoned < 20, `seed ${rngSeed}: the replacement draw is not rigged (${summoned} of 20 weeks drew ${other})`);
+  }
+}
+
 // ---- 1. Found everything, taking the first offer each time ----
 for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood']) {
-  const s = coreComplete(rngSeed);
-  assert(s.programOffers.length === PROGRAM_OFFER_COUNT, `seed ${rngSeed}: three on offer once the core completes`);
+  const s = foundedState(rngSeed);
+  assert(s.programOffers.length === PROGRAM_OFFER_COUNT, `seed ${rngSeed}: three on offer at founding`);
   assert(s.programOffers.every((id) => programById(id)?.kind === 'major'), `seed ${rngSeed}: the first offer is all majors`);
 
   const founded: string[] = [];
@@ -115,7 +135,7 @@ for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood']) {
     for (const id of s.programOffers) {
       if (founded.includes(id) || isHoused(s, id)) neverRepeated = false;
       const program = programById(id);
-      if (!program || program.kind === 'core') neverGated = false;
+      if (!program) neverGated = false;
       if (program?.kind === 'graduate') neverGated = false; // no gate is open this early
     }
 
@@ -124,7 +144,7 @@ for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood']) {
     founded.push(id);
   }
 
-  assert(founded.length === MAJOR_COUNT, `seed ${rngSeed}: every major is eventually offered and founded (${founded.length} of ${MAJOR_COUNT})`);
+  assert(founded.length === UNHOUSED_MAJOR_COUNT, `seed ${rngSeed}: every major not housed at founding is eventually offered and founded (${founded.length} of ${UNHOUSED_MAJOR_COUNT})`);
   assert(new Set(founded).size === founded.length, `seed ${rngSeed}: no program was founded twice`);
   assert(alwaysFull, `seed ${rngSeed}: the offer is always three until fewer than three remain`);
   assert(neverRepeated, `seed ${rngSeed}: a founded program is never offered again`);
@@ -136,7 +156,7 @@ for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood']) {
 
 // ---- 2. Taking only one school's offers still shows every school ----
 {
-  const s = coreComplete('Dunmore');
+  const s = foundedState('Dunmore');
   const home = schoolOf(s.programOffers[0]);
   const seen = new Set<string>();
   let takes = 0;
@@ -157,8 +177,11 @@ for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood']) {
 {
   // Same starting state, many refills: with one school started, its
   // programs should turn up more often than a flat draw would give.
-  const base = coreComplete('Eastwick');
-  const homeId = base.programOffers[0];
+  const base = foundedState('Eastwick');
+  // A school not yet started, so the count below is the weighting alone:
+  // the opening school is started already, and its two remaining programs
+  // would muddy a count of "home" draws.
+  const homeId = base.programOffers.find((id) => !startedSchools(base).has(schoolOf(id)))!;
   const home = schoolOf(homeId);
   let homeOffers = 0;
   let trials = 0;
@@ -174,9 +197,10 @@ for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood']) {
     if (schoolOf(replacement) === home) homeOffers += 1;
     trials += 1;
   }
-  // Flat odds: 5 of the 39 unoffered programs remaining are `home`'s. With
-  // the discovery rule satisfied by the two standing offers, the
-  // replacement is a free weighted draw: 5x3 against 34x1, i.e. ~30%.
+  // Flat odds: 5 of the 36 unoffered programs remaining are `home`'s. With
+  // the discovery rule satisfied by the standing offers, the replacement is
+  // a free weighted draw: 5x3 against the opening school's 2x3 and 29x1,
+  // i.e. ~30%.
   const share = homeOffers / trials;
   assert(share > 0.2, `a started school's programs are drawn more often than flat odds (${(share * 100).toFixed(0)}% of replacements, flat would be ~13%)`);
   assert(share < 0.5, `but not so often that discovery is crowded out (${(share * 100).toFixed(0)}%)`);
@@ -184,7 +208,7 @@ for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood']) {
 
 // ---- 4. Idempotent, deterministic, and off the global dice entirely ----
 {
-  const s = coreComplete('Fairhaven');
+  const s = foundedState('Fairhaven');
   const before = [...s.programOffers];
   refillOffers(s);
   refillOffers(s);
@@ -201,9 +225,9 @@ for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood']) {
   Math.random = real;
   assert(s.programOffers.length === PROGRAM_OFFER_COUNT, 'a short offer is topped back up');
   assert(draws === 0, `and drawing consumed no global dice (${draws})`);
-  const again = coreComplete('Fairhaven');
+  const again = foundedState('Fairhaven');
   assert(JSON.stringify(again.programOffers) === JSON.stringify(before), 'and the same school at the same week draws the same three');
-  assert(JSON.stringify(coreComplete('Greymoor').programOffers) !== JSON.stringify(before), 'while a different school draws differently');
+  assert(JSON.stringify(foundedState('Greymoor').programOffers) !== JSON.stringify(before), 'while a different school draws differently');
 
   // An offer that has become unofferable (housed by some other path) is
   // dropped and replaced.
@@ -216,7 +240,7 @@ for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood']) {
 
 // ---- 5. Graduate programs join the pool when their gate opens ----
 {
-  const s = coreComplete('Hollowell');
+  const s = foundedState('Hollowell');
   assert(offerablePrograms(s).every((p) => p.kind === 'major'), 'no graduate program is offerable before its gate opens');
   // Open every doctorate's gate the way the game does — a finished lab in
   // its school — by marking the milestones and labs directly.

@@ -1,6 +1,6 @@
 import type { GameState, SatisfactionAttributes } from '../../state/types';
 import { OPENING_LETTERS } from '../../data/eventData';
-import { GENED_BUILDING_ID, milestoneSchools, programById } from '../../data/techData';
+import { milestoneSchools, programById } from '../../data/techData';
 import { isHoused } from '../techtree/programOffers';
 import type { TabId } from '../../components/TabNav';
 import { openingHoldsClock } from '../../state/opening';
@@ -63,7 +63,6 @@ function letterAsk(s: GameState): NextStep | null {
 function freeSlot(s: GameState): NextStep | null {
   if (s.programOffers.length === 0) return null;
   for (const [hallId, slots] of Object.entries(s.halls)) {
-    if (hallId === GENED_BUILDING_ID) continue;
     if (!slots.some((slot) => slot.programId === null)) continue;
     const hall = s.tech.find((t) => t.id === hallId);
     if (!hall) continue;

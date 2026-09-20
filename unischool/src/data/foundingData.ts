@@ -111,6 +111,18 @@ export const FOUNDING_CLASSES = {
   senior: FOUNDING_PER_CLASS,
 } as const; // { freshman: 88, sophomore: 88, junior: 87, senior: 87 }, all commuters
 
+// THE FOUNDING COLLEGE (Plan 19): the programs housed in Founders Hall
+// before the player sees the game, by program id (techData.ts's major
+// prefixes), and how many of each one's courses open developed. Three
+// Social Sciences & Humanities majors, two courses each — six courses,
+// because six at instructionCapacity.ts's SEATS_PER_COURSE is the 480
+// seats the founding body sits in; and these three because they are what
+// the five founding professors (actions.ts) can teach. Plain ids here, so
+// the founding letters (eventData.ts) can read them without a cycle
+// through the state module; actions.ts turns them into courses.
+export const FOUNDING_PROGRAMS: readonly string[] = ['ENGL', 'HIST', 'PHIL'];
+export const FOUNDING_COURSES_PER_PROGRAM = 2;
+
 // THE PRIVATE PRESET'S NUMBERS, kept as they were rather than averaged
 // with the public ones. Not a judgment that a private opening is the right
 // one — it is that six of the seven strategies in sim/balanceSim.ts are

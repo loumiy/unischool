@@ -1,5 +1,5 @@
 import type { GameState, OpeningStage } from './types';
-import { GENED_BUILDING_ID } from '../data/techData';
+import { FOUNDERS_HALL_ID } from '../data/techData';
 import { centredPlacement, footprintOf } from './campusMap';
 import { fellTrees } from '../data/treeData';
 
@@ -83,7 +83,7 @@ export function advanceOpening(s: GameState): void {
 // pressing Next has done the step, and is not made to press Next about it.
 export function settleOpening(s: GameState): void {
   const stage = s.events.opening.stage;
-  if (stage === 'site-hall' && GENED_BUILDING_ID in s.placements) {
+  if (stage === 'site-hall' && FOUNDERS_HALL_ID in s.placements) {
     s.events.opening.stage = 'classes';
   } else if ((stage === 'classes' || stage === 'first-course') && anyCourseDeveloping(s)) {
     s.events.opening.stage = 'play';
@@ -99,7 +99,7 @@ function anyCourseDeveloping(s: GameState): boolean {
 // at the centre of the grid, where createInitialState pre-places it — so a
 // player who skips is never left with an unsited founding hall to find.
 export function skipOpening(s: GameState): void {
-  const hall = s.tech.find((t) => t.id === GENED_BUILDING_ID);
+  const hall = s.tech.find((t) => t.id === FOUNDERS_HALL_ID);
   if (hall && !(hall.id in s.placements)) {
     const placement = centredPlacement(footprintOf(hall));
     s.placements[hall.id] = placement;

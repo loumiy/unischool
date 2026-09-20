@@ -908,9 +908,6 @@ button.build-tile { font-family: inherit; }
   border-radius: 50%; width: 24px; height: 24px; line-height: 1; padding: 0; font-size: var(--text-sm); font-weight: 800; flex: none; }
 .building-info-close:hover { background: var(--outline); color: var(--cream); }
 .building-info-line { margin: 0 0 6px; font-size: var(--text-sm); line-height: 1.4; color: var(--ink); }
-.building-info-majors { margin: 0 0 8px; padding-left: 18px; font-size: var(--text-sm); line-height: 1.5; color: var(--ink); }
-.building-info-completion { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; flex-wrap: wrap; }
-.building-info-completion .stat { font-size: var(--text-xs); }
 /* How much of the school exists, then how it is doing — the same chip and
    ramp the curriculum's own headings use (see BuildingInfoPanel.tsx). */
 .building-info-grade { display: inline-flex; align-items: center; gap: 6px; }
@@ -1585,7 +1582,6 @@ button.build-tile { font-family: inherit; }
 .school-group { margin-bottom: 20px; }
 .school-group-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;
   padding: 8px 14px; border-radius: var(--radius-lg); background: var(--school-hue, var(--school-primary)); color: var(--school-on-primary); }
-.school-group.core .school-group-head { background: var(--outline); }
 .school-group-head h3 { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-lg); letter-spacing: -0.01em; color: inherit; }
 .school-group-mark { color: inherit; font-size: 22px; line-height: 1; }
 .school-group-unnamed { font-style: italic; font-weight: 600; color: inherit; opacity: 0.85; }
@@ -1593,7 +1589,6 @@ button.build-tile { font-family: inherit; }
 .program-row { border: 2px solid var(--outline); border-left: 6px solid var(--school-hue, var(--outline));
   border-radius: var(--radius-lg); background: var(--cream-hi); padding: 8px 10px 10px; min-width: 480px; }
 .program-row.graduate { border-style: dashed; border-left-style: solid; }
-.program-row.core { border-left-color: var(--outline); }
 .program-row-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
 .program-row-head h4 { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-md); color: var(--ink); }
 .program-row-hall { font-size: var(--text-2xs); font-weight: 700; color: var(--ink-muted); }
@@ -1601,7 +1596,7 @@ button.build-tile { font-family: inherit; }
    them (1 | 4 | 4), so a rule never narrows the cell beside it. */
 .program-row-cells { display: grid; gap: 4px; align-items: stretch;
   grid-template-columns: minmax(0, 1fr) 1px repeat(4, minmax(0, 1fr)) 1px repeat(4, minmax(0, 1fr)); }
-.program-row-cells.graduate, .program-row-cells.core { grid-template-columns: repeat(9, minmax(0, 1fr)); }
+.program-row-cells.graduate { grid-template-columns: repeat(9, minmax(0, 1fr)); }
 .tier-rule { align-self: stretch; margin: 4px 0; border-left: 2px dotted var(--outline); }
 .program-row-cells .course-cell { min-height: 54px; padding: 5px 6px; }
 .program-row-cells .cell-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1610,8 +1605,7 @@ button.build-tile { font-family: inherit; }
    its school's hue (the .done rule above reads --school-hue from the
    group), so a finished catalogue is a wall of colour blocks grouped by
    school, and an open cell in a group keeps the cream so the ready ones
-   stand out from it. The core (no school) fills in the outline ink. */
-.school-group.core .course-cell.done, .school-group.core .course-cell.developing { --school-hue: var(--outline); }
+   stand out from it. */
 :is(.school-group, .hall-slot) .course-cell.done .cell-code { opacity: 0.75; }
 :is(.school-group, .hall-slot) .course-cell.done .instructor-chip { background: var(--cream-hi); }
 .school-group .course-cell.placeholder { border-color: color-mix(in srgb, var(--school-hue, var(--parchment-line)) 35%, var(--parchment-line)); }

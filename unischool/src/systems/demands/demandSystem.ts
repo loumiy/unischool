@@ -249,9 +249,7 @@ function instructionCandidate(s: GameState): Candidate | null {
   const ask = s.tech.find((t) => {
     if (t.kind !== 'course' || t.status !== 'available') return false;
     const programId = programOfCourse(t.id);
-    // Never a core course: the core is seated from founding, so finishing
-    // one adds no seat and could never meet the ask.
-    return programId !== undefined && programId !== 'CORE' && isHoused(s, programId);
+    return programId !== undefined && isHoused(s, programId);
   });
   if (!ask) return null;
   const coverage = instructionCoverage(s);

@@ -131,7 +131,10 @@ console.log('consequences tests');
   assert(DEMAND_SATISFACTION_THRESHOLD === 60, 'demands come from 60, not 45');
 
   const s = createInitialState('Seats');
-  assert(shortfallDemandFor(s, 'instruction') === null, 'with no housed program beyond the core there is no course to ask for');
+  // The founding programs' next courses are open from day one (Plan 19),
+  // so lock them: the case under test is a catalogue with nothing to start.
+  for (const t of s.tech) if (t.kind === 'course' && t.status === 'available') t.status = 'locked';
+  assert(shortfallDemandFor(s, 'instruction') === null, 'with no course to start in a housed program there is nothing to ask for');
 
   const finance = programs().find((p) => p.kind === 'major' && p.school === 'Business')!;
   s.tech.find((t) => t.id === 'HALL-01')!.status = 'done';

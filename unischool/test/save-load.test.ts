@@ -20,7 +20,8 @@
 
 import { createInitialState } from '../src/state/actions';
 import { loadGame, saveGame, clearSave, SAVE_KEY, SAVE_VERSION } from '../src/state/persistence';
-import { GENED_BUILDING_ID } from '../src/data/techData';
+import { FOUNDERS_HALL_ID } from '../src/data/techData';
+import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
 
 // In-memory localStorage so the persistence module works under Node. Assigned
 // before any loadGame/saveGame call (module imports run first, but nothing in
@@ -73,24 +74,24 @@ function testRoundTrip(): void {
   assert(loaded.finance.listedTuition === cur.finance.listedTuition, 'listed tuition survives round trip');
   assert(
     JSON.stringify(loaded.halls) === JSON.stringify(cur.halls),
-    'the halls record survives round trip — Founders Hall, one slot, the core in it',
+    'the halls record survives round trip — Founders Hall, six slots, the founding programs in three of them',
   );
 }
 
 // ---- Test: a freshly-founded school starts with no alert badges ----
 // createInitialState (state/actions.ts) pre-seeds `seen` from the school's
-// own founding content — the gen-ed core courses and the founding
+// own founding content — the founding college's courses and the founding
 // buildables (starting dorm, dining hall, Founders Hall, the seeded-
 // 'available' facility chains) are unlocked from turn one, so they must
 // never read as "new" the instant the player opens Curriculum or Build.
 // candidateIds is the one deliberate exception: no candidate is ever
-// "needed" at founding (every founding hire has a spare course slot beyond
-// their own gen-ed course), so there is nothing to pre-seed there.
+// "needed" at founding (the roster covers what the college teaches), so
+// there is nothing to pre-seed there.
 function testFoundingSeenExcludesStartingContent(): void {
   const fresh = createInitialState('Fresh Start');
 
   const visibleCourses = fresh.tech.filter((t) => t.kind === 'course' && t.status !== 'locked');
-  assert(visibleCourses.length > 0, 'a founding school has at least one visible course (the gen-ed core)');
+  assert(visibleCourses.length > 0, 'a founding school has at least one visible course (the founding programs\')');
   for (const t of visibleCourses) {
     assert(fresh.seen.courseIds[t.id] === true, `founding course ${t.id} is pre-seeded seen (no badge on day one)`);
   }
@@ -109,11 +110,11 @@ function testCourseFacultySanitizer(): void {
   const base = createInitialState('Sanitizer');
   const state = JSON.parse(JSON.stringify(base)) as Loose;
   const tech = state.tech as Array<Record<string, unknown>>;
-  tech.find((n) => n.id === 'GE110')!.status = 'done';
+  tech.find((n) => n.id === 'ENGL120')!.status = 'done';
 
   state.courseFaculty = {
-    'GE110': 'f3',              // real course, real professor: kept
-    'GE120': 'nobody-at-all',   // real course, departed professor: dropped
+    'ENGL120': 'f3',            // real course, real professor: kept
+    'HIST120': 'nobody-at-all', // real course, departed professor: dropped
     'NO-SUCH-COURSE': 'f3',     // course that does not exist: dropped
   };
   writeSave(SAVE_VERSION, state);
@@ -121,8 +122,8 @@ function testCourseFacultySanitizer(): void {
   const loaded = loadGame();
   assert(loaded !== null, 'a save with stale assignments still loads');
   if (!loaded) return;
-  assert(loaded.courseFaculty['GE110'] === 'f3', 'a valid assignment survives sanitizing');
-  assert(loaded.courseFaculty['GE120'] === undefined, 'an assignment to someone off the roster is dropped');
+  assert(loaded.courseFaculty['ENGL120'] === 'f3', 'a valid assignment survives sanitizing');
+  assert(loaded.courseFaculty['HIST120'] === undefined, 'an assignment to someone off the roster is dropped');
   assert(loaded.courseFaculty['NO-SUCH-COURSE'] === undefined, 'an assignment to a course that does not exist is dropped');
 }
 
@@ -201,8 +202,9 @@ function testHallsSanitizer(): void {
   (state.developing as Loose)['HALL-02'] = 10;
 
   state.halls = {
-    // Founders Hall as seeded, but with a garbage second slot to trim.
-    [GENED_BUILDING_ID]: [{ programId: 'CORE' }, { programId: 'FINA' }],
+    // Founders Hall as seeded, with a non-string fourth slot and a
+    // seventh entry to trim.
+    [FOUNDERS_HALL_ID]: [...FOUNDING_PROGRAMS.map((programId) => ({ programId })), { programId: 42 }, { programId: null }, { programId: null }, { programId: 'ACCT' }],
     // A standing hall: four slots where six belong, one bad id, one
     // program housed a second time, one real program.
     'HALL-01': [{ programId: 'MECH' }, { programId: 'NOT-A-PROGRAM' }, { programId: 'MECH' }, { programId: 42 }],
@@ -219,11 +221,12 @@ function testHallsSanitizer(): void {
   assert(loaded !== null, 'a save with a bad halls record still loads');
   if (!loaded) return;
   assert(
-    JSON.stringify(Object.keys(loaded.halls).sort()) === JSON.stringify([GENED_BUILDING_ID, 'HALL-01'].sort()),
+    JSON.stringify(Object.keys(loaded.halls).sort()) === JSON.stringify([FOUNDERS_HALL_ID, 'HALL-01'].sort()),
     `only standing, placed halls keep an entry (got ${Object.keys(loaded.halls).join(', ')})`,
   );
-  assert(loaded.halls[GENED_BUILDING_ID].length === 1, "Founders Hall is trimmed to its one slot");
-  assert(loaded.halls[GENED_BUILDING_ID][0].programId === 'CORE', 'and the core is still in it');
+  assert(loaded.halls[FOUNDERS_HALL_ID].length === 6, 'Founders Hall is trimmed to its six slots');
+  assert(FOUNDING_PROGRAMS.every((id, i) => loaded.halls[FOUNDERS_HALL_ID][i].programId === id), 'and the founding programs are still in it');
+  assert(loaded.halls[FOUNDERS_HALL_ID].slice(3).every((slot) => slot.programId === null), 'with its bad fourth slot emptied and the rest empty');
   const hall = loaded.halls['HALL-01'];
   assert(hall.length === 6, `a standing hall is padded to its six slots (got ${hall.length})`);
   assert(hall[0].programId === 'MECH', 'a real program in slot 1 is kept');
@@ -236,12 +239,6 @@ function testHallsSanitizer(): void {
   // so a housed one, an unknown one, a duplicate, and a fourth are all
   // dropped — and nothing is drawn to replace them at load.
   (state.halls as Loose)['HALL-01'] = [{ programId: 'MECH' }, { programId: null }, { programId: null }, { programId: null }, { programId: null }, { programId: null }];
-  // Revealed means the core is done (see programOffers.ts's isRevealed):
-  // an entry course's own status stays 'locked' until its program is
-  // housed, so the fixture finishes the core rather than touching tier 1.
-  for (const t of tech) {
-    if ((t.id as string).startsWith('GE1')) t.status = 'done';
-  }
   state.programOffers = ['MECH', 'FINA', 'NOT-A-PROGRAM', 'FINA', 'ACCT', 'ECON', 'MRKT'];
   writeSave(SAVE_VERSION, state);
   const withOffers = loadGame();

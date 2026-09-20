@@ -574,7 +574,7 @@ function chosenSchools(s: GameState, strategy: Strategy): Set<string> | null {
     for (const slot of slots) {
       if (slot.programId === null) continue;
       const q = programById(slot.programId);
-      if (!q || q.kind === 'core') continue;
+      if (!q) continue;
       const seen = firstHall.get(q.school);
       if (seen === undefined || hallId < seen) firstHall.set(q.school, hallId);
     }
@@ -660,7 +660,7 @@ function hallSchools(s: GameState, hallId: string): Set<string> {
   for (const slot of s.halls[hallId]) {
     if (slot.programId === null) continue;
     const program = programById(slot.programId);
-    if (program && program.kind !== 'core') schools.add(program.school);
+    if (program) schools.add(program.school);
   }
   return schools;
 }

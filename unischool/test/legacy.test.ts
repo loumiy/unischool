@@ -90,6 +90,11 @@ console.log('legacy tests');
 {
   const rich: GameState = createInitialState('Saturated');
   for (const t of rich.tech) if (t.kind === 'course') t.status = 'done';
+  // Teaching depends on who teaches what; every course done with no
+  // instructor recorded is not being taught, which is the honest reading —
+  // and the founding six open with their instructors recorded (Plan 19),
+  // so the fixture takes those away.
+  rich.courseFaculty = {};
   const richLegacy = (() => {
     // Breadth and concentration read milestones: set every one.
     for (const school of milestoneSchools()) {
@@ -127,8 +132,6 @@ console.log('legacy tests');
   for (const key of ['breadth', 'concentration', 'research', 'reach', 'stewardship'] as LegacyAxisKey[]) {
     assert(grade(key) === 'A', `a saturated school is an A in ${key} (${grade(key)})`);
   }
-  // Teaching depends on who teaches what; every course done with no
-  // instructor recorded is not being taught, which is the honest reading.
   assert(grade('teaching') === 'F', 'a catalogue with nobody teaching it is not taught well');
 }
 

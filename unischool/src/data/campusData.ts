@@ -16,7 +16,7 @@ import type { Buildable } from '../state/types';
 // admissionsSystem.ts: enrollment is never capacity-gated) as with one. Its
 // beds are granted the normal way, through effects.capacityBonus on
 // completion, so nothing is double-counted. The founding ACADEMIC hall
-// (techData.ts's General Studies building, "Founders Hall") is what opens
+// (techData.ts's Founders Hall) is what opens
 // pre-built instead — see actions.ts's createInitialState. Every dorm after
 // the starter unlocks strictly in order — the second hall requires the
 // first, the third the second, and so on — so "build more dorms over time

@@ -1,7 +1,7 @@
 import type { GameState, YearSnapshot } from './types';
 import { totalEnrolled } from './types';
 import { playerRank } from '../systems/rivals/rivalsSystem';
-import { FOUNDING_PRESET } from '../data/foundingData';
+import { FOUNDING_COURSES_PER_PROGRAM, FOUNDING_PRESET, FOUNDING_PROGRAMS } from '../data/foundingData';
 
 // ---------------------------------------------------------------------
 // The annual history record (see YearSnapshot in types.ts). Nothing here
@@ -44,10 +44,12 @@ function programsEstablished(s: GameState): number {
 // What the year is measured against: the row filed last summer, or — for
 // the first year, which has no row behind it — the founding figures. The
 // one place those two are joined, so the review beat and the snapshot
-// agree about what "a year ago" was.
+// agree about what "a year ago" was. The founding college opens with its
+// six courses developed (Plan 19), so year one's "courses finished" is
+// counted from six, not from nothing.
 export function previousYear(s: GameState): Pick<YearSnapshot, 'cash' | 'coursesDone'> {
   const last = s.history.length > 0 ? s.history[s.history.length - 1] : null;
-  return last ?? { cash: FOUNDING_PRESET.startingCash, coursesDone: 0 };
+  return last ?? { cash: FOUNDING_PRESET.startingCash, coursesDone: FOUNDING_PROGRAMS.length * FOUNDING_COURSES_PER_PROGRAM };
 }
 
 export interface YearFigures {

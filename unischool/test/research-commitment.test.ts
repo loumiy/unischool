@@ -48,7 +48,7 @@ function assert(cond: boolean, msg: string): void {
   }
 }
 
-const TIER_RANK: Record<string, number> = { core: 0, '1': 1, '2': 2, '3': 3, graduate: 4 };
+const TIER_RANK: Record<string, number> = { '1': 1, '2': 2, '3': 3, graduate: 4 };
 const rank = (id: string) => TIER_RANK[String(tierOf(id))] ?? 0;
 
 // A campus with one finished lab, cash in the bank, and a department whose

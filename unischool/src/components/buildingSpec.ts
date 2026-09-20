@@ -169,7 +169,7 @@ export function floorsUnderConstruction(t: Buildable): number {
   return t.renovatingFrom !== undefined ? 1 : 0;
 }
 
-// Every academic hall stands four storeys: Founders Hall and the twelve of
+// Every academic hall stands four storeys: Founders Hall and the eleven of
 // the chain alike (the two professional-school buildings that stood a
 // storey taller left with Plan 14's PR E).
 const ACADEMIC_HALL_STOREYS = 4;
@@ -629,7 +629,7 @@ export const COPING_OVERHANG = across(0.35);
 //
 // Keyed by id, the same way RESEARCH_FACILITY_MOTIFS gives four lab-gated
 // buildings four different roofs without widening the `=== 'lab'` gate that
-// three other modules read. The id is techData's exported GENED_BUILDING_ID;
+// three other modules read. The id is techData's exported FOUNDERS_HALL_ID;
 // spelled as a literal here rather than imported because this module is
 // drawing geometry and that one is course content, and neither should have to
 // depend on the other to agree about which building is the founding one.

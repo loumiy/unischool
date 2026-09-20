@@ -5,7 +5,7 @@ import {
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from './types';
 import { fellTrees } from '../data/treeData';
 import { glyphsFor, SPORTS } from '../data/studentLifeData';
-import { GENED_BUILDING_ID, graduatePrograms, majorPrefixes } from '../data/techData';
+import { FOUNDERS_HALL_ID, graduatePrograms, majorPrefixes } from '../data/techData';
 import { FACULTY_FIELDS } from '../data/facultyData';
 import { offerablePrograms, PROGRAM_OFFER_COUNT } from '../systems/techtree/programOffers';
 
@@ -119,7 +119,12 @@ export const SAVE_KEY = 'unischool.save';
 // v66: the opening walkthrough. `s.events.opening.stage` (added as
 // required — see state/opening.ts). A save without it would resume with
 // the clock held by a stage nothing renders.
-export const SAVE_VERSION = 66;
+// v67: Plan 19 PR A. The general-education core and General Studies leave
+// the seed, Founders Hall has six slots and three founding programs in
+// them, and a save carries its own `tech` and `halls` — one written
+// under v66 would load with courses the game no longer knows and a hall
+// with a slot the game says holds a program that does not exist.
+export const SAVE_VERSION = 67;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -418,8 +423,8 @@ function sanitizeCourseFaculty(state: GameState): void {
 //     has no slots yet (techSystem.ts opens them the week it finishes).
 //   - an entry has exactly `slots` entries: padded with empty slots or
 //     trimmed, so a slot index always means the same slot.
-//   - a slot's program is a real program id — a major prefix, 'CORE', or
-//     a graduate program — housed nowhere else. A duplicate or an unknown
+//   - a slot's program is a real program id — a major prefix or a graduate
+//     program — housed nowhere else. A duplicate or an unknown
 //     id becomes an empty slot rather than a claim nothing can honour.
 //   - a transit countdown is a positive whole number of weeks, or gone.
 // A dropped or emptied slot costs the player only what a stale
@@ -427,7 +432,7 @@ function sanitizeCourseFaculty(state: GameState): void {
 // than one that quietly asserts something false.
 function sanitizeHalls(state: GameState): void {
   const source = (typeof state.halls === 'object' && state.halls !== null) ? state.halls : {};
-  const programIds = new Set<string>(['CORE', ...majorPrefixes(), ...graduatePrograms().map((p) => p.id)]);
+  const programIds = new Set<string>([...majorPrefixes(), ...graduatePrograms().map((p) => p.id)]);
   const housed = new Set<string>();
 
   const clean: GameState['halls'] = {};
@@ -437,9 +442,9 @@ function sanitizeHalls(state: GameState): void {
     // A hall stands on the map — except Founders Hall, which stands before
     // it is sited: a guided founding leaves it for the player to place as
     // the walkthrough's first step (state/opening.ts), and the
-    // founding save is written before that click. The core's slot is a
-    // fact of the school, not of the map.
-    if (!(hallId in state.placements) && hallId !== GENED_BUILDING_ID) continue;
+    // founding save is written before that click. The founding programs'
+    // slots are a fact of the school, not of the map.
+    if (!(hallId in state.placements) && hallId !== FOUNDERS_HALL_ID) continue;
     const slots: HallSlot[] = [];
     for (let i = 0; i < hall.slots; i += 1) {
       const entry = Array.isArray(raw) ? (raw[i] as Partial<HallSlot> | undefined) : undefined;

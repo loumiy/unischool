@@ -1,6 +1,6 @@
 import type { GameState } from '../state/types';
 import { SEMICENTENNIAL_YEAR, WEEKS_PER_YEAR, totalEnrolled } from '../state/types';
-import { GENED_BUILDING_ID, graduatePrograms, isAcademicHall, milestoneSchools } from './techData';
+import { FOUNDERS_HALL_ID, graduatePrograms, isAcademicHall, milestoneSchools } from './techData';
 import { schoolFoundedKey } from '../systems/techtree/schools';
 import { playerRank } from '../systems/rivals/rivalsSystem';
 
@@ -55,7 +55,7 @@ export const AMBITIONS: readonly Ambition[] = [
     id: 'hall',
     name: 'A hall of your own',
     line: 'The first academic hall beyond Founders Hall stands.',
-    reached: (s) => s.tech.some((t) => isAcademicHall(t) && t.id !== GENED_BUILDING_ID && t.status === 'done'),
+    reached: (s) => s.tech.some((t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID && t.status === 'done'),
   },
   {
     id: 'school-founded',

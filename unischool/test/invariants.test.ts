@@ -23,7 +23,9 @@ import { weeklyResearchPoints, facilitySchool, disciplineVocab, rollGrantFunder,
 import { researchSchools } from '../src/data/techData';
 import { findDecisionEvent, type DecisionEventContext } from '../src/data/eventData';
 import { totalEnrolled } from '../src/state/types';
-import { GENED_BUILDING_ID, programById } from '../src/data/techData';
+import { FOUNDERS_HALL_ID, programById } from '../src/data/techData';
+import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
+import { FOUNDING_OFFER_GUARANTEE } from '../src/state/actions';
 import type { GameState, OrgPetition } from '../src/state/types';
 import {
   usedFacultySlots, hasFreeFacultySlot, eligibleInstructors, facultyLoad, isUnstaffed, hasFreeSlot,
@@ -208,7 +210,10 @@ function relPath(f: string): string {
   s.finance.cash = 10_000_000;
   const availableCourses = s.tech.filter((t) => t.kind === 'course' && t.status === 'available');
   assert(availableCourses.length >= 3, 'fixture: at least three courses available to start at once');
+  // Money is the only throttle under test; the faculty gate is a different
+  // one (see the capacity sweep below), so the three fields are staffed.
   for (const c of availableCourses.slice(0, 3)) {
+    if (c.requiresFaculty && !s.faculty.some((f) => f.id === `test-${c.requiresFaculty}`)) staffField(s, c.requiresFaculty);
     s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: c.id });
   }
   const developingCount = availableCourses.slice(0, 3)
@@ -335,19 +340,19 @@ function relPath(f: string): string {
 }
 
 // =====================================================================
-// 7. RIGID CURRICULUM GATING — gen-ed -> hall -> founding -> T1 -> T2 -> T3
-// (Plan 14). There is no school building: a program is founded by taking
-// a slot in a standing hall, which is the only way its tier-1 course ever
-// starts, and every course of the program waits on that home.
+// 7. RIGID CURRICULUM GATING — hall -> founding -> T1 -> T2 -> T3 (Plan
+// 14; Plan 19 took the gen-ed core out from under it). There is no school
+// building: a program is founded by taking a slot in a standing hall,
+// which is the only way its tier-1 course ever starts, and every course
+// of the program waits on that home.
 // =====================================================================
 {
   const tech = initialTech();
   const byId = new Map(tech.map((t) => [t.id, t]));
 
   const t1 = byId.get('FINA101')!;
-  assert(t1.prereqs.length === 6 && t1.prereqs.every((p) => p.startsWith('GE1')),
-    'a T1 course requires the entire gen-ed core, nothing else');
-  assert(!tech.some((t) => t.kind === 'building' && t.id.startsWith('BLDG-') && t.id !== GENED_BUILDING_ID && t.graduateProgram === undefined),
+  assert(t1.prereqs.length === 0, 'a T1 course has no prereqs at all — its home is a dynamic gate');
+  assert(!tech.some((t) => t.kind === 'building' && t.id.startsWith('BLDG-') && t.id !== FOUNDERS_HALL_ID && t.graduateProgram === undefined),
     'no degree-granting school has a building of its own in the seed');
 
   const t2 = byId.get('FINA110')!;
@@ -371,17 +376,18 @@ function relPath(f: string): string {
   const isLocked = (id: string) => s.tech.find((t) => t.id === id)?.status === 'locked';
   const isDoneIn = (st: GameState, id: string) => st.tech.find((t) => t.id === id)?.status === 'done';
 
-  assert(isLocked('FINA101'), 'FINA101 starts locked (gen-ed not yet done)');
-  assert(isLocked('HALL-01'), 'the first academic hall starts locked');
+  assert(isLocked('FINA101'), 'FINA101 starts locked (its program has no home)');
   assert(isLocked('FINA110'), 'FINA110 starts locked');
+  assert(isAvail('ENGL120'), 'a founding program\'s next course opens at founding — housed, and its entry course done');
 
-  // Finish the gen-ed core.
-  for (const id of ['GE110', 'GE120', 'GE130', 'GE140', 'GE150', 'GE160']) {
-    s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
-  }
+  // Teach two more courses, which is what the first hall waits on (Plan
+  // 19's PR B): the founding faculty have a slot for one; the other needs
+  // a hire.
+  staffField(s, 'History');
+  for (const id of ['ENGL120', 'HIST120']) s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
   s = advanceUntil(s, (st) => isAvailIn(st, 'HALL-01'), 60);
-  assert(isAvail('HALL-01'), 'the first hall opens once the entire gen-ed core is done');
-  assert(isLocked('FINA101'), 'FINA101 stays locked — its program has no home, however complete the core');
+  assert(isAvail('HALL-01'), 'the first hall opens once the college teaches eight courses');
+  assert(isLocked('FINA101'), 'FINA101 stays locked — its program has no home');
   assert(s.programOffers.length === 3, 'three programs are on offer');
   assert(s.programOffers.every((id) => isLocked(programById(id)!.entryCourseId)),
     "every offered program's entry course is still locked");
@@ -547,7 +553,7 @@ function relPath(f: string): string {
 // three rules persistence.ts's sanitizeHalls enforces on load.
 // =====================================================================
 function assertHallsInvariants(s: GameState, label: string): void {
-  const programIds = new Set<string>(['CORE', ...majorPrefixes(), ...graduatePrograms().map((p) => p.id)]);
+  const programIds = new Set<string>([...majorPrefixes(), ...graduatePrograms().map((p) => p.id)]);
   const housed = new Map<string, string>();
   for (const [hallId, slots] of Object.entries(s.halls)) {
     const hall = s.tech.find((t) => t.id === hallId);
@@ -567,44 +573,47 @@ function assertHallsInvariants(s: GameState, label: string): void {
   assert(s.programOffers.length <= PROGRAM_OFFER_COUNT, `${label}: at most ${PROGRAM_OFFER_COUNT} offers`);
   assert(new Set(s.programOffers).size === s.programOffers.length, `${label}: offers are distinct`);
   for (const id of s.programOffers) {
-    assert(programIds.has(id) && id !== 'CORE', `${label}: offer ${id} is a real program`);
+    assert(programIds.has(id), `${label}: offer ${id} is a real program`);
     assert(!isHoused(s, id), `${label}: offer ${id} is not already housed`);
   }
 }
 {
-  // A founding save: one hall, one slot, the core in it, nothing else.
+  // A founding save (Plan 19): one hall, six slots, the three founding
+  // programs in it, three rooms free, and three programs on offer of which
+  // at least one the roster can staff.
   let s = fresh();
   assertHallsInvariants(s, 'founding');
-  assert(Object.keys(s.halls).length === 1 && s.halls[GENED_BUILDING_ID]?.length === 1,
-    'a founding save has one hall with one slot');
-  assert(s.halls[GENED_BUILDING_ID]?.[0]?.programId === 'CORE', 'and the core is in it');
-  assert(s.tech.find((t) => t.id === GENED_BUILDING_ID)?.slots === 1, 'Founders Hall is seeded with one slot');
-  assert(s.programOffers.length === 0, 'nothing is offered at founding');
+  assert(Object.keys(s.halls).length === 1 && s.halls[FOUNDERS_HALL_ID]?.length === ACADEMIC_HALL_SLOTS,
+    'a founding save has one hall with six slots');
+  assert(FOUNDING_PROGRAMS.every((id, i) => s.halls[FOUNDERS_HALL_ID]?.[i]?.programId === id), 'the founding programs are in its first three');
+  assert(s.halls[FOUNDERS_HALL_ID]?.slice(FOUNDING_PROGRAMS.length).every((slot) => slot.programId === null), 'and the rest are empty');
+  assert(s.tech.find((t) => t.id === FOUNDERS_HALL_ID)?.slots === ACADEMIC_HALL_SLOTS, 'Founders Hall is seeded with six slots like every other hall');
+  assert(s.programOffers.length === PROGRAM_OFFER_COUNT, `three programs are on offer at founding (got ${s.programOffers.length})`);
+  assert(s.programOffers.some((id) => FOUNDING_OFFER_GUARANTEE.includes(id)), `one of them is a program the roster can staff (${s.programOffers.join(', ')})`);
+  assert(startedSchools(s).size === 1 && startedSchools(s).has(programById(FOUNDING_PROGRAMS[0])!.school), 'the opening school is the one started school');
+  assert(s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length === 6, 'six courses are developed at founding');
 
-  // The chain: twelve halls of six, strictly sequential, the first waiting
-  // on the gen-ed core.
-  const halls = s.tech.filter(isAcademicHall);
-  assert(halls.length === ACADEMIC_HALL_COUNT, `the seed holds ${ACADEMIC_HALL_COUNT} academic halls (got ${halls.length})`);
+  // The chain: Founders Hall standing, then eleven halls of six, strictly
+  // sequential, the first with no Buildable prereq (its gate is dynamic).
+  const halls = s.tech.filter((t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID);
+  assert(halls.length === ACADEMIC_HALL_COUNT, `the seed holds ${ACADEMIC_HALL_COUNT} academic halls beyond Founders (got ${halls.length})`);
   assert(halls.every((h) => h.slots === ACADEMIC_HALL_SLOTS), 'every academic hall has six slots');
-  assert(halls.every((h) => h.status === 'locked'), 'no academic hall is buildable at founding');
-  assert(halls[0].prereqs.length === 6 && halls[0].prereqs.every((p) => p.startsWith('GE1')),
-    'the first hall requires the entire gen-ed core');
+  assert(halls.slice(1).every((h) => h.status === 'locked'), 'no hall past the first is buildable at founding');
+  assert(halls[0].prereqs.length === 0, 'the first hall has no Buildable prereq');
   assert(halls.slice(1).every((h, i) => h.prereqs.length === 1 && h.prereqs[0] === halls[i].id),
     'each later hall requires exactly the hall before it');
   assert(halls.every((h, i) => i === 0 || h.cost > halls[i - 1].cost), 'each hall costs more than the one before');
 
-  // Drive it: finish the core, build the first hall, and its slots open
-  // empty the week it finishes — not before.
+  // Drive it: teach two more courses, build the first hall, and its slots
+  // open empty the week it finishes — not before.
   s.finance.cash = 500_000_000;
-  for (const id of ['GE110', 'GE120', 'GE130', 'GE140', 'GE150', 'GE160']) {
-    s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
-  }
+  staffField(s, 'History');
+  for (const id of ['ENGL120', 'HIST120']) s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
   const first = halls[0].id;
   s = advanceUntil(s, (st) => st.tech.find((t) => t.id === first)?.status === 'available', 60);
-  assert(s.tech.find((t) => t.id === first)?.status === 'available', 'the first hall opens once the gen-ed core is done');
-  assert(s.programOffers.length === PROGRAM_OFFER_COUNT, `three programs are on offer the week the core completes (got ${s.programOffers.length})`);
-  assert(startedSchools(s).size === 1, 'only General Studies counts as started — the core is housed, nothing else is');
-  assertHallsInvariants(s, 'core complete');
+  assert(s.tech.find((t) => t.id === first)?.status === 'available', 'the first hall opens once eight courses are taught');
+  assert(s.programOffers.length === PROGRAM_OFFER_COUNT, `three programs are still on offer (got ${s.programOffers.length})`);
+  assertHallsInvariants(s, 'eight courses');
   assert(s.tech.find((t) => t.id === halls[1].id)?.status === 'locked', 'the second hall stays locked behind the first');
   s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: first, row: 40, col: 90, rotated: false });
   assert(s.tech.find((t) => t.id === first)?.status === 'developing', 'the first hall is under construction');
@@ -769,7 +778,10 @@ function assertHallsInvariants(s: GameState, label: string): void {
 // =====================================================================
 {
   let state = fresh();
-  const victim = state.faculty[0];
+  // A founding professor with an open course in their field and a slot to
+  // teach it: Bennett, whose third slot is the roster's one spare among
+  // the founding programs (see actions.ts).
+  const victim = state.faculty.find((f) => state.tech.some((t) => t.requiresFaculty === f.field && t.status === 'available') && hasFreeSlot(state, f))!;
   const theirCourse = state.tech.find((t) => t.requiresFaculty === victim.field && t.status === 'available');
   assert(theirCourse !== undefined, 'the dismissal sweep found a course in the target field');
   if (theirCourse) {

@@ -45,14 +45,15 @@ function hire(s: GameState, id: string, field: string, teaching: number, courseS
   return f;
 }
 
-// Two English professors on the two English gen-ed courses — the pairing
-// that exists at founding, but with the weaker one on the harder course.
+// Two English professors on the two founding English courses — the
+// pairing that exists at founding, but with the weaker one on the harder
+// course.
 function staffed(): GameState {
   const s = createInitialState('Swappers');
   s.faculty = s.faculty.filter((f) => f.field !== 'English');
   hire(s, 'strong', 'English', 90);
   hire(s, 'weak', 'English', 40);
-  for (const [id, who] of [['GE110', 'weak'], ['GE160', 'strong']] as const) {
+  for (const [id, who] of [['ENGL101', 'weak'], ['ENGL110', 'strong']] as const) {
     s.tech.find((t) => t.id === id)!.status = 'done';
     s.courseFaculty[id] = who;
   }
@@ -64,16 +65,16 @@ console.log('instructor swap tests');
 // ---- a legal swap changes both ----
 {
   let s = staffed();
-  assert(canSwapInstructors(s, 'GE110', 'GE160'), 'two staffed courses in one department can swap');
-  const a = s.tech.find((t) => t.id === 'GE110')!;
+  assert(canSwapInstructors(s, 'ENGL101', 'ENGL110'), 'two staffed courses in one department can swap');
+  const a = s.tech.find((t) => t.id === 'ENGL101')!;
   const strong = s.faculty.find((f) => f.id === 'strong')!;
   const previewA = projectedQuality(s, a, strong);
-  s = reducer(s, { type: 'SWAP_COURSE_FACULTY', courseA: 'GE110', courseB: 'GE160' });
-  assert(s.courseFaculty['GE110'] === 'strong' && s.courseFaculty['GE160'] === 'weak', 'the two instructors trade courses');
+  s = reducer(s, { type: 'SWAP_COURSE_FACULTY', courseA: 'ENGL101', courseB: 'ENGL110' });
+  assert(s.courseFaculty['ENGL101'] === 'strong' && s.courseFaculty['ENGL110'] === 'weak', 'the two instructors trade courses');
   assert(previewA.grade !== undefined, 'the preview computed a grade for the incoming professor');
   // Symmetric: swapping back restores it.
-  s = reducer(s, { type: 'SWAP_COURSE_FACULTY', courseA: 'GE160', courseB: 'GE110' });
-  assert(s.courseFaculty['GE110'] === 'weak' && s.courseFaculty['GE160'] === 'strong', 'and the swap is symmetric');
+  s = reducer(s, { type: 'SWAP_COURSE_FACULTY', courseA: 'ENGL110', courseB: 'ENGL101' });
+  assert(s.courseFaculty['ENGL101'] === 'weak' && s.courseFaculty['ENGL110'] === 'strong', 'and the swap is symmetric');
 }
 
 // ---- illegal drops change nothing ----
@@ -81,24 +82,23 @@ console.log('instructor swap tests');
   const s = staffed();
   const before = JSON.stringify(s.courseFaculty);
   // Wrong department.
-  s.tech.find((t) => t.id === 'GE120')!.status = 'done';
-  s.courseFaculty['GE120'] = 'f4'; // Mathematics
-  assert(!canSwapInstructors(s, 'GE110', 'GE120'), 'a course in another department is not a legal target');
+  assert(s.tech.find((t) => t.id === 'HIST101')!.status === 'done' && s.courseFaculty['HIST101'] === 'f2', 'fixture: a founding History course, taught by the History hire');
+  assert(!canSwapInstructors(s, 'ENGL101', 'HIST101'), 'a course in another department is not a legal target');
   // The same course, or the same person.
-  assert(!canSwapInstructors(s, 'GE110', 'GE110'), 'a course cannot swap with itself');
-  s.courseFaculty['GE160'] = 'weak';
-  assert(!canSwapInstructors(s, 'GE110', 'GE160'), 'two courses taught by the same person have nothing to swap');
-  s.courseFaculty['GE160'] = 'strong';
+  assert(!canSwapInstructors(s, 'ENGL101', 'ENGL101'), 'a course cannot swap with itself');
+  s.courseFaculty['ENGL110'] = 'weak';
+  assert(!canSwapInstructors(s, 'ENGL101', 'ENGL110'), 'two courses taught by the same person have nothing to swap');
+  s.courseFaculty['ENGL110'] = 'strong';
   // An unstaffed course.
-  delete s.courseFaculty['GE160'];
-  assert(!canSwapInstructors(s, 'GE110', 'GE160'), 'an unstaffed course is not a swap — nobody is displaced to unassigned');
-  s.courseFaculty['GE160'] = 'strong';
+  delete s.courseFaculty['ENGL110'];
+  assert(!canSwapInstructors(s, 'ENGL101', 'ENGL110'), 'an unstaffed course is not a swap — nobody is displaced to unassigned');
+  s.courseFaculty['ENGL110'] = 'strong';
   // An undeveloped course.
-  assert(!canSwapInstructors(s, 'GE110', 'GE130'), 'a course not yet offered is not a target');
+  assert(!canSwapInstructors(s, 'ENGL101', 'ENGL120'), 'a course not yet offered is not a target');
   // The reducer refuses all of it silently.
-  const after = reducer(JSON.parse(JSON.stringify(s)) as GameState, { type: 'SWAP_COURSE_FACULTY', courseA: 'GE110', courseB: 'GE130' });
+  const after = reducer(JSON.parse(JSON.stringify(s)) as GameState, { type: 'SWAP_COURSE_FACULTY', courseA: 'ENGL101', courseB: 'ENGL120' });
   assert(JSON.stringify(after.courseFaculty) === JSON.stringify(s.courseFaculty), 'a refused swap writes nothing');
-  assert(JSON.stringify({ ...s.courseFaculty, GE120: undefined }).includes('weak') && before.length > 0, 'fixture intact');
+  assert(JSON.stringify({ ...s.courseFaculty, HIST101: undefined }).includes('weak') && before.length > 0, 'fixture intact');
 }
 
 // ---- a swap never needs a slot, so a full professor can still trade ----
@@ -106,7 +106,7 @@ console.log('instructor swap tests');
   const s = staffed();
   s.faculty.find((f) => f.id === 'strong')!.courseSlots = 1;
   s.faculty.find((f) => f.id === 'weak')!.courseSlots = 1;
-  assert(canSwapInstructors(s, 'GE110', 'GE160'), 'two professors each at their one-course ceiling can still swap — nobody gains a course');
+  assert(canSwapInstructors(s, 'ENGL101', 'ENGL110'), 'two professors each at their one-course ceiling can still swap — nobody gains a course');
 }
 
 if (failures === 0) {

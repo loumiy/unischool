@@ -360,8 +360,8 @@ export interface Buildable {
   // figure despite the missing `effects`.
   chapterHouse?: true;
   // How many PROGRAM SLOTS this building holds — set only on hall-kind
-  // 'building' Buildables (techData.ts's academic hall chain, six each, and
-  // Founders Hall, one) and on nothing else. A slot is where a program
+  // 'building' Buildables (techData.ts's academic hall chain and Founders
+  // Hall, six each) and on nothing else. A slot is where a program
   // lives: founding a program takes an empty slot in a standing hall, and
   // six programs of one school in one hall is what founds that school (see
   // the HallSlot block below and docs/design/curriculum.md). The slots
@@ -1390,15 +1390,16 @@ export interface YearSnapshot {
 // grid whose tiles never shuffle under the player.
 //
 // A PROGRAM ID is the major's course-code prefix ('FINA', 'MECH' — the
-// same prefix milestoneSchools() keys a major by), 'CORE' for the gen-ed
-// core, or a graduate program's id ('MED', 'PHDE'). Nothing here is a
+// same prefix milestoneSchools() keys a major by) or a graduate program's
+// id ('MED', 'PHDE'). Nothing here is a
 // Buildable id: a program is the nine (or however many) courses that share
 // a prefix, and it is housed as a unit.
 //
 // A hall's entry is written the week the hall FINISHES (techSystem.ts),
 // with every slot empty — a hall under construction has no room to put
 // anything in yet — and Founders Hall's is seeded at founding with the
-// core already in its one slot (actions.ts). From then on the entry is the
+// three founding programs in its first three slots (actions.ts, Plan 19).
+// From then on the entry is the
 // whole answer to "what is in this building": founding a program fills a
 // slot, relocating one moves it, and a school is founded by a READING over
 // this record (six slots, one school) rather than by any flag written

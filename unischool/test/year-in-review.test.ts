@@ -19,7 +19,6 @@ import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { buildYearInReview, projectedAttrition, yearLog } from '../src/state/yearInReview';
-import { GENED_CORE_IDS } from '../src/data/techData';
 import { FOUNDING_PRESET } from '../src/data/foundingData';
 import type { GameState } from '../src/state/types';
 import { LOG_CAP, WEEKS_PER_YEAR } from '../src/state/types';
@@ -57,15 +56,23 @@ console.log('year in review tests');
 // --- a year of play files under the right sections ------------------------
 {
   let s = createInitialState('Review');
-  // Start the whole gen-ed core in week 1 with the founding faculty, so
-  // the year has courses to finish.
-  for (const id of GENED_CORE_IDS) {
-    const course = s.tech.find((t) => t.id === id)!;
+  // Start every open course in week 1, so the year has courses to finish
+  // (the founding programs' next courses are open from day one — Plan 19;
+  // the founding faculty have one free slot among the three fields, so
+  // two departments get a fixture hire).
+  for (const field of ['History', 'Philosophy']) {
+    s.faculty.push({
+      id: `test-${field}`, name: `Dr. Test ${field}`, field,
+      teaching: 80, research: 60, teachingPotential: 90, researchPotential: 70,
+      tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: 0, courseSlots: 10,
+      nationality: 'United States', flag: '🇺🇸', bio: 'A test fixture, not a character.', gender: 'male', heritage: 'Anglo/Western European',
+    });
+  }
+  for (const id of s.tech.filter((t) => t.kind === 'course' && t.status === 'available').map((t) => t.id)) {
     s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id, facultyId: undefined });
-    void course;
   }
   const developing = Object.keys(s.developing).length;
-  assert(developing > 0, `the founding faculty can start core courses (${developing} developing)`);
+  assert(developing > 0, `the founding faculty can start a founding program's next course (${developing} developing)`);
   // Appoint the first candidate on the market and dismiss them again: an
   // appointment and a departure in the same year.
   const candidate = s.candidates[0];
@@ -81,7 +88,7 @@ console.log('year in review tests');
   const finished = entries.filter((e) => e.topic === 'course').length;
   assert(finished === developing, `every course that finished carries the course topic (${finished} of ${developing})`);
   assert(built.lines[0]?.text === `${developing} courses finished`, `and the Built section counts them (${built.lines[0]?.text})`);
-  assert(built.lines.some((l) => l.text.includes('General Studies') || l.text.includes('in ')), 'grouped by school');
+  assert(built.lines.some((l) => l.text.includes('Social Sciences & Humanities') || l.text.includes('in ')), 'grouped by school');
 
   const people = text(s, 'people');
   assert(people.includes(`Appointed ${candidate.name}`), `the appointment is listed (${people})`);
@@ -138,7 +145,7 @@ console.log('year in review tests');
   assert(row.applicants === after.students.applicantPool, 'the pool the funnel drew');
   assert(Math.abs(row.admitRate - 0.25) < 1e-9, 'the share chosen');
   assert(row.incomingQuality === after.students.incomingQuality, 'the class\'s quality');
-  assert(row.coursesFinished === 0 && row.coursesDone === 0, 'nothing finished in a year nothing was started');
+  assert(row.coursesFinished === 0 && row.coursesDone === 6, 'nothing finished in a year nothing was started — the founding six were developed before it');
   void before;
 
   // A second year measures from the first row.
