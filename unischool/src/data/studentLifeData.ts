@@ -819,7 +819,9 @@ const TRAINER_WEIGHT = 0.25;
 // contribution rather than the whole department — a brilliant director cannot
 // carry teams with nobody coaching them, which is the thing PR 2E's shortage
 // interrupts exist to keep visible.
-const AD_QUALITY_SHARE = 0.12; // a 90-quality director is worth ~11 to every team
+// 0.12 until Plan 21's PR I (a 90 director was worth ~11 to every team), which
+// lowered the department's whole ceiling — see COACHING_SHARE below.
+const AD_QUALITY_SHARE = 0.08; // a 90-quality director is worth ~7 to every team
 
 export function athleticDirectorBonus(s: GameState): number {
   const ad = s.orgs.athleticDirector;
@@ -830,12 +832,22 @@ export function athleticDirectorBonus(s: GameState): number {
 // the director. This is the number the gate reads (systems/athletics/
 // gate.ts) — a crowd follows the coaching, not the pot, and reading the pot
 // there would make the pot's earned half depend on the pot.
+// THE CEILING (Plan 21's PR I). A maxed department used to reach 118.8 —
+// three chairs at 90, plus 18 for the budget, plus 10.8 for a 90 director
+// — clamped to 100 in every sport at once, so the last twenty points of
+// coaching were decorative and the top of the market bought nothing. The
+// staff now weighs COACHING_SHARE, the funded bonus is 10 and the director
+// 0.08 a point: three chairs at 90, fully funded, with a 90 director, is
+// 82.8 + 10 + 7.2 = 100 exactly. Every point of coaching is worth something
+// all the way up, and a dynasty is a thing that has to be held.
+const COACHING_SHARE = 0.92;
+
 export function coachingQuality(team: VarsityTeam, s: GameState): number {
   const weighted =
     (team.headCoach?.quality ?? COACH_VACANCY_QUALITY) * HEAD_COACH_WEIGHT
     + (team.assistantCoach?.quality ?? COACH_VACANCY_QUALITY) * ASSISTANT_COACH_WEIGHT
     + (team.trainer?.quality ?? COACH_VACANCY_QUALITY) * TRAINER_WEIGHT;
-  return Math.max(0, Math.min(100, weighted + athleticDirectorBonus(s)));
+  return Math.max(0, Math.min(100, weighted * COACHING_SHARE + athleticDirectorBonus(s)));
 }
 
 // WHAT A PROGRAM'S SHARE OF THE POT BUYS IT (Plan 21's PR G). A fully
@@ -846,7 +858,7 @@ export function coachingQuality(team: VarsityTeam, s: GameState): number {
 // the same floor-rather-than-zero shape COACH_VACANCY_QUALITY uses, so the
 // cut line is a gradient and not a cliff and the bottom of a long list is
 // not dead weight.
-const FUNDED_QUALITY_BONUS = 18;
+const FUNDED_QUALITY_BONUS = 10; // 18 at PR G; lowered with the rest of the ceiling at PR I
 const UNDERFUNDING_PENALTY = 0.15; // a program drawing nothing runs at 85% of what its staff is worth
 
 export function teamQuality(team: VarsityTeam, s: GameState): number {

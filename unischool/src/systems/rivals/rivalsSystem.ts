@@ -68,6 +68,26 @@ export const ELITE_CLOSE_RATE = 0.35; // 0.65^5 ≈ 0.12: a ten-point gap is a l
 // How far an elite rival's reputation moves this year toward the leader.
 // Zero below the prestige gate, zero for a rival already at or above the
 // target, and never a draw on any stream.
+// THE ATHLETIC FIELD CLOSES TOO (Plan 21's PR I). The elite band above
+// applies to reputation only, so the athletic field never reacted to the
+// player: a department at 95 in every sport sat there. The strongest
+// ATHLETIC_CLOSING_FIELD rivals by athletic strength now drift toward the
+// player's own program strength less ATHLETIC_CLOSE_GAP once the player is
+// above ATHLETIC_CLOSE_ABOVE, on the same rate — a dynasty is a thing that
+// has to be held, which is the move Plan 17 already made for the academic
+// number. Read against athleticProgramStrength, the same number the
+// department-wide table ranks.
+export const ATHLETIC_CLOSE_ABOVE = 75;
+export const ATHLETIC_CLOSE_GAP = 6;
+export const ATHLETIC_CLOSING_FIELD = 10;
+
+export function athleticClosingStep(rivalStrength: number, playerStrength: number): number {
+  if (playerStrength <= ATHLETIC_CLOSE_ABOVE) return 0;
+  const target = playerStrength - ATHLETIC_CLOSE_GAP;
+  if (rivalStrength >= target) return 0;
+  return (target - rivalStrength) * ELITE_CLOSE_RATE;
+}
+
 export function eliteClosingStep(rivalReputation: number, playerReputation: number): number {
   if (playerReputation <= ELITE_CLOSE_ABOVE_PRESTIGE) return 0;
   const target = playerReputation - ELITE_CLOSE_GAP;
@@ -154,6 +174,12 @@ export function tickRivals(s: GameState): void {
     const socialRoll = makeRivalRng(seed ^ 0x9e37_79b9);
     const researchRoll = makeRivalRng(seed ^ 0x85eb_ca6b);
     const athleticRoll = makeRivalRng(seed ^ 0xc2b2_ae35);
+    // The athletic closing band's members: the strongest few by athletic
+    // strength as the year opens, and the player's own strength read once.
+    const playerStrength = athleticProgramStrength(s);
+    const athleticElite = new Set(
+      [...s.rivals].sort((a, b) => b.athleticStrength - a.athleticStrength).slice(0, ATHLETIC_CLOSING_FIELD).map((r) => r.id),
+    );
     for (const r of s.rivals) {
       // Occasionally reroll momentum so trends aren't permanent.
       if (roll() < MOMENTUM_REROLL_CHANCE) {
@@ -203,8 +229,9 @@ export function tickRivals(s: GameState): void {
       // letting a rival drift to 150 would put the whole field permanently
       // out of reach of a number that cannot exceed 100.
       r.athleticMomentum = driftMomentum(r.athleticMomentum, athleticRoll);
+      const athleticClosing = athleticElite.has(r.id) ? athleticClosingStep(r.athleticStrength, playerStrength) : 0;
       r.athleticStrength = clamp(
-        r.athleticStrength + r.athleticMomentum + (athleticRoll() - 0.5) * ANNUAL_SHOCK_RANGE,
+        r.athleticStrength + r.athleticMomentum + (athleticRoll() - 0.5) * ANNUAL_SHOCK_RANGE + athleticClosing,
         ATHLETIC_STRENGTH_MIN, ATHLETIC_STRENGTH_MAX,
       );
     }
