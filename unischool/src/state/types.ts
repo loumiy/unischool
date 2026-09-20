@@ -1327,7 +1327,7 @@ export interface ReportCard {
 // grades are the record. Plain JSON — strings and numbers — so a sealed
 // legacy survives a save untouched.
 export type LegacyGrade = 'A' | 'B' | 'C' | 'D' | 'F';
-export type LegacyAxisKey = 'breadth' | 'concentration' | 'teaching' | 'research' | 'reach' | 'stewardship';
+export type LegacyAxisKey = 'breadth' | 'concentration' | 'teaching' | 'research' | 'reach' | 'stewardship' | 'campusLife';
 
 export interface LegacyAxis {
   key: LegacyAxisKey;

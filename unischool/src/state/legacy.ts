@@ -5,11 +5,12 @@ import { GRADE_A, GRADE_C, gradeFor } from '../data/courseQuality';
 import { courseQuality, facultyLoads } from '../systems/faculty/facultyAssignment';
 import {
   RESEARCH_CREDITS_FOR_FULL_SCORE, concentrationScore, curriculumBreadthScore, researchCredits, researchScore,
+  socialStandingBreakdown,
 } from '../systems/prestige/prestigeSystem';
 import { isSchoolFounded } from '../systems/techtree/schools';
 
 // ---------------------------------------------------------------------
-// THE LEGACY (Plan 17's PR B): what the run adds up to, as six graded
+// THE LEGACY (Plan 17's PR B): what the run adds up to, as seven graded
 // axes and a name. A pure reading of the state as it stands — the same
 // shape as yearInReview.ts: nothing here is a system, nothing is stored
 // by this file, and every figure is one the game already keeps. The
@@ -18,12 +19,12 @@ import { isSchoolFounded } from '../systems/techtree/schools';
 // History tab can show what the run WOULD be called today, the way the
 // Standing panel shows what the year is grading toward.
 //
-// WHY SIX GRADES AND NOT A SCORE. A single number ranks runs, and a
+// WHY SEVEN GRADES AND NOT A SCORE. A single number ranks runs, and a
 // ranking has one right answer — which is precisely the "build everything"
-// the September review found had turned the game into a checklist. Six
+// the September review found had turned the game into a checklist. Seven
 // axes let a small selective college and a broad state university both
 // finish with something to be proud of and something they gave up, and be
-// *called* something for the shape of it. The name is flavour; the six
+// *called* something for the shape of it. The name is flavour; the seven
 // grades are the record.
 //
 // WHAT THE AXES READ. Each is a 0..1 reading built from the same pure
@@ -32,9 +33,14 @@ import { isSchoolFounded } from '../systems/techtree/schools';
 // grade this way: teaching as the campus grade AND the share of courses
 // taught well, reach as the greater of how selective the school is and
 // how far past its standing it draws, and stewardship as solvency, wealth
-// per student and the students' own fifty-year average. Campus life is
-// deliberately not an axis (see Plan 17 §B): it cannot yet be earned, and
-// an axis every run grades the same is not a record of anything.
+// per student and the students' own fifty-year average. Campus life was
+// left out by Plan 17 (its §B) because it could not yet be earned, and an
+// axis every run grades the same is not a record of anything; Plan 21's PR
+// B made it earnable — venues carry a contribution, programs and titles
+// feed it — and added it as the seventh, read off the same inputs
+// campus-life standing composes. Stewardship is about RUNNING a school;
+// campus life is a thing the school IS, which is why it is its own axis
+// rather than folded into that one.
 //
 // THE BANDS are the calibration Plan 17's PR E fits: an A in breadth is
 // what the earnest completionist reaches at fifty, a C is what a balanced
@@ -194,6 +200,27 @@ function concentrationDetail(s: GameState): string {
     + (founded.length > 0 ? ` — ${founded.map((school) => school.schoolName).join(', ')}.` : '.');
 }
 
+// --- campus life ---------------------------------------------------------------
+// The same inputs campus-life standing composes (prestigeSystem.ts's
+// socialStandingBreakdown): the places built for it, the organisations, the
+// varsity programs, what students report, and the titles — each weighted as
+// the standing weights it, read as a share of what they could sum to. A run
+// that won twenty national titles and a run that never fielded a team are no
+// longer graded on the same axes.
+function campusLifeReading(s: GameState): { score: number; detail: string } {
+  const inputs = socialStandingBreakdown(s).inputs;
+  const possible = inputs.reduce((sum, input) => sum + input.weight, 0);
+  const earned = inputs.reduce((sum, input) => sum + input.contribution, 0);
+  const teams = s.orgs.teams.filter((t) => t.status === 'active').length;
+  const titles = s.orgs.titles.length;
+  return {
+    score: possible > 0 ? clamp01(earned / possible) : 0,
+    detail: `${s.orgs.clubs.length} club${s.orgs.clubs.length === 1 ? '' : 's'} and ${s.orgs.chapters.length} chapter${s.orgs.chapters.length === 1 ? '' : 's'}; `
+      + `${teams} varsity team${teams === 1 ? '' : 's'} and ${titles} national title${titles === 1 ? '' : 's'}; `
+      + `students rate their social life ${s.students.satisfactionBreakdown.social.toFixed(0)} of 100.`,
+  };
+}
+
 interface AxisSpec {
   key: LegacyAxisKey;
   label: string;
@@ -213,6 +240,7 @@ export const AXES: readonly AxisSpec[] = [
   },
   { key: 'reach', label: 'Selectivity and reach', read: reachReading },
   { key: 'stewardship', label: 'Stewardship', read: stewardshipReading },
+  { key: 'campusLife', label: 'Campus life', read: campusLifeReading },
 ];
 
 // ---------------------------------------------------------------------
@@ -234,7 +262,7 @@ interface NameEntry {
 const atLeast = (g: Grades, key: LegacyAxisKey, grade: LegacyGrade) => GRADE_RANK[g[key]] >= GRADE_RANK[grade];
 const atMost = (g: Grades, key: LegacyAxisKey, grade: LegacyGrade) => GRADE_RANK[g[key]] <= GRADE_RANK[grade];
 const count = (g: Grades, test: (grade: LegacyGrade) => boolean) => (Object.values(g) as LegacyGrade[]).filter(test).length;
-const all = (g: Grades, grade: LegacyGrade) => count(g, (x) => GRADE_RANK[x] >= GRADE_RANK[grade]) === 6;
+const all = (g: Grades, grade: LegacyGrade) => count(g, (x) => GRADE_RANK[x] >= GRADE_RANK[grade]) === AXES.length;
 
 export const LEGACY_NAMES: readonly NameEntry[] = [
   // --- troubled: the runs that went wrong somewhere -------------------------------
@@ -252,6 +280,11 @@ export const LEGACY_NAMES: readonly NameEntry[] = [
   { name: 'a place students never leave', table: 'great', when: (g) => g.stewardship === 'A' && g.teaching === 'A' && atLeast(g, 'reach', 'B') },
   { name: "a specialist's school", table: 'great', when: (g) => g.concentration === 'A' && atLeast(g, 'research', 'B') && atMost(g, 'breadth', 'C') },
   { name: "the country's teaching college", table: 'great', when: (g) => g.teaching === 'A' && atMost(g, 'breadth', 'C') && atMost(g, 'research', 'C') },
+  // The athletic entries (Plan 21's PR B): a run whose leading axis is campus
+  // life can be named for it. After the academic names, so a great research
+  // university with a football team is still a great research university.
+  { name: 'the university the whole state cheers for', table: 'great', when: (g) => g.campusLife === 'A' && atLeast(g, 'reach', 'B') && atLeast(g, 'breadth', 'B') },
+  { name: 'a college with a great Saturday', table: 'great', when: (g) => g.campusLife === 'A' && atLeast(g, 'teaching', 'B') && atLeast(g, 'stewardship', 'B') },
   // --- sound: a good school, one way or another --------------------------------
   { name: 'a sound university', table: 'sound', when: (g) => count(g, (x) => GRADE_RANK[x] >= GRADE_RANK.B) >= 4 && atLeast(g, 'stewardship', 'C') && all(g, 'D') },
   { name: 'a well-run college', table: 'sound', when: (g) => g.stewardship === 'A' && all(g, 'C') },
@@ -260,6 +293,7 @@ export const LEGACY_NAMES: readonly NameEntry[] = [
   { name: 'a rich school with little to show for it', table: 'sound', when: (g) => g.stewardship === 'A' && atMost(g, 'breadth', 'D') && atMost(g, 'research', 'D') },
   { name: 'a broad school, thinly taught', table: 'sound', when: (g) => atLeast(g, 'breadth', 'B') && atMost(g, 'teaching', 'C') },
   { name: 'a college that punches above its weight', table: 'sound', when: (g) => atLeast(g, 'teaching', 'B') && atLeast(g, 'reach', 'B') && atMost(g, 'breadth', 'C') },
+  { name: 'a school better known for its teams than its classes', table: 'sound', when: (g) => atLeast(g, 'campusLife', 'B') && atMost(g, 'teaching', 'C') && atMost(g, 'research', 'C') },
   { name: 'a university of its own kind', table: 'sound', when: () => true },
 ];
 

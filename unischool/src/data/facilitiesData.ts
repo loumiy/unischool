@@ -469,6 +469,23 @@ const FOOTBALL_STADIUM_SERVES = 2_500;
 const FOOTBALL_STADIUM_COST = 6_500_000;
 const FOOTBALL_STADIUM_WEEKS = 40;
 
+// WHAT A VENUE IS WORTH TO CAMPUS LIFE (Plan 21's PR B). Until this the
+// rec centre's two rungs were the only Buildables carrying a
+// prestigeContribution, so prestigeSystem.ts's campus-life term — and the
+// "places built for it" input of campus-life standing, which reads the same
+// sum — could never be earned past +0.15; the weight was cut from 12 to 8
+// for exactly that reason, with a condition, and this is the condition
+// being met. Sized to the building: the stadium is the pinnacle venue and
+// carries the most; the five together (0.40) with the rec chain (0.15)
+// reach 0.55 of the term, so a school that builds every venue earns about
+// two thirds of what campus life can be worth, and the rest is the
+// organisations, the programs and the titles that fill them.
+const ATHLETICS_FIELD_PRESTIGE = 0.06;
+const ATHLETICS_ARENA_PRESTIGE = 0.10;
+const ATHLETICS_DIAMOND_PRESTIGE = 0.04;
+const ATHLETICS_NATATORIUM_PRESTIGE = 0.05;
+const FOOTBALL_STADIUM_PRESTIGE = 0.15;
+
 // ---------------------------------------------------------------------
 // CATEGORIES. A grouping layer ABOVE FacilityType, for UI organisation only
 // (the build popup's sectioning today — see BuildPopup.tsx's TYPE_MATCHERS —
@@ -847,6 +864,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: ATHLETICS_FIELD_SERVES,
         satisfactionAttribute: 'social',
+        prestigeContribution: ATHLETICS_FIELD_PRESTIGE,
         upkeepPerWeek: servedUpkeep('athleticsField', ATHLETICS_FIELD_SERVES),
       },
     },
@@ -864,6 +882,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: ATHLETICS_ARENA_SERVES,
         satisfactionAttribute: 'social',
+        prestigeContribution: ATHLETICS_ARENA_PRESTIGE,
         upkeepPerWeek: servedUpkeep('athleticsArena', ATHLETICS_ARENA_SERVES),
       },
     },
@@ -881,6 +900,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: ATHLETICS_DIAMOND_SERVES,
         satisfactionAttribute: 'social',
+        prestigeContribution: ATHLETICS_DIAMOND_PRESTIGE,
         upkeepPerWeek: servedUpkeep('athleticsDiamond', ATHLETICS_DIAMOND_SERVES),
       },
     },
@@ -898,6 +918,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: ATHLETICS_NATATORIUM_SERVES,
         satisfactionAttribute: 'social',
+        prestigeContribution: ATHLETICS_NATATORIUM_PRESTIGE,
         upkeepPerWeek: servedUpkeep('athleticsNatatorium', ATHLETICS_NATATORIUM_SERVES),
       },
     },
@@ -915,6 +936,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: FOOTBALL_STADIUM_SERVES,
         satisfactionAttribute: 'social',
+        prestigeContribution: FOOTBALL_STADIUM_PRESTIGE,
         upkeepPerWeek: servedUpkeep('footballStadium', FOOTBALL_STADIUM_SERVES),
       },
     },

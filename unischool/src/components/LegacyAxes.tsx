@@ -1,7 +1,7 @@
 import type { LegacyAxis } from '../state/types';
 
 // ---------------------------------------------------------------------
-// The six axes of a legacy as cards (Plan 17's PR C): the grade as the
+// The axes of a legacy as cards (Plan 17's PR C): the grade as the
 // same chip a course wears, the axis's name, and the one line about what
 // it read. Drawn by the final report and by the History tab's Legacy
 // panel, so the sealed record and the live reading look the same.
