@@ -269,7 +269,7 @@ export const LEGACY_NAMES: readonly NameEntry[] = [
   { name: 'a school that grew too fast', table: 'troubled', when: (g) => atLeast(g, 'breadth', 'B') && atMost(g, 'stewardship', 'D') },
   { name: 'a crowded school', table: 'troubled', when: (g) => atLeast(g, 'reach', 'B') && atMost(g, 'stewardship', 'D') },
   { name: 'a school that never got started', table: 'troubled', when: (g) => count(g, (x) => GRADE_RANK[x] <= GRADE_RANK.D) >= 5 },
-  { name: 'a college still finding itself', table: 'troubled', when: (g) => count(g, (x) => GRADE_RANK[x] <= GRADE_RANK.C) === 6 },
+  { name: 'a college still finding itself', table: 'troubled', when: (g) => count(g, (x) => GRADE_RANK[x] <= GRADE_RANK.C) === AXES.length },
   // --- great: the runs the game is about --------------------------------------
   { name: 'the university everything is measured against', table: 'great', when: (g) => all(g, 'A') },
   { name: 'a university in full', table: 'great', when: (g) => count(g, (x) => x === 'A') >= 5 && all(g, 'B') },

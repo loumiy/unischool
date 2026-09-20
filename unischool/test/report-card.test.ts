@@ -138,7 +138,7 @@ console.log('report card tests');
   const weight = (key: string) => made.inputs.find((i) => i.key === key)!.weight;
   assert(weight('breadth') === 50 && weight('concentration') === 30, 'breadth gave thirty of its ninety to concentration');
   assert(weight('welfare') === 20 && weight('crowding') === 25, 'welfare at twenty, crowding up to twenty-five');
-  assert(weight('campus') === 8 && weight('endowment') === 8, 'campus life and endowment cut to eight');
+  assert(weight('campus') === 12 && weight('endowment') === 8, 'campus life restored to twelve (Plan 21 PR B); endowment cut to eight');
   assert(weight('teaching') === 30 && weight('students') === 24 && weight('research') === 22, 'teaching, students and research unchanged');
   const ceiling = made.inputs.filter((i) => !i.penalty).reduce((sum, i) => sum + i.weight, made.baseline);
   assert(ceiling >= made.max, `every input at its cap still reaches the top of the band (${ceiling} >= ${made.max})`);
