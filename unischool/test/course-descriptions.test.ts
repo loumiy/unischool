@@ -30,7 +30,7 @@ function assert(cond: boolean, msg: string): void {
 // the last PR landed. 336 is where Plan 20's PR D starts: the 42 entry
 // courses have always been authored, and every tier-2 and tier-3 course
 // is on the fallback.
-const FALLBACK_CEILING = 336;
+const FALLBACK_CEILING = 144;
 
 console.log('course description tests');
 
