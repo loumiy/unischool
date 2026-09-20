@@ -163,6 +163,11 @@ console.log('research topic tests');
   // back around within the year.
   const MIN_DEPARTMENTAL = 4;   // the pilot tier draws from these alone
   const MIN_TOTAL = 8;
+  // A Landmark Program needs a cross-disciplinary topic, so this pool is
+  // the ceiling on the most prestigious work a facility can do; four
+  // apiece — one per depth tier — was where four facilities sat before
+  // Plan 20's PR C, and four repeats inside a decade.
+  const MIN_CROSS = 8;
   for (const id of LAB_IDS) {
     const pool = RESEARCH_TOPICS.filter((t) => hosts(t).includes(id));
     const departmental = pool.filter((t) => !isCrossDisciplinary(t));
@@ -171,6 +176,10 @@ console.log('research topic tests');
       `${id} has at least ${MIN_DEPARTMENTAL} departmental topics to draw on (has ${departmental.length})`,
     );
     assert(pool.length >= MIN_TOTAL, `${id} has at least ${MIN_TOTAL} topics in total (has ${pool.length})`);
+    assert(
+      pool.length - departmental.length >= MIN_CROSS,
+      `${id} has at least ${MIN_CROSS} interdisciplinary topics for its landmark work (has ${pool.length - departmental.length})`,
+    );
   }
 
   const sizes = LAB_IDS.map((id) => RESEARCH_TOPICS.filter((t) => hosts(t).includes(id)).length);

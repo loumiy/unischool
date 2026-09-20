@@ -26,7 +26,7 @@
 // from a whole school's fields and started being drawn from the one
 // facility's own (see researchData.ts's initiativeOffers) — which is
 // correct, and which cut a typical pool from dozens to two. Six per field
-// and ~57 interdisciplinary is the other half of that change rather than
+// and ~70 interdisciplinary is the other half of that change rather than
 // optional polish: it is what keeps a mature campus from seeing the same
 // four project names for a decade. Nothing about the engine changes —
 // a topic is a row in a table.
@@ -52,14 +52,19 @@ export interface ResearchTopic {
   // for a cross-disciplinary one, every one of which must be represented
   // on the team.
   fields: readonly string[];
-  // Which facilities may host it, by Buildable id — set ONLY to separate
-  // the two pairs of facilities that share a field, and exhaustive when it
-  // is set. Chemistry has both the Chemistry Labs (pure) and the Chemical
+  // Which facilities may host it, by Buildable id — set ONLY to keep a
+  // topic out of a facility that would otherwise host it, and EXHAUSTIVE
+  // when it is set. It exists for the two pairs of facilities that share a
+  // field: Chemistry has both the Chemistry Labs (pure) and the Chemical
   // Engineering Labs (applied); Physics has both the Physics Labs and the
   // Aerospace Engineering Lab. Without this, "Acoustics of Performance
   // Spaces" is a Physics topic and so is offerable in an aerospace lab,
-  // which is the complaint that started this pass. Unset — the common
-  // case — means any facility whose field the topic names.
+  // which is the complaint that started this pass. Because the list is
+  // exhaustive, a topic that names a second field must list that field's
+  // hosts too if it wants them — the aerospace pass below does, so that a
+  // flight-test topic is aerospace AND management without being physics.
+  // Unset — the common case — means any facility hosting a field the
+  // topic names (techData.ts's hostableFields).
   labs?: readonly string[];
 }
 
@@ -68,6 +73,9 @@ const AEROSPACE_LAB = 'LAB-AERO';    // the Aerospace Engineering Lab: applied, 
 const CHEMISTRY_LABS = 'LAB-CHMY';   // the Chemistry Labs: pure chemistry
 const CHEM_ENG_LABS = 'LAB-CHEM';    // the Chemical Engineering Labs: applied
 const HISTORY_INSTITUTE = 'LAB-HIST';
+const ECONOMICS_LAB = 'LAB-ECON';    // hosts Business's four unequipped departments too (hostableFields)
+const COMPUTING_CENTER = 'LAB-COMP'; // hosts AI, Information Systems and Mathematics too
+const MEDIA_STUDIO = 'LAB-FILM';     // hosts Art & Design, English and Music too
 
 // One entry per field, six topics each. Ordered by the FACULTY_FIELDS
 // grouping so a reader can find a department quickly. A fourth element,
@@ -300,7 +308,11 @@ const CROSS_DISCIPLINARY: ReadonlyArray<readonly [string, string, readonly strin
   ['X14', 'Social Networks and Disease Transmission', ['Sociology', 'Biology']],
   ['X15', 'Autonomous Systems, Law and Liability', ['Law', 'Computer Science']],
   ['X16', 'Biomechanics of Human Performance', ['Kinesiology', 'Mechanical Engineering']],
-  ['X17', 'Archaeological Dating and Isotope Chemistry', ['Sociology', 'Chemistry', 'History'], [CHEMISTRY_LABS, HISTORY_INSTITUTE]],
+  // Chemistry and History, not Sociology as well: Anthropology shares
+  // Sociology's department, so a topic that named it drew its archaeologist
+  // from "Sociology", which was correct by the taxonomy and read as a
+  // mistake (Plan 20's PR C).
+  ['X17', 'Archaeological Dating and Isotope Chemistry', ['Chemistry', 'History'], [CHEMISTRY_LABS, HISTORY_INSTITUTE]],
   ['X18', 'Media, Attention and Democratic Participation', ['Communication', 'Political Science']],
   ['X19', 'Structural Health Monitoring of Bridges', ['Civil Engineering', 'Information Systems']],
   ['X20', 'Energy Storage Chemistry for the Grid', ['Chemistry', 'Electrical Engineering']],
@@ -349,6 +361,27 @@ const CROSS_DISCIPLINARY: ReadonlyArray<readonly [string, string, readonly strin
   ['X60', 'Quantum Sensing for Navigation', ['Physics', 'Electrical Engineering']],
   ['X61', 'Gravitational-Wave Data Analysis', ['Physics', 'Computer Science'], [PHYSICS_LABS]],
   ['X62', 'Cryogenics for Precision Measurement', ['Physics', 'Mechanical Engineering'], [PHYSICS_LABS]],
+  // The thin end of the table (Plan 20's PR C). A Landmark Program needs a
+  // cross-disciplinary topic, so a facility's interdisciplinary pool is the
+  // ceiling on the most prestigious work it can do, and the mechanical,
+  // chemical-engineering and aerospace labs and the media studio had the
+  // shallowest. Each of these pairs one of those four with a field that
+  // itself appeared in only two topics — English, Philosophy, Music, Art &
+  // Design, Mathematics, Marketing, Management, AI, Accounting — so both
+  // ends of the table deepen at once. The aerospace and chemical-
+  // engineering entries list their hosts, because the list is exhaustive
+  // once set and these belong in the applied lab and not its pure twin.
+  ['X63', 'Additive Manufacture of Musical Instruments', ['Mechanical Engineering', 'Music']],
+  ['X64', 'Generative Design and the Machine-Made Form', ['Mechanical Engineering', 'Art & Design']],
+  ['X65', 'Safety Factors and the Ethics of Tolerable Risk', ['Mechanical Engineering', 'Philosophy']],
+  ['X66', 'Process Optimisation With Learned Surrogates', ['Chemistry', 'Artificial Intelligence'], [CHEM_ENG_LABS, COMPUTING_CENTER]],
+  ['X67', 'Costing the Circular Plant', ['Chemistry', 'Accounting & Finance'], [CHEM_ENG_LABS, ECONOMICS_LAB]],
+  ['X68', 'Reactor Models With Rigorous Error Bounds', ['Chemistry', 'Mathematics'], [CHEM_ENG_LABS, COMPUTING_CENTER]],
+  ['X69', 'Ephemerides and the Numerics of Orbit Prediction', ['Physics', 'Mathematics'], [AEROSPACE_LAB, COMPUTING_CENTER]],
+  ['X70', 'Managing the Flight-Test Programme', ['Physics', 'Management'], [AEROSPACE_LAB, ECONOMICS_LAB]],
+  ['X71', 'Aerial Cinematography and Camera Platforms', ['Physics', 'Communication'], [AEROSPACE_LAB, MEDIA_STUDIO]],
+  ['X72', 'Sonic Branding and Listener Recall', ['Communication', 'Marketing']],
+  ['X73', 'Adaptation From Page to Screen', ['English', 'Communication']],
 ];
 
 export const RESEARCH_TOPICS: readonly ResearchTopic[] = [
