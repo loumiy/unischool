@@ -9,18 +9,20 @@
 // correctly. It just made no sense, which is the kind of wrong that only a
 // test stating the rule outright will keep out.
 //
-// THE RULE: a facility may only be offered a topic that names one of ITS
-// OWN fields. Checked exhaustively — every research facility, every depth
-// tier, across a long sweep of offer epochs, because the topic a tier shows
-// is a hash of (lab, depth, epoch) and one epoch proves nothing about the
-// next.
+// THE RULE: a facility may only be offered a topic that names a field it
+// HOSTS — its own field, or (Plan 20's PR B) a field its school teaches
+// that has no facility of its own anywhere, which is how a department
+// without a building leads research in the building its school built.
+// Checked exhaustively — every research facility, every depth tier, across
+// a long sweep of offer epochs, because the topic a tier shows is a hash of
+// (lab, depth, epoch) and one epoch proves nothing about the next.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
 import { createInitialState } from '../src/state/actions';
 import { initiativeOffers } from '../src/data/researchData';
-import { labFields, researchSchools } from '../src/data/techData';
+import { hostableFields, labFields, researchSchools } from '../src/data/techData';
 import { RESEARCH_TOPICS, isCrossDisciplinary } from '../src/data/researchTopics';
 import { WEEKS_PER_YEAR, type GameState } from '../src/state/types';
 
@@ -93,7 +95,7 @@ console.log('research offer tests');
     s.clock.year = 1 + Math.floor(week / WEEKS_PER_YEAR);
     s.clock.week = 1 + (week % WEEKS_PER_YEAR);
     for (const labId of LAB_IDS) {
-      const fields = new Set(labFields(labId));
+      const fields = new Set(hostableFields(labId));
       for (const offer of initiativeOffers(s, labId)) {
         if (offer.topic.id === 'none') { blocked += 1; continue; }
         offersSeen += 1;
@@ -107,7 +109,7 @@ console.log('research offer tests');
   assert(offersSeen > 0, `the sweep actually produced offers (${offersSeen} across ${LAB_IDS.length} facilities)`);
   assert(
     violations.length === 0,
-    `every offered topic names its own facility's field — ${violations.length} did not, e.g. ${violations[0] ?? ''}`,
+    `every offered topic names a field its facility hosts — ${violations.length} did not, e.g. ${violations[0] ?? ''}`,
   );
   console.log(`  · swept ${offersSeen} offers over 8 years (${blocked} tiers with nothing to offer)`);
 }
@@ -140,28 +142,28 @@ console.log('research offer tests');
   assert(crossContamination === 0, `no facility is ever offered another field's departmental work (${crossContamination} cases)`);
 }
 
-// --- what narrowing the pool costs, stated out loud -------------------
+// --- what narrowing the pool cost, and what hosting gave back ------------
 {
-  // Narrowing each facility to its own field has a consequence the plan
-  // names: a topic whose fields no facility actually has can no longer be
-  // offered anywhere. Under the old school-wide pool, a Philosophy + AI
-  // topic was offerable at the Humanities Research Institute because the
-  // SCHOOL taught philosophy; now no facility's field is Philosophy or AI,
-  // so it is authored content nobody can reach.
-  //
-  // Reported here rather than asserted, because the fix is authoring and
-  // not code: the catalogue is doubled in the next PR, where the invariant
-  // "every topic is reachable somewhere" is pinned for good.
-  const equippedFields = new Set(LAB_IDS.flatMap((id) => labFields(id)));
-  const unreachable = RESEARCH_TOPICS.filter((t) => !t.fields.some((f) => equippedFields.has(f)));
-  console.log(`  · ${equippedFields.size} fields have a facility; ${unreachable.length} of ${RESEARCH_TOPICS.length} topics name none of them`);
+  // Narrowing each facility to its own field had a consequence: a topic
+  // whose fields no facility actually had could not be offered anywhere.
+  // Under the old school-wide pool, a Philosophy + AI topic was offerable
+  // at the Humanities Research Institute because the SCHOOL taught
+  // philosophy; narrowed, no facility's field was Philosophy or AI, and
+  // 108 departmental topics became authored content nobody could reach.
+  // Plan 20's PR B gives that back without reopening the bug: a facility
+  // hosts the unequipped fields of its own school, so every field is
+  // hosted somewhere and this list is empty for good.
+  const hostedFields = new Set(LAB_IDS.flatMap((id) => hostableFields(id)));
+  const unreachable = RESEARCH_TOPICS.filter((t) => !t.fields.some((f) => hostedFields.has(f)));
+  console.log(`  · ${hostedFields.size} fields are hosted somewhere; ${unreachable.length} of ${RESEARCH_TOPICS.length} topics name none of them`);
   for (const t of unreachable) console.log(`    - ${t.name} (${t.fields.join(' + ')})`);
+  assert(unreachable.length === 0, 'every topic names at least one hosted field');
 
-  // What must hold today: every EQUIPPED field can still lead work, so no
-  // facility is left standing with nothing to offer.
+  // And every facility can still lead work in its own field, so none is
+  // left standing with nothing of its own to offer.
   for (const id of LAB_IDS) {
     const runnable = RESEARCH_TOPICS.filter((t) => t.fields.some((f) => labFields(id).includes(f)));
-    assert(runnable.length > 0, `${id} has at least one topic it can run`);
+    assert(runnable.length > 0, `${id} has at least one topic in its own field`);
   }
 }
 

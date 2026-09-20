@@ -6,7 +6,9 @@
 // silently makes a topic unstaffable, a duplicated id that shadows another
 // row through researchTopic(), and — the one this pass exists for — a
 // topic no facility can ever host, which is content the player pays for in
-// file size and never sees.
+// file size and never sees. Since Plan 20's PR B that last check covers
+// every topic: a school's facility hosts the departments the school
+// teaches but has not equipped, so there is no reserve content any more.
 //
 // The pool-size checks are the point of the PR stated as a number: a
 // facility that can only ever be offered two project names will show the
@@ -18,7 +20,7 @@
 
 import { RESEARCH_TOPICS, isCrossDisciplinary, researchTopic } from '../src/data/researchTopics';
 import { FACULTY_FIELDS } from '../src/data/facultyData';
-import { labFields, researchSchools } from '../src/data/techData';
+import { hostableFields, labFields, researchSchools } from '../src/data/techData';
 
 let checks = 0;
 let failures = 0;
@@ -32,13 +34,16 @@ function assert(cond: boolean, msg: string): void {
 
 const LAB_IDS = researchSchools().flatMap((school) => school.labIds);
 const EQUIPPED = new Set(LAB_IDS.flatMap((id) => labFields(id)));
+const HOSTED = new Set(LAB_IDS.flatMap((id) => hostableFields(id)));
 const ALL_FIELDS = new Set<string>(FACULTY_FIELDS);
 
-// Which facilities could host a topic: those whose own field it names, and
-// then, if it restricts itself, only the ones it lists.
+// Which facilities could host a topic: those hosting a field it names —
+// their own field, or a field their school teaches that has no facility
+// of its own (Plan 20's PR B) — and then, if it restricts itself, only
+// the ones it lists.
 function hosts(topic: { fields: readonly string[]; labs?: readonly string[] }): string[] {
   return LAB_IDS.filter((id) => (
-    labFields(id).some((f) => topic.fields.includes(f)) && (!topic.labs || topic.labs.includes(id))
+    hostableFields(id).some((f) => topic.fields.includes(f)) && (!topic.labs || topic.labs.includes(id))
   ));
 }
 
@@ -74,20 +79,18 @@ console.log('research topic tests');
   console.log(`  · ${RESEARCH_TOPICS.length} topics: ${RESEARCH_TOPICS.length - cross.length} departmental, ${cross.length} interdisciplinary`);
 }
 
-// --- and every topic that COULD be reached, is ------------------------
+// --- and every topic is reachable ---------------------------------------
 {
-  // Work has to happen somewhere, so what a facility can be offered is
-  // bounded by the eleven fields that have one. Two different things follow,
-  // and only one of them is a defect:
-  //
-  //   - An INTERDISCIPLINARY topic naming no equipped field is unreachable
-  //     and always will be, since nothing about the campus can change which
-  //     fields it names. That is a defect, and six of them existed before
-  //     this pass.
-  //   - A DEPARTMENTAL topic in an unequipped field is reserve content: the
-  //     day the catalogue gives that field a facility, its six topics are
-  //     already written. Six per field is the plan's target for exactly that
-  //     reason, so this is deliberate rather than dead.
+  // Work has to happen somewhere. Only eleven fields have a facility of
+  // their own, and until Plan 20's PR B only those eleven could be offered
+  // anything: 108 of the 176 departmental topics were "reserve content",
+  // written for the day their field got a building, and the suite printed
+  // the gap on every run. Every school now has a facility, so the day
+  // arrived in every school and in no field — and the hosting rule
+  // (techData.ts's hostableFields) lets a school's building host the
+  // departments the school teaches but has not equipped. Which makes this
+  // the invariant the module comment always claimed: EVERY topic, of either
+  // kind, has a facility that can host it.
   const cross = RESEARCH_TOPICS.filter(isCrossDisciplinary);
   const unreachableCross = cross.filter((t) => hosts(t).length === 0);
   assert(
@@ -96,17 +99,18 @@ console.log('research topic tests');
     (unreachableCross.length ? `, e.g. "${unreachableCross[0].name}" (${unreachableCross[0].fields.join(' + ')})` : ''),
   );
 
-  const equippedDepartmental = RESEARCH_TOPICS
-    .filter((t) => !isCrossDisciplinary(t) && EQUIPPED.has(t.fields[0]));
-  const stranded = equippedDepartmental.filter((t) => hosts(t).length === 0);
+  const departmental = RESEARCH_TOPICS.filter((t) => !isCrossDisciplinary(t));
+  const stranded = departmental.filter((t) => hosts(t).length === 0);
   assert(
     stranded.length === 0,
-    `every departmental topic in a field that HAS a facility can be hosted — ${stranded.length} cannot` +
-    (stranded.length ? `, e.g. "${stranded[0].name}" (restricted to ${stranded[0].labs?.join(', ')})` : ''),
+    `every departmental topic is offerable at at least one facility — ${stranded.length} are not` +
+    (stranded.length ? `, e.g. "${stranded[0].name}" (${stranded[0].fields[0]}${stranded[0].labs ? `, restricted to ${stranded[0].labs.join(', ')}` : ''})` : ''),
   );
-
-  const reserve = RESEARCH_TOPICS.filter((t) => hosts(t).length === 0);
-  console.log(`  · ${RESEARCH_TOPICS.length - reserve.length} topics are reachable today; ${reserve.length} are departmental work in fields with no facility yet`);
+  assert(
+    HOSTED.size === FACULTY_FIELDS.length,
+    `every faculty field is hosted somewhere (${HOSTED.size} of ${FACULTY_FIELDS.length})`,
+  );
+  console.log(`  · ${RESEARCH_TOPICS.length - stranded.length - unreachableCross.length} of ${RESEARCH_TOPICS.length} topics are reachable`);
 
   // A restriction that names a facility which could not host the topic
   // anyway is a typo, not a restriction.
@@ -115,25 +119,41 @@ console.log('research topic tests');
     for (const id of t.labs) {
       assert(LAB_IDS.includes(id), `${t.id} restricts itself to a facility that exists ("${id}")`);
       assert(
-        labFields(id).some((f) => t.fields.includes(f)),
-        `${t.id}'s restriction to ${id} names a facility whose field it actually uses`,
+        hostableFields(id).some((f) => t.fields.includes(f)),
+        `${t.id}'s restriction to ${id} names a facility that hosts a field it actually uses`,
       );
     }
   }
 }
 
-// --- no department is locked out of research entirely -----------------
+// --- the hosting rule, stated ------------------------------------------
 {
-  // Only eleven fields have a facility, so the other eighteen can never
-  // LEAD. They must still be able to take part, which is what the
-  // interdisciplinary table is for — a field that appears in no reachable
-  // topic is a department that can never do research at all.
-  for (const field of FACULTY_FIELDS) {
-    const reachable = RESEARCH_TOPICS.filter((t) => t.fields.includes(field) && hosts(t).length > 0);
-    assert(reachable.length > 0, `${field} appears in at least one topic some facility can host`);
+  // A facility hosts its own field, and the fields its school teaches that
+  // have no facility of their own anywhere — never a field some OTHER
+  // building is for. So the Neuroscience labs are not offered Biology's
+  // work because the MD makes Biology a Health Science field, and neither
+  // half of the two shared-field pairs is widened by the rule at all.
+  for (const id of LAB_IDS) {
+    const own = labFields(id);
+    const hosted = hostableFields(id);
+    assert(own.every((f) => hosted.includes(f)), `${id} still hosts its own field`);
+    assert(
+      hosted.every((f) => own.includes(f) || !EQUIPPED.has(f)),
+      `${id} hosts no field that has a facility of its own elsewhere (${hosted.filter((f) => !own.includes(f) && EQUIPPED.has(f)).join(', ')})`,
+    );
   }
+  assert(hostableFields('LAB-NOT-A-THING').length === 0, 'an id that names no facility hosts nothing, rather than throwing');
+
+  // The two that read worst, by name.
+  assert(hostableFields('LAB-COMP').includes('Artificial Intelligence'), 'the Computing Research Center can run an AI project');
+  assert(hostableFields('LAB-HIST').includes('English'), 'the Humanities Research Institute can run a project in English');
+  // And the three departments that teach in two schools are hosted by both.
+  assert(hostableFields('LAB-HIST').includes('English') && hostableFields('LAB-FILM').includes('English'), 'English is hosted by both the institute and the studio');
+  assert(hostableFields('LAB-BIOL').includes('Mathematics') && hostableFields('LAB-COMP').includes('Mathematics'), 'Mathematics by both Science and Computer Science');
+  assert(hostableFields('LAB-ECON').includes('Operations Research') && hostableFields('LAB-MECH').includes('Operations Research'), 'Operations Research by both Business and Engineering');
+
   const led = [...EQUIPPED].sort();
-  console.log(`  · ${led.length} fields can lead work; the other ${FACULTY_FIELDS.length - led.length} join it`);
+  console.log(`  · ${led.length} fields have a facility of their own; the other ${FACULTY_FIELDS.length - led.length} lead work in their school's building`);
 }
 
 // --- enough variety per facility that names stop repeating ------------

@@ -1367,6 +1367,47 @@ export function labFields(facilityId: string): string[] {
   return fields;
 }
 
+// WHICH FIELDS' WORK A FACILITY MAY HOST (Plan 20's PR B): its own, from
+// labFields above, plus every field its school teaches that has no
+// facility of its own ANYWHERE on campus. This is how a department
+// without a building leads research — in the building its school built.
+// A Computing Research Center that could not run an AI project, and a
+// humanities institute that could not run one in English, were the two
+// that read worst, because both name a department the school obviously
+// has; 108 of the 176 departmental topics were unreachable for that
+// reason, and every one of them is in a field taught by a school that
+// has a facility, so this closes the gap completely.
+//
+// "No facility of its own" is read campus-wide, not per school, and the
+// difference matters twice over. A field with a facility somewhere is
+// hosted THERE and nowhere else, so the Neuroscience labs are not offered
+// Biology's departmental work merely because the MD's anatomy course
+// makes Biology a Health Science field — a Biology project belongs in the
+// Biology labs. And a field with no facility anywhere is hosted by every
+// school that teaches it: English by both the Humanities Research
+// Institute and the Media Production Studio, Mathematics by both the
+// Science labs and the Computing Research Center, Operations Research by
+// both Business and Engineering. That is correct rather than a collision
+// — those departments genuinely teach in two schools, and a topic offered
+// in either building is a topic happening where the department works.
+//
+// This does not reopen the bug labFields exists for. That bug was two
+// facilities SHARING a field across schools — the aerospace lab offered
+// acoustics because both are fielded Physics — and a shared field has a
+// facility, so it is never widened here; the per-topic facility list
+// (ResearchTopic.labs) still settles those two pairs exactly as before.
+// What changes is only whether a school's own unequipped departments can
+// work in the building their school built.
+export function hostableFields(facilityId: string): string[] {
+  const own = labFields(facilityId);
+  if (own.length === 0) return own;
+  const schools = researchSchools();
+  const equipped = new Set(schools.flatMap((school) => school.labIds).flatMap((id) => labFields(id)));
+  const home = schools.find((school) => school.labIds.includes(facilityId));
+  const hosted = (home?.fields ?? []).filter((field) => !equipped.has(field));
+  return [...own, ...hosted.filter((field) => !own.includes(field))];
+}
+
 export function researchSchools(): ResearchSchool[] {
   return SCHOOLS.map((school) => {
     const fields = new Set<string>(school.majors.map((major) => major.field));

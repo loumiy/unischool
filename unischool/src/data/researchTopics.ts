@@ -31,16 +31,18 @@
 // four project names for a decade. Nothing about the engine changes —
 // a topic is a row in a table.
 //
-// WHICH FIELDS CAN LEAD. Only eleven of the twenty-nine faculty fields
-// have a research facility, and a project has to happen somewhere, so only
-// those eleven can be the field a topic is offered under. That is not a
-// department being locked out: the way a marketing or a music professor
-// gets into research is the interdisciplinary tier, where the work is
-// hosted by a facility whose field it names and the rest of the team comes
-// from wherever the topic says. Every interdisciplinary topic below
-// therefore names at least one field that has a facility — pinned by
-// test/research-topics.test.ts, because an unreachable topic is authored
-// content no player can ever see.
+// WHERE A TOPIC HAPPENS. A project has to happen somewhere, and only
+// eleven of the twenty-nine faculty fields have a research facility of
+// their own. The other eighteen lead work in the building their SCHOOL
+// built (Plan 20's PR B — techData.ts's hostableFields): a facility hosts
+// its own field and every field its school teaches that has no facility
+// anywhere, so the Computing Research Center runs the AI department's
+// projects and the Humanities Research Institute the English
+// department's. Every topic below, of either kind, is therefore offerable
+// at at least one facility — pinned by test/research-topics.test.ts,
+// because an unreachable topic is authored content no player can ever
+// see. (Before that rule, 108 of the departmental topics were "reserve
+// content" waiting for a building; the reserve is empty now.)
 // =====================================================================
 
 export interface ResearchTopic {
