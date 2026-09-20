@@ -217,9 +217,11 @@ out of its own school runs deep projects instead of the pilot it fell back
 to when the landmark tier read "no scholar free". Measured on the Selective
 college at twenty years, with the same sixty-odd initiatives started: three
 concluded with a report became twelve, three breakthroughs became fifteen,
-and **grants went from 3% of lifetime opex to 6%** (14% by year thirty),
-against funding at 5–7% — research at scale is net cash positive now where
-it was net negative. That is what the rule was for, at the scale it was
+and **grants went from 3% of lifetime opex to 6%** (14% by year thirty, and
+at the fifty-year horizon the reference was re-recorded from, 18% for the
+earnest completionist and 22% for the Selective college), against funding
+at 5–7% — research at scale is net cash positive now where it was net
+negative. That is what the rule was for, at the scale it was
 asked for, and it is also the line `research.md` draws at "a grant is a
 welcome cheque, not a funding round; it must never become a second
 economy", so it is named in `BACKLOG.md` for a re-fit of grant odds and

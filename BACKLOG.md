@@ -105,8 +105,10 @@ work with a known shape; none has been turned into a sequence of PRs.*
   PR B let every department lead work in its school's building, and a
   research-heavy school now runs deep projects where it used to fall back to
   pilots: on the Selective college, grants went from 3% of lifetime opex to
-  6% by year twenty and 14% by year thirty, against funding at 5–7%, so
-  research at scale is net cash positive. `docs/design/research.md` draws the
+  6% by year twenty, 14% by year thirty and 22% at the fifty-year horizon
+  (18% for the earnest completionist), against funding at 5–7%, so research
+  at scale is net cash positive and the largest income line after tuition
+  for a mature research school. `docs/design/research.md` draws the
   line at "a grant is a welcome cheque, not a funding round; it must never
   become a second economy". The re-fit is small and known —
   `GRANT_PER_PUBLICATION_CHANCE` and `GRANT_MIN_WEEKS`/`GRANT_MAX_WEEKS` in
