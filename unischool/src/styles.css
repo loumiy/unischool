@@ -3390,3 +3390,7 @@ body:has(.building-info-panel) .pennant { display: none; }
 .toast.bad { border-color: var(--bad-on-light); }
 @keyframes toast-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+
+/* The trophy case (Plan 21's PR E): a year, a sport, a line. */
+.trophy { display: flex; align-items: baseline; gap: 0.6rem; }
+.trophy-year { font-family: var(--mono); font-variant-numeric: tabular-nums; opacity: 0.8; }

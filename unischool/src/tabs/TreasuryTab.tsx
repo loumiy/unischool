@@ -172,7 +172,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               <dl>
                 <dt>Campaign</dt><dd>#{campaign.number}</dd>
                 <dt>Cash committed</dt><dd>{money(campaign.cost)}</dd>
-                <dt>Donor match</dt><dd>+{Math.round(campaign.match * 100)}%</dd>
+                <dt>Donor match</dt><dd>+{Math.round(campaign.match * 100)}%{campaign.titleLift && <span className="stat"> — lifted by this year's title</span>}</dd>
                 <dt>Raised into the endowment</dt><dd>{money(campaign.endowmentGain)}</dd>
                 <dt>Adds to income</dt><dd>{money(campaign.annualPayout)}/yr, permanently</dd>
               </dl>

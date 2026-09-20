@@ -27,7 +27,7 @@ import { fireMilestoneCelebration, tickEvents } from '../systems/events/eventSys
 import { tickStudentLife } from '../systems/studentlife/studentLifeSystem';
 import { tickAthletics } from '../systems/athletics/athleticsSystem';
 import { raiseDemand, shortfallDemandFor, tickDemands } from '../systems/demands/demandSystem';
-import { absoluteWeek, findDecisionEvent } from '../data/eventData';
+import { absoluteWeek, findDecisionEvent, offeredChoices } from '../data/eventData';
 import { LIBRARY_TIER1_ID, nextLibraryFloor, servedUpkeep } from '../data/facilitiesData';
 import { fellTrees, TREE_SEED_RANGE } from '../data/treeData';
 import { advanceOpening, openingHoldsClock, settleOpening, skipOpening } from '../state/opening';
@@ -1046,7 +1046,7 @@ export function reducer(state: GameState, action: Action): GameState {
     // event can never wedge the game.
     case 'RESOLVE_DECISION_EVENT': {
       const event = findDecisionEvent(action.eventId);
-      const choice = event?.choices.find((c) => c.id === action.choiceId);
+      const choice = event && offeredChoices(s, event, action.ctx).find((c) => c.id === action.choiceId);
       if (choice) {
         const ctx = action.ctx;
         const cost = choice.cost(s, ctx);

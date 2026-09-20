@@ -1,6 +1,6 @@
 import type { ClassTuition, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
-import { studentOrgUpkeep } from '../../data/studentLifeData';
+import { inTitleYear, studentOrgUpkeep } from '../../data/studentLifeData';
 import { weeklyGateRevenue } from '../athletics/gate';
 import { marketRateMultiplier } from '../../data/facultyData';
 import { SEATS_PER_COURSE, instructionCapacity } from '../techtree/instructionCapacity';
@@ -237,6 +237,10 @@ const ENDOWMENT_CAMPAIGN_PRESTIGE_REFERENCE = 150; // same top of the scale pres
 // campaign keeps climbing, so late campaigns are what they should be: an
 // expensive, mostly one-way conversion of money into standing.
 const ENDOWMENT_CAMPAIGN_MATCH_DECAY = 0.88;
+// A title year lifts the match (Plan 21's PR E): championships selling
+// capital campaigns is how athletics actually reaches a university's
+// finances, and it reuses this lever rather than adding a stream.
+const ENDOWMENT_CAMPAIGN_TITLE_LIFT = 0.25;
 
 // What a campaign costs and returns right now. Pure — the Treasury renders
 // it and the reducer commits it, so the player is never shown a number
@@ -247,6 +251,7 @@ export interface EndowmentCampaign {
   number: number;       // 1-indexed: which campaign this would be
   cost: number;         // cash committed
   match: number;        // donor match multiplier on that cash
+  titleLift: boolean;   // the match is lifted because the school won a national title this year or last (Plan 21's PR E)
   endowmentGain: number; // cost x (1 + match)
   annualPayout: number; // what that gain adds to income every year, forever
 }
@@ -256,9 +261,11 @@ export function endowmentCampaign(s: GameState): EndowmentCampaign {
   const cost = Math.round(
     ENDOWMENT_CAMPAIGN_BASE_COST * ENDOWMENT_CAMPAIGN_COST_GROWTH ** s.finance.endowmentCampaigns,
   );
+  const titleLift = inTitleYear(s);
   const match = (ENDOWMENT_CAMPAIGN_BASE_MATCH +
     ENDOWMENT_CAMPAIGN_PRESTIGE_MATCH * Math.max(0, s.self.reputation) / ENDOWMENT_CAMPAIGN_PRESTIGE_REFERENCE) *
-    ENDOWMENT_CAMPAIGN_MATCH_DECAY ** s.finance.endowmentCampaigns;
+    ENDOWMENT_CAMPAIGN_MATCH_DECAY ** s.finance.endowmentCampaigns *
+    (titleLift ? 1 + ENDOWMENT_CAMPAIGN_TITLE_LIFT : 1);
   const endowmentGain = Math.round(cost * (1 + match));
   return {
     available: s.self.reputation >= ENDOWMENT_CAMPAIGN_PRESTIGE_GATE,
@@ -266,6 +273,7 @@ export function endowmentCampaign(s: GameState): EndowmentCampaign {
     number,
     cost,
     match,
+    titleLift,
     endowmentGain,
     annualPayout: endowmentGain * ENDOWMENT_PAYOUT_RATE,
   };

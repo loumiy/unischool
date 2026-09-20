@@ -19,7 +19,7 @@ import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../sys
 import { projectConsequences } from '../systems/admissions/consequences';
 import { pct, poolChange } from '../systems/admissions/yearOverYear';
 import { computePrestigeTarget, computeSocialTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
-import { findDecisionEvent, findOpeningLetter, OPENING_LETTERS } from '../data/eventData';
+import { findDecisionEvent, findOpeningLetter, OPENING_LETTERS, offeredChoices } from '../data/eventData';
 import { MASCOT_MAX_LENGTH, rollMascotSuggestion, sportById } from '../data/studentLifeData';
 import FacultyPortrait from './FacultyPortrait';
 import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
@@ -1336,7 +1336,7 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
       <h2>{event.title}</h2>
       <p>{event.prompt(s, ctx)}</p>
       <div className="event-choices">
-        {event.choices.map((choice) => {
+        {offeredChoices(s, event, ctx).map((choice) => {
           const cost = choice.cost(s, ctx);
           // A free choice must stay pickable even with cash already
           // negative — `cost <= s.finance.cash` alone would disable every

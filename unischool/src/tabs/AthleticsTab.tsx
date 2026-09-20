@@ -380,6 +380,34 @@ function SportStandings({ s }: { s: GameState }) {
   );
 }
 
+// ---------------------------------------------------------------------
+// THE TROPHY CASE (Plan 21's PR E): every title as an object with a year and
+// a sport, newest first, not a count. The almanac feel the design review
+// said to protect — a banner is a thing that happened, and a case full of
+// them is what a dynasty looks like from the hallway.
+// ---------------------------------------------------------------------
+function TrophyCase({ s }: { s: GameState }) {
+  if (s.orgs.titles.length === 0) return null;
+  const titles = [...s.orgs.titles].sort((a, b) => b.year - a.year);
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <h2>Trophy case</h2>
+        <HelpHint text="Every national title the school has won, by year and sport. A title lifts campus-life standing for good, swells the next summer's applicant pool for a few years, and for about a year makes donors easier to find and an endowment campaign worth more." />
+      </div>
+      <ul className="org-list trophy-case">
+        {titles.map((title) => (
+          <li key={`${title.sport}:${title.year}`} className="trophy">
+            <span className="trophy-year">{title.year}</span>
+            <span className="org-name">{sportById(title.sport)?.teamName.replace(/ Team$/, '') ?? title.sport}</span>
+            <span className="stat">national champions</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function TeamCard({ s, act, team }: { s: GameState; act: (a: Action) => void; team: VarsityTeam }) {
   const quality = teamQuality(team, s);
   const staffAnnual = (team.headCoach?.salary ?? 0) + (team.assistantCoach?.salary ?? 0) + (team.trainer?.salary ?? 0);
@@ -444,6 +472,8 @@ export default function AthleticsTab({ s, act }: { s: GameState; act: (a: Action
       </section>
 
       <SportStandings s={s} />
+
+      <TrophyCase s={s} />
 
       {/* The market sits LAST, because that is the order the questions arrive
           in: you notice a chair is empty on a team, then you go looking for

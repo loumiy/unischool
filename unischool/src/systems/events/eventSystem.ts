@@ -311,12 +311,15 @@ function weightedPick(
   events: readonly DecisionEvent[],
   s: GameState,
 ): { event: DecisionEvent; ctx: DecisionEventContext } | null {
-  const total = events.reduce((sum, event) => sum + event.weight, 0);
+  // An event's weight, lifted by its boost for the moment (see
+  // DecisionEvent.boost): read once here so the total and the walk agree.
+  const weightOf = (event: DecisionEvent) => event.weight * (event.boost?.(s) ?? 1);
+  const total = events.reduce((sum, event) => sum + weightOf(event), 0);
   if (total <= 0) return null;
 
   let roll = Math.random() * total;
   for (const event of events) {
-    roll -= event.weight;
+    roll -= weightOf(event);
     if (roll > 0) continue;
     const ctx = event.rollContext ? event.rollContext(s) : {};
     if (ctx === null) return null;          // the event turned out not to be possible this week

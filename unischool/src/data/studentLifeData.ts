@@ -1121,6 +1121,16 @@ export function varsityTeamUpkeep(s: GameState): number {
   }, directorWeekly * tier.upkeepMultiplier);
 }
 
+// A TITLE YEAR (Plan 21's PR E): whether the school won a national title
+// this year or last. What the small outlets read — the donor events draw
+// more often, the endowment campaign yields more — because a championship
+// selling a capital campaign is how athletics actually reaches a
+// university's finances, and a banner is worth something to a donor for
+// about a year.
+export function inTitleYear(s: GameState): boolean {
+  return s.orgs.titles.some((t) => t.year === s.clock.year || t.year === s.clock.year - 1);
+}
+
 // The flat contribution live ACTIVE varsity teams make to the `social`
 // satisfaction attribute, scaled by the budget lever's social multiplier —
 // the athletics half of studentLifeSocialBonus below. An 'awaitingVenue'
