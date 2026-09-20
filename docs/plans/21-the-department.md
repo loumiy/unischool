@@ -18,8 +18,8 @@ connected system in the game, and inside it there is no decision: the two
 largest quality levers are department-wide and purchasable, the third is
 gated on a market too thin to shop in, and a patient school reaches the
 clamp in every sport it fields. This plan connects the outputs, makes the
-department choose between its own programs, and gives the market something
-to be scarce about.
+department choose between its own programs against a pot that grows with its
+own success, and gives the market something to be scarce about.
 
 **It also settles a debt.** `prestigeSystem.ts` cut campus life's prestige
 weight from 12 to 8 "with a condition rather than a shrug" — it returns when
@@ -410,22 +410,39 @@ the gate.
 
 **The change.** The game's first non-tuition, non-endowment revenue line: gate
 revenue per home occasion, scaled by the venue's tier, the team's quality and
-the body that would turn up, reported as its own line on the Treasury
-statement — with an **attendance figure** on the team card, because 1,200 in
-the rain in year 12 and a full house in year 34 is the growth fantasy expressed
-in one number.
+the body that would turn up — with an **attendance figure** on the team card,
+because 1,200 in the rain in year 12 and a full house in year 34 is the growth
+fantasy expressed in one number.
+
+**It is paid to the department, not to the university.** Gate revenue funds
+PR G's pot first, and only the surplus — what is left once every program on
+the list is funded — spills into general income on the Treasury statement.
+That routing is a deliberate fork: paying it to general income would make
+athletics pay the *university*, which is a smaller and less interesting claim
+than athletics **paying for itself**, and it is the half of PR G's pot that
+makes a winning department stop being a cost centre. A dominant department
+still eventually enriches the school, through the spill.
 
 **Why.** The $6.5M stadium currently produces *satisfaction*. Sized so **a good
 programme roughly pays for itself and a bad one does not**, which is the
 knife-edge the budget tier has never actually posed.
 
-**Where.** `financeSystem.ts` (one line in `financeBreakdown`),
+**Where.** `financeSystem.ts` (the spill line in `financeBreakdown`),
 `facilitiesData.ts` (a per-venue capacity), `src/systems/athletics/`.
 
-**The risk, named.** This economy's history is a money-printing problem. The
-line must be **material in the decade the venue is built and a rounding error
-at scale** — the opposite shape to instruction cost. Size it against opex at
-year 15, not year 40, and assert it in the balance test.
+**Ordering with PR G.** D can land first and pay everything to general income,
+with G retargeting it — or G can land first against a subsidy-only pot, with D
+adding the earned half. The second is cleaner: the pot exists before anything
+pays into it. Either way the two must not both ship a routing rule.
+
+**The risk, named.** This economy's history is a money-printing problem, and
+routing the gate to the pot makes this PR one half of PR G's feedback loop
+rather than a standalone income line. **Gate revenue must saturate** — a venue
+holds what it holds, and the way to raise the ceiling is PR Q's rungs. Beyond
+that the line must be material in the decade the venue is built and a rounding
+error at scale, which is the opposite shape to instruction cost: size it
+against opex at year 15, not year 40, and assert both properties in the
+balance test.
 
 **Ordering.** It reads "home occasion", which PR N provides. It can land first
 by billing against the bracket plus a flat number of home dates. Do not block
@@ -473,46 +490,95 @@ applied to the one system that currently has a single way to play it.
 **Where.** `src/data/studentLifeData.ts` (`SPORT_PROFILES` gains the scale),
 `teamQuality`'s inputs, `coachSalaryFor`'s call sites.
 
-## PR G — The priority list
+## PR G — The priority list, and a pot that grows
 
 **The change.** The department's programs sit in one **drag-and-drop ordered
-list**, with **tier bands drawn across it** — Flagship (1–2 slots), Competitive
-(3–4), Developmental (the rest). The existing low/medium/high budget lever
-stays and keeps its job: **the tier sets how big the pot is, the list sets who
-gets it.**
+list**. Dragging sets *order* and nothing else — there are no slots and no
+caps.
 
 Funding is a **queue, not a weighting**. Each program draws its sport's cost to
-compete (PR F) off the pot in list order; whatever is left when the pot runs
-out is what the bottom of the list gets. So a 6-unit pot funds football and
-basketball and half of a third program — or six Olympic programs outright. The
-screen shows where the money runs out.
+compete (PR F) off the pot in list order until the pot is exhausted. So the
+same pot funds football and basketball and half of a third program — or six
+Olympic programs outright — and the screen draws the line **where the money
+runs out**.
 
-Position drives exactly **one** chain — rank → share of pot → team quality — so
-nothing is counted twice. It also gates one genuinely different thing: **access
-to the coach market** (PR L). Flagship programs attract the top of the market;
-developmental ones get journeymen.
+**The bands are descriptive, not prescriptive**, and this is the load-bearing
+call. Flagship / Competitive / Developmental are names for *which side of the
+funded line a program sits on*, not compartments the player drags into. The
+consequence is that the ratio of flagship programs to total programs is
+**dynamic for free, with no constant to tune**: the line slides down the list
+as the pot grows, and slides up as expensive sports are promoted above cheap
+ones. A department that starts able to fund one program properly can end able
+to fund five, and nothing had to be authored for that to happen.
+
+About **a quarter of programs fully funded at mid-game** is the tuning target
+the pot and the costs should be sized toward — a target for the measurement,
+never a rule in the code. A successful department should drift past it; that
+drift is the feature.
+
+**The pot is two things added together**, and the second is what makes success
+compound:
+
+> **pot = institutional subsidy + what athletics earned**
+
+The subsidy is the existing low/medium/high lever, which keeps its job and
+gains a second meaning over the run — early it asks *how much are we willing to
+spend on this*, late it asks *do we still need to subsidise it*. What athletics
+earned is PR D's gate revenue plus PR E's athletics-attributable giving. A
+young department is almost all subsidy; a mature winning one earns most of its
+own pot and is a cost centre no longer. That is the arc, and it is the reason
+this PR and PR D are the same idea seen from two ends.
+
+**A program below the line is underfunded, not unfunded.** It runs at a
+proportional quality penalty — the same shape `COACH_VACANCY_QUALITY` already
+uses, a floor rather than a zero — so the cut line is a gradient and not a
+cliff, and the bottom of a long list is not dead weight.
+
+Position drives exactly **one** chain — order → share of pot → team quality —
+so nothing is counted twice. It gates one genuinely different thing: **access
+to the coach market** (PR L). Programs above the line attract the top of the
+market; the ones below get journeymen.
 
 **Demotion costs something.** A program dragged down decays over a season or
 two and its head coach may leave rather than accept the cut — otherwise
 reordering is free and the right play is to chase the bracket every year. The
 list is a commitment, not a dial.
 
-`'awaitingVenue'` teams sit below the line and draw nothing: they cannot
+`'awaitingVenue'` teams sit out of the queue and draw nothing: they cannot
 compete, the same reason they contribute no social bonus and are not ranked.
 
 **Why this shape.** It scales identically from three programs to eighteen; it
 is zero-sum by construction, so the tradeoff enforces itself rather than
-needing a cap; and the idiom already exists — [Plan
-14](14-curriculum-on-the-map.md) made the Curriculum tab drag-and-drop faculty
-onto program slots.
+needing a cap; the ratio question answers itself rather than being authored;
+and the idiom already exists — [Plan 14](14-curriculum-on-the-map.md) made the
+Curriculum tab drag-and-drop faculty onto program slots.
+
+**The risk, named, and it is the serious one.** A pot fed by gate revenue and
+giving is a **positive feedback loop on money**, in a game whose documented
+history is money running away — win, earn, fund more, win more. It needs brakes
+written in from the first commit, not retrofitted:
+
+- **Gate revenue saturates.** A stadium holds what it holds. Raising the
+  ceiling is PR Q's venue rungs — a capital decision — never a free ramp.
+- **The subsidy must not scale with school size faster than costs do**, or a
+  70,000-student school funds eighteen flagship programs without deciding
+  anything, and the whole feature evaporates at exactly the point in the run it
+  was built for.
+- The plan's other brakes are load-bearing here and should be measured
+  together with this one: PR H (athlete intake costs class quality), PR I (the
+  field closes), PR L (poaching), PR P (scandal risk rising with the pot).
 
 **Rejected alternatives, recorded.** Eighteen sliders (a spreadsheet); a budget
 per venue category (groups the wrong things — the arena's six programs are not
 one decision); a commitment level set once at varsity (the same idea, less
-legible, and it cannot express *order*).
+legible, and it cannot express *order*); and **fixed band sizes**, whether a
+flat 1–2 slots or a ratio computed off team count — both make the design carry
+a number that the funded line already expresses, and both have to be re-picked
+every time the pot or the sport costs move.
 
 **Where.** `src/state/types.ts` (an ordered list of team ids — the ordering is
-the stored thing, the bands are derived from position),
+the stored thing; the funded line and therefore the bands are *derived*, never
+stored, so they cannot disagree with the pot),
 `src/tabs/AthleticsTab.tsx`, `studentLifeData.ts`'s quality inputs.
 
 ## PR H — The cost of a big programme
@@ -781,6 +847,16 @@ change what the design *is* and writing it twice is worse than writing it once.
    derived and unstored. Keeping it that way is cheaper and makes a rivalry
    record one-sided — the player's memory, not the world's. Probably correct;
    say so deliberately.
-5. **How many bands, and how many slots in each?** PR G says 1–2 Flagship. That
-   number is the whole difficulty curve of the feature and wants a playtest,
-   not a guess.
+5. ~~**How many bands, and how many slots in each?**~~ **Settled: none.** The
+   bands are drawn where the pot runs out rather than being compartments with
+   sizes, so the question dissolves — the ratio of flagship programs moves by
+   itself as the pot grows. About a quarter fully funded at mid-game is the
+   measurement to tune the pot and the sport costs toward, not a number the
+   code carries. See PR G.
+6. **How hard does the earned half of the pot compound?** The open question PR
+   G leaves in its place, and a harder one: a pot fed by gate and giving is a
+   positive feedback loop, and the brakes (saturating gate, a subsidy that does
+   not track school size, PRs H/I/L/P) have to be measured *together* rather
+   than one PR at a time. The first balance run that includes PR G should
+   report the funded-line position at years 15, 25 and 40 — if it only ever
+   moves down, a brake is missing.
