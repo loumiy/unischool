@@ -190,6 +190,27 @@ function fireChampionshipReport(s: GameState): boolean {
   return true;
 }
 
+// THE FIRST SPORT CLUB'S BEAT (Plan 21's PR O): the moment the school stops
+// being an institution and becomes a name people shout, moved out of the
+// athletic-director modal — which keeps that modal about the director —
+// and two decades earlier. Fires on the first quiet week after the club
+// is recognised; if a mascot somehow exists already, the flag simply
+// clears.
+function fireMascotBeat(s: GameState): boolean {
+  if (!s.orgs.mascotBeatPending) return false;
+  if (s.self.mascot) { s.orgs.mascotBeatPending = false; return false; }
+  const club = s.orgs.clubs.find((c) => c.sport !== null);
+  s.pendingInterrupt = {
+    type: 'first-sport-club',
+    payload: {
+      clubName: club?.name ?? 'a sport club',
+      sportId: club?.sport ?? null,
+      mascotSuggestion: rollMascotSuggestion(),
+    },
+  };
+  return true;
+}
+
 function fireAthleticDirectorOffer(s: GameState): boolean {
   if (s.orgs.athleticDirector) return false;
   if (s.orgs.teams.length === 0) return false;
@@ -365,6 +386,7 @@ export function tickEvents(s: GameState): void {
   if (fireCharterOffer(s)) return;
   if (fireResearchReport(s)) return;
   if (fireChampionshipReport(s)) return;
+  if (fireMascotBeat(s)) return;
   if (fireAthleticDirectorOffer(s)) return;
   if (fireVarsityPetition(s)) return;
   if (fireTrusteeResponse(s)) return;

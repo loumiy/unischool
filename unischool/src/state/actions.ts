@@ -284,6 +284,7 @@ export type Action =
   // `candidate: null` is the decline, which records a week rather than a flag
   // (see types.ts's athleticDirectorAskedWeek).
   | { type: 'RESOLVE_ATHLETIC_DIRECTOR'; candidate: Coach | null; mascot: string }
+  | { type: 'RESOLVE_MASCOT'; mascot: string } // the first sport club's naming beat (Plan 21's PR O)
   // A championship report: read and leave, like the U.S. News report.
   | { type: 'RESOLVE_CHAMPIONSHIP' }
   // Commits one choice from an authored decision event (see
@@ -455,6 +456,8 @@ export function createPreStartState(): GameState {
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
       athleticsBudget: DEFAULT_ATHLETICS_BUDGET,
       teamOrder: [],
+      studentCenterWeek: 0,
+      mascotBeatPending: false,
       athleticDirector: null,
       lastSeason: {},
       titles: [],
@@ -812,6 +815,8 @@ export function createInitialState(
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
       athleticsBudget: DEFAULT_ATHLETICS_BUDGET,
       teamOrder: [],
+      studentCenterWeek: 0,
+      mascotBeatPending: false,
       athleticDirector: null,
       lastSeason: {},
       titles: [],

@@ -1226,6 +1226,15 @@ export interface StudentOrgState {
   // list carries for a team that is gone) is handled by the derivation, not
   // by a migration: unknown ids are dropped, unlisted teams are appended.
   teamOrder: string[];
+  // THE ARRIVAL (Plan 21's PR O). `studentCenterWeek` is the absolute week
+  // the first student centre finished (0 = not yet), read by the first
+  // sport club's pity timer: a pipeline is a guarantee, not a lottery.
+  // `mascotBeatPending` is set the summer the first sport club is
+  // recognised and fires the naming beat on the next quiet week — the
+  // mascot is chosen there, two decades before the department, and the
+  // director's modal stops asking once it is.
+  studentCenterWeek: number;
+  mascotBeatPending: boolean;
   // THE ATHLETIC DIRECTOR, hired once the first team exists (see
   // systems/events/eventSystem.ts's fireAthleticDirectorOffer). A `Coach`
   // rather than a fourth kind of person, because that is exactly what they

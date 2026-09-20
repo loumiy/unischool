@@ -54,7 +54,7 @@ const TABS: Array<{ id: TabId; label: string }> = [
 // useful from the first week.
 const TAB_GATES: Partial<Record<TabId, (s: GameState) => boolean>> = {
   research: (s) => labEquippedFields(s).size > 0,
-  athletics: (s) => s.orgs.teams.length > 0,
+  athletics: (s) => s.orgs.teams.length > 0 || s.orgs.clubs.some((c) => c.sport !== null), // opens with the first sport club (Plan 21's PR O), empty and showing the path
   history: (s) => s.clock.year >= 2,
 };
 

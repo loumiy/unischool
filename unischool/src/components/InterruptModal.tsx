@@ -1170,6 +1170,44 @@ function ordinal(n: number): string {
   return `${n}${suffix}`;
 }
 
+// THE FIRST SPORT CLUB (Plan 21's PR O): a small modal with one question.
+// The identity arrives years before the department does, which is what
+// turns a decade of silence into a decade of anticipation.
+interface FirstSportClubPayload { clubName: string; sportId: string | null; mascotSuggestion: string; }
+
+function FirstSportClubView({ s, payload, onResolve }: {
+  s: GameState;
+  payload: FirstSportClubPayload;
+  onResolve: (mascot: string) => void;
+}) {
+  const [mascot, setMascot] = useState(payload.mascotSuggestion);
+  return (
+    <>
+      <h2>The first sport club</h2>
+      <p>
+        The {payload.clubName} is the first of the school's sport clubs to be recognised. It plays intramurals
+        for now; in a few years it may petition to go varsity, and there will be a department, a venue and a
+        season behind it. The students have already started arguing about what the teams should be called —
+        the colours are {institutionName(s.self)}'s own, but a name is something people shout.
+      </p>
+      <label className="ad-mascot">
+        <span className="ad-mascot-label">The teams will play as the</span>
+        <input
+          className="ad-mascot-input"
+          value={mascot}
+          maxLength={MASCOT_MAX_LENGTH}
+          onChange={(e) => setMascot(e.target.value)}
+          aria-label="Mascot"
+        />
+        <button type="button" className="ad-mascot-roll" onClick={() => setMascot(rollMascotSuggestion())}>
+          another
+        </button>
+      </label>
+      <button className="panel-action" onClick={() => onResolve(mascot)}>Name them</button>
+    </>
+  );
+}
+
 function AthleticDirectorView({ s, payload, onResolve }: {
   s: GameState;
   payload: AthleticDirectorPayload;
@@ -1205,19 +1243,24 @@ function AthleticDirectorView({ s, payload, onResolve }: {
         ))}
       </div>
 
-      <label className="ad-mascot">
-        <span className="ad-mascot-label">The teams will play as the</span>
-        <input
-          className="ad-mascot-input"
-          value={mascot}
-          maxLength={MASCOT_MAX_LENGTH}
-          onChange={(e) => setMascot(e.target.value)}
-          aria-label="Mascot"
-        />
-        <button type="button" className="ad-mascot-roll" onClick={() => setMascot(rollMascotSuggestion())}>
-          another
-        </button>
-      </label>
+      {/* The mascot is named at the first sport club now (PR O); this modal
+          asks only when nothing has answered, so it stays about the
+          director. */}
+      {!s.self.mascot && (
+        <label className="ad-mascot">
+          <span className="ad-mascot-label">The teams will play as the</span>
+          <input
+            className="ad-mascot-input"
+            value={mascot}
+            maxLength={MASCOT_MAX_LENGTH}
+            onChange={(e) => setMascot(e.target.value)}
+            aria-label="Mascot"
+          />
+          <button type="button" className="ad-mascot-roll" onClick={() => setMascot(rollMascotSuggestion())}>
+            another
+          </button>
+        </label>
+      )}
 
       <button className="ad-decline" onClick={() => onResolve(null, mascot)}>
         Appoint nobody for now — the search goes on, and the position will come back around.
@@ -1488,6 +1531,12 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
             s={s}
             result={(interrupt.payload as { result: SeasonResult }).result}
             onDismiss={() => act({ type: 'RESOLVE_CHAMPIONSHIP' })}
+          />
+        ) : interrupt.type === 'first-sport-club' ? (
+          <FirstSportClubView
+            s={s}
+            payload={interrupt.payload as FirstSportClubPayload}
+            onResolve={(mascot) => act({ type: 'RESOLVE_MASCOT', mascot })}
           />
         ) : interrupt.type === 'athletic-director' ? (
           <AthleticDirectorView

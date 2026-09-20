@@ -164,7 +164,12 @@ function resolveStudentLifeDigest(s: GameState, approvedIds: string[]): void {
   let declined = 0;
   for (const petition of petitions) {
     if (approved.has(petition.id)) {
+      // The first sport club is a named beat (Plan 21's PR O): the school
+      // picks its mascot on the next quiet week, not in the director's
+      // modal two decades on.
+      const firstSport = !!petition.sport && !s.orgs.clubs.some((c) => c.sport !== null) && s.orgs.teams.length === 0;
       activatePetition(s, petition);
+      if (firstSport && !s.self.mascot) s.orgs.mascotBeatPending = true;
       recognised += 1;
       nudge += petition.kind === 'club'
         ? CLUB_APPROVAL_SATISFACTION_NUDGE
@@ -974,6 +979,23 @@ export function reducer(state: GameState, action: Action): GameState {
     case 'RESOLVE_CHAMPIONSHIP': {
       s.pendingInterrupt = null;
       advanceClock(s);
+      return s;
+    }
+
+    // The first sport club's naming beat (Plan 21's PR O). Trimmed and
+    // capped as the director's modal does it; an empty name keeps the
+    // question for the director's modal, which still asks when nothing has
+    // answered.
+    case 'RESOLVE_MASCOT': {
+      const mascot = action.mascot.trim().slice(0, MASCOT_MAX_LENGTH);
+      if (mascot) s.self.mascot = mascot;
+      s.orgs.mascotBeatPending = false;
+      s.pendingInterrupt = null;
+      s.log.unshift({
+        year: s.clock.year, week: s.clock.week,
+        message: mascot ? `The school's teams will play as the ${mascot}.` : 'The students could not agree on a name for the teams; the question will come back.',
+        kind: mascot ? 'good' : 'info',
+      });
       return s;
     }
 

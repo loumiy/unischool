@@ -1262,7 +1262,36 @@ export function seatCoach(team: VarsityTeam, role: VacantChair['role'], coach: C
 // petitions for varsity status on its own five-year mark, not whenever a
 // shared random lottery happens to land on it (see eventData.ts's
 // VARSITY_PETITION_WEEK for the "which week" half of that same ask).
-export const VARSITY_PETITION_MIN_TENURE_YEARS = 5;
+// 5 until Plan 21's PR O, which tightened the whole fuse: the first varsity
+// team landed anywhere from year 8.75 to 19.75 across two runs, and an
+// eleven-year spread is a coin flip deciding which game a player gets.
+export const VARSITY_PETITION_MIN_TENURE_YEARS = 3;
+
+// THE PITY TIMER (PR O): if a student centre has stood SPORT_CLUB_PITY_YEARS
+// and no sport club has ever formed, the next club formation is one. The
+// same "a pipeline is a guarantee, not a lottery" argument
+// fireVarsityPetition already won, applied one step earlier.
+export const SPORT_CLUB_PITY_YEARS = 2;
+
+export function sportClubEverFormed(s: GameState): boolean {
+  return s.orgs.clubs.some((c) => c.sport !== null)
+    || s.orgs.teams.length > 0
+    || s.orgs.pendingPetitions.some((p) => p.sport);
+}
+
+function sportClubOverdue(s: GameState): boolean {
+  if (s.orgs.studentCenterWeek <= 0 || sportClubEverFormed(s)) return false;
+  const weeks = (s.clock.year - 1) * WEEKS_PER_YEAR + s.clock.week - s.orgs.studentCenterWeek;
+  return weeks >= SPORT_CLUB_PITY_YEARS * WEEKS_PER_YEAR;
+}
+
+// The year a sport club may first petition to go varsity — what the Student
+// Life tab says on its row (PR O's foreshadowing), and what the Athletics
+// tab opens with.
+export function varsityEligibleYear(club: StudentClub): number {
+  const from = club.varsityLastAskedYear ?? club.foundedYear;
+  return from + VARSITY_PETITION_MIN_TENURE_YEARS;
+}
 
 // A sport club eligible to be OFFERED the varsity petition: it plays a
 // sport, has cleared VARSITY_PETITION_MIN_TENURE_YEARS since founding, and
@@ -1427,7 +1456,7 @@ export function rollClubPetition(s: GameState): OrgPetition | null {
   // the sport draw comes up empty (every sport already fielded or already
   // varsity), this falls straight back to an ordinary club rather than
   // wasting the week's formation.
-  const sportDef = Math.random() < SPORT_CLUB_SHARE ? rollSportClub(s) : null;
+  const sportDef = sportClubOverdue(s) || Math.random() < SPORT_CLUB_SHARE ? rollSportClub(s) : null;
   const name = sportDef?.clubName ?? nextClubName(s);
   if (name === null) return null;
   return {

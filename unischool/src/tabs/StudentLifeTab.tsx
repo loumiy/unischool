@@ -4,8 +4,7 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import {
   HELLENIC_COUNCIL_HINT, clubCapacity, chapterCapacity,
-  hasStudentCenter, orgMembership, studentOrgUpkeep,
-} from '../data/studentLifeData';
+  hasStudentCenter, orgMembership, studentOrgUpkeep, varsityEligibleYear } from '../data/studentLifeData';
 import { ATTRIBUTE_WEIGHTS, attributeDetail, studentLifeSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { DEMAND_SATISFACTION_THRESHOLD, DEMAND_URGENT_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
@@ -44,7 +43,7 @@ function money(v: number): string {
   return `$${Math.round(v).toLocaleString()}`;
 }
 
-function OrgRow({ org, s, tag }: { org: StudentOrgBase; s: GameState; tag?: string }) {
+function OrgRow({ org, s, tag, note }: { org: StudentOrgBase; s: GameState; tag?: string; note?: string }) {
   return (
     <li className="org-row">
       <span className="org-name">
@@ -53,9 +52,18 @@ function OrgRow({ org, s, tag }: { org: StudentOrgBase; s: GameState; tag?: stri
       </span>
       <span className="org-meta">
         founded {org.foundedYear} · {orgMembership(org, s).toLocaleString()} members · {money(org.upkeepPerWeek)}/wk
+        {note && <> · {note}</>}
       </span>
     </li>
   );
+}
+
+// FORESHADOWING (Plan 21's PR O): a sport club's row says when it may
+// petition to go varsity, so a delayed department reads as awaited rather
+// than buried.
+function varsityNote(club: StudentClub, s: GameState): string {
+  const year = varsityEligibleYear(club);
+  return year <= s.clock.year ? 'may petition to go varsity this year' : `may petition to go varsity in year ${year}`;
 }
 
 // The satisfaction reading. Deliberately shows BOTH shapes the design
@@ -440,7 +448,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
             ) : (
               <ul className="org-list">
                 {clubs.map((c) => (
-                  <OrgRow key={c.id} org={c} s={s} tag={c.sport ? 'sport' : undefined} />
+                  <OrgRow key={c.id} org={c} s={s} tag={c.sport ? 'sport' : undefined} note={c.sport ? varsityNote(c, s) : undefined} />
                 ))}
               </ul>
             )}

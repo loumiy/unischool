@@ -5,7 +5,8 @@ import { WEEKS_PER_YEAR, institutionName } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import {
   ATHLETICS_BUDGET_ORDER, ATHLETICS_BUDGET_TIERS, BAND_LABEL, COACH_CANDIDATE_LISTING_WEEKS, TRAINER_FIELD,
-  ceilingResolved, coachProfile, departmentPot, orderedTeams, sportById, teamQuality, venueForCategory,
+  VARSITY_PETITION_MIN_TENURE_YEARS, ceilingResolved, coachProfile, departmentPot, orderedTeams, sportById, teamQuality,
+  varsityEligibleYear, venueForCategory,
 } from '../data/studentLifeData';
 import type { ProgramFunding } from '../data/studentLifeData';
 import FacultyPortrait from '../components/FacultyPortrait';
@@ -520,7 +521,24 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
         <HelpHint text="Drag a program up or down. Each draws its sport's cost to compete off the department's pot in this order until the pot runs out — the line shows where. A program above the line is a flagship and recruits at full strength; one the money reaches only part-way is competitive; one it never reaches is developmental and runs at a discount, not a zero. Dragging a program below the line it was above is a real demotion: its head coach may resign rather than take the cut. Teams waiting on a venue sit out of the queue and draw nothing." />
       </div>
       {ordered.length === 0 ? (
-        <p className="empty-note">No sport club has gone varsity yet.</p>
+        <div className="empty-note">
+          {/* The path (PR O): the tab opens with the first sport club, empty
+              and saying what comes next, rather than with the first team. */}
+          <p>No sport club has gone varsity yet. The path: a sport club forms on Student Life, and after {VARSITY_PETITION_MIN_TENURE_YEARS} years it may petition to go varsity — a program budget, a shared venue for its sport, and a place on this list.</p>
+          {s.orgs.clubs.filter((c) => c.sport !== null).length > 0 && (
+            <ul className="org-list">
+              {s.orgs.clubs.filter((c) => c.sport !== null).map((c) => {
+                const year = varsityEligibleYear(c);
+                return (
+                  <li key={c.id} className="org-row">
+                    <span className="org-name">{c.name}</span>
+                    <span className="org-meta">{year <= s.clock.year ? 'may petition this year' : `may petition in year ${year}`}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       ) : (
         <ul className="team-card-list priority-list">
           {active.map((team, i) => {

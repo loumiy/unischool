@@ -2,7 +2,7 @@ import type { GameState, OrgPetition } from '../../state/types';
 import { absoluteWeek } from '../../data/eventData';
 import {
   CHAPTER_FORMATION_WEEKLY_CHANCE, CLUB_FORMATION_WEEKLY_CHANCE, ORG_FORMATION_COOLDOWN_WEEKS,
-  canFormChapter, canFormClub, rollChapterPetition, rollClubPetition, venueForCategory,
+  canFormChapter, canFormClub, hasStudentCenter, rollChapterPetition, rollClubPetition, venueForCategory,
 } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
@@ -89,6 +89,9 @@ function tickVarsityVenues(s: GameState): void {
 
 export function tickStudentLife(s: GameState): void {
   tickVarsityVenues(s);
+  // The week the first student centre stands, for the sport club's pity
+  // timer (PR O).
+  if (s.orgs.studentCenterWeek === 0 && hasStudentCenter(s)) s.orgs.studentCenterWeek = absoluteWeek(s);
 
   const week = absoluteWeek(s);
   if (s.orgs.lastFormationWeek > 0 && week - s.orgs.lastFormationWeek < ORG_FORMATION_COOLDOWN_WEEKS) return;
