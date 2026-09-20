@@ -293,7 +293,7 @@ export interface FinanceBreakdown {
   prestigeRevenue: number;     // the reputation dividend: donors/grants/brand, independent of enrollment
   endowmentPayout: number;     // the endowment's annual spend rate, sliced into weeks
   gateRevenue: number;         // what the athletics department's home dates take at the gate, gross (see systems/athletics/gate.ts) — Plan 21's PR D. Shown, not summed: it is paid into the department's pot (PR G), and only the surplus below reaches income
-  athleticsSurplus: number;    // what the department's pot returned once every program on the list drew its cost — the spill into general income (PR G)
+  athleticsSurplus: number;    // the gate beyond what the programs drew — the spill into general income (PR G)
   totalIncome: number;
   // expenses
   weeklySalaries: number;      // the faculty payroll at market rate (see facultyData.ts's marketRateMultiplier), annualized salaries sliced into weeks
@@ -303,7 +303,7 @@ export interface FinanceBreakdown {
   academicUpkeep: number;      // running the courses, academic buildings and labs that are done
   facilityUpkeep: number;      // running the dorms and campus-life facilities that are done
   studentLifeUpkeep: number;   // running the clubs and Greek chapters the player has recognised (see data/studentLifeData.ts)
-  athleticsSubsidy: number;    // the institutional half of the department's pot, the budget tier's subsidy (PR G)
+  athleticsSubsidy: number;    // the part of the tier's subsidy the programs actually drew this week — what athletics costs the university (PR G)
   totalExpenses: number;
   net: number;                 // totalIncome - totalExpenses
 }
@@ -404,15 +404,19 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   // THE DEPARTMENT'S ROUTING (Plan 21's PR G). The gate is paid to the
   // department, not the university: the pot is the tier's subsidy plus the
   // gate, every program on the priority list draws its cost off it in
-  // order, and only what is left spills into general income. So the
-  // subsidy is an expense every week, the surplus is income, and the
-  // university's net of athletics is gate minus programs — a winning
-  // department returns more than it was given and stops being a cost
-  // centre; a losing one returns nothing.
+  // order, and only what is left spills into general income. What the
+  // university actually pays is the part of the subsidy the programs DREW
+  // — what they took beyond the gate — and what it actually receives is
+  // the gate beyond what they took; a subsidy nobody drew is not spent.
+  // (Charging the whole tier and refunding the surplus nets the same but
+  // inflates opex, and half the game's prices are read in weeks of opex —
+  // an idle department made every club and every gift a fifth dearer.)
+  // A winning department returns more than it was given and stops being a
+  // cost centre; a losing one returns nothing.
   const gateRevenue = weeklyGateRevenue(s);
   const pot = departmentPot(s);
-  const athleticsSubsidy = pot.subsidy / WEEKS_PER_YEAR;
-  const athleticsSurplus = pot.surplus / WEEKS_PER_YEAR;
+  const athleticsSubsidy = Math.max(0, pot.drawn - pot.earned) / WEEKS_PER_YEAR;
+  const athleticsSurplus = Math.max(0, pot.earned - pot.drawn) / WEEKS_PER_YEAR;
   // SALARIES AT MARKET RATE (Plan 15's PR D): a top-20 school pays what
   // top-20 schools pay. The roster's salaries are the base; the school's
   // prestige tier multiplies them (facultyData.ts's marketRateMultiplier),

@@ -353,7 +353,8 @@ fully funded program recruits at full strength (`FUNDED_QUALITY_BONUS`); one
 below the line is **underfunded, not unfunded** — a proportional discount with
 a floor, the same shape a vacant chair takes. The gate is paid to the
 department first and only the **surplus** spills into general income (the
-Treasury carries the subsidy as an expense and the surplus as income), so a
+Treasury carries the subsidy the programs actually drew as an expense and the
+gate beyond the draw as income), so a
 winning department returns more than it was given and stops being a cost
 centre. Demotion costs something: a program dragged below the line it was
 above may lose its head coach on the reorder. `'awaitingVenue'` teams sit out

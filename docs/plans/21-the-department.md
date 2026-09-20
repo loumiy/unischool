@@ -547,7 +547,7 @@ applied to the one system that currently has a single way to play it.
 **Where.** `src/data/studentLifeData.ts` (`SPORT_PROFILES` gains the scale),
 `teamQuality`'s inputs, `coachSalaryFor`'s call sites.
 
-**As implemented:** revenue $900k/yr, 1.8× salaries, titles at 1.5, $20 tickets; Olympic $250k, 1×, 0.8, $10; football alone above both at $2.4M, 2.5×, 2.0, $25. Breadth credit full at eight with weights 2 / 1.5 / 1.
+**As implemented:** revenue $450k/yr to compete, 1.8× salaries, titles at 1.5, $20 tickets; Olympic $120k, 1×, 0.8, $10; football alone above both at $1.2M, 2.5×, 2.0, $25. First sized at twice this and halved after the final harness pass (see PR R): sized to the coaching payroll, not to opex. Breadth credit full at eight with weights 2 / 1.5 / 1.
 
 ## PR G — The priority list, and a pot that grows
 
@@ -640,7 +640,7 @@ the stored thing; the funded line and therefore the bands are *derived*, never
 stored, so they cannot disagree with the pot),
 `src/tabs/AthleticsTab.tsx`, `studentLifeData.ts`'s quality inputs.
 
-**As implemented:** the subsidy is the tier in fixed dollars — 600k / 1.5M / 3M a year — and the tier's old flat quality bonus is gone; a fully funded program gets +18 (10 after PR I) and an unfunded one runs at 85% of its staff. The Treasury carries the subsidy as an expense and the surplus as income. Demotion is a coin flip on the head coach, applied on the reorder itself, with a log line; the season-long decay was not built. Programs join the list at the bottom.
+**As implemented:** the subsidy is the tier in fixed dollars — 300k / 750k / 1.5M a year, halved with the sport costs after the final harness pass — and the tier's old flat quality bonus is gone; a fully funded program gets +18 (10 after PR I) and an unfunded one runs at 85% of its staff. The Treasury carries the subsidy the programs actually drew as an expense and the gate beyond the draw as income — not the whole tier and a refund, which nets the same but inflated opex, and half the game's prices are read in weeks of opex. Demotion is a coin flip on the head coach, applied on the reorder itself, with a log line; the season-long decay was not built. Programs join the list at the bottom.
 
 ## PR H — The cost of a big programme
 
@@ -849,7 +849,7 @@ finding about the whole game, and athletics is the right place to answer it
 first, because the exposure is something the player **chose**. A cash penalty
 is ignorable by year 20; losing a season is not.
 
-**As implemented:** `recruiting-scandal` at weight 4, boosted by the pot (a million is a point), 0.4 a flagship, and the gap between the academic and athletic ranks; it aims at a flagship, revenue first. Self-report is one season out; fighting costs two weeks of opex and is a coin flip between nothing and two seasons. Landed with PR Q in one commit.
+**As implemented:** `recruiting-scandal` at weight 4, boosted by the pot (a million and a half is a point), 0.4 a flagship, and the gap between the academic and athletic ranks; it aims at a flagship, revenue first. Self-report is one season out; fighting costs two weeks of opex and is a coin flip between nothing and two seasons. Landed with PR Q in one commit.
 
 ## PR Q — Water polo, and venues with rungs
 

@@ -122,7 +122,7 @@ function testPot(): void {
   const pot = departmentPot(s);
   assert(pot.programs.length === 3, 'a team awaiting its venue sits out of the queue');
   assert(pot.programs[0].team.sport === 'football', 'the queue is the list order, and a new program joins at the end');
-  assert(pot.subsidy === 3_000_000, 'the high tier is a $3M subsidy');
+  assert(pot.subsidy === 1_500_000, 'the high tier is a $1.5M subsidy');
   s.orgs.athleticsBudget = 'medium';
   assert(departmentPot(s).programs[0].funded < 1, 'and at medium a football program alone outruns the subsidy — the pot needs the gate');
   s.orgs.athleticsBudget = 'high';
@@ -154,8 +154,12 @@ function testPot(): void {
   const rich = departmentPot(after);
   assert(rich.surplus > 0, 'one Olympic program on a high subsidy returns a surplus to the school');
   const flow = financeBreakdown(after);
-  assert(Math.abs(flow.athleticsSurplus * WEEKS_PER_YEAR - rich.surplus) < 1, 'the Treasury carries the surplus as income');
-  assert(Math.abs(flow.athleticsSubsidy * WEEKS_PER_YEAR - rich.subsidy) < 1, 'and the subsidy as an expense');
+  assert(Math.abs(flow.athleticsSurplus * WEEKS_PER_YEAR - Math.max(0, rich.earned - rich.drawn)) < 1, 'the Treasury carries the gate beyond the draw as income');
+  assert(Math.abs(flow.athleticsSubsidy * WEEKS_PER_YEAR - Math.max(0, rich.drawn - rich.earned)) < 1, 'and the subsidy actually drawn as an expense');
+  // An idle department costs nothing: a subsidy nobody drew is not spent,
+  // and opex — which prices half the game in weeks of itself — is untouched.
+  const idle = fresh();
+  assert(financeBreakdown(idle).athleticsSubsidy === 0 && financeBreakdown(idle).athleticsSurplus === 0, 'no programs, no line either way');
 }
 
 // ---- PR I: the ceiling is exactly 100 ----

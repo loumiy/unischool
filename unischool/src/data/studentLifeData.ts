@@ -325,12 +325,21 @@ export interface SportEconomics {
   breadthWeight: number;    // what fielding it counts for toward athletic standing's breadth credit
 }
 
-const OLYMPIC_SPORT: SportEconomics = { scale: 'olympic', costToCompete: 250_000, salaryMultiplier: 1.0, payoffMultiplier: 0.8, ticketPrice: 10, breadthWeight: 1 };
-const REVENUE_SPORT: SportEconomics = { scale: 'revenue', costToCompete: 900_000, salaryMultiplier: 1.8, payoffMultiplier: 1.5, ticketPrice: 20, breadthWeight: 1.5 };
+//
+// SIZED TO THE COACHING PAYROLL, NOT TO OPEX. A full department's three
+// chairs a program run about $300k a program a year; the cost to compete
+// is of that order — a revenue program spends what it pays its coaches
+// again on recruiting and travel, an Olympic one less than half — so that
+// the pot is a real line in the decade the venues go up and a rounding
+// error against a school spending hundreds of millions. (First sized at
+// twice this, which made the medium subsidy a tenth of a mid-game school's
+// opex and sank the balance harness's overbuilder; halved with the tiers.)
+const OLYMPIC_SPORT: SportEconomics = { scale: 'olympic', costToCompete: 120_000, salaryMultiplier: 1.0, payoffMultiplier: 0.8, ticketPrice: 10, breadthWeight: 1 };
+const REVENUE_SPORT: SportEconomics = { scale: 'revenue', costToCompete: 450_000, salaryMultiplier: 1.8, payoffMultiplier: 1.5, ticketPrice: 20, breadthWeight: 1.5 };
 // Football is a revenue sport and then some: the stadium is the game's most
 // expensive building, and the program that plays in it is the most
 // expensive to run.
-const FOOTBALL: SportEconomics = { scale: 'revenue', costToCompete: 2_400_000, salaryMultiplier: 2.5, payoffMultiplier: 2.0, ticketPrice: 25, breadthWeight: 2 };
+const FOOTBALL: SportEconomics = { scale: 'revenue', costToCompete: 1_200_000, salaryMultiplier: 2.5, payoffMultiplier: 2.0, ticketPrice: 25, breadthWeight: 2 };
 
 interface SportProfile {
   key: string;                 // base id; the WHOLE id for a one-gender sport
@@ -490,9 +499,9 @@ export function venueForCategory(s: GameState, category: FacilityType): Buildabl
 export const ATHLETICS_BUDGET_ORDER: readonly AthleticsBudgetTier[] = ['low', 'medium', 'high'];
 export const DEFAULT_ATHLETICS_BUDGET: AthleticsBudgetTier = 'medium';
 export const ATHLETICS_BUDGET_TIERS: Record<AthleticsBudgetTier, { socialMultiplier: number; upkeepMultiplier: number; subsidyPerYear: number }> = {
-  low: { socialMultiplier: 0.6, upkeepMultiplier: 0.75, subsidyPerYear: 600_000 },
-  medium: { socialMultiplier: 1.0, upkeepMultiplier: 1.0, subsidyPerYear: 1_500_000 },
-  high: { socialMultiplier: 1.5, upkeepMultiplier: 1.4, subsidyPerYear: 3_000_000 },
+  low: { socialMultiplier: 0.6, upkeepMultiplier: 0.75, subsidyPerYear: 300_000 },
+  medium: { socialMultiplier: 1.0, upkeepMultiplier: 1.0, subsidyPerYear: 750_000 },
+  high: { socialMultiplier: 1.5, upkeepMultiplier: 1.4, subsidyPerYear: 1_500_000 },
 };
 
 // The flat per-team social contribution, same shape as CLUB/CHAPTER_SOCIAL_

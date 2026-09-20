@@ -435,7 +435,7 @@ function unbuiltVenues(s: GameState): Buildable[] {
 const STATE_MATCH_VENUE_SHARE_CAP = 0.6; // the state will not pay for more than this share of a building
 
 // How exposed the department is (Plan 21's PR P): a multiplier on the
-// scandal's weight that rises with the pot (a million dollars of pot is a
+// scandal's weight that rises with the pot (a million and a half of pot is a
 // point), with every program above the funded line, and with how far the
 // department's standing has outrun the school's — a football power at an
 // unranked college is the one the papers watch.
@@ -448,7 +448,7 @@ function scandalExposure(s: GameState): number {
   const pot = departmentPot(s);
   const flagships = pot.programs.filter((p) => p.band === 'flagship').length;
   const outrun = Math.max(0, rankBy(s, 'reputation') - rankBy(s, 'athleticStrength')) / 25;
-  return Math.min(6, 0.5 + pot.pot / 3_000_000 + 0.4 * flagships + outrun);
+  return Math.min(6, 0.5 + pot.pot / 1_500_000 + 0.4 * flagships + outrun);
 }
 
 // Who a bigger program would come for (Plan 21's PR L): a head coach at
