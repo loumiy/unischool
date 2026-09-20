@@ -4,11 +4,11 @@
 // Authored content, so the checks are authoring checks: every key names a
 // real undergraduate course, every sentence follows the two rules the
 // table's header states (one sentence in the entry courses' register; it
-// says something the title does not), and — the progress bar for Plan
-// 20's PRs E and F — how many courses are still on the template fallback,
-// which may only ever go down. FALLBACK_CEILING is that number as of the
-// last PR to land; a PR that authors descriptions lowers it, and a PR that
-// adds a course without one cannot land.
+// says something the title does not), and — the invariant Plan 20's PRs
+// D–G built toward — that EVERY undergraduate course has one. While the
+// table filled, this test printed how many courses were still on the
+// template fallback and held the count to going down; the templates are
+// gone now, so a course added without a description cannot land.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
@@ -25,12 +25,6 @@ function assert(cond: boolean, msg: string): void {
     console.error(`  ✗ ${msg}`);
   }
 }
-
-// How many undergraduate courses were still described by a template when
-// the last PR landed. 336 is where Plan 20's PR D starts: the 42 entry
-// courses have always been authored, and every tier-2 and tier-3 course
-// is on the fallback.
-const FALLBACK_CEILING = 0;
 
 console.log('course description tests');
 
@@ -63,23 +57,21 @@ const titleOf = (id: string): string => byId.get(id)!.name.replace(/^[A-Z]+ \d+ 
   }
 }
 
-// --- the fallback count, which only goes down -------------------------
+// --- every course in the catalogue has an authored description --------
 {
-  const onFallback = courses.filter((t) => !(t.id in COURSE_DESCRIPTIONS));
-  console.log(`  · ${courses.length - onFallback.length} of ${courses.length} undergraduate courses have an authored description; ${onFallback.length} are on the template fallback`);
+  const missing = courses.filter((t) => !(t.id in COURSE_DESCRIPTIONS));
+  console.log(`  · ${courses.length - missing.length} of ${courses.length} undergraduate courses have an authored description`);
   assert(
-    onFallback.length <= FALLBACK_CEILING,
-    `the fallback count only goes down — ${onFallback.length} courses are on it, the ceiling is ${FALLBACK_CEILING}: ${onFallback.slice(0, 8).map((t) => t.id).join(', ')}${onFallback.length > 8 ? ', …' : ''}`,
+    missing.length === 0,
+    `every course in the catalogue has an authored description — ${missing.length} do not: ${missing.slice(0, 8).map((t) => t.id).join(', ')}${missing.length > 8 ? ', …' : ''}`,
   );
-  // And the seed really does read the table: an authored course carries
-  // its sentence, verbatim.
+  // And the seed really does read the table: every course's Buildable
+  // carries its sentence, verbatim, and nothing generated.
   for (const t of courses) {
-    const authored = COURSE_DESCRIPTIONS[t.id];
-    if (authored !== undefined) assert(t.description === authored, `${t.id}'s Buildable carries its authored description`);
+    assert(t.description === COURSE_DESCRIPTIONS[t.id], `${t.id}'s Buildable carries its authored description`);
   }
-  // Every entry course has always been authored; that never regresses.
-  const entries = courses.filter((t) => t.id.endsWith('101'));
-  assert(entries.every((t) => t.id in COURSE_DESCRIPTIONS), 'every entry course has an authored description');
+  assert(!courses.some((t) => /^(Builds on|A closer look at|Extends first-year|Applies .* fundamentals to|Advanced, capstone-level|A specialized deep dive|Capstone coursework in|Senior-level study of)/.test(t.description)),
+    'no course carries one of the eight retired template sentences');
 }
 
 if (failures === 0) {

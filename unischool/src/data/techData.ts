@@ -990,27 +990,14 @@ export function graduateGateDescription(program: GraduateProgramSeed): string {
 
 // ---------------------------------------------------------------------
 // Descriptions. Every undergraduate course takes its sentence from
-// courseDescriptions.ts's COURSE_DESCRIPTIONS, keyed by id (Plan 20's PR
-// D). The table is filled school by school behind the templates below,
-// which stay as the fallback for an id it does not yet carry, so no
-// commit in between ships a blank drawer; test/course-descriptions.test.ts
-// prints how many courses are still on the fallback and holds the count
-// to going down. The templates go when the table is complete (PR G).
+// courseDescriptions.ts's COURSE_DESCRIPTIONS, keyed by id — one authored
+// sentence per course, and no generator behind it (Plan 20's PRs D–G).
+// For 336 of the 378 courses the sentence used to come from eight
+// rotating templates with the title swapped in; test/course-descriptions
+// .test.ts now asserts that every course in the catalogue has its own.
+// Graduate courses keep a generated line (below), deliberately: 37
+// courses in a far more uniform register.
 // ---------------------------------------------------------------------
-const TIER2_TEMPLATES: Array<(title: string, major: string) => string> = [
-  (title, major) => `Builds on ${major}'s foundations with a focused study of ${title}.`,
-  (title, major) => `A closer look at ${title}, deepening the core skills of ${major}.`,
-  (title, major) => `Extends first-year ${major} coursework into ${title}.`,
-  (title, major) => `Applies ${major} fundamentals to ${title}, with more hands-on depth.`,
-];
-
-const TIER3_TEMPLATES: Array<(title: string, major: string) => string> = [
-  (title, major) => `Advanced, capstone-level work in ${title}, synthesizing ${major}'s core methods.`,
-  (title, major) => `A specialized deep dive into ${title} for students nearing mastery of ${major}.`,
-  (title, major) => `Capstone coursework in ${title}, applying the full ${major} toolkit.`,
-  (title, major) => `Senior-level study of ${title}, the kind of specialization ${major} builds toward.`,
-];
-
 const FOUNDERS_HALL_DESCRIPTION = `The founding hall, standing since the college opened: ${ACADEMIC_HALL_SLOTS} program slots, three of them teaching from the first day.`;
 
 function nodeId(prefix: string, num: number): string {
@@ -1081,13 +1068,9 @@ export function initialTech(): Buildable[] {
         const clinicalGate = CLINICAL_PRACTICUM_GATE[id];
         if (clinicalGate) prereqs = [...prereqs, clinicalGate];
 
-        const description = COURSE_DESCRIPTIONS[id] ?? (
-          tier === 1
-            ? `${major.name} (${school.name}) entry course: ${title}.`
-            : tier === 2
-              ? TIER2_TEMPLATES[(i - 1) % TIER2_TEMPLATES.length](title, major.name)
-              : TIER3_TEMPLATES[(i - 5) % TIER3_TEMPLATES.length](title, major.name)
-        );
+        // Authored, one per course, and pinned complete by the
+        // descriptions test — there is no fallback to generate one from.
+        const description = COURSE_DESCRIPTIONS[id];
 
         nodes.push({
           id,

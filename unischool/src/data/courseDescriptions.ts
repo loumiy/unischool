@@ -5,11 +5,12 @@
 // decide what a course IS, and for 336 of the 378 courses the answer used
 // to be eight rotating templates with the title swapped in — every
 // major's first tier-2 course got the same sentence as every other
-// major's first tier-2 course (Plan 20's PR D). This table replaces them,
+// major's first tier-2 course (Plan 20's PR D). This table replaced them,
 // filled school by school (PRs E and F) behind the templates as a
-// fallback, so no commit in between ships a blank drawer;
-// test/course-descriptions.test.ts prints how many courses are still on
-// the fallback and holds the count to going down.
+// fallback, and the templates were deleted once it was complete (PR G):
+// test/course-descriptions.test.ts asserts that every undergraduate
+// course in the catalogue has a row here, so a course added without one
+// cannot land.
 //
 // TWO RULES, so the table stays a catalogue and does not become 336
 // essays:
