@@ -5,6 +5,7 @@ import {
 } from '../../data/studentLifeData';
 import { WEEKS_PER_YEAR } from '../../state/types';
 import { PLAYOFF_WEEK, runPlayoffs } from './playoffs';
+import { tickSeason } from './season';
 
 // ---------------------------------------------------------------------
 // The coaching-staff system for Athletics V2 (see data/studentLifeData.ts's
@@ -96,6 +97,9 @@ export function tickAthletics(s: GameState): void {
   // The postseason, once a year. Silent — it writes results and queues any
   // titles; the report that stops the clock is drained on a quiet week by
   // eventSystem.ts, exactly as a milestone is (see playoffs.ts).
+  // The season's dated occasions (season.ts), then the postseason on its
+  // own week.
+  tickSeason(s);
   if (s.clock.week === PLAYOFF_WEEK) runPlayoffs(s);
   for (const t of s.orgs.teams) {
     if (t.headCoach) growCoach(t.headCoach);

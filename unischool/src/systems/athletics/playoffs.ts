@@ -18,8 +18,9 @@ import { sportRankedList } from '../../systems/rivals/rivalsSystem';
 // rounds are resolved. The deferral is about simulating a season, not about
 // ever resolving a game.
 //
-// If this ever grows a regular season, it should grow it deliberately and
-// somewhere else.
+// It grew one, deliberately and somewhere else: season.ts (Plan 21's PR N)
+// resolves four dated occasions a year with this file's own comparison and
+// argues the line it crosses at its head. The bracket is still the bracket.
 // ---------------------------------------------------------------------
 
 // Late in the year, and deliberately not a week anything else owns:
@@ -37,9 +38,9 @@ export const PLAYOFF_FIELD = 8;
 // stronger school wins about three times in four — so seeding matters a
 // great deal and nothing is a foregone conclusion, which is what makes a
 // championship worth stopping the clock for and an upset worth having.
-const SPREAD = 25;
+export const SPREAD = 25;
 
-function wins(a: number, b: number, roll: () => number): boolean {
+export function wins(a: number, b: number, roll: () => number): boolean {
   return roll() < 1 / (1 + 10 ** ((b - a) / SPREAD));
 }
 

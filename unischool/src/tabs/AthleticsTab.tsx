@@ -11,6 +11,7 @@ import type { ProgramFunding } from '../data/studentLifeData';
 import FacultyPortrait from '../components/FacultyPortrait';
 import { athleticRank, rankBy, sportRank, sportRankedList } from '../systems/rivals/rivalsSystem';
 import { annualGateFor, attendanceFor } from '../systems/athletics/gate';
+import { rivalFor, seasonRecordFor, trophyFor } from '../systems/athletics/season';
 import type { SeasonResult } from '../state/types';
 
 // Last season, in a few words. Short on purpose: it sits in a table row
@@ -378,6 +379,9 @@ function SportStandings({ s }: { s: GameState }) {
           const last = s.orgs.lastSeason[team.sport];
           const above = list[place - 2];
           const below = list[place];
+          const record = seasonRecordFor(s, team.sport);
+          const rival = rivalFor(s, team.sport);
+          const rivalry = s.orgs.rivalries[team.sport];
           return (
             <li key={team.id} className="sport-standing">
               <span className="sport-standing-sport">{sportById(team.sport)?.teamName ?? team.sport}</span>
@@ -397,6 +401,18 @@ function SportStandings({ s }: { s: GameState }) {
                   ? <span className="sport-standing-above">↑ {above.name} {above.mascot}</span>
                   : <span className="sport-standing-above best">nobody in the country is ahead</span>}
                 {below && <span className="sport-standing-below">↓ {below.name} {below.mascot}</span>}
+              </span>
+              {/* The record and the rival (Plan 21's PRs M and N): a rank is
+                  a number; a rank against Wexford State, whom you have beaten
+                  eleven times in thirty years, is a story. */}
+              <span className="sport-standing-rivalry">
+                {record ? <span className="stat">{record.wins}–{record.losses} this season</span> : <span className="stat">season not yet open</span>}
+                {rival && (
+                  <span className="stat" title={`${trophyFor(s, team.sport)} — the all-time series against ${rival.name}`}>
+                    rival: {rival.name} {rival.mascot}
+                    {rivalry ? ` (${rivalry.wins}–${rivalry.losses}${rivalry.streak !== 0 ? `, ${Math.abs(rivalry.streak)} straight ${rivalry.streak > 0 ? 'to you' : 'to them'}` : ''})` : ''}
+                  </span>
+                )}
               </span>
             </li>
           );

@@ -3411,3 +3411,6 @@ body:has(.building-info-panel) .pennant { display: none; }
 .org-tag.band-flagship { opacity: 1; }
 .org-tag.band-competitive { opacity: 0.8; }
 .org-tag.band-developmental { opacity: 0.55; }
+
+/* The record and the rival on a standings row (Plan 21's PRs M and N). */
+.sport-standing-rivalry { display: flex; flex-wrap: wrap; gap: 0.6rem; }

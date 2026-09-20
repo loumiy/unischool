@@ -1171,6 +1171,32 @@ export interface SeasonResult {
   championMascot: string;
 }
 
+// One occasion's result, in a season record (see StudentOrgState.season).
+export interface OccasionResult {
+  occasion: 'opener' | 'rivalry' | 'homecoming';
+  week: number;
+  opponent: string;      // name and mascot
+  opponentStrength: number;
+  won: boolean;
+  upset: boolean;        // the weaker side by a wide margin won
+}
+
+export interface SeasonRecord {
+  year: number;
+  wins: number;
+  losses: number;
+  results: OccasionResult[];
+}
+
+// The all-time record against a sport's designated rival (Plan 21's PR M).
+// `streak` is signed: positive is the player's run of consecutive wins,
+// negative the rival's.
+export interface RivalryRecord {
+  wins: number;
+  losses: number;
+  streak: number;
+}
+
 export interface StudentOrgState {
   clubs: StudentClub[];
   chapters: GreekChapter[];
@@ -1231,6 +1257,16 @@ export interface StudentOrgState {
   lastSeason: Record<string, SeasonResult>;
   titles: Array<{ sport: string; year: number }>;
   pendingTitles: string[];
+  // THE SEASON (Plan 21's PR N, systems/athletics/season.ts): each active
+  // team's four dated occasions a year — an opener, the rivalry game, a
+  // homecoming date, the postseason — resolved the week they happen, each
+  // writing a log line, and a record accumulating. `season` is keyed by
+  // sport and OVERWRITTEN each year like lastSeason, so it cannot grow;
+  // `rivalries` is the monotone half: the all-time record and the streak
+  // against the sport's designated rival (PR M), which is derived, never
+  // stored. Four dates is not a schedule — see season.ts for the line.
+  season: Record<string, SeasonRecord>;
+  rivalries: Record<string, RivalryRecord>;
   // The absolute week the AD offer was last PUT, set when the interrupt
   // fires rather than when it is answered. 0 = never asked.
   //

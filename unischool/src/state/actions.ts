@@ -459,6 +459,8 @@ export function createPreStartState(): GameState {
       lastSeason: {},
       titles: [],
       pendingTitles: [],
+      season: {},
+      rivalries: {},
       athleticDirectorAskedWeek: 0,
     },
     research: {
@@ -814,6 +816,8 @@ export function createInitialState(
       lastSeason: {},
       titles: [],
       pendingTitles: [],
+      season: {},
+      rivalries: {},
       athleticDirectorAskedWeek: 0,
     },
     // No labs at founding, so nothing produces research and no output can
