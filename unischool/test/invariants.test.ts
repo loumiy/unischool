@@ -594,7 +594,7 @@ function assertHallsInvariants(s: GameState, label: string): void {
   assert(startedSchools(s).size === 1 && startedSchools(s).has(programById(FOUNDING_PROGRAMS[0])!.school), 'the opening school is the one started school');
   assert(s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length === 6, 'six courses are developed at founding');
 
-  // The chain: Founders Hall standing, then eleven halls of six, strictly
+  // The chain: Founders Hall standing, then thirteen halls of six, strictly
   // sequential, the first with no Buildable prereq (its gate is dynamic).
   const halls = s.tech.filter((t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID);
   assert(halls.length === ACADEMIC_HALL_COUNT, `the seed holds ${ACADEMIC_HALL_COUNT} academic halls beyond Founders (got ${halls.length})`);

@@ -71,7 +71,7 @@ read in the Treasury off the same arithmetic the tick charges
   sections its seats hold, so that at the ceiling every section is exactly
   full. A big catalogue at a small school runs empty sections dearly; a small
   catalogue at a big school runs enormous sections cheaply and crowds its
-  students. The Treasury says "415 courses in 1,830 sections of 40" and
+  students. The Treasury says "427 courses in 1,880 sections of 40" and
   whether they are running full, empty or over.
 - **Services, per student.** A flat `SERVICES_PER_STUDENT_PER_WEEK` — advising,
   the registrar, IT, grounds — the line that makes the marginal student's

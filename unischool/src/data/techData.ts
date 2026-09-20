@@ -2,6 +2,7 @@ import type { Buildable, GameState } from '../state/types';
 import {
   ART_GALLERY_ID, HEALTH_CENTER_TIER2_ID, HEALTH_CENTER_TIER3_ID, PERFORMING_ARTS_CENTER_ID,
 } from './facilitiesData';
+import { COURSE_DESCRIPTIONS } from './courseDescriptions';
 
 /*
   Your real curriculum, expressed as seed data and expanded into Buildable[].
@@ -30,9 +31,11 @@ import {
   everything else — a graduate program belongs to its homeSchool, and
   since that school's six majors already fill a hall, an MD or a
   doctorate needs a second hall of its school, dedicated on its own terms.
+  Every school has a graduate program now (Plan 20's PR H), so every
+  school can justify a second hall.
 
   On top of that undergraduate catalogue, GRADUATE PROGRAMS (further below)
-  add 37 more course Buildables across six programs. Two of them — the
+  add 49 more course Buildables across nine programs. Two of them — the
   School of Medicine and the School of Law, the only two that award an
   EXTERNAL professional degree — used to carry their own 'building'
   Buildable; see the module note above for where they live now.
@@ -186,13 +189,17 @@ export const FOUNDERS_HALL_REPUTATION_BONUS = 1.5;
 // building. Each rung after it costs a fixed ratio more, so the fifth is a
 // multi-year commitment.
 //
-// Eleven rungs because twelve halls is the completionist ceiling — seven
-// schools of six majors, plus a second Business, Engineering, Science,
-// Social Sciences and Health Science hall for the six graduate programs,
-// which belong to those schools but do not fit in a hall their six majors
-// already fill — and Founders Hall is the first of the twelve (Plan 19:
-// six slots, an ordinary hall). A hall the player never needs is never
-// offered — the chain stops here.
+// Thirteen rungs because fourteen halls is the completionist ceiling —
+// seven schools of six majors, plus a second hall for each of the seven
+// schools for the nine graduate programs, which belong to those schools
+// but do not fit in a hall their six majors already fill — and Founders
+// Hall is the first of the fourteen (Plan 19: six slots, an ordinary
+// hall). It was twelve until Plan 20's PR H: Computer Science and Arts &
+// Media held no graduate program, so neither justified a second hall;
+// the computing doctorate and the MFA are two rungs, and the humanities
+// doctorate is none, because it sits beside the law school in the second
+// hall Social Sciences & Humanities already had. A hall the player never
+// needs is never offered — the chain stops here.
 //
 // EVERY NUMBER HERE IS PROVISIONAL, and loudly so. They are fitted by feel
 // against an economy the September review found broken and Plan 15 is
@@ -200,7 +207,8 @@ export const FOUNDERS_HALL_REPUTATION_BONUS = 1.5;
 // against the scorecard. The opening shape: first hall cheap, then ×1.35
 // a rung, so a balanced run affords roughly eight by year 35 and a
 // completionist ten or eleven. Cumulative: ~$14M for eight, ~$37M for
-// eleven — a fraction of the dorm chain over the same span.
+// eleven, ~$68M for all thirteen — a fraction of the dorm chain over the
+// same span.
 export const ACADEMIC_HALL_SLOTS = 6;
 // What the first purchased hall waits on (Plan 19's PR B): the six courses
 // the college opens with, plus two the player chose. See
@@ -224,6 +232,7 @@ const ACADEMIC_HALL_NAMES = [
   'Elm Hall', 'Oak Hall', 'Linden Hall', 'Maple Hall',
   'Chestnut Hall', 'Sycamore Hall', 'Cedar Hall', 'Birch Hall',
   'Hawthorn Hall', 'Beech Hall', 'Willow Hall',
+  'Alder Hall', 'Hazel Hall',
 ];
 export const ACADEMIC_HALL_COUNT = ACADEMIC_HALL_NAMES.length;
 export const ACADEMIC_HALL_ID_PREFIX = 'HALL-';
@@ -231,7 +240,7 @@ function academicHallId(index: number): string {
   return `${ACADEMIC_HALL_ID_PREFIX}${String(index + 1).padStart(2, '0')}`;
 }
 
-// A hall with program slots: Founders Hall and the eleven of the chain
+// A hall with program slots: Founders Hall and the thirteen of the chain
 // above. Founders Hall used to be excluded here (one slot, the core's,
 // never a decision); since Plan 19's PR A it is an ordinary six-slot hall
 // that happens to stand at founding, and every reader of this predicate
@@ -267,7 +276,7 @@ const SCHOOLS: SchoolSeed[] = [
     name: 'Business',
     majors: [
       { prefix: 'FINA', name: 'Finance', field: 'Accounting & Finance', courses: ['Principles of Finance', 'Corporate Finance', 'Investment Analysis', 'Financial Modeling', 'International Finance', 'Real Estate Finance', 'Fintech & Blockchain', 'Risk Management', 'Behavioral Finance'] },
-      { prefix: 'ACCT', name: 'Accounting', field: 'Accounting & Finance', courses: ['Introduction to Accounting', 'Financial Accounting', 'Managerial Accounting', 'Tax Fundamentals', 'Auditing Principles', 'Forensic Accounting', 'Governmental & Non-Profit Accounting', 'Advanced Cost Accounting', 'Accounting Information Systems'] },
+      { prefix: 'ACCT', name: 'Accounting', field: 'Accounting & Finance', courses: ['Introduction to Accounting', 'Financial Accounting', 'Managerial Accounting', 'Tax Fundamentals', 'Auditing Principles', 'Forensic Accounting', 'Advanced Financial Reporting', 'Advanced Cost Accounting', 'Accounting Information Systems'] },
       { prefix: 'MRKT', name: 'Marketing', field: 'Marketing', courses: ['Fundamentals of Marketing', 'Consumer Behavior', 'Market Research', 'Digital Marketing Strategy', 'Brand Management', 'Sports Marketing', 'Advertising & Promotion', 'Sales Management', 'Global Marketing'] },
       { prefix: 'ECON', name: 'Economics', field: 'Economics', courses: ['Microeconomics', 'Macroeconomics', 'Econometrics', 'Advanced Microeconomics', 'Economic History', 'Behavioral Economics', 'Public Finance', 'Game Theory', 'Environmental Economics'] },
       { prefix: 'MGMT', name: 'Management', field: 'Management', courses: ['Organizational Leadership', 'Human Resources Management', 'Operations Management', 'Business Ethics', 'Strategic Management', 'Project Management', 'Entrepreneurship', 'Conflict Resolution', 'Negotiations'] },
@@ -287,7 +296,7 @@ const SCHOOLS: SchoolSeed[] = [
       { prefix: 'CHEM', name: 'Chemical Engineering', field: 'Chemistry', courses: ['Principles of Chemical Engineering', 'Chemical Thermodynamics', 'Fluid Transport', 'Material & Energy Balances', 'Chemical Reaction Engineering', 'Process Safety', 'Biochemical Engineering', 'Polymer Science', 'Sustainable Energy Technology'] },
       { prefix: 'CIVE', name: 'Civil Engineering', field: 'Civil Engineering', courses: ['Statics', 'Structural Analysis', 'Soil Mechanics', 'Mechanics of Materials', 'Transportation Engineering', 'Bridge Design', 'Environmental Impact Assessment', 'Construction Management', 'Urban Planning'] },
       { prefix: 'INDE', name: 'Industrial Engineering', field: 'Operations Research', courses: ['Systems', 'Production Planning', 'Ergonomics & Safety', 'Quality Control', 'Facilities Design', 'Simulation Modeling', 'Supply Chain Analytics', 'Lean Manufacturing', 'Reliability Engineering'] },
-      { prefix: 'AERO', name: 'Aerospace Engineering', field: 'Physics', courses: ['Introduction to Flight Dynamics', 'Aerodynamics', 'Aircraft Performance', 'Spacecraft Propulsion', 'Aerospace Structures', 'Astrodynamics', 'Rocketry', 'Helicopter Dynamics', 'Unmanned Aerial Systems'] },
+      { prefix: 'AERO', name: 'Aerospace Engineering', field: 'Physics', courses: ['Introduction to Flight Dynamics', 'Aerodynamics', 'Aircraft Performance', 'Spacecraft Propulsion', 'Aerospace Structures', 'Astrodynamics', 'Rocketry', 'Aircraft Design', 'Unmanned Aerial Systems'] },
     ],
   },
   {
@@ -295,7 +304,7 @@ const SCHOOLS: SchoolSeed[] = [
     majors: [
       { prefix: 'MDIA', name: 'Media Studies', field: 'Communication', courses: ['Mass Communication', 'Media Theory', 'Global Media Systems', 'Digital Culture', 'Media Ethics', 'Film Industry', 'Social Media Analytics', 'Photojournalism', 'Public Relations'] },
       { prefix: 'GRDS', name: 'Graphic Design', field: 'Art & Design', courses: ['Visual Communication', 'Typography', 'Digital Imaging', 'Layout Design', 'Branding & Identity', 'Web Design', 'Motion Graphics', 'Illustration', 'Publication Design'] },
-      { prefix: 'CRWR', name: 'Creative Writing', field: 'English', courses: ['Introduction to Creative Writing', 'Fiction Workshop', 'Poetry Workshop', 'Nonfiction Workshop', 'Literary Editing', 'Screenwriting', 'Playwriting', 'Writing for Young Adults', 'Creative Writing Seminar'] },
+      { prefix: 'CRWR', name: 'Creative Writing', field: 'English', courses: ['Introduction to Creative Writing', 'Fiction Workshop', 'Poetry Workshop', 'Nonfiction Workshop', 'Literary Editing', 'Screenwriting', 'Playwriting', 'Novel Writing', 'Creative Writing Seminar'] },
       { prefix: 'MUSC', name: 'Music', field: 'Music', courses: ['Music Theory I', 'Music Theory II', 'Music History Survey', 'Composition I', 'Applied Instrument/Voice', 'Jazz Improvisation', 'World Music', 'Music Technology', 'Composition II'] },
       { prefix: 'FILM', name: 'Film', field: 'Communication', courses: ['Introduction to Film Analysis', 'Cinematography', 'Screenwriting Workshop', 'Film Production', 'Directing Fundamentals', 'Documentary Filmmaking', 'History of World Cinema', 'Sound Design', 'Post-Production'] },
       { prefix: 'SART', name: 'Studio Art', field: 'Art & Design', courses: ['Fundamentals of 2D Design', 'Drawing', 'Painting', 'Sculpture', 'Art History Survey', 'Printmaking', 'Ceramics', 'Photography', 'Digital Art'] },
@@ -360,7 +369,7 @@ const SCHOOLS: SchoolSeed[] = [
     majors: [
       { prefix: 'PHLT', name: 'Public Health', field: 'Public Health', courses: ['Introduction to Public Health', 'Epidemiology', 'Biostatistics', 'Health Policy & Management', 'Environmental Health', 'Global Health', 'Health Promotion', 'Community Health Assessment', 'Maternal & Child Health'] },
       { prefix: 'NURS', name: 'Nursing', field: 'Clinical Health', courses: ['Introduction to Professional Nursing', 'Anatomy & Physiology', 'Pharmacology', 'Health Assessment', 'Clinical Practicum I', 'Critical Care Nursing', 'Pediatric Nursing', 'Gerontology', 'Clinical Practicum II'] },
-      { prefix: 'NUTR', name: 'Nutrition', field: 'Public Health', courses: ['Fundamentals of Nutrition', 'Macronutrients & Metabolism', 'Lifecycle Nutrition', 'Applied Dietetics', 'Food Science', 'Sports Nutrition', 'Public Health Nutrition', 'Advanced Medical Nutrition Therapy', 'Culinary Nutrition'] },
+      { prefix: 'NUTR', name: 'Nutrition', field: 'Public Health', courses: ['Fundamentals of Nutrition', 'Macronutrients & Metabolism', 'Lifecycle Nutrition', 'Applied Dietetics', 'Food Science', 'Sports Nutrition', 'Public Health Nutrition', 'Advanced Medical Nutrition Therapy', 'Nutrition Assessment & Counseling'] },
       { prefix: 'PHRM', name: 'Pharmacy', field: 'Clinical Health', courses: ['Introduction to Pharmaceutical Sciences', 'Human Physiology for Pharmacy', 'Pharmaceutical Chemistry', 'Pharmacology I', 'Pharmaceutics & Drug Delivery', 'Pharmacology II', 'Pharmacotherapeutics', 'Clinical Pharmacy Practicum', 'Pharmacoepidemiology & Drug Safety'] },
       { prefix: 'KINE', name: 'Kinesiology', field: 'Kinesiology', courses: ['Foundations of Kinesiology', 'Functional Anatomy', 'Exercise Physiology', 'Biomechanics', 'Motor Learning & Control', 'Strength & Conditioning', 'Athletic Injury & Rehabilitation', 'Exercise Testing & Prescription', 'Adapted Physical Activity'] },
       { prefix: 'NEUR', name: 'Neuroscience', field: 'Neuroscience', courses: ['Foundations of Neuroscience', 'Neuroanatomy', 'Cellular & Molecular Neuroscience', 'Cognitive Neuroscience', 'Neurophysiology', 'Neuropharmacology', 'Developmental Neurobiology', 'Computational Neuroscience', 'Clinical Neuroscience & Disorders'] },
@@ -371,7 +380,7 @@ const SCHOOLS: SchoolSeed[] = [
     majors: [
       { prefix: 'COMP', name: 'Computer Science', field: 'Computer Science', courses: ['Introduction to Programming', 'Data Structures', 'Algorithms', 'Operating Systems', 'Computer Architecture', 'Compiler Design', 'Game Development', 'Parallel Computing', 'Web Development'] },
       { prefix: 'DATA', name: 'Data Science', field: 'Mathematics', courses: ['Fundamentals of Data Science', 'Statistical Modeling', 'Machine Learning', 'Data Visualization', 'Data Mining', 'Big Data Systems', 'Time Series Analysis', 'Natural Language Processing', 'Bayesian Statistics'] },
-      { prefix: 'CYBR', name: 'Cybersecurity', field: 'Information Systems', courses: ['Introduction to Cybersecurity', 'Network Security', 'Cryptography', 'Ethical Hacking', 'Security Operations', 'Cloud Security', 'Digital Forensics', 'Risk Management', 'Software Security Testing'] },
+      { prefix: 'CYBR', name: 'Cybersecurity', field: 'Information Systems', courses: ['Introduction to Cybersecurity', 'Network Security', 'Cryptography', 'Ethical Hacking', 'Security Operations', 'Cloud Security', 'Digital Forensics', 'Security Risk Management', 'Software Security Testing'] },
       { prefix: 'SOFT', name: 'Software Engineering', field: 'Computer Science', courses: ['Introduction to Software Development', 'Software Requirements', 'Software Testing & QA', 'Database Systems', 'Object-Oriented Design', 'Agile Methodologies', 'Mobile Application Development', 'UI/UX', 'DevOps'] },
       { prefix: 'ARTF', name: 'Artificial Intelligence', field: 'Artificial Intelligence', courses: ['Introduction to Artificial Intelligence', 'AI Programming', 'Knowledge Representation', 'Neural Networks', 'Advanced Machine Learning', 'Deep Learning', 'Robotics & Perception', 'Computer Vision', 'AI Ethics & Society'] },
       { prefix: 'INFO', name: 'Information Systems', field: 'Information Systems', courses: ['Introduction to Information Systems', 'Systems Analysis & Design', 'Database Management', 'Enterprise Resource Planning', 'IT Infrastructure', 'Business Process Modeling', 'E-commerce Strategy', 'Information Security Management', 'Data Warehousing'] },
@@ -388,7 +397,7 @@ export function majorPrefixes(): string[] {
 }
 
 // A PROGRAM, as the halls model sees it (Plan 14): the unit that takes a
-// slot. Forty-two majors and the six graduate programs, each read off the
+// slot. Forty-two majors and the nine graduate programs, each read off the
 // seed by the id `s.halls` and `s.programOffers` carry. Deliberately a
 // fourth independent read of SCHOOLS, for the reason milestoneSchools()
 // and researchSchools() each are: the engine has no notion of "program",
@@ -485,6 +494,16 @@ export function programOfCourse(courseId: string): string | undefined {
 //      Microelectronics", true as they are, are already what the climb
 //      says. Authoring them here would put a line in the tooltip that
 //      changes nothing about when the course opens.
+//   3. A BRIDGE NEVER HIDES A SCHOOL BEHIND A CAPSTONE (Plan 20's PR A).
+//      Rule 1 looks at the target's tier and not at what stands behind
+//      it, which is how Biochemical Engineering came to require
+//      Biochemistry — a capstone whose own closure holds the Chemistry
+//      Labs and, through the lab's schoolGate, a founded School of
+//      Science. So no bridge may name a course whose prereq closure
+//      contains a `facilityType: 'lab'` Buildable or a `schoolGate`: a
+//      cross-discipline prerequisite may cost the player a course or a
+//      hall slot in another school, never that school's lab and its
+//      founding, none of which the tooltip could say.
 //
 // Grouped by the school the BRIDGED course belongs to, since that is how
 // the Curriculum tab reads and how a retune of one school's pacing would
@@ -509,11 +528,11 @@ export const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
   AERO210: ['MATH101'],           // Astrodynamics needs calculus
   AERO220: ['MECH120'],           // Rocketry needs thermodynamics
   ELEC130: ['PHYS110'],           // Electromagnetics needs undergraduate electricity & magnetism
-  CHEM220: ['CHMY210'],           // Biochemical Engineering needs biochemistry itself, not just the organic chemistry under it
+  CHEM220: ['CHMY120'],           // Biochemical Engineering needs organic chemistry — the chemistry the course actually rests on. NOT CHMY210 (Biochemistry), which it used to name: that is a capstone in a lab-gated major, so its closure holds LAB-CHMY and the School of Science's founding, and distinguishing Engineering quietly required founding Science and building a $700,000 lab in it (rule 3 above, Plan 20's PR A)
   CHEM230: ['CHMY120'],           // Polymer Science needs organic chemistry — "polymer science requires Chemistry II" is already what the tier-3 climb says (rule 2 above), so the bridge goes one step deeper, into the Chemistry major
   CIVE140: ['SPCO101'],           // Transportation Engineering needs the supply-chain fundamentals it moves goods for. NOT SPCO240 ("Transportation Management"), which is a tier-3 capstone: this is a tier-2 course, and rule 1 above is why — bridging a tier-2 course to a capstone would hold Civil Engineering's ESTABLISHMENT behind most of a Business major. SPCO101 is also the lightest honest stand-in available, an entry course gating on nothing, so Civil Engineering doesn't quietly acquire a Business Hall dependency either
   CIVE220: ['ENVS101'],           // Environmental Impact Assessment needs environmental science
-  CIVE230: ['MGMT210'],           // Construction Management needs project management
+  CIVE230: ['MGMT120'],           // Construction Management needs operations management. Legal as a same-tier bridge to MGMT210 (Project Management), which it used to name — but MGMT210 requires Management's whole tier-2 quartet, so a civil engineering capstone pulled in most of a Business major; Operations Management is the lighter and equally honest link (Plan 20's PR A)
   CIVE240: ['SOCY101'],           // Urban Planning needs the sociology of the people being planned for
   INDE210: ['COMP101'],           // Simulation Modeling needs introductory programming
 
@@ -806,7 +825,8 @@ export interface GraduateProgramSeed {
   courses: GraduateCourseSeed[];
 }
 
-// Six programs, 37 courses (up from 28: Medicine 6 -> 12, Law 5 -> 8).
+// Nine programs, 49 courses (six and 37 until Plan 20's PR H; 28 before
+// Medicine went 6 -> 12 and Law 5 -> 8).
 // Deliberately small sets per program — each is "a handful of high-tier
 // courses that complete into a milestone", not a second nine-course major.
 const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
@@ -904,6 +924,60 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
       { num: 730, title: 'Dissertation Research in Health Science', field: 'Kinesiology' },
     ],
   },
+  // The three that four schools did not have (Plan 20's PR H). The three
+  // doctorates above were authored when three schools bore labs; every
+  // school with majors has a research facility now, and the doctoral gate
+  // is a finished facility in the parent school, so Computer Science, the
+  // humanities and Arts & Media get the terminal degree their facility
+  // already justifies. Authored exactly like the three above, on the same
+  // rung, with no mechanism anywhere.
+  {
+    id: 'PHDC', name: 'Doctoral Program in Computing', degree: 'PhD', type: 'doctoral',
+    homeSchool: 'Computer Science', gateSchools: ['Computer Science'],
+    prestigeWeight: 1.0,
+    blurb: 'the computing doctorate',
+    courses: [
+      { num: 701, title: 'Doctoral Research Methods in Computing', field: 'Computer Science' },
+      { num: 710, title: 'Advanced Seminar in Learning Theory', field: 'Artificial Intelligence' },
+      { num: 720, title: 'Foundations of Computation', field: 'Mathematics' },
+      { num: 730, title: 'Dissertation Research in Computing', field: 'Information Systems' },
+    ],
+  },
+  {
+    id: 'PHDL', name: 'Doctoral Program in the Humanities', degree: 'PhD', type: 'doctoral',
+    homeSchool: 'Social Sciences & Humanities', gateSchools: ['Social Sciences & Humanities'],
+    prestigeWeight: 1.0,
+    blurb: 'the humanities doctorate',
+    courses: [
+      { num: 701, title: 'Doctoral Research Methods in the Humanities', field: 'History' },
+      { num: 710, title: 'Advanced Seminar in Literary Theory', field: 'English' },
+      { num: 720, title: 'Doctoral Seminar in Social Theory', field: 'Sociology' },
+      { num: 730, title: 'Dissertation Research in the Humanities', field: 'Philosophy' },
+    ],
+  },
+  {
+    // The MFA is the terminal degree of the studio arts, and it takes the
+    // DOCTORAL rung rather than the professional one, deliberately: the
+    // type is what selects the gate (a finished facility in the parent
+    // school — the Media Production Studio — rather than a count of
+    // established majors), the cost (a program bolted onto a school that
+    // already has the studio and the faculty, not a medical school), and
+    // the research credit, which reads right because the studio already
+    // counts exhibited work as research (researchData.ts's
+    // DISCIPLINE_VOCAB). A professional-tier program with a lab gate
+    // would have been a third gate reading, and the whole graduate model
+    // is built on there being two.
+    id: 'MFAX', name: 'Master of Fine Arts', degree: 'MFA', type: 'doctoral',
+    homeSchool: 'Arts & Media', gateSchools: ['Arts & Media'],
+    prestigeWeight: 1.0,
+    blurb: 'the MFA program',
+    courses: [
+      { num: 701, title: 'Graduate Studio Practice', field: 'Art & Design' },
+      { num: 710, title: 'Advanced Fiction & Poetry Workshop', field: 'English' },
+      { num: 720, title: 'Graduate Composition Seminar', field: 'Music' },
+      { num: 730, title: 'Thesis Exhibition & Production', field: 'Communication' },
+    ],
+  },
 ];
 
 // How much of a parent school has to stand before a professional school may
@@ -974,83 +1048,47 @@ export function graduateGateDescription(program: GraduateProgramSeed): string {
     });
     return parts.join(' and ');
   }
-  return `a finished lab in ${program.gateSchools.join(' and ')}`;
+  // A school with one research facility gets it by name — "the Media
+  // Production Studio finished" rather than "a finished lab in Arts &
+  // Media", which names a building the school does not have (Plan 20's
+  // PR H). The lab sciences and engineering, with several, keep the
+  // general form.
+  const schools = researchSchools();
+  const parts = program.gateSchools.map((name) => {
+    const school = schools.find((x) => x.schoolName === name);
+    if (school && school.labIds.length === 1) {
+      const facility = researchFacilityName(school.labIds[0]);
+      if (facility) return `the ${facility} finished`;
+    }
+    return `a finished lab in ${name}`;
+  });
+  return parts.join(' and ');
+}
+
+// The display name of a research facility, by its Buildable id — the same
+// rule initialTech() uses to name it, so the gate sentence and the build
+// tray cannot disagree. Undefined for an id that names no facility.
+function researchFacilityName(facilityId: string): string | undefined {
+  for (const school of SCHOOLS) {
+    for (const major of school.majors) {
+      if (LAB_GATED_MAJOR_PREFIXES.includes(major.prefix) && labId(major.prefix) === facilityId) {
+        return RESEARCH_FACILITY_NAMES[major.prefix] ?? `${major.name} Labs`;
+      }
+    }
+  }
+  return undefined;
 }
 
 // ---------------------------------------------------------------------
-// Descriptions. Every tier-1 course (the 42 entry points players see
-// first) gets a hand-written one-liner. Tier-2/tier-3 descriptions are
-// generated from the course's own title through a small set of rotating,
-// tier-appropriate phrasings — real catalog-style text naming the actual
-// course, not generic "tier N" boilerplate, but not 288 individually
-// hand-composed sentences either (see the PR notes on this tradeoff).
+// Descriptions. Every undergraduate course takes its sentence from
+// courseDescriptions.ts's COURSE_DESCRIPTIONS, keyed by id — one authored
+// sentence per course, and no generator behind it (Plan 20's PRs D–G).
+// For 336 of the 378 courses the sentence used to come from eight
+// rotating templates with the title swapped in; test/course-descriptions
+// .test.ts now asserts that every course in the catalogue has its own.
+// Graduate courses keep a generated line (below), deliberately: 37
+// courses in a far more uniform register.
 // ---------------------------------------------------------------------
-const TIER1_DESCRIPTIONS: Record<string, string> = {
-
-  FINA101: 'Introduces time value of money, risk, and the core tools of personal and corporate finance.',
-  ACCT101: 'Covers the accounting cycle, financial statements, and the language of business record-keeping.',
-  MRKT101: 'Surveys the marketing mix — product, price, place, and promotion — through real brand cases.',
-  ECON101: 'Examines how individuals and firms make decisions under scarcity, from supply and demand to market structure.',
-  MGMT101: 'Introduces leadership styles, team dynamics, and the fundamentals of managing people.',
-  SPCO101: 'Traces how goods move from raw material to customer, and where supply chains break down.',
-
-  MECH101: 'Introduces the design process, sketching, and basic mechanical systems.',
-  ELEC101: 'Covers voltage, current, and resistance through hands-on circuit analysis and lab work.',
-  CHEM101: 'Introduces the chemical process industries and the unit operations, flows, and conversions that run them.',
-  CIVE101: 'Covers forces in equilibrium, free-body diagrams, and load paths, the physical foundation for structural and civil design.',
-  INDE101: 'Introduces systems thinking for analyzing and improving industrial processes.',
-  AERO101: 'Covers the forces of flight — lift, drag, thrust, and weight — and how aircraft respond to them.',
-
-  MDIA101: 'Surveys how mass media shapes public opinion, culture, and information flow.',
-  GRDS101: 'Introduces composition, color, and layout as tools for communicating visually.',
-  CRWR101: 'Workshops short fiction and poetry to build a foundational creative practice.',
-  MUSC101: 'Covers notation, scales, and harmony, the building blocks of Western music.',
-  FILM101: 'Teaches close reading of cinema through shot composition, editing, and narrative structure.',
-  SART101: 'Introduces line, shape, and composition through studio exercises in two-dimensional art.',
-
-  ENGL101: 'Introduces close reading and literary analysis across poetry, fiction, and drama.',
-  SOCY101: 'Examines how social structures, institutions, and group behavior shape everyday life.',
-  ANTH101: 'Introduces the four fields of anthropology and what each asks about being human.',
-  POLS101: 'Surveys power, institutions, and political behavior, and the questions and methods of the discipline.',
-  HIST101: 'Surveys major civilizations and turning points from antiquity to the modern era.',
-  PHIL101: 'Builds skills in argument analysis, deduction, and identifying logical fallacies.',
-
-  MATH101: 'Covers limits, derivatives, and integrals, the mathematical toolkit for science and engineering coursework.',
-  BIOL101: 'Covers cell structure, genetics, and the fundamentals of living systems.',
-  CHMY101: 'Builds stoichiometry, periodicity, and reaction theory from first principles.',
-  PHYS101: 'Derives motion, force, energy, and momentum from Newton\'s laws, with lab work throughout.',
-  ENVS101: 'Surveys how physical, chemical, and biological systems interact across a changing planet.',
-  PSYC101: 'Surveys the major subfields of psychology, from cognition to clinical practice.',
-
-  PHLT101: 'Surveys how populations, policy, and environment shape community health outcomes.',
-  NURS101: 'Introduces the nursing profession, scope of practice, and foundations of patient care.',
-  NUTR101: 'Covers macronutrients, micronutrients, and how diet supports human health.',
-  PHRM101: 'Introduces drug discovery, formulation, and the pharmacist\'s role in patient care.',
-  KINE101: 'Surveys human movement — anatomy, physiology, and mechanics — as one connected system.',
-  NEUR101: 'Introduces the nervous system from single neurons up to behavior and cognition.',
-
-  COMP101: 'Teaches programming fundamentals — variables, control flow, and functions — through hands-on projects.',
-  DATA101: 'Introduces data collection, cleaning, and exploratory analysis techniques.',
-  CYBR101: 'Surveys threats, defenses, and the core principles of securing systems.',
-  SOFT101: 'Covers the software development lifecycle from requirements to deployment.',
-  ARTF101: 'Surveys the history, goals, and core techniques of artificial intelligence.',
-  INFO101: 'Introduces how organizations use information systems to run and improve operations.',
-};
-
-const TIER2_TEMPLATES: Array<(title: string, major: string) => string> = [
-  (title, major) => `Builds on ${major}'s foundations with a focused study of ${title}.`,
-  (title, major) => `A closer look at ${title}, deepening the core skills of ${major}.`,
-  (title, major) => `Extends first-year ${major} coursework into ${title}.`,
-  (title, major) => `Applies ${major} fundamentals to ${title}, with more hands-on depth.`,
-];
-
-const TIER3_TEMPLATES: Array<(title: string, major: string) => string> = [
-  (title, major) => `Advanced, capstone-level work in ${title}, synthesizing ${major}'s core methods.`,
-  (title, major) => `A specialized deep dive into ${title} for students nearing mastery of ${major}.`,
-  (title, major) => `Capstone coursework in ${title}, applying the full ${major} toolkit.`,
-  (title, major) => `Senior-level study of ${title}, the kind of specialization ${major} builds toward.`,
-];
-
 const FOUNDERS_HALL_DESCRIPTION = `The founding hall, standing since the college opened: ${ACADEMIC_HALL_SLOTS} program slots, three of them teaching from the first day.`;
 
 function nodeId(prefix: string, num: number): string {
@@ -1074,7 +1112,7 @@ export function initialTech(): Buildable[] {
           id: labId(major.prefix),
           kind: 'facility',
           facilityType: 'lab',
-          name: RESEARCH_FACILITY_NAMES[major.prefix] ?? `${major.name} Labs`,
+          name: researchFacilityName(labId(major.prefix))!,
           description: `${RESEARCH_FACILITY_BLURBS[major.prefix] ?? 'Specialized lab space'} — gates ${major.name}'s capstone (tier-3) coursework, and lets the school produce research.`,
           cost: LAB_COST,
           duration: LAB_WEEKS,
@@ -1121,11 +1159,9 @@ export function initialTech(): Buildable[] {
         const clinicalGate = CLINICAL_PRACTICUM_GATE[id];
         if (clinicalGate) prereqs = [...prereqs, clinicalGate];
 
-        const description = tier === 1
-          ? (TIER1_DESCRIPTIONS[id] ?? `${major.name} (${school.name}) entry course: ${title}.`)
-          : tier === 2
-            ? TIER2_TEMPLATES[(i - 1) % TIER2_TEMPLATES.length](title, major.name)
-            : TIER3_TEMPLATES[(i - 5) % TIER3_TEMPLATES.length](title, major.name);
+        // Authored, one per course, and pinned complete by the
+        // descriptions test — there is no fallback to generate one from.
+        const description = COURSE_DESCRIPTIONS[id];
 
         nodes.push({
           id,
@@ -1357,17 +1393,57 @@ export function labFields(facilityId: string): string[] {
   return fields;
 }
 
+// WHICH FIELDS' WORK A FACILITY MAY HOST (Plan 20's PR B): its own, from
+// labFields above, plus every field its school teaches that has no
+// facility of its own ANYWHERE on campus. This is how a department
+// without a building leads research — in the building its school built.
+// A Computing Research Center that could not run an AI project, and a
+// humanities institute that could not run one in English, were the two
+// that read worst, because both name a department the school obviously
+// has; 108 of the 176 departmental topics were unreachable for that
+// reason, and every one of them is in a field taught by a school that
+// has a facility, so this closes the gap completely.
+//
+// "No facility of its own" is read campus-wide, not per school, and the
+// difference matters twice over. A field with a facility somewhere is
+// hosted THERE and nowhere else, so the Neuroscience labs are not offered
+// Biology's departmental work merely because the MD's anatomy course
+// makes Biology a Health Science field — a Biology project belongs in the
+// Biology labs. And a field with no facility anywhere is hosted by every
+// school that teaches it: English by both the Humanities Research
+// Institute and the Media Production Studio, Mathematics by both the
+// Science labs and the Computing Research Center, Operations Research by
+// both Business and Engineering. That is correct rather than a collision
+// — those departments genuinely teach in two schools, and a topic offered
+// in either building is a topic happening where the department works.
+//
+// This does not reopen the bug labFields exists for. That bug was two
+// facilities SHARING a field across schools — the aerospace lab offered
+// acoustics because both are fielded Physics — and a shared field has a
+// facility, so it is never widened here; the per-topic facility list
+// (ResearchTopic.labs) still settles those two pairs exactly as before.
+// What changes is only whether a school's own unequipped departments can
+// work in the building their school built.
+export function hostableFields(facilityId: string): string[] {
+  const own = labFields(facilityId);
+  if (own.length === 0) return own;
+  const schools = researchSchools();
+  const equipped = new Set(schools.flatMap((school) => school.labIds).flatMap((id) => labFields(id)));
+  const home = schools.find((school) => school.labIds.includes(facilityId));
+  const hosted = (home?.fields ?? []).filter((field) => !equipped.has(field));
+  return [...own, ...hosted.filter((field) => !own.includes(field))];
+}
+
 export function researchSchools(): ResearchSchool[] {
   return SCHOOLS.map((school) => {
     const fields = new Set<string>(school.majors.map((major) => major.field));
     // Graduate programs teach in their home school too, and are staffed
     // per-course rather than per-major. Folded in here rather than left out
     // so "every field that teaches in this school" stays literally true as
-    // the catalogue grows. It changes nothing today — every graduate field
-    // except Law already teaches undergraduate courses in its program's
-    // home school, and Law's home (Social Sciences & Humanities) bears no
-    // lab — but a law professor at a school that later gets one should not
-    // be invisible to research because nobody remembered to add them.
+    // the catalogue grows. It is what puts Law — the one field whose
+    // demand is entirely graduate — among the Humanities Research
+    // Institute's hosted fields (hostableFields below), so a law professor
+    // is not invisible to research because nobody remembered to add them.
     for (const program of GRADUATE_PROGRAMS) {
       if (program.homeSchool !== school.name) continue;
       for (const course of program.courses) fields.add(course.field);

@@ -18,6 +18,13 @@
 //     requires its own major's whole tier-2 quartet, and each of those
 //     requires the major's tier-1 course, so a bridge naming any of them
 //     is noise rather than a cross-discipline requirement
+//   - no authored bridge names a course with a LAB or a SCHOOL GATE in its
+//     own prereq closure (Plan 20's PR A) — the tier rule above looks at
+//     the target and not at what stands behind it, which is how a
+//     chemical engineering capstone came to require a founded School of
+//     Science and a $700,000 lab, with nothing in the tooltip saying so
+//   - no two courses share a title, because the Curriculum tab shows a
+//     title without its code in several places
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
@@ -153,6 +160,59 @@ function tierOf(t: Buildable): number | null {
   }
   assert(unknown.length === 0, `every bridged course id exists (unknown: ${unknown.join(', ')})`);
   assert(redundant.length === 0, `no bridge repeats what the backbone already requires (redundant: ${redundant.join(', ')})`);
+}
+
+// =====================================================================
+// 5. No bridge hides a school behind a capstone.
+//
+// Check 3 forbids a bridge pointing UP the tier climb; it says nothing
+// about what sits BEHIND the target. A tier-3 capstone in a lab-gated
+// major requires its lab, and the lab carries a schoolGate — so a bridge
+// to such a capstone, legal by tier, makes the bridged course wait on
+// another school being FOUNDED and equipped, which no tooltip says. This
+// walks every bridge target's full closure (through facilities as well as
+// courses) and refuses any lab or school gate in it. It is the test that
+// would have caught CHEM220 -> CHMY210.
+// =====================================================================
+{
+  const closureOf = (start: string): Set<string> => {
+    const seen = new Set<string>();
+    const stack = [start];
+    while (stack.length > 0) {
+      const id = stack.pop()!;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      for (const p of byId.get(id)?.prereqs ?? []) stack.push(p);
+    }
+    return seen;
+  };
+
+  const hidden: string[] = [];
+  for (const [id, bridges] of Object.entries(CROSS_MAJOR_BRIDGES)) {
+    for (const bridge of bridges) {
+      for (const behind of closureOf(bridge)) {
+        const node = byId.get(behind);
+        if (!node) continue;
+        if (node.facilityType === 'lab') hidden.push(`${id} -> ${bridge} (behind it: ${behind}, a lab)`);
+        else if (node.schoolGate) hidden.push(`${id} -> ${bridge} (behind it: ${behind}, gated on ${node.schoolGate})`);
+      }
+    }
+  }
+  assert(hidden.length === 0, `no bridge names a course with a lab or a school gate in its closure (hidden: ${hidden.join('; ')})`);
+}
+
+// =====================================================================
+// 6. No two courses share a title.
+// =====================================================================
+{
+  const titles = new Map<string, string[]>();
+  for (const n of nodes) {
+    if (n.kind !== 'course') continue;
+    const title = n.name.replace(/^[A-Z]+ \d+ · /, '');
+    titles.set(title, [...(titles.get(title) ?? []), n.id]);
+  }
+  const shared = [...titles.entries()].filter(([, ids]) => ids.length > 1).map(([title, ids]) => `"${title}" (${ids.join(', ')})`);
+  assert(shared.length === 0, `no two courses share a title (shared: ${shared.join('; ')})`);
 }
 
 console.log('curriculum-graph tests');

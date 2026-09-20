@@ -53,7 +53,7 @@ read in the codebase having to learn about it. A new kind would have meant
 editing every one of those just to put graduate courses back where they already
 were.
 
-**Six programs, thirty-seven courses**, each a handful rather than a second
+**Nine programs, forty-nine courses**, each a handful rather than a second
 nine-course major (Medicine and Law are the two larger ones):
 
 | Program | Degree | Home school | Gate |
@@ -64,13 +64,33 @@ nine-course major (Medicine and Law are the two larger ones):
 | Doctoral Program in Engineering | PhD | Engineering | a finished lab in Engineering |
 | Doctoral Program in the Natural Sciences | PhD | Science | a finished lab in Science |
 | Doctoral Program in Health Science | PhD | Health Science | a finished lab in Health Science |
+| Doctoral Program in Computing | PhD | Computer Science | the Computing Research Center finished |
+| Doctoral Program in the Humanities | PhD | Social Sciences & Humanities | the Humanities Research Institute finished |
+| Master of Fine Arts | MFA | Arts & Media | the Media Production Studio finished |
+
+The last three are Plan 20's. Every school has a graduate program now, and the
+**MFA takes the doctoral rung**, deliberately: the type is what selects the
+gate (a finished facility in the parent school rather than a count of
+established majors), the cost (a program bolted onto a school that already
+has the studio and the faculty, not a medical school), and the research
+credit — which reads right, because the studio already counts exhibited work
+as research. A professional-tier program with a lab gate would have been a
+third gate reading, and the model is built on there being two. Where a school
+has exactly one research facility the gate sentence names it ("the Media
+Production Studio finished") rather than promising "a finished lab" in a
+school that has no lab.
 
 **A graduate program takes a hall slot like any program** (Plan 14). Its gate
 puts it on the offer; founding it into a slot is what puts it in the
 curriculum. It belongs to its home school for dedication, and since that
 school's six majors already fill a hall, a graduate program needs a **second**
 hall of its school — dedicated on its own terms, which is how "the School of
-Medicine" becomes a building. See [curriculum.md](curriculum.md).
+Medicine" becomes a building. That is what sets the length of the hall chain:
+seven schools plus a second hall for each of the seven, fourteen with Founders
+Hall (twelve until Plan 20, when Computer Science and Arts & Media gained a
+program to justify a second hall; the humanities doctorate sits beside the law
+school in the second hall its school already had). See
+[curriculum.md](curriculum.md).
 
 **One predicate, two readings** (`techData.ts`'s `graduateGateMet`), both taken
 off the seed helpers that already exist, so graduate gating can never drift from
@@ -88,10 +108,9 @@ the school structure the rest of the game reads:
   [Plan 01](../plans/01-design-alignment.md)'s PR C.)
 - a **research doctorate** gates on `researchSchools()` — a finished facility
   in its parent school, the same gate research itself and the university charter
-  hang off. Three doctorates were authored back when three schools bore labs.
-  Every school with majors now has a facility, so the gate would admit more —
-  but the doctorates themselves are authored content that does not yet exist
-  (see `BACKLOG.md`).
+  hang off. Three doctorates were authored back when three schools bore labs;
+  every school has a facility now, and Plan 20 authored the terminal degree
+  each of the other three justifies.
 - **medicine's gate is two of those readings and-ed together** — the School of
   Science *and* Health Science, because medicine draws on the basic sciences and
   the applied health majors both. A two-school gate is a conjunction, not a new
@@ -100,7 +119,7 @@ the school structure the rest of the game reads:
 **Reveal, not scarcity.** A program is invisible until its gate opens, the way
 tier-3 courses are invisible until their major completes. There is no wall of
 greyed-out professional schools from year one, and the Curriculum tab's headline
-completion ring counts revealed graduate work only, so a `0 / 415` never
+completion ring counts revealed graduate work only, so a `0 / 427` never
 announces courses the player has no way to see.
 
 **Prestige: capped inputs only, and no new weight.** Founding a program never
@@ -142,8 +161,8 @@ opens.
 than an extension of the tier table, and aimed squarely at the late-game "nothing
 to buy when cash-rich" gap: a professional course is $6M / 40 weeks / $12k a week
 forever, a doctoral course $4M / 32 weeks / $7k. Two rungs because cost is one of
-the authored axes professional schools are differentiated on. All six programs
-are about **$198M of capital and $384k a week of upkeep** — real, and about 4% of a mature school's opex, but
+the authored axes professional schools are differentiated on. All nine programs
+are about **$246M of capital and $468k a week of upkeep** — real, and about 5% of a mature school's opex, but
 see the balance notes: the endowment campaign remains the *unbounded* sink and
 graduate programs are a finite one.
 

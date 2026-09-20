@@ -158,7 +158,7 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
       headline: `${program.name} is founded`,
       detail: program.type === 'professional'
         ? `Every course in the ${program.degree} program is finished. A professional school counts toward curriculum breadth — the largest input to the prestige target — and is weighted there above its course count, though still inside that input's cap.`
-        : `Every course in the ${program.degree} program is finished. A research doctorate counts toward curriculum breadth AND toward the school's research standing, both as capped inputs to the prestige target.`,
+        : `Every course in the ${program.degree} program is finished. A research degree counts toward curriculum breadth AND toward the school's research standing, both as capped inputs to the prestige target.`,
       unlocks: [],
     };
   }

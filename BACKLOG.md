@@ -101,6 +101,20 @@ work with a known shape; none has been turned into a sequence of PRs.*
   negotiation would reuse; Plan 15 makes salaries scale with standing, so a poach
   has a price; Plan 17's closing elite band gives a poacher a motive. It was
   deferred out of Plans 14–17 by decision, not by accident.
+- **Research grants after the hosting rule.** [Plan 20](docs/plans/20-the-catalogue.md)'s
+  PR B let every department lead work in its school's building, and a
+  research-heavy school now runs deep projects where it used to fall back to
+  pilots: on the Selective college, grants went from 3% of lifetime opex to
+  6% by year twenty, 14% by year thirty and 22% at the fifty-year horizon
+  (18% for the earnest completionist), against funding at 5–7%, so research
+  at scale is net cash positive and the largest income line after tuition
+  for a mature research school. `docs/design/research.md` draws the
+  line at "a grant is a welcome cheque, not a funding round; it must never
+  become a second economy". The re-fit is small and known —
+  `GRANT_PER_PUBLICATION_CHANCE` and `GRANT_MIN_WEEKS`/`GRANT_MAX_WEEKS` in
+  `researchData.ts`, or a cap on grants per facility per year — and wants
+  the scorecard re-recorded with it. Not done in Plan
+  20 because that plan deliberately moved no research constant.
 - **A richer demand-curve finance model**, where prestige shifts the frontier
   between tuition and enrollment volume, with prestige/scale archetypes. The
   finances are structured so this can replace the simple version without
@@ -186,8 +200,11 @@ to re-derive them from a 658-line document.*
 - **Per-major mechanical effects.** A cohort pull, a grant rate, a major that
   recruits differently — the half of "curriculum texture" that is a system
   rather than content, and the half [Plan 20](docs/plans/20-the-catalogue.md)
-  deliberately leaves alone. The content half — the eight templated sentences
-  behind 336 courses — is sequenced there.
+  deliberately left alone. The content half — the eight templated sentences
+  behind 336 courses — **landed** there: every undergraduate course has its
+  own sentence now, and what a description is lives in
+  `docs/design/curriculum.md`. The 49 graduate courses still carry a
+  generated line, and are the obvious next increment of that work.
 - **Athletics' reach into the economy, and student life with teeth.** The review
   found athletics the best-built system in the game and the least connected: a
   venue that sells no tickets, a title that moves a standing nothing reads, a

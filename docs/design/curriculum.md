@@ -1,12 +1,12 @@
 # Curriculum
 
-The 415-course catalogue: how it unlocks, how it is presented, and the
+The 427-course catalogue: how it unlocks, how it is presented, and the
 facilities that gate its capstones. Graduate work sits on top of it and has
 [its own document](graduate-programs.md).
 
 ## Halls, slots and the offer (how the curriculum gets its shape)
 
-The 415-course curriculum is not a flat list, and it is not unlocked school
+The 427-course curriculum is not a flat list, and it is not unlocked school
 by school either. It is **founded**, one program at a time, into buildings on
 the campus map, and the college opens already teaching (Plan 19). Three moves
 (Plan 14) give it its shape:
@@ -16,9 +16,11 @@ the campus map, and the college opens already teaching (Plan 19). Three moves
    slots themselves are `s.halls`, keyed by hall id and positional — slot 3
    is slot 3 forever). Six is not arbitrary: every school in the game has
    exactly six majors, so **one hall is exactly one school**, and that is a
-   rule a player learns in one sentence and plans a decade around. Twelve
+   rule a player learns in one sentence and plans a decade around. Fourteen
    halls in all: **Founders Hall**, which stands at founding, and a strictly
-   sequential chain of eleven like housing. Founders Hall is an ordinary hall
+   sequential chain of thirteen like housing — seven schools of six majors,
+   and a second hall for each of the seven schools, for the nine graduate
+   programs their six majors leave no room for. Founders Hall is an ordinary hall
    in every mechanical respect (Plan 19): six slots, three of them holding the
    founding programs — English, History and Philosophy, with their first two
    courses developed and taught by the founding roster — and three rooms
@@ -72,7 +74,7 @@ answers the *program* question at the grain of a course. (For a while the
 panel drew the tab's course cells, picker and market inside every open tile;
 the two became the same screen, one of them squeezed into a floating card,
 and neither read as the place. The division is deliberate.) **Every one of
-the 415 courses keeps its instructor choice.** There is no auto-assignment
+the 427 courses keeps its instructor choice.** There is no auto-assignment
 anywhere, and the `Develop N` button that used to make the choice for you is
 gone with the forty-two-card wall it existed to sweep.
 
@@ -188,7 +190,17 @@ no-op and both professors stay where they were: nothing is ever displaced to
 unassigned behind the player's back (`SWAP_COURSE_FACULTY`).
 
 **The course drawer** survives unchanged: a course opens into who teaches it,
-what grade that earns, who else is eligible and what it leads to. Every
+what grade that earns, who else is eligible and what it leads to. **What a
+description is** (Plan 20): every one of the 378 undergraduate courses has
+one authored sentence (`data/courseDescriptions.ts`), in one register — what
+the course covers, in a clause, naming the material rather than the tier —
+and a test holds two rules: one sentence, present tense, no course code, no
+"this course"; and it must say something the title does not. For 336 of them
+the drawer used to show one of eight rotating templates with the title
+swapped in, so every major's first tier-2 course read the same as every
+other major's; the templates are gone. Graduate courses keep a generated
+line, deliberately: 49 courses in a far more uniform register, and the
+obvious next increment. Every
 prerequisite in it is a link that scrolls to the course. When nobody in a
 department can take a course, the drawer offers a **search** rather than a
 dead end (see [faculty.md](faculty.md)).
@@ -196,8 +208,22 @@ dead end (see [faculty.md](faculty.md)).
 **Almost no edges are drawn, and that is the argument.** 42 programs in a fixed
 1/4/4 shape means the tier chain is ~336 edges all saying the same thing;
 position carries that. What gets highlighted are the **~50 authored
-cross-major bridges**, and only when they are relevant to what you are looking
-at.
+cross-major bridges** (`techData.ts`'s `CROSS_MAJOR_BRIDGES`), and only when
+they are relevant to what you are looking at.
+
+**Three rules every bridge holds to**, each checked by
+`test/curriculum-graph.test.ts` rather than left to review. A bridge never
+points *up* the tier climb, so a major's establishment is never held behind
+another school's endgame. A bridge never repeats the backbone under it. And
+(Plan 20) a bridge never names a course with a **lab or a school gate in its
+own prereq closure** — the tier rule looks at the target and not at what
+stands behind it, which is how Biochemical Engineering came to require
+Biochemistry, a capstone whose closure held the Chemistry Labs and a founded
+School of Science, with nothing in the tooltip saying so. A cross-discipline
+prerequisite may cost the player a course or a hall slot in another school,
+never that school's lab and its founding. The same test refuses two courses
+sharing a title, because the tab shows a title without its code in several
+places.
 
 *(A literal constellation layout was built and abandoned before this — see
 `docs/plans/02-academic-core.md`'s "Why the constellation failed". The

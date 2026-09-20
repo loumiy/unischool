@@ -1,7 +1,7 @@
 import type { Faculty, GameState, InitiativeDepth } from '../state/types';
 import { RESEARCH_TOPICS, isCrossDisciplinary, type ResearchTopic } from './researchTopics';
 import { WEEKS_PER_YEAR } from '../state/types';
-import { labFields, researchSchools } from './techData';
+import { hostableFields, researchSchools } from './techData';
 
 // ---------------------------------------------------------------------
 // RESEARCH, AS AUTHORED DATA — the tuning and the output table.
@@ -722,9 +722,10 @@ export function researchableFields(): string[] {
 // migration, nothing to keep in sync.
 //
 // A topic is eligible when the university can actually staff it: somebody
-// free in every field it names, and at least one of those fields taught by
-// the facility's own school — a physics lab does not host a monograph on
-// Shakespeare.
+// free in every field it names, and at least one of those fields hosted
+// by the facility — its own field, or a field its school teaches that has
+// no facility of its own (techData.ts's hostableFields). A physics lab
+// does not host a monograph on Shakespeare; the humanities institute does.
 // =====================================================================
 
 const OFFER_EPOCH_WEEKS = 13; // offers turn over each quarter
@@ -770,12 +771,18 @@ export function availableScholars(s: GameState, field: string): Faculty[] {
 // wrong set of fields (the whole school's), and a function that cannot be
 // told the wrong pool cannot have that bug again.
 //
-// "Could run" means the facility's field is AMONG the topic's fields, not
-// merely overlapping some school-wide set. A single-field topic is offered
-// in the one lab that field belongs to; a cross-disciplinary topic is
-// offered in each of the labs it names, and in no others — so a project
-// always belongs to the place it is happening, while a physicist can still
-// be on a Materials + Chemistry project running out of either lab.
+// "Could run" means a field the facility HOSTS is among the topic's
+// fields, not merely overlapping some school-wide set. A facility hosts
+// its own field and, since Plan 20's PR B, the fields its school teaches
+// that have no facility of their own (techData.ts's hostableFields) —
+// which is how the Computing Research Center runs an AI project and the
+// Humanities Research Institute one in English. A single-field topic is
+// offered in the lab its field belongs to, or in the building of each
+// school that teaches an unequipped field; a cross-disciplinary topic is
+// offered in each of the facilities hosting a field it names, and in no
+// others — so a project always belongs to a place its department works,
+// while a physicist can still be on a Materials + Chemistry project
+// running out of either lab.
 //
 // A topic may also name the facilities it belongs in (ResearchTopic.labs),
 // which is how the two pairs of facilities that SHARE a field are kept
@@ -789,7 +796,7 @@ export function availableScholars(s: GameState, field: string): Faculty[] {
 // which is the honest answer rather than a crash.
 export function initiativeOffers(s: GameState, labId: string): InitiativeOffer[] {
   const epoch = Math.floor((s.clock.year * WEEKS_PER_YEAR + s.clock.week) / OFFER_EPOCH_WEEKS);
-  const fieldSet = new Set(labFields(labId));
+  const fieldSet = new Set(hostableFields(labId));
 
   const runnable = RESEARCH_TOPICS.filter((topic) => (
     topic.fields.some((f) => fieldSet.has(f)) && (!topic.labs || topic.labs.includes(labId))

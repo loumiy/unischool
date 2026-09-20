@@ -11,7 +11,7 @@ Every Buildable has:
 - a **`kind`** — `course`, `building`, `dorm`, `facility`. Athletics venues are
   `facility`-kind, reveal-gated, like everything else in that list — there is
   no separate `sports` kind. The `building` kind is the **academic halls**:
-  Founders Hall and the eleven-hall chain, each carrying `slots` — the six
+  Founders Hall and the thirteen-hall chain, each carrying `slots` — the six
   program slots a hall holds (Founders Hall's first three hold the founding
   programs from day one — see `data/foundingData.ts`). There is no
   school building: a school is founded by filling a hall (see
