@@ -105,6 +105,33 @@ work with a known shape; none has been turned into a sequence of PRs.*
   between tuition and enrollment volume, with prestige/scale archetypes. The
   finances are structured so this can replace the simple version without
   touching the rest of the system.
+- **A school-wide budget, and a CFO to run it.** Today every expense line is
+  *derived* from what the school owns and enrolls — instruction from students
+  times sections, services from enrollment times crowding, salaries from the
+  roster, upkeep from buildings — and `financeSystem.ts` says plainly that none
+  of the three income lines is an appropriation. A budget inverts that: costs
+  stop being consequences of what you own and become choices about how well
+  what you own works, which is the only way underfunding can have a
+  consequence. The shape discussed and deliberately **not** taken into
+  [Plan 21](docs/plans/21-the-department.md): five or six levers rather than a
+  line-item sheet (instruction, student services, research, athletics,
+  facilities and maintenance, financial aid), each low/adequate/generous with
+  one visible consequence — deferred maintenance is where the roof-failure and
+  heating-plant events should come from instead of pure bad luck — and the pot
+  sized as a share of income the player chooses to spend, so "spend now or
+  compound the endowment" becomes the top-level dial.
+
+  **A CFO is what stops it being tedious**, and is hired the way the athletic
+  director is: their quality decides how good the auto-allocation is, so
+  hiring a good one *is* the "leave it be" purchase. The budget arrives
+  pre-filled as the default inside the summer admissions interrupt — a stop the
+  player was already making, one click to accept — and the CFO flags exceptions
+  rather than asking every year, the same discipline the demand system uses.
+
+  **Two conditions before this is worth sequencing.** It is gated on money
+  actually being scarce: a budget screen on a school with $2B in cash is
+  decoration. And Plan 21's per-sport pot and priority list are the pilot for
+  it — build the specific case, see how it reads, then generalise.
 - **Campus map feedback.** Adjacency weighting between neighbouring buildings,
   and any economic or prestige consequence of the layout. The map is a
   visual-only layer today and nothing mechanical reads it.
@@ -130,9 +157,13 @@ work with a known shape; none has been turned into a sequence of PRs.*
   economy reads is still untouched by athletics.
 
   **What to do with the department as a whole is now sequenced**, in
-  [Plan 21](docs/plans/21-the-season.md): its outputs are connected before
-  anything is deepened, and the season question above is answered at four
-  dated occasions rather than a fixture list.
+  [Plan 21](docs/plans/21-the-department.md): its outputs are connected before
+  anything is deepened, the season question above is answered at four dated
+  occasions rather than a fixture list, and **rowing and golf stay declined**
+  for the reasons already recorded. Plan 21 adds one sport — water polo, onto
+  the natatorium, which carries two programs for $950k and is the department's
+  worst-value building — and holds wrestling, gymnastics and cross country
+  because the arena and the field are already carrying six and seven.
 - **The tutorial** — **done**, in two layers. The forced first minute is the
   opening walkthrough (`src/state/opening.ts`): a new school opens
   with the clock held and no building standing, and the shell walks the
@@ -165,6 +196,12 @@ to re-derive them from a 658-line document.*
   returns to 12 when these systems reach something — and Plan 17 leaves campus
   life out of the legacy's six axes for the same reason. That condition is this
   item, and it is the largest single thing the sequence walks past.
+
+  **[Plan 21](docs/plans/21-the-department.md) is the plan that discharges it**
+  — its PR B widens `campusLifeScore` past the two rec-centre rungs, restores
+  the weight, and adds the seventh legacy axis. The student-life half of this
+  entry (clubs that stop counting once the social cap is reached) is NOT in
+  Plan 21 and stays here.
 - **The event table (the review's H4).** Five of fifteen events have a dominant
   choice; two more are decision-free at scale. Plan 15 re-scales the *capital*
   events to the building's own cost because it is moving the money scale under
