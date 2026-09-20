@@ -27,15 +27,14 @@ import { fireMilestoneCelebration, tickEvents } from '../systems/events/eventSys
 import { tickStudentLife } from '../systems/studentlife/studentLifeSystem';
 import { tickAthletics } from '../systems/athletics/athleticsSystem';
 import { raiseDemand, shortfallDemandFor, tickDemands } from '../systems/demands/demandSystem';
-import { absoluteWeek, findDecisionEvent } from '../data/eventData';
-import { LIBRARY_TIER1_ID, nextLibraryFloor, servedUpkeep } from '../data/facilitiesData';
+import { absoluteWeek, findDecisionEvent, offeredChoices } from '../data/eventData';
+import { LIBRARY_TIER1_ID, nextLibraryFloor, servedUpkeep, nextVenueExpansion} from '../data/facilitiesData';
 import { fellTrees, TREE_SEED_RANGE } from '../data/treeData';
 import { advanceOpening, openingHoldsClock, settleOpening, skipOpening } from '../state/opening';
 import {
   CHAPTER_APPROVAL_SATISFACTION_NUDGE, CHAPTER_DECLINE_SATISFACTION_HIT,
   CLUB_APPROVAL_SATISFACTION_NUDGE, CLUB_DECLINE_SATISFACTION_HIT, activatePetition, TRAINER_FIELD,
-  MASCOT_MAX_LENGTH,
-} from '../data/studentLifeData';
+  MASCOT_MAX_LENGTH, applyTeamOrder } from '../data/studentLifeData';
 import {
   canPlace, canSiteRetroactively, footprintOf, isInBounds, isPlaceableKind,
   orientedFootprint, pathTileKey, placementFor, sitingFeeOf,
@@ -165,7 +164,12 @@ function resolveStudentLifeDigest(s: GameState, approvedIds: string[]): void {
   let declined = 0;
   for (const petition of petitions) {
     if (approved.has(petition.id)) {
+      // The first sport club is a named beat (Plan 21's PR O): the school
+      // picks its mascot on the next quiet week, not in the director's
+      // modal two decades on.
+      const firstSport = !!petition.sport && !s.orgs.clubs.some((c) => c.sport !== null) && s.orgs.teams.length === 0;
       activatePetition(s, petition);
+      if (firstSport && !s.self.mascot) s.orgs.mascotBeatPending = true;
       recognised += 1;
       nudge += petition.kind === 'club'
         ? CLUB_APPROVAL_SATISFACTION_NUDGE
@@ -626,6 +630,22 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
+    // The priority list, dragged (Plan 21's PR G). The order is the stored
+    // thing; the funded line is derived. A program dragged below the line
+    // it was above may lose its head coach on the spot (studentLifeData.ts's
+    // applyTeamOrder), and the log says who walked.
+    case 'SET_TEAM_ORDER': {
+      const left = applyTeamOrder(s, action.order);
+      if (left.length > 0) {
+        s.log.unshift({
+          year: s.clock.year, week: s.clock.week,
+          message: `The priority list moved, and ${left.join(', ')} resigned rather than coach a program the department will no longer fund in full.`,
+          kind: 'bad',
+        });
+      }
+      return s;
+    }
+
     // Hires a listed coach candidate into one of a team's three staff
     // roles. Every gate is checked here, not trusted from the UI, the same
     // discipline HIRE_FACULTY's own simplicity relies on the candidate
@@ -962,6 +982,23 @@ export function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
+    // The first sport club's naming beat (Plan 21's PR O). Trimmed and
+    // capped as the director's modal does it; an empty name keeps the
+    // question for the director's modal, which still asks when nothing has
+    // answered.
+    case 'RESOLVE_MASCOT': {
+      const mascot = action.mascot.trim().slice(0, MASCOT_MAX_LENGTH);
+      if (mascot) s.self.mascot = mascot;
+      s.orgs.mascotBeatPending = false;
+      s.pendingInterrupt = null;
+      s.log.unshift({
+        year: s.clock.year, week: s.clock.week,
+        message: mascot ? `The school's teams will play as the ${mascot}.` : 'The students could not agree on a name for the teams; the question will come back.',
+        kind: mascot ? 'good' : 'info',
+      });
+      return s;
+    }
+
     case 'RESOLVE_ATHLETIC_DIRECTOR': {
       if (action.candidate) {
         s.orgs.athleticDirector = action.candidate;
@@ -1046,7 +1083,7 @@ export function reducer(state: GameState, action: Action): GameState {
     // event can never wedge the game.
     case 'RESOLVE_DECISION_EVENT': {
       const event = findDecisionEvent(action.eventId);
-      const choice = event?.choices.find((c) => c.id === action.choiceId);
+      const choice = event && offeredChoices(s, event, action.ctx).find((c) => c.id === action.choiceId);
       if (choice) {
         const ctx = action.ctx;
         const cost = choice.cost(s, ctx);
@@ -1232,6 +1269,31 @@ export function reducer(state: GameState, action: Action): GameState {
           ...node.effects,
           servesPopulation,
           upkeepPerWeek: servedUpkeep('library', servesPopulation),
+        };
+      }
+      return s;
+    }
+
+    // Expands a venue in place (Plan 21's PR Q), on the library's renovation
+    // idiom above: the same node goes back to 'developing' at its spot, its
+    // effects are raised at the start with renovatingFrom standing in for
+    // the crowd it already serves, and its expansions count is what the
+    // gate reads the seats off (facilitiesData.ts's venueSeatsOf).
+    case 'EXPAND_VENUE': {
+      const node = s.tech.find((t) => t.id === action.venueId);
+      const plan = node ? nextVenueExpansion(node) : null;
+      if (node && plan && node.status === 'done' && s.finance.cash >= plan.cost) {
+        const servesPopulation = (node.effects?.servesPopulation ?? 0) + plan.servesGain;
+        node.renovatingFrom = node.effects?.servesPopulation ?? 0;
+        node.status = 'developing';
+        s.developing[node.id] = plan.weeks;
+        s.finance.cash -= plan.cost;
+        node.expansions = (node.expansions ?? 0) + 1;
+        node.effects = {
+          ...node.effects,
+          servesPopulation,
+          prestigeContribution: (node.effects?.prestigeContribution ?? 0) + plan.prestigeGain,
+          upkeepPerWeek: node.facilityType ? servedUpkeep(node.facilityType, servesPopulation) : node.effects?.upkeepPerWeek,
         };
       }
       return s;

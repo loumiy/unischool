@@ -30,7 +30,7 @@ function assert(cond: boolean, msg: string): void {
   }
 }
 
-const KEYS: LegacyAxisKey[] = ['breadth', 'concentration', 'teaching', 'research', 'reach', 'stewardship'];
+const KEYS: LegacyAxisKey[] = ['breadth', 'concentration', 'teaching', 'research', 'reach', 'stewardship', 'campusLife'];
 const GRADES: LegacyGrade[] = ['A', 'B', 'C', 'D', 'F'];
 
 // Axes hand-built from a grade per key, for the names table.
@@ -49,7 +49,7 @@ console.log('legacy tests');
 {
   const s = createInitialState('Shape');
   const l = legacy(s);
-  assert(l.axes.length === 6 && l.axes.map((a) => a.key).join(',') === KEYS.join(','), 'six axes in a fixed order');
+  assert(l.axes.length === 7 && l.axes.map((a) => a.key).join(',') === KEYS.join(','), 'seven axes in a fixed order');
   assert(AXES.map((a) => a.key).join(',') === KEYS.join(','), 'the AXES table is that order');
   assert(l.axes.every((a) => a.score >= 0 && a.score <= 1), 'every score is 0..1');
   assert(l.axes.every((a) => a.grade === gradeOf(a.score)), 'every grade is the band its score falls in');
@@ -150,14 +150,14 @@ console.log('legacy tests');
   assert(LEGACY_NAMES[LEGACY_NAMES.length - 1].when({} as never, []), 'the last entry catches everything');
   assert(LEGACY_NAMES.length >= 17, `a dozen and more names (${LEGACY_NAMES.length})`);
 
-  assert(nameFor({}, 'A') === 'the university everything is measured against', 'six As');
+  assert(nameFor({}, 'A') === 'the university everything is measured against', 'seven As');
   assert(nameFor({ research: 'A', breadth: 'B', teaching: 'B' }, 'C') === 'a great research university', 'research A over a broad, well-taught school');
   assert(nameFor({ teaching: 'A', reach: 'A', concentration: 'A', breadth: 'C', research: 'B', stewardship: 'B' }) === 'the finest college in the country', 'a small, selective, beautifully taught college');
   assert(nameFor({ reach: 'A', breadth: 'B', stewardship: 'B', research: 'C', teaching: 'C', concentration: 'C' }) === 'an engine of the region', 'broad, wanted, solvent, no research');
   assert(nameFor({ stewardship: 'A', teaching: 'A', reach: 'B', breadth: 'C', research: 'C', concentration: 'C' }) === 'a place students never leave', 'happy and well taught');
   assert(nameFor({ breadth: 'B', stewardship: 'D' }, 'C') === 'a school that grew too fast', 'broad and in the red');
-  assert(nameFor({}, 'F') === 'a school that never got started', 'six Fs');
-  assert(nameFor({}, 'C') === 'a college still finding itself', 'six Cs');
+  assert(nameFor({}, 'F') === 'a school that never got started', 'seven Fs');
+  assert(nameFor({}, 'C') === 'a college still finding itself', 'seven Cs');
   assert(legacyName(axesOf({ breadth: 'B', teaching: 'B', research: 'B', stewardship: 'B' }, 'C')).table === 'sound', 'four Bs is a sound school');
   assert(legacyName(axesOf({}, 'A')).table === 'great' && legacyName(axesOf({}, 'F')).table === 'troubled', 'the tables follow the grades');
 }

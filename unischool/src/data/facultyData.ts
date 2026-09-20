@@ -13,25 +13,31 @@ import { initialTech } from './techData';
 // typical American university's faculty roster rather than as one-in-N
 // name origins.
 //
-// Ten pools, not evenly sized: most carry fourteen first names (seven per
-// gender) and fourteen last, but Chinese/Korean/Japanese split what used
-// to be one combined "East Asian" pool, and West African/East African
-// split what used to be one "West/East African" pool — see the git history
-// for why: three languages with zero surname overlap (a "Zhang" is never
-// Korean or Japanese) rolling a shared nationality was a real bug, an
-// ocean and a language family apart, not variety, and the same objection
-// applied a continent-length-scale down to lumping Nigeria/Ghana/Senegal
-// in with Kenya. Each split pool keeps its share of the ORIGINAL pool's
-// selection weight (see OTHER_POOL_WEIGHT below) rather than each claiming
-// a full share of its own — splitting a pool for accuracy should not also
-// triple how often that region's names come up relative to every other
-// one. Anglo/Western European alone still has the old 7x14 shape (the
-// worst case for collisions, since it's drawn ~40% of the time and then
-// paired same-origin 85% of the time) — comfortably larger than the
-// handful of faculty any single playthrough ever rolls, so rollFullName's
-// dedupe below essentially never has to fall back; the split pools are
-// smaller (as few as 2 first names a gender) but drawn correspondingly
-// less often, so collisions within one stay just as rare in practice. This
+// Ten pools, deliberately deep and not evenly sized. The Anglo/Western
+// European pool is the largest — eighty first names a gender and a hundred
+// surnames — because it is drawn the most often (half of faculty draws,
+// see ANGLO_POOL_WEIGHT below, and more of coach draws, see
+// COACH_POOL_WEIGHTS) and then paired same-origin 85% of the time, so it
+// is the pool whose depth decides whether names repeat; every other pool
+// carries twenty-five to forty-four first names a gender and twenty-five
+// to sixty surnames, drawn correspondingly less often. The pools were once
+// seven first names a gender and fourteen surnames each — 98 combinations
+// for the pool drawn half the time — which passed while only faculty were
+// named from them (a run hires a few dozen) and became the repetition Plan
+// 21's Finding 9 measured once the coach market churned ~78 candidates a
+// year off the same lists: an Anglo first name recurred about five times
+// a year, and rollFullName's dedupe loop was working hard for faculty
+// too. Chinese/Korean/Japanese split what used to be one combined "East
+// Asian" pool, and West African/East African split what used to be one
+// "West/East African" pool — see the git history for why: three languages
+// with zero surname overlap (a "Zhang" is never Korean or Japanese)
+// rolling a shared nationality was a real bug, an ocean and a language
+// family apart, not variety, and the same objection applied a
+// continent-length-scale down to lumping Nigeria/Ghana/Senegal in with
+// Kenya. Each split pool keeps its share of the ORIGINAL pool's selection
+// weight (see OTHER_POOL_WEIGHT below) rather than each claiming a full
+// share of its own — splitting a pool for accuracy should not also triple
+// how often that region's names come up relative to every other one. This
 // same data is also where donor/alumni surnames come from (see
 // eventData.ts's rollSurname()), so `last` needs to stay generic enough
 // for a name to plausibly belong to a professor OR a decades-graduated
@@ -71,106 +77,268 @@ function firstNamesFor(pool: NamePool, gender: 'male' | 'female'): string[] {
 const ANGLO_POOL_WEIGHT = 6;
 const OTHER_POOL_WEIGHT = 1;
 
-const NAME_POOLS: NamePool[] = [
+// Exported for test/coach-names.test.ts's content checks (pool depth, no
+// name on both sides of a pool); nothing in the game reads it directly —
+// every draw goes through pickPool below.
+export const NAME_POOLS: readonly NamePool[] = [
   // Formerly one combined "East Asian" pool. Split because the three
   // languages share no surnames at all (a "Zhang" is never a plausible
   // Korean or Japanese name) — rolling first/last/nationality independently
   // across all three, as the combined pool did, could hand a distinctly
   // Chinese name a Japanese nationality on the same draw, which reads as a
-  // bug the moment a player notices it, not as multicultural variety. Every
-  // surname below is unchanged from the old combined list, just regrouped
-  // by which language it actually belongs to (14 split cleanly into 5/4/5,
-  // no leftovers); the old combined list's 7 first names a gender split
-  // 3/2/2 the same way, which is too few for three separate pools to each
-  // stay believably varied on its own (a repeat every few rolls, not the
-  // occasional one every other pool's size keeps rare — see
-  // rollFullName's dedupe below), so each pool's first names are topped up
-  // with more common real given names in that same language rather than
-  // left thin.
+  // bug the moment a player notices it, not as multicultural variety.
+  // Within each pool a name is EITHER a given name or a surname, never both
+  // (Chinese in particular has many words that serve as either), so a draw
+  // cannot produce "Liang Liang".
   {
     origin: 'Chinese',
-    firstMale: ['Wei', 'Jun', 'Feng', 'Hao', 'Chao', 'Xiang', 'Long'],
-    firstFemale: ['Mei', 'Xin', 'Li', 'Fang', 'Jing', 'Ying', 'Hui'],
-    last: ['Zhang', 'Chen', 'Liu', 'Wang', 'Huang', 'Zhou', 'Yang'],
+    firstMale: [
+      'Wei', 'Jun', 'Feng', 'Hao', 'Chao', 'Xiang', 'Long', 'Bo', 'Cheng', 'Gang',
+      'Jian', 'Jie', 'Lei', 'Ming', 'Qiang', 'Tao', 'Wen', 'Xiao', 'Yong', 'Zhi',
+      'Bin', 'Dong', 'Guang', 'Rui', 'Zhen',
+    ],
+    firstFemale: [
+      'Mei', 'Xin', 'Li', 'Fang', 'Jing', 'Ying', 'Hui', 'Hong', 'Hua', 'Lan',
+      'Lian', 'Ling', 'Min', 'Ning', 'Qing', 'Rong', 'Shan', 'Ting', 'Xia', 'Xue',
+      'Yue', 'Yun', 'Yuan', 'Fen', 'Shu',
+    ],
+    last: [
+      'Zhang', 'Chen', 'Liu', 'Wang', 'Huang', 'Zhou', 'Yang', 'Wu', 'Zhao', 'Sun',
+      'Ma', 'Zhu', 'Hu', 'Guo', 'Lin', 'He', 'Gao', 'Luo', 'Zheng', 'Liang',
+      'Xu', 'Song', 'Tang', 'Cao', 'Deng', 'Xie', 'Pan', 'Jiang', 'Ye', 'Tan',
+      'Fan', 'Lu', 'Du', 'Cai', 'Shen',
+    ],
     weight: OTHER_POOL_WEIGHT / 3,
   },
   {
     origin: 'Korean',
-    firstMale: ['Minjun', 'Seojin', 'Jihoon', 'Dohyun', 'Sungmin', 'Taehyun', 'Jinwoo'],
-    firstFemale: ['Sooah', 'Hana', 'Jiwoo', 'Yerin', 'Minji', 'Soyeon', 'Eunji'],
-    last: ['Kim', 'Park', 'Lee', 'Choi', 'Jung', 'Yoon'],
+    firstMale: [
+      'Minjun', 'Seojin', 'Jihoon', 'Dohyun', 'Sungmin', 'Taehyun', 'Jinwoo', 'Hyunwoo', 'Junseo', 'Seungmin',
+      'Youngho', 'Sangwoo', 'Kyungsoo', 'Hyunjin', 'Jaemin', 'Donghyun', 'Woojin', 'Yejun', 'Siwoo', 'Jisung',
+      'Hojun', 'Byungho', 'Kangmin', 'Namjoon', 'Joonho',
+    ],
+    firstFemale: [
+      'Sooah', 'Hana', 'Jiwoo', 'Yerin', 'Minji', 'Soyeon', 'Eunji', 'Yuna', 'Seoyeon', 'Jieun',
+      'Chaewon', 'Hyejin', 'Sujin', 'Eunbi', 'Nayeon', 'Dahyun', 'Hyerin', 'Jiyoung', 'Sohee', 'Yeji',
+      'Hayoon', 'Boyoung', 'Miyoung', 'Seulgi', 'Jimin',
+    ],
+    last: [
+      'Kim', 'Park', 'Lee', 'Choi', 'Jung', 'Yoon', 'Kang', 'Cho', 'Yoo', 'Jang',
+      'Lim', 'Han', 'Shin', 'Oh', 'Seo', 'Kwon', 'Hwang', 'Ahn', 'Ryu', 'Jeon',
+      'Moon', 'Bae', 'Baek', 'Nam', 'Koo',
+    ],
     weight: OTHER_POOL_WEIGHT / 3,
   },
   {
     origin: 'Japanese',
-    firstMale: ['Haruto', 'Ren', 'Sora', 'Yuto', 'Kaito', 'Daiki', 'Riku'],
-    firstFemale: ['Yuki', 'Aiko', 'Sakura', 'Rin', 'Emi', 'Yui', 'Nanami'],
-    last: ['Tanaka', 'Nakamura', 'Sato', 'Watanabe', 'Kobayashi', 'Suzuki', 'Yamamoto'],
+    firstMale: [
+      'Haruto', 'Ren', 'Sora', 'Yuto', 'Kaito', 'Daiki', 'Riku', 'Hiroshi', 'Takeshi', 'Kenji',
+      'Yusuke', 'Takumi', 'Shota', 'Kenta', 'Ryota', 'Daisuke', 'Tatsuya', 'Naoki', 'Kazuki', 'Satoshi',
+      'Makoto', 'Ichiro', 'Koji', 'Shun', 'Hayato', 'Tsubasa', 'Itsuki', 'Minato', 'Asahi', 'Taro',
+    ],
+    firstFemale: [
+      'Yuki', 'Aiko', 'Sakura', 'Rin', 'Emi', 'Yui', 'Nanami', 'Haruka', 'Misaki', 'Ayumi',
+      'Mio', 'Miyu', 'Hinata', 'Kanna', 'Akari', 'Riko', 'Ayaka', 'Kaori', 'Keiko', 'Mika',
+      'Natsuki', 'Saki', 'Mai', 'Chiyo', 'Hitomi', 'Nao', 'Yoko', 'Tomoko', 'Rika', 'Sayuri',
+    ],
+    last: [
+      'Tanaka', 'Nakamura', 'Sato', 'Watanabe', 'Kobayashi', 'Suzuki', 'Yamamoto', 'Ito', 'Takahashi', 'Yamada',
+      'Yoshida', 'Sasaki', 'Matsumoto', 'Inoue', 'Kimura', 'Hayashi', 'Shimizu', 'Yamaguchi', 'Mori', 'Abe',
+      'Ikeda', 'Hashimoto', 'Ishikawa', 'Ogawa', 'Fujita', 'Okada', 'Goto', 'Hasegawa', 'Murakami', 'Kondo',
+      'Ishii', 'Saito', 'Sakamoto', 'Endo', 'Aoki', 'Fujii', 'Nishimura', 'Fukuda', 'Miura', 'Takeda',
+      'Nakajima', 'Kato', 'Maeda', 'Ono',
+    ],
     weight: OTHER_POOL_WEIGHT / 3,
   },
   {
     origin: 'South Asian',
-    firstMale: ['Arjun', 'Rohan', 'Vikram', 'Karan', 'Ishaan', 'Farhan', 'Aarav'],
-    firstFemale: ['Priya', 'Ananya', 'Divya', 'Meera', 'Anika', 'Nadia', 'Riya'],
-    last: ['Patel', 'Sharma', 'Gupta', 'Nair', 'Rao', 'Iyer', 'Chowdhury', 'Singh', 'Reddy', 'Bose', 'Ahmed', 'Khan', 'Menon', 'Desai'],
+    firstMale: [
+      'Arjun', 'Rohan', 'Vikram', 'Karan', 'Ishaan', 'Farhan', 'Aarav', 'Aditya', 'Akash', 'Amit',
+      'Anand', 'Anil', 'Ankit', 'Ashok', 'Deepak', 'Dev', 'Gaurav', 'Harsh', 'Imran', 'Kabir',
+      'Manish', 'Mohan', 'Naveen', 'Neel', 'Nikhil', 'Pranav', 'Rahul', 'Raj', 'Rajesh', 'Ravi',
+      'Rishi', 'Sachin', 'Sameer', 'Sanjay', 'Siddharth', 'Suresh', 'Varun', 'Vijay', 'Vinay', 'Vivek',
+      'Yash', 'Zain',
+    ],
+    firstFemale: [
+      'Priya', 'Ananya', 'Divya', 'Meera', 'Anika', 'Nadia', 'Riya', 'Aditi', 'Aishwarya', 'Amrita',
+      'Anjali', 'Asha', 'Bhavna', 'Deepa', 'Farida', 'Gita', 'Isha', 'Jaya', 'Kavya', 'Kiran',
+      'Lakshmi', 'Madhuri', 'Mansi', 'Neha', 'Nisha', 'Pooja', 'Rani', 'Rekha', 'Sanjana', 'Shreya',
+      'Simran', 'Sneha', 'Sunita', 'Swati', 'Tanvi', 'Uma', 'Usha', 'Vidya', 'Zara', 'Ayesha',
+    ],
+    last: [
+      'Patel', 'Sharma', 'Gupta', 'Nair', 'Rao', 'Iyer', 'Chowdhury', 'Singh', 'Reddy', 'Bose',
+      'Ahmed', 'Khan', 'Menon', 'Desai', 'Agarwal', 'Bhatt', 'Bhattacharya', 'Chandra', 'Chatterjee', 'Das',
+      'Dutta', 'Ganguly', 'Hussain', 'Jain', 'Joshi', 'Kapoor', 'Kaur', 'Krishnan', 'Kulkarni', 'Kumar',
+      'Malhotra', 'Mehta', 'Mishra', 'Mukherjee', 'Naidu', 'Pandey', 'Pillai', 'Prasad', 'Raman', 'Saxena',
+      'Sen', 'Sethi', 'Shah', 'Srinivasan', 'Subramanian', 'Verma', 'Venkatesh', 'Yadav',
+    ],
     weight: OTHER_POOL_WEIGHT,
   },
+  // The pool drawn most often (see ANGLO_POOL_WEIGHT above, and the heavier
+  // coach weighting in COACH_POOL_WEIGHTS below), so it is also the deepest:
+  // it has to stay believably varied across a faculty roster AND a coach
+  // market that churns ~78 candidates a year, half of them from here.
   {
     origin: 'Anglo/Western European',
-    firstMale: ['John', 'Daniel', 'William', 'Thomas', 'James', 'Henry', 'Michael'],
-    firstFemale: ['Emily', 'Grace', 'Alice', 'Charlotte', 'Olivia', 'Sarah', 'Emma'],
-    last: ['Reid', 'Byrne', 'Coleman', 'Whitfield', 'Bennett', 'Hayes', 'Sinclair', 'Murphy', 'Fitzgerald', 'Walsh', 'Schmidt', 'Fraser', 'Douglas', 'Kennedy'],
+    firstMale: [
+      'John', 'Daniel', 'William', 'Thomas', 'James', 'Henry', 'Michael', 'Robert', 'David', 'Richard',
+      'Charles', 'Joseph', 'Andrew', 'Matthew', 'Christopher', 'Edward', 'George', 'Patrick', 'Peter', 'Samuel',
+      'Benjamin', 'Nathan', 'Stephen', 'Paul', 'Mark', 'Luke', 'Jack', 'Oliver', 'Harry', 'Ryan',
+      'Kevin', 'Brian', 'Sean', 'Liam', 'Owen', 'Connor', 'Nicholas', 'Alexander', 'Jonathan', 'Timothy',
+      'Gregory', 'Scott', 'Eric', 'Adam', 'Aaron', 'Jacob', 'Ethan', 'Simon', 'Martin', 'Philip',
+      'Anthony', 'Frank', 'Walter', 'Dennis', 'Gary', 'Bruce', 'Wayne', 'Keith', 'Craig', 'Todd',
+      'Dean', 'Glenn', 'Neil', 'Ian', 'Colin', 'Malcolm', 'Stuart', 'Duncan', 'Angus', 'Callum',
+      'Hugh', 'Rory', 'Alistair', 'Ewan', 'Lachlan', 'Declan', 'Cormac', 'Niall', 'Lars', 'Klaus',
+    ],
+    firstFemale: [
+      'Emily', 'Grace', 'Alice', 'Charlotte', 'Olivia', 'Sarah', 'Emma', 'Hannah', 'Rachel', 'Rebecca',
+      'Laura', 'Katherine', 'Elizabeth', 'Margaret', 'Eleanor', 'Claire', 'Anna', 'Lucy', 'Sophie', 'Ellen',
+      'Helen', 'Mary', 'Jane', 'Ruth', 'Susan', 'Julia', 'Caroline', 'Victoria', 'Abigail', 'Isabel',
+      'Megan', 'Amy', 'Jessica', 'Lauren', 'Natalie', 'Nicole', 'Heather', 'Erin', 'Kelly', 'Bridget',
+      'Fiona', 'Siobhan', 'Maeve', 'Catriona', 'Isla', 'Freya', 'Amelia', 'Chloe', 'Ella', 'Lily',
+      'Molly', 'Rose', 'Florence', 'Harriet', 'Beatrice', 'Louise', 'Leah', 'Naomi', 'Diana', 'Joan',
+      'Carol', 'Linda', 'Karen', 'Barbara', 'Nancy', 'Patricia', 'Judith', 'Frances', 'Marion', 'Gwen',
+      'Eilidh', 'Niamh', 'Orla', 'Roisin', 'Astrid', 'Greta', 'Ingrid', 'Annika', 'Maren', 'Sigrid',
+    ],
+    last: [
+      'Reid', 'Byrne', 'Coleman', 'Whitfield', 'Bennett', 'Hayes', 'Sinclair', 'Murphy', 'Fitzgerald', 'Walsh',
+      'Schmidt', 'Fraser', 'Douglas', 'Kennedy', 'Anderson', 'Baker', 'Brooks', 'Campbell', 'Carter', 'Clarke',
+      'Collins', 'Cooper', 'Davies', 'Edwards', 'Evans', 'Foster', 'Graham', 'Griffin', 'Hamilton', 'Harper',
+      'Harrison', 'Hughes', 'Jenkins', 'Lambert', 'Lawson', 'MacLeod', 'Marshall', 'Mason', 'Mitchell', 'Morgan',
+      'Morrison', 'Murray', "O'Brien", "O'Connor", 'Palmer', 'Parker', 'Pearson', 'Price', 'Quinn', 'Richardson',
+      'Roberts', 'Robinson', 'Russell', 'Shaw', 'Spencer', 'Stewart', 'Sullivan', 'Thompson', 'Turner', 'Wallace',
+      'Ward', 'Watson', 'Webb', 'Weber', 'Wright', 'Young', 'Becker', 'Hoffmann', 'Keller', 'Meyer',
+      'Wagner', 'Dubois', 'Laurent', 'Moreau', 'Lindqvist', 'Berg', 'Nilsen', 'Holm', 'Van der Berg', 'De Vries',
+      'Brennan', 'Doyle', 'Gallagher', 'Kavanagh', 'Nolan', 'Reilly', 'Burns', 'Crawford', 'Lindsay', 'Ferguson',
+      'Grant', 'Henderson', 'MacDonald', 'McKenzie', 'Ross', 'Blackwood', 'Ashford', 'Pemberton', 'Hollis', 'Winslow',
+    ],
     weight: ANGLO_POOL_WEIGHT,
   },
   {
     origin: 'Hispanic/Latin American',
-    firstMale: ['Mateo', 'Diego', 'Javier', 'Santiago', 'Alejandro', 'Emilio', 'Rafael'],
-    firstFemale: ['Sofia', 'Camila', 'Valentina', 'Lucia', 'Isabella', 'Gabriela', 'Paula'],
-    last: ['Costa', 'Moreno', 'Reyes', 'Herrera', 'Silva', 'Torres', 'Vega', 'Garcia', 'Rodriguez', 'Fernandez', 'Castillo', 'Ortiz', 'Aguilar', 'Navarro'],
+    firstMale: [
+      'Mateo', 'Diego', 'Javier', 'Santiago', 'Alejandro', 'Emilio', 'Rafael', 'Andres', 'Carlos', 'Eduardo',
+      'Fernando', 'Gabriel', 'Hector', 'Ignacio', 'Joaquin', 'Jorge', 'Jose', 'Juan', 'Luis', 'Manuel',
+      'Marco', 'Miguel', 'Nicolas', 'Pablo', 'Ricardo', 'Roberto', 'Sergio', 'Adrian', 'Cesar', 'Felipe',
+      'Gonzalo', 'Hugo', 'Ramon', 'Raul', 'Esteban', 'Rodrigo', 'Alvaro', 'Enrique', 'Julio', 'Mauricio',
+    ],
+    firstFemale: [
+      'Sofia', 'Camila', 'Valentina', 'Lucia', 'Isabella', 'Gabriela', 'Paula', 'Adriana', 'Alejandra', 'Ana',
+      'Andrea', 'Beatriz', 'Carmen', 'Carolina', 'Catalina', 'Clara', 'Daniela', 'Fernanda', 'Ines', 'Josefina',
+      'Juliana', 'Lorena', 'Luciana', 'Mariana', 'Marisol', 'Natalia', 'Pilar', 'Rocio', 'Rosa', 'Teresa',
+      'Valeria', 'Veronica', 'Ximena', 'Yolanda', 'Elisa', 'Guadalupe', 'Marta', 'Silvia', 'Renata', 'Blanca',
+    ],
+    last: [
+      'Costa', 'Moreno', 'Reyes', 'Herrera', 'Silva', 'Torres', 'Vega', 'Garcia', 'Rodriguez', 'Fernandez',
+      'Castillo', 'Ortiz', 'Aguilar', 'Navarro', 'Alvarez', 'Cruz', 'Delgado', 'Diaz', 'Dominguez', 'Espinoza',
+      'Flores', 'Gomez', 'Gutierrez', 'Jimenez', 'Lopez', 'Martinez', 'Medina', 'Mendoza', 'Molina', 'Morales',
+      'Munoz', 'Nunez', 'Pena', 'Perez', 'Ramirez', 'Ramos', 'Rivera', 'Romero', 'Ruiz', 'Salazar',
+      'Sanchez', 'Santos', 'Suarez', 'Vargas', 'Vasquez', 'Vidal', 'Villanueva', 'Cabrera', 'Ochoa', 'Serrano',
+    ],
     weight: OTHER_POOL_WEIGHT,
   },
   {
     origin: 'Arabic/Middle Eastern',
-    firstMale: ['Omar', 'Hassan', 'Amir', 'Karim', 'Tarek', 'Rami', 'Youssef'],
-    firstFemale: ['Fatima', 'Layla', 'Yasmin', 'Sara', 'Nour', 'Dina', 'Rana'],
-    last: ['Nasser', 'Farouk', 'Haddad', 'Khalil', 'Aziz', 'Saleh', 'Mansour', 'Rahman', 'Zaidan', 'Qureshi', 'Sabbagh', 'Fawzy', 'Hakim', 'Barakat'],
+    firstMale: [
+      'Omar', 'Hassan', 'Amir', 'Karim', 'Tarek', 'Rami', 'Youssef', 'Ali', 'Bilal', 'Faisal',
+      'Hamza', 'Ibrahim', 'Jamal', 'Khalid', 'Mahmoud', 'Malik', 'Mustafa', 'Nabil', 'Nadim', 'Rashid',
+      'Sami', 'Samir', 'Tariq', 'Walid', 'Yahya', 'Zaid', 'Ziad', 'Adel', 'Bassam', 'Fadi',
+      'Ghassan', 'Hisham', 'Kamal', 'Marwan', 'Saeed', 'Salim', 'Fouad', 'Elias', 'Nizar', 'Ayman',
+    ],
+    firstFemale: [
+      'Fatima', 'Layla', 'Yasmin', 'Sara', 'Nour', 'Dina', 'Rana', 'Aisha', 'Amal', 'Amira',
+      'Asma', 'Dalia', 'Farah', 'Hala', 'Huda', 'Iman', 'Jamila', 'Lina', 'Maha', 'Malak',
+      'Mariam', 'Maya', 'Mona', 'Najla', 'Rania', 'Reem', 'Rima', 'Salma', 'Samira', 'Sana',
+      'Soraya', 'Yara', 'Zahra', 'Zeina', 'Ghada', 'Hanan', 'Lamia', 'Nadine', 'Sahar', 'Widad',
+    ],
+    last: [
+      'Nasser', 'Farouk', 'Haddad', 'Khalil', 'Aziz', 'Saleh', 'Mansour', 'Rahman', 'Zaidan', 'Qureshi',
+      'Sabbagh', 'Fawzy', 'Hakim', 'Barakat', 'Abbas', 'Abdallah', 'Amin', 'Ayoub', 'Bishara', 'Darwish',
+      'Fahmy', 'Ghanem', 'Habib', 'Hamdan', 'Jaber', 'Kanaan', 'Karam', 'Khoury', 'Maalouf', 'Mourad',
+      'Najjar', 'Osman', 'Radwan', 'Rizk', 'Saad', 'Salem', 'Shaheen', 'Shehata', 'Sultan', 'Taha',
+      'Zaki', 'Zayed', 'Hijazi', 'Awad', 'Boulos', 'Sarkis',
+    ],
     weight: OTHER_POOL_WEIGHT,
   },
   {
     origin: 'Slavic/Eastern European',
-    firstMale: ['Ivan', 'Dmitri', 'Viktor', 'Milan', 'Pavel', 'Tomas', 'Stefan'],
-    firstFemale: ['Elena', 'Katarina', 'Nadia', 'Anya', 'Zofia', 'Irina', 'Olga'],
-    last: ['Novak', 'Petrov', 'Kowalski', 'Horvat', 'Ivanov', 'Dvorak', 'Sokolov', 'Marek', 'Zielinski', 'Vasiliev', 'Jovanovic', 'Nowak', 'Kucera', 'Baran'],
+    firstMale: [
+      'Ivan', 'Dmitri', 'Viktor', 'Milan', 'Pavel', 'Tomas', 'Stefan', 'Aleksandr', 'Andrei', 'Anton',
+      'Boris', 'Bogdan', 'Dragan', 'Filip', 'Igor', 'Jakub', 'Jan', 'Josef', 'Karel', 'Krzysztof',
+      'Lukas', 'Marko', 'Mateusz', 'Maxim', 'Mikhail', 'Miroslav', 'Nikola', 'Nikolai', 'Oleg', 'Ondrej',
+      'Petr', 'Piotr', 'Radek', 'Roman', 'Sergei', 'Vladimir', 'Yuri', 'Zoran', 'Goran', 'Vaclav',
+    ],
+    firstFemale: [
+      'Elena', 'Katarina', 'Nadia', 'Anya', 'Zofia', 'Irina', 'Olga', 'Agnieszka', 'Aleksandra', 'Alina',
+      'Anastasia', 'Daria', 'Dominika', 'Ewa', 'Galina', 'Ivana', 'Jana', 'Jelena', 'Karolina', 'Kristina',
+      'Ksenia', 'Lena', 'Lidia', 'Ljubica', 'Ludmila', 'Magdalena', 'Maja', 'Marija', 'Milena', 'Natasha',
+      'Nina', 'Oksana', 'Petra', 'Polina', 'Svetlana', 'Tatiana', 'Tereza', 'Vera', 'Veronika', 'Zuzana',
+    ],
+    last: [
+      'Novak', 'Petrov', 'Kowalski', 'Horvat', 'Ivanov', 'Dvorak', 'Sokolov', 'Marek', 'Zielinski', 'Vasiliev',
+      'Jovanovic', 'Nowak', 'Kucera', 'Baran', 'Andreev', 'Babic', 'Bartos', 'Belov', 'Blazek', 'Cerny',
+      'Dimitrov', 'Fedorov', 'Gorski', 'Hruby', 'Jankowski', 'Jelinek', 'Kaminski', 'Kolar', 'Kovac', 'Kozlov',
+      'Kral', 'Kuznetsov', 'Lewandowski', 'Mazur', 'Morozov', 'Novotny', 'Pavlov', 'Popov', 'Prochazka', 'Radic',
+      'Smirnov', 'Stankovic', 'Svoboda', 'Tomic', 'Urban', 'Vlach', 'Volkov', 'Wisniewski', 'Wojcik', 'Zajac',
+    ],
     weight: OTHER_POOL_WEIGHT,
   },
   // Formerly one combined "West/East African" pool — two real regions an
   // ocean-scale distance apart on the same continent, not a natural single
   // origin the way, say, "Slavic/Eastern European" is one contiguous
-  // cultural-linguistic area. West African keeps every Nigerian (Igbo/
-  // Yoruba) and Ghanaian (Akan) first name the combined pool had (none of
-  // those were ever East African), plus a few more real Nigerian/Ghanaian/
-  // Senegalese surnames so it isn't left thinner than before the split by
-  // giving up the three Kenyan ones below. East African is the one place
-  // this split needed real NEW content rather than a straight regroup — the
-  // old combined pool's only East African material was three Kikuyu Kenyan
-  // surnames (Mwangi, Kamau, Njoroge) with zero first names to pair them
-  // with, so a straight split would have left this pool unable to generate
-  // a first name at all. Filled out with a real spread of East African
-  // first and last names — Kikuyu, Luo, Kalenjin, Luhya, and Swahili (the
-  // regional lingua franca) — sized to match every other region here
-  // rather than left conspicuously thin.
+  // cultural-linguistic area. West African is Nigerian (Igbo/Yoruba),
+  // Ghanaian (Akan) and Senegalese/Malian (Wolof/Mandinka) names; East
+  // African is Kikuyu, Luo, Kalenjin, Luhya, Swahili and Ugandan (Baganda)
+  // ones. Several East African names serve as either a given name or a
+  // surname in real use (a Luo Otieno, a Kalenjin Kiptoo); each is filed on
+  // one side here only, so a draw never doubles it.
   {
     origin: 'West African',
-    firstMale: ['Kwame', 'Chidi', 'Kofi', 'Femi', 'Tunde', 'Kwesi', 'Emeka'],
-    firstFemale: ['Amara', 'Adaeze', 'Zainab', 'Ngozi', 'Abena', 'Fatou', 'Ifeoma'],
-    last: ['Okafor', 'Mensah', 'Adeyemi', 'Nwosu', 'Diallo', 'Osei', 'Balogun', 'Owusu', 'Sow', 'Achebe', 'Boateng', 'Abiodun', 'Danso', 'Toure'],
+    firstMale: [
+      'Kwame', 'Chidi', 'Kofi', 'Femi', 'Tunde', 'Kwesi', 'Emeka', 'Adebayo', 'Chinedu', 'Ikenna',
+      'Obinna', 'Uche', 'Nnamdi', 'Segun', 'Yemi', 'Kojo', 'Kobina', 'Yaw', 'Fiifi', 'Ato',
+      'Mamadou', 'Ousmane', 'Moussa', 'Ibrahima', 'Cheikh', 'Amadou', 'Babacar', 'Sekou', 'Lamine', 'Kelechi',
+      'Ifeanyi', 'Tobi', 'Damilola', 'Ayodele', 'Dayo', 'Chukwuemeka', 'Ekow', 'Nana', 'Modou', 'Boubacar',
+    ],
+    firstFemale: [
+      'Amara', 'Adaeze', 'Zainab', 'Ngozi', 'Abena', 'Fatou', 'Ifeoma', 'Chiamaka', 'Chioma', 'Nneka',
+      'Obiageli', 'Adanna', 'Oluwaseun', 'Yewande', 'Folake', 'Bisi', 'Funmi', 'Temitope', 'Titilayo', 'Ama',
+      'Akosua', 'Adwoa', 'Efua', 'Esi', 'Yaa', 'Aminata', 'Awa', 'Mariama', 'Bintou', 'Coumba',
+      'Oumou', 'Adaora', 'Uchenna', 'Kemi', 'Ronke', 'Sade', 'Adaku', 'Ijeoma', 'Morayo', 'Ndeye',
+    ],
+    last: [
+      'Okafor', 'Mensah', 'Adeyemi', 'Nwosu', 'Diallo', 'Osei', 'Balogun', 'Owusu', 'Sow', 'Achebe',
+      'Boateng', 'Abiodun', 'Danso', 'Toure', 'Okonkwo', 'Okoro', 'Eze', 'Nwachukwu', 'Obi', 'Okeke',
+      'Igwe', 'Chukwuma', 'Onyeka', 'Afolabi', 'Akinyemi', 'Bello', 'Ojo', 'Oyelaran', 'Oyelowo', 'Salami',
+      'Ogunleye', 'Olawale', 'Adjei', 'Agyemang', 'Amoako', 'Appiah', 'Asante', 'Bonsu', 'Frimpong', 'Gyasi',
+      'Kwarteng', 'Opoku', 'Quaye', 'Ndiaye', 'Sarr', 'Faye', 'Ba', 'Cisse', 'Kane', 'Mbaye',
+      'Diop', 'Gueye', 'Seck', 'Thiam', 'Sy', 'Camara', 'Keita', 'Kone', 'Coulibaly', 'Traore',
+    ],
     weight: OTHER_POOL_WEIGHT / 2,
   },
   {
     origin: 'East African',
-    firstMale: ['Otieno', 'Kiprotich', 'Wekesa', 'Juma', 'Baraka', 'Kiptoo', 'Omondi'],
-    firstFemale: ['Wanjiru', 'Akinyi', 'Chebet', 'Zawadi', 'Naliaka', 'Nyokabi', 'Amani'],
-    last: ['Mwangi', 'Kamau', 'Njoroge', 'Cheruiyot', 'Odhiambo', 'Kimani', 'Wanyama'],
+    firstMale: [
+      'Otieno', 'Kiprotich', 'Wekesa', 'Juma', 'Baraka', 'Kiptoo', 'Omondi', 'Hamisi', 'Rashidi', 'Bakari',
+      'Jabari', 'Faraji', 'Hasani', 'Mosi', 'Tumaini', 'Zuberi', 'Ochieng', 'Onyango', 'Okoth', 'Owino',
+      'Kipchumba', 'Kiprono', 'Kibet', 'Kipkoech', 'Kiplimo', 'Wafula', 'Wanjala', 'Simiyu', 'Barasa', 'Mukasa',
+      'Okello', 'Opio', 'Mugisha', 'Tumusiime', 'Kizza', 'Mwita', 'Selemani', 'Hamadi', 'Gitau', 'Waweru',
+    ],
+    firstFemale: [
+      'Wanjiru', 'Akinyi', 'Chebet', 'Zawadi', 'Naliaka', 'Nyokabi', 'Amani', 'Wanjiku', 'Njeri', 'Wambui',
+      'Wairimu', 'Muthoni', 'Waithera', 'Nyambura', 'Wangari', 'Achieng', 'Adhiambo', 'Atieno', 'Awuor', 'Anyango',
+      'Auma', 'Jepkosgei', 'Jeptoo', 'Chepkoech', 'Cherono', 'Chelagat', 'Jerono', 'Nekesa', 'Nafula', 'Nasimiyu',
+      'Nanjala', 'Neema', 'Rehema', 'Subira', 'Zuri', 'Imani', 'Halima', 'Nakato', 'Namutebi', 'Nalubega',
+      'Babirye', 'Nabirye', 'Namusoke', 'Kirabo',
+    ],
+    last: [
+      'Mwangi', 'Kamau', 'Njoroge', 'Cheruiyot', 'Odhiambo', 'Kimani', 'Wanyama', 'Kipchoge', 'Kiplagat', 'Rotich',
+      'Kosgei', 'Chepkwony', 'Koech', 'Lagat', 'Rono', 'Tanui', 'Bett', 'Sang', 'Kirui', 'Odera',
+      'Oduya', 'Ouma', 'Kariuki', 'Njuguna', 'Karanja', 'Maina', 'Ndungu', 'Gichuru', 'Kihara', 'Macharia',
+      'Muriuki', 'Wachira', 'Wanyonyi', 'Masinde', 'Shikuku', 'Ssemakula', 'Byaruhanga', 'Lubega', 'Nsubuga', 'Ssentongo',
+      'Musisi', 'Kabuye', 'Mwinyi', 'Mrema', 'Mushi', 'Massawe', 'Lyimo', 'Mbwana', 'Kessy', 'Kimaro',
+      'Shayo', 'Swai', 'Mtui', 'Mmari',
+    ],
     weight: OTHER_POOL_WEIGHT / 2,
   },
 ];
@@ -179,11 +347,6 @@ const NAME_POOLS: NamePool[] = [
 // first name. Kept high, not 1, so cross-origin/multi-heritage names still
 // occur — just as the minority case, not the systematic default.
 const SAME_ORIGIN_NAME_WEIGHT = 0.85;
-
-// Bounded retries to avoid re-rolling the exact same first+last pair as an
-// existing faculty member or candidate. The pool is large enough that this
-// should essentially never exhaust; the loop is just a safety net.
-const MAX_NAME_ROLL_ATTEMPTS = 30;
 
 // ---------------------------------------------------------------------
 // Faculty fields = the university's DEPARTMENTS. This is the taxonomy the
@@ -275,19 +438,52 @@ function pick<T>(pool: T[]): T {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-const TOTAL_POOL_WEIGHT = NAME_POOLS.reduce((sum, pool) => sum + pool.weight, 0);
+// A weighting over NAME_POOLS: one weight per pool, in NAME_POOLS order,
+// plus their sum. Two exist — the faculty one is the pools' own `weight`,
+// and the coach one (below) leans harder on the Anglo/Western European
+// pool — and pickPool takes one, so a caller's origin mix is a choice made
+// at the call site, never a change to the pools themselves.
+interface PoolWeighting {
+  weights: readonly number[];
+  total: number;
+}
 
-// Weighted draw over NAME_POOLS by `weight` (see ANGLO_POOL_WEIGHT/
-// OTHER_POOL_WEIGHT above). Unlike pick(), which is a uniform draw over
-// whatever array it's given, this is the one place a NAME POOL itself gets
-// picked — every rollSurname/rollCoachName/rollFullName call site below
-// routes through here rather than calling pick(NAME_POOLS) directly, so the
-// origin weighting applies everywhere a name is rolled.
-function pickPool(): NamePool {
-  let roll = Math.random() * TOTAL_POOL_WEIGHT;
-  for (const pool of NAME_POOLS) {
-    roll -= pool.weight;
-    if (roll < 0) return pool;
+function weighting(weights: readonly number[]): PoolWeighting {
+  return { weights, total: weights.reduce((sum, w) => sum + w, 0) };
+}
+
+const FACULTY_POOL_WEIGHTS: PoolWeighting = weighting(NAME_POOLS.map((pool) => pool.weight));
+
+// COACHES ARE DRAWN MORE ANGLO/AMERICAN THAN FACULTY, and this is an
+// override at the coach call site rather than a change to ANGLO_POOL_WEIGHT:
+// the faculty weighting above carries its own rationale about a real
+// university's demographics and is correct as it stands. A real American
+// athletic department is a different roster — coaching careers are mostly
+// domestic, where faculty are recruited worldwide — so a coach's first name
+// is drawn Anglo/Western European 14-in-20 = 70% of the time against
+// faculty's 50%, with every other region keeping its OTHER_POOL_WEIGHT
+// share of the remainder (5% each of the six original regions, the split
+// pools dividing theirs as before).
+const COACH_ANGLO_POOL_WEIGHT = 14;
+const ANGLO_ORIGIN = 'Anglo/Western European';
+const COACH_POOL_WEIGHTS: PoolWeighting = weighting(
+  NAME_POOLS.map((pool) => (pool.origin === ANGLO_ORIGIN ? COACH_ANGLO_POOL_WEIGHT : pool.weight)),
+);
+
+// Weighted draw over NAME_POOLS by a PoolWeighting (see ANGLO_POOL_WEIGHT/
+// OTHER_POOL_WEIGHT above, and COACH_POOL_WEIGHTS). Unlike pick(), which is
+// a uniform draw over whatever array it's given, this is the one place a
+// NAME POOL itself gets picked — every rollSurname/rollCoachName/
+// rollFullName call site below routes through here rather than calling
+// pick(NAME_POOLS) directly, so the origin weighting applies everywhere a
+// name is rolled. ONE draw on Math.random whatever the weighting, which is
+// what lets the coach weighting differ from faculty's without either
+// changing how many dice the game rolls.
+function pickPool(by: PoolWeighting, roll: () => number = Math.random): NamePool {
+  let r = roll() * by.total;
+  for (let i = 0; i < NAME_POOLS.length; i++) {
+    r -= by.weights[i];
+    if (r < 0) return NAME_POOLS[i];
   }
   return NAME_POOLS[NAME_POOLS.length - 1];
 }
@@ -298,33 +494,81 @@ function pickPool(): NamePool {
 // 'naming-rights' event). Surnames aren't gendered, so this needs no
 // gender input the way firstNamesFor's callers do.
 export function rollSurname(): string {
-  return pick(pickPool().last);
+  return pick(pickPool(FACULTY_POOL_WEIGHTS).last);
 }
 
-// A full "First Last" name, no "Dr." prefix and no dedupe/nationality/bio —
-// for a varsity coach (see eventData.ts's 'varsity-petition' and
-// data/studentLifeData.ts's VarsityTeam). Coaches are deliberately the
-// LIGHT faculty-model this feature asks for: auto-generated the week a team
-// goes varsity, not drawn from or checked against the standing candidate
-// market — that full recruiting loop is a deferred deepening, not v1-shallow
-// scope. A run mints at most eighteen of these (one per SPORTS entry), so the
-// name-pool collision risk that justifies rollFullName's dedupe loop for
-// faculty/candidates never meaningfully arises here. Takes the TEAM's own
-// gender (its sport is already men's or women's — see
+// The dedupe both name rollers share. Given the pair the dice landed on
+// (`firstAt`, `lastAt`) and the set of names already in use, walks forward
+// — the next surname in the same pool, then the next first name — until
+// `format` of the pair is free, and hands back that name. Takes NO dice:
+// the walk is deterministic off the pair the dice chose, so a roller that
+// calls it makes exactly the same number of Math.random draws whether or
+// not the first pair was taken. That is the property the seeded balance
+// harness (sim/balanceSim.ts) needs from a generator that runs thousands
+// of times a run: a collision can change a name, never a trajectory, and
+// — the reason this replaced rollFullName's old re-roll loop — how MANY
+// names a pool holds cannot move the stream either, so a pool can be
+// widened without a forty-year run landing somewhere new. If every pair in
+// the pool is taken (it cannot happen at these sizes; see NAME_POOLS) the
+// repeat is accepted rather than looping forever.
+function stepToFree(
+  firsts: readonly string[],
+  lasts: readonly string[],
+  firstAt: number,
+  lastAt: number,
+  existingNames: ReadonlySet<string>,
+  format: (first: string, last: string) => string,
+): string {
+  const combos = firsts.length * lasts.length;
+  for (let step = 0; step < combos; step++) {
+    const at = lastAt + step;
+    const full = format(firsts[(firstAt + Math.floor(at / lasts.length)) % firsts.length], lasts[at % lasts.length]);
+    if (!existingNames.has(full)) return full;
+  }
+  return format(firsts[firstAt], lasts[lastAt]);
+}
+
+// A full "First Last" name, no "Dr." prefix and no nationality/bio — for a
+// varsity coach, a coach candidate on the standing market, or the athletic
+// director (see data/studentLifeData.ts's generateCoachCandidate and
+// rollAthleticDirectorCandidates). Coaches are deliberately the LIGHT
+// faculty model: one stat, no bio. But they are named from the SAME pools,
+// and since Athletics V2 they are minted by a weekly-churning market — ~78
+// candidates a year, ~3,900 over a run, against faculty's few dozen — so
+// they need the dedupe rollFullName has always had, checked against the
+// same kind of set: every coach in a chair, everyone on the market and the
+// director (see studentLifeData.ts's coachNamesInUse).
+//
+// THE DEDUPE TAKES NO EXTRA DICE (stepToFree above). The market rolls
+// thousands of these a run, and sim/balanceSim.ts seeds Math.random so a
+// forty-year run is reproducible — a generator whose draw count depended on
+// which names happened to be taken would move that whole stream on the
+// luck of a name clash (the discipline rivalData.ts's makeRivalRng exists
+// for). So a collision steps instead of re-rolling: the same draws whether
+// the first pair was taken or not.
+//
+// Takes the TEAM's own gender (its sport is already men's or women's — see
 // studentLifeData.ts's SportGender) rather than rolling one fresh: a men's
-// team's coach reads oddly with a name from the women's pool and vice versa.
-// Returns the ORIGIN alongside the name, which it used to throw away. That
-// origin is what Faculty stores as `heritage` and what FacultyPortrait.tsx
-// weights skin tone by — so discarding it meant a coach could be drawn with a
-// face that had nothing to do with the name beside it, which
-// facultyData.ts's own note calls "the actually illogical version of this".
-// Coaches have portraits now (see tabs/AthleticsTab.tsx), so the origin is
-// kept, exactly as rollFullName has always kept it for faculty.
-export function rollCoachName(gender: 'male' | 'female'): RolledName {
-  const firstPool = pickPool();
-  const lastPool = Math.random() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pickPool();
+// team's coach reads oddly with a name from the women's pool and vice
+// versa. Returns the ORIGIN alongside the name — it is what Coach stores as
+// `heritage` and what FacultyPortrait.tsx weights skin tone by, so a
+// coach's face agrees with the name beside it, exactly as a professor's
+// does. Drawn by COACH_POOL_WEIGHTS, not the faculty weighting; see there.
+//
+// `roll` is the generator to draw from — the coach market's own local one
+// (Plan 21's PR J; see studentLifeData.ts's tickCoachCandidatePool) rather
+// than the global stream, so the SIZE of the market cannot decide how many
+// dice the game rolls. Defaults to Math.random for the callers that mint a
+// coach at event time.
+export function rollCoachName(gender: 'male' | 'female', existingNames: ReadonlySet<string>, roll: () => number = Math.random): RolledName {
+  const firstPool = pickPool(COACH_POOL_WEIGHTS, roll);
+  const lastPool = roll() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pickPool(COACH_POOL_WEIGHTS, roll);
+  const firsts = firstNamesFor(firstPool, gender);
+  const lasts = lastPool.last;
+  const firstAt = Math.floor(roll() * firsts.length);
+  const lastAt = Math.floor(roll() * lasts.length);
   return {
-    name: `${pick(firstNamesFor(firstPool, gender))} ${pick(lastPool.last)}`,
+    name: stepToFree(firsts, lasts, firstAt, lastAt, existingNames, (first, last) => `${first} ${last}`),
     origin: firstPool.origin,
   };
 }
@@ -348,18 +592,23 @@ interface RolledName {
 // `gender` is rolled by the caller (generateCandidate) BEFORE this runs,
 // not here — the first name has to be drawn from the matching
 // firstMale/firstFemale list, so gender is an input to naming, not an
-// independent roll of its own.
-function rollFullName(existingNames: Set<string>, gender: 'male' | 'female'): RolledName {
-  for (let attempt = 0; attempt < MAX_NAME_ROLL_ATTEMPTS; attempt++) {
-    const firstPool = pickPool();
-    const lastPool = Math.random() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pickPool();
-    const full = `Dr. ${pick(firstNamesFor(firstPool, gender))} ${pick(lastPool.last)}`;
-    if (!existingNames.has(full)) return { name: full, origin: firstPool.origin };
-  }
-  // Effectively unreachable given the pool size above; accept a repeat
-  // rather than looping forever if it somehow happens.
-  const firstPool = pickPool();
-  return { name: `Dr. ${pick(firstNamesFor(firstPool, gender))} ${pick(firstPool.last)}`, origin: firstPool.origin };
+// independent roll of its own. Deduped against `existingNames` (the roster
+// and the market, see facultySystem.ts) by stepping rather than
+// re-rolling — see stepToFree, and the reason it replaced the bounded
+// retry loop that used to live here: that loop's draw count depended on
+// how often a pair was taken, which depended on how many names the pools
+// held, so widening a pool moved the seeded balance stream. Four draws
+// now, always (five when the surname comes from a second pool).
+function rollFullName(existingNames: ReadonlySet<string>, gender: 'male' | 'female'): RolledName {
+  const firstPool = pickPool(FACULTY_POOL_WEIGHTS);
+  const lastPool = Math.random() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pickPool(FACULTY_POOL_WEIGHTS);
+  const firsts = firstNamesFor(firstPool, gender);
+  const firstAt = Math.floor(Math.random() * firsts.length);
+  const lastAt = Math.floor(Math.random() * lastPool.last.length);
+  return {
+    name: stepToFree(firsts, lastPool.last, firstAt, lastAt, existingNames, (first, last) => `Dr. ${first} ${last}`),
+    origin: firstPool.origin,
+  };
 }
 
 // ---------------------------------------------------------------------

@@ -3390,3 +3390,30 @@ body:has(.building-info-panel) .pennant { display: none; }
 .toast.bad { border-color: var(--bad-on-light); }
 @keyframes toast-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+
+/* The trophy case (Plan 21's PR E): a year, a sport, a line. */
+.trophy { display: flex; align-items: baseline; gap: 0.6rem; }
+.trophy-year { font-family: var(--mono); font-variant-numeric: tabular-nums; opacity: 0.8; }
+
+/* The priority list (Plan 21's PR G): draggable program cards, ranked, with
+   the funded line drawn where the pot runs out. */
+.priority-list { display: flex; flex-direction: column; gap: 8px; }
+.priority-slot { list-style: none; }
+.priority-card { display: flex; align-items: stretch; gap: 8px; cursor: grab; }
+.priority-card.dragging { opacity: 0.5; }
+.priority-card.over { outline: 2px dashed var(--ink, currentColor); outline-offset: 2px; }
+.priority-card > .team-card { flex: 1; margin: 0; }
+.priority-rank { display: flex; align-items: center; justify-content: center; min-width: 28px;
+  font-family: var(--mono); font-weight: 800; opacity: 0.7; user-select: none; }
+.funded-line { display: flex; align-items: center; gap: 8px; margin: 2px 0 8px;
+  font-family: var(--display); font-size: var(--text-2xs); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.75; }
+.funded-line::before, .funded-line::after { content: ''; flex: 1; border-top: 2px dashed currentColor; opacity: 0.5; }
+.org-tag.band-flagship { opacity: 1; }
+.org-tag.band-competitive { opacity: 0.8; }
+.org-tag.band-developmental { opacity: 0.55; }
+
+/* The record and the rival on a standings row (Plan 21's PRs M and N). */
+.sport-standing-rivalry { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+
+/* A postseason ban on a program card (Plan 21's PR P). */
+.org-tag.banned { color: var(--bad, #b3261e); }

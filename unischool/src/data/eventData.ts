@@ -1,17 +1,17 @@
-import type { Buildable, Coach, Faculty, GameState, GreekChapter, LogEntry, LogTopic } from '../state/types';
+import type { Buildable, Coach, FacilityType, Faculty, GameState, GreekChapter, LogEntry, LogTopic, VarsityTeam } from '../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../state/types';
+import { PLAYOFF_WEEK } from '../systems/athletics/playoffs';
 import { FACULTY_FIELDS, generateCandidate, rollSurname } from './facultyData';
 import { appointFaculty } from '../systems/faculty/facultySystem';
 import { money, rollAmount, weeksOfOpEx } from './moneyScale';
 import {
   CHAPTER_HOUSE_CAPACITY_BONUS, CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
   promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, VARSITY_PETITION_MIN_TENURE_YEARS, venueForCategory,
-  CHAIR_LABEL, fieldForChair, generateCoachCandidate, seatCoach, vacantChairs,
-} from './studentLifeData';
+  CHAIR_LABEL, coachNamesInUse, fieldForChair, generateCoachCandidate, inTitleYear, seatCoach, vacantChairs, departmentPot, sportEconomics} from './studentLifeData';
 import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, milestoneSchools, programById, programs } from './techData';
 import { FOUNDING_PROGRAMS } from './foundingData';
 import { dedicatedHalls, dedicatedSchool } from '../systems/techtree/schools';
-import { buildReportPayload } from '../systems/rivals/rivalsSystem';
+import { buildReportPayload, rankBy } from '../systems/rivals/rivalsSystem';
 
 // ---------------------------------------------------------------------
 // WEEK-TO-WEEK TEXTURE, AS AUTHORED DATA.
@@ -271,6 +271,11 @@ export interface DecisionEventContext {
 export interface DecisionChoice {
   id: string;
   label: string;
+  // Not offered at all against this context (Plan 21's PR E: the capital
+  // match's venue choice, when nothing is revealed to aim at). Omitted =
+  // always offered. A hidden choice is never the free one an event relies
+  // on for hasFreeChoice below.
+  hidden?(s: GameState, ctx: DecisionEventContext): boolean;
   // What taking this choice does, in numbers, given the state it was
   // offered against. Rendered in the modal and never recomputed after —
   // apply() below does exactly what this says.
@@ -289,6 +294,11 @@ export interface DecisionEvent {
   id: string;
   title: string;
   weight: number;                     // relative draw weight among everything eligible this week
+  // A multiplier on that weight, read at draw time against the state — for
+  // an event whose likelihood a moment should lift without rewriting its
+  // weight (Plan 21's PR E: the donor events draw more often in a title
+  // year). Omitted = 1.
+  boost?(s: GameState): number;
   maxFires?: number;                  // omitted = unlimited (subject to DECISION_EVENT_REPEAT_COOLDOWN_WEEKS)
   prompt(s: GameState, ctx: DecisionEventContext): string;
   // Can this event happen at all right now? Pure, reads state only.
@@ -392,6 +402,78 @@ const NAMING_RIGHTS_MIN_WEEKS = 4;
 const NAMING_RIGHTS_MAX_WEEKS = 8;
 const NAMING_RIGHTS_PRESTIGE_GATE = 40;   // nobody buys naming rights at a school nobody has heard of
 const NAMING_RIGHTS_SATISFACTION_HIT = 5;
+// A title year lifts the donor events' draw weight (Plan 21's PR E — see
+// studentLifeData.ts's inTitleYear): a championship is the moment an
+// alumnus's cheque book opens.
+const TITLE_YEAR_DONOR_BOOST = 1.6;
+
+// What a donor's name goes on when the naming-rights offer aims at a venue
+// (Plan 21's PR E): the building's own kind, not "Whitfield Multi-Sport
+// Field". Only the five athletics venues are named this way; a school
+// building keeps the "X School of Y" form above.
+const VENUE_NAMING: Partial<Record<FacilityType, string>> = {
+  athleticsField: 'Field',
+  athleticsArena: 'Arena',
+  athleticsDiamond: 'Park',
+  athleticsNatatorium: 'Aquatic Center',
+  footballStadium: 'Stadium',
+  fieldHouse: 'Field House',
+};
+
+function unnamedVenues(s: GameState): Buildable[] {
+  return s.tech.filter((t) => t.status === 'done' && !t.donorSurname && t.facilityType !== undefined && VENUE_NAMING[t.facilityType] !== undefined);
+}
+
+// A venue revealed for construction and not yet built — what the state
+// capital match can aim at (Plan 21's PR E). The priciest first: a match
+// against a stadium is the one worth asking about.
+function unbuiltVenues(s: GameState): Buildable[] {
+  return s.tech
+    .filter((t) => t.athleticsVenueReveal && t.status === 'available')
+    .sort((a, b) => b.cost - a.cost);
+}
+const STATE_MATCH_VENUE_SHARE_CAP = 0.6; // the state will not pay for more than this share of a building
+
+// How exposed the department is (Plan 21's PR P): a multiplier on the
+// scandal's weight that rises with the pot (a million and a half of pot is a
+// point), with every program above the funded line, and with how far the
+// department's standing has outrun the school's — a football power at an
+// unranked college is the one the papers watch.
+const SCANDAL_LEGAL_COST_WEEKS = 2;
+const SCANDAL_SATISFACTION_HIT = 3;
+const SCANDAL_FOUGHT_SATISFACTION_HIT = 5;
+const SCANDAL_FIGHT_SUCCESS = 0.5;
+
+function scandalExposure(s: GameState): number {
+  const pot = departmentPot(s);
+  const flagships = pot.programs.filter((p) => p.band === 'flagship').length;
+  const outrun = Math.max(0, rankBy(s, 'reputation') - rankBy(s, 'athleticStrength')) / 25;
+  return Math.min(6, 0.5 + pot.pot / 1_500_000 + 0.4 * flagships + outrun);
+}
+
+// Who a bigger program would come for (Plan 21's PR L): a head coach at
+// COACH_POACH_QUALITY or better with COACH_POACH_MIN_TENURE_YEARS behind
+// them. Head coaches only — an assistant's departure is a Tuesday.
+const COACH_POACH_QUALITY = 75;
+const COACH_POACH_MIN_TENURE_YEARS = 2;
+const COACH_RETENTION_PACKAGE_SALARY_SHARE = 0.6;
+
+function coachesAtRisk(s: GameState): Array<{ team: VarsityTeam; coach: Coach }> {
+  const out: Array<{ team: VarsityTeam; coach: Coach }> = [];
+  for (const team of s.orgs.teams) {
+    const coach = team.headCoach;
+    if (team.status !== 'active' || !coach) continue;
+    if (coach.quality >= COACH_POACH_QUALITY && coach.tenureWeeks >= COACH_POACH_MIN_TENURE_YEARS * WEEKS_PER_YEAR) out.push({ team, coach });
+  }
+  return out;
+}
+
+// What a commitment takes off a venue's price: the school's own money plus
+// the state's match, capped at STATE_MATCH_VENUE_SHARE_CAP of the building
+// so a small stadium is never free.
+function venueMatchDiscount(venueCost: number, commitment: number): number {
+  return Math.round(Math.min(venueCost * STATE_MATCH_VENUE_SHARE_CAP, commitment * (1 + STATE_MATCH_MULTIPLIER)));
+}
 
 const RETENTION_PACKAGE_SALARY_SHARE = 0.6; // a lump sum, as a share of the hire's current annual salary
 
@@ -542,6 +624,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     id: 'estate-gift',
     title: 'An estate gift',
     weight: 10,
+    boost: (s) => (inTitleYear(s) ? TITLE_YEAR_DONOR_BOOST : 1),
     eligible: () => true,
     rollContext: (s) => ({ amount: rollAmount(s, ESTATE_GIFT_MIN_WEEKS, ESTATE_GIFT_MAX_WEEKS) }),
     prompt: (_s, ctx) =>
@@ -584,18 +667,36 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     // before year 60; eligible() below still empties the donor pool once
     // they're all named, so the extra weight is never wasted, only retired.
     weight: 18,
-    eligible: (s) => s.self.reputation >= NAMING_RIGHTS_PRESTIGE_GATE && unnamedSchoolBuildings(s).length > 0,
+    boost: (s) => (inTitleYear(s) ? TITLE_YEAR_DONOR_BOOST : 1),
+    eligible: (s) => s.self.reputation >= NAMING_RIGHTS_PRESTIGE_GATE && (unnamedSchoolBuildings(s).length > 0 || unnamedVenues(s).length > 0),
     // Rolls the donor's surname and the resulting name TOGETHER, at fire
     // time, like the amount below — the modal shows exactly the name that
     // apply() will set, never a re-roll (see the comment at the top of
     // this file on why cost/effects are fixed at roll time).
+    //
+    // AIMS AT VENUES TOO (Plan 21's PR E): a done athletics venue without a
+    // donor's name is on the list beside the unnamed schools, and a venue
+    // offer is marked by subjectField 'venue' so the prompt and the rename
+    // can read it. The one pool, so a school with both gets one or the
+    // other, never a second stream of offers.
     rollContext: (s) => {
-      const buildings = unnamedSchoolBuildings(s);
+      const buildings = [...unnamedSchoolBuildings(s), ...unnamedVenues(s)];
       if (buildings.length === 0) return null;
       const target = pick(buildings);
+      const donor = rollSurname();
+      const venueKind = target.facilityType ? VENUE_NAMING[target.facilityType] : undefined;
+      if (venueKind) {
+        return {
+          subjectId: target.id,
+          subjectName: target.name,
+          subjectField: 'venue',
+          donorName: donor,
+          newName: `${donor} ${venueKind}`,
+          amount: rollAmount(s, NAMING_RIGHTS_MIN_WEEKS, NAMING_RIGHTS_MAX_WEEKS),
+        };
+      }
       const school = dedicatedSchool(s, target.id);
       if (!school) return null;
-      const donor = rollSurname();
       return {
         subjectId: target.id,
         subjectName: school, // the school's own name, e.g. "Science" — not its hall's name
@@ -604,14 +705,16 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         amount: rollAmount(s, NAMING_RIGHTS_MIN_WEEKS, NAMING_RIGHTS_MAX_WEEKS),
       };
     },
-    prompt: (_s, ctx) =>
-      `An alumnus, ${ctx.donorName}, offers ${money(ctx.amount ?? 0)} to put the family name on the School of ${ctx.subjectName} — permanently. It would become the ${ctx.newName}. The cheque clears immediately. The student paper has already written the editorial.`,
+    prompt: (_s, ctx) => (ctx.subjectField === 'venue'
+      ? `An alumnus, ${ctx.donorName}, offers ${money(ctx.amount ?? 0)} to put the family name over the gate of the ${ctx.subjectName} — permanently. It would become ${ctx.newName}. The cheque clears immediately. The student section has opinions.`
+      : `An alumnus, ${ctx.donorName}, offers ${money(ctx.amount ?? 0)} to put the family name on the School of ${ctx.subjectName} — permanently. It would become the ${ctx.newName}. The cheque clears immediately. The student paper has already written the editorial.`),
     choices: [
       {
         id: 'sign',
         label: 'Accept the gift',
-        describe: (_s, ctx) =>
-          `${money(ctx.amount ?? 0)} in cash now, the school permanently renamed to the ${ctx.newName}, and a ${NAMING_RIGHTS_SATISFACTION_HIT}-point dent in student satisfaction that heals over the following weeks.`,
+        describe: (_s, ctx) => (ctx.subjectField === 'venue'
+          ? `${money(ctx.amount ?? 0)} in cash now, the venue permanently renamed ${ctx.newName}, and a ${NAMING_RIGHTS_SATISFACTION_HIT}-point dent in student satisfaction that heals over the following weeks.`
+          : `${money(ctx.amount ?? 0)} in cash now, the school permanently renamed to the ${ctx.newName}, and a ${NAMING_RIGHTS_SATISFACTION_HIT}-point dent in student satisfaction that heals over the following weeks.`),
         cost: () => 0,
         apply: (s, ctx) => {
           s.finance.cash += ctx.amount ?? 0;
@@ -630,15 +733,19 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
             building.name = ctx.newName;
             building.donorSurname = ctx.donorName;
           }
-          return entry(s, `Naming rights sold: the School of ${ctx.subjectName} is now the ${ctx.newName}. ${money(ctx.amount ?? 0)} banked, students unimpressed.`, 'info');
+          return entry(s, ctx.subjectField === 'venue'
+            ? `Naming rights sold: the ${ctx.subjectName} is now ${ctx.newName}. ${money(ctx.amount ?? 0)} banked, students unimpressed.`
+            : `Naming rights sold: the School of ${ctx.subjectName} is now the ${ctx.newName}. ${money(ctx.amount ?? 0)} banked, students unimpressed.`, 'info');
         },
       },
       {
         id: 'decline',
         label: 'Turn it down',
-        describe: () => 'Nothing changes. The school keeps its name.',
+        describe: () => 'Nothing changes. The building keeps its name.',
         cost: () => 0,
-        apply: (s, ctx) => entry(s, `Naming-rights offer on the School of ${ctx.subjectName} declined.`, 'info'),
+        apply: (s, ctx) => entry(s, ctx.subjectField === 'venue'
+          ? `Naming-rights offer on the ${ctx.subjectName} declined.`
+          : `Naming-rights offer on the School of ${ctx.subjectName} declined.`, 'info'),
       },
     ],
   },
@@ -865,9 +972,21 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     // founded as. Which is what progression.md's "archetypes emerge, they
     // are not chosen" asks for in the first place.
     eligible: (s) => s.clock.year >= STATE_MATCH_FIRST_YEAR,
-    rollContext: (s) => ({ amount: weeksOfOpEx(s, STATE_MATCH_COMMITMENT_WEEKS) }),
+    // AIMS AT A VENUE when one is revealed and unbuilt (Plan 21's PR E): the
+    // same commitment can go toward the building instead of the endowment,
+    // and the state's match comes off its price. Carried in the context so
+    // the choice below names the building it would help pay for.
+    rollContext: (s) => {
+      const venue = unbuiltVenues(s)[0];
+      return {
+        amount: weeksOfOpEx(s, STATE_MATCH_COMMITMENT_WEEKS),
+        subjectId: venue?.id,
+        subjectName: venue?.name,
+      };
+    },
     prompt: (_s, ctx) =>
-      `The state's capital committee has a matching programme with money left in it this biennium: commit ${money(ctx.amount ?? 0)} of the school's own funds and the state will match it several times over — into a restricted endowment, not into your operating account.`,
+      `The state's capital committee has a matching programme with money left in it this biennium: commit ${money(ctx.amount ?? 0)} of the school's own funds and the state will match it several times over — into a restricted endowment, not into your operating account.`
+      + (ctx.subjectName ? ` The committee has also noticed the ${ctx.subjectName} on the school's plans, and a capital match can be spent on bricks.` : ''),
     choices: [
       {
         id: 'commit',
@@ -887,6 +1006,28 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         describe: () => 'Nothing changes. The money goes to a campus that asked for it.',
         cost: () => 0,
         apply: (s) => entry(s, 'The state capital match lapsed unclaimed.', 'info'),
+      },
+      // Offered only when the context found a venue; a choice whose describe
+      // says "there is no building" is not a choice, so it is hidden rather
+      // than disabled (see InterruptModal.tsx's decision choices, which skip
+      // a choice whose `hidden` reads true).
+      {
+        id: 'venue',
+        label: 'Put it toward the venue',
+        hidden: (_s, ctx) => !ctx.subjectId,
+        describe: (s, ctx) => {
+          const venue = s.tech.find((t) => t.id === ctx.subjectId);
+          const off = venue ? venueMatchDiscount(venue.cost, ctx.amount ?? 0) : 0;
+          return `${money(ctx.amount ?? 0)} out of cash now, and ${money(off)} comes off the price of the ${ctx.subjectName} — the state pays its match toward the building instead of the endowment.`;
+        },
+        cost: (_s, ctx) => ctx.amount ?? 0,
+        apply: (s, ctx) => {
+          const venue = s.tech.find((t) => t.id === ctx.subjectId);
+          if (!venue) return entry(s, 'The venue the match was aimed at is no longer on the plans.', 'info');
+          const off = venueMatchDiscount(venue.cost, ctx.amount ?? 0);
+          venue.cost = Math.max(0, venue.cost - off);
+          return entry(s, `State capital match aimed at the ${venue.name}: ${money(off)} off its price, now ${money(venue.cost)}.`, 'good');
+        },
       },
     ],
   },
@@ -1235,9 +1376,11 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       // the same reason: what the money buys is QUALITY. Anyone can hire off
       // the market any week, so access is worth nothing — a better coach than
       // the market usually turns up is the whole proposition.
-      let best = generateCoachCandidate(field);
+      const used = coachNamesInUse(s);
+      const adQuality = s.orgs.athleticDirector?.quality ?? 0;
+      let best = generateCoachCandidate(field, used, Math.random, undefined, adQuality);
       for (let i = 1; i < AD_SHORTAGE_COACH_ROLLS; i += 1) {
-        const next = generateCoachCandidate(field);
+        const next = generateCoachCandidate(field, used, Math.random, undefined, adQuality);
         if (next.qualityPotential > best.qualityPotential) best = next;
       }
       return {
@@ -1272,7 +1415,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           // The fallback roll is for a save written before the coach was part
           // of the context: an interrupt frozen mid-flight must still resolve
           // into somebody. Same guard 'visiting-scholar' carries.
-          const coach = ctx.coach ?? generateCoachCandidate(fieldForChair({ team, role }));
+          const coach = ctx.coach ?? generateCoachCandidate(fieldForChair({ team, role }), coachNamesInUse(s));
           seatCoach(team, role, coach);
           return entry(s, `${coach.name} joins ${team.name} as ${role === 'head' ? 'head coach' : CHAIR_LABEL[role]} at $${coach.salary.toLocaleString()}/yr.`, 'good');
         },
@@ -1286,6 +1429,114 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       },
     ],
   },
+  {
+    // THE SCANDAL (Plan 21's PR P). "Nothing can go wrong that the player
+    // can't ignore" was the review's finding about the whole game, and
+    // athletics is the right place to answer it first, because the exposure
+    // is something the player CHOSE: the probability rises with the pot,
+    // with how many programs sit above the funded line, and with how far
+    // athletics has outrun the academic school. The penalty is a postseason
+    // ban for a season or two, not a cash cost. Authored into the shared
+    // table, taking weight from the existing budget rather than adding a
+    // stream.
+    id: 'recruiting-scandal',
+    title: 'A recruiting scandal',
+    weight: 4,
+    boost: (s) => scandalExposure(s),
+    eligible: (s) => s.orgs.athleticDirector !== null && departmentPot(s).programs.some((p) => p.band === 'flagship'),
+    rollContext: (s) => {
+      const flagships = departmentPot(s).programs.filter((p) => p.band === 'flagship');
+      if (flagships.length === 0) return null;
+      // Revenue programs first: that is where the boosters are.
+      const revenue = flagships.filter((p) => sportEconomics(p.team.sport).scale === 'revenue');
+      const program = pick(revenue.length > 0 ? revenue : flagships);
+      return {
+        subjectId: program.team.id,
+        subjectName: program.team.name,
+        amount: weeksOfOpEx(s, SCANDAL_LEGAL_COST_WEEKS),
+      };
+    },
+    prompt: (s, ctx) =>
+      `A booster's payments to recruits for ${ctx.subjectName} have reached the papers, and the association has opened an inquiry. ${s.orgs.athleticDirector?.name ?? 'The athletic director'} says the program can self-report and take the season's ban, or the school can fight it — ${money(ctx.amount ?? 0)} in lawyers, and no promise.`,
+    choices: [
+      {
+        id: 'cooperate',
+        label: 'Self-report and take the ban',
+        describe: (s, ctx) => `Nothing spent. ${ctx.subjectName} sits out this season's postseason${s.clock.week >= PLAYOFF_WEEK ? "'s and next" : ''}; a ${SCANDAL_SATISFACTION_HIT}-point dent in satisfaction that heals.`,
+        cost: () => 0,
+        apply: (s, ctx) => {
+          const team = s.orgs.teams.find((t) => t.id === ctx.subjectId);
+          const through = s.clock.week >= PLAYOFF_WEEK ? s.clock.year + 1 : s.clock.year;
+          if (team) team.postseasonBanThroughYear = through;
+          dentSatisfaction(s, SCANDAL_SATISFACTION_HIT);
+          return entry(s, `${ctx.subjectName} self-reported and is barred from the postseason through ${through}.`, 'bad');
+        },
+      },
+      {
+        id: 'fight',
+        label: 'Fight it',
+        describe: (_s, ctx) => `${money(ctx.amount ?? 0)} to the lawyers now. Half the time the inquiry finds nothing and no ban follows; the other half it finds more, and the ban is two seasons with a ${SCANDAL_FOUGHT_SATISFACTION_HIT}-point dent.`,
+        cost: (_s, ctx) => ctx.amount ?? 0,
+        apply: (s, ctx) => {
+          const team = s.orgs.teams.find((t) => t.id === ctx.subjectId);
+          if (Math.random() < SCANDAL_FIGHT_SUCCESS) {
+            return entry(s, `The inquiry into ${ctx.subjectName} found nothing it could act on. No ban.`, 'good');
+          }
+          const through = (s.clock.week >= PLAYOFF_WEEK ? s.clock.year + 1 : s.clock.year) + 1;
+          if (team) team.postseasonBanThroughYear = through;
+          dentSatisfaction(s, SCANDAL_FOUGHT_SATISFACTION_HIT);
+          return entry(s, `The inquiry into ${ctx.subjectName} found more than the papers had: barred from the postseason through ${through}.`, 'bad');
+        },
+      },
+    ],
+  },
+
+  {
+    // A COACH WHO SUCCEEDS GETS POACHED (Plan 21's PR L) — the leak in the
+    // loop the market's reputation gate opens, on the shape
+    // 'faculty-outside-offer' already uses. A head coach at the top of the
+    // market with a couple of seasons behind them gets an offer; match it
+    // with a retention package or let them go and hire again. This is what
+    // turns "wait six years" into "keep what you built".
+    id: 'coach-poached',
+    title: 'A coach with an offer',
+    weight: 9,
+    eligible: (s) => coachesAtRisk(s).length > 0,
+    rollContext: (s) => {
+      const at = coachesAtRisk(s);
+      if (at.length === 0) return null;
+      const { team, coach } = pick(at);
+      return {
+        subjectId: team.id,
+        subjectName: coach.name,
+        subjectField: team.name,
+        amount: Math.round(coach.salary * COACH_RETENTION_PACKAGE_SALARY_SHARE),
+      };
+    },
+    prompt: (_s, ctx) =>
+      `${ctx.subjectName} has been offered the head job at a bigger program, and has been honest enough to say so. ${ctx.subjectField} is what it is because of them. A retention package of ${money(ctx.amount ?? 0)} would keep them.`,
+    choices: [
+      {
+        id: 'keep',
+        label: 'Match the offer',
+        describe: (_s, ctx) => `${money(ctx.amount ?? 0)} now, and ${ctx.subjectName} stays with ${ctx.subjectField}.`,
+        cost: (_s, ctx) => ctx.amount ?? 0,
+        apply: (s, ctx) => entry(s, `${ctx.subjectName} turned the offer down and stays with ${ctx.subjectField}.`, 'good'),
+      },
+      {
+        id: 'release',
+        label: 'Wish them well',
+        describe: (_s, ctx) => `Nothing spent. ${ctx.subjectName} leaves, and ${ctx.subjectField} has a head coach's chair to fill — the market will list somebody for it next week.`,
+        cost: () => 0,
+        apply: (s, ctx) => {
+          const team = s.orgs.teams.find((t) => t.id === ctx.subjectId);
+          if (team && team.headCoach?.name === ctx.subjectName) team.headCoach = null;
+          return entry(s, `${ctx.subjectName} has left ${ctx.subjectField} for a bigger program.`, 'bad');
+        },
+      },
+    ],
+  },
+
   {
     // THE TOP HAS TO BE HELD (Plan 17's PR D). A rival that passes the
     // school fires this once, for that rival, on the first quiet week the
@@ -1455,7 +1706,14 @@ export function findDecisionEvent(id: string): DecisionEvent | undefined {
 // The no-soft-lock invariant, checked at fire time rather than assumed:
 // an event with no zero-cost way out never reaches the player.
 export function hasFreeChoice(s: GameState, event: DecisionEvent, ctx: DecisionEventContext): boolean {
-  return event.choices.some((c) => c.cost(s, ctx) <= 0);
+  return offeredChoices(s, event, ctx).some((c) => c.cost(s, ctx) <= 0);
+}
+
+// The choices actually put to the player against this context — every
+// choice not hidden by it. The modal renders these and the reducer accepts
+// only these.
+export function offeredChoices(s: GameState, event: DecisionEvent, ctx: DecisionEventContext): DecisionChoice[] {
+  return event.choices.filter((c) => !c.hidden?.(s, ctx));
 }
 
 // =====================================================================

@@ -19,7 +19,7 @@ import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../sys
 import { projectConsequences } from '../systems/admissions/consequences';
 import { pct, poolChange } from '../systems/admissions/yearOverYear';
 import { computePrestigeTarget, computeSocialTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
-import { findDecisionEvent, findOpeningLetter, OPENING_LETTERS } from '../data/eventData';
+import { findDecisionEvent, findOpeningLetter, OPENING_LETTERS, offeredChoices } from '../data/eventData';
 import { MASCOT_MAX_LENGTH, rollMascotSuggestion, sportById } from '../data/studentLifeData';
 import FacultyPortrait from './FacultyPortrait';
 import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
@@ -181,8 +181,12 @@ function SIZE_FOR_LENGTH(length: number): string {
 // The count keeps its tone colour: whether this audience is above or below
 // neutral is what says which of the player's choices is working, in the
 // same bright good/bad pair the log ticker uses on this dark background.
-function CohortCard({ label, driverLabel, pull, applicants, lastYear, revealMs }: {
+function CohortCard({ label, driverLabel, pull, applicants, lastYear, revealMs, note }: {
   label: string; driverLabel: string; pull: number; applicants: number;
+  // The cause named, where a cohort has one to name (Plan 21's PR C): the
+  // title in men's basketball is worth so many of these. Shown in the
+  // tooltip beneath the driver line, so the card itself stays a figure.
+  note?: string;
   // Last summer's count for this audience (students.lastFunnel), shown small
   // beneath this year's (Plan 16's PR C) so the board reads as a change and
   // not only as a reading. Null at the first summer.
@@ -198,7 +202,7 @@ function CohortCard({ label, driverLabel, pull, applicants, lastYear, revealMs }
   // does not resize the text under the player as it counts up.
   const sizeClass = SIZE_FOR_LENGTH(applicants.toLocaleString().length);
   return (
-    <div className="cohort-card" title={driverLabel}>
+    <div className="cohort-card" title={note ? `${driverLabel}. ${note}` : driverLabel}>
       <span className="cohort-card-label">{label}</span>
       <span className={`cohort-card-count ${toneClass} ${sizeClass}`}>
         <AnimatedNumber value={applicants} durationMs={revealMs} revealFrom={0} />
@@ -206,7 +210,7 @@ function CohortCard({ label, driverLabel, pull, applicants, lastYear, revealMs }
       {lastYear !== null && (
         <span className="cohort-card-last" title="Last summer">{lastYear.toLocaleString()} last year</span>
       )}
-      <span className="cohort-card-tip" role="tooltip">{driverLabel}</span>
+      <span className="cohort-card-tip" role="tooltip">{driverLabel}{note && <><br />{note}</>}</span>
     </div>
   );
 }
@@ -366,7 +370,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             <div className="cohort-cards">
               {cohorts.map((c) => (
                 <CohortCard
-                  key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants}
+                  key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants} note={c.note}
                   lastYear={s.students.lastFunnel ? s.students.lastFunnel.cohorts[c.id] ?? 0 : null}
                   revealMs={REVEAL_MS}
                 />
@@ -1166,6 +1170,44 @@ function ordinal(n: number): string {
   return `${n}${suffix}`;
 }
 
+// THE FIRST SPORT CLUB (Plan 21's PR O): a small modal with one question.
+// The identity arrives years before the department does, which is what
+// turns a decade of silence into a decade of anticipation.
+interface FirstSportClubPayload { clubName: string; sportId: string | null; mascotSuggestion: string; }
+
+function FirstSportClubView({ s, payload, onResolve }: {
+  s: GameState;
+  payload: FirstSportClubPayload;
+  onResolve: (mascot: string) => void;
+}) {
+  const [mascot, setMascot] = useState(payload.mascotSuggestion);
+  return (
+    <>
+      <h2>The first sport club</h2>
+      <p>
+        The {payload.clubName} is the first of the school's sport clubs to be recognised. It plays intramurals
+        for now; in a few years it may petition to go varsity, and there will be a department, a venue and a
+        season behind it. The students have already started arguing about what the teams should be called —
+        the colours are {institutionName(s.self)}'s own, but a name is something people shout.
+      </p>
+      <label className="ad-mascot">
+        <span className="ad-mascot-label">The teams will play as the</span>
+        <input
+          className="ad-mascot-input"
+          value={mascot}
+          maxLength={MASCOT_MAX_LENGTH}
+          onChange={(e) => setMascot(e.target.value)}
+          aria-label="Mascot"
+        />
+        <button type="button" className="ad-mascot-roll" onClick={() => setMascot(rollMascotSuggestion())}>
+          another
+        </button>
+      </label>
+      <button className="panel-action" onClick={() => onResolve(mascot)}>Name them</button>
+    </>
+  );
+}
+
 function AthleticDirectorView({ s, payload, onResolve }: {
   s: GameState;
   payload: AthleticDirectorPayload;
@@ -1201,19 +1243,24 @@ function AthleticDirectorView({ s, payload, onResolve }: {
         ))}
       </div>
 
-      <label className="ad-mascot">
-        <span className="ad-mascot-label">The teams will play as the</span>
-        <input
-          className="ad-mascot-input"
-          value={mascot}
-          maxLength={MASCOT_MAX_LENGTH}
-          onChange={(e) => setMascot(e.target.value)}
-          aria-label="Mascot"
-        />
-        <button type="button" className="ad-mascot-roll" onClick={() => setMascot(rollMascotSuggestion())}>
-          another
-        </button>
-      </label>
+      {/* The mascot is named at the first sport club now (PR O); this modal
+          asks only when nothing has answered, so it stays about the
+          director. */}
+      {!s.self.mascot && (
+        <label className="ad-mascot">
+          <span className="ad-mascot-label">The teams will play as the</span>
+          <input
+            className="ad-mascot-input"
+            value={mascot}
+            maxLength={MASCOT_MAX_LENGTH}
+            onChange={(e) => setMascot(e.target.value)}
+            aria-label="Mascot"
+          />
+          <button type="button" className="ad-mascot-roll" onClick={() => setMascot(rollMascotSuggestion())}>
+            another
+          </button>
+        </label>
+      )}
 
       <button className="ad-decline" onClick={() => onResolve(null, mascot)}>
         Appoint nobody for now — the search goes on, and the position will come back around.
@@ -1332,7 +1379,7 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
       <h2>{event.title}</h2>
       <p>{event.prompt(s, ctx)}</p>
       <div className="event-choices">
-        {event.choices.map((choice) => {
+        {offeredChoices(s, event, ctx).map((choice) => {
           const cost = choice.cost(s, ctx);
           // A free choice must stay pickable even with cash already
           // negative — `cost <= s.finance.cash` alone would disable every
@@ -1484,6 +1531,12 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
             s={s}
             result={(interrupt.payload as { result: SeasonResult }).result}
             onDismiss={() => act({ type: 'RESOLVE_CHAMPIONSHIP' })}
+          />
+        ) : interrupt.type === 'first-sport-club' ? (
+          <FirstSportClubView
+            s={s}
+            payload={interrupt.payload as FirstSportClubPayload}
+            onResolve={(mascot) => act({ type: 'RESOLVE_MASCOT', mascot })}
           />
         ) : interrupt.type === 'athletic-director' ? (
           <AthleticDirectorView

@@ -42,6 +42,8 @@ export function modalWidth(interrupt: PendingInterrupt): ModalWidth {
     case 'athletic-director':
     case 'championship':
       return 'wide';
+    case 'first-sport-club':
+      return 'narrow';
     case 'milestone': {
       const entries = (interrupt.payload as MilestonePayload | undefined)?.entries ?? [];
       return entries.length > 1 ? 'wide' : 'narrow';

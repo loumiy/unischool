@@ -130,10 +130,13 @@ the summer. The inputs, with their weights:
 - **welfare** (20) — the year's average satisfaction, scored `(sat − 40)/40`:
   below 40 it earns nothing, at 80 it pays in full. What lets a happy small
   college hold a standing a crowded large one cannot.
-- **campus life** (8) and **financial resources per student** (8, endowment
-  against the enrolled body) — two smaller inputs; the second is what the
-  late-game endowment campaigns buy. Campus life is cut from 12 with a named
-  condition: it returns when athletics and student life reach it.
+- **campus life** (12) and **financial resources per student** (8, endowment
+  against the enrolled body) — the second is what the late-game endowment
+  campaigns buy. Campus life was cut to 8 with a named condition — it returns
+  when athletics and student life reach it — and [Plan 21](../plans/21-the-department.md)'s
+  PR B met it: every athletics venue carries a contribution, so the score
+  reads 0.55 at a full build rather than the rec chain's 0.15, and the weight
+  is restored.
 - **crowding** — a *penalty* of up to 25, not an input: the worst of the five
   coverage ratios and the instruction-capacity ratio, averaged over the year
   as a shortfall below 85% coverage. A subtraction rather than a weighted
@@ -370,9 +373,9 @@ They are the objectives; the legacy is the consequence.
 
 ### The legacy
 
-**Six grades and a name, not a score.** A single number ranks runs and a ranking
-has one right answer, which is what had turned the game into a checklist. Six
-axes, each graded A–F from readings the game already keeps
+**Seven grades and a name, not a score.** A single number ranks runs and a
+ranking has one right answer, which is what had turned the game into a
+checklist. Seven axes, each graded A–F from readings the game already keeps
 (`state/legacy.ts`):
 
 | Axis | Read from |
@@ -383,6 +386,7 @@ axes, each graded A–F from readings the game already keeps
 | Research | `researchScore` — the standing's own credits |
 | Selectivity and reach | the **greater** of how selective the school is (class quality, admit rate) and how far past its standing it draws (the realised pool against the pool prestige alone would draw) — a selective college and a regional engine earn the same axis two different ways |
 | Stewardship | thirds: the share of the run's weeks solvent, endowment per student, the students' average satisfaction over every year on the books |
+| Campus life | the inputs campus-life standing composes — places built for it, organisations, varsity programs, what students report, titles — as the share of what they could sum to (Plan 21's PR B) |
 
 The bands are one table (A at 0.85, B 0.65, C 0.45, D 0.25) and are what
 Plan 17's balance target fitted. The **name** comes from an authored table of
@@ -393,8 +397,15 @@ against*, *a great research university*, *the finest college in the country*,
 university*, *a school that grew too fast*, *a college still finding itself*
 and the rest. Every pattern finds a name; the troubled entries are tested
 first, so a broad school in the red is *a school that grew too fast* before it
-is anything else. Campus life is deliberately not an axis: it cannot yet be
-earned, and an axis every run grades the same is not a record of anything.
+is anything else. Campus life was left out until it could be earned — an axis
+every run grades the same is not a record of anything — and joined as the
+seventh once Plan 21 made it earnable, with three athletic names of its own
+(*the university the whole state cheers for*, *a college with a great
+Saturday*, *a school better known for its teams than its classes*) after the
+academic ones, so a great research university with a football team is still a
+great research university. Seven rather than campus life folded into
+stewardship: stewardship is about running a school, campus life is a thing the
+school is.
 
 Before year fifty the History tab shows the same reading taken live — *today
 the school would be called…* — the way the Standing panel shows what the year

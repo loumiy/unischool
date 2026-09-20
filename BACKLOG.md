@@ -64,10 +64,12 @@ private applicant pool unchanged rather than re-fitting it, so the two want
 doing together.
 
 The **mascot at founding** is settled and closed. It was deferred to Athletics
-V3, and [Plan 08](docs/plans/08-athletics-rivals.md) took it the other way: the
-school names its teams when it hires its first athletic director, which is the
-first moment the question has an answer. The founding screen would have asked
-before a building stood and a decade before a varsity team existed.
+V3, [Plan 08](docs/plans/08-athletics-rivals.md) took it the other way — the
+school named its teams when it hired its first athletic director — and
+[Plan 21](docs/plans/21-the-department.md)'s PR O moved it earlier still, to the
+first sport club: the first moment there is something that will wear the name,
+two decades before the department. The founding screen would have asked before
+a building stood.
 
 ---
 
@@ -151,11 +153,14 @@ work with a known shape; none has been turned into a sequence of PRs.*
   visual-only layer today and nothing mechanical reads it.
 - **More authored decision events**, including events that reach systems the
   first pass deliberately left alone, and campus-life depth behind them.
-- **Athletics deferrals**, as [Plan 08](docs/plans/08-athletics-rivals.md)
-  leaves them. **Match simulation and schedules** are still deferred, and the
-  line is worth keeping sharp: Plan 08 added a year-end *bracket*, which is not
-  a season — no week contains a game and no team has a schedule. A real season
-  (fixtures, opponents, a record accumulating week to week) is still unbuilt.
+- **Athletics deferrals**, as [Plan 21](docs/plans/21-the-department.md)
+  leaves them. **Match simulation and a schedule** are still deferred, and
+  the line moved once, deliberately: Plan 08 added a year-end *bracket*, and
+  Plan 21's PR N added **four dated occasions a year** with a record that
+  accumulates — argued at the head of `systems/athletics/season.ts` as the
+  minimum that produces a record and a rivalry. A fixture list, an opponent
+  pool, a table and a simulated match are the maximum that produces nothing
+  more, and stay unbuilt.
   **Rowing** joins this list: it wants a lake, a lake is *terrain*, and the
   campus map has no terrain concept at all — the only water in the game is
   drawn ornamentally inside two ground markings. That is a campus-map problem
@@ -170,14 +175,18 @@ work with a known shape; none has been turned into a sequence of PRs.*
   `docs/design/student-life.md` flagged it in — the academic number the whole
   economy reads is still untouched by athletics.
 
-  **What to do with the department as a whole is now sequenced**, in
-  [Plan 21](docs/plans/21-the-department.md): its outputs are connected before
-  anything is deepened, the season question above is answered at four dated
-  occasions rather than a fixture list, and **rowing and golf stay declined**
-  for the reasons already recorded. Plan 21 adds one sport — water polo, onto
-  the natatorium, which carries two programs for $950k and is the department's
-  worst-value building — and holds wrestling, gymnastics and cross country
-  because the arena and the field are already carrying six and seven.
+  **The department as a whole landed** in
+  [Plan 21](docs/plans/21-the-department.md): its outputs are connected, it
+  decides between its own programs against a pot that grows with its own gate,
+  the market is scarce in good coaches rather than in coaches, and **rowing and
+  golf stay declined** for the reasons already recorded. Water polo joined the
+  natatorium; wrestling, gymnastics and cross country are held because the
+  arena and the field already carry six and seven. **Disbanding a team**, and
+  therefore what happens to a venue whose last team folds, is still unbuilt —
+  the priority list's demotion makes it likelier to be asked and no easier to
+  answer. A **school-wide budget and a CFO** were discussed there and kept
+  out: a whole-game economy change found through athletics, gated on money
+  actually being scarce.
 - **The tutorial** — **done**, in two layers. The forced first minute is the
   opening walkthrough (`src/state/opening.ts`): a new school opens
   with the clock held and no building standing, and the shell walks the
@@ -205,20 +214,16 @@ to re-derive them from a 658-line document.*
   own sentence now, and what a description is lives in
   `docs/design/curriculum.md`. The 49 graduate courses still carry a
   generated line, and are the obvious next increment of that work.
-- **Athletics' reach into the economy, and student life with teeth.** The review
-  found athletics the best-built system in the game and the least connected: a
-  venue that sells no tickets, a title that moves a standing nothing reads, a
-  social bonus capped low enough that clubs stop counting by mid-game. Plan 15
-  cuts campus life's prestige weight from 12 to 8 **with a named condition** — it
-  returns to 12 when these systems reach something — and Plan 17 leaves campus
-  life out of the legacy's six axes for the same reason. That condition is this
-  item, and it is the largest single thing the sequence walks past.
-
-  **[Plan 21](docs/plans/21-the-department.md) is the plan that discharges it**
-  — its PR B widens `campusLifeScore` past the two rec-centre rungs, restores
-  the weight, and adds the seventh legacy axis. The student-life half of this
-  entry (clubs that stop counting once the social cap is reached) is NOT in
-  Plan 21 and stays here.
+- **Student life with teeth.** The review found athletics the best-built system
+  in the game and the least connected — a venue that sells no tickets, a title
+  that moves a standing nothing reads — and Plan 15 cut campus life's prestige
+  weight from 12 to 8 **with a named condition**: it returns when these systems
+  reach something. **[Plan 21](docs/plans/21-the-department.md) discharged the
+  athletics half**: venues sell tickets and carry a campus-life contribution,
+  a title reaches the applicant pool, the donors and the legacy's seventh axis,
+  and the weight is back at 12. What stays here is the student-life half: a
+  social bonus capped low enough that clubs stop counting once the cap is
+  reached by mid-game.
 - **The event table (the review's H4).** Five of fifteen events have a dominant
   choice; two more are decision-free at scale. Plan 15 re-scales the *capital*
   events to the building's own cost because it is moving the money scale under

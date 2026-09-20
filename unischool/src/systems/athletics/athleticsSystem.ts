@@ -1,9 +1,11 @@
 import type { Coach, GameState } from '../../state/types';
 import {
-  coachCandidateArrivalsThisWeek, COACH_CANDIDATE_LISTING_WEEKS, coachSalaryFor,
-  generateCoachCandidate, grownCoachQuality, rollCoachField,
+  COACH_RETIREMENT_AGE, coachCandidateArrivalsThisWeek, COACH_CANDIDATE_LISTING_WEEKS, coachNamesInUse, coachSalaryFor,
+  eliteWouldList, generateCoachCandidate, grownQualityOf, marketRng, rollCoachBand, rollCoachField, uncoveredChairFields,
 } from '../../data/studentLifeData';
+import { WEEKS_PER_YEAR } from '../../state/types';
 import { PLAYOFF_WEEK, runPlayoffs } from './playoffs';
+import { tickSeason } from './season';
 
 // ---------------------------------------------------------------------
 // The coaching-staff system for Athletics V2 (see data/studentLifeData.ts's
@@ -23,13 +25,35 @@ import { PLAYOFF_WEEK, runPlayoffs } from './playoffs';
 // concept a listing could be the first to fill (a team either has a coach
 // in a role or it doesn't, and that's already visible on the Athletics tab
 // itself), so there is nothing here worth interrupting the log for.
+//
+// ONE DRAW ON THE GLOBAL STREAM A WEEK (Plan 21's PR J), however many
+// candidates the week mints: the market's size must not decide how many
+// times the game rolls a die, which is what kept COACH_CANDIDATE_POOL_TARGET
+// at 18 through two plans. Then the floor: every open chair on an active
+// team gets a journeyman listed if nobody in its field is.
 function tickCoachCandidatePool(s: GameState): void {
   for (const c of s.orgs.coachCandidates) c.weeksListed += 1;
   s.orgs.coachCandidates = s.orgs.coachCandidates.filter((c) => c.weeksListed < COACH_CANDIDATE_LISTING_WEEKS);
 
+  const roll = marketRng();
   const arrivals = coachCandidateArrivalsThisWeek(s.orgs.coachCandidates.length);
+  const used = coachNamesInUse(s);
+  const adQuality = s.orgs.athleticDirector?.quality ?? 0;
   for (let i = 0; i < arrivals; i += 1) {
-    s.orgs.coachCandidates.push(generateCoachCandidate(rollCoachField()));
+    const field = rollCoachField(roll);
+    // The top of the market wants a program with a reputation (PR L): an
+    // elite draw for a fielded sport nobody has heard of lists as a solid
+    // one instead.
+    let band = rollCoachBand(roll);
+    if (band === 'elite' && !eliteWouldList(s, field)) band = 'solid';
+    const candidate = generateCoachCandidate(field, used, roll, band, adQuality);
+    used.add(candidate.name);
+    s.orgs.coachCandidates.push(candidate);
+  }
+  for (const field of uncoveredChairFields(s)) {
+    const candidate = generateCoachCandidate(field, used, roll, 'journeyman', adQuality);
+    used.add(candidate.name);
+    s.orgs.coachCandidates.push(candidate);
   }
 }
 
@@ -41,8 +65,31 @@ function tickCoachCandidatePool(s: GameState): void {
 // time counts" rule facultySystem.ts's growFaculty uses.
 function growCoach(c: Coach): void {
   c.tenureWeeks += 1;
-  c.quality = grownCoachQuality(c.qualityPotential, c.tenureWeeks);
-  c.salary = coachSalaryFor(c.quality, c.tenureWeeks);
+  // A year older every year of tenure (PR K); a coach who was listed at 34
+  // is 40 six years in, and a veteran hired at 58 reaches the retirement
+  // age in seven.
+  if (c.tenureWeeks % WEEKS_PER_YEAR === 0 && c.age !== undefined) c.age += 1;
+  c.quality = grownQualityOf(c);
+  c.salary = coachSalaryFor(c.quality, c.tenureWeeks, c.field);
+}
+
+// COACHES AGE OUT (PR K): at COACH_RETIREMENT_AGE a coach retires, the chair
+// is vacated, and the log says so — the market's floor lists a journeyman
+// for it the next week. This is what stops tenure being free money.
+const CHAIRS = ['headCoach', 'assistantCoach', 'trainer'] as const;
+function retireCoaches(s: GameState): void {
+  for (const t of s.orgs.teams) {
+    for (const chair of CHAIRS) {
+      const c = t[chair];
+      if (!c || c.age === undefined || c.age < COACH_RETIREMENT_AGE) continue;
+      t[chair] = null;
+      s.log.unshift({
+        year: s.clock.year, week: s.clock.week,
+        message: `${c.name} has retired from ${t.name} at ${c.age}, after ${Math.floor(c.tenureWeeks / WEEKS_PER_YEAR)} years.`,
+        kind: 'info', topic: 'team', subject: t.id,
+      });
+    }
+  }
 }
 
 export function tickAthletics(s: GameState): void {
@@ -50,10 +97,14 @@ export function tickAthletics(s: GameState): void {
   // The postseason, once a year. Silent — it writes results and queues any
   // titles; the report that stops the clock is drained on a quiet week by
   // eventSystem.ts, exactly as a milestone is (see playoffs.ts).
+  // The season's dated occasions (season.ts), then the postseason on its
+  // own week.
+  tickSeason(s);
   if (s.clock.week === PLAYOFF_WEEK) runPlayoffs(s);
   for (const t of s.orgs.teams) {
     if (t.headCoach) growCoach(t.headCoach);
     if (t.assistantCoach) growCoach(t.assistantCoach);
     if (t.trainer) growCoach(t.trainer);
   }
+  retireCoaches(s);
 }

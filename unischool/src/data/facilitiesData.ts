@@ -68,6 +68,7 @@ const UPKEEP_PER_SERVED_PER_WEEK: Record<string, number> = {
   athleticsDiamond: 1.0,
   athleticsNatatorium: 1.8, // a competition pool: timing equipment and certified officials, pricier than the rec Swimming Pool above
   footballStadium: 1.2,
+  fieldHouse: 1.0,          // weight rooms, a training floor, treatment rooms — no stand
 };
 
 // Exported so engine/reducer.ts's RENOVATE_LIBRARY case can recompute
@@ -469,6 +470,106 @@ const FOOTBALL_STADIUM_SERVES = 2_500;
 const FOOTBALL_STADIUM_COST = 6_500_000;
 const FOOTBALL_STADIUM_WEEKS = 40;
 
+// WHAT A VENUE IS WORTH TO CAMPUS LIFE (Plan 21's PR B). Until this the
+// rec centre's two rungs were the only Buildables carrying a
+// prestigeContribution, so prestigeSystem.ts's campus-life term — and the
+// "places built for it" input of campus-life standing, which reads the same
+// sum — could never be earned past +0.15; the weight was cut from 12 to 8
+// for exactly that reason, with a condition, and this is the condition
+// being met. Sized to the building: the stadium is the pinnacle venue and
+// carries the most; the five together (0.40) with the rec chain (0.15)
+// reach 0.55 of the term, so a school that builds every venue earns about
+// two thirds of what campus life can be worth, and the rest is the
+// organisations, the programs and the titles that fill them.
+// WHAT A VENUE HOLDS (Plan 21's PR D) — seats, for the gate. Keyed by the
+// venue's Buildable id rather than carried in its effects, so a save's
+// venues need no migration and a later rung (a larger arena, an expanded
+// stadium) is one more row here. Sized like the real things a college of
+// this scale builds: a stadium is a different order of building from a
+// field, which is what "gate revenue saturates — a venue holds what it
+// holds" needs to be true of. The stadium is deliberately far larger than
+// any school's early crowd, so filling it is a decades-long story.
+export const VENUE_SEATS: Readonly<Record<string, number>> = {
+  'ATH-FIELD': 4_000,
+  'ATH-ARENA': 8_000,
+  'ATH-DIAMOND': 3_000,
+  'ATH-NATATORIUM': 1_500,
+  'ATH-STADIUM': 40_000,
+};
+
+const ATHLETICS_FIELD_PRESTIGE = 0.06;
+const ATHLETICS_ARENA_PRESTIGE = 0.10;
+const ATHLETICS_DIAMOND_PRESTIGE = 0.04;
+const ATHLETICS_NATATORIUM_PRESTIGE = 0.05;
+const FOOTBALL_STADIUM_PRESTIGE = 0.15;
+
+// THE FIELD HOUSE (Plan 21's PR Q). Revealed once the school fields any
+// team; lifts every program's coaching quality a little
+// (studentLifeData.ts's fieldHouseLift). Its id lives in studentLifeData.ts
+// with the lift it stands for.
+const FIELD_HOUSE_SERVES = 800;
+const FIELD_HOUSE_COST = 1_200_000;
+const FIELD_HOUSE_WEEKS = 14;
+const FIELD_HOUSE_PRESTIGE = 0.03;
+
+// VENUE RUNGS (Plan 21's PR Q). Every other chain in the game tiers —
+// dorms, dining, health — and athletics venues were one-and-done. A venue
+// can be expanded in place, up to VENUE_EXPANSIONS_MAX times, on the
+// library's renovation idiom (no new footprint): each expansion adds
+// VENUE_EXPANSION_SEATS_GAIN of the venue's base seats, raises its social
+// capacity and its campus-life contribution a little, and costs a share
+// of the original price that grows with each rung. This is where late-game
+// cash goes in athletics, it pairs directly with the gate, and it is the
+// only way the gate's ceiling rises.
+export const VENUE_EXPANSIONS_MAX = 2;
+export const VENUE_EXPANSION_SEATS_GAIN = 0.5;
+const VENUE_EXPANSION_COST_SHARE = 0.45;
+const VENUE_EXPANSION_COST_GROWTH = 1.3;
+const VENUE_EXPANSION_WEEKS_SHARE = 0.5;
+const VENUE_EXPANSION_SERVES_GAIN = 0.3;
+const VENUE_EXPANSION_PRESTIGE_GAIN = 0.02;
+
+export interface VenueExpansionPlan {
+  cost: number;
+  weeks: number;
+  seatsGain: number;
+  servesGain: number;
+  prestigeGain: number;
+}
+
+// The base price and duration a venue was seeded with, for the expansion's
+// arithmetic: a venue's stored `cost` may already have had a state match
+// taken off it (eventData.ts's 'state-capital-match'), and a rung should
+// not be cheaper for that.
+const VENUE_BASE: Readonly<Record<string, { cost: number; weeks: number }>> = {
+  'ATH-FIELD': { cost: ATHLETICS_FIELD_COST, weeks: ATHLETICS_FIELD_WEEKS },
+  'ATH-ARENA': { cost: ATHLETICS_ARENA_COST, weeks: ATHLETICS_ARENA_WEEKS },
+  'ATH-DIAMOND': { cost: ATHLETICS_DIAMOND_COST, weeks: ATHLETICS_DIAMOND_WEEKS },
+  'ATH-NATATORIUM': { cost: ATHLETICS_NATATORIUM_COST, weeks: ATHLETICS_NATATORIUM_WEEKS },
+  'ATH-STADIUM': { cost: FOOTBALL_STADIUM_COST, weeks: FOOTBALL_STADIUM_WEEKS },
+};
+
+export function nextVenueExpansion(node: Buildable): VenueExpansionPlan | null {
+  const base = VENUE_BASE[node.id];
+  const seats = VENUE_SEATS[node.id];
+  if (!base || seats === undefined) return null;
+  const done = node.expansions ?? 0;
+  if (done >= VENUE_EXPANSIONS_MAX) return null;
+  return {
+    cost: Math.round(base.cost * VENUE_EXPANSION_COST_SHARE * VENUE_EXPANSION_COST_GROWTH ** done),
+    weeks: Math.round(base.weeks * VENUE_EXPANSION_WEEKS_SHARE),
+    seatsGain: Math.round(seats * VENUE_EXPANSION_SEATS_GAIN),
+    servesGain: Math.round((node.effects?.servesPopulation ?? 0) * VENUE_EXPANSION_SERVES_GAIN),
+    prestigeGain: VENUE_EXPANSION_PRESTIGE_GAIN,
+  };
+}
+
+// What a venue seats with its expansions (gate.ts reads this).
+export function venueSeatsOf(node: Buildable): number {
+  const base = VENUE_SEATS[node.id] ?? 0;
+  return Math.round(base * (1 + VENUE_EXPANSION_SEATS_GAIN * (node.expansions ?? 0)));
+}
+
 // ---------------------------------------------------------------------
 // CATEGORIES. A grouping layer ABOVE FacilityType, for UI organisation only
 // (the build popup's sectioning today — see BuildPopup.tsx's TYPE_MATCHERS —
@@ -510,6 +611,7 @@ export const FACILITY_CATEGORY_OF: Partial<Record<FacilityType, FacilityCategory
   athleticsArena: 'athletics',
   athleticsDiamond: 'athletics',
   athleticsNatatorium: 'athletics',
+  fieldHouse: 'athletics',
   footballStadium: 'athletics',
 };
 
@@ -847,6 +949,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: ATHLETICS_FIELD_SERVES,
         satisfactionAttribute: 'social',
+        prestigeContribution: ATHLETICS_FIELD_PRESTIGE,
         upkeepPerWeek: servedUpkeep('athleticsField', ATHLETICS_FIELD_SERVES),
       },
     },
@@ -864,6 +967,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: ATHLETICS_ARENA_SERVES,
         satisfactionAttribute: 'social',
+        prestigeContribution: ATHLETICS_ARENA_PRESTIGE,
         upkeepPerWeek: servedUpkeep('athleticsArena', ATHLETICS_ARENA_SERVES),
       },
     },
@@ -881,6 +985,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: ATHLETICS_DIAMOND_SERVES,
         satisfactionAttribute: 'social',
+        prestigeContribution: ATHLETICS_DIAMOND_PRESTIGE,
         upkeepPerWeek: servedUpkeep('athleticsDiamond', ATHLETICS_DIAMOND_SERVES),
       },
     },
@@ -898,6 +1003,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: ATHLETICS_NATATORIUM_SERVES,
         satisfactionAttribute: 'social',
+        prestigeContribution: ATHLETICS_NATATORIUM_PRESTIGE,
         upkeepPerWeek: servedUpkeep('athleticsNatatorium', ATHLETICS_NATATORIUM_SERVES),
       },
     },
@@ -915,7 +1021,26 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: FOOTBALL_STADIUM_SERVES,
         satisfactionAttribute: 'social',
+        prestigeContribution: FOOTBALL_STADIUM_PRESTIGE,
         upkeepPerWeek: servedUpkeep('footballStadium', FOOTBALL_STADIUM_SERVES),
+      },
+    },
+    {
+      id: 'ATH-FIELDHOUSE',
+      kind: 'facility',
+      facilityType: 'fieldHouse',
+      name: 'Field House',
+      description: `Weight rooms, an indoor training floor and treatment rooms for every varsity program at once — ${FIELD_HOUSE_SERVES.toLocaleString()} students' worth of social capacity, and a lift to every team the school fields.`,
+      cost: FIELD_HOUSE_COST,
+      duration: FIELD_HOUSE_WEEKS,
+      prereqs: [],
+      athleticsDepartmentReveal: true,
+      status: 'locked',
+      effects: {
+        servesPopulation: FIELD_HOUSE_SERVES,
+        satisfactionAttribute: 'social',
+        prestigeContribution: FIELD_HOUSE_PRESTIGE,
+        upkeepPerWeek: servedUpkeep('fieldHouse', FIELD_HOUSE_SERVES),
       },
     },
 

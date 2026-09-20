@@ -4,7 +4,7 @@ import { graduatePrograms, milestoneSchools } from '../../data/techData';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
 import { teachingQualityScore } from '../../data/courseQuality';
 import { INITIATIVE_COMPLETION_CREDIT, labEquippedFields, researchableFields } from '../../data/researchData';
-import { athleticProgramStrength, studentLifeSocialBonus, STUDENT_LIFE_SOCIAL_BONUS_CAP } from '../../data/studentLifeData';
+import { athleticProgramStrength, sportEconomics, studentLifeSocialBonus, STUDENT_LIFE_SOCIAL_BONUS_CAP } from '../../data/studentLifeData';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../../data/facilitiesData';
 import { attributeCoverage } from '../satisfaction/satisfactionSystem';
 import { trailingYearSatisfaction } from '../admissions/admissionsSystem';
@@ -154,13 +154,15 @@ const TEACHING_QUALITY_WEIGHT = 30;   // how good the courses actually are, as i
 const STUDENT_QUALITY_WEIGHT = 24;    // emergent avg incoming quality — grows with a low-tuition, selective posture
 const RESEARCH_WEIGHT = 22;           // what the university's research has actually produced (see researchScore below)
 const WELFARE_WEIGHT = 20;            // the year's average satisfaction, scored from 40 to 80 (see welfareScore below)
-// Campus life is UNDER-EARNED: two rec-centre rungs are its only sources,
-// worth +1.8 ever, so it is cut from 12 with a condition rather than a
-// shrug. IT RETURNS TO 12 when athletics and student life reach it — the
-// faculty lifecycle, athletics' reach into the economy and student life
-// with teeth are all on the backlog — and the next plan to reach those
-// systems restores it here.
-const CAMPUS_LIFE_WEIGHT = 8;
+// Campus life was cut from 12 to 8 with a condition rather than a shrug —
+// two rec-centre rungs were its only sources, worth +1.8 ever — and the
+// condition said it returns to 12 when athletics and student life reach
+// it. Plan 21's PR B is the plan that reached them: every athletics venue
+// carries a prestigeContribution now (facilitiesData.ts), so the score
+// below reads 0.55 at a full build rather than 0.15, and the weight is
+// restored. The under-earning was in the score, not the weight, which is
+// why the venues landed first.
+const CAMPUS_LIFE_WEIGHT = 12;
 const ENDOWMENT_WEIGHT = 8;           // financial resources per student — cut from 18: at $400k a student it is a term nobody could earn, and a term nobody can earn is not a term
 const CROWDING_PENALTY = 25;          // the most crowding can SUBTRACT (see crowdingScore below)
 
@@ -324,11 +326,10 @@ function teachingScore(s: GameState): number {
   return avg === null ? 0 : teachingQualityScore(avg);
 }
 
-// Campus life: the rec center / athletics complex's "small prestige
-// contribution" — the sum of prestigeContribution across every done
-// facility that carries one (today, only the rec center's two tiers; see
-// facilitiesData.ts), clamped like every other input so it can only ever
-// contribute up to its own weight.
+// Campus life: the sum of prestigeContribution across every done facility
+// that carries one — the rec centre's two rungs and, since Plan 21's PR B,
+// the five athletics venues (see facilitiesData.ts) — clamped like every
+// other input so it can only ever contribute up to its own weight.
 function campusLifeScore(s: GameState): number {
   const total = s.tech
     .filter((t) => t.status === 'done')
@@ -610,7 +611,7 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
     ),
     weigh(
       'campus', 'Campus life', CAMPUS_LIFE_WEIGHT, campusLifeScore(s),
-      'What the recreation and athletics facilities contribute on their own.',
+      'What the recreation chain and the athletics venues contribute on their own.',
     ),
     weigh(
       'welfare', 'Welfare', WELFARE_WEIGHT, welfareScore(s),
@@ -971,8 +972,13 @@ const SOCIAL_TITLES_WEIGHT = 20;        // championships won (see systems/athlet
 // anybody to build at all.
 const TITLES_FOR_FULL_SCORE = 12;
 
+// Each title weighs what its sport's scale says a title is worth (Plan 21's
+// PR F): a football championship moves the national needle, a swimming
+// one less, so a dozen banners in Olympic sports is most of a dynasty and
+// six in football is one.
 function titlesScore(s: GameState): number {
-  return clamp01(s.orgs.titles.length / TITLES_FOR_FULL_SCORE);
+  const weighted = s.orgs.titles.reduce((sum, t) => sum + sportEconomics(t.sport).payoffMultiplier, 0);
+  return clamp01(weighted / TITLES_FOR_FULL_SCORE);
 }
 
 // ATHLETICS FINALLY TOUCHES A STANDING, and it is worth being precise about

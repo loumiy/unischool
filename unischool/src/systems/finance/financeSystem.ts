@@ -1,6 +1,7 @@
 import type { ClassTuition, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
-import { studentOrgUpkeep } from '../../data/studentLifeData';
+import { departmentPot, inTitleYear, studentOrgUpkeep } from '../../data/studentLifeData';
+import { weeklyGateRevenue } from '../athletics/gate';
 import { marketRateMultiplier } from '../../data/facultyData';
 import { SEATS_PER_COURSE, instructionCapacity } from '../techtree/instructionCapacity';
 
@@ -236,6 +237,10 @@ const ENDOWMENT_CAMPAIGN_PRESTIGE_REFERENCE = 150; // same top of the scale pres
 // campaign keeps climbing, so late campaigns are what they should be: an
 // expensive, mostly one-way conversion of money into standing.
 const ENDOWMENT_CAMPAIGN_MATCH_DECAY = 0.88;
+// A title year lifts the match (Plan 21's PR E): championships selling
+// capital campaigns is how athletics actually reaches a university's
+// finances, and it reuses this lever rather than adding a stream.
+const ENDOWMENT_CAMPAIGN_TITLE_LIFT = 0.25;
 
 // What a campaign costs and returns right now. Pure — the Treasury renders
 // it and the reducer commits it, so the player is never shown a number
@@ -246,6 +251,7 @@ export interface EndowmentCampaign {
   number: number;       // 1-indexed: which campaign this would be
   cost: number;         // cash committed
   match: number;        // donor match multiplier on that cash
+  titleLift: boolean;   // the match is lifted because the school won a national title this year or last (Plan 21's PR E)
   endowmentGain: number; // cost x (1 + match)
   annualPayout: number; // what that gain adds to income every year, forever
 }
@@ -255,9 +261,11 @@ export function endowmentCampaign(s: GameState): EndowmentCampaign {
   const cost = Math.round(
     ENDOWMENT_CAMPAIGN_BASE_COST * ENDOWMENT_CAMPAIGN_COST_GROWTH ** s.finance.endowmentCampaigns,
   );
+  const titleLift = inTitleYear(s);
   const match = (ENDOWMENT_CAMPAIGN_BASE_MATCH +
     ENDOWMENT_CAMPAIGN_PRESTIGE_MATCH * Math.max(0, s.self.reputation) / ENDOWMENT_CAMPAIGN_PRESTIGE_REFERENCE) *
-    ENDOWMENT_CAMPAIGN_MATCH_DECAY ** s.finance.endowmentCampaigns;
+    ENDOWMENT_CAMPAIGN_MATCH_DECAY ** s.finance.endowmentCampaigns *
+    (titleLift ? 1 + ENDOWMENT_CAMPAIGN_TITLE_LIFT : 1);
   const endowmentGain = Math.round(cost * (1 + match));
   return {
     available: s.self.reputation >= ENDOWMENT_CAMPAIGN_PRESTIGE_GATE,
@@ -265,6 +273,7 @@ export function endowmentCampaign(s: GameState): EndowmentCampaign {
     number,
     cost,
     match,
+    titleLift,
     endowmentGain,
     annualPayout: endowmentGain * ENDOWMENT_PAYOUT_RATE,
   };
@@ -283,6 +292,8 @@ export interface FinanceBreakdown {
   tuitionRevenue: number;      // every class at its own admission-year price (see annualTuitionBilled)
   prestigeRevenue: number;     // the reputation dividend: donors/grants/brand, independent of enrollment
   endowmentPayout: number;     // the endowment's annual spend rate, sliced into weeks
+  gateRevenue: number;         // what the athletics department's home dates take at the gate, gross (see systems/athletics/gate.ts) — Plan 21's PR D. Shown, not summed: it is paid into the department's pot (PR G), and only the surplus below reaches income
+  athleticsSurplus: number;    // the gate beyond what the programs drew — the spill into general income (PR G)
   totalIncome: number;
   // expenses
   weeklySalaries: number;      // the faculty payroll at market rate (see facultyData.ts's marketRateMultiplier), annualized salaries sliced into weeks
@@ -292,6 +303,7 @@ export interface FinanceBreakdown {
   academicUpkeep: number;      // running the courses, academic buildings and labs that are done
   facilityUpkeep: number;      // running the dorms and campus-life facilities that are done
   studentLifeUpkeep: number;   // running the clubs and Greek chapters the player has recognised (see data/studentLifeData.ts)
+  athleticsSubsidy: number;    // the part of the tier's subsidy the programs actually drew this week — what athletics costs the university (PR G)
   totalExpenses: number;
   net: number;                 // totalIncome - totalExpenses
 }
@@ -389,6 +401,22 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   const tuitionRevenue = annualTuitionBilled(s) / WEEKS_PER_YEAR;
   const prestigeRevenue = (s.self.reputation * REPUTATION_DIVIDEND_PER_POINT_PER_YEAR) / WEEKS_PER_YEAR;
   const endowmentPayout = (s.finance.endowment * ENDOWMENT_PAYOUT_RATE) / WEEKS_PER_YEAR;
+  // THE DEPARTMENT'S ROUTING (Plan 21's PR G). The gate is paid to the
+  // department, not the university: the pot is the tier's subsidy plus the
+  // gate, every program on the priority list draws its cost off it in
+  // order, and only what is left spills into general income. What the
+  // university actually pays is the part of the subsidy the programs DREW
+  // — what they took beyond the gate — and what it actually receives is
+  // the gate beyond what they took; a subsidy nobody drew is not spent.
+  // (Charging the whole tier and refunding the surplus nets the same but
+  // inflates opex, and half the game's prices are read in weeks of opex —
+  // an idle department made every club and every gift a fifth dearer.)
+  // A winning department returns more than it was given and stops being a
+  // cost centre; a losing one returns nothing.
+  const gateRevenue = weeklyGateRevenue(s);
+  const pot = departmentPot(s);
+  const athleticsSubsidy = Math.max(0, pot.drawn - pot.earned) / WEEKS_PER_YEAR;
+  const athleticsSurplus = Math.max(0, pot.earned - pot.drawn) / WEEKS_PER_YEAR;
   // SALARIES AT MARKET RATE (Plan 15's PR D): a top-20 school pays what
   // top-20 schools pay. The roster's salaries are the base; the school's
   // prestige tier multiplies them (facultyData.ts's marketRateMultiplier),
@@ -404,19 +432,22 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   const facilityUpkeep = upkeepFor(s, false);
   const studentLifeUpkeep = studentOrgUpkeep(s);
 
-  // THREE income lines, and none of them is an appropriation. A public
-  // school used to add a fourth — a flat state grant plus a per-student
+  // FOUR income lines, and none of them is an appropriation. A public
+  // school used to add one — a flat state grant plus a per-student
   // allocation — which Plan 07's PR B retired along with the rest of the
-  // founding fork. Every school now lives on what it charges, what its
-  // standing attracts and what its endowment pays out.
-  const totalIncome = tuitionRevenue + prestigeRevenue + endowmentPayout;
+  // founding fork. Every school lives on what it charges, what its
+  // standing attracts, what its endowment pays out and, since Plan 21's PR
+  // D, what its teams take at the gate.
+  const totalIncome = tuitionRevenue + prestigeRevenue + endowmentPayout + athleticsSurplus;
   const totalExpenses = weeklySalaries + seatUpkeep + instructionCost + servicesCost + academicUpkeep +
-    facilityUpkeep + studentLifeUpkeep;
+    facilityUpkeep + studentLifeUpkeep + athleticsSubsidy;
 
   return {
     tuitionRevenue,
     prestigeRevenue,
     endowmentPayout,
+    gateRevenue,
+    athleticsSurplus,
     totalIncome,
     weeklySalaries,
     seatUpkeep,
@@ -425,6 +456,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
     academicUpkeep,
     facilityUpkeep,
     studentLifeUpkeep,
+    athleticsSubsidy,
     totalExpenses,
     net: totalIncome - totalExpenses,
   };

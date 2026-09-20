@@ -1,6 +1,6 @@
 import type { ClassCohorts, ClassCounts, ClassTuition, CohortCounts, FunnelFactors, GameState, SummerPayload } from '../../state/types';
 import { SEMICENTENNIAL_YEAR, WEEKS_PER_YEAR } from '../../state/types';
-import { cohortCounts, cohortDemandFactor, NEUTRAL_COHORT_SIGNALS, type CohortSignals } from './cohorts';
+import { cohortCounts, cohortDemandFactor, NEUTRAL_COHORT_SIGNALS, type CohortSignals, athleteBandDrag } from './cohorts';
 
 // The trailing-year satisfaction that drives word of mouth: the average of
 // every weekly satisfaction reading accumulated since last summer (see
@@ -387,10 +387,15 @@ function wordOfMouthFactor(satisfaction: number): number {
 }
 
 // The quality mix (top/mid/low fractions, summing to 1) for the pool.
-function qualityMix(prestige: number, tuition: number): Record<QualityBand, number> {
+// `drag` is the athlete band drag (cohorts.ts's athleteBandDrag, Plan 21's
+// PR H): the one place cohort reaches band, taken off the top and added to
+// the low. Zero by default, so every reader that is not the realised class
+// (the top-band share, the what-ifs) reads the mix as it always did.
+function qualityMix(prestige: number, tuition: number, drag: number = 0): Record<QualityBand, number> {
   const shift =
     PRESTIGE_QUALITY_SHIFT * (prestige - PRESTIGE_REFERENCE) / PRESTIGE_REFERENCE -
-    TUITION_QUALITY_SHIFT * (Math.max(tuition, 0) / TUITION_REFERENCE);
+    TUITION_QUALITY_SHIFT * (Math.max(tuition, 0) / TUITION_REFERENCE) -
+    drag;
   const top = clamp(QUALITY_BAND_BASE.top + shift, QUALITY_BAND_FLOOR, 1);
   const low = clamp(QUALITY_BAND_BASE.low - shift, QUALITY_BAND_FLOOR, 1);
   const mid = QUALITY_BAND_BASE.mid;
@@ -557,7 +562,7 @@ export function projectAdmissions(
   // response and the band-specific shock below read the same number.
   const volume = applicantVolumeParts(prestige, Math.max(tuition, 0), capacity);
   const rawApplicants = volume.prestigePool * volume.priceFactor * volume.capacityFactor * wordOfMouth * cohortDemand;
-  const mix = qualityMix(prestige, tuition);
+  const mix = qualityMix(prestige, tuition, athleteBandDrag(cohortSignals, tolerance, tuition));
 
   const bands: QualityBand[] = ['top', 'mid', 'low'];
   // Sticker shock is applied per band, straight onto the raw pool split —

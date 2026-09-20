@@ -302,7 +302,8 @@ export type FacilityType =
   // design fork). Hidden from the build rail until a team that needs the
   // category is granted varsity status (see Buildable.athleticsVenueReveal
   // and techSystem.ts's meetsUnlockGates).
-  | 'athleticsField' | 'athleticsArena' | 'athleticsDiamond' | 'athleticsNatatorium' | 'footballStadium';
+  | 'athleticsField' | 'athleticsArena' | 'athleticsDiamond' | 'athleticsNatatorium' | 'footballStadium'
+  | 'fieldHouse'; // a non-competition athletics facility that lifts every program (Plan 21's PR Q)
 
 export interface Buildable {
   id: string;
@@ -354,6 +355,14 @@ export interface Buildable {
   // The Medicine/Law reveal-on-gate pattern, with team formation as the
   // gate instead of a milestone count.
   athleticsVenueReveal?: true;
+  // Revealed once the school fields ANY varsity team (Plan 21's PR Q's
+  // field house): a department facility rather than a sport's venue.
+  athleticsDepartmentReveal?: true;
+  // VENUE RUNGS (Plan 21's PR Q): how many times this venue has been
+  // expanded in place — the same shape as floorsAdded, and the same
+  // renovation idiom (the reducer's EXPAND_VENUE). Read by
+  // systems/athletics/gate.ts for the seats.
+  expansions?: number;
   // Set only on a Greek chapter's own house (see eventData.ts's
   // 'greek-housing'), one per chapter, id'd deterministically off the
   // chapter's own id rather than drawn from any static seed catalogue —
@@ -1071,7 +1080,21 @@ export interface Coach {
   // a sport, so one trainer pool serves every team regardless of sport.
   field: string;
   quality: number;          // current, 0..100 — grown toward qualityPotential over tenureWeeks, like Faculty.teaching/research
-  qualityPotential: number; // ceiling, rolled once at generation
+  qualityPotential: number; // ceiling, rolled once at generation — and since Plan 21's PR K, NOT what the card prints (see `scouted`)
+  // NOW, OR LATER (Plan 21's PR K). A candidate is a prospect or a veteran:
+  // `age` in years; `startQuality` is what they were worth the week they
+  // were listed and what growth climbs from (a veteran starts near their
+  // ceiling, a prospect far under it); `plateauYears` is how long the climb
+  // takes (short for a veteran, long for a prospect). `scouted` is the
+  // RANGE the card prints — the ceiling is uncertain until tenure resolves
+  // it, and a better athletic director scouts a narrower range. All four
+  // are optional so a coach written before them reads as a prospect of 40
+  // whose ceiling is known; the readers default them (studentLifeData.ts's
+  // coachProfile).
+  age?: number;
+  startQuality?: number;
+  plateauYears?: number;
+  scouted?: [number, number];
   tenureWeeks: number;      // weeks assigned to a team's roster; 0 for a candidate still on the market
   weeksListed: number;      // weeks on the market; stops mattering once hired, exactly like Faculty.weeksListed
   salary: number;           // current annual salary, recomputed live from quality + tenureWeeks (see coachSalaryFor)
@@ -1107,6 +1130,11 @@ export interface VarsityTeam extends StudentOrgBase {
   // the shared venue Buildable it is waiting on finishes (see
   // systems/studentlife/studentLifeSystem.ts's tick).
   status: 'awaitingVenue' | 'active';
+  // A POSTSEASON BAN (Plan 21's PR P): the last year the program may not
+  // enter the bracket. Set by the recruiting scandal, read by playoffs.ts;
+  // absent or past = eligible. A cash penalty is ignorable by year twenty;
+  // losing a season is not.
+  postseasonBanThroughYear?: number;
 }
 
 // One organisation that has formed and is waiting on the player's answer at
@@ -1151,10 +1179,37 @@ export interface SeasonResult {
   sport: string;
   seed: number | null;      // the player's seed in the bracket; null = did not qualify
   finish: 'champion' | 'final' | 'semifinal' | 'quarterfinal' | 'missed';
+  banned?: boolean;         // 'missed' because the program was serving a postseason ban (Plan 21's PR P)
   beaten: string[];         // schools the player beat, in order, by name and mascot
   lostTo: string | null;
   champion: string;         // who took the title — may be the player
   championMascot: string;
+}
+
+// One occasion's result, in a season record (see StudentOrgState.season).
+export interface OccasionResult {
+  occasion: 'opener' | 'rivalry' | 'homecoming';
+  week: number;
+  opponent: string;      // name and mascot
+  opponentStrength: number;
+  won: boolean;
+  upset: boolean;        // the weaker side by a wide margin won
+}
+
+export interface SeasonRecord {
+  year: number;
+  wins: number;
+  losses: number;
+  results: OccasionResult[];
+}
+
+// The all-time record against a sport's designated rival (Plan 21's PR M).
+// `streak` is signed: positive is the player's run of consecutive wins,
+// negative the rival's.
+export interface RivalryRecord {
+  wins: number;
+  losses: number;
+  streak: number;
 }
 
 export interface StudentOrgState {
@@ -1177,6 +1232,24 @@ export interface StudentOrgState {
   hellenicCouncilOffered: boolean;
   lastFormationWeek: number; // absolute week a club or chapter last formed; 0 = never
   athleticsBudget: AthleticsBudgetTier;
+  // THE PRIORITY LIST (Plan 21's PR G): the department's programs in the
+  // order the player put them, as team ids. The ORDER is the stored thing
+  // and the only stored thing — the pot, the funded line and therefore the
+  // bands are derived from it every read (studentLifeData.ts's
+  // departmentPot), so they can never disagree with the money. A team
+  // missing from the list (promoted before the list existed, or an id the
+  // list carries for a team that is gone) is handled by the derivation, not
+  // by a migration: unknown ids are dropped, unlisted teams are appended.
+  teamOrder: string[];
+  // THE ARRIVAL (Plan 21's PR O). `studentCenterWeek` is the absolute week
+  // the first student centre finished (0 = not yet), read by the first
+  // sport club's pity timer: a pipeline is a guarantee, not a lottery.
+  // `mascotBeatPending` is set the summer the first sport club is
+  // recognised and fires the naming beat on the next quiet week — the
+  // mascot is chosen there, two decades before the department, and the
+  // director's modal stops asking once it is.
+  studentCenterWeek: number;
+  mascotBeatPending: boolean;
   // THE ATHLETIC DIRECTOR, hired once the first team exists (see
   // systems/events/eventSystem.ts's fireAthleticDirectorOffer). A `Coach`
   // rather than a fourth kind of person, because that is exactly what they
@@ -1208,6 +1281,16 @@ export interface StudentOrgState {
   lastSeason: Record<string, SeasonResult>;
   titles: Array<{ sport: string; year: number }>;
   pendingTitles: string[];
+  // THE SEASON (Plan 21's PR N, systems/athletics/season.ts): each active
+  // team's four dated occasions a year — an opener, the rivalry game, a
+  // homecoming date, the postseason — resolved the week they happen, each
+  // writing a log line, and a record accumulating. `season` is keyed by
+  // sport and OVERWRITTEN each year like lastSeason, so it cannot grow;
+  // `rivalries` is the monotone half: the all-time record and the streak
+  // against the sport's designated rival (PR M), which is derived, never
+  // stored. Four dates is not a schedule — see season.ts for the line.
+  season: Record<string, SeasonRecord>;
+  rivalries: Record<string, RivalryRecord>;
   // The absolute week the AD offer was last PUT, set when the interrupt
   // fires rather than when it is answered. 0 = never asked.
   //
@@ -1327,7 +1410,7 @@ export interface ReportCard {
 // grades are the record. Plain JSON — strings and numbers — so a sealed
 // legacy survives a save untouched.
 export type LegacyGrade = 'A' | 'B' | 'C' | 'D' | 'F';
-export type LegacyAxisKey = 'breadth' | 'concentration' | 'teaching' | 'research' | 'reach' | 'stewardship';
+export type LegacyAxisKey = 'breadth' | 'concentration' | 'teaching' | 'research' | 'reach' | 'stewardship' | 'campusLife';
 
 export interface LegacyAxis {
   key: LegacyAxisKey;

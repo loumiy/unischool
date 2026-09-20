@@ -9,7 +9,7 @@ import {
 } from '../../data/eventData';
 import { labEquippedFields } from '../../data/researchData';
 import { ELITE_CLOSE_ABOVE_PRESTIGE } from '../rivals/rivalsSystem';
-import { rollAthleticDirectorCandidates, rollMascotSuggestion } from '../../data/studentLifeData';
+import { coachNamesInUse, rollAthleticDirectorCandidates, rollMascotSuggestion } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
 // The week-to-week texture system. One ordinary pure tick function, last
@@ -190,6 +190,27 @@ function fireChampionshipReport(s: GameState): boolean {
   return true;
 }
 
+// THE FIRST SPORT CLUB'S BEAT (Plan 21's PR O): the moment the school stops
+// being an institution and becomes a name people shout, moved out of the
+// athletic-director modal — which keeps that modal about the director —
+// and two decades earlier. Fires on the first quiet week after the club
+// is recognised; if a mascot somehow exists already, the flag simply
+// clears.
+function fireMascotBeat(s: GameState): boolean {
+  if (!s.orgs.mascotBeatPending) return false;
+  if (s.self.mascot) { s.orgs.mascotBeatPending = false; return false; }
+  const club = s.orgs.clubs.find((c) => c.sport !== null);
+  s.pendingInterrupt = {
+    type: 'first-sport-club',
+    payload: {
+      clubName: club?.name ?? 'a sport club',
+      sportId: club?.sport ?? null,
+      mascotSuggestion: rollMascotSuggestion(),
+    },
+  };
+  return true;
+}
+
 function fireAthleticDirectorOffer(s: GameState): boolean {
   if (s.orgs.athleticDirector) return false;
   if (s.orgs.teams.length === 0) return false;
@@ -202,7 +223,7 @@ function fireAthleticDirectorOffer(s: GameState): boolean {
   s.pendingInterrupt = {
     type: 'athletic-director',
     payload: {
-      candidates: rollAthleticDirectorCandidates(),
+      candidates: rollAthleticDirectorCandidates(coachNamesInUse(s)),
       mascotSuggestion: rollMascotSuggestion(),
     },
   };
@@ -311,12 +332,15 @@ function weightedPick(
   events: readonly DecisionEvent[],
   s: GameState,
 ): { event: DecisionEvent; ctx: DecisionEventContext } | null {
-  const total = events.reduce((sum, event) => sum + event.weight, 0);
+  // An event's weight, lifted by its boost for the moment (see
+  // DecisionEvent.boost): read once here so the total and the walk agree.
+  const weightOf = (event: DecisionEvent) => event.weight * (event.boost?.(s) ?? 1);
+  const total = events.reduce((sum, event) => sum + weightOf(event), 0);
   if (total <= 0) return null;
 
   let roll = Math.random() * total;
   for (const event of events) {
-    roll -= event.weight;
+    roll -= weightOf(event);
     if (roll > 0) continue;
     const ctx = event.rollContext ? event.rollContext(s) : {};
     if (ctx === null) return null;          // the event turned out not to be possible this week
@@ -362,6 +386,7 @@ export function tickEvents(s: GameState): void {
   if (fireCharterOffer(s)) return;
   if (fireResearchReport(s)) return;
   if (fireChampionshipReport(s)) return;
+  if (fireMascotBeat(s)) return;
   if (fireAthleticDirectorOffer(s)) return;
   if (fireVarsityPetition(s)) return;
   if (fireTrusteeResponse(s)) return;

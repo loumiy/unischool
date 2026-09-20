@@ -238,6 +238,7 @@ const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
   athleticsDiamond: { w: 14, h: 14 },     // ~125m, a real outfield being ~120m to the fence
   athleticsNatatorium: { w: 7, h: 5 },    // a 50m competition pool, its deck and its stand
   footballStadium: { w: 24, h: 20 },      // ~220m by 180m: still the largest footprint in the game
+  fieldHouse: { w: 9, h: 6 },             // an indoor training floor and the rooms around it (Plan 21's PR Q)
 };
 
 export function footprintOf(t: Buildable): Footprint {

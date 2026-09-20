@@ -540,6 +540,7 @@ function meetsUnlockGates(s: GameState, t: Buildable): boolean {
   // reveal signal, the same way graduateGateMet reads milestones rather
   // than a bespoke flag of its own.
   if (t.athleticsVenueReveal && !s.orgs.teams.some((team) => team.venueCategory === t.facilityType)) return false;
+  if (t.athleticsDepartmentReveal && s.orgs.teams.length === 0) return false;
   return true;
 }
 

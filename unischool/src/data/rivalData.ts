@@ -59,7 +59,7 @@ import { rivalColorsFor } from './schoolColors';
 // CONSEQUENCE, stated plainly: every rival's athleticStrength in a NEW game
 // changes. A save keeps the value it stored — athleticStrength is state,
 // derived once at founding — so no run in progress is disturbed.
-function hashUnit(id: string): number {
+export function hashUnit(id: string): number {
   let h = 2166136261 >>> 0;
   for (let i = 0; i < id.length; i++) {
     h ^= id.charCodeAt(i);
@@ -240,7 +240,7 @@ export function initialRivals(): Rival[] {
 // school's own id, and the momenta from it too — so the table below stays a
 // table of decisions rather than of arithmetic somebody has to keep
 // consistent by hand.
-type AuthoredRival = Omit<Rival,
+export type AuthoredRival = Omit<Rival,
   'colors' | 'athleticStrength' | 'athleticMomentum' | 'socialStanding' | 'researchStanding' | 'socialMomentum' | 'researchMomentum'>;
 
 // THE ELITE BAND (Plan 17's PR D): the ten schools authored at 87-99, the
@@ -253,7 +253,7 @@ type AuthoredRival = Omit<Rival,
 // is not; the test pins the set to the authored table.
 export const ELITE_RIVAL_IDS: ReadonlySet<string> = new Set(['r6', 'r7', 'r8', 'r9', 'r10', 'r11', 'r12', 'r13', 'r14', 'r15']);
 
-function baseRivals(): AuthoredRival[] {
+export function baseRivals(): AuthoredRival[] {
   return [
     // --- original five ---
     { id: 'r1', name: 'Ashcombe University', mascot: 'Owls', reputation: 92, momentum: 0.2 },

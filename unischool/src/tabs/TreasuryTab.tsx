@@ -7,6 +7,7 @@ import {
 } from '../systems/finance/financeSystem';
 import { marketRateMultiplier } from '../data/facultyData';
 import HelpHint from '../components/HelpHint';
+import { HOME_DATES_PER_SEASON } from '../systems/athletics/gate';
 
 // ---------------------------------------------------------------------
 // The Treasury is where the economy explains itself. Money is the game's
@@ -95,6 +96,13 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               note={`the endowment's annual spend rate on ${money(s.finance.endowment)}`}
               amount={flow.endowmentPayout}
             />
+            {(flow.athleticsSurplus > 0 || flow.gateRevenue > 0) && (
+              <StatementLine
+                label="Athletics surplus"
+                note={`${money(flow.gateRevenue)}/wk at the gate over ${HOME_DATES_PER_SEASON} home dates a season, into the department's pot first; this is what was left once every program drew its cost`}
+                amount={flow.athleticsSurplus}
+              />
+            )}
             <div className="statement-total">
               <span>Total income</span>
               <span className="statement-line-amount">{money(flow.totalIncome)}</span>
@@ -133,6 +141,13 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               note="libraries, dining, rec and labs, each carrying its own running cost"
               amount={flow.facilityUpkeep}
             />
+            {flow.athleticsSubsidy > 0 && (
+              <StatementLine
+                label="Athletics subsidy"
+                note={`what the programs drew from the ${s.orgs.athleticsBudget} tier's subsidy beyond their own gate — the department's cost to the school`}
+                amount={flow.athleticsSubsidy}
+              />
+            )}
             <div className="statement-total">
               <span>Total expenses</span>
               <span className="statement-line-amount">{money(flow.totalExpenses)}</span>
@@ -164,7 +179,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               <dl>
                 <dt>Campaign</dt><dd>#{campaign.number}</dd>
                 <dt>Cash committed</dt><dd>{money(campaign.cost)}</dd>
-                <dt>Donor match</dt><dd>+{Math.round(campaign.match * 100)}%</dd>
+                <dt>Donor match</dt><dd>+{Math.round(campaign.match * 100)}%{campaign.titleLift && <span className="stat"> — lifted by this year's title</span>}</dd>
                 <dt>Raised into the endowment</dt><dd>{money(campaign.endowmentGain)}</dd>
                 <dt>Adds to income</dt><dd>{money(campaign.annualPayout)}/yr, permanently</dd>
               </dl>

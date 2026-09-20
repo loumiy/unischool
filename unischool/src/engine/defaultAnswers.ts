@@ -107,6 +107,12 @@ export function defaultAnswer(s: GameState, admissions?: AdmissionsPolicy): Acti
       // opening the way a first-time player does, four letters and all.
       return { type: 'RESOLVE_LETTER', skipAll: false };
 
+    case 'first-sport-club': {
+      // The suggestion the beat itself rolled (Plan 21's PR O).
+      const payload = pending.payload as { mascotSuggestion?: string } | undefined;
+      return { type: 'RESOLVE_MASCOT', mascot: payload?.mascotSuggestion ?? '' };
+    }
+
     case 'athletic-director': {
       const payload = pending.payload as { candidates?: Coach[]; mascotSuggestion?: string } | undefined;
       const candidates = payload?.candidates ?? [];

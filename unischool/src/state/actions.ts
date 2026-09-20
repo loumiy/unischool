@@ -284,6 +284,7 @@ export type Action =
   // `candidate: null` is the decline, which records a week rather than a flag
   // (see types.ts's athleticDirectorAskedWeek).
   | { type: 'RESOLVE_ATHLETIC_DIRECTOR'; candidate: Coach | null; mascot: string }
+  | { type: 'RESOLVE_MASCOT'; mascot: string } // the first sport club's naming beat (Plan 21's PR O)
   // A championship report: read and leave, like the U.S. News report.
   | { type: 'RESOLVE_CHAMPIONSHIP' }
   // Commits one choice from an authored decision event (see
@@ -300,6 +301,8 @@ export type Action =
   // decision, it's a standing dial the player can adjust as often as they
   // like, so there is nothing to refuse and no cost charged here.
   | { type: 'SET_ATHLETICS_BUDGET'; tier: AthleticsBudgetTier }
+  | { type: 'SET_TEAM_ORDER'; order: string[] } // the priority list, dragged (Plan 21's PR G)
+  | { type: 'EXPAND_VENUE'; venueId: string } // a venue rung, in place (Plan 21's PR Q)
   // Hires a coach candidate into one of a team's three staff roles (see
   // types.ts's VarsityTeam/Coach). Refused (no-op) if the candidate isn't
   // listed, the team doesn't exist, the candidate's field doesn't match
@@ -453,10 +456,15 @@ export function createPreStartState(): GameState {
       clubs: [], chapters: [], teams: [], coachCandidates: [], pendingPetitions: [],
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
       athleticsBudget: DEFAULT_ATHLETICS_BUDGET,
+      teamOrder: [],
+      studentCenterWeek: 0,
+      mascotBeatPending: false,
       athleticDirector: null,
       lastSeason: {},
       titles: [],
       pendingTitles: [],
+      season: {},
+      rivalries: {},
       athleticDirectorAskedWeek: 0,
     },
     research: {
@@ -807,10 +815,15 @@ export function createInitialState(
       pendingPetitions: [],
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
       athleticsBudget: DEFAULT_ATHLETICS_BUDGET,
+      teamOrder: [],
+      studentCenterWeek: 0,
+      mascotBeatPending: false,
       athleticDirector: null,
       lastSeason: {},
       titles: [],
       pendingTitles: [],
+      season: {},
+      rivalries: {},
       athleticDirectorAskedWeek: 0,
     },
     // No labs at founding, so nothing produces research and no output can
