@@ -202,6 +202,10 @@ export const FOUNDERS_HALL_REPUTATION_BONUS = 1.5;
 // completionist ten or eleven. Cumulative: ~$14M for eight, ~$37M for
 // eleven — a fraction of the dorm chain over the same span.
 export const ACADEMIC_HALL_SLOTS = 6;
+// What the first purchased hall waits on (Plan 19's PR B): the six courses
+// the college opens with, plus two the player chose. See
+// Buildable.minCoursesToUnlock.
+export const FIRST_HALL_COURSE_GATE = 8;
 const ACADEMIC_HALL_FIRST_COST = 750_000;
 const ACADEMIC_HALL_COST_RATIO = 1.3;
 const ACADEMIC_HALL_FIRST_WEEKS = 16;
@@ -1181,8 +1185,8 @@ export function initialTech(): Buildable[] {
 
   // The academic hall chain (see ACADEMIC_HALL_SLOTS above). Each rung
   // waits on the rung before, the dorm chain's shape; the first has no
-  // Buildable prereq — its gate is dynamic (Plan 19's PR B, see
-  // techSystem.ts's meetsUnlockGates).
+  // Buildable prereq — its gate is FIRST_HALL_COURSE_GATE developed
+  // courses (see techSystem.ts's meetsUnlockGates).
   ACADEMIC_HALL_NAMES.forEach((name, i) => {
     const cost = Math.round(ACADEMIC_HALL_FIRST_COST * ACADEMIC_HALL_COST_RATIO ** i / 1_000) * 1_000;
     nodes.push({
@@ -1193,6 +1197,7 @@ export function initialTech(): Buildable[] {
       cost,
       duration: i === 0 ? ACADEMIC_HALL_FIRST_WEEKS : ACADEMIC_HALL_WEEKS,
       prereqs: i === 0 ? [] : [academicHallId(i - 1)],
+      ...(i === 0 ? { minCoursesToUnlock: FIRST_HALL_COURSE_GATE } : {}),
       status: 'locked',
       slots: ACADEMIC_HALL_SLOTS,
       effects: { upkeepPerWeek: ACADEMIC_HALL_UPKEEP_PER_WEEK },

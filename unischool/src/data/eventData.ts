@@ -8,7 +8,7 @@ import {
   promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, VARSITY_PETITION_MIN_TENURE_YEARS, venueForCategory,
   CHAIR_LABEL, fieldForChair, generateCoachCandidate, seatCoach, vacantChairs,
 } from './studentLifeData';
-import { FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, milestoneSchools, programById, programs } from './techData';
+import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, milestoneSchools, programById, programs } from './techData';
 import { FOUNDING_PROGRAMS } from './foundingData';
 import { dedicatedHalls, dedicatedSchool } from '../systems/techtree/schools';
 import { buildReportPayload } from '../systems/rivals/rivalsSystem';
@@ -1525,7 +1525,7 @@ function list(names: string[]): string {
 }
 
 // Small counts in words, as a letter would write them.
-const COUNT_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six'];
+const COUNT_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
 function count(n: number): string {
   return COUNT_WORDS[n] ?? String(n);
 }
@@ -1555,7 +1555,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
         : gap.unstaffed.length > 0
           ? `Each of them needs an appointment before its first course can start.`
           : `The roster can teach every one of them.`;
-      return `Six programs of one school in one hall is what founds a school, and we are half-way to one: ${count(FOUNDING_PROGRAMS.length)} of the six ${gap.school} programs are in Founders Hall, which has exactly ${count(want.length)} rooms left, and ${list(want)} would fill them. ${staffing} The other road is a hall of your own: the first academic hall holds six programs, costs three quarters of a million, and opens once this college teaches eight courses. Depth costs professors; breadth costs a building. Where you put it matters only to the eye.`;
+      return `Six programs of one school in one hall is what founds a school, and we are half-way to one: ${count(FOUNDING_PROGRAMS.length)} of the six ${gap.school} programs are in Founders Hall, which has exactly ${count(want.length)} rooms left, and ${list(want)} would fill them. ${staffing} The other road is a hall of your own: the first academic hall holds six programs, costs three quarters of a million, and opens once this college teaches ${count(FIRST_HALL_COURSE_GATE)} courses. Depth costs professors; breadth costs a building. Where you put it matters only to the eye.`;
     },
     ask: 'Fill Founders Hall with one school, or site a hall of your own (Build)',
     done: (s) => dedicatedSchool(s, FOUNDERS_HALL_ID) !== null || sited(s, (t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID),

@@ -18,7 +18,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { reducer } from '../src/engine/reducer';
 import { createInitialState } from '../src/state/actions';
-import { initialTech, majorPrefixes, graduatePrograms, ACADEMIC_HALL_COUNT, ACADEMIC_HALL_SLOTS, isAcademicHall } from '../src/data/techData';
+import { initialTech, majorPrefixes, graduatePrograms, ACADEMIC_HALL_COUNT, ACADEMIC_HALL_SLOTS, FIRST_HALL_COURSE_GATE, isAcademicHall } from '../src/data/techData';
 import { weeklyResearchPoints, facilitySchool, disciplineVocab, rollGrantFunder, rollPrizeName } from '../src/data/researchData';
 import { researchSchools } from '../src/data/techData';
 import { findDecisionEvent, type DecisionEventContext } from '../src/data/eventData';
@@ -377,6 +377,7 @@ function relPath(f: string): string {
   const isDoneIn = (st: GameState, id: string) => st.tech.find((t) => t.id === id)?.status === 'done';
 
   assert(isLocked('FINA101'), 'FINA101 starts locked (its program has no home)');
+  assert(isLocked('HALL-01'), 'the first academic hall starts locked — six courses developed against a gate of eight');
   assert(isLocked('FINA110'), 'FINA110 starts locked');
   assert(isAvail('ENGL120'), 'a founding program\'s next course opens at founding — housed, and its entry course done');
 
@@ -598,8 +599,8 @@ function assertHallsInvariants(s: GameState, label: string): void {
   const halls = s.tech.filter((t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID);
   assert(halls.length === ACADEMIC_HALL_COUNT, `the seed holds ${ACADEMIC_HALL_COUNT} academic halls beyond Founders (got ${halls.length})`);
   assert(halls.every((h) => h.slots === ACADEMIC_HALL_SLOTS), 'every academic hall has six slots');
-  assert(halls.slice(1).every((h) => h.status === 'locked'), 'no hall past the first is buildable at founding');
-  assert(halls[0].prereqs.length === 0, 'the first hall has no Buildable prereq');
+  assert(halls.every((h) => h.status === 'locked'), 'no academic hall is buildable at founding');
+  assert(halls[0].prereqs.length === 0 && halls[0].minCoursesToUnlock === FIRST_HALL_COURSE_GATE, `the first hall's gate is ${FIRST_HALL_COURSE_GATE} developed courses, not a Buildable`);
   assert(halls.slice(1).every((h, i) => h.prereqs.length === 1 && h.prereqs[0] === halls[i].id),
     'each later hall requires exactly the hall before it');
   assert(halls.every((h, i) => i === 0 || h.cost > halls[i - 1].cost), 'each hall costs more than the one before');

@@ -16,7 +16,7 @@
 // ---------------------------------------------------------------------
 
 import { play, STRATEGIES } from './balanceSim';
-import { initialTech, isAcademicHall } from '../src/data/techData';
+import { FOUNDERS_HALL_ID, initialTech, isAcademicHall } from '../src/data/techData';
 import { initialFacilities } from '../src/data/facilitiesData';
 import { initialDorms } from '../src/data/campusData';
 import { SPEEDS } from '../src/engine/useGame';
@@ -71,10 +71,10 @@ function doneIds(s: GameState): Set<string> {
 const FIRSTS: Array<{ label: string; reached: (s: GameState) => boolean }> = [
   { label: 'First dorm', reached: (s) => s.tech.some((t) => t.kind === 'dorm' && t.status === 'done') },
   // The first hall the school BUILDS. The founding campus already has one —
-  // General Studies stands on day one (see data/actions.ts's founding
-  // state) — so counting it would report week 1 for every strategy and say
-  // nothing about pacing.
-  { label: 'First academic hall built', reached: (s) => s.tech.some((t) => isAcademicHall(t) && t.status === 'done') },
+  // Founders Hall stands on day one (see state/actions.ts's founding
+  // state), an ordinary hall since Plan 19 — so counting it would report
+  // week 1 for every strategy and say nothing about pacing.
+  { label: 'First academic hall built', reached: (s) => s.tech.some((t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID && t.status === 'done') },
   // Schools are FOUNDED (Plan 14): six programs of one school in one hall.
   { label: 'First school founded', reached: (s) => Object.keys(s.milestones).some((k) => k.startsWith('school-founded:')) },
   { label: 'Every school founded', reached: (s) => Object.keys(s.milestones).filter((k) => k.startsWith('school-founded:')).length >= 7 },

@@ -10,8 +10,8 @@ import { tierOf, type CourseTier } from '../../data/courseQuality';
 
 // ---------------------------------------------------------------------
 // The milestone chain (see docs/design/curriculum.md's "The milestone chain").
-// Unlocking itself (gen-ed -> tier-1 -> school building -> tier-2 -> tier-3)
-// is pure authored prereq data resolved generically by unlockAvailable() below
+// Unlocking itself (founding -> tier-1 -> tier-2 -> tier-3) is pure authored prereq data
+// resolved generically by unlockAvailable() below
 // — nothing special needed for that. What's left for dedicated logic is the
 // BONUS side: "program established" and "further" bonuses aren't a single
 // course's own completion effect, they're a reward for an aggregate condition
@@ -529,6 +529,9 @@ function meetsUnlockGates(s: GameState, t: Buildable): boolean {
   if (t.schoolGate !== undefined && !s.milestones[schoolFoundedKey(t.schoolGate)]) return false;
   if (t.minCapacityToUnlock !== undefined && totalEnrolled(s.students) < t.minCapacityToUnlock) return false;
   if (t.minPrestigeToUnlock !== undefined && s.self.reputation < t.minPrestigeToUnlock) return false;
+  // THE DEVELOPED-COURSE GATE (Plan 19's PR B): the first purchased hall
+  // waits on the college teaching enough to justify it.
+  if (t.minCoursesToUnlock !== undefined && developedCourseCount(s) < t.minCoursesToUnlock) return false;
   if (t.graduateProgram !== undefined && !graduateGateMet(s, t.graduateProgram)) return false;
   // The fourth gate: a varsity athletics venue (facilitiesData.ts) stays
   // hidden until a team needing its facilityType category has been granted
@@ -538,6 +541,12 @@ function meetsUnlockGates(s: GameState, t: Buildable): boolean {
   // than a bespoke flag of its own.
   if (t.athleticsVenueReveal && !s.orgs.teams.some((team) => team.venueCategory === t.facilityType)) return false;
   return true;
+}
+
+// Courses developed, in any program — what Buildable.minCoursesToUnlock
+// reads.
+export function developedCourseCount(s: GameState): number {
+  return s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
 }
 
 export function unlockAvailable(s: GameState): void {

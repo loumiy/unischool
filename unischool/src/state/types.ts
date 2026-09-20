@@ -333,6 +333,15 @@ export interface Buildable {
   // health center: large campuses only, see facilitiesData.ts.
   minCapacityToUnlock?: number;
   minPrestigeToUnlock?: number; // e.g. a research library / athletics complex tier
+  // A developed-course gate (Plan 19's PR B): this Buildable stays locked
+  // until the catalogue has at least this many courses developed, in any
+  // program. Only the first purchased academic hall carries it — "the
+  // college is teaching enough to justify a second building" — which is
+  // what keeps a $750,000 purchase out of week one now that Founders Hall
+  // opens with rooms to spare and the gen-ed core it used to wait on is
+  // gone. Monotone, unlike the two above (a developed course stays
+  // developed), but read the same way, every tick.
+  minCoursesToUnlock?: number;
   // (the third such gate is `graduateProgram` above — a graduate course
   // waits on its program's parent-school gate, which is a reading of
   // milestones and lab status rather than of any one Buildable's id)
