@@ -96,11 +96,11 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               note={`the endowment's annual spend rate on ${money(s.finance.endowment)}`}
               amount={flow.endowmentPayout}
             />
-            {flow.gateRevenue > 0 && (
+            {(flow.athleticsSurplus > 0 || flow.gateRevenue > 0) && (
               <StatementLine
-                label="Gate revenue"
-                note={`what the varsity programs take at the gate over ${HOME_DATES_PER_SEASON} home dates a season`}
-                amount={flow.gateRevenue}
+                label="Athletics surplus"
+                note={`what the department returned: ${money(flow.gateRevenue)}/wk at the gate over ${HOME_DATES_PER_SEASON} home dates a season, into its pot first, and this is what was left once every program drew its cost`}
+                amount={flow.athleticsSurplus}
               />
             )}
             <div className="statement-total">
@@ -140,6 +140,11 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               label="Campus upkeep"
               note="libraries, dining, rec and labs, each carrying its own running cost"
               amount={flow.facilityUpkeep}
+            />
+            <StatementLine
+              label="Athletics subsidy"
+              note={`the ${s.orgs.athleticsBudget} tier's yearly subsidy into the department's pot, whatever the programs earn`}
+              amount={flow.athleticsSubsidy}
             />
             <div className="statement-total">
               <span>Total expenses</span>

@@ -1177,6 +1177,15 @@ export interface StudentOrgState {
   hellenicCouncilOffered: boolean;
   lastFormationWeek: number; // absolute week a club or chapter last formed; 0 = never
   athleticsBudget: AthleticsBudgetTier;
+  // THE PRIORITY LIST (Plan 21's PR G): the department's programs in the
+  // order the player put them, as team ids. The ORDER is the stored thing
+  // and the only stored thing — the pot, the funded line and therefore the
+  // bands are derived from it every read (studentLifeData.ts's
+  // departmentPot), so they can never disagree with the money. A team
+  // missing from the list (promoted before the list existed, or an id the
+  // list carries for a team that is gone) is handled by the derivation, not
+  // by a migration: unknown ids are dropped, unlisted teams are appended.
+  teamOrder: string[];
   // THE ATHLETIC DIRECTOR, hired once the first team exists (see
   // systems/events/eventSystem.ts's fireAthleticDirectorOffer). A `Coach`
   // rather than a fourth kind of person, because that is exactly what they

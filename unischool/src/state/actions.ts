@@ -300,6 +300,7 @@ export type Action =
   // decision, it's a standing dial the player can adjust as often as they
   // like, so there is nothing to refuse and no cost charged here.
   | { type: 'SET_ATHLETICS_BUDGET'; tier: AthleticsBudgetTier }
+  | { type: 'SET_TEAM_ORDER'; order: string[] } // the priority list, dragged (Plan 21's PR G)
   // Hires a coach candidate into one of a team's three staff roles (see
   // types.ts's VarsityTeam/Coach). Refused (no-op) if the candidate isn't
   // listed, the team doesn't exist, the candidate's field doesn't match
@@ -453,6 +454,7 @@ export function createPreStartState(): GameState {
       clubs: [], chapters: [], teams: [], coachCandidates: [], pendingPetitions: [],
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
       athleticsBudget: DEFAULT_ATHLETICS_BUDGET,
+      teamOrder: [],
       athleticDirector: null,
       lastSeason: {},
       titles: [],
@@ -807,6 +809,7 @@ export function createInitialState(
       pendingPetitions: [],
       hellenicCouncilApproved: false, hellenicCouncilOffered: false, lastFormationWeek: 0,
       athleticsBudget: DEFAULT_ATHLETICS_BUDGET,
+      teamOrder: [],
       athleticDirector: null,
       lastSeason: {},
       titles: [],

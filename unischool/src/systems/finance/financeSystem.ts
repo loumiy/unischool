@@ -1,6 +1,6 @@
 import type { ClassTuition, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
-import { inTitleYear, studentOrgUpkeep } from '../../data/studentLifeData';
+import { departmentPot, inTitleYear, studentOrgUpkeep } from '../../data/studentLifeData';
 import { weeklyGateRevenue } from '../athletics/gate';
 import { marketRateMultiplier } from '../../data/facultyData';
 import { SEATS_PER_COURSE, instructionCapacity } from '../techtree/instructionCapacity';
@@ -292,7 +292,8 @@ export interface FinanceBreakdown {
   tuitionRevenue: number;      // every class at its own admission-year price (see annualTuitionBilled)
   prestigeRevenue: number;     // the reputation dividend: donors/grants/brand, independent of enrollment
   endowmentPayout: number;     // the endowment's annual spend rate, sliced into weeks
-  gateRevenue: number;         // what the athletics department's home dates take at the gate (see systems/athletics/gate.ts) — Plan 21's PR D
+  gateRevenue: number;         // what the athletics department's home dates take at the gate, gross (see systems/athletics/gate.ts) — Plan 21's PR D. Shown, not summed: it is paid into the department's pot (PR G), and only the surplus below reaches income
+  athleticsSurplus: number;    // what the department's pot returned once every program on the list drew its cost — the spill into general income (PR G)
   totalIncome: number;
   // expenses
   weeklySalaries: number;      // the faculty payroll at market rate (see facultyData.ts's marketRateMultiplier), annualized salaries sliced into weeks
@@ -302,6 +303,7 @@ export interface FinanceBreakdown {
   academicUpkeep: number;      // running the courses, academic buildings and labs that are done
   facilityUpkeep: number;      // running the dorms and campus-life facilities that are done
   studentLifeUpkeep: number;   // running the clubs and Greek chapters the player has recognised (see data/studentLifeData.ts)
+  athleticsSubsidy: number;    // the institutional half of the department's pot, the budget tier's subsidy (PR G)
   totalExpenses: number;
   net: number;                 // totalIncome - totalExpenses
 }
@@ -399,7 +401,18 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   const tuitionRevenue = annualTuitionBilled(s) / WEEKS_PER_YEAR;
   const prestigeRevenue = (s.self.reputation * REPUTATION_DIVIDEND_PER_POINT_PER_YEAR) / WEEKS_PER_YEAR;
   const endowmentPayout = (s.finance.endowment * ENDOWMENT_PAYOUT_RATE) / WEEKS_PER_YEAR;
+  // THE DEPARTMENT'S ROUTING (Plan 21's PR G). The gate is paid to the
+  // department, not the university: the pot is the tier's subsidy plus the
+  // gate, every program on the priority list draws its cost off it in
+  // order, and only what is left spills into general income. So the
+  // subsidy is an expense every week, the surplus is income, and the
+  // university's net of athletics is gate minus programs — a winning
+  // department returns more than it was given and stops being a cost
+  // centre; a losing one returns nothing.
   const gateRevenue = weeklyGateRevenue(s);
+  const pot = departmentPot(s);
+  const athleticsSubsidy = pot.subsidy / WEEKS_PER_YEAR;
+  const athleticsSurplus = pot.surplus / WEEKS_PER_YEAR;
   // SALARIES AT MARKET RATE (Plan 15's PR D): a top-20 school pays what
   // top-20 schools pay. The roster's salaries are the base; the school's
   // prestige tier multiplies them (facultyData.ts's marketRateMultiplier),
@@ -421,15 +434,16 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   // founding fork. Every school lives on what it charges, what its
   // standing attracts, what its endowment pays out and, since Plan 21's PR
   // D, what its teams take at the gate.
-  const totalIncome = tuitionRevenue + prestigeRevenue + endowmentPayout + gateRevenue;
+  const totalIncome = tuitionRevenue + prestigeRevenue + endowmentPayout + athleticsSurplus;
   const totalExpenses = weeklySalaries + seatUpkeep + instructionCost + servicesCost + academicUpkeep +
-    facilityUpkeep + studentLifeUpkeep;
+    facilityUpkeep + studentLifeUpkeep + athleticsSubsidy;
 
   return {
     tuitionRevenue,
     prestigeRevenue,
     endowmentPayout,
     gateRevenue,
+    athleticsSurplus,
     totalIncome,
     weeklySalaries,
     seatUpkeep,
@@ -438,6 +452,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
     academicUpkeep,
     facilityUpkeep,
     studentLifeUpkeep,
+    athleticsSubsidy,
     totalExpenses,
     net: totalIncome - totalExpenses,
   };

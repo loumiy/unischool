@@ -124,7 +124,10 @@ export const SAVE_KEY = 'unischool.save';
 // them, and a save carries its own `tech` and `halls` — one written
 // under v66 would load with courses the game no longer knows and a hall
 // with a slot the game says holds a program that does not exist.
-export const SAVE_VERSION = 67;
+// v68: Plan 21. `s.orgs.teamOrder` (PR G's priority list) — a save without
+// it would read every program as unlisted, which the derivation tolerates,
+// but the rest of the plan's fields land under the same number.
+export const SAVE_VERSION = 68;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch

@@ -34,8 +34,7 @@ import { advanceOpening, openingHoldsClock, settleOpening, skipOpening } from '.
 import {
   CHAPTER_APPROVAL_SATISFACTION_NUDGE, CHAPTER_DECLINE_SATISFACTION_HIT,
   CLUB_APPROVAL_SATISFACTION_NUDGE, CLUB_DECLINE_SATISFACTION_HIT, activatePetition, TRAINER_FIELD,
-  MASCOT_MAX_LENGTH,
-} from '../data/studentLifeData';
+  MASCOT_MAX_LENGTH, applyTeamOrder } from '../data/studentLifeData';
 import {
   canPlace, canSiteRetroactively, footprintOf, isInBounds, isPlaceableKind,
   orientedFootprint, pathTileKey, placementFor, sitingFeeOf,
@@ -623,6 +622,22 @@ export function reducer(state: GameState, action: Action): GameState {
     // tick.
     case 'SET_ATHLETICS_BUDGET': {
       s.orgs.athleticsBudget = action.tier;
+      return s;
+    }
+
+    // The priority list, dragged (Plan 21's PR G). The order is the stored
+    // thing; the funded line is derived. A program dragged below the line
+    // it was above may lose its head coach on the spot (studentLifeData.ts's
+    // applyTeamOrder), and the log says who walked.
+    case 'SET_TEAM_ORDER': {
+      const left = applyTeamOrder(s, action.order);
+      if (left.length > 0) {
+        s.log.unshift({
+          year: s.clock.year, week: s.clock.week,
+          message: `The priority list moved, and ${left.join(', ')} resigned rather than coach a program the department will no longer fund in full.`,
+          kind: 'bad',
+        });
+      }
       return s;
     }
 

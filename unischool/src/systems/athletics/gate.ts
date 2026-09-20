@@ -1,7 +1,7 @@
 import type { GameState, VarsityTeam } from '../../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
 import { VENUE_SEATS } from '../../data/facilitiesData';
-import { sportEconomics, teamQuality } from '../../data/studentLifeData';
+import { coachingQuality, registerGateReader, sportEconomics } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
 // THE GATE (Plan 21's PR D): the game's first non-tuition, non-endowment
@@ -63,7 +63,7 @@ export function attendanceFor(s: GameState, team: VarsityTeam): number {
   const seats = venueSeats(s, team);
   if (seats === 0) return 0;
   const crowd = Math.min(seats, totalEnrolled(s.students) * CROWD_PER_ENROLLED);
-  const fill = FILL_FLOOR + FILL_PER_QUALITY * (teamQuality(team, s) / 100);
+  const fill = FILL_FLOOR + FILL_PER_QUALITY * (coachingQuality(team, s) / 100);
   return Math.round(Math.min(seats, crowd * fill));
 }
 
@@ -73,13 +73,24 @@ export function ticketPriceFor(team: VarsityTeam): number {
   return sportEconomics(team.sport).ticketPrice;
 }
 
+// The department's gate for the year — the earned half of the pot.
+export function annualGateRevenue(s: GameState): number {
+  return s.orgs.teams.reduce((sum, team) => sum + annualGateFor(s, team), 0);
+}
+
+// The pot reads the gate through studentLifeData.ts's registered reader
+// (see registerGateReader there for why it is an indirection); wiring it
+// at module load means any state read after this module is imported sees
+// the earned half.
+registerGateReader(annualGateRevenue);
+
 // A program's gate for the year.
 export function annualGateFor(s: GameState, team: VarsityTeam): number {
   return attendanceFor(s, team) * ticketPriceFor(team) * HOME_DATES_PER_SEASON;
 }
 
-// The department's gate, per week — the figure the Treasury statement
-// carries (financeSystem.ts's financeBreakdown).
+// The department's gate, per week — the gross figure the Treasury shows
+// beside the routing (financeSystem.ts's financeBreakdown).
 export function weeklyGateRevenue(s: GameState): number {
-  return s.orgs.teams.reduce((sum, team) => sum + annualGateFor(s, team), 0) / WEEKS_PER_YEAR;
+  return annualGateRevenue(s) / WEEKS_PER_YEAR;
 }

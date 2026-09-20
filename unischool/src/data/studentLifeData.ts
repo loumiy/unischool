@@ -466,12 +466,23 @@ export function venueForCategory(s: GameState, category: FacilityType): Buildabl
 // buys better recruits on top of whatever the coaching staff itself is
 // worth, the "recruiting" a shallow model without an athlete roster of its
 // own can actually represent.
+//
+// THE LEVER IS THE SUBSIDY since Plan 21's PR G. `subsidyPerYear` is the
+// institutional half of the department's pot (see departmentPot below);
+// the old flat `qualityBonus` every team drew whatever its place is gone,
+// replaced by what a program's share of the pot buys it. The tier keeps
+// its job and gains a second meaning over a run: early it asks how much
+// the school is willing to spend on this, late it asks whether the
+// department still needs subsidising at all. FIXED IN DOLLARS, never a
+// share of opex — a subsidy that scaled with the school would fund eighteen
+// flagship programs at seventy thousand students without a decision being
+// made, at exactly the point in the run the list was built for.
 export const ATHLETICS_BUDGET_ORDER: readonly AthleticsBudgetTier[] = ['low', 'medium', 'high'];
 export const DEFAULT_ATHLETICS_BUDGET: AthleticsBudgetTier = 'medium';
-export const ATHLETICS_BUDGET_TIERS: Record<AthleticsBudgetTier, { socialMultiplier: number; upkeepMultiplier: number; qualityBonus: number }> = {
-  low: { socialMultiplier: 0.6, upkeepMultiplier: 0.75, qualityBonus: 0 },
-  medium: { socialMultiplier: 1.0, upkeepMultiplier: 1.0, qualityBonus: 8 },
-  high: { socialMultiplier: 1.5, upkeepMultiplier: 1.4, qualityBonus: 18 },
+export const ATHLETICS_BUDGET_TIERS: Record<AthleticsBudgetTier, { socialMultiplier: number; upkeepMultiplier: number; subsidyPerYear: number }> = {
+  low: { socialMultiplier: 0.6, upkeepMultiplier: 0.75, subsidyPerYear: 600_000 },
+  medium: { socialMultiplier: 1.0, upkeepMultiplier: 1.0, subsidyPerYear: 1_500_000 },
+  high: { socialMultiplier: 1.5, upkeepMultiplier: 1.4, subsidyPerYear: 3_000_000 },
 };
 
 // The flat per-team social contribution, same shape as CLUB/CHAPTER_SOCIAL_
@@ -815,13 +826,172 @@ export function athleticDirectorBonus(s: GameState): number {
   return ad ? ad.quality * AD_QUALITY_SHARE : 0;
 }
 
-export function teamQuality(team: VarsityTeam, s: GameState): number {
+// What the STAFF is worth, before the money: the three chairs weighted plus
+// the director. This is the number the gate reads (systems/athletics/
+// gate.ts) — a crowd follows the coaching, not the pot, and reading the pot
+// there would make the pot's earned half depend on the pot.
+export function coachingQuality(team: VarsityTeam, s: GameState): number {
   const weighted =
     (team.headCoach?.quality ?? COACH_VACANCY_QUALITY) * HEAD_COACH_WEIGHT
     + (team.assistantCoach?.quality ?? COACH_VACANCY_QUALITY) * ASSISTANT_COACH_WEIGHT
     + (team.trainer?.quality ?? COACH_VACANCY_QUALITY) * TRAINER_WEIGHT;
-  const budgetBonus = ATHLETICS_BUDGET_TIERS[s.orgs.athleticsBudget].qualityBonus;
-  return Math.max(0, Math.min(100, Math.round(weighted + budgetBonus + athleticDirectorBonus(s))));
+  return Math.max(0, Math.min(100, weighted + athleticDirectorBonus(s)));
+}
+
+// WHAT A PROGRAM'S SHARE OF THE POT BUYS IT (Plan 21's PR G). A fully
+// funded program gets FUNDED_QUALITY_BONUS on top of its staff — the
+// recruiting the old flat budget bonus stood for, now something the
+// program has to be high enough on the list to draw. Below the line a
+// program is UNDERFUNDED, NOT UNFUNDED: it runs at a proportional penalty,
+// the same floor-rather-than-zero shape COACH_VACANCY_QUALITY uses, so the
+// cut line is a gradient and not a cliff and the bottom of a long list is
+// not dead weight.
+const FUNDED_QUALITY_BONUS = 18;
+const UNDERFUNDING_PENALTY = 0.15; // a program drawing nothing runs at 85% of what its staff is worth
+
+export function teamQuality(team: VarsityTeam, s: GameState): number {
+  const funded = fundedFractionFor(s, team);
+  const quality = (coachingQuality(team, s) + FUNDED_QUALITY_BONUS * funded) * (1 - UNDERFUNDING_PENALTY * (1 - funded));
+  return Math.max(0, Math.min(100, Math.round(quality)));
+}
+
+// =====================================================================
+// THE PRIORITY LIST, AND A POT THAT GROWS (Plan 21's PR G).
+//
+// The department's programs sit in one ORDERED list (s.orgs.teamOrder), and
+// dragging sets order and nothing else — there are no slots and no caps.
+// Funding is a QUEUE, not a weighting: each program draws its sport's cost
+// to compete (SportEconomics.costToCompete) off the pot in list order until
+// the pot is exhausted, so the same pot funds football and basketball and
+// half of a third program, or six Olympic programs outright, and the screen
+// draws the line where the money runs out.
+//
+// THE BANDS ARE DESCRIPTIVE, NOT PRESCRIPTIVE. Flagship / competitive /
+// developmental are names for which side of the funded line a program sits
+// on, not compartments the player drags into — so the ratio of flagship
+// programs to programs is dynamic for free, with no constant to tune: the
+// line slides down the list as the pot grows and up as expensive sports
+// are promoted above cheap ones. About a quarter of programs fully funded
+// at mid-game is the target the pot and the sport costs are sized toward —
+// a target for the measurement, never a rule in the code.
+//
+//   pot = institutional subsidy + what athletics earned
+//
+// The subsidy is the budget tier (ATHLETICS_BUDGET_TIERS.subsidyPerYear);
+// what athletics earned is the gate (systems/athletics/gate.ts). A young
+// department is almost all subsidy; a mature winning one earns most of its
+// own pot and is a cost centre no longer. The surplus — what is left once
+// every program on the list is funded — spills into general income
+// (financeSystem.ts), so a dominant department eventually enriches the
+// school; but it pays for ITSELF first, which is the more interesting
+// claim.
+//
+// THE BRAKES, written in from the first commit because a pot fed by gate
+// and giving is a positive feedback loop on money: the gate saturates (a
+// venue holds what it holds), the subsidy is fixed in dollars, and the
+// costs are fixed in dollars, so a seventy-thousand-student school funds
+// exactly as many flagships as its tier and its gate can pay for.
+//
+// 'awaitingVenue' teams sit out of the queue and draw nothing: they cannot
+// compete, the same reason they contribute no social bonus and are not
+// ranked.
+// =====================================================================
+export type ProgramBand = 'flagship' | 'competitive' | 'developmental';
+
+export interface ProgramFunding {
+  team: VarsityTeam;
+  cost: number;   // $/yr the program draws when fully funded
+  drawn: number;  // $/yr it actually drew, in list order
+  funded: number; // drawn / cost, 0..1
+  band: ProgramBand;
+}
+
+export interface DepartmentPot {
+  subsidy: number;   // $/yr, the tier's
+  earned: number;    // $/yr, the gate
+  pot: number;       // subsidy + earned
+  programs: ProgramFunding[]; // in list order; 'awaitingVenue' teams are not here
+  drawn: number;     // what the programs took between them
+  surplus: number;   // pot - drawn: what spills into general income
+  fundedLine: number; // programs[0..fundedLine) are fully funded; the line is drawn under that index
+}
+
+export const BAND_LABEL: Record<ProgramBand, string> = {
+  flagship: 'flagship',
+  competitive: 'competitive',
+  developmental: 'developmental',
+};
+
+// The list as it should be read: the stored order, with ids of teams that
+// are gone dropped and teams the list does not know appended in the order
+// they were promoted. Pure; the stored array is never written here.
+export function orderedTeams(s: GameState): VarsityTeam[] {
+  const byId = new Map(s.orgs.teams.map((t) => [t.id, t]));
+  const out: VarsityTeam[] = [];
+  const seen = new Set<string>();
+  for (const id of s.orgs.teamOrder ?? []) {
+    const team = byId.get(id);
+    if (team && !seen.has(id)) { out.push(team); seen.add(id); }
+  }
+  for (const team of s.orgs.teams) if (!seen.has(team.id)) out.push(team);
+  return out;
+}
+
+// The gate is read through a thin indirection so this module does not
+// import systems/athletics/gate.ts (which imports this module for the
+// staff quality): the reducer's systems register the gate reader once at
+// startup. Zero until then, which is also the honest reading of a state
+// that has no venue.
+let gateReader: ((s: GameState) => number) | null = null;
+export function registerGateReader(reader: (s: GameState) => number): void {
+  gateReader = reader;
+}
+
+export function departmentPot(s: GameState): DepartmentPot {
+  const subsidy = ATHLETICS_BUDGET_TIERS[s.orgs.athleticsBudget].subsidyPerYear;
+  const earned = gateReader ? gateReader(s) : 0;
+  const pot = subsidy + earned;
+  let remaining = pot;
+  const programs: ProgramFunding[] = [];
+  let fundedLine = 0;
+  for (const team of orderedTeams(s)) {
+    if (team.status !== 'active') continue;
+    const cost = sportEconomics(team.sport).costToCompete;
+    const drawn = Math.max(0, Math.min(remaining, cost));
+    remaining -= drawn;
+    const funded = cost > 0 ? drawn / cost : 1;
+    const band: ProgramBand = funded >= 0.999 ? 'flagship' : funded > 0 ? 'competitive' : 'developmental';
+    if (band === 'flagship') fundedLine = programs.length + 1;
+    programs.push({ team, cost, drawn, funded, band });
+  }
+  return { subsidy, earned, pot, programs, drawn: pot - remaining, surplus: remaining, fundedLine };
+}
+
+export function fundedFractionFor(s: GameState, team: VarsityTeam): number {
+  if (team.status !== 'active') return 0;
+  return departmentPot(s).programs.find((p) => p.team.id === team.id)?.funded ?? 0;
+}
+
+// DEMOTION COSTS SOMETHING. A program dragged below the line it was above
+// may lose its head coach, who would rather leave than accept the cut —
+// otherwise reordering is free and the right play is to chase the bracket
+// every year. The list is a commitment, not a dial. Applied by the reducer
+// on the reorder itself, so a coach walks the week the list changes.
+export const DEMOTED_HEAD_COACH_LEAVES_CHANCE = 0.5;
+
+export function applyTeamOrder(s: GameState, order: string[]): string[] {
+  const before = new Map(departmentPot(s).programs.map((p) => [p.team.id, p.funded]));
+  s.orgs.teamOrder = order.filter((id) => s.orgs.teams.some((t) => t.id === id));
+  const after = departmentPot(s);
+  const left: string[] = [];
+  for (const p of after.programs) {
+    const was = before.get(p.team.id) ?? 0;
+    if (was >= 0.999 && p.funded < 0.999 && p.team.headCoach && Math.random() < DEMOTED_HEAD_COACH_LEAVES_CHANCE) {
+      left.push(`${p.team.headCoach.name} (${p.team.name})`);
+      p.team.headCoach = null;
+    }
+  }
+  return left;
 }
 
 // The whole athletic department's standing (item 4's "scores & standings"),
@@ -981,6 +1151,10 @@ export function promoteToVarsityTeam(s: GameState, club: StudentClub, opts: {
     status: opts.status,
   };
   s.orgs.teams.push(team);
+  // Onto the END of the priority list (PR G): a new program starts below
+  // every program the department already funds, and climbs when dragged.
+  if (!s.orgs.teamOrder) s.orgs.teamOrder = [];
+  s.orgs.teamOrder.push(team.id);
   return team;
 }
 

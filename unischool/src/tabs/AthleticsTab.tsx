@@ -4,9 +4,10 @@ import type { Coach, GameState, VarsityTeam } from '../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import {
-  ATHLETICS_BUDGET_ORDER, COACH_CANDIDATE_LISTING_WEEKS, TRAINER_FIELD,
-  sportById, teamQuality, venueForCategory,
+  ATHLETICS_BUDGET_ORDER, ATHLETICS_BUDGET_TIERS, BAND_LABEL, COACH_CANDIDATE_LISTING_WEEKS, TRAINER_FIELD,
+  departmentPot, orderedTeams, sportById, teamQuality, venueForCategory,
 } from '../data/studentLifeData';
+import type { ProgramFunding } from '../data/studentLifeData';
 import FacultyPortrait from '../components/FacultyPortrait';
 import { athleticRank, rankBy, sportRank, sportRankedList } from '../systems/rivals/rivalsSystem';
 import { annualGateFor, attendanceFor } from '../systems/athletics/gate';
@@ -240,13 +241,14 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
 function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const active = s.orgs.teams.filter((t) => t.status === 'active');
   const ad = s.orgs.athleticDirector;
+  const pot = departmentPot(s);
 
   return (
     <section className="panel department">
       <div className="panel-head">
         <h2>{s.self.mascot ? `${institutionName(s.self)} ${s.self.mascot}` : 'Varsity Athletics'}</h2>
         <HelpHint
-          text="A sport club (see Student Life) can petition to go varsity: a program budget and a shared competition venue for its sport's category. Coaching staff is hired separately, from the one market below — every team wants a head coach, an assistant and a trainer, and a vacant chair is a real gap rather than a hard block. The recruiting &amp; scholarship budget is the department's one dial: it scales every active team's social contribution and the whole department's running cost together, and adds a flat bonus to every team's quality. The athletic director adds a second, smaller lift to every team at once — the difference between the two is that one is money and the other is a person. Campus-life standing is one of the three the school is ranked on, and varsity athletics is the only thing on this screen that moves it."
+          text="A sport club (see Student Life) can petition to go varsity: a program budget and a shared competition venue for its sport's category. Coaching staff is hired separately, from the one market below — every team wants a head coach, an assistant and a trainer, and a vacant chair is a real gap rather than a hard block. The department runs on a pot: the school's subsidy (the one dial here) plus what the programs earn at the gate. Programs draw their sport's cost to compete off the pot in the order you put them — drag the list — until the money runs out; a fully funded program recruits at full strength, one below the line runs at a discount, and whatever is left over goes back to the school. The athletic director adds a smaller lift to every team at once. Campus-life standing is one of the three the school is ranked on, and varsity athletics is the only thing on this screen that moves it."
         />
       </div>
 
@@ -298,8 +300,16 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
         </dl>
       </div>
 
+      {/* THE POT (Plan 21's PR G): the subsidy the school puts in, what the
+          programs earned at the gate, and what is left once the list has
+          drawn on it. The tier is the subsidy, said in dollars. */}
       <div className="athletics-budget">
-        <span className="stat">Recruiting &amp; Scholarship Budget: {s.orgs.athleticsBudget}</span>
+        <span className="stat">
+          Subsidy: {s.orgs.athleticsBudget} ({money(pot.subsidy)}/yr)
+          {active.length > 0 && (
+            <> · gate {money(pot.earned)}/yr · pot {money(pot.pot)}/yr · programs draw {money(pot.drawn)}/yr · {pot.surplus > 0 ? `${money(pot.surplus)}/yr returned to the school` : 'nothing left over'}</>
+          )}
+        </span>
         <div className="athletics-budget-tiers">
           {ATHLETICS_BUDGET_ORDER.map((tier) => (
             <button
@@ -307,6 +317,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
               type="button"
               className={tier === s.orgs.athleticsBudget ? 'active' : ''}
               aria-pressed={tier === s.orgs.athleticsBudget}
+              title={`${money(ATHLETICS_BUDGET_TIERS[tier].subsidyPerYear)}/yr into the department's pot`}
               onClick={() => act({ type: 'SET_ATHLETICS_BUDGET', tier })}
             >
               {tier}
@@ -408,7 +419,7 @@ function TrophyCase({ s }: { s: GameState }) {
   );
 }
 
-function TeamCard({ s, act, team }: { s: GameState; act: (a: Action) => void; team: VarsityTeam }) {
+function TeamCard({ s, act, team, funding }: { s: GameState; act: (a: Action) => void; team: VarsityTeam; funding?: ProgramFunding }) {
   const quality = teamQuality(team, s);
   const staffAnnual = (team.headCoach?.salary ?? 0) + (team.assistantCoach?.salary ?? 0) + (team.trainer?.salary ?? 0);
   const weeklyCost = team.upkeepPerWeek + staffAnnual / WEEKS_PER_YEAR;
@@ -424,12 +435,17 @@ function TeamCard({ s, act, team }: { s: GameState; act: (a: Action) => void; te
       <div className="team-card-head">
         <span className="org-name">
           {team.name}
-          <span className="org-tag">{team.status === 'active' ? 'varsity' : 'awaiting venue'}</span>
+          <span className={`org-tag${funding ? ` band-${funding.band}` : ''}`}>
+            {team.status !== 'active' ? 'awaiting venue' : funding ? BAND_LABEL[funding.band] : 'varsity'}
+          </span>
         </span>
         <span className="org-meta">
           quality {quality} · {team.status === 'active'
             ? venue?.name ?? 'venue'
             : `waiting on ${venue?.name ?? 'venue'}`} · {money(weeklyCost)}/wk
+          {funding && (
+            <> · draws {money(funding.drawn)} of {money(funding.cost)}/yr{funding.funded < 0.999 && funding.funded > 0 ? ` (${Math.round(funding.funded * 100)}% funded)` : ''}</>
+          )}
           {team.status === 'active' && attendance > 0 && (
             <> · {attendance.toLocaleString()} a game, {money(gate)}/yr at the gate</>
           )}
@@ -440,10 +456,80 @@ function TeamCard({ s, act, team }: { s: GameState; act: (a: Action) => void; te
   );
 }
 
+// ---------------------------------------------------------------------
+// THE PRIORITY LIST (Plan 21's PR G): the programs in the order the player
+// put them, dragged, with the line drawn where the money runs out. The
+// idiom is the Curriculum tab's drag-and-drop, here on whole cards. Only
+// the order is dispatched; the bands on the cards are read back off the pot.
+// ---------------------------------------------------------------------
+function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [over, setOver] = useState<string | null>(null);
+  const pot = departmentPot(s);
+  const ordered = orderedTeams(s);
+  const active = ordered.filter((t) => t.status === 'active');
+  const awaiting = ordered.filter((t) => t.status === 'awaitingVenue');
+  const fundingOf = new Map(pot.programs.map((p) => [p.team.id, p]));
+
+  const drop = (targetId: string) => {
+    if (!dragging || dragging === targetId) return;
+    const ids = ordered.map((t) => t.id);
+    const from = ids.indexOf(dragging);
+    const to = ids.indexOf(targetId);
+    if (from === -1 || to === -1) return;
+    ids.splice(from, 1);
+    ids.splice(to, 0, dragging);
+    act({ type: 'SET_TEAM_ORDER', order: ids });
+  };
+
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <h2>{ordered.length === 1 ? 'One program' : `${ordered.length} programs`}</h2>
+        <HelpHint text="Drag a program up or down. Each draws its sport's cost to compete off the department's pot in this order until the pot runs out — the line shows where. A program above the line is a flagship and recruits at full strength; one the money reaches only part-way is competitive; one it never reaches is developmental and runs at a discount, not a zero. Dragging a program below the line it was above is a real demotion: its head coach may resign rather than take the cut. Teams waiting on a venue sit out of the queue and draw nothing." />
+      </div>
+      {ordered.length === 0 ? (
+        <p className="empty-note">No sport club has gone varsity yet.</p>
+      ) : (
+        <ul className="team-card-list priority-list">
+          {active.map((team, i) => {
+            const funding = fundingOf.get(team.id);
+            const lineHere = i === pot.fundedLine && pot.fundedLine < active.length && pot.fundedLine > 0;
+            return (
+              <li key={team.id} className="priority-slot">
+                {lineHere && <div className="funded-line">the money runs out here</div>}
+                <div
+                  className={`priority-card${dragging === team.id ? ' dragging' : ''}${over === team.id ? ' over' : ''}`}
+                  draggable
+                  onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; setDragging(team.id); }}
+                  onDragEnd={() => { setDragging(null); setOver(null); }}
+                  onDragOver={(e) => { e.preventDefault(); if (over !== team.id) setOver(team.id); }}
+                  onDrop={(e) => { e.preventDefault(); drop(team.id); setDragging(null); setOver(null); }}
+                >
+                  <span className="priority-rank" title="Drag to reorder">{i + 1}</span>
+                  <TeamCard s={s} act={act} team={team} funding={funding} />
+                </div>
+              </li>
+            );
+          })}
+          {pot.fundedLine === 0 && active.length > 0 && (
+            <li className="priority-slot"><div className="funded-line">the pot funds no program in full</div></li>
+          )}
+          {/* Teams waiting on a building: construction items, not programs,
+              sorted below the queue without a second heading. */}
+          {awaiting.map((team) => (
+            <li key={team.id} className="priority-slot awaiting">
+              <TeamCard s={s} act={act} team={team} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 export default function AthleticsTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const teams = s.orgs.teams;
-  const active = teams.filter((t) => t.status === 'active');
-  const awaiting = teams.filter((t) => t.status === 'awaitingVenue');
 
   return (
     <div className="tab-content">
@@ -454,22 +540,7 @@ export default function AthleticsTab({ s, act }: { s: GameState; act: (a: Action
           subject. */}
       <Department s={s} act={act} />
 
-      <section className="panel">
-        <div className="panel-head">
-          <h2>{teams.length === 1 ? 'One program' : `${teams.length} programs`}</h2>
-        </div>
-        {teams.length === 0 ? (
-          <p className="empty-note">No sport club has gone varsity yet.</p>
-        ) : (
-          <ul className="team-card-list">
-            {/* Active first, then the ones waiting on a building: a team that
-                cannot compete yet is a construction item, not a program, and
-                sorting it down says so without a second heading. */}
-            {active.map((team) => <TeamCard key={team.id} s={s} act={act} team={team} />)}
-            {awaiting.map((team) => <TeamCard key={team.id} s={s} act={act} team={team} />)}
-          </ul>
-        )}
-      </section>
+      <PriorityList s={s} act={act} />
 
       <SportStandings s={s} />
 
