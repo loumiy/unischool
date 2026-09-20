@@ -740,7 +740,7 @@ export function swapInstructors(s: GameState, courseA: string, courseB: string):
 }
 
 // The hall a course's program lives in, for anything that wants to say
-// "taught in North Academic Hall" — undefined for a course of an unhoused
+// "taught in Elm Hall" — undefined for a course of an unhoused
 // program.
 export function hallOfCourse(s: GameState, courseId: string): string | undefined {
   const programId = programOfCourse(courseId);

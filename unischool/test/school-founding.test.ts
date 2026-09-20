@@ -94,7 +94,7 @@ console.log('school founding tests');
   assert(entry?.headline === 'This is the School of Business', `the celebration names the school (${entry?.headline})`);
   assert(s.log.some((l) => l.message.includes('This is the School of Business')), 'the log says so too');
   assert(hallDisplayName(s, s.tech.find((t) => t.id === 'HALL-01')!) === 'Business Hall', 'the hall reads as Business Hall on the map');
-  assert(hallDisplayName(s, s.tech.find((t) => t.id === 'HALL-02')!) === 'South Academic Hall', 'an empty hall keeps its own name');
+  assert(hallDisplayName(s, s.tech.find((t) => t.id === 'HALL-02')!) === 'Oak Hall', 'an empty hall keeps its own name');
   // Awarded once: a second pass writes nothing new.
   const logged = s.log.filter((l) => l.message.includes('This is the School of Business')).length;
   if (s.pendingInterrupt) s = reducer(s, { type: 'RESOLVE_MILESTONE' });
@@ -157,7 +157,7 @@ console.log('school founding tests');
   assert(dedicatedSchool(s, 'HALL-01') === null, 'a hall that loses a program is no longer dedicated');
   s = finishSomething(s);
   assert(isSchoolFounded(s, 'Computer Science'), 'but the school stays founded');
-  assert(hallDisplayName(s, s.tech.find((t) => t.id === 'HALL-01')!) === 'North Academic Hall', 'while the hall goes back to its own name');
+  assert(hallDisplayName(s, s.tech.find((t) => t.id === 'HALL-01')!) === 'Elm Hall', 'while the hall goes back to its own name');
   // A lab's school gate reads the milestone, not the live purity.
   const lab = s.tech.find((t) => t.schoolGate === 'Computer Science')!;
   assert(!!lab, 'Computer Science has a lab with a school gate');

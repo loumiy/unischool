@@ -24,8 +24,11 @@ findings that are *not* about the core are sequenced as
 - *The hall chain lost its twelfth rung.* With Founders Hall an ordinary
   six-slot hall, the completionist ceiling of twelve halls is Founders plus
   eleven, and the chain's own rule is that a hall the player never needs is
-  never offered; the endpoint test was reading 12 of 13 halls built. Birch
-  Hall goes, and the layout tool's south quad closes on the computing lab.
+  never offered; the endpoint test was reading 12 of 13 halls built. The
+  chain is eleven, and the layout tool's south quad closes on the computing
+  lab. The halls are all named for the founding woodland now: the four that
+  used to carry the cardinal points said where a building should go, on a
+  map that is the player's own to lay out.
 - *The first hall is not a week-one purchase* (PR B), so neither its price
   nor the founding cash moved. The balanced builder's first purchased hall
   lands at week 120 rather than 68, for the reason open question 7 named as

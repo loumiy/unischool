@@ -105,7 +105,7 @@ console.log('founding tests');
   assert(cash - s.finance.cash === entry.cost, 'the entry course was charged, once');
   assert(!s.programOffers.includes(program.id), 'the founded program leaves the offer');
   assert(s.programOffers.length === 3, 'and a replacement is drawn');
-  assert(s.log[0]?.message.includes(program.name) && s.log[0]?.message.includes('North Academic Hall'),
+  assert(s.log[0]?.message.includes(program.name) && s.log[0]?.message.includes('Elm Hall'),
     `the log says where it was founded (${s.log[0]?.message})`);
   // Founding the same program twice, or into a taken slot, is refused.
   const again = reducer(s, { type: 'FOUND_PROGRAM', ...founding });

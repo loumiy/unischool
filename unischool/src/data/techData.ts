@@ -215,13 +215,15 @@ const ACADEMIC_HALL_WEEKS = 24;
 const ACADEMIC_HALL_UPKEEP_PER_WEEK = 3_000;
 // Named for the campus rather than for a school — a hall is not "the
 // School of Engineering" until six Engineering programs sit in it (Plan
-// 14's PR E gives a dedicated hall its school's name on the map). The
-// cardinal four first, then the founding woodland (see treeData.ts) the
-// campus was cut out of.
+// 14's PR E gives a dedicated hall its school's name on the map). Named
+// for the founding woodland (see treeData.ts) the campus was cut out of,
+// and for nothing else: the first four used to be the cardinal points,
+// and a name that says where a building goes contradicts a map that is
+// the player's own to lay out.
 const ACADEMIC_HALL_NAMES = [
-  'North Academic Hall', 'South Academic Hall', 'East Academic Hall', 'West Academic Hall',
   'Elm Hall', 'Oak Hall', 'Linden Hall', 'Maple Hall',
-  'Chestnut Hall', 'Sycamore Hall', 'Cedar Hall',
+  'Chestnut Hall', 'Sycamore Hall', 'Cedar Hall', 'Birch Hall',
+  'Hawthorn Hall', 'Beech Hall', 'Willow Hall',
 ];
 export const ACADEMIC_HALL_COUNT = ACADEMIC_HALL_NAMES.length;
 export const ACADEMIC_HALL_ID_PREFIX = 'HALL-';

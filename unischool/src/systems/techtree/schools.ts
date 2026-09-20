@@ -65,7 +65,7 @@ export function isSchoolFounded(s: GameState, school: string): boolean {
 // its naming rights were sold (a permanent, stored overwrite of `name` —
 // see eventData.ts's 'naming-rights'), "<School> Hall" while it is
 // dedicated, and its seeded name otherwise. A live reading, so a hall
-// that loses its purity goes back to being North Academic Hall until it
+// that loses its purity goes back to being Elm Hall until it
 // is pure again — the milestone stays, the label follows the building.
 export function hallDisplayName(s: GameState, t: Buildable): string {
   if (t.donorSurname) return t.name;
