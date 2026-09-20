@@ -90,11 +90,6 @@ measure the gap and are the check on any re-fit.
 *Carried over from the roadmap the README used to hold. Each is a real piece of
 work with a known shape; none has been turned into a sequence of PRs.*
 
-- **Research doctorates for the four newest research schools.** Every school
-  with majors now has a facility, so the `researchSchools()` gate would admit
-  more doctorates than the three that were authored — the programs themselves
-  are content that does not exist yet. See
-  `docs/design/graduate-programs.md`.
 - **Faculty lifecycle: rival poaching and paid retention.** A departure the
   player did not choose, and money spent to prevent it. The downstream chain (a
   department left understaffed, its courses without an instructor) already
@@ -152,12 +147,11 @@ work with a known shape; none has been turned into a sequence of PRs.*
 out of the current sequence. They are listed here so the next plan does not have
 to re-derive them from a 658-line document.*
 
-- **Curriculum texture (the review's H2, content half).** Plan 14 removes the
-  wall; it does not touch the sameness behind it. All 421 courses still differ
-  only by tier, field and one of eight templated sentences, and there are still
-  no authored per-major effects — a cohort pull, a grant rate, a two-field
-  prerequisite. Content work, landable in any order, and it is what would make
-  the catalogue worth *reading* rather than merely worth building.
+- **Per-major mechanical effects.** A cohort pull, a grant rate, a major that
+  recruits differently — the half of "curriculum texture" that is a system
+  rather than content, and the half [Plan 20](docs/plans/20-the-catalogue.md)
+  deliberately leaves alone. The content half — the eight templated sentences
+  behind 336 courses — is sequenced there.
 - **Athletics' reach into the economy, and student life with teeth.** The review
   found athletics the best-built system in the game and the least connected: a
   venue that sells no tickets, a title that moves a standing nothing reads, a
