@@ -371,7 +371,7 @@ const SCHOOLS: SchoolSeed[] = [
     majors: [
       { prefix: 'COMP', name: 'Computer Science', field: 'Computer Science', courses: ['Introduction to Programming', 'Data Structures', 'Algorithms', 'Operating Systems', 'Computer Architecture', 'Compiler Design', 'Game Development', 'Parallel Computing', 'Web Development'] },
       { prefix: 'DATA', name: 'Data Science', field: 'Mathematics', courses: ['Fundamentals of Data Science', 'Statistical Modeling', 'Machine Learning', 'Data Visualization', 'Data Mining', 'Big Data Systems', 'Time Series Analysis', 'Natural Language Processing', 'Bayesian Statistics'] },
-      { prefix: 'CYBR', name: 'Cybersecurity', field: 'Information Systems', courses: ['Introduction to Cybersecurity', 'Network Security', 'Cryptography', 'Ethical Hacking', 'Security Operations', 'Cloud Security', 'Digital Forensics', 'Risk Management', 'Software Security Testing'] },
+      { prefix: 'CYBR', name: 'Cybersecurity', field: 'Information Systems', courses: ['Introduction to Cybersecurity', 'Network Security', 'Cryptography', 'Ethical Hacking', 'Security Operations', 'Cloud Security', 'Digital Forensics', 'Security Risk Management', 'Software Security Testing'] },
       { prefix: 'SOFT', name: 'Software Engineering', field: 'Computer Science', courses: ['Introduction to Software Development', 'Software Requirements', 'Software Testing & QA', 'Database Systems', 'Object-Oriented Design', 'Agile Methodologies', 'Mobile Application Development', 'UI/UX', 'DevOps'] },
       { prefix: 'ARTF', name: 'Artificial Intelligence', field: 'Artificial Intelligence', courses: ['Introduction to Artificial Intelligence', 'AI Programming', 'Knowledge Representation', 'Neural Networks', 'Advanced Machine Learning', 'Deep Learning', 'Robotics & Perception', 'Computer Vision', 'AI Ethics & Society'] },
       { prefix: 'INFO', name: 'Information Systems', field: 'Information Systems', courses: ['Introduction to Information Systems', 'Systems Analysis & Design', 'Database Management', 'Enterprise Resource Planning', 'IT Infrastructure', 'Business Process Modeling', 'E-commerce Strategy', 'Information Security Management', 'Data Warehousing'] },
@@ -485,6 +485,16 @@ export function programOfCourse(courseId: string): string | undefined {
 //      Microelectronics", true as they are, are already what the climb
 //      says. Authoring them here would put a line in the tooltip that
 //      changes nothing about when the course opens.
+//   3. A BRIDGE NEVER HIDES A SCHOOL BEHIND A CAPSTONE (Plan 20's PR A).
+//      Rule 1 looks at the target's tier and not at what stands behind
+//      it, which is how Biochemical Engineering came to require
+//      Biochemistry — a capstone whose own closure holds the Chemistry
+//      Labs and, through the lab's schoolGate, a founded School of
+//      Science. So no bridge may name a course whose prereq closure
+//      contains a `facilityType: 'lab'` Buildable or a `schoolGate`: a
+//      cross-discipline prerequisite may cost the player a course or a
+//      hall slot in another school, never that school's lab and its
+//      founding, none of which the tooltip could say.
 //
 // Grouped by the school the BRIDGED course belongs to, since that is how
 // the Curriculum tab reads and how a retune of one school's pacing would
@@ -509,11 +519,11 @@ export const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
   AERO210: ['MATH101'],           // Astrodynamics needs calculus
   AERO220: ['MECH120'],           // Rocketry needs thermodynamics
   ELEC130: ['PHYS110'],           // Electromagnetics needs undergraduate electricity & magnetism
-  CHEM220: ['CHMY210'],           // Biochemical Engineering needs biochemistry itself, not just the organic chemistry under it
+  CHEM220: ['CHMY120'],           // Biochemical Engineering needs organic chemistry — the chemistry the course actually rests on. NOT CHMY210 (Biochemistry), which it used to name: that is a capstone in a lab-gated major, so its closure holds LAB-CHMY and the School of Science's founding, and distinguishing Engineering quietly required founding Science and building a $700,000 lab in it (rule 3 above, Plan 20's PR A)
   CHEM230: ['CHMY120'],           // Polymer Science needs organic chemistry — "polymer science requires Chemistry II" is already what the tier-3 climb says (rule 2 above), so the bridge goes one step deeper, into the Chemistry major
   CIVE140: ['SPCO101'],           // Transportation Engineering needs the supply-chain fundamentals it moves goods for. NOT SPCO240 ("Transportation Management"), which is a tier-3 capstone: this is a tier-2 course, and rule 1 above is why — bridging a tier-2 course to a capstone would hold Civil Engineering's ESTABLISHMENT behind most of a Business major. SPCO101 is also the lightest honest stand-in available, an entry course gating on nothing, so Civil Engineering doesn't quietly acquire a Business Hall dependency either
   CIVE220: ['ENVS101'],           // Environmental Impact Assessment needs environmental science
-  CIVE230: ['MGMT210'],           // Construction Management needs project management
+  CIVE230: ['MGMT120'],           // Construction Management needs operations management. Legal as a same-tier bridge to MGMT210 (Project Management), which it used to name — but MGMT210 requires Management's whole tier-2 quartet, so a civil engineering capstone pulled in most of a Business major; Operations Management is the lighter and equally honest link (Plan 20's PR A)
   CIVE240: ['SOCY101'],           // Urban Planning needs the sociology of the people being planned for
   INDE210: ['COMP101'],           // Simulation Modeling needs introductory programming
 
