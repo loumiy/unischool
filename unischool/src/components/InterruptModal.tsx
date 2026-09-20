@@ -181,8 +181,12 @@ function SIZE_FOR_LENGTH(length: number): string {
 // The count keeps its tone colour: whether this audience is above or below
 // neutral is what says which of the player's choices is working, in the
 // same bright good/bad pair the log ticker uses on this dark background.
-function CohortCard({ label, driverLabel, pull, applicants, lastYear, revealMs }: {
+function CohortCard({ label, driverLabel, pull, applicants, lastYear, revealMs, note }: {
   label: string; driverLabel: string; pull: number; applicants: number;
+  // The cause named, where a cohort has one to name (Plan 21's PR C): the
+  // title in men's basketball is worth so many of these. Shown in the
+  // tooltip beneath the driver line, so the card itself stays a figure.
+  note?: string;
   // Last summer's count for this audience (students.lastFunnel), shown small
   // beneath this year's (Plan 16's PR C) so the board reads as a change and
   // not only as a reading. Null at the first summer.
@@ -198,7 +202,7 @@ function CohortCard({ label, driverLabel, pull, applicants, lastYear, revealMs }
   // does not resize the text under the player as it counts up.
   const sizeClass = SIZE_FOR_LENGTH(applicants.toLocaleString().length);
   return (
-    <div className="cohort-card" title={driverLabel}>
+    <div className="cohort-card" title={note ? `${driverLabel}. ${note}` : driverLabel}>
       <span className="cohort-card-label">{label}</span>
       <span className={`cohort-card-count ${toneClass} ${sizeClass}`}>
         <AnimatedNumber value={applicants} durationMs={revealMs} revealFrom={0} />
@@ -206,7 +210,7 @@ function CohortCard({ label, driverLabel, pull, applicants, lastYear, revealMs }
       {lastYear !== null && (
         <span className="cohort-card-last" title="Last summer">{lastYear.toLocaleString()} last year</span>
       )}
-      <span className="cohort-card-tip" role="tooltip">{driverLabel}</span>
+      <span className="cohort-card-tip" role="tooltip">{driverLabel}{note && <><br />{note}</>}</span>
     </div>
   );
 }
@@ -366,7 +370,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             <div className="cohort-cards">
               {cohorts.map((c) => (
                 <CohortCard
-                  key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants}
+                  key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants} note={c.note}
                   lastYear={s.students.lastFunnel ? s.students.lastFunnel.cohorts[c.id] ?? 0 : null}
                   revealMs={REVEAL_MS}
                 />

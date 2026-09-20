@@ -1,7 +1,7 @@
 import type { CohortCounts, CohortId, GameState } from '../../state/types';
 import { weeklyResearchPoints } from '../../data/researchData';
 import { graduateCourseIds, graduatePrograms } from '../../data/techData';
-import { teamQuality } from '../../data/studentLifeData';
+import { sportById, teamQuality } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
 // STUDENT COHORTS: a second, additive lens on the applicant pool
@@ -47,7 +47,7 @@ export const COHORTS: Array<{ id: CohortId; label: string; baseShare: number; dr
   { id: 'social', label: 'Social', baseShare: 0.15, driverLabel: 'clubs & Greek chapters' },
   { id: 'artsFocused', label: 'Arts-focused', baseShare: 0.08, driverLabel: 'arts programs & venues' },
   { id: 'priceSensitive', label: 'Price-sensitive', baseShare: 0.15, driverLabel: 'your price vs. what your prestige supports' },
-  { id: 'athletes', label: 'Athletes', baseShare: 0.10, driverLabel: 'active varsity teams & coaching' },
+  { id: 'athletes', label: 'Athletes', baseShare: 0.10, driverLabel: 'active varsity teams, coaching & recent titles' },
   // UNDERGRADUATES WHO CHOSE THIS UNIVERSITY FOR ITS GRADUATE SCHOOLS —
   // the pre-meds, the pre-laws, the ones intending to continue. NOT
   // graduate students themselves, and the distinction is load-bearing:
@@ -122,11 +122,53 @@ export interface CohortSignals {
   artsFacilities: number;       // ARTS_FACILITY_IDS done, 0..2
   activeTeams: number;          // varsity teams with status 'active'
   athleticsQuality: number;     // avg teamQuality() across active teams, 0 if none
+  athleticResults: number;      // what the programs have WON — titles and deep postseason runs on a decaying window (Plan 21's PR C: results reach the pool, as research output already does)
+  athleticResultsLabel: string; // the cause, named for the summer modal: "the 2031 title in Men's Basketball"; '' when there is nothing recent
   gradCourseDepth: number;      // 'done' graduate/professional course Buildables, 0..37
+}
+
+// A TITLE REACHES THE APPLICANT POOL (Plan 21's PR C). The athletes cohort
+// used to read capacity alone — teams times quality — and sat within a few
+// percent of its cap from four decent programs onward, so the whole back
+// half of athletics was worth nothing at the funnel; researchOriented, by
+// contrast, has always read what the labs PRODUCED beside what they are.
+// This is the same term for athletics: each national title is worth
+// TITLE_RESULT_WEIGHT the summer after it and decays by RESULT_DECAY a
+// year, and last season's deep runs count a little, so a championship
+// swells the next summer's pool and fades over a few years rather than
+// compounding forever. Sized so a title is VISIBLE and not a strategy:
+// the cohort's cap barely moves; what changes is what it takes to reach it.
+const TITLE_RESULT_WEIGHT = 1.5;
+const RESULT_DECAY = 0.65;
+const RESULT_WINDOW_YEARS = 5;
+const FINISH_RESULT_WEIGHT: Record<string, number> = { final: 0.5, semifinal: 0.25, quarterfinal: 0.1 };
+
+export function athleticResultsFor(s: GameState): { results: number; label: string } {
+  let results = 0;
+  const recent: Array<{ sport: string; year: number }> = [];
+  for (const title of s.orgs.titles) {
+    const age = s.clock.year - title.year;
+    if (age < 0 || age >= RESULT_WINDOW_YEARS) continue;
+    results += TITLE_RESULT_WEIGHT * RESULT_DECAY ** age;
+    recent.push(title);
+  }
+  for (const result of Object.values(s.orgs.lastSeason)) {
+    if (s.clock.year - result.year > 1) continue;
+    results += FINISH_RESULT_WEIGHT[result.finish] ?? 0;
+  }
+  recent.sort((a, b) => b.year - a.year);
+  const name = (t: { sport: string; year: number }) => `the ${t.year} title in ${sportById(t.sport)?.teamName.replace(/ Team$/, '') ?? t.sport}`;
+  const label = recent.length === 0
+    ? (results > 0 ? "last season's postseason runs" : '')
+    : recent.length === 1
+      ? name(recent[0])
+      : `${name(recent[0])} and ${recent.length - 1} other recent title${recent.length === 2 ? '' : 's'}`;
+  return { results, label };
 }
 
 export function deriveCohortSignals(s: GameState): CohortSignals {
   const activeTeams = s.orgs.teams.filter((t) => t.status === 'active');
+  const athletic = athleticResultsFor(s);
   return {
     distinguishedDepth: milestoneCountWithPrefix(s, 'program-distinguished:') + 2 * milestoneCountWithPrefix(s, 'grad-program-complete:'),
     professionalPrograms: establishedPrefixCount(s, PRE_PROFESSIONAL_PREFIXES),
@@ -140,6 +182,8 @@ export function deriveCohortSignals(s: GameState): CohortSignals {
     athleticsQuality: activeTeams.length > 0
       ? activeTeams.reduce((sum, t) => sum + teamQuality(t, s), 0) / activeTeams.length
       : 0,
+    athleticResults: athletic.results,
+    athleticResultsLabel: athletic.label,
     // Counted off DEVELOPED COURSES rather than off the
     // `grad-program-complete:` milestones, deliberately. A milestone count
     // is a step function: five of Medicine's twelve courses built would
@@ -158,6 +202,7 @@ export function deriveCohortSignals(s: GameState): CohortSignals {
 export const NEUTRAL_COHORT_SIGNALS: CohortSignals = {
   distinguishedDepth: 0, professionalPrograms: 0, researchRate: 0, researchOutput: 0, labCount: 0,
   socialOrgCount: 0, artsPrograms: 0, artsFacilities: 0, activeTeams: 0, athleticsQuality: 0,
+  athleticResults: 0, athleticResultsLabel: '',
   gradCourseDepth: 0,
 };
 
@@ -183,7 +228,19 @@ const SOCIAL_DECAY = 0.08;
 const ARTS_STRENGTH = 0.7;
 const ARTS_DECAY = 0.35;
 const ATHLETICS_STRENGTH = 0.7;
-const ATHLETICS_DECAY = 0.5;
+// 0.5 until Plan 21's PR C: at 0.5 the curve was flat from four decent
+// programs onward (six teams at 70 read 1.61, at 100 read 1.67), so nothing a
+// program did after fielding was worth anything here. At 0.3 the same six
+// teams read 1.50, a title on top of them 1.55, and a dynasty 1.63 — the
+// cap is where it was; reaching it now takes results.
+const ATHLETICS_DECAY = 0.3;
+
+// The athletes cohort's own signal: capacity (teams times quality) plus what
+// they have won. One place, so the pull and the summer modal's "worth N of
+// these" line (cohortBreakdown) read the same sum.
+function athleticsSignal(signals: CohortSignals, withResults: boolean): number {
+  return signals.activeTeams * (signals.athleticsQuality / 100) + (withResults ? signals.athleticResults : 0);
+}
 
 // Price-sensitive is the one cohort that responds to price rather than a
 // built asset, and the one place this module needs a price-tolerance
@@ -229,7 +286,7 @@ function pullFor(id: CohortId, signals: CohortSignals, tolerance: number, tuitio
     case 'social': return boundedPull(SOCIAL_STRENGTH, SOCIAL_DECAY, signals.socialOrgCount);
     case 'artsFocused': return boundedPull(ARTS_STRENGTH, ARTS_DECAY, signals.artsPrograms * 1.5 + signals.artsFacilities * 2);
     case 'priceSensitive': return priceSensitivePull(tolerance, tuition);
-    case 'athletes': return boundedPull(ATHLETICS_STRENGTH, ATHLETICS_DECAY, signals.activeTeams * (signals.athleticsQuality / 100));
+    case 'athletes': return boundedPull(ATHLETICS_STRENGTH, ATHLETICS_DECAY, athleticsSignal(signals, true));
     // Flat 1.0, and it must stay flat: this cohort's entire responsiveness
     // to what the school has built lives in its SHARE (see gradBoundShare), so
     // a pull that also read gradCourseDepth would count the same graduate
@@ -321,6 +378,10 @@ export interface CohortDetail {
   driverLabel: string;
   pull: number;       // this cohort's own multiplier, 1.0 = neutral
   applicants: number; // whole applicants from this cohort; the eight sum to `applicants`
+  // The cause, named, where one figure has one: "the 2031 title in Men's
+  // Basketball is worth 4,100 of these" (Plan 21's PR C). Only the athletes
+  // cohort carries one today; undefined otherwise.
+  note?: string;
 }
 
 // Whole people, and the eight of them add up. Apportioned by largest
@@ -363,7 +424,20 @@ export function cohortBreakdown(
     driverLabel: c.driverLabel,
     pull: pulls[i],
     applicants: counts[i],
+    note: c.id === 'athletes' ? athleticsNote(signals, pulls[i], counts[i]) : undefined,
   }));
+}
+
+// How many of the athletes cohort the recent results are worth: the share
+// of this cohort's pull that capacity alone would not have produced, as
+// whole people out of the count the cohort actually drew.
+function athleticsNote(signals: CohortSignals, pull: number, applicants: number): string | undefined {
+  if (signals.athleticResults <= 0 || !signals.athleticResultsLabel || pull <= 1) return undefined;
+  const without = boundedPull(ATHLETICS_STRENGTH, ATHLETICS_DECAY, athleticsSignal(signals, false));
+  const fromResults = Math.round(applicants * (pull - without) / pull);
+  if (fromResults <= 0) return undefined;
+  const label = signals.athleticResultsLabel;
+  return `${label.charAt(0).toUpperCase()}${label.slice(1)} ${label.includes(' and ') ? 'are' : 'is'} worth ${fromResults.toLocaleString()} of these.`;
 }
 
 // The same seven counts as cohortBreakdown, keyed rather than listed and
