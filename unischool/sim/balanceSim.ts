@@ -882,44 +882,29 @@ function decide(
   const savingForDorm = strategy.buildsDorms && wantsDorm &&
     !affordable(beforeCurriculum, nextDorm!.cost, strategy);
 
-  // Founding and halls (Plan 14) come before the rest of the curriculum,
-  // since every course after the core sits behind a founding. The two
-  // spend-to-the-wire archetypes (see siteHallIfNeeded) do this even while
-  // "saving" for a dorm: a player with no buffer and no margin to keep is
-  // not saving for anything, and gating their halls on a dorm they cannot
-  // afford would make the one capital line they are meant to overreach on
-  // the one they are prudent about.
-  if (strategy.buildsCourses && (!savingForDorm || strategy.netMargin <= 0)) {
-    foundPrograms(get, dispatch, strategy);
-    siteHallIfNeeded(get, dispatch, strategy);
-  }
-
-  // Curriculum: cheapest tier first, plus the buildings/labs that gate it.
-  if (strategy.buildsCourses && !savingForDorm) {
-    const courseIds = beforeCurriculum.tech
-      .filter((t) => t.kind === 'course' && t.status === 'available')
-      .sort((a, b) => tierOf(a) - tierOf(b) || a.cost - b.cost)
-      .map((t) => t.id);
-    for (const id of courseIds) {
-      const s = get();
-      const c = s.tech.find((t) => t.id === id);
-      if (!c || c.status !== 'available') continue;
-      // A stray's courses stay where founding left them (see allowedOffers).
-      const programId = programOfCourse(id);
-      const school = programId ? programById(programId)?.school : undefined;
-      if (school !== undefined && isStray(s, strategy, school)) continue;
-      if (!hasHeadroom(s, strategy) || !affordable(s, c.cost, strategy)) continue;
-      if (!courseStaysSustainable(s, strategy)) continue;
-      if (canStartDevelopment(s, c)) dispatch({ type: 'START_DEVELOPMENT', nodeId: id });
-    }
-    for (const id of get().tech.filter((t) => t.facilityType === 'lab' && t.status === 'available').map((t) => t.id)) {
-      const s = get();
-      const l = s.tech.find((t) => t.id === id);
-      if (l && l.status === 'available' && canCommitCapital(s, strategy) && affordable(s, l.cost, strategy)) {
-        dispatchPlaceable(get, dispatch, id);
-      }
-    }
-  }
+  // CAMPUS LIFE BEFORE CURRICULUM (Plan 19's PR E). The founding college
+  // opens with three programs housed and nine tier-2 courses ready to
+  // start at $180,000 each, where it used to open with six $80,000 gen-ed
+  // courses and nothing else to buy until the first hall — so a harness
+  // that took the curriculum first and the campus-life facilities with
+  // whatever was left never accumulated the dining hall: the balanced
+  // builder was measured two years in with basic needs at 17 and every
+  // surplus week spent on a course. A player follows the week-nine letter
+  // ("site a residence hall and a dining hall") the way this now does:
+  // the facility the students are shortest of comes before the next
+  // course, and a prudent strategy SAVES for it the way it saves for a
+  // dorm. The spend-to-the-wire archetypes buy it the week they can, in
+  // this order, and save for nothing — which is what they are.
+  const shortFacility = strategy.buildsFacilities
+    ? beforeCurriculum.tech.find((t) => {
+      if (t.kind !== 'facility' || t.status !== 'available' || t.facilityType === 'lab') return false;
+      const attr = t.effects?.satisfactionAttribute;
+      return !!attr && beforeCurriculum.students.satisfactionBreakdown[attr] < strategy.facilityThreshold;
+    })
+    : undefined;
+  const savingForFacility = strategy.netMargin > 0 && shortFacility !== undefined &&
+    !affordable(beforeCurriculum, shortFacility.cost, strategy);
+  const saving = savingForDorm || savingForFacility;
 
   // Campus life: build whatever the satisfaction breakdown says is short.
   if (strategy.buildsFacilities && !savingForDorm) {
@@ -954,6 +939,45 @@ function decide(
       canCommitCapital(s, strategy) && affordable(s, plan.cost, strategy)
     ) {
       dispatch({ type: 'RENOVATE_LIBRARY' });
+    }
+  }
+
+  // Founding and halls (Plan 14) come before the rest of the curriculum,
+  // since every course after the founding six sits behind a founding. The
+  // two spend-to-the-wire archetypes (see siteHallIfNeeded) do this even
+  // while "saving" for a dorm or a facility: a player with no buffer and
+  // no margin to keep is not saving for anything, and gating their halls
+  // on a dorm they cannot afford would make the one capital line they are
+  // meant to overreach on the one they are prudent about.
+  if (strategy.buildsCourses && (!saving || strategy.netMargin <= 0)) {
+    foundPrograms(get, dispatch, strategy);
+    siteHallIfNeeded(get, dispatch, strategy);
+  }
+
+  // Curriculum: cheapest tier first, plus the buildings/labs that gate it.
+  if (strategy.buildsCourses && !saving) {
+    const courseIds = beforeCurriculum.tech
+      .filter((t) => t.kind === 'course' && t.status === 'available')
+      .sort((a, b) => tierOf(a) - tierOf(b) || a.cost - b.cost)
+      .map((t) => t.id);
+    for (const id of courseIds) {
+      const s = get();
+      const c = s.tech.find((t) => t.id === id);
+      if (!c || c.status !== 'available') continue;
+      // A stray's courses stay where founding left them (see allowedOffers).
+      const programId = programOfCourse(id);
+      const school = programId ? programById(programId)?.school : undefined;
+      if (school !== undefined && isStray(s, strategy, school)) continue;
+      if (!hasHeadroom(s, strategy) || !affordable(s, c.cost, strategy)) continue;
+      if (!courseStaysSustainable(s, strategy)) continue;
+      if (canStartDevelopment(s, c)) dispatch({ type: 'START_DEVELOPMENT', nodeId: id });
+    }
+    for (const id of get().tech.filter((t) => t.facilityType === 'lab' && t.status === 'available').map((t) => t.id)) {
+      const s = get();
+      const l = s.tech.find((t) => t.id === id);
+      if (l && l.status === 'available' && canCommitCapital(s, strategy) && affordable(s, l.cost, strategy)) {
+        dispatchPlaceable(get, dispatch, id);
+      }
     }
   }
 
@@ -1703,7 +1727,7 @@ const rampTuition = (perPrestigePoint: number, base = 4_000) => (s: GameState) =
 const SELECTIVE_COLLEGE_BODY = 4_000;
 const SELECTIVE_COLLEGE_ADMIT_CEILING = 0.15;
 const SELECTIVE_COLLEGE_ADMIT_FLOOR = 0.005; // a pool of a quarter million against a class of a thousand
-const SELECTIVE_COLLEGE_PRICE_OVER_TOLERANCE = 1.15;
+const SELECTIVE_COLLEGE_PRICE_OVER_TOLERANCE = 1.2;
 // The regional engine's: take most of what applies.
 const REGIONAL_ENGINE_ADMIT_RATE = 0.6; // three quarters was measured to crowd the campus faster than it could build for it
 
@@ -2014,9 +2038,10 @@ export const STRATEGIES: Strategy[] = [
     // carry and is a quarter under the balanced builder by the time
     // standing is in the hundreds. Priced under the founding line — the
     // discount archetype's 2,500 + 180/point, or 3,000 + 170 — the
-    // founding body of 480 cannot carry the core, the net goes negative in
-    // year two, the first hall is never sited, and the school sits at 480
-    // students for fifty years; measured, twice.
+    // founding body cannot carry the founding curriculum, the net goes
+    // negative in year two, the first hall is never sited, and the school
+    // sits at a few hundred students for fifty years; measured, twice
+    // (against the gen-ed core, before Plan 19).
     // ...and not much cheaper than that. Plan 15 prices every section,
     // service and salary at the market rate for the school's STANDING, and a
     // big school's breadth carries its standing to the top of the scale

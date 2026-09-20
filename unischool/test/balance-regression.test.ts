@@ -25,6 +25,9 @@
 import { play, STRATEGIES, cutPayrollIfStalled, STALL_WEEKS_BEFORE_CUTS, DEFAULT_SIM_SEED } from '../sim/balanceSim';
 import { createInitialState } from '../src/state/actions';
 import { intoCrisis } from '../tools/scenarios';
+import { FOUNDING_COURSES_PER_PROGRAM, FOUNDING_PRESET, FOUNDING_PROGRAMS } from '../src/data/foundingData';
+import { FOUNDERS_HALL_REPUTATION_BONUS } from '../src/data/techData';
+import { SEATS_PER_COURSE } from '../src/systems/techtree/instructionCapacity';
 import { computePrestigeTarget, prestigeBreakdown } from '../src/systems/prestige/prestigeSystem';
 import type { GameState, Faculty } from '../src/state/types';
 
@@ -56,6 +59,9 @@ function economy(cond: boolean, msg: string): void {
 }
 
 const YEARS = 20;
+// The seats the founding college opens with (Plan 19): six developed
+// courses in Founders Hall.
+const FOUNDING_SEATS = FOUNDING_PROGRAMS.length * FOUNDING_COURSES_PER_PROGRAM * SEATS_PER_COURSE;
 
 // The seeds a claim that failed at the default one is re-tried at — see
 // `holds` below for the policy.
@@ -173,15 +179,25 @@ function findRecovery(name: string) {
 // 2a. THE IDLE SCHOOL FALLS (Plan 15's PR G). A school that builds nothing
 // used to drift toward a founding standing and hold it; now it takes the
 // crowding penalty in full, earns no welfare, loses students to attrition
-// every summer and watches its pool shrink. The plan's control says
-// prestige into the thirties and under three hundred students by year 20;
-// the fitted game goes further, to the bottom of the field.
+// every summer and watches its pool shrink. Plan 15's control said
+// prestige into the thirties and under three hundred students by year 20,
+// and the fitted game went to the bottom of the field — for a college that
+// opened with an empty catalogue. Since Plan 19 the college opens
+// TEACHING: three programs, six courses, five professors with real
+// grades, and 480 seats. Idled, that is a small college that never grows
+// — it falls ten points below its founding standing in five years and
+// holds there, and fills the rooms it opened with and no more — rather
+// than a campus that empties. The claim is the same (idling costs
+// standing, and never earns it back); the floor it falls to is a
+// college's, not a ruin's.
 // =====================================================================
 {
   const { run } = find('Idle (builds nothing)');
   const last = run.rows[run.rows.length - 1];
-  assert(last.prestige < 35, `the idle school's prestige has fallen below 35 by year ${YEARS} (${last.prestige.toFixed(1)})`);
-  assert(last.enrolled < 300, `and its enrolment is under 300 (${last.enrolled})`);
+  const foundingPrestige = FOUNDING_PRESET.startingReputation + FOUNDERS_HALL_REPUTATION_BONUS;
+  assert(last.prestige < foundingPrestige - 8, `the idle school's prestige has fallen well below its founding standing by year ${YEARS} (${last.prestige.toFixed(1)} against ${foundingPrestige})`);
+  assert(run.rows.every((r) => r.year < 5 || r.prestige < foundingPrestige - 8), 'and never regains it after year five');
+  assert(last.enrolled < FOUNDING_SEATS, `its enrolment never fills more than the founding rooms (${last.enrolled} against ${FOUNDING_SEATS} seats)`);
   assert(last.cash > 0, `but it is not broke — it has nothing to be broke on (cash ${last.cash.toLocaleString()})`);
 }
 
@@ -296,7 +312,14 @@ function discountMeanCash(from: number, to: number): number {
   // ramp with the beds-first policy bottoms out around year ten and spends
   // the rest of the run paying it back at a small positive net. "Stall,
   // don't die" is the claim; solvency at the horizon was the old economy's.
-  economy(last.net > 0, `the discount-heavy strategy is climbing out at the horizon (net ${last.net.toLocaleString()}, cash ${last.cash.toLocaleString()})`);
+  // Read over the last decade rather than at the fortieth summer's one
+  // sampled week (Plan 19's PR E): the strategy treads water at a few
+  // hundred students, and a single week's net there is a coin toss either
+  // side of zero. Treading water is within a hundredth of opex, the same
+  // tolerance the solvency sweep below allows a snapshot.
+  const lastDecade = run.rows.filter((r) => r.year > RECOVERY_YEARS - 10);
+  const meanNet = lastDecade.reduce((sum, r) => sum + r.net, 0) / Math.max(1, lastDecade.length);
+  economy(meanNet > -0.01 * last.opex, `the discount-heavy strategy is treading water or climbing out over its last decade (mean weekly net ${Math.round(meanNet).toLocaleString()}, opex ${Math.round(last.opex).toLocaleString()}, cash ${last.cash.toLocaleString()})`);
   // The decade-over-decade trend is judged across seeds, below, once
   // `holds` is defined: it is the most phase-sensitive claim in the file
   // (see the note above holds), and Plan 14's PR C is where it first

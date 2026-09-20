@@ -71,7 +71,7 @@ export const SCENARIOS: Scenario[] = [
   // --- The plain waypoints: a school at a stage, at a year boundary. ---
   {
     name: 'founding',
-    what: 'week one, nothing built — what a new player is looking at',
+    what: 'week one: Founders Hall teaching three programs, three rooms free, three on offer — what a new player is looking at',
     strategy: 'Balanced builder',
     year: 1,
     // Immediately: the loop checks this before its first week runs.
@@ -79,7 +79,10 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     name: 'year-3-first-hall',
-    what: 'the first school hall standing, the campus still small',
+    // The balanced builder fills Founders Hall's three rooms first and buys
+    // its first hall in year two (Plan 19's PR B measured week 120), so by
+    // the end of year three the purchased hall stands beside a full one.
+    what: 'the first purchased hall standing beside a full Founders Hall, the campus still small',
     strategy: 'Balanced builder',
     year: 3,
   },
