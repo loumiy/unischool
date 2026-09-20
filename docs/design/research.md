@@ -61,7 +61,7 @@ new paper" whenever the campus also ran physics labs.
 
 ### Topics, teams and depth
 
-**238 authored topics** (`researchTopics.ts`) — six per department, plus **62
+**249 authored topics** (`researchTopics.ts`) — six per department, plus **73
 cross-disciplinary** ones that name more than one field and can only be staffed
 by drawing somebody from each. What is on offer at a vacant facility is
 **derived, never stored**: a deterministic function of the facility's id and a
@@ -78,14 +78,26 @@ in each of the labs it names and in no others, and the two pairs of facilities
 that share a field (chemistry / chemical engineering, physics / aerospace) keep
 their halves apart through an optional per-topic facility list.
 
-Only **eleven** of the twenty-nine faculty fields have a facility, so only those
-eleven can LEAD work. That is not a department being locked out: the way a
-marketer, a violinist or a lawyer does research is the interdisciplinary tier,
-hosted by a facility whose field the topic names, with the rest of the team
-drawn from wherever the topic says. Every interdisciplinary topic names at least
-one field that has a facility; the departmental topics in the other eighteen
-fields are reserve content, ready the day the catalogue gives one of those
-fields a building.
+Only **eleven** of the twenty-nine faculty fields have a facility of their own.
+The other eighteen lead work **in the building their school built** (Plan 20's
+hosting rule, `techData.ts`'s `hostableFields`): a facility hosts its own field
+and every field its school teaches that has no facility *anywhere*, so the
+Computing Research Center runs the AI department's projects and the Humanities
+Research Institute the English department's. "No facility anywhere" is read
+campus-wide, which matters twice over — a field with a building somewhere is
+hosted there and nowhere else, so the Neuroscience labs are not offered
+Biology's work merely because the MD's anatomy course makes Biology a Health
+Science field; and a field with no building is hosted by every school that
+teaches it, so English is offered in both the institute and the studio,
+Mathematics in both the Science labs and the computing center, Operations
+Research in both Business and Engineering, which is where those departments
+actually work. The rule does not reopen the shared-field bug: a shared field
+*has* a facility and is never widened, and the two pairs keep their per-topic
+lists. Every one of the 249 topics is therefore offerable somewhere, and the
+topics test pins it; before the rule, 108 departmental topics were reserve
+content no facility could host. Each facility has at least **eight**
+interdisciplinary topics, the ceiling on its landmark work, which the same
+test holds.
 
 Four depths, and the money is the smaller half of what they cost:
 

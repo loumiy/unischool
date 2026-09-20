@@ -186,8 +186,11 @@ to re-derive them from a 658-line document.*
 - **Per-major mechanical effects.** A cohort pull, a grant rate, a major that
   recruits differently — the half of "curriculum texture" that is a system
   rather than content, and the half [Plan 20](docs/plans/20-the-catalogue.md)
-  deliberately leaves alone. The content half — the eight templated sentences
-  behind 336 courses — is sequenced there.
+  deliberately left alone. The content half — the eight templated sentences
+  behind 336 courses — **landed** there: every undergraduate course has its
+  own sentence now, and what a description is lives in
+  `docs/design/curriculum.md`. The 49 graduate courses still carry a
+  generated line, and are the obvious next increment of that work.
 - **Athletics' reach into the economy, and student life with teeth.** The review
   found athletics the best-built system in the game and the least connected: a
   venue that sells no tickets, a title that moves a standing nothing reads, a

@@ -20,7 +20,7 @@ fifty years".
 - **Expands the campus** with academic buildings, dormitories, dining,
   recreation, health facilities and athletics venues — all placed on a tile
   grid, all the same kind of thing underneath.
-- **Develops the curriculum** across 415 courses, 42 majors and seven schools,
+- **Develops the curriculum** across 427 courses, 42 majors and seven schools,
   climbing a milestone chain from a founded program to a distinguished one.
 - **Hires faculty** with their own teaching and research strengths, and decides
   who teaches what — which is what decides the grade each course earns.

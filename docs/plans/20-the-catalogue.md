@@ -5,7 +5,16 @@ to take a review of the authored curriculum, research and faculty data — the
 half of it that is not about the general-education core — and turn it into an
 ordered sequence of PRs, each small enough to land on its own.*
 
-**Status: Proposed.** Nothing has landed.
+**Status: Landed.** PRs A–I are in, as the map below sequences them, in
+one branch after Plan 19. Where the implementation departed is recorded in
+the **As implemented** notes on the PRs it belongs to; the three that matter
+most are that the hall chain went to thirteen rungs rather than fourteen
+(Plan 19 had already taken it from twelve to eleven), that the MFA takes the
+doctoral rung outright rather than being a professional-tier program with a
+lab gate, and that 20B's hosting rule changed which facilities were thin
+before 20C measured them — so 20C authored eleven topics rather than eight
+and pinned a floor of eight interdisciplinary topics per facility rather
+than six.
 
 ---
 
@@ -141,6 +150,13 @@ The Cybersecurity one becomes **"Security Risk Management"**.
 before the two retargets and passes after, which is the check that it is
 testing something.
 
+**As implemented:** as written, with one honest narrowing and one addition.
+The guard catches `CHEM220 -> CHMY210` and only that: `CIVE230 -> MGMT210`
+is legal under it, exactly as the text above says, and was retargeted on
+weight alone. The same test also refuses two courses sharing a title, so the
+duplicate-name fix is pinned rather than left to the next review; both new
+checks were run against the pre-PR data and both failed there.
+
 ## PR 20B — Research topics a facility can actually host
 
 **238 authored topics, and a player can be offered 130 of them.** Only the
@@ -192,6 +208,15 @@ invariant the module comment has always claimed and never checked. The two
 facility pairs that share a field keep their `labs` restrictions and their
 existing test.
 
+**As implemented:** as written — `hostableFields(facilityId)` in
+`techData.ts`, beside `labFields`, and `initiativeOffers` reads it. One
+reading the plan left implicit is now stated in the code and the test: "no
+facility of its own" is campus-wide, not per school. It has to be, because
+the MD's anatomy course makes Biology a Health Science field, and a
+per-school reading would have offered the Neuroscience labs Biology's
+departmental work — which is the shared-field bug in a new coat. The offers
+sweep and the cross-contamination test both still pass under the rule.
+
 ## PR 20C — The thin facilities' interdisciplinary pools
 
 A Landmark Program needs a cross-disciplinary topic, so a facility's
@@ -221,6 +246,22 @@ Chemistry draws its archaeologist from **Sociology**, because Anthropology
 shares Sociology's department. That is correct by the taxonomy and reads as a
 mistake. The topic is renamed or refielded so it does not advertise the
 sharing.
+
+**As implemented: 20B moved the floor before this PR measured it.** The
+table above was counted under the old rule. Under the hosting rule a
+facility's interdisciplinary pool includes every cross-disciplinary topic
+naming a field it hosts, so the Media Production Studio had eight before
+this PR touched anything (English, Music and Art & Design topics), and the
+thinnest were the mechanical, chemical-engineering and aerospace labs at
+seven. The PR therefore authored **eleven** topics rather than eight, each
+pairing one of the four named facilities with one of the nine fields that
+appeared in only two topics, so both ends of the table deepened at once
+(the four facilities are at ten to thirteen now; the nine fields at three
+or four), and the test pins a floor of **eight** interdisciplinary topics
+per facility rather than six. `X17` was refielded to Chemistry and History.
+One consequence of the exhaustive `labs` list is recorded on the field's
+comment: an aerospace-and-management topic must list the economics lab too,
+or it is aerospace-only.
 
 ## PR 20D — The description table, the fallback, and the count
 
@@ -262,6 +303,15 @@ the table with the core, and `PHIL110`, `MATH101`, `CIVE101`, `CIVE130`,
 `CHEM101`, `CHEM130` and `POLS101` are renamed there, so writing their
 descriptions first would mean writing them twice.
 
+**As implemented:** the table lives in its own file,
+`src/data/courseDescriptions.ts`, rather than widening in place — 378 rows
+grouped by school and major is a content table in the way `researchTopics.ts`
+is, and `techData.ts` was already 1,400 lines. The test
+(`test/course-descriptions.test.ts`, `npm run test:descriptions`) also
+checks the two authoring rules mechanically: one sentence, no code, no
+"this course", and that the sentence with its title and a stock lead-in
+stripped still has substance in it.
+
 ## PR 20E — Descriptions: the humanities half
 
 Social Sciences and Humanities, Arts & Media, Business, Computer Science —
@@ -281,6 +331,11 @@ Two rules, so the pass stays a catalogue and does not become 336 essays:
 This is also where open question 5's niche titles get settled for these
 schools, by whoever has the major open in front of them.
 
+**As implemented:** as written. Writing for Young Adults became **Novel
+Writing** (the one length a nine-course writing major had not asked for),
+and Governmental & Non-Profit Accounting became **Advanced Financial
+Reporting**. The fallback count went from 336 to 144.
+
 ## PR 20F — Descriptions: the science half
 
 Science, Health Science, Engineering — **18 majors, 144 courses**. Same rules.
@@ -290,6 +345,11 @@ a person can hold in their head: writing Biology's eight upper courses in one
 sitting produces eight sentences that differ from each other, and writing all
 forty-two tier-2 courses numbered 110 produces forty-two sentences that do
 not.
+
+**As implemented:** as written. Culinary Nutrition became **Nutrition
+Assessment & Counseling**, the capstone of dietetic practice, and Helicopter
+Dynamics became **Aircraft Design**, the standard aerospace capstone. The
+fallback count went to zero.
 
 ## PR 20G — The templates are deleted
 
@@ -302,6 +362,10 @@ Graduate courses keep their generated line (`"<degree> coursework in <title>,
 taught inside <program>"`) for now, deliberately: 37 courses, a much more
 uniform register, and the same argument applies with much less force. It is
 named in 20I as the obvious next increment rather than done here.
+
+**As implemented:** as written. The test additionally asserts that none of
+the eight retired sentences survives on any course, so a template cannot
+come back under another name. The graduate line now covers 49 courses.
 
 ## PR 20H — The graduate programs four schools do not have
 
@@ -345,6 +409,35 @@ tests. The MFA is the one to look at: it is the first professional-tier
 program whose gate is a lab rather than a count of established majors, so
 check it reads correctly in `graduateGateDescription`.
 
+**As implemented: thirteen rungs, not fourteen, and the MFA is a
+doctorate.** The arithmetic above starts from twelve, which was true when it
+was written; Plan 19 landed first and took the chain to eleven (Founders
+Hall became an ordinary six-slot hall, so the completionist ceiling of twelve
+halls is Founders plus eleven). Two rungs on eleven is **thirteen** — Alder
+Hall and Hazel Hall, from the same woodland — and fourteen halls in all.
+Cumulative cost of the whole chain is about $68M. The year-50 completionist
+builds all of them, and the layout tool sites the two new ones in a row
+below the South Quad.
+
+The MFA is authored with `type: 'doctoral'`, not as a professional program
+with a lab gate. The type is what selects the gate, the cost rung and the
+research credit, and a professional program gated on a lab would have been a
+third gate reading in a model built on there being two — the plan's own "no
+mechanism anywhere". The doctoral rung is also the right one on the merits:
+a program bolted onto a school that already has the studio and the faculty,
+not a medical school; and the research credit reads right because the Media
+Production Studio already counts exhibited work as research. The milestone
+event's wording became "a research degree" so it does not call the MFA a
+doctorate. What did change in `graduateGateDescription` is the sentence for
+a school with exactly one facility: "the Media Production Studio finished"
+rather than "a finished lab in Arts & Media", which names a building the
+school does not have — and the same form now serves the computing and
+humanities doctorates and, incidentally, Health Science's.
+
+`BACKLOG.md` no longer carried the "Research doctorates" entry by the time
+this landed; the graduate-programs doc's "authored content that does not
+yet exist" line was its last trace, and it is gone.
+
 ## PR 20I — Docs
 
 `docs/design/curriculum.md` (the bridges section, and what a description is),
@@ -357,6 +450,13 @@ wrong.
 Both backlog entries this plan absorbs come out of `BACKLOG.md` when it lands:
 **"Curriculum texture (the review's H2, content half)"** and **"Research
 doctorates for the four newest research schools"**. Three tenses, three homes.
+
+**As implemented:** as written, plus the counts that changed under it —
+427 courses in the README, `gameplay.md`, `curriculum.md` and the Treasury
+line in `economy.md`; the graduate doc's capital and upkeep totals; the
+thirteen-hall chain in `buildables.md`. The backlog's "Per-major mechanical
+effects" entry, which was where the content half was named, now says it
+landed and names the graduate lines as the next increment.
 
 ---
 

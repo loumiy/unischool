@@ -24,7 +24,7 @@ way to earn a good one.
 
 - 🏫 **Expand the campus** with academic buildings, dormitories, dining,
   recreation, health facilities and athletics venues.
-- 📚 **Develop the curriculum** across 415 courses, 42 majors and seven
+- 📚 **Develop the curriculum** across 427 courses, 42 majors and seven
   schools.
 - 👩‍🏫 **Hire faculty** with different teaching and research strengths — and
   decide who teaches what.

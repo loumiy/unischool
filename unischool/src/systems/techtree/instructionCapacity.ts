@@ -40,7 +40,8 @@ import { isHoused, isInTransit } from './programOffers';
 // Seats a developed course adds to what the school can teach. PROVISIONAL —
 // Plan 15's PR G fits it against the scorecard. The opening value is sized
 // off the bands that PR is written against: the whole catalogue (415
-// courses, every one housed and developed) holds about 33,000, the top of
+// courses when this was fitted, 427 since Plan 20; every one housed and
+// developed) holds about 33,000, the top of
 // the year-50 band, and a year-20 completionist with 150–225 courses open
 // holds 12,000–18,000, which is that year's band. The founding college's
 // six courses hold 480 at founding: the founding body of 350 with a little
