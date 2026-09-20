@@ -416,9 +416,31 @@ function meanCash(run: ReturnType<typeof play>, from: number, to: number): numbe
 }
 
 const RARE_RED = 0.1;   // share of the run a mid-expansion dip may cover
-function solvent(row: { cash: number; net: number; opex: number; weeksInTheRed: number }): boolean {
+
+// The week's operating net PLUS the research grants of the trailing three
+// years, per week (Plan 20). `row.net` is the weekly cash flow and grants
+// are not in it: a grant is a lump that lands when a paper does, booked
+// straight to cash (researchSystem.ts). Until Plan 20 that was a rounding
+// error — 3% of a research school's lifetime opex — so the solvency checks
+// below could read `net` alone. Plan 20's hosting rule lets every
+// department lead work in its school's building, so a research-heavy
+// school runs deeper projects and its grants roughly double (6% of opex
+// by year 20, more later; see the plan's PR B note), and a check that
+// ignores them reads a school whose cash rises every year as bleeding. Three
+// years rather than one so a lumpy year neither rescues nor condemns a
+// run, and the figure is still "what the school takes in a week", which is
+// what a deficit is measured against.
+function operatingNet(rows: Array<{ net: number; grantIncome: number }>): number {
+  const last = rows[rows.length - 1];
+  const back = rows[Math.max(0, rows.length - 4)];
+  const years = Math.max(1, rows.length - 1 - Math.max(0, rows.length - 4));
+  return last.net + (last.grantIncome - back.grantIncome) / (years * 52);
+}
+
+function solvent(rows: Array<{ cash: number; net: number; opex: number; weeksInTheRed: number; grantIncome: number }>): boolean {
+  const row = rows[rows.length - 1];
   if (row.cash >= 0) return true;
-  return row.net > 0 && row.weeksInTheRed < RARE_RED * YEARS * 52;
+  return operatingNet(rows) > 0 && row.weeksInTheRed < RARE_RED * YEARS * 52;
 }
 
 // The controls sit out the sweep: the Idle school FALLS now (2a above),
@@ -435,7 +457,7 @@ for (const strategy of STRATEGIES.filter((s) => !MISTAKE_CASES.includes(s.name) 
   // Judged across seeds (see `holds` above): year 20 is one frame of a
   // trajectory that dips and recovers, and a strategy caught mid-dip at one
   // seed is not a strategy that dies.
-  const solvency = holds(strategy.name, YEARS, (r) => solvent(r.rows[r.rows.length - 1]), run);
+  const solvency = holds(strategy.name, YEARS, (r) => solvent(r.rows), run);
   economy(
     solvency.ok,
     `"${strategy.name}" ends year ${YEARS} solvent, or overdrawn and climbing out ` +
@@ -450,11 +472,13 @@ for (const strategy of STRATEGIES.filter((s) => !MISTAKE_CASES.includes(s.name) 
   // spiral this check exists to catch. Bounded to 1% of that week's own
   // opex, so a real spiral (net deeply negative relative to the size of
   // the operation) still fails this exactly as before.
+  // Read with the grants in (operatingNet above): since Plan 20 they are a
+  // real income line for a research school, not a windfall.
   const noDeficit = holds(strategy.name, YEARS, (r) => {
     const row = r.rows[r.rows.length - 1];
-    return row.net >= -0.01 * row.opex;
+    return operatingNet(r.rows) >= -0.01 * row.opex;
   }, run);
-  economy(noDeficit.ok, `"${strategy.name}" ends year ${YEARS} without a real ongoing deficit (net ${last.net.toLocaleString()}, opex ${last.opex.toLocaleString()})${noDeficit.note}`);
+  economy(noDeficit.ok, `"${strategy.name}" ends year ${YEARS} without a real ongoing deficit (net ${last.net.toLocaleString()}, with grants ${Math.round(operatingNet(run.rows)).toLocaleString()}, opex ${last.opex.toLocaleString()})${noDeficit.note}`);
 }
 
 // =====================================================================

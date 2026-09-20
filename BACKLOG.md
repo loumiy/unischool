@@ -101,6 +101,18 @@ work with a known shape; none has been turned into a sequence of PRs.*
   negotiation would reuse; Plan 15 makes salaries scale with standing, so a poach
   has a price; Plan 17's closing elite band gives a poacher a motive. It was
   deferred out of Plans 14–17 by decision, not by accident.
+- **Research grants after the hosting rule.** [Plan 20](docs/plans/20-the-catalogue.md)'s
+  PR B let every department lead work in its school's building, and a
+  research-heavy school now runs deep projects where it used to fall back to
+  pilots: on the Selective college, grants went from 3% of lifetime opex to
+  6% by year twenty and 14% by year thirty, against funding at 5–7%, so
+  research at scale is net cash positive. `docs/design/research.md` draws the
+  line at "a grant is a welcome cheque, not a funding round; it must never
+  become a second economy". The re-fit is small and known —
+  `GRANT_PER_PUBLICATION_CHANCE` and `GRANT_MIN_WEEKS`/`GRANT_MAX_WEEKS` in
+  `researchData.ts`, or a cap on grants per facility per year — and wants
+  the scorecard re-recorded with it. Not done in Plan
+  20 because that plan deliberately moved no research constant.
 - **A richer demand-curve finance model**, where prestige shifts the frontier
   between tuition and enrollment volume, with prestige/scale archetypes. The
   finances are structured so this can replace the simple version without

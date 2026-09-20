@@ -208,8 +208,26 @@ invariant the module comment has always claimed and never checked. The two
 facility pairs that share a field keep their `labs` restrictions and their
 existing test.
 
-**As implemented:** as written — `hostableFields(facilityId)` in
-`techData.ts`, beside `labFields`, and `initiativeOffers` reads it. One
+**As implemented: as written, and it touched the research economy after
+all.** `hostableFields(facilityId)` in `techData.ts`, beside `labFields`,
+and `initiativeOffers` reads it. The plan's "it does not touch the research
+economy — reachability is what changes, not what a topic produces" is true
+per topic and false per campus: a facility that can now staff a deep project
+out of its own school runs deep projects instead of the pilot it fell back
+to when the landmark tier read "no scholar free". Measured on the Selective
+college at twenty years, with the same sixty-odd initiatives started: three
+concluded with a report became twelve, three breakthroughs became fifteen,
+and **grants went from 3% of lifetime opex to 6%** (14% by year thirty),
+against funding at 5–7% — research at scale is net cash positive now where
+it was net negative. That is what the rule was for, at the scale it was
+asked for, and it is also the line `research.md` draws at "a grant is a
+welcome cheque, not a funding round; it must never become a second
+economy", so it is named in `BACKLOG.md` for a re-fit of grant odds and
+size rather than tuned here. Two harness consequences are recorded on 20I.
+One more thing this found: research offers are a hash of facility, depth
+and epoch, seed-independent, so a change to the topic table moves every
+seed the same way and the sim's "fails at every seed tried" does not
+diversify research at all. One
 reading the plan left implicit is now stated in the code and the test: "no
 facility of its own" is campus-wide, not per school. It has to be, because
 the MD's anatomy course makes Biology a Health Science field, and a
@@ -451,7 +469,24 @@ Both backlog entries this plan absorbs come out of `BACKLOG.md` when it lands:
 **"Curriculum texture (the review's H2, content half)"** and **"Research
 doctorates for the four newest research schools"**. Three tenses, three homes.
 
-**As implemented:** as written, plus the counts that changed under it —
+**As implemented: as written, plus two harness rules re-read.** The
+scorecard's generated reference bands (`sim/reference.ts`) were re-recorded
+with `npm run sim -- --write-reference`, which is what they are for: five
+figures sat outside them at 20C and seven at 20B, in opposite directions
+for the same strategy — the earnest completionist's year-20 cash read 161M
+against a 36–85M band at 20B and 26M at 20C — because the offer hash
+reshuffles every facility's offers whenever the topic table changes, and
+that sensitivity is noise the envelope cannot tell from a regression. The
+balance regression's two solvency checks (`solvent`, "no real ongoing
+deficit") now read the week's net plus the trailing three years' research
+grants per week: grants land as lumps outside `net`, were 3% of a research
+school's opex when the checks were written, and are 6–14% after 20B, so
+the Selective college — which also buys two more doctorates before its
+first endowment campaign now (20H) — read as bleeding at year 20 on every
+seed while its cash rose every year and it ran zero weeks in the red.
+Both re-reads are the harness catching up with a deliberate content
+change; neither moves a game constant. Plus the counts that changed under
+the plan —
 427 courses in the README, `gameplay.md`, `curriculum.md` and the Treasury
 line in `economy.md`; the graduate doc's capital and upkeep totals; the
 thirteen-hall chain in `buildables.md`. The backlog's "Per-major mechanical
