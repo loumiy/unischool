@@ -5,6 +5,7 @@ import type {
 import { totalEnrolled, WEEKS_PER_YEAR } from '../state/types';
 import { weeksOfOpEx } from './moneyScale';
 import { rollCoachName } from './facultyData';
+import { makeRivalRng } from './rivalData';
 
 // ---------------------------------------------------------------------
 // STUDENT ORGANISATIONS, AS DATA (see docs/design/student-life.md). Two
@@ -532,9 +533,9 @@ function allCoachFields(): readonly string[] {
 // weight against, so every field is an equally likely listing. A simpler
 // market than faculty's, matching the shallower depth this whole feature
 // asks for.
-export function rollCoachField(): string {
+export function rollCoachField(roll: () => number = Math.random): string {
   const fields = allCoachFields();
-  return fields[Math.floor(Math.random() * fields.length)];
+  return fields[Math.floor(roll() * fields.length)];
 }
 
 // Coaches skew disproportionately to the gender of the sport they coach
@@ -547,12 +548,12 @@ export function rollCoachField(): string {
 // one in ten, and it reads as the exception it is only when it is one.
 const COACH_GENDER_MATCH_CHANCE = 0.95;
 
-function rollCoachGender(field: string): 'male' | 'female' {
+function rollCoachGender(field: string, roll: () => number): 'male' | 'female' {
   const sportGender = sportById(field)?.gender;
-  if (!sportGender) return Math.random() < 0.5 ? 'male' : 'female'; // TRAINER_FIELD
+  if (!sportGender) return roll() < 0.5 ? 'male' : 'female'; // TRAINER_FIELD
   const matchGender = sportGender === 'men' ? 'male' : 'female';
   const otherGender = matchGender === 'male' ? 'female' : 'male';
-  return Math.random() < COACH_GENDER_MATCH_CHANCE ? matchGender : otherGender;
+  return roll() < COACH_GENDER_MATCH_CHANCE ? matchGender : otherGender;
 }
 
 // Quality/salary curves — deliberately simpler than facultyData.ts's
@@ -560,8 +561,31 @@ function rollCoachGender(field: string): 'male' | 'female' {
 // model than faculty), but the SAME shape: starts at a fraction of a rolled
 // ceiling and closes the gap linearly over a plateau window, rather than
 // jumping straight to the ceiling at hire.
-const COACH_POTENTIAL_MIN = 45;
-const COACH_POTENTIAL_RANGE = 45; // rolls 45..90 — a fresh candidate is never a lock for the very top of the market
+// SCARCITY IS IN THE QUALITY, NOT THE EXISTENCE, OF CANDIDATES (Plan 21's
+// PR J). Potential used to roll uniform 45..90, which made a good coach as
+// common as a bad one and the only frustration "nobody is listed at all".
+// Three bands now: the bottom of the market is journeymen — a low ceiling,
+// always available, cheap — the middle is solid, and the top (75..90) is
+// genuinely rare. "Nobody is available" is a wait; "nobody GOOD is
+// available" is a decision.
+export type CoachBand = 'journeyman' | 'solid' | 'elite';
+const COACH_BANDS: ReadonlyArray<{ band: CoachBand; min: number; range: number; share: number }> = [
+  { band: 'journeyman', min: 45, range: 17, share: 0.65 }, // 45..62
+  { band: 'solid', min: 60, range: 18, share: 0.28 },      // 60..78
+  { band: 'elite', min: 75, range: 15, share: 0.07 },      // 75..90
+];
+function rollCoachBand(roll: () => number): CoachBand {
+  let r = roll();
+  for (const b of COACH_BANDS) {
+    r -= b.share;
+    if (r < 0) return b.band;
+  }
+  return 'journeyman';
+}
+export function rollCoachPotential(roll: () => number, band: CoachBand = rollCoachBand(roll)): number {
+  const b = COACH_BANDS.find((x) => x.band === band)!;
+  return b.min + Math.round(roll() * b.range);
+}
 const COACH_STARTING_POTENTIAL_FRACTION = 0.55;
 const COACH_GROWTH_PLATEAU_YEARS = 6;
 
@@ -614,11 +638,22 @@ const NO_NAMES: ReadonlySet<string> = new Set();
 // generateCandidate, down to the `existingNames` its name is kept clear of
 // (coachNamesInUse above; defaults to none for a caller with no state, as a
 // test fixture is).
-export function generateCoachCandidate(field: string, existingNames: ReadonlySet<string> = NO_NAMES): Coach {
-  const qualityPotential = COACH_POTENTIAL_MIN + Math.round(Math.random() * COACH_POTENTIAL_RANGE);
+//
+// `roll` is the generator (the market's own local one from
+// tickCoachCandidatePool, the global stream for a caller minting one coach
+// at event time), and `band` pins the quality band when the caller wants a
+// particular kind of person — the floor below lists a journeyman, never a
+// prize.
+export function generateCoachCandidate(
+  field: string,
+  existingNames: ReadonlySet<string> = NO_NAMES,
+  roll: () => number = Math.random,
+  band?: CoachBand,
+): Coach {
+  const qualityPotential = rollCoachPotential(roll, band);
   const quality = grownCoachQuality(qualityPotential, 0);
-  const gender = rollCoachGender(field);
-  const rolled = rollCoachName(gender, existingNames);
+  const gender = rollCoachGender(field, roll);
+  const rolled = rollCoachName(gender, existingNames, roll);
   return {
     id: crypto.randomUUID(),
     name: rolled.name,
@@ -734,48 +769,36 @@ export function rollMascotSuggestion(): string {
   return MASCOT_SUGGESTIONS[Math.floor(Math.random() * MASCOT_SUGGESTIONS.length)];
 }
 
-// Coach candidates arrive already staggered across the listing window, the
-// exact same reasoning facultyData.ts's initialCandidatePool uses — a pool
-// seeded flat would empty and refill in synchronized waves instead of
-// churning smoothly.
-//
-// SIZED AGAINST THE NUMBER OF FIELDS, and worth reading as flow rather than
-// stock. rollCoachField draws uniformly across every SPORTS id plus
-// TRAINER_FIELD, so the pool spreads itself over 19 fields now rather than
-// 15 — but what a waiting vacancy actually experiences is the THROUGHPUT:
-// with listings living COACH_CANDIDATE_LISTING_WEEKS, a target of 18 turns
-// over ~1.5 listings a week, so a given field sees roughly four candidates a
-// year and a vacancy waits a season rather than forever.
-//
-// STILL 18, and not for want of wanting it bigger. At 18 listings over 19
-// fields a given role's list is usually empty or a single name, and a market
-// of 44 would read far better on the one-pool screen this PR builds.
-//
-// What blocks it is not the number but what the number is wired to. The pool
-// is seeded and refilled straight off Math.random, so its SIZE decides how
-// many times the game rolls a die — and sim/balanceSim.ts seeds Math.random
-// to make a forty-year run reproducible. Raising 18 to 44 generates 26 more
-// candidates at founding and doubles the weekly arrivals, which moves the
-// whole stream and lands test/balance-regression.test.ts somewhere new.
-//
-// Measured, that movement is not a balance effect: across eight seeds the
-// raise trends the same way 7 times out of 8 either side, and the OLD size
-// fails worse at the seed it fails. The fix is to give the market a generator
-// of its own, the way rivalsSystem.ts's annual drift already has one, after
-// which this number is free to tune. That is a change to the balance harness's
-// relationship with the game and is flagged for the repository owner rather
-// than taken here — see the plan's PR 2B note.
-export const COACH_CANDIDATE_POOL_TARGET = 18;
+// HOW MANY ARE LISTED, AND WHY THE NUMBER IS FREE TO TUNE (Plan 21's PR J).
+// The pool used to sit at 18 over 19 fields — roughly four listings per
+// sport per year, so a new team could carry an empty chair for a year
+// because nobody rolled — and the raise to 44 was proposed in Plan 08 and
+// deferred twice, because the pool was seeded and refilled straight off
+// Math.random and its SIZE decided how many times the game rolled a die,
+// which moved sim/balanceSim.ts's seeded stream. That was a test harness
+// setting a content value. The market now has a generator of its own: one
+// draw on the global stream a week, and everything the week mints comes
+// off a local PRNG seeded from it (the discipline rivalsSystem.ts's annual
+// drift established), so this number, the arrival cap and the floor below
+// can be tuned for how the screen reads without a forty-year run landing
+// somewhere new.
+export const COACH_CANDIDATE_POOL_TARGET = 44;
 export const COACH_CANDIDATE_LISTING_WEEKS = 12;
-const COACH_CANDIDATE_ARRIVALS_PER_WEEK_MAX = 3;
+const COACH_CANDIDATE_ARRIVALS_PER_WEEK_MAX = 5;
+
+// One draw on the global stream, and a generator for everything after it.
+export function marketRng(): () => number {
+  return makeRivalRng(Math.floor(Math.random() * 4294967296));
+}
 
 export function initialCoachCandidatePool(): Coach[] {
+  const roll = marketRng();
   const pool: Coach[] = [];
   const used = new Set<string>(); // no department yet — the pool is only kept clear of itself
   for (let i = 0; i < COACH_CANDIDATE_POOL_TARGET; i += 1) {
-    const candidate = generateCoachCandidate(rollCoachField(), used);
+    const candidate = generateCoachCandidate(rollCoachField(roll), used, roll);
     used.add(candidate.name);
-    candidate.weeksListed = Math.floor(Math.random() * COACH_CANDIDATE_LISTING_WEEKS);
+    candidate.weeksListed = Math.floor(roll() * COACH_CANDIDATE_LISTING_WEEKS);
     pool.push(candidate);
   }
   return pool;
@@ -783,6 +806,21 @@ export function initialCoachCandidatePool(): Coach[] {
 
 export function coachCandidateArrivalsThisWeek(poolSize: number): number {
   return Math.max(0, Math.min(COACH_CANDIDATE_POOL_TARGET - poolSize, COACH_CANDIDATE_ARRIVALS_PER_WEEK_MAX));
+}
+
+// THE FLOOR: every open chair on an active team always has at least one
+// listing in its field. The fields no listing covers, for the chairs the
+// department actually has open — what the tick fills with a journeyman
+// each, on the market's own generator, so an empty chair becomes a choice
+// to save money rather than something the market does to you.
+export function uncoveredChairFields(s: GameState): string[] {
+  const listed = new Set(s.orgs.coachCandidates.map((c) => c.field));
+  const fields = new Set<string>();
+  for (const chair of vacantChairs(s)) {
+    const field = fieldForChair(chair);
+    if (!listed.has(field)) fields.add(field);
+  }
+  return [...fields];
 }
 
 // Every hired coach across every team, in one flat list — what

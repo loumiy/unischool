@@ -479,11 +479,11 @@ const COACH_POOL_WEIGHTS: PoolWeighting = weighting(
 // name is rolled. ONE draw on Math.random whatever the weighting, which is
 // what lets the coach weighting differ from faculty's without either
 // changing how many dice the game rolls.
-function pickPool(by: PoolWeighting): NamePool {
-  let roll = Math.random() * by.total;
+function pickPool(by: PoolWeighting, roll: () => number = Math.random): NamePool {
+  let r = roll() * by.total;
   for (let i = 0; i < NAME_POOLS.length; i++) {
-    roll -= by.weights[i];
-    if (roll < 0) return NAME_POOLS[i];
+    r -= by.weights[i];
+    if (r < 0) return NAME_POOLS[i];
   }
   return NAME_POOLS[NAME_POOLS.length - 1];
 }
@@ -554,13 +554,19 @@ function stepToFree(
 // `heritage` and what FacultyPortrait.tsx weights skin tone by, so a
 // coach's face agrees with the name beside it, exactly as a professor's
 // does. Drawn by COACH_POOL_WEIGHTS, not the faculty weighting; see there.
-export function rollCoachName(gender: 'male' | 'female', existingNames: ReadonlySet<string>): RolledName {
-  const firstPool = pickPool(COACH_POOL_WEIGHTS);
-  const lastPool = Math.random() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pickPool(COACH_POOL_WEIGHTS);
+//
+// `roll` is the generator to draw from — the coach market's own local one
+// (Plan 21's PR J; see studentLifeData.ts's tickCoachCandidatePool) rather
+// than the global stream, so the SIZE of the market cannot decide how many
+// dice the game rolls. Defaults to Math.random for the callers that mint a
+// coach at event time.
+export function rollCoachName(gender: 'male' | 'female', existingNames: ReadonlySet<string>, roll: () => number = Math.random): RolledName {
+  const firstPool = pickPool(COACH_POOL_WEIGHTS, roll);
+  const lastPool = roll() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pickPool(COACH_POOL_WEIGHTS, roll);
   const firsts = firstNamesFor(firstPool, gender);
   const lasts = lastPool.last;
-  const firstAt = Math.floor(Math.random() * firsts.length);
-  const lastAt = Math.floor(Math.random() * lasts.length);
+  const firstAt = Math.floor(roll() * firsts.length);
+  const lastAt = Math.floor(roll() * lasts.length);
   return {
     name: stepToFree(firsts, lasts, firstAt, lastAt, existingNames, (first, last) => `${first} ${last}`),
     origin: firstPool.origin,
