@@ -28,25 +28,24 @@ import { isHoused, isInTransit } from './programOffers';
 // carry no teaching quality while it moves (facultyAssignment.ts): it is
 // not teaching anybody this term.
 //
-// THE CORE IS SEATED FROM FOUNDING. Founders Hall holds the general-
-// education core and the founding faculty teach it from day one — the
-// founding body of 350 is already in those rooms — so the six core courses
-// count whether or not their development has finished. Without that a
-// college would open with no room for anybody, and its first summer would
-// admit nobody. Every other course seats students only once it is done.
+// THE FOUNDING COLLEGE IS SEATED FROM FOUNDING, for an honest reason
+// (Plan 19): Founders Hall houses three programs whose first six courses
+// are developed and taught from day one (actions.ts's createInitialState),
+// so the founding body of 350 has 480 seats to sit in by the same rule as
+// every course after — developed, housed, settled. The general-education
+// core used to be counted here whether or not it was finished, as the one
+// exemption; there is no exemption any more.
 // ---------------------------------------------------------------------
 
 // Seats a developed course adds to what the school can teach. PROVISIONAL —
 // Plan 15's PR G fits it against the scorecard. The opening value is sized
-// off the bands that PR is written against: the whole catalogue (421
-// courses, every one housed and developed) holds about 34,000, the top of
+// off the bands that PR is written against: the whole catalogue (415
+// courses, every one housed and developed) holds about 33,000, the top of
 // the year-50 band, and a year-20 completionist with 150–225 courses open
-// holds 12,000–18,000, which is that year's band. Founders Hall's six core
-// courses hold 480 at founding: the founding body of 350 with a little room,
-// and nothing more until a program is founded.
+// holds 12,000–18,000, which is that year's band. The founding college's
+// six courses hold 480 at founding: the founding body of 350 with a little
+// room, and nothing more until a course is developed or a program founded.
 export const SEATS_PER_COURSE = 80;
-
-const CORE_PROGRAM_ID = 'CORE';
 
 export interface InstructionCapacity {
   courses: number;   // developed courses in housed, settled programs
@@ -59,7 +58,7 @@ export function instructionCapacityDetail(s: GameState): InstructionCapacity {
     if (t.kind !== 'course') continue;
     const programId = programOfCourse(t.id);
     if (programId === undefined) continue;
-    if (t.status !== 'done' && programId !== CORE_PROGRAM_ID) continue;
+    if (t.status !== 'done') continue;
     if (!isHoused(s, programId) || isInTransit(s, programId)) continue;
     courses += 1;
   }

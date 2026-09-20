@@ -5,11 +5,20 @@ import {
 
 /*
   Your real curriculum, expressed as seed data and expanded into Buildable[].
-  42 majors across 7 schools (9 courses each) + a 6-course general-ed core =
-  384 course Buildables, plus Founders Hall and the academic hall chain
-  (ACADEMIC_HALL_SLOTS below) — see docs/design/curriculum.md.
-  (Eight SchoolSeeds in all: the seven degree-granting schools plus General
-  Studies, which has the gen-ed core and no majors.)
+  42 majors across 7 schools (9 courses each) = 378 course Buildables, plus
+  Founders Hall and the academic hall chain (ACADEMIC_HALL_SLOTS below) —
+  see docs/design/curriculum.md. Seven SchoolSeeds, one per degree-granting
+  school.
+
+  THERE IS NO GENERAL-EDUCATION CORE ANY MORE (Plan 19's PR A). The
+  catalogue used to open with six GE courses in a school of their own
+  ("General Studies", no majors) that every tier-1 course required and
+  that filled Founders Hall's one slot. They were six tier-1 courses in a
+  costume — the same price, the same four weeks — and finishing them left
+  a year with nothing in it. The college now OPENS TEACHING: three Social
+  Sciences & Humanities programs are housed in Founders Hall at founding
+  with their first two courses developed (see actions.ts's
+  createInitialState), and the offer queue draws from week one.
 
   THERE IS NO SCHOOL BUILDING ANY MORE (Plan 14's PR C). A school used to be
   one 'building' Buildable per SchoolSeed, unlocked by its six tier-1
@@ -28,13 +37,12 @@ import {
   EXTERNAL professional degree — used to carry their own 'building'
   Buildable; see the module note above for where they live now.
 
-  Prerequisite rule (a clean four-stage climb per major, gen-ed included),
-  now AUTHORED as plain ids rather than derived purely from tier:
-    - the gen-ed core (six GE courses): no prereqs — the true root of the
-      whole tree, available from day one
-    - tier 1 (the 101 course): requires the entire gen-ed core — every
-      major's entry course waits on the same shared foundation, not just
-      its own school
+  Prerequisite rule (a clean three-stage climb per major), now AUTHORED as
+  plain ids rather than derived purely from tier:
+    - tier 1 (the 101 course): no prereqs at all. What keeps it locked is
+      the dynamic housed gate below — founding the program from a hall
+      slot is the one way in (Plan 14's offer queue is the real gate on
+      the catalogue: three programs at a time, whatever the prereqs say)
     - tier 2 (110/120/130/140): requires the major's tier-1 course — and,
       like every course of a major, the dynamic gate "this program is
       housed" (techSystem.ts's meetsUnlockGates reads s.halls), which is
@@ -59,7 +67,7 @@ import {
   requiresFaculty, unlike the prereq bridges, IS systematic: every major
   seed carries one `field` (a Faculty.field from facultyData.ts's
   FACULTY_FIELDS), and every course in that major — all nine tiers —
-  requires it, via GENED_FIELDS for the six gen-ed core courses.
+  requires it.
 
   A major's field is the DEPARTMENT that would actually staff it, and the
   42 majors are spread across the 28 fields so that recruiting demand is
@@ -79,7 +87,7 @@ import {
   The School of Science is where most of that cross-school sharing now
   lands, and that is the point of it: Mathematics staffs Science AND
   Computer Science's Data Science, Physics staffs Science AND Engineering's
-  Aerospace AND the gen-ed science course, Chemistry staffs Science AND
+  Aerospace, Chemistry staffs Science AND
   Engineering's Chemical Engineering, and Biology staffs Science while
   bridging into Health Science's Nutrition and Kinesiology by prereq. The
   two pairings that the Science reorg broke — Chemical Engineering +
@@ -109,7 +117,7 @@ const TIER_DURATION_WEEKS: Record<number, number> = { 1: 4, 2: 12, 3: 24 };
 // Course development cost, scaled by tier so a tier-3 capstone is a
 // markedly bigger financial commitment than a tier-1 entry course — see
 // docs/design/economy.md. Buildings below are bigger investments still.
-// Tier 1 (which the gen-ed core shares) is priced a bit above its old
+// Tier 1 is priced a bit above its old
 // rate so the tier-1 build-out is still a real squeeze on opex now that
 // founding tuition starts higher — the pinch moves from a week-1 cash
 // scare to the T1 build-out visibly tightening the surplus, rather than
@@ -121,7 +129,7 @@ const TIER_COURSE_COST: Record<number, number> = { 1: 80_000, 2: 180_000, 3: 400
 // (see financeSystem.ts's cost-driver block). A course is not a one-time
 // purchase: developing it commits the school to staffing and running it,
 // and a tier-3 capstone with a handful of students in it costs several
-// times what a gen-ed lecture does.
+// times what an entry lecture does.
 //
 // This is what makes opening a tier RAISE weeklyOpEx immediately, while
 // the prestige that tier eventually earns only drifts in over years — the
@@ -131,31 +139,32 @@ const TIER_COURSE_COST: Record<number, number> = { 1: 80_000, 2: 180_000, 3: 400
 // campus-life facilities.
 const COURSE_UPKEEP_PER_WEEK: Record<number, number> = { 1: 130, 2: 380, 3: 800 };
 
-// Founders Hall: General Studies has no majors (just the gen-ed core), so
-// its building is a starter hall rather than a full academic building —
-// and it is seeded 'done' and pre-placed, so its cost is a figure for the
-// build tray to show rather than one anybody pays.
-const GENED_BUILDING_COST = 400_000;
-const GENED_BUILDING_WEEKS = 20;
+// Founders Hall: the college's founding hall, an ordinary six-slot
+// academic hall in every mechanical respect (Plan 19's PR A) — it is
+// seeded 'done' and pre-placed, so its cost is a figure for the build tray
+// to show rather than one anybody pays.
+const FOUNDERS_HALL_COST = 400_000;
+const FOUNDERS_HALL_WEEKS = 20;
 // Academic buildings carry a real recurring cost too — a hall is the
 // single biggest running bill in the curriculum half of the budget, and
 // (unlike a course) it arrives all at once. Founders Hall's is charged
 // from week one: it is seeded 'done' at founding, and upkeepPerWeek is
 // live-read rather than applied once, so it is part of the founding
-// operating picture with no double-counting.
-const GENED_BUILDING_UPKEEP_PER_WEEK = 900;
-// A small gen-ed reputation baseline the founding institution opens with —
-// folded into the starting reputation by createInitialState rather than
-// granted as a Buildable effect. There is no apply-once reputation effect in
-// the model (see techSystem.ts's applyEffects), and reputation is a stock
-// that drifts toward a target anyway, so this is the institution's founding
+// operating picture with no double-counting. Cheaper to run than a hall
+// the player builds: it is the older, smaller building.
+const FOUNDERS_HALL_UPKEEP_PER_WEEK = 900;
+// A small reputation baseline the founding institution opens with — the
+// standing of a college that is already teaching — folded into the
+// starting reputation by createInitialState rather than granted as a
+// Buildable effect. There is no apply-once reputation effect in the model
+// (see techSystem.ts's applyEffects), and reputation is a stock that
+// drifts toward a target anyway, so this is the institution's founding
 // academic standing, not a bonus tied to whether Founders Hall has been
-// built yet (it always is, at founding) — the hall's own payoff is
-// unlocking the tier-2 curriculum.
+// built yet (it always is, at founding).
 // Academic buildings never grant capacity — capacity is tied exclusively to
 // dormitories now (see campusData.ts); building out the curriculum unlocks
 // courses/majors, not beds.
-export const GENED_BUILDING_REPUTATION_BONUS = 1.5;
+export const FOUNDERS_HALL_REPUTATION_BONUS = 1.5;
 
 // ---------------------------------------------------------------------
 // THE ACADEMIC HALL (Plan 14). A repeatable, placeable 'building' Buildable
@@ -168,18 +177,22 @@ export const GENED_BUILDING_REPUTATION_BONUS = 1.5;
 // "Repeatable" here means what it means for dorms (campusData.ts): a
 // strictly sequential chain of distinctly-named Buildables, each unlocked
 // by the one before it, so there is always exactly one next hall to build
-// and its cost is visible. The first opens the tick the gen-ed core is
-// done — the new year-one beat: three programs waiting and nowhere to put
-// them — and is DELIBERATELY CHEAP, a fraction of the old school building,
-// so a founding school builds it without thinking. Each rung after it
-// costs a fixed ratio more, so the fifth is a multi-year commitment.
+// and its cost is visible. The first is DELIBERATELY CHEAP, a fraction of
+// the old school building, so a founding school builds it without
+// thinking — but not in week one: Founders Hall opens with three rooms
+// free (Plan 19), so the first purchased hall is the breadth road against
+// the depth road of filling the rooms the college already has, and its
+// gate (Plan 19's PR B) is the college teaching enough to justify a second
+// building. Each rung after it costs a fixed ratio more, so the fifth is a
+// multi-year commitment.
 //
-// Twelve rungs because twelve is the completionist ceiling: seven schools
-// of six majors, plus a second Business, Engineering, Science, Social
-// Sciences and Health Science hall for the six graduate programs, which
-// belong to those schools but do not fit in a hall their six majors
-// already fill. A hall the player never needs is never offered — the
-// chain stops here.
+// Eleven rungs because twelve halls is the completionist ceiling — seven
+// schools of six majors, plus a second Business, Engineering, Science,
+// Social Sciences and Health Science hall for the six graduate programs,
+// which belong to those schools but do not fit in a hall their six majors
+// already fill — and Founders Hall is the first of the twelve (Plan 19:
+// six slots, an ordinary hall). A hall the player never needs is never
+// offered — the chain stops here.
 //
 // EVERY NUMBER HERE IS PROVISIONAL, and loudly so. They are fitted by feel
 // against an economy the September review found broken and Plan 15 is
@@ -189,6 +202,10 @@ export const GENED_BUILDING_REPUTATION_BONUS = 1.5;
 // completionist ten or eleven. Cumulative: ~$14M for eight, ~$37M for
 // eleven — a fraction of the dorm chain over the same span.
 export const ACADEMIC_HALL_SLOTS = 6;
+// What the first purchased hall waits on (Plan 19's PR B): the six courses
+// the college opens with, plus two the player chose. See
+// Buildable.minCoursesToUnlock.
+export const FIRST_HALL_COURSE_GATE = 8;
 const ACADEMIC_HALL_FIRST_COST = 750_000;
 const ACADEMIC_HALL_COST_RATIO = 1.3;
 const ACADEMIC_HALL_FIRST_WEEKS = 16;
@@ -198,13 +215,15 @@ const ACADEMIC_HALL_WEEKS = 24;
 const ACADEMIC_HALL_UPKEEP_PER_WEEK = 3_000;
 // Named for the campus rather than for a school — a hall is not "the
 // School of Engineering" until six Engineering programs sit in it (Plan
-// 14's PR E gives a dedicated hall its school's name on the map). The
-// cardinal four first, then the founding woodland (see treeData.ts) the
-// campus was cut out of.
+// 14's PR E gives a dedicated hall its school's name on the map). Named
+// for the founding woodland (see treeData.ts) the campus was cut out of,
+// and for nothing else: the first four used to be the cardinal points,
+// and a name that says where a building goes contradicts a map that is
+// the player's own to lay out.
 const ACADEMIC_HALL_NAMES = [
-  'North Academic Hall', 'South Academic Hall', 'East Academic Hall', 'West Academic Hall',
   'Elm Hall', 'Oak Hall', 'Linden Hall', 'Maple Hall',
   'Chestnut Hall', 'Sycamore Hall', 'Cedar Hall', 'Birch Hall',
+  'Hawthorn Hall', 'Beech Hall', 'Willow Hall',
 ];
 export const ACADEMIC_HALL_COUNT = ACADEMIC_HALL_NAMES.length;
 export const ACADEMIC_HALL_ID_PREFIX = 'HALL-';
@@ -212,12 +231,16 @@ function academicHallId(index: number): string {
   return `${ACADEMIC_HALL_ID_PREFIX}${String(index + 1).padStart(2, '0')}`;
 }
 
-// One of the repeatable chain above — six slots, built by the player — as
-// opposed to Founders Hall, which carries a slot (the core's) but is the
-// founding condition rather than a decision. The build menu groups the
-// chain as one repeatable type on this read.
+// A hall with program slots: Founders Hall and the eleven of the chain
+// above. Founders Hall used to be excluded here (one slot, the core's,
+// never a decision); since Plan 19's PR A it is an ordinary six-slot hall
+// that happens to stand at founding, and every reader of this predicate
+// — the build menu's grouping, the map's slot pips, the info panel, the
+// next-step line — treats it as one. Where something has to single it
+// out (the ambition "a hall of your own", the harness's "first hall
+// built"), it compares against FOUNDERS_HALL_ID.
 export function isAcademicHall(t: Buildable): boolean {
-  return t.kind === 'building' && t.slots !== undefined && t.id !== GENED_BUILDING_ID;
+  return t.kind === 'building' && t.slots !== undefined;
 }
 
 interface MajorSeed {
@@ -228,35 +251,18 @@ interface MajorSeed {
 }
 interface SchoolSeed {
   name: string;
-  // Set only for General Studies: Founders Hall, the founding condition the
-  // gen-ed core is paired with. No degree-granting school has a building
-  // of its own any more — see the module note above.
-  buildingId?: string;
-  buildingName?: string;
-  core?: Array<[string, string]>; // [code, title] for gen-ed only
   majors: MajorSeed[];
 }
 
 // Exported so actions.ts's createInitialState can find and pre-place this
-// one Buildable at founding, without re-deriving its id from the SCHOOLS
-// seed below (which isn't exported).
-export const GENED_BUILDING_ID = 'BLDG-GENSTUDIES';
+// one Buildable at founding. The string is the id General Studies' building
+// carried before Plan 19 retired that school; it is kept so nothing keyed
+// on it (the clock tower in buildingSpec.ts, the layout tool) had to move
+// with a rename that was taking a save break anyway.
+export const FOUNDERS_HALL_ID = 'BLDG-GENSTUDIES';
+const FOUNDERS_HALL_NAME = 'Founders Hall';
 
 const SCHOOLS: SchoolSeed[] = [
-  {
-    name: 'General Studies',
-    buildingId: GENED_BUILDING_ID,
-    buildingName: 'Founders Hall',
-    core: [
-      ['GE 110', 'College Writing'],
-      ['GE 120', 'Calculus'],
-      ['GE 130', 'Ethics I'],
-      ['GE 140', 'Principles of Science'],
-      ['GE 150', 'World Cultures'],
-      ['GE 160', 'Communications & Public Speaking'],
-    ],
-    majors: [],
-  },
   {
     name: 'Business',
     majors: [
@@ -273,8 +279,13 @@ const SCHOOLS: SchoolSeed[] = [
     majors: [
       { prefix: 'MECH', name: 'Mechanical Engineering', field: 'Mechanical Engineering', courses: ['Introduction to Mechanical Design', 'Statics & Dynamics', 'Thermodynamics', 'Fluid Mechanics', 'Materials Science', 'Robotics', 'HVAC Systems', 'Internal Combustion Engines', 'Finite Element Analysis'] },
       { prefix: 'ELEC', name: 'Electrical Engineering', field: 'Electrical Engineering', courses: ['Circuits', 'Digital Logic Design', 'Signals & Systems', 'Electromagnetics', 'Microelectronics', 'Power Systems Analysis', 'Wireless Communications', 'Control Systems', 'VLSI Design'] },
-      { prefix: 'CHEM', name: 'Chemical Engineering', field: 'Chemistry', courses: ['Chemistry I', 'Chemical Thermodynamics', 'Fluid Transport', 'Chemistry II', 'Chemical Reaction Engineering', 'Process Safety', 'Biochemical Engineering', 'Polymer Science', 'Sustainable Energy Technology'] },
-      { prefix: 'CIVE', name: 'Civil Engineering', field: 'Civil Engineering', courses: ['Physics I', 'Structural Analysis', 'Soil Mechanics', 'Physics II', 'Transportation Engineering', 'Bridge Design', 'Environmental Impact Assessment', 'Construction Management', 'Urban Planning'] },
+      // "Chemistry I / II" and "Physics I / II" until Plan 19: with the
+      // gen-ed core gone from under the catalogue those read as the same
+      // subject as the Science school's General Chemistry and Classical
+      // Mechanics under a second name, so both pairs are now the real
+      // first courses of their majors.
+      { prefix: 'CHEM', name: 'Chemical Engineering', field: 'Chemistry', courses: ['Principles of Chemical Engineering', 'Chemical Thermodynamics', 'Fluid Transport', 'Material & Energy Balances', 'Chemical Reaction Engineering', 'Process Safety', 'Biochemical Engineering', 'Polymer Science', 'Sustainable Energy Technology'] },
+      { prefix: 'CIVE', name: 'Civil Engineering', field: 'Civil Engineering', courses: ['Statics', 'Structural Analysis', 'Soil Mechanics', 'Mechanics of Materials', 'Transportation Engineering', 'Bridge Design', 'Environmental Impact Assessment', 'Construction Management', 'Urban Planning'] },
       { prefix: 'INDE', name: 'Industrial Engineering', field: 'Operations Research', courses: ['Systems', 'Production Planning', 'Ergonomics & Safety', 'Quality Control', 'Facilities Design', 'Simulation Modeling', 'Supply Chain Analytics', 'Lean Manufacturing', 'Reliability Engineering'] },
       { prefix: 'AERO', name: 'Aerospace Engineering', field: 'Physics', courses: ['Introduction to Flight Dynamics', 'Aerodynamics', 'Aircraft Performance', 'Spacecraft Propulsion', 'Aerospace Structures', 'Astrodynamics', 'Rocketry', 'Helicopter Dynamics', 'Unmanned Aerial Systems'] },
     ],
@@ -291,14 +302,25 @@ const SCHOOLS: SchoolSeed[] = [
     ],
   },
   {
+    // THE OPENING SCHOOL (Plan 19). English, History and Philosophy are
+    // founded in Founders Hall before the player sees the game, taught by
+    // the founding roster (see actions.ts's createInitialState), so a
+    // college opens as a small liberal-arts college teaching what its five
+    // professors can teach — and three of the six programs that would
+    // dedicate this school are already there.
     name: 'Social Sciences & Humanities',
     majors: [
       { prefix: 'ENGL', name: 'English', field: 'English', courses: ['Introduction to Literary Studies', 'British Literature Survey', 'American Literature Survey', 'Critical Theory', 'Advanced Composition', 'Shakespeare', 'Restoration & 18th Century Literature', 'Postcolonial Literature', 'Technical Writing'] },
       { prefix: 'SOCY', name: 'Sociology', field: 'Sociology', courses: ['Introduction to Sociology', 'Social Stratification', 'Sociological Theory', 'Race & Ethnicity', 'Qualitative Research Methods', 'Criminology', 'Sociology of the Family', 'Urban Sociology', 'Sex & Gender'] },
       { prefix: 'ANTH', name: 'Anthropology', field: 'Sociology', courses: ['Introduction to Anthropology', 'Cultural Anthropology', 'Biological Anthropology', 'Archaeological Methods', 'Linguistic Anthropology', 'Ethnographic Field Methods', 'Medical Anthropology', 'Anthropology of Religion', 'Museum & Heritage Studies'] },
-      { prefix: 'POLS', name: 'Political Science', field: 'Political Science', courses: ['Civics', 'Comparative Politics', 'International Relations', 'American Government', 'Public Policy Analysis', 'Constitutional Law', 'Political Campaigns', 'Theories of Justice', 'Security Studies'] },
+      // "Civics" until Plan 19: a secondary-school name for the entry
+      // survey of one of the three programs that dedicate the opening
+      // school, so it is an early, named goal rather than an obscure row.
+      { prefix: 'POLS', name: 'Political Science', field: 'Political Science', courses: ['Introduction to Political Science', 'Comparative Politics', 'International Relations', 'American Government', 'Public Policy Analysis', 'Constitutional Law', 'Political Campaigns', 'Theories of Justice', 'Security Studies'] },
       { prefix: 'HIST', name: 'History', field: 'History', courses: ['World History', 'Research & Historiography', 'US History', 'European History', 'Ancient Civilizations', 'World War I & II', 'Historical Archaeology', 'Historical Anthropology', 'History of Science & Technology'] },
-      { prefix: 'PHIL', name: 'Philosophy', field: 'Philosophy', courses: ['Introduction to Logic & Reasoning', 'Ethics II', 'Metaphysics', 'Epistemology', 'Ancient Greek Philosophy', 'Existentialism', 'Philosophy of Mind', 'Aesthetics', 'Symbolic Logic'] },
+      // "Ethics II" until Plan 19, when the gen-ed Ethics I it followed
+      // was retired with the core.
+      { prefix: 'PHIL', name: 'Philosophy', field: 'Philosophy', courses: ['Introduction to Logic & Reasoning', 'Ethics', 'Metaphysics', 'Epistemology', 'Ancient Greek Philosophy', 'Existentialism', 'Philosophy of Mind', 'Aesthetics', 'Symbolic Logic'] },
     ],
   },
   {
@@ -313,7 +335,11 @@ const SCHOOLS: SchoolSeed[] = [
     // finished either keeps it finished.
     name: 'Science',
     majors: [
-      { prefix: 'MATH', name: 'Mathematics', field: 'Mathematics', courses: ['Calculus II', 'Linear Algebra', 'Probability & Statistics', 'Discrete Mathematics', 'Differential Equations', 'Real Analysis', 'Abstract Algebra', 'Topology', 'Numerical Methods'] },
+      // "Calculus II" until Plan 19, when the gen-ed Calculus it followed
+      // was retired with the core. Mathematics is one of the two majors
+      // the founding offer is rigged toward (programOffers.ts), so this is
+      // plausibly among the first three programs a player is ever shown.
+      { prefix: 'MATH', name: 'Mathematics', field: 'Mathematics', courses: ['Calculus', 'Linear Algebra', 'Probability & Statistics', 'Discrete Mathematics', 'Differential Equations', 'Real Analysis', 'Abstract Algebra', 'Topology', 'Numerical Methods'] },
       { prefix: 'BIOL', name: 'Biology', field: 'Biology', courses: ['Biology I', 'Cell Biology', 'Genetics', 'Ecology', 'Evolution', 'Microbiology', 'Marine Biology', 'Plant Physiology', 'Immunology'] },
       { prefix: 'CHMY', name: 'Chemistry', field: 'Chemistry', courses: ['General Chemistry', 'Inorganic Chemistry', 'Organic Chemistry', 'Analytical Chemistry', 'Physical Chemistry', 'Biochemistry', 'Spectroscopy & Structure Determination', 'Medicinal Chemistry', 'Computational Chemistry'] },
       { prefix: 'PHYS', name: 'Physics', field: 'Physics', courses: ['Classical Mechanics', 'Electricity & Magnetism', 'Waves & Optics', 'Modern Physics', 'Thermal & Statistical Physics', 'Quantum Mechanics', 'Solid State Physics', 'Astrophysics & Cosmology', 'Particle Physics'] },
@@ -353,12 +379,6 @@ const SCHOOLS: SchoolSeed[] = [
   },
 ];
 
-// The gen-ed core is the true foundation of the curriculum: every major's
-// tier-1 entry course requires the whole 6-course core, not just its own
-// school's building. Derived from SCHOOLS rather than re-listed so it can
-// never drift from the General Studies core defined above.
-export const GENED_CORE_IDS: string[] = SCHOOLS.find((school) => school.core)!.core!.map(([code]) => code.replace(/\s/g, ''));
-
 // Every undergraduate major's course-code prefix — which is also its
 // PROGRAM ID in `s.halls` (see types.ts's HallSlot). Read by the loader's
 // hall sanitizer and the invariant sweep, so "is this a real program" is
@@ -368,34 +388,26 @@ export function majorPrefixes(): string[] {
 }
 
 // A PROGRAM, as the halls model sees it (Plan 14): the unit that takes a
-// slot. Forty-two majors, the gen-ed core, and the six graduate programs,
-// each read off the seed by the id `s.halls` and `s.programOffers` carry.
-// Deliberately a fourth independent read of SCHOOLS, for the reason
-// milestoneSchools() and researchSchools() each are: the engine has no
-// notion of "program", so the feature that needs one derives it here
-// rather than growing a field on Buildable.
-export type ProgramKind = 'core' | 'major' | 'graduate';
+// slot. Forty-two majors and the six graduate programs, each read off the
+// seed by the id `s.halls` and `s.programOffers` carry. Deliberately a
+// fourth independent read of SCHOOLS, for the reason milestoneSchools()
+// and researchSchools() each are: the engine has no notion of "program",
+// so the feature that needs one derives it here rather than growing a
+// field on Buildable.
+export type ProgramKind = 'major' | 'graduate';
 export interface ProgramInfo {
-  id: string;            // the slot id: a major prefix, 'CORE', or a GRADUATE_PROGRAMS id
+  id: string;            // the slot id: a major prefix or a GRADUATE_PROGRAMS id
   kind: ProgramKind;
   name: string;
   school: string;        // the SchoolSeed name; a graduate program's homeSchool
-  field: string | null;  // the Faculty field a major's every course requires; null for the core and graduate programs, which author it per course
+  field: string | null;  // the Faculty field a major's every course requires; null for graduate programs, which author it per course
   entryCourseId: string; // the tier-1 (or first) course — founding a program starts this one
   courseIds: string[];   // every course, in tier order
 }
 
-const CORE_PROGRAM_ID = 'CORE';
-
 export function programs(): ProgramInfo[] {
   const out: ProgramInfo[] = [];
   for (const school of SCHOOLS) {
-    if (school.core) {
-      out.push({
-        id: CORE_PROGRAM_ID, kind: 'core', name: 'General Education', school: school.name, field: null,
-        entryCourseId: GENED_CORE_IDS[0], courseIds: [...GENED_CORE_IDS],
-      });
-    }
     for (const major of school.majors) {
       const courseIds = NUMS.map((num) => nodeId(major.prefix, num));
       out.push({
@@ -437,36 +449,6 @@ export function programOfCourse(courseId: string): string | undefined {
   }
   return courseProgramMap.get(courseId);
 }
-
-// requiresFaculty gates for the six gen-ed core courses — same idea as each
-// major's own `field` above, just per-course instead of per-major since the
-// core isn't a single discipline. Every field used here already appears in
-// facultyData.ts's FACULTY_FIELDS.
-//
-// These six are load-bearing beyond the courses themselves: the founding
-// roster in actions.ts is sized to cover exactly these fields and nothing
-// else (English x2, Mathematics, Philosophy, Physics, History), so changing
-// one here means changing a founding hire there. All six survived the
-// department re-specialisation unchanged for precisely that reason — the
-// gen-ed core is the one place the taxonomy is pinned to the founding
-// payroll.
-//
-// The School of Science did not disturb that either, and it was checked
-// rather than assumed. Mathematics and Physics MOVED in the sense that they
-// are now majors in Science, but neither is a new FIELD: GE120 asked for
-// 'Mathematics' (which already staffed Data Science) and GE140 asked for
-// 'Physics' (which already staffed Aerospace Engineering) before the reorg
-// and still do after it. A school does not own a field — a field staffs
-// whichever majors name it — so the five founding hires still cover all six
-// gen-ed courses and founding payroll is unchanged.
-const GENED_FIELDS: Record<string, string> = {
-  GE110: 'English',      // College Writing
-  GE120: 'Mathematics',  // Calculus
-  GE130: 'Philosophy',   // Ethics I
-  GE140: 'Physics',      // Principles of Science
-  GE150: 'History',      // World Cultures
-  GE160: 'English',      // Communications & Public Speaking
-};
 
 // ---------------------------------------------------------------------
 // Curated content — deliberately small and hand-picked rather than a
@@ -524,12 +506,12 @@ export const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
   // --- Engineering ---
   MECH210: ['ELEC101'],           // Robotics needs circuits — the half of a robot that is not mechanism
   AERO130: ['CHEM110'],           // Spacecraft Propulsion needs chemical thermodynamics
-  AERO210: ['MATH101'],           // Astrodynamics needs calculus II
+  AERO210: ['MATH101'],           // Astrodynamics needs calculus
   AERO220: ['MECH120'],           // Rocketry needs thermodynamics
   ELEC130: ['PHYS110'],           // Electromagnetics needs undergraduate electricity & magnetism
   CHEM220: ['CHMY210'],           // Biochemical Engineering needs biochemistry itself, not just the organic chemistry under it
   CHEM230: ['CHMY120'],           // Polymer Science needs organic chemistry — "polymer science requires Chemistry II" is already what the tier-3 climb says (rule 2 above), so the bridge goes one step deeper, into the Chemistry major
-  CIVE140: ['SPCO101'],           // Transportation Engineering needs the supply-chain fundamentals it moves goods for. NOT SPCO240 ("Transportation Management"), which is a tier-3 capstone: this is a tier-2 course, and rule 1 above is why — bridging a tier-2 course to a capstone would hold Civil Engineering's ESTABLISHMENT behind most of a Business major. SPCO101 is also the lightest honest stand-in available, gating on nothing but the gen-ed core, so Civil Engineering doesn't quietly acquire a Business Hall dependency either
+  CIVE140: ['SPCO101'],           // Transportation Engineering needs the supply-chain fundamentals it moves goods for. NOT SPCO240 ("Transportation Management"), which is a tier-3 capstone: this is a tier-2 course, and rule 1 above is why — bridging a tier-2 course to a capstone would hold Civil Engineering's ESTABLISHMENT behind most of a Business major. SPCO101 is also the lightest honest stand-in available, an entry course gating on nothing, so Civil Engineering doesn't quietly acquire a Business Hall dependency either
   CIVE220: ['ENVS101'],           // Environmental Impact Assessment needs environmental science
   CIVE230: ['MGMT210'],           // Construction Management needs project management
   CIVE240: ['SOCY101'],           // Urban Planning needs the sociology of the people being planned for
@@ -788,7 +770,7 @@ export type GraduateProgramType = 'professional' | 'doctoral';
 interface GraduateCourseSeed {
   num: number;    // course number within the program (5xx professional, 7xx doctoral)
   title: string;
-  field: string;  // the Faculty field this ONE course requires — authored per course, like the gen-ed core's GENED_FIELDS rather than per-major, which is what lets medicine lean on the health AND science departments at once
+  field: string;  // the Faculty field this ONE course requires — authored per course rather than per-major, which is what lets medicine lean on the health AND science departments at once
 }
 
 export interface GraduateProgramSeed {
@@ -996,7 +978,7 @@ export function graduateGateDescription(program: GraduateProgramSeed): string {
 }
 
 // ---------------------------------------------------------------------
-// Descriptions. Every tier-1/core course (the 48 entry points players see
+// Descriptions. Every tier-1 course (the 42 entry points players see
 // first) gets a hand-written one-liner. Tier-2/tier-3 descriptions are
 // generated from the course's own title through a small set of rotating,
 // tier-appropriate phrasings — real catalog-style text naming the actual
@@ -1004,12 +986,6 @@ export function graduateGateDescription(program: GraduateProgramSeed): string {
 // hand-composed sentences either (see the PR notes on this tradeoff).
 // ---------------------------------------------------------------------
 const TIER1_DESCRIPTIONS: Record<string, string> = {
-  GE110: 'Develops clear, structured academic writing through drafting, revision, and peer critique.',
-  GE120: 'Covers limits, derivatives, and integrals, the mathematical toolkit for science and engineering coursework.',
-  GE130: 'Surveys major ethical frameworks and applies them to everyday moral reasoning.',
-  GE140: 'Introduces the scientific method through hands-on experiments across physics, chemistry, and biology.',
-  GE150: 'Explores the histories, beliefs, and social structures of societies across the globe.',
-  GE160: 'Builds confident, persuasive speaking and presentation skills for academic and professional settings.',
 
   FINA101: 'Introduces time value of money, risk, and the core tools of personal and corporate finance.',
   ACCT101: 'Covers the accounting cycle, financial statements, and the language of business record-keeping.',
@@ -1020,8 +996,8 @@ const TIER1_DESCRIPTIONS: Record<string, string> = {
 
   MECH101: 'Introduces the design process, sketching, and basic mechanical systems.',
   ELEC101: 'Covers voltage, current, and resistance through hands-on circuit analysis and lab work.',
-  CHEM101: 'Establishes atomic structure, bonding, and reaction fundamentals for chemical engineers.',
-  CIVE101: 'Covers mechanics and forces, the physical foundation for structural and civil design.',
+  CHEM101: 'Introduces the chemical process industries and the unit operations, flows, and conversions that run them.',
+  CIVE101: 'Covers forces in equilibrium, free-body diagrams, and load paths, the physical foundation for structural and civil design.',
   INDE101: 'Introduces systems thinking for analyzing and improving industrial processes.',
   AERO101: 'Covers the forces of flight — lift, drag, thrust, and weight — and how aircraft respond to them.',
 
@@ -1035,11 +1011,11 @@ const TIER1_DESCRIPTIONS: Record<string, string> = {
   ENGL101: 'Introduces close reading and literary analysis across poetry, fiction, and drama.',
   SOCY101: 'Examines how social structures, institutions, and group behavior shape everyday life.',
   ANTH101: 'Introduces the four fields of anthropology and what each asks about being human.',
-  POLS101: 'Covers the structures and processes of government and the rights and duties of citizenship.',
+  POLS101: 'Surveys power, institutions, and political behavior, and the questions and methods of the discipline.',
   HIST101: 'Surveys major civilizations and turning points from antiquity to the modern era.',
   PHIL101: 'Builds skills in argument analysis, deduction, and identifying logical fallacies.',
 
-  MATH101: 'Extends single-variable calculus into sequences, series, and techniques of integration.',
+  MATH101: 'Covers limits, derivatives, and integrals, the mathematical toolkit for science and engineering coursework.',
   BIOL101: 'Covers cell structure, genetics, and the fundamentals of living systems.',
   CHMY101: 'Builds stoichiometry, periodicity, and reaction theory from first principles.',
   PHYS101: 'Derives motion, force, energy, and momentum from Newton\'s laws, with lab work throughout.',
@@ -1075,45 +1051,21 @@ const TIER3_TEMPLATES: Array<(title: string, major: string) => string> = [
   (title, major) => `Senior-level study of ${title}, the kind of specialization ${major} builds toward.`,
 ];
 
-const BUILDING_DESCRIPTIONS: Record<string, string> = {
-  'BLDG-GENSTUDIES': 'The starter hall housing the general-education core — standing since the university\'s founding.',
-};
+const FOUNDERS_HALL_DESCRIPTION = `The founding hall, standing since the college opened: ${ACADEMIC_HALL_SLOTS} program slots, three of them teaching from the first day.`;
 
 function nodeId(prefix: string, num: number): string {
   return `${prefix}${num}`;
 }
 
 // Expand the seed data into the flat Buildable[] the engine consumes:
-// 384 course Buildables plus one school-building Buildable per school.
+// 378 course Buildables, Founders Hall, the hall chain and the graduate
+// catalogue.
 export function initialTech(): Buildable[] {
   const nodes: Buildable[] = [];
 
   for (const school of SCHOOLS) {
-    const tier1IdsInSchool: string[] = [];
-
-    // General-ed core: six tier-1 nodes, no prereqs, available immediately.
-    if (school.core) {
-      for (const [code, title] of school.core) {
-        const id = code.replace(/\s/g, '');
-        tier1IdsInSchool.push(id);
-        nodes.push({
-          id,
-          kind: 'course',
-          name: `${code} · ${title}`,
-          description: TIER1_DESCRIPTIONS[id] ?? `${school.name} core requirement.`,
-          cost: TIER_COURSE_COST[1],
-          duration: TIER_DURATION_WEEKS[1],
-          prereqs: [],
-          status: 'available',
-          requiresFaculty: GENED_FIELDS[id],
-          effects: { upkeepPerWeek: COURSE_UPKEEP_PER_WEEK[1] },
-        });
-      }
-    }
-
     for (const major of school.majors) {
       const t1Id = nodeId(major.prefix, NUMS[0]);
-      tier1IdsInSchool.push(t1Id);
       const t2Ids = [1, 2, 3, 4].map((i) => nodeId(major.prefix, NUMS[i]));
       const needsLab = LAB_GATED_MAJOR_PREFIXES.includes(major.prefix);
 
@@ -1150,13 +1102,13 @@ export function initialTech(): Buildable[] {
         const id = nodeId(major.prefix, num);
 
         let prereqs: string[] = [];
-        if (tier === 1) prereqs = [...GENED_CORE_IDS];
-        // Tier 2 used to name the school building here as well. The gate
-        // it stood for — "this program has a home" — is dynamic now: every
-        // course of a major waits on the program being housed in a hall
-        // slot (techSystem.ts's meetsUnlockGates), tier 1 included, which
-        // is what makes founding the only way in.
-        else if (tier === 2) prereqs = [t1Id];
+        // Tier 1 used to require the whole gen-ed core, and tier 2 the
+        // school building. The gate both stood for — "this program has a
+        // home" — is dynamic now: every course of a major waits on the
+        // program being housed in a hall slot (techSystem.ts's
+        // meetsUnlockGates), tier 1 included, which is what makes founding
+        // the only way in. So an entry course has no prereqs at all.
+        if (tier === 2) prereqs = [t1Id];
         else if (tier === 3) {
           const artsGate = ARTS_CAPSTONE_GATE[major.prefix];
           prereqs = [
@@ -1182,9 +1134,10 @@ export function initialTech(): Buildable[] {
           description,
           cost: TIER_COURSE_COST[tier],
           duration: TIER_DURATION_WEEKS[tier],
-          // Every major course starts locked now — even tier-1 has a real
-          // prereq (the gen-ed core) — and unlocks via the generic prereq
-          // resolver as those prereqs complete.
+          // Every major course starts locked — tier 1 behind the housed
+          // gate alone — and unlocks via the generic resolver as its
+          // prereqs complete. The founding programs' first courses are
+          // then seeded 'done' by createInitialState.
           prereqs,
           status: 'locked',
           requiresFaculty: major.field,
@@ -1193,50 +1146,49 @@ export function initialTech(): Buildable[] {
       });
     }
 
-    // Founders Hall (General Studies' own building) — the one building a
-    // SchoolSeed still carries. Per docs/design/curriculum.md, a new
-    // university starts with "one academic building and the gen-ed courses
-    // available": the building isn't an early reward, it's the founding
-    // condition the gen-ed courses are paired with. It's the one Buildable
-    // in the whole game seeded 'done' AND pre-placed at founding (see
-    // actions.ts's createInitialState) — the university's literal founding
-    // hall, standing in for the pre-built dorm a founding campus used to
-    // open with before commuters (see campusData.ts). It carries no
-    // APPLY-ONCE reputation effect: a gen-ed reputation baseline is folded
-    // into the founding institution's standing instead (see
-    // GENED_BUILDING_REPUTATION_BONUS and actions.ts). Its upkeepPerWeek is
-    // LIVE-READ every tick off whatever is 'done', so it is part of the
-    // founding operating picture with no double-counting — the same
-    // contract the founding dining hall follows in facilitiesData.ts, just
-    // already 'done' rather than merely 'available' on day one. Academic
-    // buildings carry no capacity effect at all — see the capacity comment
-    // above GENED_BUILDING_REPUTATION_BONUS.
-    //
-    // It holds the gen-ed core and NOTHING ELSE: one slot, filled at
-    // founding (see actions.ts's createInitialState), so the core occupies
-    // the building rather than one slot of six. The alternative — core
-    // plus five free slots — strands the player's first five programs in
-    // a building that can never found a school, a trap laid in the first
-    // ten minutes. See types.ts's HallSlot.
-    if (school.buildingId && school.buildingName) {
-      nodes.push({
-        id: school.buildingId,
-        kind: 'building',
-        name: school.buildingName,
-        description: BUILDING_DESCRIPTIONS[school.buildingId] ?? `${school.name}'s academic building.`,
-        cost: GENED_BUILDING_COST,
-        duration: GENED_BUILDING_WEEKS,
-        prereqs: tier1IdsInSchool,
-        status: 'done',
-        slots: 1,
-        effects: { upkeepPerWeek: GENED_BUILDING_UPKEEP_PER_WEEK },
-      });
-    }
   }
 
-  // The academic hall chain (see ACADEMIC_HALL_SLOTS above). The first
-  // waits on the gen-ed core, exactly as every tier-1 course does; each
-  // rung after it waits on the rung before, the dorm chain's shape.
+  // Founders Hall — the college's founding hall. Per
+  // docs/design/curriculum.md, a new university starts with one academic
+  // building already teaching: the building isn't an early reward, it's
+  // the founding condition. It's the one Buildable in the whole game seeded
+  // 'done' AND pre-placed at founding (see actions.ts's createInitialState)
+  // — the university's literal founding hall, standing in for the
+  // pre-built dorm a founding campus used to open with before commuters
+  // (see campusData.ts). It carries no APPLY-ONCE reputation effect: a
+  // founding reputation baseline is folded into the institution's standing
+  // instead (see FOUNDERS_HALL_REPUTATION_BONUS and actions.ts). Its
+  // upkeepPerWeek is LIVE-READ every tick off whatever is 'done', so it is
+  // part of the founding operating picture with no double-counting — the
+  // same contract the founding dining hall follows in facilitiesData.ts,
+  // just already 'done' rather than merely 'available' on day one. Academic
+  // buildings carry no capacity effect at all — see the capacity comment
+  // above FOUNDERS_HALL_REPUTATION_BONUS.
+  //
+  // SIX SLOTS, like every other hall (Plan 19's PR A). It used to hold the
+  // gen-ed core and nothing else — one slot, so that the player's first
+  // programs were never stranded in a building that could not found a
+  // school. With the core gone the opposite is true: three Social Sciences
+  // & Humanities programs are housed here at founding (actions.ts), and
+  // the three free rooms are exactly the three programs that would
+  // dedicate the school. See types.ts's HallSlot.
+  nodes.push({
+    id: FOUNDERS_HALL_ID,
+    kind: 'building',
+    name: FOUNDERS_HALL_NAME,
+    description: FOUNDERS_HALL_DESCRIPTION,
+    cost: FOUNDERS_HALL_COST,
+    duration: FOUNDERS_HALL_WEEKS,
+    prereqs: [],
+    status: 'done',
+    slots: ACADEMIC_HALL_SLOTS,
+    effects: { upkeepPerWeek: FOUNDERS_HALL_UPKEEP_PER_WEEK },
+  });
+
+  // The academic hall chain (see ACADEMIC_HALL_SLOTS above). Each rung
+  // waits on the rung before, the dorm chain's shape; the first has no
+  // Buildable prereq — its gate is FIRST_HALL_COURSE_GATE developed
+  // courses (see techSystem.ts's meetsUnlockGates).
   ACADEMIC_HALL_NAMES.forEach((name, i) => {
     const cost = Math.round(ACADEMIC_HALL_FIRST_COST * ACADEMIC_HALL_COST_RATIO ** i / 1_000) * 1_000;
     nodes.push({
@@ -1246,7 +1198,8 @@ export function initialTech(): Buildable[] {
       description: `An academic hall with ${ACADEMIC_HALL_SLOTS} program slots. Six programs of one school, housed together, found that school.`,
       cost,
       duration: i === 0 ? ACADEMIC_HALL_FIRST_WEEKS : ACADEMIC_HALL_WEEKS,
-      prereqs: i === 0 ? [...GENED_CORE_IDS] : [academicHallId(i - 1)],
+      prereqs: i === 0 ? [] : [academicHallId(i - 1)],
+      ...(i === 0 ? { minCoursesToUnlock: FIRST_HALL_COURSE_GATE } : {}),
       status: 'locked',
       slots: ACADEMIC_HALL_SLOTS,
       effects: { upkeepPerWeek: ACADEMIC_HALL_UPKEEP_PER_WEEK },
@@ -1364,12 +1317,12 @@ export function milestoneSchools(): MilestoneSchool[] {
 // which could previously never research at all, moved into Science with its
 // major.
 //
-// EVERY SCHOOL WITH MAJORS NOW BEARS A FACILITY. Business, Arts & Media,
-// Social Sciences & Humanities and Computer Science each got one — see
+// EVERY SCHOOL NOW BEARS A FACILITY. Business, Arts & Media, Social
+// Sciences & Humanities and Computer Science each got one — see
 // LAB_GATED_MAJOR_PREFIXES and RESEARCH_FACILITY_NAMES above — so `labIds`
-// is empty only for General Studies, which has no majors of its own. What
-// differs between schools is vocabulary, not mechanics (researchData.ts's
-// DISCIPLINE_VOCAB); see docs/design/research.md.
+// is never empty. What differs between schools is vocabulary, not
+// mechanics (researchData.ts's DISCIPLINE_VOCAB); see
+// docs/design/research.md.
 export interface ResearchSchool {
   schoolName: string;
   labIds: string[];  // lab Buildable ids belonging to this school's majors; empty means this school can never produce research
@@ -1407,16 +1360,8 @@ export function labFields(facilityId: string): string[] {
 export function researchSchools(): ResearchSchool[] {
   return SCHOOLS.map((school) => {
     const fields = new Set<string>(school.majors.map((major) => major.field));
-    // General Studies is staffed per-COURSE rather than per-major (see
-    // GENED_FIELDS), so its fields come from the core it actually offers.
-    if (school.core) {
-      for (const [code] of school.core) {
-        const field = GENED_FIELDS[code.replace(/\s/g, '')];
-        if (field) fields.add(field);
-      }
-    }
     // Graduate programs teach in their home school too, and are staffed
-    // per-course like the gen-ed core. Folded in here rather than left out
+    // per-course rather than per-major. Folded in here rather than left out
     // so "every field that teaches in this school" stays literally true as
     // the catalogue grows. It changes nothing today — every graduate field
     // except Law already teaches undergraduate courses in its program's
@@ -1466,12 +1411,8 @@ export interface DiscoveryGraduateProgram {
 }
 export interface DiscoverySchool {
   name: string;
-  // The school's building, where it has one: only General Studies (Founders
-  // Hall) does. A degree-granting school is a set of programs housed in
-  // academic halls, not a building — the Curriculum tab keys its sections
-  // by `name`, and the campus map's info panel finds Founders Hall by this.
-  buildingId?: string;
-  coreIds: string[]; // gen-ed core course ids; non-empty only for General Studies
+  // No building: a school is a set of programs housed in academic halls
+  // — the Curriculum tab keys its sections by `name`.
   majors: DiscoveryMajor[];
   // The graduate programs whose HOME school this is — Medicine and Law
   // included, since PR E: a program is housed in a hall of its school,
@@ -1482,8 +1423,6 @@ export interface DiscoverySchool {
 export function discoverySchools(): DiscoverySchool[] {
   return SCHOOLS.map((school) => ({
     name: school.name,
-    buildingId: school.buildingId,
-    coreIds: school.core ? school.core.map(([code]) => code.replace(/\s/g, '')) : [],
     majors: school.majors.map((major) => ({
       name: major.name,
       prefix: major.prefix,

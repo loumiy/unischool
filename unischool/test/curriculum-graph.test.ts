@@ -41,12 +41,9 @@ const nodes: Buildable[] = [...initialTech(), ...initialDorms(), ...initialFacil
 const byId = new Map(nodes.map((n) => [n.id, n]));
 
 // Course tier, read back off the course number the same way techData.ts's
-// NUMS/TIERS assign it. The gen-ed core is tier 1 whatever its numbering
-// (GE110..GE160 are six entry courses, not a tier-2 quartet), and graduate
-// courses (5xx/7xx) sit above tier 3.
+// NUMS/TIERS assign it. Graduate courses (5xx/7xx) sit above tier 3.
 function tierOf(t: Buildable): number | null {
   if (t.kind !== 'course') return null;
-  if (t.id.startsWith('GE')) return 1;
   const num = Number(t.id.replace(/^[A-Z]+/, ''));
   if (!Number.isFinite(num)) return null;
   if (num >= 500) return 4;

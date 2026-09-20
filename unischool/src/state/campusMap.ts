@@ -2,7 +2,7 @@ import type {
   Buildable, FacilityType, Footprint, GameState, Placement, Placements, TileCoord,
 } from './types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, PLACEABLE_KINDS } from './types';
-import { GENED_BUILDING_ID } from '../data/techData';
+import { FOUNDERS_HALL_ID } from '../data/techData';
 
 // Pure helpers for the campus map's placement rules, shared by the
 // reducer's PLACE_BUILDABLE case, the save loader's placement hygiene, and
@@ -393,7 +393,7 @@ export const RETROACTIVE_SITING_COST = 2_000;
 // first click that costs money would be a walkthrough that starts with a
 // bill. Everything else that reaches needsSiting pays the fee.
 export function sitingFeeOf(t: Buildable): number {
-  return t.id === GENED_BUILDING_ID ? 0 : RETROACTIVE_SITING_COST;
+  return t.id === FOUNDERS_HALL_ID ? 0 : RETROACTIVE_SITING_COST;
 }
 
 export function canSiteRetroactively(s: GameState, t: Buildable): boolean {

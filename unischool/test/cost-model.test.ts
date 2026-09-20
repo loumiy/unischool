@@ -17,7 +17,7 @@ import {
 import { marketRateMultiplier } from '../src/data/facultyData';
 import { SEATS_PER_COURSE } from '../src/systems/techtree/instructionCapacity';
 import { DECISION_EVENTS } from '../src/data/eventData';
-import { GENED_CORE_IDS } from '../src/data/techData';
+import { foundingCourseIds } from '../src/state/actions';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../src/state/types';
 import type { GameState } from '../src/state/types';
 
@@ -48,8 +48,16 @@ function fresh(): GameState {
   s.self.reputation = 50;
   return s;
 }
+// The founding college opens teaching six courses (Plan 19); a statement
+// with no course offered has to un-teach them first.
+function withoutFoundingCourses(s: GameState): void {
+  for (const id of foundingCourseIds()) s.tech.find((t) => t.id === id)!.status = 'available';
+}
+// Exactly n courses developed: the founding six are un-taught first, so
+// the count is the count.
 function withCourses(s: GameState, n: number): void {
   const courses = s.tech.filter((t) => t.kind === 'course');
+  courses.forEach((t) => { if (t.status === 'done') t.status = 'available'; });
   courses.slice(0, n).forEach((t) => { t.status = 'done'; });
 }
 function enrol(s: GameState, n: number): void {
@@ -61,9 +69,10 @@ console.log('cost model tests');
 // ---- instruction per section ----
 {
   const s = fresh();
+  withoutFoundingCourses(s);
   assert(instructionDetail(s).cost === 0 && instructionDetail(s).sections === 0, 'no course offered, no section, no cost');
 
-  withCourses(s, GENED_CORE_IDS.length);
+  withCourses(s, foundingCourseIds().length);
   enrol(s, 350);
   const d = instructionDetail(s);
   assert(d.courses === 6, 'six courses offered');
@@ -152,7 +161,6 @@ console.log('cost model tests');
 // ---- the founding statement still nets positive at the new costs ----
 {
   const s = fresh();
-  withCourses(s, GENED_CORE_IDS.length);
   const flow = financeBreakdown(s);
   assert(totalEnrolled(s.students) === 350, 'the founding body');
   assert(flow.instructionCost > 0 && flow.servicesCost > 0, 'is taught and served');

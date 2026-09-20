@@ -33,8 +33,8 @@ const SCHOOL_MARKS: Record<string, SchoolMark> = {
   'Computer Science': { hue: '#4a6a9a', motif: '▣' },
 };
 
-// General Studies, and anything the table does not know: the ordinary
-// brass, so an unmarked thing reads as unmarked rather than as a school.
+// Anything the table does not know: the ordinary brass, so an unmarked
+// thing reads as unmarked rather than as a school.
 const NO_MARK: SchoolMark = { hue: '#8a7a4a', motif: '·' };
 
 export function schoolMark(school: string): SchoolMark {

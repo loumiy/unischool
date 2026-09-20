@@ -1,6 +1,6 @@
 import type { GameState, SatisfactionAttributes } from '../../state/types';
 import { OPENING_LETTERS } from '../../data/eventData';
-import { GENED_BUILDING_ID, milestoneSchools, programById } from '../../data/techData';
+import { milestoneSchools, programById } from '../../data/techData';
 import { isHoused } from '../techtree/programOffers';
 import type { TabId } from '../../components/TabNav';
 import { openingHoldsClock } from '../../state/opening';
@@ -42,8 +42,10 @@ const ATTRIBUTE_LABEL: Record<keyof SatisfactionAttributes, string> = {
 };
 
 // Below this an attribute is a shortfall worth naming, on the 0..100 scale
-// each one is scored on (satisfactionSystem.ts).
-const ATTRIBUTE_SHORTFALL = 50;
+// each one is scored on (satisfactionSystem.ts). Exported for the balance
+// harness, whose prudent strategies save for the facility this line would
+// name (sim/balanceSim.ts).
+export const ATTRIBUTE_SHORTFALL = 50;
 
 function letterAsk(s: GameState): NextStep | null {
   if (s.clock.year !== 1 || s.events.opening.skipped) return null;
@@ -63,7 +65,6 @@ function letterAsk(s: GameState): NextStep | null {
 function freeSlot(s: GameState): NextStep | null {
   if (s.programOffers.length === 0) return null;
   for (const [hallId, slots] of Object.entries(s.halls)) {
-    if (hallId === GENED_BUILDING_ID) continue;
     if (!slots.some((slot) => slot.programId === null)) continue;
     const hall = s.tech.find((t) => t.id === hallId);
     if (!hall) continue;

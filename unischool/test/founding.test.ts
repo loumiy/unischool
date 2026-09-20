@@ -11,7 +11,8 @@
 
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
-import { programById } from '../src/data/techData';
+import { FOUNDERS_HALL_ID, programById, programOfCourse } from '../src/data/techData';
+import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
 import { canFoundProgram, canStartDevelopment, facultyGate } from '../src/systems/techtree/techSystem';
 import { isHoused } from '../src/systems/techtree/programOffers';
 import type { GameState } from '../src/state/types';
@@ -57,17 +58,17 @@ function advance(s: GameState, weeks: number): GameState {
   return s;
 }
 
-// A school with the core done, the first hall standing and empty, three
-// programs on offer, and every offered program's field staffed.
+// A school with the first hall standing and empty beside Founders Hall,
+// three programs on offer, and every offered program's field staffed.
+// The first hall's own gate (eight developed courses — Plan 19's PR B) is
+// not what is under test here, so the hall is stood up directly.
 function ready(): GameState {
-  let s = createInitialState('Founders');
+  const s = createInitialState('Founders');
   s.finance.cash = 500_000_000;
-  for (const id of ['GE110', 'GE120', 'GE130', 'GE140', 'GE150', 'GE160']) {
-    s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
-  }
-  s = advance(s, 6);
-  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: 'HALL-01', row: 40, col: 90, rotated: false });
-  s = advance(s, 18);
+  const hall = s.tech.find((t) => t.id === 'HALL-01')!;
+  hall.status = 'done';
+  s.placements['HALL-01'] = { row: 40, col: 90, w: 7, h: 5 };
+  s.halls['HALL-01'] = Array.from({ length: 6 }, () => ({ programId: null }));
   for (const id of s.programOffers) {
     const field = s.tech.find((t) => t.id === programById(id)!.entryCourseId)?.requiresFaculty;
     if (field && !s.faculty.some((f) => f.id === `test-${field}`)) staffField(s, field);
@@ -83,6 +84,7 @@ console.log('founding tests');
   assert(s.tech.find((t) => t.id === 'HALL-01')?.status === 'done', 'the first hall stands');
   assert(s.halls['HALL-01']?.length === 6 && s.halls['HALL-01'].every((x) => x.programId === null), 'with six empty slots');
   assert(s.programOffers.length === 3, 'three programs on offer');
+  assert(s.halls[FOUNDERS_HALL_ID].filter((x) => x.programId === null).length === 3, 'and Founders Hall has three rooms free beside it');
 }
 
 // ---- the transaction ----
@@ -103,7 +105,7 @@ console.log('founding tests');
   assert(cash - s.finance.cash === entry.cost, 'the entry course was charged, once');
   assert(!s.programOffers.includes(program.id), 'the founded program leaves the offer');
   assert(s.programOffers.length === 3, 'and a replacement is drawn');
-  assert(s.log[0]?.message.includes(program.name) && s.log[0]?.message.includes('North Academic Hall'),
+  assert(s.log[0]?.message.includes(program.name) && s.log[0]?.message.includes('Elm Hall'),
     `the log says where it was founded (${s.log[0]?.message})`);
   // Founding the same program twice, or into a taken slot, is refused.
   const again = reducer(s, { type: 'FOUND_PROGRAM', ...founding });
@@ -126,14 +128,17 @@ console.log('founding tests');
     staffField(s, s.tech.find((t) => t.id === programById(notOffered)!.entryCourseId)!.requiresFaculty!, 'extra');
     assert(!canFoundProgram(s, { ...ok, programId: notOffered, facultyId: 'extra' }), 'a program not on offer cannot be founded');
   }
-  // The core is never founded.
-  assert(!canFoundProgram(s, { ...ok, programId: 'CORE' }), 'the core cannot be founded');
+  // A founding program is housed already and never on offer.
+  assert(!canFoundProgram(s, { ...ok, programId: FOUNDING_PROGRAMS[0] }), 'a founding program cannot be founded again');
+  assert(!canFoundProgram(s, { ...ok, programId: 'CORE' }), 'nor can an id that is not a program');
   // No such hall, no such slot.
   assert(!canFoundProgram(s, { ...ok, hallId: 'HALL-02' }), 'a hall that does not stand has no slots');
   assert(!canFoundProgram(s, { ...ok, slot: 6 }), 'slot 7 of a six-slot hall does not exist');
   assert(!canFoundProgram(s, { ...ok, slot: -1 }), 'nor does slot 0 of 1');
-  // Founders Hall's one slot is taken.
-  assert(!canFoundProgram(s, { ...ok, hallId: 'BLDG-GENSTUDIES', slot: 0 }), "Founders Hall's slot holds the core");
+  // Founders Hall's first three slots hold the founding programs; its
+  // free rooms take a founding like any other hall's.
+  assert(!canFoundProgram(s, { ...ok, hallId: FOUNDERS_HALL_ID, slot: 0 }), "Founders Hall's first slot holds a founding program");
+  assert(canFoundProgram(s, { ...ok, hallId: FOUNDERS_HALL_ID, slot: 3 }), 'and its fourth room is open to a founding');
   // Cash.
   const poor = JSON.parse(JSON.stringify(s)) as GameState;
   poor.finance.cash = entry.cost - 1;
@@ -162,8 +167,8 @@ console.log('founding tests');
   // Sixty weeks of ticking never opens it either.
   const later = advance(JSON.parse(JSON.stringify(s)) as GameState, 60);
   assert(later.tech.find((t) => t.id === program.entryCourseId)?.status === 'locked', 'and time alone never opens it');
-  assert(later.tech.filter((t) => t.kind === 'course' && t.status === 'available').length === 0,
-    'nothing but founding reveals a course past the core');
+  assert(later.tech.filter((t) => t.kind === 'course' && t.status === 'available').every((t) => FOUNDING_PROGRAMS.includes(programOfCourse(t.id) ?? '')),
+    'nothing but founding reveals a course outside the founding programs');
 }
 
 // ---- the hall fills, and the offer runs on ----
@@ -184,7 +189,6 @@ console.log('founding tests');
   assert(s.halls['HALL-01'].every((x) => x.programId !== null), 'six foundings fill the hall');
   assert(new Set(founded).size === 6, 'with six different programs');
   assert(s.programOffers.length === 3 && s.programOffers.every((id) => !founded.includes(id)), 'and three more are on offer');
-  assert(s.tech.find((t) => t.id === 'HALL-02')?.status === 'available', 'the second hall is offered by then');
 }
 
 // ---- courses from the map (PR D): the same start, the same rules ----

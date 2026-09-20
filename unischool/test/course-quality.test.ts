@@ -34,7 +34,7 @@ function assert(cond: boolean, msg: string): void {
 const NEW_HIRE = 55;
 const VETERAN = 71;
 
-const grade = (teaching: number, load: number, slots: number, tier: 'core' | 1 | 2 | 3 | 'graduate') =>
+const grade = (teaching: number, load: number, slots: number, tier: 1 | 2 | 3 | 'graduate') =>
   qualityOf({ teaching, acclaim: 0, load, slots, tier }).grade;
 
 console.log('course quality tests');
@@ -94,7 +94,7 @@ console.log('course quality tests');
   // veteran upward, a D or F on a tier-3 course must mean a load above one.
   let veteranBottomWithoutLoad = 0;
   for (let teaching = VETERAN; teaching <= 100; teaching += 1) {
-    for (const tier of ['core', 1, 2, 3, 'graduate'] as const) {
+    for (const tier of [1, 2, 3, 'graduate'] as const) {
       const g = grade(teaching, 1, 3, tier);
       if (g === 'D' || g === 'F') veteranBottomWithoutLoad += 1;
     }
@@ -112,7 +112,7 @@ console.log('course quality tests');
 
 // --- the other terms are unchanged ------------------------------------
 {
-  assert(tierPenalty('core') === 0 && tierPenalty(1) === 0, 'intro material asks nothing extra of the teacher');
+  assert(tierPenalty(1) === 0, 'intro material asks nothing extra of the teacher');
   assert(tierPenalty(3) > tierPenalty(2) && tierPenalty('graduate') > tierPenalty(3), 'harder material asks more');
   assert(acclaimBonus(0) === 0, 'an unprized professor gets no nod');
   assert(acclaimBonus(1) === 3 && acclaimBonus(5) === 6, 'and a prized one gets a small, capped one');

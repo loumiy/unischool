@@ -18,7 +18,8 @@
 
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
-import { programs } from '../src/data/techData';
+import { FOUNDERS_HALL_ID, programs } from '../src/data/techData';
+import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
 import { dedicatedHalls, dedicatedSchool, hallDisplayName, isSchoolFounded, schoolFoundedKey } from '../src/systems/techtree/schools';
 import { describeMilestone, isCelebratedMilestone } from '../src/data/eventData';
 import type { GameState } from '../src/state/types';
@@ -64,9 +65,9 @@ function house(s: GameState, hallId: string, ids: string[]): void {
 // finish is a one-week course. The founding action also runs the pass
 // itself; this exercises the tick path.
 function finishSomething(s: GameState): GameState {
-  const ge = s.tech.find((t) => t.id === 'GE110')!;
-  ge.status = 'developing';
-  s.developing['GE110'] = 1;
+  const next = s.tech.find((t) => t.id === 'ENGL120')!;
+  next.status = 'developing';
+  s.developing['ENGL120'] = 1;
   return reducer(s, { type: 'TICK' });
 }
 
@@ -93,7 +94,7 @@ console.log('school founding tests');
   assert(entry?.headline === 'This is the School of Business', `the celebration names the school (${entry?.headline})`);
   assert(s.log.some((l) => l.message.includes('This is the School of Business')), 'the log says so too');
   assert(hallDisplayName(s, s.tech.find((t) => t.id === 'HALL-01')!) === 'Business Hall', 'the hall reads as Business Hall on the map');
-  assert(hallDisplayName(s, s.tech.find((t) => t.id === 'HALL-02')!) === 'South Academic Hall', 'an empty hall keeps its own name');
+  assert(hallDisplayName(s, s.tech.find((t) => t.id === 'HALL-02')!) === 'Oak Hall', 'an empty hall keeps its own name');
   // Awarded once: a second pass writes nothing new.
   const logged = s.log.filter((l) => l.message.includes('This is the School of Business')).length;
   if (s.pendingInterrupt) s = reducer(s, { type: 'RESOLVE_MILESTONE' });
@@ -156,18 +157,27 @@ console.log('school founding tests');
   assert(dedicatedSchool(s, 'HALL-01') === null, 'a hall that loses a program is no longer dedicated');
   s = finishSomething(s);
   assert(isSchoolFounded(s, 'Computer Science'), 'but the school stays founded');
-  assert(hallDisplayName(s, s.tech.find((t) => t.id === 'HALL-01')!) === 'North Academic Hall', 'while the hall goes back to its own name');
+  assert(hallDisplayName(s, s.tech.find((t) => t.id === 'HALL-01')!) === 'Elm Hall', 'while the hall goes back to its own name');
   // A lab's school gate reads the milestone, not the live purity.
   const lab = s.tech.find((t) => t.schoolGate === 'Computer Science')!;
   assert(!!lab, 'Computer Science has a lab with a school gate');
   assert(s.milestones[schoolFoundedKey('Computer Science')] === true, 'the gate the lab reads is still true');
 }
 
-// ---- Founders Hall is never a school ----
+// ---- Founders Hall is an ordinary hall: half a school at founding ----
 {
-  const s = createInitialState('Core');
-  assert(dedicatedSchool(s, 'BLDG-GENSTUDIES') === null, "Founders Hall's one slot never dedicates");
+  let s = createInitialState('Founders');
+  const opening = programs().find((p) => p.id === FOUNDING_PROGRAMS[0])!.school;
+  assert(dedicatedSchool(s, FOUNDERS_HALL_ID) === null, 'three of six is not dedicated');
   assert(dedicatedHalls(s).length === 0, 'a founding save has no dedicated hall');
+  assert(hallDisplayName(s, s.tech.find((t) => t.id === FOUNDERS_HALL_ID)!) === 'Founders Hall', 'and Founders Hall keeps its name');
+  const rest = majorsOf(opening).filter((id) => !FOUNDING_PROGRAMS.includes(id));
+  assert(rest.length === 3, 'three programs of the opening school remain to be founded');
+  rest.forEach((id, i) => { s.halls[FOUNDERS_HALL_ID][FOUNDING_PROGRAMS.length + i] = { programId: id }; });
+  assert(dedicatedSchool(s, FOUNDERS_HALL_ID) === opening, `filling its three rooms with the rest of the school dedicates it to ${opening}`);
+  s = finishSomething(s);
+  assert(isSchoolFounded(s, opening), 'and founds the opening school');
+  assert(hallDisplayName(s, s.tech.find((t) => t.id === FOUNDERS_HALL_ID)!) === `${opening} Hall`, 'so Founders Hall reads as the school\'s hall on the map');
 }
 
 if (failures === 0) {

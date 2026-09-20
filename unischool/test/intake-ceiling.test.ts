@@ -15,7 +15,8 @@ import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { projectAdmissions } from '../src/systems/admissions/admissionsSystem';
 import { intakeCeiling, instructionCapacity, SEATS_PER_COURSE } from '../src/systems/techtree/instructionCapacity';
 import { servicesMultiplier, SERVICES_CROWDING_AT_FULL, SERVICES_PER_STUDENT_PER_WEEK, financeBreakdown } from '../src/systems/finance/financeSystem';
-import { GENED_CORE_IDS, programs } from '../src/data/techData';
+import { programs } from '../src/data/techData';
+import { FOUNDING_PROGRAMS, FOUNDING_COURSES_PER_PROGRAM } from '../src/data/foundingData';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../src/state/types';
 import type { GameState } from '../src/state/types';
 
@@ -40,10 +41,11 @@ function assert(cond: boolean, msg: string): void {
 const near = (a: number, b: number, eps = 1e-6) => Math.abs(a - b) < eps;
 
 function fresh(): GameState {
-  const s = createInitialState('Ceiling');
-  for (const id of GENED_CORE_IDS) s.tech.find((t) => t.id === id)!.status = 'done';
-  return s;
+  return createInitialState('Ceiling');
 }
+// The founding college's developed courses (Plan 19): what a founding save
+// can teach.
+const FOUNDING_COURSE_COUNT = FOUNDING_PROGRAMS.length * FOUNDING_COURSES_PER_PROGRAM;
 
 function toSummer(start: GameState): GameState {
   let s = start;
@@ -81,7 +83,7 @@ console.log('intake ceiling tests');
 {
   const s = fresh();
   const c = intakeCeiling(s);
-  assert(c.capacity === GENED_CORE_IDS.length * SEATS_PER_COURSE, 'the founding core is the capacity');
+  assert(c.capacity === FOUNDING_COURSE_COUNT * SEATS_PER_COURSE, 'the founding college\'s six developed courses are the capacity');
   assert(c.stayingOn === totalEnrolled(s.students) - s.students.classes.senior, 'three classes stay on after graduation');
   assert(c.seatsLeft === c.capacity - c.stayingOn, 'and the room is what is left');
   assert(c.nextSummer === c.capacity, 'with nothing developing, next summer holds the same');
@@ -118,7 +120,7 @@ console.log('intake ceiling tests');
   s.students.classes = { freshman: 0, sophomore: 0, junior: 0, senior: 0 };
   assert(servicesMultiplier(s) === 1, 'and nobody enrolled reads 1');
   const empty = createInitialState('No seats');
-  empty.halls = {}; // the core unhoused: nothing seats anybody
+  empty.halls = {}; // the founding programs unhoused: nothing seats anybody
   assert(instructionCapacity(empty) === 0 && servicesMultiplier(empty) === 2, 'a campus with no seats at all reads the cap');
   s.students.classes = { freshman: capacity, sophomore: 0, junior: 0, senior: 0 };
   // (the multiplied statement line is asserted below)

@@ -39,17 +39,19 @@ Everything that needs to stop time rides on this one mechanism:
   the hall where a headless founding would and stands the letters down);
   site Founders Hall (the shell opens the build menu and rings the hall's
   tile; siting it is free — `campusMap.ts`'s `sitingFeeOf`; done when the
-  hall stands); "a college needs classes" (Next opens the Curriculum);
-  develop a course (the General Education row is ringed; done when any
-  course is developing — which is also where hiring is taught, since the
-  course drawer is where a professor is picked or appointed); then `'play'`,
+  hall stands); "the college already teaches" (Next opens the Curriculum,
+  where the three founding programs' rows are the first thing to see);
+  found a fourth program (the card's door is Founders Hall's panel on the
+  map, which rings its first free room; done when a fourth program is
+  housed — which is also where hiring is taught, since the panel lists the
+  market when nobody on the payroll teaches the field); then `'play'`,
   where `App.tsx` starts the clock. The two "done" steps are settled by
   `settleOpening` from the action that did them (`PLACE_BUILDABLE`,
-  `START_DEVELOPMENT`), never by the UI. The welcome IS the first letter's
-  content, so a guided founding counts that letter read and its ask becomes
-  the next-step line the moment the walk ends; the other three letters
-  arrive on their weeks as before. A headless founding (tests, the sim, a
-  scenario file) opens at `'play'` with the hall pre-placed, unchanged.
+  `FOUND_PROGRAM`), never by the UI. The welcome IS the first letter's
+  content and the walk does its ask, so a guided founding counts that
+  letter read and the letters carry on from the second on their weeks. A
+  headless founding (tests, the sim, a scenario file) opens at `'play'`
+  with the hall pre-placed, unchanged.
   The copy is `src/data/openingData.ts` and the card is
   `src/components/OpeningCoach.tsx`.
 - **Milestone celebrations** — a stop-the-clock moment for the handful of

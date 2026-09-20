@@ -10,8 +10,8 @@ import { tierOf, type CourseTier } from '../../data/courseQuality';
 
 // ---------------------------------------------------------------------
 // The milestone chain (see docs/design/curriculum.md's "The milestone chain").
-// Unlocking itself (gen-ed -> tier-1 -> school building -> tier-2 -> tier-3)
-// is pure authored prereq data resolved generically by unlockAvailable() below
+// Unlocking itself (founding -> tier-1 -> tier-2 -> tier-3) is pure authored prereq data
+// resolved generically by unlockAvailable() below
 // — nothing special needed for that. What's left for dedicated logic is the
 // BONUS side: "program established" and "further" bonuses aren't a single
 // course's own completion effect, they're a reward for an aggregate condition
@@ -137,7 +137,7 @@ export function effectiveCourseSlots(s: GameState, f: Faculty): number {
 //
 // Callers: START_INITIATIVE (reducer.ts), which re-homes what it can and
 // orphans the rest, and ResearchTab's pre-commitment warning.
-const TIER_RANK: Record<string, number> = { core: 0, '1': 1, '2': 2, '3': 3, graduate: 4 };
+const TIER_RANK: Record<string, number> = { '1': 1, '2': 2, '3': 3, graduate: 4 };
 function tierRank(tier: CourseTier): number {
   return TIER_RANK[String(tier)] ?? 0;
 }
@@ -481,7 +481,7 @@ function applyEffects(s: GameState, e?: Partial<BuildableEffects>): void {
 // (see types.ts's HallSlot). Written here, at completion, and nowhere
 // else: a hall under construction has no room to house anything, and a
 // hall that already has an entry (Founders Hall, seeded at founding with
-// the core in it) keeps it. Not an `effects` field, deliberately — a slot
+// the founding programs in it) keeps it. Not an `effects` field, deliberately — a slot
 // is not a bonus applied once, it is the building's floor plan.
 function openHall(s: GameState, node: Buildable): void {
   if (node.slots === undefined || s.halls[node.id] !== undefined) return;
@@ -517,11 +517,11 @@ function meetsUnlockGates(s: GameState, t: Buildable): boolean {
   // hall (see types.ts's HallSlot). Tier 1 included: founding a program
   // from a hall panel is what writes the slot, and the entry course opens
   // in the same transaction (see foundProgram), so there is no other way
-  // in. The gen-ed core is housed in Founders Hall from founding and is
-  // never gated here.
+  // in. The three founding programs are housed in Founders Hall from
+  // founding (actions.ts), which is what opens their next courses.
   if (t.kind === 'course') {
     const programId = programOfCourse(t.id);
-    if (programId !== undefined && programId !== 'CORE' && !isHoused(s, programId)) return false;
+    if (programId !== undefined && !isHoused(s, programId)) return false;
   }
   // THE SCHOOL GATE (Plan 14's PR E): a lab waits on its school having
   // been founded — the milestone, not the live reading, since a school
@@ -529,6 +529,9 @@ function meetsUnlockGates(s: GameState, t: Buildable): boolean {
   if (t.schoolGate !== undefined && !s.milestones[schoolFoundedKey(t.schoolGate)]) return false;
   if (t.minCapacityToUnlock !== undefined && totalEnrolled(s.students) < t.minCapacityToUnlock) return false;
   if (t.minPrestigeToUnlock !== undefined && s.self.reputation < t.minPrestigeToUnlock) return false;
+  // THE DEVELOPED-COURSE GATE (Plan 19's PR B): the first purchased hall
+  // waits on the college teaching enough to justify it.
+  if (t.minCoursesToUnlock !== undefined && developedCourseCount(s) < t.minCoursesToUnlock) return false;
   if (t.graduateProgram !== undefined && !graduateGateMet(s, t.graduateProgram)) return false;
   // The fourth gate: a varsity athletics venue (facilitiesData.ts) stays
   // hidden until a team needing its facilityType category has been granted
@@ -538,6 +541,12 @@ function meetsUnlockGates(s: GameState, t: Buildable): boolean {
   // than a bespoke flag of its own.
   if (t.athleticsVenueReveal && !s.orgs.teams.some((team) => team.venueCategory === t.facilityType)) return false;
   return true;
+}
+
+// Courses developed, in any program — what Buildable.minCoursesToUnlock
+// reads.
+export function developedCourseCount(s: GameState): number {
+  return s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
 }
 
 export function unlockAvailable(s: GameState): void {
@@ -580,7 +589,7 @@ export interface Founding {
 
 export function canFoundProgram(s: GameState, f: Founding): boolean {
   const program = programById(f.programId);
-  if (!program || program.kind === 'core') return false;
+  if (!program) return false;
   if (!s.programOffers.includes(f.programId) || isHoused(s, f.programId)) return false;
   const slots = s.halls[f.hallId];
   if (!slots || f.slot < 0 || f.slot >= slots.length || slots[f.slot].programId !== null) return false;
@@ -644,9 +653,9 @@ export interface Relocation {
 }
 
 export function canRelocateProgram(s: GameState, r: Relocation): boolean {
-  // The core is Founders Hall, and Founders Hall is the core: it never
-  // moves, and its one slot never empties for anything else.
-  if (programById(r.programId)?.kind !== 'major' && programById(r.programId)?.kind !== 'graduate') return false;
+  // A real program, and nothing else. The founding programs move like any
+  // other: Founders Hall is an ordinary hall (Plan 19).
+  if (programById(r.programId) === undefined) return false;
   const from = slotOf(s, r.programId);
   if (!from || isInTransit(s, r.programId)) return false;
   const slots = s.halls[r.hallId];
@@ -731,9 +740,8 @@ export function swapInstructors(s: GameState, courseA: string, courseB: string):
 }
 
 // The hall a course's program lives in, for anything that wants to say
-// "taught in North Academic Hall" — undefined for the core's building
-// only if Founders Hall somehow lacks its entry, and for a course of an
-// unhoused program.
+// "taught in Elm Hall" — undefined for a course of an unhoused
+// program.
 export function hallOfCourse(s: GameState, courseId: string): string | undefined {
   const programId = programOfCourse(courseId);
   return programId === undefined ? undefined : hallOf(s, programId);
@@ -878,10 +886,11 @@ export function tickTech(s: GameState): void {
   unlockAvailable(s);
   if (finished.length > 0 || arrived) {
     checkMilestones(s);
-    // The offer is seeded the week the gen-ed core completes: the last
-    // core course finishing is what reveals every tier-1 course above, and
-    // refillOffers is a no-op on any week that reveals nothing new (a
-    // founding tops the offer up itself — see the reducer's FOUND_PROGRAM).
+    // The first three offers are drawn at founding (actions.ts); here
+    // refillOffers is a no-op on any week that reveals nothing new, and
+    // draws only when a graduate gate has just opened with the offer short
+    // (a founding tops the offer up itself — see the reducer's
+    // FOUND_PROGRAM).
     refillOffers(s);
   }
 }

@@ -11,7 +11,8 @@
 
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
-import { programById, programs } from '../src/data/techData';
+import { FOUNDERS_HALL_ID, programById, programs } from '../src/data/techData';
+import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
 import { canRelocateProgram, canStartDevelopment, RELOCATION_WEEKS } from '../src/systems/techtree/techSystem';
 import { isInTransit, slotOf, transitWeeks } from '../src/systems/techtree/programOffers';
 import { dedicatedSchool, isSchoolFounded } from '../src/systems/techtree/schools';
@@ -65,10 +66,6 @@ function advance(s: GameState, weeks: number): GameState {
 function settled(): { s: GameState; programId: string } {
   let s = createInitialState('Movers');
   s.finance.cash = 500_000_000;
-  for (const id of ['GE110', 'GE120', 'GE130', 'GE140', 'GE150', 'GE160']) {
-    s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
-  }
-  s = advance(s, 6);
   for (const id of ['HALL-01', 'HALL-02']) {
     s.tech.find((t) => t.id === id)!.status = 'done';
     s.placements[id] = { row: id === 'HALL-01' ? 20 : 40, col: 20, w: 7, h: 5 };
@@ -131,7 +128,9 @@ console.log('relocation tests');
   assert(!canRelocateProgram(s, { programId, hallId: 'HALL-01', slot: 1 }), 'its own slot');
   assert(!canRelocateProgram(s, { programId, hallId: 'HALL-03', slot: 0 }), 'a hall that does not stand');
   assert(!canRelocateProgram(s, { programId: 'MECH', hallId: 'HALL-02', slot: 0 }), 'a program that is not housed');
-  assert(!canRelocateProgram(s, { programId: 'CORE', hallId: 'HALL-02', slot: 0 }), 'the core never moves');
+  assert(!canRelocateProgram(s, { programId: 'CORE', hallId: 'HALL-02', slot: 0 }), 'an id that is not a program never moves');
+  assert(canRelocateProgram(s, { programId: FOUNDING_PROGRAMS[0], hallId: 'HALL-02', slot: 1 }), 'a founding program can leave Founders Hall like any other');
+  assert(canRelocateProgram(s, { programId, hallId: FOUNDERS_HALL_ID, slot: 3 }), 'and a program can move into one of its free rooms');
   s.halls['HALL-02'][0] = { programId: 'FINA' };
   assert(!canRelocateProgram(s, { programId, hallId: 'HALL-02', slot: 0 }), 'a taken slot');
   assert(canRelocateProgram(s, { programId, hallId: 'HALL-01', slot: 5 }), 'but a move within the same hall is allowed');

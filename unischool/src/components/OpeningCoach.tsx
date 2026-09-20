@@ -19,17 +19,19 @@ import { isActivationTarget, useHotkeys } from './hotkeys';
 //
 // A step that ends on a click carries the button. A step that ends on
 // something DONE carries no button — the instruction is the whole card —
-// and instead offers to reopen the door it needs (the build menu, the
-// Curriculum) when the player has closed it, so wandering off the step is
-// never a dead end. Enter presses Next, guarded the way the interrupt
-// modal guards it, so a Tab-focused button keeps its own Enter.
-export default function OpeningCoach({ s, act, buildOpen, curriculumOpen, onOpenBuild, onOpenCurriculum }: {
+// and instead offers to open the door it needs (the build menu, Founders
+// Hall's panel on the map) when the player has not, or closed it, so
+// wandering off the step is never a dead end. Enter presses Next, guarded
+// the way the interrupt modal guards it, so a Tab-focused button keeps its
+// own Enter.
+export default function OpeningCoach({ s, act, buildOpen, hallOpen, onOpenBuild, onOpenHall }: {
   s: GameState;
   act: (a: Action) => void;
   buildOpen: boolean;
-  curriculumOpen: boolean;
+  // Whether Founders Hall's panel is open on the map (see App.tsx).
+  hallOpen: boolean;
   onOpenBuild: () => void;
-  onOpenCurriculum: () => void;
+  onOpenHall: () => void;
 }) {
   const stage = s.events.opening.stage;
   const step = stage === 'play' ? null : OPENING_STEPS[stage];
@@ -58,8 +60,8 @@ export default function OpeningCoach({ s, act, buildOpen, curriculumOpen, onOpen
     );
   }
 
-  const doorOpen = step.door === 'build' ? buildOpen : step.door === 'curriculum' ? curriculumOpen : true;
-  const doorLabel = step.door === 'build' ? 'Open the Build menu' : 'Open the Curriculum';
+  const doorOpen = step.door === 'build' ? buildOpen : step.door === 'hall' ? hallOpen : true;
+  const doorLabel = step.door === 'build' ? 'Open the Build menu' : 'Open Founders Hall';
 
   return (
     <aside className="opening-coach" role="status" aria-live="polite" aria-label={step.title}>
@@ -71,7 +73,7 @@ export default function OpeningCoach({ s, act, buildOpen, curriculumOpen, onOpen
           <button type="button" onClick={() => act({ type: 'ADVANCE_OPENING' })}>{step.next}</button>
         )}
         {step.door && !doorOpen && (
-          <button type="button" onClick={step.door === 'build' ? onOpenBuild : onOpenCurriculum}>{doorLabel}</button>
+          <button type="button" onClick={step.door === 'build' ? onOpenBuild : onOpenHall}>{doorLabel}</button>
         )}
         {step.door && doorOpen && (
           <span className="opening-coach-wait">The clock is held until this is done</span>

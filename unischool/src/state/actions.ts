@@ -6,7 +6,9 @@ import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/stu
 import type { DecisionEventContext } from '../data/eventData';
 import { WEEKS_PER_YEAR } from './types';
 import { centredPlacement, footprintOf, isPlaceableKind } from './campusMap';
-import { initialTech, GENED_BUILDING_REPUTATION_BONUS, GENED_BUILDING_ID } from '../data/techData';
+import { initialTech, FOUNDERS_HALL_REPUTATION_BONUS, FOUNDERS_HALL_ID, ACADEMIC_HALL_SLOTS, programById } from '../data/techData';
+import { unlockAvailable } from '../systems/techtree/techSystem';
+import { refillOffers } from '../systems/techtree/programOffers';
 import { initialDorms } from '../data/campusData';
 import { seedTrees } from '../data/treeData';
 import { initialFacilities } from '../data/facilitiesData';
@@ -17,13 +19,13 @@ import { RESEARCH_STANDING_BASELINE, SOCIAL_STANDING_BASELINE } from '../systems
 import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import {
   FOUNDING_PRESET, FOUNDING_VERNACULAR, STARTING_ENDOWMENT, STARTING_TUITION,
-  FOUNDING_CLASSES,
+  FOUNDING_CLASSES, FOUNDING_PROGRAMS, FOUNDING_COURSES_PER_PROGRAM,
 } from '../data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../data/schoolColors';
 import { OPENING_LETTERS } from '../data/eventData';
 
 // A founded university opens with a near-empty campus, with ONE exception:
-// Founders Hall (techData.ts's General Studies building), pre-built ('done')
+// Founders Hall (techData.ts's FOUNDERS_HALL_ID), pre-built ('done')
 // and — in a headless founding — pre-placed at the centre of the map, the
 // university's literal founding hall. A GUIDED founding (the startup
 // screen's, see START_GAME's `guided`) leaves it unsited: placing it is the
@@ -36,6 +38,37 @@ import { OPENING_LETTERS } from '../data/eventData';
 // campusData.ts and admissionsSystem.ts — enrollment is never capacity-
 // gated). `capacity` accordingly starts at 0 below: there is no bed count to
 // fold in the way a pre-built dorm used to require.
+//
+// THE FOUNDING COLLEGE (Plan 19). The college is not empty inside: three
+// Social Sciences & Humanities programs are housed in Founders Hall before
+// the player sees the game, each with its first two courses developed and
+// taught by the founding roster. Six courses at SEATS_PER_COURSE is the
+// 480 seats the founding body of 350 sits in (see instructionCapacity.ts),
+// which is why it is six and not three; and English, History and
+// Philosophy because those are what the five professors on the payroll
+// can teach. The other three rooms are free, and the offer queue draws
+// from week one, so the first decision the game asks is the one the rest
+// of the run is built on: found a fourth program. The programs themselves
+// are foundingData.ts's FOUNDING_PROGRAMS.
+// Who teaches the founding courses: the roster below, by field.
+const FOUNDING_INSTRUCTOR_BY_PROGRAM: Record<string, string> = { ENGL: 'f3', HIST: 'f2', PHIL: 'f5' };
+// The founding offer draw is rigged, once (see programOffers.ts's
+// refillOffers): at least one of the first three offers is a program the
+// college can staff out of the roster it already has. Named MAJORS rather
+// than "a field with a free slot", because a field is not a major: Iyer's
+// spare slots also staff Data Science and Bennett's Creative Writing, and
+// a college teaching literature, history and logic whose fourth program is
+// Data Science is a funny opening. Sociology is the opening school's own
+// depth path (Reyes, below) and Mathematics is the breadth path into a
+// school the college is not in — so the guaranteed offer states the
+// year-one question itself.
+export const FOUNDING_OFFER_GUARANTEE: readonly string[] = ['SOCY', 'MATH'];
+
+// The six course ids the college opens teaching, in program order:
+// the 101 and the 110 of each founding program.
+export function foundingCourseIds(): string[] {
+  return FOUNDING_PROGRAMS.flatMap((id) => programById(id)!.courseIds.slice(0, FOUNDING_COURSES_PER_PROGRAM));
+}
 
 // The institutional half of every new school's name (see types.ts's
 // University). Fixed at founding — the startup screen only lets the
@@ -56,7 +89,7 @@ export type Action =
   // before the walk existed.
   | { type: 'START_GAME'; name: string; vernacular: Vernacular; colors: SchoolColors; guided?: boolean }
   // The opening walkthrough's two Next buttons (welcome -> site the hall;
-  // classes -> the first course), and its one decline. Declining places
+  // teaching -> found a fourth program), and its one decline. Declining places
   // Founders Hall where a headless founding would have and stands the
   // letters down too — see state/opening.ts's skipOpening.
   | { type: 'ADVANCE_OPENING' }
@@ -463,21 +496,20 @@ export function createInitialState(
   // pulled out of it to pre-place (it opens 'done' — see techData.ts).
   const tech = [...initialTech(), ...initialDorms(), ...initialFacilities()];
 
-  // The alert-badge exception for what a school starts with (see types.ts's
-  // SeenState). The gen-ed core courses and the founding buildables (Founders
-  // Hall, the starting dorm, dining hall, and the rest of the
-  // seeded-'available' facility chains) are unlocked from the moment the
-  // university opens — the player was never shown a moment when they
-  // WEREN'T there to be revealed, so they are not "new" and must not carry
-  // a badge on day one: an empty `seen` would tell the brand-new player
-  // that every one of these is news.
-  const foundingCourseIds: Record<string, true> = {};
-  const foundingBuildableIds: Record<string, true> = {};
-  for (const node of tech) {
-    if (node.status === 'locked') continue;
-    if (node.kind === 'course') foundingCourseIds[node.id] = true;
-    else if (isPlaceableKind(node)) foundingBuildableIds[node.id] = true;
+  // The founding college's six courses are developed already (see
+  // FOUNDING_PROGRAMS above): seeded 'done' here, and the rest of their
+  // programs' courses are opened by the ordinary resolver once the state
+  // exists (unlockAvailable, at the bottom) — so a tier-2 course of a
+  // founding program reads 'available' on day one by the same rule that
+  // opens it on any other day.
+  const courseFaculty: GameState['courseFaculty'] = {};
+  for (const programId of FOUNDING_PROGRAMS) {
+    for (const id of programById(programId)!.courseIds.slice(0, FOUNDING_COURSES_PER_PROGRAM)) {
+      tech.find((t) => t.id === id)!.status = 'done';
+      courseFaculty[id] = FOUNDING_INSTRUCTOR_BY_PROGRAM[programId];
+    }
   }
+
   // Centre Founders Hall's footprint on the grid: the founding landmark
   // sits in the middle of the map, not a corner (see the placements entry
   // below). Math.floor keeps the anchor on a whole tile; the footprint is odd
@@ -485,13 +517,13 @@ export function createInitialState(
   // centre as the tile grid allows.
   // In a guided founding there is no placement at all yet: the walkthrough's
   // first step is the player choosing where the hall stands.
-  const foundersHall = tech.find((t) => t.id === GENED_BUILDING_ID)!;
-  const foundingPlacements: Placements = guided ? {} : { [GENED_BUILDING_ID]: centredPlacement(footprintOf(foundersHall)) };
+  const foundersHall = tech.find((t) => t.id === FOUNDERS_HALL_ID)!;
+  const foundingPlacements: Placements = guided ? {} : { [FOUNDERS_HALL_ID]: centredPlacement(footprintOf(foundersHall)) };
 
   // Read in two places below — self.reputation and the admit rate seeded
   // from it — so the opening slider position cannot drift from the standing
   // it is supposed to describe.
-  const foundingReputation = preset.startingReputation + GENED_BUILDING_REPUTATION_BONUS;
+  const foundingReputation = preset.startingReputation + FOUNDERS_HALL_REPUTATION_BONUS;
 
   // One founding price, read into five places below (the listed price and
   // the four classes), so they cannot be seeded out of step with each other.
@@ -593,24 +625,33 @@ export function createInitialState(
     // research prize — which none of them can until the school has built
     // a lab, decades away (see systems/research/researchSystem.ts).
     //
-    // courseSlots cover the six gen-ed core courses' requiresFaculty fields
-    // (techData.ts's GENED_FIELDS: English x2 — GE110 + GE160 —
-    // Mathematics, Philosophy, Physics, History x1 each) plus exactly one
-    // spare slot per field. Every tier-1 major course sits behind the
-    // gen-ed core as a prereq, and five of those tier-1 courses
-    // (AERO101/PHYS101 in Physics, HIST101 in History, CRWR101/ENGL101 in
-    // English, MATH101/DATA101 in Mathematics, PHIL101 in Philosophy —
-    // techData.ts's SCHOOLS) share a field with a founding hire, so the
-    // spare slot lets the player open one of those the moment gen-ed
-    // clears, without a hire in the way. Every other field still needs a
-    // fresh hire before its tier-1 course can start.
+    // THE ROSTER IS THE FOUNDING COLLEGE'S (Plan 19). Three of the five
+    // teach the three pre-founded programs (FOUNDING_PROGRAMS above):
+    // Bennett the two English courses, Okafor the two History, Novak the
+    // two Philosophy — six of the roster's eleven course slots. The five
+    // slots left are what the founding offer draw is written against
+    // (FOUNDING_OFFER_GUARANTEE): Bennett's third slot (English —
+    // ENGL120 next, or Creative Writing), Iyer's two (Mathematics — the
+    // breadth path into Science, or Data Science) and Reyes's two
+    // (Sociology — the depth path: Sociology and Anthropology share the
+    // department, so she covers SOCY101 and ANTH101 together). Five free
+    // slots against three free rooms, so the opening is staffable without
+    // a hire, and the player meets the faculty gate the first time they
+    // reach for a fourth field — Political Science, the one appointment
+    // the opening school still needs.
+    //
+    // Reyes used to be the Physics hire, for a gen-ed science course that
+    // no longer exists. She moved to Sociology so that the roster reaches
+    // five of the opening school's six majors and finishing the school the
+    // opening is built around costs no more at founding than leaving it
+    // does. Her name, stats, tenure, slots and salary are unchanged.
     faculty: [
       {
-        id: 'f1', name: 'Dr. Alma Reyes', field: 'Physics', teaching: grownStat(82, FOUNDING_TENURE_WEEKS), research: grownStat(78, FOUNDING_TENURE_WEEKS), teachingPotential: 82, researchPotential: 78,
+        id: 'f1', name: 'Dr. Alma Reyes', field: 'Sociology', teaching: grownStat(82, FOUNDING_TENURE_WEEKS), research: grownStat(78, FOUNDING_TENURE_WEEKS), teachingPotential: 82, researchPotential: 78,
         tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
         salary: facultySalary(grownStat(82, FOUNDING_TENURE_WEEKS), grownStat(78, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
         nationality: 'United States', flag: '🇺🇸', gender: 'female', heritage: 'Hispanic/Latin American',
-        bio: 'Earned a doctorate in Physics at Ravensmoor Institute; research centers on astrophysical modeling.',
+        bio: 'Earned a doctorate in Sociology at Ravensmoor Institute; research centers on social networks and urban communities.',
       },
       {
         id: 'f2', name: 'Dr. John Okafor', field: 'History', teaching: grownStat(88, FOUNDING_TENURE_WEEKS), research: grownStat(68, FOUNDING_TENURE_WEEKS), teachingPotential: 88, researchPotential: 68,
@@ -646,23 +687,26 @@ export function createInitialState(
     // AND campus-life facilities all live here together.
     tech,
     developing: {},
-    // Nothing is offered at founding — every gen-ed course opens
-    // 'available', none 'done' — so there is nothing to have assigned yet.
-    // The first entry is written the moment the player starts their first
+    // The six founding courses and who teaches them (see the roster
+    // above). Every later entry is written the moment the player starts a
     // course and picks who teaches it.
-    courseFaculty: {},
-    // Founders Hall's one slot, filled before the player sees the game: the
-    // gen-ed core occupies the building (see techData.ts's `slots: 1` on
-    // it, and types.ts's HallSlot). Every other hall's entry is written the
-    // week that hall finishes construction (techSystem.ts), with every
-    // slot empty — so a founding save has exactly one hall, one slot, the
-    // core in it, and no way to found anything until a hall stands.
-    halls: { [GENED_BUILDING_ID]: [{ programId: 'CORE' }] },
-    // Nothing is offered until the gen-ed core is complete — the first
-    // three are drawn the week it finishes (see techSystem.ts's tickTech
-    // and programOffers.ts's refillOffers).
+    courseFaculty,
+    // Founders Hall's six slots, three of them filled before the player
+    // sees the game with the founding programs (see types.ts's HallSlot).
+    // Every other hall's entry is written the week that hall finishes
+    // construction (techSystem.ts), with every slot empty — so a founding
+    // save has exactly one hall, three programs in it, three rooms free.
+    halls: {
+      [FOUNDERS_HALL_ID]: Array.from({ length: ACADEMIC_HALL_SLOTS }, (_, i) => ({
+        programId: i < FOUNDING_PROGRAMS.length ? FOUNDING_PROGRAMS[i] : null,
+      })),
+    },
+    // Drawn below, once the state exists to draw against (refillOffers
+    // reads the school's name and the housed count): the first three
+    // offers, with the founding guarantee.
     programOffers: [],
-    // No search running: a founding school's five hires cover the core.
+    // No search running: a founding school's five hires cover what it
+    // teaches.
     searches: {},
     // Only Founders Hall is pre-placed: it opens 'done' (techData.ts), so
     // it needs a spot on the map from day one. It is centred on the grid
@@ -680,7 +724,7 @@ export function createInitialState(
     // exactly as under any later building.)
     trees: seedTrees(foundingPlacements),
     rivals: initialRivals(),
-    // +GENED_BUILDING_REPUTATION_BONUS: a small gen-ed academic-standing
+    // +FOUNDERS_HALL_REPUTATION_BONUS: a small academic-standing
     // baseline the founding institution opens with (see techData.ts — it is
     // NOT tied to whether Founders Hall has been built yet, since it always
     // has been by founding; reputation is a stock that drifts toward a
@@ -739,9 +783,8 @@ export function createInitialState(
       // No letter delivered and the script not declined (see types.ts's
       // EventState.opening). A guided founding opens on the walkthrough's
       // welcome with the first letter already counted read — the welcome IS
-      // that letter's content — so its ask becomes the next-step line the
-      // moment the walk ends, and the letters proper carry on from the
-      // second (see state/opening.ts).
+      // that letter's content, and the walk does its ask — so the letters
+      // proper carry on from the second (see state/opening.ts).
       opening: guided
         ? { read: [OPENING_LETTERS[0].id], skipped: false, stage: 'welcome' }
         : { read: [], skipped: false, stage: 'play' },
@@ -783,16 +826,37 @@ export function createInitialState(
     hasEnteredRankings: false,
     milestones: {},
     ambitions: {},
-    // Every course and buildable the school starts with unlocked is
-    // pre-marked seen (see foundingCourseIds/foundingBuildableIds above) —
-    // the gen-ed core and the founding buildables were never "revealed" to
-    // this player, they were just always there, so no badge. candidateIds
-    // starts genuinely empty: unlike courses/buildables, no candidate is
-    // ever "needed" at founding (every founding hire has a free slot to
-    // spare beyond their own gen-ed course — see the roster above), so
-    // there is nothing here to except.
-    seen: { courseIds: foundingCourseIds, buildableIds: foundingBuildableIds, candidateIds: {}, tabIds: {} },
+    // Filled in below, once the founding programs' courses have been
+    // opened. candidateIds starts genuinely empty: unlike
+    // courses/buildables, no candidate is ever "needed" at founding (the
+    // roster covers what the college teaches, with slots to spare — see
+    // above), so there is nothing here to except.
+    seen: { courseIds: {}, buildableIds: {}, candidateIds: {}, tabIds: {} },
   };
+
+  // The founding programs' next courses open by the ordinary rule — housed,
+  // prereqs done — rather than by hand, so day one is a state a tick could
+  // have produced.
+  unlockAvailable(state);
+
+  // The alert-badge exception for what a school starts with (see types.ts's
+  // SeenState). The founding courses and the founding buildables (Founders
+  // Hall, the starting dorm, dining hall, and the rest of the
+  // seeded-'available' facility chains) are unlocked from the moment the
+  // university opens — the player was never shown a moment when they
+  // WEREN'T there to be revealed, so they are not "new" and must not carry
+  // a badge on day one: an empty `seen` would tell the brand-new player
+  // that every one of these is news.
+  for (const node of state.tech) {
+    if (node.status === 'locked') continue;
+    if (node.kind === 'course') state.seen.courseIds[node.id] = true;
+    else if (isPlaceableKind(node)) state.seen.buildableIds[node.id] = true;
+  }
+
+  // The first three offers, drawn at founding with the one-time guarantee
+  // (see FOUNDING_OFFER_GUARANTEE and programOffers.ts). Off the global
+  // dice, like every draw the offer makes.
+  refillOffers(state, FOUNDING_OFFER_GUARANTEE);
   return state;
 }
 

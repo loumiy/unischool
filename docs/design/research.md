@@ -31,8 +31,7 @@ Institute, a Media Production Studio (`techData.ts`'s
 "Labs" would be wrong: a history department has an institute with archives in
 it). They run on identical machinery — no second kind of research — and since
 one facility equips the whole school, every field that school teaches comes
-into production behind it. Only General Studies, which has no majors of its
-own, has no facility. What differs is **vocabulary**, not mechanics. A model
+into production behind it. What differs is **vocabulary**, not mechanics. A model
 that can only describe research as laboratory science is one that quietly
 tells four schools their work does not count, so `DISCIPLINE_VOCAB` authors
 **three** things per school, not one:

@@ -127,12 +127,11 @@ export function loadPenalty(load: number, slots: number): number {
 // professor does not deserve the same grade for both. This is what turns
 // assignment from a RANKING problem ("who is best") into a MATCHING one
 // ("who is right for this"), and it gives a senior hire a natural home:
-// put your star on the tier-3 seminar, not on the gen-ed core, because
+// put your star on the tier-3 seminar, not on the entry survey, because
 // that is where their strength actually shows up in the grade.
-export type CourseTier = 'core' | 1 | 2 | 3 | 'graduate';
+export type CourseTier = 1 | 2 | 3 | 'graduate';
 
 const TIER_PENALTY: Record<string, number> = {
-  core: 0,
   1: 0,
   2: 2,
   3: 5,
@@ -144,18 +143,15 @@ export function tierPenalty(tier: CourseTier): number {
 }
 
 // Course id -> tier, built once from the SEED rather than parsed off the
-// course code. Parsing would be wrong: the gen-ed core's ids are shaped
-// like GE110, which the major ladder's own numbering (techData.ts's NUMS)
-// would read as a tier-2 course. The seed already knows the difference, so
-// it is asked rather than guessed, and the map cannot drift from the
-// catalogue it is derived from.
+// course code: the seed already knows which number is which tier
+// (techData.ts's NUMS/TIERS), so it is asked rather than guessed, and the
+// map cannot drift from the catalogue it is derived from.
 let tierMap: Map<string, CourseTier> | null = null;
 
 function courseTiers(): Map<string, CourseTier> {
   if (tierMap) return tierMap;
   const map = new Map<string, CourseTier>();
   for (const school of discoverySchools()) {
-    for (const id of school.coreIds) map.set(id, 'core');
     for (const major of school.majors) {
       map.set(major.tier1Id, 1);
       for (const id of major.tier2Ids) map.set(id, 2);

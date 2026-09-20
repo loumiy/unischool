@@ -11,7 +11,8 @@
 // ---------------------------------------------------------------------
 
 import { createInitialState } from '../src/state/actions';
-import { GENED_CORE_IDS, programs } from '../src/data/techData';
+import { programs } from '../src/data/techData';
+import { foundingCourseIds } from '../src/state/actions';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../src/data/facilitiesData';
 import {
   computePrestigeTarget, concentrationScore, crowdingCoverages, crowdingScore, crowdingShortfallNow,
@@ -110,13 +111,12 @@ console.log('standing readings tests');
 // ---- instruction capacity: developed courses in housed, settled programs ----
 {
   const s = fresh();
-  assert(instructionCapacity(s) === GENED_CORE_IDS.length * SEATS_PER_COURSE, 'the core is seated from founding — Founders Hall teaches it from day one');
+  assert(instructionCapacity(s) === foundingCourseIds().length * SEATS_PER_COURSE, 'the founding college is seated from founding — its six courses are developed and housed in Founders Hall');
   assert(near(instructionCoverage(s), 1), 'and it holds the founding body');
 
-  finish(s, GENED_CORE_IDS);
   const core = instructionCapacityDetail(s);
-  assert(core.courses === GENED_CORE_IDS.length, 'finishing the core changes nothing: it was already counted');
-  assert(core.seats === GENED_CORE_IDS.length * SEATS_PER_COURSE, 'at SEATS_PER_COURSE each');
+  assert(core.courses === foundingCourseIds().length, 'six developed courses in housed, settled programs');
+  assert(core.seats === foundingCourseIds().length * SEATS_PER_COURSE, 'at SEATS_PER_COURSE each');
   assert(core.seats >= totalEnrolled(s.students), 'which holds the founding body');
   assert(near(instructionCoverage(s), 1), 'so instruction coverage reads full');
 
@@ -190,7 +190,6 @@ console.log('standing readings tests');
   // The formula, driven through the one ratio this test controls exactly:
   // give the campus enough of everything else that instruction is the worst.
   const t = fresh();
-  finish(t, GENED_CORE_IDS);
   const seats = instructionCapacity(t);
   t.students.capacity = 1_000_000;
   t.tech.push(

@@ -24,7 +24,7 @@ way to earn a good one.
 
 - 🏫 **Expand the campus** with academic buildings, dormitories, dining,
   recreation, health facilities and athletics venues.
-- 📚 **Develop the curriculum** across 421 courses, 42 majors and seven
+- 📚 **Develop the curriculum** across 415 courses, 42 majors and seven
   schools.
 - 👩‍🏫 **Hire faculty** with different teaching and research strengths — and
   decide who teaches what.
@@ -99,9 +99,9 @@ npm run dev
 ```
 
 Open the printed localhost URL. Name your school, pick its architecture and
-its colours, and a short walkthrough takes you through the first three clicks
-— raise Founders Hall, open the Curriculum, develop a course — before the
-clock starts.
+its colours, and a short walkthrough takes you through the first clicks —
+raise Founders Hall, see the three programs it already teaches, found a
+fourth — before the clock starts.
 
 ## Controls
 

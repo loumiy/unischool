@@ -4,11 +4,13 @@ import { makeRivalRng } from '../../data/rivalData';
 import { WEEKS_PER_YEAR } from '../../state/types';
 
 // ---------------------------------------------------------------------
-// THE OFFER QUEUE (Plan 14). After the gen-ed core, the player is never
-// shown forty-two doors. They are shown THREE — s.programOffers — drawn
-// from what remains, and founding one draws a replacement, so the offer is
-// always three and the catalogue is discovered rather than enumerated.
-// See types.ts's HallSlot block and docs/design/curriculum.md.
+// THE OFFER QUEUE (Plan 14). The player is never shown forty-two doors.
+// They are shown THREE — s.programOffers — drawn from what remains, and
+// founding one draws a replacement, so the offer is always three and the
+// catalogue is discovered rather than enumerated. The first three are
+// drawn at founding (Plan 19: the college opens with three rooms free),
+// with a one-time guarantee described at refillOffers. See types.ts's
+// HallSlot block and docs/design/curriculum.md.
 //
 // Two rules shape the draw, and they pull against each other on purpose:
 //
@@ -25,17 +27,17 @@ import { WEEKS_PER_YEAR } from '../../state/types';
 // There is no reroll and no decline. The three stand until one is taken.
 //
 // WHAT IS OFFERABLE: a program that is revealed and not yet housed. A
-// major is revealed when its entry course is — which is the moment the
-// gen-ed core completes, since every tier-1 course requires the whole core
-// — and a graduate program when its own gate opens (graduateGateMet,
-// unchanged). The core itself is never offered: it is housed at founding.
+// major is revealed when its entry course's prereqs are done — an entry
+// course has none, so every major is revealed from founding — and a
+// graduate program when its own gate opens (graduateGateMet, unchanged).
+// The three founding programs are housed at founding and never offered.
 //
 // THE DICE. A local PRNG (rivalData.ts's makeRivalRng) seeded from the
 // STATE — the school's name, the week, and how many programs are housed —
 // and NO draw on the global Math.random stream at all. This is the one
 // place the game deliberately does not roll: the first attempt took one
 // global draw per refill, the discipline rivalsSystem.ts's annual drift
-// keeps, and that single extra draw at core completion shifted every
+// keeps, and that single extra draw shifted every
 // faculty potential and candidate listing after it enough to send the
 // balance sim's overbuilder into a distress it never climbed out of. The
 // offer is not what the regression bands measure, so it must not move
@@ -95,9 +97,10 @@ export function isInTransit(s: GameState, programId: string): boolean {
   return transitWeeks(s, programId) > 0;
 }
 
-// The schools with at least one program housed. The gen-ed core lives in
-// Founders Hall from founding, so General Studies always counts as started
-// — which is harmless, since it has no majors to offer.
+// The schools with at least one program housed. The three founding
+// programs are Social Sciences & Humanities, so that school is started
+// from founding (Plan 19): the weighting below pulls the first draws
+// toward finishing it, and the discovery rule keeps one door open.
 export function startedSchools(s: GameState): Set<string> {
   const started = new Set<string>();
   for (const program of programs()) {
@@ -107,7 +110,6 @@ export function startedSchools(s: GameState): Set<string> {
 }
 
 function isRevealed(s: GameState, program: ProgramInfo): boolean {
-  if (program.kind === 'core') return false;
   const entry = s.tech.find((t) => t.id === program.entryCourseId);
   if (!entry) return false;
   if (program.kind === 'graduate') {
@@ -117,11 +119,11 @@ function isRevealed(s: GameState, program: ProgramInfo): boolean {
     // cannot be founded and must not be offered.
     return graduateGateMet(s, program.id) && entry.prereqs.every((id) => s.tech.find((t) => t.id === id)?.status === 'done');
   }
-  // A major is revealed the moment the gen-ed core completes: its entry
-  // course's every prereq is a core course. (The course's own status stays
-  // 'locked' until the program is housed — see techSystem.ts's
-  // meetsUnlockGates — which is exactly why this reads the prereqs and not
-  // the status.)
+  // A major is revealed when its entry course's prereqs are done — and an
+  // entry course has none, so this is every major from founding. (The
+  // course's own status stays 'locked' until the program is housed — see
+  // techSystem.ts's meetsUnlockGates — which is exactly why this reads the
+  // prereqs and not the status.)
   return entry.prereqs.every((id) => s.tech.find((t) => t.id === id)?.status === 'done');
 }
 
@@ -131,16 +133,26 @@ export function offerablePrograms(s: GameState): ProgramInfo[] {
   return programs().filter((program) => isRevealed(s, program) && !isHoused(s, program.id));
 }
 
-// Tops the offer back up to PROGRAM_OFFER_COUNT. Called the week the
-// gen-ed core completes (the first three) and whenever a program is
-// founded (its replacement) — see techSystem.ts. Idempotent: an offer
-// already full, or a pool already empty, is left exactly as it is, and
-// draws nothing.
+// Tops the offer back up to PROGRAM_OFFER_COUNT. Called at founding (the
+// first three — actions.ts's createInitialState), whenever a program is
+// founded (its replacement — the reducer's FOUND_PROGRAM), and after any
+// week that finishes something, where it is a no-op unless a graduate
+// gate has just opened (techSystem.ts). Idempotent: an offer already
+// full, or a pool already empty, is left exactly as it is, and draws
+// nothing.
+//
+// THE FOUNDING GUARANTEE (Plan 19), a one-time preference and not a
+// standing rule: `guarantee` names majors of which at least one must be
+// on the table after this refill, so that the first founding decision the
+// game asks never requires a hire the college cannot afford. The first
+// draw is confined to them — one of the two, by the same dice — and every
+// draw after it is ordinary, discovery rule included. Passed only by
+// createInitialState; nothing else ever rigs a draw.
 //
 // An offered program that has since become unofferable (housed by some
 // other path, or — defensively — no longer in the seed) is dropped first,
 // so the record never offers what cannot be taken.
-export function refillOffers(s: GameState): void {
+export function refillOffers(s: GameState, guarantee: readonly string[] = []): void {
   const offerable = offerablePrograms(s);
   const byId = new Map(offerable.map((program) => [program.id, program]));
   s.programOffers = s.programOffers.filter((id) => byId.has(id));
@@ -152,6 +164,13 @@ export function refillOffers(s: GameState): void {
   const isUnstarted = (program: ProgramInfo) => !started.has(program.school);
   const housedCount = Object.values(s.halls).reduce((n, slots) => n + slots.filter((slot) => slot.programId !== null).length, 0);
   const roll = makeRivalRng(offerSeed(`${s.self.name}|${(s.clock.year - 1) * WEEKS_PER_YEAR + s.clock.week}|${housedCount}`));
+
+  const guaranteed = pool.filter((program) => guarantee.includes(program.id));
+  if (guaranteed.length > 0 && !s.programOffers.some((id) => guarantee.includes(id))) {
+    const chosen = guaranteed[Math.min(guaranteed.length - 1, Math.floor(roll() * guaranteed.length))];
+    s.programOffers.push(chosen.id);
+    pool = pool.filter((program) => program.id !== chosen.id);
+  }
 
   while (s.programOffers.length < PROGRAM_OFFER_COUNT && pool.length > 0) {
     // The discovery rule first: if nothing on the table is from a school

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
-import { discoverySchools, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
+import { FOUNDERS_HALL_ID, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
 import { dedicatedSchool, hallDisplayName } from '../systems/techtree/schools';
-import { GradeChip, InstructorOption, MarketInField, completion, discoverySections } from '../tabs/CurriculumTab';
+import { GradeChip, InstructorOption, MarketInField } from '../tabs/CurriculumTab';
 import { averageCourseQuality, facultyLoads } from '../systems/faculty/facultyAssignment';
 import { gradeFor } from '../data/courseQuality';
 import { schoolMark } from '../data/schoolPalette';
@@ -13,7 +13,6 @@ import {
 } from '../systems/techtree/techSystem';
 import { transitWeeks } from '../systems/techtree/programOffers';
 import { milestoneLine, programProgress, unmetPrereqNames } from '../systems/techtree/programProgress';
-import { ProgressRing } from './Progress';
 
 // A popover for a PLACED building — what clicking it (outside placement/
 // path-draw mode; see CampusMap.tsx's inspectBuilding) shows. For every
@@ -38,8 +37,6 @@ import { ProgressRing } from './Progress';
 // into a floating card. Plan 14's division is restored here: the map is
 // where a program is founded, the tab is where it is filled in and tuned,
 // and a program tile is a summary with one door to its row in the tab.
-
-const INFO_RING_SIZE = 30;
 
 // A dorm's capacity is simply its capacityBonus effect — including the
 // founding dorm, which carries its beds through the same effect every other
@@ -131,41 +128,6 @@ function FacilityInfo({ t, s }: { t: Buildable; s: GameState }) {
     );
   }
   return <p className="building-info-line">{t.description}</p>;
-}
-
-// The completion figure shown for an academic building: the exact same
-// done/total CurriculumTab.tsx's own ring for this school computes (see
-// discoverySections/completion, both exported from there for this purpose)
-// — never re-derived here, so the two can't drift apart. `courseIds` is
-// the section's schoolCourseIds when a section exists, or a direct fallback
-// (General Studies has no section of its own — see discoverySections'
-// comment — and a professional school not yet revealed, which can't
-// actually happen for a PLACED building, but is a harmless fallback).
-function CourseCompletion({ s, courseIds }: { s: GameState; courseIds: string[] }) {
-  if (courseIds.length === 0) return null;
-  const comp = completion(s, courseIds);
-  // HOW THE TEACHING IS GOING, beside how much of it exists. The same
-  // aggregate the Curriculum tab's own school heading shows, rendered with
-  // the same chip and the same ramp — a B on a hall and a B on a course
-  // cell have to mean the same thing, which they do because they are the
-  // same function (averageCourseQuality) and the same component.
-  //
-  // Absent rather than zero when nothing is graded yet: a school with no
-  // developed course has no average, and an F would be a lie about a
-  // building that has simply not opened anything.
-  const avg = averageCourseQuality(s, courseIds);
-  return (
-    <p className="building-info-completion">
-      <ProgressRing fraction={comp.fraction} size={INFO_RING_SIZE} title={`${comp.done} of ${comp.total} courses developed`} />
-      <span className="stat">{comp.done} / {comp.total}<br />developed</span>
-      {avg !== null && (
-        <span className="building-info-grade">
-          <GradeChip grade={gradeFor(avg)} title={`Averages ${Math.round(avg)} / 100 across its developed courses`} />
-          <span className="stat">average<br />grade</span>
-        </span>
-      )}
-    </p>
-  );
 }
 
 // "Take me to it." The hall is where the player is looking; the courses it
@@ -392,11 +354,16 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
             );
           }
           const open = openSlot === i;
+          // The opening walkthrough's last step rings the first free room
+          // of Founders Hall until it is opened (see state/opening.ts and
+          // styles.css's .opening-target).
+          const ringed = s.events.opening.stage === 'found' && t.id === FOUNDERS_HALL_ID && openSlot === null
+            && slots.findIndex((slot) => slot.programId === null) === i;
           return (
             <button
               key={i}
               type="button"
-              className={`hall-slot empty${open ? ' open' : ''}`}
+              className={`hall-slot empty${open ? ' open' : ''}${ringed ? ' opening-target' : ''}`}
               onClick={() => { setOpenSlot(open ? null : i); setPickedProgram(null); setPickedFaculty(null); setOpenTile(null); }}
               aria-pressed={open}
               disabled={offers.length === 0}
@@ -486,38 +453,16 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
   );
 }
 
-// A building's info: an academic hall (its slots), or Founders Hall (the
-// core) — discoverySchools() is the mapping CurriculumTab.tsx itself
-// reads, imported rather than duplicated so this panel can never disagree
-// with that tab.
+// A building's info: an academic hall's slots — Founders Hall included,
+// an ordinary hall since Plan 19.
 function BuildingHallInfo({ t, s, act, onOpenCurriculum }: {
   t: Buildable; s: GameState; act?: (a: Action) => void; onOpenCurriculum?: (id: string) => void;
 }) {
-  // An academic hall (the repeatable chain): its slots are the whole of
-  // what it is.
   if (isAcademicHall(t)) return <HallSlots t={t} s={s} act={act} onOpenCurriculum={onOpenCurriculum} />;
 
-  const school = discoverySchools().find((sc) => sc.buildingId === t.id);
-  if (school) {
-    const section = discoverySections(s).find((sec) => sec.key === t.id);
-    return (
-      <>
-        {school.majors.length > 0 ? (
-          <ul className="building-info-majors">
-            {school.majors.map((m) => <li key={m.prefix}>{m.name}</li>)}
-          </ul>
-        ) : (
-          <p className="building-info-line">The shared general-education core — no majors of its own.</p>
-        )}
-        <CourseCompletion s={s} courseIds={section ? section.schoolCourseIds : school.coreIds} />
-        <OpenInCurriculum id={school.name} onOpenCurriculum={onOpenCurriculum} />
-      </>
-    );
-  }
-
-  // Unreachable for real seed data (every 'building' Buildable is a hall
-  // or Founders Hall) — a plain fallback rather than a thrown error, since
-  // this is an info panel, not a place worth crashing the map over.
+  // Unreachable for real seed data (every 'building' Buildable is a hall)
+  // — a plain fallback rather than a thrown error, since this is an info
+  // panel, not a place worth crashing the map over.
   return <p className="building-info-line">{t.description}</p>;
 }
 

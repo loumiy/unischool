@@ -20,11 +20,12 @@ import { programById } from '../../data/techData';
 // ---------------------------------------------------------------------
 
 // The school a hall is dedicated to, or null: partly filled, empty, or
-// mixed. Founders Hall (one slot, the core) is never dedicated: General
-// Studies has no majors, and it is not a school in this sense.
+// mixed. Founders Hall is an ordinary hall here (Plan 19): it opens with
+// three Social Sciences & Humanities programs in it, and the three that
+// would fill it dedicate it like any other.
 export function dedicatedSchool(s: GameState, hallId: string): string | null {
   const slots = s.halls[hallId];
-  if (!slots || slots.length < 2) return null;
+  if (!slots || slots.length === 0) return null;
   let school: string | null = null;
   for (const slot of slots) {
     if (slot.programId === null) return null;
@@ -33,7 +34,7 @@ export function dedicatedSchool(s: GameState, hallId: string): string | null {
     // the move was ordered (see types.ts's HallSlot.transitWeeks).
     if ((slot.transitWeeks ?? 0) > 0) return null;
     const program = programById(slot.programId);
-    if (!program || program.kind === 'core') return null;
+    if (!program) return null;
     if (school === null) school = program.school;
     else if (school !== program.school) return null;
   }
@@ -64,7 +65,7 @@ export function isSchoolFounded(s: GameState, school: string): boolean {
 // its naming rights were sold (a permanent, stored overwrite of `name` —
 // see eventData.ts's 'naming-rights'), "<School> Hall" while it is
 // dedicated, and its seeded name otherwise. A live reading, so a hall
-// that loses its purity goes back to being North Academic Hall until it
+// that loses its purity goes back to being Elm Hall until it
 // is pure again — the milestone stays, the label follows the building.
 export function hallDisplayName(s: GameState, t: Buildable): string {
   if (t.donorSurname) return t.name;

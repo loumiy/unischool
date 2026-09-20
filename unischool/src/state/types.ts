@@ -333,6 +333,15 @@ export interface Buildable {
   // health center: large campuses only, see facilitiesData.ts.
   minCapacityToUnlock?: number;
   minPrestigeToUnlock?: number; // e.g. a research library / athletics complex tier
+  // A developed-course gate (Plan 19's PR B): this Buildable stays locked
+  // until the catalogue has at least this many courses developed, in any
+  // program. Only the first purchased academic hall carries it — "the
+  // college is teaching enough to justify a second building" — which is
+  // what keeps a $750,000 purchase out of week one now that Founders Hall
+  // opens with rooms to spare and the gen-ed core it used to wait on is
+  // gone. Monotone, unlike the two above (a developed course stays
+  // developed), but read the same way, every tick.
+  minCoursesToUnlock?: number;
   // (the third such gate is `graduateProgram` above — a graduate course
   // waits on its program's parent-school gate, which is a reading of
   // milestones and lab status rather than of any one Buildable's id)
@@ -360,8 +369,8 @@ export interface Buildable {
   // figure despite the missing `effects`.
   chapterHouse?: true;
   // How many PROGRAM SLOTS this building holds — set only on hall-kind
-  // 'building' Buildables (techData.ts's academic hall chain, six each, and
-  // Founders Hall, one) and on nothing else. A slot is where a program
+  // 'building' Buildables (techData.ts's academic hall chain and Founders
+  // Hall, six each) and on nothing else. A slot is where a program
   // lives: founding a program takes an empty slot in a standing hall, and
   // six programs of one school in one hall is what founds that school (see
   // the HallSlot block below and docs/design/curriculum.md). The slots
@@ -741,9 +750,10 @@ export interface EventState {
   // rest of this slice.
   //
   // `stage` is THE OPENING WALKTHROUGH (see state/opening.ts):
-  // the forced first three clicks of a guided founding, which hold the
-  // clock until they are done. State rather than shell memory, so a refresh
-  // mid-walk resumes on the same step. A headless founding opens at 'play'.
+  // the forced first clicks of a guided founding — site the hall, see what
+  // it teaches, found a fourth program — which hold the clock until they
+  // are done. State rather than shell memory, so a refresh mid-walk
+  // resumes on the same step. A headless founding opens at 'play'.
   opening: { read: string[]; skipped: boolean; stage: OpeningStage };
   // THE TRUSTEES' RESPONSE (Plan 17's PR D — see data/eventData.ts's
   // 'rival-passed'). The ids of every rival whose passing the player has
@@ -754,7 +764,7 @@ export interface EventState {
 }
 
 // See state/opening.ts, which owns the order and the meaning.
-export type OpeningStage = 'welcome' | 'site-hall' | 'classes' | 'first-course' | 'play';
+export type OpeningStage = 'welcome' | 'site-hall' | 'teaching' | 'found' | 'play';
 
 // The player's admissions policy is set once a year via the summer
 // interrupt (see docs/design/admissions.md). NOTE: there is no
@@ -1390,15 +1400,16 @@ export interface YearSnapshot {
 // grid whose tiles never shuffle under the player.
 //
 // A PROGRAM ID is the major's course-code prefix ('FINA', 'MECH' — the
-// same prefix milestoneSchools() keys a major by), 'CORE' for the gen-ed
-// core, or a graduate program's id ('MED', 'PHDE'). Nothing here is a
+// same prefix milestoneSchools() keys a major by) or a graduate program's
+// id ('MED', 'PHDE'). Nothing here is a
 // Buildable id: a program is the nine (or however many) courses that share
 // a prefix, and it is housed as a unit.
 //
 // A hall's entry is written the week the hall FINISHES (techSystem.ts),
 // with every slot empty — a hall under construction has no room to put
 // anything in yet — and Founders Hall's is seeded at founding with the
-// core already in its one slot (actions.ts). From then on the entry is the
+// three founding programs in its first three slots (actions.ts, Plan 19).
+// From then on the entry is the
 // whole answer to "what is in this building": founding a program fills a
 // slot, relocating one moves it, and a school is founded by a READING over
 // this record (six slots, one school) rather than by any flag written
