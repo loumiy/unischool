@@ -107,21 +107,69 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
 
   // --- Mechanical Engineering ---
   MECH101: 'Introduces the design process, sketching, and basic mechanical systems.',
+  MECH110: 'Analyses forces and moments on bodies at rest and in motion, from trusses and frames to particles and rigid bodies under acceleration.',
+  MECH120: 'Applies the first and second laws to engines, refrigerators, and power cycles, with property tables and the entropy budget of each.',
+  MECH130: 'Covers pressure, viscosity, and flow in pipes and around bodies, from Bernoulli and the Navier-Stokes equations to boundary layers and drag.',
+  MECH140: 'Relates the structure of metals, polymers, ceramics, and composites to their strength, failure, and processing.',
+  MECH210: 'Designs manipulators and mobile robots: kinematics, actuators, sensors, and the control loops that make them move where intended.',
+  MECH220: 'Sizes heating, ventilation, and cooling for real buildings, from load calculations, psychrometrics, and equipment selection to the energy codes.',
+  MECH230: 'Analyses spark- and compression-ignition cycles, combustion, and emissions, and tunes a real engine on a dynamometer.',
+  MECH240: 'Formulates and solves stress, thermal, and vibration problems numerically, and learns when a converged result is still wrong.',
 
   // --- Electrical Engineering ---
   ELEC101: 'Covers voltage, current, and resistance through hands-on circuit analysis and lab work.',
+  ELEC110: 'Designs combinational and sequential circuits from gates and flip-flops, and builds them on programmable hardware.',
+  ELEC120: 'Analyses continuous and discrete signals with Fourier, Laplace, and z-transforms, and the linear systems that filter them.',
+  ELEC130: 'Develops Maxwell\'s equations for static and time-varying fields, transmission lines, and waves, with the antennas and waveguides they explain.',
+  ELEC140: 'Analyses and designs diode, transistor, and amplifier circuits, from device physics to biasing and small-signal models.',
+  ELEC210: 'Models generation, transmission, and load flow in the electrical grid, with fault analysis and the stability of the network.',
+  ELEC220: 'Covers modulation, coding, fading channels, and multiple access, from cellular networks to the link budget of a single radio.',
+  ELEC230: 'Designs feedback controllers with root locus, frequency response, and state space, and tunes them for stability and performance on real plants.',
+  ELEC240: 'Lays out digital circuits in CMOS from transistor to chip, with timing, power, and the design flow that gets a chip fabricated.',
 
   // --- Chemical Engineering ---
   CHEM101: 'Introduces the chemical process industries and the unit operations, flows, and conversions that run them.',
+  CHEM110: 'Applies phase equilibria, chemical equilibrium, and solution thermodynamics to the separations and reactions a plant depends on.',
+  CHEM120: 'Covers momentum, heat, and mass transfer in process equipment, from pipe flow and pumps to heat exchangers and diffusion.',
+  CHEM130: 'Accounts for every stream into and out of a process, with recycle, purge, and reaction — the bookkeeping every plant design starts with.',
+  CHEM140: 'Sizes batch, stirred, and tubular reactors from kinetics and residence time, with heat effects and catalysis.',
+  CHEM210: 'Analyses hazards, relief systems, and layers of protection with HAZOP studies and the case histories of plant disasters, so a design fails safely.',
+  CHEM220: 'Engineers fermentation, enzyme reactors, and downstream purification to make pharmaceuticals and fuels from living cells.',
+  CHEM230: 'Covers polymerisation, molecular weight, and the viscoelastic behaviour of plastics, with the processing that shapes them.',
+  CHEM240: 'Evaluates biofuels, hydrogen, carbon capture, and electrochemical storage on efficiency, cost, and life-cycle emissions.',
 
   // --- Civil Engineering ---
   CIVE101: 'Covers forces in equilibrium, free-body diagrams, and load paths, the physical foundation for structural and civil design.',
+  CIVE110: 'Determines forces and deflections in beams, trusses, and frames, determinate and indeterminate, by hand and by matrix methods.',
+  CIVE120: 'Covers soil classification, seepage, consolidation, and shear strength — the ground properties a foundation design rests on.',
+  CIVE130: 'Relates loads to stress, strain, and deformation in bars, shafts, and beams, up to buckling and combined loading.',
+  CIVE140: 'Designs roads, intersections, and transit systems from traffic flow, capacity analysis, and geometric standards.',
+  CIVE210: 'Designs a bridge from concept through loads, girders, bearings, and substructure to the code checks a real span must pass.',
+  CIVE220: 'Assesses the effects of a proposed project on air, water, land, and communities, and writes the statement regulators require.',
+  CIVE230: 'Plans a construction project — estimating, scheduling, contracts, procurement, and safety — on a site with weather and subcontractors.',
+  CIVE240: 'Covers land use, zoning, transport, and housing, and how planning decisions shape a city over decades.',
 
   // --- Industrial Engineering ---
   INDE101: 'Introduces systems thinking for analyzing and improving industrial processes.',
+  INDE110: 'Schedules materials, machines, and people to meet demand, with MRP, capacity planning, and the trade-off between inventory and lead time.',
+  INDE120: 'Designs workstations, tools, and tasks around the human body, with the hazard analysis that keeps a workplace from injuring it.',
+  INDE130: 'Applies control charts, sampling plans, and process capability to detect drift before it becomes defects.',
+  INDE140: 'Lays out plants and warehouses for material flow, with location analysis and the space each operation needs.',
+  INDE210: 'Builds discrete-event models of factories, hospitals, and queues, and runs experiments on them that would be too costly in real life.',
+  INDE220: 'Optimises network design, inventory, and sourcing with mathematical programming and data from a real supply chain.',
+  INDE230: 'Applies value-stream mapping, pull systems, and continuous improvement to take the waste out of a production line.',
+  INDE240: 'Models failure with life distributions and fault trees, and designs maintenance and redundancy for systems that must not stop.',
 
   // --- Aerospace Engineering ---
   AERO101: 'Covers the forces of flight — lift, drag, thrust, and weight — and how aircraft respond to them.',
+  AERO110: 'Analyses lift and drag on airfoils and wings from potential flow to compressibility, with wind-tunnel measurements to check the theory.',
+  AERO120: 'Computes range, endurance, climb, and take-off and landing distances from an aircraft\'s thrust, drag, and weight.',
+  AERO130: 'Covers chemical rockets, electric thrusters, and the rocket equation, with nozzle design and propellant choice.',
+  AERO140: 'Analyses thin-walled beams, stressed skins, and composites under flight loads, with fatigue and the margins certification demands.',
+  AERO210: 'Solves two-body orbits, transfers, and rendezvous, and plans interplanetary trajectories with gravity assists.',
+  AERO220: 'Designs, builds, and flies a sounding rocket as a team, from motor selection and stability to recovery and flight data.',
+  AERO230: 'Takes an aircraft from mission requirements through sizing, configuration, and trade studies to a preliminary design review.',
+  AERO240: 'Designs and operates drones — airframes, autopilots, sensors — and the regulations that govern where they can fly.',
 
   // ===================================================================
   // Arts & Media
@@ -269,21 +317,69 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
 
   // --- Mathematics ---
   MATH101: 'Covers limits, derivatives, and integrals, the mathematical toolkit for science and engineering coursework.',
+  MATH110: 'Covers vector spaces, matrices, eigenvalues, and linear maps, with the geometry and the applications that make them indispensable.',
+  MATH120: 'Develops random variables, distributions, and the central limit theorem, and applies them to estimation and hypothesis testing.',
+  MATH130: 'Covers logic, sets, combinatorics, graphs, and proof by induction — the mathematics beneath computing.',
+  MATH140: 'Solves ordinary differential equations analytically and numerically, and models the oscillators, populations, and circuits they describe.',
+  MATH210: 'Builds the real numbers, limits, continuity, and the integral rigorously, and proves the theorems calculus took on trust.',
+  MATH220: 'Studies groups, rings, and fields, from symmetry and permutations to the impossibility of solving the quintic.',
+  MATH230: 'Introduces open sets, continuity, compactness, and connectedness in the abstract, and the surfaces and knots they classify.',
+  MATH240: 'Analyses algorithms for root finding, integration, linear systems, and differential equations, with the error and stability of each.',
 
   // --- Biology ---
   BIOL101: 'Covers cell structure, genetics, and the fundamentals of living systems.',
+  BIOL110: 'Examines membranes, organelles, signalling, and the cell cycle, and the experimental methods that revealed them.',
+  BIOL120: 'Covers inheritance from Mendel to the genome: linkage, mutation, gene regulation, and the tools of molecular genetics.',
+  BIOL130: 'Studies populations, communities, and ecosystems, with field work on how organisms interact with each other and their environment.',
+  BIOL140: 'Develops natural selection, genetic drift, speciation, and phylogenetics, with the evidence from fossils to DNA.',
+  BIOL210: 'Studies bacteria, archaea, viruses, and fungi in the lab, from culture and identification to pathogenesis and antibiotics.',
+  BIOL220: 'Examines ocean life from plankton to whales, with coastal field work on reefs, estuaries, and the changing sea.',
+  BIOL230: 'Covers photosynthesis, water transport, hormones, and development, and how plants respond to stress and season.',
+  BIOL240: 'Traces innate and adaptive immunity from antigen recognition to vaccines, allergy, and autoimmune disease.',
 
   // --- Chemistry ---
   CHMY101: 'Builds stoichiometry, periodicity, and reaction theory from first principles.',
+  CHMY110: 'Covers bonding, coordination complexes, and the descriptive chemistry of the main-group and transition elements.',
+  CHMY120: 'Develops the structure, stereochemistry, and reaction mechanisms of carbon compounds, with synthesis and spectroscopy in the lab.',
+  CHMY130: 'Teaches titration, chromatography, and electrochemical and spectroscopic analysis, with the statistics that say how far to trust a measurement.',
+  CHMY140: 'Develops thermodynamics, kinetics, and quantum mechanics as they apply to molecules, with the mathematics each requires.',
+  CHMY210: 'Examines proteins, enzymes, nucleic acids, and metabolism, and how the chemistry of the cell is regulated.',
+  CHMY220: 'Solves molecular structures from NMR, infrared, and mass spectra, and the crystallography behind them.',
+  CHMY230: 'Follows a drug from target and lead compound through structure-activity relationships to metabolism and dose.',
+  CHMY240: 'Models molecules with quantum chemistry and molecular dynamics, and learns what each method can and cannot predict.',
 
   // --- Physics ---
   PHYS101: 'Derives motion, force, energy, and momentum from Newton\'s laws, with lab work throughout.',
+  PHYS110: 'Develops fields, potentials, circuits, and induction from Coulomb\'s law to Maxwell\'s equations, with lab work throughout.',
+  PHYS120: 'Covers oscillations, wave propagation, interference, diffraction, and polarisation, from sound to lasers.',
+  PHYS130: 'Introduces special relativity, the quantum, atomic structure, and nuclear physics, and the experiments that forced each.',
+  PHYS140: 'Derives temperature, entropy, and the laws of thermodynamics from the statistics of many particles.',
+  PHYS210: 'Develops the Schrödinger equation, operators, angular momentum, and spin, and applies them to atoms and simple systems.',
+  PHYS220: 'Covers crystal structure, phonons, band theory, semiconductors, and superconductivity — the physics inside every device.',
+  PHYS230: 'Studies stars, galaxies, dark matter, and the expanding universe, from stellar structure to the cosmic microwave background.',
+  PHYS240: 'Introduces the standard model of quarks, leptons, and forces, and how accelerators and detectors test it.',
 
   // --- Environmental Science ---
   ENVS101: 'Surveys how physical, chemical, and biological systems interact across a changing planet.',
+  ENVS110: 'Traces energy and carbon through atmosphere, ocean, and land, and how those systems drive climate and its change.',
+  ENVS120: 'Measures energy flow and nutrient cycling through forests, grasslands, and wetlands, with field and lab methods.',
+  ENVS130: 'Follows pollutants through air, water, and soil, with the chemistry of acid rain, ozone, and contaminant fate.',
+  ENVS140: 'Builds and analyses spatial data in GIS software, from remote-sensing imagery to maps that answer an environmental question.',
+  ENVS210: 'Applies population genetics and landscape ecology to protecting species and habitats, with the policy and the trade-offs involved.',
+  ENVS220: 'Covers the water cycle, watersheds, groundwater, and flooding, and how water is allocated among competing users.',
+  ENVS230: 'Examines weather, air pollution, and climate dynamics, from radiation and cloud physics to numerical forecasting.',
+  ENVS240: 'Analyses environmental law and regulation, and plans the restoration of a degraded site from assessment to monitoring.',
 
   // --- Psychology ---
   PSYC101: 'Surveys the major subfields of psychology, from cognition to clinical practice.',
+  PSYC110: 'Traces cognitive, social, and emotional development from infancy to old age, and the studies that map each stage.',
+  PSYC120: 'Examines attention, memory, language, and reasoning through the experiments that reveal how the mind processes information.',
+  PSYC130: 'Covers the classification, causes, and treatment of mental disorders, from anxiety and depression to psychosis.',
+  PSYC140: 'Designs experiments and surveys, analyses their data, and confronts the replication problems of the field.',
+  PSYC210: 'Studies conformity, persuasion, prejudice, and group behaviour, through the classic experiments and their modern re-tests.',
+  PSYC220: 'Links behaviour to the brain: neurotransmitters, hormones, sleep, and the effects of drugs and damage.',
+  PSYC230: 'Applies psychology to selection, motivation, leadership, and team performance in the workplace.',
+  PSYC240: 'Examines how stress, behaviour, and belief affect illness and recovery, and the interventions that change them.',
 
   // ===================================================================
   // Health Science
@@ -291,21 +387,69 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
 
   // --- Public Health ---
   PHLT101: 'Surveys how populations, policy, and environment shape community health outcomes.',
+  PHLT110: 'Measures disease in populations with incidence, prevalence, and risk, and designs the cohort and case-control studies that find its causes.',
+  PHLT120: 'Applies regression, survival analysis, and hypothesis testing to health data, with the statistical literacy to read a clinical trial.',
+  PHLT130: 'Examines how health systems are financed, regulated, and run, and the policy choices behind coverage, cost, and access.',
+  PHLT140: 'Covers air and water quality, toxic exposure, and food safety, and the regulation that protects a population from them.',
+  PHLT210: 'Examines disease burden, health systems, and interventions in low-income settings, from vaccination campaigns to maternal care.',
+  PHLT220: 'Designs programmes that change behaviour — smoking, diet, screening — using behavioural theory and an evaluation of what worked.',
+  PHLT230: 'Gathers and analyses local health data with community partners, and turns it into a set of priorities and a plan.',
+  PHLT240: 'Covers pregnancy, birth, infant, and child health outcomes, and the services and policies that improve them.',
 
   // --- Nursing ---
   NURS101: 'Introduces the nursing profession, scope of practice, and foundations of patient care.',
+  NURS110: 'Covers the structure and function of every organ system, with the lab dissection and the physiology a clinician draws on daily.',
+  NURS120: 'Teaches drug classes, mechanisms, dosing, and interactions, and the safe administration of medication to patients.',
+  NURS130: 'Trains history-taking and head-to-toe physical examination, with the documentation that turns findings into a care plan.',
+  NURS140: 'Places students on hospital wards under supervision, giving basic nursing care to real patients for the first time.',
+  NURS210: 'Manages ventilated, unstable, and post-operative patients in intensive care, with monitoring, drugs, and rapid response.',
+  NURS220: 'Cares for infants, children, and adolescents, with the growth, dosing, and family communication that differ from adult practice.',
+  NURS230: 'Cares for older adults with chronic illness, frailty, dementia, and polypharmacy, at home and in long-term care.',
+  NURS240: 'Runs a full patient load on a specialty unit under a preceptor — the transition from student to practising nurse.',
 
   // --- Nutrition ---
   NUTR101: 'Covers macronutrients, micronutrients, and how diet supports human health.',
+  NUTR110: 'Follows carbohydrates, fats, and proteins from digestion through the metabolic pathways that store and burn them.',
+  NUTR120: 'Covers nutritional needs from pregnancy and infancy through childhood, adulthood, and old age, and where each stage goes wrong.',
+  NUTR130: 'Assesses nutritional status, plans diets, and counsels clients — the clinical practice of a dietitian.',
+  NUTR140: 'Examines the chemistry, microbiology, and processing of food, from spoilage and preservation to what cooking does to it.',
+  NUTR210: 'Fuels training and competition with energy, hydration, and timing strategies, and evaluates the supplements athletes take.',
+  NUTR220: 'Addresses malnutrition and obesity at the population level, through food policy, school programmes, and surveillance.',
+  NUTR230: 'Manages nutrition in diabetes, kidney disease, cancer, and critical illness, including tube and intravenous feeding.',
+  NUTR240: 'Runs supervised client consultations from dietary assessment through behaviour-change counselling and follow-up, the capstone of dietetic practice.',
 
   // --- Pharmacy ---
   PHRM101: 'Introduces drug discovery, formulation, and the pharmacist\'s role in patient care.',
+  PHRM110: 'Covers organ-system physiology with the emphasis a pharmacist needs, on the receptors and pathways that drugs act on.',
+  PHRM120: 'Relates drug structure to activity, stability, and formulation, with the organic and analytical chemistry behind each.',
+  PHRM130: 'Covers drug action on the nervous and cardiovascular systems: receptors, dose-response, and the agents used in each.',
+  PHRM140: 'Designs dosage forms — tablets, injections, patches — and the kinetics of how a drug is absorbed, distributed, and cleared.',
+  PHRM210: 'Extends drug action to infection, cancer, endocrine, and inflammatory disease, with toxicity and resistance.',
+  PHRM220: 'Selects and monitors drug therapy for real patient cases, weighing evidence, interactions, and comorbidity.',
+  PHRM230: 'Places students in a clinic to review medications, counsel patients, and advise prescribers under supervision.',
+  PHRM240: 'Studies drug effects in populations after approval, with adverse-event surveillance and the regulation of recalls.',
 
   // --- Kinesiology ---
   KINE101: 'Surveys human movement — anatomy, physiology, and mechanics — as one connected system.',
+  KINE110: 'Studies muscles, bones, and joints as a system for movement, with palpation and the analysis of everyday and athletic motion.',
+  KINE120: 'Measures how the heart, lungs, and muscles respond and adapt to exercise, in the lab with treadmill and metabolic testing.',
+  KINE130: 'Applies mechanics to the body — forces, torques, and motion capture — from a golf swing to a fall.',
+  KINE140: 'Examines how skills are acquired and coordinated by the nervous system, and how practice and feedback should be structured.',
+  KINE210: 'Designs resistance and conditioning programmes for athletes, with periodisation, testing, and coaching technique.',
+  KINE220: 'Assesses and rehabilitates common sports injuries, from acute care and taping to return-to-play progressions.',
+  KINE230: 'Runs fitness assessments and prescribes exercise for healthy and clinical populations, following professional guidelines.',
+  KINE240: 'Designs physical activity for people with disabilities and chronic conditions, with inclusion and safety as the starting points.',
 
   // --- Neuroscience ---
   NEUR101: 'Introduces the nervous system from single neurons up to behavior and cognition.',
+  NEUR110: 'Maps the structures of the brain and spinal cord, their connections, and what damage to each does, with brain dissection in the lab.',
+  NEUR120: 'Covers ion channels, action potentials, synaptic transmission, and the molecular machinery of the neuron.',
+  NEUR130: 'Links perception, memory, language, and decision-making to brain systems, through imaging, lesion, and recording studies.',
+  NEUR140: 'Records and analyses electrical activity from neurons and circuits, from single cells to the EEG.',
+  NEUR210: 'Examines how drugs act on neurotransmitter systems, in the treatment of disorders and in addiction.',
+  NEUR220: 'Traces how the nervous system is built, from neural induction and axon guidance to synapse formation and plasticity.',
+  NEUR230: 'Models neurons and networks mathematically, from the Hodgkin-Huxley equations to learning rules and neural coding.',
+  NEUR240: 'Examines stroke, epilepsy, Parkinson\'s, Alzheimer\'s, and psychiatric illness at the level of mechanism and treatment.',
 
   // ===================================================================
   // Computer Science
