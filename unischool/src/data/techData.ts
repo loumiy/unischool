@@ -2,6 +2,7 @@ import type { Buildable, GameState } from '../state/types';
 import {
   ART_GALLERY_ID, HEALTH_CENTER_TIER2_ID, HEALTH_CENTER_TIER3_ID, PERFORMING_ARTS_CENTER_ID,
 } from './facilitiesData';
+import { COURSE_DESCRIPTIONS } from './courseDescriptions';
 
 /*
   Your real curriculum, expressed as seed data and expanded into Buildable[].
@@ -988,65 +989,14 @@ export function graduateGateDescription(program: GraduateProgramSeed): string {
 }
 
 // ---------------------------------------------------------------------
-// Descriptions. Every tier-1 course (the 42 entry points players see
-// first) gets a hand-written one-liner. Tier-2/tier-3 descriptions are
-// generated from the course's own title through a small set of rotating,
-// tier-appropriate phrasings — real catalog-style text naming the actual
-// course, not generic "tier N" boilerplate, but not 288 individually
-// hand-composed sentences either (see the PR notes on this tradeoff).
+// Descriptions. Every undergraduate course takes its sentence from
+// courseDescriptions.ts's COURSE_DESCRIPTIONS, keyed by id (Plan 20's PR
+// D). The table is filled school by school behind the templates below,
+// which stay as the fallback for an id it does not yet carry, so no
+// commit in between ships a blank drawer; test/course-descriptions.test.ts
+// prints how many courses are still on the fallback and holds the count
+// to going down. The templates go when the table is complete (PR G).
 // ---------------------------------------------------------------------
-const TIER1_DESCRIPTIONS: Record<string, string> = {
-
-  FINA101: 'Introduces time value of money, risk, and the core tools of personal and corporate finance.',
-  ACCT101: 'Covers the accounting cycle, financial statements, and the language of business record-keeping.',
-  MRKT101: 'Surveys the marketing mix — product, price, place, and promotion — through real brand cases.',
-  ECON101: 'Examines how individuals and firms make decisions under scarcity, from supply and demand to market structure.',
-  MGMT101: 'Introduces leadership styles, team dynamics, and the fundamentals of managing people.',
-  SPCO101: 'Traces how goods move from raw material to customer, and where supply chains break down.',
-
-  MECH101: 'Introduces the design process, sketching, and basic mechanical systems.',
-  ELEC101: 'Covers voltage, current, and resistance through hands-on circuit analysis and lab work.',
-  CHEM101: 'Introduces the chemical process industries and the unit operations, flows, and conversions that run them.',
-  CIVE101: 'Covers forces in equilibrium, free-body diagrams, and load paths, the physical foundation for structural and civil design.',
-  INDE101: 'Introduces systems thinking for analyzing and improving industrial processes.',
-  AERO101: 'Covers the forces of flight — lift, drag, thrust, and weight — and how aircraft respond to them.',
-
-  MDIA101: 'Surveys how mass media shapes public opinion, culture, and information flow.',
-  GRDS101: 'Introduces composition, color, and layout as tools for communicating visually.',
-  CRWR101: 'Workshops short fiction and poetry to build a foundational creative practice.',
-  MUSC101: 'Covers notation, scales, and harmony, the building blocks of Western music.',
-  FILM101: 'Teaches close reading of cinema through shot composition, editing, and narrative structure.',
-  SART101: 'Introduces line, shape, and composition through studio exercises in two-dimensional art.',
-
-  ENGL101: 'Introduces close reading and literary analysis across poetry, fiction, and drama.',
-  SOCY101: 'Examines how social structures, institutions, and group behavior shape everyday life.',
-  ANTH101: 'Introduces the four fields of anthropology and what each asks about being human.',
-  POLS101: 'Surveys power, institutions, and political behavior, and the questions and methods of the discipline.',
-  HIST101: 'Surveys major civilizations and turning points from antiquity to the modern era.',
-  PHIL101: 'Builds skills in argument analysis, deduction, and identifying logical fallacies.',
-
-  MATH101: 'Covers limits, derivatives, and integrals, the mathematical toolkit for science and engineering coursework.',
-  BIOL101: 'Covers cell structure, genetics, and the fundamentals of living systems.',
-  CHMY101: 'Builds stoichiometry, periodicity, and reaction theory from first principles.',
-  PHYS101: 'Derives motion, force, energy, and momentum from Newton\'s laws, with lab work throughout.',
-  ENVS101: 'Surveys how physical, chemical, and biological systems interact across a changing planet.',
-  PSYC101: 'Surveys the major subfields of psychology, from cognition to clinical practice.',
-
-  PHLT101: 'Surveys how populations, policy, and environment shape community health outcomes.',
-  NURS101: 'Introduces the nursing profession, scope of practice, and foundations of patient care.',
-  NUTR101: 'Covers macronutrients, micronutrients, and how diet supports human health.',
-  PHRM101: 'Introduces drug discovery, formulation, and the pharmacist\'s role in patient care.',
-  KINE101: 'Surveys human movement — anatomy, physiology, and mechanics — as one connected system.',
-  NEUR101: 'Introduces the nervous system from single neurons up to behavior and cognition.',
-
-  COMP101: 'Teaches programming fundamentals — variables, control flow, and functions — through hands-on projects.',
-  DATA101: 'Introduces data collection, cleaning, and exploratory analysis techniques.',
-  CYBR101: 'Surveys threats, defenses, and the core principles of securing systems.',
-  SOFT101: 'Covers the software development lifecycle from requirements to deployment.',
-  ARTF101: 'Surveys the history, goals, and core techniques of artificial intelligence.',
-  INFO101: 'Introduces how organizations use information systems to run and improve operations.',
-};
-
 const TIER2_TEMPLATES: Array<(title: string, major: string) => string> = [
   (title, major) => `Builds on ${major}'s foundations with a focused study of ${title}.`,
   (title, major) => `A closer look at ${title}, deepening the core skills of ${major}.`,
@@ -1131,11 +1081,13 @@ export function initialTech(): Buildable[] {
         const clinicalGate = CLINICAL_PRACTICUM_GATE[id];
         if (clinicalGate) prereqs = [...prereqs, clinicalGate];
 
-        const description = tier === 1
-          ? (TIER1_DESCRIPTIONS[id] ?? `${major.name} (${school.name}) entry course: ${title}.`)
-          : tier === 2
-            ? TIER2_TEMPLATES[(i - 1) % TIER2_TEMPLATES.length](title, major.name)
-            : TIER3_TEMPLATES[(i - 5) % TIER3_TEMPLATES.length](title, major.name);
+        const description = COURSE_DESCRIPTIONS[id] ?? (
+          tier === 1
+            ? `${major.name} (${school.name}) entry course: ${title}.`
+            : tier === 2
+              ? TIER2_TEMPLATES[(i - 1) % TIER2_TEMPLATES.length](title, major.name)
+              : TIER3_TEMPLATES[(i - 5) % TIER3_TEMPLATES.length](title, major.name)
+        );
 
         nodes.push({
           id,
