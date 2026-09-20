@@ -241,27 +241,55 @@ export function serialiseReference(reference: Reference): string {
 //     where the elite band closes). Net margin holds 5-15% from year 35,
 //     and is 25-40% in the found and build eras, where the surplus is what
 //     the halls and programs are bought with.
-//   - The Idle school falls further than "into the 30s": to the bottom of
-//     the field, because a campus with nothing built takes the full
-//     crowding penalty and no welfare, which is the penalty working.
+//   - The Idle school used to fall further than "into the 30s" — to the
+//     bottom of the field, because a campus with nothing built took the
+//     full crowding penalty and no welfare. Since Plan 19 the college opens
+//     teaching (three programs, six graded courses, 480 seats), so idled
+//     it is a small college that never grows: ten points under its
+//     founding standing within five years and held there, at the rooms it
+//     opened with. The claim is the same — idling costs standing and never
+//     earns it back — and the band's ceiling is the founding standing less
+//     a margin, its enrolment the founding seats.
 //   - The Overbuilder is underwater by year 5 and STALLS rather than
 //     recovering by 15: it hovers at break-even for the rest of the run,
 //     in and out of the red, at seven hundred students. Recovery would
 //     take a price change the scripted archetype never makes.
+//
+// PLAN 19 MOVED THE FOUND ERA, and the Balanced builder's first three rows
+// with it. The college opens teaching — three Social Sciences & Humanities
+// programs in a six-slot Founders Hall, six courses, 480 seats — and the
+// three programs that dedicate the opening school fit in the rooms it
+// already owns, so the balanced builder founds its first school in year six
+// where it used to in year fifteen. Plan 15's concentration term then pays
+// a decade early, and everything downstream of standing (the pool, the
+// class, the price) follows: top fifty at year five, the undergraduate
+// catalogue finished around year fourteen at two of three seeds, rank #1
+// by year twenty. The design table's rows 5, 10 and 20 were written for a
+// college that opened with an empty catalogue and a one-slot hall, so
+// they are re-read here to the founding college — about a decade ahead of
+// Plan 15's eras in standing, wider at the bottom in enrolment because
+// one seed in three parks at eight thousand students from year ten (the
+// harness's own 12% headroom rule, with the seat ceiling capping the net
+// it reads, a deadlock cash cannot buy out of). Years 35 and 50 stand as
+// Plan 15 wrote them, widened only to the envelope's enrolment. No game
+// constant moved: the pace is the opening the plan asked for, and the
+// plan's own levers if it is too fast (a four-slot Founders Hall; Reyes
+// back in Physics with an opening-school offer guaranteed instead) are
+// recorded there rather than pulled here.
 export const TARGETS: Reference = {
   'Balanced builder': [
-    { year: 5, cash: { lo: -2_000_000, hi: 20_000_000 }, enrolled: { lo: 1_000, hi: 2_500 }, prestige: { lo: 42, hi: 62 }, rank: { lo: 40, hi: 70 }, netMargin: { lo: 0.1, hi: 0.6 }, weeksInTheRed: { lo: 0, hi: 60 } },
-    { year: 10, cash: { lo: -2_000_000, hi: 40_000_000 }, enrolled: { lo: 1_800, hi: 7_000 }, prestige: { lo: 40, hi: 76 }, rank: { lo: 30, hi: 75 }, netMargin: { lo: 0.1, hi: 0.6 }, weeksInTheRed: { lo: 0, hi: 120 } },
-    { year: 20, cash: { lo: -5_000_000, hi: 300_000_000 }, enrolled: { lo: 10_000, hi: 18_000 }, prestige: { lo: 60, hi: 100 }, rank: { lo: 8, hi: 55 }, netMargin: { lo: 0.05, hi: 0.5 }, weeksInTheRed: { lo: 0, hi: 200 } },
-    { year: 35, cash: { lo: -20_000_000, hi: 2_000_000_000 }, enrolled: { lo: 15_000, hi: 32_000 }, prestige: { lo: 100, hi: 150 }, rank: { lo: 1, hi: 8 }, netMargin: { lo: -0.05, hi: 0.2 }, weeksInTheRed: { lo: 0, hi: 400 } },
-    { year: 50, cash: { lo: -20_000_000, hi: 5_000_000_000 }, enrolled: { lo: 18_000, hi: 35_000 }, prestige: { lo: 110, hi: 150 }, rank: { lo: 1, hi: 5 }, netMargin: { lo: 0.02, hi: 0.3 }, weeksInTheRed: { lo: 0, hi: 500 } },
+    { year: 5, cash: { lo: -2_000_000, hi: 20_000_000 }, enrolled: { lo: 1_000, hi: 3_500 }, prestige: { lo: 45, hi: 75 }, rank: { lo: 30, hi: 70 }, netMargin: { lo: 0.1, hi: 0.6 }, weeksInTheRed: { lo: 0, hi: 60 } },
+    { year: 10, cash: { lo: -2_000_000, hi: 40_000_000 }, enrolled: { lo: 4_000, hi: 16_000 }, prestige: { lo: 55, hi: 95 }, rank: { lo: 12, hi: 60 }, netMargin: { lo: 0.05, hi: 0.5 }, weeksInTheRed: { lo: 0, hi: 120 } },
+    { year: 20, cash: { lo: -5_000_000, hi: 300_000_000 }, enrolled: { lo: 8_000, hi: 32_000 }, prestige: { lo: 80, hi: 140 }, rank: { lo: 1, hi: 20 }, netMargin: { lo: -0.05, hi: 0.4 }, weeksInTheRed: { lo: 0, hi: 200 } },
+    { year: 35, cash: { lo: -20_000_000, hi: 2_000_000_000 }, enrolled: { lo: 12_000, hi: 40_000 }, prestige: { lo: 100, hi: 150 }, rank: { lo: 1, hi: 8 }, netMargin: { lo: -0.05, hi: 0.2 }, weeksInTheRed: { lo: 0, hi: 400 } },
+    { year: 50, cash: { lo: -20_000_000, hi: 5_000_000_000 }, enrolled: { lo: 15_000, hi: 42_000 }, prestige: { lo: 110, hi: 150 }, rank: { lo: 1, hi: 5 }, netMargin: { lo: 0.02, hi: 0.3 }, weeksInTheRed: { lo: 0, hi: 500 } },
   ],
   'Idle (builds nothing)': [
-    { year: 5, cash: { lo: 0, hi: 50_000_000 }, enrolled: { lo: 0, hi: 600 }, prestige: { lo: 5, hi: 40 }, rank: { lo: 60, hi: 100 }, netMargin: { lo: -1, hi: 3 }, weeksInTheRed: { lo: 0, hi: 100 } },
-    { year: 10, cash: { lo: 0, hi: 50_000_000 }, enrolled: { lo: 0, hi: 300 }, prestige: { lo: 5, hi: 35 }, rank: { lo: 60, hi: 100 }, netMargin: { lo: -1, hi: 3 }, weeksInTheRed: { lo: 0, hi: 200 } },
-    { year: 20, cash: { lo: 0, hi: 50_000_000 }, enrolled: { lo: 0, hi: 300 }, prestige: { lo: 5, hi: 35 }, rank: { lo: 60, hi: 100 }, netMargin: { lo: -1, hi: 3 }, weeksInTheRed: { lo: 0, hi: 500 } },
-    { year: 35, cash: { lo: 0, hi: 50_000_000 }, enrolled: { lo: 0, hi: 300 }, prestige: { lo: 5, hi: 35 }, rank: { lo: 60, hi: 100 }, netMargin: { lo: -1, hi: 3 }, weeksInTheRed: { lo: 0, hi: 1_000 } },
-    { year: 50, cash: { lo: 0, hi: 50_000_000 }, enrolled: { lo: 0, hi: 300 }, prestige: { lo: 5, hi: 35 }, rank: { lo: 60, hi: 100 }, netMargin: { lo: -1, hi: 3 }, weeksInTheRed: { lo: 0, hi: 1_500 } },
+    { year: 5, cash: { lo: 0, hi: 50_000_000 }, enrolled: { lo: 0, hi: 480 }, prestige: { lo: 5, hi: 45 }, rank: { lo: 60, hi: 100 }, netMargin: { lo: -1, hi: 3 }, weeksInTheRed: { lo: 0, hi: 100 } },
+    { year: 10, cash: { lo: 0, hi: 50_000_000 }, enrolled: { lo: 0, hi: 480 }, prestige: { lo: 5, hi: 44 }, rank: { lo: 60, hi: 100 }, netMargin: { lo: -1, hi: 3 }, weeksInTheRed: { lo: 0, hi: 200 } },
+    { year: 20, cash: { lo: 0, hi: 50_000_000 }, enrolled: { lo: 0, hi: 480 }, prestige: { lo: 5, hi: 44 }, rank: { lo: 60, hi: 100 }, netMargin: { lo: -1, hi: 3 }, weeksInTheRed: { lo: 0, hi: 500 } },
+    { year: 35, cash: { lo: 0, hi: 50_000_000 }, enrolled: { lo: 0, hi: 480 }, prestige: { lo: 5, hi: 44 }, rank: { lo: 60, hi: 100 }, netMargin: { lo: -1, hi: 3 }, weeksInTheRed: { lo: 0, hi: 1_000 } },
+    { year: 50, cash: { lo: 0, hi: 50_000_000 }, enrolled: { lo: 0, hi: 480 }, prestige: { lo: 5, hi: 44 }, rank: { lo: 60, hi: 100 }, netMargin: { lo: -1, hi: 3 }, weeksInTheRed: { lo: 0, hi: 1_500 } },
   ],
   'Overbuilder (beds ahead of demand)': [
     { year: 5, cash: { lo: -6_000_000, hi: 0 }, enrolled: { lo: 300, hi: 2_000 }, prestige: { lo: 30, hi: 65 }, rank: { lo: 40, hi: 90 }, netMargin: { lo: -0.5, hi: 0.15 }, weeksInTheRed: { lo: 1, hi: 260 } },
@@ -282,74 +310,74 @@ export const TARGETS: Reference = {
 // --- GENERATED by `npm run sim -- --write-reference`. Do not hand-edit lightly. ---
 export const REFERENCE: Reference = {
   "Balanced builder": [
-    { year: 5, cash: { lo: 180424.9395, hi: 5756101.0344 }, enrolled: { lo: 908.25, hi: 1841.25 }, prestige: { lo: 30.8316, hi: 63.1189 }, rank: { lo: 41.25, hi: 78.75 }, netMargin: { lo: 0.2502, hi: 0.6087 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 10, cash: { lo: 58245.344, hi: 12816031.8815 }, enrolled: { lo: 1555.5, hi: 3343.75 }, prestige: { lo: 34.0958, hi: 67.5111 }, rank: { lo: 42, hi: 75 }, netMargin: { lo: 0.1882, hi: 0.4927 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 20, cash: { lo: 9382861.8253, hi: 40511839.8398 }, enrolled: { lo: 9642.75, hi: 23420 }, prestige: { lo: 52.3549, hi: 101.3984 }, rank: { lo: 20.25, hi: 55 }, netMargin: { lo: 0.1582, hi: 0.447 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 35, cash: { lo: 145994275.6934, hi: 344182271.7312 }, enrolled: { lo: 21900, hi: 39900 }, prestige: { lo: 107.4141, hi: 183.7894 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: 0.032, hi: 0.1827 }, weeksInTheRed: { lo: 0, hi: 22 } },
-    { year: 50, cash: { lo: 518468169.0078, hi: 1285252317.2652 }, enrolled: { lo: 24660, hi: 41300 }, prestige: { lo: 112.2665, hi: 187.3926 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: 0.0548, hi: 0.3595 }, weeksInTheRed: { lo: 0, hi: 22 } },
+    { year: 5, cash: { lo: 1220051.5145, hi: 6057157.8867 }, enrolled: { lo: 1560, hi: 3100 }, prestige: { lo: 48.1775, hi: 82.5743 }, rank: { lo: 36.75, hi: 61.25 }, netMargin: { lo: 0.177, hi: 0.3554 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 10, cash: { lo: 8114054.0484, hi: 25729474.6148 }, enrolled: { lo: 6240, hi: 15100 }, prestige: { lo: 54.0064, hi: 103.8519 }, rank: { lo: 14.25, hi: 48.75 }, netMargin: { lo: 0.0727, hi: 0.3373 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 20, cash: { lo: 41541656.5988, hi: 86554179.4687 }, enrolled: { lo: 6240, hi: 32000 }, prestige: { lo: 75.9358, hi: 166.4809 }, rank: { lo: 1, hi: 5 }, netMargin: { lo: -0.0259, hi: 0.1673 }, weeksInTheRed: { lo: 0, hi: 56.25 } },
+    { year: 35, cash: { lo: 91213824.6486, hi: 616122067.9713 }, enrolled: { lo: 15960, hi: 39400 }, prestige: { lo: 101.2511, hi: 181.5734 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: 0.0025, hi: 0.1553 }, weeksInTheRed: { lo: 0, hi: 56.25 } },
+    { year: 50, cash: { lo: 171421141.7274, hi: 1374979638.5974 }, enrolled: { lo: 15960, hi: 41100 }, prestige: { lo: 109.8748, hi: 187.2836 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: 0.0584, hi: 0.2199 }, weeksInTheRed: { lo: 0, hi: 56.25 } },
   ],
   "Curriculum rush (overreach)": [
-    { year: 5, cash: { lo: -734523.703, hi: 2291039.5804 }, enrolled: { lo: 904.5, hi: 1693.75 }, prestige: { lo: 34.1594, hi: 59.9461 }, rank: { lo: 41.25, hi: 75 }, netMargin: { lo: 0.3079, hi: 0.5857 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 10, cash: { lo: -928053.2114, hi: 1285803.6126 }, enrolled: { lo: 1087.5, hi: 2240 }, prestige: { lo: 36.7372, hi: 63.1534 }, rank: { lo: 42, hi: 73.75 }, netMargin: { lo: 0.0803, hi: 0.2746 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 20, cash: { lo: 1177077.5072, hi: 7157810.3565 }, enrolled: { lo: 2129.25, hi: 4207.5 }, prestige: { lo: 42.0633, hi: 72.9843 }, rank: { lo: 39.75, hi: 70 }, netMargin: { lo: 0.1481, hi: 0.3378 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 35, cash: { lo: 35287.0744, hi: 179633268.4496 }, enrolled: { lo: 15302.25, hi: 40600 }, prestige: { lo: 60.6169, hi: 137.7557 }, rank: { lo: 2, hi: 37.5 }, netMargin: { lo: -0.0172, hi: 0.4112 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 50, cash: { lo: 69269130.7172, hi: 1409593758.4254 }, enrolled: { lo: 24960, hi: 41700 }, prestige: { lo: 110.1986, hi: 185.975 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: 0.0071, hi: 0.1522 }, weeksInTheRed: { lo: 0, hi: 44 } },
+    { year: 5, cash: { lo: -381186.8231, hi: 2622130.895 }, enrolled: { lo: 548.25, hi: 975 }, prestige: { lo: 28.7256, hi: 51.0709 }, rank: { lo: 47.25, hi: 82.5 }, netMargin: { lo: -0.1369, hi: 0.0431 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 10, cash: { lo: -14449624.669, hi: -4695285.2182 }, enrolled: { lo: 510.75, hi: 886.25 }, prestige: { lo: 34.2631, hi: 58.8934 }, rank: { lo: 42.75, hi: 75 }, netMargin: { lo: -0.1092, hi: 0.0988 }, weeksInTheRed: { lo: 133.5, hi: 287.5 } },
+    { year: 20, cash: { lo: -567396.5808, hi: 4141767.3409 }, enrolled: { lo: 717.75, hi: 2320 }, prestige: { lo: 35.3971, hi: 76.3157 }, rank: { lo: 38.25, hi: 73.75 }, netMargin: { lo: -0.0395, hi: 0.2091 }, weeksInTheRed: { lo: 288.75, hi: 807.5 } },
+    { year: 35, cash: { lo: -333730.3868, hi: 98706971.5375 }, enrolled: { lo: 7824.75, hi: 40400 }, prestige: { lo: 57.8108, hi: 168.8492 }, rank: { lo: 1, hi: 48.75 }, netMargin: { lo: -0.0057, hi: 0.4345 }, weeksInTheRed: { lo: 288.75, hi: 807.5 } },
+    { year: 50, cash: { lo: 130218956.0589, hi: 3401345704.4331 }, enrolled: { lo: 24360, hi: 40700 }, prestige: { lo: 109.1579, hi: 186.9601 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: 0.0249, hi: 0.1437 }, weeksInTheRed: { lo: 288.75, hi: 807.5 } },
   ],
   "Discount volume (beds first)": [
-    { year: 5, cash: { lo: -2696991.6015, hi: 2888185.6442 }, enrolled: { lo: 360, hi: 1488.75 }, prestige: { lo: 39.5497, hi: 86.1832 }, rank: { lo: 29.25, hi: 68.75 }, netMargin: { lo: -0.2135, hi: 0.1519 }, weeksInTheRed: { lo: 0, hi: 63.75 } },
-    { year: 10, cash: { lo: -8596850.7755, hi: 7883190.0703 }, enrolled: { lo: 360, hi: 3131.25 }, prestige: { lo: 39.9495, hi: 100.1452 }, rank: { lo: 17.25, hi: 73.75 }, netMargin: { lo: -0.0544, hi: 0.4005 }, weeksInTheRed: { lo: 0, hi: 388.75 } },
-    { year: 20, cash: { lo: -8539420.2687, hi: 17326778.4432 }, enrolled: { lo: 360, hi: 7900 }, prestige: { lo: 46.9158, hi: 106.0269 }, rank: { lo: 13.5, hi: 62.5 }, netMargin: { lo: -0.0537, hi: 0.0624 }, weeksInTheRed: { lo: 0, hi: 1038.75 } },
-    { year: 35, cash: { lo: -5874987.29, hi: 5289716.8083 }, enrolled: { lo: 360, hi: 7900 }, prestige: { lo: 55.5499, hi: 106.6705 }, rank: { lo: 17.25, hi: 52.5 }, netMargin: { lo: -0.0566, hi: 0.0677 }, weeksInTheRed: { lo: 66, hi: 2013.75 } },
-    { year: 50, cash: { lo: -2753532.9817, hi: 1270334.6329 }, enrolled: { lo: 360, hi: 7900 }, prestige: { lo: 56.3889, hi: 106.7508 }, rank: { lo: 18.75, hi: 50 }, netMargin: { lo: -0.0572, hi: 0.072 }, weeksInTheRed: { lo: 66, hi: 2988.75 } },
+    { year: 5, cash: { lo: -2201818.5575, hi: 452489.2577 }, enrolled: { lo: 420, hi: 700 }, prestige: { lo: 50.5229, hi: 84.2066 }, rank: { lo: 30.75, hi: 56.25 }, netMargin: { lo: -0.1606, hi: -0.0297 }, weeksInTheRed: { lo: 9, hi: 48 } },
+    { year: 10, cash: { lo: -6584367.4119, hi: -2418168.432 }, enrolled: { lo: 420, hi: 700 }, prestige: { lo: 57.9534, hi: 96.5896 }, rank: { lo: 18.75, hi: 37.5 }, netMargin: { lo: -0.0456, hi: 0.0579 }, weeksInTheRed: { lo: 209.25, hi: 372.5 } },
+    { year: 20, cash: { lo: -5639480.5258, hi: 315749.0153 }, enrolled: { lo: 420, hi: 700 }, prestige: { lo: 61.2145, hi: 102.0241 }, rank: { lo: 17.25, hi: 31.25 }, netMargin: { lo: -0.042, hi: 0.0821 }, weeksInTheRed: { lo: 599.25, hi: 1022.5 } },
+    { year: 35, cash: { lo: -2753318.358, hi: 3276446.2568 }, enrolled: { lo: 420, hi: 700 }, prestige: { lo: 61.5754, hi: 102.7942 }, rank: { lo: 21.75, hi: 36.25 }, netMargin: { lo: -0.0628, hi: 0.0974 }, weeksInTheRed: { lo: 833.25, hi: 1982.5 } },
+    { year: 50, cash: { lo: 353828.7645, hi: 3453457.113 }, enrolled: { lo: 420, hi: 700 }, prestige: { lo: 61.639, hi: 103.0555 }, rank: { lo: 19.5, hi: 42.5 }, netMargin: { lo: -0.0815, hi: 0.0361 }, weeksInTheRed: { lo: 906.75, hi: 2498.75 } },
   ],
   "Completionist (build everything)": [
-    { year: 5, cash: { lo: 180424.9395, hi: 5756101.0344 }, enrolled: { lo: 908.25, hi: 1841.25 }, prestige: { lo: 30.8316, hi: 63.1189 }, rank: { lo: 41.25, hi: 78.75 }, netMargin: { lo: 0.2502, hi: 0.6087 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 10, cash: { lo: 368626.666, hi: 14012789.8805 }, enrolled: { lo: 1635.75, hi: 3253.75 }, prestige: { lo: 34.0958, hi: 72.3159 }, rank: { lo: 39.75, hi: 75 }, netMargin: { lo: 0.1988, hi: 0.4927 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 20, cash: { lo: 26407956.6375, hi: 63104555.6339 }, enrolled: { lo: 9702, hi: 28000 }, prestige: { lo: 54.6756, hi: 120.9684 }, rank: { lo: 9.75, hi: 46.25 }, netMargin: { lo: 0.02, hi: 0.3666 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 35, cash: { lo: 68518830.3098, hi: 356217531.5412 }, enrolled: { lo: 13320, hi: 36000 }, prestige: { lo: 109.1632, hi: 184.4024 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: 0.0004, hi: 0.122 }, weeksInTheRed: { lo: 0, hi: 126.25 } },
-    { year: 50, cash: { lo: 147433368.2747, hi: 831565689.0564 }, enrolled: { lo: 13320, hi: 42000 }, prestige: { lo: 112.4034, hi: 187.4103 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: 0.0401, hi: 0.1629 }, weeksInTheRed: { lo: 0, hi: 126.25 } },
+    { year: 5, cash: { lo: -879960.9984, hi: 2130903.1329 }, enrolled: { lo: 420, hi: 700 }, prestige: { lo: 51.8082, hi: 88.1015 }, rank: { lo: 28.5, hi: 53.75 }, netMargin: { lo: -0.0877, hi: 0.0248 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 10, cash: { lo: -880621.2609, hi: 1451061.8015 }, enrolled: { lo: 420, hi: 700 }, prestige: { lo: 61.9952, hi: 103.8641 }, rank: { lo: 10.5, hi: 30 }, netMargin: { lo: 0.0349, hi: 0.143 }, weeksInTheRed: { lo: 142.5, hi: 295 } },
+    { year: 20, cash: { lo: -822911.4731, hi: 2478253.4863 }, enrolled: { lo: 420, hi: 700 }, prestige: { lo: 66.3889, hi: 110.8428 }, rank: { lo: 8, hi: 21.25 }, netMargin: { lo: -0.0524, hi: 0.085 }, weeksInTheRed: { lo: 179.25, hi: 423.75 } },
+    { year: 35, cash: { lo: -1031321.607, hi: 2651169.7039 }, enrolled: { lo: 420, hi: 700 }, prestige: { lo: 66.8362, hi: 111.8108 }, rank: { lo: 11.25, hi: 32.5 }, netMargin: { lo: -0.0354, hi: 0.1222 }, weeksInTheRed: { lo: 249, hi: 458.75 } },
+    { year: 50, cash: { lo: -196737.8312, hi: 2882295.2723 }, enrolled: { lo: 420, hi: 700 }, prestige: { lo: 67.0581, hi: 112.0805 }, rank: { lo: 12, hi: 35 }, netMargin: { lo: -0.0722, hi: 0.127 }, weeksInTheRed: { lo: 296.25, hi: 611.25 } },
   ],
   "Overbuilder (beds ahead of demand)": [
-    { year: 5, cash: { lo: -2394424.3629, hi: 751323.4642 }, enrolled: { lo: 420, hi: 900 }, prestige: { lo: 37.8259, hi: 66.6353 }, rank: { lo: 40.5, hi: 71.25 }, netMargin: { lo: -0.1062, hi: 0.0333 }, weeksInTheRed: { lo: 12, hi: 128.75 } },
-    { year: 10, cash: { lo: -3151635.2545, hi: 1499474.5994 }, enrolled: { lo: 420, hi: 900 }, prestige: { lo: 38.0362, hi: 69.2564 }, rank: { lo: 39.75, hi: 73.75 }, netMargin: { lo: -0.1373, hi: 0.0314 }, weeksInTheRed: { lo: 96.75, hi: 453.75 } },
-    { year: 20, cash: { lo: -4201367.6207, hi: 1079175.4703 }, enrolled: { lo: 420, hi: 900 }, prestige: { lo: 38.4073, hi: 70.9916 }, rank: { lo: 40.5, hi: 73.75 }, netMargin: { lo: -0.0757, hi: 0.0618 }, weeksInTheRed: { lo: 373.5, hi: 1103.75 } },
-    { year: 35, cash: { lo: -6540592.6017, hi: 1144685.9033 }, enrolled: { lo: 420, hi: 1100 }, prestige: { lo: 36.6112, hi: 71.2842 }, rank: { lo: 41.25, hi: 78.75 }, netMargin: { lo: -0.0679, hi: 0.1109 }, weeksInTheRed: { lo: 767.25, hi: 2078.75 } },
-    { year: 50, cash: { lo: -8540761.4699, hi: 948715.2221 }, enrolled: { lo: 420, hi: 1100 }, prestige: { lo: 34.5256, hi: 71.3516 }, rank: { lo: 41.25, hi: 85 }, netMargin: { lo: -0.0619, hi: 0.1285 }, weeksInTheRed: { lo: 1059, hi: 3053.75 } },
+    { year: 5, cash: { lo: -1104314.8441, hi: 2163027.351 }, enrolled: { lo: 478.5, hi: 1228.75 }, prestige: { lo: 29.7344, hi: 53.1201 }, rank: { lo: 43.5, hi: 78.75 }, netMargin: { lo: -0.2003, hi: 0.0372 }, weeksInTheRed: { lo: 0, hi: 110 } },
+    { year: 10, cash: { lo: -6583274.3026, hi: 1230166.8181 }, enrolled: { lo: 579.75, hi: 1228.75 }, prestige: { lo: 29.8976, hi: 52.384 }, rank: { lo: 48.75, hi: 85 }, netMargin: { lo: -0.1959, hi: 0.1097 }, weeksInTheRed: { lo: 109.5, hi: 295 } },
+    { year: 20, cash: { lo: -18343632.1212, hi: 1874775.7563 }, enrolled: { lo: 633.75, hi: 1232.5 }, prestige: { lo: 30.5278, hi: 53.0348 }, rank: { lo: 51, hi: 88.75 }, netMargin: { lo: -0.1377, hi: 0.0037 }, weeksInTheRed: { lo: 333.75, hi: 945 } },
+    { year: 35, cash: { lo: -31820302.801, hi: 1678936.9372 }, enrolled: { lo: 636, hi: 1263.75 }, prestige: { lo: 30.5684, hi: 53.4454 }, rank: { lo: 51, hi: 88.75 }, netMargin: { lo: -0.1307, hi: 0.0553 }, weeksInTheRed: { lo: 452.25, hi: 1920 } },
+    { year: 50, cash: { lo: -44486155.0132, hi: 2066715.9 }, enrolled: { lo: 639, hi: 1256.25 }, prestige: { lo: 30.0439, hi: 53.2182 }, rank: { lo: 51, hi: 92.5 }, netMargin: { lo: -0.1225, hi: 0.0477 }, weeksInTheRed: { lo: 452.25, hi: 2895 } },
   ],
   "Earnest completionist": [
-    { year: 5, cash: { lo: 502209.4296, hi: 5001357.0851 }, enrolled: { lo: 1380, hi: 4003.75 }, prestige: { lo: 42.692, hi: 73.837 }, rank: { lo: 40.5, hi: 68.75 }, netMargin: { lo: 0.3303, hi: 0.6908 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 10, cash: { lo: 10391444.4619, hi: 19524089.9776 }, enrolled: { lo: 11340, hi: 24462.5 }, prestige: { lo: 52.7406, hi: 94.1639 }, rank: { lo: 26.25, hi: 53.75 }, netMargin: { lo: 0.2675, hi: 0.5597 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 20, cash: { lo: 36817239.3263, hi: 346432123.0808 }, enrolled: { lo: 22560, hi: 39400 }, prestige: { lo: 104.9457, hi: 177.4116 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: 0.0013, hi: 0.1219 }, weeksInTheRed: { lo: 0, hi: 177.5 } },
-    { year: 35, cash: { lo: 814494207.3713, hi: 2781704679.1513 }, enrolled: { lo: 24780, hi: 42100 }, prestige: { lo: 112.2813, hi: 187.2079 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: 0.1213, hi: 0.3215 }, weeksInTheRed: { lo: 0, hi: 177.5 } },
-    { year: 50, cash: { lo: 1044231231.4277, hi: 3642438742.1274 }, enrolled: { lo: 24780, hi: 42100 }, prestige: { lo: 112.4937, hi: 187.4915 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: 0.5211, hi: 1.2698 }, weeksInTheRed: { lo: 0, hi: 177.5 } },
+    { year: 5, cash: { lo: 955953.8807, hi: 3089932.7443 }, enrolled: { lo: 1620, hi: 3900 }, prestige: { lo: 48.2025, hi: 83.2328 }, rank: { lo: 34.5, hi: 62.5 }, netMargin: { lo: 0.2158, hi: 0.5133 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 10, cash: { lo: 11294966.9483, hi: 26716440.3231 }, enrolled: { lo: 11460, hi: 25100 }, prestige: { lo: 60.1391, hi: 105.8464 }, rank: { lo: 12.75, hi: 30 }, netMargin: { lo: 0.0997, hi: 0.3136 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 20, cash: { lo: 23446504.0031, hi: 252050390.9737 }, enrolled: { lo: 15000, hi: 37200 }, prestige: { lo: 105.95, hi: 178.7045 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: -0.0188, hi: 0.0941 }, weeksInTheRed: { lo: 0, hi: 82.5 } },
+    { year: 35, cash: { lo: 159515803.0753, hi: 2150641600.3501 }, enrolled: { lo: 15000, hi: 41100 }, prestige: { lo: 112.3104, hi: 187.2454 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: 0.017, hi: 0.3681 }, weeksInTheRed: { lo: 0, hi: 82.5 } },
+    { year: 50, cash: { lo: 302186715.1219, hi: 3308827920.0022 }, enrolled: { lo: 24420, hi: 41100 }, prestige: { lo: 112.4945, hi: 187.4926 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: 0.1105, hi: 1.3406 }, weeksInTheRed: { lo: 0, hi: 82.5 } },
   ],
   "Scatterer (founds anything anywhere)": [
-    { year: 5, cash: { lo: -294.8329, hi: 2497088.6805 }, enrolled: { lo: 957.75, hi: 1693.75 }, prestige: { lo: 31.5267, hi: 54.8549 }, rank: { lo: 42.75, hi: 78.75 }, netMargin: { lo: 0.2521, hi: 0.543 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 10, cash: { lo: 763215.5944, hi: 5600914.4717 }, enrolled: { lo: 1169.25, hi: 3068.75 }, prestige: { lo: 34.9719, hi: 65.6052 }, rank: { lo: 42, hi: 77.5 }, netMargin: { lo: 0.096, hi: 0.3354 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 20, cash: { lo: 5313653.3447, hi: 59039153.6579 }, enrolled: { lo: 2761.5, hi: 23342.5 }, prestige: { lo: 42.7487, hi: 92.4179 }, rank: { lo: 24, hi: 71.25 }, netMargin: { lo: 0.1116, hi: 0.4706 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 35, cash: { lo: 81127160.9559, hi: 301741080.1727 }, enrolled: { lo: 20820, hi: 34900 }, prestige: { lo: 59.951, hi: 116.9306 }, rank: { lo: 10.5, hi: 42.5 }, netMargin: { lo: 0.1451, hi: 0.2741 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 50, cash: { lo: 197393479.7868, hi: 1488828679.6197 }, enrolled: { lo: 20940, hi: 34900 }, prestige: { lo: 68.4315, hi: 120.5273 }, rank: { lo: 11.25, hi: 26.25 }, netMargin: { lo: 0.254, hi: 0.479 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 5, cash: { lo: 2763863.3758, hi: 7549234.5104 }, enrolled: { lo: 1620, hi: 3700 }, prestige: { lo: 46.3317, hi: 79.0642 }, rank: { lo: 36.75, hi: 65 }, netMargin: { lo: 0.2279, hi: 0.4066 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 10, cash: { lo: 7476293.9645, hi: 21963559.294 }, enrolled: { lo: 8848.5, hi: 16172.5 }, prestige: { lo: 55.8538, hi: 96.8222 }, rank: { lo: 22.5, hi: 43.75 }, netMargin: { lo: 0.1463, hi: 0.3046 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 20, cash: { lo: 18895947.9737, hi: 196746663.8594 }, enrolled: { lo: 19740, hi: 33000 }, prestige: { lo: 80.6738, hi: 135.4852 }, rank: { lo: 1, hi: 6 }, netMargin: { lo: 0.0034, hi: 0.1303 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 35, cash: { lo: 153547558.0582, hi: 388518901.3789 }, enrolled: { lo: 19800, hi: 35100 }, prestige: { lo: 85.4583, hi: 145.6209 }, rank: { lo: 1, hi: 6 }, netMargin: { lo: 0.0088, hi: 0.1945 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 50, cash: { lo: 92983822.8426, hi: 1024683506.2401 }, enrolled: { lo: 19800, hi: 35100 }, prestige: { lo: 86.1094, hi: 149.3841 }, rank: { lo: 1, hi: 6 }, netMargin: { lo: 0.082, hi: 0.3482 }, weeksInTheRed: { lo: 0, hi: 10 } },
   ],
   "Selective college": [
-    { year: 5, cash: { lo: -92961.2369, hi: 2466928.8467 }, enrolled: { lo: 661.5, hi: 1136.25 }, prestige: { lo: 44.9874, hi: 77.0822 }, rank: { lo: 36.75, hi: 67.5 }, netMargin: { lo: 0.411, hi: 0.7144 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 10, cash: { lo: 2372230.6177, hi: 7320598.7268 }, enrolled: { lo: 1713.75, hi: 3548.75 }, prestige: { lo: 52.0436, hi: 97.4879 }, rank: { lo: 16.5, hi: 52.5 }, netMargin: { lo: 0.1763, hi: 0.4547 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 20, cash: { lo: 7554796.2091, hi: 30645013.096 }, enrolled: { lo: 3318.75, hi: 6237.5 }, prestige: { lo: 98.2858, hi: 172.3009 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: -0.0763, hi: 0.0677 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 35, cash: { lo: 24983530.671, hi: 79580695.4532 }, enrolled: { lo: 3011.25, hi: 5032.5 }, prestige: { lo: 111.3387, hi: 187.06 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: 0.0286, hi: 0.2096 }, weeksInTheRed: { lo: 0, hi: 377.5 } },
-    { year: 50, cash: { lo: 89391688.6891, hi: 368660519.1018 }, enrolled: { lo: 3003.75, hi: 5015 }, prestige: { lo: 112.4583, hi: 187.4873 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: 0.1492, hi: 0.4078 }, weeksInTheRed: { lo: 0, hi: 377.5 } },
+    { year: 5, cash: { lo: 307871.7536, hi: 3295149.6477 }, enrolled: { lo: 921, hi: 1547.5 }, prestige: { lo: 51.1964, hi: 85.9323 }, rank: { lo: 32.25, hi: 57.5 }, netMargin: { lo: 0.5164, hi: 0.9077 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 10, cash: { lo: 4779686.4878, hi: 10607910.4306 }, enrolled: { lo: 3093, hi: 5660 }, prestige: { lo: 61.0402, hi: 109.5826 }, rank: { lo: 12, hi: 28.75 }, netMargin: { lo: 0.3025, hi: 0.5408 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 20, cash: { lo: 37870988.1304, hi: 97675890.7728 }, enrolled: { lo: 3084, hi: 5306.25 }, prestige: { lo: 104.9624, hi: 178.749 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: -0.0349, hi: 0.0959 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 35, cash: { lo: 194011302.4381, hi: 380103474.7837 }, enrolled: { lo: 2997, hi: 5008.75 }, prestige: { lo: 112.2818, hi: 187.2467 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: 0.0866, hi: 0.2701 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 50, cash: { lo: 77596099.2465, hi: 916156765.3366 }, enrolled: { lo: 2997.75, hi: 5007.5 }, prestige: { lo: 112.4937, hi: 187.4927 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: 0.4656, hi: 0.8409 }, weeksInTheRed: { lo: 0, hi: 10 } },
   ],
   "Regional engine": [
-    { year: 5, cash: { lo: 717984.9612, hi: 4715191.2734 }, enrolled: { lo: 1484.25, hi: 2718.75 }, prestige: { lo: 34.2129, hi: 60.0756 }, rank: { lo: 42, hi: 75 }, netMargin: { lo: 0.4742, hi: 0.9058 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 10, cash: { lo: 5600518.3934, hi: 21141293.1562 }, enrolled: { lo: 4200, hi: 9900 }, prestige: { lo: 42.0779, hi: 76.4445 }, rank: { lo: 37.5, hi: 68.75 }, netMargin: { lo: 0.2678, hi: 0.5291 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 20, cash: { lo: -35069483.6269, hi: 53806593.7932 }, enrolled: { lo: 20400, hi: 38700 }, prestige: { lo: 93.5228, hi: 167.299 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: -0.0431, hi: 0.133 }, weeksInTheRed: { lo: 0, hi: 202.5 } },
-    { year: 35, cash: { lo: 72127450.5349, hi: 149055253.7328 }, enrolled: { lo: 22920, hi: 39400 }, prestige: { lo: 107.306, hi: 186.915 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: -0.0391, hi: 0.1074 }, weeksInTheRed: { lo: 0, hi: 202.5 } },
-    { year: 50, cash: { lo: 100708443.3234, hi: 436572765.569 }, enrolled: { lo: 22920, hi: 40000 }, prestige: { lo: 112.3484, hi: 187.4831 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: -0.0444, hi: 0.1032 }, weeksInTheRed: { lo: 0, hi: 202.5 } },
+    { year: 5, cash: { lo: 982337.2008, hi: 7452303.2127 }, enrolled: { lo: 1440, hi: 3500 }, prestige: { lo: 46.7779, hi: 80.5585 }, rank: { lo: 36, hi: 63.75 }, netMargin: { lo: 0.2187, hi: 0.5052 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 10, cash: { lo: 8311819.0869, hi: 29978285.731 }, enrolled: { lo: 7680, hi: 23300 }, prestige: { lo: 54.6051, hi: 113.8029 }, rank: { lo: 8, hi: 46.25 }, netMargin: { lo: 0.0153, hi: 0.3585 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 20, cash: { lo: 9671471.6826, hi: 96618471.6013 }, enrolled: { lo: 17280, hi: 37500 }, prestige: { lo: 100.3743, hi: 174.5479 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: -0.0308, hi: 0.1367 }, weeksInTheRed: { lo: 0, hi: 240 } },
+    { year: 35, cash: { lo: 139741475.5861, hi: 286870768.7335 }, enrolled: { lo: 17280, hi: 39000 }, prestige: { lo: 106.6847, hi: 187.125 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: -0.0321, hi: 0.0848 }, weeksInTheRed: { lo: 86.25, hi: 240 } },
+    { year: 50, cash: { lo: 5078465.0073, hi: 634734468.4118 }, enrolled: { lo: 17280, hi: 39000 }, prestige: { lo: 107.3105, hi: 187.4891 }, rank: { lo: 1, hi: 4 }, netMargin: { lo: -0.0413, hi: 0.1228 }, weeksInTheRed: { lo: 90, hi: 302.5 } },
   ],
   "Idle (builds nothing)": [
-    { year: 5, cash: { lo: 11602386.7347, hi: 19539570.9579 }, enrolled: { lo: 98, hi: 298 }, prestige: { lo: 13.806, hi: 23.0205 }, rank: { lo: 68.25, hi: 116.25 }, netMargin: { lo: 0.5444, hi: 0.9274 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 10, cash: { lo: 12468229.6168, hi: 20925237.858 }, enrolled: { lo: 0, hi: 157 }, prestige: { lo: 10.3183, hi: 17.3336 }, rank: { lo: 71.25, hi: 118.75 }, netMargin: { lo: -0.2406, hi: -0.1173 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 20, cash: { lo: 11008194.5976, hi: 18597038.3322 }, enrolled: { lo: 0, hi: 150 }, prestige: { lo: 10.5602, hi: 17.8181 }, rank: { lo: 68.25, hi: 120 }, netMargin: { lo: -0.2317, hi: -0.1048 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 35, cash: { lo: 10123737.9077, hi: 17173479.2842 }, enrolled: { lo: 0, hi: 156 }, prestige: { lo: 11.3254, hi: 18.8992 }, rank: { lo: 69.75, hi: 120 }, netMargin: { lo: -0.0181, hi: 0.0871 }, weeksInTheRed: { lo: 0, hi: 10 } },
-    { year: 50, cash: { lo: 11384889.5634, hi: 19373866.7419 }, enrolled: { lo: 0, hi: 163 }, prestige: { lo: 11.9818, hi: 20.1109 }, rank: { lo: 71.25, hi: 118.75 }, netMargin: { lo: 0.1883, hi: 0.3576 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 5, cash: { lo: 4466425.3137, hi: 7787819.4063 }, enrolled: { lo: 309, hi: 518.75 }, prestige: { lo: 30.5246, hi: 50.8885 }, rank: { lo: 45, hi: 78.75 }, netMargin: { lo: 0.1132, hi: 0.2227 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 10, cash: { lo: 5912353.174, hi: 10051767.189 }, enrolled: { lo: 339, hi: 565 }, prestige: { lo: 30.6277, hi: 51.0885 }, rank: { lo: 47.25, hi: 82.5 }, netMargin: { lo: 0.0304, hi: 0.1391 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 20, cash: { lo: 8891530.9742, hi: 15216319.16 }, enrolled: { lo: 337.5, hi: 563.75 }, prestige: { lo: 31.0902, hi: 51.8673 }, rank: { lo: 47.25, hi: 85 }, netMargin: { lo: 0.0535, hi: 0.1634 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 35, cash: { lo: 15140750.2975, hi: 25512453.7749 }, enrolled: { lo: 339, hi: 565 }, prestige: { lo: 31.3108, hi: 52.2003 }, rank: { lo: 54, hi: 92.5 }, netMargin: { lo: 0.1063, hi: 0.2085 }, weeksInTheRed: { lo: 0, hi: 10 } },
+    { year: 50, cash: { lo: 23666448.143, hi: 40128157.421 }, enrolled: { lo: 339.75, hi: 566.25 }, prestige: { lo: 31.5116, hi: 52.5827 }, rank: { lo: 52.5, hi: 90 }, netMargin: { lo: 0.1598, hi: 0.2788 }, weeksInTheRed: { lo: 0, hi: 10 } },
   ],
 };
 // --- END GENERATED ---
