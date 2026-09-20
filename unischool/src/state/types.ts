@@ -750,9 +750,10 @@ export interface EventState {
   // rest of this slice.
   //
   // `stage` is THE OPENING WALKTHROUGH (see state/opening.ts):
-  // the forced first three clicks of a guided founding, which hold the
-  // clock until they are done. State rather than shell memory, so a refresh
-  // mid-walk resumes on the same step. A headless founding opens at 'play'.
+  // the forced first clicks of a guided founding — site the hall, see what
+  // it teaches, found a fourth program — which hold the clock until they
+  // are done. State rather than shell memory, so a refresh mid-walk
+  // resumes on the same step. A headless founding opens at 'play'.
   opening: { read: string[]; skipped: boolean; stage: OpeningStage };
   // THE TRUSTEES' RESPONSE (Plan 17's PR D — see data/eventData.ts's
   // 'rival-passed'). The ids of every rival whose passing the player has
@@ -763,7 +764,7 @@ export interface EventState {
 }
 
 // See state/opening.ts, which owns the order and the meaning.
-export type OpeningStage = 'welcome' | 'site-hall' | 'classes' | 'first-course' | 'play';
+export type OpeningStage = 'welcome' | 'site-hall' | 'teaching' | 'found' | 'play';
 
 // The player's admissions policy is set once a year via the summer
 // interrupt (see docs/design/admissions.md). NOTE: there is no

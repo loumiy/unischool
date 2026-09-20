@@ -258,7 +258,7 @@ export function reducer(state: GameState, action: Action): GameState {
 
     // The opening walkthrough's two Next buttons and its decline (see
     // state/opening.ts). The steps that end on something DONE
-    // (the hall sited, a course started) are settled by settleOpening from
+    // (the hall sited, a program founded) are settled by settleOpening from
     // the action that did it, never from here.
     case 'ADVANCE_OPENING': {
       advanceOpening(s);
@@ -291,7 +291,6 @@ export function reducer(state: GameState, action: Action): GameState {
       const node = s.tech.find((t) => t.id === action.nodeId);
       if (node && !isPlaceableKind(node) && canStartDevelopment(s, node, action.facultyId)) {
         startDevelopment(s, node, action.facultyId);
-        settleOpening(s); // the walkthrough's last step ends on the first course started
       }
       return s;
     }
@@ -303,6 +302,7 @@ export function reducer(state: GameState, action: Action): GameState {
       // able to say whether a founding will go through before offering
       // the button, and one predicate serves both.
       foundProgram(s, { programId: action.programId, hallId: action.hallId, slot: action.slot, facultyId: action.facultyId });
+      settleOpening(s); // the walkthrough's last step ends on a fourth program founded
       return s;
     }
 

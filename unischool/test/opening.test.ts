@@ -14,11 +14,13 @@
 // AND THE WALKTHROUGH (state/opening.ts): a guided founding
 // opens with the clock held and Founders Hall unsited; the hall sites for
 // nothing and its standing moves the walk on; Next moves the two click
-// steps on; the first course started frees the clock; the first letter is
-// counted read so its ask is the next-step line the moment the walk ends
-// and the letters carry on from the second; declining places the hall and
-// stands the letters down; and a headless founding is untouched by all of
-// it. The hold survives a save, and so does the core's hall entry.
+// steps on; the fourth program founded frees the clock (Plan 19 — the
+// college opens teaching three); the first letter is counted read so its
+// ask is the next-step line the moment the walk ends and the letters carry
+// on from the second (its ask, the fourth program, is what the walk just
+// did); declining places the hall and stands the letters
+// down; and a headless founding is untouched by all of it. The hold
+// survives a save, and so do the founding programs' slots.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
@@ -193,7 +195,7 @@ console.log('opening script tests');
   s = reducer(s, { type: 'TICK' });
   assert(s.clock.week === week && s.pendingInterrupt === null, 'TICK is a no-op while the walk holds the clock — no letter, no week');
 
-  // The founding save carries the hold, and the core's hall entry.
+  // The founding save carries the hold, and the founding programs' slots.
   assert(saveGame(s), 'a mid-walk save is written');
   const resumed = loadGame();
   assert(resumed?.events.opening.stage === 'welcome', 'and resumes on the same step');
@@ -212,16 +214,21 @@ console.log('opening script tests');
   s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: FOUNDERS_HALL_ID, row: spot.row, col: spot.col, rotated: false });
   assert(FOUNDERS_HALL_ID in s.placements, 'the hall is sited');
   assert(s.finance.cash === cash, 'and nothing was charged for it');
-  assert(s.events.opening.stage === 'classes', 'the hall standing moves the walk on');
+  assert(s.events.opening.stage === 'teaching', 'the hall standing moves the walk on');
   assert(openingHoldsClock(s), 'the clock is still held');
 
-  // Next -> the first course. Starting one frees the clock.
+  // Next -> found a fourth program. A course started along the way does
+  // not end the walk; a founding does.
   s = reducer(s, { type: 'ADVANCE_OPENING' });
-  assert(s.events.opening.stage === 'first-course', 'Next on "classes" opens the first course');
+  assert(s.events.opening.stage === 'found', 'Next on "teaching" asks for the fourth program');
   s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: 'ENGL120' });
-  assert(s.tech.find((t) => t.id === 'ENGL120')?.status === 'developing', 'the course starts');
+  assert(s.tech.find((t) => t.id === 'ENGL120')?.status === 'developing' && s.events.opening.stage === 'found', 'a course started is not the step');
+  const fourth = s.programOffers.find((id) => s.faculty.some((f) => f.field === programById(id)!.field))!;
+  const teacher = s.faculty.find((f) => f.field === programById(fourth)!.field)!;
+  s = reducer(s, { type: 'FOUND_PROGRAM', programId: fourth, hallId: FOUNDERS_HALL_ID, slot: FOUNDING_PROGRAMS.length, facultyId: teacher.id });
+  assert(s.halls[FOUNDERS_HALL_ID][FOUNDING_PROGRAMS.length].programId === fourth, 'the fourth program is founded into Founders Hall');
   assert(s.events.opening.stage === 'play' && !openingHoldsClock(s), 'and the walk is over');
-  assert(nextStep(s)?.text === OPENING_LETTERS[0].ask, `the first letter's ask is the next-step line the moment the walk ends (${nextStep(s)?.text})`);
+  assert(OPENING_LETTERS[0].done(s) && nextStep(s) === null, 'the walk was the first letter\'s ask, so the line is quiet until the second letter');
 
   // The letters carry on from the second, on their weeks.
   const { letters, s: after } = playYear(s);
@@ -230,7 +237,7 @@ console.log('opening script tests');
   assert(after.clock.year === 2, 'and the year turns over');
 }
 
-// --- the walkthrough: a course started early ends it too -------------------
+// --- the walkthrough: a program founded early ends it too -------------------
 {
   let s = reducer(createPreStartState(), {
     type: 'START_GAME', name: 'Early', vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), guided: true,
@@ -239,9 +246,11 @@ console.log('opening script tests');
   const hall = s.tech.find((t) => t.id === FOUNDERS_HALL_ID)!;
   const spot = centredPlacement(footprintOf(hall));
   s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: FOUNDERS_HALL_ID, row: spot.row, col: spot.col, rotated: false });
-  assert(s.events.opening.stage === 'classes', 'on "classes"');
-  s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: 'ENGL120' });
-  assert(s.events.opening.stage === 'play', 'a course started before pressing Next has done the step');
+  assert(s.events.opening.stage === 'teaching', 'on "teaching"');
+  const fourth = s.programOffers.find((id) => s.faculty.some((f) => f.field === programById(id)!.field))!;
+  const teacher = s.faculty.find((f) => f.field === programById(fourth)!.field)!;
+  s = reducer(s, { type: 'FOUND_PROGRAM', programId: fourth, hallId: FOUNDERS_HALL_ID, slot: FOUNDING_PROGRAMS.length, facultyId: teacher.id });
+  assert(s.events.opening.stage === 'play', 'a program founded before pressing Next has done the step');
 }
 
 // --- the walkthrough: "I know the way" -------------------------------------

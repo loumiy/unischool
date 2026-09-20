@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
-import { isAcademicHall, programById, type ProgramInfo } from '../data/techData';
+import { FOUNDERS_HALL_ID, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
 import { dedicatedSchool, hallDisplayName } from '../systems/techtree/schools';
 import { GradeChip, InstructorOption, MarketInField } from '../tabs/CurriculumTab';
 import { averageCourseQuality, facultyLoads } from '../systems/faculty/facultyAssignment';
@@ -354,11 +354,16 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
             );
           }
           const open = openSlot === i;
+          // The opening walkthrough's last step rings the first free room
+          // of Founders Hall until it is opened (see state/opening.ts and
+          // styles.css's .opening-target).
+          const ringed = s.events.opening.stage === 'found' && t.id === FOUNDERS_HALL_ID && openSlot === null
+            && slots.findIndex((slot) => slot.programId === null) === i;
           return (
             <button
               key={i}
               type="button"
-              className={`hall-slot empty${open ? ' open' : ''}`}
+              className={`hall-slot empty${open ? ' open' : ''}${ringed ? ' opening-target' : ''}`}
               onClick={() => { setOpenSlot(open ? null : i); setPickedProgram(null); setPickedFaculty(null); setOpenTile(null); }}
               aria-pressed={open}
               disabled={offers.length === 0}

@@ -89,7 +89,7 @@ export type Action =
   // before the walk existed.
   | { type: 'START_GAME'; name: string; vernacular: Vernacular; colors: SchoolColors; guided?: boolean }
   // The opening walkthrough's two Next buttons (welcome -> site the hall;
-  // classes -> the first course), and its one decline. Declining places
+  // teaching -> found a fourth program), and its one decline. Declining places
   // Founders Hall where a headless founding would have and stands the
   // letters down too — see state/opening.ts's skipOpening.
   | { type: 'ADVANCE_OPENING' }
@@ -783,9 +783,8 @@ export function createInitialState(
       // No letter delivered and the script not declined (see types.ts's
       // EventState.opening). A guided founding opens on the walkthrough's
       // welcome with the first letter already counted read — the welcome IS
-      // that letter's content — so its ask becomes the next-step line the
-      // moment the walk ends, and the letters proper carry on from the
-      // second (see state/opening.ts).
+      // that letter's content, and the walk does its ask — so the letters
+      // proper carry on from the second (see state/opening.ts).
       opening: guided
         ? { read: [OPENING_LETTERS[0].id], skipped: false, stage: 'welcome' }
         : { read: [], skipped: false, stage: 'play' },

@@ -10,6 +10,7 @@ import DebugPanel from './components/DebugPanel';
 import InterruptModal from './components/InterruptModal';
 import { GATED_TABS, TAB_LABELS, tabAvailable, type TabId } from './components/TabNav';
 import CampusMap from './components/CampusMap';
+import { FOUNDERS_HALL_ID } from './data/techData';
 import Toolbar from './components/Toolbar';
 import LogTicker from './components/LogTicker';
 import Toasts from './components/Toasts';
@@ -128,6 +129,10 @@ export default function App() {
   // room. The same one-way channel the overlay target is: set here,
   // consumed by the map and cleared, so the same door works twice.
   const [inspectTarget, setInspectTarget] = useState<string | null>(null);
+  // Which building's panel the map has open, reported back by the map
+  // (it owns that state — see CampusMap.tsx's inspectedId) so the opening
+  // walkthrough's card can tell whether its door is open.
+  const [inspectedId, setInspectedId] = useState<string | null>(null);
   // Which placeable Buildable (building/dorm/facility) is currently picked
   // up for siting, if any, and which path-drawing tool (if any) is active —
   // the two pieces of CampusMap's transient UI state that have to live here
@@ -292,12 +297,15 @@ export default function App() {
 
   // THE OPENING WALKTHROUGH DRIVES THE SHELL (see state/opening.ts). The
   // stage is state; what the shell does about it lives here, because this
-  // is the one place that can open the build menu, open a tab and start
-  // the clock. Each transition INTO a stage acts once:
-  // siting the hall opens the build menu, the hall standing closes it and
-  // drops whatever was picked up, the Curriculum opens for the first
-  // course, and the walk ending starts the clock — the game opens paused
-  // and the walk holds it, so 'play' is the first moment a week can turn.
+  // is the one place that can open the build menu, open a tab, open a
+  // hall's panel and start the clock. Each transition INTO a stage acts
+  // once: siting the hall opens the build menu, the hall standing closes
+  // it and drops whatever was picked up, "found a fourth program" opens
+  // the Curriculum (the Next that reached it says so — the three rows are
+  // the thing to see, and the card's own door then leads to Founders
+  // Hall's panel on the map), and the walk ending starts the clock — the
+  // game opens paused and the walk holds it, so 'play' is the first moment
+  // a week can turn.
   //
   // On MOUNT (a save resumed mid-walk) the two door-opening stages act
   // too, so the resumed player is looking at the right screen; 'play' does
@@ -312,8 +320,8 @@ export default function App() {
     if (prev === stage) return;
     actedStage.current = stage;
     if (stage === 'site-hall') setBuildOpen(true);
-    else if (stage === 'classes') { closeBuild(); setPlacingIdState(null); }
-    else if (stage === 'first-course') openTab('curriculum');
+    else if (stage === 'teaching') { closeBuild(); setPlacingIdState(null); }
+    else if (stage === 'found') openTab('curriculum');
     else if (stage === 'play' && prev !== null) setSpeed('real');
   }, [s.started, stage]);
 
@@ -368,6 +376,7 @@ export default function App() {
         onOpenCurriculum={(sectionKey) => openTab('curriculum', sectionKey)}
         inspectTarget={inspectTarget}
         onInspectTargetConsumed={() => setInspectTarget(null)}
+        onInspectedChange={setInspectedId}
       />
       <MainMenu act={act} />
       {/* The school's name, hung in the map's top-left corner in its own
@@ -451,9 +460,9 @@ export default function App() {
           s={s}
           act={act}
           buildOpen={buildOpen}
-          curriculumOpen={overlay?.tab === 'curriculum'}
+          hallOpen={overlay === null && inspectedId === FOUNDERS_HALL_ID}
           onOpenBuild={() => setBuildOpen(true)}
-          onOpenCurriculum={() => openTab('curriculum')}
+          onOpenHall={() => inspectHall(FOUNDERS_HALL_ID)}
         />
       </div>
     </>

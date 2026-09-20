@@ -798,7 +798,7 @@ const CampusScene = memo(function CampusScene({ s, inspectedId, justFinished, on
 
 export default function CampusMap({
   s, act, selectedId, onSelect, pathTool, onSetPathTool, backOutEnabled, controlsEnabled,
-  onOpenCurriculum, inspectTarget, onInspectTargetConsumed,
+  onOpenCurriculum, inspectTarget, onInspectTargetConsumed, onInspectedChange,
 }: {
   s: GameState;
   act: (a: Action) => void;
@@ -840,6 +840,10 @@ export default function CampusMap({
   // cleared through the callback, so the same door works twice.
   inspectTarget?: string | null;
   onInspectTargetConsumed?: () => void;
+  // Reports which building's panel is open, whenever that changes — the
+  // opening walkthrough's card reads it to know whether Founders Hall's
+  // panel, its last step's door, is open (see App.tsx).
+  onInspectedChange?: (id: string | null) => void;
 }) {
   // Whether the currently-selected building has been turned 90 degrees
   // before siting (see campusMap.ts's orientedFootprint). Transient UI
@@ -855,6 +859,7 @@ export default function CampusMap({
   // inspectBuilding refuses to open it while either is active (see the
   // disambiguation note there).
   const [inspectedId, setInspectedId] = useState<string | null>(null);
+  useEffect(() => { onInspectedChange?.(inspectedId); }, [inspectedId]);
   // The tile the pointer (or an in-flight drag) is over, so the footprint
   // about to land can be previewed. Multi-tile buildings need this: where a
   // 2x2 hall goes is no longer obvious from the tile you clicked.

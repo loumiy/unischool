@@ -109,12 +109,12 @@ const Toolbar = forwardRef<HTMLDivElement, {
 
   // The opening walkthrough rings the one control its current step needs
   // while that control is the thing to click (see state/opening.ts
-  // and styles.css's .opening-target): the Build button until
-  // the menu is open, the Curriculum tab until it is. Once the door is
-  // open the ring moves inside it — to the hall's tile, to the core's row.
+  // and styles.css's .opening-target): the Build button until the menu is
+  // open. Once the door is open the ring moves inside it — to the hall's
+  // tile. The last step's door is Founders Hall's panel on the map, which
+  // the coach card itself opens, so nothing here rings for it.
   const stage = s.events.opening.stage;
   const ringBuild = stage === 'site-hall' && !buildOpen;
-  const ringCurriculum = stage === 'first-course' && active !== 'curriculum';
 
   return (
     <div className="toolbar" ref={ref}>
@@ -161,7 +161,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
             <button
               key={id}
               type="button"
-              className={`toolbar-icon-btn ${isActive ? 'active' : ''} ${ringCurriculum && id === 'curriculum' ? 'opening-target' : ''}`}
+              className={`toolbar-icon-btn ${isActive ? 'active' : ''}`}
               aria-expanded={isActive}
               aria-label={TAB_LABELS[id]}
               title={TAB_LABELS[id]}
