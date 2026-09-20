@@ -1,7 +1,7 @@
 import type { CohortCounts, CohortId, GameState } from '../../state/types';
 import { weeklyResearchPoints } from '../../data/researchData';
 import { graduateCourseIds, graduatePrograms } from '../../data/techData';
-import { sportById, teamQuality } from '../../data/studentLifeData';
+import { sportById, sportEconomics, teamQuality } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
 // STUDENT COHORTS: a second, additive lens on the applicant pool
@@ -149,12 +149,14 @@ export function athleticResultsFor(s: GameState): { results: number; label: stri
   for (const title of s.orgs.titles) {
     const age = s.clock.year - title.year;
     if (age < 0 || age >= RESULT_WINDOW_YEARS) continue;
-    results += TITLE_RESULT_WEIGHT * RESULT_DECAY ** age;
+    // Weighted by the sport's scale (PR F): a football title is national
+    // news, a title in swimming is a line in the alumni magazine.
+    results += TITLE_RESULT_WEIGHT * sportEconomics(title.sport).payoffMultiplier * RESULT_DECAY ** age;
     recent.push(title);
   }
   for (const result of Object.values(s.orgs.lastSeason)) {
     if (s.clock.year - result.year > 1) continue;
-    results += FINISH_RESULT_WEIGHT[result.finish] ?? 0;
+    results += (FINISH_RESULT_WEIGHT[result.finish] ?? 0) * sportEconomics(result.sport).payoffMultiplier;
   }
   recent.sort((a, b) => b.year - a.year);
   const name = (t: { sport: string; year: number }) => `the ${t.year} title in ${sportById(t.sport)?.teamName.replace(/ Team$/, '') ?? t.sport}`;

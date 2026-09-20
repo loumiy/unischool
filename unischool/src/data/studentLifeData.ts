@@ -293,32 +293,71 @@ export const SPORT_CLUB_SHARE = 0.3;
 // below.
 export type SportGender = 'men' | 'women';
 
+// SPORTS ARE NOT EQUAL (Plan 21's PR F). Each sport has a SCALE: a cost to
+// compete, a coach-salary multiplier, and a payoff multiplier on what a
+// title is worth downstream. The venues already spread thirteen-fold in
+// cost and everything downstream flattened them; this is what lets a
+// department be a football power OR a liberal-arts school with eleven
+// banners in swimming — two coherent identities rather than one way to
+// play. Two scales, and football alone above both:
+//
+//   REVENUE sports (football, men's and women's basketball): expensive to
+//     staff, a large share of the pot (PR G) to stay competitive, and a
+//     title that moves the national needle — the gate, the applicant
+//     cohort, the donors.
+//   OLYMPIC sports (everything else): cheap to staff and house, a modest
+//     ceiling on payoff, and the breadth credit.
+//
+// `costToCompete` is annual, in dollars, and FIXED rather than a share of
+// opex: what it costs to recruit and travel a basketball program is a fact
+// about basketball, not about the size of the university that fields it,
+// and a pot that scaled with the school would fund eighteen flagships at
+// 70,000 students without a decision being made (see PR G's brakes).
+export type SportScale = 'revenue' | 'olympic';
+
+export interface SportEconomics {
+  scale: SportScale;
+  costToCompete: number;    // $/yr a program draws from the pot to be fully funded (PR G)
+  salaryMultiplier: number; // on coachSalaryFor, for a coach whose field is this sport
+  payoffMultiplier: number; // on what a title is worth: campus-life standing, the applicant cohort
+  ticketPrice: number;      // $ a seat at a home date (systems/athletics/gate.ts)
+  breadthWeight: number;    // what fielding it counts for toward athletic standing's breadth credit
+}
+
+const OLYMPIC_SPORT: SportEconomics = { scale: 'olympic', costToCompete: 250_000, salaryMultiplier: 1.0, payoffMultiplier: 0.8, ticketPrice: 10, breadthWeight: 1 };
+const REVENUE_SPORT: SportEconomics = { scale: 'revenue', costToCompete: 900_000, salaryMultiplier: 1.8, payoffMultiplier: 1.5, ticketPrice: 20, breadthWeight: 1.5 };
+// Football is a revenue sport and then some: the stadium is the game's most
+// expensive building, and the program that plays in it is the most
+// expensive to run.
+const FOOTBALL: SportEconomics = { scale: 'revenue', costToCompete: 2_400_000, salaryMultiplier: 2.5, payoffMultiplier: 2.0, ticketPrice: 25, breadthWeight: 2 };
+
 interface SportProfile {
   key: string;                 // base id; the WHOLE id for a one-gender sport
   label: string;                // bare sport name, e.g. 'Soccer', 'Swim & Dive'
   venueCategory: FacilityType;  // shared across every gender of this sport
   genders: readonly SportGender[]; // which lineages this sport fields
+  economics: SportEconomics;    // its scale (see SportEconomics above)
 }
 
 const GENDER_LABEL: Record<SportGender, string> = { men: "Men's", women: "Women's" };
 
 const SPORT_PROFILES: readonly SportProfile[] = [
-  { key: 'soccer', label: 'Soccer', venueCategory: 'athleticsField', genders: ['men', 'women'] },
-  { key: 'lacrosse', label: 'Lacrosse', venueCategory: 'athleticsField', genders: ['men', 'women'] },
-  { key: 'fieldHockey', label: 'Field Hockey', venueCategory: 'athleticsField', genders: ['women'] },
-  { key: 'basketball', label: 'Basketball', venueCategory: 'athleticsArena', genders: ['men', 'women'] },
-  { key: 'volleyball', label: 'Volleyball', venueCategory: 'athleticsArena', genders: ['men', 'women'] },
-  { key: 'baseball', label: 'Baseball', venueCategory: 'athleticsDiamond', genders: ['men'] },
-  { key: 'softball', label: 'Softball', venueCategory: 'athleticsDiamond', genders: ['women'] },
-  { key: 'swimming', label: 'Swim & Dive', venueCategory: 'athleticsNatatorium', genders: ['men', 'women'] },
-  { key: 'football', label: 'Football', venueCategory: 'footballStadium', genders: ['men'] },
+  { key: 'soccer', label: 'Soccer', venueCategory: 'athleticsField', genders: ['men', 'women'], economics: OLYMPIC_SPORT },
+  { key: 'lacrosse', label: 'Lacrosse', venueCategory: 'athleticsField', genders: ['men', 'women'], economics: OLYMPIC_SPORT },
+  { key: 'fieldHockey', label: 'Field Hockey', venueCategory: 'athleticsField', genders: ['women'], economics: OLYMPIC_SPORT },
+  { key: 'basketball', label: 'Basketball', venueCategory: 'athleticsArena', genders: ['men', 'women'], economics: REVENUE_SPORT },
+  { key: 'volleyball', label: 'Volleyball', venueCategory: 'athleticsArena', genders: ['men', 'women'], economics: OLYMPIC_SPORT },
+  { key: 'baseball', label: 'Baseball', venueCategory: 'athleticsDiamond', genders: ['men'], economics: OLYMPIC_SPORT },
+  { key: 'softball', label: 'Softball', venueCategory: 'athleticsDiamond', genders: ['women'], economics: OLYMPIC_SPORT },
+  { key: 'swimming', label: 'Swim & Dive', venueCategory: 'athleticsNatatorium', genders: ['men', 'women'], economics: OLYMPIC_SPORT },
+  { key: 'football', label: 'Football', venueCategory: 'footballStadium', genders: ['men'], economics: FOOTBALL },
   // --- added in Plan 08's PR 2A, both onto venues that already stand ---
   //
   // TRACK & FIELD runs on the multi-sport field, which already has a track
   // drawn on it: components/groundMarkings.tsx renders a regulation eight-lane
   // 400m stadium oval there, at real proportions, and has since Plan 04's 4C.
   // The sport was waiting on nothing.
-  { key: 'track', label: 'Track & Field', venueCategory: 'athleticsField', genders: ['men', 'women'] },
+  { key: 'track', label: 'Track & Field', venueCategory: 'athleticsField', genders: ['men', 'women'], economics: OLYMPIC_SPORT },
   // ICE HOCKEY shares the arena, and this is a NAMED CALL rather than an
   // obvious one. A real arena converts between hardwood and ice, which is
   // exactly the "shared among varsity teams in one category" model
@@ -331,7 +370,7 @@ const SPORT_PROFILES: readonly SportProfile[] = [
   // both genders, plus hockey in both), which is a lot of load on one
   // building. If that reads as thin, the fix is a rink, not a retreat from
   // sharing.
-  { key: 'iceHockey', label: 'Ice Hockey', venueCategory: 'athleticsArena', genders: ['men', 'women'] },
+  { key: 'iceHockey', label: 'Ice Hockey', venueCategory: 'athleticsArena', genders: ['men', 'women'], economics: OLYMPIC_SPORT },
   //
   // GOLF IS DECLINED and ROWING DEFERRED — see docs/design/student-life.md.
   // A course is a footprint larger than the campus the game draws; a lake is
@@ -375,6 +414,7 @@ export interface SportDefinition {
   clubName: string;
   teamName: string;
   venueCategory: FacilityType;
+  economics: SportEconomics;
 }
 
 // GENERATED from SPORT_PROFILES, one entry per (sport, fielded gender) —
@@ -392,12 +432,19 @@ export const SPORTS: readonly SportDefinition[] = SPORT_PROFILES.flatMap((profil
       clubName: `${name} Club`,
       teamName: `${name} Team`,
       venueCategory: profile.venueCategory,
+      economics: profile.economics,
     };
   }),
 );
 
 export function sportById(id: string | null | undefined): SportDefinition | undefined {
   return SPORTS.find((sp) => sp.id === id);
+}
+
+// A sport's scale, by id. A field that is not a sport (a trainer's, the
+// director's) reads as an Olympic sport's: the base row, no multiplier.
+export function sportEconomics(sportId: string | null | undefined): SportEconomics {
+  return sportById(sportId)?.economics ?? OLYMPIC_SPORT;
 }
 
 // The venue Buildable serving a category — always exactly one, whatever its
@@ -524,11 +571,15 @@ const COACH_SALARY_BASE = 35_000;
 const COACH_SALARY_PER_QUALITY_POINT = 900; // applied to CURRENT (grown) quality
 const COACH_SALARY_TENURE_PREMIUM_MAX = 0.5; // up to +50% over the base, at full tenure
 
-export function coachSalaryFor(quality: number, tenureWeeks: number): number {
+// `field` is the coach's own (a SPORTS id, TRAINER_FIELD or AD_FIELD) and
+// scales the figure by the sport's salaryMultiplier (Plan 21's PR F): a
+// football coach is paid like a football coach. A trainer or a director
+// carries no sport and reads the base row.
+export function coachSalaryFor(quality: number, tenureWeeks: number, field?: string): number {
   const skillBase = COACH_SALARY_BASE + quality * COACH_SALARY_PER_QUALITY_POINT;
   const tenureYears = tenureWeeks / WEEKS_PER_YEAR;
   const tenurePremium = Math.min(1, tenureYears / COACH_GROWTH_PLATEAU_YEARS);
-  return Math.round(skillBase * (1 + COACH_SALARY_TENURE_PREMIUM_MAX * tenurePremium));
+  return Math.round(skillBase * (1 + COACH_SALARY_TENURE_PREMIUM_MAX * tenurePremium) * sportEconomics(field).salaryMultiplier);
 }
 
 // Every name the department is already using — each coach in a chair,
@@ -567,7 +618,7 @@ export function generateCoachCandidate(field: string, existingNames: ReadonlySet
     qualityPotential,
     tenureWeeks: 0,
     weeksListed: 0,
-    salary: coachSalaryFor(quality, 0),
+    salary: coachSalaryFor(quality, 0, field),
   };
 }
 
@@ -782,13 +833,25 @@ export function teamQuality(team: VarsityTeam, s: GameState): number {
 // team (the same "breadth matters" shape curriculum breadth's own score
 // uses), capped so fielding a handful of teams doesn't need all eighteen
 // SPORTS entries to be taken seriously.
-const ATHLETIC_BREADTH_FOR_FULL_CREDIT = 6;
+//
+// BREADTH IS WEIGHTED BY SCALE since Plan 21's PR F (each sport's
+// breadthWeight): a football program counts double a swim team toward the
+// credit, and the credit is full at eight — a football school with two
+// basketball programs and a few Olympic sports, or a liberal-arts school
+// with eight Olympic ones. Before this every sport past the sixth
+// contributed nothing, which made any sport added decorative.
+const ATHLETIC_BREADTH_FOR_FULL_CREDIT = 8;
+
+export function athleticBreadth(s: GameState): number {
+  const active = s.orgs.teams.filter((t) => t.status === 'active');
+  return active.reduce((sum, t) => sum + sportEconomics(t.sport).breadthWeight, 0);
+}
 
 export function athleticProgramStrength(s: GameState): number {
   const active = s.orgs.teams.filter((t) => t.status === 'active');
   if (active.length === 0) return 0;
   const avgQuality = active.reduce((sum, t) => sum + teamQuality(t, s), 0) / active.length;
-  const breadth = Math.min(1, active.length / ATHLETIC_BREADTH_FOR_FULL_CREDIT);
+  const breadth = Math.min(1, athleticBreadth(s) / ATHLETIC_BREADTH_FOR_FULL_CREDIT);
   return Math.round(avgQuality * (0.7 + 0.3 * breadth));
 }
 

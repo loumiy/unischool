@@ -4,7 +4,7 @@ import { graduatePrograms, milestoneSchools } from '../../data/techData';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
 import { teachingQualityScore } from '../../data/courseQuality';
 import { INITIATIVE_COMPLETION_CREDIT, labEquippedFields, researchableFields } from '../../data/researchData';
-import { athleticProgramStrength, studentLifeSocialBonus, STUDENT_LIFE_SOCIAL_BONUS_CAP } from '../../data/studentLifeData';
+import { athleticProgramStrength, sportEconomics, studentLifeSocialBonus, STUDENT_LIFE_SOCIAL_BONUS_CAP } from '../../data/studentLifeData';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../../data/facilitiesData';
 import { attributeCoverage } from '../satisfaction/satisfactionSystem';
 import { trailingYearSatisfaction } from '../admissions/admissionsSystem';
@@ -972,8 +972,13 @@ const SOCIAL_TITLES_WEIGHT = 20;        // championships won (see systems/athlet
 // anybody to build at all.
 const TITLES_FOR_FULL_SCORE = 12;
 
+// Each title weighs what its sport's scale says a title is worth (Plan 21's
+// PR F): a football championship moves the national needle, a swimming
+// one less, so a dozen banners in Olympic sports is most of a dynasty and
+// six in football is one.
 function titlesScore(s: GameState): number {
-  return clamp01(s.orgs.titles.length / TITLES_FOR_FULL_SCORE);
+  const weighted = s.orgs.titles.reduce((sum, t) => sum + sportEconomics(t.sport).payoffMultiplier, 0);
+  return clamp01(weighted / TITLES_FOR_FULL_SCORE);
 }
 
 // ATHLETICS FINALLY TOUCHES A STANDING, and it is worth being precise about

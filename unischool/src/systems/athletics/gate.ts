@@ -1,7 +1,7 @@
 import type { GameState, VarsityTeam } from '../../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
 import { VENUE_SEATS } from '../../data/facilitiesData';
-import { teamQuality } from '../../data/studentLifeData';
+import { sportEconomics, teamQuality } from '../../data/studentLifeData';
 
 // ---------------------------------------------------------------------
 // THE GATE (Plan 21's PR D): the game's first non-tuition, non-endowment
@@ -45,9 +45,6 @@ const CROWD_PER_ENROLLED = 1.6;
 const FILL_FLOOR = 0.15;
 const FILL_PER_QUALITY = 0.55;
 
-// One ticket, in dollars. A single price today; PR F's sport scale makes a
-// football ticket worth more than a swim meet's.
-export const TICKET_PRICE = 12;
 
 // What the team's venue holds: the largest done venue of its category, so a
 // rung (PR Q) raises the ceiling by standing beside the building it grows.
@@ -70,8 +67,10 @@ export function attendanceFor(s: GameState, team: VarsityTeam): number {
   return Math.round(Math.min(seats, crowd * fill));
 }
 
-export function ticketPriceFor(_team: VarsityTeam): number {
-  return TICKET_PRICE;
+// One ticket, in dollars: the sport's own price (PR F's scale) — a football
+// ticket is worth more than a swim meet's.
+export function ticketPriceFor(team: VarsityTeam): number {
+  return sportEconomics(team.sport).ticketPrice;
 }
 
 // A program's gate for the year.

@@ -45,7 +45,7 @@ function tickCoachCandidatePool(s: GameState): void {
 function growCoach(c: Coach): void {
   c.tenureWeeks += 1;
   c.quality = grownCoachQuality(c.qualityPotential, c.tenureWeeks);
-  c.salary = coachSalaryFor(c.quality, c.tenureWeeks);
+  c.salary = coachSalaryFor(c.quality, c.tenureWeeks, c.field);
 }
 
 export function tickAthletics(s: GameState): void {
