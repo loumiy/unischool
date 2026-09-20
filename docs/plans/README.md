@@ -41,6 +41,7 @@ the repository root, and the game as it actually is lives in `docs/design/` and
 | 18 | [The look](18-the-look.md) | The Varsity register: the school's own colours as the theme, cream and outline ink around them, two self-hosted typefaces, chips and hard offsets, a labelled tab bar — one token layer, then one screen per PR. PRs A–G. | Landed |
 | 19 | [The founding college](19-the-founding-college.md) | Retiring the general-education core and the school that holds it: Founders Hall becomes an ordinary six-slot hall, the college opens already teaching three programs, and the first year is a choice between depth and breadth. PRs A–G. | Proposed |
 | 20 | [The catalogue](20-the-catalogue.md) | What the course data *says*: two prereq bridges that hide a whole school behind a capstone, 108 research topics no facility can host, 336 course descriptions written by eight templates, and the graduate programs four schools do not have. PRs A–I. | Proposed |
+| 21 | [The department](21-the-department.md) | Athletics re-aimed rather than re-imagined: the name pools, outlets for the outputs that terminate in readings, a per-sport scale and a drag-and-drop priority list funded as a queue out of a pot that grows with the department's own gate and giving, a coach market scarce in good coaches rather than in coaches, four dated occasions a year, an arrival that stops being a coin flip, a postseason ban, and water polo. Six phases, PRs A–R. | Proposed |
 
 ## Naming
 
