@@ -166,6 +166,9 @@ const PLAN: Site[] = [
   { id: 'ATH-NATATORIUM', row: 23, col: 86 },
   { id: 'POOL', row: 23, col: 94 },
   { id: 'TENNIS-COURTS', row: 29, col: 86 },
+  // The field house (Plan 21's PR Q) closes the corner east of the pool,
+  // on the same lane as the aquatic centre.
+  { id: 'ATH-FIELDHOUSE', row: 22, col: 103 },             // 9x6
 ];
 
 // GREEK ROW. A chapter house granted by an event carries an id minted at

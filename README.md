@@ -90,6 +90,23 @@ the management interfaces, curriculum presentation, faculty interaction and
 the research systems. There is no art pipeline yet; everything on screen is
 drawn from data.
 
+## The interfaces
+
+Every view other than the map is a full screen laid over it, with the dock
+kept on top. These are year 51 of a finished school — the same run as the
+campus above — one screen per tab, in the toolbar's order.
+
+| | |
+|---|---|
+| ![The Curriculum tab: the catalogue by school and department, every course carrying its instructor and grade](docs/images/tab-curriculum.png) | ![The Faculty tab: payroll, the market, and each department's roster against its catalogue](docs/images/tab-faculty.png) |
+| **Curriculum** — 427 courses by school and department, each with who teaches it and the grade they earn. | **Faculty** — the roster and the market, department by department, against what the catalogue needs. |
+| ![The Research tab: every lab with its initiative, team, depth and progress](docs/images/tab-research.png) | ![The Student Life tab: satisfaction by attribute, clubs and Greek chapters](docs/images/tab-studentlife.png) |
+| **Research** — each lab's running initiative: the topic, the team, the depth and what it has produced. | **Student Life** — satisfaction by attribute and what serves it, the clubs, the chapters and the demands. |
+| ![The Athletics tab: the athletic director, the department's finances and the varsity programs](docs/images/tab-athletics.png) | ![The Enrollment tab: the four classes by audience, and last summer's funnel](docs/images/tab-enrollment.png) |
+| **Athletics** — the director, the subsidy and the gate, and every program with its staff. | **Enrollment** — the standing body class by class, and the funnel the last summer decision produced. |
+| ![The History tab: the three standings and every input that grades them](docs/images/tab-history.png) | ![The Treasury tab: the weekly income statement, the endowment campaign and the balance](docs/images/tab-treasury.png) |
+| **History** — the three standings with every input that grades them, and the legacy once sealed. | **Treasury** — the weekly income statement, the endowment campaign and the balance sheet. |
+
 ## Run it
 
 ```bash
