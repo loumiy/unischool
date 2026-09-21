@@ -38,6 +38,18 @@ two plans, knowingly.*
 *What comes after them is below, and the **faculty lifecycle is the next plan to
 write**.*
 
+*The [second design review](docs/reviews/2026-09-design-review-ii.md) (September
+2026, against Plan 21) confirms that order and says why it is urgent: the run
+is over at about year 27 of fifty — rank #1 in year 13, every hall by 26, the
+catalogue by 28, prestige at its ceiling by 30 — and the defend era has nothing
+to defend, because the elite band is written never to pass a leader who stands
+still. Its recommendations, in order: shorten the horizon to forty; the faculty
+lifecycle with retirement as a rule; an elite band that can pass a coasting
+leader; an athletics funded line that bites; then the legibility items the
+playthrough notes are mostly about (a prescriptive prestige line, seasons and
+odds for athletics, needs revealed before they bite, the toast policy's new
+clause, collapsible schools, the Athletics tab's grid).*
+
 *Each of these is a plan's worth of work on its own, and none of them blocks any
 other. Lifted from Plan 04, which is where they were first named. Turning one
 into an ordered sequence of PRs is what writing the next plan does, and four
