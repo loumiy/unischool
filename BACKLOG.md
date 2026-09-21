@@ -284,9 +284,11 @@ in a way that forecloses them.*
   drawn for the 2:1 pixel grid and shimmer off it. What is left is polish:
   a look at the stands from behind.
 - Moving pedestrians.
-- More README screenshots as the presentation work lands: the curriculum
-  map, the faculty roster, a research run, and a late-game campus. The two
-  in `docs/images/` are a founding campus and the summer decision.
+- ~~More README screenshots as the presentation work lands~~ — **delivered**:
+  the README carries the year-51 campus, the summer admissions card and one
+  screen per tab, all re-shot from the same save through `npm run shot`'s
+  `--tab`, `--click` and `--element` flags (see `unischool/tools/README.md`).
+  What is left is re-shooting them as the presentation moves.
 - Sound and music.
 - Art and presentation, after [Plan 18](docs/plans/18-the-look.md). The
   chrome is settled: one register (the school's own colours on cream, one

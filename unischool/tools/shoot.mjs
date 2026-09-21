@@ -15,6 +15,19 @@
 // Flags: --zoom=N (+ in, - out), --pan=DX,DY (screen px, drag), --clip=x,y,w,h,
 //        --size=W,H (viewport, default 1600,1000), --scale=N (device pixels per
 //        CSS pixel: 2 for a print-sharp PNG at the same framing)
+//
+// Not only the map: --tab=<id> opens one of the full-screen views over it
+// (a TabNav id: curriculum, faculty, research, studentlife, athletics,
+// enrollment, history, treasury) through the toolbar's own button, so what
+// is photographed is the tab as the player reaches it. --click=<text>
+// presses a button by its text and can repeat, which is how a modal held
+// in the save is stepped through (the summer's Continue, Continue, and
+// there is the admissions beat); --element=<selector> crops the PNG to one
+// element, the way the README's admissions card was taken:
+//
+//   npm run shot -- summer.json admissions.png --click="Continue →" \
+//     --click="Continue →" --element=.modal
+//   npm run shot -- out.json faculty.png --tab=faculty --scale=2
 // ---------------------------------------------------------------------
 import { readFileSync, existsSync } from 'node:fs';
 import { chromium } from 'playwright-core';
@@ -28,9 +41,23 @@ const flag = (name, fallback) => {
   const hit = flags.find((f) => f.startsWith(`--${name}=`));
   return hit ? hit.slice(name.length + 3) : fallback;
 };
+const flagAll = (name) => flags.filter((f) => f.startsWith(`--${name}=`)).map((f) => f.slice(name.length + 3));
 const nums = (s) => (s ? s.split(',').map(Number) : null);
 
 const URL = process.env.CAMPUS_URL ?? 'http://localhost:5173/';
+
+// The toolbar's aria-labels, by tab id (TabNav.tsx's TAB_LABELS, repeated
+// here rather than imported: this file is plain Node and TabNav is
+// TypeScript that pulls in the research data behind its gates).
+const TAB_LABELS = {
+  curriculum: 'Curriculum',
+  faculty: 'Faculty',
+  research: 'Research',
+  studentlife: 'Student Life',
+  athletics: 'Athletics',
+  enrollment: 'Enrollment',
+  history: 'History',
+};
 const CANDIDATES = [
   process.env.CHROME_PATH,
   `${process.env.PLAYWRIGHT_BROWSERS_PATH ?? ''}/chromium-1194/chrome-linux/chrome`,
@@ -77,10 +104,45 @@ if (pan) {
 // Trees settle and the map finishes its entry animation; a shot taken too
 // early catches a half-drawn campus.
 await page.waitForTimeout(2_000);
+
+// A modal held in the save, stepped through by its own buttons. Each click
+// waits for the modal to re-render before the next: the summer's beats
+// swap the whole card.
+for (const text of flagAll('click')) {
+  await page.getByRole('button', { name: text, exact: true }).first().click();
+  await page.waitForTimeout(600);
+}
+
+// A tab, opened the way the player opens it. Treasury has no icon in the
+// toolbar's row (see Toolbar.tsx's ICON_TAB_ORDER): its entry point is the
+// funds figure at the left, and that is what gets clicked for it.
+const tab = flag('tab', null);
+if (tab) {
+  const label = tab === 'treasury' ? 'Open Treasury' : TAB_LABELS[tab];
+  if (!label) {
+    console.error(`no tab "${tab}". Known: ${Object.keys(TAB_LABELS).join(', ')}, treasury`);
+    process.exit(2);
+  }
+  await page.getByRole('button', { name: label, exact: true }).click();
+  await page.waitForSelector('.tab-overlay', { timeout: 10_000 });
+  // The tab's own entry animations, and any chart that draws on mount.
+  await page.waitForTimeout(1_200);
+}
+
+// Park the pointer: a click leaves it over whatever it pressed, and the
+// hover tooltip on that (an audience card's, a button's) would be in shot.
+await page.mouse.move(0, 0);
+await page.waitForTimeout(300);
+
 const clip = nums(flag('clip', null));
-await page.screenshot({
-  path: outPath,
-  ...(clip ? { clip: { x: clip[0], y: clip[1], width: clip[2], height: clip[3] } } : {}),
-});
+const element = flag('element', null);
+if (element) {
+  await page.locator(element).first().screenshot({ path: outPath });
+} else {
+  await page.screenshot({
+    path: outPath,
+    ...(clip ? { clip: { x: clip[0], y: clip[1], width: clip[2], height: clip[3] } } : {}),
+  });
+}
 await browser.close();
 console.log(`wrote ${outPath}`);

@@ -83,6 +83,30 @@ is beside it — `campus-gothic.png`, `campus-classical.png`,
 `campus-mission.png` and `campus-modern.png` — which is the honest comparison
 the vernaculars want: one layout, one save, only the architecture changing.
 
+### The tabs and the modals
+
+The same driver photographs the screens laid over the map. `--tab=<id>`
+opens one through the toolbar's own button (a `TabNav.tsx` id: `curriculum`,
+`faculty`, `research`, `studentlife`, `athletics`, `enrollment`, `history`,
+or `treasury`, which has no icon and is reached through the funds figure),
+`--click=<text>` presses a button by its text and repeats, which is how a
+modal the save is holding gets stepped through, and `--element=<selector>`
+crops the PNG to one element. `docs/images/tab-*.png` are the eight tabs on
+the same year-50 save as the campus, and `summer-admissions.png` is the
+summer scenario's third beat, once the price is set and the pool it drew is
+on screen — in a taller viewport, since the card is taller than the modal's
+scroll box:
+
+```sh
+for t in curriculum faculty research studentlife athletics enrollment history treasury; do
+  npm run shot -- node_modules/.tmp/out.json docs/images/tab-$t.png --tab=$t --scale=2
+done
+npm run scenario -- summer node_modules/.tmp/summer.json
+npm run shot -- node_modules/.tmp/summer.json docs/images/summer-admissions.png \
+  --size=1600,1700 --click="Continue →" --click="Continue →" \
+  --click="Set tuition for the year →" --element=.modal --scale=2
+```
+
 ### Every motif on one page
 
 The campus renders show the assets together; they cannot show every motif, and
