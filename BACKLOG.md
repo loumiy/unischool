@@ -53,7 +53,9 @@ retuning the economy (the probes say the seat ceiling gates years 1–5 and the
 track funding before research is expanded as late content; show the three
 standings as one profile; then demands as a late-game mechanism, per-major
 identity, the notification policy, collapsible schools and the Faculty and
-Athletics boards, and a map that reads population and time.*
+Athletics boards, and a map that reads population and time. It closes with the ten issues
+ranked and the options for each laid side by side, with the choice among them
+deferred to the next plan by decision.*
 
 *Each of these is a plan's worth of work on its own, and none of them blocks any
 other. Lifted from Plan 04, which is where they were first named. Turning one

@@ -386,6 +386,65 @@ None of these is a system. They are readers of state the game already keeps, dra
 
 ---
 
+## 13. The ten issues, ranked, with the options for each — decisions deferred
+
+*Everything above this line is the review's opinion, and §12 orders it. This section is something different: the same findings ranked as **issues**, with the ways of dealing with each laid side by side, from the smallest change to the largest. It deliberately reaches no decision. Choosing among these is what writing the next plan is for (see `docs/plans/README.md`), and a review that pre-empted that choice would be a plan wearing a review's clothes. Where an option is a whole system it says so; where two options exclude each other it says that too.*
+
+**1. The late game has no state that changes.** Prestige caps, rank is unlosable, the pot funds everything, satisfaction sits at 100, nobody leaves, demands never fire. Everything else on this list is downstream of this one.
+- *Erosion.* Stocks that decay: buildings age and want renovation, coverage ratios drift as the campus grows, breadth needs a curriculum review every decade. The cheapest option, and it re-arms the demand system with no new system.
+- *Succession.* Faculty age and retire, with a reliance reading that says what each departure would cost. Turns the roster into the late-game problem. Runs entirely on state that exists.
+- *A field that moves.* Rivals as thin agents running the sim's own strategies, so they build, hire, poach and pass. Removes the need for authored closing rules. A new system.
+- *Alumni as a flow.* Every graduating class becomes a constituency that gives, boosts and sends legacies. Cannot saturate, because a class graduates every year. A new system, and it replaces the campaign button.
+
+**2. Prestige is an absolute stock with a ceiling, and the field is authored around it.** The clamp at 150, rivals at 87–99, and a band that never overtakes are three symptoms of one modelling choice.
+- *Lift the clamp and let the band pass.* Close toward the leader's target instead of their number; add two authored movers. A rivals PR.
+- *Relative scoring.* Prestige becomes a position in a distribution the whole field shares, so there is no top to sit on. A rewrite of the standing, with the largest payoff.
+- *Rivals as agents* (issue 1), which makes relative scoring natural and is the same work seen from the other side.
+
+**3. Money stops being a decision by the mid-game, and the sink is a button.** Grants are 23% of lifetime opex against funding at 9%; the campaign is one click, twenty-one times; cash swings between $0.4B and $3B.
+- *Re-fit grants* so they track funding rather than exceed it. Small, named constants.
+- *Endowed chairs and named institutes* as sinks that are decisions with names attached. Pairs with succession.
+- *Financial aid.* A sticker price, an aid budget, a net price per band, need-blind admission as a late ambition. Replaces the market-rate multiplier with the lever real universities use. A rework of the economy.
+- *A budget screen.* Recurring lines the surplus is allocated to, which decay if underfunded. The backlog gates this on money being scarce, and that gate holds.
+
+**4. The player is never told what to do about the numbers.** Prestige has no prescriptive reading, three standings live on three tabs, athletics never states odds, halls never state occupancy, health arrives as need and fix on the same day.
+- *Sentences.* A prescriptive line in the chip, the next-step reading and the first summer; odds on the team card; occupancy in the build menu. Cheap and high-value.
+- *A profile.* A three-figure masthead and a live institutional name, so the standings read as one identity.
+- *An advisor layer.* A provost or dean who narrates the year's biggest lever. More voice, more scope, and it overlaps the opening coach.
+
+**5. The mid-game wall.** The completionist sits in the red for seven years with nothing startable, and the 36% default admit rate costs three build-era years on its own.
+- *Re-fit the admit curve* to open wide and narrow with standing. Small, measured, ready (§2).
+- *Choices in the red.* A hiring freeze, a tuition surcharge, a mothballed hall — so a bad year is a year of decisions.
+- *Contraction.* The "stall, don't die" model the economy doc describes and nothing built: faculty leave, clubs fold, courses go dark. Makes the wall a story rather than a timeout. A system.
+
+**6. Athletics has a department and no game.** Every program a flagship, three shared game weeks, 54 staff, no odds, venues that never change shape.
+- *Constants and cards.* Scale the cost to compete, restore the grid, label the age, state the odds. One pass.
+- *Seasons.* Fall, winter and spring calendars with six to ten results per sport.
+- *Rebuild the staffing.* One head coach per program plus a department staff. Fewer people, each mattering more, and the tab fixes itself.
+- *A season sim* with rosters and recruiting. Plan 21 drew the line short of this, on purpose; it is listed so the line is a decision rather than an omission.
+
+**7. The curriculum is texture, not strategy.** Majors differ in what they contain, not in what they do; breadth is a stock that only rises; the halls oversupply by 33 slots.
+- *Per-school effects.* A professional school raises price tolerance, a science school's grants scale with depth, an arts school feeds campus life, nursing serves health. Four or five effects, not forty-two.
+- *A graduate wing* in place of the second full hall.
+- *The catalogue as a flow.* Reviews, closures, accreditation. Larger, and it is issue 1's erosion applied to the curriculum.
+
+**8. Pressure systems that do not fire.** Demands never trigger on a competent school; five of fifteen events have a dominant choice; petitions are 70% of the modal load.
+- *Widen the readers.* Demands that read departments, sports and graduate students, not only five attributes.
+- *Fix the dominated five* and let events touch durable state.
+- *Politics.* A board, a senate, a student body with agendas, each reading one of the standings. The antagonist both reviews say is missing, and the largest item on this list.
+
+**9. Noise where signal should be.** Papers and research-pulled candidates toast; breakthroughs and grants do not; a season passes as twelve identical log lines.
+- *The policy clause.* A toast is for something the player might act on; coalesce the rest.
+- *Move it to the map.* Rings on labs, crowds at venues, dark windows for empty chairs.
+
+**10. Screens that do not scale.** Curriculum at 7,668 pixels, Athletics a column, Faculty with no sort, filter or person page.
+- *Collapse, grid, sort.* Each is a pattern already in the codebase.
+- *A person page*, which is also half of what makes succession legible.
+
+**What is deferred, stated plainly.** Which option to take for each issue; whether issues 1 and 2 are one plan or two; whether any of the whole-system options (alumni, rivals as agents, politics, contraction, financial aid, a season sim) is worth its cost at all; and whether the horizon moves before or after the defend era has content. The review's own leaning is in §12 and the five-change list; the next plan decides.
+
+---
+
 ## Appendix A — Measurements
 
 **Reference run: Earnest completionist, seed 12345, fifty years**, read weekly from `play()`'s `onWeek` hook. Toast counts are log lines carrying a toastable topic, deduplicated by `toastKey`.
