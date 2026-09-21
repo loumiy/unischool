@@ -39,16 +39,21 @@ two plans, knowingly.*
 write**.*
 
 *The [second design review](docs/reviews/2026-09-design-review-ii.md) (September
-2026, against Plan 21) confirms that order and says why it is urgent: the run
-is over at about year 27 of fifty — rank #1 in year 13, every hall by 26, the
-catalogue by 28, prestige at its ceiling by 30 — and the defend era has nothing
-to defend, because the elite band is written never to pass a leader who stands
-still. Its recommendations, in order: shorten the horizon to forty; the faculty
-lifecycle with retirement as a rule; an elite band that can pass a coasting
-leader; an athletics funded line that bites; then the legibility items the
-playthrough notes are mostly about (a prescriptive prestige line, seasons and
-odds for athletics, needs revealed before they bite, the toast policy's new
-clause, collapsible schools, the Athletics tab's grid).*
+2026, against Plan 21) confirms that order and sharpens why: the run is over at
+about year 27 of fifty — rank #1 in year 13, every hall by 26, the catalogue by
+28, prestige at its ceiling by 30 — and the cause is **system saturation, not
+content exhaustion**: prestige caps, the athletics pot exceeds every cost,
+satisfaction stabilises above every threshold (demands never fire on a competent
+school), faculty never leave, the elite band cannot pass a standing leader, and
+research becomes an income line (grants at 23% of lifetime opex against funding
+at 9%). Its order: solve saturation in the defend era (faculty succession, a
+band that can pass, needs that recur); measure the admissions curve before
+retuning the economy (the probes say the seat ceiling gates years 1–5 and the
+36% default costs years 8–15); make the athletics funded line bite; make grants
+track funding before research is expanded as late content; show the three
+standings as one profile; then demands as a late-game mechanism, per-major
+identity, the notification policy, collapsible schools and the Faculty and
+Athletics boards, and a map that reads population and time.*
 
 *Each of these is a plan's worth of work on its own, and none of them blocks any
 other. Lifted from Plan 04, which is where they were first named. Turning one
