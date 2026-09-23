@@ -112,7 +112,7 @@ const TAB_HOTKEYS: Record<string, TabId> = {
 };
 
 export default function App() {
-  const { state, act, speed, setSpeed, weekProgress } = useGame();
+  const { state, act, speed, setSpeed, weekProgress, exportRun } = useGame();
   const s: GameState = state;
   // null = looking at the map itself, with nothing open over it.
   //
@@ -358,7 +358,7 @@ export default function App() {
     return (
       <>
         <StartupScreen onStart={(name, vernacular, colors) => act({ type: 'START_GAME', name, vernacular, colors, guided: true, seed: freshSeed() })} />
-        <DebugPanel s={s} act={act} />
+        <DebugPanel s={s} act={act} exportRun={exportRun} />
       </>
     );
   }
@@ -389,7 +389,7 @@ export default function App() {
           MainMenu, because it is chrome over the map rather than anything
           the shell's one-slot rule applies to — it is the one panel that
           is meant to stay open while you look at something else. */}
-      <DebugPanel s={s} act={act} />
+      <DebugPanel s={s} act={act} exportRun={exportRun} />
 
       <div className="app">
         {/* The toast stack (Plan 16's PR G): the things that never stop the

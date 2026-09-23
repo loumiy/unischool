@@ -87,7 +87,7 @@ function SetField({ label, current, onApply }: {
   );
 }
 
-export default function DebugPanel({ s, act }: { s: GameState; act: (a: Action) => void }) {
+export default function DebugPanel({ s, act, exportRun }: { s: GameState; act: (a: Action) => void; exportRun: () => string }) {
   const [open, setOpen] = useState(false);
   const [autoResolve, setAutoResolve] = useState(true);
   const [jump, setJump] = useState('1');
@@ -265,8 +265,24 @@ export default function DebugPanel({ s, act }: { s: GameState; act: (a: Action) 
             />
             {loadError && <p className="debug-note error">{loadError}</p>}
           </section>
+          <section className="debug-section">
+            <h3>Run</h3>
+            <p className="debug-note">This session's start and every action since. Replays exactly (see engine/actionLog.ts).</p>
+            <button type="button" className="debug-btn wide" onClick={() => downloadRun(exportRun())}>
+              export run
+            </button>
+          </section>
         </div>
       )}
     </div>
   );
+}
+
+function downloadRun(json: string): void {
+  const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `unischool-run-${Date.now()}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
 }

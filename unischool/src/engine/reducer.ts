@@ -1,4 +1,4 @@
-import type { Faculty, GameState, LogEntry, SummerBeat, SummerPayload } from '../state/types';
+import type { Faculty, GameState, SummerBeat, SummerPayload } from '../state/types';
 import { LOG_CAP, SEMICENTENNIAL_YEAR, SUMMER_LAST_BEAT, WEEKS_PER_YEAR, institutionName } from '../state/types';
 import type { Action } from '../state/actions';
 import { defaultAnswer } from './defaultAnswers';
@@ -42,7 +42,6 @@ import {
 } from '../state/campusMap';
 import { captureYearSnapshot } from '../state/history';
 import { legacy } from '../state/legacy';
-import { saveGame, clearSave } from '../state/persistence';
 import { money } from '../format';
 import { random, withRandom } from './random';
 
@@ -110,26 +109,6 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   // not have to wait for a quiet slot.
   tickDemands,
 ];
-
-// ---------------------------------------------------------------------
-// saveGame (see state/persistence.ts) is the ONE thing in this reducer
-// that reaches outside itself. It doesn't change the reducer's purity with
-// respect to the GAME state — it reads the assembled `s`, writes it to
-// localStorage, and touches nothing — but it is a side effect, so it is
-// worth being explicit about where it is allowed and why.
-//
-// Two actions call it: RESOLVE_ADMISSIONS (the annual autosave) and
-// SAVE_GAME (the manual one). Doing it here rather than in an effect in
-// useGame.ts means the save is taken at the exact instant the boundary
-// resolves, from the exact state being committed, instead of being
-// reconstructed a render later from a change the hook has to infer.
-//
-// Both are safe under React's StrictMode double-invocation because both
-// are DETERMINISTIC: the two invocations build an identical `s`, so the
-// second write is a byte-for-byte repeat of the first. An action that
-// saves AND rolls dice would not be — which is exactly why START_GAME's
-// save lives in useGame.ts instead (see there, and its case below).
-// ---------------------------------------------------------------------
 
 // ---------------------------------------------------------------------
 // The student-life digest (see docs/design/student-life.md, and
@@ -920,25 +899,6 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
         topic: 'report-card',
       });
 
-      // The autosave (see state/persistence.ts). This annual boundary is
-      // the one moment in the game where a natural, meaningful chunk of
-      // progress has just been committed, so it is the natural checkpoint:
-      // a refresh costs at most the weeks since last summer, and the
-      // player can shorten that themselves with SAVE_GAME.
-      //
-      // Written LAST, once `s` is fully assembled, so the saved run is
-      // exactly the state React is about to commit. Silent on success —
-      // an annual "autosaved" line would be noise next to the admissions
-      // summary above — but a FAILED write is worth interrupting for,
-      // because the player would otherwise believe their run is safe.
-      if (!saveGame(s)) {
-        s.log.unshift({
-          year: s.clock.year,
-          week: s.clock.week,
-          message: 'Autosave failed — this browser is refusing to store the run. Progress will be lost on refresh.',
-          kind: 'bad',
-        });
-      }
       return s;
     }
 
@@ -1297,37 +1257,30 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
-    case 'SAVE_GAME': {
-      // The manual save. Logs either way: the confirmation is the whole
-      // point of an explicit save affordance, and a silent failure would
-      // be worse than no button at all.
-      //
-      // The log line is written BEFORE the save, so the persisted run
-      // contains the record of its own save rather than a state one line
-      // behind the one on screen. If the write is refused the line is
-      // rewritten as the failure notice — nothing was persisted, so there
-      // is nothing left on disk to contradict.
-      const entry: LogEntry = {
-        year: s.clock.year,
-        week: s.clock.week,
-        message: 'Game saved.',
-        kind: 'good',
-      };
-      s.log.unshift(entry);
-      if (!saveGame(s)) {
-        entry.message = 'Save failed — this browser is refusing to store the run.';
-        entry.kind = 'bad';
+    case 'SAVE_GAME':
+      // The manual save's confirmation. The write itself happens in
+      // useGame.ts, from the state this returns, so the saved run carries
+      // its own "saved" line; a refused write comes back as SAVE_FAILED.
+      s.log.unshift({ year: s.clock.year, week: s.clock.week, message: 'Game saved.', kind: 'good' });
+      return s;
+
+    case 'SAVE_FAILED': {
+      const message = action.manual
+        ? 'Save failed — this browser is refusing to store the run.'
+        : 'Autosave failed — this browser is refusing to store the run. Progress will be lost on refresh.';
+      const confirmation = s.log[0];
+      if (action.manual && confirmation?.message === 'Game saved.') {
+        confirmation.message = message;
+        confirmation.kind = 'bad';
+      } else {
+        s.log.unshift({ year: s.clock.year, week: s.clock.week, message, kind: 'bad' });
       }
       return s;
     }
 
     case 'RESET':
-      // Abandoning the run: the save has to go with it, or the next
-      // refresh would resurrect the university the player just discarded.
-      // Returns to the startup screen rather than re-founding the same
-      // school, so "New Game" means what it says (name and private/public
-      // are both back on the table).
-      clearSave();
+      // Abandoning the run returns to the startup screen; useGame.ts
+      // erases the save alongside.
       return createPreStartState();
 
     default:

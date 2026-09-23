@@ -395,14 +395,14 @@ export type Action =
   // completion. No nodeId: there is exactly one tier-1 library, so unlike
   // START_DEVELOPMENT there is nothing to disambiguate.
   | { type: 'RENOVATE_LIBRARY' }
-  // Writes the run to localStorage on demand (see state/persistence.ts).
-  // The autosave already fires once a year at the admissions boundary; this
-  // is the player's way to not lose the weeks since. It changes no game
-  // state beyond the log line confirming it.
+  // The player's save. The reducer writes the confirmation line; useGame.ts
+  // writes the run to localStorage from the state that results. The
+  // autosave follows RESOLVE_ADMISSIONS the same way.
   | { type: 'SAVE_GAME' }
-  // Abandons the current run: erases the save and returns to the startup
-  // screen so a new university can be founded. The UI confirms before
-  // dispatching this — it is not undoable.
+  // Dispatched by useGame.ts when a save or autosave was refused.
+  | { type: 'SAVE_FAILED'; manual: boolean }
+  // Abandons the current run and returns to the startup screen; useGame.ts
+  // erases the save. The UI confirms before dispatching this.
   | { type: 'RESET' };
 
 // A minimal placeholder state for the pre-game startup screen only. None of

@@ -3,7 +3,8 @@ import type { GameState } from '../state/types';
 import { reducer } from './reducer';
 import { createPreStartState } from '../state/actions';
 import type { Action } from '../state/actions';
-import { loadGame, saveGame } from '../state/persistence';
+import { clearSave, loadGame, saveGame } from '../state/persistence';
+import { startRunLog, type RunLog } from './actionLog';
 import { advanceWeekProgress, MAX_SAMPLE_MS } from './weekClock';
 import { openingHoldsClock } from '../state/opening';
 
@@ -57,10 +58,19 @@ function initialGameState(): GameState {
 const SAMPLE_MS = 50;
 
 export function useGame() {
-  const [state, dispatch] = useReducer(reducer, undefined, initialGameState);
+  const [state, rawDispatch] = useReducer(reducer, undefined, initialGameState);
   const [speed, setSpeed] = useState<Speed>('paused');
   const stateRef = useRef(state);
   stateRef.current = state;
+
+  // Every action dispatched this session, from the state the session opened
+  // on (see actionLog.ts). The debug panel exports it.
+  const runLog = useRef<RunLog | null>(null);
+  if (runLog.current === null) runLog.current = startRunLog(state);
+  const dispatch = useCallback((a: Action) => {
+    runLog.current!.actions.push(a);
+    rawDispatch(a);
+  }, []);
 
   // The clock is HELD by a pending interrupt, and by the opening walkthrough
   // until its last step is done (see state/opening.ts) — the
@@ -129,30 +139,45 @@ export function useGame() {
     if (interrupted && speed === 'fast') setSpeed('real');
   }, [interrupted]);
 
-  // The founding save. The autosave proper lives in the reducer, at the
-  // annual admissions boundary — but that is a whole in-game year away from
-  // a brand-new university, and a player who refreshes in week 30 of year 1
-  // should still have their school. Founding is the moment there is first a
-  // run to lose, so it gets written too.
-  //
-  // It happens HERE rather than in the reducer's START_GAME because
-  // createInitialState rolls dice: under StrictMode the reducer runs twice
-  // and builds two different universities, so only the committed state —
-  // which is what an effect sees — is safe to persist. Fires on the
-  // false -> true transition only, so resuming a loaded save (already
-  // `started` on mount) doesn't immediately rewrite it.
+  // The founding save. The autosave follows the annual admissions
+  // boundary, a whole in-game year away from a brand-new university, and a
+  // player who refreshes in week 30 of year 1 should still have their
+  // school. Fires on the false -> true transition only, so resuming a
+  // loaded save (already `started` on mount) doesn't immediately rewrite it.
   const wasStarted = useRef(state.started);
   useEffect(() => {
     if (state.started && !wasStarted.current) saveGame(stateRef.current);
     wasStarted.current = state.started;
   }, [state.started]);
 
-  const act = useCallback((a: Action) => dispatch(a), []);
+  // Saving happens here, never in the reducer, so the reducer stays a pure
+  // function a run can be replayed through. The player's save and the
+  // annual autosave write the state their action produced, once React has
+  // committed it; a refused write is reported back to the log.
+  const pendingSave = useRef<'manual' | 'autosave' | null>(null);
+  useEffect(() => {
+    const kind = pendingSave.current;
+    if (!kind) return;
+    pendingSave.current = null;
+    if (!saveGame(state)) dispatch({ type: 'SAVE_FAILED', manual: kind === 'manual' });
+  }, [state]);
+
+  const act = useCallback((a: Action) => {
+    if (a.type === 'SAVE_GAME') pendingSave.current = 'manual';
+    if (a.type === 'RESOLVE_ADMISSIONS') pendingSave.current = 'autosave';
+    // Abandoning the run: the save goes with it, or the next refresh would
+    // resurrect the university the player just discarded.
+    if (a.type === 'RESET') clearSave();
+    dispatch(a);
+  }, []);
+
+  // The session's run as JSON, for a bug report (see actionLog.ts).
+  const exportRun = useCallback(() => JSON.stringify(runLog.current), []);
 
   // A getter, not a value: reading through it is always current, and
   // handing it out costs its caller no re-renders (see weekProgressRef
   // above). Stable across renders so an effect can depend on it.
   const weekProgress = useCallback(() => weekProgressRef.current, []);
 
-  return { state, act, speed, setSpeed, weekProgress };
+  return { state, act, speed, setSpeed, weekProgress, exportRun };
 }

@@ -258,6 +258,26 @@ it trims comments in their final shape, not twice.
   - It asserts the two final states are deep-equal.
   - It also asserts that running the same seed twice gives the same state.
 
+**As implemented:**
+
+- **The run log lives in `useGame`,** not in the state. It starts from
+  whatever state the session opened on (a loaded save, or the startup
+  screen), so a replay needs no save of its own.
+- **Saving is keyed on the action.** `act` marks `SAVE_GAME` and
+  `RESOLVE_ADMISSIONS` as saving, and an effect writes the state React
+  commits after them. `RESET` erases the save before it dispatches.
+- **The replay test plays four years with a crude scripted player:** the
+  default answers, any course it can staff, and the first affordable
+  building. That covers hiring, building, events, the summer and the
+  rivals' drift. It runs in 4 seconds, so it is in the fast suite.
+- **Checked end to end in a browser.** A college was founded and
+  fast-forwarded through its first summer (the autosave wrote year 2,
+  week 1), then saved from the menu and its run exported. The 60 logged
+  actions, replayed in Node, give a state byte-identical to the browser's
+  save.
+- **"Fire any event" was already in the debug panel** (`DEBUG_FORCE_EVENT`),
+  so PR J has one item fewer.
+
 ## PR 22F — Long reducer cases move into their systems
 
 - `RESOLVE_ADMISSIONS` (205 lines), `START_INITIATIVE` (77),
