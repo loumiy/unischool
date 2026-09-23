@@ -24,10 +24,10 @@ import { SPORTS, promoteToVarsityTeam, teamQuality } from '../src/data/studentLi
 import { tickRivals, sportRankedList, sportRank, athleticRank, playerTeamIn } from '../src/systems/rivals/rivalsSystem';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import type { GameState, StudentClub } from '../src/state/types';
+import { bindScriptStream } from '../src/engine/random';
 
 // Deterministic PRNG, same construction as the other suites.
-let seed = 424242;
-Math.random = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+bindScriptStream(424242);
 
 let checks = 0;
 let failures = 0;

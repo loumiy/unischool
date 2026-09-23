@@ -1,4 +1,5 @@
 import type { GameState } from '../state/types';
+import { random } from '../engine/random';
 
 // ---------------------------------------------------------------------
 // MONEY, EXPRESSED IN WEEKS OF OPERATING COST.
@@ -29,6 +30,6 @@ export function weeksOfOpEx(s: GameState, weeks: number): number {
 // and carried from there — never re-rolled at resolve time, so the number
 // shown is the number applied.
 export function rollAmount(s: GameState, minWeeks: number, maxWeeks: number): number {
-  return weeksOfOpEx(s, minWeeks + Math.random() * (maxWeeks - minWeeks));
+  return weeksOfOpEx(s, minWeeks + random() * (maxWeeks - minWeeks));
 }
 

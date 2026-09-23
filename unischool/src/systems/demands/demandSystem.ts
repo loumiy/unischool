@@ -14,6 +14,7 @@ import { isHoused } from '../techtree/programOffers';
 import type { DemandSubject } from '../../data/demandData';
 import { projectAdmissions } from '../admissions/admissionsSystem';
 import { clamp } from '../../math';
+import { newId } from '../../engine/random';
 
 // ---------------------------------------------------------------------
 // STUDENT DEMANDS — the inverse of clubs (see
@@ -193,7 +194,7 @@ function candidateFor(s: GameState, attribute: keyof SatisfactionAttributes): Ca
   return {
     severity: 1 - coverage,
     demand: {
-      id: crypto.randomUUID(),
+      id: newId(),
       metric: 'served',
       attribute,
       askId: ask.id,
@@ -225,7 +226,7 @@ function housingCandidate(s: GameState): Candidate | null {
   return {
     severity: 1 - coverage,
     demand: {
-      id: crypto.randomUUID(),
+      id: newId(),
       metric: 'capacity',
       attribute: null,
       askId: dorm.id,
@@ -253,7 +254,7 @@ function instructionCandidate(s: GameState): Candidate | null {
   return {
     severity: 1 - coverage,
     demand: {
-      id: crypto.randomUUID(),
+      id: newId(),
       metric: 'seats',
       attribute: null,
       askId: ask.id,

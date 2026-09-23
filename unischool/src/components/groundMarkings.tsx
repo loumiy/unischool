@@ -1370,7 +1370,7 @@ export function GroundSite({ col, row, w, h }: GroundProps) {
   // full-width lines are what a DECK looks like; ground that has been
   // worked reads as overlapping runs that stop short, which is the whole
   // difference between this and a plank floor. The offsets come off the
-  // index rather than Math.random: a site that reshuffled its own scrapes
+  // index rather than random(): a site that reshuffled its own scrapes
   // on every render would crawl.
   const alongW = w >= h;
   const passes = Math.max(3, Math.round((alongW ? h : w) * 1.8));

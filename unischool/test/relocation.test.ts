@@ -18,9 +18,9 @@ import { isInTransit, slotOf, transitWeeks } from '../src/systems/techtree/progr
 import { dedicatedSchool, isSchoolFounded } from '../src/systems/techtree/schools';
 import { averageCourseQuality, courseQuality } from '../src/systems/faculty/facultyAssignment';
 import type { GameState } from '../src/state/types';
+import { bindScriptStream } from '../src/engine/random';
 
-let seed = 3131;
-Math.random = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+bindScriptStream(3131);
 const store = new Map<string, string>();
 (globalThis as unknown as { localStorage: unknown }).localStorage = {
   getItem: (k: string) => (store.has(k) ? store.get(k)! : null),

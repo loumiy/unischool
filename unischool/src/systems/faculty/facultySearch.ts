@@ -1,6 +1,7 @@
 import type { GameState } from '../../state/types';
 import { FACULTY_FIELDS, generateCandidate } from '../../data/facultyData';
 import { weeksOfOpEx } from '../../data/moneyScale';
+import { random } from '../../engine/random';
 
 // ---------------------------------------------------------------------
 // THE SEARCH (Plan 14's PR H). Every course needs a deliberate instructor,
@@ -58,11 +59,11 @@ export function postSearch(s: GameState, field: string): void {
 // and the window closing. Called from tickCandidatePool, after the
 // ordinary arrivals, so a search's listing is on top of the market's own
 // churn rather than in place of it. One global draw per running search
-// per week — the balance sim's seeded stream moves only when a search is
+// per week — the game's seeded stream moves only when a search is
 // actually running, which is the same discipline every other roll keeps.
 export function tickSearches(s: GameState): void {
   for (const field of Object.keys(s.searches)) {
-    if (Math.random() < SEARCH_LISTING_CHANCE) {
+    if (random() < SEARCH_LISTING_CHANCE) {
       const existingNames = [...s.faculty, ...s.candidates].map((f) => f.name);
       const found = generateCandidate(field, existingNames);
       s.candidates.push(found);

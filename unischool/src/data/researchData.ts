@@ -2,6 +2,7 @@ import type { Faculty, GameState, InitiativeDepth } from '../state/types';
 import { RESEARCH_TOPICS, isCrossDisciplinary, type ResearchTopic } from './researchTopics';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { hostableFields, researchSchools } from './techData';
+import { random } from '../engine/random';
 
 // ---------------------------------------------------------------------
 // RESEARCH, AS AUTHORED DATA — the tuning and the output table.
@@ -172,7 +173,7 @@ const GRANT_MIN_WEEKS = 0.4;
 const GRANT_MAX_WEEKS = 1.2;
 
 export function rollGrantAmount(s: GameState): number {
-  const weeks = GRANT_MIN_WEEKS + Math.random() * (GRANT_MAX_WEEKS - GRANT_MIN_WEEKS);
+  const weeks = GRANT_MIN_WEEKS + random() * (GRANT_MAX_WEEKS - GRANT_MIN_WEEKS);
   return Math.round(Math.max(s.finance.weeklyOpEx, MIN_OPEX_SCALE) * weeks);
 }
 
@@ -194,7 +195,7 @@ export function rollGrantAmount(s: GameState): number {
 //     direct write.
 
 export function pick<T>(items: readonly T[]): T {
-  return items[Math.floor(Math.random() * items.length)];
+  return items[Math.floor(random() * items.length)];
 }
 
 export function rollGrantFunder(vocab: DisciplineVocab): string {

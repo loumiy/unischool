@@ -3,6 +3,7 @@ import { WEEKS_PER_YEAR, institutionName } from '../../state/types';
 import { athleticProgramStrength, teamQuality } from '../../data/studentLifeData';
 import { ELITE_RIVAL_IDS, makeRivalRng, sportStrengthFor } from '../../data/rivalData';
 import { clamp } from '../../math';
+import { random } from '../../engine/random';
 
 // ---------------------------------------------------------------------
 // Rivals evolve so the ranking stays a live target across decades (see
@@ -134,11 +135,11 @@ export function tickRivals(s: GameState): void {
     // then the whole field's drift runs off a local PRNG seeded from it.
     //
     // WHY, and it is a harness property rather than a gameplay one. The
-    // drift used to call Math.random() two or three times PER RIVAL, so the
+    // drift used to call random() two or three times PER RIVAL, so the
     // number of global draws a year scaled with the size of the rival
-    // table. sim/balanceSim.ts seeds Math.random to make a run
+    // table. the game seeds its stream to make a run
     // reproducible, and its own note says the hazard outright: "any content
-    // change that alters how many times Math.random is called ... moves the
+    // change that alters how many times random() is called ... moves the
     // whole stream, so a single seed cannot tell 'this rebalanced the game'
     // from 'this reshuffled the dice'". Adding 44 schools moved it by ~120
     // draws a year and knocked four checks off
@@ -153,7 +154,7 @@ export function tickRivals(s: GameState): void {
     // exactly what this plan's next two PRs do), without reshuffling a
     // single faculty potential or candidate listing.
     //
-    // Deliberately seeded from Math.random rather than from the id and the
+    // Deliberately seeded from random() rather than from the id and the
     // year: a deterministic function of those would make every run's
     // leaderboard reshuffle identically, and the field's year-to-year
     // surprise is the whole of what it is for.
@@ -167,10 +168,10 @@ export function tickRivals(s: GameState): void {
     // events) it would move the balance sim. Measured, before this split: it
     // did, from year 10 onward.
     //
-    // Derived by xor rather than by three separate Math.random() calls so the
+    // Derived by xor rather than by three separate random() calls so the
     // global stream still sees exactly one draw a year however many axes the
     // field grows — the property PR 1A introduced this generator for.
-    const seed = Math.floor(Math.random() * 4294967296);
+    const seed = Math.floor(random() * 4294967296);
     const roll = makeRivalRng(seed);
     const socialRoll = makeRivalRng(seed ^ 0x9e37_79b9);
     const researchRoll = makeRivalRng(seed ^ 0x85eb_ca6b);

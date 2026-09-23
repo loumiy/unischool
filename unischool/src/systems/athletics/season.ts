@@ -5,6 +5,7 @@ import { sportById, teamQuality } from '../../data/studentLifeData';
 import { sportRankedList } from '../rivals/rivalsSystem';
 import { PLAYOFF_WEEK, SPREAD, wins } from './playoffs';
 import { ordinal } from '../../format';
+import { random } from '../../engine/random';
 
 // ---------------------------------------------------------------------
 // THE SEASON (Plan 21's PR N) — four occasions, a record, and a log with
@@ -145,7 +146,7 @@ export function tickSeason(s: GameState): void {
   if (!today) return;
   const active = s.orgs.teams.filter((t) => t.status === 'active');
   if (active.length === 0) return;
-  const roll = makeRivalRng(Math.floor(Math.random() * 4294967296));
+  const roll = makeRivalRng(Math.floor(random() * 4294967296));
   for (const team of active) resolveOccasion(s, team, today.occasion, roll);
 }
 

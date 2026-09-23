@@ -23,6 +23,7 @@ import { tickEvents } from '../src/systems/events/eventSystem';
 import { labFields } from '../src/data/techData';
 import { RESEARCH_TOPICS } from '../src/data/researchTopics';
 import type { Faculty, GameState, InitiativeReport } from '../src/state/types';
+import { bindScriptStream, overrideDraws } from '../src/engine/random';
 
 // Read through a call so TypeScript does not narrow the interrupt to what
 // the test last assigned: the system under test sets it.
@@ -30,9 +31,7 @@ function interruptType(g: GameState): string | undefined {
   return g.pendingInterrupt?.type;
 }
 
-let seed = 24680;
-const seededRandom = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
-Math.random = seededRandom;
+bindScriptStream(24680);
 const store = new Map<string, string>();
 (globalThis as unknown as { localStorage: unknown }).localStorage = {
   getItem: (k: string) => (store.has(k) ? store.get(k)! : null),
@@ -134,11 +133,11 @@ console.log('research completion tests');
   // Force the award roll: with Math.random pinned at 0 every chance check
   // passes, which is the only way to make a rare outcome testable without
   // reaching into the odds themselves.
-  Math.random = () => 0;
+  overrideDraws(() => 0);
   const { s, team } = aboutToFinish({ breakthroughs: 3 });
   const prizesBefore = s.research.prizes;
   tickResearch(s);
-  Math.random = seededRandom;
+  overrideDraws(null);
 
   const report = s.research.pendingCompletions[0];
   assert(!!report?.award, 'a project that produced breakthroughs can conclude with an award');

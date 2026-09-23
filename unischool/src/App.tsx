@@ -27,6 +27,7 @@ import EnrollmentTab from './tabs/EnrollmentTab';
 import StudentLifeTab from './tabs/StudentLifeTab';
 import HistoryTab from './tabs/HistoryTab';
 import AthleticsTab from './tabs/AthleticsTab';
+import { freshSeed } from './engine/random';
 import './styles.css';
 
 // The dashboard shell, built around the campus map as a full-viewport
@@ -356,7 +357,7 @@ export default function App() {
     // opening a scenario file starts from.
     return (
       <>
-        <StartupScreen onStart={(name, vernacular, colors) => act({ type: 'START_GAME', name, vernacular, colors, guided: true })} />
+        <StartupScreen onStart={(name, vernacular, colors) => act({ type: 'START_GAME', name, vernacular, colors, guided: true, seed: freshSeed() })} />
         <DebugPanel s={s} act={act} />
       </>
     );

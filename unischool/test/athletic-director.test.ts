@@ -23,6 +23,7 @@ import { findDecisionEvent } from '../src/data/eventData';
 import { tickEvents } from '../src/systems/events/eventSystem';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import type { Coach, GameState, StudentClub } from '../src/state/types';
+import { bindScriptStream } from '../src/engine/random';
 
 // Read through a call so TypeScript does not narrow the interrupt to what
 // the test last assigned: the system under test sets it.
@@ -30,8 +31,7 @@ function interruptType(g: GameState): string | undefined {
   return g.pendingInterrupt?.type;
 }
 
-let seed = 20260917;
-Math.random = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+bindScriptStream(20260917);
 
 let checks = 0;
 let failures = 0;

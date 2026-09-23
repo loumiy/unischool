@@ -26,9 +26,9 @@ import { legacy } from '../src/state/legacy';
 import { deriveCohortSignals, cohortBreakdown, athleticResultsFor } from '../src/systems/admissions/cohorts';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import type { Coach, GameState, StudentClub } from '../src/state/types';
+import { bindScriptStream } from '../src/engine/random';
 
-let seed = 20260921;
-Math.random = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+bindScriptStream(20260921);
 
 let checks = 0;
 let failures = 0;

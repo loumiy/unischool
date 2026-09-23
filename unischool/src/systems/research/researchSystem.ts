@@ -8,6 +8,7 @@ import {
 import { researchTopic } from '../../data/researchTopics';
 import { generateCandidate } from '../../data/facultyData';
 import { money } from '../../format';
+import { random } from '../../engine/random';
 
 // ---------------------------------------------------------------------
 // One ordinary pure tick function (see docs/design/research.md). It walks
@@ -108,7 +109,7 @@ function publish(s: GameState, initiative: Initiative, participants: Faculty[]):
   // A grant rides on the paper: a strong team pulls more money in — the
   // brief's "faculty research strength improves outcomes", applied where
   // it is most legible.
-  if (Math.random() < GRANT_PER_PUBLICATION_CHANCE) {
+  if (random() < GRANT_PER_PUBLICATION_CHANCE) {
     const amount = rollGrantAmount(s);
     const scaled = Math.round(amount * (0.7 + teamStrength(participants)));
     s.finance.cash += scaled;
@@ -124,7 +125,7 @@ function publish(s: GameState, initiative: Initiative, participants: Faculty[]):
 }
 
 function rollBreakthrough(s: GameState, initiative: Initiative, participants: Faculty[]): void {
-  if (Math.random() >= annualBreakthroughChance(initiative.depth, teamStrength(participants))) return;
+  if (random() >= annualBreakthroughChance(initiative.depth, teamStrength(participants))) return;
   const vocab = disciplineVocab(facilitySchool(initiative.labId));
   const topic = researchTopic(initiative.topicId);
   const where = topic ? `“${topic.name}”` : 'the project';
@@ -164,7 +165,7 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
     if (initiative.depth !== 'pilot' && initiative.publications === 0) publish(s, initiative, participants);
 
     const strength = teamStrength(participants);
-    if (Math.random() < awardChance(initiative.depth, strength, initiative.breakthroughs)) {
+    if (random() < awardChance(initiative.depth, strength, initiative.breakthroughs)) {
       // Drawn from the team that did the work, weighted by their own
       // output — so it usually, but not always, goes to the strongest
       // person on it.
@@ -256,7 +257,7 @@ export function endInitiative(s: GameState, labId: string, cancelled: boolean): 
 function pickFrom(participants: Faculty[]): Faculty | null {
   const total = participants.reduce((sum, f) => sum + facultyResearchOutput(f), 0);
   if (total <= 0) return participants[0] ?? null;
-  let roll = Math.random() * total;
+  let roll = random() * total;
   for (const f of participants) {
     roll -= facultyResearchOutput(f);
     if (roll <= 0) return f;

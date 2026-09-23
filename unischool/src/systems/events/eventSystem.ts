@@ -10,6 +10,7 @@ import {
 import { labEquippedFields } from '../../data/researchData';
 import { ELITE_CLOSE_ABOVE_PRESTIGE } from '../rivals/rivalsSystem';
 import { coachNamesInUse, rollAthleticDirectorCandidates, rollMascotSuggestion } from '../../data/studentLifeData';
+import { random } from '../../engine/random';
 
 // ---------------------------------------------------------------------
 // The week-to-week texture system. One ordinary pure tick function, last
@@ -290,7 +291,7 @@ function rollDecisionEvent(s: GameState): void {
 
   const week = absoluteWeek(s);
   if (s.events.lastDecisionWeek > 0 && week - s.events.lastDecisionWeek < DECISION_EVENT_COOLDOWN_WEEKS) return;
-  if (Math.random() >= DECISION_EVENT_WEEKLY_CHANCE) return;
+  if (random() >= DECISION_EVENT_WEEKLY_CHANCE) return;
 
   const eligible = DECISION_EVENTS.filter((event) => offCooldown(s, event, week) && event.eligible(s));
   if (eligible.length === 0) return;
@@ -338,7 +339,7 @@ function weightedPick(
   const total = events.reduce((sum, event) => sum + weightOf(event), 0);
   if (total <= 0) return null;
 
-  let roll = Math.random() * total;
+  let roll = random() * total;
   for (const event of events) {
     roll -= weightOf(event);
     if (roll > 0) continue;

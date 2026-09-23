@@ -25,15 +25,12 @@ import { buildYearInReview } from '../src/state/yearInReview';
 import { captureYearSnapshot } from '../src/state/history';
 import type { GameState } from '../src/state/types';
 import { WEEKS_PER_YEAR } from '../src/state/types';
+import { bindScriptStream } from '../src/engine/random';
 
 // The field's drift rolls dice; pinned to one stream (the sim's own LCG,
 // sim/balanceSim.ts) so the claims below are about the model and not the
 // weather. A claim that only holds on some streams is not pinned here.
-let seed = 12345;
-Math.random = () => {
-  seed = (seed * 1664525 + 1013904223) % 4294967296;
-  return seed / 4294967296;
-};
+bindScriptStream(12345);
 
 let checks = 0;
 let failures = 0;

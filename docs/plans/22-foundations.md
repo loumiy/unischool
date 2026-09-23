@@ -208,6 +208,35 @@ it trims comments in their final shape, not twice.
   bands are re-read over several seeds. Any band that moves beyond seed
   noise is called out in an **As implemented** note.
 
+**As implemented:**
+
+- **Tests and the harness bind their own streams.** They call game functions
+  directly, outside any action. `bindScriptStream(seed)` covers that. The
+  thirty test files that patched `Math.random` now call it instead.
+- **Two small seams for tests:**
+  - `overrideDraws` pins every draw, for the research tests that force an
+    award with a draw of 0 or prove there is no draw at all.
+  - `drawsSoFar` counts draws, for the two tests that assert a name clash
+    or a program offer costs no extra dice.
+- **`school-colors` no longer masks ids.** Two foundings from one seed now
+  compare whole, because ids come from the stream.
+- **One UI draw stays on `Math.random`.** The mascot modal's "another"
+  button only fills a text box, so it passes `Math.random` to
+  `rollMascotSuggestion` and leaves the game's stream alone.
+- **A browser smoke run is clean.** Founding a college and fast-forwarding
+  through the first summer into year 2 raised no errors.
+- **Two balance-regression claims moved.** On the game's own stream they
+  hold at some seeds, not all, so they are now judged across seeds with the
+  suite's existing `holds` policy:
+  - Curriculum rush "meaningfully above idle at year 20" was already
+    marginal. On the old stream it cleared the bar by 0.9 at the default
+    seed and failed at one of six seeds. It now clears it at two of six.
+  - The overbuilder "treading water at year 20" held at six of six seeds.
+    It now holds at four of six, at −42% of operating cost at the default
+    seed.
+  - Six seeds per side cannot separate a shift from noise. Both are flagged
+    for Phase N, which re-derives the bands for the merged economy anyway.
+
 ## PR 22E — Saving leaves the reducer; the action log and replay
 
 - **`saveGame` is called only by `useGame`.** It saves after an action that

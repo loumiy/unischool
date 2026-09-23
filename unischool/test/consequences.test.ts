@@ -22,9 +22,9 @@ import { instructionCapacity, intakeCeiling, SEATS_PER_COURSE } from '../src/sys
 import { programs } from '../src/data/techData';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../src/state/types';
 import type { GameState } from '../src/state/types';
+import { bindScriptStream } from '../src/engine/random';
 
-let seed = 31;
-Math.random = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+bindScriptStream(31);
 const store = new Map<string, string>();
 (globalThis as unknown as { localStorage: unknown }).localStorage = {
   getItem: (k: string) => (store.has(k) ? store.get(k)! : null),

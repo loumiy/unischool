@@ -34,7 +34,7 @@ import { WEEKS_PER_YEAR } from '../../state/types';
 //
 // THE DICE. A local PRNG (rivalData.ts's makeRivalRng) seeded from the
 // STATE — the school's name, the week, and how many programs are housed —
-// and NO draw on the global Math.random stream at all. This is the one
+// and NO draw on the game's random stream at all. This is the one
 // place the game deliberately does not roll: the first attempt took one
 // global draw per refill, the discipline rivalsSystem.ts's annual drift
 // keeps, and that single extra draw shifted every

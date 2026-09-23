@@ -14,6 +14,7 @@ import { dedicatedHalls, dedicatedSchool } from '../systems/techtree/schools';
 import { buildReportPayload, rankBy } from '../systems/rivals/rivalsSystem';
 import { money } from '../format';
 import { clamp } from '../math';
+import { random } from '../engine/random';
 
 // ---------------------------------------------------------------------
 // WEEK-TO-WEEK TEXTURE, AS AUTHORED DATA.
@@ -76,7 +77,7 @@ export function absoluteWeek(s: GameState): number {
 }
 
 function pick<T>(items: readonly T[]): T {
-  return items[Math.floor(Math.random() * items.length)];
+  return items[Math.floor(random() * items.length)];
 }
 
 // =====================================================================
@@ -1376,9 +1377,9 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       // the market usually turns up is the whole proposition.
       const used = coachNamesInUse(s);
       const adQuality = s.orgs.athleticDirector?.quality ?? 0;
-      let best = generateCoachCandidate(field, used, Math.random, undefined, adQuality);
+      let best = generateCoachCandidate(field, used, random, undefined, adQuality);
       for (let i = 1; i < AD_SHORTAGE_COACH_ROLLS; i += 1) {
-        const next = generateCoachCandidate(field, used, Math.random, undefined, adQuality);
+        const next = generateCoachCandidate(field, used, random, undefined, adQuality);
         if (next.qualityPotential > best.qualityPotential) best = next;
       }
       return {
@@ -1477,7 +1478,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
           const team = s.orgs.teams.find((t) => t.id === ctx.subjectId);
-          if (Math.random() < SCANDAL_FIGHT_SUCCESS) {
+          if (random() < SCANDAL_FIGHT_SUCCESS) {
             return entry(s, `The inquiry into ${ctx.subjectName} found nothing it could act on. No ban.`, 'good');
           }
           const through = (s.clock.week >= PLAYOFF_WEEK ? s.clock.year + 1 : s.clock.year) + 1;

@@ -1556,6 +1556,7 @@ export interface HallSlot {
 export type CourseFaculty = Record<string, string>;
 
 export interface GameState {
+  rng: number;                   // the random stream's position (see engine/random.ts)
   clock: GameClock;
   finance: Finance;
   students: StudentBody;

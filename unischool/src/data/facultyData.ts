@@ -1,6 +1,7 @@
 import type { Faculty } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { initialTech } from './techData';
+import { random, newId } from '../engine/random';
 
 // ---------------------------------------------------------------------
 // Name generation. Each pool is tagged with a shared cultural origin so
@@ -435,7 +436,7 @@ export const FACULTY_FIELD_GROUPS: FacultyFieldGroup[] = [
 export const FACULTY_FIELDS = FACULTY_FIELD_GROUPS.flatMap((group) => group.fields);
 
 function pick<T>(pool: T[]): T {
-  return pool[Math.floor(Math.random() * pool.length)];
+  return pool[Math.floor(random() * pool.length)];
 }
 
 // A weighting over NAME_POOLS: one weight per pool, in NAME_POOLS order,
@@ -476,10 +477,10 @@ const COACH_POOL_WEIGHTS: PoolWeighting = weighting(
 // NAME POOL itself gets picked — every rollSurname/rollCoachName/
 // rollFullName call site below routes through here rather than calling
 // pick(NAME_POOLS) directly, so the origin weighting applies everywhere a
-// name is rolled. ONE draw on Math.random whatever the weighting, which is
+// name is rolled. ONE draw on random() whatever the weighting, which is
 // what lets the coach weighting differ from faculty's without either
 // changing how many dice the game rolls.
-function pickPool(by: PoolWeighting, roll: () => number = Math.random): NamePool {
+function pickPool(by: PoolWeighting, roll: () => number = random): NamePool {
   let r = roll() * by.total;
   for (let i = 0; i < NAME_POOLS.length; i++) {
     r -= by.weights[i];
@@ -502,7 +503,7 @@ export function rollSurname(): string {
 // — the next surname in the same pool, then the next first name — until
 // `format` of the pair is free, and hands back that name. Takes NO dice:
 // the walk is deterministic off the pair the dice chose, so a roller that
-// calls it makes exactly the same number of Math.random draws whether or
+// calls it makes exactly the same number of random() draws whether or
 // not the first pair was taken. That is the property the seeded balance
 // harness (sim/balanceSim.ts) needs from a generator that runs thousands
 // of times a run: a collision can change a name, never a trajectory, and
@@ -540,7 +541,7 @@ function stepToFree(
 // director (see studentLifeData.ts's coachNamesInUse).
 //
 // THE DEDUPE TAKES NO EXTRA DICE (stepToFree above). The market rolls
-// thousands of these a run, and sim/balanceSim.ts seeds Math.random so a
+// thousands of these a run, and the game seeds its stream so a
 // forty-year run is reproducible — a generator whose draw count depended on
 // which names happened to be taken would move that whole stream on the
 // luck of a name clash (the discipline rivalData.ts's makeRivalRng exists
@@ -558,9 +559,9 @@ function stepToFree(
 // `roll` is the generator to draw from — the coach market's own local one
 // (Plan 21's PR J; see studentLifeData.ts's tickCoachCandidatePool) rather
 // than the global stream, so the SIZE of the market cannot decide how many
-// dice the game rolls. Defaults to Math.random for the callers that mint a
+// dice the game rolls. Defaults to random() for the callers that mint a
 // coach at event time.
-export function rollCoachName(gender: 'male' | 'female', existingNames: ReadonlySet<string>, roll: () => number = Math.random): RolledName {
+export function rollCoachName(gender: 'male' | 'female', existingNames: ReadonlySet<string>, roll: () => number = random): RolledName {
   const firstPool = pickPool(COACH_POOL_WEIGHTS, roll);
   const lastPool = roll() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pickPool(COACH_POOL_WEIGHTS, roll);
   const firsts = firstNamesFor(firstPool, gender);
@@ -590,10 +591,10 @@ interface RolledName {
 // now, always (five when the surname comes from a second pool).
 function rollFullName(existingNames: ReadonlySet<string>, gender: 'male' | 'female'): RolledName {
   const firstPool = pickPool(FACULTY_POOL_WEIGHTS);
-  const lastPool = Math.random() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pickPool(FACULTY_POOL_WEIGHTS);
+  const lastPool = random() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pickPool(FACULTY_POOL_WEIGHTS);
   const firsts = firstNamesFor(firstPool, gender);
-  const firstAt = Math.floor(Math.random() * firsts.length);
-  const lastAt = Math.floor(Math.random() * lastPool.last.length);
+  const firstAt = Math.floor(random() * firsts.length);
+  const lastAt = Math.floor(random() * lastPool.last.length);
   return {
     name: stepToFree(firsts, lastPool.last, firstAt, lastAt, existingNames, (first, last) => `Dr. ${first} ${last}`),
     origin: firstPool.origin,
@@ -674,7 +675,7 @@ export const ORIGIN_NATIONALITIES: Record<string, Array<{ nationality: string; f
 };
 
 function rollNationality(origin: string): { nationality: string; flag: string } {
-  if (Math.random() < AMERICAN_NATIONALITY_CHANCE) return AMERICAN_NATIONALITY;
+  if (random() < AMERICAN_NATIONALITY_CHANCE) return AMERICAN_NATIONALITY;
   return pick(ORIGIN_NATIONALITIES[origin] ?? [AMERICAN_NATIONALITY]);
 }
 
@@ -682,7 +683,7 @@ function rollNationality(origin: string): { nationality: string; flag: string } 
 // names themselves are gender-neutral by design (see rollFullName), so this
 // is a fresh roll rather than a lookup keyed off one.
 function rollGender(): 'male' | 'female' {
-  return Math.random() < 0.5 ? 'male' : 'female';
+  return random() < 0.5 ? 'male' : 'female';
 }
 
 // ---------------------------------------------------------------------
@@ -894,7 +895,7 @@ export const SLOT_GROWTH_INTERVAL_WEEKS = 104; // +1 slot every 2 years of tenur
 export const MAX_FACULTY_SLOTS = 10;
 
 function rollBaseCourseSlots(): number {
-  return FACULTY_BASE_SLOTS_MIN + Math.floor(Math.random() * (FACULTY_BASE_SLOTS_RANGE + 1));
+  return FACULTY_BASE_SLOTS_MIN + Math.floor(random() * (FACULTY_BASE_SLOTS_RANGE + 1));
 }
 
 // A display-only bucketing of a hire's current (teaching+research)/2 into a
@@ -1058,7 +1059,7 @@ function candidateListingWeights(): Array<{ field: string; weight: number }> {
 // each field is to hire into.
 export function rollCandidateField(): string {
   const weights = candidateListingWeights();
-  let roll = Math.random() * listingWeightTotal;
+  let roll = random() * listingWeightTotal;
   for (const entry of weights) {
     roll -= entry.weight;
     if (roll <= 0) return entry.field;
@@ -1071,15 +1072,15 @@ export function rollCandidateField(): string {
 // (roster + candidate pool) so the new name can't collide with one of them.
 export function generateCandidate(field: string, existingNames: Iterable<string> = []): Faculty {
   const used = new Set(existingNames);
-  const teachingPotential = FACULTY_POTENTIAL_MIN + Math.round(Math.random() * FACULTY_POTENTIAL_RANGE);
-  const researchPotential = FACULTY_POTENTIAL_MIN + Math.round(Math.random() * FACULTY_POTENTIAL_RANGE);
+  const teachingPotential = FACULTY_POTENTIAL_MIN + Math.round(random() * FACULTY_POTENTIAL_RANGE);
+  const researchPotential = FACULTY_POTENTIAL_MIN + Math.round(random() * FACULTY_POTENTIAL_RANGE);
   const teaching = grownStat(teachingPotential, 0);
   const research = grownStat(researchPotential, 0);
   const gender = rollGender();
   const { name, origin } = rollFullName(used, gender);
   const { nationality, flag } = rollNationality(origin);
   return {
-    id: crypto.randomUUID(),
+    id: newId(),
     name,
     field,
     teaching,
@@ -1115,7 +1116,7 @@ export function initialCandidatePool(): Faculty[] {
   const names: string[] = [];
   for (let i = 0; i < CANDIDATE_POOL_TARGET; i += 1) {
     const candidate = generateCandidate(rollCandidateField(), names);
-    candidate.weeksListed = Math.floor(Math.random() * CANDIDATE_LISTING_WEEKS);
+    candidate.weeksListed = Math.floor(random() * CANDIDATE_LISTING_WEEKS);
     pool.push(candidate);
     names.push(candidate.name);
   }

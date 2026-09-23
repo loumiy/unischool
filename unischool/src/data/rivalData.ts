@@ -37,7 +37,7 @@ import { rivalColorsFor } from './schoolColors';
 // bigger program, on average) while staying genuinely independent per
 // school — a reputable college can be an athletic minnow and a mid-table
 // university can be a real power, same as real conferences. Deterministic
-// off the id (not Math.random()) so it's stable across a run rather than
+// off the id (not random()) so it's stable across a run rather than
 // reshuffling on every reload.
 // FNV-1a over the string, then Murmur3's finalizer to avalanche it.
 //
@@ -74,7 +74,7 @@ export function hashUnit(id: string): number {
 }
 
 // A small local PRNG, seeded once and then run independently of
-// Math.random — see systems/rivals/rivalsSystem.ts's annual drift for the
+// random() — see systems/rivals/rivalsSystem.ts's annual drift for the
 // first caller and the reason it exists: one draw on the global stream per
 // event, however many numbers the event then needs. The program offer
 // draw (systems/techtree/programOffers.ts) rides it for the same reason.

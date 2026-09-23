@@ -6,6 +6,7 @@ import { totalEnrolled, WEEKS_PER_YEAR } from '../state/types';
 import { weeksOfOpEx } from './moneyScale';
 import { rollCoachName } from './facultyData';
 import { makeRivalRng } from './rivalData';
+import { random, newId } from '../engine/random';
 
 // ---------------------------------------------------------------------
 // STUDENT ORGANISATIONS, AS DATA (see docs/design/student-life.md). Two
@@ -252,7 +253,7 @@ export function glyphsFor(name: string): string {
 }
 
 function pick<T>(items: readonly T[]): T {
-  return items[Math.floor(Math.random() * items.length)];
+  return items[Math.floor(random() * items.length)];
 }
 
 // =====================================================================
@@ -551,7 +552,7 @@ function allCoachFields(): readonly string[] {
 // weight against, so every field is an equally likely listing. A simpler
 // market than faculty's, matching the shallower depth this whole feature
 // asks for.
-export function rollCoachField(roll: () => number = Math.random): string {
+export function rollCoachField(roll: () => number = random): string {
   const fields = allCoachFields();
   return fields[Math.floor(roll() * fields.length)];
 }
@@ -735,7 +736,7 @@ const NO_NAMES: ReadonlySet<string> = new Set();
 export function generateCoachCandidate(
   field: string,
   existingNames: ReadonlySet<string> = NO_NAMES,
-  roll: () => number = Math.random,
+  roll: () => number = random,
   band?: CoachBand,
   // The director's quality, for how well the ceiling is scouted (PR K); 0
   // for a department with none.
@@ -755,7 +756,7 @@ export function generateCoachCandidate(
   const gender = rollCoachGender(field, roll);
   const rolled = rollCoachName(gender, existingNames, roll);
   return {
-    id: crypto.randomUUID(),
+    id: newId(),
     name: rolled.name,
     gender,
     heritage: rolled.origin,
@@ -815,12 +816,12 @@ export function adSalaryFor(quality: number): number {
 export function rollAthleticDirectorCandidates(existingNames: ReadonlySet<string> = NO_NAMES): Coach[] {
   const used = new Set(existingNames);
   return AD_TIERS.map((tier) => {
-    const quality = tier.min + Math.round(Math.random() * tier.range);
-    const gender = Math.random() < 0.5 ? 'male' : 'female';
+    const quality = tier.min + Math.round(random() * tier.range);
+    const gender = random() < 0.5 ? 'male' : 'female';
     const rolled = rollCoachName(gender, used);
     used.add(rolled.name);
     return {
-      id: crypto.randomUUID(),
+      id: newId(),
       name: rolled.name,
       gender,
       heritage: rolled.origin,
@@ -830,7 +831,7 @@ export function rollAthleticDirectorCandidates(existingNames: ReadonlySet<string
       // this model — there is one of them, they are hired once, and a second
       // appreciating-asset arc would be machinery nothing reads.
       qualityPotential: quality,
-      age: 45 + Math.floor(Math.random() * 14),
+      age: 45 + Math.floor(random() * 14),
       startQuality: quality,
       plateauYears: VETERAN_PLATEAU_YEARS,
       scouted: [quality, quality],
@@ -873,8 +874,11 @@ const MASCOT_SUGGESTIONS: readonly string[] = [
 // has to fit beside a school's own name.
 export const MASCOT_MAX_LENGTH = 24;
 
-export function rollMascotSuggestion(): string {
-  return MASCOT_SUGGESTIONS[Math.floor(Math.random() * MASCOT_SUGGESTIONS.length)];
+// `roll` defaults to the game's stream. The modal's "another" button passes
+// Math.random instead: a suggestion there is only text in an input until the
+// player submits it, so it must not move the game's stream.
+export function rollMascotSuggestion(roll: () => number = random): string {
+  return MASCOT_SUGGESTIONS[Math.floor(roll() * MASCOT_SUGGESTIONS.length)];
 }
 
 // HOW MANY ARE LISTED, AND WHY THE NUMBER IS FREE TO TUNE (Plan 21's PR J).
@@ -882,8 +886,8 @@ export function rollMascotSuggestion(): string {
 // sport per year, so a new team could carry an empty chair for a year
 // because nobody rolled — and the raise to 44 was proposed in Plan 08 and
 // deferred twice, because the pool was seeded and refilled straight off
-// Math.random and its SIZE decided how many times the game rolled a die,
-// which moved sim/balanceSim.ts's seeded stream. That was a test harness
+// random() and its SIZE decided how many times the game rolled a die,
+// which moved the game's seeded stream. That was a test harness
 // setting a content value. The market now has a generator of its own: one
 // draw on the global stream a week, and everything the week mints comes
 // off a local PRNG seeded from it (the discipline rivalsSystem.ts's annual
@@ -896,7 +900,7 @@ const COACH_CANDIDATE_ARRIVALS_PER_WEEK_MAX = 5;
 
 // One draw on the global stream, and a generator for everything after it.
 export function marketRng(): () => number {
-  return makeRivalRng(Math.floor(Math.random() * 4294967296));
+  return makeRivalRng(Math.floor(random() * 4294967296));
 }
 
 export function initialCoachCandidatePool(): Coach[] {
@@ -1193,7 +1197,7 @@ export function applyTeamOrder(s: GameState, order: string[]): string[] {
   const left: string[] = [];
   for (const p of after.programs) {
     const was = before.get(p.team.id) ?? 0;
-    if (was >= 0.999 && p.funded < 0.999 && p.team.headCoach && Math.random() < DEMOTED_HEAD_COACH_LEAVES_CHANCE) {
+    if (was >= 0.999 && p.funded < 0.999 && p.team.headCoach && random() < DEMOTED_HEAD_COACH_LEAVES_CHANCE) {
       left.push(`${p.team.headCoach.name} (${p.team.name})`);
       p.team.headCoach = null;
     }
@@ -1439,7 +1443,7 @@ export function canFormChapter(s: GameState): boolean {
 // =====================================================================
 
 function rollFoundingMembers(base: number): number {
-  const spread = 1 - ORG_FOUNDING_MEMBERS_VARIATION + Math.random() * (2 * ORG_FOUNDING_MEMBERS_VARIATION);
+  const spread = 1 - ORG_FOUNDING_MEMBERS_VARIATION + random() * (2 * ORG_FOUNDING_MEMBERS_VARIATION);
   return Math.max(1, Math.round(base * spread));
 }
 
@@ -1486,11 +1490,11 @@ export function rollClubPetition(s: GameState): OrgPetition | null {
   // the sport draw comes up empty (every sport already fielded or already
   // varsity), this falls straight back to an ordinary club rather than
   // wasting the week's formation.
-  const sportDef = sportClubOverdue(s) || Math.random() < SPORT_CLUB_SHARE ? rollSportClub(s) : null;
+  const sportDef = sportClubOverdue(s) || random() < SPORT_CLUB_SHARE ? rollSportClub(s) : null;
   const name = sportDef?.clubName ?? nextClubName(s);
   if (name === null) return null;
   return {
-    id: crypto.randomUUID(),
+    id: newId(),
     kind: 'club',
     name,
     sport: sportDef?.id ?? null,
@@ -1505,10 +1509,10 @@ export function rollChapterPetition(s: GameState): OrgPetition | null {
   const name = nextChapterName(s);
   if (name === null) return null;
   return {
-    id: crypto.randomUUID(),
+    id: newId(),
     kind: 'chapter',
     name,
-    greekKind: Math.random() < 0.5 ? 'fraternity' : 'sorority',
+    greekKind: random() < 0.5 ? 'fraternity' : 'sorority',
     foundedYear: s.clock.year,
     foundingMembers: rollFoundingMembers(CHAPTER_FOUNDING_MEMBERS),
     foundingEnrolled: Math.max(1, totalEnrolled(s.students)),

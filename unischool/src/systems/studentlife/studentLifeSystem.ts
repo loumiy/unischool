@@ -4,6 +4,7 @@ import {
   CHAPTER_FORMATION_WEEKLY_CHANCE, CLUB_FORMATION_WEEKLY_CHANCE, ORG_FORMATION_COOLDOWN_WEEKS,
   canFormChapter, canFormClub, hasStudentCenter, rollChapterPetition, rollClubPetition, venueForCategory,
 } from '../../data/studentLifeData';
+import { random } from '../../engine/random';
 
 // ---------------------------------------------------------------------
 // One ordinary pure tick function (see docs/design/student-life.md). All
@@ -100,7 +101,7 @@ export function tickStudentLife(s: GameState): void {
   // means at most one formation a week. Chapters go first because their
   // roll is much the rarer of the two and losing it to a club every time
   // would make an approved council feel like nothing happened.
-  if (canFormChapter(s) && Math.random() < CHAPTER_FORMATION_WEEKLY_CHANCE) {
+  if (canFormChapter(s) && random() < CHAPTER_FORMATION_WEEKLY_CHANCE) {
     const petition = rollChapterPetition(s);
     if (petition) {
       raise(s, petition);
@@ -108,7 +109,7 @@ export function tickStudentLife(s: GameState): void {
     }
   }
 
-  if (canFormClub(s) && Math.random() < CLUB_FORMATION_WEEKLY_CHANCE) {
+  if (canFormClub(s) && random() < CLUB_FORMATION_WEEKLY_CHANCE) {
     const petition = rollClubPetition(s);
     if (petition) raise(s, petition);
   }

@@ -129,7 +129,8 @@ export const SAVE_KEY = 'unischool.save';
 // but the rest of the plan's fields land under the same number.
 // v69: Plan 22 PR C. `ResearchState.points`, `ResearchState.lifetimePoints`
 // and `SeenState.candidateIds` leave the shape; nothing read them.
-export const SAVE_VERSION = 69;
+// v70: Plan 22 PR D. `s.rng` (the random stream's position), required.
+export const SAVE_VERSION = 70;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch

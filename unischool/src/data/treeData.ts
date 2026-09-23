@@ -1,6 +1,7 @@
 import type { Placements, Trees } from '../state/types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import { pathTileKey, placementTiles } from '../state/campusMap';
+import { random } from '../engine/random';
 
 // ---------------------------------------------------------------------
 // THE FOUNDING WOODLAND. What generates a new campus's trees (see
@@ -50,7 +51,7 @@ const CLEARING_RADIUS = 18;
 export const TREE_SEED_RANGE = 1 << 20;
 
 function randomSeed(): number {
-  return Math.floor(Math.random() * TREE_SEED_RANGE);
+  return Math.floor(random() * TREE_SEED_RANGE);
 }
 
 // Every tile any already-placed Buildable stands on. A founding campus has
@@ -70,7 +71,7 @@ function occupiedTiles(placements: Placements): Set<string> {
 // wanted here — most trees near their grove's centre, a few out at the
 // edge.
 function clustered(): number {
-  return (Math.random() + Math.random()) - 1;
+  return (random() + random()) - 1;
 }
 
 export function seedTrees(placements: Placements): Trees {
@@ -94,8 +95,8 @@ export function seedTrees(placements: Placements): Trees {
   // GROVE_COUNT on such a run costs nothing — the scatter below still fills
   // the map out to TREE_COVERAGE.
   for (let attempt = 0; attempt < GROVE_COUNT * 8 && centres.length < GROVE_COUNT; attempt++) {
-    const row = Math.floor(Math.random() * CAMPUS_GRID_HEIGHT);
-    const col = Math.floor(Math.random() * CAMPUS_GRID_WIDTH);
+    const row = Math.floor(random() * CAMPUS_GRID_HEIGHT);
+    const col = Math.floor(random() * CAMPUS_GRID_WIDTH);
     if (Math.hypot(row - midRow, col - midCol) < CLEARING_RADIUS) continue;
     centres.push({ row, col });
   }
@@ -113,8 +114,8 @@ export function seedTrees(placements: Placements): Trees {
   // clearing, so the open middle is a meadow rather than a bald patch.
   for (let i = inGroves; i < total; i++) {
     plant(
-      Math.floor(Math.random() * CAMPUS_GRID_HEIGHT),
-      Math.floor(Math.random() * CAMPUS_GRID_WIDTH),
+      Math.floor(random() * CAMPUS_GRID_HEIGHT),
+      Math.floor(random() * CAMPUS_GRID_WIDTH),
     );
   }
 

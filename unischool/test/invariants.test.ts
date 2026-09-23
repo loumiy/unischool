@@ -35,9 +35,9 @@ import {
   computePrestigeTarget, computeResearchTarget, computeSocialTarget,
   prestigeBreakdown, researchStandingBreakdown, socialStandingBreakdown,
 } from '../src/systems/prestige/prestigeSystem';
+import { bindScriptStream } from '../src/engine/random';
 
-let seed = 12345;
-Math.random = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+bindScriptStream(12345);
 const store = new Map<string, string>();
 (globalThis as unknown as { localStorage: unknown }).localStorage = {
   getItem: (k: string) => (store.has(k) ? store.get(k)! : null),

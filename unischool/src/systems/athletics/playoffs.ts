@@ -2,6 +2,7 @@ import type { GameState, SeasonResult } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
 import { makeRivalRng, sportStrengthFor } from '../../data/rivalData';
 import { sportRankedList } from '../../systems/rivals/rivalsSystem';
+import { random } from '../../engine/random';
 
 // ---------------------------------------------------------------------
 // THE POSTSEASON.
@@ -113,7 +114,7 @@ export function runPlayoffs(s: GameState): void {
   // and 1C extended. The number of brackets is a function of how much
   // athletics a player has chosen to build, and that must not decide how many
   // times the game rolls a die.
-  const roll = makeRivalRng(Math.floor(Math.random() * 4294967296));
+  const roll = makeRivalRng(Math.floor(random() * 4294967296));
 
   for (const team of s.orgs.teams) {
     if (team.status !== 'active') continue;

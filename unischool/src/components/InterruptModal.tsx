@@ -1189,7 +1189,7 @@ function FirstSportClubView({ s, payload, onResolve }: {
           onChange={(e) => setMascot(e.target.value)}
           aria-label="Mascot"
         />
-        <button type="button" className="ad-mascot-roll" onClick={() => setMascot(rollMascotSuggestion())}>
+        <button type="button" className="ad-mascot-roll" onClick={() => setMascot(rollMascotSuggestion(Math.random))}>
           another
         </button>
       </label>
@@ -1246,7 +1246,7 @@ function AthleticDirectorView({ s, payload, onResolve }: {
             onChange={(e) => setMascot(e.target.value)}
             aria-label="Mascot"
           />
-          <button type="button" className="ad-mascot-roll" onClick={() => setMascot(rollMascotSuggestion())}>
+          <button type="button" className="ad-mascot-roll" onClick={() => setMascot(rollMascotSuggestion(Math.random))}>
             another
           </button>
         </label>

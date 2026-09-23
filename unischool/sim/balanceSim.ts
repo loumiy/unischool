@@ -62,31 +62,21 @@ import { demandSubject } from '../src/data/demandData';
 import { discoverySchools } from '../src/data/techData';
 import { TRAINER_FIELD, hasStudentCenter, varsityTeamUpkeep } from '../src/data/studentLifeData';
 import { LIBRARY_TIER1_ID, nextLibraryFloor } from '../src/data/facilitiesData';
+import { bindScriptStream } from '../src/engine/random';
 
 // ---------------------------------------------------------------------
-// Deterministic environment. The game rolls dice (faculty potentials,
-// rival drift, posting timelines) and saves to localStorage; a harness
-// wants the same run every time and no browser, so Math.random is seeded
-// and localStorage is stubbed here rather than either being made optional
-// anywhere in the game code. (crypto.randomUUID is left alone — Node has
-// it, and faculty ids never affect a trajectory.)
+// Deterministic environment. A run is founded from a seed and carries its
+// own random stream in the state (engine/random.ts), so the same seed plays
+// the same game. localStorage is stubbed, since the game saves to it.
 // ---------------------------------------------------------------------
 // One fixed seed by default, so `npm run sim` is the same run every time
 // and a trajectory can be diffed against the last one. SIM_SEED overrides
 // it, which is what makes a balance claim checkable rather than anecdotal:
-// any content change that alters how many times Math.random is called —
-// adding a faculty field, adding courses, anything that shifts the
-// candidate-market draw — moves the whole stream, so a single seed cannot
-// tell "this rebalanced the game" from "this reshuffled the dice". Run a
-// few seeds before believing either.
+// any content change that alters how many draws the game makes moves the
+// whole stream, so a single seed cannot tell "this rebalanced the game"
+// from "this reshuffled the dice". Run a few seeds before believing either.
 //   SIM_SEED=7 npm run sim -- 60 5
 export const DEFAULT_SIM_SEED = Number(process.env.SIM_SEED ?? 12345);
-const INITIAL_SEED = DEFAULT_SIM_SEED;
-let seed = INITIAL_SEED;
-Math.random = () => {
-  seed = (seed * 1664525 + 1013904223) % 4294967296;
-  return seed / 4294967296;
-};
 const fakeStorage = new Map<string, string>();
 (globalThis as unknown as { localStorage: unknown }).localStorage = {
   getItem: (k: string) => fakeStorage.get(k) ?? null,
@@ -1282,15 +1272,17 @@ const GREEK_EVENT_IDS = ['hellenic-council', 'greek-scandal', 'greek-housing'];
 const VENUE_IDS = ['ATH-FIELD', 'ATH-ARENA', 'ATH-DIAMOND', 'ATH-NATATORIUM', 'ATH-STADIUM'];
 
 // Resets the two pieces of shared, mutable module state a run depends on
-// for reproducibility (the seeded RNG and the fake localStorage) so `play`
+// for reproducibility (the seed and the fake localStorage) so `play`
 // is self-contained and deterministic regardless of what ran before it in
 // the same process — the CLI loop below relies on this, and so does
 // test/balance-regression.test.ts, which calls `play` for several
 // strategies in one process and would otherwise have each run inherit
 // RNG/storage state left over by whichever ran first.
-function resetSimEnvironment(seedOverride?: number): void {
-  seed = seedOverride ?? INITIAL_SEED;
+function resetSimEnvironment(seedOverride?: number): number {
+  const seed = seedOverride ?? DEFAULT_SIM_SEED;
+  bindScriptStream(seed); // for the harness's own direct calls into game code
   fakeStorage.clear();
+  return seed;
 }
 
 // `onWeek`, when given, is called with the post-TICK state after every
@@ -1325,13 +1317,13 @@ export function play(
   // so the run it came from is untouched.
   from?: GameState,
 ): { rows: Row[]; tally: EventTally; venuesBuilt: string[]; state: GameState } {
-  resetSimEnvironment(seedOverride);
+  const seed = resetSimEnvironment(seedOverride);
   let s: GameState;
   if (from) {
     s = structuredClone(from);
   } else {
     s = createPreStartState();
-    s = reducer(s, { type: 'START_GAME', name: 'Test University', vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS) });
+    s = reducer(s, { type: 'START_GAME', name: 'Test University', vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), seed });
   }
   const dispatch = (a: Action) => { s = reducer(s, a); };
   // The same dispatch, counted. Handed to decide() alone, so what it

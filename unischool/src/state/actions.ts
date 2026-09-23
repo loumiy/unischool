@@ -23,6 +23,7 @@ import {
 } from '../data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../data/schoolColors';
 import { OPENING_LETTERS } from '../data/eventData';
+import { DEFAULT_SEED, withRandom } from '../engine/random';
 
 // A founded university opens with a near-empty campus, with ONE exception:
 // Founders Hall (techData.ts's FOUNDERS_HALL_ID), pre-built ('done')
@@ -87,7 +88,7 @@ export type Action =
   // clock and Founders Hall waits to be sited (see state/opening.ts). Omitted by the sim, the tests and the scenario tool,
   // which open at 'play' with the hall pre-placed, as every founding did
   // before the walk existed.
-  | { type: 'START_GAME'; name: string; vernacular: Vernacular; colors: SchoolColors; guided?: boolean }
+  | { type: 'START_GAME'; name: string; vernacular: Vernacular; colors: SchoolColors; guided?: boolean; seed?: number }
   // The opening walkthrough's two Next buttons (welcome -> site the hall;
   // teaching -> found a fourth program), and its one decline. Declining places
   // Founders Hall where a headless founding would have and stands the
@@ -409,6 +410,7 @@ export type Action =
 // runs until the player actually founds the university via START_GAME.
 export function createPreStartState(): GameState {
   return {
+    rng: DEFAULT_SEED,
     clock: { year: 1, week: 1 },
     finance: {
       cash: 0, endowment: 0, endowmentCampaigns: 0, weeksInTheRed: 0,
@@ -486,7 +488,23 @@ export function createPreStartState(): GameState {
 // name is the WHOLE of what the startup screen asks for since Plan 07's
 // PR C — every other founding condition comes from FOUNDING_PRESET, which
 // is the same for every school (see data/foundingData.ts).
+// Founds a university from a seed: every draw the founding makes (the
+// rivals, the candidate pool, the woodland) comes from that seed's stream,
+// and the state carries the stream on from where the founding left it.
 export function createInitialState(
+  name: string,
+  vernacular: Vernacular = FOUNDING_VERNACULAR,
+  colors: SchoolColors = schoolColorsOf(FOUNDING_COLORS),
+  guided = false,
+  seed = DEFAULT_SEED,
+): GameState {
+  const stream = { rng: seed | 0 };
+  const state = withRandom(stream, () => foundState(name, vernacular, colors, guided));
+  state.rng = stream.rng;
+  return state;
+}
+
+function foundState(
   name: string,
   vernacular: Vernacular = FOUNDING_VERNACULAR,
   // The school's colour pair (Plan 18's PR B), defaulted like the
@@ -541,6 +559,7 @@ export function createInitialState(
   const foundingTuition = STARTING_TUITION;
 
   const state: GameState = {
+    rng: 0, // written by createInitialState once the founding draws are done
     clock: { year: 1, week: 1 },
     finance: {
       cash: preset.startingCash,

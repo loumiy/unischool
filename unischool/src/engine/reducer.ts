@@ -44,6 +44,7 @@ import { captureYearSnapshot } from '../state/history';
 import { legacy } from '../state/legacy';
 import { saveGame, clearSave } from '../state/persistence';
 import { money } from '../format';
+import { random, withRandom } from './random';
 
 // The systems run in a fixed order each week. Order matters: research and
 // finance resolve before admissions/rivals read the updated world;
@@ -234,9 +235,13 @@ function advanceClock(s: GameState): void {
 }
 
 export function reducer(state: GameState, action: Action): GameState {
-  // Clone so systems can mutate freely without touching the previous state.
+  // Clone so systems can mutate freely without touching the previous state,
+  // and bind the clone's random stream for every draw this action makes.
   const s: GameState = structuredClone(state);
+  return withRandom(s, () => reduce(state, s, action));
+}
 
+function reduce(state: GameState, s: GameState, action: Action): GameState {
   switch (action.type) {
     case 'TICK': {
       // The clock halts while an interrupt is pending, and while the opening
@@ -259,7 +264,7 @@ export function reducer(state: GameState, action: Action): GameState {
       // universities and a write from inside the reducer could persist the
       // one React discards. The founding save is taken in useGame.ts
       // instead, from the state actually committed — see the note above.
-      return createInitialState(action.name, action.vernacular, action.colors, action.guided ?? false);
+      return createInitialState(action.name, action.vernacular, action.colors, action.guided ?? false, action.seed);
 
     // The opening walkthrough's two Next buttons and its decline (see
     // state/opening.ts). The steps that end on something DONE
@@ -580,7 +585,7 @@ export function reducer(state: GameState, action: Action): GameState {
       if (!isInBounds(row, col)) return s;
       const key = pathTileKey(action.tile);
       if (key in s.pathways || occupantAt(s.placements, row, col) !== undefined) return s;
-      if (!(key in s.trees)) s.trees[key] = Math.floor(Math.random() * TREE_SEED_RANGE);
+      if (!(key in s.trees)) s.trees[key] = Math.floor(random() * TREE_SEED_RANGE);
       return s;
     }
 
