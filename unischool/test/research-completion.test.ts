@@ -24,6 +24,12 @@ import { labFields } from '../src/data/techData';
 import { RESEARCH_TOPICS } from '../src/data/researchTopics';
 import type { Faculty, GameState, InitiativeReport } from '../src/state/types';
 
+// Read through a call so TypeScript does not narrow the interrupt to what
+// the test last assigned: the system under test sets it.
+function interruptType(g: GameState): string | undefined {
+  return g.pendingInterrupt?.type;
+}
+
 let seed = 24680;
 const seededRandom = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
 Math.random = seededRandom;
@@ -162,7 +168,7 @@ console.log('research completion tests');
 
   s.pendingInterrupt = null;
   tickEvents(s);
-  assert(s.pendingInterrupt?.type === 'research-complete', 'the next quiet week reports one of them');
+  assert(interruptType(s) === 'research-complete', 'the next quiet week reports one of them');
   const raised = (s.pendingInterrupt!.payload as { report: InitiativeReport }).report;
   assert(raised.labId === labId, 'the one that has been waiting longest');
   assert(s.research.pendingCompletions.length === 1, 'and the other stays queued rather than sharing the modal');
@@ -172,7 +178,7 @@ console.log('research completion tests');
 
   after.pendingInterrupt = null;
   tickEvents(after);
-  assert(after.pendingInterrupt?.type === 'research-complete', 'the next quiet week reports the second');
+  assert(interruptType(after) === 'research-complete', 'the next quiet week reports the second');
   assert(after.research.pendingCompletions.length === 0, 'and the queue is empty');
 }
 
@@ -183,7 +189,7 @@ console.log('research completion tests');
   s.research.pendingCompletions = [];
   tickEvents(s);
   assert(
-    s.pendingInterrupt?.type !== 'research-complete',
+    interruptType(s) !== 'research-complete',
     'an empty queue never raises a report',
   );
 }

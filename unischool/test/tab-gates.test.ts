@@ -72,7 +72,7 @@ console.log('tab gate tests');
 
   lab!.status = 'available';
   assert(!tabAvailable(s, 'research'), 'a lab that can be built does not open Research');
-  lab!.status = 'inProgress';
+  lab!.status = 'developing';
   assert(!tabAvailable(s, 'research'), 'nor does one under construction');
   lab!.status = 'done';
   assert(tabAvailable(s, 'research'), 'a FINISHED lab opens Research');

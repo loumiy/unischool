@@ -49,7 +49,7 @@ function assert(cond: boolean, msg: string): void {
 const FIELD = 'Physics';
 
 function bare(): GameState {
-  const s = createInitialState('Ashcombe', 'private');
+  const s = createInitialState('Ashcombe');
   s.faculty = s.faculty.filter((f) => f.field !== FIELD);
   s.candidates = s.candidates.filter((c) => c.field !== FIELD);
   for (const t of s.tech) {
@@ -81,7 +81,7 @@ console.log('faculty capacity tests');
 
 // --- the taxonomy is rendered whole ------------------------------------
 {
-  const s = createInitialState('Ashcombe', 'private');
+  const s = createInitialState('Ashcombe');
   const cap = facultyCapacity(s);
 
   assert(cap.fields.length === FACULTY_FIELDS.length,
@@ -111,7 +111,7 @@ console.log('faculty capacity tests');
 
 // --- the figures are nested, so the meter cannot overdraw ---------------
 {
-  const s = createInitialState('Ashcombe', 'private');
+  const s = createInitialState('Ashcombe');
   const cap = facultyCapacity(s);
   for (const c of cap.fields) {
     assert(c.offered + c.available <= c.catalogue,
@@ -129,7 +129,7 @@ console.log('faculty capacity tests');
   // Slots do not transfer between departments, so hiring sixty physicists
   // does not shorten the queue in Law — and `catalogue - supply` on the
   // totals says it does.
-  const s = createInitialState('Ashcombe', 'private');
+  const s = createInitialState('Ashcombe');
   const before = facultyCapacity(s);
 
   for (let i = 0; i < 60; i += 1) s.faculty.push(person(`glut${i}`, 10));

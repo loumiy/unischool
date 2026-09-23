@@ -63,7 +63,7 @@ function withSignal(overrides: Partial<CohortSignals>): CohortSignals {
 // only the structural signal under test varies.
 // =====================================================================
 {
-  const factorAt = (signals: CohortSignals) => cohortDemandFactor(signals, TOLERANCE, TOLERANCE, 0);
+  const factorAt = (signals: CohortSignals) => cohortDemandFactor(signals, TOLERANCE, TOLERANCE);
   const cases: Array<{ label: string; low: CohortSignals; high: CohortSignals }> = [
     { label: 'distinguishedDepth (high achievers)', low: withSignal({ distinguishedDepth: 0 }), high: withSignal({ distinguishedDepth: 12 }) },
     { label: 'professionalPrograms (pre-professional)', low: withSignal({ professionalPrograms: 0 }), high: withSignal({ professionalPrograms: 18 }) },
@@ -107,12 +107,12 @@ function withSignal(overrides: Partial<CohortSignals>): CohortSignals {
     distinguishedDepth: 1000, professionalPrograms: 1000, researchRate: 1000, labCount: 1000,
     socialOrgCount: 1000, artsPrograms: 1000, artsFacilities: 1000, activeTeams: 1000, athleticsQuality: 100,
   });
-  const factor = cohortDemandFactor(maxedOut, TOLERANCE, 0, 0); // net price 0: price-sensitive also maxed
+  const factor = cohortDemandFactor(maxedOut, TOLERANCE, 0); // net price 0: price-sensitive also maxed
   assert(factor > 0, `cohortDemandFactor stays positive even at absurd signal values (got ${factor})`);
   assert(factor < 3, `cohortDemandFactor stays bounded even at absurd signal values, no single cohort runs away (got ${factor})`);
 
   const zeroedOutAndExpensive = withSignal({});
-  const worstCase = cohortDemandFactor(zeroedOutAndExpensive, TOLERANCE, TOLERANCE * 10, 0);
+  const worstCase = cohortDemandFactor(zeroedOutAndExpensive, TOLERANCE, TOLERANCE * 10);
   assert(worstCase > 0, `cohortDemandFactor stays positive even at a reckless sticker with nothing built (got ${worstCase})`);
 }
 

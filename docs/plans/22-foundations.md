@@ -79,9 +79,9 @@ it trims comments in their final shape, not twice.
     child processes.
   - It prints every result, lists the failures at the end, and exits
     non-zero if any suite failed.
-  - `npm test` runs the fast suites. `npm run test:slow` runs the suites
-    that play whole games (the balance, scorecard, endpoint and invariant
-    sweeps). `npm run test:all` runs both.
+  - `npm test` runs the fast suites. `npm run test:slow` runs the three
+    suites that play whole games (the balance regression, the scorecard and
+    the endpoint). `npm run test:all` runs both.
   - `npm test -- week-clock` runs one suite by name.
 - **The suites stay standalone scripts.** A move to Vitest was considered and
   rejected. Every suite is already a script that counts its checks and exits
@@ -92,6 +92,28 @@ it trims comments in their final shape, not twice.
 - **CI.** `.github/workflows/ci.yml` runs `npm ci`, the typecheck, lint, the
   fast suites and the build on every push and PR. The slow suites run as a
   second job in parallel.
+
+**As implemented:**
+
+- **The fast suites take 20 seconds.** 53 suites finish in 19.5s on four
+  cores. The three slow ones take several minutes each. The old chain ran
+  everything one at a time in 26m40s.
+- **Six of the 22 type errors were not drift.** They came from TypeScript
+  narrowing `s.pendingInterrupt` to `null` after the test assigned it, not
+  knowing that the system under test sets it again. They now read the
+  interrupt through a small `interruptType(s)` helper.
+- **The other sixteen were real drift:**
+  - Five calls passed `'private'` as the vernacular, which the retired
+    private/public fork left behind.
+  - Three passed a fourth argument that is ignored.
+  - One fixture lacked `graduated`.
+  - One named a `SportDefinition.name` that no longer exists.
+  - Three typed a decision context loosely.
+  - One stubbed `cancelled: false` where the type allows only `true`.
+  - `tab-gates` checked "a lab under construction does not open Research"
+    with the status `'inProgress'`, which no longer exists. That check was
+    testing an impossible state. With `'developing'` it now tests the real
+    one, and still passes.
 
 ## PR 22B — One formatter, one clamp
 

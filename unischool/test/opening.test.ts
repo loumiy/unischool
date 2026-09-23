@@ -151,7 +151,7 @@ console.log('opening script tests');
   assert(nextStep(s) === null, 'a quiet campus with nothing on offer has no next step — the line is a reading, not a queue');
 
   s.students.satisfactionBreakdown.basicNeeds = 32;
-  assert(nextStep(s)?.text.startsWith('Basic needs is at 32') && nextStep(s)?.go === 'build', `a shortfall under 50 is named with its figure (${nextStep(s)?.text})`);
+  assert(nextStep(s)?.text.startsWith('Basic needs is at 32') === true && nextStep(s)?.go === 'build', `a shortfall under 50 is named with its figure (${nextStep(s)?.text})`);
 
   // A standing hall with a free slot outranks a shortfall: founding is the
   // most valuable click there is — and at founding that hall is Founders
