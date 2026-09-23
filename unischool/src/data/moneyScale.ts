@@ -32,6 +32,3 @@ export function rollAmount(s: GameState, minWeeks: number, maxWeeks: number): nu
   return weeksOfOpEx(s, minWeeks + Math.random() * (maxWeeks - minWeeks));
 }
 
-export function money(n: number): string {
-  return `$${Math.round(n).toLocaleString()}`;
-}

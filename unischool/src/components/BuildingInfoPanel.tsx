@@ -14,6 +14,7 @@ import {
 } from '../systems/techtree/techSystem';
 import { transitWeeks } from '../systems/techtree/programOffers';
 import { milestoneLine, programProgress, unmetPrereqNames } from '../systems/techtree/programProgress';
+import { money } from '../format';
 
 // A popover for a PLACED building — what clicking it (outside placement/
 // path-draw mode; see CampusMap.tsx's inspectBuilding) shows. For every
@@ -202,7 +203,7 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
                   const gate = field ? facultyGate(s, field) : 'open';
                   return (
                     <>
-                      Next: <span className="hall-offer-code">{courseCode(progress.next)}</span> {courseTitle(progress.next)} · ${progress.next.cost.toLocaleString()} · {progress.next.duration} wk
+                      Next: <span className="hall-offer-code">{courseCode(progress.next)}</span> {courseTitle(progress.next)} · {money(progress.next.cost)} · {progress.next.duration} wk
                       {gate !== 'open' && (
                         <span className="program-summary-blocked"> — no free {field} slot{gate === 'hireable' ? ', a candidate is listed' : ', nobody on the market'}.</span>
                       )}
@@ -400,7 +401,7 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
                   <span className="hall-offer-code" style={{ color: mark.hue }}>{mark.motif} {code}</span>
                   <span className="hall-offer-name">{program.name}</span>
                   <span className="hall-offer-meta">
-                    ${(course?.cost ?? 0).toLocaleString()} · {course?.requiresFaculty ?? '—'}
+                    {money(course?.cost ?? 0)} · {course?.requiresFaculty ?? '—'}
                   </span>
                 </button>
               );
@@ -433,7 +434,7 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
               )}
               {s.finance.cash < entry.cost && (
                 <p className="building-info-line building-info-construction">
-                  ${Math.ceil(entry.cost - s.finance.cash).toLocaleString()} short of the entry course's cost.
+                  {money(Math.ceil(entry.cost - s.finance.cash))} short of the entry course's cost.
                 </p>
               )}
               <button
@@ -446,7 +447,7 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
                 }}
               >
                 {chosen
-                  ? `Found ${picked.name} · $${entry.cost.toLocaleString()}`
+                  ? `Found ${picked.name} · ${money(entry.cost)}`
                   : `Found ${picked.name}`}
               </button>
             </div>

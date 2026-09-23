@@ -10,6 +10,8 @@ import { attributeCoverage } from '../satisfaction/satisfactionSystem';
 import { trailingYearSatisfaction } from '../admissions/admissionsSystem';
 import { isSchoolFounded } from '../techtree/schools';
 import { instructionCapacityDetail, instructionCoverage, SEATS_PER_COURSE } from '../techtree/instructionCapacity';
+import { money, pct } from '../../format';
+import { clamp, clamp01 } from '../../math';
 
 // ---------------------------------------------------------------------
 // Prestige (s.self.reputation) is a slow-moving STOCK, not a flow. It used
@@ -170,14 +172,6 @@ const CROWDING_PENALTY = 25;          // the most crowding can SUBTRACT (see cro
 // prestige and rivals' reputation stay on one comparable scale.
 const PRESTIGE_MIN = 5;
 const PRESTIGE_MAX = 150;
-
-function clamp01(v: number): number {
-  return Math.max(0, Math.min(1, v));
-}
-
-function clamp(v: number, lo: number, hi: number): number {
-  return Math.max(lo, Math.min(hi, v));
-}
 
 // Curriculum breadth: a STOCK read straight off the durable milestone
 // booleans techSystem.ts already tracks (program-established,
@@ -619,7 +613,7 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
     ),
     weigh(
       'endowment', 'Endowment', ENDOWMENT_WEIGHT, endowmentScore(s),
-      `$${Math.round(s.finance.endowment).toLocaleString()} against a student body of ${totalEnrolled(s.students).toLocaleString()}.`,
+      `${money(s.finance.endowment)} against a student body of ${totalEnrolled(s.students).toLocaleString()}.`,
     ),
     penalise(
       'crowding', 'Crowding', CROWDING_PENALTY, crowdingScore(s),
@@ -766,10 +760,6 @@ function reading(
   weight?: number, penalty?: boolean,
 ): StandingReading {
   return { key, label, score, weight, reach: (weight ?? 0) * score, penalty, detail };
-}
-
-function pct(v: number): string {
-  return `${Math.round(v * 100)}%`;
 }
 
 function concentrationDetail(s: GameState): string {

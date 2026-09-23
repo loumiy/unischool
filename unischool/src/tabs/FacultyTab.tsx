@@ -11,13 +11,14 @@ import { facultyCapacity, hiresFor, type FieldCapacity } from '../systems/facult
 import { facultyPay } from '../systems/finance/financeSystem';
 import { coursesTaughtBy } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
-import { GradeChip, SearchOffer, moneyShort } from './CurriculumTab';
+import { GradeChip, SearchOffer } from './CurriculumTab';
 import { searchCost } from '../systems/faculty/facultySearch';
 import { projectedQuality } from '../systems/faculty/facultyAssignment';
 import {
   deptAction, payroll, searchable, waitingCourses, worthTaking, type Listing,
 } from '../systems/faculty/hiringNext';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
+import { money, moneyShort, surnameOf } from '../format';
 
 // THE DEPARTMENT BOARD — every department the university could have, what
 // each one can teach, and who is in it.
@@ -190,7 +191,7 @@ function FacultyCard(
             <StatBar label="R" value={f.research} potential={f.researchPotential} />
           </div>
           <div className="faculty-card-foot">
-            <span className="faculty-card-salary" title={isCandidate ? `Asks $${f.salary.toLocaleString()}; this school pays $${Math.round(pay).toLocaleString()} at its market rate` : undefined}>{moneyShort(pay)}/yr</span>
+            <span className="faculty-card-salary" title={isCandidate ? `Asks ${money(f.salary)}; this school pays ${money(pay)} at its market rate` : undefined}>{moneyShort(pay)}/yr</span>
             {isCandidate ? (
               <span className={weeksLeft <= 2 ? 'candidate-expiry soon' : 'candidate-expiry'}>withdraws in {weeksLeft}w</span>
             ) : (
@@ -251,7 +252,7 @@ function FacultyCard(
             <dt>Nationality</dt><dd>{f.nationality}</dd>
             <dt>Teaching</dt><dd>{f.teaching} <span className="outcome-note">(→ {f.teachingPotential})</span></dd>
             <dt>Research</dt><dd>{f.research} <span className="outcome-note">(→ {f.researchPotential})</span></dd>
-            <dt>Salary</dt><dd>${f.salary.toLocaleString()}/yr <span className="outcome-note">(${Math.round(facultyPay(s, f.salary)).toLocaleString()} paid, at this school&rsquo;s market rate)</span></dd>
+            <dt>Salary</dt><dd>{money(f.salary)}/yr <span className="outcome-note">({money(Math.round(facultyPay(s, f.salary)))} paid, at this school&rsquo;s market rate)</span></dd>
             <dt>Course slots</dt><dd>{f.courseSlots}</dd>
             {!isCandidate && <><dt>Tenure</dt><dd>{Math.floor(f.tenureWeeks / WEEKS_PER_YEAR)} years</dd></>}
             {f.acclaim > 0 && <><dt>Prizes won</dt><dd>{f.acclaim}</dd></>}
@@ -432,11 +433,6 @@ function DeptActionCell({ s, act, c, onOpenCurriculum }: {
       {action.unstaffed} unstaffed →
     </button>
   );
-}
-
-function surnameOf(name: string): string {
-  const parts = name.replace(/^(Dr|Prof|Professor)\.?\s+/, '').split(' ');
-  return parts[parts.length - 1];
 }
 
 // ---------------------------------------------------------------------

@@ -8,6 +8,7 @@ import {
 import { marketRateMultiplier } from '../data/facultyData';
 import HelpHint from '../components/HelpHint';
 import { HOME_DATES_PER_SEASON } from '../systems/athletics/gate';
+import { money } from '../format';
 
 // ---------------------------------------------------------------------
 // The Treasury is where the economy explains itself. Money is the game's
@@ -33,10 +34,6 @@ import { HOME_DATES_PER_SEASON } from '../systems/athletics/gate';
 const CLASS_ORDER: ReadonlyArray<[keyof ClassTuition, string]> = [
   ['freshman', 'Fr'], ['sophomore', 'So'], ['junior', 'Jr'], ['senior', 'Sr'],
 ];
-
-function money(v: number): string {
-  return `${v < 0 ? '-' : ''}$${Math.round(Math.abs(v)).toLocaleString()}`;
-}
 
 // One line of the statement. `note` carries what drives the figure, so the
 // statement teaches the economy rather than just reporting it.
@@ -214,13 +211,13 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
                 has raised its price is collecting up to four prices at once,
                 and this is the only screen that says so. See types.ts's
                 tuitionByClass. */}
-            <dt>Tuition, listed</dt><dd>${s.finance.listedTuition.toLocaleString()}/yr</dd>
+            <dt>Tuition, listed</dt><dd>{money(s.finance.listedTuition)}/yr</dd>
             <dt>Charged, by class</dt>
             <dd>
               {CLASS_ORDER.map(([key, label], i) => (
                 <span key={key}>
                   {i > 0 && ' · '}
-                  {label} ${s.finance.tuitionByClass[key].toLocaleString()}
+                  {label} {money(s.finance.tuitionByClass[key])}
                 </span>
               ))}
             </dd>

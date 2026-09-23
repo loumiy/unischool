@@ -7,6 +7,7 @@ import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import { gradeYear, prestigeBreakdown } from '../systems/prestige/prestigeSystem';
 import { buildReportPayload } from '../systems/rivals/rivalsSystem';
 import { previousYear } from './history';
+import { money } from '../format';
 
 // ---------------------------------------------------------------------
 // THE YEAR IN REVIEW (Plan 16's PR B): the summer's first beat. Generated,
@@ -66,11 +67,6 @@ function byTopic(entries: LogEntry[], topic: LogTopic): LogEntry[] {
 
 function plural(n: number, one: string, many = `${one}s`): string {
   return `${n.toLocaleString()} ${n === 1 ? one : many}`;
-}
-
-function money(v: number): string {
-  const abs = Math.abs(Math.round(v));
-  return `${v < 0 ? '−' : ''}$${abs.toLocaleString()}`;
 }
 
 function signed(v: number, digits = 1): string {
@@ -190,7 +186,7 @@ function moneySection(s: GameState, entries: LogEntry[]): ReviewSection {
   const before = previousYear(s);
   const net = s.finance.cash - before.cash;
   const lines: ReviewLine[] = [
-    { text: `Net over the year: ${net >= 0 ? '+' : '−'}$${Math.abs(Math.round(net)).toLocaleString()}`, tone: net >= 0 ? 'good' : 'bad' },
+    { text: `Net over the year: ${net >= 0 ? '+' : '−'}${money(Math.abs(net))}`, tone: net >= 0 ? 'good' : 'bad' },
     { text: `Operating funds ${money(s.finance.cash)}, against ${money(before.cash)} a year ago` },
   ];
   const campaigns = byTopic(entries, 'money').length;

@@ -9,6 +9,7 @@ import { ATTRIBUTE_WEIGHTS, attributeDetail, studentLifeSatisfaction } from '../
 import { DEMAND_SATISFACTION_THRESHOLD, DEMAND_URGENT_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import { ProgressBar } from '../components/Progress';
+import { money } from '../format';
 
 const ATTRIBUTE_LABELS: Record<keyof SatisfactionAttributes, string> = {
   academic: 'Academic',
@@ -38,10 +39,6 @@ const ATTRIBUTE_ORDER: Array<keyof SatisfactionAttributes> = ['academic', 'socia
 // data/studentLifeData.ts). It is a current number with no trend line and
 // no sparkline, deliberately.
 // ---------------------------------------------------------------------
-
-function money(v: number): string {
-  return `$${Math.round(v).toLocaleString()}`;
-}
 
 function OrgRow({ org, s, tag, note }: { org: StudentOrgBase; s: GameState; tag?: string; note?: string }) {
   return (

@@ -2,6 +2,7 @@ import type { GameState, Rival, VarsityTeam } from '../../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../../state/types';
 import { athleticProgramStrength, teamQuality } from '../../data/studentLifeData';
 import { ELITE_RIVAL_IDS, makeRivalRng, sportStrengthFor } from '../../data/rivalData';
+import { clamp } from '../../math';
 
 // ---------------------------------------------------------------------
 // Rivals evolve so the ranking stays a live target across decades (see
@@ -263,10 +264,6 @@ export function tickRivals(s: GameState): void {
 function driftMomentum(current: number, roll: () => number): number {
   if (roll() >= MOMENTUM_REROLL_CHANCE) return current;
   return (roll() - MOMENTUM_UPWARD_BIAS) * MOMENTUM_RANGE;
-}
-
-function clamp(v: number, lo: number, hi: number): number {
-  return Math.max(lo, Math.min(hi, v));
 }
 
 // ---------------------------------------------------------------------

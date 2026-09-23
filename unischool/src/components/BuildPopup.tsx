@@ -15,6 +15,7 @@ import {
   LabIcon, HealthIcon, QuadIcon, FitnessIcon, ArtsIcon, AcademicIcon, TreeIcon,
   AthleticsIcon, StudentLifeIcon, ToolsIcon,
 } from './icons';
+import { money } from '../format';
 
 // The build menu: every physical building the university can have —
 // housing, campus-life facilities, academic buildings, and labs. It used to
@@ -411,7 +412,7 @@ function BuildTile({
           className="build-tile available"
           disabled={shortfall > 0}
           title={shortfall > 0
-            ? `$${Math.ceil(shortfall).toLocaleString()} short.`
+            ? `${money(Math.ceil(shortfall))} short.`
             : `Expands the ${t.name} in place — no new building. Adds ${rung.seatsGain.toLocaleString()} seats for the gate and ${rung.servesGain.toLocaleString()} of social capacity over ${rung.weeks} weeks; the teams keep playing while the work is underway.`}
           onClick={() => act({ type: 'EXPAND_VENUE', venueId: t.id })}
         >
@@ -419,7 +420,7 @@ function BuildTile({
           <span className="build-tile-icon"><Icon /></span>
           <span className="build-tile-name">{t.name}</span>
           {detail && <span className="build-tile-sub">{detail}</span>}
-          <span className="build-tile-foot">expand · ${rung.cost.toLocaleString()} · {rung.weeks}w</span>
+          <span className="build-tile-foot">expand · {money(rung.cost)} · {rung.weeks}w</span>
         </button>
       );
     }
@@ -431,7 +432,7 @@ function BuildTile({
           className="build-tile available"
           disabled={shortfall > 0}
           title={shortfall > 0
-            ? `$${Math.ceil(shortfall).toLocaleString()} short.`
+            ? `${money(Math.ceil(shortfall))} short.`
             : `Renovates the existing library in place — no new building. Adds ${floorPlan.servesGain.toLocaleString()} seats over ${floorPlan.weeks} weeks; the library serves no one while the work is underway.`}
           onClick={() => act({ type: 'RENOVATE_LIBRARY' })}
         >
@@ -439,7 +440,7 @@ function BuildTile({
           <span className="build-tile-icon"><Icon /></span>
           <span className="build-tile-name">{t.name}</span>
           {detail && <span className="build-tile-sub">{detail}</span>}
-          <span className="build-tile-foot">add a floor · ${floorPlan.cost.toLocaleString()} · {floorPlan.weeks}w</span>
+          <span className="build-tile-foot">add a floor · {money(floorPlan.cost)} · {floorPlan.weeks}w</span>
         </button>
       );
     }
@@ -474,8 +475,8 @@ function BuildTile({
         disabled={!sitable}
         title={armed
           ? 'Click an empty tile on the map to site here, or click this again to cancel.'
-          : shortfall > 0 ? `$${Math.ceil(shortfall).toLocaleString()} short.`
-            : fee > 0 ? `Already built — $${fee.toLocaleString()} to mark a spot on campus`
+          : shortfall > 0 ? `${money(Math.ceil(shortfall))} short.`
+            : fee > 0 ? `Already built — ${money(fee)} to mark a spot on campus`
               : 'The founding hall — pick it up, then click where it stands. No charge.'}
         draggable={sitable}
         onDragStart={(e) => {
@@ -489,7 +490,7 @@ function BuildTile({
         <span className="build-tile-icon"><Icon /></span>
         <span className="build-tile-name">{t.name}</span>
         {detail && <span className="build-tile-sub">{detail}</span>}
-        <span className="build-tile-foot">{armed ? 'placing…' : fee > 0 ? `site · $${fee.toLocaleString()}` : 'site · no charge'}</span>
+        <span className="build-tile-foot">{armed ? 'placing…' : fee > 0 ? `site · ${money(fee)}` : 'site · no charge'}</span>
       </button>
     );
   }
@@ -522,7 +523,7 @@ function BuildTile({
   // drop in one gesture.
   const shortfall = t.cost - s.finance.cash;
   const disabledReason = shortfall > 0
-    ? `$${Math.ceil(shortfall).toLocaleString()} short.`
+    ? `${money(Math.ceil(shortfall))} short.`
     : missingFaculty
       ? `No free ${t.requiresFaculty} slot.`
       : undefined;
@@ -556,7 +557,7 @@ function BuildTile({
           // misleading "0w" a bare duration would show.
           : t.cost === 0 && t.duration === 0
             ? 'already paid · place it'
-            : <>{t.cost > 0 ? `$${t.cost.toLocaleString()} · ` : ''}{t.duration}w</>}
+            : <>{t.cost > 0 ? `${money(t.cost)} · ` : ''}{t.duration}w</>}
       </span>
       {t.requiresFaculty && <span className="build-tile-note">needs {t.requiresFaculty}</span>}
     </button>

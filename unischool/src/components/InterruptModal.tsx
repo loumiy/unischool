@@ -8,7 +8,7 @@ import { buildYearInReview } from '../state/yearInReview';
 import { legacy } from '../state/legacy';
 import { founderFigures } from '../state/finalReport';
 import { ambitionEntries } from '../data/ambitionsData';
-import { HistoryChart, formatMoney } from './HistoryChart';
+import { HistoryChart } from './HistoryChart';
 import { LegacyAxes } from './LegacyAxes';
 import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
@@ -17,7 +17,7 @@ import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction,
 import { intakeCeiling } from '../systems/techtree/instructionCapacity';
 import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
 import { projectConsequences } from '../systems/admissions/consequences';
-import { pct, poolChange } from '../systems/admissions/yearOverYear';
+import { poolChange } from '../systems/admissions/yearOverYear';
 import { computePrestigeTarget, computeSocialTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
 import { findDecisionEvent, findOpeningLetter, OPENING_LETTERS, offeredChoices } from '../data/eventData';
 import { MASCOT_MAX_LENGTH, rollMascotSuggestion, sportById } from '../data/studentLifeData';
@@ -30,6 +30,7 @@ import { buildReportPayload, type ReportPayload } from '../systems/rivals/rivals
 import AnimatedNumber from './AnimatedNumber';
 import { isActivationTarget, useHotkeys } from './hotkeys';
 import { modalWidth } from './modalLayout';
+import { money, moneyShort, ordinal, signedPct } from '../format';
 
 // Placeholder modal content for an interrupt type with no dedicated view
 // (see SummerView below for 'summer', and every other
@@ -44,10 +45,6 @@ function interruptBody(interrupt: PendingInterrupt): { title: string; body: stri
 interface AdmissionsDraft {
   tuition: number;
   admitRate: number;
-}
-
-function money(v: number): string {
-  return `$${Math.round(v).toLocaleString()}`;
 }
 
 // The reveal ticks slower than any other number in the game, deliberately
@@ -335,7 +332,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
               <dd className="reveal-figure">
                 <AnimatedNumber value={outcome.applicants} durationMs={REVEAL_MS} revealFrom={0} />
                 {change && (
-                  <span className={`consequence-delta ${change.change >= 0 ? 'good' : 'bad'}`}>{pct(change.change)}</span>
+                  <span className={`consequence-delta ${change.change >= 0 ? 'good' : 'bad'}`}>{signedPct(change.change)}</span>
                 )}
               </dd>
             </div>
@@ -346,7 +343,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
                   {change.parts.length === 0
                     ? 'nothing moved'
                     : change.parts.map((p) => (
-                      <span key={p.key} className={p.change >= 0 ? 'good' : 'bad'}>{p.label} {pct(p.change)}</span>
+                      <span key={p.key} className={p.change >= 0 ? 'good' : 'bad'}>{p.label} {signedPct(p.change)}</span>
                     ))}
                 </dd>
               </div>
@@ -561,7 +558,7 @@ function FinalReportBeat({ s, onContinue }: { s: GameState; onContinue: () => vo
         <div className="history-charts final-report-charts">
           <HistoryChart label="Prestige" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => h.prestige)} format={(v) => `${Math.round(v)}`} />
           <HistoryChart label="Enrollment" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => h.enrolled)} format={(v) => Math.round(v).toLocaleString()} />
-          <HistoryChart label="Operating funds" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => h.cash)} format={formatMoney} />
+          <HistoryChart label="Operating funds" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => h.cash)} format={moneyShort} />
           <HistoryChart label="Rank" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => -h.rank)} format={(v) => `#${Math.round(-v)}`} />
         </div>
       )}
@@ -649,7 +646,6 @@ function SummerView({ s, payload, act }: { s: GameState; payload: SummerPayload;
     </>
   );
 }
-
 
 // A single place-movement badge: a climb, a slide, or a year holding
 // still. Rank numbers run the wrong way round (smaller is better), so
@@ -798,7 +794,6 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
   );
 }
 
-
 // ---------------------------------------------------------------------
 // The milestone celebration: the stop-the-clock moment for the handful of
 // accomplishments worth stopping the clock for (see data/eventData.ts's
@@ -942,7 +937,7 @@ function ResearchReportView({ s, report, onDismiss }: {
         </div>
         <div>
           <dt>Grant income <span className="outcome-note">(already banked)</span></dt>
-          <dd>${report.grantIncome.toLocaleString()}</dd>
+          <dd>{money(report.grantIncome)}</dd>
         </div>
         {report.award && (
           <>
@@ -1163,11 +1158,6 @@ function ChampionshipView({ s, result, onDismiss }: {
       <button onClick={onDismiss}>Dismiss</button>
     </>
   );
-}
-
-function ordinal(n: number): string {
-  const suffix = n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th';
-  return `${n}${suffix}`;
 }
 
 // THE FIRST SPORT CLUB (Plan 21's PR O): a small modal with one question.
@@ -1396,7 +1386,7 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
               <span className="event-choice-label">
                 {choice.label}
                 <span className="event-choice-cost">
-                  {cost > 0 ? `-$${cost.toLocaleString()}` : 'no cost'}
+                  {cost > 0 ? money(-cost) : 'no cost'}
                 </span>
               </span>
               <span className="event-choice-detail">

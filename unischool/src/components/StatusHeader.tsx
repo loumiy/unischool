@@ -12,6 +12,7 @@ import DayTicker from './DayTicker';
 import AnimatedNumber from './AnimatedNumber';
 import { isActivationTarget, useHotkeys } from './hotkeys';
 import { playtestEnabled } from './playtest';
+import { money } from '../format';
 
 // Keys 1/2/3 set the speed directly to real/double/quad, and Space toggles
 // between paused and playing, without having to click the control-bar
@@ -131,9 +132,9 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
             deliberately left alone — it is an ordinal, and counting through
             the places between two ranks says something that isn't true. */}
         <span className={`stat-value ${s.finance.cash < 0 ? 'money-negative' : 'money'}`}>
-          <AnimatedNumber value={s.finance.cash} format={(n) => `$${Math.round(n).toLocaleString()}`} />
+          <AnimatedNumber value={s.finance.cash} format={money} />
         </span>
-        <span className="toolbar-funds-net">{netWeekly >= 0 ? '+' : '-'}${Math.round(Math.abs(netWeekly)).toLocaleString()}/wk</span>
+        <span className="toolbar-funds-net">{netWeekly >= 0 ? '+' : '−'}{money(Math.abs(netWeekly))}/wk</span>
       </button>
       {/* Four chips, a glyph and a figure each (Plan 18), on their own row
           under the funds figure (see styles.css's .toolbar-left): the word

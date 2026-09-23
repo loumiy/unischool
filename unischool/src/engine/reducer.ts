@@ -43,6 +43,7 @@ import {
 import { captureYearSnapshot } from '../state/history';
 import { legacy } from '../state/legacy';
 import { saveGame, clearSave } from '../state/persistence';
+import { money } from '../format';
 
 // The systems run in a fixed order each week. Order matters: research and
 // finance resolve before admissions/rivals read the updated world;
@@ -205,7 +206,7 @@ function debugSet(
   switch (action.type) {
     case 'DEBUG_SET_CASH':
       s.finance.cash = action.amount;
-      return `operating funds set to $${Math.round(action.amount).toLocaleString()}`;
+      return `operating funds set to ${money(action.amount)}`;
     case 'DEBUG_SET_PRESTIGE':
       // Written through prestigeSystem.ts, which owns the field and clamps
       // it to the band its own drift uses — see setPrestigeForPlaytest, and
@@ -219,7 +220,7 @@ function debugSet(
     case 'DEBUG_SET_TUITION': {
       const value = Math.max(0, Math.min(TUITION_SLIDER_MAX, Math.round(action.value)));
       s.finance.listedTuition = value;
-      return `listed tuition set to $${value.toLocaleString()}`;
+      return `listed tuition set to ${money(value)}`;
     }
   }
 }
@@ -328,7 +329,7 @@ export function reducer(state: GameState, action: Action): GameState {
         s.log.unshift({
           year: s.clock.year,
           week: s.clock.week,
-          message: `Appointed ${hired.name} to the faculty in ${hired.field}, at $${Math.round(hired.salary).toLocaleString()}/yr.`,
+          message: `Appointed ${hired.name} to the faculty in ${hired.field}, at ${money(hired.salary)}/yr.`,
           kind: 'info',
           topic: 'appointment',
           subject: hired.id,
@@ -611,7 +612,7 @@ export function reducer(state: GameState, action: Action): GameState {
         s.log.unshift({
           year: s.clock.year,
           week: s.clock.week,
-          message: `Endowment campaign #${campaign.number} closed: $${campaign.cost.toLocaleString()} committed, $${campaign.endowmentGain.toLocaleString()} raised at a ${Math.round(campaign.match * 100)}% donor match.`,
+          message: `Endowment campaign #${campaign.number} closed: ${money(campaign.cost)} committed, ${money(campaign.endowmentGain)} raised at a ${Math.round(campaign.match * 100)}% donor match.`,
           kind: 'good',
           topic: 'money',
         });
@@ -890,7 +891,7 @@ export function reducer(state: GameState, action: Action): GameState {
       s.log.unshift({
         year: s.clock.year,
         week: s.clock.week,
-        message: `Admissions: tuition $${s.finance.listedTuition.toLocaleString()}/yr — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admitted, ${outcome.enrolled.toLocaleString()} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
+        message: `Admissions: tuition ${money(s.finance.listedTuition)}/yr — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admitted, ${outcome.enrolled.toLocaleString()} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
         kind: 'info',
         topic: 'admissions',
       });

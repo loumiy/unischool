@@ -4,6 +4,7 @@ import { baseRivals, hashUnit, makeRivalRng, sportStrengthFor } from '../../data
 import { sportById, teamQuality } from '../../data/studentLifeData';
 import { sportRankedList } from '../rivals/rivalsSystem';
 import { PLAYOFF_WEEK, SPREAD, wins } from './playoffs';
+import { ordinal } from '../../format';
 
 // ---------------------------------------------------------------------
 // THE SEASON (Plan 21's PR N) — four occasions, a record, and a log with
@@ -90,17 +91,6 @@ function comparableOpponent(s: GameState, sportId: string, roll: () => number): 
   const pool = near.length > 0 ? near : table.filter((e) => !e.isPlayer);
   if (pool.length === 0) return null;
   return pool[Math.floor(roll() * pool.length) % pool.length];
-}
-
-function ordinal(n: number): string {
-  const v = n % 100;
-  if (v >= 11 && v <= 13) return `${n}th`;
-  switch (n % 10) {
-    case 1: return `${n}st`;
-    case 2: return `${n}nd`;
-    case 3: return `${n}rd`;
-    default: return `${n}th`;
-  }
 }
 
 function resolveOccasion(s: GameState, team: VarsityTeam, occasion: Occasion, roll: () => number): void {

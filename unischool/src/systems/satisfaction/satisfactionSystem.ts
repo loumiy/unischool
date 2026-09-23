@@ -7,6 +7,7 @@ import { servingPopulation, totalEnrolled } from '../../state/types';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
 import { annualTuitionBilled } from '../finance/financeSystem';
 import { priceTolerance } from '../admissions/admissionsSystem';
+import { clamp } from '../../math';
 
 // ---------------------------------------------------------------------
 // Satisfaction stays ONE displayed number (s.students.satisfaction), but
@@ -177,7 +178,7 @@ function affordabilityBonus(s: GameState): number {
 // REPUTATION_PRIDE_MAX_BONUS/AFFORDABILITY_MAX_BONUS above, so a
 // library already scoring 100 cannot be pushed past it and a bare roster
 // cannot pull academic down below what the library alone earned.
-const FACULTY_QUALITY_MAX_BONUS = 15; // added to `academic` when every course offered is graded at the top of the scale (see teachingQualityScore)
+const FACULTY_QUALITY_MAX_BONUS = 15; // added to `academic` when every course offered is graded at the top of the scale (see teachingSatisfaction)
 
 // Satisfaction has exactly one mechanical consequence: it scales the next
 // annual admissions cycle's applicant pool as word of mouth (see
@@ -203,10 +204,6 @@ const FACULTY_QUALITY_MAX_BONUS = 15; // added to `academic` when every course o
 // no attribute reaches zero, so satisfaction bottoms out well above it,
 // word of mouth bottoms out at ~0.63x rather than at nothing, and a
 // single cheap facility is always enough to start climbing back.
-
-function clamp(v: number, lo: number, hi: number): number {
-  return Math.max(lo, Math.min(hi, v));
-}
 
 // Total servesPopulation across every 'done' facility feeding a given
 // attribute (excludes flat contributors — see flatBonusFor below).
@@ -274,7 +271,7 @@ function ratioScore(servesPopulation: number, enrolled: number, targetRatio: num
 // A campus with nothing open yet reads 0 here, its floor, exactly as an
 // empty roster did: no courses is not the same as bad courses, but it is
 // equally not a claim to academic quality.
-function teachingQualityScore(s: GameState): number {
+function teachingSatisfaction(s: GameState): number {
   const avg = campusAverageCourseQuality(s);
   return avg === null ? 0 : clamp(avg / 100, 0, 1);
 }
@@ -289,7 +286,7 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
   // [ATTRIBUTE_SCORE_FLOOR, 100] band every other attribute uses, so a
   // library already at its ceiling gains nothing further from faculty.
   const academicLibraryRatio = ratioScore(servedPopulationFor(s, 'academic'), enrolled, TARGET_RATIO.academic, 1);
-  const academicFacultyBonus = teachingQualityScore(s) * FACULTY_QUALITY_MAX_BONUS;
+  const academicFacultyBonus = teachingSatisfaction(s) * FACULTY_QUALITY_MAX_BONUS;
   const academic = clamp(academicLibraryRatio + academicFacultyBonus, ATTRIBUTE_SCORE_FLOOR, 100);
 
   const socialRatio = ratioScore(servedPopulationFor(s, 'social'), enrolled, TARGET_RATIO.social, SOCIAL_PENALTY_CURVATURE);
@@ -389,7 +386,7 @@ export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttri
   const flat = flatBonusFor(s, attribute);
   if (flat > 0) bonuses.push({ label: 'Quad & other flat contributors', value: flat });
   if (attribute === 'academic') {
-    const facultyBonus = teachingQualityScore(s) * FACULTY_QUALITY_MAX_BONUS;
+    const facultyBonus = teachingSatisfaction(s) * FACULTY_QUALITY_MAX_BONUS;
     if (facultyBonus > 0) bonuses.push({ label: 'Course quality', value: facultyBonus });
   }
   if (attribute === 'social') {

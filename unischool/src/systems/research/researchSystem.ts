@@ -7,6 +7,7 @@ import {
 } from '../../data/researchData';
 import { researchTopic } from '../../data/researchTopics';
 import { generateCandidate } from '../../data/facultyData';
+import { money } from '../../format';
 
 // ---------------------------------------------------------------------
 // One ordinary pure tick function (see docs/design/research.md). It walks
@@ -114,7 +115,7 @@ function publish(s: GameState, initiative: Initiative, participants: Faculty[]):
     s.research.grants += 1;
     s.research.grantIncome += scaled;
     initiative.grantIncome += scaled;
-    log(s, `${rollGrantFunder(vocab)} has awarded $${scaled.toLocaleString()} to ${where}.`, 'good', 'grant', initiative.labId);
+    log(s, `${rollGrantFunder(vocab)} has awarded ${money(scaled)} to ${where}.`, 'good', 'grant', initiative.labId);
   }
 
   if (initiative.publications % PUBLICATIONS_PER_CANDIDATE_PULL === 0) {

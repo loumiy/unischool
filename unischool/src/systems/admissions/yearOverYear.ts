@@ -64,11 +64,3 @@ export function poolChange(now: AdmissionsProjection, last: FunnelRecord | null)
     parts,
   };
 }
-
-// "+34%" / "−3%", rounded to whole points; a move that rounds to zero
-// reads as "0%" rather than "+0%".
-export function pct(change: number): string {
-  const points = Math.round(change * 100);
-  if (points === 0) return '0%';
-  return `${points > 0 ? '+' : '−'}${Math.abs(points)}%`;
-}

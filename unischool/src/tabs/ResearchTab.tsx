@@ -13,6 +13,7 @@ import { researchSchools } from '../data/techData';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import HelpHint from '../components/HelpHint';
 import { rankBy } from '../systems/rivals/rivalsSystem';
+import { money } from '../format';
 
 // =====================================================================
 // RESEARCH, AS A SCREEN.
@@ -201,7 +202,7 @@ function VacantPanel(
             >
               <span className="offer-head">
                 <span className="offer-depth">{offer.depth.name}</span>
-                <span className="offer-cost">${offer.fundingCost.toLocaleString()}</span>
+                <span className="offer-cost">{money(offer.fundingCost)}</span>
               </span>
               <span className="offer-topic">{offer.topic.name}</span>
               <span className="offer-meta">
@@ -292,8 +293,8 @@ function VacantPanel(
               : chosenTeam.length !== picked.depth.participants
                 ? `Needs ${picked.depth.participants} scholars`
                 : s.finance.cash < picked.fundingCost
-                  ? `$${(picked.fundingCost - s.finance.cash).toLocaleString()} short`
-                  : `Commission — $${picked.fundingCost.toLocaleString()}`}
+                  ? `${money(picked.fundingCost - s.finance.cash)} short`
+                  : `Commission — ${money(picked.fundingCost)}`}
           </button>
         </div>
       )}
@@ -410,7 +411,7 @@ export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action)
                             {done.breakthroughs > 0 && `${done.breakthroughs} breakthrough${done.breakthroughs === 1 ? '' : 's'} · `}
                             {done.publications} published
                           </span>
-                          {done.grantIncome > 0 && <span className="record-grant">${done.grantIncome.toLocaleString()} in grants</span>}
+                          {done.grantIncome > 0 && <span className="record-grant">{money(done.grantIncome)} in grants</span>}
                         </>
                       )}
                   </span>

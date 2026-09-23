@@ -8,6 +8,8 @@ import {
   socialStandingBreakdown,
 } from '../systems/prestige/prestigeSystem';
 import { isSchoolFounded } from '../systems/techtree/schools';
+import { money } from '../format';
+import { clamp01 } from '../math';
 
 // ---------------------------------------------------------------------
 // THE LEGACY (Plan 17's PR B): what the run adds up to, as seven graded
@@ -63,10 +65,6 @@ export function gradeOf(score: number): LegacyGrade {
 
 // A grade as a number, for "at least a B" comparisons in the names table.
 const GRADE_RANK: Record<LegacyGrade, number> = { A: 4, B: 3, C: 2, D: 1, F: 0 };
-
-function clamp01(v: number): number {
-  return Math.max(0, Math.min(1, v));
-}
 
 // --- teaching -----------------------------------------------------------
 // Half the campus average grade, read on the COURSE GRADE'S OWN SCALE — an
@@ -169,7 +167,7 @@ function stewardshipReading(s: GameState): { score: number; detail: string } {
   return {
     score: (solvent + wealth + welfare) / 3,
     detail: `${s.finance.weeksInTheRed === 0 ? 'Never a week in the red' : `${s.finance.weeksInTheRed.toLocaleString()} weeks in the red`}; `
-      + `$${Math.round(perStudent).toLocaleString()} of endowment per student; `
+      + `${money(perStudent)} of endowment per student; `
       + `students averaged ${average.toFixed(0)} satisfaction over ${years === 0 ? 'the year so far' : `${years} year${years === 1 ? '' : 's'}`}.`,
   };
 }

@@ -3,7 +3,7 @@ import { WEEKS_PER_YEAR, institutionName } from '../state/types';
 import { PLAYOFF_WEEK } from '../systems/athletics/playoffs';
 import { FACULTY_FIELDS, generateCandidate, rollSurname } from './facultyData';
 import { appointFaculty } from '../systems/faculty/facultySystem';
-import { money, rollAmount, weeksOfOpEx } from './moneyScale';
+import { rollAmount, weeksOfOpEx } from './moneyScale';
 import {
   CHAPTER_HOUSE_CAPACITY_BONUS, CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
   promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, VARSITY_PETITION_MIN_TENURE_YEARS, venueForCategory,
@@ -12,6 +12,8 @@ import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, graduateProgram, isAcademicHa
 import { FOUNDING_PROGRAMS } from './foundingData';
 import { dedicatedHalls, dedicatedSchool } from '../systems/techtree/schools';
 import { buildReportPayload, rankBy } from '../systems/rivals/rivalsSystem';
+import { money } from '../format';
+import { clamp } from '../math';
 
 // ---------------------------------------------------------------------
 // WEEK-TO-WEEK TEXTURE, AS AUTHORED DATA.
@@ -75,10 +77,6 @@ export function absoluteWeek(s: GameState): number {
 
 function pick<T>(items: readonly T[]): T {
   return items[Math.floor(Math.random() * items.length)];
-}
-
-function clamp(v: number, lo: number, hi: number): number {
-  return Math.max(lo, Math.min(hi, v));
 }
 
 // =====================================================================
@@ -827,7 +825,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         // gift is once, the salary is every week for as long as they stay.
         describe: (_s, ctx) => {
           const c = ctx.candidate;
-          return `${money(ctx.amount ?? 0)} up front, and ${c ? `$${c.salary.toLocaleString()}/yr` : 'a salary'} thereafter. `
+          return `${money(ctx.amount ?? 0)} up front, and ${c ? `${money(c.salary)}/yr` : 'a salary'} thereafter. `
             + `${ctx.subjectName} joins the faculty this week${c ? `, teaching ${c.teaching} · researching ${c.research}` : ''} — better than the job market normally turns up.`;
         },
         cost: (_s, ctx) => ctx.amount ?? 0,
@@ -846,7 +844,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           const person = ctx.candidate
             ?? generateCandidate(field, [...s.faculty, ...s.candidates].map((f) => f.name));
           appointFaculty(s, person);
-          return entry(s, `${person.name} (${field}) has accepted a visiting chair and joined the faculty at $${person.salary.toLocaleString()}/yr.`, 'good', 'appointment', person.id);
+          return entry(s, `${person.name} (${field}) has accepted a visiting chair and joined the faculty at ${money(person.salary)}/yr.`, 'good', 'appointment', person.id);
         },
       },
       {
@@ -1404,7 +1402,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         describe: (_s, ctx) => {
           const c = ctx.coach;
           const role = CHAIR_LABEL[(ctx.subjectField ?? 'head') as 'head' | 'assistant' | 'trainer'];
-          return `${money(ctx.amount ?? 0)} to get it done, and ${c ? `$${c.salary.toLocaleString()}/yr` : 'a salary'} thereafter. `
+          return `${money(ctx.amount ?? 0)} to get it done, and ${c ? `${money(c.salary)}/yr` : 'a salary'} thereafter. `
             + `${c ? `${c.name} takes the ${role}'s chair at quality ${c.quality}` : `The chair is filled`} — better than the market usually turns up.`;
         },
         cost: (_s, ctx) => ctx.amount ?? 0,
@@ -1417,7 +1415,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           // into somebody. Same guard 'visiting-scholar' carries.
           const coach = ctx.coach ?? generateCoachCandidate(fieldForChair({ team, role }), coachNamesInUse(s));
           seatCoach(team, role, coach);
-          return entry(s, `${coach.name} joins ${team.name} as ${role === 'head' ? 'head coach' : CHAIR_LABEL[role]} at $${coach.salary.toLocaleString()}/yr.`, 'good');
+          return entry(s, `${coach.name} joins ${team.name} as ${role === 'head' ? 'head coach' : CHAIR_LABEL[role]} at ${money(coach.salary)}/yr.`, 'good');
         },
       },
       {
@@ -1588,7 +1586,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         label: `Endow the chair`,
         describe: (_s, ctx) => {
           const c = ctx.candidate;
-          return `${money(ctx.amount ?? 0)} up front, and ${c ? `$${c.salary.toLocaleString()}/yr` : 'a salary'} thereafter. `
+          return `${money(ctx.amount ?? 0)} up front, and ${c ? `${money(c.salary)}/yr` : 'a salary'} thereafter. `
             + `${c ? `${c.name} takes the chair in ${ctx.subjectField}, teaching ${c.teaching} · researching ${c.research}` : 'A scholar takes the chair'} — the best the board could find.`;
         },
         cost: (_s, ctx) => ctx.amount ?? 0,
@@ -1597,7 +1595,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           const person = ctx.candidate
             ?? generateCandidate(field, [...s.faculty, ...s.candidates].map((f) => f.name));
           appointFaculty(s, person);
-          return entry(s, `${person.name} (${field}) takes the trustees' chair, endowed in answer to ${ctx.subjectName}, at $${person.salary.toLocaleString()}/yr.`, 'good', 'appointment', person.id);
+          return entry(s, `${person.name} (${field}) takes the trustees' chair, endowed in answer to ${ctx.subjectName}, at ${money(person.salary)}/yr.`, 'good', 'appointment', person.id);
         },
       },
       {

@@ -129,6 +129,23 @@ it trims comments in their final shape, not twice.
   `teachingSatisfaction`. It measures a different thing from
   `courseQuality.ts`'s export of the same name.
 
+**As implemented:**
+
+- **The helpers are wider than the copies.** Beyond the seven `money`
+  functions, 34 amounts were formatted inline as `$${x.toLocaleString()}`,
+  in template strings and in JSX, across twelve files. All of them go
+  through `money` now.
+- **Two short formatters became one `moneyShort`:** `HistoryChart`'s
+  `formatMoney` and `CurriculumTab`'s `moneyShort`. The Faculty tab had been
+  importing the Curriculum tab's copy.
+- **`clamp01` moved too.** It had two identical copies. `Progress.tsx`
+  keeps its own NaN-safe version, which is a different function.
+- **One bug was fixed along the way.** The event modal's `ordinal` wrote
+  "11st", "12nd" and "13rd". It now uses the season code's correct version.
+- **The one visible change** is the minus sign on negative money. It is now
+  `−` everywhere, including the weekly net in the status bar and the
+  History table.
+
 ## PR 22C — Dead code, dead fields, retroactive siting
 
 - **Eleven exported symbols with no reader are deleted:**

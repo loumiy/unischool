@@ -23,6 +23,7 @@ import HelpHint from '../components/HelpHint';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import { ProgressRing } from '../components/Progress';
 import type { Faculty } from '../state/types';
+import { money, moneyShort, surnameOf } from '../format';
 
 // ---------------------------------------------------------------------
 // Progressive discovery: the curriculum is not laid out whole. What's
@@ -417,18 +418,6 @@ export interface DragHandlers {
   onDrop: (courseId: string) => void;
 }
 
-// Money at the grain a scan needs: "$180k", "$4.0M". The drawer keeps the
-// full figure; a cell and a row button have room for four characters.
-export function moneyShort(n: number): string {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
-  return `$${Math.round(n / 1000)}k`;
-}
-
-function surnameOf(name: string): string {
-  const parts = name.replace(/^(Dr|Prof|Professor)\.?\s+/, '').split(' ');
-  return parts[parts.length - 1];
-}
-
 function InstructorChip({ f, grade, draggable, onDragStart, onDragEnd }: {
   f: Faculty; grade: Grade | null; draggable: boolean;
   onDragStart?: (e: React.DragEvent) => void; onDragEnd?: () => void;
@@ -572,7 +561,6 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
   );
 }
 
-
 // ---------------------------------------------------------------------
 // THE COURSE DRAWER, and the decision it exists for.
 //
@@ -699,7 +687,7 @@ export function SearchOffer({ s, act, field }: { s: GameState; act: (a: Action) 
       onClick={() => act({ type: 'POST_SEARCH', field })}
       title={`Advertise, headhunt and visit conferences for ${SEARCH_WEEKS_LABEL}: a much better chance every week that a ${field} candidate is listed.`}
     >
-      Post a search in {field} · ${cost.toLocaleString()}
+      Post a search in {field} · {money(cost)}
     </button>
   );
 }
@@ -733,7 +721,7 @@ export function MarketInField({ s, act, field, projectedFor }: {
               onClick={() => act({ type: 'HIRE_FACULTY', facultyId: c.id })}
               title={`Appoint ${c.name} to the ${field} department`}
             >
-              Appoint · ${Math.round(c.salary).toLocaleString()}/yr
+              Appoint · {money(c.salary)}/yr
             </button>
           </div>
         ))
@@ -799,7 +787,7 @@ function CourseDrawer(
         <p className="course-drawer-desc">{t.description}</p>
 
         <dl className="course-drawer-facts">
-          <div><dt>Cost</dt><dd>${t.cost.toLocaleString()}</dd></div>
+          <div><dt>Cost</dt><dd>{money(t.cost)}</dd></div>
           <div><dt>Duration</dt><dd>{t.duration} weeks</dd></div>
           <div><dt>Department</dt><dd>{t.requiresFaculty ?? '—'}</dd></div>
           {(() => {
@@ -972,7 +960,7 @@ function CourseDrawer(
         )}
 
         {state === 'blocked' && shortfall > 0 && (
-          <p className="course-drawer-warning">${Math.ceil(shortfall).toLocaleString()} short of the development cost.</p>
+          <p className="course-drawer-warning">{money(Math.ceil(shortfall))} short of the development cost.</p>
         )}
         {state === 'locked' && (
           <p className="course-drawer-note quiet">Locked until its prerequisites are complete.</p>
@@ -1097,8 +1085,8 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect }: {
         className="row-action-develop"
         disabled={!canStart}
         title={canStart
-          ? `Start ${next.name} with ${best.name}: ${next.duration} weeks, $${next.cost.toLocaleString()}`
-          : shortfall > 0 ? `$${Math.ceil(shortfall).toLocaleString()} short of the development cost` : 'Cannot start this course right now'}
+          ? `Start ${next.name} with ${best.name}: ${next.duration} weeks, ${money(next.cost)}`
+          : shortfall > 0 ? `${money(Math.ceil(shortfall))} short of the development cost` : 'Cannot start this course right now'}
         onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: next.id, facultyId: best.id })}
       >
         Develop <span className="cell-code">{code}</span> with {surnameOf(best.name)}
@@ -1110,7 +1098,7 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect }: {
         <button
           type="button"
           className="row-action-secondary batch"
-          title={`Start all ${batch.length} with ${best.name}: $${batchCost.toLocaleString()} — grades ${batchGrades.join(' ')} as their load climbs`}
+          title={`Start all ${batch.length} with ${best.name}: ${money(batchCost)} — grades ${batchGrades.join(' ')} as their load climbs`}
           onClick={() => { for (const t of batch) act({ type: 'START_DEVELOPMENT', nodeId: t.id, facultyId: best.id }); }}
         >
           all {batch.length} with {surnameOf(best.name)} → {batchGrades.join(' ')}
@@ -1380,7 +1368,7 @@ function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onO
               const mark = schoolMark(p.school);
               const entry = lookup.get(p.entryCourseId);
               return (
-                <span key={p.id} className="next-up-offer" style={{ ['--school-hue' as string]: mark.hue }} title={`${p.name} — ${entry ? `$${entry.cost.toLocaleString()} · ${entry.requiresFaculty ?? ''}` : ''}`}>
+                <span key={p.id} className="next-up-offer" style={{ ['--school-hue' as string]: mark.hue }} title={`${p.name} — ${entry ? `${money(entry.cost)} · ${entry.requiresFaculty ?? ''}` : ''}`}>
                   {i > 0 && <span className="next-up-sep"> · </span>}
                   <span className="next-up-mark" aria-hidden="true">{mark.motif}</span> {p.name}
                 </span>

@@ -14,13 +14,6 @@ const CHART_WIDTH = 320;
 const CHART_HEIGHT = 96;
 const CHART_PAD_Y = 4; // vertical breathing room so peaks aren't clipped
 
-export function formatMoney(v: number): string {
-  const abs = Math.abs(v);
-  if (abs >= 1_000_000) return `${v < 0 ? '-' : ''}$${(abs / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${v < 0 ? '-' : ''}$${Math.round(abs / 1_000)}k`;
-  return `${v < 0 ? '-' : ''}$${Math.round(abs)}`;
-}
-
 // One series over the years. `format` renders the y-axis end labels and the
 // current-value caption, so each chart reports its own units (dollars,
 // students, points) rather than the view guessing.

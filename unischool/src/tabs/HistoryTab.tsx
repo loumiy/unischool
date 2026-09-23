@@ -1,7 +1,8 @@
 import type { GameState, YearSnapshot } from '../state/types';
 import { MIN_SERIES_POINTS } from '../components/Sparkline';
 import HelpHint from '../components/HelpHint';
-import { HistoryChart, formatMoney } from '../components/HistoryChart';
+import { HistoryChart } from '../components/HistoryChart';
+import { moneyShort } from '../format';
 import { ambitionEntries } from '../data/ambitionsData';
 import { legacy } from '../state/legacy';
 import { SEMICENTENNIAL_YEAR } from '../state/types';
@@ -296,12 +297,12 @@ function HistoryTable({ rows }: { rows: YearSnapshot[] }) {
                   unaffected. */}
               <td>#{h.rank}</td>
               <td>{h.enrolled.toLocaleString()}</td>
-              <td>{formatMoney(h.cash)}</td>
+              <td>{moneyShort(h.cash)}</td>
               {/* The year's own figures (Plan 16's PR B): the net, the
                   pool, the share taken, and who did not return — the same
                   numbers the summer's review beat reads off, kept so the
                   table can say what a year DID and not only what it was. */}
-              <td className={h.net < 0 ? 'bad' : ''}>{h.net >= 0 ? '+' : ''}{formatMoney(h.net)}</td>
+              <td className={h.net < 0 ? 'bad' : ''}>{h.net >= 0 ? '+' : ''}{moneyShort(h.net)}</td>
               <td>{h.applicants.toLocaleString()}</td>
               <td>{Math.round(h.admitRate * 100)}%</td>
               <td>{h.coursesDone}<span className="history-delta"> +{h.coursesFinished}</span></td>
@@ -393,7 +394,7 @@ export default function HistoryTab({ s }: { s: GameState }) {
             span={SEMICENTENNIAL_YEAR}
             years={years}
             values={history.map((h) => h.cash)}
-            format={formatMoney}
+            format={moneyShort}
             note="Cash on hand each summer. Troughs are the years the school committed to something expensive."
           />
           <HistoryChart

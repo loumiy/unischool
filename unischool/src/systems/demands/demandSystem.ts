@@ -13,6 +13,7 @@ import { programOfCourse } from '../../data/techData';
 import { isHoused } from '../techtree/programOffers';
 import type { DemandSubject } from '../../data/demandData';
 import { projectAdmissions } from '../admissions/admissionsSystem';
+import { clamp } from '../../math';
 
 // ---------------------------------------------------------------------
 // STUDENT DEMANDS — the inverse of clubs (see
@@ -73,10 +74,6 @@ import { projectAdmissions } from '../admissions/admissionsSystem';
 const RATIO_ATTRIBUTES: readonly (keyof SatisfactionAttributes)[] = [
   'basicNeeds', 'academic', 'social', 'health',
 ];
-
-function clamp(v: number, lo: number, hi: number): number {
-  return Math.max(lo, Math.min(hi, v));
-}
 
 // =====================================================================
 // READINGS — what the modal and the Student Life tab render

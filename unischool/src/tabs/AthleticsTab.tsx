@@ -14,6 +14,7 @@ import { athleticRank, rankBy, sportRank, sportRankedList } from '../systems/riv
 import { annualGateFor, attendanceFor } from '../systems/athletics/gate';
 import { rivalFor, seasonRecordFor, trophyFor } from '../systems/athletics/season';
 import type { SeasonResult } from '../state/types';
+import { money } from '../format';
 
 // Last season, in a few words. Short on purpose: it sits in a table row
 // beside a rank, not in a report.
@@ -25,10 +26,6 @@ function seasonLabel(r: SeasonResult): string {
     case 'quarterfinal': return 'lost the quarter';
     default: return r.banned ? 'postseason ban' : 'did not qualify';
   }
-}
-
-function money(v: number): string {
-  return `$${Math.round(v).toLocaleString()}`;
 }
 
 // What a coach's ceiling reads as (Plan 21's PR K): a scouted range for a

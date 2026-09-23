@@ -8,6 +8,7 @@ import { DECISION_EVENTS } from '../data/eventData';
 import type { DemandSubject } from '../data/demandData';
 import { SAVE_KEY } from '../state/persistence';
 import { playtestEnabled } from './playtest';
+import { money } from '../format';
 
 // ---------------------------------------------------------------------
 // THE DEBUG PANEL: read the simulation, change it, and move through it,
@@ -39,10 +40,6 @@ import { playtestEnabled } from './playtest';
 const DEMAND_SUBJECTS: DemandSubject[] = [
   'academic', 'social', 'basicNeeds', 'health', 'housing', 'instruction',
 ];
-
-function money(n: number): string {
-  return `$${Math.round(n).toLocaleString()}`;
-}
 
 // A label, a value, and nothing else. The panel is two dozen of these.
 function Row({ label, value }: { label: string; value: string }) {

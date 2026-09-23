@@ -1,6 +1,7 @@
 import type { ClassCohorts, ClassCounts, ClassTuition, CohortCounts, FunnelFactors, GameState, SummerPayload } from '../../state/types';
 import { SEMICENTENNIAL_YEAR, WEEKS_PER_YEAR } from '../../state/types';
 import { cohortCounts, cohortDemandFactor, NEUTRAL_COHORT_SIGNALS, type CohortSignals, athleteBandDrag } from './cohorts';
+import { clamp } from '../../math';
 
 // The trailing-year satisfaction that drives word of mouth: the average of
 // every weekly satisfaction reading accumulated since last summer (see
@@ -326,10 +327,6 @@ export interface AdmissionsProjection {
   // one moved the pool and by how much. The three multipliers above are
   // repeated inside it, so a reader has the whole product in one place.
   factors: FunnelFactors;
-}
-
-function clamp(v: number, lo: number, hi: number): number {
-  return Math.max(lo, Math.min(hi, v));
 }
 
 // What this school can charge before demand starts falling away — the
