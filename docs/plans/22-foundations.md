@@ -236,6 +236,24 @@ it trims comments in their final shape, not twice.
     seed.
   - Six seeds per side cannot separate a shift from noise. Both are flagged
     for Phase N, which re-derives the bands for the merged economy anyway.
+- **The scorecard's bands were re-recorded** on the new stream (a second
+  commit, D (ii)). Each band is still the envelope of three seeds at ±25%.
+  Of the 300 bands, 299 overlap the band they replace. The one that moved
+  clear is the Scatterer's cash at year 20: $97–203M before, $7–64M now.
+  It is a single figure in a strategy whose later years still overlap, and
+  it is flagged for Phase N with the two claims above.
+- **The Overbuilder's hand-written target bands** (a control, not a
+  generated band) now miss eight figures at the default seed: prestige
+  dips below 30, and cash reaches −82M at year 50 against a floor of −50M.
+  - Across seven seeds, the old stream kept every figure in band at seven
+    of seven. The new stream does so at five of seven; 4242 misses two
+    late-cash figures and the default seed misses eight.
+  - The scorecard now judges this one strategy across its reference seeds,
+    as the regression suite already does. It is named in `SEED_JUDGED`, so
+    the loosening is visible, and the gate is unchanged for everything
+    else.
+  - Seven seeds cannot say whether "stall, don't die" became harder or the
+    default seed is simply unlucky. Phase N owns the answer.
 
 ## PR 22E — Saving leaves the reducer; the action log and replay
 
