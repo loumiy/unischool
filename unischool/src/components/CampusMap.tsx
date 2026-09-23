@@ -3,7 +3,7 @@ import type { Action, CampusTool } from '../state/actions';
 import type { Buildable, GameState, Placement, TileCoord, Vernacular } from '../state/types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import {
-  canPlace, canRotate, canSiteRetroactively, footprintIsClear, footprintOf,
+  awaitsSite, canPlace, canRotate, footprintIsClear, footprintOf,
   isPlaceableKind, orientedFootprint, parsePathTileKey,
 } from '../state/campusMap';
 import { canStartDevelopment, facultyGate } from '../systems/techtree/techSystem';
@@ -1418,7 +1418,7 @@ export default function CampusMap({
   // Picking one up here is the SAME selection that row arms (see the
   // module comment above): this is where a picked-up id resolves to a
   // real Buildable to read its footprint/gate off. Includes 'done' items
-  // still awaiting a spot (see campusMap.ts's needsSiting) alongside the
+  // still awaiting a spot (see campusMap.ts's awaitsSite) alongside the
   // ordinary 'available' ones — canPlace admits both, and placeById below
   // branches the actual gate/cost on which one this is.
   const pickable = s.tech.filter((t) => isPlaceableKind(t) && !(t.id in s.placements) && (t.status === 'available' || t.status === 'done'));
@@ -1433,7 +1433,7 @@ export default function CampusMap({
   const selectedFootprint = selected ? orientedFootprint(selected, rotated) : null;
 
   // Rotation only means anything for a building actually being CONSTRUCTED
-  // here — a 'done' item awaiting siting (needsSiting) always sites at its
+  // here — a 'done' item awaiting a site (awaitsSite) always sites at its
   // base footprint (see reducer.ts's PLACE_BUILDABLE case, which ignores
   // action.rotated for those), so neither the hotkey nor the on-screen
   // control below offers it for one.
@@ -1493,17 +1493,15 @@ export default function CampusMap({
   // selectBuilding resets `rotated` the moment the selection changes, so a
   // stale rotation from a previously-selected building can never leak in.
   //
-  // A 'done' pickup (needsSiting) is a retroactive siting, not a fresh
-  // build: no rotation, and the gate is canSiteRetroactively (the flat
-  // RETROACTIVE_SITING_COST) rather than canStartDevelopment — mirrors the
-  // reducer's own branch on node.status exactly, for the same "don't clear
-  // the selection on an illegal attempt" reason noted above.
+  // A 'done' pickup (awaitsSite) is Founders Hall being sited, not a
+  // build: no rotation, no cost. Mirrors the reducer's branch on
+  // node.status.
   const placeById = (id: string, row: number, col: number) => {
     const t = pickable.find((x) => x.id === id);
     if (!t) return;
     const fp = t.status === 'done' ? footprintOf(t) : orientedFootprint(t, rotated);
     if (!canPlace(s, t, row, col, fp)) return;
-    if (t.status === 'done' ? !canSiteRetroactively(s, t) : !canStartDevelopment(s, t)) return;
+    if (t.status === 'done' ? !awaitsSite(s, t) : !canStartDevelopment(s, t)) return;
     act({ type: 'PLACE_BUILDABLE', buildableId: id, row, col, rotated });
     selectBuilding(null);
     setHover(null);
@@ -1579,15 +1577,15 @@ export default function CampusMap({
   // — at the CURRENT rotation, so a rotated shape that no longer clears the
   // grid or an occupied tile is refused exactly like an unrotated overflow —
   // AND whether the school can actually afford it right now: canStartDevelopment
-  // for an ordinary build, or canSiteRetroactively for a 'done' item awaiting
-  // siting (see placeById's own matching branch). A ghost that reads
+  // for an ordinary build, or awaitsSite for Founders Hall (see placeById's
+  // own matching branch). A ghost that reads
   // "blocked" here is a ghost a click on would genuinely do nothing.
   const preview = selected && hover && selectedFootprint
     ? {
         ...hover,
         ...selectedFootprint,
         ok: footprintIsClear(s.placements, hover.row, hover.col, selectedFootprint)
-          && (selected.status === 'done' ? canSiteRetroactively(s, selected) : canStartDevelopment(s, selected)),
+          && (selected.status === 'done' ? awaitsSite(s, selected) : canStartDevelopment(s, selected)),
       }
     : null;
 

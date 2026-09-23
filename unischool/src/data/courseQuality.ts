@@ -67,13 +67,6 @@ export function gradeFor(score: number): Grade {
   return 'F';
 }
 
-// Where a score sits inside the 0..100 scale, for the colour ramp on a
-// card. Kept here rather than in CSS so the tint and the letter can never
-// disagree about the same course.
-export function gradeFraction(score: number): number {
-  return Math.max(0, Math.min(1, score / 100));
-}
-
 // --- LOAD. What a full plate costs the courses on it. -----------------
 //
 // The penalty scales with how close the instructor is to their OWN

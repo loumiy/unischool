@@ -1,7 +1,6 @@
 import type { GameState, SeasonResult } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
 import { makeRivalRng, sportStrengthFor } from '../../data/rivalData';
-import { sportById, teamQuality } from '../../data/studentLifeData';
 import { sportRankedList } from '../../systems/rivals/rivalsSystem';
 
 // ---------------------------------------------------------------------
@@ -136,26 +135,6 @@ export function runPlayoffs(s: GameState): void {
       s.orgs.pendingTitles.push(team.sport);
     }
   }
-}
-
-// What a finish is called on screen. Kept here rather than in the component
-// so the log line and the modal cannot drift apart.
-export function describeFinish(result: SeasonResult): string {
-  const sport = sportById(result.sport)?.teamName ?? result.sport;
-  switch (result.finish) {
-    case 'champion': return `${sport} — national champions`;
-    case 'final': return `${sport} — lost the final to ${result.lostTo}`;
-    case 'semifinal': return `${sport} — lost the semifinal to ${result.lostTo}`;
-    case 'quarterfinal': return `${sport} — lost the quarterfinal to ${result.lostTo}`;
-    default: return result.banned ? `${sport} — barred from the postseason` : `${sport} — did not qualify`;
-  }
-}
-
-// The player's own strength in a sport, for the tab's benefit: the same
-// number the bracket seeds on.
-export function playerSportStrength(s: GameState, sportId: string): number {
-  const team = s.orgs.teams.find((t) => t.sport === sportId && t.status === 'active');
-  return team ? teamQuality(team, s) : 0;
 }
 
 // Re-exported so the tab can name a rival's strength without reaching past

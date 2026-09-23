@@ -84,9 +84,6 @@ function testRoundTrip(): void {
 // buildables (starting dorm, dining hall, Founders Hall, the seeded-
 // 'available' facility chains) are unlocked from turn one, so they must
 // never read as "new" the instant the player opens Curriculum or Build.
-// candidateIds is the one deliberate exception: no candidate is ever
-// "needed" at founding (the roster covers what the college teaches), so
-// there is nothing to pre-seed there.
 function testFoundingSeenExcludesStartingContent(): void {
   const fresh = createInitialState('Fresh Start');
 

@@ -31,7 +31,7 @@ import { fellTrees } from '../data/treeData';
 //              for the player, the hall's tile is ringed, and the step is
 //              done when the hall stands on the map. Siting it is free —
 //              the ground came with the charter (see campusMap.ts's
-//              sitingFeeOf).
+//              awaitsSite).
 //   teaching   "the college already teaches" (Plan 19: three programs, six
 //              courses, taught by the founding roster), with Next, which
 //              opens the Curriculum so the player sees the three rows.

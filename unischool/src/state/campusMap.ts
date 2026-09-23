@@ -2,7 +2,6 @@ import type {
   Buildable, FacilityType, Footprint, GameState, Placement, Placements, TileCoord,
 } from './types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, PLACEABLE_KINDS } from './types';
-import { FOUNDERS_HALL_ID } from '../data/techData';
 
 // Pure helpers for the campus map's placement rules, shared by the
 // reducer's PLACE_BUILDABLE case, the save loader's placement hygiene, and
@@ -335,26 +334,12 @@ export function footprintIsClear(placements: Placements, row: number, col: numbe
   return true;
 }
 
-// The one definition of a legal placement TARGET: a placeable Buildable
-// that hasn't started construction yet (status 'available') — OR one that's
-// already 'done' but never got a location (see needsSiting below) — and
-// isn't already sited, whose WHOLE footprint lands on empty, in-bounds
-// tiles. `fp` is the footprint actually being sited —
-// orientedFootprint(t, rotated) for a rotatable siting flow, or plain
-// footprintOf(t) for anything that doesn't care about rotation — rather
-// than always re-deriving the unrotated one, so a rotated footprint that no
-// longer fits is refused exactly as an unrotated overflow already is.
-//
-// Deliberately geometry + status only — it says nothing about whether the
-// school can actually AFFORD to start this Buildable (see
-// techSystem.ts's canStartDevelopment, the one gate for that, which every
-// call site here combines this with before actually committing a build —
-// see the reducer's PLACE_BUILDABLE case), nor about the flat retroactive
-// fee a 'done' item's siting is gated on instead (canSiteRetroactively,
-// below). That split is the same one START_DEVELOPMENT and the old
-// cosmetic-only PLACE_BUILDABLE always had between them; collapsing the two
-// actions into one for placeable kinds didn't collapse the two CONCERNS, it
-// just moved where they're combined.
+// The one definition of a legal placement target: a placeable Buildable
+// that is 'available', or built and awaiting a site (awaitsSite below), is
+// not already sited, and whose whole footprint `fp` lands on empty,
+// in-bounds tiles. Geometry and status only: whether the school can afford
+// to start it is techSystem.ts's canStartDevelopment, which every caller
+// combines with this before committing.
 export function canPlace(s: GameState, t: Buildable, row: number, col: number, fp: Footprint): boolean {
   return isPlaceableKind(t)
     && (t.status === 'available' || t.status === 'done')
@@ -362,43 +347,12 @@ export function canPlace(s: GameState, t: Buildable, row: number, col: number, f
     && footprintIsClear(s.placements, row, col, fp);
 }
 
-// A placeable Buildable that's already 'done' but has no home on the map.
-// The founding dorm opens 'done' AND pre-placed (see actions.ts's
-// createInitialState), so it is not one of these; today this covers only an
-// old save that predates the logic that places founding Buildables
-// automatically (see persistence.ts's v17 -> v18 migration). A chapter
-// house (eventData.ts's 'greek-housing') used to be manufactured 'done' and
-// auto-placed the same way, with this as its documented pathological
-// fallback when no room was found — it is revealed 'available' and
-// player-placed instead now, the same pattern a varsity venue already used
-// (see types.ts's Buildable.chapterHouse), so it never reaches this path.
-// Distinct from an ordinary 'available' row: there's no construction left to
-// start, only a location to mark, so the build menu offers it for the flat
-// RETROACTIVE_SITING_COST below instead of its own (much larger) founding
-// cost, which was already paid — or folded into the starting baseline —
-// once.
-export function needsSiting(s: GameState, t: Buildable): boolean {
+// A placeable Buildable that is already built but has no place on the map.
+// Only Founders Hall is ever one: a guided founding leaves it unsited so
+// that placing it is the walkthrough's first step (see state/opening.ts).
+// Siting it costs nothing; its ground came with the charter.
+export function awaitsSite(s: GameState, t: Buildable): boolean {
   return isPlaceableKind(t) && t.status === 'done' && !(t.id in s.placements);
-}
-
-// A nominal fee, not a construction cost — see needsSiting above. Kept
-// small and flat (unlike every other Buildable's authored cost) since the
-// building itself isn't being bought here, only sited; still nonzero so
-// siting reads as a real decision rather than a freebie.
-export const RETROACTIVE_SITING_COST = 2_000;
-
-// What siting THIS 'done' Buildable charges. Founders Hall is the one
-// exception to the flat fee: a guided founding leaves it unsited so that
-// placing it is the walkthrough's first step (see state/
-// opening.ts), and the founding hall's ground came with the charter — a
-// first click that costs money would be a walkthrough that starts with a
-// bill. Everything else that reaches needsSiting pays the fee.
-export function sitingFeeOf(t: Buildable): number {
-  return t.id === FOUNDERS_HALL_ID ? 0 : RETROACTIVE_SITING_COST;
-}
-
-export function canSiteRetroactively(s: GameState, t: Buildable): boolean {
-  return needsSiting(s, t) && s.finance.cash >= sitingFeeOf(t);
 }
 
 // The middle of the grid, for a footprint: where createInitialState puts

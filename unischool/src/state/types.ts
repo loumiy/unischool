@@ -943,17 +943,6 @@ export interface CompletedInitiative {
 export const INITIATIVE_HISTORY_LIMIT = 24;
 
 export interface ResearchState {
-  // DEAD STATE, kept rather than removed. This was the campus-wide bank
-  // that lab-equipped faculty trickled into and outputs were bought out
-  // of; initiatives replaced it (decision 7 — idle capacity produces
-  // nothing, the way to produce is to start something), so nothing writes
-  // it and, since the Faculty tab stopped displaying a figure that had
-  // read zero ever since, nothing reads it either. Left in the saved shape
-  // exactly as Faculty.morale was: harmless, and not worth a migration to
-  // delete. Do not wire it back up — if research ever needs a stock
-  // again it should be per-initiative, where the work actually is.
-  points: number;
-  lifetimePoints: number;  // every point ever produced, never spent down — display only, so the Faculty tab can show the long arc rather than a stock that sawtooths
   publications: number;    // papers, monographs, case studies and exhibited works — the cheap, frequent output (see researchData.ts's RESEARCH_OUTPUTS). A monotone stock like the others; feeds prestige at a steep discount to a breakthrough (see prestigeSystem.ts's researchScore)
   grants: number;          // research grants awarded so far
   grantIncome: number;     // total cash those grants brought in — displayed in the Treasury, since a grant lands as a one-off rather than as a line of the weekly statement
@@ -1609,7 +1598,7 @@ export interface GameState {
 // ALERT BADGES: a small red "new content" marker on a toolbar icon (and,
 // for the build menu, on the specific category tab holding the new item),
 // cleared the moment the player actually looks at the thing it's pointing
-// at. Three independent slices, one per menu that can raise one:
+// at. Three independent slices:
 //   - courseIds: every course id the Curriculum tab has ever rendered on
 //     screen for this player (see tabs/CurriculumTab.tsx's
 //     visibleCourseIds) — a course counts as "seen" the instant it's
@@ -1629,29 +1618,15 @@ export interface GameState {
 //     with the gate already open, and across a gate that closes and reopens
 //     (a school that disbands its last varsity team and founds another does
 //     not get told twice).
-//   - candidateIds: DEAD STATE. It fed the Faculty tab's alert badge —
-//     an unseen candidate in a field the school was short on — and that
-//     badge is retired: it was a prompt to run the old hiring loop, and
-//     hiring now happens where the shortage is felt (see FacultyTab.tsx and
-//     Toolbar.tsx's TAB_ALERT). Nothing writes it and nothing reads it. Left
-//     in the saved shape exactly as Faculty.morale and ResearchState.points
-//     were, rather than spending a migration to remove a record that costs
-//     nothing; the weekly prune that used to bound its growth went with the
-//     writes, since an empty record does not grow.
 //
 // Each is a plain id -> true record, the same shape rationale as
 // `pathways` and `milestones`: no Map/Set, no reference into `tech`, so it
 // survives a JSON round trip untouched. Ids only ever get ADDED here (by
-// the MARK_SEEN action — see actions.ts) except for candidateIds, which
-// the weekly tick prunes down to whoever is still actually listed (see
-// reducer.ts's TICK case) — the candidate market churns constantly, so
-// without pruning this would grow without bound over a long run, unlike
-// the other two, which are bounded by the size of the (fixed) course/
-// building catalogue.
+// the MARK_SEEN action — see actions.ts), and each is bounded by the size
+// of the fixed catalogue it records.
 export interface SeenState {
   courseIds: Record<string, true>;
   buildableIds: Record<string, true>;
-  candidateIds: Record<string, true>;
   tabIds: Record<string, true>;
 }
 

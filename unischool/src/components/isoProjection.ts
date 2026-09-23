@@ -167,9 +167,6 @@ export function setCamera(c: Camera): Camera {
   if (c.azimuth !== frame.camera.azimuth || c.pitch !== frame.camera.pitch) frame = frameFor(c);
   return frame.camera;
 }
-export function getCamera(): Camera {
-  return frame.camera;
-}
 
 // The camera's facts the depth sort needs (see depthSort.ts): which way each
 // grid axis runs on screen. Increasing col moves a point toward the camera

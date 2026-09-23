@@ -154,81 +154,6 @@ export function weeklyResearchPoints(s: GameState): number {
 }
 
 // =====================================================================
-// CADENCE — how often an output lands
-//
-// Deliberately the same two-dial trigger model as the authored decision
-// events (see eventData.ts): a per-week probability floored by a global
-// cooldown, then a weighted draw across whatever is eligible. No second
-// scheduler, and the frequency stays a one-line dial.
-//
-// The weekly chance is not flat: it scales with the BANKED STOCK, between
-// the two bounds below. That is the second half of "weighted by
-// accumulated research" — the first half is which outputs the stock can
-// afford at all (see pointCost below). A school that has just built its
-// first lab produces something roughly every 47 weeks and it is always a
-// grant; a mature research university with a deep bank produces every ~21
-// weeks and can draw the whole table. Without the scaling, frequency
-// would be constant the moment the cheapest output became affordable and
-// only the MIX would respond to investment, which reads as "research
-// happens at a fixed rate regardless of how much you put into it".
-//
-// Both bounds are deliberately low. Even at full tilt that is ~2.5 outputs
-// a year against two fixed annual interrupts and roughly one decision
-// event — and two of the three are SILENT, so what the player is actually
-// stopped for is a prize roughly once every seven years at maximum
-// research output, and never at all before the labs are deep.
-// =====================================================================
-
-export const RESEARCH_OUTPUT_COOLDOWN_WEEKS = 14;         // minimum quiet stretch between ANY two research outputs
-const RESEARCH_OUTPUT_WEEKLY_CHANCE_MIN = 0.03;           // a school scraping past the cheapest output
-const RESEARCH_OUTPUT_WEEKLY_CHANCE_MAX = 0.15;           // a school with a deep bank
-const RESEARCH_POINTS_FOR_MAX_CHANCE = 3_500;
-
-export function researchOutputWeeklyChance(points: number): number {
-  const depth = Math.max(0, Math.min(1, points / RESEARCH_POINTS_FOR_MAX_CHANCE));
-  return RESEARCH_OUTPUT_WEEKLY_CHANCE_MIN +
-    (RESEARCH_OUTPUT_WEEKLY_CHANCE_MAX - RESEARCH_OUTPUT_WEEKLY_CHANCE_MIN) * depth;
-}
-
-// The three outputs. `pointCost` is the accumulated research an output
-// SPENDS when it fires — which is how "weighted by accumulated research"
-// is expressed: a school with a thin research base can only ever afford
-// grants, one that has been investing for a decade unlocks breakthroughs,
-// and a prize needs years of banked work on top of that. `weight` sets
-// the mix among whatever is currently affordable.
-export type ResearchOutputKind = 'publication' | 'grant' | 'breakthrough' | 'prize';
-
-export interface ResearchOutputDef {
-  kind: ResearchOutputKind;
-  pointCost: number;
-  weight: number;
-}
-
-export const RESEARCH_OUTPUTS: readonly ResearchOutputDef[] = [
-  // The bottom rung, and the reason it exists: the other three all cost
-  // enough that a young department's first decade of research was a
-  // long silence broken by a grant. A cheap, frequent output gives a
-  // school something to show from its first year of having a facility at
-  // all — and gives the humanities an output that reads right, since a
-  // monograph is what that work actually produces and "a breakthrough" is
-  // not (see DISCIPLINE_VOCAB).
-  { kind: 'publication', pointCost: 90, weight: 26 },
-  { kind: 'grant', pointCost: 300, weight: 6 },
-  // Weighted against the award gate as much as against the log. A run
-  // that banks no breakthrough can never end in a prize however strong its
-  // team (see awardChance), so pushing this too low does not make awards
-  // rare — it makes them impossible, which is a different and worse thing.
-  { kind: 'breakthrough', pointCost: 750, weight: 5 },
-  // Rare twice over: it is the most expensive output AND the least likely
-  // of the three even once affordable. Both dials matter — the cost keeps
-  // it out of the early game entirely, the weight keeps it from becoming
-  // routine in the late game, when points are plentiful.
-  { kind: 'prize', pointCost: 4_000, weight: 1 },
-];
-
-export const CHEAPEST_OUTPUT_COST = Math.min(...RESEARCH_OUTPUTS.map((o) => o.pointCost));
-
-// =====================================================================
 // GRANTS — cash, sized in weeks of operating cost
 //
 // The same scaling device the decision-event table uses, and for the same
@@ -545,26 +470,6 @@ export function initiativeWeeklyOutput(
 ): number {
   const raw = participants.reduce((sum, f) => sum + facultyResearchOutput(f), 0);
   return raw * depth.intensity * interdisciplinaryBonus(participants) * researchRateMultiplier(s);
-}
-
-// How likely an output lands this week. Rises with what the project is
-// actually producing, floored by the same global cooldown the decision
-// events use, so a deep well-staffed program is eventful and a lone pilot
-// study is quiet without either needing a schedule of its own. TUNED
-// AGAINST THE WHOLE CAMPUS, not one project. These read as modest
-// per-initiative odds and they have to: a mature university runs a dozen
-// facilities at once for decades, so the campus-wide rate is this number
-// times thirteen times two thousand weeks. The first pass used a rate that
-// felt right for a single project and produced grant income worth a fifth
-// of the university's lifetime operating cost — a second economy, which is
-// exactly what docs/design/research.md says grants must never become.
-const INITIATIVE_OUTPUT_CHANCE_MIN = 0.005;
-const INITIATIVE_OUTPUT_CHANCE_MAX = 0.034;
-const INITIATIVE_OUTPUT_FULL_RATE = 40; // weekly output at which the chance tops out
-
-export function initiativeOutputChance(weeklyOutput: number): number {
-  const t = Math.min(1, weeklyOutput / INITIATIVE_OUTPUT_FULL_RATE);
-  return INITIATIVE_OUTPUT_CHANCE_MIN + (INITIATIVE_OUTPUT_CHANCE_MAX - INITIATIVE_OUTPUT_CHANCE_MIN) * t;
 }
 
 // THE AWARD, at conclusion and nowhere else.

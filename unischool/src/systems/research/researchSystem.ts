@@ -140,8 +140,6 @@ function rollBreakthrough(s: GameState, initiative: Initiative, participants: Fa
 function produce(s: GameState, initiative: Initiative, participants: Faculty[]): void {
   const depth = initiativeDepth(initiative.depth);
   const output = initiativeWeeklyOutput(s, participants, depth);
-  // Tracked for display only (the Faculty tab's long arc).
-  s.research.lifetimePoints += output;
   initiative.banked += output;
   while (initiative.banked >= PUBLICATION_POINTS) {
     initiative.banked -= PUBLICATION_POINTS;

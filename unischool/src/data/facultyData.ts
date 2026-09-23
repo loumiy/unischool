@@ -573,17 +573,6 @@ export function rollCoachName(gender: 'male' | 'female', existingNames: Readonly
   };
 }
 
-// A heritage for a coach saved before the field existed. Deterministic off
-// the id rather than rolled, so a resumed run's coaches do not change face on
-// every reload — and honest about what it is: the name is already written and
-// cannot be un-rolled, so this is a plausible reading of a person the game
-// has forgotten the origin of, not a recovery of one.
-export function heritageForId(id: string): string {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 1_000_003;
-  return NAME_POOLS[h % NAME_POOLS.length].origin;
-}
-
 interface RolledName {
   name: string;
   origin: string; // the first-name pool's origin — what nationality AND skin tone are tied to (see rollNationality/FacultyPortrait.tsx)

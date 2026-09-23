@@ -27,15 +27,6 @@ export function coursesTaughtBy(s: GameState, f: Faculty): Buildable[] {
   return s.tech.filter((t) => s.courseFaculty[t.id] === f.id && (t.status === 'developing' || t.status === 'done'));
 }
 
-// The inverse: the faculty member teaching this course, or undefined when
-// it is not offered, has no faculty field, or has been left unstaffed by a
-// dismissal. Re-exported from techSystem (which owns the resolve, since the
-// slot accounting there has to ask the same question) so callers on this
-// side of the projection don't need to know that.
-export function instructorOf(s: GameState, t: Buildable): Faculty | undefined {
-  return assignedInstructor(s, t);
-}
-
 // ---------------------------------------------------------------------
 // COURSE QUALITY, wired to state.
 //

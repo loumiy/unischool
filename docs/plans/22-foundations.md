@@ -169,6 +169,21 @@ it trims comments in their final shape, not twice.
     `RETROACTIVE_SITING_COST` and their branches in the build menu, the map
     and the reducer are removed.
 
+**As implemented:**
+
+- **The research-output model had more remains than the audit counted.**
+  The four constants the audit named depended on six private constants, a
+  `CADENCE` section comment describing a banked-points trigger, and a
+  `RESEARCH_OUTPUTS` table with its two types. Nothing read any of them.
+  All of it is gone, about 110 lines.
+- **`ResearchState.lifetimePoints` went too.** `researchSystem.ts` added to
+  it every week, but nothing ever read it. `SAVE_VERSION` is 69.
+- **Founders Hall still needs a "built but unsited" state.** It opens
+  `'done'` with programs in its slots, and the guided founding asks the
+  player to place it. So one predicate remains, `awaitsSite`, and siting
+  is always free. The fee constant, the fee function, the affordability
+  gate and the build-menu copy for a paid siting are gone.
+
 ## PR 22D — A seeded random stream in the state
 
 - `GameState.rng` holds the stream's position: one 32-bit integer.

@@ -127,7 +127,9 @@ export const SAVE_KEY = 'unischool.save';
 // v68: Plan 21. `s.orgs.teamOrder` (PR G's priority list) — a save without
 // it would read every program as unlisted, which the derivation tolerates,
 // but the rest of the plan's fields land under the same number.
-export const SAVE_VERSION = 68;
+// v69: Plan 22 PR C. `ResearchState.points`, `ResearchState.lifetimePoints`
+// and `SeenState.candidateIds` leave the shape; nothing read them.
+export const SAVE_VERSION = 69;
 
 // What actually goes in localStorage: the state plus enough metadata to
 // tell what it is without parsing further. `savedAt` is epoch
@@ -378,7 +380,6 @@ function sanitizeSeen(state: GameState): void {
   state.seen = {
     courseIds: isRecord(seen.courseIds) ? seen.courseIds : {},
     buildableIds: isRecord(seen.buildableIds) ? seen.buildableIds : {},
-    candidateIds: isRecord(seen.candidateIds) ? seen.candidateIds : {},
     // An absent bucket is indistinguishable from an empty one here,
     // and App.tsx fills it silently from whichever gates it finds ALREADY
     // open on its first render (see NOTE_TAB_AVAILABLE's `announce`). So a

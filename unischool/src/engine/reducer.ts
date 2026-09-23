@@ -36,8 +36,8 @@ import {
   CLUB_APPROVAL_SATISFACTION_NUDGE, CLUB_DECLINE_SATISFACTION_HIT, activatePetition, TRAINER_FIELD,
   MASCOT_MAX_LENGTH, applyTeamOrder } from '../data/studentLifeData';
 import {
-  canPlace, canSiteRetroactively, footprintOf, isInBounds, isPlaceableKind,
-  orientedFootprint, pathTileKey, placementFor, sitingFeeOf,
+  awaitsSite, canPlace, footprintOf, isInBounds, isPlaceableKind,
+  orientedFootprint, pathTileKey, placementFor,
   occupantAt,
 } from '../state/campusMap';
 import { captureYearSnapshot } from '../state/history';
@@ -523,14 +523,9 @@ export function reducer(state: GameState, action: Action): GameState {
       //     the chosen location into s.placements in the SAME transaction,
       //     so a developing placeable is never without a location and its
       //     tiles are reserved from week one.
-      //   - 'done': a founding Buildable (or an event-granted one — see
-      //     needsSiting's own comment) that never got a home. There is no
-      //     development to start — its effects already applied — so this
-      //     only charges the flat siting fee (campusMap.ts's sitingFeeOf —
-      //     RETROACTIVE_SITING_COST, or nothing for Founders Hall) and
-      //     records where it stands; canSiteRetroactively is the whole gate, no
-      //     canStartDevelopment involved (that function requires status
-      //     'available' and would always refuse a 'done' node).
+      //   - 'done': Founders Hall in a guided founding (campusMap.ts's
+      //     awaitsSite). Nothing to build and nothing to pay: this only
+      //     records where it stands.
       //
       // The BASE footprint comes from the Buildable's kind, not from the
       // action (see campusMap.ts's footprintOf); `action.rotated` says
@@ -539,25 +534,22 @@ export function reducer(state: GameState, action: Action): GameState {
       // no separate orientation field (see types.ts's Placement).
       const node = s.tech.find((t) => t.id === action.buildableId);
       if (node) {
-        // A 'done' node is never rotated — nothing offers that control for
-        // a retroactive siting (see CampusMap.tsx), so its base footprint
-        // is exactly what canPlace/placementFor need.
+        // A 'done' node is sited at its base footprint; nothing offers
+        // rotation for it (see CampusMap.tsx).
         const fp = node.status === 'done' ? footprintOf(node) : orientedFootprint(node, action.rotated);
         if (canPlace(s, node, action.row, action.col, fp)) {
           // Clearing the ground is part of committing a site: every tree
           // under the footprint is felled, permanently (see
           // data/treeData.ts). Done here, in the same transaction as the
-          // placement, for both branches — a retroactive siting stands on
-          // its ground exactly as a fresh build does. Paving over a tree, by
+          // placement, for both branches. Paving over a tree, by
           // contrast, deletes nothing: that is a render-time read of
           // `pathways` (see CampusMap.tsx), which is what lets lifting the
           // path bring the tree back.
           const placement = placementFor(action.row, action.col, fp);
           if (node.status === 'done') {
-            if (canSiteRetroactively(s, node)) {
+            if (awaitsSite(s, node)) {
               s.placements[node.id] = placement;
               fellTrees(s.trees, placement);
-              s.finance.cash -= sitingFeeOf(node); // nothing for Founders Hall — see sitingFeeOf
             }
           } else if (canStartDevelopment(s, node)) {
             s.placements[node.id] = placement;

@@ -468,7 +468,7 @@ export function createPreStartState(): GameState {
       athleticDirectorAskedWeek: 0,
     },
     research: {
-      points: 0, lifetimePoints: 0, publications: 0, grants: 0, grantIncome: 0,
+      publications: 0, grants: 0, grantIncome: 0,
       breakthroughs: 0, prizes: 0, initiatives: {}, completedInitiatives: [],
       lastOutputWeek: 0, pendingCompletions: [],
     },
@@ -478,7 +478,7 @@ export function createPreStartState(): GameState {
     milestones: {},
     ambitions: {},
     courseFaculty: {},
-    seen: { courseIds: {}, buildableIds: {}, candidateIds: {}, tabIds: {} },
+    seen: { courseIds: {}, buildableIds: {}, tabIds: {} },
   };
 }
 
@@ -830,7 +830,7 @@ export function createInitialState(
     // fire — the whole slice sits at zero until the first lab finishes
     // (see systems/research/researchSystem.ts).
     research: {
-      points: 0, lifetimePoints: 0, publications: 0, grants: 0, grantIncome: 0,
+      publications: 0, grants: 0, grantIncome: 0,
       breakthroughs: 0, prizes: 0, initiatives: {}, completedInitiatives: [],
       lastOutputWeek: 0, pendingCompletions: [],
     },
@@ -840,11 +840,8 @@ export function createInitialState(
     milestones: {},
     ambitions: {},
     // Filled in below, once the founding programs' courses have been
-    // opened. candidateIds starts genuinely empty: unlike
-    // courses/buildables, no candidate is ever "needed" at founding (the
-    // roster covers what the college teaches, with slots to spare — see
-    // above), so there is nothing here to except.
-    seen: { courseIds: {}, buildableIds: {}, candidateIds: {}, tabIds: {} },
+    // opened.
+    seen: { courseIds: {}, buildableIds: {}, tabIds: {} },
   };
 
   // The founding programs' next courses open by the ordinary rule — housed,
