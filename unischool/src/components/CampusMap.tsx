@@ -13,6 +13,7 @@ import { detectQuads, tileIndex, type Quad } from '../state/quads';
 import { QuadOverlay, QuadPatches } from './quadLayer';
 import QuadPanel from './QuadPanel';
 import Walkers from './Walkers';
+import AgeMarks, { type AgeBand } from './ageMarks';
 import { dressingProps } from './dressing';
 import { BannerContext, CrowdContext, VenueContext, crowdedVenues, isCommencement } from './mapOccasions';
 import { desireLines, walkGrid } from './walkRoutes';
@@ -23,7 +24,7 @@ import BuildingInfoPanel from './BuildingInfoPanel';
 import { isAcademicHall, programById } from '../data/techData';
 import { schoolMark } from '../data/schoolPalette';
 import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf } from './buildingMotifs';
-import { materialOf, motifOf } from './buildingSpec';
+import { floorsUnderConstruction, materialOf, motifOf, wallHeightOf } from './buildingSpec';
 import { groundProps } from './groundMarkings';
 import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
@@ -206,14 +207,28 @@ type SceneEntry = DepthBox & (
 // a week's countdown redraws the progress bars alone, not the scene.
 const DevelopingContext = createContext<GameState['developing']>({});
 
-// A site's progress bar, lying flat on the ground along the front edge of
-// its footprint, and the tooltip that counts it down.
+// A site's progress: the building's shell rising in scaffolding over its
+// build weeks, from the motif's low frame to the eaves, a progress bar lying
+// flat along the front edge of its footprint, and the tooltip that counts
+// it down.
 function SiteProgress({ t, p, label }: { t: Buildable; p: Placement; label: string }) {
   const weeksLeft = useContext(DevelopingContext)[t.id];
   if (weeksLeft === undefined) return null;
   const elapsedFraction = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
+  const rises = motifOf(t) !== 'grounds' && floorsUnderConstruction(t) === 0;
+  const d = drawnFootprint(p);
+  const shell = rises ? boxFaces(d.col, d.row, d.w, d.h, 0, wallHeightOf(t) * elapsedFraction) : null;
   return (
     <>
+      {shell && elapsedFraction > 0.05 && (
+        <g className="campus-site-shell">
+          <polygon points={polyPoints(shell.left)} />
+          <polygon points={polyPoints(shell.right)} />
+          <polygon points={polyPoints(shell.top)} />
+          <polygon className="campus-site-hatch" points={polyPoints(shell.left)} />
+          <polygon className="campus-site-hatch" points={polyPoints(shell.right)} />
+        </g>
+      )}
       <polygon
         className="campus-building-progress-track"
         points={polyPoints(boxFaces(p.col, p.row + p.h - PROGRESS_BAR_DEPTH, p.w, PROGRESS_BAR_DEPTH, 0, 0).top)}
@@ -231,7 +246,7 @@ function SiteProgress({ t, p, label }: { t: Buildable; p: Placement; label: stri
 // a progress bar on the ground. Clicks are handled by the drawn shape, since
 // a tall building is drawn above the tiles it occupies.
 function PlacedBuilding({
-  t, p, label, onInspect, inspected, developing, justFinished, glyphs, vernacular, camera,
+  t, p, label, onInspect, inspected, developing, justFinished, glyphs, vernacular, camera, age = 0,
 }: {
   t: Buildable; p: Placement; onInspect: () => void; inspected: boolean;
   camera: Camera;
@@ -242,6 +257,7 @@ function PlacedBuilding({
   // reference-stable and BuildingMotif's memo still short-circuits.
   vernacular: Vernacular;
   glyphs?: string;
+  age?: AgeBand;
 }) {
   const d = drawnFootprint(p);
 
@@ -259,6 +275,7 @@ function PlacedBuilding({
         developing={developing} glyphs={glyphs}
         camera={camera}
       />
+      {!developing && motifOf(t) !== 'grounds' && <AgeMarks t={t} p={d} band={age} vernacular={vernacular} />}
       {inspected && (
         // The footprint outline on the ground, which the building can't hide.
         <polygon className="campus-building-halo" points={polyPoints(boxFaces(p.col, p.row, p.w, p.h, 0, 0).top)} />
@@ -494,7 +511,7 @@ const CampusScene = memo(function CampusScene({ layout, quads, inspectedId, just
 
   const ground = useMemo(groundGeometry, [camera]);
 
-  const building = ({ t, p, label, developing, glyphs }: CampusLayout['placed'][number]) => (
+  const building = ({ t, p, label, developing, glyphs, age }: CampusLayout['placed'][number]) => (
     <PlacedBuilding
       t={t}
       p={p}
@@ -506,6 +523,7 @@ const CampusScene = memo(function CampusScene({ layout, quads, inspectedId, just
       glyphs={glyphs}
       vernacular={vernacular}
       camera={camera}
+      age={age}
     />
   );
 

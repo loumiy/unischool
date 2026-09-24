@@ -553,6 +553,8 @@ export function tickTech(s: GameState): void {
 
   for (const node of finished) {
     node.status = 'done';
+    // First finished, not renovated: the map dates its weathering from here.
+    if (node.kind !== 'course' && node.builtYear === undefined) node.builtYear = s.clock.year;
     // A finished renovation serves its new figure (types.ts's servingPopulation).
     delete node.renovatingFrom;
     applyEffects(s, node.effects);

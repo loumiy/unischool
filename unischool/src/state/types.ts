@@ -216,6 +216,10 @@ export interface Buildable {
   // servesPopulation before the renovation in progress, which stays in use
   // meanwhile. Set by RENOVATE_LIBRARY, cleared on completion.
   renovatingFrom?: number;
+  // The year a placeable Buildable was first finished, for the map's age
+  // marks (components/ageMarks.tsx). Undefined for courses and for buildings
+  // an older save finished.
+  builtYear?: number;
 }
 
 // What a Buildable serves right now: full when done, nothing before it

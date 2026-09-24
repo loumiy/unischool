@@ -4,6 +4,7 @@ import { totalEnrolled } from '../state/types';
 import { BIKE_RACK_ENROLMENT } from './dressing';
 import { chapterHouseId } from '../data/eventData';
 import { hallDisplayName } from '../systems/techtree/schools';
+import { ageBand, type AgeBand } from './ageMarks';
 
 // What the campus scene draws, and nothing that changes week to week: which
 // buildings stand where and in what state, the paths, the trees, the names.
@@ -22,6 +23,8 @@ export interface PlacedEntry {
   developing: boolean;
   // A chapter house's letters.
   glyphs?: string;
+  // How weathered it is (ageMarks.tsx).
+  age: AgeBand;
 }
 
 export interface CampusLayout {
@@ -46,7 +49,7 @@ function entryKey(e: PlacedEntry): string {
   const { t, p } = e;
   const fx = t.effects;
   return [
-    t.id, p.col, p.row, p.w, p.h, t.status, e.developing ? 1 : 0, e.label, e.glyphs ?? '',
+    t.id, p.col, p.row, p.w, p.h, t.status, e.developing ? 1 : 0, e.label, e.glyphs ?? '', e.age,
     t.floorsAdded ?? 0, t.renovatingFrom ?? '', fx?.capacityBonus ?? 0, fx?.servesPopulation ?? 0,
   ].join(':');
 }
@@ -69,6 +72,7 @@ export function campusLayout(s: GameState): CampusLayout {
       label: hallDisplayName(s, t),
       developing: t.status === 'developing' && s.developing[id] !== undefined,
       glyphs: glyphs[id],
+      age: ageBand(t, s.clock.year),
     });
   }
   const bikeRacks = totalEnrolled(s.students) >= BIKE_RACK_ENROLMENT;

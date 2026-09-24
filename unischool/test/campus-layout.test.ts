@@ -10,6 +10,7 @@ import { campusLayout } from '../src/components/campusLayout';
 import { firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { bindScriptStream } from '../src/engine/random';
 import type { GameState } from '../src/state/types';
+import { SLATE_YEARS, STREAK_YEARS, ageBand } from '../src/components/ageMarks';
 
 bindScriptStream(2424);
 const store = new Map<string, string>();
@@ -66,6 +67,14 @@ const quiet = (): GameState => {
   }
   assert(campusLayout(s).byId.get('DORM-01')?.developing === false, 'the dorm finishes');
   assert(key(s) !== siteKey, 'and finishing moves the key');
+  assert(s.tech.find((t) => t.id === 'DORM-01')!.builtYear === s.clock.year, 'and dates itself');
+  const dorm2 = s.tech.find((t) => t.id === 'DORM-01')!;
+  assert(ageBand(dorm2, dorm2.builtYear! + STREAK_YEARS - 1) === 0, 'unmarked in its first years');
+  assert(ageBand(dorm2, dorm2.builtYear! + STREAK_YEARS) === 1, 'streaked at fifteen');
+  assert(ageBand(dorm2, dorm2.builtYear! + SLATE_YEARS) === 2, 'slates gone at thirty');
+  const aged = structuredClone(s);
+  aged.clock.year += STREAK_YEARS;
+  assert(key(aged) !== key(s), 'and weathering moves the key');
 }
 
 // ---- Everything else the scene draws moves the key ----

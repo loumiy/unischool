@@ -4,7 +4,7 @@
 campus map, `loumiy/unischool-v2`'s `docs/MIGRATION_PLAN.md`) into a
 sequence of PRs.*
 
-**Status: In progress.**
+**Status: In progress.** PRs A–J are done in this branch, awaiting merge.
 
 ---
 
@@ -312,6 +312,42 @@ This is the baseline every later PR in this plan is measured against.
 - **Age marks by years standing:** streaks after 15 years and lost slates
   after 30. Phase E ties them to condition, adds boarded windows, weeds and
   a fence for derelict buildings, and ivy for historic ones.
+
+**As implemented:**
+
+- **The crane, the scaffolding and the progress bar were already there.**
+  This game drew a site as a low frame with scaffold poles and, on a big
+  footprint, a tower crane. What it lacked was the rise. `SiteProgress`
+  (the countdown's context consumer since 24B) now draws the building's
+  shell in scaffold hatch, climbing to the eaves as the weeks run down. It
+  redraws with the countdown, never the scene.
+- **`Buildable.builtYear`** (optional) is set by `tickTech` the first time a
+  placeable finishes, and at founding for Founders Hall. No system reads
+  it. Buildings an older save finished have none, and show no age.
+- **`components/ageMarks.tsx`** draws rain streaks down the visible walls at
+  15 years and gaps along the eaves at 30, placed by a hash of the id. The
+  age band is in the layout key, so a building weathers the year it turns.
+- **Profile, Year 40:** 54.9 fps at 4×.
+
+## As landed
+
+Measured with `npm run profile` on the same Earnest completionist campus
+at Year 40, 4×:
+
+| After | fps |
+| --- | --- |
+| Before this plan | 43.3 |
+| B, the static layer | 56.5 |
+| C, the camera | 57.2 |
+| D–F, the road, quads and paths | 57.3 |
+| G, walkers (355) | 55.8 |
+| H, lamps and racks | 55.9 |
+| I, crowds and banners | 55.2 |
+| J, construction and age | 54.9 |
+
+The balance harness is unmoved. Placement is the only thing this plan
+changed in a run, and no system reads where anything stands. The slow
+suites pass on unchanged bands.
 
 ## What this plan does not do
 

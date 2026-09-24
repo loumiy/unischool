@@ -278,6 +278,7 @@ function foundState(
   }
 
   const foundersHall = tech.find((t) => t.id === FOUNDERS_HALL_ID)!;
+  foundersHall.builtYear = 1;
   const foundingPlacements: Placements = guided ? {} : { [FOUNDERS_HALL_ID]: centredPlacement(footprintOf(foundersHall)) };
 
   // Shared by self.reputation and the seeded admit rate so they agree.
