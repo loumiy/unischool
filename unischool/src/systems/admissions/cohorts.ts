@@ -1,3 +1,4 @@
+import { tagPoolFactor, tagQualityShift } from '../identity/tags';
 import { campusBeauty } from '../estate/beauty';
 import type { CohortCounts, CohortId, GameState } from '../../state/types';
 import { weeklyResearchPoints } from '../../data/researchData';
@@ -76,6 +77,10 @@ export interface CohortSignals {
   athleticResultsLabel: string; // the cause, named for the summer modal: "the 2031 title in Men's Basketball"; '' when there is nothing recent
   gradCourseDepth: number;      // 'done' graduate/professional course Buildables, 0..37
   beauty: number;               // campus beauty, 0..100, neutral at 50 (systems/estate/beauty.ts)
+  // What the identity tags do to the pool (systems/identity/tags.ts): its
+  // size as a factor, and points on the incoming class. Absent reads 1 and 0.
+  tagPool?: number;
+  tagQuality?: number;
 }
 
 // Athletic results reach the pool as research output does: a title is worth
@@ -116,6 +121,8 @@ export function deriveCohortSignals(s: GameState): CohortSignals {
   const athletic = athleticResultsFor(s);
   return {
     beauty: campusBeauty(s),
+    tagPool: tagPoolFactor(s),
+    tagQuality: tagQualityShift(s),
     distinguishedDepth: milestoneCountWithPrefix(s, 'program-distinguished:') + 2 * milestoneCountWithPrefix(s, 'grad-program-complete:'),
     professionalPrograms: establishedPrefixCount(s, PRE_PROFESSIONAL_PREFIXES),
     researchRate: weeklyResearchPoints(s),

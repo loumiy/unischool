@@ -70,7 +70,7 @@ const majorsOf = (school: string) => programs().filter((p) => p.kind === 'major'
 
 console.log('standing readings tests');
 
-// ---- three inputs, one penalty, one reading ----
+// ---- three inputs, two penalties, one reading ----
 {
   const s = fresh();
   const made = prestigeBreakdown(s);
@@ -79,7 +79,9 @@ console.log('standing readings tests');
   const crowding = made.inputs.find((i) => i.key === 'crowding')!;
   assert(crowding.penalty === true, 'crowding is the penalty');
   assert(crowding.contribution <= 0, 'and subtracts');
-  assert(made.inputs.filter((i) => i.key !== 'crowding').every((i) => !i.penalty), 'nothing else does');
+  const condition = made.inputs.find((i) => i.key === 'condition')!;
+  assert(condition.penalty === true && condition.contribution === 0, 'estate condition is the other penalty (Plan 31), and a new estate owes nothing');
+  assert(made.inputs.filter((i) => i.key !== 'crowding' && i.key !== 'condition').every((i) => !i.penalty), 'nothing else subtracts');
   assert(made.readings.map((r) => r.key).join(',') === 'capacity', 'instruction capacity is the one reading left');
   const inputKeys = new Set(keys);
   assert(made.readings.every((r) => !inputKeys.has(r.key)), 'no reading is also an input');

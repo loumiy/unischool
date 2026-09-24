@@ -1,5 +1,6 @@
 import { campusBeauty } from '../estate/beauty';
-import { historicPrestige } from '../estate/estate';
+import { conditionOf, historicPrestige } from '../estate/estate';
+import { isPlaceableKind } from '../../state/campusMap';
 import type { GameState, ReportCard, SatisfactionAttributes } from '../../state/types';
 import { totalEnrolled } from '../../state/types';
 import { graduatePrograms, milestoneSchools } from '../../data/techData';
@@ -53,6 +54,11 @@ const WELFARE_WEIGHT = 20;            // the year's average satisfaction, scored
 const CAMPUS_LIFE_WEIGHT = 12;
 // Campus beauty (systems/estate/beauty.ts): either way from a neutral 50.
 const BEAUTY_WEIGHT = 6;
+// Estate condition (Plan 31, V1-21): the finished buildings' mean condition
+// (systems/estate/estate.ts). Only neglect counts: full condition costs
+// nothing, and a mean of half or worse costs the whole weight.
+const CONDITION_PENALTY = 4;
+const CONDITION_FLOOR = 0.5;
 const ENDOWMENT_WEIGHT = 8;           // financial resources per student; any larger and it is a term nobody could earn
 const CROWDING_PENALTY = 25;          // the most crowding can SUBTRACT (see crowdingScore below)
 
@@ -141,6 +147,14 @@ function teachingScore(s: GameState): number {
 }
 
 // From -1 at a campus scoring 0 to 1 at one scoring 100.
+// 0 at full condition, 1 at CONDITION_FLOOR or worse.
+function conditionScore(s: GameState): number {
+  const standing = s.tech.filter((t) => isPlaceableKind(t) && t.status === 'done');
+  if (standing.length === 0) return 0;
+  const mean = standing.reduce((t, b) => t + conditionOf(b), 0) / standing.length;
+  return Math.max(0, Math.min(1, (1 - mean) / (1 - CONDITION_FLOOR)));
+}
+
 function beautyScore(s: GameState): number {
   return Math.max(-1, Math.min(1, (campusBeauty(s) - 50) / 50));
 }
@@ -342,6 +356,10 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
     weigh(
       'endowment', 'Endowment', ENDOWMENT_WEIGHT, endowmentScore(s),
       `${money(s.finance.endowment)} against a student body of ${totalEnrolled(s.students).toLocaleString()}.`,
+    ),
+    penalise(
+      'condition', 'Estate condition', CONDITION_PENALTY, conditionScore(s),
+      'The buildings\' mean condition: a fully maintained estate costs nothing, a run-down one up to four points.',
     ),
     penalise(
       'crowding', 'Crowding', CROWDING_PENALTY, crowdingScore(s),

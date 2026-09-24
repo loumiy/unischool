@@ -1,3 +1,4 @@
+import { tagTeeth } from '../identity/teeth';
 import type { GameState } from '../../state/types';
 import { totalEnrolled } from '../../state/types';
 import { advanceClasses, attritionRate, trailingYearSatisfaction } from './admissionsSystem';
@@ -68,8 +69,10 @@ export function attritionReasons(s: GameState): string[] {
 
 // The attrition this summer applies, off the same year's average the
 // reducer reads at RESOLVE_ADMISSIONS.
+// An identity tag's teeth (Plan 31) move it: a Teaching College keeps its
+// students, a Pressure Cooker loses more.
 export function summerAttrition(s: GameState): number {
-  return attritionRate(trailingYearSatisfaction(s));
+  return Math.max(0, attritionRate(trailingYearSatisfaction(s)) + tagTeeth(s, 'attrition'));
 }
 
 // Whichever of the two capacity needs the projected body leaves shortest.

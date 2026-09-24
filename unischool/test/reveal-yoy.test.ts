@@ -36,7 +36,7 @@ function assert(cond: boolean, msg: string): void {
 const near = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
 
 function product(f: FunnelFactors): number {
-  return f.prestigePool * f.priceFactor * f.capacityFactor * f.wordOfMouth * f.cohortDemand * f.stickerShock * (f.beauty ?? 1);
+  return f.prestigePool * f.priceFactor * f.capacityFactor * f.wordOfMouth * f.cohortDemand * f.stickerShock * (f.beauty ?? 1) * (f.tags ?? 1);
 }
 
 function toSummer(start: GameState): GameState {

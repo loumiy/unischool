@@ -161,6 +161,8 @@ export interface FunnelFactors {
   // Campus beauty's swing, 1 at neutral (systems/estate/beauty.ts). Absent
   // on a record from before Plan 26, which read as 1.
   beauty?: number;
+  // The identity tags' pull (Plan 31), 1 at none. Absent before it.
+  tags?: number;
 }
 
 export interface FunnelRecord {
@@ -874,6 +876,9 @@ export interface YearSnapshot {
   // by its close.
   worstRung?: number;
   schoolsFounded?: number;
+  // The year's rank on each of the six standings (Plan 31), by axis
+  // (systems/rivals/rivalsSystem.ts's STANDINGS). Absent before it.
+  standings?: Record<string, number>;
 }
 
 export interface RunningCampaign {
@@ -956,6 +961,12 @@ export interface GameState {
   // Advancement (Plan 30): the campaign running, those closed, and building
   // money raised and not yet spent. Undefined before the first campaign.
   advancement?: Advancement;
+  // What the guidebooks call the college (systems/identity/tags.ts): the
+  // tags held, and the years each is toward being earned or shed.
+  identity?: { tags: string[]; earning: Record<string, number>; shedding: Record<string, number> };
+  // The college's rival (systems/rivals/collegeRival.ts) and whether the
+  // college stood above it at the last summer. Undefined before one exists.
+  rivalStanding?: { rivalId: string; above: boolean };
   // Lamps and benches the player has placed beside the paths, by tile key
   // (components/dressing.tsx). Optional: a campus may have none.
   dressing?: Dressing;

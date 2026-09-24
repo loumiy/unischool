@@ -1,3 +1,4 @@
+import { tagTeeth } from '../identity/teeth';
 import { QUIRK_MORALE_CAP, QUIRK_MORALE_PER_POINT, quirkById } from '../../data/quirkData';
 import { pairingBumps } from '../estate/pairing';
 import type { GameState, SatisfactionAttributes } from '../../state/types';
@@ -270,8 +271,10 @@ function weightedSum(breakdown: SatisfactionAttributes): number {
 }
 
 // The target the headline drifts toward. Exported so views read the real one.
+// A Commuter college's students go home at five (an identity tag's teeth,
+// Plan 31).
 export function satisfactionTarget(s: GameState): number {
-  return diminished(weightedSum(computeSatisfactionBreakdown(s)));
+  return clamp(diminished(weightedSum(computeSatisfactionBreakdown(s))) + tagTeeth(s, 'satisfaction'), 0, 100);
 }
 
 // What student life is worth on the satisfaction target. Orgs nudge the
@@ -336,7 +339,7 @@ export function tickSatisfaction(s: GameState): void {
   const breakdown = computeSatisfactionBreakdown(s);
   s.students.satisfactionBreakdown = breakdown;
 
-  const target = diminished(weightedSum(breakdown));
+  const target = clamp(diminished(weightedSum(breakdown)) + tagTeeth(s, 'satisfaction'), 0, 100);
   s.students.satisfaction += (target - s.students.satisfaction) * SATISFACTION_DRIFT_RATE;
   s.students.satisfaction = clamp(s.students.satisfaction, 0, 100);
 

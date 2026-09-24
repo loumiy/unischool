@@ -1,3 +1,5 @@
+import { totalEnrolled } from '../../state/types';
+import { priceTolerance } from '../admissions/admissionsSystem';
 import type { GameState, Rival, VarsityTeam } from '../../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../../state/types';
 import { athleticProgramStrength, teamQuality } from '../../data/studentLifeData';
@@ -163,7 +165,53 @@ function driftMomentum(current: number, roll: () => number): number {
 // field identically (types.ts), except athletics, where the player's
 // strength is computed live (athleticProgramStrength).
 // ---------------------------------------------------------------------
-export type StandingAxis = 'reputation' | 'socialStanding' | 'researchStanding' | 'athleticStrength';
+export type StandingAxis = 'reputation' | 'socialStanding' | 'researchStanding' | 'athleticStrength' | 'access' | 'financial';
+
+// The six standings in the league (Plan 31, V1-22), in the order the History
+// tab lists them.
+export const STANDINGS: ReadonlyArray<{ axis: StandingAxis; label: string }> = [
+  { axis: 'reputation', label: 'Academics' },
+  { axis: 'researchStanding', label: 'Research' },
+  { axis: 'socialStanding', label: 'Student experience' },
+  { axis: 'athleticStrength', label: 'Athletics' },
+  { axis: 'access', label: 'Access' },
+  { axis: 'financial', label: 'Financial strength' },
+];
+
+// Access and financial strength (Plan 31) are read, not stored. The player's:
+// access is half the admit rate and half how far the price sits under what
+// its standing could charge; financial strength is endowment per student
+// against $80,000, the stewardship axis's full mark. Both on the 0–150
+// scale the other axes use.
+const ACCESS_SCALE = 150;
+const FINANCIAL_FULL_PER_STUDENT = 80_000;
+export function selfAccess(s: GameState): number {
+  const tolerance = priceTolerance(s.self.reputation);
+  const affordability = tolerance > 0 ? Math.max(0, Math.min(1, 1 - s.finance.listedTuition / (2 * tolerance))) : 0;
+  return ACCESS_SCALE * (0.5 * Math.max(0, Math.min(1, s.students.admitRate)) + 0.5 * affordability);
+}
+export function selfFinancial(s: GameState): number {
+  const enrolled = totalEnrolled(s.students);
+  const perStudent = enrolled > 0 ? s.finance.endowment / enrolled : 0;
+  return ACCESS_SCALE * Math.max(0, Math.min(1, perStudent / FINANCIAL_FULL_PER_STUDENT));
+}
+
+// A rival's: read off its reputation, tilted by a fixed share from its id,
+// so the field's elite is dear and rich and its tail open and poor, and no
+// two schools agree exactly. No state and no draws.
+function tilt(id: string, salt: number): number {
+  let h = 2166136261 ^ salt;
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return 0.8 + ((h % 1000) / 1000) * 0.4;
+}
+function rivalValue(r: Rival, axis: StandingAxis): number {
+  if (axis === 'access') return Math.max(0, ACCESS_SCALE - r.reputation * 0.75 * tilt(r.id, 1));
+  if (axis === 'financial') return Math.min(ACCESS_SCALE, r.reputation * 0.8 * tilt(r.id, 2));
+  return r[axis];
+}
 
 export interface RankedEntry {
   key: string;   // 'self', or the rival's id — never the name, which two schools may share
@@ -174,7 +222,10 @@ export interface RankedEntry {
 }
 
 function selfValue(s: GameState, axis: StandingAxis): number {
-  return axis === 'athleticStrength' ? athleticProgramStrength(s) : s.self[axis];
+  if (axis === 'athleticStrength') return athleticProgramStrength(s);
+  if (axis === 'access') return selfAccess(s);
+  if (axis === 'financial') return selfFinancial(s);
+  return s.self[axis];
 }
 
 // Every leaderboard's core: one entry per school, sorted by the caller's
@@ -195,7 +246,7 @@ function rankedFrom(
 }
 
 export function rankedListBy(s: GameState, axis: StandingAxis): RankedEntry[] {
-  return rankedFrom(s, selfValue(s, axis), (r) => r[axis]);
+  return rankedFrom(s, selfValue(s, axis), (r) => rivalValue(r, axis));
 }
 
 // The player's 1-indexed position on an axis.
@@ -329,6 +380,8 @@ function otherStandings(s: GameState): OtherStanding[] {
   return [
     otherStanding(s, 'Research', 'researchStanding'),
     otherStanding(s, 'Campus life', 'socialStanding'),
+    otherStanding(s, 'Access', 'access'),
+    otherStanding(s, 'Financial strength', 'financial'),
   ];
 }
 

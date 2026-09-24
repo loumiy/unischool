@@ -2,7 +2,7 @@ import type { GameState, OccasionResult, Rival, VarsityTeam } from '../../state/
 import { WEEKS_PER_YEAR, institutionName } from '../../state/types';
 import { baseRivals, hashUnit, makeRivalRng, sportStrengthFor } from '../../data/rivalData';
 import { sportById, teamQuality } from '../../data/studentLifeData';
-import { sportRankedList } from '../rivals/rivalsSystem';
+import { playerRank, sportRankedList } from '../rivals/rivalsSystem';
 import { PLAYOFF_WEEK, SPREAD, wins } from './playoffs';
 import { ordinal } from '../../format';
 import { random } from '../../engine/random';
@@ -58,12 +58,19 @@ export function trophyFor(s: GameState, sportId: string): string {
 }
 
 // An opponent within a few places on the sport's own table, drawn on the
-// local generator.
+// local generator. The schedule climbs with the college's name (Plan 31,
+// V1-19): when it stands higher in the rankings than its team does on the
+// field, the neighbourhood is pulled a third of the way up toward that
+// place, so a rising college is scheduled against better-known schools
+// before its team has earned them.
 const NEIGHBOURHOOD = 4;
+const SCHEDULE_PULL = 1 / 3;
 function comparableOpponent(s: GameState, sportId: string, roll: () => number): { name: string; mascot: string; value: number } | null {
   const table = sportRankedList(s, sportId);
-  const me = table.findIndex((e) => e.isPlayer);
-  if (me === -1) return null;
+  const place = table.findIndex((e) => e.isPlayer);
+  if (place === -1) return null;
+  const standing = playerRank(s) - 1;
+  const me = standing < place ? Math.round(place - (place - standing) * SCHEDULE_PULL) : place;
   const near = table.filter((e, i) => !e.isPlayer && Math.abs(i - me) <= NEIGHBOURHOOD);
   const pool = near.length > 0 ? near : table.filter((e) => !e.isPlayer);
   if (pool.length === 0) return null;

@@ -29,6 +29,7 @@ const LABELS: Array<[keyof FunnelFactors, string]> = [
   ['cohortDemand', 'new pulls'],
   ['stickerShock', 'sticker shock'],
   ['beauty', 'the campus'],
+  ['tags', 'what the guidebooks say'],
 ];
 
 // Moves smaller than this are rounding and are left off the line.
@@ -38,7 +39,7 @@ export function poolChange(now: AdmissionsProjection, last: FunnelRecord | null)
   if (!last || last.applicants <= 0) return null;
   const parts: PoolMove[] = [];
   for (const [key, label] of LABELS) {
-    // A record from before beauty counted reads it as neutral.
+    // A record from before beauty or the tags counted reads them as neutral.
     const before = last.factors[key] ?? 1;
     if (!(before > 0)) continue;
     const change = (now.factors[key] ?? 1) / before - 1;

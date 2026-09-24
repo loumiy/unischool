@@ -1,3 +1,4 @@
+import StandingsPanel from './StandingsPanel';
 import type { Action } from '../state/actions';
 import AlumniPanel from './AlumniPanel';
 import type { GameState, YearSnapshot } from '../state/types';
@@ -370,6 +371,8 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
           />
         </div>
       </section>
+
+      <StandingsPanel s={s} />
 
       <AlumniPanel s={s} act={act} />
 
