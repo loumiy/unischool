@@ -7,6 +7,7 @@ import HelpHint from '../components/HelpHint';
 import { HistoryChart } from '../components/HistoryChart';
 import { moneyShort } from '../format';
 import PromisesPanel from './PromisesPanel';
+import ChroniclePanel from './ChroniclePanel';
 import { legacy } from '../state/legacy';
 import { SEMICENTENNIAL_YEAR } from '../state/types';
 import { LegacyAxes } from '../components/LegacyAxes';
@@ -258,6 +259,8 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
         <StandingPanel s={s} />
         <LegacyPanel s={s} />
         <PromisesPanel s={s} />
+      <ChroniclePanel s={s} />
+        <ChroniclePanel s={s} />
         <section className="panel">
           <div className="panel-head">
             <div className="panel-head-title">

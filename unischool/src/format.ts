@@ -38,10 +38,12 @@ export function surnameOf(name: string): string {
   return parts[parts.length - 1];
 }
 
-// Money at the grain a scan or a chart axis needs: "$180k", "$4.0M", "$12M".
+// Money at the grain a scan or a chart axis needs: "$180k", "$4.0M", "$12M",
+// "$3.2B".
 export function moneyShort(v: number): string {
   const sign = v < 0 ? '−' : '';
   const abs = Math.abs(v);
+  if (abs >= 1_000_000_000) return `${sign}$${(abs / 1_000_000_000).toFixed(abs >= 10_000_000_000 ? 0 : 1)}B`;
   if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(abs >= 10_000_000 ? 0 : 1)}M`;
   if (abs >= 1_000) return `${sign}$${Math.round(abs / 1_000)}k`;
   return `${sign}$${Math.round(abs)}`;

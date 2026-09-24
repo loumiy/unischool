@@ -31,6 +31,8 @@ import type { ReportPayload } from '../systems/rivals/rivalsSystem';
 import AnimatedNumber from './AnimatedNumber';
 import { isActivationTarget, useHotkeys } from './hotkeys';
 import { modalWidth } from './modalLayout';
+import { currentEra } from '../systems/chronicle/chronicle';
+import { CHRONICLE_WORDS } from '../data/chronicleData';
 import { CatalogueChoices, CatalogueText } from './EventPanel';
 import { eventById, fill } from '../systems/events/catalogue';
 import { catalogueOf } from '../systems/events/catalogueEngine';
@@ -403,6 +405,7 @@ function SummerSteps({ beat }: { beat: SummerBeat }) {
 // Read-and-continue.
 function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: (promises: string[]) => void }) {
   const review = buildYearInReview(s);
+  const era = currentEra(s);
   const [taken, setTaken] = useState<string[]>([]);
   const toggle = (id: string) => setTaken((t) => (t.includes(id) ? t.filter((x) => x !== id) : [...t, id]));
   return (
@@ -412,6 +415,7 @@ function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: (promises: st
         The year is over. Before the summer&rsquo;s decisions, what it produced.
         {review.truncated && ' The record of its earliest weeks has scrolled off the log.'}
       </p>
+      {era && <p className="review-era">{CHRONICLE_WORDS.now.replace('{era}', era.name)}</p>}
       <div className="review-grid">
         {review.sections.map((section) => (
           <section key={section.key} className="review-section">

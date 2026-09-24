@@ -927,6 +927,8 @@ export interface YearSnapshot {
   // The college's own value on each of the six (Plan 33), on the 0–150
   // scale, so the Final Report can average a decade. Absent before it.
   standingValues?: Record<string, number>;
+  // The endowment at the close (Plan 33), for the chronicle's money line.
+  endowment?: number;
 }
 
 export interface RunningCampaign {

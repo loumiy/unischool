@@ -62,6 +62,7 @@ export function captureYearSnapshot(s: GameState, figures: YearFigures): YearSna
     worstRung: Math.max(s.finance.distress?.yearWorst ?? 0, s.finance.distress?.rung ?? 0),
     schoolsFounded: Object.keys(s.milestones).filter((k) => k.startsWith('school-founded:')).length,
     standings: Object.fromEntries(STANDINGS.map(({ axis }) => [axis, rankBy(s, axis)])),
+    endowment: Math.round(s.finance.endowment),
     standingValues: Object.fromEntries(STANDINGS.map(({ axis }) => [axis, Number(standingValue(s, axis).toFixed(2))])),
   };
 }
