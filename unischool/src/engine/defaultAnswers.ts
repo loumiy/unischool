@@ -79,9 +79,6 @@ export function defaultAnswer(s: GameState, admissions?: AdmissionsPolicy): Acti
     case 'championship':
       return { type: 'RESOLVE_CHAMPIONSHIP' };
 
-    case 'milestone-reached':
-      return { type: 'RESOLVE_MILESTONE_LETTER' };
-
     case 'letter':
       // Read and put down, never skipped: a fast-forward should see the
       // opening the way a first-time player does, four letters and all.

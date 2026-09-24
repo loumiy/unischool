@@ -22,16 +22,18 @@ the nearest one and its progress, and clicking it opens the whole ladder.
   students, and one that barely grows still founds its schools.
 - **Milestones are permanent.** One reached is never undone, even if
   enrolment or prestige later falls below its threshold.
-- **Each milestone arrives with a letter** naming what it opened. The
-  letters queue behind anything more urgent and are never dropped.
+- **Each milestone arrives with a note**: a card over the map naming what
+  it opened. Notes never stop the clock.
 - **The founding build list is short and curriculum-first:** the first
-  dorm, the dining hall, the quad and the library. Founders Hall and its
-  programs come first.
+  dorm, the dining hall, the quad and the library. The Student Center and
+  the Recreation Center follow the fourth program, which is the opening
+  walkthrough's last step.
 
 | Tier | Milestone | Condition | Opens |
 | --- | --- | --- | --- |
 | Founding | The charter | founding | Founders Hall, the dorm and dining chains, the Campus Quad, the Library; Curriculum, Faculty, Treasury |
-| Founding | First commencement | the first summer closes | Student Center, Recreation Center, Second Quad; Enrollment, Student Life, History |
+| Founding | A fourth program | a fourth program founded | Student Center, Recreation Center, Second Quad |
+| Founding | First commencement | the first summer closes | Enrollment, Student Life, History |
 | Founding | A curriculum | eight courses developed | academic halls |
 | Growing | A town's worth | 1,500 students | Health & Counseling Center |
 | Growing | A regional name | prestige 55 | Athletics Complex, Student Union Expansion, Grand Quad & Gardens |

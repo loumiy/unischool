@@ -2,6 +2,7 @@ import type { GameState } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import type { TabId } from '../components/TabNav';
 import { FIRST_HALL_COURSE_GATE } from './techData';
+import { FOUNDING_PROGRAMS } from './foundingData';
 import {
   GROCERY_POPULATION_GATE,
   HEALTH_CENTER_TIER1_POPULATION_GATE,
@@ -45,6 +46,7 @@ export interface Milestone {
 
 const enrolled = (s: GameState) => totalEnrolled(s.students);
 const coursesDeveloped = (s: GameState) => s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
+const housedPrograms = (s: GameState) => Object.values(s.halls).flat().filter((slot) => slot.programId !== null).length;
 const hasMilestone = (s: GameState, prefix: string) => Object.keys(s.milestones).some((k) => k.startsWith(prefix));
 
 function students(target: number) {
@@ -72,7 +74,22 @@ export const MILESTONES: readonly Milestone[] = [
     buildables: [],
     tabs: [],
     letter: '',
-    opens: ['Founders Hall, the first dorm and dining hall, the Campus Quad and the Library', 'The Curriculum, Faculty and Treasury'],
+    opens: ['Founders Hall, the first dorm and dining hall, the Library and the Campus Quad', 'The Curriculum, Faculty and Treasury'],
+  },
+  {
+    id: 'campus-life',
+    tier: 'Founding',
+    name: 'A fourth program',
+    condition: 'a fourth program founded',
+    reached: (s) => housedPrograms(s) > FOUNDING_PROGRAMS.length,
+    buildables: ['SCTR-T1', 'REC-T1', 'QUAD-S2'],
+    tabs: [],
+    letter: 'The college teaches four subjects now, and has chosen its first on its own. The board thinks the students have earned somewhere to be when they are not in class.',
+    opens: [
+      'Student Center: somewhere to be between classes, and a lift to social life',
+      'Recreation Center: health and fitness, and the start of a sports chain',
+      'Second Quad: another green, for when the campus spreads',
+    ],
   },
   {
     id: 'commencement',
@@ -80,15 +97,10 @@ export const MILESTONES: readonly Milestone[] = [
     name: 'First commencement',
     condition: 'the first summer closes',
     reached: (s) => s.history.length >= 1,
-    buildables: ['SCTR-T1', 'REC-T1', 'QUAD-S2'],
+    buildables: [],
     tabs: ['enrollment', 'studentlife', 'history'],
-    letter: 'The first class has walked, and the college has a year behind it. The board thinks it is time the students had somewhere to be when they are not in class, and time you could see the year laid out.',
-    opens: [
-      'Student Center: somewhere to be between classes, and a lift to social life',
-      'Recreation Center: health and fitness, and the start of a sports chain',
-      'Second Quad: another green, for when the campus spreads',
-      'Enrollment, Student Life and History: the admissions funnel, the clubs, and the record of each year',
-    ],
+    letter: 'The first class has walked, and the college has a year behind it: enough to see the year laid out, the admissions funnel that filled it, and the clubs the students have started.',
+    opens: ['Enrollment: the admissions funnel and who enrolled', 'Student Life: the clubs and what students think', 'History: the record of each year'],
   },
   {
     id: 'curriculum',
@@ -119,14 +131,10 @@ export const MILESTONES: readonly Milestone[] = [
     name: 'A regional name',
     condition: `prestige ${REC_CENTER_TIER2_PRESTIGE_GATE}`,
     ...prestige(REC_CENTER_TIER2_PRESTIGE_GATE),
-    buildables: ['REC-T2', 'SCTR-T2', 'QUAD-T2'],
+    buildables: ['REC-T2'],
     tabs: [],
-    letter: 'People outside the county know the name now. The board would like the campus to look the part: a showpiece or two is no longer vanity.',
-    opens: [
-      'Athletics Complex: the top of the recreation chain, varsity-grade',
-      'Student Union Expansion: the student center, doubled',
-      'Grand Quad & Gardens: the green the brochures are photographed on',
-    ],
+    letter: 'People outside the county know the name now, and the recreation chain can be finished with something varsity-grade.',
+    opens: ['Athletics Complex: the top of the recreation chain, varsity-grade'],
   },
   {
     id: 'school',

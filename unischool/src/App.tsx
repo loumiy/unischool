@@ -13,6 +13,7 @@ import CampusMap from './components/CampusMap';
 import { FOUNDERS_HALL_ID } from './data/techData';
 import Toolbar from './components/Toolbar';
 import LogTicker from './components/LogTicker';
+import MilestoneNote from './components/MilestoneNote';
 import Toasts from './components/Toasts';
 import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
@@ -247,6 +248,7 @@ export default function App() {
         {/* Toasts: news that doesn't stop the clock, shown above the
             ticker; a click opens the relevant tab. */}
         <Toasts s={s} onOpenTab={(tab) => openTab(tab)} />
+        <MilestoneNote s={s} act={act} />
         <LogTicker
           s={s}
           open={logOpen}

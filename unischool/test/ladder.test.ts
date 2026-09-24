@@ -9,7 +9,6 @@ import { initialTech } from '../src/data/techData';
 import { initialDorms } from '../src/data/campusData';
 import { initialFacilities } from '../src/data/facilitiesData';
 import { TAB_ORDER } from '../src/components/TabNav';
-import { tickLadder } from '../src/systems/ladder/ladderSystem';
 import { isPlaceableKind } from '../src/state/campusMap';
 import { bindScriptStream } from '../src/engine/random';
 import type { GameState } from '../src/state/types';
@@ -60,8 +59,8 @@ console.log('ladder tests');
   assert(s.ladder.reached[CHARTER_ID] === 1 && Object.keys(s.ladder.reached).length === 1, 'a new college has reached the charter and nothing else');
   assert(s.ladder.unread.length === 0, 'and has no letters waiting');
   const open = s.tech.filter((t) => isPlaceableKind(t) && t.status === 'available').map((t) => t.id).sort();
-  assert(JSON.stringify(open) === JSON.stringify(['DINING-01', 'DORM-01', 'LIB-T1', 'QUAD-T1']), `the founding build list is the dorm, the dining hall, the quad and the library (${open.join(', ')})`);
-  for (const id of ['SCTR-T1', 'REC-T1', 'HLTH-T1', 'HALL-01']) {
+  assert(JSON.stringify(open) === JSON.stringify(['DINING-01', 'DORM-01', 'LIB-T1', 'QUAD-T1']), `the founding build list is the dorm, the dining hall, the library and the quad (${open.join(', ')})`);
+  for (const id of ['SCTR-T1', 'REC-T1', 'HLTH-T1', 'HALL-01', 'REC-T2', 'LIB-T2']) {
     assert(status(s, id) === 'locked', `${id} waits on its milestone`);
   }
 }
@@ -82,32 +81,18 @@ console.log('ladder tests');
   assert(status(s, 'HLTH-T1') !== 'locked', 'nor re-lock what it opened');
 }
 
-// ---- A reached milestone arrives as a letter, and reading it clears it ----
+// ---- A reached milestone queues a note, which never holds the clock ----
 {
   let s = createInitialState('Ladder');
   s.pendingInterrupt = null;
   for (const c of Object.keys(s.students.classes) as (keyof GameState['students']['classes'])[]) s.students.classes[c] = 400;
-  s = tick(s); // reaches the milestone and queues its letter
-  for (let i = 0; i < 4 && s.pendingInterrupt?.type !== 'milestone-reached'; i += 1) {
-    if (s.pendingInterrupt) s = { ...s, pendingInterrupt: null };
-    s = tick(s);
-  }
-  assert(s.pendingInterrupt?.type === 'milestone-reached', 'the letter fires on a following quiet week');
-  assert((s.pendingInterrupt?.payload as { id: string }).id === 'town', 'for the milestone that was reached');
+  s = tick(s);
+  assert(s.ladder.unread.includes('town'), 'the note is queued');
+  assert(s.pendingInterrupt?.type !== 'milestone-reached', 'and is not an interrupt');
   const week = s.clock.week;
-  s = reducer(s, { type: 'RESOLVE_MILESTONE_LETTER' });
-  assert(!s.ladder.unread.includes('town') && s.pendingInterrupt === null, 'reading it clears it');
-  assert(s.clock.week !== week, 'and turns the page, like every trailing letter');
-}
-
-// ---- The first commencement opens the student center, once a year is behind the college ----
-{
-  const s = createInitialState('Ladder');
-  s.history.push({ ...({} as GameState['history'][number]), year: 1 });
-  tickLadder(s);
-  assert(s.ladder.reached.commencement !== undefined, 'a closed year is the first commencement');
-  const opened = reducer(s, { type: 'TICK' });
-  assert(status(opened, 'SCTR-T1') === 'available' && status(opened, 'REC-T1') === 'available', 'the Student Center and Recreation Center open after it');
+  s = reducer(s, { type: 'READ_MILESTONE', id: 'town' });
+  assert(!s.ladder.unread.includes('town'), 'reading it clears it');
+  assert(s.clock.week === week, 'without turning the page');
 }
 
 // ---- Every milestone is reachable on the harness's own path: none is dead ----

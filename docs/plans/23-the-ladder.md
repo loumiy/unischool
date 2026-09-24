@@ -4,7 +4,7 @@
 unlock track, `loumiy/unischool-v2`'s `docs/MIGRATION_PLAN.md`) into a
 sequence of PRs.*
 
-**Status: In progress.**
+**Status: In progress.** PRs A–E are done in this branch, awaiting merge.
 
 ---
 
@@ -93,11 +93,10 @@ them, but it does not replace them.
 
 Curriculum, Faculty and Treasury are open from the charter.
 
-**Each milestone arrives with a letter.** A short note names what just
-opened and what it is for. These are the "each unlock introduced as it
-lands" letters the plan asks for, and they are few: one per milestone,
-about a dozen over fifty years. They queue behind anything more urgent
-and never drop.
+**Each milestone arrives with a note.** A short card over the map names
+what just opened and what it is for. These are the "each unlock introduced
+as it lands" letters the plan asks for, and they are few: one per
+milestone, about a dozen over fifty years. They never stop the clock.
 
 ## 2. The milestones
 
@@ -120,6 +119,26 @@ and never drop.
 Later phases add rows: Phase D's building types, Phase G's seats and speed
 tiers, Phase I's alumni office, Phase J's league, and Phase L's capital
 projects.
+
+**As implemented (the milestones):**
+
+- **The first three moves broke the balance.** Moving the Student Center
+  and Recreation Center to the first commencement took a year of social
+  and health satisfaction from every college. That year's attrition sank
+  the curriculum rush for good: −$18M and 646 students at year 50, where
+  its bands say it recovers. The discount and completionist strategies
+  moved out of their bands the other way.
+- **A new milestone fixes it:** "A fourth program". The Student Center,
+  Recreation Center and Second Quad open when a fourth program is founded.
+  That is the opening walkthrough's last step, reached in the first weeks
+  of year one in every strategy. The founding list is still the four the
+  owner asked for (a residence, dining, an academic building, the quad),
+  and the harness trajectories match the ladder without the moves.
+- **The Student Union Expansion and the Grand Quad stay behind their chain
+  prerequisites only,** as before. The regional name opens the Athletics
+  Complex alone.
+- **The first commencement opens tabs only:** Enrollment, Student Life and
+  History.
 
 ## PR 23A — The plan
 
@@ -158,6 +177,19 @@ This document.
   like every other trailing interrupt. The default answers and the
   harness answer it.
 
+**As implemented:**
+
+- **The letters became notes that never stop the clock.** As interrupts,
+  each took a week's slot from the event roll and reshuffled every event
+  after it. The Earnest completionist ended fifty years at $502M against a
+  band of $2.75–9.31B, and 114 weeks in the red.
+- **Notes also answer the owner's first complaint about v2,** too many
+  clock-stopping moments, and match v2's own onboarding notes, which never
+  held the clock either. `MilestoneNote.tsx` shows the oldest unread
+  milestone as a card over the map, and "Noted" dispatches
+  `READ_MILESTONE`.
+- **The sim never sees the notes,** so the harness is unaffected by them.
+
 ## PR 23D — The ladder on screen
 
 - **A Milestones panel,** opened from the status bar's next-milestone line.
@@ -174,6 +206,11 @@ This document.
   they are re-recorded with a note.
 - **`docs/design/progression.md`** gains "The ladder", and the architecture
   docs name the new system.
+
+**As implemented:** with the fourth-program milestone and non-blocking
+notes, the ladder is balance-neutral. The regression suite, the scorecard
+(on unchanged bands) and the endpoint suite all pass, and no band was
+re-recorded.
 
 ## What this plan does not do
 
