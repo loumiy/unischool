@@ -1,3 +1,4 @@
+import { PROJECTS } from './projectData';
 import type { Buildable, FacilityType } from '../state/types';
 import { FOUNDING_BODY } from './foundingData';
 
@@ -938,6 +939,25 @@ export function initialFacilities(): Buildable[] {
       prereqs: [],
       status: 'locked',
       effects: { upkeepPerWeek: a.upkeep, beauty: a.beauty },
+    })),
+
+    // The capital projects (Plan 33, data/projectData.ts).
+    ...PROJECTS.map((p): Buildable => ({
+      id: p.id,
+      kind: 'facility',
+      facilityType: 'project',
+      name: p.name,
+      description: p.description,
+      cost: p.cost,
+      duration: p.weeks,
+      prereqs: [],
+      status: 'locked',
+      project: p.project,
+      effects: {
+        upkeepPerWeek: p.upkeep,
+        ...(p.beds !== undefined ? { capacityBonus: p.beds } : {}),
+        ...(p.beauty !== undefined ? { beauty: p.beauty } : {}),
+      },
     })),
 
     ...GRAND_LANDMARKS.map((l): Buildable => ({

@@ -230,7 +230,9 @@ export type FacilityType =
   // A grand landmark (Plan 25): one of three, a long build and a large payoff.
   | 'landmark'
   // A small landmark or amenity (Plan 26): cheap, beauty-bearing.
-  | 'amenity';
+  | 'amenity'
+  // A capital project (Plan 33, data/projectData.ts).
+  | 'project';
 
 export interface Buildable {
   id: string;
@@ -304,6 +306,8 @@ export interface Buildable {
 
 export interface CapitalProject {
   fromYear: number;
+  late?: true;      // the late tier: opens with the defend era (data/projectData.ts)
+  graduate?: true;  // waits on a graduate program being housed
   boosts: Partial<Record<'academics' | 'research' | 'experience' | 'athletics', number>>;
 }
 

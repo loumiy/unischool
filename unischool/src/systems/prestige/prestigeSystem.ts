@@ -1,3 +1,4 @@
+import { projectLift, projectLiftMax, standingProjects } from '../estate/projects';
 import { campusBeauty } from '../estate/beauty';
 import { conditionOf, historicPrestige } from '../estate/estate';
 import { isPlaceableKind } from '../../state/campusMap';
@@ -276,6 +277,17 @@ function penalise(key: string, label: string, weight: number, score: number, det
   return { key, label, weight, score, detail, penalty: true, contribution: -weight * score };
 }
 
+// The capital projects standing (Plan 33, estate/projects.ts): a line of
+// their own, shown once one stands, each lifting in proportion to its
+// condition.
+function projectInput(s: GameState, axis: 'academics' | 'research' | 'experience'): StandingInput[] {
+  const lift = projectLift(s, axis);
+  if (lift <= 0) return [];
+  const max = projectLiftMax(axis);
+  const names = standingProjects(s).filter((t) => (t.project!.boosts[axis] ?? 0) > 0).map((t) => t.name);
+  return [weigh('projects', 'Capital projects', max, lift / max, `${names.join(', ')}: ${lift.toFixed(1)} of the ${max} points every project in full repair would add.`)];
+}
+
 // Computes its own target, so no caller can disagree with the sum.
 function breakdown(
   label: string, baseline: number, current: number, inputs: StandingInput[],
@@ -357,6 +369,7 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
       'endowment', 'Endowment', ENDOWMENT_WEIGHT, endowmentScore(s),
       `${money(s.finance.endowment)} against a student body of ${totalEnrolled(s.students).toLocaleString()}.`,
     ),
+    ...projectInput(s, 'academics'),
     penalise(
       'condition', 'Estate condition', CONDITION_PENALTY, conditionScore(s),
       'The buildings\' mean condition: a fully maintained estate costs nothing, a run-down one up to four points.',
@@ -555,6 +568,7 @@ export function researchStandingBreakdown(s: GameState): StandingBreakdown {
       'breadth', 'Fields it can research in', RESEARCH_BREADTH_WEIGHT, researchBreadthScore(s),
       `${equipped} of the ${fields} fields the university could research in ${equipped === 1 ? 'has' : 'have'} a lab.`,
     ),
+    ...projectInput(s, 'research'),
   ]);
 }
 
@@ -604,6 +618,7 @@ export function socialStandingBreakdown(s: GameState): StandingBreakdown {
       'titles', 'Championships', SOCIAL_TITLES_WEIGHT, titlesScore(s),
       `${titles} national title${titles === 1 ? '' : 's'} of the ${TITLES_FOR_FULL_SCORE} a dynasty is.`,
     ),
+    ...projectInput(s, 'experience'),
   ]);
 }
 

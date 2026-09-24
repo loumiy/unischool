@@ -4,7 +4,7 @@ import {
   DECADE_LIST, DECADE_PICKS, DECADE_YEARS, PROMISES, PROMISE_CAP, PROMISE_LINES, PROMISE_OFFER_ODDS, promiseById,
   type PromiseDef,
 } from '../../data/promiseData';
-import { SEMICENTENNIAL_YEAR } from '../../state/types';
+import { SEMICENTENNIAL_YEAR, WEEKS_PER_YEAR } from '../../state/types';
 import { hashUnit } from '../../data/rivalData';
 import { applyEffects, priceScale, scaledEffects, whenMet } from '../events/catalogue';
 
@@ -95,6 +95,13 @@ export function openSummerPromises(s: GameState): void {
   }
   if (p.active.length > 0 || p.settled.length > 0 || p.declined.length > 0 || p.offer) s.promises = p;
   else delete s.promises;
+}
+
+// The reducer's weekly system: the week tickAdmissions opens the summer.
+export function tickPromises(s: GameState): void {
+  if (s.clock.week !== WEEKS_PER_YEAR || s.pendingInterrupt?.type !== 'summer') return;
+  if ((s.pendingInterrupt.payload as { beat?: number } | undefined)?.beat !== 0) return;
+  openSummerPromises(s);
 }
 
 // How many of the offer the college may take now.

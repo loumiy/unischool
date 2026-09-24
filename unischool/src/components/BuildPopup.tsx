@@ -1,3 +1,4 @@
+import { endowmentHalf } from '../systems/estate/projects';
 import { useEffect, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
@@ -52,6 +53,7 @@ const FACILITY_LABELS: Record<FacilityType, string> = {
   fieldHouse: 'Field House',
   landmark: 'Grand Landmark',
   amenity: 'Monuments & Gardens',
+  project: 'Capital Projects',
 };
 
 // How many finished instances a repeatable group needs before they collapse;
@@ -127,6 +129,8 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; se
   { key: 'fieldHouse', label: FACILITY_LABELS.fieldHouse, repeatable: false, match: (t) => t.facilityType === 'fieldHouse' },
   // Quads are grounds: they live in the Campus Tools tab beside the path and
   // tree tools (GROUNDS_GROUP_KEYS), never a tab of their own.
+  // The capital projects (Plan 33): a tab of their own.
+  { key: 'project', label: FACILITY_LABELS.project, repeatable: false, match: (t) => t.facilityType === 'project' },
   { key: 'quad', label: FACILITY_LABELS.quad, repeatable: false, match: (t) => t.facilityType === 'quad' },
   // The grand landmarks ride with the grounds: three offered, one built.
   { key: 'landmark', label: FACILITY_LABELS.landmark, repeatable: false, match: (t) => t.facilityType === 'landmark' },
@@ -430,6 +434,8 @@ function BuildTile({
   const loan = financing === 'loan' ? loanFor(s, t.cost) : 0;
   const disabledReason = financing === 'gift'
     ? `Paid from ${money(giftFunds(s))} raised for buildings.`
+    : financing === 'endowment'
+    ? `Half, ${money(endowmentHalf(t))}, from the endowment; the rest in cash.`
     : loan > 0
     ? `Borrows ${money(loan)}, repaid over ${LOAN_YEARS} years at ${LOAN_RATE * 100}%.`
     : constructionFrozen(s)

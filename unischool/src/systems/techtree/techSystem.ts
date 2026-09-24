@@ -1,3 +1,4 @@
+import { canPayFromEndowment, endowmentHalf, projectOpen } from '../estate/projects';
 import type { GameState, Buildable, BuildableEffects, Faculty, HallSlot } from '../../state/types';
 import { giftFunds, loanFor, takeLoan, type Financing } from '../finance/treasury';
 import { constructionFrozen } from '../finance/distress';
@@ -230,7 +231,9 @@ export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: s
     ? node.kind !== 'course' && loanFor(s, node.cost) > 0
     : financing === 'gift'
       ? node.kind !== 'course' && giftFunds(s) >= node.cost
-      : s.finance.cash >= node.cost;
+      : financing === 'endowment'
+        ? canPayFromEndowment(s, node)
+        : s.finance.cash >= node.cost;
   return node.status === 'available' && facultyOk && canAfford;
 }
 
@@ -240,7 +243,10 @@ export function startDevelopment(s: GameState, node: Buildable, facultyId?: stri
   // Never takes cash below zero: canStartDevelopment requires the cash, or
   // the loan that makes it up.
   if (financing === 'gift' && s.advancement) s.advancement.restrictedBuilding -= node.cost;
-  else {
+  else if (financing === 'endowment') {
+    s.finance.endowment -= endowmentHalf(node);
+    s.finance.cash -= node.cost - endowmentHalf(node);
+  } else {
     if (financing === 'loan') takeLoan(s, loanFor(s, node.cost), node.id);
     s.finance.cash -= node.cost;
   }
@@ -304,6 +310,9 @@ function meetsUnlockGates(s: GameState, t: Buildable): boolean {
   // One grand landmark to a college: choosing one closes the others.
   if (t.facilityType === 'landmark' && landmarkChosen(s, t.id)) return false;
   if (t.graduateProgram !== undefined && !graduateGateMet(s, t.graduateProgram)) return false;
+  // A capital project opens from its year, the graduate college with a
+  // graduate program, the late tier with the defend era (estate/projects.ts).
+  if (!projectOpen(s, t)) return false;
   // An athletics venue stays hidden until a team needing its category exists
   // (eventData.ts's 'varsity-petition'); s.orgs.teams is the reveal signal.
   if (t.athleticsVenueReveal && !s.orgs.teams.some((team) => team.venueCategory === t.facilityType)) return false;

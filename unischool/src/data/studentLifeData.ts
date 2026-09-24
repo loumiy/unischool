@@ -1,3 +1,4 @@
+import { projectLift } from '../systems/estate/projects';
 import { tagTeeth } from '../systems/identity/teeth';
 import type {
   AthleticsBudgetTier, Buildable, Coach, FacilityType, GameState, GreekChapter, OrgPetition,
@@ -791,7 +792,8 @@ export function athleticProgramStrength(s: GameState): number {
   const avgQuality = active.reduce((sum, t) => sum + teamQuality(t, s), 0) / active.length;
   const breadth = Math.min(1, athleticBreadth(s) / ATHLETIC_BREADTH_FOR_FULL_CREDIT);
   // Recruits want to play at a Jock School (an identity tag's teeth, Plan 31).
-  return Math.min(100, Math.round(avgQuality * (0.7 + 0.3 * breadth)) + tagTeeth(s, 'athletics'));
+  // A championship stadium lifts every program (Plan 33, estate/projects.ts).
+  return Math.min(100, Math.round(avgQuality * (0.7 + 0.3 * breadth)) + tagTeeth(s, 'athletics') + projectLift(s, 'athletics'));
 }
 
 // Every empty chair on an active team, for eventData.ts's 'ad-shortage'.

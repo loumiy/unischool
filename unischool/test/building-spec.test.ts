@@ -457,13 +457,15 @@ console.log('campus scale and building spec');
   check('tennisCourts', 'six tennis courts in a row', 110, 36);
   check('pool', 'an open-air 50m pool and its deck', 63, 36);
 
-  // And the pinnacle venue is still the biggest thing on campus, which is the
-  // one relationship its footprint is actually load-bearing for.
+  // And the pinnacle venues are still the biggest things on campus, which is
+  // the one relationship their footprints are actually load-bearing for:
+  // since Plan 33 the championship stadium, a capital project, then the
+  // football stadium.
   const stadium = CATALOGUE.find((t) => t.facilityType === 'footballStadium');
   const areas = CATALOGUE.map((t) => { const fp = footprintOf(t); return { id: t.id, a: fp.w * fp.h }; })
     .sort((x, y) => y.a - x.a);
-  assert(stadium !== undefined && areas[0].id === stadium.id,
-    `the football stadium covers more ground than anything else (biggest is ${areas[0].id})`);
+  assert(stadium !== undefined && areas[0].id === 'PROJ-STADIUM' && areas[1].id === stadium.id,
+    `the two stadiums cover more ground than anything else (biggest are ${areas[0].id}, ${areas[1].id})`);
 }
 
 // --- 14. Applied pieces fit the buildings they are applied to ------------

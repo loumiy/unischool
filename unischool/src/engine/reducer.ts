@@ -1,4 +1,4 @@
-import { answerPromises } from '../systems/promises/promises';
+import { answerPromises, tickPromises } from '../systems/promises/promises';
 import { catalogueOf, resolveCatalogueEvent } from '../systems/events/catalogueEngine';
 import { launchCampaign, tickCampaigns } from '../systems/alumni/campaigns';
 import { holdReunion } from '../systems/alumni/giving';
@@ -84,6 +84,10 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   tickStudentLife,
   tickSatisfaction,
   tickAdmissions,
+  // The week the summer opens: promises due are read out and the year's
+  // offer made (Plan 33). Here rather than in tickAdmissions, which the
+  // promises' readings would import in a circle.
+  tickPromises,
   tickRivals,
   // Near last: the summer decision and the U.S. News report own their weeks
   // and only one interrupt can be pending, so the texture system sees their

@@ -157,16 +157,19 @@ export function whenMet(s: GameState, when: Partial<Record<ConditionKey, number>
   return true;
 }
 
+// The capital project v2 named, where this game has it (Plan 33), or the
+// nearest thing this game had before it.
+const stands = (s: GameState, id: string) => standing(s).some((t) => t.id === id);
 const NEEDS: Record<NeedKey, (s: GameState) => boolean> = {
-  'arts-centre': (s) => standing(s).some((t) => t.facilityType === 'performingArtsCenter' || t.facilityType === 'artGallery'),
-  'championship-stadium': (s) => standing(s).some((t) => t.facilityType === 'footballStadium'),
+  'arts-centre': (s) => stands(s, 'PROJ-ARTS') || standing(s).some((t) => t.facilityType === 'performingArtsCenter' || t.facilityType === 'artGallery'),
+  'championship-stadium': (s) => stands(s, 'PROJ-STADIUM') || standing(s).some((t) => t.facilityType === 'footballStadium'),
   'dining-hall': (s) => standing(s).some((t) => t.facilityType === 'diningHall'),
-  'great-lawn': (s) => standing(s).some((t) => t.facilityType === 'quad'),
+  'great-lawn': (s) => stands(s, 'PROJ-LAWN') || standing(s).some((t) => t.facilityType === 'quad'),
   'health-center': (s) => standing(s).some((t) => t.facilityType === 'healthCenter'),
   lab: (s) => standing(s).some((t) => t.facilityType === 'lab'),
   library: (s) => standing(s).some((t) => t.facilityType === 'library'),
   'playing-field': (s) => standing(s).some((t) => t.facilityType === 'athleticsField' || t.facilityType === 'recCenter'),
-  'research-park': (s) => standing(s).filter((t) => t.facilityType === 'lab').length >= 3,
+  'research-park': (s) => stands(s, 'PROJ-RESEARCH-PARK') || standing(s).filter((t) => t.facilityType === 'lab').length >= 3,
   'residence-hall': (s) => standing(s).some((t) => t.kind === 'dorm'),
 };
 

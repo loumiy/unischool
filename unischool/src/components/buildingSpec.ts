@@ -45,6 +45,7 @@ const FACILITY_MOTIFS: Record<FacilityType, Motif> = {
   grocery: 'pavilion',
   landmark: 'landmark',
   amenity: 'grounds',
+  project: 'block',
 };
 
 // Research facilities that are not laboratories. They keep facilityType 'lab'
@@ -65,6 +66,16 @@ const RESEARCH_FACILITY_MOTIFS: Partial<Record<string, Motif>> = {
   // a pavilion in stone; the rest are open ground with something on it.
   'AMENITY-BELLTOWER': 'landmark',
   'AMENITY-CHAPEL': 'pavilion',
+  // The capital projects (Plan 33), each in the motif of what it is.
+  'PROJ-LAWN': 'grounds',
+  'PROJ-ARTS': 'portico',
+  'PROJ-RESEARCH-PARK': 'works',
+  'PROJ-STADIUM': 'bowl',
+  'PROJ-MEDICAL': 'block',
+  'PROJ-GRADUATE': 'residential',
+  'PROJ-INSTITUTE': 'portico',
+  'PROJ-MUSEUM': 'portico',
+  'PROJ-COMMONS': 'pavilion',
 };
 
 // What a laboratory carries on its roof to say which science it is: an

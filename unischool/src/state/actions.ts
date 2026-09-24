@@ -78,7 +78,7 @@ export type Action =
   // START_DEVELOPMENT, and its (rotated) footprint is reserved from week one,
   // so it may not overlap anything done or under construction. Effects still
   // apply only on completion.
-  | { type: 'PLACE_BUILDABLE'; buildableId: string; row: number; col: number; rotated: boolean; borrow?: boolean; gift?: boolean }
+  | { type: 'PLACE_BUILDABLE'; buildableId: string; row: number; col: number; rotated: boolean; borrow?: boolean; gift?: boolean; endowment?: boolean }
   // Decorative; the only check is that the tile is on the grid.
   | { type: 'ADD_PATH_TILE'; tile: TileCoord }
   | { type: 'REMOVE_PATH_TILE'; tile: TileCoord }
