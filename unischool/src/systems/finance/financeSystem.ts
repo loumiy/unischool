@@ -54,6 +54,26 @@ const MAX_SECTIONS_PER_COURSE = (SEATS_PER_COURSE * COURSES_PER_STUDENT) / SECTI
 // student's profit thin, and rises with crowding (see servicesMultiplier).
 export const SERVICES_PER_STUDENT_PER_WEEK = 45; // at prestige 50
 
+// The cost of being large (Plan 36): the administration a big institution
+// needs to hold itself together (registrars, advising, IT, compliance, the
+// layers of management that coordinate them), charged per student and
+// rising with every doubling of the roll above SCALE_FREE_BELOW. Every other
+// running cost is linear in size, so without it the marginal student pays
+// as well at 20,000 as at 1,000 and growth compounds until the catalogue
+// runs out (docs/plans/36-costs-that-grow-with-size.md). Free below the
+// threshold, so a founding college never pays it; logarithmic, so the
+// marginal student's margin falls smoothly rather than at a cliff; at the
+// prestige market rate, on top of it, never in place of it.
+export const SCALE_PER_STUDENT_PER_WEEK = 0; // a week, a student, per doubling, at prestige 50
+export const SCALE_FREE_BELOW = 1_500;       // students
+
+// The line for a roll of `students` at `prestige`. `perStudent` defaults to
+// the constant; tests read the shape at a rate of their own.
+export function scaleCostFor(students: number, prestige: number, perStudent = SCALE_PER_STUDENT_PER_WEEK): number {
+  if (students <= SCALE_FREE_BELOW || perStudent <= 0) return 0;
+  return students * perStudent * marketRateMultiplier(prestige) * Math.log2(students / SCALE_FREE_BELOW);
+}
+
 export interface InstructionDetail {
   courses: number;        // offered ('done')
   perCourse: number;      // students enrolled in each, off the aggregate body
@@ -126,6 +146,7 @@ export interface FinanceBreakdown {
   seatUpkeep: number;          // capacity x UPKEEP_PER_SEAT_PER_WEEK — the physical plant, sized by beds not bodies
   instructionCost: number;     // sections x SECTION_COST — teaching the catalogue you have built, section by section (see instructionDetail)
   servicesCost: number;        // enrolled x SERVICES_PER_STUDENT_PER_WEEK x servicesMultiplier — advising, registrar, IT, grounds
+  scaleCost: number;           // the cost of being large (scaleCostFor), rising with every doubling of the roll
   academicUpkeep: number;      // running the courses, academic buildings and labs that are done
   facilityUpkeep: number;      // running the dorms and campus-life facilities that are done
   studentLifeUpkeep: number;   // running the clubs and Greek chapters the player has recognised (see data/studentLifeData.ts)
@@ -231,6 +252,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   // A Party School pays for the parties (an identity tag's teeth, Plan 31).
   const servicesCost = enrolled * SERVICES_PER_STUDENT_PER_WEEK * marketRateMultiplier(s.self.reputation) * servicesMultiplier(s)
     + (enrolled * tagTeeth(s, 'studentCost')) / WEEKS_PER_YEAR;
+  const scaleCost = scaleCostFor(enrolled, s.self.reputation);
   const academicUpkeep = upkeepFor(s, true);
   const facilityUpkeep = upkeepFor(s, false);
   const studentLifeUpkeep = studentOrgUpkeep(s);
@@ -239,7 +261,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
 
   // Five income lines; there is no state appropriation.
   const totalIncome = tuitionRevenue + prestigeRevenue + endowmentPayout + athleticsSurplus + annualFund;
-  const totalExpenses = weeklySalaries + seatUpkeep + instructionCost + servicesCost + academicUpkeep +
+  const totalExpenses = weeklySalaries + seatUpkeep + instructionCost + servicesCost + scaleCost + academicUpkeep +
     facilityUpkeep + studentLifeUpkeep + athleticsSubsidy + debt + administration;
 
   return {
@@ -254,6 +276,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
     seatUpkeep,
     instructionCost,
     servicesCost,
+    scaleCost,
     academicUpkeep,
     facilityUpkeep,
     studentLifeUpkeep,

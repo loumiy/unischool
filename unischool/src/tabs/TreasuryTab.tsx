@@ -4,7 +4,7 @@ import { WEEKS_PER_YEAR, totalEnrolled } from '../state/types';
 import type { Action } from '../state/actions';
 import {
   financeBreakdown, instructionDetail, SECTION_SIZE, SECTION_COST,
-  SERVICES_PER_STUDENT_PER_WEEK, servicesMultiplier,
+  SCALE_FREE_BELOW, SERVICES_PER_STUDENT_PER_WEEK, servicesMultiplier,
 } from '../systems/finance/financeSystem';
 import { marketRateMultiplier } from '../data/facultyData';
 import HelpHint from '../components/HelpHint';
@@ -127,6 +127,13 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               note={`${totalEnrolled(s.students).toLocaleString()} enrolled × ${money(SERVICES_PER_STUDENT_PER_WEEK)}/wk — advising, registrar, IT, grounds${services > 1 ? ` — ×${services.toFixed(2)} for crowding` : ''}`}
               amount={flow.servicesCost}
             />
+            {flow.scaleCost > 0 && (
+              <StatementLine
+                label="Being large"
+                note={`the administration ${totalEnrolled(s.students).toLocaleString()} students need, ${Math.log2(totalEnrolled(s.students) / SCALE_FREE_BELOW).toFixed(1)} doublings past ${SCALE_FREE_BELOW.toLocaleString()} — each doubling costs every student more`}
+                amount={flow.scaleCost}
+              />
+            )}
             <StatementLine
               label="Academic upkeep"
               note={`running ${coursesDone} courses and the school buildings they sit in`}
