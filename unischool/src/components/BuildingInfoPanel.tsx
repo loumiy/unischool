@@ -1,4 +1,4 @@
-import { canRenovate, conditionOf, renovationCost } from '../systems/estate/estate';
+import { canExtend, canRenovate, conditionOf, extensionCost, extensionGain, renovationCost } from '../systems/estate/estate';
 import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
 import { venueSeatsOf } from '../data/facilitiesData';
@@ -440,10 +440,18 @@ function BuildingHallInfo({ t, s, act, onOpenCurriculum }: {
 // A finished building's condition and, when it has a backlog, the offer to
 // renovate it (systems/estate).
 function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action) => void }) {
+  if ((t.extensionWeeks ?? 0) > 0) {
+    return <p className="building-info-line">A storey going up, open throughout: {t.extensionWeeks} weeks left.</p>;
+  }
+  const extend = canExtend(t) ? (
+    <button type="button" className="building-info-jump" disabled={s.finance.cash < extensionCost(t)} onClick={() => act({ type: 'EXTEND_BUILDING', id: t.id })}>
+      Add a storey · {money(extensionCost(t))}, twelve weeks, {extensionGain(t).toLocaleString()} more {t.kind === 'dorm' ? 'beds' : 'served'}
+    </button>
+  ) : null;
   if ((t.renovationWeeks ?? 0) > 0) {
     return <p className="building-info-line">Under renovation, open throughout: {t.renovationWeeks} weeks left.</p>;
   }
-  if ((t.backlog ?? 0) <= 0) return null;
+  if ((t.backlog ?? 0) <= 0) return extend;
   const cost = renovationCost(t);
   return (
     <>
@@ -453,6 +461,7 @@ function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action
       <button type="button" className="building-info-jump" disabled={!canRenovate(t) || s.finance.cash < cost} onClick={() => act({ type: 'RENOVATE_BUILDING', id: t.id })}>
         Renovate · {money(cost)}, eight weeks
       </button>
+      {extend}
     </>
   );
 }

@@ -227,6 +227,9 @@ export interface Buildable {
   // Weeks left on a renovation, which it stays open through. Undefined means
   // none under way.
   renovationWeeks?: number;
+  // Weeks left on an added storey (systems/estate), built while it stays
+  // open; floorsAdded counts the finished ones.
+  extensionWeeks?: number;
   // The year a placeable Buildable was first finished, for the map's age
   // marks (components/ageMarks.tsx). Undefined for courses and for buildings
   // an older save finished.

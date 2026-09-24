@@ -100,6 +100,15 @@ This document.
 - It generalises the library's renovation (`floorsAdded`, `renovatingFrom`)
   rather than adding a second path.
 
+**As implemented:** not the library's path after all. That path sends the
+building back to 'developing', and finishing re-applies its effects, which
+would add a dorm's beds a second time. A storey runs its own countdown
+(`Buildable.extensionWeeks`) in `tickEstate` instead. On completion it
+counts in `floorsAdded`, which the drawing already turns into floors. A
+dorm adds a quarter of its built beds to capacity. A dining hall serves a
+quarter more, at the same upkeep per head. Both stay open throughout,
+under scaffolding on the map. The building panel offers it.
+
 ## PR 26D — Historic status
 
 - **`DECLARE_HISTORIC`** on a building standing 25 years or more

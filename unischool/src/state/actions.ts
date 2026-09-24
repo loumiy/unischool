@@ -94,6 +94,7 @@ export type Action =
   // off one building's backlog under scaffolding.
   | { type: 'SET_MAINTENANCE_FUNDING'; level: number }
   | { type: 'RENOVATE_BUILDING'; id: string }
+  | { type: 'EXTEND_BUILDING'; id: string }
   // A lamp or a bench beside a path, or lifted (components/dressing.tsx).
   | { type: 'PLACE_DRESSING'; tile: TileCoord; kind: DressingKind }
   | { type: 'REMOVE_DRESSING'; tile: TileCoord }

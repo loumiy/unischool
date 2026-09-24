@@ -6,7 +6,9 @@
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { financeBreakdown } from '../src/systems/finance/financeSystem';
-import { RENOVATION_WEEKS, conditionOf, renovationCost, tickEstate } from '../src/systems/estate/estate';
+import {
+  EXTENSION_MAX_STOREYS, EXTENSION_WEEKS, RENOVATION_WEEKS, conditionOf, extensionCost, renovationCost, tickEstate,
+} from '../src/systems/estate/estate';
 import { bindScriptStream } from '../src/engine/random';
 import type { GameState } from '../src/state/types';
 
@@ -88,6 +90,37 @@ const buildingOf = (s: GameState) => s.tech.find((t) => t.id === 'DINING-01')!;
   assert(buildingOf(s).backlog === undefined && buildingOf(s).renovationWeeks === undefined, 'and then it is gone');
   assert(conditionOf(buildingOf(s)) === 1, 'and the building is as built');
   assert(buildingOf(s).status === 'done', 'open throughout');
+}
+
+// ---- Added storeys ----
+{
+  let s = createInitialState('Storeys');
+  s.pendingInterrupt = null;
+  const dorm = s.tech.find((t) => t.id === 'DORM-01')!;
+  dorm.status = 'done';
+  s.placements[dorm.id] = { row: 20, col: 20, w: 7, h: 3 };
+  s.finance.cash = 1e9;
+  const beds = s.students.capacity;
+  s = reducer(s, { type: 'EXTEND_BUILDING', id: 'DORM-01' });
+  const d = () => s.tech.find((t) => t.id === 'DORM-01')!;
+  assert(d().extensionWeeks === EXTENSION_WEEKS && s.finance.cash === 1e9 - extensionCost(d()), 'a storey starts, paid up front');
+  for (let i = 0; i < EXTENSION_WEEKS; i++) tickEstate(s);
+  assert(d().floorsAdded === 1 && s.students.capacity === beds + Math.round((d().effects!.capacityBonus ?? 0) * 0.25), 'and adds a quarter of its beds when done');
+  for (let k = 1; k < EXTENSION_MAX_STOREYS + 1; k++) {
+    s = reducer(s, { type: 'EXTEND_BUILDING', id: 'DORM-01' });
+    for (let i = 0; i < EXTENSION_WEEKS; i++) tickEstate(s);
+  }
+  assert(d().floorsAdded === EXTENSION_MAX_STOREYS, `never more than ${EXTENSION_MAX_STOREYS} storeys`);
+
+  const dining = s.tech.find((t) => t.id === 'DINING-01')!;
+  dining.status = 'done';
+  const serves = dining.effects!.servesPopulation!;
+  const upkeepBefore = dining.effects!.upkeepPerWeek!;
+  s = reducer(s, { type: 'EXTEND_BUILDING', id: 'DINING-01' });
+  for (let i = 0; i < EXTENSION_WEEKS; i++) tickEstate(s);
+  const after = s.tech.find((t) => t.id === 'DINING-01')!;
+  assert(after.effects!.servesPopulation === serves + Math.round(serves * 0.25), 'a dining hall serves a quarter more');
+  assert(after.effects!.upkeepPerWeek! > upkeepBefore, 'and costs more to run');
 }
 
 if (failures === 0) {

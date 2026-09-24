@@ -177,6 +177,7 @@ function sanitizeEstate(state: GameState): void {
   for (const t of state.tech) {
     if (t.backlog !== undefined && !(Number.isFinite(t.backlog) && t.backlog >= 0)) delete t.backlog;
     if (t.renovationWeeks !== undefined && !(Number.isInteger(t.renovationWeeks) && t.renovationWeeks >= 0)) delete t.renovationWeeks;
+    if (t.extensionWeeks !== undefined && !(Number.isInteger(t.extensionWeeks) && t.extensionWeeks >= 0)) delete t.extensionWeeks;
   }
 }
 

@@ -57,6 +57,45 @@ export function canRenovate(t: Buildable): boolean {
   return isPlaceableKind(t) && t.status === 'done' && (t.renovationWeeks ?? 0) === 0 && (t.backlog ?? 0) > 0;
 }
 
+// Added storeys (Plan 26): a dorm or a dining hall can go up by up to two
+// floors, a quarter more capacity each, built over twelve weeks while it
+// stays open.
+export const EXTENSION_MAX_STOREYS = 2;
+export const EXTENSION_COST_SHARE = 0.4;
+export const EXTENSION_WEEKS = 12;
+const EXTENSION_GAIN = 0.25;
+
+export function canExtend(t: Buildable): boolean {
+  const kind = (t.kind === 'dorm' && (t.effects?.capacityBonus ?? 0) > 0) || t.facilityType === 'diningHall';
+  return kind && t.status === 'done' && (t.floorsAdded ?? 0) < EXTENSION_MAX_STOREYS
+    && (t.extensionWeeks ?? 0) === 0 && (t.renovationWeeks ?? 0) === 0;
+}
+
+export function extensionCost(t: Buildable): number {
+  return Math.round(t.cost * EXTENSION_COST_SHARE);
+}
+
+// What one more storey adds: beds for a dorm, seats for a dining hall, a
+// quarter of what it was built with.
+export function extensionGain(t: Buildable): number {
+  if (t.kind === 'dorm') return Math.round((t.effects?.capacityBonus ?? 0) * EXTENSION_GAIN);
+  const serves = t.effects?.servesPopulation ?? 0;
+  return Math.round((serves / (1 + EXTENSION_GAIN * (t.floorsAdded ?? 0))) * EXTENSION_GAIN);
+}
+
+function finishExtension(s: GameState, t: Buildable): void {
+  const gain = extensionGain(t);
+  t.floorsAdded = (t.floorsAdded ?? 0) + 1;
+  if (t.kind === 'dorm') {
+    s.students.capacity += gain;
+  } else if (t.effects) {
+    const serves = (t.effects.servesPopulation ?? 0) + gain;
+    const upkeep = t.effects.upkeepPerWeek ?? 0;
+    const per = (t.effects.servesPopulation ?? 0) > 0 ? upkeep / (t.effects.servesPopulation ?? 1) : 0;
+    t.effects = { ...t.effects, servesPopulation: serves, upkeepPerWeek: Math.round(serves * per) };
+  }
+}
+
 // The estate's week: unpaid upkeep becomes backlog, backlogs compound, and
 // renovations run down and, when done, clear their backlog. Nothing here
 // draws from the random stream.
@@ -64,6 +103,13 @@ export function tickEstate(s: GameState): void {
   const unpaid = 1 - maintenanceFunding(s);
   for (const t of s.tech) {
     if (!isPlaceableKind(t) || t.status !== 'done') continue;
+    if (t.extensionWeeks !== undefined && t.extensionWeeks > 0) {
+      t.extensionWeeks -= 1;
+      if (t.extensionWeeks === 0) {
+        delete t.extensionWeeks;
+        finishExtension(s, t);
+      }
+    }
     if (t.renovationWeeks !== undefined && t.renovationWeeks > 0) {
       t.renovationWeeks -= 1;
       if (t.renovationWeeks === 0) {

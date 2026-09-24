@@ -1,4 +1,6 @@
-import { RENOVATION_WEEKS, canRenovate, clampFunding, renovationCost, tickEstate } from '../systems/estate/estate';
+import {
+  EXTENSION_WEEKS, RENOVATION_WEEKS, canExtend, canRenovate, clampFunding, extensionCost, renovationCost, tickEstate,
+} from '../systems/estate/estate';
 import type { GameState, SummerBeat, SummerPayload } from '../state/types';
 import { LOG_CAP, SUMMER_LAST_BEAT } from '../state/types';
 import type { Action } from '../state/actions';
@@ -265,6 +267,16 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       if (s.finance.cash < cost) return s;
       s.finance.cash -= cost;
       node.renovationWeeks = RENOVATION_WEEKS;
+      return s;
+    }
+
+    case 'EXTEND_BUILDING': {
+      const node = s.tech.find((t) => t.id === action.id);
+      if (!node || !canExtend(node)) return s;
+      const cost = extensionCost(node);
+      if (s.finance.cash < cost) return s;
+      s.finance.cash -= cost;
+      node.extensionWeeks = EXTENSION_WEEKS;
       return s;
     }
 

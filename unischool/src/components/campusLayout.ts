@@ -83,7 +83,7 @@ export function campusLayout(s: GameState): CampusLayout {
       developing: t.status === 'developing' && s.developing[id] !== undefined,
       glyphs: glyphs[id],
       age: weatherBand(t, s.clock.year, conditionOf(node)),
-      renovating: (node.renovationWeeks ?? 0) > 0,
+      renovating: (node.renovationWeeks ?? 0) > 0 || (node.extensionWeeks ?? 0) > 0,
     });
   }
   const bikeRacks = totalEnrolled(s.students) >= BIKE_RACK_ENROLMENT;
