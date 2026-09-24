@@ -1090,12 +1090,28 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     body: (s) => {
       const gap = openingSchoolGap(s);
       const want = [...gap.staffable, ...gap.unstaffed];
+      // What Founders Hall can still take (Plan 35: the letter counted the
+      // programs wanted as rooms, and named programs the player could not
+      // found). A program from another school in the hall closes the road.
+      const slots = s.halls[FOUNDERS_HALL_ID] ?? [];
+      const rooms = slots.filter((slot) => slot.programId === null).length;
+      const strangers = slots
+        .map((slot) => (slot.programId ? programById(slot.programId) : undefined))
+        .filter((p) => p !== undefined && p.school !== gap.school)
+        .map((p) => p!.name);
+      const onOffer = s.programOffers.map((id) => programById(id)).filter((p) => p?.school === gap.school).map((p) => p!.name);
       const staffing = gap.staffable.length > 0 && gap.unstaffed.length > 0
-        ? `The roster can already teach ${list(gap.staffable)}; ${list(gap.unstaffed)} needs an appointment first, and that is the one hire the school still asks of us.`
+        ? `The roster can already teach ${list(gap.staffable)}; ${list(gap.unstaffed)} would need an appointment first.`
         : gap.unstaffed.length > 0
           ? `Each of them needs an appointment before its first course can start.`
           : `The roster can teach every one of them.`;
-      return `Six programs of one school in one hall is what founds a school, and we are half-way to one: ${count(FOUNDING_PROGRAMS.length)} of the six ${gap.school} programs are in Founders Hall, which has exactly ${count(want.length)} rooms left, and ${list(want)} would fill them. ${staffing} The other road is a hall of your own: the first academic hall holds six programs, costs three quarters of a million, and opens once this college teaches ${count(FIRST_HALL_COURSE_GATE)} courses. Depth costs professors; breadth costs a building. Where you put it matters only to the eye.`;
+      const offerLine = onOffer.length > 0
+        ? `${list(onOffer)} ${onOffer.length === 1 ? 'is' : 'are'} on offer now.`
+        : `None of them is on offer yet: each program founded draws a new offer.`;
+      const road = strangers.length > 0
+        ? `Founders Hall teaches ${list(strangers)} beside the ${gap.school} programs, so it will never be one school's; the road to a school is now a hall of your own.`
+        : `${count(FOUNDING_PROGRAMS.length)} of the six ${gap.school} programs are in Founders Hall, which has ${count(rooms)} ${rooms === 1 ? 'room' : 'rooms'} left, and ${rooms < want.length ? `${count(rooms)} of ` : ''}${list(want)} would fill ${rooms === 1 ? 'it' : 'them'}. ${offerLine} ${staffing}`;
+      return `Six programs of one school in one hall is what founds a school. ${road} The other road is a hall of your own: the first academic hall holds six programs, costs three quarters of a million, and opens once this college teaches ${count(FIRST_HALL_COURSE_GATE)} courses. Depth costs professors; breadth costs a building. Where you put it matters only to the eye.`;
     },
     ask: 'Fill Founders Hall with one school, or site a hall of your own (Build)',
     done: (s) => dedicatedSchool(s, FOUNDERS_HALL_ID) !== null || sited(s, (t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID),
@@ -1112,9 +1128,10 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     id: 'summer-is-coming',
     week: 48,
     title: 'Summer is coming',
-    body: () => 'At week 52 the clock stops for the summer, and it stops once. Four beats: the year in review, where the school stands, admissions, and the students. Admissions asks two things — the price, and how much of the pool to take. Understand one thing before you set the price: it is set blind, it locks, and the class that pays it pays it for four years. What a family is quoted is what they pay, and a school nobody has heard of cannot charge what a famous one does.',
+    body: () => 'At week 52 the clock stops for the summer, and it stops once. Three beats: the year in review, admissions, and the students. Admissions asks two things — the price, and how much of the pool to take. Understand one thing before you set the price: it is set blind, it locks, and the class that pays it pays it for four years. What a family is quoted is what they pay, and a school nobody has heard of cannot charge what a famous one does.',
     ask: 'Summer at week 52: the price locks for four years',
-    done: () => true,
+    // Done when the summer comes, not the moment the letter is read (Plan 35).
+    done: (s) => s.clock.week >= WEEKS_PER_YEAR || s.pendingInterrupt?.type === 'summer',
   },
 ];
 

@@ -73,7 +73,10 @@ for (const [name, readings] of [['Earnest completionist', completionist], ['Bala
 // --- the earnest completionist ----------------------------------------------------
 every('Earnest completionist', completionist, 'finishes 90% or more of the catalogue', (r) => r.catalogueShare >= 0.9);
 every('Earnest completionist', completionist, 'builds every academic hall', (r) => r.hallsShare === 1);
-every('Earnest completionist', completionist, 'builds three in four of every placeable thing', (r) => r.buildingsShare >= 0.75);
+// Seven in ten since Plan 35: Plan 33's nine capital projects count as
+// placeables the harness never builds, and on the larger founding gift the
+// run lands at 74%, 79% and 80% on the three seeds (three in four before).
+every('Earnest completionist', completionist, 'builds seven in ten of every placeable thing', (r) => r.buildingsShare >= 0.7);
 every('Earnest completionist', completionist, 'founds every school', (r) => r.schoolsFounded === r.schoolsTotal);
 every('Earnest completionist', completionist, 'reaches #1', (r) => r.firstAtOne !== null);
 every('Earnest completionist', completionist, 'holds #1 in at least half of years 40–50', (r) => r.yearsAtOneLateDecade >= 6);

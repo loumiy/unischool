@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // A small, dismissible '?' toggle for panel explainer copy that's useful
 // once but busy if it's always on screen (see
@@ -9,8 +9,22 @@ import { useState } from 'react';
 // TreasuryTab.tsx) where the default would run off-screen.
 export default function HelpHint({ text, align = 'start' }: { text: string; align?: 'start' | 'end' }) {
   const [open, setOpen] = useState(false);
+  const root = useRef<HTMLSpanElement>(null);
+  // Escape or a click anywhere else closes it (Plan 35: the map's long hint
+  // stayed open over everything).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    const onDown = (e: PointerEvent) => { if (!root.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onDown);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onDown);
+    };
+  }, [open]);
   return (
-    <span className="help-hint">
+    <span className="help-hint" ref={root}>
       <button
         type="button"
         className="help-hint-btn"

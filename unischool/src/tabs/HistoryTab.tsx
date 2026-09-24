@@ -10,7 +10,7 @@ import { moneyShort } from '../format';
 import PromisesPanel from './PromisesPanel';
 import ChroniclePanel from './ChroniclePanel';
 import { finalReport } from '../state/finalReport';
-import { REPORT_WORDS } from '../data/reportData';
+import { REPORT_DRAFT_FROM, REPORT_WORDS } from '../data/reportData';
 import FinalReportView from '../components/FinalReportView';
 import { SEMICENTENNIAL_YEAR } from '../state/types';
 import {
@@ -182,7 +182,7 @@ function StandingPanel({ s }: { s: GameState }) {
 // ---------------------------------------------------------------------
 function FinalReportPanel({ s }: { s: GameState }) {
   const written = s.ending?.report;
-  const report = written ?? finalReport(s);
+  const report = written ?? (s.clock.year < REPORT_DRAFT_FROM ? null : finalReport(s));
   const left = SEMICENTENNIAL_YEAR - s.clock.year;
   return (
     <section className="panel">
@@ -193,12 +193,18 @@ function FinalReportPanel({ s }: { s: GameState }) {
         </div>
         <HelpHint align="end" text={REPORT_WORDS.markHint} />
       </div>
-      {!written && (
-        <p className="review-empty">
-          {REPORT_WORDS.draft} {left > 0 ? `${left} year${left === 1 ? '' : 's'} to go.` : 'It is written this summer.'}
-        </p>
+      {!written && s.clock.year < REPORT_DRAFT_FROM ? (
+        <p className="review-empty">{REPORT_WORDS.notYet}</p>
+      ) : (
+        <>
+          {!written && (
+            <p className="review-empty">
+              {REPORT_WORDS.draft} {left > 0 ? `${left} year${left === 1 ? '' : 's'} to go.` : 'It is written this summer.'}
+            </p>
+          )}
+          {report && <FinalReportView s={s} report={report} />}
+        </>
       )}
-      <FinalReportView s={s} report={report} />
       {(s.ending?.addenda ?? []).map((a) => (
         <div key={a.from} className="final-report-addendum">
           <h4>{REPORT_WORDS.addendum.replace('{from}', String(a.from)).replace('{to}', String(a.to))}</h4>
@@ -264,7 +270,6 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
         <StandingPanel s={s} />
         <FinalReportPanel s={s} />
         <PromisesPanel s={s} />
-      <ChroniclePanel s={s} />
         <ChroniclePanel s={s} />
         <section className="panel">
           <div className="panel-head">

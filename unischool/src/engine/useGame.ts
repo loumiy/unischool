@@ -1,6 +1,7 @@
 import { speedLock } from '../systems/delegation/seats';
 import { useReducer, useEffect, useRef, useState, useCallback } from 'react';
 import type { GameState } from '../state/types';
+import { WEEKS_PER_YEAR } from '../state/types';
 import { reducer } from './reducer';
 import { createPreStartState } from '../state/actions';
 import type { Action } from '../state/actions';
@@ -94,6 +95,16 @@ export function useGame() {
     if (interrupted && speed === 'fast') setSpeed('real');
   }, [interrupted]);
 
+  // An event waiting on the player eases the clock back to normal speed
+  // (Plan 35: at four times an event's weeks ran out in seconds, unseen).
+  // Only on a new arrival, so the player can speed up again with it open.
+  const waiting = state.catalogue?.pending.length ?? 0;
+  const lastWaiting = useRef(waiting);
+  useEffect(() => {
+    if (waiting > lastWaiting.current && speed !== 'paused' && speed !== 'real') setSpeed('real');
+    lastWaiting.current = waiting;
+  }, [waiting]);
+
   // A speed the seats have not earned (a new game, another save) falls back
   // to double (systems/delegation/seats.ts's speedLock).
   const speedLocked = speedLock(state, speed) !== null;
@@ -108,6 +119,23 @@ export function useGame() {
     if (state.started && !wasStarted.current) saveGame(stateRef.current);
     wasStarted.current = state.started;
   }, [state.started]);
+
+  // Also at the turn of each term, and whenever the page is hidden or
+  // closed (Plan 35: a closed tab lost up to a year).
+  const termTurned = state.started && state.clock.week === WEEKS_PER_YEAR / 2 + 1;
+  useEffect(() => {
+    if (termTurned) saveGame(stateRef.current);
+  }, [termTurned]);
+  useEffect(() => {
+    const flush = () => { if (stateRef.current.started) saveGame(stateRef.current); };
+    const onHidden = () => { if (document.visibilityState === 'hidden') flush(); };
+    document.addEventListener('visibilitychange', onHidden);
+    window.addEventListener('pagehide', flush);
+    return () => {
+      document.removeEventListener('visibilitychange', onHidden);
+      window.removeEventListener('pagehide', flush);
+    };
+  }, []);
 
   // Saving happens here, never in the reducer, so the reducer stays pure and
   // replayable. Writes the committed state; a refused write is logged.

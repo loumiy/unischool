@@ -164,7 +164,12 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
             {detail.dormant
               ? 'Not yet a need'
               : detail.neededForFullScore > 0
-                ? `${Math.round(detail.totalServed).toLocaleString()} / ${detail.neededForFullScore.toLocaleString()} ${unit}`
+                // Not every student lives in (satisfactionSystem.ts's
+                // expectedRatio), so housing says how many want a bed
+                // (Plan 35: "350/175 beds" read as a contradiction).
+                ? attribute === 'housing'
+                  ? `${Math.round(detail.totalServed).toLocaleString()} beds, ${detail.neededForFullScore.toLocaleString()} wanted`
+                  : `${Math.round(detail.totalServed).toLocaleString()} / ${detail.neededForFullScore.toLocaleString()} ${unit}`
                 : `${Math.round(detail.totalServed).toLocaleString()} ${unit}`}
           </span>
         </div>
