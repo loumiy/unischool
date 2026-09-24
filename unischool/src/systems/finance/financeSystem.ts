@@ -192,9 +192,13 @@ export function instructionCostPerStudentWith(s: GameState, extra: number): numb
 export function marginalStudentCost(s: GameState, extra = 1_000, scaleRate = SCALE_PER_STUDENT_PER_WEEK, at = totalEnrolled(s.students)): number {
   const rate = marketRateMultiplier(s.self.reputation);
   const courses = s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
+  // Sections are read as a share rather than rounded up: every course is the
+  // same size here, so a thousand more students would otherwise tip every
+  // course over a section boundary at once, and the next student's cost
+  // would swing between a few thousand and ninety thousand a year.
   const running = (n: number) => {
     const perCourse = courses > 0 ? (n * COURSES_PER_STUDENT) / courses : 0;
-    const sectionsPerCourse = courses > 0 ? Math.max(1, Math.min(MAX_SECTIONS_PER_COURSE, Math.ceil(perCourse / SECTION_SIZE))) : 0;
+    const sectionsPerCourse = courses > 0 ? Math.max(1, Math.min(MAX_SECTIONS_PER_COURSE, perCourse / SECTION_SIZE)) : 0;
     return courses * sectionsPerCourse * SECTION_COST * rate
       + n * SERVICES_PER_STUDENT_PER_WEEK * rate * servicesMultiplier(s)
       + scaleCostFor(n, s.self.reputation, scaleRate);
