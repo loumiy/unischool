@@ -23,7 +23,6 @@ import MilestoneNote from './components/MilestoneNote';
 import BoardLetter from './components/BoardLetter';
 import DemandNote from './components/DemandNote';
 import EventPanel from './components/EventPanel';
-import Toasts from './components/Toasts';
 import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
 import { applySchoolColors } from './components/theme';
@@ -284,20 +283,25 @@ export default function App() {
       <DebugPanel s={s} act={act} exportRun={exportRun} />
 
       <div className="app">
-        {/* Toasts: news that doesn't stop the clock, shown above the
-            ticker; a click opens the relevant tab. */}
-        <Toasts s={s} onOpenTab={(tab) => openTab(tab)} />
-        <MilestoneNote s={s} act={act} />
-        <BoardLetter s={s} act={act} />
-        <DemandNote s={s} act={act} />
-        <EventPanel s={s} act={act} />
+        {/* What waits on the map: the notes and the event panel step aside
+            while a tab is open, and the ticker's NEXT points back to them
+            (Plan 34: one notification system, V1-34). */}
+        {!overlay && (
+          <>
+            <MilestoneNote s={s} act={act} />
+            <BoardLetter s={s} act={act} />
+            <DemandNote s={s} act={act} />
+            <EventPanel s={s} act={act} />
+          </>
+        )}
         <LogTicker
           s={s}
           open={logOpen}
           onSetOpen={(o) => { setLogOpen(o); if (o) setLadderOpen(false); }}
           ladderOpen={ladderOpen}
           onSetLadderOpen={(o) => { setLadderOpen(o); if (o) setLogOpen(false); }}
-          onGo={(go) => { if (go === 'build') setBuildOpen(true); else openTab(go); }}
+          onGo={(go) => { if (go === 'build') setBuildOpen(true); else if (go === 'campus') openTab(null); else openTab(go); }}
+          mapHidden={overlay !== null}
         />
         <Toolbar
           ref={toolbarRef}

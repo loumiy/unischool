@@ -2,7 +2,7 @@ import type { GameState } from '../state/types';
 import ToolbarPopup from './ToolbarPopup';
 import LogStrip from './LogStrip';
 import { LogIcon } from './icons';
-import { nextStep, type NextStep } from '../systems/guidance/nextStep';
+import { nextStep, waitingOnMap, type NextStep } from '../systems/guidance/nextStep';
 import { nextMilestone } from '../systems/ladder/ladderSystem';
 import LadderPanel from './LadderPanel';
 
@@ -16,13 +16,18 @@ import LadderPanel from './LadderPanel';
 // The next step (systems/guidance/nextStep.ts) rides at the strip's right
 // end: the log says what just happened, the step says what to do about it.
 // Suppressed while an interrupt is up.
-export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderOpen, onGo }: {
+//
+// While a tab hides the map (`mapHidden`), NEXT first points back to what
+// waits there (nextStep.ts's waitingOnMap: the board, an event, a
+// milestone, a demand), pulsing when it will not wait long (Plan 34).
+export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderOpen, onGo, mapHidden }: {
   s: GameState; open: boolean; onSetOpen: (open: boolean) => void;
   ladderOpen: boolean; onSetLadderOpen: (open: boolean) => void;
   onGo: (go: NonNullable<NextStep['go']>) => void;
+  mapHidden: boolean;
 }) {
   const latest = s.log[0];
-  const step = s.pendingInterrupt ? null : nextStep(s);
+  const step = s.pendingInterrupt ? null : (mapHidden ? waitingOnMap(s) : null) ?? nextStep(s);
   const milestone = nextMilestone(s);
   const progress = milestone?.progress?.(s);
 
@@ -60,7 +65,7 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
           </button>
         )}
         {step && (
-          <span className="log-ticker-next">
+          <span className={`log-ticker-next${step.urgent ? ' urgent' : ''}`}>
             <span className="log-ticker-next-label">Next</span>
             {step.go ? (
               <button type="button" className="log-ticker-next-text" onClick={() => { if (step.go) onGo(step.go); }}>

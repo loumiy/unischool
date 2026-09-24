@@ -2383,6 +2383,9 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .log-ticker-next-label { flex: none; font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
   font-size: var(--text-2xs); color: var(--school-on-primary); background: var(--school-primary); border-radius: var(--radius-pill); padding: 2px 7px; }
 .log-ticker-next-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* NEXT pulses when what waits will not wait long (Plan 34). */
+.log-ticker-next.urgent .log-ticker-next-label { animation: next-pulse 1.1s ease-in-out infinite; }
+@keyframes next-pulse { 0%, 100% { box-shadow: 0 0 0 0 var(--school-primary); } 50% { box-shadow: 0 0 0 4px transparent; } }
 .log-ticker-next button.log-ticker-next-text { background: transparent; border: none; padding: 0; color: var(--ink);
   font: inherit; cursor: pointer; text-align: left; text-decoration: underline dotted var(--school-primary); }
 .log-ticker-next button.log-ticker-next-text:hover { color: var(--school-primary); }
@@ -2416,23 +2419,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* The building panel takes the same corner, so the pennant yields to it
    here (the open building is map-local state, not App's). */
 body:has(.building-info-panel) .pennant { display: none; }
-
-/* ---------- Toasts (Toasts.tsx, toasts.ts) ----------
-   z-index between the ticker (5) and the toolbar popups (20). */
-.toasts { position: fixed; z-index: 8; right: 12px; bottom: calc(var(--toolbar-height) + var(--log-ticker-height) + 8px);
-  display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: none; }
-.toast { pointer-events: auto; max-width: 420px; display: flex; align-items: center; gap: 8px;
-  padding: 5px 12px 5px 5px; background: var(--cream); color: var(--ink); border: 2px solid var(--outline);
-  border-radius: var(--radius-pill); font: inherit; font-size: var(--text-sm); font-weight: 600;
-  text-align: left; cursor: pointer; box-shadow: var(--shadow-1);
-  animation: toast-in 160ms ease-out; }
-.toast:hover { background: var(--cream-hi); }
-.toast .ts { flex: none; color: var(--school-on-primary); background: var(--school-primary); border-radius: var(--radius-pill);
-  padding: 3px 8px; font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); }
-.toast.good { border-color: var(--ok-on-light); }
-.toast.bad { border-color: var(--bad-on-light); }
-@keyframes toast-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
 
 /* The trophy case. */
 .trophy { display: flex; align-items: baseline; gap: 0.6rem; }

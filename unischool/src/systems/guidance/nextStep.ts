@@ -4,6 +4,9 @@ import { milestoneSchools, programById } from '../../data/techData';
 import { isHoused } from '../techtree/programOffers';
 import type { TabId } from '../../components/TabNav';
 import { openingHoldsClock } from '../../state/opening';
+import { absoluteWeek } from '../../data/eventData';
+import { milestoneById } from '../../data/ladderData';
+import { eventById, fill } from '../events/catalogue';
 
 // The next step: one toolbar line naming the highest-value thing on offer.
 // In year 1 it is the latest undone letter ask (the letters' order must not
@@ -13,8 +16,36 @@ import { openingHoldsClock } from '../../state/opening';
 
 export interface NextStep {
   text: string;
-  // A tab to open or the build menu; absent when it is only something to know.
-  go?: TabId | 'build';
+  // A tab to open, the build menu, or back to the campus; absent when it is
+  // only something to know.
+  go?: TabId | 'build' | 'campus';
+  // Pulses: something is waiting that will not wait long (Plan 34).
+  urgent?: true;
+}
+
+// What waits on the map while a tab hides it (Plan 34, V1-34): the board's
+// letter, a milestone's note, a student demand, an event in the panel. The
+// ticker's NEXT points back to it; an event with a week or less to answer,
+// or the board, pulses.
+export function waitingOnMap(s: GameState): NextStep | null {
+  if ((s.finance.distress?.letters.length ?? 0) > 0) return { text: 'The board has written', go: 'campus', urgent: true };
+  const pending = (s.catalogue?.pending ?? []).map((p) => ({ p, e: eventById(p.eventId) })).filter((x) => x.e?.kind === 'inline');
+  if (pending.length > 0) {
+    const { p, e } = pending[0];
+    const left = e!.timeoutWeeks - (absoluteWeek(s) - p.firedWeek);
+    const text = firstClause(fill(e!.text, p.vars));
+    return { text: pending.length > 1 ? `${pending.length} matters wait: ${text}` : `A matter waits: ${text}`, go: 'campus', ...(left <= 1 ? { urgent: true as const } : {}) };
+  }
+  if (s.ladder.unread.length > 0) return { text: `A milestone: ${milestoneById(s.ladder.unread[0])?.name ?? 'reached'}`, go: 'campus' };
+  if (s.events.demandUnread && s.events.activeDemand) return { text: 'The students have a demand', go: 'campus' };
+  return null;
+}
+
+// An event's question, cut to its first clause for the strip.
+function firstClause(text: string): string {
+  const cut = text.search(/[.;:!?—]/);
+  const first = cut > 0 ? text.slice(0, cut) : text;
+  return first.length > 70 ? `${first.slice(0, 67)}…` : first;
 }
 
 const ATTRIBUTE_LABEL: Record<keyof SatisfactionAttributes, string> = {

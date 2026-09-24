@@ -119,8 +119,8 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
       }
     }
     const papers = initiative.publications;
-    // Toasts surface a papers-only run; a run getting a report is not
-    // toasted on top of it.
+    // The log carries a papers-only run; a run getting a report is not
+    // announced on top of it.
     const notable = award !== null || initiative.breakthroughs > 0;
     log(
       s,
