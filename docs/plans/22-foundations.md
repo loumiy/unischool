@@ -418,6 +418,30 @@ it trims comments in their final shape, not twice.
 - The guardrails report rather than fail until Phase N re-derives the bands
   for the merged economy.
 
+**As implemented:**
+
+- **`sim/guardrails.ts` (`npm run guardrails`),** a file beside the harness
+  rather than inside it. It plays every strategy on the default seed and the
+  reference's two extra seeds, and prints five readings with a "look" flag:
+  - stops per year;
+  - event variety (distinct events, and the share the most repeated one
+    takes);
+  - saturation (years with satisfaction at 95 or more);
+  - whether the idle school outranks any strategy that builds;
+  - the spread of final prestige and cash across seeds.
+- **The saturation guardrail replaces v2's "no class above 95", which has
+  no v1 equivalent.** v2's delegation and admin-share guardrails measure
+  systems v1 does not have yet; they arrive with those systems.
+- **What it already shows, at ten years:**
+  - Satisfaction saturates. Seven of ten strategies reach 100, and the
+    selective college spends 5–8 of its first ten years at 95 or more.
+  - One event dominates the mix. The varsity petition is 33–42% of events
+    for most strategies and 90% for the discount strategy.
+  - The idle school outranks the Overbuilder at two of three seeds.
+  - Stops run at 2–5 a year, and up to 10 for the discount strategy.
+  - All of these are for Phase N and the event work (Phase K), not for
+    this plan.
+
 ## PR 22J — Tooling from v2
 
 The debug panel (`?debug=1`) gains:

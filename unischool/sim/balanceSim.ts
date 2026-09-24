@@ -834,7 +834,7 @@ function newYear(): YearActivity { return { actions: 0, idleWeeks: 0, blockedWee
 
 // What the authored decision events did over a run: meant to be a rounding
 // error against the growth loop, not a second economy.
-interface EventTally {
+export interface EventTally {
   milestones: number;   // stop-the-clock celebrations shown
   decisions: number;    // authored decision events resolved
   cash: number;         // net cash effect of every choice the scripted player took
