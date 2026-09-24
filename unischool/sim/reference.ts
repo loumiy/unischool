@@ -226,8 +226,13 @@ export const TARGETS: Reference = {
     { year: 5, cash: { lo: -6_000_000, hi: 1_000_000 }, enrolled: { lo: 300, hi: 2_000 }, prestige: { lo: 30, hi: 65 }, rank: { lo: 40, hi: 90 }, netMargin: { lo: -0.5, hi: 0.15 }, weeksInTheRed: { lo: 0, hi: 260 } },
     { year: 10, cash: { lo: -8_000_000, hi: 3_000_000 }, enrolled: { lo: 300, hi: 3_000 }, prestige: { lo: 30, hi: 70 }, rank: { lo: 35, hi: 90 }, netMargin: { lo: -0.5, hi: 0.2 }, weeksInTheRed: { lo: 1, hi: 520 } },
     { year: 20, cash: { lo: -30_000_000, hi: 10_000_000 }, enrolled: { lo: 300, hi: 5_000 }, prestige: { lo: 30, hi: 75 }, rank: { lo: 30, hi: 90 }, netMargin: { lo: -0.4, hi: 0.3 }, weeksInTheRed: { lo: 1, hi: 1_040 } },
-    { year: 35, cash: { lo: -40_000_000, hi: 30_000_000 }, enrolled: { lo: 300, hi: 8_000 }, prestige: { lo: 30, hi: 80 }, rank: { lo: 25, hi: 90 }, netMargin: { lo: -0.4, hi: 0.4 }, weeksInTheRed: { lo: 1, hi: 1_820 } },
-    { year: 50, cash: { lo: -50_000_000, hi: 60_000_000 }, enrolled: { lo: 300, hi: 10_000 }, prestige: { lo: 30, hi: 85 }, rank: { lo: 20, hi: 90 }, netMargin: { lo: -0.4, hi: 0.5 }, weeksInTheRed: { lo: 1, hi: 2_600 } },
+    // Years 35 and 50's prestige and margin floors were 30 and -40% until
+    // Plan 29: the faculty it hired early retire from year 25 on, into a
+    // college in receivership that is also cutting its payroll, and it stalls
+    // lower: at 4242 it bottoms out in year 35 at 297 students and prestige
+    // 24, and recovers to 407 and 27 by year 50.
+    { year: 35, cash: { lo: -40_000_000, hi: 30_000_000 }, enrolled: { lo: 250, hi: 8_000 }, prestige: { lo: 20, hi: 80 }, rank: { lo: 25, hi: 90 }, netMargin: { lo: -0.6, hi: 0.4 }, weeksInTheRed: { lo: 1, hi: 1_820 } },
+    { year: 50, cash: { lo: -50_000_000, hi: 60_000_000 }, enrolled: { lo: 300, hi: 10_000 }, prestige: { lo: 25, hi: 85 }, rank: { lo: 20, hi: 90 }, netMargin: { lo: -0.6, hi: 0.5 }, weeksInTheRed: { lo: 1, hi: 2_600 } },
   ],
 };
 

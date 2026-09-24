@@ -183,4 +183,14 @@ plan's rules). What moved, and what was done:
   14% and 25% on the three seeds to 26%, 32% and 13%. The hand-written
   target's ceiling moves from 30% to 40% with a note, and Phase N
   rebalances the late margin (V1-25).
+- **The Overbuilder stalls lower.** Its early hires retire from year 25
+  into a college in receivership that is also cutting its payroll. At
+  4242 it bottoms out in year 35 at 297 students and prestige 24, then
+  recovers to 407 and 27. Its hand-written floors move:
+  - year 35: 250 students and prestige 20;
+  - years 35 and 50: a −60% margin;
+  - year 50: prestige 25.
+
+  It still stalls rather than dies. The regression's "stall, don't die"
+  claims pass unchanged.
 - **The reference bands are re-recorded.**
