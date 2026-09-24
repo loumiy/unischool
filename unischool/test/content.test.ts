@@ -11,7 +11,7 @@ import { FACULTY_FIELDS } from '../src/data/facultyData';
 import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
 import { RESEARCH_TOPICS } from '../src/data/researchTopics';
 import { DECISION_EVENTS } from '../src/data/eventData';
-import { AMBITIONS } from '../src/data/ambitionsData';
+import { PROMISES } from '../src/data/promiseData';
 import { COURSE_DESCRIPTIONS } from '../src/data/courseDescriptions';
 import { SPORTS } from '../src/data/studentLifeData';
 
@@ -125,9 +125,9 @@ for (const p of programList) {
     // Weight 0 is allowed: those events are fired directly, never drawn.
     assert(e.weight >= 0, `${e.id}: has a weight that is not negative`);
   }
-  const ambitionIds = AMBITIONS.map((a) => a.id);
-  assert(duplicates(ambitionIds).length === 0, `ambition ids are unique (${duplicates(ambitionIds).join(', ')})`);
-  assert(AMBITIONS.every((a) => !badText(a.name) && !badText(a.line)), 'every ambition has a clean name and line');
+  const promiseIds = PROMISES.map((a) => a.id);
+  assert(duplicates(promiseIds).length === 0, `promise ids are unique (${duplicates(promiseIds).join(', ')})`);
+  assert(PROMISES.every((a) => !badText(a.title) && !badText(a.text) && !badText(a.kept) && !badText(a.missed)), 'every promise has clean words');
   const sportIds = SPORTS.map((s) => s.id);
   assert(duplicates(sportIds).length === 0, `sport ids are unique (${duplicates(sportIds).join(', ')})`);
   assert(SPORTS.every((s) => !badText(s.teamName) && !badText(s.clubName)), 'every sport has clean team and club names');

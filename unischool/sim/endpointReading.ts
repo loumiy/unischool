@@ -6,7 +6,6 @@
 import type { play } from './balanceSim';
 import type { Legacy, LegacyAxisKey, LegacyGrade } from '../src/state/types';
 import { SEMICENTENNIAL_YEAR, totalEnrolled } from '../src/state/types';
-import { AMBITIONS } from '../src/data/ambitionsData';
 import { isAcademicHall, milestoneSchools } from '../src/data/techData';
 
 export const ENDPOINT_STRATEGIES = ['Earnest completionist', 'Balanced builder', 'Selective college', 'Regional engine'] as const;
@@ -21,8 +20,6 @@ export interface EndpointReading {
   schoolsTotal: number;
   firstAtOne: number | null;   // the first year the school closed at #1, or null
   yearsAtOneLateDecade: number; // years 40..50 closed at #1
-  ambitionsReached: number;
-  ambitionsTotal: number;
   prestige: number;
   rank: number;
   cash: number;
@@ -57,8 +54,6 @@ export function endpointReading(run: ReturnType<typeof play>): EndpointReading {
     schoolsTotal: schools.length,
     firstAtOne: atOne.length > 0 ? atOne[0].year : null,
     yearsAtOneLateDecade: atOne.filter((r) => r.year >= SEMICENTENNIAL_YEAR - 10 && r.year <= SEMICENTENNIAL_YEAR).length,
-    ambitionsReached: Object.keys(s.ambitions).length,
-    ambitionsTotal: AMBITIONS.length,
     prestige: last?.prestige ?? s.self.reputation,
     rank: last?.rank ?? 0,
     cash: s.finance.cash,
@@ -89,7 +84,7 @@ export function describeEndpoint(r: EndpointReading): string[] {
       ? `legacy: ${l.name} [${l.table}] — ${l.axes.map((a) => `${a.key} ${a.grade} (${a.score.toFixed(2)})`).join(', ')}`
       : 'legacy: not sealed',
     `catalogue ${pct(r.catalogueShare)}, buildings ${pct(r.buildingsShare)}, halls ${pct(r.hallsShare)}, schools founded ${r.schoolsFounded}/${r.schoolsTotal}`,
-    `first at #1: ${r.firstAtOne ?? 'never'}; years 40–50 at #1: ${r.yearsAtOneLateDecade}/11; ambitions ${r.ambitionsReached}/${r.ambitionsTotal}`,
+    `first at #1: ${r.firstAtOne ?? 'never'}; years 40–50 at #1: ${r.yearsAtOneLateDecade}/11`,
     `at 50: prestige ${r.prestige.toFixed(1)} rank #${r.rank} cash ${fmt(r.cash)} enrolled ${r.enrolled.toLocaleString()} admit ${pct(r.admitRate)} quality ${r.incomingQuality.toFixed(0)} red weeks ${r.weeksInTheRed}`,
   ];
 }

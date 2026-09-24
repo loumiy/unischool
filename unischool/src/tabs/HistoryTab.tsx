@@ -6,7 +6,7 @@ import { MIN_SERIES_POINTS } from '../components/Sparkline';
 import HelpHint from '../components/HelpHint';
 import { HistoryChart } from '../components/HistoryChart';
 import { moneyShort } from '../format';
-import { ambitionEntries } from '../data/ambitionsData';
+import PromisesPanel from './PromisesPanel';
 import { legacy } from '../state/legacy';
 import { SEMICENTENNIAL_YEAR } from '../state/types';
 import { LegacyAxes } from '../components/LegacyAxes';
@@ -174,42 +174,6 @@ function StandingPanel({ s }: { s: GameState }) {
 }
 
 // ---------------------------------------------------------------------
-// Ambitions: the named achievements, greyed until reached, with the year
-// each landed. A record that gates nothing, read off s.ambitions
-// (ambitionsSystem.ts); the list itself is data/ambitionsData.ts.
-// ---------------------------------------------------------------------
-function AmbitionsPanel({ s }: { s: GameState }) {
-  const entries = ambitionEntries(s);
-  const reached = entries.filter((a) => a.year !== null).length;
-  return (
-    <section className="panel">
-      <div className="panel-head">
-        <div className="panel-head-title">
-          <h2>Ambitions</h2>
-          <span className="panel-count">{reached} of {entries.length}</span>
-        </div>
-        <HelpHint
-          align="end"
-          text="What a founder might set out to do, and the year each was done. An ambition is a record, not a reward: it changes nothing and is never taken back. The final report in the fiftieth summer lists the ones reached."
-        />
-      </div>
-      <ul className="ambitions">
-        {entries.map((a) => (
-          <li key={a.id} className={`ambition${a.year === null ? ' unreached' : ''}`}>
-            <span className="ambition-mark" aria-hidden="true">{a.year === null ? '○' : '●'}</span>
-            <span className="ambition-body">
-              <span className="ambition-name">{a.name}</span>
-              <span className="ambition-line">{a.line}</span>
-            </span>
-            <span className="ambition-year">{a.year === null ? '—' : `Year ${a.year}`}</span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------
 // The legacy: six graded axes and a name. Sealed onto s.self.legacy at the
 // fiftieth summer; until then the same reading, taken live.
 // ---------------------------------------------------------------------
@@ -293,7 +257,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
         {/* Standing needs no history, so a first-year school still sees it. */}
         <StandingPanel s={s} />
         <LegacyPanel s={s} />
-        <AmbitionsPanel s={s} />
+        <PromisesPanel s={s} />
         <section className="panel">
           <div className="panel-head">
             <div className="panel-head-title">
@@ -320,7 +284,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
     <div className="tab-content">
       <StandingPanel s={s} />
       <LegacyPanel s={s} />
-      <AmbitionsPanel s={s} />
+      <PromisesPanel s={s} />
       <section className="panel">
         <div className="panel-head">
           <div className="panel-head-title">

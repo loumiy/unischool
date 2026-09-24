@@ -4,7 +4,8 @@ import { clauseById } from '../data/alumniData';
 import { quirkById } from '../data/quirkData';
 import { seatDef } from '../data/seatData';
 import { EVENT_CATALOGUE } from '../data/eventCatalogue';
-import type { Advancement, AlumniClass, CatalogueState, FacilityType, GameState, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, Seat, Trees } from './types';
+import { promiseById } from '../data/promiseData';
+import type { Advancement, AlumniClass, CatalogueState, FacilityType, GameState, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import {
   ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, isLand, isPlaceableKind, parsePathTileKey,
@@ -396,6 +397,32 @@ function sanitizeCatalogue(state: GameState): void {
   }
 }
 
+// Promises: a malformed record is dropped whole; entries naming a promise
+// the game no longer has are dropped.
+function sanitizePromises(state: GameState): void {
+  const raw = state.promises as unknown;
+  if (raw === undefined) return;
+  const p = raw as Partial<PromiseState>;
+  if (typeof raw !== 'object' || raw === null || !Array.isArray(p.active) || !Array.isArray(p.settled) || !Array.isArray(p.declined)) {
+    delete state.promises;
+    return;
+  }
+  const known = (id: unknown): id is string => typeof id === 'string' && promiseById(id) !== undefined;
+  const year = (n: unknown) => Number.isInteger(n);
+  const ok: PromiseState = {
+    active: p.active.filter((a) => typeof a === 'object' && a !== null && known(a.id) && year(a.madeYear) && year(a.dueYear)),
+    settled: p.settled.filter((a) => typeof a === 'object' && a !== null && known(a.id) && year(a.year) && typeof a.kept === 'boolean'),
+    declined: p.declined.filter((a) => typeof a === 'object' && a !== null && known(a.id) && year(a.year)),
+    offer: null,
+  };
+  const offer = p.offer as { ids?: unknown; decade?: unknown } | null | undefined;
+  if (offer && Array.isArray(offer.ids) && typeof offer.decade === 'boolean') {
+    const ids = offer.ids.filter(known);
+    if (ids.length > 0) ok.offer = { ids, decade: offer.decade };
+  }
+  state.promises = ok;
+}
+
 // The alumni ledger: a malformed class is dropped, and a clause the game no
 // longer has is dropped from a class's memory.
 function sanitizeAlumni(state: GameState): void {
@@ -565,6 +592,9 @@ export function loadGame(): GameState | null {
   sanitizeAlumni(state);
   sanitizeAdvancement(state);
   sanitizeCatalogue(state);
+  sanitizePromises(state);
+  // The achievements (retired in Plan 33) are dropped from older saves.
+  delete (state as unknown as { ambitions?: unknown }).ambitions;
   sanitizeIdentity(state);
   const rs = state.rivalStanding as unknown as { rivalId?: unknown; above?: unknown } | undefined;
   if (rs !== undefined && (typeof rs !== 'object' || rs === null || typeof rs.rivalId !== 'string' || typeof rs.above !== 'boolean')) delete state.rivalStanding;

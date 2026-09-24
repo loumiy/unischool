@@ -99,9 +99,12 @@ const READINGS: Record<ConditionKey, [(s: GameState) => number, 'min' | 'max']> 
   cashOver: [(s) => s.finance.cash, 'min'],
   cashUnder: [(s) => s.finance.cash, 'max'],
   debtOver: [debtOutstanding, 'min'],
+  debtUnder: [debtOutstanding, 'max'],
   deficitOver: [(s) => -financeBreakdown(s).net * WEEKS_PER_YEAR, 'min'],
   drawRateOver: [drawRate, 'min'],
   backlogOver: [(s) => standing(s).reduce((t, b) => t + (b.backlog ?? 0), 0), 'min'],
+  backlogUnder: [(s) => standing(s).reduce((t, b) => t + (b.backlog ?? 0), 0), 'max'],
+  projectsOver: [(s) => standing(s).filter((t) => t.project !== undefined).length, 'min'],
   maintenanceUnder: [(s) => s.finance.maintenanceFunding ?? 1, 'max'],
   conditionUnder: [(s) => Math.min(1, ...standing(s).map(conditionOf)), 'max'],
   satisfactionOver: [(s) => s.students.satisfaction, 'min'],
@@ -123,6 +126,7 @@ const READINGS: Record<ConditionKey, [(s: GameState) => number, 'min' | 'max']> 
   confidenceOver: [(s) => distressOf(s).confidence, 'min'],
   confidenceUnder: [(s) => distressOf(s).confidence, 'max'],
   rungAtLeast: [(s) => distressOf(s).rung, 'min'],
+  rungAtMost: [(s) => distressOf(s).rung, 'max'],
   varsityAtLeast: [(s) => s.orgs.teams.filter((t) => t.status === 'active').length, 'min'],
   titlesAtLeast: [(s) => s.orgs.titles.length, 'min'],
   rivalAtLeast: [(s) => (collegeRival(s) ? 1 : 0), 'min'],
@@ -133,11 +137,17 @@ const READINGS: Record<ConditionKey, [(s: GameState) => number, 'min' | 'max']> 
 
 // Money thresholds were written for v2's founding college and scale as its
 // prices do.
-const MONEY_CONDITIONS: ReadonlySet<ConditionKey> = new Set(['endowmentOver', 'endowmentUnder', 'cashOver', 'cashUnder', 'debtOver', 'deficitOver', 'backlogOver']);
+const MONEY_CONDITIONS: ReadonlySet<ConditionKey> = new Set(['endowmentOver', 'endowmentUnder', 'cashOver', 'cashUnder', 'debtOver', 'debtUnder', 'deficitOver', 'backlogOver', 'backlogUnder']);
 
 export function conditionsMet(s: GameState, e: CatalogueEvent): boolean {
+  return whenMet(s, e.when);
+}
+
+// Any set of conditions in the catalogue's vocabulary (promises read theirs
+// here too).
+export function whenMet(s: GameState, when: Partial<Record<ConditionKey, number>>): boolean {
   const scale = priceScale(s);
-  for (const [key, raw] of Object.entries(e.when) as [ConditionKey, number][]) {
+  for (const [key, raw] of Object.entries(when) as [ConditionKey, number][]) {
     const [read, bound] = READINGS[key];
     const target = MONEY_CONDITIONS.has(key) ? raw * scale : raw;
     const value = read(s);

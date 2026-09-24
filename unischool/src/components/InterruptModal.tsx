@@ -8,7 +8,7 @@ import { institutionName, SEMICENTENNIAL_YEAR, SUMMER_BEATS, WEEKS_PER_YEAR } fr
 import { buildYearInReview } from '../state/yearInReview';
 import { legacy } from '../state/legacy';
 import { founderFigures } from '../state/finalReport';
-import { ambitionEntries } from '../data/ambitionsData';
+import { PromiseOffer, PromiseRecord } from '../tabs/PromisesPanel';
 import { HistoryChart } from './HistoryChart';
 import { LegacyAxes } from './LegacyAxes';
 import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
@@ -401,8 +401,10 @@ function SummerSteps({ beat }: { beat: SummerBeat }) {
 
 // Beat one: the year just lived, in facts (state/yearInReview.ts).
 // Read-and-continue.
-function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: () => void }) {
+function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: (promises: string[]) => void }) {
   const review = buildYearInReview(s);
+  const [taken, setTaken] = useState<string[]>([]);
+  const toggle = (id: string) => setTaken((t) => (t.includes(id) ? t.filter((x) => x !== id) : [...t, id]));
   return (
     <>
       <h2>Year {review.year} in review</h2>
@@ -426,7 +428,8 @@ function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: () => void })
           </section>
         ))}
       </div>
-      <button onClick={onContinue}>Continue →</button>
+      <PromiseOffer s={s} taken={taken} onToggle={toggle} />
+      <button onClick={() => onContinue(taken)}>{taken.length > 0 ? 'Make it public →' : 'Continue →'}</button>
     </>
   );
 }
@@ -438,8 +441,6 @@ function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: () => void })
 function FinalReportBeat({ s, onContinue }: { s: GameState; onContinue: () => void }) {
   const record = legacy(s);
   const figures = founderFigures(s);
-  const reached = ambitionEntries(s).filter((a) => a.year !== null).sort((a, b) => (a.year ?? 0) - (b.year ?? 0));
-  const unreached = ambitionEntries(s).filter((a) => a.year === null);
   const years = s.history.map((h) => h.year);
   return (
     <>
@@ -457,25 +458,8 @@ function FinalReportBeat({ s, onContinue }: { s: GameState; onContinue: () => vo
         <div><dt>National titles</dt><dd>{figures.titles.toLocaleString()}</dd></div>
       </dl>
       <section className="final-report-ambitions">
-        <h3>Ambitions</h3>
-        {reached.length === 0 ? (
-          <p className="review-empty">None reached.</p>
-        ) : (
-          <ul className="ambitions">
-            {reached.map((a) => (
-              <li key={a.id} className="ambition">
-                <span className="ambition-mark" aria-hidden="true">●</span>
-                <span className="ambition-body"><span className="ambition-name">{a.name}</span></span>
-                <span className="ambition-year">Year {a.year}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-        {unreached.length > 0 && (
-          <p className="final-report-unreached">
-            Not reached: {unreached.map((a) => a.name).join(' · ')}.
-          </p>
-        )}
+        <h3>Promises</h3>
+        <PromiseRecord s={s} />
       </section>
       {years.length >= 2 && (
         <div className="history-charts final-report-charts">
@@ -538,7 +522,7 @@ function SummerView({ s, payload, act }: { s: GameState; payload: SummerPayload;
       {payload.beat === 0 && payload.final ? (
         <FinalReportBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} />
       ) : payload.beat === 0 ? (
-        <ReviewBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} />
+        <ReviewBeat s={s} onContinue={(promises) => act({ type: 'RESOLVE_SUMMER_BEAT', promises })} />
       ) : payload.beat === 1 ? (
         <RankingsReportView
           payload={buildReportPayload(s)}

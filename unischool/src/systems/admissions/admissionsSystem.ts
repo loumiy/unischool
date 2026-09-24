@@ -1,3 +1,4 @@
+import { openSummerPromises } from '../promises/promises';
 import { beautyPoolFactor } from '../estate/beauty';
 import type { ClassCohorts, ClassCounts, ClassTuition, CohortCounts, FunnelFactors, GameState, SummerPayload } from '../../state/types';
 import { SEMICENTENNIAL_YEAR, WEEKS_PER_YEAR } from '../../state/types';
@@ -401,5 +402,7 @@ export function tickAdmissions(s: GameState): void {
     // record is unsealed so a resumed save is not told twice.
     if (s.clock.year === SEMICENTENNIAL_YEAR && s.self.legacy === null) payload.final = true;
     s.pendingInterrupt = { type: 'summer', payload };
+    // Promises due are read out, and the year's offer made (Plan 33).
+    openSummerPromises(s);
   }
 }

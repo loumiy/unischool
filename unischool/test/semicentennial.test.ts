@@ -91,7 +91,6 @@ console.log('semicentennial tests');
   assert(payloadOf(s).final === true, 'and it is the final report');
   assert(modalWidth(s.pendingInterrupt!) === 'page', 'the final report is a page');
   assert(s.self.legacy === null, 'the record is not sealed while the report is on screen');
-  assert(s.ambitions['fifty-years'] === SEMICENTENNIAL_YEAR, 'the Fifty years ambition is already reached when the report renders');
 
   const shown = legacy(s);
   const b1 = reducer(s, { type: 'RESOLVE_SUMMER_BEAT' });

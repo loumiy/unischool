@@ -296,6 +296,15 @@ export interface Buildable {
   // marks (components/ageMarks.tsx). Undefined for courses and for buildings
   // an older save finished.
   builtYear?: number;
+  // A capital project (Plan 33, systems/estate/projects.ts): the year it
+  // opens from, and the standings it lifts at full condition. One to a
+  // campus.
+  project?: CapitalProject;
+}
+
+export interface CapitalProject {
+  fromYear: number;
+  boosts: Partial<Record<'academics' | 'research' | 'experience' | 'athletics', number>>;
 }
 
 // What a Buildable serves right now: full when done, nothing before it
@@ -385,6 +394,15 @@ export interface QuadState {
   // Tile keys the player has marked: the open space under each is a quad
   // even where detection would not make it one.
   designated: string[];
+}
+
+// Promises (Plan 33). `offer` is this summer's, answered on the Review
+// beat: one promise, or at a decade's close a list to take up to two from.
+export interface PromiseState {
+  active: { id: string; madeYear: number; dueYear: number }[];
+  settled: { id: string; year: number; kept: boolean }[];
+  declined: { id: string; year: number }[];
+  offer: { ids: string[]; decade: boolean } | null;
 }
 
 // An event from the catalogue waiting for an answer. The price scale and
@@ -993,6 +1011,9 @@ export interface GameState {
     // Every tag earned or shed, and the year (Plan 33's journal).
     log?: { id: string; year: number; earned: boolean }[];
   };
+  // Promises (systems/promises/promises.ts): those open, those settled and
+  // declined, and what this summer offers. Undefined before the first offer.
+  promises?: PromiseState;
   // The college's rival (systems/rivals/collegeRival.ts) and whether the
   // college stood above it at the last summer. Undefined before one exists.
   rivalStanding?: { rivalId: string; above: boolean; since?: number }; // since: the year this rival was first named
@@ -1015,9 +1036,6 @@ export interface GameState {
   started: boolean;              // false only during the pre-game startup screen
   hasEnteredRankings: boolean;   // true once the one-time "you've entered the top 50" reveal has fired
   milestones: Record<string, boolean>; // milestone key -> awarded, so each curriculum milestone bonus fires once
-  // Ambition id -> year reached, written once (ambitionsSystem.ts). They
-  // gate and grant nothing.
-  ambitions: Record<string, number>;
   seen: SeenState;               // what the player has been shown, for alert badges
   ladder: LadderState;           // the milestones reached, and their letters not yet read (data/ladderData.ts)
 }
@@ -1052,7 +1070,7 @@ export type LogTopic =
   | 'building'            // a hall, dorm or facility finished
   | 'program'             // a program founded in a hall
   | 'milestone'           // a milestone awarded (established, distinguished, a school founded)
-  | 'ambition'            // an ambition reached; a record, never a stop
+  | 'ambition'            // a promise made, kept or missed (systems/promises)
   | 'appointment'         // somebody joined the faculty
   | 'departure'           // somebody left it
   | 'prize'               // a research prize

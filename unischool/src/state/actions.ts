@@ -117,7 +117,9 @@ export type Action =
   | { type: 'RESOLVE_INTERRUPT' }
   // Advances the summer one beat without moving the clock; leaving the
   // Admissions beat carries the levers as `decision`.
-  | { type: 'RESOLVE_SUMMER_BEAT'; decision?: SummerDecision }
+  // `promises`: leaving the Review beat, the offered promises taken (Plan 33);
+  // the rest are declined.
+  | { type: 'RESOLVE_SUMMER_BEAT'; decision?: SummerDecision; promises?: string[] }
   // Resolves the summer: sets tuition (the only place it changes) and the
   // admit rate, commits the class, and advances the clock. Accepted at any
   // beat. Pending petitions not in `approvedPetitionIds` are declined.
@@ -254,7 +256,6 @@ export function createPreStartState(): GameState {
     started: false,
     hasEnteredRankings: false,
     milestones: {},
-    ambitions: {},
     courseFaculty: {},
     seen: { courseIds: {}, buildableIds: {}, tabIds: {} },
     ladder: foundingLadder(1),
@@ -455,7 +456,6 @@ function foundState(
     started: true,
     hasEnteredRankings: false,
     milestones: {},
-    ambitions: {},
     seen: { courseIds: {}, buildableIds: {}, tabIds: {} },
     ladder: foundingLadder(1),
   };
