@@ -2548,11 +2548,3 @@ body:has(.building-info-panel) .pennant { display: none; }
 .species-chip:hover { background: var(--cream-lo); }
 .species-chip.active { background: var(--school-primary); color: var(--school-on-primary, var(--cream-hi)); }
 
-/* ---------- The scene a quarter turn draws (Plan 37, TurningScene.tsx) ---------- */
-.turning-scene .turn-roof { fill: #8a7466; stroke: rgba(0, 0, 0, 0.25); stroke-width: 0.6; }
-.turning-scene .turn-wall-left { fill: #d8c7ad; }
-.turning-scene .turn-wall-right { fill: #bfab8f; }
-.turning-scene .turn-grounds { fill: #7fa35c; opacity: 0.6; }
-.turning-scene .turn-tree { fill: #4f7a3c; }
-.turning-scene .turn-tree.conifer { fill: #37623f; }
-.turning-scene .turn-tree.ornamental { fill: #7d9e4a; }
