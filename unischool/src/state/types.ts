@@ -23,6 +23,7 @@ export interface Distress {
   ownMaintenance?: number;
   ownDrawRate?: number | null;
   closedAt?: number;           // year * 100 + week of the last term closed
+  yearWorst?: number;          // the worst rung since the year's history row
 }
 
 // One building's loan: what is still owed, the weekly payment that clears
@@ -868,6 +869,36 @@ export interface YearSnapshot {
   coursesFinished: number;     // courses that finished developing during the year
   attrition: number;           // students who did not return at this summer
   graduated: number;           // seniors who graduated this summer
+  // For the alumni ledger (Plan 30), absent on rows from before it: the
+  // distress ladder's worst rung during the year, and the schools founded
+  // by its close.
+  worstRung?: number;
+  schoolsFounded?: number;
+}
+
+export interface RunningCampaign {
+  campaignId: string;       // data/campaignData.ts
+  startedYear: number;
+  dueYear: number;
+  raised: number;
+  target: number;
+}
+export interface Advancement {
+  running: RunningCampaign | null;
+  closed: { campaignId: string; year: number; raised: number; met: boolean }[];
+  restrictedBuilding: number; // raised for buildings, spendable on nothing else
+}
+
+// A graduated class, stamped at commencement (systems/alumni/ledger.ts).
+export interface AlumniClass {
+  classYear: number;     // the year they graduated
+  size: number;
+  satisfaction: number;  // their years' mean
+  quality: number;       // the incoming quality of the year they came
+  memory: string[];      // clause ids (data/alumniData.ts), loudest first
+  warmth: number;        // 0–100, set at commencement
+  nudged: number;        // warmth added by reunions, capped
+  reunionYear?: number;  // the year of the last reunion (systems/alumni/giving.ts)
 }
 
 // Where every program lives: hall Buildable id -> its slots, positional so
@@ -919,6 +950,12 @@ export interface GameState {
   quads?: QuadState;
   // The administration's filled seats (Plan 28). Undefined means none.
   seats?: Seat[];
+  // The alumni ledger, oldest class first (Plan 30). Undefined before the
+  // first commencement stamps a class.
+  alumni?: AlumniClass[];
+  // Advancement (Plan 30): the campaign running, those closed, and building
+  // money raised and not yet spent. Undefined before the first campaign.
+  advancement?: Advancement;
   // Lamps and benches the player has placed beside the paths, by tile key
   // (components/dressing.tsx). Optional: a campus may have none.
   dressing?: Dressing;

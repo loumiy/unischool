@@ -1,3 +1,5 @@
+import { launchCampaign, tickCampaigns } from '../systems/alumni/campaigns';
+import { holdReunion } from '../systems/alumni/giving';
 import { appointSeat, setSeatPolicy } from '../systems/delegation/seats';
 import { clampDrawRate, moveToEndowment } from '../systems/finance/treasury';
 import { boardHoldsBudget, tickDistress } from '../systems/finance/distress';
@@ -9,7 +11,7 @@ import { LOG_CAP, SUMMER_LAST_BEAT } from '../state/types';
 import type { Action } from '../state/actions';
 import { defaultAnswer } from './defaultAnswers';
 import { createInitialState, createPreStartState } from '../state/actions';
-import { tickFinance, endowmentCampaign } from '../systems/finance/financeSystem';
+import { tickFinance } from '../systems/finance/financeSystem';
 import {
   tickTech,
   canStartDevelopment,
@@ -73,6 +75,8 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   // After the week's money has moved: a term closes at its top
   // (systems/finance/distress.ts).
   tickDistress,
+  // Advancement: a running campaign's week (systems/alumni/campaigns.ts).
+  tickCampaigns,
   // After tickFinance (petitions are sized in this week's operating cost)
   // and before tickSatisfaction. Raises no interrupt: organisations are
   // answered in a batch at the summer boundary.
@@ -281,6 +285,10 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       setSeatPolicy(s, action.seatId, action.school, action.policy);
       return s;
 
+    case 'HOLD_REUNION':
+      holdReunion(s, action.classYear);
+      return s;
+
     case 'READ_DEMAND':
       delete s.events.demandUnread;
       return s;
@@ -366,28 +374,10 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
-    case 'LAUNCH_ENDOWMENT_CAMPAIGN': {
-      // The repeatable late-game money sink (see endowmentCampaign), charged
-      // up front. The same function previews and commits it, so the player
-      // gets the numbers they were shown.
-      const campaign = endowmentCampaign(s);
-      if (campaign.available && campaign.affordable) {
-        s.finance.cash -= campaign.cost;
-        s.finance.endowment += campaign.endowmentGain;
-        s.finance.endowmentCampaigns += 1;
-        s.log.unshift({
-          year: s.clock.year,
-          week: s.clock.week,
-          message: `Endowment campaign #${campaign.number} closed: ${money(campaign.cost)} committed, ${money(campaign.endowmentGain)} raised at a ${Math.round(campaign.match * 100)}% donor match.`,
-          kind: 'good',
-          topic: 'money',
-        });
-      }
+    case 'LAUNCH_CAMPAIGN':
+      launchCampaign(s, action.id);
       return s;
-    }
 
-    // The athletics recruiting budget dial (studentLifeData.ts's
-    // ATHLETICS_BUDGET_TIERS): no cost, no gate, no log line; read live next tick.
     case 'SET_ATHLETICS_BUDGET': {
       s.orgs.athleticsBudget = action.tier;
       return s;

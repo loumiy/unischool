@@ -78,7 +78,7 @@ export type Action =
   // START_DEVELOPMENT, and its (rotated) footprint is reserved from week one,
   // so it may not overlap anything done or under construction. Effects still
   // apply only on completion.
-  | { type: 'PLACE_BUILDABLE'; buildableId: string; row: number; col: number; rotated: boolean; borrow?: boolean }
+  | { type: 'PLACE_BUILDABLE'; buildableId: string; row: number; col: number; rotated: boolean; borrow?: boolean; gift?: boolean }
   // Decorative; the only check is that the tile is on the grid.
   | { type: 'ADD_PATH_TILE'; tile: TileCoord }
   | { type: 'REMOVE_PATH_TILE'; tile: TileCoord }
@@ -97,6 +97,7 @@ export type Action =
   | { type: 'MOVE_TO_ENDOWMENT'; amount: number }
   | { type: 'READ_BOARD_LETTER' }
   | { type: 'READ_DEMAND' }
+  | { type: 'HOLD_REUNION'; classYear: number }
   // Fills a seat of the administration (systems/delegation/seats.ts): from
   // the faculty when facultyId is given, from outside otherwise.
   | { type: 'APPOINT_SEAT'; seatId: string; school: string | null; facultyId?: string }
@@ -109,9 +110,9 @@ export type Action =
   | { type: 'REMOVE_DRESSING'; tile: TileCoord }
   | { type: 'UNMARK_QUAD'; key: string }
   | { type: 'NAME_QUAD'; key: string; name: string }
-  // Converts cash into endowment at a prestige-scaled match; repeatable at a
-  // rising cost, the late-game money sink (financeSystem.ts's endowmentCampaign).
-  | { type: 'LAUNCH_ENDOWMENT_CAMPAIGN' }
+  // Launches an advancement campaign (systems/alumni/campaigns.ts), which
+  // replaced the endowment campaign in Plan 30.
+  | { type: 'LAUNCH_CAMPAIGN'; id: string }
   // Fallback for an interrupt type InterruptModal.tsx doesn't recognise.
   | { type: 'RESOLVE_INTERRUPT' }
   // Advances the summer one beat without moving the clock; leaving the

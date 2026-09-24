@@ -75,7 +75,7 @@ const FIRSTS: Array<{ label: string; reached: (s: GameState) => boolean }> = [
   { label: 'Prestige 100', reached: (s) => s.self.reputation >= 100 },
   { label: 'First graduate program founded', reached: (s) => Object.keys(s.milestones).some((k) => k.startsWith('grad-program-complete:')) },
   { label: 'First research prize', reached: (s) => s.research.prizes > 0 },
-  { label: 'First endowment campaign', reached: (s) => s.finance.endowmentCampaigns > 0 },
+  { label: 'First campaign', reached: (s) => s.finance.endowmentCampaigns > 0 || (s.advancement?.closed.length ?? 0) > 0 || s.advancement?.running != null },
   { label: 'Rank #1', reached: (s) => playerRank(s) === 1 },
 ];
 

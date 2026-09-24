@@ -1,8 +1,9 @@
+import AdvancementPanel from './AdvancementPanel';
 import type { ClassTuition, GameState } from '../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../state/types';
 import type { Action } from '../state/actions';
 import {
-  financeBreakdown, instructionDetail, endowmentCampaign, SECTION_SIZE, SECTION_COST,
+  financeBreakdown, instructionDetail, SECTION_SIZE, SECTION_COST,
   SERVICES_PER_STUDENT_PER_WEEK, servicesMultiplier,
 } from '../systems/finance/financeSystem';
 import { marketRateMultiplier } from '../data/facultyData';
@@ -42,7 +43,6 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
   const flow = financeBreakdown(s);
   const annualNet = flow.net * WEEKS_PER_YEAR;
   const coursesDone = s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
-  const campaign = endowmentCampaign(s);
   const distress = distressOf(s);
   const teaching = instructionDetail(s);
   const marketRate = marketRateMultiplier(s.self.reputation);
@@ -77,6 +77,13 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               note={`donors and grants, scaling with prestige ${Math.round(s.self.reputation)}`}
               amount={flow.prestigeRevenue}
             />
+            {flow.annualFund > 0 && (
+              <StatementLine
+                label="Annual fund"
+                note={`what ${(s.alumni?.length ?? 0)} graduated class${(s.alumni?.length ?? 0) === 1 ? '' : 'es'} give, by their warmth and years out`}
+                amount={flow.annualFund}
+              />
+            )}
             <StatementLine
               label="Endowment payout"
               note={`a ${(drawRate(s) * 100).toFixed(1)}% draw on ${money(s.finance.endowment)}`}
@@ -165,34 +172,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
       </section>
 
       <div className="treasury-columns">
-        <section className="panel">
-          <div className="panel-head">
-            <h2>Endowment Campaign</h2>
-            <HelpHint align="end" text="A campaign converts cash into endowment at a donor match that scales with prestige. The endowment pays its draw rate into income every year, and its size per student feeds prestige — so once the dorm chain and the curriculum are built out, this is what money is still for. Each campaign costs more than the last, and donors give a little less each time." />
-          </div>
-          {!campaign.available ? (
-            <p className="empty-note">
-              No donor underwrites a campaign for a school nobody has heard of yet. Build prestige first — {Math.round(s.self.reputation)} today.
-            </p>
-          ) : (
-            <>
-              <dl>
-                <dt>Campaign</dt><dd>#{campaign.number}</dd>
-                <dt>Cash committed</dt><dd>{money(campaign.cost)}</dd>
-                <dt>Donor match</dt><dd>+{Math.round(campaign.match * 100)}%{campaign.titleLift && <span className="stat"> — lifted by this year's title</span>}</dd>
-                <dt>Raised into the endowment</dt><dd>{money(campaign.endowmentGain)}</dd>
-                <dt>Adds to income</dt><dd>{money(campaign.annualPayout)}/yr, permanently</dd>
-              </dl>
-              <button
-                className="panel-action"
-                disabled={!campaign.affordable}
-                onClick={() => act({ type: 'LAUNCH_ENDOWMENT_CAMPAIGN' })}
-              >
-                {campaign.affordable ? `Launch campaign #${campaign.number}` : `Needs ${money(campaign.cost)} in cash`}
-              </button>
-            </>
-          )}
-        </section>
+        <AdvancementPanel s={s} act={act} />
 
         <section className="panel">
           <h2>Balance & Policy</h2>
@@ -206,7 +186,6 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               {distress.rung === RUNG_FREEZE && <span className="stat"> — no construction or borrowing until two surplus terms</span>}
             </dd>
             <dt>Endowment</dt><dd>{money(s.finance.endowment)}</dd>
-            <dt>Campaigns run</dt><dd>{s.finance.endowmentCampaigns}</dd>
             {/* Grants are one-off arrivals, so they show as a running total
                 rather than a weekly line (see researchSystem.ts). */}
             <dt>Research grants</dt>

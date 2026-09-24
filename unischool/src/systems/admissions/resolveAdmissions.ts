@@ -1,3 +1,4 @@
+import { stampGraduatingClass } from '../alumni/ledger';
 import { tuitionFloor } from '../finance/distress';
 import type { GameState } from '../../state/types';
 import type { Action } from '../../state/actions';
@@ -168,6 +169,10 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
     satisfactionAverage: priorYearAvgSatisfaction,
     graduated: graduating,
   }));
+  // The ledger (systems/alumni/ledger.ts): the class that just walked is
+  // stamped with its four years; the ladder's year starts again.
+  stampGraduatingClass(s, graduating, s.clock.year);
+  if (s.finance.distress) s.finance.distress.yearWorst = s.finance.distress.rung;
 
   s.pendingInterrupt = null;
   advanceClock(s); // resolving is what turns the calendar page into the new year

@@ -1,6 +1,8 @@
+import { campaignById } from '../data/campaignData';
+import { clauseById } from '../data/alumniData';
 import { quirkById } from '../data/quirkData';
 import { seatDef } from '../data/seatData';
-import type { FacilityType, GameState, HallSlot, Loan, Pathways, Placement, Seat, Trees } from './types';
+import type { Advancement, AlumniClass, FacilityType, GameState, HallSlot, Loan, Pathways, Placement, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import {
   ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, isLand, isPlaceableKind, parsePathTileKey,
@@ -326,6 +328,36 @@ function sanitizeSeen(state: GameState): void {
 // claim a course is taught by someone who doesn't work here. An unstaffed
 // course is deliberately not reassigned; that is a visible state the player
 // fixes (see types.ts's CourseFaculty).
+// Advancement: a malformed record is dropped whole, and a running campaign
+// the game no longer has is stopped.
+function sanitizeAdvancement(state: GameState): void {
+  const raw = state.advancement as unknown;
+  if (raw === undefined) return;
+  const a = raw as Partial<Advancement>;
+  const ok = typeof raw === 'object' && raw !== null && Array.isArray(a.closed)
+    && typeof a.restrictedBuilding === 'number' && Number.isFinite(a.restrictedBuilding) && a.restrictedBuilding >= 0
+    && (a.running === null || (typeof a.running === 'object' && a.running !== undefined && typeof a.running.campaignId === 'string'
+      && Number.isFinite(a.running.raised) && Number.isFinite(a.running.target) && Number.isInteger(a.running.dueYear)));
+  if (!ok) { delete state.advancement; return; }
+  if (state.advancement!.running && !campaignById(state.advancement!.running.campaignId)) state.advancement!.running = null;
+}
+
+// The alumni ledger: a malformed class is dropped, and a clause the game no
+// longer has is dropped from a class's memory.
+function sanitizeAlumni(state: GameState): void {
+  const raw = state.alumni as unknown;
+  if (raw === undefined) return;
+  const valid = Array.isArray(raw)
+    ? raw.filter((a): a is AlumniClass => typeof a === 'object' && a !== null
+      && Number.isInteger(a.classYear) && Number.isFinite(a.size) && a.size >= 0
+      && Number.isFinite(a.satisfaction) && Number.isFinite(a.quality)
+      && Number.isFinite(a.warmth) && Number.isFinite(a.nudged) && Array.isArray(a.memory))
+    : [];
+  for (const a of valid) a.memory = a.memory.filter((id) => typeof id === 'string' && clauseById(id) !== undefined);
+  if (valid.length > 0) state.alumni = valid;
+  else delete state.alumni;
+}
+
 // A quirk the game no longer has is dropped (data/quirkData.ts).
 function sanitizeQuirks(state: GameState): void {
   for (const f of [...state.faculty, ...state.candidates]) {
@@ -476,6 +508,8 @@ export function loadGame(): GameState | null {
   sanitizeQuads(state);
   sanitizeSeats(state);
   sanitizeQuirks(state);
+  sanitizeAlumni(state);
+  sanitizeAdvancement(state);
   sanitizeDressing(state);
   sanitizeTeams(state);
   sanitizeChapters(state);

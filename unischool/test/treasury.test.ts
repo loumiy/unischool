@@ -16,7 +16,7 @@ import { WEEKS_PER_YEAR } from '../src/state/types';
 import type { GameState } from '../src/state/types';
 import { canStartDevelopment } from '../src/systems/techtree/techSystem';
 
-const canStartBorrowing = (s: GameState, id: string) => canStartDevelopment(s, s.tech.find((t) => t.id === id)!, undefined, true);
+const canStartBorrowing = (s: GameState, id: string) => canStartDevelopment(s, s.tech.find((t) => t.id === id)!, undefined, 'loan');
 
 bindScriptStream(2727);
 const store = new Map<string, string>();
@@ -115,6 +115,21 @@ const fresh = () => {
   assert(loanFor(small, 1_000_000) === 0, 'nor past its room');
   const course = s.tech.find((t) => t.kind === 'course' && t.status === 'available');
   assert(course === undefined || !canStartBorrowing(s, course.id), 'and courses are never borrowed for');
+}
+
+// ---- Paying from building gifts (Plan 30E) ----
+{
+  let s = fresh();
+  const hall = s.tech.find((t) => t.kind === 'facility' && t.cost >= 5_000_000 && !t.requiresFaculty)!;
+  hall.status = 'available';
+  s.finance.cash = 10;
+  s.advancement = { running: null, closed: [], restrictedBuilding: hall.cost + 1 };
+  const spot = firstFreeSpot(s, hall, footprintOf(hall))!;
+  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: hall.id, row: spot.row, col: spot.col, rotated: false, gift: true });
+  assert(s.tech.find((t) => t.id === hall.id)!.status === 'developing', 'a building the gifts cover starts from them');
+  assert(s.finance.cash === 10 && s.advancement!.restrictedBuilding === 1, 'the cash untouched, the gifts spent');
+  const course = s.tech.find((t) => t.kind === 'course' && t.status === 'available');
+  assert(course === undefined || !canStartDevelopment(s, course, undefined, 'gift'), 'building money is not spent on courses');
 }
 
 // ---- Saves ----

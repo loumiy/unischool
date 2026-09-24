@@ -304,7 +304,7 @@ export default function App() {
             {overlay.tab === 'treasury' && <TreasuryTab s={s} act={act} />}
             {overlay.tab === 'students' && <StudentsTab s={s} />}
             {overlay.tab === 'athletics' && <AthleticsTab s={s} act={act} />}
-            {overlay.tab === 'history' && <HistoryTab s={s} />}
+            {overlay.tab === 'history' && <HistoryTab s={s} act={act} />}
           </TabOverlay>
         )}
 
