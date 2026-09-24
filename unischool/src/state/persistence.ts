@@ -3,7 +3,8 @@ import { campaignById } from '../data/campaignData';
 import { clauseById } from '../data/alumniData';
 import { quirkById } from '../data/quirkData';
 import { seatDef } from '../data/seatData';
-import type { Advancement, AlumniClass, FacilityType, GameState, HallSlot, Loan, Pathways, Placement, Seat, Trees } from './types';
+import { EVENT_CATALOGUE } from '../data/eventCatalogue';
+import type { Advancement, AlumniClass, CatalogueState, FacilityType, GameState, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import {
   ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, isLand, isPlaceableKind, parsePathTileKey,
@@ -356,6 +357,25 @@ function sanitizeAdvancement(state: GameState): void {
   if (state.advancement!.running && !campaignById(state.advancement!.running.campaignId)) state.advancement!.running = null;
 }
 
+// The event catalogue: a malformed record is dropped whole, and an event
+// waiting that the catalogue no longer has, or that is malformed, is
+// dropped (a letter left naming it is cleared when answered).
+function sanitizeCatalogue(state: GameState): void {
+  const raw = state.catalogue as unknown;
+  if (raw === undefined) return;
+  const c = raw as Partial<CatalogueState>;
+  const ok = typeof raw === 'object' && raw !== null && Array.isArray(c.pending)
+    && typeof c.lastFired === 'object' && c.lastFired !== null
+    && Number.isFinite(c.lastInlineWeek) && Number.isFinite(c.lastSeismicWeek);
+  if (!ok) { delete state.catalogue; return; }
+  state.catalogue!.pending = (c.pending as unknown[]).filter((p): p is PendingCatalogueEvent => {
+    const e = p as Partial<PendingCatalogueEvent> | null;
+    return typeof e === 'object' && e !== null && typeof e.instanceId === 'string' && typeof e.eventId === 'string'
+      && EVENT_CATALOGUE.some((x) => x.id === e.eventId) && Number.isFinite(e.firedWeek) && Number.isFinite(e.scale) && e.scale! > 0
+      && typeof e.vars === 'object' && e.vars !== null;
+  });
+}
+
 // The alumni ledger: a malformed class is dropped, and a clause the game no
 // longer has is dropped from a class's memory.
 function sanitizeAlumni(state: GameState): void {
@@ -524,6 +544,7 @@ export function loadGame(): GameState | null {
   sanitizeQuirks(state);
   sanitizeAlumni(state);
   sanitizeAdvancement(state);
+  sanitizeCatalogue(state);
   sanitizeIdentity(state);
   const rs = state.rivalStanding as unknown as { rivalId?: unknown; above?: unknown } | undefined;
   if (rs !== undefined && (typeof rs !== 'object' || rs === null || typeof rs.rivalId !== 'string' || typeof rs.above !== 'boolean')) delete state.rivalStanding;

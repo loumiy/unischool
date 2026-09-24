@@ -1,3 +1,4 @@
+import { catalogueOf, resolveCatalogueEvent } from '../systems/events/catalogueEngine';
 import { launchCampaign, tickCampaigns } from '../systems/alumni/campaigns';
 import { holdReunion } from '../systems/alumni/giving';
 import { appointSeat, setSeatPolicy } from '../systems/delegation/seats';
@@ -600,6 +601,22 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       }
       s.pendingInterrupt = null;
       advanceClock(s);
+      return s;
+    }
+
+    // An event from the catalogue (systems/events/catalogueEngine.ts). An
+    // inline one is answered while the clock runs; a letter's answer clears
+    // the interrupt and resumes it. A letter answered with something the
+    // college cannot pay for stays open.
+    case 'RESOLVE_CATALOGUE_EVENT': {
+      const letter = s.pendingInterrupt?.type === 'catalogue-letter'
+        && ((s.pendingInterrupt.payload as { instanceId?: string } | undefined)?.instanceId ?? '') === action.instanceId;
+      const answered = resolveCatalogueEvent(s, action.instanceId, action.choiceId);
+      const gone = !catalogueOf(s).pending.some((p) => p.instanceId === action.instanceId);
+      if (letter && (answered || gone)) {
+        s.pendingInterrupt = null;
+        advanceClock(s);
+      }
       return s;
     }
 

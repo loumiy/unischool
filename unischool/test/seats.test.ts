@@ -6,15 +6,18 @@
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import {
-  delegate, escalates, heldSeat, policyChoice, seatCandidates, seatPayroll, seatSlots, speedLock,
+  heldSeat, seatCandidates, seatPayroll, seatSlots, speedLock,
 } from '../src/systems/delegation/seats';
 import { DEANS_FOR_FASTEST, SEATS, SEAT_SENIOR_YEARS, seatDef } from '../src/data/seatData';
-import { DECISION_EVENTS, findDecisionEvent } from '../src/data/eventData';
+import { DECISION_EVENTS } from '../src/data/eventData';
 import { financeBreakdown } from '../src/systems/finance/financeSystem';
 import { schoolFoundedKey } from '../src/systems/techtree/schools';
 import { milestoneSchools } from '../src/data/techData';
 import { loadGame, saveGame } from '../src/state/persistence';
 import { bindScriptStream } from '../src/engine/random';
+import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
+import type { CatalogueEvent } from '../src/data/eventCatalogueTypes';
+import { seatAnswer } from '../src/systems/events/catalogueEngine';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import type { GameState } from '../src/state/types';
 
@@ -91,34 +94,28 @@ function fresh(): GameState {
   assert(heldSeat(s, 'facilities', null)!.policy === 'cheapest', 'but only to one the seat has');
 }
 
-// ---- The routine, by policy ----
+// ---- The routine, by policy (the catalogue's inline events, Plan 32) ----
 {
-  const roof = findDecisionEvent('roof-failure')!;
+  const spend = (e: CatalogueEvent, id: string) => -(e.choices.find((c) => c.id === id)!.effects.cash ?? 0);
+  // An estate event whose answers cost different sums.
+  const leak = EVENT_CATALOGUE.find((e) => e.kind === 'inline' && e.domain === 'estate'
+    && new Set(e.choices.map((c) => c.effects.cash ?? 0)).size === e.choices.length && e.choices.length >= 2)!;
   const s = fresh();
-  for (const t of s.tech) if (t.kind === 'building' && t.status === 'done') t.cost = 10_000_000;
-  const ctx = roof.rollContext ? roof.rollContext(s)! : {};
-  assert(escalates(s, roof, ctx), 'with no Facilities Director the roof reaches the president');
+  assert(seatAnswer(s, leak, 1) === null, `with no Facilities Director "${leak.id}" reaches the president`);
   const s2 = reducer(s, { type: 'APPOINT_SEAT', seatId: 'facilities', school: null });
-  s2.finance.weeklyOpEx = 1_000_000;
-  const thorough = policyChoice(s2, roof, ctx);
-  assert(thorough?.choiceId === 'repair', `the default "worst first, properly" repairs it (${thorough?.choiceId})`);
-  heldSeat(s2, 'facilities', null)!.policy = 'cheapest';
-  assert(policyChoice(s2, roof, ctx)?.choiceId === 'defer', 'the cheapest fix defers it');
-  heldSeat(s2, 'facilities', null)!.policy = 'visible';
-  assert(policyChoice(s2, roof, ctx)?.choiceId === 'repair', 'and what the students see repairs it, since deferring costs them');
-  const repair = roof.choices.find((c) => c.id === 'repair')!.cost(s2, ctx);
-  const cash = s2.finance.cash;
-  const logged = s2.log.length;
-  assert(delegate(s2, roof, ctx), 'a covered routine event is answered');
-  assert(s2.finance.cash === cash - repair && s2.log.length === logged + 1 && s2.log[0].message.includes('Facilities Director'), 'paid for, and the log says who answered it');
-  s2.finance.weeklyOpEx = repair / 5;
-  assert(escalates(s2, roof, ctx), `anything above four weeks of operating cost escalates (a ${repair.toLocaleString()} repair)`);
-  s2.finance.weeklyOpEx = 1_000_000;
-  s2.finance.cash = repair - 1;
+  const dearest = leak.choices.reduce((a, b) => (spend(leak, b.id) > spend(leak, a.id) ? b : a));
+  const cheapest = leak.choices.reduce((a, b) => (spend(leak, b.id) < spend(leak, a.id) ? b : a));
   heldSeat(s2, 'facilities', null)!.policy = 'worst-first';
-  assert(policyChoice(s2, roof, ctx) === null, 'and so does a choice the college cannot pay for');
-  const naming = findDecisionEvent('naming-rights')!;
-  assert(naming.domain === 'board', 'naming rights are the president\'s own');
+  assert(seatAnswer(s2, leak, 1) === dearest.id, `"worst first, properly" pays for the thorough answer (${seatAnswer(s2, leak, 1)})`);
+  heldSeat(s2, 'facilities', null)!.policy = 'cheapest';
+  assert(seatAnswer(s2, leak, 1) === cheapest.id, 'the cheapest fix takes the cheapest');
+  s2.finance.weeklyOpEx = spend(leak, dearest.id) / 5;
+  assert(seatAnswer(s2, leak, 1) === null, 'anything above four weeks of operating cost escalates');
+  s2.finance.weeklyOpEx = 1_000_000;
+  heldSeat(s2, 'facilities', null)!.policy = 'worst-first';
+  s2.finance.cash = spend(leak, dearest.id) - 1;
+  assert(spend(leak, dearest.id) <= 0 || seatAnswer(s2, leak, 1) === null, 'and so does a choice the college cannot pay for');
+  assert(EVENT_CATALOGUE.filter((e) => e.domain === 'board').every((e) => seatAnswer(s2, e, 1) === null), 'the board\'s events are the president\'s own');
 }
 
 // ---- Speeds ----

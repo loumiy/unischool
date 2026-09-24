@@ -3,6 +3,8 @@ import type { Coach, GameState, SummerPayload } from '../state/types';
 import { SUMMER_LAST_BEAT } from '../state/types';
 import { findDecisionEvent } from '../data/eventData';
 import type { DecisionEventContext } from '../data/eventData';
+import { eventById } from '../systems/events/catalogue';
+import { catalogueOf } from '../systems/events/catalogueEngine';
 
 // ---------------------------------------------------------------------
 // How a modal is answered when nobody is looking. The balance harness
@@ -20,6 +22,7 @@ import type { DecisionEventContext } from '../data/eventData';
 //   - athletic dir.   the middle candidate of three that differ only in salary
 //   - charter         accept
 //   - letter          read it and carry on; never "I know the way"
+//   - catalogue-letter its default, as an unanswered inline event takes
 //   - everything else read and dismiss
 //
 // A new interrupt type falls into `default` and is silently dismissed, so
@@ -116,6 +119,15 @@ export function defaultAnswer(s: GameState, admissions?: AdmissionsPolicy): Acti
       const choice = affordable ?? event.choices.find((c) => c.cost(s, payload.ctx) <= 0);
       if (!choice) return { type: 'RESOLVE_DECISION_EVENT', eventId: '', choiceId: '', ctx: {} };
       return { type: 'RESOLVE_DECISION_EVENT', eventId: event.id, choiceId: choice.id, ctx: payload.ctx };
+    }
+
+    case 'catalogue-letter': {
+      // A letter from the catalogue takes its default, as an inline event
+      // does when its weeks run out.
+      const payload = pending.payload as { instanceId?: string } | undefined;
+      const waiting = catalogueOf(s).pending.find((p) => p.instanceId === payload?.instanceId);
+      const event = waiting ? eventById(waiting.eventId) : undefined;
+      return { type: 'RESOLVE_CATALOGUE_EVENT', instanceId: payload?.instanceId ?? '', choiceId: event?.default ?? '' };
     }
 
     default:

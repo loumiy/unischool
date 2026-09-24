@@ -31,6 +31,9 @@ import { buildReportPayload, type ReportPayload } from '../systems/rivals/rivals
 import AnimatedNumber from './AnimatedNumber';
 import { isActivationTarget, useHotkeys } from './hotkeys';
 import { modalWidth } from './modalLayout';
+import { CatalogueChoices } from './EventPanel';
+import { eventById, fill } from '../systems/events/catalogue';
+import { catalogueOf } from '../systems/events/catalogueEngine';
 import { money, moneyShort, ordinal, signedPct } from '../format';
 
 // Fallback content for an interrupt type with no dedicated view; reachable
@@ -1159,6 +1162,31 @@ function CharterOfferView({ s, onResolve }: { s: GameState; onResolve: (accept: 
   );
 }
 
+// A letter from the board (Plan 32): one of the catalogue's seismic events.
+// The clock waits on it; its choices are the panel's (EventPanel.tsx).
+function CatalogueLetterView({ s, instanceId, act }: { s: GameState; instanceId: string; act: (a: Action) => void }) {
+  const p = catalogueOf(s).pending.find((x) => x.instanceId === instanceId);
+  const e = p ? eventById(p.eventId) : undefined;
+  if (!p || !e) {
+    return (
+      <>
+        <h2>A letter has been mislaid</h2>
+        <p>Nothing has changed.</p>
+        <button onClick={() => act({ type: 'RESOLVE_CATALOGUE_EVENT', instanceId, choiceId: '' })}>Continue</button>
+      </>
+    );
+  }
+  const text = fill(e.text, p.vars);
+  return (
+    <>
+      <p className="letter-eyebrow">From the board · Year {s.clock.year}</p>
+      <h2>{e.title ? fill(e.title, p.vars) : 'A letter from the board'}</h2>
+      <p className="letter-body">{text}</p>
+      <CatalogueChoices s={s} p={p} e={e} onChoose={(choiceId) => act({ type: 'RESOLVE_CATALOGUE_EVENT', instanceId, choiceId })} />
+    </>
+  );
+}
+
 // ---------------------------------------------------------------------
 // An authored decision event (data/eventData.ts). The modal and the reducer
 // look up the same definition by id, so what is shown is what is applied. An
@@ -1324,6 +1352,8 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
             id={(interrupt.payload as { id: string }).id}
             onResolve={(skipAll) => act({ type: 'RESOLVE_LETTER', skipAll })}
           />
+        ) : interrupt.type === 'catalogue-letter' ? (
+          <CatalogueLetterView s={s} instanceId={(interrupt.payload as { instanceId?: string } | undefined)?.instanceId ?? ''} act={act} />
         ) : decision ? (
           <DecisionEventView
             s={s}

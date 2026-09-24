@@ -144,6 +144,9 @@ export type Action =
   // `ctx` comes back from the interrupt so the reducer charges exactly what
   // the modal showed. An unaffordable choice is refused but still clears it.
   | { type: 'RESOLVE_DECISION_EVENT'; eventId: string; choiceId: string; ctx: DecisionEventContext }
+  // An answer to an event from the catalogue (catalogueEngine.ts), inline
+  // from the panel or a letter's. A letter's answer resumes the clock.
+  | { type: 'RESOLVE_CATALOGUE_EVENT'; instanceId: string; choiceId: string }
   // A standing dial, free and adjustable any time.
   | { type: 'SET_ATHLETICS_BUDGET'; tier: AthleticsBudgetTier }
   | { type: 'SET_TEAM_ORDER'; order: string[] } // the priority list, dragged
