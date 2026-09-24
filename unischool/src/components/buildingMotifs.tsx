@@ -36,6 +36,7 @@ import {
 } from './buildingSpec';
 import GroundMarking, { GroundSite, RakedStand, StadiumField, type TilePt } from './groundMarkings';
 import { shade } from './tint';
+import { Crane, Scaffolding } from './siteWorks';
 import { TreeAt } from './trees';
 
 // Architectural motifs: what makes a placed Buildable read as a building.
@@ -302,37 +303,6 @@ export function ScaffoldPattern() {
   );
 }
 
-// Scaffold poles at the site corners with a lift line between them.
-function Scaffolding({ col, row, w, h, height, base = 0 }: {
-  col: number; row: number; w: number; h: number; height: number;
-  // Pole footing: ground for a site, the roof for an extension (`extending`).
-  base?: number;
-}) {
-  const posts: [number, number][] = [
-    [col + w * 0.06, row + h * 0.06], [col + w * 0.94, row + h * 0.06],
-    [col + w * 0.94, row + h * 0.94], [col + w * 0.06, row + h * 0.94],
-  ];
-  const POLE = height * 2.6;
-  const footAt = (c: number, r: number) => lift(project(c, r), base);
-  return (
-    <>
-      {posts.map(([c, r], i) => {
-        const foot = footAt(c, r);
-        const head = lift(foot, POLE);
-        return <line key={i} className="scaffold-pole" x1={foot.x} y1={foot.y} x2={head.x} y2={head.y} />;
-      })}
-      {/* Lift line along the back, against the sky rather than the hatch. */}
-      <line
-        className="scaffold-rail"
-        x1={lift(footAt(posts[0][0], posts[0][1]), POLE * 0.72).x}
-        y1={lift(footAt(posts[0][0], posts[0][1]), POLE * 0.72).y}
-        x2={lift(footAt(posts[1][0], posts[1][1]), POLE * 0.72).x}
-        y2={lift(footAt(posts[1][0], posts[1][1]), POLE * 0.72).y}
-      />
-    </>
-  );
-}
-
 // What a laboratory carries on its roof to say which science it is
 // (buildingSpec.ts's labFeatureOf). Standing on the roof at `base`.
 function LabRoofFeature({ feature, col, row, w, h, base, tint }: {
@@ -444,27 +414,6 @@ function RoofFlag({ at }: { at: Pt }) {
       <line x1={at.x} y1={at.y} x2={top.x} y2={top.y} stroke="#d8d4c8" strokeWidth={1.2} />
       <path d={`M${top.x},${top.y + 1} q6,-2 12,0 v7 q-6,-2 -12,0 Z`} fill={colors.primary} />
       <path d={`M${top.x},${top.y + 3.6} q6,-2 12,0 v1.6 q-6,-2 -12,0 Z`} fill={colors.secondary} />
-    </g>
-  );
-}
-
-// A tower crane on a big site, in screen-space lines.
-function Crane({ col, row, w, h, height }: { col: number; row: number; w: number; h: number; height: number }) {
-  const foot = project(col + w * 0.18, row + h * 0.82);
-  const mastH = Math.max(height * 2.2, 70) + 40;
-  const top = lift(foot, mastH);
-  const reach = Math.min(w, h) * TILE_W * 0.42;
-  const jibEnd = { x: top.x + reach, y: top.y - reach * 0.18 };
-  const counter = { x: top.x - reach * 0.32, y: top.y + reach * 0.06 };
-  const hook = { x: top.x + reach * 0.62, y: top.y - reach * 0.11 };
-  return (
-    <g className="site-crane">
-      <line x1={foot.x} y1={foot.y} x2={top.x} y2={top.y} />
-      <line x1={counter.x} y1={counter.y} x2={jibEnd.x} y2={jibEnd.y} />
-      <line x1={top.x} y1={top.y - 10} x2={jibEnd.x} y2={jibEnd.y} className="site-crane-tie" />
-      <line x1={top.x} y1={top.y - 10} x2={counter.x} y2={counter.y} className="site-crane-tie" />
-      <line x1={hook.x} y1={hook.y} x2={hook.x} y2={hook.y + mastH * 0.45} className="site-crane-tie" />
-      <polygon points={polyPoints([{ x: counter.x - 4, y: counter.y - 3 }, { x: counter.x + 4, y: counter.y - 3 }, { x: counter.x + 4, y: counter.y + 3 }, { x: counter.x - 4, y: counter.y + 3 }])} className="site-crane-weight" />
     </g>
   );
 }
