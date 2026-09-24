@@ -1900,7 +1900,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .admissions-lock { display: block; margin: 2px 0 18px; }
 
 /* The reveal figure (InterruptModal.tsx's REVEAL_MS): meant to be watched. */
-.reveal-figure { font-size: 28px !important; }
+.reveal-figure, .figure.reveal > dd { font-size: 28px !important; }
 
 .admissions-prompt { margin: 0 0 16px; }
 
@@ -2506,3 +2506,18 @@ body:has(.building-info-panel) .pennant { display: none; }
 
 /* What the guidebooks say (tabs/IdentityPanel.tsx). */
 .identity-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+
+/* ---------- Every number explains itself (Plan 34, Figure.tsx) ---------- */
+/* In a panel's two-column grid the pair sits in the grid as if unwrapped. */
+.panel dl > .figure { display: contents; }
+.figure > dd, .figure-box { position: relative; }
+.figure > dd:focus-visible, .figure-box:focus-visible { outline: 2px solid var(--school-primary); outline-offset: 2px; border-radius: var(--radius-sm); }
+.figure-hint { display: none; position: absolute; z-index: 40; top: calc(100% + 6px); right: 0; width: max-content; max-width: 260px;
+  background: var(--cream-hi); color: var(--ink); border: 2px solid var(--outline); border-radius: var(--radius-md);
+  padding: 8px 10px; box-shadow: var(--shadow-1); pointer-events: none;
+  font-family: var(--sans); font-size: var(--text-sm); font-weight: 600; font-style: normal; line-height: 1.4;
+  text-align: left; text-transform: none; letter-spacing: 0; white-space: normal; }
+.figure-box > .figure-hint { left: 0; right: auto; }
+.figure-hint.above { top: auto; bottom: calc(100% + 8px); }
+.figure:hover .figure-hint, .figure > dd:focus-visible > .figure-hint,
+.figure-box:hover > .figure-hint, .figure-box:focus-visible > .figure-hint { display: block; }

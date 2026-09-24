@@ -2,6 +2,8 @@ import { useState } from 'react';
 import type { GameState, GreekChapter, SatisfactionAttributes, StudentClub, StudentOrgBase } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import HelpHint from '../components/HelpHint';
+import Figure from '../components/Figure';
+import { FIGURE_HINTS } from '../data/figureHints';
 import {
   HELLENIC_COUNCIL_HINT, clubCapacity, chapterCapacity,
   hasStudentCenter, orgMembership, studentOrgUpkeep, varsityEligibleYear } from '../data/studentLifeData';
@@ -52,6 +54,8 @@ function varsityNote(club: StudentClub, s: GameState): string {
 
 // Shows both the per-source contribution and the target with and without
 // the whole layer: they answer different questions.
+const signed = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(2)}`;
+
 function StudentLifeEffect({ s }: { s: GameState }) {
   const effect = studentLifeSatisfaction(s);
   const upkeep = studentOrgUpkeep(s);
@@ -66,18 +70,12 @@ function StudentLifeEffect({ s }: { s: GameState }) {
         />
       </div>
       <dl>
-        <dt>Clubs ({effect.clubCount})</dt>
-        <dd>{effect.clubTargetContribution > 0 ? '+' : ''}{effect.clubTargetContribution.toFixed(2)}</dd>
-        <dt>Greek chapters ({effect.chapterCount})</dt>
-        <dd>{effect.greekTargetContribution > 0 ? '+' : ''}{effect.greekTargetContribution.toFixed(2)}</dd>
-        <dt>Varsity athletics ({effect.teamCount})</dt>
-        <dd>{effect.athleticsTargetContribution > 0 ? '+' : ''}{effect.athleticsTargetContribution.toFixed(2)}</dd>
-        <dt>Satisfaction target</dt>
-        <dd>{effect.targetWithoutStudentLife.toFixed(1)} → {effect.target.toFixed(1)}</dd>
-        <dt>Satisfaction today</dt>
-        <dd>{s.students.satisfaction.toFixed(1)}</dd>
-        <dt>Weekly cost</dt>
-        <dd>{money(upkeep)} ({money(upkeep * WEEKS_PER_YEAR)}/yr)</dd>
+        <Figure label={`Clubs (${effect.clubCount})`} value={signed(effect.clubTargetContribution)} hint={FIGURE_HINTS.clubs} />
+        <Figure label={`Greek chapters (${effect.chapterCount})`} value={signed(effect.greekTargetContribution)} hint={FIGURE_HINTS.greek} />
+        <Figure label={`Varsity athletics (${effect.teamCount})`} value={signed(effect.athleticsTargetContribution)} hint={FIGURE_HINTS.varsity} />
+        <Figure label="Satisfaction target" value={`${effect.targetWithoutStudentLife.toFixed(1)} → ${effect.target.toFixed(1)}`} hint={FIGURE_HINTS.satisfactionTarget} />
+        <Figure label="Satisfaction today" value={s.students.satisfaction.toFixed(1)} hint={FIGURE_HINTS.satisfactionToday} />
+        <Figure label="Weekly cost" value={`${money(upkeep)} (${money(upkeep * WEEKS_PER_YEAR)}/yr)`} hint={FIGURE_HINTS.orgCost} />
       </dl>
       {effect.totalTargetContribution <= 0.01 && (effect.clubCount > 0 || effect.chapterCount > 0 || effect.teamCount > 0) && (
         <p className="empty-note">
