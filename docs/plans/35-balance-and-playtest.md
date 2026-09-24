@@ -140,6 +140,18 @@ The playtest's bugs and clarity fixes:
 - the log's "Dr.";
 - the credits.
 
+**As implemented:**
+- **The clock eases on a new arrival only.** An event a seat answers never
+  reaches the queue, so it never slows the clock. A player can speed up
+  again with an event open.
+- **The draft Final Report waits for Year 10** (`REPORT_DRAFT_FROM`), with
+  a line in its place saying why.
+- **Left for later, as polish, and listed in the review:**
+  - the locked speed key's silence;
+  - the milestone chip;
+  - clipped labels;
+  - the Faculty tab's "Worth taking".
+
 ## PR 35C — The scorecard reads the operating margin (V1-25)
 
 - **The scorecard's margin becomes the operating margin:** the week's net
@@ -163,6 +175,13 @@ The playtest's bugs and clarity fixes:
   - no year saturates at 95;
   - the idle college outranks none but the Overbuilder.
 
+**As implemented:**
+- **The metric keeps its name** (`netMargin`), with its new meaning in
+  the comment. A rows file from before this plan has no payout or fund,
+  and reads as the headline margin.
+- **The gates read the default seed,** off the runs the scorecard already
+  plays. `npm run guardrails` reads the same things on three seeds.
+
 ## PR 35D — A founding with slack
 
 - **The founding gift rises from $1.4M to $3.0M.**
@@ -176,6 +195,19 @@ The playtest's bugs and clarity fixes:
   - The Overbuilder and the idle college still fail.
 - **The harness's reference is re-recorded,** and any claim the change
   moves is re-fitted with its reason written beside it.
+
+**As implemented:**
+- **Two claims moved, each re-fitted with its reason beside it:**
+  - The Earnest completionist builds 74–80% of the placeables, not three
+    in four. Plan 33's nine capital projects count, and the harness does
+    not build them. The claim is now seven in ten.
+  - The Overbuilder stalls less: 16% at Year 5 and 8,240 students at
+    Year 35. Its two ceilings rose.
+- **The overreaching Curriculum rush now recovers,** as its own comment
+  asks ("stall hard, then claw back out"). It reaches #1 by Year 24 on
+  the default seed.
+- **The strong strategies are unchanged:** the Balanced builder takes #1
+  in Year 16, the Earnest completionist in Year 12 or 13.
 
 ## PR 35E — The review
 
