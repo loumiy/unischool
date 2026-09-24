@@ -205,6 +205,7 @@ export function closeTerm(s: GameState): void {
   }
   d.rung = to;
   d.termNet = 0;
+  d.yearWorst = Math.max(d.yearWorst ?? 0, to);
 }
 
 // Weekly, after the week's money has moved: at the top of a term the one

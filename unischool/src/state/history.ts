@@ -59,5 +59,7 @@ export function captureYearSnapshot(s: GameState, figures: YearFigures): YearSna
     coursesFinished: Math.max(0, done - before.coursesDone),
     attrition: figures.attrition,
     graduated: figures.graduated,
+    worstRung: Math.max(s.finance.distress?.yearWorst ?? 0, s.finance.distress?.rung ?? 0),
+    schoolsFounded: Object.keys(s.milestones).filter((k) => k.startsWith('school-founded:')).length,
   };
 }

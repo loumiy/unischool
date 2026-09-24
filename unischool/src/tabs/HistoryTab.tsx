@@ -1,3 +1,4 @@
+import AlumniPanel from './AlumniPanel';
 import type { GameState, YearSnapshot } from '../state/types';
 import { MIN_SERIES_POINTS } from '../components/Sparkline';
 import HelpHint from '../components/HelpHint';
@@ -368,6 +369,8 @@ export default function HistoryTab({ s }: { s: GameState }) {
           />
         </div>
       </section>
+
+      <AlumniPanel s={s} />
 
       <section className="panel">
         <h2>Year by Year</h2>
