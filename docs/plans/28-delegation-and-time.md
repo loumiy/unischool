@@ -4,7 +4,7 @@
 (delegation and time, `loumiy/unischool-v2`'s `docs/MIGRATION_PLAN.md`)
 into a sequence of PRs.*
 
-**Status: In progress.**
+**Status: Landed.**
 
 ---
 
