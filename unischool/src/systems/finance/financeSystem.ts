@@ -332,8 +332,10 @@ export function tickFinance(s: GameState): void {
   s.finance.endowment *= 1 + (ENDOWMENT_ANNUAL_RETURN - drawRate(s)) / WEEKS_PER_YEAR;
 }
 
-// "Stall, don't die": why no run can spiral beyond recovery. Each is a
-// property of a constant or formula:
+// "Stall, don't die": why no run can spiral beyond recovery. Since Plan 27
+// the stall has a shape, the board's distress ladder (distress.ts); what
+// keeps the bottom of it survivable is still a property of a constant or
+// formula:
 //  1. Empty beds cost half, so over-building's cost falls as the school
 //     shrinks.
 //  2. Sections follow enrollment down to one per course; that catalogue

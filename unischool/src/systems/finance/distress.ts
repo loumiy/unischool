@@ -183,7 +183,9 @@ export function closeTerm(s: GameState): void {
   const to = nextRung(s, d);
 
   let c = d.confidence;
-  if (surplus && to === RUNG_SOUND) c += CONFIDENCE_SURPLUS_GAIN;
+  // A surplus earns it back on a sound or merely tight footing: a college
+  // whose cash never covers a term can still be a well-run one.
+  if (surplus && to <= RUNG_TIGHT) c += CONFIDENCE_SURPLUS_GAIN;
   if (!surplus) c -= CONFIDENCE_DEFICIT_LOSS;
   if (to === RUNG_FREEZE) c -= CONFIDENCE_FREEZE_LOSS;
   if (to >= RUNG_AUSTERITY) c -= CONFIDENCE_AUSTERITY_LOSS;
