@@ -83,7 +83,7 @@ export const ORG_MEMBERSHIP_GROWTH_PER_YEAR = 0.045; // an established organisat
 // its clubs' rolls.
 export const ORG_ENROLLMENT_TRACKING = 0.5;
 
-// Shown on the Student Life tab before a council has been offered. Kept vague
+// Shown on the Students tab before a council has been offered. Kept vague
 // about the trigger (eventData.ts's HELLENIC_COUNCIL_MIN_CLUBS) on purpose.
 export const HELLENIC_COUNCIL_HINT =
   'No Greek life on this campus. Once there is a real club scene, students may petition to charter a Hellenic Council — approving one is a deliberate choice, and a school can decline Greek life entirely.';
@@ -1088,7 +1088,7 @@ export function athleticsSocialBonus(s: GameState): number {
   return activeTeams * TEAM_SOCIAL_BONUS * tier.socialMultiplier;
 }
 
-// Split per source so the Student Life tab can report each one.
+// Split per source so the Students tab can report each one.
 export function clubSocialBonus(s: GameState): number {
   return s.orgs.clubs.length * CLUB_SOCIAL_BONUS;
 }

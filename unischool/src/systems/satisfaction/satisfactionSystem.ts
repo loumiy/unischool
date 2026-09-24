@@ -19,7 +19,7 @@ import { clamp } from '../../math';
 const SATISFACTION_DRIFT_RATE = 0.05; // fraction of the gap to target closed per week
 
 // Weights sum to 100. Basic needs heaviest; health lightest (dormant below
-// its population gate). Exported for the Student Life tab's cards.
+// its population gate). Exported for the Students tab's cards.
 export const ATTRIBUTE_WEIGHTS: SatisfactionAttributes = {
   academic: 20,
   social: 24,

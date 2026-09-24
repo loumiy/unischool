@@ -907,7 +907,7 @@ function DemandView({ s, onDismiss }: { s: GameState; onDismiss: () => void }) {
       <p className="digest-note">
         There is nothing to answer here and nothing to pay: the demand is met by building what
         it asks for, and missing the deadline costs the school goodwill and next year&rsquo;s
-        applicants &mdash; nothing more. It stays visible in the Student Life tab until it resolves.
+        applicants &mdash; nothing more. It stays visible in the Students tab until it resolves.
       </p>
 
       <button onClick={onDismiss}>Understood</button>

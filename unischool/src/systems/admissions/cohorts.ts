@@ -345,7 +345,7 @@ export function cohortCounts(
 // Base shares alone, for classes admitted with no signals to respond to:
 // the founding classes (foundingData.ts's FOUNDING_CLASSES) and standing
 // classes in saves written before cohortsByClass existed. A neutral prior,
-// not a record, and the Enrollment tab says so.
+// not a record, and the Students tab says so.
 export function baseShareCohortCounts(total: number): CohortCounts {
   const counts = apportion(COHORTS.map((c) => c.baseShare), Math.max(0, Math.round(total)));
   const out = {} as CohortCounts;

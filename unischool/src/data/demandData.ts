@@ -33,7 +33,7 @@ export const DEMAND_DEADLINE_WEEKS = 78;
 // failed. The anti-spiral dial.
 export const DEMAND_COOLDOWN_WEEKS = 104;
 
-// Display only: when the Student Life tab's countdown reads as urgent.
+// Display only: when the Students tab's countdown reads as urgent.
 export const DEMAND_URGENT_WEEKS = 13;
 
 // --- Satisfaction nudges. Failing costs more than meeting pays, because
