@@ -2,7 +2,7 @@ import type { AlumniClass, GameState, YearSnapshot } from '../../state/types';
 import {
   MEMORY_BEAUTIFUL, MEMORY_BUILDINGS, MEMORY_CLAUSES, MEMORY_CLAUSE_LIMIT, MEMORY_DEFICIT_YEARS, MEMORY_HAPPY,
   MEMORY_LINE, MEMORY_POORLY_TAUGHT, MEMORY_THINNED_SHARE, MEMORY_UNHAPPY, MEMORY_WELL_TAUGHT,
-  WARMTH_FROM_SATISFACTION, WARMTH_FROM_TEACHING, clauseById, type MemoryCondition,
+  WARMTH_BASE, WARMTH_FROM_SATISFACTION, WARMTH_FROM_TEACHING, WARMTH_ORDINARY, clauseById, type MemoryCondition,
 } from '../../data/alumniData';
 import { campusBeauty } from '../estate/beauty';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
@@ -75,7 +75,7 @@ export function memoryFor(s: GameState, c: ClassYears): string[] {
 }
 
 export function warmthFor(c: ClassYears, memory: readonly string[]): number {
-  const base = c.satisfaction * WARMTH_FROM_SATISFACTION + c.teaching * WARMTH_FROM_TEACHING;
+  const base = WARMTH_BASE + (c.satisfaction - WARMTH_ORDINARY) * WARMTH_FROM_SATISFACTION + (c.teaching - WARMTH_ORDINARY) * WARMTH_FROM_TEACHING;
   const clauses = memory.reduce((t, id) => t + (clauseById(id)?.warmth ?? 0), 0);
   return Number(Math.min(100, Math.max(0, base + clauses)).toFixed(1));
 }

@@ -49,10 +49,14 @@ export const MEMORY_HAPPY = 70;             // their years' mean satisfaction
 export const MEMORY_UNHAPPY = 50;
 export const MEMORY_BEAUTIFUL = 70;         // campus beauty at commencement
 
-// Warmth at graduation, before the clauses: how they felt, and how they
-// were taught.
-export const WARMTH_FROM_SATISFACTION = 0.6;
-export const WARMTH_FROM_TEACHING = 0.4;
+// Warmth at graduation, before the clauses: 50 for an ordinary class (a
+// satisfaction and a teaching grade of 60), moved by how far above or below
+// that they felt and were taught. v2 summed the raw readings, which on this
+// game's scales left every good college's classes at the ceiling.
+export const WARMTH_BASE = 50;
+export const WARMTH_ORDINARY = 60;
+export const WARMTH_FROM_SATISFACTION = 0.5;
+export const WARMTH_FROM_TEACHING = 0.3;
 
 export function clauseById(id: string): MemoryClause | undefined {
   return MEMORY_CLAUSES.find((c) => c.id === id);

@@ -2393,6 +2393,7 @@ body:has(.building-info-panel) .pennant { display: none; }
 .alumni-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 .alumni-list li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
 .alumni-line { font-style: italic; }
+.alumni-figures { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
 /* Advancement (tabs/AdvancementPanel.tsx). */
 .campaign-list { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 10px; }

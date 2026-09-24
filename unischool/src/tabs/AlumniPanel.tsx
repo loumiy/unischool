@@ -27,12 +27,14 @@ export default function AlumniPanel({ s, act }: { s: GameState; act: (a: Action)
         {classes.slice(0, SHOWN).map((a) => (
           <li key={a.classYear}>
             <span className="alumni-line">{memoryLine(a)}</span>
-            <span className="stat">{a.size.toLocaleString()} · warmth {Math.round(warmthOf(a))} · {money(givingOf(a, s.clock.year))}/yr</span>
-            {canReunite(s, a) && (
-              <button type="button" className="panel-action small" onClick={() => act({ type: 'HOLD_REUNION', classYear: a.classYear })}>
-                {s.clock.year - a.classYear}-year reunion · {money(reunionCost(a))}
-              </button>
-            )}
+            <span className="alumni-figures">
+              {canReunite(s, a) && (
+                <button type="button" className="panel-action small" onClick={() => act({ type: 'HOLD_REUNION', classYear: a.classYear })}>
+                  {s.clock.year - a.classYear}-year reunion · {money(reunionCost(a))}
+                </button>
+              )}
+              <span className="stat">{a.size.toLocaleString()} · warmth {Math.round(warmthOf(a))} · {money(givingOf(a, s.clock.year))}/yr</span>
+            </span>
           </li>
         ))}
       </ul>
