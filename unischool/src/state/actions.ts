@@ -95,6 +95,7 @@ export type Action =
   | { type: 'SET_MAINTENANCE_FUNDING'; level: number }
   | { type: 'SET_DRAW_RATE'; rate: number }
   | { type: 'MOVE_TO_ENDOWMENT'; amount: number }
+  | { type: 'READ_BOARD_LETTER' }
   | { type: 'RENOVATE_BUILDING'; id: string }
   | { type: 'EXTEND_BUILDING'; id: string }
   | { type: 'DECLARE_HISTORIC'; id: string }

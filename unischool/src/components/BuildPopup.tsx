@@ -17,6 +17,7 @@ import {
 } from './icons';
 import { money, moneyShort } from '../format';
 import { LOAN_RATE, LOAN_YEARS, loanFor } from '../systems/finance/treasury';
+import { constructionFrozen } from '../systems/finance/distress';
 
 // The build menu: every physical building the university can have, as a
 // row of category icons over a horizontal strip of building tiles. A wide
@@ -427,11 +428,13 @@ function BuildTile({
   const loan = !canStartDevelopment(s, t) && canStartDevelopment(s, t, undefined, true) ? loanFor(s, t.cost) : 0;
   const disabledReason = loan > 0
     ? `Borrows ${money(loan)}, repaid over ${LOAN_YEARS} years at ${LOAN_RATE * 100}%.`
-    : shortfall > 0
-      ? `${money(Math.ceil(shortfall))} short.`
-      : missingFaculty
-        ? `No free ${t.requiresFaculty} slot.`
-        : undefined;
+    : constructionFrozen(s)
+      ? 'The board has frozen construction.'
+      : shortfall > 0
+        ? `${money(Math.ceil(shortfall))} short.`
+        : missingFaculty
+          ? `No free ${t.requiresFaculty} slot.`
+          : undefined;
   const startable = canStartDevelopment(s, t) || loan > 0;
   const armed = placingId === t.id;
   const detail = builtDetail(t);
@@ -683,7 +686,10 @@ export default function BuildPopup({
           <span className="stat">satisfaction {Math.round(s.students.satisfaction)}</span>
         </div>
 
-        {s.finance.cash < 0 && (
+        {constructionFrozen(s) && (
+          <p className="stall-note">The board has frozen new construction until the college has run two surplus terms with cash in the bank.</p>
+        )}
+        {s.finance.cash < 0 && !constructionFrozen(s) && (
           <p className="stall-note">Cash is negative — the school is running an operating deficit, so nothing can be started until the balance recovers.</p>
         )}
 

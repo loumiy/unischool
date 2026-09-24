@@ -1,5 +1,6 @@
 import type { GameState } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
+import { borrowingAllowed } from './distress';
 
 // The treasury's choices (Plan 27): how much the endowment pays out each
 // year, and cash moved into it by hand. Both are the player's alone; the
@@ -10,9 +11,6 @@ export const DRAW_RATE_DEFAULT = 0.04;
 export const DRAW_RATE_MIN = 0.03;
 export const DRAW_RATE_MAX = 0.07;
 export const DRAW_RATE_STEP = 0.005;
-// Above this the board thinks the college is eating its seed corn
-// (the distress ladder's confidence reads it).
-export const DRAW_RATE_PRUDENT = 0.05;
 
 export function drawRate(s: GameState): number {
   return s.finance.drawRate ?? DRAW_RATE_DEFAULT;
@@ -80,10 +78,11 @@ export function loanPayment(amount: number): number {
 }
 
 // What a building would borrow: the shortfall, when there is one, the cash
-// is positive and the room allows it. Zero means it cannot, or need not.
+// is positive, the room allows it and the board has not frozen borrowing
+// (distress.ts). Zero means it cannot, or need not.
 export function loanFor(s: GameState, cost: number): number {
   const shortfall = cost - s.finance.cash;
-  if (s.finance.cash <= 0 || shortfall <= 0 || shortfall > borrowingRoom(s)) return 0;
+  if (!borrowingAllowed(s) || s.finance.cash <= 0 || shortfall <= 0 || shortfall > borrowingRoom(s)) return 0;
   return Math.ceil(shortfall);
 }
 

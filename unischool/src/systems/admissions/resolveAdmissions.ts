@@ -1,3 +1,4 @@
+import { tuitionFloor } from '../finance/distress';
 import type { GameState } from '../../state/types';
 import type { Action } from '../../state/actions';
 import { TUITION_SLIDER_MAX } from '../../data/foundingData';
@@ -79,7 +80,8 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
   // Tuition is set only here, once a year (docs/design/admissions.md). This
   // is the listed price; it reaches only the incoming class, via
   // tuitionByClass below. Continuing classes keep their admitted price.
-  s.finance.listedTuition = Math.max(0, Math.min(action.tuition, TUITION_SLIDER_MAX));
+  // Under austerity the board will not let it fall (finance/distress.ts).
+  s.finance.listedTuition = Math.max(tuitionFloor(s), Math.min(action.tuition, TUITION_SLIDER_MAX));
 
   resolveStudentLifeDigest(s, action.approvedPetitionIds);
 

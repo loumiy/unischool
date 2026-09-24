@@ -12,6 +12,7 @@ import { money } from '../format';
 import EstatePanel from './EstatePanel';
 import EndowmentPanel from './EndowmentPanel';
 import { debtOutstanding, drawRate } from '../systems/finance/treasury';
+import { RUNG_AUSTERITY, RUNG_FREEZE, RUNG_NAMES, RUNG_RECEIVERSHIP, distressOf } from '../systems/finance/distress';
 
 // The Treasury: a weekly income statement built from financeBreakdown, the
 // same breakdown the tick charges, so the two cannot drift. Figures are per
@@ -42,6 +43,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
   const annualNet = flow.net * WEEKS_PER_YEAR;
   const coursesDone = s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
   const campaign = endowmentCampaign(s);
+  const distress = distressOf(s);
   const teaching = instructionDetail(s);
   const marketRate = marketRateMultiplier(s.self.reputation);
   const services = servicesMultiplier(s);
@@ -189,6 +191,13 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
           <h2>Balance & Policy</h2>
           <dl>
             <dt>Cash</dt><dd>{money(s.finance.cash)}</dd>
+            <dt>The board</dt>
+            <dd>
+              {RUNG_NAMES[distress.rung]}, confidence {Math.round(distress.confidence)}
+              {distress.rung === RUNG_RECEIVERSHIP && <span className="stat"> — the interim CFO sets the draw and the maintenance, {distress.receivershipTermsLeft} terms left</span>}
+              {distress.rung === RUNG_AUSTERITY && <span className="stat"> — no construction, no maintenance, and tuition held</span>}
+              {distress.rung === RUNG_FREEZE && <span className="stat"> — no construction or borrowing until two surplus terms</span>}
+            </dd>
             <dt>Endowment</dt><dd>{money(s.finance.endowment)}</dd>
             <dt>Campaigns run</dt><dd>{s.finance.endowmentCampaigns}</dd>
             {/* Grants are one-off arrivals, so they show as a running total

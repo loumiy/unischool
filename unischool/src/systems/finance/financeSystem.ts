@@ -1,5 +1,6 @@
 import { upkeepShare } from '../estate/estate';
 import { debtService, drawRate, serviceLoans } from './treasury';
+import { accrueTerm } from './distress';
 import type { ClassTuition, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
 import { departmentPot, inTitleYear, studentOrgUpkeep } from '../../data/studentLifeData';
@@ -322,6 +323,7 @@ export function tickFinance(s: GameState): void {
   // only here where cash settles.
   if (s.finance.cash < 0) s.finance.weeksInTheRed += 1;
   serviceLoans(s);
+  accrueTerm(s, flow.net);
 
   // The endowment compounds net of the payout collected above. Cash can go
   // negative only through an operating deficit (purchases need the cash),

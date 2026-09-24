@@ -3,10 +3,11 @@ import type { Action } from '../state/actions';
 import HelpHint from '../components/HelpHint';
 import { money, moneyShort } from '../format';
 import {
-  BORROWING_SHARE, DRAW_RATE_MAX, DRAW_RATE_MIN, DRAW_RATE_PRUDENT, DRAW_RATE_STEP, LOAN_RATE, LOAN_YEARS,
+  BORROWING_SHARE, DRAW_RATE_MAX, DRAW_RATE_MIN, DRAW_RATE_STEP, LOAN_RATE, LOAN_YEARS,
   borrowingRoom, debtOutstanding, debtService, drawRate, transferOffers,
 } from '../systems/finance/treasury';
 import { ENDOWMENT_ANNUAL_RETURN as ENDOWMENT_RETURN } from '../systems/finance/financeSystem';
+import { DRAW_RATE_PRUDENT, boardHoldsBudget } from '../systems/finance/distress';
 
 // The endowment's two levers (systems/finance/treasury.ts): the draw rate,
 // and cash moved into it by hand.
@@ -20,6 +21,7 @@ export default function EndowmentPanel({ s, act }: { s: GameState; act: (a: Acti
   const setDraw = (value: number) => act({ type: 'SET_DRAW_RATE', rate: value });
   const offers = transferOffers(s);
   const growth = ENDOWMENT_RETURN - draw;
+  const held = boardHoldsBudget(s);
   return (
     <section className="panel endowment-panel">
       <div className="panel-head">
@@ -28,9 +30,9 @@ export default function EndowmentPanel({ s, act }: { s: GameState; act: (a: Acti
       </div>
       <div className="treasury-dial">
         <span>Draw rate</span>
-        <button type="button" className="panel-action small" aria-label="Draw less" disabled={draw <= DRAW_RATE_MIN} onClick={() => setDraw(draw - DRAW_RATE_STEP)}>−</button>
+        <button type="button" className="panel-action small" aria-label="Draw less" disabled={held || draw <= DRAW_RATE_MIN} onClick={() => setDraw(draw - DRAW_RATE_STEP)}>−</button>
         <strong>{rate(draw)}</strong>
-        <button type="button" className="panel-action small" aria-label="Draw more" disabled={draw >= DRAW_RATE_MAX} onClick={() => setDraw(draw + DRAW_RATE_STEP)}>+</button>
+        <button type="button" className="panel-action small" aria-label="Draw more" disabled={held || draw >= DRAW_RATE_MAX} onClick={() => setDraw(draw + DRAW_RATE_STEP)}>+</button>
       </div>
       <dl>
         <dt>Endowment</dt><dd>{money(s.finance.endowment)}</dd>

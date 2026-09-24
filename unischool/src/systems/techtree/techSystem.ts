@@ -1,5 +1,6 @@
 import type { GameState, Buildable, BuildableEffects, Faculty, HallSlot } from '../../state/types';
 import { loanFor, takeLoan } from '../finance/treasury';
+import { constructionFrozen } from '../finance/distress';
 import {
   graduateCourseIds, graduateGateMet, graduatePrograms, milestoneSchools, programById, programOfCourse,
 } from '../../data/techData';
@@ -222,6 +223,8 @@ export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: s
     || (facultyId === undefined
       ? hasFreeFacultySlot(s, node.requiresFaculty)
       : eligibleInstructors(s, node).some((f) => f.id === facultyId));
+  // No new construction while the board has frozen it (finance/distress.ts).
+  if (node.kind !== 'course' && constructionFrozen(s)) return false;
   const canAfford = borrow ? node.kind !== 'course' && loanFor(s, node.cost) > 0 : s.finance.cash >= node.cost;
   return node.status === 'available' && facultyOk && canAfford;
 }
