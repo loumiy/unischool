@@ -955,6 +955,15 @@ button.build-tile { font-family: inherit; }
 .campus-hall-pip.blocked { stroke: #e0553f; stroke-width: 2.2; }
 .campus-hall-flag circle { fill: var(--gold); }
 .campus-hall-flag path { stroke: #1a2035; stroke-width: 1.6; stroke-linecap: round; fill: none; }
+/* A lab at work (Plan 41): a ring filling as the project runs, an atom
+   turning inside it (an SVG animateMotion, left out under reduced motion). */
+.campus-lab-mark { cursor: pointer; }
+.campus-lab-plate { fill: rgba(20, 26, 16, 0.55); }
+.campus-lab-track { fill: none; stroke: rgba(246, 241, 226, 0.22); stroke-width: 3.2; }
+.campus-lab-progress { fill: none; stroke: var(--gold); stroke-width: 3.2; stroke-linecap: round; filter: brightness(1.35) saturate(1.1); }
+.campus-lab-orbit { fill: none; stroke: rgba(246, 241, 226, 0.6); stroke-width: 1.1; }
+.campus-lab-nucleus { fill: var(--gold); stroke: #f6f1e2; stroke-width: 0.8; }
+.campus-lab-electron { fill: #f6f1e2; }
 .campus-label { pointer-events: none; opacity: 0; transition: opacity 90ms linear; }
 .campus-label-plate { fill: rgba(20, 26, 16, 0.5); }
 .campus-label-text { fill: #f6f1e2; font-family: var(--serif); text-anchor: middle; dominant-baseline: middle; user-select: none; }
