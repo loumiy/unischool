@@ -49,6 +49,7 @@ const FACILITY_LABELS: Record<FacilityType, string> = {
   footballStadium: 'Football Stadium',
   fieldHouse: 'Field House',
   landmark: 'Grand Landmark',
+  amenity: 'Monuments & Gardens',
 };
 
 // How many finished instances a repeatable group needs before they collapse;
@@ -63,7 +64,7 @@ type BuildCategory = FacilityCategory | 'housing';
 // the library and labs, which FACILITY_CATEGORY_OF already assigns by type.
 const ACADEMIC_GROUP_KEYS: ReadonlySet<string> = new Set(['hall']);
 // Grounds ride in the Campus Tools tab rather than a tab of their own.
-const GROUNDS_GROUP_KEYS: ReadonlySet<string> = new Set(['quad', 'landmark']);
+const GROUNDS_GROUP_KEYS: ReadonlySet<string> = new Set(['quad', 'landmark', 'amenity']);
 
 interface TypeGroup {
   key: string;
@@ -127,6 +128,7 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; se
   { key: 'quad', label: FACILITY_LABELS.quad, repeatable: false, match: (t) => t.facilityType === 'quad' },
   // The grand landmarks ride with the grounds: three offered, one built.
   { key: 'landmark', label: FACILITY_LABELS.landmark, repeatable: false, match: (t) => t.facilityType === 'landmark' },
+  { key: 'amenity', label: FACILITY_LABELS.amenity, repeatable: false, match: (t) => t.facilityType === 'amenity' },
 ];
 
 // Every placeable id currently rendered as a tile: the build-menu alert
@@ -238,6 +240,7 @@ function iconForBuildable(t: Buildable): () => React.JSX.Element {
     case 'healthCenter': return HealthIcon;
     case 'quad': return QuadIcon;
     case 'landmark': return AcademicIcon;
+    case 'amenity': return QuadIcon;
     case 'lab': return LabIcon;
     case 'recCenter':
     case 'gym':

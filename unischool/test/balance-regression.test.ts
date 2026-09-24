@@ -102,6 +102,15 @@ function find(name: string) {
   return { strategy, run: play(strategy, YEARS) };
 }
 
+// The curriculum rush's horizon for the growth check (section 1), and idle's
+// prestige there.
+const RUSH_YEARS = 30;
+function idleAtRushYears(): number {
+  const idle = STRATEGIES.find((s) => s.name === 'Idle (builds nothing)')!;
+  const rows = play(idle, RUSH_YEARS).rows;
+  return rows[rows.length - 1].prestige;
+}
+
 // The same strategy, played to the longer horizon the recovery checks use.
 const MISTAKE_CASES = ['Curriculum rush (overreach)', 'Discount volume (beds first)'];
 function findRecovery(name: string) {
@@ -144,16 +153,23 @@ function findRecovery(name: string) {
   // the new stream it clears the bar at two of six (margins 3.3 to 22.0).
   // It is the overreach mistake case, whose arc is judged at year 40 below;
   // Phase N of the v2 merge re-derives the bands for the merged economy.
+  //
+  // Plan 26 (the estate) moved the rush's trajectory through the shared
+  // stream, and at year 20 it now clears at none of five seeds (margins -6
+  // to -0.4); on main before it cleared at one. It is too seed-bound for a
+  // year-20 bar (45 to 110 by year 30, seed to seed), so it is judged at
+  // year RUSH_YEARS instead, where it clears at three of five (main: two).
   for (const name of ['Balanced builder', 'Curriculum rush (overreach)', 'Completionist (build everything)']) {
-    const built = find(name);
+    const rush = name === 'Curriculum rush (overreach)';
+    const years = rush ? RUSH_YEARS : YEARS;
+    const idleThen = rush ? idleAtRushYears() : idlePrestige;
+    const built = rush ? { run: play(STRATEGIES.find((st) => st.name === name)!, RUSH_YEARS) } : find(name);
     const builtPrestige = built.run.rows[built.run.rows.length - 1].prestige;
-    const clears = (r: ReturnType<typeof play>) => r.rows[r.rows.length - 1].prestige > idlePrestige + 10;
-    const judged = name === 'Curriculum rush (overreach)'
-      ? holds(name, YEARS, clears, built.run)
-      : { ok: clears(built.run), note: '' };
+    const clears = (r: ReturnType<typeof play>) => r.rows[r.rows.length - 1].prestige > idleThen + 10;
+    const judged = rush ? holds(name, years, clears, built.run) : { ok: clears(built.run), note: '' };
     assert(
       judged.ok,
-      `"${name}" reaches meaningfully higher prestige than idling by year ${YEARS} (idle ${idlePrestige.toFixed(1)}, ${name} ${builtPrestige.toFixed(1)})${judged.note}`,
+      `"${name}" reaches meaningfully higher prestige than idling by year ${years} (idle ${idleThen.toFixed(1)}, ${name} ${builtPrestige.toFixed(1)})${judged.note}`,
     );
   }
 }

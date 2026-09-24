@@ -144,6 +144,32 @@ qualifies.
 - **The slow suites run,** and any band beauty moves is re-recorded with a
   note.
 
+**As implemented:**
+
+- **The four terms and their weights:**
+  - greenery 0.3, trees off the paths against 60% of the founding woodland;
+  - landmarks 0.25, the standing buildings' `effects.beauty` at their
+    condition, against 6;
+  - upkeep 0.25, the standing buildings' mean condition (an empty parcel
+    earns none);
+  - enclosure 0.2, detected quads' quality against 3, at the estate's
+    condition.
+
+  Quad detection floods the parcel, so its result is cached on the layout.
+- **It is scored when read**, not stored: admissions reads it through
+  `CohortSignals.beauty`, prestige through a new `beauty` input (weight 6),
+  and the Estate panel shows the score and its terms. A grand landmark
+  (Plan 25) is worth 3, half the landmark target.
+- **The year-over-year reading** names "the campus" as a factor, and treats
+  a save's missing factor as 1.
+- **Where the harness sits:** at 55 to 60 for the whole game on every
+  strategy measured. Its campuses keep their woodland and their buildings
+  in repair, and close one partial quad by year 15, but never build a
+  landmark. That is a pool about 1–2% larger and a prestige point or so
+  higher: a small nudge. It moves the shared random stream, though, so
+  the event sequence moves after the first year, and that carries most of
+  what the slow suites saw. See "The harness, re-measured" below.
+
 ## PR 26F — The small landmarks and amenities
 
 - **v2's deferred amenities, as beauty-bearing Buildables:** a chapel, a
@@ -151,6 +177,22 @@ qualifies.
   and cheap. Each has bespoke art from the existing motifs.
 - **None carries a satisfaction attribute,** so the harness never builds
   them.
+
+**As implemented:** five `'amenity'` facilities in `facilitiesData.ts`
+(`AMENITIES`), each opened by a rung of the ladder:
+
+| Amenity | Rung | Footprint | Beauty | Art |
+| --- | --- | --- | --- | --- |
+| The Founder's Statue | A fourth program | 2×2 | 0.6 | a plinth and figure |
+| The Fountain | First commencement | 3×3 | 1 | a basin and jet |
+| The Formal Garden | A town's worth | 6×6 | 1.5 | hedges and beds |
+| The Chapel | A regional name | 5×3 | 1.5 | the pavilion, in limestone |
+| The Bell Tower | Research | 3×3 | 2 | Plan 25's campanile, small |
+
+They are drawn by `groundMarkings.tsx` (the ground-level ones) and the
+landmark and pavilion motifs, and listed in the build popup's Campus Tools
+tab. The endpoint's "every placeable thing" leaves them out, as it does the
+grand landmarks.
 
 ## PR 26G — Pairing bumps
 
@@ -161,6 +203,19 @@ qualifies.
 
   Each lifts its satisfaction attribute by at most 2 points. The total
   goes through the layout cap.
+
+**As implemented:** `systems/estate/pairing.ts`, two pairings, each worth
+the share of its kind that has the neighbour, times 2 points:
+
+- residences within six tiles of a dining hall lift housing;
+- academic halls within eight tiles of a library lift academic life.
+
+The third, a quad bounded by a hall, is already beauty's enclosure term, so
+it was not counted twice. The bumps are satisfaction points, not an
+applicant-pool swing, so the layout cap bounds them by construction (two
+points each) rather than by one shared clamp. The satisfaction panel lists
+each as a named bonus. The invariant suite's map-reading exemption names
+both estate modules.
 
 ## What this plan does not do
 

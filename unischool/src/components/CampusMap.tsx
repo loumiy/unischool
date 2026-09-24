@@ -493,7 +493,7 @@ const CampusScene = memo(function CampusScene({ layout, quads, inspectedId, just
         // Each prop enters the sort on the ground it covers. A site has no
         // props yet.
         const d = drawnFootprint(p);
-        for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing)) {
+        for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing, t.id)) {
           entries.push({
             kind: 'prop', key: `g-${t.id}-${prop.key}`, node: prop.node, owner: t.id,
             col: prop.col, row: prop.row, w: prop.w, h: prop.h,

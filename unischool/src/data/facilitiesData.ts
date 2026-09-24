@@ -460,6 +460,8 @@ export const GRAND_LANDMARK_WEEKS = 156;
 const GRAND_LANDMARK_PRESTIGE = 0.3;
 const GRAND_LANDMARK_APPLICANTS = 1_500;
 const GRAND_LANDMARK_UPKEEP = 30_000;
+// Half of beauty's landmark target on its own (systems/estate/beauty.ts).
+const GRAND_LANDMARK_BEAUTY = 3;
 export const GRAND_LANDMARKS: ReadonlyArray<{ id: string; name: string; description: string }> = [
   {
     id: 'LANDMARK-CAMPANILE',
@@ -478,6 +480,17 @@ export const GRAND_LANDMARKS: ReadonlyArray<{ id: string; name: string; descript
   },
 ];
 export const GRAND_LANDMARK_IDS: readonly string[] = GRAND_LANDMARKS.map((l) => l.id);
+
+// The small landmarks and amenities (Plan 26): cheap, each worth a little
+// campus beauty (systems/estate/beauty.ts), opened along the ladder. None has
+// a satisfaction attribute, so no harness strategy builds one.
+export const AMENITIES: ReadonlyArray<{ id: string; name: string; description: string; cost: number; weeks: number; upkeep: number; beauty: number }> = [
+  { id: 'AMENITY-STATUE', name: "The Founder's Statue", description: 'The founder in bronze on a stone plinth, a little larger than life, and a meeting place from the day it goes up.', cost: 150_000, weeks: 8, upkeep: 300, beauty: 0.6 },
+  { id: 'AMENITY-FOUNTAIN', name: 'The Fountain', description: 'A basin and a jet on a paved round: somewhere to sit, and the first photograph on every tour.', cost: 400_000, weeks: 10, upkeep: 800, beauty: 1 },
+  { id: 'AMENITY-GARDEN', name: 'The Formal Garden', description: 'Clipped hedges, gravel walks and beds that change with the terms.', cost: 300_000, weeks: 12, upkeep: 1_500, beauty: 1.5 },
+  { id: 'AMENITY-CHAPEL', name: 'The Chapel', description: 'A small stone chapel, used for concerts and quiet as often as for services.', cost: 1_500_000, weeks: 30, upkeep: 2_000, beauty: 1.5 },
+  { id: 'AMENITY-BELLTOWER', name: 'The Bell Tower', description: 'A slim tower with a peal of bells that marks the hours across the campus.', cost: 1_800_000, weeks: 36, upkeep: 1_500, beauty: 2 },
+];
 
 export function initialFacilities(): Buildable[] {
   return [
@@ -914,6 +927,19 @@ export function initialFacilities(): Buildable[] {
     // The grand landmarks (Plan 25): one of three, chosen once the college
     // has a national name (ladderData.ts's 'national'); choosing one closes
     // the others (techSystem.ts's meetsUnlockGates, placeBuildable.ts).
+    ...AMENITIES.map((a): Buildable => ({
+      id: a.id,
+      kind: 'facility',
+      facilityType: 'amenity',
+      name: a.name,
+      description: a.description,
+      cost: a.cost,
+      duration: a.weeks,
+      prereqs: [],
+      status: 'locked',
+      effects: { upkeepPerWeek: a.upkeep, beauty: a.beauty },
+    })),
+
     ...GRAND_LANDMARKS.map((l): Buildable => ({
       id: l.id,
       kind: 'facility',
@@ -928,6 +954,7 @@ export function initialFacilities(): Buildable[] {
         prestigeContribution: GRAND_LANDMARK_PRESTIGE,
         applicantPoolBonus: GRAND_LANDMARK_APPLICANTS,
         upkeepPerWeek: GRAND_LANDMARK_UPKEEP,
+        beauty: GRAND_LANDMARK_BEAUTY,
       },
     })),
   ];

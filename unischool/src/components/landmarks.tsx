@@ -237,7 +237,7 @@ export default function Landmark({ t, p, developing }: { t: Buildable; p: Plot; 
   const stage = developing ? Math.min(2, stageOf(fraction)) as Stage : 3;
   const share = STAGE_SHARE[stage];
   const building = developing;
-  if (t.id === 'LANDMARK-CAMPANILE') return <Campanile t={t} p={p} share={share} building={building} />;
+  if (t.id === 'LANDMARK-CAMPANILE' || t.id === 'AMENITY-BELLTOWER') return <Campanile t={t} p={p} share={share} building={building} />;
   if (t.id === 'LANDMARK-DOME') return <GreatDome t={t} p={p} share={share} building={building} />;
   return <TriumphalGate t={t} p={p} share={share} building={building} name={name} />;
 }

@@ -109,6 +109,9 @@ export interface FunnelFactors {
   wordOfMouth: number;    // satisfaction's multiplier, 1 at neutral
   cohortDemand: number;   // the blended cohort pull, 1 at neutral
   stickerShock: number;   // 0..1, the band-specific self-selection
+  // Campus beauty's swing, 1 at neutral (systems/estate/beauty.ts). Absent
+  // on a record from before Plan 26, which read as 1.
+  beauty?: number;
 }
 
 export interface FunnelRecord {
@@ -170,7 +173,9 @@ export type FacilityType =
   | 'athleticsField' | 'athleticsArena' | 'athleticsDiamond' | 'athleticsNatatorium' | 'footballStadium'
   | 'fieldHouse' // a non-competition athletics facility that lifts every program
   // A grand landmark (Plan 25): one of three, a long build and a large payoff.
-  | 'landmark';
+  | 'landmark'
+  // A small landmark or amenity (Plan 26): cheap, beauty-bearing.
+  | 'amenity';
 
 export interface Buildable {
   id: string;
@@ -265,6 +270,7 @@ export interface BuildableEffects {
   flatSatisfactionBonus: number; // added to the attribute score, not population-scaled (the quad)
   prestigeContribution: number; // 0..1 share of prestige's campus-life input
   upkeepPerWeek: number; // summed into weeklyOpEx (financeSystem.ts)
+  beauty: number;        // what a landmark adds to campus beauty (systems/estate/beauty.ts)
 }
 
 // The campus map (docs/architecture/campus-map.md). Placement is visual

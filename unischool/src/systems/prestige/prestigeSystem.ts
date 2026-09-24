@@ -1,3 +1,4 @@
+import { campusBeauty } from '../estate/beauty';
 import { historicPrestige } from '../estate/estate';
 import type { GameState, ReportCard, SatisfactionAttributes } from '../../state/types';
 import { totalEnrolled } from '../../state/types';
@@ -50,6 +51,8 @@ const WELFARE_WEIGHT = 20;            // the year's average satisfaction, scored
 // Campus life: every athletics venue and rec-centre rung carries a
 // prestigeContribution (facilitiesData.ts); a full build reads about 0.55.
 const CAMPUS_LIFE_WEIGHT = 12;
+// Campus beauty (systems/estate/beauty.ts): either way from a neutral 50.
+const BEAUTY_WEIGHT = 6;
 const ENDOWMENT_WEIGHT = 8;           // financial resources per student; any larger and it is a term nobody could earn
 const CROWDING_PENALTY = 25;          // the most crowding can SUBTRACT (see crowdingScore below)
 
@@ -135,6 +138,11 @@ function libraryAdequacyScore(s: GameState): number {
 function teachingScore(s: GameState): number {
   const avg = campusAverageCourseQuality(s);
   return avg === null ? 0 : teachingQualityScore(avg);
+}
+
+// From -1 at a campus scoring 0 to 1 at one scoring 100.
+function beautyScore(s: GameState): number {
+  return Math.max(-1, Math.min(1, (campusBeauty(s) - 50) / 50));
 }
 
 function campusLifeScore(s: GameState): number {
@@ -326,6 +334,10 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
     weigh(
       'welfare', 'Welfare', WELFARE_WEIGHT, welfareScore(s),
       `Students have averaged ${average.toFixed(0)} of 100 this year; ${WELFARE_FLOOR_SATISFACTION} earns nothing and ${WELFARE_FULL_SATISFACTION} pays in full.`,
+    ),
+    weigh(
+      'beauty', 'Campus beauty', BEAUTY_WEIGHT, beautyScore(s),
+      `The campus scores ${campusBeauty(s).toFixed(0)} of 100 for its trees, landmarks, upkeep and quads; 50 is neutral.`,
     ),
     weigh(
       'endowment', 'Endowment', ENDOWMENT_WEIGHT, endowmentScore(s),

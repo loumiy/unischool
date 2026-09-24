@@ -6,6 +6,7 @@ import {
 } from '../systems/estate/estate';
 import HelpHint from '../components/HelpHint';
 import { money, pct } from '../format';
+import { beautyTerms } from '../systems/estate/beauty';
 
 // The estate (systems/estate): how much of the buildings' upkeep is paid,
 // what the rest has cost them, and the buildings most in need. Renovation
@@ -23,6 +24,7 @@ export default function EstatePanel({ s, act }: { s: GameState; act: (a: Action)
     .sort((a, b) => conditionOf(a) - conditionOf(b))
     .slice(0, WORST_SHOWN);
   const setFunding = (level: number) => act({ type: 'SET_MAINTENANCE_FUNDING', level });
+  const beauty = beautyTerms(s);
   return (
     <section className="panel estate-panel">
       <div className="panel-head">
@@ -36,6 +38,11 @@ export default function EstatePanel({ s, act }: { s: GameState; act: (a: Action)
         <button type="button" className="panel-action small" aria-label="Fund more" disabled={funding >= 1} onClick={() => setFunding(funding + MAINTENANCE_FUNDING_STEP)}>+</button>
       </div>
       <dl>
+        <dt>Campus beauty</dt>
+        <dd>
+          {beauty.score.toFixed(0)} of 100
+          <span className="stat"> — greenery {pct(beauty.greenery)}, landmarks {pct(beauty.landmarks)}, upkeep {pct(beauty.upkeep)}, quads {pct(beauty.enclosure)}</span>
+        </dd>
         <dt>Mean condition</dt><dd>{pct(mean)}</dd>
         <dt>Backlog</dt><dd>{money(backlog)}</dd>
       </dl>

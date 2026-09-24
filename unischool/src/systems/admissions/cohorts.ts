@@ -1,3 +1,4 @@
+import { campusBeauty } from '../estate/beauty';
 import type { CohortCounts, CohortId, GameState } from '../../state/types';
 import { weeklyResearchPoints } from '../../data/researchData';
 import { graduateCourseIds, graduatePrograms } from '../../data/techData';
@@ -74,6 +75,7 @@ export interface CohortSignals {
   athleticResults: number;      // titles and deep postseason runs, on a decaying window
   athleticResultsLabel: string; // the cause, named for the summer modal: "the 2031 title in Men's Basketball"; '' when there is nothing recent
   gradCourseDepth: number;      // 'done' graduate/professional course Buildables, 0..37
+  beauty: number;               // campus beauty, 0..100, neutral at 50 (systems/estate/beauty.ts)
 }
 
 // Athletic results reach the pool as research output does: a title is worth
@@ -113,6 +115,7 @@ export function deriveCohortSignals(s: GameState): CohortSignals {
   const activeTeams = s.orgs.teams.filter((t) => t.status === 'active');
   const athletic = athleticResultsFor(s);
   return {
+    beauty: campusBeauty(s),
     distinguishedDepth: milestoneCountWithPrefix(s, 'program-distinguished:') + 2 * milestoneCountWithPrefix(s, 'grad-program-complete:'),
     professionalPrograms: establishedPrefixCount(s, PRE_PROFESSIONAL_PREFIXES),
     researchRate: weeklyResearchPoints(s),
@@ -141,6 +144,7 @@ export const NEUTRAL_COHORT_SIGNALS: CohortSignals = {
   socialOrgCount: 0, artsPrograms: 0, artsFacilities: 0, activeTeams: 0, athleticsQuality: 0,
   revenueShare: 0, athleticResults: 0, athleticResultsLabel: '',
   gradCourseDepth: 0,
+  beauty: 50,
 };
 
 // How much of the department is revenue sport, by cost to compete: a

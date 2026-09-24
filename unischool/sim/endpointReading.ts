@@ -36,9 +36,10 @@ export function endpointReading(run: ReturnType<typeof play>): EndpointReading {
   const s = run.state;
   const rows = run.rows;
   const courses = s.tech.filter((t) => t.kind === 'course');
-  // The grand landmarks are left out: a college builds one of three, by
-  // choice, and no strategy builds any (Plan 25).
-  const placeable = s.tech.filter((t) => t.kind !== 'course' && t.facilityType !== 'landmark');
+  // The grand landmarks and the amenities are left out: a college builds one
+  // landmark of three, by choice, and no strategy builds any of either
+  // (Plans 25 and 26).
+  const placeable = s.tech.filter((t) => t.kind !== 'course' && t.facilityType !== 'landmark' && t.facilityType !== 'amenity');
   const halls = s.tech.filter(isAcademicHall);
   const schools = milestoneSchools().filter((school) => school.majors.length > 0);
   const legacy = run.tally.legacy;

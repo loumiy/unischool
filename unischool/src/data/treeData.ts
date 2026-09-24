@@ -11,7 +11,7 @@ import { random } from '../engine/random';
 
 // Share of tiles wooded: enough for groves to read as woods without a heavy
 // render cost (components/trees.tsx).
-const TREE_COVERAGE = 0.05;
+export const TREE_COVERAGE = 0.05;
 // Share of trees in groves rather than the scatter.
 const GROVE_SHARE = 0.78;
 const GROVE_COUNT = 14;

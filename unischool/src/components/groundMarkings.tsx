@@ -1082,6 +1082,19 @@ function Fountain({ col, row, w, h }: GroundProps) {
   );
 }
 
+// The amenities that stand on open ground (Plan 26): the statue is the
+// quad's monument and the fountain the Grand Quad's, each drawn at the size
+// of its own plot; the garden is a small Grand Quad.
+function amenityProps(id: string | undefined, col: number, row: number, w: number, h: number): GroundProp[] {
+  if (id === 'AMENITY-GARDEN') return quadProps(col, row, w, h, 2);
+  // Scaled so the centrepiece fills its plot rather than a quad's middle.
+  const k = id === 'AMENITY-STATUE' ? 3.2 : 2.2;
+  const cc = col + w / 2; const cr = row + h / 2;
+  const plot = { col: cc - (w * k) / 2, row: cr - (h * k) / 2, w: w * k, h: h * k };
+  const node = id === 'AMENITY-STATUE' ? <Monument {...plot} /> : <Fountain {...plot} />;
+  return [{ key: 'centre', col, row, w, h, node }];
+}
+
 // The tier-1 quad's centrepiece: a paved roundel, a stepped plinth and a
 // column, in the fountain's two-part language (ground ring, then raised mass).
 function Monument({ col, row, w, h }: GroundProps) {
@@ -1333,8 +1346,11 @@ export function GroundSite({ col, row, w, h }: GroundProps) {
 
 // Which marking each open-ground facility wears. The stadium's field is
 // StadiumField below, drawn by the bowl motif inside its stands.
-export default function GroundMarking({ facilityType, col, row, w, h, tier, developing }: GroundProps & {
+export default function GroundMarking({ facilityType, col, row, w, h, tier, developing, id }: GroundProps & {
   facilityType?: FacilityType;
+  // Which amenity (Plan 26): the statue and the fountain stand on paving,
+  // the garden is a small formal green.
+  id?: string;
   // Only the quad has tiers, and its two are different places.
   tier?: number;
   // Checked before the switch: every open-ground facility shares one site.
@@ -1347,6 +1363,9 @@ export default function GroundMarking({ facilityType, col, row, w, h, tier, deve
     case 'tennisCourts': return <Courts col={col} row={row} w={w} h={h} />;
     case 'pool': return <PoolDeck col={col} row={row} w={w} h={h} />;
     case 'quad': return <Quad col={col} row={row} w={w} h={h} tier={tier ?? 1} />;
+    case 'amenity':
+      if (id === 'AMENITY-GARDEN') return <Quad col={col} row={row} w={w} h={h} tier={2} />;
+      return <polygon className="ground-apron" points={polyPoints(boxFaces(col + 0.1, row + 0.1, w - 0.2, h - 0.2, 0, 0).top)} />;
     default:
       return <polygon className="ground-lawn" points={polyPoints(boxFaces(col, row, w, h, 0, 0).top)} />;
   }
@@ -1357,11 +1376,12 @@ export default function GroundMarking({ facilityType, col, row, w, h, tier, deve
 // have its paint without its props, or vice versa.
 export function groundProps(
   facilityType: FacilityType | undefined,
-  col: number, row: number, w: number, h: number, tier?: number, developing?: boolean,
+  col: number, row: number, w: number, h: number, tier?: number, developing?: boolean, id?: string,
 ): GroundProp[] {
   // Nothing stands on a site yet.
   if (developing) return [];
   switch (facilityType) {
+    case 'amenity': return amenityProps(id, col, row, w, h);
     case 'athleticsField': return pitchProps(col, row, w, h);
     case 'athleticsDiamond': return diamondProps(col, row, w, h);
     case 'tennisCourts': return courtsProps(col, row, w, h);
