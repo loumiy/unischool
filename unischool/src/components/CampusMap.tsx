@@ -1,17 +1,16 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createContext, memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
 import type { Buildable, GameState, Placement, TileCoord, Vernacular } from '../state/types';
+import { useCampusLayout, type CampusLayout } from './campusLayout';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import {
   awaitsSite, canPlace, canRotate, footprintIsClear, footprintOf,
   isPlaceableKind, orientedFootprint, parsePathTileKey,
 } from '../state/campusMap';
 import { canStartDevelopment, facultyGate } from '../systems/techtree/techSystem';
-import { chapterHouseId } from '../data/eventData';
 import { isTypingTarget, useHotkeys } from './hotkeys';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
-import { hallDisplayName } from '../systems/techtree/schools';
 import { isAcademicHall, programById } from '../data/techData';
 import { schoolMark } from '../data/schoolPalette';
 import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf } from './buildingMotifs';
@@ -173,25 +172,48 @@ type SceneEntry = DepthBox & (
   | { kind: 'prop'; key: string; node: React.JSX.Element }
 );
 
+// Weeks left on each site, by Buildable id. A context rather than a prop so
+// a week's countdown redraws the progress bars alone, not the scene.
+const DevelopingContext = createContext<GameState['developing']>({});
+
+// A site's progress bar, lying flat on the ground along the front edge of
+// its footprint, and the tooltip that counts it down.
+function SiteProgress({ t, p, label }: { t: Buildable; p: Placement; label: string }) {
+  const weeksLeft = useContext(DevelopingContext)[t.id];
+  if (weeksLeft === undefined) return null;
+  const elapsedFraction = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
+  return (
+    <>
+      <polygon
+        className="campus-building-progress-track"
+        points={polyPoints(boxFaces(p.col, p.row + p.h - PROGRESS_BAR_DEPTH, p.w, PROGRESS_BAR_DEPTH, 0, 0).top)}
+      />
+      <polygon
+        className="campus-building-progress-fill"
+        points={polyPoints(boxFaces(p.col, p.row + p.h - PROGRESS_BAR_DEPTH, Math.max(0, p.w * elapsedFraction), PROGRESS_BAR_DEPTH, 0, 0).top)}
+      />
+      {t.facilityType !== 'quad' && <title>{`${label} · under construction · ${weeksLeft}w left`}</title>}
+    </>
+  );
+}
+
 // One placed building: its mass (buildingMotifs.tsx) plus, while going up,
 // a progress bar on the ground. Clicks are handled by the drawn shape, since
 // a tall building is drawn above the tiles it occupies.
 function PlacedBuilding({
-  t, p, label, onInspect, inspected, weeksLeft, justFinished, glyphs, vernacular, camera,
+  t, p, label, onInspect, inspected, developing, justFinished, glyphs, vernacular, camera,
 }: {
   t: Buildable; p: Placement; onInspect: () => void; inspected: boolean;
   camera: Camera;
   // What the map calls it (see schools.ts's hallDisplayName).
   label: string;
-  weeksLeft?: number; justFinished?: boolean;
+  developing: boolean; justFinished?: boolean;
   // Resolves to objects on buildingSpec's VERNACULARS table, so they are
   // reference-stable and BuildingMotif's memo still short-circuits.
   vernacular: Vernacular;
   glyphs?: string;
 }) {
   const d = drawnFootprint(p);
-  const developing = t.status === 'developing' && weeksLeft !== undefined;
-  const elapsedFraction = developing && t.duration > 0 ? (t.duration - weeksLeft!) / t.duration : 1;
 
   return (
     <g
@@ -219,22 +241,9 @@ function PlacedBuilding({
           points={polyPoints(boxFaces(p.col - 0.15, p.row - 0.15, p.w + 0.3, p.h + 0.3, 0, 0).top)}
         />
       )}
-      {developing && (
-        <>
-          <polygon
-            className="campus-building-progress-track"
-            points={polyPoints(boxFaces(p.col, p.row + p.h - PROGRESS_BAR_DEPTH, p.w, PROGRESS_BAR_DEPTH, 0, 0).top)}
-          />
-          <polygon
-            className="campus-building-progress-fill"
-            points={polyPoints(boxFaces(p.col, p.row + p.h - PROGRESS_BAR_DEPTH, Math.max(0, p.w * elapsedFraction), PROGRESS_BAR_DEPTH, 0, 0).top)}
-          />
-        </>
-      )}
+      {developing && <SiteProgress t={t} p={p} label={label} />}
       {/* A quad gets no tooltip and no label. */}
-      {t.facilityType !== 'quad' && (
-        <title>{developing ? `${label} · under construction · ${weeksLeft}w left` : `${label} · ${p.w}×${p.h}`}</title>
-      )}
+      {t.facilityType !== 'quad' && !developing && <title>{`${label} · ${p.w}×${p.h}`}</title>}
     </g>
   );
 }
@@ -242,19 +251,17 @@ function PlacedBuilding({
 // Every cast shadow in one pass (see the shadow note above). One <path> per
 // fill rather than a polygon per shadow, so overlaps draw as one shadow
 // rather than a darker one.
-function CastShadows({ placed, scene, developing, vernacular, camera }: {
-  placed: ReadonlyArray<{ t: Buildable; p: Placement }>;
+function CastShadows({ placed, scene, vernacular, camera }: {
+  placed: CampusLayout['placed'];
   scene: readonly SceneEntry[];
-  developing: GameState['developing'];
   vernacular: Vernacular;
   camera: Camera;
 }) {
   const d = useMemo(() => {
     const sub = (pts: { x: number; y: number }[]) => `M${polyPoints(pts).replace(/ /g, 'L')}Z`;
     const buildings: string[] = [];
-    for (const { t, p } of placed) {
-      const isDeveloping = t.status === 'developing' && developing[t.id] !== undefined;
-      const height = drawnHeightOf(t, isDeveloping, vernacular);
+    for (const { t, p, developing } of placed) {
+      const height = drawnHeightOf(t, developing, vernacular);
       if (height <= 0) continue;
       const f = drawnFootprint(p);
       buildings.push(sub(castShadow(f.col, f.row, f.w, f.h, height)));
@@ -264,7 +271,7 @@ function CastShadows({ placed, scene, developing, vernacular, camera }: {
     return { buildings: buildings.join(''), trees: trees.join('') };
     // `camera` is read by the projection, not here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [placed, scene, developing, vernacular, camera]);
+  }, [placed, scene, vernacular, camera]);
   return (
     <g className="campus-shadows" aria-hidden="true">
       {d.buildings && <path className="campus-building-shadow" d={d.buildings} />}
@@ -392,12 +399,13 @@ function HallMarks({ t, p, slots, offerWaiting, blocked, vernacular, onInspect }
   );
 }
 
-// Everything that stands on the ground, as one memoised component. `hover`
-// is React state and changes on every mouse move while siting or drawing;
-// the scene depends on none of it, so memo skips it and a hover renders only
-// the ghost. `onInspect` must be a stable callback for this to work.
-const CampusScene = memo(function CampusScene({ s, inspectedId, justFinished, onInspect, labelLayerRef, camera }: {
-  s: GameState;
+// Everything that stands on the ground, as one memoised component: the
+// static layer. Its props change only when the layout does (campusLayout.ts),
+// the camera turns, or a building is inspected or finishes; a week in which
+// nothing was built or paved skips it entirely, as does a hover. `onInspect`
+// must be a stable callback for this to work.
+const CampusScene = memo(function CampusScene({ layout, inspectedId, justFinished, onInspect, labelLayerRef, camera }: {
+  layout: CampusLayout;
   inspectedId: string | null;
   justFinished: readonly string[];
   onInspect: (id: string) => void;
@@ -408,9 +416,7 @@ const CampusScene = memo(function CampusScene({ s, inspectedId, justFinished, on
   // every mouse move (see paintLabels).
   labelLayerRef: React.RefObject<SVGGElement | null>;
 }) {
-  const placed = useMemo(() => Object.entries(s.placements)
-    .map(([id, p]) => ({ p, t: s.tech.find((x) => x.id === id) }))
-    .filter((entry): entry is { p: Placement; t: Buildable } => entry.t !== undefined), [s.placements, s.tech]);
+  const { placed, byId, trees, pathways, vernacular } = layout;
 
   // Open-ground facilities (quads, pitches, courts, pool decks) have no
   // height, so their plates are drawn in their own pass under every mass: a
@@ -419,114 +425,95 @@ const CampusScene = memo(function CampusScene({ s, inspectedId, justFinished, on
   // groundProps and joins the sorted pass below.
   const groundPlaced = placed.filter(({ t }) => motifOf(t) === 'grounds');
 
-  // A chapter house's letters by Buildable id, derived from the chapter
-  // roster because a scandal can disband a chapter and take its house.
-  const chapterGlyphs = useMemo(() => {
-    const byId: Record<string, string> = {};
-    for (const c of s.orgs.chapters) byId[chapterHouseId(c.id)] = c.glyphs;
-    return byId;
-  }, [s.orgs.chapters]);
-
   // The sorted scene: every mass, tree and raised prop in paint order (see
-  // depthSort.ts). Memoised on the state it reads, which is what makes the
-  // sort affordable, since the render path runs on every mouse move. It
-  // returns descriptors, not elements, so inspect/finish/weeks-left changes
-  // never invalidate the sort.
+  // depthSort.ts). It returns descriptors, not elements, so inspect/finish
+  // changes never invalidate the sort.
   const scene = useMemo(() => {
     const entries: SceneEntry[] = [];
-    for (const [id, p] of Object.entries(s.placements)) {
-      const t = s.tech.find((x) => x.id === id);
-      if (!t) continue;
+    for (const { t, p, developing } of placed) {
       if (motifOf(t) === 'grounds') {
-        // Each prop enters the sort on the ground it covers.
+        // Each prop enters the sort on the ground it covers. A site has no
+        // props yet.
         const d = drawnFootprint(p);
-        // A site has no props yet (same test PlacedBuilding uses).
-        const siteDeveloping = t.status === 'developing' && s.developing[id] !== undefined;
-        for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, siteDeveloping)) {
+        for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing)) {
           entries.push({
-            kind: 'prop', key: `g-${id}-${prop.key}`, node: prop.node,
+            kind: 'prop', key: `g-${t.id}-${prop.key}`, node: prop.node,
             col: prop.col, row: prop.row, w: prop.w, h: prop.h,
           });
         }
       } else {
-        entries.push({ kind: 'mass', key: `b-${id}`, id, col: p.col, row: p.row, w: p.w, h: p.h });
+        entries.push({ kind: 'mass', key: `b-${t.id}`, id: t.id, col: p.col, row: p.row, w: p.w, h: p.h });
       }
     }
     // A paved tree is hidden, not deleted, so lifting the path brings it
     // back (see state/types.ts's Trees block).
-    for (const [key, seed] of Object.entries(s.trees)) {
-      if (key in s.pathways) continue;
+    for (const [key, seed] of Object.entries(trees)) {
+      if (key in pathways) continue;
       const tile = parsePathTileKey(key);
       if (!tile) continue;
       entries.push({ kind: 'tree', key: `t-${key}`, seed, col: tile.col, row: tile.row, w: 1, h: 1 });
     }
     return depthOrder(entries);
     // The camera changes the order and the props' geometry.
-  }, [s.placements, s.tech, s.trees, s.pathways, s.developing, camera]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [placed, trees, pathways, camera]);
 
   const ground = useMemo(groundGeometry, [camera]);
+
+  const building = ({ t, p, label, developing, glyphs }: CampusLayout['placed'][number]) => (
+    <PlacedBuilding
+      t={t}
+      p={p}
+      label={label}
+      onInspect={() => onInspect(t.id)}
+      inspected={t.id === inspectedId}
+      developing={developing}
+      justFinished={justFinished.includes(t.id)}
+      glyphs={glyphs}
+      vernacular={vernacular}
+      camera={camera}
+    />
+  );
 
   return (
     <>
       {/* Ground, pathways, shadows, flat plates, the sorted scene, then
-          labels and hall marks on top. The ghost is a separate SVG. */}
+          labels on top. Hall marks and the ghost are drawn outside. */}
       <polygon className="campus-ground" points={ground.plate} />
       <path className="campus-grid" d={ground.grid} />
 
-      <PathwayLayer pathways={s.pathways} camera={camera} />
+      <PathwayLayer pathways={pathways} camera={camera} />
 
-      <CastShadows placed={placed} scene={scene} developing={s.developing} vernacular={s.self.vernacular} camera={camera} />
+      <CastShadows placed={placed} scene={scene} vernacular={vernacular} camera={camera} />
 
-      {groundPlaced.map(({ t, p }) => (
-        <PlacedBuilding
-          key={t.id}
-          t={t}
-          p={p}
-          label={hallDisplayName(s, t)}
-          onInspect={() => onInspect(t.id)}
-          inspected={t.id === inspectedId}
-          weeksLeft={s.developing[t.id]}
-          justFinished={justFinished.includes(t.id)}
-          glyphs={chapterGlyphs[t.id]}
-          vernacular={s.self.vernacular}
-          camera={camera}
-        />
-      ))}
+      {groundPlaced.map((e) => <g key={e.t.id}>{building(e)}</g>)}
 
       {scene.map((entry) => {
         if (entry.kind === 'tree') return <Tree key={entry.key} row={entry.row} col={entry.col} seed={entry.seed} camera={camera} />;
         if (entry.kind === 'prop') return <g key={entry.key}>{entry.node}</g>;
-        const t = s.tech.find((x) => x.id === entry.id);
-        const p = s.placements[entry.id];
-        if (!t || !p) return null;
-        return (
-          <g key={entry.key}>
-            <PlacedBuilding
-              t={t}
-              p={p}
-              label={hallDisplayName(s, t)}
-              onInspect={() => onInspect(entry.id)}
-              inspected={entry.id === inspectedId}
-              weeksLeft={s.developing[entry.id]}
-              justFinished={justFinished.includes(entry.id)}
-              glyphs={chapterGlyphs[entry.id]}
-              vernacular={s.self.vernacular}
-              camera={camera}
-            />
-          </g>
-        );
+        const e = byId.get(entry.id);
+        return e ? <g key={entry.key}>{building(e)}</g> : null;
       })}
 
       <g ref={labelLayerRef}>
-        {placed.filter(({ t }) => t.facilityType !== 'quad').map(({ t, p }) => (
-          <BuildingLabel key={`label-${t.id}`} t={t} p={p} label={hallDisplayName(s, t)} pinned={t.id === inspectedId} vernacular={s.self.vernacular} />
+        {placed.filter(({ t }) => t.facilityType !== 'quad').map(({ t, p, label }) => (
+          <BuildingLabel key={`label-${t.id}`} t={t} p={p} label={label} pinned={t.id === inspectedId} vernacular={vernacular} />
         ))}
       </g>
+    </>
+  );
+});
 
-      {/* Hall pips: one per slot, in the colour of the school whose
-          program holds it, plus a flag when a slot is free and a program is
-          on offer. Always on, unlike the labels. */}
-      {placed.filter(({ t }) => isAcademicHall(t) && s.halls[t.id]).map(({ t, p }) => (
+// Hall pips: one per slot, in the colour of the school whose program holds
+// it, plus a flag when a slot is free and a program is on offer. Always on,
+// unlike the labels, and redrawn every week, since a program can arrive or
+// stall in any week.
+function HallMarksLayer({ s, layout, onInspect }: {
+  s: GameState; layout: CampusLayout; onInspect: (id: string) => void;
+}) {
+  return (
+    <>
+      {layout.placed.filter(({ t }) => isAcademicHall(t) && s.halls[t.id]).map(({ t, p }) => (
         <HallMarks
           key={`marks-${t.id}`}
           t={t}
@@ -534,13 +521,13 @@ const CampusScene = memo(function CampusScene({ s, inspectedId, justFinished, on
           slots={s.halls[t.id]}
           offerWaiting={s.programOffers.length > 0}
           blocked={s.halls[t.id].map((slot) => !!slot.programId && programBlocked(s, slot.programId))}
-          vernacular={s.self.vernacular}
+          vernacular={layout.vernacular}
           onInspect={() => onInspect(t.id)}
         />
       ))}
     </>
   );
-});
+}
 
 export default function CampusMap({
   s, act, selectedId, onSelect, pathTool, onSetPathTool, backOutEnabled, controlsEnabled,
@@ -584,6 +571,7 @@ export default function CampusMap({
   // draws at it. Not persisted.
   const [camera, setCameraState] = useState<Camera>(DEFAULT_CAMERA);
   setCamera(camera);
+  const layout = useCampusLayout(s);
   // The camera is derived from these, so it only rests on a crisp view.
   const stanceRef = useRef({ view: 0, pitch: 0 });
   // Buildings that finished within the last COMPLETION_PULSE_MS. Derived by
@@ -1131,14 +1119,17 @@ export default function CampusMap({
         >
           <defs><ScaffoldPattern /></defs>
           <g ref={worldRef}>
-            <CampusScene
-              s={s}
-              inspectedId={inspectedId}
-              justFinished={justFinished}
-              onInspect={onInspect}
-              labelLayerRef={labelLayerRef}
-              camera={camera}
-            />
+            <DevelopingContext.Provider value={s.developing}>
+              <CampusScene
+                layout={layout}
+                inspectedId={inspectedId}
+                justFinished={justFinished}
+                onInspect={onInspect}
+                labelLayerRef={labelLayerRef}
+                camera={camera}
+              />
+            </DevelopingContext.Provider>
+            <HallMarksLayer s={s} layout={layout} onInspect={onInspect} />
           </g>
         </svg>
 

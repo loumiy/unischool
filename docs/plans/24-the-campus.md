@@ -70,6 +70,42 @@ This document.
 - **The baseline is recorded** before and after: fps, 95th-percentile frame
   and long tasks at each speed, on Year-20 and Year-40 campuses.
 
+**As implemented:**
+
+- **The cost was the reducer's clone, not the drawing.** The reducer
+  hands back a new copy of the state every week, so every record the scene
+  was memoised on (placements, tech, trees, paths) had a new identity every
+  week, and every building motif redrew. Freezing the scene outright
+  recovered 14 fps at 4×, which set the target.
+- **`components/campusLayout.ts`** builds the layout the scene draws (each
+  placed building with its label, glyphs and whether it is a site; the
+  trees; the paths; the vernacular) and a string key of everything in it
+  that can change. The layout object is kept while the key holds, so the
+  scene's memo holds through a week in which nothing was built, finished,
+  renamed or paved.
+- **What changes weekly is drawn outside it.** A site's progress bar and its
+  countdown tooltip read the weeks left through a React context, so a week
+  off the countdown redraws the bars alone. The hall pips are drawn after
+  the scene, from the live state.
+- **The picture is unchanged.** Screenshots of a build-all campus and of a
+  campus with four sites going up are byte-identical before and after.
+- **`npm run scenario`** now marks the milestone notes read. The harness
+  never reads them, so a Year-20 save opened on Year 1's note.
+
+Measured on Earnest completionist saves (`npm run profile`, 6 s per speed,
+1440×900):
+
+| Save | Speed | Before | After |
+| --- | --- | --- | --- |
+| Year 20 (29,040 students, 49 buildings) | Play | 53.0 fps | 59.2 fps |
+| | 2× | 50.9 | 58.7 |
+| | 4× | 46.3 | 58.4 |
+| Year 40 (33,520 students, 60 buildings) | Play | 55.9 | 59.0 |
+| | 2× | 53.7 | 58.4 |
+| | 4× | 43.3 | 56.5 |
+
+This is the baseline every later PR in this plan is measured against.
+
 ## PR 24C — The camera
 
 - **V2's ten-step tilt ladder**, stepped in the sine of the pitch: from 1/5

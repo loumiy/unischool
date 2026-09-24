@@ -125,6 +125,9 @@ if (wantedModal && pending !== wantedModal) {
 }
 
 // Cosmetic or developer-facing overrides: nothing the simulation reads back.
+// The harness never reads the milestone notes, which a player would have
+// read as they came: a Year-20 save would otherwise open on Year 1's.
+state.ladder.unread = [];
 if (flags.name) state.self.name = flags.name;
 if (flags.vernacular) state.self.vernacular = flags.vernacular as Vernacular;
 if (flags['clear-modal']) {
