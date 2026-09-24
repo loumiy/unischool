@@ -1,3 +1,4 @@
+import { beautyPoolFactor } from '../estate/beauty';
 import type { ClassCohorts, ClassCounts, ClassTuition, CohortCounts, FunnelFactors, GameState, SummerPayload } from '../../state/types';
 import { SEMICENTENNIAL_YEAR, WEEKS_PER_YEAR } from '../../state/types';
 import { cohortCounts, cohortDemandFactor, NEUTRAL_COHORT_SIGNALS, type CohortSignals, athleteBandDrag } from './cohorts';
@@ -316,7 +317,9 @@ export function projectAdmissions(
   const wordOfMouth = wordOfMouthFactor(satisfaction);
   const cohortDemand = cohortDemandFactor(cohortSignals, tolerance, tuition);
   const volume = applicantVolumeParts(prestige, Math.max(tuition, 0), capacity);
-  const rawApplicants = volume.prestigePool * volume.priceFactor * volume.capacityFactor * wordOfMouth * cohortDemand;
+  // Campus beauty's swing, capped (systems/estate/beauty.ts).
+  const beauty = beautyPoolFactor(cohortSignals.beauty);
+  const rawApplicants = volume.prestigePool * volume.priceFactor * volume.capacityFactor * wordOfMouth * cohortDemand * beauty;
   const mix = qualityMix(prestige, tuition, athleteBandDrag(cohortSignals, tolerance, tuition));
 
   const bands: QualityBand[] = ['top', 'mid', 'low'];
@@ -375,7 +378,7 @@ export function projectAdmissions(
     // Computed here, not in the reducer, so the consequences.ts preview and
     // the commit apportion identically.
     enrolledCohorts: cohortCounts(cohortSignals, tolerance, tuition, enrolled),
-    factors: { ...volume, wordOfMouth, cohortDemand, stickerShock: stickerShockMultiplier },
+    factors: { ...volume, wordOfMouth, cohortDemand, stickerShock: stickerShockMultiplier, beauty },
   };
 }
 

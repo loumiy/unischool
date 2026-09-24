@@ -1,3 +1,4 @@
+import { upkeepShare } from '../estate/estate';
 import type { ClassTuition, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
 import { departmentPot, inTitleYear, studentOrgUpkeep } from '../../data/studentLifeData';
@@ -184,10 +185,11 @@ export interface FinanceBreakdown {
 
 // Sums effects.upkeepPerWeek across 'done' Buildables. Split academic vs.
 // campus only so the Treasury can show which half runs up the bill.
+// A building's upkeep is paid at the maintenance funding (systems/estate).
 function upkeepFor(s: GameState, academic: boolean): number {
   return s.tech
     .filter((t) => t.status === 'done' && (t.kind === 'course' || t.kind === 'building') === academic)
-    .reduce((sum, t) => sum + (t.effects?.upkeepPerWeek ?? 0), 0);
+    .reduce((sum, t) => sum + (t.effects?.upkeepPerWeek ?? 0) * upkeepShare(s, t), 0);
 }
 
 // Per-student weekly instruction cost, for the sim and the Treasury. Zero

@@ -2084,6 +2084,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
     return (
       <GroundMarking
         facilityType={t.facilityType}
+        id={t.id}
         tier={t.tier}
         col={col}
         row={row}

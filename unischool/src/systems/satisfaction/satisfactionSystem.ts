@@ -1,3 +1,4 @@
+import { pairingBumps } from '../estate/pairing';
 import type { GameState, SatisfactionAttributes } from '../../state/types';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../../data/facilitiesData';
 import {
@@ -124,7 +125,9 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
   // Library ratio plus course-quality bonus, clamped to the shared band.
   const academicLibraryRatio = ratioScore(servedPopulationFor(s, 'academic'), enrolled, TARGET_RATIO.academic, 1);
   const academicFacultyBonus = teachingSatisfaction(s) * FACULTY_QUALITY_MAX_BONUS;
-  const academic = clamp(academicLibraryRatio + academicFacultyBonus, ATTRIBUTE_SCORE_FLOOR, 100);
+  // Sensible neighbours (systems/estate/pairing.ts), a couple of points at most.
+  const pairing = pairingBumps(s);
+  const academic = clamp(academicLibraryRatio + academicFacultyBonus + pairing.academic, ATTRIBUTE_SCORE_FLOOR, 100);
 
   const socialRatio = ratioScore(servedPopulationFor(s, 'social'), enrolled, TARGET_RATIO.social, SOCIAL_PENALTY_CURVATURE);
   const pride = clamp(s.self.reputation / REPUTATION_PRIDE_PRESTIGE_MAX, 0, 1) * REPUTATION_PRIDE_MAX_BONUS;
@@ -146,7 +149,7 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
     : ratioScore(servedPopulationFor(s, 'health'), enrolled, TARGET_RATIO.health, 1);
 
   // Housing: bed capacity (dorms plus housed Greek chapters) over enrolled.
-  const housing = ratioScore(s.students.capacity, enrolled, TARGET_RATIO.housing, 1);
+  const housing = clamp(ratioScore(s.students.capacity, enrolled, TARGET_RATIO.housing, 1) + pairing.housing, ATTRIBUTE_SCORE_FLOOR, 100);
 
   return { academic, social, basicNeeds, health, housing };
 }
@@ -207,6 +210,10 @@ export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttri
   if (attribute === 'basicNeeds') {
     const affordability = affordabilityBonus(s);
     if (affordability > 0) bonuses.push({ label: 'Affordability (price vs. standing)', value: affordability });
+  }
+  if (attribute === 'academic' || attribute === 'housing') {
+    const pairing = pairingBumps(s)[attribute];
+    if (pairing > 0) bonuses.push({ label: attribute === 'academic' ? 'Halls near a library' : 'Residences near a dining hall', value: pairing });
   }
 
   return {

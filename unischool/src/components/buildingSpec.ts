@@ -44,6 +44,7 @@ const FACILITY_MOTIFS: Record<FacilityType, Motif> = {
   fieldHouse: 'hangar',
   grocery: 'pavilion',
   landmark: 'landmark',
+  amenity: 'grounds',
 };
 
 // Research facilities that are not laboratories. They keep facilityType 'lab'
@@ -60,6 +61,10 @@ const RESEARCH_FACILITY_MOTIFS: Partial<Record<string, Motif>> = {
   'LAB-MECH': 'hangar',
   'LAB-AERO': 'hangar',
   'LAB-NEUR': 'block',
+  // The amenities (Plan 26): the bell tower is a small campanile, the chapel
+  // a pavilion in stone; the rest are open ground with something on it.
+  'AMENITY-BELLTOWER': 'landmark',
+  'AMENITY-CHAPEL': 'pavilion',
 };
 
 // What a laboratory carries on its roof to say which science it is: an
@@ -209,6 +214,7 @@ export const LANDMARK_HEIGHT_METRES: Record<string, number> = {
   'LANDMARK-CAMPANILE': 52,
   'LANDMARK-DOME': 34,
   'LANDMARK-GATE': 20,
+  'AMENITY-BELLTOWER': 30,
 };
 
 export function wallHeightOf(t: Buildable): number {
@@ -1065,6 +1071,11 @@ export function materialOf(t: Buildable, v: Vernacular): Material {
     case 'performingArtsCenter':
     case 'artGallery':
       return MATERIALS.limestone;
+    // The chapel is built in the campus's stone; the others stand on open
+    // ground or draw their own, so they take the material every vernacular
+    // shares.
+    case 'amenity':
+      return t.id === 'AMENITY-CHAPEL' ? MATERIALS.limestone : MATERIALS.clinical;
     // A landmark draws its own stone (landmarks.tsx); for everything else
     // that asks, it is the one material every vernacular shares.
     case 'landmark':

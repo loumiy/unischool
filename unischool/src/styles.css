@@ -669,6 +669,10 @@ button.build-tile { font-family: inherit; }
 /* Weathering (ageMarks.tsx). */
 .campus-age { pointer-events: none; }
 .campus-age-streak { stroke: rgba(40, 36, 30, 0.22); stroke-width: 1.6; stroke-linecap: round; fill: none; }
+.campus-ivy circle { fill: #4d7a3a; fill-opacity: 0.82; }
+.campus-age-boards { fill: #6b5236; stroke: rgba(30, 22, 14, 0.6); stroke-width: 0.6; }
+.campus-age-weeds { fill: none; stroke: #5f7a36; stroke-width: 1.4; stroke-linecap: round; }
+.campus-age-fence { fill: rgba(150, 156, 150, 0.18); stroke: rgba(90, 96, 90, 0.8); stroke-width: 0.9; stroke-dasharray: 2 2; }
 .campus-age-slates { stroke: rgba(30, 28, 24, 0.55); stroke-width: 2.4; fill: none; }
 .campus-rack-hoop { stroke: #5c6166; stroke-width: 1.4; stroke-linecap: round; }
 .campus-desire { fill: none; stroke: rgba(176, 160, 104, 0.38); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
@@ -2357,3 +2361,11 @@ body:has(.building-info-panel) .pennant { display: none; }
 
 /* A postseason ban on a program card. */
 .org-tag.banned { color: var(--bad, #b3261e); }
+
+/* The estate (EstatePanel.tsx). */
+.estate-funding { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; }
+.estate-funding strong { min-width: 3.2em; text-align: center; }
+.estate-worst { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.estate-worst li { display: flex; align-items: center; gap: 10px; }
+.estate-worst li > span:first-child { flex: 1; }
+.panel-action.small { padding: 2px 10px; font-size: var(--text-sm); }

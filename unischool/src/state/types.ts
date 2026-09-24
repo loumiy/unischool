@@ -17,6 +17,9 @@ export interface Finance {
   // enrolled students. Revenue is a sum of four products, never enrolled x price.
   tuitionByClass: ClassTuition;
   weeklyOpEx: number;    // salaries + upkeep + instruction, recomputed each tick
+  // The share of the buildings' upkeep paid, 0 to 1 (systems/estate). What
+  // goes unpaid becomes backlog. Undefined means all of it.
+  maintenanceFunding?: number;
   // Lifetime count of weeks cash closed below zero, counted by tickFinance.
   // Read by the "Never in the red" ambition and the legacy's stewardship axis.
   weeksInTheRed: number;
@@ -106,6 +109,9 @@ export interface FunnelFactors {
   wordOfMouth: number;    // satisfaction's multiplier, 1 at neutral
   cohortDemand: number;   // the blended cohort pull, 1 at neutral
   stickerShock: number;   // 0..1, the band-specific self-selection
+  // Campus beauty's swing, 1 at neutral (systems/estate/beauty.ts). Absent
+  // on a record from before Plan 26, which read as 1.
+  beauty?: number;
 }
 
 export interface FunnelRecord {
@@ -167,7 +173,9 @@ export type FacilityType =
   | 'athleticsField' | 'athleticsArena' | 'athleticsDiamond' | 'athleticsNatatorium' | 'footballStadium'
   | 'fieldHouse' // a non-competition athletics facility that lifts every program
   // A grand landmark (Plan 25): one of three, a long build and a large payoff.
-  | 'landmark';
+  | 'landmark'
+  // A small landmark or amenity (Plan 26): cheap, beauty-bearing.
+  | 'amenity';
 
 export interface Buildable {
   id: string;
@@ -218,6 +226,17 @@ export interface Buildable {
   // servesPopulation before the renovation in progress, which stays in use
   // meanwhile. Set by RENOVATE_LIBRARY, cleared on completion.
   renovatingFrom?: number;
+  // Unpaid maintenance, compounding (systems/estate/estate.ts); what its
+  // condition reads. Undefined means none.
+  backlog?: number;
+  // Weeks left on a renovation, which it stays open through. Undefined means
+  // none under way.
+  renovationWeeks?: number;
+  // Weeks left on an added storey (systems/estate), built while it stays
+  // open; floorsAdded counts the finished ones.
+  extensionWeeks?: number;
+  // Declared historic (systems/estate): prestige, a dearer upkeep, ivy.
+  historic?: true;
   // The year a placeable Buildable was first finished, for the map's age
   // marks (components/ageMarks.tsx). Undefined for courses and for buildings
   // an older save finished.
@@ -251,6 +270,7 @@ export interface BuildableEffects {
   flatSatisfactionBonus: number; // added to the attribute score, not population-scaled (the quad)
   prestigeContribution: number; // 0..1 share of prestige's campus-life input
   upkeepPerWeek: number; // summed into weeklyOpEx (financeSystem.ts)
+  beauty: number;        // what a landmark adds to campus beauty (systems/estate/beauty.ts)
 }
 
 // The campus map (docs/architecture/campus-map.md). Placement is visual

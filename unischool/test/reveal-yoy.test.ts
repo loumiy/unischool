@@ -36,7 +36,7 @@ function assert(cond: boolean, msg: string): void {
 const near = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
 
 function product(f: FunnelFactors): number {
-  return f.prestigePool * f.priceFactor * f.capacityFactor * f.wordOfMouth * f.cohortDemand * f.stickerShock;
+  return f.prestigePool * f.priceFactor * f.capacityFactor * f.wordOfMouth * f.cohortDemand * f.stickerShock * (f.beauty ?? 1);
 }
 
 function toSummer(start: GameState): GameState {
@@ -97,7 +97,7 @@ console.log('reveal year-over-year tests');
   // Every factor's ratio, including the ones too small to print, composes
   // back to the pool's own ratio — the whole reason the line is honest.
   const composed = (Object.keys(now.factors) as Array<keyof FunnelFactors>)
-    .reduce((acc, key) => acc * (now.factors[key] / last.factors[key]), 1);
+    .reduce((acc, key) => acc * ((now.factors[key] ?? 1) / (last.factors[key] ?? 1)), 1);
   assert(near(composed, product(now.factors) / product(last.factors), 1e-9), 'the factor ratios compose to the unrounded pool ratio');
   assert(near(composed, 1 + change.change, 0.02), `and to the headline within rounding (${composed.toFixed(4)} vs ${(1 + change.change).toFixed(4)})`);
   const labels = change.parts.map((p) => p.label);

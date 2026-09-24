@@ -168,6 +168,20 @@ function sanitizeDressing(state: GameState): void {
   state.dressing = clean;
 }
 
+// Estate hygiene, run on every load: a funding level outside 0 to 1, or a
+// backlog or renovation count that is not a finite non-negative number, is
+// dropped rather than compounded.
+function sanitizeEstate(state: GameState): void {
+  const f = state.finance.maintenanceFunding;
+  if (f !== undefined && !(Number.isFinite(f) && f >= 0 && f <= 1)) delete state.finance.maintenanceFunding;
+  for (const t of state.tech) {
+    if (t.backlog !== undefined && !(Number.isFinite(t.backlog) && t.backlog >= 0)) delete t.backlog;
+    if (t.renovationWeeks !== undefined && !(Number.isInteger(t.renovationWeeks) && t.renovationWeeks >= 0)) delete t.renovationWeeks;
+    if (t.historic !== undefined && t.historic !== true) delete t.historic;
+    if (t.extensionWeeks !== undefined && !(Number.isInteger(t.extensionWeeks) && t.extensionWeeks >= 0)) delete t.extensionWeeks;
+  }
+}
+
 // Quad hygiene, run on every load: the field is optional, and a malformed
 // one is dropped rather than half-read. Names are capped as NAME_QUAD caps
 // them; marks must be tile keys on the land.
@@ -397,6 +411,7 @@ export function loadGame(): GameState | null {
   sanitizePathways(state);
   // Trees after placements: it reads the cleaned placements.
   sanitizeTrees(state);
+  sanitizeEstate(state);
   sanitizeQuads(state);
   sanitizeDressing(state);
   sanitizeTeams(state);

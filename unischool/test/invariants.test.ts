@@ -223,16 +223,22 @@ function relPath(f: string): string {
 }
 
 // =====================================================================
-// 4. THE MAP IS COSMETIC — no system reads placements/pathways/trees
+// 4. THE MAP IS COSMETIC — no system reads placements/pathways/trees,
+//    but one: campus beauty (Plan 26)
 //
 // `trees` joined this list with the founding woodland (see types.ts's Trees
 // block). It is the same claim for the same reason: where a building stands,
 // which squares are paved, and which squares have a tree on them are facts
 // about the picture, and a system that started scoring one of them would
 // make the map load-bearing without anyone deciding that it should.
+//
+// Plan 26 decided it should, in one place: systems/estate/beauty.ts scores
+// the trees, the quads and the standing buildings, and its score is capped
+// wherever it lands. Every other system still may not look.
 // =====================================================================
+const LAYOUT_READERS = new Set(['systems/estate/beauty.ts', 'systems/estate/pairing.ts']);
 {
-  const systemFiles = ALL_SRC_FILES.filter((f) => relPath(f).startsWith(`systems${'/'}`));
+  const systemFiles = ALL_SRC_FILES.filter((f) => relPath(f).startsWith(`systems${'/'}`) && !LAYOUT_READERS.has(relPath(f)));
   const offenders: string[] = [];
   for (const f of systemFiles) {
     const text = SOURCE.get(f)!;
