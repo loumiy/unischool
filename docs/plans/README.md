@@ -51,6 +51,7 @@ the repository root, and the game as it actually is lives in `docs/design/` and
 | 28 | [Delegation and time](28-delegation-and-time.md) | Phase G of the merge: seats (a Provost, a Dean per founded school, Facilities, a Dean of Students, a VP of Advancement) filled from the faculty or from outside, each answering its domain's routine events by policy; their permanent payroll is the administrative ratchet; and the top speeds are earned by them. PRs A–E. | Landed |
 | 29 | [The people](29-the-people.md) | Phase H of the merge: v2's quirks on this game's faculty market, retirement, a Faculty tab that shows only the fields in use, an admissions projection line, rising expectations and diminishing returns on satisfaction, one Students tab, and demands that no longer stop the clock. PRs A–H. | Landed |
 | 30 | [The alumni](30-the-alumni.md) | Phase I of the merge: the alumni ledger (each class stamped at commencement with what its four years held, which sets its warmth for good), the annual fund and reunions, v2's campaigns with resonance and restricted gifts in place of the endowment campaign, and gift-financed buildings. PRs A–E. | In progress |
+| 31 | [The world](31-the-world.md) | Phase J of the merge: how the world reads. Building condition as a prestige input, six standings in the league (in History), identity tags earned and shed over years that shape the pool and carry small teeth, one rival who is also the rival in the main sport, and a schedule that climbs with the college's name. PRs A–F. | In progress |
 
 ## Naming
 
