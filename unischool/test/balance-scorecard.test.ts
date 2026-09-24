@@ -44,9 +44,22 @@ let strategiesWithoutBands = 0;
 // seeds): read here on the default seed, off the runs this suite plays.
 const STOPS_PER_YEAR_MAX = 12; // v2's complaint was too many stops
 const SATURATED = 95;          // satisfaction at or above this reads as maxed out
+// A year at the ceiling is a good year; v2's saturation was decades of it.
+// Two since Plan 36, whose size cost gave the Regional engine one year at 95
+// (none before).
+const SATURATED_YEARS_MAX = 2;
 const IDLE = 'Idle (builds nothing)';
 const BUILT_TO_FAIL = new Set(['Overbuilder (beds ahead of demand)']);
 const finalRank = new Map<string, number>();
+
+// The design's eras as gates (Plan 36): the Balanced builder builds through
+// the build era rather than finishing it by Year 16. Read off the default
+// seed, like the bands.
+const PACED = 'Balanced builder';
+const FIRST_PLACE_NO_EARLIER = 25;
+const TWENTY_THOUSAND_NO_EARLIER = 20;
+const BUILT_BETWEEN: [number, number] = [22, 38];
+const FOUNDING_BLOCKED_MAX = 60;
 let gateFailures = 0;
 function gate(ok: boolean, msg: string): void {
   if (ok) return;
@@ -62,8 +75,20 @@ for (const strategy of STRATEGIES) {
   const stops = Object.values(tally.modals).reduce((a, b) => a + b, 0) / YEARS;
   gate(stops <= STOPS_PER_YEAR_MAX, `${strategy.name} stops ${stops.toFixed(1)} times a year (at most ${STOPS_PER_YEAR_MAX})`);
   const saturated = rows.filter((r) => r.satisfaction >= SATURATED).length;
-  gate(saturated === 0, `${strategy.name} has ${saturated} year(s) at or above ${SATURATED} satisfaction`);
+  gate(saturated <= SATURATED_YEARS_MAX, `${strategy.name} has ${saturated} years at or above ${SATURATED} satisfaction (at most ${SATURATED_YEARS_MAX})`);
   finalRank.set(strategy.name, rows[rows.length - 1].rank);
+  if (strategy.name === PACED) {
+    const first = rows.find((r) => r.rank === 1)?.year ?? Infinity;
+    const big = rows.find((r) => r.enrolled >= 20_000)?.year ?? Infinity;
+    const most = Math.max(...rows.map((r) => r.courses));
+    const built = rows.find((r) => r.courses >= 0.8 * most)?.year ?? Infinity;
+    const blocked = rows.filter((r) => r.year <= 10).reduce((t, r) => t + r.blockedWeeks, 0);
+    gate(first >= FIRST_PLACE_NO_EARLIER, `${PACED} reaches first place in Year ${first} (no earlier than ${FIRST_PLACE_NO_EARLIER})`);
+    gate(big >= TWENTY_THOUSAND_NO_EARLIER, `${PACED} reaches 20,000 students in Year ${big} (no earlier than ${TWENTY_THOUSAND_NO_EARLIER})`);
+    gate(built >= BUILT_BETWEEN[0] && built <= BUILT_BETWEEN[1], `${PACED} builds four-fifths of its catalogue by Year ${built} (Years ${BUILT_BETWEEN[0]}–${BUILT_BETWEEN[1]})`);
+    gate(blocked <= FOUNDING_BLOCKED_MAX, `${PACED} is blocked by money ${blocked} weeks in its founding decade (at most ${FOUNDING_BLOCKED_MAX})`);
+    console.log(`  · ${PACED}'s pace: first place Y${first}, 20,000 students Y${big}, catalogue four-fifths built Y${built}, ${blocked} founding weeks blocked`);
+  }
   if (!bandsFor(strategy.name)) {
     strategiesWithoutBands += 1;
     console.log(`  · ${strategy.name}: no bands recorded — run \`npm run sim -- --write-reference\``);
@@ -106,6 +131,6 @@ if (idleRank !== undefined) {
   const beaten = [...finalRank].filter(([name, rank]) => name !== IDLE && !BUILT_TO_FAIL.has(name) && rank > idleRank).map(([name]) => name);
   gate(beaten.length === 0, `the idle college (#${idleRank}) outranks ${beaten.join(', ')}`);
 }
-if (gateFailures === 0) console.log('  ✓ the guardrails hold: stops, saturation, and the idle college');
+if (gateFailures === 0) console.log('  ✓ the guardrails hold: stops, saturation, the idle college, and the pace');
 
 process.exit(REPORT_ONLY ? 0 : (findings === 0 && strategiesWithoutBands === 0 && gateFailures === 0 ? 0 : 1));

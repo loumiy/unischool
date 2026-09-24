@@ -127,7 +127,7 @@ export const MILESTONES: readonly Milestone[] = [
     ...students(HEALTH_CENTER_TIER1_POPULATION_GATE),
     buildables: ['HLTH-T1', 'AMENITY-GARDEN'],
     tabs: [],
-    letter: 'At this size the college is a small town, and a town gets sick. From here on students expect care on campus, and their satisfaction will count it.',
+    letter: 'At this size the college is a small town, and a town gets sick. From here on students expect care on campus, and their satisfaction will count it. A town needs running, too: from here, every time the college doubles, each of its students costs a little more to administer (the Treasury\'s "Being large").',
     opens: ['Health & Counseling Center: care for students, which now counts toward satisfaction', 'The Formal Garden: hedges and beds, and campus beauty'],
   },
   {

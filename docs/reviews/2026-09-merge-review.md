@@ -157,3 +157,38 @@ The guardrails also report the pacing:
 3. **A person should play the first hour.** The script found the bugs; a person will find the feel.
 4. **The mix needs ears.** The listening bench is in the debug panel.
 5. **Give Years 1–2 something to do.** Both opening years are quiet by design (the catalogue's events wait for Year 3). A founding-era event or two, written for a college of 350, would carry the first forty minutes.
+
+
+---
+
+## Addendum: the cost of being large (Plan 36)
+
+The first open question above, the boom, was answered by a mechanism: a
+running cost that rises with every doubling of the roll above 1,500
+students ([economy.md](../design/economy.md), "The cost of being large").
+
+On the default seed, the Balanced builder before and after:
+
+| | Before | After |
+| --- | ---: | ---: |
+| Catalogue four-fifths built | Year 16 | Year 35 |
+| 20,000 students | Year 14 | Year 24 |
+| First place | Year 16 | Year 29 |
+| Founding weeks blocked by money | 0 | 0 |
+
+A player charging a tenth less than the harness's price has no founding
+stall and ends second.
+
+**What it did not change:** the colleges that lead by founding their
+schools early still take first place in Years 13–18. That is the Selective
+college with 4,000 students, the Earnest completionist and the Regional
+engine. Their first place comes from prestige (breadth and concentration),
+not size, so a size cost cannot reach it. It is now the sharper form of the
+review's open question: how prestige should weigh size and reach.
+
+**What it costs the archetypes that ignore it:**
+- The Earnest completionist completes the catalogue on one seed of three,
+  where it did on all three.
+- The Regional engine's stewardship falls from B to C.
+
+Both grow large without an endowment to carry them.

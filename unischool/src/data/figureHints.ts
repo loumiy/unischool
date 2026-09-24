@@ -37,6 +37,7 @@ export const FIGURE_HINTS = {
   projectedSatisfaction: 'The satisfaction target with this many students on the campus, against today\'s.',
   tightestNeed: 'The service that will be most stretched, as a share of what the students will need, now and with this class.',
   notReturning: 'Students who will not come back next year, and why.',
+  nextThousand: 'What a thousand more students would pay each at this price, against what teaching, serving and administering them would cost at this size; past the break, growing loses money.',
   tuitionLocked: 'The price this class pays every year until it graduates.',
   admitRate: 'The share of the pool the college chose to admit.',
 } as const satisfies Record<string, Sentence | ((...args: never[]) => Sentence)>;

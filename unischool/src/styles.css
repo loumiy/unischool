@@ -2531,6 +2531,9 @@ body:has(.building-info-panel) .pennant { display: none; }
 .sound-level-value { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-muted); }
 .debug-bench-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
 
+/* ---------- The cost of being large (Plan 36) ---------- */
+.next-thousand { font-size: var(--text-base); }
+.next-thousand.bad { color: var(--bad-on-light); }
 /* ---------- Which tree the plant tool plants (Plan 37, BuildPopup.tsx) ---------- */
 .species-chips { flex: 0 0 132px; display: flex; flex-direction: column; justify-content: center; gap: 5px; }
 .species-chip { border: 2px solid var(--outline); background: var(--cream-hi); color: var(--ink); border-radius: var(--radius-pill);

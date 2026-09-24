@@ -54,6 +54,30 @@ const MAX_SECTIONS_PER_COURSE = (SEATS_PER_COURSE * COURSES_PER_STUDENT) / SECTI
 // student's profit thin, and rises with crowding (see servicesMultiplier).
 export const SERVICES_PER_STUDENT_PER_WEEK = 45; // at prestige 50
 
+// The cost of being large (Plan 36): the administration a big institution
+// needs to hold itself together (registrars, advising, IT, compliance, the
+// layers of management that coordinate them), charged per student and
+// rising with every doubling of the roll above SCALE_FREE_BELOW. Every other
+// running cost is linear in size, so without it the marginal student pays
+// as well at 20,000 as at 1,000 and growth compounds until the catalogue
+// runs out (docs/plans/36-costs-that-grow-with-size.md). Free below the
+// threshold, so a founding college never pays it; logarithmic, so the
+// marginal student's margin falls smoothly rather than at a cliff; at the
+// prestige market rate, on top of it, never in place of it.
+// Fitted in Plan 36's PR D to the design's eras: on the default seed the
+// Balanced builder's catalogue is four-fifths built in Year 35 (Year 16
+// without it), it reaches 20,000 students in Year 24 (14) and first place in
+// Year 29 (16), and the founding decade is never blocked by money.
+export const SCALE_PER_STUDENT_PER_WEEK = 5; // a week, a student, per doubling, at prestige 50
+export const SCALE_FREE_BELOW = 1_500;       // students
+
+// The line for a roll of `students` at `prestige`. `perStudent` defaults to
+// the constant; tests read the shape at a rate of their own.
+export function scaleCostFor(students: number, prestige: number, perStudent = SCALE_PER_STUDENT_PER_WEEK): number {
+  if (students <= SCALE_FREE_BELOW || perStudent <= 0) return 0;
+  return students * perStudent * marketRateMultiplier(prestige) * Math.log2(students / SCALE_FREE_BELOW);
+}
+
 export interface InstructionDetail {
   courses: number;        // offered ('done')
   perCourse: number;      // students enrolled in each, off the aggregate body
@@ -126,6 +150,7 @@ export interface FinanceBreakdown {
   seatUpkeep: number;          // capacity x UPKEEP_PER_SEAT_PER_WEEK — the physical plant, sized by beds not bodies
   instructionCost: number;     // sections x SECTION_COST — teaching the catalogue you have built, section by section (see instructionDetail)
   servicesCost: number;        // enrolled x SERVICES_PER_STUDENT_PER_WEEK x servicesMultiplier — advising, registrar, IT, grounds
+  scaleCost: number;           // the cost of being large (scaleCostFor), rising with every doubling of the roll
   academicUpkeep: number;      // running the courses, academic buildings and labs that are done
   facilityUpkeep: number;      // running the dorms and campus-life facilities that are done
   studentLifeUpkeep: number;   // running the clubs and Greek chapters the player has recognised (see data/studentLifeData.ts)
@@ -162,6 +187,34 @@ export function instructionCostPerStudentWith(s: GameState, extra: number): numb
   const perCourse = (enrolled * COURSES_PER_STUDENT) / courses;
   const sectionsPerCourse = Math.max(1, Math.min(MAX_SECTIONS_PER_COURSE, Math.ceil(perCourse / SECTION_SIZE)));
   return (courses * sectionsPerCourse * SECTION_COST * marketRateMultiplier(s.self.reputation)) / enrolled;
+}
+
+// What the next `extra` students would add to the running costs, per student
+// per week (Plan 36): instruction, services and the cost of being large, at
+// today's rates and catalogue. Read by the summer's projection, the
+// Treasury's chart and the harness's sensible strategies (sim/balanceSim.ts).
+export function marginalStudentCost(s: GameState, extra = 1_000, scaleRate = SCALE_PER_STUDENT_PER_WEEK, at = totalEnrolled(s.students)): number {
+  const rate = marketRateMultiplier(s.self.reputation);
+  const courses = s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
+  // Sections are read as a share rather than rounded up: every course is the
+  // same size here, so a thousand more students would otherwise tip every
+  // course over a section boundary at once, and the next student's cost
+  // would swing between a few thousand and ninety thousand a year.
+  const running = (n: number) => {
+    const perCourse = courses > 0 ? (n * COURSES_PER_STUDENT) / courses : 0;
+    const sectionsPerCourse = courses > 0 ? Math.max(1, Math.min(MAX_SECTIONS_PER_COURSE, perCourse / SECTION_SIZE)) : 0;
+    return courses * sectionsPerCourse * SECTION_COST * rate
+      + n * SERVICES_PER_STUDENT_PER_WEEK * rate * servicesMultiplier(s)
+      + scaleCostFor(n, s.self.reputation, scaleRate);
+  };
+  return (running(at + extra) - running(at)) / extra;
+}
+
+// What the next `extra` would pay at the listed price less what they would
+// cost, per student per week. The break is where this turns negative: past
+// it, the next thousand cost more than they pay.
+export function marginalStudentMargin(s: GameState, extra = 1_000, scaleRate = SCALE_PER_STUDENT_PER_WEEK): number {
+  return s.finance.listedTuition / WEEKS_PER_YEAR - marginalStudentCost(s, extra, scaleRate);
 }
 
 // Crowding raises the services line: flat up to SERVICES_CROWDING_FROM of
@@ -231,6 +284,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   // A Party School pays for the parties (an identity tag's teeth, Plan 31).
   const servicesCost = enrolled * SERVICES_PER_STUDENT_PER_WEEK * marketRateMultiplier(s.self.reputation) * servicesMultiplier(s)
     + (enrolled * tagTeeth(s, 'studentCost')) / WEEKS_PER_YEAR;
+  const scaleCost = scaleCostFor(enrolled, s.self.reputation);
   const academicUpkeep = upkeepFor(s, true);
   const facilityUpkeep = upkeepFor(s, false);
   const studentLifeUpkeep = studentOrgUpkeep(s);
@@ -239,7 +293,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
 
   // Five income lines; there is no state appropriation.
   const totalIncome = tuitionRevenue + prestigeRevenue + endowmentPayout + athleticsSurplus + annualFund;
-  const totalExpenses = weeklySalaries + seatUpkeep + instructionCost + servicesCost + academicUpkeep +
+  const totalExpenses = weeklySalaries + seatUpkeep + instructionCost + servicesCost + scaleCost + academicUpkeep +
     facilityUpkeep + studentLifeUpkeep + athleticsSubsidy + debt + administration;
 
   return {
@@ -254,6 +308,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
     seatUpkeep,
     instructionCost,
     servicesCost,
+    scaleCost,
     academicUpkeep,
     facilityUpkeep,
     studentLifeUpkeep,

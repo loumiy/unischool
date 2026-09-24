@@ -30,6 +30,7 @@ import type { OrgPetition } from '../state/types';
 import type { ReportPayload } from '../systems/rivals/rivalsSystem';
 import AnimatedNumber from './AnimatedNumber';
 import Figure from './Figure';
+import { SCALE_FREE_BELOW, marginalStudentCost } from '../systems/finance/financeSystem';
 import { FIGURE_HINTS } from '../data/figureHints';
 import { isActivationTarget, useHotkeys } from './hotkeys';
 import { modalWidth } from './modalLayout';
@@ -369,6 +370,18 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
                 hint={FIGURE_HINTS.tightestNeed}
                 value={<CoverageValue now={consequence.tightestCoverageNow} next={consequence.tightestCoverage} />}
               />
+              {consequence.totalEnrolled > SCALE_FREE_BELOW && (() => {
+                // The break (Plan 36): what the next thousand would pay at this
+                // price against what they would cost at this size.
+                const cost = marginalStudentCost(s, 1_000, undefined, consequence.totalEnrolled) * WEEKS_PER_YEAR;
+                return (
+                  <Figure
+                    label="The next thousand"
+                    hint={FIGURE_HINTS.nextThousand}
+                    value={<span className={`next-thousand ${tuition >= cost ? '' : 'bad'}`}>pay {money(tuition)} each, cost {money(cost)}</span>}
+                  />
+                );
+              })()}
               {consequence.notReturning > 0 && (
                 <Figure
                   label={<>Not returning <span className="outcome-note">({consequence.attritionReasons.length > 0 ? consequence.attritionReasons.join(', ') : 'a bad year'})</span></>}
