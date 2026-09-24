@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { lift, polyPoints, project, projectedCircle, type Camera, type Pt } from './isoProjection';
 import { shadowOffset, sunScreenDir } from './light';
+import { roll, speciesOf, type Species } from '../data/treeData';
 
 // Trees on the campus map. Geometry here, colour in styles.css.
 //
@@ -8,18 +9,9 @@ import { shadowOffset, sunScreenDir } from './light';
 // tree looks the same every render. Trees are drawn in the same depth-sorted
 // pass as buildings (CampusMap.tsx) so they occlude and are occluded correctly.
 
-// Species mix: broad canopy, narrow conifer, small ornamental.
-export type Species = 'canopy' | 'conifer' | 'ornamental';
-const SPECIES: Species[] = ['canopy', 'canopy', 'canopy', 'conifer', 'conifer', 'ornamental'];
-
-// Integer hash so each roll off one seed is independent; `seed % n` would
-// correlate species with position and show as banding.
-function roll(seed: number, salt: number): number {
-  let h = (seed ^ (salt * 0x9e3779b1)) >>> 0;
-  h = Math.imul(h ^ (h >>> 15), 0x85ebca6b) >>> 0;
-  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35) >>> 0;
-  return ((h ^ (h >>> 16)) >>> 0) / 0x100000000;
-}
+// The species and the hash live in data/treeData.ts (Plan 37), where the
+// reducer can honour a planting choice.
+export type { Species } from '../data/treeData';
 
 export interface TreeShape {
   species: Species;
@@ -31,7 +23,7 @@ export interface TreeShape {
 
 export function treeShape(seed: number): TreeShape {
   return {
-    species: SPECIES[Math.floor(roll(seed, 1) * SPECIES.length)],
+    species: speciesOf(seed),
     u: 0.2 + roll(seed, 2) * 0.6,
     v: 0.2 + roll(seed, 3) * 0.6,
     scale: 0.78 + roll(seed, 4) * 0.5,

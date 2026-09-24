@@ -2530,3 +2530,10 @@ body:has(.building-info-panel) .pennant { display: none; }
 .sound-level input { width: 100%; min-width: 0; accent-color: var(--school-primary); }
 .sound-level-value { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-muted); }
 .debug-bench-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+
+/* ---------- Which tree the plant tool plants (Plan 37, BuildPopup.tsx) ---------- */
+.species-chips { flex: 0 0 132px; display: flex; flex-direction: column; justify-content: center; gap: 5px; }
+.species-chip { border: 2px solid var(--outline); background: var(--cream-hi); color: var(--ink); border-radius: var(--radius-pill);
+  padding: 4px 10px; font-family: var(--display); font-weight: 800; font-size: var(--text-xs); cursor: pointer; }
+.species-chip:hover { background: var(--cream-lo); }
+.species-chip.active { background: var(--school-primary); color: var(--school-on-primary, var(--cream-hi)); }

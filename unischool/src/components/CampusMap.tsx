@@ -30,6 +30,7 @@ import { groundProps } from './groundMarkings';
 import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
 import Tree, { woodlandShadow } from './trees';
+import { plantingSpecies } from './plantingChoice';
 import { castShadow } from './light';
 import {
   DEFAULT_CAMERA, DEFAULT_PITCH_INDEX, PITCHES, VIEWS, WORLD, boxFaces, lift, polyPoints, project, setCamera, tileAt, unproject,
@@ -1212,7 +1213,7 @@ export default function CampusMap({
     act(
       tool === 'draw' ? { type: 'ADD_PATH_TILE', tile }
         : tool === 'erase' ? { type: 'REMOVE_PATH_TILE', tile }
-          : tool === 'plant' ? { type: 'PLANT_TREE', tile }
+          : tool === 'plant' ? { type: 'PLANT_TREE', tile, species: plantingSpecies() ?? undefined }
             : tool === 'fell' ? { type: 'FELL_TREE', tile }
               : tool === 'quad' ? { type: 'MARK_QUAD', tile }
                 : { type: 'PLACE_DRESSING', tile, kind: tool },
