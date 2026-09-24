@@ -2521,3 +2521,12 @@ body:has(.building-info-panel) .pennant { display: none; }
 .figure-hint.above { top: auto; bottom: calc(100% + 8px); }
 .figure:hover .figure-hint, .figure > dd:focus-visible > .figure-hint,
 .figure-box:hover > .figure-hint, .figure-box:focus-visible > .figure-hint { display: block; }
+
+/* ---------- Sound (Plan 34, components/audio/) ---------- */
+.sound-controls { border: 0; margin: 0 0 14px; padding: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.sound-controls legend { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--school-primary); margin-bottom: 6px; padding: 0; }
+.sound-level { display: grid; grid-template-columns: 72px minmax(0, 1fr) 30px; align-items: center; gap: 8px; font-size: var(--text-sm); color: var(--ink); }
+.sound-level input { width: 100%; min-width: 0; accent-color: var(--school-primary); }
+.sound-level-value { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.debug-bench-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }

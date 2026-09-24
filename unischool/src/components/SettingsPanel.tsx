@@ -1,8 +1,8 @@
 import { TEXT_SCALES, setSettings, useSettings } from '../settings';
 import { useHotkeys } from './hotkeys';
 
-// Settings (Plan 34, from v2's): text size, colour vision and motion. Sound
-// joins them in PR G.
+// Settings (Plan 34, from v2's): text size, colour vision and motion, and
+// the sound (App.tsx passes SoundControls in).
 
 const SCALE_LABELS: Record<number, string> = { 1: 'Standard', 1.15: 'Larger', 1.3: 'Largest' };
 

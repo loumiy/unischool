@@ -13,6 +13,9 @@ import SettingsPanel from './components/SettingsPanel';
 import Credits from './components/Credits';
 import Pennant from './components/Pennant';
 import DebugPanel from './components/DebugPanel';
+import SoundControls from './components/audio/SoundControls';
+import { useAudioDirector } from './components/audio/useAudio';
+import { audio } from './components/audio/engine';
 import InterruptModal from './components/InterruptModal';
 import { GATED_TABS, TAB_LABELS, tabAvailable, type TabId } from './components/TabNav';
 import CampusMap from './components/CampusMap';
@@ -103,6 +106,11 @@ export default function App() {
   const [logOpen, setLogOpen] = useState(false);
   const [ladderOpen, setLadderOpen] = useState(false);
   const toolbarRef = useCssHeightVar('--toolbar-height');
+
+  // Sound (Plan 34): the director hears the run, not the title screen; M
+  // mutes wherever the player is.
+  useAudioDirector(s.started && front !== 'title' ? s : null);
+  useHotkeys((e) => { if (e.key.toLowerCase() === 'm') audio.toggleMute(); });
 
   // C / F / L (see TAB_HOTKEYS). Held back while an interrupt is pending,
   // since that modal must be answered first.
@@ -244,7 +252,7 @@ export default function App() {
       onCredits={() => setFront('credits')}
     />
   ) : front === 'hall' ? <HallOfFame onClose={closeFront} />
-    : front === 'settings' ? <SettingsPanel onClose={closeFront} />
+    : front === 'settings' ? <SettingsPanel onClose={closeFront}><SoundControls /></SettingsPanel>
       : front === 'credits' ? <Credits onClose={closeFront} />
         : null;
 
