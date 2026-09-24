@@ -139,6 +139,34 @@ This is the baseline every later PR in this plan is measured against.
     and the ghost says why.
 - **The founding woodland stays** as it is.
 
+**As implemented:**
+
+- **The road is the parcel's last two rows** (`campusMap.ts`'s
+  `ROAD_FIRST_ROW`), fixed terrain rather than state, so no save field and
+  no version bump. `footprintFits` and the path and tree actions keep off it.
+  It is drawn in the static layer as asphalt with a kerb and a centre line.
+- **Reachability lives in `src/state/reach.ts`, not `src/systems/`.** The
+  invariant suite forbids a tick system from reading placements, since the
+  map is cosmetic, and siting rules already live beside `campusMap.ts`.
+- **A quad is walked across.** It blocks no walk and needs no door, so a
+  quad closed in by halls is the classic quad, not an unreachable
+  building.
+- **`canPlace` asks `siteRefusal`,** so the reducer and the map share one
+  rule. The ghost shows the reason beside the pointer: not enough clear
+  ground, no way to walk to it from the road, or it would wall off a named
+  building. A building an older save left walled off stays standing.
+- **`firstFreeSpot` takes the state and the Buildable,** and prefers a site
+  with a clear tile all round. A clear ring can cut nothing off, so it needs
+  no second flood fill. Harness campuses now have a walk between buildings.
+  The harness only moves where things stand, and no system reads that:
+  a 40-year Earnest completionist ends on the same cash and enrolment, in
+  the same time.
+- **Old saves:** a building standing on the road is moved to the first open
+  site on load rather than dropped, and paths and trees on the road go.
+- **The founding woodland is unchanged:** trees drawn onto the road are
+  cleared after planting, so the founding draws from the random stream are
+  the same.
+
 ## PR 24E — Quads
 
 - **`systems/campus/quads.ts`**, ported from v2's `detectQuads`. A quad is
@@ -150,6 +178,29 @@ This is the baseline every later PR in this plan is measured against.
   reach the parcel edge.
 - **Quad names are drawn on the ground,** as v2 did.
 - What quads are *worth* is Phase E's (beauty and layout effects).
+
+**As implemented:**
+
+- **`src/state/quads.ts`** ports v2's two-pass detection with its doorway
+  sealing, beside `reach.ts` for the same reason. The thresholds and the
+  names are in `src/data/quadData.ts`, rescaled for this game's grid: 16 to
+  900 tiles, and a doorway up to 2 tiles wide through a wall up to 7 deep,
+  the deepest hall. v2's walls were thinner.
+- **A placed Campus Quad or Grand Quad is lawn a quad is made of,** not a
+  wall, as it is to the walk.
+- **`GameState.quads` is optional** (`{ names, designated }`), so it needs no
+  version bump. It is sanitised on load, and `NAME_QUAD`, `MARK_QUAD` and
+  `UNMARK_QUAD` write it.
+- **Marking** is the build popup's Mark a quad tool, one click at a time.
+  The open space under the click becomes a quad if it does not reach the
+  parcel's edge and is bigger than a light well, whatever its size or
+  enclosure. The quad's card, opened by clicking it, renames it or lifts the
+  mark.
+- **On the map:** a faint tint in the static layer. The quad under the
+  pointer is outlined and named, and N names them all, as in v2. Detection
+  runs once per layout change, about 15 ms on a Year-40 campus.
+- **D and E share a commit:** the reducer, the save loader and the map
+  changed for both.
 
 ## PR 24F — Diagonal and curved paths
 

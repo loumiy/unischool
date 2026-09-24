@@ -617,6 +617,10 @@ button.build-tile { font-family: inherit; }
 .campus-ground { fill: var(--grass); }
 
 .campus-grid { stroke: var(--grass-line-idle); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
+/* The road along the south edge (campusMap.ts's ROAD_FIRST_ROW). */
+.campus-road { fill: #6f6d66; }
+.campus-road-kerb { stroke: #b9b2a0; stroke-width: 2; fill: none; vector-effect: non-scaling-stroke; }
+.campus-road-centre { stroke: #e8dca8; stroke-width: 1.5; stroke-dasharray: 10 12; fill: none; vector-effect: non-scaling-stroke; }
 .campus-map-svg.placing .campus-grid,
 .campus-map-svg.path-draw .campus-grid,
 .campus-map-svg.path-erase .campus-grid,
@@ -627,12 +631,28 @@ button.build-tile { font-family: inherit; }
 .campus-preview { pointer-events: none; fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .campus-preview.ok { stroke: var(--gold); fill: rgba(201, 162, 39, 0.22); }
 .campus-preview.blocked { stroke: #b4544a; fill: rgba(180, 84, 74, 0.18); stroke-dasharray: 4 3; }
+/* Why a site is refused (reach.ts's siteRefusal), beside the pointer. */
+.campus-map-why { position: absolute; transform: translate(16px, 14px); pointer-events: none; padding: 4px 9px; border-radius: 6px;
+  background: #7a2e26; color: #fff6ec; font-size: 13px; font-weight: 600; white-space: nowrap; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); }
 
 .campus-path-ghost { pointer-events: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .campus-path-ghost.draw { stroke: var(--gold); fill: rgba(201, 162, 39, 0.28); }
 .campus-path-ghost.erase { stroke: #b4544a; fill: rgba(180, 84, 74, 0.22); stroke-dasharray: 4 3; }
 .campus-path-ghost.plant { stroke: #3f6b2a; fill: rgba(63, 107, 42, 0.28); }
 .campus-path-ghost.fell { stroke: #b4544a; fill: rgba(180, 84, 74, 0.22); stroke-dasharray: 4 3; }
+.campus-path-ghost.quad { stroke: var(--gold); fill: rgba(201, 162, 39, 0.2); }
+
+/* Quads (state/quads.ts, quadLayer.tsx): a tint on the ground, an outline on
+   the one under the pointer or open in its card, and its name on the ground. */
+.campus-quad { fill: rgba(255, 244, 196, 0.1); pointer-events: none; }
+.campus-quad.designated { fill: rgba(255, 244, 196, 0.14); }
+.campus-quad-outline { fill: rgba(255, 244, 196, 0.12); stroke: rgba(255, 246, 220, 0.85); stroke-width: 1.5; vector-effect: non-scaling-stroke; pointer-events: none; }
+.campus-quad-outline.inspected { stroke: var(--gold); stroke-width: 2; }
+.campus-quad-name { fill: #fffaf0; stroke: rgba(40, 52, 30, 0.7); stroke-width: 5px; paint-order: stroke; font-family: var(--serif); font-style: italic;
+  text-anchor: middle; dominant-baseline: central; pointer-events: none; user-select: none; }
+.quad-panel-name { display: flex; align-items: center; gap: 8px; margin: 4px 0 2px; }
+.quad-panel-name .building-info-line { margin: 0; }
+.quad-panel-name input { flex: 1; min-width: 0; font: inherit; font-size: var(--text-sm); padding: 4px 8px; border: 2px solid var(--outline); border-radius: 6px; background: var(--cream); color: var(--ink); }
 
 /* Ghost layer: a second SVG over the map, click-through except the rotate control. */
 .campus-map-ghost { position: absolute; inset: 0; display: block; width: 100%; height: 100%; pointer-events: none; }

@@ -1,6 +1,6 @@
 import type { Placements, Trees } from '../state/types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
-import { pathTileKey, placementTiles } from '../state/campusMap';
+import { isRoadTile, parsePathTileKey, pathTileKey, placementTiles } from '../state/campusMap';
 import { random } from '../engine/random';
 
 // The founding woodland (see types.ts's Trees). Runs once, in
@@ -84,6 +84,13 @@ export function seedTrees(placements: Placements): Trees {
       Math.floor(random() * CAMPUS_GRID_HEIGHT),
       Math.floor(random() * CAMPUS_GRID_WIDTH),
     );
+  }
+
+  // Nothing grows on the road. Cleared afterwards rather than skipped while
+  // planting, so the founding draws from the random stream are unchanged.
+  for (const key of Object.keys(trees)) {
+    const tile = parsePathTileKey(key);
+    if (tile && isRoadTile(tile.row, tile.col)) delete trees[key];
   }
 
   return trees;

@@ -1,5 +1,5 @@
 import { useMemo, useRef } from 'react';
-import type { Buildable, GameState, Pathways, Placement, Trees, Vernacular } from '../state/types';
+import type { Buildable, GameState, Pathways, Placement, Placements, QuadState, Trees, Vernacular } from '../state/types';
 import { chapterHouseId } from '../data/eventData';
 import { hallDisplayName } from '../systems/techtree/schools';
 
@@ -26,8 +26,10 @@ export interface CampusLayout {
   key: string;
   placed: readonly PlacedEntry[];
   byId: ReadonlyMap<string, PlacedEntry>;
+  placements: Placements;
   trees: Trees;
   pathways: Pathways;
+  quads: QuadState | undefined;
   vernacular: Vernacular;
 }
 
@@ -67,10 +69,11 @@ export function campusLayout(s: GameState): CampusLayout {
     placed.map(entryKey).join('|'),
     recordKey(s.trees),
     recordKey(s.pathways),
+    s.quads ? JSON.stringify(s.quads) : '',
   ].join('#');
   return {
     key, placed, byId: new Map(placed.map((e) => [e.t.id, e])),
-    trees: s.trees, pathways: s.pathways, vernacular: s.self.vernacular,
+    placements: s.placements, trees: s.trees, pathways: s.pathways, quads: s.quads, vernacular: s.self.vernacular,
   };
 }
 

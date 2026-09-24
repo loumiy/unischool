@@ -1,9 +1,11 @@
 import type { FacilityType, GameState, HallSlot, Pathways, Placement, Trees } from './types';
 import {
-  footprintFits, footprintIsClear, isInBounds, isPlaceableKind, parsePathTileKey, pathTileKey,
+  ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, isLand, isPlaceableKind, parsePathTileKey,
+  pathTileKey,
 } from './campusMap';
-import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from './types';
+import { CAMPUS_GRID_WIDTH } from './types';
 import { fellTrees } from '../data/treeData';
+import { QUAD_NAME_MAX } from '../data/quadData';
 import { glyphsFor, SPORTS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, graduatePrograms, majorPrefixes } from '../data/techData';
 import { FACULTY_FIELDS } from '../data/facultyData';
@@ -95,11 +97,17 @@ function sanitizePlacements(state: GameState): void {
     const fp = { w: p.w, h: p.h };
     let { row, col } = p;
     if (!footprintFits(row, col, fp)) {
-      row = Math.max(0, Math.min(row, CAMPUS_GRID_HEIGHT - fp.h));
+      row = Math.max(0, Math.min(row, ROAD_FIRST_ROW - fp.h));
       col = Math.max(0, Math.min(col, CAMPUS_GRID_WIDTH - fp.w));
       if (!footprintFits(row, col, fp)) continue; // bigger than the grid itself
     }
-    if (!footprintIsClear(clean, row, col, fp)) continue; // overlaps something already kept
+    if (!footprintIsClear(clean, row, col, fp)) {
+      // Moved off the road onto something standing, or overlapping: resited
+      // at the first open site rather than lost.
+      const spot = p.row + p.h > ROAD_FIRST_ROW ? firstFreeSpot({ placements: clean, tech: state.tech }, node, fp) : null;
+      if (!spot) continue;
+      ({ row, col } = spot);
+    }
 
     clean[id] = { row, col, ...fp };
   }
@@ -118,7 +126,7 @@ function sanitizePathways(state: GameState): void {
   for (const [key, value] of Object.entries(state.pathways)) {
     if (value !== true) continue;
     const tile = parsePathTileKey(key);
-    if (!tile || !isInBounds(tile.row, tile.col)) continue;
+    if (!tile || !isLand(tile.row, tile.col)) continue;
     clean[pathTileKey(tile)] = true;
   }
   state.pathways = clean;
@@ -137,11 +145,34 @@ function sanitizeTrees(state: GameState): void {
   for (const [key, seed] of Object.entries(state.trees)) {
     if (typeof seed !== 'number' || !Number.isFinite(seed)) continue;
     const tile = parsePathTileKey(key);
-    if (!tile || !isInBounds(tile.row, tile.col)) continue;
+    if (!tile || !isLand(tile.row, tile.col)) continue;
     clean[pathTileKey(tile)] = seed;
   }
   for (const placement of Object.values(state.placements)) fellTrees(clean, placement);
   state.trees = clean;
+}
+
+// Quad hygiene, run on every load: the field is optional, and a malformed
+// one is dropped rather than half-read. Names are capped as NAME_QUAD caps
+// them; marks must be tile keys on the land.
+function sanitizeQuads(state: GameState): void {
+  const q = state.quads as unknown;
+  if (q === undefined) return;
+  if (typeof q !== 'object' || q === null) { delete state.quads; return; }
+  const raw = q as { names?: unknown; designated?: unknown };
+  const names: Record<string, string> = {};
+  if (typeof raw.names === 'object' && raw.names !== null) {
+    for (const [key, name] of Object.entries(raw.names)) {
+      if (typeof name === 'string' && name.trim() !== '' && parsePathTileKey(key)) names[key] = name.trim().slice(0, QUAD_NAME_MAX);
+    }
+  }
+  const designated = Array.isArray(raw.designated)
+    ? raw.designated.filter((key): key is string => {
+      const t = typeof key === 'string' ? parsePathTileKey(key) : null;
+      return t !== null && isLand(t.row, t.col);
+    })
+    : [];
+  state.quads = { names, designated };
 }
 
 // The five venue categories a team can reference, kept local rather than
@@ -350,6 +381,7 @@ export function loadGame(): GameState | null {
   sanitizePathways(state);
   // Trees after placements: it reads the cleaned placements.
   sanitizeTrees(state);
+  sanitizeQuads(state);
   sanitizeTeams(state);
   sanitizeChapters(state);
   sanitizeSeen(state);

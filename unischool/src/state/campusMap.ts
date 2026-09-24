@@ -2,6 +2,7 @@ import type {
   Buildable, FacilityType, Footprint, GameState, Placement, Placements, TileCoord,
 } from './types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, PLACEABLE_KINDS } from './types';
+import { accessRefusal, hasOpenRing, reachCache, siteRefusal, type SiteState } from './reach';
 
 // Pure placement rules for the campus map, shared by the reducer's
 // PLACE_BUILDABLE, the save loader's placement hygiene and the map UI, so
@@ -160,11 +161,26 @@ export function isInBounds(row: number, col: number): boolean {
     && col >= 0 && col < CAMPUS_GRID_WIDTH;
 }
 
-// The whole footprint must fit, not just its anchor tile.
+// The road: the parcel's last ROAD_DEPTH rows, along its south edge. Fixed
+// terrain, not state: nothing is built, paved or planted on it, and it is
+// where every walk onto the campus starts (reach.ts).
+export const ROAD_DEPTH = 2;
+export const ROAD_FIRST_ROW = CAMPUS_GRID_HEIGHT - ROAD_DEPTH;
+
+export function isRoadTile(row: number, col: number): boolean {
+  return isInBounds(row, col) && row >= ROAD_FIRST_ROW;
+}
+
+// A tile a building, a path or a tree could stand on: on the grid, off the road.
+export function isLand(row: number, col: number): boolean {
+  return isInBounds(row, col) && row < ROAD_FIRST_ROW;
+}
+
+// The whole footprint must fit on the land, not just its anchor tile.
 export function footprintFits(row: number, col: number, fp: Footprint): boolean {
   return Number.isInteger(fp.w) && Number.isInteger(fp.h) && fp.w >= 1 && fp.h >= 1
-    && isInBounds(row, col)
-    && isInBounds(row + fp.h - 1, col + fp.w - 1);
+    && isLand(row, col)
+    && isLand(row + fp.h - 1, col + fp.w - 1);
 }
 
 // Every tile a placement covers, anchor first.
@@ -199,14 +215,14 @@ export function footprintIsClear(placements: Placements, row: number, col: numbe
 }
 
 // A legal placement target: a placeable Buildable that is 'available' (or
-// built and awaiting a site), not yet sited, with its footprint on clear
-// in-bounds tiles. Geometry and status only; callers combine it with
-// canStartDevelopment for cost.
+// built and awaiting a site), not yet sited, on a site reach.ts accepts:
+// clear land, a way to it from the road, and nothing walled off. Callers
+// combine it with canStartDevelopment for cost.
 export function canPlace(s: GameState, t: Buildable, row: number, col: number, fp: Footprint): boolean {
   return isPlaceableKind(t)
     && (t.status === 'available' || t.status === 'done')
     && !(t.id in s.placements)
-    && footprintIsClear(s.placements, row, col, fp);
+    && siteRefusal(s, t, row, col, fp) === null;
 }
 
 // Built but unsited. Only Founders Hall, in a guided founding, where placing
@@ -225,14 +241,21 @@ export function centredPlacement(fp: Footprint): Placement {
   );
 }
 
-// Deterministic first-fit scan, top-left to bottom-right. Not the player's
-// flow: it is for Buildables nobody picks a spot for (founding Buildables,
-// the headless sim, eventData.ts's chapter house). Callers must still handle
-// null.
-export function firstFreeSpot(placements: Placements, fp: Footprint): TileCoord | null {
-  for (let row = 0; row + fp.h <= CAMPUS_GRID_HEIGHT; row++) {
-    for (let col = 0; col + fp.w <= CAMPUS_GRID_WIDTH; col++) {
-      if (footprintIsClear(placements, row, col, fp)) return { row, col };
+// Deterministic first-fit scan, top-left to bottom-right, for a site
+// reach.ts accepts. Not the player's flow: it is for Buildables nobody picks
+// a spot for (founding Buildables, the headless sim, tools). It prefers a
+// site with a clear tile all round, which leaves a walk between buildings and
+// is cheap to accept, and falls back to any site the walk allows. Callers
+// must still handle null.
+export function firstFreeSpot(s: SiteState, t: Buildable, fp: Footprint): TileCoord | null {
+  const cache = reachCache(s);
+  for (const strict of [true, false]) {
+    for (let row = 0; row + fp.h <= ROAD_FIRST_ROW; row++) {
+      for (let col = 0; col + fp.w <= CAMPUS_GRID_WIDTH; col++) {
+        if (strict && !hasOpenRing(cache, row, col, fp)) continue;
+        if (!footprintIsClear(s.placements, row, col, fp)) continue;
+        if (accessRefusal(s, t, row, col, fp, cache) === null) return { row, col };
+      }
     }
   }
   return null;

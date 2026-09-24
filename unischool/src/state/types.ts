@@ -293,6 +293,15 @@ export type Pathways = Record<string, true>;
 // components/trees.tsx derives species, size and offset. Visual only.
 export type Trees = Record<string, number>;
 
+// The player's say in the campus's quads (state/quads.ts detects them).
+export interface QuadState {
+  // A player's name for a quad, by its anchor tile key.
+  names: Record<string, string>;
+  // Tile keys the player has marked: the open space under each is a quad
+  // even where detection would not make it one.
+  designated: string[];
+}
+
 // While `pendingInterrupt` is set the clock halts; the UI renders a modal by
 // `type` (docs/architecture/interrupts.md).
 export interface PendingInterrupt {
@@ -820,6 +829,9 @@ export interface GameState {
   placements: Placements;
   pathways: Pathways;
   trees: Trees;
+  // Quad names and the player's marks (state/quads.ts). Optional: a campus
+  // with neither has none.
+  quads?: QuadState;
   rivals: Rival[];
   self: University;
   history: YearSnapshot[];       // one per completed year, oldest first

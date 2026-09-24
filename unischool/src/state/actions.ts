@@ -45,7 +45,7 @@ export function foundingCourseIds(): string[] {
 export const STARTING_INSTITUTION_SUFFIX = 'College';
 
 // The map's campus tools; the right button applies the armed tool's opposite.
-export type CampusTool = 'draw' | 'erase' | 'plant' | 'fell';
+export type CampusTool = 'draw' | 'erase' | 'plant' | 'fell' | 'quad';
 
 // All the ways a player can change the world. The reducer is the only thing
 // that interprets these; UI dispatches them, systems never do.
@@ -85,6 +85,11 @@ export type Action =
   // Decorative; nothing is planted under a building or a path.
   | { type: 'PLANT_TREE'; tile: TileCoord }
   | { type: 'FELL_TREE'; tile: TileCoord }
+  // Quads (state/quads.ts): mark the open space under a tile as one, lift the
+  // marks inside one, or name one (an empty name gives it back its own).
+  | { type: 'MARK_QUAD'; tile: TileCoord }
+  | { type: 'UNMARK_QUAD'; key: string }
+  | { type: 'NAME_QUAD'; key: string; name: string }
   // Converts cash into endowment at a prestige-scaled match; repeatable at a
   // rising cost, the late-game money sink (financeSystem.ts's endowmentCampaign).
   | { type: 'LAUNCH_ENDOWMENT_CAMPAIGN' }

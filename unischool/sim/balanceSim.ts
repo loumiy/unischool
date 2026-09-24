@@ -335,7 +335,7 @@ function dispatchPlaceable(get: () => GameState, dispatch: (a: Action) => void, 
   const node = s.tech.find((t) => t.id === nodeId);
   if (!node) return;
   const fp = footprintOf(node);
-  const spot = firstFreeSpot(s.placements, fp);
+  const spot = firstFreeSpot(s, node, fp);
   if (!spot) return;
   dispatch({ type: 'PLACE_BUILDABLE', buildableId: nodeId, row: spot.row, col: spot.col, rotated: false });
 }

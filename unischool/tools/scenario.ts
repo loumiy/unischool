@@ -145,7 +145,7 @@ let stood = 0;
 if (flags['build-all']) {
   for (const node of state.tech) {
     if (!isPlaceableKind(node) || node.status === 'done' || node.status === 'developing') continue;
-    const spot = firstFreeSpot(state.placements, footprintOf(node));
+    const spot = firstFreeSpot(state, node, footprintOf(node));
     if (!spot) { console.error(`--build-all: no room for ${node.id}`); continue; }
     node.status = 'done';
     state.placements[node.id] = placementFor(spot.row, spot.col, footprintOf(node));

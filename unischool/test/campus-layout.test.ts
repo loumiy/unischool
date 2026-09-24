@@ -50,7 +50,7 @@ const quiet = (): GameState => {
 {
   let s = quiet();
   const dorm = s.tech.find((t) => t.id === 'DORM-01')!;
-  const spot = firstFreeSpot(s.placements, footprintOf(dorm))!;
+  const spot = firstFreeSpot(s, dorm, footprintOf(dorm))!;
   const before = key(s);
   s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: 'DORM-01', row: spot.row, col: spot.col, rotated: false });
   assert(key(s) !== before, 'placing a building moves the key');

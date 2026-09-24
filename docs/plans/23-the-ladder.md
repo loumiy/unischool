@@ -4,7 +4,7 @@
 unlock track, `loumiy/unischool-v2`'s `docs/MIGRATION_PLAN.md`) into a
 sequence of PRs.*
 
-**Status: In progress.** PRs A–E are done in this branch, awaiting merge.
+**Status: Landed** (#134). PRs A–E, with C's letters landing as notes in C (ii).
 
 ---
 
