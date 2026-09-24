@@ -874,6 +874,9 @@ export interface YearSnapshot {
   // by its close.
   worstRung?: number;
   schoolsFounded?: number;
+  // The year's rank on each of the six standings (Plan 31), by axis
+  // (systems/rivals/rivalsSystem.ts's STANDINGS). Absent before it.
+  standings?: Record<string, number>;
 }
 
 export interface RunningCampaign {
