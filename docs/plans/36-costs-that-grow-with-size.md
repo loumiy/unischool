@@ -199,6 +199,10 @@ This document.
     whole plan rests on);
   - the Treasury's line equals the tick's.
 
+**As implemented:** as planned. `scaleCostFor` takes its rate as an
+argument, so the test reads the shape at a rate of its own while the
+constant was zero.
+
 ## PR 36C — The harness learns the margin
 
 - **A shared reading, `marginalStudentMargin(s, extra)`** in
@@ -214,6 +218,20 @@ This document.
 - **Still harness-neutral while the line is zero.** The margin is then
   positive at every size the harness reaches, so no strategy's choices
   change. The slow suites prove it again.
+
+**As implemented:**
+- **Not quite harness-neutral at zero.** The Regional engine prices close
+  to its costs, so the margin reading already holds its class slightly at
+  a scale cost of zero. Its reference moved in PR D's re-record anyway.
+- **"Past the break, admit a replacement class":** the graduating seniors,
+  found by scaling the strategy's own rate by the funnel's projection.
+- **Sections are read as a share,** not rounded up, in the marginal cost.
+  - **Why:** every course is the same size here, so a thousand students
+    tipped every course over a section boundary at once, and the next
+    student's cost swung between a few thousand and ninety thousand a
+    year.
+  - **How it was found:** the Treasury's chart drew it. The harness had
+    read it too, so the fit was re-run after the fix.
 
 ## PR 36D — Fitting k to the design's eras
 
@@ -241,6 +259,51 @@ This document.
   then re-recorded, and every claim that moves is re-fitted with its
   reason beside it.
 
+**As implemented:**
+- **`SCALE_PER_STUDENT_PER_WEEK = 5`, `SCALE_FREE_BELOW = 1,500`.**
+- **The grid**, default seed, Balanced builder:
+
+  | Rate | Catalogue 80% | 20k students | First place |
+  | ---: | ---: | ---: | ---: |
+  | 4 | Y33 | Y28 | Y22 |
+  | 5 | Y35 | Y24 | Y29 |
+  | 6 | Y34 | Y25 | Y32 |
+  | 8 | Y41 | Y34 | Y45 |
+
+  - 6 put first place at Year 47 and Year 18 on the other two seeds.
+  - 5 was chosen for the headroom it leaves a weaker player.
+- **A Balanced builder charging a tenth less** has no founding stall
+  (no weeks blocked in Years 1–10) and ends second.
+- **The gates** are in `test/balance-scorecard.test.ts`, on the default
+  seed:
+  - first place no earlier than Year 25;
+  - 20,000 students no earlier than Year 20;
+  - four-fifths of the catalogue built between Years 22 and 38, where the
+    plan said 22–35 (5 lands at 35 exactly, so the band was given three
+    years' room);
+  - at most 60 founding weeks blocked.
+- **The Balanced builder's operating-margin floors** from Year 20 are
+  −15%, from −5%. A big college's operating margin sits a few points under
+  zero, and the endowment's payout carries it.
+- **What it does not move:** the colleges that lead by founding schools
+  early (the Earnest completionist, the Selective college, the Regional
+  engine) still take first place by Years 13–18.
+- **Discount volume** falls from rank 16 to 38: size is its whole
+  strategy.
+- **Claims re-fitted, each with its reason beside it:**
+  - **The Earnest completionist** builds whatever it can. It has no
+    endowment to carry a big campus, and on two seeds of three it runs
+    into the red and the board's construction freeze before the end:
+    89% and 91% of the catalogue, 64% and 86% of the halls. On the third
+    it finishes. The design says completing every school is "barely
+    possible", and now it is. The claims ask for most of it on every seed
+    and all of it on one.
+  - **The Regional engine** grows to the ceiling with no endowment, and
+    its stewardship reads C on all three seeds, where it read B on two.
+  - **The saturation gate** allows two years at 95 satisfaction, since
+    the Regional engine had one. A year at the ceiling is a good year;
+    v2's saturation was decades of it.
+
 ## PR 36E — Making the break visible
 
 - **The summer's projection** says what the next thousand students would
@@ -256,6 +319,13 @@ This document.
   It explains, in the board's voice, that the next students will cost
   more than the last. It lives in the writing data, with the opening
   letters.
+
+**As implemented:**
+- **The board's letter is one added sentence** in the "A town's worth"
+  milestone, which fires at 1,500 students, where the cost begins. It is
+  not a letter of its own.
+- **The Treasury chart runs to the catalogue's capacity,** less a
+  thousand, since past it the class is held to the room.
 
 ## PR 36F — Readings
 
