@@ -156,3 +156,31 @@ commencement, and the petition toast points at it. `TabId` loses
 - **"Noted"** (`READ_DEMAND`) puts it away.
 - **Old saves:** the `'demand'` interrupt still resolves for a save taken
   with the old modal open.
+
+## The harness, re-measured
+
+Quirks, retirement and expectations move the harness on purpose (the
+plan's rules). What moved, and what was done:
+
+- **Quirks change who the market offers,** and the harness picks from it.
+  The effects average mildly positive (+0.5 teaching, +1.4 research, pay
+  ×1.01), so the change is which candidates, not a tilt. The Curriculum
+  rush, which lives or dies by its first hires, diverges from year 6.
+- **Retirement exposed a harness habit.** A college in the red did not
+  replace a retiree, since its restaffing waited on a cash buffer. From
+  year 30 its catalogue went unstaffed, enrollment fell, and the deficit
+  deepened: the rush fell to 164 students by year 50. A player replaces a
+  retiree, whose successor's salary replaces the one that left. The
+  harness now does too (`restaffOrphans`, a credit per retirement that
+  skips the buffer).
+- **The rush now has two fates by seed.** It recovers into a large college
+  at 7, 12346 and 12347, and stays a small one near break-even at 12345
+  and 2024. On Plan 28 the default seed already ended year 40 at −$0.1M.
+  Its three year-40 recovery claims are judged across seeds, as its net
+  claim already was.
+- **Retirement returns the seniority premium,** so a long-running college's
+  late payroll falls. The Balanced builder's year-50 margin rose from 8%,
+  14% and 25% on the three seeds to 26%, 32% and 13%. The hand-written
+  target's ceiling moves from 30% to 40% with a note, and Phase N
+  rebalances the late margin (V1-25).
+- **The reference bands are re-recorded.**
