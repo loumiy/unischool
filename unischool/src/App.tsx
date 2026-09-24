@@ -6,6 +6,11 @@ import { mapBackOutLive, mapControlsLive, useHotkeys, type ShellOverlays } from 
 import type { GameState } from './state/types';
 import StartupScreen from './components/StartupScreen';
 import MainMenu from './components/MainMenu';
+import TitleScreen from './components/TitleScreen';
+import { applySettings } from './settings';
+import HallOfFame from './components/HallOfFame';
+import SettingsPanel from './components/SettingsPanel';
+import Credits from './components/Credits';
 import Pennant from './components/Pennant';
 import DebugPanel from './components/DebugPanel';
 import InterruptModal from './components/InterruptModal';
@@ -58,6 +63,8 @@ const TAB_HOTKEYS: Record<string, TabId> = {
   l: 'students',
 };
 
+type Front = 'title' | 'hall' | 'settings' | 'credits';
+
 export default function App() {
   const { state, act, speed, setSpeed, weekProgress, exportRun } = useGame();
   const s: GameState = state;
@@ -66,6 +73,19 @@ export default function App() {
   // open. The tab consumes and clears the target, so the same link works
   // twice.
   const [overlay, setOverlay] = useState<{ tab: TabId; target?: string } | null>(null);
+  // The front screens (Plan 34): the title the game opens on, and the hall,
+  // the settings and the credits, reachable from it and from the menu. The
+  // clock is paused while one is up.
+  const [front, setFrontState] = useState<Front | null>('title');
+  const [frontBack, setFrontBack] = useState<Front | null>(null);
+  function setFront(next: Front | null) {
+    setFrontBack(next === 'title' || next === null ? null : front);
+    setFrontState(next);
+    if (next !== null) setSpeed('paused');
+  }
+  const closeFront = () => setFrontState(frontBack);
+  // The player's settings onto the page, once (settings.ts).
+  useEffect(() => { applySettings(); }, []);
   // The Curriculum tab's "Found in <hall>": closes the tab and opens that
   // hall's panel on the map. Consumed and cleared by the map.
   const [inspectTarget, setInspectTarget] = useState<string | null>(null);
@@ -213,11 +233,25 @@ export default function App() {
     else if (overlay) openTab(null);
   }, s.started);
 
+  const frontScreen = front === 'title' ? (
+    <TitleScreen
+      s={s}
+      onContinue={() => setFrontState(null)}
+      onNewCollege={() => { if (s.started) act({ type: 'RESET' }); setFrontState(null); }}
+      onHall={() => setFront('hall')}
+      onSettings={() => setFront('settings')}
+      onCredits={() => setFront('credits')}
+    />
+  ) : front === 'hall' ? <HallOfFame onClose={closeFront} />
+    : front === 'settings' ? <SettingsPanel onClose={closeFront} />
+      : front === 'credits' ? <Credits onClose={closeFront} />
+        : null;
+
   if (!s.started) {
     // On this screen the debug panel offers Load alone (see DebugPanel.tsx).
     return (
       <>
-        <StartupScreen onStart={(name, vernacular, colors) => act({ type: 'START_GAME', name, vernacular, colors, guided: true, seed: freshSeed() })} />
+        {frontScreen ?? <StartupScreen onStart={(name, vernacular, colors) => act({ type: 'START_GAME', name, vernacular, colors, guided: true, seed: freshSeed() })} />}
         <DebugPanel s={s} act={act} exportRun={exportRun} />
       </>
     );
@@ -240,7 +274,8 @@ export default function App() {
         onInspectedChange={setInspectedId}
         gait={!s.started || speed === 'paused' || s.pendingInterrupt || openingHoldsClock(s) ? 0 : SPEEDS.real / SPEEDS[speed]}
       />
-      <MainMenu act={act} />
+      <MainMenu act={act} onHall={() => setFront('hall')} onSettings={() => setFront('settings')} onTitle={() => setFront('title')} />
+      {frontScreen}
       {/* The school's pennant (Pennant.tsx); the tab's title takes that
           corner while a tab is open. */}
       {!overlay && <Pennant s={s} />}

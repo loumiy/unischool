@@ -39,15 +39,16 @@
 
   /* ---------- Design tokens (spacing deliberately not tokenised) ---------- */
 
-  /* Type scale. */
-  --text-2xs: 10px;
-  --text-xs: 11px;
-  --text-sm: 12px;
-  --text-base: 13px;
-  --text-md: 14px;
-  --text-lg: 15px;
-  --text-xl: 17px;
-  --text-2xl: 24px;
+  /* Type scale, times the player's text size (Plan 34, state/settings.ts). */
+  --text-scale: 1;
+  --text-2xs: calc(10px * var(--text-scale));
+  --text-xs: calc(11px * var(--text-scale));
+  --text-sm: calc(12px * var(--text-scale));
+  --text-base: calc(13px * var(--text-scale));
+  --text-md: calc(14px * var(--text-scale));
+  --text-lg: calc(15px * var(--text-scale));
+  --text-xl: calc(17px * var(--text-scale));
+  --text-2xl: calc(24px * var(--text-scale));
 
   /* Corners. */
   --radius-xs: 4px;
@@ -98,7 +99,8 @@ button { cursor: pointer; font-family: inherit; }
   border-radius: var(--radius-xs);
 }
 
-/* One blanket rule, so new animations are covered automatically. */
+/* One blanket rule, so new animations are covered automatically: the
+   operating system's preference, or the player's (Plan 34). */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -107,6 +109,53 @@ button { cursor: pointer; font-family: inherit; }
     scroll-behavior: auto !important;
   }
 }
+:root[data-motion='reduce'] *, :root[data-motion='reduce'] *::before, :root[data-motion='reduce'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Colour-vision-safe signal colours (Plan 34): good and bad news in blue and
+   orange rather than green and red. */
+:root[data-vision='safe'] {
+  --ok-on-light: #1f5fa8;
+  --bad-on-light: #b35a00;
+  --bad-on-dark: #ffc27a;
+  --danger-ink: #b35a00;
+  --danger-bg: #fdebd6;
+  --danger-line: #e6b98a;
+}
+:root[data-vision='safe'] .grade-a { color: #1f5fa8; background: #dbe8f6; }
+:root[data-vision='safe'] .grade-b { color: #3f6f9e; background: #e2ebf3; }
+:root[data-vision='safe'] .grade-d { color: #9a5a10; background: #f6e3cc; }
+:root[data-vision='safe'] .grade-f { color: #b35a00; background: #fdebd6; }
+
+/* ---------- The front screens (Plan 34: TitleScreen, HallOfFame, SettingsPanel, Credits) ---------- */
+.front-screen { position: fixed; inset: 0; z-index: 60; overflow-y: auto; display: flex; flex-direction: column; align-items: center;
+  gap: 24px; padding: 40px 16px; background: rgba(245, 239, 226, 0.97); }
+.title-card { width: min(640px, 100%); background: var(--cream-hi); border: 3px solid var(--outline); border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-3); padding: 24px 28px; }
+.title-head { text-align: center; margin-bottom: 18px; }
+.title-name { margin: 0; font-family: var(--display); font-weight: 800; font-size: calc(44px * var(--text-scale)); color: var(--school-primary); }
+.title-tagline { margin: 4px 0 0; color: var(--ink-muted); font-style: italic; }
+.title-actions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.title-primary { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 16px; border: 3px solid var(--outline);
+  border-radius: var(--radius-lg); background: var(--school-secondary); color: var(--school-on-secondary); font-family: var(--display);
+  font-weight: 800; font-size: var(--text-xl); box-shadow: var(--shadow-2); }
+.title-sub { font-family: var(--sans); font-weight: 600; font-size: var(--text-sm); opacity: 0.85; }
+.title-hall-head { margin: 0 0 10px; font-family: var(--display); font-weight: 800; font-size: var(--text-lg); color: var(--ink); }
+.title-hall-all { margin-top: 10px; }
+.hall-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.hall-head .hall-title { margin: 0; }
+.settings-row { border: 0; margin: 0 0 14px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.settings-row legend { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--school-primary); margin-bottom: 6px; }
+.settings-note { flex-basis: 100%; margin: 4px 0 0; font-size: var(--text-xs); color: var(--ink-muted); }
+.credits-lede { font-style: italic; color: var(--ink-muted); }
+.credits-list { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; }
+.credits-list dt { font-weight: 800; color: var(--ink); }
+.credits-list dd { margin: 0; color: var(--ink-muted); }
 
 /* ---------- Chrome layer ----------
    .app has no layout; its children are position: fixed. pointer-events:
@@ -2255,8 +2304,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .letter-skip:hover { border-color: var(--outline) !important; color: var(--ink) !important; }
 
 /* ---------- The hall of fame (Plan 33, StartupScreen.tsx) ---------- */
-.startup { flex-direction: column; gap: 24px; }
-.hall { width: min(960px, 100%); background: var(--cream-hi); border: 3px solid var(--outline); border-radius: var(--radius-xl);
+.hall-wall { width: min(960px, 100%); background: var(--cream-hi); border: 3px solid var(--outline); border-radius: var(--radius-xl);
   padding: 18px 20px; box-shadow: var(--shadow-2, var(--shadow-1)); }
 .hall-title { margin: 0 0 12px; font-family: var(--display); font-weight: 800; font-size: var(--text-lg); color: var(--ink); }
 .hall-frames { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }

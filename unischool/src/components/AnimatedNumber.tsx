@@ -1,3 +1,4 @@
+import { reducedMotion } from '../settings';
 import { useEffect, useRef, useState } from 'react';
 
 // Tweens from what is on screen to a new `value` rather than snapping.
@@ -6,11 +7,10 @@ import { useEffect, useRef, useState } from 'react';
 const DEFAULT_DURATION_MS = 450;
 
 // The tween runs on requestAnimationFrame, which the stylesheet's
-// prefers-reduced-motion rule cannot reach, so it checks for itself.
+// reduced-motion rules cannot reach, so it asks the settings, which read
+// the player's choice and the operating system's (settings.ts).
 function prefersReducedMotion(): boolean {
-  return typeof window !== 'undefined'
-    && typeof window.matchMedia === 'function'
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return reducedMotion();
 }
 
 export default function AnimatedNumber({
