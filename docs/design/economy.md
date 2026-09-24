@@ -179,3 +179,30 @@ fast-forward through the real reducer under several scripted strategies (see
 gated by its scorecard (`sim/reference.ts`: hand-written targets for the
 Balanced builder and the two controls, three-seed envelopes for the rest; see
 [playtesting.md](../architecture/playtesting.md)).
+
+## The late margin (V1-25), settled
+
+Plan 35 (Phase N of the merge) measured the Balanced builder's income
+statement decade by decade. **A mature college's operating margin runs at
+1–3%** from Year 15 on, which is about what a real one runs. The headline
+margin that had climbed to 67% at Year 50 was the endowment's: the harness
+moves every spare dollar into it, it compounds at `ENDOWMENT_ANNUAL_RETURN`,
+and its payout comes back as income, $666M a year by Year 50 against a
+$17B fund.
+
+That is the decision: **the endowment is the reward for decades of surplus,
+and grows as a real one does; it is not a margin to be taxed away.** The
+scorecard reads the operating margin (`sim/reference.ts`'s `netMargin`, the
+week's net less the endowment payout and the annual fund, over operating
+cost) and holds a mature college to it. What the money is *for* late in a
+run (the capital projects, the endowment's half of them) is Plan 33's.
+
+The same plan measured the other end. **The founding has no slack of its
+own**: the economy is a threshold system, and a player who charges a tenth
+less than the harness's price, or whose costs run a tenth higher, stalled
+for a decade on a gift of $1.4M. The gift is $3.0M (`FOUNDING_PRESET`),
+which a strong strategy does not need and a weaker one does. The boom that
+follows a founding that works (the catalogue built by Year 15, first place
+by Year 17) is left open for the owner: every cost lever measured tips the
+economy into a stall before it slows the boom, so the fix is a mechanism
+that smooths the threshold, not a constant ([Plan 35](../plans/35-balance-and-playtest.md)).

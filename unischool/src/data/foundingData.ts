@@ -57,8 +57,12 @@ export const FOUNDING_VERNACULAR: Vernacular = 'georgian';
 // Tunable: most sim/balanceSim.ts strategies are fitted against these
 // numbers. Re-fit the founding applicant pool together with the admit-rate
 // curve (ADMIT_PROBES) rather than nudging it alone.
+//
+// The gift was $1.4M until Plan 35, which measured a founding with no slack:
+// a player charging a tenth less than the harness's price stalled for a
+// decade (docs/design/economy.md's "The late margin, settled").
 export const FOUNDING_PRESET: FoundingPreset = {
-  startingCash: 1_400_000,
+  startingCash: 3_000_000,
   startingReputation: 50,
   startingApplicantPool: 150,
 };
