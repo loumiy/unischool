@@ -1,7 +1,7 @@
 import { financingFor } from '../systems/finance/treasury';
 import { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
-import type { Buildable, GameState, Placement, TileCoord, Vernacular } from '../state/types';
+import type { Buildable, GameState, Initiative, Placement, TileCoord, Vernacular } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import { useCampusLayout, type CampusLayout } from './campusLayout';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
@@ -24,6 +24,7 @@ import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
 import { isAcademicHall, programById } from '../data/techData';
 import { schoolMark } from '../data/schoolPalette';
+import { researchTopic } from '../data/researchTopics';
 import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf } from './buildingMotifs';
 import { floorsUnderConstruction, materialOf, motifOf, wallHeightOf } from './buildingSpec';
 import { groundProps } from './groundMarkings';
@@ -456,6 +457,66 @@ function HallMarks({ t, p, slots, offerWaiting, blocked, vernacular, onInspect }
         </g>
       )}
     </g>
+  );
+}
+
+// A lab at work (Plan 41): over a facility hosting a research project, a
+// dark disc like the hall's pips, a ring filling in the school's colour as
+// the project runs, and an atom turning inside it. Nothing when idle.
+const LAB_MARK_R = 12;
+const LAB_MARK_RING = 2 * Math.PI * LAB_MARK_R;
+// The atom's orbit, an ellipse as a path so the electron can run it.
+const LAB_ORBIT = (() => {
+  const rx = LAB_MARK_R * 0.62;
+  const ry = LAB_MARK_R * 0.26;
+  return `M ${rx} 0 A ${rx} ${ry} 0 1 1 ${-rx} 0 A ${rx} ${ry} 0 1 1 ${rx} 0 Z`;
+})();
+
+function LabMark({ t, p, run, vernacular, onInspect }: {
+  t: Buildable; p: Placement; run: Initiative; vernacular: Vernacular; onInspect: () => void;
+}) {
+  const { size, centre } = labelLayout(t.name, t, p, vernacular);
+  const y = centre.y - size * 0.6 - HALL_MARK_LIFT;
+  const done = run.weeksTotal > 0 ? Math.max(0, Math.min(1, 1 - run.weeksRemaining / run.weeksTotal)) : 0;
+  const hue = t.schoolGate ? schoolMark(t.schoolGate).hue : undefined;
+  const topic = researchTopic(run.topicId)?.name ?? 'Research';
+  const still = reducedMotion();
+  return (
+    <g className="campus-lab-mark" role="button" onClick={onInspect} transform={`translate(${centre.x.toFixed(2)} ${y.toFixed(2)})`}
+      aria-label={`${t.name}: ${topic}, ${Math.round(done * 100)}% done`}>
+      <title>{`${topic} · ${run.weeksRemaining} week${run.weeksRemaining === 1 ? '' : 's'} to go`}</title>
+      <circle className="campus-lab-plate" r={LAB_MARK_R + 4.5} />
+      <circle className="campus-lab-track" r={LAB_MARK_R} />
+      <circle
+        className="campus-lab-progress" r={LAB_MARK_R} transform="rotate(-90)"
+        strokeDasharray={`${(LAB_MARK_RING * done).toFixed(2)} ${LAB_MARK_RING.toFixed(2)}`}
+        style={hue ? { stroke: hue } : undefined}
+      />
+      <g transform="rotate(-30)">
+        <path className="campus-lab-orbit" d={LAB_ORBIT} />
+        <circle className="campus-lab-nucleus" r={2.8} style={hue ? { fill: hue } : undefined} />
+        {/* The electron runs the orbit; with reduced motion it rests on it. */}
+        {still ? (
+          <circle className="campus-lab-electron" cx={LAB_MARK_R * 0.62} r={2} />
+        ) : (
+          <circle className="campus-lab-electron" r={2}>
+            <animateMotion dur="2.6s" repeatCount="indefinite" path={LAB_ORBIT} />
+          </circle>
+        )}
+      </g>
+    </g>
+  );
+}
+
+function LabMarksLayer({ s, layout, onInspect }: {
+  s: GameState; layout: CampusLayout; onInspect: (id: string) => void;
+}) {
+  return (
+    <>
+      {layout.placed.filter(({ t }) => s.research.initiatives[t.id]).map(({ t, p }) => (
+        <LabMark key={`lab-${t.id}`} t={t} p={p} run={s.research.initiatives[t.id]} vernacular={layout.vernacular} onInspect={() => onInspect(t.id)} />
+      ))}
+    </>
   );
 }
 
@@ -1376,6 +1437,7 @@ export default function CampusMap({
             </CrowdContext.Provider>
             <Walkers layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} />
             <HallMarksLayer s={s} layout={layout} onInspect={onInspect} />
+            <LabMarksLayer s={s} layout={layout} onInspect={onInspect} />
             <QuadOverlay quads={quads} hovered={hoveredQuad} inspected={inspectedQuadKey} showAll={showQuadNames} camera={camera} />
           </g>
         </svg>
