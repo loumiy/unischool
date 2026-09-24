@@ -12,6 +12,8 @@ import HelpHint from './HelpHint';
 import { BUILD_WORDS } from '../data/buildWords';
 import { ProgressBar } from './Progress';
 import ToolbarPopup from './ToolbarPopup';
+import { setPlantingSpecies, usePlantingSpecies } from './plantingChoice';
+import type { Species } from '../data/treeData';
 import {
   DrawPathIcon, EraseIcon, BuildIcon, HousingIcon, DiningIcon, LibraryIcon,
   LabIcon, HealthIcon, QuadIcon, FitnessIcon, ArtsIcon, AcademicIcon, TreeIcon,
@@ -551,6 +553,33 @@ function BuildGroupTiles({ s, group, placingId, onArmPlacement, act }: {
 
 // Draw path / erase path / trees: campus-editing tools as tiles in their own
 // tab. `pathTool` is lifted to App.tsx.
+
+// Which tree the plant tool plants (Plan 37, from v2's): whatever grows,
+// or one kind. A row under the tile while the tool is armed.
+const SPECIES_CHIPS: readonly { id: Species | null; label: string }[] = [
+  { id: null, label: 'Whatever grows' },
+  { id: 'canopy', label: 'Broadleaf' },
+  { id: 'conifer', label: 'Conifer' },
+  { id: 'ornamental', label: 'Ornamental' },
+];
+function SpeciesChips() {
+  const chosen = usePlantingSpecies();
+  return (
+    <div className="species-chips" role="group" aria-label="Which tree to plant">
+      {SPECIES_CHIPS.map((c) => (
+        <button
+          key={c.label}
+          type="button"
+          className={`species-chip ${chosen === c.id ? 'active' : ''}`}
+          aria-pressed={chosen === c.id}
+          onClick={() => setPlantingSpecies(c.id)}
+        >
+          {c.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArmPlacement, act }: {
   s: GameState;
   pathTool: CampusTool | null;
@@ -596,6 +625,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         <span className="build-tile-name">Plant trees</span>
         <span className="build-tile-foot">fills in tiles</span>
       </button>
+      {pathTool === 'plant' && <SpeciesChips />}
       <button
         type="button"
         className={`build-tile tool ${pathTool === 'fell' ? 'placing' : ''}`}

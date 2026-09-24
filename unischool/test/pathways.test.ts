@@ -8,6 +8,7 @@ import { reducer } from '../src/engine/reducer';
 import { ROAD_FIRST_ROW } from '../src/state/campusMap';
 import { bindScriptStream } from '../src/engine/random';
 import type { Pathways } from '../src/state/types';
+import { DEFAULT_CAMERA, VIEWS, setCamera, unproject } from '../src/components/isoProjection';
 
 bindScriptStream(2427);
 const store = new Map<string, string>();
@@ -72,6 +73,36 @@ const shapes = (d: string) => d.split('M').filter(Boolean).map((part) => part.sp
   assert(!(`${ROAD_FIRST_ROW},7` in s.pathways), 'but not on the road');
   s = reducer(s, { type: 'PAINT_PATH_TILES', add: [{ row: 6, col: 5 }], remove: [{ row: 6, col: 6 }] });
   assert('6,5' in s.pathways && !('6,6' in s.pathways), 'and moved: what left the line is lifted');
+}
+
+// ---- The joints are the shared grid edges, in every view (Plan 37) ----
+{
+  // Each joint segment's ends, read back to grid corners.
+  const edges = (d: string) => d.split('M').filter(Boolean).map((part) => {
+    const ends = part.split('L').map((p) => {
+      const [x, y] = p.trim().split(/[ ,]+/).map(Number);
+      const g = unproject(x, y);
+      return `${Math.round(g.col)},${Math.round(g.row)}`;
+    });
+    return ends.sort().join('-');
+  }).sort().join(' ');
+  const upDown = paths([10, 10], [11, 10], [12, 10]);
+  const across = paths([10, 10], [10, 11], [10, 12]);
+  const expected = { upDown: '', across: '' };
+  for (const [i, azimuth] of VIEWS.entries()) {
+    setCamera({ ...DEFAULT_CAMERA, azimuth });
+    const a = edges(buildPathGeometry(upDown).joints);
+    const b = edges(buildPathGeometry(across).joints);
+    if (i === 0) {
+      expected.upDown = a;
+      expected.across = b;
+      assert(a === '10,11-11,11 10,12-11,12', `a north-south run's joints are its two shared edges (${a})`);
+      assert(b === '11,10-11,11 12,10-12,11', `an east-west run's joints are its two shared edges (${b})`);
+    } else {
+      assert(a === expected.upDown && b === expected.across, `view ${i} draws the same joints as the first (${a} | ${b})`);
+    }
+  }
+  setCamera(DEFAULT_CAMERA);
 }
 
 if (failures === 0) {

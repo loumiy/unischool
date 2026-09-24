@@ -1,3 +1,4 @@
+import type { Species } from '../data/treeData';
 import type { DemandSubject } from '../data/demandData';
 import type {
   AthleticsBudgetTier, Coach, DressingKind, GameState, InitiativeDepth, Placements, SchoolColors, SummerDecision, TileCoord, Vernacular,
@@ -83,7 +84,8 @@ export type Action =
   | { type: 'ADD_PATH_TILE'; tile: TileCoord }
   | { type: 'REMOVE_PATH_TILE'; tile: TileCoord }
   // Decorative; nothing is planted under a building or a path.
-  | { type: 'PLANT_TREE'; tile: TileCoord }
+  // `species` asks for a kind (Plan 37); omitted, whatever the dice say.
+  | { type: 'PLANT_TREE'; tile: TileCoord; species?: Species }
   | { type: 'FELL_TREE'; tile: TileCoord }
   // A straight run of path, laid and adjusted in one step (the Shift-held draw).
   | { type: 'PAINT_PATH_TILES'; add: TileCoord[]; remove: TileCoord[] }

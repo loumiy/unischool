@@ -25,6 +25,44 @@ const CLEARING_RADIUS = 18;
 // offset (see Trees in types.ts). Exported for the reducer's PLANT_TREE.
 export const TREE_SEED_RANGE = 1 << 20;
 
+// What kind of tree a seed is (Plan 37, from v2's sim/trees.ts). The hash
+// moved here from the renderer, byte for byte, so the reducer can honour a
+// planting choice without widening the save: a tree is still one integer,
+// and a seed is found that already means the species asked for.
+export type Species = 'canopy' | 'conifer' | 'ornamental';
+// The mix a random seed draws from: mostly canopy, some conifer, the
+// ornamentals sparse enough to read as deliberate when one appears.
+export const SPECIES_MIX: readonly Species[] = ['canopy', 'canopy', 'canopy', 'conifer', 'conifer', 'ornamental'];
+export const SPECIES: readonly Species[] = ['canopy', 'conifer', 'ornamental'];
+
+// Integer hash so each roll off one seed is independent; `seed % n` would
+// correlate species with position and show as banding.
+export function roll(seed: number, salt: number): number {
+  let h = (seed ^ (salt * 0x9e3779b1)) >>> 0;
+  h = Math.imul(h ^ (h >>> 15), 0x85ebca6b) >>> 0;
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35) >>> 0;
+  return ((h ^ (h >>> 16)) >>> 0) / 0x100000000;
+}
+
+export function speciesOf(seed: number): Species {
+  return SPECIES_MIX[Math.floor(roll(seed, 1) * SPECIES_MIX.length)];
+}
+
+// A seed that means the species asked for, found by walking forward from
+// the one the dice gave rather than drawing again: planting consumes exactly
+// one number from the stream either way, so replays and older saves are
+// unaffected. Bounded, so a species the mix no longer holds degrades to
+// "whatever the dice said".
+const SPECIES_SEARCH_CAP = 256;
+export function seedForSpecies(seed: number, species: Species | null | undefined): number {
+  if (!species) return seed;
+  for (let i = 0; i < SPECIES_SEARCH_CAP; i++) {
+    const candidate = (seed + i) % TREE_SEED_RANGE;
+    if (speciesOf(candidate) === species) return candidate;
+  }
+  return seed;
+}
+
 function randomSeed(): number {
   return Math.floor(random() * TREE_SEED_RANGE);
 }

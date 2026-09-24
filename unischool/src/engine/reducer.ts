@@ -39,7 +39,7 @@ import { tickAthletics } from '../systems/athletics/athleticsSystem';
 import { raiseDemand, shortfallDemandFor, tickDemands } from '../systems/demands/demandSystem';
 import { absoluteWeek, findDecisionEvent, offeredChoices } from '../data/eventData';
 import { LIBRARY_TIER1_ID, nextLibraryFloor, servedUpkeep, nextVenueExpansion} from '../data/facilitiesData';
-import { TREE_SEED_RANGE } from '../data/treeData';
+import { TREE_SEED_RANGE, seedForSpecies } from '../data/treeData';
 import { advanceOpening, openingHoldsClock, settleOpening, skipOpening } from '../state/opening';
 import { TRAINER_FIELD, MASCOT_MAX_LENGTH, applyTeamOrder } from '../data/studentLifeData';
 import { isLand, isPlaceableKind, parsePathTileKey, pathTileKey, occupantAt } from '../state/campusMap';
@@ -258,7 +258,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       if (!isLand(row, col)) return s;
       const key = pathTileKey(action.tile);
       if (key in s.pathways || occupantAt(s.placements, row, col) !== undefined) return s;
-      if (!(key in s.trees)) s.trees[key] = Math.floor(random() * TREE_SEED_RANGE);
+      // One draw whatever is asked for, so replays hold (treeData.ts's seedForSpecies).
+      if (!(key in s.trees)) s.trees[key] = seedForSpecies(Math.floor(random() * TREE_SEED_RANGE), action.species);
       return s;
     }
 

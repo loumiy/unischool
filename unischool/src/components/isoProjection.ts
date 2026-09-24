@@ -82,6 +82,19 @@ function snap(v: number): number {
   return Math.abs(v - r) < 1e-9 ? r : v;
 }
 
+// The quarter turn (Plan 37, from v2's): eased in and out over TURN_MS.
+// The map still rests only on VIEWS; the angles it passes through on the
+// way are drawn for a quarter of a second.
+export const TURN_MS = 260;
+export function easeInOut(t: number): number {
+  const u = Math.min(1, Math.max(0, t));
+  return u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+}
+// The azimuth a turn from `from` to `to` has reached at `t` of its time.
+export function turnStep(from: number, to: number, t: number): number {
+  return from + (to - from) * easeInOut(t);
+}
+
 // Wraps the azimuth into [0, 2pi) and clamps the pitch.
 export function normaliseCamera(c: Camera): Camera {
   const TAU = Math.PI * 2;

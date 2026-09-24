@@ -83,10 +83,13 @@ export function buildPathGeometry(pathways: Pathways): Geometry {
     fill.push(sub(pts));
 
     // Where paving continues, a light joint line (N and E only, so each
-    // shared edge is drawn once).
-    const [A, B, C] = boxFaces(col, row, 1, 1, 0, 0).top;
-    if (n[0]) joints.push(seg(A, B));
-    if (n[1]) joints.push(seg(B, C));
+    // shared edge is drawn once). Read by grid corner, never by the
+    // screen-ordered `top`, whose first corner is whichever is at the back
+    // in this view (Plan 37: the joints moved onto the kerbs in three views
+    // of four).
+    const f = boxFaces(col, row, 1, 1, 0, 0);
+    if (n[0]) joints.push(seg(f.NW, f.NE));
+    if (n[1]) joints.push(seg(f.NE, f.SE));
 
     // A bridge across a corner two tiles share and nothing else: the two
     // notches either side of it filled, so the run has straight edges.
