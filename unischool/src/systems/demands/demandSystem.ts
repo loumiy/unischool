@@ -44,7 +44,7 @@ const RATIO_ATTRIBUTES: readonly (keyof SatisfactionAttributes)[] = [
 ];
 
 // =====================================================================
-// READINGS — what the modal and the Student Life tab render
+// READINGS — what the modal and the Students tab render
 // =====================================================================
 
 export interface DemandProgress {

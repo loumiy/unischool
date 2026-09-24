@@ -3,7 +3,7 @@ import { totalEnrolled } from '../state/types';
 import { COHORTS, baseShareCohortCounts } from '../systems/admissions/cohorts';
 
 // ---------------------------------------------------------------------
-// The Enrollment tab: who attends, and what the funnel is doing. Each
+// Enrollment (a section of the Students tab, Plan 29): who attends, and what the funnel is doing. Each
 // class's cohort mix is recorded at admission and carried to graduation
 // (types.ts's ClassCohorts), so the four bars compare what the school drew
 // four years ago with what it draws now. Read-only: tuition is set only at
@@ -178,7 +178,7 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
           />
           <FunnelLine
             label="Satisfaction"
-            note="Next summer's word of mouth: the trailing-year average scales the pool above. The five attributes behind this number are on the Student Life tab."
+            note="Next summer's word of mouth: the trailing-year average scales the pool above. The five attributes behind this number are at the top of this tab."
             value={`${Math.round(s.students.satisfaction)}`}
           />
           <FunnelLine

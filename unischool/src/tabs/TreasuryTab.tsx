@@ -19,7 +19,7 @@ import { RUNG_AUSTERITY, RUNG_FREEZE, RUNG_NAMES, RUNG_RECEIVERSHIP, distressOf 
 // same breakdown the tick charges, so the two cannot drift. Figures are per
 // week; the annualized footer is just x WEEKS_PER_YEAR.
 
-// Youngest first, the same order the Enrollment tab stacks the classes in
+// Youngest first, the same order the Students tab stacks the classes in
 // and the same order reducer.ts advances them.
 const CLASS_ORDER: ReadonlyArray<[keyof ClassTuition, string]> = [
   ['freshman', 'Fr'], ['sophomore', 'So'], ['junior', 'Jr'], ['senior', 'Sr'],
