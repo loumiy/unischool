@@ -4,8 +4,13 @@
 UniSchool v2's systems, and able to measure them: Phase A of the migration
 plan (`loumiy/unischool-v2`, `docs/MIGRATION_PLAN.md`), sequenced as PRs.*
 
-**Status: In progress.** PRs A–E are in this branch. F–J are sequenced and
-not started.
+**Status: In progress.** PRs A–J are done in this branch, awaiting merge, with G split into G and
+G (ii) and D's re-recorded bands as D (ii). The **As implemented** notes
+record where the work departed from the plan; the ones that matter most are
+that the tests stayed standalone scripts under a new runner rather than
+moving to Vitest (A), that two balance claims and one control's targets are
+now judged across seeds after the new random stream (D), and that the
+comment trim reached 18% of lines rather than a tenth (G).
 
 ---
 
@@ -456,6 +461,20 @@ Next to the existing scenario and screenshot tools:
   first year in a headless browser and reports where it stalled.
 - **`tools/profile.mjs`**: a map frame-time profile at each speed, which
   Phase C's performance rule needs.
+
+**As implemented:**
+
+- **Fire any event was already there** (see PR E's note). **+$1B** reuses
+  `DEBUG_SET_CASH`, so it needs no new action and replays like any other.
+- **`tools/newPlayer.mjs`, not `.ts`,** like the other browser-driving
+  tools. Its first run found its own bug: a letter without `aria-modal` read
+  as a stall. With that fixed, a fresh college gets through the walkthrough
+  in 5 seconds and through its first year at 4× in 72, with no stalls and
+  no page errors.
+- **`tools/profile.mjs` on a Completionist Year-20 campus** (17 buildings,
+  headless): 60 fps paused and at Play, 54 at 2× and 52 at 4×, with 6 and
+  12 long tasks. This is the baseline Phase C's static-layer work is
+  measured against.
 
 ## What this plan does not do
 

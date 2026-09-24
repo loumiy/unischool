@@ -160,3 +160,29 @@ recipe survives it.
 See [`docs/architecture/playtesting.md`](../../docs/architecture/playtesting.md)
 for the whole harness — the scenarios, the debug flag and panel, and the sim
 scorecard.
+
+## Playing it as a newcomer, and timing it
+
+Both drive the real app in a headless Chromium against a running dev server
+(`CAMPUS_URL`, default `http://localhost:5173/`).
+
+```sh
+npm run dev                                   # in one shell
+npm run newplayer                             # found a college, follow the walkthrough, play year one at 4x
+npm run scenario -- --strategy Completionist --year 40 --clear-modal /tmp/y40.json
+npm run profile -- /tmp/y40.json --seconds=10 # fps, 95th-percentile frame and long tasks per speed
+```
+
+`newplayer` does only what the walkthrough and the Next line ask, answers
+every letter with its last button, and reports each step, each kind of
+letter, and any stall: a clock that stopped for 20 seconds with nothing on
+screen asking for anything. It writes a screenshot of each stall to
+`node_modules/.tmp/` and exits non-zero if it stalled or never reached year 2.
+
+`profile` loads a save and samples frames at Paused, Play, 2x and 4x. Headless
+Chromium draws in software, so compare its numbers with each other (before
+and after a change) rather than with a player's machine.
+
+The debug panel (`?debug=1`) also has **+$1B cash** and **export run**, which
+downloads the session's start and every action since; `engine/actionLog.ts`'s
+`replay` reproduces it exactly.

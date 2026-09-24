@@ -21,7 +21,9 @@
     "shot": "node tools/shoot.mjs",
     "layout": "rolldown tools/layout.ts -o node_modules/.tmp/layout.mjs -f esm -p node && node node_modules/.tmp/layout.mjs",
     "sheet": "rolldown tools/sheet.tsx -o node_modules/.tmp/sheet.mjs -f esm -p node && node node_modules/.tmp/sheet.mjs",
-    "sheet:shot": "node tools/shoot-sheet.mjs"
+    "sheet:shot": "node tools/shoot-sheet.mjs",
+    "profile": "node tools/profile.mjs",
+    "newplayer": "node tools/newPlayer.mjs"
   },
   "dependencies": {
     "@fontsource-variable/azeret-mono": "^5.3.0",

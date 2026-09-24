@@ -139,6 +139,11 @@ export default function DebugPanel({ s, act, exportRun }: { s: GameState; act: (
             <SetField label="prestige" current={s.self.reputation} onApply={(value) => act({ type: 'DEBUG_SET_PRESTIGE', value })} />
             <SetField label="satisfaction" current={s.students.satisfaction} onApply={(value) => act({ type: 'DEBUG_SET_SATISFACTION', value })} />
             <SetField label="tuition" current={s.finance.listedTuition} onApply={(value) => act({ type: 'DEBUG_SET_TUITION', value })} />
+            <div className="debug-set-row">
+              <button type="button" className="debug-btn wide" onClick={() => act({ type: 'DEBUG_SET_CASH', amount: s.finance.cash + 1_000_000_000 })}>
+                +$1B cash
+              </button>
+            </div>
           </section>
 
           <section className="debug-section">
