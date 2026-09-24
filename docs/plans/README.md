@@ -60,6 +60,7 @@ the repository root, and the game as it actually is lives in `docs/design/` and
 | 37 | [The map, from v2](37-the-map-from-v2.md) | The owner's map requests: the path joints drawn by grid corner in every view (a bug); a choice of tree when planting; trees that answer the tilt as v2's do; and v2's smooth quarter turn, measured on a late campus. PRs A–E. | Landed |
 | 38 | [The turn in full detail](38-the-turn-in-full-detail.md) | The owner's report that a quarter turn drops the buildings' detail: the massing view retired, and the full scene drawn at every in-between angle, as v2 draws it, with the per-frame waste taken out (the desire lines' route search, each tree's shapes, a forced layout). One PR. | In progress |
 | 40 | [The crane, from v2](40-the-crane.md) | The owner's request: v2's tower crane on building sites (a latticed mast, cab, A-frame and ties, a jib with trolley and hook, a weighted counter-jib, all filled beams that hold the ground as the camera turns) and its scaffold of standards, ledgers and a brace, in place of stroked lines. One PR. | In progress |
+| 41 | [Labs at work](41-labs-at-work.md) | The owner's request: a lab hosting research shows it on the map, without text: a ring filling in its school's colour as the project runs, and an atom turning inside it (still under reduced motion). One PR. | In progress |
 
 ## Naming
 
