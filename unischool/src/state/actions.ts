@@ -85,6 +85,8 @@ export type Action =
   // Decorative; nothing is planted under a building or a path.
   | { type: 'PLANT_TREE'; tile: TileCoord }
   | { type: 'FELL_TREE'; tile: TileCoord }
+  // A straight run of path, laid and adjusted in one step (the Shift-held draw).
+  | { type: 'PAINT_PATH_TILES'; add: TileCoord[]; remove: TileCoord[] }
   // Quads (state/quads.ts): mark the open space under a tile as one, lift the
   // marks inside one, or name one (an empty name gives it back its own).
   | { type: 'MARK_QUAD'; tile: TileCoord }

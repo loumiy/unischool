@@ -228,6 +228,12 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
+    case 'PAINT_PATH_TILES': {
+      for (const tile of action.remove) delete s.pathways[pathTileKey(tile)];
+      for (const tile of action.add) if (isLand(tile.row, tile.col)) s.pathways[pathTileKey(tile)] = true;
+      return s;
+    }
+
     case 'PLANT_TREE': {
       // Only on open ground (not under a building or a path; see types.ts's Trees).
       const { row, col } = action.tile;

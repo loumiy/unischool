@@ -211,6 +211,21 @@ This is the baseline every later PR in this plan is measured against.
   stepped squares. The tiles underneath are unchanged, so everything that
   reads paths (quads, walkers, reachability) is unaffected.
 
+**As implemented:**
+
+- **A freehand stroke follows the pointer tile by tile,** so a slow drag
+  along a diagonal still steps. Holding Shift turns the draw tool into a
+  straight run from where the stroke began, at any angle, diagonals
+  included. Moving the pointer moves the run, and one `PAINT_PATH_TILES` per
+  move lays and lifts it. Freehand strokes are drawn as eight-connected
+  lines between samples, so a fast drag leaves no gaps.
+- **Drawing:** a tile's exposed outer corners are rounded (a turn reads as a
+  curve), and two tiles that meet only at a corner have the notches either
+  side filled, so a diagonal run is one band with straight edges. The kerb
+  is the fill's outline stroked under it, which follows any shape the
+  paving makes.
+- **Profile, Year 40, after D–F:** 57.3 fps at 4×.
+
 ## PR 24G — Walkers
 
 - **Routes** (`components/map/routes.ts`, ported): a walk grid that

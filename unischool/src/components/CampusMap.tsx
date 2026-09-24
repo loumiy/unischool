@@ -5,7 +5,7 @@ import { useCampusLayout, type CampusLayout } from './campusLayout';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import {
   ROAD_FIRST_ROW, awaitsSite, canPlace, canRotate, footprintOf,
-  isPlaceableKind, orientedFootprint, parsePathTileKey,
+  isPlaceableKind, orientedFootprint, parsePathTileKey, pathTileKey,
 } from '../state/campusMap';
 import { siteRefusal } from '../state/reach';
 import { detectQuads, tileIndex, type Quad } from '../state/quads';
@@ -25,7 +25,7 @@ import PathwayLayer from './pathways';
 import Tree, { woodlandShadow } from './trees';
 import { castShadow } from './light';
 import {
-  DEFAULT_CAMERA, DEFAULT_PITCH_INDEX, PITCHES, TILE_H, VIEWS, WORLD, boxFaces, lift, polyPoints, project, setCamera, tileAt, unproject,
+  DEFAULT_CAMERA, DEFAULT_PITCH_INDEX, PITCHES, VIEWS, WORLD, boxFaces, lift, polyPoints, project, setCamera, tileAt, unproject,
   type Camera,
 } from './isoProjection';
 
@@ -135,6 +135,17 @@ function groundGeometry(): { plate: string; grid: string; road: string; kerb: st
   return { plate, grid: seg.join(''), road, kerb, centre };
 }
 const MAP_HEIGHT = WORLD.maxY - WORLD.minY + MAP_PADDING * 2 + WORLD_TOP_HEADROOM;
+
+// The tiles of an eight-connected line from `a` to `b`, both included.
+function tilesBetween(a: TileCoord, b: TileCoord): TileCoord[] {
+  const steps = Math.max(Math.abs(b.row - a.row), Math.abs(b.col - a.col));
+  const out: TileCoord[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = steps === 0 ? 0 : i / steps;
+    out.push({ row: Math.round(a.row + (b.row - a.row) * t), col: Math.round(a.col + (b.col - a.col) * t) });
+  }
+  return out;
+}
 
 // The path tool the secondary mouse button paints with, given the armed one.
 function otherPathTool(tool: CampusTool): CampusTool {
@@ -673,9 +684,12 @@ export default function CampusMap({
   // doesn't also place a building. Consumed by the next click or mousedown.
   const justPannedRef = useRef(false);
   const pathDragRef = useRef<CampusTool | null>(null);
-  // The last world point a stroke painted at. Mousemove can skip tiles on a
-  // fast drag, so paintStroke interpolates from here.
-  const pathLastRef = useRef<{ x: number; y: number } | null>(null);
+  // The last tile a stroke painted. Mousemove can skip tiles on a fast
+  // drag, so paintStroke draws the line from here.
+  const pathLastRef = useRef<TileCoord | null>(null);
+  // Where the current stroke began and the tiles it has laid, for the
+  // Shift-held straight run.
+  const strokeRef = useRef<{ anchor: TileCoord; laid: Set<string> } | null>(null);
 
   // Light each label by the cursor's distance to the building's footprint
   // (not the label), converted to screen pixels via the zoom.
@@ -805,6 +819,7 @@ export default function CampusMap({
       }
       pathDragRef.current = null;
       pathLastRef.current = null;
+      strokeRef.current = null;
     }
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
@@ -913,23 +928,31 @@ export default function CampusMap({
     if (pathDragRef.current) paintStroke(e, pathDragRef.current);
   }
 
-  // Paint every tile between the last sampled point and this one. Half-tile
-  // steps can't skip a tile at any angle.
-  function paintStroke(e: { clientX: number; clientY: number }, tool: CampusTool) {
-    const here = worldFromEvent(e);
+  // A freehand stroke paints every tile between the last one painted and
+  // the one under the pointer, so a fast drag leaves no gaps. With Shift held
+  // the draw tool lays a straight run from where the stroke began instead,
+  // diagonals included (drawn as one band, see pathways.tsx), and moving the
+  // pointer moves the run: tiles this stroke laid off the new line are lifted.
+  function paintStroke(e: { clientX: number; clientY: number; shiftKey: boolean }, tool: CampusTool) {
+    const here = tileFromEvent(e);
     if (!here) return;
-    const from = pathLastRef.current ?? here;
+    const stroke = strokeRef.current;
+    if (e.shiftKey && tool === 'draw' && stroke) {
+      const line = tilesBetween(stroke.anchor, here);
+      const onLine = new Set(line.map(pathTileKey));
+      const add = line.filter((t) => !(pathTileKey(t) in s.pathways));
+      const remove = [...stroke.laid].filter((key) => !onLine.has(key)).map((key) => parsePathTileKey(key)!);
+      for (const key of remove.map(pathTileKey)) stroke.laid.delete(key);
+      for (const t of add) stroke.laid.add(pathTileKey(t));
+      if (add.length > 0 || remove.length > 0) act({ type: 'PAINT_PATH_TILES', add, remove });
+      pathLastRef.current = here;
+      return;
+    }
+    const from = pathLastRef.current;
     pathLastRef.current = here;
-    const dist = Math.hypot(here.x - from.x, here.y - from.y);
-    const steps = Math.max(1, Math.ceil(dist / (TILE_H / 2)));
-    let last = '';
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      const tile = tileAt(from.x + (here.x - from.x) * t, from.y + (here.y - from.y) * t);
-      if (!tile) continue;
-      const key = `${tile.row},${tile.col}`;
-      if (key === last) continue;
-      last = key;
+    const run = from ? tilesBetween(from, here).slice(1) : [here];
+    for (const tile of run) {
+      if (tool === 'draw' && stroke && !(pathTileKey(tile) in s.pathways)) stroke.laid.add(pathTileKey(tile));
       paintTile(tile, tool);
     }
   }
@@ -970,6 +993,7 @@ export default function CampusMap({
       if (tile) {
         pathDragRef.current = tool;
         pathLastRef.current = null;   // a new stroke never interpolates from where the last one ended
+        strokeRef.current = { anchor: tile, laid: new Set() };
         paintStroke(e, tool);
         return;
       }
@@ -1279,7 +1303,7 @@ export default function CampusMap({
         <div className="campus-map-zoom-controls">
           <HelpHint
             align="end"
-            text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground, and a way to walk to it from the road along the campus's south edge; a building that would wall another off is refused, and the ghost says why. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. Press P (or use the build popup's Draw path tile) to lay walkways — free, purely decorative, and unrelated to building: drag with the left button to pave, the right button to lift, and the ghost tile shows which square you're on. Every other view — Curriculum, Faculty, Research and the rest — opens as a full screen over this one; the home button at the left of the toolbar's icon row, that view's own close button, or Escape brings you back here. Keys: W/A/S/D or the arrows pan, Space pauses and resumes wherever you are, R rotates, P draws, Escape backs out one layer at a time. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll/pinch to zoom. Open ground the buildings close in is found as a quad and named; click one to rename it, press N to show every name, and use the build popup's Mark a quad to make one of a space the campus has not. Q/E turn the view a quarter turn round the campus, Z/X tilt it flatter or steeper, from nearly level to straight down,, and Home brings back the opening view."
+            text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground, and a way to walk to it from the road along the campus's south edge; a building that would wall another off is refused, and the ghost says why. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. Press P (or use the build popup's Draw path tile) to lay walkways — free, purely decorative, and unrelated to building: drag with the left button to pave, the right button to lift, and the ghost tile shows which square you're on. Hold Shift while drawing to lay a straight run from where you started, diagonals included. Every other view — Curriculum, Faculty, Research and the rest — opens as a full screen over this one; the home button at the left of the toolbar's icon row, that view's own close button, or Escape brings you back here. Keys: W/A/S/D or the arrows pan, Space pauses and resumes wherever you are, R rotates, P draws, Escape backs out one layer at a time. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll/pinch to zoom. Open ground the buildings close in is found as a quad and named; click one to rename it, press N to show every name, and use the build popup's Mark a quad to make one of a space the campus has not. Q/E turn the view a quarter turn round the campus, Z/X tilt it flatter or steeper, from nearly level to straight down,, and Home brings back the opening view."
           />
           <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
           <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>

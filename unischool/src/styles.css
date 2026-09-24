@@ -667,7 +667,8 @@ button.build-tile { font-family: inherit; }
 .campus-paths { pointer-events: none; }
 .campus-path-fill { fill: #cbbd8e; }
 .campus-path-joint { stroke: rgba(120, 106, 66, 0.28); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
-.campus-path-kerb { stroke: #a89566; stroke-width: 1.5; fill: none; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+/* Stroked under the fill with the same outline (pathways.tsx), so only its outer half shows. */
+.campus-path-kerb { stroke: #a89566; stroke-width: 3; fill: none; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 
 /* ---------- Placed buildings ---------- */
 .campus-building { cursor: pointer; }
