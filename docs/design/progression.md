@@ -10,6 +10,43 @@ the school — their half of it only; every school opens as a *College* (see
 "College, and University" below) — the **vernacular** its campus is built
 in, and the **colours** it wears.
 
+## The ladder
+
+What the college can build, and which screens it has, opens a piece at a
+time. The **ladder** is a set of named milestones (`data/ladderData.ts`),
+each with one condition and a list of what it opens. The ticker strip shows
+the nearest one and its progress, and clicking it opens the whole ladder.
+
+- **Milestones are independent.** Each opens on its own condition, in any
+  order. A college that never founds a school still grows to 20,000
+  students, and one that barely grows still founds its schools.
+- **Milestones are permanent.** One reached is never undone, even if
+  enrolment or prestige later falls below its threshold.
+- **Each milestone arrives with a letter** naming what it opened. The
+  letters queue behind anything more urgent and are never dropped.
+- **The founding build list is short and curriculum-first:** the first
+  dorm, the dining hall, the quad and the library. Founders Hall and its
+  programs come first.
+
+| Tier | Milestone | Condition | Opens |
+| --- | --- | --- | --- |
+| Founding | The charter | founding | Founders Hall, the dorm and dining chains, the Campus Quad, the Library; Curriculum, Faculty, Treasury |
+| Founding | First commencement | the first summer closes | Student Center, Recreation Center, Second Quad; Enrollment, Student Life, History |
+| Founding | A curriculum | eight courses developed | academic halls |
+| Growing | A town's worth | 1,500 students | Health & Counseling Center |
+| Growing | A regional name | prestige 55 | Athletics Complex, Student Union Expansion, Grand Quad & Gardens |
+| Established | A small city | 6,000 students | University Clinic |
+| Established | A research reputation | prestige 70 | Research Library |
+| Established | A market of its own | 8,000 students | Campus Grocery Store |
+| National | A university town | 20,000 students | University Hospital |
+
+**Four side milestones** show on the ladder but drive gates of their own:
+
+- a school founded opens its laboratories;
+- a laboratory finished opens Research;
+- a sport club opens Athletics, and its venues open team by team;
+- a school distinguished opens its graduate programs.
+
 ## The colours
 
 A pair, picked from ten named collegiate pairings — *Maroon and gold*, *Navy

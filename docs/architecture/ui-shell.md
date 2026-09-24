@@ -17,11 +17,11 @@ reserves the dock's measured height instead of drawing under it.
 
 ## Tab gates
 
-Three tabs are gated on the thing they are about existing (see `TabNav.tsx`'s
-`TAB_GATES`): Research appears once a lab is finished, Athletics once a varsity
-team exists, History in year 2. Each gate is the same condition the system
-behind it already hangs off, and the first time one opens the activity log says
-so.
+Five tabs open from milestones on the ladder (`data/ladderData.ts`, read by
+`TabNav.tsx`'s `tabAvailable`): Enrollment, Student Life and History at the
+first commencement, Research once a lab is finished, Athletics with the first
+sport club. A milestone is never undone, so a tab once open stays open. The
+first time one opens the activity log says so.
 
 ## Time
 
