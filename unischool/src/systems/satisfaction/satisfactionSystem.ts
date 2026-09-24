@@ -1,3 +1,4 @@
+import { QUIRK_MORALE_CAP, QUIRK_MORALE_PER_POINT, quirkById } from '../../data/quirkData';
 import { pairingBumps } from '../estate/pairing';
 import type { GameState, SatisfactionAttributes } from '../../state/types';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../../data/facilitiesData';
@@ -119,6 +120,13 @@ function teachingSatisfaction(s: GameState): number {
   return avg === null ? 0 : clamp(avg / 100, 0, 1);
 }
 
+// How the students take the faculty's quirks (data/quirkData.ts): their
+// morale summed across the roster, scaled and capped either way.
+export function facultyMorale(s: GameState): number {
+  const sum = s.faculty.reduce((t, f) => t + (quirkById(f.quirk)?.effects.morale ?? 0), 0);
+  return Math.max(-QUIRK_MORALE_CAP, Math.min(QUIRK_MORALE_CAP, sum * QUIRK_MORALE_PER_POINT));
+}
+
 export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttributes {
   const enrolled = totalEnrolled(s.students);
 
@@ -127,7 +135,7 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
   const academicFacultyBonus = teachingSatisfaction(s) * FACULTY_QUALITY_MAX_BONUS;
   // Sensible neighbours (systems/estate/pairing.ts), a couple of points at most.
   const pairing = pairingBumps(s);
-  const academic = clamp(academicLibraryRatio + academicFacultyBonus + pairing.academic, ATTRIBUTE_SCORE_FLOOR, 100);
+  const academic = clamp(academicLibraryRatio + academicFacultyBonus + pairing.academic + facultyMorale(s), ATTRIBUTE_SCORE_FLOOR, 100);
 
   const socialRatio = ratioScore(servedPopulationFor(s, 'social'), enrolled, TARGET_RATIO.social, SOCIAL_PENALTY_CURVATURE);
   const pride = clamp(s.self.reputation / REPUTATION_PRIDE_PRESTIGE_MAX, 0, 1) * REPUTATION_PRIDE_MAX_BONUS;
@@ -210,6 +218,10 @@ export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttri
   if (attribute === 'basicNeeds') {
     const affordability = affordabilityBonus(s);
     if (affordability > 0) bonuses.push({ label: 'Affordability (price vs. standing)', value: affordability });
+  }
+  if (attribute === 'academic') {
+    const morale = facultyMorale(s);
+    if (morale !== 0) bonuses.push({ label: 'The faculty\'s characters', value: morale });
   }
   if (attribute === 'academic' || attribute === 'housing') {
     const pairing = pairingBumps(s)[attribute];

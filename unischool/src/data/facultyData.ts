@@ -1,3 +1,4 @@
+import { quirkForId } from './quirkData';
 import type { Faculty } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { initialTech } from './techData';
@@ -754,15 +755,21 @@ export function rollCandidateField(): string {
 // play so the new name can't collide.
 export function generateCandidate(field: string, existingNames: Iterable<string> = []): Faculty {
   const used = new Set(existingNames);
-  const teachingPotential = FACULTY_POTENTIAL_MIN + Math.round(random() * FACULTY_POTENTIAL_RANGE);
-  const researchPotential = FACULTY_POTENTIAL_MIN + Math.round(random() * FACULTY_POTENTIAL_RANGE);
-  const teaching = grownStat(teachingPotential, 0);
-  const research = grownStat(researchPotential, 0);
+  const rolledTeaching = FACULTY_POTENTIAL_MIN + Math.round(random() * FACULTY_POTENTIAL_RANGE);
+  const rolledResearch = FACULTY_POTENTIAL_MIN + Math.round(random() * FACULTY_POTENTIAL_RANGE);
   const gender = rollGender();
   const { name, origin } = rollFullName(used, gender);
   const { nationality, flag } = rollNationality(origin);
+  // The id is drawn where it always was, so the stream is untouched; the
+  // quirk it picks (data/quirkData.ts) then moves the rolled potentials.
+  const id = newId();
+  const quirk = quirkForId(id);
+  const teachingPotential = clampPotential(rolledTeaching + (quirk?.effects.teaching ?? 0));
+  const researchPotential = clampPotential(rolledResearch + (quirk?.effects.research ?? 0));
+  const teaching = grownStat(teachingPotential, 0);
+  const research = grownStat(researchPotential, 0);
   return {
-    id: newId(),
+    id,
     name,
     field,
     teaching,
@@ -771,7 +778,7 @@ export function generateCandidate(field: string, existingNames: Iterable<string>
     researchPotential,
     tenureWeeks: 0,
     weeksListed: 0,
-    salary: facultySalary(teaching, research, 0),
+    salary: Math.round(facultySalary(teaching, research, 0) * (quirk?.effects.salary ?? 1)),
     courseSlots: rollBaseCourseSlots(),
     // Nobody arrives decorated: prizes are won here.
     acclaim: 0,
@@ -780,7 +787,12 @@ export function generateCandidate(field: string, existingNames: Iterable<string>
     heritage: origin,
     gender,
     bio: rollBio(field),
+    ...(quirk ? { quirk: quirk.id } : {}),
   };
+}
+
+function clampPotential(v: number): number {
+  return Math.max(0, Math.min(100, v));
 }
 
 // The market the week the university is founded: a full pool. weeksListed

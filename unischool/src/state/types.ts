@@ -191,6 +191,10 @@ export interface Faculty {
   nationality: string; // e.g. "United States", "China" — full country name, shown expanded in the UI
   flag: string;        // flag emoji; unrendered (see FacultyTab.tsx)
   bio: string;         // one line, shown when the roster row is expanded
+  // A quirk (data/quirkData.ts), picked from the id at generation. Its
+  // effects are already in the potentials; the salary factor and morale are
+  // read from it. Undefined for most founders and a share of candidates.
+  quirk?: string;
   // Rolled before the name and used for both the first name and the
   // portrait (FacultyPortrait.tsx), so they always agree.
   gender: 'male' | 'female';

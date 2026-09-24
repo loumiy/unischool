@@ -1,3 +1,4 @@
+import { quirkById } from '../data/quirkData';
 import { seatDef } from '../data/seatData';
 import type { FacilityType, GameState, HallSlot, Loan, Pathways, Placement, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
@@ -325,6 +326,13 @@ function sanitizeSeen(state: GameState): void {
 // claim a course is taught by someone who doesn't work here. An unstaffed
 // course is deliberately not reassigned; that is a visible state the player
 // fixes (see types.ts's CourseFaculty).
+// A quirk the game no longer has is dropped (data/quirkData.ts).
+function sanitizeQuirks(state: GameState): void {
+  for (const f of [...state.faculty, ...state.candidates]) {
+    if (f.quirk !== undefined && quirkById(f.quirk) === undefined) delete f.quirk;
+  }
+}
+
 function sanitizeCourseFaculty(state: GameState): void {
   const source = (typeof state.courseFaculty === 'object' && state.courseFaculty !== null) ? state.courseFaculty : {};
   const courseIds = new Set(state.tech.map((t) => t.id));
@@ -467,6 +475,7 @@ export function loadGame(): GameState | null {
   sanitizeEstate(state);
   sanitizeQuads(state);
   sanitizeSeats(state);
+  sanitizeQuirks(state);
   sanitizeDressing(state);
   sanitizeTeams(state);
   sanitizeChapters(state);

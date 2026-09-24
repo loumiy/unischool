@@ -1,3 +1,4 @@
+import { quirkById } from '../../data/quirkData';
 import { tickSearches } from './facultySearch';
 import type { Faculty, GameState } from '../../state/types';
 import { neededFacultyFields } from '../techtree/techSystem';
@@ -26,7 +27,8 @@ function growFaculty(f: Faculty): void {
   f.research = grownStat(f.researchPotential, f.tenureWeeks);
   // A prize's raise is passed in as acclaim because this line overwrites
   // last week's salary.
-  f.salary = facultySalary(f.teaching, f.research, f.tenureWeeks, f.acclaim);
+  // A quirk's pay factor rides on top (data/quirkData.ts).
+  f.salary = Math.round(facultySalary(f.teaching, f.research, f.tenureWeeks, f.acclaim) * (quirkById(f.quirk)?.effects.salary ?? 1));
   // Course slots grow in flat +1 steps on tenure milestones, another reason
   // to retain a hire.
   if (f.tenureWeeks % SLOT_GROWTH_INTERVAL_WEEKS === 0 && f.courseSlots < MAX_FACULTY_SLOTS) {

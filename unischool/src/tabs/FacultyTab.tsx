@@ -1,3 +1,4 @@
+import { quirkById } from '../data/quirkData';
 import AdministrationPanel from './AdministrationPanel';
 import { useEffect, useMemo, useState } from 'react';
 import type { Action } from '../state/actions';
@@ -78,6 +79,7 @@ function FacultyCard(
   // A listing shows what this school would pay: the market rate is applied
   // at payroll (financeSystem.ts's facultyPay).
   const pay = isCandidate ? facultyPay(s, f.salary) : f.salary;
+  const quirk = quirkById(f.quirk);
 
   return (
     <li className={`faculty-card${isCandidate ? ' listed' : ''}${commitment ? ' committed' : ''}`}>
@@ -116,6 +118,7 @@ function FacultyCard(
               <span className="faculty-card-teaching idle">Teaching nothing</span>
             )}
           </div>
+          {quirk && <span className="faculty-quirk" title={quirk.line}>{quirk.name}</span>}
           <div className="faculty-bars">
             <StatBar label="T" value={f.teaching} potential={f.teachingPotential} />
             <StatBar label="R" value={f.research} potential={f.researchPotential} />
@@ -169,7 +172,7 @@ function FacultyCard(
       )}
       {open && (
         <div className="faculty-card-detail">
-          <p className="faculty-bio">{f.bio}</p>
+          <p className="faculty-bio">{f.bio}{quirk && <> <em>{quirk.line}</em></>}</p>
           <dl>
             <dt>Nationality</dt><dd>{f.nationality}</dd>
             <dt>Teaching</dt><dd>{f.teaching} <span className="outcome-note">(→ {f.teachingPotential})</span></dd>
