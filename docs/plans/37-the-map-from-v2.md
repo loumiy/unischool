@@ -63,6 +63,9 @@ This document.
   draw exactly their two shared edges. The test fails on the old code in
   three views of four.
 
+**As implemented:** as planned. The test reads each joint's ends back to
+grid corners with `unproject`, and it fails on the old code in views 1–3.
+
 ## PR 37C — Choosing the tree
 
 - **Data:**
@@ -81,6 +84,13 @@ This document.
   - the planted tree is the asked-for species;
   - the random stream and a replay are unchanged.
 
+**As implemented:**
+- **The choice is the session's,** in a small store
+  (`components/plantingChoice.ts`) that the build menu writes and the map
+  reads. It is not threaded through App, and not saved.
+- **The chips stand as a column** beside the Plant trees tile, since the
+  build tray is one scrolling row.
+
 ## PR 37D — Trees answer the tilt
 
 - **v2's shapes.** A tree stands by `heightScale()`, clamped to at most 1:
@@ -91,6 +101,9 @@ This document.
     stays a tight dark mark among the broad ones.
 - **Test:** overhead, a broadleaf crown sits on its trunk and is 1.28
   times as wide, and a conifer keeps at least a quarter of its rise.
+
+**As implemented:** as planned. The shapes are tested by rendering
+`TreeAt` to static markup at the ladder's ends.
 
 ## PR 37E — The smooth turn
 
@@ -110,6 +123,28 @@ This document.
   crowns, no shadows and no labels, with the depth order sorted for each
   end of the turn.
 - **Test:** the easing and the retarget, as a pure `turnStep`.
+
+**As implemented:**
+- **Measured first.** A full redraw of a Year-50 campus took 370–550 ms
+  in the dev build. The turn drew one in-between frame and jumped.
+- **So the turn always draws the massing** (`TurningScene.tsx`):
+  - the ground, the grid, the road and the paths;
+  - a box per building at its drawn footprint and height;
+  - a round crown per tree;
+  - flat facilities as their plates;
+  - everything painted back to front by the ground it stands on.
+- **The full scene is held,** hidden at its last rest view, so it does
+  not redraw mid-turn. It redraws once as the turn ends, the same cost the
+  snap always paid.
+- **Mid-turn frames measured at 33–67 ms,** on a machine that was running
+  the harness at the same time.
+- **The hall marks and quad overlays hide for the turn.**
+- **The walkers are split in two:**
+  - routes key on the campus;
+  - figures, the nearer-than axes and the clips key on the camera;
+  - the clips are dropped while turning.
+- **The pivot is the canvas centre,** as this game's snap used, not v2's
+  lift of a storey and a fifth.
 
 ## What this plan does not do
 
