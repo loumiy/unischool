@@ -53,7 +53,7 @@ console.log('tab gate tests');
 {
   const s = fresh();
 
-  assert(GATED_TABS.length === 5, 'exactly five tabs are gated');
+  assert(GATED_TABS.length === 4, 'exactly four tabs are gated (Students absorbed Student Life and Enrollment, Plan 29)');
   for (const id of GATED_TABS) {
     assert(!tabAvailable(s, id), `${id} is not offered at founding`);
   }
@@ -113,14 +113,14 @@ console.log('tab gate tests');
   const s = fresh();
   s.clock.week = 52;
   tickLadder(s);
-  for (const id of ['enrollment', 'studentlife', 'history'] as TabId[]) {
+  for (const id of ['students', 'history'] as TabId[]) {
     assert(!tabAvailable(s, id), `${id} stays closed through the first year`);
   }
   s.history.push({ ...({} as GameState['history'][number]), year: 1 });
   s.clock.year = 2;
   s.clock.week = 1;
   tickLadder(s);
-  for (const id of ['enrollment', 'studentlife', 'history'] as TabId[]) {
+  for (const id of ['students', 'history'] as TabId[]) {
     assert(tabAvailable(s, id), `${id} opens once the first summer has closed`);
   }
   assert(s.ladder.reached.commencement === 2, 'the milestone records the year it was reached');

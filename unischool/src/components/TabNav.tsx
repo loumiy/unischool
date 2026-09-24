@@ -4,7 +4,7 @@ import { ladderOpensTab } from '../systems/ladder/ladderSystem';
 
 // Views that pop up over the campus map, which is always on screen and is not
 // a tab. `active` is null when the player is looking at the map.
-export type TabId = 'faculty' | 'curriculum' | 'research' | 'treasury' | 'enrollment' | 'studentlife' | 'history' | 'athletics';
+export type TabId = 'faculty' | 'curriculum' | 'research' | 'treasury' | 'students' | 'history' | 'athletics';
 
 // The toolbar's order: academic core, campus life, the annual pages, then
 // the record. Treasury is filtered out of the icon row (Toolbar.tsx's
@@ -14,15 +14,14 @@ const TABS: Array<{ id: TabId; label: string }> = [
   { id: 'curriculum', label: 'Curriculum' },
   { id: 'faculty', label: 'Faculty' },
   { id: 'research', label: 'Research' },
-  { id: 'studentlife', label: 'Student Life' },
+  { id: 'students', label: 'Students' },
   { id: 'athletics', label: 'Athletics' },
-  { id: 'enrollment', label: 'Enrollment' },
   { id: 'history', label: 'History' },
   { id: 'treasury', label: 'Treasury' },
 ];
 
-// Tabs open from milestones on the ladder (data/ladderData.ts): Enrollment,
-// Student Life and History at the first commencement, Research with the
+// Tabs open from milestones on the ladder (data/ladderData.ts): Students
+// and History at the first commencement, Research with the
 // first lab, Athletics with the first sport club. The rest are open from the
 // charter.
 export const GATED_TABS: readonly TabId[] = TABS.map((t) => t.id).filter((id) => milestoneForTab(id) !== undefined);

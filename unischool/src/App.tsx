@@ -26,8 +26,7 @@ import FacultyTab from './tabs/FacultyTab';
 import CurriculumTab from './tabs/CurriculumTab';
 import ResearchTab from './tabs/ResearchTab';
 import TreasuryTab from './tabs/TreasuryTab';
-import EnrollmentTab from './tabs/EnrollmentTab';
-import StudentLifeTab from './tabs/StudentLifeTab';
+import StudentsTab from './tabs/StudentsTab';
 import HistoryTab from './tabs/HistoryTab';
 import AthleticsTab from './tabs/AthleticsTab';
 import { freshSeed } from './engine/random';
@@ -54,7 +53,7 @@ import './styles.css';
 const TAB_HOTKEYS: Record<string, TabId> = {
   c: 'curriculum',
   f: 'faculty',
-  l: 'studentlife',
+  l: 'students',
 };
 
 export default function App() {
@@ -301,8 +300,7 @@ export default function App() {
             )}
             {overlay.tab === 'research' && <ResearchTab s={s} act={act} />}
             {overlay.tab === 'treasury' && <TreasuryTab s={s} act={act} />}
-            {overlay.tab === 'enrollment' && <EnrollmentTab s={s} />}
-            {overlay.tab === 'studentlife' && <StudentLifeTab s={s} />}
+            {overlay.tab === 'students' && <StudentsTab s={s} />}
             {overlay.tab === 'athletics' && <AthleticsTab s={s} act={act} />}
             {overlay.tab === 'history' && <HistoryTab s={s} />}
           </TabOverlay>

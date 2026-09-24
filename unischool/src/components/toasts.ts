@@ -32,7 +32,7 @@ export function toastTarget(topic: LogTopic | undefined): TabId | null {
     case 'program':
       return 'curriculum';
     case 'petition':
-      return 'studentlife';
+      return 'students';
     case 'publication':
     case 'research-concluded':
       return 'research';

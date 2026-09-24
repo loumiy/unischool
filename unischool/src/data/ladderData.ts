@@ -103,9 +103,9 @@ export const MILESTONES: readonly Milestone[] = [
     condition: 'the first summer closes',
     reached: (s) => s.history.length >= 1,
     buildables: ['AMENITY-FOUNTAIN'],
-    tabs: ['enrollment', 'studentlife', 'history'],
+    tabs: ['students', 'history'],
     letter: 'The first class has walked, and the college has a year behind it: enough to see the year laid out, the admissions funnel that filled it, and the clubs the students have started.',
-    opens: ['Enrollment: the admissions funnel and who enrolled', 'Student Life: the clubs and what students think', 'History: the record of each year', 'The Fountain: somewhere to sit, and campus beauty'],
+    opens: ['Students: what they think, their clubs, who enrolled and the funnel that drew them', 'History: the record of each year', 'The Fountain: somewhere to sit, and campus beauty'],
   },
   {
     id: 'curriculum',
