@@ -2,11 +2,18 @@ import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
 import { MenuIcon } from './icons';
 
-// The top-right hamburger menu: Save, New Game and Credits. Sits directly
-// above the map's zoom/'?' pill (see styles.css's --corner-menu-height).
-// New Game confirms with an inline second click rather than a browser
-// confirm() dialog, so it matches the rest of the chrome.
-export default function MainMenu({ act }: { act: (a: Action) => void }) {
+// The top-right hamburger menu: Save, the hall of fame, Settings, the title
+// screen and New Game (Plan 34 added the middle three, from v2's). Sits
+// directly above the map's zoom/'?' pill (see styles.css's
+// --corner-menu-height). New Game confirms with an inline second click
+// rather than a browser confirm() dialog, so it matches the rest of the
+// chrome.
+export default function MainMenu({ act, onHall, onSettings, onTitle }: {
+  act: (a: Action) => void;
+  onHall: () => void;
+  onSettings: () => void;
+  onTitle: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [confirmingNewGame, setConfirmingNewGame] = useState(false);
 
@@ -58,6 +65,9 @@ export default function MainMenu({ act }: { act: (a: Action) => void }) {
               >
                 Save
               </button>
+              <button className="save-btn" onClick={() => { close(); onHall(); }}>Hall of fame</button>
+              <button className="save-btn" onClick={() => { close(); onSettings(); }}>Settings</button>
+              <button className="save-btn" onClick={() => { close(); onTitle(); }}>Title screen</button>
               <button
                 className="newgame-btn"
                 onClick={() => setConfirmingNewGame(true)}
@@ -65,10 +75,6 @@ export default function MainMenu({ act }: { act: (a: Action) => void }) {
               >
                 New Game
               </button>
-              <p className="main-menu-credits">
-                <strong>UniSchool</strong><br />
-                Made by Louis Miyani.
-              </p>
             </>
           )}
         </div>

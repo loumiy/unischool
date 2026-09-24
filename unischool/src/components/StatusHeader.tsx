@@ -1,5 +1,5 @@
 import { speedLock } from '../systems/delegation/seats';
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import type { GameState } from '../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../state/types';
 import {
@@ -11,6 +11,8 @@ import { playerRank } from '../systems/rivals/rivalsSystem';
 import { SPEEDS, SANDBOX_SPEEDS, type Speed } from '../engine/useGame';
 import DayTicker from './DayTicker';
 import AnimatedNumber from './AnimatedNumber';
+import { FigureBox } from './Figure';
+import { FIGURE_HINTS } from '../data/figureHints';
 import { isActivationTarget, useHotkeys } from './hotkeys';
 import { playtestEnabled } from './playtest';
 import { money } from '../format';
@@ -70,15 +72,16 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
   // school, so the rank is worth reading early. Being published in the top
   // 50 is still the event (rivalsSystem.ts's TOP_50_CUTOFF).
   const rank = playerRank(s);
+  const fundsHint = useId();
 
   return (
     <>
       <button
         type="button"
-        className={`toolbar-funds-btn ${treasuryOpen ? 'active' : ''}`}
+        className={`toolbar-funds-btn figure-box ${treasuryOpen ? 'active' : ''}`}
         aria-expanded={treasuryOpen}
         aria-label="Open Treasury"
-        title="Operating funds — opens Treasury"
+        aria-describedby={fundsHint}
         onClick={onOpenTreasury}
       >
         {/* Money ticks to its new value. Rank does not animate: it is an
@@ -87,30 +90,31 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
           <AnimatedNumber value={s.finance.cash} format={money} />
         </span>
         <span className="toolbar-funds-net">{netWeekly >= 0 ? '+' : '−'}{money(Math.abs(netWeekly))}/wk</span>
+        <span className="figure-hint above" role="tooltip" id={fundsHint}>{FIGURE_HINTS.funds}</span>
       </button>
       <div className="toolbar-stats">
-        <div className="toolbar-stat" title="Rank, of 100 schools">
+        <FigureBox className="toolbar-stat" above hint={FIGURE_HINTS.rank(s.rivals.length + 1)}>
           <RankIcon />
           <span className="stat-label">Rank</span>
           <span className="stat-value">#{rank}</span>
-        </div>
-        <div className="toolbar-stat" title="Enrolled">
+        </FigureBox>
+        <FigureBox className="toolbar-stat" above hint={FIGURE_HINTS.enrolled}>
           <StudentsIcon />
           <span className="stat-label">Enrolled</span>
           <span className="stat-value"><AnimatedNumber value={totalEnrolled(s.students)} /></span>
-        </div>
-        <div className="toolbar-stat" title="Prestige">
+        </FigureBox>
+        <FigureBox className="toolbar-stat" above hint={FIGURE_HINTS.prestige}>
           <PrestigeIcon />
           <span className="stat-label">Prestige</span>
           <span className="stat-value gold"><AnimatedNumber value={s.self.reputation} /></span>
-        </div>
-        <div className="toolbar-stat" title="Satisfaction">
+        </FigureBox>
+        <FigureBox className="toolbar-stat" above hint={FIGURE_HINTS.satisfaction}>
           <SatisfactionIcon />
           <span className="stat-label">Satisfaction</span>
           <span className={`stat-value ${s.students.satisfaction < SATISFACTION_WARN ? 'money-negative' : ''}`}>
             <AnimatedNumber value={s.students.satisfaction} />
           </span>
-        </div>
+        </FigureBox>
       </div>
     </>
   );

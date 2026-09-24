@@ -29,6 +29,8 @@ import type { DecisionEventContext, MilestonePayload } from '../data/eventData';
 import type { OrgPetition } from '../state/types';
 import type { ReportPayload } from '../systems/rivals/rivalsSystem';
 import AnimatedNumber from './AnimatedNumber';
+import Figure from './Figure';
+import { FIGURE_HINTS } from '../data/figureHints';
 import { isActivationTarget, useHotkeys } from './hotkeys';
 import { modalWidth } from './modalLayout';
 import { currentEra } from '../systems/chronicle/chronicle';
@@ -257,15 +259,17 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
         <>
           {/* THE REVEAL. What that price actually drew. */}
           <dl className="admissions-outcomes">
-            <div>
-              <dt>Applicant pool</dt>
-              <dd className="reveal-figure">
+            <Figure
+              className="reveal"
+              label="Applicant pool"
+              hint={FIGURE_HINTS.applicants}
+              value={<>
                 <AnimatedNumber value={outcome.applicants} durationMs={REVEAL_MS} revealFrom={0} />
                 {change && (
                   <span className={`consequence-delta ${change.change >= 0 ? 'good' : 'bad'}`}>{signedPct(change.change)}</span>
                 )}
-              </dd>
-            </div>
+              </>}
+            />
             {change && (
               <div className="pool-change">
                 <dt>Against last summer&rsquo;s {change.lastApplicants.toLocaleString()}</dt>
@@ -278,12 +282,12 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
                 </dd>
               </div>
             )}
-            <div>
-              <dt>Room for <span className="outcome-note">(the catalogue&rsquo;s seats, less who stays on)</span></dt>
-              <dd className="reveal-figure">
-                <AnimatedNumber value={ceiling.seatsLeft} durationMs={REVEAL_MS} revealFrom={0} />
-              </dd>
-            </div>
+            <Figure
+              className="reveal"
+              label={<>Room for <span className="outcome-note">(the catalogue&rsquo;s seats, less who stays on)</span></>}
+              hint={FIGURE_HINTS.room}
+              value={<AnimatedNumber value={ceiling.seatsLeft} durationMs={REVEAL_MS} revealFrom={0} />}
+            />
           </dl>
           <p className="admissions-ceiling-note">
             {ceiling.capacity.toLocaleString()} seats across the housed catalogue; {ceiling.stayingOn.toLocaleString()} stay on after graduation.
@@ -323,8 +327,8 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
           </label>
 
           <dl className="admissions-outcomes">
-            <div><dt>Freshman class</dt><dd><AnimatedNumber value={outcome.enrolled} /></dd></div>
-            <div><dt>Incoming quality</dt><dd><AnimatedNumber value={outcome.avgIncomingQuality} format={(n) => `${Math.round(n)} / 100`} /></dd></div>
+            <Figure label="Freshman class" value={<AnimatedNumber value={outcome.enrolled} />} hint={FIGURE_HINTS.freshmen} />
+            <Figure label="Incoming quality" value={<AnimatedNumber value={outcome.avgIncomingQuality} format={(n) => `${Math.round(n)} / 100`} />} hint={FIGURE_HINTS.incomingQuality} />
           </dl>
 
           {/* The projection line (Plan 29): the class against last year's,
@@ -340,33 +344,37 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
           <div className="consequence-panel">
             <h3>Projections</h3>
             <dl className="admissions-outcomes">
-              <div>
-                <dt>Weekly net</dt>
-                <dd>
+              <Figure
+                label="Weekly net"
+                hint={FIGURE_HINTS.projectedNet}
+                value={<>
                   <AnimatedNumber value={consequence.weeklyNet} format={(n) => `${money(n)}/wk`} />
                   <span className={`consequence-delta ${netDelta >= 0 ? 'good' : 'bad'}`}>
                     {netDelta >= 0 ? '+' : '−'}{money(Math.abs(netDelta))}
                   </span>
-                </dd>
-              </div>
-              <div>
-                <dt>Satisfaction</dt>
-                <dd>
+                </>}
+              />
+              <Figure
+                label="Satisfaction"
+                hint={FIGURE_HINTS.projectedSatisfaction}
+                value={<>
                   <AnimatedNumber value={consequence.satisfactionTarget} format={(n) => `${Math.round(n)}`} />
                   <span className={`consequence-delta ${moodDelta >= 0 ? 'good' : 'bad'}`}>
                     {moodDelta >= 0 ? '+' : '−'}{Math.abs(moodDelta).toFixed(1)}
                   </span>
-                </dd>
-              </div>
-              <div>
-                <dt>{NEED_LABEL[consequence.tightestNeed]}</dt>
-                <dd><CoverageValue now={consequence.tightestCoverageNow} next={consequence.tightestCoverage} /></dd>
-              </div>
+                </>}
+              />
+              <Figure
+                label={NEED_LABEL[consequence.tightestNeed]}
+                hint={FIGURE_HINTS.tightestNeed}
+                value={<CoverageValue now={consequence.tightestCoverageNow} next={consequence.tightestCoverage} />}
+              />
               {consequence.notReturning > 0 && (
-                <div>
-                  <dt>Not returning <span className="outcome-note">({consequence.attritionReasons.length > 0 ? consequence.attritionReasons.join(', ') : 'a bad year'})</span></dt>
-                  <dd className="bad"><AnimatedNumber value={consequence.notReturning} /></dd>
-                </div>
+                <Figure
+                  label={<>Not returning <span className="outcome-note">({consequence.attritionReasons.length > 0 ? consequence.attritionReasons.join(', ') : 'a bad year'})</span></>}
+                  hint={FIGURE_HINTS.notReturning}
+                  value={<AnimatedNumber value={consequence.notReturning} />}
+                />
               )}
             </dl>
           </div>
@@ -488,8 +496,8 @@ function StudentsBeat({ s, decision, petitions, onResolve }: {
         })}
       />
       <dl className="admissions-outcomes">
-        <div><dt>Tuition for the incoming class <span className="outcome-note">(locked for four years)</span></dt><dd>{money(decision.tuition)}/yr</dd></div>
-        <div><dt>Admit rate</dt><dd>{Math.round(decision.admitRate * 100)}%</dd></div>
+        <Figure label={<>Tuition for the incoming class <span className="outcome-note">(locked for four years)</span></>} value={`${money(decision.tuition)}/yr`} hint={FIGURE_HINTS.tuitionLocked} />
+        <Figure label="Admit rate" value={`${Math.round(decision.admitRate * 100)}%`} hint={FIGURE_HINTS.admitRate} />
       </dl>
       <button onClick={() => onResolve([...approved])}>Open year {s.clock.year + 1}</button>
     </>

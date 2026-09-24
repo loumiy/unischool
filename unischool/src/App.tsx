@@ -6,8 +6,16 @@ import { mapBackOutLive, mapControlsLive, useHotkeys, type ShellOverlays } from 
 import type { GameState } from './state/types';
 import StartupScreen from './components/StartupScreen';
 import MainMenu from './components/MainMenu';
+import TitleScreen from './components/TitleScreen';
+import { applySettings } from './settings';
+import HallOfFame from './components/HallOfFame';
+import SettingsPanel from './components/SettingsPanel';
+import Credits from './components/Credits';
 import Pennant from './components/Pennant';
 import DebugPanel from './components/DebugPanel';
+import SoundControls from './components/audio/SoundControls';
+import { useAudioDirector } from './components/audio/useAudio';
+import { audio } from './components/audio/engine';
 import InterruptModal from './components/InterruptModal';
 import { GATED_TABS, TAB_LABELS, tabAvailable, type TabId } from './components/TabNav';
 import CampusMap from './components/CampusMap';
@@ -18,7 +26,6 @@ import MilestoneNote from './components/MilestoneNote';
 import BoardLetter from './components/BoardLetter';
 import DemandNote from './components/DemandNote';
 import EventPanel from './components/EventPanel';
-import Toasts from './components/Toasts';
 import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
 import { applySchoolColors } from './components/theme';
@@ -58,6 +65,8 @@ const TAB_HOTKEYS: Record<string, TabId> = {
   l: 'students',
 };
 
+type Front = 'title' | 'hall' | 'settings' | 'credits';
+
 export default function App() {
   const { state, act, speed, setSpeed, weekProgress, exportRun } = useGame();
   const s: GameState = state;
@@ -66,6 +75,19 @@ export default function App() {
   // open. The tab consumes and clears the target, so the same link works
   // twice.
   const [overlay, setOverlay] = useState<{ tab: TabId; target?: string } | null>(null);
+  // The front screens (Plan 34): the title the game opens on, and the hall,
+  // the settings and the credits, reachable from it and from the menu. The
+  // clock is paused while one is up.
+  const [front, setFrontState] = useState<Front | null>('title');
+  const [frontBack, setFrontBack] = useState<Front | null>(null);
+  function setFront(next: Front | null) {
+    setFrontBack(next === 'title' || next === null ? null : front);
+    setFrontState(next);
+    if (next !== null) setSpeed('paused');
+  }
+  const closeFront = () => setFrontState(frontBack);
+  // The player's settings onto the page, once (settings.ts).
+  useEffect(() => { applySettings(); }, []);
   // The Curriculum tab's "Found in <hall>": closes the tab and opens that
   // hall's panel on the map. Consumed and cleared by the map.
   const [inspectTarget, setInspectTarget] = useState<string | null>(null);
@@ -84,6 +106,11 @@ export default function App() {
   const [logOpen, setLogOpen] = useState(false);
   const [ladderOpen, setLadderOpen] = useState(false);
   const toolbarRef = useCssHeightVar('--toolbar-height');
+
+  // Sound (Plan 34): the director hears the run, not the title screen; M
+  // mutes wherever the player is.
+  useAudioDirector(s.started && front !== 'title' ? s : null);
+  useHotkeys((e) => { if (e.key.toLowerCase() === 'm') audio.toggleMute(); });
 
   // C / F / L (see TAB_HOTKEYS). Held back while an interrupt is pending,
   // since that modal must be answered first.
@@ -209,15 +236,31 @@ export default function App() {
     if (e.key !== 'Escape' || s.pendingInterrupt) return;
     if (ladderOpen) setLadderOpen(false);
     else if (logOpen) setLogOpen(false);
+    // A building in hand is put down before the menu closes (Plan 34).
+    else if (buildOpen && placingId) setPlacingIdState(null);
     else if (buildOpen) closeBuild();
     else if (overlay) openTab(null);
   }, s.started);
+
+  const frontScreen = front === 'title' ? (
+    <TitleScreen
+      s={s}
+      onContinue={() => setFrontState(null)}
+      onNewCollege={() => { if (s.started) act({ type: 'RESET' }); setFrontState(null); }}
+      onHall={() => setFront('hall')}
+      onSettings={() => setFront('settings')}
+      onCredits={() => setFront('credits')}
+    />
+  ) : front === 'hall' ? <HallOfFame onClose={closeFront} />
+    : front === 'settings' ? <SettingsPanel onClose={closeFront}><SoundControls /></SettingsPanel>
+      : front === 'credits' ? <Credits onClose={closeFront} />
+        : null;
 
   if (!s.started) {
     // On this screen the debug panel offers Load alone (see DebugPanel.tsx).
     return (
       <>
-        <StartupScreen onStart={(name, vernacular, colors) => act({ type: 'START_GAME', name, vernacular, colors, guided: true, seed: freshSeed() })} />
+        {frontScreen ?? <StartupScreen onStart={(name, vernacular, colors) => act({ type: 'START_GAME', name, vernacular, colors, guided: true, seed: freshSeed() })} />}
         <DebugPanel s={s} act={act} exportRun={exportRun} />
       </>
     );
@@ -240,7 +283,8 @@ export default function App() {
         onInspectedChange={setInspectedId}
         gait={!s.started || speed === 'paused' || s.pendingInterrupt || openingHoldsClock(s) ? 0 : SPEEDS.real / SPEEDS[speed]}
       />
-      <MainMenu act={act} />
+      <MainMenu act={act} onHall={() => setFront('hall')} onSettings={() => setFront('settings')} onTitle={() => setFront('title')} />
+      {frontScreen}
       {/* The school's pennant (Pennant.tsx); the tab's title takes that
           corner while a tab is open. */}
       {!overlay && <Pennant s={s} />}
@@ -249,20 +293,25 @@ export default function App() {
       <DebugPanel s={s} act={act} exportRun={exportRun} />
 
       <div className="app">
-        {/* Toasts: news that doesn't stop the clock, shown above the
-            ticker; a click opens the relevant tab. */}
-        <Toasts s={s} onOpenTab={(tab) => openTab(tab)} />
-        <MilestoneNote s={s} act={act} />
-        <BoardLetter s={s} act={act} />
-        <DemandNote s={s} act={act} />
-        <EventPanel s={s} act={act} />
+        {/* What waits on the map: the notes and the event panel step aside
+            while a tab is open, and the ticker's NEXT points back to them
+            (Plan 34: one notification system, V1-34). */}
+        {!overlay && (
+          <>
+            <MilestoneNote s={s} act={act} />
+            <BoardLetter s={s} act={act} />
+            <DemandNote s={s} act={act} />
+            <EventPanel s={s} act={act} />
+          </>
+        )}
         <LogTicker
           s={s}
           open={logOpen}
           onSetOpen={(o) => { setLogOpen(o); if (o) setLadderOpen(false); }}
           ladderOpen={ladderOpen}
           onSetLadderOpen={(o) => { setLadderOpen(o); if (o) setLogOpen(false); }}
-          onGo={(go) => { if (go === 'build') setBuildOpen(true); else openTab(go); }}
+          onGo={(go) => { if (go === 'build') setBuildOpen(true); else if (go === 'campus') openTab(null); else openTab(go); }}
+          mapHidden={overlay !== null}
         />
         <Toolbar
           ref={toolbarRef}

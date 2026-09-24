@@ -8,6 +8,7 @@ import { DECISION_EVENTS } from '../data/eventData';
 import type { DemandSubject } from '../data/demandData';
 import { SAVE_KEY } from '../state/persistence';
 import { playtestEnabled } from './playtest';
+import AudioBench from './audio/AudioBench';
 import { money } from '../format';
 
 // The debug panel: read, set, jump, force and load, on top of the live game.
@@ -239,6 +240,7 @@ export default function DebugPanel({ s, act, exportRun }: { s: GameState; act: (
               export run
             </button>
           </section>
+          <AudioBench />
         </div>
       )}
     </div>

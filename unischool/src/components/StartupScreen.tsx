@@ -1,4 +1,3 @@
-import { readHall } from '../state/hall';
 import { useEffect, useState } from 'react';
 import { STARTING_INSTITUTION_SUFFIX } from '../state/actions';
 import { VERNACULARS, VERNACULAR_CHOICES } from './buildingSpec';
@@ -81,7 +80,7 @@ function HungBanner({ x, y, colors }: { x: number; y: number; colors: SchoolColo
 
 // `suffix`: what the school became (the hall of fame's portraits); a new
 // school is a college.
-function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTITUTION_SUFFIX }: { name: string; vernacular: Vernacular; colors: SchoolColors; suffix?: string }) {
+export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTITUTION_SUFFIX }: { name: string; vernacular: Vernacular; colors: SchoolColors; suffix?: string }) {
   const bannerText = name.trim()
     ? `${name.trim().toUpperCase()} ${suffix.toUpperCase()}`
     : suffix.toUpperCase();
@@ -320,55 +319,6 @@ function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTITUTION_
   );
 }
 
-// The hall of fame (Plan 33, state/hall.ts): finished runs as framed
-// portraits (each college's own facade) with plaques; one opens onto its
-// grades and its chronicle.
-function HallOfFame() {
-  const [hall] = useState(() => readHall());
-  const [open, setOpen] = useState<string | null>(null);
-  if (hall.length === 0) return null;
-  const shown = hall.find((e) => e.id === open);
-  return (
-    <section className="hall" aria-label="The hall of fame">
-      <h2 className="hall-title">The hall of fame</h2>
-      <ul className="hall-frames">
-        {hall.map((e) => (
-          <li key={e.id}>
-            <button type="button" className={`hall-frame${open === e.id ? ' is-open' : ''}`} onClick={() => setOpen(open === e.id ? null : e.id)} aria-expanded={open === e.id}>
-              <span className="hall-portrait"><SchoolFacade name={e.name} vernacular={e.vernacular} colors={e.colors} suffix={e.suffix} /></span>
-              <span className="hall-plaque">
-                <span className="hall-plaque-name">{e.college}</span>
-                <span className="hall-plaque-meta">
-                  <span className={`grade-chip sm grade-${e.mark.toLowerCase()}`}>{e.mark}</span>
-                  Years 1–{e.year} · {new Date(e.finishedAt).getFullYear()}
-                </span>
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      {shown && (
-        <div className="hall-reading">
-          <p className="hall-reading-title">{shown.title}</p>
-          <p className="hall-reading-grades">
-            {shown.grades.map((g) => (
-              <span key={g.label}><span className={`grade-chip sm grade-${g.grade.toLowerCase()}`}>{g.grade}</span> {g.label}</span>
-            ))}
-          </p>
-          <ol className="chronicle-eras">
-            {shown.eras.map((era) => (
-              <li key={`${era.from}`} className="chronicle-era">
-                <h3 className="chronicle-era-name">{era.name}</h3>
-                <p className="chronicle-era-lines">{era.lines.join(' ')}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
-    </section>
-  );
-}
-
 export default function StartupScreen({ onStart }: { onStart: (name: string, vernacular: Vernacular, colors: SchoolColors) => void }) {
   const [name, setName] = useState('');
   const [vernacular, setVernacular] = useState<Vernacular>(FOUNDING_VERNACULAR);
@@ -445,7 +395,6 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
           Open the Doors
         </button>
       </div>
-      <HallOfFame />
     </div>
   );
 }

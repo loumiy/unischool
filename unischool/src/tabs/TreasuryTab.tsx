@@ -8,8 +8,11 @@ import {
 } from '../systems/finance/financeSystem';
 import { marketRateMultiplier } from '../data/facultyData';
 import HelpHint from '../components/HelpHint';
+import Figure from '../components/Figure';
+import { FIGURE_HINTS } from '../data/figureHints';
 import { HOME_DATES_PER_SEASON } from '../systems/athletics/gate';
-import { money } from '../format';
+import { money, moneyShort } from '../format';
+import { MultiChart } from '../components/MultiChart';
 import EstatePanel from './EstatePanel';
 import EndowmentPanel from './EndowmentPanel';
 import { debtOutstanding, drawRate } from '../systems/finance/treasury';
@@ -177,36 +180,51 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
         <section className="panel">
           <h2>Balance & Policy</h2>
           <dl>
-            <dt>Cash</dt><dd>{money(s.finance.cash)}</dd>
-            <dt>The board</dt>
-            <dd>
-              {RUNG_NAMES[distress.rung]}, confidence {Math.round(distress.confidence)}
-              {distress.rung === RUNG_RECEIVERSHIP && <span className="stat"> — the interim CFO sets the draw and the maintenance, {distress.receivershipTermsLeft} terms left</span>}
-              {distress.rung === RUNG_AUSTERITY && <span className="stat"> — no construction, no maintenance, and tuition held</span>}
-              {distress.rung === RUNG_FREEZE && <span className="stat"> — no construction or borrowing until two surplus terms</span>}
-            </dd>
-            <dt>Endowment</dt><dd>{money(s.finance.endowment)}</dd>
+            <Figure label="Cash" value={money(s.finance.cash)} hint={FIGURE_HINTS.cash} />
+            <Figure
+              label="The board"
+              hint={FIGURE_HINTS.board}
+              value={<>
+                {RUNG_NAMES[distress.rung]}, confidence {Math.round(distress.confidence)}
+                {distress.rung === RUNG_RECEIVERSHIP && <span className="stat"> — the interim CFO sets the draw and the maintenance, {distress.receivershipTermsLeft} terms left</span>}
+                {distress.rung === RUNG_AUSTERITY && <span className="stat"> — no construction, no maintenance, and tuition held</span>}
+                {distress.rung === RUNG_FREEZE && <span className="stat"> — no construction or borrowing until two surplus terms</span>}
+              </>}
+            />
+            <Figure label="Endowment" value={money(s.finance.endowment)} hint={FIGURE_HINTS.endowment} />
             {/* Grants are one-off arrivals, so they show as a running total
                 rather than a weekly line (see researchSystem.ts). */}
-            <dt>Research grants</dt>
-            <dd>{money(s.research.grantIncome)} across {s.research.grants}</dd>
-            {/* The listed price is what the next class is quoted; each class
-                on the books pays its own locked price, so after a price move
-                up to four prices are collected at once (types.ts's
+            <Figure label="Research grants" value={`${money(s.research.grantIncome)} across ${s.research.grants}`} hint={FIGURE_HINTS.grants} />
+            <Figure label="Tuition, listed" value={`${money(s.finance.listedTuition)}/yr`} hint={FIGURE_HINTS.listedTuition} />
+            {/* Each class on the books pays its own locked price, so after a
+                price move up to four prices are collected at once (types.ts's
                 tuitionByClass). */}
-            <dt>Tuition, listed</dt><dd>{money(s.finance.listedTuition)}/yr</dd>
-            <dt>Charged, by class</dt>
-            <dd>
-              {CLASS_ORDER.map(([key, label], i) => (
+            <Figure
+              label="Charged, by class"
+              hint={FIGURE_HINTS.chargedByClass}
+              value={CLASS_ORDER.map(([key, label], i) => (
                 <span key={key}>
                   {i > 0 && ' · '}
                   {label} {money(s.finance.tuitionByClass[key])}
                 </span>
               ))}
-            </dd>
+            />
           </dl>
         </section>
       </div>
+      {s.history.length >= 2 && (
+        <section className="panel">
+          <h2>Over the Years</h2>
+          <MultiChart
+            title="The endowment and the year's net"
+            series={[
+              { name: 'Endowment', points: s.history.filter((h) => h.endowment !== undefined).map((h) => ({ x: h.year, y: h.endowment! })), format: moneyShort },
+              { name: 'Net', points: s.history.map((h) => ({ x: h.year, y: h.net })), format: moneyShort },
+            ]}
+            note="Read each summer. The net is the year's change in cash on hand, so a year that built something big reads low."
+          />
+        </section>
+      )}
       <EndowmentPanel s={s} act={act} />
       <EstatePanel s={s} act={act} />
     </div>
