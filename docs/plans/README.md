@@ -45,6 +45,7 @@ the repository root, and the game as it actually is lives in `docs/design/` and
 | 22 | [Foundations](22-foundations.md) | Phase A of the merge with UniSchool v2: a test runner and CI, one formatter, dead code out, a seeded random stream in the state, saving out of the reducer, an action log and replay, the comment trim, content integrity checks, the merged harness and v2's tools. PRs A–J. | Landed |
 | 23 | [The ladder](23-the-ladder.md) | Phase B of the merge: the unlock track. Named milestones, each opening buildings and tabs on one condition, shown as a ladder with progress and a letter as each lands; the scattered unlock gates and tab gates fold into it. PRs A–E. | Landed |
 | 24 | [The campus](24-the-campus.md) | Phase C of the merge: the campus map. A static layer drawn once per layout, ten tilt pitches, a road and reachability, detected and designated quads, diagonal and curved paths, walkers on real routes with desire lines, player-placed lamps and benches, the flag, banners and crowds, and construction and age drawn on the buildings; the profiler gates every PR. PRs A–J. | In progress |
+| 25 | [The catalogue, drawn](25-the-catalogue-drawn.md) | Phase D of the merge: dedicated halls drawn as their school's signature building, research buildings by discipline, three grand landmarks built in stages behind a new milestone, and the roof parts that read. v2's amenities wait for Phase E's beauty, graduate halls for Phase L's capital projects. PRs A–F. | In progress |
 
 ## Naming
 
