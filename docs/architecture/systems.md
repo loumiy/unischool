@@ -26,6 +26,11 @@ News report** (see [progression.md](../design/progression.md)); the fiftieth
 summer's first beat is the **final report** that seals the run's record, after
 which the clock keeps running as a sandbox.
 
+The first system each week is the **ladder** (`systems/ladder/ladderSystem.ts`,
+`data/ladderData.ts`): it records every milestone whose condition has just
+come true, so the buildings and tabs a milestone opens are available to the
+tech tick that same week. See "The ladder" in [progression.md](../design/progression.md).
+
 ## Layout
 
 - `src/state/` — the shared `GameState` type, initial state, and action definitions

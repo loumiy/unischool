@@ -36,7 +36,7 @@ export const SAVE_KEY = 'unischool.save';
 // run is worse than a new one. There is no migration chain; if a specific
 // run is ever worth carrying across a bump, write a one-off and delete it
 // in the next PR. See docs/architecture/game-state.md.
-export const SAVE_VERSION = 70;
+export const SAVE_VERSION = 71;
 
 // What goes in localStorage. `savedAt` is epoch milliseconds.
 export interface SavePayload {

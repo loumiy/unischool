@@ -41,10 +41,12 @@ import { resolveAdmissions } from '../systems/admissions/resolveAdmissions';
 import { startInitiative } from '../systems/research/startInitiative';
 import { placeBuildable } from '../state/placeBuildable';
 import { fireFaculty, hireFaculty } from '../systems/faculty/appointments';
+import { tickLadder } from '../systems/ladder/ladderSystem';
 
 // The systems run in a fixed order each week; each placement comment says
 // what it must read fresh.
 const SYSTEMS: Array<(s: GameState) => void> = [
+  tickLadder,
   tickTech,
   tickFaculty,
   // Before tickFinance: output uses this week's grown stats, and a grant
@@ -494,6 +496,10 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
 
     // Puts down one of the first year's letters (see fireOpeningLetter). The
     // only thing a letter records is declining the rest. Advances the clock.
+    case 'READ_MILESTONE':
+      s.ladder.unread = s.ladder.unread.filter((id) => id !== action.id);
+      return s;
+
     case 'RESOLVE_LETTER': {
       if (action.skipAll) s.events.opening.skipped = true;
       s.pendingInterrupt = null;

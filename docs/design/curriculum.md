@@ -27,8 +27,8 @@ the campus map, and the college opens already teaching (Plan 19). Three moves
    free, so the three programs that would dedicate the School of Social
    Sciences & Humanities fit in the building the college already owns. The
    first purchased hall opens once the college teaches **eight developed
-   courses** (`Buildable.minCoursesToUnlock`: the six it opens with and two
-   the player chose) and is deliberately cheap; each rung after it costs a
+   courses** (the ladder's "A curriculum" milestone: the six it opens with and
+   two the player chose) and is deliberately cheap; each rung after it costs a
    fixed ratio more.
 2. **Programs arrive three at a time.** From week one, the player is never
    shown forty-two doors. They are shown **three** (`s.programOffers`), drawn

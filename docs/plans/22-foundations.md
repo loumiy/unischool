@@ -4,7 +4,7 @@
 UniSchool v2's systems, and able to measure them: Phase A of the migration
 plan (`loumiy/unischool-v2`, `docs/MIGRATION_PLAN.md`), sequenced as PRs.*
 
-**Status: In progress.** PRs A–J are done in this branch, awaiting merge, with G split into G and
+**Status: Landed** (#133). PRs A–J, with G split into G and
 G (ii) and D's re-recorded bands as D (ii). The **As implemented** notes
 record where the work departed from the plan; the ones that matter most are
 that the tests stayed standalone scripts under a new runner rather than

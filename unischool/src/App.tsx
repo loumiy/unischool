@@ -13,6 +13,7 @@ import CampusMap from './components/CampusMap';
 import { FOUNDERS_HALL_ID } from './data/techData';
 import Toolbar from './components/Toolbar';
 import LogTicker from './components/LogTicker';
+import MilestoneNote from './components/MilestoneNote';
 import Toasts from './components/Toasts';
 import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
@@ -78,6 +79,7 @@ export default function App() {
   // The activity-log popup: the innermost thing the shell can open, so
   // Escape has to see it.
   const [logOpen, setLogOpen] = useState(false);
+  const [ladderOpen, setLadderOpen] = useState(false);
   const toolbarRef = useCssHeightVar('--toolbar-height');
 
   // C / F / L (see TAB_HOTKEYS). Held back while an interrupt is pending,
@@ -128,7 +130,7 @@ export default function App() {
   const overlays: ShellOverlays = {
     overlayOpen: overlay !== null,
     buildOpen,
-    logOpen,
+    logOpen: logOpen || ladderOpen,
     interrupted: s.pendingInterrupt !== null,
   };
   const mapBackOutEnabled = mapBackOutLive(overlays);
@@ -196,13 +198,14 @@ export default function App() {
     else if (stage === 'play' && prev !== null) setSpeed('real');
   }, [s.started, stage]);
 
-  // One Escape ladder, top down, for the whole shell: the log popup, the
+  // One Escape ladder, top down, for the whole shell: the milestones and log popups, the
   // build menu, an open tab. Below that is the map's own back-out, handled
   // in CampusMap, whose Escape is enabled exactly when this handler has
   // nothing to close. An interrupt outranks all of it.
   useHotkeys((e) => {
     if (e.key !== 'Escape' || s.pendingInterrupt) return;
-    if (logOpen) setLogOpen(false);
+    if (ladderOpen) setLadderOpen(false);
+    else if (logOpen) setLogOpen(false);
     else if (buildOpen) closeBuild();
     else if (overlay) openTab(null);
   }, s.started);
@@ -245,10 +248,13 @@ export default function App() {
         {/* Toasts: news that doesn't stop the clock, shown above the
             ticker; a click opens the relevant tab. */}
         <Toasts s={s} onOpenTab={(tab) => openTab(tab)} />
+        <MilestoneNote s={s} act={act} />
         <LogTicker
           s={s}
           open={logOpen}
-          onSetOpen={setLogOpen}
+          onSetOpen={(o) => { setLogOpen(o); if (o) setLadderOpen(false); }}
+          ladderOpen={ladderOpen}
+          onSetLadderOpen={(o) => { setLadderOpen(o); if (o) setLogOpen(false); }}
           onGo={(go) => { if (go === 'build') setBuildOpen(true); else openTab(go); }}
         />
         <Toolbar

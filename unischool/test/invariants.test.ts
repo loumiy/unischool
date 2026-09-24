@@ -36,6 +36,7 @@ import {
   prestigeBreakdown, researchStandingBreakdown, socialStandingBreakdown,
 } from '../src/systems/prestige/prestigeSystem';
 import { bindScriptStream } from '../src/engine/random';
+import { milestoneById, milestoneForBuildable } from '../src/data/ladderData';
 
 bindScriptStream(12345);
 const store = new Map<string, string>();
@@ -600,7 +601,7 @@ function assertHallsInvariants(s: GameState, label: string): void {
   assert(halls.length === ACADEMIC_HALL_COUNT, `the seed holds ${ACADEMIC_HALL_COUNT} academic halls beyond Founders (got ${halls.length})`);
   assert(halls.every((h) => h.slots === ACADEMIC_HALL_SLOTS), 'every academic hall has six slots');
   assert(halls.every((h) => h.status === 'locked'), 'no academic hall is buildable at founding');
-  assert(halls[0].prereqs.length === 0 && halls[0].minCoursesToUnlock === FIRST_HALL_COURSE_GATE, `the first hall's gate is ${FIRST_HALL_COURSE_GATE} developed courses, not a Buildable`);
+  assert(halls[0].prereqs.length === 0 && milestoneForBuildable(halls[0].id) === 'curriculum' && milestoneById('curriculum')!.condition.startsWith(`${FIRST_HALL_COURSE_GATE} courses`), 'the first hall waits on the ladder\'s curriculum milestone, at the course gate');
   assert(halls.slice(1).every((h, i) => h.prereqs.length === 1 && h.prereqs[0] === halls[i].id),
     'each later hall requires exactly the hall before it');
   assert(halls.every((h, i) => i === 0 || h.cost > halls[i - 1].cost), 'each hall costs more than the one before');
